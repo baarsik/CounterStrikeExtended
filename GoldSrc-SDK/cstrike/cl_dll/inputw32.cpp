@@ -455,6 +455,7 @@ IN_MouseMove
 #pragma warning( push )
 #pragma warning( disable : 4701 )
 void IN_MouseMove(float, usercmd_t *cmd) {
+    s_relativeMotion.SetRawInput(m_bRawInput);
     int mx, my;
     vec3_t viewangles;
 
@@ -558,6 +559,7 @@ IN_Accumulate
 ===========
 */
 extern "C" void IN_Accumulate() {
+    s_relativeMotion.SetRawInput(m_bRawInput);
     // only accumulate mouse if we are not moving the camera with the mouse
     if (!iMouseInUse && !vgui2::surface()->IsCursorVisible()) {
         if (mouseactive) {

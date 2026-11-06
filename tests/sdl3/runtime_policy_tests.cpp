@@ -50,5 +50,14 @@ int main() {
     const cse::Utf16Character supplementary = cse::EncodeUtf16(0x1f600);
     assert(supplementary.count == 2 && supplementary.first == 0xd83d && supplementary.second == 0xde00);
     assert(cse::EncodeUtf16(0x110000).first == 0xfffd);
+    motion.Reset();
+    motion.SetRawInput(true);
+    assert(motion.TakeX(0.75f) == 0);
+    motion.SetRawInput(false);
+    assert(motion.TakeX(0.25f) == 0);
+    motion.SetRawInput(true);
+    assert(motion.TakeX(0.75f) == 0);
+    motion.SetRawInput(true);
+    assert(motion.TakeX(0.25f) == 1);
     return 0;
 }

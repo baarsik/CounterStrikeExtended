@@ -14,6 +14,12 @@ class FractionalMotion {
     int TakeY(float delta) {
         return Take(delta, y);
     }
+    void SetRawInput(bool enabled) {
+        if (rawInput != enabled) {
+            Reset();
+            rawInput = enabled;
+        }
+    }
     void Reset() {
         x = 0.0f;
         y = 0.0f;
@@ -26,6 +32,7 @@ class FractionalMotion {
         remainder -= static_cast<float>(whole);
         return whole;
     }
+    bool rawInput = false;
     float x = 0.0f;
     float y = 0.0f;
 };

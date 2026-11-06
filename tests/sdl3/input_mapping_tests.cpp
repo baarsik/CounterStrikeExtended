@@ -28,6 +28,6 @@ int main() {
     assert(cse::WheelSteps(wheel, 0.25f, SDL_MOUSEWHEEL_NORMAL) == 0);
     assert(cse::WheelSteps(wheel, 0.75f, SDL_MOUSEWHEEL_NORMAL) == 1);
     assert(cse::WheelSteps(wheel, 0.0f, SDL_MOUSEWHEEL_NORMAL) == 0);
-    assert(cse::WheelSteps(wheel, 2.0f, SDL_MOUSEWHEEL_FLIPPED) == -2);
+    assert(cse::WheelSteps(wheel, 2.0f, SDL_MOUSEWHEEL_FLIPPED) == 2);
     return 0;
 }

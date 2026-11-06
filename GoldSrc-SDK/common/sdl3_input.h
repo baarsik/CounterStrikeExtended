@@ -53,7 +53,9 @@ inline bool IsWindowLifecycleEvent(Uint32 type) {
 }
 
 inline int WheelSteps(FractionalMotion &remainder, float vertical, SDL_MouseWheelDirection direction) {
-    return remainder.TakeY(direction == SDL_MOUSEWHEEL_FLIPPED ? -vertical : vertical);
+    // SDL2 consumers used signed y as delivered, including natural-scroll events.
+    (void)direction;
+    return remainder.TakeY(vertical);
 }
 
 } // namespace cse

@@ -479,6 +479,7 @@ IN_MouseMove
 ===========
 */
 void IN_MouseMove(float frametime, usercmd_t *cmd) {
+    s_relativeMotion.SetRawInput(IN_UseRawInput());
     int mx, my;
     vec3_t viewangles;
 
@@ -593,6 +594,7 @@ IN_Accumulate
 ===========
 */
 void CL_DLLEXPORT IN_Accumulate(void) {
+    s_relativeMotion.SetRawInput(IN_UseRawInput());
     // only accumulate mouse if we are not moving the camera with the mouse
     if (!iMouseInUse && !g_iVisibleMouse) {
         if (mouseactive) {
