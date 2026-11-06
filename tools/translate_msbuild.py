@@ -336,7 +336,14 @@ def main():
         crts = [c['definitions']['ClCompile']['RuntimeLibrary'] for c in [debug, release]]
         ndebug = 'yes' if 'NDEBUG' in split(release['definitions']['ClCompile'].get('PreprocessorDefinitions', '')) else 'no'
         overview.append(f'| `{project.relative_to(SDK)}` | `{target}` | {len(active)} | {crts[0]} / {crts[1]} | {ndebug} |')
-    # Portable evidence, including full per-file metadata, without machine-specific paths.
+    # Store target defaults once and only effective per-file differences. Avoid
+    # repeating every inherited compiler setting for every source/header item.
+    for record in records:
+        for data in record['configurations'].values():
+            data['items'] = [dict(kind=item['kind'], path=item['path'],
+                                  metadata={k: item['metadata'][k] for k in item['overrides']})
+                             for item in data['items']
+                             if item['kind'] in ['ClCompile', 'ResourceCompile', 'Library', 'ProjectReference']]
     evidence = json.dumps(records, indent=2).replace(str(SDK), '${CSE_SDK_DIR}')
     (ROOT / 'docs/msbuild/repository-selections.json').write_text(evidence + '\n')
     (ROOT / 'docs/msbuild-crosswalk.md').write_text('\n'.join(overview) + '\n')
