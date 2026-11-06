@@ -3767,12 +3767,16 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/dal_a2d.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/dalinfo.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -4050,12 +4054,16 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/dal_a2d.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/dalinfo.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",

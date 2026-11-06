@@ -88,8 +88,12 @@
     <ClCompile Include="..\..\a3dapi\A3d3.cpp" />
     <ClCompile Include="..\..\a3dapi\a3d_guids.cpp" />
     <ClCompile Include="..\..\a3dapi\resman.cpp" />
-    <ClCompile Include="..\..\a3dapi\dal_a2d.cpp" />
-    <ClCompile Include="..\..\a3dapi\dalinfo.cpp" />
+    <ClCompile Include="..\..\a3dapi\dal_a2d.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\dalinfo.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\a3dapi\A3dGeom.cpp">
       <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
       <FloatingPointModel>Precise</FloatingPointModel>
