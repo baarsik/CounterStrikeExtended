@@ -559,7 +559,7 @@ bool LoadTGA( const char* szFilename, byte* buffer, int bufferSize, int* width, 
 	if ( height )
 		*height = targa_header.height;
 
-	if ( ( numPixels * ( targa_header.pixel_size == 24 ) ? 3 : 4 ) > bufferSize )
+	if ( ( ( numPixels * ( targa_header.pixel_size == 24 ) ) ? 3 : 4 ) > bufferSize )
 		return false;
 
 	if ( (unsigned int)columns * (unsigned int)rows > (unsigned int)bufferSize / 4 )
