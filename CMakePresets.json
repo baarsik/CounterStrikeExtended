@@ -1,0 +1,86 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 4,
+    "minor": 2,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "windows-x86",
+      "hidden": true,
+      "generator": "Visual Studio 18 2026",
+      "architecture": "Win32",
+      "toolset": "v145",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_SYSTEM_VERSION": "10.0.26100.0",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "OFF",
+        "CSE_BUILD_A3D": "OFF"
+      }
+    },
+    {
+      "name": "runtime-x86-release",
+      "inherits": "windows-x86",
+      "cacheVariables": {
+        "CSE_HARDWARE_ONLY": "OFF"
+      }
+    },
+    {
+      "name": "runtime-x86-debug",
+      "inherits": "windows-x86",
+      "cacheVariables": {
+        "CSE_HARDWARE_ONLY": "OFF"
+      }
+    },
+    {
+      "name": "hardware-x86-release",
+      "inherits": "windows-x86",
+      "cacheVariables": {
+        "CSE_HARDWARE_ONLY": "ON"
+      }
+    },
+    {
+      "name": "hardware-x86-debug",
+      "inherits": "windows-x86",
+      "cacheVariables": {
+        "CSE_HARDWARE_ONLY": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "runtime-x86-release",
+      "configurePreset": "runtime-x86-release",
+      "configuration": "Release",
+      "targets": [
+        "cse_runtime"
+      ]
+    },
+    {
+      "name": "runtime-x86-debug",
+      "configurePreset": "runtime-x86-debug",
+      "configuration": "Debug",
+      "targets": [
+        "cse_runtime"
+      ]
+    },
+    {
+      "name": "hardware-x86-release",
+      "configurePreset": "hardware-x86-release",
+      "configuration": "Release",
+      "targets": [
+        "cse_hardware"
+      ]
+    },
+    {
+      "name": "hardware-x86-debug",
+      "configurePreset": "hardware-x86-debug",
+      "configuration": "Debug",
+      "targets": [
+        "cse_hardware"
+      ]
+    }
+  ]
+}

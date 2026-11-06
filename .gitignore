@@ -1,0 +1,7 @@
+/build/
+/out/
+/CMakeUserPresets.json
+/GoldSrc-SDK/bin/
+/.superpowers/
+__pycache__/
+*.pyc
