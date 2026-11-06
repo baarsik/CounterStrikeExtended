@@ -40,28 +40,29 @@
 - [ ] Build all four presets and verify x86 outputs, providers, actual playable connection and repeated shutdown.
 - [ ] Capture baseline behavior/benchmark evidence and commit only the authorized baseline repairs and driver.
 
-### Task 2: Integrate pinned native SDL3 and core window/display events
+### Task 2: Package pinned native SDL3 and build integration support
 
-**Files:** `GoldSrc-SDK/external/SDL3/`, SDL dependency CMake module, owning MSBuild manifests, `tools/translate_msbuild.py`, engine `sys_sdlwind.*`, `sys_getmodes.cpp`, `gl_vidnt.cpp`, `qgl.cpp`, native handle consumers.
+**Files:** `GoldSrc-SDK/external/SDL3/`, `cmake/SDL3Dependency.cmake`, shared MSBuild SDL3 props/targets, `tools/translate_msbuild.py`, build integration tests.
 
-**Interfaces:** Preserve `CGame` getters' internal SDL_Window pointer contract and exported engine ABI. Provide native HWND access only at actual Windows consumers. SDL3 includes use `<SDL3/...>`.
+**Interfaces:** Supply the pinned dependency, exact native shared-library classification and runtime staging. Existing consumers remain on the qualified baseline until Task 3 activates them together, avoiding mixed SDL event/window types across shared headers.
 
-- [ ] Add narrow failing tests for event/time/display conversion policies that production will consume.
-- [ ] Pin SDL3 3.4.20 with source provenance, licenses, x86 dependency and runtime packaging.
-- [ ] Update manifest ownership, bool-result checks, init ownership, native handles, window lifecycle, display IDs, fullscreen modes and physical pixel sizing.
-- [ ] Preserve GL compatibility/fallback, extensions, icon byte layout and supported legacy branches; regenerate definitions.
-- [ ] Run focused tests and VM1 hardware builds plus window/fullscreen/focus smoke tests; commit.
+- [ ] Pin SDL3 3.4.20 official VC x86 payload with source provenance, licenses and selected-file hashes.
+- [ ] Add fail-closed CMake and standalone MSBuild dependency validation and shared always-run runtime DLL staging.
+- [ ] Extend translator support for the exact SDL3 dependency and staging contract; retain rejection of unknown build actions.
+- [ ] Add focused tests for dependency validation, translator contracts and staging; regenerate current definitions without activating consumers.
+- [ ] Configure/build on VM1 and validate missing/mutated provider rejection; commit.
 
-### Task 3: Migrate client input, VGUI and text/gamepad boundaries
+### Task 3: Activate native SDL3 across window, input, UI and Windows media
 
-**Files:** engine `VGUI_EngineSurfaceWrap.cpp`, `vgui2/BaseUISurface.*`, `keys.cpp`, `cdll_int.cpp`, VGUI key translation, `GameUI/OptionsSubKeyboard.cpp`, retained game `inputw32.cpp`/`in_camera.cpp` pairs and POSIX clipboard source.
+**Files:** owning manifests and generated definitions; engine `sys_sdlwind.*`, `sys_getmodes.cpp`, `gl_vidnt.cpp`, `qgl.cpp`, native handle consumers, `VGUI_EngineSurfaceWrap.cpp`, `vgui2/BaseUISurface.*`, `keys.cpp`, `cdll_int.cpp`, VGUI key translation, `GameUI/OptionsSubKeyboard.cpp`, retained client `inputw32.cpp`/`in_camera.cpp` pairs, POSIX clipboard and `webm_video.*`.
 
-**Interfaces:** Consume SDL3 window/event ownership from Task 2; retain integer engine/client mouse and binding ABI, existing cvar units and old gamepad button meanings.
+**Interfaces:** Activate Task 2 dependency atomically for consumers. Preserve `CGame` getters' internal SDL_Window pointer contract and exported engine/client ABI. Native HWND access belongs only at actual Windows consumers. Includes use `<SDL3/...>`. Retain integer mouse ABI, existing cvar units and old gamepad button meanings.
 
-- [ ] Add failing regression cases for fractional accumulation, 400 ms double-click boundaries, long/multibyte text and gamepad button translation.
-- [ ] Port event structures and cursor/relative-mode APIs with explicit precision, timestamp conversion and text lifetime.
-- [ ] Port clients together, preserve raw/legacy input paths, binding/layout policies, gamepad enumeration/rescan and clipboard behavior.
-- [ ] Run tests and complete runtime builds; compare real menu/game transitions, key/text/controller cases against baseline; commit.
+- [ ] Add failing regression cases for fractional accumulation, timestamp/double-click boundaries, long/multibyte text, display and gamepad policies that production consumes.
+- [ ] Update owning manifests and regenerate definitions; migrate bool results, init ownership, window lifecycle, display IDs, fullscreen modes and physical pixel sizing.
+- [ ] Preserve GL compatibility/fallback, extensions, icon byte layout, supported software-video paths and startup media.
+- [ ] Port event structures, explicit event dispatch, cursor/relative-mode APIs, clients and UI with precision, text lifetime, raw/legacy paths, keyboard/layout policies, gamepad rescan and clipboard preserved.
+- [ ] Run focused tests and all runtime/hardware builds on VM1; exercise window/fullscreen/focus/menu/game transitions and commit.
 
 ### Task 4: Complete media, retained paths and dependency removal
 
