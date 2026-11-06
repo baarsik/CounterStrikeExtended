@@ -194,22 +194,21 @@ void VideoMode_Create()
 		_wassert( L"videomode", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 2362 );
 }
 
-bool CLauncherDirectDraw::Init()
-{
-	if ( m_pDirectDraw )
-		_wassert( L"!m_pDirectDraw", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodesdd.cpp", 82 );
-	if ( DirectDrawCreate( NULL, &m_pDirectDraw, NULL ) != DD_OK )
-		return false;
-	m_pDirectDraw->SetCooperativeLevel( NULL, DDSCL_NORMAL );
-	if ( !videomode->IsWindowedMode() )
-	{
-            HWND info = nullptr;
-            info =
-                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
-                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
-        }
-	return true;
+bool CLauncherDirectDraw::Init() {
+    if (m_pDirectDraw) {
+        _wassert(L"!m_pDirectDraw", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodesdd.cpp", 82);
+    }
+    if (DirectDrawCreate(NULL, &m_pDirectDraw, NULL) != DD_OK) {
+        return false;
+    }
+    m_pDirectDraw->SetCooperativeLevel(NULL, DDSCL_NORMAL);
+    if (!videomode->IsWindowedMode()) {
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+    }
+    return true;
 }
 
 bool CLauncherDirectDraw::Shutdown()
@@ -475,103 +474,113 @@ static int VideoModeCompare( const void* arg1, const void* arg2 )
 	return 0;
 }
 
-bool CVideoMode_Common::Init( void* )
-{
-	if ( !game->CreateGameWindow() )
-		return false;
+bool CVideoMode_Common::Init(void *) {
+    if (!game->CreateGameWindow()) {
+        return false;
+    }
 
-	SDL_DisplayMode desktop;
-        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-        if (!desktopMode) {
-            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+    SDL_DisplayMode desktop;
+    const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    if (!desktopMode) {
+        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+    }
+    desktop = *desktopMode;
+    m_safeMode.width = desktop.w;
+    m_safeMode.height = desktop.h;
+    m_safeMode.bpp = 32;
+    int width = registry->ReadInt("DisplayWidth", desktop.w);
+    int height = registry->ReadInt("DisplayHeight", desktop.h);
+    registry->ReadInt("DisplayBPP", 32);
+    COM_CheckParm("-16bpp");
+    COM_CheckParm("-24bpp");
+    COM_CheckParm("-32bpp");
+    MaxBitsPerPixel();
+
+    m_nNumModes = 0;
+    SetupSDLVideoModes();
+    if (m_nNumModes >= 2) {
+        qsort(m_rgModeList, m_nNumModes, sizeof(m_rgModeList[0]), VideoModeCompare);
+    }
+
+    int arg = COM_CheckParm("-width");
+    if (arg) {
+        width = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-w");
+    if (arg) {
+        width = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-height");
+    if (arg) {
+        height = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-h");
+    if (arg) {
+        height = atoi(com_argv[arg + 1]);
+    }
+    if (width > 5120) {
+        width = 5120;
+    }
+    if (height > 1600) {
+        height = 1600;
+    }
+
+    if (IsWindowedMode()) {
+        SDL_Rect bounds;
+        if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
+            if (width > bounds.w) {
+                width = bounds.w;
+            }
+            if (height > bounds.h) {
+                height = bounds.h;
+            }
         }
-        desktop = *desktopMode;
-        m_safeMode.width = desktop.w;
-	m_safeMode.height = desktop.h;
-	m_safeMode.bpp = 32;
-	int width = registry->ReadInt( "DisplayWidth", desktop.w );
-	int height = registry->ReadInt( "DisplayHeight", desktop.h );
-	registry->ReadInt( "DisplayBPP", 32 );
-	COM_CheckParm( "-16bpp" );
-	COM_CheckParm( "-24bpp" );
-	COM_CheckParm( "-32bpp" );
-	MaxBitsPerPixel();
+    }
+    if (width > 0 && height < 0) {
+        height = (int)((double)width * 3.0 * 0.25);
+    }
 
-	m_nNumModes = 0;
-	SetupSDLVideoModes();
-	if ( m_nNumModes >= 2 )
-		qsort( m_rgModeList, m_nNumModes, sizeof( m_rgModeList[0] ), VideoModeCompare );
-
-	int arg = COM_CheckParm( "-width" );
-	if ( arg )
-		width = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-w" );
-	if ( arg )
-		width = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-height" );
-	if ( arg )
-		height = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-h" );
-	if ( arg )
-		height = atoi( com_argv[arg + 1] );
-	if ( width > 5120 )
-		width = 5120;
-	if ( height > 1600 )
-		height = 1600;
-
-	if ( IsWindowedMode() )
-	{
-		SDL_Rect bounds;
-                if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
-                    if (width > bounds.w)
-                        width = bounds.w;
-                    if (height > bounds.h)
-                        height = bounds.h;
-                }
+    int mode = -1;
+    for (int i = 0; i < m_nNumModes; i++) {
+        if (m_rgModeList[i].width == width) {
+            mode = i;
+            if (m_rgModeList[i].height == height) {
+                break;
+            }
         }
-	if ( width > 0 && height < 0 )
-		height = (int)( (double)width * 3.0 * 0.25 );
-
-	int mode = -1;
-	for ( int i = 0; i < m_nNumModes; i++ )
-	{
-		if ( m_rgModeList[i].width == width )
-		{
-			mode = i;
-			if ( m_rgModeList[i].height == height )
-				break;
-		}
-	}
-	if ( mode < 0 )
-		mode = 0;
-	m_nGameMode = mode;
-	if ( ( IsWindowedMode() || !COM_CheckParm( "-nofbo" ) ) && ( COM_CheckParm( "-forceres" ) || m_nNumModes < 2 ) )
-	{
-		m_rgModeList[mode].width = width;
-		m_rgModeList[mode].height = height;
-		if ( !m_nNumModes )
-			m_nNumModes = 1;
-	}
-	registry->WriteInt( "DisplayWidth", m_rgModeList[mode].width );
-	registry->WriteInt( "DisplayHeight", m_rgModeList[mode].height );
-	registry->WriteInt( "DisplayBPP", m_rgModeList[mode].bpp );
-	LoadStartupGraphic();
-	AdjustWindowForMode();
-	return true;
+    }
+    if (mode < 0) {
+        mode = 0;
+    }
+    m_nGameMode = mode;
+    if ((IsWindowedMode() || !COM_CheckParm("-nofbo")) && (COM_CheckParm("-forceres") || m_nNumModes < 2)) {
+        m_rgModeList[mode].width = width;
+        m_rgModeList[mode].height = height;
+        if (!m_nNumModes) {
+            m_nNumModes = 1;
+        }
+    }
+    registry->WriteInt("DisplayWidth", m_rgModeList[mode].width);
+    registry->WriteInt("DisplayHeight", m_rgModeList[mode].height);
+    registry->WriteInt("DisplayBPP", m_rgModeList[mode].bpp);
+    LoadStartupGraphic();
+    AdjustWindowForMode();
+    return true;
 }
 
-void CVideoMode_Common::CenterEngineWindow( HWND window, int width, int height )
-{
-	SDL_Rect bounds;
-        SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
-        int x = ( bounds.w - width ) / 2;
-	int y = ( bounds.h - height ) / 2;
-	if ( x < 0 )
-		x = 0;
-	if ( y < 0 )
-		y = 0;
-	game->SetWindowXY( x, y );
-	SDL_SetWindowPosition( (SDL_Window*)window, x, y );
+void CVideoMode_Common::CenterEngineWindow(HWND window, int width, int height) {
+    SDL_Rect bounds;
+    SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
+    int x = (bounds.w - width) / 2;
+    int y = (bounds.h - height) / 2;
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+    game->SetWindowXY(x, y);
+    SDL_SetWindowPosition((SDL_Window *)window, x, y);
 }
 
 void CVideoMode_Common::AdjustWindowForMode()
@@ -646,87 +655,79 @@ void CVideoMode_Common::LoadStartupGraphic()
 	}
 }
 
-void CVideoMode_Common::DrawStartupGraphic( HWND window )
-{
-	if ( !m_ImageID.Count() )
-		return;
-        HWND info = nullptr;
-        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)window),
-                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-        vmode_s* mode = GetCurrentMode();
-        HDC dc = GetDC(info);
-        HDC memoryDC = CreateCompatibleDC( dc );
-	HBITMAP bitmap = CreateCompatibleBitmap( dc, mode->width, mode->height );
-	SelectObject( memoryDC, bitmap );
+void CVideoMode_Common::DrawStartupGraphic(HWND window) {
+    if (!m_ImageID.Count()) {
+        return;
+    }
+    HWND info = nullptr;
+    info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)window),
+                                                    SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+    vmode_s *mode = GetCurrentMode();
+    HDC dc = GetDC(info);
+    HDC memoryDC = CreateCompatibleDC(dc);
+    HBITMAP bitmap = CreateCompatibleBitmap(dc, mode->width, mode->height);
+    SelectObject(memoryDC, bitmap);
 
-	float xScale = (float)mode->width / (float)m_iBaseResX;
-	float yScale = (float)mode->height / (float)m_iBaseResY;
-	float fitScale = yScale;
-	float fitWidth = (float)m_iBaseResX * fitScale;
-	float fitHeight = (float)m_iBaseResY * fitScale;
-	if ( (float)mode->width > fitWidth )
-	{
-		fitScale = xScale;
-		fitWidth = (float)m_iBaseResX * fitScale;
-		fitHeight = (float)m_iBaseResY * fitScale;
-	}
-	int fitX = mode->width / 2 - (int)( fitWidth * 0.5f );
-	int fitY = mode->height / 2 - (int)( fitHeight * 0.5f );
+    float xScale = (float)mode->width / (float)m_iBaseResX;
+    float yScale = (float)mode->height / (float)m_iBaseResY;
+    float fitScale = yScale;
+    float fitWidth = (float)m_iBaseResX * fitScale;
+    float fitHeight = (float)m_iBaseResY * fitScale;
+    if ((float)mode->width > fitWidth) {
+        fitScale = xScale;
+        fitWidth = (float)m_iBaseResX * fitScale;
+        fitHeight = (float)m_iBaseResY * fitScale;
+    }
+    int fitX = mode->width / 2 - (int)(fitWidth * 0.5f);
+    int fitY = mode->height / 2 - (int)(fitHeight * 0.5f);
 
-	for ( int i = 0; i < m_ImageID.Count(); i++ )
-	{
-		bimage_t& image = m_ImageID[i];
-		int x, y, right, bottom;
-		if ( image.scaled )
-		{
-			x = image.x ? (int)ceil( (double)( image.x * xScale ) ) : 0;
-			y = image.y ? (int)ceil( (double)( image.y * yScale ) ) : 0;
-			right = (int)ceil( (double)( ( image.x + image.width ) * xScale ) );
-			bottom = (int)ceil( (double)( ( image.y + image.height ) * yScale ) );
-		}
-		else if ( image.fit )
-		{
-			x = fitX + ( image.x ? (int)ceil( (double)( image.x * fitScale ) ) : 0 );
-			y = fitY + ( image.y ? (int)ceil( (double)( image.y * fitScale ) ) : 0 );
-			right = x + (int)ceil( (double)( image.width * fitScale ) );
-			bottom = y + (int)ceil( (double)( image.height * fitScale ) );
-		}
-		else
-		{
-			x = image.x;
-			y = image.y;
-			right = x + image.width;
-			bottom = y + image.height;
-		}
-		int width = right - x;
-		int height = bottom - y;
-		if ( !image.buffer )
-			_wassert( L"rgba", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 748 );
-		float rowScale = (float)image.height / (float)height;
-		int columnStep = (int)( ( (float)image.width / (float)width ) * 256.0f );
-		for ( int row = 0; row < height; row++ )
-		{
-			byte* source = image.buffer + 4 * image.width * (int)( row * rowScale );
-			int column = 0;
-			for ( int pixel = 0; pixel < width; pixel++ )
-			{
-				byte* rgba = source + 4 * ( column >> 8 );
-				SetPixel( memoryDC, x + pixel, y + row, rgba[0] | ( rgba[1] << 8 ) | ( rgba[2] << 16 ) );
-				column += columnStep;
-			}
-		}
-	}
-	SetViewportOrgEx( dc, 0, 0, NULL );
-	BitBlt( dc, 0, 0, mode->width, mode->height, memoryDC, 0, 0, SRCCOPY );
-	DeleteObject( bitmap );
-	DeleteDC( memoryDC );
-	ReleaseDC( window, dc );
-	for ( int i = 0; i < m_ImageID.Count(); i++ )
-	{
-		if ( m_ImageID[i].buffer )
-			free( m_ImageID[i].buffer );
-	}
-	m_ImageID.Purge();
+    for (int i = 0; i < m_ImageID.Count(); i++) {
+        bimage_t &image = m_ImageID[i];
+        int x, y, right, bottom;
+        if (image.scaled) {
+            x = image.x ? (int)ceil((double)(image.x * xScale)) : 0;
+            y = image.y ? (int)ceil((double)(image.y * yScale)) : 0;
+            right = (int)ceil((double)((image.x + image.width) * xScale));
+            bottom = (int)ceil((double)((image.y + image.height) * yScale));
+        } else if (image.fit) {
+            x = fitX + (image.x ? (int)ceil((double)(image.x * fitScale)) : 0);
+            y = fitY + (image.y ? (int)ceil((double)(image.y * fitScale)) : 0);
+            right = x + (int)ceil((double)(image.width * fitScale));
+            bottom = y + (int)ceil((double)(image.height * fitScale));
+        } else {
+            x = image.x;
+            y = image.y;
+            right = x + image.width;
+            bottom = y + image.height;
+        }
+        int width = right - x;
+        int height = bottom - y;
+        if (!image.buffer) {
+            _wassert(L"rgba", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 748);
+        }
+        float rowScale = (float)image.height / (float)height;
+        int columnStep = (int)(((float)image.width / (float)width) * 256.0f);
+        for (int row = 0; row < height; row++) {
+            byte *source = image.buffer + 4 * image.width * (int)(row * rowScale);
+            int column = 0;
+            for (int pixel = 0; pixel < width; pixel++) {
+                byte *rgba = source + 4 * (column >> 8);
+                SetPixel(memoryDC, x + pixel, y + row, rgba[0] | (rgba[1] << 8) | (rgba[2] << 16));
+                column += columnStep;
+            }
+        }
+    }
+    SetViewportOrgEx(dc, 0, 0, NULL);
+    BitBlt(dc, 0, 0, mode->width, mode->height, memoryDC, 0, 0, SRCCOPY);
+    DeleteObject(bitmap);
+    DeleteDC(memoryDC);
+    ReleaseDC(window, dc);
+    for (int i = 0; i < m_ImageID.Count(); i++) {
+        if (m_ImageID[i].buffer) {
+            free(m_ImageID[i].buffer);
+        }
+    }
+    m_ImageID.Purge();
 }
 
 void VideoMode_GetCurrentRenderer( char* name, int nameLength, int* windowed, int* hdModels, int* addons )
@@ -800,23 +801,21 @@ extern "C" void VideoMode_SwitchMode( int hardware, int windowed )
 #ifdef _MSC_VER
 #pragma warning( suppress: 26495 )
 #endif
-CVideoMode_Common::CVideoMode_Common()
-	: m_nNumModes( 0 ), m_nGameMode( 0 ), m_bInitialized( false )
-{
-	m_bWindowed = false;
-        if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
-            Sys_Error("SDL video initialization failed: %s", SDL_GetError());
-        }
-        SDL_DisplayMode mode;
-        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-        if (!desktopMode) {
-            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
-        }
-        mode = *desktopMode;
-        m_safeMode.width = mode.w;
-	m_safeMode.height = mode.h;
-	m_safeMode.bpp = 32;
-        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+CVideoMode_Common::CVideoMode_Common() : m_nNumModes(0), m_nGameMode(0), m_bInitialized(false) {
+    m_bWindowed = false;
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+        Sys_Error("SDL video initialization failed: %s", SDL_GetError());
+    }
+    SDL_DisplayMode mode;
+    const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    if (!desktopMode) {
+        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+    }
+    mode = *desktopMode;
+    m_safeMode.width = mode.w;
+    m_safeMode.height = mode.h;
+    m_safeMode.bpp = 32;
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 CVideoMode_Common::~CVideoMode_Common()
@@ -913,51 +912,43 @@ void CVideoMode_Common::Shutdown()
 	delete this;
 }
 
-bool CVideoMode_SoftwareFullScreen::Init( void* instance )
-{
-	bool initialized = CVideoMode_Common::Init( instance );
-	if ( !initialized )
-	{
-		SetInitialized( false );
-		return false;
-	}
-	if ( DirectDrawCreate( NULL, &m_pDirectDraw, NULL ) != DD_OK )
-	{
-		SetInitialized( false );
-		return false;
-	}
-	vmode_s* mode = GetCurrentMode();
-	if ( !mode )
-	{
-		SetInitialized( false );
-		return false;
-	}
+bool CVideoMode_SoftwareFullScreen::Init(void *instance) {
+    bool initialized = CVideoMode_Common::Init(instance);
+    if (!initialized) {
+        SetInitialized(false);
+        return false;
+    }
+    if (DirectDrawCreate(NULL, &m_pDirectDraw, NULL) != DD_OK) {
+        SetInitialized(false);
+        return false;
+    }
+    vmode_s *mode = GetCurrentMode();
+    if (!mode) {
+        SetInitialized(false);
+        return false;
+    }
 
-	mode->bpp = 16;
-	if ( IsWindowedMode() )
-	{
-		m_pDirectDraw->SetCooperativeLevel( NULL, DDSCL_NORMAL );
-	}
-	else
-	{
-            HWND info = nullptr;
-            info =
-                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
-                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
-            if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, mode->bpp) != DD_OK) {
-                mode->bpp = 32;
-                if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, 32) != DD_OK) {
-                    SetInitialized(false);
-                    return false;
-                }
-		}
-                SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
+    mode->bpp = 16;
+    if (IsWindowedMode()) {
+        m_pDirectDraw->SetCooperativeLevel(NULL, DDSCL_NORMAL);
+    } else {
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+        if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, mode->bpp) != DD_OK) {
+            mode->bpp = 32;
+            if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, 32) != DD_OK) {
+                SetInitialized(false);
+                return false;
+            }
         }
-	m_pDirectDraw->FlipToGDISurface();
-	initialized = CreateSurfaces();
-	SetInitialized( initialized );
-	return initialized;
+        SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
+    }
+    m_pDirectDraw->FlipToGDISurface();
+    initialized = CreateSurfaces();
+    SetInitialized(initialized);
+    return initialized;
 }
 
 bool CVideoMode_SoftwareWindowed::Init( void* instance )
@@ -969,52 +960,54 @@ bool CVideoMode_SoftwareWindowed::Init( void* instance )
 	return initialized;
 }
 
-bool CVideoMode_SoftwareWindowed::CreateDIB()
-{
-	vmode_s* mode = GetCurrentMode();
-	if ( !mode )
-		_wassert( L"mode", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 1621 );
-	vid.buffer = NULL;
-	vid.conrowbytes = 0;
-	vid.rowbytes = 0;
-	vid.numpages = 1;
-	vid.bits = mode->bpp;
-	vid.maxwarpwidth = 320;
-	vid.maxwarpheight = 200;
-	vid.conheight = vid.height = mode->height;
-	vid.conwidth = vid.width = mode->width;
-	vid.aspect = CalculatePixelAspect( vid.width, vid.height );
-	memset( &m_BitmapInfo, 0, sizeof( m_BitmapInfo ) );
-        HWND info = nullptr;
-        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
-                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-        m_hdcDIB = GetDC(info);
-        m_BitmapInfo.header.biSize = sizeof( m_BitmapInfo.header );
-	m_BitmapInfo.header.biWidth = vid.width;
-	m_BitmapInfo.header.biHeight = vid.height;
-	m_BitmapInfo.header.biPlanes = 1;
-	m_BitmapInfo.header.biBitCount = 16;
-	m_BitmapInfo.header.biCompression = BI_BITFIELDS;
-	DWORD* masks = (DWORD*)m_BitmapInfo.colors;
-	masks[0] = COLOR_REDMASK_565;
-	masks[1] = COLOR_GREENMASK_565;
-	masks[2] = COLOR_BLUEMASK;
-	m_hBitmap = CreateDIBSection( m_hdcDIB, (BITMAPINFO*)&m_BitmapInfo, DIB_RGB_COLORS, &m_pBits, NULL, 0 );
-	if ( !m_hBitmap )
-		return false;
-	vid.buffer = (byte*)m_pBits;
-	vid.is15bit = 0;
-	vid.rowbytes = 2 * vid.width;
-	vid.conrowbytes = 2 * vid.width;
-	memset( m_pBits, 255, vid.height * vid.width );
-	m_hdcMemory = CreateCompatibleDC( m_hdcDIB );
-	if ( !m_hdcMemory )
-		return false;
-	SelectObject( m_hdcMemory, m_hBitmap );
-	vid.direct = vid.buffer;
-	vid.conbuffer = vid.buffer;
-	vid.vidtype = VT_Software;
-	return true;
+bool CVideoMode_SoftwareWindowed::CreateDIB() {
+    vmode_s *mode = GetCurrentMode();
+    if (!mode) {
+        _wassert(L"mode", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 1621);
+    }
+    vid.buffer = NULL;
+    vid.conrowbytes = 0;
+    vid.rowbytes = 0;
+    vid.numpages = 1;
+    vid.bits = mode->bpp;
+    vid.maxwarpwidth = 320;
+    vid.maxwarpheight = 200;
+    vid.conheight = vid.height = mode->height;
+    vid.conwidth = vid.width = mode->width;
+    vid.aspect = CalculatePixelAspect(vid.width, vid.height);
+    memset(&m_BitmapInfo, 0, sizeof(m_BitmapInfo));
+    HWND info = nullptr;
+    info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                    SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+    m_hdcDIB = GetDC(info);
+    m_BitmapInfo.header.biSize = sizeof(m_BitmapInfo.header);
+    m_BitmapInfo.header.biWidth = vid.width;
+    m_BitmapInfo.header.biHeight = vid.height;
+    m_BitmapInfo.header.biPlanes = 1;
+    m_BitmapInfo.header.biBitCount = 16;
+    m_BitmapInfo.header.biCompression = BI_BITFIELDS;
+    DWORD *masks = (DWORD *)m_BitmapInfo.colors;
+    masks[0] = COLOR_REDMASK_565;
+    masks[1] = COLOR_GREENMASK_565;
+    masks[2] = COLOR_BLUEMASK;
+    m_hBitmap = CreateDIBSection(m_hdcDIB, (BITMAPINFO *)&m_BitmapInfo, DIB_RGB_COLORS, &m_pBits, NULL, 0);
+    if (!m_hBitmap) {
+        return false;
+    }
+    vid.buffer = (byte *)m_pBits;
+    vid.is15bit = 0;
+    vid.rowbytes = 2 * vid.width;
+    vid.conrowbytes = 2 * vid.width;
+    memset(m_pBits, 255, vid.height * vid.width);
+    m_hdcMemory = CreateCompatibleDC(m_hdcDIB);
+    if (!m_hdcMemory) {
+        return false;
+    }
+    SelectObject(m_hdcMemory, m_hBitmap);
+    vid.direct = vid.buffer;
+    vid.conbuffer = vid.buffer;
+    vid.vidtype = VT_Software;
+    return true;
 }
 
 void CVideoMode_SoftwareWindowed::FlipScreen()
@@ -1025,29 +1018,24 @@ void CVideoMode_SoftwareWindowed::FlipScreen()
 		BitBlt( m_hdcDIB, 0, row, vid.width, 1, m_hdcMemory, 0, vid.height - row - 1, SRCCOPY );
 }
 
-void CVideoMode_SoftwareWindowed::Shutdown()
-{
-	if ( m_hdcMemory )
-	{
-		DeleteDC( m_hdcMemory );
-		m_hdcMemory = NULL;
-	}
-	if ( m_hBitmap )
-	{
-		DeleteObject( m_hBitmap );
-		m_hBitmap = NULL;
-		m_pBits = NULL;
-	}
-	if ( m_hdcDIB )
-	{
-            HWND info = nullptr;
-            info =
-                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
-                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-            ReleaseDC(info, m_hdcDIB);
-            m_hdcDIB = NULL;
-	}
-	CVideoMode_Common::Shutdown();
+void CVideoMode_SoftwareWindowed::Shutdown() {
+    if (m_hdcMemory) {
+        DeleteDC(m_hdcMemory);
+        m_hdcMemory = NULL;
+    }
+    if (m_hBitmap) {
+        DeleteObject(m_hBitmap);
+        m_hBitmap = NULL;
+        m_pBits = NULL;
+    }
+    if (m_hdcDIB) {
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        ReleaseDC(info, m_hdcDIB);
+        m_hdcDIB = NULL;
+    }
+    CVideoMode_Common::Shutdown();
 }
 
 void CVideoMode_SoftwareFullScreen::Shutdown()
@@ -1097,112 +1085,107 @@ void CVideoMode_SoftwareFullScreen::ReleaseSurfaces()
 	}
 }
 
-void CVideoMode_SoftwareFullScreen::RestoreVideo()
-{
-	if ( !GetInitialized() )
-		return;
-	RestoreSurfaces();
-	if ( !IsWindowedMode() )
-            SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
+void CVideoMode_SoftwareFullScreen::RestoreVideo() {
+    if (!GetInitialized()) {
+        return;
+    }
+    RestoreSurfaces();
+    if (!IsWindowedMode()) {
+        SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
+    }
 }
 
 #if defined( _MSC_VER )
 #pragma warning( push )
 #pragma warning( disable : 4701 )
 #endif
-bool CVideoMode_SoftwareFullScreen::CreateSurfaces()
-{
-	if ( !m_pDirectDraw )
-		return false;
-	vmode_s* mode = GetCurrentMode();
-	mode->bpp = 16;
-	ReleaseSurfaces();
-        HWND info = nullptr;
-        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
-                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-        HRESULT error =
-            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
-        if ( error != DD_OK )
-	{
-		if ( error == DDERR_HWNDALREADYSET )
-		{
-                    DestroyWindow(info);
-                    MessageBoxA(NULL, "Restart the game to use your newly selected mode.", "Error", 0);
-		}
-		Con_Printf( "%s\n", g_LauncherDirectDraw.GetErrorString( error ) );
-		return false;
-	}
-	if ( m_pDirectDraw->SetDisplayMode( mode->width, mode->height, mode->bpp ) != DD_OK )
-	{
-		mode->bpp = 32;
-		error = m_pDirectDraw->SetDisplayMode( mode->width, mode->height, 32 );
-		if ( error != DD_OK )
-		{
-			Con_Printf( "display:%s\n", g_LauncherDirectDraw.GetErrorString( error ) );
-			return false;
-		}
-	}
-	DDSURFACEDESC desc = {};
-	desc.dwSize = sizeof( desc );
-	desc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-	desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
-	desc.dwBackBufferCount = 1;
-	error = m_pDirectDraw->CreateSurface( &desc, &m_pPrimarySurface, NULL );
-	if ( error != DD_OK )
-	{
-		Con_Printf( "surface:%s\n", g_LauncherDirectDraw.GetErrorString( error ) );
-		return false;
-	}
-	DDBLTFX effect;
-	effect.dwSize = sizeof( effect );
-	effect.dwFillColor = 0;
-	m_pPrimarySurface->Blt( NULL, NULL, NULL, DDBLT_COLORFILL, &effect );
-	DDSCAPS caps;
-	caps.dwCaps = DDSCAPS_BACKBUFFER;
-	vid.numpages = m_pPrimarySurface->GetAttachedSurface( &caps, &m_pBackBuffer ) == DD_OK;
-	desc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
-	desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-	desc.dwWidth = mode->width;
-	desc.dwHeight = mode->height;
-	if ( mode->bpp == 32 )
-	{
-		desc.dwFlags |= DDSD_PIXELFORMAT;
-		desc.ddpfPixelFormat.dwSize = sizeof( desc.ddpfPixelFormat );
-		desc.ddpfPixelFormat.dwFlags = DDPF_RGB;
-		desc.ddpfPixelFormat.dwFourCC = 0;
-		desc.ddpfPixelFormat.dwRGBBitCount = 16;
-		desc.ddpfPixelFormat.dwRBitMask = COLOR_REDMASK_565;
-		desc.ddpfPixelFormat.dwGBitMask = COLOR_GREENMASK_565;
-		desc.ddpfPixelFormat.dwBBitMask = COLOR_BLUEMASK;
-		desc.ddpfPixelFormat.dwRGBAlphaBitMask = 0;
-	}
-	error = m_pDirectDraw->CreateSurface( &desc, &m_pOffscreenSurface, NULL );
-	DDPIXELFORMAT format;
-	format.dwSize = sizeof( format );
-	if ( error == DD_OK )
-		error = m_pOffscreenSurface->Lock( NULL, &desc, DDLOCK_WAIT, NULL );
-	if ( error == DD_OK )
-		error = m_pOffscreenSurface->GetPixelFormat( &format );
-	if ( error != DD_OK )
-	{
-		Con_Printf( "%s\n", g_LauncherDirectDraw.GetErrorString( error ) );
-		return false;
-	}
-	vid.direct = (byte*)desc.lpSurface;
-	vid.conbuffer = (byte*)desc.lpSurface;
-	vid.buffer = (byte*)desc.lpSurface;
-	vid.is15bit = format.dwGBitMask == COLOR_GREENMASK_555;
-	vid.conrowbytes = desc.lPitch;
-	vid.rowbytes = desc.lPitch;
-	memset( desc.lpSurface, 0, 2 * mode->height * mode->width );
-	vid.maxwarpwidth = 320;
-	vid.maxwarpheight = 200;
-	vid.conheight = vid.height = mode->height;
-	vid.conwidth = vid.width = mode->width;
-	vid.aspect = CalculatePixelAspect( vid.width, vid.height );
-	vid.bits = mode->bpp;
-	vid.vidtype = VT_Software;
-	return true;
+bool CVideoMode_SoftwareFullScreen::CreateSurfaces() {
+    if (!m_pDirectDraw) {
+        return false;
+    }
+    vmode_s *mode = GetCurrentMode();
+    mode->bpp = 16;
+    ReleaseSurfaces();
+    HWND info = nullptr;
+    info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                    SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+    HRESULT error = m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+    if (error != DD_OK) {
+        if (error == DDERR_HWNDALREADYSET) {
+            DestroyWindow(info);
+            MessageBoxA(NULL, "Restart the game to use your newly selected mode.", "Error", 0);
+        }
+        Con_Printf("%s\n", g_LauncherDirectDraw.GetErrorString(error));
+        return false;
+    }
+    if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, mode->bpp) != DD_OK) {
+        mode->bpp = 32;
+        error = m_pDirectDraw->SetDisplayMode(mode->width, mode->height, 32);
+        if (error != DD_OK) {
+            Con_Printf("display:%s\n", g_LauncherDirectDraw.GetErrorString(error));
+            return false;
+        }
+    }
+    DDSURFACEDESC desc = {};
+    desc.dwSize = sizeof(desc);
+    desc.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
+    desc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_COMPLEX | DDSCAPS_FLIP;
+    desc.dwBackBufferCount = 1;
+    error = m_pDirectDraw->CreateSurface(&desc, &m_pPrimarySurface, NULL);
+    if (error != DD_OK) {
+        Con_Printf("surface:%s\n", g_LauncherDirectDraw.GetErrorString(error));
+        return false;
+    }
+    DDBLTFX effect;
+    effect.dwSize = sizeof(effect);
+    effect.dwFillColor = 0;
+    m_pPrimarySurface->Blt(NULL, NULL, NULL, DDBLT_COLORFILL, &effect);
+    DDSCAPS caps;
+    caps.dwCaps = DDSCAPS_BACKBUFFER;
+    vid.numpages = m_pPrimarySurface->GetAttachedSurface(&caps, &m_pBackBuffer) == DD_OK;
+    desc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+    desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
+    desc.dwWidth = mode->width;
+    desc.dwHeight = mode->height;
+    if (mode->bpp == 32) {
+        desc.dwFlags |= DDSD_PIXELFORMAT;
+        desc.ddpfPixelFormat.dwSize = sizeof(desc.ddpfPixelFormat);
+        desc.ddpfPixelFormat.dwFlags = DDPF_RGB;
+        desc.ddpfPixelFormat.dwFourCC = 0;
+        desc.ddpfPixelFormat.dwRGBBitCount = 16;
+        desc.ddpfPixelFormat.dwRBitMask = COLOR_REDMASK_565;
+        desc.ddpfPixelFormat.dwGBitMask = COLOR_GREENMASK_565;
+        desc.ddpfPixelFormat.dwBBitMask = COLOR_BLUEMASK;
+        desc.ddpfPixelFormat.dwRGBAlphaBitMask = 0;
+    }
+    error = m_pDirectDraw->CreateSurface(&desc, &m_pOffscreenSurface, NULL);
+    DDPIXELFORMAT format;
+    format.dwSize = sizeof(format);
+    if (error == DD_OK) {
+        error = m_pOffscreenSurface->Lock(NULL, &desc, DDLOCK_WAIT, NULL);
+    }
+    if (error == DD_OK) {
+        error = m_pOffscreenSurface->GetPixelFormat(&format);
+    }
+    if (error != DD_OK) {
+        Con_Printf("%s\n", g_LauncherDirectDraw.GetErrorString(error));
+        return false;
+    }
+    vid.direct = (byte *)desc.lpSurface;
+    vid.conbuffer = (byte *)desc.lpSurface;
+    vid.buffer = (byte *)desc.lpSurface;
+    vid.is15bit = format.dwGBitMask == COLOR_GREENMASK_555;
+    vid.conrowbytes = desc.lPitch;
+    vid.rowbytes = desc.lPitch;
+    memset(desc.lpSurface, 0, 2 * mode->height * mode->width);
+    vid.maxwarpwidth = 320;
+    vid.maxwarpheight = 200;
+    vid.conheight = vid.height = mode->height;
+    vid.conwidth = vid.width = mode->width;
+    vid.aspect = CalculatePixelAspect(vid.width, vid.height);
+    vid.bits = mode->bpp;
+    vid.vidtype = VT_Software;
+    return true;
 }
 #if defined( _MSC_VER )
 #pragma warning( pop )
@@ -1253,24 +1236,24 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 
 #else
 
-#include "UtlVector.h"
-#include "common.h"
-#include "filesystem.h"
-#include "gl_model.h"
-#include "igame.h"
 #include "ivideomode.h"
 #include "registry.h"
 #include "snd_win.h"
-#include "sys.h"
+#include "UtlVector.h"
+#include "igame.h"
+#include "common.h"
 #include "vid.h"
+#include "filesystem.h"
+#include "sys.h"
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_opengl.h>
-
 #include <cmath>
 #include <cstdlib>
+
 #include <cstring>
 #include <malloc.h>
 #include <windows.h>
+#include "gl_model.h"
+#include <SDL3/SDL_opengl.h>
 
 #define MAX_VIDEO_MODES 32
 
@@ -1472,114 +1455,122 @@ static int VideoModeCompare( const void* arg1, const void* arg2 )
 	return 0;
 }
 
-bool CVideoMode_Common::Init( void* )
-{
-	SDL_DisplayMode desktop;
-	int width, height;
-	int arg;
-	int i, mode;
+bool CVideoMode_Common::Init(void *) {
+    SDL_DisplayMode desktop;
+    int width, height;
+    int arg;
+    int i, mode;
 
-	if ( !game->CreateGameWindow() )
-		return false;
+    if (!game->CreateGameWindow()) {
+        return false;
+    }
 
-        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-        if (!desktopMode) {
-            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+    const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    if (!desktopMode) {
+        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+    }
+    desktop = *desktopMode;
+    m_safeMode.width = desktop.w;
+    m_safeMode.height = desktop.h;
+    m_safeMode.bpp = 32;
+
+    width = registry->ReadInt("DisplayWidth", desktop.w);
+    height = registry->ReadInt("DisplayHeight", desktop.h);
+
+    registry->ReadInt("DisplayBPP", 32);
+    COM_CheckParm("-16bpp");
+    COM_CheckParm("-24bpp");
+    COM_CheckParm("-32bpp");
+    MaxBitsPerPixel();
+
+    m_nNumModes = 0;
+    SetupSDLVideoModes();
+    if (m_nNumModes >= 2) {
+        qsort(m_rgModeList, m_nNumModes, sizeof(m_rgModeList[0]), VideoModeCompare);
+    }
+
+    arg = COM_CheckParm("-width");
+    if (arg) {
+        width = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-w");
+    if (arg) {
+        width = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-height");
+    if (arg) {
+        height = atoi(com_argv[arg + 1]);
+    }
+    arg = COM_CheckParm("-h");
+    if (arg) {
+        height = atoi(com_argv[arg + 1]);
+    }
+
+    if (IsWindowedMode()) {
+        SDL_Rect bounds;
+
+        if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
+            if (width > bounds.w) {
+                width = bounds.w;
+            }
+            if (height > bounds.h) {
+                height = bounds.h;
+            }
         }
-        desktop = *desktopMode;
-        m_safeMode.width = desktop.w;
-	m_safeMode.height = desktop.h;
-	m_safeMode.bpp = 32;
+    }
 
-	width = registry->ReadInt( "DisplayWidth", desktop.w );
-	height = registry->ReadInt( "DisplayHeight", desktop.h );
+    if (width > 0 && height < 0) {
+        height = (int)(width * 3.0 / 4.0);
+    }
 
-	registry->ReadInt( "DisplayBPP", 32 );
-	COM_CheckParm( "-16bpp" );
-	COM_CheckParm( "-24bpp" );
-	COM_CheckParm( "-32bpp" );
-	MaxBitsPerPixel();
-
-	m_nNumModes = 0;
-	SetupSDLVideoModes();
-	if ( m_nNumModes >= 2 )
-		qsort( m_rgModeList, m_nNumModes, sizeof( m_rgModeList[0] ), VideoModeCompare );
-
-	arg = COM_CheckParm( "-width" );
-	if ( arg )
-		width = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-w" );
-	if ( arg )
-		width = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-height" );
-	if ( arg )
-		height = atoi( com_argv[arg + 1] );
-	arg = COM_CheckParm( "-h" );
-	if ( arg )
-		height = atoi( com_argv[arg + 1] );
-
-	if ( IsWindowedMode() )
-	{
-		SDL_Rect bounds;
-
-                if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
-                    if (width > bounds.w)
-                        width = bounds.w;
-                    if (height > bounds.h)
-                        height = bounds.h;
-                }
+    mode = -1;
+    for (i = 0; i < m_nNumModes; i++) {
+        if (m_rgModeList[i].width == width) {
+            mode = i;
+            if (m_rgModeList[i].height == height) {
+                break;
+            }
         }
+    }
+    if (mode < 0) {
+        mode = 0;
+    }
+    m_nGameMode = mode;
 
-	if ( width > 0 && height < 0 )
-		height = (int)( width * 3.0 / 4.0 );
+    if ((IsWindowedMode() || !COM_CheckParm("-nofbo")) && (COM_CheckParm("-forceres") || m_nNumModes < 2)) {
+        m_rgModeList[mode].width = width;
+        m_rgModeList[mode].height = height;
+        if (!m_nNumModes) {
+            m_nNumModes = 1;
+        }
+    }
 
-	mode = -1;
-	for ( i = 0; i < m_nNumModes; i++ )
-	{
-		if ( m_rgModeList[i].width == width )
-		{
-			mode = i;
-			if ( m_rgModeList[i].height == height )
-				break;
-		}
-	}
-	if ( mode < 0 )
-		mode = 0;
-	m_nGameMode = mode;
+    registry->WriteInt("DisplayWidth", m_rgModeList[mode].width);
+    registry->WriteInt("DisplayHeight", m_rgModeList[mode].height);
+    registry->WriteInt("DisplayBPP", m_rgModeList[mode].bpp);
 
-	if ( ( IsWindowedMode() || !COM_CheckParm( "-nofbo" ) ) && ( COM_CheckParm( "-forceres" ) || m_nNumModes < 2 ) )
-	{
-		m_rgModeList[mode].width = width;
-		m_rgModeList[mode].height = height;
-		if ( !m_nNumModes )
-			m_nNumModes = 1;
-	}
-
-	registry->WriteInt( "DisplayWidth", m_rgModeList[mode].width );
-	registry->WriteInt( "DisplayHeight", m_rgModeList[mode].height );
-	registry->WriteInt( "DisplayBPP", m_rgModeList[mode].bpp );
-
-	LoadStartupGraphic();
-	AdjustWindowForMode();
-	return true;
+    LoadStartupGraphic();
+    AdjustWindowForMode();
+    return true;
 }
 
-void CVideoMode_Common::CenterEngineWindow( HWND window, int width, int height )
-{
-	SDL_Rect bounds;
-	int x, y;
+void CVideoMode_Common::CenterEngineWindow(HWND window, int width, int height) {
+    SDL_Rect bounds;
+    int x, y;
 
-        SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
+    SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
 
-        x = ( bounds.w - width ) / 2;
-	y = ( bounds.h - height ) / 2;
-	if ( x < 0 )
-		x = 0;
-	if ( y < 0 )
-		y = 0;
+    x = (bounds.w - width) / 2;
+    y = (bounds.h - height) / 2;
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
 
-	game->SetWindowXY( x, y );
-	SDL_SetWindowPosition( (SDL_Window*)window, x, y );
+    game->SetWindowXY(x, y);
+    SDL_SetWindowPosition((SDL_Window *)window, x, y);
 }
 
 void CVideoMode_Common::AdjustWindowForMode()
@@ -1743,9 +1734,7 @@ extern "C" void VideoMode_SwitchMode( int hardware, int windowed )
 #ifdef _MSC_VER
 #pragma warning( suppress: 26495 )
 #endif
-CVideoMode_Common::CVideoMode_Common()
-	: m_nNumModes( 0 ), m_nGameMode( 0 ), m_bInitialized( false ), m_bWindowed( false )
-{
+CVideoMode_Common::CVideoMode_Common() : m_nNumModes(0), m_nGameMode(0), m_bInitialized(false), m_bWindowed(false) {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         Sys_Error("SDL video initialization failed: %s", SDL_GetError());
     }
@@ -1883,149 +1872,142 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
     }
 }
 
-void CVideoMode_Common::DrawStartupGraphic( HWND window )
-{
-	int width, height;
-	int i, bit, row;
-	float xScale, yScale;
-	float fitScale, fitAdjWidth, fitAdjHeight;
-	int fitOffsetX, fitOffsetY;
-	CUtlVector<GLuint> vecGLTex;
+void CVideoMode_Common::DrawStartupGraphic(HWND window) {
+    int width, height;
+    int i, bit, row;
+    float xScale, yScale;
+    float fitScale, fitAdjWidth, fitAdjHeight;
+    int fitOffsetX, fitOffsetY;
+    CUtlVector<GLuint> vecGLTex;
 
-	if ( !m_ImageID.Count() )
-		return;
+    if (!m_ImageID.Count()) {
+        return;
+    }
 
-        SDL_GetWindowSizeInPixels((SDL_Window *)window, &width, &height);
+    SDL_GetWindowSizeInPixels((SDL_Window *)window, &width, &height);
 
-        glViewport( 0, 0, width, height );
-	glDisable( GL_DEPTH_TEST );
-	glEnable( GL_TEXTURE_2D );
-	glMatrixMode( GL_PROJECTION );
-	glOrtho( 0.0, width, height, 0.0, -1.0, 1.0 );
-	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-	glClear( GL_COLOR_BUFFER_BIT );
+    glViewport(0, 0, width, height);
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glMatrixMode(GL_PROJECTION);
+    glOrtho(0.0, width, height, 0.0, -1.0, 1.0);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-	xScale = (float)width / (float)m_iBaseResX;
-	yScale = (float)height / (float)m_iBaseResY;
+    xScale = (float)width / (float)m_iBaseResX;
+    yScale = (float)height / (float)m_iBaseResY;
 
-	fitScale = yScale;
-	fitAdjWidth = (float)m_iBaseResX * fitScale;
-	fitAdjHeight = (float)m_iBaseResY * fitScale;
-	if ( (float)width > fitAdjWidth )
-	{
-		fitScale = xScale;
-		fitAdjWidth = (float)m_iBaseResX * fitScale;
-		fitAdjHeight = (float)m_iBaseResY * fitScale;
-	}
-	fitOffsetX = width / 2 - (int)( fitAdjWidth * 0.5f );
-	fitOffsetY = height / 2 - (int)( fitAdjHeight * 0.5f );
+    fitScale = yScale;
+    fitAdjWidth = (float)m_iBaseResX * fitScale;
+    fitAdjHeight = (float)m_iBaseResY * fitScale;
+    if ((float)width > fitAdjWidth) {
+        fitScale = xScale;
+        fitAdjWidth = (float)m_iBaseResX * fitScale;
+        fitAdjHeight = (float)m_iBaseResY * fitScale;
+    }
+    fitOffsetX = width / 2 - (int)(fitAdjWidth * 0.5f);
+    fitOffsetY = height / 2 - (int)(fitAdjHeight * 0.5f);
 
-	for ( i = 0; i < m_ImageID.Count(); i++ )
-	{
-		bimage_t& image = m_ImageID[i];
-		int x, y, right, bottom;
-		int wide2, tall2;
-		int tex;
-		float topu, topv;
-		byte* pToUse;
-		byte* pExpanded;
+    for (i = 0; i < m_ImageID.Count(); i++) {
+        bimage_t &image = m_ImageID[i];
+        int x, y, right, bottom;
+        int wide2, tall2;
+        int tex;
+        float topu, topv;
+        byte *pToUse;
+        byte *pExpanded;
 
-		if ( image.scaled )
-		{
-			x = image.x ? (int)ceil( (double)( image.x * xScale ) ) : 0;
-			y = image.y ? (int)ceil( (double)( image.y * yScale ) ) : 0;
-			right = (int)ceil( (double)( ( image.x + image.width ) * xScale ) );
-			bottom = (int)ceil( (double)( ( image.y + image.height ) * yScale ) );
-		}
-		else if ( image.fit )
-		{
-			x = fitOffsetX + ( image.x ? (int)ceil( (double)( image.x * fitScale ) ) : 0 );
-			y = fitOffsetY + ( image.y ? (int)ceil( (double)( image.y * fitScale ) ) : 0 );
-			right = x + (int)ceil( (double)( image.width * fitScale ) );
-			bottom = y + (int)ceil( (double)( image.height * fitScale ) );
-		}
-		else
-		{
-			x = image.x;
-			y = image.y;
-			right = x + image.width;
-			bottom = y + image.height;
-		}
+        if (image.scaled) {
+            x = image.x ? (int)ceil((double)(image.x * xScale)) : 0;
+            y = image.y ? (int)ceil((double)(image.y * yScale)) : 0;
+            right = (int)ceil((double)((image.x + image.width) * xScale));
+            bottom = (int)ceil((double)((image.y + image.height) * yScale));
+        } else if (image.fit) {
+            x = fitOffsetX + (image.x ? (int)ceil((double)(image.x * fitScale)) : 0);
+            y = fitOffsetY + (image.y ? (int)ceil((double)(image.y * fitScale)) : 0);
+            right = x + (int)ceil((double)(image.width * fitScale));
+            bottom = y + (int)ceil((double)(image.height * fitScale));
+        } else {
+            x = image.x;
+            y = image.y;
+            right = x + image.width;
+            bottom = y + image.height;
+        }
 
-		tex = vecGLTex.AddToTail();
-		glGenTextures( 1, &vecGLTex[tex] );
-		glBindTexture( GL_TEXTURE_2D, vecGLTex[tex] );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+        tex = vecGLTex.AddToTail();
+        glGenTextures(1, &vecGLTex[tex]);
+        glBindTexture(GL_TEXTURE_2D, vecGLTex[tex]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-		wide2 = tall2 = 1;
-		for ( bit = 0; bit < 32; bit++ )
-		{
-			wide2 = 1 << bit;
-			if ( wide2 >= image.width )
-				break;
-		}
-		for ( bit = 0; bit < 32; bit++ )
-		{
-			tall2 = 1 << bit;
-			if ( tall2 >= image.height )
-				break;
-		}
+        wide2 = tall2 = 1;
+        for (bit = 0; bit < 32; bit++) {
+            wide2 = 1 << bit;
+            if (wide2 >= image.width) {
+                break;
+            }
+        }
+        for (bit = 0; bit < 32; bit++) {
+            tall2 = 1 << bit;
+            if (tall2 >= image.height) {
+                break;
+            }
+        }
 
-		pToUse = image.buffer;
-		pExpanded = NULL;
-		if ( wide2 != image.width || tall2 != image.height )
-		{
-			pExpanded = new byte[4 * wide2 * tall2];
-			if ( !pExpanded )
-				return;
+        pToUse = image.buffer;
+        pExpanded = NULL;
+        if (wide2 != image.width || tall2 != image.height) {
+            pExpanded = new byte[4 * wide2 * tall2];
+            if (!pExpanded) {
+                return;
+            }
 
-			memset( pExpanded, 0, 4 * wide2 * tall2 );
-			if ( image.width > 0 )
-			{
-				for ( row = 0; row < image.height; row++ )
-					memcpy( pExpanded + 4 * wide2 * row, image.buffer + 4 * image.width * row, 4 * image.width );
-			}
-			pToUse = pExpanded;
-		}
+            memset(pExpanded, 0, 4 * wide2 * tall2);
+            if (image.width > 0) {
+                for (row = 0; row < image.height; row++) {
+                    memcpy(pExpanded + 4 * wide2 * row, image.buffer + 4 * image.width * row, 4 * image.width);
+                }
+            }
+            pToUse = pExpanded;
+        }
 
-		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, wide2, tall2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pToUse );
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wide2, tall2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pToUse);
 
-		topu = topv = 1.0f;
-		if ( pExpanded )
-		{
-			topu = (float)image.width / (float)wide2;
-			topv = (float)image.height / (float)tall2;
-			delete[] pExpanded;
-		}
+        topu = topv = 1.0f;
+        if (pExpanded) {
+            topu = (float)image.width / (float)wide2;
+            topv = (float)image.height / (float)tall2;
+            delete[] pExpanded;
+        }
 
-		glBegin( GL_QUADS );
-		glTexCoord2f( 0.0f, topv );
-		glVertex3i( x, bottom, 0 );
-		glTexCoord2f( topu, topv );
-		glVertex3i( right, bottom, 0 );
-		glTexCoord2f( topu, 0.0f );
-		glVertex3i( right, y, 0 );
-		glTexCoord2f( 0.0f, 0.0f );
-		glVertex3i( x, y, 0 );
-		glEnd();
-	}
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, topv);
+        glVertex3i(x, bottom, 0);
+        glTexCoord2f(topu, topv);
+        glVertex3i(right, bottom, 0);
+        glTexCoord2f(topu, 0.0f);
+        glVertex3i(right, y, 0);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex3i(x, y, 0);
+        glEnd();
+    }
 
-	SDL_GL_SwapWindow( (SDL_Window*)window );
+    SDL_GL_SwapWindow((SDL_Window *)window);
 
-	for ( i = 0; i < vecGLTex.Count(); i++ )
-		glDeleteTextures( 1, &vecGLTex[i] );
-	vecGLTex.Purge();
+    for (i = 0; i < vecGLTex.Count(); i++) {
+        glDeleteTextures(1, &vecGLTex[i]);
+    }
+    vecGLTex.Purge();
 
-	for ( i = 0; i < m_ImageID.Count(); i++ )
-	{
-		if ( m_ImageID[i].buffer )
-			free( m_ImageID[i].buffer );
-	}
-	m_ImageID.Purge();
+    for (i = 0; i < m_ImageID.Count(); i++) {
+        if (m_ImageID[i].buffer) {
+            free(m_ImageID[i].buffer);
+        }
+    }
+    m_ImageID.Purge();
 }
 
 #endif

@@ -1,45 +1,46 @@
-#include "../common/demo_api.h"
-#include "../common/entity_types.h"
-#include "../common/event_api.h"
-#include "../common/event_flags.h"
-#include "../common/r_studioint.h"
 #include "../common/sdl3_input.h"
-#include "../common/triangleapi.h"
-#include "blob.h"
-#include "cd.h"
-#include "cl_demo.h"
-#include "cl_draw.h"
-#include "client.h"
-#include "cmd.h"
-#include "common.h"
-#include "conprint.h"
-#include "cvar.h"
 #include "engine_apiproxy.h"
-#include "engine_studio.h"
-#include "enginecallbacks.h"
-#include "filesystem.h"
+#include "client.h"
+#include "common.h"
+#include "cvar.h"
 #include "gl_model.h"
-#include "glquake.h"
+#include "vgui_int.h"
 #include "info.h"
+#include "cmd.h"
+#include "protocol.h"
+#include "cl_demo.h"
+#include "vgui_intwrap2.h"
+#include "sys.h"
+#include "conprint.h"
+#include "blob.h"
+#include "filesystem.h"
+#include "pm_defs.h"
+#include "engine_studio.h"
+#include "net_api.h"
+#include "vid.h"
+#include "cl_draw.h"
+#include "glquake.h"
+#include "tmessage.h"
+#include "keys.h"
+#include "view.h"
+#include "server.h"
+#include "usermsg.h"
+#include "ivoicetweak.h"
+#include "cd.h"
 #include "interface.h"
 #include "ivideomode.h"
-#include "ivoicetweak.h"
-#include "keys.h"
-#include "net_api.h"
-#include "pm_defs.h"
-#include "protocol.h"
-#include "server.h"
-#include "sys.h"
-#include "tmessage.h"
-#include "usermsg.h"
-#include "vgui_int.h"
-#include "vgui_intwrap2.h"
-#include "vid.h"
-#include "view.h"
+#include "enginecallbacks.h"
 #include <SDL3/SDL.h>
-
+#include "../common/event_flags.h"
+#include "../common/entity_types.h"
+#include "../common/triangleapi.h"
+#include "../common/event_api.h"
+#include "../common/demo_api.h"
+#include "../common/r_studioint.h"
 #include <cstdlib>
+
 #include <cstring>
+#include "sdl3_window.h"
 #if !defined( _WIN32 )
 #include <dlfcn.h>
 #endif
@@ -1003,50 +1004,23 @@ void hudPlaybackEvent( int flags, const edict_t* pInvoker, unsigned short eventi
 		CL_DemoEvent( flags, eventindex, delay, &args );
 }
 
-static void SDL_AdjustMousePosition( int* x, int* y )
-{
-	int windowWidth, windowHeight;
-	int videoWidth, videoHeight;
-	int xOffset, yOffset;
-
-	if ( VideoMode_IsWindowed() )
-		return;
-
-	SDL_GetWindowSize( *pmainwindow, &windowWidth, &windowHeight );
-	VideoMode_GetCurrentVideoMode( &videoWidth, &videoHeight, NULL );
-
-	*x = (int)( (float)videoWidth / (float)windowWidth * (float)*x );
-	*y = (int)( (float)videoHeight / (float)windowHeight * (float)*y );
-
-	xOffset = *x - videoWidth / 2;
-	*x = (int)( *x + ( GetXMouseAspectRatioAdjustment() - 1.0 ) * (float)xOffset );
-
-	yOffset = *y - videoHeight / 2;
-	*y = (int)( *y + ( GetYMouseAspectRatioAdjustment() - 1.0 ) * (float)yOffset );
+void hudGetMousePosition(int *mx, int *my) {
+    g_engdstAddrs.GetMousePosition(&mx, &my);
+    cse::GetEngineMousePosition(*pmainwindow, mx, my);
 }
 
-void hudGetMousePosition( int* mx, int* my )
-{
-	g_engdstAddrs.GetMousePosition( &mx, &my );
-        cse::GetIntegerMousePosition(mx, my);
-        SDL_AdjustMousePosition( mx, my );
+void SDL_GetMousePos(POINT *ppt) {
+    int *x, *y;
+
+    g_engdstAddrs.pfnGetMousePos(&ppt);
+
+    x = (int *)&ppt->x;
+    y = (int *)&ppt->y;
+    cse::GetEngineMousePosition(*pmainwindow, x, y);
 }
 
-void SDL_GetMousePos( POINT* ppt )
-{
-	int *x, *y;
-
-	g_engdstAddrs.pfnGetMousePos( &ppt );
-
-	x = (int*)&ppt->x;
-	y = (int*)&ppt->y;
-        cse::GetIntegerMousePosition(x, y);
-        SDL_AdjustMousePosition( x, y );
-}
-
-void SDL_SetMousePos( int x, int y )
-{
-    SDL_WarpMouseInWindow(*pmainwindow, static_cast<float>(x), static_cast<float>(y));
+void SDL_SetMousePos(int x, int y) {
+    cse::WarpEngineMousePosition(*pmainwindow, x, y);
 }
 
 cl_enginefunc_t cl_enginefuncs =

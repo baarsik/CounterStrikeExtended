@@ -886,16 +886,16 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 
 #include <SDL3/SDL.h>
 
-#include <clocale>
-#include <eh.h>
-#include <intrin.h>
-#include <mmintrin.h>
 #include <cstdarg>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <climits>
 #include <cstring>
+#include <eh.h>
+#include <intrin.h>
+#include <mmintrin.h>
+#include <clocale>
+#include <cstdint>
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -1513,46 +1513,41 @@ const char* GetRateRegistrySetting( const char* defaultRate )
 #endif
 }
 
-void Sys_GetCDKey( char* key, int* length, int* dedicatedServer )
-{
-	char hostname[kHostNameBytes];
-	char formatted[kCdKeyBytes];
-	if ( gethostname( hostname, kHostNameBytes ) != 0 )
-	{
-		_snprintf( formatted, sizeof( formatted ), "%u", static_cast<unsigned int>( RandomLong( 0, kCdKeyRandomMaximum ) ) );
-	}
-	else
-	{
-#if defined( _MSC_VER )
-#pragma warning( push )
-#pragma warning( disable : 4996 )
+void Sys_GetCDKey(char *key, int *length, int *dedicatedServer) {
+    char hostname[kHostNameBytes];
+    char formatted[kCdKeyBytes];
+    if (gethostname(hostname, kHostNameBytes) != 0) {
+        _snprintf(formatted, sizeof(formatted), "%u", static_cast<unsigned int>(RandomLong(0, kCdKeyRandomMaximum)));
+    } else {
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
 #endif
-		hostent* host = gethostbyname( hostname );
-#if defined( _MSC_VER )
-#pragma warning( pop )
+        hostent *host = gethostbyname(hostname);
+#if defined(_MSC_VER)
+#pragma warning(pop)
 #endif
-		unsigned char* address = nullptr;
-		if ( host != nullptr && host->h_length == 4 )
-			address = reinterpret_cast<unsigned char*>( *host->h_addr_list );
-		if ( address == nullptr )
-		{
-			CRC32_t crc;
-			CRC32_ProcessBuffer( &crc, hostname, static_cast<int>( std::strlen( hostname ) ) );
-			_snprintf( formatted, sizeof( formatted ), "%u", crc );
-		}
-		else
-		{
-                    _snprintf(formatted, sizeof(formatted), "%u.%u.%u.%u", address[0], address[1], address[2],
-                              address[3]);
-                }
-	}
+        unsigned char *address = nullptr;
+        if (host != nullptr && host->h_length == 4) {
+            address = reinterpret_cast<unsigned char *>(*host->h_addr_list);
+        }
+        if (address == nullptr) {
+            CRC32_t crc;
+            CRC32_ProcessBuffer(&crc, hostname, static_cast<int>(std::strlen(hostname)));
+            _snprintf(formatted, sizeof(formatted), "%u", crc);
+        } else {
+            _snprintf(formatted, sizeof(formatted), "%u.%u.%u.%u", address[0], address[1], address[2], address[3]);
+        }
+    }
 
-	formatted[kCdKeyBytes - 1] = '\0';
-	std::strcpy( key, formatted );
-	if ( length != nullptr )
-		*length = static_cast<int>( std::strlen( formatted ) );
-	if ( dedicatedServer != nullptr )
-		*dedicatedServer = 0;
+    formatted[kCdKeyBytes - 1] = '\0';
+    std::strcpy(key, formatted);
+    if (length != nullptr) {
+        *length = static_cast<int>(std::strlen(formatted));
+    }
+    if (dedicatedServer != nullptr) {
+        *dedicatedServer = 0;
+    }
 }
 
 int Sys_InitGame( char* cmdline, [[maybe_unused]] char* basedir, void* windowAddress, int dedicatedServer )

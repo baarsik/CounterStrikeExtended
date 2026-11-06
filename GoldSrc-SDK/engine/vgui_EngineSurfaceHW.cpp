@@ -1,24 +1,24 @@
-#include "client.h"
-#include "conprint.h"
-#include "cvar.h"
 #include "engine_apiproxy.h"
-#include "filesystem.h"
-#include "gl_model.h"
-#include "glquake.h"
-#include "ivideomode.h"
-#include "keys.h"
-#include "utlrbtree.h"
 #include "vgui_EngineSurface.h"
+#include "glquake.h"
+#include "gl_model.h"
+#include "utlrbtree.h"
+#include "filesystem.h"
+#include "cvar.h"
+#include "conprint.h"
+#include "client.h"
+#include "keys.h"
+#include "ivideomode.h"
 #include "vgui_int.h"
 #include "view.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
-#include <cassert>
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cstdint>
+#include <cassert>
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -39,50 +39,51 @@ void SCR_DrawConsole();
 void SCR_DrawLoading();
 void Sbar_Draw();
 
-void VGui_ViewportPaintBackground( int* extents )
-{
-	g_engdstAddrs.VGui_ViewportPaintBackground( &extents );
-	GLFinishHud();
-	int savedX = glx;
-	int savedY = gly;
-	int savedWidth = glwidth;
-	int savedHeight = glheight;
-	int windowX = 0;
-	int windowY = 0;
-	SDL_GetWindowPosition( *pmainwindow, &windowX, &windowY );
-	int width;
-	int height;
-	if ( VideoMode_IsWindowed() )
-            SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
-        else
-		VideoMode_GetCurrentVideoMode( &width, &height, nullptr );
+void VGui_ViewportPaintBackground(int *extents) {
+    g_engdstAddrs.VGui_ViewportPaintBackground(&extents);
+    GLFinishHud();
+    int savedX = glx;
+    int savedY = gly;
+    int savedWidth = glwidth;
+    int savedHeight = glheight;
+    int windowX = 0;
+    int windowY = 0;
+    SDL_GetWindowPosition(*pmainwindow, &windowX, &windowY);
+    int width;
+    int height;
+    if (VideoMode_IsWindowed()) {
+        SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
+    } else {
+        VideoMode_GetCurrentVideoMode(&width, &height, nullptr);
+    }
 
-	glx = extents[0] - windowX;
-	gly = windowY + glheight - extents[3];
-	glwidth = extents[2] - extents[0];
-	glheight = extents[3] - extents[1];
-	SCR_CalcRefdef();
-	V_RenderView();
-	GLBeginHud();
-	if ( cls.state == ca_active && cls.signon == 2 )
-	{
-		AllowFog( 0 );
-		ClientDLL_HudRedraw( cl.intermission == 1 );
-		AllowFog( 1 );
-	}
-	if ( !scr_drawloading && ( cl.intermission != 1 || key_dest != key_game ) )
-		SCR_DrawConsole();
-	SCR_DrawLoading();
-	if ( cls.state == ca_active && cls.signon == 2 )
-		Sbar_Draw();
+    glx = extents[0] - windowX;
+    gly = windowY + glheight - extents[3];
+    glwidth = extents[2] - extents[0];
+    glheight = extents[3] - extents[1];
+    SCR_CalcRefdef();
+    V_RenderView();
+    GLBeginHud();
+    if (cls.state == ca_active && cls.signon == 2) {
+        AllowFog(0);
+        ClientDLL_HudRedraw(cl.intermission == 1);
+        AllowFog(1);
+    }
+    if (!scr_drawloading && (cl.intermission != 1 || key_dest != key_game)) {
+        SCR_DrawConsole();
+    }
+    SCR_DrawLoading();
+    if (cls.state == ca_active && cls.signon == 2) {
+        Sbar_Draw();
+    }
 
-	GLFinishHud();
-	glx = savedX;
-	gly = savedY;
-	glwidth = savedWidth;
-	glheight = savedHeight;
-	SCR_CalcRefdef();
-	GLBeginHud();
+    GLFinishHud();
+    glx = savedX;
+    gly = savedY;
+    glwidth = savedWidth;
+    glheight = savedHeight;
+    SCR_CalcRefdef();
+    GLBeginHud();
 }
 
 struct TCoordRect
@@ -285,40 +286,41 @@ void EngineSurface::drawTexturedPolygon( vgui2::VGuiVertex* vertices, int count 
 	qglEnd();
 }
 
-void EngineSurface::pushMakeCurrent( int* insets, int* absoluteExtents, int* clipRect, bool translateToScreenSpace )
-{
-	int windowX = 0;
-	int windowY = 0;
-	if ( translateToScreenSpace && VideoMode_IsWindowed() )
-		SDL_GetWindowPosition( *pmainwindow, &windowX, &windowY );
-	int width;
-	int height;
-	if ( VideoMode_IsWindowed() )
-            SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
-        else
-		VideoMode_GetCurrentVideoMode( &width, &height, nullptr );
-	qglPushMatrix();
-	qglMatrixMode( GL_PROJECTION );
-	qglLoadIdentity();
-	qglOrtho( 0.0, static_cast<double>( width ), static_cast<double>( height ), 0.0, -1.0, 1.0 );
-	qglMatrixMode( GL_MODELVIEW );
-	qglPushMatrix();
-	qglLoadIdentity();
-	qglTranslatef( static_cast<float>( insets[0] ), static_cast<float>( insets[1] ), 0.0f );
-	int insetX = insets[0];
-	int insetY = insets[1];
-	int absoluteY = absoluteExtents[1] - windowY;
-	int absoluteX = absoluteExtents[0] - windowX;
-	qglTranslatef( static_cast<float>( absoluteX ), static_cast<float>( absoluteY ), 0.0f );
-	int surfaceX = insetX + absoluteX;
-	int surfaceY = insetY + absoluteY;
-	g_bScissor = true;
-	g_ScissorRect.left = clipRect[0] - surfaceX - windowX;
-	g_ScissorRect.top = clipRect[1] - surfaceY - windowY;
-	g_ScissorRect.right = clipRect[2] - surfaceX - windowX;
-	g_ScissorRect.bottom = clipRect[3] - surfaceY - windowY;
-	qglEnable( GL_BLEND );
-	qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+void EngineSurface::pushMakeCurrent(int *insets, int *absoluteExtents, int *clipRect, bool translateToScreenSpace) {
+    int windowX = 0;
+    int windowY = 0;
+    if (translateToScreenSpace && VideoMode_IsWindowed()) {
+        SDL_GetWindowPosition(*pmainwindow, &windowX, &windowY);
+    }
+    int width;
+    int height;
+    if (VideoMode_IsWindowed()) {
+        SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
+    } else {
+        VideoMode_GetCurrentVideoMode(&width, &height, nullptr);
+    }
+    qglPushMatrix();
+    qglMatrixMode(GL_PROJECTION);
+    qglLoadIdentity();
+    qglOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);
+    qglMatrixMode(GL_MODELVIEW);
+    qglPushMatrix();
+    qglLoadIdentity();
+    qglTranslatef(static_cast<float>(insets[0]), static_cast<float>(insets[1]), 0.0f);
+    int insetX = insets[0];
+    int insetY = insets[1];
+    int absoluteY = absoluteExtents[1] - windowY;
+    int absoluteX = absoluteExtents[0] - windowX;
+    qglTranslatef(static_cast<float>(absoluteX), static_cast<float>(absoluteY), 0.0f);
+    int surfaceX = insetX + absoluteX;
+    int surfaceY = insetY + absoluteY;
+    g_bScissor = true;
+    g_ScissorRect.left = clipRect[0] - surfaceX - windowX;
+    g_ScissorRect.top = clipRect[1] - surfaceY - windowY;
+    g_ScissorRect.right = clipRect[2] - surfaceX - windowX;
+    g_ScissorRect.bottom = clipRect[3] - surfaceY - windowY;
+    qglEnable(GL_BLEND);
+    qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
 void EngineSurface::popMakeCurrent()

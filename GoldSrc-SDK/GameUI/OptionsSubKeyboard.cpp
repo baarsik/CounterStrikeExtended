@@ -8,12 +8,11 @@
 #include "GameUI_Interface.h"
 #include "vcontrolslistpanel.h"
 
-#include "../engine/utlbuffer.h"
 #include "Button.h"
+#include "QueryBox.h"
 #include "FileSystem.h"
 #include "IKeyValues.h"
-#include "QueryBox.h"
-#include "cl_dll.h"
+#include "../engine/utlbuffer.h"
 #include "igameuifuncs.h"
 #include "keydefs.h"
 #include "vgui/Cursor.h"
@@ -21,6 +20,7 @@
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
 #include "wrect.h"
+#include "cl_dll.h"
 #include <SDL3/SDL_keyboard.h>
 
 #include <stdarg.h>
@@ -66,69 +66,168 @@ char* UTIL_va( char* format, ... )
 	return string[curstring];
 }
 
-SDL_Keycode GetSDLKeycodeFromEngineKey( int key )
-{
-	SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
-	if ( key >= 'a' && key <= 'z' )
-            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_A + key - 'a'), SDL_KMOD_NONE, false);
-        if ( key >= K_F1 && key <= K_F12 )
-            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_F1 + key - K_F1), SDL_KMOD_NONE, false);
-        if ( key >= '1' && key <= '9' )
-            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_1 + key - '1'), SDL_KMOD_NONE, false);
+SDL_Keycode GetSDLKeycodeFromEngineKey(int key) {
+    SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
+    if (key >= 'a' && key <= 'z') {
+        return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_A + key - 'a'), SDL_KMOD_NONE, false);
+    }
+    if (key >= K_F1 && key <= K_F12) {
+        return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_F1 + key - K_F1), SDL_KMOD_NONE, false);
+    }
+    if (key >= '1' && key <= '9') {
+        return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_1 + key - '1'), SDL_KMOD_NONE, false);
+    }
 
-        switch ( key )
-	{
-	case K_TAB: scancode = SDL_SCANCODE_TAB; break;
-	case K_ENTER: scancode = SDL_SCANCODE_RETURN; break;
-	case K_ESCAPE: scancode = SDL_SCANCODE_ESCAPE; break;
-	case K_SPACE: scancode = SDL_SCANCODE_SPACE; break;
-	case '\'': scancode = SDL_SCANCODE_APOSTROPHE; break;
-	case ',': scancode = SDL_SCANCODE_COMMA; break;
-	case '-': scancode = SDL_SCANCODE_MINUS; break;
-	case '.': scancode = SDL_SCANCODE_PERIOD; break;
-	case '/': scancode = SDL_SCANCODE_SLASH; break;
-	case '0': scancode = SDL_SCANCODE_0; break;
-	case ';': scancode = SDL_SCANCODE_SEMICOLON; break;
-	case '=': scancode = SDL_SCANCODE_EQUALS; break;
-	case '[': scancode = SDL_SCANCODE_LEFTBRACKET; break;
-	case '\\': scancode = SDL_SCANCODE_BACKSLASH; break;
-	case ']': scancode = SDL_SCANCODE_RIGHTBRACKET; break;
-	case '`': scancode = SDL_SCANCODE_GRAVE; break;
-	case K_BACKSPACE: scancode = SDL_SCANCODE_BACKSPACE; break;
-	case K_UPARROW: scancode = SDL_SCANCODE_UP; break;
-	case K_DOWNARROW: scancode = SDL_SCANCODE_DOWN; break;
-	case K_LEFTARROW: scancode = SDL_SCANCODE_LEFT; break;
-	case K_RIGHTARROW: scancode = SDL_SCANCODE_RIGHT; break;
-	case K_ALT: scancode = SDL_SCANCODE_LALT; break;
-	case K_CTRL: scancode = SDL_SCANCODE_LCTRL; break;
-	case K_SHIFT: scancode = SDL_SCANCODE_LSHIFT; break;
-	case K_INS: scancode = SDL_SCANCODE_INSERT; break;
-	case K_DEL: scancode = SDL_SCANCODE_DELETE; break;
-	case K_PGDN: scancode = SDL_SCANCODE_PAGEDOWN; break;
-	case K_PGUP: scancode = SDL_SCANCODE_PAGEUP; break;
-	case K_HOME: scancode = SDL_SCANCODE_HOME; break;
-	case K_END: scancode = SDL_SCANCODE_END; break;
-	case K_KP_HOME: scancode = SDL_SCANCODE_KP_7; break;
-	case K_KP_UPARROW: scancode = SDL_SCANCODE_KP_8; break;
-	case K_KP_PGUP: scancode = SDL_SCANCODE_KP_9; break;
-	case K_KP_LEFTARROW: scancode = SDL_SCANCODE_KP_4; break;
-	case K_KP_5: scancode = SDL_SCANCODE_KP_5; break;
-	case K_KP_RIGHTARROW: scancode = SDL_SCANCODE_KP_6; break;
-	case K_KP_END: scancode = SDL_SCANCODE_KP_1; break;
-	case K_KP_DOWNARROW: scancode = SDL_SCANCODE_KP_2; break;
-	case K_KP_PGDN: scancode = SDL_SCANCODE_KP_3; break;
-	case K_KP_ENTER: scancode = SDL_SCANCODE_KP_ENTER; break;
-	case K_KP_INS: scancode = SDL_SCANCODE_KP_0; break;
-	case K_KP_DEL: scancode = SDL_SCANCODE_KP_PERIOD; break;
-	case K_KP_SLASH: scancode = SDL_SCANCODE_KP_DIVIDE; break;
-	case K_KP_MINUS: scancode = SDL_SCANCODE_KP_MINUS; break;
-	case K_KP_PLUS: scancode = SDL_SCANCODE_KP_PLUS; break;
-	case K_CAPSLOCK: scancode = SDL_SCANCODE_CAPSLOCK; break;
-	case K_KP_MUL: scancode = SDL_SCANCODE_KP_MULTIPLY; break;
-	case K_WIN: scancode = SDL_SCANCODE_LGUI; break;
-	case K_PAUSE: scancode = SDL_SCANCODE_PAUSE; break;
-	}
-        return SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false);
+    switch (key) {
+    case K_TAB:
+        scancode = SDL_SCANCODE_TAB;
+        break;
+    case K_ENTER:
+        scancode = SDL_SCANCODE_RETURN;
+        break;
+    case K_ESCAPE:
+        scancode = SDL_SCANCODE_ESCAPE;
+        break;
+    case K_SPACE:
+        scancode = SDL_SCANCODE_SPACE;
+        break;
+    case '\'':
+        scancode = SDL_SCANCODE_APOSTROPHE;
+        break;
+    case ',':
+        scancode = SDL_SCANCODE_COMMA;
+        break;
+    case '-':
+        scancode = SDL_SCANCODE_MINUS;
+        break;
+    case '.':
+        scancode = SDL_SCANCODE_PERIOD;
+        break;
+    case '/':
+        scancode = SDL_SCANCODE_SLASH;
+        break;
+    case '0':
+        scancode = SDL_SCANCODE_0;
+        break;
+    case ';':
+        scancode = SDL_SCANCODE_SEMICOLON;
+        break;
+    case '=':
+        scancode = SDL_SCANCODE_EQUALS;
+        break;
+    case '[':
+        scancode = SDL_SCANCODE_LEFTBRACKET;
+        break;
+    case '\\':
+        scancode = SDL_SCANCODE_BACKSLASH;
+        break;
+    case ']':
+        scancode = SDL_SCANCODE_RIGHTBRACKET;
+        break;
+    case '`':
+        scancode = SDL_SCANCODE_GRAVE;
+        break;
+    case K_BACKSPACE:
+        scancode = SDL_SCANCODE_BACKSPACE;
+        break;
+    case K_UPARROW:
+        scancode = SDL_SCANCODE_UP;
+        break;
+    case K_DOWNARROW:
+        scancode = SDL_SCANCODE_DOWN;
+        break;
+    case K_LEFTARROW:
+        scancode = SDL_SCANCODE_LEFT;
+        break;
+    case K_RIGHTARROW:
+        scancode = SDL_SCANCODE_RIGHT;
+        break;
+    case K_ALT:
+        scancode = SDL_SCANCODE_LALT;
+        break;
+    case K_CTRL:
+        scancode = SDL_SCANCODE_LCTRL;
+        break;
+    case K_SHIFT:
+        scancode = SDL_SCANCODE_LSHIFT;
+        break;
+    case K_INS:
+        scancode = SDL_SCANCODE_INSERT;
+        break;
+    case K_DEL:
+        scancode = SDL_SCANCODE_DELETE;
+        break;
+    case K_PGDN:
+        scancode = SDL_SCANCODE_PAGEDOWN;
+        break;
+    case K_PGUP:
+        scancode = SDL_SCANCODE_PAGEUP;
+        break;
+    case K_HOME:
+        scancode = SDL_SCANCODE_HOME;
+        break;
+    case K_END:
+        scancode = SDL_SCANCODE_END;
+        break;
+    case K_KP_HOME:
+        scancode = SDL_SCANCODE_KP_7;
+        break;
+    case K_KP_UPARROW:
+        scancode = SDL_SCANCODE_KP_8;
+        break;
+    case K_KP_PGUP:
+        scancode = SDL_SCANCODE_KP_9;
+        break;
+    case K_KP_LEFTARROW:
+        scancode = SDL_SCANCODE_KP_4;
+        break;
+    case K_KP_5:
+        scancode = SDL_SCANCODE_KP_5;
+        break;
+    case K_KP_RIGHTARROW:
+        scancode = SDL_SCANCODE_KP_6;
+        break;
+    case K_KP_END:
+        scancode = SDL_SCANCODE_KP_1;
+        break;
+    case K_KP_DOWNARROW:
+        scancode = SDL_SCANCODE_KP_2;
+        break;
+    case K_KP_PGDN:
+        scancode = SDL_SCANCODE_KP_3;
+        break;
+    case K_KP_ENTER:
+        scancode = SDL_SCANCODE_KP_ENTER;
+        break;
+    case K_KP_INS:
+        scancode = SDL_SCANCODE_KP_0;
+        break;
+    case K_KP_DEL:
+        scancode = SDL_SCANCODE_KP_PERIOD;
+        break;
+    case K_KP_SLASH:
+        scancode = SDL_SCANCODE_KP_DIVIDE;
+        break;
+    case K_KP_MINUS:
+        scancode = SDL_SCANCODE_KP_MINUS;
+        break;
+    case K_KP_PLUS:
+        scancode = SDL_SCANCODE_KP_PLUS;
+        break;
+    case K_CAPSLOCK:
+        scancode = SDL_SCANCODE_CAPSLOCK;
+        break;
+    case K_KP_MUL:
+        scancode = SDL_SCANCODE_KP_MULTIPLY;
+        break;
+    case K_WIN:
+        scancode = SDL_SCANCODE_LGUI;
+        break;
+    case K_PAUSE:
+        scancode = SDL_SCANCODE_PAUSE;
+        break;
+    }
+    return SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false);
 }
 
 //-----------------------------------------------------------------------------
@@ -668,89 +767,177 @@ void COptionsSubKeyboard::OnKeyTyped( wchar_t unichar )
 	BaseClass::OnKeyTyped( unichar );
 }
 
-void COptionsSubKeyboard::OnKeyCodeTyped( vgui2::KeyCode code )
-{
-	if ( !m_pKeyBindList->IsCapturing() )
-	{
-		BaseClass::OnKeyCodeTyped( code );
-		return;
-	}
-	SDL_Keycode key = vgui2::system()->KeyCode_VGUIToVirtualKey( code );
-        SDL_Scancode scancode = SDL_GetScancodeFromKey(key, nullptr);
-        int engineKey = 0;
-	if ( scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z )
-	{
-		engineKey = 'a' + scancode - SDL_SCANCODE_A;
-	}
-	else if ( scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_9 )
-	{
-		engineKey = '1' + scancode - SDL_SCANCODE_1;
-	}
-	else if ( scancode >= SDL_SCANCODE_F1 && scancode <= SDL_SCANCODE_F12 )
-	{
-		engineKey = K_F1 + scancode - SDL_SCANCODE_F1;
-	}
-	else
-	{
-		switch ( scancode )
-		{
-		case SDL_SCANCODE_0: engineKey = '0'; break;
-		case SDL_SCANCODE_RETURN: engineKey = K_ENTER; break;
-		case SDL_SCANCODE_ESCAPE: engineKey = K_ESCAPE; break;
-		case SDL_SCANCODE_BACKSPACE: engineKey = K_BACKSPACE; break;
-		case SDL_SCANCODE_TAB: engineKey = K_TAB; break;
-		case SDL_SCANCODE_SPACE: engineKey = K_SPACE; break;
-		case SDL_SCANCODE_MINUS: engineKey = '-'; break;
-		case SDL_SCANCODE_EQUALS: engineKey = '='; break;
-		case SDL_SCANCODE_LEFTBRACKET: engineKey = '['; break;
-		case SDL_SCANCODE_RIGHTBRACKET: engineKey = ']'; break;
-		case SDL_SCANCODE_BACKSLASH: engineKey = '\\'; break;
-		case SDL_SCANCODE_SEMICOLON: engineKey = ';'; break;
-		case SDL_SCANCODE_APOSTROPHE: engineKey = '\''; break;
-		case SDL_SCANCODE_GRAVE: engineKey = '`'; break;
-		case SDL_SCANCODE_COMMA: engineKey = ','; break;
-		case SDL_SCANCODE_PERIOD: engineKey = '.'; break;
-		case SDL_SCANCODE_SLASH: engineKey = '/'; break;
-		case SDL_SCANCODE_CAPSLOCK: engineKey = K_CAPSLOCK; break;
-		case SDL_SCANCODE_PAUSE: engineKey = K_PAUSE; break;
-		case SDL_SCANCODE_INSERT: engineKey = K_INS; break;
-		case SDL_SCANCODE_HOME: engineKey = K_HOME; break;
-		case SDL_SCANCODE_PAGEUP: engineKey = K_PGUP; break;
-		case SDL_SCANCODE_DELETE: engineKey = K_DEL; break;
-		case SDL_SCANCODE_END: engineKey = K_END; break;
-		case SDL_SCANCODE_PAGEDOWN: engineKey = K_PGDN; break;
-		case SDL_SCANCODE_RIGHT: engineKey = K_RIGHTARROW; break;
-		case SDL_SCANCODE_LEFT: engineKey = K_LEFTARROW; break;
-		case SDL_SCANCODE_DOWN: engineKey = K_DOWNARROW; break;
-		case SDL_SCANCODE_UP: engineKey = K_UPARROW; break;
-		case SDL_SCANCODE_KP_DIVIDE: engineKey = K_KP_SLASH; break;
-		case SDL_SCANCODE_KP_MULTIPLY: engineKey = K_KP_MUL; break;
-		case SDL_SCANCODE_KP_MINUS: engineKey = K_KP_MINUS; break;
-		case SDL_SCANCODE_KP_PLUS: engineKey = K_KP_PLUS; break;
-		case SDL_SCANCODE_KP_ENTER: engineKey = K_KP_ENTER; break;
-		case SDL_SCANCODE_KP_1: engineKey = K_KP_END; break;
-		case SDL_SCANCODE_KP_2: engineKey = K_KP_DOWNARROW; break;
-		case SDL_SCANCODE_KP_3: engineKey = K_KP_PGDN; break;
-		case SDL_SCANCODE_KP_4: engineKey = K_KP_LEFTARROW; break;
-		case SDL_SCANCODE_KP_5: engineKey = K_KP_5; break;
-		case SDL_SCANCODE_KP_6: engineKey = K_KP_RIGHTARROW; break;
-		case SDL_SCANCODE_KP_7: engineKey = K_KP_HOME; break;
-		case SDL_SCANCODE_KP_8: engineKey = K_KP_UPARROW; break;
-		case SDL_SCANCODE_KP_9: engineKey = K_KP_PGUP; break;
-		case SDL_SCANCODE_KP_0: engineKey = K_KP_INS; break;
-		case SDL_SCANCODE_KP_PERIOD:
-		case SDL_SCANCODE_KP_DECIMAL: engineKey = K_KP_DEL; break;
-		case SDL_SCANCODE_LCTRL:
-		case SDL_SCANCODE_RCTRL: engineKey = K_CTRL; break;
-		case SDL_SCANCODE_LSHIFT:
-		case SDL_SCANCODE_RSHIFT: engineKey = K_SHIFT; break;
-		case SDL_SCANCODE_LALT:
-		case SDL_SCANCODE_RALT: engineKey = K_ALT; break;
-		case SDL_SCANCODE_LGUI:
-		case SDL_SCANCODE_RGUI: engineKey = K_WIN; break;
-		}
-	}
-	Finish( engineKey, 0, SDL_GetKeyName( key ) );
+void COptionsSubKeyboard::OnKeyCodeTyped(vgui2::KeyCode code) {
+    if (!m_pKeyBindList->IsCapturing()) {
+        BaseClass::OnKeyCodeTyped(code);
+        return;
+    }
+    SDL_Keycode key = vgui2::system()->KeyCode_VGUIToVirtualKey(code);
+    SDL_Scancode scancode = SDL_GetScancodeFromKey(key, nullptr);
+    int engineKey = 0;
+    if (scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z) {
+        engineKey = 'a' + scancode - SDL_SCANCODE_A;
+    } else if (scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_9) {
+        engineKey = '1' + scancode - SDL_SCANCODE_1;
+    } else if (scancode >= SDL_SCANCODE_F1 && scancode <= SDL_SCANCODE_F12) {
+        engineKey = K_F1 + scancode - SDL_SCANCODE_F1;
+    } else {
+        switch (scancode) {
+        case SDL_SCANCODE_0:
+            engineKey = '0';
+            break;
+        case SDL_SCANCODE_RETURN:
+            engineKey = K_ENTER;
+            break;
+        case SDL_SCANCODE_ESCAPE:
+            engineKey = K_ESCAPE;
+            break;
+        case SDL_SCANCODE_BACKSPACE:
+            engineKey = K_BACKSPACE;
+            break;
+        case SDL_SCANCODE_TAB:
+            engineKey = K_TAB;
+            break;
+        case SDL_SCANCODE_SPACE:
+            engineKey = K_SPACE;
+            break;
+        case SDL_SCANCODE_MINUS:
+            engineKey = '-';
+            break;
+        case SDL_SCANCODE_EQUALS:
+            engineKey = '=';
+            break;
+        case SDL_SCANCODE_LEFTBRACKET:
+            engineKey = '[';
+            break;
+        case SDL_SCANCODE_RIGHTBRACKET:
+            engineKey = ']';
+            break;
+        case SDL_SCANCODE_BACKSLASH:
+            engineKey = '\\';
+            break;
+        case SDL_SCANCODE_SEMICOLON:
+            engineKey = ';';
+            break;
+        case SDL_SCANCODE_APOSTROPHE:
+            engineKey = '\'';
+            break;
+        case SDL_SCANCODE_GRAVE:
+            engineKey = '`';
+            break;
+        case SDL_SCANCODE_COMMA:
+            engineKey = ',';
+            break;
+        case SDL_SCANCODE_PERIOD:
+            engineKey = '.';
+            break;
+        case SDL_SCANCODE_SLASH:
+            engineKey = '/';
+            break;
+        case SDL_SCANCODE_CAPSLOCK:
+            engineKey = K_CAPSLOCK;
+            break;
+        case SDL_SCANCODE_PAUSE:
+            engineKey = K_PAUSE;
+            break;
+        case SDL_SCANCODE_INSERT:
+            engineKey = K_INS;
+            break;
+        case SDL_SCANCODE_HOME:
+            engineKey = K_HOME;
+            break;
+        case SDL_SCANCODE_PAGEUP:
+            engineKey = K_PGUP;
+            break;
+        case SDL_SCANCODE_DELETE:
+            engineKey = K_DEL;
+            break;
+        case SDL_SCANCODE_END:
+            engineKey = K_END;
+            break;
+        case SDL_SCANCODE_PAGEDOWN:
+            engineKey = K_PGDN;
+            break;
+        case SDL_SCANCODE_RIGHT:
+            engineKey = K_RIGHTARROW;
+            break;
+        case SDL_SCANCODE_LEFT:
+            engineKey = K_LEFTARROW;
+            break;
+        case SDL_SCANCODE_DOWN:
+            engineKey = K_DOWNARROW;
+            break;
+        case SDL_SCANCODE_UP:
+            engineKey = K_UPARROW;
+            break;
+        case SDL_SCANCODE_KP_DIVIDE:
+            engineKey = K_KP_SLASH;
+            break;
+        case SDL_SCANCODE_KP_MULTIPLY:
+            engineKey = K_KP_MUL;
+            break;
+        case SDL_SCANCODE_KP_MINUS:
+            engineKey = K_KP_MINUS;
+            break;
+        case SDL_SCANCODE_KP_PLUS:
+            engineKey = K_KP_PLUS;
+            break;
+        case SDL_SCANCODE_KP_ENTER:
+            engineKey = K_KP_ENTER;
+            break;
+        case SDL_SCANCODE_KP_1:
+            engineKey = K_KP_END;
+            break;
+        case SDL_SCANCODE_KP_2:
+            engineKey = K_KP_DOWNARROW;
+            break;
+        case SDL_SCANCODE_KP_3:
+            engineKey = K_KP_PGDN;
+            break;
+        case SDL_SCANCODE_KP_4:
+            engineKey = K_KP_LEFTARROW;
+            break;
+        case SDL_SCANCODE_KP_5:
+            engineKey = K_KP_5;
+            break;
+        case SDL_SCANCODE_KP_6:
+            engineKey = K_KP_RIGHTARROW;
+            break;
+        case SDL_SCANCODE_KP_7:
+            engineKey = K_KP_HOME;
+            break;
+        case SDL_SCANCODE_KP_8:
+            engineKey = K_KP_UPARROW;
+            break;
+        case SDL_SCANCODE_KP_9:
+            engineKey = K_KP_PGUP;
+            break;
+        case SDL_SCANCODE_KP_0:
+            engineKey = K_KP_INS;
+            break;
+        case SDL_SCANCODE_KP_PERIOD:
+        case SDL_SCANCODE_KP_DECIMAL:
+            engineKey = K_KP_DEL;
+            break;
+        case SDL_SCANCODE_LCTRL:
+        case SDL_SCANCODE_RCTRL:
+            engineKey = K_CTRL;
+            break;
+        case SDL_SCANCODE_LSHIFT:
+        case SDL_SCANCODE_RSHIFT:
+            engineKey = K_SHIFT;
+            break;
+        case SDL_SCANCODE_LALT:
+        case SDL_SCANCODE_RALT:
+            engineKey = K_ALT;
+            break;
+        case SDL_SCANCODE_LGUI:
+        case SDL_SCANCODE_RGUI:
+            engineKey = K_WIN;
+            break;
+        }
+    }
+    Finish(engineKey, 0, SDL_GetKeyName(key));
 }
 
 //-----------------------------------------------------------------------------

@@ -9,11 +9,11 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "camera.h"
+#include "camera.h"
 #include "kbutton.h"
 #include "cvardef.h"
 #include "usercmd.h"
 #include "const.h"
-#include "camera.h"
 #include "in_defs.h"
 #include "Exports.h"
 
@@ -83,8 +83,7 @@ void CAM_ToFirstPerson(void);
 void CAM_StartDistance(void);
 void CAM_EndDistance(void);
 
-void SDL_GetCursorPos( POINT *p )
-{
+void SDL_GetCursorPos(POINT *p) {
     float x = 0.0f;
     float y = 0.0f;
     SDL_GetMouseState(&x, &y);

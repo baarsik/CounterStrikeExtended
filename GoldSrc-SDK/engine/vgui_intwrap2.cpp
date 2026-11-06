@@ -1,20 +1,20 @@
+#include "controls.h"
 #include "vgui_intwrap2.h"
+#include "vgui_int.h"
+#include "vgui2/BaseUISurface.h"
 #include "IBaseUI.h"
-#include "IGameConsole.h"
 #include "IGameUI.h"
+#include "IGameConsole.h"
+#include "utlvector.h"
+#include <cstring>
+#include "iclientvgui.h"
 #include "client.h"
 #include "common.h"
-#include "controls.h"
-#include "glquake.h"
 #include "host.h"
-#include "iclientvgui.h"
-#include "ivideomode.h"
 #include "sys.h"
-#include "utlvector.h"
-#include "vgui2/BaseUISurface.h"
-#include "vgui_int.h"
+#include "ivideomode.h"
+#include "glquake.h"
 #include <SDL3/SDL_video.h>
-#include <cstring>
 
 #define MAX_TUTOR_MESSAGES 256
 

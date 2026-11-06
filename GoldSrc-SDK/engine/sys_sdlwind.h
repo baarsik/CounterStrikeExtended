@@ -1,8 +1,8 @@
 #pragma once
 
 #if defined( SW_RENDERER )
-#include "const.h"
 #include "igame.h"
+#include "const.h"
 #include <SDL3/SDL.h>
 
 class CGame : public IGame
@@ -54,8 +54,8 @@ private:
 extern CGame g_Game;
 #else
 
-#include "const.h"
 #include "igame.h"
+#include "const.h"
 #include <SDL3/SDL.h>
 
 class CGame : public IGame

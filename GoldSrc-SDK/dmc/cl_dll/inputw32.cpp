@@ -12,17 +12,17 @@ static cse::FractionalMotion s_relativeMotion;
 
 #include "port.h"
 #include <SDL3/SDL_events.h>
-#include <SDL3/SDL_gamepad.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_gamepad.h>
 
 #include "hud.h"
 #include "cl_util.h"
+#include "camera.h"
 #include "camera.h"
 #include "kbutton.h"
 #include "cvardef.h"
 #include "usercmd.h"
 #include "const.h"
-#include "camera.h"
 #include "in_defs.h"
 #include "../public/keydefs.h"
 #include "view.h"
@@ -331,44 +331,43 @@ void CL_DLLEXPORT IN_MouseEvent (int mstate)
 // Input  : *x -
 //			*y -
 //-----------------------------------------------------------------------------
-void IN_ScaleMouse( float *x, float *y )
-{
-	float mx = *x;
-	float my = *y;
+void IN_ScaleMouse(float *x, float *y) {
+    float mx = *x;
+    float my = *y;
 
-	// This is the default sensitivity
-	float mouse_senstivity = ( gHUD.GetSensitivity() != 0 ) ? gHUD.GetSensitivity() : sensitivity->value;
+    // This is the default sensitivity
+    float mouse_senstivity = (gHUD.GetSensitivity() != 0) ? gHUD.GetSensitivity() : sensitivity->value;
 
-	// Using special accleration values
-        if (m_customaccel->value != 0) {
-            float raw_mouse_movement_distance = sqrt(mx * mx + my * my);
-            float acceleration_scale = m_customaccel_scale->value;
-            float accelerated_sensitivity_max = m_customaccel_max->value;
-            float accelerated_sensitivity_exponent = m_customaccel_exponent->value;
-            float accelerated_sensitivity =
-                ((float)pow(raw_mouse_movement_distance, accelerated_sensitivity_exponent) * acceleration_scale +
-                 mouse_senstivity);
+    // Using special accleration values
+    if (m_customaccel->value != 0) {
+        float raw_mouse_movement_distance = sqrt(mx * mx + my * my);
+        float acceleration_scale = m_customaccel_scale->value;
+        float accelerated_sensitivity_max = m_customaccel_max->value;
+        float accelerated_sensitivity_exponent = m_customaccel_exponent->value;
+        float accelerated_sensitivity =
+            ((float)pow(raw_mouse_movement_distance, accelerated_sensitivity_exponent) * acceleration_scale +
+             mouse_senstivity);
 
-            if (accelerated_sensitivity_max > 0.0001f && accelerated_sensitivity > accelerated_sensitivity_max) {
-                accelerated_sensitivity = accelerated_sensitivity_max;
-            }
-
-            *x *= accelerated_sensitivity;
-            *y *= accelerated_sensitivity;
-
-            // Further re-scale by yaw and pitch magnitude if user requests alternate mode 2
-            // This means that they will need to up their value for m_customaccel_scale greatly (>40x) since m_pitch/yaw
-            // default
-            //  to 0.022
-            if (m_customaccel->value == 2) {
-                *x *= m_yaw->value;
-                *y *= m_pitch->value;
-            }
-        } else {
-            // Just apply the default
-            *x *= mouse_senstivity;
-            *y *= mouse_senstivity;
+        if (accelerated_sensitivity_max > 0.0001f && accelerated_sensitivity > accelerated_sensitivity_max) {
+            accelerated_sensitivity = accelerated_sensitivity_max;
         }
+
+        *x *= accelerated_sensitivity;
+        *y *= accelerated_sensitivity;
+
+        // Further re-scale by yaw and pitch magnitude if user requests alternate mode 2
+        // This means that they will need to up their value for m_customaccel_scale greatly (>40x) since m_pitch/yaw
+        // default
+        //  to 0.022
+        if (m_customaccel->value == 2) {
+            *x *= m_yaw->value;
+            *y *= m_pitch->value;
+        }
+    } else {
+        // Just apply the default
+        *x *= mouse_senstivity;
+        *y *= mouse_senstivity;
+    }
 }
 
 /*

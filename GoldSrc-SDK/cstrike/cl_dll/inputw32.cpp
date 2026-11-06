@@ -10,19 +10,19 @@ static cse::FractionalMotion s_relativeMotion;
 // in_win.c -- windows 95 mouse and joystick code
 // 02/21/97 JCB Added extended DirectInput code to support external controllers.
 
-#include "../../cl_dll/in_defs.h"
-#include "cl_util.h"
-#include "hud.h"
-#include "kbutton.h"
-#include "keydefs.h"
-#include "port.h"
-#include "progdefs.h"
-#include "usercmd.h"
-#include "vgui/ISurface.h"
-#include "vgui_controls/Controls.h"
-#include <SDL3/SDL_gamepad.h>
-#include <SDL3/SDL_mouse.h>
 #include <cmath>
+#include "port.h"
+#include "hud.h"
+#include "cl_util.h"
+#include "kbutton.h"
+#include "usercmd.h"
+#include "keydefs.h"
+#include "../../cl_dll/in_defs.h"
+#include "progdefs.h"
+#include "vgui_controls/Controls.h"
+#include "vgui/ISurface.h"
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_gamepad.h>
 
 #define MOUSE_BUTTON_COUNT 5
 
@@ -220,17 +220,16 @@ DWORD WINAPI MousePos_ThreadFunction( LPVOID )
 IN_ActivateMouse
 ===========
 */
-extern "C" void IN_ActivateMouse()
-{
-	if ( mouseinitialized )
-	{
+extern "C" void IN_ActivateMouse() {
+    if (mouseinitialized) {
 #ifdef _WIN32
-		if ( mouseparmsvalid )
-			restore_spi = SystemParametersInfo( SPI_SETMOUSE, 0, newmouseparms, 0 );
-#endif
-                s_relativeMotion.Reset();
-                mouseactive = 1;
+        if (mouseparmsvalid) {
+            restore_spi = SystemParametersInfo(SPI_SETMOUSE, 0, newmouseparms, 0);
         }
+#endif
+        s_relativeMotion.Reset();
+        mouseactive = 1;
+    }
 }
 
 /*
@@ -238,17 +237,16 @@ extern "C" void IN_ActivateMouse()
 IN_DeactivateMouse
 ===========
 */
-extern "C" void IN_DeactivateMouse()
-{
-	if ( mouseinitialized )
-	{
+extern "C" void IN_DeactivateMouse() {
+    if (mouseinitialized) {
 #ifdef _WIN32
-		if ( restore_spi )
-			SystemParametersInfo( SPI_SETMOUSE, 0, originalmouseparms, 0 );
-#endif
-                s_relativeMotion.Reset();
-                mouseactive = 0;
+        if (restore_spi) {
+            SystemParametersInfo(SPI_SETMOUSE, 0, originalmouseparms, 0);
         }
+#endif
+        s_relativeMotion.Reset();
+        mouseactive = 0;
+    }
 }
 
 /*
@@ -293,8 +291,7 @@ void IN_StartupMouse()
 IN_Shutdown
 ===========
 */
-void IN_Shutdown()
-{
+void IN_Shutdown() {
     if (s_pJoystick) {
         SDL_CloseGamepad(s_pJoystick);
         s_pJoystick = nullptr;
@@ -304,30 +301,26 @@ void IN_Shutdown()
     IN_DeactivateMouse();
 
 #ifdef _WIN32
-	if ( s_hMouseQuitEvent )
-	{
-		SetEvent( s_hMouseQuitEvent );
-		WaitForSingleObject( s_hMouseDoneQuitEvent, 100 );
-	}
+    if (s_hMouseQuitEvent) {
+        SetEvent(s_hMouseQuitEvent);
+        WaitForSingleObject(s_hMouseDoneQuitEvent, 100);
+    }
 
-	if ( s_hMouseThread )
-	{
-		TerminateThread( s_hMouseThread, 0 );
-		CloseHandle( s_hMouseThread );
-		s_hMouseThread = (HANDLE)0;
-	}
+    if (s_hMouseThread) {
+        TerminateThread(s_hMouseThread, 0);
+        CloseHandle(s_hMouseThread);
+        s_hMouseThread = (HANDLE)0;
+    }
 
-	if ( s_hMouseQuitEvent )
-	{
-		CloseHandle( s_hMouseQuitEvent );
-		s_hMouseQuitEvent = (HANDLE)0;
-	}
+    if (s_hMouseQuitEvent) {
+        CloseHandle(s_hMouseQuitEvent);
+        s_hMouseQuitEvent = (HANDLE)0;
+    }
 
-	if ( s_hMouseDoneQuitEvent )
-	{
-		CloseHandle( s_hMouseDoneQuitEvent );
-		s_hMouseDoneQuitEvent = (HANDLE)0;
-	}
+    if (s_hMouseDoneQuitEvent) {
+        CloseHandle(s_hMouseDoneQuitEvent);
+        s_hMouseDoneQuitEvent = (HANDLE)0;
+    }
 #endif
 }
 
@@ -461,121 +454,101 @@ IN_MouseMove
 */
 #pragma warning( push )
 #pragma warning( disable : 4701 )
-void IN_MouseMove( float, usercmd_t* cmd )
-{
-	int mx, my;
-	vec3_t viewangles;
+void IN_MouseMove(float, usercmd_t *cmd) {
+    int mx, my;
+    vec3_t viewangles;
 
-	gEngfuncs.GetViewAngles( (float*)viewangles );
+    gEngfuncs.GetViewAngles((float *)viewangles);
 
-	if ( in_mlook.state & 1 )
-	{
-		V_StopPitchDrift();
-	}
+    if (in_mlook.state & 1) {
+        V_StopPitchDrift();
+    }
 
-        // jjb - this disbles normal mouse control if the user is trying to
-        //       move the camera, or if the mouse cursor is visible or if we're in intermission
-        if ( !iMouseInUse && !gHUD.m_iIntermission && !vgui2::surface()->IsCursorVisible() )
-	{
-		int deltaX, deltaY;
+    // jjb - this disbles normal mouse control if the user is trying to
+    //       move the camera, or if the mouse cursor is visible or if we're in intermission
+    if (!iMouseInUse && !gHUD.m_iIntermission && !vgui2::surface()->IsCursorVisible()) {
+        int deltaX, deltaY;
 #ifdef _WIN32
-		if ( !m_bRawInput )
-		{
-			if ( m_bMouseThread )
-			{
-				ThreadInterlockedExchange( &current_pos.x, s_mouseDeltaX );
-				ThreadInterlockedExchange( &current_pos.y, s_mouseDeltaY );
-				ThreadInterlockedExchange( &s_mouseDeltaX, 0 );
-				ThreadInterlockedExchange( &s_mouseDeltaY, 0 );
-			}
-			else
-			{
-				GetCursorPos( &current_pos );
-			}
-		}
-		else
+        if (!m_bRawInput) {
+            if (m_bMouseThread) {
+                ThreadInterlockedExchange(&current_pos.x, s_mouseDeltaX);
+                ThreadInterlockedExchange(&current_pos.y, s_mouseDeltaY);
+                ThreadInterlockedExchange(&s_mouseDeltaX, 0);
+                ThreadInterlockedExchange(&s_mouseDeltaY, 0);
+            } else {
+                GetCursorPos(&current_pos);
+            }
+        } else
 #endif
-		{
-                    cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
-                    current_pos.x = deltaX;
-                    current_pos.y = deltaY;
-		}
+        {
+            cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+            current_pos.x = deltaX;
+            current_pos.y = deltaY;
+        }
 
 #ifdef _WIN32
-		if ( !m_bRawInput )
-		{
-			if ( m_bMouseThread )
-			{
-				mx = current_pos.x;
-				my = current_pos.y;
-			}
-			else
-			{
-				mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
-				my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
-			}
-		}
-		else
+        if (!m_bRawInput) {
+            if (m_bMouseThread) {
+                mx = current_pos.x;
+                my = current_pos.y;
+            } else {
+                mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
+                my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
+            }
+        } else
 #endif
-		{
-			mx = deltaX + mx_accum;
-			my = deltaY + my_accum;
-		}
+        {
+            mx = deltaX + mx_accum;
+            my = deltaY + my_accum;
+        }
 
-		mx_accum = 0;
-		my_accum = 0;
+        mx_accum = 0;
+        my_accum = 0;
 
-		if ( m_filter->value )
-		{
-			mouse_x = ( mx + old_mouse_x ) * 0.5;
-			mouse_y = ( my + old_mouse_y ) * 0.5;
-		}
-		else
-		{
-			mouse_x = mx;
-			mouse_y = my;
-		}
+        if (m_filter->value) {
+            mouse_x = (mx + old_mouse_x) * 0.5;
+            mouse_y = (my + old_mouse_y) * 0.5;
+        } else {
+            mouse_x = mx;
+            mouse_y = my;
+        }
 
-		old_mouse_x = mx;
-		old_mouse_y = my;
+        old_mouse_x = mx;
+        old_mouse_y = my;
 
-		// Apply custom mouse scaling/acceleration
-		IN_ScaleMouse( &mouse_x, &mouse_y );
+        // Apply custom mouse scaling/acceleration
+        IN_ScaleMouse(&mouse_x, &mouse_y);
 
-		// add mouse X/Y movement to cmd
-		if ( (in_strafe.state & 1) || (lookstrafe->value && (in_mlook.state & 1)) )
-			cmd->sidemove += m_side->value * mouse_x;
-		else
-			viewangles[YAW] -= m_yaw->value * mouse_x;
+        // add mouse X/Y movement to cmd
+        if ((in_strafe.state & 1) || (lookstrafe->value && (in_mlook.state & 1))) {
+            cmd->sidemove += m_side->value * mouse_x;
+        } else {
+            viewangles[YAW] -= m_yaw->value * mouse_x;
+        }
 
-		if ( (in_mlook.state & 1) && !(in_strafe.state & 1) )
-		{
-			viewangles[PITCH] += m_pitch->value * mouse_y;
-			if ( viewangles[PITCH] > cl_pitchdown->value )
-				viewangles[PITCH] = cl_pitchdown->value;
-			if ( viewangles[PITCH] < -cl_pitchup->value )
-				viewangles[PITCH] = -cl_pitchup->value;
-		}
-		else
-		{
-			if ( (in_strafe.state & 1) && gEngfuncs.IsNoClipping() )
-			{
-				cmd->upmove -= m_forward->value * mouse_y;
-			}
-			else
-			{
-				cmd->forwardmove -= m_forward->value * mouse_y;
-			}
-		}
+        if ((in_mlook.state & 1) && !(in_strafe.state & 1)) {
+            viewangles[PITCH] += m_pitch->value * mouse_y;
+            if (viewangles[PITCH] > cl_pitchdown->value) {
+                viewangles[PITCH] = cl_pitchdown->value;
+            }
+            if (viewangles[PITCH] < -cl_pitchup->value) {
+                viewangles[PITCH] = -cl_pitchup->value;
+            }
+        } else {
+            if ((in_strafe.state & 1) && gEngfuncs.IsNoClipping()) {
+                cmd->upmove -= m_forward->value * mouse_y;
+            } else {
+                cmd->forwardmove -= m_forward->value * mouse_y;
+            }
+        }
 
-		// if the mouse has moved, force it to the center, so there's room to move
-		if ( mx || my )
-		{
-			IN_ResetMouse();
-		}
-	}
+        // if the mouse has moved, force it to the center, so there's room to move
+        if (mx || my) {
+            IN_ResetMouse();
+        }
+    }
 
-	gEngfuncs.SetViewAngles( (float*)viewangles );
+    gEngfuncs.SetViewAngles((float *)viewangles);
 }
 #pragma warning( pop )
 
@@ -584,36 +557,30 @@ void IN_MouseMove( float, usercmd_t* cmd )
 IN_Accumulate
 ===========
 */
-extern "C" void IN_Accumulate()
-{
-	//only accumulate mouse if we are not moving the camera with the mouse
-	if ( !iMouseInUse && !vgui2::surface()->IsCursorVisible() )
-	{
-		if ( mouseactive )
-		{
+extern "C" void IN_Accumulate() {
+    // only accumulate mouse if we are not moving the camera with the mouse
+    if (!iMouseInUse && !vgui2::surface()->IsCursorVisible()) {
+        if (mouseactive) {
 #ifdef _WIN32
-			if ( !m_bRawInput )
-			{
-				if ( !m_bMouseThread )
-				{
-					GetCursorPos( &current_pos );
+            if (!m_bRawInput) {
+                if (!m_bMouseThread) {
+                    GetCursorPos(&current_pos);
 
-					mx_accum += current_pos.x - gEngfuncs.GetWindowCenterX();
-					my_accum += current_pos.y - gEngfuncs.GetWindowCenterY();
-				}
-			}
-			else
+                    mx_accum += current_pos.x - gEngfuncs.GetWindowCenterX();
+                    my_accum += current_pos.y - gEngfuncs.GetWindowCenterY();
+                }
+            } else
 #endif
-			{
-				int deltaX, deltaY;
-                                cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
-                                mx_accum += deltaX;
-				my_accum += deltaY;
-			}
-			// force the mouse to the center, so there's room to move
-			IN_ResetMouse();
-		}
-	}
+            {
+                int deltaX, deltaY;
+                cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+                mx_accum += deltaX;
+                my_accum += deltaY;
+            }
+            // force the mouse to the center, so there's room to move
+            IN_ResetMouse();
+        }
+    }
 }
 
 /*
@@ -679,20 +646,18 @@ void IN_StartupJoystick() {
     SDL_free(ids);
 }
 
-int RawValuePointer( int axis )
-{
-	switch ( axis )
-	{
-	default:
-	case JOY_AXIS_X:
-            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX);
-        case JOY_AXIS_Y:
-            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY);
-        case JOY_AXIS_Z:
-            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX);
-        case JOY_AXIS_R:
-            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY);
-        }
+int RawValuePointer(int axis) {
+    switch (axis) {
+    default:
+    case JOY_AXIS_X:
+        return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX);
+    case JOY_AXIS_Y:
+        return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY);
+    case JOY_AXIS_Z:
+        return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX);
+    case JOY_AXIS_R:
+        return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY);
+    }
 }
 
 /*
@@ -760,8 +725,7 @@ void Joy_AdvancedUpdate_f()
 IN_Commands
 ===========
 */
-void IN_Commands()
-{
+void IN_Commands() {
     IN_StartupJoystick();
     int i, key_index;
 
@@ -769,61 +733,53 @@ void IN_Commands()
         return;
     }
 
-	DWORD buttonstate, povstate;
+    DWORD buttonstate, povstate;
 
-	// loop through the joystick buttons
-	// key a joystick event or auxillary event for higher number buttons for each state change
-	buttonstate = 0;
-        for (i = 0; i < cse::LegacyGamepadButtonCount; i++) {
-            if (SDL_GetGamepadButton(s_pJoystick, cse::LegacyGamepadButton(i))) {
-                buttonstate |= 1 << i;
-            }
+    // loop through the joystick buttons
+    // key a joystick event or auxillary event for higher number buttons for each state change
+    buttonstate = 0;
+    for (i = 0; i < cse::LegacyGamepadButtonCount; i++) {
+        if (SDL_GetGamepadButton(s_pJoystick, cse::LegacyGamepadButton(i))) {
+            buttonstate |= 1 << i;
+        }
+    }
+
+    for (i = 0; i < JOY_MAX_AXES; i++) {
+        pdwRawValue[i] = RawValuePointer(i);
+    }
+
+    for (i = 0; i < (int)joy_numbuttons; i++) {
+        if ((buttonstate & (1 << i)) && !(joy_oldbuttonstate & (1 << i))) {
+            key_index = (i < 4) ? K_JOY1 : K_AUX1;
+            gEngfuncs.Key_Event(key_index + i, 1);
+            // gEngfuncs.Con_Printf ("Button %d pressed\n", i);
         }
 
-        for ( i = 0; i < JOY_MAX_AXES; i++ )
-	{
-		pdwRawValue[i] = RawValuePointer( i );
-	}
+        if (!(buttonstate & (1 << i)) && (joy_oldbuttonstate & (1 << i))) {
+            key_index = (i < 4) ? K_JOY1 : K_AUX1;
+            gEngfuncs.Key_Event(key_index + i, 0);
+            // gEngfuncs.Con_Printf ("Button %d released\n", i);
+        }
+    }
+    joy_oldbuttonstate = buttonstate;
 
-	for ( i = 0; i < (int)joy_numbuttons; i++ )
-	{
-		if ( (buttonstate & (1 << i)) && !(joy_oldbuttonstate & (1 << i)) )
-		{
-			key_index = (i < 4) ? K_JOY1 : K_AUX1;
-			gEngfuncs.Key_Event( key_index + i, 1 );
-			//gEngfuncs.Con_Printf ("Button %d pressed\n", i);
-		}
+    if (joy_haspov) {
+        // convert POV information into 4 bits of state information
+        // this avoids any potential problems related to moving from one
+        // direction to another without going through the center position
+        povstate = 0;
+        // determine which bits have changed and key an auxillary event for each change
+        for (i = 0; i < 4; i++) {
+            if ((povstate & (1 << i)) && !(joy_oldpovstate & (1 << i))) {
+                gEngfuncs.Key_Event(K_AUX29 + i, 1);
+            }
 
-		if ( !(buttonstate & (1 << i)) && (joy_oldbuttonstate & (1 << i)) )
-		{
-			key_index = (i < 4) ? K_JOY1 : K_AUX1;
-			gEngfuncs.Key_Event( key_index + i, 0 );
-			//gEngfuncs.Con_Printf ("Button %d released\n", i);
-		}
-	}
-	joy_oldbuttonstate = buttonstate;
-
-	if ( joy_haspov )
-	{
-		// convert POV information into 4 bits of state information
-		// this avoids any potential problems related to moving from one
-		// direction to another without going through the center position
-		povstate = 0;
-		// determine which bits have changed and key an auxillary event for each change
-		for ( i = 0; i < 4; i++ )
-		{
-			if ( (povstate & (1 << i)) && !(joy_oldpovstate & (1 << i)) )
-			{
-				gEngfuncs.Key_Event( K_AUX29 + i, 1 );
-			}
-
-			if ( !(povstate & (1 << i)) && (joy_oldpovstate & (1 << i)) )
-			{
-				gEngfuncs.Key_Event( K_AUX29 + i, 0 );
-			}
-		}
-		joy_oldpovstate = povstate;
-	}
+            if (!(povstate & (1 << i)) && (joy_oldpovstate & (1 << i))) {
+                gEngfuncs.Key_Event(K_AUX29 + i, 0);
+            }
+        }
+        joy_oldpovstate = povstate;
+    }
 }
 
 /*
@@ -831,8 +787,7 @@ void IN_Commands()
 IN_ReadJoystick
 ===============
 */
-int IN_ReadJoystick()
-{
+int IN_ReadJoystick() {
     SDL_UpdateJoysticks();
     return 1;
 }

@@ -34,5 +34,12 @@ int main() {
     assert(cse::RefreshRateOrDefault(59.94f) == 60);
     assert(cse::RefreshRateOrDefault(0.0f) == 60);
     static_assert(cse::LegacyGamepadButtonCount == 21, "engine bindings are fixed");
+    assert(cse::WindowToRenderCoordinate(150.5f, 300, 600, 1.0f) == 301);
+    assert(cse::RenderToWindowCoordinate(301, 300, 600, 1.0f) == 150.5f);
+    assert(cse::WindowToRenderCoordinate(240.0f, 960, 640, 1.5f) == 80);
+    assert(cse::RenderToWindowCoordinate(80, 960, 640, 1.5f) == 240.0f);
+    assert(cse::RenderToWindowCoordinate(80, 960, 0, 1.5f) == 0.0f);
+    assert(cse::Utf8PrefixBytes(nullptr, 20) == 0);
+    assert(cse::Utf8PrefixBytes("", 20) == 0);
     return 0;
 }

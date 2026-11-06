@@ -11,10 +11,10 @@
 //=============================================================================
 
 #include "keys.h"
-#include "../common/dll_state.h"
+#include <SDL3/SDL.h>
 #include "client.h"
-#include "cmd.h"
 #include "common.h"
+#include "cmd.h"
 #include "conprint.h"
 #include "filesystem.h"
 #include "sys.h"
@@ -22,7 +22,7 @@
 #include "vgui_int.h"
 #include "vgui_intwrap2.h"
 #include "zone.h"
-#include <SDL3/SDL.h>
+#include "../common/dll_state.h"
 
 #include <cstdio>
 #include <cstring>

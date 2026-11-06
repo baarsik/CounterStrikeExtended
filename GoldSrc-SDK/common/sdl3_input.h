@@ -34,4 +34,22 @@ inline SDL_GamepadButton LegacyGamepadButton(int binding) {
                                                               : SDL_GAMEPAD_BUTTON_INVALID;
 }
 
+inline bool IsWindowLifecycleEvent(Uint32 type) {
+    switch (type) {
+    case SDL_EVENT_WINDOW_SHOWN:
+    case SDL_EVENT_WINDOW_HIDDEN:
+    case SDL_EVENT_WINDOW_FOCUS_GAINED:
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+    case SDL_EVENT_WINDOW_MINIMIZED:
+    case SDL_EVENT_WINDOW_RESTORED:
+    case SDL_EVENT_WINDOW_MOVED:
+    case SDL_EVENT_WINDOW_RESIZED:
+    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+    case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+        return true;
+    default:
+        return false;
+    }
+}
+
 } // namespace cse

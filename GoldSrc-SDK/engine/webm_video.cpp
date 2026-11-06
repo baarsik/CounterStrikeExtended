@@ -1419,8 +1419,7 @@ static void StartInterfaceSound( const char* name, bool reportMissing )
 		Con_DPrintf( "invalid sound %s\n", name );
 }
 
-static bool PlaybackKey( const SDL_Event& event )
-{
+static bool PlaybackKey(const SDL_Event &event) {
     if (event.type == SDL_EVENT_QUIT) {
         return true;
     }
@@ -1431,305 +1430,281 @@ static bool PlaybackKey( const SDL_Event& event )
     return key == SDLK_RETURN || key == SDLK_ESCAPE || key == SDLK_SPACE;
 }
 
-void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
-{
-	Con_Printf( "WebMPlayer::PlayVideo %s\n", szPath );
-	mkvparser::MkvReader reader;
-	if ( reader.Open( szPath ) != 0 )
-	{
-		Con_Printf( "failed to find video file %s\n", szPath );
-		return;
-	}
+void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
+    Con_Printf("WebMPlayer::PlayVideo %s\n", szPath);
+    mkvparser::MkvReader reader;
+    if (reader.Open(szPath) != 0) {
+        Con_Printf("failed to find video file %s\n", szPath);
+        return;
+    }
 
-	WebMDemuxer demuxer( &reader, 0, 0 );
-	if ( !demuxer.m_bIsOpen || demuxer.GetWidth() <= 0 || demuxer.GetHeight() <= 0 )
-		return;
+    WebMDemuxer demuxer(&reader, 0, 0);
+    if (!demuxer.m_bIsOpen || demuxer.GetWidth() <= 0 || demuxer.GetHeight() <= 0) {
+        return;
+    }
 
-	StartInterfaceSound( "UI/valve_sound.wav", true );
+    StartInterfaceSound("UI/valve_sound.wav", true);
 
-	int nWindowW = 0;
-	int nWindowH = 0;
-        SDL_GetWindowSizeInPixels(pSDLWindow, &nWindowW, &nWindowH);
+    int nWindowW = 0;
+    int nWindowH = 0;
+    SDL_GetWindowSizeInPixels(pSDLWindow, &nWindowW, &nWindowH);
 #ifdef SW_RENDERER
-	SDL_Renderer* renderer = SDL_GetRenderer( pSDLWindow );
-	bool createdRenderer = false;
-	if ( !renderer )
-	{
-            renderer = SDL_CreateRenderer(pSDLWindow, nullptr);
-            createdRenderer = true;
-	}
-        SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
-                                                 demuxer.GetWidth(), demuxer.GetHeight());
+    SDL_Renderer *renderer = SDL_GetRenderer(pSDLWindow);
+    bool createdRenderer = false;
+    if (!renderer) {
+        renderer = SDL_CreateRenderer(pSDLWindow, nullptr);
+        createdRenderer = true;
+    }
+    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
+                                             demuxer.GetWidth(), demuxer.GetHeight());
 #else
-	GLuint texture = 0;
-	glGenTextures( 1, &texture );
-	glEnable( GL_TEXTURE_RECTANGLE );
-	glBindTexture( GL_TEXTURE_RECTANGLE, texture );
-	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
-	glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	glTexParameteri( GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	glDisable( GL_BLEND );
-	glDisable( GL_LIGHTING );
-	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_ALPHA_TEST );
-	glDisable( GL_CULL_FACE );
-	glMatrixMode( GL_PROJECTION );
-	glLoadIdentity();
-	glOrtho( 0.0, static_cast<double>( nWindowW ), static_cast<double>( nWindowH ), 0.0, -1.0, 1.0 );
-	glMatrixMode( GL_MODELVIEW );
-	glPushMatrix();
-	glLoadIdentity();
-	glViewport( 0, 0, nWindowW, nWindowH );
-	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+    GLuint texture = 0;
+    glGenTextures(1, &texture);
+    glEnable(GL_TEXTURE_RECTANGLE);
+    glBindTexture(GL_TEXTURE_RECTANGLE, texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glDisable(GL_BLEND);
+    glDisable(GL_LIGHTING);
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_CULL_FACE);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0.0, static_cast<double>(nWindowW), static_cast<double>(nWindowH), 0.0, -1.0, 1.0);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glViewport(0, 0, nWindowW, nWindowH);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 #endif
 
-	const int sourceWidth = demuxer.GetWidth();
-	const int sourceHeight = demuxer.GetHeight();
-	int nVideoW = sourceWidth;
-	int nVideoH = sourceHeight;
-#if defined( _WIN32 )
-	int centerSpan = nWindowH;
-	float aspect = (float)sourceWidth / (float)sourceHeight;
-	bool scaledWidth = false;
-	if ( nVideoW > nWindowW )
-	{
-		nVideoW = nWindowW;
-		scaledWidth = true;
-		nVideoH = (int)( (float)nWindowW / aspect );
-	}
-	if ( nVideoH > nWindowH || ( !scaledWidth && nWindowW > nVideoW ) )
-	{
-		nVideoH = nWindowH;
-		nVideoW = (int)( (float)nWindowH * aspect );
-	}
-	else if ( !scaledWidth && nWindowH > nVideoH )
-	{
-		nVideoW = nWindowW;
-		nVideoH = (int)( (float)nWindowW / aspect );
-	}
+    const int sourceWidth = demuxer.GetWidth();
+    const int sourceHeight = demuxer.GetHeight();
+    int nVideoW = sourceWidth;
+    int nVideoH = sourceHeight;
+#if defined(_WIN32)
+    int centerSpan = nWindowH;
+    float aspect = (float)sourceWidth / (float)sourceHeight;
+    bool scaledWidth = false;
+    if (nVideoW > nWindowW) {
+        nVideoW = nWindowW;
+        scaledWidth = true;
+        nVideoH = (int)((float)nWindowW / aspect);
+    }
+    if (nVideoH > nWindowH || (!scaledWidth && nWindowW > nVideoW)) {
+        nVideoH = nWindowH;
+        nVideoW = (int)((float)nWindowH * aspect);
+    } else if (!scaledWidth && nWindowH > nVideoH) {
+        nVideoW = nWindowW;
+        nVideoH = (int)((float)nWindowW / aspect);
+    }
 #else
-	const double widthOverHeight = static_cast<double>( sourceWidth ) / static_cast<double>( sourceHeight );
-	int centerSpan = nWindowH;
-	if ( nWindowW >= sourceWidth )
-	{
-		if ( nWindowH < sourceHeight )
-		{
-			nVideoH = nWindowH;
-			nVideoW = TruncateFloat( widthOverHeight * static_cast<double>( nVideoH ) );
-			centerSpan = nWindowH;
-		}
-		else if ( nWindowW > sourceWidth )
-		{
-			nVideoH = nWindowH;
-			nVideoW = TruncateFloat( widthOverHeight * static_cast<double>( nWindowH ) );
-			centerSpan = nWindowH;
-		}
-		else if ( nWindowH > sourceHeight )
-		{
-			nVideoW = nWindowW;
-			nVideoH = TruncateFloat( static_cast<double>( nWindowW ) / widthOverHeight );
-			centerSpan = nWindowH;
-		}
-	}
-	else
-	{
-		nVideoH = nWindowH;
-		const int fitted = TruncateFloat( static_cast<double>( nWindowW ) / widthOverHeight );
-		if ( fitted > nWindowH )
-			nVideoW = TruncateFloat( widthOverHeight * static_cast<double>( nVideoH ) );
-		else
-		{
-			nVideoH = fitted;
-			nVideoW = nWindowW;
-		}
-		centerSpan = nWindowH;
-	}
+    const double widthOverHeight = static_cast<double>(sourceWidth) / static_cast<double>(sourceHeight);
+    int centerSpan = nWindowH;
+    if (nWindowW >= sourceWidth) {
+        if (nWindowH < sourceHeight) {
+            nVideoH = nWindowH;
+            nVideoW = TruncateFloat(widthOverHeight * static_cast<double>(nVideoH));
+            centerSpan = nWindowH;
+        } else if (nWindowW > sourceWidth) {
+            nVideoH = nWindowH;
+            nVideoW = TruncateFloat(widthOverHeight * static_cast<double>(nWindowH));
+            centerSpan = nWindowH;
+        } else if (nWindowH > sourceHeight) {
+            nVideoW = nWindowW;
+            nVideoH = TruncateFloat(static_cast<double>(nWindowW) / widthOverHeight);
+            centerSpan = nWindowH;
+        }
+    } else {
+        nVideoH = nWindowH;
+        const int fitted = TruncateFloat(static_cast<double>(nWindowW) / widthOverHeight);
+        if (fitted > nWindowH) {
+            nVideoW = TruncateFloat(widthOverHeight * static_cast<double>(nVideoH));
+        } else {
+            nVideoH = fitted;
+            nVideoW = nWindowW;
+        }
+        centerSpan = nWindowH;
+    }
 #endif
-	const int dstX = nWindowW / 2 - nVideoW / 2;
-	const int dstY = centerSpan / 2 - nVideoH / 2;
+    const int dstX = nWindowW / 2 - nVideoW / 2;
+    const int dstY = centerSpan / 2 - nVideoH / 2;
 #ifdef SW_RENDERER
-        SDL_FRect destination = {static_cast<float>(dstX), static_cast<float>(dstY), static_cast<float>(nVideoW),
-                                 static_cast<float>(nVideoH)};
-        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
-        SDL_SetRenderDrawColor( renderer, 0, 0, 0, 0 );
-	SDL_RenderClear( renderer );
-	SDL_RenderPresent( renderer );
+    SDL_FRect destination = {static_cast<float>(dstX), static_cast<float>(dstY), static_cast<float>(nVideoW),
+                             static_cast<float>(nVideoH)};
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
 #endif
 
-	VPXDecoder videoDec( demuxer, kVpxMaxThreads );
-	AudioVorbisDecoder audioDec( demuxer );
-	WebMFrame videoFrame;
-	WebMFrame audioFrame;
-	short* pcm = nullptr;
-	if ( audioDec.IsOpen() )
-	{
-		const unsigned int sampleCount =
-			static_cast<unsigned int>( audioDec.m_nSamples ) * static_cast<unsigned int>( demuxer.GetChannels() );
-#if defined( _WIN32 )
-		pcm = new short[sampleCount];
+    VPXDecoder videoDec(demuxer, kVpxMaxThreads);
+    AudioVorbisDecoder audioDec(demuxer);
+    WebMFrame videoFrame;
+    WebMFrame audioFrame;
+    short *pcm = nullptr;
+    if (audioDec.IsOpen()) {
+        const unsigned int sampleCount =
+            static_cast<unsigned int>(audioDec.m_nSamples) * static_cast<unsigned int>(demuxer.GetChannels());
+#if defined(_WIN32)
+        pcm = new short[sampleCount];
 #else
-		if ( sampleCount > kPcmCountLimit )
-			throw std::bad_array_new_length();
-		pcm = static_cast<short*>( ::operator new[]( sampleCount * 2 ) );
+        if (sampleCount > kPcmCountLimit) {
+            throw std::bad_array_new_length();
+        }
+        pcm = static_cast<short *>(::operator new[](sampleCount * 2));
 #endif
-	}
+    }
 
-	const int pixelWidth = demuxer.GetWidth();
-	const int pixelHeight = demuxer.GetHeight();
-	unsigned char* pOutFrame =
-		static_cast<unsigned char*>( ::operator new[]( static_cast<unsigned int>( pixelWidth * pixelHeight ) << 2 ) );
-	Con_Printf( "Length: %f\n", demuxer.GetLength() );
+    const int pixelWidth = demuxer.GetWidth();
+    const int pixelHeight = demuxer.GetHeight();
+    unsigned char *pOutFrame =
+        static_cast<unsigned char *>(::operator new[](static_cast<unsigned int>(pixelWidth * pixelHeight) << 2));
+    Con_Printf("Length: %f\n", demuxer.GetLength());
 
-	const double flStartTime = Sys_FloatTime();
-	if ( !demuxer.ReadFrame( &videoFrame, &audioFrame ) )
-		goto playback_done;
+    const double flStartTime = Sys_FloatTime();
+    if (!demuxer.ReadFrame(&videoFrame, &audioFrame)) {
+        goto playback_done;
+    }
 
-	{
-		double elapsed = 0.0;
-		double frameDelay = 0.0;
-		double flVideoPos = 0.0;
+    {
+        double elapsed = 0.0;
+        double frameDelay = 0.0;
+        double flVideoPos = 0.0;
 #ifndef SW_RENDERER
-		bool bFirstFrame = true;
+        bool bFirstFrame = true;
 #endif
-		for ( ;; )
-		{
-			if ( elapsed + frameDelay >= videoFrame.m_flTime )
-			{
-				if ( videoDec.m_pCtx != nullptr && videoFrame.m_uBufferSize > 0 )
-				{
-					if ( !videoDec.Decode( videoFrame ) )
-					{
-						Con_Printf( "Video decode error\n" );
-						goto playback_done;
-					}
-					for ( ;; )
-					{
-						vpx_image_t* image = vpx_codec_get_frame( videoDec.m_pCtx, &videoDec.m_pIter );
-						if ( image == nullptr )
-							break;
-						if ( image->cs != 0 )
-							videoDec.m_nLastSpace = image->cs;
-						if ( ( static_cast<unsigned int>( image->fmt ) & kVpxFmtAcceptedMask ) != VPX_IMG_FMT_PLANAR )
-							break;
-						if ( image->stride[0] == 0 || image->stride[1] == 0 || image->stride[2] == 0 )
-							break;
+        for (;;) {
+            if (elapsed + frameDelay >= videoFrame.m_flTime) {
+                if (videoDec.m_pCtx != nullptr && videoFrame.m_uBufferSize > 0) {
+                    if (!videoDec.Decode(videoFrame)) {
+                        Con_Printf("Video decode error\n");
+                        goto playback_done;
+                    }
+                    for (;;) {
+                        vpx_image_t *image = vpx_codec_get_frame(videoDec.m_pCtx, &videoDec.m_pIter);
+                        if (image == nullptr) {
+                            break;
+                        }
+                        if (image->cs != 0) {
+                            videoDec.m_nLastSpace = image->cs;
+                        }
+                        if ((static_cast<unsigned int>(image->fmt) & kVpxFmtAcceptedMask) != VPX_IMG_FMT_PLANAR) {
+                            break;
+                        }
+                        if (image->stride[0] == 0 || image->stride[1] == 0 || image->stride[2] == 0) {
+                            break;
+                        }
 
-						const bool uvFlip = ( static_cast<unsigned int>( image->fmt ) & VPX_IMG_FMT_UV_FLIP ) != 0;
-						const int imageW = static_cast<int>( image->d_w );
-						const int imageH = static_cast<int>( image->d_h );
-						const int ySpan = image->stride[0];
-						const int uvSpan = uvFlip ? image->stride[2] : image->stride[1];
-						const unsigned char* yPlane = image->planes[0];
-						const unsigned char* uPlane = uvFlip ? image->planes[1] : image->planes[2];
-						const unsigned char* vPlane = uvFlip ? image->planes[2] : image->planes[1];
-						const unsigned int xShift = image->x_chroma_shift;
-						const unsigned int yShift = image->y_chroma_shift;
-						if ( xShift == 1 && yShift == 1 )
-						{
-							yuv420_2_rgb8888( pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-								4 * imageW, yuv2rgb565_table, 0 );
-						}
-						else if ( xShift == 1 && yShift == 0 )
-						{
-							yuv422_2_rgb8888( pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-								4 * imageW, yuv2rgb565_table, 0 );
-						}
-						else if ( xShift == 0 && yShift == 0 )
-						{
-							yuv444_2_rgb8888( pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-								4 * imageW, yuv2rgb565_table, 0 );
-						}
-						else
-						{
-							continue;
-						}
+                        const bool uvFlip = (static_cast<unsigned int>(image->fmt) & VPX_IMG_FMT_UV_FLIP) != 0;
+                        const int imageW = static_cast<int>(image->d_w);
+                        const int imageH = static_cast<int>(image->d_h);
+                        const int ySpan = image->stride[0];
+                        const int uvSpan = uvFlip ? image->stride[2] : image->stride[1];
+                        const unsigned char *yPlane = image->planes[0];
+                        const unsigned char *uPlane = uvFlip ? image->planes[1] : image->planes[2];
+                        const unsigned char *vPlane = uvFlip ? image->planes[2] : image->planes[1];
+                        const unsigned int xShift = image->x_chroma_shift;
+                        const unsigned int yShift = image->y_chroma_shift;
+                        if (xShift == 1 && yShift == 1) {
+                            yuv420_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
+                                             4 * imageW, yuv2rgb565_table, 0);
+                        } else if (xShift == 1 && yShift == 0) {
+                            yuv422_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
+                                             4 * imageW, yuv2rgb565_table, 0);
+                        } else if (xShift == 0 && yShift == 0) {
+                            yuv444_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
+                                             4 * imageW, yuv2rgb565_table, 0);
+                        } else {
+                            continue;
+                        }
 
 #ifdef SW_RENDERER
-						SDL_UpdateTexture( texture, NULL, pOutFrame, 4 * imageW );
-						SDL_RenderClear( renderer );
-                                                SDL_RenderTexture(renderer, texture, NULL, &destination);
-                                                SDL_RenderPresent( renderer );
+                        SDL_UpdateTexture(texture, NULL, pOutFrame, 4 * imageW);
+                        SDL_RenderClear(renderer);
+                        SDL_RenderTexture(renderer, texture, NULL, &destination);
+                        SDL_RenderPresent(renderer);
 #else
-						if ( bFirstFrame )
-						{
-							glTexImage2D( GL_TEXTURE_RECTANGLE, 0, GL_RGBA, imageW, imageH, 0, GL_RGBA,
-								GL_UNSIGNED_BYTE, pOutFrame );
-						}
-						else
-						{
-							glTexSubImage2D(
-								GL_TEXTURE_RECTANGLE, 0, 0, 0, imageW, imageH, GL_RGBA, GL_UNSIGNED_BYTE, pOutFrame );
-						}
-						glClear( GL_COLOR_BUFFER_BIT );
-						glBegin( GL_QUADS );
-						const float left = static_cast<float>( dstX );
-						const float top = static_cast<float>( dstY );
-						const float right = static_cast<float>( dstX + nVideoW );
-						const float bottom = static_cast<float>( dstY + nVideoH );
-						glTexCoord2i( 0, 0 );
-						glVertex3f( left, top, 0.0f );
-						glTexCoord2i( imageW, 0 );
-						glVertex3f( right, top, 0.0f );
-						glTexCoord2i( imageW, imageH );
-						glVertex3f( right, bottom, 0.0f );
-						glTexCoord2i( 0, imageH );
-						glVertex3f( left, bottom, 0.0f );
-						glEnd();
-						bFirstFrame = false;
-						SDL_GL_SwapWindow( pSDLWindow );
-#endif
-					}
-				}
-
-				if ( audioDec.IsOpen() && audioFrame.m_uBufferSize > 0 )
-				{
-					int sampleCount = 0;
-					if ( !audioDec.GetPCMS16( audioFrame, pcm, sampleCount ) )
-					{
-						Con_Printf( "Audio decode error\n" );
-						goto playback_done;
-					}
-				}
-				const double presented = videoFrame.m_flTime;
-				if ( !demuxer.ReadFrame( &videoFrame, &audioFrame ) )
-					goto playback_done;
-				if ( videoFrame.m_flTime >= demuxer.GetLength() )
-					goto playback_done;
-				frameDelay = presented - flVideoPos;
-				flVideoPos = presented;
-			}
-
-			S_Update( vec3_origin, vec3_origin, vec3_origin, vec3_origin );
-			bool skipped = false;
-			SDL_Event event;
-                        while (SDL_PollEvent(&event)) {
-                            if (PlaybackKey(event))
-                                skipped = true;
+                        if (bFirstFrame) {
+                            glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, imageW, imageH, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                                         pOutFrame);
+                        } else {
+                            glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, imageW, imageH, GL_RGBA, GL_UNSIGNED_BYTE,
+                                            pOutFrame);
                         }
-                        SDL_PumpEvents();
-			Sys_Sleep( 1 );
-			if ( skipped )
-			{
-				Con_Printf( "VIDEO PLAYBACK: user skipped playback.\n" );
-				StartInterfaceSound( "common/null.wav", false );
-				goto playback_done;
-			}
-			elapsed = Sys_FloatTime() - flStartTime;
-		}
-	}
+                        glClear(GL_COLOR_BUFFER_BIT);
+                        glBegin(GL_QUADS);
+                        const float left = static_cast<float>(dstX);
+                        const float top = static_cast<float>(dstY);
+                        const float right = static_cast<float>(dstX + nVideoW);
+                        const float bottom = static_cast<float>(dstY + nVideoH);
+                        glTexCoord2i(0, 0);
+                        glVertex3f(left, top, 0.0f);
+                        glTexCoord2i(imageW, 0);
+                        glVertex3f(right, top, 0.0f);
+                        glTexCoord2i(imageW, imageH);
+                        glVertex3f(right, bottom, 0.0f);
+                        glTexCoord2i(0, imageH);
+                        glVertex3f(left, bottom, 0.0f);
+                        glEnd();
+                        bFirstFrame = false;
+                        SDL_GL_SwapWindow(pSDLWindow);
+#endif
+                    }
+                }
+
+                if (audioDec.IsOpen() && audioFrame.m_uBufferSize > 0) {
+                    int sampleCount = 0;
+                    if (!audioDec.GetPCMS16(audioFrame, pcm, sampleCount)) {
+                        Con_Printf("Audio decode error\n");
+                        goto playback_done;
+                    }
+                }
+                const double presented = videoFrame.m_flTime;
+                if (!demuxer.ReadFrame(&videoFrame, &audioFrame)) {
+                    goto playback_done;
+                }
+                if (videoFrame.m_flTime >= demuxer.GetLength()) {
+                    goto playback_done;
+                }
+                frameDelay = presented - flVideoPos;
+                flVideoPos = presented;
+            }
+
+            S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
+            bool skipped = false;
+            SDL_Event event;
+            while (SDL_PollEvent(&event)) {
+                if (PlaybackKey(event)) {
+                    skipped = true;
+                }
+            }
+            SDL_PumpEvents();
+            Sys_Sleep(1);
+            if (skipped) {
+                Con_Printf("VIDEO PLAYBACK: user skipped playback.\n");
+                StartInterfaceSound("common/null.wav", false);
+                goto playback_done;
+            }
+            elapsed = Sys_FloatTime() - flStartTime;
+        }
+    }
 
 playback_done:
 #ifdef SW_RENDERER
-	SDL_DestroyTexture( texture );
-	if ( createdRenderer )
-		SDL_DestroyRenderer( renderer );
+    SDL_DestroyTexture(texture);
+    if (createdRenderer) {
+        SDL_DestroyRenderer(renderer);
+    }
 #else
-	glBindTexture( GL_TEXTURE_RECTANGLE, 0 );
-	glDisable( GL_TEXTURE_RECTANGLE );
-	glDeleteTextures( 1, &texture );
+    glBindTexture(GL_TEXTURE_RECTANGLE, 0);
+    glDisable(GL_TEXTURE_RECTANGLE);
+    glDeleteTextures(1, &texture);
 #endif
-	::operator delete[]( pOutFrame );
-	::operator delete[]( pcm );
+    ::operator delete[](pOutFrame);
+    ::operator delete[](pcm);
 }

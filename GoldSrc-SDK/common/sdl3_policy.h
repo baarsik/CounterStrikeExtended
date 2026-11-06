@@ -68,6 +68,20 @@ inline int ScaleCoordinate(float coordinate, int windowExtent, int pixelExtent) 
                : 0;
 }
 
+inline int WindowToRenderCoordinate(float coordinate, int windowExtent, int renderExtent, float aspect) {
+    const int scaled = ScaleCoordinate(coordinate, windowExtent, renderExtent);
+    return static_cast<int>(scaled + (static_cast<double>(aspect) - 1.0) * (scaled - renderExtent / 2));
+}
+
+inline float RenderToWindowCoordinate(int coordinate, int windowExtent, int renderExtent, float aspect) {
+    if (renderExtent <= 0 || aspect <= 0.0f) {
+        return 0.0f;
+    }
+    const float center = static_cast<float>(renderExtent / 2);
+    const float scaled = center + (static_cast<float>(coordinate) - center) / aspect;
+    return scaled * static_cast<float>(windowExtent) / static_cast<float>(renderExtent);
+}
+
 inline int RefreshRateOrDefault(float refreshRate) {
     constexpr int defaultRefreshRate = 60;
     return refreshRate > 1.0f ? static_cast<int>(std::lround(refreshRate)) : defaultRefreshRate;

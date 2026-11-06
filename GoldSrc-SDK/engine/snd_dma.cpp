@@ -1,19 +1,19 @@
-#include "../common/const.h"
+#include "sound.h"
+#include "conprint.h"
+#include "common.h"
+#include "cvar.h"
+#include "host.h"
+#include "sys.h"
+#include "zone.h"
 #include "bspfile.h"
+#include "protocol.h"
 #include "client.h"
 #include "cmd.h"
-#include "common.h"
-#include "conprint.h"
-#include "cvar.h"
 #include "gl_model.h"
-#include "host.h"
-#include "mem.h"
-#include "protocol.h"
-#include "sound.h"
-#include "sys.h"
 #include "vgui_intwrap2.h"
-#include "zone.h"
 #include <SDL3/SDL.h>
+#include "../common/const.h"
+#include "mem.h"
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -439,99 +439,92 @@ sfx_t* S_PrecacheSound( char* name )
 	return sound;
 }
 
-void S_StartDynamicSound(
-	int entnum, int entchannel, sfx_t* sfx, vec_t* origin, float fvol, float attenuation, int flags, int pitch )
-{
-	if ( !sound_started || !sfx || nosound.value != 0.0f )
-		return;
-	if ( sfx->name[0] == CHAR_STREAM )
-		entchannel = CHAN_STREAM;
-	if ( entchannel == CHAN_STREAM && pitch != PITCH_NORM )
-	{
-		Con_DPrintf( "Warning: pitch shift ignored on stream sound %s\n", sfx->name );
-		pitch = PITCH_NORM;
-	}
-	int channelVolume = static_cast<int>( fvol * SOUND_MASTER_VOLUME_SCALE );
-	if ( channelVolume > SOUND_MASTER_VOLUME_MAX )
-	{
-		Con_DPrintf( "S_StartDynamicSound: %s volume > 255", sfx->name );
-		channelVolume = SOUND_MASTER_VOLUME_MAX;
-	}
-	if ( flags & ( SND_STOP | SND_CHANGE_VOL | SND_CHANGE_PITCH ) )
-	{
-		if ( S_AlterChannel( entnum, entchannel, sfx, channelVolume, pitch, flags ) || ( flags & SND_STOP ) )
-			return;
-                // fall through - if we're not trying to stop the sound,
-                // and we didn't find it (it's not playing), go ahead and start it up
+void S_StartDynamicSound(int entnum, int entchannel, sfx_t *sfx, vec_t *origin, float fvol, float attenuation,
+                         int flags, int pitch) {
+    if (!sound_started || !sfx || nosound.value != 0.0f) {
+        return;
+    }
+    if (sfx->name[0] == CHAR_STREAM) {
+        entchannel = CHAN_STREAM;
+    }
+    if (entchannel == CHAN_STREAM && pitch != PITCH_NORM) {
+        Con_DPrintf("Warning: pitch shift ignored on stream sound %s\n", sfx->name);
+        pitch = PITCH_NORM;
+    }
+    int channelVolume = static_cast<int>(fvol * SOUND_MASTER_VOLUME_SCALE);
+    if (channelVolume > SOUND_MASTER_VOLUME_MAX) {
+        Con_DPrintf("S_StartDynamicSound: %s volume > 255", sfx->name);
+        channelVolume = SOUND_MASTER_VOLUME_MAX;
+    }
+    if (flags & (SND_STOP | SND_CHANGE_VOL | SND_CHANGE_PITCH)) {
+        if (S_AlterChannel(entnum, entchannel, sfx, channelVolume, pitch, flags) || (flags & SND_STOP)) {
+            return;
         }
-	if ( pitch == 0 )
-	{
-		Con_DPrintf( "Warning: S_StartDynamicSound Ignored, called with pitch 0" );
-		return;
-	}
-	float pitchScale = sys_timescale.value + 1.0f;
-	pitchScale *= SOUND_TIMESCALE_PITCH_GAIN;
-	pitchScale *= static_cast<float>( pitch );
-	int effectivePitch = static_cast<int>( pitchScale );
-	channel_t* channel = SND_PickDynamicChannel( entnum, entchannel, sfx );
-	if ( !channel )
-		return;
-	bool sentence = sfx->name[0] == CHAR_SENTENCE || sfx->name[0] == CHAR_DRYMIX;
-	Q_memset( channel, 0, sizeof( *channel ) );
-	float distanceMultiplier = attenuation / sound_nominal_clip_dist;
-	channel->origin[0] = origin[0];
-	channel->origin[1] = origin[1];
-	channel->origin[2] = origin[2];
-	channel->master_vol = channelVolume;
-	channel->entnum = entnum;
-	channel->entchannel = entchannel;
-	channel->pitch = effectivePitch;
-	channel->isentence = -1;
-	channel->dist_mult = distanceMultiplier;
-	SND_Spatialize( channel );
-	if ( !channel->leftvol && !channel->rightvol && entchannel != CHAN_STREAM )
-	{
-		channel->sfx = nullptr;
-		return;		// not audible at all
-	}
-	sfxcache_t* cache;
-	if ( sentence )
-	{
-		char name[SOUND_NAME_BYTES];
-		Q_strncpy( name, sfx->name + 1, sizeof( name ) - 1 );
-		name[sizeof( name ) - 1] = 0;
-		cache = VOX_LoadSound( channel, name );
-	}
-	else
-	{
-		cache = S_LoadSound( sfx, channel );
-		channel->sfx = sfx;
-	}
-	if ( !cache )
-	{
-		channel->sfx = nullptr;
-		return;		// couldn't load the sound's data
-	}
-	channel->pos = 0;
-	channel->end = cache->length + paintedtime;
-	if ( !sentence && effectivePitch != PITCH_NORM )
-		VOX_MakeSingleWordSentence( channel, effectivePitch );
-	VOX_TrimStartEndTimes( channel, cache );
-	SND_InitMouth( entnum, entchannel );
-	for ( int index = NUM_AMBIENTS; index < NUM_AMBIENTS + MAX_DYNAMIC_CHANNELS; ++index )
-	{
-		channel_t* other = &channels[index];
-		if ( other != channel && other->sfx == sfx && other->pos == 0 )
-		{
-			int skip =
-				RandomLong( 0, static_cast<int>( static_cast<double>( shm->speed ) * SOUND_IDENTICAL_START_DELAY ) );
-			if ( skip >= channel->end )
-				skip = channel->end - 1;
-			channel->pos += skip;
-			channel->end -= skip;
-			break;
-		}
-	}
+        // fall through - if we're not trying to stop the sound,
+        // and we didn't find it (it's not playing), go ahead and start it up
+    }
+    if (pitch == 0) {
+        Con_DPrintf("Warning: S_StartDynamicSound Ignored, called with pitch 0");
+        return;
+    }
+    float pitchScale = sys_timescale.value + 1.0f;
+    pitchScale *= SOUND_TIMESCALE_PITCH_GAIN;
+    pitchScale *= static_cast<float>(pitch);
+    int effectivePitch = static_cast<int>(pitchScale);
+    channel_t *channel = SND_PickDynamicChannel(entnum, entchannel, sfx);
+    if (!channel) {
+        return;
+    }
+    bool sentence = sfx->name[0] == CHAR_SENTENCE || sfx->name[0] == CHAR_DRYMIX;
+    Q_memset(channel, 0, sizeof(*channel));
+    float distanceMultiplier = attenuation / sound_nominal_clip_dist;
+    channel->origin[0] = origin[0];
+    channel->origin[1] = origin[1];
+    channel->origin[2] = origin[2];
+    channel->master_vol = channelVolume;
+    channel->entnum = entnum;
+    channel->entchannel = entchannel;
+    channel->pitch = effectivePitch;
+    channel->isentence = -1;
+    channel->dist_mult = distanceMultiplier;
+    SND_Spatialize(channel);
+    if (!channel->leftvol && !channel->rightvol && entchannel != CHAN_STREAM) {
+        channel->sfx = nullptr;
+        return; // not audible at all
+    }
+    sfxcache_t *cache;
+    if (sentence) {
+        char name[SOUND_NAME_BYTES];
+        Q_strncpy(name, sfx->name + 1, sizeof(name) - 1);
+        name[sizeof(name) - 1] = 0;
+        cache = VOX_LoadSound(channel, name);
+    } else {
+        cache = S_LoadSound(sfx, channel);
+        channel->sfx = sfx;
+    }
+    if (!cache) {
+        channel->sfx = nullptr;
+        return; // couldn't load the sound's data
+    }
+    channel->pos = 0;
+    channel->end = cache->length + paintedtime;
+    if (!sentence && effectivePitch != PITCH_NORM) {
+        VOX_MakeSingleWordSentence(channel, effectivePitch);
+    }
+    VOX_TrimStartEndTimes(channel, cache);
+    SND_InitMouth(entnum, entchannel);
+    for (int index = NUM_AMBIENTS; index < NUM_AMBIENTS + MAX_DYNAMIC_CHANNELS; ++index) {
+        channel_t *other = &channels[index];
+        if (other != channel && other->sfx == sfx && other->pos == 0) {
+            int skip = RandomLong(0, static_cast<int>(static_cast<double>(shm->speed) * SOUND_IDENTICAL_START_DELAY));
+            if (skip >= channel->end) {
+                skip = channel->end - 1;
+            }
+            channel->pos += skip;
+            channel->end -= skip;
+            break;
+        }
+    }
 }
 
 void S_StartStaticSound(

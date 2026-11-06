@@ -15,19 +15,19 @@ static cse::FractionalMotion s_relativeMotion;
 #include "hud.h"
 #include "cl_util.h"
 #include "camera.h"
+#include "camera.h"
 #include "kbutton.h"
 #include "cvardef.h"
 #include "usercmd.h"
 #include "const.h"
-#include "camera.h"
 #include "in_defs.h"
 #include "../public/keydefs.h"
 #include "view.h"
 #include "Exports.h"
 
 #include <SDL3/SDL_events.h>
-#include <SDL3/SDL_gamepad.h>
 #include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_gamepad.h>
 
 #define MOUSE_BUTTON_COUNT 5
 
@@ -195,37 +195,32 @@ long ThreadInterlockedExchange( long *pDest, long value )
 	return InterlockedExchange( pDest, value );
 }
 
+DWORD WINAPI MousePos_ThreadFunction(LPVOID) {
+    s_hMouseDoneQuitEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-DWORD WINAPI MousePos_ThreadFunction( LPVOID )
-{
-	s_hMouseDoneQuitEvent = CreateEvent( NULL, FALSE, FALSE, NULL );
+    while (1) {
+        if (WaitForSingleObject(s_hMouseQuitEvent, (int)m_mousethread_sleep->value) == WAIT_OBJECT_0) {
+            return 0;
+        }
 
-	while ( 1 )
-	{
-		if ( WaitForSingleObject( s_hMouseQuitEvent, (int)m_mousethread_sleep->value ) == WAIT_OBJECT_0 )
-		{
-			return 0;
-		}
+        if (mouseactive) {
+            POINT mouse_pos;
+            GetCursorPos(&mouse_pos);
 
-		if ( mouseactive )
-		{
-			POINT		mouse_pos;
-			GetCursorPos(&mouse_pos);
+            volatile int mx = mouse_pos.x - old_mouse_pos.x + s_mouseDeltaX;
+            volatile int my = mouse_pos.y - old_mouse_pos.y + s_mouseDeltaY;
 
-			volatile int mx = mouse_pos.x - old_mouse_pos.x + s_mouseDeltaX;
-			volatile int my = mouse_pos.y - old_mouse_pos.y + s_mouseDeltaY;
+            ThreadInterlockedExchange(&old_mouse_pos.x, mouse_pos.x);
+            ThreadInterlockedExchange(&old_mouse_pos.y, mouse_pos.y);
 
-                        ThreadInterlockedExchange( &old_mouse_pos.x, mouse_pos.x );
-			ThreadInterlockedExchange( &old_mouse_pos.y, mouse_pos.y );
+            ThreadInterlockedExchange(&s_mouseDeltaX, mx);
+            ThreadInterlockedExchange(&s_mouseDeltaY, my);
+        }
+    }
 
-			ThreadInterlockedExchange( &s_mouseDeltaX, mx );
-			ThreadInterlockedExchange( &s_mouseDeltaY, my );
-		}
-	}
+    SetEvent(s_hMouseDoneQuitEvent);
 
-	SetEvent( s_hMouseDoneQuitEvent );
-
-	return 0;
+    return 0;
 }
 #endif
 
@@ -458,44 +453,43 @@ void CL_DLLEXPORT IN_MouseEvent (int mstate)
 // Input  : *x -
 //			*y -
 //-----------------------------------------------------------------------------
-void IN_ScaleMouse( float *x, float *y )
-{
-	float mx = *x;
-	float my = *y;
+void IN_ScaleMouse(float *x, float *y) {
+    float mx = *x;
+    float my = *y;
 
-	// This is the default sensitivity
-	float mouse_senstivity = ( gHUD.GetSensitivity() != 0 ) ? gHUD.GetSensitivity() : IN_GetMouseSensitivity();
+    // This is the default sensitivity
+    float mouse_senstivity = (gHUD.GetSensitivity() != 0) ? gHUD.GetSensitivity() : IN_GetMouseSensitivity();
 
-	// Using special accleration values
-        if (m_customaccel->value != 0) {
-            float raw_mouse_movement_distance = sqrt(mx * mx + my * my);
-            float acceleration_scale = m_customaccel_scale->value;
-            float accelerated_sensitivity_max = m_customaccel_max->value;
-            float accelerated_sensitivity_exponent = m_customaccel_exponent->value;
-            float accelerated_sensitivity =
-                ((float)pow(raw_mouse_movement_distance, accelerated_sensitivity_exponent) * acceleration_scale +
-                 mouse_senstivity);
+    // Using special accleration values
+    if (m_customaccel->value != 0) {
+        float raw_mouse_movement_distance = sqrt(mx * mx + my * my);
+        float acceleration_scale = m_customaccel_scale->value;
+        float accelerated_sensitivity_max = m_customaccel_max->value;
+        float accelerated_sensitivity_exponent = m_customaccel_exponent->value;
+        float accelerated_sensitivity =
+            ((float)pow(raw_mouse_movement_distance, accelerated_sensitivity_exponent) * acceleration_scale +
+             mouse_senstivity);
 
-            if (accelerated_sensitivity_max > 0.0001f && accelerated_sensitivity > accelerated_sensitivity_max) {
-                accelerated_sensitivity = accelerated_sensitivity_max;
-            }
-
-            *x *= accelerated_sensitivity;
-            *y *= accelerated_sensitivity;
-
-            // Further re-scale by yaw and pitch magnitude if user requests alternate mode 2
-            // This means that they will need to up their value for m_customaccel_scale greatly (>40x) since m_pitch/yaw
-            // default
-            //  to 0.022
-            if (m_customaccel->value == 2) {
-                *x *= m_yaw->value;
-                *y *= m_pitch->value;
-            }
-        } else {
-            // Just apply the default
-            *x *= mouse_senstivity;
-            *y *= mouse_senstivity;
+        if (accelerated_sensitivity_max > 0.0001f && accelerated_sensitivity > accelerated_sensitivity_max) {
+            accelerated_sensitivity = accelerated_sensitivity_max;
         }
+
+        *x *= accelerated_sensitivity;
+        *y *= accelerated_sensitivity;
+
+        // Further re-scale by yaw and pitch magnitude if user requests alternate mode 2
+        // This means that they will need to up their value for m_customaccel_scale greatly (>40x) since m_pitch/yaw
+        // default
+        //  to 0.022
+        if (m_customaccel->value == 2) {
+            *x *= m_yaw->value;
+            *y *= m_pitch->value;
+        }
+    } else {
+        // Just apply the default
+        *x *= mouse_senstivity;
+        *y *= mouse_senstivity;
+    }
 }
 
 /*
@@ -503,133 +497,113 @@ void IN_ScaleMouse( float *x, float *y )
 IN_MouseMove
 ===========
 */
-void IN_MouseMove( float, usercmd_t *cmd )
-{
-	int		mx, my;
-	vec3_t viewangles;
+void IN_MouseMove(float, usercmd_t *cmd) {
+    int mx, my;
+    vec3_t viewangles;
 
-	gEngfuncs.GetViewAngles( (float *)viewangles );
+    gEngfuncs.GetViewAngles((float *)viewangles);
 
-	if ( in_mlook.state & 1)
-	{
-		V_StopPitchDrift ();
-	}
+    if (in_mlook.state & 1) {
+        V_StopPitchDrift();
+    }
 
-        // jjb - this disbles normal mouse control if the user is trying to
-        //       move the camera, or if the mouse cursor is visible or if we're in intermission
-        if ( !iMouseInUse && !gHUD.m_iIntermission && !g_iVisibleMouse )
-	{
-		int deltaX = 0, deltaY = 0;
+    // jjb - this disbles normal mouse control if the user is trying to
+    //       move the camera, or if the mouse cursor is visible or if we're in intermission
+    if (!iMouseInUse && !gHUD.m_iIntermission && !g_iVisibleMouse) {
+        int deltaX = 0, deltaY = 0;
 #ifdef _WIN32
-		if ( !IN_UseRawInput() )
-		{
-			if ( m_bMouseThread )
-			{
-				ThreadInterlockedExchange( &current_pos.x, s_mouseDeltaX );
-				ThreadInterlockedExchange( &current_pos.y, s_mouseDeltaY );
-				ThreadInterlockedExchange( &s_mouseDeltaX, 0 );
-				ThreadInterlockedExchange( &s_mouseDeltaY, 0 );
-			}
-			else
-			{
-				GetCursorPos (&current_pos);
-			}
-		}
-		else
+        if (!IN_UseRawInput()) {
+            if (m_bMouseThread) {
+                ThreadInterlockedExchange(&current_pos.x, s_mouseDeltaX);
+                ThreadInterlockedExchange(&current_pos.y, s_mouseDeltaY);
+                ThreadInterlockedExchange(&s_mouseDeltaX, 0);
+                ThreadInterlockedExchange(&s_mouseDeltaY, 0);
+            } else {
+                GetCursorPos(&current_pos);
+            }
+        } else
 #endif
-		{
-                    cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
-                    current_pos.x = deltaX;
-                    current_pos.y = deltaY;
-                }
+        {
+            cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+            current_pos.x = deltaX;
+            current_pos.y = deltaY;
+        }
 
 #ifdef _WIN32
-		if ( !IN_UseRawInput() )
-		{
-			if ( m_bMouseThread )
-			{
-				mx = current_pos.x;
-				my = current_pos.y;
-			}
-			else
-			{
-				mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
-				my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
-			}
-		}
-		else
+        if (!IN_UseRawInput()) {
+            if (m_bMouseThread) {
+                mx = current_pos.x;
+                my = current_pos.y;
+            } else {
+                mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
+                my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
+            }
+        } else
 #endif
-		{
-			mx = deltaX + mx_accum;
-			my = deltaY + my_accum;
-		}
+        {
+            mx = deltaX + mx_accum;
+            my = deltaY + my_accum;
+        }
 
-                mx_accum = 0;
-		my_accum = 0;
+        mx_accum = 0;
+        my_accum = 0;
 
-		if (m_filter && m_filter->value)
-		{
-			mouse_x = (mx + old_mouse_x) * 0.5;
-			mouse_y = (my + old_mouse_y) * 0.5;
-		}
-		else
-		{
-			mouse_x = mx;
-			mouse_y = my;
-		}
+        if (m_filter && m_filter->value) {
+            mouse_x = (mx + old_mouse_x) * 0.5;
+            mouse_y = (my + old_mouse_y) * 0.5;
+        } else {
+            mouse_x = mx;
+            mouse_y = my;
+        }
 
-		old_mouse_x = mx;
-		old_mouse_y = my;
+        old_mouse_x = mx;
+        old_mouse_y = my;
 
-		// Apply custom mouse scaling/acceleration
-		IN_ScaleMouse( &mouse_x, &mouse_y );
+        // Apply custom mouse scaling/acceleration
+        IN_ScaleMouse(&mouse_x, &mouse_y);
 
-		// add mouse X/Y movement to cmd
-		if ( (in_strafe.state & 1) || (lookstrafe->value && (in_mlook.state & 1) ))
-			cmd->sidemove += m_side->value * mouse_x;
-		else
-			viewangles[YAW] -= m_yaw->value * mouse_x;
+        // add mouse X/Y movement to cmd
+        if ((in_strafe.state & 1) || (lookstrafe->value && (in_mlook.state & 1))) {
+            cmd->sidemove += m_side->value * mouse_x;
+        } else {
+            viewangles[YAW] -= m_yaw->value * mouse_x;
+        }
 
-		if ( (in_mlook.state & 1) && !(in_strafe.state & 1))
-		{
-			viewangles[PITCH] += m_pitch->value * mouse_y;
-			if (viewangles[PITCH] > cl_pitchdown->value)
-				viewangles[PITCH] = cl_pitchdown->value;
-			if (viewangles[PITCH] < -cl_pitchup->value)
-				viewangles[PITCH] = -cl_pitchup->value;
-		}
-		else
-		{
-			if ((in_strafe.state & 1) && gEngfuncs.IsNoClipping() )
-			{
-				cmd->upmove -= m_forward->value * mouse_y;
-			}
-			else
-			{
-				cmd->forwardmove -= m_forward->value * mouse_y;
-			}
-		}
+        if ((in_mlook.state & 1) && !(in_strafe.state & 1)) {
+            viewangles[PITCH] += m_pitch->value * mouse_y;
+            if (viewangles[PITCH] > cl_pitchdown->value) {
+                viewangles[PITCH] = cl_pitchdown->value;
+            }
+            if (viewangles[PITCH] < -cl_pitchup->value) {
+                viewangles[PITCH] = -cl_pitchup->value;
+            }
+        } else {
+            if ((in_strafe.state & 1) && gEngfuncs.IsNoClipping()) {
+                cmd->upmove -= m_forward->value * mouse_y;
+            } else {
+                cmd->forwardmove -= m_forward->value * mouse_y;
+            }
+        }
 
-		// if the mouse has moved, force it to the center, so there's room to move
-		if ( mx || my )
-		{
-			IN_ResetMouse();
-		}
-	}
+        // if the mouse has moved, force it to the center, so there's room to move
+        if (mx || my) {
+            IN_ResetMouse();
+        }
+    }
 
-	gEngfuncs.SetViewAngles( (float *)viewangles );
+    gEngfuncs.SetViewAngles((float *)viewangles);
 
-/*
-//#define TRACE_TEST
-#if defined( TRACE_TEST )
-	{
-		int mx, my;
-		void V_Move( int mx, int my );
-		IN_GetMousePos( &mx, &my );
-		V_Move( mx, my );
-	}
-#endif
-*/
+    /*
+    //#define TRACE_TEST
+    #if defined( TRACE_TEST )
+            {
+                    int mx, my;
+                    void V_Move( int mx, int my );
+                    IN_GetMousePos( &mx, &my );
+                    V_Move( mx, my );
+            }
+    #endif
+    */
 }
 
 /*
