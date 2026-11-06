@@ -1,0 +1,5 @@
+# The selected official SDL3 payload must preserve its upstream bytes on Windows.
+GoldSrc-SDK/external/SDL3/** -text
+# Translator support recognizes these exact repository-owned build contracts.
+GoldSrc-SDK/projects/vs2026/SDL3.props text eol=lf
+GoldSrc-SDK/projects/vs2026/SDL3.targets text eol=lf

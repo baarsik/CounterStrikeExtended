@@ -7,9 +7,12 @@ original manifests remain archived, and actual Windows evaluation is separate.
 from pathlib import Path
 import collections
 import json
+import hashlib
 import os
 import re
 import xml.etree.ElementTree as ET
+
+from sdl3_dependency import validate_payload
 
 ROOT = Path(__file__).resolve().parents[1]
 SDK = ROOT / 'GoldSrc-SDK'
@@ -23,6 +26,29 @@ TARGETS = {'launcher': 'launcher', 'hw_engine': 'hw_engine', 'hlds': 'hlds',
            'HLTV': 'hltv', 'Proxy': 'hltv_proxy', 'a3dapi': 'a3dapi'}
 CASE_PATHS = {str(p).lower(): p for p in SDK.rglob('*')}
 SYSTEM_LIBS = set('kernel32 user32 gdi32 advapi32 ws2_32 wsock32 winmm shell32 shlwapi opengl32 ddraw dxguid dsound version ole32 uuid'.split())
+
+# Exact shared-build contract: changing props/targets requires an intentional
+# translator update. Unknown actions must never disappear during translation.
+SDL3_BUILD_HASHES = {
+    'props': 'a0ab9bb3d4fdee1e725e718b84e945291c340081063aefa921ca9b86af5f5ea9',
+    'targets': 'e5e2833656cf8fdef8ee68d2369fc6e9810247b18715008379ece020bab874d6',
+}
+
+
+def validate_sdl3_build_file(path, kind):
+    if hashlib.sha256(path.read_bytes()).hexdigest() != SDL3_BUILD_HASHES[kind]:
+        raise ValueError('Unsupported SDL3 build contract: ' + str(path))
+
+
+def import_command(target, config, path, data):
+    pinned = SDK / 'external/SDL3/lib/x86/SDL3.lib'
+    if path == pinned:
+        if not data.get('sdl3', {}).get('shared'):
+            raise ValueError('SDL3 import requires the shared build contract')
+        return f'cse_link_sdl3({target} {config})'
+    if path.name.lower() == 'sdl3.lib':
+        raise ValueError('Unpinned SDL3 import: ' + str(path))
+    return f'cse_link_import({target} {config} {quote(portable(str(path)))})'
 
 
 def name(e):
@@ -54,6 +80,7 @@ def evaluate(project, configuration):
     raw_items = []
     imports = []
     generating_targets = []
+    sdl3_imports = set()
 
     def expand(value):
         for _ in range(20):
@@ -106,6 +133,17 @@ def evaluate(project, configuration):
         return result
 
     def walk(tree, current):
+        previous = properties.get('MSBuildThisFileDirectory')
+        properties['MSBuildThisFileDirectory'] = str(current.parent) + '/'
+        try:
+            walk_elements(tree, current)
+        finally:
+            if previous is None:
+                properties.pop('MSBuildThisFileDirectory', None)
+            else:
+                properties['MSBuildThisFileDirectory'] = previous
+
+    def walk_elements(tree, current):
         for element in tree:
             if not condition(element.get('Condition')):
                 continue
@@ -117,6 +155,10 @@ def evaluate(project, configuration):
                 else:
                     path = source_path(value, current.parent)
                     imports.append({'path': str(path.relative_to(SDK)), 'evaluated': True})
+                    if path in [SDK / 'projects/vs2026/SDL3.props', SDK / 'projects/vs2026/SDL3.targets']:
+                        kind = path.suffix[1:]
+                        validate_sdl3_build_file(path, kind)
+                        sdl3_imports.add(kind)
                     walk(ET.parse(path).getroot(), path)
             elif kind == 'ImportGroup':
                 walk(element, current)
@@ -126,8 +168,12 @@ def evaluate(project, configuration):
                         properties[name(node)] = expand((node.text or '').strip())
             elif kind == 'ItemDefinitionGroup':
                 for node in element:
-                    definitions[name(node)] = metadata(node, definitions.get(name(node), {}))
+                    if condition(node.get('Condition')):
+                        definitions[name(node)] = metadata(node, definitions.get(name(node), {}))
             elif kind == 'Target':
+                if current == SDK / 'projects/vs2026/SDL3.targets' and 'targets' in sdl3_imports:
+                    # Whole-file validation above covers every task and attribute.
+                    continue
                 if project.stem != 'a3dapi' or element.get('Name') != 'PrepareGeometryCompilation':
                     raise ValueError('Unsupported project target: ' + str(current) + ' / ' + str(element.get('Name')))
                 generating_targets.append(element)
@@ -163,7 +209,39 @@ def evaluate(project, configuration):
                           'metadata': effective, 'overrides': overrides,
                           'generated': {'section': overrides['Section'],
                                         'include': str(SDK / 'a3dapi/A3dGeom.cpp')}})
-    return {'properties': properties, 'definitions': definitions, 'items': items, 'imports': imports}
+    result = {'properties': properties, 'definitions': definitions, 'items': items, 'imports': imports}
+    if sdl3_imports:
+        if sdl3_imports != {'props', 'targets'}:
+            raise ValueError('SDL3 requires both shared props and targets imports')
+        validate_payload(SDK / 'external/SDL3')
+        expected = {
+            'CseSdl3Root': SDK / 'external/SDL3',
+            'CseSdl3Include': SDK / 'external/SDL3/include',
+            'CseSdl3ImportLibrary': SDK / 'external/SDL3/lib/x86/SDL3.lib',
+            'CseSdl3RuntimeDll': SDK / 'external/SDL3/lib/x86/SDL3.dll',
+            'CseSdl3Manifest': SDK / 'external/SDL3/SHA256SUMS',
+            'CseSdl3RuntimeRoot': SDK / 'bin/Win32' / configuration,
+        }
+        for key, path in expected.items():
+            if source_path(properties.get(key, ''), project.parent) != path:
+                raise ValueError('Unexpected SDL3 property ' + key)
+        if properties.get('CseSdl3Version') != '3.4.20' or properties.get('CseSdl3Shared') not in ['true', 'false']:
+            raise ValueError('Unexpected SDL3 version/shared contract')
+        shared = properties['CseSdl3Shared'] == 'true'
+        dependencies = split(definitions.get('Link', {}).get('AdditionalDependencies', ''))
+        has_import = any(source_path(lib, project.parent) == expected['CseSdl3ImportLibrary']
+                         for lib in dependencies)
+        if shared != has_import:
+            raise ValueError('SDL3 shared build contract must retain its exact import library')
+        result['sdl3'] = {'version': '3.4.20', 'shared': shared,
+                          'include_root': str(expected['CseSdl3Include']),
+                          'import_library': str(expected['CseSdl3ImportLibrary']),
+                          'runtime_dll': str(expected['CseSdl3RuntimeDll']),
+                          'runtime_root': str(expected['CseSdl3RuntimeRoot']),
+                          'validation_manifest': str(expected['CseSdl3Manifest']),
+                          'validation_target': 'CseValidateSdl3',
+                          'staging_target': 'CseStageSdl3' if shared else None}
+    return result
 
 
 COMPILE = {
@@ -241,6 +319,7 @@ def cmake_source(item):
 
 
 def main():
+    validate_payload(SDK / 'external/SDL3')
     records = []
     overview = ['# MSBuild to CMake crosswalk', '',
                 'Generated by `python3 tools/translate_msbuild.py` from retained repository manifests.',
@@ -338,7 +417,7 @@ def main():
                             raise ValueError('Unresolved library ' + lib + ' in ' + str(project))
                         path = matches[0]
                     assert path.is_file(), path
-                    lines.append(f'cse_link_import({target} {config} {quote(portable(str(path)))})')
+                    lines.append(import_command(target, config, path, data))
             for item in compiled(data):
                 path = quote(cmake_source(item)); overrides = item['overrides']
                 effective_flags = {k: v for k, v in item['metadata'].items() if k in overridden_flags}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <CseSdl3Version>3.4.20</CseSdl3Version>
+    <CseSdl3Root>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'external', 'SDL3'))</CseSdl3Root>
+    <CseSdl3Include>$(CseSdl3Root)include</CseSdl3Include>
+    <CseSdl3ImportLibrary>$(CseSdl3Root)lib\x86\SDL3.lib</CseSdl3ImportLibrary>
+    <CseSdl3RuntimeDll>$(CseSdl3Root)lib\x86\SDL3.dll</CseSdl3RuntimeDll>
+    <CseSdl3Manifest>$(CseSdl3Root)SHA256SUMS</CseSdl3Manifest>
+    <CseSdl3Shared Condition="'$(CseSdl3Shared)' == ''">false</CseSdl3Shared>
+    <CseSdl3RuntimeRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..', '..', 'bin', 'Win32', '$(Configuration)'))</CseSdl3RuntimeRoot>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(CseSdl3Include);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link Condition="'$(CseSdl3Shared)' == 'true'">
+      <AdditionalDependencies>$(CseSdl3ImportLibrary);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+</Project>
