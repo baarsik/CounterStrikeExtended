@@ -1,6 +1,6 @@
 # Project scope and proposed pruning
 
-Date: 2026-11-06. Status: **Approved by owner on 2026-11-06; implementation in progress.**
+Date: 2026-11-06. Status: **Approved by owner on 2026-11-06; source implementation recorded below.**
 
 Inspected source HEAD: `c10c1100792ce1c23f7941ff350f4c4746151ee1`.
 The checkout was clean before this document was added. Work is on
@@ -97,9 +97,8 @@ paths; a CS-only output directory is not an equivalent replacement.
 
 All three currently have **Debug and Release `Build.0` entries** in
 `projects/vs2026/projects.sln`. They are presently built by that solution, not
-already disabled upstream. No CMake defaults have been implemented. Proposed
-runtime-focused defaults are broadcasting **OFF** and A3D **OFF**, pending owner
-confirmation; explicit feature options must allow their builds.
+already disabled upstream. The approved CMake runtime-focused defaults are
+broadcasting **OFF** and A3D **OFF**; explicit feature options allow their builds.
 
 | Project | Output / C/C++ entries | Dependencies and meaning of disabling |
 | --- | --- | --- |
@@ -344,11 +343,14 @@ This checks source-file availability, not resource compilation or rendering.
 
 ## Approval boundary and remaining work
 
-The only repository change in Phase 1 is this document. No deletions, CMake
-conversion, licensing edits, or C1–C4 implementation have been made. No commits
-or pushes were made.
+Phase 1 initially changed only this document. After owner approval on 2026-11-06,
+the 38 project targets were removed, their original manifests archived, CMake
+translation and C1–C4 implemented, and 1,330 exclusive files pruned within the
+approved roots. See `source-pruning.md`, `building.md`, `source-corrections.md`,
+`licensing.md` and `validation.md` for the actual implementation and limits.
+Changes are committed locally; no pushes or releases were made.
 
-After owner approval of this concrete scope:
+The approved execution sequence was:
 
 1. Exclude the approved 38 targets from the active build while preserving the
    original manifests as translation evidence.
@@ -359,10 +361,11 @@ After owner approval of this concrete scope:
    with a reviewable file diff and preserved notices. Leave protected/shared
    directories intact; further pruning there needs separate evidence/scope.
 4. Perform the licensing/origin work, hardware-only CMake entry point, C1–C4 and
-   architecture-portability inventory from the handoff. Their implementation is
-   deferred to the approved phase, not implicitly completed by this inventory.
+   architecture-portability inventory from the handoff. Their implementation and verification limits are
+   reported separately; this inventory alone is not proof of completion.
 
 Full MSBuild evaluation, compilation, PE/import/export validation, provider
 packaging and runtime behavior remain unverified. Tests and runtime execution
 remain prohibited by the handoff. The handoff explicitly requires owner
-approval of this pruning list before deletion or implementation.
+approval of this pruning list before deletion or implementation; that approval
+was supplied on 2026-11-06.

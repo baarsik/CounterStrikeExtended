@@ -1,121 +1,40 @@
-<p align="center">
-  <img src="media/goldsrc-sdk.png" alt="GoldSrc-SDK" width="1000">
-</p>
+# CounterStrikeExtended
 
-<h1 align="center">GoldSrc-SDK</h1>
+A development fork of BlackShadow/GoldSrc-SDK retaining **Counter-Strike 1.6 and
+Half-Life**, shared engine/UI/filesystem/demo runtime, and dedicated-server
+support. The initial build target is Windows x86 with MSVC v145. The CMake source
+conversion is implemented; **Windows compilation and runtime qualification are
+pending**. No x64/ARM64 support or playability is claimed.
 
-<p align="center">
-  <strong>Half-Life 25th Anniversary engine, games, and Hammer 3.4 source.</strong><br>
-  Visual Studio 2026 &middot; MSVC v145 &middot; Win32
-</p>
+The default complete-runtime build contains 16 production targets, including
+`hl.exe`, `hw.dll`, `hlds.exe`, `swds.dll`, both games' client/server DLLs,
+filesystem, Tier0, VGUI/VGUI2, GameUI, particleman, Core and DemoPlayer. Miles music
+integration remains intact. Standalone HLTV broadcasting and A3D are preserved
+as optional features, default OFF. The approved 38 other-game, software-client,
+editor and SDK utility targets have been removed.
 
-GoldSrc-SDK brings together the Half-Life 25th Anniversary engine code, game client and server code, shared runtime libraries, SDK tools, and Hammer 3.4 source. The engine, games, and SDK utilities are organized into Visual Studio 2026 solutions using the MSVC v145 toolset.
+On a suitable Windows builder with Visual Studio 2026, v145, SDK 10.0.26100.0 and
+CMake 4.2+, run:
 
-## What's included
-
-- **GoldSrc engine:** hardware and software rendering, the game launcher, and shared engine systems.
-- **Game code:** client and server projects for the games listed below.
-- **Servers and broadcasting:** Half-Life Dedicated Server, the dedicated engine, HLTV, and demo playback components.
-- **Runtime libraries:** the filesystem, Tier0, VGUI, VGUI2, GameUI, and particle manager.
-- **A3D audio API:** 3D audio interfaces and implementation, built as `a3dapi.dll`.
-- **Hammer 3.4:** editor source.
-- **SDK utilities:** map compilation, model compilation and viewing, sprite generation, WAD tools, and other development utilities.
-
-## Included games
-
-| Game | Runtime directory |
-| --- | --- |
-| Half-Life | `valve` |
-| Half-Life: Opposing Force | `gearbox` |
-| Half-Life: Blue Shift | `bshift` |
-| Counter-Strike | `cstrike` |
-| Counter-Strike: Condition Zero | `czero` |
-| Counter-Strike: Condition Zero — Deleted Scenes | `czeror` |
-| Team Fortress Classic | `tfc` |
-| Day of Defeat | `dod` |
-| Deathmatch Classic | `dmc` |
-| Ricochet | `ricochet` |
-
-## Building
-
-### Requirements
-
-- **Visual Studio 2026** with the **Desktop development with C++** workload.
-- **MSVC v145** C++ build tools.
-- **Windows SDK 10.0.26100.0**.
-- The dependency headers and libraries supplied under [`external/`](GoldSrc-SDK/external/) and [`lib/`](GoldSrc-SDK/lib/).
-
-The build targets **Win32 (x86)**, with **Debug** and **Release** configurations.
-
-### Visual Studio
-
-1. Open [`projects/vs2026/projects.sln`](GoldSrc-SDK/projects/vs2026/projects.sln).
-2. Select **Release** or **Debug**, and **Win32** as the platform.
-3. Build the desired projects or the solution.
-4. Open [`projects/vs2026/utils.sln`](GoldSrc-SDK/projects/vs2026/utils.sln) to build the SDK utilities.
-
-### Command line
-
-Run these commands from the repository root in the **Developer Command Prompt for VS 2026**:
-
-```bat
-cd GoldSrc-SDK
-msbuild projects\vs2026\projects.sln /m /p:Configuration=Release /p:Platform=Win32
-msbuild projects\vs2026\utils.sln /m /p:Configuration=Release /p:Platform=Win32
+```powershell
+cmake --preset runtime-x86-release
+cmake --build --preset runtime-x86-release --parallel
 ```
 
-Use `/p:Configuration=Debug` for a debug build.
+Use `runtime-x86-debug` for Debug or `hardware-x86-release` /
+`hardware-x86-debug` for only the source-built hardware engine and VGUI1.
+Outputs remain under the selected `build/` directory, separate from symbols,
+import libraries and intermediates. There is no installation into a live game.
 
-## Build output
+- [Build commands, targets and provider requirements](docs/building.md)
+- [Approved project disposition](docs/project-scope.md) and [actual source pruning](docs/source-pruning.md)
+- [MSBuild/CMake crosswalk](docs/msbuild-crosswalk.md) and [preserved original manifests](docs/msbuild/README.md)
+- [C1–C4 source corrections and evidence limits](docs/source-corrections.md)
+- [Future x64/ARM64 portability work](docs/architecture-portability.md)
+- [Actual validation record](docs/validation.md)
 
-Runtime and game binaries are placed under `GoldSrc-SDK/`:
-
-```text
-bin/Win32/Release/
-bin/Win32/Debug/
-```
-
-SDK utility executables are placed in the corresponding `utils/` subdirectory. Intermediate build files are kept under `bin/obj/`.
-
-| Component | Output |
-| --- | --- |
-| Game launcher | `hl.exe` |
-| Dedicated server launcher | `hlds.exe` |
-| HLTV launcher | `hltv.exe` |
-| Hardware-rendered engine | `hw.dll` |
-| Software-rendered engine | `sw.dll` |
-| Dedicated server engine | `swds.dll` |
-| A3D audio API | `a3dapi.dll` |
-| HLTV and demo support | `Core.dll`, `DemoPlayer.dll`, `proxy.dll` |
-| Filesystem | `filesystem_stdio.dll` |
-| Shared runtime and UI | `tier0.dll`, `vgui.dll`, `vgui2.dll` |
-| Game UI and effects | `valve/cl_dlls/GameUI.dll`, `valve/cl_dlls/particleman.dll` |
-| Game client/server DLLs | The game directories listed above, under `cl_dlls/` and `dlls/` |
-
-## Source layout
-
-The project files are in [`GoldSrc-SDK/`](GoldSrc-SDK/). Paths below are relative to that directory.
-
-| Path | Contents |
-| --- | --- |
-| [`engine/`](GoldSrc-SDK/engine/) | Engine implementation |
-| [`swds/`](GoldSrc-SDK/swds/) | Dedicated server engine project and platform support sources; shares engine code from `engine/` |
-| [`a3dapi/`](GoldSrc-SDK/a3dapi/) | A3D audio API implementation |
-| [`launcher/`](GoldSrc-SDK/launcher/) | Game launcher |
-| [`dedicated/`](GoldSrc-SDK/dedicated/) | Dedicated server launcher |
-| [`HLTV/`](GoldSrc-SDK/HLTV/) | HLTV, proxy, core, and demo playback code |
-| [`cl_dll/`](GoldSrc-SDK/cl_dll/), [`dlls/`](GoldSrc-SDK/dlls/) | Half-Life client and server code |
-| [`common/`](GoldSrc-SDK/common/), [`public/`](GoldSrc-SDK/public/), [`game_shared/`](GoldSrc-SDK/game_shared/), [`pm_shared/`](GoldSrc-SDK/pm_shared/) | Shared interfaces, game code, and movement code |
-| [`filesystem/`](GoldSrc-SDK/filesystem/), [`tier0/`](GoldSrc-SDK/tier0/), [`vgui2/`](GoldSrc-SDK/vgui2/), [`GameUI/`](GoldSrc-SDK/GameUI/) | Filesystem, runtime support, and UI components |
-| [`worldcraft/`](GoldSrc-SDK/worldcraft/) | Hammer 3.4 editor source |
-| [`utils/`](GoldSrc-SDK/utils/) | SDK utilities and VGUI source |
-| [`projects/vs2026/`](GoldSrc-SDK/projects/vs2026/) | Visual Studio solutions, project files, and shared build settings |
-| [`external/`](GoldSrc-SDK/external/), [`lib/`](GoldSrc-SDK/lib/) | Dependency headers and libraries |
-
-Counter-Strike and Condition Zero share source through the projects under `projects/vs2026/`; `czero` is a runtime output directory rather than a separate top-level source folder.
-
-## Credits
-
-Original engine and game technology by Valve and the respective game developers, including Gearbox Software, Ritual Entertainment, and the original mod teams.
-
-GoldSrc-SDK is a community project. Half-Life, Counter-Strike, and other game names and trademarks belong to their respective owners. Preserve the copyright and license notices supplied with each source component and dependency.
+This repository is **not MIT as a whole**. MIT applies only to authorized original
+contributions within the [root license scope](LICENSE). Inherited Valve/Id and
+other components retain their existing notices, restrictions and unresolved
+rights; see [the licensing audit](docs/licensing.md). No release, provider
+redistribution, game launch or runtime acceptance is included in this work.
