@@ -65,7 +65,7 @@ is that source deliverable, not a qualified functioning binary package.
 
 ## Independent source review and fix pass
 
-A [fresh read-only whole-branch review](source-review.md) checked the source/CMake/pruning/license
+A fresh read-only whole-branch review checked the source/CMake/pruning/license
 changes through `44ef186`, without executing tests, configuration or runtime code.
 It found two material defects: shared import/PDB output basenames, and five
 omitted A3D generated translation units. The fix pass isolates all linker/compile
