@@ -93,15 +93,17 @@ runtime/Debug/ or runtime/Release/     EXEs and DLLs only
   valve/dlls/hl.dll                   Half-Life server
   valve/cl_dlls/GameUI.dll
   valve/cl_dlls/particleman.dll
-lib/<Configuration>/                 import/static libraries and .exp files
-symbols/<Configuration>/             PDBs and engine maps
- targets/                            CMake/compile intermediates
+lib/<Configuration>/<target>/        import/static libraries and .exp files
+symbols/<Configuration>/<target>/    PDBs (engine maps at symbols/<Configuration>/)
+targets/                            CMake/compile intermediates
 ```
 
 The root runtime directory contains launchers, engines, filesystem, UI libraries,
 Core and DemoPlayer. VGUI1's import archive is rebuilt from its names-only
 `vgui_imports.def` after the source-built DLL, matching the upstream dependency
-step. Same-basename object collisions are separated by CMake's source paths.
+step. Same-basename objects are separated by CMake's source paths; import libraries
+and linker/compile PDBs have target-specific directories even when runtime
+basenames match. Executable exports are explicitly modeled as well.
 
 There is no install into a live Steam directory and no automatic provider
 loading. Game data and compatible `mss32.dll`, `SDL2.dll`, `steam_api.dll`,
@@ -146,3 +148,16 @@ relevant inherited option without adding conflicting target-level FP/EH flags.
 No global fast-math or ICF policy is introduced. Whole-program optimization,
 static/DLL CRT variants, assertion definitions, includes and forced headers are
 translated per target/configuration.
+
+## A3D generated production inputs
+
+The optional A3D project has 16 ordinary compile inputs plus five generated
+geometry translation units. Its upstream `PrepareGeometryCompilation` target
+selects OBJECTS, FINALIZE, ACOUSTICS, SUBMISSION and STATE sections of production
+`A3dGeom.cpp`, in addition to the ordinary CORE input. CMake generates unique
+wrapper sources in the a3dapi target's build directory, with the original section
+selectors and individual FP/optimization/intrinsic/instruction-set/EH settings.
+The wrappers compile production code, not stand-ins for a missing provider.
+The repository crosswalk includes these five target-time inputs explicitly;
+MSBuild's evaluation-only `-getItem` output alone does not include additions made
+inside a build target. Inspect the preserved target body in the preprocessed XML.

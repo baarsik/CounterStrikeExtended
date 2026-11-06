@@ -1,5 +1,10 @@
 # Generated from projects/vs2026/a3dapi.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(a3dapi SHARED "a3dapi")
+cse_a3d_geometry_source("geometry_objects.cpp" "A3D_GEOMETRY_OBJECTS")
+cse_a3d_geometry_source("geometry_finalize.cpp" "A3D_GEOMETRY_FINALIZE")
+cse_a3d_geometry_source("geometry_acoustics.cpp" "A3D_GEOMETRY_ACOUSTICS")
+cse_a3d_geometry_source("geometry_submission.cpp" "A3D_GEOMETRY_SUBMISSION")
+cse_a3d_geometry_source("geometry_state.cpp" "A3D_GEOMETRY_STATE")
 target_sources(a3dapi PRIVATE
   "${CSE_SDK_DIR}/a3dapi/A3d3.cpp"
   "${CSE_SDK_DIR}/a3dapi/a3d_guids.cpp"
@@ -18,6 +23,11 @@ target_sources(a3dapi PRIVATE
   "${CSE_SDK_DIR}/a3dapi/spatial_audio.cpp"
   "${CSE_SDK_DIR}/a3dapi/rotation.cpp"
   "${CSE_SDK_DIR}/a3dapi/a3dapi.rc"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_objects.cpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp"
+  "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp"
 )
 target_compile_options(a3dapi PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(a3dapi PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
@@ -97,6 +107,21 @@ set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:fast>")
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/arch:IA32>")
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_objects.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Od>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:strict>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHa>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Oi>")
 target_compile_options(a3dapi PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(a3dapi PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(a3dapi PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/Zi>")
@@ -176,4 +201,19 @@ set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:fast>")
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/arch:IA32>")
 set_property(SOURCE "${CSE_SDK_DIR}/a3dapi/rotation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_objects.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_finalize.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:strict>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_acoustics.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHa>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/arch:IA32>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_submission.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/Oi>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/O2>")
+set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/Oi>")
 cse_runtime_directory(a3dapi "")

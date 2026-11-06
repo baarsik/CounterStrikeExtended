@@ -53,6 +53,7 @@ def evaluate(project, configuration):
     definitions = {}
     raw_items = []
     imports = []
+    generating_targets = []
 
     def expand(value):
         for _ in range(20):
@@ -126,6 +127,12 @@ def evaluate(project, configuration):
             elif kind == 'ItemDefinitionGroup':
                 for node in element:
                     definitions[name(node)] = metadata(node, definitions.get(name(node), {}))
+            elif kind == 'Target':
+                if project.stem != 'a3dapi' or element.get('Name') != 'PrepareGeometryCompilation':
+                    raise ValueError('Unsupported project target: ' + str(current) + ' / ' + str(element.get('Name')))
+                generating_targets.append(element)
+            elif kind == 'UsingTask':
+                raise ValueError('Unsupported custom task: ' + str(current))
             elif kind == 'ItemGroup':
                 for node in element:
                     if condition(node.get('Condition')) and 'Include' in node.attrib:
@@ -139,6 +146,23 @@ def evaluate(project, configuration):
             items.append({'kind': kind, 'path': str(source_path(entry, project.parent)),
                           'metadata': metadata(nodes, definitions.get(kind, {})),
                           'overrides': metadata(nodes, {})})
+    for target in generating_targets:
+        for action in target:
+            if name(action) not in ['MakeDir', 'ItemGroup', 'WriteLinesToFile']:
+                raise ValueError('Unsupported source-generation action: ' + name(action))
+        writer = target.find(NS + 'WriteLinesToFile')
+        expected_lines = '#define %(_GeometryCompile.Section)\n#include "$(A3dSourceDir)A3dGeom.cpp"'
+        if writer is None or writer.get('Lines') != expected_lines:
+            raise ValueError('Unexpected A3D source-generation template')
+        for geometry in target.findall('./' + NS + 'ItemGroup/' + NS + '_GeometryCompile'):
+            overrides = metadata(geometry, {})
+            effective = dict(definitions['ClCompile'])
+            effective.update(overrides)
+            items.append({'kind': 'ClCompile',
+                          'path': str(source_path(expand(geometry.attrib['Include']), project.parent)),
+                          'metadata': effective, 'overrides': overrides,
+                          'generated': {'section': overrides['Section'],
+                                        'include': str(SDK / 'a3dapi/A3dGeom.cpp')}})
     return {'properties': properties, 'definitions': definitions, 'items': items, 'imports': imports}
 
 
@@ -210,6 +234,12 @@ def emit_list(lines, command, target, configuration, values, language=False):
         lines.append(f'{command}({target} PRIVATE {quote("$<" + predicate + ":" + value + ">")})')
 
 
+def cmake_source(item):
+    if item.get('generated'):
+        return '${CMAKE_CURRENT_BINARY_DIR}/generated/' + Path(item['path']).name
+    return portable(item['path'])
+
+
 def main():
     records = []
     overview = ['# MSBuild to CMake crosswalk', '',
@@ -231,16 +261,24 @@ def main():
         debug, release = configs['Debug'], configs['Release']
         def compiled(c):
             return [i for i in c['items'] if i['kind'] == 'ClCompile' and i['metadata'].get('ExcludedFromBuild') != 'true']
-        assert [i['path'] for i in compiled(debug)] == [i['path'] for i in compiled(release)], project
+        def selection(item):
+            return ('generated', Path(item['path']).name, item['generated']['section']) if item.get('generated') else item['path']
+        assert [selection(i) for i in compiled(debug)] == [selection(i) for i in compiled(release)], project
         active = compiled(release)
         output = release['properties'].get('TargetName', project.stem)
         kind = 'EXECUTABLE' if release['properties']['ConfigurationType'] == 'Application' else 'SHARED'
         lines = ['# Generated from ' + str(project.relative_to(SDK)) + '; see tools/translate_msbuild.py.',
-                 f'cse_add_runtime({target} {kind} {quote(output)})', f'target_sources({target} PRIVATE']
+                 f'cse_add_runtime({target} {kind} {quote(output)})']
+        for item in active:
+            if item.get('generated'):
+                assert Path(item['generated']['include']).is_file()
+                lines.append(f'cse_a3d_geometry_source({quote(Path(item["path"]).name)} {quote(item["generated"]["section"])})')
+        lines.append(f'target_sources({target} PRIVATE')
         for item in release['items']:
             if item['kind'] in ['ClCompile', 'ResourceCompile'] and item['metadata'].get('ExcludedFromBuild') != 'true':
-                assert Path(item['path']).is_file(), item['path']
-                lines.append('  ' + quote(portable(item['path'])))
+                if not item.get('generated'):
+                    assert Path(item['path']).is_file(), item['path']
+                lines.append('  ' + quote(cmake_source(item)))
         lines.append(')')
         for config, data in configs.items():
             m = data['definitions']['ClCompile']; link = data['definitions'].get('Link', {})
@@ -302,11 +340,13 @@ def main():
                     assert path.is_file(), path
                     lines.append(f'cse_link_import({target} {config} {quote(portable(str(path)))})')
             for item in compiled(data):
-                path = quote(portable(item['path'])); overrides = item['overrides']
+                path = quote(cmake_source(item)); overrides = item['overrides']
                 effective_flags = {k: v for k, v in item['metadata'].items() if k in overridden_flags}
                 opts = options(effective_flags, COMPILE) + additional_options(overrides.get('AdditionalOptions', ''))
                 if overrides.get('CompileAs') == 'CompileAsCpp':
                     opts.append('/TP')
+                    if config == 'Debug':
+                        lines.append(f'set_property(SOURCE {path} PROPERTY LANGUAGE CXX)')
                 opts += ['/FI' + str(source_path(p, project.parent)) for p in split(overrides.get('ForcedIncludeFiles', ''))]
                 for option in opts:
                     lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_OPTIONS {quote("$<$<CONFIG:" + config + ">:" + portable(option) + ">")})')
@@ -341,7 +381,8 @@ def main():
     for record in records:
         for data in record['configurations'].values():
             data['items'] = [dict(kind=item['kind'], path=item['path'],
-                                  metadata={k: item['metadata'][k] for k in item['overrides']})
+                                  metadata={k: item['metadata'][k] for k in item['overrides']},
+                                  **({'generated': item['generated']} if item.get('generated') else {}))
                              for item in data['items']
                              if item['kind'] in ['ClCompile', 'ResourceCompile', 'Library', 'ProjectReference']]
     evidence = json.dumps(records, indent=2).replace(str(SDK), '${CSE_SDK_DIR}')

@@ -104,7 +104,7 @@ broadcasting **OFF** and A3D **OFF**; explicit feature options allow their build
 | --- | --- | --- |
 | `projects/vs2026/HLTV.vcxproj` | `hltv.exe` / 26 | Console, shared engine/VGUI controls, `HLTV/Console/hltv.rc`; loads filesystem/VGUI2 and `proxy001`. OFF omits the standalone broadcaster executable. |
 | `projects/vs2026/Proxy.vcxproj` | `proxy.dll` / 33 | Proxy source, **Core's private bzip2/support source**, common containers, Winsock2 and Steam import library. OFF omits the broadcaster proxy; keep Core and DemoPlayer. |
-| `projects/vs2026/a3dapi.vcxproj` | `a3dapi.dll` / 16 | `a3dapi/`, its `.def`/`.rc`, Windows COM/audio libraries; source loads legacy `A3D.DLL`. OFF omits this legacy adapter. No active A3D consumer was found in the selected engine source; end-to-end A3D support is unverified. |
+| `projects/vs2026/a3dapi.vcxproj` | `a3dapi.dll` / 16 + 5 generated | `a3dapi/`, its `.def`/`.rc`, Windows COM/audio libraries; source loads legacy `A3D.DLL`. OFF omits this legacy adapter. No active A3D consumer was found in the selected engine source; end-to-end A3D support is unverified. |
 
 Keeping optional source also protects `HLTV/Console/`, `HLTV/Proxy/`, their
 private copied headers, and `a3dapi/`. Disabling broadcasting must not remove
@@ -244,6 +244,12 @@ CS projects remove inherited `NDEBUG` and enable `UTL_ENGINE_ASSERTS`; their
 toolset/SDK for its importers and adds utility warning compatibility definitions.
 The four imported source lists are `cstrike-client.items`,
 `cstrike-server.items`, `czeror-client.items`, and `czeror-server.items`.
+
+A3D additionally has a `PrepareGeometryCompilation` target: it writes five
+macro-selected wrapper translation units for the production `A3dGeom.cpp` and
+adds them to compilation with per-file settings. They are now modeled explicitly
+in CMake; the 16 ordinary A3D entries in the original static inventory excluded
+these target-time additions. This is distinct from build-event commands.
 
 The only nonempty build-event command found is VGUI1's **retained** post-build
 `lib /nologo /machine:x86 /def:...vgui_imports.def /out:...vgui.lib` compatibility

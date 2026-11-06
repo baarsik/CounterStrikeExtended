@@ -1,8 +1,14 @@
 include_guard(GLOBAL)
 
 function(cse_add_runtime target kind output)
+  foreach(config Debug Release)
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/${config}/${target}"
+      "${CMAKE_BINARY_DIR}/symbols/${config}/${target}")
+  endforeach()
   if(kind STREQUAL "EXECUTABLE")
     add_executable(${target} WIN32)
+    # All retained executables export CreateInterface; model their import products.
+    set_property(TARGET ${target} PROPERTY ENABLE_EXPORTS ON)
   else()
     add_library(${target} SHARED)
   endif()
@@ -11,10 +17,10 @@ function(cse_add_runtime target kind output)
     CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO
     MSVC_RUNTIME_LIBRARY ""
     WINDOWS_EXPORT_ALL_SYMBOLS OFF
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>/${target}"
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>"
-    PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>"
-    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>"
+    PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>/${target}"
+    COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>/${target}"
     COMPILE_PDB_NAME "${target}-compile")
 endfunction()
 
@@ -57,4 +63,13 @@ function(cse_vgui_import_archive)
       "/def:${CSE_SDK_DIR}/utils/vgui/vgui_imports.def"
       "/out:$<TARGET_LINKER_FILE:vgui>"
     VERBATIM COMMENT "Generate VGUI1 compatibility import library")
+endfunction()
+
+function(cse_a3d_geometry_source filename section)
+  # Equivalent to the upstream PrepareGeometryCompilation target: each unique
+  # translation unit selects a production section of A3dGeom.cpp. Per-file
+  # settings are applied by the generated a3dapi target module.
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+  file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/${filename}"
+    CONTENT "#define ${section}\n#include \"${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp\"\n" @ONLY)
 endfunction()

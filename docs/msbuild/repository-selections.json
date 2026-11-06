@@ -3829,6 +3829,79 @@
             "kind": "ResourceCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/a3dapi.rc",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/geometry_objects.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_OBJECTS"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_OBJECTS",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/geometry_finalize.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_FINALIZE",
+              "Optimization": "MaxSpeed",
+              "BasicRuntimeChecks": "Default",
+              "IntrinsicFunctions": "true",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Precise"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_FINALIZE",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/geometry_acoustics.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_ACOUSTICS",
+              "Optimization": "MaxSpeed",
+              "BasicRuntimeChecks": "Default",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Strict"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_ACOUSTICS",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/geometry_submission.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_SUBMISSION",
+              "Optimization": "MaxSpeed",
+              "BasicRuntimeChecks": "Default",
+              "IntrinsicFunctions": "true",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Precise",
+              "ExceptionHandling": "Async"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_SUBMISSION",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/geometry_state.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_STATE",
+              "Optimization": "MaxSpeed",
+              "BasicRuntimeChecks": "Default",
+              "IntrinsicFunctions": "true"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_STATE",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
           }
         ],
         "imports": [
@@ -4033,6 +4106,75 @@
             "kind": "ResourceCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/a3dapi.rc",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/geometry_objects.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_OBJECTS"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_OBJECTS",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/geometry_finalize.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_FINALIZE",
+              "Optimization": "MaxSpeed",
+              "IntrinsicFunctions": "true",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Precise"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_FINALIZE",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/geometry_acoustics.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_ACOUSTICS",
+              "Optimization": "MaxSpeed",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Strict"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_ACOUSTICS",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/geometry_submission.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_SUBMISSION",
+              "Optimization": "MaxSpeed",
+              "IntrinsicFunctions": "true",
+              "EnableEnhancedInstructionSet": "NoExtensions",
+              "FloatingPointModel": "Precise",
+              "ExceptionHandling": "Async"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_SUBMISSION",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/geometry_state.cpp",
+            "metadata": {
+              "Section": "A3D_GEOMETRY_STATE",
+              "Optimization": "MaxSpeed",
+              "IntrinsicFunctions": "true"
+            },
+            "generated": {
+              "section": "A3D_GEOMETRY_STATE",
+              "include": "${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp"
+            }
           }
         ],
         "imports": [
