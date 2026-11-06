@@ -8,11 +8,12 @@
 #include "GameUI_Interface.h"
 #include "vcontrolslistpanel.h"
 
+#include "../engine/utlbuffer.h"
 #include "Button.h"
-#include "QueryBox.h"
 #include "FileSystem.h"
 #include "IKeyValues.h"
-#include "../engine/utlbuffer.h"
+#include "QueryBox.h"
+#include "cl_dll.h"
 #include "igameuifuncs.h"
 #include "keydefs.h"
 #include "vgui/Cursor.h"
@@ -20,7 +21,6 @@
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
 #include "wrect.h"
-#include "cl_dll.h"
 #include <SDL3/SDL_keyboard.h>
 
 #include <stdarg.h>
@@ -70,13 +70,13 @@ SDL_Keycode GetSDLKeycodeFromEngineKey( int key )
 {
 	SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 	if ( key >= 'a' && key <= 'z' )
-		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_A + key - 'a' ), SDL_KMOD_NONE, false );
-	if ( key >= K_F1 && key <= K_F12 )
-		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_F1 + key - K_F1 ), SDL_KMOD_NONE, false );
-	if ( key >= '1' && key <= '9' )
-		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_1 + key - '1' ), SDL_KMOD_NONE, false );
+            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_A + key - 'a'), SDL_KMOD_NONE, false);
+        if ( key >= K_F1 && key <= K_F12 )
+            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_F1 + key - K_F1), SDL_KMOD_NONE, false);
+        if ( key >= '1' && key <= '9' )
+            return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_1 + key - '1'), SDL_KMOD_NONE, false);
 
-	switch ( key )
+        switch ( key )
 	{
 	case K_TAB: scancode = SDL_SCANCODE_TAB; break;
 	case K_ENTER: scancode = SDL_SCANCODE_RETURN; break;
@@ -128,7 +128,7 @@ SDL_Keycode GetSDLKeycodeFromEngineKey( int key )
 	case K_WIN: scancode = SDL_SCANCODE_LGUI; break;
 	case K_PAUSE: scancode = SDL_SCANCODE_PAUSE; break;
 	}
-	return SDL_GetKeyFromScancode( scancode, SDL_KMOD_NONE, false );
+        return SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false);
 }
 
 //-----------------------------------------------------------------------------
@@ -676,8 +676,8 @@ void COptionsSubKeyboard::OnKeyCodeTyped( vgui2::KeyCode code )
 		return;
 	}
 	SDL_Keycode key = vgui2::system()->KeyCode_VGUIToVirtualKey( code );
-	SDL_Scancode scancode = SDL_GetScancodeFromKey( key, nullptr );
-	int engineKey = 0;
+        SDL_Scancode scancode = SDL_GetScancodeFromKey(key, nullptr);
+        int engineKey = 0;
 	if ( scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z )
 	{
 		engineKey = 'a' + scancode - SDL_SCANCODE_A;

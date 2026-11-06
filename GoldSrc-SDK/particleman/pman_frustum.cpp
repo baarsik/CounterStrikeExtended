@@ -1,8 +1,8 @@
 #include "pman_frustum.h"
 
-#include "wrect.h"
 #include "cl_dll.h"
 #include "triangleapi.h"
+#include "wrect.h"
 #include <SDL3/SDL_opengl.h>
 
 #include <math.h>

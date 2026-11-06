@@ -85,7 +85,7 @@ void CAM_EndDistance(void);
 
 void SDL_GetCursorPos( POINT *p )
 {
-	float x = 0.0f;
+    float x = 0.0f;
     float y = 0.0f;
     SDL_GetMouseState(&x, &y);
     p->x = static_cast<long>(x);
@@ -166,8 +166,7 @@ void CL_DLLEXPORT CAM_Think( void )
 	if( !cam_thirdperson )
 		return;
 
-
-	camAngles[ PITCH ] = cam_idealpitch->value;
+        camAngles[ PITCH ] = cam_idealpitch->value;
 	camAngles[ YAW ] = cam_idealyaw->value;
 	dist = cam_idealdist->value;
 	//
@@ -179,13 +178,11 @@ void CL_DLLEXPORT CAM_Think( void )
 		SDL_GetCursorPos (&cam_mouse);
 		//check for X delta values and adjust accordingly
 		//eventually adjust YAW based on amount of movement
-	  //don't do any movement of the cam using YAW/PITCH if we are zooming in/out the camera
-	  if (!cam_distancemove)
-	  {
+                // don't do any movement of the cam using YAW/PITCH if we are zooming in/out the camera
+                if (!cam_distancemove) {
 
-		//keep the camera within certain limits around the player (ie avoid certain bad viewing angles)
-		if (cam_mouse.x>gEngfuncs.GetWindowCenterX())
-		{
+                    // keep the camera within certain limits around the player (ie avoid certain bad viewing angles)
+                    if (cam_mouse.x > gEngfuncs.GetWindowCenterX()) {
 			//if ((camAngles[YAW]>=225.0)||(camAngles[YAW]<135.0))
 			if (camAngles[YAW]<c_maxyaw->value)
 			{
@@ -194,7 +191,7 @@ void CL_DLLEXPORT CAM_Think( void )
 			if (camAngles[YAW]>c_maxyaw->value)
 			{
 
-				camAngles[YAW]=c_maxyaw->value;
+                                camAngles[YAW]=c_maxyaw->value;
 			}
 		}
 		else if (cam_mouse.x<gEngfuncs.GetWindowCenterX())
@@ -203,13 +200,11 @@ void CL_DLLEXPORT CAM_Think( void )
 			if (camAngles[YAW]>c_minyaw->value)
 			{
 			   camAngles[ YAW ] -= (CAM_ANGLE_MOVE)* ((gEngfuncs.GetWindowCenterX()-cam_mouse.x)/2);
-
-			}
+                        }
 			if (camAngles[YAW]<c_minyaw->value)
 			{
 				camAngles[YAW]=c_minyaw->value;
-
-			}
+                        }
 		}
 
 		//check for y delta values and adjust accordingly
@@ -363,40 +358,35 @@ void CAM_InUp(void) { KeyUp( &cam_in ); }
 void CAM_OutDown(void) { KeyDown( &cam_out ); }
 void CAM_OutUp(void) { KeyUp( &cam_out ); }
 
-void CAM_ToThirdPerson(void)
-{
-	vec3_t viewangles;
+void CAM_ToThirdPerson(void) {
+    vec3_t viewangles;
 
-	if ( gEngfuncs.GetMaxClients() > 1 )
-	{
-		// no thirdperson in multiplayer.
-		return;
-	}
+    if (gEngfuncs.GetMaxClients() > 1) {
+        // no thirdperson in multiplayer.
+        return;
+    }
 
-	gEngfuncs.GetViewAngles( (float *)viewangles );
+    gEngfuncs.GetViewAngles((float *)viewangles);
 
-	if( !cam_thirdperson )
-	{
-		cam_thirdperson = 1;
+    if (!cam_thirdperson) {
+        cam_thirdperson = 1;
 
-		cam_ofs[ YAW ] = viewangles[ YAW ];
-		cam_ofs[ PITCH ] = viewangles[ PITCH ];
-		cam_ofs[ 2 ] = CAM_MIN_DIST;
-	}
+        cam_ofs[YAW] = viewangles[YAW];
+        cam_ofs[PITCH] = viewangles[PITCH];
+        cam_ofs[2] = CAM_MIN_DIST;
+    }
 
-	gEngfuncs.Cvar_SetValue( "cam_command", 0 );
+    gEngfuncs.Cvar_SetValue("cam_command", 0);
 }
 
-void CAM_ToFirstPerson(void)
-{
-	cam_thirdperson = 0;
+void CAM_ToFirstPerson(void) {
+    cam_thirdperson = 0;
 
-	gEngfuncs.Cvar_SetValue( "cam_command", 0 );
+    gEngfuncs.Cvar_SetValue("cam_command", 0);
 }
 
-void CAM_ToggleSnapto( void )
-{
-	cam_snapto->value = !cam_snapto->value;
+void CAM_ToggleSnapto(void) {
+    cam_snapto->value = !cam_snapto->value;
 }
 
 void CAM_Init( void )
@@ -469,7 +459,7 @@ void CAM_StartMouseMove(void)
 {
 	float flSensitivity;
 
-	//only move the cam with mouse if we are in third person.
+        //only move the cam with mouse if we are in third person.
 	if (cam_thirdperson)
 	{
 		//set appropriate flags and initialize the old mouse position
@@ -491,13 +481,12 @@ void CAM_StartMouseMove(void)
 				cam_old_mouse_y=cam_mouse.y;
 			}
 		}
-	}
-	//we are not in 3rd person view..therefore do not allow camera movement
-	else
-	{
-		cam_mousemove=0;
-		iMouseInUse=0;
-	}
+        }
+        // we are not in 3rd person view..therefore do not allow camera movement
+        else {
+            cam_mousemove = 0;
+            iMouseInUse = 0;
+        }
 }
 
 //the key has been released for camera movement
@@ -508,10 +497,9 @@ void CAM_EndMouseMove(void)
    iMouseInUse=0;
 }
 
-
 //----------------------------------------------------------
-//routines to start the process of moving the cam in or out
-//using the mouse
+// routines to start the process of moving the cam in or out
+// using the mouse
 //----------------------------------------------------------
 void CAM_StartDistance(void)
 {
@@ -529,14 +517,13 @@ void CAM_StartDistance(void)
 		  cam_old_mouse_x=cam_mouse.x*gHUD.GetSensitivity();
 		  cam_old_mouse_y=cam_mouse.y*gHUD.GetSensitivity();
 	  }
-	}
-	//we are not in 3rd person view..therefore do not allow camera movement
-	else
-	{
-		cam_distancemove=0;
-		cam_mousemove=0;
-		iMouseInUse=0;
-	}
+        }
+        // we are not in 3rd person view..therefore do not allow camera movement
+        else {
+            cam_distancemove = 0;
+            cam_mousemove = 0;
+            iMouseInUse = 0;
+        }
 }
 
 //the key has been released for camera movement

@@ -85,7 +85,7 @@ void CAM_EndDistance(void);
 
 void SDL_GetCursorPos( POINT *p )
 {
-	float x = 0.0f;
+    float x = 0.0f;
     float y = 0.0f;
     SDL_GetMouseState(&x, &y);
     p->x = static_cast<long>(x);

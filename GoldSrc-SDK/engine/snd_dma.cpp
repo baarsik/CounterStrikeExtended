@@ -1,19 +1,19 @@
-#include "sound.h"
-#include "conprint.h"
-#include "common.h"
-#include "cvar.h"
-#include "host.h"
-#include "sys.h"
-#include "zone.h"
+#include "../common/const.h"
 #include "bspfile.h"
-#include "protocol.h"
 #include "client.h"
 #include "cmd.h"
+#include "common.h"
+#include "conprint.h"
+#include "cvar.h"
 #include "gl_model.h"
-#include "vgui_intwrap2.h"
-#include <SDL3/SDL.h>
-#include "../common/const.h"
+#include "host.h"
 #include "mem.h"
+#include "protocol.h"
+#include "sound.h"
+#include "sys.h"
+#include "vgui_intwrap2.h"
+#include "zone.h"
+#include <SDL3/SDL.h>
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -461,9 +461,9 @@ void S_StartDynamicSound(
 	{
 		if ( S_AlterChannel( entnum, entchannel, sfx, channelVolume, pitch, flags ) || ( flags & SND_STOP ) )
 			return;
-	// fall through - if we're not trying to stop the sound,
-	// and we didn't find it (it's not playing), go ahead and start it up
-	}
+                // fall through - if we're not trying to stop the sound,
+                // and we didn't find it (it's not playing), go ahead and start it up
+        }
 	if ( pitch == 0 )
 	{
 		Con_DPrintf( "Warning: S_StartDynamicSound Ignored, called with pitch 0" );

@@ -9,8 +9,8 @@
 #include "utf8_windows.h"
 #endif
 
-#include "SDL_clipboard.h"
-#include "SDL_stdinc.h"
+#include <SDL3/SDL_clipboard.h>
+#include <SDL3/SDL_stdinc.h>
 
 #include <stdio.h>
 #include <stdlib.h>

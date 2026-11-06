@@ -1,5 +1,5 @@
-#include "../common/sdl3_input.h"
 #include "VGUI_EngineSurfaceWrap.h"
+#include "../common/sdl3_input.h"
 
 #include <VGUI_App.h>
 #include <VGUI_Cursor.h>
@@ -13,14 +13,14 @@
 #undef null
 #undef VGUIAPI
 
+#include "../vgui2/vgui_surfacelib/vgui_key_translation.h"
 #include "IEngineSurface.h"
 #include "cvar.h"
 #include "igame.h"
 #include "ivideomode.h"
-#include "vid.h"
 #include "vgui2/imousecontrol.h"
 #include "vgui_intwrap2.h"
-#include "../vgui2/vgui_surfacelib/vgui_key_translation.h"
+#include "vid.h"
 #include <SDL3/SDL.h>
 
 #include <cctype>
@@ -64,15 +64,15 @@ static_assert( vgui::Cursor::dc_user == 0, "vgui cursor" );
 static_assert( vgui::Cursor::dc_none == 1, "vgui cursor" );
 static_assert( vgui::Cursor::dc_arrow == 2, "vgui cursor" );
 static_assert( vgui::Cursor::dc_hand == 13, "vgui cursor" );
-static_assert( SDL_KMOD_LSHIFT == 0x0001, "keymod" );
-static_assert( SDL_KMOD_RSHIFT == 0x0002, "keymod" );
-static_assert( SDL_KMOD_LCTRL == 0x0040, "keymod" );
-static_assert( SDL_KMOD_RCTRL == 0x0080, "keymod" );
-static_assert( SDL_KMOD_LALT == 0x0100, "keymod" );
-static_assert( SDL_KMOD_RALT == 0x0200, "keymod" );
-static_assert( SDL_KMOD_LGUI == 0x0400, "keymod" );
-static_assert( SDL_KMOD_RGUI == 0x0800, "keymod" );
-static_assert( SDL_KMOD_CAPS == 0x2000, "keymod" );
+static_assert(SDL_KMOD_LSHIFT == 0x0001, "keymod");
+static_assert(SDL_KMOD_RSHIFT == 0x0002, "keymod");
+static_assert(SDL_KMOD_LCTRL == 0x0040, "keymod");
+static_assert(SDL_KMOD_RCTRL == 0x0080, "keymod");
+static_assert(SDL_KMOD_LALT == 0x0100, "keymod");
+static_assert(SDL_KMOD_RALT == 0x0200, "keymod");
+static_assert(SDL_KMOD_LGUI == 0x0400, "keymod");
+static_assert(SDL_KMOD_RGUI == 0x0800, "keymod");
+static_assert(SDL_KMOD_CAPS == 0x2000, "keymod");
 
 static vgui::Font* staticFont = nullptr;
 static FontInfoVGUI* staticFontInfoVGUI = nullptr;
@@ -127,16 +127,16 @@ static void CheckModState( vgui::App* app, vgui::SurfaceBase* surface )
 			app->internalKeyPressed( code, surface );
 	};
 
-	report( SDL_KMOD_LSHIFT, vgui::KEY_LSHIFT );
-	report( SDL_KMOD_LALT, vgui::KEY_LALT );
-	report( SDL_KMOD_LCTRL, vgui::KEY_LCONTROL );
-	report( SDL_KMOD_RSHIFT, vgui::KEY_LSHIFT );
-	report( SDL_KMOD_RALT, vgui::KEY_RALT );
-	report( SDL_KMOD_RCTRL, vgui::KEY_RCONTROL );
-	report( SDL_KMOD_CAPS, vgui::KEY_CAPSLOCK );
-	report( SDL_KMOD_LGUI, vgui::KEY_LWIN );
-	report( SDL_KMOD_RGUI, vgui::KEY_RWIN );
-	s_lastModifierCode = static_cast<int>( SDL_GetModState() );
+        report(SDL_KMOD_LSHIFT, vgui::KEY_LSHIFT);
+        report(SDL_KMOD_LALT, vgui::KEY_LALT);
+        report(SDL_KMOD_LCTRL, vgui::KEY_LCONTROL);
+        report(SDL_KMOD_RSHIFT, vgui::KEY_LSHIFT);
+        report(SDL_KMOD_RALT, vgui::KEY_RALT);
+        report(SDL_KMOD_RCTRL, vgui::KEY_RCONTROL);
+        report(SDL_KMOD_CAPS, vgui::KEY_CAPSLOCK);
+        report(SDL_KMOD_LGUI, vgui::KEY_LWIN);
+        report(SDL_KMOD_RGUI, vgui::KEY_RWIN);
+        s_lastModifierCode = static_cast<int>( SDL_GetModState() );
 }
 }
 
@@ -169,19 +169,19 @@ EngineSurfaceWrap::EngineSurfaceWrap( vgui::Panel* embeddedPanel, IEngineSurface
 	}
 
 	staticDefaultCursor[vgui::Cursor::dc_none] = nullptr;
-	staticDefaultCursor[vgui::Cursor::dc_arrow] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_DEFAULT );
-	staticDefaultCursor[vgui::Cursor::dc_ibeam] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_TEXT );
-	staticDefaultCursor[vgui::Cursor::dc_hourglass] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_WAIT );
+        staticDefaultCursor[vgui::Cursor::dc_arrow] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_DEFAULT);
+        staticDefaultCursor[vgui::Cursor::dc_ibeam] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_TEXT);
+        staticDefaultCursor[vgui::Cursor::dc_hourglass] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_WAIT );
 	staticDefaultCursor[vgui::Cursor::dc_crosshair] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_CROSSHAIR );
-	staticDefaultCursor[vgui::Cursor::dc_up] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_NS_RESIZE );
-	staticDefaultCursor[vgui::Cursor::dc_sizenwse] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_NWSE_RESIZE );
-	staticDefaultCursor[vgui::Cursor::dc_sizenesw] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_NESW_RESIZE );
-	staticDefaultCursor[vgui::Cursor::dc_sizewe] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_EW_RESIZE );
-	staticDefaultCursor[vgui::Cursor::dc_sizens] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_NS_RESIZE );
-	staticDefaultCursor[vgui::Cursor::dc_sizeall] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_MOVE );
-	staticDefaultCursor[vgui::Cursor::dc_no] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_NOT_ALLOWED );
-	staticDefaultCursor[vgui::Cursor::dc_hand] = SDL_CreateSystemCursor( SDL_SYSTEM_CURSOR_POINTER );
-	staticCurrentCursor = staticDefaultCursor[vgui::Cursor::dc_arrow];
+        staticDefaultCursor[vgui::Cursor::dc_up] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
+        staticDefaultCursor[vgui::Cursor::dc_sizenwse] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NWSE_RESIZE);
+        staticDefaultCursor[vgui::Cursor::dc_sizenesw] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NESW_RESIZE);
+        staticDefaultCursor[vgui::Cursor::dc_sizewe] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_EW_RESIZE);
+        staticDefaultCursor[vgui::Cursor::dc_sizens] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NS_RESIZE);
+        staticDefaultCursor[vgui::Cursor::dc_sizeall] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_MOVE);
+        staticDefaultCursor[vgui::Cursor::dc_no] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_NOT_ALLOWED);
+        staticDefaultCursor[vgui::Cursor::dc_hand] = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_POINTER);
+        staticCurrentCursor = staticDefaultCursor[vgui::Cursor::dc_arrow];
 }
 
 EngineSurfaceWrap::~EngineSurfaceWrap()
@@ -190,8 +190,8 @@ EngineSurfaceWrap::~EngineSurfaceWrap()
 	for ( int index = 0; index < CURSOR_SLOT_COUNT; ++index )
 	{
 		if ( staticDefaultCursor[index] != nullptr )
-			SDL_DestroyCursor( staticDefaultCursor[index] );
-	}
+                    SDL_DestroyCursor(staticDefaultCursor[index]);
+        }
 }
 
 void EngineSurfaceWrap::setTitle( const char* )
@@ -232,12 +232,11 @@ int EngineSurfaceWrap::createNewTextureID()
 
 void EngineSurfaceWrap::GetMousePos( int& x, int& y )
 {
-	cse::GetIntegerMousePosition( &x, &y );
-	if ( VideoMode_IsWindowed() == 0 )
-	{
-		ScaleFullscreenMouse( x, y );
-		return;
-	}
+    cse::GetIntegerMousePosition(&x, &y);
+    if (VideoMode_IsWindowed() == 0) {
+        ScaleFullscreenMouse(x, y);
+        return;
+    }
 
 	int windowX = 0;
 	int windowY = 0;
@@ -487,9 +486,9 @@ void EngineSurfaceWrap::setCursor( vgui::Cursor* cursor )
 		if ( wasVisible > nowVisible )
 		{
 			if ( m_rawinput.value == 0.0f || BUsesSDLInput() == 0 )
-				SDL_HideCursor();
-			else
-				SDL_SetWindowRelativeMouseMode( (SDL_Window*)game->GetMainWindow(), true );
+                            SDL_HideCursor();
+                        else
+                            SDL_SetWindowRelativeMouseMode((SDL_Window *)game->GetMainWindow(), true);
 
 #if defined( _WIN32 )
 			if ( BUsesSDLInput() == 0 )
@@ -497,22 +496,23 @@ void EngineSurfaceWrap::setCursor( vgui::Cursor* cursor )
 				int windowWidth = 0;
 				int windowHeight = 0;
 				SDL_GetWindowSize( reinterpret_cast<SDL_Window*>( game->GetMainWindow() ), &windowWidth, &windowHeight );
-				SDL_WarpMouseInWindow(
-					reinterpret_cast<SDL_Window*>( game->GetMainWindow() ), windowWidth / 2, windowHeight / 2 );
-			}
+                                SDL_WarpMouseInWindow(reinterpret_cast<SDL_Window *>(game->GetMainWindow()),
+                                                      static_cast<float>(windowWidth / 2),
+                                                      static_cast<float>(windowHeight / 2));
+                        }
 #endif
 
 			SDL_PumpEvents();
-			SDL_GetRelativeMouseState(nullptr, nullptr);
-		}
+                        SDL_GetRelativeMouseState(nullptr, nullptr);
+                }
 
 		if ( wasVisible < nowVisible )
 		{
 			if ( m_rawinput.value == 0.0f || BUsesSDLInput() == 0 )
-				SDL_ShowCursor();
-			else
-				SDL_SetWindowRelativeMouseMode( (SDL_Window*)game->GetMainWindow(), false );
-		}
+                            SDL_ShowCursor();
+                        else
+                            SDL_SetWindowRelativeMouseMode((SDL_Window *)game->GetMainWindow(), false);
+                }
 	}
 }
 
@@ -550,54 +550,48 @@ void EngineSurfaceWrap::AppHandler( void* event, void* )
 
 	const SDL_Event* sdlEvent = static_cast<SDL_Event*>( event );
 	const unsigned int type = sdlEvent->type;
-	if ( type == SDL_EVENT_MOUSE_MOTION )
-	{
-		int x = static_cast<int>(sdlEvent->motion.x);
-		int y = static_cast<int>(sdlEvent->motion.y);
-		if ( VideoMode_IsWindowed() == 0 )
-			ScaleFullscreenMouse( x, y );
-		app->internalCursorMoved( x, y, this );
-		return;
-	}
+        if (type == SDL_EVENT_MOUSE_MOTION) {
+            int x = static_cast<int>(sdlEvent->motion.x);
+            int y = static_cast<int>(sdlEvent->motion.y);
+            if (VideoMode_IsWindowed() == 0)
+                ScaleFullscreenMouse(x, y);
+            app->internalCursorMoved(x, y, this);
+            return;
+        }
 
-	if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP || type == SDL_EVENT_MOUSE_WHEEL)
-	{
-		if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP)
-		{
-			const int button = sdlEvent->button.button;
-			vgui::MouseCode code = vgui::MOUSE_LEFT;
-			if ( button == SDL_BUTTON_MIDDLE )
-				code = vgui::MOUSE_MIDDLE;
-			else if ( button == SDL_BUTTON_RIGHT )
-				code = vgui::MOUSE_RIGHT;
+        if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP || type == SDL_EVENT_MOUSE_WHEEL) {
+            if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP) {
+                const int button = sdlEvent->button.button;
+                vgui::MouseCode code = vgui::MOUSE_LEFT;
+                if (button == SDL_BUTTON_MIDDLE)
+                    code = vgui::MOUSE_MIDDLE;
+                else if (button == SDL_BUTTON_RIGHT)
+                    code = vgui::MOUSE_RIGHT;
 
-			if ( type == SDL_EVENT_MOUSE_BUTTON_DOWN )
-				app->internalMousePressed( code, this );
-			else
-				app->internalMouseReleased( code, this );
-		}
-		else if ( type == SDL_EVENT_MOUSE_WHEEL )
-		{
-			app->internalMouseWheeled( static_cast<int>(sdlEvent->wheel.y), this );
-		}
-		return;
-	}
+                if (type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+                    app->internalMousePressed(code, this);
+                } else
+                    app->internalMouseReleased(code, this);
+            } else if (type == SDL_EVENT_MOUSE_WHEEL) {
+                app->internalMouseWheeled(static_cast<int>(sdlEvent->wheel.y), this);
+            }
+            return;
+        }
 
-	if ( type == SDL_EVENT_KEY_DOWN )
-	{
-		const vgui::KeyCode code =
-			static_cast<vgui::KeyCode>( KeyCode_VirtualKeyToVGUI( sdlEvent->key.key ) - 1 );
-		app->internalKeyPressed( code, this );
-		app->internalKeyTyped( code, this );
-		CheckModState( app, this );
-		return;
-	}
+        if (type == SDL_EVENT_KEY_DOWN) {
+            const vgui::KeyCode code = static_cast<vgui::KeyCode>(KeyCode_VirtualKeyToVGUI(sdlEvent->key.key) - 1);
+            app->internalKeyPressed(code, this);
+            app->internalKeyTyped(code, this);
+            CheckModState(app, this);
+            return;
+        }
 
-	if ( type != SDL_EVENT_KEY_UP )
-		return;
+        if (type != SDL_EVENT_KEY_UP) {
+            return;
+        }
 
-	const vgui::KeyCode code = static_cast<vgui::KeyCode>( KeyCode_VirtualKeyToVGUI( sdlEvent->key.key ) - 1 );
-	app->internalKeyReleased( code, this );
+        const vgui::KeyCode code = static_cast<vgui::KeyCode>(KeyCode_VirtualKeyToVGUI(sdlEvent->key.key) - 1);
+        app->internalKeyReleased( code, this );
 	CheckModState( app, this );
 }
 

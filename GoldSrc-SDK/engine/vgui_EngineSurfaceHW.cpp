@@ -1,24 +1,24 @@
-#include "engine_apiproxy.h"
-#include "vgui_EngineSurface.h"
-#include "glquake.h"
-#include "gl_model.h"
-#include "utlrbtree.h"
-#include "filesystem.h"
-#include "cvar.h"
-#include "conprint.h"
 #include "client.h"
-#include "keys.h"
+#include "conprint.h"
+#include "cvar.h"
+#include "engine_apiproxy.h"
+#include "filesystem.h"
+#include "gl_model.h"
+#include "glquake.h"
 #include "ivideomode.h"
+#include "keys.h"
+#include "utlrbtree.h"
+#include "vgui_EngineSurface.h"
 #include "vgui_int.h"
 #include "view.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
+#include <cassert>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdint>
-#include <cassert>
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -53,8 +53,8 @@ void VGui_ViewportPaintBackground( int* extents )
 	int width;
 	int height;
 	if ( VideoMode_IsWindowed() )
-		SDL_GetWindowSizeInPixels( *pmainwindow, &width, &height );
-	else
+            SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
+        else
 		VideoMode_GetCurrentVideoMode( &width, &height, nullptr );
 
 	glx = extents[0] - windowX;
@@ -294,8 +294,8 @@ void EngineSurface::pushMakeCurrent( int* insets, int* absoluteExtents, int* cli
 	int width;
 	int height;
 	if ( VideoMode_IsWindowed() )
-		SDL_GetWindowSizeInPixels( *pmainwindow, &width, &height );
-	else
+            SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
+        else
 		VideoMode_GetCurrentVideoMode( &width, &height, nullptr );
 	qglPushMatrix();
 	qglMatrixMode( GL_PROJECTION );

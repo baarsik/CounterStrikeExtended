@@ -19,47 +19,109 @@ static_assert( sizeof( vgui_to_virtual_t ) == 12 );
 static constexpr int NO_VIRTUAL_KEY = 0;
 static constexpr int VIRTUAL_KEY_COUNT = 256;
 
-static const vgui_to_virtual_t keyMap[] = { { KEY_0, '0', SDLK_0 }, { KEY_1, '1', SDLK_1 }, { KEY_2, '2', SDLK_2 },
-	{ KEY_3, '3', SDLK_3 }, { KEY_4, '4', SDLK_4 }, { KEY_5, '5', SDLK_5 }, { KEY_6, '6', SDLK_6 },
-	{ KEY_7, '7', SDLK_7 }, { KEY_8, '8', SDLK_8 }, { KEY_9, '9', SDLK_9 }, { KEY_A, 'A', SDLK_A },
-	{ KEY_B, 'B', SDLK_B }, { KEY_C, 'C', SDLK_C }, { KEY_D, 'D', SDLK_D }, { KEY_E, 'E', SDLK_E },
-	{ KEY_F, 'F', SDLK_F }, { KEY_G, 'G', SDLK_G }, { KEY_H, 'H', SDLK_H }, { KEY_I, 'I', SDLK_I },
-	{ KEY_J, 'J', SDLK_J }, { KEY_K, 'K', SDLK_K }, { KEY_L, 'L', SDLK_L }, { KEY_M, 'M', SDLK_M },
-	{ KEY_N, 'N', SDLK_N }, { KEY_O, 'O', SDLK_O }, { KEY_P, 'P', SDLK_P }, { KEY_Q, 'Q', SDLK_Q },
-	{ KEY_R, 'R', SDLK_R }, { KEY_S, 'S', SDLK_S }, { KEY_T, 'T', SDLK_T }, { KEY_U, 'U', SDLK_U },
-	{ KEY_V, 'V', SDLK_V }, { KEY_W, 'W', SDLK_W }, { KEY_X, 'X', SDLK_X }, { KEY_Y, 'Y', SDLK_Y },
-	{ KEY_Z, 'Z', SDLK_Z }, { KEY_PAD_0, NO_VIRTUAL_KEY, SDLK_KP_0 }, { KEY_PAD_1, NO_VIRTUAL_KEY, SDLK_KP_1 },
-	{ KEY_PAD_2, NO_VIRTUAL_KEY, SDLK_KP_2 }, { KEY_PAD_3, NO_VIRTUAL_KEY, SDLK_KP_3 },
-	{ KEY_PAD_4, NO_VIRTUAL_KEY, SDLK_KP_4 }, { KEY_PAD_5, NO_VIRTUAL_KEY, SDLK_KP_5 },
-	{ KEY_PAD_6, NO_VIRTUAL_KEY, SDLK_KP_6 }, { KEY_PAD_7, NO_VIRTUAL_KEY, SDLK_KP_7 },
-	{ KEY_PAD_8, NO_VIRTUAL_KEY, SDLK_KP_8 }, { KEY_PAD_9, NO_VIRTUAL_KEY, SDLK_KP_9 },
-	{ KEY_PAD_DIVIDE, NO_VIRTUAL_KEY, SDLK_KP_DIVIDE }, { KEY_PAD_MULTIPLY, NO_VIRTUAL_KEY, SDLK_KP_MULTIPLY },
-	{ KEY_PAD_MINUS, NO_VIRTUAL_KEY, SDLK_KP_MINUS }, { KEY_PAD_PLUS, NO_VIRTUAL_KEY, SDLK_KP_PLUS },
-	{ KEY_PAD_ENTER, NO_VIRTUAL_KEY, SDLK_KP_ENTER }, { KEY_PAD_DECIMAL, NO_VIRTUAL_KEY, SDLK_KP_DECIMAL },
-	{ KEY_LBRACKET, NO_VIRTUAL_KEY, SDLK_LEFTBRACKET }, { KEY_RBRACKET, NO_VIRTUAL_KEY, SDLK_RIGHTBRACKET },
-	{ KEY_SEMICOLON, NO_VIRTUAL_KEY, SDLK_SEMICOLON }, { KEY_APOSTROPHE, NO_VIRTUAL_KEY, SDLK_APOSTROPHE },
-	{ KEY_BACKQUOTE, NO_VIRTUAL_KEY, SDLK_GRAVE }, { KEY_COMMA, NO_VIRTUAL_KEY, SDLK_COMMA },
-	{ KEY_PERIOD, NO_VIRTUAL_KEY, SDLK_PERIOD }, { KEY_SLASH, NO_VIRTUAL_KEY, SDLK_SLASH },
-	{ KEY_BACKSLASH, NO_VIRTUAL_KEY, SDLK_BACKSLASH }, { KEY_MINUS, NO_VIRTUAL_KEY, SDLK_MINUS },
-	{ KEY_EQUAL, NO_VIRTUAL_KEY, SDLK_EQUALS }, { KEY_ENTER, NO_VIRTUAL_KEY, SDLK_RETURN },
-	{ KEY_SPACE, NO_VIRTUAL_KEY, SDLK_SPACE }, { KEY_BACKSPACE, NO_VIRTUAL_KEY, SDLK_BACKSPACE },
-	{ KEY_TAB, NO_VIRTUAL_KEY, SDLK_TAB }, { KEY_CAPSLOCK, NO_VIRTUAL_KEY, SDLK_CAPSLOCK },
-	{ KEY_NUMLOCK, NO_VIRTUAL_KEY, SDLK_NUMLOCKCLEAR }, { KEY_ESCAPE, NO_VIRTUAL_KEY, SDLK_ESCAPE },
-	{ KEY_SCROLLLOCK, NO_VIRTUAL_KEY, SDLK_SCROLLLOCK }, { KEY_INSERT, NO_VIRTUAL_KEY, SDLK_INSERT },
-	{ KEY_DELETE, NO_VIRTUAL_KEY, SDLK_DELETE }, { KEY_HOME, NO_VIRTUAL_KEY, SDLK_HOME },
-	{ KEY_END, NO_VIRTUAL_KEY, SDLK_END }, { KEY_PAGEUP, NO_VIRTUAL_KEY, SDLK_PAGEUP },
-	{ KEY_PAGEDOWN, NO_VIRTUAL_KEY, SDLK_PAGEDOWN }, { KEY_BREAK, NO_VIRTUAL_KEY, SDLK_PAUSE },
-	{ KEY_RSHIFT, NO_VIRTUAL_KEY, SDLK_RSHIFT }, { KEY_LSHIFT, NO_VIRTUAL_KEY, SDLK_LSHIFT },
-	{ KEY_RALT, NO_VIRTUAL_KEY, SDLK_RALT }, { KEY_LALT, NO_VIRTUAL_KEY, SDLK_LALT },
-	{ KEY_RCONTROL, NO_VIRTUAL_KEY, SDLK_RCTRL }, { KEY_LCONTROL, NO_VIRTUAL_KEY, SDLK_LCTRL },
-	{ KEY_LWIN, NO_VIRTUAL_KEY, SDLK_LGUI }, { KEY_RWIN, NO_VIRTUAL_KEY, SDLK_RGUI },
-	{ KEY_APP, NO_VIRTUAL_KEY, SDLK_APPLICATION }, { KEY_UP, NO_VIRTUAL_KEY, SDLK_UP },
-	{ KEY_LEFT, NO_VIRTUAL_KEY, SDLK_LEFT }, { KEY_DOWN, NO_VIRTUAL_KEY, SDLK_DOWN },
-	{ KEY_RIGHT, NO_VIRTUAL_KEY, SDLK_RIGHT }, { KEY_F1, NO_VIRTUAL_KEY, SDLK_F1 }, { KEY_F2, NO_VIRTUAL_KEY, SDLK_F2 },
-	{ KEY_F3, NO_VIRTUAL_KEY, SDLK_F3 }, { KEY_F4, NO_VIRTUAL_KEY, SDLK_F4 }, { KEY_F5, NO_VIRTUAL_KEY, SDLK_F5 },
-	{ KEY_F6, NO_VIRTUAL_KEY, SDLK_F6 }, { KEY_F7, NO_VIRTUAL_KEY, SDLK_F7 }, { KEY_F8, NO_VIRTUAL_KEY, SDLK_F8 },
-	{ KEY_F9, NO_VIRTUAL_KEY, SDLK_F9 }, { KEY_F10, NO_VIRTUAL_KEY, SDLK_F10 }, { KEY_F11, NO_VIRTUAL_KEY, SDLK_F11 },
-	{ KEY_F12, NO_VIRTUAL_KEY, SDLK_F12 } };
+static const vgui_to_virtual_t keyMap[] = {{KEY_0, '0', SDLK_0},
+                                           {KEY_1, '1', SDLK_1},
+                                           {KEY_2, '2', SDLK_2},
+                                           {KEY_3, '3', SDLK_3},
+                                           {KEY_4, '4', SDLK_4},
+                                           {KEY_5, '5', SDLK_5},
+                                           {KEY_6, '6', SDLK_6},
+                                           {KEY_7, '7', SDLK_7},
+                                           {KEY_8, '8', SDLK_8},
+                                           {KEY_9, '9', SDLK_9},
+                                           {KEY_A, 'A', SDLK_A},
+                                           {KEY_B, 'B', SDLK_B},
+                                           {KEY_C, 'C', SDLK_C},
+                                           {KEY_D, 'D', SDLK_D},
+                                           {KEY_E, 'E', SDLK_E},
+                                           {KEY_F, 'F', SDLK_F},
+                                           {KEY_G, 'G', SDLK_G},
+                                           {KEY_H, 'H', SDLK_H},
+                                           {KEY_I, 'I', SDLK_I},
+                                           {KEY_J, 'J', SDLK_J},
+                                           {KEY_K, 'K', SDLK_K},
+                                           {KEY_L, 'L', SDLK_L},
+                                           {KEY_M, 'M', SDLK_M},
+                                           {KEY_N, 'N', SDLK_N},
+                                           {KEY_O, 'O', SDLK_O},
+                                           {KEY_P, 'P', SDLK_P},
+                                           {KEY_Q, 'Q', SDLK_Q},
+                                           {KEY_R, 'R', SDLK_R},
+                                           {KEY_S, 'S', SDLK_S},
+                                           {KEY_T, 'T', SDLK_T},
+                                           {KEY_U, 'U', SDLK_U},
+                                           {KEY_V, 'V', SDLK_V},
+                                           {KEY_W, 'W', SDLK_W},
+                                           {KEY_X, 'X', SDLK_X},
+                                           {KEY_Y, 'Y', SDLK_Y},
+                                           {KEY_Z, 'Z', SDLK_Z},
+                                           {KEY_PAD_0, NO_VIRTUAL_KEY, SDLK_KP_0},
+                                           {KEY_PAD_1, NO_VIRTUAL_KEY, SDLK_KP_1},
+                                           {KEY_PAD_2, NO_VIRTUAL_KEY, SDLK_KP_2},
+                                           {KEY_PAD_3, NO_VIRTUAL_KEY, SDLK_KP_3},
+                                           {KEY_PAD_4, NO_VIRTUAL_KEY, SDLK_KP_4},
+                                           {KEY_PAD_5, NO_VIRTUAL_KEY, SDLK_KP_5},
+                                           {KEY_PAD_6, NO_VIRTUAL_KEY, SDLK_KP_6},
+                                           {KEY_PAD_7, NO_VIRTUAL_KEY, SDLK_KP_7},
+                                           {KEY_PAD_8, NO_VIRTUAL_KEY, SDLK_KP_8},
+                                           {KEY_PAD_9, NO_VIRTUAL_KEY, SDLK_KP_9},
+                                           {KEY_PAD_DIVIDE, NO_VIRTUAL_KEY, SDLK_KP_DIVIDE},
+                                           {KEY_PAD_MULTIPLY, NO_VIRTUAL_KEY, SDLK_KP_MULTIPLY},
+                                           {KEY_PAD_MINUS, NO_VIRTUAL_KEY, SDLK_KP_MINUS},
+                                           {KEY_PAD_PLUS, NO_VIRTUAL_KEY, SDLK_KP_PLUS},
+                                           {KEY_PAD_ENTER, NO_VIRTUAL_KEY, SDLK_KP_ENTER},
+                                           {KEY_PAD_DECIMAL, NO_VIRTUAL_KEY, SDLK_KP_DECIMAL},
+                                           {KEY_LBRACKET, NO_VIRTUAL_KEY, SDLK_LEFTBRACKET},
+                                           {KEY_RBRACKET, NO_VIRTUAL_KEY, SDLK_RIGHTBRACKET},
+                                           {KEY_SEMICOLON, NO_VIRTUAL_KEY, SDLK_SEMICOLON},
+                                           {KEY_APOSTROPHE, NO_VIRTUAL_KEY, SDLK_APOSTROPHE},
+                                           {KEY_BACKQUOTE, NO_VIRTUAL_KEY, SDLK_GRAVE},
+                                           {KEY_COMMA, NO_VIRTUAL_KEY, SDLK_COMMA},
+                                           {KEY_PERIOD, NO_VIRTUAL_KEY, SDLK_PERIOD},
+                                           {KEY_SLASH, NO_VIRTUAL_KEY, SDLK_SLASH},
+                                           {KEY_BACKSLASH, NO_VIRTUAL_KEY, SDLK_BACKSLASH},
+                                           {KEY_MINUS, NO_VIRTUAL_KEY, SDLK_MINUS},
+                                           {KEY_EQUAL, NO_VIRTUAL_KEY, SDLK_EQUALS},
+                                           {KEY_ENTER, NO_VIRTUAL_KEY, SDLK_RETURN},
+                                           {KEY_SPACE, NO_VIRTUAL_KEY, SDLK_SPACE},
+                                           {KEY_BACKSPACE, NO_VIRTUAL_KEY, SDLK_BACKSPACE},
+                                           {KEY_TAB, NO_VIRTUAL_KEY, SDLK_TAB},
+                                           {KEY_CAPSLOCK, NO_VIRTUAL_KEY, SDLK_CAPSLOCK},
+                                           {KEY_NUMLOCK, NO_VIRTUAL_KEY, SDLK_NUMLOCKCLEAR},
+                                           {KEY_ESCAPE, NO_VIRTUAL_KEY, SDLK_ESCAPE},
+                                           {KEY_SCROLLLOCK, NO_VIRTUAL_KEY, SDLK_SCROLLLOCK},
+                                           {KEY_INSERT, NO_VIRTUAL_KEY, SDLK_INSERT},
+                                           {KEY_DELETE, NO_VIRTUAL_KEY, SDLK_DELETE},
+                                           {KEY_HOME, NO_VIRTUAL_KEY, SDLK_HOME},
+                                           {KEY_END, NO_VIRTUAL_KEY, SDLK_END},
+                                           {KEY_PAGEUP, NO_VIRTUAL_KEY, SDLK_PAGEUP},
+                                           {KEY_PAGEDOWN, NO_VIRTUAL_KEY, SDLK_PAGEDOWN},
+                                           {KEY_BREAK, NO_VIRTUAL_KEY, SDLK_PAUSE},
+                                           {KEY_RSHIFT, NO_VIRTUAL_KEY, SDLK_RSHIFT},
+                                           {KEY_LSHIFT, NO_VIRTUAL_KEY, SDLK_LSHIFT},
+                                           {KEY_RALT, NO_VIRTUAL_KEY, SDLK_RALT},
+                                           {KEY_LALT, NO_VIRTUAL_KEY, SDLK_LALT},
+                                           {KEY_RCONTROL, NO_VIRTUAL_KEY, SDLK_RCTRL},
+                                           {KEY_LCONTROL, NO_VIRTUAL_KEY, SDLK_LCTRL},
+                                           {KEY_LWIN, NO_VIRTUAL_KEY, SDLK_LGUI},
+                                           {KEY_RWIN, NO_VIRTUAL_KEY, SDLK_RGUI},
+                                           {KEY_APP, NO_VIRTUAL_KEY, SDLK_APPLICATION},
+                                           {KEY_UP, NO_VIRTUAL_KEY, SDLK_UP},
+                                           {KEY_LEFT, NO_VIRTUAL_KEY, SDLK_LEFT},
+                                           {KEY_DOWN, NO_VIRTUAL_KEY, SDLK_DOWN},
+                                           {KEY_RIGHT, NO_VIRTUAL_KEY, SDLK_RIGHT},
+                                           {KEY_F1, NO_VIRTUAL_KEY, SDLK_F1},
+                                           {KEY_F2, NO_VIRTUAL_KEY, SDLK_F2},
+                                           {KEY_F3, NO_VIRTUAL_KEY, SDLK_F3},
+                                           {KEY_F4, NO_VIRTUAL_KEY, SDLK_F4},
+                                           {KEY_F5, NO_VIRTUAL_KEY, SDLK_F5},
+                                           {KEY_F6, NO_VIRTUAL_KEY, SDLK_F6},
+                                           {KEY_F7, NO_VIRTUAL_KEY, SDLK_F7},
+                                           {KEY_F8, NO_VIRTUAL_KEY, SDLK_F8},
+                                           {KEY_F9, NO_VIRTUAL_KEY, SDLK_F9},
+                                           {KEY_F10, NO_VIRTUAL_KEY, SDLK_F10},
+                                           {KEY_F11, NO_VIRTUAL_KEY, SDLK_F11},
+                                           {KEY_F12, NO_VIRTUAL_KEY, SDLK_F12}};
 
 static KeyCode s_pVirtualKeyToVGUI[VIRTUAL_KEY_COUNT];
 static std::int32_t s_pVGUIToVirtualKey[VIRTUAL_KEY_COUNT];
@@ -102,58 +164,58 @@ static KeyCode SDLKeysymToKeyCode( int keysym )
 		return KEY_8;
 	case SDLK_9:
 		return KEY_9;
-	case SDLK_A:
-		return KEY_A;
-	case SDLK_B:
-		return KEY_B;
-	case SDLK_C:
-		return KEY_C;
-	case SDLK_D:
-		return KEY_D;
-	case SDLK_E:
-		return KEY_E;
-	case SDLK_F:
-		return KEY_F;
-	case SDLK_G:
-		return KEY_G;
-	case SDLK_H:
-		return KEY_H;
-	case SDLK_I:
-		return KEY_I;
-	case SDLK_J:
-		return KEY_J;
-	case SDLK_K:
-		return KEY_K;
-	case SDLK_L:
-		return KEY_L;
-	case SDLK_M:
-		return KEY_M;
-	case SDLK_N:
-		return KEY_N;
-	case SDLK_O:
-		return KEY_O;
-	case SDLK_P:
-		return KEY_P;
-	case SDLK_Q:
-		return KEY_Q;
-	case SDLK_R:
-		return KEY_R;
-	case SDLK_S:
-		return KEY_S;
-	case SDLK_T:
-		return KEY_T;
-	case SDLK_U:
-		return KEY_U;
-	case SDLK_V:
-		return KEY_V;
-	case SDLK_W:
-		return KEY_W;
-	case SDLK_X:
-		return KEY_X;
-	case SDLK_Y:
-		return KEY_Y;
-	case SDLK_Z:
-		return KEY_Z;
+        case SDLK_A:
+            return KEY_A;
+        case SDLK_B:
+            return KEY_B;
+        case SDLK_C:
+            return KEY_C;
+        case SDLK_D:
+            return KEY_D;
+        case SDLK_E:
+            return KEY_E;
+        case SDLK_F:
+            return KEY_F;
+        case SDLK_G:
+            return KEY_G;
+        case SDLK_H:
+            return KEY_H;
+        case SDLK_I:
+            return KEY_I;
+        case SDLK_J:
+            return KEY_J;
+        case SDLK_K:
+            return KEY_K;
+        case SDLK_L:
+            return KEY_L;
+        case SDLK_M:
+            return KEY_M;
+        case SDLK_N:
+            return KEY_N;
+        case SDLK_O:
+            return KEY_O;
+        case SDLK_P:
+            return KEY_P;
+        case SDLK_Q:
+            return KEY_Q;
+        case SDLK_R:
+            return KEY_R;
+        case SDLK_S:
+            return KEY_S;
+        case SDLK_T:
+            return KEY_T;
+        case SDLK_U:
+            return KEY_U;
+        case SDLK_V:
+            return KEY_V;
+        case SDLK_W:
+            return KEY_W;
+        case SDLK_X:
+            return KEY_X;
+        case SDLK_Y:
+            return KEY_Y;
+        case SDLK_Z:
+            return KEY_Z;
 	case SDLK_KP_0:
 		return KEY_PAD_0;
 	case SDLK_KP_1:
@@ -193,10 +255,10 @@ static KeyCode SDLKeysymToKeyCode( int keysym )
 		return KEY_RBRACKET;
 	case SDLK_SEMICOLON:
 		return KEY_SEMICOLON;
-	case SDLK_APOSTROPHE:
-		return KEY_APOSTROPHE;
-	case SDLK_GRAVE:
-	case SDL_SCANCODE_TO_KEYCODE( SDL_SCANCODE_GRAVE ):
+        case SDLK_APOSTROPHE:
+            return KEY_APOSTROPHE;
+        case SDLK_GRAVE:
+        case SDL_SCANCODE_TO_KEYCODE( SDL_SCANCODE_GRAVE ):
 		return KEY_BACKQUOTE;
 	case SDLK_COMMA:
 		return KEY_COMMA;

@@ -10,19 +10,19 @@ static cse::FractionalMotion s_relativeMotion;
 // in_win.c -- windows 95 mouse and joystick code
 // 02/21/97 JCB Added extended DirectInput code to support external controllers.
 
-#include <cmath>
-#include "port.h"
-#include "hud.h"
-#include "cl_util.h"
-#include "kbutton.h"
-#include "usercmd.h"
-#include "keydefs.h"
 #include "../../cl_dll/in_defs.h"
+#include "cl_util.h"
+#include "hud.h"
+#include "kbutton.h"
+#include "keydefs.h"
+#include "port.h"
 #include "progdefs.h"
-#include "vgui_controls/Controls.h"
+#include "usercmd.h"
 #include "vgui/ISurface.h"
-#include <SDL3/SDL_mouse.h>
+#include "vgui_controls/Controls.h"
 #include <SDL3/SDL_gamepad.h>
+#include <SDL3/SDL_mouse.h>
+#include <cmath>
 
 #define MOUSE_BUTTON_COUNT 5
 
@@ -121,7 +121,7 @@ DWORD joy_oldbuttonstate, joy_oldpovstate;
 int joy_id;
 DWORD joy_numbuttons;
 
-SDL_Gamepad* s_pJoystick = NULL;
+SDL_Gamepad *s_pJoystick = NULL;
 
 // none of these cvars are saved over a session
 // this means that advanced controller configuration needs to be executed
@@ -228,8 +228,9 @@ extern "C" void IN_ActivateMouse()
 		if ( mouseparmsvalid )
 			restore_spi = SystemParametersInfo( SPI_SETMOUSE, 0, newmouseparms, 0 );
 #endif
-		mouseactive = 1;
-	}
+                s_relativeMotion.Reset();
+                mouseactive = 1;
+        }
 }
 
 /*
@@ -245,8 +246,9 @@ extern "C" void IN_DeactivateMouse()
 		if ( restore_spi )
 			SystemParametersInfo( SPI_SETMOUSE, 0, originalmouseparms, 0 );
 #endif
-		mouseactive = 0;
-	}
+                s_relativeMotion.Reset();
+                mouseactive = 0;
+        }
 }
 
 /*
@@ -293,7 +295,13 @@ IN_Shutdown
 */
 void IN_Shutdown()
 {
-	IN_DeactivateMouse();
+    if (s_pJoystick) {
+        SDL_CloseGamepad(s_pJoystick);
+        s_pJoystick = nullptr;
+    }
+    joy_avail = 0;
+    s_relativeMotion.Reset();
+    IN_DeactivateMouse();
 
 #ifdef _WIN32
 	if ( s_hMouseQuitEvent )
@@ -465,9 +473,9 @@ void IN_MouseMove( float, usercmd_t* cmd )
 		V_StopPitchDrift();
 	}
 
-	//jjb - this disbles normal mouse control if the user is trying to
-	//      move the camera, or if the mouse cursor is visible or if we're in intermission
-	if ( !iMouseInUse && !gHUD.m_iIntermission && !vgui2::surface()->IsCursorVisible() )
+        // jjb - this disbles normal mouse control if the user is trying to
+        //       move the camera, or if the mouse cursor is visible or if we're in intermission
+        if ( !iMouseInUse && !gHUD.m_iIntermission && !vgui2::surface()->IsCursorVisible() )
 	{
 		int deltaX, deltaY;
 #ifdef _WIN32
@@ -488,9 +496,9 @@ void IN_MouseMove( float, usercmd_t* cmd )
 		else
 #endif
 		{
-			cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
-			current_pos.x = deltaX + mx_accum;
-			current_pos.y = deltaY + my_accum;
+                    cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+                    current_pos.x = deltaX;
+                    current_pos.y = deltaY;
 		}
 
 #ifdef _WIN32
@@ -598,8 +606,8 @@ extern "C" void IN_Accumulate()
 #endif
 			{
 				int deltaX, deltaY;
-				cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
-				mx_accum += deltaX;
+                                cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+                                mx_accum += deltaX;
 				my_accum += deltaY;
 			}
 			// force the mouse to the center, so there's room to move
@@ -628,16 +636,11 @@ extern "C" void IN_ClearStates()
 IN_StartupJoystick
 ===============
 */
-void IN_StartupJoystick()
-{
-	// abort startup if user requests no joystick
-	if ( gEngfuncs.CheckParm( "-nojoy", NULL ) )
-		return;
-
-	// assume no joystick
-	joy_avail = 0;
-
-	if (s_pJoystick && !SDL_GamepadConnected(s_pJoystick)) {
+void IN_StartupJoystick() {
+    if (gEngfuncs.CheckParm("-nojoy", nullptr)) {
+        return;
+    }
+    if (s_pJoystick && !SDL_GamepadConnected(s_pJoystick)) {
         for (int button = 0; button < cse::LegacyGamepadButtonCount; ++button) {
             if (joy_oldbuttonstate & (1u << button)) {
                 gEngfuncs.Key_Event((button < 4 ? K_JOY1 : K_AUX1) + button, 0);
@@ -648,39 +651,32 @@ void IN_StartupJoystick()
         joy_oldbuttonstate = 0;
         joy_avail = 0;
     }
-    int nJoysticks = 0;
-    SDL_JoystickID* joystickIds = SDL_GetGamepads(&nJoysticks);
-	if ( nJoysticks > 0 )
-	{
-		for ( int i = 0; i < nJoysticks; i++ )
-		{
-			if ( SDL_IsGamepad( joystickIds[i] ) )
-			{
-				s_pJoystick = SDL_OpenGamepad( joystickIds[i] );
-				if ( s_pJoystick )
-				{
-					//save the joystick's number of buttons and POV status
-					joy_numbuttons = cse::LegacyGamepadButtonCount;
-					joy_haspov = 0;
-
-					// old button and POV states default to no buttons pressed
-					joy_oldbuttonstate = joy_oldpovstate = 0;
-
-					// mark the joystick as available and advanced initialization not completed
-					// this is needed as cvars are not available during initialization
-					gEngfuncs.Con_Printf( "joystick found\n\n", SDL_GetGamepadName( s_pJoystick ) );
-					joy_avail = 1;
-					joy_advancedinit = 0;
-					break;
-				}
-			}
-		}
-	}
-	else
-	{
-		gEngfuncs.Con_DPrintf( "joystick not found -- driver not present\n\n" );
-	}
-    SDL_free(joystickIds);
+    if (s_pJoystick) {
+        return;
+    }
+    constexpr double rescanSeconds = 1.0;
+    static double lastCheck = -rescanSeconds;
+    const double now = gEngfuncs.GetAbsoluteTime();
+    if (now >= lastCheck && now - lastCheck < rescanSeconds) {
+        return;
+    }
+    lastCheck = now;
+    int count = 0;
+    SDL_JoystickID *ids = SDL_GetGamepads(&count);
+    for (int index = 0; index < count; ++index) {
+        s_pJoystick = SDL_OpenGamepad(ids[index]);
+        if (s_pJoystick) {
+            joy_numbuttons = cse::LegacyGamepadButtonCount;
+            joy_haspov = 0;
+            joy_oldbuttonstate = 0;
+            joy_oldpovstate = 0;
+            joy_avail = 1;
+            joy_advancedinit = 0;
+            gEngfuncs.Con_Printf("joystick found %s\n\n", SDL_GetGamepadName(s_pJoystick));
+            break;
+        }
+    }
+    SDL_free(ids);
 }
 
 int RawValuePointer( int axis )
@@ -689,14 +685,14 @@ int RawValuePointer( int axis )
 	{
 	default:
 	case JOY_AXIS_X:
-		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX );
-	case JOY_AXIS_Y:
-		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY );
-	case JOY_AXIS_Z:
-		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX );
-	case JOY_AXIS_R:
-		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY );
-	}
+            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX);
+        case JOY_AXIS_Y:
+            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY);
+        case JOY_AXIS_Z:
+            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX);
+        case JOY_AXIS_R:
+            return SDL_GetGamepadAxis(s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY);
+        }
 }
 
 /*
@@ -766,27 +762,25 @@ IN_Commands
 */
 void IN_Commands()
 {
-	int i, key_index;
+    IN_StartupJoystick();
+    int i, key_index;
 
-	if ( !joy_avail )
-	{
-		return;
-	}
+    if (!joy_avail) {
+        return;
+    }
 
 	DWORD buttonstate, povstate;
 
 	// loop through the joystick buttons
 	// key a joystick event or auxillary event for higher number buttons for each state change
 	buttonstate = 0;
-	for ( i = 0; i < cse::LegacyGamepadButtonCount; i++ )
-	{
-		if ( SDL_GetGamepadButton( s_pJoystick, cse::LegacyGamepadButtons[i] ) )
-		{
-			buttonstate |= 1 << i;
-		}
-	}
+        for (i = 0; i < cse::LegacyGamepadButtonCount; i++) {
+            if (SDL_GetGamepadButton(s_pJoystick, cse::LegacyGamepadButton(i))) {
+                buttonstate |= 1 << i;
+            }
+        }
 
-	for ( i = 0; i < JOY_MAX_AXES; i++ )
+        for ( i = 0; i < JOY_MAX_AXES; i++ )
 	{
 		pdwRawValue[i] = RawValuePointer( i );
 	}
@@ -839,8 +833,8 @@ IN_ReadJoystick
 */
 int IN_ReadJoystick()
 {
-	SDL_UpdateJoysticks();
-	return 1;
+    SDL_UpdateJoysticks();
+    return 1;
 }
 
 /*

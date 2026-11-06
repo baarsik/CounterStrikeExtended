@@ -1421,12 +1421,14 @@ static void StartInterfaceSound( const char* name, bool reportMissing )
 
 static bool PlaybackKey( const SDL_Event& event )
 {
-	if ( event.type == SDL_EVENT_QUIT )
-		return true;
-	if ( event.type != SDL_EVENT_KEY_DOWN )
-		return false;
-	const SDL_Keycode key = event.key.key;
-	return key == SDLK_RETURN || key == SDLK_ESCAPE || key == SDLK_SPACE;
+    if (event.type == SDL_EVENT_QUIT) {
+        return true;
+    }
+    if (event.type != SDL_EVENT_KEY_DOWN) {
+        return false;
+    }
+    const SDL_Keycode key = event.key.key;
+    return key == SDLK_RETURN || key == SDLK_ESCAPE || key == SDLK_SPACE;
 }
 
 void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
@@ -1447,17 +1449,17 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 
 	int nWindowW = 0;
 	int nWindowH = 0;
-	SDL_GetWindowSizeInPixels( pSDLWindow, &nWindowW, &nWindowH );
+        SDL_GetWindowSizeInPixels(pSDLWindow, &nWindowW, &nWindowH);
 #ifdef SW_RENDERER
 	SDL_Renderer* renderer = SDL_GetRenderer( pSDLWindow );
 	bool createdRenderer = false;
 	if ( !renderer )
 	{
-		renderer = SDL_CreateRenderer( pSDLWindow, nullptr );
-		createdRenderer = true;
+            renderer = SDL_CreateRenderer(pSDLWindow, nullptr);
+            createdRenderer = true;
 	}
-	SDL_Texture* texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
-		demuxer.GetWidth(), demuxer.GetHeight() );
+        SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
+                                                 demuxer.GetWidth(), demuxer.GetHeight());
 #else
 	GLuint texture = 0;
 	glGenTextures( 1, &texture );
@@ -1548,10 +1550,10 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 	const int dstX = nWindowW / 2 - nVideoW / 2;
 	const int dstY = centerSpan / 2 - nVideoH / 2;
 #ifdef SW_RENDERER
-	SDL_FRect destination = { static_cast<float>(dstX), static_cast<float>(dstY),
-        static_cast<float>(nVideoW), static_cast<float>(nVideoH) };
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
-	SDL_SetRenderDrawColor( renderer, 0, 0, 0, 0 );
+        SDL_FRect destination = {static_cast<float>(dstX), static_cast<float>(dstY), static_cast<float>(nVideoW),
+                                 static_cast<float>(nVideoH)};
+        SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+        SDL_SetRenderDrawColor( renderer, 0, 0, 0, 0 );
 	SDL_RenderClear( renderer );
 	SDL_RenderPresent( renderer );
 #endif
@@ -1647,8 +1649,8 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 #ifdef SW_RENDERER
 						SDL_UpdateTexture( texture, NULL, pOutFrame, 4 * imageW );
 						SDL_RenderClear( renderer );
-						SDL_RenderTexture( renderer, texture, NULL, &destination );
-						SDL_RenderPresent( renderer );
+                                                SDL_RenderTexture(renderer, texture, NULL, &destination);
+                                                SDL_RenderPresent( renderer );
 #else
 						if ( bFirstFrame )
 						{
@@ -1702,12 +1704,11 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 			S_Update( vec3_origin, vec3_origin, vec3_origin, vec3_origin );
 			bool skipped = false;
 			SDL_Event event;
-			while ( SDL_PollEvent( &event ) != 0 )
-			{
-				if ( PlaybackKey( event ) )
-					skipped = true;
-			}
-			SDL_PumpEvents();
+                        while (SDL_PollEvent(&event)) {
+                            if (PlaybackKey(event))
+                                skipped = true;
+                        }
+                        SDL_PumpEvents();
 			Sys_Sleep( 1 );
 			if ( skipped )
 			{

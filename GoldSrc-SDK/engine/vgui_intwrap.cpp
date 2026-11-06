@@ -1,6 +1,6 @@
-#include "engine_apiproxy.h"
 #include "IEngineSurface.h"
 #include "VGUI_EngineSurfaceWrap.h"
+#include "engine_apiproxy.h"
 #include "interface.h"
 #include "ivideomode.h"
 #include "vgui_int.h"

@@ -1,7 +1,7 @@
-#include "filesystem.h"
 #include "const.h"
-#include <SDL3/SDL_opengl.h>
+#include "filesystem.h"
 #include "glquake.h"
+#include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_video.h>
 
 #include <cstdio>

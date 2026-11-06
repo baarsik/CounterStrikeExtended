@@ -2,19 +2,19 @@
 // gl_vidnt.c -- NT GL vid component
 #include <windows.h>
 
-#include "cvar.h"
 #include "cmd.h"
 #include "common.h"
 #include "conprint.h"
+#include "cvar.h"
+#include "filesystem.h"
+#include "glquake.h"
+#include "ivideomode.h"
+#include "mem.h"
 #include "sys.h"
+#include "vid.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_properties.h>
-#include "glquake.h"
-#include "filesystem.h"
-#include "ivideomode.h"
-#include "mem.h"
-#include "vid.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -332,32 +332,27 @@ void GL_Init()
 	if ( COM_CheckParm( "-glext" ) )
 		Con_DPrintf( "GL_EXTENSIONS: %s\n", gl_extensions );
 
-	if ( !SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &red ) )
-	{
-		red = 0;
-		Con_DPrintf( "Failed to get GL RED size (%s)\n", SDL_GetError() );
-	}
-	if ( !SDL_GL_GetAttribute( SDL_GL_GREEN_SIZE, &green ) )
-	{
-		green = 0;
-		Con_DPrintf( "Failed to get GL GREEN size (%s)\n", SDL_GetError() );
-	}
-	if ( !SDL_GL_GetAttribute( SDL_GL_BLUE_SIZE, &blue ) )
-	{
-		blue = 0;
-		Con_DPrintf( "Failed to get GL BLUE size (%s)\n", SDL_GetError() );
-	}
-	if ( !SDL_GL_GetAttribute( SDL_GL_ALPHA_SIZE, &alpha ) )
-	{
-		alpha = 0;
-		Con_DPrintf( "Failed to get GL ALPHA size (%s)\n", SDL_GetError() );
-	}
-	if ( !SDL_GL_GetAttribute( SDL_GL_DEPTH_SIZE, &depth ) )
-	{
-		depth = 0;
-		Con_DPrintf( "Failed to get GL DEPTH size (%s)\n", SDL_GetError() );
-	}
-	Con_DPrintf( "GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", red, green, blue, alpha, depth );
+        if (!SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &red)) {
+            red = 0;
+            Con_DPrintf("Failed to get GL RED size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &green)) {
+            green = 0;
+            Con_DPrintf("Failed to get GL GREEN size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &blue)) {
+            blue = 0;
+            Con_DPrintf("Failed to get GL BLUE size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &alpha)) {
+            alpha = 0;
+            Con_DPrintf("Failed to get GL ALPHA size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth)) {
+            depth = 0;
+            Con_DPrintf("Failed to get GL DEPTH size (%s)\n", SDL_GetError());
+        }
+        Con_DPrintf( "GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", red, green, blue, alpha, depth );
 
 	CheckTextureExtensions();
 	CheckMultiTextureExtensions();
@@ -422,7 +417,7 @@ extern "C" void VID_UpdateWindowVars( RECT* rect, int x, int y )
 }
 
 int GetRefreshRate() {
-    const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+    const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
     return cse::RefreshRateOrDefault(mode ? mode->refresh_rate : 0.0f);
 }
 
@@ -766,51 +761,43 @@ int GL_SetMode( HWND mainwindow, HDC* pmaindc, HGLRC* pbaseRC, int, const char* 
 #if defined( _WIN32 )
 	if ( gD3DMode )
 	{
-		HWND wminfo = nullptr;
-		wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)mainwindow),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-		*pmaindc = GetDC( wminfo );
-		s_BackBufferFBO.s_hBackBufferFBO = 0;
+            HWND wminfo = nullptr;
+            wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)mainwindow),
+                                                              SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+            *pmaindc = GetDC(wminfo);
+            s_BackBufferFBO.s_hBackBufferFBO = 0;
 
-		if ( !s_bPixelFormatSet )
-		{
-			HDC hdc = *pmaindc;
-			int pixelformat;
+            if (!s_bPixelFormatSet) {
+                HDC hdc = *pmaindc;
+                int pixelformat;
 
-			s_bPixelFormatSet = 1;
-			if ( gfMiniDriver )
-			{
-				pixelformat = qwglChoosePixelFormat( hdc, &pfd );
-				if ( !pixelformat )
-				{
-					MessageBox( NULL, "ChoosePixelFormat failed", "Error", MB_OK );
-					return FALSE;
-				}
-				if ( !qwglSetPixelFormat( hdc, pixelformat, &pfd ) )
-				{
-					MessageBox( NULL, "SetPixelFormat failed", "Error", MB_OK );
-					return FALSE;
-				}
-				qwglDescribePixelFormat( hdc, pixelformat, sizeof( PIXELFORMATDESCRIPTOR ), &pfd );
-			}
-			else
-			{
-				pixelformat = ChoosePixelFormat( hdc, &pfd );
-				if ( !pixelformat )
-				{
-					MessageBox( NULL, "ChoosePixelFormat failed", "Error", MB_OK );
-					return FALSE;
-				}
-				if ( !SetPixelFormat( hdc, pixelformat, &pfd ) )
-				{
-					MessageBox( NULL, "SetPixelFormat failed", "Error", MB_OK );
-					return FALSE;
-				}
-				DescribePixelFormat( hdc, pixelformat, sizeof( PIXELFORMATDESCRIPTOR ), &pfd );
+                s_bPixelFormatSet = 1;
+                if (gfMiniDriver) {
+                    pixelformat = qwglChoosePixelFormat(hdc, &pfd);
+                    if (!pixelformat) {
+                        MessageBox(NULL, "ChoosePixelFormat failed", "Error", MB_OK);
+                        return FALSE;
+                    }
+                    if (!qwglSetPixelFormat(hdc, pixelformat, &pfd)) {
+                        MessageBox(NULL, "SetPixelFormat failed", "Error", MB_OK);
+                        return FALSE;
+                    }
+                    qwglDescribePixelFormat(hdc, pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+                } else {
+                    pixelformat = ChoosePixelFormat(hdc, &pfd);
+                    if (!pixelformat) {
+                        MessageBox(NULL, "ChoosePixelFormat failed", "Error", MB_OK);
+                        return FALSE;
+                    }
+                    if (!SetPixelFormat(hdc, pixelformat, &pfd)) {
+                        MessageBox(NULL, "SetPixelFormat failed", "Error", MB_OK);
+                        return FALSE;
+                    }
+                    DescribePixelFormat(hdc, pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 
-				if ( ( pfd.dwFlags & PFD_GENERIC_FORMAT ) && !( pfd.dwFlags & PFD_GENERIC_ACCELERATED ) )
-					return FALSE;
-			}
+                    if ((pfd.dwFlags & PFD_GENERIC_FORMAT) && !(pfd.dwFlags & PFD_GENERIC_ACCELERATED))
+                        return FALSE;
+                }
 		}
 
 		*pbaseRC = qwglCreateContext( *pmaindc );
@@ -964,19 +951,21 @@ int GL_SetMode( HWND mainwindow, HDC* pmaindc, HGLRC* pbaseRC, int, const char* 
 
 		requested.w = wide;
 		requested.h = tall;
-		requested.refresh_rate = refresh;
-		if ( !SDL_GetClosestFullscreenDisplayMode( 0, &requested, &mode ) )
-			Sys_Error( "Error initializing Main frame buffer\n" );
-		Con_DPrintf( "Setting closest display mode: width:%d height:%d freq:%d format:%u\n", mode.w, mode.h,
-			cse::RefreshRateOrDefault(mode.refresh_rate), (unsigned int)mode.format );
+                requested.refresh_rate = static_cast<float>(refresh);
+                if (!SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), requested.w, requested.h,
+                                                         requested.refresh_rate, false, &mode)) {
+                    Sys_Error("Error initializing Main frame buffer\n");
+                }
+                Con_DPrintf("Setting closest display mode: width:%d height:%d freq:%d format:%u\n", mode.w, mode.h,
+                            cse::RefreshRateOrDefault(mode.refresh_rate), (unsigned int)mode.format);
 
-		if ( bDoScaledFBO )
+                if ( bDoScaledFBO )
 			Con_DPrintf( "FBO backbuffer rendering disabled due to create error.\n" );
 		else
 			Con_DPrintf( "FBO backbuffer rendering disabled.\n" );
 
-		SDL_SetWindowFullscreenMode( (SDL_Window*)mainwindow, &mode );
-		bNeedsFullScreenModeSwitch = 1;
+                SDL_SetWindowFullscreenMode((SDL_Window *)mainwindow, &mode);
+                bNeedsFullScreenModeSwitch = 1;
 		VideoMode_RestoreVideo();
 	}
 

@@ -203,11 +203,12 @@ bool CLauncherDirectDraw::Init()
 	m_pDirectDraw->SetCooperativeLevel( NULL, DDSCL_NORMAL );
 	if ( !videomode->IsWindowedMode() )
 	{
-		HWND info = nullptr;
-		info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)game->GetMainWindow()),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-		m_pDirectDraw->SetCooperativeLevel( info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT );
-	}
+            HWND info = nullptr;
+            info =
+                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+        }
 	return true;
 }
 
@@ -443,7 +444,7 @@ void SetupSDLVideoModes() {
         Sys_Error("SDL video initialization failed: %s", SDL_GetError());
     }
     int count = 0;
-    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
+    SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
     for (int index = 0; index < count; ++index) {
         if (!videomode->AddMode(modes[index]->w, modes[index]->h, 32)) {
             break;
@@ -480,12 +481,12 @@ bool CVideoMode_Common::Init( void* )
 		return false;
 
 	SDL_DisplayMode desktop;
-	const SDL_DisplayMode* desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-    if (!desktopMode) {
-        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
-    }
-    desktop = *desktopMode;
-	m_safeMode.width = desktop.w;
+        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+        if (!desktopMode) {
+            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+        }
+        desktop = *desktopMode;
+        m_safeMode.width = desktop.w;
 	m_safeMode.height = desktop.h;
 	m_safeMode.bpp = 32;
 	int width = registry->ReadInt( "DisplayWidth", desktop.w );
@@ -521,14 +522,13 @@ bool CVideoMode_Common::Init( void* )
 	if ( IsWindowedMode() )
 	{
 		SDL_Rect bounds;
-		if ( SDL_GetDisplayBounds( SDL_GetPrimaryDisplay(), &bounds ) )
-		{
-			if ( width > bounds.w )
-				width = bounds.w;
-			if ( height > bounds.h )
-				height = bounds.h;
-		}
-	}
+                if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
+                    if (width > bounds.w)
+                        width = bounds.w;
+                    if (height > bounds.h)
+                        height = bounds.h;
+                }
+        }
 	if ( width > 0 && height < 0 )
 		height = (int)( (double)width * 3.0 * 0.25 );
 
@@ -563,8 +563,8 @@ bool CVideoMode_Common::Init( void* )
 void CVideoMode_Common::CenterEngineWindow( HWND window, int width, int height )
 {
 	SDL_Rect bounds;
-	SDL_GetDisplayBounds( SDL_GetPrimaryDisplay(), &bounds );
-	int x = ( bounds.w - width ) / 2;
+        SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
+        int x = ( bounds.w - width ) / 2;
 	int y = ( bounds.h - height ) / 2;
 	if ( x < 0 )
 		x = 0;
@@ -650,12 +650,12 @@ void CVideoMode_Common::DrawStartupGraphic( HWND window )
 {
 	if ( !m_ImageID.Count() )
 		return;
-	HWND info = nullptr;
-	info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)window),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-	vmode_s* mode = GetCurrentMode();
-	HDC dc = GetDC( info );
-	HDC memoryDC = CreateCompatibleDC( dc );
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)window),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        vmode_s* mode = GetCurrentMode();
+        HDC dc = GetDC(info);
+        HDC memoryDC = CreateCompatibleDC( dc );
 	HBITMAP bitmap = CreateCompatibleBitmap( dc, mode->width, mode->height );
 	SelectObject( memoryDC, bitmap );
 
@@ -804,15 +804,19 @@ CVideoMode_Common::CVideoMode_Common()
 	: m_nNumModes( 0 ), m_nGameMode( 0 ), m_bInitialized( false )
 {
 	m_bWindowed = false;
-	SDL_DisplayMode mode;
-	const SDL_DisplayMode* desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-    if (!desktopMode) {
-        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
-    }
-    mode = *desktopMode;
-	m_safeMode.width = mode.w;
+        if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+            Sys_Error("SDL video initialization failed: %s", SDL_GetError());
+        }
+        SDL_DisplayMode mode;
+        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+        if (!desktopMode) {
+            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+        }
+        mode = *desktopMode;
+        m_safeMode.width = mode.w;
 	m_safeMode.height = mode.h;
 	m_safeMode.bpp = 32;
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 CVideoMode_Common::~CVideoMode_Common()
@@ -936,22 +940,20 @@ bool CVideoMode_SoftwareFullScreen::Init( void* instance )
 	}
 	else
 	{
-		HWND info = nullptr;
-		info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)game->GetMainWindow()),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-		m_pDirectDraw->SetCooperativeLevel( info,
-			DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT );
-		if ( m_pDirectDraw->SetDisplayMode( mode->width, mode->height, mode->bpp ) != DD_OK )
-		{
-			mode->bpp = 32;
-			if ( m_pDirectDraw->SetDisplayMode( mode->width, mode->height, 32 ) != DD_OK )
-			{
-				SetInitialized( false );
-				return false;
-			}
+            HWND info = nullptr;
+            info =
+                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+            if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, mode->bpp) != DD_OK) {
+                mode->bpp = 32;
+                if (m_pDirectDraw->SetDisplayMode(mode->width, mode->height, 32) != DD_OK) {
+                    SetInitialized(false);
+                    return false;
+                }
 		}
-		SDL_SetWindowFullscreen( (SDL_Window*)game->GetMainWindow(), true );
-	}
+                SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
+        }
 	m_pDirectDraw->FlipToGDISurface();
 	initialized = CreateSurfaces();
 	SetInitialized( initialized );
@@ -983,11 +985,11 @@ bool CVideoMode_SoftwareWindowed::CreateDIB()
 	vid.conwidth = vid.width = mode->width;
 	vid.aspect = CalculatePixelAspect( vid.width, vid.height );
 	memset( &m_BitmapInfo, 0, sizeof( m_BitmapInfo ) );
-	HWND info = nullptr;
-	info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)game->GetMainWindow()),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-	m_hdcDIB = GetDC( info );
-	m_BitmapInfo.header.biSize = sizeof( m_BitmapInfo.header );
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        m_hdcDIB = GetDC(info);
+        m_BitmapInfo.header.biSize = sizeof( m_BitmapInfo.header );
 	m_BitmapInfo.header.biWidth = vid.width;
 	m_BitmapInfo.header.biHeight = vid.height;
 	m_BitmapInfo.header.biPlanes = 1;
@@ -1038,11 +1040,12 @@ void CVideoMode_SoftwareWindowed::Shutdown()
 	}
 	if ( m_hdcDIB )
 	{
-		HWND info = nullptr;
-		info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)game->GetMainWindow()),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-		ReleaseDC( info, m_hdcDIB );
-		m_hdcDIB = NULL;
+            HWND info = nullptr;
+            info =
+                static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+            ReleaseDC(info, m_hdcDIB);
+            m_hdcDIB = NULL;
 	}
 	CVideoMode_Common::Shutdown();
 }
@@ -1100,7 +1103,7 @@ void CVideoMode_SoftwareFullScreen::RestoreVideo()
 		return;
 	RestoreSurfaces();
 	if ( !IsWindowedMode() )
-		SDL_SetWindowFullscreen( (SDL_Window*)game->GetMainWindow(), true );
+            SDL_SetWindowFullscreen((SDL_Window *)game->GetMainWindow(), true);
 }
 
 #if defined( _MSC_VER )
@@ -1114,17 +1117,17 @@ bool CVideoMode_SoftwareFullScreen::CreateSurfaces()
 	vmode_s* mode = GetCurrentMode();
 	mode->bpp = 16;
 	ReleaseSurfaces();
-	HWND info = nullptr;
-	info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)game->GetMainWindow()),
-            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
-	HRESULT error = m_pDirectDraw->SetCooperativeLevel( info,
-		DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT );
-	if ( error != DD_OK )
+        HWND info = nullptr;
+        info = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)game->GetMainWindow()),
+                                                        SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+        HRESULT error =
+            m_pDirectDraw->SetCooperativeLevel(info, DDSCL_EXCLUSIVE | DDSCL_FULLSCREEN | DDSCL_ALLOWREBOOT);
+        if ( error != DD_OK )
 	{
 		if ( error == DDERR_HWNDALREADYSET )
 		{
-			DestroyWindow( info );
-			MessageBoxA( NULL, "Restart the game to use your newly selected mode.", "Error", 0 );
+                    DestroyWindow(info);
+                    MessageBoxA(NULL, "Restart the game to use your newly selected mode.", "Error", 0);
 		}
 		Con_Printf( "%s\n", g_LauncherDirectDraw.GetErrorString( error ) );
 		return false;
@@ -1250,16 +1253,16 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 
 #else
 
+#include "UtlVector.h"
+#include "common.h"
+#include "filesystem.h"
+#include "gl_model.h"
+#include "igame.h"
 #include "ivideomode.h"
 #include "registry.h"
 #include "snd_win.h"
-#include "UtlVector.h"
-#include "igame.h"
-#include "common.h"
-#include "vid.h"
-#include "gl_model.h"
-#include "filesystem.h"
 #include "sys.h"
+#include "vid.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
@@ -1443,7 +1446,7 @@ void SetupSDLVideoModes() {
         Sys_Error("SDL video initialization failed: %s", SDL_GetError());
     }
     int count = 0;
-    SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
+    SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
     for (int index = 0; index < count; ++index) {
         if (!videomode->AddMode(modes[index]->w, modes[index]->h, 32)) {
             break;
@@ -1479,12 +1482,12 @@ bool CVideoMode_Common::Init( void* )
 	if ( !game->CreateGameWindow() )
 		return false;
 
-	const SDL_DisplayMode* desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
-    if (!desktopMode) {
-        Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
-    }
-    desktop = *desktopMode;
-	m_safeMode.width = desktop.w;
+        const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+        if (!desktopMode) {
+            Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
+        }
+        desktop = *desktopMode;
+        m_safeMode.width = desktop.w;
 	m_safeMode.height = desktop.h;
 	m_safeMode.bpp = 32;
 
@@ -1519,14 +1522,13 @@ bool CVideoMode_Common::Init( void* )
 	{
 		SDL_Rect bounds;
 
-		if ( SDL_GetDisplayBounds( SDL_GetPrimaryDisplay(), &bounds ) )
-		{
-			if ( width > bounds.w )
-				width = bounds.w;
-			if ( height > bounds.h )
-				height = bounds.h;
-		}
-	}
+                if (SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds)) {
+                    if (width > bounds.w)
+                        width = bounds.w;
+                    if (height > bounds.h)
+                        height = bounds.h;
+                }
+        }
 
 	if ( width > 0 && height < 0 )
 		height = (int)( width * 3.0 / 4.0 );
@@ -1567,9 +1569,9 @@ void CVideoMode_Common::CenterEngineWindow( HWND window, int width, int height )
 	SDL_Rect bounds;
 	int x, y;
 
-	SDL_GetDisplayBounds( SDL_GetPrimaryDisplay(), &bounds );
+        SDL_GetDisplayBounds(SDL_GetPrimaryDisplay(), &bounds);
 
-	x = ( bounds.w - width ) / 2;
+        x = ( bounds.w - width ) / 2;
 	y = ( bounds.h - height ) / 2;
 	if ( x < 0 )
 		x = 0;
@@ -1744,16 +1746,20 @@ extern "C" void VideoMode_SwitchMode( int hardware, int windowed )
 CVideoMode_Common::CVideoMode_Common()
 	: m_nNumModes( 0 ), m_nGameMode( 0 ), m_bInitialized( false ), m_bWindowed( false )
 {
-	SDL_DisplayMode mode;
+    if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
+        Sys_Error("SDL video initialization failed: %s", SDL_GetError());
+    }
+    SDL_DisplayMode mode;
 
-	const SDL_DisplayMode* desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    const SDL_DisplayMode *desktopMode = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
     if (!desktopMode) {
         Sys_Error("SDL desktop mode unavailable: %s", SDL_GetError());
     }
     mode = *desktopMode;
-	m_safeMode.width = mode.w;
-	m_safeMode.height = mode.h;
-	m_safeMode.bpp = 32;
+    m_safeMode.width = mode.w;
+    m_safeMode.height = mode.h;
+    m_safeMode.bpp = 32;
+    SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
 CVideoMode_OpenGL::CVideoMode_OpenGL( bool windowed )
@@ -1867,7 +1873,7 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
     if (IsWindowedMode()) {
         return;
     }
-    SDL_Window* window = (SDL_Window*)game->GetMainWindow();
+    SDL_Window *window = (SDL_Window *)game->GetMainWindow();
     // GL fallback has already selected the exclusive mode. Scaled FBO uses the desktop.
     if (!bNeedsFullScreenModeSwitch && !SDL_SetWindowFullscreenMode(window, nullptr)) {
         Sys_Error("Failed to select desktop fullscreen: %s", SDL_GetError());
@@ -1889,9 +1895,9 @@ void CVideoMode_Common::DrawStartupGraphic( HWND window )
 	if ( !m_ImageID.Count() )
 		return;
 
-	SDL_GetWindowSizeInPixels( (SDL_Window*)window, &width, &height );
+        SDL_GetWindowSizeInPixels((SDL_Window *)window, &width, &height);
 
-	glViewport( 0, 0, width, height );
+        glViewport( 0, 0, width, height );
 	glDisable( GL_DEPTH_TEST );
 	glEnable( GL_TEXTURE_2D );
 	glMatrixMode( GL_PROJECTION );

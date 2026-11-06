@@ -1542,9 +1542,9 @@ void Sys_GetCDKey( char* key, int* length, int* dedicatedServer )
 		}
 		else
 		{
-			_snprintf(
-				formatted, sizeof( formatted ), "%u.%u.%u.%u", address[0], address[1], address[2], address[3] );
-		}
+                    _snprintf(formatted, sizeof(formatted), "%u.%u.%u.%u", address[0], address[1], address[2],
+                              address[3]);
+                }
 	}
 
 	formatted[kCdKeyBytes - 1] = '\0';

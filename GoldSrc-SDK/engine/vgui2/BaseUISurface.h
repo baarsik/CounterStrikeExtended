@@ -217,14 +217,14 @@ public:
 	bool					m_bFullScreen;
 	bool					m_bSupportsEsc;
 
-	float						m_deltax;
-	float						m_deltay;
-	bool					m_bIgnoreMouseVisCalc;
+        float m_deltax;
+        float m_deltay;
+        bool					m_bIgnoreMouseVisCalc;
 
-	std::uint64_t           m_MouseButtonDownTimeStamp;
-	float						m_MouseButtonDownX;
-	float						m_MouseButtonDownY;
-	bool					m_bGotMouseButtonDown;
+        std::uint64_t m_MouseButtonDownTimeStamp;
+        float m_MouseButtonDownX;
+        float m_MouseButtonDownY;
+        bool					m_bGotMouseButtonDown;
 
 	int						_proportionalBaseWidth_HD;
 	int						_proportionalBaseHeight_HD;
