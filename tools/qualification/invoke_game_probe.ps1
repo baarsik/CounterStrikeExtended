@@ -20,6 +20,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 Set-StrictMode -Version Latest
+. (Join-Path $PSScriptRoot 'evidence.ps1')
 
 function Get-FullDirectory([string]$Path) {
     return [IO.Path]::GetFullPath($Path).TrimEnd('\', '/')
@@ -95,7 +96,7 @@ New-Item -ItemType Directory -Path $SandboxDirectory, $EvidenceDirectory -Force 
 [IO.File]::WriteAllText($marker, 'Owned qualification sandbox; runtime overlay and probe outputs only.')
 $prefix = "$Game-$TestCaseLabel"
 $resultPath = Join-Path $EvidenceDirectory "$prefix-result.json"
-if (Test-Path -LiteralPath $resultPath) { throw 'Choose a new testcase label/evidence directory for this run' }
+Reserve-ProbeEvidence $EvidenceDirectory $prefix | Out-Null
 if ($SteamAppId -eq 0) {
     $SteamAppId = if ($Game -eq 'cstrike') { 10 } else { 70 }
 }
@@ -189,9 +190,10 @@ try {
                 & $ModuleCollectorPath $process.Id $rawModules
                 if ($LASTEXITCODE -ne 0) { throw "Native module collection failed: $LASTEXITCODE" }
                 $modules = @(foreach ($path in Get-Content -LiteralPath $rawModules -Encoding UTF8) {
+                    $modulePath = [string]$path
                     [ordered]@{
-                        path = $path; file_version = (Get-Item -LiteralPath $path).VersionInfo.FileVersion
-                        sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+                        path = $modulePath; file_version = (Get-Item -LiteralPath $modulePath).VersionInfo.FileVersion
+                        sha256 = (Get-FileHash -LiteralPath $modulePath -Algorithm SHA256).Hash.ToLowerInvariant()
                     }
                 })
                 if ($modules.Count -eq 0) { throw 'Module collector returned no modules' }

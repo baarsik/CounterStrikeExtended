@@ -6,7 +6,10 @@ isolation, or install dependencies. `--vm` defaults to `Windows 11`;
 `--system` explicitly selects system transport instead of the current user.
 Use `--interactive` for a short wrapper that invokes the probe on the logged-on
 Windows desktop through Task Scheduler. The transport default timeout is 180
-seconds; keep it above the probe timeout plus cleanup time.
+seconds; keep it above staging, the probe timeout and cleanup time. Oversized
+scripts are staged in uniquely named guest temp files using 384-byte chunks;
+every Parallels encoded argument stays at or below 2,800 characters. Interactive
+tasks execute the staged file. Only these owned temp files are removed afterward.
 
 An example wrapper, with paths supplied by the operator:
 
@@ -28,8 +31,9 @@ ownership marker. The tool copies data, then overlays the explicitly supplied
 runtime. It requires all 16 default full-runtime outputs and verifies their copied
 sandbox hashes against the supplied runtime directory. Hardware-only output cannot
 silently borrow missing stock modules. It does not substitute or remove providers.
-Use a new testcase label or
-evidence directory for each run. Source identity is supplied metadata, not an
+Use a new testcase label or evidence directory for each run. A prefix reservation
+is created atomically and retained even for interrupted runs; existing start,
+module, log, demo or result artifacts also prevent reuse. Source identity is supplied metadata, not an
 automatic source/binary attestation.
 
 The probe forces 640x480, multiplayer/loopback, records 650 scripted host frames,
@@ -60,6 +64,9 @@ python3 tools/qualification/validate_demo.py EVIDENCE/cstrike-release-1.dem \
   --min-network-frames 100 --min-duration 5 --require-alive --require-movement
 python3 -m unittest discover -s tools/qualification/tests -v
 ```
+
+On Windows, run `powershell.exe -NoProfile -File tools/qualification/tests/test_evidence.ps1`
+to check interrupted-run and completed-run prefix preservation without launching a game.
 
 The demo validator checks recorded structure/state. It does not replace runtime
 playback, visual inspection, input/focus/device acceptance or provider auditing.
