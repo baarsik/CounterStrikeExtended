@@ -137,6 +137,26 @@ class ValidateDemoTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "duration"):
             validate_demo(fixture(normal, duration=10.0), min_duration=5.0)
 
+    def test_rejects_negative_normal_time_in_zero_duration_track(self):
+        normal = network(-10.0, 0, 1)
+        normal += network(0.0, 100, 2, x=24.0, forward=200.0)
+        normal += command(5, 0.0, 100)
+        with self.assertRaisesRegex(ValueError, "negative normal.*time"):
+            validate_demo(fixture(normal, duration=0.0), min_network_frames=2, min_duration=5.0,
+                          require_alive=True, require_movement=True)
+
+    def test_keeps_spooled_startup_time_separate_from_normal_clock(self):
+        data = bytearray(fixture())
+        struct.pack_into("<f", data, 545, -10.0)
+        self.assertEqual(validate_demo(data, min_duration=1.0)["network_sample_duration_seconds"], 1.0)
+
+    def test_accepts_supported_jumptime_reset_in_normal_track(self):
+        normal = network(0.0, 0, 1) + network(1.0, 100, 2)
+        normal += command(2, 0.0, 0)
+        normal += network(0.0, 0, 3) + network(1.0, 100, 4)
+        normal += command(5, 1.0, 100)
+        self.assertEqual(validate_demo(fixture(normal, frame_count=4))["network_frames"], 4)
+
     def test_cli_reports_accepted_asset_and_rejects_bad_input(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "recorded.dem"

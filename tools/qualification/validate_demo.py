@@ -67,6 +67,8 @@ def _read_track(data, entry):
         command, time, frame = reader.unpack(COMMAND)
         if not math.isfinite(time):
             raise ValueError("nonfinite frame time")
+        if kind == NORMAL and time < 0.0:
+            raise ValueError("negative normal playback time")
         last_time = max(last_time, time)
         if command in (STARTUP, NORMAL):
             info = reader.take(DEMO_INFO_BYTES)
