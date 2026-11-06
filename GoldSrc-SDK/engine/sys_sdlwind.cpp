@@ -1,4 +1,9 @@
 #include "../common/sdl3_input.h"
+
+namespace {
+cse::FractionalMotion s_wheelMotion;
+}
+
 #if defined( SW_RENDERER )
 
 #include "sys_sdlwind.h"
@@ -149,19 +154,9 @@ void CGame::SetCursorVisible(bool bState) {
 }
 
 void CGame::SetWindowSize(int w, int h) {
-    m_width = w;
-    m_height = h;
     SDL_SetWindowSize(m_hSDLWindow, w, h);
     SDL_SyncWindow(m_hSDLWindow);
-    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
-    const int height = m_height;
-    m_nMouseTargetX = w / 2;
-    m_nMouseTargetY = h / 2;
-    int warpDelta = height / 3;
-    if (warpDelta <= 199) {
-        warpDelta = 200;
-    }
-    m_nWarpDelta = warpDelta;
+    UpdateWindowMetrics();
     ClearScreen();
 }
 
@@ -289,6 +284,8 @@ void SDL_SetAttributes( bool tryNewCtx )
 }
 
 bool CGame::CreateGameWindow() {
+    s_wheelMotion.Reset();
+    m_bLegacyRender = false;
     if (COM_CheckParm("-noontop")) {
         SDL_SetHint("SDL_ALLOW_TOPMOST", "0");
     }
@@ -454,7 +451,7 @@ void CGame::SleepUntilInput(int time) {
                     break;
                 case SDL_EVENT_WINDOW_RESIZED:
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
+                    UpdateWindowMetrics();
                     videomode->UpdateWindowPosition();
                     break;
                 case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -774,8 +771,10 @@ void CGame::SleepUntilInput(int time) {
                 eng->TrapKey_Event(key, ev.type == SDL_EVENT_KEY_DOWN);
             }
         } else if (ev.type == SDL_EVENT_MOUSE_WHEEL) {
-            if (ev.type == SDL_EVENT_MOUSE_WHEEL) {
-                const int wheelKey = (ev.wheel.y > 0) + 239;
+            const int steps = cse::WheelSteps(s_wheelMotion, ev.wheel.y, ev.wheel.direction);
+            const int pulse = cse::EngineWheelPulse(steps);
+            const int wheelKey = pulse > 0 ? K_MWHEELUP : K_MWHEELDOWN;
+            if (pulse != 0) {
                 eng->TrapKey_Event(wheelKey, true);
                 eng->TrapKey_Event(wheelKey, false);
             }
@@ -1222,19 +1221,9 @@ void CGame::SetCursorVisible(bool bState) {
 }
 
 void CGame::SetWindowSize(int w, int h) {
-    m_width = w;
-    m_height = h;
     SDL_SetWindowSize(m_hSDLWindow, w, h);
     SDL_SyncWindow(m_hSDLWindow);
-    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
-    const int height = m_height;
-    m_nMouseTargetX = w / 2;
-    m_nMouseTargetY = h / 2;
-    int warpDelta = height / 3;
-    if (warpDelta <= 199) {
-        warpDelta = 200;
-    }
-    m_nWarpDelta = warpDelta;
+    UpdateWindowMetrics();
     ClearScreen();
 }
 
@@ -1363,6 +1352,8 @@ void SDL_SetAttributes( bool tryNewCtx )
 }
 
 bool CGame::CreateGameWindow() {
+    s_wheelMotion.Reset();
+    m_bLegacyRender = false;
     if (COM_CheckParm("-noontop")) {
         SDL_SetHint("SDL_ALLOW_TOPMOST", "0");
     }
@@ -1577,7 +1568,7 @@ void CGame::SleepUntilInput(int time) {
                     break;
                 case SDL_EVENT_WINDOW_RESIZED:
                 case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-                    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
+                    UpdateWindowMetrics();
                     videomode->UpdateWindowPosition();
                     break;
                 case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
@@ -1600,12 +1591,10 @@ void CGame::SleepUntilInput(int time) {
                 eng->TrapKey_Event(key, false);
             }
         } else if (ev.type == SDL_EVENT_MOUSE_WHEEL) {
-            if (ev.type == SDL_EVENT_MOUSE_WHEEL) {
-#if defined(_WIN32)
-                const int wheelKey = (ev.wheel.y > 0) + 239;
-#else
-                const int wheelKey = (ev.wheel.y > 0) + 239;
-#endif
+            const int steps = cse::WheelSteps(s_wheelMotion, ev.wheel.y, ev.wheel.direction);
+            const int pulse = cse::EngineWheelPulse(steps);
+            const int wheelKey = pulse > 0 ? K_MWHEELUP : K_MWHEELDOWN;
+            if (pulse != 0) {
                 eng->TrapKey_Event(wheelKey, true);
                 eng->TrapKey_Event(wheelKey, false);
             }
@@ -1680,3 +1669,16 @@ bool CGame::OnlyLegacyRender() const
 }
 
 #endif
+
+void CGame::UpdateWindowMetrics() {
+    int windowWidth = 0;
+    int windowHeight = 0;
+    SDL_GetWindowSize(m_hSDLWindow, &windowWidth, &windowHeight);
+    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
+    m_nMouseTargetX = windowWidth / 2;
+    m_nMouseTargetY = windowHeight / 2;
+    constexpr int minimumWarpDistance = 200;
+    constexpr int windowWarpDivisor = 3;
+    const int warpDistance = windowHeight / windowWarpDivisor;
+    m_nWarpDelta = warpDistance < minimumWarpDistance ? minimumWarpDistance : warpDistance;
+}

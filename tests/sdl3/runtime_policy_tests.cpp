@@ -41,5 +41,14 @@ int main() {
     assert(cse::RenderToWindowCoordinate(80, 960, 0, 1.5f) == 0.0f);
     assert(cse::Utf8PrefixBytes(nullptr, 20) == 0);
     assert(cse::Utf8PrefixBytes("", 20) == 0);
+    assert(cse::EngineWheelPulse(0) == 0);
+    assert(cse::EngineWheelPulse(1) == 1);
+    assert(cse::EngineWheelPulse(4) == 1);
+    assert(cse::EngineWheelPulse(-3) == -1);
+    const cse::Utf16Character bmp = cse::EncodeUtf16(0x105);
+    assert(bmp.count == 1 && bmp.first == 0x105);
+    const cse::Utf16Character supplementary = cse::EncodeUtf16(0x1f600);
+    assert(supplementary.count == 2 && supplementary.first == 0xd83d && supplementary.second == 0xde00);
+    assert(cse::EncodeUtf16(0x110000).first == 0xfffd);
     return 0;
 }

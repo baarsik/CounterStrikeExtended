@@ -251,46 +251,38 @@ int VGuiWrap2_CallEngineSurfaceAppHandler( void* event, void* userData )
 	return 0;
 }
 
-void VGuiWrap2_Paint()
-{
-	int x = 0, y = 0;
-	int wide, tall;
-	int exclusiveInput;
+void VGuiWrap2_Paint() {
+    int x = 0, y = 0;
+    int wide, tall;
+    int exclusiveInput;
 
-	if ( !staticGameUIFuncs )
-		return;
+    if (!staticGameUIFuncs) {
+        return;
+    }
 
-	if ( VideoMode_IsWindowed() )
-	{
-		SDL_GetWindowPosition( *pmainwindow, &x, &y );
-		SDL_GetWindowSize( *pmainwindow, &wide, &tall );
-	}
-	else
-	{
-		VideoMode_GetCurrentVideoMode( &wide, &tall, NULL );
-	}
+    if (VideoMode_IsWindowed()) {
+        SDL_GetWindowPosition(*pmainwindow, &x, &y);
+        SDL_GetWindowSizeInPixels(*pmainwindow, &wide, &tall);
+    } else {
+        VideoMode_GetCurrentVideoMode(&wide, &tall, NULL);
+    }
 
-	AllowFog( 0 );
-	staticUIFuncs->Paint( x, y, wide, tall );
+    AllowFog(0);
+    staticUIFuncs->Paint(x, y, wide, tall);
 
-	if ( !staticClient || staticClient->UseVGUI1() )
-	{
-		exclusiveInput = staticGameUIFuncs->HasExclusiveInput();
-		if ( exclusiveInput != staticExclusiveInputShadow )
-		{
-			if ( exclusiveInput )
-			{
-				VGuiWrap_ReleaseMouse();
-			}
-			else
-			{
-				VGuiWrap_GetMouse();
-				ClearIOStates();
-			}
-		}
-		staticExclusiveInputShadow = exclusiveInput;
-	}
-	AllowFog( 1 );
+    if (!staticClient || staticClient->UseVGUI1()) {
+        exclusiveInput = staticGameUIFuncs->HasExclusiveInput();
+        if (exclusiveInput != staticExclusiveInputShadow) {
+            if (exclusiveInput) {
+                VGuiWrap_ReleaseMouse();
+            } else {
+                VGuiWrap_GetMouse();
+                ClearIOStates();
+            }
+        }
+        staticExclusiveInputShadow = exclusiveInput;
+    }
+    AllowFog(1);
 }
 
 static void BufferConsoleMessage( const char* message )

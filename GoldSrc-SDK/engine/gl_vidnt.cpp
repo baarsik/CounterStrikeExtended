@@ -394,28 +394,24 @@ extern "C" float GetYMouseAspectRatioAdjustment()
 	return s_fYMouseAspectAdjustment;
 }
 
-extern "C" void VID_UpdateWindowVars( RECT* rect, int x, int y )
-{
-	if ( pmainwindow )
-	{
-		int width, height;
-		int left, top;
+extern "C" void VID_UpdateWindowVars(RECT *rect, int x, int y) {
+    if (pmainwindow) {
+        int width, height;
+        int left, top;
 
-		SDL_GetWindowSize( *pmainwindow, &width, &height );
-		SDL_GetWindowPosition( *pmainwindow, &left, &top );
-		window_center_x = left + width / 2;
-		window_center_y = top + height / 2;
-		rect->right = left + width;
-		rect->left = left;
-		rect->top = top;
-		rect->bottom = top + height;
-	}
-	else
-	{
-		window_center_x = x;
-		window_center_y = y;
-	}
-	window_rect = *rect;
+        SDL_GetWindowSizeInPixels(*pmainwindow, &width, &height);
+        SDL_GetWindowPosition(*pmainwindow, &left, &top);
+        window_center_x = left + width / 2;
+        window_center_y = top + height / 2;
+        rect->right = left + width;
+        rect->left = left;
+        rect->top = top;
+        rect->bottom = top + height;
+    } else {
+        window_center_x = x;
+        window_center_y = y;
+    }
+    window_rect = *rect;
 }
 
 int GetRefreshRate() {

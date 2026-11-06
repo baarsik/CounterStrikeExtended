@@ -422,32 +422,34 @@ int EngineSurface::isTextureIdValid( int id )
 	return _renderPlat->textures->GetTexture( id ) != NULL;
 }
 
-void EngineSurface::pushMakeCurrent( int* insets, int* absoluteExtents, int* clipRect, bool translateToScreenSpace )
-{
-	int windowX = 0;
-	int windowY = 0;
-	if ( translateToScreenSpace && VideoMode_IsWindowed() )
-		SDL_GetWindowPosition( *pmainwindow, &windowX, &windowY );
+void EngineSurface::pushMakeCurrent(int *insets, int *absoluteExtents, int *clipRect, bool translateToScreenSpace) {
+    int windowX = 0;
+    int windowY = 0;
+    if (translateToScreenSpace && VideoMode_IsWindowed()) {
+        SDL_GetWindowPosition(*pmainwindow, &windowX, &windowY);
+    }
 
-	int wide;
-	int tall;
-	if ( VideoMode_IsWindowed() )
-		SDL_GetWindowSize( *pmainwindow, &wide, &tall );
-	else
-		VideoMode_GetCurrentVideoMode( &wide, &tall, NULL );
+    int wide;
+    int tall;
+    if (VideoMode_IsWindowed()) {
+        SDL_GetWindowSizeInPixels(*pmainwindow, &wide, &tall);
+    } else {
+        VideoMode_GetCurrentVideoMode(&wide, &tall, NULL);
+    }
 
-	_renderPlat->left = absoluteExtents[0] - windowX;
-	_renderPlat->top = absoluteExtents[1] - windowY;
-	_renderPlat->right = absoluteExtents[2] - windowX;
-	_renderPlat->bottom = absoluteExtents[3] - windowY;
-	int left = clipRect[0] - windowX;
-	int top = clipRect[1] - windowY;
-	int right = clipRect[2] - windowX;
-	int bottom = clipRect[3] - windowY;
-	g_TranslateX = insets[0];
-	g_TranslateY = insets[1];
-	if ( left != 0 || top != 0 || right != wide || bottom != tall )
-		EnableScissorTest( left - insets[0], top - insets[1], insets[0] + right - left, insets[1] + bottom - top );
+    _renderPlat->left = absoluteExtents[0] - windowX;
+    _renderPlat->top = absoluteExtents[1] - windowY;
+    _renderPlat->right = absoluteExtents[2] - windowX;
+    _renderPlat->bottom = absoluteExtents[3] - windowY;
+    int left = clipRect[0] - windowX;
+    int top = clipRect[1] - windowY;
+    int right = clipRect[2] - windowX;
+    int bottom = clipRect[3] - windowY;
+    g_TranslateX = insets[0];
+    g_TranslateY = insets[1];
+    if (left != 0 || top != 0 || right != wide || bottom != tall) {
+        EnableScissorTest(left - insets[0], top - insets[1], insets[0] + right - left, insets[1] + bottom - top);
+    }
 }
 
 void EngineSurface::popMakeCurrent()

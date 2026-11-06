@@ -24,5 +24,10 @@ int main() {
     assert(!cse::IsWindowLifecycleEvent(SDL_EVENT_TEXT_INPUT));
     assert(!cse::IsWindowLifecycleEvent(SDL_EVENT_GAMEPAD_BUTTON_DOWN));
     assert(!cse::IsWindowLifecycleEvent(SDL_EVENT_MOUSE_WHEEL));
+    cse::FractionalMotion wheel;
+    assert(cse::WheelSteps(wheel, 0.25f, SDL_MOUSEWHEEL_NORMAL) == 0);
+    assert(cse::WheelSteps(wheel, 0.75f, SDL_MOUSEWHEEL_NORMAL) == 1);
+    assert(cse::WheelSteps(wheel, 0.0f, SDL_MOUSEWHEEL_NORMAL) == 0);
+    assert(cse::WheelSteps(wheel, 2.0f, SDL_MOUSEWHEEL_FLIPPED) == -2);
     return 0;
 }

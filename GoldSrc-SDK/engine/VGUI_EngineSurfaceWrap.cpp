@@ -80,6 +80,7 @@ static FontInfoVGUI* staticFontInfoVGUI = nullptr;
 static vgui::Dar<FontInfoVGUI*> staticFontInfoVGUIDar;
 static int staticContextCount = 0;
 static unsigned char staticRGBA[FONT_TEXTURE_BYTES];
+static cse::FractionalMotion s_wheelMotion;
 static SDL_Cursor* staticDefaultCursor[CURSOR_SLOT_COUNT];
 static SDL_Cursor* staticCurrentCursor = nullptr;
 
@@ -538,7 +539,8 @@ void EngineSurfaceWrap::AppHandler(void *event, void *) {
                 app->internalMouseReleased(code, this);
             }
         } else if (type == SDL_EVENT_MOUSE_WHEEL) {
-            app->internalMouseWheeled(static_cast<int>(sdlEvent->wheel.y), this);
+            app->internalMouseWheeled(cse::WheelSteps(s_wheelMotion, sdlEvent->wheel.y, sdlEvent->wheel.direction),
+                                      this);
         }
         return;
     }

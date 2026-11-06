@@ -87,5 +87,36 @@ inline int RefreshRateOrDefault(float refreshRate) {
     return refreshRate > 1.0f ? static_cast<int>(std::lround(refreshRate)) : defaultRefreshRate;
 }
 
+inline int EngineWheelPulse(int detents) {
+    // The engine historically emits one key pulse per whole wheel event, regardless of magnitude.
+    return detents > 0 ? 1 : (detents < 0 ? -1 : 0);
+}
+
+struct Utf16Character {
+    std::uint16_t first;
+    std::uint16_t second;
+    int count;
+};
+
+inline Utf16Character EncodeUtf16(std::uint32_t codepoint) {
+    constexpr std::uint32_t supplementaryStart = 0x10000;
+    constexpr std::uint32_t unicodeMaximum = 0x10ffff;
+    constexpr std::uint32_t highSurrogateStart = 0xd800;
+    constexpr std::uint32_t lowSurrogateStart = 0xdc00;
+    constexpr std::uint32_t surrogateEnd = 0xdfff;
+    constexpr std::uint32_t replacementCharacter = 0xfffd;
+    constexpr unsigned surrogateShift = 10;
+    constexpr std::uint32_t surrogateMask = 0x3ff;
+    if (codepoint > unicodeMaximum || (codepoint >= highSurrogateStart && codepoint <= surrogateEnd)) {
+        codepoint = replacementCharacter;
+    }
+    if (codepoint < supplementaryStart) {
+        return {static_cast<std::uint16_t>(codepoint), 0, 1};
+    }
+    codepoint -= supplementaryStart;
+    return {static_cast<std::uint16_t>(highSurrogateStart + (codepoint >> surrogateShift)),
+            static_cast<std::uint16_t>(lowSurrogateStart + (codepoint & surrogateMask)), 2};
+}
+
 constexpr int LegacyGamepadButtonCount = 21;
 } // namespace cse

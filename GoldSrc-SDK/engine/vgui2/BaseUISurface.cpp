@@ -56,6 +56,7 @@ SDL_Keycode GetSDLKeycodeFromEngineKey( int keynum );
 
 vgui2::IInputInternal* g_InputInternal;
 
+static cse::FractionalMotion s_wheelMotion;
 static SDL_Cursor* staticDefaultCursor[MAX_DEFAULT_CURSORS];
 static SDL_Cursor* staticCurrentCursor;
 static bool s_bCursorVisible = true;
@@ -120,7 +121,15 @@ void BaseUISurface::AppHandler(void *event, void *) {
             if (error) {
                 break;
             }
-            g_InputInternal->InternalKeyTyped((wchar_t)ch);
+#if defined(_WIN32)
+            const cse::Utf16Character units = cse::EncodeUtf16(ch);
+            g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(units.first));
+            if (units.count == 2) {
+                g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(units.second));
+            }
+#else
+            g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(ch));
+#endif
             i += bytes;
         }
         break;
@@ -179,7 +188,7 @@ void BaseUISurface::AppHandler(void *event, void *) {
         break;
     }
     case SDL_EVENT_MOUSE_WHEEL:
-        g_InputInternal->InternalMouseWheeled(static_cast<int>(ev.wheel.y));
+        g_InputInternal->InternalMouseWheeled(cse::WheelSteps(s_wheelMotion, ev.wheel.y, ev.wheel.direction));
         break;
     }
 }

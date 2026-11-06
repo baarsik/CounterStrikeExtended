@@ -31,6 +31,7 @@ public:
 	void AppActivate( bool active );
 
 private:
+    void UpdateWindowMetrics();
 	bool			m_bActiveApp;
 	SDL_Window*		m_hSDLWindow;
 	SDL_GLContext	m_hSDLGLContext;
@@ -85,6 +86,7 @@ public:
 	void AppActivate( bool fActive );
 
 private:
+    void UpdateWindowMetrics();
 #if defined( _WIN32 )
 	bool m_bActiveApp;
 	SDL_Window* m_hSDLWindow;
