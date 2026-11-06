@@ -33,38 +33,42 @@
 **Files:** docs/project-scope.md; GoldSrc-SDK/projects/vs2026/*.sln; archived upstream manifests; approved project files.
 **Interfaces:** Produce 19 retained/optional live project manifests, immutable original-manifest archive and complete removal record.
 
-- [ ] Record approval and preserve original project/props/items/solution/export/resource manifests before edits.
-- [ ] Remove the approved 38 targets from active solutions and their live project manifests; preserve snapshot audit inputs.
-- [ ] Check exact project coverage, retained dependency paths and solution references; commit the scope change.
+- [x] Record approval and preserve original project/props/items/solution/export/resource manifests before edits.
+- [x] Remove the approved 38 targets from active solutions and their live project manifests; preserve snapshot audit inputs.
+- [x] Check exact project coverage, retained dependency paths and solution references; commit the scope change.
 
 ### Task 2: Production CMake and crosswalk
 
 **Files:** CMakeLists.txt, CMakePresets.json, cmake/, hardware/CMakeLists.txt, docs/building.md, docs/msbuild-crosswalk.md.
 **Interfaces:** Produce 16 default production targets and 3 optional targets with real sources; output under build/runtime/<config>, symbols/libraries elsewhere.
 
-- [ ] Evaluate repository imports/conditions and translate retained source, include, definitions, flags, libraries, resources and exports into per-target manifests.
-- [ ] Add configuration-aware target helpers and imported x86 libraries, with no global ABI/FP changes.
-- [ ] Add complete-runtime and hardware-only Debug/Release presets and commands; record unavailable Windows evaluation/build evidence explicitly.
-- [ ] Inspect all translated selections and CMake syntax/source paths; compile only if a suitable authorized builder is available.
+- [x] Evaluate repository imports/conditions and translate retained source, include, definitions, flags, libraries, resources and exports into per-target manifests.
+- [x] Add configuration-aware target helpers and imported x86 libraries, with no global ABI/FP changes.
+- [x] Add complete-runtime and hardware-only Debug/Release presets and commands; record unavailable Windows evaluation/build evidence explicitly.
+- [x] Inspect all translated selections and CMake syntax/source paths; compile only if a suitable authorized builder is available.
 
 ### Task 3: C1–C4 narrow source corrections
 
 **Files:** selected VGUI2 key translation, engine/net_ws.cpp, engine/sys_dll.cpp, associated target link/backend definitions.
 **Interfaces:** Preserve APIs and valid mappings; use backend-matched multicast constants and hardware fatal termination.
 
-- [ ] C1: retain ASSERT_AT(false, 503), return -1 before invalid reverse-table access.
-- [ ] C4: delete only the unused SDL decoder table/writes, retaining switch mappings and initializer signature.
-- [ ] C2: pair explicit WSOCK32 engine target definitions/linkage with named loop/add/drop 4/5/6; preserve Winsock2 modules and record preprocessing limits.
-- [ ] C3: include process.h and use _exit(-1) for Windows hardware terminal branches; preserve dedicated/non-Windows policy and callback/longjmp behavior.
-- [ ] Inspect exact source diffs and valid-mapping preservation; record that tests/runtime were not run; commit separately.
+- [x] C1: retain ASSERT_AT(false, 503), return -1 before invalid reverse-table access.
+- [x] C4: delete only the unused SDL decoder table/writes, retaining switch mappings and initializer signature.
+- [x] C2: pair explicit WSOCK32 engine target definitions/linkage with named loop/add/drop 4/5/6; preserve Winsock2 modules and record preprocessing limits.
+- [x] C3: include process.h and use _exit(-1) for Windows hardware terminal branches; preserve dedicated/non-Windows policy and callback/longjmp behavior.
+- [x] Inspect exact source diffs and valid-mapping preservation; record that tests/runtime were not run; commit separately.
 
 ### Task 4: Source pruning, licensing, portability and delivery
 
 **Files:** approved 21 candidate roots only; LICENSE, LICENSES/, docs/licensing.md, docs/architecture-portability.md, README.md, docs/validation.md.
 **Interfaces:** Consume approved scope and retained-source crosswalk; produce source-pruning ledger and accurate build/license/verification reporting.
 
-- [ ] Remove only exclusive implementation/assets in approved roots after checking retained references; preserve provenance/readmes/notices and original-manifest archive.
-- [ ] Audit retained local notices and authoritative upstream license; apply MIT only to authorized original contribution files and retain all inherited terms.
-- [ ] Record x86 constraints and future x64/ARM64 source/provider/ABI blockers without claiming support.
-- [ ] Request one fresh whole-branch code review, resolve material findings, run appropriate allowed static checks, and record actual builder/results/remaining validation.
-- [ ] Commit reviewable changes and leave the feature branch local without pushing.
+- [x] Remove only exclusive implementation/assets in approved roots after checking retained references; preserve provenance/readmes/notices and original-manifest archive.
+- [x] Audit retained local notices and authoritative upstream license; apply MIT only to authorized original contribution files and retain all inherited terms.
+- [x] Record x86 constraints and future x64/ARM64 source/provider/ABI blockers without claiming support.
+- [x] Request one fresh whole-branch code review, resolve material findings, run appropriate allowed static checks, and record actual builder/results/remaining validation.
+- [x] Commit reviewable changes and leave the feature branch local without pushing.
+
+## Execution result
+
+Source tasks completed on the existing feature branch. Final review findings were fixed in `8dcebd9`; permitted static evidence and unavailable Windows evaluation/builds are recorded in `docs/validation.md`. No tests/runtime processes or pushes were performed. Native CMake/MSBuild qualification remains pending under the handoff's unavailable-builder fallback.
