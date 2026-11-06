@@ -121,30 +121,11 @@ static const vgui_to_virtual_t keyMap[] =
 	{ KEY_F12, 0, 0x40000045 },
 };
 
-static KeyCode s_pVirtualKeyToVGUI[256];
 static int s_pVGUIToVirtualKey[256];
 
 void vgui2::InitKeyTranslationTable()
 {
-	static bool bInitted = false;
-	int i;
-
-	if ( bInitted )
-	{
-		return;
-	}
-
-	bInitted = true;
-
-	for ( i = 0; i < 256; ++i )
-	{
-		s_pVirtualKeyToVGUI[i] = KEY_NONE;
-	}
-
-	for ( i = 0; i < (int)( sizeof( keyMap ) / sizeof( keyMap[0] ) ); ++i )
-	{
-		s_pVirtualKeyToVGUI[keyMap[i].sdlKeyCode] = keyMap[i].vguiKeyCode;
-	}
+	// Forward conversion uses the switch below. Keep this entry point for callers.
 }
 
 void vgui2::InitVGUIToVKTranslationTable()
@@ -399,6 +380,7 @@ int KeyCode_VGUIToVirtualKey( KeyCode keyCode )
 	if ( keyCode < 0 || keyCode >= 256 )
 	{
 		ASSERT_AT( false, 503 );
+		return -1;
 	}
 
 	return s_pVGUIToVirtualKey[keyCode];

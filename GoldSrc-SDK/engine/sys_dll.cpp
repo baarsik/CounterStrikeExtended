@@ -25,7 +25,7 @@
 #else
 #include <Windows.h>
 #include <VersionHelpers.h>
-#if defined( SWDS_DLL )
+#if defined( SWDS_DLL ) || defined( HL25_HW_ENGINE )
 #include <process.h>
 #endif
 #endif
@@ -1058,7 +1058,7 @@ extern SDL_Window** pmainwindow;
 			Launcher_ConsolePrintf( const_cast<char*>( "FATAL ERROR (shutting down): %s\n" ), text );
 		else
 			std::printf( "FATAL ERROR (shutting down): %s\n", text );
-#if defined( _WIN32 ) && defined( SWDS_DLL )
+#if defined( _WIN32 ) && ( defined( SWDS_DLL ) || defined( HL25_HW_ENGINE ) )
 		_exit( SYSTEM_ERROR_EXIT );
 #else
 		std::exit( SYSTEM_ERROR_EXIT );
@@ -1068,7 +1068,7 @@ extern SDL_Window** pmainwindow;
 	Sys_Printf( text );
 	SDL_ShowSimpleMessageBox( SDL_MESSAGEBOX_ERROR, "Fatal Error", text, window );
 	VideoMode_IsWindowed();
-#if defined( _WIN32 ) && defined( SWDS_DLL )
+#if defined( _WIN32 ) && ( defined( SWDS_DLL ) || defined( HL25_HW_ENGINE ) )
 	_exit( SYSTEM_ERROR_EXIT );
 #else
 	std::exit( SYSTEM_ERROR_EXIT );

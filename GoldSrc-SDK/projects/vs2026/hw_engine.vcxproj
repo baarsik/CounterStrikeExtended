@@ -43,7 +43,7 @@
       <WarningLevel>Level4</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>WIN32;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>$(GameRoot)engine;$(GameRoot)external\installed\x86-windows-static-md\include;$(GameRoot)external\installed\x86-windows-static-md\include\webm;$(GameRoot)common;$(GameRoot)cl_dll;$(GameRoot)public;$(GameRoot)pm_shared;$(GameRoot)utils\vgui\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>

@@ -11,6 +11,24 @@ typedef int SOCKET;
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <Windows.h>
+
+// The Windows backend is selected together with the engine's import library.
+#if defined( CSE_ENGINE_WSOCK32 ) == defined( CSE_ENGINE_WINSOCK2 )
+#error Select exactly one Windows engine socket backend in the build configuration.
+#endif
+namespace
+{
+#if defined( CSE_ENGINE_WSOCK32 )
+// Winsock2 headers describe 11/12/13, but the retained WSOCK32 API uses 4/5/6.
+constexpr int kEngineMulticastLoop = 4;
+constexpr int kEngineAddMembership = 5;
+constexpr int kEngineDropMembership = 6;
+#else
+constexpr int kEngineMulticastLoop = IP_MULTICAST_LOOP;
+constexpr int kEngineAddMembership = IP_ADD_MEMBERSHIP;
+constexpr int kEngineDropMembership = IP_DROP_MEMBERSHIP;
+#endif
+}
 #endif
 
 #include "net.h"
@@ -1275,7 +1293,7 @@ SOCKET NET_IPSocket( char* networkInterface, int port, qboolean multicast )
 		return 0;
 	}
 	option = COM_CheckParm( "-loopback" ) != 0;
-	if ( setsockopt( socket, IPPROTO_IP, IP_MULTICAST_LOOP, reinterpret_cast<const char*>( &option ), sizeof( option ) )
+	if ( setsockopt( socket, IPPROTO_IP, kEngineMulticastLoop, reinterpret_cast<const char*>( &option ), sizeof( option ) )
 		 == SOCKET_ERROR )
 		Con_DPrintf( "WARNING: UDP_OpenSocket: port %d setsockopt IP_MULTICAST_LOOP: %s\n", port,
 			NET_ErrorString( WSAGetLastError() ) );
@@ -1528,7 +1546,7 @@ qboolean NET_JoinGroup( netsrc_t source, netadr_t address )
 		Con_Printf( "WARNING: NET_JoinGroup: IP_ADD_MEMBERSHIP: %s", strerror( error ) );
 	return false;
 #else
-	if ( setsockopt( ip_sockets[source], IPPROTO_IP, IP_ADD_MEMBERSHIP, reinterpret_cast<const char*>( &request ),
+	if ( setsockopt( ip_sockets[source], IPPROTO_IP, kEngineAddMembership, reinterpret_cast<const char*>( &request ),
 			 sizeof( request ) )
 		 != SOCKET_ERROR )
 		return true;
@@ -1548,7 +1566,7 @@ qboolean NET_LeaveGroup( netsrc_t source, netadr_t address )
 	return setsockopt( ip_sockets[source], IPPROTO_IP, IP_DROP_MEMBERSHIP, &request, sizeof( request ) ) != -1
 		   || errno == EAFNOSUPPORT;
 #else
-	return setsockopt( ip_sockets[source], IPPROTO_IP, IP_DROP_MEMBERSHIP, reinterpret_cast<const char*>( &request ),
+	return setsockopt( ip_sockets[source], IPPROTO_IP, kEngineDropMembership, reinterpret_cast<const char*>( &request ),
 			   sizeof( request ) )
 			   != SOCKET_ERROR
 		   || WSAGetLastError() == WSAEAFNOSUPPORT;
