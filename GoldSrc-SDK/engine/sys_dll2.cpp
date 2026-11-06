@@ -25,7 +25,7 @@
 #include "sys.h"
 #include "traceinit.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <cstdarg>
 #include <cstdio>
@@ -884,7 +884,7 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 #include "sys.h"
 #include "traceinit.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <clocale>
 #include <eh.h>
@@ -1542,7 +1542,7 @@ void Sys_GetCDKey( char* key, int* length, int* dedicatedServer )
 		}
 		else
 		{
-			_snprintf( 
+			_snprintf(
 				formatted, sizeof( formatted ), "%u.%u.%u.%u", address[0], address[1], address[2], address[3] );
 		}
 	}

@@ -38,6 +38,8 @@
     <IntDir>$(GameRoot)bin\obj\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>swds</TargetName>
   </PropertyGroup>
+  <PropertyGroup><CseSdl3Shared>true</CseSdl3Shared></PropertyGroup>
+  <Import Project="..\projects\vs2026\SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -60,7 +62,7 @@
       <!-- swds.dll ships as the sw.dll image: swds.def keeps LIBRARY sw, so the .exp names sw.dll (LNK4070 is expected). -->
       <AdditionalOptions>/IGNORE:4070 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GameRoot)external\miles;$(GameRoot)lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>mss32.lib;SDL2.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mss32.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <GenerateMapFile>true</GenerateMapFile>
@@ -523,7 +525,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
-      <AdditionalOptions>/external:I"$(ProjectDir)..\external\SDL2" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -543,4 +545,5 @@
     <ResourceCompile Include="..\engine\engine.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="..\projects\vs2026\SDL3.targets" />
 </Project>

@@ -1,3 +1,4 @@
+#include <cstdint>
 #pragma once
 
 #include "../vgui/ISurface.h"
@@ -216,13 +217,13 @@ public:
 	bool					m_bFullScreen;
 	bool					m_bSupportsEsc;
 
-	int						m_deltax;
-	int						m_deltay;
+	float						m_deltax;
+	float						m_deltay;
 	bool					m_bIgnoreMouseVisCalc;
 
-	unsigned long			m_MouseButtonDownTimeStamp;
-	int						m_MouseButtonDownX;
-	int						m_MouseButtonDownY;
+	std::uint64_t           m_MouseButtonDownTimeStamp;
+	float						m_MouseButtonDownX;
+	float						m_MouseButtonDownY;
 	bool					m_bGotMouseButtonDown;
 
 	int						_proportionalBaseWidth_HD;

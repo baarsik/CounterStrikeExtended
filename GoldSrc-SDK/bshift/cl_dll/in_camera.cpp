@@ -1,6 +1,6 @@
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //=============================================================================
@@ -17,7 +17,7 @@
 #include "in_defs.h"
 #include "Exports.h"
 
-#include "SDL2/SDL_mouse.h"
+#include <SDL3/SDL_mouse.h>
 
 float CL_KeyState (kbutton_t *key);
 
@@ -85,7 +85,11 @@ void CAM_EndDistance(void);
 
 void SDL_GetCursorPos( POINT *p )
 {
-	SDL_GetMouseState( (int *)&p->x, (int *)&p->y );
+	float x = 0.0f;
+    float y = 0.0f;
+    SDL_GetMouseState(&x, &y);
+    p->x = static_cast<long>(x);
+    p->y = static_cast<long>(y);
 }
 
 void SDL_SetCursorPos( const int, const int )

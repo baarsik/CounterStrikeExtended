@@ -1,6 +1,8 @@
+#include "../../common/sdl3_input.h"
+static cse::FractionalMotion s_relativeMotion;
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //=============================================================================
@@ -9,9 +11,9 @@
 // 02/21/97 JCB Added extended DirectInput code to support external controllers.
 
 #include "port.h"
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_mouse.h>
-#include <SDL2/SDL_gamecontroller.h>
+#include <SDL3/SDL_events.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_gamepad.h>
 
 #include "hud.h"
 #include "cl_util.h"
@@ -119,7 +121,7 @@ int			joy_id;
 DWORD		joy_flags;
 DWORD		joy_numbuttons;
 
-SDL_GameController *s_pJoystick = NULL;
+SDL_Gamepad *s_pJoystick = NULL;
 
 // none of these cvars are saved over a session
 // this means that advanced controller configuration needs to be executed
@@ -208,8 +210,8 @@ IN_StartupMouse
 */
 void IN_StartupMouse (void)
 {
-	if ( gEngfuncs.CheckParm ("-nomouse", NULL ) ) 
-		return; 
+	if ( gEngfuncs.CheckParm ("-nomouse", NULL ) )
+		return;
 
 	mouseinitialized = 1;
 #ifdef _WIN32
@@ -217,16 +219,16 @@ void IN_StartupMouse (void)
 
 	if (mouseparmsvalid)
 	{
-		if ( gEngfuncs.CheckParm ("-noforcemspd", NULL ) ) 
+		if ( gEngfuncs.CheckParm ("-noforcemspd", NULL ) )
 			newmouseparms[2] = originalmouseparms[2];
 
-		if ( gEngfuncs.CheckParm ("-noforcemaccel", NULL ) ) 
+		if ( gEngfuncs.CheckParm ("-noforcemaccel", NULL ) )
 		{
 			newmouseparms[0] = originalmouseparms[0];
 			newmouseparms[1] = originalmouseparms[1];
 		}
 
-		if ( gEngfuncs.CheckParm ("-noforcemparms", NULL ) ) 
+		if ( gEngfuncs.CheckParm ("-noforcemparms", NULL ) )
 		{
 			newmouseparms[0] = originalmouseparms[0];
 			newmouseparms[1] = originalmouseparms[1];
@@ -234,7 +236,7 @@ void IN_StartupMouse (void)
 		}
 	}
 #endif
-	
+
 	mouse_buttons = MOUSE_BUTTON_COUNT;
 }
 
@@ -278,9 +280,10 @@ IN_ResetRelativeMouseState
 */
 void IN_ResetRelativeMouseState(void)
 {
+    s_relativeMotion.Reset();
     SDL_PumpEvents();
     int deltaX, deltaY;
-    SDL_GetRelativeMouseState(&deltaX, &deltaY);
+    cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
 }
 
 /*
@@ -309,16 +312,16 @@ void CL_DLLEXPORT IN_MouseEvent (int mstate)
 		{
 			gEngfuncs.Key_Event (K_MOUSE1 + i, 0);
 		}
-	}	
-	
+	}
+
 	mouse_oldbuttonstate = mstate;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Allows modulation of mouse scaling/senstivity value and application
 //  of custom algorithms.
-// Input  : *x - 
-//			*y - 
+// Input  : *x -
+//			*y -
 //-----------------------------------------------------------------------------
 void IN_ScaleMouse( float *x, float *y )
 {
@@ -329,34 +332,34 @@ void IN_ScaleMouse( float *x, float *y )
 	float mouse_senstivity = ( gHUD.GetSensitivity() != 0 ) ? gHUD.GetSensitivity() : sensitivity->value;
 
 	// Using special accleration values
-	if ( m_customaccel->value != 0 ) 
-	{ 
+	if ( m_customaccel->value != 0 )
+	{
 		float raw_mouse_movement_distance = sqrt( mx * mx + my * my );
 		float acceleration_scale = m_customaccel_scale->value;
 		float accelerated_sensitivity_max = m_customaccel_max->value;
 		float accelerated_sensitivity_exponent = m_customaccel_exponent->value;
 		float accelerated_sensitivity = ( (float)pow( raw_mouse_movement_distance, accelerated_sensitivity_exponent ) * acceleration_scale + mouse_senstivity );
 
-		if ( accelerated_sensitivity_max > 0.0001f && 
+		if ( accelerated_sensitivity_max > 0.0001f &&
 			accelerated_sensitivity > accelerated_sensitivity_max )
 		{
 			accelerated_sensitivity = accelerated_sensitivity_max;
 		}
 
-		*x *= accelerated_sensitivity; 
-		*y *= accelerated_sensitivity; 
+		*x *= accelerated_sensitivity;
+		*y *= accelerated_sensitivity;
 
 		// Further re-scale by yaw and pitch magnitude if user requests alternate mode 2
 		// This means that they will need to up their value for m_customaccel_scale greatly (>40x) since m_pitch/yaw default
 		//  to 0.022
 		if ( m_customaccel->value == 2 )
-		{ 
-			*x *= m_yaw->value; 
-			*y *= m_pitch->value; 
-		} 
+		{
+			*x *= m_yaw->value;
+			*y *= m_pitch->value;
+		}
 	}
 	else
-	{ 
+	{
 		// Just apply the default
 		*x *= mouse_senstivity;
 		*y *= mouse_senstivity;
@@ -380,17 +383,17 @@ void IN_MouseMove ( float frametime, usercmd_t *cmd)
 		V_StopPitchDrift ();
 	}
 
-	//jjb - this disbles normal mouse control if the user is trying to 
+	//jjb - this disbles normal mouse control if the user is trying to
 	//      move the camera, or if the mouse cursor is visible or if we're in intermission
 	if ( !iMouseInUse && !gHUD.m_iIntermission && !g_iVisibleMouse )
 	{
 		int deltaX, deltaY;
-		SDL_GetRelativeMouseState( &deltaX, &deltaY );
-		current_pos.x = deltaX;
-		current_pos.y = deltaY;	
+		cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
+		current_pos.x = deltaX + mx_accum;
+		current_pos.y = deltaY + my_accum;
 		mx = deltaX + mx_accum;
 		my = deltaY + my_accum;
-		
+
 		mx_accum = 0;
 		my_accum = 0;
 
@@ -472,12 +475,12 @@ void CL_DLLEXPORT IN_Accumulate (void)
 	    if (mouseactive)
 	    {
 			int deltaX, deltaY;
-			SDL_GetRelativeMouseState( &deltaX, &deltaY );
+			cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
 			mx_accum += deltaX;
-			my_accum += deltaY;	
+			my_accum += deltaY;
 			// force the mouse to the center, so there's room to move
 			IN_ResetMouse();
-			
+
 		}
 	}
 
@@ -490,6 +493,7 @@ IN_ClearStates
 */
 void CL_DLLEXPORT IN_ClearStates (void)
 {
+    s_relativeMotion.Reset();
 	if ( !mouseactive )
 		return;
 
@@ -498,45 +502,57 @@ void CL_DLLEXPORT IN_ClearStates (void)
 	mouse_oldbuttonstate = 0;
 }
 
-/* 
-=============== 
-IN_StartupJoystick 
-=============== 
-*/  
-void IN_StartupJoystick (void) 
-{ 
+/*
+===============
+IN_StartupJoystick
+===============
+*/
+void IN_StartupJoystick (void)
+{
 	// abort startup if user requests no joystick
-	if ( gEngfuncs.CheckParm ("-nojoy", NULL ) ) 
-		return; 
-	
+	if ( gEngfuncs.CheckParm ("-nojoy", NULL ) )
+		return;
+
 	// assume no joystick
-	joy_avail = 0; 
-	
-	int nJoysticks = SDL_NumJoysticks();
+	joy_avail = 0;
+
+	if (s_pJoystick && !SDL_GamepadConnected(s_pJoystick)) {
+        for (int button = 0; button < cse::LegacyGamepadButtonCount; ++button) {
+            if (joy_oldbuttonstate & (1u << button)) {
+                gEngfuncs.Key_Event((button < 4 ? K_JOY1 : K_AUX1) + button, 0);
+            }
+        }
+        SDL_CloseGamepad(s_pJoystick);
+        s_pJoystick = nullptr;
+        joy_oldbuttonstate = 0;
+        joy_avail = 0;
+    }
+    int nJoysticks = 0;
+    SDL_JoystickID* joystickIds = SDL_GetGamepads(&nJoysticks);
 	if ( nJoysticks > 0 )
 	{
 		for ( int i = 0; i < nJoysticks; i++ )
 		{
-			if ( SDL_IsGameController( i ) )
+			if ( SDL_IsGamepad( joystickIds[i] ) )
 			{
-				s_pJoystick = SDL_GameControllerOpen( i );
+				s_pJoystick = SDL_OpenGamepad( joystickIds[i] );
 				if ( s_pJoystick )
 				{
 					//save the joystick's number of buttons and POV status
-					joy_numbuttons = SDL_CONTROLLER_BUTTON_MAX;
+					joy_numbuttons = cse::LegacyGamepadButtonCount;
 					joy_haspov = 0;
-					
+
 					// old button and POV states default to no buttons pressed
 					joy_oldbuttonstate = joy_oldpovstate = 0;
-					
+
 					// mark the joystick as available and advanced initialization not completed
 					// this is needed as cvars are not available during initialization
-					gEngfuncs.Con_Printf ("joystick found\n\n", SDL_GameControllerName(s_pJoystick)); 
-					joy_avail = 1; 
+					gEngfuncs.Con_Printf ("joystick found\n\n", SDL_GetGamepadName(s_pJoystick));
+					joy_avail = 1;
 					joy_advancedinit = 0;
 					break;
 				}
-				
+
 			}
 		}
 	}
@@ -544,6 +560,7 @@ void IN_StartupJoystick (void)
 	{
 		gEngfuncs.Con_DPrintf ("joystick not found -- driver not present\n\n");
 	}
+    SDL_free(joystickIds);
 }
 
 int RawValuePointer (int axis)
@@ -552,14 +569,14 @@ int RawValuePointer (int axis)
 	{
 	default:
 	case JOY_AXIS_X:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_LEFTX );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX );
 	case JOY_AXIS_Y:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_LEFTY );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY );
 	case JOY_AXIS_Z:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_RIGHTX );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX );
 	case JOY_AXIS_R:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_RIGHTY );
-		
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY );
+
 	}
 }
 
@@ -640,18 +657,18 @@ void IN_Commands (void)
 	}
 
 	DWORD	buttonstate, povstate;
-	
+
 	// loop through the joystick buttons
 	// key a joystick event or auxillary event for higher number buttons for each state change
 	buttonstate = 0;
-	for ( i = 0; i < SDL_CONTROLLER_BUTTON_MAX; i++ )
+	for ( i = 0; i < cse::LegacyGamepadButtonCount; i++ )
 	{
-		if ( SDL_GameControllerGetButton( s_pJoystick, (SDL_GameControllerButton)i ) )
+		if ( SDL_GetGamepadButton( s_pJoystick, cse::LegacyGamepadButtons[i] ) )
 		{
 			buttonstate |= 1<<i;
 		}
 	}
-	
+
 	for (i = 0; i < JOY_MAX_AXES; i++)
 	{
 		pdwRawValue[i] = RawValuePointer(i);
@@ -697,14 +714,14 @@ void IN_Commands (void)
 }
 
 
-/* 
-=============== 
+/*
+===============
 IN_ReadJoystick
-=============== 
-*/  
+===============
+*/
 int IN_ReadJoystick (void)
 {
-	SDL_JoystickUpdate();
+	SDL_UpdateJoysticks();
 	return 1;
 }
 
@@ -735,9 +752,9 @@ void IN_JoyMove ( float frametime, usercmd_t *cmd )
 	// verify joystick is available and that the user wants to use it
 	if (!joy_avail || !in_joystick->value)
 	{
-		return; 
+		return;
 	}
- 
+
 	// collect the joystick data, if possible
 	if (IN_ReadJoystick () != 1)
 	{
@@ -773,7 +790,7 @@ void IN_JoyMove ( float frametime, usercmd_t *cmd )
 			}
 		}
 
-		// convert range from -32768..32767 to -1..1 
+		// convert range from -32768..32767 to -1..1
 		fAxisValue /= 32768.0;
 
 		switch (dwAxisMap[i])
@@ -783,7 +800,7 @@ void IN_JoyMove ( float frametime, usercmd_t *cmd )
 			{
 				// user wants forward control to become look control
 				if (fabs(fAxisValue) > joy_pitchthreshold->value)
-				{		
+				{
 					// if mouse invert is on, invert the joystick pitch value
 					// only absolute control support here (joy_advanced is 0)
 					if (m_pitch->value < 0.0)

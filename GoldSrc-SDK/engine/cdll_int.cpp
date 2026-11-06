@@ -1,3 +1,4 @@
+#include "../common/sdl3_input.h"
 #include "engine_apiproxy.h"
 #include "client.h"
 #include "common.h"
@@ -29,7 +30,7 @@
 #include "interface.h"
 #include "ivideomode.h"
 #include "enginecallbacks.h"
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 #include "../common/event_flags.h"
 #include "../common/entity_types.h"
 #include "../common/triangleapi.h"
@@ -1027,7 +1028,7 @@ static void SDL_AdjustMousePosition( int* x, int* y )
 void hudGetMousePosition( int* mx, int* my )
 {
 	g_engdstAddrs.GetMousePosition( &mx, &my );
-	SDL_GetMouseState( mx, my );
+	cse::GetIntegerMousePosition( mx, my );
 	SDL_AdjustMousePosition( mx, my );
 }
 
@@ -1039,7 +1040,7 @@ void SDL_GetMousePos( POINT* ppt )
 
 	x = (int*)&ppt->x;
 	y = (int*)&ppt->y;
-	SDL_GetMouseState( x, y );
+	cse::GetIntegerMousePosition( x, y );
 	SDL_AdjustMousePosition( x, y );
 }
 

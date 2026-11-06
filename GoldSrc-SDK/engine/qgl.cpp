@@ -1,8 +1,8 @@
 #include "filesystem.h"
 #include "const.h"
-#include "../external/SDL2/SDL_opengl.h"
+#include <SDL3/SDL_opengl.h>
 #include "glquake.h"
-#include "../external/SDL2/SDL_video.h"
+#include <SDL3/SDL_video.h>
 
 #include <cstdio>
 #include <ctime>

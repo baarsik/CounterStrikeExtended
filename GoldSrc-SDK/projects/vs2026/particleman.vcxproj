@@ -30,6 +30,8 @@
     <TargetName>particleman</TargetName>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup><CseSdl3Shared>false</CseSdl3Shared></PropertyGroup>
+  <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -98,4 +100,5 @@
     <None Include="particleman.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="SDL3.targets" />
 </Project>

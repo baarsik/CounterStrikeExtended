@@ -32,6 +32,8 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisSucceededFile>$(IntDir)$(TargetName).lastcodeanalysissucceeded</CodeAnalysisSucceededFile>
   </PropertyGroup>
+  <PropertyGroup><CseSdl3Shared>true</CseSdl3Shared></PropertyGroup>
+  <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -47,9 +49,9 @@
       <ProcessorNumber>4</ProcessorNumber>
       <EnablePREfast Condition="'$(RunCodeAnalysis)'=='true'">true</EnablePREfast>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
-      <AdditionalOptions>/external:I"$(ProjectDir)..\..\external\SDL2" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;GAMEUI_DLL;CLIENT_DLL;UTL_ENGINE_ASSERTS;_ITERATOR_DEBUG_LEVEL=0;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\GameUI;$(ProjectDir)..\..\cstrike\common;$(ProjectDir)..\..\cstrike\public;$(ProjectDir)..\..\vgui2\controls;$(ProjectDir)..\..\cl_dll;$(ProjectDir)..\..\engine;$(ProjectDir)..\..\vgui2\src\public;$(ProjectDir)..\..\common;$(ProjectDir)..\..\public;$(ProjectDir)..\..\pm_shared;$(ProjectDir)..\..\game_shared;$(ProjectDir)..\..\external;$(ProjectDir)..\..\external\SDL2;$(ProjectDir)..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\GameUI;$(ProjectDir)..\..\cstrike\common;$(ProjectDir)..\..\cstrike\public;$(ProjectDir)..\..\vgui2\controls;$(ProjectDir)..\..\cl_dll;$(ProjectDir)..\..\engine;$(ProjectDir)..\..\vgui2\src\public;$(ProjectDir)..\..\common;$(ProjectDir)..\..\public;$(ProjectDir)..\..\pm_shared;$(ProjectDir)..\..\game_shared;$(ProjectDir)..\..\external;$(ProjectDir)..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -58,7 +60,7 @@
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>$(ProjectDir)GameUI.def</ModuleDefinitionFile>
-      <AdditionalDependencies>$(ProjectDir)..\..\lib\public\SDL2.lib;$(ProjectDir)..\..\lib\public\steam_api.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\..\lib\public\steam_api.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <OptimizeReferences>true</OptimizeReferences>
       <LargeAddressAware>true</LargeAddressAware>
@@ -372,4 +374,5 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="SDL3.targets" />
 </Project>

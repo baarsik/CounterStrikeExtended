@@ -11,7 +11,7 @@
 #include "cmd.h"
 #include "gl_model.h"
 #include "vgui_intwrap2.h"
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 #include "../common/const.h"
 #include "mem.h"
 
@@ -461,7 +461,7 @@ void S_StartDynamicSound(
 	{
 		if ( S_AlterChannel( entnum, entchannel, sfx, channelVolume, pitch, flags ) || ( flags & SND_STOP ) )
 			return;
-	// fall through - if we're not trying to stop the sound, 
+	// fall through - if we're not trying to stop the sound,
 	// and we didn't find it (it's not playing), go ahead and start it up
 	}
 	if ( pitch == 0 )

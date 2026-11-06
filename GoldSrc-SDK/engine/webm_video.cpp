@@ -5,9 +5,9 @@
 #include "sound.h"
 #include "sys.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 #ifndef SW_RENDERER
-#include "../external/SDL2/SDL_opengl.h"
+#include <SDL3/SDL_opengl.h>
 #endif
 
 #include <webm/mkvparser/mkvparser.h>
@@ -1421,11 +1421,11 @@ static void StartInterfaceSound( const char* name, bool reportMissing )
 
 static bool PlaybackKey( const SDL_Event& event )
 {
-	if ( event.type == SDL_QUIT )
+	if ( event.type == SDL_EVENT_QUIT )
 		return true;
-	if ( event.type != SDL_KEYDOWN )
+	if ( event.type != SDL_EVENT_KEY_DOWN )
 		return false;
-	const SDL_Keycode key = event.key.keysym.sym;
+	const SDL_Keycode key = event.key.key;
 	return key == SDLK_RETURN || key == SDLK_ESCAPE || key == SDLK_SPACE;
 }
 
@@ -1447,18 +1447,16 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 
 	int nWindowW = 0;
 	int nWindowH = 0;
-	SDL_GetWindowSize( pSDLWindow, &nWindowW, &nWindowH );
+	SDL_GetWindowSizeInPixels( pSDLWindow, &nWindowW, &nWindowH );
 #ifdef SW_RENDERER
 	SDL_Renderer* renderer = SDL_GetRenderer( pSDLWindow );
 	bool createdRenderer = false;
 	if ( !renderer )
 	{
-		renderer = SDL_CreateRenderer( pSDLWindow, -1, 0 );
+		renderer = SDL_CreateRenderer( pSDLWindow, nullptr );
 		createdRenderer = true;
 	}
-	const char* previousScale = SDL_GetHint( SDL_HINT_RENDER_SCALE_QUALITY );
-	SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "2" );
-	SDL_Texture* texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_TARGET,
+	SDL_Texture* texture = SDL_CreateTexture( renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
 		demuxer.GetWidth(), demuxer.GetHeight() );
 #else
 	GLuint texture = 0;
@@ -1550,7 +1548,9 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 	const int dstX = nWindowW / 2 - nVideoW / 2;
 	const int dstY = centerSpan / 2 - nVideoH / 2;
 #ifdef SW_RENDERER
-	SDL_Rect destination = { dstX, dstY, nVideoW, nVideoH };
+	SDL_FRect destination = { static_cast<float>(dstX), static_cast<float>(dstY),
+        static_cast<float>(nVideoW), static_cast<float>(nVideoH) };
+    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
 	SDL_SetRenderDrawColor( renderer, 0, 0, 0, 0 );
 	SDL_RenderClear( renderer );
 	SDL_RenderPresent( renderer );
@@ -1647,7 +1647,7 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 #ifdef SW_RENDERER
 						SDL_UpdateTexture( texture, NULL, pOutFrame, 4 * imageW );
 						SDL_RenderClear( renderer );
-						SDL_RenderCopy( renderer, texture, NULL, &destination );
+						SDL_RenderTexture( renderer, texture, NULL, &destination );
 						SDL_RenderPresent( renderer );
 #else
 						if ( bFirstFrame )
@@ -1721,7 +1721,6 @@ void WebMPlayer::PlayVideo( const char* szPath, SDL_Window* pSDLWindow )
 
 playback_done:
 #ifdef SW_RENDERER
-	SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, previousScale );
 	SDL_DestroyTexture( texture );
 	if ( createdRenderer )
 		SDL_DestroyRenderer( renderer );

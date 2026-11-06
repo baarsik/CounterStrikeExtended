@@ -33,12 +33,15 @@
   <ItemGroup>
     <None Include="cstrike_cdll.def" />
   </ItemGroup>
+  <PropertyGroup><CseSdl3Shared>true</CseSdl3Shared></PropertyGroup>
+  <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>$([MSBuild]::Unescape($([System.String]::Copy(';%(PreprocessorDefinitions);').Replace(';NDEBUG;', ';').Trim(';'))));UTL_ENGINE_ASSERTS</PreprocessorDefinitions>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
-      <AdditionalOptions>/external:I"$(ProjectDir)..\..\external\SDL2" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="SDL3.targets" />
 </Project>

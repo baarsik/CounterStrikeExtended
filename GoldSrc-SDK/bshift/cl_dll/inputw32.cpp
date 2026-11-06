@@ -1,6 +1,8 @@
+#include "../../common/sdl3_input.h"
+static cse::FractionalMotion s_relativeMotion;
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //=============================================================================
@@ -22,8 +24,8 @@
 #include "Exports.h"
 #include "vgui/ISurface.h"
 
-#include <SDL2/SDL_mouse.h>
-#include <SDL2/SDL_gamecontroller.h>
+#include <SDL3/SDL_mouse.h>
+#include <SDL3/SDL_gamepad.h>
 
 #define MOUSE_BUTTON_COUNT 5
 
@@ -81,7 +83,7 @@ DWORD pdwRawValue[JOY_MAX_AXES];
 DWORD joy_oldbuttonstate, joy_oldpovstate;
 int joy_id;
 DWORD joy_numbuttons;
-SDL_GameController* s_pJoystick;
+SDL_Gamepad* s_pJoystick;
 int joy_avail, joy_advancedinit, joy_haspov;
 
 // none of these cvars are saved over a session
@@ -205,8 +207,8 @@ void CL_DLLEXPORT IN_MouseEvent( int mstate )
 //-----------------------------------------------------------------------------
 // Purpose: Allows modulation of mouse scaling/senstivity value and application
 //  of custom algorithms.
-// Input  : *x - 
-//			*y - 
+// Input  : *x -
+//			*y -
 //-----------------------------------------------------------------------------
 void IN_ScaleMouse( float* x, float* y )
 {
@@ -254,7 +256,7 @@ void IN_MouseMove( float, usercmd_t* cmd )
 	if ( !iMouseInUse && !gHUD.m_iIntermission && !vgui2::surface()->IsCursorVisible() )
 	{
 		int deltaX, deltaY;
-		SDL_GetRelativeMouseState( &deltaX, &deltaY );
+		cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
 		current_pos.x = deltaX;
 		current_pos.y = deltaY;
 		int mx = deltaX + mx_accum;
@@ -307,7 +309,7 @@ void CL_DLLEXPORT IN_Accumulate()
 	if ( !iMouseInUse && !vgui2::surface()->IsCursorVisible() && mouseactive )
 	{
 		int deltaX, deltaY;
-		SDL_GetRelativeMouseState( &deltaX, &deltaY );
+		cse::ReadRelativeMotion(s_relativeMotion,  &deltaX, &deltaY );
 		mx_accum += deltaX;
 		my_accum += deltaY;
 		// force the mouse to the center, so there's room to move
@@ -330,17 +332,19 @@ void IN_StartupJoystick()
 	if ( gEngfuncs.CheckParm( "-nojoy", NULL ) )
 		return;
 	joy_avail = 0;
-	int count = SDL_NumJoysticks();
+	int count = 0;
+    SDL_JoystickID* joystickIds = SDL_GetGamepads(&count);
 	if ( count <= 0 )
 	{
+        SDL_free(joystickIds);
 		gEngfuncs.Con_DPrintf( "joystick not found -- driver not present\n\n" );
 		return;
 	}
 	for ( int i = 0; i < count; i++ )
 	{
-		if ( SDL_IsGameController( i ) )
+		if ( SDL_IsGamepad( joystickIds[i] ) )
 		{
-			s_pJoystick = SDL_GameControllerOpen( i );
+			s_pJoystick = SDL_OpenGamepad( joystickIds[i] );
 			if ( s_pJoystick )
 			{
 				joy_numbuttons = JOY_BUTTON_COUNT;
@@ -351,13 +355,14 @@ void IN_StartupJoystick()
 
 				// mark the joystick as available and advanced initialization not completed
 				// this is needed as cvars are not available during initialization
-				gEngfuncs.Con_Printf( "joystick found\n\n", SDL_GameControllerName( s_pJoystick ) );
+				gEngfuncs.Con_Printf( "joystick found\n\n", SDL_GetGamepadName( s_pJoystick ) );
 				joy_avail = 1;
 				joy_advancedinit = 0;
 				break;
 			}
 		}
 	}
+    SDL_free(joystickIds);
 }
 
 DWORD RawValuePointer( int axis )
@@ -365,13 +370,13 @@ DWORD RawValuePointer( int axis )
 	switch ( axis )
 	{
 	case JOY_AXIS_Y:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_LEFTY );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTY );
 	case JOY_AXIS_Z:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_RIGHTX );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTX );
 	case JOY_AXIS_R:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_RIGHTY );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_RIGHTY );
 	default:
-		return SDL_GameControllerGetAxis( s_pJoystick, SDL_CONTROLLER_AXIS_LEFTX );
+		return SDL_GetGamepadAxis( s_pJoystick, SDL_GAMEPAD_AXIS_LEFTX );
 	}
 }
 
@@ -425,7 +430,7 @@ void IN_Commands()
 	DWORD buttonstate = 0;
 	for ( int i = 0; i < JOY_BUTTON_COUNT; i++ )
 	{
-		if ( SDL_GameControllerGetButton( s_pJoystick, (SDL_GameControllerButton)i ) )
+		if ( SDL_GetGamepadButton( s_pJoystick, cse::LegacyGamepadButtons[i] ) )
 			buttonstate |= 1 << i;
 	}
 	for ( int i = 0; i < JOY_MAX_AXES; i++ )
@@ -452,7 +457,7 @@ void IN_Commands()
 
 int IN_ReadJoystick()
 {
-	SDL_JoystickUpdate();
+	SDL_UpdateJoysticks();
 	return 1;
 }
 

@@ -1201,10 +1201,19 @@
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\",
           "TargetName": "GameUI",
           "LinkIncremental": "false",
-          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\GameUI.lastcodeanalysissucceeded"
+          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\GameUI.lastcodeanalysissucceeded",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -1218,20 +1227,19 @@
             "ProcessorNumber": "4",
             "EnablePREfast": "true",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "PreprocessorDefinitions": "_DEBUG;WIN32;_WINDOWS;GAMEUI_DLL;CLIENT_DLL;UTL_ENGINE_ASSERTS;_ITERATOR_DEBUG_LEVEL=0;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;",
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL"
           },
           "Link": {
+            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;user32.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "SubSystem": "Windows",
             "TargetMachine": "MachineX86",
             "GenerateDebugInformation": "true",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\GameUI.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\GameUI.lib",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/GameUI.def",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\SDL2.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;user32.lib;",
             "TreatLinkerWarningAsErrors": "true",
             "OptimizeReferences": "true",
             "LargeAddressAware": "true"
@@ -1826,7 +1834,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/ObjectList.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private\\HLTV\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private\\HLTV\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -1848,7 +1856,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/game_shared/bot/bot_profile.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -1860,7 +1868,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/DirectorCmd.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -1872,14 +1880,14 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/common.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -1933,10 +1941,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       },
       "Release": {
         "properties": {
@@ -1962,10 +1989,19 @@
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\",
           "TargetName": "GameUI",
           "LinkIncremental": "false",
-          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\GameUI.lastcodeanalysissucceeded"
+          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\GameUI.lastcodeanalysissucceeded",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -1979,21 +2015,20 @@
             "ProcessorNumber": "4",
             "EnablePREfast": "true",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "PreprocessorDefinitions": "WIN32;_WINDOWS;GAMEUI_DLL;CLIENT_DLL;UTL_ENGINE_ASSERTS;_ITERATOR_DEBUG_LEVEL=0;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;",
             "Optimization": "MaxSpeed",
             "RuntimeLibrary": "MultiThreadedDLL",
             "FunctionLevelLinking": "true"
           },
           "Link": {
+            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;user32.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "SubSystem": "Windows",
             "TargetMachine": "MachineX86",
             "GenerateDebugInformation": "true",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\GameUI.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\GameUI.lib",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/GameUI.def",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\SDL2.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;user32.lib;",
             "TreatLinkerWarningAsErrors": "true",
             "OptimizeReferences": "true",
             "LargeAddressAware": "true",
@@ -2584,7 +2619,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/ObjectList.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private\\HLTV\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private\\HLTV\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -2606,7 +2641,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/game_shared/bot/bot_profile.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -2618,7 +2653,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/DirectorCmd.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -2630,14 +2665,14 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/common.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2;${CSE_SDK_DIR}/projects/vs2026/..\\..;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\DemoPlayer\\private;${CSE_SDK_DIR}/projects/vs2026/..\\..\\GameUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -2691,10 +2726,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       }
     }
   },
@@ -4224,7 +4278,15 @@
           "UseDebugLibraries": "true",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Debug\\cstrike\\cl_dlls\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\",
-          "LinkIncremental": "false"
+          "LinkIncremental": "false",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
@@ -4239,11 +4301,11 @@
             "DebugInformationFormat": "ProgramDatabase",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\client-compile.pdb",
             "PreprocessorDefinitions": "CLIENT_DLL;HL_DLL;_DEBUG;WIN32;_WINDOWS;CLIENT_WEAPONS;_ITERATOR_DEBUG_LEVEL=0;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;UTL_ENGINE_ASSERTS",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\steamworks;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\hostage;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\hl;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\VGUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/external/SDL3/include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\steamworks;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\hostage;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\hl;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\VGUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;",
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" "
+            "AdditionalOptions": ""
           },
           "Link": {
             "SubSystem": "Windows",
@@ -4252,7 +4314,7 @@
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\client.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\client.lib",
             "TreatLinkerWarningAsErrors": "true",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\SDL2.lib;"
+            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;"
           }
         },
         "items": [
@@ -5623,10 +5685,29 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       },
       "Release": {
         "properties": {
@@ -5654,7 +5735,15 @@
           "UseDebugLibraries": "false",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Release\\cstrike\\cl_dlls\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Release\\",
-          "LinkIncremental": "false"
+          "LinkIncremental": "false",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
@@ -5669,13 +5758,13 @@
             "DebugInformationFormat": "ProgramDatabase",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Release\\client-compile.pdb",
             "PreprocessorDefinitions": "CLIENT_DLL;HL_DLL;WIN32;_WINDOWS;CLIENT_WEAPONS;_ITERATOR_DEBUG_LEVEL=0;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;UTL_ENGINE_ASSERTS",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\steamworks;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\hostage;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\hl;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\VGUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/external/SDL3/include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\steamworks;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\dlls\\hostage;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\hl;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\cl_dll\\VGUI;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\vgui;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\vgui2\\game_controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\game_shared\\bot;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;",
             "Optimization": "MaxSpeed",
             "FunctionLevelLinking": "true",
             "IntrinsicFunctions": "true",
             "RuntimeLibrary": "MultiThreadedDLL",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" "
+            "AdditionalOptions": ""
           },
           "Link": {
             "SubSystem": "Windows",
@@ -5686,7 +5775,7 @@
             "TreatLinkerWarningAsErrors": "true",
             "EnableCOMDATFolding": "true",
             "OptimizeReferences": "true",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\SDL2.lib;"
+            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;"
           }
         },
         "items": [
@@ -7057,10 +7146,29 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       }
     }
   },
@@ -9443,24 +9551,32 @@
           "LinkIncremental": "true",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Debug\\valve\\cl_dlls\\",
           "TargetName": "client",
-          "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\"
+          "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "..\\..\\dlls;..\\..\\cl_dll;..\\..\\public;..\\..\\common;..\\..\\pm_shared;..\\..\\engine;..\\..\\utils\\vgui\\include;..\\..\\game_shared;..\\..\\external;${CSE_SDK_DIR}/external/SDL3/include;",
             "PrecompiledHeader": "",
             "WarningLevel": "Level3",
             "Optimization": "Disabled",
             "PreprocessorDefinitions": "WIN32;_DEBUG;_WINDOWS;CLIENT_DLL;CLIENT_WEAPONS;HL_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
             "RuntimeLibrary": "MultiThreadedDebug",
-            "AdditionalIncludeDirectories": "..\\..\\dlls;..\\..\\cl_dll;..\\..\\public;..\\..\\common;..\\..\\pm_shared;..\\..\\engine;..\\..\\utils\\vgui\\include;..\\..\\game_shared;..\\..\\external;",
             "RuntimeTypeInfo": "true",
             "MultiProcessorCompilation": "true",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client-compile.pdb"
           },
           "Link": {
+            "AdditionalDependencies": "wsock32.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "SubSystem": "Windows",
             "GenerateDebugInformation": "true",
-            "AdditionalDependencies": "wsock32.lib;..\\..\\lib\\public\\sdl2.lib;",
             "BaseAddress": "",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client.lib"
@@ -9910,10 +10026,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       },
       "Release": {
         "properties": {
@@ -9938,10 +10073,19 @@
           "LinkIncremental": "false",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Release\\valve\\cl_dlls\\",
           "TargetName": "client",
-          "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\"
+          "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "..\\..\\dlls;..\\..\\cl_dll;..\\..\\public;..\\..\\common;..\\..\\pm_shared;..\\..\\engine;..\\..\\utils\\vgui\\include;..\\..\\game_shared;..\\..\\external;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level3",
             "PrecompiledHeader": "",
             "Optimization": "MaxSpeed",
@@ -9949,17 +10093,16 @@
             "IntrinsicFunctions": "true",
             "PreprocessorDefinitions": "WIN32;NDEBUG;_WINDOWS;CLIENT_DLL;CLIENT_WEAPONS;HL_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
             "RuntimeLibrary": "MultiThreaded",
-            "AdditionalIncludeDirectories": "..\\..\\dlls;..\\..\\cl_dll;..\\..\\public;..\\..\\common;..\\..\\pm_shared;..\\..\\engine;..\\..\\utils\\vgui\\include;..\\..\\game_shared;..\\..\\external;",
             "RuntimeTypeInfo": "true",
             "MultiProcessorCompilation": "true",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client-compile.pdb"
           },
           "Link": {
+            "AdditionalDependencies": "wsock32.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "SubSystem": "Windows",
             "GenerateDebugInformation": "true",
             "EnableCOMDATFolding": "true",
             "OptimizeReferences": "true",
-            "AdditionalDependencies": "wsock32.lib;..\\..\\lib\\public\\sdl2.lib;",
             "BaseAddress": "",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client.lib"
@@ -10409,10 +10552,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       }
     }
   },
@@ -11606,10 +11768,19 @@
           "TargetName": "hlds",
           "LinkIncremental": "false",
           "GenerateManifest": "false",
-          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Debug\\hlds.lastcodeanalysissucceeded"
+          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Debug\\hlds.lastcodeanalysissucceeded",
+          "CseSdl3Shared": "false",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -11623,9 +11794,8 @@
             "ProcessorNumber": "4",
             "EnablePREfast": "true",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "PreprocessorDefinitions": "_DEBUG;WIN32;_WINDOWS;CLIENT_DLL;HLDS_LAUNCHER;UTL_ENGINE_ASSERTS;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..;",
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL"
           },
@@ -11943,10 +12113,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": false,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": null
+        }
       },
       "Release": {
         "properties": {
@@ -11973,10 +12162,19 @@
           "TargetName": "hlds",
           "LinkIncremental": "false",
           "GenerateManifest": "false",
-          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Release\\hlds.lastcodeanalysissucceeded"
+          "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Release\\hlds.lastcodeanalysissucceeded",
+          "CseSdl3Shared": "false",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -11990,9 +12188,8 @@
             "ProcessorNumber": "4",
             "EnablePREfast": "true",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "PreprocessorDefinitions": "WIN32;_WINDOWS;CLIENT_DLL;HLDS_LAUNCHER;UTL_ENGINE_ASSERTS;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cstrike\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\controls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\vgui2\\src\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..;",
             "Optimization": "MaxSpeed",
             "FunctionLevelLinking": "true",
             "RuntimeLibrary": "MultiThreadedDLL"
@@ -12311,10 +12508,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": false,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": null
+        }
       }
     }
   },
@@ -12345,16 +12561,24 @@
           "GameRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Debug\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\",
-          "TargetName": "hw"
+          "TargetName": "hw",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
             "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
             "MultiProcessorCompilation": "true",
@@ -12363,12 +12587,12 @@
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" "
+            "AdditionalOptions": ""
           },
           "Link": {
+            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\miles;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
-            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;SDL2.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\hw.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\hw.lib",
             "GenerateMapFile": "true",
@@ -13250,7 +13474,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -13291,10 +13515,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       },
       "Release": {
         "properties": {
@@ -13320,16 +13563,24 @@
           "GameRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\",
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Release\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\",
-          "TargetName": "hw"
+          "TargetName": "hw",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
             "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
             "MultiProcessorCompilation": "true",
@@ -13339,12 +13590,12 @@
             "FunctionLevelLinking": "true",
             "RuntimeLibrary": "MultiThreadedDLL",
             "DisableAnalyzeExternal": "true",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\SDL2\" "
+            "AdditionalOptions": ""
           },
           "Link": {
+            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\miles;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
-            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;SDL2.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\hw.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\hw.lib",
             "GenerateMapFile": "true",
@@ -14228,7 +14479,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -14269,10 +14520,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       }
     }
   },
@@ -14303,10 +14573,19 @@
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Debug\\valve\\cl_dlls\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Debug\\",
           "TargetName": "particleman",
-          "LinkIncremental": "false"
+          "LinkIncremental": "false",
+          "CseSdl3Shared": "false",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -14319,7 +14598,6 @@
             "MultiProcessorCompilation": "true",
             "ProcessorNumber": "4",
             "PreprocessorDefinitions": "_DEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;",
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL"
           },
@@ -14364,7 +14642,7 @@
             "path": "${CSE_SDK_DIR}/public/interface.cpp",
             "metadata": {
               "PreprocessorDefinitions": "BASEMONSTER_H;_DEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
               "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\cbase.h;"
             }
           }
@@ -14383,10 +14661,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": false,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": null
+        }
       },
       "Release": {
         "properties": {
@@ -14411,10 +14708,19 @@
           "OutDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Release\\valve\\cl_dlls\\",
           "IntDir": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Release\\",
           "TargetName": "particleman",
-          "LinkIncremental": "false"
+          "LinkIncremental": "false",
+          "CseSdl3Shared": "false",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
@@ -14427,7 +14733,6 @@
             "MultiProcessorCompilation": "true",
             "ProcessorNumber": "4",
             "PreprocessorDefinitions": "NDEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;",
             "Optimization": "MaxSpeed",
             "RuntimeLibrary": "MultiThreadedDLL",
             "FunctionLevelLinking": "true"
@@ -14474,7 +14779,7 @@
             "path": "${CSE_SDK_DIR}/public/interface.cpp",
             "metadata": {
               "PreprocessorDefinitions": "BASEMONSTER_H;NDEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
               "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\cbase.h;"
             }
           }
@@ -14493,10 +14798,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": false,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": null
+        }
       }
     }
   },
@@ -14527,33 +14851,41 @@
           "GameRoot": "${CSE_SDK_DIR}/swds/..\\",
           "OutDir": "${CSE_SDK_DIR}/swds/..\\bin\\Win32\\Debug\\",
           "IntDir": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\",
-          "TargetName": "swds"
+          "TargetName": "swds",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
             "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
             "MultiProcessorCompilation": "true",
             "ProcessorNumber": "2",
             "DebugInformationFormat": "ProgramDatabase",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\swds-compile.pdb",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/swds/..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "Optimization": "Disabled",
             "RuntimeLibrary": "MultiThreadedDebugDLL",
             "DisableAnalyzeExternal": "true"
           },
           "Link": {
+            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/swds/..\\external\\miles;${CSE_SDK_DIR}/swds/..\\lib\\public;",
-            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;SDL2.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\swds.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\swds.lib",
             "GenerateMapFile": "true",
@@ -15505,7 +15837,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -15546,10 +15878,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Debug",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       },
       "Release": {
         "properties": {
@@ -15575,34 +15926,42 @@
           "GameRoot": "${CSE_SDK_DIR}/swds/..\\",
           "OutDir": "${CSE_SDK_DIR}/swds/..\\bin\\Win32\\Release\\",
           "IntDir": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\",
-          "TargetName": "swds"
+          "TargetName": "swds",
+          "CseSdl3Shared": "true",
+          "CseSdl3Version": "3.4.20",
+          "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
+          "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
+          "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
+          "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
+          "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
         },
         "definitions": {
           "ClCompile": {
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
             "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
             "MultiProcessorCompilation": "true",
             "ProcessorNumber": "2",
             "DebugInformationFormat": "ProgramDatabase",
             "ProgramDataBaseFileName": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\swds-compile.pdb",
-            "AdditionalOptions": "/external:I\"${CSE_SDK_DIR}/swds/..\\external\\SDL2\" ",
+            "AdditionalOptions": "",
             "Optimization": "MinSpace",
             "FunctionLevelLinking": "true",
             "RuntimeLibrary": "MultiThreadedDLL",
             "DisableAnalyzeExternal": "true"
           },
           "Link": {
+            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/swds/..\\external\\miles;${CSE_SDK_DIR}/swds/..\\lib\\public;",
-            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;SDL2.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\swds.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\swds.lib",
             "GenerateMapFile": "true",
@@ -16556,7 +16915,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -16597,10 +16956,29 @@
             "evaluated": false
           },
           {
+            "path": "projects/vs2026/SDL3.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
+          },
+          {
+            "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
           }
-        ]
+        ],
+        "sdl3": {
+          "version": "3.4.20",
+          "shared": true,
+          "include_root": "${CSE_SDK_DIR}/external/SDL3/include",
+          "import_library": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/external/SDL3/lib/x86/SDL3.dll",
+          "runtime_root": "${CSE_SDK_DIR}/bin/Win32/Release",
+          "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
+          "validation_target": "CseValidateSdl3",
+          "staging_target": "CseStageSdl3"
+        }
       }
     }
   },

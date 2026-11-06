@@ -1,3 +1,4 @@
+#include "../common/sdl3_policy.h"
 // gl_vidnt.c -- NT GL vid component
 #include <windows.h>
 
@@ -6,9 +7,9 @@
 #include "common.h"
 #include "conprint.h"
 #include "sys.h"
-#include "../external/sdl2/SDL.h"
-#include "../external/SDL2/SDL_opengl.h"
-#include "../external/SDL2/SDL_syswm.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_opengl.h>
+#include <SDL3/SDL_properties.h>
 #include "glquake.h"
 #include "filesystem.h"
 #include "ivideomode.h"
@@ -331,27 +332,27 @@ void GL_Init()
 	if ( COM_CheckParm( "-glext" ) )
 		Con_DPrintf( "GL_EXTENSIONS: %s\n", gl_extensions );
 
-	if ( SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &red ) )
+	if ( !SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &red ) )
 	{
 		red = 0;
 		Con_DPrintf( "Failed to get GL RED size (%s)\n", SDL_GetError() );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_GREEN_SIZE, &green ) )
+	if ( !SDL_GL_GetAttribute( SDL_GL_GREEN_SIZE, &green ) )
 	{
 		green = 0;
 		Con_DPrintf( "Failed to get GL GREEN size (%s)\n", SDL_GetError() );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_BLUE_SIZE, &blue ) )
+	if ( !SDL_GL_GetAttribute( SDL_GL_BLUE_SIZE, &blue ) )
 	{
 		blue = 0;
 		Con_DPrintf( "Failed to get GL BLUE size (%s)\n", SDL_GetError() );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_ALPHA_SIZE, &alpha ) )
+	if ( !SDL_GL_GetAttribute( SDL_GL_ALPHA_SIZE, &alpha ) )
 	{
 		alpha = 0;
 		Con_DPrintf( "Failed to get GL ALPHA size (%s)\n", SDL_GetError() );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_DEPTH_SIZE, &depth ) )
+	if ( !SDL_GL_GetAttribute( SDL_GL_DEPTH_SIZE, &depth ) )
 	{
 		depth = 0;
 		Con_DPrintf( "Failed to get GL DEPTH size (%s)\n", SDL_GetError() );
@@ -420,13 +421,9 @@ extern "C" void VID_UpdateWindowVars( RECT* rect, int x, int y )
 	window_rect = *rect;
 }
 
-int GetRefreshRate()
-{
-	SDL_DisplayMode mode = {};
-
-	if ( SDL_GetCurrentDisplayMode( 0, &mode ) || mode.refresh_rate <= 1 )
-		return 60;
-	return mode.refresh_rate;
+int GetRefreshRate() {
+    const SDL_DisplayMode* mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
+    return cse::RefreshRateOrDefault(mode ? mode->refresh_rate : 0.0f);
 }
 
 void CheckArrayExtensions()
@@ -769,10 +766,10 @@ int GL_SetMode( HWND mainwindow, HDC* pmaindc, HGLRC* pbaseRC, int, const char* 
 #if defined( _WIN32 )
 	if ( gD3DMode )
 	{
-		SDL_SysWMinfo wminfo;
-		SDL_VERSION( &wminfo.version );
-		SDL_GetWindowWMInfo( (SDL_Window*)mainwindow, &wminfo );
-		*pmaindc = GetDC( wminfo.info.win.window );
+		HWND wminfo = nullptr;
+		wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window*)mainwindow),
+            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+		*pmaindc = GetDC( wminfo );
 		s_BackBufferFBO.s_hBackBufferFBO = 0;
 
 		if ( !s_bPixelFormatSet )
@@ -968,17 +965,17 @@ int GL_SetMode( HWND mainwindow, HDC* pmaindc, HGLRC* pbaseRC, int, const char* 
 		requested.w = wide;
 		requested.h = tall;
 		requested.refresh_rate = refresh;
-		if ( !SDL_GetClosestDisplayMode( 0, &requested, &mode ) )
+		if ( !SDL_GetClosestFullscreenDisplayMode( 0, &requested, &mode ) )
 			Sys_Error( "Error initializing Main frame buffer\n" );
 		Con_DPrintf( "Setting closest display mode: width:%d height:%d freq:%d format:%u\n", mode.w, mode.h,
-			mode.refresh_rate, (unsigned int)mode.format );
+			cse::RefreshRateOrDefault(mode.refresh_rate), (unsigned int)mode.format );
 
 		if ( bDoScaledFBO )
 			Con_DPrintf( "FBO backbuffer rendering disabled due to create error.\n" );
 		else
 			Con_DPrintf( "FBO backbuffer rendering disabled.\n" );
 
-		SDL_SetWindowDisplayMode( (SDL_Window*)mainwindow, &mode );
+		SDL_SetWindowFullscreenMode( (SDL_Window*)mainwindow, &mode );
 		bNeedsFullScreenModeSwitch = 1;
 		VideoMode_RestoreVideo();
 	}

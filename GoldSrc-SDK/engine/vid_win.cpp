@@ -7,7 +7,7 @@
 #include "sys.h"
 #include "filesystem.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <windows.h>
 #include <cstdio>

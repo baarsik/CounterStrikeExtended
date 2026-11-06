@@ -11,7 +11,7 @@
 //=============================================================================
 
 #include "keys.h"
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 #include "client.h"
 #include "common.h"
 #include "cmd.h"
@@ -502,7 +502,7 @@ void Key_Init()
 ============
 Key_NameForBinding
 
-Returns the keyname to which a binding string is bound.  E.g., if 
+Returns the keyname to which a binding string is bound.  E.g., if
 TAB is bound to +use then searching for +use will return "TAB"
 ============
 */
@@ -759,9 +759,9 @@ SDL_Keycode GetSDLKeycodeFromEngineKey( int key )
 	SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 
 	if ( key >= 'a' && key <= 'z' )
-		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_A + key - 'a' ) );
+		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_A + key - 'a' ), SDL_KMOD_NONE, false );
 	if ( key >= K_F1 && key <= K_F12 )
-		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_F1 + key - K_F1 ) );
+		return SDL_GetKeyFromScancode( (SDL_Scancode)( SDL_SCANCODE_F1 + key - K_F1 ), SDL_KMOD_NONE, false );
 
 	switch ( key )
 	{
@@ -944,7 +944,7 @@ SDL_Keycode GetSDLKeycodeFromEngineKey( int key )
 		scancode = SDL_SCANCODE_PAUSE;
 		break;
 	}
-	return SDL_GetKeyFromScancode( scancode );
+	return SDL_GetKeyFromScancode( scancode, SDL_KMOD_NONE, false );
 }
 
 /*

@@ -12,7 +12,7 @@
 #include "keys.h"
 #include "steam_api.h"
 #include "ivideomode.h"
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 #include "mem.h"
 #include "zone.h"
 #include "conprint.h"
@@ -54,8 +54,8 @@ int giStateInfo;
 int giSubState;
 
 //-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : iState - 
+// Purpose:
+// Input  : iState -
 //-----------------------------------------------------------------------------
 void GameSetState( int state )
 {
@@ -202,9 +202,9 @@ void Sys_ShutdownFloatTime()
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : *path - 
-//			*basename - 
+// Purpose:
+// Input  : *path -
+//			*basename -
 // Output : char *Sys_FindFirst
 //-----------------------------------------------------------------------------
 const char* Sys_FindFirst( const char* path, char* basename )
@@ -227,8 +227,8 @@ const char* Sys_FindFirstPathID( const char* path, char* pathid )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : *basename - 
+// Purpose:
+// Input  : *basename -
 // Output : char *Sys_FindNext
 //-----------------------------------------------------------------------------
 const char* Sys_FindNext( char* basename )
@@ -240,7 +240,7 @@ const char* Sys_FindNext( char* basename )
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
+// Purpose:
 // Output : void Sys_FindClose
 //-----------------------------------------------------------------------------
 

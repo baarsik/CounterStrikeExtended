@@ -4,8 +4,8 @@
 #include "common.h"
 #include "conprint.h"
 #include "filesystem.h"
-#include "../external/sdl2/SDL.h"
-#include "../external/SDL2/SDL_syswm.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_properties.h>
 
 #include <windows.h>
 #include <mmsystem.h>
@@ -78,11 +78,10 @@ static void FreeSound()
 
 	if ( pDS )
 	{
-		SDL_SysWMinfo wminfo;
-
-		SDL_VERSION( &wminfo.version );
-		SDL_GetWindowWMInfo( *pmainwindow, &wminfo );
-		pDS->SetCooperativeLevel( wminfo.info.win.window, DSSCL_NORMAL );
+		HWND wminfo = nullptr;
+		wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(*pmainwindow),
+            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
+		pDS->SetCooperativeLevel( wminfo, DSSCL_NORMAL );
 		pDS->Release();
 	}
 
@@ -222,7 +221,7 @@ extern "C" sndinitstat SNDDMA_InitDirect()
 	DSCAPS dscaps;
 	WAVEFORMATEX format, pformat;
 	HRESULT hresult;
-	SDL_SysWMinfo wminfo;
+	HWND wminfo = nullptr;
 	int reps;
 
 	Q_memset( (void*)&sn, 0, sizeof( sn ) );
@@ -279,10 +278,10 @@ extern "C" sndinitstat SNDDMA_InitDirect()
 
 	if ( pmainwindow )
 	{
-		SDL_VERSION( &wminfo.version );
-		SDL_GetWindowWMInfo( *pmainwindow, &wminfo );
+		wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(*pmainwindow),
+            SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
 
-		if ( pDS->SetCooperativeLevel( wminfo.info.win.window, DSSCL_EXCLUSIVE ) != DS_OK )
+		if ( pDS->SetCooperativeLevel( wminfo, DSSCL_EXCLUSIVE ) != DS_OK )
 		{
 			Con_SafePrintf( "Set coop level failed\n" );
 			FreeSound();
@@ -322,7 +321,7 @@ extern "C" sndinitstat SNDDMA_InitDirect()
 
 	if ( primary_format_set && COM_CheckParm( "-primarysound" ) )
 	{
-		if ( pDS->SetCooperativeLevel( wminfo.info.win.window, DSSCL_WRITEPRIMARY ) != DS_OK )
+		if ( pDS->SetCooperativeLevel( wminfo, DSSCL_WRITEPRIMARY ) != DS_OK )
 		{
 			Con_SafePrintf( "Set coop level failed\n" );
 			FreeSound();

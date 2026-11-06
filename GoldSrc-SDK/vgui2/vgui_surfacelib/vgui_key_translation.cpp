@@ -1,6 +1,6 @@
 #include "vgui_key_translation.h"
 #include "vgui/MouseCode.h"
-#include "../../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <cstdint>
 #include <cstring>
@@ -21,14 +21,14 @@ static constexpr int VIRTUAL_KEY_COUNT = 256;
 
 static const vgui_to_virtual_t keyMap[] = { { KEY_0, '0', SDLK_0 }, { KEY_1, '1', SDLK_1 }, { KEY_2, '2', SDLK_2 },
 	{ KEY_3, '3', SDLK_3 }, { KEY_4, '4', SDLK_4 }, { KEY_5, '5', SDLK_5 }, { KEY_6, '6', SDLK_6 },
-	{ KEY_7, '7', SDLK_7 }, { KEY_8, '8', SDLK_8 }, { KEY_9, '9', SDLK_9 }, { KEY_A, 'A', SDLK_a },
-	{ KEY_B, 'B', SDLK_b }, { KEY_C, 'C', SDLK_c }, { KEY_D, 'D', SDLK_d }, { KEY_E, 'E', SDLK_e },
-	{ KEY_F, 'F', SDLK_f }, { KEY_G, 'G', SDLK_g }, { KEY_H, 'H', SDLK_h }, { KEY_I, 'I', SDLK_i },
-	{ KEY_J, 'J', SDLK_j }, { KEY_K, 'K', SDLK_k }, { KEY_L, 'L', SDLK_l }, { KEY_M, 'M', SDLK_m },
-	{ KEY_N, 'N', SDLK_n }, { KEY_O, 'O', SDLK_o }, { KEY_P, 'P', SDLK_p }, { KEY_Q, 'Q', SDLK_q },
-	{ KEY_R, 'R', SDLK_r }, { KEY_S, 'S', SDLK_s }, { KEY_T, 'T', SDLK_t }, { KEY_U, 'U', SDLK_u },
-	{ KEY_V, 'V', SDLK_v }, { KEY_W, 'W', SDLK_w }, { KEY_X, 'X', SDLK_x }, { KEY_Y, 'Y', SDLK_y },
-	{ KEY_Z, 'Z', SDLK_z }, { KEY_PAD_0, NO_VIRTUAL_KEY, SDLK_KP_0 }, { KEY_PAD_1, NO_VIRTUAL_KEY, SDLK_KP_1 },
+	{ KEY_7, '7', SDLK_7 }, { KEY_8, '8', SDLK_8 }, { KEY_9, '9', SDLK_9 }, { KEY_A, 'A', SDLK_A },
+	{ KEY_B, 'B', SDLK_B }, { KEY_C, 'C', SDLK_C }, { KEY_D, 'D', SDLK_D }, { KEY_E, 'E', SDLK_E },
+	{ KEY_F, 'F', SDLK_F }, { KEY_G, 'G', SDLK_G }, { KEY_H, 'H', SDLK_H }, { KEY_I, 'I', SDLK_I },
+	{ KEY_J, 'J', SDLK_J }, { KEY_K, 'K', SDLK_K }, { KEY_L, 'L', SDLK_L }, { KEY_M, 'M', SDLK_M },
+	{ KEY_N, 'N', SDLK_N }, { KEY_O, 'O', SDLK_O }, { KEY_P, 'P', SDLK_P }, { KEY_Q, 'Q', SDLK_Q },
+	{ KEY_R, 'R', SDLK_R }, { KEY_S, 'S', SDLK_S }, { KEY_T, 'T', SDLK_T }, { KEY_U, 'U', SDLK_U },
+	{ KEY_V, 'V', SDLK_V }, { KEY_W, 'W', SDLK_W }, { KEY_X, 'X', SDLK_X }, { KEY_Y, 'Y', SDLK_Y },
+	{ KEY_Z, 'Z', SDLK_Z }, { KEY_PAD_0, NO_VIRTUAL_KEY, SDLK_KP_0 }, { KEY_PAD_1, NO_VIRTUAL_KEY, SDLK_KP_1 },
 	{ KEY_PAD_2, NO_VIRTUAL_KEY, SDLK_KP_2 }, { KEY_PAD_3, NO_VIRTUAL_KEY, SDLK_KP_3 },
 	{ KEY_PAD_4, NO_VIRTUAL_KEY, SDLK_KP_4 }, { KEY_PAD_5, NO_VIRTUAL_KEY, SDLK_KP_5 },
 	{ KEY_PAD_6, NO_VIRTUAL_KEY, SDLK_KP_6 }, { KEY_PAD_7, NO_VIRTUAL_KEY, SDLK_KP_7 },
@@ -37,8 +37,8 @@ static const vgui_to_virtual_t keyMap[] = { { KEY_0, '0', SDLK_0 }, { KEY_1, '1'
 	{ KEY_PAD_MINUS, NO_VIRTUAL_KEY, SDLK_KP_MINUS }, { KEY_PAD_PLUS, NO_VIRTUAL_KEY, SDLK_KP_PLUS },
 	{ KEY_PAD_ENTER, NO_VIRTUAL_KEY, SDLK_KP_ENTER }, { KEY_PAD_DECIMAL, NO_VIRTUAL_KEY, SDLK_KP_DECIMAL },
 	{ KEY_LBRACKET, NO_VIRTUAL_KEY, SDLK_LEFTBRACKET }, { KEY_RBRACKET, NO_VIRTUAL_KEY, SDLK_RIGHTBRACKET },
-	{ KEY_SEMICOLON, NO_VIRTUAL_KEY, SDLK_SEMICOLON }, { KEY_APOSTROPHE, NO_VIRTUAL_KEY, SDLK_QUOTE },
-	{ KEY_BACKQUOTE, NO_VIRTUAL_KEY, SDLK_BACKQUOTE }, { KEY_COMMA, NO_VIRTUAL_KEY, SDLK_COMMA },
+	{ KEY_SEMICOLON, NO_VIRTUAL_KEY, SDLK_SEMICOLON }, { KEY_APOSTROPHE, NO_VIRTUAL_KEY, SDLK_APOSTROPHE },
+	{ KEY_BACKQUOTE, NO_VIRTUAL_KEY, SDLK_GRAVE }, { KEY_COMMA, NO_VIRTUAL_KEY, SDLK_COMMA },
 	{ KEY_PERIOD, NO_VIRTUAL_KEY, SDLK_PERIOD }, { KEY_SLASH, NO_VIRTUAL_KEY, SDLK_SLASH },
 	{ KEY_BACKSLASH, NO_VIRTUAL_KEY, SDLK_BACKSLASH }, { KEY_MINUS, NO_VIRTUAL_KEY, SDLK_MINUS },
 	{ KEY_EQUAL, NO_VIRTUAL_KEY, SDLK_EQUALS }, { KEY_ENTER, NO_VIRTUAL_KEY, SDLK_RETURN },
@@ -102,57 +102,57 @@ static KeyCode SDLKeysymToKeyCode( int keysym )
 		return KEY_8;
 	case SDLK_9:
 		return KEY_9;
-	case SDLK_a:
+	case SDLK_A:
 		return KEY_A;
-	case SDLK_b:
+	case SDLK_B:
 		return KEY_B;
-	case SDLK_c:
+	case SDLK_C:
 		return KEY_C;
-	case SDLK_d:
+	case SDLK_D:
 		return KEY_D;
-	case SDLK_e:
+	case SDLK_E:
 		return KEY_E;
-	case SDLK_f:
+	case SDLK_F:
 		return KEY_F;
-	case SDLK_g:
+	case SDLK_G:
 		return KEY_G;
-	case SDLK_h:
+	case SDLK_H:
 		return KEY_H;
-	case SDLK_i:
+	case SDLK_I:
 		return KEY_I;
-	case SDLK_j:
+	case SDLK_J:
 		return KEY_J;
-	case SDLK_k:
+	case SDLK_K:
 		return KEY_K;
-	case SDLK_l:
+	case SDLK_L:
 		return KEY_L;
-	case SDLK_m:
+	case SDLK_M:
 		return KEY_M;
-	case SDLK_n:
+	case SDLK_N:
 		return KEY_N;
-	case SDLK_o:
+	case SDLK_O:
 		return KEY_O;
-	case SDLK_p:
+	case SDLK_P:
 		return KEY_P;
-	case SDLK_q:
+	case SDLK_Q:
 		return KEY_Q;
-	case SDLK_r:
+	case SDLK_R:
 		return KEY_R;
-	case SDLK_s:
+	case SDLK_S:
 		return KEY_S;
-	case SDLK_t:
+	case SDLK_T:
 		return KEY_T;
-	case SDLK_u:
+	case SDLK_U:
 		return KEY_U;
-	case SDLK_v:
+	case SDLK_V:
 		return KEY_V;
-	case SDLK_w:
+	case SDLK_W:
 		return KEY_W;
-	case SDLK_x:
+	case SDLK_X:
 		return KEY_X;
-	case SDLK_y:
+	case SDLK_Y:
 		return KEY_Y;
-	case SDLK_z:
+	case SDLK_Z:
 		return KEY_Z;
 	case SDLK_KP_0:
 		return KEY_PAD_0;
@@ -193,9 +193,9 @@ static KeyCode SDLKeysymToKeyCode( int keysym )
 		return KEY_RBRACKET;
 	case SDLK_SEMICOLON:
 		return KEY_SEMICOLON;
-	case SDLK_QUOTE:
+	case SDLK_APOSTROPHE:
 		return KEY_APOSTROPHE;
-	case SDLK_BACKQUOTE:
+	case SDLK_GRAVE:
 	case SDL_SCANCODE_TO_KEYCODE( SDL_SCANCODE_GRAVE ):
 		return KEY_BACKQUOTE;
 	case SDLK_COMMA:

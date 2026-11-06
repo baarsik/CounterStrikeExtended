@@ -33,6 +33,8 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisSucceededFile>$(IntDir)$(TargetName).lastcodeanalysissucceeded</CodeAnalysisSucceededFile>
   </PropertyGroup>
+  <PropertyGroup><CseSdl3Shared>false</CseSdl3Shared></PropertyGroup>
+  <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -48,7 +50,7 @@
       <ProcessorNumber>4</ProcessorNumber>
       <EnablePREfast Condition="'$(RunCodeAnalysis)'=='true'">true</EnablePREfast>
       <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
-      <AdditionalOptions>/external:I"$(ProjectDir)..\..\external\SDL2" %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;CLIENT_DLL;HLDS_LAUNCHER;UTL_ENGINE_ASSERTS;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\dedicated;$(ProjectDir)..\..\cstrike\common;$(ProjectDir)..\..\cstrike\public;$(ProjectDir)..\..\vgui2\controls;$(ProjectDir)..\..\cl_dll;$(ProjectDir)..\..\engine;$(ProjectDir)..\..\vgui2\src\public;$(ProjectDir)..\..\common;$(ProjectDir)..\..\public;$(ProjectDir)..\..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -167,4 +169,5 @@
     <None Include="..\..\dedicated\hlds.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="SDL3.targets" />
 </Project>

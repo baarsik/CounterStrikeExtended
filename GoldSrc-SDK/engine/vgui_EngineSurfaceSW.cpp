@@ -9,7 +9,7 @@
 #include "vgui_int.h"
 #include "view.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <cstdio>
 #include <cstdlib>

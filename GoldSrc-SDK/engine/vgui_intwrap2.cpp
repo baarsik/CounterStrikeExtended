@@ -14,7 +14,7 @@
 #include "sys.h"
 #include "ivideomode.h"
 #include "glquake.h"
-#include "../external/SDL2/SDL_video.h"
+#include <SDL3/SDL_video.h>
 
 #define MAX_TUTOR_MESSAGES 256
 

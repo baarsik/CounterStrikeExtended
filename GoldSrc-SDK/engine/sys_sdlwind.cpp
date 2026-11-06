@@ -1,3 +1,4 @@
+#include "../common/sdl3_policy.h"
 #if defined( SW_RENDERER )
 
 #include "sys_sdlwind.h"
@@ -22,7 +23,7 @@
 #include "client.h"
 #include "../common/dll_state.h"
 
-#include "../external/sdl2/SDL.h"
+#include <SDL3/SDL.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -70,6 +71,10 @@ CGame::CGame()
 	m_nWarpDelta = 0;
 	m_bCursorVisible = true;
 	m_bLegacyRender = false;
+    m_hSDLWindow = nullptr;
+    m_hSDLRenderer = nullptr;
+    m_hSDLGLContext = nullptr;
+    m_bCreatedRenderer = false;
 }
 
 bool CGame::Init( void* )
@@ -119,7 +124,11 @@ bool CGame::Shutdown()
 {
 	if ( m_hSDLRenderer && m_bCreatedRenderer )
 		SDL_DestroyRenderer( m_hSDLRenderer );
-	SDL_Window* window = m_hSDLWindow;
+	if (m_hSDLGLContext) {
+        SDL_GL_DestroyContext(m_hSDLGLContext);
+        m_hSDLGLContext = nullptr;
+    }
+    SDL_Window* window = m_hSDLWindow;
 	m_hSDLRenderer = NULL;
 	SDL_DestroyWindow( window );
 	m_hSDLWindow = NULL;
@@ -137,7 +146,7 @@ void CGame::SetCursorVisible( bool bState )
 {
 	m_bCursorVisible = bState;
 	if ( !bState && cl_mousegrab.value == 0.0f )
-		SDL_SetWindowGrab( m_hSDLWindow, SDL_FALSE );
+		SDL_SetWindowMouseGrab( m_hSDLWindow, false );
 }
 
 void CGame::SetWindowSize( int w, int h )
@@ -145,9 +154,10 @@ void CGame::SetWindowSize( int w, int h )
 	m_width = w;
 	m_height = h;
 	SDL_SetWindowSize( m_hSDLWindow, w, h );
+    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
 	const int height = m_height;
-	m_nMouseTargetX = m_width / 2;
-	m_nMouseTargetY = height / 2;
+	m_nMouseTargetX = w / 2;
+	m_nMouseTargetY = h / 2;
 	int warpDelta = height / 3;
 	if ( warpDelta <= 199 )
 		warpDelta = 200;
@@ -282,23 +292,25 @@ bool CGame::CreateGameWindow()
 {
 	if ( COM_CheckParm( "-noontop" ) )
 		SDL_SetHint( "SDL_ALLOW_TOPMOST", "0" );
-	SDL_InitSubSystem( SDL_INIT_EVERYTHING );
+	if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+        Sys_Error("SDL initialization failed: %s", SDL_GetError());
+    }
 	SDL_SetAttributes( true );
 
 	char gameWindowName[512];
 	Q_strcpy( gameWindowName, "Half-Life" );
 	GetWindowNameFromGameDir( gameWindowName, sizeof( gameWindowName ) );
 
-	const Uint32 windowFlags = COM_CheckParm( "-noborder" ) == 0
+	const SDL_WindowFlags windowFlags = COM_CheckParm( "-noborder" ) == 0
 		? SDL_WINDOW_HIDDEN : SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
-	m_hSDLWindow = SDL_CreateWindow( gameWindowName, 0, 0, 640, 480, windowFlags );
+	m_hSDLWindow = SDL_CreateWindow( gameWindowName, 640, 480, windowFlags );
 	if ( !m_hSDLWindow )
 	{
 		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
 		SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 3 );
 		SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 3 );
 		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 3 );
-		m_hSDLWindow = SDL_CreateWindow( gameWindowName, 0, 0, 640, 480, windowFlags );
+		m_hSDLWindow = SDL_CreateWindow( gameWindowName, 640, 480, windowFlags );
 		if ( !m_hSDLWindow )
 			Sys_Error( "Failed to create SDL Window" );
 	}
@@ -314,30 +326,29 @@ bool CGame::CreateGameWindow()
 			for ( int row = 0; row < height / 2; ++row )
 			{
 				memcpy( rowScratch, &buffer[4 * width * row], 4 * width );
-				memcpy( &buffer[4 * width * row], &buffer[4 * width * ( height - row )], 4 * width );
-				memcpy( &buffer[4 * width * ( height - row )], rowScratch, 4 * width );
+				memcpy( &buffer[4 * width * row], &buffer[4 * width * ( height - 1 - row )], 4 * width );
+				memcpy( &buffer[4 * width * ( height - 1 - row )], rowScratch, 4 * width );
 			}
 			free( rowScratch );
 		}
 
-		SDL_Surface* iconSurface = SDL_CreateRGBSurfaceFrom( buffer, width, height, 32,
-			4 * width, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000 );
+		SDL_Surface* iconSurface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, buffer, 4 * width);
 		if ( iconSurface )
 		{
 			SDL_SetWindowIcon( m_hSDLWindow, iconSurface );
-			SDL_FreeSurface( iconSurface );
+			SDL_DestroySurface( iconSurface );
 		}
 	}
 	free( buffer );
 
 	SDL_ShowWindow( m_hSDLWindow );
-	SDL_StartTextInput();
+	SDL_StartTextInput(m_hSDLWindow);
 
 	m_bCreatedRenderer = false;
 	m_hSDLRenderer = SDL_GetRenderer( m_hSDLWindow );
 	if ( !m_hSDLRenderer )
 	{
-		m_hSDLRenderer = SDL_CreateRenderer( m_hSDLWindow, -1, 0 );
+		m_hSDLRenderer = SDL_CreateRenderer( m_hSDLWindow, nullptr );
 		m_bCreatedRenderer = true;
 	}
 	ClearScreen();
@@ -419,65 +430,61 @@ void CGame::SleepUntilInput( int time )
 
 	do
 	{
-		if ( ev.type == SDL_TEXTINPUT )
+		if ( ev.type == SDL_EVENT_TEXT_INPUT )
 		{
 			if ( key_dest == key_message )
 			{
-				int copyLength = (int)strlen( ev.text.text );
-				if ( KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen <= copyLength )
-					copyLength = KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen;
-				Q_strncpy( &chat_buffer[chat_bufferlen], ev.text.text, copyLength );
+				const int copyLength = static_cast<int>(cse::Utf8PrefixBytes(ev.text.text,
+                    KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen));
+                memcpy(&chat_buffer[chat_bufferlen], ev.text.text, copyLength);
 				chat_bufferlen += copyLength;
 				chat_buffer[chat_bufferlen] = 0;
 			}
 		}
-		else if ( ev.type <= SDL_TEXTINPUT )
+		else if (ev.type == SDL_EVENT_KEY_DOWN || ev.type == SDL_EVENT_KEY_UP
+            || ev.type == SDL_EVENT_QUIT || (ev.type >= SDL_EVENT_WINDOW_FIRST && ev.type <= SDL_EVENT_WINDOW_LAST))
 		{
-			if ( ev.type == SDL_WINDOWEVENT )
+			if ( ev.type >= SDL_EVENT_WINDOW_FIRST && ev.type <= SDL_EVENT_WINDOW_LAST )
 			{
-				switch ( ev.window.event )
+				switch ( ev.type )
 				{
-				case SDL_WINDOWEVENT_SHOWN:
-				case SDL_WINDOWEVENT_FOCUS_GAINED:
+				case SDL_EVENT_WINDOW_SHOWN:
+				case SDL_EVENT_WINDOW_FOCUS_GAINED:
 					g_Game.AppActivate( true );
 					break;
-				case SDL_WINDOWEVENT_HIDDEN:
-				case SDL_WINDOWEVENT_FOCUS_LOST:
+				case SDL_EVENT_WINDOW_HIDDEN:
+				case SDL_EVENT_WINDOW_FOCUS_LOST:
 					g_Game.AppActivate( false );
 					break;
-				case SDL_WINDOWEVENT_MOVED:
+				case SDL_EVENT_WINDOW_MOVED:
 					if ( videomode->IsWindowedMode() )
 					{
 						game->SetWindowXY( ev.window.data1, ev.window.data2 );
 						videomode->UpdateWindowPosition();
 					}
 					break;
-				case SDL_WINDOWEVENT_RESIZED:
-					game->SetWindowSize( ev.window.data1, ev.window.data2 );
+				case SDL_EVENT_WINDOW_RESIZED:
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+					SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
 					videomode->UpdateWindowPosition();
 					break;
-				case SDL_WINDOWEVENT_CLOSE:
+				case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 					if ( eng->GetState() == DLL_ACTIVE )
 						eng->SetQuitting( 1 );
-					if ( m_hSDLRenderer && m_bCreatedRenderer )
-						SDL_DestroyRenderer( m_hSDLRenderer );
-					SDL_DestroyWindow( m_hSDLWindow );
-					m_hSDLRenderer = NULL;
-					m_hSDLWindow = NULL;
-					return;
+                    return;
 				default:
 					break;
 				}
 			}
-			else if ( ev.type <= SDL_WINDOWEVENT )
+			else if ( ev.type == SDL_EVENT_QUIT )
 			{
-				if ( ev.type == SDL_QUIT && eng->GetState() == DLL_ACTIVE )
+				if ( ev.type == SDL_EVENT_QUIT && eng->GetState() == DLL_ACTIVE )
 					eng->SetQuitting( 1 );
 			}
-			else if ( ev.type == SDL_KEYDOWN || ev.type == SDL_KEYUP )
+			else if ( ev.type == SDL_EVENT_KEY_DOWN || ev.type == SDL_EVENT_KEY_UP )
 			{
 				int key = 0;
-				int scancode = ev.key.keysym.scancode;
+				int scancode = ev.key.scancode;
 				if ( scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_RGUI )
 				{
 					switch ( scancode )
@@ -779,22 +786,22 @@ void CGame::SleepUntilInput( int time )
 						break;
 					}
 				}
-				eng->TrapKey_Event( key, ev.type == SDL_KEYDOWN );
+				eng->TrapKey_Event( key, ev.type == SDL_EVENT_KEY_DOWN );
 			}
 		}
-		else if ( ev.type > SDL_MOUSEBUTTONUP )
+		else if (ev.type == SDL_EVENT_MOUSE_WHEEL)
 		{
-			if ( ev.type == SDL_MOUSEWHEEL )
+			if ( ev.type == SDL_EVENT_MOUSE_WHEEL )
 			{
 				const int wheelKey = ( ev.wheel.y > 0 ) + 239;
 				eng->TrapKey_Event( wheelKey, true );
 				eng->TrapKey_Event( wheelKey, false );
 			}
 		}
-		else if ( ev.type >= SDL_MOUSEBUTTONDOWN )
+		else if (ev.type == SDL_EVENT_MOUSE_BUTTON_DOWN || ev.type == SDL_EVENT_MOUSE_BUTTON_UP)
 		{
 			unsigned newMouseCode = mouseCode;
-			const bool pressed = ev.type == SDL_MOUSEBUTTONDOWN;
+			const bool pressed = ev.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
 			switch ( ev.button.button )
 			{
 			case SDL_BUTTON_LEFT:
@@ -826,7 +833,7 @@ void CGame::SleepUntilInput( int time )
 			}
 			eng->TrapMouse_Event( newMouseCode, pressed );
 		}
-		else if ( ev.type == SDL_MOUSEMOTION
+		else if ( ev.type == SDL_EVENT_MOUSE_MOTION
 #if defined( _WIN32 )
 				  && m_rawinput.value == 0.0f && !g_bIsCStrike && !g_bIsCZero && !g_bIsTFC && !g_bIsHL1
 				  && !g_bIsCZeroRitual
@@ -851,8 +858,8 @@ void CGame::SleepUntilInput( int time )
 					SDL_WarpMouseInWindow( m_hSDLWindow, m_nMouseTargetX, m_nMouseTargetY );
 					m_bExpectSyntheticMouseMotion = true;
 					SDL_PumpEvents();
-					int deltaX = 0;
-					int deltaY = 0;
+					float deltaX = 0.0f;
+                    float deltaY = 0.0f;
 					SDL_GetRelativeMouseState( &deltaX, &deltaY );
 				}
 			}
@@ -890,8 +897,8 @@ bool CGame::OnlyLegacyRender() const
 #include "cdll_int.h"
 #include "client.h"
 
-#include "../external/sdl2/SDL.h"
-#include "../external/SDL2/SDL_opengl.h"
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_opengl.h>
 
 #include <cstdio>
 #include <cstdlib>
@@ -1214,7 +1221,11 @@ bool CGame::Shutdown()
 {
 	if ( m_hSDLRenderer && m_bCreatedRenderer )
 		SDL_DestroyRenderer( m_hSDLRenderer );
-	SDL_Window* window = m_hSDLWindow;
+	if (m_hSDLGLContext) {
+        SDL_GL_DestroyContext(m_hSDLGLContext);
+        m_hSDLGLContext = nullptr;
+    }
+    SDL_Window* window = m_hSDLWindow;
 	m_hSDLRenderer = nullptr;
 	SDL_DestroyWindow( window );
 	m_hSDLWindow = nullptr;
@@ -1232,7 +1243,7 @@ void CGame::SetCursorVisible( bool bState )
 {
 	m_bCursorVisible = bState;
 	if ( !bState && cl_mousegrab.value == 0.0f )
-		SDL_SetWindowGrab( m_hSDLWindow, SDL_FALSE );
+		SDL_SetWindowMouseGrab( m_hSDLWindow, false );
 }
 
 void CGame::SetWindowSize( int w, int h )
@@ -1240,9 +1251,10 @@ void CGame::SetWindowSize( int w, int h )
 	m_width = w;
 	m_height = h;
 	SDL_SetWindowSize( m_hSDLWindow, w, h );
+    SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
 	const int height = m_height;
-	m_nMouseTargetX = m_width / 2;
-	m_nMouseTargetY = height / 2;
+	m_nMouseTargetX = w / 2;
+	m_nMouseTargetY = h / 2;
 	int warpDelta = height / 3;
 	if ( warpDelta <= 199 )
 		warpDelta = 200;
@@ -1382,24 +1394,26 @@ bool CGame::CreateGameWindow()
 	SDL_SetHint( "SDL_VIDEO_X11_XRANDR", "1" );
 	SDL_SetHint( "SDL_VIDEO_X11_XVIDMODE", "1" );
 #endif
-	SDL_InitSubSystem( SDL_INIT_EVERYTHING );
+	if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+        Sys_Error("SDL initialization failed: %s", SDL_GetError());
+    }
 	SDL_SetAttributes( true );
 
 	char gameWindowName[512];
 	Q_strcpy( gameWindowName, "Half-Life" );
 	GetWindowNameFromGameDir( gameWindowName, sizeof( gameWindowName ) );
 
-	const Uint32 windowFlags = COM_CheckParm( "-noborder" ) == 0
+	const SDL_WindowFlags windowFlags = COM_CheckParm( "-noborder" ) == 0
 								   ? SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN
 								   : SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
-	m_hSDLWindow = SDL_CreateWindow( gameWindowName, 0, 0, 640, 480, windowFlags );
+	m_hSDLWindow = SDL_CreateWindow( gameWindowName, 640, 480, windowFlags );
 	if ( !m_hSDLWindow )
 	{
 		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
 		SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 3 );
 		SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 3 );
 		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 3 );
-		m_hSDLWindow = SDL_CreateWindow( gameWindowName, 0, 0, 640, 480, windowFlags );
+		m_hSDLWindow = SDL_CreateWindow( gameWindowName, 640, 480, windowFlags );
 		if ( !m_hSDLWindow )
 			Sys_Error( "Failed to create SDL Window" );
 	}
@@ -1415,24 +1429,23 @@ bool CGame::CreateGameWindow()
 			for ( int row = 0; row < height / 2; ++row )
 			{
 				std::memcpy( rowScratch, &buffer[4 * width * row], 4 * width );
-				std::memcpy( &buffer[4 * width * row], &buffer[4 * width * ( height - row )], 4 * width );
-				std::memcpy( &buffer[4 * width * ( height - row )], rowScratch, 4 * width );
+				std::memcpy( &buffer[4 * width * row], &buffer[4 * width * ( height - 1 - row )], 4 * width );
+				std::memcpy( &buffer[4 * width * ( height - 1 - row )], rowScratch, 4 * width );
 			}
 			std::free( rowScratch );
 		}
 
-		SDL_Surface* iconSurface = SDL_CreateRGBSurfaceFrom( buffer, width, height, 32,
-			4 * width, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000 );
+		SDL_Surface* iconSurface = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, buffer, 4 * width);
 		if ( iconSurface )
 		{
 			SDL_SetWindowIcon( m_hSDLWindow, iconSurface );
-			SDL_FreeSurface( iconSurface );
+			SDL_DestroySurface( iconSurface );
 		}
 	}
 	std::free( buffer );
 
 	SDL_ShowWindow( m_hSDLWindow );
-	SDL_StartTextInput();
+	SDL_StartTextInput(m_hSDLWindow);
 
 	m_hSDLRenderer = nullptr;
 	m_bCreatedRenderer = false;
@@ -1454,31 +1467,31 @@ bool CGame::CreateGameWindow()
 	int a = 0;
 	int depth = 0;
 
-	if ( SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &r ) != 0 )
+	if ( !SDL_GL_GetAttribute( SDL_GL_RED_SIZE, &r ) )
 	{
 		const char* error = SDL_GetError();
 		r = 0;
 		Con_Printf( "Failed to get GL RED size (%s)\n", error );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_GREEN_SIZE, &g ) != 0 )
+	if ( !SDL_GL_GetAttribute( SDL_GL_GREEN_SIZE, &g ) )
 	{
 		const char* error = SDL_GetError();
 		g = 0;
 		Con_Printf( "Failed to get GL GREEN size (%s)\n", error );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_BLUE_SIZE, &b ) != 0 )
+	if ( !SDL_GL_GetAttribute( SDL_GL_BLUE_SIZE, &b ) )
 	{
 		const char* error = SDL_GetError();
 		b = 0;
 		Con_Printf( "Failed to get GL BLUE size (%s)\n", error );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_ALPHA_SIZE, &a ) != 0 )
+	if ( !SDL_GL_GetAttribute( SDL_GL_ALPHA_SIZE, &a ) )
 	{
 		const char* error = SDL_GetError();
 		a = 0;
 		Con_Printf( "Failed to get GL ALPHA size (%s)\n", error );
 	}
-	if ( SDL_GL_GetAttribute( SDL_GL_DEPTH_SIZE, &depth ) != 0 )
+	if ( !SDL_GL_GetAttribute( SDL_GL_DEPTH_SIZE, &depth ) )
 	{
 		const char* error = SDL_GetError();
 		depth = 0;
@@ -1569,79 +1582,74 @@ void CGame::SleepUntilInput( int time )
 
 	do
 	{
-		if ( ev.type == SDL_TEXTINPUT )
+		if ( ev.type == SDL_EVENT_TEXT_INPUT )
 		{
 			if ( key_dest == key_message )
 			{
-				const int textLength = static_cast<int>( std::strlen( ev.text.text ) );
-				int copyLength = textLength;
-				if ( KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen <= copyLength )
-					copyLength = KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen;
-				Q_strncpy( &chat_buffer[chat_bufferlen], ev.text.text, copyLength );
+				const int copyLength = static_cast<int>(cse::Utf8PrefixBytes(ev.text.text,
+                    KEY_CHAT_BUFFER_BYTES - 1 - chat_bufferlen));
+                memcpy(&chat_buffer[chat_bufferlen], ev.text.text, copyLength);
 				chat_bufferlen += copyLength;
 				chat_buffer[chat_bufferlen] = 0;
 			}
 		}
-		else if ( ev.type <= SDL_TEXTINPUT )
+		else if (ev.type == SDL_EVENT_KEY_DOWN || ev.type == SDL_EVENT_KEY_UP
+            || ev.type == SDL_EVENT_QUIT || (ev.type >= SDL_EVENT_WINDOW_FIRST && ev.type <= SDL_EVENT_WINDOW_LAST))
 		{
-			if ( ev.type == SDL_WINDOWEVENT )
+			if ( ev.type >= SDL_EVENT_WINDOW_FIRST && ev.type <= SDL_EVENT_WINDOW_LAST )
 			{
-				switch ( ev.window.event )
+				switch ( ev.type )
 				{
-				case SDL_WINDOWEVENT_SHOWN:
-				case SDL_WINDOWEVENT_FOCUS_GAINED:
+				case SDL_EVENT_WINDOW_SHOWN:
+				case SDL_EVENT_WINDOW_FOCUS_GAINED:
 					g_Game.AppActivate( true );
 					break;
-				case SDL_WINDOWEVENT_HIDDEN:
-				case SDL_WINDOWEVENT_FOCUS_LOST:
+				case SDL_EVENT_WINDOW_HIDDEN:
+				case SDL_EVENT_WINDOW_FOCUS_LOST:
 					g_Game.AppActivate( false );
 					break;
-				case SDL_WINDOWEVENT_MOVED:
+				case SDL_EVENT_WINDOW_MOVED:
 					if ( videomode->IsWindowedMode() )
 					{
 						game->SetWindowXY( ev.window.data1, ev.window.data2 );
 						videomode->UpdateWindowPosition();
 					}
 					break;
-				case SDL_WINDOWEVENT_RESIZED:
-					game->SetWindowSize( ev.window.data1, ev.window.data2 );
+				case SDL_EVENT_WINDOW_RESIZED:
+                case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+					SDL_GetWindowSizeInPixels(m_hSDLWindow, &m_width, &m_height);
 					videomode->UpdateWindowPosition();
 					break;
-				case SDL_WINDOWEVENT_CLOSE:
+				case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 					if ( eng->GetState() == kEngineActive )
 						eng->SetQuitting( 1 );
-					if ( m_hSDLRenderer && m_bCreatedRenderer )
-						SDL_DestroyRenderer( m_hSDLRenderer );
-					SDL_DestroyWindow( m_hSDLWindow );
-					m_hSDLRenderer = nullptr;
-					m_hSDLWindow = nullptr;
-					return;
+                    return;
 				default:
 					break;
 				}
 			}
-			else if ( ev.type <= SDL_WINDOWEVENT )
+			else if ( ev.type == SDL_EVENT_QUIT )
 			{
-				if ( ev.type == SDL_QUIT && eng->GetState() == kEngineActive )
+				if ( ev.type == SDL_EVENT_QUIT && eng->GetState() == kEngineActive )
 					eng->SetQuitting( 1 );
 			}
-			else if ( ev.type == SDL_KEYDOWN )
+			else if ( ev.type == SDL_EVENT_KEY_DOWN )
 			{
-				const int key = EngineKeyForSDLScancode( ev.key.keysym.scancode );
+				const int key = EngineKeyForSDLScancode( ev.key.scancode );
 				eng->TrapKey_Event( key, true );
 			}
-			else if ( ev.type == SDL_KEYUP )
+			else if ( ev.type == SDL_EVENT_KEY_UP )
 			{
-				const int key = EngineKeyForSDLScancode( ev.key.keysym.scancode );
+				const int key = EngineKeyForSDLScancode( ev.key.scancode );
 				eng->TrapKey_Event( key, false );
 			}
 		}
-		else if ( ev.type > SDL_MOUSEBUTTONUP )
+		else if (ev.type == SDL_EVENT_MOUSE_WHEEL)
 		{
-			if ( ev.type == SDL_MOUSEWHEEL )
+			if ( ev.type == SDL_EVENT_MOUSE_WHEEL )
 			{
 #if defined( _WIN32 )
-				const int wheelKey = ( static_cast<Sint16>( ev.wheel.y ) > 0 ) + 239;
+				const int wheelKey = ( ev.wheel.y > 0 ) + 239;
 #else
 				const int wheelKey = ( ev.wheel.y > 0 ) + 239;
 #endif
@@ -1649,10 +1657,10 @@ void CGame::SleepUntilInput( int time )
 				eng->TrapKey_Event( wheelKey, false );
 			}
 		}
-		else if ( ev.type >= SDL_MOUSEBUTTONDOWN )
+		else if (ev.type == SDL_EVENT_MOUSE_BUTTON_DOWN || ev.type == SDL_EVENT_MOUSE_BUTTON_UP)
 		{
 			unsigned newMouseCode = mouseCode;
-			const bool pressed = ev.type == SDL_MOUSEBUTTONDOWN;
+			const bool pressed = ev.type == SDL_EVENT_MOUSE_BUTTON_DOWN;
 			switch ( ev.button.button )
 			{
 			case SDL_BUTTON_LEFT:
@@ -1684,7 +1692,7 @@ void CGame::SleepUntilInput( int time )
 			}
 			eng->TrapMouse_Event( newMouseCode, pressed );
 		}
-		else if ( ev.type == SDL_MOUSEMOTION
+		else if ( ev.type == SDL_EVENT_MOUSE_MOTION
 #if defined( _WIN32 )
 				  && m_rawinput.value == 0.0f && !g_bIsCStrike && !g_bIsCZero && !g_bIsTFC && !g_bIsHL1
 				  && !g_bIsCZeroRitual
@@ -1709,8 +1717,8 @@ void CGame::SleepUntilInput( int time )
 					SDL_WarpMouseInWindow( m_hSDLWindow, m_nMouseTargetX, m_nMouseTargetY );
 					m_bExpectSyntheticMouseMotion = true;
 					SDL_PumpEvents();
-					int deltaX = 0;
-					int deltaY = 0;
+					float deltaX = 0.0f;
+                    float deltaY = 0.0f;
 					SDL_GetRelativeMouseState( &deltaX, &deltaY );
 				}
 			}
