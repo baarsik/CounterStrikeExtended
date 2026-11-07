@@ -769,5 +769,26 @@
       "candidate_result": "final2-display/valve-unsupported-resolution-result.json",
       "visual_acceptance": "No independent pixel acceptance inferred from geometry"
     }
+  },
+  "environment_cleanup": {
+    "task_result": "vm1-task-cleanup-result.json",
+    "sharing_result": "vm1-sharing-cleanup-result.json",
+    "after_configuration": "vm1-after-cleanup.txt",
+    "owned_scheduled_tasks_removed": 27,
+    "owned_scheduled_tasks_remaining": 0,
+    "hl_hlds_processes_remaining": 0,
+    "toolchain_retained": true,
+    "fresh_build_sandboxes_and_vm_evidence_retained": true,
+    "removed_custom_shares": [
+      "cse-sdl3-source",
+      "cse-sdl3-evidence"
+    ],
+    "other_custom_shares_removed": false,
+    "host_folder_sharing": "off",
+    "isolate_vm_on_cli_exit_code": 0,
+    "independent_pvs_isolated_field_verified": true,
+    "scope": "Temporary task execution and host access removed; reproduction toolchain/sandboxes/evidence retained",
+    "pvs_isolation_verification": "vm1-isolation-final-verification.json",
+    "pvs_IsolatedVm": 1
   }
 }

@@ -232,6 +232,18 @@ These five rulings preserve the working ledger's scope and implementation decisi
 Delivery stays on the isolated `codex/sdl3-migration` branch with the original
 checkout preserved. Publishing and merging are outside the approved request.
 
+## Qualification environment cleanup
+
+VM1 cleanup removed 27 task-owned Scheduled Tasks; none remain, and no `hl`/`hlds`
+process remains. The approved toolchain, fresh build sandboxes and VM evidence are
+retained for reproduction (`E/vm1-task-cleanup-result.json`). Cleanup removed only
+the two task-specific custom shares, `cse-sdl3-source` and `cse-sdl3-evidence`,
+disabled host-folder sharing, and successfully issued `--isolate-vm on`
+(`E/vm1-sharing-cleanup-result.json`, `E/vm1-after-cleanup.txt`). The root also
+verified actual post-cleanup `config.pvs` has `IsolatedVm=1`, recorded in
+`E/vm1-isolation-final-verification.json`. Temporary task execution and host access
+have been removed.
+
 ## Performance method and precision
 
 Use `tools/qualification/invoke_paired_benchmark.ps1` and
