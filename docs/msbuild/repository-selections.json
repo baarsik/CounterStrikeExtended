@@ -3791,6 +3791,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3dScene.cpp",
             "metadata": {
+              "ExceptionHandling": "Sync",
               "EnableEnhancedInstructionSet": "NoExtensions",
               "FloatingPointModel": "Precise"
             }
@@ -4078,6 +4079,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3dScene.cpp",
             "metadata": {
+              "ExceptionHandling": "Sync",
               "EnableEnhancedInstructionSet": "NoExtensions",
               "FloatingPointModel": "Precise"
             }
