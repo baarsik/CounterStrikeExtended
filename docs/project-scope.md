@@ -117,13 +117,11 @@ The inherited dedicated configuration defines `SW_RENDERER` without explicitly
 defining `SWDS_DLL`; shared source has separate `SWDS_DLL` branches. Its export
 file declares `LIBRARY sw`, and the project suppresses the resulting linker
 warning 4070 while producing `swds.dll`. These settings remain unchanged by
-pruning. The dedicated results below do not establish every conditional path.
+pruning. The dedicated validation does not establish every conditional path.
 
 ## Verification scope
 
-[SDL3 migration validation](sdl3-migration-validation.md) records Windows x86
-builds, exercised runtime paths and coverage limits for its pinned snapshot.
-The subsequent residual-game cleanup has source-selection, header-closure and
-generation checks recorded in [source-pruning.md](source-pruning.md). The current
-post-cleanup runtime with libmpg123 is covered separately by
-[music migration validation](mpg123-migration-validation.md).
+[Current validation](mpg123-migration-validation.md) covers post-cleanup builds,
+libmpg123 music, CS/HL gameplay and dedicated-server checks on VM1.
+[SDL3 validation](sdl3-migration-validation.md) retains the earlier comparison and
+benchmarks; [source pruning](source-pruning.md) records removal/header-closure checks.

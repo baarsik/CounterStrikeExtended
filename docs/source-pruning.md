@@ -71,10 +71,9 @@ closure remains 26 headers and 31 resolved include edges in each configuration.
 Generated CMake and the crosswalk are synchronized, and all four presets parse.
 Independent read-only review found no critical or important issues.
 
-These are source checks. No tests or runtime code were executed for this cleanup;
-Windows compilation and preprocessing have not been repeated. Earlier Windows
-build/runtime results apply to the snapshot identified in the
-[SDL3 validation report](sdl3-migration-validation.md).
+This cleanup was initially checked statically. Subsequent Windows builds and
+CS/HL runtime checks, including the music migration, are recorded in
+[current validation](mpg123-migration-validation.md).
 
 ## Inherited prose archive
 

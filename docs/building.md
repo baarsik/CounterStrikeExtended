@@ -1,9 +1,7 @@
 # Windows x86 build
 
-The baseline retains Counter-Strike 1.6, Half-Life, dedicated server and shared
-runtime source. Builds produce real runtime modules from production source;
-they do not invoke MSBuild as implementation wrappers or copy runtime DLLs in
-place of targets. Production builds do not run tests or launch games automatically.
+The build retains Counter-Strike 1.6, Half-Life, dedicated server and shared
+runtime source. Tests and runtime qualification are separate from production builds.
 
 ## Requirements
 
@@ -15,10 +13,9 @@ place of targets. Production builds do not run tests or launch games automatical
   under `GoldSrc-SDK/external/` and `GoldSrc-SDK/lib/`. Missing libraries fail
   configuration; x64/ARM64 and macOS/Linux runtime builds are rejected.
 
-The [SDL3 validation report](sdl3-migration-validation.md) records Windows x86
-build and runtime results for its pinned snapshot, including coverage limits.
-The later [residual-game cleanup](source-pruning.md) has static checks only;
-Windows compilation and runtime qualification have not been repeated for it.
+The [current validation report](mpg123-migration-validation.md) records VM1
+build/runtime results after source cleanup and the music migration. The earlier
+[SDL3 report](sdl3-migration-validation.md) contains the SDL2/SDL3 comparison.
 
 ## Complete runtime
 
@@ -31,11 +28,8 @@ cmake --preset runtime-x86-debug
 cmake --build --preset runtime-x86-debug --parallel
 ```
 
-Both presets include dedicated-server support. Their 16 targets are `launcher`,
-`hw_engine`, `hlds`, `swds`, `cs_client`, `cs_server`, `hl_client`, `hl_server`,
-`filesystem_stdio`, `tier0`, `vgui`, `vgui2`, `gameui`, `particleman`, `hltv_core`,
-and `demoplayer`. Game client/server target names are distinct even when output
-filenames match. The aggregate target is `cse_runtime`.
+Both presets include the [16 default runtime targets](project-scope.md#default-runtime)
+and their dependencies. The aggregate target is `cse_runtime`.
 
 ## Hardware-only entry point
 
@@ -46,7 +40,7 @@ cmake --preset hardware-x86-debug
 cmake --build --preset hardware-x86-debug --parallel
 ```
 
-This configures only `hw_engine` and its source-built VGUI1 dependency. The
+This configures `hw_engine` with source-built VGUI1 and mpg123 dependencies. The
 aggregate target is `cse_hardware`. An independent small source entry point is
 also supplied:
 
@@ -86,14 +80,15 @@ paths: selecting software client mode will find no built `sw.dll`. The dedicated
 Each preset uses its own `build/<preset>/` directory:
 
 ```text
-runtime/Debug/ or runtime/Release/     EXEs and DLLs only
-  cstrike/cl_dlls/client.dll          Counter-Strike client
-  cstrike/dlls/mp.dll                 Counter-Strike server
-  valve/cl_dlls/client.dll            Half-Life client
-  valve/dlls/hl.dll                   Half-Life server
+runtime/Debug/ or runtime/Release/    runtime modules and dependency materials
+  cstrike/cl_dlls/client.dll         Counter-Strike client
+  cstrike/dlls/mp.dll                Counter-Strike server
+  valve/cl_dlls/client.dll           Half-Life client
+  valve/dlls/hl.dll                  Half-Life server
   valve/cl_dlls/GameUI.dll
   valve/cl_dlls/particleman.dll
-lib/<Configuration>/<target>/        import/static libraries and .exp files
+  licenses/mpg123/                   decoder source and notices
+lib/<Configuration>/<target>/       import/static libraries and .exp files
 symbols/<Configuration>/<target>/    PDBs (engine maps at symbols/<Configuration>/)
 targets/                            CMake/compile intermediates
 ```
@@ -105,15 +100,14 @@ step. Same-basename objects are separated by CMake's source paths; import librar
 and linker/compile PDBs have target-specific directories even when runtime
 basenames match. Executable exports are explicitly modeled as well.
 
-There is no install into a live Steam directory and no automatic provider
-loading. Pinned native SDL3 3.4.20 headers, x86 import library and DLL are bundled;
-SDL consumers stage `SDL3.dll` in the runtime root in both configurations. The engines also build/stage `mpg123.dll` from pinned upstream 1.33.7 source,
-with complete source/license materials under `licenses/mpg123/`. Game
-data and compatible `steam_api.dll`,
-Chrome/voice/optional providers and their redistribution rights are separate
-requirements. Their absence is not hidden by stubs or treated as a successful
-runtime package. Miles imports and bundled artifacts have been removed; music
-uses libmpg123 decoding and SDL3 streams while preserving the existing commands.
+Pinned SDL3 3.4.20 headers, x86 import library and DLL are bundled; consumers stage
+`SDL3.dll` in the runtime root in both configurations. Both engines also build
+and stage the [shared mpg123 decoder](#source-built-mp3-decoder). Music uses SDL3
+streams and no longer requires Miles.
+
+Game data, compatible Steam/browser/voice/optional providers and their
+[redistribution rights](licensing.md) remain separate requirements. Build outputs
+stay in the selected build directory; no live Steam installation is modified.
 
 ## Source crosswalk and Windows evaluation
 
@@ -182,9 +176,8 @@ provider is absent. SDL2-linked `linux/vgui.so` and `linux/release/vgui.dylib` w
 retired; `linux/release/vgui.so` remains because its formal dependencies contain
 no SDL2. Its presence does not qualify it as the required rebuilt provider.
 These Carbon/i386 recipes do not establish a supported native Linux/macOS port.
-The retained SDL3 audio stream preserves the 64 KiB engine DMA ring; supported
-Windows sound effects still use DirectSound/WaveOut. Music uses a separate
-SDL3 stream and source-built libmpg123. See [music validation](mpg123-migration-validation.md).
+The retained platform audio stream preserves the 64 KiB engine DMA ring;
+Windows sound effects still use DirectSound/WaveOut.
 
 For an SDL3-only test package, use the explicit provider/data fixture and formal
 import audit in [qualification utilities](../tools/qualification/README.md).
@@ -193,19 +186,17 @@ copying source-built modules over that data is insufficient closure evidence.
 
 ## Source-built MP3 decoder
 
-`external/mpg123/mpg123-1.33.7.tar.bz2` is the unmodified upstream source release.
-The CMake wrapper validates its SHA-256, extracts it into the preset build tree,
-and builds upstream's shared decoder. No network download is required during builds.
-MSVC without yasm uses upstream's generic C decoder; CPU-specific optimizations
-are not required for correctness. The wrapper supplies the `WIN32` export define
-explicitly because this repository intentionally clears CMake compiler defaults.
+The [pinned mpg123 1.33.7 source](../GoldSrc-SDK/external/mpg123/UPSTREAM.md) is
+bundled as an unmodified archive. The CMake wrapper verifies its SHA-256, extracts
+it into the build tree and builds upstream's shared decoder without a network
+download. MSVC without yasm uses upstream's generic C decoder.
 
 CMake stages `mpg123.dll` beside `hw.dll` and `swds.dll`. Import libraries and
 symbols are under `lib/<Configuration>/mpg123/` and `symbols/<Configuration>/mpg123/`.
 Standalone MSBuild imports `Mpg123.props` and `Mpg123.targets`; each engine builds
 its own isolated dependency beneath its IntDir and stages to the shared runtime root.
-Both routes stage upstream COPYING, AUTHORS, provenance and complete source archive.
-The dependency wrapper is architecture-aware, but production presets remain x86 only.
+Both routes stage COPYING, AUTHORS, provenance and the complete source archive
+under `licenses/mpg123/` beside the runtime DLLs.
 
 Run real decoder, stream lifecycle and CD worker tests on the Windows builder:
 
@@ -217,5 +208,5 @@ cmake --build build/music-tests --config Debug --parallel
 ctest --test-dir build/music-tests -C Debug --output-on-failure
 ```
 
-Stream tests use SDL's dummy device; actual audible output and game integration
-need the separate VM1 qualification described in the validation report.
+Stream tests use SDL's dummy device. Actual game-output captures and their limits
+are recorded in [VM1 validation](mpg123-migration-validation.md).

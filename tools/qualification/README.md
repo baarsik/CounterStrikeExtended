@@ -150,12 +150,17 @@ python tools/qualification/audit_sdl3.py --output sandbox-audit.json runtime C:\
 
 The `runtime` audit works with Python's standard library on Windows; no LLVM or
 provider execution is required. Runtime module snapshots and provider hashes must
-still confirm the actual loaded set. Production Windows audio remains native
-DirectSound/WaveOut/Miles; `tests/sdl3/audio_stream_tests.cpp` uses a native SDL3
-dummy device solely to qualify retained stream ownership/pause/cursor boundaries,
-without claiming a native Linux/macOS runtime test.
+still confirm the actual loaded set. Windows effects use DirectSound/WaveOut;
+music uses libmpg123/SDL3. `tests/sdl3/audio_stream_tests.cpp` checks retained
+platform-stream ownership/pause/cursor behavior with SDL's dummy device.
+Use the [music checks](#music-migration-closure) for the current music backend.
 
 ## Paired fixed-demo VM benchmark
+
+This tool reproduces the pinned SDL2/SDL3 comparison in the
+[SDL3 report](../../docs/sdl3-migration-validation.md#release-benchmarks).
+It requires matching non-SDL providers, so it cannot compare the current mpg123
+runtime against a Miles baseline without changing the provider comparison.
 
 `invoke_paired_benchmark.ps1` consumes **already staged, qualified, owned** baseline
 and candidate sandboxes. Use fresh directories: copy the reviewed SDL3-only fixture
@@ -233,33 +238,30 @@ avoid screenshot/hash IO during the benchmark.
 
 ## Music migration closure
 
-The current music backend requires source-built `mpg123.dll`, staged with its
-complete upstream source/license materials. It does not require Miles. Prepare
-an isolated fixture with explicit exclusions for `Mss32.dll`, `mssmp3.asi`,
-`mssvoice.asi` and `binkawin.asi`; keep the stock Steam data unchanged.
-After the full runtime and CRT providers are staged, run:
+Prepare the isolated fixture above with explicit exclusions for `Mss32.dll`,
+`mssmp3.asi`, `mssvoice.asi` and `binkawin.asi`. Stage the complete runtime,
+source-built `mpg123.dll` and required CRT providers, then run:
 
 ```powershell
 python tools/qualification/audit_mpg123.py C:\qualification\music-fixture --output music-closure.json
 ```
 
-This checks the existing SDL3/formal import closure, rejects retained Miles modules
-and imports, and requires both engines to import the staged mpg123 provider.
-Runtime evidence must additionally identify the actual loaded library and exercise
-music, not only game sound effects. Decoder/player tests live under `tests/music/`.
+This checks SDL3/formal import closure, rejects Miles modules/imports and requires
+both engines to import the staged mpg123 provider. See [build instructions](../../docs/building.md#source-built-mp3-decoder)
+for decoder/player/worker tests and [VM1 validation](../../docs/mpg123-migration-validation.md)
+for measured results and coverage limits.
 
 `invoke_music_probe.ps1` runs a one-second upstream sweep loop, pause/resume,
 quarter volume, fade, an existing Half-Life music file, file replacement and stop.
-Supply an explicitly prepared `.cse-music-fixture` directory, a test-only NAudio
-assembly for WASAPI loopback capture, and the native module collector. It mutes
-game effects, records buffer timestamps (idle periods may produce no WASAPI
-packets), and captures the loaded decoder identity. Validate with:
+After auditing, mark the owned sandbox with `.cse-music-fixture` and copy upstream
+`src/tests/sweep.mp3` to `<game>/media/cse-music-test.mp3`. Supply `-Game`,
+`-SandboxDirectory`, `-EvidenceDirectory`, `-NAudioAssembly` (test-only NAudio 1.10)
+and `-ModuleCollectorPath`. The probe mutes effects, timestamps capture buffers and
+records the loaded decoder identity. Analyze the resulting `<game>-<label>` prefix:
 
 ```powershell
 python tools/qualification/analyze_music_probe.py C:\evidence\valve-music --output C:\evidence\valve-music-analysis.json
 ```
 
-The analysis checks captured amplitudes, silence phases and replacement identity.
-It is a bounded music regression probe, not a test of physical CDs, all audio
-endpoints, or every possible MP3. Use the separate gameplay probe for movement,
-recording/replay and clean exit acceptance.
+The analysis checks amplitudes, silence phases and replacement identity. Use the
+separate gameplay probe for movement, recording/replay and clean exit.

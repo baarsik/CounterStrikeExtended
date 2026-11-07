@@ -7,8 +7,9 @@ and unmodified upstream header text remain archival material.
 The validated product snapshot is `c4f729d`, including the cursor-ownership fix.
 Its production SDK tree is `8cb90868bd5e6e95026dbc0a2fa4c4cd983554d5`; CMake tree is
 `e9623cb1b61a0254c3f772259a0fa963aff9ce0a`. Results below apply to that snapshot;
-the later [residual-game source cleanup](source-pruning.md) is outside this
-qualification. The SDL2 reference uses repaired baseline `23a2135` and SDL2 2.0.20.
+the later source cleanup and Miles removal are covered by
+[music/runtime validation](mpg123-migration-validation.md). The SDL2 reference
+uses repaired baseline `23a2135` and SDL2 2.0.20.
 
 ## Validation
 
@@ -20,7 +21,7 @@ floating-point settings and provider requirements were retained.
 | Check | Result |
 | --- | --- |
 | Fresh builds | All four hardware/runtime Release/Debug presets passed; explicit Release A3D and broadcasting builds also passed. |
-| Dependency closure | All 94 pinned SDL3 files validated; the 43-binary x86 package resolves formal dependencies without SDL2 or SDL2-compat. Required Miles, Steam, browser and codec providers remain included. |
+| Dependency closure | All 94 pinned SDL3 files validated; the 43-binary x86 package resolves formal dependencies without SDL2 or SDL2-compat. That snapshot included Miles, Steam, browser and codec providers. |
 | Source-built outputs | All 16 required staged outputs and 12 observed source-built modules match their manifests in each gameplay run; live snapshots contain only pinned SDL3. |
 | CS and HL gameplay | Release and Debug each recorded 651 alive network samples and 301 movement-command samples, replayed to full EOF and exited cleanly. |
 | Rendering and media | Textured world/HUD captures passed at 640×480 and desktop fullscreen; actual SDL3 startup-video rendering was observed. Repeated native DirectSound captures were nonzero. |

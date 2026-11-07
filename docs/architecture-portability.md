@@ -1,11 +1,8 @@
 # Future x64 and ARM64 portability inventory
 
-The build targets **Windows x86 only**. The
-[SDL3 validation report](sdl3-migration-validation.md) identifies the qualified
-x86 snapshot and its limits. The later source cleanup plus the current music
-backend are covered by [music migration validation](mpg123-migration-validation.md). x64 and ARM64 remain unsupported configurations. CMake
-rejects unsupported host/architecture choices rather than selecting a mismatched
-library or substituting a success stub.
+The build targets **Windows x86 only**; see [current validation](mpg123-migration-validation.md)
+for the tested snapshot and limits. CMake rejects unsupported hosts/architectures.
+The inventory below identifies remaining work for native x64/ARM64 builds.
 
 ## Source and ABI boundaries
 
@@ -58,5 +55,5 @@ dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s
 and libstdc++ dependencies and remains retained evidence, without a functional
 compatibility claim. Non-Windows SDL3 stream/ring source is retained and tested
 at its arithmetic/ownership boundary; no native Linux/macOS runtime is qualified.
-Windows DirectSound/WaveOut sound effects and physical-CD MCI behavior remain separate boundaries.
-Music now uses libmpg123 with SDL3; see [music validation](mpg123-migration-validation.md).
+Windows DirectSound/WaveOut sound effects and physical-CD MCI remain separate
+from libmpg123/SDL3 music.
