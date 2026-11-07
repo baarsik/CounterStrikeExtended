@@ -24,7 +24,7 @@ rather than selecting a mismatched library or substituting a success stub.
 
 | Dependency | x86 evidence | x64 / ARM64 status |
 | --- | --- | --- |
-| SDL2 | Bundled x86 COFF import archive naming SDL2.dll, retained headers/notices; runtime DLL not supplied | Compatible native binaries, integration and redistribution review required; no matching libraries are selected or validated here |
+| SDL3 | Pinned native SDL3 3.4.20 unmodified headers, x86 COFF import archive identifying SDL3.dll and bundled x86 DLL; same upstream binary for Debug/Release consumers | Compatible native binaries, integration and redistribution review required; no matching libraries are selected or validated here |
 | Steam / Steamworks | Bundled x86 steam_api.lib; inherited header provenance statement and runtime-loaded interfaces | Exact required interfaces, native provider availability, bitness, lifecycle and applicable SDK/redistribution terms must be established for each architecture |
 | Miles | Bundled x86 mss32 import archive; original engine music source/worker/command integration retained | Native replacement/provider availability and rights unresolved. Port requires an authorized provider strategy that preserves behavior; no no-Miles stub is part of this task |
 | Brotli, Ogg/Vorbis, WebM/VPX, bzip2, FreeType, Expat, PNG, zlib | Supplied x86 static-md Debug/Release libraries and retained notices | Rebuild/procure each native architecture with matching CRT/options and transitive dependencies, carry notices, then qualify media/font/codec behavior |
@@ -51,3 +51,10 @@ export/ABI inspection, permitted module/provider loading, and actual CS/Half-Lif
 client/server behavior. Neither this inventory nor a green build establishes
 runtime/playability acceptance. No future-architecture implementation, runtime
 probe or game launch was performed.
+
+SDL2 provider artifacts and the two platform VGUI binaries with formal SDL2 load
+dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s
+and libstdc++ dependencies and remains retained evidence, without a functional
+compatibility claim. Non-Windows SDL3 stream/ring source is retained and tested
+at its arithmetic/ownership boundary; no native Linux/macOS runtime is qualified.
+Windows DirectSound/WaveOut/Miles behavior remains a separate boundary.

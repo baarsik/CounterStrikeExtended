@@ -106,7 +106,9 @@ and linker/compile PDBs have target-specific directories even when runtime
 basenames match. Executable exports are explicitly modeled as well.
 
 There is no install into a live Steam directory and no automatic provider
-loading. Game data and compatible `mss32.dll`, `SDL2.dll`, `steam_api.dll`,
+loading. Pinned native SDL3 3.4.20 headers, x86 import library and DLL are bundled;
+SDL consumers stage `SDL3.dll` in the runtime root in both configurations. Game
+data and compatible `mss32.dll`, `steam_api.dll`,
 Chrome/voice/optional providers and their redistribution rights are separate
 requirements. Their absence is not hidden by stubs or treated as a successful
 runtime package. Miles source, linkage, worker and command paths are preserved.
@@ -161,3 +163,26 @@ The wrappers compile production code, not stand-ins for a missing provider.
 The repository crosswalk includes these five target-time inputs explicitly;
 MSBuild's evaluation-only `-getItem` output alone does not include additions made
 inside a build target. Inspect the preserved target body in the preprocessed XML.
+
+## SDL3 provider and retained platform recipes
+
+`GoldSrc-SDK/external/SDL3/UPSTREAM.md` records the official package and selected
+unmodified payload hashes. `python tools/sdl3_dependency.py` validates this pin;
+configuration/translation also fail when a pinned input is missing or modified.
+No installed SDL fallback, SDL2 provider or compatibility runtime is selected.
+MSBuild `SDL3.props`/`SDL3.targets` and the generated CMake dependency model stage
+the same x86 DLL even when building an individual consumer that is up to date.
+
+The retained Linux/macOS client Makefiles require native `pkg-config sdl3` and an
+explicit `VGUI_LIBRARY=/absolute/path/to/rebuilt/library`. They fail if either
+provider is absent. SDL2-linked `linux/vgui.so` and `linux/release/vgui.dylib` were
+retired; `linux/release/vgui.so` remains because its formal dependencies contain
+no SDL2. Its presence does not qualify it as the required rebuilt provider.
+These Carbon/i386 recipes do not establish a supported native Linux/macOS port.
+The retained SDL3 audio stream preserves the 64 KiB engine DMA ring; supported
+Windows production audio still uses DirectSound/WaveOut and Miles.
+
+For an SDL3-only test package, use the explicit provider/data fixture and formal
+import audit in [qualification utilities](../tools/qualification/README.md).
+Raw Steam-data overlays can contain SDL2 and unused stock engine alternatives;
+copying source-built modules over that data is insufficient closure evidence.

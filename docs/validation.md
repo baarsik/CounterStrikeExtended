@@ -1,5 +1,22 @@
 # Validation and remaining evidence
 
+The inventory below records the earlier source-pruning validation. Current SDL3
+migration evidence is recorded in the task reports and qualification artifacts;
+the historical environment/absence statements below are scoped to that earlier
+inventory, not the current Windows build state.
+
+Current dependency closure uses `tools/qualification/audit_sdl3.py`: it checks
+formal PE imports and delay imports, active x86 provider/COFF identity, retained
+ELF/Mach-O load records, active includes/manifests and SDL2/compatibility artifact
+absence. It preserves the original manifest ZIP hash. The isolated fixture
+requires explicit native-provider/exclusion decisions for Steam-data overlays,
+keeps all non-native game data, verifies all 16 source-built outputs, and rejects
+unresolved non-system imports. See [qualification instructions](../tools/qualification/README.md).
+Static closure does not qualify optional dynamically loaded providers or establish
+startup-media, audio, rendering, input or gameplay acceptance without runtime
+evidence. Focused stream tests on Windows exercise SDL3 dummy-device ownership;
+they do not constitute a native Linux/macOS audio run.
+
 Authoring environment: Apple Silicon macOS (`uname -s`: Darwin), CMake 4.4.5,
 Python 3 standard library, local feature branch `codex/project-scope-inventory`.
 No `cl`, `clang-cl`, or `msbuild` executable was found on PATH. A fresh local
@@ -22,7 +39,7 @@ no VM access or runtime authorization was borrowed from another chat.
 | Active compile/resource/library selection existence after pruning | 2,584 existing per-configuration selections checked; zero missing inputs; plus 10 modeled A3D generated selections (5 per configuration) |
 | Conservative retained/optional include/forced-include scan before pruning | No consumers inside the 21 approved exclusive-source roots; shared/protected trees retained |
 | `cmake --list-presets=all` | All four configure and build presets parsed: runtime/hardware × Release/Debug; no configuration/compiler checks invoked |
-| Static COFF archive inspection | Miles/SDL2/Steam import archives identify x86 runtime DLLs; supplied public game/UI archives contain x86 objects |
+| Static COFF archive inspection | At that historical snapshot, Miles/SDL2/Steam import archives identified x86 runtime DLLs; supplied public game/UI archives contain x86 objects |
 | C1/C4 source slice comparison against original HEAD | Valid key map, forward switch and reverse initializer unchanged |
 | C2 target/source crosscheck | Hardware and swds explicitly select WSOCK32 and link wsock32.lib in both configurations; modern Winsock2 modules remain separate |
 | C3 source diff inspection | Hardware added only to process-header/terminal-exit guards; formatter, callback/logging/SDL/longjmp sequence preserved |

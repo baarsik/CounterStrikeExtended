@@ -268,19 +268,21 @@ The HL client also contains an explicit **`Library` item** for
 | Family | Retained consumers and selection |
 | --- | --- |
 | Miles | `hw_engine` and `swds` link `external/miles/mss32.lib`; keep `engine/cd.cpp`, `thread.cpp`, queue/worker/command paths and Miles terms. COFF import members identify x86 `mss32.dll`. |
-| SDL2 / Steam | `lib/public/SDL2.lib` and `steam_api.lib` are x86 import libraries identifying `SDL2.dll` and `steam_api.dll`. Used by engines, CS client, GameUI, HL client (SDL), and optional Proxy (Steam), as selected in their manifests. |
+| SDL3 / Steam | Native SDL3 3.4.20 under `external/SDL3/` includes pinned unmodified headers, x86 SDL3.lib and SDL3.dll. The five linker consumers are engines, CS/HL clients and GameUI; other required targets use headers only. Steam uses x86 `steam_api.lib` and separately supplied runtime providers, including optional Proxy. |
 | Codec/compression/font libraries | Engines use `external/installed/x86-windows-static-md/lib` in Release and `debug/lib` in Debug: brotli decoder/common, Vorbis/Vorbisfile/Ogg, WebM/VPX, plus `bz2`/`bz2d`, `freetype`/`freetyped`, `libexpatMD`/`libexpatdMD`, `libpng16`/`libpng16d`, `zs`/`zsd`. Preserve architecture, variants and transitive dependencies. |
 | Winsock | Engines' `net_ws.cpp` is selected by hardware and `swds`, both linked to **`wsock32.lib`**. HL client also lists WSOCK32. Core, launcher, hlds and optional Proxy use **`ws2_32.lib`**. Keep the C2 backend/constant distinction. |
 | Windows graphics/audio | Hardware lists OpenGL32, WinMM, DXGUID, DirectSound. `swds` lists DDraw, WinMM, DXGUID, DirectSound. Preserve target-specific Windows imports; their presence does not authorize running graphics/audio. |
 | Bundled UI libraries | `game_controls.lib` and `vgui_controls.lib` contain ordinary x86 COFF object members rather than short import members. HL client explicitly uses the former; keep both pending the detailed link audit. The VGUI1 generated import library is a separate artifact. |
 | Private support source | Core compiles private bzip2 and copied engine/public code; DemoPlayer and GameUI use private copied support. Optional Proxy also uses Core's private source. Keep original ownership and include precedence. |
 
-The three identified runtime import DLLs are not bundled in this checkout;
-outside installed package tooling, the only `.dll` found is the utility GLUT
-DLL. Required compatible provider availability, redistribution permissions and
-Debug/Release CRT compatibility remain to be established. The presence of
+SDL3.dll is bundled and staged from the pinned official x86 package. Miles and
+Steam runtime providers remain separately supplied. Required compatible provider
+availability, redistribution permissions and Debug/Release CRT compatibility
+remain to be established. The presence of
 `external/installed/x64-windows` package tools is not an x64 runtime dependency
-solution. No third-party directory/library deletion is included in this request.
+solution. The SDL3 migration separately retires SDL2 headers, import libraries,
+platform shared libraries/debug aliases, and the two formally SDL2-linked platform
+VGUI artifacts. Original manifests remain immutable historical evidence.
 
 ### Runtime edges not represented by project references
 

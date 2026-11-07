@@ -21,10 +21,26 @@ CFLAGS=$(BASE_CFLAGS) $(ARCH_CFLAGS) -DCLIENT_DLL -DCLIENT_WEAPONS -DHL_DLL -I/u
 		 
 INCLUDEDIRS=-I$(HL_SRC_DIR) -I../dlls -I../tfc -I$(COMMON_SRC_DIR) -I$(PUBLIC_SRC_DIR) -I../pm_shared -I../engine -I../utils/vgui/include -I ../game_shared -I../external
 
+# Retained source recipe only; native Linux/macOS is outside Windows qualification.
+# Supply a rebuilt SDL3-compatible VGUI explicitly; removed platform binaries are not fallbacks.
+PKG_CONFIG ?= pkg-config
+VGUI_LIBRARY ?=
+ifeq ($(strip $(VGUI_LIBRARY)),)
+$(error VGUI_LIBRARY must name an explicitly supplied SDL3-compatible VGUI library)
+endif
+ifeq ($(wildcard $(VGUI_LIBRARY)),)
+$(error VGUI_LIBRARY does not exist: $(VGUI_LIBRARY))
+endif
+ifeq ($(shell $(PKG_CONFIG) --exists sdl3 && echo yes),)
+$(error Native SDL3 development files are required through pkg-config sdl3)
+endif
+SDL3_CFLAGS := $(shell $(PKG_CONFIG) --cflags sdl3)
+SDL3_LIBS := $(shell $(PKG_CONFIG) --libs sdl3)
+INCLUDEDIRS += $(SDL3_CFLAGS)
 ifeq ($(OS),Darwin)
-LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB) -framework Carbon $(CFG)/vgui.dylib -L. -lSDL2-2.0.0
+LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB) -framework Carbon $(VGUI_LIBRARY) $(SDL3_LIBS)
 else
-LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB) -L$(CFG) vgui.so -L. -lSDL2
+LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB) $(VGUI_LIBRARY) $(SDL3_LIBS)
 endif
 
 DO_CC=$(CPLUS) $(INCLUDEDIRS) $(CFLAGS) -o $@ -c $<

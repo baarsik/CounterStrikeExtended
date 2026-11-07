@@ -434,6 +434,8 @@
     <ClInclude Include="..\..\engine\server_static.h" />
     <ClInclude Include="..\..\engine\shake.h" />
     <ClInclude Include="..\..\engine\snd_win.h" />
+    <ClInclude Include="..\..\engine\sdl3_audio_backend.h" />
+    <ClInclude Include="..\..\engine\sdl3_audio_ring.h" />
     <ClInclude Include="..\..\engine\sound.h" />
     <ClInclude Include="..\..\engine\spritegn.h" />
     <ClInclude Include="..\..\engine\SteamCommon.h" />
