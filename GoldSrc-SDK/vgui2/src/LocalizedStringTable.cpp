@@ -305,135 +305,124 @@ void CLocalizedStringTable::SetValueByIndex( StringIndex_t index, wchar_t* newVa
 }
 
 void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
-	const char* tokenName, KeyValues* localizationVariables )
-{
-	StringIndex_t index;
+    const char* tokenName, KeyValues* localizationVariables ) {
+    if ( !unicodeOutput || unicodeBufferSizeInBytes < static_cast<int>( sizeof( wchar_t ) ) ) {
+        return;
+    }
 
-	index = FindIndex( tokenName );
-	if ( index == INVALID_LOCALIZE_STRING_INDEX )
-	{
-		ConvertANSIToUnicode( tokenName, unicodeOutput, unicodeBufferSizeInBytes );
-	}
-	else
-	{
-		ConstructString( unicodeOutput, unicodeBufferSizeInBytes, index, localizationVariables );
-	}
+    StringIndex_t index;
+
+    index = FindIndex( tokenName );
+    if ( index == INVALID_LOCALIZE_STRING_INDEX ) {
+        ConvertANSIToUnicode( tokenName, unicodeOutput, unicodeBufferSizeInBytes );
+    }
+    else {
+        ConstructString( unicodeOutput, unicodeBufferSizeInBytes, index, localizationVariables );
+    }
 }
 
 void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
-	StringIndex_t unlocalizedTextSymbol, KeyValues* localizationVariables )
-{
-	const wchar_t* searchPos;
-	wchar_t* outputPos;
-	int remaining;
-	wchar_t ch;
+    StringIndex_t unlocalizedTextSymbol, KeyValues* localizationVariables ) {
+    const wchar_t* searchPos;
+    wchar_t* outputPos;
+    int remaining;
+    wchar_t ch;
 
-	if ( unicodeBufferSizeInBytes <= 0 )
-	{
-		return;
-	}
+    if ( !unicodeOutput || unicodeBufferSizeInBytes < static_cast<int>( sizeof( wchar_t ) ) ) {
+        return;
+    }
 
-	unicodeOutput[0] = 0;
-	searchPos = GetValueByIndex( unlocalizedTextSymbol );
-	if ( !searchPos )
-	{
-		wcsncpy( unicodeOutput, L"[unknown string]", (unsigned int)unicodeBufferSizeInBytes / sizeof( wchar_t ) );
-		return;
-	}
+    constexpr int terminatorCharacters = 1;
+    const int bufferCharacters = unicodeBufferSizeInBytes / static_cast<int>( sizeof( wchar_t ) );
+    unicodeOutput[0] = 0;
+    searchPos = GetValueByIndex( unlocalizedTextSymbol );
+    if ( !searchPos ) {
+        wcsncpy( unicodeOutput, L"[unknown string]", bufferCharacters - terminatorCharacters );
+        unicodeOutput[bufferCharacters - terminatorCharacters] = 0;
+        return;
+    }
 
-	remaining = (int)( (unsigned int)unicodeBufferSizeInBytes / sizeof( wchar_t ) );
-	outputPos = unicodeOutput;
+    // All copies count content characters; keep the terminator inside the buffer.
+    remaining = bufferCharacters - terminatorCharacters;
+    outputPos = unicodeOutput;
 
-	while ( 1 )
-	{
-		ch = *searchPos;
-		if ( remaining <= 0 || ch == 0 )
-		{
-			*outputPos = 0;
-			return;
-		}
+    while ( 1 ) {
+        ch = *searchPos;
+        if ( remaining <= 0 || ch == 0 ) {
+            *outputPos = 0;
+            return;
+        }
 
-		if ( ch == L'%' )
-		{
-			for ( ;; )
-			{
-				wchar_t next = searchPos[1];
+        if ( ch == L'%' ) {
+            for ( ;; ) {
+                wchar_t next = searchPos[1];
 
-				if ( next == L's' && (unsigned int)( searchPos[2] - L'0' ) <= 9 )
-				{
-					++searchPos;
-					break;
-				}
+                if ( next == L's' && (unsigned int)( searchPos[2] - L'0' ) <= 9 ) {
+                    ++searchPos;
+                    break;
+                }
 
-				if ( next == L'%' )
-				{
-					searchPos += 2;
-					ch = L'%';
-					break;
-				}
+                if ( next == L'%' ) {
+                    searchPos += 2;
+                    ch = L'%';
+                    break;
+                }
 
-				if ( !localizationVariables )
-				{
-					++searchPos;
-					break;
-				}
+                if ( !localizationVariables ) {
+                    ++searchPos;
+                    break;
+                }
 
-				++searchPos;
-				{
-					const wchar_t* tokenEnd = wcschr( searchPos, L'%' );
-					char variableName[32];
-					char* nameWrite;
-					const wchar_t* replacement;
-					int copyCount;
+                ++searchPos;
+                {
+                    const wchar_t* tokenEnd = wcschr( searchPos, L'%' );
+                    char variableName[32];
+                    char* nameWrite;
+                    const wchar_t* replacement;
+                    int copyCount;
 
-					if ( !tokenEnd || *tokenEnd != L'%' )
-					{
-						break;
-					}
+                    if ( !tokenEnd || *tokenEnd != L'%' ) {
+                        break;
+                    }
 
-					nameWrite = variableName;
-					while ( searchPos < tokenEnd && nameWrite < variableName + 31 )
-					{
-						*nameWrite++ = (char)*searchPos++;
-					}
+                    nameWrite = variableName;
+                    while ( searchPos < tokenEnd && nameWrite < variableName + 31 ) {
+                        *nameWrite++ = (char)*searchPos++;
+                    }
 
-					*nameWrite = 0;
+                    *nameWrite = 0;
 
-					replacement = localizationVariables->GetWString( variableName, L"[unknown]" );
-					copyCount = (int)wcslen( replacement );
-					if ( copyCount > remaining )
-					{
-						copyCount = remaining;
-					}
+                    replacement = localizationVariables->GetWString( variableName, L"[unknown]" );
+                    copyCount = (int)wcslen( replacement );
+                    if ( copyCount > remaining ) {
+                        copyCount = remaining;
+                    }
 
-					remaining -= copyCount;
-					wcsncpy( outputPos, replacement, copyCount );
-					outputPos += copyCount;
+                    remaining -= copyCount;
+                    wcsncpy( outputPos, replacement, copyCount );
+                    outputPos += copyCount;
 
-					searchPos = tokenEnd + 1;
-					ch = *searchPos;
-					if ( remaining <= 0 || ch == 0 )
-					{
-						*outputPos = 0;
-						return;
-					}
+                    searchPos = tokenEnd + 1;
+                    ch = *searchPos;
+                    if ( remaining <= 0 || ch == 0 ) {
+                        *outputPos = 0;
+                        return;
+                    }
 
-					if ( ch != L'%' )
-					{
-						searchPos = tokenEnd + 2;
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			++searchPos;
-		}
+                    if ( ch != L'%' ) {
+                        searchPos = tokenEnd + 2;
+                        break;
+                    }
+                }
+            }
+        }
+        else {
+            ++searchPos;
+        }
 
-		--remaining;
-		*outputPos++ = ch;
-	}
+        --remaining;
+        *outputPos++ = ch;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -539,83 +528,82 @@ static const char* s_LanguageToken = "%language%";
 static const char* s_English = "english";
 
 static void ConstructStringFromArgs( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
-	wchar_t* formatString, int numFormatParameters, va_list argList )
-{
-	int unicodeBufferSize;
-	wchar_t* searchPos;
-	wchar_t* outputPos;
-	int formatLength;
+    wchar_t* formatString, int numFormatParameters, va_list argList ) {
+    int unicodeBufferSize;
+    wchar_t* searchPos;
+    wchar_t* outputPos;
+    int formatLength;
 
-	unicodeBufferSize = (int)( (unsigned int)unicodeBufferSizeInBytes / sizeof( wchar_t ) );
-	searchPos = formatString;
-	outputPos = unicodeOutput;
-	formatLength = (int)wcslen( formatString );
+    if ( !unicodeOutput || unicodeBufferSizeInBytes < static_cast<int>( sizeof( wchar_t ) ) ) {
+        return;
+    }
+    if ( !formatString ) {
+        unicodeOutput[0] = 0;
+        return;
+    }
 
-	while ( unicodeBufferSize > 1 )
-	{
-		wchar_t ch = *searchPos;
+    unicodeBufferSize = unicodeBufferSizeInBytes / static_cast<int>( sizeof( wchar_t ) );
+    searchPos = formatString;
+    outputPos = unicodeOutput;
+    formatLength = (int)wcslen( formatString );
 
-		if ( ch == 0 )
-		{
-			break;
-		}
+    while ( unicodeBufferSize > 1 ) {
+        wchar_t ch = *searchPos;
 
-		if ( ch == L'%' && formatLength > 2 && searchPos[1] == L's' )
-		{
-			int argindex = (int)searchPos[2] - (int)L'1';
+        if ( ch == 0 ) {
+            break;
+        }
 
-			if ( (unsigned int)argindex <= 8 )
-			{
-				if ( argindex >= numFormatParameters )
-				{
-					*outputPos = L'%';
-					--unicodeBufferSize;
-					++outputPos;
-					++searchPos;
-					--formatLength;
-				}
-				else
-				{
-					wchar_t* param = ( (wchar_t**)argList )[argindex];
-					int paramSize;
+        if ( ch == L'%' && formatLength > 2 && searchPos[1] == L's' ) {
+            int argindex = (int)searchPos[2] - (int)L'1';
 
-					if ( !param )
-					{
+            if ( (unsigned int)argindex <= 8 ) {
+                if ( argindex >= numFormatParameters ) {
+                    *outputPos = L'%';
+                    --unicodeBufferSize;
+                    ++outputPos;
+                    ++searchPos;
+                    --formatLength;
+                }
+                else {
+                    wchar_t* param = ( (wchar_t**)argList )[argindex];
+                    int paramSize;
+
+                    if ( !param ) {
 #ifdef _WIN32
-						_wassert( L"!(\"CLocalizedStringTable::ConstructString - Found a %s# escape sequence "
-							L"who's index was more than the number of args.\")",
-							LOCALIZEDSTRINGTABLE_SOURCE_PATH, 1095 );
+                        _wassert( L"!(\"CLocalizedStringTable::ConstructString - Found a %s# escape sequence "
+                            L"who's index was more than the number of args.\")",
+                            LOCALIZEDSTRINGTABLE_SOURCE_PATH, 1095 );
 #else
-						*outputPos = 0;
-						return;
+                        *outputPos = 0;
+                        return;
 #endif
-					}
+                    }
 
-					paramSize = (int)wcslen( param );
-					if ( unicodeBufferSize < paramSize )
-					{
-						paramSize = unicodeBufferSize - 1;
-					}
+                    paramSize = (int)wcslen( param );
+                    if ( unicodeBufferSize <= paramSize ) {
+                        paramSize = unicodeBufferSize - 1;
+                    }
 
-					searchPos += 3;
-					formatLength -= 3;
-					wcsncpy( outputPos, param, paramSize );
-					unicodeBufferSize -= paramSize;
-					outputPos += paramSize;
-				}
+                    searchPos += 3;
+                    formatLength -= 3;
+                    wcsncpy( outputPos, param, paramSize );
+                    unicodeBufferSize -= paramSize;
+                    outputPos += paramSize;
+                }
 
-				continue;
-			}
-		}
+                continue;
+            }
+        }
 
-		*outputPos = ch;
-		--unicodeBufferSize;
-		++outputPos;
-		++searchPos;
-		--formatLength;
-	}
+        *outputPos = ch;
+        --unicodeBufferSize;
+        ++outputPos;
+        ++searchPos;
+        --formatLength;
+    }
 
-	*outputPos = 0;
+    *outputPos = 0;
 }
 
 bool CLocalizedStringTable::AddAllLanguageFiles( IFileSystem* fileSystem, const char* baseFileName )
@@ -698,22 +686,14 @@ void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicode
 }
 
 void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
-	wchar_t* formatString, int numFormatParameters, ... )
-{
-	va_list argList;
+    wchar_t* formatString, int numFormatParameters, ... ) {
+    va_list argList;
 
-	va_start( argList, numFormatParameters );
+    va_start( argList, numFormatParameters );
 
-	if ( formatString )
-	{
-		ConstructString( unicodeOutput, unicodeBufferSizeInBytes, formatString, numFormatParameters, argList );
-	}
-	else
-	{
-		*unicodeOutput = 0;
-	}
+    ConstructString( unicodeOutput, unicodeBufferSizeInBytes, formatString, numFormatParameters, argList );
 
-	va_end( argList );
+    va_end( argList );
 }
 
 //-----------------------------------------------------------------------------

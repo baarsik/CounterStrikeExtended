@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 4.2)
+set(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../..")
+get_filename_component(CSE_ROOT "${CSE_ROOT}" ABSOLUTE)
+set(CSE_SDK_DIR "${CSE_ROOT}/GoldSrc-SDK")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseLocalizationTests LANGUAGES CXX)
+if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+  message(FATAL_ERROR "Localization tests require Windows x86 MSVC.")
+endif()
+include("${CSE_ROOT}/cmake/RuntimeTargets.cmake")
+add_subdirectory("${CSE_ROOT}/cmake/targets/vgui2" "${CMAKE_BINARY_DIR}/vgui2")
+add_executable(localization_tests buffer_tests.cpp)
+target_compile_features(localization_tests PRIVATE cxx_std_17)
+target_compile_options(localization_tests PRIVATE /W4 /WX /EHsc)
+target_include_directories(localization_tests PRIVATE
+  "${CSE_SDK_DIR}/vgui2/src"
+  "${CSE_SDK_DIR}/vgui2/src/public")
+add_dependencies(localization_tests vgui2)
+enable_testing()
+foreach(test exact-fit variadic keyvalues fallback invalid)
+  add_test(NAME localization-${test}
+    COMMAND localization_tests "$<TARGET_FILE:vgui2>" "${test}")
+endforeach()
