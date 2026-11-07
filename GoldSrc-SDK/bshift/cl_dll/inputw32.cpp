@@ -313,13 +313,14 @@ void CL_DLLEXPORT IN_Accumulate() {
     }
 }
 
-void CL_DLLEXPORT IN_ClearStates()
-{
-	if ( !mouseactive )
-		return;
-	mx_accum = 0;
-	my_accum = 0;
-	mouse_oldbuttonstate = 0;
+void CL_DLLEXPORT IN_ClearStates() {
+    s_relativeMotion.Reset();
+    if (!mouseactive) {
+        return;
+    }
+    mx_accum = 0;
+    my_accum = 0;
+    mouse_oldbuttonstate = 0;
 }
 
 void IN_StartupJoystick() {

@@ -590,14 +590,14 @@ extern "C" void IN_Accumulate() {
 IN_ClearStates
 ===================
 */
-extern "C" void IN_ClearStates()
-{
-	if ( !mouseactive )
-		return;
-
-	mx_accum = 0;
-	my_accum = 0;
-	mouse_oldbuttonstate = 0;
+extern "C" void IN_ClearStates() {
+    s_relativeMotion.Reset();
+    if (!mouseactive) {
+        return;
+    }
+    mx_accum = 0;
+    my_accum = 0;
+    mouse_oldbuttonstate = 0;
 }
 
 /*
