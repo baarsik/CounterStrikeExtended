@@ -16,3 +16,20 @@ function Reserve-ProbeEvidence([string]$Directory, [string]$Prefix) {
     }
     return $path
 }
+
+function Read-SharedProbeLog([string]$Path) {
+    $stream = $null
+    $reader = $null
+    try {
+        $sharing = [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+        $stream = [IO.File]::Open($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, $sharing)
+        $reader = New-Object IO.StreamReader($stream)
+        return $reader.ReadToEnd()
+    } catch [IO.IOException] {
+        # Creation/rotation may race a poll; the next observation can retry.
+        return ''
+    } finally {
+        if ($reader) { $reader.Dispose() }
+        elseif ($stream) { $stream.Dispose() }
+    }
+}

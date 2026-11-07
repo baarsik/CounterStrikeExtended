@@ -10,7 +10,7 @@ support remains outside the current scope.
 
 The default complete-runtime build contains 16 production targets, including
 `hl.exe`, `hw.dll`, `hlds.exe`, `swds.dll`, both games' client/server DLLs,
-filesystem, Tier0, VGUI/VGUI2, GameUI, particleman, Core and DemoPlayer. Miles music
+filesystem, Tier0, VGUI/VGUI2, GameUI, particleman, Core and DemoPlayer. libmpg123/SDL3 music
 integration remains intact. Standalone HLTV broadcasting and A3D are preserved
 as optional features, default OFF. The approved 38 other-game, software-client,
 editor and SDK utility targets and unused game implementation trees have been

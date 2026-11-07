@@ -9,7 +9,10 @@ track mapping, priming, looping, volume/fades, focus behavior, and Windows physi
 Retain CCDAudio as the engine-facing controller. Add a portable music backend owning
 one mpg123 decoder and SDL3 audio stream. A bounded producer thread performs decoding
 and file reads outside SDL audio callbacks. Control operations synchronize with the
-producer; stop/shutdown join it before releasing decoder/device resources. Preserve
+producer; stop/shutdown join it before releasing decoder/device resources.
+Queued file/prime commands own bounded copies of their paths; playback controls keep
+FIFO ordering while periodic status work may coalesce. Private worker records may
+grow to hold paths; exported client interfaces and wire/disk layouts remain unchanged. Preserve
 returned PCM at EOF, drain queued audio before completion, and explicitly handle
 format-change/error results. Decode at the source sample rate; SDL handles device conversion.
 Use opaque pointers, size_t lengths and mpg123 int64_t seek APIs without narrowing.

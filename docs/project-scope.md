@@ -124,5 +124,6 @@ pruning. The dedicated results below do not establish every conditional path.
 [SDL3 migration validation](sdl3-migration-validation.md) records Windows x86
 builds, exercised runtime paths and coverage limits for its pinned snapshot.
 The subsequent residual-game cleanup has source-selection, header-closure and
-generation checks recorded in [source-pruning.md](source-pruning.md); Windows
-compilation and runtime qualification have not been repeated for that cleanup.
+generation checks recorded in [source-pruning.md](source-pruning.md). The current
+post-cleanup runtime with libmpg123 is covered separately by
+[music migration validation](mpg123-migration-validation.md).

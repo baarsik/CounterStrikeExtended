@@ -124,12 +124,13 @@ try {
     while (-not $process.WaitForExit(50)) {
         if ([DateTime]::UtcNow -ge $deadline) { throw 'Owned music probe timed out' }
         $process.Refresh()
-        if ($process.MainWindowHandle -ne [IntPtr]::Zero) {
-            [CseMusicWindow]::SetForegroundWindow($process.MainWindowHandle) | Out-Null
+        $window = $process.MainWindowHandle
+        if ($null -ne $window -and $window -ne [IntPtr]::Zero) {
+            [CseMusicWindow]::SetForegroundWindow($window) | Out-Null
         }
         foreach ($log in $logs) {
             if (-not (Test-Path $log)) { continue }
-            $text = [IO.File]::ReadAllText($log)
+            $text = (Read-SharedProbeLog $log)
             foreach ($match in [regex]::Matches($text, '(?m)^CSE_MUSIC_([A-Z]+)\s*$')) {
                 $phase = $match.Groups[1].Value
                 if (-not $markers.Contains($phase)) { $markers[$phase] = $capture.Seconds }
@@ -154,7 +155,7 @@ try {
     }
     $result.exit_code = $process.ExitCode
     if ($process.ExitCode -ne 0) { throw "Music probe exited with $($process.ExitCode)" }
-    $console = ($logs | Where-Object { Test-Path $_ } | ForEach-Object { [IO.File]::ReadAllText($_) }) -join "`n"
+    $console = ($logs | Where-Object { Test-Path $_ } | ForEach-Object { (Read-SharedProbeLog $_) }) -join "`n"
     foreach ($match in [regex]::Matches($console, '(?m)^CSE_MUSIC_([A-Z]+)\s*$')) {
         $phase = $match.Groups[1].Value
         if (-not $markers.Contains($phase)) { $markers[$phase] = $capture.Seconds }
@@ -169,6 +170,11 @@ try {
     if ($process -and -not $process.HasExited) {
         $process.CloseMainWindow() | Out-Null
         if (-not $process.WaitForExit(5000)) { $process.Kill(); $process.WaitForExit() }
+    }
+    $consolePath = Join-Path $EvidenceDirectory "$prefix-console.log"
+    if (-not (Test-Path $consolePath)) {
+        $console = ($logs | ForEach-Object { Read-SharedProbeLog $_ }) -join "`n"
+        [IO.File]::WriteAllText($consolePath, $console)
     }
     if ($capture) {
         $capture.Dispose()

@@ -23,6 +23,14 @@ try {
     try { Reserve-ProbeEvidence $directory 'valve-case' | Out-Null } catch { $rejected = $true }
     if (-not $rejected) { throw 'Existing reservation was accepted twice' }
     if ([IO.File]::ReadAllText($reservation) -ne $original) { throw 'Reservation changed on rejected retry' }
+    $log = Join-Path $root 'live-console.log'
+    $writer = [IO.File]::Open($log, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::ReadWrite)
+    try {
+        $bytes = [Text.Encoding]::ASCII.GetBytes('CSE_MUSIC_FULL')
+        $writer.Write($bytes, 0, $bytes.Length)
+        $writer.Flush()
+        if ((Read-SharedProbeLog $log) -ne 'CSE_MUSIC_FULL') { throw 'Live console could not be read while open for writing' }
+    } finally { $writer.Dispose() }
     Write-Output 'PASS: interrupted, completed and already-reserved evidence prefixes are preserved'
 } finally {
     Remove-Item -LiteralPath $root -Recurse -Force

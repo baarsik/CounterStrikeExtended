@@ -247,3 +247,19 @@ This checks the existing SDL3/formal import closure, rejects retained Miles modu
 and imports, and requires both engines to import the staged mpg123 provider.
 Runtime evidence must additionally identify the actual loaded library and exercise
 music, not only game sound effects. Decoder/player tests live under `tests/music/`.
+
+`invoke_music_probe.ps1` runs a one-second upstream sweep loop, pause/resume,
+quarter volume, fade, an existing Half-Life music file, file replacement and stop.
+Supply an explicitly prepared `.cse-music-fixture` directory, a test-only NAudio
+assembly for WASAPI loopback capture, and the native module collector. It mutes
+game effects, records buffer timestamps (idle periods may produce no WASAPI
+packets), and captures the loaded decoder identity. Validate with:
+
+```powershell
+python tools/qualification/analyze_music_probe.py C:\evidence\valve-music --output C:\evidence\valve-music-analysis.json
+```
+
+The analysis checks captured amplitudes, silence phases and replacement identity.
+It is a bounded music regression probe, not a test of physical CDs, all audio
+endpoints, or every possible MP3. Use the separate gameplay probe for movement,
+recording/replay and clean exit acceptance.

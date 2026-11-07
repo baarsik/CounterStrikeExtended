@@ -2,8 +2,8 @@
 
 The build targets **Windows x86 only**. The
 [SDL3 validation report](sdl3-migration-validation.md) identifies the qualified
-x86 snapshot and its limits; the later [source cleanup](source-pruning.md) has
-static checks only. x64 and ARM64 remain unsupported configurations. CMake
+x86 snapshot and its limits. The later source cleanup plus the current music
+backend are covered by [music migration validation](mpg123-migration-validation.md). x64 and ARM64 remain unsupported configurations. CMake
 rejects unsupported host/architecture choices rather than selecting a mismatched
 library or substituting a success stub.
 
