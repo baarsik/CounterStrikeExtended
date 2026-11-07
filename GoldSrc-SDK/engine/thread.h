@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <atomic>
+#include <type_traits>
 
 #if defined( _WIN32 )
 #include <Windows.h>
@@ -17,12 +18,13 @@
 class CThread : public IThread
 {
 public:
-	struct threadcmds
-	{
-		vfunc pfn;
-		int param1;
-		int param2;
-	};
+    struct threadcmds {
+        vfunc pfn = nullptr;
+        filefunc fileFunction = nullptr;
+        int param1 = 0;
+        int param2 = 0;
+        char filename[CCDAudio::TrackPathCapacity]{};
+    };
 
 	CThread();
 	~CThread() override;
@@ -30,6 +32,7 @@ public:
 	bool Init() override;
 	bool Shutdown() override;
 	bool AddThreadItem( vfunc pfn, int param1, int param2 ) override;
+    bool AddFileThreadItem(filefunc function, const char *filename, int looping) override;
 
 #if defined( _WIN32 )
 	HANDLE m_hEvent;
@@ -54,9 +57,10 @@ public:
 #else
 	pthread_t m_dwThreadID;
 #endif
+private:
+    bool AddCommand(const threadcmds &command);
 };
 
-#if defined( _WIN32 ) && !defined( _WIN64 )
-static_assert( sizeof( CThread::threadcmds ) == 12, "Native Windows CD command record" );
-static_assert( sizeof( CThread ) == 0x13C, "Native Windows CD worker layout" );
-#endif
+// Records are private to this worker, not an exported engine ABI. They own paths
+// and remain trivially copyable for the existing batch transfer.
+static_assert(std::is_trivially_copyable<CThread::threadcmds>::value, "CD command batch transfer");

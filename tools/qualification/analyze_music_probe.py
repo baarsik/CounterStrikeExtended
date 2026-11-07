@@ -98,6 +98,8 @@ def analyze(prefix):
         raise ValueError('Resumed music amplitude differs from full volume')
     if not 0.15 <= rms['LOW'] / full <= 0.35:
         raise ValueError('Quarter-volume output is outside the expected range')
+    if not 0.4 <= rms['REPLACED'] / full <= 0.8:
+        raise ValueError('Replacement sweep did not play at the requested 60 percent volume')
     for phase in ['STOCK', 'REPLACED']:
         if rms[phase] < 0.00001:
             raise ValueError(phase + ' produced no measurable music')
@@ -106,6 +108,9 @@ def analyze(prefix):
         raise ValueError('An expected music file failed to open')
     if not re.search(r'Current MP3 Volume:\s*0\.2500', console):
         raise ValueError('Music info did not report the requested quarter volume')
+    replacement = re.search(r'CSE_MUSIC_REPLACED\s*([\s\S]*?)CSE_MUSIC_STOP', console)
+    if not replacement or not re.search(r'Current MP3 Title:\s*media[\\/]cse-music-test\.mp3', replacement[1]):
+        raise ValueError('The requested replacement track was not opened')
     return {'success': True, 'rms': rms, 'coverage_seconds': coverage, 'quarter_volume_ratio': rms['LOW'] / full,
             'loop_seconds': phases['PAUSE'] - phases['FULL'], 'decoder_sha256': result['decoder_sha256']}
 

@@ -28,7 +28,7 @@ class MusicCaptureTests(unittest.TestCase):
         Path(str(prefix)+'.wav').write_bytes(b'RIFF'+struct.pack('<I',len(chunks)+4)+b'WAVE'+chunks)
         Path(str(prefix)+'-audio-spans.csv').write_text('\n'.join(spans)+'\n')
         Path(str(prefix)+'-result.json').write_text(json.dumps({'success':True,'phases':phases,'decoder_sha256':'fixture'}))
-        Path(str(prefix)+'-console.log').write_text('Current MP3 Volume: 0.250000\n')
+        Path(str(prefix)+'-console.log').write_text('Current MP3 Volume: 0.250000\nCSE_MUSIC_REPLACED\nCurrent MP3 Title: media/cse-music-test.mp3\nCSE_MUSIC_STOP\n')
         return prefix
 
     def test_capture_timestamps_preserve_initial_silence_offset(self):
@@ -38,6 +38,14 @@ class MusicCaptureTests(unittest.TestCase):
             self.assertEqual(report['rms']['PAUSE'],0)
             self.assertEqual(report['rms']['FADED'],0)
             self.assertEqual(report['rms']['STOP'],0)
+
+    def test_stock_music_cannot_satisfy_replacement_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            prefix = self.fixture(Path(directory))
+            path = Path(str(prefix)+'-console.log')
+            path.write_text(path.read_text().replace('media/cse-music-test.mp3','media/Half-Life01.mp3'))
+            with self.assertRaisesRegex(ValueError,'replacement track'):
+                audit.analyze(prefix)
 
     def test_wrong_volume_report_cannot_pass_audio_only_checks(self):
         with tempfile.TemporaryDirectory() as directory:

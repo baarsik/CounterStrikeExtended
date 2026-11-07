@@ -21,6 +21,7 @@
 
 // Typedef to point at member functions of CCDAudio
 typedef void ( CCDAudio::*vfunc )( int, int );
+using filefunc = void (CCDAudio::*)(const char *, int);
 
 //-----------------------------------------------------------------------------
 // Purpose: CD Audio thread processing
@@ -34,6 +35,7 @@ public:
 	virtual bool Shutdown() = 0;
 	// Add specified item to thread for processing
 	virtual bool AddThreadItem( vfunc function, int first, int second ) = 0;
+    virtual bool AddFileThreadItem(filefunc function, const char *filename, int looping) = 0;
 };
 
 extern IThread* thread;

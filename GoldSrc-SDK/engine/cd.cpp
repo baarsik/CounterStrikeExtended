@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <chrono>
 
 #if defined( _WIN32 )
 #include <windows.h>
@@ -219,12 +220,16 @@ void CCDAudio::Play( int track, bool looping )
 	thread->AddThreadItem( &CCDAudio::_Play, track, looping );
 }
 
-void CCDAudio::PlayFile( const char* filename, bool looping )
-{
-	m_dFadeOutTime = 0.0;
-	strncpy( m_szPendingPlayFilename, filename, sizeof( m_szPendingPlayFilename ) );
-	thread->AddThreadItem( &CCDAudio::_Play, 0, looping );
-	usleep( 0 );
+void CCDAudio::PlayFile(const char *filename, bool looping) {
+    thread->AddFileThreadItem(&CCDAudio::_PlayFile, filename, looping);
+}
+
+void CCDAudio::_PlayFile(const char *filename, int looping) {
+    if (!m_bEnabled) {
+        return;
+    }
+    m_dFadeOutTime = 0.0;
+    MP3_PlayTrack(filename, looping != 0);
 }
 
 //-----------------------------------------------------------------------------
@@ -560,22 +565,23 @@ void PrimeMusicStream( char* filename, int looping )
 	g_CDAudio.PrimeTrack( filename, looping );
 }
 
-void CCDAudio::PrimeTrack( char* filename, int looping )
-{
-	m_dFadeOutTime = 0.0;
-	strncpy( m_szPendingPlayFilename, filename, sizeof( m_szPendingPlayFilename ) );
-	thread->AddThreadItem( &CCDAudio::_PrimeTrack, 0, looping );
-	usleep( 0 );
+void CCDAudio::PrimeTrack(char *filename, int looping) {
+    m_bIsInMiddleOfPriming = true;
+    if (!thread->AddFileThreadItem(&CCDAudio::_PrimeFile, filename, looping)) {
+        m_bIsInMiddleOfPriming = false;
+        return;
+    }
+    constexpr auto primeTimeout = std::chrono::milliseconds(2000);
+    const auto deadline = std::chrono::steady_clock::now() + primeTimeout;
+    while (m_bIsInMiddleOfPriming && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+}
 
-#if defined( _WIN32 )
-	const __int64 start = timeGetTime();
-	for ( __int64 now = start; m_bIsInMiddleOfPriming && now - start < 2000; now = timeGetTime() )
-		Sleep( 0 );
-#else
-	time_t start = time( NULL );
-	while ( m_bIsInMiddleOfPriming && time( NULL ) - start <= 1999 )
-		usleep( 0 );
-#endif
+void CCDAudio::_PrimeFile(const char *filename, int looping) {
+    m_dFadeOutTime = 0.0;
+    m_bIsPrimed = MP3_InitStream(filename, looping != 0);
+    m_bIsInMiddleOfPriming = false;
 }
 
 //-----------------------------------------------------------------------------

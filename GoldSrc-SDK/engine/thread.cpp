@@ -38,8 +38,11 @@ static DWORD WINAPI ThreadFunc( void* pv )
 		for ( int i = 0; i < self->_m_nCmds; i++ )
 		{
 			CThread::threadcmds* cmd = &self->_m_rgCmds[i];
-			if ( cmd->pfn )
-				( GetInteralCDAudio()->*cmd->pfn )( cmd->param1, cmd->param2 );
+            if (cmd->fileFunction) {
+                (GetInteralCDAudio()->*cmd->fileFunction)(cmd->filename, cmd->param2);
+            } else if (cmd->pfn) {
+                (GetInteralCDAudio()->*cmd->pfn)(cmd->param1, cmd->param2);
+            }
 		}
 	}
 
@@ -71,8 +74,11 @@ static void* ThreadFunc( void* pv )
 		for ( int i = 0; i < self->_m_nCmds; i++ )
 		{
 			CThread::threadcmds* cmd = &self->_m_rgCmds[i];
-			if ( cmd->pfn )
-				( GetInteralCDAudio()->*cmd->pfn )( cmd->param1, cmd->param2 );
+            if (cmd->fileFunction) {
+                (GetInteralCDAudio()->*cmd->fileFunction)(cmd->filename, cmd->param2);
+            } else if (cmd->pfn) {
+                (GetInteralCDAudio()->*cmd->pfn)(cmd->param1, cmd->param2);
+            }
 		}
 	}
 
@@ -99,56 +105,61 @@ CThread::~CThread()
 {
 }
 
-bool CThread::AddThreadItem(vfunc pfn, int param1, int param2) {
+bool CThread::AddThreadItem(vfunc function, int first, int second) {
+    threadcmds command{};
+    command.pfn = function;
+    command.param1 = first;
+    command.param2 = second;
+    return AddCommand(command);
+}
+
+bool CThread::AddFileThreadItem(filefunc function, const char *filename, int looping) {
+    if (!function || !filename || !filename[0] || std::strlen(filename) >= CCDAudio::TrackPathCapacity) {
+        return false;
+    }
+    threadcmds command{};
+    command.fileFunction = function;
+    command.param2 = looping;
+    std::memcpy(command.filename, filename, std::strlen(filename) + 1);
+    return AddCommand(command);
+}
+
+bool CThread::AddCommand(const threadcmds &command) {
     if (!m_bThreadRunning) {
         return false;
     }
-#if defined( _WIN32 )
-	EnterCriticalSection( &m_mutex );
+#if defined(_WIN32)
+    EnterCriticalSection(&m_mutex);
 #else
-	pthread_mutex_lock( &m_mutex );
+    pthread_mutex_lock(&m_mutex);
 #endif
-
-	// Check for duplicates
-	for ( int i = 0; i < m_nCmds; i++ )
-	{
-		if ( m_rgCmds[i].pfn == pfn )
-		{
-#if defined( _WIN32 )
-			LeaveCriticalSection( &m_mutex );
+    bool accepted = m_bThreadRunning && m_nCmds < MAX_THREAD_CMDS;
+    // Periodic status work may coalesce. Playback controls retain their order;
+    // dropping a second Stop could otherwise make an earlier Play survive it.
+    if (command.pfn == &CCDAudio::_CDUpdate) {
+        for (int index = 0; index < m_nCmds; ++index) {
+            if (m_rgCmds[index].pfn == command.pfn) {
+                accepted = false;
+                break;
+            }
+        }
+    }
+    if (accepted) {
+        m_rgCmds[m_nCmds++] = command;
+    }
+#if defined(_WIN32)
+    LeaveCriticalSection(&m_mutex);
+    if (accepted) {
+        SetEvent(m_hEvent);
+    }
 #else
-			pthread_mutex_unlock( &m_mutex );
+    if (accepted) {
+        m_cSet = 1;
+        pthread_cond_signal(&m_Condition);
+    }
+    pthread_mutex_unlock(&m_mutex);
 #endif
-			return false;
-		}
-	}
-
-	if ( m_nCmds >= MAX_THREAD_CMDS )
-	{
-#if defined( _WIN32 )
-		LeaveCriticalSection( &m_mutex );
-#else
-		pthread_mutex_unlock( &m_mutex );
-#endif
-		return false;
-	}
-
-	m_rgCmds[m_nCmds].pfn = pfn;
-	m_rgCmds[m_nCmds].param1 = param1;
-	m_rgCmds[m_nCmds].param2 = param2;
-	m_nCmds++;
-
-#if defined( _WIN32 )
-	LeaveCriticalSection( &m_mutex );
-	SetEvent( m_hEvent );
-#else
-	pthread_mutex_unlock( &m_mutex );
-	pthread_mutex_lock( &m_mutex );
-	m_cSet = 1;
-	pthread_cond_signal( &m_Condition );
-	pthread_mutex_unlock( &m_mutex );
-#endif
-	return true;
+    return accepted;
 }
 
 bool CThread::Shutdown() {
