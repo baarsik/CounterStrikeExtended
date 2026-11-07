@@ -47,5 +47,5 @@ if(MSVC)
     "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 endif()
 
-# A root-level producer also supports CMake/VS builds of this wrapper on its own.
+# A root-level producer also supports standalone builds of this wrapper.
 add_custom_target(cse_mpg123 ALL DEPENDS libmpg123)

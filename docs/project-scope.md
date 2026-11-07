@@ -2,14 +2,13 @@
 
 CounterStrikeExtended retains Counter-Strike 1.6, Half-Life, the shared runtime
 and dedicated-server support. The supported build configuration is Windows x86.
-Of the original 57 non-external MSBuild projects, all 19 retained production projects are enabled by default
-and 38 have been removed. Broadcasting, A3D and dedicated servers can be explicitly
+Of the original 57 non-external MSBuild projects, 19 remain and are enabled by
+default; 38 have been removed. Broadcasting, A3D and dedicated servers can be
 disabled for reduced builds.
 
 Paths below are relative to `GoldSrc-SDK/`, except runtime outputs, which are
 relative to repository-root `output/` for Release CMake builds (`output-debug/`
-for Debug). The
-legacy MSBuild projects use `GoldSrc-SDK/bin/Win32/<Configuration>/` instead.
+for Debug). Legacy MSBuild outputs use `GoldSrc-SDK/bin/Win32/<Configuration>/`.
 See [building.md](building.md) for commands, output separation and feature options.
 
 ## Default runtime
@@ -49,8 +48,8 @@ DemoPlayer remain required with broadcasting disabled. The engine requests
 | `CSE_BUILD_A3D` | `a3dapi` → `a3dapi.dll` | Legacy adapter, exports/resources and five generated geometry inputs |
 
 Both options default ON. Disable them explicitly for a reduced build. Their
-source and live MSBuild projects remain; the
-legacy solution still has Debug/Release `Build.0` entries for all three projects.
+source and live MSBuild projects remain; the legacy solution includes all three
+projects in Debug/Release builds.
 Building the A3D adapter does not establish compatibility with an A3D provider.
 
 ## Removed targets and source
@@ -110,8 +109,9 @@ Generation preserves configuration-specific CRT/assertions, FP/EH overrides,
 include order, forced headers, exclusions, export names/ordinals and resources.
 CMake Release diagnostics are intentionally opt-in; Release incremental linking
 is disabled. Required intermediates remain under the selected build directory.
-[Building](building.md) describes the VGUI1 import-library and A3D generation
-steps; [source corrections](source-corrections.md) records C1–C4.
+The [build manifest reference](msbuild/README.md#generated-production-inputs)
+describes VGUI1 import-library and A3D generation.
+[Source corrections](source-corrections.md) records C1–C4.
 
 Native SDL3 is pinned and staged for the five linker consumers: both engines,
 both game clients and GameUI. Both engines also build/stage the shared mpg123

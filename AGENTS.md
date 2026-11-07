@@ -21,9 +21,8 @@
 
 ## Architecture
 
-- The current build targets Windows x86 (Win32), using C, C++ and Windows
-  resources. It uses standalone MSVC Build Tools and the Windows SDK; no Visual Studio IDE or
-  exact toolset/SDK version is required by CMake.
+- The build targets Windows x86 (Win32), using C, C++ and Windows resources,
+  MSVC Build Tools and the Windows SDK.
 - Production source lives under `GoldSrc-SDK/`. The runtime includes the engine,
   launchers, Counter-Strike and Half-Life client/server DLLs, and shared runtime
   libraries. Each game keeps its own runtime-relative client/server outputs.

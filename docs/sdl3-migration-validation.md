@@ -14,7 +14,7 @@ uses repaired baseline `23a2135` and SDL2 2.0.20.
 ## Validation
 
 VM1 ran Windows ARM64 build 26300 with 12 vCPUs and 20 GB RAM, executing Windows
-x86 binaries under emulation. Toolchain: Visual Studio 2026, MSVC v145
+x86 binaries under emulation. Toolchain: MSVC v145
 19.51.36260.0, Windows SDK 10.0.26100.0 and CMake 4.4.4. Warnings, assertions,
 floating-point settings and provider requirements were retained.
 
