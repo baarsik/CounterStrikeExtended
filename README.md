@@ -2,9 +2,10 @@
 
 A development fork of BlackShadow/GoldSrc-SDK retaining **Counter-Strike 1.6 and
 Half-Life**, shared engine/UI/filesystem/demo runtime, and dedicated-server
-support. The initial build target is Windows x86 with MSVC v145. The CMake source
-conversion is implemented; **Windows compilation and runtime qualification are
-pending**. No x64/ARM64 support or playability is claimed.
+support. The build targets Windows x86 with MSVC v145 and native SDL3. Windows
+builds and exercised runtime paths passed VM1 qualification; see the
+[final validation report](docs/sdl3-migration-validation.md) for results and coverage
+limits. Native x64/ARM64 support remains outside the current scope.
 
 The default complete-runtime build contains 16 production targets, including
 `hl.exe`, `hw.dll`, `hlds.exe`, `swds.dll`, both games' client/server DLLs,
@@ -31,10 +32,10 @@ import libraries and intermediates. There is no installation into a live game.
 - [MSBuild/CMake crosswalk](docs/msbuild-crosswalk.md) and [preserved original manifests](docs/msbuild/README.md)
 - [C1–C4 source corrections and evidence limits](docs/source-corrections.md)
 - [Future x64/ARM64 portability work](docs/architecture-portability.md)
-- [Actual validation record](docs/validation.md)
+- [Runtime validation and benchmarks](docs/sdl3-migration-validation.md)
 
 This repository is **not MIT as a whole**. MIT applies only to authorized original
 contributions within the [root license scope](LICENSE). Inherited Valve/Id and
 other components retain their existing notices, restrictions and unresolved
-rights; see [the licensing audit](docs/licensing.md). No release, provider
-redistribution, game launch or runtime acceptance is included in this work.
+rights; see [the licensing audit](docs/licensing.md). No release or provider
+redistribution is included in this work.
