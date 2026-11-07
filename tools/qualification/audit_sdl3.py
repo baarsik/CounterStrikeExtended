@@ -24,12 +24,14 @@ REQUIRED_RUNTIME = ['hl.exe', 'hw.dll', 'filesystem_stdio.dll', 'vgui.dll', 'vgu
                     'cstrike/cl_dlls/client.dll', 'cstrike/dlls/mp.dll']
 # OS-owned imports only. Unknown third-party imports fail rather than disappearing into an allow-all rule.
 SYSTEM_DLLS = set('''advapi32 avrt bcrypt cabinet cfgmgr32 comctl32 comdlg32 crypt32 cryptbase d2d1 d3d9
-    d3d11 d3d12 dbghelp dciman32 dcomp devobj dhcpcsvc dinput dinput8 dnsapi dsound dwmapi dxgi dxguid
+    d3d11 d3d12 ddraw dbghelp dciman32 dcomp devobj dhcpcsvc dinput dinput8 dnsapi dsound dwmapi dxgi dxguid
     dxva2 gdi32 hid imm32 iphlpapi kernel32 kernelbase mf mfplat mfreadwrite mfuuid msacm32 msvcp_win
     msvcrt msimg32 netapi32 ntdll ole32 oleacc oleaut32 opengl32 powrprof propsys psapi rasapi32 rpcrt4
     secur32 setupapi shell32 shlwapi user32 userenv usp10 ucrtbase uxtheme version win32u windowscodecs
     winhttp wininet winmm winspool wintrust wldap32 ws2_32 wsock32 wtsapi32 xinput1_4 xinput9_1_0
     normaliz ncrypt cryptsp msasn1 winmmbase glu32 oledlg mpr urlmon winusb'''.split())
+# libcef imports the OS print-spooler module by its exact .drv name. Other drivers need explicit providers.
+SYSTEM_NON_DLL_MODULES = {'winspool.drv'}
 
 
 def sha256(path):
@@ -256,7 +258,8 @@ def audit_repository(root, llvm_readobj):
 
 def is_system_dll(name):
     lower = name.lower()
-    return lower.startswith(('api-ms-win-', 'ext-ms-win-')) or lower.removesuffix('.dll') in SYSTEM_DLLS
+    return (lower in SYSTEM_NON_DLL_MODULES or lower.startswith(('api-ms-win-', 'ext-ms-win-'))
+            or lower.removesuffix('.dll') in SYSTEM_DLLS)
 
 
 def audit_runtime(root):

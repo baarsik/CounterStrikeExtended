@@ -146,3 +146,24 @@ class ImportTests(unittest.TestCase):
         data[1152:1152 + len(name)] = name
         with self.assertRaisesRegex(ValueError, 'SDL2'):
             audit.require_native_sdl3('forwarder.dll', audit.pe_info(data))
+
+    def test_exact_os_modules_keep_chrome_and_directdraw_provider_closure(self):
+        for name in ('WINSPOOL.DRV', 'winspool.drv', 'DDRAW.dll', 'ddraw.DLL'):
+            with self.subTest(name=name):
+                self.assertTrue(audit.is_system_dll(name))
+        for name in ('CUSTOM.DRV', 'DDRAW.DRV', 'WINSPOOL-CUSTOM.DRV', 'MSVCP140.dll', 'VCRUNTIME140.dll'):
+            with self.subTest(name=name):
+                self.assertFalse(audit.is_system_dll(name))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shutil.copyfile(PINNED_DLL, root / 'SDL3.dll')
+            (root / 'libcef.dll').write_bytes(pe('WINSPOOL.DRV'))
+            (root / 'swds.dll').write_bytes(pe('DDRAW.dll'))
+            report = audit.audit_runtime(root)
+            self.assertIn('libcef.dll', report['binaries'])
+            self.assertIn('swds.dll', report['binaries'])
+            self.assertIn('WINSPOOL.DRV', report['system_imports'])
+            self.assertIn('DDRAW.dll', report['system_imports'])
+            (root / 'unknown.dll').write_bytes(pe('CUSTOM.DRV'))
+            with self.assertRaisesRegex(ValueError, 'CUSTOM.DRV'):
+                audit.audit_runtime(root)
