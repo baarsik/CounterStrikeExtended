@@ -28,6 +28,13 @@ Paths in this table are relative to `GoldSrc-SDK/`.
 | Remaining third-party SDK/tooling materials | Unmodified `external/` and installed-package notices, including 3ds Max, GLUT/glaux and tooling | Approved pruning did not authorize wholesale third-party deletion or relicensing. Preserve their terms even where the corresponding runtime build no longer uses them. |
 | Archived upstream manifests / generated crosswalk | Original bytes in `docs/msbuild/upstream-manifests.zip`; generated source/flag/dependency selections | Archive retains inherited terms. Generated build-selection data does not confer a license to the selected implementation. |
 
+The residual-game cleanup preserves ten inherited Blue Shift header files under
+`GoldSrc-SDK/particleman/compat/` and the former DoD interface definition at
+`GoldSrc-SDK/cstrike/public/game_controls/iclientvgui.h`, with unchanged contents
+and applicable notices. Nine inherited documentation files are preserved under
+`docs/upstream/`. Relocation does not change their origin or license or make them
+original MIT contributions.
+
 This is a component-level audit of inspected notices and dependency families,
 not proof of complete file-by-file chain of title. Missing notices and unclear
 origin remain unresolved rather than treated as public domain or MIT.

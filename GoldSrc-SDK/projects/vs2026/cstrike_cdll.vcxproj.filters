@@ -102,15 +102,6 @@
     <Filter Include="Header Files\dlls">
       <UniqueIdentifier>{D6759BD9-A228-51C8-8AA9-560BA92466B5}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\dod">
-      <UniqueIdentifier>{F45AEC06-18D4-5C9F-BCF9-86D6401E1518}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\dod\public">
-      <UniqueIdentifier>{30B25DD8-9B52-5EB6-B84D-F99FD7B311B5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\dod\public\game_controls">
-      <UniqueIdentifier>{1F1309D5-EA21-548C-BA89-5848CD064F51}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\engine">
       <UniqueIdentifier>{63C532CC-F514-5005-87F4-53220108AB83}</UniqueIdentifier>
     </Filter>
@@ -1126,9 +1117,6 @@
     </ClInclude>
     <ClInclude Include="..\..\dlls\schedule.h">
       <Filter>Header Files\dlls</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\dod\public\game_controls\iclientvgui.h">
-      <Filter>Header Files\dod\public\game_controls</Filter>
     </ClInclude>
     <ClInclude Include="..\..\engine\APIProxy.h">
       <Filter>Header Files\engine</Filter>

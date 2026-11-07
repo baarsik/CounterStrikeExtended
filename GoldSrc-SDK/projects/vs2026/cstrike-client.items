@@ -827,7 +827,6 @@
     <ClInclude Include="..\..\cstrike\public\vgui_controls\HTML.h" />
     <ClInclude Include="..\..\cstrike\public\vgui_controls\TextEntry.h" />
     <ClInclude Include="..\..\dlls\schedule.h" />
-    <ClInclude Include="..\..\dod\public\game_controls\iclientvgui.h" />
     <ClInclude Include="..\..\engine\APIProxy.h" />
     <ClInclude Include="..\..\engine\cdll_int.h" />
     <ClInclude Include="..\..\engine\color.h" />

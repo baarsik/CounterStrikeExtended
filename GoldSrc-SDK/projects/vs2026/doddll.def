@@ -1,4 +1,0 @@
-LIBRARY dod
-EXPORTS
-	GiveFnptrsToDll=_GiveFnptrsToDll@8 @1
-	GetNewDLLFunctions

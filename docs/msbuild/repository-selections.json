@@ -14654,8 +14654,8 @@
             "path": "${CSE_SDK_DIR}/public/interface.cpp",
             "metadata": {
               "PreprocessorDefinitions": "BASEMONSTER_H;_DEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
-              "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\cbase.h;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
+              "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\cbase.h;"
             }
           }
         ],
@@ -14791,8 +14791,8 @@
             "path": "${CSE_SDK_DIR}/public/interface.cpp",
             "metadata": {
               "PreprocessorDefinitions": "BASEMONSTER_H;NDEBUG;WIN32;_WINDOWS;CLIENT_DLL;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_WARNINGS;",
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
-              "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bshift\\dlls\\cbase.h;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external;${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls;${CSE_SDK_DIR}/external/SDL3/include;",
+              "ForcedIncludeFiles": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\extdll.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\util.h;${CSE_SDK_DIR}/projects/vs2026/..\\..\\particleman\\compat\\cbase.h;"
             }
           }
         ],

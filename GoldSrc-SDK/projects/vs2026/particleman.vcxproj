@@ -85,11 +85,21 @@
     <ClCompile Include="..\..\particleman\pman_triangleeffect.cpp" />
     <ClCompile Include="..\..\public\interface.cpp">
       <PreprocessorDefinitions>BASEMONSTER_H;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\..\bshift\dlls;$(ProjectDir)..\..\dlls;$(ProjectDir)..\..\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <ForcedIncludeFiles>$(ProjectDir)..\..\bshift\dlls\extdll.h;$(ProjectDir)..\..\bshift\dlls\util.h;$(ProjectDir)..\..\bshift\dlls\cbase.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\particleman\compat;$(ProjectDir)..\..\dlls;$(ProjectDir)..\..\common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ForcedIncludeFiles>$(ProjectDir)..\..\particleman\compat\extdll.h;$(ProjectDir)..\..\particleman\compat\util.h;$(ProjectDir)..\..\particleman\compat\cbase.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\particleman\compat\activity.h" />
+    <ClInclude Include="..\..\particleman\compat\basemonster.h" />
+    <ClInclude Include="..\..\particleman\compat\cbase.h" />
+    <ClInclude Include="..\..\particleman\compat\enginecallback.h" />
+    <ClInclude Include="..\..\particleman\compat\extdll.h" />
+    <ClInclude Include="..\..\particleman\compat\monsterevent.h" />
+    <ClInclude Include="..\..\particleman\compat\saverestore.h" />
+    <ClInclude Include="..\..\particleman\compat\schedule.h" />
+    <ClInclude Include="..\..\particleman\compat\util.h" />
+    <ClInclude Include="..\..\particleman\compat\vector.h" />
     <ClInclude Include="..\..\particleman\pman_main.h" />
     <ClInclude Include="..\..\particleman\pman_force.h" />
     <ClInclude Include="..\..\particleman\pman_frustum.h" />

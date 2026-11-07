@@ -12,7 +12,9 @@ The default complete-runtime build contains 16 production targets, including
 filesystem, Tier0, VGUI/VGUI2, GameUI, particleman, Core and DemoPlayer. Miles music
 integration remains intact. Standalone HLTV broadcasting and A3D are preserved
 as optional features, default OFF. The approved 38 other-game, software-client,
-editor and SDK utility targets have been removed.
+editor and SDK utility targets and unused game implementation trees have been
+removed. Required compatibility headers live with their retained consumers;
+inherited historical prose is kept under `docs/upstream/`.
 
 On a suitable Windows builder with Visual Studio 2026, v145, SDK 10.0.26100.0 and
 CMake 4.2+, run:

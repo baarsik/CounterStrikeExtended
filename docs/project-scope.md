@@ -85,7 +85,7 @@ probes, providers, or network/audio workers were executed.**
 | `utils/vgui/vgui.vcxproj` | `vgui.dll` | 70 | VGUI1 source/headers, exports, generated compatibility import library; this is retained runtime code despite its `utils/` location |
 | `vgui2/vgui2.vcxproj` | `vgui2.dll` | 31 | `vgui2/src/`, public interface code; selected key translation is `vgui2/src/vgui_surfacelib/vgui_key_translation.cpp` |
 | `projects/vs2026/GameUI.vcxproj` | `valve/cl_dlls/GameUI.dll` | 128 | `GameUI/`, shared VGUI/engine code, CS bot/profile/UI support, DemoPlayer private common source; project reference to tier0; SDL/Steam |
-| `projects/vs2026/particleman.vcxproj` | `valve/cl_dlls/particleman.dll` | 6 | Particle source, public interfaces, **forced Blue Shift headers**; preserve decorated exports |
+| `projects/vs2026/particleman.vcxproj` | `valve/cl_dlls/particleman.dll` | 6 | Particle source, public interfaces, **private compatibility headers under `particleman/compat/`**; preserve decorated exports |
 | `HLTV/Core/Core.vcxproj` | `Core.dll` | 31 | Core's private public/engine/common/bzip2 source and shared containers; Winsock2 |
 | `HLTV/DemoPlayer/demoplayer.vcxproj` | `DemoPlayer.dll` | 11 | DemoPlayer private support and shared containers; requests Core interfaces |
 
@@ -121,18 +121,18 @@ source/header consumers are independent and are recorded in the final column.
 | --- | --- | --- | --- |
 | `opfor_cdll.vcxproj` | `gearbox/cl_dlls/client.dll` | `gearbox/` client source | Uses shared common/game code, SDL, and retained VGUI1; keep those dependencies |
 | `opfordll.vcxproj` | `gearbox/dlls/opfor.dll` | `gearbox/` server/movement source | No retained source consumer found inside `gearbox/` |
-| `bshift_cdll.vcxproj` | `bshift/cl_dlls/client.dll` | Blue Shift client/private UI implementation only | Uses shared VGUI/engine/public/common source and SDL; **particleman consumes Blue Shift headers** |
-| `bshiftdll.vcxproj` | `bshift/dlls/hl.dll` | Blue Shift server implementation only | Preserve `bshift/` pending a file-level split because of particleman's forced/transitive includes |
-| `tfc_cdll.vcxproj` | `tfc/cl_dlls/client.dll` | TFC client implementation only | Uses retained VGUI1, shared common/game code, SDL/Winsock2; HL viewport has a guarded TFC-header include |
-| `tfcdll.vcxproj` | `tfc/dlls/tfc.dll` | TFC server implementation only | Preserve `tfc/` in the initial source pruning; guarded header closure unresolved at file level |
-| `dod_cdll.vcxproj` | `dod/cl_dlls/client.dll` | DoD client/private UI implementation only | SDL/OpenGL/Winsock; **CS's private interface header unconditionally includes a DoD interface header** |
-| `doddll.vcxproj` | `dod/dlls/dod.dll` | DoD server implementation only | Preserve `dod/` initially; also has conditional HL voice-header edges |
-| `dmc_cdll.vcxproj` | `dmc/cl_dlls/client.dll` | DMC client implementation only | Uses retained shared game/common/public code, VGUI1 and SDL; conditional HL voice-header edge |
-| `dmcdll.vcxproj` | `dmc/dlls/dmc.dll` | DMC server/movement implementation only | Uses shared `game_shared/voice_gamemgr.cpp`; preserve `dmc/` initially pending conditional/include audit |
+| `bshift_cdll.vcxproj` | `bshift/cl_dlls/client.dll` | Blue Shift client/private UI implementation only | Uses shared VGUI/engine/public/common source and SDL; particleman retains the needed headers under `particleman/compat/` |
+| `bshiftdll.vcxproj` | `bshift/dlls/hl.dll` | Blue Shift server implementation only | Removed; particleman's ten-header compatibility closure was relocated without changing its contents |
+| `tfc_cdll.vcxproj` | `tfc/cl_dlls/client.dll` | TFC client implementation only | Uses retained VGUI1, shared common/game code, SDL/Winsock2; the unsupported TFC-only viewport branches were removed |
+| `tfcdll.vcxproj` | `tfc/dlls/tfc.dll` | TFC server implementation only | Removed after retiring the inactive TFC-only header/viewport branches |
+| `dod_cdll.vcxproj` | `dod/cl_dlls/client.dll` | DoD client/private UI implementation only | SDL/OpenGL/Winsock; CS now owns the unchanged `IClientVGUI` declaration in its retained interface header |
+| `doddll.vcxproj` | `dod/dlls/dod.dll` | DoD server implementation only | Removed; inactive DoD-only voice-header branches were retired |
+| `dmc_cdll.vcxproj` | `dmc/cl_dlls/client.dll` | DMC client implementation only | Uses retained shared game/common/public code, VGUI1 and SDL; the inactive DMC-only voice-header branch was retired |
+| `dmcdll.vcxproj` | `dmc/dlls/dmc.dll` | DMC server/movement implementation only | Uses shared `game_shared/voice_gamemgr.cpp`; DMC source removed after retiring its unsupported include branch |
 | `ricochet_cdll.vcxproj` | `ricochet/cl_dlls/client.dll` | `ricochet/` client source | Uses shared game/common/public source, VGUI1 and SDL; keep those dependencies |
 | `ricochetdll.vcxproj` | `ricochet/dlls/mp.dll` | `ricochet/` server/movement source | Uses shared voice source; no retained source consumer found inside `ricochet/` |
 | `gunman_cdll.vcxproj` | `rewolf/cl_dlls/client.dll` | References `gunman/src/cl_dll/` | Referenced `cdll_int.cpp` is absent; no `gunman/` directory exists to prune |
-| `gunmandll.vcxproj` | `rewolf/dlls/gunman.dll` | References `gunman/src/dlls/` | Referenced `h_export.cpp`, `cbase.cpp`, `game.cpp` are absent; keep export manifest until archival step |
+| `gunmandll.vcxproj` | `rewolf/dlls/gunman.dll` | References `gunman/src/dlls/` | Referenced `h_export.cpp`, `cbase.cpp`, `game.cpp` are absent; the removed export manifest remains preserved in the original archive |
 | `czero_cdll.vcxproj` | `czero/cl_dlls/client.dll` | **None** | Imports the exact same 168-entry `cstrike-client.items` used by retained CS; SDL/Steam remain required |
 | `czerodll.vcxproj` | `czero/dlls/mp.dll` | **None** | Imports the same 136-entry `cstrike-server.items`; all CS bot/hostage/gameplay source remains |
 | `czeror_cdll.vcxproj` | `czeror/cl_dlls/client.dll` | `czeror/` client/gameplay source | Imports `czeror-client.items` but also compiles CS public/common/game/UI source; preserve `cstrike/` and shared VGUI/SDL dependencies |
@@ -187,7 +187,7 @@ are not automatically removable with the tool.
 Authoring assets externally may still require these tools. Their exclusion is a
 repository-scope decision, not a claim they are unnecessary to the ecosystem.
 
-## Source deletion proposal and protected paths
+## Source pruning boundaries and retained dependencies
 
 Perform target removal first. After the retained manifest/CMake comparison,
 the following **21 roots** are candidates for deleting exclusive implementation
@@ -208,14 +208,16 @@ utils/visx2/                utils/xwad/
 No retained/optional manifest-selected source or conservative include-closure
 consumer was found inside these roots. This is a bounded finding at the recorded
 HEAD, not permission for a blind recursive deletion: check notices, nested
-resources and original manifests when preparing the actual deletion diff. No
-other source-directory deletion is proposed. In particular:
+resources and original manifests when preparing the actual deletion diff.
+The owner subsequently authorized removal of unused residual game source on
+2026-11-07. The `dod/`, `dmc/`, `tfc/` and `bshift/` trees are now removed after
+extracting the required eleven headers. Historical prose is retained under
+`docs/upstream/`, outside the production source tree. In particular:
 
-| Preserve initially | Concrete reason |
+| Retain | Concrete reason |
 | --- | --- |
-| `bshift/` | `particleman.vcxproj` compiles `public/interface.cpp` with `BASEMONSTER_H`, Blue Shift include precedence, and forced `bshift/dlls/extdll.h`, `util.h`, `cbase.h`; their transitive header closure is retained |
-| `dod/` | `cstrike/public/game_controls/iclientvgui.h` unconditionally forwards to `dod/public/game_controls/iclientvgui.h`; conditional voice includes are an additional conservative edge |
-| `tfc/`, `dmc/` | `cl_dll/vgui_TeamFortressViewport.h` includes TFC definitions under `_TFC`; `cl_dll/voice_status.cpp` has DMC/DoD branches. These are conditional source edges, **not active HL dependencies proved by preprocessing**. Defer file-level cleanup rather than deleting their trees now. |
+| `particleman/compat/` | Ten inherited Blue Shift headers preserve particleman's forced/transitive include closure, include precedence and `BASEMONSTER_H` setting without retaining the expansion game |
+| `cstrike/public/game_controls/iclientvgui.h` | Holds the unchanged former DoD `IClientVGUI` definition directly, eliminating the cross-game forwarding header |
 | `utils/common/` | `engine/bspfile.h` forwards to its `bspfile.h`; both HL and CS `dlls/animation.cpp` include its `mathlib.h` |
 | `utils/sprgen/` | `engine/spritegn.h` forwards to `spritegn.h`; tool-target removal does not permit deleting this format header |
 | `cstrike/`, `cl_dll/`, `dlls/`, `game_shared/`, `pm_shared/`, `common/`, `public/` | Retained client/server/UI code and shared interfaces; CZ project removal yields no authority to delete shared CS code |
@@ -224,14 +226,12 @@ other source-directory deletion is proposed. In particular:
 | `HLTV/common/`, Core/DemoPlayer private copies, Console/Proxy source | Engine demo playback, GameUI compilation, and preserved optional broadcaster |
 | `external/`, `lib/`, `deploy/`, `tracker/`, `network/`, `linux/`, `devtools/` | No blanket cleanup proposed; retain dependencies, runtime resources, compatibility headers, alternative manifests and provenance until their own audit |
 
-The conditional TFC/DMC edges do not require retaining their game **targets**.
-They explain why this proposal is more conservative about deleting source than
-about excluding targets.
-
-Keep `ricochet/cl_dll/readme.txt` as source-context documentation when preparing
-the Ricochet deletion diff. Its contents describe inherited client interfaces;
-they do not supply a new license grant. Filename searches for notices cannot
-replace inspection of embedded notices in the files actually being removed.
+Required compatibility headers retain their original bytes and notices. The
+unsupported TFC/DMC/DoD/Deleted Scenes/Blue Shift include branches in the affected
+shared headers/voice source are removed; supported CS/Half-Life selections remain.
+`docs/upstream/` preserves the inherited client readmes and legacy tool/editor
+prose formerly located in deleted production directories. This documentation
+does not supply a new license grant.
 
 ## Retained link, generation and runtime dependencies
 
@@ -241,9 +241,10 @@ replace inspection of embedded notices in the files actually being removed.
 CRT/optimization rules, client SDL linkage, and CS-client Steam linkage. Both
 CS projects remove inherited `NDEBUG` and enable `UTL_ENGINE_ASSERTS`; their
 `_ITERATOR_DEBUG_LEVEL=0` must survive. `VisualStudio2026.props` selects the
-toolset/SDK for its importers and adds utility warning compatibility definitions.
-The four imported source lists are `cstrike-client.items`,
-`cstrike-server.items`, `czeror-client.items`, and `czeror-server.items`.
+toolset/SDK for its importers. The live game source lists are
+`cstrike-client.items` and `cstrike-server.items`; unused Deleted Scenes lists
+and other removed-project export definitions have been deleted from the live
+project directory. Original inputs remain in the immutable manifest archive.
 
 A3D additionally has a `PrepareGeometryCompilation` target: it writes five
 macro-selected wrapper translation units for the production `A3dGeom.cpp` and
