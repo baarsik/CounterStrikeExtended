@@ -35,12 +35,24 @@ SDL3_BUILD_HASHES = {
 }
 
 
+MPG123_BUILD_HASHES = {'props': 'd2f000bae7304c2da48202ec8ff6d964de89a93d293254dcfa218fd9e82c0c8c', 'targets': '9ead8a1fa2f92e5e78dcefbd357251ca7bbcbea4d3c0ae29c6ce779ef97b4621'}
+
+
+def validate_mpg123_build_file(path, kind):
+    if hashlib.sha256(path.read_bytes()).hexdigest() != MPG123_BUILD_HASHES[kind]:
+        raise ValueError("Unsupported mpg123 build contract: " + str(path))
+
+
 def validate_sdl3_build_file(path, kind):
     if hashlib.sha256(path.read_bytes()).hexdigest() != SDL3_BUILD_HASHES[kind]:
         raise ValueError('Unsupported SDL3 build contract: ' + str(path))
 
 
 def import_command(target, config, path, data):
+    if str(path) == data.get('mpg123', {}).get('import_library'):
+        return f'cse_link_mpg123({target} {config})'
+    if path.name.lower() == 'mpg123.lib':
+        raise ValueError('Unpinned mpg123 import: ' + str(path))
     pinned = SDK / 'external/SDL3/lib/x86/SDL3.lib'
     if path == pinned:
         if not data.get('sdl3', {}).get('shared'):
@@ -81,6 +93,7 @@ def evaluate(project, configuration):
     imports = []
     generating_targets = []
     sdl3_imports = set()
+    mpg123_imports = set()
 
     def expand(value):
         for _ in range(20):
@@ -159,6 +172,10 @@ def evaluate(project, configuration):
                         kind = path.suffix[1:]
                         validate_sdl3_build_file(path, kind)
                         sdl3_imports.add(kind)
+                    if path in [SDK / 'projects/vs2026/Mpg123.props', SDK / 'projects/vs2026/Mpg123.targets']:
+                        kind = path.suffix[1:]
+                        validate_mpg123_build_file(path, kind)
+                        mpg123_imports.add(kind)
                     walk(ET.parse(path).getroot(), path)
             elif kind == 'ImportGroup':
                 walk(element, current)
@@ -171,6 +188,8 @@ def evaluate(project, configuration):
                     if condition(node.get('Condition')):
                         definitions[name(node)] = metadata(node, definitions.get(name(node), {}))
             elif kind == 'Target':
+                if current == SDK / 'projects/vs2026/Mpg123.targets' and 'targets' in mpg123_imports:
+                    continue
                 if current == SDK / 'projects/vs2026/SDL3.targets' and 'targets' in sdl3_imports:
                     # Whole-file validation above covers every task and attribute.
                     continue
@@ -241,6 +260,39 @@ def evaluate(project, configuration):
                           'validation_manifest': str(expected['CseSdl3Manifest']),
                           'validation_target': 'CseValidateSdl3',
                           'staging_target': 'CseStageSdl3' if shared else None}
+    if mpg123_imports:
+        if mpg123_imports != {'props', 'targets'}:
+            raise ValueError('mpg123 requires both shared props and targets imports')
+        build_root = source_path(properties['IntDir'], project.parent) / 'mpg123'
+        expected = {
+            'CseMpg123Archive': SDK / 'external/mpg123/mpg123-1.33.7.tar.bz2',
+            'CseMpg123BuildRoot': build_root,
+            'CseMpg123Source': build_root / 'source/mpg123-1.33.7',
+            'CseMpg123Include': build_root / 'source/mpg123-1.33.7/src/include',
+            'CseMpg123ImportLibrary': build_root / 'lib' / configuration / 'mpg123/mpg123.lib',
+            'CseMpg123RuntimeDll': build_root / 'runtime' / configuration / 'mpg123.dll',
+            'CseMpg123RuntimeRoot': SDK / 'bin/Win32' / configuration,
+            'CseMpg123CmakeSource': ROOT / 'cmake/dependencies/mpg123',
+        }
+        if properties.get('CseMpg123Version') != '1.33.7':
+            raise ValueError('Unexpected mpg123 version')
+        for key, path in expected.items():
+            if source_path(properties.get(key, ''), project.parent) != path:
+                raise ValueError('Unexpected mpg123 property ' + key)
+        archive = expected['CseMpg123Archive']
+        source_hash = '31d0e35a4ca567ec9b5ebda6c3062bb4435d6d3eacd6ef0d95cadd7854dc03ee'
+        if hashlib.sha256(archive.read_bytes()).hexdigest() != source_hash:
+            raise ValueError('mpg123 source archive hash mismatch')
+        dependencies = split(definitions.get('Link', {}).get('AdditionalDependencies', ''))
+        if not any(source_path(lib, project.parent) == expected['CseMpg123ImportLibrary'] for lib in dependencies):
+            raise ValueError('mpg123 build contract must retain its generated import library')
+        result['mpg123'] = {
+            'version': '1.33.7', 'archive': str(archive), 'source_sha256': source_hash,
+            'include_root': str(expected['CseMpg123Include']),
+            'import_library': str(expected['CseMpg123ImportLibrary']),
+            'runtime_dll': str(expected['CseMpg123RuntimeDll']),
+            'build_target': 'CseBuildMpg123', 'staging_target': 'CseStageMpg123',
+        }
     return result
 
 
@@ -381,6 +433,7 @@ def main():
                 lines.append(f'set_property(TARGET {target} PROPERTY CXX_STANDARD {std})')
             emit_list(lines, 'target_compile_definitions', target, config, split(m.get('PreprocessorDefinitions', '')))
             includes = [str(source_path(p, project.parent)) for p in split(m.get('AdditionalIncludeDirectories', ''))]
+            includes = [p for p in includes if p != data.get('mpg123', {}).get('include_root')]
             emit_list(lines, 'target_include_directories', target, config, includes)
             crt = {'MultiThreadedDLL': 'MultiThreadedDLL', 'MultiThreadedDebugDLL': 'MultiThreadedDebugDLL',
                    'MultiThreaded': 'MultiThreaded', 'MultiThreadedDebug': 'MultiThreadedDebug'}[m['RuntimeLibrary']]
@@ -417,7 +470,7 @@ def main():
                         if not matches:
                             raise ValueError('Unresolved library ' + lib + ' in ' + str(project))
                         path = matches[0]
-                    assert path.is_file(), path
+                    assert path.is_file() or str(path) == data.get('mpg123', {}).get('import_library'), path
                     lines.append(import_command(target, config, path, data))
             for item in compiled(data):
                 path = quote(cmake_source(item)); overrides = item['overrides']

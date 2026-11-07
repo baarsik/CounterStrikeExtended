@@ -99,7 +99,7 @@ python tools/qualification/audit_sdl3.py --output overlay-inventory.json invento
 ```
 
 Review the inventory and write a decisions JSON object with `providers` (relative
-paths of licensed required providers to retain, including Miles/Steam/codecs) and
+paths of licensed required providers to retain, including Steam/codecs) and
 `excluded` (relative paths mapped to a concrete reason). The source-built output
 at an identical path automatically replaces a stock artifact. Every other native
 artifact needs an explicit choice; no wildcard deletion or automatic provider
@@ -107,7 +107,7 @@ purge is performed. An example of the schema, **not a complete provider list**:
 
 ```json
 {
-  "providers": ["mss32.dll", "steam_api.dll"],
+  "providers": ["steam_api.dll"],
   "excluded": {
     "SDL2.dll": "Replaced by pinned native SDL3; no current consumer imports SDL2",
     "sw.dll": "Stock software engine alternative outside this OpenGL qualification fixture"
@@ -116,7 +116,7 @@ purge is performed. An example of the schema, **not a complete provider list**:
 ```
 
 Excluding a stock alternative is a declared fixture limitation, not evidence that
-its feature was migrated. Retain all required Miles/Steam/voice/video providers;
+its feature was migrated. Retain all required Steam/voice/video providers;
 a missing or SDL2-dependent required feature must be rebuilt/replaced within its
 authorized boundary, or reported as a failed/incomplete case. Dynamic provider
 requirements need the runtime behavioral matrix and live-module evidence as well.
@@ -230,3 +230,20 @@ sparse OpenGL/ComposedCopy GPU-GDI events are excluded from engine pacing claims
 the earlier SDL/OpenGL microbenchmark is separate API evidence. Renderer screenshots
 and live provider inventories belong in separate gameplay qualification runs to
 avoid screenshot/hash IO during the benchmark.
+
+## Music migration closure
+
+The current music backend requires source-built `mpg123.dll`, staged with its
+complete upstream source/license materials. It does not require Miles. Prepare
+an isolated fixture with explicit exclusions for `Mss32.dll`, `mssmp3.asi`,
+`mssvoice.asi` and `binkawin.asi`; keep the stock Steam data unchanged.
+After the full runtime and CRT providers are staged, run:
+
+```powershell
+python tools/qualification/audit_mpg123.py C:\qualification\music-fixture --output music-closure.json
+```
+
+This checks the existing SDL3/formal import closure, rejects retained Miles modules
+and imports, and requires both engines to import the staged mpg123 provider.
+Runtime evidence must additionally identify the actual loaded library and exercise
+music, not only game sound effects. Decoder/player tests live under `tests/music/`.

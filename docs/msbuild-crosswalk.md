@@ -24,9 +24,9 @@ Exact selections and metadata are in `msbuild/repository-selections.json`; gener
 | `projects/vs2026/hl_cdll.vcxproj` | `hl_client` | 83 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/hldll.vcxproj` | `hl_server` | 102 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/hlds.vcxproj` | `hlds` | 54 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
-| `projects/vs2026/hw_engine.vcxproj` | `hw_engine` | 173 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
+| `projects/vs2026/hw_engine.vcxproj` | `hw_engine` | 175 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/particleman.vcxproj` | `particleman` | 6 | MultiThreadedDebugDLL / MultiThreadedDLL | yes |
-| `swds/swds.vcxproj` | `swds` | 187 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
+| `swds/swds.vcxproj` | `swds` | 189 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `tier0/tier0.vcxproj` | `tier0` | 19 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `utils/vgui/vgui.vcxproj` | `vgui` | 70 | MultiThreadedDebug / MultiThreaded | yes |
 | `vgui2/vgui2.vcxproj` | `vgui2` | 31 | MultiThreadedDebugDLL / MultiThreadedDLL | no |

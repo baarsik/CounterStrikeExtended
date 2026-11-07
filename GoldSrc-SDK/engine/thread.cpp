@@ -99,8 +99,10 @@ CThread::~CThread()
 {
 }
 
-bool CThread::AddThreadItem( vfunc pfn, int param1, int param2 )
-{
+bool CThread::AddThreadItem(vfunc pfn, int param1, int param2) {
+    if (!m_bThreadRunning) {
+        return false;
+    }
 #if defined( _WIN32 )
 	EnterCriticalSection( &m_mutex );
 #else
@@ -149,40 +151,42 @@ bool CThread::AddThreadItem( vfunc pfn, int param1, int param2 )
 	return true;
 }
 
-bool CThread::Shutdown()
-{
-#if defined( _WIN32 )
-	if ( !m_hEvent )
-		return true;
-
-	m_bThreadStopped = false;
-	m_bThreadRunning = false;
-	SetEvent( m_hEvent );
-
-	for ( int i = 100; !m_bThreadStopped && --i > 0; )
-		Sleep( 1 );
-
-	CloseHandle( m_hEvent );
-	DeleteCriticalSection( &m_mutex );
+bool CThread::Shutdown() {
+#if defined(_WIN32)
+    if (!m_hEvent) {
+        return true;
+    }
+    m_bThreadRunning = false;
+    SetEvent(m_hEvent);
+    if (m_hThread) {
+        if (WaitForSingleObject(m_hThread, INFINITE) != WAIT_OBJECT_0) {
+            return false;
+        }
+        CloseHandle(m_hThread);
+        m_hThread = nullptr;
+    }
+    CloseHandle(m_hEvent);
+    m_hEvent = nullptr;
+    DeleteCriticalSection(&m_mutex);
 #else
-	int i;
-
-	m_bThreadStopped = false;
-	m_bThreadRunning = false;
-
-	pthread_mutex_lock( &m_mutex );
-	m_cSet = 1;
-	pthread_cond_signal( &m_Condition );
-	pthread_mutex_unlock( &m_mutex );
-
-	for ( i = 0; i < 99 && !m_bThreadStopped; i++ )
-		usleep( 1000 );
-
-	pthread_cond_destroy( &m_Condition );
-	pthread_mutex_destroy( &m_mutex );
+    if (!m_dwThreadID) {
+        return true;
+    }
+    m_bThreadRunning = false;
+    pthread_mutex_lock(&m_mutex);
+    m_cSet = 1;
+    pthread_cond_signal(&m_Condition);
+    pthread_mutex_unlock(&m_mutex);
+    if (pthread_join(m_dwThreadID, nullptr) != 0) {
+        return false;
+    }
+    m_dwThreadID = 0;
+    pthread_cond_destroy(&m_Condition);
+    pthread_mutex_destroy(&m_mutex);
 #endif
-	cdaudio->Shutdown();
-	return true;
+    // The command worker must no longer be able to touch music during teardown.
+    cdaudio->Shutdown();
+    return true;
 }
 
 bool CThread::Init()

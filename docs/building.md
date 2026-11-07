@@ -107,11 +107,13 @@ basenames match. Executable exports are explicitly modeled as well.
 
 There is no install into a live Steam directory and no automatic provider
 loading. Pinned native SDL3 3.4.20 headers, x86 import library and DLL are bundled;
-SDL consumers stage `SDL3.dll` in the runtime root in both configurations. Game
-data and compatible `mss32.dll`, `steam_api.dll`,
+SDL consumers stage `SDL3.dll` in the runtime root in both configurations. The engines also build/stage `mpg123.dll` from pinned upstream 1.33.7 source,
+with complete source/license materials under `licenses/mpg123/`. Game
+data and compatible `steam_api.dll`,
 Chrome/voice/optional providers and their redistribution rights are separate
 requirements. Their absence is not hidden by stubs or treated as a successful
-runtime package. Miles source, linkage, worker and command paths are preserved.
+runtime package. Miles imports and bundled artifacts have been removed; music
+uses libmpg123 decoding and SDL3 streams while preserving the existing commands.
 
 ## Source crosswalk and Windows evaluation
 
@@ -181,9 +183,39 @@ retired; `linux/release/vgui.so` remains because its formal dependencies contain
 no SDL2. Its presence does not qualify it as the required rebuilt provider.
 These Carbon/i386 recipes do not establish a supported native Linux/macOS port.
 The retained SDL3 audio stream preserves the 64 KiB engine DMA ring; supported
-Windows production audio still uses DirectSound/WaveOut and Miles.
+Windows sound effects still use DirectSound/WaveOut. Music uses a separate
+SDL3 stream and source-built libmpg123. See [music validation](mpg123-migration-validation.md).
 
 For an SDL3-only test package, use the explicit provider/data fixture and formal
 import audit in [qualification utilities](../tools/qualification/README.md).
 Raw Steam-data overlays can contain SDL2 and unused stock engine alternatives;
 copying source-built modules over that data is insufficient closure evidence.
+
+## Source-built MP3 decoder
+
+`external/mpg123/mpg123-1.33.7.tar.bz2` is the unmodified upstream source release.
+The CMake wrapper validates its SHA-256, extracts it into the preset build tree,
+and builds upstream's shared decoder. No network download is required during builds.
+MSVC without yasm uses upstream's generic C decoder; CPU-specific optimizations
+are not required for correctness. The wrapper supplies the `WIN32` export define
+explicitly because this repository intentionally clears CMake compiler defaults.
+
+CMake stages `mpg123.dll` beside `hw.dll` and `swds.dll`. Import libraries and
+symbols are under `lib/<Configuration>/mpg123/` and `symbols/<Configuration>/mpg123/`.
+Standalone MSBuild imports `Mpg123.props` and `Mpg123.targets`; each engine builds
+its own isolated dependency beneath its IntDir and stages to the shared runtime root.
+Both routes stage upstream COPYING, AUTHORS, provenance and complete source archive.
+The dependency wrapper is architecture-aware, but production presets remain x86 only.
+
+Run real decoder, stream lifecycle and CD worker tests on the Windows builder:
+
+```powershell
+cmake -S tests/music -B build/music-tests -G "Visual Studio 18 2026" -A Win32 -T v145 -DCMAKE_SYSTEM_VERSION=10.0.26100.0
+cmake --build build/music-tests --config Release --parallel
+ctest --test-dir build/music-tests -C Release --output-on-failure
+cmake --build build/music-tests --config Debug --parallel
+ctest --test-dir build/music-tests -C Debug --output-on-failure
+```
+
+Stream tests use SDL's dummy device; actual audible output and game integration
+need the separate VM1 qualification described in the validation report.

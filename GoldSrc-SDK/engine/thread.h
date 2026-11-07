@@ -4,6 +4,7 @@
 #include "ithread.h"
 
 #include <cstddef>
+#include <atomic>
 
 #if defined( _WIN32 )
 #include <Windows.h>
@@ -39,8 +40,8 @@ public:
 	int m_cSet;
 #endif
 
-	volatile bool m_bThreadRunning;
-	volatile bool m_bThreadStopped;
+    std::atomic<bool> m_bThreadRunning;
+    std::atomic<bool> m_bThreadStopped;
 
 	int m_nCmds;
 	int _m_nCmds;

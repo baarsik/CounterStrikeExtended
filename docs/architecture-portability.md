@@ -27,7 +27,7 @@ library or substituting a success stub.
 | --- | --- | --- |
 | SDL3 | Pinned native SDL3 3.4.20 unmodified headers, x86 COFF import archive identifying SDL3.dll and bundled x86 DLL; same upstream binary for Debug/Release consumers | Compatible native binaries, integration and redistribution review required; no matching libraries are selected or validated here |
 | Steam / Steamworks | Bundled x86 steam_api.lib; inherited header provenance statement and runtime-loaded interfaces | Exact required interfaces, native provider availability, bitness, lifecycle and applicable SDK/redistribution terms must be established for each architecture |
-| Miles | Bundled x86 mss32 import archive; original engine music source/worker/command integration retained | Native replacement/provider availability and rights unresolved. Port requires an authorized provider strategy that preserves behavior; no no-Miles stub is part of this task |
+| libmpg123 / music | Source-built shared mpg123 1.33.7, native source-rate PCM, SDL3 music stream, bounded producer and joined shutdown; no Miles provider | The integration uses opaque handles and 64-bit seek APIs without narrowing; rebuild decoder and SDL for the target architecture and qualify playback. Full native x64/ARM64 runtime support is not implemented. |
 | Brotli, Ogg/Vorbis, WebM/VPX, bzip2, FreeType, Expat, PNG, zlib | Supplied x86 static-md Debug/Release libraries and retained notices | Rebuild/procure each native architecture with matching CRT/options and transitive dependencies, carry notices, then qualify media/font/codec behavior |
 | VGUI / UI libraries | Source-built VGUI1/VGUI2/GameUI plus x86 prebuilt game_controls/vgui_controls archives and private interface copies | Native source/build availability for every selected object, interface layout and licensing need verification; x86 archives cannot be linked into 64-bit targets |
 | Chrome / voice / optional legacy modules | Runtime loading paths exist; supply is not established by the CMake graph | Native compatible module/codec availability and redistribution rights unresolved; absence must remain visible |
@@ -58,4 +58,5 @@ dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s
 and libstdc++ dependencies and remains retained evidence, without a functional
 compatibility claim. Non-Windows SDL3 stream/ring source is retained and tested
 at its arithmetic/ownership boundary; no native Linux/macOS runtime is qualified.
-Windows DirectSound/WaveOut/Miles behavior remains a separate boundary.
+Windows DirectSound/WaveOut sound effects and physical-CD MCI behavior remain separate boundaries.
+Music now uses libmpg123 with SDL3; see [music validation](mpg123-migration-validation.md).

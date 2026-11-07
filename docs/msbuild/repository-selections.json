@@ -12581,15 +12581,24 @@
           "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
           "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
           "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
-          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/",
+          "CseMpg123Version": "1.33.7",
+          "CseMpg123Archive": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\mpg123\\mpg123-1.33.7.tar.bz2",
+          "CseMpg123BuildRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\",
+          "CseMpg123Source": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\",
+          "CseMpg123Include": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include",
+          "CseMpg123ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\lib\\Debug\\mpg123\\mpg123.lib",
+          "CseMpg123RuntimeDll": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\runtime\\Debug\\mpg123.dll",
+          "CseMpg123RuntimeRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Debug\\",
+          "CseMpg123CmakeSource": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\..\\cmake\\dependencies\\mpg123"
         },
         "definitions": {
           "ClCompile": {
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;LINK_MPG123_DLL;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
-            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
@@ -12602,9 +12611,9 @@
             "AdditionalOptions": ""
           },
           "Link": {
-            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
+            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\lib\\Debug\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "TreatLinkerWarningAsErrors": "true",
-            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\miles;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
+            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\hw.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\hw.lib",
             "GenerateMapFile": "true",
@@ -12630,7 +12639,23 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/cd.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_music.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -13486,7 +13511,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -13531,11 +13556,19 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/Mpg123.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
           },
           {
             "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
+          },
+          {
+            "path": "projects/vs2026/Mpg123.targets",
             "evaluated": true
           }
         ],
@@ -13549,6 +13582,16 @@
           "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
           "validation_target": "CseValidateSdl3",
           "staging_target": "CseStageSdl3"
+        },
+        "mpg123": {
+          "version": "1.33.7",
+          "archive": "${CSE_SDK_DIR}/external/mpg123/mpg123-1.33.7.tar.bz2",
+          "source_sha256": "31d0e35a4ca567ec9b5ebda6c3062bb4435d6d3eacd6ef0d95cadd7854dc03ee",
+          "include_root": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Debug/mpg123/source/mpg123-1.33.7/src/include",
+          "import_library": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Debug/mpg123/lib/Debug/mpg123/mpg123.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Debug/mpg123/runtime/Debug/mpg123.dll",
+          "build_target": "CseBuildMpg123",
+          "staging_target": "CseStageMpg123"
         }
       },
       "Release": {
@@ -13583,15 +13626,24 @@
           "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
           "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
           "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
-          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/",
+          "CseMpg123Version": "1.33.7",
+          "CseMpg123Archive": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\mpg123\\mpg123-1.33.7.tar.bz2",
+          "CseMpg123BuildRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\",
+          "CseMpg123Source": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\",
+          "CseMpg123Include": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include",
+          "CseMpg123ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\lib\\Release\\mpg123\\mpg123.lib",
+          "CseMpg123RuntimeDll": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\runtime\\Release\\mpg123.dll",
+          "CseMpg123RuntimeRoot": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\Win32\\Release\\",
+          "CseMpg123CmakeSource": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\..\\cmake\\dependencies\\mpg123"
         },
         "definitions": {
           "ClCompile": {
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;LINK_MPG123_DLL;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
-            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;HL25_HW_ENGINE;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
@@ -13605,9 +13657,9 @@
             "AdditionalOptions": ""
           },
           "Link": {
-            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
+            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\lib\\Release\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "TreatLinkerWarningAsErrors": "true",
-            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\miles;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
+            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\hw.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\hw.lib",
             "GenerateMapFile": "true",
@@ -13635,7 +13687,23 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/cd.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_music.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -14491,7 +14559,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/projects/vs2026/..\\..\\common;${CSE_SDK_DIR}/projects/vs2026/..\\..\\cl_dll;${CSE_SDK_DIR}/projects/vs2026/..\\..\\public;${CSE_SDK_DIR}/projects/vs2026/..\\..\\pm_shared;${CSE_SDK_DIR}/projects/vs2026/..\\..\\utils\\vgui\\include;${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -14536,11 +14604,19 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/Mpg123.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
           },
           {
             "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
+          },
+          {
+            "path": "projects/vs2026/Mpg123.targets",
             "evaluated": true
           }
         ],
@@ -14554,6 +14630,16 @@
           "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
           "validation_target": "CseValidateSdl3",
           "staging_target": "CseStageSdl3"
+        },
+        "mpg123": {
+          "version": "1.33.7",
+          "archive": "${CSE_SDK_DIR}/external/mpg123/mpg123-1.33.7.tar.bz2",
+          "source_sha256": "31d0e35a4ca567ec9b5ebda6c3062bb4435d6d3eacd6ef0d95cadd7854dc03ee",
+          "include_root": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Release/mpg123/source/mpg123-1.33.7/src/include",
+          "import_library": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Release/mpg123/lib/Release/mpg123/mpg123.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/bin/obj/engdll/Win32/Release/mpg123/runtime/Release/mpg123.dll",
+          "build_target": "CseBuildMpg123",
+          "staging_target": "CseStageMpg123"
         }
       }
     }
@@ -14871,15 +14957,24 @@
           "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
           "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
           "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
-          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/"
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Debug/",
+          "CseMpg123Version": "1.33.7",
+          "CseMpg123Archive": "${CSE_SDK_DIR}/swds/..\\external\\mpg123\\mpg123-1.33.7.tar.bz2",
+          "CseMpg123BuildRoot": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\",
+          "CseMpg123Source": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\",
+          "CseMpg123Include": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include",
+          "CseMpg123ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\lib\\Debug\\mpg123\\mpg123.lib",
+          "CseMpg123RuntimeDll": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\runtime\\Debug\\mpg123.dll",
+          "CseMpg123RuntimeRoot": "${CSE_SDK_DIR}/swds/..\\bin\\Win32\\Debug\\",
+          "CseMpg123CmakeSource": "${CSE_SDK_DIR}/swds/..\\..\\cmake\\dependencies\\mpg123"
         },
         "definitions": {
           "ClCompile": {
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;LINK_MPG123_DLL;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
-            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
@@ -14893,11 +14988,11 @@
             "DisableAnalyzeExternal": "true"
           },
           "Link": {
-            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;mss32.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
+            "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\lib\\Debug\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
-            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/swds/..\\external\\miles;${CSE_SDK_DIR}/swds/..\\lib\\public;",
+            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/swds/..\\lib\\public;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\swds.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\swds.lib",
             "GenerateMapFile": "true",
@@ -14923,7 +15018,23 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/cd.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_music.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -15849,7 +15960,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -15894,11 +16005,19 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/Mpg123.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
           },
           {
             "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
+          },
+          {
+            "path": "projects/vs2026/Mpg123.targets",
             "evaluated": true
           }
         ],
@@ -15912,6 +16031,16 @@
           "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
           "validation_target": "CseValidateSdl3",
           "staging_target": "CseStageSdl3"
+        },
+        "mpg123": {
+          "version": "1.33.7",
+          "archive": "${CSE_SDK_DIR}/external/mpg123/mpg123-1.33.7.tar.bz2",
+          "source_sha256": "31d0e35a4ca567ec9b5ebda6c3062bb4435d6d3eacd6ef0d95cadd7854dc03ee",
+          "include_root": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Debug/mpg123/source/mpg123-1.33.7/src/include",
+          "import_library": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Debug/mpg123/lib/Debug/mpg123/mpg123.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Debug/mpg123/runtime/Debug/mpg123.dll",
+          "build_target": "CseBuildMpg123",
+          "staging_target": "CseStageMpg123"
         }
       },
       "Release": {
@@ -15946,15 +16075,24 @@
           "CseSdl3ImportLibrary": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib",
           "CseSdl3RuntimeDll": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.dll",
           "CseSdl3Manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
-          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/"
+          "CseSdl3RuntimeRoot": "${CSE_SDK_DIR}/bin/Win32/Release/",
+          "CseMpg123Version": "1.33.7",
+          "CseMpg123Archive": "${CSE_SDK_DIR}/swds/..\\external\\mpg123\\mpg123-1.33.7.tar.bz2",
+          "CseMpg123BuildRoot": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\",
+          "CseMpg123Source": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\",
+          "CseMpg123Include": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include",
+          "CseMpg123ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\lib\\Release\\mpg123\\mpg123.lib",
+          "CseMpg123RuntimeDll": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\runtime\\Release\\mpg123.dll",
+          "CseMpg123RuntimeRoot": "${CSE_SDK_DIR}/swds/..\\bin\\Win32\\Release\\",
+          "CseMpg123CmakeSource": "${CSE_SDK_DIR}/swds/..\\..\\cmake\\dependencies\\mpg123"
         },
         "definitions": {
           "ClCompile": {
-            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;",
+            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;LINK_MPG123_DLL;",
             "WarningLevel": "Level4",
             "TreatWarningAsError": "true",
             "LanguageStandard": "stdcpp17",
-            "PreprocessorDefinitions": "WIN32;CSE_ENGINE_WSOCK32=1;SW_RENDERER;_CRT_SECURE_NO_WARNINGS;",
             "FloatingPointModel": "Precise",
             "PrecompiledHeader": "NotUsing",
             "EnableEnhancedInstructionSet": "StreamingSIMDExtensions2",
@@ -15969,11 +16107,11 @@
             "DisableAnalyzeExternal": "true"
           },
           "Link": {
-            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;mss32.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
+            "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\lib\\Release\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
-            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/swds/..\\external\\miles;${CSE_SDK_DIR}/swds/..\\lib\\public;",
+            "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/swds/..\\lib\\public;",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\swds.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\swds.lib",
             "GenerateMapFile": "true",
@@ -16001,7 +16139,23 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/cd.cpp",
-            "metadata": {}
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/mpg123_music.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -16927,7 +17081,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp",
             "metadata": {
-              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/external/SDL3/include;"
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\engine;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include;${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\include\\webm;${CSE_SDK_DIR}/swds/..\\common;${CSE_SDK_DIR}/swds/..\\cl_dll;${CSE_SDK_DIR}/swds/..\\public;${CSE_SDK_DIR}/swds/..\\pm_shared;${CSE_SDK_DIR}/swds/..\\utils\\vgui\\include;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\source\\mpg123-1.33.7\\src\\include;${CSE_SDK_DIR}/external/SDL3/include;"
             }
           },
           {
@@ -16972,11 +17126,19 @@
             "evaluated": true
           },
           {
+            "path": "projects/vs2026/Mpg123.props",
+            "evaluated": true
+          },
+          {
             "path": "$(VCTargetsPath)\\Microsoft.Cpp.targets",
             "evaluated": false
           },
           {
             "path": "projects/vs2026/SDL3.targets",
+            "evaluated": true
+          },
+          {
+            "path": "projects/vs2026/Mpg123.targets",
             "evaluated": true
           }
         ],
@@ -16990,6 +17152,16 @@
           "validation_manifest": "${CSE_SDK_DIR}/external/SDL3/SHA256SUMS",
           "validation_target": "CseValidateSdl3",
           "staging_target": "CseStageSdl3"
+        },
+        "mpg123": {
+          "version": "1.33.7",
+          "archive": "${CSE_SDK_DIR}/external/mpg123/mpg123-1.33.7.tar.bz2",
+          "source_sha256": "31d0e35a4ca567ec9b5ebda6c3062bb4435d6d3eacd6ef0d95cadd7854dc03ee",
+          "include_root": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Release/mpg123/source/mpg123-1.33.7/src/include",
+          "import_library": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Release/mpg123/lib/Release/mpg123/mpg123.lib",
+          "runtime_dll": "${CSE_SDK_DIR}/bin/obj/swds/Win32/Release/mpg123/runtime/Release/mpg123.dll",
+          "build_target": "CseBuildMpg123",
+          "staging_target": "CseStageMpg123"
         }
       }
     }

@@ -3,3 +3,9 @@ GoldSrc-SDK/external/SDL3/** -text
 # Translator support recognizes these exact repository-owned build contracts.
 GoldSrc-SDK/projects/vs2026/SDL3.props text eol=lf
 GoldSrc-SDK/projects/vs2026/SDL3.targets text eol=lf
+GoldSrc-SDK/projects/vs2026/Mpg123.props text eol=lf
+GoldSrc-SDK/projects/vs2026/Mpg123.targets text eol=lf
+GoldSrc-SDK/external/mpg123/** -text
+# Retain the inherited worker files' CRLF without flagging CR as trailing whitespace.
+GoldSrc-SDK/engine/thread.cpp whitespace=cr-at-eol
+GoldSrc-SDK/engine/thread.h whitespace=cr-at-eol

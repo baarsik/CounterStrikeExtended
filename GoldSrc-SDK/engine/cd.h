@@ -66,10 +66,10 @@ public:
 	float MP3_SetVolume( float newVolume );
 	bool MP3_InitStream( int trackNum, bool looping );
 	bool MP3_InitStream( const char* filename, bool looping );
-	void MP3_PlayTrackFinalize( int trackNum, bool looping );
+	bool MP3_PlayTrackFinalize( int trackNum, bool looping );
 	bool MP3_PlayTrack( const char* filename, bool looping );
 	bool MP3_PlayTrack( int trackNum, bool looping );
-	void MP3_StartStream();
+	bool MP3_StartStream();
 	void MP3_StopStream();
 	void MP3_Loop();
 	void MP3_SetPause( bool onOff );

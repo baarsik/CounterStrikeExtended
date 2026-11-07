@@ -1,4 +1,5 @@
 #include "cd.h"
+#include "mpg123_music.h"
 #include "ithread.h"
 
 #include "cmd.h"
@@ -21,52 +22,14 @@
 #if defined( NDEBUG )
 extern "C" _ACRTIMP void __cdecl _wassert( const wchar_t* message, const wchar_t* file, unsigned int line );
 #endif
-#define AILCALL __stdcall
 
 static void usleep( unsigned int microseconds )
 {
 	Sleep( ( microseconds + 999u ) / 1000u );
 }
 #else
-#include <csetjmp>
-#include <csignal>
 #include <unistd.h>
-#define AILCALL
 #endif
-
-extern "C"
-{
-	typedef void* HDIGDRIVER;
-	typedef void* HSTREAM;
-	typedef void* HSAMPLE;
-
-	int AILCALL AIL_startup();
-	void AILCALL AIL_shutdown();
-	char* AILCALL AIL_set_redist_directory( const char* directory );
-	void AILCALL AIL_close_digital_driver( HDIGDRIVER driver );
-	HSTREAM AILCALL AIL_open_stream( HDIGDRIVER driver, const char* filename, int streamMemory );
-	void AILCALL AIL_close_stream( HSTREAM stream );
-	void AILCALL AIL_start_stream( HSTREAM stream );
-	void AILCALL AIL_pause_stream( HSTREAM stream, int onOff );
-	int AILCALL AIL_stream_status( HSTREAM stream );
-	void AILCALL AIL_set_stream_loop_count( HSTREAM stream, int count );
-	void AILCALL AIL_set_stream_user_data( HSTREAM stream, unsigned int index, int value );
-	HSAMPLE AILCALL AIL_stream_sample_handle( HSTREAM stream );
-	int AILCALL AIL_sample_playback_rate( HSAMPLE sample );
-	void AILCALL AIL_set_sample_volume_pan( HSAMPLE sample, float volume, float pan );
-	int AILCALL AIL_set_preference( unsigned int number, int value );
-
-#if defined( _WIN32 )
-	HDIGDRIVER AILCALL AIL_open_digital_driver( unsigned int rate, int bits, int channels, unsigned int flags );
-#else
-	HDIGDRIVER AILCALL AIL_open_generic_digital_driver( int rate, int bits, int channels, int flags, int driver );
-	int RADSS_OalInstallDriver( int unknown1, int unknown2 );
-#endif
-}
-
-#undef AILCALL
-
-#define SMP_PLAYING 4
 
 #define MAX_MP3_TRACKS 200
 
@@ -79,28 +42,14 @@ extern cvar_t MP3FadeTime;
 struct SDL_Window;
 extern SDL_Window** pmainwindow;
 
-static HSTREAM MP3stream = NULL;
-static HDIGDRIVER MP3digitalDriver = NULL;
+static cse::Mpg123MusicPlayer musicPlayer;
 
 char* g_pszMP3trackFileMap[MAX_MP3_TRACKS];
 int g_iMP3NumTracks;
 int g_iMP3FirstMalloc;
 
-#if !defined( _WIN32 )
-static sigjmp_buf g_mark;
-
-static void linux_handler( int )
-{
-	std::longjmp( g_mark, -1 );
-}
-#endif
-
-static void SetStreamVolumePan( float volume )
-{
-	if ( !MP3stream )
-		return;
-
-	AIL_set_sample_volume_pan( AIL_stream_sample_handle( MP3stream ), volume, 0.5f );
+static void SetStreamVolumePan(float volume) {
+    musicPlayer.SetVolume(volume);
 }
 
 const float CCDAudio::TRACK_EXTRA_TIME = 2.0f;
@@ -380,14 +329,13 @@ void CCDAudio::_SwitchToEngine( int, int )
 	_Resume( 0, 0 );
 }
 
-void CCDAudio::MP3_Suspend_Audio()
-{
-	m_MP3.playing = m_bIsPlaying;
-	if ( MP3stream && m_bIsPlaying )
-		m_MP3.suspended = true;
-
-	MP3_StopStream();
-	MP3_ReleaseDriver();
+void CCDAudio::MP3_Suspend_Audio() {
+    m_MP3.playing = m_bIsPlaying;
+    if (musicPlayer.IsPlaying() && m_bIsPlaying) {
+        m_MP3.suspended = true;
+    }
+    MP3_StopStream();
+    MP3_ReleaseDriver();
 }
 
 void CCDAudio::_Stop( int, int )
@@ -504,7 +452,7 @@ void CCDAudio::_CDUpdate( int, int )
 
 	if ( m_MP3.inuse )
 	{
-		m_bIsPlaying = AIL_stream_status( MP3stream ) == SMP_PLAYING;
+		m_bIsPlaying = musicPlayer.IsPlaying();
 		if ( !m_bIsPlaying )
 			m_szPendingPlayFilename[0] = '\0';
 	}
@@ -695,55 +643,28 @@ void CCDAudio::FadeOut()
 	thread->AddThreadItem( &CCDAudio::_CDUpdate, 0, 0 );
 }
 
-void CCDAudio::MP3_PlayTrackFinalize( int trackNum, bool looping )
-{
-	MP3_StartStream();
-
-	m_MP3.inuse = true;
-	m_flPlayTime = 0.0f;
-	m_MP3.playing = true;
-	m_MP3.tracknum = trackNum;
-	m_MP3.looping = looping;
-	m_dStartTime = 0.0;
-	m_dPauseTime = 0.0;
-	m_bIsLooping = looping;
-	m_nPlayTrack = trackNum;
-	m_bIsPlaying = true;
-
-	if ( m_flMP3Volume == 0.0f )
-		_Pause( 0, 0 );
+bool CCDAudio::MP3_PlayTrackFinalize(int trackNum, bool looping) {
+    if (!MP3_StartStream()) {
+        return false;
+    }
+    m_MP3.inuse = true;
+    m_flPlayTime = 0.0f;
+    m_MP3.playing = true;
+    m_MP3.tracknum = trackNum;
+    m_MP3.looping = looping;
+    m_dStartTime = 0.0;
+    m_dPauseTime = 0.0;
+    m_bIsLooping = looping;
+    m_nPlayTrack = trackNum;
+    m_bIsPlaying = true;
+    if (m_flMP3Volume == 0.0f) {
+        _Pause(0, 0);
+    }
+    return true;
 }
 
-bool CCDAudio::MP3_Init()
-{
-#if defined( _WIN32 )
-	MP3_ReleaseDriver();
-	AIL_set_redist_directory( "." );
-	AIL_startup();
-	AIL_set_preference( 17, 0 );
-	AIL_set_preference( 6, 10 );
-	MP3digitalDriver = AIL_open_digital_driver( 22050, 16, 2, 1 );
-#else
-	if ( MP3digitalDriver )
-		return true;
-
-	AIL_set_redist_directory( "redist" );
-
-	auto previous = std::signal( SIGSEGV, linux_handler );
-	if ( sigsetjmp( g_mark, 1 ) != 0 )
-	{
-		Con_Printf( "MP3 startup failed due, mp3 playback will not be available.\n" );
-		return false;
-	}
-
-	AIL_startup();
-	std::signal( SIGSEGV, previous );
-	AIL_set_preference( 6, 10 );
-	int driver = RADSS_OalInstallDriver( 0, 0 );
-	MP3digitalDriver = AIL_open_generic_digital_driver( 22050, 16, 2, 1, driver );
-#endif
-
-	return MP3digitalDriver != NULL;
+bool CCDAudio::MP3_Init() {
+    return musicPlayer.Init();
 }
 
 int CCDAudio::Init()
@@ -791,17 +712,11 @@ void CCDAudio::MP3_Shutdown()
 {
 	MP3_StopStream();
 	MP3_ReleaseDriver();
-	AIL_shutdown();
 	FreeAllocatedTracks();
 }
 
-void CCDAudio::MP3_ReleaseDriver()
-{
-	if ( !MP3digitalDriver )
-		return;
-
-	AIL_close_digital_driver( MP3digitalDriver );
-	MP3digitalDriver = NULL;
+void CCDAudio::MP3_ReleaseDriver() {
+    musicPlayer.Shutdown();
 }
 
 float CCDAudio::MP3_SetVolume( float newVolume )
@@ -820,36 +735,28 @@ float CCDAudio::MP3_SetVolume( float newVolume )
 	return m_MP3.volume;
 }
 
-bool CCDAudio::MP3_InitStream( int trackNum, bool looping )
-{
-#if defined( _WIN32 )
-	if ( trackNum <= 1 || trackNum >= g_iMP3NumTracks )
-		_wassert( L"1 < trackNum && trackNum < g_iMP3NumTracks", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\cd.cpp", 1497 );
-#endif
-	m_bIsPrimed = false;
-	if ( !MP3digitalDriver && !MP3_Init() )
-		return false;
-
-	char fullPath[512];
-	FS_GetLocalPath( g_pszMP3trackFileMap[trackNum], fullPath, sizeof( fullPath ) );
-	FS_GetLocalCopy( fullPath );
-
-	_Stop( 0, 0 );
-	m_dFadeOutTime = 0.0;
-
-	MP3stream = AIL_open_stream( MP3digitalDriver, fullPath, 0 );
-	if ( !MP3stream )
-		return false;
-
-	int playbackRate = AIL_sample_playback_rate( AIL_stream_sample_handle( MP3stream ) );
-	AIL_set_stream_user_data( MP3stream, 0, playbackRate );
-	SetStreamVolumePan( m_MP3.volume );
-	strcpy( m_MP3.trackname, g_pszMP3trackFileMap[trackNum] );
-
-	if ( looping )
-		MP3_Loop();
-
-	return true;
+bool CCDAudio::MP3_InitStream(int trackNum, bool looping) {
+    if (trackNum <= 1 || trackNum >= g_iMP3NumTracks) {
+        return false;
+    }
+    m_bIsPrimed = false;
+    if (!MP3_Init()) {
+        return false;
+    }
+    char fullPath[512]{};
+    if (!FS_GetLocalPath(g_pszMP3trackFileMap[trackNum], fullPath, sizeof(fullPath))) {
+        return false;
+    }
+    FS_GetLocalCopy(fullPath);
+    _Stop(0, 0);
+    m_dFadeOutTime = 0.0;
+    if (!musicPlayer.Open(fullPath, looping)) {
+        Con_Printf("Unable to open MP3 music: %s\n", g_pszMP3trackFileMap[trackNum]);
+        return false;
+    }
+    SetStreamVolumePan(m_MP3.volume);
+    Q_strncpy(m_MP3.trackname, g_pszMP3trackFileMap[trackNum], sizeof(m_MP3.trackname));
+    return true;
 }
 
 void CCDAudio::CD_f()
@@ -912,7 +819,7 @@ void CCDAudio::CD_f()
 	{
 		Con_Printf( "Current MP3 Title: %s\n", m_MP3.trackname );
 		Con_Printf( "Current MP3 Track: %i\n", m_MP3.tracknum );
-		Con_Printf( "Current MP3 Volume: %i\n", m_MP3.volume );
+		Con_Printf( "Current MP3 Volume: %f\n", m_MP3.volume );
 		return;
 	}
 
@@ -1026,14 +933,12 @@ void CCDAudio::_PrimeTrack( int track, int looping )
 	{
 		if ( track > 1 && track < g_iMP3NumTracks )
 		{
-			MP3_InitStream( track, looping != 0 );
-			m_bIsPrimed = true;
+			m_bIsPrimed = MP3_InitStream(track, looping != 0);
 		}
 	}
 	else if ( m_szPendingPlayFilename[0] )
 	{
-		MP3_InitStream( m_szPendingPlayFilename, looping != 0 );
-		m_bIsPrimed = true;
+		m_bIsPrimed = MP3_InitStream(m_szPendingPlayFilename, looping != 0);
 	}
 
 	m_bIsInMiddleOfPriming = false;
@@ -1045,8 +950,7 @@ bool CCDAudio::MP3_PlayTrack( const char* filename, bool looping )
 		return false;
 
 	m_bIsPrimed = false;
-	MP3_PlayTrackFinalize( 0, looping );
-	return true;
+	return MP3_PlayTrackFinalize(0, looping);
 }
 
 bool CCDAudio::MP3_PlayTrack( int trackNum, bool looping )
@@ -1058,8 +962,7 @@ bool CCDAudio::MP3_PlayTrack( int trackNum, bool looping )
 		return false;
 
 	m_bIsPrimed = false;
-	MP3_PlayTrackFinalize( trackNum, looping );
-	return true;
+	return MP3_PlayTrackFinalize(trackNum, looping);
 }
 
 //-----------------------------------------------------------------------------
@@ -1190,32 +1093,19 @@ bool CCDAudio::MP3_InitStream( const char* filename, bool looping )
 	return MP3_InitStream( MP3_GetTrack( filename ), looping );
 }
 
-void CCDAudio::MP3_StartStream()
-{
-	if ( MP3stream )
-		AIL_start_stream( MP3stream );
+bool CCDAudio::MP3_StartStream() {
+    return musicPlayer.Start();
 }
 
-void CCDAudio::MP3_StopStream()
-{
-	if ( MP3stream )
-	{
-		AIL_pause_stream( MP3stream, 1 );
-		AIL_close_stream( MP3stream );
-		MP3stream = NULL;
-	}
-
-	m_bIsPrimed = false;
+void CCDAudio::MP3_StopStream() {
+    musicPlayer.Stop();
+    m_bIsPrimed = false;
 }
 
-void CCDAudio::MP3_Loop()
-{
-	if ( MP3stream )
-		AIL_set_stream_loop_count( MP3stream, 0 );
+void CCDAudio::MP3_Loop() {
+    musicPlayer.SetLooping(true);
 }
 
-void CCDAudio::MP3_SetPause( bool onOff )
-{
-	if ( MP3stream )
-		AIL_pause_stream( MP3stream, onOff );
+void CCDAudio::MP3_SetPause(bool onOff) {
+    musicPlayer.Pause(onOff);
 }

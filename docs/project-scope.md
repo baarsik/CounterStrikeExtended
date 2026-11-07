@@ -106,7 +106,8 @@ include order, forced headers, exclusions, export names/ordinals and resources.
 steps; [source corrections](source-corrections.md) records C1–C4.
 
 Native SDL3 is pinned and staged for the five linker consumers: both engines,
-both game clients and GameUI. Miles integration remains intact. Steam, browser,
+both game clients and GameUI. Both engines also build/stage the shared mpg123
+decoder; music uses SDL3 streams and no longer requires Miles. Steam, browser,
 voice and optional legacy modules also have runtime loading paths; static
 project references are not the complete module graph. Provider availability in
 the qualified SDL3 package does not establish redistribution rights; see

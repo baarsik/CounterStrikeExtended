@@ -40,6 +40,7 @@
   </PropertyGroup>
   <PropertyGroup><CseSdl3Shared>true</CseSdl3Shared></PropertyGroup>
   <Import Project="SDL3.props" />
+  <Import Project="Mpg123.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
@@ -56,8 +57,8 @@
     </ClCompile>
     <Link>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
-      <AdditionalLibraryDirectories>$(GameRoot)external\miles;$(GameRoot)lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>mss32.lib;steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(GameRoot)lib\public;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>steam_api.lib;opengl32.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <GenerateMapFile>true</GenerateMapFile>
@@ -91,7 +92,15 @@
     <ClCompile Include="..\..\engine\BaseSystemModule.cpp" />
     <ClCompile Include="..\..\engine\bitmap_win.cpp" />
     <ClCompile Include="..\..\engine\buildnum.cpp" />
-    <ClCompile Include="..\..\engine\cd.cpp" />
+    <ClCompile Include="..\..\engine\cd.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\mpg123_decoder.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\mpg123_music.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\engine\cdll_exp.cpp" />
     <ClCompile Include="..\..\engine\cdll_int.cpp" />
     <ClCompile Include="..\..\engine\chase.cpp" />
@@ -514,4 +523,5 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="SDL3.targets" />
+  <Import Project="Mpg123.targets" />
 </Project>
