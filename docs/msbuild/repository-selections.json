@@ -3877,6 +3877,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/rotation.cpp",
             "metadata": {
+              "ExceptionHandling": "Sync",
               "Optimization": "MaxSpeed",
               "BasicRuntimeChecks": "Default",
               "IntrinsicFunctions": "true",
@@ -4160,6 +4161,7 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/rotation.cpp",
             "metadata": {
+              "ExceptionHandling": "Sync",
               "Optimization": "MaxSpeed",
               "IntrinsicFunctions": "true",
               "EnableEnhancedInstructionSet": "NoExtensions",

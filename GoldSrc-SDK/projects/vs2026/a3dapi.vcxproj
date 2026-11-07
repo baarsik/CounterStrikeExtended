@@ -150,6 +150,7 @@
       <FloatingPointModel>Strict</FloatingPointModel>
     </ClCompile>
     <ClCompile Include="..\..\a3dapi\rotation.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
       <Optimization>MaxSpeed</Optimization>
       <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
       <IntrinsicFunctions>true</IntrinsicFunctions>
