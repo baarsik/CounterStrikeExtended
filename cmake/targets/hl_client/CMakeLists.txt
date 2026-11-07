@@ -142,7 +142,7 @@ target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}
 set_property(TARGET hl_client APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreaded>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
-target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/DEBUG>")
+target_link_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/LTCG>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")

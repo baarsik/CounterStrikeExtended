@@ -355,10 +355,19 @@ def quote(value):
     return '"' + value.replace('\\', '/').replace('"', '\\"') + '"'
 
 
+def option_predicate(configuration, value):
+    predicate = f'$<CONFIG:{configuration}>'
+    diagnostic = (value in ['/Zi', '/ZI', '/Z7'] or
+                  value.upper().startswith(('/DEBUG', '/MAP', '/PDB:')) or value.startswith('/Fd'))
+    if configuration == 'Release' and diagnostic and value.upper() != '/DEBUG:NONE':
+        predicate = f'$<AND:{predicate},$<BOOL:${{CSE_RELEASE_DIAGNOSTICS}}>>'
+    return predicate
+
+
 def emit_list(lines, command, target, configuration, values, language=False):
     for value in values:
         value = portable(value)
-        predicate = f'$<CONFIG:{configuration}>'
+        predicate = option_predicate(configuration, value)
         if language:
             predicate = f'$<AND:{predicate},$<COMPILE_LANGUAGE:C,CXX>>'
         lines.append(f'{command}({target} PRIVATE {quote("$<" + predicate + ":" + value + ">")})')
@@ -441,7 +450,7 @@ def main():
             link_flags = options(link, LINK) + additional_options(link.get('AdditionalOptions', ''))
             if data['properties'].get('WholeProgramOptimization') == 'true' and '/LTCG' not in link_flags:
                 link_flags.append('/LTCG')
-            incremental = data['properties'].get('LinkIncremental', 'true' if config == 'Debug' else 'false')
+            incremental = data['properties'].get('LinkIncremental', 'true') if config == 'Debug' else 'false'
             link_flags.append('/INCREMENTAL' if incremental == 'true' else '/INCREMENTAL:NO')
             if link.get('BaseAddress'):
                 link_flags.append('/BASE:' + link['BaseAddress'])
@@ -482,7 +491,8 @@ def main():
                         lines.append(f'set_property(SOURCE {path} PROPERTY LANGUAGE CXX)')
                 opts += ['/FI' + str(source_path(p, project.parent)) for p in split(overrides.get('ForcedIncludeFiles', ''))]
                 for option in opts:
-                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_OPTIONS {quote("$<$<CONFIG:" + config + ">:" + portable(option) + ">")})')
+                    predicate = option_predicate(config, option)
+                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_OPTIONS {quote("$<" + predicate + ":" + portable(option) + ">")})')
                 if 'PreprocessorDefinitions' in overrides:
                     # Effective metadata already incorporates target definitions and inherited definitions.
                     values = split(item['metadata']['PreprocessorDefinitions'])

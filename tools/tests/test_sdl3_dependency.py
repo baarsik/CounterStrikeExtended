@@ -73,7 +73,7 @@ class StagingTests(unittest.TestCase):
             build = Path(directory) / 'build'
             source.mkdir()
             (source / 'stub.c').write_text('int probe(void) { return 0; }\n')
-            (source / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 4.2)
+            (source / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
 project(StagingContract C)
 set(CMAKE_SIZEOF_VOID_P 4)
 set(SDL_CPU_X86 1)

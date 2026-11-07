@@ -1,10 +1,13 @@
 include_guard(GLOBAL)
 
+option(CSE_RELEASE_DIAGNOSTICS "Generate Release debug symbols and linker maps" OFF)
+option(CSE_STAGE_DISTRIBUTION_MATERIALS "Stage dependency license/source materials for distribution" OFF)
+# Independent test/dependency projects keep their outputs in their own build tree.
+if(NOT DEFINED CSE_OUTPUT_DIRECTORY)
+  set(CSE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>")
+endif()
+
 function(cse_add_runtime target kind output)
-  foreach(config Debug Release)
-    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/lib/${config}/${target}"
-      "${CMAKE_BINARY_DIR}/symbols/${config}/${target}")
-  endforeach()
   if(kind STREQUAL "EXECUTABLE")
     add_executable(${target} WIN32)
     # All retained executables export CreateInterface; model their import products.
@@ -18,15 +21,19 @@ function(cse_add_runtime target kind output)
     MSVC_RUNTIME_LIBRARY ""
     WINDOWS_EXPORT_ALL_SYMBOLS OFF
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>/${target}"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>"
     PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>/${target}"
     COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/symbols/$<CONFIG>/${target}"
     COMPILE_PDB_NAME "${target}-compile")
+  if(MSVC)
+    target_link_options(${target} PRIVATE
+      "$<$<CONFIG:Debug>:/ILK:${CMAKE_CURRENT_BINARY_DIR}/${target}-$<CONFIG>.ilk>")
+  endif()
 endfunction()
 
 function(cse_runtime_directory target relative)
   set_target_properties(${target} PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>/${relative}")
+    RUNTIME_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>"
+    LIBRARY_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>")
   # Resource compiler file-backed inputs are resolved using the source directory.
   get_target_property(sources ${target} SOURCES)
   foreach(source IN LISTS sources)

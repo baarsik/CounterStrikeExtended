@@ -22,7 +22,8 @@
 ## Architecture
 
 - The current build targets Windows x86 (Win32), using C, C++ and Windows
-  resources. It requires MSVC v145 and Windows SDK 10.0.26100.0.
+  resources. It uses standalone MSVC Build Tools and the Windows SDK; no Visual Studio IDE or
+  exact toolset/SDK version is required by CMake.
 - Production source lives under `GoldSrc-SDK/`. The runtime includes the engine,
   launchers, Counter-Strike and Half-Life client/server DLLs, and shared runtime
   libraries. Each game keeps its own runtime-relative client/server outputs.
@@ -33,13 +34,13 @@
 
 ## Build workflow
 
-- Run commands from the repository root on a Windows builder with Visual Studio
-  2026, MSVC v145, the required SDK, and CMake 4.2 or later.
+- Run commands from the repository root in an x86 MSVC command-line
+  environment with the Windows SDK, CMake 3.25 or later, and Ninja.
 - Use the checked-in configure/build presets:
 
   ```powershell
-  cmake --preset runtime-x86-release
-  cmake --build --preset runtime-x86-release --parallel
+  cmake --preset default
+  cmake --build --preset default --parallel
   cmake --preset runtime-x86-debug
   cmake --build --preset runtime-x86-debug --parallel
   ```
@@ -50,7 +51,10 @@
   `tools/translate_msbuild.py`. Update the retained manifests or translator as
   appropriate, then run `python tools/translate_msbuild.py`; keep generated
   outputs synchronized rather than editing them independently.
-- Keep runtime binaries under `build/<preset>/runtime/<Configuration>/`, import
-  libraries under `lib/<Configuration>/<target>/`, and PDBs under
-  `symbols/<Configuration>/<target>/` within the same preset build directory.
+- Default Release builds all 19 retained production targets into repository-root
+  `output/`, using the actual game-relative paths. Debug uses `output-debug/`.
+  Hardware-only outputs remain inside their preset build directory.
+- Keep required import/static libraries and intermediates in the selected build
+  directory. Release diagnostics and distribution materials default OFF and must
+  be explicitly enabled. Do not add non-runtime artifacts to the default output.
   See [building.md](docs/building.md) for target options and full commands.

@@ -1,5 +1,7 @@
 /build/
 /out/
+/output/
+/output-debug/
 /CMakeUserPresets.json
 /GoldSrc-SDK/bin/
 /.superpowers/

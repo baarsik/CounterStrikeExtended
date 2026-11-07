@@ -48,7 +48,7 @@ target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUA
 target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/O2>")
 target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/EHa>")
 target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/GR>")
-target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/Zi>")
+target_compile_options(tier0 PRIVATE "$<$<AND:$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>,$<COMPILE_LANGUAGE:C,CXX>>:/Zi>")
 target_compile_options(tier0 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/D_MBCS>")
 set_property(TARGET tier0 PROPERTY CXX_STANDARD 14)
 target_compile_definitions(tier0 PRIVATE "$<$<CONFIG:Release>:WIN32>")

@@ -16,7 +16,7 @@ An example wrapper, with paths supplied by the operator:
 ```powershell
 & 'C:\source\tools\qualification\invoke_game_probe.ps1' `
     -Game cstrike `
-    -RuntimeDirectory 'C:\source\build\runtime-x86-release\runtime\Release' `
+    -RuntimeDirectory 'C:\source\output' `
     -GameDataDirectory 'C:\game-data\Half-Life' `
     -SandboxDirectory 'C:\qualification\cs-sandbox' `
     -EvidenceDirectory 'C:\qualification\evidence' `
@@ -125,7 +125,7 @@ providers, then overlays the complete source-built runtime:
 
 ```powershell
 python tools/qualification/audit_sdl3.py --output fixture-audit.json fixture `
-  --data C:\game-data\Half-Life --runtime C:\source\build\runtime-x86-release\runtime\Release `
+  --data C:\game-data\Half-Life --runtime C:\source\output `
   --destination C:\qualification\sdl3-fixture --decisions overlay-decisions.json
 ```
 

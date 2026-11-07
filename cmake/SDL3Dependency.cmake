@@ -39,6 +39,7 @@ endforeach()
 if(CMAKE_SCRIPT_MODE_FILE)
   return()
 endif()
+include("${CMAKE_CURRENT_LIST_DIR}/RuntimeTargets.cmake")
 
 # Ignore installed packages, registries, and SDL3_DIR left in a user's cache.
 set(SDL3_DIR "${CSE_SDL3_ROOT}/cmake")
@@ -58,9 +59,9 @@ function(cse_link_sdl3 target config)
     # including independent builds of DLLs in nested game directories.
     add_custom_target(cse_stage_sdl3
       COMMAND "${CMAKE_COMMAND}" "-DCSE_SDK_DIR=${CSE_SDK_DIR}" -P "${CMAKE_CURRENT_FUNCTION_LIST_FILE}"
-      COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>"
+      COMMAND "${CMAKE_COMMAND}" -E make_directory "${CSE_OUTPUT_DIRECTORY}"
       COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${CSE_SDL3_ROOT}/lib/x86/SDL3.dll" "${CMAKE_BINARY_DIR}/runtime/$<CONFIG>/SDL3.dll"
+        "${CSE_SDL3_ROOT}/lib/x86/SDL3.dll" "${CSE_OUTPUT_DIRECTORY}/SDL3.dll"
       DEPENDS "${CSE_SDL3_ROOT}/lib/x86/SDL3.dll" "${CSE_SDL3_MANIFEST}"
       VERBATIM COMMENT "Validate and stage pinned SDL3 runtime")
   endif()
