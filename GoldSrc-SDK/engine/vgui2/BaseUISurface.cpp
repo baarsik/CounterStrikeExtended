@@ -1,4 +1,5 @@
 #include "../../common/sdl3_input.h"
+#include "../../common/sdl3_cursor.h"
 #include "BaseUISurface.h"
 #include "../keys.h"
 #include "../vgui/IPanel.h"
@@ -426,16 +427,8 @@ void BaseUISurface::SetCursor(vgui2::HCursor cursor) {
 
     const bool useRawInput = m_rawinput.value && BUsesSDLInput();
     SDL_Window *window = (SDL_Window *)game->GetMainWindow();
-    const bool relative = !s_bCursorVisible && useRawInput;
-    const bool changed = wasVisible != s_bCursorVisible || s_bUsedRawInputLast != useRawInput ||
-                         SDL_GetWindowRelativeMouseMode(window) != relative;
-    if (changed) {
-        SDL_SetWindowRelativeMouseMode(window, relative);
-        if (s_bCursorVisible) {
-            SDL_ShowCursor();
-        } else {
-            SDL_HideCursor();
-        }
+    if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput)) {
+        cse::ApplyCursorVisibility(window, s_bCursorVisible, useRawInput);
         SDL_SetWindowMouseGrab(window, !s_bCursorVisible && cl_mousegrab.value != 0.0f);
         SDL_PumpEvents();
         SDL_GetRelativeMouseState(nullptr, nullptr);

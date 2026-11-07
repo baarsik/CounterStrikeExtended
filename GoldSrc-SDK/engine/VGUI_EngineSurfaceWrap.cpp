@@ -1,4 +1,5 @@
 #include "../common/sdl3_input.h"
+#include "../common/sdl3_cursor.h"
 #include "VGUI_EngineSurfaceWrap.h"
 
 #include <VGUI_App.h>
@@ -114,6 +115,7 @@ static void CheckModState(vgui::App *app, vgui::SurfaceBase *surface) {
 }
 
 bool s_bCursorVisible = false;
+static bool s_bUsedRawInputLast = false;
 extern IMouseControl* mousecontrol;
 extern cvar_t m_rawinput;
 extern qboolean BUsesSDLInput();
@@ -423,7 +425,7 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
         return;
     }
 
-    const unsigned char wasVisible = static_cast<unsigned char>(s_bCursorVisible);
+    const bool wasVisible = s_bCursorVisible;
     _currentCursor = cursor;
     s_bCursorVisible = true;
     _emulatedCursor->setImage(_mouseBitmap);
@@ -447,37 +449,26 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
         SDL_SetCursor(staticCurrentCursor);
     }
 
-    if (!_cursorLocked) {
-        const unsigned char nowVisible = static_cast<unsigned char>(s_bCursorVisible);
-        if (wasVisible > nowVisible) {
-            if (m_rawinput.value == 0.0f || BUsesSDLInput() == 0) {
-                SDL_HideCursor();
-            } else {
-                SDL_SetWindowRelativeMouseMode((SDL_Window *)game->GetMainWindow(), true);
-            }
+    const bool useRawInput = m_rawinput.value != 0.0f && BUsesSDLInput() != 0;
+    if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput)) {
+        SDL_Window *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+        cse::ApplyCursorVisibility(window, s_bCursorVisible, useRawInput);
 
 #if defined(_WIN32)
-            if (BUsesSDLInput() == 0) {
-                int windowWidth = 0;
-                int windowHeight = 0;
-                SDL_GetWindowSize(reinterpret_cast<SDL_Window *>(game->GetMainWindow()), &windowWidth, &windowHeight);
-                SDL_WarpMouseInWindow(reinterpret_cast<SDL_Window *>(game->GetMainWindow()),
-                                      static_cast<float>(windowWidth / 2), static_cast<float>(windowHeight / 2));
-            }
+        if (wasVisible && !s_bCursorVisible && BUsesSDLInput() == 0) {
+            int windowWidth = 0;
+            int windowHeight = 0;
+            SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+            SDL_WarpMouseInWindow(window, static_cast<float>(windowWidth / 2), static_cast<float>(windowHeight / 2));
+        }
 #endif
 
+        if (!s_bCursorVisible) {
             SDL_PumpEvents();
             SDL_GetRelativeMouseState(nullptr, nullptr);
         }
-
-        if (wasVisible < nowVisible) {
-            if (m_rawinput.value == 0.0f || BUsesSDLInput() == 0) {
-                SDL_ShowCursor();
-            } else {
-                SDL_SetWindowRelativeMouseMode((SDL_Window *)game->GetMainWindow(), false);
-            }
-        }
     }
+    s_bUsedRawInputLast = useRawInput;
 }
 
 void EngineSurfaceWrap::swapBuffers()

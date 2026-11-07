@@ -59,5 +59,10 @@ int main() {
     assert(motion.TakeX(0.75f) == 0);
     motion.SetRawInput(true);
     assert(motion.TakeX(0.25f) == 1);
+    assert(!cse::CursorRequestChanged(false, false, true, true));
+    assert(cse::CursorRequestChanged(false, true, true, true));
+    assert(cse::CursorRequestChanged(true, false, true, true));
+    assert(cse::CursorRequestChanged(false, false, true, false));
+    assert(cse::CursorRequestChanged(false, false, false, true));
     return 0;
 }

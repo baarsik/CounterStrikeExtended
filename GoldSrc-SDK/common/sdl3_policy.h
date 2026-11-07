@@ -5,6 +5,11 @@
 #include <cstdint>
 
 namespace cse {
+// A UI owner must not reclaim capture merely because another owner changed SDL state.
+inline bool CursorRequestChanged(bool wasVisible, bool visible, bool wasRawInput, bool rawInput) {
+    return wasVisible != visible || wasRawInput != rawInput;
+}
+
 // Keep the exported integer mouse ABI, carrying fractional SDL3 motion between reads.
 class FractionalMotion {
   public:
