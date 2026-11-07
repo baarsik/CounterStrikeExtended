@@ -62,7 +62,7 @@
 - [ ] Update owning manifests and regenerate definitions; migrate bool results, init ownership, window lifecycle, display IDs, fullscreen modes and physical pixel sizing.
 - [ ] Preserve GL compatibility/fallback, extensions, icon byte layout, supported software-video paths and startup media.
 - [ ] Port event structures, explicit event dispatch, cursor/relative-mode APIs, clients and UI with precision, text lifetime, raw/legacy paths, keyboard/layout policies, gamepad rescan and clipboard preserved.
-- [ ] Run focused tests and all runtime/hardware builds on VM1; exercise window/fullscreen/focus/menu/game transitions and commit.
+- [ ] Run focused native tests and all runtime/hardware builds on VM1; collect first CS/HL gameplay evidence and commit. Run the broader window/fullscreen/focus/menu matrix against the final SDL3-only package in Task 5.
 
 ### Task 4: Complete media, retained paths and dependency removal
 
