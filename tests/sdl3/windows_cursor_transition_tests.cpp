@@ -1,6 +1,7 @@
 // Native SDL3 regression for shared VGUI2/VGUI1 cursor ownership.
 #define SDL_MAIN_HANDLED
 #include <windows.h>
+#include <SDL3/SDL_main.h>
 #include "../../GoldSrc-SDK/common/sdl3_cursor.h"
 #include <cstdio>
 #include <cstring>
