@@ -1,45 +1,773 @@
 {
   "schema_version": 1,
-  "status": "qualification-in-progress",
+  "status": "qualified-with-stated-coverage-limits",
   "evidence_root": "/Users/mmalakhouski/.codex/artifacts/cse-sdl3-assessment-20261106/migration",
   "product_source": {
-    "commit": "3d62f6ae651ca6207a61613c0eff2b0d039c1586",
-    "tree": "edff4be79e91d6b30792c2c63a77d8586848de35",
-    "archive_sha256": "8fc88a4950e5eb835b6c44c2e8eb33eecd20cc474e7fac0d9791b28c7ed13559",
-    "manifest": "final-product-source-manifest.json"
+    "last_product_fix": "cf7e58c",
+    "fresh_source_archive_commit": "c4f729df40a33a3eec7458a3b2ccaac463bd8882",
+    "source_tree": "942975c6fcf89600e4807d00a838c9ae2a298d51",
+    "archive": "final-product-source-c4f729d.zip",
+    "archive_sha256": "8e827de5d43bed6ae7851f9004d0db175839a12679be5575b1f1a2f5e8fbec53",
+    "sdk_tree": "8cb90868bd5e6e95026dbc0a2fa4c4cd983554d5",
+    "cmake_tree": "e9623cb1b61a0254c3f772259a0fa963aff9ce0a",
+    "manifest": "final2-product-source-manifest.json",
+    "reviewed_source_head": "84a34a3",
+    "later_test_and_document_commits_preserve_product_subtrees": true
   },
-  "established_task4": {
-    "repository_audit": "task4-repository-audit.json",
-    "explicit_optional_on_build": "task4-optional-fix3-result.json",
-    "fixture_audit": "task4-fixture-audit.json",
-    "crt_providers": "task4-crt-providers.json",
-    "native_decisions": "fixture-native-decisions.json",
+  "builds": {
+    "default_presets": [
+      {
+        "preset": "hardware-x86-release",
+        "configure_exit": 0,
+        "build_exit": 0,
+        "seconds": 19.370974099999998,
+        "source_commit": "c4f729d",
+        "archive_sha256": "8e827de5d43bed6ae7851f9004d0db175839a12679be5575b1f1a2f5e8fbec53"
+      },
+      {
+        "preset": "runtime-x86-release",
+        "configure_exit": 0,
+        "build_exit": 0,
+        "seconds": 75.34545849999999,
+        "source_commit": "c4f729d",
+        "archive_sha256": "8e827de5d43bed6ae7851f9004d0db175839a12679be5575b1f1a2f5e8fbec53"
+      },
+      {
+        "preset": "hardware-x86-debug",
+        "configure_exit": 0,
+        "build_exit": 0,
+        "seconds": 13.715464599999999,
+        "source_commit": "c4f729d",
+        "archive_sha256": "8e827de5d43bed6ae7851f9004d0db175839a12679be5575b1f1a2f5e8fbec53"
+      },
+      {
+        "preset": "runtime-x86-debug",
+        "configure_exit": 0,
+        "build_exit": 0,
+        "seconds": 66.2881529,
+        "source_commit": "c4f729d",
+        "archive_sha256": "8e827de5d43bed6ae7851f9004d0db175839a12679be5575b1f1a2f5e8fbec53"
+      }
+    ],
+    "optional_on": {
+      "options": [
+        "CSE_BUILD_A3D=ON",
+        "CSE_BUILD_BROADCASTING=ON"
+      ],
+      "configure_exit": 0,
+      "build_exit": 0,
+      "evidence": "final2-fresh-optional-result.json"
+    },
+    "toolchain": {
+      "builder": "VM1 Windows 11",
+      "target": "Windows x86",
+      "msvc": "v145",
+      "sdk": "10.0.26100.0"
+    },
+    "policy_relaxed": false
+  },
+  "closure": {
+    "repository_audit": "final2-repository-audit.json",
+    "source_inputs_checked": 3642,
+    "retained_native_artifacts": 90,
+    "pinned_sdl3_files_validated": 94,
+    "fixture_audit": "final2-fixture-audit.json",
     "x86_pe_count": 43,
     "retained_stock_providers": 14,
-    "crt_providers_count": 9,
+    "explicit_crt_providers": 9,
+    "source_built_replacement_paths": 19,
+    "required_runtime_hashes": 17,
     "explicit_exclusions": 13,
-    "live_behavior_acceptance": false
+    "native_decisions": "fixture-native-decisions.json",
+    "crt_providers": "task4-crt-providers.json",
+    "sdl2_or_compat_in_audited_fixture_or_live_snapshots": false,
+    "historical_manifest_sha256": "fdf26d0c6987a707d18470ef699e020647acf1c047f527a3427eafaa0cdb7ac2"
+  },
+  "final_gameplay": {
+    "verification": "final2-runtime-verification.json",
+    "runs": [
+      {
+        "game": "cstrike",
+        "configuration": "release",
+        "clean_exit": true,
+        "recorded_network_frames": 651,
+        "replay_host_frames": 666,
+        "live_module_count": 154,
+        "source_outputs_staged": 16,
+        "source_outputs_observed_and_matched": 12,
+        "loaded_sdl3_sha256": "6d7e653aa9c762ceda4fffc054a504dcce273e016eb9f1fe079b6409a058a9f7",
+        "renderer_size": [
+          640,
+          480
+        ],
+        "renderer_sha256": "37c4dd60bd30ee5ee81b662ae8e236358b1ae7713fbe188563cfa56e1acb3016",
+        "demo_sha256": "68f19048dbbabac32ee8829c310a23da8b67ab2afe00a0db84e98a540638a608",
+        "alive_samples": 651,
+        "movement_command_samples": 301,
+        "simulated_origin_span": [
+          190.9296875,
+          303.96875,
+          0.0
+        ],
+        "result": "final2-runtime/cstrike-fresh-release-result.json",
+        "demo_validation": "final2-runtime/cstrike-fresh-release-demo-validation.json",
+        "sandbox_audit": "final2-runtime/cstrike-release-sandbox-audit.json"
+      },
+      {
+        "game": "cstrike",
+        "configuration": "debug",
+        "clean_exit": true,
+        "recorded_network_frames": 651,
+        "replay_host_frames": 666,
+        "live_module_count": 154,
+        "source_outputs_staged": 16,
+        "source_outputs_observed_and_matched": 12,
+        "loaded_sdl3_sha256": "6d7e653aa9c762ceda4fffc054a504dcce273e016eb9f1fe079b6409a058a9f7",
+        "renderer_size": [
+          640,
+          480
+        ],
+        "renderer_sha256": "4e26c1a1686c521446f19d42d3bf7c0395cc047bf7d485cf6f53dfb724de90a5",
+        "demo_sha256": "b563c3090c92f5e6e76064c96ca4125c69e74f481a4421cad3bf925b7772c8fa",
+        "alive_samples": 651,
+        "movement_command_samples": 301,
+        "simulated_origin_span": [
+          211.1484375,
+          303.984375,
+          0.0
+        ],
+        "result": "final2-runtime/cstrike-fresh-debug-result.json",
+        "demo_validation": "final2-runtime/cstrike-fresh-debug-demo-validation.json",
+        "sandbox_audit": "final2-runtime/cstrike-debug-sandbox-audit.json"
+      },
+      {
+        "game": "valve",
+        "configuration": "release",
+        "clean_exit": true,
+        "recorded_network_frames": 651,
+        "replay_host_frames": 654,
+        "live_module_count": 154,
+        "source_outputs_staged": 16,
+        "source_outputs_observed_and_matched": 12,
+        "loaded_sdl3_sha256": "6d7e653aa9c762ceda4fffc054a504dcce273e016eb9f1fe079b6409a058a9f7",
+        "renderer_size": [
+          640,
+          480
+        ],
+        "renderer_sha256": "d0149c800664b1f2c12151d83af0f6f64ef8e08fe5b7d22cd2f8abf6599768cf",
+        "demo_sha256": "2c340b04df6537bc12a04732166523ff6df5e2226af893d0a8f3bb1e263c1e15",
+        "alive_samples": 651,
+        "movement_command_samples": 301,
+        "simulated_origin_span": [
+          1295.96875,
+          0.578125,
+          29.0078125
+        ],
+        "result": "final2-runtime/valve-fresh-release-result.json",
+        "demo_validation": "final2-runtime/valve-fresh-release-demo-validation.json",
+        "sandbox_audit": "final2-runtime/valve-release-sandbox-audit.json"
+      },
+      {
+        "game": "valve",
+        "configuration": "debug",
+        "clean_exit": true,
+        "recorded_network_frames": 651,
+        "replay_host_frames": 654,
+        "live_module_count": 154,
+        "source_outputs_staged": 16,
+        "source_outputs_observed_and_matched": 12,
+        "loaded_sdl3_sha256": "6d7e653aa9c762ceda4fffc054a504dcce273e016eb9f1fe079b6409a058a9f7",
+        "renderer_size": [
+          640,
+          480
+        ],
+        "renderer_sha256": "0f20fbae119486b403cb30b87e44ba074fc04cbbc3a2499a1fdbca51cab381d2",
+        "demo_sha256": "6d5aa1b484033309d3f745166f442c71da9c1132ed2653e6b43325910a82a524",
+        "alive_samples": 651,
+        "movement_command_samples": 301,
+        "simulated_origin_span": [
+          431.96875,
+          191.96875,
+          0.0
+        ],
+        "result": "final2-runtime/valve-fresh-debug-result.json",
+        "demo_validation": "final2-runtime/valve-fresh-debug-demo-validation.json",
+        "sandbox_audit": "final2-runtime/valve-debug-sandbox-audit.json"
+      }
+    ],
+    "renderer_visual_review": "Root inspected 640x480 internal TGAs: CS MOTD/world/HUD and HL world/HUD"
+  },
+  "cursor_review": {
+    "product_fix": "cf7e58c",
+    "native_fixture_include_fix": "84a34a3",
+    "compile_exit": 0,
+    "before_exit": 1,
+    "before_failures": 6,
+    "fixed_exit": 0,
+    "fixed_cases_passed": 15,
+    "evidence": "cursor2-result.json",
+    "whole_branch_material_findings": 1,
+    "open_findings": 0,
+    "scope": "Actual SDL state through production-consumed policy helpers; specific VGUI2-to-VGUI1 live game ownership handoff not demonstrated. GameUI menu and raw/legacy console interactions separately observed."
   },
   "fixed_demos": {
     "cstrike": "fb1a18edf31182d49b022a46850df0cd263fe1ea101b28caac78af038fdf211c",
     "valve": "3177530c2d13a5e88f2ffc4f86f0baefe939034cde0b5c8d787583f4c035ffa3"
   },
-  "root_owned_pending": [
-    "four fresh-source preset build pairs and explicit optional ON build",
-    "fresh final Debug/Release CS and HL gameplay/replay, sandbox and live-module closure",
-    "dedicated startup/shutdown and startup-media decode",
-    "fullscreen/fallback/focus/capture/input/clipboard/device cases",
-    "native Windows audio output capture",
-    "seven paired fixed-demo measurements per game and honest profile-bound analysis",
-    "independent whole-branch review and any material finding resolution"
-  ],
+  "benchmark_smoke": {
+    "series": "benchmark-smoke/cstrike-harness1-series.json",
+    "analysis": "benchmark-smoke-analysis.json",
+    "product": "3d62f6a",
+    "games": 1,
+    "warmups_per_version": 1,
+    "measured_pairs": 1,
+    "all_runs_complete_eof_exit_zero_foreground": true,
+    "final_performance_acceptance": false
+  },
+  "root_owned_pending": [],
   "limits": [
-    "Windows x86 under VM1 ARM64 emulation is distinct from native hardware",
-    "inactive software-client and non-Windows runtime paths have no native runtime acceptance",
-    "unavailable gamepad/DPI/refresh/gamma hardware cases remain unverified",
-    "desktop input delivery experiments that failed delivery are not app acceptance or confirmed app defects",
-    "static/provider closure does not prove every dynamic feature or late load",
-    "integer FPS profiles yield timing bounds/estimates; FPS zero and sentinel 999 are retained",
-    "PresentMon sparse presentation events and separate API microbenchmarks cannot replace game frame measurements"
-  ]
+    "VM1 Windows x86 emulation is distinct from native hardware; no native-hardware performance prediction",
+    "Static closure and sampled live loaded sets do not prove every late load or dynamic feature",
+    "Exclusive/no-FBO process/mode/replay passes do not qualify pixels: both baseline and candidate TGAs have diagonal/stale-pixel corruption; actual exclusive visual output remains unverified",
+    "Inactive software-client and non-Windows runtime paths have no native runtime acceptance",
+    "Clipboard/non-ASCII game-UI entry/double-click/minimize/physical capture/deltas and unavailable gamepad/DPI/refresh/gamma remain unverified; actual ASCII/raw/legacy/menu/typed-quit and focus-loss/return paths passed",
+    "Native keyboard/text/cursor policy tests do not substitute for real game-menu interactions",
+    "SDL3 dummy stream tests qualify retained ownership policy on Windows, not actual native game sound output",
+    "Integer FPS profiles yield timing bounds and estimates; zero FPS and sentinel 999 are retained",
+    "PresentMon sparse presentation events and API microbenchmarks cannot replace fixed-game frame measurements",
+    "Initial silent audio capture remains unsuccessful with no foreground log; cause unestablished because subsequent captures with and without live module collection pass"
+  ],
+  "dedicated": {
+    "status": "passed",
+    "evidence_directory": "final2-dedicated2",
+    "games": [
+      {
+        "game": "cstrike",
+        "map": "de_dust2",
+        "exit_code": 0,
+        "forced_cleanup": false
+      },
+      {
+        "game": "valve",
+        "map": "crossfire",
+        "exit_code": 0,
+        "forced_cleanup": false
+      }
+    ],
+    "evidence": "Raw stdout has ready marker, map and zero-active/two-max-player status",
+    "superseded_attempt": "final2-dedicated null ExitCode was a PowerShell process-handle caching harness failure"
+  },
+  "startup_media": {
+    "status": "actual-candidate-decode-render-and-playback-completion-passed",
+    "evidence_directory": "startup-media-final2",
+    "asset": "media/valve.webm",
+    "asset_sha256": "f778bed59c274d8477416fff74bb631a22283a370aa9fe03d815142194078df5",
+    "media_length_seconds": 10.024,
+    "baseline_exit_code": 0,
+    "candidate_exit_code": 0,
+    "forced_cleanup": false,
+    "evidence": "Both baseline/candidate logs report native startup WebM path,length10.024,completion,no errors; root also visually observed actual candidate decoded frame",
+    "visual_repeat": {
+      "result": "startup-media-visual-final2/candidate-result.json",
+      "exit_code": 0,
+      "version": "candidate",
+      "pid": 5704,
+      "webm_sha256": "F778BED59C274D8477416FFF74BB631A22283A370AA9FE03D815142194078DF5",
+      "startup_list": "media/valve.webm",
+      "forced_cleanup": false,
+      "seconds": 13.2194761,
+      "observed_content": "Root CUA saw decoded Valve figure with red valve/logo inside SDL3 Half-Life640x480 window",
+      "image_evidence": "Chat CUA tool history; no local screenshot file claimed"
+    }
+  },
+  "audio_output": {
+    "status": "passed for observed native DirectSound output",
+    "summary": "final2-audio-summary.json",
+    "scope": "Nonzero native Windows DirectSound output and full gameplay/replay; loudness is not a deterministic differential comparison",
+    "earlier_silent_capture": {
+      "wave": "final-audio/valve-final-audio.wav",
+      "rms": 0,
+      "seconds": 23.04,
+      "qualification": "unsuccessful; no contemporaneous foreground log; subsequent with/without collector captures pass; cause not established"
+    },
+    "runs": [
+      {
+        "label": "baseline-no-collector",
+        "wave": "audio-focus/valve-baseline-no-collector.wav",
+        "seconds": 23.55,
+        "channels": 2,
+        "sample_rate": 48000,
+        "bits": 32,
+        "format": "IEEE float",
+        "rms": 0.1019806322565583,
+        "peak": 0.9868752360343933,
+        "sample_count": 2260800,
+        "nonzero_samples": 527716,
+        "clean_exit": true,
+        "game_pid": 12408,
+        "foreground_segments": [
+          {
+            "pid": 1160,
+            "start_ms": 0,
+            "end_ms": 5227,
+            "samples": 48
+          },
+          {
+            "pid": 12408,
+            "start_ms": 5337,
+            "end_ms": 29544,
+            "samples": 221
+          },
+          {
+            "pid": 1160,
+            "start_ms": 29661,
+            "end_ms": 29772,
+            "samples": 2
+          }
+        ],
+        "continuous_owned_game_foreground": true,
+        "evidence": "audio-focus/valve-baseline-no-collector-result.json"
+      },
+      {
+        "label": "candidate-no-collector",
+        "wave": "audio-focus/valve-candidate-no-collector.wav",
+        "seconds": 23.62,
+        "channels": 2,
+        "sample_rate": 48000,
+        "bits": 32,
+        "format": "IEEE float",
+        "rms": 0.11585877328630255,
+        "peak": 0.9850826263427734,
+        "sample_count": 2267520,
+        "nonzero_samples": 315000,
+        "clean_exit": true,
+        "game_pid": 7596,
+        "foreground_segments": [
+          {
+            "pid": 1160,
+            "start_ms": 0,
+            "end_ms": 4978,
+            "samples": 46
+          },
+          {
+            "pid": 7596,
+            "start_ms": 5087,
+            "end_ms": 29391,
+            "samples": 222
+          },
+          {
+            "pid": 1160,
+            "start_ms": 29498,
+            "end_ms": 29727,
+            "samples": 3
+          }
+        ],
+        "continuous_owned_game_foreground": true,
+        "evidence": "audio-focus/valve-candidate-no-collector-result.json"
+      },
+      {
+        "label": "candidate-with-collector",
+        "wave": "audio-focus/valve-candidate-with-collector.wav",
+        "seconds": 22.49,
+        "channels": 2,
+        "sample_rate": 48000,
+        "bits": 32,
+        "format": "IEEE float",
+        "rms": 0.11084760955126649,
+        "peak": 0.9855161309242249,
+        "sample_count": 2159040,
+        "nonzero_samples": 271234,
+        "clean_exit": true,
+        "game_pid": 11940,
+        "foreground_segments": [
+          {
+            "pid": 596,
+            "start_ms": 0,
+            "end_ms": 891,
+            "samples": 9
+          },
+          {
+            "pid": 11940,
+            "start_ms": 1002,
+            "end_ms": 23432,
+            "samples": 205
+          },
+          {
+            "pid": 596,
+            "start_ms": 23552,
+            "end_ms": 23666,
+            "samples": 2
+          }
+        ],
+        "continuous_owned_game_foreground": true,
+        "evidence": "audio-focus/valve-candidate-with-collector-result.json"
+      }
+    ]
+  },
+  "ui_input": {
+    "delivery": "Official Parallels --key virtual-key table with explicit press/release works; earlier CUA/AT-scancode/SendInput delivery experiments superseded",
+    "baseline_keycodes2": {
+      "typed_marker": "hidok",
+      "typed_quit": true,
+      "exit_code": 0,
+      "forced_cleanup": false,
+      "result": "hid-runtime/baseline-keycodes2-result.json"
+    },
+    "candidate_keycodes2": {
+      "typed_marker": "rawok",
+      "queried_m_rawinput": 1,
+      "raw_toggle_and_menu_open": "Root observed visible menu",
+      "exit_code": -1,
+      "forced_cleanup": true,
+      "bound_seconds": 90,
+      "qualification": "Observed phases only; later legacy/quit timing exceeded bound, clean exit not qualified",
+      "result": "hid-runtime/candidate-keycodes2-result.json"
+    },
+    "candidate_keycodes3": {
+      "status": "passed",
+      "pid": 13288,
+      "queried_m_rawinput": [
+        1,
+        0
+      ],
+      "typed_marker": "legacyok",
+      "typed_quit": true,
+      "exit_code": 0,
+      "forced_cleanup": false,
+      "shutdown_logs": [
+        "World",
+        "Server",
+        "DemoPlayer"
+      ],
+      "event_delivery": "Official Parallels --key explicit press/release,30 ms hold/gap",
+      "result": "hid-runtime/candidate-keycodes3-result.json",
+      "console": "hid-runtime/candidate-keycodes3-qconsole.log"
+    },
+    "official_key_codes_reference": "https://docs.parallels.com/landing/parallels-desktop-developers-guide/command-line-interface-utility/manage-virtual-machines-from-cli/general-virtual-machine-management/send-a-keyboard-event-to-a-virtual-machine/list-of-parallels-keyboard-key-codes"
+  },
+  "benchmark_final": {
+    "status": "passed",
+    "directory": "benchmark-final2",
+    "series_files": [
+      "benchmark-final2/cstrike-release-final-series.json",
+      "benchmark-final2/valve-release-final-series.json"
+    ],
+    "analysis": "benchmark-final2-analysis.json",
+    "derived_summary": "benchmark-final2-summary.json",
+    "per_pair_csv": "benchmark-final2-pairs.csv",
+    "job_result": "benchmark-final2-job-result.txt",
+    "baseline_commit": "23a2135",
+    "candidate_commit": "c4f729d",
+    "settings_sha256": "decf487b69def3848205d7a39c8848db33809688b19e6c90432f124616e5ecd8",
+    "warmups_per_version_per_game": 1,
+    "measured_pairs_per_game": 7,
+    "runs_per_game": 16,
+    "total_clean_runs": 32,
+    "analysis_complete": true,
+    "all_runs_foreground_eof_clean_exit": true,
+    "asset_provider_parity_and_native_stability_gates": true,
+    "cli_host_frames_per_run": {
+      "cstrike": 666,
+      "valve": 654
+    },
+    "profile_count_per_run": {
+      "cstrike": 667,
+      "valve": 655
+    },
+    "series": [
+      {
+        "game": "cstrike",
+        "pair_count": 7,
+        "baseline_median_cli_fps": 177.274,
+        "candidate_median_cli_fps": 177.026,
+        "paired_fps_change_percent": [
+          14.724656815650029,
+          -0.6278416462651037,
+          0.2363904989203247,
+          2.985417912507482,
+          -17.575197618314352,
+          -3.8948393378773094,
+          -0.23388055748106984
+        ],
+        "median_paired_fps_change_percent": -0.23388055748106984,
+        "paired_mean_frame_change_percent": [
+          -12.834779570803988,
+          0.6318084025408677,
+          -0.23583301208643936,
+          -2.8988743969983966,
+          21.32270519367294,
+          4.052684903748727,
+          0.23442884096120942
+        ],
+        "median_paired_mean_frame_change_percent": 0.23442884096120942,
+        "profile_quantiles": "median of seven per-run nearest-rank quantile bounds; not a pooled percentile",
+        "versions": {
+          "baseline": {
+            "profile_count_total": 4669,
+            "zero_fps_total": 5,
+            "sentinel_999_total": 0,
+            "median_cli_fps": 177.274,
+            "median_profile_quantile_ms": {
+              "p50": {
+                "lower": 3.5587188612099645,
+                "upper": 3.5714285714285716
+              },
+              "p95": {
+                "lower": 4.385964912280702,
+                "upper": 4.405286343612334
+              },
+              "p99": {
+                "lower": 21.73913043478261,
+                "upper": 22.22222222222222
+              }
+            }
+          },
+          "candidate": {
+            "profile_count_total": 4669,
+            "zero_fps_total": 6,
+            "sentinel_999_total": 0,
+            "median_cli_fps": 177.026,
+            "median_profile_quantile_ms": {
+              "p50": {
+                "lower": 3.5460992907801416,
+                "upper": 3.5587188612099645
+              },
+              "p95": {
+                "lower": 4.464285714285714,
+                "upper": 4.484304932735426
+              },
+              "p99": {
+                "lower": 21.73913043478261,
+                "upper": 22.22222222222222
+              }
+            }
+          }
+        }
+      },
+      {
+        "game": "valve",
+        "pair_count": 7,
+        "baseline_median_cli_fps": 272.81,
+        "candidate_median_cli_fps": 266.452,
+        "paired_fps_change_percent": [
+          18.817079762180523,
+          -3.674289189039792,
+          -11.223263200839263,
+          2.2775949810561746,
+          -4.996684090050129,
+          -7.7508046560025745,
+          3.865327517319761
+        ],
+        "median_paired_fps_change_percent": -3.674289189039792,
+        "paired_mean_frame_change_percent": [
+          -15.83701585651156,
+          3.814442850310873,
+          12.642121805208495,
+          -2.2268757702779696,
+          5.259483884527039,
+          8.402029553862022,
+          -3.7214801221083116
+        ],
+        "median_paired_mean_frame_change_percent": 3.814442850310873,
+        "profile_quantiles": "median of seven per-run nearest-rank quantile bounds; not a pooled percentile",
+        "versions": {
+          "baseline": {
+            "profile_count_total": 4585,
+            "zero_fps_total": 0,
+            "sentinel_999_total": 0,
+            "median_cli_fps": 272.81,
+            "median_profile_quantile_ms": {
+              "p50": {
+                "lower": 3.236245954692557,
+                "upper": 3.2467532467532467
+              },
+              "p95": {
+                "lower": 3.7735849056603774,
+                "upper": 3.787878787878788
+              },
+              "p99": {
+                "lower": 8.333333333333334,
+                "upper": 8.403361344537815
+              }
+            }
+          },
+          "candidate": {
+            "profile_count_total": 4585,
+            "zero_fps_total": 0,
+            "sentinel_999_total": 0,
+            "median_cli_fps": 266.452,
+            "median_profile_quantile_ms": {
+              "p50": {
+                "lower": 3.1847133757961785,
+                "upper": 3.194888178913738
+              },
+              "p95": {
+                "lower": 3.802281368821293,
+                "upper": 3.816793893129771
+              },
+              "p99": {
+                "lower": 9.25925925925926,
+                "upper": 9.345794392523365
+              }
+            }
+          }
+        }
+      }
+    ],
+    "interpretation": "Wide pair variance; descriptive instrumented VM observations, no statistical significance, uninstrumented comparison or native-hardware prediction. Quantile summary is median of seven per-run bounds, not pooled percentile. Zero FPS frames retained with unbounded maximum upper duration."
+  },
+  "focus": {
+    "status": "passed for observed raw/legacy focus loss and return",
+    "summary": "final2-focus-summary.json",
+    "result": {
+      "forced_cleanup": false,
+      "pid": 764,
+      "exit_code": 0
+    },
+    "foreground_segments": [
+      {
+        "pid": 9300,
+        "first_ms": 0,
+        "last_ms": 226,
+        "samples": 3
+      },
+      {
+        "pid": 764,
+        "first_ms": 335,
+        "last_ms": 36182,
+        "samples": 328
+      },
+      {
+        "pid": 5752,
+        "first_ms": 36291,
+        "last_ms": 36399,
+        "samples": 2
+      },
+      {
+        "pid": 9300,
+        "first_ms": 36507,
+        "last_ms": 37382,
+        "samples": 9
+      },
+      {
+        "pid": 5752,
+        "first_ms": 37491,
+        "last_ms": 37601,
+        "samples": 2
+      },
+      {
+        "pid": 764,
+        "first_ms": 37710,
+        "last_ms": 52199,
+        "samples": 132
+      },
+      {
+        "pid": 5752,
+        "first_ms": 52310,
+        "last_ms": 52542,
+        "samples": 3
+      },
+      {
+        "pid": 9300,
+        "first_ms": 52652,
+        "last_ms": 53419,
+        "samples": 8
+      },
+      {
+        "pid": 5752,
+        "first_ms": 53543,
+        "last_ms": 53653,
+        "samples": 2
+      },
+      {
+        "pid": 764,
+        "first_ms": 53762,
+        "last_ms": 67617,
+        "samples": 127
+      },
+      {
+        "pid": 9300,
+        "first_ms": 67724,
+        "last_ms": 67724,
+        "samples": 1
+      }
+    ],
+    "observed_owned_segments": 3,
+    "scope": "Two alt-tab away/back cycles with legacy then raw input, console markers and raw1-to0 queries, typed quit clean0; does not establish physical mouse/gamepad or minimize behavior",
+    "console_markers": [
+      "legacybegin",
+      "legacyfocusok",
+      "rawfocusok"
+    ],
+    "m_rawinput_queries": [
+      1,
+      0
+    ],
+    "typed_quit": true,
+    "limits": [
+      "Actual minimize unverified",
+      "Physical mouse capture/deltas unverified"
+    ]
+  },
+  "delivery_scope": {
+    "branch": "codex/sdl3-migration",
+    "original_checkout": "preserved",
+    "publishing_or_merging": "outside approved request"
+  },
+  "migration_rulings": [
+    {
+      "ruling": "Explicit owner go-ahead authorized assessed direct SDL3 execution without repeated plan approval",
+      "basis": "Session authorization sufficient",
+      "cost_if_wrong": "Reversible branch rework"
+    },
+    {
+      "ruling": "Removal covers retained active/inactive dependency-bearing source and binaries; historical manifest archive stays immutable",
+      "basis": "Historical text is not an active dependency",
+      "cost_if_wrong": "Archival policy changes"
+    },
+    {
+      "ruling": "Task2 dependency/build support; Task3 atomic window/event/client/UI/Windows-media activation",
+      "basis": "Shared SDL types made original core-first boundary uncompilable; behavior/final scope unchanged",
+      "cost_if_wrong": "Reversible intermediate commit rework"
+    },
+    {
+      "ruling": "Engine wheel one pulse/nonzero whole event even magnitude>1; VGUI full count; fractional accumulation suppresses zero/horizontal spurious down",
+      "basis": "Legacy integer batching preserved while exposed zero-event bug corrected",
+      "cost_if_wrong": "Reversible input policy rework"
+    },
+    {
+      "ruling": "Broad UI/display/media/hardware qualification against final SDL3-only package, not inferred from API port",
+      "basis": "Staged implementation tests/builds/gameplay/layouts support review; final scope/acceptance unchanged",
+      "cost_if_wrong": "Reversible port fixes; no discarded behavior requirements"
+    }
+  ],
+  "display": {
+    "desktop_fullscreen_visual": "Passed observed path: baseline and final SDL3 internal 1357x827 TGAs show clear textured world/HUD, root visually inspected",
+    "exclusive_nofbo": {
+      "process_mode_replay": "passed for baseline and candidate; full EOF/exit zero",
+      "actual_closest_mode": [
+        900,
+        1440
+      ],
+      "visual_acceptance": "unverified; corrupt internal captures in both versions",
+      "baseline_preview": "baseline-display/exclusive-preview.png",
+      "candidate_preview": "final2-display/exclusive-preview.png",
+      "interpretation": "Root investigating internal capture versus actual display; no SDL3-specific defect or visual pass inferred",
+      "live_observation": "Paired baseline and candidate live CUA views black while ready/record/replay logs progress; cannot distinguish capture from actual display"
+    },
+    "unsupported_windowed": {
+      "requested_size": [
+        641,
+        479
+      ],
+      "actual_closest_mode": [
+        900,
+        1440
+      ],
+      "baseline_and_candidate": "process/mode/replay passed; full EOF,654 host frames,exit0",
+      "baseline_result": "final2-baseline-display/valve-unsupported-resolution-result.json",
+      "candidate_result": "final2-display/valve-unsupported-resolution-result.json",
+      "visual_acceptance": "No independent pixel acceptance inferred from geometry"
+    }
+  }
 }
