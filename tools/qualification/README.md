@@ -154,3 +154,79 @@ still confirm the actual loaded set. Production Windows audio remains native
 DirectSound/WaveOut/Miles; `tests/sdl3/audio_stream_tests.cpp` uses a native SDL3
 dummy device solely to qualify retained stream ownership/pause/cursor boundaries,
 without claiming a native Linux/macOS runtime test.
+
+## Paired fixed-demo VM benchmark
+
+`invoke_paired_benchmark.ps1` consumes **already staged, qualified, owned** baseline
+and candidate sandboxes. Use fresh directories: copy the reviewed SDL3-only fixture
+and overlay each complete source-built runtime separately. The baseline needs its
+pinned SDL2 provider; the candidate must contain only native SDL3. Stage identical
+approved external providers and CRTs in both. The driver rejects differences in
+native path/hash sets except the 19 known source-built outputs and SDL2/SDL3 DLLs.
+It also compares fixed-map and PAK/WAD hashes. This does not replace the complete
+fixture audit, matching data staging provenance or separate live-module collection.
+Both sandboxes require the `.cse-qualification-sandbox` marker from the game probe.
+
+Supply one reviewed ASCII settings file for both versions, explicitly setting the
+intended render quality and audio choices. Archive it with the staging evidence.
+The driver overwrites `config.cfg` and `autoexec.cfg` in these owned sandboxes before
+**each** run and executes a byte-identical settings copy after startup. It enforces
+640x480 windowed/forceres, multiplayer two-player mode, vsync zero, fps_max 100 and
+fps_override zero; timedemo controls replay timing. A copied settings artifact and
+its SHA-256 accompany the series. Source commit parameters are supplied provenance;
+compare sandbox runtime hashes to the corresponding fresh-build manifests yourself.
+
+```powershell
+& 'C:\source\tools\qualification\invoke_paired_benchmark.ps1' `
+    -Game cstrike `
+    -BaselineSandboxDirectory 'C:\qualification\benchmark-sdl2-cs' `
+    -CandidateSandboxDirectory 'C:\qualification\benchmark-sdl3-cs' `
+    -DemoPath 'C:\qualification\csebaseline.dem' `
+    -DemoSha256 'fb1a18edf31182d49b022a46850df0cd263fe1ea101b28caac78af038fdf211c' `
+    -SettingsPath 'C:\qualification\fixed-settings.cfg' `
+    -EvidenceDirectory 'C:\qualification\benchmark-evidence' `
+    -TestCaseLabel 'release-final' -BaselineCommit 'BASELINE' -CandidateCommit 'CANDIDATE'
+```
+
+For Half-Life use `-Game valve`, `csehlbaseline.dem` and SHA-256
+`3177530c2d13a5e88f2ffc4f86f0baefe939034cde0b5c8d787583f4c035ffa3`.
+The driver pins each game to these accepted recordings; it cannot silently substitute
+new random recordings. Default is one excluded warmup/version, then seven pairs,
+alternating candidate/baseline and baseline/candidate. `-Pairs 1` is a harness smoke,
+not final performance qualification. Serialize VM work; close other hl/hlds processes
+and do not build or run other tests during the series. Keep the VM desktop active.
+
+The process wait is bounded and observes its visible window/foreground PID every
+100 ms, recording observations; foreground loss/minimization after acquisition
+fails. No logs, module hashes or presentation tracing are read during measurement.
+Complete EOF, ordered markers, one CLI report of at least 650 host frames, plausible
+profile coverage, exit zero and no forced cleanup are required. Profile count may
+be CLI frames minus one through plus two; the 651 network samples are a different
+clock from replay host frames. Each prefix is reserved; interruptions leave unique
+raw logs/results. Only the launched PID is cleaned up. `wall_seconds` includes
+startup/waits/shutdown; use the separate CLI timings for replay comparison.
+
+```sh
+python3 tools/qualification/analyze_benchmark.py \
+  EVIDENCE/cstrike-release-final-series.json EVIDENCE/valve-release-final-series.json \
+  --output EVIDENCE/paired-analysis.json
+```
+
+The analyzer rechecks raw logs, ordered AB/BA pairs, warmup exclusion, exact demo
+identity, exit/foreground evidence and profile coverage. It reports per-pair FPS and
+mean-frame-time changes and their median, plus each run's p50/p95/p99 profile bounds.
+`host_speeds` prints integer FPS, not a high-resolution frame trace. Ordinary FPS
+`f > 0` bounds frame time to `(1000/(f+1), 1000/f]` ms; FPS zero means over 1000 ms
+with an unbounded upper limit. FPS 999 can also represent a sub-0.1 ms sentinel, so
+its conservative interval is `[0, 1000/999]` ms. Bounds use nearest-rank quantiles;
+midpoints are labeled estimates, and JSON `null` upper bounds mean unbounded.
+Zero/slow frames stay in the distribution. Profiles include load/sign-on frames
+between the start marker and EOF. Rounded aggregate CLI timings remain separate.
+
+These are instrumented VM1 Windows x86-emulation measurements. Host profiling,
+console logging and window observations cost time. Seven descriptive pairs provide
+no native-hardware prediction or statistical significance guarantee. PresentMon's
+sparse OpenGL/ComposedCopy GPU-GDI events are excluded from engine pacing claims;
+the earlier SDL/OpenGL microbenchmark is separate API evidence. Renderer screenshots
+and live provider inventories belong in separate gameplay qualification runs to
+avoid screenshot/hash IO during the benchmark.

@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "status": "qualification-in-progress",
+  "evidence_root": "/Users/mmalakhouski/.codex/artifacts/cse-sdl3-assessment-20261106/migration",
+  "product_source": {
+    "commit": "3d62f6ae651ca6207a61613c0eff2b0d039c1586",
+    "tree": "edff4be79e91d6b30792c2c63a77d8586848de35",
+    "archive_sha256": "8fc88a4950e5eb835b6c44c2e8eb33eecd20cc474e7fac0d9791b28c7ed13559",
+    "manifest": "final-product-source-manifest.json"
+  },
+  "established_task4": {
+    "repository_audit": "task4-repository-audit.json",
+    "explicit_optional_on_build": "task4-optional-fix3-result.json",
+    "fixture_audit": "task4-fixture-audit.json",
+    "crt_providers": "task4-crt-providers.json",
+    "native_decisions": "fixture-native-decisions.json",
+    "x86_pe_count": 43,
+    "retained_stock_providers": 14,
+    "crt_providers_count": 9,
+    "explicit_exclusions": 13,
+    "live_behavior_acceptance": false
+  },
+  "fixed_demos": {
+    "cstrike": "fb1a18edf31182d49b022a46850df0cd263fe1ea101b28caac78af038fdf211c",
+    "valve": "3177530c2d13a5e88f2ffc4f86f0baefe939034cde0b5c8d787583f4c035ffa3"
+  },
+  "root_owned_pending": [
+    "four fresh-source preset build pairs and explicit optional ON build",
+    "fresh final Debug/Release CS and HL gameplay/replay, sandbox and live-module closure",
+    "dedicated startup/shutdown and startup-media decode",
+    "fullscreen/fallback/focus/capture/input/clipboard/device cases",
+    "native Windows audio output capture",
+    "seven paired fixed-demo measurements per game and honest profile-bound analysis",
+    "independent whole-branch review and any material finding resolution"
+  ],
+  "limits": [
+    "Windows x86 under VM1 ARM64 emulation is distinct from native hardware",
+    "inactive software-client and non-Windows runtime paths have no native runtime acceptance",
+    "unavailable gamepad/DPI/refresh/gamma hardware cases remain unverified",
+    "desktop input delivery experiments that failed delivery are not app acceptance or confirmed app defects",
+    "static/provider closure does not prove every dynamic feature or late load",
+    "integer FPS profiles yield timing bounds/estimates; FPS zero and sentinel 999 are retained",
+    "PresentMon sparse presentation events and separate API microbenchmarks cannot replace game frame measurements"
+  ]
+}
