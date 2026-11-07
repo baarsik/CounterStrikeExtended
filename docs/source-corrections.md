@@ -1,9 +1,10 @@
 # Narrow source corrections (C1–C4)
 
-These changes follow the approved handoff. Evidence below is source/build
-inspection; no tests, DLL loading, games, network/audio workers or providers ran.
-No Windows compiler/preprocessor was available, so emitted-code/PE/runtime
-verification is pending.
+This record describes the four source corrections made before the SDL3
+migration. Their initial evidence was source/build inspection. Later Windows
+build and runtime results are recorded for a pinned snapshot in the
+[SDL3 validation report](sdl3-migration-validation.md); those exercised paths
+do not establish a dedicated runtime reproduction of each issue below.
 
 ## C1: invalid reverse-key return
 
@@ -23,10 +24,10 @@ that selection. The Windows loop/join/leave calls use named constants `4`, `5`
 and `6` for this backend. Non-Windows calls remain unchanged.
 
 The source still includes Winsock2 headers, whose modern option values are
-`11/12/13` in the handoff evidence. **Their actual expansion in Windows SDK
-10.0.26100.0 has not been observed here.** Windows preprocessing and PE import
-inspection remain required to confirm the complete header/API pair. The source
-requires exactly one explicit Windows backend definition; a genuine future
+`11/12/13` in the handoff evidence. The initial correction did not record their
+expansion in Windows SDK 10.0.26100.0; no multicast-specific preprocessing or
+call-path proof is recorded here. The source requires exactly one explicit
+Windows backend definition; a future
 `CSE_ENGINE_WINSOCK2` consumer uses the header's option macros instead of legacy
 values. No retained target has been switched to WS2_32. Core and other modules
 retain their separate Winsock2 linkage.
@@ -45,18 +46,18 @@ non-Windows policy. Normal quit and Steam-worker behavior are not changed or
 qualified by this correction.
 
 The upstream discrepancy that `swds.vcxproj` does not itself define `SWDS_DLL`
-remains recorded in `project-scope.md`; C3 does not silently change that macro
+remains recorded in [project-scope.md](project-scope.md); C3 does not change that macro
 and all the other conditionals it would affect.
 
 ## C4: remove unused SDL decoder writes
 
 Only the selected VGUI2 source file's unused `s_pVirtualKeyToVGUI[256]` and its
 reset/fill writes were removed. `InitKeyTranslationTable()` remains as a no-op
-entry point for existing callers. The forward switch, `keyMap`, reverse table,
-and reverse initializer remain byte-for-byte unchanged against source HEAD
-`c10c1100792ce1c23f7941ff350f4c4746151ee1` (source slices compared after edits).
-The similarly named Win32 table in `Surface.cpp` and unselected source copy were
-not modified.
+entry point for existing callers. At the correction commit, source-slice
+comparison against upstream `c10c1100792ce1c23f7941ff350f4c4746151ee1` confirmed
+that the forward switch, `keyMap`, reverse table and reverse initializer were
+unchanged. The similarly named Win32 table in `Surface.cpp` and unselected source
+copy were outside C4. Later SDL3 input changes are covered by the migration report.
 
 This removes unread stores indexed by SDL key values such as `0x40000062`.
 It is a source-level dead-state/undefined-behavior cleanup, not evidence of an

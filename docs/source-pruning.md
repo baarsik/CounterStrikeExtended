@@ -1,73 +1,95 @@
-# Approved staged source pruning
+# Source pruning record
 
-Owner approved the 38 target removals and 21 candidate roots on 2026-11-06.
-Target removal was committed before source pruning. The original 166 manifests remain byte-preserved in `msbuild/upstream-manifests.zip`.
+Paths in the removal tables are relative to `GoldSrc-SDK/`. The original 166
+manifests remain byte-preserved in the [upstream archive](msbuild/README.md).
+The [project scope](project-scope.md) describes the current runtime; the complete
+38 removed project filenames are in [removed-projects.txt](msbuild/removed-projects.txt).
+Exact source deletions remain in Git rather than a duplicate file inventory.
 
-Before deletion, the retained/optional source selections, forced includes and conservative recursive include closure had no consumers inside these 21 roots. All selected compile/resource/library inputs were checked again after deletion; none is missing. This is source-dependency evidence, not Microsoft build/runtime acceptance.
+## Initial source stage — 2026-11-06
 
-The first stage pruned only those approved roots and retained prose/notice candidates in place. The follow-up below records the owner-authorized removal of residual other-game trees and relocation of their required dependencies. Shared engine/game code, third-party dependencies, utils/common, utils/sprgen and software-renderer source remain.
+The approved targets were removed before pruning their exclusive source. The
+retained/optional source selections, forced includes and conservative recursive
+include closure had no consumers inside these 21 roots. Selected compile,
+resource and library inputs were checked again after deletion; none was missing.
 
-| Approved root | Files removed in source stage | Preserved prose/notices |
-| --- | ---: | --- |
-| `gearbox/` | 299 | None found by filename/prose-extension inspection |
-| `ricochet/` | 186 | `ricochet/cl_dll/readme.txt` |
-| `czeror/` | 297 | None found by filename/prose-extension inspection |
-| `worldcraft/` | 438 | `worldcraft/editorkeys.txt`, `worldcraft/new16.txt`, `worldcraft/whatsnew.txt` |
-| `utils/bspinfo/` | 3 | None found by filename/prose-extension inspection |
-| `utils/light/` | 9 | None found by filename/prose-extension inspection |
-| `utils/makefont/` | 3 | None found by filename/prose-extension inspection |
-| `utils/makels/` | 4 | None found by filename/prose-extension inspection |
-| `utils/mdldec/` | 6 | None found by filename/prose-extension inspection |
-| `utils/mdlviewer/` | 6 | None found by filename/prose-extension inspection |
-| `utils/mkmovie/` | 2 | None found by filename/prose-extension inspection |
-| `utils/procinfo/` | 4 | None found by filename/prose-extension inspection |
-| `utils/qbsp2/` | 15 | None found by filename/prose-extension inspection |
-| `utils/qcsg/` | 12 | `utils/qcsg/hulls.txt` |
-| `utils/qlumpy/` | 5 | `utils/qlumpy/qlumpy.doc` |
-| `utils/qrad/` | 7 | `utils/qrad/qrad.txt` |
-| `utils/serverctrl/` | 11 | None found by filename/prose-extension inspection |
-| `utils/smdlexp/` | 8 | None found by filename/prose-extension inspection |
-| `utils/studiomdl/` | 7 | None found by filename/prose-extension inspection |
-| `utils/visx2/` | 6 | None found by filename/prose-extension inspection |
-| `utils/xwad/` | 2 | None found by filename/prose-extension inspection |
+| Root | Files removed |
+| --- | ---: |
+| `gearbox/` | 299 |
+| `ricochet/` | 186 |
+| `czeror/` | 297 |
+| `worldcraft/` | 438 |
+| `utils/bspinfo/` | 3 |
+| `utils/light/` | 9 |
+| `utils/makefont/` | 3 |
+| `utils/makels/` | 4 |
+| `utils/mdldec/` | 6 |
+| `utils/mdlviewer/` | 6 |
+| `utils/mkmovie/` | 2 |
+| `utils/procinfo/` | 4 |
+| `utils/qbsp2/` | 15 |
+| `utils/qcsg/` | 12 |
+| `utils/qlumpy/` | 5 |
+| `utils/qrad/` | 7 |
+| `utils/serverctrl/` | 11 |
+| `utils/smdlexp/` | 8 |
+| `utils/studiomdl/` | 7 |
+| `utils/visx2/` | 6 |
+| `utils/xwad/` | 2 |
 
-Total source-stage files removed: **1330**. The exact deletion list is recorded by the source-pruning Git commit, avoiding a second file inventory that can drift. Embedded rights notices in retained files and bundled dependency notices are unchanged. Removed implementation remains recoverable at the original upstream Git commit.
-
-The 38 historical project filenames and their outputs/dispositions remain documented in `project-scope.md` and `msbuild/removed-projects.txt`. Their deletion does not remove any retained compile input.
+Total: **1,330 files removed**. Prose/notice candidates were initially retained
+in place and later moved to the archive below. Shared engine/game code,
+third-party dependencies, `utils/common`, `utils/sprgen` and software-renderer
+source remain. Embedded notices and bundled dependency notices are unchanged.
 
 ## Residual game-source cleanup — 2026-11-07
 
-The owner authorized removing unused residual game files to reduce upgrade noise.
-The remaining `dod/`, `dmc/`, `tfc/` and `bshift/` trees have been removed. They
-contained 1,027 files; none was a retained direct C/C++ compile input.
+The remaining `dod/`, `dmc/`, `tfc/` and `bshift/` trees were removed after
+extracting the required headers. They contained 1,027 files; none was a retained
+direct C/C++ compile input.
 
-- Ten Blue Shift headers are retained byte-for-byte under `particleman/compat/`.
-  Particleman's forced includes and include precedence now use that private
-  directory. Its lexical closure remains 26 headers and 31 resolved include
-  edges in each configuration.
-- The unchanged DoD `IClientVGUI` header now resides directly at
-  `cstrike/public/game_controls/iclientvgui.h`, replacing its forwarding stub.
-- Inactive other-game header/viewport branches were removed from the affected
-  shared source. No supported target defines the removed game selectors.
+- Ten Blue Shift headers remain byte-for-byte under `particleman/compat/`.
+  Particleman's forced includes and include precedence use that private
+  directory, retaining its `BASEMONSTER_H` setting.
+- The unchanged DoD `IClientVGUI` definition resides directly at
+  `cstrike/public/game_controls/iclientvgui.h`, replacing the forwarding stub.
+- Inactive other-game header/viewport branches were removed from shared source.
+  No retained target defines the removed game selectors.
 - Ten orphan `.def` files, two Deleted Scenes `.items` files and four legacy
-  DMC/Ricochet makefiles were removed; obsolete game targets/includes in the
-  legacy make dispatcher and unused removed-project property branches were also
-  removed. Original MSBuild inputs remain in the unchanged manifest archive.
-- Nine inherited prose files, including the DMC/Ricochet client readmes, the
-  obsolete Blue Shift build note and legacy editor/tool documentation, are
-  preserved unchanged under repository-root
-  `docs/upstream/`. The `ricochet/` and `worldcraft/` production-tree remnants and
-  prose-only removed-tool directories are therefore gone as well. These archived
-  files are historical references, not current build instructions.
+  DMC/Ricochet makefiles were removed, along with their obsolete dispatcher
+  targets/includes and unused property branches. Original MSBuild inputs remain
+  in the unchanged manifest archive.
+- Nine inherited prose files were moved unchanged to `docs/upstream/`, removing
+  the remaining prose-only game/editor/tool directories from production source.
 
-This removes 1,031 unused implementation/build files while preserving the eleven
-required header bodies and nine prose files. Source inspection of all 38
+This stage removes **1,031 unused implementation/build files**, preserving eleven
+required header bodies and nine prose files. Static comparison of all 38
 retained project configurations confirms unchanged target properties/defaults,
 compile/resource/library/project-reference selections and flags, except the
-intentional particleman compatibility-path relocation. Generated CMake and the
-crosswalk have been regenerated. Tests/runtime execution remain disabled;
-Windows compilation and preprocessing are unverified for this cleanup.
+intentional particleman compatibility-path relocation. Particleman's lexical
+closure remains 26 headers and 31 resolved include edges in each configuration.
+Generated CMake and the crosswalk are synchronized, and all four presets parse.
+Independent read-only review found no critical or important issues.
 
-An independent read-only review confirmed the retained selections and header
-closure, with no critical or important findings. Its two stale-documentation
-findings were corrected. No tests or runtime code were executed for the review.
+These are source checks. No tests or runtime code were executed for this cleanup;
+Windows compilation and preprocessing have not been repeated. Earlier Windows
+build/runtime results apply to the snapshot identified in the
+[SDL3 validation report](sdl3-migration-validation.md).
+
+## Inherited prose archive
+
+These files preserve upstream text and provenance, including obsolete commands
+and game/tool references. They are historical material, not current build
+instructions, and do not acquire a new license through relocation.
+
+| Former SDK path | Current repository path |
+| --- | --- |
+| `projects/vs2026/bshift_client.txt` | `docs/upstream/bshift-client-build.txt` |
+| `dmc/cl_dll/readme.txt` | `docs/upstream/dmc-client-readme.txt` |
+| `ricochet/cl_dll/readme.txt` | `docs/upstream/ricochet-client-readme.txt` |
+| `worldcraft/editorkeys.txt` | `docs/upstream/worldcraft-editorkeys.txt` |
+| `worldcraft/new16.txt` | `docs/upstream/worldcraft-new16.txt` |
+| `worldcraft/whatsnew.txt` | `docs/upstream/worldcraft-whatsnew.txt` |
+| `utils/qcsg/hulls.txt` | `docs/upstream/qcsg-hulls.txt` |
+| `utils/qlumpy/qlumpy.doc` | `docs/upstream/qlumpy.doc` |
+| `utils/qrad/qrad.txt` | `docs/upstream/qrad.txt` |

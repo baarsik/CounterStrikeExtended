@@ -6,8 +6,9 @@ and unmodified upstream header text remain archival material.
 
 The validated product snapshot is `c4f729d`, including the cursor-ownership fix.
 Its production SDK tree is `8cb90868bd5e6e95026dbc0a2fa4c4cd983554d5`; CMake tree is
-`e9623cb1b61a0254c3f772259a0fa963aff9ce0a`. Subsequent changes affect tests and
-documentation. The SDL2 reference uses repaired baseline `23a2135` and SDL2 2.0.20.
+`e9623cb1b61a0254c3f772259a0fa963aff9ce0a`. Results below apply to that snapshot;
+the later [residual-game source cleanup](source-pruning.md) is outside this
+qualification. The SDL2 reference uses repaired baseline `23a2135` and SDL2 2.0.20.
 
 ## Validation
 

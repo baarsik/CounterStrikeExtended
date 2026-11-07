@@ -1,10 +1,11 @@
 # Future x64 and ARM64 portability inventory
 
-The implemented build baseline targets **Windows x86 only**. Its source
-translation has not yet been Windows-compiled. x64 and ARM64 are future porting
-work, not selectable supported configurations. Future operating-system targets
-have not been specified. CMake rejects unsupported host/architecture choices
-rather than selecting a mismatched library or substituting a success stub.
+The build targets **Windows x86 only**. The
+[SDL3 validation report](sdl3-migration-validation.md) identifies the qualified
+x86 snapshot and its limits; the later [source cleanup](source-pruning.md) has
+static checks only. x64 and ARM64 remain unsupported configurations. CMake
+rejects unsupported host/architecture choices rather than selecting a mismatched
+library or substituting a success stub.
 
 ## Source and ABI boundaries
 
@@ -49,8 +50,8 @@ versus process-address distinction.
 A future port needs separate evidence for native compilation, static PE/import/
 export/ABI inspection, permitted module/provider loading, and actual CS/Half-Life
 client/server behavior. Neither this inventory nor a green build establishes
-runtime/playability acceptance. No future-architecture implementation, runtime
-probe or game launch was performed.
+runtime/playability acceptance. No x64/ARM64 implementation or runtime
+qualification is recorded here; the Windows x86 results are separate.
 
 SDL2 provider artifacts and the two platform VGUI binaries with formal SDL2 load
 dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s

@@ -3,7 +3,7 @@
 The baseline retains Counter-Strike 1.6, Half-Life, dedicated server and shared
 runtime source. Builds produce real runtime modules from production source;
 they do not invoke MSBuild as implementation wrappers or copy runtime DLLs in
-place of targets. No test or launch target is defined.
+place of targets. Production builds do not run tests or launch games automatically.
 
 ## Requirements
 
@@ -15,9 +15,10 @@ place of targets. No test or launch target is defined.
   under `GoldSrc-SDK/external/` and `GoldSrc-SDK/lib/`. Missing libraries fail
   configuration; x64/ARM64 and macOS/Linux runtime builds are rejected.
 
-No suitable Windows builder was available in the authoring environment.
-**These source/build changes are not yet Windows-compiled or runtime-qualified.**
-Do not infer playability from CMake target availability.
+The [SDL3 validation report](sdl3-migration-validation.md) records Windows x86
+build and runtime results for its pinned snapshot, including coverage limits.
+The later [residual-game cleanup](source-pruning.md) has static checks only;
+Windows compilation and runtime qualification have not been repeated for it.
 
 ## Complete runtime
 
@@ -36,7 +37,7 @@ Both presets include dedicated-server support. Their 16 targets are `launcher`,
 and `demoplayer`. Game client/server target names are distinct even when output
 filenames match. The aggregate target is `cse_runtime`.
 
-## Hardware-only entry point (I3)
+## Hardware-only entry point
 
 ```powershell
 cmake --preset hardware-x86-release
@@ -61,7 +62,7 @@ optional broadcaster projects to build.
 ## Optional features and unavailable modes
 
 `CSE_BUILD_BROADCASTING=ON` adds `hltv` (`hltv.exe`) and `hltv_proxy`
-(`proxy.dll`). `CSE_BUILD_A3D=ON` adds `a3dapi`. Both default OFF, as approved;
+(`proxy.dll`). `CSE_BUILD_A3D=ON` adds `a3dapi`. Both default OFF;
 their source is preserved. For example:
 
 ```powershell
@@ -75,11 +76,10 @@ a legacy provider; building its adapter does not prove operational A3D support.
 The complete-runtime presets explicitly enable it. `CSE_HARDWARE_ONLY` takes
 precedence over all broader runtime options.
 
-The approved software client renderer and other-game/tool targets are removed.
+The software client renderer and other-game/tool targets are removed.
 The inherited launcher/video-settings source still contains `sw.dll` selection
 paths: selecting software client mode will find no built `sw.dll`. The dedicated
-`swds.dll` output is separate and remains available. No launcher redesign is
-included in the narrow corrections.
+`swds.dll` output is separate and remains available.
 
 ## Output separation and providers
 
@@ -139,8 +139,9 @@ The command uses Microsoft's
 [`-getProperty`/`-getItem` evaluation interface](https://learn.microsoft.com/en-us/visualstudio/msbuild/evaluate-items-and-properties)
 without a target or target-result option. Compare item metadata against the
 repository crosswalk, inspect Link item definitions in the expanded XML, then
-compile both configurations and inspect PE architecture, exports/ordinals,
-imports and embedded resources. This evaluation has not been run here.
+inspect PE architecture, exports/ordinals, imports and embedded resources from
+both configurations. The repository crosswalk is a source evaluator; the SDL3
+build/runtime results do not establish exhaustive Microsoft-evaluated parity.
 
 The MSVC defaults hook removes CMake's initial generic Release `NDEBUG` and
 Debug instrumentation defaults; each target instead receives its own manifest
