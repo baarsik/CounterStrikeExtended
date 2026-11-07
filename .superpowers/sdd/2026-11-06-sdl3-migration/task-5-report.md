@@ -77,3 +77,38 @@ execution, final measurements and independent whole-branch review.
 
 Implementation commit recorded in the parent handoff after creation; this report
 is part of that same reviewable tools/docs commit.
+
+## Root VM smoke and implementation self-review
+
+Implementation commit: `23f7e1d`. Root subsequently supplied actual VM smoke evidence:
+`E/benchmark-smoke/cstrike-harness1-series.json` and
+`E/benchmark-smoke-analysis.json`. Root reported PowerShell AST validation with
+zero errors; the authoring-host agent did not run the VM.
+
+Self-review read all four raw run manifests/logs, the archived settings, series
+provider/asset manifests and saved analysis, then reran `analyze_series` read-only
+on the actual files. The regenerated object exactly equals the saved analysis.
+The run sequence is baseline/candidate warmups, then candidate/baseline measured
+pair; all four report success, exit zero, 666 CLI frames / 667 host profiles,
+complete ordered EOF/final markers and no forced cleanup. Arguments are identical.
+Both native sets have 43 entries; both matching map/PAK/WAD manifests have 32.
+The same archived settings hash is used throughout; no unknown-command or missing
+settings-exec error was found in the console logs.
+
+Each process has 124–143 observations, acquires its visible foreground window
+within 332–638 ms, retains owned foreground afterward and has exactly one final
+invisible observation during clean window teardown. These last observations are
+within the documented 250 ms process-shutdown tolerance; no mid-run background or
+hidden interval was found. Three profiles contain one zero-FPS sample each; the
+analyzer retains them and correctly reports an unbounded maximum upper duration.
+The fourth has none. No driver/analyzer inconsistency or additional material
+qualification-tool finding was established by this review.
+
+This is **one-game, one-pair harness smoke only** at product `3d62f6a`. Its single
+paired difference is not final performance acceptance. Final CS/HL seven-pair
+series remain held for the accepted production cursor-ownership P2 fix from
+`whole-branch-review.md`, then qualification against the new product identity.
+Root also reports all four fresh-source presets, explicit optional ON, 43-PE
+fixture and final Release/Debug CS/HL probes/sandbox audits passed at `3d62f6a`;
+those facts await the final consolidated evidence update after the cursor fix.
+The implementation agent now waits for root's final numbers/matrix evidence.
