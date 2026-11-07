@@ -1,4 +1,5 @@
 #include "../common/sdl3_input.h"
+#include "../common/sdl3_keyboard.h"
 
 namespace {
 cse::FractionalMotion s_wheelMotion;
@@ -284,6 +285,9 @@ void SDL_SetAttributes( bool tryNewCtx )
 }
 
 bool CGame::CreateGameWindow() {
+    if (!cse::ConfigureKeyboardMapping()) {
+        Sys_Error("SDL keyboard configuration failed: %s", SDL_GetError());
+    }
     s_wheelMotion.Reset();
     m_bLegacyRender = false;
     if (COM_CheckParm("-noontop")) {
@@ -1352,6 +1356,9 @@ void SDL_SetAttributes( bool tryNewCtx )
 }
 
 bool CGame::CreateGameWindow() {
+    if (!cse::ConfigureKeyboardMapping()) {
+        Sys_Error("SDL keyboard configuration failed: %s", SDL_GetError());
+    }
     s_wheelMotion.Reset();
     m_bLegacyRender = false;
     if (COM_CheckParm("-noontop")) {

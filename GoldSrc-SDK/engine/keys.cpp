@@ -1,3 +1,4 @@
+#include "../common/sdl3_keyboard.h"
 //=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -728,10 +729,10 @@ SDL_Keycode GetSDLKeycodeFromEngineKey(int key) {
     SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 
     if (key >= 'a' && key <= 'z') {
-        return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_A + key - 'a'), SDL_KMOD_NONE, false);
+        return cse::KeycodeForBindingLabel((SDL_Scancode)(SDL_SCANCODE_A + key - 'a'));
     }
     if (key >= K_F1 && key <= K_F12) {
-        return SDL_GetKeyFromScancode((SDL_Scancode)(SDL_SCANCODE_F1 + key - K_F1), SDL_KMOD_NONE, false);
+        return cse::KeycodeForBindingLabel((SDL_Scancode)(SDL_SCANCODE_F1 + key - K_F1));
     }
 
     switch (key) {
@@ -914,7 +915,7 @@ SDL_Keycode GetSDLKeycodeFromEngineKey(int key) {
         scancode = SDL_SCANCODE_PAUSE;
         break;
     }
-    return SDL_GetKeyFromScancode(scancode, SDL_KMOD_NONE, false);
+    return cse::KeycodeForBindingLabel(scancode);
 }
 
 /*
