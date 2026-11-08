@@ -1,6 +1,7 @@
 # Generated from projects/vs2026/hw_engine.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(hw_engine SHARED "hw")
 target_sources(hw_engine PRIVATE
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
   "${CSE_SDK_DIR}/engine/bitmap_win.cpp"
   "${CSE_SDK_DIR}/engine/buildnum.cpp"
@@ -209,7 +210,7 @@ cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-s
 cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libexpatdMD.lib")
 cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libpng16d.lib")
 cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/zsd.lib")
-cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(hw_engine Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Debug>:opengl32.lib>")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Debug>:wsock32.lib>")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Debug>:winmm.lib>")
@@ -224,6 +225,7 @@ cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-s
 cse_link_import(hw_engine Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/vpx.lib")
 cse_link_mpg123(hw_engine Debug)
 cse_link_sdl3(hw_engine Debug)
+set_property(SOURCE "${CSE_SDK_DIR}/common/steam_service.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/bitmap_win.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/buildnum.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
@@ -448,7 +450,7 @@ cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows
 cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libexpatMD.lib")
 cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libpng16.lib")
 cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/zs.lib")
-cse_link_import(hw_engine Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(hw_engine Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Release>:opengl32.lib>")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Release>:wsock32.lib>")
 target_link_libraries(hw_engine PRIVATE "$<$<CONFIG:Release>:winmm.lib>")
@@ -463,6 +465,7 @@ cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows
 cse_link_import(hw_engine Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/vpx.lib")
 cse_link_mpg123(hw_engine Release)
 cse_link_sdl3(hw_engine Release)
+set_property(SOURCE "${CSE_SDK_DIR}/common/steam_service.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/bitmap_win.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/buildnum.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")

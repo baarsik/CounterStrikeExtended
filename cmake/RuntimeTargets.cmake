@@ -90,3 +90,5 @@ function(cse_a3d_geometry_source filename section)
   file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/${filename}"
     CONTENT "#define ${section}\n#include \"${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp\"\n" @ONLY)
 endfunction()
+
+include("${CMAKE_CURRENT_LIST_DIR}/SteamDependency.cmake")

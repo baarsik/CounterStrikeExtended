@@ -150,8 +150,8 @@ module ABI enforcement and whole-game startup remain separate acceptance gates.
 required SDK entry points before exposing its table. Missing libraries, null
 handles and incomplete exports fail with an empty table. Closing invalidates the
 table and releases its owning load; the caller must first shut down sessions and
-unregister callbacks. The runtime service façade still needs to route every
-consumer through this boundary. Existing Win32 runtime imports are unchanged.
+unregister callbacks. Generated native policy routes all five SDK consumers through this boundary.
+Existing Win32 runtime imports are unchanged.
 
 The [provider lock](../tools/qualification/fixtures/steam/lock.json) pins the Valve
 Source SDK Windows x64 DLL/import library and the installed Valve macOS depot
@@ -176,3 +176,45 @@ These results establish bounded native client provider behavior, not native
 server authentication, unchanged Win32 server compatibility, full service/runtime
 integration or complete playable-game acceptance. Initialization and callback
 contracts follow [Valve's API documentation](https://partner.steamgames.com/doc/sdk/api).
+
+
+## Owned Steam consumer routing
+
+The engine, dedicated engine, GameUI, CS client and HLTV proxy own the same guarded
+`common/steam_service.cpp` source through their retained manifests. Generated
+`cse_link_steam` policy keeps Win32's existing import archive. Native consumers
+route the 22 SDK entry points through the owned provider, while retaining the
+SDK's typed callbacks, interface versions and symbolic authentication/voice calls.
+Native payload staging verifies the pinned contents and actual machine type at
+configuration and again before every copy; deleting a staged provider restores it,
+and a same-size, same-timestamp input change is rejected before copying.
+
+SDK initializer thunks and context caches stay private to each native consumer.
+POSIX inline loader/provider helpers are hidden as well, including the binding
+function template. Two simultaneously loaded consumers can therefore unload
+independently and keep using cached SDK interfaces. Debug fixtures exposed this
+coalescing defect after Release-only checks had passed.
+
+A minimal initializer is forced before every native consumer C++ translation
+unit. It loads the provider before consumer globals and registers its destructor
+first, preserving access through final global cleanup. The fixture includes a
+global owner with cleanup in another translation unit that does not include an
+SDK header; both the lazy and SDK-header-only implementations failed this case.
+The initializer adds no platform headers or floating-point policy. Win32 keeps
+its existing import and initialization behavior.
+
+Real CS and Half-Life sessions, SDK `CCallback`/`CCallResult` helpers, high callback
+owners, independent DLL teardown and repeated reloads are separate acceptance
+checks from full game behavior. Native server authentication, encoded voice,
+general owned-module ABI validation before static callbacks and complete native
+runtime qualification remain open.
+
+
+The owned routing fixture's final matrix has 20 native cases and 110 real SDK
+client init/shutdown cycles across CS/App10 and Half-Life/App70. All required
+Release/Debug configurations pass, including Mac sanitizers without exclusions.
+Thirty fixture images are architecture checked. All 19 maintained Win32 targets
+build in both configurations; all 42 runtime images match the six tested
+save/gameplay/replay cases, with 14 loaded producer hashes checked per case.
+These are component/client-provider and Win32 regression receipts; the native
+production client, UI, server and complete runtime remain separate bring-up gates.

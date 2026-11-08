@@ -64,6 +64,10 @@ def import_command(target, config, path, data):
         return f'cse_link_sdl3({target} {config})'
     if path.name.lower() == 'sdl3.lib':
         raise ValueError('Unpinned SDL3 import: ' + str(path))
+    if path == SDK / 'lib/public/steam_api.lib':
+        return f'cse_link_steam({target} {config} {quote(portable(str(path)))})'
+    if path.name.lower() == 'steam_api.lib':
+        raise ValueError('Unpinned Steam import: ' + str(path))
     return f'cse_link_import({target} {config} {quote(portable(str(path)))})'
 
 

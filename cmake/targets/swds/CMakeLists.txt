@@ -1,6 +1,7 @@
 # Generated from swds/swds.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(swds SHARED "swds")
 target_sources(swds PRIVATE
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
   "${CSE_SDK_DIR}/engine/bitmap_win.cpp"
   "${CSE_SDK_DIR}/engine/buildnum.cpp"
@@ -225,7 +226,7 @@ cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libexpatdMD.lib")
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libpng16d.lib")
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/zsd.lib")
-cse_link_import(swds Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(swds Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Debug>:ddraw.lib>")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Debug>:wsock32.lib>")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Debug>:winmm.lib>")
@@ -240,6 +241,7 @@ cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/vpx.lib")
 cse_link_mpg123(swds Debug)
 cse_link_sdl3(swds Debug)
+set_property(SOURCE "${CSE_SDK_DIR}/common/steam_service.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/bitmap_win.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/buildnum.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
@@ -479,7 +481,7 @@ cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-stat
 cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libexpatMD.lib")
 cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libpng16.lib")
 cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/zs.lib")
-cse_link_import(swds Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(swds Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Release>:ddraw.lib>")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Release>:wsock32.lib>")
 target_link_libraries(swds PRIVATE "$<$<CONFIG:Release>:winmm.lib>")
@@ -494,6 +496,7 @@ cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-stat
 cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/vpx.lib")
 cse_link_mpg123(swds Release)
 cse_link_sdl3(swds Release)
+set_property(SOURCE "${CSE_SDK_DIR}/common/steam_service.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/bitmap_win.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/buildnum.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")

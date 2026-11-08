@@ -272,6 +272,19 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   expected gates. Fifteen images and producing inputs are checked. Decoder-rate
   availability is verified; captured/encoded voice, native server/authentication,
   all-consumer service routing and legacy external-server acceptance remain open.
+- **Owned Steam routing/lifetime boundary:** all five SDK consumers select the
+  owned native entry points through generated architecture policy; Win32 keeps
+  its original import. Real CS/App10 and HL/App70 EXE/peer-DLL fixtures pass on
+  Windows x64 and macOS ARM64 Release/Debug, plus full Mac ASan/UBSan. Twenty cases
+  cover 110 real SDK client cycles, high callback owners, SDK helpers and global
+  cleanup; three peer reload cycles per case keep a remaining consumer usable.
+  Actual tests exposed and fixed POSIX weak cache/inline-code coalescing and late
+  global teardown ordering. Thirty fixture images, 42 Win32 images and producing
+  inputs are checked; all 19 Win32 targets and six matching-binary regressions
+  pass. Pin/staging checks restore missing output and reject same-timestamp
+  content changes, including Windows UNC builds. Native server authentication,
+  encoded voice, general pre-callback module ABI checks and complete native
+  runtime acceptance remain open.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

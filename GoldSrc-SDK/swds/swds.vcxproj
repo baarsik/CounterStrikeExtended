@@ -96,6 +96,7 @@
   <ItemGroup>
     <None Include="swds.def" />
     <None Include="swds.res" />
+    <ClCompile Include="..\common\steam_service.cpp" />
     <ClCompile Include="..\engine\BaseSystemModule.cpp" />
     <ClCompile Include="..\engine\bitmap_win.cpp" />
     <ClCompile Include="..\engine\buildnum.cpp" />
@@ -289,6 +290,9 @@
     <ClCompile Include="..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="..\public\steam_provider.h" />
+    <ClInclude Include="..\public\steam_service.h" />
+    <ClInclude Include="..\public\steam_service_names.h" />
+    <ClInclude Include="..\public\steam_module_initializer.h" />
     <ClInclude Include="..\engine\surface_backend_config.h" />
     <ClInclude Include="..\engine\surface_block16_packed_impl.h" />
     <ClInclude Include="..\common\legacy_float_to_int.h" />

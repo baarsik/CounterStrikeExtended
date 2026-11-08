@@ -23,6 +23,13 @@ S_API void *S_CALLTYPE SteamInternal_CreateInterface( const char *ver );
 S_API void *S_CALLTYPE SteamInternal_FindOrCreateUserInterface( HSteamUser hSteamUser, const char *pszVersion );
 S_API void *S_CALLTYPE SteamInternal_FindOrCreateGameServerInterface( HSteamUser hSteamUser, const char *pszVersion );
 
+// The owned service keeps SDK caches and their initializer code within each consumer module.
+#if defined(CSE_OWNED_STEAM_PROVIDER) && defined(__GNUC__)
+#define STEAM_INTERFACE_ACCESSOR_INLINE inline __attribute__((visibility("hidden")))
+#else
+#define STEAM_INTERFACE_ACCESSOR_INLINE inline
+#endif
+
 // Macro used to define a type-safe accessor that will always return the version
 // of the interface of the *header file* you are compiling with!  We also bounce
 // through a safety function that checks for interfaces being created or destroyed.
@@ -31,9 +38,9 @@ S_API void *S_CALLTYPE SteamInternal_FindOrCreateGameServerInterface( HSteamUser
 // struct { void (*pFn)(void* pCtx); uintptr_t counter; void *ptr; }
 // Do not change layout or add non-pointer aligned data!
 #define STEAM_DEFINE_INTERFACE_ACCESSOR( type, name, expr, kind, version ) \
-	inline void S_CALLTYPE SteamInternal_Init_ ## name( type *p ) { *p = (type)( expr ); } \
+	STEAM_INTERFACE_ACCESSOR_INLINE void S_CALLTYPE SteamInternal_Init_ ## name( type *p ) { *p = (type)( expr ); } \
 	STEAM_CLANG_ATTR( "interface_accessor_kind:" kind ";interface_accessor_version:" version ";" ) \
-	inline type name() { \
+	STEAM_INTERFACE_ACCESSOR_INLINE type name() { \
 		static void* s_CallbackCounterAndContext[ 3 ] = { (void*)&SteamInternal_Init_ ## name, 0, 0 }; \
 		return *(type*)SteamInternal_ContextInit( s_CallbackCounterAndContext ); \
 	}

@@ -80,6 +80,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\common\steam_service.cpp" />
     <ClCompile Include="..\..\HLTV\common\BaseClient.cpp" />
     <ClCompile Include="..\..\HLTV\common\BitBuffer.cpp" />
     <ClCompile Include="..\..\HLTV\common\byteorder.cpp" />
@@ -132,6 +133,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\public\steam_provider.h" />
+    <ClInclude Include="..\..\public\steam_service.h" />
+    <ClInclude Include="..\..\public\steam_service_names.h" />
+    <ClInclude Include="..\..\public\steam_module_initializer.h" />
     <ClInclude Include="..\..\HLTV\Proxy\DemoClient.h" />
     <ClInclude Include="..\..\HLTV\Proxy\FakeClient.h" />
     <ClInclude Include="..\..\HLTV\Proxy\Master.h" />

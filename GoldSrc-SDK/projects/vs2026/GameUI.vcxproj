@@ -85,6 +85,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\common\steam_service.cpp" />
     <ClCompile Include="..\..\GameUI\BackgroundMenuButton.cpp" />
     <ClCompile Include="..\..\GameUI\BasePanel.cpp" />
     <ClCompile Include="..\..\GameUI\BitmapButton.cpp" />
@@ -249,6 +250,9 @@
   <ItemGroup>
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\public\steam_provider.h" />
+    <ClInclude Include="..\..\public\steam_service.h" />
+    <ClInclude Include="..\..\public\steam_service_names.h" />
+    <ClInclude Include="..\..\public\steam_module_initializer.h" />
     <ClInclude Include="..\..\GameUI\BackgroundMenuButton.h" />
     <ClInclude Include="..\..\GameUI\BasePanel.h" />
     <ClInclude Include="..\..\GameUI\BitmapButton.h" />

@@ -1,6 +1,7 @@
 # Generated from projects/vs2026/GameUI.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(gameui SHARED "GameUI")
 target_sources(gameui PRIVATE
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp"
   "${CSE_SDK_DIR}/GameUI/BasePanel.cpp"
   "${CSE_SDK_DIR}/GameUI/BitmapButton.cpp"
@@ -173,7 +174,7 @@ target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/MACHINE:X86>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
 target_sources(gameui PRIVATE "${CSE_SDK_DIR}/projects/vs2026/GameUI.def")
-cse_link_import(gameui Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(gameui Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(gameui PRIVATE "$<$<CONFIG:Debug>:user32.lib>")
 cse_link_sdl3(gameui Debug)
 set_property(SOURCE "${CSE_SDK_DIR}/GameUI/LogoFile.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/Ob1>")
@@ -299,7 +300,7 @@ target_link_options(gameui PRIVATE "$<$<CONFIG:Release>:/RELEASE>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Release>:/MACHINE:X86>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
-cse_link_import(gameui Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(gameui Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(gameui PRIVATE "$<$<CONFIG:Release>:user32.lib>")
 cse_link_sdl3(gameui Release)
 set_property(SOURCE "${CSE_SDK_DIR}/common/ObjectList.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common>")

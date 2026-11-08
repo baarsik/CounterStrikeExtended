@@ -169,6 +169,7 @@ target_sources(cs_client PRIVATE
   "${CSE_SDK_DIR}/cstrike/vgui2/game_controls/TutorWindowManager.cpp"
   "${CSE_SDK_DIR}/cstrike/vgui2/game_controls/TutorStateWindow.cpp"
   "${CSE_SDK_DIR}/cstrike/vgui2/game_controls/TutorTextWindow.cpp"
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
 )
 target_compile_options(cs_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(cs_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
@@ -224,7 +225,7 @@ target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
 target_sources(cs_client PRIVATE "${CSE_SDK_DIR}/projects/vs2026/cstrike_cdll.def")
 cse_link_sdl3(cs_client Debug)
-cse_link_import(cs_client Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(cs_client Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_compile_options(cs_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(cs_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(cs_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/O2>")
@@ -281,5 +282,5 @@ target_link_options(cs_client PRIVATE "$<$<CONFIG:Release>:/WX>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 cse_link_sdl3(cs_client Release)
-cse_link_import(cs_client Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(cs_client Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 cse_runtime_directory(cs_client "cstrike/cl_dlls")

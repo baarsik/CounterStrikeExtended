@@ -14,7 +14,14 @@
 #include "steamclientpublic.h"
 
 // S_API defines the linkage and calling conventions for steam_api.dll exports
-#if defined( _WIN32 ) && !defined( _X360 )
+#if defined(CSE_OWNED_STEAM_PROVIDER)
+#include "../../public/steam_service_names.h"
+#if defined(__GNUC__)
+#define S_API extern "C" __attribute__((visibility("hidden")))
+#else
+#define S_API extern "C"
+#endif
+#elif defined( _WIN32 ) && !defined( _X360 )
 	#if defined( STEAM_API_EXPORTS )
 	#define S_API extern "C" __declspec( dllexport ) 
 	#elif defined( STEAM_API_NODLL )
@@ -55,6 +62,10 @@ typedef int32 HSteamUser;
 // depend on it.
 #ifndef _WIN32
 	#define __cdecl
+#endif
+
+#if defined(CSE_OWNED_STEAM_PROVIDER)
+#include "../../public/steam_module_initializer.h"
 #endif
 
 // function prototype

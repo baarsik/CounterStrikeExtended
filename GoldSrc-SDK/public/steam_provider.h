@@ -33,7 +33,7 @@ struct Api {
 
 
 namespace provider_detail {
-template <typename Function> bool Bind(void* module, const char* name, Function& function, const char*& missing) {
+template <typename Function> inline bool Bind(void* module, const char* name, Function& function, const char*& missing) {
     function = reinterpret_cast<Function>(cse_platform::GetSymbol(module, name));
     if (!function) {
         missing = name;

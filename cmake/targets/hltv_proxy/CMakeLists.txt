@@ -1,6 +1,7 @@
 # Generated from projects/vs2026/Proxy.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(hltv_proxy SHARED "proxy")
 target_sources(hltv_proxy PRIVATE
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/HLTV/common/BaseClient.cpp"
   "${CSE_SDK_DIR}/HLTV/common/BitBuffer.cpp"
   "${CSE_SDK_DIR}/HLTV/common/byteorder.cpp"
@@ -68,7 +69,7 @@ target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Debug>:/EXPORT:CreateInterface,@1>")
 target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
 target_link_libraries(hltv_proxy PRIVATE "$<$<CONFIG:Debug>:ws2_32.lib>")
-cse_link_import(hltv_proxy Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(hltv_proxy Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:bz_internal_error=BZ2_bz__AssertH__fail>")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:_DEBUG>")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Debug>:WIN32>")
@@ -165,7 +166,7 @@ target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>"
 target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Release>:/EXPORT:CreateInterface,@1>")
 target_link_options(hltv_proxy PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 target_link_libraries(hltv_proxy PRIVATE "$<$<CONFIG:Release>:ws2_32.lib>")
-cse_link_import(hltv_proxy Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_steam(hltv_proxy Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Release>:bz_internal_error=BZ2_bz__AssertH__fail>")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Release>:WIN32>")
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/blocksort.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Release>:_WINDOWS>")

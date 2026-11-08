@@ -414,3 +414,27 @@ isolated Debug directory. The client probe checks actual SDK interfaces, context
 caching, async callbacks, decoder-rate queries and explicit session shutdown; it
 does not qualify server authentication or encoded voice/network compatibility.
 No real provider is executed by a build or ordinary CTest invocation.
+
+
+## Owned Steam service and module-lifecycle fixtures
+
+```sh
+cmake -S tests/native/steam_service -B build/steam-service-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DCSE_STEAM_FIXTURE_PROVIDER=/absolute/path/to/pinned/provider
+cmake --build build/steam-service-tests --parallel
+ctest --test-dir build/steam-service-tests --output-on-failure
+```
+
+The real provider must match the committed pin and selected compiler architecture.
+CTest only runs the incomplete-provider rejection fixture. For separately
+explicit real execution, set `SteamAppId` and `SteamGameId` to 10 (Counter-Strike)
+or 70 (Half-Life), then run `steam_service_probe`. Run
+`steam_service_module_probe` with absolute paths to the built
+`steam_service_owned_module` and `steam_service_owned_module_peer` libraries to
+exercise three peer reload cycles and global cleanup. Repeat using an isolated
+Debug build; Apple Silicon fixtures also support ASan/UBSan.
+
+The explicit `check_staging.py --provider /absolute/path/to/pinned/provider
+--target windows-x64` (or `macos-arm64`) builds a policy fixture and checks native
+routing, deleted-provider restoration and rejection of changed contents with a
+preserved timestamp. It does not execute the provider. Use an x64 MSVC environment
+for the Windows fixture. The complete native game remains gated separately.

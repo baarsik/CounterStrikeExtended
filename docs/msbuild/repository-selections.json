@@ -1268,6 +1268,11 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp",
             "metadata": {}
           },
@@ -2057,6 +2062,11 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp",
@@ -3271,6 +3281,11 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/common/BaseClient.cpp",
             "metadata": {}
           },
@@ -3520,6 +3535,11 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/common/BaseClient.cpp",
@@ -5713,6 +5733,11 @@
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\cstrike_vgui2_game_controls_TutorTextWindow_cpp.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\cstrike_vgui2_game_controls_TutorTextWindow_cpp.nativecodeanalysis.xml"
             }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
           }
         ],
         "imports": [
@@ -7174,6 +7199,11 @@
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Release\\cstrike_vgui2_game_controls_TutorTextWindow_cpp.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Release\\cstrike_vgui2_game_controls_TutorTextWindow_cpp.nativecodeanalysis.xml"
             }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
           }
         ],
         "imports": [
@@ -12709,6 +12739,11 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
           },
@@ -13755,6 +13790,11 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
@@ -15098,6 +15138,11 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
           },
@@ -16217,6 +16262,11 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
+            "metadata": {}
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",

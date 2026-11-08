@@ -1,3 +1,7 @@
+#if defined(CSE_OWNED_STEAM_PROVIDER)
+#include "../public/steam_service.h"
+#endif
+
 #if defined( SW_RENDERER )
 
 #include <winsock2.h>
@@ -178,10 +182,12 @@ private:
 #pragma warning( pop )
 #endif
 
+#if !defined(CSE_OWNED_STEAM_PROVIDER)
 extern "C" void SteamAPI_UseBreakpadCrashHandler( const char* version, const char* date, const char* time,
 	int fullMemoryDumps, void* context, void* preMinidumpCallback );
 extern "C" void SteamAPI_SetMiniDumpComment( const char* comment );
 extern "C" void SteamAPI_WriteMiniDump( unsigned int exceptionCode, void* exceptionInfo, unsigned int build );
+#endif
 
 void	SeedRandomNumberGenerator();
 void	SV_ResetModInfo();
@@ -1063,10 +1069,12 @@ static_assert( sizeof( CDedicatedServerAPI ) == 1028 );
 extern "C" long sysconf( int name );
 #endif
 
+#if !defined(CSE_OWNED_STEAM_PROVIDER)
 extern "C" void SteamAPI_UseBreakpadCrashHandler( const char* version, const char* date, const char* time,
 	int fullMemoryDumps, void* context, void* preMinidumpCallback );
 extern "C" void SteamAPI_SetMiniDumpComment( const char* comment );
 extern "C" void SteamAPI_WriteMiniDump( unsigned int exceptionCode, void* exceptionInfo, unsigned int build );
+#endif
 
 void SeedRandomNumberGenerator();
 void SV_ResetModInfo();
