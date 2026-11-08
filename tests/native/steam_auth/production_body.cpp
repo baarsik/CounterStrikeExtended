@@ -149,6 +149,8 @@ void (*fixturePacketSink)(int, const void*);
 static struct { float value; } fs_startup_timings;
 static double realtime;
 static netadr_t g_GameServerAddress;
+static std::uint32_t fixtureServerIP = LoopbackHostIP;
+static unsigned short fixtureServerPort = FixtureServerPort;
 static void ContinueLoadingProgressBar(const char*, int, float) {}
 static void SetupStartupTimings() {}
 static void CL_Disconnect_f() {
@@ -157,8 +159,8 @@ static void CL_Disconnect_f() {
 static bool NET_StringToAdr(const char*, netadr_t* output) {
     *output = {};
     output->type = NA_IP;
-    NET_NetAdr_SetIP(output, LoopbackHostIP);
-    NET_NetAdr_SetPort(output, FixtureServerPort);
+    NET_NetAdr_SetIP(output, fixtureServerIP);
+    NET_NetAdr_SetPort(output, fixtureServerPort);
     return true;
 }
 static void NET_SendPacket(int, int length, const void* data, netadr_t) {
@@ -169,9 +171,18 @@ static void NET_SendPacket(int, int length, const void* data, netadr_t) {
     }
 }
 #include "actual_connection.h"
+void SetFixtureEndpoint(std::uint32_t hostIP, unsigned short hostPort) {
+    Require((hostIP == LoopbackHostIP && hostPort == FixtureServerPort)
+        || (hostIP == PrivateVmHostIP && hostPort == PrivateVmServerPort), "explicit isolated fixture endpoint");
+    fixtureServerIP = hostIP;
+    fixtureServerPort = hostPort;
+    const auto* octets = reinterpret_cast<const byte*>(&hostIP);
+    std::snprintf(cls.servername, sizeof(cls.servername), "%u.%u.%u.%u:%u",
+        octets[3], octets[2], octets[1], octets[0], hostPort);
+}
 void ResetFixture() {
     cls = {};
-    std::strcpy(cls.servername, "127.0.0.1:27438");
+    SetFixtureEndpoint(LoopbackHostIP, FixtureServerPort);
     std::strcpy(cls.userinfo,
         "\\name\\CSE Native Auth Fixture\\rate\\25000\\cl_updaterate\\20\\cl_lw\\1\\cl_lc\\1");
     fixtureDisconnected = false;

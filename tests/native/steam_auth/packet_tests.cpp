@@ -52,6 +52,17 @@ int main() {
         Require(FakeSteamUser().initiations == attempts + 1, "failed ticket is never reused from cache");
     }
     TerminateFixtureConnection();
+    ResetFixture();
+    SetFixtureEndpoint(PrivateVmHostIP, PrivateVmServerPort);
+    cls.authprotocol = PROTOCOL_STEAM;
+    cls.GameServerSteamID = 0x0110000100000001ULL;
+    cls.isVAC2Secure = true;
+    FakeSteamUser().ticketSize = 128;
+    CL_SendConnectPacket();
+    Require(FakeSteamUser().lastIP == PrivateVmHostIP && FakeSteamUser().lastPort == PrivateVmServerPort,
+        "private VM peer uses the same actual SDK host-byte-order boundary");
+    TerminateFixtureConnection();
+    ResetFixture();
     cls.authprotocol = PROTOCOL_HASHEDCDKEY;
     capturedPacket.clear();
     CL_SendConnectPacket();

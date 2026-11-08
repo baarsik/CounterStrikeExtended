@@ -298,6 +298,16 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and six save/gameplay/replay regressions pass. Windows x64 execution uses VM1
   emulation. Mac authentication, netchan sign-on, native gameplay, encoded voice,
   consistency/downloads and AMXX message-reception acceptance remain open.
+- **Legacy Steam authentication boundary (macOS ARM64):** native Release/Debug
+  clients authenticate directly across the private Mac/VM link with a separate
+  unchanged secure Win32 ReHLDS/Metamod/AMXX fixture. Each receives a real 206-byte
+  ticket and matches a fresh server Steam identity approval. The server copy's
+  32 image hashes remain pinned; its firewall rule limits the peer to the Mac.
+  The updated explicit-endpoint fixture also requalifies Windows x64
+  authentication and all nine packet configurations. Thirteen image identities
+  and producing inputs are checked. Production sources/build policies are
+  unchanged from the preceding six-case Win32 regression. Native netchan sign-on,
+  gameplay, voice, consistency/downloads and AMXX message reception remain open.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

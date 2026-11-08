@@ -83,7 +83,9 @@ private:
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2 || std::strcmp(argv[1], "--connect-isolated-win32-loopback") != 0) {
+    const bool loopback = argc == 2 && std::strcmp(argv[1], "--connect-isolated-win32-loopback") == 0;
+    const bool privateVm = argc == 2 && std::strcmp(argv[1], "--connect-isolated-win32-private-vm") == 0;
+    if (!loopback && !privateVm) {
         std::fputs("Explicit isolated network fixture invocation required\n", stderr);
         return 2;
     }
@@ -94,6 +96,9 @@ int main(int argc, char** argv) {
         Check(WSAStartup(MAKEWORD(2, 2), &data) == 0, "Winsock startup");
 #endif
         ResetFixture();
+        const std::uint32_t serverHostIP = privateVm ? PrivateVmHostIP : LoopbackHostIP;
+        const unsigned short serverHostPort = privateVm ? PrivateVmServerPort : FixtureServerPort;
+        SetFixtureEndpoint(serverHostIP, serverHostPort);
         Check(SteamAPI_Init(), "real native Steam client initialization");
         session.initialized = true;
         DenialObserver denials;
@@ -105,8 +110,8 @@ int main(int argc, char** argv) {
         Check(connection != InvalidSocket, "UDP socket creation");
         sockaddr_in server{};
         server.sin_family = AF_INET;
-        server.sin_addr.s_addr = htonl(LoopbackHostIP);
-        server.sin_port = htons(FixtureServerPort);
+        server.sin_addr.s_addr = htonl(serverHostIP);
+        server.sin_port = htons(serverHostPort);
         Check(connect(connection, reinterpret_cast<const sockaddr*>(&server), sizeof(server)) == 0,
             "isolated loopback server endpoint");
         constexpr char ChallengeRequest[] = "\xff\xff\xff\xff" "getchallenge steam\n";

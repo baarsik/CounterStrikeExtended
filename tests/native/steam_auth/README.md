@@ -22,7 +22,14 @@ Only separately authorized explicit execution may open the real session/socket:
 SteamAppId=10 SteamGameId=10 steam_auth_server_probe --connect-isolated-win32-loopback
 ```
 
-The peer is fixed to the unchanged secure Win32 fixture at `127.0.0.1:27438`.
+The default peer is fixed to the unchanged secure Win32 fixture at
+`127.0.0.1:27438`. An explicit `--connect-isolated-win32-private-vm` invocation
+selects the separately prepared private VM peer `10.211.55.3:27439` for a native
+Mac client at `10.211.55.2`. Use a separate pinned server copy with `sv_lan 0`,
+`sv_consistency 1` and secure authentication; restrict its inbound UDP firewall
+rule to that Mac address and port. These two fixture endpoints are explicit;
+arbitrary remote addresses are rejected. The fixture substitutes address
+resolution while the production ticket path receives the selected real peer.
 Correlate a fresh server `STEAM USERID validated` line with each invocation and
 producing binary hash; the client connection response alone is insufficient.
 The driver observes SDK denials for fifteen seconds and does not record, hash or

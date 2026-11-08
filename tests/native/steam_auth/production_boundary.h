@@ -28,6 +28,9 @@ constexpr int PROTOCOL_HASHEDCDKEY = 2;
 constexpr int PORT_SERVER = 27015;
 constexpr unsigned short FixtureServerPort = 27438;
 constexpr std::uint32_t LoopbackHostIP = 0x7f000001;
+// Explicit, separately prepared Parallels private link; no arbitrary remote endpoint is accepted.
+constexpr std::uint32_t PrivateVmHostIP = 0x0ad33703;
+constexpr unsigned short PrivateVmServerPort = 27439;
 enum { NA_LOOPBACK, NA_IP };
 enum { NS_CLIENT };
 enum { ca_disconnected };
@@ -52,6 +55,7 @@ extern std::vector<byte> capturedPacket;
 extern bool fixtureDisconnected;
 extern void (*fixturePacketSink)(int, const void*);
 void ResetFixture();
+void SetFixtureEndpoint(std::uint32_t hostIP, unsigned short hostPort);
 void CL_SendConnectPacket();
 void TerminateFixtureConnection();
 void Require(bool condition, const char* message);
