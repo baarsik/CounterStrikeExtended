@@ -46,11 +46,12 @@ CHalfLifeTeamplay :: CHalfLifeTeamplay()
 	strncpy( m_szTeamList, teamlist.string, TEAMPLAY_TEAMLISTLENGTH );
 
 	edict_t *pWorld = INDEXENT(0);
-	if ( pWorld && pWorld->v.team )
+    CWorld *world = pWorld ? static_cast<CWorld *>(CBaseEntity::Instance(pWorld)) : nullptr;
+	if ( world && world->MapTeamList() )
 	{
 		if ( teamoverride.value )
 		{
-			const char *pTeamList = STRING(pWorld->v.team);
+			const char *pTeamList = STRING(world->MapTeamList());
 			if ( pTeamList && strlen(pTeamList) )
 			{
 				strncpy( m_szTeamList, pTeamList, TEAMPLAY_TEAMLISTLENGTH );

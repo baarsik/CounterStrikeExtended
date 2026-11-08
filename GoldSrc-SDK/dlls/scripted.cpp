@@ -490,7 +490,7 @@ void CCineMonster :: CineThink( void )
 
 
 // lookup a sequence name and setup the target monster to play it
-BOOL CCineMonster :: StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL completeOnEmpty )
+BOOL CCineMonster :: StartSequence( CBaseMonster *pTarget, string_t iszSeq, BOOL completeOnEmpty )
 {
 	if ( !iszSeq && completeOnEmpty )
 	{
@@ -524,7 +524,7 @@ BOOL CCineMonster :: StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL comp
 // lookup a sequence name and setup the target monster to play it
 // overridden for CCineAI because it's ok for them to not have an animation sequence
 // for the monster to play. For a regular Scripted Sequence, that situation is an error.
-BOOL CCineAI :: StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL completeOnEmpty )
+BOOL CCineAI :: StartSequence( CBaseMonster *pTarget, string_t iszSeq, BOOL completeOnEmpty )
 {
 	if ( iszSeq == 0 && completeOnEmpty )
 	{
@@ -940,15 +940,15 @@ public:
 
 
 private:
-	int		m_iszSentence;		// string index for idle animation
-	int		m_iszEntity;	// entity that is wanted for this sentence
+	string_t		m_iszSentence;		// string index for idle animation
+	string_t		m_iszEntity;	// entity that is wanted for this sentence
 	float	m_flRadius;		// range to search
 	float	m_flDuration;	// How long the sentence lasts
 	float	m_flRepeat;	// repeat rate
 	float	m_flAttenuation;
 	float	m_flVolume;
 	BOOL	m_active;
-	int		m_iszListener;	// name of entity to look at while talking
+	string_t		m_iszListener;	// name of entity to look at while talking
 
 #ifdef _MSC_VER
 #pragma warning( suppress : 26495 )

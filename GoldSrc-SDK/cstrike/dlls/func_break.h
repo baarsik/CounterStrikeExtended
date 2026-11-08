@@ -77,8 +77,8 @@ public:
 	Explosions	m_Explosion;
 	int			m_idShard;
 	float		m_angle;
-	int			m_iszGibModel;
-	int			m_iszSpawnObject;
+	string_t			m_iszGibModel;
+	string_t			m_iszSpawnObject;
 	float		m_flHealth;
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )

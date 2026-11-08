@@ -153,6 +153,10 @@ public:
 	CBaseEntity			*m_pGoalEnt;// path corner we are heading towards
 	CBaseEntity			*m_pLink;// used for temporary link-list operations. 
 
+    // Worldspawn-only state stays in BASE's optional named fields for legacy save envelopes.
+    string_t m_worldMapTeams = 0;
+    bool m_worldMapTeamsKnown = false;
+
 	// initialization functions
 	virtual void	Spawn( void ) { return; }
 	virtual void	Precache( void ) { return; }
@@ -461,7 +465,7 @@ class CBaseDelay : public CBaseEntity
 {
 public:
 	float		m_flDelay;
-	int			m_iszKillTarget;
+    string_t m_iszKillTarget;
 
 	virtual void	KeyValue( KeyValueData* pkvd);
 	virtual int		Save( CSave &save );

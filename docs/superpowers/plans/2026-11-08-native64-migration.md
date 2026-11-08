@@ -281,3 +281,34 @@ world traces, legacy location sidecar or nonempty version-1/2 encounters; it doe
 not qualify native bot gameplay. All 19 maintained Win32 targets build in both
 configurations, and CS gameplay recordings replay to EOF with the reference
 651 network frames and 666 host frames. Loaded module hashes identify the builds.
+
+Engine strings now use native-width relative identities and explicit unsigned
+address arithmetic. The original zero identity, aliases and mutable storage are
+preserved. String allocation/lookup, entity creation and instanced-baseline class
+names use the same native type; numeric network/model indices retain their widths.
+Client prediction explicitly bridges its model index into the shared server
+viewmodel slot. Runtime ABI version 2 rejects older modules before callbacks.
+Save metadata rejects narrow engine-string fields on native builds, and map
+key-value assignment writes the complete native slot. Gonarch sequence names keep
+string identities separate from animation indices.
+
+Worldspawn's team list now has optional symbolic fields in the existing `BASE`
+group. Its initialized flag preserves explicitly empty values. Older records
+recover the original map setting through an owned engine callback using the
+already loaded entity text and existing lexer, with parser state restored.
+Numeric player teams remain unchanged. Old runtime edits represented only by
+saved process-relative integer bits cannot be recovered safely. Native fixtures
+cover high relative offsets, aliases, mutable strings, key-value overwrites and
+storage rejection; actual Win32 CS/HL DLL probes cover string envelopes, world
+save/restore and C4 regressions. Native whole-game string/save qualification,
+entity offsets, command/VGUI handles and remaining module boundaries stay open.
+
+Paired Win32 world fixtures now verify the real map/parser integration in Release
+and Debug: baseline team lists, importing baseline saves, preserving saved lists
+when BSP settings change, and retaining explicitly empty lists when the BSP later
+contains a list. The checks read actual named world save fields after cold loads;
+the existing engine intentionally switches save loads to single-player mode.
+Loaded module hashes identify baseline/current binaries, and the sealed baseline
+remains intact. All 19 Win32 targets build; CS/HL record/replay and captured
+Half-Life save/load also pass. These remain maintained-Win32 and standalone-native
+component results, not native whole-game qualification.

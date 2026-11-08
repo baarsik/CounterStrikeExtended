@@ -718,7 +718,7 @@ enum
 
 
 typedef unsigned int	func_t;
-typedef unsigned int	string_t;
+#include "cse_string.h"
 
 typedef unsigned char 		byte;
 typedef unsigned short 		word;

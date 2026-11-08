@@ -221,3 +221,7 @@ void			COM_Munge3( byte* data, int length, int sequence );
 void			COM_UnMunge3( byte* data, int length, int sequence );
 
 void			LoadBMP8( FileHandle_t file, byte** palette, int* paletteCount, byte** image, int* width, int* height );
+
+// Looks only in the first entity, preserving the active engine parser's token and unget state.
+bool COM_FindWorldspawnValue(const char *entityData, const char *classname, const char *key,
+                            char *output, size_t outputBytes);

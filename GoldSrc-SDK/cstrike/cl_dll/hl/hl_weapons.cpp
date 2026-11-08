@@ -234,7 +234,10 @@ BOOL CBasePlayerWeapon::DefaultDeploy( char* viewModel, char* weaponModel, int a
 {
 	if ( !CanDeploy() )
 		return FALSE;
-	gEngfuncs.CL_LoadModel( viewModel, &m_pPlayer->pev->viewmodel );
+    // Client prediction stores a model index in this shared server string slot.
+    int modelIndex = static_cast<int>(m_pPlayer->pev->viewmodel);
+    gEngfuncs.CL_LoadModel(viewModel, &modelIndex);
+    m_pPlayer->pev->viewmodel = static_cast<string_t>(modelIndex);
 	SendWeaponAnim( animation, skiplocal );
 	m_pPlayer->m_flNextAttack = 0.75;
 	m_flTimeWeaponIdle = 1.5;

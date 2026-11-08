@@ -69,7 +69,7 @@ public:
 
 	void ReleaseEntity( CBaseMonster *pEntity );
 	void CancelScript( void );
-	virtual BOOL StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL completeOnEmpty );
+	virtual BOOL StartSequence( CBaseMonster *pTarget, string_t iszSeq, BOOL completeOnEmpty );
 	virtual BOOL FCanOverrideState ( void );
 	void SequenceDone ( CBaseMonster *pMonster );
 	virtual void FixScriptMonsterSchedule( CBaseMonster *pMonster );
@@ -77,9 +77,9 @@ public:
 	void	AllowInterrupt( BOOL fAllow );
 	int		IgnoreConditions( void );
 
-	int	m_iszIdle;		// string index for idle animation
-	int	m_iszPlay;		// string index for scripted animation
-	int m_iszEntity;	// entity that is wanted for this script
+	string_t	m_iszIdle;		// string index for idle animation
+	string_t	m_iszPlay;		// string index for scripted animation
+	string_t m_iszEntity;	// entity that is wanted for this script
 	int m_fMoveTo;
 	int m_iFinishSchedule;
 	float m_flRadius;		// range to search
@@ -101,7 +101,7 @@ public:
 
 class CCineAI : public CCineMonster
 {
-	BOOL StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL completeOnEmpty );
+	BOOL StartSequence( CBaseMonster *pTarget, string_t iszSeq, BOOL completeOnEmpty );
 	void PossessEntity( void );
 	BOOL FCanOverrideState ( void );
 	virtual void FixScriptMonsterSchedule( CBaseMonster *pMonster );

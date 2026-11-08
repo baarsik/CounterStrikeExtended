@@ -340,6 +340,8 @@ constexpr Descriptor GameModuleDescriptor = Describe({
         alignof(decltype(((enginefuncs_t *)nullptr)->pfnCheckParm)),
         offsetof(enginefuncs_t, pfnPEntityOfEntIndexAllEntities), sizeof(((enginefuncs_t *)nullptr)->pfnPEntityOfEntIndexAllEntities),
         alignof(decltype(((enginefuncs_t *)nullptr)->pfnPEntityOfEntIndexAllEntities)),
+        offsetof(enginefuncs_t, pfnGetWorldspawnString), sizeof(((enginefuncs_t *)nullptr)->pfnGetWorldspawnString),
+        alignof(decltype(((enginefuncs_t *)nullptr)->pfnGetWorldspawnString)),
     })},
     {static_cast<std::uint32_t>(GameTable::GameFunctions), 0, LayoutHash({
         sizeof(DLL_FUNCTIONS), alignof(DLL_FUNCTIONS),

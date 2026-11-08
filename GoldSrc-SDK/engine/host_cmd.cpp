@@ -120,7 +120,7 @@ void NotifyDedicatedServerUI( const char* message );
 extern "C" void VideoMode_SwitchMode( int hardware, int windowed );
 extern "C" void VideoMode_SetVideoMode( int width, int height, int bitsPerPixel );
 int DecalListCreate( DECALLIST* decals );
-edict_t* CreateNamedEntity( int classname );
+edict_t* CreateNamedEntity( string_t classname );
 int PF_IsMapValid_I( char* mapname );
 int PF_IsDedicatedServer();
 void PF_MessageBegin_I( int destination, int type, const float* origin, edict_t* entity );
@@ -1135,9 +1135,9 @@ void Host_TogglePause_f()
 		sv.paused ^= 1;
 
 		if ( sv.paused )
-			SV_BroadcastPrintf( "%s paused the game\n", pr_strings + sv_player->v.netname );
+			SV_BroadcastPrintf( "%s paused the game\n", CseStringAddress(pr_strings, sv_player->v.netname) );
 		else
-			SV_BroadcastPrintf( "%s unpaused the game\n", pr_strings + sv_player->v.netname );
+			SV_BroadcastPrintf( "%s unpaused the game\n", CseStringAddress(pr_strings, sv_player->v.netname) );
 
 		// send notification to all clients
 		MSG_WriteByte( &sv.reliable_datagram, svc_setpause );
@@ -1914,7 +1914,7 @@ static void EntityInit( edict_t* pEdict, string_t className )
 	InitEntityDLLFields( pEdict );
 	pEdict->v.classname = className;
 
-	pEntityInit = GetEntityInit( pr_strings + className );
+	pEntityInit = GetEntityInit( CseStringAddress(pr_strings, className) );
 	if ( pEntityInit )
 		pEntityInit( &pEdict->v );
 }
@@ -2135,7 +2135,7 @@ edict_t* FindViewthing()
 	for ( i = 0; i < sv.num_edicts; i++ )
 	{
 		e = &sv.edicts[i];
-		if ( !Q_strcmp( pr_strings + e->v.classname, "viewthing" ) )
+		if ( !Q_strcmp( CseStringAddress(pr_strings, e->v.classname), "viewthing" ) )
 			return e;
 	}
 
@@ -2305,13 +2305,13 @@ int CreateEntityList( SAVERESTOREDATA* pSaveData, int levelMask )
 
 		if ( pEntInfo->flags & FENTTABLE_GLOBAL )
 		{
-			Con_DPrintf( "Merging changes for global: %s\n", pr_strings + pEntInfo->classname );
+			Con_DPrintf( "Merging changes for global: %s\n", CseStringAddress(pr_strings, pEntInfo->classname) );
 			gEntityInterface.pfnRestore( pent, pSaveData, 1 );
 			ED_Free( pent );
 			continue;
 		}
 
-		Con_DPrintf( "Transferring %s (%d)\n", pr_strings + pEntInfo->classname, NUM_FOR_EDICT( pent ) );
+		Con_DPrintf( "Transferring %s (%d)\n", CseStringAddress(pr_strings, pEntInfo->classname), NUM_FOR_EDICT( pent ) );
 
 		if ( gEntityInterface.pfnRestore( pent, pSaveData, 0 ) < 0 )
 		{
@@ -2323,7 +2323,7 @@ int CreateEntityList( SAVERESTOREDATA* pSaveData, int levelMask )
 
 		if ( !( pSaveData->pTable[i].flags & FENTTABLE_PLAYER ) && EntityInSolid( pent ) )
 		{
-			Con_DPrintf( "Suppressing %s\n", pr_strings + pSaveData->pTable[i].classname );
+			Con_DPrintf( "Suppressing %s\n", CseStringAddress(pr_strings, pSaveData->pTable[i].classname) );
 			ED_Free( pent );
 			continue;
 		}
@@ -3065,7 +3065,7 @@ void LandmarkOrigin( SAVERESTOREDATA* pSaveData, vec_t* output, const char* pLan
 
 void Host_SavegameComment( char* pszBuffer, int iSizeBuffer )
 {
-	const char* pszMapName = pr_strings + gGlobalVariables.mapname;
+	const char* pszMapName = CseStringAddress(pr_strings, gGlobalVariables.mapname);
 	const char* pszTitleName = NULL;
 	size_t i;
 

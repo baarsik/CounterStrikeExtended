@@ -206,7 +206,7 @@ public:
 	static	TYPEDESCRIPTION m_SaveData[];
 
 	CSprite	*m_pSprite;
-	int		m_iszSpriteName;
+	string_t		m_iszSpriteName;
 	Vector  m_firePosition;
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )

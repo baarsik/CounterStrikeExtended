@@ -473,12 +473,15 @@ extern DLL_GLOBAL BOOL		g_fGameOver;
 
 void CWorld :: Spawn( void )
 {
+    m_worldMapTeamsKnown = true;
 	g_fGameOver = FALSE;
 	Precache( );
 }
 
 void CWorld :: Precache( void )
 {
+    EnsureMapTeamList();
+
 	g_pLastSpawn = NULL;
 	
 #if 1
@@ -727,7 +730,8 @@ void CWorld :: KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq(pkvd->szKeyName, "mapteams") )
 	{
-		pev->team = ALLOC_STRING( pkvd->szValue );
+		m_worldMapTeams = ALLOC_STRING(pkvd->szValue);
+        m_worldMapTeamsKnown = true;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq(pkvd->szKeyName, "defaultteam") )

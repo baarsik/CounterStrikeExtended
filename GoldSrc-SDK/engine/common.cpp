@@ -806,6 +806,8 @@ const char* COM_Parse( const char* data )
 	return data;
 }
 
+#include "worldspawn_value_impl.h"
+
 const char* COM_ParseLine( const char* data )
 {
 	if ( s_com_token_unget )

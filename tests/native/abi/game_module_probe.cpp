@@ -1,6 +1,7 @@
 #include "../../../GoldSrc-SDK/public/cse_module_abi.h"
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iterator>
 #if defined(_WIN32)
@@ -18,6 +19,51 @@ typedef float vec3_t[3];
 #include "../../../GoldSrc-SDK/common/game_module_entry.h"
 #include "../../../GoldSrc-SDK/common/generated_game_module_layouts.h"
 #include "../save_fields/production_probe.h"
+#include "../strings/high_offset_buffer.h"
+
+namespace {
+char emptyString[] = "";
+char *stringStorage = nullptr;
+std::size_t stringCursor = 0;
+string_t lastAllocatedString = 0;
+constexpr std::size_t StringStorageBytes = 4096;
+
+string_t AllocateFixtureString(const char *text) {
+    const auto bytes = std::strlen(text) + 1;
+    if (!stringStorage || bytes > StringStorageBytes - stringCursor) {
+        std::abort();
+    }
+    char *destination = stringStorage + stringCursor;
+    std::memcpy(destination, text, bytes);
+    stringCursor += bytes;
+    lastAllocatedString = CseStringOffset(emptyString, destination);
+    return lastAllocatedString;
+}
+
+int PrecacheFixtureString(char *text) {
+    if (std::strcmp(text, "models/fixture.mdl") != 0 && std::strcmp(text, "fixture.wav") != 0) {
+        std::abort();
+    }
+    return 1;
+}
+
+bool CheckProductionKeyValues(const DLL_FUNCTIONS &api) {
+    const char *names[] = {"classname", "globalname", "model", "viewmodel", "weaponmodel", "noise"};
+    string_t entvars_t::*members[] = {&entvars_t::classname, &entvars_t::globalname, &entvars_t::model,
+        &entvars_t::viewmodel, &entvars_t::weaponmodel, &entvars_t::noise};
+    edict_t entity{};
+    for (std::size_t index = 0; index < std::size(names); ++index) {
+        entity.v.*members[index] = ~static_cast<string_t>(0);
+        KeyValueData key{nullptr, const_cast<char *>(names[index]), const_cast<char *>("owned-name"), 0};
+        api.pfnKeyValue(&entity, &key);
+        if (!key.fHandled || entity.v.*members[index] != lastAllocatedString) {
+            std::fprintf(stderr, "Production key-value string was truncated in %s\n", names[index]);
+            return false;
+        }
+    }
+    return true;
+}
+} // namespace
 
 class GameModule {
 public:
@@ -57,6 +103,12 @@ private:
 
 static bool Probe(const char *path) {
     using namespace cse::abi;
+    HighOffsetBuffer storage(emptyString);
+    if (!storage.get()) {
+        return false;
+    }
+    stringStorage = storage.get();
+    stringCursor = 0;
     GameModule module(path);
     if (!module) {
         std::fprintf(stderr, "Cannot load game module: %s\n", path);
@@ -85,6 +137,10 @@ static bool Probe(const char *path) {
     }
     enginefuncs_t functions{};
     globalvars_t globals{};
+    functions.pfnAllocString = AllocateFixtureString;
+    functions.pfnPrecacheModel = PrecacheFixtureString;
+    functions.pfnPrecacheSound = PrecacheFixtureString;
+    globals.pStringBase = emptyString;
     DLL_FUNCTIONS table;
     constexpr unsigned char guardByte = 0xa5;
     std::memset(&table, guardByte, sizeof(table));
@@ -112,6 +168,12 @@ static bool Probe(const char *path) {
         return false;
     }
     if (!CheckProductionSaveFields(table)) {
+        return false;
+    }
+    if (!CheckProductionStringFields(table, functions, globals)) {
+        return false;
+    }
+    if (!CheckProductionKeyValues(table)) {
         return false;
     }
     // A later legacy call must not consume another exchange or replace tables.

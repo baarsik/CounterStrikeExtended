@@ -79,3 +79,73 @@ inline bool CheckProductionSaveFields(const DLL_FUNCTIONS &api) {
         && restored.counters[0] == 0 && restored.counters[1] == 0 && restored.counters[2] == tailGuard
         && restored.before == beforeGuard && restored.after == afterGuard;
 }
+
+inline bool CheckProductionStringFields(const DLL_FUNCTIONS &api, const enginefuncs_t &engine,
+                                       const globalvars_t &globals) {
+    struct Strings {
+        std::uint32_t before;
+        string_t names[3];
+        string_t model;
+        string_t sound;
+        std::uint32_t after;
+    };
+    constexpr std::uint32_t guard = UINT32_C(0x1234abcd);
+    Strings source{guard, {engine.pfnAllocString("mutable-name"), 0, engine.pfnAllocString("tail")},
+                   engine.pfnAllocString("models/fixture.mdl"), engine.pfnAllocString("fixture.wav"), guard};
+    if (sizeof(string_t) > sizeof(std::uint32_t) && source.names[0] <= UINT32_MAX) {
+        std::fprintf(stderr, "Production string fixture requires high relative offsets\n");
+        return false;
+    }
+    TYPEDESCRIPTION fields[] = {
+        DEFINE_ARRAY(Strings, names, FIELD_STRING, 2),
+        DEFINE_FIELD(Strings, model, FIELD_MODELNAME),
+        DEFINE_FIELD(Strings, sound, FIELD_SOUNDNAME)
+    };
+    std::array<char, 4096> bytes{};
+    std::array<char *, 128> tokens{};
+    SAVERESTOREDATA save{};
+    save.pBaseData = bytes.data();
+    save.pCurrentData = bytes.data();
+    save.bufferSize = static_cast<int>(bytes.size());
+    save.tokenCount = static_cast<int>(tokens.size());
+    save.pTokens = tokens.data();
+    api.pfnSaveWriteFields(&save, "CSE_NATIVE_STRINGS", &source, fields, static_cast<int>(std::size(fields)));
+    // Inspect the independent legacy envelope: four-byte group count, then bounded NUL-terminated text.
+    constexpr std::size_t headerBytes = 2 * sizeof(std::uint16_t);
+    std::size_t cursor = headerBytes;
+    std::uint32_t count = 0;
+    std::memcpy(&count, bytes.data() + cursor, sizeof(count));
+    cursor += sizeof(count);
+    if (count != std::size(fields)) {
+        return false;
+    }
+    const char names[] = "mutable-name\0"; // The second name is an empty string.
+    const char model[] = "models/fixture.mdl";
+    const char sound[] = "fixture.wav";
+    const void *expected[] = {names, model, sound};
+    const std::size_t expectedBytes[] = {sizeof(names), sizeof(model), sizeof(sound)};
+    for (std::size_t index = 0; index < std::size(fields); ++index) {
+        std::uint16_t payloadBytes = 0;
+        std::memcpy(&payloadBytes, bytes.data() + cursor, sizeof(payloadBytes));
+        cursor += headerBytes;
+        if (payloadBytes != expectedBytes[index]
+            || std::memcmp(bytes.data() + cursor, expected[index], payloadBytes) != 0) {
+            std::fprintf(stderr, "Native string escaped the legacy symbolic envelope\n");
+            return false;
+        }
+        cursor += payloadBytes;
+    }
+    if (cursor != static_cast<std::size_t>(save.size)) {
+        return false;
+    }
+    Strings restored{guard, {0, source.names[0], source.names[2]}, 0, 0, guard};
+    save.bufferSize = save.size;
+    save.size = 0;
+    save.pCurrentData = bytes.data();
+    api.pfnSaveReadFields(&save, "CSE_NATIVE_STRINGS", &restored, fields, static_cast<int>(std::size(fields)));
+    return restored.before == guard && restored.after == guard && restored.names[1] == 0
+        && restored.names[2] == source.names[2]
+        && std::strcmp(CseStringAddress(globals.pStringBase, restored.names[0]), "mutable-name") == 0
+        && std::strcmp(CseStringAddress(globals.pStringBase, restored.model), model) == 0
+        && std::strcmp(CseStringAddress(globals.pStringBase, restored.sound), sound) == 0;
+}

@@ -207,9 +207,9 @@ hull_t* SV_HullForBsp( edict_t* ent, const float* mins, const float* maxs, float
 
 	model = sv.models[ent->v.modelindex];
 	if ( !model )
-		Sys_Error( "Hit a %s with no model (%s)", &pr_strings[ent->v.classname], &pr_strings[ent->v.model] );
+		Sys_Error( "Hit a %s with no model (%s)", CseStringAddress(pr_strings, ent->v.classname), CseStringAddress(pr_strings, ent->v.model) );
 	if ( model->type != mod_brush )
-		Sys_Error( "Hit a %s with no model (%s)", &pr_strings[ent->v.classname], &pr_strings[ent->v.model] );
+		Sys_Error( "Hit a %s with no model (%s)", CseStringAddress(pr_strings, ent->v.classname), CseStringAddress(pr_strings, ent->v.model) );
 
 	VectorSubtract( maxs, mins, size );
 
@@ -534,9 +534,9 @@ void SV_LinkEdict( edict_t* ent, qboolean touch_triggers )
 	if ( ent->v.solid == SOLID_NOT && ent->v.skin >= CONTENTS_EMPTY )
 		return;
 
-	if ( ent->v.solid == SOLID_BSP && !sv.models[ent->v.modelindex] && !Q_strlen( &pr_strings[ent->v.model] ) )
+	if ( ent->v.solid == SOLID_BSP && !sv.models[ent->v.modelindex] && !Q_strlen( CseStringAddress(pr_strings, ent->v.model) ) )
 	{
-		Con_DPrintf( "Inserted %s with no model\n", &pr_strings[ent->v.classname] );
+		Con_DPrintf( "Inserted %s with no model\n", CseStringAddress(pr_strings, ent->v.classname) );
 		return;
 	}
 
@@ -644,7 +644,7 @@ int SV_LinkContents( areanode_t* node, const float* pos )
 
 		contents = touch->v.skin;
 		if ( contents < -100 || contents > 100 )
-			Con_DPrintf( "Invalid contents on trigger field: %s\n", &pr_strings[touch->v.classname] );
+			Con_DPrintf( "Invalid contents on trigger field: %s\n", CseStringAddress(pr_strings, touch->v.classname) );
 
 		hull = SV_HullForBsp( touch, vec3_origin, vec3_origin, offset );
 

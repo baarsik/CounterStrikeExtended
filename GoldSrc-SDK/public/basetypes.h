@@ -65,7 +65,7 @@ typedef unsigned char byte;
 typedef unsigned short word;
 typedef unsigned short ucs2;
 
-typedef unsigned int string_t;	// from engine's pr_comp.h;
+#include "cse_string.h"
 // vec3_t in the engine are float array's, and in the dlls the Vector class.
 
 typedef float vec_t;

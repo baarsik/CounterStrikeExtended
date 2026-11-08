@@ -41,7 +41,7 @@ public:
 
 private:
 	int		m_iStyle;
-	int		m_iszPattern;
+	string_t		m_iszPattern;
 	int		m_iStartedOff;
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )

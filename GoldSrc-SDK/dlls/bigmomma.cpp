@@ -48,7 +48,7 @@ public:
 	virtual int		Restore( CRestore &restore );
 	static	TYPEDESCRIPTION m_SaveData[];
 
-	int		m_preSequence;
+	string_t		m_preSequence;
 
 #ifdef _MSC_VER
 #pragma warning( suppress : 26495 )
@@ -195,7 +195,7 @@ public:
 	Schedule_t	*GetScheduleOfType( int Type );
 	void		TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType );
 
-	void NodeStart( int iszNextNode );
+	void NodeStart( string_t iszNextNode );
 	void NodeReach( void );
 	BOOL ShouldGoToNode( void );
 
@@ -204,26 +204,22 @@ public:
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 	void LayHeadcrab( void );
 
-	int GetNodeSequence( void )
-	{
-		CBaseEntity *pTarget = m_hTargetEnt;
-		if ( pTarget )
-		{
-			return pTarget->pev->netname;	// netname holds node sequence
-		}
-		return 0;
-	}
+    string_t GetNodeSequence(void) {
+        CBaseEntity *target = m_hTargetEnt;
+        if (target) {
+            return target->pev->netname; // netname holds the node sequence name.
+        }
+        return 0;
+    }
 
 
-	int GetNodePresequence( void )
-	{
-		CInfoBM *pTarget = (CInfoBM *)(CBaseEntity *)m_hTargetEnt;
-		if ( pTarget )
-		{
-			return pTarget->m_preSequence;
-		}
-		return 0;
-	}
+    string_t GetNodePresequence(void) {
+        CInfoBM *target = static_cast<CInfoBM *>(static_cast<CBaseEntity *>(m_hTargetEnt));
+        if (target) {
+            return target->m_preSequence;
+        }
+        return 0;
+    }
 
 	float GetNodeDelay( void )
 	{
@@ -722,7 +718,7 @@ void CBigMomma::Activate( void )
 }
 
 
-void CBigMomma::NodeStart( int iszNextNode )
+void CBigMomma::NodeStart( string_t iszNextNode )
 {
 	pev->netname = iszNextNode;
 
@@ -962,29 +958,28 @@ void CBigMomma::StartTask( Task_t *pTask )
 
 	case TASK_PLAY_NODE_PRESEQUENCE:
 	case TASK_PLAY_NODE_SEQUENCE:
-		{
-			int sequence;
-			if ( pTask->iTask == TASK_PLAY_NODE_SEQUENCE )
-				sequence = GetNodeSequence();
-			else
-				sequence = GetNodePresequence();
+        {
+            string_t sequenceName;
+            if (pTask->iTask == TASK_PLAY_NODE_SEQUENCE) {
+                sequenceName = GetNodeSequence();
+            } else {
+                sequenceName = GetNodePresequence();
+            }
 
-			ALERT( at_aiconsole, "BM: Playing node sequence %s\n", STRING(sequence) );
-			if ( sequence )
-			{
-				sequence = LookupSequence( STRING( sequence ) );
-				if ( sequence != -1 )
-				{
-					pev->sequence = sequence;
-					pev->frame = 0;
-					ResetSequenceInfo( );
-					ALERT( at_aiconsole, "BM: Sequence %s\n", STRING(GetNodeSequence()) );
-					return;
-				}
-			}
-			TaskComplete();
-		}
-		break;
+            ALERT(at_aiconsole, "BM: Playing node sequence %s\n", STRING(sequenceName));
+            if (sequenceName) {
+                const int sequenceIndex = LookupSequence(STRING(sequenceName));
+                if (sequenceIndex != -1) {
+                    pev->sequence = sequenceIndex;
+                    pev->frame = 0;
+                    ResetSequenceInfo();
+                    ALERT(at_aiconsole, "BM: Sequence %s\n", STRING(GetNodeSequence()));
+                    return;
+                }
+            }
+            TaskComplete();
+        }
+        break;
 
 	case TASK_NODE_YAW:
 		pev->ideal_yaw = GetNodeYaw();

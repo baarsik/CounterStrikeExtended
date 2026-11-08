@@ -1979,53 +1979,7 @@ void CSave :: WritePositionVector( const char *pname, const float *value, int co
 
 
 
-void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
-{
-	int i;
-	TYPEDESCRIPTION		*pField;
-
-	for ( i = 0; i < ENTVARS_COUNT; i++ )
-	{
-		pField = &gEntvarsDescription[i];
-
-		if ( !stricmp( pField->fieldName, pkvd->szKeyName ) )
-		{
-			switch( pField->fieldType )
-			{
-			case FIELD_MODELNAME:
-			case FIELD_SOUNDNAME:
-			case FIELD_STRING:
-				(*(int *)((char *)pev + pField->fieldOffset)) = ALLOC_STRING( pkvd->szValue );
-				break;
-
-			case FIELD_TIME:
-			case FIELD_FLOAT:
-				(*(float *)((char *)pev + pField->fieldOffset)) = atof( pkvd->szValue );
-				break;
-
-			case FIELD_INTEGER:
-				(*(int *)((char *)pev + pField->fieldOffset)) = atoi( pkvd->szValue );
-				break;
-
-			case FIELD_POSITION_VECTOR:
-			case FIELD_VECTOR:
-				UTIL_StringToVector( (float *)((char *)pev + pField->fieldOffset), pkvd->szValue );
-				break;
-
-			default:
-			case FIELD_EVARS:
-			case FIELD_CLASSPTR:
-			case FIELD_EDICT:
-			case FIELD_ENTITY:
-			case FIELD_POINTER:
-				ALERT( at_error, "Bad field in entity!!\n" );
-				break;
-			}
-			pkvd->fHandled = TRUE;
-			return;
-		}
-	}
-}
+#include "game_entvars_keyvalue_impl.h"
 
 
 

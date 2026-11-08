@@ -16,6 +16,7 @@
 #define EIFACE_H
 
 #include "archtypes.h"     // DAL
+#include "cse_string.h"
 
 #ifdef HLDEMO_BUILD
 #define INTERFACE_VERSION       001
@@ -136,7 +137,7 @@ typedef struct enginefuncs_s
 	void		(*pfnAngleVectors)			(const float *rgflVector, float *forward, float *right, float *up);
 	edict_t*	(*pfnCreateEntity)			(void);
 	void		(*pfnRemoveEntity)			(edict_t* e);
-	edict_t*	(*pfnCreateNamedEntity)		(int className);
+	edict_t*	(*pfnCreateNamedEntity)		(string_t className);
 	void		(*pfnMakeStatic)			(edict_t *ent);
 	int			(*pfnEntIsOnFloor)			(edict_t *e);
 	int			(*pfnDropToFloor)			(edict_t* e);
@@ -179,8 +180,8 @@ typedef struct enginefuncs_s
 	void*		(*pfnPvAllocEntPrivateData)	(edict_t *pEdict, int32 cb);
 	void*		(*pfnPvEntPrivateData)		(edict_t *pEdict);
 	void		(*pfnFreeEntPrivateData)	(edict_t *pEdict);
-	const char*	(*pfnSzFromIndex)			(int iString);
-	int			(*pfnAllocString)			(const char *szValue);
+	const char*	(*pfnSzFromIndex)			(string_t iString);
+	string_t		(*pfnAllocString)			(const char *szValue);
 	struct entvars_s*	(*pfnGetVarsOfEnt)			(edict_t *pEdict);
 	edict_t*	(*pfnPEntityOfEntOffset)	(int iEntOffset);
 	int			(*pfnEntOffsetOfPEntity)	(const edict_t *pEdict);
@@ -256,7 +257,7 @@ typedef struct enginefuncs_s
 
 	void		(*pfnSetGroupMask)			( int mask, int op );
 
-	int			(*pfnCreateInstancedBaseline) ( int classname, struct entity_state_s *baseline );
+	int			(*pfnCreateInstancedBaseline) ( string_t classname, struct entity_state_s *baseline );
 	void		(*pfnCvar_DirectSet)		( struct cvar_s *var, char *value );
 
 	// Forces the client and server to be running with the same version of the specified file
@@ -305,6 +306,8 @@ typedef struct enginefuncs_s
 	int (*pfnCheckParm)( const char *pchCmdLineToken, char **ppnext );
 
 	edict_t*	(*pfnPEntityOfEntIndexAllEntities)		(int iEntIndex);
+    // Owned runtime extension; returns zero when absent and an allocated native string otherwise.
+    string_t (*pfnGetWorldspawnString)(const char *key);
 } enginefuncs_t;
 
 
@@ -417,11 +420,20 @@ typedef enum _fieldtypes
 #include "../common/save_field_storage.h"
 
 #ifdef __cplusplus
+template<typename Storage, FIELDTYPE Kind>
+constexpr unsigned int CseSaveNativeStride() {
+    constexpr auto stride = cse::save::NativeStorageTraits<Storage>::Stride;
+    static_assert(stride <= UINT32_MAX, "Native save-field stride exceeds its descriptor width");
+    static_assert((Kind != FIELD_STRING && Kind != FIELD_MODELNAME && Kind != FIELD_SOUNDNAME)
+                      || stride == sizeof(string_t),
+                  "Saved engine strings must use native string_t storage");
+    return static_cast<unsigned int>(Kind == FIELD_CHARACTER ? sizeof(char)
+        : ((Kind == FIELD_VECTOR || Kind == FIELD_POSITION_VECTOR)
+            ? sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS : stride));
+}
+
 #define CSE_SAVE_NATIVE_STRIDE(type, name, fieldtype, count) \
-    ((fieldtype) == FIELD_CHARACTER ? sizeof(char) \
-        : (((fieldtype) == FIELD_VECTOR || (fieldtype) == FIELD_POSITION_VECTOR) \
-            ? sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS \
-            : cse::save::NativeStorageTraits<decltype(((type *)nullptr)->name)>::Stride))
+    CseSaveNativeStride<decltype(((type *)nullptr)->name), fieldtype>()
 #define CSE_SAVE_NATIVE_FLAGS(type, name) \
     cse::save::NativeStorageTraits<decltype(((type *)nullptr)->name)>::Flags
 #else

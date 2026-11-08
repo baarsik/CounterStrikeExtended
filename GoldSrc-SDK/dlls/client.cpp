@@ -523,7 +523,7 @@ void ClientCommand( edict_t *pEntity )
 	{
 		if ( CVAR_GET_FLOAT( "sv_cheats" ) != 0.0)
 		{
-			int iszItem = ALLOC_STRING( CMD_ARGV(1) );	// Make a copy of the classname
+			string_t iszItem = ALLOC_STRING( CMD_ARGV(1) );	// Make a copy of the classname
 			GetClassPtr((CBasePlayer *)pev)->GiveNamedItem( STRING(iszItem) );
 		}
 	}

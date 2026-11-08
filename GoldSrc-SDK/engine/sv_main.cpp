@@ -2219,7 +2219,7 @@ void SV_WriteSpawn( sizebuf_t* message )
 		Q_memset( &sv_player->v, 0, sizeof( sv_player->v ) );
 		InitEntityDLLFields( sv_player );
 		sv_player->v.colormap = NUM_FOR_EDICT( sv_player );
-		sv_player->v.netname = static_cast<string_t>( host_client->name - pr_strings );
+		sv_player->v.netname = CseStringOffset(pr_strings, host_client->name);
 		if ( host_client->proxy )
 			sv_player->v.flags |= FL_PROXY;
 		gGlobalVariables.time = static_cast<float>( sv.time );
@@ -3106,7 +3106,7 @@ int SV_CreatePacketEntities( sv_delta_t type, client_t* client, packet_entities_
 			{
 				for ( int index = 0; index < sv.instance_baselines->number; ++index )
 				{
-					if ( static_cast<unsigned int>( sv.instance_baselines->classname[index] ) == entity->v.classname )
+					if ( sv.instance_baselines->classname[index] == entity->v.classname )
 					{
 						g_svdeltacallback.newbl = 1;
 						g_svdeltacallback.newblindex = index;
@@ -5135,7 +5135,7 @@ int SV_SpawnServer( qboolean, char* mapName, char* startspot )
 	edict_t* world = &sv.edicts[0];
 	Q_memset( &world->v, 0, sizeof( world->v ) );
 	world->free = 0;
-	world->v.model = static_cast<string_t>( sv.worldmodel->name - pr_strings );
+	world->v.model = CseStringOffset(pr_strings, sv.worldmodel->name);
 	world->v.modelindex = 1; // world model
 	world->v.solid = SOLID_BSP;
 	world->v.movetype = MOVETYPE_PUSH;
@@ -5143,8 +5143,8 @@ int SV_SpawnServer( qboolean, char* mapName, char* startspot )
 		gGlobalVariables.deathmatch = deathmatch.value;
 	else
 		gGlobalVariables.coop = coop.value;
-	gGlobalVariables.mapname = static_cast<string_t>( sv.name - pr_strings );
-	gGlobalVariables.startspot = static_cast<string_t>( sv.startspot - pr_strings );
+	gGlobalVariables.mapname = CseStringOffset(pr_strings, sv.name);
+	gGlobalVariables.startspot = CseStringOffset(pr_strings, sv.startspot);
 	gGlobalVariables.serverflags = static_cast<float>( svs.serverflags );
 	const char* allowValue = "1";
 	if ( deathmatch.value != 0.0f )

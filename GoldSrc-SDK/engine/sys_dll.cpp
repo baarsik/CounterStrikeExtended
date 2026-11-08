@@ -80,10 +80,10 @@ char gszExtendedDisconnectReason[DISCONNECT_REASON_BYTES];
 void ( *Console_Printf )( char* format, ... );
 extern void ( *Launcher_ConsolePrintf )( char* format, ... );
 
-constexpr int ENGINE_FUNCTION_TABLE_BYTES = 636;
-constexpr int GAME_FUNCTION_TABLE_BYTES = 200;
-static_assert( sizeof( enginefuncs_t ) == ENGINE_FUNCTION_TABLE_BYTES );
-static_assert( sizeof( DLL_FUNCTIONS ) == GAME_FUNCTION_TABLE_BYTES );
+constexpr std::size_t EngineFunctionCount = 160; // Legacy 159 entries plus owned worldspawn lookup.
+constexpr std::size_t GameFunctionCount = 50;
+static_assert(sizeof(enginefuncs_t) == EngineFunctionCount * sizeof(decltype(enginefuncs_t::pfnPrecacheModel)));
+static_assert(sizeof(DLL_FUNCTIONS) == GameFunctionCount * sizeof(decltype(DLL_FUNCTIONS::pfnGameInit)));
 
 enginefuncs_t g_engfuncsExportedToDlls = { PF_precache_model_I, PF_precache_sound_I, PF_setmodel_I, PF_modelindex,
 	ModelFrames, PF_setsize_I, PF_changelevel_I, PF_setspawnparms_I, SaveSpawnParms, PF_vectoyaw_I, PF_vectoangles_I,
@@ -111,7 +111,7 @@ enginefuncs_t g_engfuncsExportedToDlls = { PF_precache_model_I, PF_precache_soun
 	PF_GetPlayerAuthId, SequenceGet, SequencePickSentence, COM_FileSize, COM_GetApproxWavePlayLength,
 	VGuiWrap2_IsInCareerMatch, VGuiWrap2_GetLocalizedStringLength, RegisterTutorMessageShown, GetTimesTutorMessageShown,
 	ProcessTutorMessageDecayBuffer, ConstructTutorMessageDecayBuffer, ResetTutorMessageDecayData, QueryClientCvarValue,
-	QueryClientCvarValue2, EngCheckParm, PEntityOfEntIndexAllEntities };
+	QueryClientCvarValue2, EngCheckParm, PEntityOfEntIndexAllEntities, GetWorldspawnString };
 
 #if defined( _WIN32 )
 void Sys_CheckOSVersion();

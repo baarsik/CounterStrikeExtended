@@ -655,7 +655,7 @@ void PF_SetGroupMask( int mask, int op )
 	g_groupop = op;
 }
 
-int PF_CreateInstancedBaseline( int classname, entity_state_t* baseline )
+int PF_CreateInstancedBaseline( string_t classname, entity_state_t* baseline )
 {
 	int i;
 
@@ -1397,7 +1397,7 @@ void PF_setmodel_I( edict_t* e, const char* m )
 	if ( !sv.model_precache[i] )
 		Host_Error( "no precache: %s\n", m );
 
-	e->v.model = (int)( m - pr_strings );
+	e->v.model = CseStringOffset(pr_strings, m);
 	e->v.modelindex = i;
 
 	mod = sv.models[i];
@@ -1512,7 +1512,7 @@ void PF_makestatic_I( edict_t* ent )
 	int i;
 
 	MSG_WriteByte( &sv.signon, svc_spawnstatic );
-	MSG_WriteShort( &sv.signon, (short)SV_ModelIndex( pr_strings + ent->v.model ) );
+	MSG_WriteShort( &sv.signon, (short)SV_ModelIndex( CseStringAddress(pr_strings, ent->v.model) ) );
 	MSG_WriteByte( &sv.signon, ent->v.sequence );
 	MSG_WriteByte( &sv.signon, (int)ent->v.frame );
 	MSG_WriteShort( &sv.signon, ent->v.colormap );
@@ -1737,7 +1737,7 @@ edict_t* FindEntityByString( edict_t* pEdictStartSearchAfter, const char* pszFie
 		if ( ed->free )
 			continue;
 
-		t = pr_strings + *(string_t*)( (byte*)&ed->v + iField );
+		t = CseStringAddress(pr_strings, *(string_t*)((byte *)&ed->v + iField));
 		if ( !t || t == pr_strings )
 			continue;
 
@@ -1758,7 +1758,7 @@ void PF_Remove_I( edict_t* ed )
 	ED_Free( ed );
 }
 
-edict_t* CreateNamedEntity( int className )
+edict_t* CreateNamedEntity( string_t className )
 {
 	edict_t* pedict;
 	ENTITYINIT pEntityInit;
@@ -1769,11 +1769,11 @@ edict_t* CreateNamedEntity( int className )
 	pedict = ED_Alloc();
 	pedict->v.classname = className;
 
-	pEntityInit = GetEntityInit( pr_strings + className );
+	pEntityInit = GetEntityInit( CseStringAddress(pr_strings, className) );
 	if ( !pEntityInit )
 	{
 		ED_Free( pedict );
-		Con_DPrintf( "Can't create entity: %s\n", pr_strings + className );
+		Con_DPrintf( "Can't create entity: %s\n", CseStringAddress(pr_strings, className) );
 		return NULL;
 	}
 
@@ -1954,7 +1954,7 @@ edict_t* PF_CreateFakeClient_I( const char* name )
 	client->connected = TRUE;
 	client->uploading = FALSE;
 	entity->v.flags = FL_CLIENT | FL_FAKECLIENT;
-	entity->v.netname = (string_t)( client->name - pr_strings );
+	entity->v.netname = CseStringOffset(pr_strings, client->name);
 	entity->v.pContainingEntity = entity;
 	Info_SetValueForKey( client->userinfo, "name", name, sizeof( client->userinfo ) );
 	Info_SetValueForKey( client->userinfo, "model", "gordon", sizeof( client->userinfo ) );

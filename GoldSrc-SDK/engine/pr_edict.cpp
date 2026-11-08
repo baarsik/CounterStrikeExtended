@@ -120,9 +120,9 @@ edict_t* PEntityOfEntIndexAllEntities( int index )
 	return entity;
 }
 
-const char* SzFromIndex( int index )
+const char* SzFromIndex( string_t index )
 {
-	return pr_strings + index;
+	return CseStringAddress(pr_strings, index);
 }
 
 edict_t* FindEntityByVars( entvars_t* variables )
@@ -154,9 +154,9 @@ char* ED_NewString( const char* text )
 	return string;
 }
 
-int AllocEngineString( const char* value )
+string_t AllocEngineString( const char* value )
 {
-	return static_cast<int>( ED_NewString( value ) - pr_strings );
+	return CseStringOffset(pr_strings, ED_NewString(value));
 }
 
 void* GetModelPtr( edict_t* entity )
@@ -255,7 +255,7 @@ char* ED_ParseEdict( char* data, edict_t* entity )
 	}
 
 	qboolean initialized = false;
-	ENTITYINIT initialize = GetEntityInit( pr_strings + entity->v.classname );
+	ENTITYINIT initialize = GetEntityInit( CseStringAddress(pr_strings, entity->v.classname) );
 	if ( initialize )
 	{
 		initialize( &entity->v );
@@ -268,13 +268,13 @@ char* ED_ParseEdict( char* data, edict_t* entity )
 		{
 			initialize( &entity->v );
 			KeyValueData key = { const_cast<char*>( "custom" ), const_cast<char*>( "customclass" ),
-				pr_strings + entity->v.classname, 0 };
+				CseStringAddress(pr_strings, entity->v.classname), 0 };
 			gEntityInterface.pfnKeyValue( entity, &key );
 			initialized = true;
 		}
 		else
 		{
-			Con_DPrintf( "Can't init %s\n", pr_strings + entity->v.classname );
+			Con_DPrintf( "Can't init %s\n", CseStringAddress(pr_strings, entity->v.classname) );
 		}
 	}
 
@@ -296,7 +296,7 @@ char* ED_ParseEdict( char* data, edict_t* entity )
 		if ( com_token[0] == '}' )
 			Host_Error( "ED_ParseEntity: closing brace without data" );
 
-		char* classname = pr_strings + entity->v.classname;
+		char* classname = CseStringAddress(pr_strings, entity->v.classname);
 		if ( !classname || Q_strcmp( classname, com_token ) != 0 )
 		{
 			if ( Q_strcmp( keyname, "angle" ) == 0 )
@@ -316,7 +316,7 @@ char* ED_ParseEdict( char* data, edict_t* entity )
 				}
 				Q_strcpy( keyname, "angles" );
 			}
-			KeyValueData key = { pr_strings + entity->v.classname, keyname, com_token, 0 };
+			KeyValueData key = { CseStringAddress(pr_strings, entity->v.classname), keyname, com_token, 0 };
 			gEntityInterface.pfnKeyValue( entity, &key );
 		}
 		cursor = COM_Parse( cursor );
@@ -486,4 +486,16 @@ void ED_Count()
 
 void PR_Init()
 {
+}
+
+string_t GetWorldspawnString(const char *key) {
+    if (!sv.worldmodel || !sv.worldmodel->entities) {
+        return 0;
+    }
+    char value[COM_TOKEN_SIZE]{};
+    const char *classname = CseStringAddress(pr_strings, sv.edicts[0].v.classname);
+    if (!COM_FindWorldspawnValue(sv.worldmodel->entities, classname, key, value, sizeof(value))) {
+        return 0;
+    }
+    return AllocEngineString(value);
 }

@@ -351,7 +351,7 @@ public:
 	void SecondaryAttack( void );
 	BOOL Deploy( void );
 	void Holster( int skiplocal = 0 );
-	int m_iszModel;
+	string_t m_iszModel;
 	int m_iModel;
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )

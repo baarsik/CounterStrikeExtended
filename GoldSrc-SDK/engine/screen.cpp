@@ -283,7 +283,7 @@ void SCR_DrawPause()
 {
 	if ( scr_showpause.value != 0.0f && cl.paused
 		&& ( !g_bIsCZeroRitual || !gGlobalVariables.mapname || !pr_strings
-			|| Q_stricmp( pr_strings + gGlobalVariables.mapname, "cz_worldmap" ) )
+			|| Q_stricmp( CseStringAddress(pr_strings, gGlobalVariables.mapname), "cz_worldmap" ) )
 		&& !VGuiWrap2_IsGameUIVisible() )
 	{
 		qpic_t* pic = Draw_PicFromWad( "paused" );

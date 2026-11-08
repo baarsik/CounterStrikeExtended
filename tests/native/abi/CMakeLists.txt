@@ -75,3 +75,25 @@ if(WIN32)
     target_compile_options(c4_module_probe PRIVATE /W3 /EHsc)
   endif()
 endif()
+
+if(WIN32)
+  foreach(game hl cs)
+    add_executable(world_module_probe_${game} world_module_probe.cpp)
+    target_compile_features(world_module_probe_${game} PRIVATE cxx_std_17)
+    target_compile_definitions(world_module_probe_${game} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    if(game STREQUAL cs)
+      target_include_directories(world_module_probe_${game} PRIVATE
+        "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
+        "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared")
+    endif()
+    target_include_directories(world_module_probe_${game} PRIVATE
+      "${CSE_ROOT}/GoldSrc-SDK/dlls"
+      "${CSE_ROOT}/GoldSrc-SDK/pm_shared"
+      "${CSE_ROOT}/GoldSrc-SDK/common"
+      "${CSE_ROOT}/GoldSrc-SDK/engine"
+      "${CSE_ROOT}/GoldSrc-SDK/public")
+    if(MSVC)
+      target_compile_options(world_module_probe_${game} PRIVATE /W3 /EHsc)
+    endif()
+  endforeach()
+endif()

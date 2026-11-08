@@ -139,23 +139,23 @@ void SV_CheckVelocity( edict_t* ent )
 	{
 		if ( IsInvalidVectorComponent( ent->v.velocity[i] ) )
 		{
-			Con_Printf( "Got a NaN velocity on %s\n", &pr_strings[ent->v.classname] );
+			Con_Printf( "Got a NaN velocity on %s\n", CseStringAddress(pr_strings, ent->v.classname) );
 			ent->v.velocity[i] = 0;
 		}
 		if ( IsInvalidVectorComponent( ent->v.origin[i] ) )
 		{
-			Con_Printf( "Got a NaN origin on %s\n", &pr_strings[ent->v.classname] );
+			Con_Printf( "Got a NaN origin on %s\n", CseStringAddress(pr_strings, ent->v.classname) );
 			ent->v.origin[i] = 0;
 		}
 
 		if ( ent->v.velocity[i] > sv_maxvelocity.value )
 		{
-			Con_DPrintf( "Got a velocity too high on %s\n", &pr_strings[ent->v.classname] );
+			Con_DPrintf( "Got a velocity too high on %s\n", CseStringAddress(pr_strings, ent->v.classname) );
 			ent->v.velocity[i] = sv_maxvelocity.value;
 		}
 		else if ( ent->v.velocity[i] < -sv_maxvelocity.value )
 		{
-			Con_DPrintf( "Got a velocity too low on %s\n", &pr_strings[ent->v.classname] );
+			Con_DPrintf( "Got a velocity too low on %s\n", CseStringAddress(pr_strings, ent->v.classname) );
 			ent->v.velocity[i] = -sv_maxvelocity.value;
 		}
 	}
@@ -1206,7 +1206,7 @@ void SV_Physics_Follow( edict_t* ent )
 
 	if ( !ent->v.aiment )
 	{
-		Con_DPrintf( "%s movetype FOLLOW with NULL aiment\n", &pr_strings[ent->v.classname] );
+		Con_DPrintf( "%s movetype FOLLOW with NULL aiment\n", CseStringAddress(pr_strings, ent->v.classname) );
 		ent->v.movetype = MOVETYPE_NONE;
 		return;
 	}
@@ -1468,7 +1468,7 @@ void SV_Physics()
 			SV_Physics_Toss( ent );
 			break;
 		default:
-			Sys_Error( "SV_Physics: %s bad movetype %d", &pr_strings[ent->v.classname], ent->v.movetype );
+			Sys_Error( "SV_Physics: %s bad movetype %d", CseStringAddress(pr_strings, ent->v.classname), ent->v.movetype );
 			break;
 		}
 

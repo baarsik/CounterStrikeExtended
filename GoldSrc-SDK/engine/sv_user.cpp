@@ -1130,7 +1130,7 @@ void SV_CopyEdictToPhysent( physent_t* physent, int index, edict_t* entity )
 			else
 			{
 				if ( entity->v.classname )
-					Q_strncpy( physent->name, pr_strings + entity->v.classname, sizeof( physent->name ) );
+					Q_strncpy( physent->name, CseStringAddress(pr_strings, entity->v.classname), sizeof( physent->name ) );
 				else
 					Q_strcpy( physent->name, "?" );
 				physent->name[sizeof( physent->name ) - 1] = '\0';

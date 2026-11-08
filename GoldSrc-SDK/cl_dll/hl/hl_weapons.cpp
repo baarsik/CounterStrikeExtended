@@ -97,7 +97,10 @@ bool bIsMultiplayer ( void )
 //Just loads a v_ model.
 void LoadVModel ( char *szViewModel, CBasePlayer *m_pPlayer )
 {
-	gEngfuncs.CL_LoadModel( szViewModel, &m_pPlayer->pev->viewmodel );
+    // Client prediction stores a model index in this shared server string slot.
+    int modelIndex = static_cast<int>(m_pPlayer->pev->viewmodel);
+    gEngfuncs.CL_LoadModel(szViewModel, &modelIndex);
+    m_pPlayer->pev->viewmodel = static_cast<string_t>(modelIndex);
 }
 
 /*
@@ -213,7 +216,10 @@ BOOL CBasePlayerWeapon :: DefaultDeploy( char *szViewModel, char *szWeaponModel,
 	if ( !CanDeploy() )
 		return FALSE;
 
-	gEngfuncs.CL_LoadModel( szViewModel, &m_pPlayer->pev->viewmodel );
+    // Client prediction stores a model index in this shared server string slot.
+    int modelIndex = static_cast<int>(m_pPlayer->pev->viewmodel);
+    gEngfuncs.CL_LoadModel(szViewModel, &modelIndex);
+    m_pPlayer->pev->viewmodel = static_cast<string_t>(modelIndex);
 	
 	SendWeaponAnim( iAnim, skiplocal, body );
 

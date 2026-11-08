@@ -860,6 +860,8 @@ CBaseEntity *CBaseEntity::GetNextTarget( void )
 TYPEDESCRIPTION	CBaseEntity::m_SaveData[] = 
 {
 	DEFINE_FIELD( CBaseEntity, m_pGoalEnt, FIELD_CLASSPTR ),
+    DEFINE_FIELD(CBaseEntity, m_worldMapTeams, FIELD_STRING),
+    DEFINE_FIELD(CBaseEntity, m_worldMapTeamsKnown, FIELD_BOOLEAN),
 
 	DEFINE_FIELD( CBaseEntity, m_pfnThink, FIELD_FUNCTION ),		// UNDONE: Build table of these!!!
 	DEFINE_FIELD( CBaseEntity, m_pfnTouch, FIELD_FUNCTION ),

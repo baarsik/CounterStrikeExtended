@@ -365,7 +365,7 @@ void SCR_UpdateScreen()
 	{
 		if ( scr_showpause.value != 0.0f && cl.paused && !VGuiWrap2_IsGameUIVisible()
 			 && ( !g_bIsCZeroRitual || !gGlobalVariables.mapname || !pr_strings
-				  || Q_strcasecmp( pr_strings + gGlobalVariables.mapname, "cz_worldmap" ) != 0 ) )
+				  || Q_strcasecmp( CseStringAddress(pr_strings, gGlobalVariables.mapname), "cz_worldmap" ) != 0 ) )
 		{
 			Draw_Pic( glwidth / 2 - scr_paused->width / 2, glheight / 2 - scr_paused->height / 2, scr_paused );
 		}
@@ -496,7 +496,7 @@ void SCR_DrawPause()
 {
 	if ( scr_showpause.value != 0.0f && cl.paused && !VGuiWrap2_IsGameUIVisible()
 		 && ( !g_bIsCZeroRitual || !gGlobalVariables.mapname || pr_strings == nullptr
-			  || Q_stricmp( pr_strings + gGlobalVariables.mapname, "cz_worldmap" ) != 0 ) )
+			  || Q_stricmp( CseStringAddress(pr_strings, gGlobalVariables.mapname), "cz_worldmap" ) != 0 ) )
 	{
 		Draw_Pic( glwidth / 2 - scr_paused->width / 2, glheight / 2 - scr_paused->height / 2, scr_paused );
 	}
