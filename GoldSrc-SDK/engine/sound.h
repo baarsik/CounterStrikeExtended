@@ -144,3 +144,7 @@ sfxcache_t*		S_LoadSound( sfx_t* sound, channel_t* channel );
 void			S_PaintChannels( int endtime );
 void			SX_Init();
 void			SX_Free();
+
+// Native DMA writes share the SDL stream lock with the device callback.
+extern "C" bool SNDDMA_LockBuffer();
+extern "C" void SNDDMA_UnlockBuffer();

@@ -1,3 +1,6 @@
+#include "sound_backend_config.h"
+
+#if !CSE_SOUND_USE_SDL
 #include "const.h"
 #include "snd_win.h"
 #include "sound.h"
@@ -614,3 +617,5 @@ extern "C" void Snd_AcquireBuffer()
 			S_Startup();
 	}
 }
+
+#endif // !CSE_SOUND_USE_SDL

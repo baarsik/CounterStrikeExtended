@@ -5,7 +5,7 @@
 
 namespace cse {
 
-// Only the retained non-Windows DMA backend uses this stream. Windows keeps DSound/WaveOut.
+// Native effects use this stream. The maintained Win32 reference keeps DSound/WaveOut.
 class SdlAudioBackend {
 public:
     ~SdlAudioBackend() {
@@ -16,11 +16,12 @@ public:
     SdlAudioBackend(const SdlAudioBackend &) = delete;
     SdlAudioBackend &operator=(const SdlAudioBackend &) = delete;
 
-    bool Open(int frequency, int channels) {
+    bool Open(int frequency, int channelCount,
+              AudioRing::PlaybackPolicy policy = AudioRing::PlaybackPolicy::LegacyByteZero) {
         if (stream_) {
             return true;
         }
-        if (frequency <= 0 || channels <= 0) {
+        if (frequency <= 0 || channelCount <= 0) {
             return false;
         }
         // Always acquire a reference, including when another consumer already initialized audio.
@@ -29,7 +30,8 @@ public:
         }
         ownsAudio_ = true;
         ring_.Reset();
-        const SDL_AudioSpec input = {SDL_AUDIO_S16LE, channels, frequency};
+        playbackPolicy_ = policy;
+        const SDL_AudioSpec input = {SDL_AUDIO_S16LE, channelCount, frequency};
         stream_ = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &input, Feed, this);
         if (!stream_) {
             Close();
@@ -63,12 +65,26 @@ public:
         return paused ? SDL_PauseAudioStreamDevice(stream_) : SDL_ResumeAudioStreamDevice(stream_);
     }
 
+    SDL_AudioDeviceID Device() const {
+        return stream_ ? SDL_GetAudioStreamDevice(stream_) : 0;
+    }
+
     bool IsPaused() const {
         return stream_ && SDL_AudioDevicePaused(SDL_GetAudioStreamDevice(stream_));
     }
 
     unsigned char *Buffer() {
         return ring_.Data();
+    }
+
+    bool LockBuffer() {
+        return stream_ && SDL_LockAudioStream(stream_);
+    }
+
+    void UnlockBuffer() {
+        if (stream_) {
+            SDL_UnlockAudioStream(stream_);
+        }
     }
 
     int MonoSamplePosition() {
@@ -86,10 +102,11 @@ private:
         // SDL already holds the stream lock; demand is in our input format, not the device format.
         backend->ring_.Drain(additionalBytes, [stream](const unsigned char *data, int bytes) {
             return SDL_PutAudioStreamData(stream, data, bytes);
-        });
+        }, backend->playbackPolicy_);
     }
 
     AudioRing ring_;
+    AudioRing::PlaybackPolicy playbackPolicy_ = AudioRing::PlaybackPolicy::LegacyByteZero;
     SDL_AudioStream *stream_ = nullptr;
     bool ownsAudio_ = false;
 };

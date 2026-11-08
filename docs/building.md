@@ -293,3 +293,32 @@ python3 tools/macho_game_exports.py --reference /path/to/Release-hl-win32.txt \
 
 This command checks architecture, minimum macOS version and exports. It does not
 load the game or establish gameplay acceptance.
+
+
+## Native effects fixtures
+
+The native SDL DMA adapter and shared stereo transfer can be tested separately
+from the renderer. The maintained Win32 runtime keeps its DirectSound/WaveOut
+device; native Windows and POSIX builds select SDL. Mixer/DSP/channel algorithms
+remain in the engine. VOX word pointers use native in-memory storage; these words
+are reconstructed from sentence text.
+
+```sh
+cmake -S tests/native/sound -B build/sound-tests -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCSE_SOUND_SDL_PROVIDER=/absolute/path/to/qualified/libSDL3.0.dylib
+cmake --build build/sound-tests --parallel
+ctest --test-dir build/sound-tests --output-on-failure
+```
+
+Use the architecture-matched source-built provider from the dependency presets.
+On Windows also set `CSE_SOUND_SDL_IMPORT_ARCHIVE` to its matching import archive.
+The fixture checks actual machine types and pinned headers before linking, then
+checks the provider version when explicitly executed. With no provider path,
+only the transfer/ring tests build. No provider or game runs during a build.
+These fixtures use SDL's dummy device; run them within an authorized fixture.
+
+The reference and native paths must produce identical PCM for clipping, volume,
+ring wrapping and high addresses. Provider checks cover exact samples at matching
+stream/device rates, write exclusion, focus pause, nested ownership and repeated
+shutdown. Hardware-rate conversion, complete native gameplay audio, microphone,
+voice and A3D remain separate acceptance work.

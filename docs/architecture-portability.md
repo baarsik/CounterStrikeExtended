@@ -60,7 +60,10 @@ server results remain separate.
 SDL2 provider artifacts and the two platform VGUI binaries with formal SDL2 load
 dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s
 and libstdc++ dependencies and remains retained evidence, without a functional
-compatibility claim. Non-Windows SDL3 stream/ring source is retained and tested
-at its arithmetic/ownership boundary; no native Linux/macOS runtime is qualified.
-Windows DirectSound/WaveOut sound effects and physical-CD MCI remain separate
-from libmpg123/SDL3 music.
+compatibility claim. Native SDL3 DMA output now shares the retained stereo transfer arithmetic, with
+stream-locked writes and explicit preservation of every mixer byte. Bounded
+transfer, ring, actual DMA-adapter and real SDL provider fixtures pass Windows
+x86/x64/ARM64 and macOS ARM64 in Release/Debug; this does not qualify whole-game
+native audio, DSP, microphone, voice or A3D behavior. The maintained Win32 runtime
+keeps DirectSound/WaveOut as its regression device. Physical-CD MCI remains
+separate from libmpg123/SDL3 music.

@@ -1,11 +1,12 @@
 #include "sound.h"
+#include "sound_backend_config.h"
 
 int g_fUseDInput;
 
 extern "C" void SetMouseEnable(qboolean) {
 }
 
-#if !defined(_WIN32)
+#if CSE_SOUND_USE_SDL
 
 #include "sdl3_audio_backend.h"
 #include <cstdio>
@@ -43,13 +44,13 @@ extern "C" void S_UnblockSound() {
 
 extern "C" void SNDDMA_Shutdown() {
     audioBackend.Close();
-    sn.soundalive = FALSE;
+    sn.soundalive = false;
     sn.buffer = nullptr;
 }
 
 extern "C" qboolean SNDDMA_Init() {
     if (audioBackend.IsOpen()) {
-        return TRUE;
+        return true;
     }
 
     constexpr int engineChannels = 2;
@@ -61,24 +62,36 @@ extern "C" qboolean SNDDMA_Init() {
     sn.speed = engineMixRate;
     sn.dmaspeed = engineDmaRate;
     shm = &sn;
+#if !defined(_WIN32)
     setenv("PULSE_PROP_application.name", "Half-Life 1", 1);
     setenv("PULSE_PROP_media.role", "game", 1);
+#endif
 
-    if (!audioBackend.Open(shm->dmaspeed, shm->channels)) {
+    if (!audioBackend.Open(shm->dmaspeed, shm->channels, cse::AudioRing::PlaybackPolicy::PreserveSamples)) {
         std::puts("SDL audio initialization failed.");
-        return FALSE;
+        return false;
     }
-    shm->soundalive = TRUE;
-    shm->splitbuffer = FALSE;
+    shm->soundalive = true;
+    shm->splitbuffer = false;
     shm->samples = cse::AudioRing::BufferBytes / cse::AudioRing::BytesPerMonoSample;
     shm->samplepos = 0;
     shm->submission_chunk = 1;
     shm->buffer = audioBackend.Buffer();
     if (!audioBackend.SetPaused(snd_blocked > 0)) {
         SNDDMA_Shutdown();
-        return FALSE;
+        return false;
     }
-    return TRUE;
+    return true;
+}
+
+extern "C" bool SNDDMA_LockBuffer() {
+    return fakedma || audioBackend.LockBuffer();
+}
+
+extern "C" void SNDDMA_UnlockBuffer() {
+    if (!fakedma) {
+        audioBackend.UnlockBuffer();
+    }
 }
 
 extern "C" void SNDDMA_Submit() {

@@ -222,6 +222,16 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   load/save/reload pass after integration, with loaded module hashes checked.
   The synthetic console keyboard probe also fails on the sealed reference and
   remains unqualified; it does not establish native UI, input or browser parity.
+- **Native effects boundary:** native Windows/POSIX SDL DMA uses the shared
+  stereo transfer with locked writes, unchanged clipping/volume/wrapping and
+  native VOX word pointers. All six Windows configurations and macOS ARM64
+  Release/Debug pass seven bounded checks, including the actual DMA source and
+  real SDL provider. Mac sanitizers pass. Twenty-six PCM outputs match the frozen
+  transfer code exactly; injected byte corruption and missing locks are detected.
+  The maintained Win32 device stays DirectSound/WaveOut; all 19 targets and the
+  six save/gameplay/replay regressions pass with producing module hashes checked.
+  These checks do not close native full-mixer/DSP, hardware-rate conversion,
+  microphone/voice, A3D or whole-game audio acceptance.
 - **Providers/platform/renderer:** official native Steam candidates and stable
   CEF156.0.26 archives are pinned for integration. Real native authentication,
   sessions, voice and browser behavior remain pending, as do the portable

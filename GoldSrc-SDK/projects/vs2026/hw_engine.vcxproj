@@ -446,6 +446,9 @@
     <ClInclude Include="..\..\engine\sdl3_audio_backend.h" />
     <ClInclude Include="..\..\engine\sdl3_audio_ring.h" />
     <ClInclude Include="..\..\engine\sound.h" />
+    <ClInclude Include="..\..\engine\sound_backend_config.h" />
+    <ClInclude Include="..\..\engine\sound_transfer_impl.h" />
+    <ClInclude Include="..\..\engine\vox_word.h" />
     <ClInclude Include="..\..\engine\spritegn.h" />
     <ClInclude Include="..\..\engine\SteamCommon.h" />
     <ClInclude Include="..\..\engine\steam_api.h" />

@@ -8,6 +8,11 @@ namespace cse {
 // The engine DMA cursor counts mono 16-bit samples, even for stereo output.
 class AudioRing {
 public:
+    enum class PlaybackPolicy {
+        LegacyByteZero,
+        PreserveSamples
+    };
+
     static constexpr int BufferBytes = 64 * 1024;
     static constexpr int BytesPerMonoSample = 2;
 
@@ -25,11 +30,14 @@ public:
     }
 
     template <typename Sink>
-    bool Drain(int requestedBytes, Sink sink) {
+    bool Drain(int requestedBytes, Sink sink, PlaybackPolicy policy = PlaybackPolicy::LegacyByteZero) {
         while (requestedBytes > 0) {
             const int segmentBytes = std::min(requestedBytes, BufferBytes - position_);
-            // Retain the original callback's byte-zero quirk for each contiguous segment.
-            bytes_[0] = 0;
+            // Retained legacy stream fixtures keep their original byte-zero contract.
+            // Native effects preserve every byte produced by the shared mixer.
+            if (policy == PlaybackPolicy::LegacyByteZero) {
+                bytes_[0] = 0;
+            }
             if (!sink(bytes_.data() + position_, segmentBytes)) {
                 return false;
             }
