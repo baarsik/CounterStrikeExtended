@@ -233,5 +233,15 @@ Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
 round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
 Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
 save/load and CS recording/replay also pass in both Win32 configurations. Native
-engine-string offsets, C4 sound phases, explicit demo/navigation records and full
-native game file round trips remain pending.
+engine-string offsets, explicit demo/navigation records and full native game file
+round trips remain pending.
+
+C4 saves now record a stable optional beep phase and the actual wave counter
+instead of a raw sound pointer. Legacy records recover the sound from exact saved
+attenuation; old pointer bits are skipped. Explicit initial silence and repeated
+final phases survive restoration. The real Win32 CS DLL probe covers all phases,
+legacy imports containing invalid pointer bits, exact deadline/phase advancement
+and malformed-phase rejection in Release and Debug. Both game dispatchers now
+propagate restore failure before spawning or precaching an entity. Standalone
+phase tests pass on all three native architectures and maintained Win32; this
+does not qualify native C4 gameplay, emitted audio, defusing or full save files.

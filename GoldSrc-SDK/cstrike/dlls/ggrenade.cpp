@@ -32,6 +32,7 @@
 #include "bot/bot_manager.h"
 #include "GameEvent.h"
 #include "hltv.h"
+#include "c4_beep_state.h"
 
 extern int gmsgScenarioIcon;
 extern int gmsgBombPickup;
@@ -54,16 +55,43 @@ TYPEDESCRIPTION CGrenade::m_SaveData[] =
 	DEFINE_FIELD( CGrenade, m_flDefuseCountDown, FIELD_TIME ),
 	DEFINE_FIELD( CGrenade, m_flNextBlink, FIELD_TIME ),
 	DEFINE_FIELD( CGrenade, m_pentCurBombTarget, FIELD_EDICT ),
-	DEFINE_FIELD( CGrenade, m_sBeepName, FIELD_POINTER ),
 	DEFINE_FIELD( CGrenade, m_bIsC4, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CGrenade, m_bStartDefuse, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CGrenade, m_SGSmoke, FIELD_INTEGER ),
 	DEFINE_FIELD( CGrenade, m_bJustBlew, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CGrenade, m_bLightSmoke, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CGrenade, m_usEvent, FIELD_INTEGER ),
+    DEFINE_FIELD(CGrenade, m_iCurWave, FIELD_INTEGER),
+    DEFINE_FIELD(CGrenade, m_savedC4BeepPhase, FIELD_INTEGER),
 };
 
-IMPLEMENT_SAVERESTORE( CGrenade, CBaseToggle );
+int CGrenade::Save(CSave &save) {
+    cse::save::C4BeepPhase phase = cse::save::C4BeepPhase::LegacyMissing;
+    if (m_bIsC4 && !cse::save::CaptureC4Beep(m_sBeepName, phase)) {
+        ALERT(at_error, "Cannot save an unknown C4 beep phase\n");
+        return 0;
+    }
+    m_savedC4BeepPhase = static_cast<int>(phase);
+    if (!CBaseToggle::Save(save)) {
+        return 0;
+    }
+    return save.WriteFields("CGrenade", this, m_SaveData, ARRAYSIZE(m_SaveData));
+}
+
+int CGrenade::Restore(CRestore &restore) {
+    // Old m_sBeepName records are unknown fields and are skipped without reading pointer bits.
+    m_sBeepName = nullptr;
+    if (!CBaseToggle::Restore(restore)
+        || !restore.ReadFields("CGrenade", this, m_SaveData, ARRAYSIZE(m_SaveData))) {
+        return 0;
+    }
+    if (m_bIsC4 && !cse::save::RestoreC4Beep(static_cast<cse::save::C4BeepPhase>(m_savedC4BeepPhase),
+        m_fAttenu, m_iCurWave, m_sBeepName)) {
+        ALERT(at_error, "Cannot restore an unknown C4 beep phase\n");
+        return 0;
+    }
+    return 1;
+}
 
 static void AnnounceFlashInterval( float interval, float offset )
 {

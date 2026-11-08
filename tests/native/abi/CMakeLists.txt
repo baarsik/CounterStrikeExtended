@@ -58,3 +58,20 @@ target_link_libraries(game_module_probe PRIVATE ${CMAKE_DL_LIBS})
 if(MSVC)
   target_compile_options(game_module_probe PRIVATE /W4 /WX /EHsc)
 endif()
+if(WIN32)
+  # Owned engine callbacks drive the rebuilt CS DLL's real C4 save/restore/think paths.
+  # Execution is explicit; this is not an ordinary CTest module-loading fixture.
+  add_executable(c4_module_probe c4_module_probe.cpp)
+  target_compile_features(c4_module_probe PRIVATE cxx_std_17)
+  target_compile_definitions(c4_module_probe PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_include_directories(c4_module_probe PRIVATE
+    "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
+    "${CSE_ROOT}/GoldSrc-SDK/cstrike/common"
+    "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared"
+    "${CSE_ROOT}/GoldSrc-SDK/common"
+    "${CSE_ROOT}/GoldSrc-SDK/engine"
+    "${CSE_ROOT}/GoldSrc-SDK/public")
+  if(MSVC)
+    target_compile_options(c4_module_probe PRIVATE /W3 /EHsc)
+  endif()
+endif()

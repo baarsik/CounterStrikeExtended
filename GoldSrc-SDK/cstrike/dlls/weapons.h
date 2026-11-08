@@ -392,7 +392,7 @@ public:
 	float	m_flNextFreqInterval;
 	float	m_flNextBeep;
 	float	m_flNextFreq;
-	char*	m_sBeepName;
+    const char *m_sBeepName;
 	float	m_fAttenu;
 	float	m_flNextBlink;
 	float	m_fNextDefuse;
@@ -408,6 +408,7 @@ public:
 	Vector	m_vSmokeDetonate;
 	int		m_iBounceCount;
 	BOOL	m_fRegisteredSound; // whether or not this grenade has issued its DANGER sound to the world sound list yet.
+    int m_savedC4BeepPhase; // Stable save symbol; the runtime sound pointer is never serialized.
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )
 #endif

@@ -612,8 +612,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 				pSaveData->vecLandmarkOffset = (pSaveData->vecLandmarkOffset - pNewEntity->pev->mins) + tmpVars.mins;
 				pEntity = pNewEntity;// we're going to restore this data OVER the old entity
 				pent = ENT( pEntity->pev );
-				// Update the global table to say that the global definition of this entity should come from this level
-				gGlobalState.EntityUpdate( pEntity->pev->globalname, gpGlobals->mapname );
+
 			}
 			else
 			{
@@ -624,16 +623,26 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 
 		}
 
-		if ( pEntity->ObjectCaps() & FCAP_MUST_SPAWN )
-		{
-			pEntity->Restore( restoreHelper );
-			pEntity->Spawn();
-		}
-		else
-		{
-			pEntity->Restore( restoreHelper );
-			pEntity->Precache( );
-		}
+        const bool mustSpawn = (pEntity->ObjectCaps() & FCAP_MUST_SPAWN) != 0;
+        if (!pEntity->Restore(restoreHelper)) {
+            if (globalEntity) {
+                pSaveData->vecLandmarkOffset = oldOffset;
+                // The engine frees only the temporary source after an overlay. Remove
+                // the failed destination without marking the previous global record dead.
+                pEntity->pev->globalname = 0;
+                pEntity->UpdateOnRemove();
+                REMOVE_ENTITY(pent);
+            }
+            return -1;
+        }
+        if (globalEntity) {
+            gGlobalState.EntityUpdate(pEntity->pev->globalname, gpGlobals->mapname);
+        }
+        if (mustSpawn) {
+            pEntity->Spawn();
+        } else {
+            pEntity->Precache();
+        }
 
 		// Again, could be deleted, get the pointer again.
 		pEntity = (CBaseEntity *)GET_PRIVATE(pent);
