@@ -96,6 +96,11 @@
   <ItemGroup>
     <None Include="swds.def" />
     <None Include="swds.res" />
+    <ClCompile Include="..\vgui2\vgui_surfacelib\native\MacFontDiscovery.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseNativeServices>fonts</CseNativeServices>
+    </ClCompile>
     <ClCompile Include="..\common\steam_service.cpp" />
     <ClCompile Include="..\engine\BaseSystemModule.cpp" />
     <ClCompile Include="..\engine\bitmap_win.cpp" />
@@ -170,6 +175,9 @@
     <ClCompile Include="..\engine\net_api.cpp" />
     <ClCompile Include="..\engine\net_chan.cpp" />
     <ClCompile Include="..\engine\net_ws.cpp" />
+    <ClCompile Include="..\engine\network_worker.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\engine\nonintel.cpp" />
     <ClCompile Include="..\engine\pmove.cpp" />
     <ClCompile Include="..\engine\pmovedbg.cpp" />
@@ -288,6 +296,8 @@
     <ClCompile Include="..\vgui2\vgui_surfacelib\FontManager.cpp" />
     <ClCompile Include="..\vgui2\vgui_surfacelib\linuxfont.cpp" />
     <ClCompile Include="..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
+    <ClInclude Include="..\vgui2\vgui_surfacelib\native\MacFontDiscovery.h" />
+    <ClInclude Include="..\engine\network_worker.h" />
     <ClInclude Include="..\public\html_legacy_interfaces.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="..\public\steam_provider.h" />

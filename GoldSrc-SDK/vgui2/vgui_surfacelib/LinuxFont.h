@@ -2,6 +2,12 @@
 
 #include "utlrbtree.h"
 
+#if defined(__APPLE__)
+#include <map>
+#include <string>
+#include <vector>
+#endif
+
 struct FT_FaceRec_;
 typedef FT_FaceRec_* FT_Face;
 
@@ -66,7 +72,14 @@ public:
 	int GetBlur() { return m_iBlur; }
 	bool GetUnderlined() { return m_bUnderlined; }
 	bool IsAdditive() { return m_bAdditive; }
+#if defined(__APPLE__)
+    const char* GetName() {
+        return m_MacRequestedName.c_str();
+    }
+    CLinuxFont* GetMacFallbackFontForChar(int ch);
+#else
 	const char* GetName() { return m_szName; }
+#endif
 	int GetWeight() { return m_iWeight; }
 
 #if defined( _WIN32 )
@@ -142,6 +155,13 @@ private:
 #if !defined( _WIN32 )
 	FT_Face face;
 	int m_iFxpHeight;
+#endif
+
+#if defined(__APPLE__)
+    std::string m_MacRequestedName;
+    std::string m_MacPostScriptName;
+    std::vector<CLinuxFont*> m_MacFallbackFonts;
+    std::map<int, CLinuxFont*> m_MacFallbackByChar;
 #endif
 
 	static CUtlRBTree<font_name_entry> m_FriendlyNameCache;

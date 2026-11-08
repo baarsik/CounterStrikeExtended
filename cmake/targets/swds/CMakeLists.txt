@@ -69,6 +69,7 @@ target_sources(swds PRIVATE
   "${CSE_SDK_DIR}/engine/net_api.cpp"
   "${CSE_SDK_DIR}/engine/net_chan.cpp"
   "${CSE_SDK_DIR}/engine/net_ws.cpp"
+  "${CSE_SDK_DIR}/engine/network_worker.cpp"
   "${CSE_SDK_DIR}/engine/nonintel.cpp"
   "${CSE_SDK_DIR}/engine/pmove.cpp"
   "${CSE_SDK_DIR}/engine/pmovedbg.cpp"
@@ -193,6 +194,10 @@ target_sources(swds PRIVATE
   "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp"
   "${CSE_SDK_DIR}/engine/engine.rc"
 )
+if(APPLE)
+  target_sources(swds PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp")
+  cse_link_native_font_services(swds)
+endif()
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
@@ -312,6 +317,8 @@ set_property(SOURCE "${CSE_SDK_DIR}/engine/module.cpp" APPEND PROPERTY COMPILE_O
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_api.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_chan.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_ws.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/nonintel.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/pmove.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/pmovedbg.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
@@ -567,6 +574,8 @@ set_property(SOURCE "${CSE_SDK_DIR}/engine/module.cpp" APPEND PROPERTY COMPILE_O
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_api.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_chan.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/net_ws.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/nonintel.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/pmove.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/pmovedbg.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")

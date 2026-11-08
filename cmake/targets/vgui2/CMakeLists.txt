@@ -33,6 +33,10 @@ target_sources(vgui2 PRIVATE
   "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/FontManager.cpp"
   "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/linuxfont.cpp"
 )
+if(APPLE)
+  target_sources(vgui2 PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp")
+  cse_link_native_font_services(vgui2)
+endif()
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")

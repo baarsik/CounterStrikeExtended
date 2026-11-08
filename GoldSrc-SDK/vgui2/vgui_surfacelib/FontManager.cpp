@@ -45,6 +45,14 @@ FallbackFont_t g_FallbackFonts[] = {
 	{ "Tahoma", nullptr },
 	{ nullptr, "Tahoma" },
 };
+#elif defined(__APPLE__)
+// CoreText resolves installed macOS families directly; Linux package names do not apply.
+FallbackFont_t g_ForceReplaceFonts[] = {
+    { nullptr, nullptr },
+};
+FallbackFont_t g_FallbackFonts[] = {
+    { nullptr, nullptr },
+};
 #else
 FallbackFont_t g_ForceReplaceFonts[] = {
 	{ "Trebuchet MS", "Fira Sans" },
@@ -69,7 +77,7 @@ FallbackFont_t g_FallbackFonts[] = {
 
 static const char* g_szValidAsianFonts[] = {
 	"Marlett",
-#if !defined( _WIN32 )
+#if !defined( _WIN32 ) && !defined(__APPLE__)
 	"WenQuanYi Zen Hei",
 	"unifont",
 #endif
@@ -280,6 +288,15 @@ bool CFontManager::AddGlyphSetToFont(
 	if ( m_FontAmalgams[font].GetCount() > 0 )
 		return false;
 
+#if defined(__APPLE__)
+    CLinuxFont* primary = CreateOrFindWin32Font(name, tall, weight, blur, scanlines, flags);
+    if (!primary) {
+        return false;
+    }
+    constexpr int maxUnicodeScalar = 0x10ffff;
+    m_FontAmalgams[font].AddFont(primary, 0, maxUnicodeScalar);
+    return true;
+#else
 	const char* fontName = name;
 #if !defined( _WIN32 )
 	for ( int index = 0; g_ForceReplaceFonts[index].font != nullptr; ++index )
@@ -333,6 +350,7 @@ bool CFontManager::AddGlyphSetToFont(
 	} while ( fontName != nullptr );
 
 	return false;
+#endif
 }
 
 vgui2::HFont CFontManager::GetFontByName( const char* name )
@@ -430,6 +448,8 @@ const char* CFontManager::GetForeignFallbackFontName()
 {
 #if defined( _WIN32 )
 	return "Tahoma";
+#elif defined(__APPLE__)
+    return "Helvetica";
 #else
 	return "Noto Sans";
 #endif

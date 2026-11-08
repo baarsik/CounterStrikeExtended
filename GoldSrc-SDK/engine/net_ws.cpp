@@ -31,6 +31,8 @@ constexpr int kEngineDropMembership = IP_DROP_MEMBERSHIP;
 }
 #endif
 
+#include "network_worker.h"
+
 #include "net.h"
 #include "client.h"
 #include "server.h"
@@ -91,9 +93,9 @@ static loopback_t loopbacks[LOOPBACK_CHANNELS];
 int use_thread;
 qboolean net_thread_initialized;
 SOCKET ip_sockets[NET_SOCKET_SOURCES];
-#if defined( _WIN32 )
-CRITICAL_SECTION net_thread_cs;
-#endif
+static std::recursive_mutex net_thread_mutex;
+static cse::NetworkWorker net_worker(net_thread_mutex);
+static_assert(NET_SOCKET_SOURCES == cse::kNetworkWorkerSourceCount);
 
 qboolean NET_IsSteamFakeIP( netsrc_t source, const sockaddr* destination );
 int NET_SteamFakeIPSendTo(
@@ -289,21 +291,17 @@ void NET_SendPacket( netsrc_t source, int length, void* data, netadr_t destinati
 {
 	if ( destination.type == NA_LOOPBACK )
 	{
-#if !defined( _WIN32 )
-#else
-		if ( use_thread && net_thread_initialized )
-			EnterCriticalSection( &net_thread_cs );
-#endif
+        if (use_thread && net_thread_initialized) {
+            net_thread_mutex.lock();
+        }
 		loopback_t* loop = &loopbacks[source ^ 1];
 		loopmsg_t* message = &loop->msgs[loop->send & ( MAX_LOOPBACK - 1 )];
 		loop->send = static_cast<int>( static_cast<unsigned int>( loop->send ) + 1 );
 		Q_memcpy( message->data, data, length );
 		message->datalen = length;
-#if !defined( _WIN32 )
-#else
-		if ( use_thread && net_thread_initialized )
-			LeaveCriticalSection( &net_thread_cs );
-#endif
+        if (use_thread && net_thread_initialized) {
+            net_thread_mutex.unlock();
+        }
 		return;
 	}
 	if ( destination.type != NA_BROADCAST && destination.type != NA_IP )
@@ -392,9 +390,11 @@ typedef struct net_messages_s
 	int buffersize;
 } net_messages_t;
 
-static_assert( sizeof( packetlag_t ) == 40 );
+// These pointer-bearing records own native queue storage; their bytes are not
+// sent on the wire. Keep the Win32 reference and native pointer layouts checked.
+static_assert(sizeof(packetlag_t) == (sizeof(void*) == 4 ? 40 : 56));
 static_assert( sizeof( LONGPACKET ) == 6024 );
-static_assert( sizeof( net_messages_t ) == 36 );
+static_assert(sizeof(net_messages_t) == (sizeof(void*) == 4 ? 36 : 48));
 
 static packetlag_t g_pLagData[NET_SOCKET_SOURCES]; // List of lag structures, if fakelag is set.
 static int losscount[NET_SOCKET_SOURCES];
@@ -472,24 +472,15 @@ void NET_AdjustLag()
 
 qboolean NET_LagPacket( qboolean newData, netsrc_t source, netadr_t* from, sizebuf_t* data )
 {
+    std::lock_guard<std::recursive_mutex> lock(net_thread_mutex);
 	constexpr int LOSS_PERCENT_MAX = 100;
 	constexpr int MIN_LOSS_INTERVAL = 2;
 	constexpr double MILLISECONDS_PER_SECOND = 1000.0;
 	if ( gFakeLag <= 0.0f )
 	{
-#if !defined( _WIN32 )
-#else
-		if ( use_thread && net_thread_initialized )
-			EnterCriticalSection( &net_thread_cs );
-#endif
 		NET_ClearLaggedList( &g_pLagData[NS_CLIENT] );
 		NET_ClearLaggedList( &g_pLagData[NS_MULTICAST] );
 		NET_ClearLaggedList( &g_pLagData[NS_SERVER] );
-#if !defined( _WIN32 )
-#else
-		if ( use_thread && net_thread_initialized )
-			LeaveCriticalSection( &net_thread_cs );
-#endif
 		return newData;
 	}
 	float time = static_cast<float>( realtime );
@@ -719,16 +710,11 @@ qboolean NET_QueuePacket( netsrc_t source )
 
 qboolean NET_GetPacket( netsrc_t source )
 {
-	NET_AdjustLag();
-	int threaded = use_thread;
-#if !defined( _WIN32 )
-#else
-	if ( threaded && net_thread_initialized )
-	{
-		EnterCriticalSection( &net_thread_cs );
-		threaded = use_thread;
-	}
-#endif
+    int threaded = use_thread;
+    if (threaded && net_thread_initialized) {
+        net_thread_mutex.lock();
+    }
+    NET_AdjustLag();
 	loopback_t* loop = &loopbacks[source];
 	if ( static_cast<int>( static_cast<unsigned int>( loop->send ) - loop->get ) > MAX_LOOPBACK )
 		loop->get = static_cast<int>( static_cast<unsigned int>( loop->send ) - MAX_LOOPBACK );
@@ -780,11 +766,9 @@ qboolean NET_GetPacket( netsrc_t source )
 			received = true;
 		}
 	}
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		LeaveCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.unlock();
+    }
 	return received;
 }
 
@@ -799,10 +783,6 @@ byte colors[NET_GRAPH_COLOR_COUNT][RGB_COMPONENTS];
 qboolean noip;
 int net_configured;
 int net_sleepforever = 1;
-#if defined( _WIN32 )
-HANDLE hNetThread;
-DWORD dwNetThreadId;
-#endif
 
 cvar_t net_address = { const_cast<char*>( "net_address" ), const_cast<char*>( "" ), 0, 0.0f, nullptr };
 cvar_t ipname = { const_cast<char*>( "ip" ), const_cast<char*>( "localhost" ), 0, 0.0f, nullptr };
@@ -844,71 +824,41 @@ static void MaxPlayers_f()
 }
 bool NET_ShouldUseSteamFakeIP();
 void NET_SteamFakeIPDestroySocket( netsrc_t source );
-#if defined( _WIN32 )
-DWORD WINAPI NET_ThreadEntry( void* context );
-
-DWORD WINAPI NET_ThreadEntry( void* )
-{
-	constexpr long NET_THREAD_POLL_MICROSECONDS = 20000;
-	constexpr DWORD NET_THREAD_SLEEP_MILLISECONDS = 1;
-	for ( ;; )
-	{
-		fd_set readSockets;
-		readSockets.fd_count = 0;
-		int maxSocket = 0;
-		for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
-		{
-			SOCKET socket = ip_sockets[source];
-			if ( socket )
-			{
-				readSockets.fd_array[readSockets.fd_count++] = socket;
-				if ( static_cast<int>( socket ) > maxSocket )
-					maxSocket = static_cast<int>( socket );
-			}
-		}
-		timeval timeout = { 0, NET_THREAD_POLL_MICROSECONDS };
-		int ready = select( maxSocket + 1, &readSockets, nullptr, nullptr, net_sleepforever ? nullptr : &timeout );
-		while ( ready != 0 )
-		{
-			qboolean idle = true;
-			for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
-			{
-				if ( use_thread && net_thread_initialized )
-					EnterCriticalSection( &net_thread_cs );
-				if ( NET_QueuePacket( static_cast<netsrc_t>( source ) ) )
-				{
-					idle = false;
-					net_messages_t* message;
-					if ( in_message.cursize <= PREALLOCATED_PACKET_BYTES && normalqueue )
-					{
-						message = normalqueue;
-						normalqueue = message->next;
-					}
-					else
-					{
-						message = static_cast<net_messages_t*>( Mem_ZeroMalloc( sizeof( net_messages_t ) ) );
-						message->buffer = static_cast<byte*>( Mem_ZeroMalloc( in_message.cursize ) );
-						message->preallocated = false;
-					}
-					message->buffersize = in_message.cursize;
-					Q_memcpy( message->buffer, in_message.data, in_message.cursize );
-					message->from = in_from;
-					net_messages_t** tail = &messages[source];
-					while ( *tail )
-						tail = &( *tail )->next;
-					*tail = message;
-					message->next = nullptr;
-				}
-				if ( use_thread && net_thread_initialized )
-					LeaveCriticalSection( &net_thread_cs );
-			}
-			if ( idle )
-				break;
-		}
-		Sleep( NET_THREAD_SLEEP_MILLISECONDS );
-	}
+static int NET_WorkerSockets(cse::NetworkWorkerSocket* sockets, int capacity) {
+    int count = 0;
+    for (int source = 0; source < NET_SOCKET_SOURCES && count < capacity; ++source) {
+        if (ip_sockets[source]) {
+            sockets[count++] = ip_sockets[source];
+        }
+    }
+    return count;
 }
-#endif
+
+static bool NET_WorkerQueuePacket(int source) {
+    if (!NET_QueuePacket(static_cast<netsrc_t>(source))) {
+        return false;
+    }
+
+    net_messages_t* message;
+    if (in_message.cursize <= PREALLOCATED_PACKET_BYTES && normalqueue) {
+        message = normalqueue;
+        normalqueue = message->next;
+    } else {
+        message = static_cast<net_messages_t*>(Mem_ZeroMalloc(sizeof(net_messages_t)));
+        message->buffer = static_cast<byte*>(Mem_ZeroMalloc(in_message.cursize));
+        message->preallocated = false;
+    }
+    message->buffersize = in_message.cursize;
+    Q_memcpy(message->buffer, in_message.data, in_message.cursize);
+    message->from = in_from;
+    net_messages_t** tail = &messages[source];
+    while (*tail) {
+        tail = &(*tail)->next;
+    }
+    *tail = message;
+    message->next = nullptr;
+    return true;
+}
 
 void NET_InitColors()
 {
@@ -931,44 +881,22 @@ void NET_InitColors()
 	}
 }
 
-void NET_StartThread()
-{
-#if !defined( _WIN32 )
-	if ( use_thread && !net_thread_initialized )
-		net_thread_initialized = true;
-#else
-	if ( use_thread && !net_thread_initialized )
-	{
-		net_thread_initialized = true;
-		InitializeCriticalSection( &net_thread_cs );
-		hNetThread = CreateThread( nullptr, 0, NET_ThreadEntry, nullptr, 0, &dwNetThreadId );
-		if ( !hNetThread )
-		{
-			DeleteCriticalSection( &net_thread_cs );
-			net_thread_initialized = false;
-			use_thread = 0;
-			Sys_Error( "Couldn't initialize network thread, run without -net_thread\n" );
-		}
-	}
-#endif
+void NET_StartThread() {
+    if (use_thread && !net_thread_initialized) {
+        if (!net_worker.Start(NET_WorkerSockets, NET_WorkerQueuePacket, net_sleepforever != 0)) {
+            use_thread = 0;
+            Sys_Error("Couldn't initialize network thread, run without -netthread\n");
+            return;
+        }
+        net_thread_initialized = true;
+    }
 }
 
-void NET_StopThread()
-{
-#if !defined( _WIN32 )
-	if ( use_thread && net_thread_initialized )
-		net_thread_initialized = false;
-#else
-	if ( use_thread && net_thread_initialized )
-	{
-#ifdef _MSC_VER
-#pragma warning( suppress: 6258 )
-#endif
-		TerminateThread( hNetThread, 0 );
-		DeleteCriticalSection( &net_thread_cs );
-		net_thread_initialized = false;
-	}
-#endif
+void NET_StopThread() {
+    // Keep queue synchronization active until the worker has left its last
+    // complete packet. No queue or watched socket may be freed before join.
+    net_worker.Stop();
+    net_thread_initialized = false;
 }
 
 void NET_Init()
@@ -990,11 +918,9 @@ void NET_Init()
 	Cvar_RegisterVariable( &net_graphwidth );
 	Cvar_RegisterVariable( &net_scale );
 	Cvar_RegisterVariable( &net_graphpos );
-#if !defined( _WIN32 )
-#else
-	if ( COM_CheckParm( "-netthread" ) )
-		use_thread = 1;
-#endif
+    if (COM_CheckParm("-netthread")) {
+        use_thread = 1;
+    }
 	if ( COM_CheckParm( "-netsleep" ) )
 		net_sleepforever = 0;
 	if ( COM_CheckParm( "-noip" ) )
@@ -1026,12 +952,7 @@ void NET_Init()
 		message->next = normalqueue;
 		normalqueue = message;
 	}
-#if !defined( _WIN32 )
-	if ( use_thread && !net_thread_initialized )
-		net_thread_initialized = true;
-#else
-	NET_StartThread();
-#endif
+    NET_StartThread();
 	Con_DPrintf( "Base networking initialized.\n" );
 }
 
@@ -1041,6 +962,10 @@ void NET_Config( qboolean multiplayer )
 	static qboolean bFirst = true;
 	if ( old_config == multiplayer )
 		return;
+    // select owns a snapshot of these socket handles. Join before opening or
+    // closing them, then resume against the new set without discarding queues.
+    const bool restartThread = net_thread_initialized != false;
+    NET_StopThread();
 	old_config = multiplayer;
 	if ( multiplayer )
 	{	// open sockets
@@ -1054,42 +979,29 @@ void NET_Config( qboolean multiplayer )
 	}
 	else
 	{
-#if !defined( _WIN32 )
-		for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
-		{
-			if ( ip_sockets[source] )
-			{
-				close( ip_sockets[source] );
-				ip_sockets[source] = 0;
-			}
-			NET_SteamFakeIPDestroySocket( static_cast<netsrc_t>( source ) );
-		}
+        for (int source = 0; source < NET_SOCKET_SOURCES; ++source) {
+            if (ip_sockets[source]) {
+#if defined(_WIN32)
+                closesocket(ip_sockets[source]);
 #else
-		if ( use_thread && net_thread_initialized )
-			EnterCriticalSection( &net_thread_cs );
-		for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
-		{
-			if ( ip_sockets[source] )
-			{
-				closesocket( ip_sockets[source] );
-				ip_sockets[source] = 0;
-			}
-			NET_SteamFakeIPDestroySocket( static_cast<netsrc_t>( source ) );
-		}
-		if ( use_thread && net_thread_initialized )
-			LeaveCriticalSection( &net_thread_cs );
+                close(ip_sockets[source]);
 #endif
+                ip_sockets[source] = 0;
+            }
+            NET_SteamFakeIPDestroySocket(static_cast<netsrc_t>(source));
+        }
 	}
 	net_configured = multiplayer != false;
+    if (restartThread) {
+        NET_StartThread();
+    }
 }
 
 void NET_ClearLagData( qboolean client, qboolean server )
 {
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		EnterCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.lock();
+    }
 	if ( client )
 	{
 		NET_ClearLaggedList( &g_pLagData[NS_CLIENT] );
@@ -1097,29 +1009,17 @@ void NET_ClearLagData( qboolean client, qboolean server )
 	}
 	if ( server )
 		NET_ClearLaggedList( &g_pLagData[NS_SERVER] );
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		LeaveCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.unlock();
+    }
 }
 
 void NET_Shutdown()
 {
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		EnterCriticalSection( &net_thread_cs );
-#endif
+    NET_StopThread();
 	NET_ClearLaggedList( &g_pLagData[NS_CLIENT] );
 	NET_ClearLaggedList( &g_pLagData[NS_SERVER] );
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		LeaveCriticalSection( &net_thread_cs );
-#endif
 	NET_Config( false );
-	NET_StopThread();
 	for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
 	{
 		net_messages_t* message = messages[source];
@@ -1306,11 +1206,9 @@ void NET_OpenIP()
 	int serverPort = 0;
 	int clientPort = 0;
 	qboolean dedicated = cls.state == ca_dedicated;
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		EnterCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.lock();
+    }
 	if ( !ip_sockets[NS_SERVER] )
 	{
 		serverPort = static_cast<int>( iphostport.value );
@@ -1327,19 +1225,15 @@ void NET_OpenIP()
 		if ( !ip_sockets[NS_SERVER] && dedicated )
 			Sys_Error( "Couldn't allocate dedicated server IP port %d.", serverPort );
 	}
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		LeaveCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.unlock();
+    }
 	// dedicated servers don't need client ports
 	if ( cls.state == ca_dedicated )
 		return;
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		EnterCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.lock();
+    }
 	if ( !ip_sockets[NS_CLIENT] )
 	{
 		clientPort = static_cast<int>( ip_clientport.value );
@@ -1361,11 +1255,9 @@ void NET_OpenIP()
 	}
 	Net_CheckOpenFakeUDPPorts( true );
 	Net_CheckOpenFakeUDPPorts( false );
-#if !defined( _WIN32 )
-#else
-	if ( use_thread && net_thread_initialized )
-		LeaveCriticalSection( &net_thread_cs );
-#endif
+    if (use_thread && net_thread_initialized) {
+        net_thread_mutex.unlock();
+    }
 	static qboolean bFirst = true;
 	if ( bFirst )
 	{
@@ -2288,14 +2180,12 @@ void NET_AllocateQueues()
 		message->next = normalqueue;
 		normalqueue = message;
 	} while ( remaining != 0 );
-	if ( use_thread != 0 && net_thread_initialized == false )
-		net_thread_initialized = true;
+    NET_StartThread();
 }
 
 void NET_FlushQueues()
 {
-	if ( use_thread != 0 && net_thread_initialized != false )
-		net_thread_initialized = false;
+    NET_StopThread();
 	for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
 	{
 		net_messages_t* message = messages[source];

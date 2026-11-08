@@ -349,6 +349,26 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS
   development bundle.
+- **Network worker boundary:** cooperative stop, UDP wake and join replace forced
+  termination on Windows and supply the missing POSIX worker. Socket replacement
+  stops the worker before closing descriptors. Controlled real-UDP queue/lifetime
+  fixtures pass Windows x86/x64/ARM64 Release/Debug under both socket import
+  policies, plus macOS Release/Debug/ASan/UBSan/TSan. This does not qualify inherited
+  clock/cvar/RNG/diagnostic/FakeIP concurrency, lag/split packets, netchan or external
+  server play. The Win32 reference retains its existing receive algorithms.
+- **macOS font discovery boundary:** CoreText selects native UTF-8 family or exact
+  PostScript faces and verified FreeType collection/instance indices. Existing
+  glyph rasterization/effects remain in FreeType. Native covering, readable
+  fallback handles CJK and supplementary scalars without Linux font-name remaps.
+  Twelve discovery/manager cases pass Release, Debug and sanitizers; actual UI
+  layout/metric parity, custom Surface registration and macOS 14 execution remain
+  open. Platform-only membership is owned by the retained manifests and translator.
+- **Platform regression reference:** all 19 Win32 targets pass Release/Debug,
+  followed by six fresh save/gameplay/replay cases with 14 matching producer-module
+  hashes each. All 42 PE machine types, imports, exports and resource payloads are
+  checked; resource payload comparison accounts for relocated PE resource RVAs.
+  These receipts cover the immutable platform snapshot, before subsequent browser
+  and custom-font integration changes, and do not promote a full native target.
 
 Detailed passing and failed receipts, source/binary hashes and scope rulings are
 kept in the task ledger and isolated cse-native64-20261108 artifact directory.

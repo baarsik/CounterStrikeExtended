@@ -92,3 +92,15 @@ function(cse_a3d_geometry_source filename section)
 endfunction()
 
 include("${CMAKE_CURRENT_LIST_DIR}/SteamDependency.cmake")
+
+# macOS discovers native font faces through CoreText and rasterizes with the
+# pinned source-built FreeType provider. Runtime widgets/layouts remain owned by VGUI.
+function(cse_link_native_font_services target)
+  if(NOT APPLE)
+    message(FATAL_ERROR "Native CoreText font services are a macOS target policy")
+  endif()
+  include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NativeThirdParty.cmake")
+  cse_load_native_third_party()
+  target_compile_features(${target} PRIVATE cxx_std_17)
+  target_link_libraries(${target} PRIVATE Freetype::Freetype "-framework CoreText" "-framework CoreFoundation")
+endfunction()

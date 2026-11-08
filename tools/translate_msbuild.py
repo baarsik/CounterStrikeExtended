@@ -387,6 +387,39 @@ def cmake_source(item):
     return portable(item['path'])
 
 
+def emit_platform_sources(lines, target, configs):
+    """Platform-only additions remain owned by manifests, excluded from reference Win32 selections."""
+    predicates = {'macos': 'APPLE', 'windows': 'WIN32', 'linux': 'CMAKE_SYSTEM_NAME STREQUAL "Linux"'}
+    selections = []
+    for configuration in ('Debug', 'Release'):
+        selected = []
+        for item in configs[configuration]['items']:
+            platform = item['metadata'].get('CseTargetOS')
+            if not platform:
+                continue
+            if item['kind'] != 'ClCompile' or platform not in predicates:
+                raise ValueError('Unsupported CseTargetOS source metadata: ' + str(platform))
+            if item['metadata'].get('ExcludedFromBuild') != 'true':
+                raise ValueError('Platform-only source must be excluded from reference Win32 selection')
+            service = item['metadata'].get('CseNativeServices', '')
+            if service not in ('', 'fonts') or (service == 'fonts' and platform != 'macos'):
+                raise ValueError('Unsupported CseNativeServices source metadata: ' + service)
+            selected.append((platform, cmake_source(item), service))
+        selections.append(selected)
+    if selections[0] != selections[1]:
+        raise ValueError('Platform source membership differs between configurations')
+    for platform in predicates:
+        selected = [(path, service) for os_name, path, service in selections[0] if os_name == platform]
+        if not selected:
+            continue
+        lines.append('if(' + predicates[platform] + ')')
+        for path, _ in selected:
+            lines.append(f'  target_sources({target} PRIVATE {quote(path)})')
+        if any(service == 'fonts' for _, service in selected):
+            lines.append(f'  cse_link_native_font_services({target})')
+        lines.append('endif()')
+
+
 def emit_portable_game_policy(lines, target, configs, project):
     """Compiler/OS policy only; source membership is emitted once in Sources.cmake."""
     lines.append(f'target_compile_features({target} PRIVATE cxx_std_17)')
@@ -488,6 +521,7 @@ def main():
                     assert Path(item['path']).is_file(), item['path']
                 lines.append('  ' + quote(cmake_source(item)))
         lines.append(')')
+        emit_platform_sources(lines, target, configs)
         game_policy = target in ('hl_server', 'cs_server')
         if game_policy:
             sources = ROOT / 'cmake/targets' / target / 'Sources.cmake'

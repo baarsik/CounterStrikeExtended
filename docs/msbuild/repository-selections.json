@@ -12739,6 +12739,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           },
@@ -13082,6 +13091,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/net_ws.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/network_worker.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -13792,6 +13808,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           },
@@ -14135,6 +14160,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/net_ws.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/network_worker.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -15138,6 +15170,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           },
@@ -15481,6 +15522,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/net_ws.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/network_worker.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -16264,6 +16312,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           },
@@ -16607,6 +16664,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/net_ws.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/network_worker.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -18579,6 +18643,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/src/Bitmap.cpp",
             "metadata": {}
           },
@@ -18803,6 +18876,15 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/src/Bitmap.cpp",

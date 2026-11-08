@@ -110,6 +110,11 @@ CLinuxFont* CFontAmalgam::GetFontForChar( int ch )
 #else
 			if ( m_Fonts[index].font->HasChar( static_cast<wchar_t>( ch ) ) )
 				return m_Fonts[index].font;
+#if defined(__APPLE__)
+            if (CLinuxFont* fallback = m_Fonts[index].font->GetMacFallbackFontForChar(ch)) {
+                return fallback;
+            }
+#endif
 			count = m_Fonts.Count();
 #endif
 		}
