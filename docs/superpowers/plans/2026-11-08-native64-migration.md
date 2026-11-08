@@ -338,6 +338,13 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   five helpers build with command-line tools and target macOS 14. Tampered API
   headers are rejected. This is SDK evidence; owned HTML controller integration,
   MOTD and browser media behavior remain open.
+- **Browser process transport boundary:** the prepared SDL3 process channel and
+  fixed-width codec pass nine architecture/configuration fixtures, including Mac
+  sanitizers. Four additional Windows ARM64/x64 pairings pass in both directions.
+  Tests cover exact bytes, fragmented/invalid streams, simultaneous large
+  transfers, Unicode arguments, failure recovery and draining queued commands
+  before cooperative shutdown. These sources are not yet selected by runtime
+  manifests or connected to the owned HTML controller/CEF host.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS
