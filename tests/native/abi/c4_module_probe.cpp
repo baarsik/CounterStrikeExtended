@@ -52,7 +52,7 @@ void RemoveEntity(edict_t *entity) {
     entity->free = true;
 }
 
-void *AllocatePrivate(edict_t *entity, int32 bytes) {
+void *AllocatePrivate(edict_t *entity, std::size_t bytes) {
     allocatedBytes = static_cast<std::size_t>(bytes);
     entity->pvPrivateData = std::calloc(1, allocatedBytes);
     return entity->pvPrivateData;

@@ -21,6 +21,7 @@
 */
 
 #include "extdll.h"
+#include "native_int_count.h"
 #include "util.h"
 #include "cbase.h"
 #include "game_saved_callbacks.h"
@@ -1899,7 +1900,7 @@ void CSave :: WriteString( const char *pname, const char *pdata )
 	short	token = (short)TokenHash( pdata );
 	WriteShort( pname, &token, 1 );
 #else
-	BufferField( pname, strlen(pdata) + 1, pdata );
+	BufferField(pname, cse::counts::IntCount(strlen(pdata) + 1), pdata);
 #endif
 }
 
@@ -1920,13 +1921,13 @@ void CSave :: WriteString( const char *pname, const string_t *stringId, int coun
 
 	size = 0;
 	for ( i = 0; i < count; i++ )
-		size += strlen( STRING( stringId[i] ) ) + 1;
+		size = cse::counts::AddIntCount(size, strlen(STRING(stringId[i])) + 1);
 
 	BufferHeader( pname, size );
 	for ( i = 0; i < count; i++ )
 	{
 		const char *pString = STRING(stringId[i]);
-		BufferData( pString, strlen(pString)+1 );
+		BufferData(pString, cse::counts::IntCount(strlen(pString) + 1));
 	}
 #endif
 }
@@ -2567,8 +2568,8 @@ int	CRestore::BufferCheckZString( const char *string )
 		return 0;
 
 	int maxLen = m_pdata->bufferSize - m_pdata->size;
-	int len = strlen( string );
-	if ( len <= maxLen )
+	const auto len = strlen(string);
+	if (maxLen >= 0 && len <= static_cast<std::size_t>(maxLen))
 	{
 		if ( !strncmp( string, m_pdata->pCurrentData, len ) )
 			return 1;

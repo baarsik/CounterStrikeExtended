@@ -237,3 +237,32 @@ reference as well as stream and worker behavior. ARM builds select mpg123's
 scalar decoder; contraction is disabled in its source build to preserve the
 reference rounding. A passing decoder fixture does not qualify the complete
 sound-effects mixer, microphone or network voice path.
+
+## Native game module components
+
+During migration, an explicit component build produces the owned Counter-Strike
+and Half-Life server DLLs. Use a Windows MSVC environment for the selected CPU:
+
+```powershell
+cmake --preset game-modules-windows-x64-release
+cmake --build --preset game-modules-windows-x64-release --parallel
+cmake --preset game-modules-windows-x64-debug
+cmake --build --preset game-modules-windows-x64-debug --parallel
+```
+
+Replace `x64` with `arm64` for the Windows ARM64 component presets. Each preset
+uses its own `build/game-modules-*` directory; DLLs appear below
+`runtime/Release` or `runtime/Debug`, retaining `valve/dlls/hl.dll` and
+`cstrike/dlls/mp.dll`. Import libraries and symbols stay outside those runtime
+directories. The default Win32 workflow and root output directories are unchanged.
+
+This entry point reuses the generated production targets, including their
+per-file compiler policies. Native Windows definitions preserve the C entry
+points and explicit ordinals; C++ `EXPORT` declarations emit native decorated
+names. Update owning manifests/source declarations and run the translator when
+changing this contract.
+
+These presets build two modules for ABI and data fixtures. They do not build the
+client, engine, dedicated launcher or complete runtime, and do not establish
+renderer, provider, voice or external-server compatibility. macOS game modules
+remain gated until their portable compiler and platform policies are implemented.

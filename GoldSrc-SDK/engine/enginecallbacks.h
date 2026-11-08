@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cse_entity.h"
+#include <cstddef>
 
 #include "server.h"
 #include "cmd.h"
@@ -91,7 +92,7 @@ void				EngineFprintf( void* file, char* format, ... );
 void				ClientPrintf( edict_t* entity, PRINT_TYPE type, const char* message );
 void				ServerPrint( const char* message );
 
-void*				PvAllocEntPrivateData( edict_t* entity, int32 size );
+void *PvAllocEntPrivateData(edict_t *entity, std::size_t bytes);
 void*				PvEntPrivateData( edict_t* entity );
 const char*			SzFromIndex( string_t index );
 string_t					AllocEngineString( const char* value );

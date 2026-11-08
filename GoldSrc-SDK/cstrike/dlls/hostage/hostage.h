@@ -54,7 +54,7 @@ public:
 	void Spawn() override;
 	void Precache() override;
 	void EXPORT IdleThink();
-	void Remove();
+    void EXPORT Remove();
 	void RePosition();
 	void SetActivity( int activity );
 	int ObjectCaps() override;

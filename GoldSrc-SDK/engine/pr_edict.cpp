@@ -52,25 +52,7 @@ void ED_Free( edict_t* entity )
 	entity->freetime = static_cast<float>( sv.time );
 }
 
-void FreeEntPrivateData( edict_t* entity )
-{
-	if ( entity->pvPrivateData )
-	{
-		if ( gNewDLLFunctions.pfnOnFreeEntPrivateData )
-			gNewDLLFunctions.pfnOnFreeEntPrivateData( entity );
-		Mem_Free( entity->pvPrivateData );
-	}
-	entity->pvPrivateData = nullptr;
-}
-
-void* PvAllocEntPrivateData( edict_t* entity, std::int32_t size )
-{
-	FreeEntPrivateData( entity );
-	if ( size <= 0 )
-		return nullptr;
-	entity->pvPrivateData = Mem_Calloc( 1, size );
-	return entity->pvPrivateData;
-}
+#include "entity_private_data_impl.h"
 
 #include "entity_offsets_impl.h"
 

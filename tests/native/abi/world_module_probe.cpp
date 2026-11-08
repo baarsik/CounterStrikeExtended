@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <type_traits>
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -15,6 +16,10 @@
 enginefuncs_t g_engfuncs{};
 globalvars_t *gpGlobals = nullptr;
 
+using InstanceFromOffset = CBaseEntity *(*)(EOFFSET);
+static_assert(std::is_same<decltype(static_cast<InstanceFromOffset>(&CBaseEntity::Instance)), InstanceFromOffset>::value,
+    "Entity instance lookup must retain native offsets");
+
 // Owned buffer views; serialization and entity Save/Restore execute inside the loaded production DLL.
 CSaveRestoreBuffer::CSaveRestoreBuffer(SAVERESTOREDATA *data) : m_pdata(data) {}
 CSaveRestoreBuffer::~CSaveRestoreBuffer() {}
@@ -24,6 +29,14 @@ std::array<char, 8192> strings{};
 std::size_t stringCursor = 1;
 unsigned recoveryCalls = 0;
 unsigned errors = 0;
+EOFFSET expectedOffset = 0;
+EOFFSET receivedOffset = 0;
+edict_t *offsetEntity = nullptr;
+
+edict_t *LookupOffset(EOFFSET offset) {
+    receivedOffset = offset;
+    return offsetEntity;
+}
 
 #define CHECK(condition) do { \
     if (!(condition)) { \
@@ -43,7 +56,7 @@ string_t AllocateString(const char *text) {
     return static_cast<string_t>(offset);
 }
 
-void *AllocatePrivate(edict_t *entity, int32 bytes) {
+void *AllocatePrivate(edict_t *entity, std::size_t bytes) {
     entity->pvPrivateData = std::calloc(1, static_cast<std::size_t>(bytes));
     return entity->pvPrivateData;
 }
@@ -91,6 +104,13 @@ bool Probe(HMODULE module) {
     factory(&entity.v);
     auto *world = static_cast<CWorld *>(entity.pvPrivateData);
     CHECK(world);
+    expectedOffset = static_cast<EOFFSET>(sizeof(edict_t));
+#if INTPTR_MAX > INT32_MAX
+    expectedOffset += static_cast<EOFFSET>(UINT64_C(1) << 32);
+#endif
+    offsetEntity = &entity;
+    g_engfuncs.pfnPEntityOfEntOffset = LookupOffset;
+    CHECK(CBaseEntity::Instance(expectedOffset) == world && receivedOffset == expectedOffset);
     constexpr int NumericTeam = 37;
     entity.v.team = NumericTeam;
     for (const char *value : {"saved-red;saved-blue", ""}) {

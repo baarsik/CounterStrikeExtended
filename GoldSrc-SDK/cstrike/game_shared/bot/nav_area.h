@@ -9,6 +9,7 @@
 #undef max
 #include <cstdint>
 #include <list>
+#include "native_int_count.h"
 #include "nav.h"
 #include "steam_util.h"
 
@@ -249,7 +250,9 @@ public:
 
 	bool IsEdge( NavDirType dir ) const;						///< return true if there are no bi-directional links on the given side
 
-	int GetAdjacentCount( NavDirType dir ) const	{ return m_connect[ dir ].size(); }	///< return number of connected areas in given direction
+    int GetAdjacentCount(NavDirType dir) const {
+        return cse::counts::IntCount(m_connect[dir].size());
+    }
 	CNavArea *GetAdjacentArea( NavDirType dir, int i ) const;	/// return the i'th adjacent area in the given direction
 	CNavArea *GetRandomAdjacentArea( NavDirType dir ) const;
 
@@ -1231,7 +1234,7 @@ CNavArea *FindMinimumCostArea( CNavArea *startArea, CostFunctor &costFunc )
 	else
 	{
 		// degenerate case - no decent sized areas - pick a random area
-		int numAreas = TheNavAreaList.size();
+		const int numAreas = cse::counts::IntCount(TheNavAreaList.size());
 		int which = RANDOM_LONG( 0, numAreas-1 );
 
 		for( iter = TheNavAreaList.begin(); iter != TheNavAreaList.end(); ++iter )

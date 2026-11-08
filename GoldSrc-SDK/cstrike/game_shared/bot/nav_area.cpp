@@ -2296,7 +2296,7 @@ float CNavArea::GetDistanceSquaredToPoint( const Vector *pos ) const
 //--------------------------------------------------------------------------------------------------------------
 CNavArea *CNavArea::GetRandomAdjacentArea( NavDirType dir ) const
 {
-	int count = m_connect[ dir ].size();
+	const int count = GetAdjacentCount(dir);
 	int which = RANDOM_LONG( 0, count-1 );
 
 	int i = 0;

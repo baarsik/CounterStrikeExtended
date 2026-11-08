@@ -79,7 +79,9 @@ typedef union DLONG {
 
 extern DLONG	dlong;
 
-#ifdef _WIN32
+// The legacy inline assembly is specific to MSVC's 32-bit x87 target.
+// Other architectures use the existing scalar conversion path below.
+#if defined(_WIN32) && defined(_M_IX86)
 void __inline set_fpu_cw(void)
 {
 _asm	

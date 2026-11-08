@@ -71,6 +71,17 @@ function(cse_vgui_import_archive)
     VERBATIM COMMENT "Generate VGUI1 compatibility import library")
 endfunction()
 
+function(cse_game_module_exports target win32_definition native_definition)
+  if(WIN32)
+    if(CSE_TARGET_ARCH STREQUAL x86)
+      target_sources(${target} PRIVATE "${win32_definition}")
+    else()
+      # C++ EXPORT declarations emit the selected compiler's native decorated names.
+      target_sources(${target} PRIVATE "${native_definition}")
+    endif()
+  endif()
+endfunction()
+
 function(cse_a3d_geometry_source filename section)
   # Equivalent to the upstream PrepareGeometryCompilation target: each unique
   # translation unit selects a production section of A3dGeom.cpp. Per-file

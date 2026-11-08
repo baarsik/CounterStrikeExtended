@@ -2024,7 +2024,7 @@ void CTestHull :: BuildNodeGraph( void )
 	fprintf ( file, "\n\n-------------------------------------------------------------------------------\n");
 	fprintf ( file, "Total Number of Connections in Pool: %d\n", cPoolLinks );
 	fprintf ( file, "-------------------------------------------------------------------------------\n");
-	fprintf ( file, "Connection Pool: %d bytes\n", sizeof ( CLink ) * cPoolLinks );
+	fprintf ( file, "Connection Pool: %zu bytes\n", sizeof ( CLink ) * cPoolLinks );
 	fprintf ( file, "-------------------------------------------------------------------------------\n");
 
 

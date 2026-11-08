@@ -1136,8 +1136,10 @@ void CCSTutor::ConstructRecentDeathsList( TeamName team, char* buffer, int bufle
 			m_playerDeathInfo[i - 1].m_event = event;
 		}
 	}
-	for ( int i = strlen( buffer ) - 1; i >= 0 && buffer[i] == '\n'; i-- )
-		buffer[i] = '\0';
+    auto length = strlen(buffer);
+    while (length > 0 && buffer[length - 1] == '\n') {
+        buffer[--length] = '\0';
+    }
 }
 
 void CCSTutor::CheckHintMessages( float time )

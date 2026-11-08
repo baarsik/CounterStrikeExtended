@@ -338,7 +338,7 @@ bool Q_UnicodeValidate( const char *pUTF8 )
 void Host_Say( edict_t *pEntity, int teamonly )
 {
 	CBasePlayer *client;
-	int		j;
+    std::size_t j;
 	char	*p;
 	char	text[128];
 	char    szTemp[256];
@@ -405,7 +405,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 		sprintf( text, "%c%s: ", 2, STRING( pEntity->v.netname ) );
 
 	j = sizeof(text) - 2 - strlen(text);  // -2 for /n and null terminator
-	if ( (int)strlen(p) > j )
+	if (strlen(p) > j)
 		p[j] = 0;
 
 	strcat( text, p );

@@ -27,6 +27,7 @@
 #endif // !HLDEMO_BUILD
 
 #include <stdio.h>
+#include <stddef.h>
 #include "custom.h"
 #include "cvardef.h"
 #include "Sequence.h"
@@ -179,7 +180,7 @@ typedef struct enginefuncs_s
 	void		(*pfnCVarSetString)			(const char *szVarName, const char *szValue);
 	void		(*pfnAlertMessage)			(ALERT_TYPE atype, char *szFmt, ...);
 	void		(*pfnEngineFprintf)			(void *pfile, char *szFmt, ...);
-	void*		(*pfnPvAllocEntPrivateData)	(edict_t *pEdict, int32 cb);
+    void *(*pfnPvAllocEntPrivateData)(edict_t *pEdict, size_t bytes);
 	void*		(*pfnPvEntPrivateData)		(edict_t *pEdict);
 	void		(*pfnFreeEntPrivateData)	(edict_t *pEdict);
 	const char*	(*pfnSzFromIndex)			(string_t iString);

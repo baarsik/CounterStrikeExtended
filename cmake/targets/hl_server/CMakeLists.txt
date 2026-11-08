@@ -129,7 +129,7 @@ set_property(TARGET hl_server APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<C
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
-target_sources(hl_server PRIVATE "${CSE_SDK_DIR}/dlls/hl.def")
+cse_game_module_exports(hl_server "${CSE_SDK_DIR}/dlls/hl.def" "${CSE_ROOT}/cmake/exports/hl_server.def")
 set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")
 set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/std:c++17>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")

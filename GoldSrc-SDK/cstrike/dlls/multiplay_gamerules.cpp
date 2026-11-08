@@ -1039,7 +1039,7 @@ void CHalfLifeMultiplay::SendMOTDToClient( edict_t* client )
 	if ( file && *file )
 	{
 		char* text = file;
-		int sent = 0;
+		std::size_t sent = 0;
 		do
 		{
 			char chunk[61];

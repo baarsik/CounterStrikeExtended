@@ -187,7 +187,7 @@ char *GetBspFilename( const char *navFilename )
 
 	sprintf( bspFilename, "maps\\%s.bsp", STRING( gpGlobals->mapname ) );
 
-	int len = strlen( bspFilename );
+	const auto len = strlen(bspFilename);
 	if (len < 3)
 		return NULL;
 
@@ -240,7 +240,7 @@ void CNavArea::Save( int fd, unsigned int version )
 	for( int d=0; d<NUM_DIRECTIONS; d++ )
 	{
 		// save number of connections for this direction
-		unsigned int count = m_connect[d].size();
+		const std::uint32_t count = cse::counts::Uint32Count(m_connect[d].size());
 		_write( fd, &count, sizeof(unsigned int) );
 
 		NavConnectList::const_iterator iter;
@@ -318,7 +318,7 @@ void CNavArea::Save( int fd, unsigned int version )
 	//
 	{
 		// save number of encounter paths for this area
-		unsigned int encounterCount = m_spotEncounterList.size();
+		const std::uint32_t encounterCount = cse::counts::Uint32Count(m_spotEncounterList.size());
 		_write( fd, &encounterCount, sizeof(unsigned int) );
 
 		if (cv_bot_debug.value > 0.0f)
@@ -740,7 +740,7 @@ bool SaveNavigationMap( const char *filename )
 	//
 
 	// store number of areas
-	unsigned int count = TheNavAreaList.size();
+	const std::uint32_t count = cse::counts::Uint32Count(TheNavAreaList.size());
 	_write( fd, &count, sizeof(unsigned int) );
 
 	// store each area

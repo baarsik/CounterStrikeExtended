@@ -262,10 +262,9 @@ public:
 	virtual void Blocked( CBaseEntity *pOther ) { if (m_pfnBlocked) (this->*m_pfnBlocked)( pOther ); };
 
 	// allow engine to allocate instance data
-    void *operator new( size_t stAllocateBlock, entvars_t *pev )
-	{
-		return (void *)ALLOC_PRIVATE(ENT(pev), stAllocateBlock);
-	};
+    void *operator new(size_t bytes, entvars_t *variables) {
+        return ALLOC_PRIVATE(ENT(variables), bytes);
+    }
 
 	// don't use this.
 #if _MSC_VER >= 1200 // only build this code if MSVC++ 6.0 or higher
@@ -307,7 +306,9 @@ public:
 	}
 
 	static CBaseEntity *Instance( entvars_t *pev ) { return Instance( ENT( pev ) ); }
-	static CBaseEntity *Instance( int eoffset) { return Instance( ENT( eoffset) ); }
+    static CBaseEntity *Instance(EOFFSET offset) {
+        return Instance(ENT(offset));
+    }
 
 	CBaseMonster *GetMonsterPointer( entvars_t *pevMonster ) 
 	{ 

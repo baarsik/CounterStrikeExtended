@@ -1624,7 +1624,8 @@ void CHalfLifeMultiplay :: ChangeLevel( void )
 void CHalfLifeMultiplay :: SendMOTDToClient( edict_t *client )
 {
 	// read from the MOTD.txt file
-	int length, char_count = 0;
+	int length;
+    std::size_t char_count = 0;
 	char *pFileList;
 	char *aFileList = pFileList = (char*)LOAD_FILE_FOR_ME( (char *)CVAR_GET_STRING( "motdfile" ), &length );
 

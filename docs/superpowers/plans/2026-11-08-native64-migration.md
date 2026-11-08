@@ -147,7 +147,7 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   with Steam/VAC enabled. Menu, cvar, custom-message acknowledgment, downloads,
   consistency and live movement checks pass. Native clients, voice, reconnect
   and changelevel remain unqualified.
-- **Module ABI/callbacks:** runtime ABI version 7 guards the actual engine/game
+- **Module ABI/callbacks:** runtime ABI version 8 guards the actual engine/game
   boundary before callback exchange, including eleven generated shared-layout
   profiles and single-use legacy initialization. Native and Win32 mismatch
   fixtures pass in Release/Debug; preserved older GameDLLs reject before
@@ -166,6 +166,18 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   distinguish addresses with equal low 32 bits. Updated Win32 export tables,
   game-module probes and CS/HL save/record/replay pass after integration.
   Other module boundaries and complete native game loading remain open.
+- **Native game modules:** the explicit Windows component entry builds the
+  retained CS/HL server targets from their existing generated source selections
+  and per-file policies. x64 and ARM64 Release/Debug DLLs pass machine inspection,
+  export parity, actual ABI/save-field/world/C4 probes and high entity-offset
+  checks. Explicit C ordinals and canonical C++ export coverage are preserved.
+  Private-entity allocation byte counts are native-width; legacy index/RNG/save
+  counts and navigation records keep checked 32-bit representations. Autobuy
+  appends preserve their terminator and adjacent storage. All 19 Win32 targets
+  and the full save/record/replay regression set pass with producing hashes
+  checked. x64 fixture execution used VM1's x64 emulation; these module checks
+  do not qualify a complete native game or native x64 hardware execution.
+  macOS game compiler/platform policies remain pending.
 - **Save/data representations:** native storage facts govern strides, clearing
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
   Raw-pointer descriptors reject at compile time and runtime before pointer bits
