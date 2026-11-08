@@ -325,3 +325,10 @@ remap references on restore and protect array tails. All 19 Win32 targets build;
 legacy Half-Life load/save/reload and both games' recordings/replays pass in both
 configurations. Captured module hashes match their producers. Native whole-game
 entity/save acceptance and the remaining Task 3 boundaries are still pending.
+
+Command-list identities now use an owned pointer-width handle across the engine
+API and GameUI completion iterator. Production iteration functions pass native
+high-address tests for ordering, name identity/mutation, removal and empty-list
+termination on all participating Release/Debug architectures and macOS sanitizers.
+All 19 Win32 targets build in Release/Debug; descriptor fixtures pass with runtime
+ABI version 4. This bounded iteration result does not qualify native GameUI.

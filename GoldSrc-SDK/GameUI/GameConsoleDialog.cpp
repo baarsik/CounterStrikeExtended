@@ -571,7 +571,7 @@ void CGameConsoleDialog::RebuildCompletionList( const char* text )
 	const char* space = strstr( text, " " );
 	if ( !space )
 	{
-		for ( unsigned int command = engine->GetFirstCmdFunctionHandle(); command;
+		for ( CseCommandHandle command = engine->GetFirstCmdFunctionHandle(); command;
 				command = engine->GetNextCmdFunctionHandle( command ) )
 		{
 			if ( !strnicmp( text, engine->GetCmdFunctionName( command ), length ) )

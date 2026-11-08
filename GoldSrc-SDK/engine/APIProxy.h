@@ -2,6 +2,7 @@
 #define __APIPROXY__
 
 #include "archtypes.h"     // DAL
+#include "cse_command.h"
 #include "netadr.h"
 #include "Sequence.h"
 
@@ -323,9 +324,9 @@ typedef void						(*pfnEngSrc_GetMousePos_t )(struct tagPOINT *ppt);
 typedef void						(*pfnEngSrc_SetMousePos_t )(int x, int y);
 typedef void						(*pfnEngSrc_SetMouseEnable_t)(qboolean fEnable);
 typedef struct cvar_s *				(*pfnEngSrc_GetFirstCVarPtr_t)();
-typedef unsigned int				(*pfnEngSrc_GetFirstCmdFunctionHandle_t)();
-typedef unsigned int				(*pfnEngSrc_GetNextCmdFunctionHandle_t)(unsigned int cmdhandle);
-typedef const char *				(*pfnEngSrc_GetCmdFunctionName_t)(unsigned int cmdhandle);
+typedef CseCommandHandle (*pfnEngSrc_GetFirstCmdFunctionHandle_t)();
+typedef CseCommandHandle (*pfnEngSrc_GetNextCmdFunctionHandle_t)(CseCommandHandle cmdhandle);
+typedef const char *(*pfnEngSrc_GetCmdFunctionName_t)(CseCommandHandle cmdhandle);
 typedef float						(*pfnEngSrc_GetClientOldTime_t)();
 typedef float						(*pfnEngSrc_GetServerGravityValue_t)();
 typedef struct model_s	*			(*pfnEngSrc_GetModelByIndex_t)( int index );

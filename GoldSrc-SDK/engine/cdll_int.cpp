@@ -101,20 +101,7 @@ cvar_t* GetFirstCVarPtr()
 	return cvar_vars;
 }
 
-unsigned int GetFirstCmdFunctionHandle()
-{
-	return (unsigned int)Cmd_GetFirstCmd();
-}
-
-unsigned int GetNextCmdFunctionHandle( unsigned int handle )
-{
-	return (unsigned int)( (cmd_function_t*)handle )->next;
-}
-
-const char* GetCmdFunctionName( unsigned int handle )
-{
-	return ( (cmd_function_t*)handle )->name;
-}
+#include "command_handles_impl.h"
 
 char* COM_ParseFile( char* data, char* token )
 {
