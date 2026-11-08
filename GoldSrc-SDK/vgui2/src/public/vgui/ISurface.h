@@ -20,12 +20,11 @@
 class IHTMLResponses;
 class IHTMLChromeController;
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
 
-typedef unsigned long HFont;
-typedef unsigned long HTexture;
-typedef unsigned long HCursor;
 class IHTML;
 class IHTMLEvents;
 class VGuiVertex;

@@ -19,10 +19,10 @@
 
 #include "Color.h"
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
-
-typedef unsigned long HTexture;
 
 //-----------------------------------------------------------------------------
 // Purpose: Interface to drawing an image

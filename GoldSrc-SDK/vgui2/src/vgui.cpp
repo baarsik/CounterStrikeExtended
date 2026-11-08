@@ -243,32 +243,7 @@ vgui2::VPANEL CVGui::AllocPanel()
 	return (vgui2::VPANEL)panel;
 }
 
-vgui2::HPanel CVGui::PanelToHandle( vgui2::VPANEL panel )
-{
-	if ( panel )
-	{
-		unsigned short listEntry = ( (vgui2::VPanel*)panel )->GetListEntry();
-		return ( (unsigned int)listEntry << 16 ) + m_PanelList[listEntry].m_iSerialNumber;
-	}
-
-	return INVALID_VGUI_PANEL;
-}
-
-vgui2::VPANEL CVGui::HandleToPanel( vgui2::HPanel index )
-{
-	if ( index == INVALID_VGUI_PANEL )
-	{
-		return 0;
-	}
-
-	unsigned short listEntry = (unsigned short)( index >> 16 );
-	if ( m_PanelList.IsValidIndex( listEntry ) && m_PanelList[listEntry].m_iSerialNumber == (unsigned short)index )
-	{
-		return m_PanelList[listEntry].m_pPanel;
-	}
-
-	return 0;
-}
+#include "panel_handles_impl.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: Called whenever a panel is constructed

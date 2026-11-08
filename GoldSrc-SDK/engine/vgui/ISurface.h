@@ -21,10 +21,10 @@
 class IHTMLChromeController;
 class IHTMLResponses;
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
-typedef unsigned int VPANEL;
-typedef unsigned long HCursor;
 
 class IHTML;
 class IHTMLEvents;

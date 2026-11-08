@@ -338,7 +338,7 @@ protected:
 	bool					_needsSchemeUpdate;
 	bool					_autoDelete;
 	int						_tabPosition; // the panel's place in the tab ordering
-	Dar<unsigned long>		_actionSignalTargetDar;
+	Dar<HPanel>		_actionSignalTargetDar;
 
 	PinCorner_e				_pinCorner;
 	AutoResize_e			_autoResizeDirection;

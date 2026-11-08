@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+project(CseNativeVgui LANGUAGES CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+enable_testing()
+foreach(view public engine cs)
+  add_executable(vgui_headers_${view} header_tests.cpp)
+  target_compile_features(vgui_headers_${view} PRIVATE cxx_std_17)
+  if(view STREQUAL engine)
+    target_include_directories(vgui_headers_${view} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine")
+  elseif(view STREQUAL cs)
+    target_include_directories(vgui_headers_${view} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/cstrike/public")
+  endif()
+  target_include_directories(vgui_headers_${view} PRIVATE
+    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public" "${CSE_ROOT}/GoldSrc-SDK/public")
+  add_test(NAME vgui-header-${view} COMMAND vgui_headers_${view})
+endforeach()
+add_executable(vgui_panel_tests panel_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/VPanel.cpp")
+target_compile_features(vgui_panel_tests PRIVATE cxx_std_17)
+target_include_directories(vgui_panel_tests PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/vgui2/src" "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
+  "${CSE_ROOT}/GoldSrc-SDK/public")
+add_test(NAME native-vgui-panels COMMAND vgui_panel_tests)
+
+if(WIN32)
+  add_executable(vgui_module_probe module_probe.cpp)
+  target_compile_features(vgui_module_probe PRIVATE cxx_std_17)
+  target_include_directories(vgui_module_probe PRIVATE
+    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public" "${CSE_ROOT}/GoldSrc-SDK/public")
+endif()

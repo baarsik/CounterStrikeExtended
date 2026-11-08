@@ -21,9 +21,10 @@
 
 #include "cl_dll/IVGuiClientDll.h"
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
-typedef unsigned int VPANEL;
 }
 
 class IViewPort

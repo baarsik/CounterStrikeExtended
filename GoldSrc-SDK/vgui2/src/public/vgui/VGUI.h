@@ -17,10 +17,10 @@
 #pragma once
 #endif
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
-
-typedef unsigned int VPANEL;
 
 enum
 {

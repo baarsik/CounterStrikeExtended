@@ -754,13 +754,13 @@ int Menu::GetMenuItemID( MenuItem* item )
 	return m_MenuItems.InvalidIndex();
 }
 
-void Menu::OnCursorEnteredMenuItem( int VPanel )
-{
+void Menu::OnCursorEnteredMenuItem(KeyValues *message) {
+    const auto panelIdentity = reinterpret_cast<VPANEL>(message->GetPtr("VPanel", nullptr));
 	if ( m_iInputMode == MOUSE )
 	{
 		IPanel* panels = ipanel();
 		const char* module = GetModuleName();
-		MenuItem* item = static_cast<MenuItem*>( panels->GetPanel( VPanel, module ) );
+		MenuItem* item = static_cast<MenuItem*>( panels->GetPanel( panelIdentity, module ) );
 		// arm the menu
 		item->ArmItem();
 		item->OpenCascadeMenu();
@@ -772,13 +772,13 @@ void Menu::OnCursorEnteredMenuItem( int VPanel )
 	}
 }
 
-void Menu::OnCursorExitedMenuItem( int VPanel )
-{
+void Menu::OnCursorExitedMenuItem(KeyValues *message) {
+    const auto panelIdentity = reinterpret_cast<VPANEL>(message->GetPtr("VPanel", nullptr));
 	if ( m_iInputMode == MOUSE )
 	{
 		IPanel* panels = ipanel();
 		const char* module = GetModuleName();
-		MenuItem* item = static_cast<MenuItem*>( panels->GetPanel( VPanel, module ) );
+		MenuItem* item = static_cast<MenuItem*>( panels->GetPanel( panelIdentity, module ) );
 		item->DisarmItem();
 	}
 }

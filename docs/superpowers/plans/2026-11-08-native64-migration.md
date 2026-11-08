@@ -68,7 +68,7 @@
 **Files:** native shared interface headers/loaders; engine/client/game/VGUI string, handle and callback boundaries; demo/save/navigation readers and writers.
 **Interfaces:** Export `CseGetModuleAbi` with descriptor/runtime versions, architecture, pointer width, compiler ABI family and exchanged-table layout signatures. Check it before callback exchange. Typed callback registries must exist before restore.
 
-- [ ] Pointer-width command/VGUI handles and native string offsets with unchanged identity/mutability/lifetime.
+- [x] Pointer-width command/VGUI handles and native string offsets with unchanged identity/mutability/lifetime (component fixtures; whole-game native qualification remains open).
 - [ ] Typed function/member-function canonical-name registries; never treat member pointers as plain addresses.
 - [ ] Checked native entity offsets separate from fixed-width wire/save indices; separate native field storage from serialized widths/strides.
 - [ ] Explicit Win32 demo and navigation records, fixed paths and placeholder pointers; reconstruct native pointers after decoding.
@@ -122,213 +122,75 @@ For every promoted target in Release and Debug: all runtime responsibilities and
 
 ## Current progress
 
-2026-11-08, branch `codex/native64-migration`, starting at
-`2c55b9054bd6a73b5a2fadd8ef4eadd62d85a3eb`. Work continues in the current checkout
-as requested. The Win32 default/output contract remains unchanged.
+Work remains in the requested checkout on codex/native64-migration. Windows x86
+remains the default with its existing root runtime outputs. No native target is
+promoted: complete native game builds and Tasks 3–7 acceptance are still open.
 
-- Immutable committed source reference preserved (3,225 files), SHA256
-  `a7ed4737bc398c4df41ab0789032b984e5efb5080c1831396d9b4a1cb16e2227`.
-- Original Ninja reference failures are retained: unintended analyzer enablement,
-  music worker stack budget, assertion annotations and invalid UAC XML quoting.
-  The maintained compatibility source fixes those failures. All 19 Win32 targets
-  build in Release and Debug; static inventories contain 21 x86 PE files each.
-  Raw build outputs still report unresolved CRT/provider imports explicitly.
-- SDL3 3.4.20 and mpg123 1.33.7 source builds, actual machine checks and bounded
-  provider/decoder probes pass Windows x64, Windows ARM64 and macOS ARM64 in both
-  configurations. Windows x64 execution is under ARM Windows emulation on VM1.
-- Equivalent pinned vcpkg recipes match 120 retained recipe hashes. All selected
-  Windows x64 and macOS ARM64 packages built from source in both configurations;
-  static audits checked 28 and 32 native archives respectively. macOS Release
-  and Debug standalone compression/font/media link fixtures pass. The macOS
-  packages were rebuilt with an explicit 14.0 deployment triplet after detecting
-  inherited host minimums; all 32 archives now pass per-object minimum checks.
-- A real POSIX worker crash was reproduced using poisoned constructor storage and
-  fixed by initializing its command counts and members. macOS music tests pass
-  4/4 in both configurations, including exact PCM comparison with Win32. Initial
-  NEON/FMA mismatches are retained as evidence; ARM now uses scalar decoding with
-  FP contraction disabled. This is one decoder fixture, not all audio parity.
-- An unchanged official Win32 ReHLDS 3.15.0.896 / Metamod-R 1.3.0.149 /
-  AMXX 1.9.0.5303 fixture runs on loopback using SteamCMD `steam_legacy` app90
-  build5433925. The rebuilt Win32 client authenticated with Steam/VAC enabled,
-  downloaded resources, returned menu/cvar/custom-message-following acknowledgments
-  and recorded live movement. The initial custom-message plugin registration
-  failure was fixed in the owned test plugin; server package binaries remain
-  unchanged. Full voice/reconnect/changelevel/provider acceptance remains open.
+- **Reference:** committed source 2c55b9054bd6a73b5a2fadd8ef4eadd62d85a3eb
+  is preserved with SHA256
+  a7ed4737bc398c4df41ab0789032b984e5efb5080c1831396d9b4a1cb16e2227.
+  Original Ninja failures are recorded; the maintained source fixes them.
+  All 19 Win32 targets build in Release and Debug, producing 21 PE files per
+  configuration. The sealed 99-file reference remains intact. Imports, module
+  loading, gameplay and external-server results remain separate evidence.
+- **Build/dependencies:** compiler-target detection and actual binary inspection
+  reject wrong or mixed architectures. SDL3 3.4.20, mpg123 1.33.7 and pinned
+  compression/font/media packages build from source for Windows x64/ARM64 and
+  macOS ARM64. macOS objects and fixtures enforce deployment minimum 14.0.
+  Standalone dependency, decoder and worker fixtures pass. ARM scalar decoding
+  matches the reference PCM; this does not qualify effects, microphone or voice.
+  The unused HL game_controls.lib link was removed after correspondence and
+  PDB audits; the existing source-built CS controls remain. Generated production
+  policies and complete native runtime presets are still pending.
+- **External server:** the pinned unchanged Win32 ReHLDS 3.15.0.896,
+  Metamod-R 1.3.0.149 and AMXX 1.9.0.5303 fixture accepts the rebuilt Win32 client
+  with Steam/VAC enabled. Menu, cvar, custom-message acknowledgment, downloads,
+  consistency and live movement checks pass. Native clients, voice, reconnect
+  and changelevel remain unqualified.
+- **Module ABI/callbacks:** runtime ABI version 5 guards the actual engine/game
+  boundary before callback exchange, including eleven generated shared-layout
+  profiles and single-use legacy initialization. Native and Win32 mismatch
+  fixtures pass in Release/Debug; preserved older GameDLLs reject before
+  callbacks. Other production module boundaries remain pending. Typed eager
+  catalogs restore game member callbacks through canonical names, including
+  bounded legacy aliases, without interpreting member pointers as addresses.
+  Ordinary function discovery and remaining PE32 assumptions still need work.
+- **Save/data representations:** native storage facts govern strides, clearing
+  and emptiness; integers retain four-byte encodings and strings remain symbolic.
+  C4 persists an optional symbolic beep phase and real wave counter, with exact
+  legacy attenuation recovery and restore-failure cleanup. Engine/HLTV demos use
+  explicit Win32 records, including 260-byte paths and rebuilt local pointers.
+  HL .nod uses bounded version-16 records; CS .nav separates IDs from native
+  pointers and rejects unresolved references. Cross-architecture codec fixtures,
+  malformed cases and macOS sanitizers pass. Updated Win32 gameplay, legacy demo
+  replay, save/load and navigation fixtures pass. Complete native game-file
+  round trips, generic raw-pointer rejection and allocation-failure injection
+  remain open.
+- **Native identities:** engine strings retain native-width relative identities,
+  aliases and mutable storage. Worldspawn team lists have optional symbolic save
+  fields and an explicit initialized flag; older saves recover the original BSP
+  setting through the existing lexer. Paired Win32 world tests cover nonempty,
+  changed and explicitly empty settings. Entity byte offsets use checked native
+  storage while wire/save indices remain fixed-width. Actual Win32 DLL probes
+  verify entity-ID envelopes, remapping and array tails. High-address native
+  fixtures cover strings, key values, offsets, alignment and wrap rejection.
+- **Commands/VGUI:** command iteration preserves native pointer handles, list
+  order, name identity and lifetime. VGUI panel identities are pointer-width;
+  packed serial handles and scheme/font/texture/cursor IDs remain 32-bit.
+  Console parenting, menu messages and browser drag targets retain full panel
+  identities. Fixtures execute production VPanel parenting/message callbacks
+  and serial-handle conversion at high addresses across all participating
+  Release/Debug architectures; macOS sanitizers pass. Actual rebuilt Win32 VGUI
+  DLLs pass 24 allocation/parenting/message/free/stale-handle cycles per
+  configuration. All 19 Win32 targets, CS/HL recording/replay and legacy HL
+  load/save/reload pass after integration, with loaded module hashes checked.
+  The synthetic console keyboard probe also fails on the sealed reference and
+  remains unqualified; it does not establish native UI, input or browser parity.
+- **Providers/platform/renderer:** official native Steam candidates and stable
+  CEF156.0.26 archives are pinned for integration. Real native authentication,
+  sessions, voice and browser behavior remain pending, as do the portable
+  platform/text/audio layer, shared SDL_GPU renderer and macOS development bundle.
 
-- The new descriptor/validator and owned module-loading fixture pass on macOS,
-  Windows x64/ARM64 and Win32 in Release/Debug, including mismatch rejection before
-  callbacks and high-address strings/handles. The engine/game loader now validates actual shared layouts before exchanging
-  callbacks; other production module boundaries remain pending.
-- `game_controls.lib` correspondence audit found different candidate source bytes
-  and behavior. Debug's matching PDB proves no archive objects contribute to HL;
-  Release CRT/import/source evidence supports the same. HL already compiles its
-  VGUI1 controls; CS already compiles its owned VGUI2 controls. The unused HL link
-  is removed through the retained manifest, ordinary R/D links and HL gameplay recording/replay pass after removal.
-
-Task 1 and Task 2 gates remain open: expanded save/navigation/render fixtures,
-complete reference qualification, generated native runtime policies and production
-module ABI integration still need work. Tasks 3–7 remain
-unqualified. No complete native game build, renderer, Steam/CEF parity or target
-promotion is claimed. Detailed build/failed-run evidence lives in the task ledger
-and the isolated `cse-native64-20261108` artifact directory, not default runtime
-outputs.
-
-The latest review reproduced and fixed incorrect Debug import mapping and cached
-foreign dependency headers. Positive native package fixtures pass; dedicated
-regressions reject both mappings/fallbacks and foreign headers. Build tools tests
-pass 39/39 and qualification tools tests 77/77 on the current foundation snapshot.
-The Win32 Debug music fixture exposed a 53 ms sequential wall-clock calibration
-variance. Its completion test now uses actual SDL device sample counts, with one
-mixer block of phase allowance; the producer and decoded bytes are unchanged.
-
-Early provider inventory has pinned official Windows x64 Steam artifacts and a
-Valve-signed installed Mac ARM64 candidate matching the legacy initialization
-exports. Required generic interface lookup, real auth/voice and lifecycle still
-need standalone runtime evidence. Official CEF156.0.26 artifacts for Windows x64
-and macOS ARM64 are downloaded and independently SHA256-pinned; integration is
-pending. The shared/CS HTML serializer declarations differ on non-Windows and
-must be consolidated or adapted explicitly before a native Mac provider is safe.
-
-Task 3's typed callback registry now drives all five callback fields in both
-production game DLLs. The translator generates eager per-source catalogs from
-its retained source inventory; initialization precedes entity restoration.
-Native member storage never goes through an address/integer or byte-zero path.
-Game DLLs disable identical-code folding, and catalogs reject equal typed values
-instead of guessing a saved identity. Legacy monster Think and knife aliases
-have explicit bounded decoding rules.
-
-The three standalone callback fixtures pass Win32, Windows x64, Windows ARM64
-and macOS ARM64 in Release/Debug, including adjusted/high-address members,
-metadata ownership, full native clears, bounded symbolic payloads and legacy
-aliases. macOS address/undefined-behavior sanitizer fixtures also pass. The
-captured Half-Life save loads, saves and reloads in Win32 Release/Debug; all
-13 monster aliases are resaved canonically. CS records651networkframes and
-replays to EOF in both configurations after integration. These are component
-and maintained Win32 results; native game saves and the rest of Task 3 remain
-unqualified. Build-tool tests now pass45/45, including catalog generation.
-
-
-The engine/game boundary now uses `CseGetModuleAbi` and a validated initialization
-entry point before either side exchanges callbacks. Its eleven table/record
-signatures are generated from actual shared declarations, including every field
-of save metadata. Legacy entry points require a single-use authorization;
-Game API exports remain closed until initialization completes. Standalone
-fixtures pass in Release/Debug on the three native targets and Win32.
-Probes against both rebuilt Win32 game DLLs also pass in both configurations,
-rejecting stale metadata and legacy exchanges before and after binding. Win32 startup, legacy Half-Life load/save/reload and CS gameplay/replay pass in
-both configurations with the handshake enabled.
-Build-tool tests pass48/48. Save metadata now carries compiler-derived native storage facts separately from
-legacy encoded widths.
-
-
-The save-field bridge now uses native spans for emptiness, clearing and array
-strides. Integers keep four-byte little-endian payloads: signed 64-bit storage is
-checked and extended correctly, narrow fields preserve their original low bytes,
-and legacy C++ Boolean payloads ignore neighboring bytes. Int-backed BOOL values
-retain their complete value. Strings keep their original symbolic envelopes and
-receive bounded payload checks; variable-length fields no longer require aligned
-integer/float reads. The expanded metadata ABI is covered by the engine/game guard.
-
-Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
-round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
-Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
-save/load and CS recording/replay also pass in both Win32 configurations. Native
-engine-string offsets and full native game file round trips remain pending.
-
-C4 saves now record a stable optional beep phase and the actual wave counter
-instead of a raw sound pointer. Legacy records recover the sound from exact saved
-attenuation; old pointer bits are skipped. Explicit initial silence and repeated
-final phases survive restoration. The real Win32 CS DLL probe covers all phases,
-legacy imports containing invalid pointer bits, exact deadline/phase advancement
-and malformed-phase rejection in Release and Debug. Both game dispatchers now
-propagate restore failure before spawning or precaching an entity. Standalone
-phase tests pass on all three native architectures and maintained Win32; this
-does not qualify native C4 gameplay, emitted audio, defusing or full save files.
-
-Demo protocol 5 now uses explicit Win32 records: fixed 260-byte paths, a
-544-byte header, 92-byte directory entry and 436-byte frame. Named value bits
-survive native conversion exactly; saved pointer slots and user-command padding
-are normalized to zero, and local command/movevar pointers are rebuilt. Engine
-and HLTV file paths share the codec. HLTV keeps native internal frame sizes and
-copies packed storage into aligned locals before use. Standalone tests pass
-Win32, Windows x64/ARM64 and macOS ARM64 in Release/Debug, with identical encoded
-bytes and macOS sanitizers. New Win32 CS and HL recordings replay to EOF in both
-configurations. Sealed legacy CS/HL demos also replay to EOF with identical host
-frame counts in paired cold-start launches of the preserved and updated Win32
-runtimes; module hashes identify both. Native whole-game acceptance remains open.
-
-Half-Life `.nod` files now use explicit version-16 Win32 records independently
-of native CGraph/CLink sizes. The loader bounds every section, allocates native
-rows before committing, and rebuilds entity pointers from saved model names.
-Writers store pointer-presence tags and check complete writes. All eight
-Win32/native Release/Debug codec runs produce identical normalized bytes for the
-captured graph; malformed-count, truncation, empty-graph and sanitizer checks pass.
-Paired Win32 baseline/current map fixtures pass write denial, rebuild, save/load
-and fresh-map lookup of all three entity links in both configurations. Existing
-saved-game model warnings match the preserved baseline; fresh map lookups emit
-none. Allocation-failure injection and native whole-game acceptance remain
-separate outstanding work.
-
-CS bot navigation now retains saved 32-bit IDs separately from native area and
-hiding-spot pointers. Resolution preserves IDs, and a corrupt reference causes
-the map loader to reject and destroy the partial map. File encodings remain
-unchanged. Standalone tests compile the production navigation loader, grid and
-writer: versions 1–5 load, and the version-5 fixture round-trips to identical
-195-byte files across Win32, Windows x64/ARM64 and macOS ARM64 Release/Debug.
-Missing adjacent-area, approach-area and hiding-spot IDs fail with clean state.
-macOS ASan/UBSan also passes. The synthetic fixture has no ladders, named places,
-world traces, legacy location sidecar or nonempty version-1/2 encounters; it does
-not qualify native bot gameplay. All 19 maintained Win32 targets build in both
-configurations, and CS gameplay recordings replay to EOF with the reference
-651 network frames and 666 host frames. Loaded module hashes identify the builds.
-
-Engine strings now use native-width relative identities and explicit unsigned
-address arithmetic. The original zero identity, aliases and mutable storage are
-preserved. String allocation/lookup, entity creation and instanced-baseline class
-names use the same native type; numeric network/model indices retain their widths.
-Client prediction explicitly bridges its model index into the shared server
-viewmodel slot. Runtime ABI version 2 rejects older modules before callbacks.
-Save metadata rejects narrow engine-string fields on native builds, and map
-key-value assignment writes the complete native slot. Gonarch sequence names keep
-string identities separate from animation indices.
-
-Worldspawn's team list now has optional symbolic fields in the existing `BASE`
-group. Its initialized flag preserves explicitly empty values. Older records
-recover the original map setting through an owned engine callback using the
-already loaded entity text and existing lexer, with parser state restored.
-Numeric player teams remain unchanged. Old runtime edits represented only by
-saved process-relative integer bits cannot be recovered safely. Native fixtures
-cover high relative offsets, aliases, mutable strings, key-value overwrites and
-storage rejection; actual Win32 CS/HL DLL probes cover string envelopes, world
-save/restore and C4 regressions. Native whole-game string/save qualification,
-entity offsets, command/VGUI handles and remaining module boundaries stay open.
-
-Paired Win32 world fixtures now verify the real map/parser integration in Release
-and Debug: baseline team lists, importing baseline saves, preserving saved lists
-when BSP settings change, and retaining explicitly empty lists when the BSP later
-contains a list. The checks read actual named world save fields after cold loads;
-the existing engine intentionally switches save loads to single-player mode.
-Loaded module hashes identify baseline/current binaries, and the sealed baseline
-remains intact. All 19 Win32 targets build; CS/HL record/replay and captured
-Half-Life save/load also pass. These remain maintained-Win32 and standalone-native
-component results, not native whole-game qualification.
-
-Entity byte offsets now use native signed pointer-width storage, while network
-indices and saved entity IDs retain four-byte values. Engine conversions check
-pool bounds, alignment, allocation counts and address arithmetic before indexing;
-foreign pointers cannot wrap into the pool. Typed world-zero lookups avoid null
-pointer overload ambiguity. Runtime ABI version 3 rejects older game modules.
-Fixtures execute the production engine conversions at high addresses across
-Win32, Windows x64/ARM64 and macOS ARM64 Release/Debug; macOS sanitizers pass.
-Actual rebuilt Win32 CS/HL DLL probes preserve the legacy entity-ID envelopes,
-remap references on restore and protect array tails. All 19 Win32 targets build;
-legacy Half-Life load/save/reload and both games' recordings/replays pass in both
-configurations. Captured module hashes match their producers. Native whole-game
-entity/save acceptance and the remaining Task 3 boundaries are still pending.
-
-Command-list identities now use an owned pointer-width handle across the engine
-API and GameUI completion iterator. Production iteration functions pass native
-high-address tests for ordering, name identity/mutation, removal and empty-list
-termination on all participating Release/Debug architectures and macOS sanitizers.
-All 19 Win32 targets build in Release/Debug; descriptor fixtures pass with runtime
-ABI version 4. This bounded iteration result does not qualify native GameUI.
+Detailed passing and failed receipts, source/binary hashes and scope rulings are
+kept in the task ledger and isolated cse-native64-20261108 artifact directory.
+No tests, symbols or qualification artifacts enter default runtime outputs.

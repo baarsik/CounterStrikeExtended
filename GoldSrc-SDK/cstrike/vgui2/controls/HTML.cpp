@@ -882,9 +882,9 @@ void HTML::OnMouseReleased( MouseCode code )
 			{
 				KeyValues* drag = new KeyValues( "DragDrop" );
 				VPANEL mouseOver = input()->GetMouseOver();
-				if ( ipanel()->RequestInfo( mouseOver, drag ) && drag->GetInt( "AcceptPanel", 0 ) != 0 )
+				if ( ipanel()->RequestInfo( mouseOver, drag ) && drag->GetPtr( "AcceptPanel", nullptr ) != nullptr )
 				{
-					VPANEL accept = (VPANEL)drag->GetInt( "AcceptPanel", 0 );
+					VPANEL accept = reinterpret_cast<VPANEL>(drag->GetPtr("AcceptPanel", nullptr));
 					const char* url = m_sDragURL.m_pchString ? m_sDragURL.m_pchString : "";
 					ivgui()->PostMessage( accept, new KeyValues( "DragDrop", "text", url ), GetVPanel(), 0.0f );
 				}

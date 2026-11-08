@@ -586,14 +586,14 @@ int Menu::GetMenuItemID( MenuItem* item )
 	return m_MenuItems.InvalidIndex();
 }
 
-void Menu::OnCursorEnteredMenuItem( int VPanel )
-{
+void Menu::OnCursorEnteredMenuItem(KeyValues *message) {
+    const auto panelIdentity = reinterpret_cast<VPANEL>(message->GetPtr("VPanel", nullptr));
 	// if we are in mouse mode
 	if ( m_iInputMode == MOUSE )
 	{
 		IPanel* panels = ipanel();
 		const char* module = GetModuleName();
-		MenuItem* item = (MenuItem*)panels->GetPanel( VPanel, module );
+		MenuItem* item = (MenuItem*)panels->GetPanel( panelIdentity, module );
 		// arm the menu
 		item->ArmItem();
 		// open the cascading menu if there is one.
@@ -607,14 +607,14 @@ void Menu::OnCursorEnteredMenuItem( int VPanel )
 //-----------------------------------------------------------------------------
 // Purpose: Respond to cursor exiting a menuItem
 //-----------------------------------------------------------------------------
-void Menu::OnCursorExitedMenuItem( int VPanel )
-{
+void Menu::OnCursorExitedMenuItem(KeyValues *message) {
+    const auto panelIdentity = reinterpret_cast<VPANEL>(message->GetPtr("VPanel", nullptr));
 	// only care if we are in mouse mode
 	if ( m_iInputMode == MOUSE )
 	{
 		IPanel* panels = ipanel();
 		const char* module = GetModuleName();
-		MenuItem* item = (MenuItem*)panels->GetPanel( VPanel, module );
+		MenuItem* item = (MenuItem*)panels->GetPanel( panelIdentity, module );
 		// unhighlight the item.
 		// note menuItems with cascading menus will stay lit.
 		item->DisarmItem();

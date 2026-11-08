@@ -14,7 +14,7 @@
 namespace cse::abi {
 
 constexpr std::uint32_t DescriptorVersion = 1;
-constexpr std::uint32_t RuntimeVersion = 4;
+constexpr std::uint32_t RuntimeVersion = 5;
 // Version 1 bounds each module's exchanged tables without following pointers.
 constexpr std::size_t MaxTables = 16;
 constexpr std::uint32_t NativePointerBits = sizeof(void *) * CHAR_BIT;

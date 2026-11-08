@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interface.h"
+#include "cse_vgui.h"
 
 #ifdef _MSC_VER
 class __declspec( novtable ) IGameConsole : public IBaseInterface
@@ -18,5 +19,5 @@ public:
 	virtual void Printf( const char* format, ... );
 	virtual void DPrintf( const char* format, ... );
 
-	virtual void SetParent( int parent );
+	virtual void SetParent( vgui2::VPANEL parent );
 };

@@ -2,10 +2,7 @@
 
 #include "interface.h"
 
-namespace vgui2
-{
-	typedef unsigned int VPANEL;
-}
+#include "cse_vgui.h"
 
 class IClientVGUI : public IBaseInterface
 {

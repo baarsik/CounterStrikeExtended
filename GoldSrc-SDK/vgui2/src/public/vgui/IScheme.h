@@ -20,12 +20,10 @@
 #include "interface.h"
 #include "Color.h"
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
-
-typedef unsigned long HScheme;
-typedef unsigned long HFont;
-typedef unsigned long HTexture;
 
 class IBorder;
 class IImage;

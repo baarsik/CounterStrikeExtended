@@ -267,14 +267,14 @@ void MenuItem::OnKeyModeSet()
 void MenuItem::OnCursorEntered()
 {
 	KeyValues* message = new KeyValues( "CursorEnteredMenuItem" );
-	message->SetInt( "VPanel", GetVPanel() );
+	message->SetPtr( "VPanel", reinterpret_cast<void *>(GetVPanel()) );
 	ivgui()->PostMessage( GetVParent(), message, 0, 0.0f );
 }
 
 void MenuItem::OnCursorExited()
 {
 	KeyValues* message = new KeyValues( "CursorExitedMenuItem" );
-	message->SetInt( "VPanel", GetVPanel() );
+	message->SetPtr( "VPanel", reinterpret_cast<void *>(GetVPanel()) );
 	ivgui()->PostMessage( GetVParent(), message, 0, 0.0f );
 }
 

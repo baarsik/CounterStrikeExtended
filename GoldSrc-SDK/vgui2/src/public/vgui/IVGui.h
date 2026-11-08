@@ -22,11 +22,12 @@
 
 class KeyValues;
 
+#include "cse_vgui.h"
+
 namespace vgui2
 {
 
 // safe handle to a panel - can be converted to and from a VPANEL
-typedef unsigned long HPanel;
 typedef int HContext;
 typedef int HInputContext;
 
