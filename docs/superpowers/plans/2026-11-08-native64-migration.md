@@ -154,7 +154,12 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   callbacks. Other production module boundaries remain pending. Typed eager
   catalogs restore game member callbacks through canonical names, including
   bounded legacy aliases, without interpreting member pointers as addresses.
-  Ordinary function discovery and remaining PE32 assumptions still need work.
+  Export-name discovery now bounds PE32/PE32+ headers, sections, RVAs and names
+  without assuming contiguous names or a `.rdata` section. Standalone fixtures
+  pass across the architecture matrix; file-mapping lifecycle tests pass on
+  Windows and 42 real DLLs match MSVC's export listing. Updated Win32 engine
+  save/load and CS/HL recording/replay pass with producing module hashes checked.
+  Native symbol-address widths and other module boundaries remain open.
 - **Save/data representations:** native storage facts govern strides, clearing
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
   Raw-pointer descriptors reject at compile time and runtime before pointer bits
