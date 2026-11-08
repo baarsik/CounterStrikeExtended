@@ -131,6 +131,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\public\native_module.h" />
+    <ClInclude Include="..\..\public\steam_provider.h" />
     <ClInclude Include="..\..\HLTV\Proxy\DemoClient.h" />
     <ClInclude Include="..\..\HLTV\Proxy\FakeClient.h" />
     <ClInclude Include="..\..\HLTV\Proxy\Master.h" />

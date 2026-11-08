@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseSteamProviderProbe LANGUAGES CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+add_executable(steam_provider_probe provider_probe.cpp)
+target_compile_features(steam_provider_probe PRIVATE cxx_std_17)
+target_include_directories(steam_provider_probe PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(steam_provider_probe SYSTEM PRIVATE "${CSE_ROOT}/GoldSrc-SDK/external/steamworks")
+target_link_libraries(steam_provider_probe PRIVATE "${CMAKE_DL_LIBS}")
+# Real provider execution is explicit, never part of an ordinary build/CTest run.
+
+enable_testing()
+add_library(incomplete_steam_provider SHARED incomplete_provider.cpp)
+add_executable(steam_binding_tests binding_tests.cpp)
+target_compile_features(steam_binding_tests PRIVATE cxx_std_17)
+target_include_directories(steam_binding_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_link_libraries(steam_binding_tests PRIVATE "${CMAKE_DL_LIBS}")
+set_target_properties(steam_binding_tests PROPERTIES ENABLE_EXPORTS ON)
+add_dependencies(steam_binding_tests incomplete_steam_provider)
+add_test(NAME steam-provider-rejection COMMAND steam_binding_tests "$<TARGET_FILE:incomplete_steam_provider>")
+
+foreach(target steam_provider_probe steam_binding_tests incomplete_steam_provider)
+if(MSVC)
+  target_compile_options(${target} PRIVATE /W4 /WX /EHsc
+    "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")
+else()
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Werror
+    "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")
+endif()
+endforeach()

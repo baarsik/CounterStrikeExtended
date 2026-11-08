@@ -29,7 +29,7 @@ The inventory below identifies remaining work for native x64/ARM64 builds.
 | Dependency | x86 evidence | x64 / ARM64 status |
 | --- | --- | --- |
 | SDL3 | Pinned native SDL3 3.4.20 unmodified headers, x86 COFF import archive identifying SDL3.dll and bundled x86 DLL; same upstream binary for Debug/Release consumers | Pinned source build and bounded provider probes pass Windows x64/ARM64 and macOS ARM64 in Release/Debug; complete window/input/audio behavior still requires qualification |
-| Steam / Steamworks | Bundled x86 steam_api.lib; inherited header provenance statement and runtime-loaded interfaces | Exact required interfaces, native provider availability, bitness, lifecycle and applicable SDK/redistribution terms must be established for each architecture |
+| Steam / Steamworks | Bundled x86 steam_api.lib; inherited header provenance statement and runtime-loaded interfaces | Pinned Windows x64 and macOS ARM64 providers pass real client session, selected interface/context, callback and repeated lifecycle probes through the owned binding layer. Full runtime integration, server/authentication and voice parity remain open; Windows ARM64 provider remains unverified |
 | libmpg123 / music | Source-built shared mpg123 1.33.7, native source-rate PCM, SDL3 music stream, bounded producer and joined shutdown; no Miles provider | Native source builds and bounded decoder fixtures pass. ARM uses the scalar decoder with FP contraction disabled to match the measured Win32 PCM exactly. Full audio/game qualification remains open. |
 | Brotli, Ogg/Vorbis, WebM/VPX, bzip2, FreeType, Expat, PNG, zlib | Supplied x86 static-md Debug/Release libraries and retained notices | Pinned equivalent vcpkg recipes recovered; Windows x64 and macOS ARM64 source builds pass. Native import/lifecycle fixtures and full media/font equivalence remain separate gates; see the [source pins](../cmake/dependencies/vcpkg/README.md). |
 | VGUI / UI libraries | Source-built VGUI1/VGUI2/GameUI and CS controls; unused HL game_controls archive link removed; private interface copies remain | Native source/build availability for every selected object, interface layout and licensing need verification; x86 archives cannot be linked into 64-bit targets |
@@ -142,3 +142,37 @@ All 19 Win32 Release/Debug targets and six save/gameplay/replay regressions pass
 with producing source and loaded module hashes checked. These are loader lifecycle
 and Win32 regression checks. Real Steam/CEF integration, complete native
 module ABI enforcement and whole-game startup remain separate acceptance gates.
+
+
+## Native Steam binding and provider evidence
+
+`public/steam_provider.h` owns the selected native module and resolves all 22
+required SDK entry points before exposing its table. Missing libraries, null
+handles and incomplete exports fail with an empty table. Closing invalidates the
+table and releases its owning load; the caller must first shut down sessions and
+unregister callbacks. The runtime service façade still needs to route every
+consumer through this boundary. Existing Win32 runtime imports are unchanged.
+
+The [provider lock](../tools/qualification/fixtures/steam/lock.json) pins the Valve
+Source SDK Windows x64 DLL/import library and the installed Valve macOS depot
+artifact. The macOS library's ARM64 slice and Valve signature are verified;
+fixtures target macOS 14+. Native libraries are explicit probe inputs and are
+not added to default outputs by these fixtures.
+
+Actual providers pass Windows x64 and macOS ARM64 Release/Debug probes, including
+Mac ASan/UBSan. Each probe binds all entries, rejects a duplicate open without
+invalidating its owner, and completes two real client initialization/shutdown
+cycles. Seven exact SDK interface versions, an owned/licensed Half-Life session,
+SDK context caching and asynchronous `CheckFileSignature` call-result delivery
+are checked. Ordinary connected-notification count is zero and is recorded
+separately. Voice's real decoder-rate query returns 24 kHz; captured/encoded voice
+compatibility is still open. Windows x64 execution uses VM1's x64 emulation;
+these results are not physical x64 hardware qualification.
+
+Separate failure fixtures reject a deliberately incomplete provider without ever
+initializing it. An injected partial-table publication defect is detected. Fifteen
+fixture images and their producing source inputs are architecture/hash checked.
+These results establish bounded native client provider behavior, not native
+server authentication, unchanged Win32 server compatibility, full service/runtime
+integration or complete playable-game acceptance. Initialization and callback
+contracts follow [Valve's API documentation](https://partner.steamgames.com/doc/sdk/api).

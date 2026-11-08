@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "purpose": "Explicit native Steam provider qualification; no runtime promotion or automatic provider execution",
+  "application_id": 70,
+  "windows_x64": {
+    "repository": "https://github.com/ValveSoftware/source-sdk-2013",
+    "revision": "e1f1fd42271805072f052051c26c21caa2c87b04",
+    "runtime": {
+      "path": "game/bin/x64/steam_api64.dll",
+      "bytes": 298856,
+      "sha256": "a44e5537939ae4eebc69000589aa9b2437a667813a1657cc779198bae9b815a9"
+    },
+    "import_library": {
+      "path": "src/lib/public/x64/steam_api64.lib",
+      "bytes": 370672,
+      "sha256": "6e31c035783b63bd0865fd0bbe32f850de100b8cc04635955d7c5d331a5c5398"
+    },
+    "sdk_declarations": {
+      "path": "src/public/steam/steam_api.h",
+      "sha256": "9d2f7c898c0698eff8852f8826f0f44424e57a93faea714276c41d38b50e3e4c"
+    }
+  },
+  "macos_arm64": {
+    "source": "Installed Valve Half-Life Steam depot artifact",
+    "application_id": 70,
+    "build_id": 15961492,
+    "depot_id": 9,
+    "manifest_id": "1083345737969856561",
+    "runtime": {
+      "path": "libsteam_api.dylib",
+      "bytes": 609584,
+      "sha256": "162b0c71e1e724582a884c95f2748cb20944a003e858c017dc6bdd10c18e1536"
+    },
+    "slice": "arm64",
+    "signing_team": "MXGJJ98X76"
+  },
+  "windows_arm64": {
+    "status": "No verified native Steam provider; conditional target remains incomplete"
+  }
+}

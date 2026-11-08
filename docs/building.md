@@ -393,3 +393,24 @@ On macOS, sanitizer qualification uses `CSE_MODULE_SANITIZE_LEAF=OFF` to keep th
 reloadable external leaf uninstrumented while retaining sanitizer instrumentation
 in production loaders and fixture executables; see the documented ASan reproduction
 in the portability inventory. This project does not launch a game or real provider.
+
+
+## Native Steam provider fixtures
+
+```sh
+cmake -S tests/native/steam -B build/steam-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/steam-tests --parallel
+ctest --test-dir build/steam-tests --output-on-failure
+```
+
+CTest exercises only the owned rejection boundary with an incomplete fixture
+library. Real provider execution is explicit: invoke `steam_provider_probe` with
+an absolute verified provider path and `--bind` for export binding or `--client`
+for two real session cycles. Set `SteamAppId=70` and `SteamGameId=70` in that
+process environment and use the installed logged-in Steam client with Half-Life
+ownership. Verify the selected artifact against
+`tools/qualification/fixtures/steam/lock.json` before execution. Repeat in an
+isolated Debug directory. The client probe checks actual SDK interfaces, context
+caching, async callbacks, decoder-rate queries and explicit session shutdown; it
+does not qualify server authentication or encoded voice/network compatibility.
+No real provider is executed by a build or ordinary CTest invocation.

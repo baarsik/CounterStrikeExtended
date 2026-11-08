@@ -264,10 +264,18 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and loaders pass with only the external reloadable leaf uninstrumented, after
   an independent direct-loader ASan ODR reproduction. Real providers, other module
   ABI guards and complete native runtime startup remain open.
-- **Providers/platform/renderer:** official native Steam candidates and stable
-  CEF156.0.26 archives are pinned for integration. Real native authentication,
-  sessions, voice and browser behavior remain pending, as do the portable
-  platform/text/audio layer, shared SDL_GPU renderer and macOS development bundle.
+- **Steam binding/client provider boundary:** pinned real Windows x64 and macOS
+  ARM64 providers pass Release/Debug client sessions through owned atomic export
+  binding; Mac ASan/UBSan passes. Two init/shutdown cycles, seven exact interfaces,
+  SDK context caching, licensed Half-Life identity and actual async call-result
+  delivery pass. Rejection tests and a partial-table defect mutation pass their
+  expected gates. Fifteen images and producing inputs are checked. Decoder-rate
+  availability is verified; captured/encoded voice, native server/authentication,
+  all-consumer service routing and legacy external-server acceptance remain open.
+- **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
+  integration. Complete provider acceptance and browser behavior remain pending,
+  as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS
+  development bundle.
 
 Detailed passing and failed receipts, source/binary hashes and scope rulings are
 kept in the task ledger and isolated cse-native64-20261108 artifact directory.
