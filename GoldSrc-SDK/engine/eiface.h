@@ -401,7 +401,7 @@ typedef enum _fieldtypes
 	FIELD_EDICT,			// edict_t *, or edict_t *  (same thing)
 	FIELD_VECTOR,			// Any vector
 	FIELD_POSITION_VECTOR,	// A world coordinate (these are fixed up across level transitions automagically)
-	FIELD_POINTER,			// Arbitrary data pointer... to be removed, use an array of FIELD_CHARACTER
+	FIELD_POINTER,			// Reserved legacy value; owned save metadata rejects raw pointers.
 	FIELD_INTEGER,			// Any integer or enum
 	FIELD_FUNCTION,			// A class function pointer (Think, Use, etc)
 	FIELD_BOOLEAN,			// boolean, implemented as an int, I may use this as a hint for compression
@@ -424,6 +424,7 @@ typedef enum _fieldtypes
 template<typename Storage, FIELDTYPE Kind>
 constexpr unsigned int CseSaveNativeStride() {
     constexpr auto stride = cse::save::NativeStorageTraits<Storage>::Stride;
+    static_assert(Kind != FIELD_POINTER, "Raw pointers require a symbolic save representation");
     static_assert(stride <= UINT32_MAX, "Native save-field stride exceeds its descriptor width");
     static_assert((Kind != FIELD_STRING && Kind != FIELD_MODELNAME && Kind != FIELD_SOUNDNAME)
                       || stride == sizeof(string_t),

@@ -2130,11 +2130,6 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 			WriteData( pTest->fieldName, pTest->fieldSize, ((char *)pOutputData) );
 		break;
 
-		// For now, just write the address out, we're not going to change memory while doing this yet!
-		case FIELD_POINTER:
-			WriteInt( pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize );
-		break;
-
         case FIELD_FUNCTION: {
             const char *name = CseCallbackName(CseCallbackKind(pFields, *pTest), pOutputData);
             if (!name) {
@@ -2230,6 +2225,9 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 		pTest = &pFields[ fieldNumber ];
 		if ( pTest->fieldName && !stricmp( pTest->fieldName, pName ) )
 		{
+            if (pTest->fieldType == FIELD_POINTER) {
+                return InvalidSavedField;
+            }
 			if ( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{
                 if (pTest->fieldType == FIELD_BOOLEAN || pTest->fieldType == FIELD_INTEGER) {
@@ -2372,10 +2370,6 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 
 					case FIELD_CHARACTER:
 						std::memcpy(pOutputData, pInputData, sizeof(char));
-					break;
-
-					case FIELD_POINTER:
-						*((int *)pOutputData) = cse::save::detail::ReadNativeInteger<int>(pInputData);
 					break;
 
 					default:

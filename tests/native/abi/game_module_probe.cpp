@@ -1,5 +1,6 @@
 #include "../../../GoldSrc-SDK/public/cse_module_abi.h"
 #include <array>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -31,6 +32,15 @@ string_t lastAllocatedString = 0;
 constexpr std::size_t StringStorageBytes = 4096;
 constexpr std::size_t EntityCount = 3;
 edict_t *entityStorage = nullptr;
+unsigned int fixtureAlerts = 0;
+
+void CaptureFixtureAlert(ALERT_TYPE, char *format, ...) {
+    ++fixtureAlerts;
+    std::va_list arguments;
+    va_start(arguments, format);
+    std::vfprintf(stderr, format, arguments);
+    va_end(arguments);
+}
 
 edict_t *LookupFixtureEntity(EOFFSET offset) {
     std::int32_t index = 0;
@@ -167,6 +177,7 @@ static bool Probe(const char *path) {
     functions.pfnPrecacheSound = PrecacheFixtureString;
     functions.pfnPEntityOfEntOffset = LookupFixtureEntity;
     functions.pfnEntOffsetOfPEntity = OffsetOfFixtureEntity;
+    functions.pfnAlertMessage = CaptureFixtureAlert;
     globals.pStringBase = emptyString;
     DLL_FUNCTIONS table;
     constexpr unsigned char guardByte = 0xa5;
@@ -201,6 +212,17 @@ static bool Probe(const char *path) {
         return false;
     }
     if (!CheckProductionEntityFields(table, functions, entityStorage)) {
+        return false;
+    }
+    constexpr unsigned int PointerRejectionAlertsPerCase = 2;
+    void *pointerCases[] = {entityStorage, nullptr};
+    const auto previousAlerts = fixtureAlerts;
+    for (auto *pointer : pointerCases) {
+        if (!CheckProductionPointerRejection(table, pointer)) {
+            return false;
+        }
+    }
+    if (fixtureAlerts - previousAlerts != PointerRejectionAlertsPerCase * std::size(pointerCases)) {
         return false;
     }
     if (!CheckProductionKeyValues(table)) {

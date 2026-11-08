@@ -14,7 +14,7 @@ struct Snapshot {
     bool planted;
     unsigned short event;
     std::int64_t wide;
-    void *links[8];
+    edict_t *links[8];
     Blob blob;
     float origin[CSE_SAVE_VECTOR_COMPONENTS];
 };
@@ -25,7 +25,7 @@ int main() {
         DEFINE_FIELD(Snapshot, planted, FIELD_BOOLEAN),
         DEFINE_FIELD(Snapshot, event, FIELD_INTEGER),
         DEFINE_FIELD(Snapshot, wide, FIELD_INTEGER),
-        DEFINE_ARRAY(Snapshot, links, FIELD_POINTER, 2),
+        DEFINE_ARRAY(Snapshot, links, FIELD_EDICT, 2),
         DEFINE_ARRAY(Snapshot, blob, FIELD_CHARACTER, sizeof(Blob)),
         DEFINE_FIELD(Snapshot, origin, FIELD_VECTOR)
     };

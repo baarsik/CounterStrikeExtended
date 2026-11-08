@@ -31,3 +31,22 @@ if(MSVC)
   target_compile_options(c4_beep_tests PRIVATE /W4 /WX /EHsc)
 endif()
 add_test(NAME c4-saved-beep-phase COMMAND c4_beep_tests)
+add_executable(save_pointer_tests pointer_storage_tests.cpp)
+target_compile_features(save_pointer_tests PRIVATE cxx_std_17)
+target_include_directories(save_pointer_tests PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/dlls"
+  "${CSE_ROOT}/GoldSrc-SDK/common"
+  "${CSE_ROOT}/GoldSrc-SDK/engine"
+  "${CSE_ROOT}/GoldSrc-SDK/public")
+add_test(NAME native-save-pointer-rejection COMMAND save_pointer_tests)
+
+try_compile(CSE_RAW_POINTER_COMPILES
+  "${CMAKE_CURRENT_BINARY_DIR}/rejected-pointer-storage"
+  SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/rejected_pointer_storage.cpp"
+  CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
+    "-DINCLUDE_DIRECTORIES=${CSE_ROOT}/GoldSrc-SDK/public;${CSE_ROOT}/GoldSrc-SDK/common"
+  OUTPUT_VARIABLE CSE_RAW_POINTER_DIAGNOSTIC)
+if(CSE_RAW_POINTER_COMPILES OR NOT CSE_RAW_POINTER_DIAGNOSTIC MATCHES
+    "Raw pointers require a symbolic save representation")
+  message(FATAL_ERROR "Raw pointer metadata rejection fixture failed: ${CSE_RAW_POINTER_DIAGNOSTIC}")
+endif()

@@ -221,3 +221,46 @@ inline bool CheckProductionEntityFields(const DLL_FUNCTIONS &api, const enginefu
         && restored.offsets[0] == engine.pfnEntOffsetOfPEntity(entities + 2)
         && restored.offsets[1] == engine.pfnEntOffsetOfPEntity(entities + 1) && restored.missing == 0;
 }
+
+inline bool CheckProductionPointerRejection(const DLL_FUNCTIONS &api, void *validPointer) {
+    struct PointerState {
+        std::uint32_t before;
+        void *pointer;
+        std::uint32_t after;
+    };
+    constexpr std::uint32_t guard = UINT32_C(0x1234abcd);
+    PointerState state{guard, validPointer, guard};
+    TYPEDESCRIPTION forbidden = DEFINE_FIELD(PointerState, pointer, FIELD_EDICT);
+    forbidden.fieldType = FIELD_POINTER; // Deliberately bypass compile-time metadata validation.
+    std::array<char, 256> bytes{};
+    std::array<char *, 32> tokens{};
+    SAVERESTOREDATA save{};
+    save.pBaseData = bytes.data();
+    save.pCurrentData = bytes.data();
+    save.bufferSize = static_cast<int>(bytes.size());
+    save.tokenCount = static_cast<int>(tokens.size());
+    save.pTokens = tokens.data();
+    api.pfnSaveWriteFields(&save, "CSE_RAW_POINTER", &state, &forbidden, 1);
+    for (const auto byte : bytes) {
+        if (byte != 0) {
+            return false;
+        }
+    }
+    if (save.size != 0 || state.pointer != validPointer || state.before != guard || state.after != guard) {
+        return false;
+    }
+    // A historical pointer-shaped payload may not overwrite even the low half of native storage.
+    struct LegacyBits {
+        std::int32_t pointer;
+    } legacy{INT32_C(0x7f123456)};
+    TYPEDESCRIPTION legacyField = DEFINE_FIELD(LegacyBits, pointer, FIELD_INTEGER);
+    api.pfnSaveWriteFields(&save, "CSE_RAW_POINTER", &legacy, &legacyField, 1);
+    if (save.size <= 0) {
+        return false;
+    }
+    save.bufferSize = save.size;
+    save.size = 0;
+    save.pCurrentData = bytes.data();
+    api.pfnSaveReadFields(&save, "CSE_RAW_POINTER", &state, &forbidden, 1);
+    return state.pointer == validPointer && state.before == guard && state.after == guard;
+}

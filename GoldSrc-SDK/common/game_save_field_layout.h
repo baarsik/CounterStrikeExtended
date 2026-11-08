@@ -27,8 +27,9 @@ inline bool ValidFieldStorage(const TYPEDESCRIPTION &field) {
     case FIELD_CLASSPTR:
     case FIELD_EVARS:
     case FIELD_EDICT:
-    case FIELD_POINTER:
         return field.nativeStride == sizeof(void *);
+    case FIELD_POINTER:
+        return false;
     case FIELD_EHANDLE:
         return field.nativeStride == sizeof(EHANDLE);
     case FIELD_STRING:

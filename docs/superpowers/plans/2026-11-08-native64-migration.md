@@ -147,7 +147,7 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   with Steam/VAC enabled. Menu, cvar, custom-message acknowledgment, downloads,
   consistency and live movement checks pass. Native clients, voice, reconnect
   and changelevel remain unqualified.
-- **Module ABI/callbacks:** runtime ABI version 5 guards the actual engine/game
+- **Module ABI/callbacks:** runtime ABI version 6 guards the actual engine/game
   boundary before callback exchange, including eleven generated shared-layout
   profiles and single-use legacy initialization. Native and Win32 mismatch
   fixtures pass in Release/Debug; preserved older GameDLLs reject before
@@ -157,6 +157,8 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   Ordinary function discovery and remaining PE32 assumptions still need work.
 - **Save/data representations:** native storage facts govern strides, clearing
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
+  Raw-pointer descriptors reject at compile time and runtime before pointer bits
+  can be written or restored. Unknown legacy fields remain skippable.
   C4 persists an optional symbolic beep phase and real wave counter, with exact
   legacy attenuation recovery and restore-failure cleanup. Engine/HLTV demos use
   explicit Win32 records, including 260-byte paths and rebuilt local pointers.
@@ -164,8 +166,7 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   pointers and rejects unresolved references. Cross-architecture codec fixtures,
   malformed cases and macOS sanitizers pass. Updated Win32 gameplay, legacy demo
   replay, save/load and navigation fixtures pass. Complete native game-file
-  round trips, generic raw-pointer rejection and allocation-failure injection
-  remain open.
+  round trips and allocation-failure injection remain open.
 - **Native identities:** engine strings retain native-width relative identities,
   aliases and mutable storage. Worldspawn team lists have optional symbolic save
   fields and an explicit initialized flag; older saves recover the original BSP
