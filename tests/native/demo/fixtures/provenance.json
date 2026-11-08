@@ -1,0 +1,16 @@
+{
+  "source_demo_sha256": "12ca96884df920a7c9e105a1d437c9512368f15acdc7beea15324c78437edcd9",
+  "source_snapshot": "6b718fb-plus-symbolic-c4-phase (1886f61 component validation)",
+  "source_artifact": "cstrike-native-fields-Release.dem",
+  "source_byte_offset": 40807,
+  "frame": 1,
+  "time": 0.037703514099121094,
+  "health": 100,
+  "movement": [
+    1.0,
+    0.0,
+    0.0
+  ],
+  "fixture_sha256": "53ce55473003d1f39107d9e72d1244fe3d3b359aed29e5c812a63b3f29c8ff18",
+  "scope": "Owned recorded Win32 demo frame metadata, no server messages or game assets. Captured before native demo codec integration."
+}

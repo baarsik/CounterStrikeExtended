@@ -100,7 +100,8 @@ void DemoFile::CloseFile()
 
 void DemoFile::WriteDemoInfo( demo_info_t* demoInfo )
 {
-	m_FileSystem->Write( demoInfo, sizeof( demo_info_t ), m_FileHandle );
+    const auto disk = cse::demo::EncodeLegacyDemoFrame(*demoInfo);
+    m_FileSystem->Write(&disk, sizeof(disk), m_FileHandle);
 }
 
 void DemoFile::WriteSequenceInfo()
@@ -131,7 +132,7 @@ void DemoFile::WriteDemoStartup( BitBuffer* buffer )
 		m_FileSystem->Write( &f, 4, m_FileHandle );
 		i = frameCount;
 		m_FileSystem->Write( &i, 4, m_FileHandle );
-		m_FileSystem->Write( &zeroDemoInfo, sizeof( zeroDemoInfo ), m_FileHandle );
+		WriteDemoInfo(&zeroDemoInfo);
 		WriteSequenceInfo();
 		i = size;
 		m_FileSystem->Write( &i, 4, m_FileHandle );
@@ -159,7 +160,7 @@ void DemoFile::WriteDemoMessage( BitBuffer* unreliableData, BitBuffer* reliableD
 			m_FileSystem->Write( &f, 4, m_FileHandle );
 			i = frameCount;
 			m_FileSystem->Write( &i, 4, m_FileHandle );
-			m_FileSystem->Write( &zeroDemoInfo, sizeof( zeroDemoInfo ), m_FileHandle );
+			WriteDemoInfo(&zeroDemoInfo);
 			WriteSequenceInfo();
 			i = size;
 			m_FileSystem->Write( &i, 4, m_FileHandle );
@@ -544,9 +545,9 @@ void DemoFile::ReadDemoPacket( BitBuffer* demoData, demo_info_t* demoInfo )
 			break;
 
 		default:
-			m_FileSystem->Read( demoInfo, sizeof( demo_info_t ), m_FileHandle );
-			demoInfo->rp.cmd = &demoInfo->cmd;
-			demoInfo->rp.movevars = &demoInfo->movevars;
+            if (!ReadDemoInfo(demoInfo)) {
+                return;
+            }
 			ReadSequenceInfo();
 
 			if ( m_FileSystem->Read( &msglen, 4, m_FileHandle ) != 4 )
@@ -620,11 +621,15 @@ void DemoFile::ReadDemoPacket( BitBuffer* demoData, demo_info_t* demoInfo )
 	}
 }
 
-void DemoFile::ReadDemoInfo( demo_info_t* demoInfo )
-{
-	m_FileSystem->Read( demoInfo, sizeof( demo_info_t ), m_FileHandle );
-	demoInfo->rp.cmd = &demoInfo->cmd;
-	demoInfo->rp.movevars = &demoInfo->movevars;
+bool DemoFile::ReadDemoInfo(demo_info_t *demoInfo) {
+    cse::demo::LegacyDemoFrame disk{};
+    const int bytesRead = m_FileSystem->Read(&disk, sizeof(disk), m_FileHandle);
+    if (!cse::demo::DecodeLegacyDemoFrame(&disk, static_cast<std::size_t>(bytesRead), *demoInfo)) {
+        m_System->DPrintf("WARNING! DemoFile::ReadDemoInfo: Bad demo frame info.\n");
+        StopPlayBack();
+        return false;
+    }
+    return true;
 }
 
 void DemoFile::ReadSequenceInfo()

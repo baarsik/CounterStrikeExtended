@@ -5,6 +5,7 @@
 #include "common/ref_params.h"
 #include "common/usercmd.h"
 #include "pm_shared/pm_movevars.h"
+#include "common/legacy_demo_records.h"
 
 enum DemoFileCommand
 {

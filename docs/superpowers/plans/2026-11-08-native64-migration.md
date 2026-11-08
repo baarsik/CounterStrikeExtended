@@ -233,7 +233,7 @@ Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
 round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
 Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
 save/load and CS recording/replay also pass in both Win32 configurations. Native
-engine-string offsets, explicit demo/navigation records and full native game file
+engine-string offsets, explicit navigation records and full native game file
 round trips remain pending.
 
 C4 saves now record a stable optional beep phase and the actual wave counter
@@ -245,3 +245,15 @@ and malformed-phase rejection in Release and Debug. Both game dispatchers now
 propagate restore failure before spawning or precaching an entity. Standalone
 phase tests pass on all three native architectures and maintained Win32; this
 does not qualify native C4 gameplay, emitted audio, defusing or full save files.
+
+Demo protocol 5 now uses explicit Win32 records: fixed 260-byte paths, a
+544-byte header, 92-byte directory entry and 436-byte frame. Named value bits
+survive native conversion exactly; saved pointer slots and user-command padding
+are normalized to zero, and local command/movevar pointers are rebuilt. Engine
+and HLTV file paths share the codec. HLTV keeps native internal frame sizes and
+copies packed storage into aligned locals before use. Standalone tests pass
+Win32, Windows x64/ARM64 and macOS ARM64 in Release/Debug, with identical encoded
+bytes and macOS sanitizers. New Win32 CS and HL recordings replay to EOF in both
+configurations. Sealed legacy CS/HL demos also replay to EOF with identical host
+frame counts in paired cold-start launches of the preserved and updated Win32
+runtimes; module hashes identify both. Native whole-game acceptance remains open.

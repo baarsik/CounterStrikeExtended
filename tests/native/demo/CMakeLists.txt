@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+project(CseLegacyDemoFixtures LANGUAGES CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+add_executable(demo_records_tests demo_records_tests.cpp)
+target_compile_features(demo_records_tests PRIVATE cxx_std_17)
+if(MSVC)
+  target_compile_options(demo_records_tests PRIVATE /W4 /WX /EHsc)
+endif()
+enable_testing()
+add_test(NAME legacy-demo-records COMMAND demo_records_tests
+  "${CMAKE_CURRENT_LIST_DIR}/fixtures/win32-movement-frame.bin")

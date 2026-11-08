@@ -6,30 +6,10 @@
 #include "common/usercmd.h"
 #include "pm_shared/pm_movevars.h"
 
-typedef struct demoheader_s
-{
-	char		szFileStamp[6];
-	int			nDemoProtocol;
-	int			nNetProtocolVersion;
+#include "common/legacy_demo_records.h"
 
-	char		szMapName[260];
-	char		szDllDir[260];
-	CRC32_t		mapCRC;
-	int			nDirectoryOffset;
-} demoheader_t;
-
-typedef struct demoentry_s
-{
-	int			nEntryType;
-	char		szDescription[64];
-	int			nFlags;
-	int			nCDTrack;
-
-	float		fTrackTime;
-	int			nFrames;
-	int			nOffset;
-	int			nFileLength;
-} demoentry_t;
+typedef cse::demo::LegacyDemoHeader demoheader_t;
+typedef cse::demo::LegacyDemoEntry demoentry_t;
 
 typedef struct demo_info_s
 {

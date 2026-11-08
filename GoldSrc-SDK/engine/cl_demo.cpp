@@ -266,19 +266,23 @@ void CL_DemoFrameInfo( demo_info_t* info, float time )
 {
 	int i;
 
-	for ( i = MAX_DEMO_FRAMES - 1; i > 0; i-- )
-		Q_memcpy( &dem_frames[i], &dem_frames[i - 1], sizeof( demo_info_t ) );
+    for (i = MAX_DEMO_FRAMES - 1; i > 0; i--) {
+        cse::demo::CopyNativeDemoFrame(&dem_frames[i - 1], dem_frames[i]);
+    }
 
-	memcpy( &dem_frames[0], info, sizeof( demo_info_t ) );
-	CL_FixPointers( &dem_frames[0] );
+    cse::demo::CopyNativeDemoFrame(info, dem_frames[0]);
 	dem_frames[0].timestamp = time;
 }
 
 void CL_DemoReadCmdInfo( float time )
 {
-	demo_info_t info;
-
-	FS_Read( &info, sizeof( info ), 1, cls.demofile );
+    demo_info_t info{};
+    cse::demo::LegacyDemoFrame disk{};
+    const int bytesRead = FS_Read(&disk, sizeof(disk), 1, cls.demofile);
+    if (!cse::demo::DecodeLegacyDemoFrame(&disk, static_cast<std::size_t>(bytesRead), info)) {
+        Host_EndGame("Bad demo frame info.\n");
+        return;
+    }
 
 	memcpy( &g_rp.cmd, &info.cmd, sizeof( g_rp.cmd ) );
 	memcpy( &g_rp.movevars, &info.movevars, sizeof( g_rp.movevars ) );
@@ -332,7 +336,8 @@ void CL_DemoWriteSequenceInfo( FileHandle_t fp, int length )
 
 void CL_DemoWriteCmdInfo( FileHandle_t fp )
 {
-	FS_Write( &g_rp, sizeof( g_rp ), 1, fp );
+    const auto disk = cse::demo::EncodeLegacyDemoFrame(g_rp);
+    FS_Write(&disk, sizeof(disk), 1, fp);
 }
 
 void CL_DemoCopyFileChunk( FILE* dst, FILE* src, int nSize )

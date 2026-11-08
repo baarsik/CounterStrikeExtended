@@ -34,7 +34,7 @@ public:
 	bool LoadDemo( char* demoname );
 	void StopPlayBack();
 	void ReadDemoPacket( BitBuffer* demoData, demo_info_t* demoInfo );
-	void ReadDemoInfo( demo_info_t* demoInfo );
+	bool ReadDemoInfo(demo_info_t *demoInfo);
 	void ReadSequenceInfo();
 	char* GetFileName();
 

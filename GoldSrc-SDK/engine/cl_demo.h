@@ -13,6 +13,7 @@
 #include "../pm_shared/pm_movevars.h"
 
 #include <cstdio>
+#include "../common/legacy_demo_records.h"
 
 #define DEMO_PROTOCOL 5
 
@@ -38,36 +39,15 @@ typedef struct sequence_info_s
 	int length;
 } sequence_info_t;
 
-typedef struct demoentry_s
-{
-	int nEntryType; // DEMO_STARTUP or DEMO_NORMAL
-	char szDescription[64];
-	int nFlags;
-	int nCDTrack;
-	float fTrackTime; // Time of track
-	int nFrames; // # of frames in track
-	int nOffset; // File offset of track data
-	int nFileLength; // Length of track
-} demoentry_t;
+typedef cse::demo::LegacyDemoEntry demoentry_t;
 
 typedef struct demodirectory_s
 {
-	// Number of tracks
-	int nEntries;
-	// Track entry info
-	demoentry_t* p_rgEntries;
+    int nEntries;
+    demoentry_t *p_rgEntries;
 } demodirectory_t;
 
-typedef struct demoheader_s
-{
-	char szFileStamp[8]; // Should be HLDEMO
-	int nDemoProtocol; // Should be DEMO_PROTOCOL
-	int nNetProtocolVersion; // Should be PROTOCOL_VERSION
-	char szMapName[MAX_PATH]; // Name of map
-	char szDllDir[MAX_PATH]; // Name of game directory (com_gamedir)
-	CRC32_t mapCRC;
-	int nDirectoryOffset; // Offset of Entry Directory.
-} demoheader_t;
+typedef cse::demo::LegacyDemoHeader demoheader_t;
 
 extern float g_demotimescale;
 extern client_textmessage_t tm_demomessage;

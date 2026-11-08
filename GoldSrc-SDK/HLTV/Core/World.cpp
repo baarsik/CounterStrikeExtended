@@ -22,7 +22,8 @@
 #define WORLD_SIGNON_BYTES			0x8000
 #define WORLD_SERVERINFO_BYTES		0x200
 #define WORLD_CACHE_ENTRIES			32
-#define WORLD_DEMOINFO_BYTES		436
+constexpr unsigned int WorldDemoInfoBytes = static_cast<unsigned int>(sizeof(demo_info_t));
+constexpr unsigned int WorldFrameStoragePaddingBytes = sizeof(std::uint32_t);
 
 #define WORLD_ENTITY_SENTINEL		9999
 #define WORLD_EMPTY_ENTITY_TYPE		0x40000000
@@ -2008,7 +2009,7 @@ int World::AddFrame( frame_t* newFrame )
 
 	bytes = newFrame->clientDataSize + newFrame->eventsSize + newFrame->reliableDataSize +
 		newFrame->unreliableDataSize + newFrame->voiceDataSize + packed + newFrame->demoDataSize +
-		newFrame->userMessagesSize + ( newFrame->demoInfo == NULL ? 4u : 440u );
+		newFrame->userMessagesSize + WorldFrameStoragePaddingBytes + (newFrame->demoInfo == nullptr ? 0u : WorldDemoInfoBytes);
 	data = (unsigned char*)malloc( bytes );
 	cursor = data;
 	currentFrame->delta = WORLD_FULLFRAME_DELTA;
@@ -2074,7 +2075,7 @@ int World::AddFrame( frame_t* newFrame )
 	}
 	if ( newFrame->demoInfo != NULL )
 	{
-		memcpy( cursor, newFrame->demoInfo, WORLD_DEMOINFO_BYTES );
+		memcpy( cursor, newFrame->demoInfo, WorldDemoInfoBytes );
 		currentFrame->demoInfo = cursor;
 	}
 

@@ -256,10 +256,12 @@ void DemoPlayer::GetDemoViewInfo( ref_params_t* rp, float* view, int* viewmodel 
 	if ( !frame )
 		return;
 
-	demo_info_t* info = (demo_info_t*)frame->demoInfo;
-
-	if ( !info )
-		return;
+    if (!frame->demoInfo) {
+        return;
+    }
+    demo_info_t currentInfo{};
+    cse::demo::CopyNativeDemoFrame(frame->demoInfo, currentInfo);
+    const demo_info_t *info = &currentInfo;
 
 	int viewport[4];
 	memcpy( viewport, rp->viewport, sizeof( viewport ) );
@@ -280,10 +282,12 @@ void DemoPlayer::GetDemoViewInfo( ref_params_t* rp, float* view, int* viewmodel 
 	if ( !previous )
 		return;
 
-	demo_info_t* from = (demo_info_t*)previous->demoInfo;
-
-	if ( !from || !( previous->time < frame->time ) )
-		return;
+    if (!previous->demoInfo || !(previous->time < frame->time)) {
+        return;
+    }
+    demo_info_t previousInfo{};
+    cse::demo::CopyNativeDemoFrame(previous->demoInfo, previousInfo);
+    const demo_info_t *from = &previousInfo;
 
 	float frac = (float)( ( m_WorldTime - previous->time ) / ( frame->time - previous->time ) );
 
