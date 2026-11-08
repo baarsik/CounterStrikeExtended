@@ -1,4 +1,5 @@
 #include "common.h"
+#include "../common/legacy_float_to_int.h"
 #include "engine_apiproxy.h"
 #include "bspfile.h"
 #include "conprint.h"
@@ -39,7 +40,6 @@
 
 #if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 )
 #include <cassert>
-#include <xmmintrin.h>
 #endif
 
 int FileSystem_AddFallbackGameDir( const char* gameDirectory );
@@ -1769,25 +1769,21 @@ void MSG_WriteBitVec3Coord( const vec_t* coordinates )
 		MSG_WriteBitCoord( coordinates[2] );
 }
 
-void MSG_WriteBitAngle( float angle, int numBits )
-{
-	constexpr int MAX_BIT_ANGLE_BITS = sizeof( std::uint32_t ) * CHAR_BIT;
-	constexpr int DEGREES_PER_TURN = 360;
-	if ( numBits >= MAX_BIT_ANGLE_BITS )
-		Sys_Error( "Can't write bit angle with 32 bits precision\n" );
-	std::uint32_t steps = 1u << numBits;
-	double wrapped = std::fmod( static_cast<double>( angle ), static_cast<double>( DEGREES_PER_TURN ) );
-	double unsignedSteps = static_cast<double>( steps );
-	float wrappedAngle = static_cast<float>( wrapped );
-	float stepsPerTurn = static_cast<float>( unsignedSteps );
-	float scaledAngle = wrappedAngle * stepsPerTurn;
-#if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 )
-	int packedAngle = _mm_cvtt_ss2si( _mm_set_ss( scaledAngle ) );
-#else
-	int packedAngle = static_cast<int>( scaledAngle );
-#endif
-	std::uint32_t value = static_cast<std::uint32_t>( packedAngle / DEGREES_PER_TURN ) & ( steps - 1 );
-	MSG_WriteBits( value, numBits );
+void MSG_WriteBitAngle(float angle, int numBits) {
+    constexpr int MaximumBitAngleBits = sizeof(std::uint32_t) * CHAR_BIT;
+    constexpr int DegreesPerTurn = 360;
+    if (numBits >= MaximumBitAngleBits) {
+        Sys_Error("Can't write bit angle with 32 bits precision\n");
+    }
+    const std::uint32_t steps = 1u << numBits;
+    const double wrapped = std::fmod(static_cast<double>(angle), static_cast<double>(DegreesPerTurn));
+    const double unsignedSteps = static_cast<double>(steps);
+    const float wrappedAngle = static_cast<float>(wrapped);
+    const float stepsPerTurn = static_cast<float>(unsignedSteps);
+    const float scaledAngle = wrappedAngle * stepsPerTurn;
+    const int packedAngle = CseLegacyTruncateFloatToInt(scaledAngle);
+    const std::uint32_t value = static_cast<std::uint32_t>(packedAngle / DegreesPerTurn) & (steps - 1);
+    MSG_WriteBits(value, numBits);
 }
 
 short ShortSwap( short value )

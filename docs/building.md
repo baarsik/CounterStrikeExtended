@@ -339,3 +339,21 @@ fixture targets macOS 14+. Repeat with a separate Debug directory. It checks
 instruction discovery, bounded topology, timer units, monotonic samples and
 profiler conversion against an independent clock. It does not run a game or
 qualify gameplay floating-point behavior.
+
+
+## Legacy numerical fixtures
+
+```sh
+cmake -S tests/native/numerics -B build/numeric-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/numeric-tests --parallel
+ctest --test-dir build/numeric-tests --output-on-failure
+```
+
+These fixtures compare the scalar conversion with the actual SSE instruction on
+x86, then compile the production angle-writing and cvar-formatting bodies with
+their separate strict/precise policies. Generated fixture headers are extracted
+from the selected source, without rewriting the bodies. An explicitly pinned
+source directory may be selected with `CSE_NUMERIC_SOURCE_DIR` for reference
+comparisons. Binary corpora record exact conversion results, angle write arguments
+and cvar strings; they do not establish complete network packet or gameplay parity.
+See the portability inventory for VM1's pre-existing extreme-angle Debug limit.

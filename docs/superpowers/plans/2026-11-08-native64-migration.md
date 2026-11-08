@@ -239,6 +239,14 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   wrapping are detected by injected faults. Win32 detection/calibration remains
   the reference. Engine instruction dispatch, scalar conversions, FP control and
   full numerical/gameplay acceptance remain open.
+- **Scalar conversion boundary:** binary32 scalar conversion matches the actual
+  SSE instruction for NaN, overflow, subnormals and finite truncation; thirteen
+  conversion corpora match exactly across the participating configurations.
+  Actual angle/cvar bodies retain their separate FP policies, wrapping/division,
+  hooks and formatting. Frozen and updated Win32 results match per configuration;
+  Mac sanitizers and six updated Win32 runtime regressions pass. A pre-existing
+  emulated Win32 Debug remainder difference for extreme angles remains recorded
+  explicitly; complete numerical/gameplay acceptance remains open.
 - **Providers/platform/renderer:** official native Steam candidates and stable
   CEF156.0.26 archives are pinned for integration. Real native authentication,
   sessions, voice and browser behavior remain pending, as do the portable

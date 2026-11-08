@@ -15,12 +15,12 @@ The inventory below identifies remaining work for native x64/ARM64 builds.
 | Area | Current evidence and required future work |
 | --- | --- |
 | Inline assembly | A static token scan of retained non-external C/C++/headers found no `__asm`, `__asm__` or `asm(...)` blocks, and no assembly input is selected by the retained projects. This bounded source finding does not make libraries architecture-neutral or rule out all compiler-specific constructs. Do not introduce raw x86 assembly shims. |
-| x86 intrinsics / CPU discovery | `tier0` now scopes CPUID/RDTSC to x86, uses native ARM64 counters and discovers native topology; bounded production-source fixtures pass. `engine/sys_dll2.cpp` still uses `__cpuid` and `_mm_empty`; `engine/common.cpp` uses SSE conversion intrinsics. `engine/r_surf.cpp`, retained through swds, uses MMX `__m64` operations. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
+| x86 intrinsics / CPU discovery | `tier0` now scopes CPUID/RDTSC to x86, uses native ARM64 counters and discovers native topology; bounded production-source fixtures pass. `engine/sys_dll2.cpp` still uses `__cpuid` and `_mm_empty`; `common/legacy_float_to_int.h` retains x86 SSE conversion and provides a tested binary32 scalar equivalent for ARM64; engine angle and cvar conversion use it. `engine/r_surf.cpp`, retained through swds, uses MMX `__m64` operations. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
 | Pointer/integer width and loaders | `engine/LoadBlob.cpp` encodes addresses in `unsigned long` fields and casts loader/thunk function addresses through `DWORD`; it assumes Windows 32-bit image layout. A 64-bit build cannot fix this by widening every stored field. Audit pointer-bearing integers, callbacks, varargs/format strings, offsets, allocation arithmetic and serialized versus in-process addresses throughout retained client/server/UI code. |
 | In-process interfaces | Engine/client/server function tables, virtual interfaces, HWND/module handles, STL/container layouts and private copied interfaces cross module boundaries. All in-process modules/providers must agree on architecture, layout, toolchain and CRT. An x86 stock client or server DLL cannot load in a native x64/ARM64 engine. |
 | Calling convention and exports | `engine/eiface.h` uses Windows `__stdcall`; `.def` files include x86-decorated C++ names and ordinals. VGUI1 has a data alias at ordinal 395 and names-only import-library generation. Plan and verify each architecture's exports/imports and calling convention instead of reusing x86 decoration or relying on auto-export. |
 | Packing/alignment | `common/const.h` contains pack(2) regions; `engine/BaseSystemModule.h` and `webm_video.h` contain explicit packing choices. Audit wire/disk structures separately from native class/ABI structures; preserve required format sizes while allowing native pointer width where appropriate. |
-| Floating point | Preserve hardware's precise FP, strict `common.cpp`, SSE2/rounding/denormal assumptions, per-file EH and target-specific optimization. A3D has its own mixed precise/strict/fast per-file policy. ARM64 scalar/NEON code must reproduce required conversion/order/rounding behavior rather than globally enabling fast math. No ARM/x64 numerical equivalence is claimed. |
+| Floating point | Preserve hardware's precise FP, strict `common.cpp`, SSE2/rounding/denormal assumptions, per-file EH and target-specific optimization. A3D has its own mixed precise/strict/fast per-file policy. ARM64 scalar/NEON code must reproduce required conversion/order/rounding behavior rather than globally enabling fast math. Scalar float-to-int results match the retained SSE instruction in bounded fixtures; complete gameplay numerical equivalence remains open. |
 | OS APIs | Windows loader, registry, sockets, threads/synchronization, diagnostics, GDI, resources, DirectDraw/DirectSound/WinMM/OpenGL and COM interfaces remain dependencies. Some VGUI window data paths already use `GetWindowLongPtrA`/`LONG_PTR`, but this is not a complete width audit. Each future OS needs an explicit platform/provider design. |
 | Compiler/runtime | Current static and DLL CRT selections differ by module. MSVC-specific SEH/async EH, assertions, intrinsics and linker exports need architecture/compiler review. The x86 flags are isolated in this baseline's target modules and VGUI import step, not advertised as reusable architecture-neutral settings. |
 
@@ -77,3 +77,20 @@ not an invented ARM processor frequency. Actual CPU/fasttimer fixtures pass on
 Windows x86/x64/ARM64 and macOS ARM64 in Release/Debug, with Mac sanitizers and
 counter-unit/topology fault checks. Engine instruction dispatch, scalar numerical
 replacements, FP control and Pentium-specific profiling still need qualification.
+
+Legacy float-to-int conversion now has defined native results for every binary32
+bit pattern. The ARM64 scalar path preserves truncation toward zero and the
+Win32 SSE integer-indefinite result for NaN, infinity and overflow. The x86 path
+retains its original instruction. Actual angle/cvar bodies are compiled with
+separate strict/precise policies in standalone fixtures; wrapping, division,
+hooks and formatting remain unchanged.
+
+Across Windows x86/x64/ARM64 and macOS ARM64, thirteen conversion corpora match
+exactly, including four rounding modes at the boundaries. Cvar strings and angle
+records within the tested ±10-million-degree range also match. VM1's emulated
+Win32 Debug retains a pre-existing extreme-angle difference from Release:
+1,345 sampled inputs with magnitude at least 7.37e16 degrees differ identically
+in the frozen and updated code. Independent CRT remainder diagnostics also
+vary under emulation. Those records remain explicit qualification limits; no
+floating-point tolerance or production remainder workaround was added. Complete
+native gameplay/numerical qualification remains open.

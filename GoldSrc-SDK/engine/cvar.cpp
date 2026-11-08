@@ -2,6 +2,7 @@
 #include "engine_apiproxy.h"
 #include "cmd.h"
 #include "common.h"
+#include "../common/legacy_float_to_int.h"
 #include "conprint.h"
 #include "client.h"
 #include "filesystem.h"
@@ -26,43 +27,38 @@
 #endif
 #endif
 
-#if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 )
-#include <xmmintrin.h>
-#endif
-
 const char* Cvar_IsMultipleTokens( const char* varname );
 
 cvar_t* cvar_vars;
 cvarhook_t* cvar_hooks;
 const char* cvar_null_string = com_empty_string;
 
-void Cmd_CvarListPrintCvar( cvar_t* variable, FileHandle_t file )
-{
-	constexpr int CVAR_LIST_BUFFER_BYTES = 256;
-	constexpr int CVAR_LIST_SUFFIX_BYTES = sizeof( ", a, sv, i\n" ) - 1;
-	char output[CVAR_LIST_BUFFER_BYTES];
-	float value = variable->value;
-#if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 )
-	int integerValue = _mm_cvtt_ss2si( _mm_set_ss( value ) );
-#else
-	int integerValue = static_cast<int>( value );
-#endif
-	if ( value == static_cast<float>( integerValue ) )
-		_snprintf( output, sizeof( output ) - CVAR_LIST_SUFFIX_BYTES, "%-15s : %8i", variable->name, integerValue );
-	else
-		_snprintf( output, sizeof( output ) - CVAR_LIST_SUFFIX_BYTES, "%-15s : %8.3f", variable->name,
-			static_cast<double>( value ) );
-	if ( variable->flags & FCVAR_ARCHIVE )
-		Q_strcat( output, ", a" );
-	if ( variable->flags & FCVAR_SERVER )
-		Q_strcat( output, ", sv" );
-	if ( variable->flags & FCVAR_USERINFO )
-		Q_strcat( output, ", i" );
-	Q_strcat( output, "\n" );
-	// Print to console
-	Con_Printf( "%s", output );
-	if ( file )
-		FS_FPrintf( file, "%s", output );
+void Cmd_CvarListPrintCvar(cvar_t* variable, FileHandle_t file) {
+    constexpr int ListBufferBytes = 256;
+    constexpr int ListSuffixBytes = sizeof(", a, sv, i\n") - 1;
+    char output[ListBufferBytes];
+    const float value = variable->value;
+    const int integerValue = CseLegacyTruncateFloatToInt(value);
+    if (value == static_cast<float>(integerValue)) {
+        _snprintf(output, sizeof(output) - ListSuffixBytes, "%-15s : %8i", variable->name, integerValue);
+    } else {
+        _snprintf(output, sizeof(output) - ListSuffixBytes, "%-15s : %8.3f", variable->name,
+            static_cast<double>(value));
+    }
+    if (variable->flags & FCVAR_ARCHIVE) {
+        Q_strcat(output, ", a");
+    }
+    if (variable->flags & FCVAR_SERVER) {
+        Q_strcat(output, ", sv");
+    }
+    if (variable->flags & FCVAR_USERINFO) {
+        Q_strcat(output, ", i");
+    }
+    Q_strcat(output, "\n");
+    Con_Printf("%s", output);
+    if (file) {
+        FS_FPrintf(file, "%s", output);
+    }
 }
 
 void Cmd_CvarList_f()
@@ -382,25 +378,19 @@ void Cvar_Set( const char* name, const char* value )
 	}
 }
 
-void Cvar_SetValue( char* name, float value )
-{
-	constexpr std::size_t CVAR_VALUE_BUFFER_SIZE = 32;
-	constexpr double CVAR_INTEGER_EPSILON = 0.000001;
-
-	g_engdstAddrs.Cvar_SetValue( &name, &value );
-#if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 )
-	const int integerValue = _mm_cvtt_ss2si( _mm_set_ss( value ) );
-#else
-	const int integerValue = static_cast<int>( value );
-#endif
-	const float fractionalPart = value - static_cast<float>( integerValue );
-	char text[CVAR_VALUE_BUFFER_SIZE];
-	if ( std::fabs( static_cast<double>( fractionalPart ) ) < CVAR_INTEGER_EPSILON )
-		_snprintf( text, sizeof( text ), "%d", integerValue );
-	else
-		_snprintf( text, sizeof( text ), "%f", static_cast<double>( value ) );
-
-	Cvar_Set( name, text );
+void Cvar_SetValue(char* name, float value) {
+    constexpr std::size_t ValueBufferSize = 32;
+    constexpr double IntegerEpsilon = 0.000001;
+    g_engdstAddrs.Cvar_SetValue(&name, &value);
+    const int integerValue = CseLegacyTruncateFloatToInt(value);
+    const float fractionalPart = value - static_cast<float>(integerValue);
+    char text[ValueBufferSize];
+    if (std::fabs(static_cast<double>(fractionalPart)) < IntegerEpsilon) {
+        _snprintf(text, sizeof(text), "%d", integerValue);
+    } else {
+        _snprintf(text, sizeof(text), "%f", static_cast<double>(value));
+    }
+    Cvar_Set(name, text);
 }
 
 void Cvar_DirectSet( cvar_t* variable, const char* value )
