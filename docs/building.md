@@ -3,7 +3,7 @@
 ## Requirements
 
 - Windows with MSVC C++ Build Tools and the Windows SDK.
-- CMake 3.25+ and Ninja.
+- CMake 3.25+, Ninja and Python 3.9+ (binary architecture inspection).
 - The bundled x86 headers and libraries under `GoldSrc-SDK/external/` and
   `GoldSrc-SDK/lib/`.
 
@@ -71,7 +71,8 @@ cmake --build build/hardware-standalone --parallel
 | `CSE_BUILD_A3D` | ON | Build `a3dapi.dll`; use requires a compatible legacy provider |
 | `CSE_HARDWARE_ONLY` | OFF | Build the hardware engine and its dependencies only |
 | `CSE_RELEASE_DIAGNOSTICS` | OFF | Generate Release debug symbols and linker maps |
-| `CSE_STAGE_DISTRIBUTION_MATERIALS` | OFF | Copy mpg123 notices and source into `licenses/mpg123/` in the output root |
+| `CSE_STAGE_DISTRIBUTION_MATERIALS` | OFF | Copy selected source-provider notices and archives into `licenses/` |
+| `CSE_SDL3_FROM_SOURCE` | OFF | Build pinned SDL3 3.4.20 from source instead of the reference x86 binary |
 
 For example, to omit standalone broadcasting and A3D:
 
@@ -148,8 +149,9 @@ The [build manifest reference](msbuild/README.md) explains translation,
 configuration settings, generated inputs and archived evidence.
 
 Local checks cover Ninja presets, output paths, dependency restoration and
-Release flags. Full Windows Ninja compilation and EXE/DLL inspection remain
-pending. The [runtime validation report](mpg123-migration-validation.md) covers
+Release flags. The native migration has rebuilt all 19 Win32 targets with Ninja in Release
+and Debug and audited their output inventories; see the active migration plan
+for evidence scope and remaining reference-fixture work. The [runtime validation report](mpg123-migration-validation.md) covers
 earlier builds, gameplay and music; [qualification tools](../tools/qualification/README.md)
 describe the separate runtime checks.
 
@@ -163,3 +165,75 @@ ctest --test-dir build/music-tests-release --output-on-failure
 
 For Debug, use a separate build directory with `-DCMAKE_BUILD_TYPE=Debug`.
 Stream tests use SDL's dummy audio device.
+
+## Native dependency builds
+
+The migration currently provides separate **dependency-only** builds. These build
+SDL3 3.4.20 and mpg123 1.33.7 from pinned local source archives and link a small
+provider ABI probe. They do not build a native game or change the Win32 default.
+The [migration plan](superpowers/plans/2026-11-08-native64-migration.md) tracks the
+remaining runtime, serialization, platform, provider and renderer gates.
+
+On Apple Silicon with Xcode command-line tools:
+
+```sh
+cmake --preset deps-macos-arm64-release
+cmake --build --preset deps-macos-arm64-release --parallel
+cmake --preset deps-macos-arm64-debug
+cmake --build --preset deps-macos-arm64-debug --parallel
+```
+
+On Windows, initialize MSVC for the selected target architecture, then use
+`deps-windows-x64-release` / `deps-windows-x64-debug`, or the conditional
+`deps-windows-arm64-release` / `deps-windows-arm64-debug`. A host ARM64 compiler
+can emit x64 binaries; the compiler target is checked using its predefined
+macros and pointer width. ARM64EC is excluded. An ARM64 target requires the
+ARM64 C++ compiler/tools component, in addition to the Windows SDK.
+
+Each preset owns `build/<preset>/`; provider libraries are staged into its
+`runtime/`, and the probe stays in `bin/`. Import archives, symbols and build
+intermediates remain outside `runtime/`. The macOS minimum is 14.0. No tests,
+provider initialization or games run as part of these builds. Execute the probe
+only in an authorized fixture; on Windows its `runtime/` must be on `PATH`.
+
+Inspect actual built machine types without loading code:
+
+```sh
+python3 tools/binary_identity.py --expect arm64 build/deps-macos-arm64-release/bin/cse_dependency_probe
+```
+
+Windows imports are inspected member by member, including short import records.
+Directory names cannot establish architecture. Mixed archives, incompatible
+pointer widths and unknown machine types fail configuration.
+
+Capture an immutable committed source reference before runtime changes:
+
+```sh
+python3 tools/qualification/capture_reference.py --revision <commit> /absolute/path/to/new-reference
+python3 tools/qualification/capture_reference.py --verify /absolute/path/to/new-reference
+```
+
+This seals committed bytes independently of local edits. Source capture reports
+`qualified: false`; it does not replace binary or runtime qualification. After an
+all-target Windows build, audit its generated output contract:
+
+```sh
+python3 tools/qualification/audit_runtime_inventory.py output --architecture x86 --output /absolute/path/to/new-audit.json
+```
+
+The static report includes all generated production outputs, provider binaries,
+SHA-256 hashes, exports/ordinals, imports and resource-directory hashes. Unresolved
+formal imports and runtime-only provider checks remain explicit. Reports never
+claim gameplay or external-server acceptance.
+
+The remaining compression/font/media libraries use the separately pinned
+[vcpkg source manifest](../cmake/dependencies/vcpkg/README.md). That document gives
+source bootstrap, both-configuration builds, provenance/machine auditing and the
+native standalone link fixture. These libraries are not substituted into the
+Win32 regression workflow.
+
+`tests/music` now checks the exact decoder PCM against the measured Win32
+reference as well as stream and worker behavior. ARM builds select mpg123's
+scalar decoder; contraction is disabled in its source build to preserve the
+reference rounding. A passing decoder fixture does not qualify the complete
+sound-effects mixer, microphone or network voice path.

@@ -1,0 +1,19 @@
+{
+  "name": "counterstrikeextended-native-dependencies",
+  "version-string": "0.1.0",
+  "builtin-baseline": "20ceb8adbf0504d4b0d5e4058a32f9d4fc896391",
+  "dependencies": [
+    { "name": "brotli", "default-features": false },
+    { "name": "bzip2", "default-features": false, "features": ["tool"] },
+    { "name": "expat", "default-features": false },
+    { "name": "freetype", "default-features": false, "features": ["brotli", "bzip2", "png", "zlib"] },
+    { "name": "libpng", "default-features": false },
+    { "name": "zlib", "default-features": false },
+    { "name": "libogg", "default-features": false },
+    { "name": "libvorbis", "default-features": false },
+    { "name": "libvpx", "default-features": false },
+    { "name": "libwebm", "default-features": false },
+    { "name": "dirent", "default-features": false, "platform": "windows" },
+    { "name": "fontconfig", "default-features": false, "platform": "osx | linux" }
+  ]
+}

@@ -88,17 +88,24 @@ static void* ThreadFunc( void* pv )
 #endif
 
 CThread::CThread()
-#if defined( _WIN32 )
-	: m_hEvent( NULL ), m_mutex{}, m_bThreadRunning( false ), m_bThreadStopped( false ), m_nCmds( 0 ),
-	  _m_nCmds( 0 ), m_rgCmds{}, _m_rgCmds{}, m_hThread( NULL ), m_dwThreadID( 0 )
+#if defined(_WIN32)
+    : m_hEvent(nullptr),
+      m_mutex{},
+#else
+    : m_mutex{},
+      m_Condition{},
+      m_cSet(0),
 #endif
-{
-#if !defined( _WIN32 )
-	m_bThreadRunning = false;
-	m_dwThreadID = 0;
-	m_cSet = 0;
-	m_bThreadStopped = false;
+      m_bThreadRunning(false),
+      m_bThreadStopped(false),
+      m_nCmds(0),
+      _m_nCmds(0),
+      m_rgCmds{},
+      _m_rgCmds{},
+#if defined(_WIN32)
+      m_hThread(nullptr),
 #endif
+      m_dwThreadID(0) {
 }
 
 CThread::~CThread()

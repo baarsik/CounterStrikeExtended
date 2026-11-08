@@ -1,4 +1,8 @@
-# Future x64 and ARM64 portability inventory
+> Native migration is in progress. The [active plan and evidence](superpowers/plans/2026-11-08-native64-migration.md)
+> distinguish dependency compilation from runtime qualification. Native SDL3/mpg123
+> dependency presets are available; the complete game remains Win32-only.
+
+# Native x64 and ARM64 portability inventory
 
 The build targets **Windows x86 only**; see [current validation](mpg123-migration-validation.md)
 for the tested snapshot and limits. CMake rejects unsupported hosts/architectures.
@@ -22,11 +26,11 @@ The inventory below identifies remaining work for native x64/ARM64 builds.
 
 | Dependency | x86 evidence | x64 / ARM64 status |
 | --- | --- | --- |
-| SDL3 | Pinned native SDL3 3.4.20 unmodified headers, x86 COFF import archive identifying SDL3.dll and bundled x86 DLL; same upstream binary for Debug/Release consumers | Compatible native binaries, integration and redistribution review required; no matching libraries are selected or validated here |
+| SDL3 | Pinned native SDL3 3.4.20 unmodified headers, x86 COFF import archive identifying SDL3.dll and bundled x86 DLL; same upstream binary for Debug/Release consumers | Pinned source build and bounded provider probes pass Windows x64/ARM64 and macOS ARM64 in Release/Debug; complete window/input/audio behavior still requires qualification |
 | Steam / Steamworks | Bundled x86 steam_api.lib; inherited header provenance statement and runtime-loaded interfaces | Exact required interfaces, native provider availability, bitness, lifecycle and applicable SDK/redistribution terms must be established for each architecture |
-| libmpg123 / music | Source-built shared mpg123 1.33.7, native source-rate PCM, SDL3 music stream, bounded producer and joined shutdown; no Miles provider | The integration uses opaque handles and 64-bit seek APIs without narrowing; rebuild decoder and SDL for the target architecture and qualify playback. Full native x64/ARM64 runtime support is not implemented. |
-| Brotli, Ogg/Vorbis, WebM/VPX, bzip2, FreeType, Expat, PNG, zlib | Supplied x86 static-md Debug/Release libraries and retained notices | Rebuild/procure each native architecture with matching CRT/options and transitive dependencies, carry notices, then qualify media/font/codec behavior |
-| VGUI / UI libraries | Source-built VGUI1/VGUI2/GameUI plus x86 prebuilt game_controls/vgui_controls archives and private interface copies | Native source/build availability for every selected object, interface layout and licensing need verification; x86 archives cannot be linked into 64-bit targets |
+| libmpg123 / music | Source-built shared mpg123 1.33.7, native source-rate PCM, SDL3 music stream, bounded producer and joined shutdown; no Miles provider | Native source builds and bounded decoder fixtures pass. ARM uses the scalar decoder with FP contraction disabled to match the measured Win32 PCM exactly. Full audio/game qualification remains open. |
+| Brotli, Ogg/Vorbis, WebM/VPX, bzip2, FreeType, Expat, PNG, zlib | Supplied x86 static-md Debug/Release libraries and retained notices | Pinned equivalent vcpkg recipes recovered; Windows x64 and macOS ARM64 source builds pass. Native import/lifecycle fixtures and full media/font equivalence remain separate gates; see the [source pins](../cmake/dependencies/vcpkg/README.md). |
+| VGUI / UI libraries | Source-built VGUI1/VGUI2/GameUI and CS controls; unused HL game_controls archive link removed; private interface copies remain | Native source/build availability for every selected object, interface layout and licensing need verification; x86 archives cannot be linked into 64-bit targets |
 | Chrome / voice / optional legacy modules | Runtime loading paths exist; supply is not established by the CMake graph | Native compatible module/codec availability and redistribution rights unresolved; absence must remain visible |
 | Aureal A3D | Preserved optional adapter source, x86-oriented API/export setup and legacy runtime loader | Provider/API availability and rights unverified; do not equate building an adapter with modern-architecture support |
 
@@ -47,8 +51,9 @@ versus process-address distinction.
 A future port needs separate evidence for native compilation, static PE/import/
 export/ABI inspection, permitted module/provider loading, and actual CS/Half-Life
 client/server behavior. Neither this inventory nor a green build establishes
-runtime/playability acceptance. No x64/ARM64 implementation or runtime
-qualification is recorded here; the Windows x86 results are separate.
+runtime/playability acceptance. Native dependency and standalone fixture implementation is recorded in the active
+plan. No complete native game target is qualified; Win32 gameplay and external
+server results remain separate.
 
 SDL2 provider artifacts and the two platform VGUI binaries with formal SDL2 load
 dependencies have been retired. `linux/release/vgui.so` has only libc, libgcc_s

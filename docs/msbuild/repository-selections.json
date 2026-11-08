@@ -466,6 +466,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "Core",
+      "directory": ""
     }
   },
   {
@@ -728,6 +733,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "DemoPlayer",
+      "directory": ""
     }
   },
   {
@@ -964,6 +974,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "filesystem_stdio",
+      "directory": ""
     }
   },
   {
@@ -1171,6 +1186,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "EXECUTABLE",
+      "name": "hl",
+      "directory": ""
     }
   },
   {
@@ -2750,6 +2770,11 @@
           "staging_target": "CseStageSdl3"
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "GameUI",
+      "directory": "valve/cl_dlls"
     }
   },
   {
@@ -3179,6 +3204,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "EXECUTABLE",
+      "name": "hltv",
+      "directory": ""
     }
   },
   {
@@ -3686,6 +3716,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "proxy",
+      "directory": ""
     }
   },
   {
@@ -4258,6 +4293,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "a3dapi",
+      "directory": ""
     }
   },
   {
@@ -7182,6 +7222,11 @@
           "staging_target": "CseStageSdl3"
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "client",
+      "directory": "cstrike/cl_dlls"
     }
   },
   {
@@ -9535,6 +9580,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "mp",
+      "directory": "cstrike/dlls"
     }
   },
   {
@@ -10012,11 +10062,6 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/public/interface.cpp",
-            "metadata": {}
-          },
-          {
-            "kind": "Library",
-            "path": "${CSE_SDK_DIR}/lib/public/game_controls.lib",
             "metadata": {}
           },
           {
@@ -10541,11 +10586,6 @@
             "metadata": {}
           },
           {
-            "kind": "Library",
-            "path": "${CSE_SDK_DIR}/lib/public/game_controls.lib",
-            "metadata": {}
-          },
-          {
             "kind": "ProjectReference",
             "path": "${CSE_SDK_DIR}/utils/vgui/vgui.vcxproj",
             "metadata": {
@@ -10588,6 +10628,11 @@
           "staging_target": "CseStageSdl3"
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "client",
+      "directory": "valve/cl_dlls"
     }
   },
   {
@@ -11749,6 +11794,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "hl",
+      "directory": "valve/dlls"
     }
   },
   {
@@ -12544,6 +12594,11 @@
           "staging_target": null
         }
       }
+    },
+    "runtime": {
+      "kind": "EXECUTABLE",
+      "name": "hlds",
+      "directory": ""
     }
   },
   {
@@ -14642,6 +14697,11 @@
           "staging_target": "CseStageMpg123"
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "hw",
+      "directory": ""
     }
   },
   {
@@ -14920,6 +14980,11 @@
           "staging_target": null
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "particleman",
+      "directory": "valve/cl_dlls"
     }
   },
   {
@@ -17164,6 +17229,11 @@
           "staging_target": "CseStageMpg123"
         }
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "swds",
+      "directory": ""
     }
   },
   {
@@ -17502,6 +17572,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "tier0",
+      "directory": ""
     }
   },
   {
@@ -18358,6 +18433,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "vgui",
+      "directory": ""
     }
   },
   {
@@ -18813,6 +18893,11 @@
           }
         ]
       }
+    },
+    "runtime": {
+      "kind": "SHARED",
+      "name": "vgui2",
+      "directory": ""
     }
   }
 ]

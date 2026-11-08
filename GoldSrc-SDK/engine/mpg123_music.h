@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mpg123_decoder.h"
+#include <array>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -35,6 +36,10 @@ private:
     std::condition_variable wake_;
     std::thread producer_;
     Mpg123Decoder decoder_;
+    static constexpr std::size_t decodeBufferBytes = 16384;
+    // Keep the fixed scratch buffer with the player, outside the producer's
+    // stack frame. Only the joined producer accesses it while a track is open.
+    std::array<unsigned char, decodeBufferBytes> decodeBuffer_{};
     SDL_AudioStream *stream_ = nullptr;
     bool ownsAudio_ = false;
     bool stopping_ = false;

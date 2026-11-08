@@ -98,7 +98,9 @@ def run_script(script, *, vm="Windows 11", system=False, timeout=180, interactiv
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise subprocess.TimeoutExpired(command, timeout)
-        return runner(command, capture_output=True, text=True, timeout=remaining)
+        # Native guest tools may emit OEM bytes. Keep diagnostics readable and
+        # preserve their exit status even when the transport mixes encodings.
+        return runner(command, capture_output=True, text=True, errors='replace', timeout=remaining)
 
     def stage(text):
         filename = "CSE-vm1-" + uuid.uuid4().hex + ".ps1"
@@ -129,7 +131,7 @@ def run_script(script, *, vm="Windows 11", system=False, timeout=180, interactiv
             cleanup += "if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force}}"
             try:
                 cleaned = runner(build_command(cleanup, vm=vm, system=system),
-                                 capture_output=True, text=True, timeout=5)
+                                 capture_output=True, text=True, errors='replace', timeout=5)
                 if cleaned.returncode:
                     print("Owned guest temp-file cleanup failed: " + cleaned.stderr, file=sys.stderr)
                     if result is not None and result.returncode == 0:

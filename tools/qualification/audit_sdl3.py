@@ -129,18 +129,30 @@ def pe_info(data):
         if not terminated:
             raise ValueError('Unterminated PE import directory')
     forwarders = []
+    exports = []
     if directory_count:
         export_rva, export_bytes = unpack('<II', optional + directory_offset)
         if export_rva or export_bytes:
             if not export_rva or export_bytes < 40:
                 raise ValueError('Invalid PE export directory')
             export_offset = offset_of(export_rva, 40)
-            function_count, = unpack('<I', export_offset + 20)
-            functions_rva, = unpack('<I', export_offset + 28)
+            ordinal_base, function_count, name_count, functions_rva, names_rva, ordinals_rva = unpack(
+                '<IIIIII', export_offset + 16)
+            export_names = {}
+            if name_count:
+                names_offset = offset_of(names_rva, name_count * 4)
+                ordinals_offset = offset_of(ordinals_rva, name_count * 2)
+                for index in range(name_count):
+                    ordinal, = unpack('<H', ordinals_offset + index * 2)
+                    if ordinal >= function_count:
+                        raise ValueError('PE export name ordinal exceeds function table')
+                    name_rva, = unpack('<I', names_offset + index * 4)
+                    export_names.setdefault(ordinal, []).append(name_at(name_rva))
             if function_count:
                 functions_offset = offset_of(functions_rva, function_count * 4)
                 for index in range(function_count):
                     function_rva, = unpack('<I', functions_offset + index * 4)
+                    forwarder = None
                     if export_rva <= function_rva < export_rva + export_bytes:
                         forwarder = name_at(function_rva)
                         if '.' not in forwarder:
@@ -151,7 +163,19 @@ def pe_info(data):
                         dependency = module if module.lower().endswith('.dll') else module + '.dll'
                         imports.append(dependency)
                         forwarders.append(forwarder)
-    return {'format': 'PE', 'machine': machine, 'imports': sorted(set(imports)),
+                    if function_rva:
+                        for name in export_names.get(index, [None]):
+                            exports.append(dict(ordinal=ordinal_base + index, name=name,
+                                                rva=function_rva, forwarder=forwarder))
+    resource_hash = None
+    if directory_count > 2:
+        resource_rva, resource_bytes = unpack('<II', optional + directory_offset + 2 * 8)
+        if resource_rva or resource_bytes:
+            if not resource_rva or not resource_bytes:
+                raise ValueError('Invalid PE resource directory')
+            resource_offset = offset_of(resource_rva, resource_bytes)
+            resource_hash = hashlib.sha256(data[resource_offset:resource_offset + resource_bytes]).hexdigest()
+    return {'exports': exports, 'resource_directory_sha256': resource_hash, 'format': 'PE', 'machine': machine, 'imports': sorted(set(imports)),
             'delay_imports': sorted(set(delay_imports)), 'export_forwarders': sorted(set(forwarders))}
 
 

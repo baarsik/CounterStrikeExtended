@@ -1,0 +1,4 @@
+EXPORTS
+    CseGetModuleAbi
+    CseFixtureGetTable
+    CseFixtureGetExchangeCount

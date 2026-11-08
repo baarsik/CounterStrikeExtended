@@ -1,5 +1,13 @@
 include_guard(GLOBAL)
 
+if(NOT CMAKE_SCRIPT_MODE_FILE)
+  option(CSE_SDL3_FROM_SOURCE "Build pinned SDL3 with the target compiler" OFF)
+  if(CSE_SDL3_FROM_SOURCE)
+    include("${CMAKE_CURRENT_LIST_DIR}/SDL3SourceDependency.cmake")
+    return()
+  endif()
+endif()
+
 # This module is also the standalone configure/build-time validation script.
 set(CSE_SDL3_ROOT "${CSE_SDK_DIR}/external/SDL3")
 set(CSE_SDL3_MANIFEST "${CSE_SDL3_ROOT}/SHA256SUMS")
@@ -40,6 +48,9 @@ if(CMAKE_SCRIPT_MODE_FILE)
   return()
 endif()
 include("${CMAKE_CURRENT_LIST_DIR}/RuntimeTargets.cmake")
+
+cse_verify_binary("${CSE_SDL3_ROOT}/lib/x86/SDL3.lib" x86)
+cse_verify_binary("${CSE_SDL3_ROOT}/lib/x86/SDL3.dll" x86)
 
 # Ignore installed packages, registries, and SDL3_DIR left in a user's cache.
 set(SDL3_DIR "${CSE_SDL3_ROOT}/cmake")

@@ -21,7 +21,11 @@
 #endif
 
 #if defined( _WIN32 )
-extern "C" _ACRTIMP void __cdecl _wassert( const wchar_t* message, const wchar_t* file, unsigned int line );
+// Match the UCRT contract even when NDEBUG hides assert.h's declaration.
+extern "C" _ACRTIMP void __cdecl _wassert(
+    _In_z_ const wchar_t *message,
+    _In_z_ const wchar_t *file,
+    _In_ unsigned int line);
 #endif
 
 #ifdef UTL_ENGINE_ASSERTS

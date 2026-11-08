@@ -21,6 +21,16 @@ class VMCommandTests(unittest.TestCase):
         self.assertEqual(command[:4], ["prlctl", "exec", "Named VM", "powershell.exe"])
         self.assertNotIn("--current-user", command)
 
+    def test_guest_oem_diagnostics_do_not_hide_exit_status(self):
+        def guest(command, **options):
+            return subprocess.run([sys.executable, '-c',
+                                   'import os; os.write(1, b"compiler diagnostic: \\xdd\\n"); raise SystemExit(7)'],
+                                  **options)
+
+        result = run_script('Write-Output test', runner=guest)
+        self.assertEqual(result.returncode, 7)
+        self.assertIn('compiler diagnostic:', result.stdout)
+
     def test_large_script_uses_bounded_chunks_and_preserves_unicode_and_exit_status(self):
         script = "Write-Output 'Zażółć'\n" * 1000
         chunks = []

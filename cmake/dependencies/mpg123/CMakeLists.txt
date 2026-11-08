@@ -35,6 +35,11 @@ set_target_properties(libmpg123 PROPERTIES
 target_compile_definitions(libmpg123 INTERFACE "$<$<BOOL:${WIN32}>:LINK_MPG123_DLL>")
 target_include_directories(libmpg123 INTERFACE "$<BUILD_INTERFACE:${CSE_MPG123_SOURCE}/src/include>")
 
+if(CMAKE_C_COMPILER_ID MATCHES "^(AppleClang|Clang|GNU)$")
+  # Match the reference decoder's separate float multiply/add rounding.
+  target_compile_options(libmpg123 PRIVATE -ffp-contract=off)
+endif()
+
 if(MSVC)
   foreach(dependency libmpg123 compat)
     target_compile_options(${dependency} PRIVATE
@@ -44,6 +49,7 @@ if(MSVC)
   endforeach()
   target_link_options(libmpg123 PRIVATE
     "$<$<OR:$<CONFIG:Debug>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>"
+    "$<$<CONFIG:Debug>:/ILK:${CMAKE_CURRENT_BINARY_DIR}/mpg123-$<CONFIG>.ilk>"
     "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 endif()
 

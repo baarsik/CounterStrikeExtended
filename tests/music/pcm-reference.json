@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "source": "mpg123 1.33.7 src/tests/sweep.mp3",
+  "encoded_sha256": "f3059e12fac4e0f8893db533a8debb3d54a4fcd628c27258187b5dad0d1bdff7",
+  "pcm_sha256": "710c313d816c97115db35a043e69522465514f71175ffc8d9afd4357fd1b7570",
+  "pcm_bytes": 176400,
+  "sample_rate": 44100,
+  "channels": 2,
+  "format": "signed16-little-endian",
+  "reference": "Windows x86 MSVC generic C decoder; native targets must match exact bytes"
+}

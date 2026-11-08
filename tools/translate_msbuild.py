@@ -434,7 +434,7 @@ def main():
                 flags.append('/MP' + m.get('ProcessorNumber', ''))
             if m.get('EnablePREfast') == 'true':
                 flags.append('/analyze')
-            if m.get('DisableAnalyzeExternal') == 'true':
+            if m.get('EnablePREfast') == 'true' and m.get('DisableAnalyzeExternal') == 'true':
                 flags.append('/analyze:external-')
             emit_list(lines, 'target_compile_options', target, config, flags, language=True)
             if m.get('LanguageStandard'):
@@ -455,7 +455,7 @@ def main():
             if link.get('BaseAddress'):
                 link_flags.append('/BASE:' + link['BaseAddress'])
             if link.get('EnableUAC') == 'true':
-                link_flags.append('/MANIFESTUAC:level=asInvoker')
+                link_flags.append("/MANIFESTUAC:level='asInvoker'")
             if data['properties'].get('GenerateManifest') == 'false':
                 link_flags.append('/MANIFEST:NO')
             if link.get('GenerateMapFile') == 'true':
@@ -510,6 +510,7 @@ def main():
         subdir = {'cs_client': 'cstrike/cl_dlls', 'cs_server': 'cstrike/dlls',
                   'hl_client': 'valve/cl_dlls', 'hl_server': 'valve/dlls',
                   'gameui': 'valve/cl_dlls', 'particleman': 'valve/cl_dlls'}.get(target, '')
+        record['runtime'] = {'kind': kind, 'name': output, 'directory': subdir}
         lines.append(f'cse_runtime_directory({target} {quote(subdir)})')
         if target == 'vgui':
             lines.append('cse_vgui_import_archive()')

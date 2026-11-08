@@ -76,7 +76,7 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/outputs.txt" CONTENT
   <PropertyGroup><ConfigurationType>DynamicLibrary</ConfigurationType><LinkIncremental>false</LinkIncremental></PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><DebugInformationFormat>ProgramDatabase</DebugInformationFormat></ClCompile>
-    <Link><GenerateDebugInformation>true</GenerateDebugInformation><GenerateMapFile>true</GenerateMapFile></Link>
+    <Link><GenerateDebugInformation>true</GenerateDebugInformation><GenerateMapFile>true</GenerateMapFile><EnableUAC>true</EnableUAC></Link>
   </ItemDefinitionGroup>
   <ItemGroup><ClCompile Include="stub.c"><AdditionalOptions>/Z7</AdditionalOptions></ClCompile></ItemGroup>
 </Project>''')
@@ -98,6 +98,7 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/link.txt" CONTENT "$<TARGET_PROPERTY
                                    f'-DCMAKE_BUILD_TYPE={configuration}', f'-DCSE_RELEASE_DIAGNOSTICS={diagnostics}')
                     command = json.loads((build / 'compile_commands.json').read_text())[0]['command'].split()
                     link = (build / 'link.txt').read_text().split(';')
+                    self.assertIn("/MANIFESTUAC:level='asInvoker'", link)
                     if configuration == 'Debug':
                         databases = [Path(flag.removeprefix('/ILK:')) for flag in link if flag.startswith('/ILK:')]
                         self.assertEqual(len(databases), 1)
@@ -115,6 +116,51 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/link.txt" CONTENT "$<TARGET_PROPERTY
                         self.assertIn('/Z7', command)
                         self.assertIn('/DEBUG', link)
                         self.assertTrue(any(flag.startswith('/MAP:') for flag in link))
+
+    def test_generated_inventory_owns_runtime_output_contract(self):
+        records = json.loads((ROOT / 'docs/msbuild/repository-selections.json').read_text())
+        self.assertEqual(len(records), 19)
+        paths = []
+        for record in records:
+            self.assertIn('runtime', record, 'output contract must come from the translator')
+            runtime = record['runtime']
+            suffix = '.exe' if runtime['kind'] == 'EXECUTABLE' else '.dll'
+            paths.append(str(Path(runtime['directory']) / (runtime['name'] + suffix)))
+        self.assertEqual(len(set(paths)), len(paths))
+        self.assertIn('cstrike/cl_dlls/client.dll', paths)
+        self.assertIn('valve/cl_dlls/client.dll', paths)
+        self.assertIn('hltv.exe', paths)
+        self.assertIn('a3dapi.dll', paths)
+
+    def test_external_header_policy_does_not_enable_disabled_analysis(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            sdk = root / 'GoldSrc-SDK'
+            sdk.mkdir()
+            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', sdk / 'external/SDL3')
+            (sdk / 'stub.c').write_text('int probe(void) { return 0; }\n')
+            (root / 'docs/msbuild').mkdir(parents=True)
+            (root / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
+project(AnalysisPolicy C)
+set(CSE_SDK_DIR "{sdk}")
+set(MSVC TRUE)
+include("{ROOT}/cmake/RuntimeTargets.cmake")
+add_subdirectory(cmake/targets/fixture)
+''')
+            for enabled in ('false', 'true'):
+                (sdk / 'fixture.vcxproj').write_text(f'''<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<PropertyGroup><ConfigurationType>DynamicLibrary</ConfigurationType></PropertyGroup>
+<ItemDefinitionGroup><ClCompile><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+<EnablePREfast>{enabled}</EnablePREfast><DisableAnalyzeExternal>true</DisableAnalyzeExternal>
+</ClCompile></ItemDefinitionGroup><ItemGroup><ClCompile Include="stub.c"/></ItemGroup></Project>''')
+                with patch.multiple(translator, ROOT=root, SDK=sdk, TARGETS={'fixture': 'fixture'}, CASE_PATHS={}):
+                    translator.main()
+                build = root / enabled
+                self.run_cmake('-S', root, '-B', build, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
+                               '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON')
+                command = json.loads((build / 'compile_commands.json').read_text())[0]['command'].split()
+                flags = [flag for flag in command if flag.startswith('/analyze')]
+                self.assertEqual(flags, ['/analyze', '/analyze:external-'] if enabled == 'true' else [])
 
     def test_decoder_staging_and_distribution_materials_require_opt_in(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,12 +1,15 @@
 #include "../../GoldSrc-SDK/engine/thread.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <mutex>
+#include <new>
 #include <string>
 #include <thread>
 #include <vector>
@@ -65,7 +68,14 @@ static void Release() {
 }
 
 int main() {
-    CThread worker;
+    // Reused storage must not inherit queued-command counts from prior bytes.
+    constexpr unsigned char constructorPoison = 0xa5;
+    alignas(CThread) std::array<unsigned char, sizeof(CThread)> storage;
+    storage.fill(constructorPoison);
+    std::unique_ptr<CThread, void (*)(CThread *)> owner(new (storage.data()) CThread(), [](CThread *value) {
+        value->~CThread();
+    });
+    CThread &worker = *owner;
     if (!worker.Init() || !worker.AddThreadItem(&CCDAudio::_Stop, 0, 0) || !WaitForStop()) {
         return EXIT_FAILURE;
     }
@@ -85,14 +95,18 @@ int main() {
             return EXIT_FAILURE;
         }
     }
+#if defined(_WIN32)
     const HANDLE handle = worker.m_hThread;
+#endif
     if (!worker.Shutdown()) {
         return EXIT_FAILURE;
     }
+#if defined(_WIN32)
     SetLastError(ERROR_SUCCESS);
     if (WaitForSingleObject(handle, 0) != WAIT_FAILED || GetLastError() != ERROR_INVALID_HANDLE) {
         return EXIT_FAILURE;
     }
+#endif
     if (!worker.Shutdown() || shutdowns != 1) {
         return EXIT_FAILURE;
     }

@@ -15,7 +15,13 @@ bool Mpg123Decoder::Open(const char *filename) {
         return false;
     }
     // mpg123 1.33.7 requires no global init/exit; handles own decoder resources.
+    // Start ARM64 with the reference C decoder. Upstream's automatic NEON
+    // selection produces different signed-16 PCM; enable it only after parity.
+#if defined(__aarch64__) || defined(_M_ARM64)
+    handle_ = mpg123_new("generic", nullptr);
+#else
     handle_ = mpg123_new(nullptr, nullptr);
+#endif
     if (!handle_) {
         return false;
     }

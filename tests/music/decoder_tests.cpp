@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <vector>
 
 #define CHECK(condition) do { if (!(condition)) { \
@@ -11,7 +12,7 @@
 } } while (false)
 
 int main(int argc, char **argv) {
-    CHECK(argc == 3);
+    CHECK(argc == 3 || argc == 4);
     cse::Mpg123Decoder decoder;
     CHECK(!decoder.Open("cse-missing-track.mp3"));
     CHECK(!decoder.Open(""));
@@ -57,6 +58,12 @@ int main(int argc, char **argv) {
     CHECK(!first.error);
     CHECK(first.bytes == small.size());
     CHECK(std::equal(small.begin(), small.end(), smallReads.begin()));
+    if (argc == 4) {
+        std::ofstream output(argv[3], std::ios::binary);
+        output.write(reinterpret_cast<const char *>(smallReads.data()), static_cast<std::streamsize>(smallReads.size()));
+        output.close();
+        CHECK(output.good());
+    }
     decoder.Close();
     decoder.Close();
     CHECK(decoder.Read(small.data(), small.size()).error);

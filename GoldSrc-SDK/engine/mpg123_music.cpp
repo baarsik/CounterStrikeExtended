@@ -2,7 +2,6 @@
 
 #include <SDL3/SDL.h>
 #include <algorithm>
-#include <array>
 #include <chrono>
 #include <cmath>
 #include <exception>
@@ -133,12 +132,10 @@ bool Mpg123MusicPlayer::IsPlaying() {
 }
 
 void Mpg123MusicPlayer::Produce() {
-    constexpr std::size_t decodeBufferBytes = 16384;
     constexpr int queueMilliseconds = 200;
     constexpr int millisecondsPerSecond = 1000;
     constexpr int bytesPerSample = sizeof(short);
     constexpr auto pollInterval = std::chrono::milliseconds(5);
-    std::array<unsigned char, decodeBufferBytes> buffer{};
     std::unique_lock<std::mutex> data(dataMutex_);
     const SDL_AudioSpec format = decoder_.Format();
     const int queueLimit = format.freq * format.channels * bytesPerSample * queueMilliseconds / millisecondsPerSecond;
@@ -156,10 +153,10 @@ void Mpg123MusicPlayer::Produce() {
                 break;
             }
         } else if (queued < queueLimit) {
-            const auto result = decoder_.Read(buffer.data(), buffer.size());
+            const auto result = decoder_.Read(decodeBuffer_.data(), decodeBuffer_.size());
             if (result.bytes > 0) {
                 producedSinceRewind = true;
-                if (!SDL_PutAudioStreamData(stream_, buffer.data(), static_cast<int>(result.bytes))) {
+                if (!SDL_PutAudioStreamData(stream_, decodeBuffer_.data(), static_cast<int>(result.bytes))) {
                     finished_ = true;
                     break;
                 }

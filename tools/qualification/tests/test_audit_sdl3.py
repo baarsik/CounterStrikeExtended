@@ -147,6 +147,29 @@ class ImportTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'SDL2'):
             audit.require_native_sdl3('forwarder.dll', audit.pe_info(data))
 
+    def test_exports_ordinals_and_resource_bytes_are_recorded(self):
+        data = bytearray(pe('KERNEL32.dll'))
+        struct.pack_into('<II', data, 152 + 96, 0x1200, 0x200)
+        struct.pack_into('<IIIII', data, 1024 + 16, 7, 2, 1, 0x1300, 0x1310)
+        struct.pack_into('<I', data, 1024 + 36, 0x1320)
+        struct.pack_into('<II', data, 1280, 0x1500, 0x1501)
+        struct.pack_into('<I', data, 1296, 0x1380)
+        struct.pack_into('<H', data, 1312, 0)
+        name = b'CreateInterface\0'
+        data[1408:1408 + len(name)] = name
+        payload = b'resource fixture'
+        struct.pack_into('<II', data, 152 + 96 + 2 * 8, 0x1400, len(payload))
+        data[1536:1536 + len(payload)] = payload
+        info = audit.pe_info(data)
+        self.assertIn('exports', info)
+        self.assertEqual([(entry['ordinal'], entry['name']) for entry in info['exports']],
+                         [(7, 'CreateInterface'), (8, None)])
+        import hashlib
+        self.assertEqual(info['resource_directory_sha256'], hashlib.sha256(payload).hexdigest())
+        struct.pack_into('<H', data, 1312, 2)
+        with self.assertRaisesRegex(ValueError, 'ordinal'):
+            audit.pe_info(data)
+
     def test_exact_os_modules_keep_chrome_and_directdraw_provider_closure(self):
         for name in ('WINSPOOL.DRV', 'winspool.drv', 'DDRAW.dll', 'ddraw.DLL'):
             with self.subTest(name=name):
