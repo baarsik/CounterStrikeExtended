@@ -570,113 +570,70 @@ void CNavArea::Load( SteamFile *file, unsigned int version )
  * Convert loaded IDs to pointers
  * Make sure all IDs are converted, even if corrupt data is encountered.
  */
-NavErrorType CNavArea::PostLoad( void )
-{
-	NavErrorType error = NAV_OK;
+NavErrorType CNavArea::PostLoad(void) {
+    NavErrorType error = NAV_OK;
+    const auto findArea = [](std::uint32_t id) {
+        return TheNavAreaGrid.GetNavAreaByID(id);
+    };
 
-	// connect areas together
-	for( int d=0; d<NUM_DIRECTIONS; d++ )
-	{
-		NavConnectList::iterator iter;
-		for( iter = m_connect[d].begin(); iter != m_connect[d].end(); ++iter )
-		{
-			NavConnect *connect = &(*iter);
-
-			unsigned int id = connect->id;
-			connect->area = TheNavAreaGrid.GetNavAreaByID( id );
-			if (id && connect->area == NULL)
-			{
-				CONSOLE_ECHO( "ERROR: Corrupt navigation data. Cannot connect Navigation Areas.\n" );
-				error = NAV_CORRUPT_DATA;
-			}
-		}
-	}
-
-	// resolve approach area IDs
-	for( int a=0; a<m_approachCount; ++a )
-	{
-		m_approach[a].here.area = TheNavAreaGrid.GetNavAreaByID( m_approach[a].here.id );
-		if (m_approach[a].here.id && m_approach[a].here.area == NULL)
-		{
-			CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing Approach Area (here).\n" );
-			error = NAV_CORRUPT_DATA;
-		}
-
-		m_approach[a].prev.area = TheNavAreaGrid.GetNavAreaByID( m_approach[a].prev.id );
-		if (m_approach[a].prev.id && m_approach[a].prev.area == NULL)
-		{
-			CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing Approach Area (prev).\n" );
-			error = NAV_CORRUPT_DATA;
-		}
-
-		m_approach[a].next.area = TheNavAreaGrid.GetNavAreaByID( m_approach[a].next.id );
-		if (m_approach[a].next.id && m_approach[a].next.area == NULL)
-		{
-			CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing Approach Area (next).\n" );
-			error = NAV_CORRUPT_DATA;
-		}
-	}
-
-	// resolve spot encounter IDs
-	SpotEncounter *e;
-	for( SpotEncounterList::iterator iter = m_spotEncounterList.begin(); iter != m_spotEncounterList.end(); ++iter )
-	{
-		e = &(*iter);
-
-		e->from.area = TheNavAreaGrid.GetNavAreaByID( e->from.id );
-		if (e->from.area == NULL)
-		{
-			CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing \"from\" Navigation Area for Encounter Spot.\n" );
-			error = NAV_CORRUPT_DATA;
-		}
-
-		e->to.area = TheNavAreaGrid.GetNavAreaByID( e->to.id );
-		if (e->to.area == NULL)
-		{
-			CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing \"to\" Navigation Area for Encounter Spot.\n" );
-			error = NAV_CORRUPT_DATA;
-		}
-
-		if (e->from.area && e->to.area)
-		{
-			// compute path
-			float halfWidth;
-			ComputePortal( e->to.area, e->toDir, &e->path.to, &halfWidth );
-			ComputePortal( e->from.area, e->fromDir, &e->path.from, &halfWidth );
-
-			const float eyeHeight = HalfHumanHeight;
-			e->path.from.z = e->from.area->GetZ( &e->path.from ) + eyeHeight;
-			e->path.to.z = e->to.area->GetZ( &e->path.to ) + eyeHeight;
-		}
-
-		// resolve HidingSpot IDs
-		for( SpotOrderList::iterator oiter = e->spotList.begin(); oiter != e->spotList.end(); ++oiter )
-		{
-			SpotOrder *order = &(*oiter);
-
-			order->spot = GetHidingSpotByID( order->id );
-			if (order->spot == NULL)
-			{
-				CONSOLE_ECHO( "ERROR: Corrupt navigation data. Missing Hiding Spot\n" );
-				error = NAV_CORRUPT_DATA;
-			}
-		}
-	}
-
-	// build overlap list
-	/// @todo Optimize this
-	for( NavAreaList::iterator oiter = TheNavAreaList.begin(); oiter != TheNavAreaList.end(); ++oiter )
-	{
-		CNavArea *area = *oiter;
-
-		if (area == this)
-			continue;
-
-		if (IsOverlapping( area ))
-			m_overlapList.push_back( area );
-	}
-
-	return error;
+    for (int direction = 0; direction < NUM_DIRECTIONS; ++direction) {
+        for (auto &connection : m_connect[direction]) {
+            if (!connection.Resolve(findArea)) {
+                CONSOLE_ECHO("ERROR: Corrupt navigation data. Cannot connect Navigation Areas.\n");
+                error = NAV_CORRUPT_DATA;
+            }
+        }
+    }
+    for (int approach = 0; approach < m_approachCount; ++approach) {
+        if (!m_approach[approach].here.Resolve(findArea)) {
+            CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing Approach Area (here).\n");
+            error = NAV_CORRUPT_DATA;
+        }
+        if (!m_approach[approach].prev.Resolve(findArea)) {
+            CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing Approach Area (prev).\n");
+            error = NAV_CORRUPT_DATA;
+        }
+        if (!m_approach[approach].next.Resolve(findArea)) {
+            CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing Approach Area (next).\n");
+            error = NAV_CORRUPT_DATA;
+        }
+    }
+    for (auto &encounter : m_spotEncounterList) {
+        encounter.from.Resolve(findArea);
+        if (!encounter.from.area) {
+            CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing \"from\" Navigation Area for Encounter Spot.\n");
+            error = NAV_CORRUPT_DATA;
+        }
+        encounter.to.Resolve(findArea);
+        if (!encounter.to.area) {
+            CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing \"to\" Navigation Area for Encounter Spot.\n");
+            error = NAV_CORRUPT_DATA;
+        }
+        if (encounter.from.area && encounter.to.area) {
+            float halfWidth;
+            ComputePortal(encounter.to.area, encounter.toDir, &encounter.path.to, &halfWidth);
+            ComputePortal(encounter.from.area, encounter.fromDir, &encounter.path.from, &halfWidth);
+            const float eyeHeight = HalfHumanHeight;
+            encounter.path.from.z = encounter.from.area->GetZ(&encounter.path.from) + eyeHeight;
+            encounter.path.to.z = encounter.to.area->GetZ(&encounter.path.to) + eyeHeight;
+        }
+        for (auto &order : encounter.spotList) {
+            if (!order.Resolve(GetHidingSpotByID)) {
+                CONSOLE_ECHO("ERROR: Corrupt navigation data. Missing Hiding Spot\n");
+                error = NAV_CORRUPT_DATA;
+            }
+        }
+    }
+    // Keep the existing overlap order and geometry calculations.
+    for (CNavArea *area : TheNavAreaList) {
+        if (area == this) {
+            continue;
+        }
+        if (IsOverlapping(area)) {
+            m_overlapList.push_back(area);
+        }
+    }
+    return error;
 }
 
 
@@ -1072,12 +1029,17 @@ NavErrorType LoadNavigationMap( void )
 		TheNavAreaGrid.AddNavArea( *iter );
 
 
-	// allow areas to connect to each other, etc
-	for( iter = TheNavAreaList.begin(); iter != TheNavAreaList.end(); ++iter )
-	{
-		CNavArea *area = *iter;
-		area->PostLoad();
-	}
+    // Resolve every reference before publishing a usable navigation map.
+    NavErrorType postLoadError = NAV_OK;
+    for (CNavArea *area : TheNavAreaList) {
+        if (area->PostLoad() != NAV_OK) {
+            postLoadError = NAV_CORRUPT_DATA;
+        }
+    }
+    if (postLoadError != NAV_OK) {
+        DestroyNavigationMap();
+        return postLoadError;
+    }
 
 	// load legacy location file (Places)
 	if (version < 5)

@@ -233,8 +233,7 @@ Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
 round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
 Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
 save/load and CS recording/replay also pass in both Win32 configurations. Native
-engine-string offsets, CS bot navigation references and full native game file
-round trips remain pending.
+engine-string offsets and full native game file round trips remain pending.
 
 C4 saves now record a stable optional beep phase and the actual wave counter
 instead of a raw sound pointer. Legacy records recover the sound from exact saved
@@ -267,5 +266,18 @@ captured graph; malformed-count, truncation, empty-graph and sanitizer checks pa
 Paired Win32 baseline/current map fixtures pass write denial, rebuild, save/load
 and fresh-map lookup of all three entity links in both configurations. Existing
 saved-game model warnings match the preserved baseline; fresh map lookups emit
-none. Allocation-failure injection, CS bot `.nav` references and native whole-game
-acceptance remain separate outstanding work.
+none. Allocation-failure injection and native whole-game acceptance remain
+separate outstanding work.
+
+CS bot navigation now retains saved 32-bit IDs separately from native area and
+hiding-spot pointers. Resolution preserves IDs, and a corrupt reference causes
+the map loader to reject and destroy the partial map. File encodings remain
+unchanged. Standalone tests compile the production navigation loader, grid and
+writer: versions 1–5 load, and the version-5 fixture round-trips to identical
+195-byte files across Win32, Windows x64/ARM64 and macOS ARM64 Release/Debug.
+Missing adjacent-area, approach-area and hiding-spot IDs fail with clean state.
+macOS ASan/UBSan also passes. The synthetic fixture has no ladders, named places,
+world traces, legacy location sidecar or nonempty version-1/2 encounters; it does
+not qualify native bot gameplay. All 19 maintained Win32 targets build in both
+configurations, and CS gameplay recordings replay to EOF with the reference
+651 network frames and 666 host frames. Loaded module hashes identify the builds.
