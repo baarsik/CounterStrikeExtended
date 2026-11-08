@@ -802,3 +802,5 @@ void COsprey::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir
 		UTIL_Sparks( ptr->vecEndPos );
 	}
 }
+
+#include "generated_saved_callbacks/osprey.inc"

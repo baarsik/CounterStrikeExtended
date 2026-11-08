@@ -23,6 +23,7 @@
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
+#include "game_saved_callbacks.h"
 #include "saverestore.h"
 #include <time.h>
 #include "shake.h"
@@ -1659,11 +1660,7 @@ static int gSizes[FIELD_TYPECOUNT] =
 	sizeof(float)*3,	// FIELD_POSITION_VECTOR
 	sizeof(int *),		// FIELD_POINTER
 	sizeof(int),		// FIELD_INTEGER
-#ifdef GNUC
-	sizeof(int *)*2,		// FIELD_FUNCTION
-#else
-	sizeof(int *),		// FIELD_FUNCTION	
-#endif
+    0,                  // FIELD_FUNCTION uses typed native storage operations below.
 	sizeof(int),		// FIELD_BOOLEAN
 	sizeof(short),		// FIELD_SHORT
 	sizeof(char),		// FIELD_CHARACTER
@@ -1979,17 +1976,6 @@ void CSave :: WritePositionVector( const char *pname, const float *value, int co
 }
 
 
-void CSave :: WriteFunction( const char *pname, void **data, int count )
-{
-	const char *functionName;
-
-	functionName = NAME_FOR_FUNCTION( (uint32)*data );
-	if ( functionName )
-		BufferField( pname, strlen(functionName) + 1, functionName );
-	else
-		ALERT( at_error, "Invalid function pointer in entity!" );
-}
-
 
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 {
@@ -2060,8 +2046,17 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	{
 		void *pOutputData;
 		pOutputData = ((char *)pBaseData + pFields[i].fieldOffset );
-		if ( DataEmpty( (const char *)pOutputData, pFields[i].fieldSize * gSizes[pFields[i].fieldType] ) )
-			emptyCount++;
+        if (pFields[i].fieldType == FIELD_FUNCTION
+            && CseCallbackKind(pFields, pFields[i]) == CseSavedCallbackKind::Invalid) {
+            ALERT(at_error, "Unregistered typed callback field: %s\n", pFields[i].fieldName);
+            return 0;
+        }
+        if (pFields[i].fieldType == FIELD_FUNCTION
+            ? CseCallbackEmpty(CseCallbackKind(pFields, pFields[i]), pOutputData)
+            : DataEmpty(static_cast<const char *>(pOutputData),
+                pFields[i].fieldSize * gSizes[pFields[i].fieldType])) {
+            emptyCount++;
+        }
 	}
 
 	// Empty fields will not be written, write out the actual number of fields to be written
@@ -2075,8 +2070,11 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 		pOutputData = ((char *)pBaseData + pTest->fieldOffset );
 
 		// UNDONE: Must we do this twice?
-		if ( DataEmpty( (const char *)pOutputData, pTest->fieldSize * gSizes[pTest->fieldType] ) )
-			continue;
+        if (pTest->fieldType == FIELD_FUNCTION
+            ? CseCallbackEmpty(CseCallbackKind(pFields, *pTest), pOutputData)
+            : DataEmpty(static_cast<const char *>(pOutputData), pTest->fieldSize * gSizes[pTest->fieldType])) {
+            continue;
+        }
 
 		switch( pTest->fieldType )
 		{
@@ -2146,9 +2144,15 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 			WriteInt( pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize );
 		break;
 
-		case FIELD_FUNCTION:
-			WriteFunction( pTest->fieldName, (void **)pOutputData, pTest->fieldSize );
-		break;
+        case FIELD_FUNCTION: {
+            const char *name = CseCallbackName(CseCallbackKind(pFields, *pTest), pOutputData);
+            if (!name) {
+                ALERT(at_error, "Unknown or ambiguous save callback: %s\n", pTest->fieldName);
+                return 0;
+            }
+            BufferField(pTest->fieldName, static_cast<int>(strlen(name) + 1), name);
+            break;
+        }
 		default:
 			ALERT( at_error, "Bad field type\n" );
 		}
@@ -2247,6 +2251,14 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 		{
 			if ( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{
+                if (pTest->fieldType == FIELD_FUNCTION) {
+                    void *storage = static_cast<char *>(pBaseData) + pTest->fieldOffset;
+                    if (!CseRestoreCallback(CseCallbackKind(pFields, *pTest), storage, pData, size, pBaseData)) {
+                        ALERT(at_error, "Invalid saved callback in field: %s\n", pTest->fieldName);
+                        return InvalidSavedCallbackField;
+                    }
+                    return fieldNumber;
+                }
 				for ( j = 0; j < pTest->fieldSize; j++ )
 				{
 					void *pOutputData = ((char *)pBaseData + pTest->fieldOffset + (j*gSizes[pTest->fieldType]) );
@@ -2360,12 +2372,6 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 					case FIELD_POINTER:
 						*((int *)pOutputData) = *( int *)pInputData;
 					break;
-					case FIELD_FUNCTION:
-						if ( strlen( (char *)pInputData ) == 0 )
-							*((int *)pOutputData) = 0;
-						else
-							*((int *)pOutputData) = FUNCTION_FROM_NAME( (char *)pInputData );
-					break;
 
 					default:
 						ALERT( at_error, "Bad field type\n" );
@@ -2420,14 +2426,26 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	for ( i = 0; i < fieldCount; i++ )
 	{
 		// Don't clear global fields
-		if ( !m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL) )
-			memset( ((char *)pBaseData + pFields[i].fieldOffset), 0, pFields[i].fieldSize * gSizes[pFields[i].fieldType] );
+        if (!m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL)) {
+            void *storage = static_cast<char *>(pBaseData) + pFields[i].fieldOffset;
+            if (pFields[i].fieldType == FIELD_FUNCTION) {
+                if (!CseClearCallback(CseCallbackKind(pFields, pFields[i]), storage)) {
+                    ALERT(at_error, "Unregistered typed callback field: %s\n", pFields[i].fieldName);
+                    return 0;
+                }
+            } else {
+                memset(storage, 0, pFields[i].fieldSize * gSizes[pFields[i].fieldType]);
+            }
+        }
 	}
 
 	for ( i = 0; i < fileCount; i++ )
 	{
 		BufferReadHeader( &header );
 		lastField = ReadField( pBaseData, pFields, fieldCount, lastField, header.size, m_pdata->pTokens[header.token], header.pData );
+        if (lastField == InvalidSavedCallbackField) {
+            return 0;
+        }
 		lastField++;
 	}
 	

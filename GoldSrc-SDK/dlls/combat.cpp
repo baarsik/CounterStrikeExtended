@@ -1704,3 +1704,5 @@ void CBaseMonster :: MakeDamageBloodDecal ( int cCount, float flNoise, TraceResu
 		}
 	}
 }
+
+#include "generated_saved_callbacks/combat.inc"

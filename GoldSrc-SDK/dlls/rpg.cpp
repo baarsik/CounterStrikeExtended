@@ -678,3 +678,5 @@ class CRpgAmmo : public CBasePlayerAmmo
 LINK_ENTITY_TO_CLASS( ammo_rpgclip, CRpgAmmo );
 
 #endif
+
+#include "generated_saved_callbacks/rpg.inc"

@@ -2221,3 +2221,5 @@ void CGunTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		Next();
 	}
 }
+
+#include "generated_saved_callbacks/plats.inc"

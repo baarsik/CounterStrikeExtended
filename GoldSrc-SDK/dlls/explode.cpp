@@ -275,3 +275,5 @@ void ExplosionCreate( const Vector &center, const Vector &angles, edict_t *pOwne
 	pExplosion->Spawn();
 	pExplosion->Use( NULL, NULL, USE_TOGGLE, 0 );
 }
+
+#include "generated_saved_callbacks/explode.inc"

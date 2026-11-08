@@ -1281,3 +1281,5 @@ int CFurniture::Classify ( void )
 {
 	return	CLASS_NONE;
 }
+
+#include "generated_saved_callbacks/scripted.inc"

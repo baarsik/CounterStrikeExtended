@@ -1069,3 +1069,5 @@ void CFuncVehicleControls :: Spawn( void )
 	SetThink( &CFuncVehicleControls::Find );
 	pev->nextthink = gpGlobals->time;
 }
+
+#include "generated_saved_callbacks/vehicle.inc"

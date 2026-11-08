@@ -42,6 +42,7 @@ enum satchel_radio_e {
 
 class CSatchelCharge : public CGrenade
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	void BounceSound( void );
@@ -497,3 +498,5 @@ void DeactivateSatchels( CBasePlayer *pOwner )
 }
 
 #endif
+
+#include "generated_saved_callbacks/satchel.inc"

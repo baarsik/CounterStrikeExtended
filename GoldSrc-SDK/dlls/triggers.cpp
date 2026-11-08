@@ -2469,3 +2469,5 @@ void CTriggerCamera::Move()
 	float fraction = 2 * gpGlobals->frametime;
 	pev->velocity = ((pev->movedir * pev->speed) * fraction) + (pev->velocity * (1-fraction));
 }
+
+#include "generated_saved_callbacks/triggers.inc"

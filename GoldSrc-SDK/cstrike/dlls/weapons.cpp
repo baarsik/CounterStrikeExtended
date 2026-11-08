@@ -1726,3 +1726,5 @@ void CArmoury::ArmouryTouch( CBaseEntity* pOther )
 	if ( m_iCount == 0 )
 		pev->effects |= EF_NODRAW;
 }
+
+#include "generated_saved_callbacks/weapons.inc"

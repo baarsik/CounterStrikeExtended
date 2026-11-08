@@ -2523,3 +2523,5 @@ void CDeadHGrunt :: Spawn( void )
 
 	MonsterInitDead();
 }
+
+#include "generated_saved_callbacks/hgrunt.inc"

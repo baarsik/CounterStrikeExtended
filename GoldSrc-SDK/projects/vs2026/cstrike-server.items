@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <ClCompile Include="..\..\cstrike\dlls\saved_callbacks.cpp">
+      <AdditionalOptions>/std:c++17 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
     <ClCompile Include="..\..\cstrike\dlls\airtank.cpp">
       <ObjectFileName>$(IntDir)cstrike_dlls_airtank_cpp.obj</ObjectFileName>
       <PREfastLogFile>$(IntDir)cstrike_dlls_airtank_cpp.nativecodeanalysis.xml</PREfastLogFile>

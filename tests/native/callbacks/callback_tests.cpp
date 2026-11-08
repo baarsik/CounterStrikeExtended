@@ -144,6 +144,8 @@ static bool CheckFoldedIdentityAndCatalogErrors() {
     CHECK(!registry.Register("Smack@CKnife", &Entity::Think));
     CHECK(!registry.Alias("UnknownAlias", "Missing@Entity"));
     CHECK(!registry.Alias("Smack@CKnife", "SUB_DoNothing@CBaseEntity"));
+    CHECK(!registry.Seal(true));
+    CHECK(registry.Resolve("Smack@CKnife").status == CallbackStatus::NotReady);
     CHECK(registry.Seal());
     CHECK(registry.NameFor(&Entity::Noop).status == CallbackStatus::Ambiguous);
     const auto generic = registry.NameFor(&Entity::Noop, "SUB_DoNothing@CBaseEntity");

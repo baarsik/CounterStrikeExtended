@@ -1465,3 +1465,5 @@ int CSittingScientist :: FIdleSpeak ( void )
 	CTalkMonster::g_talkWaitTime = 0;
 	return FALSE;
 }
+
+#include "generated_saved_callbacks/scientist.inc"

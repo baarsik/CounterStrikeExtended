@@ -5086,3 +5086,5 @@ void CInfoIntermission::Think ( void )
 }
 
 LINK_ENTITY_TO_CLASS( info_intermission, CInfoIntermission );
+
+#include "generated_saved_callbacks/player.inc"

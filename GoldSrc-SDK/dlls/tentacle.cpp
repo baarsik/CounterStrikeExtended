@@ -1045,3 +1045,5 @@ void CTentacleMaw :: Precache( )
 }
 
 #endif
+
+#include "generated_saved_callbacks/tentacle.inc"

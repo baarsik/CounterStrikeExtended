@@ -919,3 +919,5 @@ void CFlockingFlyer :: SquadDisband( void )
 		pList = pNext;
 	}
 }
+
+#include "generated_saved_callbacks/aflock.inc"

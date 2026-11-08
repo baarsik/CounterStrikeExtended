@@ -748,3 +748,5 @@ int GetBotFollowCount( CBasePlayer* leader )
 	}
 	return count;
 }
+
+#include "../generated_saved_callbacks/cs_bot.inc"

@@ -262,3 +262,5 @@ void CWallHealth::Off(void)
 	else
 		SetThink( &CWallHealth::SUB_DoNothing );
 }
+
+#include "generated_saved_callbacks/healthkit.inc"

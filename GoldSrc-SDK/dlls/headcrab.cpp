@@ -553,3 +553,5 @@ Schedule_t* CBabyCrab :: GetScheduleOfType ( int Type )
 
 	return CHeadCrab::GetScheduleOfType( Type );
 }
+
+#include "generated_saved_callbacks/headcrab.inc"

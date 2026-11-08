@@ -20,9 +20,9 @@ Exact selections and metadata are in `msbuild/repository-selections.json`; gener
 | `projects/vs2026/Proxy.vcxproj` | `hltv_proxy` | 33 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/a3dapi.vcxproj` | `a3dapi` | 21 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/cstrike_cdll.vcxproj` | `cs_client` | 168 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
-| `projects/vs2026/cstrikedll.vcxproj` | `cs_server` | 136 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
+| `projects/vs2026/cstrikedll.vcxproj` | `cs_server` | 137 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/hl_cdll.vcxproj` | `hl_client` | 83 | MultiThreadedDebug / MultiThreaded | yes |
-| `projects/vs2026/hldll.vcxproj` | `hl_server` | 102 | MultiThreadedDebug / MultiThreaded | yes |
+| `projects/vs2026/hldll.vcxproj` | `hl_server` | 103 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/hlds.vcxproj` | `hlds` | 54 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/hw_engine.vcxproj` | `hw_engine` | 175 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/particleman.vcxproj` | `particleman` | 6 | MultiThreadedDebugDLL / MultiThreadedDLL | yes |

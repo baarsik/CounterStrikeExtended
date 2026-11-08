@@ -6594,3 +6594,5 @@ void CBasePlayer::CheatImpulseCommands( int impulse )
 		break;
 	}
 }
+
+#include "generated_saved_callbacks/player.inc"

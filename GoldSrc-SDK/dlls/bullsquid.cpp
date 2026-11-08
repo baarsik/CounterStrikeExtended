@@ -1280,3 +1280,5 @@ MONSTERSTATE CBullsquid :: GetIdealState ( void )
 
 	return m_IdealMonsterState;
 }
+
+#include "generated_saved_callbacks/bullsquid.inc"

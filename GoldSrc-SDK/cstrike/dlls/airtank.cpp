@@ -22,6 +22,7 @@
 
 class CAirtank : public CGrenade 
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT TankThink( void );
@@ -119,3 +120,5 @@ void CAirtank::TankTouch( CBaseEntity *pOther )
 	m_state = 0;
 	SUB_UseTargets( this, USE_TOGGLE, 1 );
 }
+
+#include "generated_saved_callbacks/airtank.inc"

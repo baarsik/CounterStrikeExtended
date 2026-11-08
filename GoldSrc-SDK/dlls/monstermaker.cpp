@@ -292,3 +292,5 @@ void CMonsterMaker :: DeathNotice ( entvars_t *pevChild )
 		pevChild->owner = NULL;
 	}
 }
+
+#include "generated_saved_callbacks/monstermaker.inc"

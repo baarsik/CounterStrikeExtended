@@ -962,3 +962,5 @@ void CPendulum :: RopeTouch ( CBaseEntity *pOther )
 	pevOther->velocity = g_vecZero;
 	pevOther->movetype = MOVETYPE_NONE;
 }
+
+#include "generated_saved_callbacks/bmodels.inc"

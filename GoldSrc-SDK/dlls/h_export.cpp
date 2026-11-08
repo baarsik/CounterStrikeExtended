@@ -22,8 +22,8 @@
 
 #include "extdll.h"
 #include "util.h"
-
 #include "cbase.h"
+#include "game_saved_callbacks.h"
 
 // Holds engine functionality callbacks
 enginefuncs_t g_engfuncs;
@@ -58,6 +58,10 @@ extern "C" void DLLEXPORT GiveFnptrsToDll(	enginefuncs_t* pengfuncsFromEngine, g
 {
 	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
 	gpGlobals = pGlobals;
+    if (!CseInitializeSavedCallbacks()) {
+        ALERT(at_error, "Cannot initialize typed save callback catalog\n");
+        abort();
+    }
 }
 
 

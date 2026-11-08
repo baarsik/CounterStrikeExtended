@@ -2338,3 +2338,5 @@ void CItemSoda::CanTouch ( CBaseEntity *pOther )
 	SetThink ( &CItemSoda::SUB_Remove );
 	pev->nextthink = gpGlobals->time;
 }
+
+#include "generated_saved_callbacks/effects.inc"

@@ -319,5 +319,4 @@ int CCrowbar::Swing( int fFirst )
 	return fDidHit;
 }
 
-
-
+#include "generated_saved_callbacks/crowbar.inc"

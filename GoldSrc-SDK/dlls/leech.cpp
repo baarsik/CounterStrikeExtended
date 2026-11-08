@@ -723,3 +723,5 @@ void CLeech::Killed(entvars_t *pevAttacker, int iGib)
 	pev->takedamage = DAMAGE_NO;
 	SetThink( &CLeech::DeadThink );
 }
+
+#include "generated_saved_callbacks/leech.inc"

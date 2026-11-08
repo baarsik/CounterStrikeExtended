@@ -7284,10 +7284,18 @@
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/cstrikedll.def",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrikedll\\Win32\\Debug\\mp.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrikedll\\Win32\\Debug\\mp.lib",
-            "TreatLinkerWarningAsErrors": "true"
+            "TreatLinkerWarningAsErrors": "true",
+            "EnableCOMDATFolding": "false"
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp",
+            "metadata": {
+              "AdditionalOptions": "/std:c++17 "
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp",
@@ -8459,11 +8467,18 @@
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrikedll\\Win32\\Release\\mp.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrikedll\\Win32\\Release\\mp.lib",
             "TreatLinkerWarningAsErrors": "true",
-            "EnableCOMDATFolding": "true",
+            "EnableCOMDATFolding": "false",
             "OptimizeReferences": "true"
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp",
+            "metadata": {
+              "AdditionalOptions": "/std:c++17 "
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp",
@@ -10690,6 +10705,14 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "AdditionalOptions": "/std:c++17 "
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dlls/aflock.cpp",
             "metadata": {}
           },
@@ -11256,7 +11279,7 @@
           "Link": {
             "SubSystem": "Windows",
             "GenerateDebugInformation": "true",
-            "EnableCOMDATFolding": "true",
+            "EnableCOMDATFolding": "false",
             "OptimizeReferences": "true",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dlls\\hl.def",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hldll\\Win32\\Release\\hl.pdb",
@@ -11268,6 +11291,14 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "AdditionalOptions": "/std:c++17 "
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dlls/aflock.cpp",

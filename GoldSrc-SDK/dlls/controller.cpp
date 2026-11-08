@@ -1140,6 +1140,7 @@ void CController::MoveExecute( CBaseEntity *pTargetEnt, const Vector &vecDir, fl
 //=========================================================
 class CControllerHeadBall : public CBaseMonster
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT HuntThink( void );
@@ -1344,6 +1345,7 @@ void CControllerHeadBall::BounceTouch( CBaseEntity *pOther )
 
 class CControllerZapBall : public CBaseMonster
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT AnimateThink( void );
@@ -1437,3 +1439,5 @@ void CControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 
 
 #endif		// !OEM && !HLDEMO
+
+#include "generated_saved_callbacks/controller.inc"

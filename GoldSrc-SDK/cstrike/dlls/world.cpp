@@ -595,3 +595,5 @@ void CWorld::KeyValue( KeyValueData* pkvd )
 	}
 	pkvd->fHandled = TRUE;
 }
+
+#include "generated_saved_callbacks/world.inc"

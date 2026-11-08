@@ -1,6 +1,7 @@
 # Generated from projects/vs2026/hldll.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(hl_server SHARED "hl")
 target_sources(hl_server PRIVATE
+  "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp"
   "${CSE_SDK_DIR}/dlls/aflock.cpp"
   "${CSE_SDK_DIR}/dlls/agrunt.cpp"
   "${CSE_SDK_DIR}/dlls/airtank.cpp"
@@ -129,6 +130,8 @@ target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
 target_sources(hl_server PRIVATE "${CSE_SDK_DIR}/dlls/hl.def")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/std:c++17>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/O2>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/GR>")
@@ -153,10 +156,12 @@ target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}
 target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
 target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
 set_property(TARGET hl_server APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreaded>")
-target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/OPT:NOICF>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
 target_link_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/LTCG>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/std:c++17>")
 cse_runtime_directory(hl_server "valve/dlls")

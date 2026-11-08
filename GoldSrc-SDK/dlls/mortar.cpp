@@ -329,3 +329,5 @@ void CMortar::ShootTimed( EVARS *pevOwner, Vector vecStart, float time )
 	UTIL_SetOrigin( pMortar->pev, tr.vecEndPos );
 }
 #endif
+
+#include "generated_saved_callbacks/mortar.inc"

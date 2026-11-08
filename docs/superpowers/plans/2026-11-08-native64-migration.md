@@ -188,10 +188,20 @@ and macOS ARM64 are downloaded and independently SHA256-pinned; integration is
 pending. The shared/CS HTML serializer declarations differ on non-Windows and
 must be consolidated or adapted explicitly before a native Mac provider is safe.
 
-The first Task 3 component is a module-local typed callback registry and field
-operations core. Release/Debug standalone fixtures pass Win32, Windows x64,
-Windows ARM64 and macOS ARM64: eager catalogs, all four game member signatures,
-full adjusted member pointers, high-address objects, typed null handling, owned
-symbol names, case-sensitive aliases and explicit ICF ambiguity handling. The
-five real fields per game and generated production catalogs are not integrated
-with it yet; existing save/restore still uses its legacy path.
+Task 3's typed callback registry now drives all five callback fields in both
+production game DLLs. The translator generates eager per-source catalogs from
+its retained source inventory; initialization precedes entity restoration.
+Native member storage never goes through an address/integer or byte-zero path.
+Game DLLs disable identical-code folding, and catalogs reject equal typed values
+instead of guessing a saved identity. Legacy monster Think and knife aliases
+have explicit bounded decoding rules.
+
+The three standalone callback fixtures pass Win32, Windows x64, Windows ARM64
+and macOS ARM64 in Release/Debug, including adjusted/high-address members,
+metadata ownership, full native clears, bounded symbolic payloads and legacy
+aliases. macOS address/undefined-behavior sanitizer fixtures also pass. The
+captured Half-Life save loads, saves and reloads in Win32 Release/Debug; all
+13 monster aliases are resaved canonically. CS records651networkframes and
+replays to EOF in both configurations after integration. These are component
+and maintained Win32 results; native game saves and the rest of Task 3 remain
+unqualified. Build-tool tests now pass45/45, including catalog generation.

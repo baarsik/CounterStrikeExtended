@@ -29,6 +29,7 @@ extern DLL_GLOBAL int		g_iSkillLevel;
 
 class CApache : public CBaseMonster
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	int		Save( CSave &save );
 	int		Restore( CRestore &restore );
 	static	TYPEDESCRIPTION m_SaveData[];
@@ -943,6 +944,7 @@ void CApache::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir
 
 class CApacheHVR : public CGrenade
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT IgniteThink( void );
@@ -1056,3 +1058,5 @@ void CApacheHVR :: AccelerateThink( void  )
 
 
 #endif
+
+#include "generated_saved_callbacks/apache.inc"

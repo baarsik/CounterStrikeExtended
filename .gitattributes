@@ -9,3 +9,6 @@ GoldSrc-SDK/external/mpg123/** -text
 # Retain the inherited worker files' CRLF without flagging CR as trailing whitespace.
 GoldSrc-SDK/engine/thread.cpp whitespace=cr-at-eol
 GoldSrc-SDK/engine/thread.h whitespace=cr-at-eol
+
+# Preserve the retained HL build manifest's CRLF when changing owned settings.
+GoldSrc-SDK/projects/vs2026/hldll.vcxproj whitespace=cr-at-eol

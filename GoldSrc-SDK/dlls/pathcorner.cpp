@@ -225,7 +225,7 @@ void CPathTrack :: Spawn( void )
 	m_pprevious = NULL;
 // DEBUGGING CODE
 #if PATH_SPARKLE_DEBUG
-	SetThink( Sparkle );
+	SetThink(&CPathTrack::Sparkle);
 	pev->nextthink = gpGlobals->time + 0.5;
 #endif
 }
@@ -429,3 +429,5 @@ void CPathTrack :: Sparkle( void )
 		UTIL_ParticleEffect(pev->origin, Vector(0,0,100), 84, 10);
 }
 #endif
+
+#include "generated_saved_callbacks/pathcorner.inc"

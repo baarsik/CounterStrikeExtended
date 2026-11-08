@@ -1,6 +1,7 @@
 # Generated from projects/vs2026/cstrikedll.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(cs_server SHARED "mp")
 target_sources(cs_server PRIVATE
+  "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/ammo.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/animating.cpp"
@@ -183,11 +184,13 @@ target_include_directories(cs_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/v
 target_include_directories(cs_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/vgui2/src/public>")
 target_include_directories(cs_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external>")
 set_property(TARGET cs_server APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Debug>:MultiThreadedDebugDLL>")
+target_link_options(cs_server PRIVATE "$<$<CONFIG:Debug>:/OPT:NOICF>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Debug>:/WX>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
 target_sources(cs_server PRIVATE "${CSE_SDK_DIR}/projects/vs2026/cstrikedll.def")
+set_property(SOURCE "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/std:c++17>")
 target_compile_options(cs_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(cs_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(cs_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/O2>")
@@ -235,11 +238,12 @@ target_include_directories(cs_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}
 target_include_directories(cs_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/vgui2/src/public>")
 target_include_directories(cs_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external>")
 set_property(TARGET cs_server APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreadedDLL>")
-target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
+target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/OPT:NOICF>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
 target_link_options(cs_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/WX>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/LTCG>")
 target_link_options(cs_server PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
+set_property(SOURCE "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/std:c++17>")
 cse_runtime_directory(cs_server "cstrike/dlls")

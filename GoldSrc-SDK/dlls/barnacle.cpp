@@ -430,3 +430,5 @@ CBaseEntity *CBarnacle :: TongueTouchEnt ( float *pflLength )
 
 	return NULL;
 }
+
+#include "generated_saved_callbacks/barnacle.inc"

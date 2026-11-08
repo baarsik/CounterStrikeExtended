@@ -1261,3 +1261,5 @@ void CBMortar::Touch( CBaseEntity *pOther )
 }
 
 #endif
+
+#include "generated_saved_callbacks/bigmomma.inc"

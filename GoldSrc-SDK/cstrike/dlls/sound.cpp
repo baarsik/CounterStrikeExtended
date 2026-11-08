@@ -2053,3 +2053,5 @@ void CSpeaker :: KeyValue( KeyValueData *pkvd )
 	else
 		CBaseEntity::KeyValue( pkvd );
 }
+
+#include "generated_saved_callbacks/sound.inc"

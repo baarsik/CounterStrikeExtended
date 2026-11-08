@@ -1076,3 +1076,5 @@ void CMomentaryDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		EMIT_SOUND(ENT(pev), CHAN_STATIC, (char*)STRING(pev->noiseMoving), 1, ATTN_NORM);
 	LinearMove( move, speed );
 }
+
+#include "generated_saved_callbacks/doors.inc"

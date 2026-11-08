@@ -591,3 +591,5 @@ FEntIsVisible(
 
 	return FALSE;
 	}
+
+#include "generated_saved_callbacks/subs.inc"

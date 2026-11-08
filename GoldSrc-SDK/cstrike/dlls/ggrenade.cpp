@@ -1059,3 +1059,4 @@ void CGrenade::C4Think()
 
 //======================end grenade
 
+#include "generated_saved_callbacks/ggrenade.inc"

@@ -3694,3 +3694,5 @@ void CNodeViewer :: DrawThink( void )
 		m_iDraw++;
 	}
 }
+
+#include "generated_saved_callbacks/nodes.inc"

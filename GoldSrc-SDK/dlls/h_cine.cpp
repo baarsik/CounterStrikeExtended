@@ -239,3 +239,4 @@ void CCineBlood :: Spawn ( void )
 	pev->health = 20;//hacked health to count iterations
 }
 
+#include "generated_saved_callbacks/h_cine.inc"

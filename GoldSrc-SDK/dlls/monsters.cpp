@@ -3446,3 +3446,5 @@ BOOL CBaseMonster :: ShouldFadeOnDeath( void )
 
 	return FALSE;
 }
+
+#include "generated_saved_callbacks/monsters.inc"

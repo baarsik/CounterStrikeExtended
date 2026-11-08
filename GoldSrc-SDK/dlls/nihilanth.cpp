@@ -1858,3 +1858,5 @@ void CNihilanthHVR::BounceTouch( CBaseEntity *pOther )
 
 
 #endif
+
+#include "generated_saved_callbacks/nihilanth.inc"

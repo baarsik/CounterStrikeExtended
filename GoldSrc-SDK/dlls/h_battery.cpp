@@ -202,3 +202,5 @@ void CRecharge::Off(void)
 	else
 		SetThink( &CRecharge::SUB_DoNothing );
 }
+
+#include "generated_saved_callbacks/h_battery.inc"

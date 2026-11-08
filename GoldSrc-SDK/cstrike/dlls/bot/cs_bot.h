@@ -328,6 +328,7 @@ private:
 
 class CCSBot : public CBot
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 public:
 	enum TaskType
 	{

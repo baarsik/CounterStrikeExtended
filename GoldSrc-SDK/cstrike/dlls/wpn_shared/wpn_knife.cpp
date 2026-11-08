@@ -397,3 +397,5 @@ void CKnife::WeaponIdle()
 		SendWeaponAnim( KNIFE_IDLE, UseDecrement() );
 	}
 }
+
+#include "../generated_saved_callbacks/wpn_knife.inc"

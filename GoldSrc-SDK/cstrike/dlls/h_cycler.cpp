@@ -510,3 +510,5 @@ void CWreckage::Think( void )
 		WRITE_BYTE( RANDOM_LONG(0, 3) + 8  ); // framerate
 	MESSAGE_END();
 }
+
+#include "generated_saved_callbacks/h_cycler.inc"

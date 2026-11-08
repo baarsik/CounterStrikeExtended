@@ -417,3 +417,4 @@ void CHornet::DieTouch ( CBaseEntity *pOther )
 	pev->nextthink = gpGlobals->time + 1;// stick around long enough for the sound to finish!
 }
 
+#include "generated_saved_callbacks/hornet.inc"

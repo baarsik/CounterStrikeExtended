@@ -845,3 +845,5 @@ void CDeadBarney :: Spawn( )
 
 	MonsterInitDead();
 }
+
+#include "generated_saved_callbacks/barney.inc"

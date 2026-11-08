@@ -34,6 +34,7 @@
 // speed - the ideal magnitude of my velocity
 class CCrossbowBolt : public CBaseEntity
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	int  Classify ( void );
@@ -550,3 +551,5 @@ LINK_ENTITY_TO_CLASS( ammo_crossbow, CCrossbowAmmo );
 
 
 #endif
+
+#include "generated_saved_callbacks/crossbow.inc"

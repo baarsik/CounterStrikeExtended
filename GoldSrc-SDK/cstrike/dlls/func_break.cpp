@@ -1042,3 +1042,5 @@ int CPushable::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, floa
 
 	return 1;
 }
+
+#include "generated_saved_callbacks/func_break.inc"

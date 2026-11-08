@@ -1309,3 +1309,5 @@ void CSentry ::	SentryDeath( void )
 		SetThink( NULL );
 	}
 }
+
+#include "generated_saved_callbacks/turret.inc"

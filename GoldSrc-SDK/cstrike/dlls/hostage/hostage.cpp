@@ -1153,3 +1153,5 @@ void CHostageManager::ServerActivate()
 	m_chatter.AddSound( HOSTAGE_CHATTER_DEATH_CRY, "hostage/hdie/hdeath2.wav" );
 	m_chatter.AddSound( HOSTAGE_CHATTER_DEATH_CRY, "hostage/hdie/hdeath3.wav" );
 }
+
+#include "../generated_saved_callbacks/hostage.inc"

@@ -79,7 +79,16 @@ public:
         return true;
     }
 
-    bool Seal() {
+    bool Seal(bool requireUniqueValues = false) {
+        if (requireUniqueValues) {
+            for (std::size_t first = 0; first < entries_.size(); ++first) {
+                for (std::size_t second = first + 1; second < entries_.size(); ++second) {
+                    if (entries_[first].value == entries_[second].value) {
+                        return false;
+                    }
+                }
+            }
+        }
         sealed_ = true;
         return true;
     }

@@ -1635,3 +1635,4 @@ TYPEDESCRIPTION	CSatchel::m_SaveData[] =
 };
 IMPLEMENT_SAVERESTORE( CSatchel, CBasePlayerWeapon );
 
+#include "generated_saved_callbacks/weapons.inc"

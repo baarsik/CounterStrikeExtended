@@ -344,3 +344,5 @@ class CItemLongJump : public CItem
 };
 
 LINK_ENTITY_TO_CLASS( item_longjump, CItemLongJump );
+
+#include "generated_saved_callbacks/items.inc"

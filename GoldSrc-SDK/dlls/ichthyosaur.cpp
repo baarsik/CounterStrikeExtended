@@ -1142,3 +1142,5 @@ Vector CIchthyosaur::DoProbe(const Vector &Probe)
 }
 
 #endif
+
+#include "generated_saved_callbacks/ichthyosaur.inc"

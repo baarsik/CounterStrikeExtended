@@ -44,6 +44,7 @@ enum squeak_e {
 
 class CSqueakGrenade : public CGrenade
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 	int  Classify( void );
@@ -644,3 +645,5 @@ void CSqueak::WeaponIdle( void )
 }
 
 #endif
+
+#include "generated_saved_callbacks/squeakgrenade.inc"

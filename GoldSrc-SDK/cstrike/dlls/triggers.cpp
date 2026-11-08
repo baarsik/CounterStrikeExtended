@@ -2567,3 +2567,5 @@ void CClientFog::KeyValue( KeyValueData* pkvd )
 	else
 		CBaseEntity::KeyValue( pkvd );
 }
+
+#include "generated_saved_callbacks/triggers.inc"

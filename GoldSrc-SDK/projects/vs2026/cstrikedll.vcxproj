@@ -36,6 +36,11 @@
       <PreprocessorDefinitions>$([MSBuild]::Unescape($([System.String]::Copy(';%(PreprocessorDefinitions);').Replace(';NDEBUG;', ';').Trim(';'))));UTL_ENGINE_ASSERTS</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <None Include="cstrikedll.def" />
   </ItemGroup>

@@ -43,6 +43,7 @@ enum tripmine_e {
 
 class CTripmineGrenade : public CGrenade
 {
+    template<typename> friend struct CseSavedCallbackAccess;
 	void Spawn( void );
 	void Precache( void );
 
@@ -524,3 +525,5 @@ void CTripmine::WeaponIdle( void )
 
 	SendWeaponAnim( iAnim );
 }
+
+#include "generated_saved_callbacks/tripmine.inc"

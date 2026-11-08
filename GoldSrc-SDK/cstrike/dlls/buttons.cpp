@@ -1263,3 +1263,5 @@ int CButtonTarget::TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, 
 
 	return 1;
 }
+
+#include "generated_saved_callbacks/buttons.inc"

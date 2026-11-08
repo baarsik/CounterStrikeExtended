@@ -741,3 +741,5 @@ void CWorld :: KeyValue( KeyValueData *pkvd )
 	else
 		CBaseEntity::KeyValue( pkvd );
 }
+
+#include "generated_saved_callbacks/world.inc"
