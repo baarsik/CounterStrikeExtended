@@ -381,6 +381,17 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   Win32 targets, all 42 PE/resource checks and six matching-module runtime cases.
   Full native UI/font metrics, IME and game input acceptance remain open.
 
+- **Owned browser controller and host:** the versioned process boundary now
+  implements the existing HTML methods and typed callbacks with sandboxed CEF.
+  Matching Windows x64 and macOS ARM64 Release/Debug fixtures pass navigation
+  policy, real popup ownership, MOTD pages, input, pixels, persistent storage and
+  cooperative shutdown. Cancellation retains stale response slots, and renderer
+  geometry is validated before native conversion. Routine Mac fixtures use
+  isolated real encrypted Keychain items and verify exact cleanup, avoiding
+  production-key approvals after each developer rebuild. Controlled controller
+  tests also pass Release/Debug/sanitizers. Runtime manifests, full game/browser
+  presentation parity and actual native prompt/file dialogs remain open.
+
 Detailed passing and failed receipts, source/binary hashes and scope rulings are
 kept in the task ledger and isolated cse-native64-20261108 artifact directory.
 No tests, symbols or qualification artifacts enter default runtime outputs.

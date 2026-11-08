@@ -1,0 +1,9 @@
+The Cocoa application event scoping, dynamic framework loading, Windows bootstrap
+entry point and macOS sandbox helper entry point in cef_host_mac.mm,
+cef_host_win.cpp and cef_host_helper_mac.mm adapt the cefsimple examples from
+Chromium Embedded Framework.
+Copyright (c) 2013 The Chromium Embedded Framework Authors. Portions copyright
+(c) 2010 The Chromium Authors. All rights reserved. The BSD license terms in
+LICENSE.cef apply to these inherited portions.
+
+CEF revision: 8ea0c73b5dbed1389c8dafb911a98c41246bb8cb.

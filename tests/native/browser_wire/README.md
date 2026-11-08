@@ -1,6 +1,6 @@
-# Native browser process transport fixtures
+# Native browser transport and controller fixtures
 
-The transport uses the pinned SDL3 process APIs and two nonblocking pipes. It
+The transport uses the pinned SDL3 process APIs and two nonblocking pipes. CTest
 executes no CEF, Steam, game or network session. The native process fixture uses
 only an owned echo child and inherited standard error; it never invokes a shell.
 
@@ -26,6 +26,21 @@ replies, closes input, drains EOF and reaps the child; no worker is forcibly
 terminated. Controllers must detach UI callbacks before discarding shutdown
 replies.
 
-These sources are prepared for the owned native HTML provider. They are not yet
-selected by a production runtime manifest or connected to the CEF host. Passing
-these fixtures does not qualify browser behavior or a complete native game.
+Native builds additionally compile the owned HTML controller and
+`browser_controller_tests`. Its controlled child checks readiness, typed callback
+dispatch, reentrant removal, cookie requests, provider failures and deferred UI
+deletion. Invalid image dimensions fail before UI callbacks; unknown UI keys are
+ignored before transmission. The image bound includes both view and popup BGRA
+buffers at the configured 8192-pixel dimension limit.
+
+`browser_cef_probe` is a separately authorized real-provider fixture. Run it through
+`tests/native/cef_provider/run_fixture.py --argument=--cse-host=<absolute host>`;
+see [the host instructions](../cef_host/README.md) for native builds and scope.
+On macOS the runner creates one temporary encrypted Keychain identity for the
+unchanged host and evidence directory, reuses it across process restarts, and
+deletes its exact item after helpers exit. Production controller configuration
+keeps its stable production identity.
+
+Production manifests do not yet select the controller or host. Passing these
+component fixtures does not qualify a complete native game or native prompt/file
+dialogs.

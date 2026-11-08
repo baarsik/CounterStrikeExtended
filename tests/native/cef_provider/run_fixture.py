@@ -6,8 +6,11 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import threading
 import time
+
+from fixture_keychain import delete_fixture_keychain, fixture_identifier
 
 
 PAGE = b'''<!doctype html><meta charset="utf-8"><title>fixture-loading</title>
@@ -16,6 +19,7 @@ input{position:absolute;left:8px;top:8px;width:80px;height:32px;box-sizing:borde
 button{position:absolute;left:96px;top:8px;width:64px;height:32px}</style>
 <input id="input" oninput="document.title='input:'+this.value">
 <button onclick="document.title='mouse-click'">Click</button>
+<a href="/target" style="position:absolute;left:8px;top:56px;width:64px;height:24px">Link</a>
 <script>
 async function bootstrap(phase) {
   try {
@@ -76,7 +80,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 def remaining_helpers(storage):
     if os.name == 'nt':
         command = ['powershell.exe', '-NoProfile', '-Command',
-                   "Get-CimInstance Win32_Process -Filter \"Name = 'cse_cef_probe.exe'\" | "
+                   "Get-CimInstance Win32_Process -Filter \"Name LIKE 'cse_cef_%' OR Name = 'browser_cef_probe.exe'\" | "
                    'Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress']
         output = subprocess.check_output(command, text=True).strip()
         processes = json.loads(output) if output else []
@@ -84,21 +88,33 @@ def remaining_helpers(storage):
             processes = [processes]
         return [row for row in processes if str(storage).lower() in (row['CommandLine'] or '').lower()]
     output = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,args='], text=True)
-    return [line.strip() for line in output.splitlines() if str(storage) in line and 'cse_cef_probe' in line]
+    return [line.strip() for line in output.splitlines() if str(storage) in line and ('cse_cef_' in line or 'browser_cef_probe' in line)]
 
 
-def run(executable, evidence):
+def run(executable, evidence, extra_arguments=(), production_keychain=False):
     evidence.mkdir(parents=True, exist_ok=False)
     storage = evidence / 'storage'
     storage.mkdir()
+    arguments = list(extra_arguments)
+    hosts = [Path(value.removeprefix('--cse-host=')).resolve(strict=True)
+             for value in arguments if value.startswith('--cse-host=')]
+    if len(hosts) > 1:
+        raise ValueError('A fixture must own exactly one browser host')
+    fixture_keychain = ''
+    if sys.platform == 'darwin' and hosts and not production_keychain:
+        if any(value.startswith('--cse-fixture-keychain=') for value in arguments):
+            raise ValueError('The fixture runner owns its temporary Keychain identity')
+        fixture_keychain = fixture_identifier(hosts[0], evidence)
+        arguments.append('--cse-fixture-keychain=' + fixture_keychain)
     server = FixtureServer()
     worker = threading.Thread(target=server.serve_forever, name='cse-cef-http')
     worker.start()
     cases = []
+    report = None
     try:
         for phase in ('write', 'read'):
             command = [str(executable), f'--cse-url=http://127.0.0.1:{server.server_port}/fixture',
-                       f'--cse-phase={phase}', f'--cse-storage={storage}']
+                       f'--cse-phase={phase}', f'--cse-storage={storage}', *arguments]
             before = len(server.requests)
             start = time.monotonic()
             with (evidence / f'{phase}-stdout.log').open('wb') as stdout, \
@@ -122,18 +138,44 @@ def run(executable, evidence):
         assert (storage / 'profile').is_dir()
         report = {'cases': cases, 'persistent_cache_server_hits': len(cached_requests),
                   'executable_sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
-                  'scope': 'SDK OSR/input/JavaScript/persistent storage/lifecycle; no game HTML integration'}
-        (evidence / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
-        print('Native CEF fixture passed two process lifetimes, pixels, input, cookies and persistent HTTP cache')
+                  'fixture_keychain_id': fixture_keychain or None,
+                  'scope': ('owned controller and host' if hosts else 'SDK') +
+                           ' OSR/input/JavaScript/persistent storage/lifecycle; no game HTML integration'}
+        if hosts:
+            report['host_sha256'] = hashlib.sha256(hosts[0].read_bytes()).hexdigest()
     finally:
         server.shutdown()
         worker.join()
         server.server_close()
+        deadline = time.monotonic() + 5
+        remaining = remaining_helpers(storage)
+        while remaining and time.monotonic() < deadline:
+            time.sleep(0.05)
+            remaining = remaining_helpers(storage)
+        cleanup = {'fixture_keychain_id': fixture_keychain or None, 'remaining_helpers': remaining}
+        if fixture_keychain:
+            if remaining:
+                cleanup['skipped'] = 'owned helpers are still alive'
+            else:
+                try:
+                    cleanup.update(delete_fixture_keychain(fixture_keychain))
+                except (OSError, subprocess.TimeoutExpired) as error:
+                    cleanup['error'] = str(error)
+            (evidence / 'keychain-cleanup.json').write_text(json.dumps(cleanup, indent=2) + '\n')
+        if report is not None:
+            report['cleanup'] = cleanup
+            (evidence / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
+        if remaining or (fixture_keychain and report is not None and not cleanup.get('deleted')):
+            raise AssertionError(('fixture cleanup incomplete', cleanup))
+    print('Native CEF fixture passed two process lifetimes, pixels, input, cookies and persistent HTTP cache')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--executable', required=True, type=Path)
     parser.add_argument('--evidence', required=True, type=Path)
+    parser.add_argument('--argument', action='append', default=[], help='Additional fixture executable argument')
+    parser.add_argument('--production-keychain', action='store_true',
+                        help='Use production storage identity only for an explicitly sealed final build')
     args = parser.parse_args()
-    run(args.executable.resolve(strict=True), args.evidence.resolve())
+    run(args.executable.resolve(strict=True), args.evidence.resolve(), args.argument, args.production_keychain)
