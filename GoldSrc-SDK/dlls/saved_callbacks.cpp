@@ -8,3 +8,5 @@
 #include "generated_saved_callbacks/catalog.inc"
 
 #include "game_saved_callbacks_impl.h"
+
+#include "game_module_entry_impl.h"

@@ -1,5 +1,7 @@
 LIBRARY mp
 EXPORTS
+    CseGetModuleAbi
+    CseInitializeGameModule
     ?AngularMoveDone@CBaseToggle@@QAEXXZ @3
     ?AnimateThink@CSprite@@QAEXXZ @4
     ?AnimateUntilDead@CSprite@@QAEXXZ @5

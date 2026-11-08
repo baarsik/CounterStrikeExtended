@@ -1,5 +1,7 @@
 LIBRARY hl
 EXPORTS
+    CseGetModuleAbi
+    CseInitializeGameModule
 	GiveFnptrsToDll			@1
 SECTIONS
 	.data READ WRITE

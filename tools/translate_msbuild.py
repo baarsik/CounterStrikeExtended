@@ -12,6 +12,7 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
+from game_module_layouts import generate as generate_game_module_layouts
 from sdl3_dependency import validate_payload
 from saved_callback_catalog import generate as generate_callback_catalog
 
@@ -407,6 +408,9 @@ def main():
             return ('generated', Path(item['path']).name, item['generated']['section']) if item.get('generated') else item['path']
         assert [selection(i) for i in compiled(debug)] == [selection(i) for i in compiled(release)], project
         active = compiled(release)
+        if target in ('hw_engine', 'swds', 'hl_server', 'cs_server') and any(
+                Path(i['path']).name in ('sys_dll.cpp', 'saved_callbacks.cpp') for i in active):
+            generate_game_module_layouts(ROOT)
         if target in ('hl_server', 'cs_server'):
             generate_callback_catalog(ROOT, target, [Path(i['path']) for i in active])
         output = release['properties'].get('TargetName', project.stem)

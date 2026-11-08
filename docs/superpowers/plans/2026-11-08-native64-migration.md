@@ -157,7 +157,8 @@ as requested. The Win32 default/output contract remains unchanged.
 
 - The new descriptor/validator and owned module-loading fixture pass on macOS,
   Windows x64/ARM64 and Win32 in Release/Debug, including mismatch rejection before
-  callbacks and high-address strings/handles. Production loaders are not wired yet.
+  callbacks and high-address strings/handles. The engine/game loader now validates actual shared layouts before exchanging
+  callbacks; other production module boundaries remain pending.
 - `game_controls.lib` correspondence audit found different candidate source bytes
   and behavior. Debug's matching PDB proves no archive objects contribute to HL;
   Release CRT/import/source evidence supports the same. HL already compiles its
@@ -205,3 +206,15 @@ captured Half-Life save loads, saves and reloads in Win32 Release/Debug; all
 replays to EOF in both configurations after integration. These are component
 and maintained Win32 results; native game saves and the rest of Task 3 remain
 unqualified. Build-tool tests now pass45/45, including catalog generation.
+
+
+The engine/game boundary now uses `CseGetModuleAbi` and a validated initialization
+entry point before either side exchanges callbacks. Its eleven table/record
+signatures are generated from actual shared declarations, including every field
+of save metadata. Legacy entry points require a single-use authorization;
+Game API exports remain closed until initialization completes. Standalone
+fixtures pass in Release/Debug on the three native targets and Win32.
+Probes against both rebuilt Win32 game DLLs also pass in both configurations,
+rejecting stale metadata and legacy exchanges before and after binding. Win32 startup, legacy Half-Life load/save/reload and CS gameplay/replay pass in
+both configurations with the handshake enabled.
+Build-tool tests pass48/48. Save metadata's native widths have not changed yet.

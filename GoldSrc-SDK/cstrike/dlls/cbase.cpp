@@ -15,6 +15,7 @@
 #include	"extdll.h"
 #include	"util.h"
 #include	"cbase.h"
+#include "game_module_entry.h"
 #include	"saverestore.h"
 #include	"client.h"
 #include	"decals.h"
@@ -36,6 +37,10 @@ NEW_DLL_FUNCTIONS gNewDLLFunctions = { OnFreeEntPrivateData, NULL, NULL, NULL, N
 
 int GetNewDLLFunctions( NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
 {
+    if (!CseGameEngineAbiBound()) {
+        return FALSE;
+    }
+
 	if ( !pFunctionTable || *interfaceVersion != NEW_DLL_FUNCTIONS_VERSION )
 	{
 		*interfaceVersion = NEW_DLL_FUNCTIONS_VERSION;
@@ -350,6 +355,10 @@ extern "C" {
 
 	int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
 {
+    if (!CseGameEngineAbiBound()) {
+        return FALSE;
+    }
+
 	if ( !pFunctionTable || interfaceVersion != INTERFACE_VERSION )
 	{
 		return FALSE;
@@ -365,6 +374,10 @@ extern "C" {
 
 int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
 {
+    if (!CseGameEngineAbiBound()) {
+        return FALSE;
+    }
+
 	if ( !pFunctionTable || *interfaceVersion != INTERFACE_VERSION )
 	{
 		// Tell engine what version we had, so it can figure out who is out of date.

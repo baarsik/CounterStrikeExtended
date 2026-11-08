@@ -24,6 +24,7 @@
 #include "util.h"
 #include "cbase.h"
 #include "game_saved_callbacks.h"
+#include "game_module_entry.h"
 
 // Holds engine functionality callbacks
 enginefuncs_t g_engfuncs;
@@ -56,6 +57,10 @@ BOOL WINAPI DllMain(
 
 extern "C" void DLLEXPORT GiveFnptrsToDll(	enginefuncs_t* pengfuncsFromEngine, globalvars_t *pGlobals )
 {
+    if (!CseGameConsumeEngineExchangeAuthorization()) {
+        return;
+    }
+
 	memcpy(&g_engfuncs, pengfuncsFromEngine, sizeof(enginefuncs_t));
 	gpGlobals = pGlobals;
     if (!CseInitializeSavedCallbacks()) {

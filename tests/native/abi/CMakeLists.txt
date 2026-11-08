@@ -31,3 +31,30 @@ add_test(NAME module-abi COMMAND abi_loader
   "$<TARGET_FILE:abi_module_0>" "$<TARGET_FILE:abi_module_1>" "$<TARGET_FILE:abi_module_2>"
   "$<TARGET_FILE:abi_module_3>" "$<TARGET_FILE:abi_module_4>" "$<TARGET_FILE:abi_module_5>"
   "$<TARGET_FILE:abi_module_6>" "$<TARGET_FILE:abi_module_7>" "$<TARGET_FILE:abi_module_8>")
+add_executable(game_layout_tests game_layout_tests.cpp)
+target_compile_features(game_layout_tests PRIVATE cxx_std_17)
+target_include_directories(game_layout_tests PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/public"
+  "${CSE_ROOT}/GoldSrc-SDK/common")
+add_test(NAME game-layouts COMMAND game_layout_tests)
+add_executable(game_entry_tests game_entry_tests.cpp)
+target_compile_features(game_entry_tests PRIVATE cxx_std_17)
+target_include_directories(game_entry_tests PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/public"
+  "${CSE_ROOT}/GoldSrc-SDK/common")
+add_test(NAME game-entry COMMAND game_entry_tests)
+if(MSVC)
+  foreach(target game_layout_tests game_entry_tests)
+    target_compile_options(${target} PRIVATE /W4 /WX /EHsc)
+  endforeach()
+endif()
+# Explicit invocation only: accepts paths to the owned rebuilt game modules.
+add_executable(game_module_probe game_module_probe.cpp)
+target_compile_features(game_module_probe PRIVATE cxx_std_17)
+target_include_directories(game_module_probe PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/public"
+  "${CSE_ROOT}/GoldSrc-SDK/common")
+target_link_libraries(game_module_probe PRIVATE ${CMAKE_DL_LIBS})
+if(MSVC)
+  target_compile_options(game_module_probe PRIVATE /W4 /WX /EHsc)
+endif()

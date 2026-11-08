@@ -17,6 +17,8 @@
 #include "zone.h"
 #include "conprint.h"
 #include "eiface.h"
+#include "../common/generated_game_module_layouts.h"
+#include "../common/game_module_entry.h"
 
 #if !defined( _WIN32 )
 #include <ctime>
@@ -723,6 +725,41 @@ void BuildExportTable( extensiondll_t* pDll, const char* filename )
 }
 #endif
 
+namespace {
+
+#if defined(_WIN32)
+using GameLibraryHandle = HMODULE;
+#else
+using GameLibraryHandle = void *;
+#endif
+
+template<typename Function>
+Function GameLibrarySymbol(GameLibraryHandle library, const char *name) {
+#if defined(_WIN32)
+    return reinterpret_cast<Function>(GetProcAddress(library, name));
+#else
+    return reinterpret_cast<Function>(dlsym(library, name));
+#endif
+}
+
+bool InitializeOwnedGameModule(GameLibraryHandle library, const char *filename) {
+    const auto describe = GameLibrarySymbol<cse::abi::GetModuleAbi>(library, "CseGetModuleAbi");
+    const auto initialize = GameLibrarySymbol<CseInitializeGame>(library, "CseInitializeGameModule");
+    const auto status = cse::abi::Check(cse::abi::GameModuleDescriptor, describe ? describe() : nullptr);
+    if (!initialize || status != cse::abi::Compatibility::Compatible) {
+        Con_Printf("Game module ABI mismatch in %s (descriptor status %u)\n", filename,
+            static_cast<unsigned int>(status));
+        return false;
+    }
+    if (!initialize(&cse::abi::GameModuleDescriptor, &g_engfuncsExportedToDlls, &gGlobalVariables)) {
+        Con_Printf("Game module rejected engine ABI in %s\n", filename);
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
 void LoadThisDll( char* filename )
 {
 #if !defined( _WIN32 )
@@ -733,15 +770,10 @@ void LoadThisDll( char* filename )
 		Con_Printf( "LoadLibrary failed on %s: %s\n", filename, error );
 		return;
 	}
-	using PFN_GiveFnptrsToDll = void ( * )( enginefuncs_t*, globalvars_t* );
-	PFN_GiveFnptrsToDll giveFunctions = reinterpret_cast<PFN_GiveFnptrsToDll>( dlsym( library, "GiveFnptrsToDll" ) );
-	if ( giveFunctions == nullptr )
-	{
-		Con_Printf( "Couldn't get GiveFnptrsToDll in %s\n", filename );
-		dlclose( library );
-		return;
-	}
-	giveFunctions( &g_engfuncsExportedToDlls, &gGlobalVariables );
+    if (!InitializeOwnedGameModule(library, filename)) {
+        dlclose(library);
+        return;
+    }
 	if ( g_iextdllMac == MAX_EXT_DLLS )
 	{
 		Con_Printf( "Too many DLLs, ignoring remainder\n" );
@@ -759,16 +791,10 @@ void LoadThisDll( char* filename )
 		Con_Printf( "LoadLibrary failed on %s (%d)\n", filename, error );
 		return;
 	}
-	typedef void( __stdcall * PFN_GiveFnptrsToDll )( enginefuncs_t*, globalvars_t* );
-	PFN_GiveFnptrsToDll giveFunctions =
-		reinterpret_cast<PFN_GiveFnptrsToDll>( GetProcAddress( library, "GiveFnptrsToDll" ) );
-	if ( !giveFunctions )
-	{
-		Con_Printf( "Couldn't get GiveFnptrsToDll in %s\n", filename );
-		FreeLibrary( library );
-		return;
-	}
-	giveFunctions( &g_engfuncsExportedToDlls, &gGlobalVariables );
+    if (!InitializeOwnedGameModule(library, filename)) {
+        FreeLibrary(library);
+        return;
+    }
 	if ( g_iextdllMac == MAX_EXT_DLLS )
 	{
 		Con_Printf( "Too many DLLs, ignoring remainder\n" );

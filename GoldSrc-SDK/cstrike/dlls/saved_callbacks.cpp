@@ -9,3 +9,5 @@
 
 #define CSE_SAVE_GAME_CS
 #include "game_saved_callbacks_impl.h"
+
+#include "game_module_entry_impl.h"
