@@ -322,6 +322,13 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and six matching-binary runtime regressions pass. Direct SDK controls reproduce
   remaining WebUI restart diagnostics. Complete native game/server protocol,
   voice, browser and renderer acceptance remain open.
+- **Browser interface boundary:** the owned native controller is an abstract
+  interface, and both game UIs use the same 25 response callbacks and 28 serializer
+  methods. Their ordered signatures match the immutable Windows reference.
+  Pointer-width handles, UTF-16 code units and supplementary character values
+  pass nine offline configurations, including macOS sanitizers. All 19 Win32
+  targets and six fresh matching-binary save/gameplay/replay regressions pass.
+  These checks do not execute CEF or qualify browser behavior.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

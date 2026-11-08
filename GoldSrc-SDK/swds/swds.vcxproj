@@ -288,6 +288,7 @@
     <ClCompile Include="..\vgui2\vgui_surfacelib\FontManager.cpp" />
     <ClCompile Include="..\vgui2\vgui_surfacelib\linuxfont.cpp" />
     <ClCompile Include="..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
+    <ClInclude Include="..\public\html_legacy_interfaces.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="..\public\steam_provider.h" />
     <ClInclude Include="..\public\steam_server_transport.h" />

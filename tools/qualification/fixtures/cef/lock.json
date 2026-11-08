@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "version": "156.0.26+g8ea0c73+chromium-156.0.8078.88",
+  "commit": "8ea0c73b5dbed1389c8dafb911a98c41246bb8cb",
+  "api_version": 15600,
+  "purpose": "Native CEF integration pin; artifacts and builds are separate from browser/runtime qualification",
+  "platforms": {
+    "windows64": {
+      "architecture": "x64",
+      "archive": {
+        "name": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_windows64.tar.bz2",
+        "url": "https://cef-builds.spotifycdn.com/cef_binary_156.0.26%2Bg8ea0c73%2Bchromium-156.0.8078.88_windows64.tar.bz2",
+        "bytes": 367334877,
+        "sha256": "5cf7f7f8580ed9e58b6e324ecbcb3f19d583a66c7fd6e5bdba5d10e7a3d4018b"
+      },
+      "runtime": {
+        "bytes": 294650880,
+        "sha256": "7b87f2618fd0cfdf271ba452b75b23702aebc956c42595e7736c5e1740ed1856",
+        "identity": {
+          "format": "pe",
+          "architectures": [
+            "x64"
+          ]
+        },
+        "path": "Release/libcef.dll"
+      },
+      "api_header_sha256": "f0d75ba1cf877bcbf43f53f2d19abc6082c1f12ddd8b0fd5ca50b813387561c9",
+      "import_library": {
+        "path": "Release/libcef.lib",
+        "bytes": 67026,
+        "sha256": "65dd7e13a0dbd2246ebd602fc6f0d1a06cbd92cef1fa18deb71d6aff586a797e"
+      }
+    },
+    "macosarm64": {
+      "architecture": "arm64",
+      "archive": {
+        "name": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosarm64.tar.bz2",
+        "url": "https://cef-builds.spotifycdn.com/cef_binary_156.0.26%2Bg8ea0c73%2Bchromium-156.0.8078.88_macosarm64.tar.bz2",
+        "bytes": 312254165,
+        "sha256": "fb2b22354267e932c375cdb746355741669acf374fd7bb8e60e176b266d95d42"
+      },
+      "runtime": {
+        "bytes": 238066432,
+        "sha256": "69018c24a13208f132103d583bd8b5b528975f4ca82539ef2afe8030c693ecaf",
+        "identity": {
+          "format": "mach-o",
+          "architectures": [
+            "arm64"
+          ],
+          "minimum_macos": [
+            13,
+            0,
+            0
+          ]
+        },
+        "path": "Release/Chromium Embedded Framework.framework/Chromium Embedded Framework"
+      },
+      "api_header_sha256": "06716f78d3a678a175a2f4c87c339fe3ac3f69d8936cb4462ea228d64dfc35d3"
+    }
+  }
+}
