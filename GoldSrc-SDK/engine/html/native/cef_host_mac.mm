@@ -154,3 +154,34 @@ bool IsCefHostNativeWindow(CefWindowHandle window) {
     NSView* view = (__bridge NSView*)window;
     return view != nil && [view window] != nil;
 }
+
+namespace {
+class CocoaParent final : public CefHostNativeParent {
+public:
+    CocoaParent() {
+        constexpr CGFloat DialogParentWidth = 800;
+        constexpr CGFloat DialogParentHeight = 600;
+        window_ = [[NSWindow alloc] initWithContentRect:NSMakeRect(0, 0, DialogParentWidth, DialogParentHeight)
+            styleMask:NSWindowStyleMaskTitled backing:NSBackingStoreBuffered defer:NO];
+        [window_ setReleasedWhenClosed:NO];
+        [window_ setTitle:@"CounterStrikeExtended Browser Dialogs"];
+        [window_ center];
+        [window_ orderOut:nil];
+    }
+
+    ~CocoaParent() override {
+        [window_ close];
+    }
+
+    CefWindowHandle Handle() const override {
+        return (__bridge CefWindowHandle)[window_ contentView];
+    }
+
+private:
+    NSWindow* __strong window_ = nil;
+};
+}
+
+std::unique_ptr<CefHostNativeParent> CreateCefHostNativeParent() {
+    return std::make_unique<CocoaParent>();
+}

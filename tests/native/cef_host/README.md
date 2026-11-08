@@ -66,6 +66,9 @@ entry-point and provider license notices into the application resources or Windo
 - Main views use software OSR BGRA frames and a paint acknowledgement. The host retains the latest frame while an
   acknowledgement is pending. Select-menu popup pixels remain separate. Zero-sized views are hidden, with a nonempty
   internal CEF viewport. The configured dimension limit is 8192; CEF frame rates are 1 through 60.
+- Each OSR browser owns a real hidden native dialog parent: a top-level HWND on Windows, or an NSView with an NSWindow
+  on macOS. It is passed to `SetAsWindowless` and remains alive through `OnBeforeClose`. A following UI task releases
+  it after CEF finishes the callback, so final client references on other threads cannot destroy native UI objects.
 - Browser navigation, POST bytes, custom headers, native user-agent override, focus, mouse/keyboard input, scrolling,
   JavaScript, link queries and geometry queries remain inside the owned provider. POST is applied at the request
   callback after `LoadURL`, avoiding CEF's documented `LoadRequest` cross-origin initiator restriction.
@@ -117,15 +120,49 @@ persistent-cookie restart. The separate frontend driver adds BGRA resizing, mous
 keys, JavaScript, alert/confirm, links, geometry, cookie/localStorage/cache persistence and clean process teardown.
 
 These are provider and frontend component checks. They do not establish old-provider visual/policy equivalence, full
-native game integration, browser-engine texture/scrollbar layout acceptance, or native prompt/file-dialog interaction.
-Those remain separate runtime/reference acceptance work. No full game or microphone fixture is run here.
-In particular, appropriate owned OSR dialog parenting and actual prompt/file-dialog interaction are required before
-full provider or target promotion; delegating to CEF's default path alone does not establish those behaviors.
+native game integration or browser-engine texture/scrollbar layout acceptance. Those remain separate runtime/reference
+acceptance work. No full game or microphone fixture is run here. Native prompt/file interaction has its own controlled
+fixture below; a compile or default-handler return value alone does not qualify it on either platform.
 
 Production source membership to integrate is `cef_host.cpp`, `cef_host_renderer.cpp`, and the matching
 `cef_host_win.cpp` or `cef_host_mac.mm`; macOS helper targets additionally compile `cef_host_renderer.cpp` and
 `cef_host_helper_mac.mm`. Keep `cef_host.h`, the bundle plists, runtime/helper packaging and BSD notices together.
 The production root targets, manifests and generated target definitions are intentionally unchanged by this fixture.
+
+## Controlled native-dialog fixture
+
+`run_native_dialog_fixture.py` serves an owned loopback page and waits for real native dialog interaction. It never
+passes prompt text or a filename through a CEF callback. It emits each stage as JSON to stdout and `interaction.json`;
+use the CUA native-app controls to operate that stage. All file selection is limited to the generated
+`cse-native-dialog-selection.txt` in that evidence directory.
+
+```sh
+python3 tests/native/cef_host/run_native_dialog_fixture.py \
+  --executable build/cef-host-macos-arm64-release/Release/cse_cef_host.app/Contents/MacOS/cse_cef_host \
+  --evidence /absolute/owned/cef-host-native-dialog-receipt
+```
+
+The same arguments work with the Windows bootstrap executable. Cases run in this order, each in an independent host:
+
+1. Enter the printed `prompt_value` into the native prompt and choose **OK**; JavaScript must receive that exact text.
+2. Choose **Cancel** on the next native prompt; JavaScript must receive `null`.
+3. Use the native chooser to open only the printed `selection_file`; JavaScript must read its exact name and contents.
+4. Choose **Cancel** on the next chooser; the DOM must report its native file-input cancellation event.
+5. Observe the prompt, then write `interaction-observed.json` with
+   `{"case":"remove-prompt","native_dialog_visible":true}`; the fixture removes its browser while the prompt is open.
+6. Observe the chooser, then write the same observation file with `case` set to `eof-file`; the fixture sends host EOF
+   while the native chooser is open.
+
+Record the native UI observation with the last two signals. Do not submit a signal before seeing the corresponding
+dialog. The fixture requires native DOM results, subsequent JavaScript recovery, clean host exits and no surviving
+helpers, and records its isolated encrypted Keychain cleanup. `--case` selects one case for diagnosis. The 180-second
+interaction deadline allows controlled UI operation; protocol and shutdown deadlines are unchanged.
+
+The pinned SDK's `SetAsWindowless` documentation explicitly describes parent ownership for dialogs and context menus.
+CEF's [default JS dialog parent check](https://github.com/chromiumembedded/cef/blob/8ea0c73b5dbed1389c8dafb911a98c41246bb8cb/libcef/browser/javascript_dialog_manager.cc#L305)
+rejects a null OSR parent in its Chrome path. macOS uses a separate
+[native NSAlert runner](https://github.com/chromiumembedded/cef/blob/8ea0c73b5dbed1389c8dafb911a98c41246bb8cb/libcef/browser/native/javascript_dialog_runner_mac.mm#L88);
+its behavior cannot establish Windows acceptance. Preserve platform-specific native interaction receipts.
 
 ## Pinned Windows key-event evidence
 

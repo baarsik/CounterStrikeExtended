@@ -391,6 +391,14 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   production-key approvals after each developer rebuild. Controlled controller
   tests also pass Release/Debug/sanitizers. Runtime manifests, full game/browser
   presentation parity and actual native prompt/file dialogs remain open.
+- **Native browser dialog ownership:** real per-browser native parents now
+  survive OSR browser teardown and release on the UI thread. macOS Release/Debug
+  pass prompt accept/cancel, owned-file selection/cancel, browser removal during
+  a prompt and EOF during a file dialog, plus existing protocol/frontend tests.
+  Windows Release/Debug pass the protocol/frontend regressions and show the
+  default native prompt. Windows interaction remains unqualified because the
+  computer-use input route failed; no provider defect or substitute dialog was
+  inferred from that environment failure. Production integration remains open.
 
 Detailed passing and failed receipts, source/binary hashes and scope rulings are
 kept in the task ledger and isolated cse-native64-20261108 artifact directory.

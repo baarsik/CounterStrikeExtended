@@ -28,3 +28,35 @@ void SetCefHostNativeTitle(CefWindowHandle window, const CefString& title) {
 bool IsCefHostNativeWindow(CefWindowHandle window) {
     return window != nullptr && IsWindow(window) != FALSE;
 }
+
+namespace {
+class WindowsParent final : public CefHostNativeParent {
+public:
+    WindowsParent() {
+        constexpr int DialogParentWidth = 800;
+        constexpr int DialogParentHeight = 600;
+        // A hidden real top-level HWND supplies CEF's native dialog owner without a second browser view.
+        // The built-in class does not post WM_QUIT when this owned parent is destroyed.
+        window_ = CreateWindowExW(WS_EX_TOOLWINDOW, L"STATIC", L"CounterStrikeExtended Browser Dialogs",
+            WS_OVERLAPPED, CW_USEDEFAULT, CW_USEDEFAULT, DialogParentWidth, DialogParentHeight,
+            nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    }
+
+    ~WindowsParent() override {
+        if (window_ != nullptr) {
+            DestroyWindow(window_);
+        }
+    }
+
+    CefWindowHandle Handle() const override {
+        return window_;
+    }
+
+private:
+    HWND window_ = nullptr;
+};
+}
+
+std::unique_ptr<CefHostNativeParent> CreateCefHostNativeParent() {
+    return std::make_unique<WindowsParent>();
+}

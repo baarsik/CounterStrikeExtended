@@ -343,6 +343,11 @@ public:
     bool Closing() const {
         return closing_;
     }
+
+    CefWindowHandle CreateNativeParent() {
+        nativeParent_ = CreateCefHostNativeParent();
+        return nativeParent_ ? nativeParent_->Handle() : kNullWindowHandle;
+    }
     CefRefPtr<CefRenderHandler> GetRenderHandler() override {
         return nativePopup_ == 0 ? this : nullptr;
     }
@@ -393,6 +398,12 @@ public:
 
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
         browser_ = browser;
+        if (nativePopup_ == 0 && (!nativeParent_ ||
+            !IsCefHostNativeWindow(browser_->GetHost()->GetWindowHandle()))) {
+            host_.Fail("CEF OSR browser has no owned native parent");
+            Close();
+            return;
+        }
         if (nativePopup_ != 0) {
             if (!IsCefHostNativeWindow(browser_->GetHost()->GetWindowHandle())) {
                 host_.Fail("CEF popup has no owned native window");
@@ -454,6 +465,13 @@ public:
         CancelDialog(false);
         devtools_ = nullptr;
         browser_ = nullptr;
+        if (nativeParent_) {
+            // CEF still finishes browser destruction after this callback returns. Release the native
+            // owner on the next UI task, rather than on whichever thread drops the final CefClient ref.
+            CefPostTask(TID_UI, base::BindOnce([](std::unique_ptr<CefHostNativeParent> parent) {
+                parent.reset();
+            }, std::move(nativeParent_)));
+        }
         Emit(eHTMLCommands_Close);
         if (nativePopup_ != 0) {
             host_.PopupClosed(nativePopup_);
@@ -941,6 +959,7 @@ private:
     const std::uint64_t nativePopup_;
     const std::string popupUrl_;
     const CefPopupFeatures popupFeatures_;
+    std::unique_ptr<CefHostNativeParent> nativeParent_;
     CefRefPtr<CefBrowser> browser_;
     CefRefPtr<CefJSDialogCallback> dialog_;
     std::size_t cancelledDialogReplies_ = 0;
@@ -1618,9 +1637,14 @@ void Host::Dispatch(Message message) {
             return;
         }
         CefRefPtr<Client> client = new Client(*this, message.header.browser, popup, agent);
+        const CefWindowHandle parent = client->CreateNativeParent();
+        if (parent == kNullWindowHandle || !IsCefHostNativeWindow(parent)) {
+            Fail("Could not create the owned OSR native parent");
+            return;
+        }
         clients_[message.header.browser] = client;
         CefWindowInfo window;
-        window.SetAsWindowless(kNullWindowHandle);
+        window.SetAsWindowless(parent);
         CefBrowserSettings settings;
         settings.windowless_frame_rate = frameRate_;
         settings.background_color = CefColorSetARGB(255, 255, 255, 255);
