@@ -34,10 +34,19 @@
 #include "vgui/ISystem.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
+#include "html_key_codes.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
+static int HTMLVirtualKey(vgui2::KeyCode code) {
+#if INTPTR_MAX > INT32_MAX
+    return cse::html::WindowsVirtualKey(code);
+#else
+    return vgui2::system()->KeyCode_VGUIToVirtualKey(code);
+#endif
+}
 
 int ConvertMouseCodeToCEFCode( vgui2::MouseCode code )
 {
@@ -59,6 +68,16 @@ int GetKeyModifiers()
 	if ( vgui2::input()->IsKeyDown( vgui2::KEY_LSHIFT ) || vgui2::input()->IsKeyDown( vgui2::KEY_RSHIFT ) )
 		modifiers |= 4;
 	return modifiers;
+}
+
+static int HTMLKeyModifiers(vgui2::KeyCode code) {
+    const int modifiers = GetKeyModifiers();
+#if INTPTR_MAX > INT32_MAX
+    return cse::html::KeyModifiers(code, modifiers);
+#else
+    (void)code;
+    return modifiers;
+#endif
 }
 
 static void AssignString( CUtlString& destination, const char* value )
@@ -1229,8 +1248,8 @@ bool HTML::FindDialogVisible()
 
 void HTML::OnKeyCodeReleased( KeyCode code )
 {
-	int virtualKey = system()->KeyCode_VGUIToVirtualKey( code );
-	m_Serializer->KeyUp( virtualKey, GetKeyModifiers() );
+	int virtualKey = HTMLVirtualKey( code );
+	m_Serializer->KeyUp( virtualKey, HTMLKeyModifiers( code ) );
 }
 
 void HTML::OnKeyCodeTyped( KeyCode code )
@@ -1253,14 +1272,14 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 			default:
 				break;
 			}
-			m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+			m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 			return;
 		}
 		if ( code != KEY_F )
 		{
 			if ( code != KEY_TAB )
 			{
-				m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+				m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 				return;
 			}
 		}
@@ -1270,7 +1289,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 				ShowFindDialog();
 			else
 				HideFindDialog();
-			m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+			m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 			return;
 		}
 	}
@@ -1278,7 +1297,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 	if ( m_pFindBar->IsVisible() && !m_pFindBar->m_bHidden )
 	{
 		HideFindDialog();
-		m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+		m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 		return;
 	}
 	if ( input()->IsKeyDown( KEY_LCONTROL ) || input()->IsKeyDown( KEY_RCONTROL ) )
@@ -1286,7 +1305,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 		Panel::OnKeyTyped( static_cast<wchar_t>( code ) );
 		return;
 	}
-	m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+	m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 }
 
 //-----------------------------------------------------------------------------

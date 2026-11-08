@@ -89,6 +89,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseNativeServices>font-registration-owner</CseNativeServices>
+    </ClCompile>
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontDiscovery.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>
@@ -276,8 +281,11 @@
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\linuxfont.cpp" />
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
     <ClInclude Include="..\..\vgui2\vgui_surfacelib\native\MacFontDiscovery.h" />
+    <ClInclude Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.h" />
     <ClInclude Include="..\..\engine\network_worker.h" />
     <ClInclude Include="..\..\public\html_legacy_interfaces.h" />
+    <ClInclude Include="..\..\public\html_key_codes.h" />
+    <ClInclude Include="..\..\public\html_key_modifiers.h" />
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\public\steam_provider.h" />
     <ClInclude Include="..\..\public\steam_server_transport.h" />

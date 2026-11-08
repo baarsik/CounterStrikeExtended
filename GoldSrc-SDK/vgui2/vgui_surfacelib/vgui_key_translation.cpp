@@ -316,6 +316,8 @@ static KeyCode SDLKeysymToKeyCode(int keysym) {
         return KEY_RCONTROL;
     case SDLK_LCTRL:
         return KEY_LCONTROL;
+    case SDLK_APPLICATION:
+        return KEY_APP;
     case SDLK_LGUI:
         return KEY_LWIN;
     case SDLK_RGUI:

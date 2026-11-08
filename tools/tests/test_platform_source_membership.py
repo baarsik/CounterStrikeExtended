@@ -44,6 +44,16 @@ class PlatformSourceMembershipTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Win32'):
             translator.emit_platform_sources([], 'fixture', configs)
 
+    def test_shared_font_service_has_one_manifest_owned_definition(self):
+        configs = self.fixture()
+        for config in configs.values():
+            config['items'][0]['metadata']['CseNativeServices'] = 'font-registration-owner'
+        lines = []
+        translator.emit_platform_sources(lines, 'fixture', configs)
+        text = '\n'.join(lines)
+        self.assertIn('cse_define_mac_font_registration_service("${CSE_SDK_DIR}/example.cpp")', text)
+        self.assertNotIn('target_sources(fixture', text)
+
 
 if __name__ == '__main__':
     unittest.main()

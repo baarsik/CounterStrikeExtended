@@ -31,7 +31,9 @@
 #include <cstdlib>
 #include "../sdl3_window.h"
 
-#if !defined( _WIN32 )
+#if defined(__APPLE__)
+#include "../../vgui2/vgui_surfacelib/native/MacFontRegistration.h"
+#elif !defined( _WIN32 )
 #include <fontconfig/fontconfig.h>
 #endif
 
@@ -370,6 +372,8 @@ void BaseUISurface::Shutdown() {
     for (int i = 0; i < m_CustomFontFileNames.Count(); i++) {
         RemoveFontResourceExA(m_CustomFontFileNames[i].String(), FR_PRIVATE, NULL);
     }
+#elif defined(__APPLE__)
+    cse::fonts::ReleaseMacCustomFonts(this);
 #endif
     m_CustomFontFileNames.RemoveAll();
 
@@ -872,6 +876,8 @@ bool BaseUISurface::AddCustomFontFile( const char* filename )
 	vgui2::filesystem()->GetLocalPath( filename, localPath, sizeof( localPath ) );
 	m_CustomFontFileNames.AddToTail( CUtlSymbol( filename ) );
 	return AddFontResourceExA( localPath, FR_PRIVATE, NULL ) > 0 || AddFontResourceA( localPath ) > 0;
+#elif defined(__APPLE__)
+    return cse::fonts::RegisterMacCustomFontFile(this, vgui2::filesystem(), filename);
 #else
 	char localPath[4096];
 	vgui2::filesystem()->GetLocalPath( filename, localPath, sizeof( localPath ) );

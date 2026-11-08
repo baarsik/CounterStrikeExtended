@@ -32,10 +32,19 @@
 #include "vgui/ISystem.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
+#include "html_key_codes.h"
 
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
+static int HTMLVirtualKey(vgui2::KeyCode code) {
+#if INTPTR_MAX > INT32_MAX
+    return cse::html::WindowsVirtualKey(code);
+#else
+    return vgui2::system()->KeyCode_VGUIToVirtualKey(code);
+#endif
+}
 
 int ConvertMouseCodeToCEFCode( vgui2::MouseCode code )
 {
@@ -54,6 +63,16 @@ int GetKeyModifiers()
 	if ( vgui2::input()->IsKeyDown( vgui2::KEY_LSHIFT ) || vgui2::input()->IsKeyDown( vgui2::KEY_RSHIFT ) )
 		modifiers |= 4;
 	return modifiers;
+}
+
+static int HTMLKeyModifiers(vgui2::KeyCode code) {
+    const int modifiers = GetKeyModifiers();
+#if INTPTR_MAX > INT32_MAX
+    return cse::html::KeyModifiers(code, modifiers);
+#else
+    (void)code;
+    return modifiers;
+#endif
 }
 
 namespace vgui2
@@ -1207,9 +1226,9 @@ bool HTML::FindDialogVisible()
 
 void HTML::OnKeyCodeReleased( KeyCode code )
 {
-	int virtualKey = system()->KeyCode_VGUIToVirtualKey( code );
+	int virtualKey = HTMLVirtualKey( code );
 	if ( m_Serializer )
-		m_Serializer->KeyUp( virtualKey, GetKeyModifiers() );
+		m_Serializer->KeyUp( virtualKey, HTMLKeyModifiers( code ) );
 }
 
 void HTML::OnKeyCodeTyped( KeyCode code )
@@ -1233,7 +1252,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 				break;
 			}
 			if ( m_Serializer )
-				m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+				m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 			return;
 		}
 		if ( code != KEY_F )
@@ -1241,7 +1260,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 			if ( code != KEY_TAB )
 			{
 				if ( m_Serializer )
-					m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+					m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 				return;
 			}
 		}
@@ -1252,7 +1271,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 			else
 				HideFindDialog();
 			if ( m_Serializer )
-				m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+				m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 			return;
 		}
 	}
@@ -1261,7 +1280,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 	{
 		HideFindDialog();
 		if ( m_Serializer )
-			m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+			m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 		return;
 	}
 	if ( input()->IsKeyDown( KEY_LCONTROL ) || input()->IsKeyDown( KEY_RCONTROL ) )
@@ -1270,7 +1289,7 @@ void HTML::OnKeyCodeTyped( KeyCode code )
 		return;
 	}
 	if ( m_Serializer )
-		m_Serializer->KeyDown( system()->KeyCode_VGUIToVirtualKey( code ), GetKeyModifiers() );
+		m_Serializer->KeyDown( HTMLVirtualKey( code ), HTMLKeyModifiers( code ) );
 }
 
 bool HTML::IsScrolledToBottom()

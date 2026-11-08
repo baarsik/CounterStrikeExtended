@@ -402,7 +402,7 @@ def emit_platform_sources(lines, target, configs):
             if item['metadata'].get('ExcludedFromBuild') != 'true':
                 raise ValueError('Platform-only source must be excluded from reference Win32 selection')
             service = item['metadata'].get('CseNativeServices', '')
-            if service not in ('', 'fonts') or (service == 'fonts' and platform != 'macos'):
+            if service not in ('', 'fonts', 'font-registration-owner') or (service and platform != 'macos'):
                 raise ValueError('Unsupported CseNativeServices source metadata: ' + service)
             selected.append((platform, cmake_source(item), service))
         selections.append(selected)
@@ -413,8 +413,12 @@ def emit_platform_sources(lines, target, configs):
         if not selected:
             continue
         lines.append('if(' + predicates[platform] + ')')
-        for path, _ in selected:
-            lines.append(f'  target_sources({target} PRIVATE {quote(path)})')
+        for path, service in selected:
+            if service == 'font-registration-owner':
+                lines.append(f'  cse_define_mac_font_registration_service({quote(path)})')
+        for path, service in selected:
+            if service != 'font-registration-owner':
+                lines.append(f'  target_sources({target} PRIVATE {quote(path)})')
         if any(service == 'fonts' for _, service in selected):
             lines.append(f'  cse_link_native_font_services({target})')
         lines.append('endif()')

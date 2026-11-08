@@ -121,6 +121,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vgui_surfacelib\native\MacFontDiscovery.h" />
+    <ClInclude Include="vgui_surfacelib\native\MacFontRegistration.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="src\Bitmap.h" />
     <ClInclude Include="src\Border.h" />

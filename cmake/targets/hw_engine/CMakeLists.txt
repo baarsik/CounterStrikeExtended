@@ -181,6 +181,7 @@ target_sources(hw_engine PRIVATE
   "${CSE_SDK_DIR}/engine/engine.rc"
 )
 if(APPLE)
+  cse_define_mac_font_registration_service("${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp")
   target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp")
   cse_link_native_font_services(hw_engine)
 endif()

@@ -28,6 +28,9 @@
 #include "utlvector.h"
 #include "../vgui_surfacelib/FontManager.h"
 #include "../vgui_surfacelib/LinuxFont.h"
+#if defined(__APPLE__)
+#include "../vgui_surfacelib/native/MacFontRegistration.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1158,10 +1161,14 @@ void CWin32Surface::Shutdown()
 
 	FontManager().ClearAllFonts();
 
+#if defined(__APPLE__)
+    cse::fonts::ReleaseMacCustomFonts(this);
+#else
 	for ( int i = 0; i < m_CustomFontFileNames.Count(); i++ )
 	{
 		RemoveFontResourceExA( m_CustomFontFileNames[i].String(), FR_PRIVATE, NULL );
 	}
+#endif
 
 	m_CustomFontFileNames.RemoveAll();
 
@@ -2622,11 +2629,15 @@ bool CWin32Surface::AddGlyphSetToFont( HFont font, const char* windowsFontName, 
 
 bool CWin32Surface::AddCustomFontFile( const char* fontFileName )
 {
+#if defined(__APPLE__)
+    return cse::fonts::RegisterMacCustomFontFile(this, g_pFileSystem, fontFileName);
+#else
 	char fullPath[MAX_PATH];
 	g_pFileSystem->GetLocalPath( fontFileName, fullPath, sizeof( fullPath ) );
 	m_CustomFontFileNames.AddToTail( CUtlSymbol( fontFileName ) );
 
 	return AddFontResourceExA( fullPath, FR_PRIVATE, NULL ) > 0 || AddFontResourceA( fullPath ) > 0;
+#endif
 }
 
 //-----------------------------------------------------------------------------

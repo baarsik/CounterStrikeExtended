@@ -12739,6 +12739,15 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "font-registration-owner"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -13806,6 +13815,15 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "font-registration-owner"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",

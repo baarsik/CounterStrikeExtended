@@ -249,6 +249,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\public\html_legacy_interfaces.h" />
+    <ClInclude Include="..\..\public\html_key_codes.h" />
+    <ClInclude Include="..\..\public\html_key_modifiers.h" />
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\public\steam_provider.h" />
     <ClInclude Include="..\..\public\steam_server_transport.h" />

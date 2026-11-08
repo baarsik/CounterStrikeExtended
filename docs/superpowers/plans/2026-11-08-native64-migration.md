@@ -369,6 +369,17 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   checked; resource payload comparison accounts for relocated PE resource RVAs.
   These receipts cover the immutable platform snapshot, before subsequent browser
   and custom-font integration changes, and do not promote a full native target.
+- **Custom-font ownership and browser keys:** a single manifest-owned macOS
+  registration dylib serves both Surface implementations. Ten real CoreText
+  cases pass Release/Debug/sanitizers, including two independently unloaded
+  consumers, external registrations, long Unicode VFS paths and failed-release
+  retries. A reproduced teardown-order defect has a failing old-code regression;
+  the service now initializes before its clients. Native HTML adapters explicitly
+  normalize all 107 VGUI key codes and preserve keypad location; maintained
+  Win32 adapters keep their existing path. Six Windows key configurations and
+  three Mac configurations pass. A fresh 3,386-input snapshot passes all 19
+  Win32 targets, all 42 PE/resource checks and six matching-module runtime cases.
+  Full native UI/font metrics, IME and game input acceptance remain open.
 
 Detailed passing and failed receipts, source/binary hashes and scope rulings are
 kept in the task ledger and isolated cse-native64-20261108 artifact directory.

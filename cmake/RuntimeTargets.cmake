@@ -92,6 +92,7 @@ function(cse_a3d_geometry_source filename section)
 endfunction()
 
 include("${CMAKE_CURRENT_LIST_DIR}/SteamDependency.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/MacFontService.cmake")
 
 # macOS discovers native font faces through CoreText and rasterizes with the
 # pinned source-built FreeType provider. Runtime widgets/layouts remain owned by VGUI.
@@ -102,5 +103,10 @@ function(cse_link_native_font_services target)
   include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/NativeThirdParty.cmake")
   cse_load_native_third_party()
   target_compile_features(${target} PRIVATE cxx_std_17)
+  if(NOT TARGET cse_mac_font_registration)
+    message(FATAL_ERROR "The manifest-owned font registration service must precede its consumers")
+  endif()
+  target_link_libraries(${target} PRIVATE cse_mac_font_registration)
+  target_link_options(${target} PRIVATE "-Wl,-rpath,@loader_path")
   target_link_libraries(${target} PRIVATE Freetype::Freetype "-framework CoreText" "-framework CoreFoundation")
 endfunction()
