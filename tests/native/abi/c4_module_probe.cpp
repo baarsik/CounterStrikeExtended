@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include "owned_module.h"
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -13,6 +14,7 @@
 #include "cse_module_abi.h"
 #include "game_module_entry.h"
 #include "generated_game_module_layouts.h"
+#include "engine_entity_fixture.h"
 #include "../save_fields/owned_entity_stream.h"
 
 #define CHECK(condition) do { if (!(condition)) { \
@@ -77,12 +79,12 @@ void GameDirectory(char *directory) {
 }
 
 
-bool Probe(HMODULE module) {
-    const auto describe = reinterpret_cast<cse::abi::GetModuleAbi>(GetProcAddress(module, "CseGetModuleAbi"));
-    const auto initialize = reinterpret_cast<CseInitializeGame>(GetProcAddress(module, "CseInitializeGameModule"));
-    const auto getApi = reinterpret_cast<APIFUNCTION>(GetProcAddress(module, "GetEntityAPI"));
+bool Probe(GameModule &module) {
+    const auto describe = module.Find<cse::abi::GetModuleAbi>("CseGetModuleAbi");
+    const auto initialize = module.Find<CseInitializeGame>("CseInitializeGameModule");
+    const auto getApi = module.Find<APIFUNCTION>("GetEntityAPI");
     using Factory = void (*)(entvars_t *);
-    const auto factory = reinterpret_cast<Factory>(GetProcAddress(module, "grenade"));
+    const auto factory = module.Find<Factory>("grenade");
     CHECK(describe && initialize && getApi && factory);
     CHECK(cse::abi::Check(cse::abi::GameModuleDescriptor, describe()) == cse::abi::Compatibility::Compatible);
     enginefuncs_t functions{};
@@ -100,6 +102,7 @@ bool Probe(HMODULE module) {
     DLL_FUNCTIONS api{};
     CHECK(getApi(&api, INTERFACE_VERSION));
     edict_t entity{};
+    InitializeFixtureEntity(entity);
     entity.serialnumber = 1;
     entity.v.pContainingEntity = &entity;
     factory(&entity.v);
@@ -176,6 +179,14 @@ bool Probe(HMODULE module) {
         globals.time = 11.0f;
         api.pfnThink(&entity);
         const auto &next = cases[item.wave < 5 ? item.wave + 1 : 5];
+        if (bomb->m_iCurWave != item.wave + 1) {
+            std::fprintf(stderr, "C4 think mismatch: before=%d after=%d time=%g deadline=%g nextthink=%g "
+                "callback=%d flags=%x origin=(%g,%g,%g) velocity=(%g,%g,%g)\n",
+                item.wave, bomb->m_iCurWave, globals.time, bomb->m_flNextFreq, entity.v.nextthink,
+                bomb->m_pfnThink != nullptr, static_cast<unsigned int>(entity.v.flags),
+                entity.v.origin.x, entity.v.origin.y, entity.v.origin.z,
+                entity.v.velocity.x, entity.v.velocity.y, entity.v.velocity.z);
+        }
         CHECK(bomb->m_iCurWave == item.wave + 1);
         CHECK(bomb->m_sBeepName && std::strcmp(bomb->m_sBeepName, next.sound) == 0);
         CHECK(bomb->m_fAttenu == next.attenuation);
@@ -275,6 +286,7 @@ bool Probe(HMODULE module) {
     const Vector originalOffset(7.0f, 8.0f, 9.0f);
     transition.data.vecLandmarkOffset = originalOffset;
     edict_t destination{};
+    InitializeFixtureEntity(destination);
     destination.v.pContainingEntity = &destination;
     factory(&destination.v);
     destination.v.classname = entity.v.classname;
@@ -315,12 +327,11 @@ int main(int argc, char **argv) {
     if (argc != 2) {
         return 2;
     }
-    HMODULE module = LoadLibraryA(argv[1]);
+    GameModule module(argv[1]);
     if (!module) {
-        std::fprintf(stderr, "Cannot load owned CS module, Windows error %lu\n", GetLastError());
+        std::fprintf(stderr, "Cannot load owned CS module: %s\n", module.Error());
         return 2;
     }
     const bool passed = Probe(module);
-    FreeLibrary(module);
     return passed ? 0 : 1;
 }

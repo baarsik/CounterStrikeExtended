@@ -225,6 +225,40 @@
         "lhs": "${hostSystemName}",
         "rhs": "Windows"
       }
+    },
+    {
+      "name": "game-modules-macos-arm64-release",
+      "displayName": "Owned game modules only: macOS ARM64 Release",
+      "inherits": "native-game-modules",
+      "binaryDir": "${sourceDir}/build/game-modules-macos-arm64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CSE_TARGET_ARCH": "arm64",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "game-modules-macos-arm64-debug",
+      "displayName": "Owned game modules only: macOS ARM64 Debug",
+      "inherits": "native-game-modules",
+      "binaryDir": "${sourceDir}/build/game-modules-macos-arm64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CSE_TARGET_ARCH": "arm64",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
     }
   ],
   "buildPresets": [
@@ -287,6 +321,14 @@
     {
       "name": "game-modules-windows-arm64-debug",
       "configurePreset": "game-modules-windows-arm64-debug"
+    },
+    {
+      "name": "game-modules-macos-arm64-release",
+      "configurePreset": "game-modules-macos-arm64-release"
+    },
+    {
+      "name": "game-modules-macos-arm64-debug",
+      "configurePreset": "game-modules-macos-arm64-debug"
     }
   ]
 }

@@ -173,8 +173,9 @@ template <class T> bool CUtlVector<T>::HasElement( const T& value )
 template <class T> T& CUtlVector<T>::operator[]( int index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 184 );
+    if ( !IsValidIndex( index ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 184 );
+    }
 #endif
 	return m_Memory[index];
 }
@@ -182,8 +183,9 @@ template <class T> T& CUtlVector<T>::operator[]( int index )
 template <class T> const T& CUtlVector<T>::operator[]( int index ) const
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 191 );
+    if ( !IsValidIndex( index ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 191 );
+    }
 #endif
 	return m_Memory[index];
 }
@@ -191,8 +193,9 @@ template <class T> const T& CUtlVector<T>::operator[]( int index ) const
 template <class T> T& CUtlVector<T>::Element( int index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 198 );
+    if ( !IsValidIndex( index ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLVECTOR_SOURCE_PATH, 198 );
+    }
 #endif
 	return m_Memory[index];
 }
@@ -229,8 +232,9 @@ template <class T> void CUtlVector<T>::GrowVector( int num )
 
 	m_Size += num;
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( m_Size <= m_Memory.NumAllocated() ) )
-		_wassert( L"m_Size <= m_Memory.NumAllocated()", UTLVECTOR_SOURCE_PATH, 270 );
+    if ( !( m_Size <= m_Memory.NumAllocated() ) ) {
+        cse::platform::UtlAssertionFailure( L"m_Size <= m_Memory.NumAllocated()", UTLVECTOR_SOURCE_PATH, 270 );
+    }
 #endif
 }
 
@@ -240,8 +244,9 @@ template <class T> void CUtlVector<T>::GrowVector( int num )
 template <class T> void CUtlVector<T>::ShiftElementsRight( int elem, int num )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( IsValidIndex( elem ) || ( m_Size == 0 ) || ( num == 0 ) ) )
-		_wassert( L"IsValidIndex(elem) || ( m_Size == 0 ) || ( num == 0 )", UTLVECTOR_SOURCE_PATH, 293 );
+    if ( !( IsValidIndex( elem ) || ( m_Size == 0 ) || ( num == 0 ) ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem) || ( m_Size == 0 ) || ( num == 0 )", UTLVECTOR_SOURCE_PATH, 293 );
+    }
 #endif
 	int numToMove = m_Size - elem - num;
 	if ( ( numToMove > 0 ) && ( num > 0 ) )
@@ -250,8 +255,9 @@ template <class T> void CUtlVector<T>::ShiftElementsRight( int elem, int num )
 template <class T> int CUtlVector<T>::InsertBefore( int index, const T& source )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( ( index == Size() ) || IsValidIndex( index ) ) )
-		_wassert( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 375 );
+    if ( !( ( index == Size() ) || IsValidIndex( index ) ) ) {
+        cse::platform::UtlAssertionFailure( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 375 );
+    }
 #endif
 	GrowVector( 1 );
 	ShiftElementsRight( index, 1 );
@@ -287,8 +293,9 @@ template <class T> int CUtlVector<T>::InsertMultipleBefore( int index, int count
 	if ( !count )
 		return index;
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( ( index == Size() ) || IsValidIndex( index ) ) )
-		_wassert( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 443 );
+    if ( !( ( index == Size() ) || IsValidIndex( index ) ) ) {
+        cse::platform::UtlAssertionFailure( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 443 );
+    }
 #endif
 	GrowVector( count );
 	ShiftElementsRight( index, count );
@@ -300,8 +307,9 @@ template <class T> int CUtlVector<T>::InsertMultipleBefore( int index, int count
 template <class T> int CUtlVector<T>::InsertBefore( int index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( ( index == Size() ) || IsValidIndex( index ) ) )
-		_wassert( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 340 );
+    if ( !( ( index == Size() ) || IsValidIndex( index ) ) ) {
+        cse::platform::UtlAssertionFailure( L"(elem == Size()) || IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 340 );
+    }
 #endif
 	GrowVector( 1 );
 	ShiftElementsRight( index, 1 );
@@ -312,8 +320,9 @@ template <class T> int CUtlVector<T>::InsertBefore( int index )
 template <class T> void CUtlVector<T>::ShiftElementsLeft( int index, int count )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( IsValidIndex( index ) || ( m_Size == 0 ) || ( count == 0 ) ) )
-		_wassert( L"IsValidIndex(elem) || ( m_Size == 0 ) || ( num == 0 )", UTLVECTOR_SOURCE_PATH, 302 );
+    if ( !( IsValidIndex( index ) || ( m_Size == 0 ) || ( count == 0 ) ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem) || ( m_Size == 0 ) || ( num == 0 )", UTLVECTOR_SOURCE_PATH, 302 );
+    }
 #endif
 	int moveCount = m_Size - index - count;
 	if ( ( moveCount > 0 ) && ( count > 0 ) )
@@ -334,8 +343,9 @@ template <class T> void CUtlVector<T>::Remove( int index )
 template <class T> void CUtlVector<T>::FastRemove( int index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( IsValidIndex( index ) ) )
-		_wassert( L"IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 483 );
+    if ( !( IsValidIndex( index ) ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 483 );
+    }
 #endif
 	Element( index ).~T();
 	if ( m_Size > 0 )
@@ -355,10 +365,12 @@ template <class T> void CUtlVector<T>::FindAndRemove( const T& value )
 template <class T> void CUtlVector<T>::RemoveMultiple( int index, int count )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 514 );
-	if ( !( index + count <= Size() ) )
-		_wassert( L"elem + num <= Size()", UTLVECTOR_SOURCE_PATH, 515 );
+    if ( !IsValidIndex( index ) ) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem)", UTLVECTOR_SOURCE_PATH, 514 );
+    }
+    if ( !( index + count <= Size() ) ) {
+        cse::platform::UtlAssertionFailure( L"elem + num <= Size()", UTLVECTOR_SOURCE_PATH, 515 );
+    }
 #endif
 	for ( int i = index + count; --i >= index; )
 		Element( i ).~T();

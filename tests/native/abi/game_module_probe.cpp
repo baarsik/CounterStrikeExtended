@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iterator>
 #include <new>
+#include "owned_module.h"
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -20,6 +21,7 @@ typedef float vec3_t[3];
 #include "../../../GoldSrc-SDK/engine/eiface.h"
 #include "../../../GoldSrc-SDK/common/game_module_entry.h"
 #include "../../../GoldSrc-SDK/common/generated_game_module_layouts.h"
+#include "engine_entity_fixture.h"
 #include "../../../GoldSrc-SDK/common/native_entity_offsets.h"
 #include "../save_fields/production_probe.h"
 #include "../strings/high_offset_buffer.h"
@@ -79,6 +81,7 @@ bool CheckProductionKeyValues(const DLL_FUNCTIONS &api) {
     string_t entvars_t::*members[] = {&entvars_t::classname, &entvars_t::globalname, &entvars_t::model,
         &entvars_t::viewmodel, &entvars_t::weaponmodel, &entvars_t::noise};
     edict_t entity{};
+    InitializeFixtureEntity(entity);
     for (std::size_t index = 0; index < std::size(names); ++index) {
         entity.v.*members[index] = ~static_cast<string_t>(0);
         KeyValueData key{nullptr, const_cast<char *>(names[index]), const_cast<char *>("owned-name"), 0};
@@ -91,42 +94,6 @@ bool CheckProductionKeyValues(const DLL_FUNCTIONS &api) {
     return true;
 }
 } // namespace
-
-class GameModule {
-public:
-    explicit GameModule(const char *path) {
-#if defined(_WIN32)
-        handle_ = LoadLibraryA(path);
-#else
-        handle_ = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-#endif
-    }
-    ~GameModule() {
-        if (handle_) {
-#if defined(_WIN32)
-            FreeLibrary(handle_);
-#else
-            dlclose(handle_);
-#endif
-        }
-    }
-    explicit operator bool() const { return handle_ != nullptr; }
-    template<typename Function> Function Find(const char *name) const {
-#if defined(_WIN32)
-        return reinterpret_cast<Function>(GetProcAddress(handle_, name));
-#else
-        return reinterpret_cast<Function>(dlsym(handle_, name));
-#endif
-    }
-    GameModule(const GameModule &) = delete;
-    GameModule &operator=(const GameModule &) = delete;
-private:
-#if defined(_WIN32)
-    HMODULE handle_ = nullptr;
-#else
-    void *handle_ = nullptr;
-#endif
-};
 
 static bool Probe(const char *path) {
     using namespace cse::abi;
@@ -143,10 +110,11 @@ static bool Probe(const char *path) {
     entityStorage = reinterpret_cast<edict_t *>(entityBuffer.get());
     for (std::size_t index = 0; index < EntityCount; ++index) {
         new (entityStorage + index) edict_t{};
+        InitializeFixtureEntity(entityStorage[index]);
     }
     GameModule module(path);
     if (!module) {
-        std::fprintf(stderr, "Cannot load game module: %s\n", path);
+        std::fprintf(stderr, "Cannot load game module %s: %s\n", path, module.Error());
         return false;
     }
     const auto describe = module.Find<GetModuleAbi>("CseGetModuleAbi");

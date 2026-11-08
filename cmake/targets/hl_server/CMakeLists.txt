@@ -1,110 +1,7 @@
 # Generated from projects/vs2026/hldll.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(hl_server SHARED "hl")
-target_sources(hl_server PRIVATE
-  "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp"
-  "${CSE_SDK_DIR}/dlls/aflock.cpp"
-  "${CSE_SDK_DIR}/dlls/agrunt.cpp"
-  "${CSE_SDK_DIR}/dlls/airtank.cpp"
-  "${CSE_SDK_DIR}/dlls/animating.cpp"
-  "${CSE_SDK_DIR}/dlls/animation.cpp"
-  "${CSE_SDK_DIR}/dlls/apache.cpp"
-  "${CSE_SDK_DIR}/dlls/barnacle.cpp"
-  "${CSE_SDK_DIR}/dlls/barney.cpp"
-  "${CSE_SDK_DIR}/dlls/bigmomma.cpp"
-  "${CSE_SDK_DIR}/dlls/bloater.cpp"
-  "${CSE_SDK_DIR}/dlls/bmodels.cpp"
-  "${CSE_SDK_DIR}/dlls/bullsquid.cpp"
-  "${CSE_SDK_DIR}/dlls/buttons.cpp"
-  "${CSE_SDK_DIR}/dlls/cbase.cpp"
-  "${CSE_SDK_DIR}/dlls/client.cpp"
-  "${CSE_SDK_DIR}/dlls/combat.cpp"
-  "${CSE_SDK_DIR}/dlls/controller.cpp"
-  "${CSE_SDK_DIR}/dlls/crossbow.cpp"
-  "${CSE_SDK_DIR}/dlls/crowbar.cpp"
-  "${CSE_SDK_DIR}/dlls/defaultai.cpp"
-  "${CSE_SDK_DIR}/dlls/doors.cpp"
-  "${CSE_SDK_DIR}/dlls/effects.cpp"
-  "${CSE_SDK_DIR}/dlls/egon.cpp"
-  "${CSE_SDK_DIR}/dlls/explode.cpp"
-  "${CSE_SDK_DIR}/dlls/flyingmonster.cpp"
-  "${CSE_SDK_DIR}/dlls/func_break.cpp"
-  "${CSE_SDK_DIR}/dlls/func_tank.cpp"
-  "${CSE_SDK_DIR}/dlls/game.cpp"
-  "${CSE_SDK_DIR}/dlls/gamerules.cpp"
-  "${CSE_SDK_DIR}/dlls/gargantua.cpp"
-  "${CSE_SDK_DIR}/dlls/gauss.cpp"
-  "${CSE_SDK_DIR}/dlls/genericmonster.cpp"
-  "${CSE_SDK_DIR}/dlls/ggrenade.cpp"
-  "${CSE_SDK_DIR}/dlls/globals.cpp"
-  "${CSE_SDK_DIR}/dlls/gman.cpp"
-  "${CSE_SDK_DIR}/dlls/handgrenade.cpp"
-  "${CSE_SDK_DIR}/dlls/hassassin.cpp"
-  "${CSE_SDK_DIR}/dlls/headcrab.cpp"
-  "${CSE_SDK_DIR}/dlls/healthkit.cpp"
-  "${CSE_SDK_DIR}/dlls/hgrunt.cpp"
-  "${CSE_SDK_DIR}/dlls/hornet.cpp"
-  "${CSE_SDK_DIR}/dlls/hornetgun.cpp"
-  "${CSE_SDK_DIR}/dlls/houndeye.cpp"
-  "${CSE_SDK_DIR}/dlls/h_ai.cpp"
-  "${CSE_SDK_DIR}/dlls/h_battery.cpp"
-  "${CSE_SDK_DIR}/dlls/h_cine.cpp"
-  "${CSE_SDK_DIR}/dlls/h_cycler.cpp"
-  "${CSE_SDK_DIR}/dlls/h_export.cpp"
-  "${CSE_SDK_DIR}/dlls/ichthyosaur.cpp"
-  "${CSE_SDK_DIR}/dlls/islave.cpp"
-  "${CSE_SDK_DIR}/dlls/items.cpp"
-  "${CSE_SDK_DIR}/dlls/leech.cpp"
-  "${CSE_SDK_DIR}/dlls/lights.cpp"
-  "${CSE_SDK_DIR}/dlls/maprules.cpp"
-  "${CSE_SDK_DIR}/dlls/monstermaker.cpp"
-  "${CSE_SDK_DIR}/dlls/monsters.cpp"
-  "${CSE_SDK_DIR}/dlls/monsterstate.cpp"
-  "${CSE_SDK_DIR}/dlls/mortar.cpp"
-  "${CSE_SDK_DIR}/dlls/mp5.cpp"
-  "${CSE_SDK_DIR}/dlls/multiplay_gamerules.cpp"
-  "${CSE_SDK_DIR}/dlls/nihilanth.cpp"
-  "${CSE_SDK_DIR}/dlls/nodes.cpp"
-  "${CSE_SDK_DIR}/dlls/observer.cpp"
-  "${CSE_SDK_DIR}/dlls/osprey.cpp"
-  "${CSE_SDK_DIR}/dlls/pathcorner.cpp"
-  "${CSE_SDK_DIR}/dlls/plane.cpp"
-  "${CSE_SDK_DIR}/dlls/plats.cpp"
-  "${CSE_SDK_DIR}/dlls/player.cpp"
-  "${CSE_SDK_DIR}/dlls/python.cpp"
-  "${CSE_SDK_DIR}/dlls/rat.cpp"
-  "${CSE_SDK_DIR}/dlls/roach.cpp"
-  "${CSE_SDK_DIR}/dlls/rpg.cpp"
-  "${CSE_SDK_DIR}/dlls/satchel.cpp"
-  "${CSE_SDK_DIR}/dlls/schedule.cpp"
-  "${CSE_SDK_DIR}/dlls/scientist.cpp"
-  "${CSE_SDK_DIR}/dlls/scripted.cpp"
-  "${CSE_SDK_DIR}/dlls/shotgun.cpp"
-  "${CSE_SDK_DIR}/dlls/singleplay_gamerules.cpp"
-  "${CSE_SDK_DIR}/dlls/skill.cpp"
-  "${CSE_SDK_DIR}/dlls/sound.cpp"
-  "${CSE_SDK_DIR}/dlls/soundent.cpp"
-  "${CSE_SDK_DIR}/dlls/spectator.cpp"
-  "${CSE_SDK_DIR}/dlls/squadmonster.cpp"
-  "${CSE_SDK_DIR}/dlls/squeakgrenade.cpp"
-  "${CSE_SDK_DIR}/dlls/subs.cpp"
-  "${CSE_SDK_DIR}/dlls/talkmonster.cpp"
-  "${CSE_SDK_DIR}/dlls/teamplay_gamerules.cpp"
-  "${CSE_SDK_DIR}/dlls/tempmonster.cpp"
-  "${CSE_SDK_DIR}/dlls/tentacle.cpp"
-  "${CSE_SDK_DIR}/dlls/triggers.cpp"
-  "${CSE_SDK_DIR}/dlls/tripmine.cpp"
-  "${CSE_SDK_DIR}/dlls/turret.cpp"
-  "${CSE_SDK_DIR}/dlls/util.cpp"
-  "${CSE_SDK_DIR}/dlls/weapons.cpp"
-  "${CSE_SDK_DIR}/dlls/world.cpp"
-  "${CSE_SDK_DIR}/dlls/wpn_shared/hl_wpn_glock.cpp"
-  "${CSE_SDK_DIR}/dlls/xen.cpp"
-  "${CSE_SDK_DIR}/dlls/zombie.cpp"
-  "${CSE_SDK_DIR}/game_shared/voice_gamemgr.cpp"
-  "${CSE_SDK_DIR}/pm_shared/pm_debug.c"
-  "${CSE_SDK_DIR}/pm_shared/pm_math.c"
-  "${CSE_SDK_DIR}/pm_shared/pm_shared.c"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
+if(MSVC)
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
 target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/GR>")
@@ -164,4 +61,168 @@ target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/LTCG>")
 target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHsc>")
 set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/std:c++17>")
+else()
+target_compile_features(hl_server PRIVATE cxx_std_17)
+target_compile_options(hl_server PRIVATE "$<$<CONFIG:Release>:-flto>")
+target_link_options(hl_server PRIVATE "$<$<CONFIG:Release>:-flto>")
+if(APPLE)
+  target_link_options(hl_server PRIVATE "-Wl,-no_deduplicate")
+endif()
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-O0>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:QUIVER>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:VOXEL>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:QUAKE2>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:VALVE_DLL>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Debug>:CLIENT_WEAPONS>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/dlls>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/game_shared>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-O2>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(hl_server PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:NDEBUG>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:QUIVER>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:VOXEL>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:QUAKE2>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:VALVE_DLL>")
+target_compile_definitions(hl_server PRIVATE "$<$<CONFIG:Release>:CLIENT_WEAPONS>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/dlls>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/game_shared>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
+target_include_directories(hl_server PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-O2>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+endif()
 cse_runtime_directory(hl_server "valve/dlls")

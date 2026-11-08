@@ -241,7 +241,7 @@ sound-effects mixer, microphone or network voice path.
 ## Native game module components
 
 During migration, an explicit component build produces the owned Counter-Strike
-and Half-Life server DLLs. Use a Windows MSVC environment for the selected CPU:
+and Half-Life server libraries. Use a Windows MSVC environment for the selected CPU:
 
 ```powershell
 cmake --preset game-modules-windows-x64-release
@@ -254,15 +254,42 @@ Replace `x64` with `arm64` for the Windows ARM64 component presets. Each preset
 uses its own `build/game-modules-*` directory; DLLs appear below
 `runtime/Release` or `runtime/Debug`, retaining `valve/dlls/hl.dll` and
 `cstrike/dlls/mp.dll`. Import libraries and symbols stay outside those runtime
-directories. The default Win32 workflow and root output directories are unchanged.
+directories. On Apple Silicon with Xcode command-line tools, use:
+
+```sh
+cmake --preset game-modules-macos-arm64-release
+cmake --build --preset game-modules-macos-arm64-release --parallel
+cmake --preset game-modules-macos-arm64-debug
+cmake --build --preset game-modules-macos-arm64-debug --parallel
+```
+
+The macOS outputs use the same game-relative directories with `hl.dylib` and
+`mp.dylib`, targeting macOS 14.0. The default Win32 workflow and root output
+directories are unchanged.
 
 This entry point reuses the generated production targets, including their
-per-file compiler policies. Native Windows definitions preserve the C entry
+per-file compiler policies. `Sources.cmake` is generated once from the owning
+manifests and shared by the MSVC and Clang policy branches. Portable policies
+preserve per-file exception handling, FP modes and assertion definitions. Existing
+Clang SDK diagnostics remain visible through an explicit nonfatal list; pointer
+narrowing remains fatal. Release symbols remain opt-in.
+
+Native Windows definitions preserve the C entry
 points and explicit ordinals; C++ `EXPORT` declarations emit native decorated
 names. Update owning manifests/source declarations and run the translator when
 changing this contract.
 
 These presets build two modules for ABI and data fixtures. They do not build the
 client, engine, dedicated launcher or complete runtime, and do not establish
-renderer, provider, voice or external-server compatibility. macOS game modules
-remain gated until their portable compiler and platform policies are implemented.
+renderer, provider, voice or external-server compatibility. The bounded ABI,
+world/team-list and C4 fixtures pass against both game libraries on macOS ARM64
+in Release and Debug. Export inventory checks compare every reference C name and
+canonical C++ method against the retained Win32 `dumpbin /exports` reports:
+
+```sh
+python3 tools/macho_game_exports.py --reference /path/to/Release-hl-win32.txt \
+  --library build/game-modules-macos-arm64-release/runtime/Release/valve/dlls/hl.dylib
+```
+
+This command checks architecture, minimum macOS version and exports. It does not
+load the game or establish gameplay acceptance.

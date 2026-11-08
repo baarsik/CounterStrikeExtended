@@ -21,6 +21,7 @@
 #include <list>
 #include <vector>
 #include "bot_constants.h"
+#include "cse_posix_crt.h"
 
 enum
 {

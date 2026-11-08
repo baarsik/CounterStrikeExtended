@@ -89,7 +89,9 @@ inline edict_t *FIND_ENTITY_BY_TARGET(edict_t *entStart, const char *pszName)
 typedef int BOOL;
 
 // In case this ever changes
+#ifndef M_PI
 #define M_PI			3.14159265358979323846
+#endif
 
 // Keeps clutter down a bit, when declaring external entity/global method prototypes
 #define DECLARE_GLOBAL_METHOD(MethodName)  extern void UTIL_DLLEXPORT MethodName( void )

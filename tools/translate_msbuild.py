@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 
 from game_module_layouts import generate as generate_game_module_layouts
 from game_module_exports import native_definition
+from portable_game_policy import settings as portable_game_settings
 from sdl3_dependency import validate_payload
 from saved_callback_catalog import generate as generate_callback_catalog
 
@@ -382,6 +383,60 @@ def cmake_source(item):
     return portable(item['path'])
 
 
+def emit_portable_game_policy(lines, target, configs, project):
+    """Compiler/OS policy only; source membership is emitted once in Sources.cmake."""
+    lines.append(f'target_compile_features({target} PRIVATE cxx_std_17)')
+    if any(data['properties'].get('WholeProgramOptimization') == 'true' for data in configs.values()):
+        lines.append(f'target_compile_options({target} PRIVATE "$<$<CONFIG:Release>:-flto>")')
+        lines.append(f'target_link_options({target} PRIVATE "$<$<CONFIG:Release>:-flto>")')
+    lines.extend(['if(APPLE)', f'  target_link_options({target} PRIVATE "-Wl,-no_deduplicate")', 'endif()'])
+    semantic_keys = {'ExceptionHandling', 'FloatingPointModel', 'RuntimeTypeInfo', 'Optimization',
+                     'LanguageStandard', 'AdditionalOptions'}
+    for config, data in configs.items():
+        metadata = data['definitions']['ClCompile']
+        policy = portable_game_settings(metadata)
+        emit_list(lines, 'target_compile_options', target, config, policy['common'], language=True)
+        if policy['symbols']:
+            if config == 'Debug':
+                emit_list(lines, 'target_compile_options', target, config, ['-g'], language=True)
+            else:
+                lines.append(f'target_compile_options({target} PRIVATE '
+                             '"$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:-g>")')
+        for option in policy['cxx']:
+            predicate = f'$<AND:$<CONFIG:{config}>,$<COMPILE_LANGUAGE:CXX>>'
+            lines.append(f'target_compile_options({target} PRIVATE {quote("$<" + predicate + ":" + option + ">")})')
+        emit_list(lines, 'target_compile_definitions', target, config, policy['definitions'])
+        includes = [str(source_path(path, project.parent))
+                    for path in split(metadata.get('AdditionalIncludeDirectories', ''))]
+        emit_list(lines, 'target_include_directories', target, config, includes)
+        for item in data['items']:
+            if item['kind'] != 'ClCompile' or item['metadata'].get('ExcludedFromBuild') == 'true':
+                continue
+            overrides = item['overrides']
+            path = quote(cmake_source(item))
+            if semantic_keys.intersection(overrides):
+                effective = portable_game_settings(item['metadata'])
+                for option in effective['common'] + effective['cxx']:
+                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_OPTIONS '
+                                 f'{quote("$<$<CONFIG:" + config + ">:" + option + ">")})')
+            if overrides.get('CompileAs') == 'CompileAsCpp' and config == 'Debug':
+                lines.append(f'set_property(SOURCE {path} PROPERTY LANGUAGE CXX)')
+            for include in split(overrides.get('ForcedIncludeFiles', '')):
+                include = portable(str(source_path(include, project.parent)))
+                for option in ('-include', include):
+                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_OPTIONS '
+                                 f'{quote("$<$<CONFIG:" + config + ">:" + option + ">")})')
+            if 'PreprocessorDefinitions' in overrides:
+                for value in portable_game_settings(item['metadata'])['definitions']:
+                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY COMPILE_DEFINITIONS '
+                                 f'{quote("$<$<CONFIG:" + config + ">:" + value + ">")})')
+            if 'AdditionalIncludeDirectories' in overrides:
+                for include in split(item['metadata']['AdditionalIncludeDirectories']):
+                    include = portable(str(source_path(include, project.parent)))
+                    lines.append(f'set_property(SOURCE {path} APPEND PROPERTY INCLUDE_DIRECTORIES '
+                                 f'{quote("$<$<CONFIG:" + config + ">:" + include + ">")})')
+
+
 def main():
     validate_payload(SDK / 'external/SDL3')
     records = []
@@ -429,6 +484,12 @@ def main():
                     assert Path(item['path']).is_file(), item['path']
                 lines.append('  ' + quote(cmake_source(item)))
         lines.append(')')
+        game_policy = target in ('hl_server', 'cs_server')
+        if game_policy:
+            sources = ROOT / 'cmake/targets' / target / 'Sources.cmake'
+            sources.parent.mkdir(parents=True, exist_ok=True)
+            sources.write_text(lines[0] + '\n' + '\n'.join(lines[2:]) + '\n')
+            lines = lines[:2] + ['include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")', 'if(MSVC)']
         for config, data in configs.items():
             m = data['definitions']['ClCompile']; link = data['definitions'].get('Link', {})
             overridden_flags = {k for item in compiled(data) for k in item['overrides'] if k in COMPILE}
@@ -521,6 +582,10 @@ def main():
                     paths = [portable(str(source_path(p, project.parent))) for p in split(item['metadata']['AdditionalIncludeDirectories'])]
                     for inc in paths:
                         lines.append(f'set_property(SOURCE {path} APPEND PROPERTY INCLUDE_DIRECTORIES {quote("$<$<CONFIG:" + config + ">:" + inc + ">")})')
+        if game_policy:
+            lines.append('else()')
+            emit_portable_game_policy(lines, target, configs, project)
+            lines.append('endif()')
         for item in release['items']:
             if item['kind'] == 'ProjectReference':
                 dep = TARGETS[Path(item['path']).stem]

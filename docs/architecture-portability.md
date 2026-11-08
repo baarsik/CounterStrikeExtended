@@ -1,11 +1,13 @@
 > Native migration is in progress. The [active plan and evidence](superpowers/plans/2026-11-08-native64-migration.md)
 > distinguish dependency compilation from runtime qualification. Native SDL3/mpg123
-> dependency presets are available; the complete game remains Win32-only.
+> dependency and owned CS/HL server-module presets are available; the complete game remains Win32-only.
 
 # Native x64 and ARM64 portability inventory
 
-The build targets **Windows x86 only**; see [current validation](mpg123-migration-validation.md)
-for the tested snapshot and limits. CMake rejects unsupported hosts/architectures.
+The complete runtime targets **Windows x86**; see [current validation](mpg123-migration-validation.md)
+for the tested snapshot and limits. Isolated owned game modules also build for
+Windows x64/ARM64 and macOS ARM64, with separately scoped ABI/data/export evidence.
+CMake keeps unsupported complete-runtime targets gated.
 The inventory below identifies remaining work for native x64/ARM64 builds.
 
 ## Source and ABI boundaries

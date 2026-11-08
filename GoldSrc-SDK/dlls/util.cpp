@@ -1774,22 +1774,19 @@ void CSaveRestoreBuffer :: BufferRewind( int size )
 
 #ifndef _WIN32
 extern "C" {
-unsigned _rotr ( unsigned val, int shift)
-{
-        register unsigned lobit;        /* non-zero means lo bit set */
-        register unsigned num = val;    /* number to rotate */
-
-        shift &= 0x1f;                  /* modulo 32 -- this will also make
-                                           negative shifts work */
-
-        while (shift--) {
-                lobit = num & 1;        /* get high bit */
-                num >>= 1;              /* shift right one bit */
-                if (lobit)
-                        num |= 0x80000000;  /* set hi bit if lo bit was set */
+unsigned _rotr(unsigned value, int shift) {
+    constexpr int RotateShiftMask = 31;
+    constexpr unsigned HighestBit = 0x80000000u;
+    unsigned number = value;
+    shift &= RotateShiftMask;
+    while (shift--) {
+        const unsigned lowestBit = number & 1u;
+        number >>= 1;
+        if (lowestBit) {
+            number |= HighestBit;
         }
-
-        return num;
+    }
+    return number;
 }
 }
 #endif

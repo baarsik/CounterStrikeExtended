@@ -5,12 +5,14 @@
 #include <cstdlib>
 #include <cstring>
 #include <type_traits>
+#include "owned_module.h"
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
 #include "cse_module_abi.h"
 #include "game_module_entry.h"
 #include "generated_game_module_layouts.h"
+#include "engine_entity_fixture.h"
 #include "../save_fields/owned_entity_stream.h"
 
 enginefuncs_t g_engfuncs{};
@@ -83,10 +85,10 @@ string_t RecoverWorldString(const char *key) {
     return AllocateString("bsp-red;bsp-blue");
 }
 
-bool Probe(HMODULE module) {
-    const auto initialize = reinterpret_cast<CseInitializeGame>(GetProcAddress(module, "CseInitializeGameModule"));
-    const auto describe = reinterpret_cast<cse::abi::GetModuleAbi>(GetProcAddress(module, "CseGetModuleAbi"));
-    const auto factory = reinterpret_cast<void (*)(entvars_t *)>(GetProcAddress(module, "worldspawn"));
+bool Probe(GameModule &module) {
+    const auto initialize = module.Find<CseInitializeGame>("CseInitializeGameModule");
+    const auto describe = module.Find<cse::abi::GetModuleAbi>("CseGetModuleAbi");
+    const auto factory = module.Find<void (*)(entvars_t *)>("worldspawn");
     CHECK(initialize && describe && factory);
     CHECK(cse::abi::Check(cse::abi::GameModuleDescriptor, describe()) == cse::abi::Compatibility::Compatible);
     g_engfuncs.pfnPvAllocEntPrivateData = AllocatePrivate;
@@ -99,6 +101,7 @@ bool Probe(HMODULE module) {
     gpGlobals = &globals;
     CHECK(initialize(&cse::abi::GameModuleDescriptor, &g_engfuncs, &globals));
     edict_t entity{};
+    InitializeFixtureEntity(entity);
     entity.v.pContainingEntity = &entity;
     entity.v.classname = AllocateString("worldspawn");
     factory(&entity.v);
@@ -165,11 +168,11 @@ int main(int argc, char **argv) {
     if (argc != 2) {
         return 2;
     }
-    HMODULE module = LoadLibraryA(argv[1]);
+    GameModule module(argv[1]);
     if (!module) {
+        std::fprintf(stderr, "Cannot load owned world module: %s\n", module.Error());
         return 2;
     }
     const bool passed = Probe(module);
-    FreeLibrary(module);
     return passed ? 0 : 1;
 }

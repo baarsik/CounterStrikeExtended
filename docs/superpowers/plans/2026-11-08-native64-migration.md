@@ -177,7 +177,14 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and the full save/record/replay regression set pass with producing hashes
   checked. x64 fixture execution used VM1's x64 emulation; these module checks
   do not qualify a complete native game or native x64 hardware execution.
-  macOS game compiler/platform policies remain pending.
+  macOS ARM64 Release/Debug game libraries now build from the same generated
+  source inventories. Their precise FP/contraction, per-file EH, RTTI and assertion
+  policies are explicit; narrowing diagnostics remain fatal. ARM64/Mach-O minimum
+  14.0, every reference C/canonical C++ export and actual ABI/save/world/C4 probes
+  pass. Two exported turret methods have out-of-line bodies so their exports remain
+  present without a base vtable. Portable assertions, directories, text entry points
+  and a native-width epoch counter have bounded fixtures. These component checks
+  do not qualify a native dedicated server or full native savegame round trip.
 - **Save/data representations:** native storage facts govern strides, clearing
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
   Raw-pointer descriptors reject at compile time and runtime before pointer bits

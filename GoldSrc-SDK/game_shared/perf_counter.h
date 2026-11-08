@@ -19,11 +19,7 @@
 	#include <sys/types.h>
 	#include <fcntl.h>
 	#include <unistd.h>
-	#ifdef OSX
-		#include <limits.h>
-	#else
-		#include <linux/limits.h>
-	#endif
+    #include <limits.h>
 	#define MAX_PATH PATH_MAX
 	#include <sys/time.h>
 #endif
@@ -159,7 +155,7 @@ inline double CPerformanceCounter::GetCurTime()
 
 #else
 	struct timeval	tp;
-	static int	secbase = 0;
+	static time_t secbase = 0;
     
 	gettimeofday( &tp, NULL );
  

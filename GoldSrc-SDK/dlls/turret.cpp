@@ -73,8 +73,8 @@ public:
 	void EXPORT AutoSearchThink(void);
 	void EXPORT TurretDeath(void);
 
-	virtual void EXPORT SpinDownCall(void) { m_iSpin = 0; }
-	virtual void EXPORT SpinUpCall(void) { m_iSpin = 1; }
+	virtual void EXPORT SpinDownCall(void);
+	virtual void EXPORT SpinUpCall(void);
 
 	// void SpinDown(void);
 	// float EXPORT SpinDownCall( void ) { return SpinDown(); }
@@ -138,6 +138,17 @@ public:
 #endif
 };
 
+
+// Out-of-line definitions preserve these legacy exports even when no base vtable is emitted.
+void CBaseTurret::SpinDownCall() {
+    constexpr int SpinStopped = 0;
+    m_iSpin = SpinStopped;
+}
+
+void CBaseTurret::SpinUpCall() {
+    constexpr int SpinRunning = 1;
+    m_iSpin = SpinRunning;
+}
 
 TYPEDESCRIPTION	CBaseTurret::m_SaveData[] = 
 {

@@ -701,7 +701,7 @@ public:
 			int enemyTeam = m_bot->m_iTeam == TERRORIST ? CT : TERRORIST;
 			if ( UTIL_IsVisibleToTeam( eye, enemyTeam, -1.0f ) )
 				continue;
-			CBasePlayer* closest = UTIL_GetClosestPlayer( position, NULL );
+			CBasePlayer* closest = UTIL_GetClosestPlayer( position, nullptr );
 			if ( closest && closest->m_iTeam != m_bot->m_iTeam )
 				continue;
 			m_spot[m_count++] = position;

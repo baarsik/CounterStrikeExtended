@@ -212,7 +212,7 @@ void set_suicide_frame( entvars_t* pev )
 	pev->nextthink = -1;
 }
 
-void ShowMenu( CBasePlayer* player, int validSlots, int displayTime, BOOL needMore, char* text )
+void ShowMenu( CBasePlayer* player, int validSlots, int displayTime, BOOL needMore, const char* text )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, player->edict() );
 		WRITE_SHORT( validSlots );
@@ -222,7 +222,7 @@ void ShowMenu( CBasePlayer* player, int validSlots, int displayTime, BOOL needMo
 	MESSAGE_END();
 }
 
-void ShowVGUIMenu( CBasePlayer* player, int menu, int validSlots, char* oldMenu )
+void ShowVGUIMenu( CBasePlayer* player, int menu, int validSlots, const char* oldMenu )
 {
 	if ( player->m_bVGUIMenus || menu > 34 )
 	{
@@ -1058,7 +1058,7 @@ void ListPlayers( CBasePlayer* current )
 		if ( entity->pev->flags & FL_DORMANT )
 			continue;
 		CBasePlayer* player = GetClassPtr( (CBasePlayer*)entity->pev );
-		_itoa( GETPLAYERUSERID( player->edict() ), number, 10 );
+        snprintf(number, sizeof(number), "%d", GETPLAYERUSERID(player->edict()));
 		strcpy( message, "\n" );
 		strcat( message, number );
 		strcat( message, " : " );

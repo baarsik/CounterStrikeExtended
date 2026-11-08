@@ -27,6 +27,8 @@
 #include	"monsters.h"
 #include	"nodes.h"
 #include "legacy_graph_records.h"
+#include "cse_directories.h"
+#include "native_int_count.h"
 #include	"animation.h"
 #include	"doors.h"
 
@@ -53,10 +55,6 @@ CGraph	WorldGraph;
 
 LINK_ENTITY_TO_CLASS( info_node, CNodeEnt );
 LINK_ENTITY_TO_CLASS( info_node_air, CNodeEnt );
-#ifdef _LINUX
-#include <unistd.h>
-#define CreateDirectory(p, n) mkdir(p, 0777)
-#endif
 //=========================================================
 // CGraph - InitGraph - prepares the graph for use. Frees any
 // memory currently in use by the world graph, NULLs 
@@ -1665,9 +1663,9 @@ void CTestHull :: BuildNodeGraph( void )
 	// make sure directories have been made
 	GET_GAME_DIR( szNrpFilename );
 	strcat( szNrpFilename, "/maps" );
-	CreateDirectory( szNrpFilename, NULL );
+    cse::platform::CreateDirectoryPath(szNrpFilename);
 	strcat( szNrpFilename, "/graphs" );
-	CreateDirectory( szNrpFilename, NULL );
+    cse::platform::CreateDirectoryPath(szNrpFilename);
 
 	strcat( szNrpFilename, "/" );
 	strcat( szNrpFilename, STRING( gpGlobals->mapname ) );
@@ -2363,9 +2361,9 @@ int CGraph::FLoadGraph(char *szMapName) {
     char szDirName[MAX_PATH];
     GET_GAME_DIR(szDirName);
     strcat(szDirName, "/maps");
-    CreateDirectory(szDirName, NULL);
+    cse::platform::CreateDirectoryPath(szDirName);
     strcat(szDirName, "/graphs");
-    CreateDirectory(szDirName, NULL);
+    cse::platform::CreateDirectoryPath(szDirName);
     strcpy(szFilename, "maps/graphs/");
     strcat(szFilename, szMapName);
     strcat(szFilename, ".nod");
@@ -2443,9 +2441,9 @@ int CGraph::FSaveGraph(char *szMapName) {
     char szFilename[MAX_PATH];
     GET_GAME_DIR(szFilename);
     strcat(szFilename, "/maps");
-    CreateDirectory(szFilename, NULL);
+    cse::platform::CreateDirectoryPath(szFilename);
     strcat(szFilename, "/graphs");
-    CreateDirectory(szFilename, NULL);
+    cse::platform::CreateDirectoryPath(szFilename);
     strcat(szFilename, "/");
     strcat(szFilename, szMapName);
     strcat(szFilename, ".nod");
@@ -3225,7 +3223,7 @@ void CGraph :: ComputeStaticRoutingTables( void )
 
 					// Go find a place to store this thing and point to it.
 					//
-					int nRoute = p - pRoute;
+                    int nRoute = cse::counts::IntCount(static_cast<std::size_t>(p - pRoute));
 					if (m_pRouteInfo)
 					{
 						int i;

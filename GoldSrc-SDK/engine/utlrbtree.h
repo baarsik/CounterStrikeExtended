@@ -61,8 +61,9 @@ public:
 		if ( !m_LessFunc )
 			m_LessFunc = less;
 #ifdef UTL_ENGINE_ASSERTS
-		else
-			_wassert( L"0", UTLRBTREE_SOURCE_PATH, 1139 );
+        else {
+            cse::platform::UtlAssertionFailure( L"0", UTLRBTREE_SOURCE_PATH, 1139 );
+        }
 #endif
 	}
 
@@ -75,8 +76,9 @@ public:
 	Links_t& Links( I index )
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( index == InvalidIndex() )
-			_wassert( L"i != InvalidIndex()", UTLRBTREE_SOURCE_PATH, 410 );
+        if ( index == InvalidIndex() ) {
+            cse::platform::UtlAssertionFailure( L"i != InvalidIndex()", UTLRBTREE_SOURCE_PATH, 410 );
+        }
 #endif
 		return m_Elements[index];
 	}
@@ -126,7 +128,7 @@ public:
 		if ( !m_LessFunc )
 		{
 #ifdef UTL_ENGINE_ASSERTS
-			_wassert( L"m_LessFunc", UTLRBTREE_SOURCE_PATH, 1190 );
+            cse::platform::UtlAssertionFailure( L"m_LessFunc", UTLRBTREE_SOURCE_PATH, 1190 );
 #endif
 			return InvalidIndex();
 		}
@@ -164,8 +166,9 @@ public:
 	I NextInorder( I index ) const
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !IsValidIndex( index ) )
-			_wassert( L"IsValidIndex(i)", UTLRBTREE_SOURCE_PATH, 894 );
+        if ( !IsValidIndex( index ) ) {
+            cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLRBTREE_SOURCE_PATH, 894 );
+        }
 #endif
 		if ( RightChild( index ) != InvalidIndex() )
 		{
@@ -197,8 +200,9 @@ public:
 	I PrevInorder( I index ) const
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !IsValidIndex( index ) )
-			_wassert( L"IsValidIndex(i)", UTLRBTREE_SOURCE_PATH, 917 );
+        if ( !IsValidIndex( index ) ) {
+            cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLRBTREE_SOURCE_PATH, 917 );
+        }
 #endif
 		if ( LeftChild( index ) != InvalidIndex() )
 		{
@@ -280,8 +284,9 @@ public:
 		--m_NumElements;
 
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !IsValid() )
-			_wassert( L"IsValid()", UTLRBTREE_SOURCE_PATH, 834 );
+        if ( !IsValid() ) {
+            cse::platform::UtlAssertionFailure( L"IsValid()", UTLRBTREE_SOURCE_PATH, 834 );
+        }
 #endif
 	}
 
@@ -323,8 +328,9 @@ public:
 		LinkToParent( index, parent, left );
 		++m_NumElements;
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !IsValid() )
-			_wassert( L"IsValid()", UTLRBTREE_SOURCE_PATH, 657 );
+        if ( !IsValid() ) {
+            cse::platform::UtlAssertionFailure( L"IsValid()", UTLRBTREE_SOURCE_PATH, 657 );
+        }
 #endif
 		return index;
 	}
@@ -573,8 +579,9 @@ protected:
 	void FindInsertionPosition( const T& data, I& parent, bool& left )
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !m_LessFunc )
-			_wassert( L"m_LessFunc", UTLRBTREE_SOURCE_PATH, 1152 );
+        if ( !m_LessFunc ) {
+            cse::platform::UtlAssertionFailure( L"m_LessFunc", UTLRBTREE_SOURCE_PATH, 1152 );
+        }
 #endif
 		I index = m_Root;
 		parent = InvalidIndex();
@@ -598,8 +605,9 @@ protected:
 	void FreeNode( I index )
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !( IsValidIndex( index ) && ( index != InvalidIndex() ) ) )
-			_wassert( L"IsValidIndex(i) && (i != InvalidIndex())", UTLRBTREE_SOURCE_PATH, 484 );
+        if ( !( IsValidIndex( index ) && ( index != InvalidIndex() ) ) ) {
+            cse::platform::UtlAssertionFailure( L"IsValidIndex(i) && (i != InvalidIndex())", UTLRBTREE_SOURCE_PATH, 484 );
+        }
 #endif
 		Element( index ).~T();
 		SetLeftChild( index, index );

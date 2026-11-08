@@ -12,6 +12,7 @@
 //=============================================================================
 
 #include "utlsymbol.h"
+#include "cse_posix_crt.h"
 
 #include <cstring>
 
