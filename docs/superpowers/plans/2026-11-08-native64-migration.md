@@ -329,6 +329,15 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   pass nine offline configurations, including macOS sanitizers. All 19 Win32
   targets and six fresh matching-binary save/gameplay/replay regressions pass.
   These checks do not execute CEF or qualify browser behavior.
+- **CEF SDK boundary:** pinned stable API 15600, Windows x64 and macOS ARM64
+  Release/Debug pass four standalone fixtures covering eight browser process
+  lifetimes. Exact software BGRA pixels, resize, mouse/Unicode input, JavaScript,
+  persistent cookies/local storage/HTTP cache, cookie flushing and complete helper
+  shutdown pass. Forty binary identities and selected producing inputs match.
+  Windows uses CEF's sandbox bootstrap at normal user privilege; the Mac app and
+  five helpers build with command-line tools and target macOS 14. Tampered API
+  headers are rejected. This is SDK evidence; owned HTML controller integration,
+  MOTD and browser media behavior remain open.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

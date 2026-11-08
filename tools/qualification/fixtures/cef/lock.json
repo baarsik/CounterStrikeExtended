@@ -29,6 +29,17 @@
         "path": "Release/libcef.lib",
         "bytes": 67026,
         "sha256": "65dd7e13a0dbd2246ebd602fc6f0d1a06cbd92cef1fa18deb71d6aff586a797e"
+      },
+      "debug_runtime": {
+        "path": "Debug/libcef.dll",
+        "bytes": 451319296,
+        "sha256": "5eb4e62c6c5b78e6ce18f3ed4499c85a155b49a9f05f6fe7e7b06f0fdd1a840e",
+        "identity": {
+          "format": "pe",
+          "architectures": [
+            "x64"
+          ]
+        }
       }
     },
     "macosarm64": {
@@ -55,7 +66,23 @@
         },
         "path": "Release/Chromium Embedded Framework.framework/Chromium Embedded Framework"
       },
-      "api_header_sha256": "06716f78d3a678a175a2f4c87c339fe3ac3f69d8936cb4462ea228d64dfc35d3"
+      "api_header_sha256": "06716f78d3a678a175a2f4c87c339fe3ac3f69d8936cb4462ea228d64dfc35d3",
+      "debug_runtime": {
+        "path": "Debug/Chromium Embedded Framework.framework/Chromium Embedded Framework",
+        "bytes": 369768624,
+        "sha256": "a6bf34f75e00cfdceb3d435439455280ba8674ebe9fa6d598e0b4156c3769404",
+        "identity": {
+          "format": "mach-o",
+          "architectures": [
+            "arm64"
+          ],
+          "minimum_macos": [
+            13,
+            0,
+            0
+          ]
+        }
+      }
     }
   }
 }

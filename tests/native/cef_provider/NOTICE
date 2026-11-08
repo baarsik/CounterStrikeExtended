@@ -1,0 +1,8 @@
+The Cocoa event scoping and Windows bootstrap entry point in main_mac.mm and
+main_win.cpp follow the cefsimple examples from Chromium Embedded Framework.
+Copyright (c) 2013 The Chromium Embedded Framework Authors. Portions copyright
+(c) 2010 The Chromium Authors. All rights reserved. The BSD license terms in
+LICENSE.cef apply to these inherited portions. The native helper source is
+compiled directly from the separately pinned CEF distribution.
+
+CEF revision: 8ea0c73b5dbed1389c8dafb911a98c41246bb8cb.
