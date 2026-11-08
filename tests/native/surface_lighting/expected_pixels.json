@@ -1,0 +1,10 @@
+{
+  "commit": "89572b7",
+  "source_sha256": "7435cf37e407b6c4febdfbd37b3226f61492d976053b6a5676e4b8c3f5e12db3",
+  "header_sha256": "58c9c3458b73f12059f4d48403f94b53298a6207b897f8f6926fcd952c666bef",
+  "source_path": "GoldSrc-SDK/engine/r_surf.cpp",
+  "function": "R_DrawSurfaceBlock16MMX",
+  "fixture_source_sha256": "0086e216aa8dc08a525ef3326e2296a360e5641a83e36d3c461450c807d6fb62",
+  "bytes": 3125248,
+  "sha256": "4ece53c9d2797b388a6cc8e2d55a4806b8ca5e60bbab3c704d4db0883d937ee6"
+}

@@ -15,7 +15,7 @@ The inventory below identifies remaining work for native x64/ARM64 builds.
 | Area | Current evidence and required future work |
 | --- | --- |
 | Inline assembly | A static token scan of retained non-external C/C++/headers found no `__asm`, `__asm__` or `asm(...)` blocks, and no assembly input is selected by the retained projects. This bounded source finding does not make libraries architecture-neutral or rule out all compiler-specific constructs. Do not introduce raw x86 assembly shims. |
-| x86 intrinsics / CPU discovery | `tier0` now scopes CPUID/RDTSC to x86, uses native ARM64 counters and discovers native topology; bounded production-source fixtures pass. `engine/sys_dll2.cpp` still uses `__cpuid` and `_mm_empty`; `common/legacy_float_to_int.h` retains x86 SSE conversion and provides a tested binary32 scalar equivalent for ARM64; engine angle and cvar conversion use it. `engine/r_surf.cpp`, retained through swds, uses MMX `__m64` operations. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
+| x86 intrinsics / CPU discovery | `tier0` now scopes CPUID/RDTSC to x86, uses native ARM64 counters and discovers native topology; bounded production-source fixtures pass. Engine CPUID/EMMS dispatch now stays in the retained Win32 path; native packed lighting uses scalar integer operations; `common/legacy_float_to_int.h` retains x86 SSE conversion and provides a tested binary32 scalar equivalent for ARM64; engine angle and cvar conversion use it. The swds-retained `r_surf.cpp` keeps its original Win32 MMX path and selects an exact scalar RGB555/RGB565 equivalent for native targets. Pentium profiling and A3D floating-point control still need migration. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
 | Pointer/integer width and loaders | `engine/LoadBlob.cpp` encodes addresses in `unsigned long` fields and casts loader/thunk function addresses through `DWORD`; it assumes Windows 32-bit image layout. A 64-bit build cannot fix this by widening every stored field. Audit pointer-bearing integers, callbacks, varargs/format strings, offsets, allocation arithmetic and serialized versus in-process addresses throughout retained client/server/UI code. |
 | In-process interfaces | Engine/client/server function tables, virtual interfaces, HWND/module handles, STL/container layouts and private copied interfaces cross module boundaries. All in-process modules/providers must agree on architecture, layout, toolchain and CRT. An x86 stock client or server DLL cannot load in a native x64/ARM64 engine. |
 | Calling convention and exports | `engine/eiface.h` uses Windows `__stdcall`; `.def` files include x86-decorated C++ names and ordinals. VGUI1 has a data alias at ordinal 395 and names-only import-library generation. Plan and verify each architecture's exports/imports and calling convention instead of reusing x86 decoration or relying on auto-export. |
@@ -94,3 +94,20 @@ in the frozen and updated code. Independent CRT remainder diagnostics also
 vary under emulation. Those records remain explicit qualification limits; no
 floating-point tolerance or production remainder workaround was added. Complete
 native gameplay/numerical qualification remains open.
+
+Packed surface lighting now has a native scalar implementation with explicit
+signed-word wrapping, arithmetic shifts, multiply-high rounding, saturation and
+RGB555/RGB565 packing. Win32 retains the original MMX implementation. The legacy
+`r_mmx` control and its availability flag still select the packed lighting behavior;
+native availability describes the scalar implementation, while CPU instruction
+flags remain truthful.
+
+Eleven pixel/state corpora match the frozen Win32 MMX function exactly across
+Windows x86/x64/ARM64 and macOS ARM64 Release/Debug, including Mac sanitizers.
+The checked-in hash covers 4,096 cases with all four mips, both pixel formats,
+palette overflow, texture wrapping, disabled behavior, unaligned buffers, row
+guards and native high pointers. An injected color-mask error is detected.
+All 19 maintained Win32 targets and the six save/gameplay/replay regressions
+pass after integration, with producing source and loaded module hashes checked.
+These fixtures validate this software-lighting function, retained through swds;
+they do not qualify presented scenes, the complete renderer or SDL_GPU behavior.

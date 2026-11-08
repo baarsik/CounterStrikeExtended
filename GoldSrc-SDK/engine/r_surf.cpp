@@ -8,7 +8,10 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include "surface_backend_config.h"
+#if !CSE_USE_SCALAR_SURFACE_LIGHTING
 #include <mmintrin.h>
+#endif
 
 #include "buildslave_assert.h"
 #define ASSERT_FILE BUILDSLAVE_PATH( L"engine\\r_surf.c" )
@@ -393,6 +396,9 @@ void R_DrawSurfaceBlock16()
 	}
 }
 
+#if CSE_USE_SCALAR_SURFACE_LIGHTING
+#include "surface_block16_packed_impl.h"
+#else
 void R_DrawSurfaceBlock16MMX()
 {
 	if ( !gHasMMXTechnology )
@@ -454,6 +460,8 @@ void R_DrawSurfaceBlock16MMX()
 	}
 	_mm_empty();
 }
+
+#endif
 
 void R_DrawSurfaceBlock16Holes()
 {

@@ -33,8 +33,7 @@
 #include <climits>
 #include <cstring>
 #include <eh.h>
-#include <intrin.h>
-#include <mmintrin.h>
+#include "surface_backend_config.h"
 
 #define MINIMUM_HEAP_SIZE	0xE00000
 #define MAXIMUM_HEAP_SIZE	0x8000000
@@ -281,22 +280,7 @@ void Sys_SetupLegacyAPIs()
 
 void Sys_InitLauncherInterface()
 {
-	int registers[4];
-	gHasMMXTechnology = false;
-	__try
-	{
-		__cpuid( registers, 1 );
-		if ( registers[3] & ( 1 << 23 ) )
-		{
-			_mm_empty();
-			gHasMMXTechnology = true;
-		}
-	}
-#pragma warning( suppress: 6320 )
-	__except ( EXCEPTION_EXECUTE_HANDLER )
-	{
-		gHasMMXTechnology = false;
-	}
+    gHasMMXTechnology = CsePackedSurfaceLightingAvailable();
 	g_hOpenGL = GetModuleHandleA( "opengl32.dll" );
 	VID_FlipScreen = Sys_VID_FlipScreen;
 	D_SurfaceCacheForRes = Sys_GetSurfaceCacheSize;
@@ -892,8 +876,7 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 #include <climits>
 #include <cstring>
 #include <eh.h>
-#include <intrin.h>
-#include <mmintrin.h>
+#include "surface_backend_config.h"
 #include <clocale>
 #include <cstdint>
 
@@ -1187,22 +1170,7 @@ void Sys_SetupLegacyAPIs()
 
 void Sys_InitLauncherInterface()
 {
-	int registers[4];
-	gHasMMXTechnology = false;
-	__try
-	{
-		__cpuid( registers, 1 );
-		if ( registers[3] & ( 1 << 23 ) )
-		{
-			_mm_empty();
-			gHasMMXTechnology = true;
-		}
-	}
-#pragma warning( suppress: 6320 )
-	__except ( EXCEPTION_EXECUTE_HANDLER )
-	{
-		gHasMMXTechnology = false;
-	}
+    gHasMMXTechnology = CsePackedSurfaceLightingAvailable();
 	g_hOpenGL = GetModuleHandleA( "opengl32.dll" );
 	VID_FlipScreen = Sys_VID_FlipScreen;
 	D_SurfaceCacheForRes = Sys_GetSurfaceCacheSize;

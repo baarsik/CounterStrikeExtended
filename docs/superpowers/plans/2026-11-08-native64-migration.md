@@ -247,6 +247,15 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   Mac sanitizers and six updated Win32 runtime regressions pass. A pre-existing
   emulated Win32 Debug remainder difference for extreme angles remains recorded
   explicitly; complete numerical/gameplay acceptance remains open.
+- **Packed lighting boundary:** native integer lighting matches the frozen Win32
+  MMX RGB555/RGB565 function exactly in eleven pixel/state corpora. All four mips,
+  signed palette operations, saturation, wrapping, disabled behavior, guards and
+  native high pointers are covered. A checked-in reference hash detects an
+  injected color-mask defect; Mac sanitizers pass. Win32 keeps its original MMX
+  path, and native dispatch retains the packed-lighting control. All 19 Win32
+  targets and six save/gameplay/replay regressions pass with producing hashes
+  checked. Presented scenes,
+  complete rendering and SDL_GPU acceptance remain open.
 - **Providers/platform/renderer:** official native Steam candidates and stable
   CEF156.0.26 archives are pinned for integration. Real native authentication,
   sessions, voice and browser behavior remain pending, as do the portable

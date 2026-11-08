@@ -357,3 +357,21 @@ source directory may be selected with `CSE_NUMERIC_SOURCE_DIR` for reference
 comparisons. Binary corpora record exact conversion results, angle write arguments
 and cvar strings; they do not establish complete network packet or gameplay parity.
 See the portability inventory for VM1's pre-existing extreme-angle Debug limit.
+
+
+## Packed surface-lighting fixtures
+
+```sh
+cmake -S tests/native/surface_lighting -B build/surface-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/surface-tests --parallel
+ctest --test-dir build/surface-tests --output-on-failure
+```
+
+Python verifies the exact pixel/state hash from the pinned Win32 MMX function.
+The fixture uses actual SDK texture types and native high mappings. To qualify a
+new corpus, rebuild the frozen Win32 function with the same fixture inputs before
+updating `expected_pixels.json`; changing the fixture source alone fails the gate.
+`CSE_SURFACE_IMPLEMENTATION` may explicitly select an archived function header,
+with `CSE_SURFACE_REFERENCE_MMX=ON` for the Win32 reference build. Normal native
+fixtures exercise the scalar implementation. They do not create a game window
+or establish complete renderer acceptance.
