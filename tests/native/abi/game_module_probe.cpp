@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <iterator>
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -16,6 +17,7 @@ typedef float vec3_t[3];
 #include "../../../GoldSrc-SDK/engine/eiface.h"
 #include "../../../GoldSrc-SDK/common/game_module_entry.h"
 #include "../../../GoldSrc-SDK/common/generated_game_module_layouts.h"
+#include "../save_fields/production_probe.h"
 
 class GameModule {
 public:
@@ -109,6 +111,9 @@ static bool Probe(const char *path) {
         || !table.pfnSave || !table.pfnRestore || !table.pfnThink) {
         return false;
     }
+    if (!CheckProductionSaveFields(table)) {
+        return false;
+    }
     // A later legacy call must not consume another exchange or replace tables.
     legacyGive(reinterpret_cast<enginefuncs_t *>(invalidAddress), reinterpret_cast<globalvars_t *>(invalidAddress));
     if (!getApi(&table, &version)) {
@@ -119,7 +124,7 @@ static bool Probe(const char *path) {
         || !initialize(&GameModuleDescriptor, &functions, &globals) || !getApi(&table, &version)) {
         return false;
     }
-    std::printf("Production game ABI accepted; stale metadata and legacy exchange rejected: %s\n", path);
+    std::printf("Production game ABI and native save-field checks passed: %s\n", path);
     return true;
 }
 

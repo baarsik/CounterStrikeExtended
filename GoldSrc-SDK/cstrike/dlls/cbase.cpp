@@ -708,16 +708,11 @@ void SaveReadFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseD
 }
 
 
-edict_t * EHANDLE::Get( void ) 
-{ 
-	if (m_pent)
-	{
-		if (m_pent->serialnumber == m_serialnumber) 
-			return m_pent; 
-		else
-			return NULL;
-	}
-	return NULL; 
+edict_t *EHANDLE::Get() const {
+    if (m_pent && m_pent->serialnumber == m_serialnumber) {
+        return m_pent;
+    }
+    return nullptr;
 };
 
 edict_t * EHANDLE::Set( edict_t *pent ) 

@@ -24,6 +24,8 @@
 #include "util.h"
 #include "cbase.h"
 #include "game_saved_callbacks.h"
+#include "game_save_field_layout.h"
+#include "legacy_save_strings.h"
 #include "saverestore.h"
 #include <time.h>
 #include "shake.h"
@@ -1756,7 +1758,7 @@ void UTIL_StripToken( const char *pKey, char *pDest, int nLen )
 // CSave
 //
 // --------------------------------------------------------------
-static int gSizes[FIELD_TYPECOUNT] =
+static constexpr int gSerializedSizes[FIELD_TYPECOUNT] =
 {
 	sizeof(float),		// FIELD_FLOAT
 	sizeof(int),		// FIELD_STRING
@@ -1767,7 +1769,7 @@ static int gSizes[FIELD_TYPECOUNT] =
 	sizeof(int),		// FIELD_EDICT
 	sizeof(float)*3,	// FIELD_VECTOR
 	sizeof(float)*3,	// FIELD_POSITION_VECTOR
-	sizeof(int *),		// FIELD_POINTER
+	sizeof(std::int32_t), // FIELD_POINTER: legacy disk width only.
 	sizeof(int),		// FIELD_INTEGER
     0,                  // FIELD_FUNCTION uses typed native storage operations below.
 	sizeof(int),		// FIELD_BOOLEAN
@@ -2004,7 +2006,7 @@ void CSave :: WriteString( const char *pname, const char *pdata )
 }
 
 
-void CSave :: WriteString( const char *pname, const int *stringId, int count )
+void CSave :: WriteString( const char *pname, const string_t *stringId, int count )
 {
 	int i, size;
 
@@ -2130,6 +2132,33 @@ int CSave :: WriteEntVars( const char *pname, entvars_t *pev )
 
 
 
+bool CSave::WriteNativeIntegerField(const TYPEDESCRIPTION &field, const void *storage) {
+    constexpr size_t maximumFieldBytes = UINT16_MAX;
+    const auto encodedBytes = static_cast<size_t>(field.fieldSize) * cse::save::LegacyIntegerBytes;
+    if (encodedBytes > maximumFieldBytes) {
+        return false;
+    }
+    unsigned char wire[cse::save::LegacyIntegerBytes];
+    const auto *native = static_cast<const char *>(storage);
+    // Check representability before writing this field's envelope.
+    for (int index = 0; index < field.fieldSize; ++index) {
+        if (!cse::save::EncodeLegacyInteger(native + index * field.nativeStride,
+                field.nativeStride, field.nativeFlags, wire)) {
+            return false;
+        }
+    }
+    BufferHeader(field.fieldName, static_cast<int>(encodedBytes));
+    for (int index = 0; index < field.fieldSize; ++index) {
+        if (!cse::save::EncodeLegacyInteger(native + index * field.nativeStride,
+                field.nativeStride, field.nativeFlags, wire)) {
+            return false;
+        }
+        BufferData(reinterpret_cast<const char *>(wire), sizeof(wire));
+    }
+    return true;
+}
+
+
 int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount )
 {
 	int				i, j, actualCount, emptyCount;
@@ -2142,6 +2171,10 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	{
 		void *pOutputData;
 		pOutputData = ((char *)pBaseData + pFields[i].fieldOffset );
+        if (!cse::save::ValidFieldStorage(pFields[i])) {
+            ALERT(at_error, "Invalid native save field storage: %s\n", pFields[i].fieldName);
+            return 0;
+        }
         if (pFields[i].fieldType == FIELD_FUNCTION
             && CseCallbackKind(pFields, pFields[i]) == CseSavedCallbackKind::Invalid) {
             ALERT(at_error, "Unregistered typed callback field: %s\n", pFields[i].fieldName);
@@ -2149,8 +2182,7 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
         }
         if (pFields[i].fieldType == FIELD_FUNCTION
             ? CseCallbackEmpty(CseCallbackKind(pFields, pFields[i]), pOutputData)
-            : DataEmpty(static_cast<const char *>(pOutputData),
-                pFields[i].fieldSize * gSizes[pFields[i].fieldType])) {
+            : cse::save::NativeFieldEmpty(pFields[i], pOutputData)) {
             emptyCount++;
         }
 	}
@@ -2168,7 +2200,7 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 		// UNDONE: Must we do this twice?
         if (pTest->fieldType == FIELD_FUNCTION
             ? CseCallbackEmpty(CseCallbackKind(pFields, *pTest), pOutputData)
-            : DataEmpty(static_cast<const char *>(pOutputData), pTest->fieldSize * gSizes[pTest->fieldType])) {
+            : cse::save::NativeFieldEmpty(*pTest, pOutputData)) {
             continue;
         }
 
@@ -2183,15 +2215,17 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 		case FIELD_MODELNAME:
 		case FIELD_SOUNDNAME:
 		case FIELD_STRING:
-			WriteString( pTest->fieldName, (int *)pOutputData, pTest->fieldSize );
+			WriteString(pTest->fieldName, static_cast<const string_t *>(pOutputData), pTest->fieldSize);
 		break;
 		case FIELD_CLASSPTR:
 		case FIELD_EVARS:
 		case FIELD_EDICT:
 		case FIELD_ENTITY:
 		case FIELD_EHANDLE:
-			if ( pTest->fieldSize > MAX_ENTITYARRAY )
-				ALERT( at_error, "Can't save more than %d entities in an array!!!\n", MAX_ENTITYARRAY );
+			if (pTest->fieldSize > MAX_ENTITYARRAY) {
+                ALERT(at_error, "Can't save more than %d entities in an array!!!\n", MAX_ENTITYARRAY);
+                return 0;
+            }
 			for ( j = 0; j < pTest->fieldSize; j++ )
 			{
 				switch( pTest->fieldType )
@@ -2222,10 +2256,13 @@ int CSave :: WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 			WriteVector( pTest->fieldName, (float *)pOutputData, pTest->fieldSize );
 		break;
 
-		case FIELD_BOOLEAN:
-		case FIELD_INTEGER:
-			WriteInt( pTest->fieldName, (int *)pOutputData, pTest->fieldSize );
-		break;
+        case FIELD_BOOLEAN:
+        case FIELD_INTEGER:
+            if (!WriteNativeIntegerField(*pTest, pOutputData)) {
+                ALERT(at_error, "Cannot encode native integer field: %s\n", pTest->fieldName);
+                return 0;
+            }
+            break;
 
 		case FIELD_SHORT:
 			WriteData( pTest->fieldName, 2 * pTest->fieldSize, ((char *)pOutputData) );
@@ -2266,16 +2303,6 @@ void CSave :: BufferString( char *pdata, int len )
 	BufferData( &c, 1 );			// Write a null terminator
 }
 
-
-int CSave :: DataEmpty( const char *pdata, int size )
-{
-	for ( int i = 0; i < size; i++ )
-	{
-		if ( pdata[i] )
-			return 0;
-	}
-	return 1;
-}
 
 
 void CSave :: BufferField( const char *pname, int size, const char *pdata )
@@ -2347,29 +2374,56 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 		{
 			if ( !m_global || !(pTest->flags & FTYPEDESC_GLOBAL) )
 			{
+                if (pTest->fieldType == FIELD_BOOLEAN || pTest->fieldType == FIELD_INTEGER) {
+                    const auto expected = static_cast<size_t>(pTest->fieldSize) * cse::save::LegacyIntegerBytes;
+                    if (size < 0 || static_cast<size_t>(size) != expected) {
+                        return InvalidSavedField;
+                    }
+                    for (int index = 0; index < pTest->fieldSize; ++index) {
+                        auto *storage = static_cast<char *>(pBaseData) + pTest->fieldOffset
+                            + index * pTest->nativeStride;
+                        const auto *wire = static_cast<const unsigned char *>(pData)
+                            + index * cse::save::LegacyIntegerBytes;
+                        if (!cse::save::DecodeLegacyInteger(wire, storage, pTest->nativeStride,
+                                pTest->nativeFlags)) {
+                            return InvalidSavedField;
+                        }
+                    }
+                    return fieldNumber;
+                }
                 if (pTest->fieldType == FIELD_FUNCTION) {
                     void *storage = static_cast<char *>(pBaseData) + pTest->fieldOffset;
                     if (!CseRestoreCallback(CseCallbackKind(pFields, *pTest), storage, pData, size, pBaseData)) {
                         ALERT(at_error, "Invalid saved callback in field: %s\n", pTest->fieldName);
-                        return InvalidSavedCallbackField;
+                        return InvalidSavedField;
                     }
                     return fieldNumber;
                 }
+                if (pTest->fieldType == FIELD_STRING || pTest->fieldType == FIELD_MODELNAME
+                    || pTest->fieldType == FIELD_SOUNDNAME) {
+                    if (size < 0 || !cse::save::ValidLegacyStringPayload(pData,
+                            static_cast<size_t>(size), pTest->fieldSize)) {
+                        return InvalidSavedField;
+                    }
+                } else if (size < 0 || static_cast<size_t>(size)
+                    != static_cast<size_t>(pTest->fieldSize) * gSerializedSizes[pTest->fieldType]) {
+                    return InvalidSavedField;
+                }
 				for ( j = 0; j < pTest->fieldSize; j++ )
 				{
-					void *pOutputData = ((char *)pBaseData + pTest->fieldOffset + (j*gSizes[pTest->fieldType]) );
-					void *pInputData = (char *)pData + j * gSizes[pTest->fieldType];
+					void *pOutputData = ((char *)pBaseData + pTest->fieldOffset + (j * pTest->nativeStride) );
+					void *pInputData = (char *)pData + j * gSerializedSizes[pTest->fieldType];
 
 					switch( pTest->fieldType )
 					{
 					case FIELD_TIME:
-						timeData = *(float *)pInputData;
+						timeData = cse::save::detail::ReadNativeInteger<float>(pInputData);
 						// Re-base time variables
 						timeData += time;
 						*((float *)pOutputData) = timeData;
 					break;
 					case FIELD_FLOAT:
-						*((float *)pOutputData) = *(float *)pInputData;
+						*((float *)pOutputData) = cse::save::detail::ReadNativeInteger<float>(pInputData);
 					break;
 					case FIELD_MODELNAME:
 					case FIELD_SOUNDNAME:
@@ -2384,14 +2438,14 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						}
 						pInputData = pString;
 						if ( strlen( (char *)pInputData ) == 0 )
-							*((int *)pOutputData) = 0;
+							*static_cast<string_t *>(pOutputData) = 0;
 						else
 						{
-							int string;
+							string_t string;
 
 							string = ALLOC_STRING( (char *)pInputData );
 
-							*((int *)pOutputData) = string;
+							*static_cast<string_t *>(pOutputData) = string;
 
 							if ( !FStringNull( string ) && m_precache )
 							{
@@ -2403,7 +2457,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						}
 					break;
 					case FIELD_EVARS:
-						entityIndex = *( int *)pInputData;
+						entityIndex = cse::save::detail::ReadNativeInteger<int>(pInputData);
 						pent = EntityFromIndex( entityIndex );
 						if ( pent )
 							*((entvars_t **)pOutputData) = VARS(pent);
@@ -2411,7 +2465,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((entvars_t **)pOutputData) = NULL;
 					break;
 					case FIELD_CLASSPTR:
-						entityIndex = *( int *)pInputData;
+						entityIndex = cse::save::detail::ReadNativeInteger<int>(pInputData);
 						pent = EntityFromIndex( entityIndex );
 						if ( pent )
 							*((CBaseEntity **)pOutputData) = CBaseEntity::Instance(pent);
@@ -2419,14 +2473,12 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((CBaseEntity **)pOutputData) = NULL;
 					break;
 					case FIELD_EDICT:
-						entityIndex = *( int *)pInputData;
+						entityIndex = cse::save::detail::ReadNativeInteger<int>(pInputData);
 						pent = EntityFromIndex( entityIndex );
 						*((edict_t **)pOutputData) = pent;
 					break;
 					case FIELD_EHANDLE:
-						// Input and Output sizes are different!
-						pOutputData = (char *)pOutputData + j*(sizeof(EHANDLE) - gSizes[pTest->fieldType]);
-						entityIndex = *( int *)pInputData;
+						entityIndex = cse::save::detail::ReadNativeInteger<int>(pInputData);
 						pent = EntityFromIndex( entityIndex );
 						if ( pent )
 							*((EHANDLE *)pOutputData) = CBaseEntity::Instance(pent);
@@ -2434,39 +2486,38 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 							*((EHANDLE *)pOutputData) = NULL;
 					break;
 					case FIELD_ENTITY:
-						entityIndex = *( int *)pInputData;
+						entityIndex = cse::save::detail::ReadNativeInteger<int>(pInputData);
 						pent = EntityFromIndex( entityIndex );
 						if ( pent )
 							*((EOFFSET *)pOutputData) = OFFSET(pent);
 						else
 							*((EOFFSET *)pOutputData) = 0;
 					break;
-					case FIELD_VECTOR:
-						((float *)pOutputData)[0] = ((float *)pInputData)[0];
-						((float *)pOutputData)[1] = ((float *)pInputData)[1];
-						((float *)pOutputData)[2] = ((float *)pInputData)[2];
-					break;
-					case FIELD_POSITION_VECTOR:
-						((float *)pOutputData)[0] = ((float *)pInputData)[0] + position.x;
-						((float *)pOutputData)[1] = ((float *)pInputData)[1] + position.y;
-						((float *)pOutputData)[2] = ((float *)pInputData)[2] + position.z;
-					break;
+                    case FIELD_VECTOR:
+                        std::memcpy(pOutputData, pInputData, sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS);
+                        break;
+                    case FIELD_POSITION_VECTOR: {
+                        float input[CSE_SAVE_VECTOR_COMPONENTS];
+                        std::memcpy(input, pInputData, sizeof(input));
+                        const float output[CSE_SAVE_VECTOR_COMPONENTS] = {
+                            input[0] + position.x, input[1] + position.y, input[2] + position.z
+                        };
+                        std::memcpy(pOutputData, output, sizeof(output));
+                        break;
+                    }
 
-					case FIELD_BOOLEAN:
-					case FIELD_INTEGER:
-						*((int *)pOutputData) = *( int *)pInputData;
-					break;
+
 
 					case FIELD_SHORT:
-						*((short *)pOutputData) = *( short *)pInputData;
+						std::memcpy(pOutputData, pInputData, sizeof(short));
 					break;
 
 					case FIELD_CHARACTER:
-						*((char *)pOutputData) = *( char *)pInputData;
+						std::memcpy(pOutputData, pInputData, sizeof(char));
 					break;
 
 					case FIELD_POINTER:
-						*((int *)pOutputData) = *( int *)pInputData;
+						*((int *)pOutputData) = cse::save::detail::ReadNativeInteger<int>(pInputData);
 					break;
 
 					default:
@@ -2515,6 +2566,10 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	// Clear out base data
 	for ( i = 0; i < fieldCount; i++ )
 	{
+        if (!cse::save::ValidFieldStorage(pFields[i])) {
+            ALERT(at_error, "Invalid native restore field storage: %s\n", pFields[i].fieldName);
+            return 0;
+        }
 		// Don't clear global fields
         if (!m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL)) {
             void *storage = static_cast<char *>(pBaseData) + pFields[i].fieldOffset;
@@ -2524,7 +2579,7 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
                     return 0;
                 }
             } else {
-                memset(storage, 0, pFields[i].fieldSize * gSizes[pFields[i].fieldType]);
+                cse::save::ClearNativeField(pFields[i], storage);
             }
         }
 	}
@@ -2533,7 +2588,7 @@ int CRestore::ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *p
 	{
 		BufferReadHeader( &header );
 		lastField = ReadField( pBaseData, pFields, fieldCount, lastField, header.size, m_pdata->pTokens[header.token], header.pData );
-        if (lastField == InvalidSavedCallbackField) {
+        if (lastField == InvalidSavedField) {
             return 0;
         }
 		lastField++;

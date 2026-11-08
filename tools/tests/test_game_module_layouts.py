@@ -24,7 +24,7 @@ class GameModuleLayoutTests(unittest.TestCase):
         result = layouts.generate(root)
         self.assertGreater(result['enginefuncs_t'], 150)
         self.assertGreater(result['DLL_FUNCTIONS'], 40)
-        self.assertEqual(result['TYPEDESCRIPTION'], 5)
+        self.assertEqual(result['TYPEDESCRIPTION'], 8)
         text = (root / 'GoldSrc-SDK/common/generated_game_module_layouts.h').read_text()
         self.assertIn('offsetof(TYPEDESCRIPTION, fieldOffset)', text)
         self.assertIn('alignof(decltype(((TYPEDESCRIPTION *)nullptr)->fieldOffset))', text)

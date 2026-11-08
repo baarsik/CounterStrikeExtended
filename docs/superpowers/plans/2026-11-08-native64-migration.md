@@ -217,4 +217,21 @@ fixtures pass in Release/Debug on the three native targets and Win32.
 Probes against both rebuilt Win32 game DLLs also pass in both configurations,
 rejecting stale metadata and legacy exchanges before and after binding. Win32 startup, legacy Half-Life load/save/reload and CS gameplay/replay pass in
 both configurations with the handshake enabled.
-Build-tool tests pass48/48. Save metadata's native widths have not changed yet.
+Build-tool tests pass48/48. Save metadata now carries compiler-derived native storage facts separately from
+legacy encoded widths.
+
+
+The save-field bridge now uses native spans for emptiness, clearing and array
+strides. Integers keep four-byte little-endian payloads: signed 64-bit storage is
+checked and extended correctly, narrow fields preserve their original low bytes,
+and legacy C++ Boolean payloads ignore neighboring bytes. Int-backed BOOL values
+retain their complete value. Strings keep their original symbolic envelopes and
+receive bounded payload checks; variable-length fields no longer require aligned
+integer/float reads. The expanded metadata ABI is covered by the engine/game guard.
+
+Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
+round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
+Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
+save/load and CS recording/replay also pass in both Win32 configurations. Native
+engine-string offsets, C4 sound phases, explicit demo/navigation records and full
+native game file round trips remain pending.

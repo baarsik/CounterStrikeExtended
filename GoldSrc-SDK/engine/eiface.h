@@ -414,7 +414,28 @@ typedef enum _fieldtypes
 #define offsetof(s,m)	(size_t)&(((s *)0)->m)
 #endif
 
-#define _FIELD(type,name,fieldtype,count,flags)		{ fieldtype, #name, offsetof(type, name), count, flags }
+#include "../common/save_field_storage.h"
+
+#ifdef __cplusplus
+#define CSE_SAVE_NATIVE_STRIDE(type, name, fieldtype, count) \
+    ((fieldtype) == FIELD_CHARACTER ? sizeof(char) \
+        : (((fieldtype) == FIELD_VECTOR || (fieldtype) == FIELD_POSITION_VECTOR) \
+            ? sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS \
+            : cse::save::NativeStorageTraits<decltype(((type *)nullptr)->name)>::Stride))
+#define CSE_SAVE_NATIVE_FLAGS(type, name) \
+    cse::save::NativeStorageTraits<decltype(((type *)nullptr)->name)>::Flags
+#else
+#define CSE_SAVE_NATIVE_STRIDE(type, name, fieldtype, count) \
+    ((fieldtype) == FIELD_CHARACTER ? sizeof(char) \
+        : (((fieldtype) == FIELD_VECTOR || (fieldtype) == FIELD_POSITION_VECTOR) \
+            ? sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS : sizeof(((type *)0)->name) / (count)))
+#define CSE_SAVE_NATIVE_FLAGS(type, name) 0
+#endif
+
+#define _FIELD(type, name, fieldtype, count, flags) \
+    { fieldtype, #name, offsetof(type, name), count, flags, \
+        CSE_SAVE_NATIVE_STRIDE(type, name, fieldtype, count), CSE_SAVE_NATIVE_FLAGS(type, name), \
+        sizeof(((type *)0)->name) }
 #define DEFINE_FIELD(type,name,fieldtype)			_FIELD(type, name, fieldtype, 1, 0)
 #define DEFINE_ARRAY(type,name,fieldtype,count)		_FIELD(type, name, fieldtype, count, 0)
 #define DEFINE_ENTITY_FIELD(name,fieldtype)			_FIELD(entvars_t, name, fieldtype, 1, 0 )
@@ -426,11 +447,15 @@ typedef enum _fieldtypes
 
 typedef struct 
 {
-	FIELDTYPE		fieldType;
-	char			*fieldName;
-	int				fieldOffset;
-	short			fieldSize;
-	short			flags;
+    FIELDTYPE fieldType;
+    const char *fieldName;
+    int fieldOffset;
+    short fieldSize;
+    short flags;
+    // Native storage facts never change the legacy field's encoded width.
+    unsigned int nativeStride;
+    unsigned int nativeFlags;
+    unsigned int nativeBytes;
 } TYPEDESCRIPTION;
 
 #ifndef ARRAYSIZE

@@ -1633,9 +1633,9 @@ void FileCopy( FileHandle_t pOutput, FileHandle_t pInput, int fileSize )
 
 TYPEDESCRIPTION gGameHeaderDescription[] =
 {
-	{ FIELD_INTEGER, "mapCount", offsetof( GAME_HEADER, mapCount ), 1, 0 },
-	{ FIELD_CHARACTER, "mapName", offsetof( GAME_HEADER, mapName ), 32, 0 },
-	{ FIELD_CHARACTER, "comment", offsetof( GAME_HEADER, comment ), 80, 0 },
+	DEFINE_FIELD( GAME_HEADER, mapCount, FIELD_INTEGER ),
+	DEFINE_ARRAY( GAME_HEADER, mapName, FIELD_CHARACTER, 32 ),
+	DEFINE_ARRAY( GAME_HEADER, comment, FIELD_CHARACTER, 80 ),
 };
 
 void SaveExit( SAVERESTOREDATA* save )
@@ -1677,42 +1677,42 @@ int SaveReadHeader( FileHandle_t pFile, GAME_HEADER* pHeader, int readGlobalStat
 
 TYPEDESCRIPTION gEntityTableDescription[] =
 {
-	{ FIELD_INTEGER, "id", offsetof( ENTITYTABLE, id ), 1, 0 },
-	{ FIELD_INTEGER, "location", offsetof( ENTITYTABLE, location ), 1, 0 },
-	{ FIELD_INTEGER, "size", offsetof( ENTITYTABLE, size ), 1, 0 },
-	{ FIELD_INTEGER, "flags", offsetof( ENTITYTABLE, flags ), 1, 0 },
-	{ FIELD_STRING, "classname", offsetof( ENTITYTABLE, classname ), 1, 0 },
+	DEFINE_FIELD( ENTITYTABLE, id, FIELD_INTEGER ),
+	DEFINE_FIELD( ENTITYTABLE, location, FIELD_INTEGER ),
+	DEFINE_FIELD( ENTITYTABLE, size, FIELD_INTEGER ),
+	DEFINE_FIELD( ENTITYTABLE, flags, FIELD_INTEGER ),
+	DEFINE_FIELD( ENTITYTABLE, classname, FIELD_STRING ),
 };
 
 TYPEDESCRIPTION gSaveHeaderDescription[] =
 {
-	{ FIELD_INTEGER, "skillLevel", offsetof( SAVE_HEADER, skillLevel ), 1, 0 },
-	{ FIELD_INTEGER, "entityCount", offsetof( SAVE_HEADER, entityCount ), 1, 0 },
-	{ FIELD_INTEGER, "connectionCount", offsetof( SAVE_HEADER, connectionCount ), 1, 0 },
-	{ FIELD_INTEGER, "lightStyleCount", offsetof( SAVE_HEADER, lightStyleCount ), 1, 0 },
-	{ FIELD_TIME, "time", offsetof( SAVE_HEADER, time ), 1, 0 },
-	{ FIELD_CHARACTER, "mapName", offsetof( SAVE_HEADER, mapName ), 32, 0 },
-	{ FIELD_CHARACTER, "skyName", offsetof( SAVE_HEADER, skyName ), 32, 0 },
-	{ FIELD_INTEGER, "skyColor_r", offsetof( SAVE_HEADER, skyColor_r ), 1, 0 },
-	{ FIELD_INTEGER, "skyColor_g", offsetof( SAVE_HEADER, skyColor_g ), 1, 0 },
-	{ FIELD_INTEGER, "skyColor_b", offsetof( SAVE_HEADER, skyColor_b ), 1, 0 },
-	{ FIELD_FLOAT, "skyVec_x", offsetof( SAVE_HEADER, skyVec_x ), 1, 0 },
-	{ FIELD_FLOAT, "skyVec_y", offsetof( SAVE_HEADER, skyVec_y ), 1, 0 },
-	{ FIELD_FLOAT, "skyVec_z", offsetof( SAVE_HEADER, skyVec_z ), 1, 0 },
+	DEFINE_FIELD( SAVE_HEADER, skillLevel, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, entityCount, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, connectionCount, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, lightStyleCount, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, time, FIELD_TIME ),
+	DEFINE_ARRAY( SAVE_HEADER, mapName, FIELD_CHARACTER, 32 ),
+	DEFINE_ARRAY( SAVE_HEADER, skyName, FIELD_CHARACTER, 32 ),
+	DEFINE_FIELD( SAVE_HEADER, skyColor_r, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, skyColor_g, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, skyColor_b, FIELD_INTEGER ),
+	DEFINE_FIELD( SAVE_HEADER, skyVec_x, FIELD_FLOAT ),
+	DEFINE_FIELD( SAVE_HEADER, skyVec_y, FIELD_FLOAT ),
+	DEFINE_FIELD( SAVE_HEADER, skyVec_z, FIELD_FLOAT ),
 };
 
 TYPEDESCRIPTION gAdjacencyDescription[] =
 {
-	{ FIELD_CHARACTER, "mapName", offsetof( LEVELLIST, mapName ), 32, 0 },
-	{ FIELD_CHARACTER, "landmarkName", offsetof( LEVELLIST, landmarkName ), 32, 0 },
-	{ FIELD_EDICT, "pentLandmark", offsetof( LEVELLIST, pentLandmark ), 1, 0 },
-	{ FIELD_VECTOR, "vecLandmarkOrigin", offsetof( LEVELLIST, vecLandmarkOrigin ), 1, 0 },
+	DEFINE_ARRAY( LEVELLIST, mapName, FIELD_CHARACTER, 32 ),
+	DEFINE_ARRAY( LEVELLIST, landmarkName, FIELD_CHARACTER, 32 ),
+	DEFINE_FIELD( LEVELLIST, pentLandmark, FIELD_EDICT ),
+	DEFINE_FIELD( LEVELLIST, vecLandmarkOrigin, FIELD_VECTOR ),
 };
 
 TYPEDESCRIPTION gLightstyleDescription[] =
 {
-	{ FIELD_INTEGER, "index", offsetof( SAVELIGHTSTYLE, index ), 1, 0 },
-	{ FIELD_CHARACTER, "style", offsetof( SAVELIGHTSTYLE, style ), MAX_LIGHTSTYLES, 0 },
+	DEFINE_FIELD( SAVELIGHTSTYLE, index, FIELD_INTEGER ),
+	DEFINE_ARRAY( SAVELIGHTSTYLE, style, FIELD_CHARACTER, MAX_LIGHTSTYLES ),
 };
 
 SAVERESTOREDATA* LoadSaveData( const char* level )

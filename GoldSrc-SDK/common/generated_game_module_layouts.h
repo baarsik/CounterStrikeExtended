@@ -469,6 +469,12 @@ constexpr Descriptor GameModuleDescriptor = Describe({
         alignof(decltype(((TYPEDESCRIPTION *)nullptr)->fieldSize)),
         offsetof(TYPEDESCRIPTION, flags), sizeof(((TYPEDESCRIPTION *)nullptr)->flags),
         alignof(decltype(((TYPEDESCRIPTION *)nullptr)->flags)),
+        offsetof(TYPEDESCRIPTION, nativeStride), sizeof(((TYPEDESCRIPTION *)nullptr)->nativeStride),
+        alignof(decltype(((TYPEDESCRIPTION *)nullptr)->nativeStride)),
+        offsetof(TYPEDESCRIPTION, nativeFlags), sizeof(((TYPEDESCRIPTION *)nullptr)->nativeFlags),
+        alignof(decltype(((TYPEDESCRIPTION *)nullptr)->nativeFlags)),
+        offsetof(TYPEDESCRIPTION, nativeBytes), sizeof(((TYPEDESCRIPTION *)nullptr)->nativeBytes),
+        alignof(decltype(((TYPEDESCRIPTION *)nullptr)->nativeBytes)),
     })},
     {static_cast<std::uint32_t>(GameTable::SaveBuffer), 0, LayoutHash({
         sizeof(SAVERESTOREDATA), alignof(SAVERESTOREDATA),
