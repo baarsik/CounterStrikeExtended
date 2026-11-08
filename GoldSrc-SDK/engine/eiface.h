@@ -17,6 +17,7 @@
 
 #include "archtypes.h"     // DAL
 #include "cse_string.h"
+#include "cse_entity.h"
 
 #ifdef HLDEMO_BUILD
 #define INTERFACE_VERSION       001
@@ -183,8 +184,8 @@ typedef struct enginefuncs_s
 	const char*	(*pfnSzFromIndex)			(string_t iString);
 	string_t		(*pfnAllocString)			(const char *szValue);
 	struct entvars_s*	(*pfnGetVarsOfEnt)			(edict_t *pEdict);
-	edict_t*	(*pfnPEntityOfEntOffset)	(int iEntOffset);
-	int			(*pfnEntOffsetOfPEntity)	(const edict_t *pEdict);
+	edict_t*	(*pfnPEntityOfEntOffset)	(EOFFSET iEntOffset);
+	EOFFSET		(*pfnEntOffsetOfPEntity)	(const edict_t *pEdict);
 	int			(*pfnIndexOfEdict)			(const edict_t *pEdict);
 	edict_t*	(*pfnPEntityOfEntIndex)		(int iEntIndex);
 	edict_t*	(*pfnFindEntityByVars)		(struct entvars_s* pvars);
@@ -427,6 +428,8 @@ constexpr unsigned int CseSaveNativeStride() {
     static_assert((Kind != FIELD_STRING && Kind != FIELD_MODELNAME && Kind != FIELD_SOUNDNAME)
                       || stride == sizeof(string_t),
                   "Saved engine strings must use native string_t storage");
+    static_assert(Kind != FIELD_ENTITY || stride == sizeof(EOFFSET),
+                  "Saved entity offsets must use native EOFFSET storage");
     return static_cast<unsigned int>(Kind == FIELD_CHARACTER ? sizeof(char)
         : ((Kind == FIELD_VECTOR || Kind == FIELD_POSITION_VECTOR)
             ? sizeof(float) * CSE_SAVE_VECTOR_COMPONENTS : stride));

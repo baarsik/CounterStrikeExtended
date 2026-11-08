@@ -1043,7 +1043,7 @@ char UTIL_TextureHit( TraceResult* trace, Vector source, Vector end )
 		texture = TRACE_TEXTURE( ENT( entity->pev ), source, end );
 	}
 	else
-		texture = TRACE_TEXTURE( ENT( 0 ), source, end );
+		texture = TRACE_TEXTURE( ENT(eoNullEntity), source, end );
 	if ( !texture )
 		return 0;
 	if ( *texture == '+' || *texture == '-' )

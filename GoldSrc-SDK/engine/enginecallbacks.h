@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cse_entity.h"
+
 #include "server.h"
 #include "cmd.h"
 #include "crc.h"
@@ -94,8 +96,8 @@ void*				PvEntPrivateData( edict_t* entity );
 const char*			SzFromIndex( string_t index );
 string_t					AllocEngineString( const char* value );
 entvars_t*			GetVarsOfEnt( edict_t* entity );
-edict_t*			PEntityOfEntOffset( int offset );
-int					EntOffsetOfPEntity( const edict_t* entity );
+edict_t*			PEntityOfEntOffset( EOFFSET offset );
+EOFFSET					EntOffsetOfPEntity( const edict_t* entity );
 edict_t*			PEntityOfEntIndex( int index );
 edict_t*			PEntityOfEntIndexAllEntities( int index );
 edict_t*			FindEntityByVars( entvars_t* variables );

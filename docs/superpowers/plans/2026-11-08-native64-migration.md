@@ -312,3 +312,16 @@ Loaded module hashes identify baseline/current binaries, and the sealed baseline
 remains intact. All 19 Win32 targets build; CS/HL record/replay and captured
 Half-Life save/load also pass. These remain maintained-Win32 and standalone-native
 component results, not native whole-game qualification.
+
+Entity byte offsets now use native signed pointer-width storage, while network
+indices and saved entity IDs retain four-byte values. Engine conversions check
+pool bounds, alignment, allocation counts and address arithmetic before indexing;
+foreign pointers cannot wrap into the pool. Typed world-zero lookups avoid null
+pointer overload ambiguity. Runtime ABI version 3 rejects older game modules.
+Fixtures execute the production engine conversions at high addresses across
+Win32, Windows x64/ARM64 and macOS ARM64 Release/Debug; macOS sanitizers pass.
+Actual rebuilt Win32 CS/HL DLL probes preserve the legacy entity-ID envelopes,
+remap references on restore and protect array tails. All 19 Win32 targets build;
+legacy Half-Life load/save/reload and both games' recordings/replays pass in both
+configurations. Captured module hashes match their producers. Native whole-game
+entity/save acceptance and the remaining Task 3 boundaries are still pending.

@@ -280,7 +280,7 @@ public:
 	static CBaseEntity *Instance( edict_t *pent )
 	{ 
 		if ( !pent )
-			pent = ENT(0);
+			pent = ENT(eoNullEntity);
 		CBaseEntity *pEnt = (CBaseEntity *)GET_PRIVATE(pent); 
 		return pEnt; 
 	}

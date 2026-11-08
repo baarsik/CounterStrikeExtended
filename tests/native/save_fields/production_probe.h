@@ -149,3 +149,75 @@ inline bool CheckProductionStringFields(const DLL_FUNCTIONS &api, const enginefu
         && std::strcmp(CseStringAddress(globals.pStringBase, restored.model), model) == 0
         && std::strcmp(CseStringAddress(globals.pStringBase, restored.sound), sound) == 0;
 }
+
+inline bool CheckProductionEntityFields(const DLL_FUNCTIONS &api, const enginefuncs_t &engine, edict_t *entities) {
+    struct References {
+        std::uint32_t before;
+        EOFFSET offsets[3];
+        EOFFSET missing;
+        std::uint32_t after;
+    };
+    constexpr std::uint32_t guard = UINT32_C(0x1234abcd);
+    constexpr EOFFSET tailGuard = 77;
+    References source{guard, {engine.pfnEntOffsetOfPEntity(entities + 1), 0, tailGuard},
+                      engine.pfnEntOffsetOfPEntity(entities + 2), guard};
+    TYPEDESCRIPTION fields[] = {
+        DEFINE_ARRAY(References, offsets, FIELD_ENTITY, 2),
+        DEFINE_FIELD(References, missing, FIELD_ENTITY)
+    };
+    std::array<char, 4096> bytes{};
+    std::array<char *, 128> tokens{};
+    std::array<ENTITYTABLE, 2> entityTable{};
+    entityTable[0].id = 0;
+    entityTable[0].pent = entities;
+    entityTable[1].id = 1;
+    entityTable[1].pent = entities + 1;
+    SAVERESTOREDATA save{};
+    save.pBaseData = bytes.data();
+    save.pCurrentData = bytes.data();
+    save.bufferSize = static_cast<int>(bytes.size());
+    save.tokenCount = static_cast<int>(tokens.size());
+    save.pTokens = tokens.data();
+    save.tableCount = static_cast<int>(entityTable.size());
+    save.pTable = entityTable.data();
+    api.pfnSaveWriteFields(&save, "CSE_NATIVE_ENTITIES", &source, fields, static_cast<int>(std::size(fields)));
+    constexpr std::size_t headerBytes = 2 * sizeof(std::uint16_t);
+    constexpr std::uint32_t expectedFields = 2;
+    std::uint32_t count = 0;
+    std::memcpy(&count, bytes.data() + headerBytes, sizeof(count));
+    if (count != expectedFields) {
+        return false;
+    }
+    // Offsets become signed four-byte entity-table IDs, including world zero and missing minus one.
+    const std::int32_t expectedIds[] = {1, 0, -1};
+    const std::size_t fieldCounts[] = {2, 1};
+    std::size_t cursor = headerBytes + sizeof(count);
+    std::size_t nextId = 0;
+    for (const auto fieldCount : fieldCounts) {
+        std::uint16_t payloadBytes = 0;
+        std::memcpy(&payloadBytes, bytes.data() + cursor, sizeof(payloadBytes));
+        cursor += headerBytes;
+        const auto expectedBytes = fieldCount * sizeof(std::int32_t);
+        if (payloadBytes != expectedBytes
+            || std::memcmp(bytes.data() + cursor, expectedIds + nextId, expectedBytes) != 0) {
+            std::fprintf(stderr, "Native entity offset escaped the legacy entity-ID envelope\n");
+            return false;
+        }
+        cursor += payloadBytes;
+        nextId += fieldCount;
+    }
+    if (cursor != static_cast<std::size_t>(save.size)) {
+        return false;
+    }
+    // Restore against a different pool mapping: only the IDs survive the file boundary.
+    entityTable[0].pent = entities + 1;
+    entityTable[1].pent = entities + 2;
+    References restored{guard, {-1, -1, tailGuard}, -1, guard};
+    save.bufferSize = save.size;
+    save.size = 0;
+    save.pCurrentData = bytes.data();
+    api.pfnSaveReadFields(&save, "CSE_NATIVE_ENTITIES", &restored, fields, static_cast<int>(std::size(fields)));
+    return restored.before == guard && restored.after == guard && restored.offsets[2] == tailGuard
+        && restored.offsets[0] == engine.pfnEntOffsetOfPEntity(entities + 2)
+        && restored.offsets[1] == engine.pfnEntOffsetOfPEntity(entities + 1) && restored.missing == 0;
+}

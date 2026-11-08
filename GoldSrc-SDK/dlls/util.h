@@ -71,7 +71,7 @@ inline edict_t *FIND_ENTITY_BY_TARGET(edict_t *entStart, const char *pszName)
 #define CONSTANT
 
 // More explicit than "int"
-typedef int EOFFSET;
+#include "cse_entity.h"
 
 // In case it's not alread defined
 typedef int BOOL;
@@ -145,7 +145,7 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin, ent
 }
 
 // Testing the three types of "entity" for nullity
-#define eoNullEntity 0
+#define eoNullEntity cse::entities::WorldOffset
 inline BOOL FNullEnt(EOFFSET eoffset)			{ return eoffset == 0; }
 inline BOOL FNullEnt(const edict_t* pent)	{ return pent == NULL || FNullEnt(OFFSET(pent)); }
 inline BOOL FNullEnt(entvars_t* pev)				{ return pev == NULL || FNullEnt(OFFSET(pev)); }

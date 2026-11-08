@@ -372,7 +372,7 @@ void CGrenade::BounceTouch( CBaseEntity* pOther )
 			BounceSound();
 		if ( m_iBounceCount > 9 )
 		{
-			pev->groundentity = ENT( 0 );
+			pev->groundentity = ENT(eoNullEntity);
 			pev->flags |= FL_ONGROUND;
 			pev->velocity = g_vecZero;
 		}

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iterator>
+#include <new>
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -18,6 +19,7 @@ typedef float vec3_t[3];
 #include "../../../GoldSrc-SDK/engine/eiface.h"
 #include "../../../GoldSrc-SDK/common/game_module_entry.h"
 #include "../../../GoldSrc-SDK/common/generated_game_module_layouts.h"
+#include "../../../GoldSrc-SDK/common/native_entity_offsets.h"
 #include "../save_fields/production_probe.h"
 #include "../strings/high_offset_buffer.h"
 
@@ -27,6 +29,21 @@ char *stringStorage = nullptr;
 std::size_t stringCursor = 0;
 string_t lastAllocatedString = 0;
 constexpr std::size_t StringStorageBytes = 4096;
+constexpr std::size_t EntityCount = 3;
+edict_t *entityStorage = nullptr;
+
+edict_t *LookupFixtureEntity(EOFFSET offset) {
+    std::int32_t index = 0;
+    return cse::entities::IndexFromOffset(entityStorage, EntityCount, offset, index) ? entityStorage + index : nullptr;
+}
+
+EOFFSET OffsetOfFixtureEntity(const edict_t *entity) {
+    EOFFSET offset = cse::entities::WorldOffset;
+    if (entity && !cse::entities::OffsetFromEntity(entityStorage, EntityCount, entity, offset)) {
+        std::abort();
+    }
+    return offset;
+}
 
 string_t AllocateFixtureString(const char *text) {
     const auto bytes = std::strlen(text) + 1;
@@ -109,6 +126,14 @@ static bool Probe(const char *path) {
     }
     stringStorage = storage.get();
     stringCursor = 0;
+    HighOffsetBuffer entityBuffer(nullptr);
+    if (!entityBuffer.get()) {
+        return false;
+    }
+    entityStorage = reinterpret_cast<edict_t *>(entityBuffer.get());
+    for (std::size_t index = 0; index < EntityCount; ++index) {
+        new (entityStorage + index) edict_t{};
+    }
     GameModule module(path);
     if (!module) {
         std::fprintf(stderr, "Cannot load game module: %s\n", path);
@@ -140,6 +165,8 @@ static bool Probe(const char *path) {
     functions.pfnAllocString = AllocateFixtureString;
     functions.pfnPrecacheModel = PrecacheFixtureString;
     functions.pfnPrecacheSound = PrecacheFixtureString;
+    functions.pfnPEntityOfEntOffset = LookupFixtureEntity;
+    functions.pfnEntOffsetOfPEntity = OffsetOfFixtureEntity;
     globals.pStringBase = emptyString;
     DLL_FUNCTIONS table;
     constexpr unsigned char guardByte = 0xa5;
@@ -171,6 +198,9 @@ static bool Probe(const char *path) {
         return false;
     }
     if (!CheckProductionStringFields(table, functions, globals)) {
+        return false;
+    }
+    if (!CheckProductionEntityFields(table, functions, entityStorage)) {
         return false;
     }
     if (!CheckProductionKeyValues(table)) {

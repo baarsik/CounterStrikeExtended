@@ -3235,7 +3235,7 @@ void CBasePlayer::WaterMove()
 			pev->dmg++;
 			if ( pev->dmg > 5 )
 				pev->dmg = 5;
-			TakeDamage( VARS( ENT( 0 ) ), VARS( ENT( 0 ) ), pev->dmg, DMG_DROWN );
+			TakeDamage( VARS( ENT(eoNullEntity) ), VARS( ENT(eoNullEntity) ), pev->dmg, DMG_DROWN );
 			pev->pain_finished = gpGlobals->time + 1;
 			m_idrowndmg = (int)( m_idrowndmg + pev->dmg );
 		}
@@ -3293,12 +3293,12 @@ void CBasePlayer::WaterMove()
 	if ( pev->watertype == CONTENTS_LAVA )		// do damage
 	{
 		if ( gpGlobals->time > pev->dmgtime )
-			TakeDamage( VARS( ENT( 0 ) ), VARS( ENT( 0 ) ), (float)( 10 * pev->waterlevel ), DMG_BURN );
+			TakeDamage( VARS( ENT(eoNullEntity) ), VARS( ENT(eoNullEntity) ), (float)( 10 * pev->waterlevel ), DMG_BURN );
 	}
 	else if ( pev->watertype == CONTENTS_SLIME )		// do damage
 	{
 		pev->dmgtime = gpGlobals->time + 1;
-		TakeDamage( VARS( ENT( 0 ) ), VARS( ENT( 0 ) ), (float)( 4 * pev->waterlevel ), DMG_ACID );
+		TakeDamage( VARS( ENT(eoNullEntity) ), VARS( ENT(eoNullEntity) ), (float)( 4 * pev->waterlevel ), DMG_ACID );
 	}
 	if ( !( pev->flags & FL_INWATER ) )
 	{

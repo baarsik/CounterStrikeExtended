@@ -72,26 +72,7 @@ void* PvAllocEntPrivateData( edict_t* entity, std::int32_t size )
 	return entity->pvPrivateData;
 }
 
-edict_t* PEntityOfEntOffset( int offset )
-{
-	return reinterpret_cast<edict_t*>( reinterpret_cast<char*>( sv.edicts ) + offset );
-}
-
-int EntOffsetOfPEntity( const edict_t* entity )
-{
-	return static_cast<int>( reinterpret_cast<const char*>( entity ) - reinterpret_cast<const char*>( sv.edicts ) );
-}
-
-int IndexOfEdict( const edict_t* entity )
-{
-	if ( !entity )
-		return 0;
-	int offset = EntOffsetOfPEntity( entity );
-	int index = offset / static_cast<int>( sizeof( edict_t ) );
-	if ( index < 0 || index > sv.max_edicts )
-		Sys_Error( "Bad entity in IndexOfEdict()" );
-	return index;
-}
+#include "entity_offsets_impl.h"
 
 edict_t* PEntityOfEntIndex( int index )
 {
@@ -208,15 +189,6 @@ void* PvEntPrivateData( edict_t* entity )
 entvars_t* GetVarsOfEnt( edict_t* entity )
 {
 	return &entity->v;
-}
-
-int NUM_FOR_EDICT( const edict_t* entity )
-{
-	std::uintptr_t offset = reinterpret_cast<std::uintptr_t>( entity ) - reinterpret_cast<std::uintptr_t>( sv.edicts );
-	int index = static_cast<int>( offset / sizeof( edict_t ) );
-	if ( index >= sv.num_edicts )
-		Sys_Error( "NUM_FOR_EDICT: bad pointer" );
-	return index;
 }
 
 static qboolean SuckOutClassname( const char* data, edict_t* entity )
@@ -395,13 +367,6 @@ void SaveSpawnParms( edict_t* entity )
 	int index = NUM_FOR_EDICT( entity );
 	if ( index < 1 || index > svs.maxclients )
 		Host_Error( "Entity is not a client" );
-}
-
-edict_t* EDICT_NUM( int index )
-{
-	if ( index < 0 || index >= sv.max_edicts )
-		Sys_Error( "EDICT_NUM: bad number %i", index );
-	return &sv.edicts[index];
 }
 
 extern cvar_t deathmatch;
