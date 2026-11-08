@@ -256,6 +256,14 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   targets and six save/gameplay/replay regressions pass with producing hashes
   checked. Presented scenes,
   complete rendering and SDL_GPU acceptance remain open.
+- **Native loader boundary:** shared owning/borrowed loading and symbol lookup
+  preserve per-owner Windows main-executable fallback policies. Native suffixes,
+  high addresses, data ordinals, repeated ownership and hidden-image visibility
+  pass actual-source fixtures across Windows x86/x64/ARM64 and macOS ARM64
+  Release/Debug; Windows pinned-reference comparisons pass. Mac sanitizer drivers
+  and loaders pass with only the external reloadable leaf uninstrumented, after
+  an independent direct-loader ASan ODR reproduction. Real providers, other module
+  ABI guards and complete native runtime startup remain open.
 - **Providers/platform/renderer:** official native Steam candidates and stable
   CEF156.0.26 archives are pinned for integration. Real native authentication,
   sessions, voice and browser behavior remain pending, as do the portable

@@ -247,6 +247,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\GameUI\BackgroundMenuButton.h" />
     <ClInclude Include="..\..\GameUI\BasePanel.h" />
     <ClInclude Include="..\..\GameUI\BitmapButton.h" />

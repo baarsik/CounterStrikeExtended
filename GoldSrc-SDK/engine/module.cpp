@@ -1,4 +1,5 @@
 #include "engine_apiproxy.h"
+#include "../public/native_module.h"
 #include "blob.h"
 #include "cmd.h"
 #include "common.h"
@@ -68,17 +69,8 @@ void CloseSecurityModule()
 }
 
 #if !defined( _WIN32 )
-void* GetModuleHandle( char* name )
-{
-	if ( !name )
-		return NULL;
-
-	void* handle = dlopen( name, RTLD_NOW );
-	if ( !handle )
-		return NULL;
-
-	dlclose( handle );
-	return handle;
+void* GetModuleHandle(char* name) {
+    return cse_platform::FindLoadedModule(name);
 }
 
 void CommonLoadSecurityModule( void* nAddrModule )

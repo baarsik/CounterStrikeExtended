@@ -375,3 +375,21 @@ updating `expected_pixels.json`; changing the fixture source alone fails the gat
 with `CSE_SURFACE_REFERENCE_MMX=ON` for the Win32 reference build. Normal native
 fixtures exercise the scalar implementation. They do not create a game window
 or establish complete renderer acceptance.
+
+
+## Native module-loading fixtures
+
+```sh
+cmake -S tests/native/module_loading -B build/module-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/module-tests --parallel
+ctest --test-dir build/module-tests --output-on-failure
+```
+
+Use separate Debug and selected architecture directories. The fixture compiles
+actual selected production loader sources and an external shared library. Windows
+checks four owners; POSIX adds HLTV Core and DemoPlayer. An explicitly pinned
+source tree may be selected through `CSE_MODULE_SOURCE_ROOT` for reference checks.
+On macOS, sanitizer qualification uses `CSE_MODULE_SANITIZE_LEAF=OFF` to keep the
+reloadable external leaf uninstrumented while retaining sanitizer instrumentation
+in production loaders and fixture executables; see the documented ASan reproduction
+in the portability inventory. This project does not launch a game or real provider.

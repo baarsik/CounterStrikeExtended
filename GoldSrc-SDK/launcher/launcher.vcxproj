@@ -101,6 +101,7 @@
     <ClCompile Include="public\registry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="common\icommandline.h" />
     <ClInclude Include="public\engine_launcher_api.h" />
     <ClInclude Include="public\filesystem.h" />

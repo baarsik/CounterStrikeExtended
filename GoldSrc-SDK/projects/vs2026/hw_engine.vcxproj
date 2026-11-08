@@ -266,6 +266,7 @@
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\FontManager.cpp" />
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\linuxfont.cpp" />
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\engine\surface_backend_config.h" />
     <ClInclude Include="..\..\common\legacy_float_to_int.h" />
     <ClInclude Include="..\..\vgui2\controls\AnimatingImagePanel.h" />

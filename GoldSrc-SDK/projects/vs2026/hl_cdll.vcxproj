@@ -202,6 +202,7 @@
     <ClCompile Include="..\..\public\interface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\cl_dll\ammo.h" />
     <ClInclude Include="..\..\cl_dll\ammohistory.h" />
     <ClInclude Include="..\..\cl_dll\camera.h" />

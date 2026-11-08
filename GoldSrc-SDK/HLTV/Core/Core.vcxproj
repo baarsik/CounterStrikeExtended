@@ -108,6 +108,7 @@
     <ClCompile Include="private\public\interface.cpp" />
     <ClCompile Include="..\..\common\ObjectList.cpp" />
     <ClCompile Include="..\..\common\TokenLine.cpp" />
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\common\ObjectList.h" />
     <ClInclude Include="..\..\common\IObjectContainer.h" />
     <ClInclude Include="..\..\common\ISystemModule.h" />

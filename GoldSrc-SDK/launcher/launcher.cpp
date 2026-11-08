@@ -1,4 +1,5 @@
 #include "public/tier1/interface.h"
+#include "../public/native_module.h"
 #include "public/engine_launcher_api.h"
 #include "public/filesystem.h"
 #include "common/icommandline.h"
@@ -349,21 +350,8 @@ CreateInterfaceFn Sys_GetFactory( const char* moduleName )
 }
 
 #if !defined(_WIN32)
-void* GetModuleHandle( const char* name )
-{
-	if ( name == NULL )
-	{
-		return NULL;
-	}
-
-	void* module = LoadModuleHandle( name );
-	if ( module == NULL )
-	{
-		return NULL;
-	}
-
-	UnloadModuleHandle( module );
-	return module;
+void* GetModuleHandle(const char* name) {
+    return cse_platform::FindLoadedModule(name);
 }
 #endif
 

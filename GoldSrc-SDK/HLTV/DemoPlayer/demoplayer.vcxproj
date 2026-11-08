@@ -101,6 +101,7 @@
     <ClCompile Include="private\public\interface.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="DemoPlayer.h" />
     <ClInclude Include="private\common\BaseSystemModule.h" />
     <ClInclude Include="private\common\IBaseSystem.h" />

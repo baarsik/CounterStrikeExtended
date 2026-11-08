@@ -1,4 +1,5 @@
 #include "public/tier1/interface.h"
+#include "../../../../public/native_module.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -10,30 +11,8 @@
 // Linux doesn't have this function so this emulates its functionality
 //
 //
-void* GetModuleHandle( const char* name )
-{
-	void* handle;
-
-	if ( name == NULL )
-	{
-		// hmm, how can this be handled under linux....
-		// is it even needed?
-		return NULL;
-	}
-
-	handle = dlopen( name, RTLD_NOW );
-	if ( handle == NULL )
-	{
-		//printf("Error:%s\n",dlerror());
-		// couldn't open this file
-		return NULL;
-	}
-
-	// read "man dlopen" for details
-	// in short dlopen() inc a ref count
-	// so dec the ref count by performing the close
-	dlclose( handle );
-	return handle;
+void* GetModuleHandle(const char* name) {
+    return cse_platform::FindLoadedModule(name);
 }
 #endif
 
@@ -51,14 +30,12 @@ extern "C" void* CreateInterface( const char* pName, int* pReturnCode )
 //			*pName - proc name
 //-----------------------------------------------------------------------------
 //static hlds_run wants to use this function 
-static void* Sys_GetProcAddress( const char* pModuleName, const char* pName )
-{
-	return dlsym( GetModuleHandle( pModuleName ), pName );
+static void* Sys_GetProcAddress(const char* moduleName, const char* name) {
+    return cse_platform::GetSymbol(cse_platform::FindLoadedModule(moduleName), name);
 }
 
-void* Sys_GetProcAddress( void* pModuleHandle, const char* pName )
-{
-	return dlsym( pModuleHandle, pName );
+void* Sys_GetProcAddress(void* module, const char* name) {
+    return cse_platform::GetSymbol(module, name);
 }
 
 //-----------------------------------------------------------------------------
@@ -66,69 +43,16 @@ void* Sys_GetProcAddress( void* pModuleHandle, const char* pName )
 // Input  : *pModuleName - filename of the component
 // Output : opaque handle to the module (hides system dependency)
 //-----------------------------------------------------------------------------
-CSysModule* Sys_LoadModule( const char* pModuleName )
-{
-	void* hDLL;
-	char szAbsoluteModuleName[1024];
-
-	szAbsoluteModuleName[0] = 0;
-
-	if ( pModuleName[0] != '/' )
-	{
-		char szCwd[1024];
-		char szAbsoluteModuleName[1024];
-
-		getcwd( szCwd, sizeof( szCwd ) );
-		if ( szCwd[strlen( szCwd ) - 1] == '/' )
-		{
-			szCwd[strlen( szCwd ) - 1] = 0;
-		}
-
-		snprintf( szAbsoluteModuleName, sizeof( szAbsoluteModuleName ), "%s/%s", szCwd, pModuleName );
-		hDLL = dlopen( szAbsoluteModuleName, RTLD_NOW );
-	}
-	else
-	{
-		snprintf( szAbsoluteModuleName, sizeof( szAbsoluteModuleName ), "%s", pModuleName );
-		hDLL = dlopen( pModuleName, RTLD_NOW );
-	}
-
-	if ( hDLL == NULL )
-	{
-		char str[512];
-
-		printf( "Error:%s\n", dlerror() );
-		snprintf( str, sizeof( str ), "%s.so", szAbsoluteModuleName );
-		hDLL = dlopen( str, RTLD_NOW );
-	}
-
-	return (CSysModule*)hDLL;
+CSysModule* Sys_LoadModule(const char* name) {
+    return static_cast<CSysModule*>(cse_platform::LoadModule(name));
 }
 
-void Sys_UnloadModule( CSysModule* pModule )
-{
-	if ( pModule == NULL )
-	{
-		return;
-	}
-
-	void* hDLL;
-
-	hDLL = pModule;
-	dlclose( hDLL );
+void Sys_UnloadModule(CSysModule* module) {
+    cse_platform::UnloadModule(module);
 }
 
-CreateInterfaceFn Sys_GetFactory( CSysModule* pModule )
-{
-	if ( pModule == NULL )
-	{
-		return NULL;
-	}
-
-	void* hDLL;
-
-	hDLL = pModule;
-	return (CreateInterfaceFn)dlsym( hDLL, "CreateInterface" );
+CreateInterfaceFn Sys_GetFactory(CSysModule* module) {
+    return reinterpret_cast<CreateInterfaceFn>(cse_platform::GetSymbol(module, cse_platform::InterfaceFactorySymbol));
 }
 
 CreateInterfaceFn Sys_GetFactoryThis()
@@ -136,8 +60,7 @@ CreateInterfaceFn Sys_GetFactoryThis()
 	return CreateInterface;
 }
 
-CreateInterfaceFn Sys_GetFactory( const char* pModuleName )
-{
-	return (CreateInterfaceFn)Sys_GetProcAddress( pModuleName, "CreateInterface" );
+CreateInterfaceFn Sys_GetFactory(const char* name) {
+    return reinterpret_cast<CreateInterfaceFn>(Sys_GetProcAddress(name, cse_platform::InterfaceFactorySymbol));
 }
 #endif

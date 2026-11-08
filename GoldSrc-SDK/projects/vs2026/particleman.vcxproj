@@ -90,6 +90,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\particleman\compat\activity.h" />
     <ClInclude Include="..\..\particleman\compat\basemonster.h" />
     <ClInclude Include="..\..\particleman\compat\cbase.h" />

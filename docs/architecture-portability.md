@@ -111,3 +111,34 @@ All 19 maintained Win32 targets and the six save/gameplay/replay regressions
 pass after integration, with producing source and loaded module hashes checked.
 These fixtures validate this software-lighting function, retained through swds;
 they do not qualify presented scenes, the complete renderer or SDL_GPU behavior.
+
+## Native module-loading boundary
+
+The selected engine, shared public, CS, VGUI2, filesystem, launcher and HLTV
+loaders use `public/native_module.h`. Owning loads and borrowed queries are
+separate: querying a missing POSIX image does not load it, keep a reference or
+promote a locally loaded image into global visibility. Names retain the original
+Windows loading/search behavior; native POSIX paths also accept platform suffixes
+and existing Windows module spelling. Failed working-directory resolution is
+checked. Windows low-word export ordinals are passed through without treating
+them as strings; POSIX rejects them safely.
+
+Legacy raw null-handle symbol lookups and each owner's missing-name factory
+fallback are explicit compatibility policies. The shared API rejects these by
+default for new callers. Owned-null factory lookup still returns null. Existing
+factory registries and interface identities are retained.
+
+Actual production loader sources pass Release/Debug lifecycle fixtures on
+Windows x86/x64/ARM64 and macOS ARM64, with Windows results also checked against
+pinned pre-change sources. Checks cover two owning references, repeated reloads,
+constructor/destructor counts, factories, data ordinals, high native addresses,
+relative/absolute names and suffixes. Mac sanitizer runs instrument the drivers
+and production loaders; the reloadable external leaf alone is uninstrumented.
+A separate three-cycle direct `dlopen`/`dlclose` reproduction triggers Apple's
+ASan global-registration ODR error with an instrumented leaf, independently of
+the production loaders. No global sanitizer check is disabled.
+
+All 19 Win32 Release/Debug targets and six save/gameplay/replay regressions pass
+with producing source and loaded module hashes checked. These are loader lifecycle
+and Win32 regression checks. Real Steam/CEF integration, complete native
+module ABI enforcement and whole-game startup remain separate acceptance gates.

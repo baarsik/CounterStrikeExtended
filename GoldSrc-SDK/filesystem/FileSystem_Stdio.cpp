@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "basefilesystem.h"
+#include "../public/native_module.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -237,27 +238,8 @@ extern "C" void* CreateInterface( const char* pName, int* pReturnCode )
 	return InterfaceReg::Create( pName, pReturnCode );
 }
 
-void* GetModuleHandle( const char* name )
-{
-#ifdef _WIN32
-	return ::GetModuleHandleA( name );
-#else
-	void* handle;
-
-	if ( name == NULL )
-	{
-		return NULL;
-	}
-
-	handle = dlopen( name, RTLD_NOW );
-	if ( handle == NULL )
-	{
-		return NULL;
-	}
-	dlclose( handle );
-
-	return handle;
-#endif
+void* GetModuleHandle(const char* name) {
+    return cse_platform::FindLoadedModule(name, cse_platform::ModuleNullPolicy::MainExecutable);
 }
 
 static void* GetFileSystemInstance()
