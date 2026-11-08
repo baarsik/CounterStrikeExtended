@@ -11,6 +11,7 @@
 #define COM_WEAPONSH
 
 #include "hud_iface.h"
+#include "cse_symbol.h"
 
 float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );
 int UTIL_SharedRandomLong( unsigned int seed, int low, int high );
@@ -25,7 +26,7 @@ void HUD_SetMaxSpeed( const struct edict_s* entity, float speed );
 int stub_PrecacheModel( char* model );
 int stub_PrecacheSound( char* sound );
 unsigned short stub_PrecacheEvent( int type, const char* name );
-const char* stub_NameForFunction( uint32 function );
+const char *stub_NameForFunction(CseSymbolAddress function);
 void stub_SetModel( struct edict_s* entity, const char* model );
 
 extern cvar_t* cl_lw;

@@ -1,7 +1,12 @@
 #pragma once
 
+#include "cse_symbol.h"
+#if defined(_WIN32)
 #include <Windows.h>
-#include <cstdint>
+using CseGameLibraryHandle = HINSTANCE;
+#else
+using CseGameLibraryHandle = void *;
+#endif
 
 #define MAX_EXT_DLLS 50
 
@@ -12,15 +17,15 @@ typedef void ( *DISPATCHFUNCTION )( entvars_s*, void* );
 
 typedef struct
 {
-	uint32_t pFunction;
-	char* pFunctionName;
+    CseSymbolAddress pFunction;
+    char *pFunctionName;
 } functiontable_t;
 
 typedef struct
 {
-	HINSTANCE lDLLHandle;
-	functiontable_t* functionTable;
-	int functionCount;
+    CseGameLibraryHandle lDLLHandle;
+    functiontable_t *functionTable;
+    int functionCount;
 } extensiondll_t;
 
 extern extensiondll_t g_rgextdll[MAX_EXT_DLLS];

@@ -14,6 +14,7 @@
 #endif
 
 #include "hud_iface.h"
+#include "cse_symbol.h"
 #include "Exports.h"
 
 void			COM_Log( char *pszFile, char *fmt, ...);
@@ -30,7 +31,7 @@ void			HUD_SetMaxSpeed( const struct edict_s *ed, float speed );
 int				stub_PrecacheModel( char* s );
 int				stub_PrecacheSound( char* s );
 unsigned short	stub_PrecacheEvent( int type, const char *s );
-const char		*stub_NameForFunction	( uint32 function );
+const char *stub_NameForFunction(CseSymbolAddress function);
 void			stub_SetModel			( struct edict_s *e, const char *m );
 
 

@@ -147,7 +147,7 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   with Steam/VAC enabled. Menu, cvar, custom-message acknowledgment, downloads,
   consistency and live movement checks pass. Native clients, voice, reconnect
   and changelevel remain unqualified.
-- **Module ABI/callbacks:** runtime ABI version 6 guards the actual engine/game
+- **Module ABI/callbacks:** runtime ABI version 7 guards the actual engine/game
   boundary before callback exchange, including eleven generated shared-layout
   profiles and single-use legacy initialization. Native and Win32 mismatch
   fixtures pass in Release/Debug; preserved older GameDLLs reject before
@@ -159,7 +159,13 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   pass across the architecture matrix; file-mapping lifecycle tests pass on
   Windows and 42 real DLLs match MSVC's export listing. Updated Win32 engine
   save/load and CS/HL recording/replay pass with producing module hashes checked.
-  Native symbol-address widths and other module boundaries remain open.
+  Native symbol addresses now survive export-table construction and both lookup
+  callbacks; POSIX modules use native handles and direct symbol discovery.
+  Canonical-name conversion is bounded, and prediction setters retain complete
+  typed member pointers. Native fixtures execute actual exported functions and
+  distinguish addresses with equal low 32 bits. Updated Win32 export tables,
+  game-module probes and CS/HL save/record/replay pass after integration.
+  Other module boundaries and complete native game loading remain open.
 - **Save/data representations:** native storage facts govern strides, clearing
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
   Raw-pointer descriptors reject at compile time and runtime before pointer bits

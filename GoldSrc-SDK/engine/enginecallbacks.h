@@ -101,8 +101,8 @@ EOFFSET					EntOffsetOfPEntity( const edict_t* entity );
 edict_t*			PEntityOfEntIndex( int index );
 edict_t*			PEntityOfEntIndexAllEntities( int index );
 edict_t*			FindEntityByVars( entvars_t* variables );
-uint32				FunctionFromName( const char* name );
-const char*			NameForFunction( uint32 address );
+CseSymbolAddress FunctionFromName(const char *name);
+const char *NameForFunction(CseSymbolAddress address);
 
 void*				GetModelPtr( edict_t* entity );
 void				AnimationAutomove( const edict_t* entity, float time );

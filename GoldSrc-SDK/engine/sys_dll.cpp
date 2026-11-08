@@ -530,81 +530,7 @@ void LoadEntityDLLs( char* basedir )
 }
 
 #if defined( _WIN32 )
-#include "pe_export_file_impl.h"
-
-static char* ConvertExportName( const char* exportName, char* output, int outputSize )
-{
-	int i;
-	int separators = 0;
-
-	for ( i = 1; i < outputSize; i++ )
-	{
-		output[i - 1] = exportName[i];
-		if ( exportName[i] == '@' )
-			separators++;
-		if ( separators >= 2 )
-		{
-			i++;
-			break;
-		}
-	}
-
-	output[i - 2] = '\0';
-	if ( i == outputSize )
-		Con_DPrintf( "Export name is too large\n" );
-
-	return output;
-}
-
-void BuildExportTable( extensiondll_t* pDll, const char* filename )
-{
-	char* names = NULL;
-	char convertedName[256];
-	int namesLength;
-	int count;
-	int nameBytes;
-	int offset;
-	int index;
-	char* output;
-
-	if ( !pDll || !filename )
-		return;
-
-	namesLength = GetExportNames( filename, &names );
-	pDll->functionTable = NULL;
-	pDll->functionCount = 0;
-	if ( !names )
-		return;
-
-	count = 0;
-	nameBytes = 0;
-	for ( offset = 0; offset < namesLength; offset += strlen( &names[offset] ) + 1 )
-	{
-		if ( names[offset] == '?' )
-		{
-			count++;
-			ConvertExportName( &names[offset], convertedName, sizeof( convertedName ) );
-			nameBytes += strlen( convertedName ) + 1;
-		}
-	}
-
-	pDll->functionCount = count;
-	pDll->functionTable = static_cast<functiontable_t*>( Mem_Malloc( nameBytes + sizeof( functiontable_t ) * count ) );
-	output = reinterpret_cast<char*>( &pDll->functionTable[count] );
-
-	index = 0;
-	for ( offset = 0; offset < namesLength; offset += strlen( &names[offset] ) + 1 )
-	{
-		if ( names[offset] == '?' )
-		{
-			ConvertExportName( &names[offset], output, namesLength - offset );
-			pDll->functionTable[index].pFunctionName = output;
-			pDll->functionTable[index].pFunction = static_cast<uint32>( reinterpret_cast<std::uintptr_t>( GetProcAddress( pDll->lDLLHandle, &names[offset] ) ) );
-			output += strlen( output ) + 1;
-			index++;
-		}
-	}
-}
+#include "export_table_impl.h"
 #endif
 
 namespace {
@@ -664,7 +590,7 @@ void LoadThisDll( char* filename )
 	}
 	extensiondll_t* dll = &g_rgextdll[g_iextdllMac++];
 	Q_memset( dll, 0, sizeof( *dll ) );
-	dll->lDLLHandle = reinterpret_cast<HINSTANCE>( library );
+	dll->lDLLHandle = library;
 #else
 	HMODULE library = static_cast<HMODULE>( FS_LoadLibrary( filename ) );
 	if ( !library )
@@ -792,42 +718,7 @@ qboolean Voice_SetClientListening( int receiver, int sender, qboolean listen )
 namespace
 {
 constexpr int ALERT_BUFFER_SIZE = 1024;
-constexpr int FUNCTION_NAME_BUFFER_SIZE = 512;
 
-bool IsFunctionNameDigit( char character )
-{
-	return static_cast<unsigned char>( character - '0' ) <= 9;
-}
-
-const char* ConvertNameToLocalPlatform( const char* name )
-{
-	if ( std::strstr( name, "@" ) )
-		return name;
-	if ( name[0] != '_' || name[1] != 'Z' )
-		return "unknown";
-
-	char encodedName[FUNCTION_NAME_BUFFER_SIZE];
-	std::strncpy( encodedName, name + 3, sizeof( encodedName ) );
-	encodedName[sizeof( encodedName ) - 1] = '\0';
-	char* cursor = encodedName;
-	char* end = encodedName + std::strlen( encodedName );
-	const int classNameLength = std::atoi( encodedName );
-	while ( IsFunctionNameDigit( *cursor ) && cursor < end )
-		++cursor;
-	const char* className = cursor;
-	cursor += classNameLength;
-	const int methodNameLength = std::atoi( cursor );
-	*cursor = '\0';
-	do
-	{
-		++cursor;
-	} while ( IsFunctionNameDigit( *cursor ) && cursor < end );
-	cursor[methodNameLength] = '\0';
-
-	static char convertedName[FUNCTION_NAME_BUFFER_SIZE];
-	_snprintf( convertedName, sizeof( convertedName ), "%s@%s", cursor, className );
-	return convertedName;
-}
 }
 
 void AlertMessage( ALERT_TYPE type, char* format, ... )
@@ -880,58 +771,7 @@ void EngineFprintf( void*, char*, ... )
 	AlertMessage( at_console, const_cast<char*>( "EngineFprintf:  Obsolete API\n" ) );
 }
 
-uint32 FunctionFromName( const char* name )
-{
-	name = ConvertNameToLocalPlatform( name );
-	for ( int dllIndex = 0; dllIndex < g_iextdllMac; ++dllIndex )
-	{
-		const extensiondll_t& dll = g_rgextdll[dllIndex];
-		for ( int functionIndex = 0; functionIndex < dll.functionCount; ++functionIndex )
-		{
-			const functiontable_t& function = dll.functionTable[functionIndex];
-			if ( Q_strcmp( name, function.pFunctionName ) == 0 )
-			{
-				if ( function.pFunction )
-					return function.pFunction;
-				break;
-			}
-		}
-	}
-	Con_Printf( "Can't find proc: %s\n", name );
-	return 0;
-}
-
-const char* NameForFunction( uint32 address )
-{
-#if !defined( _WIN32 )
-	Dl_info info;
-	for ( int index = 0; index < g_iextdllMac; ++index )
-	{
-		if ( dladdr( reinterpret_cast<void*>( static_cast<std::uintptr_t>( address ) ), &info ) != 0
-			 && info.dli_sname != nullptr )
-			return info.dli_sname;
-	}
-	Con_Printf( "Can't find address: %08lx\n", static_cast<unsigned long>( address ) );
-	return nullptr;
-#else
-	for ( int dllIndex = 0; dllIndex < g_iextdllMac; ++dllIndex )
-	{
-		const extensiondll_t& dll = g_rgextdll[dllIndex];
-		for ( int functionIndex = 0; functionIndex < dll.functionCount; ++functionIndex )
-		{
-			const functiontable_t& function = dll.functionTable[functionIndex];
-			if ( function.pFunction == address )
-			{
-				if ( function.pFunctionName )
-					return function.pFunctionName;
-				break;
-			}
-		}
-	}
-	Con_Printf( "Can't find address: %08lx\n", static_cast<unsigned long>( address ) );
-	return nullptr;
-#endif
-}
+#include "symbol_lookup_impl.h"
 
 extern jmp_buf host_abortserver;
 extern SDL_Window** pmainwindow;
@@ -1353,34 +1193,6 @@ void ForceReloadProfile()
 	{
 		Cvar_Set( "name", communityName );
 	}
-}
-
-const char* FindAddressInTable( extensiondll_t* pDll, uint32 function )
-{
-#if defined( _WIN32 )
-	for ( int index = 0; index < pDll->functionCount; ++index )
-	{
-		if ( pDll->functionTable[index].pFunction == function )
-			return pDll->functionTable[index].pFunctionName;
-	}
-	return nullptr;
-#else
-	( void )pDll;
-	Dl_info info;
-	if ( dladdr( reinterpret_cast<void*>( static_cast<std::uintptr_t>( function ) ), &info ) == 0 )
-		return nullptr;
-	return info.dli_sname;
-#endif
-}
-
-uint32 FindNameInTable( extensiondll_t* pDll, const char* pName )
-{
-#if defined( _WIN32 )
-	FARPROC function = GetProcAddress( pDll->lDLLHandle, pName );
-#else
-	void* function = dlsym( reinterpret_cast<void*>( pDll->lDLLHandle ), pName );
-#endif
-	return static_cast<uint32>( reinterpret_cast<std::uintptr_t>( function ) );
 }
 
 FIELDIOFUNCTION GetIOFunction( char* pName )

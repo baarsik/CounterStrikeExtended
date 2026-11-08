@@ -156,9 +156,8 @@ unsigned short stub_PrecacheEvent( int, const char* )
 	return 0;
 }
 
-const char* stub_NameForFunction( uint32 )
-{
-	return "func";
+const char *stub_NameForFunction(CseSymbolAddress) {
+    return "func";
 }
 
 void stub_SetModel( edict_s*, const char* )
