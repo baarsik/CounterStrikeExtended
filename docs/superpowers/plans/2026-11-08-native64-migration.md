@@ -232,6 +232,13 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   six save/gameplay/replay regressions pass with producing module hashes checked.
   These checks do not close native full-mixer/DSP, hardware-rate conversion,
   microphone/voice, A3D or whole-game audio acceptance.
+- **CPU/profiler boundary:** production CPU and fasttimer sources pass Windows
+  x86/x64/ARM64 and macOS ARM64 Release/Debug fixtures; Mac sanitizers pass.
+  ARM64 uses matching native timer units and does not advertise x86 instructions.
+  Native topology is bounded to legacy byte counts. Wrong timer units and count
+  wrapping are detected by injected faults. Win32 detection/calibration remains
+  the reference. Engine instruction dispatch, scalar conversions, FP control and
+  full numerical/gameplay acceptance remain open.
 - **Providers/platform/renderer:** official native Steam candidates and stable
   CEF156.0.26 archives are pinned for integration. Real native authentication,
   sessions, voice and browser behavior remain pending, as do the portable

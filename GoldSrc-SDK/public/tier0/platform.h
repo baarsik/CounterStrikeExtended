@@ -17,6 +17,22 @@
 
 #include <stddef.h>
 
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+#define CSE_CPU_X86 1
+#else
+#define CSE_CPU_X86 0
+#endif
+
+#if defined(_M_ARM64) || defined(__aarch64__)
+#define CSE_CPU_ARM64 1
+#else
+#define CSE_CPU_ARM64 0
+#endif
+
+#if !CSE_CPU_X86 && !CSE_CPU_ARM64
+#error Unsupported processor architecture
+#endif
+
 #if defined( _WIN32 )
 #include <intrin.h>
 #if defined( TIER0_DLL )
@@ -26,7 +42,9 @@
 #endif
 #else
 #include <signal.h>
+#if CSE_CPU_X86
 #include <x86intrin.h>
+#endif
 #define TIER0_API __attribute__( ( visibility( "default" ) ) )
 #endif
 
@@ -49,7 +67,7 @@ struct CPUInformation
 
 	uint8	m_nLogicalProcessors; // Number op logical processors.
 	uint8	m_nPhysicalProcessors; // Number of physical processors
-	int64	m_Speed; // In cycles per second.
+	int64	m_Speed; // Profiler ticks per second: RDTSC on x86, native monotonic timer on ARM64.
 	char*	m_szProcessorID; // Processor vendor Identification.
 };
 
@@ -70,6 +88,8 @@ inline void DebuggerBreak()
 
 extern "C"
 {
+    TIER0_API uint64 Plat_PerformanceCounter();
+    TIER0_API uint64 Plat_PerformanceFrequency();
 	TIER0_API double			Plat_FloatTime(); // Returns time in seconds since the module was loaded.
 	TIER0_API unsigned int	Plat_MSTime();
 	TIER0_API const char*	Plat_GetCommandLine();

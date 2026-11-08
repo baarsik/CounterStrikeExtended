@@ -15,13 +15,60 @@
 #include <windows.h>
 #include <intrin.h>
 #else
+#include <time.h>
+#include <unistd.h>
+#if defined(__APPLE__)
+#include <sys/sysctl.h>
+#endif
+#if CSE_CPU_X86
 #include <cpuid.h>
 #endif
+#endif
+
+extern "C" uint64 Plat_PerformanceCounter() {
+#if defined(_WIN32)
+    LARGE_INTEGER counter;
+    if (!QueryPerformanceCounter(&counter)) {
+        Error("Unable to read the performance counter\n");
+        return 0;
+    }
+    return static_cast<uint64>(counter.QuadPart);
+#else
+    constexpr uint64 NanosecondsPerSecond = 1000000000;
+    timespec now;
+    if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
+        Error("Unable to read the monotonic clock\n");
+        return 0;
+    }
+    return static_cast<uint64>(now.tv_sec) * NanosecondsPerSecond + static_cast<uint64>(now.tv_nsec);
+#endif
+}
+
+extern "C" uint64 Plat_PerformanceFrequency() {
+#if defined(_WIN32)
+    LARGE_INTEGER frequency;
+    if (!QueryPerformanceFrequency(&frequency) || frequency.QuadPart <= 0) {
+        Error("Unable to determine the performance counter frequency\n");
+        return 0;
+    }
+    return static_cast<uint64>(frequency.QuadPart);
+#else
+    constexpr uint64 NanosecondsPerSecond = 1000000000;
+    return NanosecondsPerSecond;
+#endif
+}
 
 static bool cpuid( unsigned int function, unsigned int& out_eax, unsigned int& out_ebx,
 	unsigned int& out_ecx, unsigned int& out_edx )
 {
-#if defined( _WIN32 )
+#if !CSE_CPU_X86
+    (void)function;
+    out_eax = 0;
+    out_ebx = 0;
+    out_ecx = 0;
+    out_edx = 0;
+    return false;
+#elif defined( _WIN32 )
 	bool retval = true;
 	int info[4] = { 0, 0, 0, 0 };
 
@@ -46,7 +93,7 @@ static bool cpuid( unsigned int function, unsigned int& out_eax, unsigned int& o
 #endif
 }
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && defined(_M_IX86)
 static bool IsWin98OrOlder()
 {
 	bool retval = false;
@@ -95,7 +142,7 @@ bool CheckMMXTechnology()
 
 bool CheckSSETechnology()
 {
-#if defined( _WIN32 )
+#if defined(_WIN32) && defined(_M_IX86)
 	if ( IsWin98OrOlder() )
 		return false;
 #endif
@@ -169,7 +216,11 @@ const char* GetProcessorVendorId()
 	memset( vendorId, 0, sizeof( vendorId ) );
 	if ( !cpuid( 0, unused, vendorIdRegisters[0], vendorIdRegisters[2], vendorIdRegisters[1] ) )
 	{
-		strcpy( vendorId, "Generic_x86" );
+#if CSE_CPU_ARM64
+        strcpy(vendorId, "GenericARM64");
+#else
+        strcpy(vendorId, "Generic_x86");
+#endif
 	}
 	else
 	{
@@ -181,7 +232,7 @@ const char* GetProcessorVendorId()
 	return vendorId;
 }
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && defined(_M_IX86)
 // Returns non-zero if Hyper-Threading Technology is supported on the processors and zero if not.  This does not mean that 
 // Hyper-Threading Technology is necessarily enabled.
 static bool HTSupported()
@@ -224,8 +275,14 @@ static uint8 LogicalProcessorsPerPackage()
 	return (uint8)( ( reg_ebx & NUM_LOGICAL_BITS ) >> 16 );
 }
 
+#endif
+
+#if defined(_WIN32)
 static int64 CalculateCPUFreq()
 {
+#if CSE_CPU_ARM64
+    return static_cast<int64>(Plat_PerformanceFrequency());
+#else
 	const DWORD_PTR oldAffinity = SetThreadAffinityMask( GetCurrentThread(), 1 );
 	LARGE_INTEGER frequency;
 	LARGE_INTEGER start;
@@ -248,8 +305,11 @@ static int64 CalculateCPUFreq()
 
 	return (int64)( (double)( endCycles.m_Int64 - startCycles.m_Int64 )
 		/ ( (double)( end.QuadPart - start.QuadPart ) / (double)frequency.QuadPart ) );
+#endif
 }
 #endif
+
+#include "cpu_topology.h"
 
 CPUInformation* GetCPUInformation()
 {
@@ -265,7 +325,7 @@ CPUInformation* GetCPUInformation()
 	// Grab the processor frequency:
 	pi.m_Speed = CalculateCPUFreq();
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && defined(_M_IX86)
 	// Get the logical and physical processor counts:
 	pi.m_nLogicalProcessors = LogicalProcessorsPerPackage();
 
@@ -286,9 +346,10 @@ CPUInformation* GetCPUInformation()
 	{
 		Error( "Unable to determine CPU Frequency\n" );
 	}
-	// TODO: poll /dev/cpuinfo when we have some benefits from multithreading
-	pi.m_nLogicalProcessors = 1;
-	pi.m_nPhysicalProcessors = 1;
+    const cse_cpu::Topology topology = cse_cpu::ReadTopology();
+    pi.m_nLogicalProcessors = topology.logical;
+    pi.m_nPhysicalProcessors = topology.physical;
+    pi.m_bHT = topology.logical > topology.physical;
 #endif
 
 	// Determine Processor Features:

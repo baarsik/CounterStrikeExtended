@@ -5,10 +5,11 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include "tier0/platform.h"
+#if CSE_CPU_X86
 #include <x86intrin.h>
+#endif
 
-typedef long long int64;
-typedef unsigned long long uint64;
 
 #define MICROSECONDS_PER_SECOND				1000000
 #define CPU_FREQUENCY_SAMPLE_MICROSECONDS	5000
@@ -61,6 +62,9 @@ int64 GetCPUFreqFromPROC()
 
 int64 CalculateCPUFreq()
 {
+#if CSE_CPU_ARM64
+    return static_cast<int64>(Plat_PerformanceFrequency());
+#else
 	int64 period1;
 	int64 period3;
 	int nRemaining;
@@ -110,6 +114,7 @@ int64 CalculateCPUFreq()
 		period1 = period3;
 		period3 = freq;
 	}
+#endif
 }
 
 #endif

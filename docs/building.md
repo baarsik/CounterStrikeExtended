@@ -322,3 +322,20 @@ ring wrapping and high addresses. Provider checks cover exact samples at matchin
 stream/device rates, write exclusion, focus pause, nested ownership and repeated
 shutdown. Hardware-rate conversion, complete native gameplay audio, microphone,
 voice and A3D remain separate acceptance work.
+
+
+## CPU and profiler fixtures
+
+This standalone build compiles the production CPU discovery and fasttimer sources:
+
+```sh
+cmake -S tests/native/cpu -B build/cpu-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/cpu-tests --parallel
+ctest --test-dir build/cpu-tests --output-on-failure
+```
+
+Use the selected MSVC architecture environment on Windows. On Apple Silicon the
+fixture targets macOS 14+. Repeat with a separate Debug directory. It checks
+instruction discovery, bounded topology, timer units, monotonic samples and
+profiler conversion against an independent clock. It does not run a game or
+qualify gameplay floating-point behavior.

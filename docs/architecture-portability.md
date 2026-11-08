@@ -15,7 +15,7 @@ The inventory below identifies remaining work for native x64/ARM64 builds.
 | Area | Current evidence and required future work |
 | --- | --- |
 | Inline assembly | A static token scan of retained non-external C/C++/headers found no `__asm`, `__asm__` or `asm(...)` blocks, and no assembly input is selected by the retained projects. This bounded source finding does not make libraries architecture-neutral or rule out all compiler-specific constructs. Do not introduce raw x86 assembly shims. |
-| x86 intrinsics / CPU discovery | `tier0/cpu.cpp` and `engine/sys_dll2.cpp` use `__cpuid`; `sys_dll2.cpp` uses `_mm_empty`; `engine/common.cpp` uses SSE conversion intrinsics. `engine/r_surf.cpp`, retained through swds, uses MMX `__m64` operations. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
+| x86 intrinsics / CPU discovery | `tier0` now scopes CPUID/RDTSC to x86, uses native ARM64 counters and discovers native topology; bounded production-source fixtures pass. `engine/sys_dll2.cpp` still uses `__cpuid` and `_mm_empty`; `engine/common.cpp` uses SSE conversion intrinsics. `engine/r_surf.cpp`, retained through swds, uses MMX `__m64` operations. Replace or isolate unsupported paths with faithful implementations for ARM64, with explicit FP/rounding behavior; do not silently stub CPU/audio/render functionality. |
 | Pointer/integer width and loaders | `engine/LoadBlob.cpp` encodes addresses in `unsigned long` fields and casts loader/thunk function addresses through `DWORD`; it assumes Windows 32-bit image layout. A 64-bit build cannot fix this by widening every stored field. Audit pointer-bearing integers, callbacks, varargs/format strings, offsets, allocation arithmetic and serialized versus in-process addresses throughout retained client/server/UI code. |
 | In-process interfaces | Engine/client/server function tables, virtual interfaces, HWND/module handles, STL/container layouts and private copied interfaces cross module boundaries. All in-process modules/providers must agree on architecture, layout, toolchain and CRT. An x86 stock client or server DLL cannot load in a native x64/ARM64 engine. |
 | Calling convention and exports | `engine/eiface.h` uses Windows `__stdcall`; `.def` files include x86-decorated C++ names and ordinals. VGUI1 has a data alias at ordinal 395 and names-only import-library generation. Plan and verify each architecture's exports/imports and calling convention instead of reusing x86 decoration or relying on auto-export. |
@@ -67,3 +67,13 @@ x86/x64/ARM64 and macOS ARM64 in Release/Debug; this does not qualify whole-game
 native audio, DSP, microphone, voice or A3D behavior. The maintained Win32 runtime
 keeps DirectSound/WaveOut as its regression device. Physical-CD MCI remains
 separate from libmpg123/SDL3 music.
+
+The CPU/profiler component retains Win32 detection and RDTSC calibration. Native
+Windows queries processor groups/cores; macOS queries logical and physical cores.
+Legacy byte-sized counts saturate at 255 rather than wrapping. ARM64 advertises
+no x86 instructions and uses a paired monotonic counter/frequency (Windows QPC;
+POSIX nanoseconds). The legacy speed field describes profiler ticks per second,
+not an invented ARM processor frequency. Actual CPU/fasttimer fixtures pass on
+Windows x86/x64/ARM64 and macOS ARM64 in Release/Debug, with Mac sanitizers and
+counter-unit/topology fault checks. Engine instruction dispatch, scalar numerical
+replacements, FP control and Pentium-specific profiling still need qualification.

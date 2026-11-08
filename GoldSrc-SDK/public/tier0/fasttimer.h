@@ -49,7 +49,11 @@ public:
 	void Sample()
 	{
 		const int MAX_BAD_CYCLE_SAMPLES = 1000;
-		m_Int64 = (int64)__rdtsc();
+#if CSE_CPU_X86
+        m_Int64 = static_cast<int64>(__rdtsc());
+#else
+        m_Int64 = static_cast<int64>(Plat_PerformanceCounter());
+#endif
 
 		if ( m_Int64 >= (int64)g_ulLastCycleSample || ++g_cBadCycleCountReceived >= MAX_BAD_CYCLE_SAMPLES )
 		{
