@@ -1654,25 +1654,17 @@ void SaveExit( SAVERESTOREDATA* save )
 	gGlobalVariables.pSaveData = NULL;
 }
 
-int SaveReadHeader( FileHandle_t pFile, GAME_HEADER* pHeader, int readGlobalState )
-{
-	int tag;
+#include "save_arena_impl.h"
 
-	FS_Read( &tag, sizeof( tag ), 1, pFile );
-	if ( tag != SAVEGAME_HEADER )
-	{
-		FS_Close( pFile );
-		return 0;
-	}
-
-	FS_Read( &tag, sizeof( tag ), 1, pFile );
-	if ( tag != SAVEGAME_VERSION )
-	{
-		FS_Close( pFile );
-		return 0;
-	}
-
-	return SaveReadHeader_0( pFile, pHeader, readGlobalState );
+int SaveReadHeader(FileHandle_t file, GAME_HEADER *header, int readGlobalState) {
+    std::int32_t tag = 0;
+    std::int32_t version = 0;
+    if (!ReadSaveInteger(file, tag) || tag != SAVEGAME_HEADER
+        || !ReadSaveInteger(file, version) || version != SAVEGAME_VERSION) {
+        FS_Close(file);
+        return 0;
+    }
+    return SaveReadHeader_0(file, header, readGlobalState);
 }
 
 TYPEDESCRIPTION gEntityTableDescription[] =
@@ -1715,116 +1707,6 @@ TYPEDESCRIPTION gLightstyleDescription[] =
 	DEFINE_ARRAY( SAVELIGHTSTYLE, style, FIELD_CHARACTER, MAX_LIGHTSTYLES ),
 };
 
-SAVERESTOREDATA* LoadSaveData( const char* level )
-{
-	char name[MAX_PATH];
-	char* pszTokenList;
-	FileHandle_t pFile;
-	SAVERESTOREDATA* pSaveData;
-	int i, tag, size, tableCount, tokenCount, tokenSize;
-	uint32_t tableSize, totalSize;
-
-	_snprintf( name, sizeof( name ), "%s%s.HL1", Host_SaveGameDirectory(), level );
-	COM_FixSlashes( name );
-	Con_Printf( "Loading game from %s...\n", name );
-
-	pFile = FS_OpenPathID( name, "rb", "GAMECONFIG" );
-	if ( !pFile )
-	{
-		Con_Printf( "ERROR: couldn't open.\n" );
-		return NULL;
-	}
-
-	//---------------------------------
-	// Read the header
-	FS_Read( &tag, sizeof( tag ), 1, pFile );
-	if ( tag != SAVEFILE_HEADER )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	FS_Read( &tag, sizeof( tag ), 1, pFile );
-	if ( tag > SAVEGAME_VERSION )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	FS_Read( &size, sizeof( size ), 1, pFile );
-	FS_Read( &tableCount, sizeof( tableCount ), 1, pFile );
-	FS_Read( &tokenCount, sizeof( tokenCount ), 1, pFile );
-	FS_Read( &tokenSize, sizeof( tokenSize ), 1, pFile );
-
-	tableSize = (uint32_t)tableCount * sizeof( ENTITYTABLE );
-	if ( size < 0 || tokenCount < 0 || tokenSize < 0 || (uint32_t)tokenSize > INT_MAX - (uint32_t)size )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	totalSize = (uint32_t)size + tokenSize;
-	if ( tableSize > INT_MAX - totalSize )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	totalSize += tableSize;
-	if ( INT_MAX - totalSize < sizeof( SAVERESTOREDATA ) )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	pSaveData = (SAVERESTOREDATA*)Mem_Calloc( (int)( totalSize + sizeof( SAVERESTOREDATA ) ), 1 );
-	if ( !pSaveData )
-	{
-		FS_Close( pFile );
-		return NULL;
-	}
-
-	pSaveData->tableCount = tableCount;
-	pSaveData->tokenCount = tokenCount;
-	pSaveData->tokenSize = tokenSize;
-
-	Q_strncpy( pSaveData->szCurrentMapName, level, sizeof( pSaveData->szCurrentMapName ) - 1 );
-	pSaveData->szCurrentMapName[sizeof( pSaveData->szCurrentMapName ) - 1] = '\0';
-
-	pszTokenList = (char*)( pSaveData + 1 );
-
-	if ( tokenSize > 0 )
-	{
-		FS_Read( pszTokenList, pSaveData->tokenSize, 1, pFile );
-
-		if ( !pSaveData->pTokens )
-			pSaveData->pTokens = (char**)Mem_Calloc( tokenCount, sizeof( char* ) );
-
-		// Make sure the token strings pointed to by the pToken hashtable.
-		for ( i = 0; i < tokenCount; i++ )
-		{
-			pSaveData->pTokens[i] = *pszTokenList ? pszTokenList : NULL;
-			pszTokenList += strlen( pszTokenList ) + 1;
-		}
-	}
-
-	pSaveData->pTable = (ENTITYTABLE*)pszTokenList;
-	pSaveData->connectionCount = 0;
-	pSaveData->size = 0;
-	pSaveData->pBaseData = pszTokenList + tableSize;
-	pSaveData->pCurrentData = pSaveData->pBaseData;
-	pSaveData->bufferSize = size;
-	pSaveData->fUseLandmark = 1;
-	pSaveData->time = 0.0f;
-	VectorClear( pSaveData->vecLandmarkOffset );
-
-	gGlobalVariables.pSaveData = pSaveData;
-
-	FS_Read( pSaveData->pBaseData, size, 1, pFile );
-	FS_Close( pFile );
-
-	return pSaveData;
-}
 
 void ParseSaveTables( SAVERESTOREDATA* pSaveData, SAVE_HEADER* pHeader, int updateGlobals )
 {
@@ -2457,48 +2339,25 @@ void Host_EndSection( const char* pszSection )
 	Cbuf_AddText( "\ndisconnect\n" );
 }
 
-SAVERESTOREDATA* SaveInit( int size )
-{
-	int i;
-	SAVERESTOREDATA* pSaveData;
-	ENTITYTABLE* pTable;
-
-	if ( size <= 0 )
-		size = 0x80000;
-
-	pSaveData = (SAVERESTOREDATA*)Mem_Calloc(
-		(int)( size + sizeof( ENTITYTABLE ) * sv.num_edicts + sizeof( SAVERESTOREDATA ) ), 1 );
-
-	pSaveData->tokenSize = 0;
-	pSaveData->pTable = (ENTITYTABLE*)( pSaveData + 1 );
-
-	pSaveData->tokenCount = 0xFFF;
-	pSaveData->pTokens = (char**)Mem_Calloc( 0xFFF, sizeof( char* ) );
-
-	for ( i = 0; i < sv.num_edicts; i++ )
-	{
-		pTable = &pSaveData->pTable[i];
-		pTable->id = i;
-		pTable->pent = &sv.edicts[i];
-		pTable->flags = 0;
-		pTable->location = 0;
-		pTable->size = 0;
-		pTable->classname = 0;
-	}
-
-	pSaveData->tableCount = sv.num_edicts;
-	pSaveData->connectionCount = 0;
-	pSaveData->size = 0;
-	pSaveData->pBaseData = (char*)( pSaveData->pTable + sv.num_edicts );
-	pSaveData->pCurrentData = pSaveData->pBaseData;
-	pSaveData->bufferSize = size;
-	pSaveData->time = gGlobalVariables.time;
-	VectorCopy( vec3_origin, pSaveData->vecLandmarkOffset );
-	pSaveData->fUseLandmark = 0;
-
-	gGlobalVariables.pSaveData = pSaveData;
-
-	return pSaveData;
+SAVERESTOREDATA *SaveInit(int size) {
+    constexpr int DefaultSaveBufferBytes = 0x80000;
+    constexpr int SaveTokenSlots = 0xFFF;
+    if (size <= 0) {
+        size = DefaultSaveBufferBytes;
+    }
+    auto *save = AllocateSaveArena(size, sv.num_edicts, SaveTokenSlots, 0);
+    if (!save) {
+        Sys_Error("SaveInit: invalid arena size or allocation failure");
+    }
+    for (int index = 0; index < sv.num_edicts; ++index) {
+        auto &entry = save->pTable[index];
+        entry.id = index;
+        entry.pent = &sv.edicts[index];
+    }
+    save->time = gGlobalVariables.time;
+    VectorCopy(vec3_origin, save->vecLandmarkOffset);
+    gGlobalVariables.pSaveData = save;
+    return save;
 }
 
 #ifdef _MSC_VER
@@ -3090,70 +2949,28 @@ void Host_SavegameComment( char* pszBuffer, int iSizeBuffer )
 	pszBuffer[iSizeBuffer - 1] = '\0';
 }
 
-int SaveReadHeader_0( FileHandle_t pFile, GAME_HEADER* pHeader, int readGlobalState )
-{
-	int i, size, tokenCount, tokenSize;
-	char* pszTokenList;
-	SAVERESTOREDATA* pSaveData;
-
-	FS_Read( &size, sizeof( int ), 1, pFile );
-	FS_Read( &tokenCount, sizeof( int ), 1, pFile );
-	FS_Read( &tokenSize, sizeof( int ), 1, pFile );
-
-	if ( size < 0 || tokenCount < 0 || tokenSize < 0 || INT_MAX - size < tokenSize
-		 || INT_MAX - ( size + tokenSize ) < (int)sizeof( SAVERESTOREDATA ) )
-	{
-		FS_Close( pFile );
-		return 0;
-	}
-
-	pSaveData = (SAVERESTOREDATA*)Mem_Calloc( size + tokenSize + (int)sizeof( SAVERESTOREDATA ), 1 );
-	if ( !pSaveData )
-	{
-		FS_Close( pFile );
-		return 0;
-	}
-
-	pSaveData->tableCount = 0;
-	pSaveData->pTable = NULL;
-	pSaveData->connectionCount = 0;
-
-	pszTokenList = (char*)( pSaveData + 1 );
-
-	if ( tokenSize > 0 )
-	{
-		pSaveData->tokenCount = tokenCount;
-		pSaveData->tokenSize = tokenSize;
-
-		FS_Read( pszTokenList, tokenSize, 1, pFile );
-
-		if ( !pSaveData->pTokens )
-			pSaveData->pTokens = (char**)Mem_Calloc( tokenCount, sizeof( char* ) );
-
-		for ( i = 0; i < tokenCount; i++ )
-		{
-			pSaveData->pTokens[i] = *pszTokenList ? pszTokenList : NULL;
-			pszTokenList += strlen( pszTokenList ) + 1;
-		}
-	}
-
-	pSaveData->size = 0;
-	pSaveData->bufferSize = size;
-	pSaveData->fUseLandmark = 0;
-	pSaveData->time = 0.0f;
-	pSaveData->pCurrentData = pszTokenList;
-	pSaveData->pBaseData = pszTokenList;
-
-	FS_Read( pszTokenList, size, 1, pFile );
-
-	gEntityInterface.pfnSaveReadFields(
-		pSaveData, "GameHeader", pHeader, gGameHeaderDescription, ARRAYSIZE( gGameHeaderDescription ) );
-	if ( readGlobalState )
-		gEntityInterface.pfnRestoreGlobalState( pSaveData );
-
-	SaveExit( pSaveData );
-
-	return 1;
+int SaveReadHeader_0(FileHandle_t file, GAME_HEADER *header, int readGlobalState) {
+    std::int32_t dataBytes = 0;
+    std::int32_t tokenCount = 0;
+    std::int32_t tokenBytes = 0;
+    if (!ReadSaveInteger(file, dataBytes) || !ReadSaveInteger(file, tokenCount)
+        || !ReadSaveInteger(file, tokenBytes)) {
+        FS_Close(file);
+        return 0;
+    }
+    auto *save = ReadSaveArena(file, dataBytes, 0, tokenCount, tokenBytes);
+    if (!save) {
+        FS_Close(file);
+        return 0;
+    }
+    save->pTable = nullptr;
+    gEntityInterface.pfnSaveReadFields(
+        save, "GameHeader", header, gGameHeaderDescription, ARRAYSIZE(gGameHeaderDescription));
+    if (readGlobalState) {
+        gEntityInterface.pfnRestoreGlobalState(save);
+    }
+    SaveExit(save);
+    return 1;
 }
 
 int LoadGame( const char* pName )

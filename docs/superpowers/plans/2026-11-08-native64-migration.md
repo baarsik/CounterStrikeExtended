@@ -170,6 +170,11 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and emptiness; integers retain four-byte encodings and strings remain symbolic.
   Raw-pointer descriptors reject at compile time and runtime before pointer bits
   can be written or restored. Unknown legacy fields remain skippable.
+  Level and global-header loaders share a checked native arena with aligned
+  entity rows, bounded token decoding, exact reads and allocation-failure
+  cleanup. Save creation uses the same allocator. Legacy level/global-header
+  imports pass across the architecture matrix and Win32 load/save/reload passes;
+  these imports do not establish complete native game save round trips.
   C4 persists an optional symbolic beep phase and real wave counter, with exact
   legacy attenuation recovery and restore-failure cleanup. Engine/HLTV demos use
   explicit Win32 records, including 260-byte paths and rebuilt local pointers.
