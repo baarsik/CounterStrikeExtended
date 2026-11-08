@@ -133,6 +133,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\public\steam_provider.h" />
+    <ClInclude Include="..\..\public\steam_server_transport.h" />
     <ClInclude Include="..\..\public\steam_service.h" />
     <ClInclude Include="..\..\public\steam_service_names.h" />
     <ClInclude Include="..\..\public\steam_module_initializer.h" />

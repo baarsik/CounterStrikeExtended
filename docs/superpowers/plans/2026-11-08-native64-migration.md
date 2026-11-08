@@ -308,6 +308,20 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   and producing inputs are checked. Production sources/build policies are
   unchanged from the preceding six-case Win32 regression. Native netchan sign-on,
   gameplay, voice, consistency/downloads and AMXX message reception remain open.
+- **Native Steam server transport/lifetime boundary:** Windows x64 and macOS
+  ARM64 Release/Debug owned modules pass anonymous server and licensed
+  listen-server sessions for CS/App10 and HL/App70; Mac sanitizers pass. Twenty
+  server cases cover 120 secure SDK sessions and three complete module reloads
+  per case. Twenty client regressions cover 110 SDK cycles; listen-server cases
+  add 30 client cycles. A Mac-only anonymous transport reference prevents the
+  pinned SDK's repeated standalone initialization/exit crash without client login
+  or unauthenticated game users. The reference closes before its module/provider
+  unload. Nine offline fixtures cover atomic export binding, failure recovery,
+  high opaque pointers and independent owners; a duplicate-pipe mutation is
+  detected. Seventy-two image identities, producing inputs, all 19 Win32 targets
+  and six matching-binary runtime regressions pass. Direct SDK controls reproduce
+  remaining WebUI restart diagnostics. Complete native game/server protocol,
+  voice, browser and renderer acceptance remain open.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

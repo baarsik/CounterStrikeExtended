@@ -447,3 +447,13 @@ Ordinary CTest uses a controlled SDK result and opens no session/socket. A
 separately invoked pinned real-provider driver targets the unchanged secure Win32
 loopback fixture; fresh server approval logs and producing hashes are required.
 This bounded authentication check does not qualify native gameplay or voice.
+
+## Native Steam server transport fixtures
+
+[The server provider fixtures](../tests/native/steam_server/README.md) exercise
+real anonymous/secure and listen-server sessions through reloadable owned modules.
+[The transport ownership fixtures](../tests/native/steam_transport/README.md) run
+offline with controlled exports. Native Mac server initialization retains a
+communication pipe until its owning module unloads, with no logged-in client
+required. SDK server session success does not qualify complete native gameplay,
+voice or external-server protocol behavior.

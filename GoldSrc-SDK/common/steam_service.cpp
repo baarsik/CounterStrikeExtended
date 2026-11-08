@@ -1,6 +1,9 @@
 #if defined(CSE_OWNED_STEAM_PROVIDER)
 #include "../public/steam_service.h"
 #include "../public/steam_provider.h"
+#if defined(__APPLE__)
+#include "../public/steam_server_transport.h"
+#endif
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,6 +23,16 @@
 namespace {
 struct NativeProvider {
     cse_steam::Provider provider;
+#if defined(__APPLE__)
+    cse_steam::ServerTransport serverTransport;
+
+    ~NativeProvider() {
+        if (!serverTransport.Close()) {
+            std::fprintf(stderr, "Unable to release native Steam server transport: %s\n",
+                serverTransport.LastError());
+        }
+    }
+#endif
 
     NativeProvider() {
         if (!provider.Open(CSE_STEAM_PROVIDER_PATH)) {
@@ -32,10 +45,14 @@ struct NativeProvider {
     }
 };
 
-const cse_steam::Api& Api() {
+NativeProvider& Owner() {
     // Each consuming module keeps its provider reference until its own callbacks have been destroyed.
     static NativeProvider owner;
-    return owner.provider.Functions();
+    return owner;
+}
+
+const cse_steam::Api& Api() {
+    return Owner().provider.Functions();
 }
 } // namespace
 
@@ -77,7 +94,21 @@ S_API void* S_CALLTYPE SteamInternal_FindOrCreateGameServerInterface(HSteamUser 
 
 S_API bool S_CALLTYPE SteamInternal_GameServer_Init(uint32 ip, uint16 legacySteamPort, uint16 gamePort,
     uint16 queryPort, EServerMode mode, const char* version) {
-    return Api().initializeServer(ip, legacySteamPort, gamePort, queryPort, mode, version);
+    if (!Api().initializeServer(ip, legacySteamPort, gamePort, queryPort, mode, version)) {
+        return false;
+    }
+#if defined(__APPLE__)
+    // Keep the anonymous backend for this module's lifetime, across server map/session restarts.
+    // No client login or unauthenticated game user is created.
+    NativeProvider& owner = Owner();
+    if (!owner.serverTransport.Retain(owner.provider.Functions(), owner.provider.NativeModule())) {
+        std::fprintf(stderr, "Unable to retain native Steam server transport: %s\n",
+            owner.serverTransport.LastError());
+        Api().shutdownServer();
+        return false;
+    }
+#endif
+    return true;
 }
 
 S_API void S_CALLTYPE SteamGameServer_Shutdown() {

@@ -116,6 +116,11 @@ public:
         return api_;
     }
 
+    // Borrowed handle for optional owned service extensions; expires at Close().
+    void* NativeModule() const {
+        return module_;
+    }
+
     const char* LastError() const {
         return error_;
     }
