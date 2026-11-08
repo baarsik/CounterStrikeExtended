@@ -438,3 +438,12 @@ The explicit `check_staging.py --provider /absolute/path/to/pinned/provider
 routing, deleted-provider restoration and rejection of changed contents with a
 preserved timestamp. It does not execute the provider. Use an x64 MSVC environment
 for the Windows fixture. The complete native game remains gated separately.
+
+## Legacy Steam authentication fixtures
+
+[The connection fixtures](../tests/native/steam_auth/README.md) compile the actual
+production packet formatter, info strings, ticket caching and disconnect methods.
+Ordinary CTest uses a controlled SDK result and opens no session/socket. A
+separately invoked pinned real-provider driver targets the unchanged secure Win32
+loopback fixture; fresh server approval logs and producing hashes are required.
+This bounded authentication check does not qualify native gameplay or voice.

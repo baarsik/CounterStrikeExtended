@@ -285,6 +285,19 @@ promoted: complete native game builds and Tasks 3–7 acceptance are still open.
   content changes, including Windows UNC builds. Native server authentication,
   encoded voice, general pre-callback module ABI checks and complete native
   runtime acceptance remain open.
+- **Legacy Steam authentication boundary (Windows x64):** intact production
+  connection/ticket/disconnect definitions authenticate with the unchanged secure
+  Win32 ReHLDS fixture in Release and Debug. Each run generates a real 206-byte
+  ticket, receives connection acceptance, observes no SDK denial for fifteen
+  seconds, and matches a fresh server `STEAM USERID validated` line. Thirty-two
+  server images retain their pinned hashes. Packet/error fixtures pass nine
+  configurations across Windows x86/x64/ARM64 and macOS ARM64, including Mac
+  sanitizers and native high addresses. Failure tests exposed and fixed empty,
+  negative and oversized SDK ticket handling without changing valid packet bytes.
+  Thirteen fixture images and producing inputs are checked; all 19 Win32 targets
+  and six save/gameplay/replay regressions pass. Windows x64 execution uses VM1
+  emulation. Mac authentication, netchan sign-on, native gameplay, encoded voice,
+  consistency/downloads and AMXX message-reception acceptance remain open.
 - **Providers/platform/renderer:** stable CEF156.0.26 archives are pinned for
   integration. Complete provider acceptance and browser behavior remain pending,
   as do the portable platform/text/audio layer, shared SDL_GPU renderer and macOS

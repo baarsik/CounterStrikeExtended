@@ -1119,8 +1119,14 @@ void CL_SendConnectPacket()
 		if ( adr.type == NA_LOOPBACK )
 			ip = htonl( 0x7f000001 );
 
-		keySize = (size_t)Steam_GSInitiateGameConnection(
-			steamKey, sizeof( steamKey ), cls.GameServerSteamID, ip, adr.port, cls.isVAC2Secure );
+        const int steamKeyBytes = Steam_GSInitiateGameConnection(
+            steamKey, sizeof(steamKey), cls.GameServerSteamID, ip, adr.port, cls.isVAC2Secure);
+        if (steamKeyBytes <= 0 || steamKeyBytes > static_cast<int>(sizeof(steamKey))) {
+            Con_Printf("Unable to obtain a valid Steam connection ticket.\n");
+            CL_Disconnect_f();
+            return;
+        }
+        keySize = static_cast<size_t>(steamKeyBytes);
 	}
 
 	cls.connect_time = realtime;

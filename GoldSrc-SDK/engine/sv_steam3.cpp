@@ -1413,7 +1413,7 @@ int CSteam3Client::InitiateGameConnection(
 	}
 
 	if ( hostIP != g_nCurrentGameConnectionIP || hostPort != g_nCurrentGameConnectionPort
-		 || g_currentGameConnectionSteamID != steamID || secureConnection != secure )
+		 || g_currentGameConnectionSteamID != steamID || secureConnection != secure || blobSize <= 0 )
 	{
 		if ( g_nCurrentGameConnectionIP != 0 || g_nCurrentGameConnectionPort != 0 )
 		{
@@ -1429,14 +1429,18 @@ int CSteam3Client::InitiateGameConnection(
 				g_nCurrentGameConnectionIP, static_cast<uint16>( g_nCurrentGameConnectionPort ), secureConnection );
 	}
 
-	if ( maxData < blobSize )
-	{
-#if defined( _WIN32 )
-		ASSERT_AT( false, 1498 );
-#else
-		return 0;
+    // Failed SDK calls must never become a cached ticket or a size_t copy length.
+    if (blobSize <= 0 || blobSize > GAME_CONNECTION_BLOB_BYTES) {
+        blobSize = 0;
+        return 0;
+    }
+
+    if (maxData < blobSize) {
+#if defined(_WIN32)
+        ASSERT_AT(false, 1498);
 #endif
-	}
+        return 0;
+    }
 	std::memcpy( data, blob, static_cast<std::size_t>( blobSize ) );
 	return blobSize;
 }
