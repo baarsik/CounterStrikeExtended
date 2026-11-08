@@ -187,3 +187,11 @@ need standalone runtime evidence. Official CEF156.0.26 artifacts for Windows x64
 and macOS ARM64 are downloaded and independently SHA256-pinned; integration is
 pending. The shared/CS HTML serializer declarations differ on non-Windows and
 must be consolidated or adapted explicitly before a native Mac provider is safe.
+
+The first Task 3 component is a module-local typed callback registry and field
+operations core. Release/Debug standalone fixtures pass Win32, Windows x64,
+Windows ARM64 and macOS ARM64: eager catalogs, all four game member signatures,
+full adjusted member pointers, high-address objects, typed null handling, owned
+symbol names, case-sensitive aliases and explicit ICF ambiguity handling. The
+five real fields per game and generated production catalogs are not integrated
+with it yet; existing save/restore still uses its legacy path.
