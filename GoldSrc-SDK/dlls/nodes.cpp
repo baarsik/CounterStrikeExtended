@@ -16,11 +16,17 @@
 // nodes.cpp - AI node tree stuff.
 //=========================================================
 
-#include	"extdll.h"
+#include <cstdio>
+#include <cstdlib>
+#include <new>
+#include <type_traits>
+
+#include "extdll.h"
 #include	"util.h"
 #include	"cbase.h"
 #include	"monsters.h"
 #include	"nodes.h"
+#include "legacy_graph_records.h"
 #include	"animation.h"
 #include	"doors.h"
 
@@ -2328,243 +2334,157 @@ void CQueuePriority::Heap_SiftUp(void)
 // will be loaded. If file cannot be loaded, the node tree
 // will be created and saved to disk.
 //=========================================================
-int CGraph :: FLoadGraph ( char *szMapName )
-{
-	char	szFilename[MAX_PATH];
-	int		iVersion;
-	int     length;
-	byte    *aMemFile;
-	byte    *pMemFile;
+namespace {
+// FSetGraphPointers resolves this marker by the saved four-byte model name.
+// It is never an address reconstructed from a file.
+entvars_t pendingGraphLinkEntity{};
 
-	// make sure the directories have been made
-	char	szDirName[MAX_PATH];
-	GET_GAME_DIR( szDirName );
-	strcat( szDirName, "/maps" );
-	CreateDirectory( szDirName, NULL );
-	strcat( szDirName, "/graphs" );
-	CreateDirectory( szDirName, NULL );
+static_assert(GRAPH_VERSION == cse::navigation::LegacyGraphVersion, "Navigation version must remain compatible");
 
-	strcpy ( szFilename, "maps/graphs/" );
-	strcat ( szFilename, szMapName );
-	strcat( szFilename, ".nod" );
+template<typename Record>
+Record *AllocateGraphRecords(std::size_t count) {
+    static_assert(std::is_trivially_destructible<Record>::value, "Graph storage is released by InitGraph with free");
+    constexpr std::size_t MaximumAllocationBytes = SIZE_MAX;
+    if (count > MaximumAllocationBytes / sizeof(Record)) {
+        return nullptr;
+    }
+    auto *records = static_cast<Record *>(std::calloc(count, sizeof(Record)));
+    if (records) {
+        for (std::size_t index = 0; index < count; ++index) {
+            ::new (static_cast<void *>(records + index)) Record{};
+        }
+    }
+    return records;
+}
+} // namespace
 
-	pMemFile = aMemFile = LOAD_FILE_FOR_ME(szFilename, &length);
+int CGraph::FLoadGraph(char *szMapName) {
+    char szFilename[MAX_PATH];
+    char szDirName[MAX_PATH];
+    GET_GAME_DIR(szDirName);
+    strcat(szDirName, "/maps");
+    CreateDirectory(szDirName, NULL);
+    strcat(szDirName, "/graphs");
+    CreateDirectory(szDirName, NULL);
+    strcpy(szFilename, "maps/graphs/");
+    strcat(szFilename, szMapName);
+    strcat(szFilename, ".nod");
 
-	if ( !aMemFile )
-	{
-		return FALSE;
-	}
-	else
-	{
-		// Read the graph version number
-		//
-		length -= sizeof(int);
-		if (length < 0) goto ShortFile;
-		memcpy(&iVersion, pMemFile, sizeof(int));
-		pMemFile += sizeof(int);
+    int length = 0;
+    byte *fileBytes = LOAD_FILE_FOR_ME(szFilename, &length);
+    if (!fileBytes) {
+        return FALSE;
+    }
+    cse::navigation::GraphFileView view;
+    if (length < 0 || !cse::navigation::ParseLegacyGraph(fileBytes, static_cast<std::size_t>(length), view)) {
+        ALERT(at_aiconsole, "**ERROR** Invalid or truncated navigation graph\n");
+        FREE_FILE(fileBytes);
+        return FALSE;
+    }
 
-		if ( iVersion != GRAPH_VERSION )
-		{
-			// This file was written by a different build of the dll!
-			//
-			ALERT ( at_aiconsole, "**ERROR** Graph version is %d, expected %d\n",iVersion, GRAPH_VERSION );
-			goto ShortFile;
-		}
+    CGraph loaded{};
+    cse::navigation::DecodeLegacyGraphHeader(view, loaded);
+    loaded.m_pNodes = AllocateGraphRecords<CNode>(view.nodeCount);
+    loaded.m_pLinkPool = AllocateGraphRecords<CLink>(view.linkCount);
+    loaded.m_di = AllocateGraphRecords<DIST_INFO>(view.nodeCount);
+    loaded.m_pRouteInfo = AllocateGraphRecords<char>(view.routeBytes);
+    loaded.m_pHashLinks = AllocateGraphRecords<short>(view.hashCount);
+    if ((view.nodeCount && (!loaded.m_pNodes || !loaded.m_di))
+        || (view.linkCount && !loaded.m_pLinkPool)
+        || (view.routeBytes && !loaded.m_pRouteInfo)
+        || (view.hashCount && !loaded.m_pHashLinks)) {
+        ALERT(at_aiconsole, "**ERROR** Couldn't allocate navigation graph storage\n");
+        loaded.InitGraph();
+        FREE_FILE(fileBytes);
+        return FALSE;
+    }
+    for (std::int32_t index = 0; index < view.nodeCount; ++index) {
+        cse::navigation::DecodeLegacyGraphNode(view, index, loaded.m_pNodes[index]);
+        cse::navigation::DecodeLegacyGraphDistance(view, index, loaded.m_di[index]);
+        loaded.m_di[index].m_CheckedEvent = 0;
+    }
+    for (std::int32_t index = 0; index < view.linkCount; ++index) {
+        cse::navigation::DecodeLegacyGraphLink(view, index, &pendingGraphLinkEntity, loaded.m_pLinkPool[index]);
+    }
+    if (view.routeBytes) {
+        memcpy(loaded.m_pRouteInfo, view.routes, static_cast<std::size_t>(view.routeBytes));
+    }
+    if (view.hashCount) {
+        memcpy(loaded.m_pHashLinks, view.hashes, static_cast<std::size_t>(view.hashCount) * sizeof(std::int16_t));
+    }
+    loaded.m_CheckedCounter = 0;
+    loaded.m_fRoutingComplete = TRUE;
+    loaded.m_fGraphPresent = TRUE;
+    loaded.m_fGraphPointersSet = FALSE;
 
-		// Read the graph class
-		//
-		length -= sizeof(CGraph);
-		if (length < 0) goto ShortFile;
-		memcpy(this, pMemFile, sizeof(CGraph));
-		pMemFile += sizeof(CGraph);
-
-		// Set the pointers to zero, just in case we run out of memory.
-		//
-		m_pNodes     = NULL;
-		m_pLinkPool  = NULL;
-		m_di         = NULL;
-		m_pRouteInfo = NULL;
-		m_pHashLinks = NULL;
-
-
-		// Malloc for the nodes
-		//
-		m_pNodes = ( CNode * )calloc ( sizeof ( CNode ), m_cNodes );
-
-		if ( !m_pNodes )
-		{
-			ALERT ( at_aiconsole, "**ERROR**\nCouldn't malloc %d nodes!\n", m_cNodes );
-			goto NoMemory;
-		}
-
-		// Read in all the nodes
-		//
-		length -= sizeof(CNode) * m_cNodes;
-		if (length < 0) goto ShortFile;
-		memcpy(m_pNodes, pMemFile, sizeof(CNode)*m_cNodes);
-		pMemFile += sizeof(CNode) * m_cNodes;
-
-		
-		// Malloc for the link pool
-		//
-		m_pLinkPool = ( CLink * )calloc ( sizeof ( CLink ), m_cLinks );
-
-		if ( !m_pLinkPool )
-		{
-			ALERT ( at_aiconsole, "**ERROR**\nCouldn't malloc %d link!\n", m_cLinks );
-			goto NoMemory;
-		}
-
-		// Read in all the links
-		//
-		length -= sizeof(CLink)*m_cLinks;
-		if (length < 0) goto ShortFile;
-		memcpy(m_pLinkPool, pMemFile, sizeof(CLink)*m_cLinks);
-		pMemFile += sizeof(CLink)*m_cLinks;
-
-		// Malloc for the sorting info.
-		//
-		m_di = (DIST_INFO *)calloc( sizeof(DIST_INFO), m_cNodes );
-		if ( !m_di )
-		{
-			ALERT ( at_aiconsole, "***ERROR**\nCouldn't malloc %d entries sorting nodes!\n", m_cNodes );
-			goto NoMemory;
-		}
-
-		// Read it in.
-		//
-		length -= sizeof(DIST_INFO)*m_cNodes;
-		if (length < 0) goto ShortFile;
-		memcpy(m_di, pMemFile, sizeof(DIST_INFO)*m_cNodes);
-		pMemFile += sizeof(DIST_INFO)*m_cNodes;
-
-		// Malloc for the routing info.
-		//
-		m_fRoutingComplete = FALSE;
-		m_pRouteInfo = (char *)calloc( sizeof(char), m_nRouteInfo );
-		if ( !m_pRouteInfo )
-		{
-			ALERT ( at_aiconsole, "***ERROR**\nCounldn't malloc %d route bytes!\n", m_nRouteInfo );
-			goto NoMemory;
-		}
-		m_CheckedCounter = 0;
-		for (int i = 0; i < m_cNodes; i++)
-		{
-			m_di[i].m_CheckedEvent = 0;
-		}
-		
-		// Read in the route information.
-		//
-		length -= sizeof(char)*m_nRouteInfo;
-		if (length < 0) goto ShortFile;
-		memcpy(m_pRouteInfo, pMemFile, sizeof(char)*m_nRouteInfo);
-		pMemFile += sizeof(char)*m_nRouteInfo;
-		m_fRoutingComplete = TRUE;;
-
-		// malloc for the hash links
-		//
-		m_pHashLinks = (short *)calloc(sizeof(short), m_nHashLinks);
-		if (!m_pHashLinks)
-		{
-			ALERT ( at_aiconsole, "***ERROR**\nCounldn't malloc %d hash link bytes!\n", m_nHashLinks );
-			goto NoMemory;
-		}
-
-		// Read in the hash link information
-		//
-		length -= sizeof(short)*m_nHashLinks;
-		if (length < 0) goto ShortFile;
-		memcpy(m_pHashLinks, pMemFile, sizeof(short)*m_nHashLinks);
-		pMemFile += sizeof(short)*m_nHashLinks;
-
-		// Set the graph present flag, clear the pointers set flag
-		//
-		m_fGraphPresent = TRUE;
-		m_fGraphPointersSet = FALSE;
-		
-		FREE_FILE(aMemFile);
-
-		if (length != 0)
-		{
-			ALERT ( at_aiconsole, "***WARNING***:Node graph was longer than expected by %d bytes.!\n", length);
-		}
-
-		return TRUE;
-	}
-
-ShortFile:
-NoMemory:
-	FREE_FILE(aMemFile);
-	return FALSE;
+    // Commit only after the complete file has decoded and all allocations succeed.
+    InitGraph();
+    *this = loaded;
+    FREE_FILE(fileBytes);
+    if (view.consumedBytes != static_cast<std::size_t>(length)) {
+        ALERT(at_aiconsole, "***WARNING***:Node graph was longer than expected by %d bytes.!\n",
+            static_cast<int>(static_cast<std::size_t>(length) - view.consumedBytes));
+    }
+    return TRUE;
 }
 
 //=========================================================
 // CGraph - FSaveGraph - It's not rocket science.
 // this WILL overwrite existing files.
 //=========================================================
-int CGraph :: FSaveGraph ( char *szMapName )
-{
-	
-	int		iVersion = GRAPH_VERSION;
-	char	szFilename[MAX_PATH];
-	FILE	*file;
+int CGraph::FSaveGraph(char *szMapName) {
+    if (!m_fGraphPresent || !m_fGraphPointersSet || m_cNodes < 0 || m_cLinks < 0
+        || m_nRouteInfo < 0 || m_nHashLinks < 0
+        || (m_cNodes && (!m_pNodes || !m_di)) || (m_cLinks && !m_pLinkPool)
+        || (m_nRouteInfo && !m_pRouteInfo) || (m_nHashLinks && !m_pHashLinks)) {
+        ALERT(at_aiconsole, "Graph not ready!\n");
+        return FALSE;
+    }
+    char szFilename[MAX_PATH];
+    GET_GAME_DIR(szFilename);
+    strcat(szFilename, "/maps");
+    CreateDirectory(szFilename, NULL);
+    strcat(szFilename, "/graphs");
+    CreateDirectory(szFilename, NULL);
+    strcat(szFilename, "/");
+    strcat(szFilename, szMapName);
+    strcat(szFilename, ".nod");
+    FILE *file = std::fopen(szFilename, "wb");
+    ALERT(at_aiconsole, "Created: %s\n", szFilename);
+    if (!file) {
+        ALERT(at_aiconsole, "Couldn't Create: %s\n", szFilename);
+        return FALSE;
+    }
 
-	if ( !m_fGraphPresent || !m_fGraphPointersSet )
-	{// protect us in the case that the node graph isn't available or built
-		ALERT ( at_aiconsole, "Graph not ready!\n" );
-		return FALSE;
-	}
-
-	// make sure directories have been made
-	GET_GAME_DIR( szFilename );
-	strcat( szFilename, "/maps" );
-	CreateDirectory( szFilename, NULL );
-	strcat( szFilename, "/graphs" );
-	CreateDirectory( szFilename, NULL );
-
-	strcat( szFilename, "/" );
-	strcat( szFilename, szMapName );
-	strcat( szFilename, ".nod" );
-
-	file = fopen ( szFilename, "wb" );
-
-	ALERT ( at_aiconsole, "Created: %s\n", szFilename );
-
-	if ( !file )
-	{// couldn't create
-		ALERT ( at_aiconsole, "Couldn't Create: %s\n", szFilename );
-		return FALSE;
-	}
-	else
-	{
-	// write the version
-		fwrite ( &iVersion, sizeof ( int ), 1, file );
-
-	// write the CGraph class
-		fwrite ( this, sizeof ( CGraph ), 1, file );
-
-	// write the nodes
-		fwrite ( m_pNodes, sizeof ( CNode ), m_cNodes, file );
-
-	// write the links
-		fwrite ( m_pLinkPool, sizeof ( CLink ), m_cLinks, file );
-
-		fwrite ( m_di, sizeof(DIST_INFO), m_cNodes, file );
-
-		// Write the route info.
-		//
-		if ( m_pRouteInfo && m_nRouteInfo )
-		{
-			fwrite ( m_pRouteInfo, sizeof( char ), m_nRouteInfo, file );
-		}
-
-		if (m_pHashLinks && m_nHashLinks)
-		{
-			fwrite(m_pHashLinks, sizeof(short), m_nHashLinks, file);
-		}
-		fclose ( file );
-		return TRUE;
-	}
+    const std::int32_t version = cse::navigation::LegacyGraphVersion;
+    const auto header = cse::navigation::EncodeLegacyGraphHeader(*this);
+    bool valid = std::fwrite(&version, sizeof(version), 1, file) == 1
+        && std::fwrite(&header, sizeof(header), 1, file) == 1;
+    for (int index = 0; valid && index < m_cNodes; ++index) {
+        const auto node = cse::navigation::EncodeLegacyGraphNode(m_pNodes[index]);
+        valid = std::fwrite(&node, sizeof(node), 1, file) == 1;
+    }
+    for (int index = 0; valid && index < m_cLinks; ++index) {
+        const auto link = cse::navigation::EncodeLegacyGraphLink(m_pLinkPool[index]);
+        valid = std::fwrite(&link, sizeof(link), 1, file) == 1;
+    }
+    for (int index = 0; valid && index < m_cNodes; ++index) {
+        const auto distance = cse::navigation::EncodeLegacyGraphDistance(m_di[index]);
+        valid = std::fwrite(&distance, sizeof(distance), 1, file) == 1;
+    }
+    if (valid && m_nRouteInfo) {
+        valid = std::fwrite(m_pRouteInfo, sizeof(char), m_nRouteInfo, file) == static_cast<std::size_t>(m_nRouteInfo);
+    }
+    if (valid && m_nHashLinks) {
+        valid = std::fwrite(m_pHashLinks, sizeof(std::int16_t), m_nHashLinks, file)
+            == static_cast<std::size_t>(m_nHashLinks);
+    }
+    const int closeResult = std::fclose(file);
+    if (!valid || closeResult != 0) {
+        ALERT(at_aiconsole, "Couldn't write complete navigation graph: %s\n", szFilename);
+        return FALSE;
+    }
+    return TRUE;
 }
 
 //=========================================================

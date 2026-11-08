@@ -233,7 +233,7 @@ Real CS/HL DLL probes reproduced the false-Boolean overread and now pass the
 round trips, canaries, 64-bit integers and array-prefix cases in Win32 Release and
 Debug. The native standalone matrix and macOS sanitizers pass; captured Half-Life
 save/load and CS recording/replay also pass in both Win32 configurations. Native
-engine-string offsets, explicit navigation records and full native game file
+engine-string offsets, CS bot navigation references and full native game file
 round trips remain pending.
 
 C4 saves now record a stable optional beep phase and the actual wave counter
@@ -257,3 +257,15 @@ bytes and macOS sanitizers. New Win32 CS and HL recordings replay to EOF in both
 configurations. Sealed legacy CS/HL demos also replay to EOF with identical host
 frame counts in paired cold-start launches of the preserved and updated Win32
 runtimes; module hashes identify both. Native whole-game acceptance remains open.
+
+Half-Life `.nod` files now use explicit version-16 Win32 records independently
+of native CGraph/CLink sizes. The loader bounds every section, allocates native
+rows before committing, and rebuilds entity pointers from saved model names.
+Writers store pointer-presence tags and check complete writes. All eight
+Win32/native Release/Debug codec runs produce identical normalized bytes for the
+captured graph; malformed-count, truncation, empty-graph and sanitizer checks pass.
+Paired Win32 baseline/current map fixtures pass write denial, rebuild, save/load
+and fresh-map lookup of all three entity links in both configurations. Existing
+saved-game model warnings match the preserved baseline; fresh map lookups emit
+none. Allocation-failure injection, CS bot `.nav` references and native whole-game
+acceptance remain separate outstanding work.
