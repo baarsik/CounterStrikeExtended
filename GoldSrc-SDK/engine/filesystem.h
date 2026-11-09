@@ -9,7 +9,7 @@ extern IFileSystem* g_pFileSystem;
 extern CreateInterfaceFn g_FileSystemFactory;
 extern bool bLowViolenceBuild;
 
-int				FileSystem_Init( char* basedir, void* filesystemFactory );
+int				FileSystem_Init( char* basedir, CreateInterfaceFn filesystemFactory );
 void			FileSystem_Shutdown();
 char* GetBaseDirectory();
 int				FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameDirectory );

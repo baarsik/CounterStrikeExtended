@@ -10,7 +10,7 @@ target has completed acceptance.** See [build commands](building.md),
 | Target | Commitment | Current state |
 | --- | --- | --- |
 | Windows 11 x64 | Required; first complete native target | All 19 targets build; selected CS/HL runtime checks pass on VM1 under x64 emulation |
-| macOS 14+ Apple Silicon | Required | Dependencies and several modules build; full engine/client linking is incomplete |
+| macOS 14+ Apple Silicon | Required | Complete 14-target client builds in Release/Debug; native UI and module-load fixtures pass; gameplay and standalone server/A3D work remain |
 | Windows ARM64 | Conditional | Native components pass selected checks; full providers/gameplay remain unqualified |
 | Linux x64 / ARM64 | Opportunistic | Reuse shared POSIX/SDL implementations only; defer substantial platform/provider work |
 
@@ -47,15 +47,17 @@ renderer project or hardware purchase is part of conditional-target work.
 | Build/dependencies | One generated inventory from retained manifests; explicit OS/CPU/compiler policies; source-built SDL3 3.4.20, mpg123 1.33.7 and pinned media/font/compression libraries; source-built CS controls | Fresh complete builds after later source edits; conditional-target qualification |
 | Module ABI | `CseGetModuleAbi` checks architecture, pointer/compiler profile, role and consumed table signatures for selected game/client/filesystem exchanges; runtime ABI 10 | Other C++ boundaries and rejection before all static callbacks |
 | Data | Native handles/string storage, typed callback registration, explicit Win32 demo/navigation records, symbolic C4 phase, HPAK records and bounded custom-decal parsing | Full entity/transition/C4/nav writing, VFS/spray integration and Mac game round trips |
-| Platform/numerics | Owned module loading, cooperative workers, UDP components, CPU/timer discovery, scalar packed lighting and legacy conversion helpers | Complete native engine, dedicated/admin and UI platform owners; restart/unload integration |
+| Platform/numerics | Owned module loading, cooperative workers, UDP components, CPU/timer discovery, scalar packed lighting, legacy conversion helpers and native client video/bootstrap compilation | Dedicated/admin and A3D platform owners; client restart/unload integration |
 | Audio | mpg123 music, SDL DMA/capture components, retained mixing/DSP rules and native voice-mixer component | Real device/capture/voice delivery and A3D provider/spatial parity; measured cross-CPU SDL conversion differences remain |
 | Steam/CEF | Owned Steam service and sandboxed CEF controller/host; real provider fixtures on Windows x64 and Mac ARM64 | Full game/browser/voice integration and provider failure/lifetime acceptance |
-| UI/text/input | UTF-16 compatibility helpers, CoreText/FreeType components, Marlett/font probes, keyboard and mouse boundaries; selected Windows CS threaded-camera outcomes | Complete App/System/Surface and font selection/readability, clipboard publication, Mac physical input and quiescence |
+| UI/text/input | Native Mac App/System, SDL VGUI1 Surface, selected CoreText/FreeType provider, CP1252 clipboard bridge and UTF-16 VGUI2 reads; actual-library drawing/clipboard/key translation checks | Embedded VGUI1 root admission, default font selection/layout parity, physical input, standalone-window event routing and quiescence |
 | Renderer | Private command/state/texture layer; three selected D3D12 raster profiles and one Metal profile match frozen GL RGB bytes; offline DXBC/metallib tooling | Production wiring, unsupported legacy branches, full world/model/UI/media presentation and parity |
 
 The ABI descriptor does not make every module safe to exchange native C++ objects.
-The AppCold loader, clipboard owners and alternate TextEntry lifetime components
-remain unselected until their real host ownership and shutdown prerequisites hold.
+The AppCold loader, experimental clipboard owners and alternate TextEntry lifetime
+components remain unselected until their real host ownership and shutdown prerequisites
+hold. The selected client App/System use synchronous SDL clipboard copies; the
+native OS publication is text, without Windows allocation padding or embedded-NUL tails.
 Font lookup or raster availability alone does not qualify layout or readable UI.
 
 ## Remaining work and gates
@@ -65,8 +67,8 @@ Font lookup or raster availability alone does not qualify layout or readable UI.
    Separate native entity offsets from fixed-width network/save identifiers.
    Verify every save callback, transition and C4 phase, including legacy imports
    reconstructed from attenuation. Complete bidirectional demo/save/nav tests.
-2. **Complete native platform owners.** Replace remaining Windows engine,
-   VGUI1/VGUI2, dedicated/admin and A3D dependencies. Preserve VFS search order,
+2. **Complete native platform owners.** Finish dedicated/admin and A3D dependencies
+   and qualify the compiled client owners. Preserve VFS search order,
    game/fallback paths, case behavior, settings, directories, clipboard and shell
    functions. Bind real font, input and clipboard services with explicit UTF-16
    boundaries and owner lifetimes. Join workers before releasing their code.

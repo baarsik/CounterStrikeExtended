@@ -154,4 +154,8 @@ target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/util
 target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/common>")
 endif()
 cse_runtime_directory(vgui "")
+if(NOT WIN32)
+  cse_link_sdl3(vgui Debug)
+  cse_link_sdl3(vgui Release)
+endif()
 cse_vgui_import_archive()

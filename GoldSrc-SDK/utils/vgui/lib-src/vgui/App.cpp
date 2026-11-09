@@ -15,10 +15,11 @@
 namespace vgui
 {
 
-#if defined( _WIN32 )
 namespace
 {
+#if defined( _WIN32 )
 const char* staticKeyTrans[KEY_LAST];
+#endif
 const char* const keyTranslations[KEY_LAST] =
 {
 	"0)KEY_0", "1!KEY_1", "2@KEY_2", "3#KEY_3", "4$KEY_4",
@@ -47,7 +48,6 @@ const char* const keyTranslations[KEY_LAST] =
 	"\0\0KEY_F10", "\0\0KEY_F11", "\0\0KEY_F12"
 };
 }
-#endif
 
 App* App::_instance = NULL;
 
@@ -523,17 +523,29 @@ void App::getKeyCodeText( KeyCode code, char* buf, int buflen )
 	}
 }
 #else
-char App::getKeyCodeChar( KeyCode, bool )
-{
-	return '\0';
+char App::getKeyCodeChar(KeyCode code, bool shifted) {
+    if (static_cast<unsigned int>(code) >= KEY_LAST) {
+        return '\0';
+    }
+    return keyTranslations[code][shifted ? 1 : 0];
 }
 
-void App::getKeyCodeText( KeyCode, char* buf, int buflen )
-{
-	if ( buf != NULL && buflen > 0 )
-	{
-		buf[0] = '\0';
-	}
+void App::getKeyCodeText(KeyCode code, char* buffer, int capacity) {
+    if (!buffer || capacity <= 0) {
+        return;
+    }
+    buffer[0] = '\0';
+    if (static_cast<unsigned int>(code) >= KEY_LAST) {
+        return;
+    }
+    constexpr int KeyNameOffset = 2;
+    const char* name = keyTranslations[code] + KeyNameOffset;
+    int written = 0;
+    while (written + 1 < capacity && name[written]) {
+        buffer[written] = name[written];
+        ++written;
+    }
+    buffer[written] = '\0';
 }
 #endif
 

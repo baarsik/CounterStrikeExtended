@@ -30,6 +30,7 @@ window and network probes are separate authorized actions, not implied by a buil
 | Audio and voice | [sound](sound/), [capture](voice_capture/README.md), [mixer](voice_mixer/README.md), [caller wiring](voice_capture_wiring/README.md) |
 | Steam and browser | [Steam](steam/), [service lifetime](steam_service/), [server](steam_server/README.md), [CEF](cef_host/README.md) |
 | Text and UI | [text encoding](text_encoding/README.md), [UI lengths](ui_lengths/README.md), [VGUI1 Debug](vgui1_debug/README.md) |
+| Built Apple Silicon client | [actual-library UI, font and module-load checks](mac_client/README.md) |
 | Renderer | [state/texture capture](render_state/README.md), [offline GPU shaders and adapters](render_gpu/README.md) |
 
 To qualify a changed implementation, compare it with a pinned reference under

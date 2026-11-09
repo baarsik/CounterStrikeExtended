@@ -1250,8 +1250,16 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 #include <cstdlib>
 
 #include <cstring>
+#if defined(_WIN32)
 #include <malloc.h>
-#include <windows.h>
+#define alloca _alloca
+#endif
+#include "video_platform.h"
+#include "buildslave_assert.h"
+#define ASSERT_FILE BUILDSLAVE_PATH(L"engine\\sys_getmodes.cpp")
+#if !defined(_WIN32)
+#include <alloca.h>
+#endif
 #include "gl_model.h"
 #include <SDL3/SDL_opengl.h>
 
@@ -1294,8 +1302,8 @@ protected:
 	static float CalculatePixelAspect( unsigned int width, unsigned int height );
 
 private:
-	void CenterEngineWindow( HWND window, int width, int height );
-	void DrawStartupGraphic( HWND window );
+	void CenterEngineWindow( CseGameWindowHandle window, int width, int height );
+	void DrawStartupGraphic( CseGameWindowHandle window );
 	void LoadStartupGraphic();
 
 	struct bimage_t
@@ -1357,7 +1365,7 @@ void VideoMode_Create()
 
 	videomode = new CVideoMode_OpenGL( windowed );
 	if ( !videomode )
-		_wassert( L"videomode", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 2362 );
+		ASSERT_AT(videomode, 2362);
 }
 
 bool CVideoMode_Common::AddMode( int width, int height, int bitsPerPixel )
@@ -1554,7 +1562,7 @@ bool CVideoMode_Common::Init(void *) {
     return true;
 }
 
-void CVideoMode_Common::CenterEngineWindow(HWND window, int width, int height) {
+void CVideoMode_Common::CenterEngineWindow(CseGameWindowHandle window, int width, int height) {
     SDL_Rect bounds;
     int x, y;
 
@@ -1579,7 +1587,7 @@ void CVideoMode_Common::AdjustWindowForMode()
 	int width, height;
 
 	if ( !mode )
-		_wassert( L"mode", L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\engine\\sys_getmodes.cpp", 586 );
+		ASSERT_AT(mode, 586);
 
 	Snd_ReleaseBuffer();
 
@@ -1620,7 +1628,7 @@ void CVideoMode_Common::LoadStartupGraphic()
 		return;
 
 	size = FS_Size( file );
-	buffer = (char*)_alloca( size + 1 );
+	buffer = (char*)alloca( size + 1 );
 	memset( buffer, 0, size + 1 );
 	FS_Read( buffer, size, 1, file );
 	FS_Close( file );
@@ -1872,7 +1880,7 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
     }
 }
 
-void CVideoMode_Common::DrawStartupGraphic(HWND window) {
+void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
     int width, height;
     int i, bit, row;
     float xScale, yScale;

@@ -14,9 +14,7 @@ class VGUIAPI Surface : public SurfaceBase
 {
 public:
 	Surface( Panel* embeddedPanel );
-#if defined( _WIN32 )
 	~Surface();
-#endif
 
 	virtual void setTitle( const char* title ) override;
 	virtual bool setFullscreenMode( int wide, int tall, int bpp ) override;

@@ -17,7 +17,9 @@ and [reproduction tools](../tools/qualification/README.md) are separate from the
 | V11 data and server lifecycle | Eight selected Win32↔x64 demo replays, four HL save legs and selected reconnect/changelevel cases | Not complete entity, transition, C4 or navigation acceptance; not Mac game round trips |
 | V18 production CS camera, x64 Release and Debug | Each has 1,041 alive frames, 199 movement-command frames and 410 exact rendered angle samples. Debug adds 18 read-only state samples. Separate multiplayer case retains third-person rejection | Threaded single-player camera only; no internal query/warp-order, atomic snapshot, other-mode or Mac camera claim |
 | SDL_GPU renderer components | Three selected Windows D3D12 profiles and first native Metal profile match 12,288 GL RGB bytes each; R/D and Mac instrumented CPU variants checked | Only readback row order normalized. Production backend is unselected; other branches, precision formats and scene coverage remain open |
-| Latest Mac compile discovery | Seven HL length diagnostics removed; 44 remaining file-location diagnostics, 26 unique after line/column removal | Full build still fails in Windows UI/platform/renderer/A3D owners. This count is not a percentage of port completion |
+| Mac ARM64 client, 2026-11-09 Release/Debug | Fresh `cse_client` builds link all 14 client responsibilities and CEF helpers; 13 actual dylibs load in separate processes, launcher architecture checked | Standalone dedicated/A3D owners remain unported. No complete game startup, embedded VGUI1 admission, scene rendering or gameplay acceptance |
+| Mac actual-library UI, Release/Debug | Clock/arguments/date/disk, VGUI1 CP1252 and VGUI2 UTF16 clipboard reads, key translation, native font raster, inset borders, shared popup bitmaps and SDL video lease teardown pass | SDL dummy video/software renderer; physical input, General pasteboard publication and default font/layout parity are unqualified |
+| Windows regression for Mac client changes | Ten current owning C++ files compile on VM1 in Win32/x64 Release/Debug; COFF checks retain the C++ vector-origin owners | Owning-file checks reuse the V18 compiler/dependency policies; not a fresh complete Windows link/runtime cohort |
 | Build-tool/component checks | 106 build-tool tests and 19-project translator check pass; selected component matrices include R/D, high addresses and sanitizers | Individual fixtures define their covered inputs; they do not establish complete game or provider acceptance |
 
 The frozen producing-source/package manifests, imported/loaded-image hashes,
@@ -32,6 +34,11 @@ Useful entries: `runtime-platform-v18-*`, `native-camera-production-v18-final/`,
 `macos-runtime-build-native-audit-v19-*`. Their reports and SHA-256 indexes bind
 claims to exact inputs. A private machine path is not a substitute for rerunning
 the checked-in [fixtures](../tests/native/README.md).
+
+The Mac client build logs, image/source identities and Windows owning-file probe
+logs are under `mac-client-build-20261109/`. The current local build receipt is
+`build/mac-client-verification-20261109/verification.json`; its evidence is for
+compilation and the named integration cases, not native-target promotion.
 
 ## Earlier Win32 reference
 

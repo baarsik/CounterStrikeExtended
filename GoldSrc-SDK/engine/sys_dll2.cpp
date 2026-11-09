@@ -892,8 +892,14 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 
 #else
 
+#if defined(_WIN32)
 #include <winsock2.h>
 #include <Windows.h>
+#endif
+#include "video_platform.h"
+#if !defined(_WIN32)
+#include <netdb.h>
+#endif
 
 #include "interface.h"
 #include "keys.h"
@@ -925,7 +931,9 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 #include <cstdlib>
 #include <climits>
 #include <cstring>
+#if defined(_WIN32)
 #include <eh.h>
+#endif
 #include "surface_backend_config.h"
 #include <clocale>
 #include <cstdint>
@@ -1024,9 +1032,11 @@ namespace
 {
 constexpr unsigned char kCommandTokenSpan = 0x5D;
 constexpr int kArgumentLimit = 49;
+#if defined(_WIN32)
 constexpr int kFourteenMegabytes = 0xE00000;
 constexpr int kFourteenMegabytesMinusOne = 0xDFFFFF;
 constexpr int kOneHundredTwentyEightMegabytes = 0x8000000;
+#endif
 constexpr int kSurfaceCacheFloor = 3145728;
 constexpr int kSurfaceCacheBias = 2953728;
 constexpr int kSurfaceCachePixelLimit = 64001;
@@ -1043,7 +1053,9 @@ constexpr int kCdKeyRandomMaximum = 0x7FFF;
 constexpr int kHostNameBytes = 4096;
 constexpr int kCdKeyRandomMaximum = 0x7FFFFFFF;
 #endif
+#if defined(_WIN32)
 constexpr float kBytesToMegabytes = 0.00000095367431640625f;
+#endif
 
 bool IsCommandTokenCharacter( char character )
 {
@@ -1128,8 +1140,8 @@ void Steam_InitClient();
 void Steam_ShutdownClient();
 void VideoMode_Create();
 int GL_SetMode(
-	HWND mainwindow, HDC* pmaindc, HGLRC* pbaseRC, int fD3D, const char* pszDriver, const char* pszCmdLine );
-void GL_Shutdown( HWND hwnd, HDC hdc, HGLRC hglrc );
+	CseGameWindowHandle mainwindow, CseVideoDC* pmaindc, CseVideoContext* pbaseRC, int fD3D, const char* pszDriver, const char* pszCmdLine );
+void GL_Shutdown( CseGameWindowHandle hwnd, CseVideoDC hdc, CseVideoContext hglrc );
 int RandomLong( int low, int high );
 
 extern int Win32AtLeastV4;
@@ -1145,9 +1157,9 @@ int gHasMMXTechnology;
 void ( *VID_FlipScreen )();
 int ( *D_SurfaceCacheForRes )( int width, int height );
 void ( *Launcher_ConsolePrintf )( char* format, ... );
-HINSTANCE g_hOpenGL;
-HDC maindc;
-HGLRC baseRC;
+CseGLModule g_hOpenGL;
+CseVideoDC maindc;
+CseVideoContext baseRC;
 char* argv[MAX_NUM_ARGVS];
 qboolean g_bPrintingKeepAliveDots;
 const char* szReslistsExt = ".lst";
@@ -1157,7 +1169,9 @@ const char* szCommonPreloads = "multiplayer_preloads";
 static IDedicatedExports* dedicated;
 static double g_flLastSteamProgressUpdateTime;
 static qboolean g_PerfCounterInitialized;
+#if defined(_WIN32)
 static CRITICAL_SECTION g_PerfCounterMutex;
+#endif
 extern int gD3DMode;
 
 CGameUIFuncs::~CGameUIFuncs()
@@ -1223,7 +1237,11 @@ void Sys_SetupLegacyAPIs()
 void Sys_InitLauncherInterface()
 {
     gHasMMXTechnology = CsePackedSurfaceLightingAvailable();
+#if defined(_WIN32)
 	g_hOpenGL = GetModuleHandleA( "opengl32.dll" );
+#else
+    g_hOpenGL = nullptr;
+#endif
 	VID_FlipScreen = Sys_VID_FlipScreen;
 	D_SurfaceCacheForRes = Sys_GetSurfaceCacheSize;
 	Launcher_ConsolePrintf = Legacy_Sys_Printf;
@@ -1254,6 +1272,7 @@ qboolean Sys_IsWin98()
 
 void Sys_CheckOSVersion()
 {
+#if defined(_WIN32)
 	OSVERSIONINFOA version = {};
 	version.dwOSVersionInfoSize = sizeof( version );
 #pragma warning( push )
@@ -1271,6 +1290,10 @@ void Sys_CheckOSVersion()
 		else if ( version.dwMinorVersion - 1 <= 88 )
 			g_bIsWin98 = true;
 	}
+#else
+    g_bIsWin95 = false;
+    g_bIsWin98 = false;
+#endif
 }
 
 void Sys_Shutdown()
@@ -1279,10 +1302,12 @@ void Sys_Shutdown()
 	Steam_ShutdownClient();
 	if ( g_PerfCounterInitialized )
 	{
+#if defined(_WIN32)
 		DeleteCriticalSection( &g_PerfCounterMutex );
+#endif
 		g_PerfCounterInitialized = false;
 	}
-	GL_Shutdown( reinterpret_cast<HWND>( *pmainwindow ), maindc, baseRC );
+	GL_Shutdown( reinterpret_cast<CseGameWindowHandle>( *pmainwindow ), maindc, baseRC );
 }
 
 void Sys_ShutdownArgv()
@@ -1628,7 +1653,7 @@ int Sys_InitGame( char* cmdline, [[maybe_unused]] char* basedir, void* windowAdd
 	Sys_InitMemory();
 	TraceInit( "Sys_InitLauncherInterface()", "Sys_ShutdownLauncherInterface()", 0 );
 	Sys_InitLauncherInterface();
-	if ( GL_SetMode( reinterpret_cast<HWND>( *pmainwindow ), &maindc, &baseRC, gD3DMode, "opengl32.dll", cmdline ) == 0 )
+	if ( GL_SetMode( reinterpret_cast<CseGameWindowHandle>( *pmainwindow ), &maindc, &baseRC, gD3DMode, "opengl32.dll", cmdline ) == 0 )
 		return 0;
 
 	TraceInit( "Host_Init( &host_parms )", "Host_Shutdown()", 0 );
@@ -1735,6 +1760,7 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 	return result;
 }
 
+#if defined(_WIN32)
 static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 {
 	char message[256];
@@ -1742,6 +1768,8 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 	SteamAPI_SetMiniDumpComment( message );
 	SteamAPI_WriteMiniDump( code, exception, build_number() );
 }
+
+#endif
 
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
@@ -1752,7 +1780,9 @@ int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRes
 		char* build = va( const_cast<char*>( "%d" ), build_number() );
 		SteamAPI_UseBreakpadCrashHandler( build, "Oct  7 2024", "19:06:44", 0, nullptr, nullptr );
 	}
+#if defined(_WIN32)
 	_set_se_translator( ExceptionHandler );
+#endif
 	try
 	{
 		return RunListenServer( instance, basedir, cmdline, postRestartCmdLineArgs, launcherFactory, filesystemFactory );

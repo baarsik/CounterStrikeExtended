@@ -80,6 +80,12 @@ if(NOT CSE_TARGET_ARCH STREQUAL x86 AND NOT CSE_HARDWARE_ONLY)
   list(APPEND runtime_targets cse_cef_host)
 endif()
 add_custom_target(cse_hardware DEPENDS hw_engine)
+if(NOT CSE_HARDWARE_ONLY)
+  # Both games, including listen-server modules and all client-loaded helpers.
+  # Standalone dedicated/HLTV programs and the legacy A3D provider are separate.
+  add_custom_target(cse_client DEPENDS vgui hw_engine tier0 vgui2 filesystem_stdio launcher
+    cs_client cs_server hl_client hl_server gameui particleman hltv_core demoplayer)
+endif()
 add_custom_target(cse_runtime DEPENDS ${runtime_targets})
 message(STATUS "Runtime outputs: ${CSE_OUTPUT_DIRECTORY}")
 message(STATUS "No tests or runtime launches are part of this build.")

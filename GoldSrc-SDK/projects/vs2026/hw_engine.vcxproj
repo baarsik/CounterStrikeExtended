@@ -116,11 +116,7 @@
       <ExceptionHandling>false</ExceptionHandling>
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
-    <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-      <CseTargetOS>macos</CseTargetOS>
-      <CseNativeServices>font-registration-owner</CseNativeServices>
-    </ClCompile>
+
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontDiscovery.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>

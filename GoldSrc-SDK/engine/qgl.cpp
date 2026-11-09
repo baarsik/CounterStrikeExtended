@@ -1,3 +1,4 @@
+#include "video_platform.h"
 #include "filesystem.h"
 #include "const.h"
 #include <SDL3/SDL_opengl.h>
@@ -6,12 +7,13 @@
 
 #include <cstdio>
 #include <ctime>
+#include <cstdint>
 
 typedef struct glwstate_s
 {
-	HINSTANCE hInstance;
+	CseGLModule hInstance;
 	void* wndproc;
-	HINSTANCE hinstOpenGL;
+	CseGLModule hinstOpenGL;
 	qboolean minidriver;
 	qboolean allowdisplaydepthchange;
 	qboolean mcd_accelerated;
@@ -764,7 +766,9 @@ void( APIENTRY* qglColorTableEXT )( GLenum target, GLenum internalFormat, GLsize
 	const void* table );
 void( APIENTRY* qglSelectTextureSGIS )( GLenum texture );
 void( APIENTRY* qglMTexCoord2fSGIS )( GLenum target, GLfloat s, GLfloat t );
+#if defined(_WIN32)
 BOOL( WINAPI* qwglSwapBuffers )( HDC hdc );
+#endif
 
 #if defined( _WIN32 )
 extern "C"
@@ -3166,12 +3170,17 @@ extern "C" void QGL_Shutdown()
 	qglGetShaderInfoLog = NULL;
 	qglGetUniformLocation = NULL;
 	qglUniform1ui = NULL;
+
+#if defined(_WIN32)
 	qwglSwapBuffers = NULL;
+#endif
 }
 
-extern "C" HINSTANCE QGL_Init( const char*, const char* )
+extern "C" CseGLModule QGL_Init( const char*, const char* )
 {
-	glw_state.hinstOpenGL = (HINSTANCE)TRUE;
+    // The retained return value marks a populated GL function table, not an OS module lease.
+    constexpr std::uintptr_t FunctionTableLoadedSentinel = 1;
+    glw_state.hinstOpenGL = reinterpret_cast<CseGLModule>(FunctionTableLoadedSentinel);
 
 	qglAccum = dllAccum = (decltype( dllAccum ))SDL_GL_GetProcAddress( "glAccum" );
 	qglAlphaFunc = dllAlphaFunc = (decltype( dllAlphaFunc ))SDL_GL_GetProcAddress( "glAlphaFunc" );
@@ -3572,7 +3581,10 @@ extern "C" HINSTANCE QGL_Init( const char*, const char* )
 	qglColorTableEXT = NULL;
 	qglSelectTextureSGIS = NULL;
 	qglMTexCoord2fSGIS = NULL;
+
+#if defined(_WIN32)
 	qwglSwapBuffers = NULL;
+#endif
 
 	return glw_state.hinstOpenGL;
 }

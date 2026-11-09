@@ -27,7 +27,12 @@
 #define M_PI 3.14159265358979323846	// matches value in gcc v2 math.h
 #endif
 
+#if defined(_WIN32)
 vec3_t vec3_origin( 0, 0, 0 );
+#else
+// POSIX linkers give the C pm_math owner and this Vector view the same symbol.
+extern vec3_t vec3_origin;
+#endif
 
 float Length( const float* vector )
 {

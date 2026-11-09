@@ -16,6 +16,8 @@ void Surface::createPopup( Panel* embeddedPanel )
 	new Surface( embeddedPanel );
 }
 
+#if !defined(__APPLE__)
 void Surface::GetMousePos( int&, int& )
 {
 }
+#endif

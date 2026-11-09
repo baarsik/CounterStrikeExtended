@@ -1,6 +1,11 @@
 #include "../common/sdl3_policy.h"
 // gl_vidnt.c -- NT GL vid component
-#include <windows.h>
+#include "video_platform.h"
+#if !defined(_WIN32)
+#include "../common/legacy_bmp_records.h"
+using BITMAPFILEHEADER = cse_bmp::FileHeader;
+using BITMAPINFOHEADER = cse_bmp::InfoHeader;
+#endif
 
 #include "cvar.h"
 #include "cmd.h"
@@ -61,7 +66,7 @@ extern cvar_t gl_clear;
 
 void GL_SelectTexture( GLenum texture );
 void DT_Initialize();
-extern "C" HINSTANCE QGL_Init( const char* driver, const char* commandLine );
+extern "C" CseGLModule QGL_Init( const char* driver, const char* commandLine );
 extern "C" void GLimp_LogNewFrame();
 extern "C" void GLimp_EnableLogging();
 void Sys_Sleep( int msec );
@@ -92,7 +97,7 @@ static float s_fYMouseAspectAdjustment = 1.0f;
 int bDoScaledFBO = 1;
 FBO_Container_t s_MSAAFBO;
 FBO_Container_t s_BackBufferFBO;
-BOOL gfMiniDriver;
+qboolean gfMiniDriver;
 
 #if defined( _WIN32 )
 static PIXELFORMATDESCRIPTOR pfd =
@@ -120,11 +125,11 @@ static int s_bPixelFormatSet;
 
 extern "C"
 {
-extern BOOL( WINAPI* qwglMakeCurrent )( HDC hdc, HGLRC context );
-extern HGLRC( WINAPI* qwglCreateContext )( HDC hdc );
-extern BOOL( WINAPI* qwglSetPixelFormat )( HDC hdc, int format, const PIXELFORMATDESCRIPTOR* descriptor );
-extern int( WINAPI* qwglDescribePixelFormat )( HDC hdc, int format, UINT size, PIXELFORMATDESCRIPTOR* descriptor );
-extern int( WINAPI* qwglChoosePixelFormat )( HDC hdc, const PIXELFORMATDESCRIPTOR* descriptor );
+extern BOOL( WINAPI* qwglMakeCurrent )( CseVideoDC hdc, CseVideoContext context );
+extern CseVideoContext( WINAPI* qwglCreateContext )( CseVideoDC hdc );
+extern BOOL( WINAPI* qwglSetPixelFormat )( CseVideoDC hdc, int format, const PIXELFORMATDESCRIPTOR* descriptor );
+extern int( WINAPI* qwglDescribePixelFormat )( CseVideoDC hdc, int format, UINT size, PIXELFORMATDESCRIPTOR* descriptor );
+extern int( WINAPI* qwglChoosePixelFormat )( CseVideoDC hdc, const PIXELFORMATDESCRIPTOR* descriptor );
 }
 #endif
 double gGLLowLatencyPrevPostFlipTimeMs;
@@ -746,7 +751,7 @@ void FreeFBOObjects()
 	ReleaseFBOContainer( &s_BackBufferFBO );
 }
 
-int GL_SetMode(HWND mainwindow, HDC *pmaindc, HGLRC *pbaseRC, int, const char *pszDriver, const char *pszCmdLine) {
+int GL_SetMode(CseGameWindowHandle mainwindow, CseVideoDC *pmaindc, CseVideoContext *pbaseRC, int, const char *pszDriver, const char *pszCmdLine) {
     const char *extensions;
     int windowed;
     int wide = 0, tall = 0;
@@ -757,14 +762,14 @@ int GL_SetMode(HWND mainwindow, HDC *pmaindc, HGLRC *pbaseRC, int, const char *p
 
 #if defined(_WIN32)
     if (gD3DMode) {
-        HWND wminfo = nullptr;
-        wminfo = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)mainwindow),
+        CseGameWindowHandle wminfo = nullptr;
+        wminfo = static_cast<CseGameWindowHandle>(SDL_GetPointerProperty(SDL_GetWindowProperties((SDL_Window *)mainwindow),
                                                           SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
         *pmaindc = GetDC(wminfo);
         s_BackBufferFBO.s_hBackBufferFBO = 0;
 
         if (!s_bPixelFormatSet) {
-            HDC hdc = *pmaindc;
+            CseVideoDC hdc = *pmaindc;
             int pixelformat;
 
             s_bPixelFormatSet = 1;
@@ -813,6 +818,7 @@ int GL_SetMode(HWND mainwindow, HDC *pmaindc, HGLRC *pbaseRC, int, const char *p
         bDoScaledFBO = 0;
     }
 
+#if defined(_WIN32)
     int frequencyParm = COM_CheckParm("-freq");
     if (frequencyParm && bDoScaledFBO) {
         if (VideoMode_IsWindowed()) {
@@ -830,6 +836,8 @@ int GL_SetMode(HWND mainwindow, HDC *pmaindc, HGLRC *pbaseRC, int, const char *p
             }
         }
     }
+
+#endif
 
     QGL_Init(pszDriver, pszCmdLine);
 
@@ -971,7 +979,7 @@ int GL_SetMode(HWND mainwindow, HDC *pmaindc, HGLRC *pbaseRC, int, const char *p
     return 1;
 }
 
-void GL_Shutdown( HWND, HDC, HGLRC )
+void GL_Shutdown( CseGameWindowHandle, CseVideoDC, CseVideoContext )
 {
 	FreeFBOObjects();
 }

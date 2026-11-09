@@ -252,4 +252,66 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <ItemGroup>
+    <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseNativeServices>font-registration-owner</CseNativeServices>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\macos\App.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)lib-src\vgui\win32\App.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\macos\Surface.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)lib-src\vgui\win32\Surface.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\Font.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)lib-src\vgui\win32\Font.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\VGui1FontServices.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\macos\FontProvider.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseNativeServices>fonts</CseNativeServices>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\native\VGui1MacFontProvider.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\vgui2\vgui_surfacelib\native;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\native\VGui1NativeFontFace.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\vgui2\vgui_surfacelib\native;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\native\VGui1FixedSysFontFace.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\vgui2\vgui_surfacelib\native;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="lib-src\vgui\posix\native\VGui1LegacyRaster.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\..\vgui2\vgui_surfacelib\native;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="..\..\common\mac_settings_store.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontDiscovery.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+  </ItemGroup>
+  <PropertyGroup>
+    <CseNativeSdl3>true</CseNativeSdl3>
+  </PropertyGroup>
 </Project>

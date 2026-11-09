@@ -87,7 +87,8 @@ Core and DemoPlayer remain enabled when broadcasting is disabled.
 The software client renderer (`sw.dll`) is unavailable; the inherited video
 settings still offer it. The dedicated engine (`swds.dll`) is separate.
 Windows x64 is in native bring-up. Windows ARM64 remains conditional; complete
-macOS has all-target configure presets but incomplete source portability; Linux
+macOS builds the complete client through `cse_client`; standalone server/A3D
+source portability is incomplete. Linux
 composition remains gated. See [migration requirements and status](native-migration.md) before treating an
 opt-in target as playable.
 
@@ -134,18 +135,27 @@ cmake --preset runtime-macos-arm64-release \
   -DCSE_NATIVE_THIRD_PARTY_PREFIX=/absolute/dependencies/cse-arm64-macos \
   -DCSE_STEAM_PROVIDER_FILE=/absolute/providers/libsteam_api.dylib \
   -DCEF_ROOT=/absolute/providers/cef-macosarm64
-cmake --build --preset runtime-macos-arm64-release --parallel
+cmake --build --preset runtime-macos-arm64-release --target cse_client --parallel
 ```
 
-Use `runtime-macos-arm64-debug` with the same provider paths for Debug. Both
-presets select all 19 responsibilities and isolate their runtime under
+Use `runtime-macos-arm64-debug` with the same provider paths and `--target cse_client`
+for Debug. Both presets configure all 19 responsibilities and isolate their runtime under
 `build/<preset>/runtime/<Configuration>/`. The native browser helper path is
 provided by the preset. No private local provider paths are stored in it.
 
-Both complete graphs configure; complete source compilation/linking is still
-being ported. The first full compile records Windows-only platform code and
-remaining LP64 boundaries. These presets do not deliver or qualify the complete
-macOS game/app bundle yet. Offline Metal shader tools are also required for the
+The `cse_client` target builds 14 responsibilities: the launcher, hardware engine,
+both games' client and listen-server modules, VGUI1/VGUI2, tier0, filesystem,
+GameUI, particleman, Core and DemoPlayer. It also builds/stages SDL3, mpg123,
+the shared font-registration service and the sandboxed CEF helpers. Release and
+Debug compile/link and actual native module-load checks pass. The client uses
+the engine's VGUI2 Surface; the standalone GDI tools surface is Windows-only.
+
+Building the default/all-runtime target still reaches unported standalone
+dedicated-server and A3D owners. Client compilation does not qualify gameplay,
+embedded VGUI1 root admission, font/layout parity, physical input or presentation.
+These presets do not deliver the complete macOS game/app bundle yet. See the
+[actual-library integration fixture](../tests/native/mac_client/README.md).
+Offline Metal shader tools are also required for the
 shared renderer. C++ exceptions follow the owning per-file policy; explicitly
 annotated Windows Async sources leave fatal native hardware faults to the OS
 crash reporter. This does not provide Windows SEH translation or minidump parity.

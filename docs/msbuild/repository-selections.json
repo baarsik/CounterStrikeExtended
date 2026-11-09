@@ -12990,15 +12990,6 @@
           },
           {
             "kind": "ClCompile",
-            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
-            "metadata": {
-              "ExcludedFromBuild": "true",
-              "CseTargetOS": "macos",
-              "CseNativeServices": "font-registration-owner"
-            }
-          },
-          {
-            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -14220,15 +14211,6 @@
               "CseTargetOS": "posix",
               "ExceptionHandling": "false",
               "FloatingPointModel": "Precise"
-            }
-          },
-          {
-            "kind": "ClCompile",
-            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
-            "metadata": {
-              "ExcludedFromBuild": "true",
-              "CseTargetOS": "macos",
-              "CseNativeServices": "font-registration-owner"
             }
           },
           {
@@ -18607,7 +18589,8 @@
           "TargetName": "vgui",
           "TargetExt": ".dll",
           "GenerateManifest": "false",
-          "LinkIncremental": "true"
+          "LinkIncremental": "true",
+          "CseNativeSdl3": "true"
         },
         "definitions": {
           "ClCompile": {
@@ -19002,6 +18985,111 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/WizardPanel.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "font-registration-owner"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/App.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\App.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/Surface.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/Font.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Font.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/VGui1FontServices.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/FontProvider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1MacFontProvider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1NativeFontFace.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1FixedSysFontFace.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1LegacyRaster.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/mac_settings_store.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           }
         ],
         "imports": [
@@ -19042,7 +19130,8 @@
           "TargetName": "vgui",
           "TargetExt": ".dll",
           "GenerateManifest": "false",
-          "LinkIncremental": "false"
+          "LinkIncremental": "false",
+          "CseNativeSdl3": "true"
         },
         "definitions": {
           "ClCompile": {
@@ -19437,6 +19526,111 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/WizardPanel.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "font-registration-owner"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/App.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\App.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/Surface.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/Font.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Font.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/VGui1FontServices.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/macos/FontProvider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "fonts"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1MacFontProvider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1NativeFontFace.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1FixedSysFontFace.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/native/VGui1LegacyRaster.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/utils/vgui/..\\..\\vgui2\\vgui_surfacelib\\native;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\include;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui;${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\common;"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/mac_settings_store.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           }
         ],
         "imports": [
@@ -19691,6 +19885,39 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/linuxfont.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/SystemMac.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp;${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/NativeSystemClock.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/NativeClipboard.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/mac_settings_store.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           }
         ],
         "imports": [
@@ -19937,6 +20164,39 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/linuxfont.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/SystemMac.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp;${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/NativeSystemClock.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/NativeClipboard.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/mac_settings_store.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           }
         ],
         "imports": [

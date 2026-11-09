@@ -41,13 +41,12 @@ bool BEnableAddonsFolder()
 	return registry->ReadInt( "addons_folder", 0 ) > 0;
 }
 
-int FileSystem_Init( char* basedir, void* voidfilesystemFactory )
+int FileSystem_Init( char* basedir, CreateInterfaceFn factory )
 {
 	Q_strncpy( s_pBaseDir, basedir, sizeof( s_pBaseDir ) - 1 );
 	s_pBaseDir[sizeof( s_pBaseDir ) - 1] = '\0';
 	host_parms.basedir = s_pBaseDir;
 
-	CreateInterfaceFn factory = (CreateInterfaceFn)voidfilesystemFactory;
 	if ( factory )
 	{
         if (!cse::filesystem_abi::CompatibleFactory(factory)) {
