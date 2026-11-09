@@ -1,90 +1,7 @@
 # Generated from projects/vs2026/hl_cdll.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(hl_client SHARED "client")
-target_sources(hl_client PRIVATE
-  "${CSE_SDK_DIR}/cl_dll/ammo.cpp"
-  "${CSE_SDK_DIR}/cl_dll/ammohistory.cpp"
-  "${CSE_SDK_DIR}/game_shared/ammo_secondary.cpp"
-  "${CSE_SDK_DIR}/cl_dll/battery.cpp"
-  "${CSE_SDK_DIR}/cl_dll/cdll_int.cpp"
-  "${CSE_SDK_DIR}/cl_dll/com_weapons.cpp"
-  "${CSE_SDK_DIR}/cl_dll/death.cpp"
-  "${CSE_SDK_DIR}/cl_dll/demo.cpp"
-  "${CSE_SDK_DIR}/cl_dll/entity.cpp"
-  "${CSE_SDK_DIR}/cl_dll/events.cpp"
-  "${CSE_SDK_DIR}/cl_dll/ev_common.cpp"
-  "${CSE_SDK_DIR}/cl_dll/ev_hldm.cpp"
-  "${CSE_SDK_DIR}/cl_dll/flashlight.cpp"
-  "${CSE_SDK_DIR}/cl_dll/GameStudioModelRenderer.cpp"
-  "${CSE_SDK_DIR}/game_shared/geiger.cpp"
-  "${CSE_SDK_DIR}/cl_dll/health.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hl/hl_baseentity.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hl/hl_events.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hl/hl_objects.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hl/hl_weapons.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_bench.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_benchtrace.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_msg.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_redraw.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_servers.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_spectator.cpp"
-  "${CSE_SDK_DIR}/cl_dll/hud_update.cpp"
-  "${CSE_SDK_DIR}/cl_dll/input.cpp"
-  "${CSE_SDK_DIR}/cl_dll/inputw32.cpp"
-  "${CSE_SDK_DIR}/cl_dll/interpolation.cpp"
-  "${CSE_SDK_DIR}/cl_dll/in_camera.cpp"
-  "${CSE_SDK_DIR}/cl_dll/menu.cpp"
-  "${CSE_SDK_DIR}/cl_dll/message.cpp"
-  "${CSE_SDK_DIR}/cl_dll/saytext.cpp"
-  "${CSE_SDK_DIR}/cl_dll/statusbar.cpp"
-  "${CSE_SDK_DIR}/cl_dll/status_icons.cpp"
-  "${CSE_SDK_DIR}/cl_dll/StudioModelRenderer.cpp"
-  "${CSE_SDK_DIR}/game_shared/studio_util.cpp"
-  "${CSE_SDK_DIR}/cl_dll/text_message.cpp"
-  "${CSE_SDK_DIR}/game_shared/train.cpp"
-  "${CSE_SDK_DIR}/cl_dll/tri.cpp"
-  "${CSE_SDK_DIR}/cl_dll/util.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_ClassMenu.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_ControlConfigPanel.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_CustomObjects.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_int.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_MOTDWindow.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_SchemeManager.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_ScorePanel.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_ServerBrowser.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_SpectatorPanel.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_TeamFortressViewport.cpp"
-  "${CSE_SDK_DIR}/cl_dll/vgui_teammenu.cpp"
-  "${CSE_SDK_DIR}/cl_dll/view.cpp"
-  "${CSE_SDK_DIR}/cl_dll/voice_status.cpp"
-  "${CSE_SDK_DIR}/common/parsemsg.cpp"
-  "${CSE_SDK_DIR}/dlls/crossbow.cpp"
-  "${CSE_SDK_DIR}/dlls/crowbar.cpp"
-  "${CSE_SDK_DIR}/dlls/egon.cpp"
-  "${CSE_SDK_DIR}/dlls/gauss.cpp"
-  "${CSE_SDK_DIR}/dlls/handgrenade.cpp"
-  "${CSE_SDK_DIR}/dlls/hornetgun.cpp"
-  "${CSE_SDK_DIR}/dlls/mp5.cpp"
-  "${CSE_SDK_DIR}/dlls/python.cpp"
-  "${CSE_SDK_DIR}/dlls/rpg.cpp"
-  "${CSE_SDK_DIR}/dlls/satchel.cpp"
-  "${CSE_SDK_DIR}/dlls/shotgun.cpp"
-  "${CSE_SDK_DIR}/dlls/squeakgrenade.cpp"
-  "${CSE_SDK_DIR}/dlls/tripmine.cpp"
-  "${CSE_SDK_DIR}/dlls/wpn_shared/hl_wpn_glock.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_checkbutton2.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_grid.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_helpers.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_listbox.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_loadtga.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_scrollbar2.cpp"
-  "${CSE_SDK_DIR}/game_shared/vgui_slider2.cpp"
-  "${CSE_SDK_DIR}/game_shared/voice_banmgr.cpp"
-  "${CSE_SDK_DIR}/pm_shared/pm_debug.c"
-  "${CSE_SDK_DIR}/pm_shared/pm_math.c"
-  "${CSE_SDK_DIR}/pm_shared/pm_shared.c"
-  "${CSE_SDK_DIR}/public/interface.cpp"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
+if(MSVC)
 target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")
 target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
 target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/GR>")
@@ -111,6 +28,7 @@ set_property(TARGET hl_client APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<C
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
+cse_game_module_exports(hl_client "${CSE_SDK_DIR}/projects/vs2026/hl_cdll.def" "${CSE_ROOT}/cmake/exports/hl_client.def")
 target_link_libraries(hl_client PRIVATE "$<$<CONFIG:Debug>:wsock32.lib>")
 cse_link_sdl3(hl_client Debug)
 target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")
@@ -147,5 +65,115 @@ target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/LTCG>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 target_link_libraries(hl_client PRIVATE "$<$<CONFIG:Release>:wsock32.lib>")
 cse_link_sdl3(hl_client Release)
+else()
+target_compile_features(hl_client PRIVATE cxx_std_17)
+target_compile_options(hl_client PRIVATE "SHELL:-include \"${CSE_SDK_DIR}/public/cse_posix_crt.h\"")
+if(APPLE)
+  target_compile_definitions(hl_client PRIVATE OSX POSIX)
+endif()
+target_compile_options(hl_client PRIVATE "$<$<CONFIG:Release>:-flto>")
+target_link_options(hl_client PRIVATE "$<$<CONFIG:Release>:-flto>")
+if(APPLE)
+  target_link_options(hl_client PRIVATE "-Wl,-no_deduplicate")
+endif()
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-O0>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Debug>:CLIENT_DLL>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Debug>:CLIENT_WEAPONS>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Debug>:HL_DLL>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/dlls>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cl_dll>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/include>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/game_shared>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/SDL3/include>")
+cse_link_sdl3(hl_client Debug)
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-O2>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Release>:NDEBUG>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Release>:CLIENT_DLL>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Release>:CLIENT_WEAPONS>")
+target_compile_definitions(hl_client PRIVATE "$<$<CONFIG:Release>:HL_DLL>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/dlls>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/cl_dll>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/game_shared>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external>")
+target_include_directories(hl_client PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/SDL3/include>")
+cse_link_sdl3(hl_client Release)
+endif()
 target_link_libraries(hl_client PRIVATE vgui)
 cse_runtime_directory(hl_client "valve/cl_dlls")

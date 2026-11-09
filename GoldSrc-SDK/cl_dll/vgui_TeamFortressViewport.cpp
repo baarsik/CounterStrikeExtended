@@ -1565,7 +1565,7 @@ void TeamFortressViewport::UpdateSpectatorPanel()
 			_snprintf( tempString, sizeof( tempString ) - 1, "%c%s", HUD_PRINTCENTER, CHudTextMessage::BufferedLocaliseTextString( "#Spec_Duck" ) );
 			tempString[ sizeof( tempString ) - 1 ] = '\0';
 
-			gHUD.m_TextMessage.MsgFunc_TextMsg( NULL, strlen( tempString ) + 1, tempString );
+            gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(tempString) + 1), tempString);
 		}
 		
 		sprintf(bottomText,"#Spec_Mode%d", g_iUser1 );
@@ -2395,7 +2395,7 @@ int TeamFortressViewport::MsgFunc_MOTD( const char *pszName, int iSize, void *pb
 
 	m_iGotAllMOTD = READ_BYTE();
 
-	int roomInArray = sizeof(m_szMOTD) - strlen(m_szMOTD) - 1;
+    const int roomInArray = static_cast<int>(sizeof(m_szMOTD) - strlen(m_szMOTD) - 1);
 
 	strncat( m_szMOTD, READ_STRING(), roomInArray >= 0 ? roomInArray : 0 );
 	m_szMOTD[ sizeof(m_szMOTD)-1 ] = '\0';

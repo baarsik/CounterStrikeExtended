@@ -56,7 +56,9 @@ typedef int BOOL;
 #include <string.h> // memset 
 #ifndef max
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
+#ifndef _vsnprintf
 #define _vsnprintf(a,b,c,d) vsnprintf(a,b,c,d)
+#endif
 #endif
 #endif //_WIN32
 
@@ -64,7 +66,7 @@ typedef int BOOL;
 #include "stdio.h"
 #include "stdlib.h"
 #include "minmax.h"
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(_vsnprintf)
 # define _vsnprintf(a,b,c,d) vsnprintf(a,b,c,d)
 #endif
 #include "math.h"

@@ -83,7 +83,11 @@ CCareerUITask::CCareerUITask( const char* taskName )
 		weaponName = L"";
 
 	wchar_t repeat[16];
+#if defined(_WIN32)
 	swprintf( repeat, sizeof( repeat ) / sizeof( repeat[0] ), L"%d", m_repeat );
+#else
+    _snwprintf( repeat, sizeof( repeat ) / sizeof( repeat[0] ), L"%d", m_repeat );
+#endif
 	if ( m_repeat == 1 )
 		sprintf( taskId, "#Career_Task_%s", m_name );
 	else

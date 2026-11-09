@@ -80,9 +80,24 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\common\legacy_wide_format.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\HLTV\Console\System.cpp" />
     <ClCompile Include="..\..\HLTV\Console\TextConsole.cpp" />
     <ClCompile Include="..\..\HLTV\Console\TextConsoleWin32.cpp" />
+    <ClCompile Include="..\..\HLTV\Console\TextConsolePosix.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)..\..\HLTV\Console\TextConsoleWin32.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="..\..\HLTV\Console\PosixSystem.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
     <ClCompile Include="..\..\HLTV\common\common.cpp" />
     <ClCompile Include="..\..\HLTV\common\random.cpp" />
     <ClCompile Include="..\..\HLTV\Core\private\common\BaseSystemModule.cpp" />
@@ -101,6 +116,10 @@
     <ClCompile Include="..\..\vgui2\controls\Panel.cpp" />
     <ClCompile Include="..\..\vgui2\controls\Tooltip.cpp" />
     <ClCompile Include="..\..\vgui2\controls\TextEntry.cpp" />
+    <ClCompile Include="..\..\common\TextEntryClipboard.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClInclude Include="..\..\common\TextEntryClipboard.h" />
     <ClCompile Include="..\..\vgui2\controls\Menu.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ScrollBar.cpp" />
     <ClCompile Include="..\..\vgui2\controls\MenuItem.cpp" />
@@ -111,10 +130,16 @@
     <ClCompile Include="..\..\vgui2\controls\Image.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\cse_filesystem_abi.h" />
+    <ClInclude Include="..\..\public\cse_filesystem_methods.inc" />
+    <ClInclude Include="..\..\public\native_filesystem_module.h" />
+    <ClInclude Include="..\..\public\cse_module_abi.h" />
     <ClInclude Include="..\..\public\native_module.h" />
     <ClInclude Include="..\..\HLTV\Console\System.h" />
     <ClInclude Include="..\..\HLTV\Console\TextConsole.h" />
     <ClInclude Include="..\..\HLTV\Console\TextConsoleWin32.h" />
+    <ClInclude Include="..\..\HLTV\Console\TextConsolePosix.h" />
+    <ClInclude Include="..\..\HLTV\Console\PosixSystem.h" />
     <ClInclude Include="..\..\HLTV\Core\private\common\BaseSystemModule.h" />
     <ClInclude Include="..\..\HLTV\Core\private\common\IBaseSystem.h" />
     <ClInclude Include="..\..\HLTV\Core\private\common\TokenLine.h" />

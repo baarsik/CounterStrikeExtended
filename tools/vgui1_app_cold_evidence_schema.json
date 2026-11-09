@@ -1,0 +1,1210 @@
+{
+  "format": 1,
+  "contract_revision": 1,
+  "family": "0x4f4d0206",
+  "runtime_version": 10,
+  "descriptor_bytes": 288,
+  "method_count": 55,
+  "fields": [
+    {
+      "id": 1,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_running",
+      "type": "bool"
+    },
+    {
+      "id": 2,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_externalMain",
+      "type": "bool"
+    },
+    {
+      "id": 3,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_surfaceBaseDar",
+      "type": "vgui::Dar<vgui::SurfaceBase*>"
+    },
+    {
+      "id": 4,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_keyFocus",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 5,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_oldMouseFocus",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 6,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseFocus",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 7,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseCapture",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 8,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_wantedKeyFocus",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 9,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mousePressed",
+      "type": "bool[3]"
+    },
+    {
+      "id": 10,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseDoublePressed",
+      "type": "bool[3]"
+    },
+    {
+      "id": 11,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseDown",
+      "type": "bool[3]"
+    },
+    {
+      "id": 12,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseReleased",
+      "type": "bool[3]"
+    },
+    {
+      "id": 13,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_keyPressed",
+      "type": "bool[103]"
+    },
+    {
+      "id": 14,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_keyTyped",
+      "type": "bool[103]"
+    },
+    {
+      "id": 15,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_keyDown",
+      "type": "bool[103]"
+    },
+    {
+      "id": 16,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_keyReleased",
+      "type": "bool[103]"
+    },
+    {
+      "id": 17,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_tickSignalDar",
+      "type": "vgui::Dar<vgui::TickSignal*>"
+    },
+    {
+      "id": 18,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_scheme",
+      "type": "vgui::Scheme*"
+    },
+    {
+      "id": 19,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_buildMode",
+      "type": "bool"
+    },
+    {
+      "id": 20,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_wantedBuildMode",
+      "type": "bool"
+    },
+    {
+      "id": 21,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_mouseArenaPanel",
+      "type": "vgui::Panel*"
+    },
+    {
+      "id": 22,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_cursor",
+      "type": "vgui::Cursor*[14]"
+    },
+    {
+      "id": 23,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_cursorOveride",
+      "type": "vgui::Cursor*"
+    },
+    {
+      "id": 24,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_nextTickMillis",
+      "type": "timing-signed32"
+    },
+    {
+      "id": 25,
+      "record": "App",
+      "owner": "vgui::App",
+      "name": "_minimumTickMillisInterval",
+      "type": "timing-signed32"
+    },
+    {
+      "id": 101,
+      "record": "SurfaceDar",
+      "owner": "vgui::Dar<vgui::SurfaceBase*>",
+      "name": "_count",
+      "type": "int"
+    },
+    {
+      "id": 102,
+      "record": "SurfaceDar",
+      "owner": "vgui::Dar<vgui::SurfaceBase*>",
+      "name": "_capacity",
+      "type": "int"
+    },
+    {
+      "id": 103,
+      "record": "SurfaceDar",
+      "owner": "vgui::Dar<vgui::SurfaceBase*>",
+      "name": "_data",
+      "type": "vgui::SurfaceBase**"
+    },
+    {
+      "id": 201,
+      "record": "TickDar",
+      "owner": "vgui::Dar<vgui::TickSignal*>",
+      "name": "_count",
+      "type": "int"
+    },
+    {
+      "id": 202,
+      "record": "TickDar",
+      "owner": "vgui::Dar<vgui::TickSignal*>",
+      "name": "_capacity",
+      "type": "int"
+    },
+    {
+      "id": 203,
+      "record": "TickDar",
+      "owner": "vgui::Dar<vgui::TickSignal*>",
+      "name": "_data",
+      "type": "vgui::TickSignal**"
+    }
+  ],
+  "methods": [
+    {
+      "id": 1,
+      "name": "start",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 2,
+      "name": "stop",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 3,
+      "name": "externalTick",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 4,
+      "name": "wasMousePressed",
+      "result": "bool",
+      "arguments": "vgui::MouseCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::MouseCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 5,
+      "name": "wasMouseDoublePressed",
+      "result": "bool",
+      "arguments": "vgui::MouseCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::MouseCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 6,
+      "name": "isMouseDown",
+      "result": "bool",
+      "arguments": "vgui::MouseCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::MouseCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 7,
+      "name": "wasMouseReleased",
+      "result": "bool",
+      "arguments": "vgui::MouseCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::MouseCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 8,
+      "name": "wasKeyPressed",
+      "result": "bool",
+      "arguments": "vgui::KeyCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::KeyCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 9,
+      "name": "isKeyDown",
+      "result": "bool",
+      "arguments": "vgui::KeyCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::KeyCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 10,
+      "name": "wasKeyTyped",
+      "result": "bool",
+      "arguments": "vgui::KeyCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::KeyCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 11,
+      "name": "wasKeyReleased",
+      "result": "bool",
+      "arguments": "vgui::KeyCode, vgui::Panel *",
+      "type": "bool (vgui::App::*)(vgui::KeyCode, vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 12,
+      "name": "addTickSignal",
+      "result": "void",
+      "arguments": "vgui::TickSignal *",
+      "type": "void (vgui::App::*)(vgui::TickSignal *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 13,
+      "name": "setCursorPos",
+      "result": "void",
+      "arguments": "int, int",
+      "type": "void (vgui::App::*)(int, int)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 14,
+      "name": "getCursorPos",
+      "result": "void",
+      "arguments": "int &, int &",
+      "type": "void (vgui::App::*)(int &, int &)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 15,
+      "name": "setMouseCapture",
+      "result": "void",
+      "arguments": "vgui::Panel *",
+      "type": "void (vgui::App::*)(vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 16,
+      "name": "setMouseArena",
+      "result": "void",
+      "arguments": "int, int, int, int, bool",
+      "type": "void (vgui::App::*)(int, int, int, int, bool)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 17,
+      "name": "setMouseArena",
+      "result": "void",
+      "arguments": "vgui::Panel *",
+      "type": "void (vgui::App::*)(vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 18,
+      "name": "requestFocus",
+      "result": "void",
+      "arguments": "vgui::Panel *",
+      "type": "void (vgui::App::*)(vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 19,
+      "name": "getFocus",
+      "result": "vgui::Panel *",
+      "arguments": "",
+      "type": "vgui::Panel * (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 20,
+      "name": "repaintAll",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 21,
+      "name": "setScheme",
+      "result": "void",
+      "arguments": "vgui::Scheme *",
+      "type": "void (vgui::App::*)(vgui::Scheme *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 22,
+      "name": "getScheme",
+      "result": "vgui::Scheme *",
+      "arguments": "",
+      "type": "vgui::Scheme * (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 23,
+      "name": "enableBuildMode",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 24,
+      "name": "getTimeMillis",
+      "result": "long",
+      "arguments": "",
+      "type": "long (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 25,
+      "name": "getKeyCodeChar",
+      "result": "char",
+      "arguments": "vgui::KeyCode, bool",
+      "type": "char (vgui::App::*)(vgui::KeyCode, bool)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 26,
+      "name": "getKeyCodeText",
+      "result": "void",
+      "arguments": "vgui::KeyCode, char *, int",
+      "type": "void (vgui::App::*)(vgui::KeyCode, char *, int)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 27,
+      "name": "getClipboardTextCount",
+      "result": "int",
+      "arguments": "",
+      "type": "int (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 28,
+      "name": "setClipboardText",
+      "result": "void",
+      "arguments": "const char *, int",
+      "type": "void (vgui::App::*)(const char *, int)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 29,
+      "name": "getClipboardText",
+      "result": "int",
+      "arguments": "int, char *, int",
+      "type": "int (vgui::App::*)(int, char *, int)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 30,
+      "name": "reset",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 31,
+      "name": "internalSetMouseArena",
+      "result": "void",
+      "arguments": "int, int, int, int, bool",
+      "type": "void (vgui::App::*)(int, int, int, int, bool)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 32,
+      "name": "setRegistryString",
+      "result": "bool",
+      "arguments": "const char *, const char *",
+      "type": "bool (vgui::App::*)(const char *, const char *)",
+      "native_provider_int_variant": true
+    },
+    {
+      "id": 33,
+      "name": "getRegistryString",
+      "result": "bool",
+      "arguments": "const char *, char *, int",
+      "type": "bool (vgui::App::*)(const char *, char *, int)",
+      "native_provider_int_variant": true
+    },
+    {
+      "id": 34,
+      "name": "setRegistryInteger",
+      "result": "bool",
+      "arguments": "const char *, int",
+      "type": "bool (vgui::App::*)(const char *, int)",
+      "native_provider_int_variant": true
+    },
+    {
+      "id": 35,
+      "name": "getRegistryInteger",
+      "result": "bool",
+      "arguments": "const char *, int &",
+      "type": "bool (vgui::App::*)(const char *, int &)",
+      "native_provider_int_variant": true
+    },
+    {
+      "id": 36,
+      "name": "setCursorOveride",
+      "result": "void",
+      "arguments": "vgui::Cursor *",
+      "type": "void (vgui::App::*)(vgui::Cursor *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 37,
+      "name": "getCursorOveride",
+      "result": "vgui::Cursor *",
+      "arguments": "",
+      "type": "vgui::Cursor * (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 38,
+      "name": "setMinimumTickMillisInterval",
+      "result": "void",
+      "arguments": "int",
+      "type": "void (vgui::App::*)(int)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 39,
+      "name": "main",
+      "result": "void",
+      "arguments": "int, char **",
+      "type": "void (vgui::App::*)(int, char **)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 40,
+      "name": "run",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 41,
+      "name": "internalCursorMoved",
+      "result": "void",
+      "arguments": "int, int, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(int, int, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 42,
+      "name": "internalMousePressed",
+      "result": "void",
+      "arguments": "vgui::MouseCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::MouseCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 43,
+      "name": "internalMouseDoublePressed",
+      "result": "void",
+      "arguments": "vgui::MouseCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::MouseCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 44,
+      "name": "internalMouseReleased",
+      "result": "void",
+      "arguments": "vgui::MouseCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::MouseCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 45,
+      "name": "internalMouseWheeled",
+      "result": "void",
+      "arguments": "int, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(int, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 46,
+      "name": "internalKeyPressed",
+      "result": "void",
+      "arguments": "vgui::KeyCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::KeyCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 47,
+      "name": "internalKeyTyped",
+      "result": "void",
+      "arguments": "vgui::KeyCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::KeyCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 48,
+      "name": "internalKeyReleased",
+      "result": "void",
+      "arguments": "vgui::KeyCode, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::KeyCode, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 49,
+      "name": "init",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 50,
+      "name": "updateMouseFocus",
+      "result": "void",
+      "arguments": "int, int, vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(int, int, vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 51,
+      "name": "setMouseFocus",
+      "result": "void",
+      "arguments": "vgui::Panel *",
+      "type": "void (vgui::App::*)(vgui::Panel *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 52,
+      "name": "surfaceBaseCreated",
+      "result": "void",
+      "arguments": "vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 53,
+      "name": "surfaceBaseDeleted",
+      "result": "void",
+      "arguments": "vgui::SurfaceBase *",
+      "type": "void (vgui::App::*)(vgui::SurfaceBase *)",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 54,
+      "name": "platTick",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    },
+    {
+      "id": 55,
+      "name": "internalTick",
+      "result": "void",
+      "arguments": "",
+      "type": "void (vgui::App::*)()",
+      "native_provider_int_variant": false
+    }
+  ],
+  "enums": [
+    {
+      "role": "KeyCode",
+      "values": [
+        {
+          "expression": "vgui::KEY_0",
+          "expected": 0
+        },
+        {
+          "expression": "vgui::KEY_1",
+          "expected": 1
+        },
+        {
+          "expression": "vgui::KEY_2",
+          "expected": 2
+        },
+        {
+          "expression": "vgui::KEY_3",
+          "expected": 3
+        },
+        {
+          "expression": "vgui::KEY_4",
+          "expected": 4
+        },
+        {
+          "expression": "vgui::KEY_5",
+          "expected": 5
+        },
+        {
+          "expression": "vgui::KEY_6",
+          "expected": 6
+        },
+        {
+          "expression": "vgui::KEY_7",
+          "expected": 7
+        },
+        {
+          "expression": "vgui::KEY_8",
+          "expected": 8
+        },
+        {
+          "expression": "vgui::KEY_9",
+          "expected": 9
+        },
+        {
+          "expression": "vgui::KEY_A",
+          "expected": 10
+        },
+        {
+          "expression": "vgui::KEY_B",
+          "expected": 11
+        },
+        {
+          "expression": "vgui::KEY_C",
+          "expected": 12
+        },
+        {
+          "expression": "vgui::KEY_D",
+          "expected": 13
+        },
+        {
+          "expression": "vgui::KEY_E",
+          "expected": 14
+        },
+        {
+          "expression": "vgui::KEY_F",
+          "expected": 15
+        },
+        {
+          "expression": "vgui::KEY_G",
+          "expected": 16
+        },
+        {
+          "expression": "vgui::KEY_H",
+          "expected": 17
+        },
+        {
+          "expression": "vgui::KEY_I",
+          "expected": 18
+        },
+        {
+          "expression": "vgui::KEY_J",
+          "expected": 19
+        },
+        {
+          "expression": "vgui::KEY_K",
+          "expected": 20
+        },
+        {
+          "expression": "vgui::KEY_L",
+          "expected": 21
+        },
+        {
+          "expression": "vgui::KEY_M",
+          "expected": 22
+        },
+        {
+          "expression": "vgui::KEY_N",
+          "expected": 23
+        },
+        {
+          "expression": "vgui::KEY_O",
+          "expected": 24
+        },
+        {
+          "expression": "vgui::KEY_P",
+          "expected": 25
+        },
+        {
+          "expression": "vgui::KEY_Q",
+          "expected": 26
+        },
+        {
+          "expression": "vgui::KEY_R",
+          "expected": 27
+        },
+        {
+          "expression": "vgui::KEY_S",
+          "expected": 28
+        },
+        {
+          "expression": "vgui::KEY_T",
+          "expected": 29
+        },
+        {
+          "expression": "vgui::KEY_U",
+          "expected": 30
+        },
+        {
+          "expression": "vgui::KEY_V",
+          "expected": 31
+        },
+        {
+          "expression": "vgui::KEY_W",
+          "expected": 32
+        },
+        {
+          "expression": "vgui::KEY_X",
+          "expected": 33
+        },
+        {
+          "expression": "vgui::KEY_Y",
+          "expected": 34
+        },
+        {
+          "expression": "vgui::KEY_Z",
+          "expected": 35
+        },
+        {
+          "expression": "vgui::KEY_PAD_0",
+          "expected": 36
+        },
+        {
+          "expression": "vgui::KEY_PAD_1",
+          "expected": 37
+        },
+        {
+          "expression": "vgui::KEY_PAD_2",
+          "expected": 38
+        },
+        {
+          "expression": "vgui::KEY_PAD_3",
+          "expected": 39
+        },
+        {
+          "expression": "vgui::KEY_PAD_4",
+          "expected": 40
+        },
+        {
+          "expression": "vgui::KEY_PAD_5",
+          "expected": 41
+        },
+        {
+          "expression": "vgui::KEY_PAD_6",
+          "expected": 42
+        },
+        {
+          "expression": "vgui::KEY_PAD_7",
+          "expected": 43
+        },
+        {
+          "expression": "vgui::KEY_PAD_8",
+          "expected": 44
+        },
+        {
+          "expression": "vgui::KEY_PAD_9",
+          "expected": 45
+        },
+        {
+          "expression": "vgui::KEY_PAD_DIVIDE",
+          "expected": 46
+        },
+        {
+          "expression": "vgui::KEY_PAD_MULTIPLY",
+          "expected": 47
+        },
+        {
+          "expression": "vgui::KEY_PAD_MINUS",
+          "expected": 48
+        },
+        {
+          "expression": "vgui::KEY_PAD_PLUS",
+          "expected": 49
+        },
+        {
+          "expression": "vgui::KEY_PAD_ENTER",
+          "expected": 50
+        },
+        {
+          "expression": "vgui::KEY_PAD_DECIMAL",
+          "expected": 51
+        },
+        {
+          "expression": "vgui::KEY_LBRACKET",
+          "expected": 52
+        },
+        {
+          "expression": "vgui::KEY_RBRACKET",
+          "expected": 53
+        },
+        {
+          "expression": "vgui::KEY_SEMICOLON",
+          "expected": 54
+        },
+        {
+          "expression": "vgui::KEY_APOSTROPHE",
+          "expected": 55
+        },
+        {
+          "expression": "vgui::KEY_BACKQUOTE",
+          "expected": 56
+        },
+        {
+          "expression": "vgui::KEY_COMMA",
+          "expected": 57
+        },
+        {
+          "expression": "vgui::KEY_PERIOD",
+          "expected": 58
+        },
+        {
+          "expression": "vgui::KEY_SLASH",
+          "expected": 59
+        },
+        {
+          "expression": "vgui::KEY_BACKSLASH",
+          "expected": 60
+        },
+        {
+          "expression": "vgui::KEY_MINUS",
+          "expected": 61
+        },
+        {
+          "expression": "vgui::KEY_EQUAL",
+          "expected": 62
+        },
+        {
+          "expression": "vgui::KEY_ENTER",
+          "expected": 63
+        },
+        {
+          "expression": "vgui::KEY_SPACE",
+          "expected": 64
+        },
+        {
+          "expression": "vgui::KEY_BACKSPACE",
+          "expected": 65
+        },
+        {
+          "expression": "vgui::KEY_TAB",
+          "expected": 66
+        },
+        {
+          "expression": "vgui::KEY_CAPSLOCK",
+          "expected": 67
+        },
+        {
+          "expression": "vgui::KEY_NUMLOCK",
+          "expected": 68
+        },
+        {
+          "expression": "vgui::KEY_ESCAPE",
+          "expected": 69
+        },
+        {
+          "expression": "vgui::KEY_SCROLLLOCK",
+          "expected": 70
+        },
+        {
+          "expression": "vgui::KEY_INSERT",
+          "expected": 71
+        },
+        {
+          "expression": "vgui::KEY_DELETE",
+          "expected": 72
+        },
+        {
+          "expression": "vgui::KEY_HOME",
+          "expected": 73
+        },
+        {
+          "expression": "vgui::KEY_END",
+          "expected": 74
+        },
+        {
+          "expression": "vgui::KEY_PAGEUP",
+          "expected": 75
+        },
+        {
+          "expression": "vgui::KEY_PAGEDOWN",
+          "expected": 76
+        },
+        {
+          "expression": "vgui::KEY_BREAK",
+          "expected": 77
+        },
+        {
+          "expression": "vgui::KEY_LSHIFT",
+          "expected": 78
+        },
+        {
+          "expression": "vgui::KEY_RSHIFT",
+          "expected": 79
+        },
+        {
+          "expression": "vgui::KEY_LALT",
+          "expected": 80
+        },
+        {
+          "expression": "vgui::KEY_RALT",
+          "expected": 81
+        },
+        {
+          "expression": "vgui::KEY_LCONTROL",
+          "expected": 82
+        },
+        {
+          "expression": "vgui::KEY_RCONTROL",
+          "expected": 83
+        },
+        {
+          "expression": "vgui::KEY_LWIN",
+          "expected": 84
+        },
+        {
+          "expression": "vgui::KEY_RWIN",
+          "expected": 85
+        },
+        {
+          "expression": "vgui::KEY_APP",
+          "expected": 86
+        },
+        {
+          "expression": "vgui::KEY_UP",
+          "expected": 87
+        },
+        {
+          "expression": "vgui::KEY_LEFT",
+          "expected": 88
+        },
+        {
+          "expression": "vgui::KEY_DOWN",
+          "expected": 89
+        },
+        {
+          "expression": "vgui::KEY_RIGHT",
+          "expected": 90
+        },
+        {
+          "expression": "vgui::KEY_F1",
+          "expected": 91
+        },
+        {
+          "expression": "vgui::KEY_F2",
+          "expected": 92
+        },
+        {
+          "expression": "vgui::KEY_F3",
+          "expected": 93
+        },
+        {
+          "expression": "vgui::KEY_F4",
+          "expected": 94
+        },
+        {
+          "expression": "vgui::KEY_F5",
+          "expected": 95
+        },
+        {
+          "expression": "vgui::KEY_F6",
+          "expected": 96
+        },
+        {
+          "expression": "vgui::KEY_F7",
+          "expected": 97
+        },
+        {
+          "expression": "vgui::KEY_F8",
+          "expected": 98
+        },
+        {
+          "expression": "vgui::KEY_F9",
+          "expected": 99
+        },
+        {
+          "expression": "vgui::KEY_F10",
+          "expected": 100
+        },
+        {
+          "expression": "vgui::KEY_F11",
+          "expected": 101
+        },
+        {
+          "expression": "vgui::KEY_F12",
+          "expected": 102
+        },
+        {
+          "expression": "vgui::KEY_LAST",
+          "expected": 103
+        }
+      ]
+    },
+    {
+      "role": "MouseCode",
+      "values": [
+        {
+          "expression": "vgui::MOUSE_LEFT",
+          "expected": 0
+        },
+        {
+          "expression": "vgui::MOUSE_RIGHT",
+          "expected": 1
+        },
+        {
+          "expression": "vgui::MOUSE_MIDDLE",
+          "expected": 2
+        },
+        {
+          "expression": "vgui::MOUSE_LAST",
+          "expected": 3
+        }
+      ]
+    },
+    {
+      "role": "DefaultCursor",
+      "values": [
+        {
+          "expression": "vgui::Cursor::dc_user",
+          "expected": 0
+        },
+        {
+          "expression": "vgui::Cursor::dc_none",
+          "expected": 1
+        },
+        {
+          "expression": "vgui::Cursor::dc_arrow",
+          "expected": 2
+        },
+        {
+          "expression": "vgui::Cursor::dc_ibeam",
+          "expected": 3
+        },
+        {
+          "expression": "vgui::Cursor::dc_hourglass",
+          "expected": 4
+        },
+        {
+          "expression": "vgui::Cursor::dc_crosshair",
+          "expected": 5
+        },
+        {
+          "expression": "vgui::Cursor::dc_up",
+          "expected": 6
+        },
+        {
+          "expression": "vgui::Cursor::dc_sizenwse",
+          "expected": 7
+        },
+        {
+          "expression": "vgui::Cursor::dc_sizenesw",
+          "expected": 8
+        },
+        {
+          "expression": "vgui::Cursor::dc_sizewe",
+          "expected": 9
+        },
+        {
+          "expression": "vgui::Cursor::dc_sizens",
+          "expected": 10
+        },
+        {
+          "expression": "vgui::Cursor::dc_sizeall",
+          "expected": 11
+        },
+        {
+          "expression": "vgui::Cursor::dc_no",
+          "expected": 12
+        },
+        {
+          "expression": "vgui::Cursor::dc_hand",
+          "expected": 13
+        },
+        {
+          "expression": "vgui::Cursor::dc_last",
+          "expected": 14
+        }
+      ]
+    }
+  ],
+  "records": {
+    "App": "vgui::App",
+    "SurfaceDar": "vgui::Dar<vgui::SurfaceBase*>",
+    "TickDar": "vgui::Dar<vgui::TickSignal*>"
+  },
+  "physical_order_validation": {
+    "itanium": "source method order",
+    "microsoft": "source method order except measured setMouseArena overload group reversal"
+  },
+  "constructor": "actual provider App base constructor, no argument; engine actual CDummyApp storage and zero-adjustment base; no shadow class",
+  "readiness": {
+    "publisher_ready": false,
+    "cold_load_ready": false
+  },
+  "static_fields": [
+    {
+      "id": 301,
+      "owner": "vgui::App",
+      "name": "_instance",
+      "type": "vgui::App*",
+      "storage": "provider-static-borrowed-engine-instance"
+    }
+  ],
+  "rtti_required": true,
+  "static_methods": [
+    {
+      "id": 401,
+      "owner": "vgui::App",
+      "name": "getInstance",
+      "type": "vgui::App* (*)()"
+    }
+  ]
+}

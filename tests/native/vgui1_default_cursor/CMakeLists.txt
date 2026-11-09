@@ -1,0 +1,32 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseVgui1DefaultCursor LANGUAGES CXX)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(VGUI_SOURCE "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(CSE_CURSOR_SOURCE "${VGUI_SOURCE}/DefaultCursor.cpp" CACHE FILEPATH "Complete production constructor source")
+add_executable(default_cursor fixture.cpp public_headers.cpp unrelated.cpp
+    "${VGUI_SOURCE}/Cursor.cpp" "${VGUI_SOURCE}/Bitmap.cpp" "${VGUI_SOURCE}/Image.cpp"
+    "${VGUI_SOURCE}/Color.cpp")
+set_target_properties(default_cursor PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_include_directories(default_cursor PRIVATE "${VGUI_SOURCE}/include" "${VGUI_SOURCE}")
+set_source_files_properties(public_headers.cpp PROPERTIES
+    INCLUDE_DIRECTORIES "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include")
+target_compile_definitions(default_cursor PRIVATE CSE_CURSOR_SOURCE="${CSE_CURSOR_SOURCE}")
+if(MSVC)
+    target_compile_definitions(default_cursor PRIVATE VGUI_EXPORTS _HAS_EXCEPTIONS=0)
+    target_compile_options(default_cursor PRIVATE /W4 /WX /EHs-c- /fp:precise)
+else()
+    target_compile_options(default_cursor PRIVATE -Wall -Wextra -Werror -fno-exceptions
+        -fno-fast-math -ffp-contract=off)
+endif()
+option(CSE_CURSOR_SANITIZERS "Instrument complete owned constructor fixture" OFF)
+if(CSE_CURSOR_SANITIZERS)
+    target_compile_options(default_cursor PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all
+        -fno-omit-frame-pointer)
+    target_link_options(default_cursor PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+endif()
+enable_testing()
+add_test(NAME ordinary-cursors COMMAND default_cursor --ordinary)
+if(NOT WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_test(NAME native-none COMMAND default_cursor --none)
+    add_test(NAME native-all COMMAND default_cursor --all)
+endif()

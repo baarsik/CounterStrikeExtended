@@ -14,6 +14,10 @@
 
 extern IVoiceTweak g_VoiceTweakAPI;
 
+// Close only the independently owned recorder before engine code can unload.
+void Voice_ReleaseCaptureForModuleUnload();
+void Voice_ReleaseMixerForModuleUnload();
+
 qboolean	Voice_Init( const char* codec, int quality );
 void		Voice_RegisterCvars();
 

@@ -1,10 +1,15 @@
+#if !defined(_WIN32)
+#include "../common/keyvalues_directories.h"
+#endif
 #include "vgui/KeyValues.h"
 #include "IKeyValues.h"
 #include "controls.h"
 #include "filesystem.h"
 #include "utlbuffer.h"
 
+#if defined(_WIN32)
 #include <direct.h>			// for _mkdir
+#endif
 
 #include <cassert>
 #include <cctype>
@@ -23,11 +28,14 @@
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
-#define _snwprintf swprintf
 #define _vsnprintf vsnprintf
 #endif
 
+#if defined(_WIN32)
 static_assert( sizeof( wchar_t ) == 2 );
+#else
+static_assert(sizeof(wchar_t) == 4, "Native UTF16 cells use wchar_t storage");
+#endif
 
 #if defined( _WIN32 )
 #define KEYVALUES_SOURCE_PATH L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\public\\KeyValues.cpp"
@@ -555,7 +563,11 @@ const char* KeyValues::GetString( const char* name, const char* defaultValue )
 	{
 		std::int64_t value;
 		std::memcpy( &value, key->m_pValue, sizeof( value ) );
+#if defined(_WIN32)
 		_snprintf( formatted, FORMAT_VALUE_CHARACTERS, "%I64i", static_cast<long long>( value ) );
+#else
+		_snprintf( formatted, FORMAT_VALUE_CHARACTERS, "%lli", static_cast<long long>( value ) );
+#endif
 		break;
 	}
 	default:
@@ -739,9 +751,11 @@ KeyValues* KeyValues::MakeCopy() const
 		break;
 	case TYPE_INT:
 	case TYPE_FLOAT:
-	case TYPE_PTR:
 		std::memcpy( &copy->m_iValue, &m_iValue, sizeof( m_iValue ) );
 		break;
+    case TYPE_PTR:
+        copy->m_pValue = m_pValue;
+        break;
 	case TYPE_WSTRING:
 		if ( m_pValue )
 		{
@@ -970,6 +984,7 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 	// if the file won't create, make sure the paths are all created
 	if ( !file )
 	{
+#if defined(_WIN32)
 		char directory[1024] = {};
 		const char* component = resourceName;
 		for ( const char* separator = std::strchr( resourceName, '\\' ); separator;
@@ -984,6 +999,9 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 			_mkdir( directory );
 			component = separator + 1;
 		}
+#else
+        cse::PrepareKeyValuesParentDirectory(filesystem, resourceName, pathID);
+#endif
 		file = filesystem->Open( resourceName, "wb", pathID );
 		if ( !file )
 			return false;

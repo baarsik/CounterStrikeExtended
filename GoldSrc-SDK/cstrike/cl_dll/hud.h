@@ -29,6 +29,10 @@
 #include "global_consts.h"
 #include <vector>
 
+#if !defined(_WIN32)
+#include "cse_vgui.h"
+#endif
+
 #define RGB_YELLOWISH	0x00FFA000 //255,160,0
 #define RGB_REDISH		0x00FF1010 //255,160,0
 #define RGB_GREENISH		0x0000A000 //0,160,0
@@ -600,7 +604,11 @@ public:
 	int GetHudFontHeight();
 	void GetStringSize( const wchar_t* text, int* width, int* height );
 	int Draw( float time ) override;
+#if defined(_WIN32)
 	unsigned long m_hudfont;
+#else
+    vgui2::HFont m_hudfont;
+#endif
 	float m_flVGUI2StringTime;
 	wchar_t m_wCharBuf[512];
 	float m_fR, m_fG, m_fB;

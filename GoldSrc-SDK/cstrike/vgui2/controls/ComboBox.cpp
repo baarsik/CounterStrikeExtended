@@ -13,7 +13,7 @@
 #include "vgui_controls/ComboBox.h"
 #include "Menu.h"
 #include "MenuItem.h"
-#include "controls.h"
+#include "Controls.h"
 
 #include "vgui/Cursor.h"
 #include "vgui/IInput.h"
@@ -21,7 +21,9 @@
 #include "vgui/KeyValues.h"
 #include "ILocalize.h"
 
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 #include <cstring>
 #include <cwchar>
 #include <cwctype>

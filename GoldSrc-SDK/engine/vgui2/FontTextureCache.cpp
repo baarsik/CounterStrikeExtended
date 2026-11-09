@@ -13,7 +13,11 @@
 #include "BaseUISurface.h"
 
 #include <cstring>
+#if defined(_WIN32)
 #include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 #include <vector>
 
 extern BaseUISurface* staticSurface;
@@ -149,7 +153,11 @@ bool CFontTextureCache::GetTextureForChar( vgui2::HFont font, wchar_t ch, int* t
 			return false;
 
 		const int rgbaSize = fontWide * 4 * fontTall;
+#if defined(_WIN32)
 		unsigned char* rgba = static_cast<unsigned char*>( _alloca( rgbaSize ) );
+#else
+        unsigned char* rgba = static_cast<unsigned char*>(alloca(rgbaSize));
+#endif
 		memset( rgba, 0, rgbaSize );
 		fontForChar->GetCharRGBA( ch, 0, 0, fontWide, fontTall, rgba );
 

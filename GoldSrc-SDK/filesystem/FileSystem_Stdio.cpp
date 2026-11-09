@@ -6,11 +6,33 @@
 //=============================================================================
 
 #include "basefilesystem.h"
+#include "../public/cse_filesystem_abi.h"
 #include "../public/native_module.h"
 
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
+
+#ifndef _WIN32
+#include <cerrno>
+#include <limits>
+
+// Unconditional warnings must use a declared enum value. All supported
+// configured levels are >= QUIET; the legacy -1 cast is outside the enum range.
+#undef FILESYSTEM_WARNING
+#define FILESYSTEM_WARNING FILESYSTEM_WARNING_QUIET
+
+namespace {
+int LegacyFileOffset32(long long value) {
+    const std::uint32_t bits = static_cast<std::uint32_t>(value);
+    std::int32_t offset;
+    static_assert(sizeof(offset) == sizeof(int), "Legacy filesystem offset width");
+    std::memcpy(&offset, &bits, sizeof(offset));
+    return static_cast<int>(offset);
+}
+}
+#endif
 
 #ifdef _WIN32
 #include <io.h>
@@ -20,6 +42,9 @@
 
 CFileSystem_Stdio::~CFileSystem_Stdio()
 {
+    while (m_FindData.Count() > 0) {
+        CBaseFileSystem::FindClose(m_FindData.Count() - 1);
+    }
 	CBaseFileSystem::RemoveAllSearchPaths();
 	CBaseFileSystem::Trace_DumpUnclosedFiles();
 #ifdef _WIN32
@@ -47,7 +72,12 @@ void CFileSystem_Stdio::FS_fclose( FILE* fp )
 
 void CFileSystem_Stdio::FS_fseek( FILE* fp, long long pos, int seekType )
 {
+#ifdef _WIN32
 	int ret = fseek( fp, (long)pos, seekType );
+#else
+    const int legacyPosition = LegacyFileOffset32(pos);
+    const int ret = fseek(fp, static_cast<long>(legacyPosition), seekType);
+#endif
 #ifdef _WIN32
 	if ( ret != 0 )
 		_wassert( L"ret == 0", FILESYSTEM_STDIO_SOURCE, 147 );
@@ -58,7 +88,18 @@ void CFileSystem_Stdio::FS_fseek( FILE* fp, long long pos, int seekType )
 
 int CFileSystem_Stdio::FS_ftell( FILE* fp )
 {
+#ifdef _WIN32
 	return ftell( fp );
+#else
+    const long position = ftell(fp);
+    constexpr long kMaximumLegacyPosition = (std::numeric_limits<int>::max)();
+    constexpr long kFileError = -1;
+    if (position < kFileError || position > kMaximumLegacyPosition) {
+        errno = EINVAL;
+        return -1;
+    }
+    return static_cast<int>(position);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -81,9 +122,8 @@ size_t CFileSystem_Stdio::FS_fread( void* dest, unsigned int count, unsigned int
 //-----------------------------------------------------------------------------
 // Purpose: low-level filesystem wrapper
 //-----------------------------------------------------------------------------
-size_t CFileSystem_Stdio::FS_fwrite( const void* src, size_t count, size_t size, FILE* fp )
-{
-	return fwrite( src, count, size, fp );
+size_t CFileSystem_Stdio::FS_fwrite(const void* src, unsigned int count, unsigned int size, FILE* fp) {
+    return fwrite(src, count, size, fp);
 }
 
 //-----------------------------------------------------------------------------
@@ -123,47 +163,58 @@ int CFileSystem_Stdio::FS_stat( const char* path, struct stat* buf )
 #ifdef _WIN32
 	return stat( path, buf );
 #else
-	int status;
-	const char* matched;
-
-	status = __wrap___xstat( FS_LINUX_STAT_VERSION, path, buf );
-	if ( status == -1 )
-	{
-		matched = findFileInDirCaseInsensitive( path );
-		if ( matched != NULL )
-		{
-			return __wrap___xstat( FS_LINUX_STAT_VERSION, matched, buf );
-		}
-	}
-
-	return status;
+    // The retained Windows stat API uses a signed32 size and clears output on
+    // failure. Keep native off_t/time_t storage until the representability check.
+    if (!buf) {
+        errno = EINVAL;
+        return -1;
+    }
+    std::memset(buf, 0, sizeof(*buf));
+    struct stat nativeStat{};
+    int status = __wrap___xstat(FS_LINUX_STAT_VERSION, path, &nativeStat);
+    if (status == -1) {
+        const int originalError = errno;
+        const char* matched = findFileInDirCaseInsensitive(path);
+        if (matched) {
+            status = __wrap___xstat(FS_LINUX_STAT_VERSION, matched, &nativeStat);
+        } else {
+            errno = originalError;
+        }
+    }
+    if (status == -1) {
+        return -1;
+    }
+    constexpr auto kMaximumLegacySize = (std::numeric_limits<int>::max)();
+    if (nativeStat.st_size < 0 || nativeStat.st_size > kMaximumLegacySize) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+    *buf = nativeStat;
+    return status;
 #endif
 }
 
-HANDLE CFileSystem_Stdio::FS_FindFirstFile( char* findname, FIND_DATA* dat )
-{
+HANDLE CFileSystem_Stdio::FS_FindFirstFile(char* findname, FIND_DATA* dat) {
 #ifdef _WIN32
-	return ::FindFirstFileA( findname, dat );
+    return ::FindFirstFileA(findname, dat);
 #else
-	return (HANDLE)::FindFirstFile( findname, dat );
+    return reinterpret_cast<HANDLE>(::FindFirstFile(findname, dat));
 #endif
 }
 
-bool CFileSystem_Stdio::FS_FindNextFile( HANDLE handle, FIND_DATA* dat )
-{
+bool CFileSystem_Stdio::FS_FindNextFile(HANDLE handle, FIND_DATA* dat) {
 #ifdef _WIN32
-	return ::FindNextFileA( handle, dat ) != FALSE;
+    return ::FindNextFileA(handle, dat) != FALSE;
 #else
-	return ::FindNextFile( (int)handle, dat );
+    return ::FindNextFile(reinterpret_cast<std::intptr_t>(handle), dat);
 #endif
 }
 
-bool CFileSystem_Stdio::FS_FindClose( HANDLE handle )
-{
+bool CFileSystem_Stdio::FS_FindClose(HANDLE handle) {
 #ifdef _WIN32
-	return ::FindClose( handle ) != FALSE;
+    return ::FindClose(handle) != FALSE;
 #else
-	return ::FindClose( (int)handle );
+    return ::FindClose(reinterpret_cast<std::intptr_t>(handle));
 #endif
 }
 
@@ -232,6 +283,18 @@ void CFileSystem_Stdio::Unmount()
 	m_bMounted = false;
 	CBaseFileSystem::Unmount();
 }
+
+#if defined(_WIN32)
+#define CSE_FILESYSTEM_EXPORT __declspec(dllexport)
+#else
+#define CSE_FILESYSTEM_EXPORT __attribute__((visibility("default")))
+#endif
+
+extern "C" CSE_FILESYSTEM_EXPORT const cse::abi::Descriptor* CSE_ABI_CALL CseGetModuleAbi() {
+    return &cse::filesystem_abi::Descriptor;
+}
+
+#undef CSE_FILESYSTEM_EXPORT
 
 extern "C" void* CreateInterface( const char* pName, int* pReturnCode )
 {

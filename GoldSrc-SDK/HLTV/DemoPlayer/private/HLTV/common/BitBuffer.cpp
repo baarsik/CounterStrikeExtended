@@ -81,20 +81,16 @@ static void OrUnalignedLong( unsigned char* destination, unsigned int bits )
 }
 
 BitBuffer::BitBuffer()
-{
-	memset( this, 0, sizeof( BitBuffer ) );
+    : sizeError(false), data(nullptr), currentByte(nullptr), currentBit(0), maxSize(0),
+    littleEndian(false), ownData(false) {
 }
 
-BitBuffer::BitBuffer( unsigned int size )
-{
-	memset( this, 0, sizeof( BitBuffer ) );
-	Resize( size );
+BitBuffer::BitBuffer(unsigned int size) : BitBuffer() {
+    Resize(size);
 }
 
-BitBuffer::BitBuffer( void* newData, unsigned int size )
-{
-	memset( this, 0, sizeof( BitBuffer ) );
-	SetBuffer( newData, (int)size );
+BitBuffer::BitBuffer(void* newData, unsigned int size) : BitBuffer() {
+    SetBuffer(newData, static_cast<int>(size));
 }
 
 BitBuffer::~BitBuffer()

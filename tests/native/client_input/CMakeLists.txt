@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseClientInput LANGUAGES CXX)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CSE_INPUT_SOURCE_ROOT "${CSE_ROOT}" CACHE PATH "Owned source input for controlled negative variants")
+set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL3.4.20 include directory (no provider is linked or opened)")
+if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
+    message(FATAL_ERROR "Provide the pinned SDL3.4.20 include directory")
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_input.py
+    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cl_dll/inputw32.cpp"
+    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_input.py"
+    "${CSE_INPUT_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
+option(CSE_CLIENT_INPUT_SANITIZERS "Instrument only the controlled input fixture" OFF)
+enable_testing()
+foreach(game IN ITEMS hl cs)
+    add_executable(${game}_input_tests input_tests.cpp controlled_services.cpp)
+    target_include_directories(${game}_input_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_SDL_INCLUDE}"
+        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/engine"
+        "${CSE_ROOT}/GoldSrc-SDK/cl_dll" "${CSE_ROOT}/GoldSrc-SDK/public")
+    set_target_properties(${game}_input_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_compile_definitions(${game}_input_tests PRIVATE CSE_TEST_NATIVE_BRANCH=1 CSE_GAME_CS=$<STREQUAL:${game},cs>)
+    if(MSVC)
+        target_compile_options(${game}_input_tests PRIVATE /W4 /WX /wd4100 /fp:precise /GR
+            $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+        if(game STREQUAL "hl")
+            target_compile_options(${game}_input_tests PRIVATE /EHs-c-)
+        else()
+            target_compile_options(${game}_input_tests PRIVATE /EHsc)
+        endif()
+        target_compile_definitions(${game}_input_tests PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
+        set_property(TARGET ${game}_input_tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        target_compile_options(${game}_input_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-parameter
+            -Wno-unused-variable -Wno-unused-function -Wno-unknown-pragmas -Wno-overriding-option
+            -ffp-model=precise -ffp-contract=off -funwind-tables
+            $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+        if(game STREQUAL "hl")
+            target_compile_options(${game}_input_tests PRIVATE -fno-exceptions -frtti)
+        else()
+            target_compile_options(${game}_input_tests PRIVATE -fexceptions -frtti)
+        endif()
+        if(CSE_CLIENT_INPUT_SANITIZERS)
+            target_compile_options(${game}_input_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+            target_link_options(${game}_input_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+    add_test(NAME actual-${game}-input COMMAND ${game}_input_tests)
+    set_tests_properties(actual-${game}-input PROPERTIES TIMEOUT 15)
+endforeach()

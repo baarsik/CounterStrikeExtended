@@ -4,7 +4,7 @@
 #include "GameUI_Interface.h"
 #include "Taskbar.h"
 
-#include "FileSystem.h"
+#include "filesystem.h"
 #include "MessageBox.h"
 #include "parsemsg.h"
 #include "vgui_controls/Controls.h"
@@ -438,7 +438,7 @@ bool CCareerGame::SaveProfile( bool updateConfig )
 #endif
 		engine->pfnClientCmd( filename );
 	}
-	delete data;
+    delete[] data;
 	return saved;
 }
 

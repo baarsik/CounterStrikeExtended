@@ -91,7 +91,8 @@ typedef struct
 	int frame_number;
 } oldcmd_t;
 
-static_assert( sizeof( svc_func_t ) == 12 );
+// Only opcode enters the protocol; names and parser callbacks are native process storage.
+static_assert(sizeof(void*) != 4 || sizeof(svc_func_t) == 12);
 static_assert( sizeof( oldcmd_t ) == 12 );
 
 #if !defined( SW_RENDERER )

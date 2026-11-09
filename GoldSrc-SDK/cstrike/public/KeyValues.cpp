@@ -1,3 +1,6 @@
+#if !defined(_WIN32)
+#include "../../common/keyvalues_directories.h"
+#endif
    //=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -10,12 +13,19 @@
 
 #include "vgui/KeyValues.h"
 #include "IKeyValues.h"
-#include "controls.h"
-#include "filesystem.h"
-#include "utlbuffer.h"
+#include "Controls.h"
+#include "FileSystem.h"
+#include "UtlBuffer.h"
 
+#if defined(_WIN32)
 #include <direct.h>
+#endif
+#if defined(_WIN32)
 #include <malloc.h>
+#else
+#include <alloca.h>
+#define _alloca alloca
+#endif
 
 #include <cctype>
 #include <climits>
@@ -32,7 +42,11 @@
 
 typedef unsigned long long uint64;
 
+#if defined(_WIN32)
 static_assert( sizeof( wchar_t ) == 2 );
+#else
+static_assert(sizeof(wchar_t) == 4, "Native UTF16 cells use wchar_t storage");
+#endif
 
 KeyValues::KeyValues( const char* name, const char* firstKey, const char* firstValue )
 {
@@ -516,7 +530,11 @@ const char* KeyValues::GetString( const char* name, const char* defaultValue )
 	{
 		uint64 value;
 		std::memcpy( &value, key->m_pValue, sizeof( value ) );
+#if defined(_WIN32)
 		_snprintf( formatted, FORMAT_VALUE_CHARACTERS, "%I64i", value );
+#else
+		_snprintf( formatted, FORMAT_VALUE_CHARACTERS, "%lli", value );
+#endif
 		break;
 	}
 	default:
@@ -700,9 +718,11 @@ KeyValues* KeyValues::MakeCopy() const
 		break;
 	case TYPE_INT:
 	case TYPE_FLOAT:
-	case TYPE_PTR:
 		std::memcpy( &copy->m_iValue, &m_iValue, sizeof( m_iValue ) );
 		break;
+    case TYPE_PTR:
+        copy->m_pValue = m_pValue;
+        break;
 	case TYPE_WSTRING:
 		if ( m_pValue )
 		{
@@ -897,7 +917,9 @@ void KeyValues::RecursiveSaveToFile( IFileSystem* fileSystem, CUtlBuffer& buffer
 bool KeyValues::LoadFromFile( IFileSystem* filesystem, const char* resourceName, const char* pathID )
 {
 	ASSERT_AT( filesystem, 283 );
+#if defined(_WIN32)
 	ASSERT_AT( _heapchk() == _HEAPOK, 284 );
+#endif
 
 	FileHandle_t file = filesystem->Open( resourceName, "rb", pathID );
 	if ( !file )
@@ -921,6 +943,7 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 	FileHandle_t file = filesystem->Open( resourceName, "wb", pathID );
 	if ( !file )
 	{
+#if defined(_WIN32)
 		char directory[1024] = {};
 		const char* component = resourceName;
 		for ( const char* separator = std::strchr( resourceName, '\\' ); separator;
@@ -937,6 +960,9 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 			_mkdir( directory );
 			component = separator + 1;
 		}
+#else
+        cse::PrepareKeyValuesParentDirectory(filesystem, resourceName, pathID);
+#endif
 		file = filesystem->Open( resourceName, "wb", pathID );
 		if ( !file )
 			return false;

@@ -14,8 +14,8 @@ public:
 	bool Shutdown() override;
 	bool CreateGameWindow() override;
 	void SleepUntilInput( int milliseconds ) override;
-	HWND GetMainWindow() override;
-	HWND* GetMainWindowAddress() override;
+	CseGameWindowHandle GetMainWindow() override;
+	CseGameWindowHandle* GetMainWindowAddress() override;
 	void SetWindowXY( int x, int y ) override;
 	void SetWindowSize( int width, int height ) override;
 	void GetWindowRect( int* x, int* y, int* width, int* height ) override;
@@ -69,8 +69,8 @@ public:
 	bool Shutdown() override;
 	bool CreateGameWindow() override;
 	void SleepUntilInput( int time ) override;
-	HWND GetMainWindow() override;
-	HWND* GetMainWindowAddress() override;
+	CseGameWindowHandle GetMainWindow() override;
+	CseGameWindowHandle* GetMainWindowAddress() override;
 	void SetWindowXY( int x, int y ) override;
 	void SetWindowSize( int w, int h ) override;
 	void GetWindowRect( int* x, int* y, int* w, int* h ) override;

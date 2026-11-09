@@ -36,7 +36,12 @@
 #include <csetjmp>
 #include <cstdlib>
 #include <ctime>
+#if defined(_WIN32)
 #include <io.h>
+#else
+#include <unistd.h>
+#define _chmod chmod
+#endif
 #include <sys/stat.h>
 
 #if !defined( _WIN32 )

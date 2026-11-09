@@ -545,6 +545,9 @@
       <ObjectFileName>$(IntDir)cstrike_vgui2_controls_TextEntry_cpp.obj</ObjectFileName>
       <PREfastLogFile>$(IntDir)cstrike_vgui2_controls_TextEntry_cpp.nativecodeanalysis.xml</PREfastLogFile>
     </ClCompile>
+    <ClCompile Include="..\..\common\TextEntryClipboard.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\cstrike\vgui2\controls\TextImage.cpp">
       <ObjectFileName>$(IntDir)cstrike_vgui2_controls_TextImage_cpp.obj</ObjectFileName>
       <PREfastLogFile>$(IntDir)cstrike_vgui2_controls_TextImage_cpp.nativecodeanalysis.xml</PREfastLogFile>
@@ -779,6 +782,7 @@
     <ClInclude Include="..\..\cstrike\dlls\weapons.h" />
     <ClInclude Include="..\..\cstrike\dlls\weapontype.h" />
     <ClInclude Include="..\..\cstrike\game_shared\voice_banmgr.h" />
+    <ClInclude Include="..\..\common\voice_ban_file.h" />
     <ClInclude Include="..\..\cstrike\game_shared\voice_status.h" />
     <ClInclude Include="..\..\cstrike\game_shared\voice_status_hud.h" />
     <ClInclude Include="..\..\cstrike\pm_shared\pm_defs.h" />
@@ -826,6 +830,7 @@
     <ClInclude Include="..\..\cstrike\public\vgui_controls\Controls.h" />
     <ClInclude Include="..\..\cstrike\public\vgui_controls\HTML.h" />
     <ClInclude Include="..\..\cstrike\public\vgui_controls\TextEntry.h" />
+    <ClInclude Include="..\..\common\TextEntryClipboard.h" />
     <ClInclude Include="..\..\dlls\schedule.h" />
     <ClInclude Include="..\..\engine\APIProxy.h" />
     <ClInclude Include="..\..\engine\cdll_int.h" />

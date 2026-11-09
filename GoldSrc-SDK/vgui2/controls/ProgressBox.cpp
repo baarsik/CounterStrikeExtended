@@ -34,8 +34,8 @@
 
 namespace vgui2
 {
-static_assert( sizeof( Frame ) == 276 );
-static_assert( sizeof( ProgressBox ) == 1072 );
+static_assert(sizeof(void*) != 4 || sizeof(Frame) == 276);
+static_assert(sizeof(void*) != 4 || sizeof(ProgressBox) == 1072);
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor

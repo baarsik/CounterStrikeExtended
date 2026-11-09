@@ -76,7 +76,7 @@ public:
 	virtual unsigned int Tell( FileHandle_t file ) = 0;
 	virtual unsigned int Size( FileHandle_t file ) = 0;
 	virtual unsigned int Size( const char* filename ) = 0;
-	virtual long GetFileTime( const char* filename ) = 0;
+	virtual int GetFileTime( const char* filename ) = 0;
 	virtual void FileTimeToString( char* buffer, int size, long time ) = 0;
 
 	virtual bool IsOk( FileHandle_t file ) = 0;
@@ -142,7 +142,7 @@ public:
 	// ABOVE: Pre-25th anniversary interface
 	//
 
-	virtual long GetFileModificationTime( const char* filename ) = 0;
+	virtual int GetFileModificationTime( const char* filename ) = 0;
 };
 
 #endif // FILESYSTEM_H

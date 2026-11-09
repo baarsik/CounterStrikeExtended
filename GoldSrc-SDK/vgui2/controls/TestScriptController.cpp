@@ -1,7 +1,7 @@
 #include "TestScriptController.h"
 
 #include "controls.h"
-#include "FileSystem.h"
+#include "../../public/FileSystem.h"
 #include "characterset.h"
 #include "filesystem_helpers.h"
 #include "vgui/IInput.h"

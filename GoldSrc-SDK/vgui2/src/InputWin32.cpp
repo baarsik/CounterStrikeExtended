@@ -15,7 +15,7 @@
 #include "tier1/interface.h"
 
 #define UTLLINKEDLIST_SOURCE_PATH	L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\public\\UtlLinkedList.h"
-#include "UtlLinkedList.h"
+#include "utllinkedlist.h"
 
 #include "vgui_internal.h"
 #include "vgui/IClientPanel.h"
@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <string.h>
 
+#if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -33,6 +34,12 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#else
+#include "NativeKeyState.h"
+#include <SDL3/SDL_keyboard.h>
+#include <cstdio>
+#include <cstdlib>
+#endif
 
 #include "buildslave_assert.h"
 #define ASSERT_FILE BUILDSLAVE_PATH( L"vgui2\\src\\InputWin32.cpp" )
@@ -40,7 +47,51 @@
 
 using namespace vgui2;
 
+#if defined(_WIN32)
 extern short System_GetKeyState( int virtualKeyCode );
+#else
+namespace {
+using cse_vgui2_input::VirtualKey;
+constexpr int VK_CAPITAL = static_cast<int>(VirtualKey::CapsLock);
+constexpr int VK_NUMLOCK = static_cast<int>(VirtualKey::NumLock);
+constexpr int VK_SCROLL = static_cast<int>(VirtualKey::ScrollLock);
+constexpr int VK_LSHIFT = static_cast<int>(VirtualKey::LeftShift);
+constexpr int VK_RSHIFT = static_cast<int>(VirtualKey::RightShift);
+constexpr int VK_LCONTROL = static_cast<int>(VirtualKey::LeftControl);
+constexpr int VK_RCONTROL = static_cast<int>(VirtualKey::RightControl);
+constexpr int VK_LMENU = static_cast<int>(VirtualKey::LeftAlt);
+constexpr int VK_RMENU = static_cast<int>(VirtualKey::RightAlt);
+constexpr int VK_MENU = static_cast<int>(VirtualKey::Alt);
+constexpr int VK_SHIFT = static_cast<int>(VirtualKey::Shift);
+constexpr int VK_CONTROL = static_cast<int>(VirtualKey::Control);
+
+[[noreturn]] void NativeInputFailure(const char* diagnostic) {
+    std::fputs("VGUI2 native input: ", stderr);
+    std::fputs(diagnostic, stderr);
+    std::fputc('\n', stderr);
+    std::fflush(stderr);
+    std::abort();
+}
+
+cse_vgui2_input::Snapshot CaptureNativeKeyState() {
+    int count = 0;
+    const bool* down = SDL_GetKeyboardState(&count);
+    const SDL_Keymod modifiers = SDL_GetModState();
+    constexpr SDL_Scancode RequiredScancodes[] = {SDL_SCANCODE_CAPSLOCK, SDL_SCANCODE_NUMLOCKCLEAR,
+        SDL_SCANCODE_SCROLLLOCK, SDL_SCANCODE_LSHIFT, SDL_SCANCODE_RSHIFT, SDL_SCANCODE_LCTRL,
+        SDL_SCANCODE_RCTRL, SDL_SCANCODE_LALT, SDL_SCANCODE_RALT};
+    for (const auto scancode : RequiredScancodes) {
+        if (!down || count <= static_cast<int>(scancode)) {
+            NativeInputFailure("SDL keyboard snapshot does not contain the required scancodes");
+        }
+    }
+    return {down[SDL_SCANCODE_CAPSLOCK], down[SDL_SCANCODE_NUMLOCKCLEAR], down[SDL_SCANCODE_SCROLLLOCK],
+        down[SDL_SCANCODE_LSHIFT], down[SDL_SCANCODE_RSHIFT], down[SDL_SCANCODE_LCTRL], down[SDL_SCANCODE_RCTRL],
+        down[SDL_SCANCODE_LALT], down[SDL_SCANCODE_RALT], (modifiers & SDL_KMOD_CAPS) != 0,
+        (modifiers & SDL_KMOD_NUM) != 0, (modifiers & SDL_KMOD_SCROLL) != 0};
+}
+}
+#endif
 
 struct ToggleButton_t
 {
@@ -877,10 +928,14 @@ void CInputWin32::SetCursorPos( int x, int y )
 		return;
 	}
 
+#if defined(_WIN32)
 	// translate into coordinates relative to surface
 	int px, py, pw, pt;
 	g_pSurface->GetAbsoluteWindowBounds( px, py, pw, pt );
 	::SetCursorPos( px + x, py + y );
+#else
+    NativeInputFailure("SurfaceSetCursorPos requires native provider cursor functions");
+#endif
 }
 
 void CInputWin32::GetCursorPos( int& x, int& y )
@@ -891,6 +946,7 @@ void CInputWin32::GetCursorPos( int& x, int& y )
 		return;
 	}
 
+#if defined(_WIN32)
 	// get mouse position in windows
 	POINT pnt;
 	::GetCursorPos( &pnt );
@@ -902,6 +958,9 @@ void CInputWin32::GetCursorPos( int& x, int& y )
 	g_pSurface->GetAbsoluteWindowBounds( px, py, pw, pt );
 	x -= px;
 	y -= py;
+#else
+    NativeInputFailure("SurfaceGetCursorPos requires native provider cursor functions");
+#endif
 }
 
 void CInputWin32::UpdateToggleButtonState()
@@ -919,11 +978,22 @@ void CInputWin32::UpdateToggleButtonState()
 
 	_updateToggleButtonState = false;
 
+#if !defined(_WIN32)
+    const auto snapshot = CaptureNativeKeyState();
+#endif
+
 	for ( int i = 0; i < (int)( sizeof( s_ToggleButtons ) / sizeof( s_ToggleButtons[0] ) ); i++ )
 	{
 		KeyCode code = s_ToggleButtons[i].code;
 		bool vguiState = IsKeyDown( code );
+#if defined(_WIN32)
 		unsigned short winState = (unsigned short)System_GetKeyState( s_ToggleButtons[i].virtualKey );
+#else
+        std::uint16_t winState = 0;
+        if (!cse_vgui2_input::TryGetKeyState(snapshot, s_ToggleButtons[i].virtualKey, winState)) {
+            NativeInputFailure("unrecognized native toggle-table virtual key");
+        }
+#endif
 
 		unsigned char winByte;
 		if ( i < 3 )

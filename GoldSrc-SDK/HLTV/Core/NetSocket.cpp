@@ -25,6 +25,26 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <climits>
+#include "common/legacy_text_to_integer.h"
+
+namespace {
+
+constexpr unsigned int DefaultMulticastTtl = 32;
+constexpr unsigned int MaximumMulticastTtl = 255;
+
+int NativeTransferCount(ssize_t count) {
+    if (count == -1) {
+        return -1;
+    }
+    if (count < 0 || count > INT_MAX) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+    return static_cast<int>(count);
+}
+
+}
 #endif
 
 #ifdef _WIN32
@@ -283,15 +303,20 @@ int NetSocket::GetLong( unsigned char* pData, int size )
 int NetSocket::ReceivePacketIntern( NetAddress* fromHost )
 {
 	sockaddr from;
+#ifdef _WIN32
 	int fromlen;
+#else
+    socklen_t fromlen;
+#endif
 	int ret;
 	int err;
 
-	fromlen = (int)sizeof( from );
 #ifdef _WIN32
+	fromlen = (int)sizeof( from );
 	ret = recvfrom( m_Socket, (char*)m_Buffer, sizeof( m_Buffer ), 0, &from, &fromlen );
 #else
-	ret = recvfrom( m_Socket, m_Buffer, sizeof( m_Buffer ), 0, &from, (socklen_t*)&fromlen );
+    fromlen = static_cast<socklen_t>(sizeof(from));
+    ret = NativeTransferCount(recvfrom(m_Socket, m_Buffer, sizeof(m_Buffer), 0, &from, &fromlen));
 #endif
 
 	if ( ret == -1 )
@@ -415,7 +440,12 @@ int NetSocket::SendLong( const char* pData, int len, int flags, const sockaddr* 
 		header->packetID = (unsigned char)( ( packetNumber << 4 ) + packetCount );
 		memcpy( packet + sizeof( SPLITPACKET ), pPacket, size );
 
+#ifdef _WIN32
 		ret = sendto( m_Socket, (const char*)packet, size + (int)sizeof( SPLITPACKET ), flags, to, tolen );
+#else
+        ret = NativeTransferCount(sendto(m_Socket, packet, static_cast<std::size_t>(size) + sizeof(SPLITPACKET),
+            flags, to, static_cast<socklen_t>(tolen)));
+#endif
 
 		if ( ret < 0 )
 		{
@@ -447,7 +477,12 @@ int NetSocket::SendShort( const char* pData, int len, int flags, const sockaddr*
 
 	memcpy( packet, pData, len );
 	memset( packet + len, 0, MIN_ROUTEABLE_PACKET - len );
+#ifdef _WIN32
 	return sendto( m_Socket, packet, MIN_ROUTEABLE_PACKET, flags, to, tolen );
+#else
+    return NativeTransferCount(sendto(m_Socket, packet, MIN_ROUTEABLE_PACKET, flags, to,
+        static_cast<socklen_t>(tolen)));
+#endif
 }
 
 bool NetSocket::SendPacket( NetAddress* to, const void* data, int length )
@@ -474,7 +509,11 @@ bool NetSocket::SendPacket( NetAddress* to, const void* data, int length )
 	}
 	else if ( length >= MIN_ROUTEABLE_PACKET )
 	{
+#ifdef _WIN32
 		ret = sendto( m_Socket, (const char*)data, length, 0, &addr, (int)sizeof( addr ) );
+#else
+        ret = NativeTransferCount(sendto(m_Socket, data, static_cast<std::size_t>(length), 0, &addr, sizeof(addr)));
+#endif
 	}
 	else
 	{
@@ -527,7 +566,11 @@ void NetSocket::Flush()
 {
 	NetPacket* in;
 	sockaddr from;
+#ifdef _WIN32
 	int fromlen;
+#else
+    socklen_t fromlen;
+#endif
 
 	while ( ( in = (NetPacket*)m_IncomingPackets.RemoveTail() ) != NULL )
 	{
@@ -535,14 +578,18 @@ void NetSocket::Flush()
 		delete in;
 	}
 
+#ifdef _WIN32
 	if ( m_Socket != 0 )
 	{
-		fromlen = (int)sizeof( from );
-
+#else
+    if (m_Socket >= 0) {
+#endif
 #ifdef _WIN32
+		fromlen = (int)sizeof( from );
 		while ( recvfrom( m_Socket, (char*)m_Buffer, sizeof( m_Buffer ), 0, &from, &fromlen ) > 0 )
 #else
-		while ( recvfrom( m_Socket, m_Buffer, sizeof( m_Buffer ), 0, &from, (socklen_t*)&fromlen ) > 0 )
+        fromlen = static_cast<socklen_t>(sizeof(from));
+        while (recvfrom(m_Socket, m_Buffer, sizeof(m_Buffer), 0, &from, &fromlen) > 0)
 #endif
 		{
 		}
@@ -559,13 +606,20 @@ void NetSocket::Close()
 	}
 
 	Flush();
-	m_Network->RemoveSocket( this );
 #ifdef _WIN32
+	m_Network->RemoveSocket( this );
 	shutdown( m_Socket, SD_BOTH );
 	closesocket( m_Socket );
 #else
-	shutdown( m_Socket, SHUT_RDWR );
-	close( m_Socket );
+    if (m_Network != nullptr && m_Network->m_Sockets.Contains(this)) {
+        m_Network->RemoveSocket(this);
+    }
+    if (m_Socket >= 0) {
+        const int ownedSocket = m_Socket;
+        m_Socket = -1;
+        shutdown(ownedSocket, SHUT_RDWR);
+        close(ownedSocket);
+    }
 #endif
 }
 
@@ -627,8 +681,26 @@ bool NetSocket::Create( Network* network, int port, bool reuse, bool loopback )
 	u_long i;
 #else
 	unsigned int i;
+    if (m_Socket >= 0) {
+        errno = EALREADY;
+        return false;
+    }
+    const auto failCreate = [this]() {
+        const int error = errno;
+        if (m_Socket >= 0) {
+            const int ownedSocket = m_Socket;
+            m_Socket = -1;
+            close(ownedSocket);
+        }
+        errno = error;
+        return false;
+    };
 #endif
+#ifdef _WIN32
 	char reuseAddress;
+#else
+    int reuseAddress;
+#endif
 	const char* ttlparam;
 	sockaddr_in address;
 
@@ -656,7 +728,11 @@ bool NetSocket::Create( Network* network, int port, bool reuse, bool loopback )
 			|| ( reuse && setsockopt( m_Socket, SOL_SOCKET, SO_REUSEADDR,
 					&reuseAddress, sizeof( reuseAddress ) ) == -1 ) )
 	{
+#ifdef _WIN32
 		return false;
+#else
+        return failCreate();
+#endif
 	}
 
 	if ( m_Network->m_IsMultihomed )
@@ -676,27 +752,46 @@ bool NetSocket::Create( Network* network, int port, bool reuse, bool loopback )
 	{
 #ifdef _WIN32
 		closesocket( m_Socket );
-#else
-		close( m_Socket );
-#endif
 		return false;
+#else
+        return failCreate();
+#endif
 	}
 
 	ttlparam = m_System->CheckParam( "-multicastttl" );
 
 	if ( ttlparam != NULL )
 	{
+#ifdef _WIN32
 		i = (unsigned int)atoi( ttlparam );
+#else
+        i = static_cast<unsigned int>(CseLegacyAtoi(ttlparam));
+#endif
 	}
 	else
 	{
+#ifdef _WIN32
 		i = 32;
+#else
+        i = DefaultMulticastTtl;
+#endif
 	}
 
+#ifdef _WIN32
 	if ( setsockopt( m_Socket, IPPROTO_IP, SOCKET_IP_MULTICAST_TTL, (const char*)&i, sizeof( i ) ) == -1 )
 	{
 		return false;
 	}
+#else
+    if (i > MaximumMulticastTtl) {
+        errno = EINVAL;
+        return failCreate();
+    }
+    const unsigned char multicastTtl = static_cast<unsigned char>(i);
+    if (setsockopt(m_Socket, IPPROTO_IP, SOCKET_IP_MULTICAST_TTL, &multicastTtl, sizeof(multicastTtl)) == -1) {
+        return failCreate();
+    }
+#endif
 
 	m_BytesOut = 0;
 	m_BytesIn = 0;

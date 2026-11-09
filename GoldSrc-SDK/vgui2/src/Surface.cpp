@@ -42,6 +42,7 @@
 #include <ole2.h>
 #include <shellapi.h>
 #include <mmsystem.h>
+#include "window_panel_handle.h"
 
 #undef CreateFont
 #undef PlaySound
@@ -599,7 +600,7 @@ static LRESULT CALLBACK staticProc( HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
 
 	if ( staticSurfaceAvailable )
 	{
-		panel = g_pIVgui->HandleToPanel( GetWindowLongA( hwnd, GWL_USERDATA ) );
+		panel = g_pIVgui->HandleToPanel( ReadWindowPanelHandle(hwnd) );
 		if ( panel )
 		{
 			client = ( (VPanel*)panel )->Client();
@@ -2318,7 +2319,7 @@ void CWin32Surface::CreatePopup( VPANEL panel, bool minimized, bool showTaskbarI
 	plat->textureDC = NULL;
 
 	SetBkMode( plat->hdc, TRANSPARENT );
-	SetWindowLongA( plat->hwnd, GWL_USERDATA, (LONG)g_pIVgui->PanelToHandle( panel ) );
+	WriteWindowPanelHandle(plat->hwnd, g_pIVgui->PanelToHandle(panel));
 	SetTextAlign( plat->hdc, TA_UPDATECP );
 
 	if ( !popup->IsVisible() || panel == _embeddedPanel )
@@ -2888,7 +2889,7 @@ void CWin32Surface::ReleasePanel( VPANEL panel )
 
 	// hide the panel
 	SetPanelVisible( panel, false );
-	SetWindowLongA( plat->hwnd, GWL_USERDATA, -1 );
+	WriteWindowPanelHandle(plat->hwnd, static_cast<HPanel>(-1));
 	SetWindowPos( plat->hwnd, HWND_BOTTOM, 0, 0, 1, 1, SWP_NOREDRAW | SWP_HIDEWINDOW );
 
 	// free the window context

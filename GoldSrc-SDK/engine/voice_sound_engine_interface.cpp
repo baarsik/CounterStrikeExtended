@@ -2,6 +2,7 @@
 #include "common.h"
 #include "cvar.h"
 #include "sound.h"
+#include "sound_callback.h"
 #include "voice.h"
 
 #include <math.h>
@@ -193,7 +194,7 @@ bool VoiceSE_Init()
 	{
 		sfxcache_t* pCache = &g_VoiceSE_SFX[i].m_SFXCache;
 		pCache->length = SOUND_CALLBACK_CACHE_LENGTH;
-		pCache->loopstart = (int)VoiceSE_GetSoundDataCallback;
+        pCache->loopstart = cse::sound::VoiceDataCallbackStorage();
 		pCache->speed = 22050;
 		pCache->width = 2;
 	}

@@ -67,6 +67,7 @@
       <SubSystem>Windows</SubSystem>
       <TargetMachine>MachineX86</TargetMachine>
       <ModuleDefinitionFile>$(ProjectDir)vgui.def</ModuleDefinitionFile>
+      <CseModuleDefinitionArchitecture>x86</CseModuleDefinitionArchitecture>
       <AdditionalOptions>/EXPORT:VguiEmptyString,@395,DATA,EXPORTAS,??_C@_00A@?$AA@ %(AdditionalOptions)</AdditionalOptions>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -160,9 +161,15 @@
     <ClCompile Include="lib-src\vgui\vgui.cpp" />
     <ClCompile Include="lib-src\vgui\win32\App.cpp" />
     <ClCompile Include="lib-src\vgui\win32\Debug.cpp" />
+    <ClCompile Include="lib-src\vgui\posix\Debug.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <CseReplaces>$(ProjectDir)lib-src\vgui\win32\Debug.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="lib-src\vgui\win32\Font.cpp" />
     <ClCompile Include="lib-src\vgui\win32\Surface.cpp" />
     <ClCompile Include="lib-src\vgui\WizardPanel.cpp" />
+    <ClInclude Include="lib-src\vgui\common\VGui1LegacyTickMillis.h" />
     <ClInclude Include="lib-src\vgui\common\fileimage.h" />
     <ClInclude Include="lib-src\vgui\common\vfontdata.h" />
     <ClInclude Include="lib-src\vgui\include\VGUI.h" />

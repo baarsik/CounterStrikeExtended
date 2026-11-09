@@ -1,5 +1,9 @@
 LIBRARY client
 EXPORTS
+    CseGetModuleAbi @88
+    CseExchangeClientFunctions @89
+    CseInitializeClientModule @90
+    CseGetClientStudioInterface @91
     ?AttemptToMaterialize@CBasePlayerItem@@QAEXXZ @1
     ?CorpseFallThink@CBaseMonster@@QAEXXZ @2
     ?DefaultTouch@CBasePlayerAmmo@@QAEXPAVCBaseEntity@@@Z @3

@@ -1,3 +1,7 @@
+#if defined(__APPLE__)
+#include "VGui1NativeRuntime.h"
+#include <cstdio>
+#endif
 #include "engine_apiproxy.h"
 #include "IEngineSurface.h"
 #include "VGUI_EngineSurfaceWrap.h"
@@ -66,6 +70,12 @@ void VGuiWrap_SetRootPanelSize() {
 
 void VGuiWrap_Shutdown()
 {
+#if defined(__APPLE__)
+    if (cse_vgui1_native::DetachEmbedded(staticEngineSurface) != cse_vgui1_native::Result::Ready) {
+        std::fputs("Native VGUI1 retirement pending; retaining surface and root image\n", stderr);
+        return;
+    }
+#endif
 	::operator delete( staticPanel );
 	staticPanel = NULL;
 
@@ -119,6 +129,12 @@ void VGuiWrap_Paint( int paintAll )
 	if ( !staticPanel )
 		return;
 
+#if defined(__APPLE__)
+    cse_vgui1_native::Scope nativeUse(cse_vgui1_native::EmbeddedRuntime());
+    if (nativeUse.Status() != cse_vgui1_native::Result::Ready) {
+        cse_vgui1_native::InvalidEmbeddedUse("layout/paint before checked root admission");
+    }
+#endif
 	VGuiWrap_SetRootPanelSize();
 	staticPanel->repaint();
 	vgui::App::getInstance()->externalTick();
@@ -141,6 +157,12 @@ void VGuiWrap_Startup()
 	if ( staticEngineSurface )
 		return;
 
+#if defined(__APPLE__)
+    cse_vgui1_native::Scope nativeUse(cse_vgui1_native::EmbeddedRuntime());
+    if (nativeUse.Status() != cse_vgui1_native::Result::Ready) {
+        cse_vgui1_native::InvalidEmbeddedUse("layout/paint before checked root admission");
+    }
+#endif
 	vgui::App::getInstance()->reset();
 
 	staticPanel = new vgui::Panel( 0, 0, 320, 240 );

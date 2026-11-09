@@ -116,9 +116,11 @@ int CHudVGUI2Print::DrawVGUI2StringReverse( wchar_t* text, int x, int y, float r
 	if ( y == -1 )
 		y = ( ScreenHeight - vgui2::surface()->GetFontTall( m_hudfont ) ) / 2;
 	gEngfuncs.pfnDrawSetTextColor( r, g, b );
-	for ( int i = wcslen( text ) - 1; i >= 0; i-- )
-	{
-		int a, width, c;
+	for (size_t i = wcslen(text); i > 0;) {
+        --i;
+        int a;
+        int width;
+        int c;
 		vgui2::surface()->GetCharABCwide( m_hudfont, text[i], a, width, c );
 		x -= a + width + c;
 		gEngfuncs.pfnVGUI2DrawCharacter( x, y, text[i], m_hudfont );
@@ -189,29 +191,7 @@ void CHudVGUI2Print::VGUI2HudPrintArgs( char* text, char* arg1, char* arg2, char
 	wchar_t format[2048];
 #endif
 	vgui2::localize()->ConvertANSIToUnicode( text, format, sizeof( format ) );
-#ifndef _WIN32
-	for ( wchar_t* scan = format; *scan; scan++ )
-	{
-		if ( *scan == '%' )
-		{
-			if ( towlower( scan[1] ) == 's' )
-			{
-				scan[1] = 'S';
-				scan++;
-			}
-			else if ( scan[1] == '.' && scan[2] >= '0' && scan[2] <= '9' )
-			{
-				if ( towlower( scan[3] == 's' ) )
-					scan[3] = 'S';
-				else if ( scan[3] >= '0' && scan[3] <= '9' && towlower( scan[4] ) == 's' )
-					scan[4] = 'S';
-			}
-		}
-	}
-	swprintf( m_wCharBuf, ARRAYSIZE( m_wCharBuf ), format, first, second, third, fourth );
-#else
 	_snwprintf( m_wCharBuf, ARRAYSIZE( m_wCharBuf ), format, first, second, third, fourth );
-#endif
 }
 
 int CHudVGUI2Print::GetHudFontHeight()
@@ -219,24 +199,27 @@ int CHudVGUI2Print::GetHudFontHeight()
 	return m_hudfont ? vgui2::surface()->GetFontTall( m_hudfont ) : 0;
 }
 
-void CHudVGUI2Print::GetStringSize( const wchar_t* text, int* width, int* height )
-{
-	if ( width )
-		*width = 0;
-	if ( height )
-		*height = 0;
-	if ( !m_hudfont )
-		return;
-	int length = wcslen( text );
-	if ( width )
-	{
-		for ( int i = 0; i < length; i++ )
-		{
-			int a, b, c;
-			vgui2::surface()->GetCharABCwide( m_hudfont, text[i], a, b, c );
-			*width += a + b + c;
-		}
-	}
-	if ( height )
-		*height = vgui2::surface()->GetFontTall( m_hudfont );
+void CHudVGUI2Print::GetStringSize(const wchar_t* text, int* width, int* height) {
+    if (width) {
+        *width = 0;
+    }
+    if (height) {
+        *height = 0;
+    }
+    if (!m_hudfont) {
+        return;
+    }
+    const size_t length = wcslen(text);
+    if (width) {
+        for (size_t i = 0; i < length; i++) {
+            int a;
+            int b;
+            int c;
+            vgui2::surface()->GetCharABCwide(m_hudfont, text[i], a, b, c);
+            *width += a + b + c;
+        }
+    }
+    if (height) {
+        *height = vgui2::surface()->GetFontTall(m_hudfont);
+    }
 }

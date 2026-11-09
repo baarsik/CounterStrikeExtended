@@ -153,7 +153,7 @@ void CVoiceLabel::RebuildLabelText()
 #ifdef _WIN32
 		_snwprintf( text, 512, format, playerName, m_locationString );
 #else
-		swprintf( text, 512, format, playerName, m_locationString );
+        _snwprintf(text, 512, format, playerName, m_locationString);
 #endif
 	}
 	m_pLabel->SetText( text );

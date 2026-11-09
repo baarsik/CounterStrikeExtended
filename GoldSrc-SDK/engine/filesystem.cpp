@@ -1,4 +1,6 @@
 #include "filesystem.h"
+#include "conprint.h"
+#include "../public/native_filesystem_module.h"
 #include "registry.h"
 #include "common.h"
 #include "host.h"
@@ -48,6 +50,10 @@ int FileSystem_Init( char* basedir, void* voidfilesystemFactory )
 	CreateInterfaceFn factory = (CreateInterfaceFn)voidfilesystemFactory;
 	if ( factory )
 	{
+        if (!cse::filesystem_abi::CompatibleFactory(factory)) {
+            Con_Printf("Incompatible supplied filesystem factory.\n");
+            return 0;
+        }
 		g_FileSystemFactory = factory;
 	}
 	else
@@ -64,10 +70,14 @@ int FileSystem_Init( char* basedir, void* voidfilesystemFactory )
 			return 0;
 #endif
 
-		factory = Sys_GetFactory( g_pFileSystemModule );
-		g_FileSystemFactory = factory;
-		if ( !factory )
-			return 0;
+        factory = cse::filesystem_abi::CheckedFactory(g_pFileSystemModule);
+        if (!factory) {
+            Con_Printf("Incompatible owned filesystem module.\n");
+            Sys_UnloadModule(g_pFileSystemModule);
+            g_pFileSystemModule = nullptr;
+            return 0;
+        }
+        g_FileSystemFactory = factory;
 	}
 
 	g_pFileSystem = (IFileSystem*)factory( FILESYSTEM_INTERFACE_VERSION, NULL );

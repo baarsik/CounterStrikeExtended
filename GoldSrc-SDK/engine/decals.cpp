@@ -1,3 +1,8 @@
+#if defined(_WIN64) || defined(__LP64__)
+#include "../common/custom_decal_records.h"
+#include <limits>
+#endif
+
 #if defined( SW_RENDERER )
 
 #include "decals.h"
@@ -167,6 +172,42 @@ void Draw_FreeWad( cachewad_t* pWad )
 
 qboolean Draw_CustomCacheWadInit( int cacheMax, cachewad_t* wad, void* raw, int nFileSize )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    static_assert(sizeof(wadinfo_t) == cse::CustomWadHeaderBytes, "WAD3 header layout changed");
+    static_assert(sizeof(lumpinfo_t) == cse::CustomLumpRecordBytes, "WAD3 lump layout changed");
+    static_assert(sizeof(miptex_t) == cse::CustomMipHeaderBytes, "WAD3 mip layout changed");
+    if (!wad || wad->lumps || wad->name || wad->cache || nFileSize <= 0 || cacheMax <= 0
+        || static_cast<std::size_t>(cacheMax) > static_cast<std::size_t>((std::numeric_limits<int>::max)())
+            / sizeof(cacheentry_t)) {
+        return FALSE;
+    }
+    cse::CustomWadRecord record{};
+    if (!cse::ReadCustomWad(raw, static_cast<std::size_t>(nFileSize), static_cast<std::size_t>(nFileSize), &record)) {
+        return FALSE;
+    }
+    cachewad_t staged{};
+    staged.lumps = static_cast<lumpinfo_t*>(Mem_Malloc(sizeof(lumpinfo_t)));
+    if (!staged.lumps) {
+        return FALSE;
+    }
+    Q_memcpy(staged.lumps, static_cast<byte*>(raw) + record.directoryOffset, sizeof(lumpinfo_t));
+    W_CleanupName(staged.lumps->name, staged.lumps->name);
+    staged.name = Mem_Strdup("tempdecal.wad");
+    if (!staged.name) {
+        Mem_Free(staged.lumps);
+        return FALSE;
+    }
+    staged.cache = static_cast<cacheentry_t*>(Mem_ZeroMalloc(sizeof(cacheentry_t) * cacheMax));
+    if (!staged.cache) {
+        Mem_Free(staged.name);
+        Mem_Free(staged.lumps);
+        return FALSE;
+    }
+    staged.lumpCount = 1;
+    staged.cacheMax = cacheMax;
+    *wad = staged;
+    return TRUE;
+#else
 	wadinfo_t header;
 	lumpinfo_t* lump_p;
 	int tableEnd, lumpEnd;
@@ -238,6 +279,7 @@ qboolean Draw_CustomCacheWadInit( int cacheMax, cachewad_t* wad, void* raw, int 
 	wad->pfnCacheBuild = NULL;
 	wad->cacheExtra = 0;
 	return TRUE;
+#endif
 }
 
 int Draw_CacheByIndex( cachewad_t* wad, int nIndex, int playernum )
@@ -302,6 +344,14 @@ qboolean CustomDecal_Validate( void* raw, int nFileSize )
 
 qboolean Draw_ValidateCustomLogo( cachewad_t* wad, byte* data, lumpinfo_t* lump )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    if (!wad || !data || !lump || wad->cacheExtra != MIP_EXTRASIZE || lump->size <= 0
+        || lump->size != lump->disksize) {
+        return FALSE;
+    }
+    cse::CustomMipRecord record{};
+    return cse::ReadCustomMip(data + wad->cacheExtra, static_cast<std::size_t>(lump->size), &record);
+#else
 	int i;
 	texture_t tex;
 	miptex_t tmp;
@@ -372,10 +422,56 @@ qboolean Draw_ValidateCustomLogo( cachewad_t* wad, byte* data, lumpinfo_t* lump 
 	}
 
 	return TRUE;
+#endif
 }
 
-qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int, cacheentry_t* pic )
+qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int
+#if defined(_WIN64) || defined(__LP64__)
+    rawsize
+#endif
+    , cacheentry_t* pic )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    if (!clean || !wad || !pic || !wad->lumps || wad->lumpCount != 1 || wad->cacheExtra != MIP_EXTRASIZE
+        || rawsize <= 0) {
+        return FALSE;
+    }
+    const int index = Q_strlen(clean) >= 5 ? Q_atoi(clean + 3) : 0;
+    if (index != 0) {
+        return FALSE;
+    }
+    cse::CustomWadRecord record{};
+    if (!cse::ReadCustomWad(raw, static_cast<std::size_t>(rawsize), static_cast<std::size_t>(rawsize), &record)
+        || wad->lumps[0].filepos != record.lumpOffset || wad->lumps[0].size != record.lumpBytes
+        || wad->lumps[0].disksize != record.lumpBytes) {
+        return FALSE;
+    }
+    int cacheBytes = 0;
+    if (!cse::CustomCacheBytes(static_cast<std::size_t>(record.lumpBytes),
+            static_cast<std::size_t>(wad->cacheExtra), &cacheBytes)) {
+        return FALSE;
+    }
+    byte* buffer = static_cast<byte*>(Cache_Alloc(&pic->cache, cacheBytes, clean));
+    if (!buffer) {
+        return FALSE;
+    }
+    Q_memset(buffer, 0, wad->cacheExtra);
+    buffer[cacheBytes - 1] = 0;
+    Q_memcpy(buffer + wad->cacheExtra, static_cast<byte*>(raw) + record.lumpOffset, record.lumpBytes);
+    if (!Draw_ValidateCustomLogo(wad, buffer, wad->lumps)) {
+        Cache_Free(&pic->cache);
+        return FALSE;
+    }
+    gfCustomBuild = TRUE;
+    Q_strcpy(szCustName, "T");
+    Q_memcpy(szCustName + 1, clean, 5);
+    szCustName[6] = 0;
+    if (wad->pfnCacheBuild) {
+        wad->pfnCacheBuild(wad, buffer);
+    }
+    gfCustomBuild = FALSE;
+    return TRUE;
+#else
 	int idx;
 	byte* buf;
 	lumpinfo_t* pLump;
@@ -409,6 +505,7 @@ qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int,
 
 	gfCustomBuild = FALSE;
 	return TRUE;
+#endif
 }
 
 void* Draw_CustomCacheGet( cachewad_t* wad, void* raw, int rawsize, int index )
@@ -418,8 +515,14 @@ void* Draw_CustomCacheGet( cachewad_t* wad, void* raw, int rawsize, int index )
 	char name[WAD_LUMP_NAME_BYTES];
 	char clean[WAD_LUMP_NAME_BYTES];
 
+#if defined(_WIN64) || defined(__LP64__)
+    if (!wad || !wad->cache || index < 0 || index >= wad->cacheCount || wad->cacheCount > wad->cacheMax) {
+        return NULL;
+    }
+#else
 	if ( index >= wad->cacheCount )
 		Sys_Error( "Cache wad indexed before load %s: %d", wad->name, index );
+#endif
 
 	pic = &wad->cache[index];
 	dat = Cache_Check( &pic->cache );
@@ -963,6 +1066,42 @@ void Draw_FreeWad( cachewad_t* pWad )
 
 qboolean Draw_CustomCacheWadInit( int cacheMax, cachewad_t* wad, void* raw, int nFileSize )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    static_assert(sizeof(wadinfo_t) == cse::CustomWadHeaderBytes, "WAD3 header layout changed");
+    static_assert(sizeof(lumpinfo_t) == cse::CustomLumpRecordBytes, "WAD3 lump layout changed");
+    static_assert(sizeof(miptex_t) == cse::CustomMipHeaderBytes, "WAD3 mip layout changed");
+    if (!wad || wad->lumps || wad->name || wad->cache || nFileSize <= 0 || cacheMax <= 0
+        || static_cast<std::size_t>(cacheMax) > static_cast<std::size_t>((std::numeric_limits<int>::max)())
+            / sizeof(cacheentry_t)) {
+        return FALSE;
+    }
+    cse::CustomWadRecord record{};
+    if (!cse::ReadCustomWad(raw, static_cast<std::size_t>(nFileSize), static_cast<std::size_t>(nFileSize), &record)) {
+        return FALSE;
+    }
+    cachewad_t staged{};
+    staged.lumps = static_cast<lumpinfo_t*>(Mem_Malloc(sizeof(lumpinfo_t)));
+    if (!staged.lumps) {
+        return FALSE;
+    }
+    Q_memcpy(staged.lumps, static_cast<byte*>(raw) + record.directoryOffset, sizeof(lumpinfo_t));
+    W_CleanupName(staged.lumps->name, staged.lumps->name);
+    staged.name = Mem_Strdup("tempdecal.wad");
+    if (!staged.name) {
+        Mem_Free(staged.lumps);
+        return FALSE;
+    }
+    staged.cache = static_cast<cacheentry_t*>(Mem_ZeroMalloc(sizeof(cacheentry_t) * cacheMax));
+    if (!staged.cache) {
+        Mem_Free(staged.name);
+        Mem_Free(staged.lumps);
+        return FALSE;
+    }
+    staged.lumpCount = 1;
+    staged.cacheMax = cacheMax;
+    *wad = staged;
+    return TRUE;
+#else
 	wadinfo_t header;
 	lumpinfo_t* lump_p;
 	int tableEnd, lumpEnd;
@@ -1034,6 +1173,7 @@ qboolean Draw_CustomCacheWadInit( int cacheMax, cachewad_t* wad, void* raw, int 
 	wad->pfnCacheBuild = NULL;
 	wad->cacheExtra = 0;
 	return TRUE;
+#endif
 }
 
 int Draw_CacheByIndex( cachewad_t* wad, int nIndex, int playernum )
@@ -1098,6 +1238,14 @@ qboolean CustomDecal_Validate( void* raw, int nFileSize )
 
 qboolean Draw_ValidateCustomLogo( cachewad_t* wad, byte* data, lumpinfo_t* lump )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    if (!wad || !data || !lump || wad->cacheExtra != MIP_EXTRASIZE || lump->size <= 0
+        || lump->size != lump->disksize) {
+        return FALSE;
+    }
+    cse::CustomMipRecord record{};
+    return cse::ReadCustomMip(data + wad->cacheExtra, static_cast<std::size_t>(lump->size), &record);
+#else
 	int i;
 	texture_t tex;
 	miptex_t tmp;
@@ -1168,10 +1316,56 @@ qboolean Draw_ValidateCustomLogo( cachewad_t* wad, byte* data, lumpinfo_t* lump 
 	}
 
 	return TRUE;
+#endif
 }
 
-qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int, cacheentry_t* pic )
+qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int
+#if defined(_WIN64) || defined(__LP64__)
+    rawsize
+#endif
+    , cacheentry_t* pic )
 {
+#if defined(_WIN64) || defined(__LP64__)
+    if (!clean || !wad || !pic || !wad->lumps || wad->lumpCount != 1 || wad->cacheExtra != MIP_EXTRASIZE
+        || rawsize <= 0) {
+        return FALSE;
+    }
+    const int index = Q_strlen(clean) >= 5 ? Q_atoi(clean + 3) : 0;
+    if (index != 0) {
+        return FALSE;
+    }
+    cse::CustomWadRecord record{};
+    if (!cse::ReadCustomWad(raw, static_cast<std::size_t>(rawsize), static_cast<std::size_t>(rawsize), &record)
+        || wad->lumps[0].filepos != record.lumpOffset || wad->lumps[0].size != record.lumpBytes
+        || wad->lumps[0].disksize != record.lumpBytes) {
+        return FALSE;
+    }
+    int cacheBytes = 0;
+    if (!cse::CustomCacheBytes(static_cast<std::size_t>(record.lumpBytes),
+            static_cast<std::size_t>(wad->cacheExtra), &cacheBytes)) {
+        return FALSE;
+    }
+    byte* buffer = static_cast<byte*>(Cache_Alloc(&pic->cache, cacheBytes, clean));
+    if (!buffer) {
+        return FALSE;
+    }
+    Q_memset(buffer, 0, wad->cacheExtra);
+    buffer[cacheBytes - 1] = 0;
+    Q_memcpy(buffer + wad->cacheExtra, static_cast<byte*>(raw) + record.lumpOffset, record.lumpBytes);
+    if (!Draw_ValidateCustomLogo(wad, buffer, wad->lumps)) {
+        Cache_Free(&pic->cache);
+        return FALSE;
+    }
+    gfCustomBuild = TRUE;
+    Q_strcpy(szCustName, "T");
+    Q_memcpy(szCustName + 1, clean, 5);
+    szCustName[6] = 0;
+    if (wad->pfnCacheBuild) {
+        wad->pfnCacheBuild(wad, buffer);
+    }
+    gfCustomBuild = FALSE;
+    return TRUE;
+#else
 	int idx;
 	byte* buf;
 	lumpinfo_t* pLump;
@@ -1205,6 +1399,7 @@ qboolean Draw_CacheLoadFromCustom( char* clean, cachewad_t* wad, void* raw, int,
 
 	gfCustomBuild = FALSE;
 	return TRUE;
+#endif
 }
 
 void* Draw_CustomCacheGet( cachewad_t* wad, void* raw, int rawsize, int index )
@@ -1214,8 +1409,14 @@ void* Draw_CustomCacheGet( cachewad_t* wad, void* raw, int rawsize, int index )
 	char name[WAD_LUMP_NAME_BYTES];
 	char clean[WAD_LUMP_NAME_BYTES];
 
+#if defined(_WIN64) || defined(__LP64__)
+    if (!wad || !wad->cache || index < 0 || index >= wad->cacheCount || wad->cacheCount > wad->cacheMax) {
+        return NULL;
+    }
+#else
 	if ( index >= wad->cacheCount )
 		Sys_Error( "Cache wad indexed before load %s: %d", wad->name, index );
+#endif
 
 	pic = &wad->cache[index];
 	dat = Cache_Check( &pic->cache );

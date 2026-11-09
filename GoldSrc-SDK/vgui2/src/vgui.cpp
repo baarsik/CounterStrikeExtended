@@ -17,7 +17,7 @@
 #include "vgui_messages.h"
 #include "interface.h"
 #include "utllinkedlist.h"
-#include "UtlVector.h"
+#include "utlvector.h"
 #include "utlpriorityqueue.h"
 #include "vgui/ISurface.h"
 #include "vgui/IVGui.h"
@@ -711,11 +711,8 @@ void vgui_strcpy( char* dst, int dstLen, const char* src )
 	ASSERT_AT( dstLen>=0, 942 );
 	ASSERT_AT( src!=null, 943 );
 
-	int length = strlen( src ) + 1;
-	if ( length > dstLen )
-	{
-		length = dstLen;
-	}
+	const size_t sourceLength = strlen(src);
+    const int length = sourceLength >= static_cast<size_t>(dstLen) ? dstLen : static_cast<int>(sourceLength) + 1;
 
 	memcpy( dst, src, length - 1 );
 	dst[length - 1] = 0;

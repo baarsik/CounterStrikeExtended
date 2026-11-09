@@ -115,8 +115,19 @@ HRESULT STDMETHODCALLTYPE CA3d::End()
 HRESULT STDMETHODCALLTYPE CA3d::Tag( DWORD dwTag )
 {
 	m_Primitive.m_dwTag = dwTag;
+#if UINTPTR_MAX > UINT32_MAX
+    m_PrimitiveIdentity = A3dGeometryIdentity::PublicTag(dwTag);
+#endif
 	return S_OK;
 }
+
+#if UINTPTR_MAX > UINT32_MAX
+void CA3d::TagOwnedPolygon(const a3d_polygon_t* polygon) {
+    m_PrimitiveIdentity = A3dGeometryIdentity::OwnedPolygon(polygon);
+    // Keep the legacy DWORD payload bytes; native matching uses only the sidecar.
+    m_Primitive.m_dwTag = static_cast<DWORD>(m_PrimitiveIdentity.value);
+}
+#endif
 
 void CA3d::AppendGeometryPool( void* pPool )
 {
@@ -604,7 +615,11 @@ void CA3dGeometryFace::Render( CA3d* pA3d )
 		if ( nVertices == A3D_TRIANGLES || nVertices == A3D_QUADS )
 		{
 			pGeometry->Begin( nVertices );
-			pGeometry->Tag( (DWORD)pPolygon );
+#if UINTPTR_MAX > UINT32_MAX
+            pA3d->TagOwnedPolygon(pPolygon);
+#else
+            pGeometry->Tag((DWORD)pPolygon);
+#endif
 			pGeometry->Normal3fv( transformed.m_Normal );
 			for ( int i = 0; i < nVertices; i++ )
 				pGeometry->Vertex3fv( transformed.m_Vertices[i] );
@@ -3454,6 +3469,10 @@ HRESULT STDMETHODCALLTYPE CA3d::Vertex3f( A3DVAL x, A3DVAL y, A3DVAL z )
 	NextFreeChunk();
 	m_pCurrentCommand->m_dwOpcode = m_dwInputMode;
 	m_pCurrentCommand->m_Payload.m_Primitive = m_Primitive;
+#if UINTPTR_MAX > UINT32_MAX
+    const auto commandIndex = m_pCurrentCommand - m_pCommandBuffer->m_pCommands;
+    m_pCommandBuffer->m_pIdentities[commandIndex] = m_PrimitiveIdentity;
+#endif
 
 	m_nNextVertex = 0;
 	return S_OK;
@@ -3525,6 +3544,9 @@ HRESULT CA3d::InitializeGeometryState()
 	m_GeometryPools.Append( m_pCommandBuffer );
 	m_nNextVertex = 0;
 	memset( &m_Primitive, 0, sizeof( m_Primitive ) );
+#if UINTPTR_MAX > UINT32_MAX
+    m_PrimitiveIdentity = A3dGeometryIdentity::PublicTag(0);
+#endif
 	m_bGeometryInitialized = TRUE;
 	m_dwEnabledFeatures = A3D_DIRECT_PATH_A3D | A3D_DIRECT_PATH_GENERIC;
 	m_dwOcclusionMode = A3D_FASTEST;

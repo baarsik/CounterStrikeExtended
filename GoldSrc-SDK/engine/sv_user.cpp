@@ -227,9 +227,10 @@ typedef struct clc_func_s
 	void ( *pfnParse )( client_t* );
 } clc_func_t;
 
-static_assert( sizeof( clc_func_t ) == 12 );
-static_assert( offsetof( clc_func_t, pszname ) == 4 );
-static_assert( offsetof( clc_func_t, pfnParse ) == 8 );
+// This dispatch table is process-local; command opcodes retain their fixed protocol encoding.
+static_assert(sizeof(void*) != 4 || sizeof(clc_func_t) == 12);
+static_assert(sizeof(void*) != 4 || offsetof(clc_func_t, pszname) == 4);
+static_assert(sizeof(void*) != 4 || offsetof(clc_func_t, pfnParse) == 8);
 
 void SV_ParseMove( client_t* sender );
 void SV_ParseResourceList( client_t* );

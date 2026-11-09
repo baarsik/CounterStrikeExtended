@@ -1,6 +1,8 @@
 #include "cd.h"
 #include "mpg123_music.h"
 #include "ithread.h"
+#include "sound_backend_config.h"
+#include "voice.h"
 
 #include "cmd.h"
 #include "common.h"
@@ -30,6 +32,15 @@ static void usleep( unsigned int microseconds )
 }
 #else
 #include <unistd.h>
+#include "../common/legacy_text_to_integer.h"
+
+static int ParseNativeMp3Track(const char* argument) {
+    const int parsed = CseLegacyAtoi(argument);
+    constexpr int kMaximumTrackWord = (std::numeric_limits<std::int32_t>::max)();
+    constexpr int kMinimumTrackWord = (std::numeric_limits<std::int32_t>::min)();
+    // The retained Windows command increments a 32-bit atoi result, including wrap.
+    return parsed == kMaximumTrackWord ? kMinimumTrackWord : parsed + 1;
+}
 #endif
 
 #define MAX_MP3_TRACKS 200
@@ -60,12 +71,51 @@ ICDAudio* cdaudio = &g_CDAudio;
 
 void CDAudio_Init()
 {
-	thread->Init();
+    if (!thread->Init()) {
+        Con_Printf("CDAudio: command worker initialization failed.\n");
+    }
 }
 
 void CDAudio_Shutdown()
 {
 	thread->Shutdown();
+}
+
+#if CSE_SOUND_USE_SDL
+extern "C" void SNDDMA_Shutdown();
+#endif
+
+bool CDAudio_ShutdownForModuleUnload() {
+    if (!thread->Shutdown()) {
+        return false;
+    }
+    // The worker performs full controller cleanup once. Only these independent
+    // owners may be repeated after normal host shutdown or partial initialization.
+    Voice_ReleaseCaptureForModuleUnload();
+    Voice_ReleaseMixerForModuleUnload();
+    musicPlayer.Shutdown();
+#if CSE_SOUND_USE_SDL
+    SNDDMA_Shutdown();
+#endif
+    return true;
+}
+
+cse::AudioModuleShutdown::~AudioModuleShutdown() noexcept {
+    try {
+        if (CDAudio_ShutdownForModuleUnload()) {
+            return;
+        }
+    } catch (...) {
+        // Returning to the launcher could unload code still used by a worker.
+    }
+    fputs("Fatal: owned audio cleanup failed before engine module unload.\n", stderr);
+    fflush(stderr);
+#if defined(_WIN32)
+    // A failed join is unrecoverable. Bypass DLL detach rather than deadlocking
+    // or allowing running code to outlive its module. Passing shutdowns join normally.
+    TerminateProcess(GetCurrentProcess(), ERROR_INVALID_STATE);
+#endif
+    abort();
 }
 
 void CDAudio_Play( int track, int looping )
@@ -809,7 +859,7 @@ void CCDAudio::CD_f()
 #if defined( _WIN32 )
 			m_rgRemapCD[n] = atoi( Cmd_Argv( n + 1 ) );
 #else
-			m_rgRemapCD[n] = strtol( Cmd_Argv( n + 1 ), NULL, 10 );
+            m_rgRemapCD[n] = CseLegacyAtoi(Cmd_Argv(n + 1));
 #endif
 		}
 		return;
@@ -834,7 +884,7 @@ void CCDAudio::CD_f()
 #if defined( _WIN32 )
 		int track = atoi( Cmd_Argv( 2 ) ) + 1;
 #else
-		int track = strtol( Cmd_Argv( 2 ), NULL, 10 ) + 1;
+        int track = ParseNativeMp3Track(Cmd_Argv(2));
 #endif
 		if ( MP3_PlayTrack( track, false ) )
 		{
@@ -853,7 +903,7 @@ void CCDAudio::CD_f()
 #if defined( _WIN32 )
 		Play( atoi( Cmd_Argv( 2 ) ), false );
 #else
-		Play( strtol( Cmd_Argv( 2 ), NULL, 10 ), false );
+        Play(CseLegacyAtoi(Cmd_Argv(2)), false);
 #endif
 		return;
 	}
@@ -869,7 +919,7 @@ void CCDAudio::CD_f()
 #if defined( _WIN32 )
 		Play( atoi( Cmd_Argv( 2 ) ), true );
 #else
-		Play( strtol( Cmd_Argv( 2 ), NULL, 10 ), true );
+        Play(CseLegacyAtoi(Cmd_Argv(2)), true);
 #endif
 		return;
 	}
@@ -1031,7 +1081,7 @@ void CCDAudio::_Play( int track, int looping )
 	MCI_PLAY_PARMS play = {};
 	play.dwCallback = (DWORD_PTR)*pmainwindow;
 	play.dwFrom = (BYTE)remappedTrack;
-	play.dwTo = (DWORD)remappedTrack | ( status.dwReturn << 8 );
+	play.dwTo = static_cast<DWORD>(remappedTrack) | (static_cast<DWORD>(status.dwReturn) << 8);
 	if ( mciSendCommandA( m_uiDeviceID, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO, (DWORD_PTR)&play ) )
 		return;
 

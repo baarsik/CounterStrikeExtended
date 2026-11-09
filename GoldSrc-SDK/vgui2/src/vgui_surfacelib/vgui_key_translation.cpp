@@ -377,7 +377,15 @@ int KeyCode_VGUIToVirtualKey( KeyCode keyCode )
 {
 	InitVGUIToVKTranslationTable();
 
+#if defined(_WIN32)
 	if ( keyCode < 0 || keyCode >= 256 )
+#else
+    // Compare the promoted index with the actual table bound, not the enum's
+    // narrower declared value range (which Clang correctly knows is below 256).
+    const int index = static_cast<int>(keyCode);
+    constexpr int tableEntries = sizeof(s_pVGUIToVirtualKey) / sizeof(s_pVGUIToVirtualKey[0]);
+    if (index < 0 || index >= tableEntries)
+#endif
 	{
 		ASSERT_AT( false, 503 );
 		return -1;

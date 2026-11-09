@@ -72,8 +72,9 @@ template <class T> CUtlStack<T>::~CUtlStack()
 template <class T> T& CUtlStack<T>::Element( int i )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsIdxValid( i ) )
-		_wassert( L"IsIdxValid(i)", UTLSTACK_SOURCE_PATH, 149 );
+    if (!IsIdxValid( i )) {
+        cse::platform::UtlAssertionFailure( L"IsIdxValid(i)", UTLSTACK_SOURCE_PATH, 149 );
+    }
 #endif
 	return m_Memory[i];
 }
@@ -81,8 +82,9 @@ template <class T> T& CUtlStack<T>::Element( int i )
 template <class T> T& CUtlStack<T>::Top()
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( m_Size > 0 ) )
-		_wassert( L"m_Size > 0", UTLSTACK_SOURCE_PATH, 184 );
+    if (!( m_Size > 0 )) {
+        cse::platform::UtlAssertionFailure( L"m_Size > 0", UTLSTACK_SOURCE_PATH, 184 );
+    }
 #endif
 	return Element( m_Size - 1 );
 }
@@ -115,8 +117,9 @@ template <class T> int CUtlStack<T>::Push( const T& src )
 template <class T> void CUtlStack<T>::Pop()
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( m_Size > 0 ) )
-		_wassert( L"m_Size > 0", UTLSTACK_SOURCE_PATH, 275 );
+    if (!( m_Size > 0 )) {
+        cse::platform::UtlAssertionFailure( L"m_Size > 0", UTLSTACK_SOURCE_PATH, 275 );
+    }
 #endif
 	Element( m_Size - 1 ).~T();
 	--m_Size;

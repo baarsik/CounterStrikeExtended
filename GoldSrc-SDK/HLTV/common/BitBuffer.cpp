@@ -3,6 +3,9 @@
 #include "HLTV/common/mem.h"
 #include "HLTV/common/byteorder.h"
 
+#include <climits>
+#include <cstddef>
+#include <cstdint>
 #include <stdlib.h>
 #include <string.h>
 
@@ -20,23 +23,59 @@ namespace
 	{
 		return count == BITBUFFER_BITS_PER_WORD ? BITBUFFER_ALL_BITS : BitMask( count ) - 1u;
 	}
+
+    constexpr std::size_t BitBufferWordBytes = sizeof(std::uint32_t);
+    static_assert(UINT_MAX == UINT32_MAX && sizeof(unsigned int) == BitBufferWordBytes,
+        "BitBuffer requires exact 32-bit unsigned int words");
+
+    std::size_t StreamWordBytes(const BitBuffer& buffer, const unsigned char* position) {
+        if (buffer.data == nullptr || position == nullptr || buffer.maxSize <= 0) {
+            return 0;
+        }
+        const auto base = reinterpret_cast<std::uintptr_t>(buffer.data);
+        const auto address = reinterpret_cast<std::uintptr_t>(position);
+        if (address < base) {
+            return 0;
+        }
+        const auto offset = address - base;
+        if (offset >= static_cast<std::uintptr_t>(buffer.maxSize)) {
+            return 0;
+        }
+        const auto remaining = static_cast<std::uintptr_t>(buffer.maxSize) - offset;
+        return remaining < BitBufferWordBytes ? static_cast<std::size_t>(remaining) : BitBufferWordBytes;
+    }
+
+    std::uint32_t LoadWord(const unsigned char* source, std::size_t bytes = BitBufferWordBytes) {
+        std::uint32_t value = 0;
+        if (bytes != 0) {
+            memcpy(&value, source, bytes);
+        }
+        return value;
+    }
+
+    void StoreWord(unsigned char* destination, std::uint32_t value, std::size_t bytes = BitBufferWordBytes) {
+        if (bytes != 0) {
+            memcpy(destination, &value, bytes);
+        }
+    }
+
+    void OrStreamWord(const BitBuffer& buffer, unsigned char* position, std::uint32_t bits) {
+        const std::size_t bytes = StreamWordBytes(buffer, position);
+        StoreWord(position, LoadWord(position, bytes) | bits, bytes);
+    }
 }
 
 BitBuffer::BitBuffer()
-{
-	memset( this, 0, sizeof( BitBuffer ) );
+    : sizeError(false), data(nullptr), currentByte(nullptr), currentBit(0), maxSize(0),
+    littleEndian(false), ownData(false) {
 }
 
-BitBuffer::BitBuffer( void* newData, unsigned int size )
-{
-	memset( this, 0, sizeof( BitBuffer ) );
-	SetBuffer( newData, (int)size );
+BitBuffer::BitBuffer(void* newData, unsigned int size) : BitBuffer() {
+    SetBuffer(newData, static_cast<int>(size));
 }
 
-BitBuffer::BitBuffer( unsigned int size )
-{
-	memset( this, 0, sizeof( BitBuffer ) );
-	Resize( size );
+BitBuffer::BitBuffer(unsigned int size) : BitBuffer() {
+    Resize(size);
 }
 
 BitBuffer::~BitBuffer()
@@ -177,15 +216,15 @@ unsigned int BitBuffer::ReadBits( int n )
 		bit = currentBit;
 		if ( n + bit > 32 )
 		{
-			first = *(unsigned int*)currentByte;
+            first = LoadWord(currentByte, StreamWordBytes(*this, currentByte));
 			currentByte += 4;
 			newBit = ( n + bit ) & 7;
-			second = *(unsigned int*)currentByte;
+            second = LoadWord(currentByte, StreamWordBytes(*this, currentByte));
 			currentBit = newBit;
 			return ( first >> bit ) | ( ( LowBitMask( newBit ) & second ) << ( 32 - bit ) );
 		}
 
-		value = LowBitMask( n ) & ( *(unsigned int*)currentByte >> bit );
+        value = LowBitMask(n) & (LoadWord(currentByte, StreamWordBytes(*this, currentByte)) >> bit);
 		newBit = bit + ( n & 7 );
 		currentByte += n >> 3;
 		if ( newBit <= 7 )
@@ -248,13 +287,14 @@ unsigned int BitBuffer::PeekBits( int numbits )
 	bit = oldcurrentBit;
 	if ( numbits + bit > 32 )
 	{
-		first = *(unsigned int*)oldcurrentByte;
+        first = LoadWord(oldcurrentByte, StreamWordBytes(*this, oldcurrentByte));
 		newBit = ( numbits + bit ) & 7;
-		second = *( (unsigned int*)oldcurrentByte + 1 );
+        second = LoadWord(oldcurrentByte + BitBufferWordBytes,
+            StreamWordBytes(*this, oldcurrentByte + BitBufferWordBytes));
 		bits = ( first >> bit ) | ( ( LowBitMask( newBit ) & second ) << ( 32 - bit ) );
-	}
-	else
-		bits = LowBitMask( numbits ) & ( *(unsigned int*)oldcurrentByte >> bit );
+    } else {
+        bits = LowBitMask(numbits) & (LoadWord(oldcurrentByte, StreamWordBytes(*this, oldcurrentByte)) >> bit);
+    }
 
 	currentByte = oldcurrentByte;
 	currentBit = oldcurrentBit;
@@ -328,7 +368,7 @@ bool BitBuffer::ReadBuf( int iSize, void* pbuf )
 		dwords = (int)groups + 1;
 		for ( i = 0; i < dwords; ++i )
 		{
-			*(unsigned int*)( out + done ) = ReadLong();
+            StoreWord(out + done, ReadLong());
 			done += 4;
 		}
 	}
@@ -503,14 +543,14 @@ void BitBuffer::WriteBits( unsigned int bits, int n )
 		bit = currentBit;
 		if ( n + bit > 32 )
 		{
-			*(unsigned int*)currentByte |= value << bit;
+            OrStreamWord(*this, currentByte, value << bit);
 			currentBit = ( n + bit ) & 7;
-			*(unsigned int*)( currentByte + 4 ) |= value >> ( 32 - bit );
+            OrStreamWord(*this, currentByte + BitBufferWordBytes, value >> (32 - bit));
 			currentByte += 4;
 		}
 		else
 		{
-			*(unsigned int*)currentByte |= value << bit;
+            OrStreamWord(*this, currentByte, value << bit);
 			newBit = bit + ( n & 7 );
 			currentByte += n >> 3;
 			if ( newBit > 7 )
@@ -656,8 +696,9 @@ void BitBuffer::WriteBuf( const void* buf, int iSize )
 		dwords = (int)groups + 1;
 		for ( i = 0; i < dwords; ++i )
 		{
-			if ( !sizeError )
-				WriteLong( *(const unsigned int*)( in + done ) );
+            if (!sizeError) {
+                WriteLong(LoadWord(in + done));
+            }
 
 			done += 4;
 		}

@@ -1,42 +1,7 @@
 # Generated from vgui2/vgui2.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(vgui2 SHARED "vgui2")
-target_sources(vgui2 PRIVATE
-  "${CSE_SDK_DIR}/vgui2/src/Bitmap.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/Border.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/fileimage.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/InputWin32.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/LocalizedStringTable.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/MemoryBitmap.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/MessageListener.cpp"
-  "${CSE_SDK_DIR}/public/characterset.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/filesystem_helpers.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/interface.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/KeyValues.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/MemPool.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/UnicodeFileHelpers.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/UtlBuffer.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/utllinkedlist_inst.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/utlpriorityqueue_inst.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/utlrbtree.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/utlsymbol.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/public/utlvector_inst.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/Scheme.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/Surface.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/System.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/vgui.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/vgui_internal.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/vgui_surfacelib/vgui_key_translation.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/VGuiKeyValues.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/VPanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/src/VPanelWrapper.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/FontAmalgam.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/FontManager.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/linuxfont.cpp"
-)
-if(APPLE)
-  target_sources(vgui2 PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp")
-  cse_link_native_font_services(vgui2)
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
+if(MSVC)
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
@@ -59,7 +24,7 @@ target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/publi
 set_property(TARGET vgui2 APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Debug>:MultiThreadedDebugDLL>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/WX>")
-target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/MACHINE:X86>")
+target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/MACHINE:${CSE_MSVC_MACHINE}>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/EXPORT:CreateInterface>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
@@ -89,11 +54,110 @@ target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/OPT:ICF>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/OPT:REF>")
 target_link_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/WX>")
-target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/MACHINE:X86>")
+target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/MACHINE:${CSE_MSVC_MACHINE}>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/EXPORT:CreateInterface>")
 target_link_options(vgui2 PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
 target_link_libraries(vgui2 PRIVATE "$<$<CONFIG:Release>:shell32.lib>")
 target_link_libraries(vgui2 PRIVATE "$<$<CONFIG:Release>:shlwapi.lib>")
 target_link_libraries(vgui2 PRIVATE "$<$<CONFIG:Release>:winmm.lib>")
+else()
+target_compile_features(vgui2 PRIVATE cxx_std_17)
+target_compile_options(vgui2 PRIVATE "SHELL:-include \"${CSE_SDK_DIR}/public/cse_posix_crt.h\"")
+if(APPLE)
+  target_compile_definitions(vgui2 PRIVATE OSX POSIX)
+endif()
+if(APPLE)
+  target_link_options(vgui2 PRIVATE "-Wl,-no_deduplicate")
+endif()
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-O0>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-g>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-fexceptions>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(vgui2 PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+target_compile_definitions(vgui2 PRIVATE "$<$<CONFIG:Debug>:_USRDLL>")
+target_compile_definitions(vgui2 PRIVATE "$<$<CONFIG:Debug>:_CRT_NONSTDC_NO_DEPRECATE>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/vgui2/src>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/vgui2/src/public>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/vgui2/src/vgui_surfacelib>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-O2>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:-g>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fexceptions>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(vgui2 PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(vgui2 PRIVATE "$<$<CONFIG:Release>:_USRDLL>")
+target_compile_definitions(vgui2 PRIVATE "$<$<CONFIG:Release>:_CRT_NONSTDC_NO_DEPRECATE>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/vgui2/src>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/vgui2/src/public>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/vgui2/src/vgui_surfacelib>")
+target_include_directories(vgui2 PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
+endif()
 cse_runtime_directory(vgui2 "")
+if(NOT WIN32)
+  cse_link_sdl3(vgui2 Debug)
+  cse_link_sdl3(vgui2 Release)
+endif()

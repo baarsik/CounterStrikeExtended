@@ -6,34 +6,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void* ( *staticMalloc )( unsigned int ) = malloc;
+static void* (*staticMalloc)(size_t) = malloc;
 static void ( *staticFree )( void* ) = free;
 
-void* operator new( size_t size )
-{
-	return staticMalloc( size );
+void* operator new(size_t size) {
+    return staticMalloc(size);
 }
 
-void operator delete( void* memblock )
-{
-	staticFree( memblock );
+void operator delete(void* memblock) noexcept {
+    staticFree(memblock);
 }
 
-void operator delete( void* memblock, size_t ) noexcept
-{
-	staticFree( memblock );
+void operator delete(void* memblock, size_t) noexcept {
+    staticFree(memblock);
 }
 
-void vgui_setMalloc( void* ( *theMalloc )( unsigned int ) )
-{
-	if ( theMalloc != NULL )
-	{
-		staticMalloc = theMalloc;
-	}
-	else
-	{
-		staticMalloc = malloc;
-	}
+void vgui_setMalloc(void* (*theMalloc)(size_t)) {
+    if (theMalloc != NULL) {
+        staticMalloc = theMalloc;
+    } else {
+        staticMalloc = malloc;
+    }
 }
 
 void vgui_setFree( void ( *theFree )( void* ) )
@@ -71,22 +64,15 @@ char* vgui_strdup( const char* src )
 	return dst;
 }
 
-int vgui_printf( const char* format, ... )
-{
-	char buf[2048];
-	va_list argList;
-	va_start( argList, format );
-#if defined( _MSC_VER )
-#pragma warning( push )
-#pragma warning( disable : 4996 )
-#endif
-	int ret = vsprintf( buf, format, argList );
-#if defined( _MSC_VER )
-#pragma warning( pop )
-#endif
-	va_end( argList );
-	printf( "%s", buf );
-	return ret;
+int vgui_printf(const char* format, ...) {
+    constexpr size_t formatBufferBytes = 2048;
+    char buf[formatBufferBytes] = {};
+    va_list argList;
+    va_start(argList, format);
+    const int ret = vsnprintf(buf, sizeof(buf), format, argList);
+    va_end(argList);
+    printf("%s", buf);
+    return ret;
 }
 
 }

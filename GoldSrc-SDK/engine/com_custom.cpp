@@ -3,6 +3,10 @@
 #include "hashpak.h"
 #include "mem.h"
 #include "zone.h"
+#if defined(_WIN64) || defined(__LP64__)
+#include "custom_decal_loader.h"
+#include "../common/custom_decal_records.h"
+#endif
 
 void R_DecalRemoveAll( int textureIndex );
 
@@ -61,11 +65,24 @@ qboolean COM_CreateCustomization( customization_t* pListHead, resource_t* pResou
 	customization_t* pCust;
 	cachewad_t* pWad;
 	qboolean bError;
+#if defined(_WIN64) || defined(__LP64__)
+    int initializedBytes = 0;
+#endif
 
 	if ( pCustomization )
 		*pCustomization = NULL;
 
+#if defined(_WIN64) || defined(__LP64__)
+    if (!pListHead || !pResource) {
+        return FALSE;
+    }
+#endif
 	pCust = (customization_t*)Mem_ZeroMalloc( sizeof( customization_t ) );
+#if defined(_WIN64) || defined(__LP64__)
+    if (!pCust) {
+        return FALSE;
+    }
+#endif
 	Q_memcpy( &pCust->resource, pResource, sizeof( *pResource ) );
 
 	if ( pResource->nDownloadSize <= 0 )
@@ -75,29 +92,58 @@ qboolean COM_CreateCustomization( customization_t* pListHead, resource_t* pResou
 
 	if ( flags & FCUST_FROMHPAK )
 	{
+#if defined(_WIN64) || defined(__LP64__)
+        if (!HPAK_GetDataPointer("custom.hpk", pResource, (byte**)&pCust->pBuffer, &initializedBytes))
+#else
 		if ( !HPAK_GetDataPointer( "custom.hpk", pResource, (byte**)&pCust->pBuffer, NULL ) )
+#endif
 			goto CustomizationError;
 	}
 	else
 	{
+#if defined(_WIN64) || defined(__LP64__)
+        pCust->pBuffer = cse::LoadCustomizationFile(pResource->szFileName, &initializedBytes);
+#else
 		pCust->pBuffer = COM_LoadFile( pResource->szFileName, 5, NULL );
+#endif
 	}
+
+#if defined(_WIN64) || defined(__LP64__)
+    if (!pCust->pBuffer || initializedBytes < pResource->nDownloadSize) {
+        goto CustomizationError;
+    }
+#endif
 
 	if ( ( pCust->resource.ucFlags & RES_CUSTOM ) && pCust->resource.type == t_decal )
 	{
 		pCust->resource.playernum = (byte)playernumber;
 
+#if defined(_WIN64) || defined(__LP64__)
+        cse::CustomWadRecord record{};
+        int cacheBytes = 0;
+        if (!cse::ReadCustomWad(pCust->pBuffer, static_cast<std::size_t>(initializedBytes),
+                static_cast<std::size_t>(pResource->nDownloadSize), &record)
+            || !cse::CustomCacheBytes(static_cast<std::size_t>(record.lumpBytes), MIP_EXTRASIZE, &cacheBytes)) {
+            goto CustomizationError;
+        }
+#endif
 		if ( !CustomDecal_Validate( pCust->pBuffer, pResource->nDownloadSize ) )
 			goto CustomizationError;
 
 		if ( !( flags & FCUST_IGNOREINIT ) )
 		{
 			pWad = (cachewad_t*)Mem_ZeroMalloc( sizeof( cachewad_t ) );
+#if defined(_WIN64) || defined(__LP64__)
+            if (!pWad) {
+                goto CustomizationError;
+            }
+#endif
 			pCust->pInfo = pWad;
 
 			if ( pResource->nDownloadSize < 1024 || pResource->nDownloadSize > 20480 )
 				goto CustomizationError;
 
+#if defined(_WIN32)
 			__try
 			{
 				bError = !CustomDecal_Init( pWad, pCust->pBuffer, pResource->nDownloadSize, playernumber );
@@ -106,6 +152,11 @@ qboolean COM_CreateCustomization( customization_t* pListHead, resource_t* pResou
 			{
 				bError = TRUE;
 			}
+#else
+            // Native custom init and cache reload validate their entire borrowed
+            // span and stage ownership; no signal-based fault recovery is needed.
+            bError = !CustomDecal_Init(pWad, pCust->pBuffer, pResource->nDownloadSize, playernumber);
+#endif
 
 			if ( bError || pWad->lumpCount <= 0 )
 				goto CustomizationError;
@@ -139,6 +190,11 @@ qboolean COM_CreateCustomization( customization_t* pListHead, resource_t* pResou
 CustomizationError:
 	if ( pCust->pBuffer )
 		Mem_Free( pCust->pBuffer );
+#if defined(_WIN64) || defined(__LP64__)
+    if (pCust->pInfo && pCust->resource.type == t_decal) {
+        Draw_FreeWad(static_cast<cachewad_t*>(pCust->pInfo));
+    }
+#endif
 	if ( pCust->pInfo )
 		Mem_Free( pCust->pInfo );
 	Mem_Free( pCust );

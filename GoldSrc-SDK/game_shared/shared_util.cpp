@@ -11,10 +11,6 @@
 #include <stdarg.h>
 #include "shared_util.h"
 
-#ifndef _WIN32
-#define _vsnwprintf vswprintf
-#endif
-
 static char s_shared_token[ 1500 ];
 static char s_shared_quote = '\"';
 

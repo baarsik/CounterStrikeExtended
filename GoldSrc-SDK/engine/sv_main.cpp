@@ -3,6 +3,7 @@
 #include "filter.h"
 #include "isteamgameserver_c_api.h"
 #include "server.h"
+#include "world_leaf_index.h"
 #include "sv_main.h"
 #include "sound.h"
 #include "keys.h"
@@ -50,7 +51,17 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+
+namespace {
+#if defined(_WIN32)
+constexpr char kDuplicatePlayerNameFormat[] = "(%d)%-0.*s";
+#else
+constexpr char kDuplicatePlayerNameFormat[] = "(%d)%-.*s";
+#endif
+}
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -138,13 +149,21 @@ UserMsg* sv_gpNewUserMsgs;
 UserMsg* sv_gpUserMsgs;
 static int giNextUserMsg = 64;
 
+static int SV_ModelLeafIndex(const mleaf_t* leaf) {
+    int index = 0;
+    if (!cse::bsp::CheckedWorldLeafIndex(leaf, sv.worldmodel->leafs, sv.worldmodel->numleafs, index)) {
+        Sys_Error("SV_ModelLeafIndex: invalid native leaf address");
+    }
+    return index;
+}
+
 int SV_PointLeafnum( vec_t* p )
 {
 	mleaf_t* leaf;
 
 	leaf = Mod_PointInLeaf( p, sv.worldmodel );
 	if ( leaf )
-		return leaf - sv.worldmodel->leafs;
+		return SV_ModelLeafIndex(leaf);
 
 	return 0;
 }
@@ -315,7 +334,7 @@ void SV_AddToFatPAS( vec_t* org, mnode_t* node )
 		{
 			if ( node->contents != CONTENTS_SOLID )
 			{
-				pas = CM_LeafPAS( (mleaf_t*)node - sv.worldmodel->leafs );
+				pas = CM_LeafPAS(SV_ModelLeafIndex(reinterpret_cast<mleaf_t*>(node)));
 				for ( i = 0; i < fatpasbytes; i++ )
 					fatpas[i] |= pas[i];
 			}
@@ -1806,7 +1825,12 @@ void SV_FullClientUpdate( client_t* client, sizebuf_t* sb )
 	Info_RemovePrefixedKeys( info, '_' );
 
 	MSG_WriteByte( sb, svc_updateuserinfo );
-	MSG_WriteByte( sb, client - svs.clients );
+    int clientIndex = 0;
+    if (svs.maxclients <= 0 || !cse::native::CheckedIndex(client, svs.clients,
+        static_cast<std::size_t>(svs.maxclients), clientIndex)) {
+        Sys_Error("SV_FullClientUpdate: invalid native client address");
+    }
+    MSG_WriteByte(sb, clientIndex);
 	MSG_WriteLong( sb, client->userid );
 	MSG_WriteString( sb, info );
 
@@ -3541,7 +3565,7 @@ int SV_CheckUserInfo( netadr_t* address, char* userinfo, qboolean reconnecting, 
 					candidate += 4;
 			}
 			char duplicateName[MAX_PLAYERNAME];
-			_snprintf( duplicateName, sizeof( duplicateName ), "(%d)%-0.*s", duplicateNumber++,
+			_snprintf( duplicateName, sizeof( duplicateName ), kDuplicatePlayerNameFormat, duplicateNumber++,
 				CONNECTION_DUPLICATE_NAME_LENGTH, candidate );
 			Info_SetValueForKey( userinfo, "name", duplicateName, MAX_INFO_STRING );
 			changed = 1;
@@ -3865,7 +3889,7 @@ void SV_ExtractFromUserinfo( client_t* client )
 				else if ( name[3] == ')' )
 					name += 4;
 			}
-			_snprintf( newName, sizeof( newName ), "(%d)%-0.*s", duplicateCount++, DUPLICATE_NAME_BYTES, name );
+			_snprintf( newName, sizeof( newName ), kDuplicatePlayerNameFormat, duplicateCount++, DUPLICATE_NAME_BYTES, name );
 			Info_SetValueForKey( userinfo, "name", newName, USERINFO_BYTES );
 			name = Info_ValueForKey( userinfo, "name" );
 			index = 0;
@@ -6396,7 +6420,7 @@ int SV_CheckForDuplicateNames( char* userinfo, qboolean reconnecting, int exclud
 					candidate += 4;
 			}
 			char duplicateName[MAX_PLAYERNAME];
-			_snprintf( duplicateName, sizeof( duplicateName ), "(%d)%-0.*s", duplicateNumber,
+			_snprintf( duplicateName, sizeof( duplicateName ), kDuplicatePlayerNameFormat, duplicateNumber,
 				DUPLICATE_NAME_PRECISION, candidate );
 			++duplicateNumber;
 			Info_SetValueForKey( userinfo, "name", duplicateName, MAX_INFO_STRING );

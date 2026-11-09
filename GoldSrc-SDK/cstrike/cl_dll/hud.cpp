@@ -735,24 +735,21 @@ int CHud::GetSpriteIndex( const char* name )
 
 void COM_FileBase( const char* input, char* output )
 {
-	int length = strlen( input );
-	int end = length - 1;
-	while ( end && input[end] != '.' && input[end] != '/' && input[end] != '\\' )
-		end--;
-	if ( input[end] != '.' )
-		end = length - 1;
-	else
-		end--;
-	int start = length - 1;
-	while ( start >= 0 && input[start] != '/' && input[start] != '\\' )
-		start--;
-	if ( input[start] != '/' && input[start] != '\\' )
-		start = 0;
-	else
-		start++;
-	length = end - start + 1;
-	strncpy( output, input + start, length );
-	output[length] = 0;
+    const size_t length = strlen(input);
+    size_t start = length;
+    while (start > 0 && input[start - 1] != '/' && input[start - 1] != '\\') {
+        --start;
+    }
+    size_t end = length;
+    for (size_t index = length; index > start; --index) {
+        if (input[index - 1] == '.') {
+            end = index - 1;
+            break;
+        }
+    }
+    const size_t baseLength = end - start;
+    memcpy(output, input + start, baseLength);
+    output[baseLength] = 0;
 }
 
 int CHud::IsGame( const char* game )

@@ -21,6 +21,7 @@
 #include <windows.h>
 #else
 #include <ctype.h>
+#include <stdexcept>
 
 #define _snprintf	snprintf
 #endif
@@ -43,7 +44,7 @@ static bool IsCommandWhitespace( char character )
 #if defined(_WIN32)
 	return isspace( (signed char)character ) != 0;
 #else
-	return ( ( *__ctype_b_loc() )[(signed char)character] & _ISspace ) != 0;
+    return std::isspace(static_cast<unsigned char>(character)) != 0;
 #endif
 }
 
@@ -94,37 +95,45 @@ const char* CCommandLine::GetCmdLine()
 }
 
 #if !defined(_WIN32)
-void CCommandLine::CreateCmdLine( int argc, const char** argv )
-{
-	char commandLine[COMMAND_BUFFER_SIZE];
-	int index;
+void CCommandLine::CreateCmdLine(int argc, const char** argv) {
+    constexpr size_t PayloadLimit = COMMAND_BUFFER_SIZE - 1;
+    constexpr size_t QuoteBytes = 2;
+    constexpr size_t SeparatorBytes = 1;
+    size_t encodedLength = 0;
 
-	commandLine[0] = '\0';
+    // Validate the legacy encoding before replacing the current command line.
+    for (int index = 0; index < argc; ++index) {
+        const char* argument = argv[index];
+        const size_t argumentLength = strlen(argument);
+        const bool quoted = strchr(argument, ' ') != nullptr;
+        const size_t overhead = (index > 0 ? SeparatorBytes : 0) + (quoted ? QuoteBytes : 0);
+        if (overhead > PayloadLimit - encodedLength ||
+            argumentLength > PayloadLimit - encodedLength - overhead) {
+            throw std::length_error("Command line exceeds 4095 bytes");
+        }
+        encodedLength += overhead + argumentLength;
+    }
 
-	for ( index = 0; index < argc; ++index )
-	{
-		const char* argument = argv[index];
-
-		if ( strchr( argument, ' ' ) != NULL )
-		{
-			strcat( commandLine, "\"" );
-			strncat( commandLine, argument, COMMAND_BUFFER_SIZE );
-			strcat( commandLine, "\"" );
-		}
-		else
-		{
-			strncat( commandLine, argument, COMMAND_BUFFER_SIZE );
-		}
-
-		strcat( commandLine, " " );
-	}
-
-	if ( argc > 0 )
-	{
-		commandLine[strlen( commandLine ) - 1] = '\0';
-	}
-
-	CreateCmdLine( commandLine );
+    char commandLine[COMMAND_BUFFER_SIZE];
+    char* output = commandLine;
+    for (int index = 0; index < argc; ++index) {
+        const char* argument = argv[index];
+        const size_t argumentLength = strlen(argument);
+        const bool quoted = strchr(argument, ' ') != nullptr;
+        if (index > 0) {
+            *output++ = ' ';
+        }
+        if (quoted) {
+            *output++ = '"';
+        }
+        memcpy(output, argument, argumentLength);
+        output += argumentLength;
+        if (quoted) {
+            *output++ = '"';
+        }
+    }
+    *output = '\0';
+    CreateCmdLine(commandLine);
 }
 #endif
 

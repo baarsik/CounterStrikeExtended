@@ -146,7 +146,7 @@ void D_SpriteDrawSpansTrans( sspan_t* pspan )
 						+ ( ( (byte)r_blend * ( ( newcolor & redmask ) - ( oldcolor & redmask ) ) ) >> 8 );
 					int g = ( oldcolor & greenmask )
 						+ ( ( (byte)r_blend * ( ( newcolor & greenmask ) - ( oldcolor & greenmask ) ) ) >> 8 );
-					*pdest = (word)( ( ( b >> 8 ) + ( oldcolor & COLOR_BLUEMASK ) ) & COLOR_BLUEMASK
+					*pdest = (word)( ( ( ( b >> 8 ) + ( oldcolor & COLOR_BLUEMASK ) ) & COLOR_BLUEMASK )
 						| ( r & redmask ) | ( g & greenmask ) );
 				}
 				++pz;

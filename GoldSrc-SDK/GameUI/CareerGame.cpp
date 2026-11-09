@@ -20,7 +20,7 @@
 #include <algorithm>
 
 #include "../cstrike/game_shared/bot/bot_profile.h"
-#include "FileSystem.h"
+#include "filesystem.h"
 #include "vgui_controls/Controls.h"
 #include "vgui/IScheme.h"
 
@@ -685,7 +685,13 @@ void CCareerGame::SendMatchCommand()
 		engine->pfnClientCmd( command );
 	}
 	m_savedCvars.push_back( new CvarLatch( "mp_friendlyfire", "0" ) );
+#ifdef _WIN32
 	engine->pfnClientCmd( m_pLastMap->IsFriendlyFireOn() ? "wait\nmp_friendlyfire 1\n" : "wait\nmp_friendlyfire 0\n" );
+#else
+    char friendlyFireEnabled[] = "wait\nmp_friendlyfire 1\n";
+    char friendlyFireDisabled[] = "wait\nmp_friendlyfire 0\n";
+    engine->pfnClientCmd(m_pLastMap->IsFriendlyFireOn() ? friendlyFireEnabled : friendlyFireDisabled);
+#endif
 	m_savedCvars.push_back( new CvarLatch( "bot_zombie", "0" ) );
 	engine->pfnClientCmd( "wait\nbot_zombie 0\n" );
 	m_savedCvars.push_back( new CvarLatch( "bot_stop", "0" ) );

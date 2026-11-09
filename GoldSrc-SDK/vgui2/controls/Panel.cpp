@@ -26,7 +26,10 @@
 #include "BuildGroup.h"
 #include "Tooltip.h"
 #include "PHandle.h"
+#include <cstdint>
+#if UINTPTR_MAX == UINT32_MAX
 #include "HTML.h"
+#endif
 #include "MemPool.h"
 #include "utlsymbol.h"
 
@@ -48,7 +51,13 @@
 #define ASSERT_AT( expression, line )	assert( expression )
 #endif
 
+#if defined(_WIN32)
 static_assert( sizeof( wchar_t ) == 2 );
+#else
+// The owned native string buffer may use wider wchar_t storage. KeyTyped still
+// explicitly dispatches the retained UTF-16 code unit in InternalKeyTyped.
+static_assert(sizeof(wchar_t) >= sizeof(char16_t));
+#endif
 
 namespace vgui2
 {
@@ -143,10 +152,17 @@ void Panel::OnMouseWheeled( int delta )
 	CallParentFunction( new KeyValues( "MouseWheeled", "delta", delta ) );
 }
 
-void Panel::OnRequestFocus( VPANEL subFocus, VPANEL defaultPanel )
-{
+void Panel::OnRequestFocus(VPANEL subFocus, VPANEL defaultPanel) {
+#if UINTPTR_MAX > UINT32_MAX
+    KeyValues* message = new KeyValues("OnRequestFocus");
+    // Focus parameters are live panel identities, so keep all native bits in the message.
+    message->SetUint64("subFocus", static_cast<std::uint64_t>(subFocus));
+    message->SetUint64("defaultPanel", static_cast<std::uint64_t>(defaultPanel));
+    CallParentFunction(message);
+#else
 	CallParentFunction( new KeyValues( "OnRequestFocus", "subFocus", static_cast<int>( subFocus ), "defaultPanel",
 		static_cast<int>( defaultPanel ) ) );
+#endif
 }
 
 void Panel::OnKeyFocusTicked()
@@ -1544,6 +1560,14 @@ void Panel::OnMessage( const KeyValues* message, VPANEL sender )
 					( this->*reinterpret_cast<void ( Panel::* )( float )>( function ) )( value );
 					break;
 				}
+#if UINTPTR_MAX > UINT32_MAX
+                case DATATYPE_VPANEL: {
+                    MessageFunc_t function = item.func;
+                    VPANEL value = static_cast<VPANEL>(parameter->GetUint64(nullptr, 0));
+                    (this->*reinterpret_cast<void (Panel::*)(VPANEL)>(function))(value);
+                    break;
+                }
+#endif
 				case DATATYPE_PTR:
 				{
 					MessageFunc_t function = item.func;
@@ -1647,6 +1671,20 @@ void Panel::OnMessage( const KeyValues* message, VPANEL sender )
 					else
 						validTypes = false;
 					break;
+#if UINTPTR_MAX > UINT32_MAX
+                case DATATYPE_VPANEL: {
+                    if (item.secondParamType == DATATYPE_VPANEL) {
+                        MessageFunc_t function = item.func;
+                        VPANEL firstValue = static_cast<VPANEL>(first->GetUint64(nullptr, 0));
+                        VPANEL secondValue = static_cast<VPANEL>(second->GetUint64(nullptr, 0));
+                        (this->*reinterpret_cast<void (Panel::*)(VPANEL, VPANEL)>(function))(
+                            firstValue, secondValue);
+                    } else {
+                        validTypes = false;
+                    }
+                    break;
+                }
+#endif
 				case DATATYPE_PTR:
 					if ( item.secondParamType == DATATYPE_INT )
 					{
@@ -2088,6 +2126,7 @@ bool Panel::IsBuildModeEditable()
 void Panel::SetVisible( bool state )
 {
 	ipanel()->SetVisible( GetVPanel(), state );
+#if UINTPTR_MAX == UINT32_MAX
 	for ( int index = 0;; ++index )
 	{
 		if ( index >= ipanel()->GetChildCount( GetVPanel() ) )
@@ -2099,6 +2138,7 @@ void Panel::SetVisible( bool state )
 		if ( html != nullptr )
 			html->SetVisible( state );
 	}
+#endif
 }
 
 void Panel::SetWide( int wide )
@@ -2266,6 +2306,12 @@ void Panel::OnOldMessage( KeyValues* message, VPANEL )
 				( this->*reinterpret_cast<void ( Panel::* )( float )>( item->func ) )(
 					message->GetFloat( item->firstParamName, 0.0f ) );
 				return;
+#if UINTPTR_MAX > UINT32_MAX
+            case DATATYPE_VPANEL:
+                (this->*reinterpret_cast<void (Panel::*)(VPANEL)>(item->func))(
+                    static_cast<VPANEL>(message->GetUint64(item->firstParamName, 0)));
+                return;
+#endif
 			case DATATYPE_PTR:
 				( this->*reinterpret_cast<void ( Panel::* )( void* )>( item->func ) )(
 					message->GetPtr( item->firstParamName, nullptr ) );
@@ -2337,6 +2383,16 @@ void Panel::OnOldMessage( KeyValues* message, VPANEL )
 				return;
 			}
 			break;
+#if UINTPTR_MAX > UINT32_MAX
+        case DATATYPE_VPANEL:
+            if (item->secondParamType == DATATYPE_VPANEL) {
+                (this->*reinterpret_cast<void (Panel::*)(VPANEL, VPANEL)>(item->func))(
+                    static_cast<VPANEL>(message->GetUint64(item->firstParamName, 0)),
+                    static_cast<VPANEL>(message->GetUint64(item->secondParamName, 0)));
+                return;
+            }
+            break;
+#endif
 		case DATATYPE_PTR:
 			if ( item->secondParamType == DATATYPE_CONSTCHARPTR )
 			{

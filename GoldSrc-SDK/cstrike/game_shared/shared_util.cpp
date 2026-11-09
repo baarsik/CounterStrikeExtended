@@ -23,18 +23,18 @@ static char s_shared_token[1500];
 static char s_shared_quote = '"';
 
 #ifdef CLIENT_DLL
-wchar_t* SharedFindString( char* asciiIdentifier )
-{
-	static wchar_t strings[4][1024];
-	static int currentString = 0;
-	wchar_t* identifier = vgui2::localize()->Find( asciiIdentifier );
-	if ( !identifier )
-	{
-		identifier = strings[currentString];
-		currentString = (currentString + 1) % 4;
-		vgui2::localize()->ConvertANSIToUnicode( asciiIdentifier, identifier, 2048 );
-	}
-	return identifier;
+wchar_t* SharedFindString(char* asciiIdentifier) {
+    constexpr int kFallbackStrings = 4;
+    constexpr int kFallbackCells = 1024;
+    static wchar_t strings[kFallbackStrings][kFallbackCells];
+    static int currentString = 0;
+    wchar_t* identifier = vgui2::localize()->Find(asciiIdentifier);
+    if (!identifier) {
+        identifier = strings[currentString];
+        currentString = (currentString + 1) % kFallbackStrings;
+        vgui2::localize()->ConvertANSIToUnicode(asciiIdentifier, identifier, sizeof(strings[0]));
+    }
+    return identifier;
 }
 #endif
 
@@ -48,7 +48,7 @@ wchar_t* SharedWVarArgs( wchar_t* format, ... )
 #ifdef _WIN32
 	int written = _vsnwprintf( strings[currentString], 1024, format, arguments );
 #else
-	int written = vswprintf( strings[currentString], 1024, format, arguments );
+    int written = _vsnwprintf(strings[currentString], 1024, format, arguments);
 #endif
 	va_end( arguments );
 	if ( written < 0 || written >= 1024 )
@@ -101,7 +101,7 @@ wchar_t* BufWPrintf( wchar_t* buffer, int& length, const wchar_t* format, ... )
 #ifdef _WIN32
 	int written = _vsnwprintf( buffer, length, format, arguments );
 #else
-	int written = vswprintf( buffer, length, format, arguments );
+    int written = _vsnwprintf(buffer, length, format, arguments);
 #endif
 	va_end( arguments );
 	if ( written < 0 || written >= length )

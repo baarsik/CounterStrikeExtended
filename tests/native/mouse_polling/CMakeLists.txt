@@ -1,0 +1,88 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseNativeMousePolling LANGUAGES CXX)
+find_package(Threads REQUIRED)
+add_executable(mouse_poller_tests core_tests.cpp)
+target_include_directories(mouse_poller_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common")
+target_link_libraries(mouse_poller_tests PRIVATE Threads::Threads)
+set_target_properties(mouse_poller_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+option(CSE_MOUSE_POLLER_SANITIZERS "Instrument only owned fake workers" OFF)
+if(MSVC)
+    target_compile_options(mouse_poller_tests PRIVATE /W4 /WX /EHsc /fp:precise
+        $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    set_property(TARGET mouse_poller_tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+    target_compile_options(mouse_poller_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise -ffp-contract=off
+        -Wno-overriding-option -funwind-tables $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+    if(CSE_MOUSE_POLLER_SANITIZERS)
+        target_compile_options(mouse_poller_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(mouse_poller_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+enable_testing()
+add_test(NAME owned-native-mouse-poller COMMAND mouse_poller_tests)
+set_tests_properties(owned-native-mouse-poller PROPERTIES TIMEOUT 30)
+
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL3 headers; no SDL provider is linked")
+    if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
+        message(FATAL_ERROR "Provide pinned SDL3.4.20 headers")
+    endif()
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/client_input/extract_input.py"
+        "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CSE_ROOT}/tests/native/client_input/extract_input.py"
+        "${CSE_ROOT}/GoldSrc-SDK/cl_dll/inputw32.cpp"
+        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp")
+    foreach(game IN ITEMS hl cs)
+        add_executable(${game}_polling_wiring wiring_tests.cpp ../client_input/controlled_services.cpp)
+        target_include_directories(${game}_polling_wiring PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
+            "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/engine"
+            "${CSE_ROOT}/GoldSrc-SDK/cl_dll" "${CSE_ROOT}/GoldSrc-SDK/public")
+        target_compile_definitions(${game}_polling_wiring PRIVATE CSE_TEST_NATIVE_BRANCH=0 CSE_TEST_POLLING=1
+            CSE_GAME_CS=$<STREQUAL:${game},cs> NOMINMAX _CRT_SECURE_NO_WARNINGS)
+        target_compile_options(${game}_polling_wiring PRIVATE /W4 /WX /wd4100 /wd4244 /wd4305 /fp:precise
+            $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+        if(game STREQUAL "hl")
+            target_compile_options(${game}_polling_wiring PRIVATE /EHs-c-)
+        else()
+            target_compile_options(${game}_polling_wiring PRIVATE /EHsc)
+        endif()
+        set_target_properties(${game}_polling_wiring PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        add_test(NAME actual-${game}-polling-wiring COMMAND ${game}_polling_wiring)
+        set_tests_properties(actual-${game}-polling-wiring PROPERTIES TIMEOUT 30)
+    endforeach()
+endif()
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    add_executable(mouse_kernel_tests kernel_tests.cpp)
+    add_library(mouse_worker_module SHARED worker_module.cpp)
+    add_executable(mouse_module_tests module_tests.cpp)
+    foreach(target IN ITEMS mouse_kernel_tests mouse_worker_module mouse_module_tests)
+        target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common")
+        target_compile_definitions(${target} PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
+        target_compile_options(${target} PRIVATE /W4 /WX /EHsc /fp:precise /wd4191
+            $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+        set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES
+            MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endforeach()
+    add_test(NAME owned-kernel-faults COMMAND mouse_kernel_tests)
+    add_test(NAME owned-module-unload COMMAND mouse_module_tests "$<TARGET_FILE:mouse_worker_module>")
+    set_tests_properties(owned-kernel-faults owned-module-unload PROPERTIES TIMEOUT 30)
+endif()
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    foreach(game IN ITEMS hl cs)
+        add_test(NAME actual-${game}-join-failure
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/check_fatal.py" "$<TARGET_FILE:${game}_polling_wiring>")
+        set_tests_properties(actual-${game}-join-failure PROPERTIES TIMEOUT 20)
+    endforeach()
+endif()
+
+if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    foreach(game IN ITEMS hl cs)
+        add_test(NAME actual-${game}-direct-read-safety COMMAND ${game}_polling_wiring --direct-read-safety)
+        set_tests_properties(actual-${game}-direct-read-safety PROPERTIES TIMEOUT 30)
+    endforeach()
+endif()

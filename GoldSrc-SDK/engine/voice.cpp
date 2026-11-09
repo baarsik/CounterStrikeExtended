@@ -25,8 +25,11 @@
 
 #include "../external/steamworks/isteamuser.h"
 
+#include <cstdint>
+#if defined(_WIN32)
 #include <windows.h>
 #include <mmsystem.h>
+#endif
 
 #include <math.h>
 #include <stdio.h>
@@ -52,7 +55,7 @@ void VoiceSE_Idle( float frametime );
 
 void Voice_EndAllChannels();
 
-#if !defined( _WIN32 )
+#if !defined(_WIN32) && INTPTR_MAX <= INT32_MAX
 IVoiceRecord* CreateVoiceRecord( int sampleRate );
 #endif
 
@@ -124,6 +127,15 @@ int g_nVoiceFadeSamples = 1; // Calculated each frame from the cvar.
 float g_VoiceFadeMul = 1.0f; // 1 / (g_nVoiceFadeSamples - 1).
 bool g_bVoiceAtLeastPartiallyInitted;
 IMixerControls* g_pMixerControls;
+
+void Voice_ReleaseMixerForModuleUnload() {
+    IMixerControls* mixer = g_pMixerControls;
+    g_pMixerControls = nullptr;
+    if (mixer) {
+        mixer->Release();
+    }
+}
+
 CSysModule* g_hVoiceCodecDLL;
 static double g_CompressTime;
 static double g_DecompressTime;
@@ -135,6 +147,15 @@ static float g_LocalPlayerTalkingTimeout;
 bool g_bInTweakMode;
 static bool g_bUsingSteamVoice = true;
 static IVoiceRecord* g_pVoiceRecord;
+
+void Voice_ReleaseCaptureForModuleUnload() {
+    IVoiceRecord* record = g_pVoiceRecord;
+    g_pVoiceRecord = nullptr;
+    if (record) {
+        record->Release();
+    }
+}
+
 static IVoiceCodec* g_pEncodeCodec;
 static qboolean g_bVoiceRecording;
 static int g_VoiceVolume;
@@ -151,6 +172,7 @@ int g_CurMicInputFileByte;
 double g_MicStartTime;
 
 // The format we sample voice in.
+#if defined(_WIN32)
 WAVEFORMATEX g_VoiceSampleFormat =
 {
 	WAVE_FORMAT_PCM, // wFormatTag
@@ -161,6 +183,20 @@ WAVEFORMATEX g_VoiceSampleFormat =
 	16, // wBitsPerSample
 	sizeof( WAVEFORMATEX ) // cbSize
 };
+#else
+namespace {
+constexpr int VoiceCaptureChannels = 1;
+constexpr int VoiceCaptureSampleBits = 16;
+
+// Private mixer/file-call parameters; encoded WAVE records have their own fixed-width codec.
+struct NativeVoiceSampleFormat {
+    int nChannels;
+    int nSamplesPerSec;
+    int wBitsPerSample;
+};
+NativeVoiceSampleFormat g_VoiceSampleFormat{VoiceCaptureChannels, VOICE_SAMPLE_RATE, VoiceCaptureSampleBits};
+}
+#endif
 
 cvar_t voice_loopback = { "voice_loopback", "0" };
 cvar_t voice_maxgain = { "voice_maxgain", "5" };
@@ -727,19 +763,11 @@ void Voice_Deinit()
 		g_hVoiceCodecDLL = NULL;
 	}
 
-	if ( g_pVoiceRecord )
-	{
-		g_pVoiceRecord->Release();
-		g_pVoiceRecord = NULL;
-	}
+    Voice_ReleaseCaptureForModuleUnload();
 
 	VoiceSE_Term();
 
-	if ( g_pMixerControls )
-	{
-		g_pMixerControls->Release();
-		g_pMixerControls = NULL;
-	}
+    Voice_ReleaseMixerForModuleUnload();
 
 	g_bVoiceAtLeastPartiallyInitted = false;
 }
@@ -853,7 +881,7 @@ qboolean Voice_Init( const char* pCodecName, int quality )
 	g_bUsingSteamVoice = SteamUser() != NULL;
 	if ( !g_bUsingSteamVoice && pCodecName[0] )
 	{
-#if !defined( _WIN32 )
+#if !defined(_WIN32) && INTPTR_MAX <= INT32_MAX
 		int sampleRate = g_VoiceSampleFormat.nSamplesPerSec;
 		g_pVoiceRecord = CreateVoiceRecord( sampleRate );
 		if ( !g_pVoiceRecord )
@@ -891,7 +919,13 @@ qboolean Voice_Init( const char* pCodecName, int quality )
 
 		// Get the codec.
 		char dllName[256];
+#if defined(_WIN32)
 		_snprintf( dllName, sizeof( dllName ), "%s.dll", pCodecName );
+#elif defined(__APPLE__)
+        snprintf(dllName, sizeof(dllName), "%s.dylib", pCodecName);
+#else
+        snprintf(dllName, sizeof(dllName), "%s.so", pCodecName);
+#endif
 #endif
 
 		if ( !g_hVoiceCodecDLL )

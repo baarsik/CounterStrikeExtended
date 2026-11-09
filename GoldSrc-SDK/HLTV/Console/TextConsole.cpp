@@ -1,5 +1,9 @@
 #include "TextConsole.h"
+#if defined(_WIN32)
 #include "System.h"
+#else
+void System_Printf(const char* format, ...);
+#endif
 #include "common/IBaseSystem.h"
 #include "../../common/ObjectList.h"
 
@@ -88,34 +92,28 @@ void CTextConsole::HandleKeyBackspace()
 	m_BrowseLine = m_NextHistoryLine;
 }
 
-void CTextConsole::HandleKeyDown()
-{
-	if ( m_BrowseLine == m_NextHistoryLine )
-		return;
-
-	if ( ++m_BrowseLine > m_HistoryCount )
-		m_BrowseLine = 0;
-
-	while ( m_ConsoleLineLen-- )
-		Echo( "\b \b" );
-
-	if ( m_BrowseLine == m_NextHistoryLine )
-	{
-		if ( m_SavedConsoleLineLen > 0 )
-		{
-			strncpy( m_ConsoleLine, m_SavedConsoleLine, m_SavedConsoleLineLen );
-			Echo( m_ConsoleLine, m_SavedConsoleLineLen );
-		}
-		m_ConsoleLineLen = m_SavedConsoleLineLen;
-	}
-	else
-	{
-		Echo( m_History[m_BrowseLine] );
-		strncpy( m_ConsoleLine, m_History[m_BrowseLine], sizeof( m_ConsoleLine ) );
-		m_ConsoleLineLen = (int)strlen( m_History[m_BrowseLine] );
-	}
-
-	m_CursorPosition = m_ConsoleLineLen;
+void CTextConsole::HandleKeyDown() {
+    if (m_BrowseLine == m_NextHistoryLine) {
+        return;
+    }
+    if (++m_BrowseLine >= MAX_CONSOLE_HISTORY) {
+        m_BrowseLine = 0;
+    }
+    while (m_ConsoleLineLen--) {
+        Echo("\b \b");
+    }
+    if (m_BrowseLine == m_NextHistoryLine) {
+        if (m_SavedConsoleLineLen > 0) {
+            strncpy(m_ConsoleLine, m_SavedConsoleLine, m_SavedConsoleLineLen);
+            Echo(m_ConsoleLine, m_SavedConsoleLineLen);
+        }
+        m_ConsoleLineLen = m_SavedConsoleLineLen;
+    } else {
+        Echo(m_History[m_BrowseLine]);
+        strncpy(m_ConsoleLine, m_History[m_BrowseLine], sizeof(m_ConsoleLine));
+        m_ConsoleLineLen = (int)strlen(m_History[m_BrowseLine]);
+    }
+    m_CursorPosition = m_ConsoleLineLen;
 }
 
 void CTextConsole::HandleKeyLeft()
@@ -238,32 +236,28 @@ void CTextConsole::HandleKeyTab()
 	m_BrowseLine = m_NextHistoryLine;
 }
 
-void CTextConsole::HandleKeyUp()
-{
-	int oldest = m_NextHistoryLine + 1;
-	if ( oldest > m_HistoryCount )
-		oldest = 0;
-
-	if ( m_BrowseLine == oldest )
-		return;
-
-	if ( m_BrowseLine == m_NextHistoryLine )
-	{
-		if ( m_ConsoleLineLen > 0 )
-			strncpy( m_SavedConsoleLine, m_ConsoleLine, m_ConsoleLineLen );
-
-		m_SavedConsoleLineLen = m_ConsoleLineLen;
-	}
-
-	--m_BrowseLine;
-	if ( m_BrowseLine < 0 )
-		m_BrowseLine = m_HistoryCount - 1;
-
-	while ( m_ConsoleLineLen-- )
-		Echo( "\b \b" );
-
-	Echo( m_History[m_BrowseLine] );
-	strncpy( m_ConsoleLine, m_History[m_BrowseLine], sizeof( m_ConsoleLine ) );
-	m_ConsoleLineLen = (int)strlen( m_History[m_BrowseLine] );
-	m_CursorPosition = m_ConsoleLineLen;
+void CTextConsole::HandleKeyUp() {
+    int oldest = m_NextHistoryLine + 1;
+    if (oldest >= MAX_CONSOLE_HISTORY || oldest > m_HistoryCount) {
+        oldest = 0;
+    }
+    if (m_BrowseLine == oldest) {
+        return;
+    }
+    if (m_BrowseLine == m_NextHistoryLine) {
+        if (m_ConsoleLineLen > 0) {
+            strncpy(m_SavedConsoleLine, m_ConsoleLine, m_ConsoleLineLen);
+        }
+        m_SavedConsoleLineLen = m_ConsoleLineLen;
+    }
+    if (--m_BrowseLine < 0) {
+        m_BrowseLine = m_HistoryCount - 1;
+    }
+    while (m_ConsoleLineLen--) {
+        Echo("\b \b");
+    }
+    Echo(m_History[m_BrowseLine]);
+    strncpy(m_ConsoleLine, m_History[m_BrowseLine], sizeof(m_ConsoleLine));
+    m_ConsoleLineLen = (int)strlen(m_History[m_BrowseLine]);
+    m_CursorPosition = m_ConsoleLineLen;
 }

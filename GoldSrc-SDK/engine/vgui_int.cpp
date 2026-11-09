@@ -3,7 +3,14 @@
 #include "vgui_EngineSurface.h"
 #include "const.h"
 #include "filesystem.h"
+#if defined(_WIN32)
 #include <Windows.h>
+#else
+#include "../common/legacy_bmp_records.h"
+using BITMAPFILEHEADER = cse_bmp::FileHeader;
+using BITMAPINFOHEADER = cse_bmp::InfoHeader;
+using RGBQUAD = cse_bmp::PaletteEntry;
+#endif
 #include <cstdlib>
 
 void VGui_Startup()

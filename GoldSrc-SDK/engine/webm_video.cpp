@@ -1,4 +1,5 @@
 #include "webm_video.h"
+#include "webm_pcm_allocation.h"
 
 #include "conprint.h"
 #include "mathlib.h"
@@ -24,6 +25,7 @@
 #endif
 
 #include <cassert>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
@@ -820,17 +822,16 @@ static_assert( sizeof( yuv2rgb565_table ) == 768 * sizeof( std::uint32_t ), "yuv
 #if defined( _WIN32 )
 static_assert( sizeof( WebMFrame ) == 32, "WebMFrame" );
 #else
-static_assert( sizeof( WebMFrame ) == 24, "WebMFrame" );
+static_assert(sizeof(WebMFrame) == (sizeof(void*) == 4 ? 24 : 28), "WebMFrame");
 #endif
-static_assert( sizeof( WebMDemuxer ) == 44, "WebMDemuxer" );
-static_assert( sizeof( VPXDecoder ) == 16, "VPXDecoder" );
-static_assert( sizeof( VPXDecoder::Image ) == 44, "VPXDecoder::Image" );
-static_assert( sizeof( AudioVorbisDecoder ) == 12, "AudioVorbisDecoder" );
+static_assert(sizeof(void*) != 4 || sizeof(WebMDemuxer) == 44, "WebMDemuxer Win32 layout");
+static_assert(sizeof(void*) != 4 || sizeof(VPXDecoder) == 16, "VPXDecoder Win32 layout");
+static_assert(sizeof(void*) != 4 || sizeof(VPXDecoder::Image) == 44, "VPXDecoder::Image Win32 layout");
+static_assert(sizeof(void*) != 4 || sizeof(AudioVorbisDecoder) == 12, "AudioVorbisDecoder Win32 layout");
 
 constexpr unsigned int kVpxMaxThreads = 8;
 constexpr unsigned int kVpxFmtAcceptedMask = VPX_IMG_FMT_PLANAR | VPX_IMG_FMT_HAS_ALPHA | VPX_IMG_FMT_HIGHBITDEPTH;
 constexpr int kVorbisScratchSamples = 4096;
-constexpr unsigned int kPcmCountLimit = 0x3F800000u;
 constexpr double kNanoseconds = 1000000000.0;
 constexpr int kPlaybackChannel = 3;
 constexpr int kPlaybackPitch = 100;
@@ -959,13 +960,13 @@ WebMDemuxer::WebMDemuxer( mkvparser::IMkvReader* reader, int videoTrack, int aud
 		return;
 
 	const mkvparser::Tracks* tracks = m_pSegment->GetTracks();
-	const unsigned int trackCount = tracks->GetTracksCount();
+    // Pinned libwebm admits unique Track numbers 1..127; retain its count/index width.
+    const unsigned long trackCount = tracks->GetTracksCount();
 	if ( trackCount != 0 )
 	{
 		int currentVideo = -1;
 		int currentAudio = -1;
-		for ( unsigned int index = 0; index < trackCount; ++index )
-		{
+        for (unsigned long index = 0; index < trackCount; ++index) {
 			const mkvparser::Track* track = tracks->GetTrackByIndex( index );
 			const char* codecId = track->GetCodecId();
 			if ( codecId == nullptr )
@@ -1033,9 +1034,24 @@ WebMDemuxer::AUDIO_CODEC WebMDemuxer::GetAudioCodec() const
 	return m_eAudioCodec;
 }
 
-const unsigned char* WebMDemuxer::GetAudioExtradata( unsigned int& size ) const
-{
-	return m_pAudioTrack->GetCodecPrivate( size );
+static bool StoreAudioPrivateSize(std::size_t nativeSize, unsigned int& size) {
+#if SIZE_MAX > UINT_MAX
+    if (nativeSize > UINT_MAX) {
+        size = 0;
+        return false;
+    }
+#endif
+    size = static_cast<unsigned int>(nativeSize);
+    return true;
+}
+
+const unsigned char* WebMDemuxer::GetAudioExtradata(unsigned int& size) const {
+    std::size_t nativeSize = 0;
+    const unsigned char* data = m_pAudioTrack->GetCodecPrivate(nativeSize);
+    if (!StoreAudioPrivateSize(nativeSize, size)) {
+        return nullptr;
+    }
+    return data;
 }
 
 double WebMDemuxer::GetSampleRate() const
@@ -1053,10 +1069,20 @@ int WebMDemuxer::GetAudioDepth() const
 	return static_cast<int>( m_pAudioTrack->GetBitDepth() );
 }
 
+static bool StoreWebMFrameSize(long nativeSize, int& size) {
+    // LP64 libwebm admits larger frames than the retained Win32 long/int storage.
+    if (nativeSize <= 0 || nativeSize > INT_MAX) {
+        size = 0;
+        return false;
+    }
+    size = static_cast<int>(nativeSize);
+    return true;
+}
+
 bool WebMDemuxer::ReadFrame( WebMFrame* videoFrame, WebMFrame* audioFrame )
 {
-	int nVideoTrackNumber = 0;
-	int nAudioTrackNumber = 0;
+    long nVideoTrackNumber = 0;
+    long nAudioTrackNumber = 0;
 	if ( videoFrame == nullptr )
 	{
 		if ( audioFrame == nullptr )
@@ -1086,7 +1112,7 @@ bool WebMDemuxer::ReadFrame( WebMFrame* videoFrame, WebMFrame* audioFrame )
 		m_pCluster = m_pSegment->GetFirst();
 
 	bool advanceCluster = false;
-	int clusterStatus = 0;
+    long clusterStatus = 0;
 	for ( ;; )
 	{
 		for ( ;; )
@@ -1149,17 +1175,19 @@ bool WebMDemuxer::ReadFrame( WebMFrame* videoFrame, WebMFrame* audioFrame )
 	const int frameIndex = m_nBlockFrameIndex;
 	++m_nBlockFrameIndex;
 	const mkvparser::Block::Frame* blockFrame = &m_pBlock->GetFrame( frameIndex );
-	int size = blockFrame->len;
-	if ( size > frame->m_uBufferCapacity )
-	{
-		frame->m_uBufferCapacity = size;
-		unsigned char* buffer =
-			static_cast<unsigned char*>( std::realloc( frame->m_pBuffer, static_cast<std::size_t>( size ) ) );
-		if ( buffer == nullptr )
-			return false;
-		frame->m_pBuffer = buffer;
-		size = blockFrame->len;
-	}
+    int size = 0;
+    if (!StoreWebMFrameSize(blockFrame->len, size)) {
+        return false;
+    }
+    if (size > frame->m_uBufferCapacity) {
+        unsigned char* buffer =
+            static_cast<unsigned char*>(std::realloc(frame->m_pBuffer, static_cast<std::size_t>(size)));
+        if (buffer == nullptr) {
+            return false;
+        }
+        frame->m_pBuffer = buffer;
+        frame->m_uBufferCapacity = size;
+    }
 
 	frame->m_uBufferSize = size;
 	frame->m_flTime = static_cast<double>( m_pBlock->GetTime( m_pCluster ) ) / kNanoseconds;
@@ -1550,13 +1578,10 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     if (audioDec.IsOpen()) {
         const unsigned int sampleCount =
             static_cast<unsigned int>(audioDec.m_nSamples) * static_cast<unsigned int>(demuxer.GetChannels());
-#if defined(_WIN32)
+#if defined(_WIN32) && !defined(_WIN64)
         pcm = new short[sampleCount];
 #else
-        if (sampleCount > kPcmCountLimit) {
-            throw std::bad_array_new_length();
-        }
-        pcm = static_cast<short *>(::operator new[](sampleCount * 2));
+        pcm = cse::webm::AllocatePcm(sampleCount);
 #endif
     }
 

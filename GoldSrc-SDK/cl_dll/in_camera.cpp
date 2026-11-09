@@ -10,6 +10,11 @@
 #include "camera.h"
 #include "camera.h"
 #include "kbutton.h"
+#include <stdint.h>
+#if UINTPTR_MAX > UINT32_MAX
+#include "client_camera_mouse.h"
+#include "native_mouse_polling.h"
+#endif
 #include "cvardef.h"
 #include "usercmd.h"
 #include "const.h"
@@ -18,6 +23,10 @@
 
 #include <SDL3/SDL_mouse.h>
 #include "port.h"
+
+#if !defined(_WIN32)
+using POINT = tagPOINT;
+#endif
 
 float CL_KeyState (kbutton_t *key);
 
@@ -71,6 +80,57 @@ int cam_distancemove;
 extern int mouse_x, mouse_y;  //used to determine what the current x and y values are
 int cam_old_mouse_x, cam_old_mouse_y; //holds the last ticks mouse movement
 POINT		cam_mouse;
+
+#if UINTPTR_MAX > UINT32_MAX
+static bool s_cameraDragRequested = false;
+static bool s_cameraDistanceRequested = false;
+static bool s_cameraPublishedOwnership = false;
+static cse::CameraMouseSnapshot s_cameraMouse;
+#define CAM_MOUSE_CENTER_X() s_cameraMouse.centerX
+#define CAM_MOUSE_HALF_DIFFERENCE(a, b) cse::CameraMouseHalfDifference(a, b)
+#define CAM_MOUSE_CENTER_Y() s_cameraMouse.centerY
+#define CAM_WARP_MOUSE(x, y) gEngfuncs.pfnSetMousePos(x, y)
+
+static bool CAM_ReadNativeMouse(bool distanceMove) {
+    if (!cse::TryReadCameraMouse(gEngfuncs.pfnGetClientMousePositionAndCenter,
+        gHUD.GetSensitivity(), !distanceMove, s_cameraMouse)) {
+        return false;
+    }
+    cam_mouse.x = s_cameraMouse.x;
+    cam_mouse.y = s_cameraMouse.y;
+    return true;
+}
+
+static void CAM_UpdateNativeMouseOwnership() {
+    const bool owned = s_cameraDragRequested || s_cameraDistanceRequested;
+    cam_distancemove = s_cameraDistanceRequested ? 1 : 0;
+    cam_mousemove = owned ? 1 : 0;
+    iMouseInUse = owned ? 1 : 0;
+    if (owned != s_cameraPublishedOwnership) {
+        if (!owned) {
+            cse::CameraMouseSnapshot releasedMouse;
+            if (cse::TryReadCameraMouse(gEngfuncs.pfnGetClientMousePositionAndCenter,
+                0.0f, true, releasedMouse)) {
+                gEngfuncs.pfnSetMousePos(releasedMouse.centerX, releasedMouse.centerY);
+            }
+        }
+        IN_SetCameraMouseOwnership(owned);
+        s_cameraPublishedOwnership = owned;
+    }
+}
+
+static void CAM_StopNativeMouse() {
+    s_cameraDragRequested = false;
+    s_cameraDistanceRequested = false;
+    CAM_UpdateNativeMouseOwnership();
+}
+#else
+#define CAM_MOUSE_CENTER_X() gEngfuncs.GetWindowCenterX()
+#define CAM_MOUSE_HALF_DIFFERENCE(a, b) ((a - b) / 2)
+#define CAM_MOUSE_CENTER_Y() gEngfuncs.GetWindowCenterY()
+#define CAM_WARP_MOUSE(x, y) SDL_SetCursorPos(x, y)
+#endif
+
 //-------------------------------------------------- Local Variables
 
 static kbutton_t cam_pitchup, cam_pitchdown, cam_yawleft, cam_yawright;
@@ -185,6 +245,11 @@ void CL_DLLEXPORT CAM_Think(void) {
     if (!cam_thirdperson) {
         return;
     }
+#if UINTPTR_MAX > UINT32_MAX
+    if ((cam_mousemove || cam_distancemove) && !CAM_ReadNativeMouse(cam_distancemove != 0)) {
+        return;
+    }
+#endif
 
 #ifdef LATER
     if (cam_contain->value) {
@@ -201,26 +266,28 @@ void CL_DLLEXPORT CAM_Think(void) {
     //
     if (cam_mousemove) {
         // get windows cursor position
+#if UINTPTR_MAX == UINT32_MAX
         SDL_GetCursorPos(&cam_mouse);
+#endif
         // check for X delta values and adjust accordingly
         // eventually adjust YAW based on amount of movement
         //  don't do any movement of the cam using YAW/PITCH if we are zooming in/out the camera
         if (!cam_distancemove) {
 
             // keep the camera within certain limits around the player (ie avoid certain bad viewing angles)
-            if (cam_mouse.x > gEngfuncs.GetWindowCenterX()) {
+            if (cam_mouse.x > CAM_MOUSE_CENTER_X()) {
                 // if ((camAngles[YAW]>=225.0)||(camAngles[YAW]<135.0))
                 if (camAngles[YAW] < c_maxyaw->value) {
-                    camAngles[YAW] += (CAM_ANGLE_MOVE) * ((cam_mouse.x - gEngfuncs.GetWindowCenterX()) / 2);
+                    camAngles[YAW] += (CAM_ANGLE_MOVE) * CAM_MOUSE_HALF_DIFFERENCE(cam_mouse.x, CAM_MOUSE_CENTER_X());
                 }
                 if (camAngles[YAW] > c_maxyaw->value) {
 
                     camAngles[YAW] = c_maxyaw->value;
                 }
-            } else if (cam_mouse.x < gEngfuncs.GetWindowCenterX()) {
+            } else if (cam_mouse.x < CAM_MOUSE_CENTER_X()) {
                 // if ((camAngles[YAW]<=135.0)||(camAngles[YAW]>225.0))
                 if (camAngles[YAW] > c_minyaw->value) {
-                    camAngles[YAW] -= (CAM_ANGLE_MOVE) * ((gEngfuncs.GetWindowCenterX() - cam_mouse.x) / 2);
+                    camAngles[YAW] -= (CAM_ANGLE_MOVE) * CAM_MOUSE_HALF_DIFFERENCE(CAM_MOUSE_CENTER_X(), cam_mouse.x);
                 }
                 if (camAngles[YAW] < c_minyaw->value) {
                     camAngles[YAW] = c_minyaw->value;
@@ -230,16 +297,16 @@ void CL_DLLEXPORT CAM_Think(void) {
             // check for y delta values and adjust accordingly
             // eventually adjust PITCH based on amount of movement
             // also make sure camera is within bounds
-            if (cam_mouse.y > gEngfuncs.GetWindowCenterY()) {
+            if (cam_mouse.y > CAM_MOUSE_CENTER_Y()) {
                 if (camAngles[PITCH] < c_maxpitch->value) {
-                    camAngles[PITCH] += (CAM_ANGLE_MOVE) * ((cam_mouse.y - gEngfuncs.GetWindowCenterY()) / 2);
+                    camAngles[PITCH] += (CAM_ANGLE_MOVE) * CAM_MOUSE_HALF_DIFFERENCE(cam_mouse.y, CAM_MOUSE_CENTER_Y());
                 }
                 if (camAngles[PITCH] > c_maxpitch->value) {
                     camAngles[PITCH] = c_maxpitch->value;
                 }
-            } else if (cam_mouse.y < gEngfuncs.GetWindowCenterY()) {
+            } else if (cam_mouse.y < CAM_MOUSE_CENTER_Y()) {
                 if (camAngles[PITCH] > c_minpitch->value) {
-                    camAngles[PITCH] -= (CAM_ANGLE_MOVE) * ((gEngfuncs.GetWindowCenterY() - cam_mouse.y) / 2);
+                    camAngles[PITCH] -= (CAM_ANGLE_MOVE) * CAM_MOUSE_HALF_DIFFERENCE(CAM_MOUSE_CENTER_Y(), cam_mouse.y);
                 }
                 if (camAngles[PITCH] < c_minpitch->value) {
                     camAngles[PITCH] = c_minpitch->value;
@@ -256,7 +323,7 @@ void CL_DLLEXPORT CAM_Think(void) {
                 cam_old_mouse_x = cam_mouse.x;
                 cam_old_mouse_y = cam_mouse.y;
             }
-            SDL_SetCursorPos(gEngfuncs.GetWindowCenterX(), gEngfuncs.GetWindowCenterY());
+            CAM_WARP_MOUSE(CAM_MOUSE_CENTER_X(), CAM_MOUSE_CENTER_Y());
         }
     }
 
@@ -287,16 +354,16 @@ void CL_DLLEXPORT CAM_Think(void) {
     }
 
     if (cam_distancemove) {
-        if (cam_mouse.y > gEngfuncs.GetWindowCenterY()) {
+        if (cam_mouse.y > CAM_MOUSE_CENTER_Y()) {
             if (dist < c_maxdistance->value) {
-                dist += CAM_DIST_DELTA * ((cam_mouse.y - gEngfuncs.GetWindowCenterY()) / 2);
+                dist += CAM_DIST_DELTA * CAM_MOUSE_HALF_DIFFERENCE(cam_mouse.y, CAM_MOUSE_CENTER_Y());
             }
             if (dist > c_maxdistance->value) {
                 dist = c_maxdistance->value;
             }
-        } else if (cam_mouse.y < gEngfuncs.GetWindowCenterY()) {
+        } else if (cam_mouse.y < CAM_MOUSE_CENTER_Y()) {
             if (dist > c_mindistance->value) {
-                dist -= (CAM_DIST_DELTA) * ((gEngfuncs.GetWindowCenterY() - cam_mouse.y) / 2);
+                dist -= (CAM_DIST_DELTA) * CAM_MOUSE_HALF_DIFFERENCE(CAM_MOUSE_CENTER_Y(), cam_mouse.y);
             }
             if (dist < c_mindistance->value) {
                 dist = c_mindistance->value;
@@ -306,7 +373,7 @@ void CL_DLLEXPORT CAM_Think(void) {
         // since we are done with the mouse
         cam_old_mouse_x = cam_mouse.x * gHUD.GetSensitivity();
         cam_old_mouse_y = cam_mouse.y * gHUD.GetSensitivity();
-        SDL_SetCursorPos(gEngfuncs.GetWindowCenterX(), gEngfuncs.GetWindowCenterY());
+        CAM_WARP_MOUSE(CAM_MOUSE_CENTER_X(), CAM_MOUSE_CENTER_Y());
     }
 #ifdef LATER
     if (cam_contain->value) {
@@ -428,6 +495,9 @@ void CAM_ToFirstPerson(void) {
     cam_thirdperson = 0;
 
     gEngfuncs.Cvar_SetValue("cam_command", 0);
+#if UINTPTR_MAX > UINT32_MAX
+    CAM_StopNativeMouse();
+#endif
 }
 
 void CAM_ToggleSnapto(void) {
@@ -498,9 +568,24 @@ void CAM_ClearStates( void )
 	cam_idealpitch->value = viewangles[ PITCH ];
 	cam_idealyaw->value = viewangles[ YAW ];
 	cam_idealdist->value = CAM_MIN_DIST;
+#if UINTPTR_MAX > UINT32_MAX
+    CAM_StopNativeMouse();
+#endif
 }
 
 void CAM_StartMouseMove(void) {
+#if UINTPTR_MAX > UINT32_MAX
+    if (!cam_thirdperson) {
+        CAM_StopNativeMouse();
+        return;
+    }
+    if (!s_cameraDragRequested && CAM_ReadNativeMouse(false)) {
+        s_cameraDragRequested = true;
+        cam_old_mouse_x = s_cameraMouse.historyX;
+        cam_old_mouse_y = s_cameraMouse.historyY;
+        CAM_UpdateNativeMouseOwnership();
+    }
+#else
     float flSensitivity;
 
     // only move the cam with mouse if we are in third person.
@@ -526,14 +611,20 @@ void CAM_StartMouseMove(void) {
         cam_mousemove = 0;
         iMouseInUse = 0;
     }
+#endif
 }
 
 //the key has been released for camera movement
 //tell the engine that mouse camera movement is off
 void CAM_EndMouseMove(void)
 {
+#if UINTPTR_MAX > UINT32_MAX
+    s_cameraDragRequested = false;
+    CAM_UpdateNativeMouseOwnership();
+#else
    cam_mousemove=0;
    iMouseInUse=0;
+#endif
 }
 
 //----------------------------------------------------------
@@ -541,6 +632,18 @@ void CAM_EndMouseMove(void)
 // using the mouse
 //----------------------------------------------------------
 void CAM_StartDistance(void) {
+#if UINTPTR_MAX > UINT32_MAX
+    if (!cam_thirdperson) {
+        CAM_StopNativeMouse();
+        return;
+    }
+    if (!s_cameraDistanceRequested && CAM_ReadNativeMouse(true)) {
+        s_cameraDistanceRequested = true;
+        cam_old_mouse_x = s_cameraMouse.historyX;
+        cam_old_mouse_y = s_cameraMouse.historyY;
+        CAM_UpdateNativeMouseOwnership();
+    }
+#else
     // only move the cam with mouse if we are in third person.
     if (cam_thirdperson) {
         // set appropriate flags and initialize the old mouse position
@@ -560,15 +663,21 @@ void CAM_StartDistance(void) {
         cam_mousemove = 0;
         iMouseInUse = 0;
     }
+#endif
 }
 
 //the key has been released for camera movement
 //tell the engine that mouse camera movement is off
 void CAM_EndDistance(void)
 {
+#if UINTPTR_MAX > UINT32_MAX
+    s_cameraDistanceRequested = false;
+    CAM_UpdateNativeMouseOwnership();
+#else
    cam_distancemove=0;
    cam_mousemove=0;
    iMouseInUse=0;
+#endif
 }
 
 int CL_DLLEXPORT CL_IsThirdPerson( void )

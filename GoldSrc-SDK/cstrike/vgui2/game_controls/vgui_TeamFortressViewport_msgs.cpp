@@ -241,9 +241,8 @@ int TeamFortressViewport::MsgFunc_MOTD( const char*, int size, void* buffer )
 
 	BEGIN_READ( buffer, size );
 	m_iGotAllMOTD = READ_BYTE();
-	int remaining = sizeof( m_szMOTD ) - strlen( m_szMOTD ) - 1;
-	if ( remaining < 0 )
-		remaining = 0;
+    const size_t used = strlen(m_szMOTD);
+    const size_t remaining = used < sizeof(m_szMOTD) ? sizeof(m_szMOTD) - used - 1 : 0;
 	strncat( m_szMOTD, READ_STRING(), remaining );
 	m_szMOTD[sizeof( m_szMOTD ) - 1] = 0;
 	if ( m_iGotAllMOTD && !gEngfuncs.IsSpectateOnly() )

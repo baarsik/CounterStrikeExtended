@@ -3,6 +3,7 @@
 
 #include "archtypes.h"     // DAL
 #include "cse_command.h"
+#include "cse_point.h"
 #include "netadr.h"
 #include "Sequence.h"
 
@@ -356,6 +357,10 @@ typedef cmdalias_t*				(*pfnEngSrc_pfnGetAliases_t)		( void );
 typedef void					(*pfnEngSrc_pfnVguiWrap2_GetMouseDelta_t) ( int *x, int *y );
 typedef int							(*pfnEngSrc_pfnFilteredClientCmd_t) 	( char *szCmdString );
 
+// Main-thread owned callback: current render/aspect position and center from one snapshot.
+// Returns zero without committing outputs if the window, dimensions or arithmetic are invalid.
+typedef int (*pfnEngSrc_pfnGetClientMousePositionAndCenter_t)(int *, int *, int *, int *);
+
 // Pointers to the exported engine functions themselves
 typedef struct cl_enginefuncs_s
 {
@@ -494,6 +499,7 @@ typedef struct cl_enginefuncs_s
 	pfnEngSrc_pfnGetAliases_t				pfnGetAliasList;
 	pfnEngSrc_pfnVguiWrap2_GetMouseDelta_t pfnVguiWrap2_GetMouseDelta;
 	pfnEngSrc_pfnFilteredClientCmd_t		pfnFilteredClientCmd;
+    pfnEngSrc_pfnGetClientMousePositionAndCenter_t pfnGetClientMousePositionAndCenter;
 } cl_enginefunc_t;
 
 // Function type declarations for engine destination functions
@@ -615,6 +621,8 @@ typedef void	(*pfnEngDst_pfnGetAliases_t )				( void );
 typedef void	(*pfnEngDst_pfnVguiWrap2_GetMouseDelta_t) ( int *x, int *y );
 typedef void	(*pfnEngDst_pfnFilteredClientCmd_t )	( char ** );
 
+
+typedef void (*pfnEngDst_pfnGetClientMousePositionAndCenter_t)(int **, int **, int **, int **);
 
 // Pointers to the engine destination functions
 typedef struct
@@ -742,6 +750,7 @@ typedef struct
 	pfnEngDst_pfnGetAliases_t				pfnGetAliasList;
 	pfnEngDst_pfnVguiWrap2_GetMouseDelta_t	pfnVguiWrap2_GetMouseDelta;
 	pfnEngDst_pfnFilteredClientCmd_t		pfnFilteredClientCmd;
+    pfnEngDst_pfnGetClientMousePositionAndCenter_t pfnGetClientMousePositionAndCenter;
 } cl_enginefunc_dst_t;
 
 

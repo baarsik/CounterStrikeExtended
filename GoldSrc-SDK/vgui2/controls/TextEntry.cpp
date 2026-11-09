@@ -28,6 +28,8 @@
 
 #include <cassert>
 #include <climits>
+#include <memory>
+#include "../../common/TextEntryClipboard.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -2348,67 +2350,68 @@ void TextEntry::Delete()
 	LayoutVerticalScrollBarSlider();
 }
 
-void TextEntry::Paste()
-{
-	if ( _hideText || !IsEditable() )
-		return;
+void TextEntry::Paste() {
+    if (_hideText || !IsEditable()) {
+        return;
+    }
 
-	int bufferSize = system()->GetClipboardTextCount();
-	if ( !m_bAutoProgressOnHittingCharLimit )
-	{
-		if ( _maxCharCount > 0 )
-		{
-			if ( _maxCharCount == INT_MAX )
-				return;
-			bufferSize = _maxCharCount + 1;
-		}
-		else
-			bufferSize = system()->GetClipboardTextCount();
-	}
-	if ( bufferSize <= 0 || bufferSize > INT_MAX / (int)sizeof( wchar_t ) )
-		return;
+    int bufferSize = system()->GetClipboardTextCount();
+    if (!m_bAutoProgressOnHittingCharLimit) {
+        if (_maxCharCount > 0) {
+            if (_maxCharCount == INT_MAX) {
+                return;
+            }
+            bufferSize = _maxCharCount + 1;
+        } else {
+            bufferSize = system()->GetClipboardTextCount();
+        }
+    }
 
-	wchar_t* buf = (wchar_t*)malloc( sizeof( wchar_t ) * bufferSize );
-	if ( !buf )
-		return;
-	buf[0] = 0;
+    cse_textentry_clipboard::Buffer clipboard;
+    const bool completeText = m_bAutoProgressOnHittingCharLimit || _maxCharCount <= 0;
+    const auto readClipboard = [](wchar_t* destination, int byteCapacity) {
+        return system()->GetClipboardText(0, destination, byteCapacity);
+    };
+    if (!clipboard.Read(bufferSize, completeText, readClipboard)) {
+        return;
+    }
+    cse_textentry_clipboard::PasteFrame frame(this, clipboard.Length());
+    if (!frame.Entered()) {
+        return;
+    }
 
-	int count = system()->GetClipboardText( 0, buf, bufferSize * static_cast<int>( sizeof( wchar_t ) ) );
-	buf[bufferSize - 1] = 0;
-	if ( count > bufferSize )
-		count = bufferSize;
-	bool chained = false;
-	if ( count > 0 )
-	{
-		SaveUndoState();
-		int i = 0;
-		for ( ; i < count && i < bufferSize; ++i )
-		{
-			if ( buf[i] == 0 )
-				break;
-			if ( m_bAutoProgressOnHittingCharLimit && _maxCharCount == m_TextStream.Count() )
-			{
-				RequestFocusNext( 0 );
-				system()->SetClipboardText( buf + i, count - i - 1 );
-				VPANEL parent = GetVParent();
-				if ( parent != 0 && ipanel()->GetCurrentKeyFocus( parent ) != GetVPanel() )
-				{
-					ipanel()->SendMessage(
-						ipanel()->GetCurrentKeyFocus( GetVParent() ), new KeyValues( "DoPaste" ), GetVPanel() );
-					chained = true;
-				}
-				break;
-			}
-			InsertChar( buf[i] );
-		}
-		if ( m_bAutoProgressOnHittingCharLimit )
-			system()->SetClipboardText( buf, bufferSize );
-		_dataChanged = true;
-		FireActionSignal();
-		if ( !chained )
-			RequestFocus( 0 );
-	}
-	free( buf );
+    bool chained = false;
+    SaveUndoState();
+    for (int index = 0; index < clipboard.Length(); ++index) {
+        if (m_bAutoProgressOnHittingCharLimit && _maxCharCount == m_TextStream.Count()) {
+            RequestFocusNext(0);
+            system()->SetClipboardText(clipboard.Data() + index, clipboard.Length() - index);
+            const VPANEL parent = GetVParent();
+            if (parent != 0 && ipanel()->GetCurrentKeyFocus(parent) != GetVPanel()) {
+                const VPANEL focusParent = GetVParent();
+                const VPANEL target = focusParent != 0 ? ipanel()->GetCurrentKeyFocus(focusParent) : 0;
+                if (target != 0 && target != GetVPanel()) {
+                    const auto releaseMessage = [](KeyValues* message) {
+                        message->deleteThis();
+                    };
+                    std::unique_ptr<KeyValues, decltype(releaseMessage)> message(
+                        new KeyValues("DoPaste"), releaseMessage);
+                    ipanel()->SendMessage(target, message.get(), GetVPanel());
+                    chained = true;
+                }
+            }
+            break;
+        }
+        InsertChar(clipboard.Data()[index]);
+    }
+    if (m_bAutoProgressOnHittingCharLimit) {
+        system()->SetClipboardText(clipboard.Data(), clipboard.Length());
+    }
+    _dataChanged = true;
+    FireActionSignal();
+    if (!chained) {
+        RequestFocus(0);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -2428,29 +2431,26 @@ void TextEntry::CutSelected()
 //-----------------------------------------------------------------------------
 // Purpose: Copies the selected chars into the clipboard
 //-----------------------------------------------------------------------------
-void TextEntry::CopySelected()
-{
-	if ( _hideText )
-		return;
-	int x0 = 0;
-	int x1 = 0;
-	if ( GetSelectedRange( x0, x1 ) )
-	{
-		CUtlVector<wchar_t> buf;
-		for ( int i = x0; i < x1; ++i )
-		{
-			wchar_t ch = m_TextStream[i];
-			if ( ch == L'\n' )
-				buf.AddToTail( L'\r' );
-			buf.AddToTail( ch );
-		}
-		buf.AddToTail( 0 );
-		system()->SetClipboardText( buf.Base(), x1 - x0 );
-	}
-	// have to request focus if we used the menu
-	RequestFocus( 0 );
-	if ( _dataChanged )
-		FireActionSignal();
+void TextEntry::CopySelected() {
+    if (_hideText) {
+        return;
+    }
+    int selectionStart = 0;
+    int selectionEnd = 0;
+    if (GetSelectedRange(selectionStart, selectionEnd) && selectionStart >= 0
+        && selectionEnd >= selectionStart && selectionEnd <= m_TextStream.Count()) {
+        const int selectionLength = selectionEnd - selectionStart;
+        const wchar_t* source = selectionLength > 0 ? m_TextStream.Base() + selectionStart : nullptr;
+        cse_textentry_clipboard::Buffer clipboard;
+        if (clipboard.CopyExpanded(source, selectionLength)) {
+            system()->SetClipboardText(clipboard.Data(), clipboard.Length());
+        }
+    }
+    // Restore focus after using the edit menu, preserving the action order.
+    RequestFocus(0);
+    if (_dataChanged) {
+        FireActionSignal();
+    }
 }
 
 //-----------------------------------------------------------------------------

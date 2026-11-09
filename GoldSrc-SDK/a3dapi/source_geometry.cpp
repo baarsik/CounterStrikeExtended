@@ -433,8 +433,15 @@ void CA3d::RenderSourceGeometry( CA3dSource* pSource )
 				}
 			}
 
-			if ( bVisible )
-				pSource->AddReflection( pPrimitive->m_dwTag, reflectedDirection, 1.0f, m_MaterialProperties );
+            if (bVisible) {
+#if UINTPTR_MAX > UINT32_MAX
+                const auto commandIndex = m_pCurrentCommand - m_pCommandBuffer->m_pCommands;
+                pSource->AddGeometryReflection(m_pCommandBuffer->m_pIdentities[commandIndex],
+                    pPrimitive->m_dwTag, reflectedDirection, 1.0f, m_MaterialProperties);
+#else
+                pSource->AddReflection(pPrimitive->m_dwTag, reflectedDirection, 1.0f, m_MaterialProperties);
+#endif
+            }
 		}
 
 		++m_dwPolygonTestCount;

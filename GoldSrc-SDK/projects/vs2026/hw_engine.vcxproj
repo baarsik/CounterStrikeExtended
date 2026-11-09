@@ -89,6 +89,33 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\engine\voice_mixer_controls_coreaudio.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseNativeServices>voice-mixer</CseNativeServices>
+      <CseReplaces>$(ProjectDir)..\..\engine\voice_mixer_controls.cpp</CseReplaces>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\voice_record_sdl.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\voice_record_native.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <CseReplaces>$(ProjectDir)..\..\engine\voice_record_dsound.cpp;$(ProjectDir)..\..\engine\voice_record_wavein.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="..\..\common\legacy_wide_format.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>
@@ -209,6 +236,8 @@
     <ClCompile Include="..\..\engine\sys_dll.cpp" />
     <ClCompile Include="..\..\engine\sys_dll2.cpp">
       <ExceptionHandling>Async</ExceptionHandling>
+      <!-- Portable C++ EH leaves fatal machine faults to the native OS crash reporter. -->
+      <CsePortableFaultPolicy>OsTermination</CsePortableFaultPolicy>
     </ClCompile>
     <ClCompile Include="..\..\engine\sys_engine.cpp" />
     <ClCompile Include="..\..\engine\sys_getmodes.cpp" />
@@ -223,6 +252,24 @@
     <ClCompile Include="..\..\engine\vgui2\BaseUISurface.cpp" />
     <ClCompile Include="..\..\engine\vgui2\BaseUISurface_Font.cpp" />
     <ClCompile Include="..\..\engine\vgui2\BaseUI_Interface.cpp" />
+    <ClCompile Include="..\..\engine\html\native\browser_controller.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseNativeServices>browser</CseNativeServices>
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\html\native\process_channel.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseNativeServices>browser</CseNativeServices>
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\html\native\controller_factory.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseNativeServices>browser</CseNativeServices>
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\engine\vgui2\FontTextureCache.cpp" />
     <ClCompile Include="..\..\engine\vgui2\text_draw.cpp" />
     <ClCompile Include="..\..\engine\vgui_EngineSurface.cpp" />
@@ -240,6 +287,12 @@
     <ClCompile Include="..\..\engine\voice_wavefile.cpp" />
     <ClCompile Include="..\..\engine\wad.cpp" />
     <ClCompile Include="..\..\engine\webm_video.cpp" />
+    <ClCompile Include="..\..\engine\webm_pcm_allocation.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\engine\world.cpp" />
     <ClCompile Include="..\..\engine\yuv2rgb.cpp" />
     <ClCompile Include="..\..\engine\zone.cpp" />
@@ -272,6 +325,9 @@
     <ClCompile Include="..\..\vgui2\controls\ScrollBar.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ScrollBarSlider.cpp" />
     <ClCompile Include="..\..\vgui2\controls\TextEntry.cpp" />
+    <ClCompile Include="..\..\common\TextEntryClipboard.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\vgui2\controls\TextImage.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ToggleButton.cpp" />
     <ClCompile Include="..\..\vgui2\controls\Tooltip.cpp" />
@@ -280,6 +336,13 @@
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\FontManager.cpp" />
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\linuxfont.cpp" />
     <ClCompile Include="..\..\vgui2\vgui_surfacelib\vgui_key_translation.cpp" />
+    <ClInclude Include="..\..\engine\voice_mixer_controls_coreaudio.h" />
+    <ClInclude Include="..\..\engine\voice_record_sdl.h" />
+    <ClInclude Include="..\..\common\legacy_wide_format.h" />
+    <ClInclude Include="..\..\common\keyvalues_directories.h" />
+    <ClInclude Include="..\..\public\cse_filesystem_abi.h" />
+    <ClInclude Include="..\..\public\cse_filesystem_methods.inc" />
+    <ClInclude Include="..\..\public\native_filesystem_module.h" />
     <ClInclude Include="..\..\vgui2\vgui_surfacelib\native\MacFontDiscovery.h" />
     <ClInclude Include="..\..\vgui2\vgui_surfacelib\native\MacFontRegistration.h" />
     <ClInclude Include="..\..\engine\network_worker.h" />
@@ -333,6 +396,7 @@
     <ClInclude Include="..\..\vgui2\controls\Slider.h" />
     <ClInclude Include="..\..\vgui2\controls\TestScriptController.h" />
     <ClInclude Include="..\..\vgui2\controls\TextEntry.h" />
+    <ClInclude Include="..\..\common\TextEntryClipboard.h" />
     <ClInclude Include="..\..\vgui2\controls\TextImage.h" />
     <ClInclude Include="..\..\vgui2\controls\ToggleButton.h" />
     <ClInclude Include="..\..\vgui2\controls\Tooltip.h" />
@@ -364,6 +428,47 @@
       <ObjectFileName>$(IntDir)vgui_controls.obj</ObjectFileName>
       <PREfastLogFile>$(IntDir)vgui_controls.nativecodeanalysis.xml</PREfastLogFile>
     </ClCompile>
+    <ClCompile Include="..\..\engine\VGui1NativeRuntime.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\VGui1NativeAtlas.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\VGui1NativeFontSelection.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\native_mouse_window.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\native_mouse_windows.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseTargetOS>windows</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\native_mouse_cocoa.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\engine\VGUI_EngineSurfaceWrap.cpp">
       <AdditionalIncludeDirectories>$(GameRoot)utils\vgui\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -375,6 +480,10 @@
     </ClCompile>
     <ClInclude Include="..\..\engine\anorms.h" />
     <ClInclude Include="..\..\engine\APIProxy.h" />
+    <ClInclude Include="..\..\common\cse_point.h" />
+    <ClInclude Include="..\..\common\legacy_text_to_integer.h" />
+    <ClInclude Include="..\..\common\legacy_str_to_integer.h" />
+    <ClInclude Include="..\..\public\cse_posix_crt.h" />
     <ClInclude Include="..\..\engine\appframework\iappsystem.h" />
     <ClInclude Include="..\..\engine\BaseSystemModule.h" />
     <ClInclude Include="..\..\engine\blob.h" />
@@ -390,6 +499,7 @@
     <ClInclude Include="..\..\engine\cmd.h" />
     <ClInclude Include="..\..\engine\cmodel.h" />
     <ClInclude Include="..\..\engine\color.h" />
+    <ClInclude Include="..\..\engine\cse_color.h" />
     <ClInclude Include="..\..\engine\common.h" />
     <ClInclude Include="..\..\engine\conprint.h" />
     <ClInclude Include="..\..\engine\const.h" />
@@ -419,6 +529,9 @@
     <ClInclude Include="..\..\engine\gl_model.h" />
     <ClInclude Include="..\..\engine\gl_rmisc.h" />
     <ClInclude Include="..\..\engine\hashpak.h" />
+    <ClInclude Include="..\..\common\custom_decal_records.h" />
+    <ClInclude Include="..\..\common\NativeEngineMemory.h" />
+    <ClInclude Include="..\..\engine\custom_decal_loader.h" />
     <ClInclude Include="..\..\engine\host.h" />
     <ClInclude Include="..\..\engine\host_cmd.h" />
     <ClInclude Include="..\..\engine\html\htmlmessages.h" />
@@ -474,6 +587,14 @@
     <ClInclude Include="..\..\engine\sdl3_audio_backend.h" />
     <ClInclude Include="..\..\engine\sdl3_audio_ring.h" />
     <ClInclude Include="..\..\engine\sound.h" />
+    <ClInclude Include="..\..\engine\sound_callback.h" />
+    <ClInclude Include="..\..\engine\html\native\browser_wire.h" />
+    <ClInclude Include="..\..\engine\html\native\browser_commands.h" />
+    <ClInclude Include="..\..\engine\html\native\browser_controller.h" />
+    <ClInclude Include="..\..\engine\html\native\process_channel.h" />
+    <ClInclude Include="..\..\engine\html\native\controller_factory.h" />
+    <ClInclude Include="..\..\common\checked_native_index.h" />
+    <ClInclude Include="..\..\engine\world_leaf_index.h" />
     <ClInclude Include="..\..\engine\sound_backend_config.h" />
     <ClInclude Include="..\..\engine\sound_transfer_impl.h" />
     <ClInclude Include="..\..\engine\vox_word.h" />
@@ -522,6 +643,12 @@
     <ClInclude Include="..\..\engine\vgui\MessageMap.h" />
     <ClInclude Include="..\..\engine\vgui\VGuiVertex.h" />
     <ClInclude Include="..\..\engine\vgui_EngineSurface.h" />
+    <ClInclude Include="..\..\engine\VGui1NativeRuntime.h" />
+    <ClInclude Include="..\..\engine\VGui1NativeAtlas.h" />
+    <ClInclude Include="..\..\engine\VGui1NativeFontSelection.h" />
+    <ClInclude Include="..\..\engine\native_mouse_window.h" />
+    <ClInclude Include="..\..\engine\native_mouse_windows.h" />
+    <ClInclude Include="..\..\common\sdl3_native_cocoa_mouse.h" />
     <ClInclude Include="..\..\engine\VGUI_EngineSurfaceWrap.h" />
     <ClInclude Include="..\..\engine\vgui_int.h" />
     <ClInclude Include="..\..\engine\vgui_intwrap2.h" />
@@ -534,6 +661,8 @@
     <ClInclude Include="..\..\engine\wad.h" />
     <ClInclude Include="..\..\engine\water.h" />
     <ClInclude Include="..\..\engine\webm_video.h" />
+    <ClInclude Include="..\..\engine\webm_pcm_allocation.h" />
+    <ClInclude Include="..\..\engine\game_library_name.h" />
     <ClInclude Include="..\..\engine\world.h" />
     <ClInclude Include="..\..\engine\zone.h" />
   </ItemGroup>
@@ -555,4 +684,18 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <Import Project="SDL3.targets" />
   <Import Project="Mpg123.targets" />
+  <ItemGroup>
+    <ClInclude Include="..\..\common\client_module_api_types.h" />
+    <ClInclude Include="..\..\common\client_module_contracts.h" />
+    <ClInclude Include="..\..\common\client_module_entry.h" />
+    <ClInclude Include="..\..\common\client_module_entry_impl.h" />
+    <ClInclude Include="..\..\common\client_module_required_exports.h" />
+    <ClInclude Include="..\..\common\client_module_types.h" />
+    <ClInclude Include="..\..\common\generated_client_module_layouts.h" />
+    <ClInclude Include="..\..\public\cse_client_abi.h" />
+    <ClInclude Include="..\..\public\cse_module_abi.h" />
+    <ClInclude Include="..\..\common\cse_rect.h" />
+    <ClInclude Include="..\..\common\legacy_bmp_records.h" />
+    <ClInclude Include="..\..\engine\posix_process_stats.h" />
+  </ItemGroup>
 </Project>

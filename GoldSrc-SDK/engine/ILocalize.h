@@ -14,12 +14,20 @@
 
 #include "interface.h"
 
+#if !defined(_WIN32)
+#include <cstdint>
+#endif
+
 class IFileSystem;
 class KeyValues;
 
 namespace vgui2
 {
+#if defined(_WIN32)
 typedef unsigned long StringIndex_t;
+#else
+typedef std::uint32_t StringIndex_t;
+#endif
 
 #define INVALID_STRING_INDEX ( (vgui2::StringIndex_t)-1 )
 

@@ -11,6 +11,7 @@ extern bool bLowViolenceBuild;
 
 int				FileSystem_Init( char* basedir, void* filesystemFactory );
 void			FileSystem_Shutdown();
+char* GetBaseDirectory();
 int				FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameDirectory );
 void			CheckLiblistForFallbackDir( const char* gameDirectory, bool languageEnabled, const char* language,
 					bool lowViolence );

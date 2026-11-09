@@ -3,7 +3,11 @@
 #include "HLTV/common/common.h"
 #include "HLTV/common/mem.h"
 #include "common/IBaseSystem.h"
-#include "filesystem.h"
+#if defined(_WIN32)
+#include "FileSystem.h"
+#else
+#include "../../public/FileSystem.h"
+#endif
 
 #include <cctype>
 #include <cstddef>

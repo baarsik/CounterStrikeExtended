@@ -18,6 +18,10 @@
 #include "vgui/ISystem.h"
 #include "vgui/IInputInternal.h"
 
+#if defined(_WIN64)
+#include "../../common/legacy_double_to_int.h"
+#endif
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -280,7 +284,12 @@ double CSystem::GetCurrentTime()
 //-----------------------------------------------------------------------------
 long CSystem::GetTimeMillis()
 {
+#if defined(_WIN64)
+    constexpr double MillisecondsPerSecond = 1000.0;
+    return static_cast<long>(CseLegacyTruncateDoubleToInt(GetCurrentTime() * MillisecondsPerSecond));
+#else
 	return (long)( GetCurrentTime() * 1000.0 );
+#endif
 }
 
 void CSystem::ShellExecute( const char* command, const char* file )

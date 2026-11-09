@@ -1,7 +1,9 @@
 #include "tier0/threadtools.h"
 #include "tier0/dbg.h"
 
+#include <cstdint>
 #include <memory>
+#include <type_traits>
 #include <exception>
 #include <stdarg.h>
 #include <stdio.h>
@@ -16,6 +18,18 @@
 #include <time.h>
 #include <unistd.h>
 #endif
+
+template<typename ThreadId>
+static typename std::enable_if<std::is_pointer<ThreadId>::value, std::uintptr_t>::type
+ThreadDiagnosticBits(ThreadId value) {
+    return reinterpret_cast<std::uintptr_t>(value);
+}
+
+template<typename ThreadId>
+static typename std::enable_if<!std::is_pointer<ThreadId>::value, std::uintptr_t>::type
+ThreadDiagnosticBits(ThreadId value) {
+    return static_cast<std::uintptr_t>(value);
+}
 
 #define DBG_SOURCE_FILE	DBG_BUILDSLAVE_PATH( "tier0\\threadtools.cpp" )
 
@@ -132,7 +146,12 @@ CThreadEvent::CThreadEvent( void* event, bool ownEvent )
 {
 	m_hSyncObject = event;
 	m_bOwnEvent = ownEvent;
-	AssertMsg1At( m_hSyncObject, "Bad Event handle (handle 0x%x)", (unsigned int)m_hSyncObject, 350 );
+#if defined(_WIN64) || defined(__LP64__)
+    AssertMsg1At(m_hSyncObject, "Bad Event handle (handle %p)", m_hSyncObject, 350);
+#else
+    AssertMsg1At(m_hSyncObject, "Bad Event handle (handle 0x%x)",
+        static_cast<unsigned int>(ThreadDiagnosticBits(m_hSyncObject)), 350);
+#endif
 }
 
 bool CThreadEvent::Set()
@@ -259,16 +278,19 @@ CThread::~CThread()
 	}
 }
 
-const char* CThread::GetName()
-{
-	CAutoLockT<CThreadMutex> lock( m_Lock );
-	if ( !m_szName[0] )
-	{
-#pragma warning( suppress : 4473 )
-		_snprintf( m_szName, sizeof( m_szName ) - 1, "Thread(%0x%x/0x%x)", (unsigned int)this, (unsigned int)m_hThread );
-		m_szName[sizeof( m_szName ) - 1] = '\0';
-	}
-	return m_szName;
+const char* CThread::GetName() {
+    CAutoLockT<CThreadMutex> lock(m_Lock);
+    if (!m_szName[0]) {
+#if defined(_WIN64) || defined(__LP64__)
+        _snprintf(m_szName, sizeof(m_szName) - 1, "Thread(%p/%p)", static_cast<void*>(this), m_hThread);
+#else
+        _snprintf(m_szName, sizeof(m_szName) - 1, "Thread(0x%x/0x%x)",
+            static_cast<unsigned int>(ThreadDiagnosticBits(this)),
+            static_cast<unsigned int>(ThreadDiagnosticBits(m_hThread)));
+#endif
+        m_szName[sizeof(m_szName) - 1] = '\0';
+    }
+    return m_szName;
 }
 
 void CThread::SetName( const char* name )
@@ -700,7 +722,7 @@ void CWorkerThread::Reply( unsigned int result )
 }
 
 #else
-static unsigned int g_ThreadMainThreadID = pthread_self();
+static pthread_t g_ThreadMainThreadID = pthread_self();
 CThreadLocalPtr<CThread> g_pCurThread;
 
 bool CThread::Init()
@@ -759,9 +781,8 @@ int ThreadGetPriority( ThreadHandle_t )
 	return 0;
 }
 
-bool ThreadInMainThread()
-{
-	return g_ThreadMainThreadID == pthread_self();
+bool ThreadInMainThread() {
+    return pthread_equal(g_ThreadMainThreadID, pthread_self()) != 0;
 }
 
 void DeclareCurrentThreadIsMainThread()
@@ -1196,17 +1217,21 @@ CThread::~CThread()
 	}
 }
 
-const char* CThread::GetName()
-{
-	pthread_mutex_lock( &m_Lock.m_Mutex );
-	if ( m_szName[0] == 0 )
-	{
-		snprintf( m_szName, sizeof( m_szName ) - 1, "Thread(0x%x/0x%x)",
-			(unsigned int)(size_t)this, (unsigned int)m_threadId );
-		m_szName[sizeof( m_szName ) - 1] = 0;
-	}
-	pthread_mutex_unlock( &m_Lock.m_Mutex );
-	return m_szName;
+const char* CThread::GetName() {
+    pthread_mutex_lock(&m_Lock.m_Mutex);
+    if (m_szName[0] == 0) {
+#if defined(_WIN64) || defined(__LP64__)
+        snprintf(m_szName, sizeof(m_szName) - 1, "Thread(%p/%p)", static_cast<void*>(this),
+            reinterpret_cast<void*>(ThreadDiagnosticBits(m_threadId)));
+#else
+        snprintf(m_szName, sizeof(m_szName) - 1, "Thread(0x%x/0x%x)",
+            static_cast<unsigned int>(ThreadDiagnosticBits(this)),
+            static_cast<unsigned int>(ThreadDiagnosticBits(m_threadId)));
+#endif
+        m_szName[sizeof(m_szName) - 1] = '\0';
+    }
+    pthread_mutex_unlock(&m_Lock.m_Mutex);
+    return m_szName;
 }
 
 void CThread::SetName( const char* pszName )

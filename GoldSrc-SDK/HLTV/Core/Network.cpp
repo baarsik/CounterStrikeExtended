@@ -49,7 +49,7 @@ bool Network::Init( IBaseSystem* system, int serial, char* name )
 	m_IsMultihomed = false;
 	m_NoDNS = false;
 	m_Sockets.Init();
-	memset( &m_LocalAddress, 0, sizeof( m_LocalAddress ) );
+    m_LocalAddress.Clear();
 
 	m_System->RegisterCommand( "fakeloss", this, CMD_ID_FAKELOSS );
 

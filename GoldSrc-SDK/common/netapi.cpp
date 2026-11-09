@@ -6,7 +6,15 @@
 //=============================================================================
 #include "netapi.h"
 
+#if defined(_WIN32)
 #include <winsock.h>
+#else
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -171,7 +179,11 @@ void CNetAPI::GetSocketAddress( int socket, netadr_t* address )
 {
 	char hostname[512];
 	struct sockaddr_in socketAddress;
+#if defined(_WIN32)
 	int nameLength;
+#else
+    socklen_t nameLength;
+#endif
 
 	memset( address, 0, sizeof( *address ) );
 	gethostname( hostname, sizeof( hostname ) );

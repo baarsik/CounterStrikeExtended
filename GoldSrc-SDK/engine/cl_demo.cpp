@@ -21,7 +21,14 @@
 #include <cstdio>
 #include <cstring>
 #include <cstdlib>
+#if defined(_WIN32)
 #include <io.h>
+#else
+#include <unistd.h>
+#endif
+#if !defined(_WIN32)
+#define _unlink unlink
+#endif
 
 #if defined( _WIN32 )
 #include <tuple>

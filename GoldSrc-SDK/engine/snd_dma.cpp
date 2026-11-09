@@ -43,7 +43,9 @@ extern DWORD gSndBufSize;
 constexpr int SOUND_UNSIGNED_SAMPLE_BITS = 8;
 constexpr int SOUND_UNSIGNED_SILENCE = 128;
 constexpr int SOUND_BITS_PER_BYTE = 8;
+#if defined(_WIN32) || !CSE_SOUND_USE_SDL
 constexpr int SOUND_BUFFER_LOCK_RETRIES = 10000;
+#endif
 
 volatile dma_t* shm;
 volatile dma_t sn;
@@ -727,6 +729,14 @@ extern "C" time_t timeGetTime()
 }
 #endif
 
+static std::uint32_t SoundProfileMilliseconds() {
+#if CSE_SOUND_USE_SDL
+    return static_cast<std::uint32_t>(SDL_GetTicks());
+#else
+    return timeGetTime();
+#endif
+}
+
 void S_Say()
 {
 	static int hash = SOUND_SAY_PROFILE_ENTITY_SEED;
@@ -745,10 +755,10 @@ void S_Say()
 			paintbuffer[index].right = RandomLong( 0, SOUND_DSP_PROFILE_RANDOM_MAX );
 		}
 		Con_Printf( "Start profiling 10,000 calls to DSP\n" );
-		DWORD start = timeGetTime();
+		const std::uint32_t start = SoundProfileMilliseconds();
 		for ( int index = 0; index < SOUND_DSP_PROFILE_ITERATIONS; ++index )
 			SX_RoomFX( SOUND_DSP_PROFILE_SAMPLES, 1, 1 );
-		Con_Printf( "%d milliseconds \n", static_cast<int>( timeGetTime() - start ) );
+		Con_Printf( "%d milliseconds \n", static_cast<int>(SoundProfileMilliseconds() - start) );
 		return;
 	}
 	if ( !Q_strcmp( name, "paint" ) )
@@ -757,9 +767,9 @@ void S_Say()
 		Con_Printf( "Start profiling S_PaintChannels\n" );
 		sfx_t* sound = S_PrecacheSound( const_cast<char*>( "ambience/labdrone1.wav" ) );
 		S_StartDynamicSound( hash++, CHAN_AUTO, sound, listener_origin, VOL_NORM, 1.0f, 0, PITCH_NORM );
-		DWORD start = timeGetTime();
+		const std::uint32_t start = SoundProfileMilliseconds();
 		S_PaintChannels( paintedtime + SOUND_PAINT_PROFILE_SAMPLES );
-		Con_Printf( "%d milliseconds \n", static_cast<int>( timeGetTime() - start ) );
+		Con_Printf( "%d milliseconds \n", static_cast<int>(SoundProfileMilliseconds() - start) );
 		paintedtime = previousPaintedTime;
 		return;
 	}
@@ -1026,6 +1036,11 @@ constexpr int SOUND_TIME_RESET_LIMIT = 0x40000000;
 #endif
 void GetSoundtime()
 {
+#if !defined(_WIN32)
+    if (!shm) {
+        return;
+    }
+#endif
 	int fullSamples;
 	if ( shm )
 		fullSamples = shm->samples / shm->channels;
@@ -1055,7 +1070,13 @@ void S_Update_()
 // been played out of the dma buffer since sound system startup.
 
 	GetSoundtime();
+#if defined(_WIN32)
 	if ( shm )
+#else
+    if (!shm) {
+        return;
+    }
+#endif
 	{
 		endtime = static_cast<int>(
 			static_cast<float>( soundtime ) + static_cast<float>( shm->dmaspeed ) * _snd_mixahead.value );

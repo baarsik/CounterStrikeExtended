@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseLegacyTextEncoding LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+option(CSE_TEXT_ENCODING_SANITIZERS "Instrument actual native conversion wrappers" OFF)
+get_filename_component(repo "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/actual_functions.inc"
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/extract_reference.py"
+        --root "${repo}" --output "${CMAKE_CURRENT_BINARY_DIR}"
+    DEPENDS extract_reference.py "${repo}/GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp" VERBATIM)
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv"
+    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/prepare_oracle.py"
+        --input "${CMAKE_CURRENT_SOURCE_DIR}/windows_reference.csv.gz"
+        --output "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv"
+    DEPENDS prepare_oracle.py windows_reference.csv.gz VERBATIM)
+add_executable(text_encoding_tests encoding_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/actual_functions.inc"
+    "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv")
+target_include_directories(text_encoding_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+if(MSVC)
+    target_compile_options(text_encoding_tests PRIVATE /W4 /WX /EHsc)
+else()
+    target_compile_options(text_encoding_tests PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
+    if(CSE_TEXT_ENCODING_SANITIZERS)
+        target_compile_options(text_encoding_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(text_encoding_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+enable_testing()
+add_test(NAME text_encoding_C COMMAND text_encoding_tests "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv" C)
+if(WIN32)
+    add_test(NAME text_encoding_UTF8 COMMAND text_encoding_tests "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv" .UTF8)
+else()
+    add_test(NAME text_encoding_UTF8 COMMAND text_encoding_tests "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv" en_US.UTF-8)
+endif()
+set_tests_properties(text_encoding_C text_encoding_UTF8 PROPERTIES TIMEOUT 30)
+
+add_executable(text_encoding_boundaries boundary_tests.cpp)
+if(MSVC)
+    target_compile_options(text_encoding_boundaries PRIVATE /W4 /WX /EHsc)
+else()
+    target_compile_options(text_encoding_boundaries PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
+    if(CSE_TEXT_ENCODING_SANITIZERS)
+        target_compile_options(text_encoding_boundaries PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(text_encoding_boundaries PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+add_test(NAME text_encoding_boundaries COMMAND text_encoding_boundaries)
+set_tests_properties(text_encoding_boundaries PROPERTIES TIMEOUT 30)

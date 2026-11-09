@@ -7,6 +7,9 @@ The target validates the API header and Release/Debug provider hashes against
 `tools/qualification/fixtures/cef/lock.json`. The CMake selector is `api_version=15600`; C++20 is scoped to this provider
 and its helpers. macOS application/helper deployment targets are 14.0; no XIB compilation or Xcode.app is required.
 The Windows executable is the vendor bootstrap paired with the owned `RunWinMain` DLL.
+The standalone fixture and production runtime share `cmake/browser_host`; its provider flags stay in that subtree.
+Complete native Windows builds stage its executable, DLLs, resources, locales and notices beside the engine.
+Symbols and import libraries remain in the build directory.
 
 ## Build and run
 
@@ -17,7 +20,7 @@ cmake -S tests/native/cef_host -B build/cef-host-windows-x64-release -G Ninja `
   -DCMAKE_BUILD_TYPE=Release -DCSE_TARGET_ARCH=x64 -DCEF_ROOT="C:/absolute/pinned/cef_windows64"
 cmake --build build/cef-host-windows-x64-release --parallel
 python tests/native/cef_host/run_protocol_fixture.py `
-  --executable build/cef-host-windows-x64-release/Release/cse_cef_host.exe `
+  --executable build/cef-host-windows-x64-release/host/Release/cse_cef_host.exe `
   --evidence "C:/absolute/owned/cef-host-release-receipt"
 ```
 
@@ -33,7 +36,7 @@ cmake -S tests/native/cef_host -B build/cef-host-macos-arm64-release -G Ninja \
   -DCEF_ROOT=/absolute/pinned/cef_macosarm64
 cmake --build build/cef-host-macos-arm64-release --parallel
 python3 tests/native/cef_host/run_protocol_fixture.py \
-  --executable build/cef-host-macos-arm64-release/Release/cse_cef_host.app/Contents/MacOS/cse_cef_host \
+  --executable build/cef-host-macos-arm64-release/host/Release/cse_cef_host.app/Contents/MacOS/cse_cef_host \
   --evidence /absolute/owned/cef-host-release-receipt
 ```
 
@@ -56,6 +59,10 @@ entry-point and provider license notices into the application resources or Windo
 - The input reader cooperatively polls the inherited pipe. UI mutations run on the CEF UI thread. Navigation decisions
   use `OnBeforeResourceLoad`'s asynchronous continuation; the UI and IO threads stay available for cookie RPCs.
   Every incoming frame, including an allow/deny response, uses the same UI queue to preserve cancellation ordering.
+- VGUI may configure a view immediately after browser creation. The host retains those commands until the browser's
+  initial document and user-agent override are ready, then replays them in order. Pending startup commands are bounded
+  to 1,024 messages and 64 MiB of payload per browser. Removing a creating browser cancels those commands; a pending
+  close runs on the following UI task so it cannot reenter browser destruction inside `OnAfterCreated`.
 - CEF restarts resource requests after redirects. The host records the request ID in `OnResourceRedirect`, then gates
   the repeated `OnBeforeResourceLoad`. Denials cancel the real request before the destination is contacted, preserving
   Chromium's redirect method/body rules. Decisions are serialized per wire browser ID. Cancellation retains an
@@ -138,7 +145,7 @@ use the CUA native-app controls to operate that stage. All file selection is lim
 
 ```sh
 python3 tests/native/cef_host/run_native_dialog_fixture.py \
-  --executable build/cef-host-macos-arm64-release/Release/cse_cef_host.app/Contents/MacOS/cse_cef_host \
+  --executable build/cef-host-macos-arm64-release/host/Release/cse_cef_host.app/Contents/MacOS/cse_cef_host \
   --evidence /absolute/owned/cef-host-native-dialog-receipt
 ```
 
@@ -179,3 +186,8 @@ The SDK's older `tests/cefclient/browser/osr_window_win.cc` sample still assigns
 sample in the owned host produced a real Windows RED result: Enter was delivered with empty `KeyboardEvent.code` and
 location 0. The fixture retains its strict `NumpadEnter`/location 3 and `Enter`/location 0 assertions; a source-only
 conversion check cannot replace that native DOM result.
+
+`run_early_browser_fixture.py` exercises creation followed by immediate size, position, header and navigation commands,
+then removal during asynchronous creation while another browser remains usable. Run it with the same `--executable`
+and a fresh `--evidence` directory as the protocol fixture. The fixture uses the same isolated encrypted Keychain
+identity and cleanup rules on macOS. Widget ownership is checked separately in `tests/native/motd_lifetime/`.

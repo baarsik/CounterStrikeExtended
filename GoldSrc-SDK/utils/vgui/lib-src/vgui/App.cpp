@@ -8,6 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !defined( _WIN32 )
+#include "common/VGui1LegacyTickMillis.h"
+#endif
+
 namespace vgui
 {
 
@@ -74,7 +78,11 @@ void App::init()
 	_buildMode = false;
 	_wantedBuildMode = false;
 	_cursorOveride = NULL;
+#if defined( _WIN32 )
 	_nextTickMillis = getTimeMillis();
+#else
+    _nextTickMillis = detail::NormalizeTickMillis(getTimeMillis());
+#endif
 	_minimumTickMillisInterval = 50;
 
 	memset( _mousePressed, 0, sizeof( _mousePressed ) );
@@ -127,8 +135,14 @@ void App::externalTick()
 
 void App::internalTick()
 {
+#if defined( _WIN32 )
 	if ( getTimeMillis() < _nextTickMillis )
 		return;
+#else
+    if (detail::NormalizeTickMillis(getTimeMillis()) < _nextTickMillis) {
+        return;
+    }
+#endif
 
 	platTick();
 
@@ -219,7 +233,11 @@ void App::internalTick()
 		}
 	}
 
+#if defined( _WIN32 )
 	_nextTickMillis = _minimumTickMillisInterval + getTimeMillis();
+#else
+    _nextTickMillis = detail::AddTickMillis(getTimeMillis(), _minimumTickMillisInterval);
+#endif
 }
 
 void App::internalCursorMoved( int x, int y, SurfaceBase* surfaceBase )

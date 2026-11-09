@@ -1,0 +1,45 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseVgui1FixedSysRole LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+enable_testing()
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../vgui1_native_provider" baseline-provider)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/make_inputs.py"
+    "${CMAKE_CURRENT_BINARY_DIR}/owned-role-inputs" COMMAND_ERROR_IS_FATAL ANY)
+add_executable(fixedsys_role_tests role_tests.cpp)
+target_link_libraries(fixedsys_role_tests PRIVATE native_provider)
+target_include_directories(fixedsys_role_tests PRIVATE "${CSE_ROOT}/tests/native/vgui1_legacy_raster")
+if(APPLE)
+    # Build-only preparation. Never an automatic CTest/provider execution.
+    add_executable(fixedsys_role_real_probe real_probe.cpp)
+    target_link_libraries(fixedsys_role_real_probe PRIVATE native_provider provider_discovery)
+    target_include_directories(fixedsys_role_real_probe PRIVATE "${CSE_ROOT}/tests/native/vgui1_legacy_raster")
+    set_target_properties(fixedsys_role_real_probe PROPERTIES CXX_STANDARD 17)
+    target_compile_options(fixedsys_role_real_probe PRIVATE -Wall -Wextra -Werror -fno-fast-math
+        -ffp-contract=off -ffp-model=strict -fno-exceptions)
+    if(CSE_PROVIDER_SANITIZERS)
+        target_compile_options(fixedsys_role_real_probe PRIVATE -fsanitize=address,undefined
+            -fno-sanitize-recover=all -fno-omit-frame-pointer)
+        target_link_options(fixedsys_role_real_probe PRIVATE -fsanitize=address,undefined
+            -fno-sanitize-recover=all)
+    endif()
+endif()
+if(MSVC)
+    target_compile_options(fixedsys_role_tests PRIVATE /W4 /WX /EHsc /fp:strict)
+    target_link_libraries(fixedsys_role_tests PRIVATE bcrypt)
+else()
+    target_compile_options(fixedsys_role_tests PRIVATE -Wall -Wextra -Werror -fno-fast-math -ffp-contract=off
+        -ffp-model=strict)
+    if(CSE_PROVIDER_SANITIZERS)
+        target_compile_options(fixedsys_role_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all
+            -fno-omit-frame-pointer)
+        target_link_options(fixedsys_role_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+    endif()
+endif()
+add_test(NAME fixedsys-role-authored-injected COMMAND fixedsys_role_tests
+    "${CMAKE_CURRENT_BINARY_DIR}/owned-role-inputs")
+set_tests_properties(fixedsys-role-authored-injected PROPERTIES TIMEOUT 45)

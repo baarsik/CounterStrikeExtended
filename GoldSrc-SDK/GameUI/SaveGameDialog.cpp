@@ -304,7 +304,7 @@ bool CSaveGameDialog::ParseSaveData( const char* filename, const char* shortName
 	data->SetString( "Elapsed Time", elapsedTime );
 
 	char fileTime[32];
-	long timestamp = vgui2::filesystem()->GetFileTime( filename );
+    const int timestamp = vgui2::filesystem()->GetFileTime(filename);
 	vgui2::filesystem()->FileTimeToString( fileTime, sizeof( fileTime ), timestamp );
 	char* newline = strstr( fileTime, "\n" );
 	if ( newline )

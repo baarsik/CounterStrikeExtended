@@ -223,7 +223,13 @@ int CHud::MsgFunc_ReloadSound( const char*, int size, void* buffer )
 	BEGIN_READ( buffer, size );
 	float volume = READ_BYTE() / 255.0;
 	bool generic = READ_BYTE() != 0;
+#if defined(_WIN32)
 	gEngfuncs.pfnPlaySoundByName( generic ? "weapons/generic_reload.wav" : "weapons/generic_shot_reload.wav", volume );
+#else
+    // The legacy sound callback borrows and reads this name; its ABI predates const.
+    const char* soundName = generic ? "weapons/generic_reload.wav" : "weapons/generic_shot_reload.wav";
+    gEngfuncs.pfnPlaySoundByName(const_cast<char*>(soundName), volume);
+#endif
 	return 1;
 }
 

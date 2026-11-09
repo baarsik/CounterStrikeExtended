@@ -534,21 +534,41 @@ void CVoiceStatus::UpdateServerState(bool bForce)
 	sprintf(str, "vban");
 	bool bChange = false;
 
+#if defined(_WIN32)
 	for(unsigned long dw=0; dw < VOICE_MAX_PLAYERS_DW; dw++)
 	{	
+#else
+    constexpr int VoiceMaskBits = 32;
+    for (int dw = 0; dw < VOICE_MAX_PLAYERS_DW; ++dw) {
+#endif
+#if defined(_WIN32)
 		unsigned long serverBanMask = 0;
 		unsigned long banMask = 0;
 		for(unsigned long i=0; i < 32; i++)
 		{
+#else
+        uint32 serverBanMask = 0;
+        uint32 banMask = 0;
+        for (int i = 0; i < VoiceMaskBits; ++i) {
+#endif
 			char playerID[16];
 			if(!gEngfuncs.GetPlayerUniqueID(i+1, playerID))
 				continue;
 
+#if defined(_WIN32)
 			if(m_BanMgr.GetPlayerBan(playerID))
 				banMask |= 1 << i;
 
 			if(m_ServerBannedPlayers[dw*32 + i])
 				serverBanMask |= 1 << i;
+#else
+            if (m_BanMgr.GetPlayerBan(playerID)) {
+                banMask |= uint32{1} << i;
+            }
+            if (m_ServerBannedPlayers[dw * VoiceMaskBits + i]) {
+                serverBanMask |= uint32{1} << i;
+            }
+#endif
 		}
 
 		if(serverBanMask != banMask)
@@ -639,21 +659,40 @@ void CVoiceStatus::HandleVoiceMaskMsg(int iSize, void *pbuf)
 {
 	BEGIN_READ( pbuf, iSize );
 
+#if defined(_WIN32)
 	unsigned long dw;
+#else
+    int dw;
+#endif
 	for(dw=0; dw < VOICE_MAX_PLAYERS_DW; dw++)
 	{
+#if defined(_WIN32)
 		m_AudiblePlayers.SetDWord(dw, (unsigned long)READ_LONG());
 		m_ServerBannedPlayers.SetDWord(dw, (unsigned long)READ_LONG());
+#else
+        m_AudiblePlayers.SetDWord(dw, static_cast<uint32>(READ_LONG()));
+        m_ServerBannedPlayers.SetDWord(dw, static_cast<uint32>(READ_LONG()));
+#endif
 
 		if(gEngfuncs.pfnGetCvarFloat("voice_clientdebug"))
 		{
 			char str[256];
 			gEngfuncs.pfnConsolePrint("CVoiceStatus::HandleVoiceMaskMsg\n");
 			
+#if defined(_WIN32)
 			sprintf(str, "    - m_AudiblePlayers[%d] = %lu\n", dw, m_AudiblePlayers.GetDWord(dw));
+#else
+            sprintf(str, "    - m_AudiblePlayers[%d] = %lu\n", dw,
+                static_cast<unsigned long>(m_AudiblePlayers.GetDWord(dw)));
+#endif
 			gEngfuncs.pfnConsolePrint(str);
 			
+#if defined(_WIN32)
 			sprintf(str, "    - m_ServerBannedPlayers[%d] = %lu\n", dw, m_ServerBannedPlayers.GetDWord(dw));
+#else
+            sprintf(str, "    - m_ServerBannedPlayers[%d] = %lu\n", dw,
+                static_cast<unsigned long>(m_ServerBannedPlayers.GetDWord(dw)));
+#endif
 			gEngfuncs.pfnConsolePrint(str);
 		}
 	}

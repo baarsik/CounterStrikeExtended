@@ -1,5 +1,8 @@
 #if !defined( _WIN32 )
 #include <cerrno>
+#include <cstdint>
+#include <fcntl.h>
+#include <limits>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <netinet/in.h>
@@ -72,6 +75,100 @@ constexpr int MAX_LOOPBACK = 4;
 constexpr int LOOPBACK_MESSAGE_BYTES = 6037;
 constexpr int LOOPBACK_CHANNELS = 2;
 constexpr int NET_SOCKET_SOURCES = 3;
+
+#if !defined(_WIN32)
+namespace {
+int NET_PosixSocketCount(ssize_t result) {
+    constexpr ssize_t kSocketError = -1;
+    constexpr ssize_t kMaximumEngineCount = std::numeric_limits<int>::max();
+    if (result < kSocketError || result > kMaximumEngineCount) {
+        errno = EOVERFLOW;
+        return -1;
+    }
+    return static_cast<int>(result);
+}
+
+bool NET_PosixAddressLength(int length, socklen_t& nativeLength) {
+    if (length < 0 || static_cast<std::uintmax_t>(length)
+        > static_cast<std::uintmax_t>(std::numeric_limits<socklen_t>::max())) {
+        errno = EINVAL;
+        return false;
+    }
+    nativeLength = static_cast<socklen_t>(length);
+    return true;
+}
+
+int NET_PosixSendTo(SOCKET socket, const char* data, int length, int flags,
+    const sockaddr* destination, int addressLength) {
+    socklen_t nativeAddressLength = 0;
+    if (length < 0) {
+        errno = EINVAL;
+        return -1;
+    }
+    if (!NET_PosixAddressLength(addressLength, nativeAddressLength)) {
+        return -1;
+    }
+    return NET_PosixSocketCount(sendto(socket, data, static_cast<std::size_t>(length), flags,
+        destination, nativeAddressLength));
+}
+
+int NET_PosixReceiveFrom(SOCKET socket, char* data, std::size_t capacity, int flags,
+    sockaddr* source, int* addressLength) {
+    constexpr std::size_t kMaximumEngineCount = std::numeric_limits<int>::max();
+    if (capacity > kMaximumEngineCount) {
+        errno = EMSGSIZE;
+        return -1;
+    }
+    socklen_t nativeAddressLength = 0;
+    if (addressLength && !NET_PosixAddressLength(*addressLength, nativeAddressLength)) {
+        return -1;
+    }
+    const ssize_t result = recvfrom(socket, data, capacity, flags, source,
+        addressLength ? &nativeAddressLength : nullptr);
+    if (result < 0) {
+        return NET_PosixSocketCount(result);
+    }
+    if (addressLength) {
+        if (static_cast<std::uintmax_t>(nativeAddressLength)
+            > static_cast<std::uintmax_t>(std::numeric_limits<int>::max())) {
+            errno = EOVERFLOW;
+            return -1;
+        }
+        *addressLength = static_cast<int>(nativeAddressLength);
+    }
+    return NET_PosixSocketCount(result);
+}
+
+bool NET_PosixBuildReadSet(const SOCKET (&sockets)[NET_SOCKET_SOURCES], fd_set& readSockets, int& descriptorCount) {
+    constexpr SOCKET kClosedEngineSocket = 0;
+    FD_ZERO(&readSockets);
+    descriptorCount = 0;
+    for (SOCKET socket : sockets) {
+        if (socket == kClosedEngineSocket) {
+            continue;
+        }
+        if (socket < 0 || socket >= FD_SETSIZE) {
+            FD_ZERO(&readSockets);
+            descriptorCount = 0;
+            errno = socket < 0 ? EBADF : EINVAL;
+            return false;
+        }
+        FD_SET(socket, &readSockets);
+        if (socket >= descriptorCount) {
+            descriptorCount = socket + 1;
+        }
+    }
+    return true;
+}
+
+SOCKET NET_PosixCloseOpenFailure(SOCKET socket, int savedError) {
+    constexpr SOCKET kClosedEngineSocket = 0;
+    close(socket);
+    errno = savedError;
+    return kClosedEngineSocket;
+}
+}
+#endif
 
 typedef struct
 {
@@ -239,7 +336,11 @@ int NET_SendLong( netsrc_t source, SOCKET socket, const char* data, int length, 
 		if ( NET_IsSteamFakeIP( source, destination ) )
 			return NET_SteamFakeIPSendTo(
 				source, socket, const_cast<char*>( data ), length, flags, destination, addressLength );
+#if !defined(_WIN32)
+        return NET_PosixSendTo(socket, data, length, flags, destination, addressLength);
+#else
 		return sendto( socket, data, length, flags, destination, addressLength );
+#endif
 	}
 	gSequenceNumber = static_cast<int>( static_cast<unsigned int>( gSequenceNumber ) + 1 );
 	if ( gSequenceNumber < 0 )
@@ -273,9 +374,16 @@ int NET_SendLong( netsrc_t source, SOCKET socket, const char* data, int length, 
 		if ( NET_IsSteamFakeIP( NS_SERVER, destination ) )
 			result = NET_SteamFakeIPSendTo( NS_SERVER, socket, reinterpret_cast<char*>( &packet ), packetLength, flags,
 				destination, addressLength );
+#if !defined(_WIN32)
+        else {
+            result = NET_PosixSendTo(socket, reinterpret_cast<const char*>(&packet), packetLength, flags,
+                destination, addressLength);
+        }
+#else
 		else
 			result = sendto(
 				socket, reinterpret_cast<const char*>( &packet ), packetLength, flags, destination, addressLength );
+#endif
 		if ( result < 0 )
 			return result;
 		if ( result >= size )
@@ -618,8 +726,7 @@ qboolean NET_QueuePacket( netsrc_t source )
 		sockaddr from;
 		int fromLength = sizeof( from );
 		char data[MAX_RECEIVE_PACKET_BYTES];
-		int result = static_cast<int>(
-			recvfrom( socket, data, sizeof( data ), 0, &from, reinterpret_cast<socklen_t*>( &fromLength ) ) );
+        int result = NET_PosixReceiveFrom(socket, data, sizeof(data), 0, &from, &fromLength);
 		if ( result <= 0 )
 			result = NET_SteamFakeIPRecvFrom( source, data, sizeof( data ), 0, result, &from, &fromLength );
 		if ( result == -1 )
@@ -1092,60 +1199,80 @@ qboolean NET_StringToSockaddr( char* source, sockaddr* destination )
 
 SOCKET NET_IPSocket( char* networkInterface, int port, qboolean multicast )
 {
-#if !defined( _WIN32 )
-	int nonblocking = 1;
-	int option = 1;
-	SOCKET socket = ::socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
-	if ( socket == -1 )
-	{
-		int error = errno;
-		if ( error != EAFNOSUPPORT )
-			Con_Printf( "WARNING: UDP_OpenSocket: port: %d socket: %s", port, strerror( error ) );
-		return 0;
-	}
-	if ( ioctl( socket, FIONBIO, &nonblocking ) == -1 )
-	{
-		Con_Printf( "WARNING: UDP_OpenSocket: port: %d  ioctl FIONBIO: %s\n", port, strerror( errno ) );
-		return 0;
-	}
-	if ( setsockopt( socket, SOL_SOCKET, SO_BROADCAST, &option, sizeof( option ) ) == -1 )
-	{
-		Con_Printf( "WARNING: UDP_OpenSocket: port: %d  setsockopt SO_BROADCAST: %s\n", port, strerror( errno ) );
-		return 0;
-	}
-	if ( ( COM_CheckParm( "-reuse" ) || multicast )
-		 && setsockopt( socket, SOL_SOCKET, SO_REUSEADDR, &nonblocking, sizeof( nonblocking ) ) == -1 )
-	{
-		Con_Printf( "WARNING: UDP_OpenSocket: port: %d  setsockopt SO_REUSEADDR: %s\n", port, strerror( errno ) );
-		return 0;
-	}
-	if ( COM_CheckParm( "-tos" ) )
-	{
-		int tos = 16;
-		Con_Printf( "Enabling LOWDELAY TOS option\n" );
-		if ( setsockopt( socket, IPPROTO_IP, IP_TOS, &tos, sizeof( tos ) ) == -1 && errno != ENOPROTOOPT )
-		{
-			Con_Printf( "WARNING: UDP_OpenSocket: port: %d  setsockopt IP_TOS: %s\n", port, strerror( errno ) );
-			return 0;
-		}
-	}
-	sockaddr_in address;
-	if ( networkInterface && *networkInterface && Q_strcasecmp( networkInterface, "localhost" ) != 0 )
-		NET_StringToSockaddr( networkInterface, reinterpret_cast<sockaddr*>( &address ) );
-	else
-		address.sin_addr.s_addr = INADDR_ANY;
-	address.sin_port = port == PORT_ANY ? 0 : htons( static_cast<unsigned short>( port ) );
-	address.sin_family = AF_INET;
-	if ( bind( socket, reinterpret_cast<sockaddr*>( &address ), sizeof( address ) ) == -1 )
-	{
-		Con_Printf( "WARNING: UDP_OpenSocket: port: %d  bind: %s\n", port, strerror( errno ) );
-		close( socket );
-		return 0;
-	}
-	option = COM_CheckParm( "-loopback" ) != 0;
-	if ( setsockopt( socket, IPPROTO_IP, IP_MULTICAST_LOOP, &option, sizeof( option ) ) == -1 )
-		Con_DPrintf( "WARNING: UDP_OpenSocket: port %d setsockopt IP_MULTICAST_LOOP: %s\n", port, strerror( errno ) );
-	return socket;
+#if !defined(_WIN32)
+    constexpr SOCKET kClosedEngineSocket = 0;
+    constexpr int kFirstPositiveSocket = 1;
+    constexpr int kLowDelayTypeOfService = 16;
+    int nonblocking = 1;
+    int option = 1;
+    SOCKET socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (socket < 0) {
+        const int error = errno;
+        if (error != EAFNOSUPPORT) {
+            Con_Printf("WARNING: UDP_OpenSocket: port: %d socket: %s", port, strerror(error));
+        }
+        errno = error;
+        return kClosedEngineSocket;
+    }
+    if (socket == kClosedEngineSocket) {
+        const int positive = fcntl(socket, F_DUPFD, kFirstPositiveSocket);
+        if (positive < 0) {
+            const int error = errno;
+            Con_Printf("WARNING: UDP_OpenSocket: port: %d duplicate descriptor: %s\n", port, strerror(error));
+            return NET_PosixCloseOpenFailure(socket, error);
+        }
+        close(socket);
+        socket = positive;
+    }
+    if (socket >= FD_SETSIZE) {
+        Con_Printf("WARNING: UDP_OpenSocket: descriptor %d exceeds select capacity %d\n", socket, FD_SETSIZE);
+        return NET_PosixCloseOpenFailure(socket, EMFILE);
+    }
+    if (ioctl(socket, FIONBIO, &nonblocking) == -1) {
+        const int error = errno;
+        Con_Printf("WARNING: UDP_OpenSocket: port: %d  ioctl FIONBIO: %s\n", port, strerror(error));
+        return NET_PosixCloseOpenFailure(socket, error);
+    }
+    if (setsockopt(socket, SOL_SOCKET, SO_BROADCAST, &option, sizeof(option)) == -1) {
+        const int error = errno;
+        Con_Printf("WARNING: UDP_OpenSocket: port: %d  setsockopt SO_BROADCAST: %s\n", port, strerror(error));
+        return NET_PosixCloseOpenFailure(socket, error);
+    }
+    if ((COM_CheckParm("-reuse") || multicast)
+        && setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &nonblocking, sizeof(nonblocking)) == -1) {
+        const int error = errno;
+        Con_Printf("WARNING: UDP_OpenSocket: port: %d  setsockopt SO_REUSEADDR: %s\n", port, strerror(error));
+        return NET_PosixCloseOpenFailure(socket, error);
+    }
+    if (COM_CheckParm("-tos")) {
+        int tos = kLowDelayTypeOfService;
+        Con_Printf("Enabling LOWDELAY TOS option\n");
+        if (setsockopt(socket, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)) == -1 && errno != ENOPROTOOPT) {
+            const int error = errno;
+            Con_Printf("WARNING: UDP_OpenSocket: port: %d  setsockopt IP_TOS: %s\n", port, strerror(error));
+            return NET_PosixCloseOpenFailure(socket, error);
+        }
+    }
+    sockaddr_in address{};
+    if (networkInterface && *networkInterface && Q_strcasecmp(networkInterface, "localhost") != 0) {
+        NET_StringToSockaddr(networkInterface, reinterpret_cast<sockaddr*>(&address));
+    } else {
+        address.sin_addr.s_addr = INADDR_ANY;
+    }
+    address.sin_port = port == PORT_ANY ? 0 : htons(static_cast<unsigned short>(port));
+    address.sin_family = AF_INET;
+    if (bind(socket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == -1) {
+        const int error = errno;
+        Con_Printf("WARNING: UDP_OpenSocket: port: %d  bind: %s\n", port, strerror(error));
+        return NET_PosixCloseOpenFailure(socket, error);
+    }
+    option = COM_CheckParm("-loopback") != 0;
+    if (setsockopt(socket, IPPROTO_IP, IP_MULTICAST_LOOP, &option, sizeof(option)) == -1) {
+        const int error = errno;
+        Con_DPrintf("WARNING: UDP_OpenSocket: port %d setsockopt IP_MULTICAST_LOOP: %s\n", port, strerror(error));
+        errno = error;
+    }
+    return socket;
 #else
 	u_long nonblocking = 1;
 	int option = 1;
@@ -1377,9 +1504,14 @@ void NET_FlushSocket( netsrc_t source )
 	char buffer[FLUSH_PACKET_BYTES];
 	sockaddr from;
 	int fromLength = sizeof( from );
+#if !defined(_WIN32)
+    while (NET_PosixReceiveFrom(socket, buffer, sizeof(buffer), 0, &from, &fromLength) > 0) {
+    }
+#else
 	while ( recvfrom( socket, buffer, sizeof( buffer ), 0, &from, &fromLength ) > 0 )
 	{
 	}
+#endif
 	while ( NET_SteamFakeIPRecvFrom( source, buffer, sizeof( buffer ), 0, 0, &from, &fromLength ) > 0 )
 	{
 	}
@@ -2081,6 +2213,12 @@ int NET_Sleep_Timeout()
 		lasttime = now;
 	}
 	fd_set readSockets;
+#if !defined(_WIN32)
+    int descriptorCount = 0;
+    if (!NET_PosixBuildReadSet(ip_sockets, readSockets, descriptorCount)) {
+        return -1;
+    }
+#else
 	readSockets.fd_count = 0;
 	int maxSocket = 0;
 	for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
@@ -2093,6 +2231,7 @@ int NET_Sleep_Timeout()
 				maxSocket = static_cast<int>( socket );
 		}
 	}
+#endif
 	timeval timeout;
 	timeout.tv_sec = 0;
 	int usec = 1000 * ( 1000 / value );
@@ -2100,10 +2239,18 @@ int NET_Sleep_Timeout()
 		usec = 1;
 	timeout.tv_usec = usec;
 	int result;
+#if !defined(_WIN32)
+    if (numFrames > 0 && numFrames % staggerFrames != 0) {
+        result = select(descriptorCount, &readSockets, nullptr, nullptr, &timeout);
+    } else {
+        result = select(0, nullptr, nullptr, nullptr, &timeout);
+    }
+#else
 	if ( numFrames > 0 && numFrames % staggerFrames != 0 )
 		result = select( maxSocket + 1, &readSockets, nullptr, nullptr, &timeout );
 	else
 		result = select( 0, nullptr, nullptr, nullptr, &timeout );
+#endif
 	--numFrames;
 	return result;
 }
@@ -2111,6 +2258,12 @@ int NET_Sleep_Timeout()
 int NET_Sleep()
 {
 	fd_set readSockets;
+#if !defined(_WIN32)
+    int descriptorCount = 0;
+    if (!NET_PosixBuildReadSet(ip_sockets, readSockets, descriptorCount)) {
+        return -1;
+    }
+#else
 	readSockets.fd_count = 0;
 	int maxSocket = 0;
 	for ( int source = 0; source < NET_SOCKET_SOURCES; ++source )
@@ -2123,13 +2276,18 @@ int NET_Sleep()
 				maxSocket = static_cast<int>( socket );
 		}
 	}
+#endif
 	timeval timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 20000;
 	timeval* wait = &timeout;
 	if ( net_sleepforever != 0 )
 		wait = nullptr;
+#if !defined(_WIN32)
+    return select(descriptorCount, &readSockets, nullptr, nullptr, wait);
+#else
 	return select( maxSocket + 1, &readSockets, nullptr, nullptr, wait );
+#endif
 }
 
 void* net_malloc( std::size_t size )
@@ -2214,7 +2372,11 @@ int NET_SendToImpl(
 {
 	if ( NET_IsSteamFakeIP( sock, to ) != false )
 		return NET_SteamFakeIPSendTo( sock, socket, packet, length, flags, to, addressLength );
+#if !defined(_WIN32)
+    return NET_PosixSendTo(socket, packet, length, flags, to, addressLength);
+#else
 	return sendto( socket, packet, length, flags, to, addressLength );
+#endif
 }
 
 void NET_FillRect( vrect_t* rect, byte* color, byte alpha )

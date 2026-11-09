@@ -1,0 +1,30 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseWaveRecords LANGUAGES CXX)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CSE_WAVE_COMMON_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/common.cpp" CACHE FILEPATH "Actual common source")
+set(CSE_WAVE_VOICE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/voice_wavefile.cpp" CACHE FILEPATH "Actual voice source")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CSE_WAVE_COMMON_SOURCE}" "${CSE_WAVE_VOICE_SOURCE}" extract_records.py)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_records.py"
+    "${CSE_WAVE_COMMON_SOURCE}" "${CSE_WAVE_VOICE_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/actual_wave.inc"
+    COMMAND_ERROR_IS_FATAL ANY)
+option(CSE_WAVE_SANITIZERS "Instrument actual record readers and writers" OFF)
+add_executable(wave_record_tests record_tests.cpp)
+target_compile_features(wave_record_tests PRIVATE cxx_std_17)
+target_include_directories(wave_record_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+if(MSVC)
+    target_compile_options(wave_record_tests PRIVATE /W4 /WX /EHsc
+        "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>" "$<$<CONFIG:Debug>:/RTC1>")
+else()
+    target_compile_options(wave_record_tests PRIVATE -Wall -Wextra -Werror -Wshorten-64-to-32
+        "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" "$<$<CONFIG:Debug>:-g>")
+    if(CSE_WAVE_SANITIZERS)
+        target_compile_options(wave_record_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(wave_record_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+enable_testing()
+add_test(NAME actual-wave-records COMMAND wave_record_tests)

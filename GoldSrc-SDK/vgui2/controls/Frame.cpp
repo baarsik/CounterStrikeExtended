@@ -100,8 +100,8 @@ public:
 };
 
 #ifndef BSHIFT_CLIENT
-static_assert( sizeof( GripPanel ) == 160 );
-static_assert( sizeof( CaptionGripPanel ) == 160 );
+static_assert(sizeof(void*) != 4 || sizeof(GripPanel) == 160, "Win32 reference layout");
+static_assert(sizeof(void*) != 4 || sizeof(CaptionGripPanel) == 160, "Win32 reference layout");
 #endif
 
 #pragma warning( suppress : 26495 )
@@ -316,8 +316,8 @@ private:
 };
 
 #ifndef BSHIFT_CLIENT
-static_assert( sizeof( FrameButton ) == 304 );
-static_assert( sizeof( FrameSystemButton ) == 308 );
+static_assert(sizeof(void*) != 4 || sizeof(FrameButton) == 304, "Win32 reference layout");
+static_assert(sizeof(void*) != 4 || sizeof(FrameSystemButton) == 308, "Win32 reference layout");
 #endif
 
 void Frame::Activate()

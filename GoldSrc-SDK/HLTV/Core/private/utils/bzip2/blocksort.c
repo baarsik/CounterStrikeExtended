@@ -1,3 +1,4 @@
+/* CSE native portability: unsigned 32-bit bucket masks define the bit-31 shift. */
 
 /*-------------------------------------------------------------*/
 /*--- Block sorting machinery                               ---*/
@@ -249,9 +250,9 @@ void fallbackQSort3 ( UInt32* fmap,
       bhtab [ 0 .. 2+(nblock/32) ] destroyed
 */
 
-#define       SET_BH(zz)  bhtab[(zz) >> 5] |= (1 << ((zz) & 31))
-#define     CLEAR_BH(zz)  bhtab[(zz) >> 5] &= ~(1 << ((zz) & 31))
-#define     ISSET_BH(zz)  (bhtab[(zz) >> 5] & (1 << ((zz) & 31)))
+#define       SET_BH(zz)  bhtab[(zz) >> 5] |= ((UInt32)1 << ((zz) & 31))
+#define     CLEAR_BH(zz)  bhtab[(zz) >> 5] &= ~((UInt32)1 << ((zz) & 31))
+#define     ISSET_BH(zz)  (bhtab[(zz) >> 5] & ((UInt32)1 << ((zz) & 31)))
 #define      WORD_BH(zz)  bhtab[(zz) >> 5]
 #define UNALIGNED_BH(zz)  ((zz) & 0x01f)
 

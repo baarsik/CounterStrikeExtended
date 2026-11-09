@@ -1,3 +1,7 @@
+#if defined(__APPLE__) && !defined(_WIN32)
+#include "../common/NativeEngineMemory.h"
+#endif
+
 #if defined(CSE_OWNED_STEAM_PROVIDER)
 #include "../public/steam_service.h"
 #endif
@@ -22,6 +26,7 @@
 #include "cvar.h"
 #include "filesystem.h"
 #include "host.h"
+#include "cd.h"
 #include "iengine.h"
 #include "igame.h"
 #include "modinfo.h"
@@ -387,6 +392,38 @@ void Sys_InitArgv( char* commandLine )
 
 void Sys_InitMemory()
 {
+#if defined(__APPLE__) && !defined(_WIN32)
+    namespace memory = cse_native_engine_memory;
+    int bytes = host_parms.memsize;
+    const int parameter = COM_CheckParm("-heapsize");
+    if (parameter != 0 && parameter < com_argc - 1) {
+        if (!memory::ParseHeapArgument(com_argv[parameter + 1], bytes)) {
+            Sys_Error("Invalid -heapsize: expected nonnegative KiB within signed32 bytes\n");
+            return;
+        }
+        host_parms.memsize = bytes;
+    }
+    memory::PhysicalMemory physical{memory::QueryStatus::InvalidPageCount, 0};
+    if (bytes < memory::kMinimumHeapBytes) {
+        physical = memory::QueryPhysicalMemory();
+    }
+    memory::HeapPlan plan{};
+    if (memory::PlanHeap(bytes, physical, g_bIsDedicatedServer != 0, plan)
+        != memory::PlanStatus::Ready) {
+        Sys_Error("Available memory less than 15MB!!! %i\n", host_parms.memsize);
+        return;
+    }
+    host_parms.memsize = plan.bytes;
+    if (COM_CheckParm("-minmemory") != 0) {
+        host_parms.memsize = memory::kMinimumHeapBytes;
+    }
+    host_parms.membase = memory::AllocateHeap(host_parms.memsize);
+    if (host_parms.membase == nullptr) {
+        constexpr float kBytesToMebibytes = 0.00000095367431640625f;
+        const double mebibytes = static_cast<double>(static_cast<float>(host_parms.memsize) * kBytesToMebibytes);
+        Sys_Error("Unable to allocate %.2f MB\n", mebibytes);
+    }
+#else
 	int memsize = host_parms.memsize;
 	int parameter = COM_CheckParm( "-heapsize" );
 	if ( parameter && parameter < com_argc - 1 )
@@ -410,7 +447,7 @@ void Sys_InitMemory()
 		{
 			if ( memory.dwTotalPhys < 0xF00000 )
 				Sys_Error( "Available memory less than 15MB!!! %i\n", host_parms.memsize );
-			memsize = memory.dwTotalPhys >> 1;
+			memsize = static_cast<int>(memory.dwTotalPhys >> 1);
 			if ( memsize < MINIMUM_HEAP_SIZE )
 				memsize = MINIMUM_HEAP_SIZE;
 		}
@@ -429,13 +466,18 @@ void Sys_InitMemory()
 	host_parms.membase = GlobalAlloc( GMEM_FIXED, host_parms.memsize );
 	if ( !host_parms.membase )
 		Sys_Error( "Unable to allocate %.2f MB\n", (double)( (float)host_parms.memsize * 0.00000095367431640625f ) );
+#endif
 }
 
 void Sys_ShutdownMemory()
 {
+#if defined(__APPLE__) && !defined(_WIN32)
+    cse_native_engine_memory::ReleaseHeap(host_parms.membase, host_parms.memsize);
+#else
 	GlobalFree( host_parms.membase );
 	host_parms.membase = NULL;
 	host_parms.memsize = 0;
+#endif
 }
 
 void Sys_ShowProgressTicks( char* )
@@ -672,6 +714,7 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+    cse::AudioModuleShutdown audioModuleShutdown;
 	if ( !strstr( cmdline, "-nobreakpad" ) )
 	{
 		char* build = va( "%d", build_number() );
@@ -867,6 +910,7 @@ EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSIO
 #include "cvar.h"
 #include "filesystem.h"
 #include "host.h"
+#include "cd.h"
 #include "iengine.h"
 #include "igame.h"
 #include "modinfo.h"
@@ -909,7 +953,7 @@ public:
 	int Key_KeyStringToKeyNum( const char* keyName ) override;
 };
 
-static_assert( sizeof( CGameUIFuncs ) == 4 );
+static_assert(sizeof(CGameUIFuncs) == sizeof(void*));
 
 extern "C" void* F( void** engineInterface )
 {
@@ -1062,8 +1106,8 @@ private:
 #pragma warning( pop )
 #endif
 
-static_assert( sizeof( CEngineAPI ) == 4 );
-static_assert( sizeof( CDedicatedServerAPI ) == 1028 );
+static_assert(sizeof(CEngineAPI) == sizeof(void*));
+static_assert(sizeof(CDedicatedServerAPI) == sizeof(void*) + 1024);
 
 #if !defined( _WIN32 )
 extern "C" long sysconf( int name );
@@ -1324,6 +1368,37 @@ void Sys_InitMemory()
 		double megabytes = static_cast<double>( static_cast<float>( host_parms.memsize ) * kBytesToMegabytes );
 		Sys_Error( "Unable to allocate %.2f MB\n", megabytes );
 	}
+#elif defined(__APPLE__)
+    namespace memory = cse_native_engine_memory;
+    int bytes = host_parms.memsize;
+    const int parameter = COM_CheckParm("-heapsize");
+    if (parameter != 0 && parameter < com_argc - 1) {
+        if (!memory::ParseHeapArgument(com_argv[parameter + 1], bytes)) {
+            Sys_Error("Invalid -heapsize: expected nonnegative KiB within signed32 bytes\n");
+            return;
+        }
+        host_parms.memsize = bytes;
+    }
+    memory::PhysicalMemory physical{memory::QueryStatus::InvalidPageCount, 0};
+    if (bytes < memory::kMinimumHeapBytes) {
+        physical = memory::QueryPhysicalMemory();
+    }
+    memory::HeapPlan plan{};
+    if (memory::PlanHeap(bytes, physical, g_bIsDedicatedServer != 0, plan)
+        != memory::PlanStatus::Ready) {
+        Sys_Error("Available memory less than 15MB!!! %i\n", host_parms.memsize);
+        return;
+    }
+    host_parms.memsize = plan.bytes;
+    if (COM_CheckParm("-minmemory") != 0) {
+        host_parms.memsize = memory::kMinimumHeapBytes;
+    }
+    host_parms.membase = memory::AllocateHeap(host_parms.memsize);
+    if (host_parms.membase == nullptr) {
+        constexpr float kBytesToMebibytes = 0.00000095367431640625f;
+        const double mebibytes = static_cast<double>(static_cast<float>(host_parms.memsize) * kBytesToMebibytes);
+        Sys_Error("Unable to allocate %.2f MB\n", mebibytes);
+    }
 #else
 	int memsize;
 	int parameter = COM_CheckParm( "-heapsize" );
@@ -1400,6 +1475,9 @@ void Sys_InitMemory()
 
 void Sys_ShutdownMemory()
 {
+#if defined(__APPLE__) && !defined(_WIN32)
+    cse_native_engine_memory::ReleaseHeap(host_parms.membase, host_parms.memsize);
+#else
 #if defined( _WIN32 )
 	GlobalFree( host_parms.membase );
 #else
@@ -1407,6 +1485,7 @@ void Sys_ShutdownMemory()
 #endif
 	host_parms.membase = nullptr;
 	host_parms.memsize = 0;
+#endif
 }
 
 void Sys_ShowProgressTicks( [[maybe_unused]] char* specialProgressMsg )
@@ -1667,6 +1746,7 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+    cse::AudioModuleShutdown audioModuleShutdown;
 	if ( std::strstr( cmdline, "-nobreakpad" ) == nullptr )
 	{
 		char* build = va( const_cast<char*>( "%d" ), build_number() );

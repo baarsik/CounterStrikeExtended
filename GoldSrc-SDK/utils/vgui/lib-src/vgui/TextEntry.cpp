@@ -7,6 +7,10 @@
 #include <cstdlib>
 #include <cstring>
 
+#if !defined( _WIN32 )
+#include "common/VGui1LegacyTickMillis.h"
+#endif
+
 #define TEXTENTRY_TEXT_INSET	3
 
 namespace
@@ -99,7 +103,11 @@ void TextEntry::keyFocusTicked( Panel* )
 	if ( now > _cursorNextBlinkTime )
 	{
 		_cursorBlink = !_cursorBlink;
+#if defined( _WIN32 )
 		_cursorNextBlinkTime = now + _cursorBlinkRate;
+#else
+        _cursorNextBlinkTime = detail::AddTickMillis(now, _cursorBlinkRate);
+#endif
 		repaint();
 	}
 }
@@ -308,7 +316,11 @@ void TextEntry::doPasteSelected()
 void TextEntry::resetCursorBlink()
 {
 	_cursorBlink = false;
+#if defined( _WIN32 )
 	_cursorNextBlinkTime = getApp()->getTimeMillis() + _cursorBlinkRate;
+#else
+    _cursorNextBlinkTime = detail::AddTickMillis(getApp()->getTimeMillis(), _cursorBlinkRate);
+#endif
 }
 
 void TextEntry::doSelectNone()

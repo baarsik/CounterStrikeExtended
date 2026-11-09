@@ -33,8 +33,10 @@
 #include "filesystem.h"
 #include "eiface.h"
 
+#if defined(_WIN32)
 #include <Windows.h>
 #include <intrin.h>
+#endif
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
@@ -44,7 +46,14 @@
 #include <cstdarg>
 #include <cmath>
 #include <climits>
+#if defined(_WIN32)
 #include <io.h>
+#else
+#include "posix_process_stats.h"
+#include "../common/legacy_text_to_integer.h"
+#include <unistd.h>
+#define _unlink unlink
+#endif
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -462,6 +471,7 @@ void Host_Quit_Restart_f()
 	Cache_Force_Flush();
 }
 
+#if defined(_WIN32)
 static uint64_t Host_FileTimeTicks( const FILETIME& time )
 {
 	ULARGE_INTEGER ticks;
@@ -470,105 +480,10 @@ static uint64_t Host_FileTimeTicks( const FILETIME& time )
 	ticks.HighPart = time.dwHighDateTime;
 	return ticks.QuadPart;
 }
-
-#ifndef _WIN32
-static bool Host_ReadProcCpuTicks( uint64_t& cpuTicks, uint64_t& runTicks )
-{
-	char path[64];
-	char line[4096];
-	char* p;
-	char* token;
-	char* end;
-	int field;
-	unsigned long long value;
-	unsigned long long utime = 0;
-	unsigned long long stime = 0;
-	unsigned long long starttime = 0;
-	long uptime = 0;
-	int matched;
-	FILE* f;
-
-	snprintf( path, sizeof( path ) - 1, "/proc/%i/stat", (int)GetCurrentProcessId() );
-	path[sizeof( path ) - 1] = '\0';
-
-	f = fopen( path, "r" );
-	if ( !f )
-		return false;
-	p = fgets( line, sizeof( line ), f );
-	fclose( f );
-	if ( !p )
-		return false;
-
-	p = strrchr( line, ')' );
-	if ( !p )
-		return false;
-	p++;
-
-	for ( field = 0; *p && field <= 19; field++ )
-	{
-		while ( *p == ' ' || *p == '\t' )
-			p++;
-		if ( *p == '\0' || *p == '\n' )
-			break;
-
-		token = p;
-		while ( *p && *p != ' ' && *p != '\t' && *p != '\n' )
-			p++;
-
-		if ( field == 11 || field == 12 || field == 19 )
-		{
-			end = NULL;
-			value = strtoull( token, &end, 10 );
-			if ( end == token )
-				return false;
-
-			if ( field == 11 )
-				utime = value;
-			else if ( field == 12 )
-				stime = value;
-			else
-				starttime = value;
-		}
-	}
-
-	if ( field <= 19 )
-		return false;
-
-	f = fopen( "/proc/uptime", "r" );
-	if ( !f )
-		return false;
-	matched = fscanf( f, "%ld", &uptime );
-	fclose( f );
-	if ( matched != 1 )
-		return false;
-
-	cpuTicks = utime + stime;
-	runTicks = (uint64_t)( 100 * (int64_t)uptime - (int64_t)starttime );
-	return true;
+#else
+static bool Host_ReadProcessCpuTicks(uint64_t& cpuTicks, uint64_t& runTicks) {
+    return cse_process_stats::Read(cpuTicks, runTicks);
 }
-
-static bool Host_ReadProcessCpuTicks( uint64_t& cpuTicks, uint64_t& runTicks )
-{
-	FILETIME creationTime;
-	FILETIME exitTime;
-	FILETIME kernelTime;
-	FILETIME userTime;
-	FILETIME systemTime;
-
-	if ( !GetProcessTimes( GetCurrentProcess(), &creationTime, &exitTime, &kernelTime, &userTime ) )
-		return false;
-	GetSystemTimeAsFileTime( &systemTime );
-
-	uint64_t now = Host_FileTimeTicks( systemTime );
-	uint64_t started = Host_FileTimeTicks( creationTime );
-	if ( now < started )
-		return false;
-
-	cpuTicks = Host_FileTimeTicks( userTime ) + Host_FileTimeTicks( kernelTime );
-	runTicks = now - started;
-	return true;
-}
-
 #endif
 
 void Host_UpdateStats()
@@ -612,7 +527,7 @@ void Host_UpdateStats()
 			lastAvg = last;
 		}
 #else
-		if ( Host_ReadProcCpuTicks( cputicks, runticks ) || Host_ReadProcessCpuTicks( cputicks, runticks ) )
+		if (Host_ReadProcessCpuTicks(cputicks, runticks))
 		{
 			if ( !lastcputicks )
 				lastcputicks = cputicks;
@@ -1516,12 +1431,22 @@ int __cdecl Host_Load( const char* pName )
 
 		while ( *p && isdigit( (signed char)*p ) )
 		{
-			if ( digits == (int)sizeof( number ) )
-				__fastfail( FAST_FAIL_RANGE_CHECK_FAILURE );
+            if (digits == static_cast<int>(sizeof(number))) {
+#if defined(_WIN32)
+                __fastfail(FAST_FAIL_RANGE_CHECK_FAILURE);
+#else
+                std::abort();
+#endif
+            }
 			number[digits++] = *p++;
 		}
-		if ( digits == (int)sizeof( number ) )
-			__fastfail( FAST_FAIL_RANGE_CHECK_FAILURE );
+        if (digits == static_cast<int>(sizeof(number))) {
+#if defined(_WIN32)
+            __fastfail(FAST_FAIL_RANGE_CHECK_FAILURE);
+#else
+            std::abort();
+#endif
+        }
 		number[digits] = '\0';
 
 		int slot = Q_atoi( number );
@@ -3405,8 +3330,8 @@ void Host_ShowOSK_f()
 		x = atoi( Cmd_Argv( 1 ) );
 		y = atoi( Cmd_Argv( 2 ) );
 #else
-		x = strtol( Cmd_Argv( 1 ), NULL, 10 );
-		y = strtol( Cmd_Argv( 2 ), NULL, 10 );
+        x = CseLegacyAtoi(Cmd_Argv(1));
+        y = CseLegacyAtoi(Cmd_Argv(2));
 #endif
 	}
 

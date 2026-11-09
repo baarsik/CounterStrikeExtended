@@ -1,0 +1,16 @@
+EXPORTS
+    SDL_malloc
+    SDL_free
+    SDL_InitSubSystem
+    SDL_QuitSubSystem
+    SDL_OpenAudioDeviceStream
+    SDL_GetAudioStreamFormat
+    SDL_ResumeAudioStreamDevice
+    SDL_PauseAudioStreamDevice
+    SDL_SetAudioStreamPutCallback
+    SDL_LockAudioStream
+    SDL_UnlockAudioStream
+    SDL_GetAudioStreamAvailable
+    SDL_GetAudioStreamData
+    SDL_ClearAudioStream
+    SDL_DestroyAudioStream

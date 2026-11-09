@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "VGui1NativeRuntime.h"
+#endif
 #include "vgui_EngineSurface.h"
 #include "glquake.h"
 
@@ -9,10 +12,16 @@ EngineSurface::EngineSurface()
 {
 	_renderPlat = NULL;
 	createRenderPlat();
+#if defined(__APPLE__)
+    cse_vgui1_native::RememberEngineSurface(this);
+#endif
 }
 
 EngineSurface::~EngineSurface()
 {
+#if defined(__APPLE__)
+    cse_vgui1_native::ForgetEngineSurface(this);
+#endif
 	deleteRenderPlat();
 	_renderPlat = NULL;
 	s_pEngineSurface = NULL;

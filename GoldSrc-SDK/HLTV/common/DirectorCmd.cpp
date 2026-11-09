@@ -3,8 +3,32 @@
 #include "HLTV/common/common.h"
 #include "HLTV/common/mathlib.h"
 
+#include <climits>
+#include <cstddef>
 #include <stdio.h>
 #include <string.h>
+
+namespace {
+
+constexpr int DirectorStringTerminatorBytes = 1;
+constexpr int DirectorSoundVolumeBytes = 4;
+constexpr int DirectorMessageHeaderBytes = 29;
+constexpr int InvalidDirectorPayloadSize = -1;
+
+int DirectorPayloadSize(std::size_t length, int overhead) {
+    if (overhead < 0 || length > static_cast<std::size_t>(INT_MAX - overhead)) {
+        return InvalidDirectorPayloadSize;
+    }
+    return static_cast<int>(length) + overhead;
+}
+
+void RejectDirectorPayload(DirectorCmd* command) {
+    command->Clear();
+    command->m_Size = 0;
+    command->m_Data.sizeError = true;
+}
+
+} // namespace
 
 extern "C" const char* DRC_CMD_NAME[16] =
 {
@@ -328,7 +352,11 @@ void DirectorCmd::SetCamPathData( float* position, float* angles, float fov, int
 
 void DirectorCmd::SetSoundData( char* name, float volume )
 {
-	int size = strlen( name ) + 5;
+    const int size = DirectorPayloadSize(strlen(name), DirectorSoundVolumeBytes + DirectorStringTerminatorBytes);
+    if (size == InvalidDirectorPayloadSize) {
+        RejectDirectorPayload(this);
+        return;
+    }
 
 	m_Type = DRC_CMD_SOUND;
 	m_Data.Resize( size );
@@ -353,7 +381,11 @@ void DirectorCmd::SetTime( float time )
 void DirectorCmd::SetMessageData( int effect, unsigned int color, float* position, float fadein, float fadeout,
 		float holdtime, float fxtime, char* text )
 {
-	int size = strlen( text ) + 30;
+    const int size = DirectorPayloadSize(strlen(text), DirectorMessageHeaderBytes + DirectorStringTerminatorBytes);
+    if (size == InvalidDirectorPayloadSize) {
+        RejectDirectorPayload(this);
+        return;
+    }
 
 	m_Type = DRC_CMD_MESSAGE;
 	m_Data.Resize( size );
@@ -394,7 +426,11 @@ void DirectorCmd::SetStatusData( int slots, int spectators, int proxies )
 
 void DirectorCmd::SetBannerData( char* filename )
 {
-	int size = strlen( filename ) + 1;
+    const int size = DirectorPayloadSize(strlen(filename), DirectorStringTerminatorBytes);
+    if (size == InvalidDirectorPayloadSize) {
+        RejectDirectorPayload(this);
+        return;
+    }
 
 	m_Type = DRC_CMD_BANNER;
 	m_Data.Resize( size );
@@ -404,7 +440,11 @@ void DirectorCmd::SetBannerData( char* filename )
 
 void DirectorCmd::SetStuffTextData( char* commands )
 {
-	int size = strlen( commands ) + 1;
+    const int size = DirectorPayloadSize(strlen(commands), DirectorStringTerminatorBytes);
+    if (size == InvalidDirectorPayloadSize) {
+        RejectDirectorPayload(this);
+        return;
+    }
 
 	m_Type = DRC_CMD_STUFFTEXT;
 	m_Data.Resize( size );
@@ -471,8 +511,13 @@ bool DirectorCmd::ReadFromStream( BitBuffer* stream )
 			unsigned char* start = stream->currentByte;
 			stream->SkipBytes( 29 );
 			char* text = stream->ReadString();
-			int textLength = strlen( text ) + 1;
-			int size = textLength + 29;
+            const int size = DirectorPayloadSize(strlen(text),
+                DirectorMessageHeaderBytes + DirectorStringTerminatorBytes);
+            if (size == InvalidDirectorPayloadSize) {
+                RejectDirectorPayload(this);
+                return false;
+            }
+            const int textLength = size - DirectorMessageHeaderBytes;
 
 			m_Data.Resize( size );
 			m_Size = size;
@@ -484,8 +529,13 @@ bool DirectorCmd::ReadFromStream( BitBuffer* stream )
 	case DRC_CMD_SOUND:
 		{
 			char* name = stream->ReadString();
-			int nameLength = strlen( name ) + 1;
-			int size = nameLength + 4;
+            const int size = DirectorPayloadSize(strlen(name),
+                DirectorSoundVolumeBytes + DirectorStringTerminatorBytes);
+            if (size == InvalidDirectorPayloadSize) {
+                RejectDirectorPayload(this);
+                return false;
+            }
+            const int nameLength = size - DirectorSoundVolumeBytes;
 
 			m_Data.Resize( size );
 			m_Size = size;
@@ -504,7 +554,11 @@ bool DirectorCmd::ReadFromStream( BitBuffer* stream )
 	case DRC_CMD_STUFFTEXT:
 		{
 			char* text = stream->ReadString();
-			int size = strlen( text ) + 1;
+            const int size = DirectorPayloadSize(strlen(text), DirectorStringTerminatorBytes);
+            if (size == InvalidDirectorPayloadSize) {
+                RejectDirectorPayload(this);
+                return false;
+            }
 
 			m_Data.Resize( size );
 			m_Size = size;

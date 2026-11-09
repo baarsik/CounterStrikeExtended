@@ -45,19 +45,24 @@ private:
 	
 public:
 
-	void * operator new(size_t size)
-	{
-		// Requested size should match size of class.
-        if ( size != sizeof( CCoreTriangleEffect ) )
-#ifdef _WIN32
-             throw "Error in requested size of new particle class instance.";
-#else
-			return NULL;
+    void* operator new(size_t size)
+#if !defined(_WIN32)
+        noexcept
 #endif
-		
-      return((CCoreTriangleEffect *) CMiniMem::Instance()->newBlock());
+    {
+        // The native allocator already returns null for a mismatched size or
+        // exhausted pool. Declare that contract so new-expressions skip construction.
+        if (size != sizeof(CCoreTriangleEffect)) {
+#if defined(_WIN32)
+            throw "Error in requested size of new particle class instance.";
+#else
+            return nullptr;
+#endif
+        }
 
-	}//this asks for a new block of memory from the MiniMen class
+        return CMiniMem::Instance()->newBlock();
+    }
+
 		
 	virtual void Think( float time ) = 0;
 	virtual bool CheckVisibility ( void ) = 0;

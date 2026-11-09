@@ -25,8 +25,11 @@
 //#include "pm_shared.h" // OBS_ defines
 #include <stdio.h> // _snprintf define
 #include <string.h>
+#include <climits>
 #include <wchar.h>
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 
 using namespace vgui2;
 
@@ -465,7 +468,11 @@ void CSpectatorGUI::SetImage( const char* image )
 	if ( image && m_pBannerImage )
 	{
 		CUtlVector<char> imageName;
-		imageName.AddMultipleToTail( strlen( image ) + 1 );
+        const size_t imageBytes = strlen(image);
+        if (imageBytes >= INT_MAX) {
+            return;
+        }
+        imageName.AddMultipleToTail(static_cast<int>(imageBytes) + 1);
 		strcpy( imageName.Base(), image );
 		char* extension = strstr( imageName.Base(), ".tga" );
 		if ( extension )

@@ -252,7 +252,7 @@ CCareerDifficultyBox::CCareerDifficultyBox( const char* panelName, vgui2::Panel*
 #ifdef _WIN32
 		m_pTextLabel->SetText( SharedWVarArgs( (wchar_t*)L"%hs", name ) );
 #else
-		m_pTextLabel->SetText( SharedWVarArgs( (wchar_t*)L"%s", name ) );
+        m_pTextLabel->SetText( SharedWVarArgs( (wchar_t*)L"%hs", name ) );
 #endif
 	}
 

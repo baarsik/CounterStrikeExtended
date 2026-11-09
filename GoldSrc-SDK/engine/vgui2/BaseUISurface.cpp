@@ -124,15 +124,11 @@ void BaseUISurface::AppHandler(void *event, void *) {
             if (error) {
                 break;
             }
-#if defined(_WIN32)
             const cse::Utf16Character units = cse::EncodeUtf16(ch);
             g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(units.first));
             if (units.count == 2) {
                 g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(units.second));
             }
-#else
-            g_InputInternal->InternalKeyTyped(static_cast<wchar_t>(ch));
-#endif
             i += bytes;
         }
         break;
@@ -358,7 +354,9 @@ void BaseUISurface::Init( VPANEL embeddedPanel, IEngineSurface* engineSurface, I
 	m_pChromeController = chromeController;
 	if ( m_pChromeController )
 	{
+#if INTPTR_MAX <= INT32_MAX
 		m_pChromeController->Init( "htmlcache", "htmlcookies" );
+#endif
 		m_pChromeController->SetCefThreadTargetFrameRate( 60 );
 	}
 }
@@ -366,6 +364,9 @@ void BaseUISurface::Init( VPANEL embeddedPanel, IEngineSurface* engineSurface, I
 void BaseUISurface::Shutdown() {
     if (m_pChromeController) {
         m_pChromeController->Shutdown();
+#if INTPTR_MAX > INT32_MAX
+        m_pChromeController = nullptr;
+#endif
     }
 
 #if defined(_WIN32)
@@ -431,6 +432,30 @@ void BaseUISurface::SetCursor(vgui2::HCursor cursor) {
 
     const bool useRawInput = m_rawinput.value && BUsesSDLInput();
     SDL_Window *window = (SDL_Window *)game->GetMainWindow();
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeMouseWindow &mouseWindow = cse::NativeMouseWindowState();
+    if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput) ||
+        mouseWindow.NeedsRetry(cse::NativeCursorOwner::VGui2)) {
+        cse::NativeCursorTransaction transaction;
+        if (mouseWindow.Begin(window, cse::NativeCursorOwner::VGui2, s_bCursorVisible, useRawInput, transaction)) {
+            SDL_SetWindowMouseGrab(window, !s_bCursorVisible && cl_mousegrab.value != 0.0f);
+            if (transaction.Current()) {
+                SDL_PumpEvents();
+            }
+            if (transaction.Current()) {
+                SDL_GetRelativeMouseState(nullptr, nullptr);
+            }
+            if (transaction.Current()) {
+                m_deltax = 0.0f;
+                m_deltay = 0.0f;
+                game->SetCursorVisible(s_bCursorVisible);
+            }
+            if (transaction.Commit()) {
+                s_bUsedRawInputLast = useRawInput;
+            }
+        }
+    }
+#else
     if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput)) {
         cse::ApplyCursorVisibility(window, s_bCursorVisible, useRawInput);
         SDL_SetWindowMouseGrab(window, !s_bCursorVisible && cl_mousegrab.value != 0.0f);
@@ -441,6 +466,7 @@ void BaseUISurface::SetCursor(vgui2::HCursor cursor) {
         game->SetCursorVisible(s_bCursorVisible);
     }
     s_bUsedRawInputLast = useRawInput;
+#endif
 }
 
 bool BaseUISurface::m_bTranslateExtendedKeys = true;

@@ -3,11 +3,13 @@
 #endif
 
 #include "sound.h"
+#include "sound_callback.h"
 #include "sound_backend_config.h"
 #include "vox_word.h"
 #include "mem.h"
 #include "common.h"
 #include "conprint.h"
+#include "sys.h"
 #include "client.h"
 #include "cvar.h"
 #include "filesystem.h"
@@ -65,11 +67,16 @@ typedef struct dlyline_s
 	int lp2;
 	int mod;
 	int modcur;
+#if defined(_WIN32)
 	HANDLE hdelayline;
+#else
+    void* hdelayline;
+#endif
 	sample_t* lpdelayline;
 } dlyline_t;
 
-static_assert( sizeof( dlyline_t ) == 60 );
+// The delay buffer handle/pointer are native ownership; PCM samples remain 16-bit.
+static_assert(sizeof(dlyline_t) == (sizeof(void*) == 4 ? 60 : 72));
 
 constexpr int CSXDLYMAX = 4;
 constexpr int ISXMONODLY = 0;
@@ -340,9 +347,13 @@ extern "C" void VOX_ReadSentenceFile()
 			*cursor++ = 0;
 		if ( name )
 		{
-			std::size_t bytes = std::strlen( name ) + std::strlen( words ) + 2;
-			rgpszrawsentence[count] = static_cast<char*>( Mem_Malloc( bytes ) );
-			Q_memcpy( rgpszrawsentence[count], name, bytes );
+            const std::size_t bytes = std::strlen(name) + std::strlen(words) + 2;
+            if (bytes > INT_MAX) {
+                Sys_Error("VOX_ReadSentenceFile: sentence exceeds native allocation interface");
+            }
+            const int allocationBytes = static_cast<int>(bytes);
+            rgpszrawsentence[count] = static_cast<char*>(Mem_Malloc(allocationBytes));
+            Q_memcpy(rgpszrawsentence[count], name, allocationBytes);
 			if ( ++count >= MAX_SENTENCES )
 				break;
 		}
@@ -1399,9 +1410,6 @@ int VOX_FPaintPitchChannelFrom8Offs( portable_samplepair_t* output, channel_t* c
 
 float g_SND_VoiceOverdrive = 1.0f;
 
-typedef int ( *soundDataCallback_t )(
-	sfxcache_t* cache, char* output, int outputBytes, int samplePosition, int sampleCount );
-
 void SND_MoveMouth( channel_t* channel, sfxcache_t* cache, int count )
 {
 	mouth_t& mouth = cl_entities[channel->entnum].mouth;
@@ -1545,7 +1553,10 @@ void S_MixChannelsToPaintbuffer( int end, int fPaintHiresSounds, int voiceOnly )
 					short* data;
 					if ( callbackSound )
 					{
-						soundDataCallback_t callback = reinterpret_cast<soundDataCallback_t>( cache->loopstart );
+                        const auto callback = cse::sound::ResolveDataCallback(cache->loopstart);
+                        if (!callback) {
+                            break;
+                        }
 						count = callback( cache, voiceBuffer, sizeof( voiceBuffer ), channel->pos, count );
 						data = reinterpret_cast<short*>( voiceBuffer );
 					}

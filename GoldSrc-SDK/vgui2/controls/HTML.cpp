@@ -25,7 +25,11 @@
 #include "controls.h"
 
 #include "../../engine/common.h"
-#include "color.h"
+#if defined(_WIN32)
+#include "Color.h"
+#else
+#include "../../engine/color.h"
+#endif
 #include "vgui/IBorder.h"
 #include "vgui/IInput.h"
 #include "vgui/IPanel.h"
@@ -198,6 +202,11 @@ void HTMLComboBoxHost::OnKillFocus()
 
 void HTMLComboBoxHost::OnCursorMoved( int x, int y )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_pParent == nullptr || m_pParent->m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( vgui2::input()->GetMouseOver() == GetVPanel() )
 		m_pParent->m_Serializer->MouseMove( x, y );
 }
@@ -275,10 +284,17 @@ HTML::HTML( Panel* parent, const char* name, bool allowJavaScript, bool bPopupWi
 		IHTMLChromeController* controller = surface()->AccessChromeHTMLController();
 		if ( controller != nullptr )
 		{
+#if INTPTR_MAX > INT32_MAX
+            m_Serializer = controller->CreateSerializer(this);
+            if (m_Serializer != nullptr) {
+                controller->CreateBrowser(m_Serializer->GetResponseTarget(), bPopupWindow, "Valve Half-Life");
+            }
+#else
 			m_Serializer = controller->CreateSerializer( this );
 			controller->CreateBrowser(
 				reinterpret_cast<IHTMLResponses*>( static_cast<std::uintptr_t>( m_Serializer->GetBrowserHandle() ) ),
 				bPopupWindow, "Valve Half-Life" );
+#endif
 		}
 	}
 
@@ -307,12 +323,19 @@ HTML::HTML( Panel* parent, const char* name, bool allowJavaScript, bool bPopupWi
 	m_iCopyLinkMenuItemID =
 		menu->AddMenuItem( "#vgui_HTMLCopyLink", new KeyValues( "Command", "command", "copylink" ), this, nullptr );
 	menu->SetItemVisible( m_iCopyLinkMenuItemID, false );
+#if UINTPTR_MAX > UINT32_MAX
+    BrowserResize();
+#endif
 }
 
 HTML::~HTML()
 {
 	m_pContextMenu->MarkForDeletion();
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer != nullptr && surface() != nullptr)
+#else
 	if ( surface() != nullptr )
+#endif
 	{
 		IHTMLChromeController* controller = surface()->AccessChromeHTMLController();
 		if ( controller != nullptr )
@@ -337,6 +360,11 @@ void HTML::OnSetCursorVGUI( int cursor )
 //-----------------------------------------------------------------------------
 bool HTML::StopLoading()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return false;
+    }
+#endif
 	m_Serializer->StopLoad();
 	return true;
 }
@@ -346,17 +374,32 @@ bool HTML::StopLoading()
 //-----------------------------------------------------------------------------
 bool HTML::Refresh()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return false;
+    }
+#endif
 	m_Serializer->Reload();
 	return true;
 }
 
 void HTML::GoBack()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->GoBack();
 }
 
 void HTML::GoForward()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->GoForward();
 }
 
@@ -378,21 +421,41 @@ bool HTML::BCanGoFoward()
 
 void HTML::RunJavascript( const char* pchScript )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->ExecuteJavascript( pchScript );
 }
 
 void HTML::OnMouseDoublePressed( MouseCode code )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->MouseDoubleClick( ConvertMouseCodeToCEFCode( code ) );
 }
 
 void HTML::OnKeyTyped( wchar_t unichar )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->KeyChar( unichar );
 }
 
 void HTML::OnMouseWheeled( int delta )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( _vbar != nullptr && m_pComboBoxHost != nullptr && !m_pComboBoxHost->IsVisible() )
 	{
 		double value = static_cast<double>( _vbar->GetValue() ) - static_cast<double>( delta ) * 100.0 / 3.0;
@@ -443,6 +506,11 @@ void HTML::OnEditNewLine( Panel* panel )
 
 void HTML::BrowserStartRequest( const char* url, const char* target, const char* postdata, bool isredirect )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	bool allow = OnStartRequest( url, target, postdata, isredirect );
 	m_Serializer->StartRequestResponse( allow );
 	UpdateCachedHTMLValues();
@@ -501,6 +569,11 @@ void HTML::BrowserGetZoomResponse( float flZoom )
 
 void HTML::DismissJSDialog( int bResult )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->JSDialogResponse( bResult );
 }
 
@@ -512,6 +585,11 @@ void HTML::BrowserCanGoBackandForward( bool bgoback, bool bgoforward )
 
 void HTML::UpdateCachedHTMLValues()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->FullRepaint();
 }
 
@@ -523,6 +601,11 @@ void HTML::BrowserLoadingResource()
 void HTML::BrowserNeedsPaint( int textureid, int wide, int tall, const unsigned char* rgba, int updatex, int updatey,
 	int updatewide, int updatetall, int combobox_wide, int combobox_tall, const unsigned char* combobox_rgba )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( m_iHTMLTextureID == 0 || m_allocedTextureWidth != wide || m_allocedTextureHeight != tall )
 	{
 		if ( m_iHTMLTextureID != 0 )
@@ -573,6 +656,11 @@ void HTML::BrowserStatusText( const char* text )
 
 void HTML::OnSetFocus()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	Panel::OnSetFocus();
 	m_Serializer->SetFocus( true );
 }
@@ -643,6 +731,11 @@ void HTML::PerformLayout()
 
 void HTML::OnSliderMoved()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( _hbar->IsVisible() )
 		m_Serializer->SetHorizontalScroll( _hbar->GetValue() );
 	if ( _vbar->IsVisible() )
@@ -755,8 +848,30 @@ void HTML::CalcScrollBars( int w, int h )
 		InvalidateLayout( false, false );
 }
 
+#if UINTPTR_MAX > UINT32_MAX
+void HTML::OnCseEffectiveVisibilityChanged() {
+    BrowserResize();
+}
+#endif
+
 void HTML::BrowserResize()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+    for (VPANEL panel = GetVPanel(); panel != 0; panel = ipanel()->GetParent(panel)) {
+        if (!ipanel()->IsVisible(panel)) {
+            // Zero dimensions suspend the owned browser without losing its layout
+            // or scroll state. Invalidate the size cache so showing it restores both.
+            m_iWideLastHTMLSize = 0;
+            m_iTalLastHTMLSize = 0;
+            m_Serializer->SetFocus(false);
+            m_Serializer->BrowserSize(0, 0);
+            return;
+        }
+    }
+#endif
 	int wide = 0;
 	int tall = 0;
 	GetSize( wide, tall );
@@ -837,6 +952,11 @@ void HTML::BrowserSizePopup( int x, int y, int wide, int tall )
 
 void HTML::OnMove()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	Panel::OnMove();
 	int absX = 0;
 	int absY = 0;
@@ -848,6 +968,11 @@ void HTML::OnMove()
 
 void HTML::OnMousePressed( MouseCode code )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	std::free( m_sDragURL.m_pchString );
 	m_sDragURL.m_pchString = nullptr;
 	// mouse4 = back button
@@ -898,6 +1023,11 @@ void HTML::OnMousePressed( MouseCode code )
 
 void HTML::OnKillFocus()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( input()->GetFocus() != m_pComboBoxHost->GetVPanel() )
 		Panel::OnKillFocus();
 	if ( !m_pContextMenu->HasFocus() && !m_pComboBoxHost->HasFocus() )
@@ -906,6 +1036,11 @@ void HTML::OnKillFocus()
 
 void HTML::OnMouseReleased( MouseCode code )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	int cefCode = 0;
 	if ( code != MOUSE_LEFT )
 	{
@@ -939,6 +1074,11 @@ void HTML::OnMouseReleased( MouseCode code )
 
 void HTML::OnCursorMoved( int x, int y )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	// Only do this when we are over the current panel
 	if ( input()->GetMouseOver() == GetVPanel() )
 	{
@@ -969,6 +1109,11 @@ void HTML::OnCursorMoved( int x, int y )
 
 void HTML::OnCommand( const char* pchCommand )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( _stricmp( pchCommand, "back" ) == 0 )
 	{
 		GoBack();
@@ -1082,6 +1227,11 @@ static void SubmitURL( IHTMLSerializer* serializer, const char* url, const char*
 
 void HTML::OpenURL( const char* URL, const char* postData, bool force )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	( void )force;
 	if ( m_Serializer->GetBrowserIndex() < 0 )
 		StorePendingNavigation( m_sPendingURLLoad, m_sPendingPostData, URL, postData );
@@ -1091,6 +1241,13 @@ void HTML::OpenURL( const char* URL, const char* postData, bool force )
 
 void HTML::BrowserReady()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+    // The provider may become ready after visibility changed during creation.
+    BrowserResize();
+#endif
 	char* url = m_sPendingURLLoad.m_pchString;
 	if ( url == nullptr )
 		return;
@@ -1188,6 +1345,11 @@ void HTML::PaintComboBox()
 
 void HTML::PostURL( const char* URL, const char* pchPostData, bool force )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	( void )force;
 	if ( m_Serializer->GetBrowserIndex() < 0 )
 		StorePendingNavigation( m_sPendingURLLoad, m_sPendingPostData, URL, pchPostData );
@@ -1248,12 +1410,22 @@ bool HTML::FindDialogVisible()
 
 void HTML::OnKeyCodeReleased( KeyCode code )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	int virtualKey = HTMLVirtualKey( code );
 	m_Serializer->KeyUp( virtualKey, HTMLKeyModifiers( code ) );
 }
 
 void HTML::OnKeyCodeTyped( KeyCode code )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	if ( code != KEY_ESCAPE )
 	{
 		if ( code > KEY_ESCAPE )
@@ -1328,6 +1500,11 @@ bool HTML::IsScrollbarVisible()
 
 void HTML::AddHeader( const char* pchHeader, const char* pchValue )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->AddHeader( pchHeader, pchValue );
 }
 
@@ -1356,6 +1533,11 @@ void HTML::StopFind()
 
 void HTML::GetLinkAtPosition( int x, int y )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+#endif
 	m_Serializer->LinkAtPosition( x, y );
 }
 

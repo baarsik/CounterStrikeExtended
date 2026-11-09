@@ -72,6 +72,14 @@ struct PMEEvent_t
 CPUInfo::CPUInfo()
 	: m_Manufacturer( 2 ), m_Signature( 0 ), m_BrandIndex( 0 ), m_Features( 0 ), m_pCacheDescriptors( NULL )
 {
+#if defined(_M_ARM64)
+    // GDPERF programs x86 model-specific registers. ARM64 is outside that
+    // provider contract: retain the existing unknown-CPU/no-driver path rather
+    // than claiming Intel/AMD features or issuing CPUID. Native timers remain
+    // available independently through the platform clock implementation.
+    m_Vendor = "ARM64";
+    m_Brand = "ARM64";
+#else
 	int registers[4];
 	__cpuid( registers, 0 );
 	int maxLeaf = registers[0];
@@ -140,6 +148,7 @@ CPUInfo::CPUInfo()
 		m_Manufacturer = 1;
 	else
 		m_Manufacturer = 2;
+#endif
 }
 
 PME::PME()

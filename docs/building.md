@@ -1,4 +1,4 @@
-# Windows x86 build
+# Runtime builds
 
 ## Requirements
 
@@ -86,7 +86,69 @@ Core and DemoPlayer remain enabled when broadcasting is disabled.
 
 The software client renderer (`sw.dll`) is unavailable; the inherited video
 settings still offer it. The dedicated engine (`swds.dll`) is separate.
-Windows x64/ARM64 and macOS/Linux runtime builds are unsupported.
+Windows x64 is in native bring-up. Windows ARM64 remains conditional; complete
+macOS has all-target configure presets but incomplete source portability; Linux
+composition remains gated. See [migration requirements and status](native-migration.md) before treating an
+opt-in target as playable.
+
+## Native Windows bring-up
+
+Initialize the MSVC developer environment for the selected target architecture.
+The compiler target is checked independently of the host CPU. Use a separate
+build and runtime directory for each architecture and configuration.
+
+```powershell
+cmake --preset runtime-windows-x64-release `
+  -DCSE_NATIVE_THIRD_PARTY_PREFIX=C:/dependencies/x64-windows-static-md `
+  -DCSE_STEAM_PROVIDER_FILE=C:/providers/steam_api64.dll `
+  -DCEF_ROOT=C:/providers/cef
+cmake --build --preset runtime-windows-x64-release --parallel
+```
+
+The native third-party prefix must contain the pinned source-built packages
+selected by `cmake/NativeThirdParty.cmake`; the retained x86 archives are not
+native link inputs. SDL3 3.4.20 and mpg123 1.33.7 build from the bundled pinned
+sources. Steam and CEF artifacts must match the checked-in provider pins and
+selected architecture. CEF includes its sandboxed process host, resources and
+locales. Architecture checks reject mismatched import libraries and providers.
+
+Use `runtime-windows-x64-debug` with the same explicit provider paths for Debug.
+Runtime output is `build/<preset>/runtime/<Configuration>/`. The
+`runtime-windows-arm64-release` and `runtime-windows-arm64-debug` presets are
+conditional bring-up configurations; they require their own ARM64 dependencies
+and complete provider qualification. Merely selecting a preset does not establish
+provider availability or runtime support.
+
+The latest frozen Windows x64 cohort builds all 19 targets in Release/Debug.
+Selected runtime checks and their limits are in [validation](validation.md).
+Rebuild all owned modules together after native ABI changes.
+
+## macOS Apple Silicon bring-up
+
+Use macOS 14+ with Apple Clang, CMake, Ninja and Python. The source-built native
+prefix must follow the [pinned dependency recipes](../cmake/dependencies/vcpkg/README.md).
+Supply the pinned native Valve library and extracted macOS ARM64 CEF distribution:
+
+```sh
+cmake --preset runtime-macos-arm64-release \
+  -DCSE_NATIVE_THIRD_PARTY_PREFIX=/absolute/dependencies/cse-arm64-macos \
+  -DCSE_STEAM_PROVIDER_FILE=/absolute/providers/libsteam_api.dylib \
+  -DCEF_ROOT=/absolute/providers/cef-macosarm64
+cmake --build --preset runtime-macos-arm64-release --parallel
+```
+
+Use `runtime-macos-arm64-debug` with the same provider paths for Debug. Both
+presets select all 19 responsibilities and isolate their runtime under
+`build/<preset>/runtime/<Configuration>/`. The native browser helper path is
+provided by the preset. No private local provider paths are stored in it.
+
+Both complete graphs configure; complete source compilation/linking is still
+being ported. The first full compile records Windows-only platform code and
+remaining LP64 boundaries. These presets do not deliver or qualify the complete
+macOS game/app bundle yet. Offline Metal shader tools are also required for the
+shared renderer. C++ exceptions follow the owning per-file policy; explicitly
+annotated Windows Async sources leave fatal native hardware faults to the OS
+crash reporter. This does not provide Windows SEH translation or minidump parity.
 
 ## Output layout
 
@@ -136,26 +198,29 @@ uses upstream's generic C decoder. `mpg123.dll` goes beside the engines in the
 output root. Music uses mpg123 and SDL3 streams; Windows sound effects use
 DirectSound/WaveOut.
 
-## Build maintenance and validation
+## Component builds and tests
 
-Update retained manifests or `tools/translate_msbuild.py`, then regenerate the
-checked-in target definitions:
+Dependency-only presets build pinned SDL3/mpg123 and an ABI probe:
 
-```powershell
-python tools/translate_msbuild.py
-```
+| Platform | Release preset | Debug preset |
+| --- | --- | --- |
+| Windows x64 | `deps-windows-x64-release` | `deps-windows-x64-debug` |
+| Windows ARM64 | `deps-windows-arm64-release` | `deps-windows-arm64-debug` |
+| Mac ARM64 | `deps-macos-arm64-release` | `deps-macos-arm64-debug` |
 
-The [build manifest reference](msbuild/README.md) explains translation,
-configuration settings, generated inputs and archived evidence.
+For example, run `cmake --preset deps-macos-arm64-release`, then
+`cmake --build --preset deps-macos-arm64-release --parallel`. Each owns its
+`build/<preset>/`, stages providers in `runtime/` and keeps the probe in `bin/`.
+No provider or game executes during a build.
 
-Local checks cover Ninja presets, output paths, dependency restoration and
-Release flags. The native migration has rebuilt all 19 Win32 targets with Ninja in Release
-and Debug and audited their output inventories; see the active migration plan
-for evidence scope and remaining reference-fixture work. The [runtime validation report](mpg123-migration-validation.md) covers
-earlier builds, gameplay and music; [qualification tools](../tools/qualification/README.md)
-describe the separate runtime checks.
+The analogous `game-modules-<platform>-<cpu>-release` / `-debug` presets build
+only HL and CS server modules. Supported combinations are `windows-x64`,
+`windows-arm64` and `macos-arm64`. They reuse the generated production sources,
+exports and per-file policies, retaining game-relative runtime paths. They do
+not build a complete client or engine. Mac uses `hl.dylib` / `mp.dylib`.
 
-Run the decoder, stream and CD worker tests in the Windows build environment:
+[Native fixture READMEs](../tests/native/README.md) provide component commands,
+provider inputs and execution boundaries. For the decoder/player/worker tests:
 
 ```powershell
 cmake -S tests/music -B build/music-tests-release -G Ninja -DCMAKE_BUILD_TYPE=Release
@@ -163,297 +228,34 @@ cmake --build build/music-tests-release --parallel
 ctest --test-dir build/music-tests-release --output-on-failure
 ```
 
-For Debug, use a separate build directory with `-DCMAKE_BUILD_TYPE=Debug`.
-Stream tests use SDL's dummy audio device.
+Use separate Debug directories. Stream tests use SDL's dummy device; real
+Steam, CEF, audio/device and network probes are explicit runtime checks.
 
-## Native dependency builds
+## Maintaining generated builds
 
-The migration currently provides separate **dependency-only** builds. These build
-SDL3 3.4.20 and mpg123 1.33.7 from pinned local source archives and link a small
-provider ABI probe. They do not build a native game or change the Win32 default.
-The [migration plan](superpowers/plans/2026-11-08-native64-migration.md) tracks the
-remaining runtime, serialization, platform, provider and renderer gates.
-
-On Apple Silicon with Xcode command-line tools:
+Update the retained manifests or translator, then regenerate and check:
 
 ```sh
-cmake --preset deps-macos-arm64-release
-cmake --build --preset deps-macos-arm64-release --parallel
-cmake --preset deps-macos-arm64-debug
-cmake --build --preset deps-macos-arm64-debug --parallel
+python3 tools/translate_msbuild.py
+python3 tools/translate_msbuild.py --check
+python3 -m unittest discover -s tools/tests
 ```
 
-On Windows, initialize MSVC for the selected target architecture, then use
-`deps-windows-x64-release` / `deps-windows-x64-debug`, or the conditional
-`deps-windows-arm64-release` / `deps-windows-arm64-debug`. A host ARM64 compiler
-can emit x64 binaries; the compiler target is checked using its predefined
-macros and pointer width. ARM64EC is excluded. An ARM64 target requires the
-ARM64 C++ compiler/tools component, in addition to the Windows SDK.
+[Manifest documentation](msbuild/README.md) describes source membership,
+per-file FP/EH/assertion settings, exports/resources and generated inputs. Keep
+symbols/import libraries out of runtime outputs and never edit generated target
+files independently. [Qualification tools](../tools/qualification/README.md)
+cover actual game/server/media runs; [validation](validation.md) records the
+pinned cohorts and incomplete gates.
 
-Each preset owns `build/<preset>/`; provider libraries are staged into its
-`runtime/`, and the probe stays in `bin/`. Import archives, symbols and build
-intermediates remain outside `runtime/`. The macOS minimum is 14.0. No tests,
-provider initialization or games run as part of these builds. Execute the probe
-only in an authorized fixture; on Windows its `runtime/` must be on `PATH`.
+Native-only manifest metadata:
 
-Inspect actual built machine types without loading code:
+| Property | Meaning |
+| --- | --- |
+| `CseTargetOS` / `CseReplaces` | Select an OS replacement while preserving the reference source inventory; accepted OS values are `macos`, `linux`, `windows`, `posix` |
+| `CseNativeSdl3` | Route non-Windows consumers through the existing pinned SDL3 target; Release/Debug values must agree |
+| `CseNativeModuleAliases` | Add guarded relative POSIX library aliases; CS keeps `mp` and provides `cs.dylib` / `cs.so` |
 
-```sh
-python3 tools/binary_identity.py --expect arm64 build/deps-macos-arm64-release/bin/cse_dependency_probe
-```
-
-Windows imports are inspected member by member, including short import records.
-Directory names cannot establish architecture. Mixed archives, incompatible
-pointer widths and unknown machine types fail configuration.
-
-Capture an immutable committed source reference before runtime changes:
-
-```sh
-python3 tools/qualification/capture_reference.py --revision <commit> /absolute/path/to/new-reference
-python3 tools/qualification/capture_reference.py --verify /absolute/path/to/new-reference
-```
-
-This seals committed bytes independently of local edits. Source capture reports
-`qualified: false`; it does not replace binary or runtime qualification. After an
-all-target Windows build, audit its generated output contract:
-
-```sh
-python3 tools/qualification/audit_runtime_inventory.py output --architecture x86 --output /absolute/path/to/new-audit.json
-```
-
-The static report includes all generated production outputs, provider binaries,
-SHA-256 hashes, exports/ordinals, imports and resource-directory hashes. Unresolved
-formal imports and runtime-only provider checks remain explicit. Reports never
-claim gameplay or external-server acceptance.
-
-The remaining compression/font/media libraries use the separately pinned
-[vcpkg source manifest](../cmake/dependencies/vcpkg/README.md). That document gives
-source bootstrap, both-configuration builds, provenance/machine auditing and the
-native standalone link fixture. These libraries are not substituted into the
-Win32 regression workflow.
-
-`tests/music` now checks the exact decoder PCM against the measured Win32
-reference as well as stream and worker behavior. ARM builds select mpg123's
-scalar decoder; contraction is disabled in its source build to preserve the
-reference rounding. A passing decoder fixture does not qualify the complete
-sound-effects mixer, microphone or network voice path.
-
-## Native game module components
-
-During migration, an explicit component build produces the owned Counter-Strike
-and Half-Life server libraries. Use a Windows MSVC environment for the selected CPU:
-
-```powershell
-cmake --preset game-modules-windows-x64-release
-cmake --build --preset game-modules-windows-x64-release --parallel
-cmake --preset game-modules-windows-x64-debug
-cmake --build --preset game-modules-windows-x64-debug --parallel
-```
-
-Replace `x64` with `arm64` for the Windows ARM64 component presets. Each preset
-uses its own `build/game-modules-*` directory; DLLs appear below
-`runtime/Release` or `runtime/Debug`, retaining `valve/dlls/hl.dll` and
-`cstrike/dlls/mp.dll`. Import libraries and symbols stay outside those runtime
-directories. On Apple Silicon with Xcode command-line tools, use:
-
-```sh
-cmake --preset game-modules-macos-arm64-release
-cmake --build --preset game-modules-macos-arm64-release --parallel
-cmake --preset game-modules-macos-arm64-debug
-cmake --build --preset game-modules-macos-arm64-debug --parallel
-```
-
-The macOS outputs use the same game-relative directories with `hl.dylib` and
-`mp.dylib`, targeting macOS 14.0. The default Win32 workflow and root output
-directories are unchanged.
-
-This entry point reuses the generated production targets, including their
-per-file compiler policies. `Sources.cmake` is generated once from the owning
-manifests and shared by the MSVC and Clang policy branches. Portable policies
-preserve per-file exception handling, FP modes and assertion definitions. Existing
-Clang SDK diagnostics remain visible through an explicit nonfatal list; pointer
-narrowing remains fatal. Release symbols remain opt-in.
-
-Native Windows definitions preserve the C entry
-points and explicit ordinals; C++ `EXPORT` declarations emit native decorated
-names. Update owning manifests/source declarations and run the translator when
-changing this contract.
-
-These presets build two modules for ABI and data fixtures. They do not build the
-client, engine, dedicated launcher or complete runtime, and do not establish
-renderer, provider, voice or external-server compatibility. The bounded ABI,
-world/team-list and C4 fixtures pass against both game libraries on macOS ARM64
-in Release and Debug. Export inventory checks compare every reference C name and
-canonical C++ method against the retained Win32 `dumpbin /exports` reports:
-
-```sh
-python3 tools/macho_game_exports.py --reference /path/to/Release-hl-win32.txt \
-  --library build/game-modules-macos-arm64-release/runtime/Release/valve/dlls/hl.dylib
-```
-
-This command checks architecture, minimum macOS version and exports. It does not
-load the game or establish gameplay acceptance.
-
-
-## Native effects fixtures
-
-The native SDL DMA adapter and shared stereo transfer can be tested separately
-from the renderer. The maintained Win32 runtime keeps its DirectSound/WaveOut
-device; native Windows and POSIX builds select SDL. Mixer/DSP/channel algorithms
-remain in the engine. VOX word pointers use native in-memory storage; these words
-are reconstructed from sentence text.
-
-```sh
-cmake -S tests/native/sound -B build/sound-tests -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DCSE_SOUND_SDL_PROVIDER=/absolute/path/to/qualified/libSDL3.0.dylib
-cmake --build build/sound-tests --parallel
-ctest --test-dir build/sound-tests --output-on-failure
-```
-
-Use the architecture-matched source-built provider from the dependency presets.
-On Windows also set `CSE_SOUND_SDL_IMPORT_ARCHIVE` to its matching import archive.
-The fixture checks actual machine types and pinned headers before linking, then
-checks the provider version when explicitly executed. With no provider path,
-only the transfer/ring tests build. No provider or game runs during a build.
-These fixtures use SDL's dummy device; run them within an authorized fixture.
-
-The reference and native paths must produce identical PCM for clipping, volume,
-ring wrapping and high addresses. Provider checks cover exact samples at matching
-stream/device rates, write exclusion, focus pause, nested ownership and repeated
-shutdown. Hardware-rate conversion, complete native gameplay audio, microphone,
-voice and A3D remain separate acceptance work.
-
-
-## CPU and profiler fixtures
-
-This standalone build compiles the production CPU discovery and fasttimer sources:
-
-```sh
-cmake -S tests/native/cpu -B build/cpu-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/cpu-tests --parallel
-ctest --test-dir build/cpu-tests --output-on-failure
-```
-
-Use the selected MSVC architecture environment on Windows. On Apple Silicon the
-fixture targets macOS 14+. Repeat with a separate Debug directory. It checks
-instruction discovery, bounded topology, timer units, monotonic samples and
-profiler conversion against an independent clock. It does not run a game or
-qualify gameplay floating-point behavior.
-
-
-## Legacy numerical fixtures
-
-```sh
-cmake -S tests/native/numerics -B build/numeric-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/numeric-tests --parallel
-ctest --test-dir build/numeric-tests --output-on-failure
-```
-
-These fixtures compare the scalar conversion with the actual SSE instruction on
-x86, then compile the production angle-writing and cvar-formatting bodies with
-their separate strict/precise policies. Generated fixture headers are extracted
-from the selected source, without rewriting the bodies. An explicitly pinned
-source directory may be selected with `CSE_NUMERIC_SOURCE_DIR` for reference
-comparisons. Binary corpora record exact conversion results, angle write arguments
-and cvar strings; they do not establish complete network packet or gameplay parity.
-See the portability inventory for VM1's pre-existing extreme-angle Debug limit.
-
-
-## Packed surface-lighting fixtures
-
-```sh
-cmake -S tests/native/surface_lighting -B build/surface-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/surface-tests --parallel
-ctest --test-dir build/surface-tests --output-on-failure
-```
-
-Python verifies the exact pixel/state hash from the pinned Win32 MMX function.
-The fixture uses actual SDK texture types and native high mappings. To qualify a
-new corpus, rebuild the frozen Win32 function with the same fixture inputs before
-updating `expected_pixels.json`; changing the fixture source alone fails the gate.
-`CSE_SURFACE_IMPLEMENTATION` may explicitly select an archived function header,
-with `CSE_SURFACE_REFERENCE_MMX=ON` for the Win32 reference build. Normal native
-fixtures exercise the scalar implementation. They do not create a game window
-or establish complete renderer acceptance.
-
-
-## Native module-loading fixtures
-
-```sh
-cmake -S tests/native/module_loading -B build/module-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/module-tests --parallel
-ctest --test-dir build/module-tests --output-on-failure
-```
-
-Use separate Debug and selected architecture directories. The fixture compiles
-actual selected production loader sources and an external shared library. Windows
-checks four owners; POSIX adds HLTV Core and DemoPlayer. An explicitly pinned
-source tree may be selected through `CSE_MODULE_SOURCE_ROOT` for reference checks.
-On macOS, sanitizer qualification uses `CSE_MODULE_SANITIZE_LEAF=OFF` to keep the
-reloadable external leaf uninstrumented while retaining sanitizer instrumentation
-in production loaders and fixture executables; see the documented ASan reproduction
-in the portability inventory. This project does not launch a game or real provider.
-
-
-## Native Steam provider fixtures
-
-```sh
-cmake -S tests/native/steam -B build/steam-tests -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/steam-tests --parallel
-ctest --test-dir build/steam-tests --output-on-failure
-```
-
-CTest exercises only the owned rejection boundary with an incomplete fixture
-library. Real provider execution is explicit: invoke `steam_provider_probe` with
-an absolute verified provider path and `--bind` for export binding or `--client`
-for two real session cycles. Set `SteamAppId=70` and `SteamGameId=70` in that
-process environment and use the installed logged-in Steam client with Half-Life
-ownership. Verify the selected artifact against
-`tools/qualification/fixtures/steam/lock.json` before execution. Repeat in an
-isolated Debug directory. The client probe checks actual SDK interfaces, context
-caching, async callbacks, decoder-rate queries and explicit session shutdown; it
-does not qualify server authentication or encoded voice/network compatibility.
-No real provider is executed by a build or ordinary CTest invocation.
-
-
-## Owned Steam service and module-lifecycle fixtures
-
-```sh
-cmake -S tests/native/steam_service -B build/steam-service-tests -G Ninja -DCMAKE_BUILD_TYPE=Release -DCSE_STEAM_FIXTURE_PROVIDER=/absolute/path/to/pinned/provider
-cmake --build build/steam-service-tests --parallel
-ctest --test-dir build/steam-service-tests --output-on-failure
-```
-
-The real provider must match the committed pin and selected compiler architecture.
-CTest only runs the incomplete-provider rejection fixture. For separately
-explicit real execution, set `SteamAppId` and `SteamGameId` to 10 (Counter-Strike)
-or 70 (Half-Life), then run `steam_service_probe`. Run
-`steam_service_module_probe` with absolute paths to the built
-`steam_service_owned_module` and `steam_service_owned_module_peer` libraries to
-exercise three peer reload cycles and global cleanup. Repeat using an isolated
-Debug build; Apple Silicon fixtures also support ASan/UBSan.
-
-The explicit `check_staging.py --provider /absolute/path/to/pinned/provider
---target windows-x64` (or `macos-arm64`) builds a policy fixture and checks native
-routing, deleted-provider restoration and rejection of changed contents with a
-preserved timestamp. It does not execute the provider. Use an x64 MSVC environment
-for the Windows fixture. The complete native game remains gated separately.
-
-## Legacy Steam authentication fixtures
-
-[The connection fixtures](../tests/native/steam_auth/README.md) compile the actual
-production packet formatter, info strings, ticket caching and disconnect methods.
-Ordinary CTest uses a controlled SDK result and opens no session/socket. A
-separately invoked pinned real-provider driver targets the unchanged secure Win32
-loopback fixture; fresh server approval logs and producing hashes are required.
-This bounded authentication check does not qualify native gameplay or voice.
-
-## Native Steam server transport fixtures
-
-[The server provider fixtures](../tests/native/steam_server/README.md) exercise
-real anonymous/secure and listen-server sessions through reloadable owned modules.
-[The transport ownership fixtures](../tests/native/steam_transport/README.md) run
-offline with controlled exports. Native Mac server initialization retains a
-communication pipe until its owning module unloads, with no logged-in client
-required. SDK server session success does not qualify complete native gameplay,
-voice or external-server protocol behavior.
+Native game loading uses `gamedll_osx` or `gamedll_linux`. If absent, Windows
+`gamedll` entries retain their order and adapt their extension through the VFS.
+An alias must not replace an unrelated file.

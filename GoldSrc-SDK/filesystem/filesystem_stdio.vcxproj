@@ -120,15 +120,22 @@
     <ClCompile Include="interface.cpp" />
     <ClCompile Include="linux_support.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
     </ClCompile>
     <ClCompile Include="pathmatch.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
     </ClCompile>
     <ClCompile Include="utlsymbol.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\public\cse_filesystem_abi.h" />
+    <ClInclude Include="..\public\cse_filesystem_methods.inc" />
+    <ClInclude Include="..\public\native_filesystem_module.h" />
+    <ClInclude Include="..\public\cse_module_abi.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="basefilesystem.h" />
+    <ClInclude Include="native_path_prefix.h" />
     <ClInclude Include="..\public\characterset.h" />
     <ClInclude Include="..\public\interface_registry.h" />
     <ClInclude Include="public\interface.h" />

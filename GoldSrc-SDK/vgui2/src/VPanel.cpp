@@ -17,6 +17,11 @@
 #include "vgui/IClientPanel.h"
 #include "vgui/ISurface.h"
 
+#include <cstdint>
+#if UINTPTR_MAX > UINT32_MAX
+#include "public/KeyValues.h"
+#endif
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
@@ -544,6 +549,22 @@ void VPanel::SetMinimumSize( int wide, int tall )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+#if UINTPTR_MAX > UINT32_MAX
+// Notify through the existing client message boundary, without depending on HTML
+// or changing any descendant's local visibility flag. Hidden subtrees need this
+// synchronous notification because their ordinary Think traversal is suspended.
+static void NotifyEffectiveVisibilityChanged(VPanel* panel) {
+    if (panel->Client() != nullptr) {
+        KeyValues* message = new KeyValues("CseEffectiveVisibilityChanged");
+        panel->SendMessage(message, 0);
+        message->deleteThis();
+    }
+    for (int index = 0; index < panel->GetChildCount(); ++index) {
+        NotifyEffectiveVisibilityChanged(panel->GetChild(index));
+    }
+}
+#endif
+
 void VPanel::SetVisible( bool state )
 {
 	if ( _visible == state )
@@ -554,6 +575,9 @@ void VPanel::SetVisible( bool state )
 	vgui2::g_pSurface->SetPanelVisible( (VPANEL)this, state );
 
 	_visible = state;
+#if UINTPTR_MAX > UINT32_MAX
+    NotifyEffectiveVisibilityChanged(this);
+#endif
 
 	if ( IsPopup() )
 	{
@@ -593,6 +617,9 @@ void VPanel::SetParent( VPanel* newParent )
 			_parent->Client()->OnChildAdded( (VPANEL)this );
 		}
 	}
+#if UINTPTR_MAX > UINT32_MAX
+    NotifyEffectiveVisibilityChanged(this);
+#endif
 }
 
 //-----------------------------------------------------------------------------

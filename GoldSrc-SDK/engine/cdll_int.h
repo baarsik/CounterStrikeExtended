@@ -291,6 +291,7 @@ extern module_t	g_module;
 
 // Dummy destination function for use when there's no security module
 extern void NullDst(void);
+extern void NullClientMousePositionAndCenterDst(int **, int **, int **, int **);
 
 // Use this to init an engdst structure to point to NullDst
 #define k_engdstNull \
@@ -418,6 +419,7 @@ extern void NullDst(void);
 	(pfnEngDst_pfnGetAliases_t)						NullDst, \
 	(pfnEngDst_pfnVguiWrap2_GetMouseDelta_t)		NullDst, \
 	(pfnEngDst_pfnFilteredClientCmd_t)				NullDst, \
+    NullClientMousePositionAndCenterDst, \
 };
 
 // Use this to init a cldll_func_dst structure to point to NullDst

@@ -17,7 +17,9 @@
 #include "vgui/IScheme.h"
 #include "IKeyValues.h"
 
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>

@@ -3,7 +3,15 @@
 #include "mem.h"
 #include "zone.h"
 
+#if defined(_WIN32)
 #include <Windows.h>
+#else
+#include "../common/legacy_bmp_records.h"
+using BITMAPFILEHEADER = cse_bmp::FileHeader;
+using BITMAPINFOHEADER = cse_bmp::InfoHeader;
+using RGBQUAD = cse_bmp::PaletteEntry;
+constexpr std::uint32_t BI_RGB = cse_bmp::RgbCompression;
+#endif
 #include <cstdlib>
 #include <cstring>
 

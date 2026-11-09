@@ -54,6 +54,7 @@
     </ClCompile>
     <Link>
       <ModuleDefinitionFile>$(A3dSourceDir)a3dapi.def</ModuleDefinitionFile>
+      <CseNativeCppExports>true</CseNativeCppExports>
       <AdditionalDependencies>version.lib;winmm.lib;user32.lib;ole32.lib;uuid.lib;dxguid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <TargetMachine>MachineX86</TargetMachine>
       <BaseAddress>0x10000000</BaseAddress>
@@ -167,6 +168,8 @@
     <ClInclude Include="..\..\a3dapi\ChunkPage.h" />
     <ClInclude Include="..\..\a3dapi\WallEdge.h" />
     <ClInclude Include="..\..\a3dapi\A3dGeom.h" />
+    <ClInclude Include="..\..\a3dapi\native_geometry_identity.h" />
+    <ClInclude Include="..\..\a3dapi\native_device_init.h" />
     <ClInclude Include="..\..\a3dapi\dalinfo.h" />
     <ClInclude Include="..\..\a3dapi\HrtfMgr.h" />
     <ClInclude Include="..\..\a3dapi\a2d.h" />
@@ -225,6 +228,8 @@
         <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
         <FloatingPointModel>Precise</FloatingPointModel>
         <ExceptionHandling>Async</ExceptionHandling>
+        <!-- Portable C++ EH leaves fatal machine faults to the native OS crash reporter. -->
+        <CsePortableFaultPolicy>OsTermination</CsePortableFaultPolicy>
       </_GeometryCompile>
       <_GeometryCompile Include="$(IntDir)geometry_state.cpp">
         <Section>A3D_GEOMETRY_STATE</Section>

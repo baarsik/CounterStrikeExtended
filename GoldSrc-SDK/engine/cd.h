@@ -134,3 +134,16 @@ void		CDAudio_Pause();
 void		CDAudio_Resume();
 void		MP3_Suspend_Audio();
 void		PrimeMusicStream( char* filename, int looping );
+
+// Owned engine-local lifetime boundary; no exported interface/vtable change.
+bool CDAudio_ShutdownForModuleUnload();
+
+namespace cse {
+class AudioModuleShutdown {
+public:
+    AudioModuleShutdown() = default;
+    ~AudioModuleShutdown() noexcept;
+    AudioModuleShutdown(const AudioModuleShutdown&) = delete;
+    AudioModuleShutdown& operator=(const AudioModuleShutdown&) = delete;
+};
+}

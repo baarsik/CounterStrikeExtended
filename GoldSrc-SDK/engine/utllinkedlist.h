@@ -189,8 +189,9 @@ template <class T, class I> I CUtlLinkedList<T, I>::Tail() const
 template <class T, class I> I CUtlLinkedList<T, I>::Previous( I index ) const
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(i)", UTLLINKEDLIST_SOURCE_PATH, 246 );
+    if (!IsValidIndex( index )) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLLINKEDLIST_SOURCE_PATH, 246 );
+    }
 #endif
 	return InternalElement( index ).m_Previous;
 }
@@ -198,8 +199,9 @@ template <class T, class I> I CUtlLinkedList<T, I>::Previous( I index ) const
 template <class T, class I> I CUtlLinkedList<T, I>::Next( I index ) const
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(i)", UTLLINKEDLIST_SOURCE_PATH, 253 );
+    if (!IsValidIndex( index )) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(i)", UTLLINKEDLIST_SOURCE_PATH, 253 );
+    }
 #endif
 	return InternalElement( index ).m_Next;
 }
@@ -264,8 +266,9 @@ template <class T, class I> I CUtlLinkedList<T, I>::Alloc( bool multilist )
 template <class T, class I> void CUtlLinkedList<T, I>::Unlink( I index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( IsValidIndex( index ) ) )
-		_wassert( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 613 );
+    if (!( IsValidIndex( index ) )) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 613 );
+    }
 #endif
 	if ( !IsInList( index ) )
 		return;
@@ -290,8 +293,9 @@ template <class T, class I> void CUtlLinkedList<T, I>::Unlink( I index )
 template <class T, class I> void CUtlLinkedList<T, I>::LinkBefore( I before, I index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !( IsValidIndex( index ) ) )
-		_wassert( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 535 );
+    if (!( IsValidIndex( index ) )) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 535 );
+    }
 #endif
 	// Unlink it if it's in the list at the moment
 	Unlink( index );
@@ -305,8 +309,9 @@ template <class T, class I> void CUtlLinkedList<T, I>::LinkBefore( I before, I i
 	else
 	{
 #ifdef UTL_ENGINE_ASSERTS
-		if ( !IsInList( before ) )
-			_wassert( L"IsInList(before)", UTLLINKEDLIST_SOURCE_PATH, 555 );
+        if (!IsInList( before )) {
+            cse::platform::UtlAssertionFailure( L"IsInList(before)", UTLLINKEDLIST_SOURCE_PATH, 555 );
+        }
 #endif
 		ListElem_t& beforeElement = InternalElement( before );
 		element.m_Previous = beforeElement.m_Previous;
@@ -364,8 +369,9 @@ template <class T, class I> I CUtlLinkedList<T, I>::AddToTail()
 template <class T, class I> void CUtlLinkedList<T, I>::Free( I index )
 {
 #ifdef UTL_ENGINE_ASSERTS
-	if ( !IsValidIndex( index ) )
-		_wassert( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 371 );
+    if (!IsValidIndex( index )) {
+        cse::platform::UtlAssertionFailure( L"IsValidIndex(elem)", UTLLINKEDLIST_SOURCE_PATH, 371 );
+    }
 #endif
 	Element( index ).~T();
 	if ( IsInList( index ) )

@@ -15,6 +15,7 @@
 #include "vgui_intwrap2.h"
 
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -711,7 +712,11 @@ bool SystemWrapper::RemoveModule( ISystemModule* module )
 #endif
 char* SystemWrapper::COM_GetBaseDir()
 {
+#if UINTPTR_MAX > UINT32_MAX
+    return ::GetBaseDirectory();
+#else
 	return COM_GetBaseDir();
+#endif
 }
 #if defined( _MSC_VER )
 #pragma warning( pop )

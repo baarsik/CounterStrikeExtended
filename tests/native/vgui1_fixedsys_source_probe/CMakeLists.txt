@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseFixedSysSourceProbe LANGUAGES CXX)
+if(NOT WIN32)
+    message(FATAL_ERROR "VM1-only offscreen selected-font source investigation")
+endif()
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_legacy_raster/extract_reference.py"
+    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    COMMAND_ERROR_IS_FATAL ANY)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_matched_program/extract_owner.py"
+    "${CSE_ROOT}/tests/native/vgui1_legacy_raster/gdi_reference.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    COMMAND_ERROR_IS_FATAL ANY)
+set(CSE_FREETYPE_PREFIX "" CACHE PATH "Existing pinned FreeType2.14.3 prefix")
+set(VCPKG_IMPORT_PREFIX "${CSE_FREETYPE_PREFIX}")
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+list(PREPEND CMAKE_PREFIX_PATH "${CSE_FREETYPE_PREFIX}")
+find_package(ZLIB CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/zlib" NO_DEFAULT_PATH)
+if(NOT TARGET ZLIB::ZLIB)
+    add_library(ZLIB::ZLIB ALIAS ZLIB::ZLIBSTATIC)
+endif()
+find_library(BZIP2_LIBRARY_RELEASE NAMES bz2 bzip2 libbz2 libbzip2
+    PATHS "${CSE_FREETYPE_PREFIX}/lib" NO_DEFAULT_PATH REQUIRED)
+find_library(BZIP2_LIBRARY_DEBUG NAMES bz2d bzip2d libbz2d libbzip2d bz2 bzip2 libbz2 libbzip2
+    PATHS "${CSE_FREETYPE_PREFIX}/debug/lib" NO_DEFAULT_PATH REQUIRED)
+find_path(BZIP2_INCLUDE_DIR NAMES bzlib.h PATHS "${CSE_FREETYPE_PREFIX}/include" NO_DEFAULT_PATH REQUIRED)
+find_package(BZip2 REQUIRED)
+find_package(PNG CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/png" NO_DEFAULT_PATH)
+find_package(freetype CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/freetype" NO_DEFAULT_PATH)
+set(native "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native")
+add_executable(fixedsys_source_probe probe.cpp "${native}/VGui1LegacyRaster.cpp")
+set_source_files_properties("${native}/VGui1LegacyRaster.cpp" PROPERTIES
+    COMPILE_OPTIONS /EHs-c- COMPILE_DEFINITIONS _HAS_EXCEPTIONS=0)
+target_include_directories(fixedsys_source_probe PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/extracted" "${native}")
+target_compile_definitions(fixedsys_source_probe PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_compile_options(fixedsys_source_probe PRIVATE /W4 /WX /EHsc /fp:strict)
+target_link_libraries(fixedsys_source_probe PRIVATE Freetype::Freetype gdi32 user32 bcrypt dwrite advapi32)

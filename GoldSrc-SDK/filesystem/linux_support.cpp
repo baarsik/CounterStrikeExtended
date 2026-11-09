@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstddef>
+#include <cctype>
 #ifndef _WIN32
 #include <strings.h>
 #include <alloca.h>
@@ -20,6 +21,29 @@ struct stat;
 
 static char selectBuf[FS_MAX_PATH_LENGTH];
 char fileName[FS_MAX_PATH_LENGTH];
+
+namespace {
+constexpr int noFindMatches = -1;
+constexpr std::intptr_t invalidNativeFindHandle = -1;
+
+struct PosixFindCursor {
+    PosixFindCursor() {
+        data.numMatches = noFindMatches;
+    }
+
+    ~PosixFindCursor() {
+        if (data.namelist) {
+            for (int index = 0; index <= data.numMatches; ++index) {
+                free(data.namelist[index]);
+            }
+            free(data.namelist);
+        }
+    }
+
+    FIND_DATA data = {};
+};
+}
+
 
 extern "C" const int** __ctype_toupper_loc();
 extern "C" const int** __ctype_tolower_loc();
@@ -32,7 +56,11 @@ extern "C" int alphasort( const dirent** a, const dirent** b );
 
 static int UpperByte( unsigned char value )
 {
+#if defined(__APPLE__)
+    return std::toupper(value);
+#else
 	return ( *__ctype_toupper_loc() )[(signed char)value];
+#endif
 }
 
 int FileSelect( const dirent* entry )
@@ -94,12 +122,17 @@ int CheckName( const dirent* entry )
 
 int strlwr( char* text )
 {
+#if !defined(__APPLE__)
 	const int* lowercase = *__ctype_tolower_loc();
+#endif
 
-	for ( char* cursor = text; *cursor != 0; ++cursor )
-	{
-		*cursor = (char)lowercase[(signed char)*cursor];
-	}
+    for (char* cursor = text; *cursor != 0; ++cursor) {
+#if defined(__APPLE__)
+        *cursor = static_cast<char>(std::tolower(static_cast<unsigned char>(*cursor)));
+#else
+        *cursor = (char)lowercase[(signed char)*cursor];
+#endif
+    }
 
 	return 1;
 }
@@ -141,10 +174,10 @@ int FillDataStruct( FIND_DATA* dat )
 	return 1;
 }
 
-int FindFirstFile( char* fileName, FIND_DATA* dat )
+static int FindFirstFileInternal( char* fileName, FIND_DATA* dat )
 {
 	char nameStore[FS_MAX_PATH_LENGTH];
-	struct stat dirChk;
+	struct stat dirChk = {};
 	char* slash;
 	size_t dirLen;
 	int count;
@@ -187,7 +220,11 @@ int FindFirstFile( char* fileName, FIND_DATA* dat )
 	count = __wrap_scandir( nameStore, &dat->namelist, FileSelect, alphasort );
 	if ( count < 0 )
 	{
+#if defined(__APPLE__)
+        printf("scandir failed:%s\n", nameStore);
+#else
 		__printf_chk( 1, "scandir failed:%s\n", nameStore );
+#endif
 		return -1;
 	}
 
@@ -195,6 +232,7 @@ int FindFirstFile( char* fileName, FIND_DATA* dat )
 	if ( count == 0 )
 	{
 		free( dat->namelist );
+        dat->namelist = nullptr;
 		return -1;
 	}
 
@@ -217,29 +255,36 @@ int FindFirstFile( char* fileName, FIND_DATA* dat )
 	return 1;
 }
 
-bool FindNextFile( int handle, FIND_DATA* dat )
-{
-	(void)handle;
-	if ( dat->numMatches < 0 )
-	{
-		free( dat->namelist );
-		return false; // no matches left
-	}
-
-	FillDataStruct( dat );
-	return true;
+std::intptr_t FindFirstFile(char* filename, FIND_DATA* data) {
+    PosixFindCursor* cursor = new PosixFindCursor;
+    if (FindFirstFileInternal(filename, &cursor->data) == noFindMatches) {
+        delete cursor;
+        return invalidNativeFindHandle;
+    }
+    *data = cursor->data;
+    return reinterpret_cast<std::intptr_t>(cursor);
 }
 
-bool FindClose( int handle )
-{
-	return true;
+bool FindNextFile(std::intptr_t handle, FIND_DATA* data) {
+    PosixFindCursor* cursor = reinterpret_cast<PosixFindCursor*>(handle);
+    if (cursor->data.numMatches < 0) {
+        return false;
+    }
+    FillDataStruct(&cursor->data);
+    *data = cursor->data;
+    return true;
+}
+
+bool FindClose(std::intptr_t handle) {
+    delete reinterpret_cast<PosixFindCursor*>(handle);
+    return true;
 }
 
 const char* findFileInDirCaseInsensitive( const char* file )
 {
 	const char* dirSep;
 	char* dirName;
-	dirent** namelist;
+	dirent** namelist = nullptr;
 	int n;
 
 	dirSep = strrchr( file, '/' );
@@ -259,19 +304,19 @@ const char* findFileInDirCaseInsensitive( const char* file )
 	n = __wrap_scandir( dirName, &namelist, CheckName, alphasort );
 	if ( n <= 0 )
 	{
+        free(namelist);
 		strncpy( fileName, file, FS_MAX_PATH_LENGTH );
 		strlwr( fileName );
 		return fileName;
 	}
 
-	while ( n != 1 )
-	{
-		free( namelist[n] ); // free the malloc'd strings
-		--n;
-	}
+    for (int index = 1; index < n; ++index) {
+        free(namelist[index]);
+    }
 
 	snprintf( fileName, FS_MAX_PATH_LENGTH, "%s/%s", dirName, namelist[0]->d_name );
 	free( namelist[0] );
+    free(namelist);
 	return fileName;
 }
 

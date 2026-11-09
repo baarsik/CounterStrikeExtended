@@ -14,7 +14,9 @@
 #include "view.h"
 #include "vgui_intwrap2.h"
 
+#include <cstddef>
 #include <cstdio>
+#include <limits>
 
 /* 
 ============================================================================== 
@@ -41,6 +43,11 @@ typedef struct
 	char	filler[58];
 	byte	data;
 } pcx_t;
+
+constexpr std::size_t PcxHeaderBytes = 128;
+constexpr std::size_t PcxCoordinateBytes = 2;
+static_assert(offsetof(pcx_t, data) == PcxHeaderBytes, "PCX pixels must follow the fixed 128-byte header");
+static_assert(sizeof(word) == PcxCoordinateBytes, "PCX coordinate fields must remain 16 bits");
 
 viddef_t vid; // global video state
 vrect_t* pconupdate;
@@ -320,48 +327,91 @@ void SCR_DrawConsole()
 WritePCXfile 
 ============== 
 */
-void WritePCXfile( char* filename, byte* data, int width, int height, int rowbytes, word* palette )
-{
-	pcx_t* pcx = (pcx_t*)Hunk_TempAlloc( width * height * 2 + 1000 );
-	if ( !pcx )
-	{
-		Con_Printf( "SCR_ScreenShot_f: not enough memory\n" );
-		return;
-	}
-	pcx->manufacturer = 10; // PCX id
-	pcx->version = 5;			// 256 color
-	pcx->encoding = 1; // uncompressed
-	pcx->bits_per_pixel = 8;		// 256 color
-	pcx->xmin = 0;
-	pcx->ymin = 0;
-	pcx->xmax = LittleShort( (short)( width - 1 ) );
-	pcx->ymax = LittleShort( (short)( height - 1 ) );
-	pcx->hres = LittleShort( (short)width );
-	pcx->vres = LittleShort( (short)height );
-	Q_memset( pcx->palette, 0, sizeof( pcx->palette ) );
-	pcx->color_planes = 1;		// chunky image
-	pcx->bytes_per_line = LittleShort( (short)width );
-	pcx->palette_type = LittleShort( 2 ); // not a grey scale
-	Q_memset( pcx->filler, 0, sizeof( pcx->filler ) );
-	byte* dest = &pcx->data;
-	for ( int row = 0; row < height; ++row )
-	{
-		for ( int col = 0; col < width; ++col )
-		{
-			if ( ( data[col] & 0xC0 ) == 0xC0 )
-				*dest++ = 0xC1;
-			*dest++ = data[col];
-		}
-		data += rowbytes;
-	}
-	*dest++ = 12;
-	for ( int i = 0; i < 256; ++i )
-	{
-		*dest++ = (byte)palette[i * 4 + 2];
-		*dest++ = (byte)palette[i * 4 + 1];
-		*dest++ = (byte)palette[i * 4];
-	}
-	COM_WriteFile( filename, pcx, dest - (byte*)pcx );
+void WritePCXfile(char* filename, byte* data, int width, int height, int rowbytes, word* palette) {
+    constexpr std::size_t MaximumRleBytesPerPixel = 2;
+    constexpr std::size_t LegacyTemporaryOverhead = 1000;
+    constexpr std::size_t PaletteEntries = 256;
+    constexpr std::size_t PaletteComponents = 3;
+    constexpr std::size_t PaletteSourceStride = 4;
+    constexpr std::size_t PaletteRedComponent = 0;
+    constexpr std::size_t PaletteGreenComponent = 1;
+    constexpr std::size_t PaletteBlueComponent = 2;
+    constexpr std::size_t PaletteMarkerBytes = 1;
+    constexpr byte PaletteMarker = 12;
+    constexpr byte RleHighBits = 0xc0;
+    constexpr byte SinglePixelRun = 0xc1;
+    constexpr char Manufacturer = 10;
+    constexpr char Version = 5;
+    constexpr char RleEncoding = 1;
+    constexpr char BitsPerPixel = 8;
+    constexpr char ColorPlanes = 1;
+    constexpr short LegacyPaletteType = 2;
+    constexpr int MaximumDimension = (std::numeric_limits<word>::max)();
+    // Hunk_TempAlloc and Hunk_HighAllocName both round with alignment-1 before adding the hunk header.
+    // This aligned payload ceiling keeps those intermediate additions and the final int size representable.
+    constexpr std::size_t MaximumTemporaryBytes =
+        (static_cast<std::size_t>((std::numeric_limits<int>::max)()) - sizeof(hunk_t)) /
+        HUNK_ALIGNMENT * HUNK_ALIGNMENT;
+    static_assert(sizeof(hunk_t) >= HUNK_ALIGNMENT - 1, "Hunk header covers the rounding addition margin");
+    static_assert(PcxHeaderBytes + PaletteMarkerBytes + PaletteEntries * PaletteComponents <=
+        LegacyTemporaryOverhead, "Legacy PCX overhead must cover the fixed header and palette");
+
+    if (width <= 0 || height <= 0 || width > MaximumDimension || height > MaximumDimension) {
+        Con_Printf("SCR_ScreenShot_f: invalid PCX image dimensions\n");
+        return;
+    }
+    const std::size_t imageWidth = static_cast<std::size_t>(width);
+    const std::size_t imageHeight = static_cast<std::size_t>(height);
+    const std::size_t maximumPixels = (MaximumTemporaryBytes - LegacyTemporaryOverhead) / MaximumRleBytesPerPixel;
+    if (imageWidth > maximumPixels / imageHeight) {
+        Con_Printf("SCR_ScreenShot_f: PCX image is too large\n");
+        return;
+    }
+    const std::size_t allocationBytes = imageWidth * imageHeight * MaximumRleBytesPerPixel + LegacyTemporaryOverhead;
+    pcx_t* pcx = static_cast<pcx_t*>(Hunk_TempAlloc(static_cast<int>(allocationBytes)));
+    if (pcx == nullptr) {
+        Con_Printf("SCR_ScreenShot_f: not enough memory\n");
+        return;
+    }
+    pcx->manufacturer = Manufacturer;
+    pcx->version = Version;
+    pcx->encoding = RleEncoding;
+    pcx->bits_per_pixel = BitsPerPixel;
+    pcx->xmin = 0;
+    pcx->ymin = 0;
+    pcx->xmax = static_cast<word>(LittleShort(static_cast<short>(width - 1)));
+    pcx->ymax = static_cast<word>(LittleShort(static_cast<short>(height - 1)));
+    pcx->hres = static_cast<word>(LittleShort(static_cast<short>(width)));
+    pcx->vres = static_cast<word>(LittleShort(static_cast<short>(height)));
+    Q_memset(pcx->palette, 0, sizeof(pcx->palette));
+    pcx->color_planes = ColorPlanes;
+    pcx->bytes_per_line = static_cast<word>(LittleShort(static_cast<short>(width)));
+    pcx->palette_type = static_cast<word>(LittleShort(LegacyPaletteType));
+    Q_memset(pcx->filler, 0, sizeof(pcx->filler));
+    byte* dest = &pcx->data;
+    for (int row = 0; row < height; ++row) {
+        for (int column = 0; column < width; ++column) {
+            if ((data[column] & RleHighBits) == RleHighBits) {
+                *dest++ = SinglePixelRun;
+            }
+            *dest++ = data[column];
+        }
+        if (row + 1 < height) {
+            data += rowbytes;
+        }
+    }
+    *dest++ = PaletteMarker;
+    for (std::size_t index = 0; index < PaletteEntries; ++index) {
+        *dest++ = static_cast<byte>(palette[index * PaletteSourceStride + PaletteBlueComponent]);
+        *dest++ = static_cast<byte>(palette[index * PaletteSourceStride + PaletteGreenComponent]);
+        *dest++ = static_cast<byte>(palette[index * PaletteSourceStride + PaletteRedComponent]);
+    }
+    const std::size_t outputBytes = static_cast<std::size_t>(dest - reinterpret_cast<byte*>(pcx));
+    if (outputBytes > allocationBytes) {
+        Con_Printf("SCR_ScreenShot_f: invalid PCX output length\n");
+        return;
+    }
+    COM_WriteFile(filename, pcx, static_cast<int>(outputBytes));
 }
 
 void SCR_EndLoadingPlaque()

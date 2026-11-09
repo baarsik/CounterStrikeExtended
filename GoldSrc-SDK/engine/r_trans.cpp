@@ -155,6 +155,7 @@ void D_DrawTranslucentTexture( espan_t* pspan )
 
 void D_DrawTranslucentColor( espan_t* pspan )
 {
+    constexpr int kAlphaScaleBits = 8;
 	int izistep = (int)(float)( 32768.0 * d_zistepu * 65536.0 );
 	do
 	{
@@ -184,10 +185,11 @@ void D_DrawTranslucentColor( espan_t* pspan )
 			int gmask = is15bit ? COLOR_GREENMASK_555 : COLOR_GREENMASK_565;
 			do
 			{
-				if ( *zbuf < ( izi >> 16 ) )
-					*dest = (word)( color + ( ( ( inverse * ( *dest & 31 ) ) >> 8 ) & 31
-						| ( ( inverse * ( *dest & rmask ) ) >> 8 ) & rmask
-						| ( ( inverse * ( *dest & gmask ) ) >> 8 ) & gmask ) );
+                if (*zbuf < (izi >> 16)) {
+                    *dest = (word)(color + ((((inverse * (*dest & COLOR_BLUEMASK)) >> kAlphaScaleBits)
+                        & COLOR_BLUEMASK) | (((inverse * (*dest & rmask)) >> kAlphaScaleBits) & rmask)
+                        | (((inverse * (*dest & gmask)) >> kAlphaScaleBits) & gmask)));
+                }
 				dest++;
 				zbuf++;
 				izi += izistep;
@@ -577,8 +579,8 @@ void R_DrawTEntitiesOnList( qboolean clientOnly )
 	if ( !r_drawentities.value )
 		return;
 
-	static __declspec(align(CACHE_SIZE)) byte edgeBuffer[MAX_STACK_EDGES * sizeof( edge_t ) + 2 * CACHE_SIZE];
-	static __declspec(align(CACHE_SIZE)) byte surfaceBuffer[MAX_STACK_SURFACES * sizeof( surf_t ) + 2 * CACHE_SIZE];
+	alignas(CACHE_SIZE) static byte edgeBuffer[MAX_STACK_EDGES * sizeof( edge_t ) + 2 * CACHE_SIZE];
+	alignas(CACHE_SIZE) static byte surfaceBuffer[MAX_STACK_SURFACES * sizeof( surf_t ) + 2 * CACHE_SIZE];
 	r_edges = auxedges ? auxedges : (edge_t*)edgeBuffer;
 	if ( r_surfsonstack )
 	{
@@ -798,7 +800,7 @@ float r_blend;
 extern cl_entity_t* currententity;
 extern vec3_t r_entorigin, r_origin;
 extern cvar_t r_drawentities, r_traceglow;
-extern BOOL g_bUserFogOn;
+extern qboolean g_bUserFogOn;
 
 float* R_GetAttachmentPoint( int entity, int attachment );
 void R_DrawBrushModel( cl_entity_t* entity );

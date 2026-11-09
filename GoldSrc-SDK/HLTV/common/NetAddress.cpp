@@ -21,13 +21,8 @@ unsigned short _htons( unsigned short hostshort )
 	return (unsigned short)( ( hostshort << 8 ) | ( hostshort >> 8 ) );
 }
 
-NetAddress::NetAddress()
-{
-#ifdef _WIN32
-	memset( this, 0, sizeof( *this ) );
-#else
-	Clear();
-#endif
+NetAddress::NetAddress() {
+    Clear();
 }
 
 NetAddress::~NetAddress()

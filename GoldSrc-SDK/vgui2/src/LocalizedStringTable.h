@@ -24,7 +24,9 @@ typedef unsigned short ucs2;
 namespace vgui2
 {
 
+#if defined(_WIN32)
 typedef unsigned long StringIndex_t;
+#endif
 
 typedef unsigned short OldStringIndex_t;
 
@@ -120,7 +122,7 @@ private:
 
 	char											m_szLanguage[64];
 	bool											m_bUseOnlyLongestLanguageString;
-	CUtlRBTree< localizedstring_t, unsigned long >	m_Lookup;
+    CUtlRBTree<localizedstring_t, vgui2::StringIndex_t> m_Lookup;
 	CUtlVector< char >								m_Names;
 	CUtlVector< wchar_t >							m_Values;
 	CUtlSymbol										m_CurrentFile;

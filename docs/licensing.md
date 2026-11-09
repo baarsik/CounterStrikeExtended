@@ -57,8 +57,8 @@ preserves relevant published terms without asserting blanket applicability.
 - Use `LICENSES/MIT.txt` only within the original-contribution scope in root
   `LICENSE`. Do not add MIT SPDX tags to inherited files indiscriminately.
 - Keep copyright/attribution/license/provenance files and embedded notices in
-  retained code and dependencies. Source pruning preserves the prose/notice
-  candidates listed in `source-pruning.md`; original manifests remain archived.
+  retained code and dependencies. The [inherited prose archive](upstream/README.md) preserves removed tools’
+  documents/notices; original manifests remain archived.
 - Before publishing a binary or source package, establish rights for the actual
   retained code, providers, assets and bundled dependencies and carry all their
   required notices. No release or binary redistribution was performed here.

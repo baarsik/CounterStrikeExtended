@@ -8,92 +8,104 @@
 #include "voice_wavefile.h"
 #include "filesystem.h"
 
-static unsigned long ReadDWord( FileHandle_t fp )
-{
-	unsigned long ret;
-	FS_Read( &ret, sizeof( ret ), 1, fp );
-	return ret;
+#include <cstdint>
+#include <cstring>
+
+static std::uint32_t ReadDWord(FileHandle_t file) {
+    std::uint32_t value;
+    FS_Read(&value, sizeof(value), 1, file);
+    return value;
 }
 
-static unsigned short ReadWord( FileHandle_t fp )
-{
-	unsigned short ret;
-	FS_Read( &ret, sizeof( ret ), 1, fp );
-	return ret;
+static int ReadDWordAsInt(FileHandle_t file) {
+    // Win32 assigns the complete DWORD word to these signed int outputs.
+    const std::uint32_t word = ReadDWord(file);
+    int value;
+    static_assert(sizeof(value) == sizeof(word), "WAVE signed word width");
+    std::memcpy(&value, &word, sizeof(value));
+    return value;
 }
 
-static void WriteDWord( FileHandle_t fp, unsigned long val )
-{
-	FS_Write( &val, sizeof( val ), 1, fp );
+static std::uint16_t ReadWord(FileHandle_t file) {
+    std::uint16_t value;
+    FS_Read(&value, sizeof(value), 1, file);
+    return value;
 }
 
-static void WriteWord( FileHandle_t fp, unsigned short val )
-{
-	FS_Write( &val, sizeof( val ), 1, fp );
+static void WriteDWord(FileHandle_t file, std::uint32_t value) {
+    FS_Write(&value, sizeof(value), 1, file);
+}
+
+static void WriteWord(FileHandle_t file, std::uint16_t value) {
+    FS_Write(&value, sizeof(value), 1, file);
 }
 
 bool ReadWaveFile(
-	const char* pFilename, char*& pData, int& nDataBytes, int& wBitsPerSample, int& nChannels, int& nSamplesPerSec )
-{
-	FileHandle_t fp = FS_Open( pFilename, "rb" );
-	if ( !fp )
-		return false;
+    const char* filename, char*& data, int& dataBytes, int& bitsPerSample, int& channels, int& samplesPerSecond) {
+    constexpr int kChannelsOffset = 22;
+    constexpr int kBitsPerSampleOffset = 34;
+    constexpr int kDataLengthOffset = 40;
+    FileHandle_t file = FS_Open(filename, "rb");
+    if (!file) {
+        return false;
+    }
 
-	FS_Seek( fp, 22, FILESYSTEM_SEEK_HEAD );
-	nChannels = ReadWord( fp );
-	nSamplesPerSec = ReadDWord( fp );
+    FS_Seek(file, kChannelsOffset, FILESYSTEM_SEEK_HEAD);
+    channels = ReadWord(file);
+    samplesPerSecond = ReadDWordAsInt(file);
 
-	FS_Seek( fp, 34, FILESYSTEM_SEEK_HEAD );
-	wBitsPerSample = ReadWord( fp );
+    FS_Seek(file, kBitsPerSampleOffset, FILESYSTEM_SEEK_HEAD);
+    bitsPerSample = ReadWord(file);
 
-	FS_Seek( fp, 40, FILESYSTEM_SEEK_HEAD );
-	nDataBytes = ReadDWord( fp );
-	ReadDWord( fp );
+    FS_Seek(file, kDataLengthOffset, FILESYSTEM_SEEK_HEAD);
+    dataBytes = ReadDWordAsInt(file);
+    // Retain the existing reader's extra DWORD consumption before its PCM read.
+    ReadDWord(file);
 
-	pData = new char[nDataBytes];
-	if ( !pData )
-	{
-		FS_Close( fp );
-		return false;
-	}
+    data = new char[dataBytes];
+    if (!data) {
+        FS_Close(file);
+        return false;
+    }
 
-	FS_Read( pData, nDataBytes, 1, fp );
-	FS_Close( fp );
-	return true;
+    FS_Read(data, dataBytes, 1, file);
+    FS_Close(file);
+    return true;
 }
 
 bool WriteWaveFile(
-	const char* pFilename, const char* pData, int nDataBytes, int wBitsPerSample, int nChannels, int nSamplesPerSec )
-{
-	FileHandle_t fp = FS_Open( pFilename, "wb" );
-	if ( !fp )
-		return false;
+    const char* filename, const char* data, int dataBytes, int bitsPerSample, int channels, int samplesPerSecond) {
+    constexpr int kChunkIdBytes = 4;
+    constexpr int kRiffPrefixBytes = kChunkIdBytes + sizeof(std::uint32_t);
+    constexpr std::uint32_t kPcmFormatBytes = 16;
+    constexpr std::uint16_t kPcmFormatTag = 1;
+    constexpr int kBitsPerByte = 8;
+    FileHandle_t file = FS_Open(filename, "wb");
+    if (!file) {
+        return false;
+    }
 
-	// Write the RIFF chunk.
-	FS_Write( "RIFF", 4, 1, fp );
-	WriteDWord( fp, 0 );
-	FS_Write( "WAVE", 4, 1, fp );
+    FS_Write("RIFF", kChunkIdBytes, 1, file);
+    WriteDWord(file, 0);
+    FS_Write("WAVE", kChunkIdBytes, 1, file);
 
-	// Write the FORMAT chunk.
-	FS_Write( "fmt ", 4, 1, fp );
-	WriteDWord( fp, 0x10 );
-	WriteWord( fp, 1 ); // WAVE_FORMAT_PCM
-	WriteWord( fp, (unsigned short)nChannels );
-	WriteDWord( fp, nSamplesPerSec );
-	WriteDWord( fp, ( wBitsPerSample / 8 ) * nChannels * nSamplesPerSec );
-	WriteWord( fp, (unsigned short)( ( wBitsPerSample / 8 ) * nChannels ) );
-	WriteWord( fp, (unsigned short)wBitsPerSample );
+    FS_Write("fmt ", kChunkIdBytes, 1, file);
+    WriteDWord(file, kPcmFormatBytes);
+    WriteWord(file, kPcmFormatTag);
+    WriteWord(file, static_cast<std::uint16_t>(channels));
+    WriteDWord(file, static_cast<std::uint32_t>(samplesPerSecond));
+    WriteDWord(file, static_cast<std::uint32_t>((bitsPerSample / kBitsPerByte) * channels * samplesPerSecond));
+    WriteWord(file, static_cast<std::uint16_t>((bitsPerSample / kBitsPerByte) * channels));
+    WriteWord(file, static_cast<std::uint16_t>(bitsPerSample));
 
-	// Write the DATA chunk.
-	FS_Write( "data", 4, 1, fp );
-	WriteDWord( fp, nDataBytes );
-	FS_Write( pData, nDataBytes, 1, fp );
+    FS_Write("data", kChunkIdBytes, 1, file);
+    WriteDWord(file, static_cast<std::uint32_t>(dataBytes));
+    FS_Write(data, dataBytes, 1, file);
 
-	// Go back and write the length of the riff file.
-	unsigned long dwVal = FS_Tell( fp ) - 8;
-	FS_Seek( fp, 4, FILESYSTEM_SEEK_HEAD );
-	WriteDWord( fp, dwVal );
+    const std::uint32_t riffPayloadBytes = FS_Tell(file) - kRiffPrefixBytes;
+    FS_Seek(file, kChunkIdBytes, FILESYSTEM_SEEK_HEAD);
+    WriteDWord(file, riffPayloadBytes);
 
-	FS_Close( fp );
-	return true;
+    FS_Close(file);
+    return true;
 }

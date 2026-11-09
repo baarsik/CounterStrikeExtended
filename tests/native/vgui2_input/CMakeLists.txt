@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseVgui2Input LANGUAGES CXX)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(INPUT_SOURCE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/InputWin32.cpp" CACHE FILEPATH "Actual selected input method owner")
+set(INPUT_GOLDEN "" CACHE FILEPATH "Actual Windows controlled-method reference JSONL")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_methods.py"
+  --source "${INPUT_SOURCE}" --output "${CMAKE_CURRENT_BINARY_DIR}/imports" RESULT_VARIABLE imported)
+if(NOT imported EQUAL 0)
+  message(FATAL_ERROR "Actual method extraction failed")
+endif()
+add_executable(key_states key_state_tests.cpp)
+add_executable(input_methods method_bindings.cpp unrelated_callbacks.cpp)
+foreach(target key_states input_methods)
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src"
+    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public" "${CSE_ROOT}/GoldSrc-SDK/public"
+    "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include" "${CMAKE_CURRENT_BINARY_DIR}/imports")
+  set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+  target_compile_options(${target} PRIVATE -Wall -Wextra -Werror)
+endforeach()
+option(INPUT_SANITIZERS "Instrument controlled pure input services" OFF)
+if(INPUT_SANITIZERS)
+  foreach(target key_states input_methods)
+    target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    target_link_options(${target} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+  endforeach()
+endif()
+enable_testing()
+add_test(NAME packed-key-snapshot COMMAND key_states)
+add_test(NAME actual-methods-vs-windows COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/compare_methods.py"
+  "$<TARGET_FILE:input_methods>" "${INPUT_GOLDEN}" "${CMAKE_CURRENT_BINARY_DIR}/actual-methods.jsonl")
+add_test(NAME explicit-failure-children COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/failure_children.py"
+  "$<TARGET_FILE:input_methods>")

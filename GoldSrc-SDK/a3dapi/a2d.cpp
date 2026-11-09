@@ -8,7 +8,9 @@
 #include <float.h>
 #include <limits.h>
 #include <math.h>
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 
 #define A3D_MIX_IMPULSE_SCALE	3.0518509476e-05
 
@@ -514,13 +516,22 @@ static const mixer_filter_coefficients_t filter44kHz =
 	}
 };
 
-void Mixer_ResetFloatState()
-{
+void Mixer_ResetFloatState() {
+#if defined(_M_ARM64) || defined(__aarch64__)
+    // ARM64 has no separate x87 environment to reset. Preserve the mixer FPCR and FPSR,
+    // just as the Intel path preserves its complete SIMD control and status register.
+#elif defined(_M_X64) || defined(__x86_64__)
+    unsigned int control = _mm_getcsr();
+    _fpreset();
+    // The x64 CRT does not support x87 precision control and asserts on _MCW_PC in Debug.
+    _mm_setcsr(control);
+#else
 	unsigned int control = _mm_getcsr();
 	_fpreset();
 	unsigned int x87Control;
 	_controlfp_s( &x87Control, _PC_64, _MCW_PC );
 	_mm_setcsr( control );
+#endif
 }
 
 void __cdecl Mixer_InitializeFilters( void* pUnused, mixer_filter_state_t* pState, DWORD sampleRate )

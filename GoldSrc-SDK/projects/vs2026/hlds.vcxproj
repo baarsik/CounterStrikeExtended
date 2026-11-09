@@ -87,6 +87,12 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\common\legacy_wide_format.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\dedicated\sys_ded.cpp" />
     <ClCompile Include="..\..\dedicated\CreateMultiplayerGameServerPage.cpp" />
     <ClCompile Include="..\..\dedicated\AdminServer.cpp" />
@@ -142,12 +148,20 @@
     <ClCompile Include="..\..\vgui2\controls\ScrollBar.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ScrollBarSlider.cpp" />
     <ClCompile Include="..\..\vgui2\controls\TextEntry.cpp" />
+    <ClCompile Include="..\..\common\TextEntryClipboard.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
+    <ClInclude Include="..\..\common\TextEntryClipboard.h" />
     <ClCompile Include="..\..\vgui2\controls\TextImage.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ToggleButton.cpp" />
     <ClCompile Include="..\..\vgui2\controls\Tooltip.cpp" />
     <ClCompile Include="..\..\vgui2\controls\URLLabel.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\public\cse_filesystem_abi.h" />
+    <ClInclude Include="..\..\public\cse_filesystem_methods.inc" />
+    <ClInclude Include="..\..\public\native_filesystem_module.h" />
+    <ClInclude Include="..\..\public\cse_module_abi.h" />
     <ClInclude Include="..\..\public\html_legacy_interfaces.h" />
     <ClInclude Include="..\..\public\html_key_codes.h" />
     <ClInclude Include="..\..\public\html_key_modifiers.h" />

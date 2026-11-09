@@ -236,6 +236,7 @@
     <ClInclude Include="..\..\game_shared\vgui_scrollbar2.h" />
     <ClInclude Include="..\..\game_shared\vgui_slider2.h" />
     <ClInclude Include="..\..\game_shared\voice_banmgr.h" />
+    <ClInclude Include="..\..\common\voice_ban_file.h" />
     <ClInclude Include="..\..\game_shared\voice_status.h" />
     <ClInclude Include="..\..\pm_shared\pm_debug.h" />
     <ClInclude Include="..\..\pm_shared\pm_defs.h" />
@@ -254,4 +255,29 @@
   </ItemGroup>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <ModuleDefinitionFile>$(ProjectDir)hl_cdll.def</ModuleDefinitionFile>
+      <CseNativeCppExports>true</CseNativeCppExports>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="hl_cdll.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\common\client_camera_mouse.h" />
+    <ClInclude Include="..\..\common\native_int_count.h" />
+    <ClInclude Include="..\..\common\native_mouse_polling.h" />
+    <ClInclude Include="..\..\common\native_mouse_poller.h" />
+    <ClInclude Include="..\..\common\native_mouse_poller_win.h" />
+    <ClInclude Include="..\..\common\client_module_api_types.h" />
+    <ClInclude Include="..\..\common\client_module_contracts.h" />
+    <ClInclude Include="..\..\common\client_module_entry.h" />
+    <ClInclude Include="..\..\common\client_module_entry_impl.h" />
+    <ClInclude Include="..\..\common\client_module_required_exports.h" />
+    <ClInclude Include="..\..\common\client_module_types.h" />
+    <ClInclude Include="..\..\common\generated_client_module_layouts.h" />
+    <ClInclude Include="..\..\public\cse_client_abi.h" />
+    <ClInclude Include="..\..\public\cse_module_abi.h" />
+  </ItemGroup>
 </Project>

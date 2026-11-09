@@ -1,0 +1,71 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseHltvSizeFixtures LANGUAGES CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+set(CSE_HLTV_SIZE_SOURCE_DIR "${CSE_ROOT}/GoldSrc-SDK" CACHE PATH "Production SDK or archived negative sources")
+option(CSE_HLTV_SIZE_LEGACY "Allow visible narrowing diagnostics from archived negative sources" OFF)
+option(CSE_HLTV_SIZE_SANITIZERS "Enable ASan and UBSan" OFF)
+foreach(source HLTV/Core/BSPModel.cpp HLTV/common/DirectorCmd.cpp HLTV/common/InfoString.cpp HLTV/common/md5.cpp
+    HLTV/common/BitBuffer.cpp HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_HLTV_SIZE_SOURCE_DIR}/${source}")
+endforeach()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_production.py)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_production.py"
+  "${CSE_ROOT}/GoldSrc-SDK" "${CSE_HLTV_SIZE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
+  RESULT_VARIABLE extraction_status ERROR_VARIABLE extraction_error)
+if(NOT extraction_status EQUAL 0)
+  message(FATAL_ERROR "Cannot extract production HLTV boundaries: ${extraction_error}")
+endif()
+add_executable(hltv_size_tests size_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
+add_executable(hltv_ctor_tests ctor_probe.cpp ctor_destroy.cpp "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
+# The demo player retains a distinct private BitBuffer implementation and header.
+# Exercise its real constructors with the same separate-TU virtual-destruction probe.
+set(private_ctor_dir "${CMAKE_CURRENT_BINARY_DIR}/private-constructor")
+file(MAKE_DIRECTORY "${private_ctor_dir}")
+file(WRITE "${private_ctor_dir}/actual_ctor_impl.inc"
+  "#include \"${CSE_HLTV_SIZE_SOURCE_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp\"\n")
+add_executable(hltv_demoplayer_ctor_tests ctor_probe.cpp ctor_destroy.cpp
+  "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
+target_include_directories(hltv_demoplayer_ctor_tests BEFORE PRIVATE "${private_ctor_dir}"
+  "${CSE_ROOT}/GoldSrc-SDK/HLTV/DemoPlayer/private")
+foreach(fixture hltv_size_tests hltv_ctor_tests hltv_demoplayer_ctor_tests)
+target_compile_features(${fixture} PRIVATE cxx_std_17)
+target_include_directories(${fixture} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK"
+  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+target_compile_definitions(${fixture} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+if(MSVC)
+  target_compile_options(${fixture} PRIVATE /W4 /EHsc "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")
+  if(NOT CSE_HLTV_SIZE_LEGACY)
+    target_compile_options(${fixture} PRIVATE /WX)
+  endif()
+else()
+  target_compile_options(${fixture} PRIVATE -Wall -Wextra -Wshorten-64-to-32
+    "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")
+  if(NOT CSE_HLTV_SIZE_LEGACY)
+    target_compile_options(${fixture} PRIVATE -Werror)
+  endif()
+endif()
+if(CSE_HLTV_SIZE_SANITIZERS AND NOT MSVC)
+  target_compile_options(${fixture} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all
+    -fno-omit-frame-pointer -g)
+  target_link_options(${fixture} PRIVATE -fsanitize=address,undefined)
+endif()
+endforeach()
+enable_testing()
+foreach(scenario bit-words bit-bulk bit-external-extent native-size-bounds director-bytes director-limits director-overflow director-read-overflow info-bytes info-limits md5-bytes
+    md5-overflow hull-bytes hull-invalid hull-bounds)
+  add_test(NAME "hltv-size-${scenario}" COMMAND hltv_size_tests "${scenario}")
+  set_tests_properties("hltv-size-${scenario}" PROPERTIES TIMEOUT 30)
+endforeach()
+foreach(constructor default owned external)
+  add_test(NAME "hltv-actual-constructor-${constructor}" COMMAND hltv_ctor_tests "${constructor}")
+  set_tests_properties("hltv-actual-constructor-${constructor}" PROPERTIES TIMEOUT 30)
+endforeach()
+
+foreach(constructor default owned external)
+  add_test(NAME "hltv-demoplayer-constructor-${constructor}" COMMAND hltv_demoplayer_ctor_tests "${constructor}")
+  set_tests_properties("hltv-demoplayer-constructor-${constructor}" PROPERTIES TIMEOUT 30)
+endforeach()

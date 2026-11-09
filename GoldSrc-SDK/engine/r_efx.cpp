@@ -84,11 +84,7 @@ TEMPENTITY* CL_AllocCustomTempEntity( float* origin, model_s* model, int high,
 void R_GetPackedColor( short* packed, short color );
 short R_LookupColor( unsigned char red, unsigned char green, unsigned char blue );
 void R_DecalRemoveNonPermanent( int textureIndex );
-#if defined( SW_RENDERER )
-void R_FireCustomDecal( int textureIndex, int entity, int modelIndex, float* position, int flags, float scale, float scaletime );
-#else
-void R_FireCustomDecal( int textureIndex, int entity, int modelIndex, float* position, int flags, float scale );
-#endif
+void R_FireCustomDecal(int textureIndex, int entity, int modelIndex, float* position, int flags, float scale);
 
 efx_api_t efx = { R_AllocParticle, R_BlobExplosion, R_Blood, R_BloodSprite, R_BloodStream, R_BreakModel, R_Bubbles,
 	R_BubbleTrail, R_BulletImpactParticles, R_EntityParticles, R_Explosion, R_FizzEffect, R_FireField,
@@ -102,9 +98,5 @@ efx_api_t efx = { R_AllocParticle, R_BlobExplosion, R_Blood, R_BloodSprite, R_Bl
 	R_BeamEntPoint, R_BeamEnts, R_BeamFollow, R_BeamKill, R_BeamLightning, R_BeamPoints, R_BeamRing, CL_AllocDlight,
 	CL_AllocElight, CL_TempEntAlloc, CL_TempEntAllocNoModel, CL_TempEntAllocHigh, CL_AllocCustomTempEntity,
 	R_GetPackedColor, R_LookupColor, R_DecalRemoveNonPermanent,
-#if defined( SW_RENDERER )
-	(void ( * )( int, int, int, float*, int, float ))R_FireCustomDecal
-#else
-	R_FireCustomDecal
-#endif
+    R_FireCustomDecal
 };

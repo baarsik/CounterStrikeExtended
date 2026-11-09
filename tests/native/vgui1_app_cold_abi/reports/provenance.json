@@ -1,0 +1,7 @@
+{
+  "source": "actual V14 engine/vgui_intwrap.cpp compiler replay, x86 Release, full original owning flags",
+  "compiler_sha256": "36f4055229656eae0b2370d29ea9cbe704aa84ea1bcafa118a5dfd12c76902c2",
+  "source_cpp_sha256": "0dab2ee5516397121eef41a7ffd13d180580417d37a3b583d20febe2783543e4",
+  "full_artifact": "ART/vgui1-app-cold-foundation-v1/windows-attempt1-x86-release/evidence/contexts/engine-hw",
+  "limit": "captured compiler text only, not independent rebuilt owner evidence"
+}

@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+project(CseNetworkHeaderBoundary LANGUAGES CXX)
+foreach(order api_first net_first)
+  add_library(network_headers_${order} OBJECT network_headers.cpp)
+  target_compile_features(network_headers_${order} PRIVATE cxx_std_17)
+  target_include_directories(network_headers_${order} PRIVATE
+    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
+    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/cl_dll"
+    "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+  if(order STREQUAL api_first)
+    target_compile_definitions(network_headers_${order} PRIVATE CSE_API_FIRST)
+  endif()
+  if(MSVC)
+    target_compile_options(network_headers_${order} PRIVATE /W4 /WX /EHsc)
+  else()
+    target_compile_options(network_headers_${order} PRIVATE -Wall -Wextra -Werror)
+  endif()
+endforeach()

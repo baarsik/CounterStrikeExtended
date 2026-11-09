@@ -13,6 +13,10 @@
 #ifndef COLOR_H
 #define COLOR_H
 
+#if !defined(_WIN32)
+#include <cstring>
+#endif
+
 #ifdef _WIN32
 #pragma once
 #endif
@@ -28,6 +32,10 @@ public:
 	{
 		SetColor( r, g, b, a );
 	}
+
+#if !defined(_WIN32)
+    Color(const Color&) = default;
+#endif
 
 	void SetColor( int r, int g, int b, int a )
 	{
@@ -47,11 +55,16 @@ public:
 		return _color[index];
 	}
 
-	Color& operator=( const Color& rhs )
-	{
-		*((int*)this) = *((int*)&rhs);
-		return *this;
-	}
+    Color& operator=(const Color& rhs) {
+#if defined(_WIN32)
+        *((int*)this) = *((int*)&rhs);
+#else
+        if (this != &rhs) {
+            std::memcpy(_color, rhs._color, sizeof(_color));
+        }
+#endif
+        return *this;
+    }
 
 private:
 	unsigned char	_color[4];

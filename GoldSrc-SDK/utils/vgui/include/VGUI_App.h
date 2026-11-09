@@ -118,8 +118,14 @@ protected:
 	Cursor*           _cursor[Cursor::dc_last];
 	Cursor*           _cursorOveride;
 private:
+#if defined( _WIN32 )
 	long              _nextTickMillis;
 	long              _minimumTickMillisInterval;
+#else
+    // Match the implementation's signed 32-bit scheduling fields on LP64.
+    int _nextTickMillis;
+    int _minimumTickMillisInterval;
+#endif
 	friend class SurfaceBase;
 };
 }

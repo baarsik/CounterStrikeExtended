@@ -13,11 +13,16 @@
 
 #include "UtlBuffer.h"
 
+#if !defined(_WIN32)
+#include "../../../common/legacy_str_to_integer.h"
+#endif
+
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #ifdef _WIN32
 extern "C" _ACRTIMP void __cdecl _wassert( const wchar_t* message, const wchar_t* file, unsigned int line );
@@ -117,8 +122,22 @@ void CUtlBuffer::GetString( char* pString )
 	}
 	else
 	{
-		int len = strlen( (char*)&m_Memory[m_Get] ) + 1;
-		Get( pString, len );
+        const int capacity = m_Memory.NumAllocated();
+        if (m_Get < 0 || m_Get >= capacity) {
+            m_Error |= GET_OVERFLOW;
+            *pString = 0;
+            return;
+        }
+        const char* start = reinterpret_cast<const char*>(&m_Memory[m_Get]);
+        const char* end = static_cast<const char*>(memchr(start, 0, static_cast<size_t>(capacity - m_Get)));
+        if (!end) {
+            m_Error |= GET_OVERFLOW;
+            *pString = 0;
+            return;
+        }
+        // The terminator is inside the int-sized remaining allocation.
+        const int length = static_cast<int>(end - start) + 1;
+        Get(pString, length);
 	}
 }
 
@@ -211,26 +230,34 @@ int CUtlBuffer::VaScanf( const char* pFmt, va_list list )
 			case 'd':
 			{
 				int* i = va_arg( list, int* );
+#if defined(_WIN32)
 				*i = strtol( (char*)( m_Memory.m_pMemory + m_Get ), &pEnd, 10 );
+#else
+                *i = CseLegacyStrtol10((char*)( m_Memory.m_pMemory + m_Get ), &pEnd);
+#endif
 				if ( pEnd == (char*)( m_Memory.m_pMemory + m_Get ) )
 				{
 					return numScanned;
 				}
 
-				m_Get = pEnd - (char*)m_Memory.m_pMemory;
+				m_Get = static_cast<int>(pEnd - (char*)m_Memory.m_pMemory);
 				break;
 			}
 
 			case 'u':
 			{
 				unsigned int* u = va_arg( list, unsigned int* );
+#if defined(_WIN32)
 				*u = strtoul( (char*)( m_Memory.m_pMemory + m_Get ), &pEnd, 10 );
+#else
+                *u = CseLegacyStrtoul10((char*)( m_Memory.m_pMemory + m_Get ), &pEnd);
+#endif
 				if ( pEnd == (char*)( m_Memory.m_pMemory + m_Get ) )
 				{
 					return numScanned;
 				}
 
-				m_Get = pEnd - (char*)m_Memory.m_pMemory;
+				m_Get = static_cast<int>(pEnd - (char*)m_Memory.m_pMemory);
 				break;
 			}
 
@@ -243,7 +270,7 @@ int CUtlBuffer::VaScanf( const char* pFmt, va_list list )
 					return numScanned;
 				}
 
-				m_Get = pEnd - (char*)m_Memory.m_pMemory;
+				m_Get = static_cast<int>(pEnd - (char*)m_Memory.m_pMemory);
 				break;
 			}
 
@@ -305,14 +332,15 @@ void CUtlBuffer::Put( const void* pMem, int size )
 
 void CUtlBuffer::PutString( const char* pString )
 {
-	int len = strlen( pString );
-
-	if ( ( m_Flags & TEXT_BUFFER ) == 0 )
-	{
-		++len;
-	}
-
-	Put( pString, len );
+    const size_t length = strlen(pString);
+    const size_t terminatorBytes = IsText() ? 0 : 1;
+    // Both the cursor and CUtlMemory capacity are signed int counts.
+    if (m_Put < 0 || terminatorBytes > static_cast<size_t>(INT_MAX - m_Put)
+        || length > static_cast<size_t>(INT_MAX - m_Put) - terminatorBytes) {
+        m_Error |= PUT_OVERFLOW;
+        return;
+    }
+    Put(pString, static_cast<int>(length + terminatorBytes));
 }
 
 void CUtlBuffer::PutUnsignedShort( unsigned short value )
@@ -363,23 +391,28 @@ void CUtlBuffer::Printf( const char* pFmt, ... )
 
 bool CUtlBuffer::CheckPut( int size )
 {
-	if ( m_Error )
-	{
-		return false;
-	}
-
-	while ( m_Memory.m_NumAllocated < m_Put + size )
-	{
-		if ( m_Memory.m_GrowSize < 0 )
-		{
-			m_Error |= PUT_OVERFLOW;
-			return false;
-		}
-
-		m_Memory.Grow( 0 );
-	}
-
-	return true;
+    if (m_Error) {
+        return false;
+    }
+    if (size < 0 || m_Put < 0 || size > INT_MAX - m_Put) {
+        m_Error |= PUT_OVERFLOW;
+        return false;
+    }
+    const int requiredBytes = m_Put + size;
+    while (m_Memory.m_NumAllocated < requiredBytes) {
+        if (m_Memory.m_GrowSize < 0) {
+            m_Error |= PUT_OVERFLOW;
+            return false;
+        }
+        const int growth = m_Memory.m_GrowSize > 0 ? m_Memory.m_GrowSize
+            : (m_Memory.m_NumAllocated > 0 ? m_Memory.m_NumAllocated : 1);
+        if (growth > INT_MAX - m_Memory.m_NumAllocated) {
+            m_Memory.Grow(requiredBytes - m_Memory.m_NumAllocated);
+        } else {
+            m_Memory.Grow(0);
+        }
+    }
+    return true;
 }
 
 void CUtlBuffer::SeekPut( SeekType_t type, int offset )

@@ -1,0 +1,2384 @@
+{
+  "schema": 1,
+  "package": "Apple Metal Toolchain 27B47",
+  "compiler_version": "Apple metal version 32023.922 (metalfe-32023.922.4)",
+  "files": [
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/ANEHostCompiler",
+      "bytes": 182832656,
+      "sha256": "e3fd9dec893d606160179c5d930d12bbd54cafc99f5f4667ee0477ea2b77c8f4"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/Resources/Info.plist",
+      "bytes": 701,
+      "sha256": "4632dcd8b49ab1e06068ef5fe5a44d7e8bb92da1b8acc9710437f0445ce86b0f"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/Resources/version.plist",
+      "bytes": 550,
+      "sha256": "6e2eb77ed6d46565eac7c2b02db5575b8e3fab6e72583f0a06edee9604191c55"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "8b775bcb9561f141724858253f3a9b598405fb8ea310e0d0cd3c85cc2305a6af"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/CoreAIAsset",
+      "bytes": 522336,
+      "sha256": "3425d53f07b3bf45797edf7747067a902aed05d62c4e2133bc7bff983cf70263"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/Resources/Info.plist",
+      "bytes": 701,
+      "sha256": "e1785a14412c0d6821f55e5c3ce48d5e1ff74e9d4d80b733cabd0b80be7c2a3f"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/Resources/version.plist",
+      "bytes": 478,
+      "sha256": "a5d73cf12c5ecec44002be3adbb0717a69d165d520483413597d75cf1a6fbb54"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "db86dcc86b2001b6869a56e635fdcf10980041f43278f660429dbc01b6335553"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/CoreAICommon",
+      "bytes": 419536,
+      "sha256": "eaa1f85491eec9d4033b632adc607958714a34697eaa3a231eb078b92b2eea75"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/Resources/Info.plist",
+      "bytes": 703,
+      "sha256": "7ffc4ffb094b509e94b186f5437eeffeb467c283da2b2315e6ea51e5322db578"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/Resources/version.plist",
+      "bytes": 478,
+      "sha256": "a5d73cf12c5ecec44002be3adbb0717a69d165d520483413597d75cf1a6fbb54"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "7298cd0d4160a3c317e0f6edbe5e5172bfb64a8f88e9f6b7dc2346847e4173ee"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/CoreAICompiler",
+      "bytes": 457616,
+      "sha256": "173154e8c618d35c9cd12e148f3928981ae138dfe1cb1b38a1f94c2de33bd428"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/Frameworks/libODIECompiler.dylib",
+      "bytes": 60101008,
+      "sha256": "d681b1caec6482287db1d80283144fd5cd3cd840409a005977b8ff9e77aab71c"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/Resources/Info.plist",
+      "bytes": 707,
+      "sha256": "44a6044835c6c27419206302a5f6cc6468805755ea5c55dabefd3805e8f43038"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/Resources/version.plist",
+      "bytes": 478,
+      "sha256": "a5d73cf12c5ecec44002be3adbb0717a69d165d520483413597d75cf1a6fbb54"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2915,
+      "sha256": "d5fc2d0282c9030b10b669eb966223471211e2730df9feb6829bc321191dcfb9"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/CoreAIDelegatesXcode",
+      "bytes": 322960,
+      "sha256": "68a1f3f74135e39e5b5a622e3d95ead0e38d66ec34241ce8b5a21e0c85ad2d81"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/Resources/Info.plist",
+      "bytes": 721,
+      "sha256": "77c85f6f8e56d6a55dc643eba610fba69385a349d1e08df49591f93774cd47d2"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/Resources/version.plist",
+      "bytes": 553,
+      "sha256": "a9ea49f0e4bad11fefbe07c21716eb794a4dab4c259403e94676821aff47f7ed"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "4bc77526531b747ae5ccc6ff5d4c1f0fc555b5df9a1611ed33cb08885214e0d6"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/MPSHost",
+      "bytes": 191376,
+      "sha256": "d146065cbcc83d573d5bc892ca636b4e81add0f0bdfd5397bbe0c2cefa0ee300"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/Resources/Info.plist",
+      "bytes": 692,
+      "sha256": "3336c9fc2d0ae4669671cf9978133648da9db7659389f511ec38dfeb47e0afdd"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/Resources/version.plist",
+      "bytes": 476,
+      "sha256": "f3a14b89ce1a7f92e532dd16f57cf47feba6473fe958d1c85926524a016e7061"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "eb0269f4394c364f97862c1ac161d3985afb255307bd1435a35058d6beeba983"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/MetalPerformanceShadersGraph_host",
+      "bytes": 152931408,
+      "sha256": "76e8f155e14f2f6313c820796cafd6f7136cb1a620f9e240f411b12a8240348d"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/Resources/Info.plist",
+      "bytes": 864,
+      "sha256": "460c4cdb1be3713140f86f5a3530b7f306a373228ba59e076f29e3b2b027cb58"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/Resources/version.plist",
+      "bytes": 479,
+      "sha256": "620d51b44c63026a538bb169462f646d9f45b6d0567b5d460202a9bdd255fb06"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/_CodeSignature/CodeResources",
+      "bytes": 2674,
+      "sha256": "3bf9ba7f3bbc138c423e627ae4a475ea04117c6eb5f9d48398a20eda3ed88d50"
+    },
+    {
+      "path": "ToolchainInfo.plist",
+      "bytes": 270,
+      "sha256": "6aa0d11337d402eb6eef4131f448ca504b4ed1d6847cecdabd8ec4599d0c62ae"
+    },
+    {
+      "path": "usr/bin/air-ar",
+      "bytes": 238464,
+      "sha256": "4ca51e091742e70cfa11bcdaaa8295fc8ac02a473504eee28dd8442b977ab75a"
+    },
+    {
+      "path": "usr/bin/air-arch",
+      "bytes": 238480,
+      "sha256": "8aa348b52120b17160e16b2ea802fb31734c9daa85ff270161b5c518f6cadc7f"
+    },
+    {
+      "path": "usr/bin/air-as",
+      "bytes": 238464,
+      "sha256": "927768a5d6de6840e0aa820428e1b6f9a3c6f8baeb632547e929e9909ddfc151"
+    },
+    {
+      "path": "usr/bin/air-binary-perf",
+      "bytes": 238496,
+      "sha256": "4bfafea442a515767eaff1e6e2977b24783742c62abe393a5cf2cbacc36438ce"
+    },
+    {
+      "path": "usr/bin/air-config",
+      "bytes": 238480,
+      "sha256": "8926605931b0597f2d8bcc32258d64852b6bc6051453a37b6851f844107bffcd"
+    },
+    {
+      "path": "usr/bin/air-dsymutil",
+      "bytes": 238480,
+      "sha256": "f7d2a155788c40de2c1676d4bcdb06365f40f3174a0909af538324512992bc78"
+    },
+    {
+      "path": "usr/bin/air-libtool",
+      "bytes": 238480,
+      "sha256": "e7e7802659ee2709a65b2c9a244b78d46655b405c808227e4fa4bbe0953fa888"
+    },
+    {
+      "path": "usr/bin/air-link",
+      "bytes": 238480,
+      "sha256": "33c31c55fe9450335a32ef1f2499687f7a8418816f2f968bfbeb5685c10e701f"
+    },
+    {
+      "path": "usr/bin/air-lipo",
+      "bytes": 238480,
+      "sha256": "00d060f051ceea7b90315cb41cc58abd85fe2af99bbbda6ec9f24ef3feed3921"
+    },
+    {
+      "path": "usr/bin/air-lld",
+      "bytes": 238480,
+      "sha256": "3510ace70e1652fe2cf70c1608df0ce0660339c5a656f4e8bb4522fedfb8a86c"
+    },
+    {
+      "path": "usr/bin/air-nm",
+      "bytes": 238464,
+      "sha256": "9834b912696c9c776a6d28defcfd5aab98b95a40035871d56c7e01b0840ca07d"
+    },
+    {
+      "path": "usr/bin/air-nt",
+      "bytes": 238464,
+      "sha256": "0d915b978febab38fc9a9f3e52ed334b300814db871d40fcb6703cec88bacbf2"
+    },
+    {
+      "path": "usr/bin/air-objcopy",
+      "bytes": 238480,
+      "sha256": "58e4206b6f4996bb7e4643be107aee33dfc876ad286ea9ba9fbf95d7bab3b36e"
+    },
+    {
+      "path": "usr/bin/air-objdump",
+      "bytes": 238480,
+      "sha256": "9783b385281e89b4e4d96983f600bf954397ae2fb2345b8f7765933d86f8daa1"
+    },
+    {
+      "path": "usr/bin/air-opt",
+      "bytes": 238480,
+      "sha256": "3245107c809ede1035e5f43753d53b97aef97cff67338cadb1daf8c2745b8d50"
+    },
+    {
+      "path": "usr/bin/air-pack",
+      "bytes": 238480,
+      "sha256": "24432ae55e6c1a93698dc256dd917c856ced2cb15c02040179813ba82db428b3"
+    },
+    {
+      "path": "usr/bin/air-package",
+      "bytes": 238480,
+      "sha256": "9c2103b1b99267594084f8a299cccde1d7870ad91ac880189987263ccd4f8a9e"
+    },
+    {
+      "path": "usr/bin/air-readobj",
+      "bytes": 238480,
+      "sha256": "aa172e5a703d46ff26fb241ad676a220d2776a073ef7f0b7e390786623bdc441"
+    },
+    {
+      "path": "usr/bin/air-size",
+      "bytes": 238480,
+      "sha256": "c0f9456c437495f427fa20b929ecc50d61cc2a7bfe9415b360bd291ed0a8b8e4"
+    },
+    {
+      "path": "usr/bin/air-strip",
+      "bytes": 238480,
+      "sha256": "0b43d89073dfaa6e6c734cdaff9fa6fa6373adea46e7aa4c58a05a14e330a493"
+    },
+    {
+      "path": "usr/bin/air-tt",
+      "bytes": 238464,
+      "sha256": "865e81066086c61e37bd18fe3f3510096859bc8fee60e1102e1d8983121a963a"
+    },
+    {
+      "path": "usr/bin/air-validate",
+      "bytes": 238480,
+      "sha256": "9178d0ce83f6aba520c49646209ba8308b529d265d3697c7d987880393177ead"
+    },
+    {
+      "path": "usr/bin/air-vtool",
+      "bytes": 238480,
+      "sha256": "1186ab7c53ee4d368ab9ce548a23bfc6292f873bc19049f5a077d20a07e79d11"
+    },
+    {
+      "path": "usr/bin/coreai-build",
+      "bytes": 903120,
+      "sha256": "d271295b4b203e51b4375332df99fc8664c898daeb1658b2979c74828587e168"
+    },
+    {
+      "path": "usr/bin/metal",
+      "bytes": 238464,
+      "sha256": "b5a27d6aa4f412e7e1a15ee8a6da1f0c02f5fad66203398ac0368cc580c4cc0a"
+    },
+    {
+      "path": "usr/bin/metal-package-builder",
+      "bytes": 268800,
+      "sha256": "74e792f513b0a46668a9ffa6ca35b2b4295152e1be945332b89eb039df230969"
+    },
+    {
+      "path": "usr/bin/metal-source",
+      "bytes": 238480,
+      "sha256": "133368802bf6576306763e490d12b04e2c28edff69d15da6cb3042eda7fc310e"
+    },
+    {
+      "path": "usr/metal/32023/ToolchainInfo.json",
+      "bytes": 1118,
+      "sha256": "c052a50809727ada7220ce4fc40488ff3de44d491d8699e3f2331eab5ce56b23"
+    },
+    {
+      "path": "usr/metal/32023/ToolchainInfo.plist",
+      "bytes": 835,
+      "sha256": "13298260d97a0c34c0c2e85360554f83d04c3842fa5ef08697515fecc24efd07"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-ar",
+      "bytes": 92852864,
+      "sha256": "9f7f8f9ca87e8499c81c8ae364e14450b7b1493337cf0286b200c6226d4169e9"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-arch",
+      "bytes": 625744,
+      "sha256": "d98cd5411d5ae8a63654f24bee144685a4e93039b31ce57fc58df50a6e0cdec3"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-as",
+      "bytes": 8596800,
+      "sha256": "ae456ce9a7681c35dbe380aa22cc63455ca6ff733e6a3059f5bb437405917d5a"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-binary-perf",
+      "bytes": 6880848,
+      "sha256": "e10e24e42f999f4560c95ea20788fde3da415e0d748881373519a8b10a2208a8"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-config",
+      "bytes": 1279936,
+      "sha256": "402cbbc8f557c942b85494576407a18c9592af3923a1bc4dd9d463ae52206250"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-dsymutil",
+      "bytes": 159177744,
+      "sha256": "813481a25cc4d0a1bd399fb841a9f3302899b5fb370ae8ec09070621bd1769ba"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-libtool",
+      "bytes": 7054128,
+      "sha256": "c34d0691e5c0ddf09687a7d6fde218dc8740bd7cd264dd6abf844132b909bb9c"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-link",
+      "bytes": 9466320,
+      "sha256": "8b46c42fb9bc91c3724ea8b4a0e1e8a19188da121a7f082425d5953685a32630"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-lipo",
+      "bytes": 6983456,
+      "sha256": "5bb035d8068c5a0d7b685c0fc544a0c6a350e9ce8933d677f9da5583f0414637"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-lld",
+      "bytes": 42320608,
+      "sha256": "b99f1bc9c7d9f727759baa1b2dc0dc8021ee83a5f4277d40735c66ba263291a2"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-nm",
+      "bytes": 93470496,
+      "sha256": "0ce387593ccd384b770f41bf180d5db4db3789641015bb39d419d3139c918f1d"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-nt",
+      "bytes": 79499008,
+      "sha256": "b97fbbb30abf2d70f9634b599da9e9708591d4555adddf46684064437287d441"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-objcopy",
+      "bytes": 26502928,
+      "sha256": "9ce5ea64016fcd7f9e4a21ea10e7dedc2bdc995a37986f330eec94b3709480eb"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-objdump",
+      "bytes": 145177152,
+      "sha256": "7f6059a03f0825c815f30f63d39316826d47f697488abc432303eeb2e577541a"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-opt",
+      "bytes": 181143136,
+      "sha256": "4debbe87f7ae1b4f9b7ad17bbd51049dd23bf3ee7d3df23ccd19319741d0bd6c"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-pack",
+      "bytes": 28251024,
+      "sha256": "1c0317f42805372654b8fc45ddeddb227f27570c61e9669b8e4a9a1e2d81b7b0"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-package",
+      "bytes": 7059504,
+      "sha256": "cf6893b3f8fa9e869ebc3c812fb9b9d1167ccd1427c262cc2f27c776ea4683ac"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-readobj",
+      "bytes": 11050048,
+      "sha256": "2b10040bc631906ad6544c48d88de5ca1f0db8ebb313d802f0b610e457291d72"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-size",
+      "bytes": 6966656,
+      "sha256": "f63a2d01ecf62b6ab9eec26b2185f467d89243a81641985ff130262edef205b9"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-strip",
+      "bytes": 41744896,
+      "sha256": "9ed66599216c77ad516270ff2f78a0d2cdd219a147f754d2dc300326edac6f31"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-tt",
+      "bytes": 1327072,
+      "sha256": "fdd1ef156417d0982b3b84d2d30d5f410af69065a4ec96a06b44beffe0ba010c"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-validate",
+      "bytes": 6936592,
+      "sha256": "e7590d8f01d1cc3ee65b82f7ebf68bb422f5586f7eda9061792e5012aabb9158"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-vtool",
+      "bytes": 7022528,
+      "sha256": "ec4d7d66f7305445a2a3fa545151e0c4daed7dacb384280b194d59b8c72fcf14"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal",
+      "bytes": 237601120,
+      "sha256": "3902a53efd3c6d41959355f17273138b83e28593aca0b89c20df2acb2b4a3fe2"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-source",
+      "bytes": 13076800,
+      "sha256": "ac91804cd2fc87bf49e52c772f0c9d439fa256a08a6b2393724ed42cd0659dce"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/Info.plist",
+      "bytes": 860,
+      "sha256": "302ca67a53c40170a7e46d39790425413171370db2bb546bbe3c454a4e3b3bcc"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/MacOS/AMDRadeonX5000Shared",
+      "bytes": 599408,
+      "sha256": "b2fb30e5d29f1ff993e28bb2ae17b77cde533a81d025882af998507ed27e8bf5"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 2831648,
+      "sha256": "21c7298b8438ea6f451175755816fecb51c2ab564d0f883b844ab260333b54e4"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 12651687,
+      "sha256": "236a5a2a9fa1c1f5ef8497684581ec5098e7e64f504a5dea88ef3505838910e8"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil_instrumented.bc",
+      "bytes": 2854496,
+      "sha256": "d75c1369ab7156c292bb899d33b45ed203357601d984bfe60931f089ebb6263b"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil_instrumented.builtin",
+      "bytes": 12727335,
+      "sha256": "be4a260e6bdf5aa5ad33d004b646d907896a75ef377ab3bae8816a7eda98bb7e"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 3452,
+      "sha256": "497ff89efbcad1548b0aa936e3eda230f172ec2dff8b35f7b72abf703a3bb300"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX5000Shared.bundle/Contents/version.plist",
+      "bytes": 465,
+      "sha256": "b9ea77fecc643dca2a6db976f4e495e87c1a9ba76e00e7c180db699a7d807c28"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/Info.plist",
+      "bytes": 860,
+      "sha256": "139d0e0b4a6370f1fae6e22bf8285e344d261b938a71977df5c8db8135ce9f25"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/MacOS/AMDRadeonX6000Shared",
+      "bytes": 616448,
+      "sha256": "8a56f207a52c997c1d8ee038a118fe60906f3823e36995fadaa15a16f8bf03e7"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 2831648,
+      "sha256": "21c7298b8438ea6f451175755816fecb51c2ab564d0f883b844ab260333b54e4"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 12651687,
+      "sha256": "236a5a2a9fa1c1f5ef8497684581ec5098e7e64f504a5dea88ef3505838910e8"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil_instrumented.bc",
+      "bytes": 2854496,
+      "sha256": "d75c1369ab7156c292bb899d33b45ed203357601d984bfe60931f089ebb6263b"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil_instrumented.builtin",
+      "bytes": 12727335,
+      "sha256": "be4a260e6bdf5aa5ad33d004b646d907896a75ef377ab3bae8816a7eda98bb7e"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 3452,
+      "sha256": "497ff89efbcad1548b0aa936e3eda230f172ec2dff8b35f7b72abf703a3bb300"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDRadeonX6000Shared.bundle/Contents/version.plist",
+      "bytes": 465,
+      "sha256": "b9ea77fecc643dca2a6db976f4e495e87c1a9ba76e00e7c180db699a7d807c28"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/Info.plist",
+      "bytes": 810,
+      "sha256": "7fc96b4cc1ad4348f6779d16ba2449ba10a7d84f2843f607f4fc2ab0415ff9ea"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/MacOS/AMDShared",
+      "bytes": 598032,
+      "sha256": "edfc6c6074dc72192c7909ac3a37d70fe7b31f8b3988d86ed26a47f302e97a19"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/PlugIns/libAMDIL902.dylib",
+      "bytes": 35229024,
+      "sha256": "0fa30882ff6845401c21bbae7c40beada696ce636f77a001b4d9aa19b6a849c4"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/PlugIns/libGCNASM.dylib",
+      "bytes": 35750800,
+      "sha256": "c6561259888232f748361e56bf6142a645ddeba4e06a05a2852719f490795c14"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/PlugIns/libSC.dylib",
+      "bytes": 56391056,
+      "sha256": "17c1cbd007bdd78e1229deb23fa8ab443764b8ef5d6a8c1d982a85da64f0d4f0"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 2831648,
+      "sha256": "21c7298b8438ea6f451175755816fecb51c2ab564d0f883b844ab260333b54e4"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 12651687,
+      "sha256": "236a5a2a9fa1c1f5ef8497684581ec5098e7e64f504a5dea88ef3505838910e8"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/Resources/runtime.amdil_instrumented.bc",
+      "bytes": 2854496,
+      "sha256": "d75c1369ab7156c292bb899d33b45ed203357601d984bfe60931f089ebb6263b"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/Resources/runtime.amdil_instrumented.builtin",
+      "bytes": 12727335,
+      "sha256": "be4a260e6bdf5aa5ad33d004b646d907896a75ef377ab3bae8816a7eda98bb7e"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 4126,
+      "sha256": "2abee4733de7b6e26e4b5930effa11ddc7ba95ce0edda272f1ba9c97e45e2190"
+    },
+    {
+      "path": "usr/metal/32023/lib/AMDShared.bundle/Contents/version.plist",
+      "bytes": 465,
+      "sha256": "b9ea77fecc643dca2a6db976f4e495e87c1a9ba76e00e7c180db699a7d807c28"
+    },
+    {
+      "path": "usr/metal/32023/lib/air-nt/config.yaml",
+      "bytes": 3335,
+      "sha256": "86e64a887880d57746e1964e587cb35477268c497ca2b5e6b9a47025bbfa9419"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/Info.plist",
+      "bytes": 853,
+      "sha256": "c612a6799361f48439a6f605c0e96ad494522584cb54e2b22843a7d3c129d884"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/MacOS/AMDRadeonX5000Shared",
+      "bytes": 595280,
+      "sha256": "30b5614ff9b11a7376fe0f487a1f6ccb1f9b8365e5c27fae29d76e717f26ba18"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 1727456,
+      "sha256": "b0a89b4f693008a877f137c425513b0736e09c85f0175d695b026785f777d80c"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 5116349,
+      "sha256": "fe6867d52968ab55580d4e8518a81cdf2181c8c2988da121d71c9345860403fb"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 2914,
+      "sha256": "098377803ec387bfbfcc538373cbd30180c9a421b77b03721135057064430f71"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX5000Shared.bundle/Contents/version.plist",
+      "bytes": 478,
+      "sha256": "e964f60cde0fc7ebf77081aff25742dd28ce83499579d9784c49fe753e35837b"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/Info.plist",
+      "bytes": 853,
+      "sha256": "085ed67aa14abc1711fec58808ec6bb8e4b3b8469aff1743b3324c87784a9839"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/MacOS/AMDRadeonX6000Shared",
+      "bytes": 595904,
+      "sha256": "59fa5c3595abc41705f88fe0904f9d90516105e9a597a53d7f02633d7033152c"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 1727456,
+      "sha256": "b0a89b4f693008a877f137c425513b0736e09c85f0175d695b026785f777d80c"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 5116349,
+      "sha256": "fe6867d52968ab55580d4e8518a81cdf2181c8c2988da121d71c9345860403fb"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 2914,
+      "sha256": "098377803ec387bfbfcc538373cbd30180c9a421b77b03721135057064430f71"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDRadeonX6000Shared.bundle/Contents/version.plist",
+      "bytes": 478,
+      "sha256": "e964f60cde0fc7ebf77081aff25742dd28ce83499579d9784c49fe753e35837b"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/Info.plist",
+      "bytes": 803,
+      "sha256": "e951eed87fed03f783477c637a0a3f262f050815adfb5914a5d4e45f3cab6bde"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/MacOS/AMDShared",
+      "bytes": 593920,
+      "sha256": "dacfb16ccc23bd403d1477258581d889157f8777f50b8ff80ba96343113ccd01"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "2dd3e1e3827dc32b1cebae2ef19750f5019320fe632b9641dcad8566044926b1"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/PlugIns/libAMDIL902.dylib",
+      "bytes": 34888624,
+      "sha256": "085ae61b5b3c7c2e70d95e859526014743ca3b67a4a555012bdc5458c78e747a"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/PlugIns/libGCNASM.dylib",
+      "bytes": 36148432,
+      "sha256": "91db54dc122b0b8333bf41aed30dc54a001ac2b2717dc7534011e9ec8f3ee659"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/PlugIns/libSC.dylib",
+      "bytes": 59358912,
+      "sha256": "92443f39d8f2e24354cb5ea1e79b40276c0aab75924bd6747feae23c33fe88bb"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/Resources/runtime.amdil.bc",
+      "bytes": 1727456,
+      "sha256": "b0a89b4f693008a877f137c425513b0736e09c85f0175d695b026785f777d80c"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/Resources/runtime.amdil.builtin",
+      "bytes": 5116349,
+      "sha256": "fe6867d52968ab55580d4e8518a81cdf2181c8c2988da121d71c9345860403fb"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/_CodeSignature/CodeResources",
+      "bytes": 3588,
+      "sha256": "55e20bbffcaf12c45f41f66c04ce0a05ca315a202992e8c54f56c26185349f92"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/AMDShared.bundle/Contents/version.plist",
+      "bytes": 478,
+      "sha256": "e964f60cde0fc7ebf77081aff25742dd28ce83499579d9784c49fe753e35837b"
+    },
+    {
+      "path": "usr/metal/32023/lib/amd_13/libAMDNTPlugin.dylib",
+      "bytes": 393696,
+      "sha256": "ce9362ecd29659d1923ba641cc3dbb1e6558f42272bdfd1dff2418fdd058f1fe"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g13.metallib",
+      "bytes": 232356,
+      "sha256": "2f7ff45a43aefa148730de37bb194946bc7a5d80deaf8a9c999a4d8d4ee5f412"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g13x.metallib",
+      "bytes": 232356,
+      "sha256": "f3e563e0e182353d4dd8d678ed6bf88491fe9c7cd8d69c6d93f2b960c74c8ad8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g14.metallib",
+      "bytes": 232548,
+      "sha256": "d147ca64192487bfde359428acb556c81dbbafaa5356e3056eef14d5178d20b3"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g14d.metallib",
+      "bytes": 232596,
+      "sha256": "db13dde438914d242710a3692bc23a96bbd7103735166601d56e64ad9b536fee"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g14sc.metallib",
+      "bytes": 232596,
+      "sha256": "805d786ba333c9035c2f2fbcb0c79658efd9339e028964546c377e4b304d7f48"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15c_a0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15c_b0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15d_a0.metallib",
+      "bytes": 340533,
+      "sha256": "380ad0178b959d9a0c90603e037b8065a6a32dc81f959d740a0f12cd3391b858"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15d_b0.metallib",
+      "bytes": 340533,
+      "sha256": "380ad0178b959d9a0c90603e037b8065a6a32dc81f959d740a0f12cd3391b858"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15g_a0.metallib",
+      "bytes": 317573,
+      "sha256": "5a81bfa1373f7077ae8f0ae02bd323413783e08d16bfbbc65768cc594c177fd5"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15g_b0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15g_c0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15s_a0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g15s_b0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g16p_a0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g16p_b0.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_g17d.metallib",
+      "bytes": 704756,
+      "sha256": "73a51a63d209ebaa87743fc47dd2ad16daff5f477adb3c06ebaaad8e88c870db"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_hal200.metallib",
+      "bytes": 340533,
+      "sha256": "288920621887ef8d9b4bb72b5bd3d2e6830920997bf4a074c1a5395c0f1460d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_hal300.metallib",
+      "bytes": 704756,
+      "sha256": "afcfe3eca0da012b97a5036f8631f0ca3ce81b44778c4ccaffaa3ca6f81ca05f"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/ei_rt_hal400.metallib",
+      "bytes": 453908,
+      "sha256": "e7c2c4f6e71a672f6861447222a543cc23f346dba8879115ea904c184fc43289"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/gpe_rt.metallib",
+      "bytes": 14261,
+      "sha256": "676fd3e18227ec341b4646be64236562fb4e04ab62a043487f426296abb68fe2"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_emulation.metallib",
+      "bytes": 38404,
+      "sha256": "18b11dd57217638ff4e8d978062ff52dbcc32f1db97e012d78d933352494f14f"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_nop.metallib",
+      "bytes": 41220,
+      "sha256": "39134c86e03c9cbed05c12e43412191257fb077298786c3511da66609bcbbbc8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_ria1.metallib",
+      "bytes": 1347993,
+      "sha256": "343be92402f197c6841510b4c8748164820666e0df3911204c0aae9fc5082d9a"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_ria2.metallib",
+      "bytes": 1349881,
+      "sha256": "59c2b2858b3b3310ed0bf7ce71781243f7abcefb70cc5d3cdf17ace08bed28d9"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_ria3.metallib",
+      "bytes": 1225537,
+      "sha256": "52c9ab3d8d4fcb2a95e9ab98d85103a4e52fb586c238863085206acae6b2b70e"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/raytracing_runtime_ria4.metallib",
+      "bytes": 1144001,
+      "sha256": "2522255630bf41b21ebee1b46c60eef8f24e20c302204bf35792c927b7a04d92"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/runtime.gen10.metallib",
+      "bytes": 1290322,
+      "sha256": "c4dbede585afe71020fc69de4ace1de565c324fa989a56ab5d19fe1957d7051c"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/runtime.gen15.metallib",
+      "bytes": 1316269,
+      "sha256": "896f3eeea90d1195fba10862dbf2ea92e484d7182135003d4d7fcae25cfb8c14"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/runtime.gen18.metallib",
+      "bytes": 1308989,
+      "sha256": "c5f6b66f313c6ad7f405520a0e3a93cc00bd6fe62579554a9d0f5852ced30aac"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tensor.metallib",
+      "bytes": 474003,
+      "sha256": "578b0188c172165f9dd8e3c40c50f339a0b9ccfc1b757209bcf2d0451a1d5c16"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g12.metallib",
+      "bytes": 867900,
+      "sha256": "5d784b524a8360727c9ecc1467fe99175a89eacc0bfa2cb0b4dc90cea10ed84f"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g13.metallib",
+      "bytes": 867996,
+      "sha256": "01a43fb66fcafeabbac5bbd05958e272c4ba86ba8b99d17179e256e0dc4da44b"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g14.metallib",
+      "bytes": 867996,
+      "sha256": "01a43fb66fcafeabbac5bbd05958e272c4ba86ba8b99d17179e256e0dc4da44b"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g15.metallib",
+      "bytes": 870460,
+      "sha256": "ce7fd6c274d3dbf7714b1cb9264848a9e34f2b62f7bda10f6ff2d6fedd1fd149"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g16.metallib",
+      "bytes": 870460,
+      "sha256": "ce7fd6c274d3dbf7714b1cb9264848a9e34f2b62f7bda10f6ff2d6fedd1fd149"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/tex_atomic_emu_g17.metallib",
+      "bytes": 870236,
+      "sha256": "d88e61088405fdea1165aea7922e4546184a328950e910d6fdbf59ea4e94f901"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/vft_rt_gen1.metallib",
+      "bytes": 18495,
+      "sha256": "a086cfb5c9b6f67d1f1a1c05577e51e997287ccdc8cebe3cff983a3ff6c725e3"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/vft_rt_gen1_agx3.metallib",
+      "bytes": 18559,
+      "sha256": "774bb8d933dbd756fd48622ff5124275a354d57ade8f7abdb654177eff1e6662"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu-nt/vft_rt_nop.metallib",
+      "bytes": 18223,
+      "sha256": "a67b97e67c4fc9377bece02c7df2d24d26ff30da0efecb97a7f1f72aace2faf5"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g13.metallib",
+      "bytes": 232324,
+      "sha256": "b810abc148c062c48e73f52802f5b0cec8bec9d4f4779aec9990e701c9dcb52d"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g13x.metallib",
+      "bytes": 232324,
+      "sha256": "f15fd1817422a5a1183c526ed58b397ec2920abddcea40581efbdb5800aa3a8a"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g14.metallib",
+      "bytes": 232324,
+      "sha256": "b810abc148c062c48e73f52802f5b0cec8bec9d4f4779aec9990e701c9dcb52d"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g14d.metallib",
+      "bytes": 232388,
+      "sha256": "765edd9906daa4c24aa08124e7a78689bb037728a7b5209729a757c4e4760b57"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g14sc.metallib",
+      "bytes": 232388,
+      "sha256": "4710e094c50c4f6eecd99497106edf26e1ce91caf66e8cd1e6160d381e348e38"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15c_a0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15c_b0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15d_a0.metallib",
+      "bytes": 340325,
+      "sha256": "9a2b69d7278798b369005f66661f3a9adbd863f8f2f14ce9ace5514f2543a2c9"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15d_b0.metallib",
+      "bytes": 340325,
+      "sha256": "9a2b69d7278798b369005f66661f3a9adbd863f8f2f14ce9ace5514f2543a2c9"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15g_a0.metallib",
+      "bytes": 317349,
+      "sha256": "81dfd0f7ea90db6d6ca603cdb590b666a8acdb70a31ab18c12e7741af5b2a542"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15g_b0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15g_c0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15p_b0.metallib",
+      "bytes": 232324,
+      "sha256": "b810abc148c062c48e73f52802f5b0cec8bec9d4f4779aec9990e701c9dcb52d"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15s_a0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g15s_b0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g16p_a0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_g16p_b0.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_hal200.metallib",
+      "bytes": 340325,
+      "sha256": "40c2a1414192e81763cac0bdb98b89f8a4f7153cce2ff1c8f93bbd1e257a41c7"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/ei_rt_hal300.metallib",
+      "bytes": 703540,
+      "sha256": "bb82d7e0769e85b02870e6d2244dcce269d678cd9ca6356a0d7562d74d8aebc9"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/gpe_rt.metallib",
+      "bytes": 14261,
+      "sha256": "3abf07569ecc9107d62f2541aaff7826e46d87cc4f01e9d6733ef480152bec42"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/raytracing_runtime_emulation.metallib",
+      "bytes": 38404,
+      "sha256": "cda22723a7754fb6aaefa3fc05de7189f2250da68489f12763a9172968317121"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/raytracing_runtime_nop.metallib",
+      "bytes": 41220,
+      "sha256": "4d9244bcc1e09b0528eb4fe2e1880f0db9c2a3243b0505c9852eeddc443c1abe"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/raytracing_runtime_ria1.metallib",
+      "bytes": 1333945,
+      "sha256": "300e2135191abf998503a2354bc993227d8d25ad4b0d9c61df85d1b914775216"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/raytracing_runtime_ria2.metallib",
+      "bytes": 1335801,
+      "sha256": "52420b2ea2e7748a35583a9e6aec14cc28c774ea7a0d7a2e40fdbeff47528162"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/raytracing_runtime_ria3.metallib",
+      "bytes": 1210577,
+      "sha256": "14162b2c845e5e3e65d2438c0720a5c689c56f73833982602fa3f65f8651923e"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/runtime.gen10.metallib",
+      "bytes": 1290322,
+      "sha256": "edb66c141e59cf2d6d294d86be7f62bb5b55b8df87058ae9f027fd6be8ab2bfa"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/runtime.gen15.metallib",
+      "bytes": 1272057,
+      "sha256": "49c5ac8e2d02075f0df30c67b7fa435bea12740ce3eda2859cd08eea52bdd671"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tensor.metallib",
+      "bytes": 1001527,
+      "sha256": "08d51cc635251c46fc629a9ad8ea0420614629f0819b09ee2209de549ad45743"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g12.metallib",
+      "bytes": 864476,
+      "sha256": "2260bd4bf2270b207986cc21baffcbf1788acb591736d90054882ccb46fb2f9a"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g13.metallib",
+      "bytes": 864508,
+      "sha256": "a2a914557435db5a5e9fc6316900f0be434ea59f564008ebb426d151ea90cc74"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g14.metallib",
+      "bytes": 864508,
+      "sha256": "a2a914557435db5a5e9fc6316900f0be434ea59f564008ebb426d151ea90cc74"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g15.metallib",
+      "bytes": 866620,
+      "sha256": "5ad0c3aab170e74383c8647b8fe3e228e37cfb0e722272bf27e74686bb8b6430"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g16.metallib",
+      "bytes": 866620,
+      "sha256": "5ad0c3aab170e74383c8647b8fe3e228e37cfb0e722272bf27e74686bb8b6430"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/tex_atomic_emu_g17.metallib",
+      "bytes": 866300,
+      "sha256": "ece76c5d347d099baef2a42f8f27e680518fc41ec28c31356c51537e20f7c35b"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/vft_rt_gen1.metallib",
+      "bytes": 18495,
+      "sha256": "4ce9f4dea8486a9423e24d372e23b999c68a2ae155daecd1481f0f9d8d5ab9f8"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/vft_rt_gen1_agx3.metallib",
+      "bytes": 18559,
+      "sha256": "c2a0c741df6464596a2ad7e45793df35b523f98afaab63c04641da8dc7d9d133"
+    },
+    {
+      "path": "usr/metal/32023/lib/applegpu25-nt/vft_rt_nop.metallib",
+      "bytes": 18223,
+      "sha256": "e383411e1d55f55cf0f3867dcfbaf7fa99993534a38f4670d6bb0e7c5194af9f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/TargetConditionals.h",
+      "bytes": 3966,
+      "sha256": "3f8dfc3ec92c566b3e927e98562962573495758d001b53742050d6895895eeea"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depth2d",
+      "bytes": 204449,
+      "sha256": "b6ee641968816f9e836bcbdc99cf53f3728550492bac036492846564414c3f64"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depth2d_array",
+      "bytes": 217456,
+      "sha256": "b849ede937cc2500c0c0c2737dff068ab582b1d63d3253f3bc3001b474eae18c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depth2d_ms",
+      "bytes": 65984,
+      "sha256": "b8b6b4dd6a0953344562b07722b2ee9e830252e2deebb7e2ed3880fc98f732e8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depth2d_ms_array",
+      "bytes": 71596,
+      "sha256": "9737884e28e26fbbf77787ad6d2705104372b90e3e430930eaf0080e98521e11"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depthcube",
+      "bytes": 195016,
+      "sha256": "ad241c8c1ff800cff23a0b120808c5b3980dd0bf0b7471f8b2f02faa1ce6cdf7"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_depthcube_array",
+      "bytes": 208298,
+      "sha256": "df3fbaed6da7e8ba9a735893c1a5627dacd85091df2876bc84b2ecb29f07d6df"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture1d",
+      "bytes": 170288,
+      "sha256": "4fe90d9924bb93d46ab467798b48b305a416fff8efd444e7f7a701d386cb7072"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture1d_array",
+      "bytes": 183406,
+      "sha256": "54d781476ec22eb460a3f8eb03d37991d15cfdfdaf0a0097c7ef1186d3089281"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture2d",
+      "bytes": 280724,
+      "sha256": "b52e61e83c6dd826189f667f156b94326fad8cf0a932646f450e5e860e2debc8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture2d_array",
+      "bytes": 299612,
+      "sha256": "543b944ba229cebfbc9a37ef735eb69dcfc9bc0c3022b4173edeb62aa411e910"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture2d_ms",
+      "bytes": 68395,
+      "sha256": "8939f69c772dc90d37fa4fb8bd13cc734ad83c6baf991ba2fbd2f0e2b2d3c2f3"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture2d_ms_array",
+      "bytes": 74031,
+      "sha256": "0efedb46c5463e9e3b01d3b733c5f6ca9baf5a727e9346cf557c9dc707ea4010"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture3d",
+      "bytes": 255065,
+      "sha256": "19a31087769e5ece740dce7c0d903bb8901f45e9d65a84fbc6272c52af799084"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture_buffer",
+      "bytes": 146398,
+      "sha256": "e91ae5ea5ca32c4412b69cde35aa754070a492a74a51b264d42483a4bc2eb575"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texture_common",
+      "bytes": 74116,
+      "sha256": "3d24a7c4e43abff8e5d91e89dccc7102966fce8f5180a5434fcea5fa0d447c01"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texturecube",
+      "bytes": 240352,
+      "sha256": "7957444f7b487d0aa732515fcd46c47ef3b3675c30cf9e5a48366d5277987a6e"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__bits/metal_texturecube_array",
+      "bytes": 257289,
+      "sha256": "75b5d0fba95e4131997b19ee622bda4eddba12041a1b823ca36b13819039af5d"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__exec/units.h",
+      "bytes": 5120,
+      "sha256": "57698dd4860a2513691da2f74a323742e929d8cb61fd68875f3f0526238d7238"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/__mdspan/extents.h",
+      "bytes": 15689,
+      "sha256": "d16a450497e54e984b9804e103a1383350945171978f1e83d859b6f70c0b95e4"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_array",
+      "bytes": 34176,
+      "sha256": "95d7b85c7a17f5361f3a286b068de54cf13b2923e731f62ccb0e1f176a17b732"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_assert",
+      "bytes": 575,
+      "sha256": "cac0f277ad0698154799e9814ebad9fb1ba3c9fb27ef3146a963f6e33520d02c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_atomic",
+      "bytes": 255200,
+      "sha256": "e08c52e30ae85a597566ce1b0c31a95e5b01b55e656928af124d230a3fb79ab9"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_command_buffer",
+      "bytes": 92247,
+      "sha256": "b8be5f6cf6d7bcd828b8ea6ab9771b4e2adc951ebd14da71f66fc12bcea90a6c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_common",
+      "bytes": 16440,
+      "sha256": "930e9dc9b086c4baa51c4ee6e713a4e0f60ce6bf6ac12a79d445405c55b71122"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_compute",
+      "bytes": 8063,
+      "sha256": "2357305536f09d5dfe99dfce19766f5bc061ccca5f0b37a47066f07116d60900"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_config",
+      "bytes": 84299,
+      "sha256": "91235f8655d2d0727b16bdc9afc9c8d7e711cee51050e5291d7995072f4f388f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_cooperative_tensor",
+      "bytes": 21280,
+      "sha256": "6741f8a5e601cd6d2d1ab9e9f25937f924765f9ffdcdbac54d964601e83e46a6"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_curves",
+      "bytes": 5562,
+      "sha256": "e638ee61839ea43b1627de35043641167aaf3c1895ece36f0a57e22b9a707f8c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_extended_vector",
+      "bytes": 6469,
+      "sha256": "c532ea15396db2499efc94cfca582495b5228f00aeb456164ea609fa5ca226a3"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_functional",
+      "bytes": 76095,
+      "sha256": "3ad9d7651d0cb1e246549d630a142ac9e0d5719c89257c4db4bc2c1699231316"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_generic",
+      "bytes": 1084,
+      "sha256": "872450a7e665d2fe16c148bbf70184bd13009af31a1802d1cdfd4af378850b55"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_geometric",
+      "bytes": 25308,
+      "sha256": "907c91fa3a83824fa7306092d9176a074ec65929daec1a1d47eee32aa0be582f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_graphics",
+      "bytes": 5253,
+      "sha256": "fe768ac31a28f53bc785c66749a156fca08f6192be42e47ff46c94ce3713a590"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_imageblocks",
+      "bytes": 9319,
+      "sha256": "684a4ea8257c7ce6fb62c9111750c8f45cc072ca9b838e54c9568f2b355f5ad0"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_initializer_list",
+      "bytes": 1484,
+      "sha256": "3e4e7bc61a495f3f7c99d14bc0bd9b043e8e31523d0c91dccc47e44a9e2ec4ed"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_integer",
+      "bytes": 106542,
+      "sha256": "4a99a81a0ae1cf25b2de2618351b6e57a053ca591723d25e54c46d92d45eee16"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_interpolate",
+      "bytes": 2016,
+      "sha256": "b91e94b1d9e687f7cbfc101ac9886f62c41600d63ed2c5b8583b5d615a8b729f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_limits",
+      "bytes": 23464,
+      "sha256": "b05a3060d99ff75621e7ab07145ee3c44a6a53e8dd3d5bdc12139a110e125a53"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_logging",
+      "bytes": 3587,
+      "sha256": "8828858baebf5fb8f254dea2c7d2b8f3717fec4cce8f8bbe4d13263f5036cdc8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_math",
+      "bytes": 186337,
+      "sha256": "0986049829da4d3c012ea1fe19751a391356991654eae06fed4812d48768ec4f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_matrix",
+      "bytes": 362873,
+      "sha256": "7b88cf941e10c03e008b3ff4dcc342de5952750084f186ae32e69e2ad66f477f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_mesh",
+      "bytes": 3115,
+      "sha256": "4c6cdc95ad499c2226f3bf3499804dfa4e0bb2ba95eb57e6ded7ab22ebdcc101"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_new",
+      "bytes": 2511,
+      "sha256": "f0942a6e7850ec90c926c3b58c05adff46bcb7bd6e566a2f13753bd37cb507c0"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_numeric",
+      "bytes": 639,
+      "sha256": "b11acd1ed2549c3e0c495e60b515f6572ad45f8a6cc35216b5819e1c40d542d3"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_pack",
+      "bytes": 3789,
+      "sha256": "2712ccc6a1ecf5fb4fc0ae35b8a78764256718a8b1df9831e923fbe368f14a2b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_packed_numeric",
+      "bytes": 10854,
+      "sha256": "bb397c0f471beed3be79761a92f083abc7f74533a18739cd93e1f8b8e6c351cc"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_packed_vector",
+      "bytes": 6625,
+      "sha256": "5143ee6d979c6e72118d455979b326a7e4aa3c81158cd83aa7dd969c38d95ff1"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_pixel",
+      "bytes": 57033,
+      "sha256": "3df16146e221c877e1f01384fccd17e1586e78e9f71f9b2f7d89e24d1770900b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_quadgroup",
+      "bytes": 8963,
+      "sha256": "a7d4c387a17aeebb7ff61a3a038fa388498471dcb540a68e0e299b62b6d42ce8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_raytracing",
+      "bytes": 244185,
+      "sha256": "d25debd2ee7bb72ba259f9884f199a7fd7331da13d23ac76e5a4b16d5f3255d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_relational",
+      "bytes": 48241,
+      "sha256": "acfb99673a5399769bb3ff456767e11b5b349e80929ea921aab82c520df753dd"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_simdgroup",
+      "bytes": 9888,
+      "sha256": "993396fb55100177eb13a95a00f3896a9bd5e4d820071cc680dc4a567f434d06"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_simdgroup_matrix",
+      "bytes": 9481,
+      "sha256": "b03b4b52518a4931a5637805d51be51f9a233b7e0dd90c580bd3ba7906648fd6"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_stdlib",
+      "bytes": 2914,
+      "sha256": "4537410c299a1d5bfafd7125b04cc0b3b8107587dd76d2d2af5bdc8d72f2f0e9"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_tensor",
+      "bytes": 269214,
+      "sha256": "f0e1bc0520109700013181f507da9355049c3068ec782f74c235ab508857e3c8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_tessellation",
+      "bytes": 1739,
+      "sha256": "ac2611fdf25f64ca836e1e20bb7c9b40621275f65e109f644e881685aefeae8a"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_texture",
+      "bytes": 952,
+      "sha256": "b6124f46240a9b1eec8706f8aa6fbace752d3ccdeb4b6444f9401d13a8c6ac2e"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_tuple",
+      "bytes": 6430,
+      "sha256": "2ae3f5a5331ba302802a741d684e9dee13ef216ac528a057ec63c84d9ed95d0b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_type_traits",
+      "bytes": 22782,
+      "sha256": "d1b8c5a30d0f11d63ae181de3ecdc7993f5cb1276ac30e3b0e7d7be8e81e21bf"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_types",
+      "bytes": 12243,
+      "sha256": "a701a8445518d5745ba185b874348a04b62923dd9e6ed8cc787fb0c33f830b4f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_types.h",
+      "bytes": 429,
+      "sha256": "32f407afd69a013c1c3d9b09424a5d4e90c9563c7d550ff75da2e07ac4c0c1d1"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_uniform",
+      "bytes": 68734,
+      "sha256": "7ad1acd940767e568e9d0d34523a778da4eb8a2dbf5900b3d2338baaaed89be2"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_utility",
+      "bytes": 2075,
+      "sha256": "0084e733514e95b203b118fab8efff384bff16fb40580d37cb678bea7fcde01f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_vertex_value",
+      "bytes": 861,
+      "sha256": "883f4a351225f551f2e758b9522a050c23e2aaf368f04f9fcc502e7cd9167526"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/metal_visible_function_table",
+      "bytes": 33927,
+      "sha256": "6693b044f1d900b1856cc4cb0dd880f54e807eb1dcba47bc9b1e06857d3bad43"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/module.modulemap",
+      "bytes": 6336,
+      "sha256": "560de1ba0248d18f834f7518172e776da55ab775d6a8e45407c1610c9c29b7f4"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/simd/matrix_types.h",
+      "bytes": 3828,
+      "sha256": "db5b1ae45855956bcf0f0cfd7c3a858f7aa3cb14c76bb478f5c266144d2588a9"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/simd/packed.h",
+      "bytes": 612,
+      "sha256": "bc14574ff472b197d7b815224c25acffd3ecac25db8eb012f5005bea1c36f3bf"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/simd/simd.h",
+      "bytes": 771,
+      "sha256": "cc1c7812e3e1e3f828af2853e5b3a333528c0e19aa6fe3f270098bfe8a244575"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/metal/simd/vector_types.h",
+      "bytes": 410,
+      "sha256": "354e9045bcb048f7c4a6d81fb82344fd85210b65fbf24b0782ac2994e845d08f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/module.modulemap",
+      "bytes": 3467,
+      "sha256": "8a463e5263fccb24c681ec3d1f3d8ea6cf3ee047848ce2d75fbca4a058ced23b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/opencl-c-base.h",
+      "bytes": 31275,
+      "sha256": "e407ea7f28094f3c2df4577f3a03e34c32841962478ec359b7f0ebc12dc783f1"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/include/opencl-c.h",
+      "bytes": 911384,
+      "sha256": "a97860a234f1e3ea65036dd9a3ae4321ff47b03183a1d71f890491a0dfba7143"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/MTLRaytracingRuntime.rtlib",
+      "bytes": 3486872,
+      "sha256": "0e3bd0487a9b6f877d9318d68eafbcfb9ec16318a8dacf1d4c9776913d980166"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/MTLShaderLoggingRuntime.rtlib",
+      "bytes": 26408,
+      "sha256": "df7a540a1e8a9c872b3de27dbb42d0524a4efbbf0ccc7b1ec2aef8a18d2893ec"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_ios.rtlib",
+      "bytes": 141800,
+      "sha256": "772321bab132bb556961659f77dcd7197b6c0878c9570ddecd8d678b81af5c7d"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_iosmac.rtlib",
+      "bytes": 142616,
+      "sha256": "a660a472b0bff579963df341a8fc40a33f0b325d6cd503e3a4a992552131a23c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_iossim.rtlib",
+      "bytes": 143064,
+      "sha256": "a0dc68f2b2f4d26d3865c8a92bd77e30ba957c8e1655ba3caf7fe277b6e5d458"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_osx.rtlib",
+      "bytes": 142056,
+      "sha256": "ca3422d81a5b1042b013e74d1757f7a2c75dc5767348bde3d00f3c7fb970b4da"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_tvos.rtlib",
+      "bytes": 141864,
+      "sha256": "fd6ea67bec4599fbad0e630d4dfd1af1b8f172232e0583d13885762688253421"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_tvossim.rtlib",
+      "bytes": 143176,
+      "sha256": "1742e19da3f2e24872770a267af494c0fa75958441d006562dd794d6b8f8f84c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_watchos.rtlib",
+      "bytes": 142200,
+      "sha256": "d21728c6cdd519821ccd2877557570c4662a30625d8e5828df5ea66b90781ca3"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_watchossim.rtlib",
+      "bytes": 143416,
+      "sha256": "250a47f0477a889f461a2a90159297ef7bdd5f858d7fda3c7855110d4b1d7d75"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_xros.rtlib",
+      "bytes": 141800,
+      "sha256": "909ed01d8bb9a0a275f28005ba30e9d78119542faf53e77ea714e0d63f5c9fed"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libair_rt_xrossim.rtlib",
+      "bytes": 143064,
+      "sha256": "59fea25a93830a4d1cfbfdc2ca4705c50e850061ff5ff98e55597df8281bebbb"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_ios.a",
+      "bytes": 89872,
+      "sha256": "a24b575bfdf64ab32c482707926d4ff98bb428a6fe642537ba3d1be59014b9f8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_iosmac.a",
+      "bytes": 102224,
+      "sha256": "d04a5be817f297f6372945adfb273a1a9633b8f1eaf9705eaa7a0b7b291f594d"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_iossim.a",
+      "bytes": 102240,
+      "sha256": "d6f61ae1fe94bc9d0cc71922f74d07101c65cfd47de8efcdafebec3d57eae5cb"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_osx.a",
+      "bytes": 129216,
+      "sha256": "2a2833e4352a2d6ba6369cd972a543e17078504b01970db96dcb9c433c2f8072"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_tvos.a",
+      "bytes": 89904,
+      "sha256": "ce00d66ca19f74451cc74a0969e9bf3e23cae4e887bc08b3365af6d3d3ca7bf5"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_tvossim.a",
+      "bytes": 102256,
+      "sha256": "63f58fdbd244a326abf1322d9ae69e89a32583cd18fa9e47deef9182a0838504"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_watchos.a",
+      "bytes": 91680,
+      "sha256": "a8f487026d8392ab9ae2fe1168a7038416ece2c35398908939b07482e486f3c1"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_watchossim.a",
+      "bytes": 102288,
+      "sha256": "fe79c58e2c394d7fe3bd7c4d72f4cfd72449cc75256a9b7b84be0928c03f9ba0"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_xros.a",
+      "bytes": 103152,
+      "sha256": "12510a50629ed0626216524659694bbe9be627656c5cba9308464a3bb7afc817"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libmetal_rt_xrossim.a",
+      "bytes": 103280,
+      "sha256": "afcab2c4915fce53ad2e785eb8e782058af5d7b1338313c37565df40c54a177f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libopencl_rt_osx.a",
+      "bytes": 2395096,
+      "sha256": "915f23cc5f64d1c6a3b35b17531cc8697c25082290b29651e5d5cb29b11c3f17"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libopencl_rt_osx_fast-relaxed-math.a",
+      "bytes": 2419712,
+      "sha256": "234addf421c7af0e8e2a9fbd71b75376d86be8db6c6ba2ac56a4a2aaabf88a55"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_ios.rtlib",
+      "bytes": 6968,
+      "sha256": "53af255b51583e28f6a8c2e2988bb4f7854d09af83c41b6d5987b48c57aa3635"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_iosmac.rtlib",
+      "bytes": 7000,
+      "sha256": "b67e1d64794d0f8c9574abc22b30eaf8cd9a0727f270c700a4d39f9b4dfa5859"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_iossim.rtlib",
+      "bytes": 7016,
+      "sha256": "b280ab6da8dcdf2fd5fe36c69aef65bfc06295641a9a58aa516cd386d6cdb676"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_osx.rtlib",
+      "bytes": 6968,
+      "sha256": "c64b1672e9adc69977c87ecdd9986bef3f92ea9a1ca9a17e5cb312337992f8d8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_tvos.rtlib",
+      "bytes": 6968,
+      "sha256": "7f2e778cc331bf9c77adc1cdac6367ff8314db91de91b9db57b07e40e2b7048b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_tvossim.rtlib",
+      "bytes": 7016,
+      "sha256": "b3c076f5cef25e0599ccdc4157993101488687c1aa6c5f7de4e6a9ae2756fc98"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_watchos.rtlib",
+      "bytes": 6968,
+      "sha256": "1052fe31c9432c4f4cee73ad2c26aebc68a319593b4c9dc62eade253f1f80acd"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_watchossim.rtlib",
+      "bytes": 7032,
+      "sha256": "53ade41ce9d81afcdad68222b45562cc0fd9a04342e65b45a07bb0624a25b2a9"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_xros.rtlib",
+      "bytes": 6968,
+      "sha256": "8debe2a221d03c21dce52ca85b267f7bad3e27cb77168f8a5e8909288d15d1dc"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libpost_mesh_dump_rt_xrossim.rtlib",
+      "bytes": 7016,
+      "sha256": "d5c4c32a80e3bc5bc623d04a567a50f7b327ed9b6dbfc6118946aca6fe2724a4"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_ios.rtlib",
+      "bytes": 243040,
+      "sha256": "6829c0d30bd62c506903ef8f7997fd3876e8aaeacf45fa55dffd9f1708fadf28"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_iosmac.rtlib",
+      "bytes": 244176,
+      "sha256": "8534659cf7ba00ed3a271f3c19b93c77da84f4995c9b45e4feb44c9646b1dc7f"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_iossim.rtlib",
+      "bytes": 244784,
+      "sha256": "9d4e712db8a7ebb39fbd6ab00c65c2cecb9a089c071d0b502032734267dd343c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_osx.rtlib",
+      "bytes": 243680,
+      "sha256": "89c34412ad0350fc715835d756759013d85ed280f016603255e2ff4b058b91d7"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_tvos.rtlib",
+      "bytes": 243216,
+      "sha256": "d1dd6ac9990ec7f32f3abe3de35e0979c6c440839823ff4f8b8aa6e30cbb23e6"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_tvossim.rtlib",
+      "bytes": 244912,
+      "sha256": "4c5598229a83baad9d93520ef710668f6558ec88f529cecbdc2cf169d7c8d422"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_watchos.rtlib",
+      "bytes": 243680,
+      "sha256": "14cdc464784eda36e3da1e32c4c0d101ea1d990ee4e48bb450dc4a826e009703"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_watchossim.rtlib",
+      "bytes": 245104,
+      "sha256": "031db0402e56d37720a564659e5354a26f70df0bd2e5242179d30ef4e369b284"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_xros.rtlib",
+      "bytes": 238752,
+      "sha256": "4796446e736986c5d94b25b85f559df6faac41b0a3cf391c150efa9ae539b19a"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libresource_tracking_rt_xrossim.rtlib",
+      "bytes": 240416,
+      "sha256": "b3a9ce78bb0bf7f270dcb122270de3634005a85e03956cff80ea897e61ec7b29"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_ios.metallib",
+      "bytes": 34452,
+      "sha256": "0084768e95c2aa39be0454fdadac3e2eaf813e810bf4b6cd548b45cc1cbb3200"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_iosmac.metallib",
+      "bytes": 34596,
+      "sha256": "a60683bed6f7fb25c0bdc79ffe7849cced191356d82141d9fe9f94b28dc960db"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_iossim.metallib",
+      "bytes": 34500,
+      "sha256": "d49a53af828b669082abc7fa913e22b217d929d89b7e1731f90b97f1b7063263"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_osx.metallib",
+      "bytes": 34532,
+      "sha256": "15df7c261a8619dec9c5dc6aabaf6370d4bab335b3f7c410c2100ed56b50b251"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_ios.a",
+      "bytes": 46240,
+      "sha256": "b7d33f07185cfb50285e961e0e7b66bc50b16565a69f158adcdb78b7e576799c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_iosmac.a",
+      "bytes": 45832,
+      "sha256": "48629feeac4dd7131a89f60f0f72354a9cf5fe89412c76213bbc87fa46bdb31a"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_iossim.a",
+      "bytes": 46304,
+      "sha256": "b04e5a9ef3fbd5fca8c5be0320567e27c66cb1eb20470b7ab20b3951403fbd94"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_osx.a",
+      "bytes": 45800,
+      "sha256": "49957dd28a928a3d9cdbbf40765ec56e001beb5ceb73f6431634501e0b55e1f5"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_tvos.a",
+      "bytes": 46240,
+      "sha256": "16b257a6c934a6d6d847f4f37f48d14d04c6dbd7d5dbf6c85ca8c5b669041df6"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_tvossim.a",
+      "bytes": 46304,
+      "sha256": "f9fcb65aaa80a8a7f829f2c4747fd7b8e3ebba513fd9394126d0d296ad512dc0"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_watchos.a",
+      "bytes": 46256,
+      "sha256": "d38ad41a8548dcbc724b7d8b9af7bd67b0dcc9630fff34428b34013916ea253c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_watchossim.a",
+      "bytes": 46336,
+      "sha256": "1a5d0a29a6b1f8fa357d60c4ae0cd6fc8f5c0aa6be5910caccc701fd9ed05c62"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_xros.a",
+      "bytes": 15688,
+      "sha256": "50ebd99a4f986c539eed435b9eb26ff52365eeb93168e0551b17e04e6ba2e4ec"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_static_xrossim.a",
+      "bytes": 15720,
+      "sha256": "2598381fab0b8b9f6fecfa5974e4c77bc4454eb62a636c202a8cd9ed18179ad2"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_tvos.metallib",
+      "bytes": 34452,
+      "sha256": "4b83133a09ce49828e22ca3897ba58e789078017b7a92b32ad7ae9f21f9b23c0"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_tvossim.metallib",
+      "bytes": 34532,
+      "sha256": "73c2dc22604009486fa8c9ded73f7dd12e71268e929839363c373b64a1a734b7"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_watchos.metallib",
+      "bytes": 34468,
+      "sha256": "ec15e011bd9582b3d6188b5f1539efb728506c5dfceb325261daca375de21e5d"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_watchossim.metallib",
+      "bytes": 34532,
+      "sha256": "3b620aa7cfe7a64588ad698c82a20e3cc7dde3d158a6c3c105e9adf2e158cb7b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_ios.a",
+      "bytes": 7592,
+      "sha256": "6fb43296059fe7c614efdb512f5c2e76caf5cd474226aabc124fde42b15a9e2b"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_iosmac.a",
+      "bytes": 7608,
+      "sha256": "14bc3149573d39b85e51177075fc78091e847d2939bc88fd3f2c1143eda940b5"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_iossim.a",
+      "bytes": 7608,
+      "sha256": "f2e6ac53997771cf8af96474dd89e55435b47d44eaa6e38f14d93d8ceeac1fd5"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_osx.a",
+      "bytes": 7592,
+      "sha256": "036174dcd10600cd4d51ca47f434c1b8ab608a415a8ac8eea782c73c2b773531"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_tvos.a",
+      "bytes": 7592,
+      "sha256": "ea7933067953a81cd3b4a780b491b6bdae9d64f883311aa2e1c65cafe1f914c8"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_tvossim.a",
+      "bytes": 7608,
+      "sha256": "2863b3d003589e3d68407d5569e03cb92c5eb5354ec8344c425c1ebce76fd3a5"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_watchos.a",
+      "bytes": 7592,
+      "sha256": "e8d31e7505977f93d3c35318410d8a50d58511981bb9e8015b083e95e31c3841"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_watchossim.a",
+      "bytes": 7624,
+      "sha256": "f08bea9307928442a3e320c8d617b47e5c74b9f52f5f0e4eae8cb8180d54aa38"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_xros.a",
+      "bytes": 7688,
+      "sha256": "e31a4cd6ceceb1649a9cc2873c7b8d3a44fc9a7a778c1b945228f4fd29cd473c"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_workaround_xrossim.a",
+      "bytes": 7720,
+      "sha256": "263e8cde3d48564273611a47982d20efbada0eeba81a83c6119900d20423ba30"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_xros.metallib",
+      "bytes": 17236,
+      "sha256": "8b9dea1215e7f62969f02be5d7af23f76d2dce869f9bf0231120cb802c2ce037"
+    },
+    {
+      "path": "usr/metal/32023/lib/clang/32023/lib/darwin/libtracepoint_rt_xrossim.metallib",
+      "bytes": 17268,
+      "sha256": "609290daa6273381ace4a89387fb7015e31ee6fcb01ebd031e3501816679e116"
+    },
+    {
+      "path": "usr/metal/32023/lib/libAMDNTPlugin.dylib",
+      "bytes": 395136,
+      "sha256": "614c6da580ddd50ae68f002f1a7c7c45705b78f0d165fa4f034b0b4c0214f9a5"
+    },
+    {
+      "path": "usr/metal/32023/lib/libMTLIGCCompilerPlugin.dylib",
+      "bytes": 353344,
+      "sha256": "4bcce54c6604bd328f434a64cda0eb0da7cd4f711edaadc24bbe451dca6a1b49"
+    },
+    {
+      "path": "usr/metal/32023/lib/libMTLPasses.dylib",
+      "bytes": 745232,
+      "sha256": "c8971a8997f07a60fd363f71db398afcd808ea8556c3b172560a01ef11fd3fa9"
+    },
+    {
+      "path": "usr/metal/32023/lib/libapplegpu-nt.dylib",
+      "bytes": 163698400,
+      "sha256": "b0313b5b4e9af084a73def2f021cf658e38f6e6c21b2f55624126ca36b0e495e"
+    },
+    {
+      "path": "usr/metal/32023/lib/libapplegpu23-nt.dylib",
+      "bytes": 135601696,
+      "sha256": "542ab3c83266d5280f47fbd8bba598207b0cb751ca6a2790c626ba24f985365b"
+    },
+    {
+      "path": "usr/metal/32023/lib/libapplegpu24-nt.dylib",
+      "bytes": 177818832,
+      "sha256": "207582db46946afba5e63f5461d7450282fafdff299a19b85102794453b42890"
+    },
+    {
+      "path": "usr/metal/32023/lib/libapplegpu25-nt.dylib",
+      "bytes": 110980672,
+      "sha256": "78ac380aec01c46e44be674aa9be5f02ffa96d936ce9f3d60b0c450e116e07a1"
+    },
+    {
+      "path": "usr/metal/32023/lib/libapplegpuG9G12-nt.dylib",
+      "bytes": 232114928,
+      "sha256": "1e3004fc7e0d2cb95e4cb4546cf9271cf5a2aae118d77a9dc7db8e0eb792bee9"
+    },
+    {
+      "path": "usr/metal/32023/lib/libigc.dylib",
+      "bytes": 37842000,
+      "sha256": "068f503932bbc9a654a465fa6b3c02ee5bee7bb3303e4c84cd8d5d2c370342f5"
+    },
+    {
+      "path": "usr/metal/32023/lib/metalfe/libmetal.dylib",
+      "bytes": 231269104,
+      "sha256": "2b16ccc5db917b9d4e15e47c81d59a81464bb9d2561d927f969a70d60f0fddc0"
+    },
+    {
+      "path": "usr/metal/32023/lib/runtime.gpuencode.split",
+      "bytes": 446806,
+      "sha256": "548cb5a43a66925eea462bcf20bf1675103897547a907c5fffed36ae5b8d8f08"
+    },
+    {
+      "path": "usr/metal/32023/lib/runtime.igc64.split",
+      "bytes": 4679799,
+      "sha256": "1aa530ae21c7ca9480f4fa5e2c3fb04e47021e98bdf7cb504ce424dd99c0b937"
+    },
+    {
+      "path": "usr/metal/32023/lib/wrapper-nt.dylib",
+      "bytes": 325088,
+      "sha256": "5dfb5e2998b8ecfe790272c0789798d91a0455ba4f50e2bd8567ac9cbdb135d6"
+    },
+    {
+      "path": "usr/share/man/man1/metal-arch.1",
+      "bytes": 2818,
+      "sha256": "4327f46d35b0f83eaec8b3328fe40368a9e78cd5ee2bdc11666812b23791cdf8"
+    },
+    {
+      "path": "usr/share/man/man1/metal-config.1",
+      "bytes": 5026,
+      "sha256": "db7cf2e3c8e6ded7547b74c0ba985ef1cfefb16b12bfafbb87d509da0213c169"
+    },
+    {
+      "path": "usr/share/man/man1/metal-libtool.1",
+      "bytes": 9164,
+      "sha256": "fea1396c1f545340c90743750a9ea1d25fcb88bf40f9c947417ea5c552267076"
+    },
+    {
+      "path": "usr/share/man/man1/metal-lipo.1",
+      "bytes": 3518,
+      "sha256": "83f31f4465b5358422e4dacf2df7c9f431bed53c5c96c73a54fb4ffd9e77b29c"
+    },
+    {
+      "path": "usr/share/man/man1/metal-nm.1",
+      "bytes": 8280,
+      "sha256": "5d5a45edd19dfc1aa23a4ad7270b4315fb056af986085f1ca9d6b7831ecf128b"
+    },
+    {
+      "path": "usr/share/man/man1/metal-nt.1",
+      "bytes": 11767,
+      "sha256": "e9fd6791809a5495873aa167a27a910daf8d3605a9e9e99e7425fbff6960e084"
+    },
+    {
+      "path": "usr/share/man/man1/metal-objcopy.1",
+      "bytes": 3179,
+      "sha256": "dac16973ecf406f69a866e66d185480bf7c43a2c0c0793650f8bf8179582949f"
+    },
+    {
+      "path": "usr/share/man/man1/metal-objdump.1",
+      "bytes": 13838,
+      "sha256": "dc5176c4dc45832d68e19fdb223a6d593c6c891c8acdbeec4243da279d9e4154"
+    },
+    {
+      "path": "usr/share/man/man1/metal-pack.1",
+      "bytes": 4839,
+      "sha256": "482cb2870727fe634a6970d3e42b119c5d1852c23ecd246510daf90dee328306"
+    },
+    {
+      "path": "usr/share/man/man1/metal-package.1",
+      "bytes": 4530,
+      "sha256": "0965e1ebf81b6668bd90931bc022c40de402432a6ad6469c84321bc168fe8356"
+    },
+    {
+      "path": "usr/share/man/man1/metal-source.1",
+      "bytes": 2634,
+      "sha256": "8dccca079fb67043eb1f669cb39026ffda7eb2944c0adf23f9db8798f57ba1a6"
+    },
+    {
+      "path": "usr/share/man/man1/metal-strip.1",
+      "bytes": 3511,
+      "sha256": "fe31640b9b0a412f4d5c990efbc7ee6e8ea556335ea9c5c484aba6ba7d75b6a0"
+    },
+    {
+      "path": "usr/share/man/man1/metal-tt.1",
+      "bytes": 9981,
+      "sha256": "ca17f3fe918796d8210d92bf00aa5090471394e66d5ef54a0330ce9b6fc7e559"
+    },
+    {
+      "path": "usr/share/man/man1/metal.1",
+      "bytes": 21816,
+      "sha256": "83d616efba9aa04477ddff86ccbe062befdc2e659d7d8fd608ca44800149b7b5"
+    },
+    {
+      "path": "usr/share/man/man5/metal-pipelines-script.5",
+      "bytes": 59805,
+      "sha256": "9dba7fcc7016d1c3d06d532331c6bb7640edba3aea6ace876ee9d00045fc185f"
+    },
+    {
+      "path": "usr/share/man/man5/metal4-pipelines-script.5",
+      "bytes": 59350,
+      "sha256": "5b41bd683f03d34d1b315f1c363fae96ac65193accd4ee6617f92db9405c3723"
+    },
+    {
+      "path": "usr/share/man/man7/metal-toolchain.7",
+      "bytes": 12587,
+      "sha256": "977926cabc8bfb404d9cdd4e981f1e98c9d44831c5ff7b5fb0249b43f68bbf9b"
+    }
+  ],
+  "symlinks": [
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/ANEHostCompiler",
+      "target": "Versions/Current/ANEHostCompiler",
+      "resolved": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/ANEHostCompiler"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/ANEHostCompiler.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/CoreAIAsset",
+      "target": "Versions/Current/CoreAIAsset",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/CoreAIAsset"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIAsset.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/CoreAICommon",
+      "target": "Versions/Current/CoreAICommon",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/CoreAICommon"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICommon.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/CoreAICompiler",
+      "target": "Versions/Current/CoreAICompiler",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/CoreAICompiler"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/CoreAICompiler.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/CoreAIDelegatesXcode",
+      "target": "Versions/Current/CoreAIDelegatesXcode",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/CoreAIDelegatesXcode"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/CoreAIDelegatesXcode.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/MPSHost",
+      "target": "Versions/Current/MPSHost",
+      "resolved": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/MPSHost"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/MPSHost.framework/Versions/A"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/MetalPerformanceShadersGraph_host",
+      "target": "Versions/Current/MetalPerformanceShadersGraph_host",
+      "resolved": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/MetalPerformanceShadersGraph_host"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Resources",
+      "target": "Versions/Current/Resources",
+      "resolved": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A/Resources"
+    },
+    {
+      "path": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/Current",
+      "target": "A",
+      "resolved": "System/Library/PrivateFrameworks/MetalPerformanceShadersGraph_host.framework/Versions/A"
+    },
+    {
+      "path": "usr/bin/air-ranlib",
+      "target": "air-ar",
+      "resolved": "usr/bin/air-ar"
+    },
+    {
+      "path": "usr/bin/amdgpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/bin/air-nt"
+    },
+    {
+      "path": "usr/bin/applegpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/bin/air-nt"
+    },
+    {
+      "path": "usr/bin/intelgpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/bin/air-nt"
+    },
+    {
+      "path": "usr/bin/metal-ar",
+      "target": "air-ar",
+      "resolved": "usr/bin/air-ar"
+    },
+    {
+      "path": "usr/bin/metal-arch",
+      "target": "air-arch",
+      "resolved": "usr/bin/air-arch"
+    },
+    {
+      "path": "usr/bin/metal-as",
+      "target": "air-as",
+      "resolved": "usr/bin/air-as"
+    },
+    {
+      "path": "usr/bin/metal-binary-perf",
+      "target": "air-binary-perf",
+      "resolved": "usr/bin/air-binary-perf"
+    },
+    {
+      "path": "usr/bin/metal-config",
+      "target": "air-config",
+      "resolved": "usr/bin/air-config"
+    },
+    {
+      "path": "usr/bin/metal-dsymutil",
+      "target": "air-dsymutil",
+      "resolved": "usr/bin/air-dsymutil"
+    },
+    {
+      "path": "usr/bin/metal-libtool",
+      "target": "air-libtool",
+      "resolved": "usr/bin/air-libtool"
+    },
+    {
+      "path": "usr/bin/metal-link",
+      "target": "air-link",
+      "resolved": "usr/bin/air-link"
+    },
+    {
+      "path": "usr/bin/metal-lipo",
+      "target": "air-lipo",
+      "resolved": "usr/bin/air-lipo"
+    },
+    {
+      "path": "usr/bin/metal-lld",
+      "target": "air-lld",
+      "resolved": "usr/bin/air-lld"
+    },
+    {
+      "path": "usr/bin/metal-nm",
+      "target": "air-nm",
+      "resolved": "usr/bin/air-nm"
+    },
+    {
+      "path": "usr/bin/metal-nt",
+      "target": "air-nt",
+      "resolved": "usr/bin/air-nt"
+    },
+    {
+      "path": "usr/bin/metal-objcopy",
+      "target": "air-objcopy",
+      "resolved": "usr/bin/air-objcopy"
+    },
+    {
+      "path": "usr/bin/metal-objdump",
+      "target": "air-objdump",
+      "resolved": "usr/bin/air-objdump"
+    },
+    {
+      "path": "usr/bin/metal-opt",
+      "target": "air-opt",
+      "resolved": "usr/bin/air-opt"
+    },
+    {
+      "path": "usr/bin/metal-pack",
+      "target": "air-pack",
+      "resolved": "usr/bin/air-pack"
+    },
+    {
+      "path": "usr/bin/metal-package",
+      "target": "air-package",
+      "resolved": "usr/bin/air-package"
+    },
+    {
+      "path": "usr/bin/metal-ranlib",
+      "target": "air-ar",
+      "resolved": "usr/bin/air-ar"
+    },
+    {
+      "path": "usr/bin/metal-readobj",
+      "target": "air-readobj",
+      "resolved": "usr/bin/air-readobj"
+    },
+    {
+      "path": "usr/bin/metal-size",
+      "target": "air-size",
+      "resolved": "usr/bin/air-size"
+    },
+    {
+      "path": "usr/bin/metal-strip",
+      "target": "air-strip",
+      "resolved": "usr/bin/air-strip"
+    },
+    {
+      "path": "usr/bin/metal-tt",
+      "target": "air-tt",
+      "resolved": "usr/bin/air-tt"
+    },
+    {
+      "path": "usr/bin/metal-validate",
+      "target": "air-validate",
+      "resolved": "usr/bin/air-validate"
+    },
+    {
+      "path": "usr/bin/metal-vtool",
+      "target": "air-vtool",
+      "resolved": "usr/bin/air-vtool"
+    },
+    {
+      "path": "usr/bin/metallib",
+      "target": "air-lld",
+      "resolved": "usr/bin/air-lld"
+    },
+    {
+      "path": "usr/metal/32023/bin/air-ranlib",
+      "target": "air-libtool",
+      "resolved": "usr/metal/32023/bin/air-libtool"
+    },
+    {
+      "path": "usr/metal/32023/bin/amdgpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/metal/32023/bin/air-nt"
+    },
+    {
+      "path": "usr/metal/32023/bin/applegpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/metal/32023/bin/air-nt"
+    },
+    {
+      "path": "usr/metal/32023/bin/intelgpu-nt",
+      "target": "air-nt",
+      "resolved": "usr/metal/32023/bin/air-nt"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-ar",
+      "target": "air-ar",
+      "resolved": "usr/metal/32023/bin/air-ar"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-arch",
+      "target": "air-arch",
+      "resolved": "usr/metal/32023/bin/air-arch"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-as",
+      "target": "air-as",
+      "resolved": "usr/metal/32023/bin/air-as"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-binary-perf",
+      "target": "air-binary-perf",
+      "resolved": "usr/metal/32023/bin/air-binary-perf"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-config",
+      "target": "air-config",
+      "resolved": "usr/metal/32023/bin/air-config"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-dsymutil",
+      "target": "air-dsymutil",
+      "resolved": "usr/metal/32023/bin/air-dsymutil"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-libtool",
+      "target": "air-libtool",
+      "resolved": "usr/metal/32023/bin/air-libtool"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-link",
+      "target": "air-link",
+      "resolved": "usr/metal/32023/bin/air-link"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-lipo",
+      "target": "air-lipo",
+      "resolved": "usr/metal/32023/bin/air-lipo"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-lld",
+      "target": "air-lld",
+      "resolved": "usr/metal/32023/bin/air-lld"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-nm",
+      "target": "air-nm",
+      "resolved": "usr/metal/32023/bin/air-nm"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-nt",
+      "target": "air-nt",
+      "resolved": "usr/metal/32023/bin/air-nt"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-objcopy",
+      "target": "air-objcopy",
+      "resolved": "usr/metal/32023/bin/air-objcopy"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-objdump",
+      "target": "air-objdump",
+      "resolved": "usr/metal/32023/bin/air-objdump"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-opt",
+      "target": "air-opt",
+      "resolved": "usr/metal/32023/bin/air-opt"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-pack",
+      "target": "air-pack",
+      "resolved": "usr/metal/32023/bin/air-pack"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-package",
+      "target": "air-package",
+      "resolved": "usr/metal/32023/bin/air-package"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-ranlib",
+      "target": "air-libtool",
+      "resolved": "usr/metal/32023/bin/air-libtool"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-readobj",
+      "target": "air-readobj",
+      "resolved": "usr/metal/32023/bin/air-readobj"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-size",
+      "target": "air-size",
+      "resolved": "usr/metal/32023/bin/air-size"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-strip",
+      "target": "air-strip",
+      "resolved": "usr/metal/32023/bin/air-strip"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-tt",
+      "target": "air-tt",
+      "resolved": "usr/metal/32023/bin/air-tt"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-validate",
+      "target": "air-validate",
+      "resolved": "usr/metal/32023/bin/air-validate"
+    },
+    {
+      "path": "usr/metal/32023/bin/metal-vtool",
+      "target": "air-vtool",
+      "resolved": "usr/metal/32023/bin/air-vtool"
+    },
+    {
+      "path": "usr/metal/32023/bin/metallib",
+      "target": "air-lld",
+      "resolved": "usr/metal/32023/bin/air-lld"
+    },
+    {
+      "path": "usr/metal/current",
+      "target": "32023",
+      "resolved": "usr/metal/32023"
+    }
+  ]
+}

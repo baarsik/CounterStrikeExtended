@@ -13,6 +13,10 @@
 
 #include "utlbuffer.h"
 
+#if !defined(_WIN32)
+#include "../common/legacy_str_to_integer.h"
+#endif
+
 #include <cassert>
 #include <cctype>
 #include <cstdio>
@@ -167,14 +171,22 @@ int CUtlBuffer::VaScanf( const char* pFmt, va_list list )
 
 		case 'd':
 		case 'i':
+#if defined(_WIN32)
 			*va_arg( list, int* ) = strtol( pStart, &pEnd, 10 );
+#else
+            *va_arg( list, int* ) = CseLegacyStrtol10(pStart, &pEnd);
+#endif
 			if ( pEnd == pStart )
 				return numScanned;
 			m_Get = (int)( pEnd - (char*)m_Memory.Base() );
 			break;
 
 		case 'u':
+#if defined(_WIN32)
 			*va_arg( list, unsigned int* ) = strtoul( pStart, &pEnd, 10 );
+#else
+            *va_arg( list, unsigned int* ) = CseLegacyStrtoul10(pStart, &pEnd);
+#endif
 			if ( pEnd == pStart )
 				return numScanned;
 			m_Get = (int)( pEnd - (char*)m_Memory.Base() );

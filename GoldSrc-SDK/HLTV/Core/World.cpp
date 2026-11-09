@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <new>
 
 #define MAX_WORLD_CLIENT_INDEX		( MAX_WORLD_CLIENTS - 1 )
 #define MAX_WORLD_ENTITY_INDEX		( MAX_WORLD_ENTITIES - 1 )
@@ -1171,20 +1172,18 @@ int World::CompressFrame( frame_t* from, BitBuffer* stream )
 	return (int)( stream->currentByte - start );
 }
 
-void World::ClearEntityCache()
-{
-	int i;
-
-	if ( deltaCache != NULL )
-	{
-		for ( i = 0; i < maxCacheIndex; ++i )
-			deltaCache[i].buffer.Free();
-		memset( deltaCache, 0, sizeof( deltaCache_t ) * maxCacheIndex );
-	}
-	if ( frameCache != NULL )
-		memset( frameCache, 0, sizeof( frameCache_t ) * maxCacheIndex );
-	cacheHits = 1;
-	cacheFaults = 1;
+void World::ClearEntityCache() {
+    if (deltaCache != nullptr) {
+        for (int index = 0; index < maxCacheIndex; ++index) {
+            deltaCache[index].~deltaCache_t();
+            new (&deltaCache[index]) deltaCache_t();
+        }
+    }
+    if (frameCache != nullptr) {
+        memset(frameCache, 0, sizeof(frameCache_t) * maxCacheIndex);
+    }
+    cacheHits = 1;
+    cacheFaults = 1;
 }
 
 bool World::GetFrameFromCache( unsigned int seqNr, entity_state_t** entities )
@@ -1729,6 +1728,11 @@ bool World::Init( IBaseSystem* system, int serial, char* name )
 	}
 	frameCache = (frameCache_t*)Mem_ZeroMalloc( frameBytes );
 	deltaCache = (deltaCache_t*)Mem_ZeroMalloc( sizeof( deltaCache_t ) * (unsigned int)maxCacheIndex );
+    if (deltaCache != nullptr) {
+        for (int index = 0; index < maxCacheIndex; ++index) {
+            new (&deltaCache[index]) deltaCache_t();
+        }
+    }
 	if ( frameCache == NULL || deltaCache == NULL )
 	{
 		m_System->Errorf( "World::Init: Not enough memory for caches. Reduce -cachesize.\n" );
@@ -1752,11 +1756,13 @@ void World::ShutDown()
 	FireSignal( 8u, NULL );
 	DELTA_Shutdown();
 	m_Listener.Clear( false );
-	if ( deltaCache != NULL )
-	{
-		free( deltaCache );
-		deltaCache = NULL;
-	}
+    if (deltaCache != nullptr) {
+        for (int index = 0; index < maxCacheIndex; ++index) {
+            deltaCache[index].~deltaCache_t();
+        }
+        free(deltaCache);
+        deltaCache = nullptr;
+    }
 	if ( frameCache != NULL )
 	{
 		free( frameCache );

@@ -1,3 +1,8 @@
+#if defined(__APPLE__)
+#include "VGui1NativeAtlas.h"
+// Existing two-unit GL_SelectTexture cache from gl_rmain/gl_draw.
+extern int cnttextures[2];
+#endif
 #include "engine_apiproxy.h"
 #include "vgui_EngineSurface.h"
 #include "glquake.h"
@@ -21,6 +26,7 @@
 #include <cassert>
 
 #if !defined( _WIN32 )
+#include "../common/cse_rect.h"
 #define _snprintf snprintf
 #define _vsnprintf vsnprintf
 #endif
@@ -101,11 +107,17 @@ namespace
 {
 bool SurfaceIntersectRect( RECT* dest, const RECT* src1, const RECT* src2 );
 
+#if defined( _WIN32 )
 float RectCoordinateDifference( LONG position, LONG origin )
 {
 	const ULONG difference = static_cast<ULONG>( position ) - static_cast<ULONG>( origin );
 	return static_cast<float>( static_cast<LONG>( difference ) );
 }
+#else
+float RectCoordinateDifference(std::int32_t position, std::int32_t origin) {
+    return static_cast<float>(cse_rect::Difference32(position, origin));
+}
+#endif
 }
 
 bool ScissorRect_TCoords(
@@ -154,7 +166,8 @@ struct Texture
 };
 static_assert( sizeof( Texture ) == 28 );
 using SurfaceTextureTree = CUtlRBTree<Texture, int>;
-static_assert( sizeof( SurfaceTextureTree ) == 32 );
+// The texture record stays fixed; container allocation/comparator pointers use the native ABI.
+static_assert(sizeof(void*) != 4 || sizeof(SurfaceTextureTree) == 32);
 static_assert( sizeof( SurfaceTextureTree::Node_t ) == 44 );
 static bool VguiSurfaceTexturesLessFunc( const Texture& left, const Texture& right );
 SurfaceTextureTree g_VGuiSurfaceTextures( 0, 128, VguiSurfaceTexturesLessFunc );
@@ -706,11 +719,8 @@ void EngineSurface::drawUpdateRegionTextureBGRA( int id, int, int y, const unsig
 namespace
 {
 #if !defined( _WIN32 )
-bool SurfaceRectEmpty( const RECT* rect )
-{
-	if ( rect->left == rect->right )
-		return rect->top == rect->bottom;
-	return false;
+bool SurfaceRectEmpty(const RECT* rectangle) {
+    return rectangle->left >= rectangle->right || rectangle->top >= rectangle->bottom;
 }
 #endif
 
@@ -791,3 +801,59 @@ void EngineSurface::deleteRenderPlat()
 void EngineSurface::resetViewPort()
 {
 }
+
+#if defined(__APPLE__)
+namespace cse_vgui1_native {
+bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
+    const auto getError = reinterpret_cast<decltype(&glGetError)>(SDL_GL_GetProcAddress("glGetError"));
+    if (!surface || id <= 0 || !pixels || bytes != AtlasPageBytes || !getError
+        || getError() != GL_NO_ERROR) {
+        return false;
+    }
+    return UploadOwnedInterface(surface, id, pixels, AtlasSide) && getError() == GL_NO_ERROR;
+}
+bool RetireEngineFontPage(IEngineSurface* surface, int id, bool live) noexcept {
+    if (!surface || id <= 0) {
+        return false;
+    }
+    Texture key{};
+    key._id = id;
+    const int index = g_VGuiSurfaceTextures.Find(key);
+    // Caller still owns this created name until success, even if upload failed
+    // before metadata insertion. Successful retirement is consumed once by the
+    // Atlas slot; arbitrary/double private-name retirement is not this contract.
+    if (live) {
+        surface->drawFlushText();
+    } else {
+        g_iVertexBufferEntriesUsed = 0;
+    }
+    const bool bound = currenttexture == id;
+    for (auto& cached : cnttextures) {
+        if (cached == id) {
+            cached = -1;
+        }
+    }
+    staticTextureCurrent = nullptr;
+    if (g_VGuiSurfaceTextures.IsValidIndex(index)) {
+        g_VGuiSurfaceTextures.RemoveAt(index);
+    }
+    if (bound) {
+        currenttexture = -1;
+        if (live) {
+            qglBindTexture(GL_TEXTURE_2D, 0);
+        }
+    }
+    if (live) {
+        const GLuint texture = static_cast<GLuint>(id);
+        qglDeleteTextures(1, &texture);
+    }
+    return true;
+}
+}
+#endif
+
+#if defined(__APPLE__)
+bool EngineSurface::RetireNativeFontPage(int id) noexcept {
+    return cse_vgui1_native::RetireEngineFontPage(this, id, true);
+}
+#endif

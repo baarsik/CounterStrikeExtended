@@ -20,6 +20,10 @@
 #include "interface.h"
 #include "vgui/KeyCode.h"
 
+#if !defined(_WIN32)
+#include <cstdint>
+#endif
+
 class KeyValues;
 
 namespace vgui2
@@ -43,7 +47,11 @@ public:
 	// returns the current time, in seconds
 	virtual double GetCurrentTime() = 0;
 	// returns the current time, in milliseconds
+#if defined(_WIN32)
 	virtual long GetTimeMillis() = 0;
+#else
+    virtual std::int32_t GetTimeMillis() = 0;
+#endif
 
 	// clipboard access
 	virtual int GetClipboardTextCount() = 0;

@@ -18,8 +18,12 @@
 #include <cmath>
 #include <cstdio>
 
+#if defined(_WIN32)
 #include <Windows.h>
 #include <GL/gl.h>
+#else
+#include <SDL3/SDL_opengl.h>
+#endif
 
 #define SUBDIVIDE_SIZE 64
 
@@ -43,7 +47,7 @@ extern float filterColorRed;
 extern float filterColorGreen;
 extern float filterColorBlue;
 extern float filterBrightness;
-extern BOOL g_bFogSkybox;
+extern qboolean g_bFogSkybox;
 extern cl_entity_t* currententity;
 
 void GL_PaletteClearSky();

@@ -190,8 +190,8 @@ typedef struct playermove_s
 	void			(*PM_Particle)( float *origin, int color, float life, int zpos, int zvel);
 	int				(*PM_TestPlayerPosition) (float *pos, pmtrace_t *ptrace );
 	void			(*Con_NPrintf)( int idx, char *fmt, ... );
-	void			(*Con_DPrintf)( char *fmt, ... );
-	void			(*Con_Printf)( char *fmt, ... );
+    void (*Con_DPrintf)(const char* fmt, ...);
+    void (*Con_Printf)(const char* fmt, ...);
 	double			(*Sys_FloatTime)( void );
 	void			(*PM_StuckTouch)( int hitent, pmtrace_t *ptraceresult );
 	int				(*PM_PointContents) (float *p, int *truecontents /*filled in if this is non-null*/ );
@@ -203,7 +203,7 @@ typedef struct playermove_s
 	float			(*RandomFloat)( float flLow, float flHigh );
 	int				(*PM_GetModelType)( struct model_s *mod );
 	void			(*PM_GetModelBounds)( struct model_s *mod, float *mins, float *maxs );
-	void			*(*PM_HullForBsp)( physent_t *pe, float *offset );
+    struct hull_s* (*PM_HullForBsp)(physent_t* pe, float* offset);
 	float			(*PM_TraceModel)( physent_t *pEnt, float *start, float *end, trace_t *trace );
 	int				(*COM_FileSize)(char *filename);
 	byte			*(*COM_LoadFile) (char *path, int usehunk, int *pLength);

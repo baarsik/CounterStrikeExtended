@@ -155,6 +155,13 @@ void EV_HLDM_CreateLight( float*, float radius, int red, int green, int blue, fl
 void EV_HLDM_CreateSmoke( float* origin, float* direction, int speed, float scale,
 	int red, int green, int blue, int smokeType, float* baseVelocity, bool wind, int frameRate )
 {
+#if defined(__APPLE__)
+    constexpr int MinimumSmokeType = 0;
+    constexpr int MaximumSmokeType = 4;
+    if (smokeType < MinimumSmokeType || smokeType > MaximumSmokeType) {
+        return;
+    }
+#endif
 	if ( smokeType != 0 && g_SmokePuffQueue.Full() )
 		return;
 	g_SmokePuffQueue.Add( gHUD.m_flTime );
@@ -195,7 +202,11 @@ void EV_HLDM_CreateSmoke( float* origin, float* direction, int speed, float scal
 		}
 		break;
 	default:
+#if defined(__APPLE__)
+        return;
+#else
 		break;
+#endif
 	}
 	TEMPENTITY* entity = gEngfuncs.pEfxAPI->R_DefaultSprite( origin, model, (float)frameRate );
 	if ( !entity )

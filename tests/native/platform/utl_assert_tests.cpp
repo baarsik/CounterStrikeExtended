@@ -1,6 +1,8 @@
 #include <cstring>
 #include "../../../GoldSrc-SDK/engine/utlvector.h"
 #include "../../../GoldSrc-SDK/engine/utlrbtree.h"
+#include "../../../GoldSrc-SDK/engine/utllinkedlist.h"
+#include "../../../GoldSrc-SDK/cstrike/public/game_controls/utlstack.h"
 
 bool Less(const int &left, const int &right) {
     return left < right;
@@ -25,6 +27,20 @@ int main(int argc, char **argv) {
     if (argc == 2 && std::strcmp(argv[1], "invalid-tree") == 0) {
         CUtlRBTree<int> missingComparator;
         return missingComparator.Find(FirstValue);
+    }
+    CUtlLinkedList<int, unsigned short> list;
+    const unsigned short item = list.AddToTail(FirstValue);
+    CUtlStack<int> stack;
+    stack.Push(FirstValue);
+    if (argc == 2 && std::strcmp(argv[1], "invalid-list") == 0) {
+        return list.Next(list.InvalidIndex());
+    }
+    if (argc == 2 && std::strcmp(argv[1], "invalid-stack") == 0) {
+        stack.Pop();
+        return stack.Top();
+    }
+    if (list[item] != FirstValue || stack.Top() != FirstValue) {
+        return 1;
     }
     CUtlRBTree<int> tree(0, 0, Less);
     tree.Insert(SecondValue);

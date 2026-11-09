@@ -76,7 +76,8 @@ void FooClock::paintBackground()
 	Panel::paintBackground();
 	drawSetTextFont( Scheme::SchemeFont::sf_primary1 );
 	drawSetTextColor( Scheme::SchemeColor::sc_black );
-	drawPrintText( 0, 0, buf, strlen( buf ) );
+    // snprintf bounds the clock text to this 50-byte buffer, which fits the int text-count API.
+    drawPrintText(0, 0, buf, static_cast<int>(strlen(buf)));
 }
 
 void FooClock::ticked()

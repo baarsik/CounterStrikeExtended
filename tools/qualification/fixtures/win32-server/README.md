@@ -36,7 +36,7 @@ boundary, cvar queries, sound emission, downloads and model consistency. Prepare
 `sound/cse_fixture/probe.wav` and `cse_fixture/probe.txt` in `cstrike` before starting
 the server; record their hashes. It also checks exact `models/w_c4.mdl` consistency.
 Bind the server only to an isolated loopback endpoint, e.g. `127.0.0.1:27438`.
-Preserve authentication and integrity policy (`sv_lan 0`, `sv_consistency 1`);
+Preserve authentication and integrity policy (`sv_lan 0`, `mp_consistency 1`);
 `-insecure` is not an acceptance workaround.
 
 After real client connection, locally issue `cse_fixture_start`, select the first

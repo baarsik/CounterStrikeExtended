@@ -24,6 +24,10 @@
 #include <string.h>
 #include <stdio.h>
 
+#if !defined(_WIN32)
+#include <cstddef>
+#endif
+
 #include "vgui_TeamFortressViewport.h"
 
 #define MAX_MENU_STRING	512
@@ -193,8 +197,17 @@ int CHudMenu :: Draw( float flTime )
 			{
 				sptr++;
 			}
+#if defined(_WIN32)
 			strncpy( menubuf, ptr, min( ( sptr - ptr), (int)sizeof( menubuf ) ));
 			menubuf[ min( ( sptr - ptr), (int)(sizeof( menubuf )-1) ) ] = '\0';
+#else
+            const std::ptrdiff_t length = sptr - ptr;
+            constexpr std::ptrdiff_t MenuBufferCapacity = sizeof(menubuf);
+            const std::ptrdiff_t copied = length < MenuBufferCapacity ? length : MenuBufferCapacity;
+            const std::ptrdiff_t terminated = length < MenuBufferCapacity - 1 ? length : MenuBufferCapacity - 1;
+            strncpy(menubuf, ptr, static_cast<std::size_t>(copied));
+            menubuf[terminated] = '\0';
+#endif
 			
 			if ( menu_ralign )
 			{		

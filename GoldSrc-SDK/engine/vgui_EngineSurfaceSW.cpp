@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "VGui1NativeRuntime.h"
+#endif
 #include "vgui_EngineSurface.h"
 #include "draw.h"
 #include "screen.h"
@@ -37,6 +40,9 @@ public:
 	int GetHashVal( int id );
 	void Insert( int id, int wide, int tall, const char* pixels );
 	void Remove( int id );
+#if defined(__APPLE__)
+    bool RetireAtlasPage(int id);
+#endif
 	vgui_texture_t* GetTexture( int id );
 
 private:
@@ -67,10 +73,16 @@ EngineSurface::EngineSurface()
 {
 	_renderPlat = NULL;
 	createRenderPlat();
+#if defined(__APPLE__)
+    cse_vgui1_native::RememberEngineSurface(this);
+#endif
 }
 
 EngineSurface::~EngineSurface()
 {
+#if defined(__APPLE__)
+    cse_vgui1_native::ForgetEngineSurface(this);
+#endif
 	deleteRenderPlat();
 #ifdef _WIN32
 	_renderPlat = NULL;
@@ -468,3 +480,53 @@ void VGui_ViewportPaintBackground( int* extents )
 	if ( cls.state == ca_active )
 		ClientDLL_HudRedraw( cl.intermission == 1 );
 }
+
+#if defined(__APPLE__)
+bool EngineSurfaceTextures::RetireAtlasPage(int id) {
+    if (id <= 0) {
+        return false;
+    }
+    vgui_texture_t** link = &hash[GetHashVal(id)];
+    while (*link) {
+        vgui_texture_t* texture = *link;
+        if (texture->id == id) {
+            *link = texture->next;
+            delete[] texture->prgba;
+            delete texture;
+            return true;
+        }
+        link = &texture->next;
+    }
+    return true;
+}
+namespace cse_vgui1_native {
+bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
+    constexpr int Side = 512;
+    constexpr std::size_t PageBytes = static_cast<std::size_t>(Side) * Side * 4;
+    if (!surface || id <= 0 || !pixels || bytes != PageBytes) {
+        return false;
+    }
+    return UploadOwnedInterface(surface, id, pixels, Side);
+}
+// Kept as an EngineSurface member only for private render-plat access; this adds
+// no public virtual slot or storage. The free bridge below uses exact instances.
+}
+#endif
+
+#if defined(__APPLE__)
+bool EngineSurface::RetireNativeFontPage(int id) noexcept {
+    if (!_renderPlat || !_renderPlat->textures || id <= 0) {
+        return false;
+    }
+    if (_renderPlat->current && _renderPlat->current->id == id) {
+        _renderPlat->current = nullptr;
+    }
+    return _renderPlat->textures->RetireAtlasPage(id);
+}
+namespace cse_vgui1_native {
+bool RetireEngineFontPage(IEngineSurface* surface, int id, bool) noexcept {
+    auto* owned = FindOwnedEngineSurface(surface);
+    return owned && owned->RetireNativeFontPage(id);
+}
+}
+#endif

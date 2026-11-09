@@ -21,6 +21,7 @@
 #include "../common/game_module_entry.h"
 
 #if !defined( _WIN32 )
+#include "game_library_name.h"
 #include <ctime>
 #include <dlfcn.h>
 #include <unistd.h>
@@ -341,25 +342,59 @@ void Sys_GetRegKeyValue( const char* keyPath, const char* valueName, char* outpu
 }
 #endif
 
-DISPATCHFUNCTION GetDispatch( const char* name )
-{
-	for ( int index = 0; index < g_iextdllMac; ++index )
-	{
-#if !defined( _WIN32 )
-		void* function = dlsym( reinterpret_cast<void*>( g_rgextdll[index].lDLLHandle ), name );
+template<typename Function>
+static Function FindGameDispatch(const char* name) {
+    for (int index = 0; index < g_iextdllMac; ++index) {
+#if defined(_WIN32)
+        FARPROC function = GetProcAddress(g_rgextdll[index].lDLLHandle, name);
 #else
-		FARPROC function = GetProcAddress( g_rgextdll[index].lDLLHandle, name );
+        void* function = dlsym(g_rgextdll[index].lDLLHandle, name);
 #endif
-		if ( function )
-			return reinterpret_cast<DISPATCHFUNCTION>( function );
-	}
-	return nullptr;
+        if (function) {
+            return reinterpret_cast<Function>(function);
+        }
+    }
+    return nullptr;
 }
 
-ENTITYINIT GetEntityInit( const char* classname )
-{
-	return reinterpret_cast<ENTITYINIT>( GetDispatch( classname ) );
+DISPATCHFUNCTION GetDispatch(const char* name) {
+    return FindGameDispatch<DISPATCHFUNCTION>(name);
 }
+
+ENTITYINIT GetEntityInit(const char* classname) {
+    return FindGameDispatch<ENTITYINIT>(classname);
+}
+
+#if !defined(_WIN32)
+static void LoadNativeGameLibrary(const char* configuredName, const char* gameDirectory, bool legacyLinuxSuffix,
+    char* filename, int filenameBytes) {
+    char value[cse::GameLibraryValueBytes];
+    Q_strncpy(value, configuredName, sizeof(value) - 1);
+    value[sizeof(value) - 1] = 0;
+    const int parameter = COM_CheckParm("-dll");
+    if (parameter && parameter < com_argc - 1) {
+        Q_strncpy(value, com_argv[parameter + 1], sizeof(value) - 1);
+        value[sizeof(value) - 1] = 0;
+    }
+    char* parentDirectory = Q_strstr(value, "..");
+    if (value[0] == '/' || value[0] == '\\' || Q_strstr(value, ":")
+        || (parentDirectory && Q_strstr(parentDirectory + 2, ".."))) {
+        Con_DPrintf("Skipping library with illegal characters in path: %s\n", value);
+        return;
+    }
+    if (!cse::NormalizeGameLibraryName(value, sizeof(value), cse::NativeGameLibraryPlatform(), legacyLinuxSuffix)) {
+        Con_DPrintf("Skipping non-shared library:  %s\n", value);
+        return;
+    }
+    filename[0] = 0;
+    if (!FS_GetLocalPath(value, filename, filenameBytes) || !filename[0]) {
+        Con_DPrintf("Could not resolve game library: %s\n", value);
+        return;
+    }
+    Con_DPrintf("\nAdding:  %s/%s\n", gameDirectory, value);
+    LoadThisDll(filename);
+}
+#endif
 
 void LoadEntityDLLs( char* basedir )
 {
@@ -373,7 +408,11 @@ void LoadEntityDLLs( char* basedir )
 		gmodinfo.bIsMod = true;
 
 	char listFilename[260];
+#if !defined(_WIN32)
+    char dllFilename[8192]{};
+#else
 	char dllFilename[8192];
+#endif
 	_snprintf( listFilename, sizeof( listFilename ), "%s", "liblist.gam" );
 	FileHandle_t file = FS_Open( listFilename, "rb" );
 	if ( file )
@@ -390,6 +429,9 @@ void LoadEntityDLLs( char* basedir )
 			Sys_Error( "Error reading in game listing file, expected %i bytes, read %i", fileSize, bytesRead );
 		listing[fileSize] = 0;
 		com_ignorecolons = true;
+#if !defined(_WIN32)
+        cse::GameLibraryFallbacks<MAX_EXT_DLLS, cse::GameLibraryValueBytes> fallbacks;
+#endif
 		const char* cursor = COM_Parse( listing );
 		while ( Q_strlen( com_token ) > 0 )
 		{
@@ -399,11 +441,17 @@ void LoadEntityDLLs( char* basedir )
 			cursor = COM_Parse( cursor );
 			Q_strncpy( value, com_token, sizeof( value ) - 1 );
 			value[sizeof( value ) - 1] = 0;
-#if !defined( _WIN32 )
-			if ( Q_strcasecmp( key, "gamedll_linux" ) != 0 )
+#if !defined(_WIN32)
+            if (Q_strcasecmp(key, cse::GameLibraryMetadataKey(cse::NativeGameLibraryPlatform())) == 0) {
+                fallbacks.MarkPrimary();
+                LoadNativeGameLibrary(value, gameDirectory, true, dllFilename, sizeof(dllFilename));
+            } else if (Q_strcasecmp(key, "gamedll") == 0) {
+                fallbacks.Remember(value);
+            } else {
+                DLL_SetModKey(&gmodinfo, key, value);
+            }
 #else
 			if ( Q_strcasecmp( key, "gamedll" ) != 0 )
-#endif
 			{
 				DLL_SetModKey( &gmodinfo, key, value );
 			}
@@ -423,24 +471,6 @@ void LoadEntityDLLs( char* basedir )
 				}
 				else
 				{
-#if !defined( _WIN32 )
-					char* underscore = std::strchr( value, '_' );
-					if ( underscore != nullptr )
-					{
-						*underscore = '\0';
-						Q_strcat( value, ".so" );
-					}
-					if ( Q_strcasecmp( COM_LastFileExtension( value ), "so" ) != 0 )
-					{
-						Con_DPrintf( "Skipping non-shared library:  %s\n", value );
-					}
-					else
-					{
-						FS_GetLocalPath( value, dllFilename, sizeof( dllFilename ) );
-						Con_DPrintf( "\nAdding:  %s/%s\n", gameDirectory, value );
-						LoadThisDll( dllFilename );
-					}
-#else
 					if ( Q_strcasecmp( COM_FileExtension( value ), "dll" ) != 0 )
 					{
 						Con_DPrintf( "Skipping non-dll:  %s\n", value );
@@ -451,11 +481,21 @@ void LoadEntityDLLs( char* basedir )
 						Con_DPrintf( "\nAdding:  %s/%s\n", gameDirectory, value );
 						LoadThisDll( dllFilename );
 					}
-#endif
 				}
 			}
+#endif
 			cursor = COM_Parse( cursor );
 		}
+#if !defined(_WIN32)
+        if (fallbacks.UseFallbacks()) {
+            for (std::size_t index = 0; index < fallbacks.Count(); ++index) {
+                LoadNativeGameLibrary(fallbacks.Name(index), gameDirectory, false, dllFilename, sizeof(dllFilename));
+            }
+            if (fallbacks.Overflowed()) {
+                Con_DPrintf("Too many game libraries in liblist.gam (maximum %i)\n", MAX_EXT_DLLS);
+            }
+        }
+#endif
 		com_ignorecolons = false;
 		std::free( listing );
 		FS_Close( file );
@@ -463,7 +503,9 @@ void LoadEntityDLLs( char* basedir )
 	else
 	{
 		char wildcard[260];
-#if !defined( _WIN32 )
+#if defined(__APPLE__)
+        std::snprintf(wildcard, sizeof(wildcard), "%s/*.dylib", "valve/dlls");
+#elif !defined( _WIN32 )
 		std::snprintf( wildcard, sizeof( wildcard ), "%s/*.so", "valve/dlls" );
 #else
 		_snprintf( wildcard, sizeof( wildcard ), "%s\\*.dll", "valve\\dlls" );
@@ -485,15 +527,14 @@ void LoadEntityDLLs( char* basedir )
 	gNewDLLFunctions.pfnGameShutdown = nullptr;
 	gNewDLLFunctions.pfnShouldCollide = nullptr;
 	gNewDLLFunctions.pfnCvarValue = nullptr;
-	NEW_DLL_FUNCTIONS_FN getNewFunctions =
-		reinterpret_cast<NEW_DLL_FUNCTIONS_FN>( GetDispatch( "GetNewDLLFunctions" ) );
+    NEW_DLL_FUNCTIONS_FN getNewFunctions = FindGameDispatch<NEW_DLL_FUNCTIONS_FN>("GetNewDLLFunctions");
 	int interfaceVersion;
 	if ( getNewFunctions )
 	{
 		interfaceVersion = NEW_DLL_FUNCTIONS_VERSION;
 		getNewFunctions( &gNewDLLFunctions, &interfaceVersion );
 	}
-	APIFUNCTION2 getEntityAPI2 = reinterpret_cast<APIFUNCTION2>( GetDispatch( "GetEntityAPI2" ) );
+	APIFUNCTION2 getEntityAPI2 = FindGameDispatch<APIFUNCTION2>("GetEntityAPI2");
 	if ( getEntityAPI2 )
 	{
 		interfaceVersion = INTERFACE_VERSION;
@@ -512,7 +553,7 @@ void LoadEntityDLLs( char* basedir )
 	}
 	else
 	{
-		APIFUNCTION getEntityAPI = reinterpret_cast<APIFUNCTION>( GetDispatch( "GetEntityAPI" ) );
+		APIFUNCTION getEntityAPI = FindGameDispatch<APIFUNCTION>("GetEntityAPI");
 		if ( !getEntityAPI )
 			Host_Error( "Couldn't get DLL API from %s!", dllFilename );
 		interfaceVersion = INTERFACE_VERSION;

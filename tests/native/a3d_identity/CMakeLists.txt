@@ -1,0 +1,42 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseA3dIdentityFixture LANGUAGES CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CSE_A3D_SOURCE "${CSE_ROOT}/GoldSrc-SDK/a3dapi" CACHE PATH "Current or preserved A3D source")
+option(CSE_A3D_REFERENCE "Compile preserved legacy identity with MS pointer-cast extension" OFF)
+option(CSE_A3D_SANITIZERS "Instrument exact A3D bodies and fixture" OFF)
+file(GLOB source_inputs CONFIGURE_DEPENDS "${CSE_A3D_SOURCE}/*.cpp" "${CSE_A3D_SOURCE}/*.h")
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/production_bodies.inc"
+  "${CMAKE_CURRENT_BINARY_DIR}/fixture_declarations.inc"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
+    "${CSE_A3D_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}"
+  DEPENDS ${source_inputs} extract_sources.py VERBATIM)
+add_executable(a3d_identity_tests identity_tests.cpp fixture_bindings.cpp
+  "${CMAKE_CURRENT_BINARY_DIR}/production_bodies.inc" "${CMAKE_CURRENT_BINARY_DIR}/fixture_declarations.inc")
+target_compile_features(a3d_identity_tests PRIVATE cxx_std_17)
+target_include_directories(a3d_identity_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CSE_A3D_SOURCE}")
+if(CSE_A3D_REFERENCE)
+  target_compile_definitions(a3d_identity_tests PRIVATE CSE_A3D_REFERENCE)
+endif()
+target_compile_definitions(a3d_identity_tests PRIVATE "$<$<CONFIG:Debug>:_DEBUG>" "$<$<CONFIG:Release>:NDEBUG>")
+if(MSVC)
+  target_compile_options(a3d_identity_tests PRIVATE /W4 /WX /EHsc "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")
+else()
+  target_compile_options(a3d_identity_tests PRIVATE "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" -Wall -Wextra -Werror)
+  if(CSE_A3D_REFERENCE)
+    # Only the preserved pre-fix source needs this compiler extension.
+    target_compile_options(a3d_identity_tests PRIVATE -fms-extensions -Wno-pointer-to-int-cast)
+  endif()
+  if(CSE_A3D_SANITIZERS)
+    target_compile_options(a3d_identity_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(a3d_identity_tests PRIVATE -fsanitize=address,undefined)
+  endif()
+endif()
+enable_testing()
+foreach(case collision duplicate previous-frame replacement public-domain public-duplicates sort-long recorded-list recorded-list-multipage copy-delete opcode slots cycles external-slots)
+  add_test(NAME a3d-identity-${case} COMMAND a3d_identity_tests ${case})
+endforeach()

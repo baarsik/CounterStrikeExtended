@@ -16,8 +16,12 @@
 #include "../common/r_studioint.h"
 #include "../pm_shared/pm_movevars.h"
 
+#if defined(_WIN32)
 #include <Windows.h>
 #include <GL/gl.h>
+#else
+#include <SDL3/SDL_opengl.h>
+#endif
 #include <climits>
 #include <cmath>
 #include <cstddef>
@@ -236,7 +240,7 @@ extern int glx, gly, glwidth, glheight, gl_mtexable;
 extern int TEXTURE0_SGIS, TEXTURE1_SGIS, TEXTURE2_SGIS;
 extern float r_blend;
 extern vec3_t lightspot;
-extern BOOL g_bUserFogOn;
+extern qboolean g_bUserFogOn;
 extern cshift_t cshift_water;
 static int isFogEnabled;
 

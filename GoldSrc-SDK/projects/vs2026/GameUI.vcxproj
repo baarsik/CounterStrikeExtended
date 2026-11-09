@@ -85,6 +85,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\common\legacy_wide_format.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\common\steam_service.cpp" />
     <ClCompile Include="..\..\GameUI\BackgroundMenuButton.cpp" />
     <ClCompile Include="..\..\GameUI\BasePanel.cpp" />
@@ -205,8 +211,12 @@
     <ClCompile Include="..\..\vgui2\controls\Slider.cpp" />
     <ClCompile Include="..\..\vgui2\controls\TestScriptController.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
     </ClCompile>
     <ClCompile Include="..\..\vgui2\controls\TextEntry.cpp" />
+    <ClCompile Include="..\..\common\TextEntryClipboard.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+    </ClCompile>
     <ClCompile Include="..\..\vgui2\controls\TextImage.cpp" />
     <ClCompile Include="..\..\vgui2\controls\ToggleButton.cpp" />
     <ClCompile Include="..\..\vgui2\controls\Tooltip.cpp" />
@@ -368,6 +378,7 @@
     <ClInclude Include="..\..\vgui2\controls\Slider.h" />
     <ClInclude Include="..\..\vgui2\controls\TestScriptController.h" />
     <ClInclude Include="..\..\vgui2\controls\TextEntry.h" />
+    <ClInclude Include="..\..\common\TextEntryClipboard.h" />
     <ClInclude Include="..\..\vgui2\controls\TextImage.h" />
     <ClInclude Include="..\..\vgui2\controls\ToggleButton.h" />
     <ClInclude Include="..\..\vgui2\controls\Tooltip.h" />

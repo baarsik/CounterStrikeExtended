@@ -16,7 +16,7 @@ void R_FogParams( float, int )
 {
 }
 
-void R_RenderFog( float*, float, float, BOOL )
+void R_RenderFog( float*, float, float, qboolean )
 {
 }
 
@@ -403,12 +403,12 @@ void R_SetFogMode( int mode );
 
 int g_GL_Modes[7] = { GL_TRIANGLES, GL_TRIANGLE_FAN, GL_QUADS, GL_POLYGON, GL_LINES, GL_TRIANGLE_STRIP, GL_QUAD_STRIP };
 
-BOOL g_bFogSkybox = TRUE;
+qboolean g_bFogSkybox = TRUE;
 float gGlB;
 float gGlR;
 float flFogStart;
 float flFogDensity;
-BOOL g_bUserFogOn;
+qboolean g_bUserFogOn;
 float flFogEnd;
 float flFinalFogColor[4];
 float gGlG;
@@ -554,7 +554,7 @@ void tri_LightAtPoint( float* vPos, float* value )
 	value[2] = (float)vLightColor.b;
 }
 
-void R_RenderFog( float* flFogColor, float flStart, float flEnd, BOOL bOn )
+void R_RenderFog( float* flFogColor, float flStart, float flEnd, qboolean bOn )
 {
 	int i;
 

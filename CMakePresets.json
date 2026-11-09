@@ -13,7 +13,8 @@
       "cacheVariables": {
         "CSE_BUILD_DEDICATED": "ON",
         "CSE_BUILD_BROADCASTING": "ON",
-        "CSE_BUILD_A3D": "ON"
+        "CSE_BUILD_A3D": "ON",
+        "CSE_TARGET_ARCH": "x86"
       }
     },
     {
@@ -259,6 +260,132 @@
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
       }
+    },
+    {
+      "name": "runtime-windows-x64-release",
+      "displayName": "Native runtime bring-up: Windows x64 Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-windows-x64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CSE_TARGET_ARCH": "x64",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "runtime-windows-x64-debug",
+      "displayName": "Native runtime bring-up: Windows x64 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-windows-x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CSE_TARGET_ARCH": "x64",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "runtime-windows-arm64-release",
+      "displayName": "Native runtime bring-up: Windows arm64 Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-windows-arm64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CSE_TARGET_ARCH": "arm64",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "runtime-windows-arm64-debug",
+      "displayName": "Native runtime bring-up: Windows arm64 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-windows-arm64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CSE_TARGET_ARCH": "arm64",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "runtime-macos-arm64-release",
+      "displayName": "Native runtime bring-up: macOS ARM64 Release",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-macos-arm64-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CSE_TARGET_ARCH": "arm64",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON",
+        "CSE_BROWSER_HOST_RELATIVE_PATH": "cse_cef_host.app/Contents/MacOS/cse_cef_host"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
+    },
+    {
+      "name": "runtime-macos-arm64-debug",
+      "displayName": "Native runtime bring-up: macOS ARM64 Debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/runtime-macos-arm64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CSE_TARGET_ARCH": "arm64",
+        "CMAKE_OSX_ARCHITECTURES": "arm64",
+        "CMAKE_OSX_DEPLOYMENT_TARGET": "14.0",
+        "CSE_SDL3_FROM_SOURCE": "ON",
+        "CSE_HARDWARE_ONLY": "OFF",
+        "CSE_BUILD_DEDICATED": "ON",
+        "CSE_BUILD_BROADCASTING": "ON",
+        "CSE_BUILD_A3D": "ON",
+        "CSE_BROWSER_HOST_RELATIVE_PATH": "cse_cef_host.app/Contents/MacOS/cse_cef_host"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
     }
   ],
   "buildPresets": [
@@ -329,6 +456,30 @@
     {
       "name": "game-modules-macos-arm64-debug",
       "configurePreset": "game-modules-macos-arm64-debug"
+    },
+    {
+      "name": "runtime-windows-x64-release",
+      "configurePreset": "runtime-windows-x64-release"
+    },
+    {
+      "name": "runtime-windows-x64-debug",
+      "configurePreset": "runtime-windows-x64-debug"
+    },
+    {
+      "name": "runtime-windows-arm64-release",
+      "configurePreset": "runtime-windows-arm64-release"
+    },
+    {
+      "name": "runtime-windows-arm64-debug",
+      "configurePreset": "runtime-windows-arm64-debug"
+    },
+    {
+      "name": "runtime-macos-arm64-release",
+      "configurePreset": "runtime-macos-arm64-release"
+    },
+    {
+      "name": "runtime-macos-arm64-debug",
+      "configurePreset": "runtime-macos-arm64-debug"
     }
   ]
 }

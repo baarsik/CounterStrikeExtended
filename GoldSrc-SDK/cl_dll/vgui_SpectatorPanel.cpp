@@ -283,7 +283,7 @@ void SpectatorPanel::ShowMenu(bool isVisible)
 			_snprintf( string, sizeof( string ) - 1, "%c%s", HUD_PRINTCENTER, CHudTextMessage::BufferedLocaliseTextString( "#Spec_Duck" ) );
 			string[ sizeof( string ) - 1 ] = '\0';
 
-			gHUD.m_TextMessage.MsgFunc_TextMsg( NULL, strlen( string ) + 1, string );
+            gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(string) + 1), string);
 		}
 	}
 

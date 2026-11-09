@@ -1777,8 +1777,7 @@ void R_DecalShoot_( texture_t* texture, int index, int entity, int modelIndex, v
 	R_DecalNode( node );
 }
 
-void R_FireCustomDecal( int, int, int, vec_t*, int, float, float )
-{
+void R_FireCustomDecal(int, int, int, vec_t*, int, float) {
 }
 
 void R_CustomDecalShoot( texture_t* texture, int playernum, int entity, int modelIndex, vec_t* position, int flags )

@@ -5,6 +5,21 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <climits>
+#include <cstddef>
+#include <cstdint>
+
+namespace {
+constexpr long legacyPoolBudgetBytes = 30000;
+constexpr std::size_t memoryBlockPointerFields = 4;
+constexpr long legacyMemoryBlockBytes = static_cast<long>(memoryBlockPointerFields * sizeof(std::uint32_t));
+constexpr long particlePoolSlots = legacyPoolBudgetBytes / legacyMemoryBlockBytes;
+constexpr std::size_t nativePoolBudgetBytes = static_cast<std::size_t>(particlePoolSlots) * sizeof(MemoryBlock);
+// Win32 stores a vptr, data pointer and two list pointers in its 16-byte record.
+static_assert(sizeof(MemoryBlock) == memoryBlockPointerFields * sizeof(void*), "Particle record layout changed");
+static_assert(nativePoolBudgetBytes <= static_cast<std::size_t>(LONG_MAX),
+    "Particle record budget must fit the existing long contract");
+}
 
 VectorOfMemoryBlocks CMiniMem::m_vecMemoryPool;
 long CMiniMem::m_lMemoryBlockSize = 0;
@@ -16,6 +31,25 @@ CMiniMem* CMiniMem::_instance = NULL;
 
 MemList m_FreeMem;
 MemList m_ActiveMem;
+
+#if !defined(_WIN32)
+namespace {
+struct ParticlePoolModuleLifetime {
+    ~ParticlePoolModuleLifetime() {
+        if (instance && *instance) {
+            (*instance)->Reset();
+            (*instance)->Shutdown();
+        }
+    }
+
+    CMiniMem** instance = nullptr;
+};
+
+// Register after the vector and lists above, so this cleanup runs before them.
+// Binding the existing singleton address never constructs a pool during teardown.
+ParticlePoolModuleLifetime particlePoolModuleLifetime;
+}
+#endif
 
 float g_flOldTime = 0;
 
@@ -38,7 +72,7 @@ CMiniMem::CMiniMem( long poolSize, long blockSize )
 {
 	m_lMemoryPoolSize = poolSize;
 	m_lMemoryBlockSize = blockSize;
-	m_lMaxBlocks = m_lMemoryPoolSize / sizeof( MemoryBlock );
+    m_lMaxBlocks = m_lMemoryPoolSize / static_cast<long>(sizeof(MemoryBlock));
 
 	for ( long i = 0; i < m_lMaxBlocks; ++i )
 	{
@@ -71,6 +105,7 @@ CMiniMem::~CMiniMem()
 void CMiniMem::Shutdown()
 {
 	delete _instance;
+    _instance = nullptr;
 }
 
 char* CMiniMem::AllocateFreeBlock()
@@ -125,12 +160,15 @@ long CMiniMem::MaxBlockSize()
 	return m_lMemoryBlockSize;
 }
 
-CMiniMem* CMiniMem::Instance()
-{
-	if ( !_instance )
-		_instance = new CMiniMem( 30000, g_lMaxParticleClassSize );
+CMiniMem* CMiniMem::Instance() {
+#if !defined(_WIN32)
+    particlePoolModuleLifetime.instance = &_instance;
+#endif
+    if (!_instance) {
+        _instance = new CMiniMem(static_cast<long>(nativePoolBudgetBytes), g_lMaxParticleClassSize);
+    }
 
-	return _instance;
+    return _instance;
 }
 
 int ParticleSortFn( const void* first, const void* second )

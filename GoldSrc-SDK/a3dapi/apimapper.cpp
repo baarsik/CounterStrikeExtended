@@ -13,15 +13,24 @@ CA3dCommandBuffer::CA3dCommandBuffer( int cCapacity, int iBufferType )
 	m_cCapacity = 0;
 	m_cCommands = 0;
 
-	size_t commandBytes = (DWORD)cCapacity * sizeof( a3d_geometry_command_t );
-	m_pCommands = (a3d_geometry_command_t*)::operator new( commandBytes, std::nothrow );
+    size_t commandBytes = (DWORD)cCapacity * sizeof(a3d_geometry_command_t);
+    size_t allocationBytes = commandBytes;
+#if UINTPTR_MAX > UINT32_MAX
+    static_assert(alignof(a3d_geometry_command_t) >= alignof(A3dGeometryIdentity), "sidecar alignment");
+    allocationBytes += (DWORD)cCapacity * sizeof(A3dGeometryIdentity);
+#endif
+    m_pCommands = (a3d_geometry_command_t*)::operator new(allocationBytes, std::nothrow);
+#if UINTPTR_MAX > UINT32_MAX
+    m_pIdentities = m_pCommands ? reinterpret_cast<A3dGeometryIdentity*>(
+        reinterpret_cast<unsigned char*>(m_pCommands) + commandBytes) : nullptr;
+#endif
 	if ( m_pCommands )
 	{
 		m_cCapacity = cCapacity;
 		m_iCursor = 0;
 	}
 
-	memset( m_pCommands, 0, commandBytes );
+    memset(m_pCommands, 0, allocationBytes);
 	m_iBufferType = iBufferType;
 }
 
@@ -50,6 +59,10 @@ int __cdecl CommandBuffer_Copy( CA3dCommandBuffer* pDest, int iDest,
 
 	DWORD commandBytes = (DWORD)cCommands * sizeof( a3d_geometry_command_t );
 	memcpy( &pDest->m_pCommands[iDest], &pSource->m_pCommands[iSource], commandBytes );
+#if UINTPTR_MAX > UINT32_MAX
+    memcpy(&pDest->m_pIdentities[iDest], &pSource->m_pIdentities[iSource],
+        static_cast<size_t>(cCommands) * sizeof(A3dGeometryIdentity));
+#endif
 
 	return cCommands;
 }

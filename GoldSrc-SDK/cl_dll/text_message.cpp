@@ -129,11 +129,15 @@ char *CHudTextMessage::LookupString( const char *msg, int *msg_dest )
 	}
 }
 
-void StripEndNewlineFromString( char *str )
-{
-	int s = strlen( str ) - 1;
-	if ( str[s] == '\n' || str[s] == '\r' )
-		str[s] = 0;
+void StripEndNewlineFromString(char* text) {
+    const size_t length = strlen(text);
+    if (length == 0) {
+        return;
+    }
+    const size_t last = length - 1;
+    if (text[last] == '\n' || text[last] == '\r') {
+        text[last] = 0;
+    }
 }
 
 // converts all '\r' characters to '\n', so that the engine can deal with the properly

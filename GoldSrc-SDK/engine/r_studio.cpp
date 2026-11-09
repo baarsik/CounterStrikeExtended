@@ -3495,12 +3495,12 @@ int R_StudioDrawPlayer_0( int flags, entity_state_t* pplayer )
 	return 1;
 }
 
-void R_StudioVertBuffer()
-{
-	static finalvert_t finalverts[MAXSTUDIOVERTS + 1];
-	pfinalverts = (finalvert_t*)( ( (unsigned int)finalverts + 31 ) & ~31u );
-	pauxverts = auxverts;
-	plightvalues = lightvalues[0];
+void R_StudioVertBuffer() {
+    constexpr int VertexAlignment = 32;
+    alignas(VertexAlignment) static finalvert_t finalverts[MAXSTUDIOVERTS + 1];
+    pfinalverts = finalverts;
+    pauxverts = auxverts;
+    plightvalues = lightvalues[0];
 }
 
 void R_StudioProjectFinalVert( finalvert_t* fv, auxvert_t* av )

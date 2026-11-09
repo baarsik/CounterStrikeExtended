@@ -1,0 +1,217 @@
+# Generated from projects/vs2026/GameUI.vcxproj; see tools/translate_msbuild.py.
+target_sources(gameui PRIVATE
+  "${CSE_SDK_DIR}/common/steam_service.cpp"
+  "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/BasePanel.cpp"
+  "${CSE_SDK_DIR}/GameUI/BitmapButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/BitmapImagePanel.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerBaseFrame.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerBotFrame.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerBox.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerDefinitions.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerGame.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerGameTasks.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerMapFrame.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerProfile.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerProfileButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/CareerProfileFrame.cpp"
+  "${CSE_SDK_DIR}/GameUI/ChangeGameDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/CDKeyEntryDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/CommandCheckButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/ContentControlDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/CreateMultiplayerGameBotPage.cpp"
+  "${CSE_SDK_DIR}/GameUI/CreateMultiplayerGameDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/CreateMultiplayerGameGameplayPage.cpp"
+  "${CSE_SDK_DIR}/GameUI/CreateMultiplayerGameServerPage.cpp"
+  "${CSE_SDK_DIR}/GameUI/CvarLatch.cpp"
+  "${CSE_SDK_DIR}/GameUI/CvarNegateCheckButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/CvarSlider.cpp"
+  "${CSE_SDK_DIR}/GameUI/CvarTextEntry.cpp"
+  "${CSE_SDK_DIR}/GameUI/CvarToggleCheckButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/DemoEditDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/DemoEventsDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/DemoPlayerDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/DemoPlayerFileDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/DottedLabel.cpp"
+  "${CSE_SDK_DIR}/GameUI/GameConsole.cpp"
+  "${CSE_SDK_DIR}/GameUI/GameConsoleDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/GameUI_Interface.cpp"
+  "${CSE_SDK_DIR}/GameUI/HelpDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/ImageButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/KeyToggleCheckButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/LabeledCommandComboBox.cpp"
+  "${CSE_SDK_DIR}/GameUI/labelslidercombo.cpp"
+  "${CSE_SDK_DIR}/GameUI/LoadGameDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/LoadingDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/LogoFile.cpp"
+  "${CSE_SDK_DIR}/GameUI/ModInfo.cpp"
+  "${CSE_SDK_DIR}/GameUI/MultiplayerAdvancedDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/MusicManager.cpp"
+  "${CSE_SDK_DIR}/GameUI/NewGameDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubAdvanced.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubAudio.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubKeyboard.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubMouse.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubMultiplayer.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubVideo.cpp"
+  "${CSE_SDK_DIR}/GameUI/OptionsSubVoice.cpp"
+  "${CSE_SDK_DIR}/GameUI/PanelListPanel.cpp"
+  "${CSE_SDK_DIR}/GameUI/PlayerListDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/RefreshSteamLogin.cpp"
+  "${CSE_SDK_DIR}/GameUI/RunGameEngine.cpp"
+  "${CSE_SDK_DIR}/GameUI/SaveGameDialog.cpp"
+  "${CSE_SDK_DIR}/GameUI/ScriptObject.cpp"
+  "${CSE_SDK_DIR}/GameUI/Sys_Utils.cpp"
+  "${CSE_SDK_DIR}/GameUI/Taskbar.cpp"
+  "${CSE_SDK_DIR}/GameUI/TaskButton.cpp"
+  "${CSE_SDK_DIR}/GameUI/TextEntryBox.cpp"
+  "${CSE_SDK_DIR}/GameUI/vcontrolslistpanel.cpp"
+  "${CSE_SDK_DIR}/GameUI/VGuiSystemModuleLoader.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/AnimatingImagePanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/BitmapImagePanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/BuildGroup.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/BuildModeDialog.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Button.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/CheckButton.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ComboBox.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/controls.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Divider.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/EditablePanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/FocusNavGroup.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Frame.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/HTML.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Image.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ImageList.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ImagePanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Label.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ListPanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Menu.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/MenuButton.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/MenuItem.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/MessageBox.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Panel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/PanelHorizListPanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/PanelListPanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ProgressBar.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/PropertyDialog.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/PropertyPage.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/PropertySheet.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/QueryBox.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/RadioButton.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/RichText.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ScrollBar.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ScrollBarSlider.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/SectionedListPanel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Slider.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp"
+  "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/ToggleButton.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Tooltip.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/URLLabel.cpp"
+  "${CSE_SDK_DIR}/engine/interface.cpp"
+  "${CSE_SDK_DIR}/public/checksum_md5.cpp"
+  "${CSE_SDK_DIR}/engine/utlbuffer.cpp"
+  "${CSE_SDK_DIR}/engine/utlsymbol.cpp"
+  "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
+  "${CSE_SDK_DIR}/common/ObjectList.cpp"
+  "${CSE_SDK_DIR}/cstrike/common/parsemsg.cpp"
+  "${CSE_SDK_DIR}/cstrike/common/Random.cpp"
+  "${CSE_SDK_DIR}/cstrike/game_shared/shared_util.cpp"
+  "${CSE_SDK_DIR}/cstrike/game_shared/bot/bot_profile.cpp"
+  "${CSE_SDK_DIR}/cstrike/dlls/weapontype.cpp"
+  "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/DirectorCmd.cpp"
+  "${CSE_SDK_DIR}/HLTV/common/byteorder.cpp"
+  "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp"
+  "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/common.cpp"
+  "${CSE_SDK_DIR}/public/characterset.cpp"
+  "${CSE_SDK_DIR}/vgui2/src/public/filesystem_helpers.cpp"
+  "${CSE_SDK_DIR}/engine/KeyValues.cpp"
+  "${CSE_SDK_DIR}/engine/MemPool.cpp"
+  "${CSE_SDK_DIR}/engine/controls.cpp"
+)
+if(NOT WIN32)
+  target_sources(gameui PRIVATE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp")
+  if(MSVC)
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHs-c->")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
+  else()
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fno-exceptions>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+  endif()
+  if(MSVC)
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHs-c->")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
+  else()
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-O2>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fno-exceptions>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+    set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+  endif()
+  target_sources(gameui PRIVATE "${CSE_SDK_DIR}/vgui2/controls/TestScriptController.cpp")
+endif()

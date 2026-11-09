@@ -1,7 +1,8 @@
 # Project scope
 
 CounterStrikeExtended retains Counter-Strike 1.6, Half-Life, the shared runtime
-and dedicated-server support. The supported build configuration is Windows x86.
+and dedicated-server support. Win32 is the maintained default; [native target acceptance](native-migration.md)
+is in progress.
 Of the original 57 non-external MSBuild projects, 19 remain and are enabled by
 default; 38 have been removed. Broadcasting, A3D and dedicated servers can be
 disabled for reduced builds.
@@ -71,8 +72,8 @@ Their original manifests, exports and source lists remain in the
 these outputs or invokes the removed utilities as build-time generators.
 
 Exclusive game/editor/tool implementations and orphan build fragments have been
-deleted. [Source pruning](source-pruning.md) records the stages, relocated
-headers and archived prose. Condition Zero shared the retained CS source lists;
+deleted. Git records their removal; [inherited prose](upstream/README.md)
+preserves the original build/tool documents and notices. Condition Zero shared the retained CS source lists;
 its target removal did not remove CS gameplay. The original Gunman projects
 referenced source absent from this checkout.
 
@@ -111,7 +112,8 @@ CMake Release diagnostics are intentionally opt-in; Release incremental linking
 is disabled. Required intermediates remain under the selected build directory.
 The [build manifest reference](msbuild/README.md#generated-production-inputs)
 describes VGUI1 import-library and A3D generation.
-[Source corrections](source-corrections.md) records C1–C4.
+The Windows engine retains its WSOCK32 multicast option values (4/5/6); other
+Winsock2 consumers keep their separate API constants. Do not interchange them.
 
 Native SDL3 is pinned and staged for the five linker consumers: both engines,
 both game clients and GameUI. Both engines also build/stage the shared mpg123
@@ -129,7 +131,8 @@ pruning. The dedicated validation does not establish every conditional path.
 
 ## Verification scope
 
-[Current validation](mpg123-migration-validation.md) covers post-cleanup builds,
-libmpg123 music, CS/HL gameplay and dedicated-server checks on VM1.
-[SDL3 validation](sdl3-migration-validation.md) retains the earlier comparison and
-benchmarks; [source pruning](source-pruning.md) records removal/header-closure checks.
+[Validation](validation.md) separates frozen build/static receipts from selected
+Win32/native gameplay, data, provider and external-server checks. The
+[migration requirements and TODO](native-migration.md) define the unfinished
+promotion gates. Tests and historical source comparisons do not qualify
+unexercised runtime paths.

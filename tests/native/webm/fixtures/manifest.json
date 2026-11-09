@@ -1,0 +1,30 @@
+{
+  "ownership": "Generated exclusively from deterministic original integer YUV patterns and asymmetric stereo samples using pinned native libvpx/Vorbis/libwebm; no external media.",
+  "video": {
+    "codecs": [
+      "VP8",
+      "VP9 lossless"
+    ],
+    "width": 16,
+    "height": 16,
+    "frames": 8,
+    "frame_rate": 25,
+    "decoded_reference": "Independent direct libvpx decoder packed Y/U/V planes"
+  },
+  "audio": {
+    "codec": "Vorbis",
+    "channels": 2,
+    "rate": 48000,
+    "packets": 23,
+    "decoded_frames": 8192,
+    "decoded_reference": "Independent direct Vorbis decoder, S16 little-endian, no container granule trimming; sample tolerance1LSB across platforms"
+  },
+  "sha256": {
+    "stereo.pcm": "585e2a1574a022cd35c53a0e8eb514ffdd2b5d56629c3584927dc49b936e99b4",
+    "truncated.webm": "cff60307d2da8b37d4c8c27855b812821e1442de10cb0e75a160b0934c4ac630",
+    "vp8.webm": "18710c22b01dd0afb8333d69ae4166bdbedce8bb1bccae44439b55228bfaa7fe",
+    "vp8.yuv": "5b7a50c3e478f766d7155c83b610748fd484020ab43693eef3ecf2b8e462edcf",
+    "vp9.webm": "5f0b8f4823cb8731f564cf65c07d45c7e8cd4dfa3016db7bd78a96a659ad12b8",
+    "vp9.yuv": "a9e454496afb13de89619a0e6dabc8e7fac698c7eda5bb7b078ce22a5684d139"
+  }
+}

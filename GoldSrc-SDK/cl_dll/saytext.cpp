@@ -24,7 +24,9 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <malloc.h> // _alloca
+#if defined(_WIN32)
+#include <malloc.h>
+#endif // _alloca
 
 #include "vgui_TeamFortressViewport.h"
 
@@ -131,7 +133,12 @@ int CHudSayText :: Draw( float flTime )
 			{
 				// it's a saytext string
 				char buf[MAX_CHARS_PER_LINE];
+#if defined(_WIN32)
 				int lineLength = strlen( g_szLineBuffer[i] );
+#else
+                // Stored display lines are bounded by MAX_CHARS_PER_LINE.
+                int lineLength = static_cast<int>(strlen(g_szLineBuffer[i]));
+#endif
 				if ( lineLength < 0 || lineLength >= MAX_CHARS_PER_LINE )
 					continue;
 
@@ -218,7 +225,13 @@ void CHudSayText :: SayTextPrint( const char *pszBuf, int iBufSize, int clientIn
 
 			if ( nameInString )
 			{
+#if defined(_WIN32)
 				g_iNameLengths[i] = strlen( pName ) + (nameInString - pszBuf);
+#else
+                // This is a matched name's byte offset within the bounded message,
+                // rather than an address or native allocation size.
+                g_iNameLengths[i] = static_cast<int>(strlen(pName) + (nameInString - pszBuf));
+#endif
 				g_pflNameColors[i] = GetClientColor( clientIndex );
 			}
 		}
@@ -317,8 +330,14 @@ void CHudSayText :: EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 				// copy remaining string into next buffer,  making sure it starts with a space character
 				if ( (char)*last_break == (char)' ' )
 				{
+#if defined(_WIN32)
 					int linelen = strlen(g_szLineBuffer[j]);
 					int remaininglen = strlen(last_break);
+#else
+                    // Both strings point into the retained fixed-size display slots.
+                    int linelen = static_cast<int>(strlen(g_szLineBuffer[j]));
+                    int remaininglen = static_cast<int>(strlen(last_break));
+#endif
 
 					if ( linelen + remaininglen < MAX_CHARS_PER_LINE )
 						strcat( g_szLineBuffer[j], last_break );

@@ -168,46 +168,43 @@ void Plat_DefaultAllocErrorFn( unsigned int )
 
 Plat_AllocErrorFn g_AllocError = Plat_DefaultAllocErrorFn;
 
-double Plat_FloatTime()
-{
-	static int secbase = 0;
-	timeval tp;
+double Plat_FloatTime() {
+    constexpr double kMicrosecondsPerSecond = 1000000.0;
+    static decltype(timeval::tv_sec) secbase = 0;
+    timeval tp;
 
-	gettimeofday( &tp, NULL );
-	if ( secbase != 0 )
-	{
-		if ( g_VCRMode != VCR_Disabled )
-		{
-			return g_pVCR->Hook_Sys_FloatTime( (double)( tp.tv_sec - secbase ) + (double)tp.tv_usec / 1000000.0 );
-		}
-		else
-		{
-			return (double)( tp.tv_sec - secbase ) + (double)tp.tv_usec / 1000000.0;
-		}
-	}
-	else
-	{
-		secbase = tp.tv_sec;
-		return (double)tp.tv_usec / 1000000.0;
-	}
+    gettimeofday(&tp, nullptr);
+    if (secbase != 0) {
+        if (g_VCRMode != VCR_Disabled) {
+            return g_pVCR->Hook_Sys_FloatTime(static_cast<double>(tp.tv_sec - secbase)
+                + static_cast<double>(tp.tv_usec) / kMicrosecondsPerSecond);
+        } else {
+            return static_cast<double>(tp.tv_sec - secbase)
+                + static_cast<double>(tp.tv_usec) / kMicrosecondsPerSecond;
+        }
+    } else {
+        secbase = tp.tv_sec;
+        return static_cast<double>(tp.tv_usec) / kMicrosecondsPerSecond;
+    }
 }
 
-unsigned int Plat_MSTime()
-{
-	static int secbase = 0;
-	timeval tp;
+unsigned int Plat_MSTime() {
+    constexpr int kMillisecondsPerSecond = 1000;
+    constexpr double kMicrosecondsPerMillisecond = 1000.0;
+    constexpr double kMicrosecondsPerSecond = 1000000.0;
+    static decltype(timeval::tv_sec) secbase = 0;
+    timeval tp;
 
-	gettimeofday( &tp, NULL );
-	if ( secbase != 0 )
-	{
-		return (unsigned int)(long long)( (double)( 1000 * ( tp.tv_sec - secbase ) ) + (double)tp.tv_usec / 1000.0 );
-	}
-	else
-	{
-		double flSeconds = (double)tp.tv_usec / 1000000.0;
-		secbase = tp.tv_sec;
-		return (unsigned int)(long long)flSeconds;
-	}
+    gettimeofday(&tp, nullptr);
+    if (secbase != 0) {
+        return static_cast<unsigned int>(static_cast<long long>(
+            static_cast<double>(kMillisecondsPerSecond * (tp.tv_sec - secbase))
+            + static_cast<double>(tp.tv_usec) / kMicrosecondsPerMillisecond));
+    } else {
+        const double flSeconds = static_cast<double>(tp.tv_usec) / kMicrosecondsPerSecond;
+        secbase = tp.tv_sec;
+        return static_cast<unsigned int>(static_cast<long long>(flSeconds));
+    }
 }
 
 bool vtune( bool )
@@ -266,17 +263,14 @@ void Plat_SetCommandLine( const char* cmdLine )
 	g_CmdLine[sizeof( g_CmdLine ) - 1] = 0;
 }
 
-void Plat_SetCommandLineArgs( char** argv, int argc )
-{
-	int i;
-
-	g_CmdLine[0] = 0;
-	for ( i = 0; i < argc; i++ )
-	{
-		strncat( g_CmdLine, argv[i], sizeof( g_CmdLine ) - strlen( g_CmdLine ) );
-		strncat( g_CmdLine, " ", sizeof( g_CmdLine ) - strlen( g_CmdLine ) );
-	}
-	g_CmdLine[sizeof( g_CmdLine ) - 1] = 0;
+void Plat_SetCommandLineArgs(char** argv, int argc) {
+    g_CmdLine[0] = '\0';
+    for (int index = 0; index < argc; ++index) {
+        // Each append reserves one byte for the terminating null character.
+        strncat(g_CmdLine, argv[index], sizeof(g_CmdLine) - strlen(g_CmdLine) - 1);
+        strncat(g_CmdLine, " ", sizeof(g_CmdLine) - strlen(g_CmdLine) - 1);
+    }
+    g_CmdLine[sizeof(g_CmdLine) - 1] = '\0';
 }
 
 const char* Plat_GetCommandLine()

@@ -8,6 +8,8 @@
 
 #if defined( _WIN32 )
 #include <windows.h>
+#include <cstdint>
+#include <cstring>
 #undef Yield
 #else
 #include <pthread.h>
@@ -146,18 +148,24 @@ public:
 	{
 	}
 
-	bool TryLock() volatile
-	{
-		unsigned long thisThread = ThreadGetCurrentId();
-		if ( thisThread != m_ownerID
-			&& ThreadInterlockedCompareExchangePointer( (void* volatile*)&m_ownerID, (void*)thisThread, NULL ) != NULL )
-		{
-			return false;
-		}
+    bool TryLock() volatile {
+        static_assert(sizeof(m_ownerID) == sizeof(LONG), "Mutex owner and Windows LONG storage differ");
+        static_assert(sizeof(LONG) == sizeof(std::uint32_t), "Mutex owner IDs require 32-bit storage");
+        constexpr LONG UnlockedOwner = 0;
+        const std::uint32_t thisThread = static_cast<std::uint32_t>(ThreadGetCurrentId());
+        if (thisThread != m_ownerID) {
+            // Thread IDs keep all 32 bits through the signed LONG atomic API.
+            LONG thisThreadBits = UnlockedOwner;
+            std::memcpy(&thisThreadBits, &thisThread, sizeof(thisThreadBits));
+            if (InterlockedCompareExchange(reinterpret_cast<volatile LONG*>(&m_ownerID), thisThreadBits,
+                    UnlockedOwner) != UnlockedOwner) {
+                return false;
+            }
+        }
 
-		++m_depth;
-		return true;
-	}
+        ++m_depth;
+        return true;
+    }
 
 	bool TryLock() const volatile
 	{
@@ -452,7 +460,12 @@ public:
 	pthread_t		m_threadId;
 #endif
 	int				m_result;
+#if defined(_WIN64) || defined(__LP64__)
+    static constexpr unsigned int NativeNameCapacity = 64;
+    char m_szName[NativeNameCapacity];
+#else
 	char			m_szName[32];
+#endif
 
 private:
 	CThread( const CThread& );

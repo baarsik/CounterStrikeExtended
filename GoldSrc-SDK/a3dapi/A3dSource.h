@@ -5,6 +5,7 @@
 #include <mmsystem.h>
 #include <dsound.h>
 #include <ia3dapi.h>
+#include "native_geometry_identity.h"
 
 class CA3d;
 
@@ -304,6 +305,12 @@ public:
 
 private:
 	friend class CA3d;
+
+#if UINTPTR_MAX > UINT32_MAX
+    void AddGeometryReflection(A3dGeometryIdentity identity, DWORD legacyTag, const float direction[3],
+        float gain, const float material[6]);
+#endif
+
 
 	void SetRenderPosition( const float left[3], const float right[3] );
 	void SetRenderDelays();

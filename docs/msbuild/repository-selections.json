@@ -826,14 +826,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/filesystem/linux_support.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/filesystem/pathmatch.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
             }
           },
           {
@@ -943,14 +945,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/filesystem/linux_support.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/filesystem/pathmatch.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
             }
           },
           {
@@ -1266,6 +1270,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
@@ -1802,13 +1816,21 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TestScriptController.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -2062,6 +2084,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
@@ -2592,13 +2624,21 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TestScriptController.cpp",
             "metadata": {
-              "ExcludedFromBuild": "true"
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix"
             }
           },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -2851,6 +2891,16 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Console/System.cpp",
             "metadata": {}
           },
@@ -2863,6 +2913,23 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Console/TextConsoleWin32.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/HLTV/Console/TextConsolePosix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Console\\TextConsoleWin32.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/HLTV/Console/PosixSystem.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           },
           {
             "kind": "ClCompile",
@@ -2941,6 +3008,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -3062,6 +3136,16 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Console/System.cpp",
             "metadata": {}
           },
@@ -3074,6 +3158,23 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Console/TextConsoleWin32.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/HLTV/Console/TextConsolePosix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Console\\TextConsoleWin32.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/HLTV/Console/PosixSystem.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           },
           {
             "kind": "ClCompile",
@@ -3152,6 +3253,13 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -3792,6 +3900,7 @@
           },
           "Link": {
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/a3dapi/a3dapi.def",
+            "CseNativeCppExports": "true",
             "AdditionalDependencies": "version.lib;winmm.lib;user32.lib;ole32.lib;uuid.lib;dxguid.lib;",
             "TargetMachine": "MachineX86",
             "BaseAddress": "0x10000000",
@@ -3997,7 +4106,8 @@
               "IntrinsicFunctions": "true",
               "EnableEnhancedInstructionSet": "NoExtensions",
               "FloatingPointModel": "Precise",
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             },
             "generated": {
               "section": "A3D_GEOMETRY_SUBMISSION",
@@ -4079,6 +4189,7 @@
           },
           "Link": {
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/a3dapi/a3dapi.def",
+            "CseNativeCppExports": "true",
             "AdditionalDependencies": "version.lib;winmm.lib;user32.lib;ole32.lib;uuid.lib;dxguid.lib;",
             "TargetMachine": "MachineX86",
             "BaseAddress": "0x10000000",
@@ -4277,7 +4388,8 @@
               "IntrinsicFunctions": "true",
               "EnableEnhancedInstructionSet": "NoExtensions",
               "FloatingPointModel": "Precise",
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             },
             "generated": {
               "section": "A3D_GEOMETRY_SUBMISSION",
@@ -4386,7 +4498,8 @@
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\client.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\client.lib",
             "TreatLinkerWarningAsErrors": "true",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;"
+            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;",
+            "CseNativeCppExports": "true"
           }
         },
         "items": [
@@ -5480,6 +5593,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/vgui2/controls/TextImage.cpp",
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Debug\\cstrike_vgui2_controls_TextImage_cpp.obj",
@@ -5736,6 +5856,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           }
@@ -5852,7 +5982,8 @@
             "TreatLinkerWarningAsErrors": "true",
             "EnableCOMDATFolding": "true",
             "OptimizeReferences": "true",
-            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;"
+            "AdditionalDependencies": "${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;${CSE_SDK_DIR}/projects/vs2026/..\\..\\lib\\public\\steam_api.lib;",
+            "CseNativeCppExports": "true"
           }
         },
         "items": [
@@ -6946,6 +7077,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/vgui2/controls/TextImage.cpp",
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\cstrike_cdll\\Win32\\Release\\cstrike_vgui2_controls_TextImage_cpp.obj",
@@ -7202,6 +7340,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/steam_service.cpp",
             "metadata": {}
           }
@@ -7281,6 +7429,7 @@
           "SourceDirectory": "cstrike",
           "BinaryDirectory": "dlls",
           "TargetName": "mp",
+          "CseNativeModuleAliases": "cs",
           "VCProjectVersion": "18.0",
           "PlatformToolset": "v145",
           "WindowsTargetPlatformVersion": "10.0.26100.0",
@@ -7319,6 +7468,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp",
@@ -8460,6 +8619,7 @@
           "SourceDirectory": "cstrike",
           "BinaryDirectory": "dlls",
           "TargetName": "mp",
+          "CseNativeModuleAliases": "cs",
           "VCProjectVersion": "18.0",
           "PlatformToolset": "v145",
           "WindowsTargetPlatformVersion": "10.0.26100.0",
@@ -8502,6 +8662,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp",
@@ -9686,7 +9856,9 @@
             "GenerateDebugInformation": "true",
             "BaseAddress": "",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client.pdb",
-            "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client.lib"
+            "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Debug\\client.lib",
+            "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/hl_cdll.def",
+            "CseNativeCppExports": "true"
           },
           "PostBuildEvent": {
             "Command": "",
@@ -10207,7 +10379,9 @@
             "OptimizeReferences": "true",
             "BaseAddress": "",
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client.pdb",
-            "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client.lib"
+            "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hl_cdll\\Win32\\Release\\client.lib",
+            "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/hl_cdll.def",
+            "CseNativeCppExports": "true"
           },
           "PostBuildEvent": {
             "Command": "",
@@ -11943,6 +12117,16 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/sys_ded.cpp",
             "metadata": {}
           },
@@ -12198,6 +12382,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -12336,6 +12527,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/sys_ded.cpp",
@@ -12593,6 +12794,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -12737,6 +12945,49 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_mixer_controls_coreaudio.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "voice-mixer",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_mixer_controls.cpp",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_sdl.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_native.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_record_dsound.cpp;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_record_wavein.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
@@ -13267,7 +13518,8 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_dll2.cpp",
             "metadata": {
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             }
           },
           {
@@ -13334,6 +13586,36 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/vgui2/BaseUI_Interface.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/browser_controller.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/process_channel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/controller_factory.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -13419,6 +13701,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/webm_video.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/webm_pcm_allocation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
@@ -13582,6 +13874,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -13651,6 +13950,71 @@
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\vgui_controls.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Debug\\vgui_controls.nativecodeanalysis.xml"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeAtlas.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeFontSelection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_window.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_windows.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "windows",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_cocoa.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
             }
           },
           {
@@ -13817,6 +14181,49 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_mixer_controls_coreaudio.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "voice-mixer",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_mixer_controls.cpp",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_sdl.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_native.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_record_dsound.cpp;${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\voice_record_wavein.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontRegistration.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -14345,7 +14752,8 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_dll2.cpp",
             "metadata": {
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             }
           },
           {
@@ -14412,6 +14820,36 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/vgui2/BaseUI_Interface.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/browser_controller.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/process_channel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/controller_factory.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -14497,6 +14935,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/webm_video.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/webm_pcm_allocation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
@@ -14660,6 +15108,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -14729,6 +15184,71 @@
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\vgui_controls.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\engdll\\Win32\\Release\\vgui_controls.nativecodeanalysis.xml"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeAtlas.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeFontSelection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_window.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_windows.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "windows",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_cocoa.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
             }
           },
           {
@@ -14886,6 +15406,7 @@
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Debug\\particleman.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Debug\\particleman.lib",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/particleman.def",
+            "CseNativeCppExports": "true",
             "TreatLinkerWarningAsErrors": "true",
             "OptimizeReferences": "true"
           }
@@ -15022,6 +15543,7 @@
             "ProgramDatabaseFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Release\\particleman.pdb",
             "ImportLibrary": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\particleman\\Win32\\Release\\particleman.lib",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/projects/vs2026/particleman.def",
+            "CseNativeCppExports": "true",
             "TreatLinkerWarningAsErrors": "true",
             "OptimizeReferences": "true",
             "EnableCOMDATFolding": "true"
@@ -15176,6 +15698,7 @@
           "Link": {
             "AdditionalDependencies": "bz2d.lib;freetyped.lib;libexpatdMD.lib;libpng16d.lib;zsd.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\mpg123\\lib\\Debug\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
+            "CseNativeCppExports": "true",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\debug\\lib;${CSE_SDK_DIR}/swds/..\\lib\\public;",
@@ -15186,6 +15709,49 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_mixer_controls_coreaudio.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "voice-mixer",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\voice_mixer_controls.cpp",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_sdl.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_native.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\voice_record_dsound.cpp;${CSE_SDK_DIR}/swds/..\\engine\\voice_record_wavein.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
@@ -15777,7 +16343,8 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_dll2.cpp",
             "metadata": {
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             }
           },
           {
@@ -15844,6 +16411,36 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/vgui2/BaseUI_Interface.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/browser_controller.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/process_channel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/controller_factory.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -15929,6 +16526,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/webm_video.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/webm_pcm_allocation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
@@ -16092,6 +16699,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -16161,6 +16775,71 @@
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\vgui_controls.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Debug\\vgui_controls.nativecodeanalysis.xml"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeAtlas.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeFontSelection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_window.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_windows.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "windows",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_cocoa.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
             }
           },
           {
@@ -16316,6 +16995,7 @@
           "Link": {
             "AdditionalDependencies": "bz2.lib;freetype.lib;libexpatMD.lib;libpng16.lib;zs.lib;steam_api.lib;ddraw.lib;wsock32.lib;winmm.lib;dxguid.lib;dsound.lib;brotlidec.lib;brotlicommon.lib;vorbisfile.lib;vorbis.lib;ogg.lib;webm.lib;vpx.lib;${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\mpg123\\lib\\Release\\mpg123\\mpg123.lib;${CSE_SDK_DIR}/external/SDL3/lib\\x86\\SDL3.lib;",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/swds/swds.def",
+            "CseNativeCppExports": "true",
             "TreatLinkerWarningAsErrors": "true",
             "AdditionalOptions": "/IGNORE:4070 ",
             "AdditionalLibraryDirectories": "${CSE_SDK_DIR}/swds/..\\external\\installed\\x86-windows-static-md\\lib;${CSE_SDK_DIR}/swds/..\\lib\\public;",
@@ -16328,6 +17008,49 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_mixer_controls_coreaudio.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseNativeServices": "voice-mixer",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\voice_mixer_controls.cpp",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_sdl.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/voice_record_native.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\voice_record_dsound.cpp;${CSE_SDK_DIR}/swds/..\\engine\\voice_record_wavein.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
@@ -16919,7 +17642,8 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_dll2.cpp",
             "metadata": {
-              "ExceptionHandling": "Async"
+              "ExceptionHandling": "Async",
+              "CsePortableFaultPolicy": "OsTermination"
             }
           },
           {
@@ -16986,6 +17710,36 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/vgui2/BaseUI_Interface.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/browser_controller.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/process_channel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/html/native/controller_factory.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseNativeServices": "browser",
+              "ExceptionHandling": "Sync"
+            }
           },
           {
             "kind": "ClCompile",
@@ -17071,6 +17825,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/webm_video.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/webm_pcm_allocation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
@@ -17234,6 +17998,13 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp",
             "metadata": {}
           },
@@ -17303,6 +18074,71 @@
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\vgui_controls.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\vgui_controls.nativecodeanalysis.xml"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeAtlas.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/VGui1NativeFontSelection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_window.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_windows.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "windows",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_mouse_cocoa.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
             }
           },
           {
@@ -17439,6 +18275,7 @@
             "RuntimeLibrary": "MultiThreadedDebugDLL",
             "RuntimeTypeInfo": "true",
             "ExceptionHandling": "Async",
+            "CsePortableFaultPolicy": "OsTermination",
             "LanguageStandard": "stdcpp14",
             "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/tier0/..\\public;${CSE_SDK_DIR}/tier0/..",
             "PreprocessorDefinitions": "WIN32;_WINDOWS;TIER0_DLL;NOMINMAX;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;"
@@ -17605,6 +18442,7 @@
             "RuntimeLibrary": "MultiThreadedDLL",
             "RuntimeTypeInfo": "true",
             "ExceptionHandling": "Async",
+            "CsePortableFaultPolicy": "OsTermination",
             "LanguageStandard": "stdcpp14",
             "AdditionalIncludeDirectories": "${CSE_SDK_DIR}/tier0/..\\public;${CSE_SDK_DIR}/tier0/..",
             "PreprocessorDefinitions": "WIN32;_WINDOWS;TIER0_DLL;NOMINMAX;WIN32_LEAN_AND_MEAN;_CRT_SECURE_NO_WARNINGS;"
@@ -17793,6 +18631,7 @@
             "SubSystem": "Windows",
             "TargetMachine": "MachineX86",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/utils/vgui/vgui.def",
+            "CseModuleDefinitionArchitecture": "x86",
             "AdditionalOptions": "/EXPORT:VguiEmptyString,@395,DATA,EXPORTAS,??_C@_00A@?$AA@ ",
             "TreatLinkerWarningAsErrors": "true",
             "GenerateDebugInformation": "true",
@@ -18142,6 +18981,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/Debug.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Debug.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/Font.cpp",
             "metadata": {}
           },
@@ -18218,6 +19066,7 @@
             "SubSystem": "Windows",
             "TargetMachine": "MachineX86",
             "ModuleDefinitionFile": "${CSE_SDK_DIR}/utils/vgui/vgui.def",
+            "CseModuleDefinitionArchitecture": "x86",
             "AdditionalOptions": "/EXPORT:VguiEmptyString,@395,DATA,EXPORTAS,??_C@_00A@?$AA@ ",
             "TreatLinkerWarningAsErrors": "true",
             "GenerateDebugInformation": "true",
@@ -18567,6 +19416,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/posix/Debug.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "CseReplaces": "${CSE_SDK_DIR}/utils/vgui/lib-src\\vgui\\win32\\Debug.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/Font.cpp",
             "metadata": {}
           },
@@ -18629,7 +19487,8 @@
           "OutDir": "${CSE_SDK_DIR}/vgui2/..\\bin\\Win32\\Debug\\",
           "IntDir": "${CSE_SDK_DIR}/vgui2/..\\bin\\obj\\vgui2\\Win32\\Debug\\",
           "TargetName": "vgui2",
-          "TargetExt": ".dll"
+          "TargetExt": ".dll",
+          "CseNativeSdl3": "true"
         },
         "definitions": {
           "ClCompile": {
@@ -18659,6 +19518,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",
@@ -18862,7 +19731,8 @@
           "OutDir": "${CSE_SDK_DIR}/vgui2/..\\bin\\Win32\\Release\\",
           "IntDir": "${CSE_SDK_DIR}/vgui2/..\\bin\\obj\\vgui2\\Win32\\Release\\",
           "TargetName": "vgui2",
-          "TargetExt": ".dll"
+          "TargetExt": ".dll",
+          "CseNativeSdl3": "true"
         },
         "definitions": {
           "ClCompile": {
@@ -18894,6 +19764,16 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/legacy_wide_format.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp",

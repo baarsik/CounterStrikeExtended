@@ -1,0 +1,26 @@
+{
+  "samples_per_corpus": 1000035,
+  "seeded_samples": 1000000,
+  "boundary_patterns": 35,
+  "corpus_source_sha256": "38096949fe5f8d1848d57d0db7341bb3246d065e509dffd5100c52c4f1debba7",
+  "reference_compiler": {
+    "path": "C:\\BuildTools\\2026\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostARM64\\x86\\cl.exe",
+    "sha256": "36F4055229656EAE0B2370D29EA9CBE704AA84EA1BCAFA118A5DFD12C76902C2"
+  },
+  "source_method_sha256": "91960bc44474760bf8323edc3091e4e9bab2758fd76881c4cf02e36c508fb001",
+  "floating_policy": "MSVC /fp:precise, C++14; Win32 Release and Debug byte-identical",
+  "files": {
+    "direct": {
+      "bytes": 4000140,
+      "sha256": "24836599d4a216328c0c9af5deb4296080ce108f433a42e597f6dae154cbc49e"
+    },
+    "method": {
+      "bytes": 4000140,
+      "sha256": "24836599d4a216328c0c9af5deb4296080ce108f433a42e597f6dae154cbc49e"
+    },
+    "scaled": {
+      "bytes": 8000280,
+      "sha256": "00434b880fef0b00c747717197c1a5fec913714cd92c07f85ba49404f621794c"
+    }
+  }
+}

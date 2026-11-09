@@ -6,6 +6,8 @@
 #include "sys.h"
 #include "zone.h"
 
+#include <climits>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 
@@ -229,6 +231,13 @@ void BuildTris()
 	alltris += pheader->numtris;
 }
 
+static int GL_AliasDataOffset(std::ptrdiff_t offset) {
+    if (offset < INT_MIN || offset > INT_MAX) {
+        Sys_Error("GL_MakeAliasModelDisplayLists: alias data offset exceeds 32-bit range");
+    }
+    return static_cast<int>(offset);
+}
+
 /*
 ================
 GL_MakeAliasModelDisplayLists
@@ -295,11 +304,11 @@ void GL_MakeAliasModelDisplayLists( model_t* m, aliashdr_t* hdr )
 	paliashdr->poseverts = numorder;
 
 	cmds = (int*)Hunk_Alloc( numcommands * 4 );
-	paliashdr->commands = (byte*)cmds - (byte*)paliashdr;
+    paliashdr->commands = GL_AliasDataOffset((byte*)cmds - (byte*)paliashdr);
 	Q_memcpy( cmds, commands, numcommands * 4 );
 
 	verts = (trivertx_t*)Hunk_Alloc( paliashdr->numposes * paliashdr->poseverts * 4 );
-	paliashdr->posedata = (byte*)verts - (byte*)paliashdr;
+    paliashdr->posedata = GL_AliasDataOffset((byte*)verts - (byte*)paliashdr);
 	for ( i = 0; i < paliashdr->numposes; i++ )
 	{
 		for ( j = 0; j < numorder; j++ )

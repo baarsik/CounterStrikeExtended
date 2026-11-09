@@ -1,3 +1,6 @@
+#if !defined(_WIN32)
+#include "../../common/legacy_str_to_integer.h"
+#endif
 #include "Proxy.h"
 
 #include "ProxyClient.h"
@@ -248,7 +251,12 @@ void Proxy::DisconnectClients( char* reason )
 
 void Proxy::StopBroadcast( char* message )
 {
+#if defined(_WIN32)
 	DisconnectClients( message ? COM_VarArgs( "%s\n", message ) : "HLTV stopped.\n" );
+#else
+    static char stoppedMessage[] = "HLTV stopped.\n";
+    DisconnectClients(message ? COM_VarArgs("%s\n", message) : stoppedMessage);
+#endif
 	m_Server->Disconnect();
 	m_Server->StopRetry();
 	m_World->StopGame();
@@ -1519,7 +1527,12 @@ void Proxy::CMD_StopRecording( char* )
 void Proxy::CMD_Stop( char* cmdLine )
 {
 	TokenLine params( cmdLine );
+#if defined(_WIN32)
 	StopBroadcast( params.CountToken() <= 1 ? "HLTV stopped." : params.GetRestOfLine( 1 ) );
+#else
+    static char stoppedMessage[] = "HLTV stopped.";
+    StopBroadcast(params.CountToken() <= 1 ? stoppedMessage : params.GetRestOfLine(1));
+#endif
 	m_System->DPrintf( "Disconnected and stoppted.\n" );
 }
 
@@ -1655,7 +1668,13 @@ void Proxy::ReplyConnect( NetAddress* to, int protocol, int challenge, char*, ch
 	{
 		if ( m_Clients.CountElements() >= maxclients )
 		{
+#if defined(_WIN32)
 			RejectConnection( to, false, maxclients ? "HLTV proxy is full.\n" : "HLTV proxy is disabled.\n" );
+#else
+            static char fullMessage[] = "HLTV proxy is full.\n";
+            static char disabledMessage[] = "HLTV proxy is disabled.\n";
+            RejectConnection(to, false, maxclients ? fullMessage : disabledMessage);
+#endif
 			return;
 		}
 		ProxyClient* proxyClient = new ProxyClient( this );
@@ -1725,7 +1744,11 @@ bool Proxy::ProcessConnectionlessMessage( NetAddress* from, BitBuffer* stream )
 		else if ( count == 3 )
 		{
 			if ( type && type[0] && !strcasecmp( type, "rcon" ) )
+#if defined(_WIN32)
 				SendRcon( from, strtoul( command.GetToken( 2 ), NULL, 10 ) );
+#else
+                SendRcon(from, CseLegacyStrtoul10(command.GetToken(2), nullptr));
+#endif
 			else
 			{
 				m_System->Printf( "Invalid challenge type (%s) from: %s\n", type ? type : "NULL", from->ToString() );
@@ -1743,7 +1766,11 @@ bool Proxy::ProcessConnectionlessMessage( NetAddress* from, BitBuffer* stream )
 	{
 		if ( count <= 3 )
 			return false;
+#if defined(_WIN32)
 		unsigned int challenge = strtoul( command.GetToken( 1 ), NULL, 10 );
+#else
+        unsigned int challenge = CseLegacyStrtoul10(command.GetToken(1), nullptr);
+#endif
 		char* password = command.GetToken( 2 );
 		char* text = command.GetRestOfLine( 3 );
 		if ( !CheckChallenge( from, challenge ) )

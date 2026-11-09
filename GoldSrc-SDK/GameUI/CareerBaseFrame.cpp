@@ -403,7 +403,7 @@ void CCareerBaseFrame::Activate()
 #ifdef _WIN32
 	BufWPrintf( playerName, length, L"%hs / %s", name, vgui2::localize()->Find( difficulty ) );
 #else
-	BufWPrintf( playerName, length, L"%s / %S", name, vgui2::localize()->Find( difficulty ) );
+    BufWPrintf( playerName, length, L"%hs / %s", name, vgui2::localize()->Find( difficulty ) );
 #endif
 	m_pPlayerName->SetText( playerName );
 	m_pMissionPackName->SetText( TheCareerDefinitions->GetActiveCareerDefinition()->GetTitle() );

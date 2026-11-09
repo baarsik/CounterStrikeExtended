@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseVgui1FixedSysOwner LANGUAGES CXX)
+enable_testing()
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../vgui_font_services/component" owner-component)
+add_executable(fixedsys_owner_profiles profile_tests.cpp)
+target_link_libraries(fixedsys_owner_profiles PRIVATE font_component)
+target_include_directories(fixedsys_owner_profiles PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../vgui_font_services/component")
+set_target_properties(fixedsys_owner_profiles PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_compile_options(fixedsys_owner_profiles PRIVATE -Wall -Wextra -Werror)
+if(CSE_FONT_SANITIZERS)
+    target_compile_options(fixedsys_owner_profiles PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all
+        -fno-omit-frame-pointer)
+    target_link_options(fixedsys_owner_profiles PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+endif()
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/owned-fixedsys" "FixedSys")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/owned-casefold" "fIxEdSyS")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/owned-courier" "Courier")
+add_test(NAME fixedsys-owner-profiles COMMAND fixedsys_owner_profiles
+    "${CMAKE_CURRENT_BINARY_DIR}/owned-fixedsys" "${CMAKE_CURRENT_BINARY_DIR}/owned-casefold"
+    "${CMAKE_CURRENT_BINARY_DIR}/owned-courier")

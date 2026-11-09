@@ -2,9 +2,11 @@
 #include "EnginePanel.h"
 #include "BaseUISurface.h"
 #include "../common.h"
+#include "../conprint.h"
 #include "../controls.h"
 #include "../filesystem.h"
 #include "../interface.h"
+#include "../blob.h"
 #include "../keys.h"
 #include "../SystemWrapper.h"
 #include "../utlvector.h"
@@ -19,6 +21,10 @@
 #include <cstdio>
 #include <cstring>
 
+#if INTPTR_MAX > INT32_MAX
+#include "../html/native/controller_factory.h"
+#endif
+
 #if defined( _WIN32 )
 #include <Windows.h>
 #endif
@@ -29,7 +35,7 @@
 #endif
 
 extern vgui2::IInputInternal* g_InputInternal;
-extern HINSTANCE hClientDLL;
+extern HMODULE hClientDLL;
 extern qboolean g_bIsDedicatedServer;
 extern CUtlVector<char*> g_fallbackLocalizationFiles;
 
@@ -82,6 +88,9 @@ CBaseUI::CBaseUI()
 	m_hStaticGameUIModule = nullptr;
 	m_bConsoleShowing = false;
 	m_bHidingGameUI = false;
+#if INTPTR_MAX > INT32_MAX
+    m_hChromeModule = nullptr;
+#endif
 }
 
 CBaseUI::~CBaseUI()
@@ -226,8 +235,18 @@ void CBaseUI::Initialize( CreateInterfaceFn* factories, int )
 	fileSystemFactory( "VFileSystem009", nullptr );
 	m_hVGuiModule = Sys_LoadModule( "vgui2.dll" );
 	CreateInterfaceFn vguiFactory = Sys_GetFactory( m_hVGuiModule );
+#if INTPTR_MAX > INT32_MAX
+    std::string browserError;
+    m_nativeChromeController = cse::browser::CreateEngineController(browserError);
+    if (!m_nativeChromeController) {
+        Con_Printf("Native HTML browser unavailable: %s\n", browserError.c_str());
+    }
+    // The native controller is owned locally; this slot is the legacy vendor ABI factory only.
+    m_FactoryList[3] = nullptr;
+#else
 	m_hChromeModule = Sys_LoadModule( "chromehtml.dll" );
 	m_FactoryList[3] = Sys_GetFactory( m_hChromeModule );
+#endif
 	m_FactoryList[0] = engineFactory;
 	m_FactoryList[1] = vguiFactory;
 	m_FactoryList[2] = fileSystemFactory;
@@ -353,6 +372,11 @@ vgui2::VPANEL CEnginePanel::IsWithinTraverse( int x, int y, bool traversePopups 
 
 void CBaseUI::Shutdown()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (staticGameUIFuncs == nullptr && !m_nativeChromeController) {
+        return;
+    }
+#endif
 	vgui2::ivgui()->RunFrame();
 	staticGameUIFuncs->Shutdown();
 
@@ -365,6 +389,19 @@ void CBaseUI::Shutdown()
 		staticClient->Shutdown();
 	}
 
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeChromeController) {
+        cse::browser::BeginControllerShutdown(*m_nativeChromeController);
+    }
+    // Native HTML::BrowserClose schedules deletion. Drain it while widget/module code, the surface,
+    // serializers and the provider are alive, before unloading either GameUI or VGUI.
+    vgui2::ivgui()->RunFrame();
+    if (staticSurface != nullptr) {
+        staticSurface->Shutdown();
+    }
+    m_nativeChromeController.reset();
+#endif
+
 	Sys_UnloadModule( m_hStaticGameUIModule );
 	m_hStaticGameUIModule = nullptr;
 	staticCareerUI = nullptr;
@@ -373,7 +410,11 @@ void CBaseUI::Shutdown()
 	vgui2::system()->SaveUserConfigFile();
 	Sys_UnloadModule( m_hVGuiModule );
 	m_hVGuiModule = nullptr;
+#if INTPTR_MAX <= INT32_MAX
 	staticSurface->Shutdown();
+#else
+    staticSurface = nullptr;
+#endif
 	if ( m_hChromeModule != nullptr )
 	{
 		Sys_UnloadModule( m_hChromeModule );
@@ -396,8 +437,12 @@ void CBaseUI::Start( cl_enginefuncs_s* engineFuncs, int )
 
 	staticSurface = static_cast<BaseUISurface*>( m_FactoryList[0]( "VGUI_Surface026", nullptr ) );
 	vgui2::g_pSurface = staticSurface;
+#if INTPTR_MAX > INT32_MAX
+    IHTMLChromeController* chromeController = m_nativeChromeController.get();
+#else
 	IHTMLChromeController* chromeController =
 		static_cast<IHTMLChromeController*>( m_FactoryList[3]( "ChromeHTML_Controller_001", nullptr ) );
+#endif
 	IEngineSurface* engineSurface = static_cast<IEngineSurface*>( m_FactoryList[0]( "EngineSurface007", nullptr ) );
 	staticSurface->Init( staticPanel->GetVPanel(), engineSurface, chromeController );
 	mousecontrol = staticSurface;

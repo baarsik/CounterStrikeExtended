@@ -1,5 +1,6 @@
 #include "HLTV/common/md5.h"
 
+#include <cstddef>
 #include <stdio.h>
 #include <string.h>
 
@@ -185,7 +186,9 @@ static void MD5_Final( unsigned char* digest, MD5Context_t* ctx )
 	( (unsigned int*)ctx->in )[15] = ctx->bits[1];
 	MD5_Transform( ctx->buf, (const unsigned int*)ctx->in );
 	memcpy( digest, ctx->buf, 16 );
-	memset( ctx, 0, sizeof( ctx ) );
+    // Retain the established pointer-sized wipe without changing digest or context behavior.
+    constexpr std::size_t legacyContextClearBytes = sizeof(MD5Context_t*);
+    memset(ctx, 0, legacyContextClearBytes);
 }
 
 extern "C" char* MD5_Print( unsigned char* hash )
@@ -210,10 +213,9 @@ extern "C" char* MD5_GetCDKeyHash( const char* key )
 	char szKeyBuffer[256];
 	unsigned char digest[16];
 	MD5Context_t ctx;
-	unsigned int nKeyLength;
-
-	nKeyLength = strlen( key );
-	if ( nKeyLength - 1 > 0xFEu )
+    constexpr std::size_t MaximumKeyBytes = sizeof(szKeyBuffer) - 1;
+    const std::size_t nKeyLength = strlen(key);
+    if (nKeyLength == 0 || nKeyLength > MaximumKeyBytes)
 	{
 		return NULL;
 	}
@@ -225,7 +227,7 @@ extern "C" char* MD5_GetCDKeyHash( const char* key )
 	memset( &ctx, 0, sizeof( ctx ) );
 	memset( digest, 0, sizeof( digest ) );
 	MD5_Init( &ctx );
-	MD5_Update( &ctx, (const unsigned char*)szKeyBuffer, nKeyLength );
+    MD5_Update(&ctx, (const unsigned char*)szKeyBuffer, static_cast<unsigned int>(nKeyLength));
 	MD5_Final( digest, &ctx );
 
 	memset( szHashedKeyBuffer, 0, sizeof( szHashedKeyBuffer ) );

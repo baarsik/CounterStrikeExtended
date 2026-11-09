@@ -1,0 +1,151 @@
+class vgui::App	size(556):
+	+---
+ 0	| {vfptr}
+ 4	| _running
+ 5	| _externalMain
+  	| <alignment member> (size=2)
+ 8	| ?$Dar@PAVSurfaceBase@vgui@@ _surfaceBaseDar
+20	| _keyFocus
+24	| _oldMouseFocus
+28	| _mouseFocus
+32	| _mouseCapture
+36	| _wantedKeyFocus
+40	| _mousePressed
+43	| _mouseDoublePressed
+46	| _mouseDown
+49	| _mouseReleased
+52	| _keyPressed
+155	| _keyTyped
+258	| _keyDown
+361	| _keyReleased
+464	| ?$Dar@PAVTickSignal@vgui@@ _tickSignalDar
+476	| _scheme
+480	| _buildMode
+481	| _wantedBuildMode
+  	| <alignment member> (size=2)
+484	| _mouseArenaPanel
+488	| _cursor
+544	| _cursorOveride
+548	| _nextTickMillis
+552	| _minimumTickMillisInterval
+	+---
+
+vgui::App::$vftable@:
+	| &App_meta
+	|  0
+ 0	| &vgui::App::start 
+ 1	| &vgui::App::stop 
+ 2	| &vgui::App::externalTick 
+ 3	| &vgui::App::wasMousePressed 
+ 4	| &vgui::App::wasMouseDoublePressed 
+ 5	| &vgui::App::isMouseDown 
+ 6	| &vgui::App::wasMouseReleased 
+ 7	| &vgui::App::wasKeyPressed 
+ 8	| &vgui::App::isKeyDown 
+ 9	| &vgui::App::wasKeyTyped 
+10	| &vgui::App::wasKeyReleased 
+11	| &vgui::App::addTickSignal 
+12	| &vgui::App::setCursorPos 
+13	| &vgui::App::getCursorPos 
+14	| &vgui::App::setMouseCapture 
+15	| &vgui::App::setMouseArena 
+16	| &vgui::App::setMouseArena 
+17	| &vgui::App::requestFocus 
+18	| &vgui::App::getFocus 
+19	| &vgui::App::repaintAll 
+20	| &vgui::App::setScheme 
+21	| &vgui::App::getScheme 
+22	| &vgui::App::enableBuildMode 
+23	| &vgui::App::getTimeMillis 
+24	| &vgui::App::getKeyCodeChar 
+25	| &vgui::App::getKeyCodeText 
+26	| &vgui::App::getClipboardTextCount 
+27	| &vgui::App::setClipboardText 
+28	| &vgui::App::getClipboardText 
+29	| &vgui::App::reset 
+30	| &vgui::App::internalSetMouseArena 
+31	| &vgui::App::setRegistryString 
+32	| &vgui::App::getRegistryString 
+33	| &vgui::App::setRegistryInteger 
+34	| &vgui::App::getRegistryInteger 
+35	| &vgui::App::setCursorOveride 
+36	| &vgui::App::getCursorOveride 
+37	| &vgui::App::setMinimumTickMillisInterval 
+38	| &vgui::App::main 
+39	| &vgui::App::run 
+40	| &vgui::App::internalCursorMoved 
+41	| &vgui::App::internalMousePressed 
+42	| &vgui::App::internalMouseDoublePressed 
+43	| &vgui::App::internalMouseReleased 
+44	| &vgui::App::internalMouseWheeled 
+45	| &vgui::App::internalKeyPressed 
+46	| &vgui::App::internalKeyTyped 
+47	| &vgui::App::internalKeyReleased 
+48	| &vgui::App::init 
+49	| &vgui::App::updateMouseFocus 
+50	| &vgui::App::setMouseFocus 
+51	| &vgui::App::surfaceBaseCreated 
+52	| &vgui::App::surfaceBaseDeleted 
+53	| &vgui::App::platTick 
+54	| &vgui::App::internalTick 
+
+vgui::App::start this adjustor: 0
+vgui::App::stop this adjustor: 0
+vgui::App::externalTick this adjustor: 0
+vgui::App::wasMousePressed this adjustor: 0
+vgui::App::wasMouseDoublePressed this adjustor: 0
+vgui::App::isMouseDown this adjustor: 0
+vgui::App::wasMouseReleased this adjustor: 0
+vgui::App::wasKeyPressed this adjustor: 0
+vgui::App::isKeyDown this adjustor: 0
+vgui::App::wasKeyTyped this adjustor: 0
+vgui::App::wasKeyReleased this adjustor: 0
+vgui::App::addTickSignal this adjustor: 0
+vgui::App::setCursorPos this adjustor: 0
+vgui::App::getCursorPos this adjustor: 0
+vgui::App::setMouseCapture this adjustor: 0
+vgui::App::setMouseArena this adjustor: 0
+vgui::App::setMouseArena this adjustor: 0
+vgui::App::requestFocus this adjustor: 0
+vgui::App::getFocus this adjustor: 0
+vgui::App::repaintAll this adjustor: 0
+vgui::App::setScheme this adjustor: 0
+vgui::App::getScheme this adjustor: 0
+vgui::App::enableBuildMode this adjustor: 0
+vgui::App::getTimeMillis this adjustor: 0
+vgui::App::getKeyCodeChar this adjustor: 0
+vgui::App::getKeyCodeText this adjustor: 0
+vgui::App::getClipboardTextCount this adjustor: 0
+vgui::App::setClipboardText this adjustor: 0
+vgui::App::getClipboardText this adjustor: 0
+vgui::App::reset this adjustor: 0
+vgui::App::internalSetMouseArena this adjustor: 0
+vgui::App::setRegistryString this adjustor: 0
+vgui::App::getRegistryString this adjustor: 0
+vgui::App::setRegistryInteger this adjustor: 0
+vgui::App::getRegistryInteger this adjustor: 0
+vgui::App::setCursorOveride this adjustor: 0
+vgui::App::getCursorOveride this adjustor: 0
+vgui::App::setMinimumTickMillisInterval this adjustor: 0
+vgui::App::main this adjustor: 0
+vgui::App::run this adjustor: 0
+vgui::App::internalCursorMoved this adjustor: 0
+vgui::App::internalMousePressed this adjustor: 0
+vgui::App::internalMouseDoublePressed this adjustor: 0
+vgui::App::internalMouseReleased this adjustor: 0
+vgui::App::internalMouseWheeled this adjustor: 0
+vgui::App::internalKeyPressed this adjustor: 0
+vgui::App::internalKeyTyped this adjustor: 0
+vgui::App::internalKeyReleased this adjustor: 0
+vgui::App::init this adjustor: 0
+vgui::App::updateMouseFocus this adjustor: 0
+vgui::App::setMouseFocus this adjustor: 0
+vgui::App::surfaceBaseCreated this adjustor: 0
+vgui::App::surfaceBaseDeleted this adjustoNote: including file:  C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Panel.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Scheme.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Color.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_RepaintSignal.h
+r: 0
+vgui::App::platTick this adjustor: 0
+vgui::App::internalTick this adjustor: 0
+

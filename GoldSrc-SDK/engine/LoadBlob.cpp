@@ -17,7 +17,7 @@ extern "C" _ACRTIMP void __cdecl _wassert( const wchar_t* message, const wchar_t
 #include <cstdlib>
 #include <cstring>
 
-#if defined( _WIN32 )
+#if defined(_WIN32) && !defined(_WIN64)
 
 #define BLOB_XOR_SEED			'W'
 #define BLOB_EXPORT_POINT_KEY	0x7A32BC85
@@ -127,8 +127,10 @@ void* NLoadBlobFile( const char* filename, BlobFootprint_t* pblobfootprint, void
 
 	if ( !fLoadAsDll )
 	{
-#if !defined( _WIN32 )
-		return NULL;
+#if !defined(_WIN32) || defined(_WIN64)
+        // Legacy executable blobs contain x86 code and absolute 32-bit addresses.
+        // Native builds require rebuilt DLL modules and reject blobs before any file access or mapping.
+        return nullptr;
 #else
 		FileHandle_t hFile;
 		int nSize;

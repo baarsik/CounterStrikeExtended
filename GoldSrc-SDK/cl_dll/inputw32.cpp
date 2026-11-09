@@ -1,4 +1,11 @@
 #include "../common/sdl3_input.h"
+#if UINTPTR_MAX > UINT32_MAX
+#include "../common/native_mouse_polling.h"
+#endif
+#if defined(_WIN32) && defined(_WIN64)
+#include "../common/native_mouse_poller_win.h"
+#include <type_traits>
+#endif
 static cse::FractionalMotion s_relativeMotion;
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
@@ -88,7 +95,9 @@ static bool IN_UseRawInput()
 
 int			mouse_buttons;
 int			mouse_oldbuttonstate;
+#ifdef _WIN32
 POINT		current_pos;
+#endif
 int			old_mouse_x, old_mouse_y, mx_accum, my_accum;
 float		mouse_x, mouse_y;
 
@@ -98,6 +107,20 @@ static int mouseactive = 0;
 int			mouseinitialized;
 static int	mouseparmsvalid;
 static int	mouseshowtoggle = 1;
+
+#if UINTPTR_MAX > UINT32_MAX
+static bool s_cameraMouseOwned = false;
+#if defined(_WIN32) && defined(_WIN64)
+static cse::mouse::WinBackend s_mouseBackend(cse::mouse::WinBackend::SystemServices());
+static cse::mouse::Poller<cse::mouse::WinBackend> s_mousePoller(s_mouseBackend);
+static bool s_mousePollerUsable = false;
+static bool s_mousePollerOpen = false;
+static_assert(std::is_trivially_destructible<cse::mouse::WinBackend>::value,
+    "Mouse worker handles require explicit shutdown before client unload");
+static_assert(std::is_trivially_destructible<decltype(s_mousePoller)>::value,
+    "No worker cleanup may run during DLL detach");
+#endif
+#endif
 
 // joystick defines and variables
 // where should defines be moved?
@@ -160,7 +183,7 @@ cvar_t	*joy_wwhack2;
 
 int			joy_avail = 0, joy_advancedinit, joy_haspov;
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_WIN64)
 DWORD	s_hMouseThreadId = 0;
 HANDLE	s_hMouseThread = 0;
 HANDLE	s_hMouseQuitEvent = 0;
@@ -185,7 +208,7 @@ void Force_CenterView_f (void)
 	}
 }
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_WIN64)
 long s_mouseDeltaX = 0;
 long s_mouseDeltaY = 0;
 POINT		old_mouse_pos;
@@ -224,6 +247,87 @@ DWORD WINAPI MousePos_ThreadFunction(LPVOID p) {
 }
 #endif
 
+#if defined(_WIN32) && defined(_WIN64)
+static bool IN_ReadDirectMousePosition() {
+    POINT position{};
+    if (!GetCursorPos(&position)) {
+        return false;
+    }
+    current_pos = position;
+    return true;
+}
+
+static bool IN_MousePollingAllowed() {
+    // Only the main owner reads engine, HUD, VGUI and cvar state.
+    return mouseactive && !s_cameraMouseOwned && !iMouseInUse && !gHUD.m_iIntermission &&
+        !g_iVisibleMouse && !IN_UseRawInput();
+}
+
+static void IN_StopMousePolling() {
+    if (s_mousePollerOpen) {
+        if (!s_mousePoller.Stop()) {
+            cse::mouse::FailMouseWorkerProcess();
+        }
+        s_mousePollerOpen = false;
+    }
+    s_mousePollerUsable = false;
+}
+
+static void IN_DisableMousePolling() {
+    const cse::mouse::Failure failure = s_mousePoller.FirstFailure();
+    IN_StopMousePolling();
+    gEngfuncs.Con_Printf("Mouse polling disabled (%u, %u).\n",
+        static_cast<unsigned int>(failure.kind), static_cast<unsigned int>(failure.error));
+}
+
+static bool IN_PublishMousePolling() {
+    if (!s_mousePollerUsable) {
+        return false;
+    }
+    const bool allowed = IN_MousePollingAllowed();
+    std::uint32_t timeout = 0;
+    if (!m_mousethread_sleep || !cse::mouse::TryLegacyTimeout(m_mousethread_sleep->value, timeout) ||
+        !s_mousePoller.Publish(allowed, timeout)) {
+        IN_DisableMousePolling();
+        return false;
+    }
+    return allowed;
+}
+
+static bool IN_ConsumeMousePolling(cse::mouse::Delta &delta) {
+    if (!IN_PublishMousePolling()) {
+        return false;
+    }
+    if (!s_mousePoller.Consume(delta)) {
+        IN_DisableMousePolling();
+        return false;
+    }
+    return true;
+}
+#endif
+
+#if UINTPTR_MAX > UINT32_MAX
+void IN_SetCameraMouseOwnership(bool owned) {
+    if (s_cameraMouseOwned == owned) {
+        return;
+    }
+    s_cameraMouseOwned = owned;
+#if defined(_WIN32) && defined(_WIN64)
+    if (s_mousePollerUsable && !s_mousePoller.Suspend(true)) {
+        IN_DisableMousePolling();
+    }
+#endif
+    // Discard old-owner motion without pumping events or changing window policy.
+    SDL_GetRelativeMouseState(nullptr, nullptr);
+    s_relativeMotion.Reset();
+    mx_accum = 0;
+    my_accum = 0;
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
+}
+#endif
+
 /*
 ===========
 IN_ActivateMouse
@@ -240,6 +344,9 @@ void CL_DLLEXPORT IN_ActivateMouse(void) {
         s_relativeMotion.Reset();
         mouseactive = 1;
     }
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
 }
 
 /*
@@ -259,6 +366,9 @@ void CL_DLLEXPORT IN_DeactivateMouse(void) {
         s_relativeMotion.Reset();
         mouseactive = 0;
     }
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
 }
 
 /*
@@ -310,7 +420,9 @@ void IN_Shutdown(void) {
     s_relativeMotion.Reset();
     IN_DeactivateMouse();
 
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_WIN64)
+    IN_StopMousePolling();
+#elif defined(_WIN32)
     if (s_hMouseQuitEvent) {
         SetEvent(s_hMouseQuitEvent);
     }
@@ -374,8 +486,30 @@ IN_ResetMouse
 FIXME: Call through to engine?
 ===========
 */
-void IN_ResetMouse( void )
-{
+void IN_ResetMouse(void) {
+#if defined(_WIN32) && defined(_WIN64)
+    const bool polling = IN_PublishMousePolling();
+    bool recenter = false;
+    if (!IN_UseRawInput() && mouseactive && gEngfuncs.GetWindowCenterX && gEngfuncs.GetWindowCenterY) {
+        if (polling) {
+            recenter = s_mousePoller.BeginRecenter();
+            if (!recenter) {
+                IN_DisableMousePolling();
+            }
+        }
+        SetCursorPos(gEngfuncs.GetWindowCenterX(), gEngfuncs.GetWindowCenterY());
+    }
+    if (recenter) {
+        std::uint32_t timeout = 0;
+        if (!m_mousethread_sleep || !cse::mouse::TryLegacyTimeout(m_mousethread_sleep->value, timeout) ||
+            !s_mousePoller.EndRecenter(IN_MousePollingAllowed(), timeout)) {
+            IN_DisableMousePolling();
+        }
+    } else {
+        IN_PublishMousePolling();
+    }
+#else
+
 	// no work to do in SDL
 #ifdef _WIN32
 	if ( !IN_UseRawInput() && mouseactive && gEngfuncs.GetWindowCenterX && gEngfuncs.GetWindowCenterY )
@@ -385,6 +519,7 @@ void IN_ResetMouse( void )
 		ThreadInterlockedExchange( &old_mouse_pos.x, gEngfuncs.GetWindowCenterX() );
 		ThreadInterlockedExchange( &old_mouse_pos.y, gEngfuncs.GetWindowCenterY() );
 	}
+#endif
 #endif
 }
 
@@ -408,6 +543,9 @@ IN_MouseEvent
 ===========
 */
 void CL_DLLEXPORT IN_MouseEvent(int mstate) {
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
     int i;
 
     if (iMouseInUse || g_iVisibleMouse) {
@@ -479,7 +617,13 @@ IN_MouseMove
 ===========
 */
 void IN_MouseMove(float frametime, usercmd_t *cmd) {
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
     s_relativeMotion.SetRawInput(IN_UseRawInput());
+#if defined(_WIN32) && defined(_WIN64)
+    bool nativeThreaded = false;
+#endif
     int mx, my;
     vec3_t viewangles;
 
@@ -495,6 +639,17 @@ void IN_MouseMove(float frametime, usercmd_t *cmd) {
         int deltaX = 0, deltaY = 0;
 #ifdef _WIN32
         if (!IN_UseRawInput()) {
+#if defined(_WIN64)
+            cse::mouse::Delta delta;
+            nativeThreaded = IN_ConsumeMousePolling(delta);
+            if (nativeThreaded) {
+                current_pos.x = delta.x;
+                current_pos.y = delta.y;
+            } else if (!IN_ReadDirectMousePosition()) {
+                gEngfuncs.SetViewAngles((float *)viewangles);
+                return;
+            }
+#else
             if (m_bMouseThread) {
                 ThreadInterlockedExchange(&current_pos.x, s_mouseDeltaX);
                 ThreadInterlockedExchange(&current_pos.y, s_mouseDeltaY);
@@ -503,16 +658,28 @@ void IN_MouseMove(float frametime, usercmd_t *cmd) {
             } else {
                 GetCursorPos(&current_pos);
             }
+#endif
         } else
 #endif
         {
             cse::ReadRelativeMotion(s_relativeMotion, &deltaX, &deltaY);
+#ifdef _WIN32
             current_pos.x = deltaX;
             current_pos.y = deltaY;
+#endif
         }
 
 #ifdef _WIN32
         if (!IN_UseRawInput()) {
+#if defined(_WIN64)
+            if (nativeThreaded) {
+                mx = current_pos.x;
+                my = current_pos.y;
+            } else {
+                mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
+                my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
+            }
+#else
             if (m_bMouseThread) {
                 mx = current_pos.x;
                 my = current_pos.y;
@@ -520,6 +687,7 @@ void IN_MouseMove(float frametime, usercmd_t *cmd) {
                 mx = current_pos.x - gEngfuncs.GetWindowCenterX() + mx_accum;
                 my = current_pos.y - gEngfuncs.GetWindowCenterY() + my_accum;
             }
+#endif
         } else
 #endif
         {
@@ -594,18 +762,32 @@ IN_Accumulate
 ===========
 */
 void CL_DLLEXPORT IN_Accumulate(void) {
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
     s_relativeMotion.SetRawInput(IN_UseRawInput());
     // only accumulate mouse if we are not moving the camera with the mouse
     if (!iMouseInUse && !g_iVisibleMouse) {
         if (mouseactive) {
 #ifdef _WIN32
             if (!IN_UseRawInput()) {
+#if defined(_WIN64)
+                if (!IN_PublishMousePolling()) {
+                    if (!IN_ReadDirectMousePosition()) {
+                        return;
+                    }
+
+                    mx_accum += current_pos.x - gEngfuncs.GetWindowCenterX();
+                    my_accum += current_pos.y - gEngfuncs.GetWindowCenterY();
+                }
+#else
                 if (!m_bMouseThread) {
                     GetCursorPos(&current_pos);
 
                     mx_accum += current_pos.x - gEngfuncs.GetWindowCenterX();
                     my_accum += current_pos.y - gEngfuncs.GetWindowCenterY();
                 }
+#endif
             } else
 #endif
             {
@@ -626,6 +808,12 @@ IN_ClearStates
 ===================
 */
 void CL_DLLEXPORT IN_ClearStates(void) {
+#if defined(_WIN32) && defined(_WIN64)
+    if (s_mousePollerUsable && !s_mousePoller.Suspend(true)) {
+        IN_DisableMousePolling();
+    }
+    IN_PublishMousePolling();
+#endif
     s_relativeMotion.Reset();
     if (!mouseactive) {
         return;
@@ -995,6 +1183,9 @@ IN_Move
 */
 void IN_Move ( float frametime, usercmd_t *cmd)
 {
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
 	if ( !iMouseInUse && mouseactive )
 	{
 		IN_MouseMove ( frametime, cmd);
@@ -1045,6 +1236,18 @@ void IN_Init(void) {
     m_bMouseThread = gEngfuncs.CheckParm("-mousethread", NULL) != NULL;
     m_mousethread_sleep = gEngfuncs.pfnRegisterVariable("m_mousethread_sleep", "10", FCVAR_ARCHIVE);
 
+#if defined(_WIN64)
+    // Create the requested worker parked even when raw input starts enabled.
+    // It receives only main-thread scalar snapshots after startup.
+    IN_StopMousePolling();
+    if (m_bMouseThread && m_mousethread_sleep) {
+        s_mousePollerOpen = true;
+        s_mousePollerUsable = s_mousePoller.Start();
+        if (!s_mousePollerUsable) {
+            IN_DisableMousePolling();
+        }
+    }
+#else
     if (!IN_UseRawInput() && m_bMouseThread && m_mousethread_sleep) {
         s_mouseDeltaX = s_mouseDeltaY = 0;
 
@@ -1054,10 +1257,14 @@ void IN_Init(void) {
         }
     }
 #endif
+#endif
 
     gEngfuncs.pfnAddCommand("force_centerview", Force_CenterView_f);
     gEngfuncs.pfnAddCommand("joyadvancedupdate", Joy_AdvancedUpdate_f);
 
     IN_StartupMouse();
+#if defined(_WIN32) && defined(_WIN64)
+    IN_PublishMousePolling();
+#endif
     IN_StartupJoystick();
 }

@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "VGui1NativeRuntime.h"
+#endif
 #include "../common/sdl3_input.h"
 #include "../common/sdl3_cursor.h"
 #include "VGUI_EngineSurfaceWrap.h"
@@ -30,6 +33,7 @@
 #include <new>
 #include "sdl3_window.h"
 
+#if !defined(__APPLE__)
 class FontInfoVGUI
 {
 public:
@@ -40,16 +44,21 @@ public:
 	float texCoord[256][8];
 	int contextCount;
 };
+#endif
 
 namespace
 {
+#if !defined(__APPLE__)
 constexpr int FONT_TEXTURE_SIZE = 512;
 constexpr int FONT_TEXTURE_BYTES = FONT_TEXTURE_SIZE * FONT_TEXTURE_SIZE * 4;
 constexpr float FONT_TEXTURE_COORD_SCALE = 0.001953125f;
 constexpr int FONT_PAGE_LIMIT = 8;
+#endif
 constexpr int CURSOR_SLOT_COUNT = 20;
 
+#if !defined(__APPLE__)
 static_assert( sizeof( FontInfoVGUI ) == 0x242C, "FontInfoVGUI" );
+#endif
 static_assert( vgui::KEY_0 == 0, "vgui key" );
 static_assert( vgui::KEY_CAPSLOCK == 67, "vgui key" );
 static_assert( vgui::KEY_LSHIFT == 78, "vgui key" );
@@ -76,11 +85,13 @@ static_assert(SDL_KMOD_LGUI == 0x0400, "keymod");
 static_assert(SDL_KMOD_RGUI == 0x0800, "keymod");
 static_assert(SDL_KMOD_CAPS == 0x2000, "keymod");
 
+#if !defined(__APPLE__)
 static vgui::Font* staticFont = nullptr;
 static FontInfoVGUI* staticFontInfoVGUI = nullptr;
 static vgui::Dar<FontInfoVGUI*> staticFontInfoVGUIDar;
 static int staticContextCount = 0;
 static unsigned char staticRGBA[FONT_TEXTURE_BYTES];
+#endif
 static cse::FractionalMotion s_wheelMotion;
 static SDL_Cursor* staticDefaultCursor[CURSOR_SLOT_COUNT];
 static SDL_Cursor* staticCurrentCursor = nullptr;
@@ -122,10 +133,16 @@ extern qboolean BUsesSDLInput();
 
 EngineSurfaceWrap::EngineSurfaceWrap(vgui::Panel *embeddedPanel, IEngineSurface *engineSurface)
     : vgui::SurfaceBase(embeddedPanel), _mouseBitmap(nullptr), _engineSurface(engineSurface), _cursorLocked(false) {
+#if defined(__APPLE__)
+    if (cse_vgui1_native::AttachEmbedded(this, engineSurface) != cse_vgui1_native::Result::Ready) {
+        cse_vgui1_native::InvalidEmbeddedUse("surface construction before checked bootstrap admission");
+    }
+#else
     staticFont = nullptr;
     staticFontInfoVGUI = nullptr;
     staticFontInfoVGUIDar.setCount(0);
     ++staticContextCount;
+#endif
 
     vgui::FileInputStream *stream = new vgui::FileInputStream("valve/gfx/vgui/mouse.tga", false);
     _mouseBitmap = new vgui::BitmapTGA(stream, true);
@@ -231,6 +248,12 @@ void EngineSurfaceWrap::drawOutlinedRect( int x0, int y0, int x1, int y1 )
 
 void EngineSurfaceWrap::drawSetTextFont( vgui::Font* font )
 {
+#if defined(__APPLE__)
+    const auto result = cse_vgui1_native::SelectEmbedded(this, font);
+    if (result != cse_vgui1_native::Result::Ready) {
+        cse_vgui1_native::InvalidEmbeddedUse("checked native font/atlas use failed");
+    }
+#else
 	staticFont = font;
 	if ( font == nullptr )
 		return;
@@ -284,12 +307,12 @@ void EngineSurfaceWrap::drawSetTextFont( vgui::Font* font )
 		int abcB = 0;
 		int abcC = 0;
 		staticFont->getCharABCwide( character, abcA, abcB, abcC );
-#if defined( _WIN32 )
+#if defined( _WIN32 ) || UINTPTR_MAX > UINT32_MAX
 		const int wide = abcB;
 #else
 		const int wide = staticFont->getWide();
 #endif
-#if !defined( _WIN32 )
+#if !defined( _WIN32 ) && UINTPTR_MAX <= UINT32_MAX
 		if ( std::isprint( character ) == 0 )
 		{
 			++character;
@@ -346,6 +369,7 @@ void EngineSurfaceWrap::drawSetTextFont( vgui::Font* font )
 	}
 	drawSetTextureRGBA( texture, reinterpret_cast<const char*>( staticRGBA ), FONT_TEXTURE_SIZE, FONT_TEXTURE_SIZE );
 	staticFontInfoVGUI->pageCount = page + 1;
+#endif
 }
 
 void EngineSurfaceWrap::drawSetTextColor( int r, int g, int b, int a )
@@ -360,6 +384,12 @@ void EngineSurfaceWrap::drawSetTextPos( int x, int y )
 
 void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 {
+#if defined(__APPLE__)
+    const auto result = cse_vgui1_native::DrawEmbedded(this, text, textLen);
+    if (result != cse_vgui1_native::Result::Ready) {
+        cse_vgui1_native::InvalidEmbeddedUse("checked native font/atlas use failed");
+    }
+#else
 	if ( text == nullptr || staticFont == nullptr || staticFontInfoVGUI == nullptr )
 		return;
 
@@ -380,7 +410,7 @@ void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 			int abcC = 0;
 			staticFont->getCharABCwide( character, abcA, abcB, abcC );
 			x += abcA;
-#if defined( _WIN32 )
+#if defined( _WIN32 ) || UINTPTR_MAX > UINT32_MAX
 			const int wide = abcB;
 #else
 			const int wide = staticFont->getWide();
@@ -395,6 +425,7 @@ void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 	}
 
 	drawSetTextPos( penX, y );
+#endif
 }
 
 void EngineSurfaceWrap::drawSetTextureRGBA( int id, const char* rgba, int wide, int tall )
@@ -450,6 +481,34 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
     }
 
     const bool useRawInput = m_rawinput.value != 0.0f && BUsesSDLInput() != 0;
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeMouseWindow &mouseWindow = cse::NativeMouseWindowState();
+    if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput) ||
+        mouseWindow.NeedsRetry(cse::NativeCursorOwner::VGui1)) {
+        SDL_Window *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+        cse::NativeCursorTransaction transaction;
+        if (mouseWindow.Begin(window, cse::NativeCursorOwner::VGui1, s_bCursorVisible, useRawInput, transaction)) {
+#if defined(_WIN32)
+            if (wasVisible && !s_bCursorVisible && BUsesSDLInput() == 0) {
+                int windowWidth = 0;
+                int windowHeight = 0;
+                SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+                SDL_WarpMouseInWindow(window, static_cast<float>(windowWidth / 2),
+                                     static_cast<float>(windowHeight / 2));
+            }
+#endif
+            if (!s_bCursorVisible && transaction.Current()) {
+                SDL_PumpEvents();
+                if (transaction.Current()) {
+                    SDL_GetRelativeMouseState(nullptr, nullptr);
+                }
+            }
+            if (transaction.Commit()) {
+                s_bUsedRawInputLast = useRawInput;
+            }
+        }
+    }
+#else
     if (cse::CursorRequestChanged(wasVisible, s_bCursorVisible, s_bUsedRawInputLast, useRawInput)) {
         SDL_Window *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
         cse::ApplyCursorVisibility(window, s_bCursorVisible, useRawInput);
@@ -469,6 +528,7 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
         }
     }
     s_bUsedRawInputLast = useRawInput;
+#endif
 }
 
 void EngineSurfaceWrap::swapBuffers()
@@ -499,7 +559,12 @@ void EngineSurfaceWrap::applyChanges()
 
 void EngineSurfaceWrap::AppHandler(void *event, void *) {
     vgui::App *app = vgui::App::getInstance();
+#if defined(_WIN32)
     if (this == nullptr || app == nullptr) {
+#else
+    // A valid member call has a non-null receiver; the app can be unavailable.
+    if (app == nullptr) {
+#endif
         return;
     }
 

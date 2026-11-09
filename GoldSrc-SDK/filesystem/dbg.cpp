@@ -186,7 +186,7 @@ double CPerformanceCounter::GetCurTime()
 #else
 	timeval tp;
 
-	static int secbase;
+    static decltype(tp.tv_sec) secbase;
 
 	gettimeofday( &tp, NULL );
 	if ( secbase != 0 )
@@ -200,7 +200,7 @@ double CPerformanceCounter::GetCurTime()
 	}
 #endif
 }
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__APPLE__)
 
 extern "C" int __stat( const char* __filename, struct stat* __stat_buf )
 {

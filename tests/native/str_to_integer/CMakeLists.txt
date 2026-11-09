@@ -1,0 +1,77 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseStrToIntegerReference LANGUAGES CXX)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED YES)
+set(CMAKE_CXX_EXTENSIONS NO)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/generate_corpus.py"
+    --output "${CMAKE_CURRENT_BINARY_DIR}/corpus" COMMAND_ERROR_IS_FATAL ANY)
+add_executable(str_integer_reference reference.cpp)
+target_include_directories(str_integer_reference PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/corpus")
+if(MSVC)
+    target_compile_options(str_integer_reference PRIVATE /W4 /WX /EHsc)
+    target_compile_definitions(str_integer_reference PRIVATE NOMINMAX)
+    target_link_libraries(str_integer_reference PRIVATE bcrypt version)
+else()
+    target_compile_options(str_integer_reference PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
+endif()
+option(CSE_STR_BUILD_HELPER "Build the unwired native decimal helper fixture" OFF)
+option(CSE_STR_SANITIZERS "Instrument helper fixtures with ASan+UBSan" OFF)
+set(CSE_STR_REFERENCE "" CACHE PATH "Frozen linked UCRT profile tables")
+if(CSE_STR_BUILD_HELPER)
+    include(CTest)
+    get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+    add_executable(str_integer_tests helper_tests.cpp)
+    target_include_directories(str_integer_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+        "${CMAKE_CURRENT_BINARY_DIR}/corpus")
+    if(MSVC)
+        target_compile_options(str_integer_tests PRIVATE /W4 /WX /EHsc)
+    else()
+        target_compile_options(str_integer_tests PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
+        if(CSE_STR_SANITIZERS)
+            target_compile_options(str_integer_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all
+                -fno-omit-frame-pointer)
+            target_link_options(str_integer_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+    foreach(profile linked-C locale-C locale-UTF8 locale-1250)
+        if(profile STREQUAL "locale-1250")
+            set(policy nbsp)
+        else()
+            set(policy C)
+        endif()
+        add_test(NAME ${profile} COMMAND str_integer_tests "${CSE_STR_REFERENCE}/${profile}.tsv" "${policy}")
+        set_tests_properties(${profile} PROPERTIES TIMEOUT 20)
+    endforeach()
+endif()
+if(CSE_STR_BUILD_HELPER)
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_scanf.py"
+        "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/actual_scanf.h" COMMAND_ERROR_IS_FATAL ANY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/extract_scanf.py"
+        "${CSE_ROOT}/GoldSrc-SDK/engine/utlbuffer.cpp"
+        "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/UtlBuffer.cpp"
+        "${CSE_ROOT}/GoldSrc-SDK/cstrike/public/UtlBuffer.cpp")
+    add_executable(str_integer_consumer_tests consumer_tests.cpp)
+    target_include_directories(str_integer_consumer_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+        "${CMAKE_CURRENT_BINARY_DIR}")
+    if(MSVC)
+        target_compile_options(str_integer_consumer_tests PRIVATE /W4 /WX /EHsc)
+    else()
+        # The extracted legacy method includes an unselected unsigned-byte %c store.
+        # Keep its normal warning profile; the new helper/corpus target above
+        # additionally requires -Wconversion/-Wsign-conversion.
+        target_compile_options(str_integer_consumer_tests PRIVATE -Wall -Wextra -Werror
+            -Werror=shorten-64-to-32 -Werror=pointer-to-int-cast)
+        if(CSE_STR_SANITIZERS)
+            target_compile_options(str_integer_consumer_tests PRIVATE -fsanitize=address,undefined
+                -fno-sanitize-recover=all -fno-omit-frame-pointer)
+            target_link_options(str_integer_consumer_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+    foreach(family engine vgui cstrike)
+        add_test(NAME consumer-${family} COMMAND str_integer_consumer_tests "${family}")
+        set_tests_properties(consumer-${family} PROPERTIES TIMEOUT 20)
+    endforeach()
+endif()

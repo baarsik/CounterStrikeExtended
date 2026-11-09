@@ -12,6 +12,7 @@
 #include "public/utlsymbol.h"
 #include "../public/characterset.h"
 
+#include <cstdint>
 #include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -523,11 +524,12 @@ CreateInterfaceFn	Sys_GetFactoryThis();
 CreateInterfaceFn	Sys_GetFactory( const char* pModuleName );
 
 #ifndef _WIN32
+void ClearPathMatchCache();
 int					strlwr( char* src );
-int					FindFirstFile( char* fileName, FIND_DATA* dat );
-bool				FindNextFile( int handle, FIND_DATA* dat );
+std::intptr_t FindFirstFile(char* fileName, FIND_DATA* dat);
+bool				FindNextFile( std::intptr_t handle, FIND_DATA* dat );
 const char*			findFileInDirCaseInsensitive( const char* file );
-bool				FindClose( int handle );
+bool				FindClose( std::intptr_t handle );
 
 extern "C" int		__wrap_unlink( const char* pathname );
 extern "C" int		__wrap_mkdir( const char* pathname, mode_t mode );
@@ -537,7 +539,7 @@ extern "C" FILE*	__wrap_fopen( const char* path, const char* mode );
 PathMod_t			pathmatch( const char* pszIn, char** ppszOut, bool bAllowBasenameMismatch,
 						char* pszOutBuf, size_t OutBufLen );
 int					ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut,
-						bool bAllowBasenameMismatch, char* pszOutBuf, unsigned int OutBufLen );
+						bool bAllowBasenameMismatch, char* pszOutBuf, size_t OutBufLen );
 #endif	//_WIN32
 
 #endif

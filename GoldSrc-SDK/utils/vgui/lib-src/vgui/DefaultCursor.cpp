@@ -1,3 +1,6 @@
+#if !defined(_WIN32)
+#include <cstdint>
+#endif
 #include "VGUI_Cursor.h"
 
 #include "VGUI_Bitmap.h"
@@ -9,6 +12,9 @@ class CursorBitmap : public vgui::Bitmap
 {
 public:
 	CursorBitmap( vgui::Cursor::DefaultCursor cursor )
+#if !defined(_WIN32) && UINTPTR_MAX > UINT32_MAX
+        : _hotspot{0, 0}
+#endif
 	{
 		if ( cursor == vgui::Cursor::dc_none )
 			return;

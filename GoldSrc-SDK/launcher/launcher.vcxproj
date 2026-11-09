@@ -101,6 +101,10 @@
     <ClCompile Include="public\registry.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\public\cse_filesystem_abi.h" />
+    <ClInclude Include="..\public\cse_filesystem_methods.inc" />
+    <ClInclude Include="..\public\native_filesystem_module.h" />
+    <ClInclude Include="..\public\cse_module_abi.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="common\icommandline.h" />
     <ClInclude Include="public\engine_launcher_api.h" />

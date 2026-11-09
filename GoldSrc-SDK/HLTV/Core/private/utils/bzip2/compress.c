@@ -1,3 +1,4 @@
+/* CSE native portability: make the bounded move-to-front index conversion explicit. */
 
 /*-------------------------------------------------------------*/
 /*--- Compression machinery (not incl block sorting)        ---*/
@@ -247,7 +248,8 @@ void generateMTFValues ( EState* s )
                *ryy_j = rtmp2;
             };
             yy[0] = rtmp;
-            j = ryy_j - &(yy[0]);
+            /* ryy_j is an index in the 256-entry byte move-to-front table. */
+            j = (Int32)(ryy_j - &(yy[0]));
             mtfv[wr] = j+1; wr++; s->mtfFreq[j+1]++;
          }
 

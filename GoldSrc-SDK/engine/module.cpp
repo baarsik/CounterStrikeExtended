@@ -36,6 +36,9 @@ void NullDst()
 {
 }
 
+void NullClientMousePositionAndCenterDst(int **, int **, int **, int **) {
+}
+
 cl_enginefunc_dst_t g_engdstAddrs = k_engdstNull;
 cldll_func_dst_t g_cldstAddrs = k_cldstNull;
 

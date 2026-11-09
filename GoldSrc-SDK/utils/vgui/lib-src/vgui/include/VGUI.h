@@ -20,7 +20,7 @@ typedef unsigned short	ushort;
 typedef unsigned int	uint;
 typedef unsigned long	ulong;
 
-void	vgui_setMalloc( void* ( *theMalloc )( unsigned int ) );
+void vgui_setMalloc(void* (*theMalloc)(size_t));
 void	vgui_setFree( void ( *theFree )( void* ) );
 
 namespace vgui

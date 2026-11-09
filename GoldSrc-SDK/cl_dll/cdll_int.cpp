@@ -41,6 +41,7 @@ extern "C"
 #include "winsani_out.h"
 #endif
 #include "Exports.h"
+#include "../common/client_module_entry.h"
 #
 #include "tri.h"
 #include "vgui_TeamFortressViewport.h"
@@ -144,6 +145,10 @@ void CL_DLLEXPORT HUD_PlayerMove( struct playermove_s *ppmove, int server )
 
 int CL_DLLEXPORT Initialize( cl_enginefunc_t *pEnginefuncs, int iVersion )
 {
+    if (!CseClientConsumeInitializationAuthorization()) {
+        return 0;
+    }
+
 	gEngfuncs = *pEnginefuncs;
 
 //	RecClInitialize(pEnginefuncs, iVersion);
@@ -348,6 +353,10 @@ cldll_func_dst_t *g_pcldstAddrs;
 
 extern "C" void CL_DLLEXPORT F(void *pv)
 {
+    if (!CseClientConsumeFunctionAuthorization()) {
+        return;
+    }
+
 	cldll_func_t *pcldll_func = (cldll_func_t *)pv;
 
 	// Hack!
@@ -396,6 +405,8 @@ extern "C" void CL_DLLEXPORT F(void *pv)
 	HUD_DirectorMessage,
 	HUD_GetStudioModelInterface,
 	HUD_ChatInputPosition,
+    nullptr,
+    nullptr
 	};
 
 	*pcldll_func = cldll_func;
@@ -445,3 +456,6 @@ public:
 };
 
 EXPOSE_SINGLE_INTERFACE(CClientExports, IGameClientExports, GAMECLIENTEXPORTS_INTERFACE_VERSION);
+
+#include "../common/client_module_types.h"
+#include "../common/client_module_entry_impl.h"

@@ -1,0 +1,133 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseNativeMouseWindow LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/pointer-bytes.txt" "${CMAKE_SIZEOF_VOID_P}\n")
+set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL3.4.20 public headers; no SDL provider linked")
+if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
+    message(FATAL_ERROR "Provide pinned SDL headers")
+endif()
+add_executable(native_mouse_naive_red naive_sampler_red.cpp ../client_mouse_coordinates/controlled_window.cpp)
+target_include_directories(native_mouse_naive_red PRIVATE "${CSE_SDL_INCLUDE}"
+    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public")
+target_compile_definitions(native_mouse_naive_red PRIVATE SDL_STATIC_LIB=1
+    CSE_MOUSE_WINDOW_HEADER="${CMAKE_CURRENT_LIST_DIR}/reference/engine/sdl3_window.h")
+set_target_properties(native_mouse_naive_red PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(native_mouse_naive_red PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
+        $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    target_compile_definitions(native_mouse_naive_red PRIVATE NOMINMAX)
+else()
+    target_compile_options(native_mouse_naive_red PRIVATE -Wall -Wextra -Werror -ffp-model=precise
+        -ffp-contract=off -Wno-overriding-option -fno-exceptions -funwind-tables
+        $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+endif()
+
+set(CSE_NATIVE_MOUSE_CORE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+set(CSE_NATIVE_MOUSE_COCOA_SOURCE "${CSE_ROOT}/GoldSrc-SDK/common/sdl3_native_cocoa_mouse.mm" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+set(CSE_NATIVE_MOUSE_WINDOWS_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_windows.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+add_executable(native_mouse_window_tests window_tests.cpp "${CSE_NATIVE_MOUSE_CORE_SOURCE}")
+target_include_directories(native_mouse_window_tests PRIVATE "${CSE_SDL_INCLUDE}"
+    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common")
+target_compile_definitions(native_mouse_window_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
+set_target_properties(native_mouse_window_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+option(CSE_NATIVE_MOUSE_SANITIZERS "Instrument fake-service component only" OFF)
+if(MSVC)
+    target_compile_options(native_mouse_window_tests PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
+        $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    target_compile_definitions(native_mouse_window_tests PRIVATE NOMINMAX)
+else()
+    target_compile_options(native_mouse_window_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise
+        -ffp-contract=off -Wno-overriding-option -fno-exceptions -funwind-tables
+        $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+    if(CSE_NATIVE_MOUSE_SANITIZERS)
+        target_compile_options(native_mouse_window_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(native_mouse_window_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+enable_testing()
+add_test(NAME native-window-transactions COMMAND native_mouse_window_tests)
+set_tests_properties(native-window-transactions PROPERTIES TIMEOUT 15)
+
+if(APPLE)
+    enable_language(OBJCXX)
+    set(CSE_SDL_CONFIG "" CACHE PATH "Actual pinned SDL provider generated build_config directory")
+    if(NOT EXISTS "${CSE_SDL_CONFIG}/SDL_build_config.h")
+        message(FATAL_ERROR "Provide actual SDL provider CSE_SDL_CONFIG for Cocoa service body")
+    endif()
+    add_executable(native_mouse_platform_tests cocoa_tests.mm "${CSE_NATIVE_MOUSE_COCOA_SOURCE}")
+    target_compile_options(native_mouse_platform_tests PRIVATE -fobjc-arc -fvisibility=hidden)
+    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_SDL_CONFIG}")
+    target_link_libraries(native_mouse_platform_tests PRIVATE "-framework Cocoa")
+    set_target_properties(native_mouse_platform_tests PROPERTIES OBJCXX_STANDARD 14 OBJCXX_STANDARD_REQUIRED YES)
+elseif(WIN32)
+    add_executable(native_mouse_platform_tests windows_tests.cpp "${CSE_NATIVE_MOUSE_WINDOWS_SOURCE}")
+    target_compile_definitions(native_mouse_platform_tests PRIVATE NOMINMAX)
+    target_link_libraries(native_mouse_platform_tests PRIVATE user32)
+endif()
+if(TARGET native_mouse_platform_tests)
+    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine")
+    target_compile_definitions(native_mouse_platform_tests PRIVATE SDL_STATIC_LIB=1)
+    set_target_properties(native_mouse_platform_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    if(MSVC)
+        target_compile_options(native_mouse_platform_tests PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
+            $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    else()
+        target_compile_options(native_mouse_platform_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise
+            -ffp-contract=off -Wno-overriding-option -fno-exceptions -funwind-tables
+            $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+        if(CSE_NATIVE_MOUSE_SANITIZERS)
+            target_compile_options(native_mouse_platform_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+            target_link_options(native_mouse_platform_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+    endif()
+    add_test(NAME native-platform-sampler COMMAND native_mouse_platform_tests)
+    set_tests_properties(native-platform-sampler PROPERTIES TIMEOUT 15)
+endif()
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CSE_NATIVE_MOUSE_CALLER_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/callers")
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_callers.py"
+    "${CSE_ROOT}" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}" COMMAND_ERROR_IS_FATAL ANY)
+add_executable(native_mouse_caller_tests caller_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
+target_include_directories(native_mouse_caller_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
+    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+target_compile_definitions(native_mouse_caller_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
+set_target_properties(native_mouse_caller_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(native_mouse_caller_tests PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
+        $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    target_compile_definitions(native_mouse_caller_tests PRIVATE NOMINMAX)
+else()
+    target_compile_options(native_mouse_caller_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise
+        -ffp-contract=off -Wno-overriding-option -fno-exceptions -funwind-tables
+        $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+    if(CSE_NATIVE_MOUSE_SANITIZERS)
+        target_compile_options(native_mouse_caller_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(native_mouse_caller_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+add_test(NAME actual-ui-cursor-transactions COMMAND native_mouse_caller_tests)
+set_tests_properties(actual-ui-cursor-transactions PROPERTIES TIMEOUT 15)
+
+add_executable(native_mouse_lifecycle_tests lifecycle_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
+target_include_directories(native_mouse_lifecycle_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
+    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+target_compile_definitions(native_mouse_lifecycle_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
+set_target_properties(native_mouse_lifecycle_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+if(MSVC)
+    target_compile_options(native_mouse_lifecycle_tests PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
+        $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
+    target_compile_definitions(native_mouse_lifecycle_tests PRIVATE NOMINMAX)
+else()
+    target_compile_options(native_mouse_lifecycle_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise
+        -ffp-contract=off -Wno-overriding-option -fno-exceptions -funwind-tables
+        $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
+    if(CSE_NATIVE_MOUSE_SANITIZERS)
+        target_compile_options(native_mouse_lifecycle_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(native_mouse_lifecycle_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+add_test(NAME actual-lifecycle-mouse-hooks COMMAND native_mouse_lifecycle_tests)
+set_tests_properties(actual-lifecycle-mouse-hooks PROPERTIES TIMEOUT 15)

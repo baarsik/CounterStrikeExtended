@@ -1,3 +1,6 @@
+#if !defined(_WIN32)
+#include "../../../common/keyvalues_directories.h"
+#endif
    //=========== (C) Copyright 2000 Valve, L.L.C. All rights reserved. ===========
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -650,10 +653,12 @@ KeyValues* KeyValues::MakeCopy() const
 		break;
 
 	case TYPE_INT:
-	case TYPE_PTR:
 	case TYPE_COLOR:
 		newKV->m_iValue = m_iValue;
 		break;
+    case TYPE_PTR:
+        newKV->m_pValue = m_pValue;
+        break;
 
 	case TYPE_FLOAT:
 		newKV->m_flValue = m_flValue;
@@ -722,12 +727,20 @@ const wchar_t* KeyValues::GetWString( const char* keyName, const wchar_t* defaul
 
 	case TYPE_INT:
 	case TYPE_PTR:
+#if defined(_WIN32)
 		swprintf( wbuf, 64, L"%d", dat->m_iValue );
+#else
+        _snwprintf( wbuf, 64, L"%d", dat->m_iValue );
+#endif
 		SetWString( keyName, wbuf );
 		break;
 
 	case TYPE_FLOAT:
+#if defined(_WIN32)
 		swprintf( wbuf, 64, L"%f", dat->m_flValue );
+#else
+        _snwprintf( wbuf, 64, L"%f", dat->m_flValue );
+#endif
 		SetWString( keyName, wbuf );
 		break;
 
@@ -735,7 +748,11 @@ const wchar_t* KeyValues::GetWString( const char* keyName, const wchar_t* defaul
 		break;
 
 	case TYPE_UINT64:
+#if defined(_WIN32)
 		swprintf( wbuf, 64, L"%I64i", *(long long*)dat->m_sValue );
+#else
+        _snwprintf( wbuf, 64, L"%I64i", *(long long*)dat->m_sValue );
+#endif
 		SetWString( keyName, wbuf );
 		break;
 
@@ -784,7 +801,11 @@ const char* KeyValues::GetString( const char* keyName, const char* defaultValue 
 		break;
 
 	case TYPE_UINT64:
+#if defined(_WIN32)
 		snprintf( buf, 64, "%I64i", *(long long*)dat->m_sValue );
+#else
+        snprintf(buf, 64, "%lli", *(long long*)dat->m_sValue);
+#endif
 		SetString( keyName, buf );
 		break;
 
@@ -1008,10 +1029,14 @@ void KeyValues::Clear()
 
 void KeyValues::deleteThis()
 {
+#if defined(_WIN32)
 	if ( this )
 	{
 		delete this;
 	}
+#else
+    delete this;
+#endif
 }
 
 void KeyValues::RecursiveLoadFromBuffer( char** buffer )
@@ -1230,6 +1255,7 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 
 	if ( file == NULL )
 	{
+#if defined(_WIN32)
 		char szBuf[1024];
 		const char* current = resourceName;
 
@@ -1264,7 +1290,9 @@ bool KeyValues::SaveToFile( IFileSystem* filesystem, const char* resourceName, c
 			mkdir( szBuf, 0777 );
 #endif
 		}
-
+#else
+        cse::PrepareKeyValuesParentDirectory(filesystem, resourceName, pathID);
+#endif
 		file = filesystem->Open( resourceName, "wb", pathID );
 
 		if ( file == NULL )

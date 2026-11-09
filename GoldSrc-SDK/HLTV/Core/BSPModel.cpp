@@ -6,6 +6,7 @@
 #include "HLTV/common/mathlib.h"
 #include "HLTV/common/mem.h"
 
+#include <cstdint>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -751,6 +752,24 @@ void BSPModel::LoadVertexes( lump_t* l )
 	}
 }
 
+static int BSPPlaneIndex(const mplane_t* plane, const mplane_t* planes, int count) {
+    constexpr int InvalidPlaneIndex = -1;
+    if (plane == nullptr || planes == nullptr || count <= 0) {
+        return InvalidPlaneIndex;
+    }
+    const auto address = reinterpret_cast<std::uintptr_t>(plane);
+    const auto base = reinterpret_cast<std::uintptr_t>(planes);
+    if (address < base) {
+        return InvalidPlaneIndex;
+    }
+    const auto offset = address - base;
+    const auto index = offset / sizeof(mplane_t);
+    if (offset % sizeof(mplane_t) != 0 || index >= static_cast<std::uintptr_t>(count)) {
+        return InvalidPlaneIndex;
+    }
+    return static_cast<int>(index);
+}
+
 void BSPModel::MakeHull0()
 {
 	int count;
@@ -770,7 +789,16 @@ void BSPModel::MakeHull0()
 
 	for ( i = 0; i < count; i++, in++, out++ )
 	{
-		out->planenum = in->plane - model.planes;
+        const int planeIndex = BSPPlaneIndex(in->plane, model.planes, model.numplanes);
+        if (planeIndex < 0) {
+            free(model.hulls[0].clipnodes);
+            model.hulls[0].clipnodes = nullptr;
+            model.hulls[0].lastclipnode = -1;
+            char error[] = "BSPModel::MakeHull0: invalid plane in %s";
+            m_System->Errorf(error, model.name);
+            return;
+        }
+        out->planenum = planeIndex;
 		for ( j = 0; j < 2; j++ )
 		{
 			child = in->children[j];

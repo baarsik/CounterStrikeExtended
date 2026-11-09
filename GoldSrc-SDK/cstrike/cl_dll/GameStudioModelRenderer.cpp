@@ -12,6 +12,7 @@
 #include "entity_state.h"
 #include "cl_entity.h"
 #include "r_studioint.h"
+#include "../../common/client_module_entry.h"
 #include "studio_util.h"
 #include "StudioModelRenderer.h"
 #include "GameStudioModelRenderer.h"
@@ -818,6 +819,10 @@ r_studio_interface_t studio =
 
 int CL_DLLEXPORT HUD_GetStudioModelInterface( int version, r_studio_interface_t** renderer, engine_studio_api_t* engine )
 {
+    if (!CseClientConsumeStudioAuthorization()) {
+        return 0;
+    }
+
 //	RecClStudioInterface(version, ppinterface, pstudio);
 
 	if ( version != STUDIO_INTERFACE_VERSION )

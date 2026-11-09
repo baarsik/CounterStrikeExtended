@@ -250,7 +250,7 @@ void CCareerProfileFrame::PopulateMissionPacks()
 #ifdef _WIN32
 		BufWPrintf( title, length, L"  %s", career->GetTitle() );
 #else
-		BufWPrintf( title, length, L"  %S", career->GetTitle() );
+        BufWPrintf( title, length, L"  %s", career->GetTitle() );
 #endif
 		m_pMissionPackComboBox->AddItem( title, data );
 		if ( career == active )

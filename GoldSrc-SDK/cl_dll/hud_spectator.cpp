@@ -235,7 +235,7 @@ void UTIL_StringToVector( float * pVector, const char *pString )
 
 int UTIL_FindEntityInMap(char * name, float * origin, float * angle)
 {
-	int				n,found = 0;
+    int found = 0;
 	char			keyname[256];
 	char			token[1024];
 
@@ -284,7 +284,7 @@ int UTIL_FindEntityInMap(char * name, float * origin, float * angle)
 			strcpy (keyname, token);
 
 			// another hack to fix keynames with trailing spaces
-			n = strlen(keyname);
+            size_t n = strlen(keyname);
 			while (n && keyname[n-1] == ' ')
 			{
 				keyname[n-1] = 0;
@@ -666,9 +666,11 @@ int CHudSpectator::Draw(float flTime)
 		color = GetClientColor( i+1 );
 
 		// draw the players name and health underneath
-		sprintf(string, "%s", g_PlayerInfoList[i+1].name );
-		
-		lx = strlen(string)*3; // 3 is avg. character length :)
+        snprintf(string, sizeof(string), "%s", g_PlayerInfoList[i + 1].name);
+
+        constexpr int AverageCharacterHalfWidth = 3;
+        // The drawing buffer bounds this conversion to at most 255 characters.
+        lx = static_cast<int>(strlen(string)) * AverageCharacterHalfWidth;
 
 		gEngfuncs.pfnDrawSetTextColor( color[0], color[1], color[2] );
 		DrawConsoleString( m_vPlayerPos[i][0]-lx,m_vPlayerPos[i][1], string);
@@ -1225,9 +1227,11 @@ void CHudSpectator::SetModes(int iNewMainMode, int iNewInsetMode)
 		gViewPort->MsgFunc_ResetFade( NULL, 0, NULL );
 
 		char string[128];
-		sprintf(string, "#Spec_Mode%d", g_iUser1 );
-		sprintf(string, "%c%s", HUD_PRINTCENTER, CHudTextMessage::BufferedLocaliseTextString( string ));
-		gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, strlen(string)+1, string );
+        snprintf(string, sizeof(string), "#Spec_Mode%d", g_iUser1);
+        snprintf(string, sizeof(string), "%c%s", HUD_PRINTCENTER,
+            CHudTextMessage::BufferedLocaliseTextString(string));
+        const int messageBytes = static_cast<int>(strlen(string) + 1);
+        gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, messageBytes, string);
 	}
 
 	gViewPort->UpdateSpectatorPanel();

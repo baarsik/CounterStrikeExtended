@@ -23,6 +23,7 @@
 
 #include "studio_util.h"
 #include "r_studioint.h"
+#include "../common/client_module_entry.h"
 
 #include "StudioModelRenderer.h"
 #include "GameStudioModelRenderer.h"
@@ -102,6 +103,10 @@ Export this function for the engine to use the studio renderer class to render o
 */
 int CL_DLLEXPORT HUD_GetStudioModelInterface( int version, struct r_studio_interface_s **ppinterface, struct engine_studio_api_s *pstudio )
 {
+    if (!CseClientConsumeStudioAuthorization()) {
+        return 0;
+    }
+
 //	RecClStudioInterface(version, ppinterface, pstudio);
 
 	if ( version != STUDIO_INTERFACE_VERSION )

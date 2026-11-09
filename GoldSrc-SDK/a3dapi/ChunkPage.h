@@ -16,6 +16,9 @@ public:
 	int						m_cCapacity;
 	int						m_cCommands;
 	int						m_iBufferType;
+#if UINTPTR_MAX > UINT32_MAX
+    A3dGeometryIdentity* m_pIdentities;
+#endif
 };
 
 int	__cdecl CommandBuffer_CheckFit( const CA3dCommandBuffer* pDest, int iDest,

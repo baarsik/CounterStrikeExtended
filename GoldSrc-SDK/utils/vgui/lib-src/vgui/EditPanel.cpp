@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#if !defined( _WIN32 )
+#include "common/VGui1LegacyTickMillis.h"
+#endif
+
 void vgui::EditPanel::paintBackground()
 {
 	int wide, tall;
@@ -416,7 +420,12 @@ int EditPanel::getVisibleLineCount()
 void EditPanel::setCursorBlink( bool state )
 {
 	_cursorBlink = state;
+#if defined( _WIN32 )
 	_cursorNextBlinkTime = getApp()->getTimeMillis() + 400;
+#else
+    constexpr int CursorBlinkIntervalMillis = 400;
+    _cursorNextBlinkTime = detail::AddTickMillis(getApp()->getTimeMillis(), CursorBlinkIntervalMillis);
+#endif
 	repaint();
 }
 

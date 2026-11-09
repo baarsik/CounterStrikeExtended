@@ -104,7 +104,7 @@ public:
 	virtual unsigned int	Size( FileHandle_t file ) = 0;
 	virtual unsigned int	Size( const char *pFileName ) = 0;
 
-	virtual long			GetFileTime( const char *pFileName ) = 0;
+	virtual int GetFileTime( const char *pFileName ) = 0;
 	virtual void			FileTimeToString( char* pStrip, int maxCharsIncludingTerminator, long fileTime ) = 0;
 
 	virtual bool			IsOk( FileHandle_t file ) = 0;
@@ -183,7 +183,7 @@ public:
 	// ABOVE: Pre-25th anniversary interface
 	//
 
-	virtual long			GetFileModificationTime(const char* pFileName) = 0;
+	virtual int GetFileModificationTime(const char* pFileName) = 0;
 };
 
 // Steam3/Src compat

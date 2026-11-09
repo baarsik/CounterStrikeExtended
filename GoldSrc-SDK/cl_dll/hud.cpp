@@ -547,40 +547,22 @@ COM_FileBase
 ============
 */
 // Extracts the base name of a file (no path, no extension, assumes '/' as path separator)
-void COM_FileBase ( const char *in, char *out)
-{
-	int len, start, end;
-
-	len = strlen( in );
-	
-	// scan backward for '.'
-	end = len - 1;
-	while ( end && in[end] != '.' && in[end] != '/' && in[end] != '\\' )
-		end--;
-	
-	if ( in[end] != '.' )		// no '.', copy to end
-		end = len-1;
-	else 
-		end--;					// Found ',', copy to left of '.'
-
-
-	// Scan backward for '/'
-	start = len-1;
-	while ( start >= 0 && in[start] != '/' && in[start] != '\\' )
-		start--;
-
-	if ( in[start] != '/' && in[start] != '\\' )
-		start = 0;
-	else 
-		start++;
-
-	// Length of new sting
-	len = end - start + 1;
-
-	// Copy partial string
-	strncpy( out, &in[start], len );
-	// Terminate it
-	out[len] = 0;
+void COM_FileBase(const char* input, char* output) {
+    const size_t length = strlen(input);
+    size_t start = length;
+    while (start > 0 && input[start - 1] != '/' && input[start - 1] != '\\') {
+        --start;
+    }
+    size_t end = length;
+    for (size_t index = length; index > start; --index) {
+        if (input[index - 1] == '.') {
+            end = index - 1;
+            break;
+        }
+    }
+    const size_t baseLength = end - start;
+    memcpy(output, input + start, baseLength);
+    output[baseLength] = 0;
 }
 
 /*

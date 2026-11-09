@@ -1,0 +1,1118 @@
+{
+  "schema": 1,
+  "package": "Metal Developer Tools 6.2 Windows",
+  "package_sha256": "f6f24c4b1fecd69f9495d302837b0edc55b2c4a209ba072e53dd9b5d00c6327e",
+  "compiler_version": "Apple metal version 32023.850 (metalfe-custom-windows)",
+  "files": [
+    {
+      "path": "bin/metal.exe",
+      "bytes": 42960,
+      "sha256": "7afb30781d4084451332d34908ab198f3cb84931239a84a060fa15a02b6d8a76"
+    },
+    {
+      "path": "bin/metallib.exe",
+      "bytes": 42960,
+      "sha256": "cba58ef1c94c7865e21539516bec968a99532ab0e899e96b4e5441a208e4bbf1"
+    },
+    {
+      "path": "metal/32023/bin/air-ar.exe",
+      "bytes": 33635280,
+      "sha256": "d35cbfd443fee39b0c064afe168d015c95f0a4c2185310e378b95bf38f88f81b"
+    },
+    {
+      "path": "metal/32023/bin/air-as.exe",
+      "bytes": 3886544,
+      "sha256": "11afc85455569fb86b150c6c4bf592aae86b5e251bd3d6116e40b1c306797257"
+    },
+    {
+      "path": "metal/32023/bin/air-binary-perf.exe",
+      "bytes": 3416528,
+      "sha256": "a08c11b5f645e3fe4fe76579d54adb6db264b959b7e029d03b713b2bf9e90ade"
+    },
+    {
+      "path": "metal/32023/bin/air-config.exe",
+      "bytes": 718288,
+      "sha256": "fc9c9dc9d28fca2ae41ef6b889f384a91a4c722d8c2845ed06181c37b3247a80"
+    },
+    {
+      "path": "metal/32023/bin/air-dsymutil.exe",
+      "bytes": 72578000,
+      "sha256": "7a1afef27cd120f625fe7db90c5f0672d3c634371c1249ead2044026fefb0351"
+    },
+    {
+      "path": "metal/32023/bin/air-libtool.exe",
+      "bytes": 4207568,
+      "sha256": "4dcacf66f487418b1990fb8b2de8b682ae134ed466fe0c4178d11e2480756df5"
+    },
+    {
+      "path": "metal/32023/bin/air-link.exe",
+      "bytes": 4417488,
+      "sha256": "948bde0164eeb63c952b8ffdf333309eb76c503290f1b206e5f27f0b75f4f9c7"
+    },
+    {
+      "path": "metal/32023/bin/air-lipo.exe",
+      "bytes": 4174288,
+      "sha256": "b3ddfc7c49a4680be904b8d80a0f7cb9e1ee04d34617cdf7df44d43e0d4555dc"
+    },
+    {
+      "path": "metal/32023/bin/air-lld.exe",
+      "bytes": 21869008,
+      "sha256": "6c079182dc1b369c2cc6e12d57c7e74a34b866fe5ab1c5982177a9ca66e8e36d"
+    },
+    {
+      "path": "metal/32023/bin/air-nm.exe",
+      "bytes": 33998800,
+      "sha256": "93899ba132615b7ff06f61d40e99614581146d16947eefe242a60eb326d4094f"
+    },
+    {
+      "path": "metal/32023/bin/air-nt.exe",
+      "bytes": 46480336,
+      "sha256": "78834ca387048639b122bf8f6fa70c5c9f5633931cdaf823eb511124549aab90"
+    },
+    {
+      "path": "metal/32023/bin/air-objcopy.exe",
+      "bytes": 13461968,
+      "sha256": "c34add801e1882378a47e9d8f427ebcda506b2d9aed493fae8729c72e68d6692"
+    },
+    {
+      "path": "metal/32023/bin/air-objdump.exe",
+      "bytes": 53030352,
+      "sha256": "dd2e4dbab7e2bd7301cddd76645d7063d5ed9b65c4ee6ed604a2baaa6211527a"
+    },
+    {
+      "path": "metal/32023/bin/air-opt.exe",
+      "bytes": 104127952,
+      "sha256": "f365ea1228380f19d8127c91fda88154fd7730222513fe3ff6f8a7ab650e0ea7"
+    },
+    {
+      "path": "metal/32023/bin/air-pack.exe",
+      "bytes": 14420944,
+      "sha256": "897ed516a0f5599e774b8922ae96b3a968a799ec42559960c6d33efb2d41f0e8"
+    },
+    {
+      "path": "metal/32023/bin/air-package.exe",
+      "bytes": 4196304,
+      "sha256": "3fab1b9eaca26bc7b91162ad3b6004baf44489eb4272ad03f5b33dd00da393d3"
+    },
+    {
+      "path": "metal/32023/bin/air-ranlib.exe",
+      "bytes": 4207568,
+      "sha256": "3ce43e77af9297ecb2e1fadf15a4449f867ee0d212731d6ee8adfb439dec7d4d"
+    },
+    {
+      "path": "metal/32023/bin/air-readobj.exe",
+      "bytes": 7112144,
+      "sha256": "4af838e7c3cfa86d1f98963a3ffdfdb75c325b8e4dfe3ebb451e594488b162dc"
+    },
+    {
+      "path": "metal/32023/bin/air-size.exe",
+      "bytes": 4163536,
+      "sha256": "fb65c715694b3462c79652a10a4c2affa573039c15bf46f512abfd3ace36696f"
+    },
+    {
+      "path": "metal/32023/bin/air-strip.exe",
+      "bytes": 22014928,
+      "sha256": "88bf18ddff143e1d7c51487fcd1ab6bdf878999b4542cce004a937827f87ba9e"
+    },
+    {
+      "path": "metal/32023/bin/air-tt.exe",
+      "bytes": 800208,
+      "sha256": "6f10fa4db3c9243a390b7ee3b1efc0971e44edfa4fafeb9884911a109ed9f7fa"
+    },
+    {
+      "path": "metal/32023/bin/air-validate.exe",
+      "bytes": 4141520,
+      "sha256": "e3941f29fcd771ac17dea1570b16a0b60f00477b57a73e4bbfa1fb591773454e"
+    },
+    {
+      "path": "metal/32023/bin/air-vtool.exe",
+      "bytes": 4159440,
+      "sha256": "bcc3856f452e9ee77a239030adad7eea0a76ed94e53966bcb7ad74eee1066c19"
+    },
+    {
+      "path": "metal/32023/bin/amdgpu-nt.exe",
+      "bytes": 149968,
+      "sha256": "860d156209b92bf76e2b3e188ccb26c5702dca58ee9a9ac78e614e57c9b059c1"
+    },
+    {
+      "path": "metal/32023/bin/applegpu-nt.exe",
+      "bytes": 149968,
+      "sha256": "5c184b6c62210942d8daa618b2e2bf98d8d045211acc39914d9f8c2c3a05fc9d"
+    },
+    {
+      "path": "metal/32023/bin/intelgpu-nt.exe",
+      "bytes": 149968,
+      "sha256": "64960f276ff6e42461ed7a4816b5989f07fbf8a0a16b1c5de4df49b3e886a2b6"
+    },
+    {
+      "path": "metal/32023/bin/metal-ar.exe",
+      "bytes": 33635280,
+      "sha256": "98cf2f1f47f4abbb4ec4d6a0c94e151b81e53492dd4d716624c1168686170b95"
+    },
+    {
+      "path": "metal/32023/bin/metal-as.exe",
+      "bytes": 3886544,
+      "sha256": "635c602ad1da35a7cd63063118c5167b579e083f3f4ae2b0ca5af164f7565411"
+    },
+    {
+      "path": "metal/32023/bin/metal-binary-perf.exe",
+      "bytes": 3416528,
+      "sha256": "7cf111cb6789dce79c9863bc3ae4363e263556c70ff99e24714f346ca951cbf5"
+    },
+    {
+      "path": "metal/32023/bin/metal-config.exe",
+      "bytes": 718288,
+      "sha256": "2cb380018c344ec933bdd9fe84a916e42b9aa9ee33f9f57c497162cf910ac7a7"
+    },
+    {
+      "path": "metal/32023/bin/metal-dsymutil.exe",
+      "bytes": 72578000,
+      "sha256": "dbb86fac49c923e2b9bf0320eda03fe1b068123a08541d18841af97732a7cb14"
+    },
+    {
+      "path": "metal/32023/bin/metal-libtool.exe",
+      "bytes": 4207568,
+      "sha256": "bd0181da8d1f8fe85f89cd61ac7f29b13b2f5e35159f3586a3115170c3c259b4"
+    },
+    {
+      "path": "metal/32023/bin/metal-link.exe",
+      "bytes": 4417488,
+      "sha256": "2b96dddd179cf3747fe14209e10421550b4997712b5a4d3985fbe5637478e99f"
+    },
+    {
+      "path": "metal/32023/bin/metal-lipo.exe",
+      "bytes": 4174288,
+      "sha256": "5beb0630bb2df2bd46c0577da2f979d9242f3e95c46303581042a0c435e64164"
+    },
+    {
+      "path": "metal/32023/bin/metal-lld.exe",
+      "bytes": 21869008,
+      "sha256": "1659d058155df6d503940002d64c2fe86696e0fbf8820073d619f8c7ad2df951"
+    },
+    {
+      "path": "metal/32023/bin/metal-nm.exe",
+      "bytes": 33998800,
+      "sha256": "7d2e6c1db325054e441bc977bfd7aea2b43e1eb1b4a8868ef268463b70d267e5"
+    },
+    {
+      "path": "metal/32023/bin/metal-nt.exe",
+      "bytes": 149968,
+      "sha256": "165552c9efa5a753af913ba94a2dd8c98bf6812738f3fc3e894f0a78e5560f14"
+    },
+    {
+      "path": "metal/32023/bin/metal-objcopy.exe",
+      "bytes": 13461968,
+      "sha256": "fe9ed57de82877bfc9bf5e4359b275995b487205f683223b49e5a9cb0e854d9d"
+    },
+    {
+      "path": "metal/32023/bin/metal-objdump.exe",
+      "bytes": 53030352,
+      "sha256": "5cd828c9fcb606515e63c0c24a5d533f44d26591d4204afcf85db23d7dc0ea5c"
+    },
+    {
+      "path": "metal/32023/bin/metal-opt.exe",
+      "bytes": 104127952,
+      "sha256": "4ff77fdc6106d30dd44856ca5752fa366c2eb29d63980e3e44797e51a90f794e"
+    },
+    {
+      "path": "metal/32023/bin/metal-pack.exe",
+      "bytes": 14420944,
+      "sha256": "8e55a4b270d86816f889acccc6c79a7acf802fc01bef7dfb15ccad45d6ed850a"
+    },
+    {
+      "path": "metal/32023/bin/metal-package.exe",
+      "bytes": 4196304,
+      "sha256": "a75034718347aa71847c6e34f1059cdade56a744cbfcfcc64cdb46a4dbf5be12"
+    },
+    {
+      "path": "metal/32023/bin/metal-ranlib.exe",
+      "bytes": 4207568,
+      "sha256": "cdbede81f99c1f6aa1dc0b0f170d4aaeb48110c638b46714689f8c508b403767"
+    },
+    {
+      "path": "metal/32023/bin/metal-readobj.exe",
+      "bytes": 7112144,
+      "sha256": "0d496312d1de3ff47436674094968ebf7c9c9fbe5695251a808e41c3ec82beda"
+    },
+    {
+      "path": "metal/32023/bin/metal-size.exe",
+      "bytes": 4163536,
+      "sha256": "cd35427ef961e5a1c9d6b79a7fcb4a9b5f5c242a94f395a65f7bb919c85ed6c7"
+    },
+    {
+      "path": "metal/32023/bin/metal-source.exe",
+      "bytes": 6170576,
+      "sha256": "55774e92d520a880908fce389c760c465962e7fb35179b6a1f062e7404b1db20"
+    },
+    {
+      "path": "metal/32023/bin/metal-strip.exe",
+      "bytes": 22014928,
+      "sha256": "b40c0ea888fced8198a22594ee0066dd5827756d4c2c0c08b5aece627ea0a9dd"
+    },
+    {
+      "path": "metal/32023/bin/metal-tt.exe",
+      "bytes": 800208,
+      "sha256": "224f52623dd94d5653b6089a00f5ca02a312384993c9301694c366ec3944b36e"
+    },
+    {
+      "path": "metal/32023/bin/metal-validate.exe",
+      "bytes": 4141520,
+      "sha256": "1d0dc257f16aa02866d21bbb004b7a283603fb305bf73c7ed310014b73dd83b9"
+    },
+    {
+      "path": "metal/32023/bin/metal-vtool.exe",
+      "bytes": 4159440,
+      "sha256": "2c8d68a278d68ba69bfc48413363047f3a874df7e2838a5a186236c9ee4eeb42"
+    },
+    {
+      "path": "metal/32023/bin/metal.exe",
+      "bytes": 118947792,
+      "sha256": "ca16c4c32cb8e404f7fee2b6a181ee748eee5367d904cb344163879412cd5b0a"
+    },
+    {
+      "path": "metal/32023/bin/metallib.exe",
+      "bytes": 21869008,
+      "sha256": "331b0f19bf8cab8a57801221cba6e2300ab17ae22248dd8f1bb703f1ff500acb"
+    },
+    {
+      "path": "metal/32023/bin/openclc.exe",
+      "bytes": 118947792,
+      "sha256": "536c57760a3933d68f86c346cf0421521bc994d2e7cfb5e69a79c61c5385d07d"
+    },
+    {
+      "path": "metal/32023/lib/air-nt/config.yaml",
+      "bytes": 2483,
+      "sha256": "73bbcfacb38556daa0c6c1e28140fdc40ac953b84cfb521dffa061083e557d26"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/AMDIL902.dll",
+      "bytes": 14156752,
+      "sha256": "bfdd88e08253a2ef6cc3cce1494da5b8d09c22c32c3a30d14100d4c90168a890"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/AMDNTPlugin.dll",
+      "bytes": 138704,
+      "sha256": "e49807cb7db508a75847d98514203e5651d120a23beec6a844aa6e19c911539c"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/AMDRadeonX4000Shared.dll",
+      "bytes": 37515728,
+      "sha256": "8385ca6b59f720f9b473d2445ec1536ddcc0baef3521d5a08ba09fb74b3eaafb"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/AMDRadeonX5000Shared.dll",
+      "bytes": 37516752,
+      "sha256": "7f4fd5bf8068ec708d8ea390e4d50581d72ee94ea40d3c83a2590cb199823309"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/AMDRadeonX6000Shared.dll",
+      "bytes": 37518800,
+      "sha256": "d5a6d8cedc9eeb6876d7f9fa68f4a3f68c57355897028412ed84cc728343ac48"
+    },
+    {
+      "path": "metal/32023/lib/amd_13/runtime.amdil_902.builtin",
+      "bytes": 5107037,
+      "sha256": "7447c01668a3810d1ecaa9a96441f08208a50c49a29bc8fa045821944dc6c8ed"
+    },
+    {
+      "path": "metal/32023/lib/AMDIL902.dll",
+      "bytes": 14302672,
+      "sha256": "9287cf9a639294f1d1bb5d9efd64811c73ca8759d3bc1d26cef2ad80552fd395"
+    },
+    {
+      "path": "metal/32023/lib/AMDNTPlugin.dll",
+      "bytes": 140752,
+      "sha256": "a951ac7a23945dce3afeeeb7b65bfe5fc73dd425ac70193b530090466527388b"
+    },
+    {
+      "path": "metal/32023/lib/AMDRadeonX4000Shared.dll",
+      "bytes": 37039056,
+      "sha256": "47fd2f6bf4973606a3047c1fbf9ec704696313ac86e7562bacd6f4ef03d2da47"
+    },
+    {
+      "path": "metal/32023/lib/AMDRadeonX5000Shared.dll",
+      "bytes": 37040080,
+      "sha256": "dafa00228198f214fb3dfba9803b3d1a4da41120046998b5bee6d9c2737f1ebc"
+    },
+    {
+      "path": "metal/32023/lib/AMDRadeonX6000Shared.dll",
+      "bytes": 37042640,
+      "sha256": "54a8f1116b06e1d8b7942822dcc5bee640c2c750099b8f8ed58b2782c29a95df"
+    },
+    {
+      "path": "metal/32023/lib/applegpu-nt.dll",
+      "bytes": 97764304,
+      "sha256": "868678dacd1d516dae6bd1b65c2699e1c44662f0886b9c72b0ade68b170cdef2"
+    },
+    {
+      "path": "metal/32023/lib/applegpu23-nt.dll",
+      "bytes": 76945360,
+      "sha256": "5d0963775ce95ac84d869f063b68714ced642cff2b5b51f4addbd17e4c6b3307"
+    },
+    {
+      "path": "metal/32023/lib/applegpu24-nt.dll",
+      "bytes": 90757584,
+      "sha256": "fed8f78a10bd1249d7a02b88201c70d21817a1d397dab58ba6b037ce538b50a2"
+    },
+    {
+      "path": "metal/32023/lib/applegpuG9G12-nt.dll",
+      "bytes": 96765392,
+      "sha256": "3974f10f1d8480fac02232f859e7ab001534025e30216f1a03d94e802d28b015"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depth2d",
+      "bytes": 128788,
+      "sha256": "ed62689ddb0c2d35f4a4431bd3314afb3737aea9bc19b339b513f53d3e13dafc"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depth2d_array",
+      "bytes": 137200,
+      "sha256": "6ad751811a71f53f11f82dbd5c023ad572c88095333e283eeaacca1061c00f89"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depth2d_ms",
+      "bytes": 37190,
+      "sha256": "265c48f1d37df603a5b77c72d84cccd9b1274d67b25dceb21ccb7548aa01133d"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depth2d_ms_array",
+      "bytes": 40256,
+      "sha256": "c752142bfa4946cee8adf79a427d7f245997701a28bb2a16fcffaaf1f2c23889"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depthcube",
+      "bytes": 122527,
+      "sha256": "683b3be13335dd519f8c7d308a6804d8a364008e13b3560f1edf996d42b8b6a4"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_depthcube_array",
+      "bytes": 130973,
+      "sha256": "35cec1db66f46fd95b67999f03e732e5cedd4660e3a7c7baea1249cc8af288cf"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture1d",
+      "bytes": 112821,
+      "sha256": "56e7589da0db5565f29fb0eb520f2e566a04587111e65bdda2b3036d01716de5"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture1d_array",
+      "bytes": 122125,
+      "sha256": "c79ec00ad6fe4033bd1f255d2481902a3dc1ffd0612099abb5c0a942918bf977"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture2d",
+      "bytes": 157048,
+      "sha256": "1fabcb5a9bc65117a239134666b25e595870881183ce1d486b23142f144aed1a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture2d_array",
+      "bytes": 168580,
+      "sha256": "a124fbfa992e09dca5862e0fc31c68f8e334466c04655e098d8e4f25ab19a59a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture2d_ms",
+      "bytes": 38394,
+      "sha256": "e74b74c220815ac5d75f705192ab72dda4a06e4152075bdb20f5849cd9098a89"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture2d_ms_array",
+      "bytes": 41788,
+      "sha256": "940a744665c394f3fc98b6c0d4cb572e1f86f412debcfc4fbf7f30e5a4e078ab"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture3d",
+      "bytes": 152184,
+      "sha256": "5673e217339666c93531cc26e2b9ca52e88063814ac2958454f45b059d8b6e13"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture_buffer",
+      "bytes": 94812,
+      "sha256": "a5b3503c1ea6dbc53e417c59623a49bc69bf003b0b61dc011f447e4010ae5547"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texture_common",
+      "bytes": 51923,
+      "sha256": "29ed2eb9ac701c3900a33e1bc5528bf33e0643a54d312051f0e6d7babd47f482"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texturecube",
+      "bytes": 157370,
+      "sha256": "ba5e057e17176859b57557e54b6ae99c09d1c4ee6ba1cd80a85dca11cbd23e47"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__bits/metal_texturecube_array",
+      "bytes": 179286,
+      "sha256": "113fcc643760f43b0c647893839959c091996b6ab1cf76256664848910d1e94d"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__exec/units.h",
+      "bytes": 4924,
+      "sha256": "b53046cdc32b73e8306afee749235e482bb4c6c8db4038d1b984cfbec5a6608f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/__mdspan/extents.h",
+      "bytes": 15565,
+      "sha256": "820863de47de594a8cacac2658b1e197f192151c10ea6d483fa2ff4567574f13"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_array",
+      "bytes": 38998,
+      "sha256": "63c85263bd2a8d3d99cf3caf168b9407b224ebf1c698a516b2e7654b01776cb3"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_assert",
+      "bytes": 575,
+      "sha256": "cac0f277ad0698154799e9814ebad9fb1ba3c9fb27ef3146a963f6e33520d02c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_atomic",
+      "bytes": 80734,
+      "sha256": "04034664e9f4ac82ad1f94c0bcfbdd01b15467db97385a6b9227875b0bffeef9"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_command_buffer",
+      "bytes": 99906,
+      "sha256": "747fa7e39280b37e8be47fcd3d1a34b76623f40f1af3ee7611e9b1542ca330d6"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_common",
+      "bytes": 17072,
+      "sha256": "04efb38adada4c4375b0b63d467d113ac056124185e15a176b493f3b59c78fa6"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_compute",
+      "bytes": 2910,
+      "sha256": "87047a7e1973781e30f2c58b6af4c6cb09e4f69bee50000979511f7d0b5daf60"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_config",
+      "bytes": 76146,
+      "sha256": "6b5933e8391e58de8957b7b735a0298e80ef06dadd989a1984ad7fe261c1cf36"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_cooperative_tensor",
+      "bytes": 20964,
+      "sha256": "cb2dace8db69978b7def249df99844df1337c92967f3baa7d2b6c78c61667267"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_curves",
+      "bytes": 5562,
+      "sha256": "e638ee61839ea43b1627de35043641167aaf3c1895ece36f0a57e22b9a707f8c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_extended_vector",
+      "bytes": 14157,
+      "sha256": "3e866222de1a475b68ce20f6d405d4c7ccc76f3742ae46362ee8da03081f01c1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_functional",
+      "bytes": 74055,
+      "sha256": "3df07895e6cc1358b64aed1864b239afdc6f8a60eabcc0a23cbc509cc3d69e60"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_geometric",
+      "bytes": 26315,
+      "sha256": "c695ab42fd55974acc2971d3ee0c1eae440381c99334158db2dae1720b12416f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_graphics",
+      "bytes": 5511,
+      "sha256": "5096b8519dd008d2b37b04243579d7041737725d539c757d8d9480105c80fe63"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_imageblocks",
+      "bytes": 9199,
+      "sha256": "c1df8a419b9f7344d9f76debf04efb2efad220d17e3f6ca0df626760a84e7bde"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_initializer_list",
+      "bytes": 980,
+      "sha256": "2457f29f41fa234f4d6fb0ab34de3228a3bcaad951af2e43e18b584be6d05ede"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_integer",
+      "bytes": 110779,
+      "sha256": "86a5eb7a3ea7434c30b516eb02404a9f4ec48811ad14e371383dd333b1fe5ca7"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_interpolate",
+      "bytes": 2016,
+      "sha256": "b91e94b1d9e687f7cbfc101ac9886f62c41600d63ed2c5b8583b5d615a8b729f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_limits",
+      "bytes": 24159,
+      "sha256": "40a70f057ba5a3dfb08f854ab2b32217f18201ae84e9d55bd5554bdfff708b00"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_logging",
+      "bytes": 3587,
+      "sha256": "8828858baebf5fb8f254dea2c7d2b8f3717fec4cce8f8bbe4d13263f5036cdc8"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_math",
+      "bytes": 193988,
+      "sha256": "04cfae46b3405be711be3cfc8f4ce820036f800d8be1191f069402875223fc32"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_matrix",
+      "bytes": 343323,
+      "sha256": "6e52518eb359a49ea7da50493f51b068a7aa16df8fb724b5d89c582388f8831c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_mesh",
+      "bytes": 3115,
+      "sha256": "4c6cdc95ad499c2226f3bf3499804dfa4e0bb2ba95eb57e6ded7ab22ebdcc101"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_numeric",
+      "bytes": 579,
+      "sha256": "0e4f574a7d3cc604600d4ff0eb31c9c5a7727bc6de89b28f1a78896476138793"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_pack",
+      "bytes": 3789,
+      "sha256": "2712ccc6a1ecf5fb4fc0ae35b8a78764256718a8b1df9831e923fbe368f14a2b"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_packed_vector",
+      "bytes": 15607,
+      "sha256": "e6fb7f54b247f258196cf1c7b5409fd9042e3c0f69de950a3da8b2dfd65f4452"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_pixel",
+      "bytes": 64083,
+      "sha256": "fb90ce257ccde883141b132f61a87eebed83ed3b4e5fd0580ae5f7919577d493"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_quadgroup",
+      "bytes": 8963,
+      "sha256": "a7d4c387a17aeebb7ff61a3a038fa388498471dcb540a68e0e299b62b6d42ce8"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_raytracing",
+      "bytes": 252512,
+      "sha256": "fa69946d720946542cfb02fe5d3981964a7711e2f943eab5247d21eb8cdf3c95"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_relational",
+      "bytes": 49508,
+      "sha256": "3f97ed805273e3729c40db5493dd500e1bbfd29da44386c42db1bbf6467298d3"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_simdgroup",
+      "bytes": 9888,
+      "sha256": "993396fb55100177eb13a95a00f3896a9bd5e4d820071cc680dc4a567f434d06"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_simdgroup_matrix",
+      "bytes": 10339,
+      "sha256": "89ead1e29be66a70b36ff683ccc1f78dd56ce5b4c33aa771b6a5b9b7d38fe0db"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_stdlib",
+      "bytes": 4908,
+      "sha256": "45a71376de255c2d38a4b34377911786e7046133817647ab3bb8a2f93dde451a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_tensor",
+      "bytes": 98128,
+      "sha256": "55fd10aaf22aee4c96110ad1ba735c35b0e9ab14bba0896c113ff790f2f916e0"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_tessellation",
+      "bytes": 1739,
+      "sha256": "ac2611fdf25f64ca836e1e20bb7c9b40621275f65e109f644e881685aefeae8a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_texture",
+      "bytes": 952,
+      "sha256": "b6124f46240a9b1eec8706f8aa6fbace752d3ccdeb4b6444f9401d13a8c6ac2e"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_type_traits",
+      "bytes": 24325,
+      "sha256": "a4fa5dd7290341cd188ef41eb5e12f902d71134f87562376b2cc9fb499944b6a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_types",
+      "bytes": 11735,
+      "sha256": "b0129c85ccd55dd4151d47720793d7a3b5c73932a7fe4f71659c3be20796a21f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_types.h",
+      "bytes": 429,
+      "sha256": "32f407afd69a013c1c3d9b09424a5d4e90c9563c7d550ff75da2e07ac4c0c1d1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_uniform",
+      "bytes": 71111,
+      "sha256": "5ef6fe1568a56ddc2b168fe954ca46cbf3dd6ef27845af2dda3f416c811f3b24"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_utility",
+      "bytes": 1411,
+      "sha256": "f25f79782b753390b47c84476508690928d87eca40afbc1ff2373aec4fcf3c79"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_vertex_value",
+      "bytes": 861,
+      "sha256": "883f4a351225f551f2e758b9522a050c23e2aaf368f04f9fcc502e7cd9167526"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/metal_visible_function_table",
+      "bytes": 38685,
+      "sha256": "f1e97f374d5c712e45522a3a5df8669b7b289caccb83396fdfa8aa503e8facf2"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/module.modulemap",
+      "bytes": 5478,
+      "sha256": "62cd2304d2b42e0ca9a528e5a6ca47810885ed33e88d0f390d120da970e41ef6"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/simd/matrix_types.h",
+      "bytes": 3828,
+      "sha256": "db5b1ae45855956bcf0f0cfd7c3a858f7aa3cb14c76bb478f5c266144d2588a9"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/simd/packed.h",
+      "bytes": 612,
+      "sha256": "bc14574ff472b197d7b815224c25acffd3ecac25db8eb012f5005bea1c36f3bf"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/simd/simd.h",
+      "bytes": 771,
+      "sha256": "cc1c7812e3e1e3f828af2853e5b3a333528c0e19aa6fe3f270098bfe8a244575"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/simd/vector_types.h",
+      "bytes": 410,
+      "sha256": "354e9045bcb048f7c4a6d81fb82344fd85210b65fbf24b0782ac2994e845d08f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/metal/TargetConditionals.h",
+      "bytes": 3947,
+      "sha256": "4b20b005c2418ff3ab8e4337ca674d6597e87cea335f13eb24f74534c042ffee"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/module.modulemap",
+      "bytes": 3467,
+      "sha256": "8a463e5263fccb24c681ec3d1f3d8ea6cf3ee047848ce2d75fbca4a058ced23b"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/opencl-c-base.h",
+      "bytes": 31275,
+      "sha256": "e407ea7f28094f3c2df4577f3a03e34c32841962478ec359b7f0ebc12dc783f1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/include/opencl-c.h",
+      "bytes": 911384,
+      "sha256": "a97860a234f1e3ea65036dd9a3ae4321ff47b03183a1d71f890491a0dfba7143"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_ios.rtlib",
+      "bytes": 141800,
+      "sha256": "5c41eed0c8ff062ade2a3fa4cb1d5627416d61f56feaa8e061cb2cd176c44437"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_iosmac.rtlib",
+      "bytes": 142616,
+      "sha256": "75114a90645457b9413760be885641448b9127cdcf64dd7232875b1d45480d3a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_iossim.rtlib",
+      "bytes": 143064,
+      "sha256": "5122755787c1c0208c305cb7821e471f7b0669b67afc2babaa0d8b6e59bdd18d"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_osx.rtlib",
+      "bytes": 142056,
+      "sha256": "c7adabe81695c35c10db5fff7620f16362e67d9dd9a05b02af540cc2774b8c5b"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_tvos.rtlib",
+      "bytes": 141864,
+      "sha256": "bc62e7756f4ccc668ed65d52849692943a1d387eb707704421690385cfe77c99"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_tvossim.rtlib",
+      "bytes": 143176,
+      "sha256": "d186d0f9c6e614171f149444c6a8048b2f0cdeb4fa1cb36c33c90be0e1f86dc7"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_watchos.rtlib",
+      "bytes": 142200,
+      "sha256": "648168eb66e55a81a36e21c427d5af8adbb3b99539932b2cda1f740fd11e6991"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_watchossim.rtlib",
+      "bytes": 143416,
+      "sha256": "cd962519ded93e32ea28ce38c80283533a2bf596c706ba5147c1c4dc110aaf37"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_xros.rtlib",
+      "bytes": 141800,
+      "sha256": "b711f5d3aae6a7d68a4d9eeb6df8b6309df9b8d9b3b65da692e0f3064507743a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libair_rt_xrossim.rtlib",
+      "bytes": 143064,
+      "sha256": "7130e6842fcbedf90a236925297a29baa8b292736767947bf69d286050961eb5"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_ios.a",
+      "bytes": 89488,
+      "sha256": "bdb5af18ef5aea4c3bf3f1fe80c98afe4edcbc403899508367195563ae9af971"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_iosmac.a",
+      "bytes": 100560,
+      "sha256": "634b9c386b5957c42787ebdb0ef5fc6dbb0232d811b1fcc2dabdae06aeb382a1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_iossim.a",
+      "bytes": 100608,
+      "sha256": "d8b7194e6d9b08d5d2d8c3dfb5608e6e190b15f8352c143ed2e5e2f0109e5b41"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_osx.a",
+      "bytes": 128816,
+      "sha256": "1b2fcf683643177b994db609f78bc7e1bd1b9244feee9fd18639cfad1280955f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_tvos.a",
+      "bytes": 89520,
+      "sha256": "88dc71b19ba4626dbd53143ffbd1ea1a96f6da85a28a149d9b55048e952a4bb5"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_tvossim.a",
+      "bytes": 100624,
+      "sha256": "c1874a26958a7056f49ba3c624279397e6ae5d94ebe299c0c26092a761991071"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_watchos.a",
+      "bytes": 91280,
+      "sha256": "3eae84d97085ad0c812cbd078c2d1fe0e22bbaaca5488d286334eae8576220e0"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_watchossim.a",
+      "bytes": 100640,
+      "sha256": "eb8227af621e57b72b50e6c57d1356a2e9ff44d43d56ac69b22a09aa150868cd"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_xros.a",
+      "bytes": 101536,
+      "sha256": "37aacdb595363cce8cf310eee38b7a01d924692f95127c742daa8d3bddc28907"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libmetal_rt_xrossim.a",
+      "bytes": 101648,
+      "sha256": "a9d3dcd7d731a378f306f46adb13fd40d3d303bdceec4836ed0e6269c41d459c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libopencl_rt_osx.a",
+      "bytes": 2389272,
+      "sha256": "593b21ac9e4e4f31922f4132c83e96e4f18248257b89a385039117258c0b2bbf"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libopencl_rt_osx_fast-relaxed-math.a",
+      "bytes": 2413888,
+      "sha256": "4220cd5fa5f5e942cdb4ca7f4f32ad2c3a9284314f3b0e987af7aae848421bfa"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_ios.rtlib",
+      "bytes": 6968,
+      "sha256": "944e4bec9e0d4d38101ef69bb34430ae1b5c26a646f3ca7bfda0462ac68f563c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_iosmac.rtlib",
+      "bytes": 7000,
+      "sha256": "f51a3bf12f474591e3e0f8b8266d24045cb4a3cf3718cb00c2dbc04dc8ced8cf"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_iossim.rtlib",
+      "bytes": 7016,
+      "sha256": "d41d0fb0e047bcf63588dfc020785bf79e5cd3fac81ae662d578f6719ff318a5"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_osx.rtlib",
+      "bytes": 6968,
+      "sha256": "f15c21daa40cbd2cbd1df4da5557a7bbacc9f4d635365101a6cc6cf8eb2f2750"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_tvos.rtlib",
+      "bytes": 6968,
+      "sha256": "3827e2f30b24408ee93147f4d46ed8b28bb4dacee5e73d0755ed1fed6ce14e47"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_tvossim.rtlib",
+      "bytes": 7016,
+      "sha256": "f839fd33e666d704e1032ac81d1c5dcd8711e1435ec7a6e5d90db4f8d6d2dd26"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_watchos.rtlib",
+      "bytes": 6968,
+      "sha256": "b78ef7c10045c66802143a1c634fb5c9f3348629f7b6732df191765ecb8607c4"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_watchossim.rtlib",
+      "bytes": 7032,
+      "sha256": "948821a0edea1a323ace8f0e5968f89a0fb1daeb1f656a9a140afad488e4446d"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_xros.rtlib",
+      "bytes": 6968,
+      "sha256": "41ac5de89b92c4689e0321ed52f214b2c3b40ee419e396c515a6156bf6460332"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libpost_mesh_dump_rt_xrossim.rtlib",
+      "bytes": 7016,
+      "sha256": "e3cc2066cbd605484c8a2165f71d2d964a27c21bb4b54a4fe5f3848d87cd2bb9"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_ios.rtlib",
+      "bytes": 243040,
+      "sha256": "0950fdeea9949953374b82b3fec6b7ccb1f2a878578101257773175ada5832c3"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_iosmac.rtlib",
+      "bytes": 244176,
+      "sha256": "96475981f84fdfeb7b62250b72565b36309dedf7debf82c70e5787d485b6ba40"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_iossim.rtlib",
+      "bytes": 244784,
+      "sha256": "ea1011a5e626a116eef71110b2b603b17abf630830bb354d5975b28db021db81"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_osx.rtlib",
+      "bytes": 243680,
+      "sha256": "8a6dde8b790c642077da0980723d23cadfad04df7dcad943feb6af58f2c3d7e1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_tvos.rtlib",
+      "bytes": 243216,
+      "sha256": "82319f96848f3c008dc13f24113e6908132d51140a5d98966fcce45419d2a52a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_tvossim.rtlib",
+      "bytes": 244912,
+      "sha256": "58e32702c2f9ca47d8a984b274c557d2f37d8fa49c7e0a3c0a1057ca5c716a33"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_watchos.rtlib",
+      "bytes": 243680,
+      "sha256": "043ec9edf04cb49ed06b6fcd9c3810a6aafafdcc87a81394ec835ccf569f2e41"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_watchossim.rtlib",
+      "bytes": 245104,
+      "sha256": "c2b6b9465484fec5cd72e17d040c35a4f06cb495414a61b1e845433b77e72b17"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_xros.rtlib",
+      "bytes": 238752,
+      "sha256": "72e7709b43f02fbcba418b1886dca64efacbc947f47cb2f93e49d2cc17e13059"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libresource_tracking_rt_xrossim.rtlib",
+      "bytes": 240416,
+      "sha256": "886140fe5aa09d094a992e713164e0a2d58f62f9bda9eff0d7bc647626ebc50a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_ios.metallib",
+      "bytes": 34340,
+      "sha256": "b5b585ce4c6b7edaf8479b20012e35ac6471e434c8910915558ad10888e48843"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_iosmac.metallib",
+      "bytes": 34468,
+      "sha256": "0e3b6eb0bffd6bf2e82cfbc4c0b416b3b4e3d3f6c61427c4b2aae929c5759dc2"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_iossim.metallib",
+      "bytes": 34404,
+      "sha256": "39bc8450e3bb7ecbce57a47d556e5a61f68ba2b106fa06a3b4543cfe574e8254"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_osx.metallib",
+      "bytes": 34436,
+      "sha256": "1c0394454eb810076a2517e4eaa09178d15559c48ed216ffa3ea328a05496730"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_ios.a",
+      "bytes": 45632,
+      "sha256": "cba724a406f0ca677d641c5b2b98b96471c95376ef4d614b4c3503234f77c437"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_iosmac.a",
+      "bytes": 45240,
+      "sha256": "2c41e7dc69bf1e514464dde5d7d57529e3b3909940f40e5d16a3be0e5c3360bc"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_iossim.a",
+      "bytes": 45712,
+      "sha256": "205dad26fd23eeda8e6f186c918e6615bcfdfbc4cdd3bf2357d6d309fe39880e"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_osx.a",
+      "bytes": 45192,
+      "sha256": "55d309907731f1dabefc767a3ae5242aa4fd2341b61a99e0cc4bc0fd2111210d"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_tvos.a",
+      "bytes": 45632,
+      "sha256": "a7e12f43566f67c12588579e54e424ef8f50a57dc8bfaffef5b90707c9005957"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_tvossim.a",
+      "bytes": 45728,
+      "sha256": "243b0e9475f603ad38fc51fa3d5fa64f2ddd12a60ea40a62b58da96539339262"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_watchos.a",
+      "bytes": 45648,
+      "sha256": "46af132e50f08c819ec6654ae85c8b04f5fbe625942ad3f3b4fb4bcda8fbce72"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_watchossim.a",
+      "bytes": 45728,
+      "sha256": "f4f1b128f1b7cba5c3108bd42cfff094368799b0901d907715eb77041050a5db"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_xros.a",
+      "bytes": 15496,
+      "sha256": "803fe96a9a06dbe38e470f50638b4b91888789ee5c0c3c18f4e688a71b62ff00"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_static_xrossim.a",
+      "bytes": 15512,
+      "sha256": "b2a46f0dfa14dae883a305fca38267628fe58459967eaf7254f7f01dae25cced"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_tvos.metallib",
+      "bytes": 34340,
+      "sha256": "c568628e18c3bc59b17b9b2b79b7d99ad3a1e419db71be24efe70311eb9d2873"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_tvossim.metallib",
+      "bytes": 34404,
+      "sha256": "ef1ea2bab446fe14b94c31a487e97398a5f91cd169172e49d74b18de6707aca8"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_watchos.metallib",
+      "bytes": 34340,
+      "sha256": "cdb0f416e8bb3684e3e7bbf81ca828b07139cc9d7a6622eb9c4b532ea44a18cd"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_watchossim.metallib",
+      "bytes": 34436,
+      "sha256": "105758b41c0aa34b4e36bd9919696c81b5b1857249db6c35ab0e2e1a3d7226c1"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_ios.a",
+      "bytes": 7384,
+      "sha256": "bcd891a19106eb4b4102fae0e4c52468b5d6d36795c342709bbafdfeda43f71f"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_iosmac.a",
+      "bytes": 7400,
+      "sha256": "1c64b1f989adcd5d9643c546037387468dc3e9039e528033b66b4400b791e670"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_iossim.a",
+      "bytes": 7416,
+      "sha256": "c7824a458815f8dff74c790907ab7285b5565b6d4cdf8b56bb7e631c1de4254e"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_osx.a",
+      "bytes": 7400,
+      "sha256": "a11641237ec896921fa80533b7eb501bd6d650b439a16baaf23fadcd2095c2ec"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_tvos.a",
+      "bytes": 7384,
+      "sha256": "7a544c5c0c00ae6f9c853fb95a97fd337b46908f9f96cbd87a688d36f16ddc58"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_tvossim.a",
+      "bytes": 7416,
+      "sha256": "a6cbfded62cb245ed9a6789394eb856148d9f2c5c2988690072c73549b7caa20"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_watchos.a",
+      "bytes": 7384,
+      "sha256": "7d9c4406c7607d52510976c81e5ac4838e491f6b951afdddc8deb61f286b6d75"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_watchossim.a",
+      "bytes": 7416,
+      "sha256": "0d7ebabf33adb416770a86e8a587f58c85e6be984ba8b2bc04de9554ac9d904c"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_xros.a",
+      "bytes": 7496,
+      "sha256": "dfe84860f1d70b91a785a101b7a95dba66676393d42c1a307532a4ce7487d538"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_workaround_xrossim.a",
+      "bytes": 7512,
+      "sha256": "35ef1f9a8c339110656ea878b7d4da616e3b8459e94fa04ab561bcbee9ba5dd2"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_xros.metallib",
+      "bytes": 17172,
+      "sha256": "21f7935915556347ccb9f3d7238b70bf72fa4084f1be864ee0f3cd82bffb4591"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/libtracepoint_rt_xrossim.metallib",
+      "bytes": 17220,
+      "sha256": "36b6dd862ec545bd88357d236ebe5ed8b70801ca0130559c81135ef6436df858"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/MTLRaytracingRuntime.rtlib",
+      "bytes": 3486872,
+      "sha256": "4ecedef6e43635a165b8dcff38955ac1a0db21f465c39503f7383b50266ee49a"
+    },
+    {
+      "path": "metal/32023/lib/clang/32023.850/lib/darwin/MTLShaderLoggingRuntime.rtlib",
+      "bytes": 26408,
+      "sha256": "187a01a36b3a335b0fb2d3f4cabd5dce7cce442ce8d33701d669e49c0ad3b32c"
+    },
+    {
+      "path": "metal/32023/lib/igc.dll",
+      "bytes": 14558672,
+      "sha256": "c4de5749dbe8416d88b0136c5dff09124513bd6d1ef4ba5062aefd696ab4e4b4"
+    },
+    {
+      "path": "metal/32023/lib/MTLIGCCompilerPlugin.dll",
+      "bytes": 149456,
+      "sha256": "66d570c1506b5ffca235ca67c08b069a26c9517b0bca24ea3a140101b9411e38"
+    },
+    {
+      "path": "metal/32023/lib/MTLPasses.dll",
+      "bytes": 295376,
+      "sha256": "9a7dcc9ba598df0212b2d3186df7030e97014933b01404f5fa57e22f61d6b085"
+    },
+    {
+      "path": "metal/32023/lib/runtime.amdil_902.builtin",
+      "bytes": 11640823,
+      "sha256": "68fdab20f42a8adc68c8d9b958eaf1bb6394914baf4274f55a1577c27418ffc3"
+    },
+    {
+      "path": "metal/32023/lib/runtime.gpuencode.split",
+      "bytes": 446806,
+      "sha256": "548cb5a43a66925eea462bcf20bf1675103897547a907c5fffed36ae5b8d8f08"
+    },
+    {
+      "path": "metal/32023/lib/runtime.igc64.split",
+      "bytes": 4679799,
+      "sha256": "1d14aead9388c475136f2f0ef7007ca525b207e23dbbc49dee6ddfa4a011fb61"
+    },
+    {
+      "path": "metal/32023/lib/wrapper-nt.dll",
+      "bytes": 178640,
+      "sha256": "d6fefc4d16d937f43cd7a86c3545c3ea8413c97f498ee75a8321a44a8f93b4d8"
+    }
+  ]
+}

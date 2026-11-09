@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseSharedLocalize LANGUAGES CXX)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(CSE_SHARED_UTIL_SOURCE "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/shared_util.cpp" CACHE FILEPATH
+    "Actual selected Counter-Strike shared utility source")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_SHARED_UTIL_SOURCE}" extract_find.py)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_find.py"
+    "${CSE_SHARED_UTIL_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/actual_find.inc" COMMAND_ERROR_IS_FATAL ANY)
+option(CSE_SHARED_LOCALIZE_SANITIZERS "Instrument the actual caller and codec" OFF)
+add_executable(shared_localize_tests localize_tests.cpp)
+target_compile_features(shared_localize_tests PRIVATE cxx_std_14)
+target_include_directories(shared_localize_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+if(MSVC)
+    target_compile_options(shared_localize_tests PRIVATE /W4 /WX /EHsc
+        "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>" "$<$<CONFIG:Debug>:/RTC1>")
+else()
+    target_compile_options(shared_localize_tests PRIVATE -Wall -Wextra -Werror -Wshorten-64-to-32
+        "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" "$<$<CONFIG:Debug>:-g>")
+    if(CSE_SHARED_LOCALIZE_SANITIZERS)
+        target_compile_options(shared_localize_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
+        target_link_options(shared_localize_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+enable_testing()
+add_test(NAME actual-shared-localization-caller COMMAND shared_localize_tests)

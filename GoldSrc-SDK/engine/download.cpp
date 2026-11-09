@@ -60,7 +60,8 @@ struct RequestContext
 
 static_assert( sizeof( RequestContext ) == 3084 );
 
-static_assert( sizeof( CUtlLinkedList<RequestContext*, unsigned short> ) == 28 );
+// Container nodes and callback-tree links are internal native storage, never HTTP/protocol records.
+static_assert(sizeof(void*) != 4 || sizeof(CUtlLinkedList<RequestContext*, unsigned short>) == 28);
 
 namespace SteamHTTPTypes
 {
@@ -527,7 +528,7 @@ public:
 using CallResultTree =
 	SteamHTTPTypes::CUtlRBTree<SteamAPICall_t, int, bool ( * )( const SteamAPICall_t&, const SteamAPICall_t& )>;
 
-static_assert( sizeof( CallResultTree ) == 36 );
+static_assert(sizeof(void*) != 4 || sizeof(CallResultTree) == 36);
 
 class DownloadManager;
 

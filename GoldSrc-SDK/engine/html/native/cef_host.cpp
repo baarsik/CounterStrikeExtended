@@ -78,6 +78,7 @@ constexpr std::size_t PixelBytes = PaintBytesPerPixel;
 // Leave room for the legacy scrollbar consumer to add a viewport extent without signed overflow.
 constexpr int MaximumGeometryExtent = std::numeric_limits<int>::max() - MaximumDimension;
 constexpr std::size_t CommandPayloadLimit = 64 * 1024 * 1024;
+constexpr std::size_t MaximumPendingBrowserCommands = 1024;
 constexpr int MouseWheelScale = 40;
 constexpr int SingleClickCount = 1;
 constexpr int DoubleClickCount = 2;
@@ -421,7 +422,11 @@ public:
         }
         browser_->GetHost()->SetFocus(!popupBrowser_);
         if (closing_) {
-            Close();
+            // A removal can arrive before asynchronous creation finishes. Closing here
+            // reenters OnBeforeClose before CEF returns from its creation callback.
+            CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<Client> client) {
+                client->Close();
+            }, CefRefPtr<Client>(this)));
         } else if (agent_.empty()) {
             agentReady_ = true;
             MaybeReady();
@@ -857,6 +862,8 @@ public:
     void Command(const Message& message);
     void Close() {
         closing_ = true;
+        pendingCommands_.clear();
+        pendingCommandBytes_ = 0;
         if (nativePopup_ == 0) {
             host_.Cancel(identifier_);
             host_.ClosePopups(identifier_);
@@ -890,6 +897,18 @@ private:
         if (nativePopup_ == 0 && initialLoaded_ && agentReady_ && !readySent_ && !closing_) {
             readySent_ = true;
             Emit(eHTMLCommands_BrowserReady);
+            // VGUI configures controls immediately after CreateBrowser. CEF creation,
+            // the initial document and the user-agent override finish asynchronously.
+            // Replay accepted commands only once all three are ready, in their original order.
+            std::deque<Message> pending;
+            pending.swap(pendingCommands_);
+            pendingCommandBytes_ = 0;
+            for (const auto& command : pending) {
+                if (closing_) {
+                    break;
+                }
+                Command(command);
+            }
         }
     }
 
@@ -997,6 +1016,8 @@ private:
     bool popupVisible_ = false;
     bool painting_ = false;
     bool paintPending_ = false;
+    std::deque<Message> pendingCommands_;
+    std::size_t pendingCommandBytes_ = 0;
     IMPLEMENT_REFCOUNTING(Client);
 };
 
@@ -1012,7 +1033,23 @@ void Client::Command(const Message& message) {
         return;
     }
 
-    if (!browser_ || closing_) {
+    if (closing_) {
+        host_.Fail("Command for a browser that is not ready");
+        return;
+    }
+
+    if (nativePopup_ == 0 && !readySent_) {
+        if (pendingCommands_.size() >= MaximumPendingBrowserCommands ||
+            message.payload.size() > CommandPayloadLimit - pendingCommandBytes_) {
+            host_.Fail("Pending browser commands exceed the bounded startup queue");
+            return;
+        }
+        pendingCommands_.push_back(message);
+        pendingCommandBytes_ += message.payload.size();
+        return;
+    }
+
+    if (!browser_) {
         host_.Fail("Command for a browser that is not ready");
         return;
     }

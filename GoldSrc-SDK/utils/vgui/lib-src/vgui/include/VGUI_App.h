@@ -62,17 +62,10 @@ public:
 	virtual void reset();
 	virtual void internalSetMouseArena( int x0, int y0, int x1, int y1, bool enabled );
 
-#if defined( _WIN32 )
-	virtual bool setRegistryString( const char* key, const char* value );
-	virtual bool getRegistryString( const char* key, char* buf, int bufLen );
-	virtual bool setRegistryInteger( const char* key, int value );
-	virtual bool getRegistryInteger( const char* key, int& value );
-#else
-	virtual int setRegistryString( const char* key, const char* value );
-	virtual int getRegistryString( const char* key, char* buf, int bufLen );
-	virtual int setRegistryInteger( const char* key, int value );
-	virtual int getRegistryInteger( const char* key, int& value );
-#endif
+    virtual bool setRegistryString(const char* key, const char* value);
+    virtual bool getRegistryString(const char* key, char* buf, int bufLen);
+    virtual bool setRegistryInteger(const char* key, int value);
+    virtual bool getRegistryInteger(const char* key, int& value);
 
 	virtual void setCursorOveride( Cursor* cursor );
 	virtual Cursor* getCursorOveride();

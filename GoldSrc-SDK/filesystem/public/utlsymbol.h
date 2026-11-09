@@ -35,6 +35,9 @@ public:
 	CUtlSymbol() : m_Id( UTL_INVAL_SYMBOL ) {}
 	CUtlSymbol( UtlSymId_t id ) : m_Id( id ) {}
 	CUtlSymbol( const char* pStr );
+
+    static void AcquireFileSystemOwner();
+    static bool ReleaseFileSystemOwner();
 	CUtlSymbol( const CUtlSymbol& sym ) : m_Id( sym.m_Id ) {}
 
 	// operator=

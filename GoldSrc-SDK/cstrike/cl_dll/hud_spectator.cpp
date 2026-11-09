@@ -330,7 +330,7 @@ int UTIL_FindEntityInMap(char * name, float * origin, float * angle)
 			strcpy (keyname, token);
 
 			// another hack to fix keynames with trailing spaces
-			n = strlen(keyname);
+			n = static_cast<int>(strlen(keyname));
 			while (n && keyname[n-1] == ' ')
 			{
 				keyname[n-1] = 0;
@@ -729,9 +729,11 @@ int CHudSpectator::Draw(float)
 		color = GetClientColor( i+1 );
 
 		// draw the players name and health underneath
-		sprintf(string, "%s", g_PlayerInfoList[i+1].name );
+        snprintf(string, sizeof(string), "%s", g_PlayerInfoList[i + 1].name);
 
-		lx = strlen(string)*3; // 3 is avg. character length :)
+        constexpr int AverageCharacterHalfWidth = 3;
+        // snprintf bounds the name to the 256-byte drawing buffer before the pixel conversion.
+        lx = static_cast<int>(strlen(string)) * AverageCharacterHalfWidth;
 
 		gEngfuncs.pfnDrawSetTextColor( color[0], color[1], color[2] );
 		DrawConsoleString( m_vPlayerPos[i][0]-lx,m_vPlayerPos[i][1], string);

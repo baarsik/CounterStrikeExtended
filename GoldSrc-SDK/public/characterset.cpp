@@ -19,13 +19,13 @@
 
 #include <cstring>
 
-void CharacterSetBuild( characterset_t* set, const char* characters )
-{
-	// Test our pointers
-	if ( !set || !characters )
-		return;
+void CharacterSetBuild(characterset_t* set, const char* characters) {
+    if (!set || !characters) {
+        return;
+    }
 
-	std::memset( set->set, 0, sizeof( set->set ) );
-	for ( const char* cursor = characters; *cursor; ++cursor )
-		set->set[*cursor] = 1;
+    std::memset(set->set, 0, sizeof(set->set));
+    for (const char* cursor = characters; *cursor; ++cursor) {
+        set->set[static_cast<unsigned char>(*cursor)] = 1;
+    }
 }

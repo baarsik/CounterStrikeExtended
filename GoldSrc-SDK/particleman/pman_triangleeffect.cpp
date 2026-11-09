@@ -1,6 +1,7 @@
 #include "pman_main.h"
 #include "pman_frustum.h"
 #include "pman_misc.h"
+#include "native_particle_phase.h"
 
 #undef vec3_t
 #include "mathlib.h"
@@ -297,9 +298,12 @@ void CCoreTriangleEffect::CalculateVelocity( float time )
 	if ( m_iCollisionFlags & TRI_SPIRAL )
 	{
 		float fastFreq = time * 5;
+        const std::int32_t addressPhase = cse::particle_memory::SpiralAddressPhase(
+            reinterpret_cast<std::uintptr_t>(this));
 
-		m_vOrigin.x = (float)( 2.0 * sin( (double)( fastFreq + (int)this ) ) + m_vVelocity.x * frametime + m_vOrigin.x );
-		m_vOrigin.y = (float)( sin( time * 7.5 + (int)this ) + m_vVelocity.y * frametime + m_vOrigin.y );
+        m_vOrigin.x = (float)(2.0 * sin((double)(fastFreq + addressPhase))
+            + m_vVelocity.x * frametime + m_vOrigin.x);
+        m_vOrigin.y = (float)(sin(time * 7.5 + addressPhase) + m_vVelocity.y * frametime + m_vOrigin.y);
 		m_vOrigin.z += m_vVelocity.z * frametime;
 	}
 	else

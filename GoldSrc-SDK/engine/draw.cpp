@@ -19,6 +19,9 @@
 
 #include <cmath>
 #include <cstdio>
+#if defined(_WIN64) || defined(__LP64__)
+#include <cstring>
+#endif
 
 static int firsttime = 1;
 static wrect_t scissor_rect;
@@ -58,8 +61,16 @@ void Draw_MiptexTexture( cachewad_t* wad, byte* data )
 
 	int pixels = texture->width * texture->height;
 	int mipPixels = pixels + ( pixels >> 4 ) + ( pixels >> 2 ) + ( pixels >> 6 );
+#if defined(_WIN64) || defined(__LP64__)
+    constexpr unsigned PaletteCountBytes = sizeof(word);
+    texture->paloffset = mipPixels + texture->offsets[0] + PaletteCountBytes;
+    word paletteColors;
+    std::memcpy(&paletteColors, data + mipPixels + sizeof(texture_t), sizeof(paletteColors));
+    int colors = paletteColors;
+#else
 	texture->paloffset = mipPixels + texture->offsets[0] + sizeof( word );
 	int colors = *(word*)( data + mipPixels + sizeof( texture_t ) );
+#endif
 	byte* palette = data + texture->paloffset;
 	if ( gfCustomBuild )
 	{

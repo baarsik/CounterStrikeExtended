@@ -6,6 +6,7 @@
 #include "../common/IManageServer.h"
 #include "../common/TextConsoleWin32.h"
 #include "../public/FileSystem.h"
+#include "../public/native_filesystem_module.h"
 #include "../public/idedicatedexports.h"
 #include "../GameUI/common/IVGuiModule.h"
 #include "../vgui2/controls/Controls.h"
@@ -467,9 +468,13 @@ int Main( int, wchar_t** )
 	}
 	Sys_Sleep = Sys_SleepMilliseconds;
 	filesystemModule = Sys_LoadModule( "filesystem_stdio.dll" );
-	filesystemFactory = Sys_GetFactory( filesystemModule );
-	if ( !filesystemFactory )
-		return -1;
+    filesystemFactory = cse::filesystem_abi::CheckedFactory(filesystemModule);
+    if (!filesystemFactory) {
+        fputs("Incompatible owned filesystem module.\n", stderr);
+        Sys_UnloadModule(filesystemModule);
+        filesystemModule = nullptr;
+        return -1;
+    }
 	pFileSystem = (IFileSystem*)filesystemFactory( "VFileSystem009", NULL );
 	if ( !pFileSystem )
 		return -1;

@@ -1,3 +1,4 @@
+/* CSE native portability: the header lookup has internal linkage under C99 inline rules. */
 
 /*-------------------------------------------------------------*/
 /*--- Private header file for the library.                  ---*/
@@ -510,7 +511,11 @@ typedef
 /*-- externs for decompression. --*/
 
 /*---------------------------------------------------*/
+#if defined(_WIN32)
 __inline__ Int32 BZ2_indexIntoF ( Int32 indx, Int32 *cftab )
+#else
+static __inline__ Int32 BZ2_indexIntoF ( Int32 indx, Int32 *cftab )
+#endif
 {
    Int32 nb, na, mid;
    nb = 0;

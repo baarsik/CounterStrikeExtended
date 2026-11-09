@@ -102,7 +102,7 @@ void StripEndNewlineFromString( char* text )
 {
 	if ( text && *text )
 	{
-		int last = strlen( text ) - 1;
+		const size_t last = strlen(text) - 1;
 		if ( text[last] == '\r' || text[last] == '\n' )
 			text[last] = 0;
 	}

@@ -5,6 +5,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
+#include <type_traits>
 
 #define A3D_REFLECTION_CHANNEL_BUDGET	32
 #define A3D_MIN_SOURCE_REFLECTIONS		4
@@ -18,12 +20,34 @@
 #define A3D_REFLECTION_OCCLUSION_BIAS	-0.35f
 #define A3D_REFLECTION_DELAY_PER_UNIT	( 1.0f / A3D_SPEED_OF_SOUND )
 
+#if UINTPTR_MAX > UINT32_MAX
+// Only AllocateReflection-owned nodes enter these lists. Caller-owned records
+// passed to InitializeReflectionSlots are never adopted or read as wrappers.
+struct A3dOwnedReflection {
+    A3dSourceReflection state;
+    A3dGeometryIdentity identity;
+};
+static_assert(std::is_standard_layout<A3dOwnedReflection>::value, "reflection wrapper layout");
+static_assert(offsetof(A3dOwnedReflection, state) == 0, "unchanged record is the first member");
+
+static A3dGeometryIdentity& ReflectionIdentity(A3dSourceReflection* reflection) {
+    return reinterpret_cast<A3dOwnedReflection*>(reflection)->identity;
+}
+#endif
+
+static bool ReflectionTagsMatch(A3dSourceReflection* first, A3dSourceReflection* second) {
+#if UINTPTR_MAX > UINT32_MAX
+    return ReflectionIdentity(first) == ReflectionIdentity(second);
+#else
+    return first->dwTag == second->dwTag;
+#endif
+}
+
 static int __cdecl CompareReflections( const void* pLeft, const void* pRight )
 {
 	A3dSourceReflection* pFirst = *(A3dSourceReflection* const*)pLeft;
 	A3dSourceReflection* pSecond = *(A3dSourceReflection* const*)pRight;
-	if ( pFirst->dwTag == pSecond->dwTag )
-	{
+    if (ReflectionTagsMatch(pFirst, pSecond)) {
 		if ( pFirst->flAudibility > pSecond->flAudibility )
 		{
 			pSecond->flAudibility = 0.0f;
@@ -149,7 +173,11 @@ static void SortReflections( A3dSourceReflection** pReflections, size_t nReflect
 
 A3dSourceReflection* CA3dSource::AllocateReflection()
 {
-	A3dSourceReflection* pReflection = (A3dSourceReflection*)calloc( 1, sizeof( A3dSourceReflection ) );
+#if UINTPTR_MAX > UINT32_MAX
+    A3dSourceReflection* pReflection = static_cast<A3dSourceReflection*>(calloc(1, sizeof(A3dOwnedReflection)));
+#else
+    A3dSourceReflection* pReflection = (A3dSourceReflection*)calloc(1, sizeof(A3dSourceReflection));
+#endif
 	pReflection->pNext = m_pReflections[m_iReflectionBuffer];
 	m_pReflections[m_iReflectionBuffer] = pReflection;
 	m_nReflections[m_iReflectionBuffer]++;
@@ -184,6 +212,9 @@ void CA3dSource::AddReflection( DWORD dwTag, const float direction[3], float flG
 	m_pA3d->GetOutputGain( &flOutputGain );
 	A3dSourceReflection* pReflection = AllocateReflection();
 	pReflection->dwTag = dwTag;
+#if UINTPTR_MAX > UINT32_MAX
+    ReflectionIdentity(pReflection) = A3dGeometryIdentity::PublicTag(dwTag);
+#endif
 	pReflection->iSlot = 0;
 	memcpy( pReflection->vPosition, direction, sizeof( pReflection->vPosition ) );
 	Vector_ToSphericalRadians( pReflection->vPosition, pReflection->vSpherical );
@@ -241,6 +272,14 @@ void CA3dSource::AddReflection( DWORD dwTag, const float direction[3], float flG
 	if ( pReflection->flEarDelay[1] > m_pA3d->m_flMaxReflectionDelayTime )
 		pReflection->flEarDelay[1] = m_pA3d->m_flMaxReflectionDelayTime;
 }
+
+#if UINTPTR_MAX > UINT32_MAX
+void CA3dSource::AddGeometryReflection(A3dGeometryIdentity identity, DWORD legacyTag, const float direction[3],
+    float gain, const float material[6]) {
+    AddReflection(legacyTag, direction, gain, material);
+    ReflectionIdentity(m_pReflections[m_iReflectionBuffer]) = identity;
+}
+#endif
 
 void CA3dSource::UpdateReflections( int nSources )
 {
@@ -329,8 +368,7 @@ void CA3dSource::PruneReflections( int nSources )
 		BOOL bFound = FALSE;
 		while ( pReflection && !bFound )
 		{
-			if ( pReflection->dwTag == pReflections[i]->dwTag )
-			{
+            if (ReflectionTagsMatch(pReflection, pReflections[i])) {
 				pReflections[i]->iSlot = pReflection->iSlot;
 				dwUsedSlots |= 1U << ( pReflection->iSlot & A3D_REFLECTION_SLOT_MASK );
 				pReflections[i]->bNewSlot = FALSE;

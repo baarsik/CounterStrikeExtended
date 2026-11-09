@@ -1470,13 +1470,12 @@ void CL_PrintEntity( cl_entity_t* )
 {
 }
 
-void CL_TouchLight( dlight_t* dl )
-{
-	int i;
-
-	i = dl - cl_dlights;
-	if ( (unsigned int)i < MAX_DLIGHTS )
-		r_dlightchanged |= 1 << i;
+void CL_TouchLight(dlight_t* dl) {
+    const auto offset = dl - cl_dlights;
+    if (offset >= 0 && offset < MAX_DLIGHTS) {
+        const int index = static_cast<int>(offset);
+        r_dlightchanged |= 1 << index;
+    }
 }
 
 void CL_AddModelEffects( int keynum, cl_entity_t* ent, model_s* model )

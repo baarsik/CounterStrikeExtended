@@ -11,6 +11,7 @@
 #include "tier0/memalloc.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <map>
 #include <stdlib.h>
 #include <string.h>
@@ -72,12 +73,21 @@ CVProfile g_VProfCurrentProfile;
 CVProfile g_VProfCurrentProfile __attribute__( ( init_priority( 200 ) ) );
 #endif
 
+static void* EncodeThreadSerial(int serial) {
+    static_assert(sizeof(serial) == sizeof(std::uint32_t), "Profiler serials require 32-bit int storage");
+    return reinterpret_cast<void*>(static_cast<std::uintptr_t>(static_cast<std::uint32_t>(serial)));
+}
+
+static std::uint32_t DecodeThreadSerial(void* token) {
+    return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(token));
+}
+
 void CVProfile::Start()
 {
 	if ( ++m_enabled == 1 )
 	{
 		m_Root.EnterScope();
-		m_iThreadLocalSerial.Set( (void*)++m_iMainThreadSerial );
+        m_iThreadLocalSerial.Set(EncodeThreadSerial(++m_iMainThreadSerial));
 	}
 }
 
@@ -132,7 +142,8 @@ void CVProfile::EnterScope( const char* pName, int detailLevel, const char* pBud
 void CVProfile::EnterScope( const char* pName, int detailLevel, const char* pBudgetGroup, bool, int budgetFlags )
 {
 	if ( ( m_enabled || !m_fAtRoot )
-		&& ( !m_bThreadSafe || (int)m_iThreadLocalSerial.Get() == m_iMainThreadSerial ) )
+        && (!m_bThreadSafe || DecodeThreadSerial(m_iThreadLocalSerial.Get())
+            == static_cast<std::uint32_t>(m_iMainThreadSerial)))
 	{
 		if ( pName != m_pCurNode->GetName() )
 			m_pCurNode = m_pCurNode->GetSubNode( pName, detailLevel, pBudgetGroup, budgetFlags );
@@ -146,7 +157,8 @@ void CVProfile::EnterScope( const char* pName, int detailLevel, const char* pBud
 void CVProfile::ExitScope()
 {
 	if ( ( !m_fAtRoot || m_enabled )
-		&& ( !m_bThreadSafe || (int)m_iThreadLocalSerial.Get() == m_iMainThreadSerial ) )
+        && (!m_bThreadSafe || DecodeThreadSerial(m_iThreadLocalSerial.Get())
+            == static_cast<std::uint32_t>(m_iMainThreadSerial)))
 	{
 		if ( m_pCurNode->ExitScope() )
 			m_pCurNode = m_pCurNode->GetParent();

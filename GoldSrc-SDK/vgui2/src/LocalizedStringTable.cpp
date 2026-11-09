@@ -15,14 +15,14 @@
 #include "platform.h"
 #include "KeyValues.h"
 #include "UnicodeFileHelpers.h"
-#include "filesystem.h"
+#include "FileSystem.h"
 #include "vgui/ISurface.h"
 #include "vgui/ISystem.h"
 #include "vgui/IVGui.h"
 #include "vgui_internal.h"
 
 #ifndef _WIN32
-#include <iconv.h>
+#include "../../common/legacy_text_encoding.h"
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,32 +117,8 @@ int Q_UCS2ToUTF8( const ucs2* pUCS2, int cubSrcInBytes, char* pUTF8, int cubDest
 	pUTF8[cubDestSizeInBytes - 1] = 0;
 	return result;
 #else
-	char* pIn;
-	char* pOut;
-	size_t nLenUnicode;
-	size_t nMaxUTF8;
-	iconv_t cd;
-	int result;
-
-	*pUTF8 = 0;
-	nMaxUTF8 = (size_t)cubDestSizeInBytes;
-	pOut = pUTF8;
-	cd = iconv_open( "UTF-8", "UCS-2LE" );
-	nLenUnicode = (size_t)cubSrcInBytes;
-	pIn = (char*)pUCS2;
-
-	if ( cd != NULL )
-	{
-		result = (int)iconv( cd, &pIn, &nLenUnicode, &pOut, &nMaxUTF8 );
-		iconv_close( cd );
-	}
-	else
-	{
-		result = -1;
-	}
-
-	pUTF8[cubDestSizeInBytes - 1] = 0;
-	return result;
+    (void)cubSrcInBytes;
+    return cse::legacy_text::WideCellsToUtf8(pUCS2, pUTF8, cubDestSizeInBytes, true);
 #endif
 }
 
@@ -487,18 +463,7 @@ int CLocalizedStringTable::ConvertANSIToUnicode( const char* ansi, wchar_t* unic
 	unicode[unicodeBufferSizeInBytes / sizeof( wchar_t ) - 1] = 0;
 	return result;
 #else
-	unsigned int maxChars;
-	int result;
-
-	if ( !ansi || !unicode )
-	{
-		return -1;
-	}
-
-	maxChars = (unsigned int)unicodeBufferSizeInBytes >> 2;
-	result = (int)mbstowcs( unicode, ansi, maxChars );
-	unicode[maxChars - 1] = 0;
-	return result;
+    return cse::legacy_text::Utf8ToWideCells(ansi, unicode, unicodeBufferSizeInBytes);
 #endif
 }
 
@@ -511,16 +476,7 @@ int CLocalizedStringTable::ConvertUnicodeToANSI( const wchar_t* unicode, char* a
 	ansi[ansiBufferSize - 1] = 0;
 	return result;
 #else
-	int result;
-
-	if ( !ansi || !unicode )
-	{
-		return -1;
-	}
-
-	result = (int)wcstombs( ansi, unicode, ansiBufferSize );
-	ansi[ansiBufferSize - 1] = 0;
-	return result;
+    return cse::legacy_text::WideCellsToUtf8(unicode, ansi, ansiBufferSize);
 #endif
 }
 
@@ -699,77 +655,94 @@ void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicode
 //-----------------------------------------------------------------------------
 // Purpose: saves the entire contents of the token tree to the file
 //-----------------------------------------------------------------------------
-bool CLocalizedStringTable::SaveToFile( IFileSystem* fileSystem, const char* szFileName )
-{
-	static wchar_t unicodeString[1024];
-	static const char* startStr = "\"lang\"\r\n{\r\n\"Language\" \"English\"\r\n\"Tokens\"\r\n{\r\n";
-	static const char* endStr = "}\r\n}\r\n";
-	FileHandle_t file;
-	CUtlSymbol fileSymbol;
-	unsigned short marker;
-	wchar_t unicodeQuote;
-	wchar_t unicodeCR;
-	wchar_t unicodeNewline;
-	wchar_t unicodeTab;
-	StringIndex_t idx;
-	int strLength;
+namespace {
 
-	file = fileSystem->Open( szFileName, "wb", NULL );
-	if ( !file )
-	{
-		return false;
-	}
+// Localization resources are UTF-16LE on disk, independently of the host wchar_t width.
+bool WriteLocalizationUTF16(IFileSystem* fileSystem, FileHandle_t file, const wchar_t* text,
+    bool writeTerminator = false) {
+    constexpr size_t WriteBufferBytes = 1024;
+    unsigned char bytes[WriteBufferBytes];
+    size_t used = 0;
+    const auto flush = [&]() {
+        const int count = static_cast<int>(used); // Bounded by WriteBufferBytes, never by the string length.
+        const bool success = count == 0 || fileSystem->Write(bytes, count, file) == count;
+        used = 0;
+        return success;
+    };
+    const auto writeUnit = [&](unsigned int unit) {
+        if (used == sizeof(bytes) && !flush()) {
+            return false;
+        }
+        constexpr unsigned int ByteMask = 0xFF;
+        constexpr unsigned int BitsPerByte = 8;
+        bytes[used++] = static_cast<unsigned char>(unit & ByteMask);
+        bytes[used++] = static_cast<unsigned char>((unit >> BitsPerByte) & ByteMask);
+        return true;
+    };
+    constexpr unsigned int MaximumUTF16Unit = 0xFFFF;
+    constexpr unsigned int MaximumUnicodeScalar = 0x10FFFF;
+    constexpr unsigned int SupplementaryBase = 0x10000;
+    constexpr unsigned int SurrogatePayloadBits = 10;
+    constexpr unsigned int SurrogatePayloadMask = 0x3FF;
+    constexpr unsigned int HighSurrogateBase = 0xD800;
+    constexpr unsigned int LowSurrogateBase = 0xDC00;
+    while (*text) {
+        const unsigned int value = static_cast<unsigned int>(*text++);
+        if (value <= MaximumUTF16Unit) {
+            // Keep existing UTF-16 surrogate units verbatim, including the Windows wchar_t representation.
+            if (!writeUnit(value)) {
+                return false;
+            }
+        } else if (value <= MaximumUnicodeScalar) {
+            const unsigned int payload = value - SupplementaryBase;
+            if (!writeUnit(HighSurrogateBase + (payload >> SurrogatePayloadBits))
+                || !writeUnit(LowSurrogateBase + (payload & SurrogatePayloadMask))) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    if (writeTerminator && !writeUnit(0)) {
+        return false;
+    }
+    return flush();
+}
 
-	fileSymbol = CUtlSymbol( szFileName );
-	marker = 0xFEFF;
-	fileSystem->Write( &marker, sizeof( marker ), file );
+}
 
-	strLength = ConvertANSIToUnicode( startStr, unicodeString, (int)sizeof( unicodeString ) );
-	if ( !strLength )
-	{
-		return false;
-	}
-
-	fileSystem->Write( unicodeString, wcslen( unicodeString ) * sizeof( wchar_t ), file );
-
-	unicodeQuote = L'\"';
-	unicodeCR = L'\r';
-	unicodeNewline = L'\n';
-	unicodeTab = L'\t';
-
-	// write out all the key/value pairs
-	for ( idx = GetFirstStringIndex(); idx != INVALID_LOCALIZE_STRING_INDEX; idx = GetNextStringIndex( idx ) )
-	{
-		const char* name;
-		wchar_t* value;
-
-		if ( !( fileSymbol == m_Lookup[idx].filename ) )
-		{
-			continue;
-		}
-
-		name = GetNameByIndex( idx );
-		value = GetValueByIndex( idx );
-		ConvertANSIToUnicode( name, unicodeString, (int)sizeof( unicodeString ) );
-
-		fileSystem->Write( &unicodeTab, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeQuote, sizeof( wchar_t ), file );
-		fileSystem->Write( unicodeString, wcslen( unicodeString ) * sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeQuote, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeTab, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeTab, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeQuote, sizeof( wchar_t ), file );
-		fileSystem->Write( value, wcslen( value ) * sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeQuote, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeCR, sizeof( wchar_t ), file );
-		fileSystem->Write( &unicodeNewline, sizeof( wchar_t ), file );
-	}
-
-	// write end string
-	strLength = ConvertANSIToUnicode( endStr, unicodeString, (int)sizeof( unicodeString ) );
-	fileSystem->Write( unicodeString, strLength * sizeof( wchar_t ), file );
-	fileSystem->Close( file );
-	return true;
+bool CLocalizedStringTable::SaveToFile(IFileSystem* fileSystem, const char* szFileName) {
+    FileHandle_t file = fileSystem->Open(szFileName, "wb", NULL);
+    if (!file) {
+        return false;
+    }
+    const CUtlSymbol fileSymbol(szFileName);
+    const unsigned char marker[] = {0xFF, 0xFE};
+    bool success = fileSystem->Write(marker, sizeof(marker), file) == sizeof(marker)
+        && WriteLocalizationUTF16(fileSystem, file,
+            L"\"lang\"\r\n{\r\n\"Language\" \"English\"\r\n\"Tokens\"\r\n{\r\n");
+    for (StringIndex_t idx = GetFirstStringIndex(); success && idx != INVALID_LOCALIZE_STRING_INDEX;
+        idx = GetNextStringIndex(idx)) {
+        if (!(fileSymbol == m_Lookup[idx].filename)) {
+            continue;
+        }
+        wchar_t unicodeName[1024];
+        const char* name = GetNameByIndex(idx);
+        const int result = ConvertANSIToUnicode(name, unicodeName, sizeof(unicodeName));
+        if (result < 0 || (result == 0 && *name)) {
+            success = false;
+            break;
+        }
+        success = WriteLocalizationUTF16(fileSystem, file, L"\t\"")
+            && WriteLocalizationUTF16(fileSystem, file, unicodeName)
+            && WriteLocalizationUTF16(fileSystem, file, L"\"\t\t\"")
+            && WriteLocalizationUTF16(fileSystem, file, GetValueByIndex(idx))
+            && WriteLocalizationUTF16(fileSystem, file, L"\"\r\n");
+    }
+    // The legacy Windows envelope includes the terminating UTF-16 zero after the final braces.
+    success = success && WriteLocalizationUTF16(fileSystem, file, L"}\r\n}\r\n", true);
+    fileSystem->Close(file);
+    return success;
 }
 
 void CLocalizedStringTable::AddString( const char* pString, wchar_t* pValue, const char* fileName )

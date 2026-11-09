@@ -1,11 +1,16 @@
 #include "common/common.h"
 
-#include "FileSystem.h"
+#include "filesystem.h"
 #include "const.h"
 #include "../engine/utlbuffer.h"
 #include "vgui_controls/Controls.h"
 
+#if defined(_WIN32)
 #include <malloc.h>
+#else
+#include <alloca.h>
+#define _alloca alloca
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

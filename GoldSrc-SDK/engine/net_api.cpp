@@ -24,7 +24,8 @@ typedef struct net_api_query_s
 	net_api_response_func_t callback;
 } net_api_query_t;
 
-static_assert( sizeof( net_api_query_t ) == 56 );
+// Pending-query ownership and callbacks are native; netadr_t and packet codecs retain their own widths.
+static_assert(sizeof(void*) != 4 || sizeof(net_api_query_t) == 56);
 
 constexpr int NETAPI_RESPONSE_SIZE = 2048;
 

@@ -46,7 +46,11 @@ void LabelSliderCombo::UpdateTextEntry( bool triggerChangeMessage )
 	if ( triggerChangeMessage )
 		PostActionSignal( new KeyValues( "ControlModified" ) );
 	wchar_t text[64];
+#if defined(_WIN32)
 	swprintf( text, sizeof( text ) / sizeof( text[0] ), L"%d", value );
+#else
+    _snwprintf( text, sizeof( text ) / sizeof( text[0] ), L"%d", value );
+#endif
 	if ( m_pTextEntry )
 	{
 		m_pTextEntry->SetText( text );

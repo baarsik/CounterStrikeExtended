@@ -18,6 +18,7 @@
     <SourceDirectory>cstrike</SourceDirectory>
     <BinaryDirectory>dlls</BinaryDirectory>
     <TargetName>mp</TargetName>
+    <CseNativeModuleAliases>cs</CseNativeModuleAliases>
   </PropertyGroup>
   <Import Project="VisualStudio2026.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

@@ -205,7 +205,22 @@ CSmallBlockHeap::CSmallBlockHeap()
 		if ( i % nGroupSize == 0 )
 		{
 			nBlockSize += nGroupSize * SMALL_BLOCK_ALIGNMENT;
+#if defined(_WIN64)
+            // Free blocks hold native pointers, and Windows native heap storage is
+            // MEMORY_ALLOCATION_ALIGNMENT-aligned. Keep the original lookup buckets
+            // and reserve regions, rounding only their private storage stride.
+            constexpr size_t StorageAlignment = MEMORY_ALLOCATION_ALIGNMENT;
+            static_assert(StorageAlignment >= sizeof(CSmallBlockPool::FreeBlock_t),
+                "Small blocks must contain their full native free-list link");
+            static_assert((StorageAlignment & (StorageAlignment - 1)) == 0,
+                "Native small-block alignment must be a power of two");
+            static_assert(MAX_SMALL_BLOCK_SIZE % StorageAlignment == 0,
+                "The largest pool must retain its existing capacity");
+            const size_t storageSize = (nBlockSize + StorageAlignment - 1) & ~(StorageAlignment - 1);
+            m_Pools[iCurPool].Init(storageSize, m_pBase + iCurPool * POOL_RESERVE_SIZE);
+#else
 			m_Pools[iCurPool].Init( nBlockSize, m_pBase + iCurPool * POOL_RESERVE_SIZE );
+#endif
 			++iCurPool;
 		}
 		m_PoolLookup[i] = &m_Pools[iCurPool - 1];

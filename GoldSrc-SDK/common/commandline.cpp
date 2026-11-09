@@ -17,6 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#if !defined(_WIN32)
+#include <stdexcept>
+#endif
+
 #if defined( _WIN32 )
 #include <windows.h>
 #endif
@@ -64,31 +68,45 @@ CCommandLine::~CCommandLine()
 }
 
 #if !defined( _WIN32 )
-void CCommandLine::CreateCmdLine( int argc, const char** argv )
-{
-	char szFull[COMMAND_LINE_SIZE];
-	szFull[0] = '\0';
+void CCommandLine::CreateCmdLine(int argc, const char** argv) {
+    constexpr size_t PayloadLimit = COMMAND_LINE_SIZE - 1;
+    constexpr size_t QuoteBytes = 2;
+    constexpr size_t SeparatorBytes = 1;
+    size_t encodedLength = 0;
 
-	for ( int i = 0; i < argc; ++i )
-	{
-		if ( strchr( argv[i], ' ' ) )
-		{
-			strcat( szFull, "\"" );
-			strncat( szFull, argv[i], sizeof( szFull ) );
-			strcat( szFull, "\"" );
-		}
-		else
-		{
-			strncat( szFull, argv[i], sizeof( szFull ) );
-		}
+    // Validate the legacy encoding before replacing the current command line.
+    for (int index = 0; index < argc; ++index) {
+        const char* argument = argv[index];
+        const size_t argumentLength = strlen(argument);
+        const bool quoted = strchr(argument, ' ') != nullptr;
+        const size_t overhead = (index > 0 ? SeparatorBytes : 0) + (quoted ? QuoteBytes : 0);
+        if (overhead > PayloadLimit - encodedLength ||
+            argumentLength > PayloadLimit - encodedLength - overhead) {
+            throw std::length_error("Command line exceeds 4095 bytes");
+        }
+        encodedLength += overhead + argumentLength;
+    }
 
-		strcat( szFull, " " );
-	}
-
-	if ( argc > 0 )
-		szFull[strlen( szFull ) - 1] = '\0';
-
-	CreateCmdLine( szFull );
+    char commandLine[COMMAND_LINE_SIZE];
+    char* output = commandLine;
+    for (int index = 0; index < argc; ++index) {
+        const char* argument = argv[index];
+        const size_t argumentLength = strlen(argument);
+        const bool quoted = strchr(argument, ' ') != nullptr;
+        if (index > 0) {
+            *output++ = ' ';
+        }
+        if (quoted) {
+            *output++ = '"';
+        }
+        memcpy(output, argument, argumentLength);
+        output += argumentLength;
+        if (quoted) {
+            *output++ = '"';
+        }
+    }
+    *output = '\0';
+    CreateCmdLine(commandLine);
 }
 #endif
 

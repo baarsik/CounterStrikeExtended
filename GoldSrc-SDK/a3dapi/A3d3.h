@@ -272,6 +272,12 @@ private:
 	friend class CA3dList;
 	friend class CA3dSource;
 	friend class CA3dScene;
+#if UINTPTR_MAX > UINT32_MAX
+    friend class CA3dGeometryFace;
+
+    void TagOwnedPolygon(const a3d_polygon_t* polygon);
+    A3dGeometryIdentity m_PrimitiveIdentity;
+#endif
 
 	A3DVAL				m_flFrameTime;
 	DWORD				m_dwCompatValue1000;

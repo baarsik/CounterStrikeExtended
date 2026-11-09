@@ -1,207 +1,11 @@
 # Generated from swds/swds.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(swds SHARED "swds")
-target_sources(swds PRIVATE
-  "${CSE_SDK_DIR}/common/steam_service.cpp"
-  "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
-  "${CSE_SDK_DIR}/engine/bitmap_win.cpp"
-  "${CSE_SDK_DIR}/engine/buildnum.cpp"
-  "${CSE_SDK_DIR}/engine/cd.cpp"
-  "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp"
-  "${CSE_SDK_DIR}/engine/mpg123_music.cpp"
-  "${CSE_SDK_DIR}/engine/cdll_exp.cpp"
-  "${CSE_SDK_DIR}/engine/cdll_int.cpp"
-  "${CSE_SDK_DIR}/engine/chase.cpp"
-  "${CSE_SDK_DIR}/engine/CircularBuffer.cpp"
-  "${CSE_SDK_DIR}/engine/cl_demo.cpp"
-  "${CSE_SDK_DIR}/engine/cl_draw.cpp"
-  "${CSE_SDK_DIR}/engine/cl_ents.cpp"
-  "${CSE_SDK_DIR}/engine/cl_extrap.cpp"
-  "${CSE_SDK_DIR}/engine/cl_main.cpp"
-  "${CSE_SDK_DIR}/engine/cl_parse.cpp"
-  "${CSE_SDK_DIR}/engine/cl_parsefn.cpp"
-  "${CSE_SDK_DIR}/engine/cl_pmove.cpp"
-  "${CSE_SDK_DIR}/engine/cl_pred.cpp"
-  "${CSE_SDK_DIR}/engine/cl_spectator.cpp"
-  "${CSE_SDK_DIR}/engine/cl_tent.cpp"
-  "${CSE_SDK_DIR}/engine/cmd.cpp"
-  "${CSE_SDK_DIR}/engine/cmodel.cpp"
-  "${CSE_SDK_DIR}/engine/com_custom.cpp"
-  "${CSE_SDK_DIR}/engine/console.cpp"
-  "${CSE_SDK_DIR}/engine/crc.cpp"
-  "${CSE_SDK_DIR}/engine/cvar.cpp"
-  "${CSE_SDK_DIR}/engine/czmodelcheck.cpp"
-  "${CSE_SDK_DIR}/engine/decals.cpp"
-  "${CSE_SDK_DIR}/engine/delta.cpp"
-  "${CSE_SDK_DIR}/engine/DemoPlayerWrapper.cpp"
-  "${CSE_SDK_DIR}/engine/DetailTexture.cpp"
-  "${CSE_SDK_DIR}/engine/download.cpp"
-  "${CSE_SDK_DIR}/engine/draw.cpp"
-  "${CSE_SDK_DIR}/engine/d_edge.cpp"
-  "${CSE_SDK_DIR}/engine/d_fill.cpp"
-  "${CSE_SDK_DIR}/engine/d_init.cpp"
-  "${CSE_SDK_DIR}/engine/d_modech.cpp"
-  "${CSE_SDK_DIR}/engine/d_part.cpp"
-  "${CSE_SDK_DIR}/engine/d_polyse.cpp"
-  "${CSE_SDK_DIR}/engine/d_scan.cpp"
-  "${CSE_SDK_DIR}/engine/d_sprite.cpp"
-  "${CSE_SDK_DIR}/engine/d_surf.cpp"
-  "${CSE_SDK_DIR}/engine/d_vars.cpp"
-  "${CSE_SDK_DIR}/engine/eventapi.cpp"
-  "${CSE_SDK_DIR}/engine/filesystem.cpp"
-  "${CSE_SDK_DIR}/engine/filesystem_internal.cpp"
-  "${CSE_SDK_DIR}/engine/hashpak.cpp"
-  "${CSE_SDK_DIR}/engine/host.cpp"
-  "${CSE_SDK_DIR}/engine/host_cmd.cpp"
-  "${CSE_SDK_DIR}/engine/hud.cpp"
-  "${CSE_SDK_DIR}/engine/info.cpp"
-  "${CSE_SDK_DIR}/engine/interface.cpp"
-  "${CSE_SDK_DIR}/engine/ipratelimit.cpp"
-  "${CSE_SDK_DIR}/engine/ipratelimitWrapper.cpp"
-  "${CSE_SDK_DIR}/engine/keys.cpp"
-  "${CSE_SDK_DIR}/engine/KeyValues.cpp"
-  "${CSE_SDK_DIR}/engine/LoadBlob.cpp"
-  "${CSE_SDK_DIR}/engine/l_studio.cpp"
-  "${CSE_SDK_DIR}/engine/mathlib.cpp"
-  "${CSE_SDK_DIR}/engine/mem.cpp"
-  "${CSE_SDK_DIR}/engine/MemPool.cpp"
-  "${CSE_SDK_DIR}/engine/model.cpp"
-  "${CSE_SDK_DIR}/engine/module.cpp"
-  "${CSE_SDK_DIR}/engine/net_api.cpp"
-  "${CSE_SDK_DIR}/engine/net_chan.cpp"
-  "${CSE_SDK_DIR}/engine/net_ws.cpp"
-  "${CSE_SDK_DIR}/engine/network_worker.cpp"
-  "${CSE_SDK_DIR}/engine/nonintel.cpp"
-  "${CSE_SDK_DIR}/engine/pmove.cpp"
-  "${CSE_SDK_DIR}/engine/pmovedbg.cpp"
-  "${CSE_SDK_DIR}/engine/pmovetst.cpp"
-  "${CSE_SDK_DIR}/engine/pr_cmds.cpp"
-  "${CSE_SDK_DIR}/engine/pr_edict.cpp"
-  "${CSE_SDK_DIR}/engine/registry.cpp"
-  "${CSE_SDK_DIR}/engine/r_aclip.cpp"
-  "${CSE_SDK_DIR}/engine/r_alias.cpp"
-  "${CSE_SDK_DIR}/engine/r_bsp.cpp"
-  "${CSE_SDK_DIR}/engine/r_draw.cpp"
-  "${CSE_SDK_DIR}/engine/r_edge.cpp"
-  "${CSE_SDK_DIR}/engine/r_efrag.cpp"
-  "${CSE_SDK_DIR}/engine/r_efx.cpp"
-  "${CSE_SDK_DIR}/engine/r_light.cpp"
-  "${CSE_SDK_DIR}/engine/r_main.cpp"
-  "${CSE_SDK_DIR}/engine/r_misc.cpp"
-  "${CSE_SDK_DIR}/engine/r_part.cpp"
-  "${CSE_SDK_DIR}/engine/r_sky.cpp"
-  "${CSE_SDK_DIR}/engine/r_sprite.cpp"
-  "${CSE_SDK_DIR}/engine/r_studio.cpp"
-  "${CSE_SDK_DIR}/engine/r_surf.cpp"
-  "${CSE_SDK_DIR}/engine/r_trans.cpp"
-  "${CSE_SDK_DIR}/engine/r_triangle.cpp"
-  "${CSE_SDK_DIR}/engine/r_vars.cpp"
-  "${CSE_SDK_DIR}/engine/screen.cpp"
-  "${CSE_SDK_DIR}/engine/Sequence.cpp"
-  "${CSE_SDK_DIR}/engine/snd_dma.cpp"
-  "${CSE_SDK_DIR}/engine/snd_mem.cpp"
-  "${CSE_SDK_DIR}/engine/snd_mix.cpp"
-  "${CSE_SDK_DIR}/engine/snd_sdl.cpp"
-  "${CSE_SDK_DIR}/engine/snd_win.cpp"
-  "${CSE_SDK_DIR}/engine/steamid.cpp"
-  "${CSE_SDK_DIR}/engine/sv_log.cpp"
-  "${CSE_SDK_DIR}/engine/sv_main.cpp"
-  "${CSE_SDK_DIR}/engine/sv_move.cpp"
-  "${CSE_SDK_DIR}/engine/sv_phys.cpp"
-  "${CSE_SDK_DIR}/engine/sv_pmove.cpp"
-  "${CSE_SDK_DIR}/engine/sv_remoteaccess.cpp"
-  "${CSE_SDK_DIR}/engine/sv_secure.cpp"
-  "${CSE_SDK_DIR}/engine/sv_steam3.cpp"
-  "${CSE_SDK_DIR}/engine/sv_upld.cpp"
-  "${CSE_SDK_DIR}/engine/sv_user.cpp"
-  "${CSE_SDK_DIR}/engine/SystemWrapper.cpp"
-  "${CSE_SDK_DIR}/engine/sys_dll.cpp"
-  "${CSE_SDK_DIR}/engine/sys_dll2.cpp"
-  "${CSE_SDK_DIR}/engine/sys_engine.cpp"
-  "${CSE_SDK_DIR}/engine/sys_getmodes.cpp"
-  "${CSE_SDK_DIR}/engine/sys_sdlwind.cpp"
-  "${CSE_SDK_DIR}/engine/textures.cpp"
-  "${CSE_SDK_DIR}/engine/thread.cpp"
-  "${CSE_SDK_DIR}/engine/tmessage.cpp"
-  "${CSE_SDK_DIR}/engine/traceinit.cpp"
-  "${CSE_SDK_DIR}/engine/unicode_strtools.cpp"
-  "${CSE_SDK_DIR}/engine/utlbuffer.cpp"
-  "${CSE_SDK_DIR}/engine/utlsymbol.cpp"
-  "${CSE_SDK_DIR}/engine/vgui2/BaseUISurface.cpp"
-  "${CSE_SDK_DIR}/engine/vgui2/BaseUISurface_Font.cpp"
-  "${CSE_SDK_DIR}/engine/vgui2/BaseUI_Interface.cpp"
-  "${CSE_SDK_DIR}/engine/vgui2/FontTextureCache.cpp"
-  "${CSE_SDK_DIR}/engine/vgui2/text_draw.cpp"
-  "${CSE_SDK_DIR}/engine/vgui_EngineSurfaceSW.cpp"
-  "${CSE_SDK_DIR}/engine/vgui_int.cpp"
-  "${CSE_SDK_DIR}/engine/vgui_intwrap.cpp"
-  "${CSE_SDK_DIR}/engine/vgui_intwrap2.cpp"
-  "${CSE_SDK_DIR}/engine/vid_win.cpp"
-  "${CSE_SDK_DIR}/engine/view.cpp"
-  "${CSE_SDK_DIR}/engine/voice.cpp"
-  "${CSE_SDK_DIR}/engine/voice_gain.cpp"
-  "${CSE_SDK_DIR}/engine/voice_mixer_controls.cpp"
-  "${CSE_SDK_DIR}/engine/voice_record_dsound.cpp"
-  "${CSE_SDK_DIR}/engine/voice_record_wavein.cpp"
-  "${CSE_SDK_DIR}/engine/voice_sound_engine_interface.cpp"
-  "${CSE_SDK_DIR}/engine/voice_wavefile.cpp"
-  "${CSE_SDK_DIR}/engine/wad.cpp"
-  "${CSE_SDK_DIR}/engine/webm_video.cpp"
-  "${CSE_SDK_DIR}/engine/world.cpp"
-  "${CSE_SDK_DIR}/engine/yuv2rgb.cpp"
-  "${CSE_SDK_DIR}/engine/zone.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/AnimatingImagePanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/BitmapImagePanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/BuildGroup.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/BuildModeDialog.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Button.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/CheckButton.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ComboBox.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Divider.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/EditablePanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/FocusNavGroup.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Frame.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/HTML.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Image.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ImageList.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ImagePanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Label.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Menu.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/MenuButton.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/MenuItem.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/MessageBox.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Panel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/PanelListPanel.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ProgressBar.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/QueryBox.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/RadioButton.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/RichText.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ScrollBar.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ScrollBarSlider.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/ToggleButton.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/Tooltip.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/URLLabel.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/FontAmalgam.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/FontManager.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/linuxfont.cpp"
-  "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/vgui_key_translation.cpp"
-  "${CSE_SDK_DIR}/common/ObjectList.cpp"
-  "${CSE_SDK_DIR}/common/TokenLine.cpp"
-  "${CSE_SDK_DIR}/engine/common.cpp"
-  "${CSE_SDK_DIR}/engine/controls.cpp"
-  "${CSE_SDK_DIR}/vgui2/controls/controls.cpp"
-  "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp"
-  "${CSE_SDK_DIR}/engine/engine.rc"
-)
-if(APPLE)
-  target_sources(swds PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native/MacFontDiscovery.cpp")
-  cse_link_native_font_services(swds)
-endif()
+include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
+if(MSVC)
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
-target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/arch:SSE2>")
+target_compile_options(swds PRIVATE "$<$<AND:$<AND:$<CONFIG:Debug>,$<STREQUAL:${CSE_TARGET_ARCH},x86>>,$<COMPILE_LANGUAGE:C,CXX>>:/arch:SSE2>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Zi>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/D_MBCS>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/MP2>")
@@ -212,8 +16,8 @@ target_compile_definitions(swds PRIVATE "$<$<CONFIG:Debug>:SW_RENDERER>")
 target_compile_definitions(swds PRIVATE "$<$<CONFIG:Debug>:_CRT_SECURE_NO_WARNINGS>")
 target_compile_definitions(swds PRIVATE "$<$<CONFIG:Debug>:LINK_MPG123_DLL>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
-target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include>")
-target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm>")
+cse_target_dependency_include(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_target_dependency_include(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cl_dll>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
@@ -225,7 +29,7 @@ target_link_options(swds PRIVATE "$<$<CONFIG:Debug>:/WX>")
 target_link_options(swds PRIVATE "$<$<CONFIG:Debug>:/IGNORE:4070>")
 target_link_options(swds PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
 target_link_options(swds PRIVATE "$<$<CONFIG:Debug>:/MAP:${CMAKE_BINARY_DIR}/symbols/Debug/swds.map>")
-target_sources(swds PRIVATE "${CSE_SDK_DIR}/swds/swds.def")
+cse_game_module_exports(swds "${CSE_SDK_DIR}/swds/swds.def" "${CSE_ROOT}/cmake/exports/swds.def")
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/bz2d.lib")
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/freetyped.lib")
 cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libexpatdMD.lib")
@@ -428,6 +232,8 @@ set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/RichText.cpp" APPEND PROPERTY
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ScrollBar.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ScrollBarSlider.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ToggleButton.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/Tooltip.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
@@ -444,8 +250,8 @@ set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/controls.cpp" APPEND PROPERTY
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/include>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
-set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include>")
-set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm>")
+cse_source_dependency_include("${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_source_dependency_include("${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cl_dll>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
@@ -456,7 +262,7 @@ set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PR
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/O1>")
-target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/arch:SSE2>")
+target_compile_options(swds PRIVATE "$<$<AND:$<AND:$<CONFIG:Release>,$<STREQUAL:${CSE_TARGET_ARCH},x86>>,$<COMPILE_LANGUAGE:C,CXX>>:/arch:SSE2>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/Gy>")
 target_compile_options(swds PRIVATE "$<$<AND:$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>,$<COMPILE_LANGUAGE:C,CXX>>:/Zi>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/D_MBCS>")
@@ -468,8 +274,8 @@ target_compile_definitions(swds PRIVATE "$<$<CONFIG:Release>:SW_RENDERER>")
 target_compile_definitions(swds PRIVATE "$<$<CONFIG:Release>:_CRT_SECURE_NO_WARNINGS>")
 target_compile_definitions(swds PRIVATE "$<$<CONFIG:Release>:LINK_MPG123_DLL>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
-target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include>")
-target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm>")
+cse_target_dependency_include(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_target_dependency_include(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/cl_dll>")
 target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
@@ -685,6 +491,8 @@ set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/RichText.cpp" APPEND PROPERTY
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ScrollBar.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ScrollBarSlider.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/TextEntry.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/TextImage.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/ToggleButton.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/Tooltip.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
@@ -701,6 +509,647 @@ set_property(SOURCE "${CSE_SDK_DIR}/vgui2/controls/controls.cpp" APPEND PROPERTY
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/fp:precise>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
+cse_source_dependency_include("${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_source_dependency_include("${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/cl_dll>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/pm_shared>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/bin/obj/swds/Win32/Release/mpg123/source/mpg123-1.33.7/src/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/SDL3/include>")
+else()
+target_compile_features(swds PRIVATE cxx_std_17)
+target_compile_options(swds PRIVATE "SHELL:-include \"${CSE_SDK_DIR}/public/cse_posix_crt.h\"")
+if(APPLE)
+  target_compile_definitions(swds PRIVATE OSX POSIX)
+endif()
+if(APPLE)
+  target_link_options(swds PRIVATE "-Wl,-no_deduplicate")
+endif()
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-O0>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-g>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(swds PRIVATE "$<$<CONFIG:Debug>:SW_RENDERER>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
+cse_target_dependency_include(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_target_dependency_include(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cl_dll>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/include>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/SDL3/include>")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/bz2d.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/freetyped.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libexpatdMD.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/libpng16d.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/zsd.lib")
+cse_link_steam(swds Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/brotlidec.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/brotlicommon.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/vorbisfile.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/vorbis.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/ogg.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/webm.lib")
+cse_link_import(swds Debug "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/debug/lib/vpx.lib")
+cse_link_mpg123(swds Debug)
+cse_link_sdl3(swds Debug)
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-O0>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-model=strict>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-fno-exceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/engine>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/common>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cl_dll>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/public>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/pm_shared>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/bin/obj/swds/Win32/Debug/mpg123/source/mpg123-1.33.7/src/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/external/SDL3/include>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Os>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:-g>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fno-exceptions>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(swds PRIVATE "$<$<CONFIG:Release>:SW_RENDERER>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
+cse_target_dependency_include(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include")
+cse_target_dependency_include(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/cl_dll>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/public>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/pm_shared>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
+target_include_directories(swds PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/SDL3/include>")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/bz2.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/freetype.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libexpatMD.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/libpng16.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/zs.lib")
+cse_link_steam(swds Release "${CSE_SDK_DIR}/lib/public/steam_api.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/brotlidec.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/brotlicommon.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/vorbisfile.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/vorbis.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/ogg.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/webm.lib")
+cse_link_import(swds Release "${CSE_SDK_DIR}/external/installed/x86-windows-static-md/lib/vpx.lib")
+cse_link_mpg123(swds Release)
+cse_link_sdl3(swds Release)
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/cd.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_decoder.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/mpg123_music.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/network_worker.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/sys_dll2.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=precise>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-overriding-option>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fexceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Os>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wextra>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=shorten-64-to-32>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror=pointer-to-int-cast>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-model=strict>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-ffp-contract=off>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-parameter>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unknown-pragmas>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=writable-strings>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=overloaded-virtual>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=deprecated-declarations>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-field-initializers>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=sign-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=switch>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=invalid-offsetof>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=missing-braces>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=inconsistent-missing-override>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=nontrivial-memcall>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-arithmetic>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=null-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=logical-op-parentheses>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=pointer-bool-conversion>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=tautological-pointer-compare>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-value>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-but-set-variable>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=unused-private-field>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Wno-error=delete-abstract-non-virtual-dtor>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-Werror>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-fno-exceptions>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/engine>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/installed/x86-windows-static-md/include/webm>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/common>")
@@ -710,5 +1159,6 @@ set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PR
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/include>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/bin/obj/swds/Win32/Release/mpg123/source/mpg123-1.33.7/src/include>")
 set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PROPERTY INCLUDE_DIRECTORIES "$<$<CONFIG:Release>:${CSE_SDK_DIR}/external/SDL3/include>")
+endif()
 target_link_libraries(swds PRIVATE vgui)
 cse_runtime_directory(swds "")

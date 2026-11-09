@@ -54,6 +54,7 @@
       <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
       <ImportLibrary>$(IntDir)$(TargetName).lib</ImportLibrary>
       <ModuleDefinitionFile>$(ProjectDir)particleman.def</ModuleDefinitionFile>
+      <CseNativeCppExports>true</CseNativeCppExports>
       <TreatLinkerWarningAsErrors>true</TreatLinkerWarningAsErrors>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
@@ -108,6 +109,7 @@
     <ClInclude Include="..\..\public\particleman.h" />
     <ClInclude Include="..\..\public\pman_particlemem.h" />
     <ClInclude Include="..\..\public\pman_triangleffect.h" />
+    <ClInclude Include="..\..\particleman\native_particle_phase.h" />
     <None Include="particleman.def" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

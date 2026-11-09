@@ -23,6 +23,7 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "../../cl_dll/Exports.h"
+#include "../../common/client_module_entry.h"
 #include "particleman.h"
 #include "tri.h"
 #include "cl_dll/IGameClientExports.h"
@@ -127,6 +128,10 @@ void CL_LoadParticleMan()
 
 extern "C" int EXPORT Initialize( cl_enginefunc_t* pEnginefuncs, int iVersion )
 {
+    if (!CseClientConsumeInitializationAuthorization()) {
+        return 0;
+    }
+
 	memcpy( &gEngfuncs, pEnginefuncs, sizeof( cl_enginefunc_t ) );
 
 //	RecClInitialize(pEnginefuncs, iVersion);
@@ -224,6 +229,11 @@ extern "C" int EXPORT HUD_GetHullBounds( int hullnumber, float* mins, float* max
 		break;
 	}
 
+#if !defined(_WIN32)
+    // Retain the legacy pointer-only assignments without changing caller bounds.
+    (void)mins;
+    (void)maxs;
+#endif
 	return iret;
 }
 
@@ -351,6 +361,10 @@ extern "C" CreateInterfaceFn EXPORT ClientFactory()
 
 extern "C" void EXPORT F( void* buffer )
 {
+    if (!CseClientConsumeFunctionAuthorization()) {
+        return;
+    }
+
 	cldll_func_t* destination = (cldll_func_t*)buffer;
 	memcpy( &g_modfuncs, (void*)destination->pInitFunc, sizeof( g_modfuncs ) );
 	g_pcldstAddrs = (cldll_func_dst_t*)destination->pHudVidInitFunc;
@@ -397,3 +411,8 @@ public:
 };
 
 EXPOSE_SINGLE_INTERFACE( CClientExports, IGameClientExports, GAMECLIENTEXPORTS_INTERFACE_VERSION );
+
+#define CSE_CLIENT_ABI_CS
+
+#include "../../common/client_module_types.h"
+#include "../../common/client_module_entry_impl.h"

@@ -8,6 +8,10 @@
 
 #include "entity_state.h"
 #include "cl_entity.h"
+#include <cstdint>
+
+// Preserve the legacy internal sentinel value without narrowing native entity addresses.
+static constexpr std::uintptr_t MissingChaseTarget = UINT32_MAX;
 #include "ref_params.h"
 #include "in_defs.h" // PITCH YAW ROLL
 #include "pm_movevars.h"
@@ -1190,7 +1194,7 @@ void V_GetDirectedChasePosition(cl_entity_t	 * ent1, cl_entity_t * ent2,float * 
 		// v_cameraMode = CAM_MODE_FOCUS;
 	}
 
-	if ( ( ent2 == (cl_entity_t*)0xFFFFFFFF ) || ( ent1->player && (ent1->curstate.solid == SOLID_NOT) ) )
+	if ( ( ent2 == reinterpret_cast<cl_entity_t*>(MissingChaseTarget) ) || ( ent1->player && (ent1->curstate.solid == SOLID_NOT) ) )
 	{
 		// we have no second target or player just died
 		V_GetSingleTargetCam(ent1, angle, origin);
@@ -1261,7 +1265,7 @@ void V_GetChasePos(int target, float * cl_angles, float * origin, float * angles
 			V_GetDirectedChasePosition( ent, gEngfuncs.GetEntityByIndex( g_iUser3 ),
 				angles, origin );
 		else
-			V_GetDirectedChasePosition( ent, ( cl_entity_t*)0xFFFFFFFF,
+			V_GetDirectedChasePosition( ent, reinterpret_cast<cl_entity_t*>(MissingChaseTarget),
 				angles, origin );
 	}
 	else
@@ -1435,7 +1439,7 @@ int V_FindViewModelByWeaponModel(int weaponindex)
 
 	if ( weaponModel )
 	{
-		int len = strlen( weaponModel->name );
+        const size_t len = strlen(weaponModel->name);
 		int i = 0;
 
 		while ( modelmap[i] != NULL )

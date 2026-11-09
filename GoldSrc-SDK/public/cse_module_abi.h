@@ -11,10 +11,11 @@
 #define CSE_ABI_CALL
 #endif
 
-namespace cse::abi {
+namespace cse { namespace abi {
 
 constexpr std::uint32_t DescriptorVersion = 1;
-constexpr std::uint32_t RuntimeVersion = 8;
+// Runtime 10 adds the coherent mouse query to both owned engine/client C tables.
+constexpr std::uint32_t RuntimeVersion = 10;
 // Version 1 bounds each module's exchanged tables without following pointers.
 constexpr std::size_t MaxTables = 16;
 constexpr std::uint32_t NativePointerBits = sizeof(void *) * CHAR_BIT;
@@ -60,10 +61,10 @@ struct alignas(8) Descriptor {
     TableLayout tables[MaxTables];
 };
 
-static_assert(CHAR_BIT == 8);
-static_assert(sizeof(TableLayout) == 16);
-static_assert(offsetof(Descriptor, tables) == 32);
-static_assert(sizeof(Descriptor) == 288);
+static_assert(CHAR_BIT == 8, "The module ABI requires eight-bit bytes");
+static_assert(sizeof(TableLayout) == 16, "The module table descriptor is fixed-width");
+static_assert(offsetof(Descriptor, tables) == 32, "The module descriptor prefix is fixed-width");
+static_assert(sizeof(Descriptor) == 288, "The bounded module descriptor is fixed-width");
 
 using GetModuleAbi = const Descriptor *(CSE_ABI_CALL *)();
 
@@ -78,7 +79,8 @@ enum class Compatibility {
     CompilerAbi,
     TableCount,
     TableLayout,
-    InvalidDescriptor
+    InvalidDescriptor,
+    RequiredTableMissing
 };
 
 // Hash explicitly supplied layout facts in little-endian order, independent of
@@ -157,4 +159,66 @@ constexpr Compatibility Check(const Descriptor &expected, const Descriptor *actu
     return Compatibility::Compatible;
 }
 
-} // namespace cse::abi
+// Directional requirements: a module may publish additional contract families. Validate
+// the entire catalog before looking up any required subset, including unrequested entries.
+constexpr Compatibility CheckRequired(const Descriptor &expected, const Descriptor *actual) {
+    if (!actual) {
+        return Compatibility::MissingDescriptor;
+    }
+    if (actual->descriptorBytes != sizeof(Descriptor)) {
+        return Compatibility::DescriptorSize;
+    }
+    if (actual->descriptorVersion != DescriptorVersion) {
+        return Compatibility::DescriptorVersion;
+    }
+    if (actual->runtimeVersion != expected.runtimeVersion) {
+        return Compatibility::RuntimeVersion;
+    }
+    if (actual->architecture != expected.architecture) {
+        return Compatibility::Architecture;
+    }
+    if (actual->pointerBits != expected.pointerBits) {
+        return Compatibility::PointerWidth;
+    }
+    if (actual->compilerAbi != expected.compilerAbi) {
+        return Compatibility::CompilerAbi;
+    }
+    if (expected.tableCount == 0 || expected.tableCount > MaxTables
+        || actual->tableCount == 0 || actual->tableCount > MaxTables) {
+        return Compatibility::TableCount;
+    }
+    if (expected.descriptorBytes != sizeof(Descriptor) || expected.descriptorVersion != DescriptorVersion
+        || expected.reserved != 0 || actual->reserved != 0) {
+        return Compatibility::InvalidDescriptor;
+    }
+    for (const Descriptor *catalog : {&expected, actual}) {
+        for (std::size_t index = 0; index < catalog->tableCount; ++index) {
+            if (catalog->tables[index].identifier == 0 || catalog->tables[index].reserved != 0) {
+                return Compatibility::InvalidDescriptor;
+            }
+            for (std::size_t earlier = 0; earlier < index; ++earlier) {
+                if (catalog->tables[index].identifier == catalog->tables[earlier].identifier) {
+                    return Compatibility::InvalidDescriptor;
+                }
+            }
+        }
+    }
+    for (std::size_t index = 0; index < expected.tableCount; ++index) {
+        bool found = false;
+        for (std::size_t offered = 0; offered < actual->tableCount; ++offered) {
+            if (expected.tables[index].identifier == actual->tables[offered].identifier) {
+                if (expected.tables[index].signature != actual->tables[offered].signature) {
+                    return Compatibility::TableLayout;
+                }
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            return Compatibility::RequiredTableMissing;
+        }
+    }
+    return Compatibility::Compatible;
+}
+
+} } // namespace cse::abi

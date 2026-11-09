@@ -67,13 +67,7 @@ typedef void *HWND;
 typedef void *HDC;
 typedef void *HGLRC;
 
-typedef struct RECT_s
-{
-	int left;
-	int right;
-	int top;
-	int bottom;
-} RECT;
+#include "cse_rect.h"
 #endif
 
 

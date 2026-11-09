@@ -14,6 +14,7 @@
 #include "public/utlsymbol.h"
 
 #include <string.h>
+#include <cstddef>
 
 #ifndef _WIN32
 #include <strings.h>
@@ -29,18 +30,36 @@
 //-----------------------------------------------------------------------------
 CUtlSymbolTable* CUtlSymbol::s_pSymbolTable = 0;
 
+namespace {
+std::size_t filesystemSymbolOwners;
+}
+
 //-----------------------------------------------------------------------------
 // symbol methods
 //-----------------------------------------------------------------------------
+void CUtlSymbol::AcquireFileSystemOwner() {
+    ++filesystemSymbolOwners;
+}
+
+bool CUtlSymbol::ReleaseFileSystemOwner() {
+    if (filesystemSymbolOwners == 0) {
+        return false;
+    }
+    --filesystemSymbolOwners;
+    if (filesystemSymbolOwners != 0) {
+        return false;
+    }
+    delete s_pSymbolTable;
+    s_pSymbolTable = nullptr;
+    return true;
+}
+
 void CUtlSymbol::Initialize()
 {
 	// necessary to allow us to create global symbols
-	static bool symbolsInitialized = false;
-	if ( !symbolsInitialized )
-	{
-		s_pSymbolTable = new CUtlSymbolTable;
-		symbolsInitialized = true;
-	}
+    if (!s_pSymbolTable) {
+        s_pSymbolTable = new CUtlSymbolTable;
+    }
 }
 
 CUtlSymbolTable* CUtlSymbol::CurrTable()

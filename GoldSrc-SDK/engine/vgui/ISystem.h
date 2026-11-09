@@ -15,6 +15,10 @@
 #include "../interface.h"
 #include "vgui/KeyCode.h"
 
+#if !defined(_WIN32)
+#include <cstdint>
+#endif
+
 class KeyValues;
 
 namespace vgui2
@@ -32,7 +36,11 @@ public:
 
 	virtual double GetFrameTime();
 	virtual double GetCurrentTime();
+#if defined(_WIN32)
 	virtual long GetTimeMillis();
+#else
+    virtual std::int32_t GetTimeMillis();
+#endif
 
 	virtual int GetClipboardTextCount();
 	virtual void SetClipboardText( const char* text, int textLength );

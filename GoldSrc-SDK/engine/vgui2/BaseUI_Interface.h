@@ -6,6 +6,12 @@
 #include "../IGameConsole.h"
 #include "../iclientvgui.h"
 
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include <memory>
+class IHTMLChromeController;
+#endif
+
 class BaseUISurface;
 class CEnginePanel;
 class CStaticPanel;
@@ -48,4 +54,7 @@ private:
 	CSysModule*			m_hChromeModule;
 
 	bool				m_bHidingGameUI;
+#if INTPTR_MAX > INT32_MAX
+    std::unique_ptr<IHTMLChromeController> m_nativeChromeController;
+#endif
 };

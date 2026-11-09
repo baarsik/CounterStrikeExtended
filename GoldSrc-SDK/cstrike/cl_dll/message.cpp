@@ -341,15 +341,15 @@ void CHudMessage::MessageDrawScan( client_message_t* clientMessage, float time, 
 	wchar_t textBuffer[1024];
 	wchar_t line[256];
 	char token[256];
-	int length = strlen( message->pMessage );
+	const size_t messageLength = strlen(message->pMessage);
 	wchar_t* text;
 	if ( *message->pMessage == '#' )
 	{
 		strncpy( token, message->pMessage, sizeof( token ) - 1 );
 		token[sizeof( token ) - 1] = 0;
-		if ( ( message->pMessage[length - 1] == '\r' || message->pMessage[length - 1] == '\n' )
-			&& (unsigned int)( length - 1 ) < sizeof( token ) - 1 )
-			token[length - 1] = 0;
+		if ( ( message->pMessage[messageLength - 1] == '\r' || message->pMessage[messageLength - 1] == '\n' )
+			&& messageLength - 1 < sizeof(token) - 1 )
+			token[messageLength - 1] = 0;
 		text = vgui2::localize()->Find( token );
 		if ( clientMessage->numArgs )
 		{
@@ -373,7 +373,7 @@ void CHudMessage::MessageDrawScan( client_message_t* clientMessage, float time, 
 	m_parms.pMessage = message;
 	m_parms.totalWidth = 0;
 	int width = 0;
-	length = 0;
+    int length = 0;
 	int a, b, c;
 	for ( const wchar_t* scan = text; *scan; scan++, length++ )
 	{

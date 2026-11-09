@@ -9,6 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if !defined(_WIN32)
+#include <SDL3/SDL_stdinc.h>
+#endif
+
 #include "buildslave_assert.h"
 #define ASSERT_FILE BUILDSLAVE_PATH( L"game_shared\\voice_status.cpp" )
 
@@ -52,7 +56,11 @@ void ForEachBannedPlayer( char playerID[16] )
 		(unsigned int)(int)playerID[10], (unsigned int)(int)playerID[11],
 		(unsigned int)(int)playerID[12], (unsigned int)(int)playerID[13],
 		(unsigned int)(int)playerID[14], (unsigned int)(int)playerID[15] );
+#if defined(_WIN32)
 	strupr( text );
+#else
+    SDL_strupr(text);
+#endif
 	gEngfuncs.pfnConsolePrint( text );
 }
 

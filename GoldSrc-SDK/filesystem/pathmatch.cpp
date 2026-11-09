@@ -5,7 +5,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include <csignal>
+#include <cctype>
 #ifndef _WIN32
+#include "native_path_prefix.h"
 #include <strings.h>
 #include <alloca.h>
 #include <fcntl.h>
@@ -20,28 +22,20 @@ extern const char* s_pszDbgPathMatch;
 
 #ifndef _WIN32
 
-static char* GetSteamContentPath()
-{
-	char szContentLink[FS_MAX_PATH_LENGTH];
-	char* home;
-	char* resolved;
+static char* GetSteamContentPath() {
+    char contentLink[FS_MAX_PATH_LENGTH];
+    return cse::filesystem::ResolveSteamContentPrefixForHome(getenv("HOME"), contentLink, sizeof(contentLink));
+}
 
-	home = getenv( "HOME" );
-	snprintf( szContentLink, FS_MAX_PATH_LENGTH, "%s/.steam/steam", home );
-	szContentLink[FS_MAX_PATH_LENGTH - 1] = 0;
-	resolved = (char*)malloc( FS_MAX_PATH_LENGTH + 1 );
-	*resolved = 0;
-	if ( realpath( szContentLink, resolved ) != NULL )
-	{
-		strcat( resolved, "/" );
-	}
-	else
-	{
-		resolved[0] = 0;
-		resolved[1] = '/';
-	}
+namespace {
+char* cachedSteamContentPath;
+size_t cachedSteamContentPathLength;
+}
 
-	return resolved;
+void ClearPathMatchCache() {
+    free(cachedSteamContentPath);
+    cachedSteamContentPath = nullptr;
+    cachedSteamContentPathLength = 0;
 }
 
 static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMismatch, unsigned int nLevel )
@@ -66,7 +60,7 @@ static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMis
 			flag = "true";
 		}
 
-		fprintf( stderr, "(%zu) Descend: %s, (%s), %s\n", nLevel, pPath, &pPath[nStartIdx], flag );
+        fprintf(stderr, "(%u) Descend: %s, (%s), %s\n", nLevel, pPath, &pPath[nStartIdx], flag);
 	}
 
 	cursor = nStartIdx + 1;
@@ -155,7 +149,7 @@ static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMis
 				if ( s_bShowDiag )
 				{
 					*componentEnd = 0;
-					fprintf( stderr, "\t(%zu) comparing %s with %s\n", nLevel, ent->d_name, component );
+                    fprintf(stderr, "\t(%u) comparing %s with %s\n", nLevel, ent->d_name, component);
 				}
 
 				*componentEnd = 0;
@@ -239,7 +233,7 @@ static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMis
 			parentCopy = (char*)alloca( parentBytes );
 			memcpy( parentCopy, pPath, parentBytes );
 			*component = first;
-			fprintf( stderr, "(%zu) readdir failed to find '%s' in '%s'\n", nLevel, compCopy, parentCopy );
+            fprintf(stderr, "(%u) readdir failed to find '%s' in '%s'\n", nLevel, compCopy, parentCopy);
 		}
 
 		found = (char)( (unsigned char)bAllowBasenameMismatch > more );
@@ -254,11 +248,10 @@ static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMis
 }
 
 int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBasenameMismatch,
-		char* pszOutBuf, unsigned int OutBufLen )
+		char* pszOutBuf, size_t OutBufLen )
 {
 	char* out;
-	static char* pszSteamPath = NULL;
-	static size_t nSteamPathLen = 0;
+
 	char* steam;
 	size_t n;
 	char* component;
@@ -283,21 +276,20 @@ int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBa
 		}
 	}
 
-	steam = pszSteamPath;
-	if ( pszSteamPath != NULL )
+	steam = cachedSteamContentPath;
+	if ( cachedSteamContentPath != NULL )
 	{
-		n = nSteamPathLen;
+		n = cachedSteamContentPathLength;
 	}
 	else
 	{
 		steam = GetSteamContentPath();
-		pszSteamPath = steam;
-		n = strlen( steam );
-		nSteamPathLen = n;
+		cachedSteamContentPath = steam;
+		n = steam ? strlen(steam) : 0;
+		cachedSteamContentPathLength = n;
 	}
 
-	if ( strncasecmp( out, steam, n ) == 0 )
-	{
+	if (cse::filesystem::MatchesSteamContentPrefix(out, steam, n)) {
 		memcpy( out, steam, n );
 
 		nStartIdx = n - 1;
@@ -323,6 +315,10 @@ int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBa
 				component = p + 1;
 			}
 
+#if defined(__APPLE__)
+            folded = std::tolower(static_cast<unsigned char>(*p));
+            *p = static_cast<char>(folded);
+#else
 			folded = (signed char)*p;
 			if ( (unsigned int)( folded + 128 ) <= FS_CTYPE_TABLE_RANGE )
 			{
@@ -332,6 +328,7 @@ int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBa
 			{
 				*p = (char)folded;
 			}
+#endif
 
 			++p;
 		}
@@ -382,6 +379,9 @@ int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBa
 			fprintf( stderr, "Unmatched %s\n", pszIn );
 		}
 
+        if (out != pszOutBuf) {
+            free(out);
+        }
 		return 3;
 	}
 
@@ -513,7 +513,11 @@ extern "C" FILE* __wrap_fopen( const char* path, const char* mode )
 extern "C" FILE* __wrap_fopen64( const char* path, const char* mode )
 {
 	MatchedPath matched( path, strpbrk( mode, "wa+" ) != NULL );
+#if defined(__APPLE__)
+    return fopen(matched.Get(), mode);
+#else
 	return fopen64( matched.Get(), mode );
+#endif
 }
 
 extern "C" int __wrap_open( const char* path, int flags, mode_t mode )
@@ -525,7 +529,11 @@ extern "C" int __wrap_open( const char* path, int flags, mode_t mode )
 extern "C" int __wrap_open64( const char* path, int flags, mode_t mode )
 {
 	MatchedPath matched( path, ( flags & O_ACCMODE ) != O_RDONLY );
+#if defined(__APPLE__)
+    return open(matched.Get(), flags, mode);
+#else
 	return open64( matched.Get(), flags, mode );
+#endif
 }
 
 extern "C" int __wrap_creat( const char* path, mode_t mode )
@@ -567,25 +575,45 @@ extern "C" DIR* __wrap_opendir( const char* path )
 extern "C" int __wrap___xstat( int version, const char* path, struct stat* buffer )
 {
 	MatchedPath matched( path, false );
+#if defined(__APPLE__)
+    (void)version;
+    return stat(matched.Get(), buffer);
+#else
 	return __xstat( version, matched.Get(), buffer );
+#endif
 }
 
 extern "C" int __wrap___lxstat( int version, const char* path, struct stat* buffer )
 {
 	MatchedPath matched( path, false );
+#if defined(__APPLE__)
+    (void)version;
+    return lstat(matched.Get(), buffer);
+#else
 	return __lxstat( version, matched.Get(), buffer );
+#endif
 }
 
 extern "C" int __wrap___xstat64( int version, const char* path, struct stat* buffer )
 {
 	MatchedPath matched( path, false );
+#if defined(__APPLE__)
+    (void)version;
+    return stat(matched.Get(), buffer);
+#else
 	return __xstat64( version, matched.Get(), buffer );
+#endif
 }
 
 extern "C" int __wrap___lxstat64( int version, const char* path, struct stat* buffer )
 {
 	MatchedPath matched( path, false );
+#if defined(__APPLE__)
+    (void)version;
+    return lstat(matched.Get(), buffer);
+#else
 	return __lxstat64( version, matched.Get(), buffer );
+#endif
 }
 
 extern "C" int __wrap_chmod( const char* path, mode_t mode )
@@ -626,6 +654,7 @@ extern "C" int __wrap_mknod( const char* path, mode_t mode, dev_t device )
 	return mknod( matched.Get(), mode, device );
 }
 
+#if !defined(__APPLE__)
 extern "C" int __wrap_mount( const char* sourcePath, const char* targetPath,
 		const char* filesystemType, unsigned int flags, const void* data )
 {
@@ -633,6 +662,7 @@ extern "C" int __wrap_mount( const char* sourcePath, const char* targetPath,
 	MatchedPath source( sourcePath, false );
 	return mount( source.Get(), target.Get(), filesystemType, flags, data );
 }
+#endif
 
 extern "C" int __wrap_unlink( const char* path )
 {

@@ -76,6 +76,10 @@ inline edict_t *FIND_ENTITY_BY_TARGET(edict_t *entStart, const char *pszName)
 // In case it's not alread defined
 typedef int BOOL;
 
+// Keep the retained SDK literal even when the native math header has its own macro.
+#if !defined(_WIN32) && defined(M_PI)
+#undef M_PI
+#endif
 // In case this ever changes
 #define M_PI			3.14159265358979323846
 

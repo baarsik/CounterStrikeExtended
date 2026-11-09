@@ -16,7 +16,11 @@
 #include "vgui/KeyCode.h"
 #include "vgui/MouseCode.h"
 #include "vgui/Dar.h"
+#if defined(_WIN32)
 #include "color.h"
+#else
+#include "cse_color.h"
+#endif
 #include "vgui/IClientPanel.h"
 #include "vgui/MessageMap.h"
 
@@ -239,8 +243,13 @@ public:
 	virtual bool IsMouseInputEnabled();
 	virtual bool IsKeyBoardInputEnabled();
 
+#if UINTPTR_MAX > UINT32_MAX
+    _MessageFuncCommon( OnRequestFocus, "OnRequestFocus", &Panel::OnRequestFocus, 2,
+        DATATYPE_VPANEL, "subFocus", DATATYPE_VPANEL, "defaultPanel" );
+#else
 	_MessageFuncCommon( OnRequestFocus, "OnRequestFocus", (void ( Panel::* )( int, int ))&Panel::OnRequestFocus, 2,
 		DATATYPE_INT, "subFocus", DATATYPE_INT, "defaultPanel" );
+#endif
 	virtual void OnRequestFocus( VPANEL subFocus, VPANEL defaultPanel );
 
 	MESSAGE_FUNC_INT_INT( InternalCursorMoved, "CursorMoved", xpos, ypos );

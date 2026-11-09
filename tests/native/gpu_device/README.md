@@ -1,0 +1,25 @@
+# Standalone SDL_GPU device probe
+
+This fixture uses pinned source-built SDL3 3.4.20 through its public GPU API. It does not link the legacy renderer or OpenGL, change production defaults, select a game backend, install tools, or modify the preserved renderer flat-case RED.
+
+The probe logs compiled GPU backends, requested shader format, default-format support and full-property support separately, actual selected driver, optional device/driver properties, RGBA8 color+sampler support and D24/D32 depth support. It creates 64x64 offscreen RGBA8 and D32 textures plus a download buffer, clears color/depth, submits a fence, waits, maps and checks all 16,384 RGBA bytes. D32 attachment use is tested; numerical depth parity with legacy GL is not claimed.
+
+The sampled-triangle case uses an actual public SDL_GPU graphics pipeline and DrawGPUPrimitives(3), with no vertex buffer: the pinned stock FullscreenVert shader generates one oversized triangle using vertex ID. Its viewport is restricted to (16,16,32,32); the pinned BlitFrom2D fragment shader samples an owned uploaded solid-red texture. Depth test/write are enabled. Readback must be exact opaque red inside that viewport and opaque black outside. It uses one fragment sampler, one 32-byte padded fragment uniform block and zero storage resources; vertex resources are zero. This proves only this device/pipeline contract, not renderer parity or feature coverage.
+
+Shader provenance is in shaders/provenance.json. The metallibs are exact macOS arrays extracted from the final platform branch of src/gpu/metal/Metal_Blit.h in the locked SDL3 archive (SHA256 f3bb06f55bed9557227a700af2ea62e49497ebdf58037732a731a5fb3ef8581f). Original HLSL/MSL sources and SDL's license are retained. DXBC inputs were compiled offline from that exact HLSL with the already installed SDK 10.0.26100.0 x64 fxc.exe, SHA256 3c1d8f3aa0d1c970732f14d61d3a4b5dfa8ca4b7c81d567643f39f6cef412010, using /nologo /T vs_5_1 /E FullscreenVert and /nologo /T ps_5_1 /E BlitFrom2D. No MSL source is sent to SDL_CreateGPUShader; only MTLB/DXBC containers are accepted. Renderer-specific offline shader compilation and its future toolchain remain unqualified.
+
+On VM1, the default D3D12 probe fails the Tier2 resource-binding requirement. Requesting DXIL with the documented fewer-resource-slots property bypasses Tier2 but fails SM6/DXIL support. These remain ordinary failed tests, not expected-failure conversions. A separately named DXBC+fewer-slots probe succeeds on the actual Parallels Display Adapter (WDDM), driver20.18.2703.58680. It selects direct3d12 and reports DXBC format4; no software adapter was requested or substituted. Actual clear and sampled-triangle readbacks pass. Missing WinPixEventRuntime prevents optional debug labels; the fixture uses none and installs nothing.
+
+The pinned SDL header permits the fewer-slots property only when the application uses at most eight storage resources across all shader stages. This fixture uses zero. SDL's pinned private GPU profile has 16 texture samplers and four uniform buffers per stage (SDL_sysgpu.h); these are source API limits, not queried hardware maxima. The future renderer needs its own full resource/operation budget comparison before this compatibility route can be selected. No production device property has been changed.
+
+On the local Apple M5 Max, actual Metal creation reports shader-format mask48 (MSL|METALLIB), RGBA8 and D32 support, and no D24 support. Clear and stock sampled-triangle readbacks pass. These are actual SDL_GPU results, separate from all existing GL evidence. GPU debug/validation mode is explicitly off in both executable build configurations; Release/Debug here denotes compiler/provider configuration, not validation-layer qualification. Windows x64 executes on the Windows ARM64 VM's emulation path, not physical x64 hardware.
+
+Configure with matching CPU/config source-built SDL paths:
+
+```sh
+cmake -S tests/native/gpu_device -B build/gpu-device-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCSE_GPU_SDL_LIBRARY=/absolute/path/libSDL3.0.dylib -DCSE_GPU_SDL_RUNTIME=/absolute/path/libSDL3.0.dylib -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake --build build/gpu-device-release
+ctest --test-dir build/gpu-device-release --output-on-failure -V
+```
+
+On Windows use an initialized x64 MSVC environment, -DCSE_TARGET_ARCH=x64, SDL3.lib as CSE_GPU_SDL_LIBRARY and matching SDL3.dll as CSE_GPU_SDL_RUNTIME. Run graphics through a uniquely owned logged-in Interactive Limited task. Repeat with Debug and matching provider paths. Explicit C++14, O2 or Od/O0, and warnings-as-errors are used. Test timeouts are 30 seconds. The complete Windows test run remains nonzero because the two requested unsupported profiles are retained; positive DXBC and triangle cases are separately named. The probe can return2 for unsupported/failure,3 for missing offline shader paths, or0 for its requested completed stage. The executable accepts explicit profiles only and never automatically substitutes a different shader format.

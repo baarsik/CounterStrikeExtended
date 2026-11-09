@@ -1,0 +1,47 @@
+{
+  "SDL_version": "3.4.20",
+  "source_archive_sha256": "f3bb06f55bed9557227a700af2ea62e49497ebdf58037732a731a5fb3ef8581f",
+  "scope": "Pinned offline device-probe inputs; not renderer-specific shader compilation qualification",
+  "files": {
+    "FullscreenVert.metallib": {
+      "bytes": 2944,
+      "sha256": "360c244bf2b62ad0c956e4cd43217f55bebcf615febab18d7e8e1afffdadeced",
+      "source": "src/gpu/metal/Metal_Blit.h final macOS branch",
+      "entrypoint": "FullscreenVert"
+    },
+    "BlitFrom2D.metallib": {
+      "bytes": 3788,
+      "sha256": "9f29868d6d058a0b05513f00b01231400f96f36df24caa703543775c50a60dea",
+      "source": "src/gpu/metal/Metal_Blit.h final macOS branch",
+      "entrypoint": "BlitFrom2D"
+    },
+    "D3D_Blit.hlsl": {
+      "source": "src/gpu/d3d12/D3D_Blit.hlsl",
+      "sha256": "2e80659d2668aafdb4046480218ac1462c6d6413897b1de43da25cd7ec713034"
+    },
+    "Metal_Blit.metal": {
+      "source": "src/gpu/metal/Metal_Blit.metal",
+      "sha256": "abdde8a86d9c18ea60d39cfa61ffc927c16abfaa1d5c3a347596705d234128c5"
+    },
+    "LICENSE-SDL3.txt": {
+      "source": "LICENSE.txt",
+      "sha256": "1c040b8271b37e5076359f8fd54240e371114112924d2df81ef87c7d6a1dfdfd"
+    },
+    "FullscreenVert.dxbc": {
+      "source": "D3D_Blit.hlsl",
+      "entrypoint": "FullscreenVert",
+      "profile": "vs_5_1",
+      "sha256": "ef6f73fc118e2e745817ac14808b069039e7dbaf8697eaac7af2dcd0083e8c00",
+      "compiler_sha256": "3c1d8f3aa0d1c970732f14d61d3a4b5dfa8ca4b7c81d567643f39f6cef412010",
+      "compiler_receipt": "ART/gpu-device-dxbc-generated/compiler-receipt.json"
+    },
+    "BlitFrom2D.dxbc": {
+      "source": "D3D_Blit.hlsl",
+      "entrypoint": "BlitFrom2D",
+      "profile": "ps_5_1",
+      "sha256": "be0be9739a6e3e96d4df4b85d97981dc9c55f04e628593918a48cc168a662fd9",
+      "compiler_sha256": "3c1d8f3aa0d1c970732f14d61d3a4b5dfa8ca4b7c81d567643f39f6cef412010",
+      "compiler_receipt": "ART/gpu-device-dxbc-generated/compiler-receipt.json"
+    }
+  }
+}

@@ -14,10 +14,36 @@ class PortableGamePolicyTests(unittest.TestCase):
         self.assertIn('-O2', result['common'])
         self.assertNotIn('NDEBUG', result['definitions'])
 
+    def test_windows_decoder_and_socket_contracts_do_not_leak_to_posix(self):
+        result = settings({'PreprocessorDefinitions':
+                           'LINK_MPG123_DLL;CSE_ENGINE_WSOCK32=1;UTL_ENGINE_ASSERTS;HL25_HW_ENGINE'})
+        self.assertEqual(result['definitions'], ['UTL_ENGINE_ASSERTS', 'HL25_HW_ENGINE'])
+
     def test_preserves_default_and_explicit_exception_policies(self):
         self.assertIn('-fno-exceptions', settings({})['cxx'])
         self.assertIn('-fexceptions', settings({'ExceptionHandling': 'Sync'})['cxx'])
         self.assertNotIn('-fexceptions', settings({'ExceptionHandling': 'Sync'})['common'])
+
+    def test_cpp_frames_allow_outer_unwinding_without_enabling_inner_handlers(self):
+        for exception_policy in ('', 'false', 'Sync', 'Async'):
+            with self.subTest(exception_policy=exception_policy):
+                result = settings({'ExceptionHandling': exception_policy,
+                                   'CsePortableFaultPolicy': 'OsTermination'})
+                self.assertIn('-funwind-tables', result['cxx'])
+                self.assertNotIn('-funwind-tables', result['common'])
+                expected = '-fexceptions' if exception_policy in ('Sync', 'Async') else '-fno-exceptions'
+                self.assertEqual(result['cxx'][0], expected)
+
+    def test_async_requires_explicit_portable_fault_policy(self):
+        with self.assertRaises(ValueError):
+            settings({'ExceptionHandling': 'Async'})
+        result = settings({'ExceptionHandling': 'Async',
+                           'CsePortableFaultPolicy': 'OsTermination'})
+        self.assertIn('-fexceptions', result['cxx'])
+        self.assertEqual(result['hardware_faults'], 'OsTermination')
+        with self.assertRaisesRegex(ValueError, 'fault policy'):
+            settings({'ExceptionHandling': 'Async', 'CsePortableFaultPolicy': 'TranslateSeh'})
+        self.assertEqual(settings({'ExceptionHandling': 'Sync'})['hardware_faults'], 'OsTermination')
 
     def test_preserves_explicit_floating_point_models(self):
         precise = settings({'FloatingPointModel': 'Precise'})['common']
@@ -50,6 +76,12 @@ class PortableGamePolicyTests(unittest.TestCase):
         self.assertTrue(settings({'DebugInformationFormat': 'ProgramDatabase'})['symbols'])
         with self.assertRaisesRegex(ValueError, 'debug information'):
             settings({'DebugInformationFormat': 'Unknown'})
+
+    def test_per_file_msvc_symbol_options_translate_without_changing_optimization(self):
+        for option in ('/Z7', '/Zi'):
+            result = settings({'AdditionalOptions': option})
+            self.assertTrue(result['symbols'])
+            self.assertIn('-O0', result['common'])
 
     def test_keeps_rtti_and_optimization_choices_explicit(self):
         self.assertIn('-frtti', settings({'RuntimeTypeInfo': 'true'})['cxx'])

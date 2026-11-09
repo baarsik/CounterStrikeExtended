@@ -8,9 +8,9 @@
 #include <string.h>
 #include <stdio.h>
 #include "voice_banmgr.h"
+#include "../common/voice_ban_file.h"
 
 
-#define BANMGR_FILEVERSION	1
 char const *g_pBanMgrFilename = "voice_ban.dt";
 
 
@@ -40,38 +40,26 @@ CVoiceBanMgr::~CVoiceBanMgr()
 }
 
 
-bool CVoiceBanMgr::Init(char const *pGameDir)
-{
-	Term();
-
-	char filename[512];
-	_snprintf(filename, sizeof(filename), "%s/%s", pGameDir, g_pBanMgrFilename);
-	filename[sizeof( filename ) - 1] = 0;
-
-	// Load in the squelch file.
-	FILE *fp = fopen(filename, "rb");
-	if(fp)
-	{
-		int version = 0;
-		fread(&version, 1, sizeof(version), fp);
-		if(version == BANMGR_FILEVERSION)
-		{
-			fseek(fp, 0, SEEK_END);
-			int nIDs = (ftell(fp) - sizeof(version)) / 16;
-			fseek(fp, sizeof(version), SEEK_SET);
-
-			for(int i=0; i < nIDs; i++)
-			{
-				char playerID[16] = {};
-				fread(playerID, 1, 16, fp);
-				AddBannedPlayer(playerID);
-			}
-		}
-
-		fclose(fp);
-	}
-
-	return true;
+bool CVoiceBanMgr::Init(char const* pGameDir) {
+    static_assert(sizeof(m_PlayerHash[0].m_PlayerID) == cse_voice_bans::PlayerIdBytes,
+        "Persistent player ID width");
+    Term();
+    constexpr std::size_t FilenameCapacity = 512;
+    char filename[FilenameCapacity];
+#if defined(_WIN32)
+    _snprintf(filename, sizeof(filename), "%s/%s", pGameDir, g_pBanMgrFilename);
+#else
+    snprintf(filename, sizeof(filename), "%s/%s", pGameDir, g_pBanMgrFilename);
+#endif
+    filename[sizeof(filename) - 1] = 0;
+    FILE* file = fopen(filename, "rb");
+    if (file) {
+        cse_voice_bans::ReadLegacy(file, [this](const char* playerId) {
+            AddBannedPlayer(playerId);
+        });
+        fclose(file);
+    }
+    return true;
 }
 
 
@@ -103,8 +91,7 @@ void CVoiceBanMgr::SaveState(char const *pGameDir)
 	FILE *fp = fopen(filename, "wb");
 	if(fp)
 	{
-		int version = BANMGR_FILEVERSION;
-		fwrite(&version, 1, sizeof(version), fp);
+        cse_voice_bans::WriteVersion(fp);
 
 		for(int i=0; i < 256; i++)
 		{

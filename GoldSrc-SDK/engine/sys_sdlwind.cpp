@@ -1,5 +1,11 @@
+#if defined(__APPLE__)
+#include "VGui1NativeRuntime.h"
+#endif
 #include "../common/sdl3_input.h"
 #include "../common/sdl3_keyboard.h"
+#if INTPTR_MAX > INT32_MAX
+#include "native_mouse_window.h"
+#endif
 
 namespace {
 cse::FractionalMotion s_wheelMotion;
@@ -87,14 +93,12 @@ bool CGame::Init( void* )
 	return true;
 }
 
-HWND CGame::GetMainWindow()
-{
-	return (HWND)m_hSDLWindow;
+CseGameWindowHandle CGame::GetMainWindow() {
+    return reinterpret_cast<CseGameWindowHandle>(m_hSDLWindow);
 }
 
-HWND* CGame::GetMainWindowAddress()
-{
-	return (HWND*)&m_hSDLWindow;
+CseGameWindowHandle* CGame::GetMainWindowAddress() {
+    return reinterpret_cast<CseGameWindowHandle*>(&m_hSDLWindow);
 }
 
 void CGame::SetWindowXY( int x, int y )
@@ -126,6 +130,15 @@ bool CGame::IsMultiplayer()
 }
 
 bool CGame::Shutdown() {
+#if defined(__APPLE__)
+    if (cse_vgui1_native::RendererWillDestroy() != cse_vgui1_native::Result::Ready) {
+        std::fputs("Native VGUI1 renderer retirement pending; retaining device\n", stderr);
+        return false;
+    }
+#endif
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeMouseWindowState().Invalidate(m_hSDLWindow);
+#endif
     if (m_hSDLRenderer && m_bCreatedRenderer) {
         SDL_DestroyRenderer(m_hSDLRenderer);
     }
@@ -316,6 +329,12 @@ bool CGame::CreateGameWindow() {
         }
     }
 
+#if INTPTR_MAX > INT32_MAX
+    if (!cse::NativeMouseWindowState().Bind(m_hSDLWindow)) {
+        Sys_Error("Native SDL mouse window initialization failed");
+    }
+#endif
+
     byte *buffer = (byte *)malloc(GAME_ICON_BUFFER_BYTES);
     int width = 0;
     int height = 0;
@@ -347,6 +366,12 @@ bool CGame::CreateGameWindow() {
         m_hSDLRenderer = SDL_CreateRenderer(m_hSDLWindow, nullptr);
         m_bCreatedRenderer = true;
     }
+#if defined(__APPLE__)
+    if (!m_hSDLRenderer || cse_vgui1_native::RendererCreated() != cse_vgui1_native::Result::Ready) {
+        Sys_Error("Native VGUI1 renderer generation could not be established");
+        return false;
+    }
+#endif
     ClearScreen();
 
     m_nMouseTargetX = 320;
@@ -1157,14 +1182,12 @@ bool CGame::Init( void* pvInstance )
 	return true;
 }
 
-HWND CGame::GetMainWindow()
-{
-	return reinterpret_cast<HWND>( m_hSDLWindow );
+CseGameWindowHandle CGame::GetMainWindow() {
+    return reinterpret_cast<CseGameWindowHandle>(m_hSDLWindow);
 }
 
-HWND* CGame::GetMainWindowAddress()
-{
-	return reinterpret_cast<HWND*>( &m_hSDLWindow );
+CseGameWindowHandle* CGame::GetMainWindowAddress() {
+    return reinterpret_cast<CseGameWindowHandle*>(&m_hSDLWindow);
 }
 
 void CGame::SetWindowXY( int x, int y )
@@ -1196,6 +1219,15 @@ bool CGame::IsMultiplayer()
 }
 
 bool CGame::Shutdown() {
+#if defined(__APPLE__)
+    if (cse_vgui1_native::RendererWillDestroy() != cse_vgui1_native::Result::Ready) {
+        std::fputs("Native VGUI1 renderer retirement pending; retaining device\n", stderr);
+        return false;
+    }
+#endif
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeMouseWindowState().Invalidate(m_hSDLWindow);
+#endif
     if (m_hSDLRenderer && m_bCreatedRenderer) {
         SDL_DestroyRenderer(m_hSDLRenderer);
     }
@@ -1392,6 +1424,12 @@ bool CGame::CreateGameWindow() {
         }
     }
 
+#if INTPTR_MAX > INT32_MAX
+    if (!cse::NativeMouseWindowState().Bind(m_hSDLWindow)) {
+        Sys_Error("Native SDL mouse window initialization failed");
+    }
+#endif
+
     byte *buffer = static_cast<byte *>(std::malloc(kGameIconBufferBytes));
     int width = 0;
     int height = 0;
@@ -1431,6 +1469,12 @@ bool CGame::CreateGameWindow() {
         Sys_Error("Failed to create SDL Window");
     }
 
+#if defined(__APPLE__)
+    if (cse_vgui1_native::RendererCreated() != cse_vgui1_native::Result::Ready) {
+        Sys_Error("Native VGUI1 renderer generation could not be established");
+        return false;
+    }
+#endif
     int r = 0;
     int g = 0;
     int b = 0;

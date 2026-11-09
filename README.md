@@ -1,36 +1,30 @@
 # CounterStrikeExtended
 
 A development fork of BlackShadow/GoldSrc-SDK for **Counter-Strike 1.6 and
-Half-Life**, including their engine, shared runtime and dedicated servers.
-The build targets Windows x86 with SDL3 and source-built libmpg123 music.
-Native x64/ARM64 support remains future work.
+Half-Life**, including the engine, shared runtime, dedicated servers and HLTV.
+It uses SDL3 and source-built libmpg123 music.
+
+**Win32 remains the default and regression reference.** Windows x64 and macOS
+Apple Silicon migration is in progress. Windows x64 builds all 19 targets and
+has selected gameplay/server checks; complete native acceptance is unfinished.
 
 From the repository root, use an x86 MSVC command-line environment with the
-Windows SDK, CMake 3.25+ and Ninja:
+Windows SDK, CMake 3.25+, Ninja and Python:
 
 ```powershell
 cmake --preset default
 cmake --build --preset default --parallel
 ```
 
-The default Release build compiles all 19 production targets into `output/`,
-preserving the game's `cstrike/` and `valve/` paths. Game assets and external
-runtime providers are supplied separately. Build intermediates stay in `build/`;
-Release symbols, maps and distribution materials are opt-in.
-
-Use `runtime-x86-debug` for Debug output in `output-debug/`, or
-`hardware-x86-release` / `hardware-x86-debug` for the hardware engine and its
-source-built dependencies. Tests and runtime qualification run separately.
+Release runtime files go to `output/`, preserving `cstrike/` and `valve/` paths.
+Use `runtime-x86-debug` for `output-debug/`. Game assets and external providers
+are supplied separately; libraries, symbols and intermediates stay in `build/`.
 
 - [Build commands and options](docs/building.md)
-- [Runtime targets and project scope](docs/project-scope.md)
-- [Build manifest reference](docs/msbuild/README.md) and [generated crosswalk](docs/msbuild-crosswalk.md)
-- [Music and runtime validation](docs/mpg123-migration-validation.md)
-- [Source pruning](docs/source-pruning.md), [source corrections](docs/source-corrections.md) and [portability work](docs/architecture-portability.md)
-
-The runtime validation records earlier VM1 builds, gameplay and music checks,
-including an unresolved startup failure. Full Windows Ninja compilation and
-EXE/DLL inspection for the current build configuration remain pending.
+- [Native migration, requirements and TODO](docs/native-migration.md)
+- [Validation status](docs/validation.md) and [component fixtures](tests/native/README.md)
+- [Runtime targets and scope](docs/project-scope.md)
+- [Build manifests](docs/msbuild/README.md) and [generated crosswalk](docs/msbuild-crosswalk.md)
 
 This repository is **not MIT as a whole**. MIT covers authorized original
 contributions within the [root license scope](LICENSE). Inherited Valve/Id and

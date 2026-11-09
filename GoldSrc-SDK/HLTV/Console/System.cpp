@@ -1,4 +1,5 @@
 #include "System.h"
+#include "public/native_filesystem_module.h"
 
 #include "HLTV/common/common.h"
 #include "HLTV/common/random.h"
@@ -14,6 +15,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#if !defined(_WIN32)
+#include <sys/resource.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+#include <exception>
+#endif
 
 static System g_System;
 
@@ -23,12 +31,16 @@ static System g_System;
 System::System()
 {
 	m_State = MODULE_UNDEFINED;
+#if defined(_WIN32)
 	InitializeCriticalSection( &m_ClockLock );
+#endif
 }
 
 System::~System()
 {
+#if defined(_WIN32)
 	DeleteCriticalSection( &m_ClockLock );
+#endif
 }
 
 bool System::Init( IBaseSystem* system, int serial, char* name )
@@ -38,20 +50,45 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 
 	m_Serial = serial;
 	m_NextSerial = serial + 1;
+#if defined(_WIN32)
 	_snprintf( m_Name, sizeof( m_Name ), name ? name : "system" );
+#else
+    const char* moduleName = name != nullptr ? name : "system";
+    const std::size_t moduleNameLength = strnlen(moduleName, sizeof(m_Name));
+    if (moduleNameLength >= sizeof(m_Name)) {
+        std::fprintf(stderr, "HLTV: system name exceeds storage capacity\n");
+        return false;
+    }
+    std::memcpy(m_Name, moduleName, moduleNameLength + 1);
+#endif
+#if defined(_WIN32)
 	strncpy( m_BaseDir, COM_GetBaseDir(), sizeof( m_BaseDir ) );
+#else
+    const char* baseDirectory = COM_GetBaseDir();
+    if (!*baseDirectory) {
+        std::fprintf(stderr, "HLTV: cannot determine executable directory: %s\n", std::strerror(errno));
+        return false;
+    }
+    std::memcpy(m_BaseDir, baseDirectory, std::strlen(baseDirectory) + 1);
+#endif
 	m_Developer = CheckParam( "-dev" ) != NULL;
 
 	if ( !m_Console.Init( this ) )
 	{
+#if defined(_WIN32)
 		char* message;
 		FormatMessageA( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 				NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), (char*)&message, 0, NULL );
 		Errorf( "%s", message );
 		LocalFree( message );
+#else
+        char format[] = "Couldn't initialize console: %s\n";
+        Errorf(format, std::strerror(errno));
+#endif
 		return false;
 	}
 
+#if defined(_WIN32)
 	LARGE_INTEGER frequency;
 	if ( !QueryPerformanceFrequency( &frequency ) )
 	{
@@ -66,17 +103,34 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 		frequency.QuadPart = (unsigned __int64)frequency.QuadPart >> 1;
 	}
 	m_ClockFrequency = 1.0 / (double)frequency.LowPart;
+#else
+    if (!m_Clock.Reset()) {
+        char format[] = "Couldn't initialize monotonic timer: %s\n";
+        Errorf(format, std::strerror(errno));
+        return false;
+    }
+#endif
 	m_SystemTime = 0;
 	m_LastTime = 0;
 
+#if defined(_WIN32)
 	m_FileSystemLibrary = Sys_LoadModule( "filesystem_stdio.dll" );
+#else
+    m_FileSystemLibrary = hltv_posix::LoadRuntimeModule("filesystem_stdio.dll", m_BaseDir, Sys_LoadModule);
+#endif
 	if ( !m_FileSystemLibrary )
 	{
 		Errorf( "Couldn't load %s.\n", "filesystem_stdio.dll" );
 		return false;
 	}
 
-	CreateInterfaceFn factory = Sys_GetFactory( m_FileSystemLibrary );
+    CreateInterfaceFn factory = cse::filesystem_abi::CheckedFactory(m_FileSystemLibrary);
+    if (!factory) {
+        Errorf("Incompatible owned filesystem module.\n");
+        Sys_UnloadModule(m_FileSystemLibrary);
+        m_FileSystemLibrary = nullptr;
+        return false;
+    }
 	m_FileSystem = (IFileSystem*)factory( "VFileSystem009", NULL );
 	if ( !m_FileSystem )
 	{
@@ -107,7 +161,15 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 	if ( CheckParam( "-highpriority" ) )
 	{
 		m_SleepTime = 0;
+#if defined(_WIN32)
 		SetPriorityClass( GetCurrentProcess(), HIGH_PRIORITY_CLASS );
+#else
+        constexpr int HighPriorityNiceness = -10;
+        if (setpriority(PRIO_PROCESS, 0, HighPriorityNiceness) != 0) {
+            char format[] = "WARNING! Could not set high process priority: %s\n";
+            DPrintf(format, std::strerror(errno));
+        }
+#endif
 	}
 
 	if ( CheckParam( "-maxfps" ) )
@@ -166,13 +228,18 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 
 void System::RunFrame( double time )
 {
+#if defined(_WIN32)
 	static int firstCount = 1;
 	static DWORD previousCount;
 	float nextConsoleUpdate = 0;
+#else
+    double nextConsoleUpdate = 0;
+#endif
 	BaseSystemModule::RunFrame( time );
 
 	while ( m_State == MODULE_RUNNING || m_State == MODULE_PAUSED )
 	{
+#if defined(_WIN32)
 		EnterCriticalSection( &m_ClockLock );
 		LARGE_INTEGER counter;
 		QueryPerformanceCounter( &counter );
@@ -187,11 +254,29 @@ void System::RunFrame( double time )
 
 		previousCount = count;
 		LeaveCriticalSection( &m_ClockLock );
+#else
+        if (hltv_posix::ShutdownRequested) {
+            Stop();
+            break;
+        }
+        if (!m_Clock.Read(m_SystemTime)) {
+            char format[] = "Couldn't read monotonic timer: %s\n";
+            Errorf(format, std::strerror(errno));
+            break;
+        }
+#endif
 
 		double difference = m_SystemTime - m_LastTime;
 		if ( difference == 0 )
 		{
+#if defined(_WIN32)
 			Sleep( m_SleepTime );
+#else
+            if (!hltv_posix::SleepMilliseconds(m_SleepTime)) {
+                char format[] = "Console sleep failed: %s\n";
+                Errorf(format, std::strerror(errno));
+            }
+#endif
 			continue;
 		}
 		if ( m_LastTime > 0 && difference <= 0 )
@@ -208,7 +293,12 @@ void System::RunFrame( double time )
 			{
 				ExecuteString( m_Console.GetLine() );
 				m_Console.SetStatusLine( m_StatusLine );
+#if defined(_WIN32)
 				nextConsoleUpdate = (float)( m_SystemTime + 0.1f );
+#else
+                constexpr double ConsoleUpdateSeconds = 0.1;
+                nextConsoleUpdate = m_SystemTime + ConsoleUpdateSeconds;
+#endif
 			}
 
 			if ( m_VGUI )
@@ -216,7 +306,14 @@ void System::RunFrame( double time )
 
 			if ( m_State == MODULE_PAUSED )
 			{
+#if defined(_WIN32)
 				Sleep( 1 );
+#else
+                if (!hltv_posix::SleepMilliseconds(1)) {
+                    char format[] = "Console sleep failed: %s\n";
+                    Errorf(format, std::strerror(errno));
+                }
+#endif
 			}
 			else
 			{
@@ -232,7 +329,14 @@ void System::RunFrame( double time )
 		}
 		else
 		{
+#if defined(_WIN32)
 			Sleep( m_SleepTime );
+#else
+            if (!hltv_posix::SleepMilliseconds(m_SleepTime)) {
+                char format[] = "Console sleep failed: %s\n";
+                Errorf(format, std::strerror(errno));
+            }
+#endif
 		}
 	}
 }
@@ -271,7 +375,14 @@ void System::ShutDown()
 	}
 
 	if ( m_Developer )
+#if defined(_WIN32)
 		Sleep( 3000 );
+#else
+    {
+        constexpr unsigned int DeveloperShutdownDelay = 3000;
+        hltv_posix::SleepMilliseconds(DeveloperShutdownDelay);
+    }
+#endif
 	m_Console.ShutDown();
 	m_State = MODULE_DISCONNECTED;
 }
@@ -311,6 +422,7 @@ void System::Stop()
 
 char* System::COM_GetBaseDir()
 {
+#if defined(_WIN32)
 	static char baseDir[MAX_PATH];
 	baseDir[0] = 0;
 	if ( GetModuleFileNameA( NULL, baseDir, sizeof( baseDir ) ) )
@@ -324,6 +436,13 @@ char* System::COM_GetBaseDir()
 			baseDir[length - 1] = 0;
 	}
 	return baseDir;
+#else
+    static char baseDirectory[hltv_posix::PathCapacity];
+    if (!hltv_posix::ExecutableDirectory(baseDirectory, sizeof(baseDirectory))) {
+        baseDirectory[0] = 0;
+    }
+    return baseDirectory;
+#endif
 }
 
 char* System::CheckParam( char* param )
@@ -461,8 +580,19 @@ void System::OpenLogFile( char* filename )
 		return;
 	}
 
+#if defined(_WIN32)
 	strncpy( m_LogFileName, filename, 255 );
 	m_LogFileName[255] = 0;
+#else
+    constexpr std::size_t ExtensionBytes = sizeof(".txt");
+    const std::size_t filenameLength = std::strlen(filename);
+    if (filenameLength > sizeof(m_LogFileName) - ExtensionBytes) {
+        char format[] = "System::OpenLogFile: filename is too long: %s\n";
+        Printf(format, filename);
+        return;
+    }
+    std::memcpy(m_LogFileName, filename, filenameLength + 1);
+#endif
 	COM_DefaultExtension( m_LogFileName, ".txt" );
 	if ( strcmp( COM_FileExtension( m_LogFileName ), "txt" ) )
 	{
@@ -560,6 +690,7 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 	if ( module )
 		return module;
 
+#if defined(_WIN32)
 	char filename[MAX_PATH];
 	strncpy( filename, libraryName, sizeof( filename ) - 1 );
 	filename[sizeof( filename ) - 1] = 0;
@@ -568,6 +699,17 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 		if ( *character == '/' )
 			*character = '\\';
 	}
+#else
+    char filename[hltv_posix::PathCapacity];
+    constexpr std::size_t LibrarySuffixBytes = sizeof(".dll");
+    const std::size_t filenameLength = strnlen(libraryName, sizeof(filename));
+    if (filenameLength > sizeof(filename) - LibrarySuffixBytes) {
+        char format[] = "ERROR! System::GetModule: library path is too long (%s).\n";
+        DPrintf(format, libraryName);
+        return nullptr;
+    }
+    std::memcpy(filename, libraryName, filenameLength + 1);
+#endif
 
 	library_t* library = (library_t*)m_Libraries.GetFirst();
 	while ( library && _stricmp( libraryName, library->name ) )
@@ -583,7 +725,11 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 		}
 
 		_snprintf( library->name, sizeof( library->name ), "%s.dll", filename );
+#if defined(_WIN32)
 		library->module = Sys_LoadModule( library->name );
+#else
+        library->module = hltv_posix::LoadRuntimeModule(library->name, m_BaseDir, Sys_LoadModule);
+#endif
 		if ( !library->module )
 		{
 			DPrintf( "WARNING! System::GetLibrary: coulnd't load library (%s).\n", library->name );
@@ -903,7 +1049,11 @@ bool System::StartVGUI()
 	if ( CheckParam( "-novgui" ) )
 		return false;
 
+#if defined(_WIN32)
 	m_VGuiLibrary = Sys_LoadModule( "vgui2.dll" );
+#else
+    m_VGuiLibrary = hltv_posix::LoadRuntimeModule("vgui2.dll", m_BaseDir, Sys_LoadModule);
+#endif
 	m_Factories[0] = Sys_GetFactoryThis();
 	m_Factories[1] = Sys_GetFactory( m_VGuiLibrary );
 	m_Factories[2] = Sys_GetFactory( m_FileSystemLibrary );
@@ -958,6 +1108,7 @@ void System_Printf( const char* format, ... )
 	g_System.Printf( "%s", text );
 }
 
+#if defined(_WIN32)
 int WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR commandLine, _In_ int )
 {
 	g_System.m_CommandLine.SetLine( commandLine );
@@ -972,3 +1123,45 @@ int WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR commandLine, 
 	}
 	return 0;
 }
+#else
+int main(int argc, char** argv) {
+    const char* argumentError = nullptr;
+    if (!hltv_posix::SetArguments(g_System.m_CommandLine, argc, argv, &argumentError)) {
+        std::fprintf(stderr, "HLTV: %s\n", argumentError);
+        return EXIT_FAILURE;
+    }
+    hltv_posix::SignalScope signals;
+    if (!signals.Install()) {
+        std::fprintf(stderr, "HLTV: cannot install signal handlers: %s\n", std::strerror(errno));
+        return EXIT_FAILURE;
+    }
+    int result = EXIT_FAILURE;
+    struct ConsoleCleanup {
+        CTextConsole& console;
+        ~ConsoleCleanup() {
+            console.ShutDown();
+        }
+    } cleanup{g_System.m_Console};
+    try {
+        char name[] = "Console";
+        if (g_System.Init(&g_System, 0, name)) {
+            g_System.RunFrame(0);
+            result = EXIT_SUCCESS;
+        }
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "HLTV: %s\n", error.what());
+    } catch (...) {
+        std::fprintf(stderr, "HLTV: native system exception\n");
+    }
+    try {
+        g_System.ShutDown();
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "HLTV: shutdown failed: %s\n", error.what());
+        result = EXIT_FAILURE;
+    } catch (...) {
+        std::fprintf(stderr, "HLTV: native shutdown exception\n");
+        result = EXIT_FAILURE;
+    }
+    return result;
+}
+#endif

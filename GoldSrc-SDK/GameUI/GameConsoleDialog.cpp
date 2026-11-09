@@ -16,8 +16,8 @@
 #include "RichText.h"
 #include "TextEntry.h"
 #include "IBaseUI.h"
-#include "IGameUIFuncs.h"
-#include "FileSystem.h"
+#include "igameuifuncs.h"
+#include "filesystem.h"
 #include "vgui/IInput.h"
 #include "vgui/ILocalize.h"
 #include "vgui/IScheme.h"
@@ -28,7 +28,11 @@
 #include "cl_dll.h"
 #include "cvar.h"
 
+#if defined(_WIN32)
 #include <malloc.h>
+#else
+#include <alloca.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -526,7 +530,7 @@ void CGameConsoleDialog::DumpConsoleTextToFile()
 				break;
 
 			vgui2::localize()->ConvertUnicodeToANSI( text, ansi, sizeof( ansi ) );
-			int length = strlen( ansi );
+			const int length = static_cast<int>(strlen(ansi));
 			for ( int i = 0; i < length; i++ )
 			{
 				if ( ansi[i] == '\n' )
@@ -554,7 +558,7 @@ void CGameConsoleDialog::RebuildCompletionList( const char* text )
 	m_CompletionList.RemoveAll();
 
 	// we need the length of the text for the partial string compares
-	int length = strlen( text );
+	const size_t length = strlen(text);
 	if ( length < 1 )
 	{
 		// Fill the completion list with history instead
@@ -631,13 +635,10 @@ void CGameConsoleDialog::AddToHistory( const char* commandText, const char* extr
 #ifdef _MSC_VER
 #pragma warning( suppress: 6053 )
 #endif
-			for ( int i = strlen( extra ) - 1; i >= 0; --i )
-			{
-				if ( extra[i] != ' ' )
-					break;
-
-				extra[i] = 0;
-			}
+			size_t length = strlen(extra);
+            while (length > 0 && extra[length - 1] == ' ') {
+                extra[--length] = 0;
+            }
 		}
 	}
 
@@ -721,7 +722,7 @@ void CGameConsoleDialog::OnTextChanged( vgui2::Panel* panel )
 
 	// get the partial text the user type
 	m_pEntry->GetText( m_szPartialText, sizeof( m_szPartialText ) );
-	int length = strlen( m_szPartialText );
+    const size_t length = strlen(m_szPartialText);
 	if ( !m_bAutoCompleteMode && length > 0 && m_szPartialText[length - 1] == ' ' )
 	{
 		m_iNextCompletion = 0;

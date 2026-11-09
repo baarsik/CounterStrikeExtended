@@ -1,0 +1,73 @@
+cmake_minimum_required(VERSION 3.25)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../.." ABSOLUTE)
+include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
+set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
+project(CseWebMWidthFixture LANGUAGES C CXX)
+include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
+include("${CSE_ROOT}/cmake/NativeThirdParty.cmake")
+cse_load_native_third_party()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+
+set(fixture "${CMAKE_CURRENT_LIST_DIR}/..")
+set(engine "${CSE_ROOT}/GoldSrc-SDK/engine")
+set(CSE_WEBM_SOURCE "${engine}/webm_video.cpp" CACHE FILEPATH "Actual WebM methods for extraction")
+set(generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
+add_custom_command(OUTPUT "${generated}/demux_reference.cpp" "${generated}/demux-source.json"
+    COMMAND "${Python3_EXECUTABLE}" "${fixture}/extract_demux_boundaries.py"
+        --source "${CSE_WEBM_SOURCE}" --output "${generated}"
+    DEPENDS "${CSE_WEBM_SOURCE}" "${fixture}/extract_demux_boundaries.py"
+    VERBATIM)
+set_source_files_properties("${generated}/demux_reference.cpp" PROPERTIES GENERATED TRUE)
+
+add_library(webm_pcm_fixture STATIC "${engine}/webm_pcm_allocation.cpp")
+add_executable(webm_allocation_tests "${fixture}/allocation_helper_tests.cpp")
+target_link_libraries(webm_allocation_tests PRIVATE webm_pcm_fixture)
+add_library(webm_noeh_fixture OBJECT "${fixture}/allocation_helper_noeh.cpp")
+add_executable(webm_unwind_tests "${fixture}/allocation_helper_unwind_tests.cpp"
+    $<TARGET_OBJECTS:webm_noeh_fixture>)
+target_link_libraries(webm_unwind_tests PRIVATE webm_pcm_fixture)
+add_library(webm_demux_noeh_fixture OBJECT "${generated}/demux_reference.cpp")
+add_executable(webm_demux_boundary_tests "${fixture}/demux_boundary_tests.cpp"
+    $<TARGET_OBJECTS:webm_demux_noeh_fixture>)
+target_include_directories(webm_demux_boundary_tests PRIVATE "${generated}")
+target_link_libraries(webm_demux_boundary_tests PRIVATE unofficial::libwebm::libwebm)
+
+option(CSE_WEBM_WIDTH_SANITIZERS "Instrument owned helper/extracted methods with ASan/UBSan" OFF)
+target_link_libraries(webm_demux_noeh_fixture PRIVATE unofficial::libwebm::libwebm)
+foreach(target webm_pcm_fixture webm_allocation_tests webm_noeh_fixture webm_unwind_tests
+        webm_demux_noeh_fixture webm_demux_boundary_tests)
+    target_compile_features(${target} PRIVATE cxx_std_14)
+    set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+    target_include_directories(${target} PRIVATE "${fixture}" "${engine}")
+    set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /WX /fp:precise)
+        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+        if(target STREQUAL "webm_noeh_fixture" OR target STREQUAL "webm_demux_noeh_fixture")
+            target_compile_options(${target} PRIVATE /EHs-c-)
+        else()
+            target_compile_options(${target} PRIVATE /EHsc)
+        endif()
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -Werror=shorten-64-to-32
+            -ffp-model=precise -ffp-contract=off -Wno-overriding-option -funwind-tables
+            "$<$<CONFIG:Release>:-Os>" "$<$<CONFIG:Debug>:-O0>")
+        if(target STREQUAL "webm_noeh_fixture" OR target STREQUAL "webm_demux_noeh_fixture")
+            target_compile_options(${target} PRIVATE -fno-exceptions)
+        else()
+            target_compile_options(${target} PRIVATE -fexceptions)
+        endif()
+    endif()
+    if(CSE_WEBM_WIDTH_SANITIZERS)
+        if(MSVC)
+            message(FATAL_ERROR "WebM width sanitizer fixture requires Clang")
+        endif()
+        target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+    endif()
+endforeach()
+
+enable_testing()
+add_test(NAME webm-pcm-counts COMMAND webm_allocation_tests)
+add_test(NAME webm-pcm-unwind COMMAND webm_unwind_tests)
+add_test(NAME webm-demux-boundaries COMMAND webm_demux_boundary_tests)

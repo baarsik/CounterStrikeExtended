@@ -187,7 +187,7 @@ void Border::SetName( const char* name )
 		delete[] _name;
 	}
 
-	int len = strlen( name ) + 1;
+	const size_t len = strlen(name) + 1;
 	_name = new char[len];
 	strcpy( _name, name );
 }

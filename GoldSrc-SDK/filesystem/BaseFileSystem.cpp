@@ -15,9 +15,18 @@
 #include <time.h>
 
 #ifndef _WIN32
+#include <cerrno>
+#include <cstdint>
+#include <limits>
 #include <alloca.h>
 #include <strings.h>
 
+// Unconditional warnings must use a declared enum value. All supported
+// configured levels are >= QUIET; the legacy -1 cast is outside the enum range.
+#undef FILESYSTEM_WARNING
+#define FILESYSTEM_WARNING FILESYSTEM_WARNING_QUIET
+
+#define _alloca		alloca
 #define _strlwr		strlwr
 #define _strnicmp	strncasecmp
 #define _snprintf	snprintf
@@ -37,6 +46,18 @@
 float g_flDummyFloat = 1.0f;
 
 CBaseFileSystem* CBaseFileSystem::s_pFileSystem = NULL;
+
+#ifndef _WIN32
+namespace {
+int LegacyFileTimestamp32(std::int64_t value) {
+    const std::uint32_t bits = static_cast<std::uint32_t>(value);
+    std::int32_t timestamp;
+    static_assert(sizeof(timestamp) == sizeof(int), "Legacy filesystem timestamp width");
+    memcpy(&timestamp, &bits, sizeof(timestamp));
+    return static_cast<int>(timestamp);
+}
+}
+#endif
 
 static const char* COM_FileExtension( const char* in )
 {
@@ -81,14 +102,25 @@ CBaseFileSystem* BaseFileSystem()
 
 CBaseFileSystem::CBaseFileSystem()
 {
+    CUtlSymbol::AcquireFileSystemOwner();
 	s_pFileSystem = this;
 	m_fwLevel = FILESYSTEM_WARNING_REPORTUNCLOSED;
 	m_pfnWarning = NULL;
 	m_nOpenCount = 0;
 }
 
-CBaseFileSystem::~CBaseFileSystem()
-{
+CBaseFileSystem::~CBaseFileSystem() {
+    // The concrete backend closes native finds and pack streams first. Detach
+    // all containers before the final shared symbol/cache owner is released.
+    m_FindData.Purge();
+    m_SearchPaths.Purge();
+    m_OpenedFiles.Purge();
+    m_PackFileHandles.Purge();
+    if (CUtlSymbol::ReleaseFileSystemOwner()) {
+#if !defined(_WIN32)
+        ClearPathMatchCache();
+#endif
+    }
 }
 
 void CBaseFileSystem::Mount()
@@ -363,8 +395,13 @@ FileHandle_t CBaseFileSystem::FindFile( const CSearchPath* path, const char* pFi
 		fh->m_pFile = path->m_hPackFile->m_pFile;
 		fh->m_nStartOffset = result.m_nPosition;
 		fh->m_nLength = result.m_nLength;
+#ifdef _WIN32
 		fh->m_nFileTime = path->m_lPackFileTime;
 		fh->m_nModificationTime = path->m_lPackFileTime;
+#else
+        fh->m_nFileTime = LegacyFileTimestamp32(path->m_lPackFileTime);
+        fh->m_nModificationTime = LegacyFileTimestamp32(path->m_lPackFileTime);
+#endif
 		fh->m_bPack = true;
 		return (FileHandle_t)fh;
 	}
@@ -393,8 +430,13 @@ FileHandle_t CBaseFileSystem::FindFile( const CSearchPath* path, const char* pFi
 		Warning( FILESYSTEM_WARNING, "_stat on file %s which appeared to exist failed!!!\n", pTmpFileName );
 	}
 
+#ifdef _WIN32
 	fh->m_nFileTime = (int)( buf.st_ctime > buf.st_mtime ? buf.st_ctime : buf.st_mtime );
 	fh->m_nModificationTime = (int)buf.st_mtime;
+#else
+    fh->m_nFileTime = LegacyFileTimestamp32(buf.st_ctime > buf.st_mtime ? buf.st_ctime : buf.st_mtime);
+    fh->m_nModificationTime = LegacyFileTimestamp32(buf.st_mtime);
+#endif
 	fh->m_nLength = buf.st_size;
 	fh->m_nStartOffset = 0;
 	return (FileHandle_t)fh;
@@ -457,8 +499,13 @@ FileHandle_t CBaseFileSystem::Open( const char* pFileName, const char* pOptions,
 		Warning( FILESYSTEM_WARNING, "_stat on file %s which appeared to exist failed!!!\n", pTmpFileName );
 	}
 
+#ifdef _WIN32
 	fh->m_nFileTime = (int)buf.st_mtime;
 	fh->m_nModificationTime = (int)buf.st_mtime;
+#else
+    fh->m_nFileTime = LegacyFileTimestamp32(buf.st_mtime);
+    fh->m_nModificationTime = LegacyFileTimestamp32(buf.st_mtime);
+#endif
 	fh->m_nLength = buf.st_size;
 	fh->m_pFile = fp;
 	fh->m_nStartOffset = 0;
@@ -505,6 +552,12 @@ void CBaseFileSystem::Close( FileHandle_t file )
 		Warning( FILESYSTEM_WARNING, "FS:  Tried to Close NULL file pointer inside valid file handle!\n" );
 		return;
 	}
+
+    if (fh->m_bPack) {
+        // Pack views own their wrapper; the search path owns the shared FILE.
+        delete fh;
+        return;
+    }
 
 	if ( m_PackFileHandles.Find( fh->m_pFile ) != -1 )
 		return;
@@ -648,8 +701,19 @@ int CBaseFileSystem::FastFindFileSize( const CSearchPath* path, const char* pFil
 	strcpy( pTmpFileName, path->m_Path.String() );
 	strcat( pTmpFileName, pFileName );
 	FixSlashes( pTmpFileName );
+#ifdef _WIN32
 	if ( FS_stat( pTmpFileName, &buf ) != -1 )
 		return buf.st_size;
+#else
+    if (FS_stat(pTmpFileName, &buf) != -1) {
+        constexpr auto kMaximumLegacySize = (std::numeric_limits<int>::max)();
+        if (buf.st_size < 0 || buf.st_size > kMaximumLegacySize) {
+            errno = EOVERFLOW;
+            return -1;
+        }
+        return static_cast<int>(buf.st_size);
+    }
+#endif
 	return -1;
 }
 
@@ -1654,12 +1718,33 @@ int CBaseFileSystem::GetFileModificationTime( const char* pFileName )
 //-----------------------------------------------------------------------------
 void CBaseFileSystem::FileTimeToString( char* pString, int maxCharsIncludingTerminator, long fileTime )
 {
+#ifdef _WIN32
 	time_t timeTyped = fileTime;
 	char* src = ctime( &timeTyped );
 
 	strncpy( pString, src, maxCharsIncludingTerminator );
 
 	pString[maxCharsIncludingTerminator - 1] = 0;
+#else
+    constexpr long kMaximumLegacyTime = (std::numeric_limits<int>::max)();
+    if (!pString || maxCharsIncludingTerminator <= 0) {
+        errno = EINVAL;
+        return;
+    }
+    pString[0] = 0;
+    if (fileTime < 0 || fileTime > kMaximumLegacyTime) {
+        errno = EINVAL;
+        return;
+    }
+    time_t timeTyped = fileTime;
+    const char* src = ctime(&timeTyped);
+    if (!src) {
+        errno = EINVAL;
+        return;
+    }
+    strncpy(pString, src, static_cast<size_t>(maxCharsIncludingTerminator));
+    pString[maxCharsIncludingTerminator - 1] = 0;
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -1701,10 +1786,18 @@ void CBaseFileSystem::Warning( FileWarningLevel_t level, const char* fmt, ... )
 		va_end( args );
 
 		// Dump to stdio
+#ifdef _WIN32
 		printf( warningtext );
+#else
+        fputs(warningtext, stdout);
+#endif
 		if ( m_pfnWarning != NULL )
 		{
+#ifdef _WIN32
 			m_pfnWarning( warningtext );
+#else
+            m_pfnWarning("%s", warningtext);
+#endif
 		}
 		else
 		{

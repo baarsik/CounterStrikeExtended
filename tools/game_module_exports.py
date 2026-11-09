@@ -1,4 +1,4 @@
-"""Project a retained GameDLL definition onto a native Windows compiler ABI.
+"""Project a retained runtime definition onto a native Windows compiler ABI.
 
 The source EXPORT declarations emit native C++ names. Explicit x86 decorated
 names cannot be linked by x64/ARM64; C entry points and their ordinals stay fixed.
@@ -28,13 +28,13 @@ def native_definition(source):
             if text.upper() in ('LIBRARY', 'NAME', 'DESCRIPTION', 'EXPORTS', 'IMPORTS', 'SECTIONS',
                                 'STACKSIZE', 'HEAPSIZE', 'VERSION'):
                 raise ValueError('Unsupported GameDLL definition directive: ' + text)
-            alias = re.fullmatch(r'([A-Za-z_]\w*)\s*=\s*_([A-Za-z_]\w*)@\d+(\s+@\d+)?', text)
+            alias = re.fullmatch(r'([A-Za-z_]\w*)\s*=\s*_([A-Za-z_]\w*)@\d+(\s+@\d+)?(\s+PRIVATE)?', text)
             if alias and alias[1] == alias[2]:
                 # Native Windows uses the undecorated C name, with the existing ordinal.
                 indentation = line[:len(line) - len(line.lstrip())]
-                result.append(indentation + alias[1] + (alias[3] or ''))
+                result.append(indentation + alias[1] + (alias[3] or '') + (alias[4] or ''))
                 continue
-            if re.fullmatch(r'\?\S*@@\S*(?:\s+@\d+)?', text):
+            if re.fullmatch(r'\?\S*@@\S*(?:\s+@\d+)?(?:\s+(?:NONAME|DATA|PRIVATE))*', text):
                 continue
             if not re.fullmatch(r'[A-Za-z_]\w*(?:\s+@\d+)?(?:\s+(?:NONAME|DATA|PRIVATE))*', text):
                 raise ValueError('Unsupported GameDLL export: ' + text)

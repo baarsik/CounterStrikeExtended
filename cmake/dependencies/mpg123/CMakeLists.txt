@@ -38,6 +38,11 @@ target_include_directories(libmpg123 INTERFACE "$<BUILD_INTERFACE:${CSE_MPG123_S
 if(CMAKE_C_COMPILER_ID MATCHES "^(AppleClang|Clang|GNU)$")
   # Match the reference decoder's separate float multiply/add rounding.
   target_compile_options(libmpg123 PRIVATE -ffp-contract=off)
+  foreach(dependency libmpg123 compat)
+    target_compile_options(${dependency} PRIVATE
+      "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>"
+      "$<$<OR:$<CONFIG:Debug>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:-g>")
+  endforeach()
 endif()
 
 if(MSVC)

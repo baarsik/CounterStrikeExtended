@@ -4,6 +4,8 @@
 #include "client.h"
 #include "enginecallbacks.h"
 
+#include <cstdint>
+
 static int miplevel;
 int ubasestep;
 int errorterm;
@@ -156,6 +158,21 @@ int LeafId( msurface_t* psurface )
 	return 1;
 }
 
+static int D_SurfaceFlatColorIndex(const void* surfaceData) {
+    constexpr unsigned int AddressShift = 4;
+    constexpr std::uint32_t AddressSignBit = UINT32_C(0x80000000);
+    constexpr std::int32_t ShiftedSignRange = static_cast<std::int32_t>(AddressSignBit >> (AddressShift - 1));
+    constexpr int FlatColorCount = 255;
+
+    // Preserve the Win32 signed low-32-bit arithmetic shift, including its negative remainder.
+    const auto addressBits = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(surfaceData));
+    auto shiftedAddress = static_cast<std::int32_t>(addressBits >> AddressShift);
+    if ((addressBits & AddressSignBit) != 0) {
+        shiftedAddress -= ShiftedSignRange;
+    }
+    return shiftedAddress % FlatColorCount;
+}
+
 /*
 ==============
 D_DrawSurfaces
@@ -226,7 +243,7 @@ void D_DrawSurfaces()
 			}
 			else
 			{
-				D_DrawSolidSurface( s, hlRGB( flatcolors, ( (int)s->data >> 4 ) % 255 ) );
+                D_DrawSolidSurface(s, hlRGB(flatcolors, D_SurfaceFlatColorIndex(s->data)));
 			}
 			D_DrawZSpans( s->spans );
 		}

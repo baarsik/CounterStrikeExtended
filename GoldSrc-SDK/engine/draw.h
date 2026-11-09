@@ -10,7 +10,11 @@
 
 #include "../cl_dll/wrect.h"
 
+#if defined(_WIN64) || defined(__LP64__)
+#define MIP_EXTRASIZE (static_cast<int>(sizeof(texture_t) - sizeof(miptex_t)))
+#else
 #define MIP_EXTRASIZE	24
+#endif
 
 extern qpic_t*		draw_disc; // also used on sbar
 extern qpic_t*		draw_backtile;
@@ -94,7 +98,11 @@ void		Draw_EndDisc();
 
 #define CACHE_WAD_NAME_BYTES 64
 
+#if defined(_WIN64) || defined(__LP64__)
+#define MIP_EXTRASIZE (static_cast<int>(sizeof(texture_t) - sizeof(miptex_t)))
+#else
 #define MIP_EXTRASIZE 32
+#endif
 
 typedef struct
 {

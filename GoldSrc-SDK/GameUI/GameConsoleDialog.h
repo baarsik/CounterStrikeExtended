@@ -9,6 +9,7 @@
 
 #include "TaskFrame.h"
 #include "utlvector.h"
+#include "../public/cse_command.h"
 
 struct cvar_s;
 class CNoKeyboardInputRichText;
@@ -70,7 +71,7 @@ public:
 private:
 	struct cmdnode_t
 	{
-		unsigned int	cmd;
+		CseCommandHandle cmd;
 		cvar_s*			cvar;
 	};
 

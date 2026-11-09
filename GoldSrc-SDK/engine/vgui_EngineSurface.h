@@ -46,6 +46,9 @@ public:
 		int height ) override;
 
 	static void freeEngineSurface();
+#if defined(__APPLE__)
+    bool RetireNativeFontPage(int id) noexcept;
+#endif
 
 private:
 	void createRenderPlat();

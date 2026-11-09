@@ -1,0 +1,68 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseFilesystemAbiSpike LANGUAGES CXX)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
+enable_testing()
+foreach(view IN ITEMS public launcher vgui provider)
+  add_executable(filesystem_facts_${view} facts.cpp)
+  if(NOT view STREQUAL "public")
+    string(TOUPPER "${view}" view_upper)
+    target_compile_definitions(filesystem_facts_${view} PRIVATE "CSE_FS_${view_upper}_VIEW")
+  endif()
+endforeach()
+foreach(fault RANGE 0 5)
+  add_library(filesystem_module_${fault} SHARED module.cpp)
+  target_compile_definitions(filesystem_module_${fault} PRIVATE CSE_FS_FAULT=${fault})
+endforeach()
+add_library(filesystem_missing SHARED module.cpp)
+target_compile_definitions(filesystem_missing PRIVATE CSE_FS_MISSING CSE_FS_FAULT=0)
+add_library(filesystem_provider SHARED module.cpp)
+target_compile_definitions(filesystem_provider PRIVATE CSE_FS_PROVIDER_VIEW CSE_FS_FAULT=0)
+add_library(filesystem_third_party SHARED module.cpp)
+target_compile_definitions(filesystem_third_party PRIVATE CSE_FS_MISSING CSE_FS_FAULT=0)
+add_executable(filesystem_gate_tests gate_tests.cpp)
+add_executable(filesystem_owned_provider_tests owned_provider_tests.cpp)
+target_link_libraries(filesystem_owned_provider_tests PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(filesystem_gate_tests PRIVATE ${CMAKE_DL_LIBS})
+add_library(timestamp_provider_calls OBJECT timestamp_calls.cpp)
+target_compile_definitions(timestamp_provider_calls PRIVATE CSE_FS_PROVIDER_VIEW)
+add_library(timestamp_consumer_calls OBJECT timestamp_calls.cpp)
+add_executable(filesystem_timestamp_probe timestamp_probe.cpp $<TARGET_OBJECTS:timestamp_provider_calls>
+  $<TARGET_OBJECTS:timestamp_consumer_calls>)
+target_link_libraries(filesystem_timestamp_probe PRIVATE ${CMAKE_DL_LIBS})
+set(CSE_FS_ACTUAL_MODULE "" CACHE FILEPATH "Explicit source-built owned filesystem module for the timestamp probe")
+get_property(targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(target IN LISTS targets)
+  set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK" "${CSE_ROOT}/GoldSrc-SDK/public"
+    "${CSE_ROOT}/GoldSrc-SDK/filesystem")
+  if(WIN32 AND target MATCHES "^filesystem_(module_[0-5]|provider|missing|third_party)$")
+    if(target MATCHES "(missing|third_party)$")
+      target_sources(${target} PRIVATE module_without_descriptor.def)
+    else()
+      target_sources(${target} PRIVATE module.def)
+    endif()
+  endif()
+  if(MSVC)
+    target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
+    target_compile_options(${target} PRIVATE /W4 /WX /EHsc)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Werror)
+  endif()
+endforeach()
+add_test(NAME filesystem-abi-gate-spike COMMAND filesystem_gate_tests
+  "$<TARGET_FILE:filesystem_module_0>" "$<TARGET_FILE:filesystem_module_1>"
+  "$<TARGET_FILE:filesystem_module_2>" "$<TARGET_FILE:filesystem_module_3>"
+  "$<TARGET_FILE:filesystem_module_4>" "$<TARGET_FILE:filesystem_module_5>"
+  "$<TARGET_FILE:filesystem_missing>" "$<TARGET_FILE:filesystem_provider>"
+  "$<TARGET_FILE:filesystem_third_party>")
+add_test(NAME filesystem-actual-header-parity COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/compare_views.py"
+  "$<TARGET_FILE:filesystem_facts_public>" "$<TARGET_FILE:filesystem_facts_launcher>"
+  "$<TARGET_FILE:filesystem_facts_vgui>" "$<TARGET_FILE:filesystem_facts_provider>")
+if(CSE_FS_ACTUAL_MODULE)
+  add_test(NAME filesystem-actual-owned-provider-contract COMMAND filesystem_owned_provider_tests "${CSE_FS_ACTUAL_MODULE}")
+  add_test(NAME filesystem-actual-timestamp-parity COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/run_timestamp_probe.py" "$<TARGET_FILE:filesystem_timestamp_probe>"
+    "${CSE_FS_ACTUAL_MODULE}")
+endif()

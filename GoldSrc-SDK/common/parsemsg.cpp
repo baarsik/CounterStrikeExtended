@@ -18,6 +18,7 @@
 //--------------------------------------------------------------------------------------------------------------
 #include "parsemsg.h"
 #include <port.h>
+#include <stdint.h>
 
 typedef unsigned char byte;
 #define true 1
@@ -237,6 +238,18 @@ void BufferWriter::WriteString( const char *str )
 	if (!str)
 		str = "";
 
+#if UINTPTR_MAX > UINT32_MAX
+    // The message still uses signed32 space counts. Check the native length
+    // before narrowing or adding its trailing NUL, including SIZE_MAX.
+    constexpr int terminatorBytes = 1;
+    const size_t sourceLength = strlen(str);
+    const bool fits = m_remaining > 0 && sourceLength < static_cast<size_t>(m_remaining);
+    int len = fits ? static_cast<int>(sourceLength) + terminatorBytes : terminatorBytes;
+    if (!fits) {
+        m_overflow = true;
+        str = "";
+    }
+#else
 	int len = strlen(str)+1;
 	if ( len > m_remaining )
 	{
@@ -244,6 +257,7 @@ void BufferWriter::WriteString( const char *str )
 		str = "";
 		len = 1;
 	}
+#endif
 
 	strcpy((char *)m_buffer, str);
 	m_remaining -= len;

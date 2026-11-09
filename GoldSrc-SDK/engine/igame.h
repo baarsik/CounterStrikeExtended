@@ -17,7 +17,13 @@
 //=============================================================================
 #pragma once
 
+#if defined(_WIN32)
 #include <windows.h>
+using CseGameWindowHandle = HWND;
+#else
+struct SDL_Window;
+using CseGameWindowHandle = SDL_Window*;
+#endif
 
 class IGame
 {
@@ -29,8 +35,8 @@ public:
 
 	virtual bool CreateGameWindow() = 0;
 	virtual void SleepUntilInput( int milliseconds ) = 0;
-	virtual HWND GetMainWindow() = 0;
-	virtual HWND* GetMainWindowAddress() = 0;
+	virtual CseGameWindowHandle GetMainWindow() = 0;
+	virtual CseGameWindowHandle* GetMainWindowAddress() = 0;
 	virtual void SetWindowXY( int x, int y ) = 0;
 	virtual void SetWindowSize( int width, int height ) = 0;
 	virtual void GetWindowRect( int* x, int* y, int* width, int* height ) = 0;

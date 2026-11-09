@@ -28,6 +28,10 @@ public:
 	Color();
 	Color(int r,int g,int b,int a);
 	Color(Scheme::SchemeColor sc);
+#if defined(__APPLE__)
+    Color(const Color&) = default;
+    Color& operator=(const Color&) = default;
+#endif
 private:
 	virtual void init();
 public:

@@ -1,0 +1,71 @@
+"""One exact FixedSys tuple, memory GDI only; no font program/table export."""
+import argparse
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import struct
+import subprocess
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--inputs', type=Path, required=True)
+parser.add_argument('--workspace', type=Path, required=True)
+parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--architectures', nargs='+', choices=['x86', 'x64', 'arm64'], default=['x64'])
+args = parser.parse_args()
+source = args.workspace / 'source'
+assert not source.exists()
+shutil.copytree(args.inputs / 'source', source)
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+hashes = json.loads((args.inputs / 'source-hashes.json').read_text())
+assert all(sha(source / name) == digest for name, digest in hashes.items())
+rows = []
+machines = {'x86': 0x14c, 'x64': 0x8664, 'arm64': 0xaa64}
+for architecture in args.architectures:
+    initialized = subprocess.run(['cmd.exe', '/d', '/u', '/c',
+        r'call C:\BuildTools\2026\Common7\Tools\VsDevCmd.bat -no_logo -host_arch=arm64 -arch='
+        + architecture + ' && set'], capture_output=True, check=True)
+    environment = {}
+    for line in initialized.stdout.decode('utf-16-le').splitlines():
+        key, separator, value = line.partition('=')
+        if key and separator:
+            environment[key] = value
+    compiler_path = next(value for key, value in environment.items() if key.upper() == 'PATH')
+    dumpbin = shutil.which('dumpbin.exe', path=compiler_path)
+    assert dumpbin, 'The initialized compiler environment must provide dumpbin'
+    for configuration in ['Release']:
+        output = args.output / (architecture + '-' + configuration)
+        output.mkdir(parents=True)
+        build = args.workspace / (architecture + '-' + configuration)
+        row = {'architecture': architecture, 'configuration': configuration, 'phases': []}
+        commands = [('configure', ['cmake', '-S', str(source / 'tests/native/vgui1_fixedsys_symbols'),
+            '-B', str(build), '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=' + configuration]),
+            ('build', ['cmake', '--build', str(build), '--parallel', '1']),
+            ('fixedsys-symbols', [str(build / 'fixedsys_symbols.exe')])]
+        for phase, command in commands:
+            with (output / (phase + '.log')).open('wb') as log:
+                completed = subprocess.run(command, env=environment, cwd=output,
+                    stdout=log, stderr=subprocess.STDOUT, timeout=90)
+            row['phases'].append({'phase': phase, 'command': command, 'exit': completed.returncode})
+            if completed.returncode:
+                break
+        if len(row['phases']) >= 2 and row['phases'][1]['exit'] == 0:
+            image = build / 'fixedsys_symbols.exe'
+            data = image.read_bytes()
+            pe = struct.unpack_from('<I', data, 0x3c)[0]
+            assert struct.unpack_from('<H', data, pe + 4)[0] == machines[architecture]
+            row['binary-sha256'] = sha(image)
+            row['pe-machine'] = hex(machines[architecture])
+            shutil.copy2(image, output / image.name)
+            shutil.copy2(build / 'compile_commands.json', output / 'compile_commands.json')
+            shutil.copytree(build / 'extracted', output / 'extracted')
+            with (output / 'imports.log').open('wb') as log:
+                subprocess.run([dumpbin, '/imports', str(image)], env=environment, stdout=log,
+                    stderr=subprocess.STDOUT, timeout=15, check=True)
+        assert all(sha(source / name) == digest for name, digest in hashes.items())
+        row['allowed-output-hashes'] = {p.name: sha(p) for p in sorted(output.iterdir()) if p.is_file()}
+        assert not any(p.suffix.lower() in ['.ttf', '.otf', '.ttc', '.fon', '.dmp'] for p in output.iterdir())
+        rows.append(row)
+        (args.output / 'cases.json').write_text(json.dumps(rows, indent=2) + '\n')
+        print(architecture, configuration, [x['exit'] for x in row['phases']], flush=True)
+raise SystemExit(int(any(len(x['phases']) != 3 or x['phases'][-1]['exit'] for x in rows)))

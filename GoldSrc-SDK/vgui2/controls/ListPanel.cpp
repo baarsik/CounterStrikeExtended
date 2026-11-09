@@ -29,6 +29,7 @@
 #include "vgui/KeyValues.h"
 
 #include <stdio.h>
+#include <cstdint>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
@@ -136,8 +137,10 @@ static int FastSortFunc( ListPanel*, const ListPanelItem& item1, const ListPanel
 
 static int DefaultSortFunc( ListPanel*, const ListPanelItem& item1, const ListPanelItem& item2 )
 {
+#if defined(_WIN32)
 	if ( !&item1 || !&item2 )
 		return 0;
+#endif
 
 	if ( s_currentSortingColumnTypeIsText ) // textImage column
 	{
@@ -154,8 +157,10 @@ static int DefaultSortFunc( ListPanel*, const ListPanelItem& item1, const ListPa
 			item2.kv->GetString( s_pCurrentSortingColumn ) );
 	}
 
-	unsigned int first = (unsigned int)item1.kv->GetPtr( s_pCurrentSortingColumn, (void*)"" );
-	unsigned int second = (unsigned int)item2.kv->GetPtr( s_pCurrentSortingColumn, (void*)"" );
+	const std::uintptr_t first = reinterpret_cast<std::uintptr_t>(
+        item1.kv->GetPtr(s_pCurrentSortingColumn, (void*)""));
+	const std::uintptr_t second = reinterpret_cast<std::uintptr_t>(
+        item2.kv->GetPtr(s_pCurrentSortingColumn, (void*)""));
 	if ( first < second )
 		return -1;
 	return first > second;

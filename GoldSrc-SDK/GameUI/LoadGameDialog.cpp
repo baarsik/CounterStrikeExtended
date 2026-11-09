@@ -11,7 +11,7 @@
 #include "Taskbar.h"
 
 #include "Button.h"
-#include "FileSystem.h"
+#include "filesystem.h"
 #include "Label.h"
 #include "ListPanel.h"
 #include "vgui/KeyValues.h"
@@ -153,7 +153,7 @@ bool CLoadGameDialog::ParseSaveData( const char* filename, const char* shortName
 	data->SetString( "Game", comment );
 	data->SetString( "Elapsed Time", elapsedTime );
 
-	long fileTime = vgui2::filesystem()->GetFileModificationTime( filename );
+    const int fileTime = vgui2::filesystem()->GetFileModificationTime(filename);
 	char timeText[32];
 	vgui2::filesystem()->FileTimeToString( timeText, sizeof( timeText ), fileTime );
 	char* newline = strstr( timeText, "\n" );

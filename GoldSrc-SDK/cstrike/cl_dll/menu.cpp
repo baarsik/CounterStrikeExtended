@@ -20,6 +20,7 @@
 
 #include "hud.h"
 #include "cl_util.h"
+#include <cstddef>
 #include "parsemsg.h"
 #include "../public/game_controls/iviewport.h"
 
@@ -158,7 +159,11 @@ int CHudMenu::Draw( float )
 			const char* start = text;
 			while ( *text && *text != '\n' && *text != '\\' )
 				text++;
+#if UINTPTR_MAX > UINT32_MAX
+            const std::ptrdiff_t length = text - start;
+#else
 			int length = text - start;
+#endif
 			strncpy( menubuf, start, length < 80 ? length : 80 );
 			menubuf[length < 79 ? length : 79] = 0;
 			if ( menu_ralign )

@@ -20,4 +20,9 @@ struct ControllerConfig {
 
 // The controller owns serializers and the provider process. RemoveBrowser detaches callbacks synchronously.
 std::unique_ptr<IHTMLChromeController> CreateController(const ControllerConfig& config);
+
+// Only for instances returned by CreateController. Notify and detach live widget callbacks once,
+// retaining serializers and the provider while the owner drains deferred widget deletion. Call Shutdown
+// after that drain; widgets must have called RemoveBrowser before the controller itself is destroyed.
+void BeginControllerShutdown(IHTMLChromeController& controller);
 }

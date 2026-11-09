@@ -227,6 +227,12 @@ public:
         return responses_;
     }
 
+    IHTMLResponses_HL1* CloseResponses() {
+        IHTMLResponses_HL1* responses = responses_;
+        Detach();
+        return responses;
+    }
+
 private:
     void Send(EHTMLCommands operation, const Writer& payload);
     Controller& owner_;
@@ -244,7 +250,7 @@ public:
 
     bool Init(const char*, const char*) override {
         if (initialized_) {
-            return !failed_;
+            return !failed_ && !preparingShutdown_;
         }
 
         if (config_.diagnostics) {
@@ -253,6 +259,7 @@ public:
 
         failed_ = false;
         failureNotified_ = false;
+        preparingShutdown_ = false;
         hello_ = false;
         pending_.clear();
         cookieReplies_.clear();
@@ -307,6 +314,23 @@ public:
         hello_ = false;
     }
 
+    void BeginShutdown() {
+        if (preparingShutdown_) {
+            return;
+        }
+        preparingShutdown_ = true;
+        std::vector<std::shared_ptr<Serializer>> snapshot;
+        for (const auto& browser : browsers_) {
+            snapshot.push_back(browser.second);
+        }
+        for (const auto& browser : snapshot) {
+            // Detach first: BrowserClose may remove another widget or pump a nested VGUI frame.
+            if (auto* responses = browser->CloseResponses()) {
+                responses->BrowserClose();
+            }
+        }
+    }
+
     bool RunFrame() override {
         Collect();
         if (failed_) {
@@ -352,6 +376,9 @@ public:
     }
 
     void CreateBrowser(IHTMLResponses* target, bool popup, const char* agent) override {
+        if (preparingShutdown_) {
+            return;
+        }
         const auto browser = Find(target);
         if (!browser) {
             return;
@@ -407,7 +434,7 @@ public:
 
     IHTMLSerializer* CreateSerializer(IHTMLResponses_HL1* responses) override {
         constexpr auto MaxBrowserIndex = static_cast<std::uint32_t>(std::numeric_limits<int>::max());
-        if (!initialized_ || failed_ || !responses || nextIdentifier_ >= MaxBrowserIndex) {
+        if (!initialized_ || failed_ || preparingShutdown_ || !responses || nextIdentifier_ >= MaxBrowserIndex) {
             return nullptr;
         }
 
@@ -469,6 +496,7 @@ private:
     bool initialized_ = false;
     bool failed_ = false;
     bool failureNotified_ = false;
+    bool preparingShutdown_ = false;
 };
 
 void Serializer::Send(EHTMLCommands operation, const Writer& payload) {
@@ -487,14 +515,12 @@ void Controller::StopFailedProvider() {
     }
 
     for (const auto& browser : snapshot) {
-        if (auto* responses = browser->Responses()) {
+        if (auto* responses = browser->CloseResponses()) {
             responses->BrowserClose();
         }
-
-        browser->Detach();
     }
 
-    // VGUI deletion is deferred. Keep serializer handles alive until widgets call RemoveBrowser.
+    // Widget owners retain their controls after a close notification. Keep serializer handles valid until removal.
     pending_.clear();
     int exitCode = 0;
     channel_.Finish(exitCode);
@@ -835,7 +861,9 @@ void Controller::Dispatch(const Message& message) {
 
     case eHTMLCommands_Close: {
         if (reader.Finish()) {
-            responses->BrowserClose();
+            if (auto* closing = browser->CloseResponses()) {
+                closing->BrowserClose();
+            }
             return;
         }
 
@@ -944,5 +972,10 @@ void Controller::Dispatch(const Message& message) {
 
 std::unique_ptr<IHTMLChromeController> CreateController(const ControllerConfig& config) {
     return std::make_unique<Controller>(config);
+}
+
+void BeginControllerShutdown(IHTMLChromeController& controller) {
+    // This owned-local helper intentionally does not extend the legacy vtable or the process protocol.
+    static_cast<Controller&>(controller).BeginShutdown();
 }
 }

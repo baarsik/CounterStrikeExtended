@@ -6,11 +6,11 @@
 //=============================================================================
 
 #include "voice_banmgr.h"
+#include "../../common/voice_ban_file.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#define BANMGR_FILEVERSION 1
 
 const char* g_pBanMgrFilename = "voice_ban.dt";
 
@@ -32,37 +32,28 @@ CVoiceBanMgr::~CVoiceBanMgr()
 	Term();
 }
 
-bool CVoiceBanMgr::Init( const char* gameDirectory )
-{
-	Term();
-	char filename[512];
-#ifdef _WIN32
-	_snprintf( filename, sizeof( filename ), "%s/%s", gameDirectory, g_pBanMgrFilename );
+bool CVoiceBanMgr::Init(char const* gameDirectory) {
+    static_assert(sizeof(m_PlayerHash[0].m_PlayerID) == cse_voice_bans::PlayerIdBytes,
+        "Persistent player ID width");
+    Term();
+    constexpr std::size_t FilenameCapacity = 512;
+    char filename[FilenameCapacity];
+#if defined(_WIN32)
+    _snprintf(filename, sizeof(filename), "%s/%s", gameDirectory, g_pBanMgrFilename);
 #else
-	snprintf( filename, sizeof( filename ), "%s/%s", gameDirectory, g_pBanMgrFilename );
+    snprintf(filename, sizeof(filename), "%s/%s", gameDirectory, g_pBanMgrFilename);
 #endif
-	filename[sizeof( filename ) - 1] = 0;
-	FILE* file = fopen( filename, "rb" );
-	if ( file )
-	{
-		int version;
-		fread( &version, 1, sizeof( version ), file );
-		if ( version == BANMGR_FILEVERSION )
-		{
-			fseek( file, 0, SEEK_END );
-			int count = (int)( (unsigned int)( ftell( file ) - sizeof( version ) ) / 16 );
-			fseek( file, sizeof( version ), SEEK_SET );
-			for ( int i = 0; i < count; ++i )
-			{
-				char playerID[16];
-				fread( playerID, 1, sizeof( playerID ), file );
-				AddBannedPlayer( playerID );
-			}
-		}
-		fclose( file );
-	}
-	return true;
+    filename[sizeof(filename) - 1] = 0;
+    FILE* file = fopen(filename, "rb");
+    if (file) {
+        cse_voice_bans::ReadLegacy(file, [this](const char* playerId) {
+            AddBannedPlayer(playerId);
+        });
+        fclose(file);
+    }
+    return true;
 }
+
 
 void CVoiceBanMgr::Term()
 {
@@ -93,8 +84,7 @@ void CVoiceBanMgr::SaveState( const char* gameDirectory )
 	FILE* file = fopen( filename, "wb" );
 	if ( file )
 	{
-		int version = BANMGR_FILEVERSION;
-		fwrite( &version, 1, sizeof( version ), file );
+        cse_voice_bans::WriteVersion(file);
 		for ( int i = 0; i < 256; ++i )
 		{
 			BannedPlayer* head = &m_PlayerHash[i];

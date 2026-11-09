@@ -4,6 +4,10 @@
 #include "interface.h"
 #include "pman_triangleffect.h"
 
+#include <climits>
+#include <cstddef>
+#include <new>
+
 #define PARTICLEMAN_INTERFACE "create_particleman"
 
 #ifdef _WIN32
@@ -85,15 +89,19 @@ public:
 		g_pParticleMan->CoreInitializeSprite ( this, org, normal, sprite, size, brightness );
 	}
 
-	void * operator new( size_t size ) //this asks for a new block of memory from the MiniMem class
-	{
-	   return( g_pParticleMan->RequestNewMemBlock( size ) );
-	}
+    void* operator new(std::size_t size) noexcept {
+        // Pool exhaustion already returns null; noexcept makes new-expressions
+        // skip construction on that result without requiring exception support.
+        constexpr std::size_t maximumRequestBytes = static_cast<std::size_t>(INT_MAX);
+        if (size > maximumRequestBytes) {
+            return nullptr;
+        }
+        return g_pParticleMan->RequestNewMemBlock(static_cast<int>(size));
+    }
 #ifdef POSIX
-	void * operator new( size_t size, const std::nothrow_t&) throw() //this asks for a new block of memory from the MiniMem class
-	{
-	   return( g_pParticleMan->RequestNewMemBlock( size ) );
-	}
+    void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
+        return CBaseParticle::operator new(size);
+    }
 #endif
 };
 

@@ -20,8 +20,9 @@ constexpr int SEQUENCE_FILE_PATH_BYTES = 256;
 constexpr int SEQUENCE_COMMAND_MAPPING_COUNT = 23;
 constexpr int SEQUENCE_NUMBER_TOKEN_BYTES = 256;
 
-static_assert( sizeof( sequenceCommandLine_s ) == 92 );
-static_assert( sizeof( sequenceEntry_s ) == 20 );
+// Parsed sequence lists own native pointers; .SEQ files contain symbolic text, not these records.
+static_assert(sizeof(void*) != 4 || sizeof(sequenceCommandLine_s) == 92);
+static_assert(sizeof(void*) != 4 || sizeof(sequenceEntry_s) == 20);
 
 byte* COM_LoadTempFile( char* path, int* length );
 void Sequence_ParseBuffer( byte* buffer, int length );

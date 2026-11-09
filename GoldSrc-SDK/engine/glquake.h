@@ -1,7 +1,11 @@
 #pragma once
 
+#if defined(_WIN32)
 #include <Windows.h>
 #include <GL/gl.h>
+#else
+#include <SDL3/SDL_opengl.h>
+#endif
 
 #include "const.h"
 #include "mathlib.h"

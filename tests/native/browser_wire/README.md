@@ -41,6 +41,6 @@ unchanged host and evidence directory, reuses it across process restarts, and
 deletes its exact item after helpers exit. Production controller configuration
 keeps its stable production identity.
 
-Production manifests do not yet select the controller or host. Passing these
-component fixtures does not qualify a complete native game or native prompt/file
-dialogs.
+Native production manifests select the controller, and complete native Windows
+builds stage the shared host subtree. Passing these component fixtures does not
+qualify complete engine integration, a native game, or native prompt/file dialogs.

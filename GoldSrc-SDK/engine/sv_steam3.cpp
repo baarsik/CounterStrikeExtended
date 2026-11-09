@@ -1,4 +1,11 @@
+#if defined(_WIN32)
 #include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+typedef int SOCKET;
+#endif
 #include "isteamgameserver_c_api.h"
 #include "steam_api.h"
 #include "sv_steam3.h"
@@ -33,7 +40,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#if defined(_WIN32)
 #include <io.h>
+#endif
 #include <mutex>
 #include <string>
 #include <vector>
@@ -1467,7 +1476,11 @@ void CSteam3Client::InitClient()
 		return;
 
 	m_bLoggedOn = true;
+#if defined(_WIN32)
 	_unlink( "steam_appid.txt" );
+#else
+    unlink("steam_appid.txt");
+#endif
 	if ( !std::getenv( "SteamAppId" ) )
 	{
 		int appID = GetGameAppID();

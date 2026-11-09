@@ -13,7 +13,7 @@
 #include "RichText.h"
 #include "Menu.h"
 #include "ScrollBar.h"
-#include "controls.h"
+#include "Controls.h"
 
 #include "../../../engine/controls.h"
 #include "ILocalize.h"
@@ -25,7 +25,9 @@
 #include "vgui/KeyValues.h"
 #include "vgui/MessageMap.h"
 
+#if defined(_WIN32)
 #include <malloc.h>
+#endif
 
 #include <cstddef>
 #include <cstdio>

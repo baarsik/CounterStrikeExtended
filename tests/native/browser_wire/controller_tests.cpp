@@ -111,6 +111,14 @@ static int Host(const std::vector<std::string>& arguments) {
                 Writer ready;
                 Output({Kind::Event, eHTMLCommands_BrowserReady, command.header.browser, 0, 0}, ready);
             } else if (command.header.kind == Kind::Command && command.header.operation == eHTMLCommands_PostURL) {
+                const auto closeBrowser = folder / "close-after-post";
+                if (std::filesystem::exists(closeBrowser)) {
+                    std::filesystem::remove(closeBrowser);
+                    Writer closed;
+                    Output({Kind::Event, eHTMLCommands_Close, command.header.browser, 0, 0}, closed);
+                    Output({Kind::Event, eHTMLCommands_Close, command.header.browser, 0, 0}, closed);
+                    continue;
+                }
                 const auto badPaint = folder / "out-of-range-paint";
                 if (std::filesystem::exists(badPaint)) {
                     std::filesystem::remove(badPaint);
@@ -156,11 +164,15 @@ public:
     int titles = 0;
     int closed = 0;
     bool removeOnTitle = false;
+    bool removeOnClose = false;
+    bool alive = true;
 
     void BrowserReady() override {
+        Require(alive, "ready callback after widget module lifetime");
         ++ready;
     }
     void BrowserSetHTMLTitle(const char* title) override {
+        Require(alive, "title callback after widget module lifetime");
         Require(std::string(title) == "native \xd0\xaf", "UTF-8 title");
         ++titles;
         if (removeOnTitle) {
@@ -190,7 +202,12 @@ public:
     void BrowserUpdateToolTip(const char* ) override {}
     void BrowserHideToolTip() override {}
     void BrowserClose() override {
+        Require(alive, "close callback after widget module lifetime");
         ++closed;
+        if (removeOnClose) {
+            controller->RemoveBrowser(serializer->GetResponseTarget());
+            serializer = nullptr;
+        }
     }
     void BrowserLinkAtPositionResponse(const char* , int , int ) override {}
 };
@@ -282,6 +299,97 @@ static int Run(const std::vector<std::string>& arguments) {
     controller->Shutdown();
     controller.reset();
     std::filesystem::remove(directory / "fixture-keychain-option");
+
+    auto diagnostics = std::make_shared<ControllerDiagnostics>();
+    controller = CreateController({arguments[0], directory.u8string(), diagnostics});
+    Require(controller->Init(nullptr, nullptr), "owned engine session initialization");
+    Responses immediate;
+    Responses deferred;
+    immediate.controller = controller.get();
+    deferred.controller = controller.get();
+    immediate.removeOnClose = true;
+    immediate.serializer = controller->CreateSerializer(&immediate);
+    deferred.serializer = controller->CreateSerializer(&deferred);
+    controller->CreateBrowser(immediate.serializer->GetResponseTarget(), false, "fixture-agent");
+    controller->CreateBrowser(deferred.serializer->GetResponseTarget(), false, "fixture-agent");
+    Pump(*controller, immediate.ready, 1);
+    Pump(*controller, deferred.ready, 1);
+    deferred.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    BeginControllerShutdown(*controller);
+    Require(immediate.closed == 1 && immediate.serializer == nullptr && deferred.closed == 1,
+        "owned shutdown closes callbacks with reentrant removal");
+    immediate.alive = false;
+    Require(controller->CreateSerializer(&immediate) == nullptr && !controller->Init(nullptr, nullptr),
+        "new widgets cannot reopen a draining engine session");
+    constexpr int DeferredFrames = 8;
+    for (int frame = 0; frame < DeferredFrames; ++frame) {
+        controller->RunFrame();
+        Require(deferred.serializer->GetBrowserHandle() > UINT32_MAX,
+            "serializer remains alive over deferred widget deletion frames");
+        deferred.serializer->KeyChar('A');
+        SDL_Delay(1);
+    }
+    Require(deferred.titles == 0 && deferred.closed == 1, "detached widgets receive no queued callbacks");
+    BeginControllerShutdown(*controller);
+    Require(deferred.closed == 1, "repeated begin shutdown is idempotent");
+    controller->RemoveBrowser(deferred.serializer->GetResponseTarget());
+    deferred.serializer = nullptr;
+    deferred.alive = false;
+    controller->Shutdown();
+    controller->Shutdown();
+    Require(diagnostics->cleanShutdown && diagnostics->exitCode == 0,
+        "graceful engine drain is not a provider failure");
+
+    Require(controller->Init(nullptr, nullptr), "engine session restart after completed drain");
+    Responses drainFailure;
+    drainFailure.controller = controller.get();
+    drainFailure.serializer = controller->CreateSerializer(&drainFailure);
+    controller->CreateBrowser(drainFailure.serializer->GetResponseTarget(), false, "fixture-agent");
+    Pump(*controller, drainFailure.ready, 1);
+    const auto failureMarker = directory / "crash-after-create";
+    std::ofstream(failureMarker).put('1');
+    drainFailure.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    BeginControllerShutdown(*controller);
+    constexpr Uint64 FailureDeadlineMilliseconds = 5000;
+    const Uint64 failureDeadline = SDL_GetTicks() + FailureDeadlineMilliseconds;
+    while (std::filesystem::exists(failureMarker) && SDL_GetTicks() < failureDeadline) {
+        controller->RunFrame();
+        SDL_Delay(1);
+    }
+    Require(!std::filesystem::exists(failureMarker), "provider failed during the deferred engine drain");
+    for (int frame = 0; frame < DeferredFrames; ++frame) {
+        controller->RunFrame();
+        SDL_Delay(1);
+    }
+    Require(drainFailure.closed == 1 && drainFailure.serializer->GetBrowserHandle() > UINT32_MAX,
+        "provider failure during drain neither renotifies nor frees the widget serializer");
+    controller->RemoveBrowser(drainFailure.serializer->GetResponseTarget());
+    drainFailure.serializer = nullptr;
+    drainFailure.alive = false;
+    controller->Shutdown();
+    controller->Shutdown();
+    Require(!diagnostics->cleanShutdown, "actual provider failure remains a failed shutdown");
+
+    Require(controller->Init(nullptr, nullptr), "restart for real close-event drain");
+    Responses closedByProvider;
+    closedByProvider.controller = controller.get();
+    closedByProvider.serializer = controller->CreateSerializer(&closedByProvider);
+    controller->CreateBrowser(closedByProvider.serializer->GetResponseTarget(), false, "fixture-agent");
+    Pump(*controller, closedByProvider.ready, 1);
+    std::ofstream(directory / "close-after-post").put('1');
+    closedByProvider.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    Pump(*controller, closedByProvider.closed, 1);
+    BeginControllerShutdown(*controller);
+    for (int frame = 0; frame < DeferredFrames; ++frame) {
+        controller->RunFrame();
+    }
+    Require(closedByProvider.closed == 1, "provider and engine close notifications share one detached lifetime");
+    controller->RemoveBrowser(closedByProvider.serializer->GetResponseTarget());
+    closedByProvider.serializer = nullptr;
+    closedByProvider.alive = false;
+    controller->Shutdown();
+    Require(diagnostics->cleanShutdown, "normal provider close does not become a startup or shutdown failure");
+    controller.reset();
     SDL_Quit();
     std::puts("native_browser_controller_fixture_passed=1");
     return 0;

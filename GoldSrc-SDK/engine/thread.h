@@ -59,6 +59,23 @@ public:
 #endif
 private:
     bool AddCommand(const threadcmds &command);
+    bool ShutdownLocked();
+    bool InitializeSynchronization();
+    bool LockLifecycle();
+    void UnlockLifecycle();
+    bool LockCommandAccess();
+    void UnlockCommandAccess();
+
+#if defined(_WIN32)
+    SRWLOCK lifecycleMutex_ = SRWLOCK_INIT;
+    SRWLOCK commandAccessMutex_ = SRWLOCK_INIT;
+#else
+    pthread_mutex_t lifecycleMutex_ = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t commandAccessMutex_ = PTHREAD_MUTEX_INITIALIZER;
+#endif
+    std::atomic<bool> controllerTransition_{false};
+    bool synchronizationInitialized_ = false;
+    bool controllerInitialized_ = false;
 };
 
 // Records are private to this worker, not an exported engine ABI. They own paths

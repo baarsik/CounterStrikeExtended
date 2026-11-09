@@ -16,6 +16,10 @@
 #include "Exports.h"
 
 #include "particleman.h"
+#include <cstdint>
+#if UINTPTR_MAX > UINT32_MAX
+#include "../particleman/native_particle_phase.h"
+#endif
 extern IParticleMan *g_pParticleMan;
 
 void Game_AddObjects( void );
@@ -528,12 +532,18 @@ void CL_DLLEXPORT HUD_TempEntUpdate (
 			}
 			else if ( pTemp->flags & FTENT_SPIRAL )
 			{
+#if UINTPTR_MAX > UINT32_MAX
+                const int spiralPhase = cse::particle_memory::SpiralAddressPhase(
+                    reinterpret_cast<std::uintptr_t>(pTemp));
+#else
+                const int spiralPhase = reinterpret_cast<int>(pTemp);
+#endif
 				float s, c;
 				s = sin( pTemp->entity.baseline.origin[2] + fastFreq );
 				c = cos( pTemp->entity.baseline.origin[2] + fastFreq );
 
-				pTemp->entity.origin[0] += pTemp->entity.baseline.origin[0] * frametime + 8 * sin( client_time * 20 + (int)pTemp );
-				pTemp->entity.origin[1] += pTemp->entity.baseline.origin[1] * frametime + 4 * sin( client_time * 30 + (int)pTemp );
+				pTemp->entity.origin[0] += pTemp->entity.baseline.origin[0] * frametime + 8 * sin( client_time * 20 + spiralPhase );
+				pTemp->entity.origin[1] += pTemp->entity.baseline.origin[1] * frametime + 4 * sin( client_time * 30 + spiralPhase );
 				pTemp->entity.origin[2] += pTemp->entity.baseline.origin[2] * frametime;
 			}
 			

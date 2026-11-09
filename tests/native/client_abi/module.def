@@ -1,0 +1,22 @@
+EXPORTS
+    CseGetModuleAbi
+    CseInitializeClientModule
+    CseExchangeClientFunctions
+    CseGetClientStudioInterface
+    Initialize
+    F
+    HUD_GetStudioModelInterface
+    CseFixtureEffects
+    CseFixtureString
+    CseFixturePlayer
+    CseFixtureMovementSize
+    CseFixturePlayerSize
+    CseFixtureCopiedEngine
+    CseFixtureMovementFact
+    CseFixtureMovement
+    CseFixtureHull
+    CseFixtureDestination
+    CseFixtureExchanges
+    CseFixtureTableSize
+    CseFixtureModifiers
+    CseFixtureVariant

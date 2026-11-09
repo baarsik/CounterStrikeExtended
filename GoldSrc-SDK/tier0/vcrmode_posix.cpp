@@ -4,8 +4,12 @@
 #include "tier0/threadtools.h"
 
 #include <sys/socket.h>
+#include <sys/types.h>
 
 #include <errno.h>
+#include <float.h>
+#include <limits.h>
+#include <new>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -15,6 +19,14 @@
 typedef char tchar;
 typedef unsigned char uint8;
 typedef unsigned int uint32;
+
+static_assert(CHAR_BIT == 8 && sizeof(int) == 4 && sizeof(uint32) == 4, "VCR v2 uses 32-bit scalar fields");
+static_assert(sizeof(double) == 8 && DBL_MANT_DIG == 53 && DBL_MAX_EXP == 1024, "VCR v2 uses IEEE binary64");
+static_assert(sizeof(off_t) >= 8, "VCR native file positions require large-file support");
+
+constexpr int VcrNoSavedMode = -1;
+constexpr int VcrNoReadEvent = -1;
+constexpr int VcrSocketFailure = -1;
 
 enum VCRMode
 {
@@ -172,7 +184,8 @@ int					VCR_GenericPlayback( const char* pEventName, void* pOutData, int maxLen,
 void				VCR_GenericValue( const char* pEventName, void* pData, int maxLen );
 
 static void			VCR_Error( const char* pFormat, ... );
-static void			VCR_Read( void* pDest, int size );
+static bool VCR_Read(void* destination, int size);
+static bool VCR_Write(const void* source, int size);
 
 extern "C"
 {
@@ -220,11 +233,11 @@ VCR_t g_VCR =
 };
 
 VCR_t*			g_pVCR = &g_VCR;
-VCREvent		g_LastReadEvent = (VCREvent)-1;
-VCRMode			g_OldVCRMode = (VCRMode)-1;
+int             g_LastReadEvent = VcrNoReadEvent;
+int             g_OldVCRMode = VcrNoSavedMode;
 bool			g_bTraceRead;
-int				g_FileLen;
-int				g_CurFilePos;
+off_t           g_FileLen;
+off_t           g_CurFilePos;
 int				g_iCurEvent;
 VCRMode			g_VCRMode;
 FILE*			g_pVCRFile;
@@ -288,38 +301,87 @@ short VCR_Hook_GetKeyState( int )
 	return 0;
 }
 
-static void VCR_Error( const char* pFormat, ... )
-{
-	char str[256];
-	va_list marker;
+static void VCR_Error(const char* format, ...) {
+    const int savedError = errno;
+    constexpr size_t ErrorMessageCapacity = 256;
+    char message[ErrorMessageCapacity];
+    va_list arguments;
+    va_start(arguments, format);
+    vsnprintf(message, sizeof(message), format, arguments);
+    va_end(arguments);
 
-	va_start( marker, pFormat );
-	snprintf( str, sizeof( str ), pFormat, marker );
-	va_end( marker );
-
-	g_pHelpers->ErrorMessage( str );
-	g_pVCR->End();
+    if (g_pHelpers != NULL) {
+        g_pHelpers->ErrorMessage(message);
+    } else {
+        Error("%s", message);
+    }
+    g_pVCR->End();
+    errno = savedError;
 }
 
-static void VCR_Read( void* pDest, int size )
-{
-	if ( g_pVCRFile != NULL )
-	{
-		fread( pDest, 1, size, g_pVCRFile );
-		g_CurFilePos += size;
-		if ( g_CurFilePos > g_FileLen )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "g_CurFilePos <= g_FileLen" );
-		}
-		if ( g_CurFilePos >= g_FileLen )
-		{
-			g_pVCR->End();
-		}
-	}
-	else
-	{
-		memset( pDest, 0, size );
-	}
+static bool VCR_Fail(const char* message, int error) {
+    errno = error;
+    VCR_Error("%s", message);
+    return false;
+}
+
+static bool VCR_ValidateReadSize(int size) {
+    if (size < 0 || g_CurFilePos < 0 || g_CurFilePos > g_FileLen
+        || static_cast<off_t>(size) > g_FileLen - g_CurFilePos) {
+        return VCR_Fail("VCR playback: invalid or truncated payload", EIO);
+    }
+    return true;
+}
+
+static bool VCR_Read(void* destination, int size) {
+    if (size < 0 || (size > 0 && destination == NULL)) {
+        return VCR_Fail("VCR playback: invalid read destination or size", EIO);
+    }
+    if (size == 0) {
+        return true;
+    }
+    if (g_pVCRFile == NULL) {
+        memset(destination, 0, static_cast<size_t>(size));
+        return VCR_Fail("VCR playback: unexpected end of recording", EIO);
+    }
+    if (!VCR_ValidateReadSize(size)) {
+        memset(destination, 0, static_cast<size_t>(size));
+        return false;
+    }
+
+    const size_t requested = static_cast<size_t>(size);
+    const size_t count = fread(destination, 1, requested, g_pVCRFile);
+    const int readError = errno;
+    g_CurFilePos += static_cast<off_t>(count);
+    if (count != requested) {
+        const int failure = ferror(g_pVCRFile) && readError != 0 ? readError : EIO;
+        memset(destination, 0, requested);
+        return VCR_Fail("VCR playback: short read", failure);
+    }
+    if (g_CurFilePos == g_FileLen) {
+        g_pVCR->End();
+    }
+    return true;
+}
+
+static bool VCR_Write(const void* source, int size) {
+    if (size < 0 || (size > 0 && source == NULL)) {
+        return VCR_Fail("VCR recording: invalid source or size", EINVAL);
+    }
+    if (size == 0) {
+        return true;
+    }
+    if (g_pVCRFile == NULL) {
+        return false;
+    }
+    const int savedError = errno;
+    const size_t requested = static_cast<size_t>(size);
+    if (fwrite(source, 1, requested, g_pVCRFile) != requested || fflush(g_pVCRFile) != 0) {
+        const int writeError = errno != 0 ? errno : EIO;
+        return VCR_Fail("VCR recording: write failed", writeError);
+    }
+    errno = savedError;
+    return true;
 }
 
 void VCR_Hook_LocalTime( tm* today )
@@ -340,185 +402,167 @@ static void VCR_End()
 	g_VCRMode = VCR_Disabled;
 }
 
-static void VCR_SetEnabled( int bEnabled )
-{
-	if ( bEnabled )
-	{
-		if ( g_OldVCRMode == (VCRMode)-1 )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "g_OldVCRMode != (VCRMode)-1" );
-		}
-		g_VCRMode = g_OldVCRMode;
-		g_OldVCRMode = (VCRMode)-1;
-	}
-	else
-	{
-		if ( g_OldVCRMode != (VCRMode)-1 )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "g_OldVCRMode == (VCRMode)-1" );
-		}
-		g_OldVCRMode = g_VCRMode;
-		g_VCRMode = VCR_Disabled;
-	}
+static void VCR_SetEnabled(int enabled) {
+    if (enabled) {
+        if (g_OldVCRMode == VcrNoSavedMode) {
+            VCR_Error("VCR: no disabled mode to restore");
+            return;
+        }
+        g_VCRMode = static_cast<VCRMode>(g_OldVCRMode);
+        g_OldVCRMode = VcrNoSavedMode;
+    } else {
+        if (g_OldVCRMode != VcrNoSavedMode) {
+            VCR_Error("VCR: mode is already disabled");
+            return;
+        }
+        g_OldVCRMode = static_cast<int>(g_VCRMode);
+        g_VCRMode = VCR_Disabled;
+    }
 }
 
 static void VCR_Hook_GetCursorPos( tagPOINT* )
 {
 }
 
-static int VCR_Start( const char* pFilename, bool bRecord, IVCRHelpers* pHelpers )
-{
-	unsigned int version;
+static int VCR_Start(const char* filename, bool record, IVCRHelpers* helpers) {
+    constexpr uint32 FileVersion = 2;
+    uint32 version = FileVersion;
+    g_pHelpers = helpers;
+    g_pVCR->End();
+    g_OldVCRMode = VcrNoSavedMode;
+    g_pVCRFile = fopen(filename, record ? "wb" : "rb");
+    if (g_pVCRFile == NULL) {
+        return 0;
+    }
+    if (record) {
+        if (!VCR_Write(&version, sizeof(version))) {
+            return 0;
+        }
+        g_VCRMode = VCR_Record;
+        return 1;
+    }
 
-	g_pHelpers = pHelpers;
-	g_pVCR->End();
-	g_OldVCRMode = (VCRMode)-1;
-	if ( bRecord )
-	{
-		g_pVCRFile = fopen( pFilename, "wb" );
-		if ( g_pVCRFile != NULL )
-		{
-			version = 2;
-			fwrite( &version, 1, 4, g_pVCRFile );
-			fflush( g_pVCRFile );
-			g_VCRMode = VCR_Record;
-			return 1;
-		}
-		return 0;
-	}
-
-	g_pVCRFile = fopen( pFilename, "rb" );
-	if ( g_pVCRFile == NULL )
-	{
-		return 0;
-	}
-
-	fseek( g_pVCRFile, 0, SEEK_END );
-	g_FileLen = ftell( g_pVCRFile );
-	fseek( g_pVCRFile, 0, SEEK_SET );
-	g_CurFilePos = 0;
-	VCR_Read( &version, 4 );
-	if ( version == 2 )
-	{
-		g_VCRMode = VCR_Playback;
-		return 1;
-	}
-	else
-	{
-		g_pVCR->End();
-		return 0;
-	}
+    if (fseeko(g_pVCRFile, 0, SEEK_END) != 0) {
+        VCR_Fail("VCR playback: cannot seek recording", errno);
+        return 0;
+    }
+    g_FileLen = ftello(g_pVCRFile);
+    if (g_FileLen < 0 || fseeko(g_pVCRFile, 0, SEEK_SET) != 0) {
+        VCR_Fail("VCR playback: cannot determine recording position", errno);
+        return 0;
+    }
+    g_CurFilePos = 0;
+    if (!VCR_Read(&version, sizeof(version))) {
+        return 0;
+    }
+    if (version != FileVersion) {
+        VCR_Fail("VCR playback: unsupported recording version", EIO);
+        return 0;
+    }
+    // Reading the complete header also ends a valid empty recording.
+    if (g_pVCRFile != NULL) {
+        g_VCRMode = VCR_Playback;
+    }
+    return 1;
 }
 
 char* GetCommandLine();
 
-static void VCR_SyncEvent( VCREvent type )
-{
-	signed char eventByte;
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		eventByte = (signed char)type;
-		g_bTraceRead = false;
-		fwrite( &eventByte, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
-	else
-	{
-		g_bTraceRead = true;
-		VCR_Read( &eventByte, 1 );
-		g_LastReadEvent = (VCREvent)eventByte;
-		if ( g_LastReadEvent != type )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "currentEvent == type" );
-		}
-	}
+static bool VCR_SyncEvent(VCREvent type) {
+    signed char eventByte = static_cast<signed char>(type);
+    if (g_VCRMode == VCR_Record) {
+        g_bTraceRead = false;
+        return VCR_Write(&eventByte, sizeof(eventByte));
+    }
+    g_bTraceRead = true;
+    if (!VCR_Read(&eventByte, sizeof(eventByte))) {
+        return false;
+    }
+    if (eventByte < 0 || eventByte >= static_cast<int>(VCREvent_NUMEVENTS)) {
+        return VCR_Fail("VCR playback: invalid event type", EIO);
+    }
+    g_LastReadEvent = eventByte;
+    if (g_LastReadEvent != static_cast<int>(type)) {
+        return VCR_Fail("VCR playback: event type does not match", EIO);
+    }
+    if (g_pVCRFile == NULL) {
+        return VCR_Fail("VCR playback: event payload is missing", EIO);
+    }
+    return true;
 }
 
-void VCR_GenericRecord( const char* pEventName, const void* pData, int len )
-{
-	unsigned char ucNameLen;
-	int nameLen;
-
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_Generic );
-	}
-
-	if ( g_VCRMode != VCR_Record )
-	{
-		Error( "VCR_GenericRecord( %s ): not recording a VCR file", pEventName );
-	}
-
-	if ( pEventName == NULL )
-	{
-		ucNameLen = 0xFF;
-	}
-	else
-	{
-		nameLen = (int)strlen( pEventName ) + 1;
-		if ( nameLen > 254 )
-		{
-			VCR_Error( "VCR_GenericRecord( %s ): nameLen too long (%d)", pEventName, nameLen );
-			return;
-		}
-		ucNameLen = (unsigned char)nameLen;
-	}
-
-	fwrite( &ucNameLen, 1, 1, g_pVCRFile );
-	fflush( g_pVCRFile );
-	fwrite( pEventName, 1, ucNameLen, g_pVCRFile );
-	fflush( g_pVCRFile );
-	fwrite( &len, 1, sizeof( len ), g_pVCRFile );
-	fflush( g_pVCRFile );
-	fwrite( pData, 1, len, g_pVCRFile );
-	fflush( g_pVCRFile );
+void VCR_GenericRecord(const char* eventName, const void* data, int length) {
+    constexpr size_t MaximumEncodedNameLength = 254;
+    constexpr unsigned char UnnamedEvent = 0xff;
+    if (g_VCRMode != VCR_Record) {
+        Error("VCR_GenericRecord: not recording a VCR file");
+        return;
+    }
+    if (length < 0 || (length > 0 && data == NULL)) {
+        VCR_Fail("VCR recording: invalid generic payload", EINVAL);
+        return;
+    }
+    const size_t nameLength = eventName != NULL ? strlen(eventName) + 1 : 0;
+    if (nameLength > MaximumEncodedNameLength) {
+        VCR_Fail("VCR recording: generic event name is too long", EINVAL);
+        return;
+    }
+    const unsigned char encodedNameLength = eventName != NULL
+        ? static_cast<unsigned char>(nameLength) : UnnamedEvent;
+    ++g_iCurEvent;
+    if (!VCR_SyncEvent(VCREvent_Generic) || !VCR_Write(&encodedNameLength, sizeof(encodedNameLength))) {
+        return;
+    }
+    if (eventName != NULL && !VCR_Write(eventName, static_cast<int>(nameLength))) {
+        return;
+    }
+    if (!VCR_Write(&length, sizeof(length))) {
+        return;
+    }
+    VCR_Write(data, length);
 }
 
-int VCR_GenericPlayback( const char* pEventName, void* pOutData, int maxLen, bool bForceSameLen )
-{
-	unsigned char nameLen;
-	int dataLen;
-	char testName[512];
-
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_Generic );
-	}
-
-	if ( g_VCRMode != VCR_Playback )
-	{
-		Error( "VCR_Playback( %s ): not playing back a VCR file", pEventName );
-	}
-
-	VCR_Read( &nameLen, 1 );
-	if ( nameLen != 0xFF )
-	{
-		VCR_Read( testName, nameLen );
-		if ( strcmp( pEventName, testName ) != 0 )
-		{
-			VCR_Error( "VCR_GenericPlayback( %s ) - event name does not match '%s'", pEventName, testName );
-			return 0;
-		}
-	}
-
-	VCR_Read( &dataLen, (int)sizeof( dataLen ) );
-	if ( dataLen > maxLen )
-	{
-		VCR_Error( "VCR_GenericPlayback( %s ) - generic data too long (greater than maxLen: %d)", pEventName, maxLen );
-		return 0;
-	}
-	if ( dataLen != maxLen && bForceSameLen )
-	{
-		VCR_Error( "VCR_GenericPlayback( %s ) - data size in file (%d) different than desired (%d)",
-			pEventName, dataLen, maxLen );
-		return 0;
-	}
-
-	VCR_Read( pOutData, dataLen );
-	return dataLen;
+int VCR_GenericPlayback(const char* eventName, void* output, int maximumLength, bool forceSameLength) {
+    constexpr unsigned char UnnamedEvent = 0xff;
+    if (g_VCRMode != VCR_Playback) {
+        Error("VCR_GenericPlayback: not playing back a VCR file");
+        return 0;
+    }
+    ++g_iCurEvent;
+    if (!VCR_SyncEvent(VCREvent_Generic)) {
+        return 0;
+    }
+    unsigned char nameLength = 0;
+    if (!VCR_Read(&nameLength, sizeof(nameLength))) {
+        return 0;
+    }
+    if (nameLength != UnnamedEvent) {
+        char recordedName[UnnamedEvent] = {};
+        if (nameLength == 0) {
+            VCR_Fail("VCR playback: invalid generic event name length", EIO);
+            return 0;
+        }
+        if (!VCR_Read(recordedName, nameLength)) {
+            return 0;
+        }
+        if (recordedName[nameLength - 1] != 0 || eventName == NULL || strcmp(eventName, recordedName) != 0) {
+            VCR_Fail("VCR playback: generic event name does not match", EIO);
+            return 0;
+        }
+    }
+    int dataLength = 0;
+    if (!VCR_Read(&dataLength, sizeof(dataLength))) {
+        return 0;
+    }
+    if (dataLength < 0 || maximumLength < 0 || dataLength > maximumLength
+        || (forceSameLength && dataLength != maximumLength)) {
+        VCR_Fail("VCR playback: invalid generic data length", EIO);
+        return 0;
+    }
+    if (!VCR_Read(output, dataLength)) {
+        return 0;
+    }
+    return dataLength;
 }
 
 void VCR_GenericValue( const char* pEventName, void* pData, int maxLen )
@@ -533,429 +577,466 @@ void VCR_GenericValue( const char* pEventName, void* pData, int maxLen )
 	}
 }
 
-void VCR_Hook_RecordEndGameMsg()
-{
-	unsigned char val;
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		val = (unsigned char)VCREvent_GameMsg;
-		++g_iCurEvent;
-		g_bTraceRead = false;
-		fwrite( &val, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-		val = 0;
-		fwrite( &val, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
+void VCR_Hook_RecordEndGameMsg() {
+    if (g_VCRMode == VCR_Record) {
+        const unsigned char event = static_cast<unsigned char>(VCREvent_GameMsg);
+        constexpr unsigned char EndGameMessages = 0;
+        ++g_iCurEvent;
+        g_bTraceRead = false;
+        if (VCR_Write(&event, sizeof(event))) {
+            VCR_Write(&EndGameMessages, sizeof(EndGameMessages));
+        }
+    }
 }
 
-static double VCR_Hook_Sys_FloatTime( double flTime )
-{
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_Sys_FloatTime );
-
-		if ( g_VCRMode == VCR_Record )
-		{
-			fwrite( &flTime, 1, sizeof( flTime ), g_pVCRFile );
-			fflush( g_pVCRFile );
-		}
-		else if ( g_VCRMode == VCR_Playback )
-		{
-			VCR_Read( &flTime, (int)sizeof( flTime ) );
-		}
-	}
-
-	return flTime;
+static double VCR_Hook_Sys_FloatTime(double time) {
+    if (g_VCRMode != VCR_Disabled) {
+        ++g_iCurEvent;
+        if (!VCR_SyncEvent(VCREvent_Sys_FloatTime)) {
+            return time;
+        }
+        if (g_VCRMode == VCR_Record) {
+            VCR_Write(&time, sizeof(time));
+        } else if (g_VCRMode == VCR_Playback && !VCR_Read(&time, sizeof(time))) {
+            return 0.0;
+        }
+    }
+    return time;
 }
 
-static char* VCR_Hook_GetCommandLine()
-{
-	char* pLine;
-	int len;
-
-	pLine = GetCommandLine();
-	if ( g_VCRMode == VCR_Disabled )
-	{
-		return pLine;
-	}
-
-	++g_iCurEvent;
-	VCR_SyncEvent( VCREvent_CmdLine );
-
-	if ( g_VCRMode == VCR_Playback )
-	{
-		char* pRecorded;
-
-		VCR_Read( &len, (int)sizeof( len ) );
-		pRecorded = new char[len];
-		VCR_Read( pRecorded, len );
-		return pRecorded;
-	}
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		len = (int)strlen( pLine ) + 1;
-		fwrite( &len, 1, sizeof( len ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( pLine, 1, len, g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
-
-	return pLine;
+static char* VCR_Hook_GetCommandLine() {
+    char* line = GetCommandLine();
+    if (g_VCRMode == VCR_Disabled) {
+        return line;
+    }
+    ++g_iCurEvent;
+    if (!VCR_SyncEvent(VCREvent_CmdLine)) {
+        return NULL;
+    }
+    if (g_VCRMode == VCR_Playback) {
+        int length = 0;
+        if (!VCR_Read(&length, sizeof(length))) {
+            return NULL;
+        }
+        if (length <= 0) {
+            VCR_Fail("VCR playback: invalid command line length", EIO);
+            return NULL;
+        }
+        if (!VCR_ValidateReadSize(length)) {
+            return NULL;
+        }
+        char* recorded = new (std::nothrow) char[length];
+        if (recorded == NULL) {
+            VCR_Fail("VCR playback: cannot allocate command line", ENOMEM);
+            return NULL;
+        }
+        if (!VCR_Read(recorded, length)) {
+            delete[] recorded;
+            return NULL;
+        }
+        if (recorded[length - 1] != 0) {
+            delete[] recorded;
+            VCR_Fail("VCR playback: unterminated command line", EIO);
+            return NULL;
+        }
+        return recorded;
+    }
+    const size_t textLength = strlen(line);
+    if (textLength >= INT_MAX) {
+        VCR_Fail("VCR recording: command line is too long", EOVERFLOW);
+        return NULL;
+    }
+    const int length = static_cast<int>(textLength) + 1;
+    if (!VCR_Write(&length, sizeof(length)) || !VCR_Write(line, length)) {
+        return NULL;
+    }
+    return line;
 }
 
-void VCR_Hook_RecordGameMsg( unsigned int uMsg, unsigned int wParam, int lParam )
-{
-	unsigned char val;
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		val = (unsigned char)VCREvent_GameMsg;
-		++g_iCurEvent;
-		g_bTraceRead = false;
-		fwrite( &val, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-		val = 1;
-		fwrite( &val, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( &uMsg, 1, sizeof( uMsg ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( &wParam, 1, sizeof( wParam ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( &lParam, 1, sizeof( lParam ), g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
+void VCR_Hook_RecordGameMsg(unsigned int message, unsigned int wParam, int lParam) {
+    if (g_VCRMode == VCR_Record) {
+        const unsigned char event = static_cast<unsigned char>(VCREvent_GameMsg);
+        constexpr unsigned char HasGameMessage = 1;
+        ++g_iCurEvent;
+        g_bTraceRead = false;
+        if (!VCR_Write(&event, sizeof(event)) || !VCR_Write(&HasGameMessage, sizeof(HasGameMessage))
+            || !VCR_Write(&message, sizeof(message)) || !VCR_Write(&wParam, sizeof(wParam))) {
+            return;
+        }
+        VCR_Write(&lParam, sizeof(lParam));
+    }
 }
 
-int VCR_Hook_GetNumberOfConsoleInputEvents( void*, unsigned int* pNumEvents )
-{
-	signed char ret;
-
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_GetNumberOfConsoleInputEvents );
-
-		if ( g_VCRMode == VCR_Playback )
-		{
-			VCR_Read( &ret, 1 );
-			VCR_Read( pNumEvents, (int)sizeof( *pNumEvents ) );
-			return ret;
-		}
-
-		ret = 1;
-		if ( g_VCRMode == VCR_Record )
-		{
-			fwrite( &ret, 1, 1, g_pVCRFile );
-			fflush( g_pVCRFile );
-			fwrite( pNumEvents, 1, sizeof( *pNumEvents ), g_pVCRFile );
-			fflush( g_pVCRFile );
-		}
-		return ret;
-	}
-
-	return 1;
+int VCR_Hook_GetNumberOfConsoleInputEvents(void*, unsigned int* numberOfEvents) {
+    if (g_VCRMode != VCR_Disabled) {
+        ++g_iCurEvent;
+        if (!VCR_SyncEvent(VCREvent_GetNumberOfConsoleInputEvents)) {
+            return 0;
+        }
+        if (g_VCRMode == VCR_Playback) {
+            signed char result = 0;
+            if (!VCR_Read(&result, sizeof(result)) || !VCR_Read(numberOfEvents, sizeof(*numberOfEvents))) {
+                return 0;
+            }
+            return result;
+        }
+        constexpr signed char StubSuccess = 1;
+        if (g_VCRMode == VCR_Record && (!VCR_Write(&StubSuccess, sizeof(StubSuccess))
+            || !VCR_Write(numberOfEvents, sizeof(*numberOfEvents)))) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
-static void VCR_Hook_Cmd_Exec( char** f )
-{
-	int len;
-
-	if ( g_VCRMode == VCR_Disabled )
-	{
-		return;
-	}
-
-	++g_iCurEvent;
-	VCR_SyncEvent( VCREvent_Cmd_Exec );
-
-	if ( g_VCRMode == VCR_Playback )
-	{
-		VCR_Read( &len, (int)sizeof( len ) );
-		if ( len == -1 )
-		{
-			*f = NULL;
-		}
-		else
-		{
-			*f = (char*)malloc( len );
-			VCR_Read( *f, len );
-		}
-		return;
-	}
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		if ( *f != NULL )
-		{
-			len = (int)strlen( *f ) + 1;
-			fwrite( &len, 1, sizeof( len ), g_pVCRFile );
-			fflush( g_pVCRFile );
-			fwrite( *f, 1, len, g_pVCRFile );
-		}
-		else
-		{
-			len = -1;
-			fwrite( &len, 1, sizeof( len ), g_pVCRFile );
-		}
-		fflush( g_pVCRFile );
-	}
+static void VCR_Hook_Cmd_Exec(char** command) {
+    if (g_VCRMode == VCR_Disabled) {
+        return;
+    }
+    constexpr int NullCommandLength = -1;
+    ++g_iCurEvent;
+    if (!VCR_SyncEvent(VCREvent_Cmd_Exec)) {
+        *command = NULL;
+        return;
+    }
+    if (g_VCRMode == VCR_Playback) {
+        int length = 0;
+        if (!VCR_Read(&length, sizeof(length))) {
+            *command = NULL;
+            return;
+        }
+        if (length == NullCommandLength) {
+            *command = NULL;
+            return;
+        }
+        if (length <= 0) {
+            *command = NULL;
+            VCR_Fail("VCR playback: invalid command text length", EIO);
+            return;
+        }
+        if (!VCR_ValidateReadSize(length)) {
+            *command = NULL;
+            return;
+        }
+        char* recorded = static_cast<char*>(malloc(static_cast<size_t>(length)));
+        if (recorded == NULL) {
+            *command = NULL;
+            VCR_Fail("VCR playback: cannot allocate command text", ENOMEM);
+            return;
+        }
+        if (!VCR_Read(recorded, length)) {
+            free(recorded);
+            *command = NULL;
+            return;
+        }
+        if (recorded[length - 1] != 0) {
+            free(recorded);
+            *command = NULL;
+            VCR_Fail("VCR playback: unterminated command text", EIO);
+            return;
+        }
+        *command = recorded;
+        return;
+    }
+    int length = NullCommandLength;
+    if (*command != NULL) {
+        const size_t textLength = strlen(*command);
+        if (textLength >= INT_MAX) {
+            VCR_Fail("VCR recording: command text is too long", EOVERFLOW);
+            return;
+        }
+        length = static_cast<int>(textLength) + 1;
+    }
+    if (!VCR_Write(&length, sizeof(length))) {
+        return;
+    }
+    if (length > 0) {
+        VCR_Write(*command, length);
+    }
 }
 
-static void VCR_SyncToken( const char* pToken )
-{
-	unsigned char len;
-	char test[256];
-
-	if ( g_VCRMode == VCR_Disabled )
-	{
-		return;
-	}
-
-	++g_iCurEvent;
-	VCR_SyncEvent( VCREvent_SyncToken );
-
-	if ( g_VCRMode == VCR_Record )
-	{
-		len = (unsigned char)strlen( pToken );
-		fwrite( &len, 1, 1, g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( pToken, 1, len, g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
-	else if ( g_VCRMode == VCR_Playback )
-	{
-		VCR_Read( &len, 1 );
-		VCR_Read( test, len );
-		if ( len != (unsigned char)strlen( pToken ) )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "len == (unsigned char)strlen(pToken)" );
-		}
-		if ( memcmp( pToken, test, len ) != 0 )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "memcmp(pToken, test, len) == 0" );
-		}
-	}
+static void VCR_SyncToken(const char* token) {
+    if (g_VCRMode == VCR_Disabled) {
+        return;
+    }
+    ++g_iCurEvent;
+    if (!VCR_SyncEvent(VCREvent_SyncToken)) {
+        return;
+    }
+    const unsigned char expectedLength = static_cast<unsigned char>(strlen(token));
+    if (g_VCRMode == VCR_Record) {
+        if (!VCR_Write(&expectedLength, sizeof(expectedLength))) {
+            return;
+        }
+        VCR_Write(token, expectedLength);
+    } else if (g_VCRMode == VCR_Playback) {
+        unsigned char length = 0;
+        constexpr size_t TokenBufferCapacity = UCHAR_MAX + 1;
+        char recorded[TokenBufferCapacity];
+        if (!VCR_Read(&length, sizeof(length)) || !VCR_Read(recorded, length)) {
+            return;
+        }
+        if (length != expectedLength || memcmp(token, recorded, length) != 0) {
+            VCR_Fail("VCR playback: sync token does not match", EIO);
+            return;
+        }
+    }
 }
 
-static int VCR_Hook_send( int s, const char* buf, int len, int flags )
-{
-	int ret;
-	int err;
-
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_send );
-	}
-
-	if ( g_VCRMode == VCR_Playback )
-	{
-		VCR_Read( &ret, (int)sizeof( ret ) );
-		if ( ret == -1 )
-		{
-			VCR_Read( &err, (int)sizeof( err ) );
-			errno = err;
-		}
-		return ret;
-	}
-
-	ret = send( s, buf, len, flags );
-	if ( g_VCRMode == VCR_Record )
-	{
-		fwrite( &ret, 1, sizeof( ret ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		if ( ret == -1 )
-		{
-			fwrite( &errno, 1, sizeof( errno ), g_pVCRFile );
-			fflush( g_pVCRFile );
-		}
-	}
-	return ret;
+static int VCR_NarrowSocketResult(ssize_t result, int& error) {
+    if (result < VcrSocketFailure || result > INT_MAX) {
+        error = EOVERFLOW;
+        return VcrSocketFailure;
+    }
+    return static_cast<int>(result);
 }
 
-static int VCR_Hook_recv( int s, char* buf, int len, int flags )
-{
-	int ret;
-	int err;
-
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_recv );
-	}
-
-	if ( g_VCRMode == VCR_Playback )
-	{
-		VCR_Read( &ret, (int)sizeof( ret ) );
-		if ( ret == -1 )
-		{
-			VCR_Read( &err, (int)sizeof( err ) );
-			errno = err;
-		}
-		else
-		{
-			VCR_Read( buf, ret );
-		}
-		return ret;
-	}
-
-	ret = recv( s, buf, len, flags );
-	if ( g_VCRMode == VCR_Record )
-	{
-		fwrite( &ret, 1, sizeof( ret ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		if ( ret == -1 )
-		{
-			fwrite( &errno, 1, sizeof( errno ), g_pVCRFile );
-		}
-		else
-		{
-			fwrite( buf, 1, ret, g_pVCRFile );
-		}
-		fflush( g_pVCRFile );
-	}
-	return ret;
+static int VCR_Hook_send(int socket, const char* buffer, int length, int flags) {
+    if (g_VCRMode != VCR_Disabled) {
+        ++g_iCurEvent;
+        if (!VCR_SyncEvent(VCREvent_send)) {
+            return VcrSocketFailure;
+        }
+    }
+    if (g_VCRMode == VCR_Playback) {
+        int result = 0;
+        if (!VCR_Read(&result, sizeof(result))) {
+            return VcrSocketFailure;
+        }
+        if (result < VcrSocketFailure || result > length) {
+            VCR_Fail("VCR playback: invalid send result", EIO);
+            return VcrSocketFailure;
+        }
+        if (result == VcrSocketFailure) {
+            int error = 0;
+            if (!VCR_Read(&error, sizeof(error))) {
+                return VcrSocketFailure;
+            }
+            errno = error;
+        }
+        return result;
+    }
+    const ssize_t nativeResult = send(socket, buffer, static_cast<size_t>(length), flags);
+    int socketError = errno;
+    const int result = VCR_NarrowSocketResult(nativeResult, socketError);
+    errno = socketError;
+    if (g_VCRMode == VCR_Record) {
+        if (!VCR_Write(&result, sizeof(result))
+            || (result == VcrSocketFailure && !VCR_Write(&socketError, sizeof(socketError)))) {
+            return VcrSocketFailure;
+        }
+    }
+    errno = socketError;
+    return result;
 }
 
-static int VCR_Hook_recvfrom( int s, char* buf, int len, int flags, sockaddr* from, int* fromlen )
-{
-	int ret;
-	int err;
-	unsigned char bFrom;
+static int VCR_Hook_recv(int socket, char* buffer, int length, int flags) {
+    if (g_VCRMode != VCR_Disabled) {
+        ++g_iCurEvent;
+        if (!VCR_SyncEvent(VCREvent_recv)) {
+            return VcrSocketFailure;
+        }
+    }
+    if (g_VCRMode == VCR_Playback) {
+        int result = 0;
+        if (!VCR_Read(&result, sizeof(result))) {
+            return VcrSocketFailure;
+        }
+        if (result < VcrSocketFailure || result > length) {
+            VCR_Fail("VCR playback: invalid receive result", EIO);
+            return VcrSocketFailure;
+        }
+        if (result == VcrSocketFailure) {
+            int error = 0;
+            if (!VCR_Read(&error, sizeof(error))) {
+                return VcrSocketFailure;
+            }
+            errno = error;
+        } else if (!VCR_Read(buffer, result)) {
+            return VcrSocketFailure;
+        }
+        return result;
+    }
+    const ssize_t nativeResult = recv(socket, buffer, static_cast<size_t>(length), flags);
+    int socketError = errno;
+    const int result = VCR_NarrowSocketResult(nativeResult, socketError);
+    errno = socketError;
+    if (g_VCRMode == VCR_Record) {
+        if (result > length) {
+            VCR_Fail("VCR recording: receive result exceeds supplied buffer", EOVERFLOW);
+            return VcrSocketFailure;
+        }
+        if (!VCR_Write(&result, sizeof(result))) {
+            return VcrSocketFailure;
+        }
+        if (result == VcrSocketFailure) {
+            if (!VCR_Write(&socketError, sizeof(socketError))) {
+                return VcrSocketFailure;
+            }
+        } else if (!VCR_Write(buffer, result)) {
+            return VcrSocketFailure;
+        }
+    }
+    errno = socketError;
+    return result;
+}
 
-	if ( g_VCRMode != VCR_Disabled )
-	{
-		++g_iCurEvent;
-		VCR_SyncEvent( VCREvent_recvfrom );
-
-		if ( g_VCRMode == VCR_Playback )
-		{
-			VCR_Read( &ret, (int)sizeof( ret ) );
-			if ( ret != -1 )
-			{
-				VCR_Read( buf, ret );
-				VCR_Read( &bFrom, 1 );
-				if ( bFrom != 0 )
-				{
-					VCR_Read( from, *fromlen );
-				}
-				return ret;
-			}
-
-			VCR_Read( &err, (int)sizeof( err ) );
-			errno = err;
-			return ret;
-		}
-	}
-
-	ret = recvfrom( s, buf, len, flags, from, (socklen_t*)fromlen );
-	if ( g_VCRMode != VCR_Record )
-	{
-		return ret;
-	}
-
-	fwrite( &ret, 1, sizeof( ret ), g_pVCRFile );
-	fflush( g_pVCRFile );
-	if ( ret == -1 )
-	{
-		fwrite( &errno, 1, sizeof( errno ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		return ret;
-	}
-
-	fwrite( buf, 1, ret, g_pVCRFile );
-	fflush( g_pVCRFile );
-	bFrom = ( from != NULL ) ? 1 : 0;
-	fwrite( &bFrom, 1, 1, g_pVCRFile );
-	fflush( g_pVCRFile );
-	if ( bFrom == 0 )
-	{
-		return ret;
-	}
-
-	fwrite( from, 1, *fromlen, g_pVCRFile );
-	fflush( g_pVCRFile );
-	return ret;
+static int VCR_Hook_recvfrom(int socket, char* buffer, int length, int flags, sockaddr* from, int* fromLength) {
+    if (g_VCRMode != VCR_Disabled) {
+        ++g_iCurEvent;
+        if (!VCR_SyncEvent(VCREvent_recvfrom)) {
+            return VcrSocketFailure;
+        }
+    }
+    if (g_VCRMode == VCR_Playback) {
+        int result = 0;
+        if (!VCR_Read(&result, sizeof(result))) {
+            return VcrSocketFailure;
+        }
+        if (result < VcrSocketFailure || result > length) {
+            VCR_Fail("VCR playback: invalid receive-from result", EIO);
+            return VcrSocketFailure;
+        }
+        if (result == VcrSocketFailure) {
+            int error = 0;
+            if (!VCR_Read(&error, sizeof(error))) {
+                return VcrSocketFailure;
+            }
+            errno = error;
+            return result;
+        }
+        unsigned char hasAddress = 0;
+        if (!VCR_Read(buffer, result) || !VCR_Read(&hasAddress, sizeof(hasAddress))) {
+            return VcrSocketFailure;
+        }
+        if (hasAddress > 1 || (hasAddress != 0 && (from == NULL || fromLength == NULL || *fromLength < 0))) {
+            VCR_Fail("VCR playback: invalid receive-from address", EIO);
+            return VcrSocketFailure;
+        }
+        if (hasAddress != 0 && !VCR_Read(from, *fromLength)) {
+            return VcrSocketFailure;
+        }
+        return result;
+    }
+    const int addressCapacity = fromLength != NULL ? *fromLength : 0;
+    socklen_t nativeLength = static_cast<socklen_t>(addressCapacity);
+    const ssize_t nativeResult = recvfrom(socket, buffer, static_cast<size_t>(length), flags,
+        from, fromLength != NULL ? &nativeLength : NULL);
+    int socketError = errno;
+    const int result = VCR_NarrowSocketResult(nativeResult, socketError);
+    if (result >= 0 && from != NULL && fromLength != NULL) {
+        if (static_cast<unsigned long long>(nativeLength) > INT_MAX) {
+            if (g_VCRMode == VCR_Record) {
+                VCR_Fail("VCR recording: native address length is unrepresentable", EOVERFLOW);
+            } else {
+                errno = EOVERFLOW;
+            }
+            return VcrSocketFailure;
+        }
+        *fromLength = static_cast<int>(nativeLength);
+    }
+    errno = socketError;
+    if (g_VCRMode != VCR_Record) {
+        return result;
+    }
+    if (result > length || (result >= 0 && from != NULL
+        && (fromLength == NULL || addressCapacity < 0 || *fromLength > addressCapacity))) {
+        VCR_Fail("VCR recording: receive-from result exceeds supplied buffers", EOVERFLOW);
+        return VcrSocketFailure;
+    }
+    if (!VCR_Write(&result, sizeof(result))) {
+        return VcrSocketFailure;
+    }
+    if (result == VcrSocketFailure) {
+        if (!VCR_Write(&socketError, sizeof(socketError))) {
+            return VcrSocketFailure;
+        }
+    } else {
+        const unsigned char hasAddress = from != NULL ? 1 : 0;
+        if (!VCR_Write(buffer, result) || !VCR_Write(&hasAddress, sizeof(hasAddress))
+            || (hasAddress != 0 && !VCR_Write(from, *fromLength))) {
+            return VcrSocketFailure;
+        }
+    }
+    errno = socketError;
+    return result;
 }
 
 static char linuxCmdline[519];
 
-bool VCR_Hook_PlaybackGameMsg( unsigned int* uMsg, unsigned int* wParam, int* lParam )
-{
-	VCREvent currentEvent;
-	unsigned char bMsg;
-
-	if ( g_VCRMode != VCR_Playback )
-	{
-		return false;
-	}
-
-	++g_iCurEvent;
-	currentEvent = g_VCRTrace.ReadEvent();
-	if ( currentEvent != VCREvent_GameMsg )
-	{
-		VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "currentEvent == type" );
-	}
-
-	if ( g_pVCRFile == NULL )
-	{
-		return false;
-	}
-
-	VCR_Read( &bMsg, sizeof( bMsg ) );
-	if ( bMsg == 0 )
-	{
-		return false;
-	}
-
-	VCR_Read( uMsg, sizeof( *uMsg ) );
-	VCR_Read( wParam, sizeof( *wParam ) );
-	VCR_Read( lParam, sizeof( *lParam ) );
-	return true;
+bool VCR_Hook_PlaybackGameMsg(unsigned int* message, unsigned int* wParam, int* lParam) {
+    if (g_VCRMode != VCR_Playback) {
+        return false;
+    }
+    ++g_iCurEvent;
+    const VCREvent currentEvent = g_VCRTrace.ReadEvent();
+    if (currentEvent == VCREvent_NUMEVENTS) {
+        return false;
+    }
+    if (currentEvent != VCREvent_GameMsg) {
+        VCR_Fail("VCR playback: expected game message event", EIO);
+        return false;
+    }
+    unsigned char hasMessage = 0;
+    if (!VCR_Read(&hasMessage, sizeof(hasMessage))) {
+        return false;
+    }
+    if (hasMessage > 1) {
+        VCR_Fail("VCR playback: invalid game message marker", EIO);
+        return false;
+    }
+    if (hasMessage == 0) {
+        return false;
+    }
+    unsigned int recordedMessage = 0;
+    unsigned int recordedWParam = 0;
+    int recordedLParam = 0;
+    if (!VCR_Read(&recordedMessage, sizeof(recordedMessage))
+        || !VCR_Read(&recordedWParam, sizeof(recordedWParam))
+        || !VCR_Read(&recordedLParam, sizeof(recordedLParam))) {
+        return false;
+    }
+    if (message == NULL || wParam == NULL || lParam == NULL) {
+        VCR_Fail("VCR playback: invalid game message destination", EIO);
+        return false;
+    }
+    *message = recordedMessage;
+    *wParam = recordedWParam;
+    *lParam = recordedLParam;
+    return true;
 }
 
-void OutputDebugStringFormat( const char* pMsg, ... )
-{
-	char msg[4096];
-	va_list marker;
-	int len;
-
-	va_start( marker, pMsg );
-	vsnprintf( msg, sizeof( msg ) - 1, pMsg, marker );
-	va_end( marker );
-
-	len = (int)strlen( msg );
-	if ( g_bTraceRead )
-	{
-		unsigned int tempLen;
-		char tempData[4096];
-
-		VCR_Read( &tempLen, sizeof( tempLen ) );
-		if ( tempLen > sizeof( tempData ) )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "tempLen <= sizeof( tempData )" );
-		}
-
-		VCR_Read( tempData, tempLen );
-		tempData[tempLen] = 0;
-		fwrite( "FILE: ", 1, sizeof( "FILE: " ) - 1, stderr );
-		fputs( tempData, stderr );
-		if ( memcmp( msg, tempData, len ) != 0 )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "memcmp( msg, tempData, len ) == 0" );
-		}
-	}
-	else
-	{
-		fwrite( &len, 1, sizeof( len ), g_pVCRFile );
-		fflush( g_pVCRFile );
-		fwrite( msg, 1, len, g_pVCRFile );
-		fflush( g_pVCRFile );
-	}
+void OutputDebugStringFormat(const char* format, ...) {
+    constexpr size_t TraceBufferCapacity = 4096;
+    char message[TraceBufferCapacity] = {};
+    va_list arguments;
+    va_start(arguments, format);
+    vsnprintf(message, sizeof(message) - 1, format, arguments);
+    va_end(arguments);
+    const int length = static_cast<int>(strlen(message));
+    if (g_bTraceRead) {
+        unsigned int recordedLength = 0;
+        char recorded[TraceBufferCapacity];
+        if (!VCR_Read(&recordedLength, sizeof(recordedLength))) {
+            return;
+        }
+        if (recordedLength >= sizeof(recorded)) {
+            VCR_Fail("VCR playback: debug trace text is too long", EIO);
+            return;
+        }
+        if (!VCR_Read(recorded, static_cast<int>(recordedLength))) {
+            return;
+        }
+        recorded[recordedLength] = 0;
+        if (recordedLength != static_cast<unsigned int>(length) || memcmp(message, recorded, length) != 0) {
+            VCR_Fail("VCR playback: debug trace text does not match", EIO);
+            return;
+        }
+        fwrite("FILE: ", 1, sizeof("FILE: ") - 1, stderr);
+        fputs(recorded, stderr);
+    } else if (VCR_Write(&length, sizeof(length))) {
+        VCR_Write(message, length);
+    }
 }
 
 void BuildCmdLine( int argc, char** argv )
@@ -1000,51 +1081,33 @@ char* GetCommandLine()
 	return linuxCmdline;
 }
 
-VCREvent CVCRTrace::ReadEvent()
-{
-	char curEvent;
-
-	g_bTraceRead = true;
-	if ( g_pVCRFile != NULL )
-	{
-		fread( &curEvent, 1, 1, g_pVCRFile );
-		++g_CurFilePos;
-		if ( g_CurFilePos > g_FileLen )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "g_CurFilePos <= g_FileLen" );
-		}
-		if ( g_CurFilePos >= g_FileLen )
-		{
-			g_pVCR->End();
-		}
-
-		g_LastReadEvent = (VCREvent)curEvent;
-		return (VCREvent)curEvent;
-	}
-
-	g_LastReadEvent = VCREvent_Sys_FloatTime;
-	return VCREvent_Sys_FloatTime;
+VCREvent CVCRTrace::ReadEvent() {
+    g_bTraceRead = true;
+    if (g_pVCRFile == NULL) {
+        g_LastReadEvent = VCREvent_Sys_FloatTime;
+        return static_cast<VCREvent>(g_LastReadEvent);
+    }
+    unsigned char event = 0;
+    if (!VCR_Read(&event, sizeof(event))) {
+        g_LastReadEvent = VCREvent_NUMEVENTS;
+        return static_cast<VCREvent>(g_LastReadEvent);
+    }
+    if (event >= VCREvent_NUMEVENTS || g_pVCRFile == NULL) {
+        VCR_Fail("VCR playback: invalid or truncated trace event", EIO);
+        g_LastReadEvent = VCREvent_NUMEVENTS;
+        return static_cast<VCREvent>(g_LastReadEvent);
+    }
+    g_LastReadEvent = event;
+    return static_cast<VCREvent>(g_LastReadEvent);
 }
 
-void CVCRTrace::Read( void* pDest, int size )
-{
-	if ( g_pVCRFile != NULL )
-	{
-		fread( pDest, 1, size, g_pVCRFile );
-		g_CurFilePos += size;
-		if ( g_CurFilePos > g_FileLen )
-		{
-			VCR_Error( "*** VCR ASSERT FAILED: %s ***\n", "g_CurFilePos <= g_FileLen" );
-		}
-		if ( g_CurFilePos >= g_FileLen )
-		{
-			g_pVCR->End();
-		}
-	}
-	else
-	{
-		memset( pDest, 0, size );
-	}
+void CVCRTrace::Read(void* destination, int size) {
+    if (g_pVCRFile != NULL) {
+        VCR_Read(destination, size);
+    } else if (size > 0 && destination != NULL) {
+        // Preserve the trace interface's disabled-mode zero-fill behavior.
+        memset(destination, 0, static_cast<size_t>(size));
+    }
 }
 
 #endif

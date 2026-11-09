@@ -71,6 +71,37 @@ to check interrupted-run and completed-run prefix preservation without launching
 The demo validator checks recorded structure/state. It does not replace runtime
 playback, visual inspection, input/focus/device acceptance or provider auditing.
 
+## Source and binary inventory
+
+Capture a committed source reference outside the checkout, then verify it:
+
+```sh
+python3 tools/qualification/capture_reference.py /absolute/evidence/reference --revision COMMIT
+python3 tools/qualification/capture_reference.py /absolute/evidence/reference --verify
+```
+
+This archives sources and hashes; it neither builds nor qualifies a runtime.
+Inventory the explicitly supplied runtime separately:
+
+```sh
+python3 tools/qualification/audit_runtime_inventory.py /absolute/game-runtime \
+  --architecture x64 --output /absolute/evidence/runtime-inventory.json
+```
+
+The default source inventory is `docs/msbuild/repository-selections.json`; choose
+`x86`, `x64` or `arm64` to match the target. Reported imports and a binary inventory
+are static evidence, separate from actual OS/provider loading and gameplay.
+
+Compare a rebuilt ARM64 game module's exports with a retained Win32 dump:
+
+```sh
+python3 tools/macho_game_exports.py --reference /absolute/evidence/Release-hl-win32.txt \
+  --library build/game-modules-macos-arm64-release/runtime/Release/valve/dlls/hl.dylib
+```
+
+The reference is actual `dumpbin /nologo /exports` output. This checks machine,
+minimum macOS version and C/canonical C++ exports without loading the game.
+
 ## Native SDL3 closure and isolated provider/data fixture
 
 Run the static repository audit on the authoring host (requires `llvm-readobj`):
@@ -157,8 +188,8 @@ Use the [music checks](#music-migration-closure) for the current music backend.
 
 ## Paired fixed-demo VM benchmark
 
-This tool reproduces the pinned SDL2/SDL3 comparison in the
-[SDL3 report](../../docs/sdl3-migration-validation.md#release-benchmarks).
+This tool reproduces historical SDL2/SDL3 paired comparisons; their pinned
+snapshots are listed in [validation](../../docs/validation.md#earlier-win32-reference).
 It requires matching non-SDL providers, so it cannot compare the current mpg123
 runtime against a Miles baseline without changing the provider comparison.
 
@@ -248,7 +279,7 @@ python tools/qualification/audit_mpg123.py C:\qualification\music-fixture --outp
 
 This checks SDL3/formal import closure, rejects Miles modules/imports and requires
 both engines to import the staged mpg123 provider. See [build instructions](../../docs/building.md#source-built-mp3-decoder)
-for decoder/player/worker tests and [VM1 validation](../../docs/mpg123-migration-validation.md)
+for decoder/player/worker tests and [validation](../../docs/validation.md)
 for measured results and coverage limits.
 
 `invoke_music_probe.ps1` runs a one-second upstream sweep loop, pause/resume,

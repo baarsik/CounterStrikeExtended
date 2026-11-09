@@ -1,77 +1,7 @@
 # Generated from utils/vgui/vgui.vcxproj; see tools/translate_msbuild.py.
 cse_add_runtime(vgui SHARED "vgui")
-target_sources(vgui PRIVATE
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/App.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Bitmap.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/BitmapTGA.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Border.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/BorderLayout.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/BorderPair.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/BuildGroup.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Button.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ButtonGroup.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/CheckButton.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Color.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/common/fileimage.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/common/vfontdata.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ConfigWizard.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Cursor.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Dar.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/DataInputStream.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/DefaultCursor.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Desktop.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/DesktopIcon.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/EditPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/EtchedBorder.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Exports.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/FileInputStream.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/FlowLayout.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/FocusNavGroup.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Font.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Frame.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/HeaderPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Image.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ImagePanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/IntLabel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Label.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Layout.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/LineBorder.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ListPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/LoweredBorder.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Menu.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/MenuItem.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/MenuSeparator.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/MessageBox.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/MiniApp.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Panel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/PopupMenu.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ProgressBar.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/RadioButton.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/RaisedBorder.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Scheme.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ScrollBar.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ScrollPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Slider.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/StackLayout.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/String.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Surface.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/SurfaceBase.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TablePanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TabPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TaskBar.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TextEntry.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TextGrid.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TextImage.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TextPanel.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/ToggleButton.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/TreeFolder.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/vgui.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/App.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/Debug.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/Font.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/win32/Surface.cpp"
-  "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/WizardPanel.cpp"
-)
+include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
+if(MSVC)
 target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")
@@ -91,12 +21,12 @@ target_include_directories(vgui PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/
 set_property(TARGET vgui APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Debug>:MultiThreadedDebug>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/WX>")
-target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/MACHINE:X86>")
+target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/MACHINE:${CSE_MSVC_MACHINE}>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/EXPORT:VguiEmptyString,@395,DATA,EXPORTAS,??_C@_00A@?$AA@>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Debug>:/MANIFEST:NO>")
-target_sources(vgui PRIVATE "${CSE_SDK_DIR}/utils/vgui/vgui.def")
+cse_win32_module_definition(vgui "${CSE_SDK_DIR}/utils/vgui/vgui.def")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Debug>:kernel32.lib>")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Debug>:user32.lib>")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Debug>:gdi32.lib>")
@@ -120,7 +50,7 @@ target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/util
 set_property(TARGET vgui APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreaded>")
 target_link_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/WX>")
-target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/MACHINE:X86>")
+target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/MACHINE:${CSE_MSVC_MACHINE}>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/SUBSYSTEM:WINDOWS>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/EXPORT:VguiEmptyString,@395,DATA,EXPORTAS,??_C@_00A@?$AA@>")
 target_link_options(vgui PRIVATE "$<$<CONFIG:Release>:/INCREMENTAL:NO>")
@@ -129,5 +59,99 @@ target_link_libraries(vgui PRIVATE "$<$<CONFIG:Release>:kernel32.lib>")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Release>:user32.lib>")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Release>:gdi32.lib>")
 target_link_libraries(vgui PRIVATE "$<$<CONFIG:Release>:advapi32.lib>")
+else()
+target_compile_features(vgui PRIVATE cxx_std_17)
+target_compile_options(vgui PRIVATE "SHELL:-include \"${CSE_SDK_DIR}/public/cse_posix_crt.h\"")
+if(APPLE)
+  target_compile_definitions(vgui PRIVATE OSX POSIX)
+endif()
+if(APPLE)
+  target_link_options(vgui PRIVATE "-Wl,-no_deduplicate")
+endif()
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-O0>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:-g>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-fexceptions>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Debug>:_USRDLL>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Debug>:VGUI_EXPORTS>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/include>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Debug>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/common>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-O2>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wall>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wextra>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=shorten-64-to-32>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror=pointer-to-int-cast>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-model=precise>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-ffp-contract=off>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-parameter>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unknown-pragmas>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=writable-strings>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=overloaded-virtual>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-copy-with-user-provided-copy>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=deprecated-declarations>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-field-initializers>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=sign-compare>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=switch>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=invalid-offsetof>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=missing-braces>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=inconsistent-missing-override>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=nontrivial-memcall>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-arithmetic>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=null-conversion>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=logical-op-parentheses>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=pointer-bool-conversion>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=tautological-pointer-compare>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-value>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-but-set-variable>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=unused-private-field>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-non-abstract-non-virtual-dtor>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-error=delete-abstract-non-virtual-dtor>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Wno-overriding-option>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:-Werror>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:-g>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-fexceptions>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-frtti>")
+target_compile_options(vgui PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:CXX>>:-funwind-tables>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Release>:NDEBUG>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Release>:_USRDLL>")
+target_compile_definitions(vgui PRIVATE "$<$<CONFIG:Release>:VGUI_EXPORTS>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/include>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui>")
+target_include_directories(vgui PRIVATE "$<$<CONFIG:Release>:${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/common>")
+endif()
 cse_runtime_directory(vgui "")
 cse_vgui_import_archive()

@@ -52,6 +52,51 @@ extern "C" TIER0_API unsigned int Plat_GetCurrentThreadID()
 	return Plat_CurrentThreadID;
 }
 
+#elif defined(__APPLE__)
+#include <limits>
+#include <mach/port.h>
+#include <pthread.h>
+#include <type_traits>
+
+// Preserve the existing exported unsigned-long storage; logical IDs remain 32-bit.
+unsigned long Plat_PrimaryThreadID = 0;
+
+namespace {
+constexpr unsigned int kUnregisteredThreadId = 0;
+constexpr int kLogicalThreadIdBits = 32;
+thread_local unsigned int Plat_CurrentThreadID = kUnregisteredThreadId;
+
+unsigned int NativeCurrentThreadId() {
+    static_assert(std::numeric_limits<unsigned int>::digits == kLogicalThreadIdBits,
+        "Logical thread IDs require 32-bit storage");
+    static_assert(std::is_same<mach_port_t, unsigned int>::value,
+        "The native Mach port identity must already have the logical ID type");
+    // This is the borrowed task-local thread-port name, not a pthread pointer or an acquired send right.
+    const mach_port_t identity = pthread_mach_thread_np(pthread_self());
+    return MACH_PORT_VALID(identity) ? identity : kUnregisteredThreadId;
+}
+}
+
+void Plat_SetThreadName(unsigned int, const char*) {
+}
+
+unsigned int Plat_RegisterThread(const char*) {
+    Plat_CurrentThreadID = NativeCurrentThreadId();
+    return Plat_CurrentThreadID;
+}
+
+unsigned int Plat_RegisterPrimaryThread() {
+    const unsigned int identity = Plat_RegisterThread(nullptr);
+    if (identity != kUnregisteredThreadId) {
+        Plat_PrimaryThreadID = identity;
+    }
+    return identity;
+}
+
+unsigned int Plat_GetCurrentThreadID() {
+    return Plat_CurrentThreadID;
+}
+
 #else
 #include <pthread.h>
 

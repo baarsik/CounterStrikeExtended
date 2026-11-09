@@ -22,7 +22,7 @@
 #include "cl_util.h"
 #include "parsemsg.h"
 #include "../public/game_controls/iviewport.h"
-#include "../public/UtlVector.h"
+#include "../public/utlvector.h"
 #include "../../engine/controls.h"
 #include "../../external/steamworks/isteamfriends.h"
 #include <wchar.h>
@@ -128,7 +128,7 @@ void SayTextLine::SetText( wchar_t* text, int client )
 void SayTextLine::Colorize()
 {
 	m_textRanges.RemoveAll();
-	int length = wcslen( m_line );
+	const int length = static_cast<int>(wcslen(m_line));
 	if ( m_line[0] == COLOR_NORMAL || m_line[0] == COLOR_PLAYERNAME || m_line[0] == COLOR_LOCATION )
 	{
 		for ( int i = 0; m_line[i]; i++ )
@@ -417,13 +417,16 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 	}
 	wchar_t finalBuffer[256] = { 0 };
 	char buffer[512] = { 0 };
-	int length;
-	while ( ( length = strlen( text ) ) > 0 && ( text[length - 1] == '\r' || text[length - 1] == '\n' ) )
-	{
-		strncpy( buffer, text, sizeof( buffer ) );
-		buffer[length - 1] = 0;
-		text = buffer;
-	}
+    size_t length = strlen(text);
+    while (length > 0 && (text[length - 1] == '\r' || text[length - 1] == '\n')) {
+        --length;
+    }
+    if (text[length] != 0) {
+        const size_t copyLength = length < sizeof(buffer) ? length : sizeof(buffer) - 1;
+        memcpy(buffer, text, copyLength);
+        buffer[copyLength] = 0;
+        text = buffer;
+    }
 	wchar_t* localized = vgui2::localize()->Find( text );
 	wchar_t temp[256] = { 0 };
 	wchar_t output[256] = { 0 };
@@ -434,28 +437,32 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 		char token[128];
 		bool inWord = false;
 		wchar_t* wordStart = NULL;
-		int count = 0;
-		int remaining = wcslen( temp );
-		for ( wchar_t* scan = temp; *scan && count < 256; scan++, remaining-- )
-		{
+        size_t count = 0;
+        size_t remaining = wcslen(temp);
+        constexpr size_t OutputCharacters = sizeof(output) / sizeof(output[0]);
+        for (wchar_t* scan = temp; *scan && count < OutputCharacters; scan++, remaining--) {
 			if ( inWord )
 			{
 				if ( remaining == 1 || iswspace( *scan ) )
 				{
-					int wordLength = scan - wordStart;
-					wcsncpy( word, wordStart, wordLength + 1 );
-					word[wordLength + ( remaining == 1 )] = 0;
+                    const size_t wordLength = static_cast<size_t>(scan - wordStart) + (remaining == 1);
+                    constexpr size_t WordCharacters = sizeof(word) / sizeof(word[0]);
+                    const size_t wordCopy = wordLength < WordCharacters ? wordLength : WordCharacters - 1;
+                    wcsncpy(word, wordStart, wordCopy);
+                    word[wordCopy] = 0;
 					vgui2::localize()->ConvertUnicodeToANSI( word, token, sizeof( token ) );
 					wchar_t* translated = vgui2::localize()->Find( token );
 					if ( !translated )
 						translated = word;
-					int copy = wcslen( translated );
-					if ( copy > 256 - count )
-						copy = 256 - count;
-					wcsncpy( output + count, translated, copy );
-					count += copy;
-					if ( remaining > 1 && count < 256 )
-						output[count++] = *scan;
+                    size_t copy = wcslen(translated);
+                    if (copy > OutputCharacters - count) {
+                        copy = OutputCharacters - count;
+                    }
+                    wcsncpy(output + count, translated, copy);
+                    count += copy;
+                    if (remaining > 1 && count < OutputCharacters) {
+                        output[count++] = *scan;
+                    }
 					inWord = false;
 				}
 			}
@@ -467,7 +474,7 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 			else
 				output[count++] = *scan;
 		}
-		output[count < 256 ? count : 255] = 0;
+        output[count < OutputCharacters ? count : OutputCharacters - 1] = 0;
 		localized = output;
 	}
 	char* args[4] = { arg1, arg2, arg3, arg4 };
@@ -489,31 +496,8 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 			unicodeArgs[0], unicodeArgs[1], unicodeArgs[2], unicodeArgs[3] );
 	else
 	{
-#ifndef _WIN32
-		for ( wchar_t* scan = localized; *scan; scan++ )
-		{
-			if ( *scan == '%' )
-			{
-				if ( towlower( scan[1] ) == 's' )
-				{
-					scan[1] = 'S';
-					scan++;
-				}
-				else if ( scan[1] == '.' && (unsigned int)( scan[2] - '0' ) <= 9 )
-				{
-					if ( towlower( scan[3] ) == 's' )
-						scan[3] = 'S';
-					else if ( (unsigned int)( scan[3] - '0' ) <= 9 && towlower( scan[4] ) == 's' )
-						scan[4] = 'S';
-				}
-			}
-		}
-		swprintf( finalBuffer, ARRAYSIZE( finalBuffer ), localized,
-			unicodeArgs[0], unicodeArgs[1], unicodeArgs[2], unicodeArgs[3] );
-#else
 		_snwprintf( finalBuffer, ARRAYSIZE( finalBuffer ), localized,
 			unicodeArgs[0], unicodeArgs[1], unicodeArgs[2], unicodeArgs[3] );
-#endif
 	}
 	g_sayTextLine[line].SetText( finalBuffer, client );
 	EnsureTextFitsInOneLineAndWrapIfHaveTo( line );

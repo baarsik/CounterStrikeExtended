@@ -2,6 +2,7 @@
 
 #include "../utlvector.h"
 #include <cstddef>
+#include <cstdint>
 
 namespace vgui2
 {
@@ -19,13 +20,19 @@ enum DataType_t : int
 	DATATYPE_BOOL,
 	DATATYPE_KEYVALUES,
 	DATATYPE_CONSTWCHARPTR,
-	DATATYPE_UINT64
+	DATATYPE_UINT64,
+    // Live panel identities use native-width storage; registry HPanel IDs remain 32-bit.
+    DATATYPE_VPANEL
 };
 
 struct MessageMapItem_t
 {
 	const char*		name;
-#if ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 ) && defined( _M_IX86 )
+#if UINTPTR_MAX > UINT32_MAX
+    // Owned native modules share the compiler's member-pointer layout. The explicit
+    // Win32 binary layout padding below is not a native storage requirement.
+    MessageFunc_t func;
+#elif ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) ) && defined( _WIN32 ) && defined( _M_IX86 )
 	unsigned int : 32;
 	unsigned int : 32;
 	unsigned int : 32;
