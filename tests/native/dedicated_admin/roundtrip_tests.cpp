@@ -1,4 +1,14 @@
+// Expose only fixture access to pending registrations; production layout and bodies remain unchanged.
+#include "utlbuffer.h"
+#include "utllinkedlist.h"
+#include <algorithm>
+#include <cstring>
+#include <limits>
+#include <memory>
+#include <vector>
+#define private public
 #include "admin_actual.inc"
+#undef private
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -15,10 +25,16 @@ extern void PopulateProviderFixture();
 extern void NotifyDedicatedServerUI(const char*);
 extern std::string commands;
 extern int executions;
+extern std::string mapcycle;
+extern bool mapcycleMissing;
+extern int mapcycleLoads;
+extern int mapcycleFrees;
 struct Receiver : IServerDataResponse {
     std::map<std::string, std::string> data;
+    int responses = 0;
     void OnServerDataResponse(const char* name, const char* value) override {
         data[name] = value;
+        ++responses;
     }
 };
 int main() {
@@ -48,6 +64,17 @@ int main() {
     NotifyDedicatedServerUI("UpdatePlayers");
     CHECK(remote.ProcessServerResponse());
     CHECK(receiver.data.count("UpdatePlayers") == 1);
+    for (int iteration = 0; iteration < 20; ++iteration) {
+        mapcycle = iteration == 0 ? "crossfire\n" : "";
+        mapcycleMissing = iteration % 2 != 0;
+        const int before = receiver.responses;
+        remote.RequestValue(&receiver, "mapcycle");
+        CHECK(remote.ProcessServerResponse());
+        CHECK(receiver.responses == before + 1);
+        CHECK(receiver.data.at("mapcycle") == mapcycle);
+        CHECK(mapcycleLoads == mapcycleFrees);
+        CHECK(remote.m_ResponseHandlers.empty());
+    }
     remote.Shutdown();
     remote.SendCommand("quit");
     CHECK(executions == 1);

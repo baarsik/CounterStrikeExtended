@@ -89,3 +89,28 @@ endif()
 add_test(NAME retained_runtime_resources COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/resource_tests.py")
 
 add_test(NAME oversized_response_queue COMMAND provider_tests oversized_response_queue)
+
+if(CSE_ADMIN_OWNER_BUILD)
+  set(setup_control_objects ${control_objects})
+  list(FILTER setup_control_objects EXCLUDE REGEX "/dedicated/native/AdminFiles.cpp.o$")
+  add_executable(setup_tests setup_tests.cpp provider_tests.cpp ${setup_control_objects}
+    "${SDK}/dedicated/native/AdminFiles.cpp"
+    "${SDK}/dedicated/CreateMultiplayerGameServerPage.cpp" "${SDK}/dedicated/native/NativeGui.cpp"
+    "${SDK}/dedicated/native/DedicatedSession.cpp" "${SDK}/dedicated/native/Signals.cpp"
+    "${SDK}/dedicated/native/TextConsolePosix.cpp" "${SDK}/launcher/native/SocketImageOwner.cpp"
+    "${SDK}/common/textconsole.cpp" "${SDK}/common/ObjectList.cpp" "${SDK}/common/commandline.cpp")
+  target_compile_definitions(setup_tests PRIVATE CSE_PROVIDER_NO_MAIN=1)
+  target_compile_options(setup_tests PRIVATE -include "${SDK}/public/cse_posix_crt.h" -fexceptions -frtti)
+  target_include_directories(setup_tests PRIVATE "${SDK}/dedicated" "${SDK}/cstrike/common"
+    "${SDK}/cstrike/public" "${SDK}/vgui2/controls" "${SDK}/cl_dll" "${SDK}/engine"
+    "${SDK}/vgui2/src/public" "${SDK}/common" "${SDK}/public" "${SDK}" "${SDK}/pm_shared"
+    "${CSE_ADMIN_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
+  target_link_libraries(setup_tests PRIVATE
+    "${CSE_ADMIN_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib")
+  foreach(case selection text config bounds)
+    add_test(NAME actual_setup_${case} COMMAND setup_tests "${CSE_ADMIN_OWNER_BUILD}/runtime/${CMAKE_BUILD_TYPE}"
+      "${CSE_ADMIN_RESOURCE_ROOT}" ${case})
+    set_tests_properties(actual_setup_${case} PROPERTIES ENVIRONMENT
+      "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy;SDL_RENDER_DRIVER=software")
+  endforeach()
+endif()

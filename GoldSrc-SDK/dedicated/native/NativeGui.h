@@ -1,5 +1,6 @@
 #pragma once
 #include "DedicatedModuleSet.h"
+#include "DedicatedCommandLine.h"
 #include <string>
 class CMainPanel;
 class IAdminServer;
@@ -13,6 +14,7 @@ public:
     bool Pump();
     bool ReadyToStart() const;
     bool Started(std::string& error);
+    bool ApplyStartup(DedicatedCommandLine& command, std::string& error) const;
     const char* Commands() const;
     void Stop() noexcept;
     void Close() noexcept;

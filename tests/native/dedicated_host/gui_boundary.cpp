@@ -6,6 +6,7 @@ bool NativeGui::Open(DedicatedModuleSet&, std::string&, std::uint64_t, const std
 bool NativeGui::Pump() { std::abort(); }
 bool NativeGui::ReadyToStart() const { std::abort(); }
 bool NativeGui::Started(std::string&) { std::abort(); }
+bool NativeGui::ApplyStartup(DedicatedCommandLine&, std::string&) const { std::abort(); }
 const char* NativeGui::Commands() const { std::abort(); }
 void NativeGui::Stop() noexcept { std::abort(); }
 void NativeGui::Close() noexcept { std::abort(); }

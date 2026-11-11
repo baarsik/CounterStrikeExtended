@@ -35,9 +35,15 @@ int main() {
     CHECK(files::Join(directory.u8string(), "bans.cfg").path == (directory / "bans.cfg").u8string());
     CHECK(!files::Stat((directory / "missing").u8string()).ok);
     CHECK(files::Parent(directory.u8string() + "/").path == fs::path(root).u8string());
+    CHECK(files::PrepareConfigDirectory((directory / "new-config").u8string()).ok);
+    CHECK(fs::is_empty(directory / "new-config"));
+    CHECK(files::PrepareConfigDirectory((directory / "new-config").u8string()).ok);
+    CHECK(fs::is_empty(directory / "new-config"));
+    CHECK(!files::PrepareConfigDirectory("relative-config").ok);
     chmod((directory / "locked").c_str(), 0);
     if (geteuid() != 0) {
         CHECK(!files::List((directory / "locked").u8string(), "*").ok);
+        CHECK(!files::PrepareConfigDirectory((directory / "locked").u8string()).ok);
     }
     chmod((directory / "locked").c_str(), 0700);
     const char drives[] = "/\0/Volumes/Extra disk/\0\0";

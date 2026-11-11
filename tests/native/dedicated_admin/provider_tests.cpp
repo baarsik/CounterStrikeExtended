@@ -29,6 +29,9 @@ std::string commands;
 std::string cvarValue;
 std::string mapcycle;
 int executions = 0;
+bool mapcycleMissing = false;
+int mapcycleLoads = 0;
+int mapcycleFrees = 0;
 void Cbuf_AddText(const char* text) {
     commands += text;
 }
@@ -87,9 +90,17 @@ int Host_GetStartTime() {
 }
 byte* COM_LoadFileForMe(char*, int* length) {
     *length = static_cast<int>(mapcycle.size());
-    return reinterpret_cast<byte*>(mapcycle.data());
+    if (mapcycleMissing) {
+        return nullptr;
+    }
+    ++mapcycleLoads;
+    auto* data = static_cast<byte*>(std::malloc(mapcycle.size() + 1));
+    std::memcpy(data, mapcycle.c_str(), mapcycle.size() + 1);
+    return data;
 }
-void COM_FreeFile(void*) {
+void COM_FreeFile(void* data) {
+    ++mapcycleFrees;
+    std::free(data);
 }
 void AppendInt(std::vector<char>& packet, int value) {
     auto* start = reinterpret_cast<const char*>(&value);

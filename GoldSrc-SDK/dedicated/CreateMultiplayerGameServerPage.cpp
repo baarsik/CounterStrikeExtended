@@ -19,6 +19,8 @@
 #include "Button.h"
 #include "CheckButton.h"
 #include "ComboBox.h"
+#include "TextEntry.h"
+#include <vector>
 #ifdef MessageBox
 #undef MessageBox
 #endif
@@ -337,73 +339,97 @@ int CCreateMultiplayerGameServerPage::LoadMaps( const char* gameDir )
 	return count;
 }
 
-void CCreateMultiplayerGameServerPage::OnCommand( const char* command )
-{
-	int secure = GetControlInt( "SecureCheck", 1 );
-	char text[1024];
-	m_pPlayersList->GetText( text, sizeof( text ) );
-	m_iMaxPlayers = atoi( text );
-	GetControlString("ServerNameEdit", m_szHostName, sizeof(m_szHostName), "");
-	GetControlString("RCONPasswordEdit", m_szRconPassword, sizeof(m_szRconPassword), "");
-	m_iPort = GetControlInt( "PortEdit", 27015 );
-	if ( !_stricmp( command, "cancel" ) )
-	{
-		vgui2::ivgui()->PostMessage( m_pParent->GetVPanel(), new KeyValues( "Quit" ), 0, 0.0f );
-		Close();
-		return;
-	}
-	if ( _stricmp( command, "start" ) )
-		return;
+namespace {
+bool ReadStartupControl(vgui2::Panel *parent, const char *name, std::string &text) {
+    auto* control = dynamic_cast<vgui2::TextEntry *>(parent->FindChildByName(name, false));
+    constexpr int MaximumSettingBytes = 63;
+    constexpr int MaximumUtf8BytesPerCell = 4;
+    if (!control || control->GetTextLength() > MaximumSettingBytes) {
+        return false;
+    }
+    // Every cell needs at least one byte; this capacity preserves all UTF-8 bytes before validation.
+    const int capacity = control->GetTextLength() * MaximumUtf8BytesPerCell + 1;
+    std::vector<char> value(static_cast<std::size_t>(capacity));
+    control->GetText(value.data(), capacity);
+    text = value.data();
+    return text.size() <= MaximumSettingBytes;
+}
+} // namespace
 
+void CCreateMultiplayerGameServerPage::OnCommand(const char *command) {
+    if (!_stricmp(command, "cancel")) {
+        vgui2::ivgui()->PostMessage(m_pParent->GetVPanel(), new KeyValues("Quit"), 0, 0.0f);
+        Close();
+        return;
+    }
+    if (_stricmp(command, "start")) {
+        return;
+    }
+
+    std::string hostname;
+    std::string password;
+    std::string map;
     std::string startupCommands;
-    if (!cse::dedicated::BuildStartupCommands(m_szHostName, m_szRconPassword, startupCommands)) {
-        auto* message = new vgui2::MessageBox("Invalid server settings",
-            "Use an alphanumeric RCON password of at least three characters and a server name "
-            "without quotes or control characters.", this);
+    if (!ReadStartupControl(this, "ServerNameEdit", hostname) ||
+        !ReadStartupControl(this, "RCONPasswordEdit", password) || !ReadStartupControl(this, "MapList", map) ||
+        !cse::dedicated::BuildStartupCommands(hostname.c_str(), password.c_str(), startupCommands)) {
+        auto* message = new vgui2::MessageBox(
+            "Invalid server settings",
+            "Server name, password and map must fit 63 UTF-8 bytes. Use an alphanumeric RCON password "
+            "of at least three characters and a server name without quotes or control characters.",
+            this);
         message->DoModal(nullptr);
         return;
     }
+    const int secure = GetControlInt("SecureCheck", 1);
+    constexpr std::size_t StartupCommandCapacity = 1024;
+    constexpr int DefaultServerPort = 27015;
+    char text[StartupCommandCapacity];
+    m_pPlayersList->GetText(text, sizeof(text));
+    m_iMaxPlayers = atoi(text);
+    m_iPort = GetControlInt("PortEdit", DefaultServerPort);
+    std::strcpy(m_szHostName, hostname.c_str());
+    std::strcpy(m_szRconPassword, password.c_str());
+    std::strcpy(m_szMapName, map.c_str());
     std::snprintf(text, sizeof(text), "%s", startupCommands.c_str());
-	m_pMapList->GetText( m_szMapName, sizeof( m_szMapName ) );
-	int network = m_pNetworkList->GetActiveItem() != 0;
-	m_pConfig->SetInt( "MaxPlayers", m_iMaxPlayers );
-	m_pConfig->SetString( "RconPassword", m_szRconPassword );
-	m_pConfig->SetString( "ServerName", m_szHostName );
-	m_pConfig->SetString( "MOD", m_szMod );
-	m_pConfig->SetString( "Map", m_szMapName );
-	m_pConfig->SetInt( "Secure", secure );
-	m_pConfig->SetInt( "Network", network );
-	m_pConfig->SetInt( "Port", m_iPort );
-	m_pConfig->SaveToFile( vgui2::filesystem(), "Server.vdf", "CONFIG" );
-	network = m_pNetworkList->GetActiveItem();
-	cmdline->SetParm( "-game", m_szMod );
-	cmdline->SetParm( "-maxplayers", m_iMaxPlayers );
-	cmdline->SetParm( "+sv_lan", network != 0 );
-	m_pMapList->GetText( m_szMapName, sizeof( m_szMapName ) );
-	cmdline->SetParm( "+map", m_szMapName );
-	cmdline->SetParm( "-port", m_iPort );
-	if (!secure) {
+    int network = m_pNetworkList->GetActiveItem() != 0;
+    m_startupSettings = {m_szMod, map, m_iMaxPlayers, m_iPort, network != 0, secure != 0};
+    m_pConfig->SetInt("MaxPlayers", m_iMaxPlayers);
+    m_pConfig->SetString("RconPassword", m_szRconPassword);
+    m_pConfig->SetString("ServerName", m_szHostName);
+    m_pConfig->SetString("MOD", m_szMod);
+    m_pConfig->SetString("Map", m_szMapName);
+    m_pConfig->SetInt("Secure", secure);
+    m_pConfig->SetInt("Network", network);
+    m_pConfig->SetInt("Port", m_iPort);
+    m_pConfig->SaveToFile(vgui2::filesystem(), "Server.vdf", "CONFIG");
+    network = m_pNetworkList->GetActiveItem();
+    cmdline->SetParm("-game", m_szMod);
+    cmdline->SetParm("-maxplayers", m_iMaxPlayers);
+    cmdline->SetParm("+sv_lan", network != 0);
+    cmdline->SetParm("+map", m_szMapName);
+    cmdline->SetParm("-port", m_iPort);
+    if (!secure) {
         cmdline->SetParm("-insecure", "");
     } else {
         cmdline->RemoveParm("-insecure");
     }
 
-	m_pNetworkList->GetActiveItem();
-	m_pModList->SetEnabled( false );
-	m_pPlayersList->SetEnabled( false );
-	netadr_t address;
-	net->GetLocalIP( &address );
-	address.port = htons( (unsigned short)m_iPort );
-	for ( int i = 0; i < 4; i++ )
-		m_Server.ip[i] = address.ip[i];
-	m_Server.port = ( address.port & 0xff ) << 8 | ( address.port & 0xff00 ) >> 8;
-	strcpy( m_Server.name, m_szHostName );
-	m_pMapList->GetText( m_szMapName, sizeof( m_szMapName ) );
-	strcpy( m_Server.map, m_szMapName );
-	strcpy( m_Server.gameDir, m_szMod );
-	m_Server.maxPlayers = m_iMaxPlayers;
-	SetVisible( false );
-	MainPanel()->StartServer( text );
+    m_pModList->SetEnabled(false);
+    m_pPlayersList->SetEnabled(false);
+    netadr_t address;
+    net->GetLocalIP(&address);
+    address.port = htons((unsigned short)m_iPort);
+    for (std::size_t i = 0; i < sizeof(m_Server.ip); ++i) {
+        m_Server.ip[i] = address.ip[i];
+    }
+    m_Server.port = (address.port & 0xff) << 8 | (address.port & 0xff00) >> 8;
+    strcpy(m_Server.name, m_szHostName);
+    strcpy(m_Server.map, m_szMapName);
+    strcpy(m_Server.gameDir, m_szMod);
+    m_Server.maxPlayers = m_iMaxPlayers;
+    SetVisible(false);
+    MainPanel()->StartServer(text);
 }
 
 void CCreateMultiplayerGameServerPage::EnableModSelection()
@@ -416,14 +442,15 @@ void CCreateMultiplayerGameServerPage::OnTextChanged( vgui2::Panel* panel )
 	if ( panel != m_pModList )
 		return;
 
-	GetControlString( "ServerNameEdit", m_szHostName, sizeof( m_szHostName ), "" );
+    std::string hostname;
+    const bool validName = ReadStartupControl(this, "ServerNameEdit", hostname);
 	char* gameName = m_szMod + GAME_DIR_LENGTH;
 	char defaultName[256];
 	_snprintf( defaultName, 255, "%s dedicated server", gameName );
 #ifdef _MSC_VER
 #pragma warning( suppress: 6053 )
 #endif
-	bool useDefaultName = !_stricmp( m_szHostName, defaultName );
+	bool useDefaultName = validName && !_stricmp(hostname.c_str(), defaultName);
 	m_pModList->GetText( gameName, GAME_DIR_LENGTH );
 	m_szMod[0] = 0;
 	int i;

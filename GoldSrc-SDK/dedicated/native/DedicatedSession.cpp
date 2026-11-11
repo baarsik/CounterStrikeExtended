@@ -151,6 +151,12 @@ int DedicatedSession::Run() {
         const timespec delay{0, 1000000};
         nanosleep(&delay, nullptr);
     }
+    std::string error;
+    if (guiOpen_ && !gui_.ApplyStartup(command_, error)) {
+        std::fprintf(stderr, "%s\n", error.c_str());
+        Close();
+        return EXIT_FAILURE;
+    }
     state_ = State::Starting;
     engineEntered_ = true;
     std::string command = command_.Encoded();

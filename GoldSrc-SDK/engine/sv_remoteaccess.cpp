@@ -406,12 +406,14 @@ bool CServerRemoteAccess::LookupValue( const char* variable, CUtlBuffer& value )
 	{
 		int len = 0;
 		byte* data = COM_LoadFileForMe( mapcyclefile.string, &len );
-		if ( data && len )
-		{
-			value.PutString( (const char*)data );
-			value.PutChar( 0 );
-			COM_FreeFile( data );
-		}
+        if (data) {
+            if (len > 0) {
+                value.PutString(reinterpret_cast<const char*>(data));
+            }
+            COM_FreeFile(data);
+        }
+        // Empty and missing files still complete the value request with a terminated empty string.
+        value.PutChar(0);
 		return true;
 	}
 

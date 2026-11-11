@@ -15,6 +15,7 @@ struct Result {
     std::string error;
     std::vector<Entry> entries;
 };
+Result PrepareConfigDirectory(const std::string& path);
 Result List(const std::string& path, const std::string& filter);
 Result Stat(const std::string& path);
 Result Parent(const std::string& path);

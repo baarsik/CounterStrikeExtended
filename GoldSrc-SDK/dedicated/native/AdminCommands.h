@@ -4,6 +4,14 @@
 #include <string>
 
 namespace cse::dedicated {
+struct StartupSettings {
+    std::string game;
+    std::string map;
+    int maximumPlayers = 0;
+    int port = 0;
+    bool lan = false;
+    bool secure = true;
+};
 inline bool BuildStartupCommands(const char* hostname, const char* password, std::string& command) {
     command.clear();
     constexpr std::size_t MaximumSettingBytes = 63;

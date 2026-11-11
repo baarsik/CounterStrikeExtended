@@ -1,8 +1,11 @@
 #include "AdminFiles.h"
 #include <algorithm>
+#include <cerrno>
+#include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fnmatch.h>
+#include <unistd.h>
 
 namespace cse::dedicated::files {
 namespace fs = std::filesystem;
@@ -14,6 +17,38 @@ Result Failure(const std::string& path, const std::string& error) {
     return result;
 }
 } // namespace
+Result PrepareConfigDirectory(const std::string& path) {
+    if (path.empty() || !fs::u8path(path).is_absolute()) {
+        return Failure(path, "Dedicated CONFIG requires an absolute writable settings directory");
+    }
+    std::error_code error;
+    fs::create_directories(fs::u8path(path), error);
+    if (error) {
+        return Failure(path, "Cannot create dedicated settings directory: " + error.message());
+    }
+    std::string probe = (fs::u8path(path) / ".cse-config-write-XXXXXX").u8string();
+    const int descriptor = mkstemp(probe.data());
+    if (descriptor < 0) {
+        return Failure(path, "Cannot write dedicated settings directory: " + std::string(std::strerror(errno)));
+    }
+    constexpr char ProbeByte = 0;
+    const auto bytes = write(descriptor, &ProbeByte, sizeof(ProbeByte));
+    const bool written = bytes == sizeof(ProbeByte);
+    const int writeError = written ? 0 : (bytes < 0 ? errno : EIO);
+    const bool closed = close(descriptor) == 0;
+    const int closeError = closed ? 0 : errno;
+    const bool removed = unlink(probe.c_str()) == 0;
+    const int removeError = removed ? 0 : errno;
+    if (!written || !closed || !removed) {
+        const int failure = writeError ? writeError : (closeError ? closeError : removeError);
+        return Failure(path, "Cannot verify dedicated settings storage: " + std::string(std::strerror(failure)));
+    }
+    Result result;
+    result.ok = true;
+    result.directory = true;
+    result.path = path;
+    return result;
+}
 Result Stat(const std::string& path) {
     if (path.empty()) {
         return Failure(path, "No path selected");

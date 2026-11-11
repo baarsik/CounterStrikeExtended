@@ -1,4 +1,5 @@
 #include "NativeGui.h"
+#include "AdminFiles.h"
 #include "../AdminServer.h"
 #include <SDL3/SDL.h>
 #include <filesystem>
@@ -173,15 +174,9 @@ bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error, std::uint6
             SDL_free(preferencePath);
         }
     }
-    std::error_code pathError;
-    if (configPath_.empty() || !std::filesystem::u8path(configPath_).is_absolute()) {
-        error = "Dedicated CONFIG requires an absolute writable settings directory";
-        Close();
-        return false;
-    }
-    std::filesystem::create_directories(std::filesystem::u8path(configPath_), pathError);
-    if (pathError) {
-        error = "Cannot create dedicated settings directory: " + pathError.message();
+    const auto storage = files::PrepareConfigDirectory(configPath_);
+    if (!storage.ok) {
+        error = storage.error;
         Close();
         return false;
     }
@@ -240,6 +235,13 @@ bool NativeGui::Pump() {
 }
 bool NativeGui::ReadyToStart() const {
     return panel_ && !panel_->m_bWaiting && panel_->m_bStarting;
+}
+bool NativeGui::ApplyStartup(DedicatedCommandLine& command, std::string& error) const {
+    if (!ReadyToStart() || !panel_->m_pConfig) {
+        error = "Dedicated setup has not accepted a startup configuration";
+        return false;
+    }
+    return command.ApplySetup(panel_->m_pConfig->StartupSettings(), error);
 }
 const char* NativeGui::Commands() const {
     return gpszCvars;
