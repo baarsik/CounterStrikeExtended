@@ -14,7 +14,7 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${ROOT}/tests/native/a3d_float_
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/multiply.cpp"
     "#include \"platform_types.h\"\n#include \"multiply_fixed_body.inc\"\n")
 add_library(a3d_buffer_subject STATIC "${A3D}/native_buffer.cpp" "${A3D}/native_mix.cpp"
-    "${A3D}/a2d.cpp" "${A3D}/a2dbuffer.cpp" "${A3D}/native_platform.cpp"
+    "${A3D}/a2d.cpp" "${A3D}/a2dbuffer.cpp" "${A3D}/native_platform.cpp" "${A3D}/native_notifications.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/multiply.cpp")
 target_link_libraries(a3d_buffer_subject PUBLIC SDL3::SDL3)
 target_include_directories(a3d_buffer_subject PUBLIC "${A3D}" "${ROOT}/GoldSrc-SDK/public"

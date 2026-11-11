@@ -100,6 +100,9 @@ HRESULT A3dNativeMixer::CreateBuffer(LPCDSBUFFERDESC description, IDirectSoundBu
         !ValidFormat(description->lpwfxFormat, description->dwBufferBytes)) {
         return E_INVALIDARG;
     }
+    if (description->dwFlags & DSBCAPS_CTRLPOSITIONNOTIFY) {
+        return DSERR_UNSUPPORTED;
+    }
     if (description->dwFlags & ~kSupportedBufferFlags) {
         return E_NOTIMPL;
     }
@@ -192,6 +195,8 @@ HRESULT A3dNativeBuffer::QueryInterface(REFIID iid, void** object) {
     *object = nullptr;
     if (IsEqualIID(iid, IID_IUnknown) || IsEqualIID(iid, IID_IDirectSoundBuffer)) {
         *object = static_cast<IDirectSoundBuffer*>(this);
+    } else if (IsEqualIID(iid, IID_IA3dNativeNotifyV1)) {
+        *object = static_cast<IA3dNativeNotifyV1*>(this);
     } else if (IsEqualIID(iid, IID_IDirectSound3DBuffer)) {
         *object = static_cast<IDirectSound3DBuffer*>(this);
     } else if (IsEqualIID(iid, IID_A3dNativeRenderBuffer)) {
@@ -211,10 +216,21 @@ ULONG A3dNativeBuffer::AddRef() {
 }
 
 ULONG A3dNativeBuffer::Release() {
-    A3dNativeMixLock lock;
-    const ULONG remaining = --references_;
+    A3dNativeNotificationBatch batch;
+    ULONG remaining = 0;
+    {
+        A3dNativeMixLock lock;
+        remaining = --references_;
+        if (!remaining) {
+            notifications_.Capture(cursor_, 0, samples_->bytes, state_ == A3D_BUFFER_STATE_PLAYING, batch);
+            state_ = A3D_BUFFER_STATE_STOPPED;
+            Detach();
+        }
+    }
     if (!remaining) {
-        Detach();
+        batch.Dispatch();
+        notifications_.Shutdown();
+        A3dNativeMixLock lock;
         delete this;
     }
     return remaining;
@@ -377,6 +393,7 @@ void A3dNativeBuffer::Seek(DWORD position) {
     voice_.voice_.channels[0].iSourceSample = frame;
     voice_.voice_.channels[1].iSourceSample = frame;
     cursor_ = position;
+    notificationPosition_ = position;
 }
 
 HRESULT A3dNativeBuffer::SetCurrentPosition(DWORD position) {
@@ -410,9 +427,23 @@ HRESULT A3dNativeBuffer::Play(DWORD reserved, DWORD priority, DWORD flags) {
 }
 
 HRESULT A3dNativeBuffer::Stop() {
-    A3dNativeMixLock lock;
-    state_ = A3D_BUFFER_STATE_STOPPED;
+    A3dNativeNotificationBatch batch;
+    {
+        A3dNativeMixLock lock;
+        notifications_.Capture(cursor_, 0, samples_->bytes, state_ == A3D_BUFFER_STATE_PLAYING, batch);
+        state_ = A3D_BUFFER_STATE_STOPPED;
+    }
+    batch.Dispatch();
     return S_OK;
+}
+
+HRESULT A3dNativeBuffer::GetNotificationCaps(A3dNativeNotificationCapsV1* caps) {
+    return A3dNativeNotifications::Caps(caps, A3D_NATIVE_CURSOR_RENDER_CONSUMED);
+}
+
+HRESULT A3dNativeBuffer::SetNotificationPositions(DWORD count,
+    const A3dNativeNotificationPositionV1* positions) {
+    return notifications_.Replace(count, positions, samples_->bytes);
 }
 
 HRESULT A3dNativeBuffer::SetVolume(LONG volume) {

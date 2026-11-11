@@ -1,17 +1,20 @@
-# Native typed events
+# Native typed events and render notifications
 
-These CPU-only tests exercise the actual event implementation, without SDL, an
-output device, provider, Windows HANDLE services, or a loaded A3D module.
+These tests exercise the actual event, native buffer, retained A2D kernel and
+notification owners. The waiter reentry suite also uses the actual SDL output
+owner with process-local `SDL_AUDIO_DRIVER=dummy`; it never selects a real device.
+They do not yet qualify the resource-stream/provider or loaded-module path.
 
 ```sh
-cmake -S tests/native/a3d_notifications -B build/a3d-native-20261111/notifications-release -G Ninja \
-  -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCMAKE_OSX_ARCHITECTURES=arm64
-cmake --build build/a3d-native-20261111/notifications-release --parallel 1
-ctest --test-dir build/a3d-native-20261111/notifications-release --parallel 1 --output-on-failure
+cmake -S tests/native/a3d_notifications -B build/a3d-native-20261111/notifications-task5-release -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCMAKE_OSX_ARCHITECTURES=arm64 \
+  -DSDL3_DIR=/path/to/existing/SDL3/cmake/package
+cmake --build build/a3d-native-20261111/notifications-task5-release --parallel 1
+ctest --test-dir build/a3d-native-20261111/notifications-task5-release --parallel 1 --output-on-failure
 ```
 
-Use `notifications-debug` with `-DCMAKE_BUILD_TYPE=Debug`; use
-`notifications-sanitizers` with Debug and `-DA3D_SANITIZERS=ON` for ASan/UBSan.
+Use `notifications-task5-debug` with `-DCMAKE_BUILD_TYPE=Debug`; use
+`notifications-task5-sanitizers` with Debug and `-DA3D_SANITIZERS=ON` for ASan/UBSan.
 All builds, including dependency builds, remain serial.
 
 - `notification_event_reset_wait`: sticky auto/manual permits, coalescing,
@@ -41,7 +44,33 @@ reference and may be transferred, but copying its bytes does not AddRef. Tokens
 must be released exactly once. Release removes the final registry entry before
 free, while the enclosing active-call lease still prevents admitted unload.
 
-`notification_tests.cpp` is deliberately unregistered until real buffer
-registrations/crossings exist in Task 5. Export descriptor/admitted module unload
-is Task 7. The event counters are an honest private integration seam, not a claim
-that the current module has already wired `DllCanUnloadNow`.
+- `notification_crossings`: actual render consumption for exact half-open
+  endpoints, one/multiple laps, zero progress and seek; natural/explicit/final
+  release/shutdown STOP; canonical typed view, exact caps, legacy QI/creation
+  rejection, registration retirement and shutdown admission.
+- `notification_replace_remove`: copied arrays and caller reference release;
+  null/reserved/count/offset/foreign/closed/allocation failures preserve the old
+  set; failure after each event acquisition balances retention; captured dispatch
+  replacement/removal barriers, earlier committed permits, and close races.
+- `notification_waiter_reentry`: real sleeping waiters immediately query the
+  cursor, replace/remove registrations, Stop and Close. It covers manual actual
+  Render and the actual SDL dummy producer followed by output Close/join.
+
+The buffer snapshots immutable retained registration sets under its mix lock,
+then leaves that lock before dispatch. A separate generation fence orders
+replacement and internal signal commits; dispatch never acquires a buffer or
+registration-owner lock. Fixture barriers park a captured batch before its fence
+with a two-second watchdog. The new suites have a 15-second process watchdog.
+No foreign event virtual is called, including for registration admission.
+
+Native direct-kernel channel steps record an observational unsigned 64-bit
+source-frame advance before modulo projection. This does not participate in
+retained PCM arithmetic and adds no Windows structure fields. A separate logical
+notification baseline is reset by seek and advances by real consumed bytes;
+DWORD cursor snapshots alone are not used to infer full laps.
+
+All six named suites are registered, but Task 5 remains incomplete until retained
+`STREAM_SUBMITTED` updates, typed provider/resource attachment, held source and
+buffer references, provider concurrency and complete acquisition/shutdown cases
+are implemented and tested. Export descriptor/admitted module unload remains
+Task 7. Private event counts are not a claim that `DllCanUnloadNow` is integrated.

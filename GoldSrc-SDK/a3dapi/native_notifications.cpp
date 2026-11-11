@@ -425,7 +425,7 @@ extern "C" HRESULT CSE_ABI_CALL CseCreateA3dNativeEventV1(
     return S_OK;
 }
 
-HRESULT A3dRetainNativeEvent(IA3dNativeEventV1* event, A3dNativeEventState* state) noexcept {
+HRESULT A3dRetainNativeEvent(IA3dNativeEventV1* event, A3dNativeEventState* state, bool requireOpen) noexcept {
     CallLease call;
     if (!state) {
         return E_POINTER;
@@ -435,6 +435,9 @@ HRESULT A3dRetainNativeEvent(IA3dNativeEventV1* event, A3dNativeEventState* stat
     Event* concrete = Find(event);
     if (!concrete) {
         return E_INVALIDARG;
+    }
+    if (requireOpen && concrete->closed) {
+        return E_ABORT;
     }
     ++concrete->references;
     ++counts.retainedStates;
@@ -529,3 +532,191 @@ void A3dNativeEventTestFail(A3dNativeEventFault fault) noexcept {
 }
 #endif
 #endif
+
+struct A3dNativeNotificationSet {
+    std::atomic<unsigned> references{1};
+    std::mutex fence;
+    bool active = true;
+    DWORD count = 0;
+    struct Position {
+        DWORD offset = 0;
+        DWORD targetIndex = 0;
+        A3dNativeEventState event;
+    } positions[A3D_NATIVE_NOTIFICATION_MAX_POSITIONS];
+
+    ~A3dNativeNotificationSet() {
+        for (DWORD i = 0; i < count; ++i) {
+            A3dReleaseNativeEvent(&positions[i].event);
+        }
+    }
+    void Release() noexcept {
+        if (references.fetch_sub(1) == 1) {
+            delete this;
+        }
+    }
+};
+
+#ifdef A3D_EVENT_TESTING
+namespace {
+std::atomic<A3dNativeEventHook> dispatchHook{nullptr};
+std::atomic<void*> dispatchContext{nullptr};
+}
+void A3dNativeDispatchTestHook(A3dNativeEventHook hook, void* context) noexcept {
+    dispatchContext.store(context);
+    dispatchHook.store(hook);
+}
+#endif
+
+A3dNativeNotificationBatch::~A3dNativeNotificationBatch() {
+    if (set_) {
+        set_->Release();
+    }
+}
+
+void A3dNativeNotificationBatch::Dispatch() noexcept {
+    if (!set_) {
+        return;
+    }
+#ifdef A3D_EVENT_TESTING
+    if (const auto hook = dispatchHook.load()) {
+        hook(dispatchContext.load());
+    }
+#endif
+    std::lock_guard<std::mutex> lock(set_->fence);
+    if (!set_->active) {
+        return;
+    }
+    decltype(matches_) committed{};
+    for (DWORD i = 0; i < set_->count; ++i) {
+        if (matches_[i / kBitsPerWord] & (std::uint64_t{1} << (i % kBitsPerWord))) {
+            const DWORD target = set_->positions[i].targetIndex;
+            const auto mask = std::uint64_t{1} << (target % kBitsPerWord);
+            if (!(committed[target / kBitsPerWord] & mask)) {
+                committed[target / kBitsPerWord] |= mask;
+                // One progress batch coalesces duplicate targets and laps.
+                // Close after admission is deliberately a dropped signal.
+                A3dSignalNativeEvent(set_->positions[i].event);
+            }
+        }
+    }
+}
+
+A3dNativeNotifications::~A3dNativeNotifications() {
+    Shutdown();
+}
+
+void A3dNativeNotifications::Shutdown() noexcept {
+    A3dNativeNotificationSet* old = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        accepting_ = false;
+        old = set_;
+        if (old) {
+            std::lock_guard<std::mutex> fence(old->fence);
+            old->active = false;
+        }
+        set_ = nullptr;
+    }
+    if (old) {
+        old->Release();
+    }
+}
+
+HRESULT A3dNativeNotifications::Replace(DWORD count,
+    const A3dNativeNotificationPositionV1* positions, DWORD bytes) {
+    if (count > A3D_NATIVE_NOTIFICATION_MAX_POSITIONS || (count && !bytes)) {
+        return E_INVALIDARG;
+    }
+    if (count && !positions) {
+        return E_POINTER;
+    }
+    A3dNativeNotificationSet* replacement = nullptr;
+    if (count) {
+#ifdef A3D_EVENT_TESTING
+        if (Fail(A3dNativeEventFault::Allocation)) {
+            return E_OUTOFMEMORY;
+        }
+#endif
+        replacement = new (std::nothrow) A3dNativeNotificationSet;
+        if (!replacement) {
+            return E_OUTOFMEMORY;
+        }
+        for (DWORD i = 0; i < count; ++i) {
+            if (positions[i].reserved || (positions[i].offsetBytes >= bytes &&
+                positions[i].offsetBytes != A3D_NATIVE_NOTIFICATION_STOP)) {
+                replacement->Release();
+                return E_INVALIDARG;
+            }
+            const HRESULT status = A3dRetainNativeEvent(positions[i].event, &replacement->positions[i].event, true);
+            if (FAILED(status)) {
+                replacement->Release();
+                return status;
+            }
+            auto& admitted = replacement->positions[i];
+            admitted.offset = positions[i].offsetBytes;
+            admitted.targetIndex = i;
+            for (DWORD previous = 0; previous < i; ++previous) {
+                const auto& candidate = replacement->positions[previous];
+                if (candidate.event.identity == admitted.event.identity &&
+                    candidate.event.generation == admitted.event.generation) {
+                    admitted.targetIndex = candidate.targetIndex;
+                    break;
+                }
+            }
+            ++replacement->count;
+        }
+    }
+    A3dNativeNotificationSet* old = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (!accepting_ && count) {
+            replacement->Release();
+            return E_ABORT;
+        }
+        old = set_;
+        if (old) {
+            // Dispatch never acquires mutex_ or a buffer lock. Waiting here
+            // cannot prevent it from completing its internal event commit.
+            std::lock_guard<std::mutex> fence(old->fence);
+            old->active = false;
+        }
+        set_ = replacement;
+    }
+    if (old) {
+        old->Release();
+    }
+    return S_OK;
+}
+
+void A3dNativeNotifications::Capture(DWORD oldPosition, std::uint64_t advance,
+    DWORD bytes, bool stopped, A3dNativeNotificationBatch& batch) noexcept {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (!set_ || (!advance && !stopped) || !bytes) {
+        return;
+    }
+    batch.set_ = set_;
+    set_->references.fetch_add(1);
+    for (DWORD i = 0; i < set_->count; ++i) {
+        const DWORD offset = set_->positions[i].offset;
+        const bool stop = offset == A3D_NATIVE_NOTIFICATION_STOP;
+        const std::uint64_t distance = (static_cast<std::uint64_t>(offset) + bytes -
+            oldPosition % bytes) % bytes;
+        if ((stop && stopped) || (!stop && advance && distance < advance)) {
+            batch.matches_[i / batch.kBitsPerWord] |= std::uint64_t{1} << (i % batch.kBitsPerWord);
+        }
+    }
+}
+
+HRESULT A3dNativeNotifications::Caps(A3dNativeNotificationCapsV1* caps, DWORD cursorKind) noexcept {
+    if (!caps) {
+        return E_POINTER;
+    }
+    if (caps->structureBytes != sizeof(*caps) || caps->version != A3D_NATIVE_NOTIFICATION_VERSION) {
+        return E_INVALIDARG;
+    }
+    constexpr DWORD kFlags = A3D_NATIVE_NOTIFY_BYTE_OFFSETS | A3D_NATIVE_NOTIFY_STOP |
+        A3D_NATIVE_NOTIFY_WRAP | A3D_NATIVE_NOTIFY_ATOMIC_REPLACE | A3D_NATIVE_NOTIFY_RETAINED_EVENTS;
+    *caps = {sizeof(*caps), A3D_NATIVE_NOTIFICATION_VERSION, kFlags,
+        A3D_NATIVE_NOTIFICATION_MAX_POSITIONS, cursorKind, {0, 0, 0}};
+    return S_OK;
+}

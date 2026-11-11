@@ -174,6 +174,12 @@ static DWORD Mixer_Mix16Mono( float* pOutput, a3d_mix_channel_t* pChannel,
 		phase = ( phase & ~MIXER_PHASE_FRACTION_MASK ) | ( phaseSum & MIXER_PHASE_FRACTION_MASK );
 		sample = (LONG)( (DWORD)sample + ( rate >> MIXER_PHASE_FRACTION_BITS ) +
 			( phaseSum >> MIXER_PHASE_FRACTION_BITS ) );
+#ifndef _WIN32
+        // Observe the actual direct kernel step before its modulo projection.
+        // This never participates in the retained sample/rate/PCM arithmetic.
+        pChannel->nativeAdvancedFrames += (rate >> MIXER_PHASE_FRACTION_BITS) +
+            (phaseSum >> MIXER_PHASE_FRACTION_BITS);
+#endif
 		rate += rateStep;
 		*pOutput = (float)( contribution + *pOutput );
 		pOutput += 2;
@@ -252,6 +258,12 @@ static DWORD Mixer_MixChannel( float* pOutput, a3d_mix_channel_t* pChannel,
 		phase = ( phase & ~MIXER_PHASE_FRACTION_MASK ) | ( phaseSum & MIXER_PHASE_FRACTION_MASK );
 		sample = (LONG)( (DWORD)sample + ( rate >> MIXER_PHASE_FRACTION_BITS ) +
 			( phaseSum >> MIXER_PHASE_FRACTION_BITS ) );
+#ifndef _WIN32
+        // Observe the actual direct kernel step before its modulo projection.
+        // This never participates in the retained sample/rate/PCM arithmetic.
+        pChannel->nativeAdvancedFrames += (rate >> MIXER_PHASE_FRACTION_BITS) +
+            (phaseSum >> MIXER_PHASE_FRACTION_BITS);
+#endif
 		rate += rateStep;
 		*pOutput = (float)( contribution + *pOutput );
 		pOutput += 2;

@@ -7,6 +7,8 @@
 #include <cstring>
 #include <cstdint>
 #include <pthread.h>
+#include <memory>
+#include <new>
 
 namespace {
 pthread_mutex_t mixMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -40,10 +42,24 @@ A3dNativeMixLock::~A3dNativeMixLock() {
 }
 
 A3dNativeMixer::~A3dNativeMixer() {
-    A3dNativeMixLock lock;
-    while (first_) {
-        first_->state_ = A3D_BUFFER_STATE_STOPPED;
-        first_->Detach();
+    for (;;) {
+        A3dNativeNotificationBatch batch;
+        A3dNativeBuffer* retired = nullptr;
+        {
+            A3dNativeMixLock lock;
+            if (!first_) {
+                break;
+            }
+            first_->notifications_.Capture(first_->cursor_, 0, first_->samples_->bytes,
+                first_->state_ == A3D_BUFFER_STATE_PLAYING, batch);
+            first_->state_ = A3D_BUFFER_STATE_STOPPED;
+            retired = first_;
+            ++retired->references_;
+            first_->Detach();
+        }
+        batch.Dispatch();
+        retired->notifications_.Shutdown();
+        retired->Release();
     }
 }
 
@@ -124,33 +140,57 @@ HRESULT A3dNativeMixer::Render(SHORT* stereo, DWORD frames) {
     if (!stereo && frames) {
         return E_POINTER;
     }
-    A3dNativeMixLock lock;
     float accumulation[A3D_MIX_MAX_FRAMES * kOutputChannels];
     while (frames) {
         const DWORD count = std::min(frames, static_cast<DWORD>(A3D_MIX_MAX_FRAMES));
-        // Validate the entire block before changing any voice or caller output.
-        for (auto* buffer = first_; buffer; buffer = buffer->next_) {
-            if (buffer->state_ == A3D_BUFFER_STATE_PLAYING && !buffer->samples_->writer &&
-                !buffer->voice_.CanRender(count)) {
-                return E_INVALIDARG;
+        std::unique_ptr<A3dNativeNotificationBatch[]> batches;
+        std::size_t bufferCount = 0;
+        {
+            A3dNativeMixLock lock;
+            for (auto* buffer = first_; buffer; buffer = buffer->next_) {
+                if (buffer->state_ == A3D_BUFFER_STATE_PLAYING && !buffer->samples_->writer &&
+                    !buffer->voice_.CanRender(count)) {
+                    return E_INVALIDARG;
+                }
+                ++bufferCount;
             }
+            if (bufferCount) {
+                batches.reset(new (std::nothrow) A3dNativeNotificationBatch[bufferCount]);
+                if (!batches) {
+                    return E_OUTOFMEMORY;
+                }
+            }
+            std::memset(accumulation, 0, count * kOutputChannels * sizeof(float));
+            std::size_t index = 0;
+            for (auto* buffer = first_; buffer; buffer = buffer->next_, ++index) {
+                if (buffer->state_ != A3D_BUFFER_STATE_PLAYING || buffer->samples_->writer) {
+                    continue;
+                }
+                auto& voice = buffer->voice_;
+                const DWORD old = buffer->notificationPosition_;
+                const auto before = voice.voice_.channels[0].nativeAdvancedFrames;
+                AR2Dproc(&voice.input_, accumulation, &voice.voice_, count, FALSE);
+                std::uint64_t advance = (voice.voice_.channels[0].nativeAdvancedFrames - before) *
+                    buffer->format_.nBlockAlign;
+                const bool stopped = !buffer->looping_ && voice.input_.pCurrent >= voice.input_.pEnd;
+                if (stopped) {
+                    buffer->cursor_ = buffer->samples_->bytes;
+                    buffer->state_ = A3D_BUFFER_STATE_STOPPED;
+                } else {
+                    const auto position = voice.input_.pCurrent - voice.input_.pSamples;
+                    buffer->cursor_ = static_cast<DWORD>(position) % buffer->samples_->bytes;
+                }
+                if (!buffer->looping_) {
+                    advance = std::min(advance, static_cast<std::uint64_t>(buffer->samples_->bytes - old));
+                }
+                buffer->notifications_.Capture(old, advance, buffer->samples_->bytes, stopped, batches[index]);
+                buffer->notificationPosition_ = static_cast<DWORD>((old + advance) % buffer->samples_->bytes);
+            }
+            Mixer_FloatToPcm16(accumulation, stereo, count * kOutputChannels);
         }
-        std::memset(accumulation, 0, count * kOutputChannels * sizeof(float));
-        for (auto* buffer = first_; buffer; buffer = buffer->next_) {
-            if (buffer->state_ != A3D_BUFFER_STATE_PLAYING || buffer->samples_->writer) {
-                continue;
-            }
-            auto& voice = buffer->voice_;
-            AR2Dproc(&voice.input_, accumulation, &voice.voice_, count, FALSE);
-            if (!buffer->looping_ && voice.input_.pCurrent >= voice.input_.pEnd) {
-                buffer->cursor_ = buffer->samples_->bytes;
-                buffer->state_ = A3D_BUFFER_STATE_STOPPED;
-            } else {
-                const auto position = voice.input_.pCurrent - voice.input_.pSamples;
-                buffer->cursor_ = static_cast<DWORD>(position) % buffer->samples_->bytes;
-            }
+        for (std::size_t index = 0; index < bufferCount; ++index) {
+            batches[index].Dispatch();
         }
-        Mixer_FloatToPcm16(accumulation, stereo, count * kOutputChannels);
         stereo += count * kOutputChannels;
         frames -= count;
     }

@@ -1,6 +1,7 @@
 #pragma once
 #include "native_mix.h"
 #include "backend_legacy.h"
+#include "native_notifications.h"
 
 // Existing retained interface IIDs; these add no public slots.
 constexpr IID IID_A3dNativeRenderBuffer = {
@@ -18,7 +19,7 @@ struct A3dNativeSamples {
 // Caller references own buffers. The render list is borrowed only while the
 // global mix lock is held. Duplicate buffers retain sample storage independently.
 class A3dNativeBuffer final : public IDirectSoundBuffer, public IDirectSound3DBuffer,
-    public IA3dDalBuffer, public IResManBuffer {
+    public IA3dDalBuffer, public IResManBuffer, public IA3dNativeNotifyV1 {
 public:
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** object) override;
     ULONG STDMETHODCALLTYPE AddRef() override;
@@ -73,6 +74,9 @@ public:
     HRESULT STDMETHODCALLTYPE SetPriority(DWORD priority) override;
     HRESULT STDMETHODCALLTYPE Mute() override;
     HRESULT STDMETHODCALLTYPE UnMute() override;
+    HRESULT STDMETHODCALLTYPE GetNotificationCaps(A3dNativeNotificationCapsV1* caps) override;
+    HRESULT STDMETHODCALLTYPE SetNotificationPositions(DWORD count,
+        const A3dNativeNotificationPositionV1* positions) override;
 private:
     friend class A3dNativeMixer;
     A3dNativeBuffer() = default;
@@ -82,6 +86,7 @@ private:
     void Seek(DWORD position);
     void Attach(A3dNativeMixer& mixer);
     void Detach();
+    A3dNativeNotifications notifications_;
     ULONG references_ = 1;
     A3dNativeMixer* mixer_ = nullptr;
     A3dNativeBuffer* next_ = nullptr;
@@ -92,6 +97,7 @@ private:
     A3dNativeVoice voice_;
     DWORD flags_ = 0;
     DWORD cursor_ = 0;
+    DWORD notificationPosition_ = 0;
     DWORD state_ = A3D_BUFFER_STATE_STOPPED;
     DWORD priority_ = 0;
     LONG volume_ = 0;

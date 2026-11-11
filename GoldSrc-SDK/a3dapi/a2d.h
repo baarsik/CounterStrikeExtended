@@ -29,6 +29,9 @@ typedef DWORD ( __cdecl* a3d_mix_channel_kernel_t )( float*, a3d_mix_channel_t*,
 
 struct a3d_mix_channel_s
 {
+#ifndef _WIN32
+    std::uint64_t nativeAdvancedFrames;
+#endif
 	LONG	lGainCurrent;
 	LONG	lGainTarget;
 	LONG	lDelayCurrent;
