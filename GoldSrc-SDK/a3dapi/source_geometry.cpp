@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "A3d3.h"
 #include "A3dSource.h"
 #include "ChunkPage.h"
@@ -41,7 +42,7 @@ void CA3d::RenderSources()
 	Matrix_Inverse( rightListener, inverseRight );
 	Matrix_GetTranslation( centerListener, m_vWorldListenerPosition );
 	GetListenerVelocity( listenerVelocity );
-	DWORD dwTick = timeGetTime();
+	DWORD dwTick = A3dMonotonicMilliseconds();
 	BOOL bUpdate = dwTick - m_dwLastUpdateTick >= m_dwUpdateTickPeriod;
 	if ( bUpdate )
 		m_dwLastUpdateTick = dwTick;

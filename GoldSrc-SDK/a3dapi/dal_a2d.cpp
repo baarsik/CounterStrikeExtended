@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "dal_a2d.h"
 #include "a2dbuffer.h"
 #include "emubuffer.h"
@@ -74,12 +75,12 @@ HRESULT STDMETHODCALLTYPE CA3dSoundBackend::QueryInterface( REFIID iid, void** p
 
 ULONG STDMETHODCALLTYPE CA3dSoundBackend::AddRef()
 {
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 ULONG STDMETHODCALLTYPE CA3dSoundBackend::Release()
 {
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 		return 0;
 
 	return m_cReferences;
@@ -268,6 +269,11 @@ DWORD DAL_A2D::CountPlayingBuffers()
 
 HRESULT DAL_A2D::Init( IDirectSound* pDirectSound )
 {
+#ifndef _WIN32
+    if (m_pOutputBuffer || m_pMixSamples || m_pOutputSamples) {
+        return E_INVALIDARG;
+    }
+#endif
 	m_dwWaitTime = A3D_MIXER_WAIT_MILLISECONDS;
 	m_dwRenderThreshold = A3D_MIXER_LOW_WATER_BYTES;
 	m_dwReserved = 0;
@@ -289,14 +295,15 @@ HRESULT DAL_A2D::Init( IDirectSound* pDirectSound )
 
 		m_dwWorkBufferBytes = m_dwBufferBytes * A3D_MIXER_WORK_ALLOCATION_SCALE /
 			(m_dwBitsPerSample / CHAR_BIT) * sizeof( float );
-		m_pOutputSamples = (SHORT*)GlobalAlloc( GMEM_FIXED, m_dwWorkBufferBytes );
+		m_pOutputSamples = (SHORT*)A3dAllocate( m_dwWorkBufferBytes );
 		if ( m_pOutputSamples == NULL )
 			throw (char*)"DAL_A2D: ERROR - Could not create XTalk work buffer\n";
 
-		m_pMixSamples = (float*)GlobalAlloc( GMEM_FIXED, m_dwWorkBufferBytes );
+		m_pMixSamples = (float*)A3dAllocate( m_dwWorkBufferBytes );
 		if ( m_pMixSamples == NULL )
 			throw (char*)"DAL_A2D: ERROR - Could not create NoXTalk work buffer\n";
 
+#ifdef _WIN32
 		m_hWakeEvent = CreateEventA( NULL, FALSE, FALSE, NULL );
 		if ( m_hWakeEvent == NULL )
 			throw (char*)"DAL_A2D: ERROR - Could not create event\n";
@@ -304,6 +311,8 @@ HRESULT DAL_A2D::Init( IDirectSound* pDirectSound )
 		m_hThread = CreateThread( NULL, 0, ThreadProc, this, 0, &m_dwThreadId );
 		if ( m_hThread == NULL )
 			throw (char*)"DAL_A2D: ERROR - Could not create thread\n";
+
+#endif
 
 		m_pFilter = new (std::nothrow) CHrtfMgr;
 		if ( m_pFilter == NULL )
@@ -314,23 +323,36 @@ HRESULT DAL_A2D::Init( IDirectSound* pDirectSound )
 			throw (char*)"DAL_A2D: ERROR - Could not init HRTF manager\n";
 
 		Mixer_InitializeFilters( m_FilterParameters, &m_FilterState, A3D_MIXER_FILTER_RATE_KHZ );
+#ifndef _WIN32
+        if (FAILED(m_nativeWorker.Start(ThreadProc, this))) {
+            throw (char*)"DAL_A2D: Could not start native worker";
+        }
+#endif
+
 		return S_OK;
 	}
 	catch ( char* )
 	{
+#ifdef _WIN32
 		if ( m_hWakeEvent != NULL )
 		{
 			CloseHandle( m_hWakeEvent );
 			m_hWakeEvent = NULL;
 		}
+#else
+        m_nativeWorker.Stop();
+        delete m_pFilter;
+        m_pFilter = nullptr;
+#endif
+
 		if ( m_pMixSamples != NULL )
 		{
-			GlobalFree( m_pMixSamples );
+			A3dFree( m_pMixSamples );
 			m_pMixSamples = NULL;
 		}
 		if ( m_pOutputSamples != NULL )
 		{
-			GlobalFree( m_pOutputSamples );
+			A3dFree( m_pOutputSamples );
 			m_pOutputSamples = NULL;
 		}
 		if ( m_pOutputBuffer != NULL )
@@ -386,7 +408,7 @@ HRESULT DAL_A2D::CreateSecondaryBuffer( const a3d_platform_buffer_desc_t* pDesc,
 	if ( pBuffer == NULL )
 		return E_OUTOFMEMORY;
 
-	LONG* pcSharedReferences = (LONG*)GlobalAlloc( GMEM_FIXED, sizeof( *pcSharedReferences ) );
+	LONG* pcSharedReferences = (LONG*)A3dAllocate( sizeof( *pcSharedReferences ) );
 	if ( pcSharedReferences == NULL )
 	{
 		pBuffer->~A2DBuffer();
@@ -397,7 +419,7 @@ HRESULT DAL_A2D::CreateSecondaryBuffer( const a3d_platform_buffer_desc_t* pDesc,
 	HRESULT status = pBuffer->Init( pDesc, m_pFilter, pcSharedReferences );
 	if ( FAILED( status ) )
 	{
-		GlobalFree( pcSharedReferences );
+		A3dFree( pcSharedReferences );
 		pBuffer->~A2DBuffer();
 		operator delete( pBuffer );
 		return status;
@@ -502,11 +524,17 @@ HRESULT DAL_A2D::CopyWorkToOutput( DWORD dwBytes )
 DWORD WINAPI DAL_A2D::ThreadProc( LPVOID pParameter )
 {
 	DAL_A2D* pBackend = (DAL_A2D*)pParameter;
+#ifdef _WIN32
 	for ( ;; )
+#else
+    while (pBackend->m_nativeWorker.Wait(pBackend->m_dwWaitTime))
+#endif
 	{
+#ifdef _WIN32
 		WaitForSingleObject( pBackend->m_hWakeEvent, pBackend->m_dwWaitTime );
+#endif
 		DWORD dwQueuedBytes;
-		if ( !pBackend->IsStarved( GetTickCount(), &dwQueuedBytes ) )
+		if ( !pBackend->IsStarved( A3dTickMilliseconds(), &dwQueuedBytes ) )
 			continue;
 
 		DWORD dwBytes = pBackend->m_dwBufferBytes - dwQueuedBytes;
@@ -557,8 +585,8 @@ DWORD WINAPI DAL_A2D::ThreadProc( LPVOID pParameter )
 
 				if ( !*pBuffer->m_pcSharedReferences )
 				{
-					GlobalFree( pBuffer->m_pcSharedReferences );
-					GlobalFree( pBuffer->m_pSamples );
+					A3dFree( pBuffer->m_pcSharedReferences );
+					A3dFree( pBuffer->m_pSamples );
 				}
 				if ( pBuffer != NULL )
 				{
@@ -574,6 +602,9 @@ DWORD WINAPI DAL_A2D::ThreadProc( LPVOID pParameter )
 				dwBytes / sizeof( SHORT ) );
 		pBackend->CopyWorkToOutput( dwBytes );
 	}
+#ifndef _WIN32
+    return 0;
+#endif
 }
 
 DAL_EMU::DAL_EMU()
@@ -809,7 +840,7 @@ HRESULT STDMETHODCALLTYPE CA3d::GetNumFallbackSources( LPDWORD pSources )
 
 ULONG STDMETHODCALLTYPE CA3dLegacySoundBuffer::AddRef()
 {
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 HRESULT STDMETHODCALLTYPE CA3dLegacySoundBuffer::GetStatus( LPDWORD pdwStatus )
@@ -958,7 +989,7 @@ HRESULT STDMETHODCALLTYPE ResManStatBuffer::QueryInterface( REFIID iid, void** p
 
 ULONG STDMETHODCALLTYPE ResManStatBuffer::Release()
 {
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		m_pStream->GetDSBuffer()->Stop();
 		m_pStream->m_pPool->RemoveStream( m_pStream );
@@ -1247,7 +1278,7 @@ HRESULT ResManBuffer::Init( const a3d_platform_buffer_desc_t* pDesc, void* pBuff
 	m_Desc.lpwfxFormat = pDesc->lpwfxFormat;
 	m_pBufferToken = pBufferToken;
 	m_dwOriginalFrequency = pDesc->lpwfxFormat->nSamplesPerSec;
-	m_hData = GlobalAlloc( GMEM_FIXED, pDesc->dwBufferBytes );
+	m_hData = A3dAllocate( pDesc->dwBufferBytes );
 	if ( m_hData == NULL )
 		return E_OUTOFMEMORY;
 
@@ -1350,7 +1381,7 @@ HRESULT STDMETHODCALLTYPE EMUBuffer::QueryInterface( REFIID iid, void** ppObject
 
 ULONG STDMETHODCALLTYPE EMUBuffer::Release()
 {
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		m_dwStatus = A3D_BUFFER_STATE_RELEASED;
 		this->~EMUBuffer();
@@ -1369,7 +1400,7 @@ HRESULT STDMETHODCALLTYPE EMUBuffer::GetCaps( LPDSBCAPS )
 HRESULT STDMETHODCALLTYPE EMUBuffer::GetCurrentPosition( LPDWORD pdwReadPosition,
 		LPDWORD pdwWritePosition )
 {
-	DWORD dwNow = GetTickCount();
+	DWORD dwNow = A3dTickMilliseconds();
 	DWORD dwElapsed = dwNow - m_dwLastTick;
 	if ( dwNow < m_dwLastTick )
 		dwElapsed--;
@@ -1493,7 +1524,7 @@ HRESULT STDMETHODCALLTYPE EMUBuffer::GetStatusEx( DWORD )
 
 HRESULT EMUBuffer::Init( const a3d_platform_buffer_desc_t* pDesc )
 {
-	DWORD dwNow = GetTickCount();
+	DWORD dwNow = A3dTickMilliseconds();
 	m_dwStartTick = dwNow;
 	m_dwLastTick = dwNow;
 	m_Desc.dwSize = pDesc->dwSize;
@@ -1506,3 +1537,19 @@ HRESULT EMUBuffer::Init( const a3d_platform_buffer_desc_t* pDesc )
 	m_dwBufferBytes = pDesc->dwBufferBytes;
 	return DS_OK;
 }
+
+#ifndef _WIN32
+DAL_A2D::~DAL_A2D() {
+    StopNativeWorker();
+    delete m_pFilter;
+    A3dFree(m_pMixSamples);
+    A3dFree(m_pOutputSamples);
+    if (m_pOutputBuffer) {
+        m_pOutputBuffer->Release();
+    }
+}
+
+void DAL_A2D::StopNativeWorker() noexcept {
+    m_nativeWorker.Stop();
+}
+#endif

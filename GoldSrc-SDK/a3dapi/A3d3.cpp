@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "a3dclsfc.h"
 #include "ia3dapi.h"
 #include "A3d3.h"
@@ -11,7 +12,9 @@
 #include "A3dSource.h"
 #include "listener.h"
 
+#ifdef _WIN32
 #include <mmsystem.h>
+#endif
 #include <new>
 #include <string.h>
 
@@ -82,12 +85,12 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::QueryInterface( REFIID iid, void** p
 
 ULONG STDMETHODCALLTYPE CA3dClassFactory::AddRef()
 {
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 ULONG STDMETHODCALLTYPE CA3dClassFactory::Release()
 {
-	if ( m_cReferences > 0 && !InterlockedDecrement( &m_cReferences ) )
+	if ( m_cReferences > 0 && !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		delete this;
 		return 0;
@@ -140,8 +143,10 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 				return hr;
 		}
 
+#ifdef _WIN32
 		if ( !A3dCheckSystemDriverVersion() )
 			return E_FAIL;
+#endif
 
 		bLegacyDriver = TRUE;
 	}
@@ -179,16 +184,16 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 			return E_FAIL;
 	}
 
-	InterlockedIncrement( &g_cA3dObjects );
+	A3dReferenceIncrement( &g_cA3dObjects );
 	return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CA3dClassFactory::LockServer( BOOL bLock )
 {
 	if ( bLock )
-		InterlockedIncrement( &g_cA3dLocks );
+		A3dReferenceIncrement( &g_cA3dLocks );
 	else
-		InterlockedDecrement( &g_cA3dLocks );
+		A3dReferenceDecrement( &g_cA3dLocks );
 
 	return S_OK;
 }
@@ -851,6 +856,7 @@ HRESULT STDMETHODCALLTYPE CA3d::ListenerGetVelocity3fv( LPA3DVAL pVelocity )
 	return S_OK;
 }
 
+#ifdef _WIN32
 #define VERSION_PRODUCT_NAME		0
 #define VERSION_COMPANY_NAME		5
 
@@ -936,3 +942,5 @@ int A3dCheckSystemDriverVersion()
 
 	return A3dCheckFileVersion( filename, sizeof( data ), data );
 }
+
+#endif // _WIN32: actual Windows driver version inspection

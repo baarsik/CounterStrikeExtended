@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "ChunkPage.h"
 #include "apimapper.h"
 #include "A3d3.h"
@@ -117,13 +118,13 @@ HRESULT STDMETHODCALLTYPE CA3dMapperSecBuffer::QueryInterface( REFIID iid, void*
 
 ULONG STDMETHODCALLTYPE CA3dMapperSecBuffer::AddRef()
 {
-	InterlockedIncrement( &m_cReferences );
+	A3dReferenceIncrement( &m_cReferences );
 	return m_cReferences;
 }
 
 ULONG STDMETHODCALLTYPE CA3dMapperSecBuffer::Release()
 {
-	InterlockedDecrement( &m_cReferences );
+	A3dReferenceDecrement( &m_cReferences );
 	ULONG cReferences = m_cReferences;
 	if ( !cReferences )
 	{
@@ -613,13 +614,13 @@ HRESULT STDMETHODCALLTYPE CA3dMapper::QueryInterface( REFIID iid, void** ppObjec
 
 ULONG STDMETHODCALLTYPE CA3dMapper::AddRef()
 {
-	InterlockedIncrement( &m_cReferences );
+	A3dReferenceIncrement( &m_cReferences );
 	return m_cReferences;
 }
 
 ULONG STDMETHODCALLTYPE CA3dMapper::Release()
 {
-	InterlockedDecrement( &m_cReferences );
+	A3dReferenceDecrement( &m_cReferences );
 	ULONG cReferences = m_cReferences;
 	if ( !cReferences )
 	{
@@ -797,13 +798,13 @@ HRESULT STDMETHODCALLTYPE CA3dMapperPrimBuffer::QueryInterface( REFIID iid, void
 
 ULONG STDMETHODCALLTYPE CA3dMapperPrimBuffer::AddRef()
 {
-	InterlockedIncrement( &m_cReferences );
+	A3dReferenceIncrement( &m_cReferences );
 	return m_cReferences;
 }
 
 ULONG STDMETHODCALLTYPE CA3dMapperPrimBuffer::Release()
 {
-	InterlockedDecrement( &m_cReferences );
+	A3dReferenceDecrement( &m_cReferences );
 	ULONG cReferences = m_cReferences;
 	if ( !cReferences )
 	{

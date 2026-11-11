@@ -4153,6 +4153,7 @@
           "PlatformToolset": "v145",
           "CharacterSet": "MultiByte",
           "UseDebugLibraries": "true",
+          "CseNativeSdl3": "true",
           "A3dSourceDir": "${CSE_SDK_DIR}/a3dapi/",
           "OutDir": "${CSE_SDK_DIR}/bin/Win32/Debug/",
           "IntDir": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/",
@@ -4191,6 +4192,26 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_output.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3d3.cpp",
@@ -4442,6 +4463,7 @@
           "PlatformToolset": "v145",
           "CharacterSet": "MultiByte",
           "UseDebugLibraries": "false",
+          "CseNativeSdl3": "true",
           "A3dSourceDir": "${CSE_SDK_DIR}/a3dapi/",
           "OutDir": "${CSE_SDK_DIR}/bin/Win32/Release/",
           "IntDir": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/",
@@ -4482,6 +4504,26 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_output.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3d3.cpp",

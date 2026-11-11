@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "dalinfo.h"
 #include "A3dGeom.h"
 #include "resman.h"
@@ -651,7 +652,7 @@ DalBufferInfo::DalBufferInfo( DalInfo* pPool, IDirectSoundBuffer* pSoundBuffer,
 	m_pSoundBuffer->AddRef();
 	m_pPool = pPool;
 	m_Description = *pDescription;
-	m_dwUnusedSince = GetTickCount();
+	m_dwUnusedSince = A3dTickMilliseconds();
 	m_dwType = dwType;
 	m_dwTimeout = A3D_RENDER_CACHE_TIMEOUT_MS;
 	m_dwWritePosition = 0;

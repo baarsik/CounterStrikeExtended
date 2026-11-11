@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "A3dScene.h"
 #include "A3d3.h"
 #include "ChunkPage.h"
@@ -1869,7 +1870,7 @@ HRESULT STDMETHODCALLTYPE CA3d::Clear()
 
 HRESULT STDMETHODCALLTYPE CA3d::Flush()
 {
-	double flMilliseconds = (double)timeGetTime();
+	double flMilliseconds = (double)A3dMonotonicMilliseconds();
 	double flFrameTime = ( flMilliseconds - s_lastFlush.flMilliseconds ) * A3D_SECONDS_PER_MILLISECOND;
 	m_flFrameTime = (A3DVAL)flFrameTime;
 	if ( !( flFrameTime >= 0.0 ) || flFrameTime > A3D_MAX_FRAME_TIME )

@@ -1476,3 +1476,7 @@ set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" A
 set_property(SOURCE "${CMAKE_CURRENT_BINARY_DIR}/generated/geometry_state.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
 endif()
 cse_runtime_directory(a3dapi "")
+if(NOT WIN32)
+  cse_link_sdl3(a3dapi Debug)
+  cse_link_sdl3(a3dapi Release)
+endif()

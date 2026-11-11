@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include "native_platform.h"
 
 #include "A3dSource.h"
 #include "A3d3.h"
@@ -9,7 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#ifdef _WIN32
 #include <io.h>
+#endif
 #include <stdio.h>
 
 static const float sourceEqCurve[7] =
@@ -565,6 +568,7 @@ static const IID IID_A3dRenderBuffer =
 	0xe04814d8, 0x26fc, 0x11d2, { 0xbb, 0x48, 0x00, 0x60, 0x08, 0x2f, 0x3c, 0x00 }
 };
 
+#ifdef _WIN32
 typedef struct wave_file_header_s
 {
 	FOURCC	id;
@@ -577,9 +581,69 @@ typedef struct wave_file_chunk_s
 	FOURCC	id;
 	DWORD	size;
 } wave_file_chunk_t;
+#endif
 
 HRESULT STDMETHODCALLTYPE CA3dSource::LoadWaveFile( LPSTR pFilename )
 {
+#ifndef _WIN32
+    A3dNativeWave wave;
+    HRESULT status = wave.Load(pFilename);
+    if (FAILED(status)) {
+        return status;
+    }
+    const PCMWAVEFORMAT& format = wave.Format();
+    m_nSamplesPerSec = format.wf.nSamplesPerSec;
+    m_nBlockAlign = format.wf.nBlockAlign;
+    m_wBitsPerSample = format.wBitsPerSample;
+    m_nChannels = format.wf.nChannels;
+    m_wFormatTag = format.wf.wFormatTag;
+    m_nWaveSize = wave.Size();
+    m_nAvgBytesPerSec = format.wf.nAvgBytesPerSec;
+    const auto releaseWave = [this]() {
+        if (m_pSourceBackend) {
+            m_pSourceBackend->Release();
+            m_pSourceBackend = nullptr;
+        }
+        if (m_pBuffer3d) {
+            m_pBuffer3d->Release();
+            m_pBuffer3d = nullptr;
+        }
+        if (m_pBuffer) {
+            m_pBuffer->Release();
+            m_pBuffer = nullptr;
+        }
+        m_nWaveSize = 0;
+    };
+    status = AllocateWaveData(static_cast<INT>(wave.Size()));
+    if (FAILED(status)) {
+        releaseWave();
+        return A3DERROR_FAILED_ALLOCATE_WAVEDATA;
+    }
+    LPVOID first = nullptr;
+    LPVOID second = nullptr;
+    DWORD firstBytes = 0;
+    DWORD secondBytes = 0;
+    status = m_pBuffer->Lock(0, wave.Size(), &first, &firstBytes, &second, &secondBytes, 0);
+    if (FAILED(status)) {
+        releaseWave();
+        return A3DERROR_FAILED_LOCK_BUFFER;
+    }
+    const bool valid = first && firstBytes <= wave.Size() && secondBytes == wave.Size() - firstBytes &&
+        (!secondBytes || second);
+    if (valid) {
+        memcpy(first, wave.Data(), firstBytes);
+        if (secondBytes) {
+            memcpy(second, wave.Data() + firstBytes, secondBytes);
+        }
+    }
+    status = m_pBuffer->Unlock(first, firstBytes, second, secondBytes);
+    if (!valid || FAILED(status)) {
+        releaseWave();
+        return valid ? A3DERROR_FAILED_UNLOCK_BUFFER : A3DERROR_FAILED_LOCK_BUFFER;
+    }
+    return S_OK;
+#else
+
 	int hFile = _open( pFilename, _O_BINARY | _O_RDONLY );
 	if ( hFile == -1 )
 		return A3DERROR_FAILED_FILE_OPEN;
@@ -665,6 +729,7 @@ HRESULT STDMETHODCALLTYPE CA3dSource::LoadWaveFile( LPSTR pFilename )
 	}
 
 	return S_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::AllocateWaveData( INT nSize )
@@ -788,6 +853,17 @@ HRESULT STDMETHODCALLTYPE CA3dSource::Stop()
 
 	return S_OK;
 }
+
+#ifndef _WIN32
+using FOURCC = DWORD;
+// Equivalent to the SDK's compile-time FOURCC macro; this performs no OS service.
+constexpr FOURCC mmioFOURCC(char first, char second, char third, char fourth) {
+    constexpr unsigned kByteBits = 8;
+    return static_cast<BYTE>(first) | (static_cast<DWORD>(static_cast<BYTE>(second)) << kByteBits) |
+        (static_cast<DWORD>(static_cast<BYTE>(third)) << (kByteBits * 2)) |
+        (static_cast<DWORD>(static_cast<BYTE>(fourth)) << (kByteBits * 3));
+}
+#endif
 
 typedef struct riff_header_s
 {

@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#include "native_platform.h"
 
 #include "resman.h"
 #include "dalinfo.h"
@@ -39,7 +40,11 @@ ResMan::ResMan()
 	m_pHrtfPool = NULL;
 	m_pSecondaryPool = NULL;
 	m_dwResourceManagerMode = A3D_RESOURCE_MODE_OFF;
+#ifdef _WIN32
 	m_hUpdateEvent = INVALID_HANDLE_VALUE;
+#else
+    m_hUpdateEvent = nullptr;
+#endif
 	m_dwInitialized = 0;
 	m_dwThreadId = 0;
 	m_hThread = NULL;
@@ -51,7 +56,7 @@ ResMan::ResMan()
 
 ULONG STDMETHODCALLTYPE ResMan::AddRef()
 {
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 HRESULT STDMETHODCALLTYPE ResMan::QueryInterface( REFIID iid, void** ppObject )
@@ -88,7 +93,7 @@ HRESULT STDMETHODCALLTYPE ResMan::QueryInterface( REFIID iid, void** ppObject )
 
 ULONG STDMETHODCALLTYPE ResMan::Release()
 {
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 		return 0;
 
 	return m_cReferences;
@@ -453,12 +458,12 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::QueryInterface( REFIID iid, void** ppObj
 
 ULONG STDMETHODCALLTYPE ResManBuffer::AddRef()
 {
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 ULONG STDMETHODCALLTYPE ResManBuffer::Release()
 {
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		m_dwStatus = A3D_BUFFER_STATE_RELEASED;
 		return 0;
@@ -653,7 +658,7 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::Play( DWORD dwReserved, DWORD dwPriority
 		ResMan* pOwner = (ResMan*)(IDirectSound*)m_pOwner;
 		DWORD dwStreams = pOwner->GetSoftwareStreamCount();
 		DWORD dwPlaying = 0;
-		GetTickCount();
+		A3dTickMilliseconds();
 		if ( dwStreams )
 			dwPlaying = pOwner->CountPlayingSoftwareVoices();
 		if ( dwPlaying < dwStreams )
@@ -786,8 +791,13 @@ static const IID IID_A3dHardwareBufferControl =
 	{ 0x2e56ef65, 0x74ce, 0x11d2, { 0x97, 0x1b, 0x00, 0x60, 0x08, 0x8d, 0x87, 0x88 } };
 
 HRESULT ResMan::StartRenderer( DWORD dwFirst, DWORD dwSecond,
-		void* pConfiguration, void* pBackend )
+        void* pConfiguration, void* pBackend )
 {
+#ifndef _WIN32
+    if (m_dwInitialized) {
+        return E_INVALIDARG;
+    }
+#endif
 	HRESULT hr = InitResMan( dwFirst, dwSecond, pConfiguration, pBackend );
 	if ( FAILED( hr ) )
 		return hr;
@@ -795,6 +805,7 @@ HRESULT ResMan::StartRenderer( DWORD dwFirst, DWORD dwSecond,
 	m_pA3dBackend->SetResourceManagerMode( A3D_RESOURCE_MODE_OFF );
 	m_dwWaitTime = A3D_RENDER_WAIT_MILLISECONDS;
 	m_dwUpdateInterval = A3D_RENDER_UPDATE_MILLISECONDS;
+#ifdef _WIN32
 	m_hUpdateEvent = CreateEventA( NULL, FALSE, FALSE, NULL );
 	if ( !m_hUpdateEvent )
 		return E_FAIL;
@@ -807,6 +818,13 @@ HRESULT ResMan::StartRenderer( DWORD dwFirst, DWORD dwSecond,
 		return E_FAIL;
 	}
 
+#else
+    hr = m_nativeWorker.Start(RenderThread, this);
+    if (FAILED(hr)) {
+        return hr;
+    }
+#endif
+
 	m_dwInitialized = TRUE;
 	return S_OK;
 }
@@ -814,10 +832,14 @@ HRESULT ResMan::StartRenderer( DWORD dwFirst, DWORD dwSecond,
 DWORD WINAPI ResMan::RenderThread( LPVOID pContext )
 {
 	ResMan* pAudio = (ResMan*)pContext;
+#ifdef _WIN32
 	WaitForSingleObject( pAudio->m_hUpdateEvent, pAudio->m_dwWaitTime );
 	for ( ;; )
+#else
+    while (pAudio->m_nativeWorker.Wait(pAudio->m_dwWaitTime))
+#endif
 	{
-		DWORD dwTime = GetTickCount();
+		DWORD dwTime = A3dTickMilliseconds();
 		if ( dwTime - pAudio->m_dwPreviousUpdate > pAudio->m_dwUpdateInterval )
 		{
 			pAudio->m_dwPreviousUpdate = dwTime;
@@ -832,8 +854,13 @@ DWORD WINAPI ResMan::RenderThread( LPVOID pContext )
 			pAudio->DebugBufferCounts();
 		}
 		pAudio->ProcessPlayingBuffers( dwTime );
+#ifdef _WIN32
 		WaitForSingleObject( pAudio->m_hUpdateEvent, pAudio->m_dwWaitTime );
+#endif
 	}
+#ifndef _WIN32
+    return 0;
+#endif
 }
 
 HRESULT ResMan::DetachStream( DWORD dwTime, ResManBuffer* pBuffer,
@@ -1237,7 +1264,11 @@ void ResMan::DebugBufferCounts()
 	char szCounts[256];
 	sprintf( szCounts, "Buffer Counts: STRM=%d STAT=%d P=%d W95=%d A2D=%d EMU=%d\n",
 		cSoftwareBuffers, cHardwareBuffers, (LONG)dwPlaying, cDefaultStreams, cHrtfStreams, cSecondaryStreams );
+#ifdef _WIN32
 	OutputDebugStringA( szCounts );
+#else
+    fputs(szCounts, stderr);
+#endif
 }
 
 HRESULT ResMan::FreeReleasedStreams( DWORD dwTime )
@@ -1457,3 +1488,13 @@ HRESULT ResMan::ProcessPlayingBuffers( DWORD dwTime )
 
 	return S_OK;
 }
+
+#ifndef _WIN32
+ResMan::~ResMan() {
+    StopNativeWorker();
+}
+
+void ResMan::StopNativeWorker() noexcept {
+    m_nativeWorker.Stop();
+}
+#endif

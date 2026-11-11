@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #define _USE_MATH_DEFINES
 
 #include "a2dbuffer.h"
@@ -40,7 +41,7 @@ A2DBuffer::~A2DBuffer()
 {
 	if ( m_pSamples != NULL )
 	{
-		GlobalFree( m_pSamples );
+		A3dFree( m_pSamples );
 		m_pSamples = NULL;
 	}
 }
@@ -82,13 +83,13 @@ HRESULT STDMETHODCALLTYPE A2DBuffer::QueryInterface( REFIID iid, void** ppObject
 ULONG STDMETHODCALLTYPE A2DBuffer::AddRef()
 {
 	++*m_pcSharedReferences;
-	return InterlockedIncrement( &m_cReferences );
+	return A3dReferenceIncrement( &m_cReferences );
 }
 
 ULONG STDMETHODCALLTYPE A2DBuffer::Release()
 {
 	--*m_pcSharedReferences;
-	if ( !InterlockedDecrement( &m_cReferences ) )
+	if ( !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		m_dwStatus = A3D_BUFFER_STATE_RELEASED;
 		return 0;
@@ -227,7 +228,7 @@ HRESULT A2DBuffer::Init( const a3d_platform_buffer_desc_t* pDesc, CHrtfMgr* pHrt
 	m_Desc = *pDesc;
 	m_dwOriginalFrequency = pDesc->lpwfxFormat->nSamplesPerSec;
 	m_dwFrequency = m_dwOriginalFrequency;
-	m_pSamples = (BYTE*)GlobalAlloc( GMEM_FIXED, pDesc->dwBufferBytes );
+	m_pSamples = (BYTE*)A3dAllocate( pDesc->dwBufferBytes );
 	m_dwBufferBytes = pDesc->dwBufferBytes;
 	if ( m_pSamples == NULL )
 		return E_OUTOFMEMORY;

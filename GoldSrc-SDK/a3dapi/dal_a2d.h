@@ -1,4 +1,7 @@
 #pragma once
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 
 #include "resman.h"
 #include "mixer_filters.h"
@@ -71,6 +74,10 @@ class DAL_A2D : public CA3dSoundBackend
 {
 public:
 	DAL_A2D();
+#ifndef _WIN32
+    ~DAL_A2D();
+    void StopNativeWorker() noexcept;
+#endif
 
 	HRESULT STDMETHODCALLTYPE GetCaps( LPDSCAPS pCaps );
 	HRESULT STDMETHODCALLTYPE CreateSoundBufferEx( const a3d_platform_buffer_desc_t* pDesc,
@@ -89,6 +96,9 @@ public:
 
 private:
 	DWORD					m_dwThreadId;
+#ifndef _WIN32
+    A3dNativeWorker m_nativeWorker;
+#endif
 	HANDLE					m_hThread;
 	HANDLE					m_hWakeEvent;
 	DWORD					m_dwWaitTime;

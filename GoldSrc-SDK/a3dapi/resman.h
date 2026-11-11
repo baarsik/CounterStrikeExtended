@@ -1,4 +1,7 @@
 #pragma once
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 
 #include "backend_legacy.h"
 
@@ -152,6 +155,10 @@ class ResMan : public IDirectSound, public IA3dDal, public IA3d2
 {
 public:
 	ResMan();
+#ifndef _WIN32
+    ~ResMan();
+    void StopNativeWorker() noexcept;
+#endif
 
 	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID iid, void** ppObject );
 	ULONG STDMETHODCALLTYPE AddRef();
@@ -221,6 +228,9 @@ protected:
 	DalInfo*				m_pSecondaryPool;
 	DWORD							m_dwResourceManagerMode;
 	DWORD							m_dwThreadId;
+#ifndef _WIN32
+    A3dNativeWorker m_nativeWorker;
+#endif
 	HANDLE							m_hThread;
 	HANDLE							m_hUpdateEvent;
 	DWORD							m_dwWaitTime;
