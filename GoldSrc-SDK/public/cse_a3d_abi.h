@@ -3,15 +3,18 @@
 // Describe is instantiated independently by producer and consumer. These retained
 // views include native failure slots for every SDK source/geometry tail; Windows is unchanged.
 #include "cse_a3d_notifications.h"
+#include "cse_a3d_devices.h"
 #include "../a3dapi/platform_dsound.h"
 #include "../a3dapi/ia3dapi.h"
 #include "../a3dapi/native_device_init.h"
 #include "../a3dapi/native_capacity.h"
 #include <type_traits>
+#include <utility>
 
 namespace cse { namespace a3d_abi {
 using abi::LayoutHash;
 constexpr std::uint32_t Revision = 1;
+constexpr std::uint32_t NativeDeviceEnumerationProfile = 1;
 constexpr std::uint32_t ProviderRole = 0x41334450; // A3DP, owned native software provider.
 constexpr std::uint32_t EventContract = 0x41334445;
 constexpr std::uint32_t NotifyContract = 0x4133444e;
@@ -64,10 +67,18 @@ template<class T> constexpr std::uint64_t Type() {
 using GetClassObject = HRESULT (CSE_ABI_CALL *)(REFCLSID, REFIID, void**);
 using CanUnloadNow = HRESULT (CSE_ABI_CALL *)();
 using CreateNativeEvent = HRESULT (CSE_ABI_CALL *)(const A3dNativeEventDescV1*, IA3dNativeEventV1**);
+using CreateNativeDeviceEnumerator = HRESULT (CSE_ABI_CALL *)(IA3dNativeDeviceEnumeratorV1**);
 template<class T> struct Function;
 template<class R, class... A> struct Function<R (*)(A...)> {
     static constexpr auto Signature = LayoutHash({Revision, sizeof...(A), Type<R>(), Type<A>()...});
 };
+template<std::size_t N, std::size_t... Index>
+constexpr std::uint64_t NameFacts(const char (&name)[N], std::index_sequence<Index...>) {
+    return LayoutHash({1, N - 1, static_cast<unsigned char>(name[Index])...});
+}
+template<std::size_t N> constexpr std::uint64_t NameFacts(const char (&name)[N]) {
+    return NameFacts(name, std::make_index_sequence<N - 1>{});
+}
 constexpr std::uint64_t Guid(const GUID& value) {
     return LayoutHash({value.Data1, value.Data2, value.Data3, value.Data4[0], value.Data4[1],
         value.Data4[2], value.Data4[3], value.Data4[4], value.Data4[5], value.Data4[6], value.Data4[7]});
@@ -93,7 +104,8 @@ constexpr std::uint64_t Slots(std::initializer_list<std::uint64_t> methods) {
 }
 #define CSE_A3D_FIELD(record, field) offsetof(record, field), sizeof(((record*)nullptr)->field), \
     alignof(decltype(record::field)), Type<decltype(record::field)>()
-constexpr auto Records = LayoutHash({Revision,
+template<class DeviceInfo> constexpr std::uint64_t RecordsFor() {
+    return LayoutHash({Revision,
     sizeof(GUID), alignof(GUID),
     CSE_A3D_FIELD(GUID, Data1),
     CSE_A3D_FIELD(GUID, Data2),
@@ -212,7 +224,15 @@ constexpr auto Records = LayoutHash({Revision,
     CSE_A3D_FIELD(A3DCAPS_HARDWARE, dwMaxSampleRate),
     CSE_A3D_FIELD(A3DCAPS_HARDWARE, dwMax2DBuffers),
     CSE_A3D_FIELD(A3DCAPS_HARDWARE, dwMax3DBuffers),
-    Type<HRESULT>(), Type<ULONG>(), Type<DWORD>(), Type<BOOL>(), Type<A3DVAL>()});
+    Type<HRESULT>(), Type<ULONG>(), Type<DWORD>(), Type<BOOL>(), Type<A3DVAL>(),
+    sizeof(DeviceInfo), alignof(DeviceInfo),
+    CSE_A3D_FIELD(DeviceInfo, structureBytes),
+    CSE_A3D_FIELD(DeviceInfo, version),
+    CSE_A3D_FIELD(DeviceInfo, device),
+    CSE_A3D_FIELD(DeviceInfo, nameBytes),
+    CSE_A3D_FIELD(DeviceInfo, reserved)});
+}
+constexpr auto Records = RecordsFor<A3dNativeDeviceInfoV1>();
 #undef CSE_A3D_FIELD
 
 template<class Source, class Geometry, class Listener> constexpr abi::Descriptor Describe() {
@@ -545,8 +565,17 @@ template<class Source, class Geometry, class Listener> constexpr abi::Descriptor
         Method<decltype(&IA3dNativeNotifyV1::GetNotificationCaps)>::Signature,
         Method<decltype(&IA3dNativeNotifyV1::SetNotificationPositions)>::Signature,
     });
+    static_assert(!std::has_virtual_destructor_v<IA3dNativeDeviceEnumeratorV1>, "COM views have no destructor slots");
+    constexpr auto IA3dNativeDeviceEnumeratorV1Slots = Slots({
+        Method<decltype(&IA3dNativeDeviceEnumeratorV1::QueryInterface)>::Signature,
+        Method<decltype(&IA3dNativeDeviceEnumeratorV1::AddRef)>::Signature,
+        Method<decltype(&IA3dNativeDeviceEnumeratorV1::Release)>::Signature,
+        Method<decltype(&IA3dNativeDeviceEnumeratorV1::GetCount)>::Signature,
+        Method<decltype(&IA3dNativeDeviceEnumeratorV1::GetInfo)>::Signature,
+    });
     return abi::Describe({
-        {ProviderRole, 0, LayoutHash({Revision, CallProfile, 1 /* owned software */, 1 /* host library lease */})},
+        {ProviderRole, 0, LayoutHash({Revision, CallProfile, 1 /* owned software */, 1 /* host library lease */,
+            NativeDeviceEnumerationProfile})},
         {RecordContract, 0, Records},
         {FactoryContract, 0, LayoutHash({IUnknownSlots, IClassFactorySlots})},
         {DeviceContract, 0, IDirectSoundSlots},
@@ -568,14 +597,17 @@ template<class Source, class Geometry, class Listener> constexpr abi::Descriptor
             A3D_NATIVE_NOTIFY_BYTE_OFFSETS, A3D_NATIVE_NOTIFY_STOP, A3D_NATIVE_NOTIFY_WRAP,
             A3D_NATIVE_NOTIFY_ATOMIC_REPLACE, A3D_NATIVE_NOTIFY_RETAINED_EVENTS})},
         {PrivateDeviceContract, 0, LayoutHash({IA3dNativeDeviceV1Slots, IA3dNativeCapacityV1Slots,
-            Guid(IID_IA3dNativeDeviceV1), Guid(IID_IA3dNativeCapacityV1)})},
+            Guid(IID_IA3dNativeDeviceV1), Guid(IID_IA3dNativeCapacityV1), IA3dNativeDeviceEnumeratorV1Slots,
+            Guid(IID_IA3dNativeDeviceEnumeratorV1), A3D_NATIVE_DEVICE_ENUMERATION_VERSION,
+            sizeof(A3dNativeDeviceInfoV1), 1 /* S_FALSE size-query policy */})},
         {ExportContract, 0, LayoutHash({Function<GetClassObject>::Signature, Function<CanUnloadNow>::Signature,
-            Function<CreateNativeEvent>::Signature, Function<abi::GetModuleAbi>::Signature})},
+            Function<CreateNativeEvent>::Signature, Function<abi::GetModuleAbi>::Signature,
+            Function<CreateNativeDeviceEnumerator>::Signature, NameFacts("CseCreateA3dNativeDeviceEnumeratorV1")})},
         {IdentityContract, 0, LayoutHash({Guid(CLSID_A3dApi), Guid(CLSID_A3d), Guid(IID_IUnknown),
             Guid(IID_IClassFactory), Guid(IID_IA3d), Guid(IID_IA3d2), Guid(IID_IA3d3),
             Guid(IID_IA3dSource), Guid(IID_IA3dGeom), Guid(IID_IA3dListener), Guid(IID_IA3dMaterial),
             Guid(IID_IA3dList), Guid(IID_IDirectSound), Guid(IID_IDirectSoundBuffer),
-            Guid(IID_IDirectSound3DBuffer), Guid(IID_IDirectSoundNotify)})}
+            Guid(IID_IDirectSound3DBuffer), Guid(IID_IDirectSoundNotify), Guid(IID_IA3dNativeDeviceEnumeratorV1)})}
     });
 }
 } } // namespace cse::a3d_abi

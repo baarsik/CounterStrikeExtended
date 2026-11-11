@@ -25,3 +25,13 @@ The wrapper defaults to an asserted process-local SDL dummy driver. An actual-ou
 Each evidence directory is newly created and never overwritten. Bare, instrumented and injected cases must use different directories. Hardware unplug/recovery, OEM semantics, microphone/voice, public selected-device enumeration and genuine game routing remain separate gates.
 
 The initial low-level DS probe captured zero-gain output because it submitted no source producer controls; it is not nonzero-PCM acceptance. A subsequent source probe left the default streaming resource mode selected and incorrectly treated its submitted cursor as continuous render progress. Final cases explicitly select resource mode OFF and use the public source producer. No production gain defaults, DSP or stream cursor semantics were altered to satisfy the fixture.
+
+The public native device snapshot API is now declared in
+`GoldSrc-SDK/public/cse_a3d_devices.h`: admit the current A3D profile, call
+`CseCreateA3dNativeDeviceEnumeratorV1`, copy a complete record/name via the two-call
+GetInfo contract, and retain the enumerator through `IA3dNativeDeviceV1::InitializeDevice`.
+The host must establish SDL main-thread identity and perform construction/final release
+on its serialized main/control thread. Tokens are ephemeral, same-image/context only.
+Task 1 qualifies this producer/consumer path only under explicit SDL dummy. The selected
+Speakers live gate remains unrun until the separate Task 3 authorization; this API pointer
+is not live-device, audibility, or game-integration evidence.

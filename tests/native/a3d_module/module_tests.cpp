@@ -57,6 +57,7 @@ struct Module {
         unload = reinterpret_cast<CanUnload>(dlsym(handle, "DllCanUnloadNow"));
         event = reinterpret_cast<CreateEvent>(dlsym(handle, "CseCreateA3dNativeEventV1"));
         CHECK(factory && unload && event);
+        CHECK(dlsym(handle, "CseCreateA3dNativeDeviceEnumeratorV1"));
         events = reinterpret_cast<EventSnapshot>(dlsym(handle, "_Z22A3dNativeEventLifetimev"));
         owners = reinterpret_cast<OwnerSnapshot>(dlsym(handle, "_Z15A3dNativeOwnersv"));
         CHECK(events && owners);

@@ -284,3 +284,6 @@ extern "C" const cse::abi::Descriptor* CSE_ABI_CALL CseGetModuleAbi() {
 }
 
 static_assert(std::is_same_v<decltype(&CseGetModuleAbi), cse::abi::GetModuleAbi>);
+
+static_assert(std::is_same_v<decltype(&CseCreateA3dNativeDeviceEnumeratorV1),
+    cse::a3d_abi::CreateNativeDeviceEnumerator>);

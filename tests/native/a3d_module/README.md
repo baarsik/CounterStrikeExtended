@@ -44,3 +44,39 @@ registrations and active waits across provider release; and repeated image
 load/release/unload. `callable_operation_matrix` checks supported outputs and
 explicit unsupported failures. `source_buffer_playback` verifies the real
 loaded source and native buffer routes rather than a PCM-only substitute.
+
+Public device enumeration is declared in `GoldSrc-SDK/public/cse_a3d_devices.h`.
+The independent `a3d_enumeration_tests` caller uses only its own `enumeration_caller.h`
+record and vtable declarations across the loaded production image boundary. A separate
+admission TU compares record/method facts against production and constructs the expected
+16-entry profile. Old and new profiles deliberately reject one another. The tests resolve
+only `CseGetModuleAbi` before descriptor admission, then require the factory export before
+any factory/virtual operation.
+
+The host calls `SDL_SetMainReady` on its actual main thread before a worker can call the
+factory. An unregistered `SDL_IsMainThread` may report true on an arbitrary thread; it
+cannot establish cold-host thread identity. Factory acquisition and terminal Release must
+be on the host main/control thread, serialized with all host SDL initialization/quit.
+Concurrent readers each hold a reference; a main-thread anchor outlives and joins them.
+The library lease covers every call and final Release. An enumerator alone refuses unload.
+
+GetInfo accepts version 1 and exactly 32 record bytes, with bounded clearing on failure.
+A size query/short name buffer returns S_FALSE, no token or partial label, and the complete
+UTF-8 byte count including NUL. Names and records are caller-owned copies. Keep the snapshot
+alive until InitializeDevice returns; the provider then owns its own SDL audio reference.
+Copied names survive snapshot destruction, but copied tokens do not retain audio or image
+lifetime. Tokens are ephemeral and do not promise universal cross-image collision rejection.
+Hotplug can invalidate a snapshot token before initialization; create a new snapshot to retry.
+
+All registered runtime cases require `SDL_AUDIO_DRIVER=dummy`. `empty_snapshot` observes the
+real backend count without assuming a minimum. Explicit `enumeration_fault_*` subprocesses
+load the test-only Darwin interposer to label synthetic empty/name/error/allocation branches.
+They never redirect selected IDs or replace the factory/provider. Allocation failure is
+restricted to module calls during the armed factory acquisition interval. Failure cases
+verify allocation/audio balance and production owner counts, followed by actual image unload.
+These tests provide no real-device or audibility evidence.
+
+Set `A3D_FOREIGN_MODULE` to a byte-identical copy of the new dylib in a distinct directory,
+using the same canonical staged SDL provider, and `A3D_BASELINE_MODULE` to the preserved old
+module fixture. Foreign tests require genuinely distinct loaded images and observed unequal
+tokens; they do not silently skip a collision-sensitive premise. Build/test jobs are serial.
