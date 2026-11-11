@@ -10,7 +10,7 @@ target has completed acceptance.** See [build commands](building.md),
 | Target | Commitment | Current state |
 | --- | --- | --- |
 | Windows 11 x64 | Required; first complete native target | All 19 targets build; selected CS/HL runtime checks pass on VM1 under x64 emulation |
-| macOS 14+ Apple Silicon | Required | A 17-role Release/Debug runtime cohort builds; native CS/HL gameplay has been exercised; current-source full acceptance, standalone server/A3D and production Metal work remain |
+| macOS 14+ Apple Silicon | Required | All 19 runtime roles build in a frozen Release/Debug cohort; fresh CS lifecycle and HL save-marker roundtrip pass on Apple Silicon. Current-source combined acceptance and production Metal remain |
 | Windows ARM64 | Conditional | Native components pass selected checks; full providers/gameplay remain unqualified |
 | Linux x64 / ARM64 | Opportunistic | Reuse shared POSIX/SDL implementations only; defer substantial platform/provider work |
 
@@ -47,8 +47,8 @@ renderer project or hardware purchase is part of conditional-target work.
 | Build/dependencies | One generated inventory from retained manifests; explicit OS/CPU/compiler policies; source-built SDL3 3.4.20, mpg123 1.33.7 and pinned media/font/compression libraries; source-built CS controls | Fresh complete builds after later source edits; conditional-target qualification |
 | Module ABI | `CseGetModuleAbi` checks architecture, pointer/compiler profile, role and consumed table signatures for selected game/client/filesystem exchanges; runtime ABI 10 | Other C++ boundaries and rejection before all static callbacks |
 | Data | Native handles/string storage, typed callback registration, explicit Win32 demo/navigation records, symbolic C4 phase, HPAK records and bounded custom-decal parsing | Full entity/transition/C4/nav writing, VFS/spray integration and Mac game round trips |
-| Platform/numerics | Owned module loading, cooperative workers, UDP components, CPU/timer discovery, scalar packed lighting, legacy conversion helpers and native client video/bootstrap compilation | Dedicated/admin and A3D platform owners; client restart/unload integration |
-| Audio | mpg123 music, SDL DMA/capture components, retained mixing/DSP rules and native voice-mixer component | Real device/capture/voice delivery and A3D provider/spatial parity; measured cross-CPU SDL conversion differences remain |
+| Platform/numerics | Owned module loading, cooperative workers, UDP components, CPU/timer discovery, scalar packed lighting, legacy conversion helpers and native client video/bootstrap compilation | Current-cohort dedicated/admin runtime, complete client restart/unload and platform acceptance |
+| Audio | mpg123 music, SDL DMA/capture components, retained mixing/DSP rules and native voice-mixer component | Native A3D software provider and public device enumeration are implemented; selected Speakers and DMA/music coexistence pass R/D. Default RODE HAL startup, acoustic delivery/capture/voice, complete spatial/OEM parity and measured cross-CPU conversion differences remain |
 | Steam/CEF | Owned Steam service and sandboxed CEF controller/host; real provider fixtures on Windows x64 and Mac ARM64 | Full game/browser/voice integration and provider failure/lifetime acceptance |
 | UI/text/input | Native Mac App/System, SDL VGUI1 Surface, selected CoreText/FreeType provider, CP1252 clipboard bridge and UTF-16 VGUI2 reads; actual-library drawing/clipboard/key translation checks | Embedded VGUI1 root admission, default font selection/layout parity, physical input, standalone-window event routing and quiescence |
 | Renderer | Private command/state/texture layer; three selected D3D12 raster profiles and one Metal profile match frozen GL RGB bytes; offline DXBC/metallib tooling | Production wiring, unsupported legacy branches, full world/model/UI/media presentation and parity |
@@ -185,13 +185,30 @@ voice/authentication and current-cohort packaging/provider acceptance remain
 part of the migration gates above. The microphone issue below is an explicit
 user-directed deferral, not a completed fix.
 
-The remaining A3D port now has an exact stock-library reference for its software
-A2D control path. Its pitch and direct-channel gain/delay/HRTF inputs match the
-retained source; that shipped routine also omits EQ and reflection records.
-This narrows software parity work without establishing OEM driver behavior.
-Native provider, buffer/worker lifetime, complete builds and actual consumer
-qualification remain open. Static evidence and its limits are recorded in
-`build/macos-runtime-bringup-20261109/a3d-reference-analysis-v1/findings.md`.
+The native A3D software provider, buffers, workers, resource/event ownership and
+public copied-GUID device enumeration are now implemented and reviewed. The
+frozen `6f27bef` cohort builds all 19 Mac runtime roles in both configurations;
+`9498efa` adds the reviewed enumeration/selection harness cohort. Actual Release
+and Debug probes select Mac Studio Speakers while the system default remains the
+RODECaster, then separately prove DMA/music coexistence under a temporary
+Speakers default. All four bounded cases restore or preserve the original route,
+input, system output, volume and mute. Successful PCM submission is not acoustic
+audibility, hardware removal/Restore, game-consumer routing or OEM driver parity.
+The unchanged RODE HAL startup stall remains open. The stock software A2D
+pitch/direct-channel reference and its omitted EQ/reflection records remain
+bounded evidence, not an OEM acceptance claim.
+
+Fresh `6f27bef` Counter-Strike completes map/reload/quit normally on the M5 Max
+OpenGL renderer. Half-Life completes a same-build canonical 260-byte archive
+roundtrip: actual saved player armor is 0, then 15 after a controlled grant,
+0 after map reset, and 15 after load; the weapon mask is restored too. This does
+not establish complete entity/callback/campaign or cross-platform save parity.
+The CS wrapper's stale CF receipt was rejected before restoration writes and was
+recovered separately; that failed wrapper remains recorded. The corrected HL
+wrapper restores all three settings domains and the original output normally.
+Both cases preserve the original assets and app baseline, SDK history records
+match before/after, and old encrypted browser-cache files remain unchanged.
+Browser HTML, physical audibility and performance are separate outstanding gates.
 
 ### Deferred: microphone consent blocks initial loading
 

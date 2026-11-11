@@ -123,3 +123,21 @@ Task2 must use NEW graph/fixture/evidence roots under build/a3d-native-selected-
 Root-selected hardware proof must distinguish explicit selection from OS default. Add harness-only --selected-source-only mode: no engine DMA/music owner opens, one real public factory/copied token→unchanged provider/source path with nonzeroPCM/cursor proof, no GUID private-field decode. For Root's actual selected-only gate the OSdefault stays originalRODEUID while A3D selects the unambiguous full copied Mac Studio Speakers label; this does not open/retryRODE. Read-only Root metadata proves default/input/system/volume/mute unchanged. Instrumented observer must record the actual forwarded explicit nondefault SDL open request and full actual selected label; compare with public copied label without redirecting any call. Bare mode states its narrower observation. Unknown/truncated/ambiguous label or default request fails the selected gate.
 
 Full DMA/music coexistence remains a SEPARATE test under Root's approved temporarySpeakersdefault/restore wrapper. Strengthen successful musicPCM submission progress after A3D teardown, bind observerlibrary hash in instrumented receipts, and keep bare/instrumented/injected/selected-only results separate. Neither queue/cursor/nonzeroPCM nor selected metadata proves physical audibility, unplug/Restore, microphone/OEM/game routing. Sourceworker onlydummy; Rootalonephysicalcases afterreview. No defaultRODEOpen retry/service/privacy changes.
+
+
+## Root actual Task3 evidence, 2026-11-11
+
+Task1 and Task2 source `9498efa` are reviewed and integrated. Root independently
+rehashes 5,283 source files, 40,649 old/new artifact entries, 39 recorded covering
+commands and 12 ARM64 images. Final dummy coverage is18 cases/54 lifetimes.
+
+Four bounded actual instrumented cases pass across Release/Debug. Selected-only
+uses the public copied token/full Mac Studio Speakers label and records six
+explicit opens/zero default opens per profile; the OS default remains the original
+RODECaster and global routes/controls are unchanged. Separate coexistence cases
+use the reviewed output-only temporary Speakers route, prove successful music PCM
+progress after A3D teardown and restore the original stable UID, input/system
+output, volume and mute. Receipt summary:
+`build/native-selected-device-live-v1/root-live-subgate-summary.json`.
+No acoustic audibility, unchanged RODE open, physical hotplug/Restore, microphone,
+OEM or actual-game A3D consumer acceptance follows. Those remain broader gates.
