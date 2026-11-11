@@ -68,3 +68,7 @@
 ### Task3 actual MSVC fixture follow-up
 
 Actual firstfullfixture compile after policy correction fails C4459/C2220 because test-only anonymous globalhostResult conflicts with real extracted startup localhostResult. Production106 unchanged/GREEN. Task3fixround1 narrows repair to the four test identifier occurrences in startup_owner_tests.cpp (fixtureHostInitResult); preserve all behavior/assertions/generated flags and actual production bodies. Source handoff/review precedes fresh replacement156 qualification; e3/v3failed cohort is retained, not acceptance. Detailed scope/RED in SDDtask-3-fix-round-1-ruling.md.
+
+### Task3 fixround2 actual owning-policy restoration
+
+Complete Windows keep-going RED has10failedCPProws:8optionalfixtureCRT-deprecationfailures plus2entryfixtureC4535. Restore existingproduction_CRT_SECURE_NO_WARNINGS onlyonconnection/details/modelretirement targets and actualsys_dll2/EHa onlyontwoentrytargets, preservingW4/WX andallotherpolicies. Rulingtask-3-fix-round-2-ruling.md governs exactscope. Production106 unchanged; failed3ee/op4 neverqualifies156. Actual freshsixconfigs/strictsecuredefinitionandfinaleffectiveEH audit remainrequired; noTask2sixthsourcewave.
