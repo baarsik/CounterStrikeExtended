@@ -21,6 +21,7 @@ target_include_directories(a3d_live_capture PRIVATE "${ROOT}/GoldSrc-SDK/externa
 target_link_libraries(a3d_live_capture PRIVATE "${runtime}/libSDL3.0.dylib")
 foreach(mode bare instrumented)
     add_executable(a3d_live_${mode} live_probe.cpp
+        "${ROOT}/tests/native/a3d_module/enumeration_admission.cpp"
         "${ROOT}/GoldSrc-SDK/engine/mpg123_music.cpp"
         "${ROOT}/GoldSrc-SDK/engine/mpg123_decoder.cpp")
     target_compile_features(a3d_live_${mode} PRIVATE cxx_std_17)

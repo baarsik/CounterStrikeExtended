@@ -1,10 +1,11 @@
-#include "../a3d_module/caller_interfaces.h"
-#include "cse_a3d_abi.h"
+#include "../a3d_module/enumeration_caller.h"
 #include "sdl3_audio_backend.h"
 #include "mpg123_music.h"
 #include "production_dma_record.h"
 #include "capture.h"
 #include <SDL3/SDL.h>
+#define SDL_MAIN_HANDLED
+#include <SDL3/SDL_main.h>
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -16,6 +17,8 @@
 #include <limits.h>
 #include <mach-o/dyld.h>
 #include <type_traits>
+#include <string>
+#include <vector>
 
 #define CHECK(condition) do { \
     if (!(condition)) { \
@@ -45,7 +48,8 @@ constexpr Uint32 kPollMilliseconds = 5;
 constexpr float kMusicVolume = 0.1f;
 constexpr Uint32 kObserveMilliseconds = 120;
 constexpr std::int16_t kSignalAmplitude = 1000;
-constexpr auto expected = cse::a3d_abi::Describe<IA3dSource202, IA3dGeomTarget, IA3dListenerTarget>();
+constexpr int kNoUniqueMatch = -1; // Missing and ambiguous labels both fail selection.
+const auto expected = ExpectedA3dEnumerationDescriptor();
 using Factory = HRESULT (*)(REFCLSID, REFIID, void**);
 using CanUnload = HRESULT (*)();
 using Open = decltype(&SDL_OpenAudioDeviceStream);
@@ -69,11 +73,15 @@ void VerifyProvider(void* module, const char* expectedPath) {
     CHECK(realpath(info.dli_fname, canonicalActual));
     CHECK(std::strcmp(canonicalExpected, canonicalActual) == 0);
     CHECK(dlsym(module, "SDL_InitSubSystem") == reinterpret_cast<void*>(SDL_InitSubSystem));
+    const void* moduleOpen = dlsym(module, "SDL_OpenAudioDeviceStream");
     const void* modulePut = dlsym(module, "SDL_PutAudioStreamData");
 #if A3D_CAPTURE
+    CHECK(moduleOpen == reinterpret_cast<const void*>(realOpen) ||
+        moduleOpen == reinterpret_cast<const void*>(A3dLiveObservedOpen()));
     CHECK(modulePut == reinterpret_cast<const void*>(realPut) ||
         modulePut == reinterpret_cast<const void*>(A3dLiveObservedPut()));
 #else
+    CHECK(moduleOpen == reinterpret_cast<const void*>(realOpen));
     CHECK(modulePut == reinterpret_cast<const void*>(realPut));
 #endif
     unsigned providers = 0;
@@ -95,30 +103,155 @@ template<class T> T* Query(IUnknown* object, REFIID iid) {
     return result;
 }
 
+std::string JsonString(const std::string& text) {
+    constexpr unsigned char kJsonControlLimit = 0x20;
+    constexpr std::size_t kJsonEscapeBytes = 7; // Backslash-u, four hex digits, terminator.
+    std::string result = "\"";
+    for (unsigned char value : text) {
+        if (value == '"' || value == '\\') {
+            result += '\\';
+            result += static_cast<char>(value);
+        } else if (value < kJsonControlLimit) {
+            char escaped[kJsonEscapeBytes]{};
+            std::snprintf(escaped, sizeof(escaped), "\\u%04x", static_cast<unsigned>(value));
+            result += escaped;
+        } else {
+            result += static_cast<char>(value);
+        }
+    }
+    return result + "\"";
+}
+
+// Exact complete UTF-8 label comparison, with ambiguity rejected even when a
+// snapshot happens to repeat a friendly label. No token representation is read.
+int UniqueMatch(const std::vector<std::string>& names, const std::string& requested) {
+    int selected = kNoUniqueMatch;
+    for (std::size_t index = 0; index < names.size(); ++index) {
+        if (names[index] == requested) {
+            if (selected >= 0) {
+                return kNoUniqueMatch;
+            }
+            selected = static_cast<int>(index);
+        }
+    }
+    return selected;
+}
+
+independent::Factory Admit(void* handle, const cse::abi::Descriptor& wanted,
+    const cse::abi::Descriptor* offered, const char* exportName) {
+    if (cse::abi::Check(wanted, offered) != cse::abi::Compatibility::Compatible) {
+        return nullptr;
+    }
+    return reinterpret_cast<independent::Factory>(dlsym(handle, exportName));
+}
+
+bool RejectMutation(void* handle, const char* label, const cse::abi::Descriptor& wanted,
+    const cse::abi::Descriptor* offered, const char* exportName) {
+    const bool rejected = !Admit(handle, wanted, offered, exportName);
+    std::printf("admission_negative=%s rejected=%d\n", label, rejected);
+    return rejected;
+}
+
 struct Module {
     void* handle = nullptr;
     Factory factory = nullptr;
     CanUnload unload = nullptr;
     const char* path = nullptr;
-    Module(const char* modulePath, const char* provider) : path(modulePath) {
+    independent::Enumerator* enumeration = nullptr;
+    independent::DeviceInfo selected{};
+    std::string selectedName;
+    bool selecting = false;
+
+    Module(const char* modulePath, const char* provider, const char* requested, bool first) : path(modulePath) {
         handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
         if (!handle) {
             std::fprintf(stderr, "%s\n", dlerror());
         }
         CHECK(handle);
         auto describe = reinterpret_cast<cse::abi::GetModuleAbi>(dlsym(handle, "CseGetModuleAbi"));
-        CHECK(describe && cse::abi::Check(expected, describe()) == cse::abi::Compatibility::Compatible);
+        CHECK(describe);
+        const auto* offered = describe();
+        const auto enumerate = Admit(handle, expected, offered, independent::FactoryName);
+        CHECK(enumerate);
+        CHECK(CheckEnumerationAdmissionMutations(*offered, RejectMutation, handle));
+        std::printf("abi_admitted=1 enumeration_profile=1 descriptor_version=%u runtime_version=%u tables=%u\n",
+            offered->descriptorVersion, offered->runtimeVersion, offered->tableCount);
+        for (std::uint32_t table = 0; table < offered->tableCount; ++table) {
+            std::printf("abi_table index=%u identifier=%u signature=%016llx\n", table,
+                offered->tables[table].identifier, static_cast<unsigned long long>(offered->tables[table].signature));
+        }
         factory = reinterpret_cast<Factory>(dlsym(handle, "DllGetClassObject"));
         unload = reinterpret_cast<CanUnload>(dlsym(handle, "DllCanUnloadNow"));
         CHECK(factory && unload && unload() == S_OK);
         VerifyProvider(handle, provider);
+        selecting = requested || first;
+        if (selecting) {
+            CHECK(enumerate(&enumeration) == S_OK && enumeration);
+            CHECK(unload() == S_FALSE);
+            DWORD count = 0;
+            CHECK(enumeration->GetCount(&count) == S_OK);
+            std::vector<independent::DeviceInfo> records;
+            std::vector<std::string> names;
+            for (DWORD index = 0; index < count; ++index) {
+                independent::DeviceInfo record{};
+                DWORD required = 0;
+                CHECK(enumeration->GetInfo(index, independent::Version, sizeof(record),
+                    &record, nullptr, 0, &required) == S_FALSE && required > 0);
+                std::vector<char> name(required);
+                CHECK(enumeration->GetInfo(index, independent::Version, sizeof(record),
+                    &record, name.data(), required, &required) == S_OK);
+                CHECK(record.structureBytes == sizeof(record) && record.version == independent::Version &&
+                    record.reserved == 0 && record.nameBytes == required && name.back() == '\0');
+                names.emplace_back(name.data());
+                records.push_back(record);
+                std::printf("enumeration index=%u factory=%s record_version=%u name=%s\n", index,
+                    independent::FactoryName, record.version, JsonString(names.back()).c_str());
+            }
+            CHECK(!names.empty());
+            const std::string wanted = first ? names.front() : requested;
+            const int index = UniqueMatch(names, wanted);
+            CHECK(index >= 0); // Unknown/truncated/ambiguous labels fail before any owner opens.
+            selected = records[static_cast<std::size_t>(index)];
+            selectedName = names[static_cast<std::size_t>(index)];
+            std::printf("selection_json={\"label\":%s,\"index\":%d,\"record_version\":%u}\n",
+                JsonString(selectedName).c_str(), index, selected.version);
+            std::printf("selected_opaque_token=");
+            const auto* bytes = reinterpret_cast<const unsigned char*>(&selected.device);
+            for (std::size_t byte = 0; byte < sizeof(selected.device); ++byte) {
+                std::printf("%02x", static_cast<unsigned>(bytes[byte]));
+            }
+            std::printf("\n");
+        }
     }
+
+    void ReleaseEnumeration() {
+        if (enumeration) {
+            CHECK(enumeration->Release() == 0);
+            enumeration = nullptr;
+        }
+    }
+
     ~Module() {
+        ReleaseEnumeration();
         CHECK(unload() == S_OK);
         CHECK(dlclose(handle) == 0);
         void* residual = dlopen(path, RTLD_NOW | RTLD_NOLOAD);
         CHECK(!residual);
     }
+
+    void VerifySelection(const char* stage) {
+#if A3D_CAPTURE
+        if (selecting) {
+            CHECK(capture.stream && capture.requestedDevice != SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK &&
+                capture.requestedDevice != 0 && capture.name == selectedName);
+            std::printf("selected_open stage=%s explicit=1 requested=%u logical=%u label=%s\n", stage,
+                capture.requestedDevice, capture.logicalDevice, JsonString(capture.name).c_str());
+        }
+#else
+        (void)stage;
+#endif
+    }
+
     IA3d3* Api() {
         IClassFactory* object = nullptr;
         CHECK(factory(CLSID_A3dApi, IID_IClassFactory, reinterpret_cast<void**>(&object)) == S_OK);
@@ -126,27 +259,34 @@ struct Module {
         CHECK(object->CreateInstance(nullptr, IID_IA3d3, reinterpret_cast<void**>(&api)) == S_OK);
         object->Release();
         capture.admitting = true;
-        const HRESULT result = api->Init(nullptr, kDirectFeature, 0);
+        const HRESULT result = api->Init(selecting ? &selected.device : nullptr, kDirectFeature, 0);
         capture.admitting = false;
         CHECK(result == S_OK);
+        VerifySelection("source");
+        // Source now owns an SDL reference. Preserve the anchor across the earlier
+        // low-level close and this Init so its copied token never loses context.
+        ReleaseEnumeration();
         CHECK(api->SetResourceManagerMode(A3D_RESOURCE_MODE_OFF) == S_OK);
         return api;
     }
+
     IDirectSound* Provider() {
         IClassFactory* object = nullptr;
         CHECK(factory(CLSID_A3dApi, IID_IClassFactory, reinterpret_cast<void**>(&object)) == S_OK);
         IDirectSound* sound = nullptr;
         CHECK(object->CreateInstance(nullptr, IID_IDirectSound, reinterpret_cast<void**>(&sound)) == S_OK);
         object->Release();
-        auto* device = Query<IA3dNativeDeviceV1>(sound, IID_IA3dNativeDeviceV1);
-        const GUID invalid{0xffffffff, 0xffff, 0xffff, {}};
+        auto* device = Query<independent::Device>(sound, independent::DeviceIid);
         DWORD features = 0;
-        CHECK(FAILED(device->InitializeDevice(&invalid, kDirectFeature, kNativeInitializationMode, &features)));
-        CHECK(features == 0);
         capture.admitting = true;
-        const HRESULT result = device->InitializeDevice(nullptr, kDirectFeature, kNativeInitializationMode, &features);
+        const HRESULT result = device->InitializeDevice(selecting ? &selected.device : nullptr,
+            kDirectFeature, kNativeInitializationMode, &features);
         capture.admitting = false;
         CHECK(result == S_OK && features == kDirectFeature);
+        VerifySelection("provider");
+        if (selecting) {
+            std::printf("public_guid_selected_api=PASS\n");
+        }
         device->Release();
         return sound;
     }
@@ -200,7 +340,11 @@ void StartOwners(cse::Mpg123MusicPlayer& music, const char* track) {
         samples[index] = index % kSignalPeriodSamples < kSignalPeriodSamples / 2 ? kSignalAmplitude : -kSignalAmplitude;
     }
     SNDDMA_UnlockBuffer();
-    CHECK(music.Init() && music.Open(track, true) && music.Start());
+    CHECK(music.Init());
+    capture.admittingMusic = true;
+    const bool opened = music.Open(track, true);
+    capture.admittingMusic = false;
+    CHECK(opened && music.Start());
     music.SetVolume(kMusicVolume);
     CHECK(music.IsPlaying());
     S_BlockSound();
@@ -213,21 +357,54 @@ void StartOwners(cse::Mpg123MusicPlayer& music, const char* track) {
     CHECK(music.IsPlaying());
 }
 
-void OwnersProgress(cse::Mpg123MusicPlayer& music) {
+void OwnersProgress(cse::Mpg123MusicPlayer& music, const char* stage) {
     const int before = SNDDMA_GetDMAPos();
+    const std::size_t musicBefore = capture.music.bytes.load();
     const Uint64 deadline = SDL_GetTicks() + kProgressTimeoutMilliseconds;
-    while (SNDDMA_GetDMAPos() == before && SDL_GetTicks() < deadline) {
+    while ((SNDDMA_GetDMAPos() == before ||
+        (A3D_CAPTURE && capture.music.bytes.load() <= musicBefore)) && SDL_GetTicks() < deadline) {
         SDL_Delay(kPollMilliseconds);
     }
     CHECK(SNDDMA_GetDMAPos() != before && music.IsPlaying());
     CHECK(SDL_WasInit(SDL_INIT_AUDIO) == SDL_INIT_AUDIO);
+#if A3D_CAPTURE
+    CHECK(capture.music.stream && capture.music.bytes.load() > musicBefore && capture.music.nonzero > 0);
+    std::printf("owners stage=%s dma_progress=1 music_state=playing music_pcm_progress=PASS before=%zu after=%zu\n",
+        stage, musicBefore, capture.music.bytes.load());
+#else
+    std::printf("owners stage=%s dma_progress=1 music_state=playing music_pcm_progress=UNOBSERVED\n", stage);
+    (void)musicBefore;
+#endif
 }
 
-void ResetCapture() {
-    capture.stream = nullptr;
-    capture.bytes = 0;
-    capture.nonzero = 0;
-    capture.pcm.fill(0);
+void ResetCapture(A3dStreamCapture& target) {
+    // Caller must have joined the producer/destroyed its stream before resetting.
+    target.stream = nullptr;
+    target.bytes = 0;
+    target.nonzero = 0;
+    target.pcm.fill(0);
+}
+
+void StopOwners(cse::Mpg123MusicPlayer& music, const char* output, unsigned cycle) {
+    music.Shutdown();
+    music.Shutdown();
+#if A3D_CAPTURE
+    CHECK(capture.music.bytes > 0 && capture.music.nonzero > 0);
+    const std::string path = std::string(output) + "/cycle-" + std::to_string(cycle) + "-music-successful.pcm";
+    FILE* file = std::fopen(path.c_str(), "wb");
+    CHECK(file);
+    const std::size_t count = std::min(capture.music.bytes.load(), capture.music.pcm.size());
+    CHECK(std::fwrite(capture.music.pcm.data(), 1, count, file) == count);
+    CHECK(std::fclose(file) == 0);
+    std::printf("music_capture cycle=%u successful_bytes=%zu stored=%zu nonzero_bytes=%zu\n", cycle,
+        capture.music.bytes.load(), count, capture.music.nonzero.load());
+#else
+    (void)output;
+    (void)cycle;
+#endif
+    ResetCapture(capture.music);
+    SNDDMA_Shutdown();
+    SNDDMA_Shutdown();
 }
 
 void DrainCapture(const char* output, unsigned cycle) {
@@ -236,7 +413,8 @@ void DrainCapture(const char* output, unsigned cycle) {
         static_cast<void*>(capture.stream.load()), capture.bytes.load(), capture.nonzero.load(),
         static_cast<int>(capture.recursion.load()));
     CHECK(!capture.recursion && capture.bytes > 0 && capture.nonzero > 0);
-    CHECK(capture.input.format == SDL_AUDIO_S16 && capture.input.channels == 2 && capture.input.freq == static_cast<int>(kSampleRate));
+    CHECK(capture.input.format == SDL_AUDIO_S16 && capture.input.channels == 2 &&
+        capture.input.freq == static_cast<int>(kSampleRate));
     char path[PATH_MAX]{};
     std::snprintf(path, sizeof(path), "%s/cycle-%u-preconversion-s16-stereo-22050.pcm", output, cycle);
     FILE* file = std::fopen(path, "wb");
@@ -244,10 +422,11 @@ void DrainCapture(const char* output, unsigned cycle) {
     const std::size_t count = std::min(capture.bytes.load(), capture.pcm.size());
     CHECK(std::fwrite(capture.pcm.data(), 1, count, file) == count);
     CHECK(std::fclose(file) == 0);
-    std::printf("capture cycle=%u bytes=%zu stored=%zu nonzero_samples=%zu input=%d,%d,%u conversion=%d,%d,%u device=%d,%d,%u name=%s\n",
+    std::printf("capture cycle=%u bytes=%zu stored=%zu nonzero_bytes=%zu input=%d,%d,%u "
+        "conversion=%d,%d,%u device=%d,%d,%u name=%s\n",
         cycle, capture.bytes.load(), count, capture.nonzero.load(), capture.input.freq, capture.input.channels,
         capture.input.format, capture.conversion.freq, capture.conversion.channels, capture.conversion.format,
-        capture.device.freq, capture.device.channels, capture.device.format, capture.name.data());
+        capture.device.freq, capture.device.channels, capture.device.format, capture.name.c_str());
 #else
     (void)output;
     (void)cycle;
@@ -256,10 +435,68 @@ void DrainCapture(const char* output, unsigned cycle) {
 }
 
 int main(int argc, char** argv) {
-    CHECK(argc == 6 || argc == 7);
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+    if (argc == 2 && std::strcmp(argv[1], "--self-test") == 0) {
+        CHECK(UniqueMatch({"full label", "full label suffix"}, "full label") == 0);
+        CHECK(UniqueMatch({"full label"}, "full") == kNoUniqueMatch);
+        CHECK(UniqueMatch({"full label"}, "missing") == kNoUniqueMatch);
+        CHECK(UniqueMatch({"full label", "full label"}, "full label") == kNoUniqueMatch);
+        CHECK(UniqueMatch({"UTF-8 ł label"}, "UTF-8 ł label") == 0);
+        auto wrongProfile = expected;
+        ++wrongProfile.tables[0].signature;
+        CHECK(cse::abi::Check(expected, &wrongProfile) != cse::abi::Compatibility::Compatible);
+#if A3D_CAPTURE
+        // Device-less SDL stream: prove real failed Put calls cannot advance the
+        // music success counters. This does not initialize/open any audio device.
+        const SDL_AudioSpec format{SDL_AUDIO_S16, 1, static_cast<int>(kSampleRate)};
+        SDL_AudioStream* stream = SDL_CreateAudioStream(&format, &format);
+        CHECK(stream);
+        capture.music.stream = stream;
+        const std::int16_t samples[] = {kSignalAmplitude, -kSignalAmplitude};
+        CHECK(!A3dLiveObservedPut()(stream, nullptr, sizeof(samples)));
+        CHECK(capture.music.bytes == 0 && capture.music.nonzero == 0);
+        CHECK(A3dLiveObservedPut()(stream, samples, sizeof(samples)));
+        CHECK(capture.music.bytes == sizeof(samples) && capture.music.nonzero > 0);
+        SDL_DestroyAudioStream(stream);
+        ResetCapture(capture.music);
+        CHECK(SDL_WasInit(SDL_INIT_AUDIO) == 0);
+        std::printf("PASS music_success_only failed_put_bytes=0 successful_put_bytes=%zu\n", sizeof(samples));
+#endif
+        std::printf("PASS selection_missing_ambiguous_prefix_utf8 profile_rejection no_device_actions\n");
+        return 0;
+    }
+    CHECK(argc >= 6);
     const bool dummy = std::strcmp(argv[1], "--dummy") == 0;
-    const bool live = std::strcmp(argv[1], "--root-authorized-live-default") == 0;
-    CHECK(dummy || live);
+    const bool liveDefault = std::strcmp(argv[1], "--root-authorized-live-default") == 0;
+    const bool liveSelected = std::strcmp(argv[1], "--root-authorized-live-selected") == 0;
+    CHECK(dummy || liveDefault || liveSelected);
+    bool fault = false;
+    bool first = false;
+    bool sourceOnly = false;
+    const char* requested = nullptr;
+    for (int argument = 6; argument < argc; ++argument) {
+        if (std::strcmp(argv[argument], "--inject-put-failure") == 0) {
+            CHECK(!fault);
+            fault = true;
+        } else if (std::strcmp(argv[argument], "--select-first-enumerated") == 0) {
+            CHECK(!first);
+            first = true;
+        } else if (std::strcmp(argv[argument], "--selected-source-only") == 0) {
+            CHECK(!sourceOnly);
+            sourceOnly = true;
+        } else if (std::strcmp(argv[argument], "--select-device-name") == 0) {
+            CHECK(!requested && ++argument < argc);
+            requested = argv[argument];
+        } else {
+            CHECK(false);
+        }
+    }
+    const bool selected = requested || first;
+    CHECK(!(requested && first) && (!first || dummy));
+    CHECK(!liveSelected || requested);
+    CHECK(!liveDefault || !selected);
+    CHECK(!sourceOnly || selected);
+    CHECK(!fault || A3D_CAPTURE);
     const char* driver = std::getenv("SDL_AUDIO_DRIVER");
     if (dummy) {
         CHECK(driver && std::strcmp(driver, "dummy") == 0);
@@ -268,25 +505,26 @@ int main(int argc, char** argv) {
         CHECK(std::getenv("CSE_ROOT_LIVE_OUTPUT_AUTHORIZED") &&
             std::strcmp(std::getenv("CSE_ROOT_LIVE_OUTPUT_AUTHORIZED"), "1") == 0);
     }
-    const bool fault = argc == 7 && std::strcmp(argv[6], "--inject-put-failure") == 0;
-    CHECK(argc == 6 || fault);
-    CHECK(!fault || A3D_CAPTURE);
     CHECK(SDL_WasInit(SDL_INIT_AUDIO) == 0);
-    std::printf("mode=%s instrumented=%d guid_selected_public_api=OPEN physical_audibility=UNQUALIFIED\n",
-        dummy ? "dummy" : "actual-default-output", A3D_CAPTURE);
+    SDL_SetMainReady();
+    std::printf("mode=%s instrumented=%d selected_source_only=%d physical_audibility=UNQUALIFIED\n",
+        argv[1], A3D_CAPTURE, sourceOnly);
     for (unsigned cycle = 0; cycle < kCycles; ++cycle) {
-        ResetCapture();
+        ResetCapture(capture);
         cse::Mpg123MusicPlayer music;
-        StartOwners(music, argv[4]);
-        if (dummy) {
-            CHECK(std::strcmp(SDL_GetCurrentAudioDriver(), "dummy") == 0);
-        }
         {
-            Module module(argv[2], argv[3]);
+            // Exact-name admission precedes default DMA/music opens as well.
+            Module module(argv[2], argv[3], requested, first);
+            if (!sourceOnly) {
+                StartOwners(music, argv[4]);
+            }
             auto* sound = module.Provider();
             sound->Release();
-            ResetCapture();
+            ResetCapture(capture);
             auto* api = module.Api();
+            if (dummy) {
+                CHECK(std::strcmp(SDL_GetCurrentAudioDriver(), "dummy") == 0);
+            }
             std::printf("backend=%s cycle=%u\n", SDL_GetCurrentAudioDriver(), cycle);
             auto* buffer = Source(api);
             CHECK(buffer->Play(A3D_LOOPED) == S_OK);
@@ -300,13 +538,11 @@ int main(int argc, char** argv) {
             CHECK(buffer->Play(A3D_LOOPED) == S_OK);
             CHECK(api->Flush() == S_OK);
             ObserveProgress(buffer, "resumed");
-            OwnersProgress(music);
-            if (cycle == 1) {
-                // Reverse teardown: real engine/music owners retire while A3D continues.
-                music.Shutdown();
-                music.Shutdown();
-                SNDDMA_Shutdown();
-                SNDDMA_Shutdown();
+            if (!sourceOnly) {
+                OwnersProgress(music, "coexistence");
+            }
+            if (!sourceOnly && cycle == 1) {
+                StopOwners(music, argv[5], cycle);
                 CHECK(SDL_WasInit(SDL_INIT_AUDIO) == SDL_INIT_AUDIO);
                 ObserveProgress(buffer, "after_other_owners_shutdown");
             }
@@ -322,19 +558,23 @@ int main(int argc, char** argv) {
             buffer->Release();
             api->Release();
             CHECK(module.unload() == S_OK);
-            // Close joined/quiesced output: callback bytes may now be read.
             DrainCapture(argv[5], cycle);
         }
-        if (cycle != 1) {
-            OwnersProgress(music);
+        if (!sourceOnly && cycle != 1) {
+            OwnersProgress(music, "after_a3d_teardown");
+            StopOwners(music, argv[5], cycle);
         }
-        music.Shutdown();
-        music.Shutdown();
-        SNDDMA_Shutdown();
-        SNDDMA_Shutdown();
         CHECK(SDL_WasInit(SDL_INIT_AUDIO) == 0);
         std::printf("cycle=%u unload_absent=1 owner_shutdown_balanced=1\n", cycle);
     }
+#if A3D_CAPTURE
+    if (sourceOnly) {
+        constexpr unsigned kOpensPerCycle = 2; // Low-level provider, then public source provider.
+        CHECK(capture.defaultOpens == 0 && capture.explicitOpens == kCycles * kOpensPerCycle);
+        std::printf("selected_source_only explicit_opens=%u default_opens=0 dma_music_owners=UNOPENED\n",
+            capture.explicitOpens);
+    }
+#endif
     CHECK(!capture.recursion);
     CHECK(!fault || capture.failures == kCycles);
     std::printf("PASS cycles=%u injected_transport_failures=%u hardware_removal=UNRUN public_restore=UNSUPPORTED\n",

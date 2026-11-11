@@ -21,18 +21,29 @@ SDL_AudioStream* SDLCALL ObserveOpen(SDL_AudioDeviceID id, const SDL_AudioSpec* 
         capture.recursion = true;
         return nullptr;
     }
+    CHECK(SDL_IsMainThread());
+    if (id == SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK) {
+        ++capture.defaultOpens;
+    } else {
+        ++capture.explicitOpens;
+    }
     forwarding = true;
     SDL_AudioStream* stream = realOpen(id, format, callback, context);
     forwarding = false;
-    if (stream && capture.admitting.load()) {
-        CHECK(SDL_GetAudioStreamFormat(stream, &capture.input, &capture.conversion));
-        CHECK(capture.input.freq == format->freq && capture.input.channels == format->channels &&
-            capture.input.format == format->format);
-        capture.logicalDevice = SDL_GetAudioStreamDevice(stream);
-        CHECK(SDL_GetAudioDeviceFormat(capture.logicalDevice, &capture.device, nullptr));
-        const char* name = SDL_GetAudioDeviceName(capture.logicalDevice);
-        std::snprintf(capture.name.data(), capture.name.size(), "%s", name ? name : "unknown");
-        capture.stream.store(stream);
+    CHECK(!(capture.admitting.load() && capture.admittingMusic.load()));
+    A3dStreamCapture* target = capture.admitting.load() ? &capture :
+        (capture.admittingMusic.load() ? &capture.music : nullptr);
+    if (stream && target) {
+        CHECK(SDL_GetAudioStreamFormat(stream, &target->input, &target->conversion));
+        CHECK(target->input.freq == format->freq && target->input.channels == format->channels &&
+            target->input.format == format->format);
+        target->requestedDevice = id;
+        target->logicalDevice = SDL_GetAudioStreamDevice(stream);
+        CHECK(SDL_GetAudioDeviceFormat(target->logicalDevice, &target->device, nullptr));
+        const char* name = SDL_GetAudioDeviceName(target->logicalDevice);
+        CHECK(name);
+        target->name = name;
+        target->stream.store(stream);
     }
     return stream;
 }
@@ -45,26 +56,29 @@ bool SDLCALL ObservePut(SDL_AudioStream* stream, const void* data, int bytes) {
         capture.recursion = true;
         return false;
     }
-    if (stream == capture.stream.load() && bytes > 0) {
-        if (capture.injectFailure.exchange(false)) {
-            capture.failures.fetch_add(1);
-            return false; // Explicit injected transport scenario only.
-        }
-        const std::size_t count = static_cast<std::size_t>(bytes);
-        const std::size_t begin = capture.bytes.fetch_add(count);
-        if (begin < capture.pcm.size()) {
-            std::memcpy(capture.pcm.data() + begin, data, std::min(count, capture.pcm.size() - begin));
-        }
-        const auto* samples = static_cast<const std::int16_t*>(data);
-        std::size_t nonzero = 0;
-        for (std::size_t index = 0; index < count / sizeof(*samples); ++index) {
-            nonzero += samples[index] != 0;
-        }
-        capture.nonzero.fetch_add(nonzero);
+    A3dStreamCapture* target = stream == capture.stream.load() ? &capture :
+        (stream == capture.music.stream.load() ? &capture.music : nullptr);
+    if (target == &capture && bytes > 0 && capture.injectFailure.exchange(false)) {
+        capture.failures.fetch_add(1);
+        return false; // Explicit injected transport scenario only; never music.
     }
     forwarding = true;
     const bool result = realPut(stream, data, bytes);
     forwarding = false;
+    if (result && target && bytes > 0) {
+        const std::size_t count = static_cast<std::size_t>(bytes);
+        const std::size_t begin = target->bytes.fetch_add(count);
+        if (begin < target->pcm.size()) {
+            const std::size_t bounded = std::min(count, target->pcm.size() - begin);
+            std::memcpy(target->pcm.data() + begin, data, bounded);
+            const auto* values = static_cast<const unsigned char*>(data);
+            std::size_t nonzero = 0;
+            for (std::size_t index = 0; index < bounded; ++index) {
+                nonzero += values[index] != 0;
+            }
+            target->nonzero.fetch_add(nonzero);
+        }
+    }
     return result;
 }
 
@@ -83,6 +97,9 @@ A3dCapture& A3dLiveCapture() {
 }
 A3dOpen A3dLiveOriginalOpen() {
     return realOpen;
+}
+A3dOpen A3dLiveObservedOpen() {
+    return ObserveOpen;
 }
 A3dPut A3dLiveOriginalPut() {
     return realPut;
