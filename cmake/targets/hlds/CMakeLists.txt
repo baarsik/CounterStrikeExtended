@@ -388,3 +388,27 @@ set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPER
 set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
 endif()
 cse_runtime_directory(hlds "")
+if(NOT WIN32)
+  cse_link_sdl3(hlds Debug)
+  cse_link_sdl3(hlds Release)
+endif()
+if(APPLE)
+  cse_runtime_assets(hlds "platform/Admin"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/Admin.html"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/BanPanel.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/CreateMultiplayerGameServerPage.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/DialogAddBan.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/DialogCvarChange.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/DialogGamePanelInfo.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/GamePanelInfo.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/GraphPanel.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/MainServerConfig.vdf"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/MapCycleEditDialog.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/PlayerPanel.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/RawLogPanel.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/ServerConfigPanel.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/VarEditDialog_ComboBox.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/VarEditDialog_String.res"
+    "${CSE_SDK_DIR}/deploy/platform/Admin/server_english.txt"
+  )
+endif()

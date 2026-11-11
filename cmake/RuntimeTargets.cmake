@@ -57,6 +57,18 @@ function(cse_runtime_directory target relative)
   endforeach()
 endfunction()
 
+# Required runtime assets are restored even when the binary itself is already current.
+# The retained manifest/translator supplies the explicit inventory, independently of optional distribution materials.
+function(cse_runtime_assets target relative)
+  set(destination "${CSE_OUTPUT_DIRECTORY}/${relative}")
+  add_custom_target(${target}_runtime_assets
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${destination}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${ARGN} "${destination}"
+    DEPENDS ${ARGN}
+    VERBATIM COMMENT "Stage required ${target} runtime resources")
+  add_dependencies(${target} ${target}_runtime_assets)
+endfunction()
+
 function(cse_native_module_alias target name)
   if(WIN32)
     return()

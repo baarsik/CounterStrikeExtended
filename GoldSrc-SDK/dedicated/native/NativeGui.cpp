@@ -1,4 +1,7 @@
 #include "NativeGui.h"
+#include "../AdminServer.h"
+#include <SDL3/SDL.h>
+#include <filesystem>
 #include "../../public/native_standalone_interfaces.h"
 #include "../../GameUI/common/IVGuiModule.h"
 #include "../../common/IAdminServer.h"
@@ -42,7 +45,17 @@ CMainPanel::CMainPanel(CreateInterfaceFn*, int) : Panel(NULL, "CMainPanel") {
 }
 #pragma warning(pop)
 
-CMainPanel::~CMainPanel() {}
+CMainPanel::~CMainPanel() {
+    vgui2::ivgui()->RemoveTickSignal(GetVPanel());
+    if (m_hResourceWait) {
+        vgui2::filesystem()->CancelWaitForResources(m_hResourceWait);
+        m_hResourceWait = 0;
+    }
+    if (m_hProgress.Get()) {
+        delete m_hProgress.Get();
+        m_hProgress = nullptr;
+    }
+}
 
 void CMainPanel::Printf(char* text) {
     if (m_pManageServer) {
@@ -94,11 +107,12 @@ void CMainPanel::StartServer(char* command) {
     m_pConfig->GetServerInfo(&m_Server);
     m_pConfig->SetVisible(false);
 
+    std::free(gpszCvars);
     gpszCvars = (char*)malloc(strlen(command) + 1);
 #pragma warning(suppress : 6387)
     strcpy(gpszCvars, command);
     m_hProgress = new vgui2::ProgressBox("#Start_Server_Loading_Title", "#Server_UpdatingSteamResources",
-                                         "Starting dedicated server...", NULL);
+                                         "Starting dedicated server...", this);
     m_hProgress->SetCancelButtonVisible(true);
     m_hProgress->ShowWindow(NULL);
 
@@ -141,18 +155,55 @@ namespace cse::dedicated {
 NativeGui::~NativeGui() {
     Close();
 }
-bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error) {
+bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error, std::uint64_t generation,
+    const std::string& runtimeRoot) {
+    if (!RemoteServer().Bind(modules.Admin(), generation)) {
+        error = "Missing admitted dedicated administration provider";
+        return false;
+    }
+    bound_ = true;
+    filesystem_ = modules.Filesystem();
+    const char* overridePath = std::getenv("CSE_DEDICATED_CONFIG_DIR");
+    if (overridePath) {
+        configPath_ = overridePath;
+    } else {
+        char* preferencePath = SDL_GetPrefPath("CounterStrikeExtended", "hlds");
+        if (preferencePath) {
+            configPath_ = preferencePath;
+            SDL_free(preferencePath);
+        }
+    }
+    std::error_code pathError;
+    if (configPath_.empty() || !std::filesystem::u8path(configPath_).is_absolute()) {
+        error = "Dedicated CONFIG requires an absolute writable settings directory";
+        Close();
+        return false;
+    }
+    std::filesystem::create_directories(std::filesystem::u8path(configPath_), pathError);
+    if (pathError) {
+        error = "Cannot create dedicated settings directory: " + pathError.message();
+        Close();
+        return false;
+    }
+    filesystem_->AddSearchPath(configPath_.c_str(), "CONFIG");
+    configAttached_ = true;
+    filesystem_->AddSearchPathNoWrite(runtimeRoot.c_str(), "MAIN");
+    const auto platformPath = (std::filesystem::u8path(runtimeRoot) / "platform").u8string();
+    filesystem_->AddSearchPathNoWrite(platformPath.c_str(), "PLATFORM");
     CreateInterfaceFn factories[] = {modules.VguiFactory(), modules.FilesystemFactory(), Sys_GetFactoryThis(),
                                      modules.EngineFactory()};
     if (!factories[0]) {
         error = "Missing admitted standalone VGUI factory";
+        Close();
         return false;
     }
     if (!vgui2::VGuiControls_Init("DEDICATED", factories, 4)) {
         error = "VGUI controls initialization failed";
+        Close();
         return false;
     }
     initialized_ = true;
+    vgui2::system()->SetUserConfigFile("DialogConfig.vdf", "CONFIG");
     auto factory = Sys_GetFactoryThis();
     admin_ = static_cast<IAdminServer*>(factory(ADMINSERVER_INTERFACE_VERSION, nullptr));
     adminModule_ = static_cast<IVGuiModule*>(factory("VGuiModuleAdminServer001", nullptr));
@@ -166,7 +217,11 @@ bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error) {
     vgui2::surface()->SetEmbeddedPanel(panel_->GetVPanel());
     adminModule_->SetParent(panel_->GetVPanel());
     panel_->SetVisible(true);
-    vgui2::scheme()->LoadSchemeFromFile("Resource/TrackerScheme.res", nullptr);
+    if (!vgui2::scheme()->LoadSchemeFromFile("Resource/TrackerScheme.res", nullptr)) {
+        error = "Cannot load retained dedicated VGUI scheme from runtime platform resources";
+        Close();
+        return false;
+    }
     vgui2::localize()->AddFile(modules.Filesystem(), "Resource/platform_%language%.txt");
     vgui2::localize()->AddFile(modules.Filesystem(), "Resource/vgui_%language%.txt");
     vgui2::localize()->AddFile(modules.Filesystem(), "Admin/server_%language%.txt");
@@ -194,10 +249,12 @@ bool NativeGui::Started(std::string& error) {
         error = "Admin panel disappeared during startup";
         return false;
     }
+    // Engine filesystem initialization may have rebuilt search paths.
+    filesystem_->AddSearchPath(configPath_.c_str(), "CONFIG");
     serveritem_t server{};
     panel_->m_pConfig->GetServerInfo(&server);
-    auto handle = admin_->OpenManageServerDialog(server.name, server.gameDir);
-    panel_->m_pManageServer = admin_->GetManageServerInterface(handle);
+    manageHandle_ = admin_->OpenManageServerDialog(server.name, server.gameDir);
+    panel_->m_pManageServer = admin_->GetManageServerInterface(manageHandle_);
     if (!panel_->m_pManageServer) {
         error = "Cannot create dedicated administration panel";
         return false;
@@ -211,6 +268,10 @@ bool NativeGui::Started(std::string& error) {
     return true;
 }
 void NativeGui::Stop() noexcept {
+    if (bound_) {
+        RemoteServer().Shutdown();
+        bound_ = false;
+    }
     if (panel_) {
         vgui2::ivgui()->RemoveTickSignal(panel_->GetVPanel());
         if (panel_->m_hResourceWait) {
@@ -224,6 +285,10 @@ void NativeGui::Stop() noexcept {
 }
 void NativeGui::Close() noexcept {
     Stop();
+    if (filesystem_ && configAttached_) {
+        // Engine shutdown may clear its search paths; panels still persist their user configuration below.
+        filesystem_->AddSearchPath(configPath_.c_str(), "CONFIG");
+    }
     if (adminModule_) {
         adminModule_->Shutdown();
         adminModule_ = nullptr;
@@ -235,8 +300,10 @@ void NativeGui::Close() noexcept {
         g_pMainPanelInstance = nullptr;
     }
     admin_ = nullptr;
+    manageHandle_ = 0;
     if (initialized_) {
         vgui2::ivgui()->RunFrame();
+        vgui2::system()->SaveUserConfigFile();
         vgui2::ivgui()->Shutdown();
         vgui2::system()->Shutdown();
         vgui2::scheme()->Shutdown(true);
@@ -244,12 +311,22 @@ void NativeGui::Close() noexcept {
         vgui2::VGuiControls_Shutdown();
         initialized_ = false;
     }
+    if (filesystem_ && configAttached_) {
+        filesystem_->RemoveSearchPath(configPath_.c_str());
+    }
+    filesystem_ = nullptr;
+    configPath_.clear();
+    configAttached_ = false;
     std::free(gpszCvars);
     gpszCvars = nullptr;
 }
 void NativeGui::Print(char* text) {
-    if (panel_) {
-        panel_->Printf(text);
+    // A close action may have deleted the frame before engine shutdown emits its final log.
+    auto* receiver = admin_ ? admin_->GetManageServerInterface(manageHandle_) : nullptr;
+    if (receiver) {
+        receiver->AddToConsole(text);
+    } else if (text) {
+        std::fputs(text, stderr);
     }
 }
 } // namespace cse::dedicated

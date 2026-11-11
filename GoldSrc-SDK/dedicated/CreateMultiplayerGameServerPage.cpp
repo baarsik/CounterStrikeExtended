@@ -4,11 +4,16 @@
 //
 // $NoKeywords: $
 //=============================================================================
+#if defined(_WIN32)
 #include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+#include "native/AdminCommands.h"
 
 #include "CreateMultiplayerGameServerPage.h"
 #include "sys_ded.h"
-#include "../Common/icommandline.h"
+#include "../common/icommandline.h"
 #include "../common/netapi.h"
 
 #include "Button.h"
@@ -19,7 +24,7 @@
 #endif
 #include "MessageBox.h"
 #include "controls.h"
-#include "FileSystem.h"
+#include "../public/FileSystem.h"
 #include "vgui/ISystem.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
@@ -34,8 +39,7 @@
 #include <string.h>
 
 static char fallbackDir[512];
-static const wchar_t* const sourceFile =
-	L"c:\\buildslave\\goldsrc_win32\\build\\GoldSrc\\dedicated\\CreateMultiplayerGameServerPage.cpp";
+
 
 #ifdef _MSC_VER
 #pragma warning( suppress: 26495 )
@@ -46,6 +50,10 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage( vgui2::Panel
 	memset( &m_Server, 0, sizeof( m_Server ) );
 	m_pParent = parent;
 	m_pConfig = NULL;
+    m_szMod[0] = 0;
+    m_szMapName[0] = 0;
+    m_szHostName[0] = 0;
+    m_szRconPassword[0] = 0;
 	m_iCurrentGame = 0;
 	SetMinimumSize( 310, 350 );
 	SetSize( 310, 350 );
@@ -57,14 +65,8 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage( vgui2::Panel
 	m_pMapList->SetEditable( false );
 	m_pNetworkList = new vgui2::ComboBox( this, "NetworkCombo", 10, false );
 	int internet = m_pNetworkList->AddItem( "#Internet", NULL );
-	int lan = m_pNetworkList->AddItem( "#LAN", NULL );
-	if ( cmdline->CheckParm( "-steam", NULL ) )
-	{
-		int offline = 0;
-		vgui2::system()->GetRegistryInteger( "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Offline", offline );
-		if ( offline == 1 )
-			internet = lan;
-	}
+	m_pNetworkList->AddItem( "#LAN", NULL );
+
 	m_pNetworkList->ActivateItem( internet );
 
 	m_pPlayersList = new vgui2::ComboBox( this, "NumPlayers", 10, false );
@@ -103,30 +105,18 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage( vgui2::Panel
 	m_szRconPassword[0] = 0;
 	m_iMaxPlayers = 24;
 
-	if ( cmdline->CheckParm( "-steam", NULL ) )
-	{
-		int offline = 0;
-		vgui2::system()->GetRegistryInteger( "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Offline", offline );
-		if ( offline == 1 )
-			m_pNetworkList->SetEnabled( false );
-	}
+
 	SetVisible( true );
-	if ( cmdline->CheckParm( "-steam", NULL ) )
-	{
-		int offline = 0;
-		vgui2::system()->GetRegistryInteger( "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Offline", offline );
-		if ( offline == 1 )
-		{
-			vgui2::MessageBox* message = new vgui2::MessageBox( "#Start_Server_Offline_Title",
-				"#Start_Server_Offline_Warning", NULL );
-			message->DoModal( NULL );
-		}
-	}
+
 }
 
 CCreateMultiplayerGameServerPage::~CCreateMultiplayerGameServerPage()
 {
-	m_pConfig->SaveToFile( vgui2::filesystem(), "Server.vdf", "CONFIG" );
+	if (m_pConfig) {
+        m_pConfig->SaveToFile(vgui2::filesystem(), "Server.vdf", "CONFIG");
+        m_pConfig->deleteThis();
+        m_pConfig = nullptr;
+    }
 }
 
 void CCreateMultiplayerGameServerPage::GetServerInfo( serveritem_t* server )
@@ -257,8 +247,7 @@ void CCreateMultiplayerGameServerPage::LoadModList()
 void CCreateMultiplayerGameServerPage::LoadMapList()
 {
 	m_pMapList->DeleteAllItems();
-	if ( !strlen( m_szMod ) )
-		_wassert( L"strlen(m_szMod ) > 0", sourceFile, 613 );
+	assert(m_szMod[0] != 0);
 	if ( !m_szMod[0] )
 	{
 		m_pMapList->SetEnabled( false );
@@ -328,6 +317,7 @@ int CCreateMultiplayerGameServerPage::LoadMaps( const char* gameDir )
 		const char* map = strstr( file, "maps" );
 		char name[256];
 		strncpy( name, map ? map + 5 : file, sizeof( name ) - 1 );
+        name[sizeof(name) - 1] = 0;
 #ifdef _MSC_VER
 #pragma warning( suppress: 6053 )
 #endif
@@ -353,8 +343,8 @@ void CCreateMultiplayerGameServerPage::OnCommand( const char* command )
 	char text[1024];
 	m_pPlayersList->GetText( text, sizeof( text ) );
 	m_iMaxPlayers = atoi( text );
-	strncpy( m_szHostName, GetControlString( "ServerNameEdit", "" ), sizeof( m_szHostName ) );
-	strncpy( m_szRconPassword, GetControlString( "RCONPasswordEdit", "" ), sizeof( m_szRconPassword ) );
+	GetControlString("ServerNameEdit", m_szHostName, sizeof(m_szHostName), "");
+	GetControlString("RCONPasswordEdit", m_szRconPassword, sizeof(m_szRconPassword), "");
 	m_iPort = GetControlInt( "PortEdit", 27015 );
 	if ( !_stricmp( command, "cancel" ) )
 	{
@@ -365,6 +355,15 @@ void CCreateMultiplayerGameServerPage::OnCommand( const char* command )
 	if ( _stricmp( command, "start" ) )
 		return;
 
+    std::string startupCommands;
+    if (!cse::dedicated::BuildStartupCommands(m_szHostName, m_szRconPassword, startupCommands)) {
+        auto* message = new vgui2::MessageBox("Invalid server settings",
+            "Use an alphanumeric RCON password of at least three characters and a server name "
+            "without quotes or control characters.", this);
+        message->DoModal(nullptr);
+        return;
+    }
+    std::snprintf(text, sizeof(text), "%s", startupCommands.c_str());
 	m_pMapList->GetText( m_szMapName, sizeof( m_szMapName ) );
 	int network = m_pNetworkList->GetActiveItem() != 0;
 	m_pConfig->SetInt( "MaxPlayers", m_iMaxPlayers );
@@ -383,25 +382,12 @@ void CCreateMultiplayerGameServerPage::OnCommand( const char* command )
 	m_pMapList->GetText( m_szMapName, sizeof( m_szMapName ) );
 	cmdline->SetParm( "+map", m_szMapName );
 	cmdline->SetParm( "-port", m_iPort );
-	if ( !secure )
-		cmdline->SetParm( "-insecure", "" );
+	if (!secure) {
+        cmdline->SetParm("-insecure", "");
+    } else {
+        cmdline->RemoveParm("-insecure");
+    }
 
-	bool invalidPassword = false;
-	if ( strlen( m_szRconPassword ) >= 3 )
-	{
-		for ( size_t i = 0; i < strlen( m_szRconPassword ); i++ )
-			invalidPassword |= isalnum( m_szRconPassword[i] ) == 0;
-	}
-	if ( strlen( m_szRconPassword ) < 3 || invalidPassword )
-	{
-		vgui2::MessageBox* message = new vgui2::MessageBox( "#Start_Server_RCON_Error_Title",
-			"#Start_Server_RCON_Error", NULL );
-		message->DoModal( NULL );
-		return;
-	}
-
-	_snprintf( text, sizeof( text ), "rcon_password \"%s\"\nsetmaster enable\nhostname \"%s\"\n",
-		m_szRconPassword, m_szHostName );
 	m_pNetworkList->GetActiveItem();
 	m_pModList->SetEnabled( false );
 	m_pPlayersList->SetEnabled( false );
@@ -449,8 +435,7 @@ void CCreateMultiplayerGameServerPage::OnTextChanged( vgui2::Panel* panel )
 			break;
 		}
 	}
-	if ( i == m_GameDirs.Count() )
-		_wassert( L"i != m_GameDirs.Count()", sourceFile, 718 );
+	assert(i != m_GameDirs.Count());
 	if ( useDefaultName )
 	{
 		_snprintf( defaultName, 255, "%s dedicated server", gameName );
@@ -468,8 +453,7 @@ bool CCreateMultiplayerGameServerPage::GetLiblistValue( const char* filename, co
 	if ( !filename || !key || !value )
 		return false;
 	FileHandle_t file = vgui2::filesystem()->Open( filename, "rb", NULL );
-	if ( !file )
-		_wassert( L"file != NULL", sourceFile, 499 );
+	assert(file != nullptr);
 	if ( !file )
 		return false;
 

@@ -33,12 +33,19 @@
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
 
+#if defined(_WIN32)
 #include <direct.h>
 #include <io.h>
+#else
+#include "native/AdminFiles.h"
+#include <unistd.h>
+#endif
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
+#include <algorithm>
 
 class TokenLine
 {
@@ -110,7 +117,7 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CAdminServer, IVGuiModule, "VGuiModuleAdminSe
 
 IGameServerData* g_pGameServerData = NULL;
 
-static char s_ServerResponse[65536];
+
 
 static const Color CPU_COLOR( 0, 255, 0, 255 );
 static const Color FPS_COLOR( 255, 0, 0, 255 );
@@ -119,182 +126,192 @@ static const Color OUT_COLOR( 0, 255, 255, 255 );
 static const Color PLAYERS_COLOR( 255, 0, 255, 255 );
 static const Color PING_COLOR( 0, 0, 0, 255 );
 
-static void PutBoundedString( CUtlBuffer& buffer, const char* text, int maxLength )
-{
-	int length = (int)strlen( text );
-	if ( length > maxLength )
-		length = maxLength;
-
-	if ( length > 0 )
-		buffer.Put( text, length );
-	buffer.PutChar( 0 );
+static void PutBoundedString(CUtlBuffer& buffer, const char* text, int) {
+    buffer.PutString(text);
 }
 
-static int ReadResponseInt( const char* data, int size, int& pos )
-{
-	int value = 0;
-	if ( pos + (int)sizeof( int ) <= size )
-	{
-		memcpy( &value, data + pos, sizeof( int ) );
-		pos += (int)sizeof( int );
-	}
-	else
-	{
-		pos = size;
-	}
-	return value;
+CRemoteServer& RemoteServer() {
+    static CRemoteServer remote;
+    return remote;
 }
 
-CRemoteServer& RemoteServer()
-{
-	static CRemoteServer s_RemoteServer;
-	return s_RemoteServer;
+CRemoteServer::CRemoteServer() = default;
+
+CRemoteServer::~CRemoteServer() {
+    Shutdown();
 }
 
-CRemoteServer::CRemoteServer() : m_ResponseHandlers( 0, 0 ), m_MessageHandlers( 0, 0 )
-{
-	m_iCurrentRequestID = 0;
-	m_bInitialized = false;
+void CRemoteServer::Initialize() {
+    // Legacy Windows factory entry; native callers bind their admitted view explicitly.
+    auto* provider = g_pGameServerData;
+    Bind(provider, m_generation + 1);
 }
 
-CRemoteServer::~CRemoteServer()
-{
+bool CRemoteServer::Bind(IGameServerData* provider, std::uint64_t generation) {
+    Shutdown();
+    if (!provider || !generation) {
+        return false;
+    }
+    // Updates have no wire request ID/generation. Discard the retired provider queue before new listeners exist.
+    constexpr int MaximumPacketBytes = 65536;
+    constexpr int MaximumRetiredPackets = 65536;
+    char discarded[MaximumPacketBytes];
+    int packets = 0;
+    while (provider->ReadDataResponse(discarded, sizeof(discarded)) > 0) {
+        if (++packets == MaximumRetiredPackets) {
+            return false;
+        }
+    }
+    m_provider = provider;
+    m_generation = generation;
+    g_pGameServerData = provider;
+    return true;
 }
 
-void CRemoteServer::Initialize()
-{
-	m_bInitialized = true;
+void CRemoteServer::Shutdown() {
+    for (auto& registration : m_ResponseHandlers) {
+        registration->live = false;
+    }
+    for (auto& registration : m_MessageHandlers) {
+        registration->live = false;
+    }
+    m_ResponseHandlers.clear();
+    m_MessageHandlers.clear();
+    g_pGameServerData = nullptr;
+    m_provider = nullptr;
+    m_generation = 0;
 }
 
-void CRemoteServer::WriteRequest( int requestType, const char* variable, int variableLength, const char* value,
-	int valueLength )
-{
-	if ( !g_pGameServerData )
-		return;
-
-	CUtlBuffer cmd( 0, 512, false );
-	cmd.PutInt( m_iCurrentRequestID++ );
-	cmd.PutInt( requestType );
-	PutBoundedString( cmd, variable, variableLength );
-	PutBoundedString( cmd, value, valueLength );
-
-	g_pGameServerData->WriteDataRequest( cmd.Base(), cmd.TellPut() );
+bool CRemoteServer::WriteRequest(int requestType, const char* variable, int variableLength, const char* value,
+    int valueLength) {
+    if (!m_provider || !variable || !value ||
+        std::strlen(variable) > static_cast<std::size_t>(variableLength) ||
+        std::strlen(value) > static_cast<std::size_t>(valueLength) ||
+        m_nextRequestID > (std::numeric_limits<std::int32_t>::max)()) {
+        return false;
+    }
+    CUtlBuffer command(0, 512, false);
+    command.PutInt(static_cast<std::int32_t>(m_nextRequestID++));
+    command.PutInt(requestType);
+    PutBoundedString(command, variable, variableLength);
+    PutBoundedString(command, value, valueLength);
+    m_provider->WriteDataRequest(command.Base(), command.TellPut());
+    return true;
 }
 
-void CRemoteServer::RequestValue( IServerDataResponse* requester, const char* variable )
-{
-	int i = m_ResponseHandlers.AddToTail();
-	m_ResponseHandlers[i].requestID = m_iCurrentRequestID;
-	m_ResponseHandlers[i].handler = requester;
-
-	WriteRequest( SERVERDATA_REQUESTVALUE, variable, 511, "", 511 );
+void CRemoteServer::RequestValue(IServerDataResponse* requester, const char* variable) {
+    constexpr int MaximumVariableLength = 511;
+    if (!requester || !variable || !m_provider || std::strlen(variable) > MaximumVariableLength ||
+        m_nextRequestID > (std::numeric_limits<std::int32_t>::max)()) {
+        return;
+    }
+    auto registration = std::make_shared<Registration>();
+    registration->requestID = static_cast<std::int32_t>(m_nextRequestID);
+    registration->handler = requester;
+    registration->name = variable;
+    m_ResponseHandlers.push_back(registration);
+    WriteRequest(SERVERDATA_REQUESTVALUE, variable, MaximumVariableLength, "", 0);
 }
 
-void CRemoteServer::SetValue( const char* variable, const char* value )
-{
-	WriteRequest( SERVERDATA_SETVALUE, variable, 255, value, 511 );
+void CRemoteServer::SetValue(const char* variable, const char* value) {
+    constexpr int MaximumVariableLength = 255;
+    constexpr int MaximumValueLength = 511;
+    WriteRequest(SERVERDATA_SETVALUE, variable, MaximumVariableLength, value, MaximumValueLength);
 }
 
-void CRemoteServer::SendCommand( const char* commandString )
-{
-	WriteRequest( SERVERDATA_EXECCOMMAND, commandString, 511, "", 511 );
+void CRemoteServer::SendCommand(const char* commandString) {
+    constexpr int MaximumCommandLength = 511;
+    WriteRequest(SERVERDATA_EXECCOMMAND, commandString, MaximumCommandLength, "", 0);
 }
 
-void CRemoteServer::AddServerMessageHandler( IServerDataResponse* handler, const char* update )
-{
-	int i = m_MessageHandlers.AddToTail();
-	strncpy( m_MessageHandlers[i].messageName, update, sizeof( m_MessageHandlers[i].messageName ) - 1 );
-	m_MessageHandlers[i].messageName[sizeof( m_MessageHandlers[i].messageName ) - 1] = 0;
-	m_MessageHandlers[i].handler = handler;
+void CRemoteServer::AddServerMessageHandler(IServerDataResponse* handler, const char* update) {
+    constexpr int MaximumMessageLength = 511;
+    if (!m_provider || !handler || !update || std::strlen(update) > MaximumMessageLength) {
+        return;
+    }
+    auto registration = std::make_shared<Registration>();
+    registration->handler = handler;
+    registration->name = update;
+    m_MessageHandlers.push_back(registration);
 }
 
-void CRemoteServer::RemoveServerDataResponseTarget( IServerDataResponse* invalidTarget )
-{
-	int i = m_ResponseHandlers.Head();
-	while ( m_ResponseHandlers.IsValidIndex( i ) )
-	{
-		int next = m_ResponseHandlers.Next( i );
-		if ( m_ResponseHandlers[i].handler == invalidTarget )
-			m_ResponseHandlers.Remove( i );
-		i = next;
-	}
-
-	i = m_MessageHandlers.Head();
-	while ( m_MessageHandlers.IsValidIndex( i ) )
-	{
-		int next = m_MessageHandlers.Next( i );
-		if ( m_MessageHandlers[i].handler == invalidTarget )
-			m_MessageHandlers.Remove( i );
-		i = next;
-	}
+void CRemoteServer::RemoveServerDataResponseTarget(IServerDataResponse* invalidTarget) {
+    for (auto* registrations : {&m_ResponseHandlers, &m_MessageHandlers}) {
+        for (auto& registration : *registrations) {
+            if (registration->handler == invalidTarget) {
+                registration->live = false;
+            }
+        }
+        registrations->erase(std::remove_if(registrations->begin(), registrations->end(),
+            [](const auto& registration) { return !registration->live; }), registrations->end());
+    }
 }
 
-bool CRemoteServer::ProcessServerResponse()
-{
-	if ( !g_pGameServerData )
-		return false;
-
-	bool bProcessedAnyPackets = false;
-	for ( ;; )
-	{
-		int bytesRead = g_pGameServerData->ReadDataResponse( s_ServerResponse, sizeof( s_ServerResponse ) );
-		if ( bytesRead < 1 )
-			break;
-
-		bProcessedAnyPackets = true;
-
-		int pos = 0;
-		int requestID = ReadResponseInt( s_ServerResponse, bytesRead, pos );
-		int responseType = ReadResponseInt( s_ServerResponse, bytesRead, pos );
-
-		char variable[64];
-		int nameLength = 0;
-		while ( pos < bytesRead && s_ServerResponse[pos] )
-		{
-			if ( nameLength < (int)sizeof( variable ) - 1 )
-				variable[nameLength++] = s_ServerResponse[pos];
-			pos++;
-		}
-		variable[nameLength] = 0;
-		if ( pos < bytesRead )
-			pos++;
-
-		if ( responseType == SERVERDATA_RESPONSE_VALUE )
-		{
-			int valueSize = ReadResponseInt( s_ServerResponse, bytesRead, pos );
-			if ( valueSize > bytesRead - pos )
-				valueSize = bytesRead - pos;
-
-			CUtlBuffer value( 0, valueSize > 0 ? valueSize + 1 : 1, false );
-			if ( valueSize > 0 )
-				value.Put( s_ServerResponse + pos, valueSize );
-			value.PutChar( 0 );
-
-			for ( int i = m_ResponseHandlers.Head(); m_ResponseHandlers.IsValidIndex( i ); i = m_ResponseHandlers.Next( i ) )
-			{
-				if ( m_ResponseHandlers[i].requestID == requestID )
-				{
-					IServerDataResponse* handler = m_ResponseHandlers[i].handler;
-					m_ResponseHandlers.Remove( i );
-					handler->OnServerDataResponse( variable, (const char*)value.Base() );
-					break;
-				}
-			}
-		}
-		else if ( responseType == SERVERDATA_UPDATE )
-		{
-			int i = m_MessageHandlers.Head();
-			while ( m_MessageHandlers.IsValidIndex( i ) )
-			{
-				int next = m_MessageHandlers.Next( i );
-				if ( !_stricmp( m_MessageHandlers[i].messageName, variable ) )
-					m_MessageHandlers[i].handler->OnServerDataResponse( variable, "" );
-				i = next;
-			}
-		}
-	}
-
-	return bProcessedAnyPackets;
+bool CRemoteServer::ProcessServerResponse() {
+    if (!m_provider || m_processing) {
+        return false;
+    }
+    m_processing = true;
+    struct ProcessingScope {
+        bool& processing;
+        ~ProcessingScope() { processing = false; }
+    } scope{m_processing};
+    auto* const provider = m_provider;
+    const auto generation = m_generation;
+    bool processed = false;
+    constexpr int MaximumPacketBytes = 65536;
+    constexpr int MaximumNameBytes = 512;
+    while (m_provider == provider && m_generation == generation) {
+        char packet[MaximumPacketBytes];
+        const int size = provider->ReadDataResponse(packet, sizeof(packet));
+        if (size <= 0) {
+            break;
+        }
+        processed = true;
+        constexpr int HeaderBytes = 2 * sizeof(std::int32_t);
+        if (size > MaximumPacketBytes || size < HeaderBytes + 1) {
+            continue;
+        }
+        std::int32_t requestID;
+        std::int32_t responseType;
+        std::memcpy(&requestID, packet, sizeof(requestID));
+        std::memcpy(&responseType, packet + sizeof(requestID), sizeof(responseType));
+        const char* name = packet + HeaderBytes;
+        const auto* end = static_cast<const char*>(std::memchr(name, 0, size - HeaderBytes));
+        if (!end || end - name >= MaximumNameBytes || requestID < 0) {
+            continue;
+        }
+        const int position = static_cast<int>(end - packet) + 1;
+        if (responseType == SERVERDATA_RESPONSE_VALUE) {
+            if (size - position < static_cast<int>(sizeof(std::int32_t))) {
+                continue;
+            }
+            std::int32_t valueSize;
+            std::memcpy(&valueSize, packet + position, sizeof(valueSize));
+            const int valuePosition = position + sizeof(valueSize);
+            if (valueSize <= 0 || valueSize != size - valuePosition || packet[size - 1] != 0) {
+                continue;
+            }
+            auto found = std::find_if(m_ResponseHandlers.begin(), m_ResponseHandlers.end(),
+                [&](const auto& entry) { return entry->requestID == requestID && entry->name == name; });
+            if (found != m_ResponseHandlers.end()) {
+                auto registration = *found;
+                m_ResponseHandlers.erase(found);
+                if (registration->live) {
+                    registration->live = false;
+                    registration->handler->OnServerDataResponse(name, packet + valuePosition);
+                }
+            }
+        } else if (responseType == SERVERDATA_UPDATE && position == size) {
+            const auto snapshot = m_MessageHandlers;
+            for (const auto& registration : snapshot) {
+                if (registration->live && !_stricmp(registration->name.c_str(), name)) {
+                    registration->handler->OnServerDataResponse(name, "");
+                }
+            }
+        }
+    }
+    return processed;
 }
 
 TokenLine::TokenLine()
@@ -923,14 +940,14 @@ void CDialogAddBan::OnCommand( const char* command )
 
 		if ( strlen( idbuf ) <= 0 )
 		{
-			vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_ID_Invalid", NULL );
+			vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_ID_Invalid", this );
 			dlg->DoModal( NULL );
 			return;
 		}
 
 		if ( strlen( buf ) <= 0 && !m_pPermBanRadio->IsSelected() )
 		{
-			vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_Time_Empty", NULL );
+			vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_Time_Empty", this );
 			dlg->DoModal( NULL );
 			return;
 		}
@@ -947,7 +964,7 @@ void CDialogAddBan::OnCommand( const char* command )
 
 			if ( time < 0.0f )
 			{
-				vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_Time_Invalid", NULL );
+				vgui2::MessageBox* dlg = new vgui2::MessageBox( "#Add_Ban_Error", "#Add_Ban_Time_Invalid", this );
 				dlg->DoModal( NULL );
 				return;
 			}
@@ -1101,6 +1118,15 @@ void CVarListPropertyPage::OnServerDataResponse( const char* value, const char* 
 	SetVarString( value, response );
 }
 
+void CVarListPropertyPage::AddReadOnlyValue(const char* name, const char* label) {
+    auto* row = new KeyValues(name);
+    row->SetString("name", label);
+    row->SetString("value", "Unknown");
+    row->SetInt("readonly", 1);
+    m_pRulesList->AddItem(row, 0, false, false);
+    row->deleteThis();
+}
+
 void CVarListPropertyPage::SetVarString( const char* varName, const char* value )
 {
 	int itemID = m_pRulesList->GetItem( varName );
@@ -1157,7 +1183,9 @@ void CVarListPropertyPage::EditVariable()
 	if ( !rule )
 		return;
 
-	OnEditVariable( rule );
+    if (!rule->GetInt("readonly", 0)) {
+        OnEditVariable(rule);
+    }
 }
 
 void CVarListPropertyPage::OnVarChanged( const char* var )
@@ -1203,6 +1231,13 @@ CServerInfoPanel::CServerInfoPanel( vgui2::Panel* parent, const char* name ) : C
 	m_bMapListRetrieved = false;
 	RemoteServer().AddServerMessageHandler( this, "UpdatePlayers" );
 	RemoteServer().AddServerMessageHandler( this, "UpdateMap" );
+    RemoteServer().AddServerMessageHandler(this, "ProviderStatus");
+    AddReadOnlyValue("provider_available", "Provider initialized");
+    AddReadOnlyValue("provider_connected", "Provider connected");
+    AddReadOnlyValue("provider_secure_requested", "Secure mode requested");
+    AddReadOnlyValue("provider_secure", "Secure mode active");
+    AddReadOnlyValue("provider_restart", "Provider requests restart");
+    AddReadOnlyValue("provider_failure", "Provider failure code");
 }
 
 CServerInfoPanel::~CServerInfoPanel()
@@ -1288,7 +1323,7 @@ void CServerInfoPanel::OnServerDataResponse( const char* value, const char* resp
 	{
 		PostActionSignal( new KeyValues( "UpdateTitle" ) );
 	}
-	else if ( !_stricmp( value, "UpdateMap" ) || !_stricmp( value, "UpdatePlayers" ) )
+	else if (!_stricmp(value, "UpdateMap") || !_stricmp(value, "UpdatePlayers") || !_stricmp(value, "ProviderStatus"))
 	{
 		m_flUpdateTime = 0.0f;
 	}
@@ -1596,11 +1631,11 @@ void CPlayerPanel::OnKickButtonPressed()
 		wchar_t msg[512];
 		vgui2::localize()->ConstructString( msg, sizeof( msg ), vgui2::localize()->Find( "Kick_Single_Player_Question" ), 1,
 			playerName );
-		box = new vgui2::QueryBox( vgui2::localize()->Find( "#Kick_Single_Player_Title" ), msg, NULL );
+		box = new vgui2::QueryBox( vgui2::localize()->Find( "#Kick_Single_Player_Title" ), msg, this );
 	}
 	else
 	{
-		box = new vgui2::QueryBox( "#Kick_Multiple_Players_Title", "#Kick_Multiple_Players_Question", NULL );
+		box = new vgui2::QueryBox( "#Kick_Multiple_Players_Title", "#Kick_Multiple_Players_Question", this );
 	}
 
 	UseUnscaledLayout( box );
@@ -1817,7 +1852,7 @@ void CBanPanel::OnRemoveBan()
 	wchar_t msg[256];
 	vgui2::localize()->ConstructString( msg, sizeof( msg ), vgui2::localize()->Find( "#Ban_Remove_Msg" ), 1, banName );
 
-	vgui2::QueryBox* box = new vgui2::QueryBox( vgui2::localize()->Find( "#Ban_Title_Remove" ), msg, NULL );
+	vgui2::QueryBox* box = new vgui2::QueryBox( vgui2::localize()->Find( "#Ban_Title_Remove" ), msg, this );
 	UseUnscaledLayout( box );
 	box->SetOKCommand( new KeyValues( "removebanbyid", "id", kv->GetString( "id" ) ) );
 	box->AddActionSignalTarget( this );
@@ -1908,6 +1943,7 @@ void CBanPanel::OnItemSelected()
 void CBanPanel::OnImportBanList()
 {
 	FileOpenDialog* dlg = new FileOpenDialog( this, "#Ban_Find_Ban_File", true );
+	dlg->AddActionSignalTarget(this);
 	dlg->AddFilter( "*.cfg", "#Config_files", true );
 	dlg->AddFilter( "*.*", "#All_files", false );
 	dlg->DoModal( true );
@@ -2317,6 +2353,7 @@ CGraphPanel::CGraphPanel( vgui2::Panel* parent, const char* name ) : PropertyPag
 //-----------------------------------------------------------------------------
 CGraphPanel::~CGraphPanel()
 {
+    vgui2::ivgui()->RemoveTickSignal(GetVPanel());
 	RemoteServer().RemoveServerDataResponseTarget( this );
 }
 
@@ -3115,9 +3152,14 @@ FileOpenDialog::FileOpenDialog( vgui2::Panel* parent, const char* title, bool bO
 	SetTitle( title, true );
 	SetMinimizeButtonVisible( false );
 	SetDeleteSelfOnClose( true );
-	strcpy( m_szLastPath, "c:\\" );
+#if defined(_WIN32)
+    strcpy(m_szLastPath, "c:\\");
+#else
+    strcpy(m_szLastPath, "/");
+#endif
 
 	m_pFullPathEdit = new vgui2::ComboBox( this, "FullPathEdit", 6, false );
+    m_pFullPathEdit->SetMaximumCharCount(sizeof(m_szLastPath) - 1);
 
 	m_pFileList = new vgui2::ListPanel( this, "FileList" );
 	m_pFileList->AddColumnHeader( 0, "image", "#FileOpenDialog_Icon", 20, vgui2::ListPanel::COLUMN_IMAGE );
@@ -3127,6 +3169,7 @@ FileOpenDialog::FileOpenDialog( vgui2::Panel* parent, const char* title, bool bO
 	m_pFileList->SetMultiSelectEnabled( false );
 
 	m_pFileNameEdit = new vgui2::TextEntry( this, "FileNameEdit" );
+    m_pFileNameEdit->SetMaximumCharCount(sizeof(m_szLastPath) - 1);
 	m_pFileNameEdit->AddActionSignalTarget( this );
 
 	m_pFileTypeCombo = new vgui2::ComboBox( this, "FileTypeCombo", 6, false );
@@ -3188,7 +3231,11 @@ FileOpenDialog::FileOpenDialog( vgui2::Panel* parent, const char* title, bool bO
 	SetSize( 426, 384 );
 
 	char localPath[1024];
-	if ( !_getcwd( localPath, sizeof( localPath ) - 1 ) )
+	#if defined(_WIN32)
+    if (!_getcwd(localPath, sizeof(localPath) - 1))
+#else
+    if (!getcwd(localPath, sizeof(localPath) - 1))
+#endif
 		strcpy( localPath, m_szLastPath );
 	localPath[sizeof( localPath ) - 1] = 0;
 	SetStartDirectory( localPath );
@@ -3215,6 +3262,20 @@ void FileOpenDialog::ApplySchemeSettings( vgui2::IScheme* pScheme )
 
 void FileOpenDialog::PopulateDriveList()
 {
+#if !defined(_WIN32)
+    char path[1024];
+    GetDirectory(path, sizeof(path));
+    m_pFullPathEdit->DeleteAllItems();
+    char roots[1024]{};
+    const int length = vgui2::system()->GetAvailableDrives(roots, sizeof(roots));
+    if (length > 0 && length <= static_cast<int>(sizeof(roots))) {
+        for (const auto& root : cse::dedicated::files::ParseRoots(roots, length)) {
+            m_pFullPathEdit->AddItem(root.c_str(), nullptr);
+        }
+    }
+    m_pFullPathEdit->AddItem(path, nullptr);
+    m_pFullPathEdit->SetText(path);
+#else
 	char fullpath[1024];
 	char subDirPath[1024];
 	GetDirectory( fullpath, sizeof( fullpath ) - 260 );
@@ -3225,9 +3286,13 @@ void FileOpenDialog::PopulateDriveList()
 	char buf[512];
 	int len = vgui2::system()->GetAvailableDrives( buf, sizeof( buf ) );
 	char* pBuf = buf;
-	for ( int i = 0; i < len / 4; i++ )
+	for (; len > 0 && len <= static_cast<int>(sizeof(buf)) && pBuf < buf + len && *pBuf; )
 	{
-		m_pFullPathEdit->AddItem( pBuf, NULL );
+        const char* end = static_cast<const char*>(std::memchr(pBuf, 0, buf + len - pBuf));
+        if (!end) {
+            break;
+        }
+        m_pFullPathEdit->AddItem(pBuf, nullptr);
 
 		if ( !_strnicmp( pBuf, fullpath, 2 ) )
 		{
@@ -3250,8 +3315,10 @@ void FileOpenDialog::PopulateDriveList()
 				pData++;
 			}
 		}
-		pBuf += 4;
+		pBuf += std::strlen(pBuf) + 1;
 	}
+
+#endif
 }
 
 void FileOpenDialog::OnClose()
@@ -3273,6 +3340,9 @@ void FileOpenDialog::OnCommand( const char* command )
 
 void FileOpenDialog::SetStartDirectory( const char* dir )
 {
+    if (!dir || std::strlen(dir) >= sizeof(m_szLastPath)) {
+        return;
+    }
 	m_pFullPathEdit->SetText( dir );
 
 	ValidatePath();
@@ -3319,6 +3389,17 @@ void FileOpenDialog::GetSelectedFileName( char* buf, int bufSize )
 
 void FileOpenDialog::MoveUpFolder()
 {
+#if !defined(_WIN32)
+    char path[1024];
+    GetDirectory(path, sizeof(path));
+    const auto parent = cse::dedicated::files::Parent(path);
+    if (parent.ok) {
+        SetStartDirectory(parent.path.c_str());
+        PopulateFileList();
+        InvalidateLayout(false, false);
+        Repaint();
+    }
+#else
 	char fullpath[1024];
 	GetDirectory( fullpath, sizeof( fullpath ) - 260 );
 
@@ -3341,10 +3422,21 @@ void FileOpenDialog::MoveUpFolder()
 	PopulateFileList();
 	InvalidateLayout( false, false );
 	Repaint();
+
+#endif
 }
 
 void FileOpenDialog::ValidatePath()
 {
+#if !defined(_WIN32)
+    char path[1024];
+    GetDirectory(path, sizeof(path));
+    const auto result = cse::dedicated::files::List(path, "*");
+    m_pOpenButton->SetEnabled(result.ok);
+    if (result.ok) {
+        std::snprintf(m_szLastPath, sizeof(m_szLastPath), "%s", path);
+    }
+#else
 	char fullpath[1024];
 	GetDirectory( fullpath, sizeof( fullpath ) - 260 );
 
@@ -3374,10 +3466,34 @@ void FileOpenDialog::ValidatePath()
 	}
 
 	m_pFullPathEdit->SetText( pData );
+
+#endif
 }
 
 void FileOpenDialog::PopulateFileList()
 {
+#if !defined(_WIN32)
+    m_pFileList->DeleteAllItems();
+    char path[1024];
+    GetDirectory(path, sizeof(path));
+    KeyValues* filter = m_pFileTypeCombo->GetActiveItemUserData();
+    const auto result = cse::dedicated::files::List(path, filter ? filter->GetString("filter", "*") : "*");
+    m_pOpenButton->SetEnabled(result.ok);
+    if (!result.ok) {
+        auto* message = new vgui2::MessageBox("Cannot open directory", result.error.c_str(), this);
+        message->DoModal(nullptr);
+        return;
+    }
+    for (const auto& entry : result.entries) {
+        auto* item = new KeyValues("item");
+        item->SetString("text", entry.name.c_str());
+        item->SetInt("image", entry.directory ? 2 : 1);
+        item->SetInt("directory", entry.directory ? 1 : 0);
+        m_pFileList->AddItem(item, 0, false, false);
+        item->deleteThis();
+    }
+    m_pFileList->SortList();
+#else
 	m_pFileList->DeleteAllItems();
 
 	char dir[1024];
@@ -3419,10 +3535,41 @@ void FileOpenDialog::PopulateFileList()
 
 	kv->deleteThis();
 	m_pFileList->SortList();
+
+#endif
 }
 
 void FileOpenDialog::OnOpen()
 {
+#if !defined(_WIN32)
+    char filename[1024];
+    char directory[1024];
+    GetSelectedFileName(filename, sizeof(filename));
+    GetDirectory(directory, sizeof(directory));
+    if (!std::strcmp(filename, "..")) {
+        MoveUpFolder();
+        m_pFileNameEdit->SetText("");
+        return;
+    }
+    const auto joined = cse::dedicated::files::Join(directory, filename);
+    if (!joined.ok) {
+        return;
+    }
+    const auto status = cse::dedicated::files::Stat(joined.path);
+    if (!status.ok) {
+        auto* message = new vgui2::MessageBox("Cannot open file", status.error.c_str(), this);
+        message->DoModal(nullptr);
+        return;
+    }
+    if (status.directory) {
+        SetStartDirectory(joined.path.c_str());
+        m_pFileNameEdit->SetText("");
+        PopulateFileList();
+        return;
+    }
+    PostActionSignal(new KeyValues("FileSelected", "fullpath", joined.path.c_str()));
+    PostMessage(this, new KeyValues("Close"), 0.0f);
+#else
 	ValidatePath();
 
 	char filename[260];
@@ -3467,6 +3614,8 @@ void FileOpenDialog::OnOpen()
 	PopulateDriveList();
 	PopulateFileList();
 	InvalidateLayout( false, false );
+
+#endif
 }
 
 void FileOpenDialog::OnItemSelected()
@@ -3557,8 +3706,8 @@ CGamePanelInfo::CGamePanelInfo( vgui2::Panel* parent, const char* name, const ch
 //-----------------------------------------------------------------------------
 // Purpose: Destructor
 //-----------------------------------------------------------------------------
-CGamePanelInfo::~CGamePanelInfo()
-{
+CGamePanelInfo::~CGamePanelInfo() {
+    vgui2::ivgui()->RemoveTickSignal(GetVPanel());
 }
 
 void CGamePanelInfo::ShowPage()
@@ -3582,7 +3731,7 @@ void CGamePanelInfo::AddToConsole( const char* msg )
 		{
 			m_hRestartQueryBox = new vgui2::QueryBox( "Server restart needed",
 				"Your server is out of date, and will not be listed\non the master server until you restart.\n\n"
-				"Do you wish to shutdown now?\n", NULL );
+				"Do you wish to shutdown now?\n", this );
 			UseUnscaledLayout( m_hRestartQueryBox );
 			m_hRestartQueryBox->AddActionSignalTarget( this );
 			m_hRestartQueryBox->SetOKCommand( new KeyValues( "RestartServer" ) );
@@ -3619,7 +3768,7 @@ void CGamePanelInfo::ShowMasterOutOfDateMessage( const char* details )
 	_snprintf( fullmsg.Base(), size, "%s\n\nDo you wish to shutdown now?\n", details );
 	fullmsg[size - 1] = 0;
 
-	m_hOutOfDateQueryBox = new vgui2::QueryBox( "Server restart pending", fullmsg.Base(), NULL );
+	m_hOutOfDateQueryBox = new vgui2::QueryBox( "Server restart pending", fullmsg.Base(), this );
 	UseUnscaledLayout( m_hOutOfDateQueryBox );
 	m_hOutOfDateQueryBox->AddActionSignalTarget( this );
 	m_hOutOfDateQueryBox->SetOKCommand( new KeyValues( "RestartServer" ) );
@@ -3652,7 +3801,7 @@ void CGamePanelInfo::OnClose()
 		return;
 	}
 
-	vgui2::QueryBox* box = new vgui2::QueryBox( "#Game_Stop_Server_Title", "#Game_Restart_Server", NULL );
+	vgui2::QueryBox* box = new vgui2::QueryBox( "#Game_Stop_Server_Title", "#Game_Restart_Server", this );
 	UseUnscaledLayout( box );
 	box->AddActionSignalTarget( this );
 	box->SetOKButtonText( "#Game_Stop_Server" );
@@ -3713,16 +3862,24 @@ CAdminServer::~CAdminServer()
 //-----------------------------------------------------------------------------
 // Purpose: links to vgui and engine interfaces
 //-----------------------------------------------------------------------------
-bool CAdminServer::Initialize( CreateInterfaceFn* factorylist, int factoryCount )
-{
-	for ( int i = 0; i < factoryCount; i++ )
-	{
-		if ( !g_pGameServerData && factorylist[i] )
-			g_pGameServerData = (IGameServerData*)( factorylist[i] )( GAMESERVERDATA_INTERFACE_VERSION, NULL );
-	}
-
-	RemoteServer().Initialize();
-	return true;
+bool CAdminServer::Initialize(CreateInterfaceFn* factorylist, int factoryCount) {
+#if defined(__APPLE__)
+    // NativeGui has bound the exact view admitted by DedicatedModuleSet.
+    return RemoteServer().IsBound();
+#else
+    IGameServerData* provider = nullptr;
+    for (int index = 0; index < factoryCount && !provider; ++index) {
+        if (factorylist[index]) {
+            provider = static_cast<IGameServerData*>(factorylist[index](GAMESERVERDATA_INTERFACE_VERSION, nullptr));
+        }
+    }
+    static std::uint64_t generation = 0;
+    if (generation == (std::numeric_limits<std::uint64_t>::max)()) {
+        RemoteServer().Shutdown();
+        return false;
+    }
+    return RemoteServer().Bind(provider, ++generation);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -3736,9 +3893,8 @@ bool CAdminServer::PostInitialize( CreateInterfaceFn*, int )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CAdminServer::IsValid()
-{
-	return true;
+bool CAdminServer::IsValid() {
+    return RemoteServer().IsBound();
 }
 
 //-----------------------------------------------------------------------------
@@ -3760,15 +3916,22 @@ vgui2::VPANEL CAdminServer::GetPanel()
 //-----------------------------------------------------------------------------
 // Purpose: Closes down the server browser for good
 //-----------------------------------------------------------------------------
-void CAdminServer::Shutdown()
-{
+void CAdminServer::Shutdown() {
+    RemoteServer().Shutdown();
+    for (int index = 1; index < m_OpenedManageDialog.Count(); ++index) {
+        CloseManageServerDialog(static_cast<ManageServerUIHandle_t>(index));
+    }
+    m_OpenedManageDialog.RemoveAll();
+    OpenedManageDialog_t empty{};
+    m_OpenedManageDialog.AddToTail(empty);
+    m_hParent = 0;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CAdminServer::Deactivate()
-{
+void CAdminServer::Deactivate() {
+    RemoteServer().Shutdown();
 }
 
 //-----------------------------------------------------------------------------
@@ -3789,6 +3952,9 @@ void CAdminServer::RunFrame()
 
 ManageServerUIHandle_t CAdminServer::OpenManageServerDialog( const char* serverName, const char* gameDir )
 {
+    if (!RemoteServer().IsBound()) {
+        return 0;
+    }
 	CGamePanelInfo* tab = new CGamePanelInfo( NULL, serverName, gameDir );
 	tab->SetParent( m_hParent );
 
@@ -3805,13 +3971,23 @@ ManageServerUIHandle_t CAdminServer::OpenManageServerDialog( unsigned int, unsig
 	return (ManageServerUIHandle_t)0;
 }
 
-void CAdminServer::CloseManageServerDialog( ManageServerUIHandle_t )
-{
+void CAdminServer::CloseManageServerDialog(ManageServerUIHandle_t handle) {
+    if (handle == 0 || handle >= static_cast<ManageServerUIHandle_t>(m_OpenedManageDialog.Count())) {
+        return;
+    }
+    auto& entry = m_OpenedManageDialog[handle];
+    const bool live = entry.manageInterface && vgui2::ivgui()->HandleToPanel(entry.handle);
+    auto* panel = live ? dynamic_cast<CGamePanelInfo*>(entry.manageInterface) : nullptr;
+    entry = {};
+    if (live && panel) {
+        vgui2::ivgui()->RemoveTickSignal(panel->GetVPanel());
+        delete panel;
+    }
 }
 
 IManageServer* CAdminServer::GetManageServerInterface( ManageServerUIHandle_t handle )
 {
-	if ( handle > 0 && (int)handle < m_OpenedManageDialog.Count() &&
+	if ( handle > 0 && handle < static_cast<ManageServerUIHandle_t>(m_OpenedManageDialog.Count()) &&
 		vgui2::ivgui()->HandleToPanel( m_OpenedManageDialog[handle].handle ) )
 	{
 		return m_OpenedManageDialog[handle].manageInterface;

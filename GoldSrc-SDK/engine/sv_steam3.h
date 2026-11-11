@@ -1,6 +1,7 @@
 #pragma once
 
 #include "const.h"
+#include "admin_provider_status.h"
 #include "../external/steamworks/isteamapps.h"
 #include "../external/steamworks/isteamfriends.h"
 #include "../external/steamworks/isteamgameserver.h"
@@ -52,6 +53,7 @@ public:
 	bool BLanOnly();
 	bool BWantsSecure();
 	bool BLoggedOn();
+    AdminProviderStatus QueryAdminStatus();
 
 	void OnGSClientApprove( GSClientApprove_t* result );
 	void OnGSClientDeny( GSClientDeny_t* result );
@@ -64,7 +66,9 @@ public:
 	friend qboolean Steam_GSBSecurePreference();
 
 private:
-	CCallback<CSteam3Server, GSClientApprove_t, true> m_CallbackGSClientApprove;
+	bool m_adminInitialized = false;
+    int m_adminFailure = 0;
+    CCallback<CSteam3Server, GSClientApprove_t, true> m_CallbackGSClientApprove;
 	CCallback<CSteam3Server, GSClientDeny_t, true> m_CallbackGSClientDeny;
 	CCallback<CSteam3Server, GSClientKick_t, true> m_CallbackGSClientKick;
 	CCallback<CSteam3Server, GSPolicyResponse_t, true> m_CallbackGSPolicyResponse;

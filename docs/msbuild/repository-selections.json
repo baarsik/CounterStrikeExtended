@@ -12343,6 +12343,8 @@
           "GenerateManifest": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Debug\\hlds.lastcodeanalysissucceeded",
           "CseSdl3Shared": "false",
+          "CseNativeSdl3": "true",
+          "CseMacDedicatedResources": "Admin.html;BanPanel.res;CreateMultiplayerGameServerPage.res;DialogAddBan.res;DialogCvarChange.res;DialogGamePanelInfo.res;GamePanelInfo.res;GraphPanel.res;MainServerConfig.vdf;MapCycleEditDialog.res;PlayerPanel.res;RawLogPanel.res;ServerConfigPanel.res;VarEditDialog_ComboBox.res;VarEditDialog_String.res;server_english.txt",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -12434,6 +12436,14 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/AdminFiles.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos"
@@ -12829,6 +12839,8 @@
           "GenerateManifest": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Release\\hlds.lastcodeanalysissucceeded",
           "CseSdl3Shared": "false",
+          "CseNativeSdl3": "true",
+          "CseMacDedicatedResources": "Admin.html;BanPanel.res;CreateMultiplayerGameServerPage.res;DialogAddBan.res;DialogCvarChange.res;DialogGamePanelInfo.res;GamePanelInfo.res;GraphPanel.res;MainServerConfig.vdf;MapCycleEditDialog.res;PlayerPanel.res;RawLogPanel.res;ServerConfigPanel.res;VarEditDialog_ComboBox.res;VarEditDialog_String.res;server_english.txt",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -12921,6 +12933,14 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/AdminFiles.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos"

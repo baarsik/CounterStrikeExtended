@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dedicated server administration</title>
+<style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem}code{font-family:monospace}h1,h2{line-height:1.25}</style>
+<h1>Dedicated server administration</h1>
+<p>Choose Counter-Strike or Half-Life, a map, the player limit, network mode, port, server name and RCON password in the startup window. Start launches the selected game with these settings.</p>
+<h2>Server settings</h2>
+<p>The main page shows the current game, address, players and uptime. Select an editable setting and choose Edit. The map-cycle editor changes the ordered list used for subsequent maps. The configuration page exposes the selected game's server variables.</p>
+<p>Internet/LAN and Secure are requests. Provider initialized, connected and secure-active values report the engine provider's current state separately. A secure request does not prove authentication or active protection. A nonzero provider failure code indicates the last observed connection failure; inspect the console for details. A provider restart request requires a clean server shutdown and relaunch.</p>
+<h2>Players, bans and console</h2>
+<p>The Players page supports kicking or banning selected players. The Bans page supports adding, removing, changing and importing bans from a local configuration file. Check the selected identity and duration before applying a ban.</p>
+<p>The Console page shows server output and accepts engine commands. For example, <code>status</code> prints current server information. Commands run with server-administrator privileges. The Graphs page displays periodic engine statistics.</p>
+<h2>Settings and shutdown</h2>
+<p>On macOS, server settings and dialog layout are stored in the per-user CounterStrikeExtended/hlds preference directory as <code>Server.vdf</code> and <code>DialogConfig.vdf</code>. Game configuration and map-cycle files remain managed by the game's filesystem.</p>
+<p>Use the server window's close action and confirm stopping the server. The launcher retires admin requests and closes its dialogs before unloading the engine. If startup fails, inspect the diagnostic and retry after correcting the reported resource or provider problem.</p>
+</html>

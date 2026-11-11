@@ -142,6 +142,30 @@ static uint64 g_currentGameConnectionSteamID;
 static uint32 g_nCurrentGameConnectionPort;
 static uint32 g_nCurrentGameConnectionIP;
 
+AdminProviderStatus CSteam3Server::QueryAdminStatus() {
+    AdminProviderStatus status;
+    if (!m_adminInitialized || !m_bLoggedOn) {
+        return status;
+    }
+    auto* provider = SteamGameServer();
+    if (!provider) {
+        return status;
+    }
+    status.available = true;
+    status.connected = provider->BLoggedOn();
+    status.secureRequested = m_bWantToBeSecure;
+    status.secure = provider->BSecure();
+    status.restartRequested = provider->WasRestartRequested();
+    status.failure = m_adminFailure;
+    return status;
+}
+
+AdminProviderStatus Steam_QueryAdminStatus() {
+    return s_Steam3Server ? s_Steam3Server->QueryAdminStatus() : AdminProviderStatus{};
+}
+
+extern void NotifyDedicatedServerUI(const char* message);
+
 CSteam3::CSteam3() : m_bLoggedOn( false ), m_bLogOnResult( false ), m_hSteamPipe( 0 )
 {
 }
@@ -493,7 +517,9 @@ void CSteam3Server::Activate()
 		return;
 	}
 
-	m_bLoggedOn = true;
+    m_adminFailure = 0;
+    m_adminInitialized = false;
+    m_bLoggedOn = true;
 	uint32 serverIP = 0;
 	if ( net_local_adr.type == NA_IP )
 		serverIP = NET_NetAdr_GetIPHostByteOrder( &net_local_adr );
@@ -524,6 +550,7 @@ void CSteam3Server::Activate()
 			 STEAMGAMESERVER_QUERY_PORT_SHARED, mode, gpszVersionString ) )
 		Sys_Error( "Unable to initialize Steam." );
 
+    m_adminInitialized = true;
 	SteamGameServer()->SetProduct( gpszProductString );
 	SteamGameServer()->SetModDir( gameDirectory );
 	SteamGameServer()->SetDedicatedServer( cls.state == ca_dedicated );
@@ -731,6 +758,11 @@ static void ReadLaunchCommandLine()
 
 void CSteam3Server::OnLogonFailure( SteamServerConnectFailure_t* failure )
 {
+    if (!m_adminInitialized) {
+        return;
+    }
+    m_adminFailure = static_cast<int>(failure->m_eResult);
+    NotifyDedicatedServerUI("ProviderStatus");
 	if ( !m_bLogOnResult && failure->m_eResult != k_EResultServiceUnavailable )
 	{
 		if ( !m_bLanOnly )
@@ -738,7 +770,7 @@ void CSteam3Server::OnLogonFailure( SteamServerConnectFailure_t* failure )
 	}
 	else if ( !m_bLogOnResult && !m_bLanOnly )
 	{
-		Con_Printf( "Connection to Steam servers successful (SU).\n" );
+		Con_Printf( "Steam servers unavailable; authentication has not succeeded.\n" );
 		if ( m_bWantToBeSecure )
 			Con_Printf( "   VAC secure mode not available.\n" );
 	}
@@ -752,6 +784,10 @@ void CSteam3Server::OnFakeIPResult( SteamNetworkingFakeIPResult_t* )
 
 void CSteam3Server::OnGSPolicyResponse( GSPolicyResponse_t* )
 {
+    if (!m_adminInitialized) {
+        return;
+    }
+    NotifyDedicatedServerUI("ProviderStatus");
 	if ( SteamGameServer()->BSecure() )
 		Con_Printf( "   VAC secure mode is activated.\n" );
 	else
@@ -909,6 +945,11 @@ void CSteam3Server::OnGSClientKick( GSClientKick_t* result )
 
 void CSteam3Server::OnLogonSuccess( SteamServersConnected_t* )
 {
+    if (!m_adminInitialized) {
+        return;
+    }
+    m_adminFailure = 0;
+    NotifyDedicatedServerUI("ProviderStatus");
 	if ( m_bLogOnResult )
 	{
 		if ( !m_bLanOnly )
@@ -926,6 +967,8 @@ void CSteam3Server::OnLogonSuccess( SteamServersConnected_t* )
 
 void CSteam3Server::Shutdown()
 {
+    m_adminInitialized = false;
+    m_adminFailure = 0;
 	if ( !m_bLoggedOn )
 		return;
 

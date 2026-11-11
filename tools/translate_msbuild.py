@@ -432,6 +432,29 @@ def emit_native_sdl3_dependency(lines, target, configs):
         lines.append('endif()')
 
 
+def emit_mac_dedicated_resources(lines, target, configs):
+    selections = [split(configs[name]['properties'].get('CseMacDedicatedResources', ''))
+                  for name in ('Debug', 'Release')]
+    if not any(selections):
+        return
+    if target != 'hlds' or selections[0] != selections[1]:
+        raise ValueError('Dedicated runtime resource selection must belong to hlds and match configurations')
+    resources = selections[0]
+    if len(set(resources)) != len(resources):
+        raise ValueError('Duplicate dedicated runtime resource')
+    lines.append('if(APPLE)')
+    lines.append('  cse_runtime_assets(hlds "platform/Admin"')
+    for resource in resources:
+        if not re.fullmatch(r'[A-Za-z0-9_]+\.(res|vdf|txt|html)', resource):
+            raise ValueError('Invalid dedicated resource name: ' + resource)
+        source = SDK / 'deploy/platform/Admin' / resource
+        if not source.is_file():
+            raise ValueError('Missing dedicated runtime resource: ' + str(source))
+        lines.append('    ' + quote(portable(str(source))))
+    lines.append('  )')
+    lines.append('endif()')
+
+
 def emit_mac_software_lifetime(lines, target, configs):
     """Only the owning swds module may select its qualified private clipboard registry."""
     values = [configs[config]['properties'].get('CseMacSoftwareLifetime', '') for config in ('Debug', 'Release')]
@@ -839,6 +862,7 @@ def main():
         lines.append(f'cse_runtime_directory({target} {quote(subdir)})')
         emit_native_module_aliases(lines, target, configs)
         emit_native_sdl3_dependency(lines, target, configs)
+        emit_mac_dedicated_resources(lines, target, configs)
         if target == 'vgui':
             lines.append('cse_vgui_import_archive()')
         dest = ROOT / 'cmake/targets' / target / 'CMakeLists.txt'
