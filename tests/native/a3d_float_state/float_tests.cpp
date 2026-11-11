@@ -380,6 +380,63 @@ void PcmTest(const std::filesystem::path& reference, bool capture) {
         "capture accepts only recorded precision-mask assertions; qualified pipeline reports none");
 }
 
+void ConversionProbe(bool verify = false) {
+    std::fenv_t savedEnvironment{};
+    Require(std::fegetenv(&savedEnvironment) == 0, "save conversion floating environment");
+    const NativeState original = ReadNativeState();
+    // IEEE binary32 values: NaN, infinities, int32 edges, large finite,
+    // half-way ties, PCM clipping and signed zero. Captured on Windows first.
+    constexpr std::uint32_t inputs[] = {
+        0x7fc00000, 0x7f800000, 0xff800000, 0x4f000000, 0x4effffff,
+        0xcf000000, 0xcf000001, 0x7f7fffff, 0xff7fffff, 0x3f000000,
+        0x3fc00000, 0x40200000, 0xbf000000, 0xbfc00000, 0xc0200000,
+        0x46fffe00, 0x46ffff00, 0x47000000, 0xc7000000, 0xc7000080,
+        0x00000000, 0x80000000
+    };
+    // All22 literal outputs agree across genuine x86/x64 Release/Debug captures.
+    // Provenance and exact input/output pairs: fixtures/conversion-manifest.json.
+    constexpr SHORT expected[] = {
+        -32768, -32768, -32768, -32768, 32767, -32768, -32768, -32768, -32768,
+        0, 2, 2, 0, -2, -2,
+        32767, 32767, 32767, -32768, -32768, 0, 0
+    };
+    std::array<float, std::size(inputs)> samples{};
+    std::array<SHORT, std::size(inputs)> output{};
+    std::memcpy(samples.data(), inputs, sizeof(inputs));
+    Require(std::fesetround(FE_TONEAREST) == 0, "conversion round to nearest");
+    const NativeState before = ReadNativeState();
+    Mixer_FloatToPcm16(samples.data(), output.data(), static_cast<DWORD>(output.size()));
+    const NativeState after = ReadNativeState();
+#if defined(_M_ARM64) || defined(__aarch64__)
+    Require(after.control == before.control, "conversion preserves native FPCR control");
+#else
+    constexpr std::uint64_t cumulativeExceptionMask = 0x3f;
+    Require((after.control & ~cumulativeExceptionMask) == (before.control & ~cumulativeExceptionMask),
+        "conversion preserves native SIMD control");
+#endif
+    if (verify) {
+        for (std::size_t count = 0; count <= std::size(inputs); ++count) {
+            constexpr SHORT sentinel = 12345;
+            std::array<SHORT, std::size(inputs) + 2> bounded{};
+            bounded.fill(sentinel);
+            Mixer_FloatToPcm16(samples.data(), bounded.data() + 1, static_cast<DWORD>(count));
+            Require(bounded.front() == sentinel && bounded[count + 1] == sentinel,
+                "conversion does not touch adjacent output");
+            for (std::size_t index = 0; index < count; ++index) {
+                Require(bounded[index + 1] == expected[index], "qualified Windows conversion edge");
+            }
+        }
+    }
+    for (std::size_t index = 0; index < output.size(); ++index) {
+        std::printf("CONVERSION %08x %d\n", inputs[index], static_cast<int>(output[index]));
+    }
+    Require(std::fesetenv(&savedEnvironment) == 0, "restore conversion floating environment");
+    WriteNativeState(original);
+    const NativeState restored = ReadNativeState();
+    Require(restored.control == original.control && restored.status == original.status,
+        "conversion fixture restores complete caller native state");
+}
+
 }
 
 int main(int argc, char** argv) {
@@ -392,6 +449,10 @@ int main(int argc, char** argv) {
         PcmTest(argv[2], std::strcmp(argv[1], "write-pcm") == 0);
     } else if (std::strcmp(argv[1], "state") == 0) {
         StateTest();
+    } else if (std::strcmp(argv[1], "conversion") == 0) {
+        ConversionProbe(true);
+    } else if (std::strcmp(argv[1], "conversion-probe") == 0) {
+        ConversionProbe();
     } else {
         Require(std::strcmp(argv[1], "precision-probe") == 0, "known fixture mode");
         PrecisionProbe();

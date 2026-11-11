@@ -1,4 +1,4 @@
-// Test-only deterministic PCM producer. No production mixer implementation exists in Task 2.
+// Test-only deterministic producer for output ownership tests; never linked with the real mixer.
 #include "native_mix.h"
 #include <SDL3/SDL.h>
 #include <atomic>
@@ -6,6 +6,9 @@ std::atomic<int> fixtureRenderCount{0};
 std::atomic<bool> fixtureBlockRender{false};
 std::atomic<bool> fixtureRenderEntered{false};
 std::atomic<bool> fixtureFailRender{false};
+// This output-only fixture never creates buffers or owns a render list.
+A3dNativeMixer::~A3dNativeMixer() = default;
+
 HRESULT A3dNativeMixer::Render(SHORT* stereo, DWORD frames) {
     fixtureRenderEntered = true;
     while (fixtureBlockRender) {

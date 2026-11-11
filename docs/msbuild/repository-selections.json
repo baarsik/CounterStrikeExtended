@@ -4194,6 +4194,26 @@
         "items": [
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_buffer.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_mix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -4514,6 +4534,26 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_buffer.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_mix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",

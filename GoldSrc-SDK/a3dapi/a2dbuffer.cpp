@@ -269,38 +269,40 @@ DWORD A2DBuffer::SetA2DFrequency( DWORD dwFrequency )
 	return AR2DSetFrequency( &m_Voice, dwFrequency );
 }
 
-HRESULT STDMETHODCALLTYPE A2DBuffer::SetA3dSuperCtrl( void* pData, DWORD )
-{
-	const A3DCTRL_SRC_SUPER* pState = (const A3DCTRL_SRC_SUPER*)pData;
-	DWORD dwFrequency = (DWORD)(LONGLONG)( (double)m_dwFrequency * pState->flPitch );
-	SetA2DFrequency( dwFrequency );
-	m_Voice.channels[0].lGainBase = (LONG)(LONGLONG)( (double)pState->Left.flGain * A3D_MIXER_GAIN_SCALE );
-	m_Voice.channels[1].lGainBase = (LONG)(LONGLONG)( (double)pState->Right.flGain * A3D_MIXER_GAIN_SCALE );
+HRESULT STDMETHODCALLTYPE A2DBuffer::SetA3dSuperCtrl(void* pData, DWORD) {
+    return A3dApplyA2DControl(m_Voice, m_dwFrequency, *m_pHrtfFilter,
+        *static_cast<const A3DCTRL_SRC_SUPER*>(pData));
+}
 
-	if ( !( pState->Left.flDelay >= 0.0f ) )
-	{
-		m_Voice.channels[0].lDelayTarget = 0;
-		m_Voice.channels[1].lDelayTarget = (LONG)(LONGLONG)(
-			(double)pState->Right.flDelay * A3D_MIXER_DELAY_SCALE -
-			(double)pState->Left.flDelay * A3D_MIXER_DELAY_SCALE );
-	}
-	else
-	{
-		m_Voice.channels[1].lDelayTarget = 0;
-		m_Voice.channels[0].lDelayTarget = (LONG)(LONGLONG)(
-			(double)pState->Left.flDelay * A3D_MIXER_DELAY_SCALE -
-			(double)pState->Right.flDelay * A3D_MIXER_DELAY_SCALE );
-	}
+HRESULT A3dApplyA2DControl(a3d_mix_voice_t& voice, DWORD frequency,
+    CHrtfMgr& hrtf, const A3DCTRL_SRC_SUPER& control) {
+    const A3DCTRL_SRC_SUPER* pState = &control;
+    DWORD dwFrequency = (DWORD)(LONGLONG)( (double)frequency * pState->flPitch );
+    AR2DSetFrequency( &voice, dwFrequency );
+    voice.channels[0].lGainBase = (LONG)(LONGLONG)( (double)pState->Left.flGain * A3D_MIXER_GAIN_SCALE );
+    voice.channels[1].lGainBase = (LONG)(LONGLONG)( (double)pState->Right.flGain * A3D_MIXER_GAIN_SCALE );
 
-	int indices[4];
-	float weights[4];
-	m_pHrtfFilter->GetIDXsAndWts( pState->Left.flAzimuth, pState->Left.flElevation,
-		0, indices, weights );
-	m_pHrtfFilter->GetCoeffs( indices, weights, 0, &m_Voice.channels[0].lGainSpatial );
-	m_pHrtfFilter->GetIDXsAndWts( pState->Right.flAzimuth, pState->Right.flElevation,
-		1, indices, weights );
-	m_pHrtfFilter->GetCoeffs( indices, weights, 0, &m_Voice.channels[1].lGainSpatial );
-	return DS_OK;
+    if (!(pState->Left.flDelay >= 0.0f)) {
+        voice.channels[0].lDelayTarget = 0;
+        voice.channels[1].lDelayTarget = (LONG)(LONGLONG)(
+            (double)pState->Right.flDelay * A3D_MIXER_DELAY_SCALE -
+            (double)pState->Left.flDelay * A3D_MIXER_DELAY_SCALE );
+    } else {
+        voice.channels[1].lDelayTarget = 0;
+        voice.channels[0].lDelayTarget = (LONG)(LONGLONG)(
+            (double)pState->Left.flDelay * A3D_MIXER_DELAY_SCALE -
+            (double)pState->Right.flDelay * A3D_MIXER_DELAY_SCALE );
+    }
+
+    int indices[4];
+    float weights[4];
+    hrtf.GetIDXsAndWts( pState->Left.flAzimuth, pState->Left.flElevation,
+        0, indices, weights );
+    hrtf.GetCoeffs( indices, weights, 0, &voice.channels[0].lGainSpatial );
+    hrtf.GetIDXsAndWts( pState->Right.flAzimuth, pState->Right.flElevation,
+        1, indices, weights );
+    hrtf.GetCoeffs( indices, weights, 0, &voice.channels[1].lGainSpatial );
+    return DS_OK;
 }
 
 #define HRTF_PI				( (float)M_PI )

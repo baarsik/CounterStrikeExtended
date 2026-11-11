@@ -1,0 +1,104 @@
+{
+  "purpose": "Qualified retained Windows float-to-PCM16 conversion, no module/device claim",
+  "receipt_sha256": "4038be1435b8548c16941d19964d7d0c188490672aa134c1b20e56231af65f62",
+  "baseline_mixer_sha256": "d0d931d2b69da8413edaea392b07fdc86a77f7b5600b8df9a6cd733c9d6213b6",
+  "capture_driver_sha256": "23a0c5f510fdcdb8ea8f2b49f7d477d8bf17f84642923a0dee9181071a2843dd",
+  "profiles": [
+    "x86 Release",
+    "x86 Debug",
+    "x64 Release",
+    "x64 Debug"
+  ],
+  "policy": "MSVC14.51.36231 /O2 /fp:precise /Oi; x86 /arch:IA32; Release /MT, Debug /MTd",
+  "rounding": "FE_TONEAREST",
+  "cases": [
+    {
+      "binary32": "7fc00000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "7f800000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "ff800000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "4f000000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "4effffff",
+      "pcm16": 32767
+    },
+    {
+      "binary32": "cf000000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "cf000001",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "7f7fffff",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "ff7fffff",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "3f000000",
+      "pcm16": 0
+    },
+    {
+      "binary32": "3fc00000",
+      "pcm16": 2
+    },
+    {
+      "binary32": "40200000",
+      "pcm16": 2
+    },
+    {
+      "binary32": "bf000000",
+      "pcm16": 0
+    },
+    {
+      "binary32": "bfc00000",
+      "pcm16": -2
+    },
+    {
+      "binary32": "c0200000",
+      "pcm16": -2
+    },
+    {
+      "binary32": "46fffe00",
+      "pcm16": 32767
+    },
+    {
+      "binary32": "46ffff00",
+      "pcm16": 32767
+    },
+    {
+      "binary32": "47000000",
+      "pcm16": 32767
+    },
+    {
+      "binary32": "c7000000",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "c7000080",
+      "pcm16": -32768
+    },
+    {
+      "binary32": "00000000",
+      "pcm16": 0
+    },
+    {
+      "binary32": "80000000",
+      "pcm16": 0
+    }
+  ]
+}

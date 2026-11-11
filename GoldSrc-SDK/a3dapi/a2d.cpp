@@ -7,6 +7,7 @@
 #include <string.h>
 #include <float.h>
 #include <limits.h>
+#include <stdint.h>
 #include <math.h>
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
 #include <xmmintrin.h>
@@ -92,8 +93,13 @@ LONG __cdecl Mixer_PrepareChannelRate( a3d_mix_channel_t* pChannel, a3d_mix_voic
 	LONG delayStep = delayDifference / (LONG)cFrames;
 	pChannel->lDelayCurrent = (LONG)( (DWORD)pChannel->lDelayCurrent - (DWORD)delayStep * cFrames );
 	LONG rate = (LONG)( (DWORD)pVoice->lRateCurrent + delayStep );
-	if ( rate < 0 )
-		__debugbreak();
+    if (rate < 0) {
+#ifdef _WIN32
+        __debugbreak();
+#else
+        __builtin_debugtrap();
+#endif
+    }
 	return rate;
 }
 
@@ -638,37 +644,43 @@ int __cdecl Mixer_FilterStereo( float* pSamples, SHORT mode, mixer_filter_state_
 	return 0;
 }
 
-void __cdecl Mixer_FloatToPcm16( const float* pInput, short* pOutput, DWORD sampleCount )
-{
-	if ( !sampleCount )
-		return;
+void __cdecl Mixer_FloatToPcm16(const float* pInput, short* pOutput, DWORD sampleCount) {
+    if (!sampleCount) {
+        return;
+    }
 
-	Mixer_ResetFloatState();
-	while ( sampleCount )
-	{
-		DWORD count = sampleCount & 1 ? 1 : sampleCount & 2 ? 2 : 4;
-		long samples[4];
-		for ( DWORD i = 0; i < count; i++ )
-		{
-			double sample = pInput[i];
-			if ( sample >= LONG_MIN && sample <= LONG_MAX )
-				samples[i] = lrint( sample );
-			else
-				samples[i] = LONG_MIN;
-		}
-		for ( DWORD i = 0; i < count; i++ )
-		{
-			if ( samples[i] > SHRT_MAX )
-				pOutput[i] = SHRT_MAX;
-			else if ( samples[i] < SHRT_MIN )
-				pOutput[i] = SHRT_MIN;
-			else
-				pOutput[i] = (short)samples[i];
-		}
-		pInput += count;
-		pOutput += count;
-		sampleCount -= count;
-	}
+    // Windows LONG remains signed 32-bit on Win32 and native Windows. Host
+    // long is 64-bit on LP64 and must not widen the invalid-conversion lane.
+    constexpr LONG kWindowsLongMinimum = INT32_MIN;
+    constexpr LONG kWindowsLongMaximum = INT32_MAX;
+    constexpr DWORD kConversionPairSamples = 2;
+    constexpr DWORD kConversionBatchSamples = 4;
+    Mixer_ResetFloatState();
+    while (sampleCount) {
+        DWORD count = sampleCount & 1 ? 1 : sampleCount & kConversionPairSamples ?
+            kConversionPairSamples : kConversionBatchSamples;
+        LONG samples[kConversionBatchSamples];
+        for (DWORD i = 0; i < count; i++) {
+            double sample = pInput[i];
+            if (sample >= kWindowsLongMinimum && sample <= kWindowsLongMaximum) {
+                samples[i] = static_cast<LONG>(lrint(sample));
+            } else {
+                samples[i] = kWindowsLongMinimum;
+            }
+        }
+        for (DWORD i = 0; i < count; i++) {
+            if (samples[i] > SHRT_MAX) {
+                pOutput[i] = SHRT_MAX;
+            } else if (samples[i] < SHRT_MIN) {
+                pOutput[i] = SHRT_MIN;
+            } else {
+                pOutput[i] = static_cast<short>(samples[i]);
+            }
+        }
+        pInput += count;
+        pOutput += count;
+        sampleCount -= count;
+    }
 }
 
 static const float resampleCoefficients[MIXER_RESAMPLE_PHASES][4] =
