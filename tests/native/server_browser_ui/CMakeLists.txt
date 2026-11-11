@@ -51,6 +51,10 @@ add_custom_command(OUTPUT ${extracted}
     VERBATIM)
 add_custom_target(extract_browser_ui_owners DEPENDS ${extracted})
 
+if(MSVC)
+    set_property(SOURCE loader_owner_tests.cpp APPEND PROPERTY COMPILE_DEFINITIONS _CRT_NONSTDC_NO_WARNINGS)
+endif()
+
 option(CSE_BROWSER_UI_REFERENCE_LOADER_ONLY "Actual 32-bit external loader branch fixture" OFF)
 if(CSE_BROWSER_UI_REFERENCE_LOADER_ONLY)
     if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)

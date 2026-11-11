@@ -586,60 +586,60 @@ struct ServerBrowserModel::State {
 
 bool ServerBrowserModel::State::StartRequest() {
     auto& state = *this;
-    const ListKind kind = state.kind;
-    const Filters& filters = state.filters;
+    const ListKind listKind = state.kind;
+    const Filters& listFilters = state.filters;
     refreshPending = false;
     state.request.reset(new State::Request(state, state.generation));
-    auto& request = *state.request;
-    request.pruneCursor = state.rows.begin();
+    auto& listRequest = *state.request;
+    listRequest.pruneCursor = state.rows.begin();
     const auto add = [&](const char* key, const std::string& value) {
-        request.filters.emplace_back(key, value.c_str());
+        listRequest.filters.emplace_back(key, value.c_str());
     };
-    if (!filters.gameDirectory.empty()) {
-        add("gamedir", filters.gameDirectory);
+    if (!listFilters.gameDirectory.empty()) {
+        add("gamedir", listFilters.gameDirectory);
     }
-    if (!filters.map.empty()) {
-        add("map", filters.map);
+    if (!listFilters.map.empty()) {
+        add("map", listFilters.map);
     }
-    if (filters.nonempty) {
+    if (listFilters.nonempty) {
         add("hasplayers", "1");
     }
-    if (filters.notFull) {
+    if (listFilters.notFull) {
         add("notfull", "1");
     }
-    if (filters.secure == Requirement::Yes) {
+    if (listFilters.secure == Requirement::Yes) {
         add("secure", "1");
     }
-    if (filters.region != NoRegion) {
-        add("region", std::to_string(filters.region));
+    if (listFilters.region != NoRegion) {
+        add("region", std::to_string(listFilters.region));
     }
-    for (auto& filter : request.filters) {
-        request.filterPointers.push_back(&filter);
+    for (auto& filter : listRequest.filters) {
+        listRequest.filterPointers.push_back(&filter);
     }
-    const auto count = static_cast<uint32>(request.filterPointers.size());
-    auto** pairs = request.filterPointers.empty() ? nullptr : request.filterPointers.data();
+    const auto count = static_cast<uint32>(listRequest.filterPointers.size());
+    auto** pairs = listRequest.filterPointers.empty() ? nullptr : listRequest.filterPointers.data();
     const auto handle = state.Provider([&] {
-        switch (kind) {
+        switch (listKind) {
             case ListKind::Internet:
-                return state.services.servers->RequestInternetServerList(filters.app, pairs, count, &request);
+                return state.services.servers->RequestInternetServerList(listFilters.app, pairs, count, &listRequest);
             case ListKind::Favorites:
-                return state.services.servers->RequestFavoritesServerList(filters.app, pairs, count, &request);
+                return state.services.servers->RequestFavoritesServerList(listFilters.app, pairs, count, &listRequest);
             case ListKind::History:
-                return state.services.servers->RequestHistoryServerList(filters.app, pairs, count, &request);
+                return state.services.servers->RequestHistoryServerList(listFilters.app, pairs, count, &listRequest);
             case ListKind::LAN:
-                return state.services.servers->RequestLANServerList(filters.app, &request);
+                return state.services.servers->RequestLANServerList(listFilters.app, &listRequest);
             case ListKind::Friends:
-                return state.services.servers->RequestFriendsServerList(filters.app, pairs, count, &request);
+                return state.services.servers->RequestFriendsServerList(listFilters.app, pairs, count, &listRequest);
             case ListKind::Spectate:
-                return state.services.servers->RequestSpectatorServerList(filters.app, pairs, count, &request);
+                return state.services.servers->RequestSpectatorServerList(listFilters.app, pairs, count, &listRequest);
         }
         return static_cast<HServerListRequest>(nullptr);
     });
-    if (request.handle && request.handle != handle) {
+    if (listRequest.handle && listRequest.handle != handle) {
         // A synchronous callback with a different handle violates the pinned provider contract.
         std::abort();
     }
-    request.handle = handle;
+    listRequest.handle = handle;
     if (!handle && !state.closing) {
         state.status.phase = Phase::Failed;
         state.status.error = "Steam did not create a server list request";
