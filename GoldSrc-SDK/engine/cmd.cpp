@@ -11,6 +11,10 @@
 #include "server.h"
 #include "sys.h"
 #include "zone.h"
+#if defined(__APPLE__) && !defined(_WIN32) && defined(SW_RENDERER)
+#include "../public/native_engine_arguments.h"
+#include <string>
+#endif
 
 #include <cassert>
 #include <cstdio>
@@ -838,6 +842,56 @@ quake -nosound +cmd amlev1
 //-----------------------------------------------------------------------------
 void Cmd_StuffCmds_f()
 {
+#if defined(__APPLE__) && !defined(_WIN32) && defined(SW_RENDERER)
+    if (Cmd_Argc() != 1) {
+        Con_Printf("stuffcmds : execute command line parameters\n");
+        return;
+    }
+    std::string commands;
+    std::string line;
+    bool active = false;
+    for (int index = 1; index < com_argc; ++index) {
+        const char* argument = com_argv[index];
+        if (!argument) {
+            continue;
+        }
+        const bool quoted = index < cse::native_arguments::ArgumentCapacity
+            && cse::native_arguments::QuotedArguments[index];
+        if (cse::native_arguments::StartupBoundary(argument, quoted)) {
+            if (active) {
+                commands += line + '\n';
+            }
+            active = argument[0] == '+';
+            line.clear();
+            if (active) {
+                const std::size_t length = std::strlen(argument + 1);
+                if (!cse::native_arguments::CommandName(argument + 1, length)) {
+                    Con_Printf("Unsupported native startup command name\n");
+                    return;
+                }
+                line = argument + 1;
+            }
+        } else if (active) {
+            const std::size_t length = std::strlen(argument);
+            constexpr std::size_t SeparatorAndQuotes = 3;
+            if (length > cse::native_arguments::MaximumStartupTokenBytes
+                || line.size() + length + SeparatorAndQuotes >= cse::native_arguments::CommandCapacity) {
+                Con_Printf("Native startup command exceeds the command parser limits\n");
+                return;
+            }
+            // Every value is a single token, including empty strings, punctuation and literal +/-.
+            line += " \"";
+            line += argument;
+            line += '"';
+        }
+    }
+    if (active) {
+        commands += line + '\n';
+    }
+    if (!commands.empty()) {
+        Cbuf_InsertText(commands.c_str());
+    }
+#else
 	int i, j;
 	int s;
 	char* text, * build, c;
@@ -898,6 +952,7 @@ void Cmd_StuffCmds_f()
 
 	Z_Free( text );
 	Z_Free( build );
+#endif
 }
 
 cmd_function_t* Cmd_GetFirstCmd()

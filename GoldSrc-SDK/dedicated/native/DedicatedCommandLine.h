@@ -59,6 +59,10 @@ public:
             }
             arguments.push_back(argument);
         }
+        if (!native_arguments::Validate(encoded.c_str())) {
+            error = "Dedicated startup command cannot round-trip through the engine command buffer";
+            return false;
+        }
         encoded_ = std::move(encoded);
         arguments_ = std::move(arguments);
         console_ = console;

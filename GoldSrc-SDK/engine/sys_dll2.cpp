@@ -430,6 +430,9 @@ void Sys_InitArgv( char* commandLine )
 #if defined(__APPLE__) && !defined(_WIN32)
     static_assert(MAX_NUM_ARGVS == cse::native_arguments::ArgumentCapacity,
         "Native encoded argument limit must match the real engine argv storage");
+    for (bool& quoted : cse::native_arguments::QuotedArguments) {
+        quoted = false;
+    }
     argv[0] = const_cast<char*>(com_empty_string);
     int argc = 1;
     char* input = commandLine;
@@ -441,8 +444,9 @@ void Sys_InitArgv( char* commandLine )
         if (!*input) {
             break;
         }
-        argv[argc++] = output;
         const bool quoted = *input == '"';
+        cse::native_arguments::QuotedArguments[argc] = quoted;
+        argv[argc++] = output;
         if (quoted) {
             ++input;
         }

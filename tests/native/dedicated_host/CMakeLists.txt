@@ -112,3 +112,7 @@ add_test(NAME retirement_restores_pty COMMAND "${Python3_EXECUTABLE}"
 include("${CMAKE_CURRENT_SOURCE_DIR}/WindowsResult.cmake")
 add_test(NAME excess_arguments_before_effects COMMAND "${Python3_EXECUTABLE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/session_tests.py" "$<TARGET_FILE:session_tests>" excess_arguments_before_effects)
+
+add_test(NAME actual_startup_command_roundtrip COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/run_startup_commands.py" "${CMAKE_CURRENT_BINARY_DIR}/actual-startup"
+  "$<IF:$<CONFIG:Release>,-Os,-O0>")
