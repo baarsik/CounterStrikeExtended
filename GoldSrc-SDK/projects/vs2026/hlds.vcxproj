@@ -128,6 +128,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>
       <CsePointerWidth>64</CsePointerWidth>
+      <CseAppleMainImagePublisher>socket-v1</CseAppleMainImagePublisher>
     </ClCompile>
     <ClCompile Include="..\..\launcher\native\VGui1HostImageOwner.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

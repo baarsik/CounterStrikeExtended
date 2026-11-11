@@ -1122,7 +1122,8 @@
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
               "ExceptionHandling": "false",
-              "CsePointerWidth": "64"
+              "CsePointerWidth": "64",
+              "CseAppleMainImagePublisher": "socket-v1"
             }
           },
           {
@@ -1254,7 +1255,8 @@
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
               "ExceptionHandling": "false",
-              "CsePointerWidth": "64"
+              "CsePointerWidth": "64",
+              "CseAppleMainImagePublisher": "socket-v1"
             }
           },
           {
@@ -12470,7 +12472,8 @@
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
-              "CsePointerWidth": "64"
+              "CsePointerWidth": "64",
+              "CseAppleMainImagePublisher": "socket-v1"
             }
           },
           {
@@ -12957,7 +12960,8 @@
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
-              "CsePointerWidth": "64"
+              "CsePointerWidth": "64",
+              "CseAppleMainImagePublisher": "socket-v1"
             }
           },
           {

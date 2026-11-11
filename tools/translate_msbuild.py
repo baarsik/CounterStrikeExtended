@@ -457,8 +457,37 @@ def emit_mac_software_lifetime(lines, target, configs):
     lines.append('endif()')
 
 
+def validate_apple_main_image_publisher(target, configs):
+    """The executable owning socket-v1 must publish it under both retained policies."""
+    key = 'CseAppleMainImagePublisher'
+    owner_path = SDK / 'launcher/native/SocketImageOwner.cpp'
+    selections = []
+    for configuration in ('Debug', 'Release'):
+        data = configs[configuration]
+        selected = []
+        for item in data['items']:
+            metadata = item['metadata']
+            requirement = metadata.get(key)
+            canonical = target in ('launcher', 'hlds') and Path(item['path']) == owner_path
+            if requirement is None and not canonical:
+                continue
+            if (requirement != 'socket-v1' or not canonical or item['kind'] != 'ClCompile'
+                    or data['properties']['ConfigurationType'] != 'Application'
+                    or metadata.get('CseTargetOS') != 'macos' or metadata.get('CsePointerWidth') != '64'
+                    or metadata.get('ExcludedFromBuild') != 'true' or metadata.get('CseReplaces')
+                    or metadata.get('CseNativeServices')):
+                raise ValueError('CseAppleMainImagePublisher socket-v1 requires its exact excluded macOS64 executable owner')
+            selected.append(cmake_source(item))
+        if (target in ('launcher', 'hlds') and len(selected) != 1) or len(selected) > 1:
+            raise ValueError('Missing/duplicate Apple main-image publisher owner')
+        selections.append(selected)
+    if selections[0] != selections[1]:
+        raise ValueError('Apple main-image publisher differs between configurations')
+
+
 def emit_platform_sources(lines, target, configs):
     """Manifest-owned OS/width additions remain outside reference Win32 selections."""
+    validate_apple_main_image_publisher(target, configs)
     predicates = {'macos': 'APPLE', 'windows': 'WIN32', 'linux': 'CMAKE_SYSTEM_NAME STREQUAL "Linux"',
                   'posix': 'NOT WIN32'}
     selections = []
@@ -529,6 +558,9 @@ def emit_platform_sources(lines, target, configs):
                     lines.append(f'  set_property(SOURCE {quote(replaced)} PROPERTY HEADER_FILE_ONLY TRUE)')
                 if service != 'font-registration-owner':
                     lines.append(f'  target_sources({target} PRIVATE {quote(path)})')
+                    publisher = selected_items['Debug'][path]['metadata'].get('CseAppleMainImagePublisher')
+                    if publisher:
+                        lines.append(f'  cse_require_apple_main_image_publisher({target} {publisher})')
                     objective_arc = selected_items['Debug'][path]['metadata'].get('CseObjectiveCArc') == 'true'
                     if objective_arc != (selected_items['Release'][path]['metadata'].get('CseObjectiveCArc') == 'true'):
                         raise ValueError('CseObjectiveCArc policy differs between configurations')
