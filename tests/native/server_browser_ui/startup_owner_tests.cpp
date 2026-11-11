@@ -21,7 +21,7 @@ int SDL_ShowSimpleMessageBox(unsigned int, const char *, const char *, void *) {
 
 namespace {
 std::map<std::string, int> calls;
-int hostResult = 1;
+int fixtureHostInitResult = 1;
 bool hostFlag = true;
 int modeResult = 1;
 void Call(const char *name) {
@@ -77,7 +77,7 @@ int GL_SetMode(CseGameWindowHandle, void **, void **, bool, const char *, char *
 int Host_Init(HostParms *) {
     Call("host");
     host_initialized = hostFlag;
-    return hostResult;
+    return fixtureHostInitResult;
 }
 void Sys_InitAuthentication() {
     Call("authentication");
@@ -109,14 +109,14 @@ int main(int argc, char **argv) {
         char arguments[] = "";
         char directory[] = ".";
         if (name == "host-return") {
-            hostResult = 0;
+            fixtureHostInitResult = 0;
             hostFlag = true;
             Require(Sys_InitGame(arguments, directory, &windowPointer, 0) == 0,
                     "Sys_InitGame ignored Host_Init's explicit failure result");
             Require(calls["authentication"] == 0 && calls["mouse"] == 0,
                     "failed Host_Init continued into authentication/input startup");
         } else if (name == "host-flag") {
-            hostResult = 1;
+            fixtureHostInitResult = 1;
             hostFlag = false;
             Require(Sys_InitGame(arguments, directory, &windowPointer, 0) == 0, "unset host_initialized was ignored");
             Require(calls["authentication"] == 0, "partial Host startup enabled authentication");
