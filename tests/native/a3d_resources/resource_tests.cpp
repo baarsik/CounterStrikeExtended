@@ -17,9 +17,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
-#include <condition_variable>
-#include <mutex>
-#include <chrono>
 #include <limits>
 
 #define CHECK(value) do { if (!(value)) { \
@@ -42,96 +39,118 @@ bool Poll(IA3dNativeEventV1* event) {
     return result == A3dNativeWaitStatusV1::Signaled;
 }
 
-struct Fixture {
+// A wrapped tail must consume all 80 source bytes, even when its last 16
+// bytes were submitted at destination offset zero behind the current read cursor.
+void WrappedStreamTail() {
+    constexpr DWORD kSourceBytes = 80;
+    constexpr DWORD kDestinationBytes = 64;
+    constexpr DWORD kPooledStream = 2;
     A3dNativeMixer mixer;
-    IDirectSoundBuffer* buffer = nullptr;
-    IA3dNativeNotifyV1* notify = nullptr;
-    Fixture() {
-        WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
-        DSBUFFERDESC desc{};
-        desc.dwSize = sizeof(desc);
-        desc.dwBufferBytes = kBytes;
-        desc.lpwfxFormat = &format;
-        CHECK(mixer.CreateBuffer(&desc, &buffer) == S_OK);
+    ResMan owner;
+    ResManStreamBuffer source(static_cast<IDirectSound*>(&owner), A3D_RESOURCE_MODE_DYNAMIC);
+    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
+    a3d_platform_buffer_desc_t desc{sizeof(desc), 0, kSourceBytes, 0, &format};
+    CHECK(source.Init(&desc, std::malloc(sizeof(DWORD))) == S_OK);
+    DSBUFFERDESC outputDesc{};
+    outputDesc.dwSize = sizeof(outputDesc);
+    outputDesc.dwBufferBytes = kDestinationBytes;
+    outputDesc.lpwfxFormat = &format;
+    IDirectSoundBuffer* output = nullptr;
+    CHECK(mixer.CreateBuffer(&outputDesc, &output) == S_OK);
+    a3d_render_description_t streamDesc{A3D_RENDER_WRITE_BUFFER, kDestinationBytes, 22050, 16,
+        kDestinationBytes};
+    DalBufferInfo stream(nullptr, output, &streamDesc, kPooledStream);
+    CHECK(source.SetStream(&stream) == S_OK);
+    auto* stopped = Event();
+    A3dNativeNotificationPositionV1 position{A3D_NATIVE_NOTIFICATION_STOP, 0, stopped};
+    CHECK(source.SetNotificationPositions(1, &position) == S_OK);
+    CHECK(source.Play(0, 0, 0) == S_OK);
+    CHECK(source.Update(0) == S_OK);
+    std::array<SHORT, 64> pcm{};
+    CHECK(mixer.Render(pcm.data(), 24) == S_OK); // Consume 48 bytes; 16 remain before wrap.
+    CHECK(source.Update(10) == S_OK); // Submit last 16 source bytes at destination zero.
+    DWORD queued = 0;
+    CHECK(stream.GetAudioBytesQueued(&queued) == S_OK && queued == 32);
+    CHECK(mixer.Render(pcm.data(), 8) == S_OK);
+    CHECK(source.Update(20) == S_OK);
+    CHECK(!Poll(stopped)); // The physical ring boundary is not the source tail.
+    CHECK(stream.GetAudioBytesQueued(&queued) == S_OK && queued == 16);
+    CHECK(mixer.Render(pcm.data(), 8) == S_OK);
+    CHECK(source.Update(30) == S_OK);
+    CHECK(Poll(stopped));
+    CHECK(static_cast<A3dNativeBuffer*>(output)->NativeConsumedBytes() == kSourceBytes);
+    CHECK(source.Update(40) == S_OK && !Poll(stopped));
+
+    // Reuse a stopped ring at byte 60. A first submission containing only the
+    // source tail must also cross the physical boundary without an early STOP.
+    CHECK(output->SetCurrentPosition(60) == S_OK);
+    CHECK(source.SetCurrentPosition(64) == S_OK);
+    CHECK(source.Play(0, 0, 0) == S_OK);
+    CHECK(source.Update(50) == S_OK);
+    CHECK(mixer.Render(pcm.data(), 2) == S_OK);
+    CHECK(source.Update(60) == S_OK && !Poll(stopped));
+    CHECK(stream.GetAudioBytesQueued(&queued) == S_OK && queued == 12);
+    CHECK(mixer.Render(pcm.data(), 6) == S_OK);
+    CHECK(source.Update(70) == S_OK && Poll(stopped));
+    CHECK(static_cast<A3dNativeBuffer*>(output)->NativeConsumedBytes() == 96);
+    CHECK(source.SetStream(nullptr) == S_OK);
+    output->Release();
+    stopped->Close();
+    stopped->Release();
+}
+
+void FactoryAllocationFailure() {
+    CA3dClassFactory factory;
+    const auto baseline = A3dNativeOwners();
+    A3dNativeFailAcquisitionAfter(0);
+    IA3d3* object = reinterpret_cast<IA3d3*>(1);
+    CHECK(factory.CreateInstance(nullptr, IID_IA3d3, reinterpret_cast<void**>(&object)) == E_OUTOFMEMORY);
+    CHECK(!object);
+    CHECK(A3dNativeOwners() == baseline);
+    A3dNativeFailAcquisitionAfter(-1);
+    CHECK(factory.CreateInstance(nullptr, IID_IA3d3, reinterpret_cast<void**>(&object)) == S_OK);
+    object->Release();
+}
+
+void ConcurrentModes() {
+    IUnknown* provider = nullptr;
+    CHECK(A3dCreateNativeProvider(&provider) == S_OK);
+    IA3dNativeDeviceV1* device = nullptr;
+    CHECK(provider->QueryInterface(IID_IA3dNativeDeviceV1, reinterpret_cast<void**>(&device)) == S_OK);
+    DWORD supported = 0;
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK);
+    auto* manager = dynamic_cast<ResMan*>(provider);
+    std::atomic<bool> start{false};
+    constexpr DWORD kOperations = 1000;
+    std::thread setter([&] {
+        while (!start.load()) {
+            std::this_thread::yield();
+        }
+        for (DWORD index = 0; index < kOperations; ++index) {
+            CHECK(manager->SetResourceManagerMode(index % (A3D_RESOURCE_MODE_LAST + 1)) == S_OK);
+        }
+    });
+    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 44100, 88200, 2, 16, 0};
+    DSBUFFERDESC desc{};
+    desc.dwSize = sizeof(desc);
+    desc.dwBufferBytes = kBytes;
+    desc.lpwfxFormat = &format;
+    start.store(true);
+    for (DWORD index = 0; index < kOperations; ++index) {
+        IDirectSoundBuffer* buffer = nullptr;
+        CHECK(manager->CreateSoundBuffer(&desc, &buffer, nullptr) == S_OK);
+        IA3dNativeNotifyV1* notify = nullptr;
         CHECK(buffer->QueryInterface(IID_IA3dNativeNotifyV1, reinterpret_cast<void**>(&notify)) == S_OK);
-        A3dNativeNotificationCapsV1 caps{};
-        caps.structureBytes = sizeof(caps);
-        caps.version = 1;
+        A3dNativeNotificationCapsV1 caps{sizeof(caps), 1, 0, 0, 0, {}};
         CHECK(notify->GetNotificationCaps(&caps) == S_OK);
-        CHECK(caps.flags == 0x1f && caps.maximumPositions == 1024);
-        CHECK(caps.cursorKind == A3D_NATIVE_CURSOR_RENDER_CONSUMED);
-        IUnknown* first = nullptr;
-        IUnknown* second = nullptr;
-        CHECK(buffer->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&first)) == S_OK);
-        CHECK(notify->QueryInterface(IID_IUnknown, reinterpret_cast<void**>(&second)) == S_OK);
-        CHECK(first == second);
-        first->Release();
-        second->Release();
-    }
-    ~Fixture() {
+        CHECK(caps.cursorKind == A3D_NATIVE_CURSOR_RENDER_CONSUMED ||
+            caps.cursorKind == A3D_NATIVE_CURSOR_STREAM_SUBMITTED);
         notify->Release();
         buffer->Release();
     }
-    void Advance(DWORD bytes) {
-        std::array<SHORT, 128> output{};
-        CHECK(mixer.Render(output.data(), bytes / 2) == S_OK);
-    }
-};
-
-void StreamCrossings() {
-    A3dNativeMixer mixer;
-    ResMan owner;
-    ResManStreamBuffer buffer(static_cast<IDirectSound*>(&owner), A3D_RESOURCE_MODE_DYNAMIC);
-    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 44100, 88200, 2, 16, 0};
-    a3d_platform_buffer_desc_t desc{sizeof(desc), 0, kBytes, 0, &format};
-    CHECK(buffer.Init(&desc, std::malloc(sizeof(DWORD))) == S_OK);
-    IA3dNativeNotifyV1* notify = nullptr;
-    CHECK(buffer.QueryInterface(IID_IA3dNativeNotifyV1, reinterpret_cast<void**>(&notify)) == S_OK);
-    A3dNativeNotificationCapsV1 caps{};
-    caps.structureBytes = sizeof(caps);
-    caps.version = 1;
-    CHECK(notify->GetNotificationCaps(&caps) == S_OK);
-    CHECK(caps.cursorKind == A3D_NATIVE_CURSOR_STREAM_SUBMITTED && caps.flags == 0x1f);
-    const DWORD offsets[]{12, 15, 0, 3, 4, 11};
-    std::array<IA3dNativeEventV1*, 6> events{};
-    std::array<A3dNativeNotificationPositionV1, 6> positions{};
-    for (std::size_t i = 0; i < events.size(); ++i) {
-        events[i] = Event();
-        positions[i] = {offsets[i], 0, events[i]};
-    }
-    CHECK(notify->SetNotificationPositions(positions.size(), positions.data()) == S_OK);
-    struct Case {
-        DWORD old;
-        DWORD advance;
-        unsigned mask;
-    };
-    const Case cases[]{{12, 8, 0x0f}, {12, 4, 0x03}, {12, 32, 0x3f}, {0, 4, 0x0c}};
-    for (const auto& test : cases) {
-        DSBUFFERDESC outputDesc{};
-        outputDesc.dwSize = sizeof(outputDesc);
-        outputDesc.dwBufferBytes = test.advance;
-        outputDesc.lpwfxFormat = &format;
-        IDirectSoundBuffer* output = nullptr;
-        CHECK(mixer.CreateBuffer(&outputDesc, &output) == S_OK);
-        a3d_render_description_t streamDesc{A3D_RENDER_WRITE_BUFFER, test.advance, 44100, 16, test.advance};
-        DalBufferInfo stream(nullptr, output, &streamDesc, 2);
-        CHECK(buffer.SetStream(&stream) == S_OK);
-        CHECK(buffer.SetCurrentPosition(test.old) == S_OK);
-        CHECK(buffer.Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-        CHECK(buffer.Update(0) == S_OK);
-        for (std::size_t i = 0; i < events.size(); ++i) {
-            CHECK(Poll(events[i]) == ((test.mask & (1u << i)) != 0));
-        }
-        CHECK(buffer.Stop() == S_OK);
-        CHECK(buffer.SetStream(nullptr) == S_OK);
-        output->Release();
-    }
-    CHECK(notify->SetNotificationPositions(0, nullptr) == S_OK);
-    notify->Release();
-    for (auto* event : events) {
-        event->Close();
-        event->Release();
-    }
+    setter.join();
+    device->Release();
+    provider->Release();
 }
 
 void TypedProvider() {
@@ -616,240 +635,17 @@ void StreamOwnership() {
     output->Release();
 }
 
-void Crossings() {
-    Fixture f;
-    const DWORD offsets[]{12, 15, 0, 3, 4, 11, A3D_NATIVE_NOTIFICATION_STOP};
-    std::array<IA3dNativeEventV1*, 7> events{};
-    std::array<A3dNativeNotificationPositionV1, 7> positions{};
-    for (std::size_t i = 0; i < events.size(); ++i) {
-        events[i] = Event();
-        positions[i] = {offsets[i], 0, events[i]};
-    }
-    CHECK(f.notify->SetNotificationPositions(positions.size(), positions.data()) == S_OK);
-    struct Case {
-        DWORD old;
-        DWORD advance;
-        unsigned mask;
-    };
-    const Case cases[]{{12, 8, 0x0f}, {12, 4, 0x03}, {12, 32, 0x3f}, {0, 4, 0x0c}, {0, 0, 0}};
-    for (const auto& test : cases) {
-        CHECK(f.buffer->SetCurrentPosition(test.old) == S_OK);
-        CHECK(f.buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-        f.Advance(test.advance);
-        for (std::size_t i = 0; i < events.size(); ++i) {
-            CHECK(Poll(events[i]) == ((test.mask & (1u << i)) != 0));
-            CHECK(!Poll(events[i]));
-        }
-    }
-    CHECK(f.buffer->Stop() == S_OK);
-    CHECK(Poll(events.back()));
-    CHECK(f.buffer->Stop() == S_OK);
-    CHECK(!Poll(events.back()));
-    CHECK(f.buffer->SetCurrentPosition(12) == S_OK);
-    CHECK(f.buffer->Play(0, 0, 0) == S_OK);
-    f.Advance(8);
-    CHECK(Poll(events.back()));
-    f.Advance(8);
-    CHECK(!Poll(events.back()));
-    CHECK(f.notify->SetNotificationPositions(0, nullptr) == S_OK);
-    for (auto* event : events) {
-        event->Close();
-        event->Release();
-    }
-}
-
-struct Barrier {
-    std::mutex mutex;
-    std::condition_variable condition;
-    bool reached = false;
-    bool released = false;
-    static void Hook(void* context) {
-        auto& barrier = *static_cast<Barrier*>(context);
-        std::unique_lock<std::mutex> lock(barrier.mutex);
-        barrier.reached = true;
-        barrier.condition.notify_all();
-        CHECK(barrier.condition.wait_for(lock, std::chrono::seconds(2), [&] {
-            return barrier.released;
-        }));
-    }
-    void Wait() {
-        std::unique_lock<std::mutex> lock(mutex);
-        CHECK(condition.wait_for(lock, std::chrono::seconds(2), [&] {
-            return reached;
-        }));
-    }
-    void Release() {
-        std::lock_guard<std::mutex> lock(mutex);
-        released = true;
-        condition.notify_all();
-    }
-};
-
-class ForeignEvent final : public IA3dNativeEventV1 {
-public:
-    unsigned calls = 0;
-    HRESULT QueryInterface(REFIID, void**) override {
-        ++calls;
-        return E_FAIL;
-    }
-    ULONG AddRef() override {
-        ++calls;
-        return 1;
-    }
-    ULONG Release() override {
-        ++calls;
-        return 1;
-    }
-    HRESULT Signal() override {
-        ++calls;
-        return E_FAIL;
-    }
-    HRESULT Reset() override {
-        ++calls;
-        return E_FAIL;
-    }
-    HRESULT Close() override {
-        ++calls;
-        return E_FAIL;
-    }
-    HRESULT Wait(DWORD, IA3dNativeEventV1*, A3dNativeWaitStatusV1*) override {
-        ++calls;
-        return E_FAIL;
-    }
-};
-
-void Fence(bool remove) {
-    Fixture f;
-    auto* old = Event();
-    auto* replacement = Event();
-    A3dNativeNotificationPositionV1 position{0, 0, old};
-    CHECK(f.notify->SetNotificationPositions(1, &position) == S_OK);
-    CHECK(f.buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-    Barrier barrier;
-    A3dNativeDispatchTestHook(Barrier::Hook, &barrier);
-    std::thread render([&] {
-        f.Advance(4);
-    });
-    barrier.Wait();
-    position.event = replacement;
-    CHECK(f.notify->SetNotificationPositions(remove ? 0 : 1, &position) == S_OK);
-    // The pending producer owns its old immutable snapshot. Replacement may
-    // return immediately because dispatch has not crossed the commit fence.
-    CHECK(!Poll(old));
-    barrier.Release();
-    render.join();
-    A3dNativeDispatchTestHook(nullptr, nullptr);
-    CHECK(!Poll(old));
-    CHECK(!Poll(replacement));
-    CHECK(f.buffer->SetCurrentPosition(0) == S_OK);
-    f.Advance(4);
-    CHECK(Poll(replacement) == !remove);
-    old->Close();
-    replacement->Close();
-    old->Release();
-    replacement->Release();
-}
-
-void Shutdown() {
-    auto* event = Event();
-    auto* mixer = new A3dNativeMixer;
-    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
-    DSBUFFERDESC desc{};
-    desc.dwSize = sizeof(desc);
-    desc.dwBufferBytes = kBytes;
-    desc.lpwfxFormat = &format;
-    IDirectSoundBuffer* buffer = nullptr;
-    CHECK(mixer->CreateBuffer(&desc, &buffer) == S_OK);
-    IA3dNativeNotifyV1* notify = nullptr;
-    CHECK(buffer->QueryInterface(IID_IA3dNativeNotifyV1, reinterpret_cast<void**>(&notify)) == S_OK);
-    A3dNativeNotificationPositionV1 position{A3D_NATIVE_NOTIFICATION_STOP, 0, event};
-    CHECK(notify->SetNotificationPositions(1, &position) == S_OK);
-    CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-    delete mixer;
-    CHECK(Poll(event));
-    CHECK(A3dNativeEventLifetime().retainedStates == 0);
-    CHECK(buffer->Stop() == S_OK);
-    CHECK(!Poll(event));
-    CHECK(buffer->Play(0, 0, 0) == E_ABORT);
-    notify->Release();
-    buffer->Release();
-    CHECK(event->Signal() == S_OK); // Provider shutdown never closes a caller event.
-    event->Close();
-    event->Release();
-}
-
-void Replace() {
-    Fixture f;
-    auto* event = Event();
-    {
-        A3dNativeNotificationPositionV1 position{0, 0, event};
-        CHECK(f.notify->SetNotificationPositions(1, &position) == S_OK);
-    }
-    CHECK(f.notify->SetNotificationPositions(1, nullptr) == E_POINTER);
-    A3dNativeNotificationPositionV1 invalid{0, 1, event};
-    CHECK(f.notify->SetNotificationPositions(1, &invalid) == E_INVALIDARG);
-    CHECK(f.notify->SetNotificationPositions(1025, &invalid) == E_INVALIDARG);
-    invalid = {16, 0, event};
-    CHECK(f.notify->SetNotificationPositions(1, &invalid) == E_INVALIDARG);
-    ForeignEvent foreign;
-    invalid = {0, 0, &foreign};
-    CHECK(f.notify->SetNotificationPositions(1, &invalid) == E_INVALIDARG);
-    CHECK(foreign.calls == 0);
-    auto* closed = Event();
-    closed->Close();
-    invalid = {0, 0, closed};
-    CHECK(f.notify->SetNotificationPositions(1, &invalid) == E_ABORT);
-    closed->Release();
-    CHECK(f.buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-    f.Advance(4);
-    CHECK(Poll(event));
-    CHECK(f.buffer->SetCurrentPosition(0) == S_OK);
-    f.Advance(4);
-    CHECK(f.notify->SetNotificationPositions(0, nullptr) == S_OK);
-    CHECK(Poll(event)); // Already committed signal survives removal.
-    CHECK(f.buffer->SetCurrentPosition(0) == S_OK);
-    f.Advance(4);
-    CHECK(!Poll(event));
-    A3dNativeNotificationPositionV1 position{0, 0, event};
-    CHECK(f.notify->SetNotificationPositions(1, &position) == S_OK);
-    event->Release(); // Registration now owns the only event reference.
-    CHECK(A3dNativeEventLifetime().objects == 1);
-    CHECK(f.buffer->SetCurrentPosition(0) == S_OK);
-    f.Advance(4);
-    CHECK(f.notify->SetNotificationPositions(0, nullptr) == S_OK);
-    CHECK(A3dNativeEventLifetime().objects == 0);
-}
-
-void Reentry() {
-    Fixture f;
-    auto* event = Event();
-    A3dNativeNotificationPositionV1 position{0, 0, event};
-    CHECK(f.notify->SetNotificationPositions(1, &position) == S_OK);
-    std::atomic<bool> complete{false};
-    std::thread waiter([&] {
-        A3dNativeWaitStatusV1 result{};
-        CHECK(event->Wait(kWaitMilliseconds, nullptr, &result) == S_OK);
-        CHECK(result == A3dNativeWaitStatusV1::Signaled);
-        DWORD cursor = 0;
-        CHECK(f.buffer->GetCurrentPosition(&cursor, nullptr) == S_OK);
-        CHECK(f.notify->SetNotificationPositions(1, &position) == S_OK);
-        CHECK(f.notify->SetNotificationPositions(0, nullptr) == S_OK);
-        CHECK(f.buffer->Stop() == S_OK);
-        CHECK(event->Close() == S_OK);
-        complete.store(true);
-    });
-    CHECK(A3dNativeEventTestAwaitSleeping(1, kWaitMilliseconds));
-    CHECK(f.buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-    f.Advance(4);
-    waiter.join();
-    CHECK(complete.load());
-    event->Release();
-}
 }
 
 int main(int argc, char** argv) {
     CHECK(argc == 2);
-    if (!std::strcmp(argv[1], "pool_failure_forwarding")) {
+    if (!std::strcmp(argv[1], "wrapped_stream_tail")) {
+        WrappedStreamTail();
+    } else if (!std::strcmp(argv[1], "factory_allocation_failure")) {
+        FactoryAllocationFailure();
+    } else if (!std::strcmp(argv[1], "concurrent_resource_modes")) {
+        ConcurrentModes();
+    } else if (!std::strcmp(argv[1], "pool_failure_forwarding")) {
         PoolFailures();
     } else if (!std::strcmp(argv[1], "loopers_pending_streams")) {
         PriorityPressure(true);
@@ -873,18 +669,9 @@ int main(int argc, char** argv) {
         ResourceModes();
     } else if (!std::strcmp(argv[1], "typed_init_no_dword_pointer")) {
         TypedProvider();
-    } else if (!std::strcmp(argv[1], "notification_crossings")) {
-        Crossings();
-        StreamCrossings();
+    } else if (!std::strcmp(argv[1], "resource_stream_ownership")) {
         StreamOwnership();
         NaturalStreamTail();
-        Shutdown();
-    } else if (!std::strcmp(argv[1], "notification_replace_remove")) {
-        Replace();
-        Fence(false);
-        Fence(true);
-    } else if (!std::strcmp(argv[1], "notification_waiter_reentry")) {
-        Reentry();
     } else {
         return 2;
     }

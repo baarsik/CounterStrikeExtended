@@ -6,6 +6,9 @@
 #include <mutex>
 
 std::recursive_mutex& A3dNativeResourceMutex() noexcept;
+#ifdef A3D_EVENT_TESTING
+void A3dNativeSetFinalStreamReleaseHook(void (*hook)(void*), void* context) noexcept;
+#endif
 class ResManBuffer;
 struct A3dNativeStreamSamples {
     A3dNativeOwnerLease m_nativeSamplesLease{A3dNativeOwnerKind::Samples};
@@ -224,7 +227,8 @@ public:
     void StopNativeWorker() noexcept;
     HRESULT AttachNativeBackend(IUnknown* leaf);
     void ShutdownNative() noexcept;
-    void ReleaseNativeBuffer(ResManStreamBuffer* buffer) noexcept;
+    // Caller holds the resource mutex across the zero-reference transition.
+    bool UnlinkNativeBuffer(ResManStreamBuffer* buffer) noexcept;
     HRESULT TickNative(DWORD time);
 
 #endif
@@ -268,7 +272,12 @@ public:
 	HRESULT StartRenderer( DWORD dwFirst, DWORD dwSecond, void* pConfiguration, void* pBackend );
 	HRESULT InitResMan( DWORD dwFirst, DWORD dwSecond, void* pConfiguration, void* pBackend );
 	HRESULT CreatePrimaryBuffer( a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer, IUnknown* pOuter );
+#ifndef _WIN32
+    HRESULT CreateSecondaryBuffer(a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer,
+        IUnknown* pOuter, DWORD mode);
+#else
 	HRESULT CreateSecondaryBuffer( a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer, IUnknown* pOuter );
+#endif
 	DWORD GetSoftwareStreamCount();
 	DWORD CountPlayingSoftwareVoices();
 	DWORD GetFreeSoftwareVoices();

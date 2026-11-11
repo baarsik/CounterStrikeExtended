@@ -6,6 +6,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <condition_variable>
+#include <mutex>
+#include <chrono>
+#include "resman.h"
 
 #define CHECK(value) do { if (!(value)) { \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); std::exit(1); } } while (0)
@@ -18,7 +22,73 @@ A3dNativeOwnerCounts StableOwners() {
     return counts;
 }
 
-int main() {
+struct ReleaseBarrier {
+    std::mutex mutex;
+    std::condition_variable condition;
+    bool reached = false;
+    bool proceed = false;
+    static void Pause(void* context) {
+        auto& barrier = *static_cast<ReleaseBarrier*>(context);
+        std::unique_lock<std::mutex> lock(barrier.mutex);
+        if (barrier.reached) {
+            return;
+        }
+        barrier.reached = true;
+        barrier.condition.notify_all();
+        CHECK(barrier.condition.wait_for(lock, std::chrono::seconds(5), [&] {
+            return barrier.proceed;
+        }));
+    }
+};
+
+void ReleaseDuringShutdown() {
+    IUnknown* provider = nullptr;
+    CHECK(A3dCreateNativeProvider(&provider) == S_OK);
+    IA3dNativeDeviceV1* device = nullptr;
+    CHECK(provider->QueryInterface(IID_IA3dNativeDeviceV1, reinterpret_cast<void**>(&device)) == S_OK);
+    DWORD supported = 0;
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK);
+    auto* manager = dynamic_cast<ResMan*>(provider);
+    CHECK(manager->SetResourceManagerMode(A3D_RESOURCE_MODE_DYNAMIC) == S_OK);
+    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 44100, 88200, 2, 16, 0};
+    DSBUFFERDESC desc{};
+    desc.dwSize = sizeof(desc);
+    desc.dwBufferBytes = 16;
+    desc.lpwfxFormat = &format;
+    IDirectSoundBuffer* buffer = nullptr;
+    CHECK(manager->CreateSoundBuffer(&desc, &buffer, nullptr) == S_OK);
+    ReleaseBarrier barrier;
+    A3dNativeSetFinalStreamReleaseHook(ReleaseBarrier::Pause, &barrier);
+    std::thread releaser([&] {
+        CHECK(buffer->Release() == 0);
+    });
+    {
+        std::unique_lock<std::mutex> lock(barrier.mutex);
+        CHECK(barrier.condition.wait_for(lock, std::chrono::seconds(5), [&] {
+            return barrier.reached;
+        }));
+    }
+    manager->ShutdownNative();
+    {
+        std::lock_guard<std::mutex> lock(barrier.mutex);
+        barrier.proceed = true;
+        barrier.condition.notify_all();
+    }
+    releaser.join();
+    A3dNativeSetFinalStreamReleaseHook(nullptr, nullptr);
+    device->Release();
+    provider->Release();
+    for (const auto count : A3dNativeOwners()) {
+        CHECK(count == 0);
+    }
+}
+
+int main(int argc, char** argv) {
+    if (argc == 2 && !std::strcmp(argv[1], "release_during_shutdown")) {
+        ReleaseDuringShutdown();
+        std::puts("PASS release_during_shutdown");
+        return 0;
+    }
     const char* driver = std::getenv("SDL_AUDIO_DRIVER");
     CHECK(driver && !std::strcmp(driver, "dummy"));
     IUnknown* provider = nullptr;

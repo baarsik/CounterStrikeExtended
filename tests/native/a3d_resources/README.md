@@ -19,9 +19,9 @@ Use a separate Debug directory; add `-DA3D_SANITIZERS=ON` in another Debug
 directory for ASan/UBSan. Every CTest process uses `UBSAN_OPTIONS=halt_on_error=1`.
 All builds, dependency builds and tests remain serial.
 
-The 23 CTest entries cover:
+The 25 CTest entries cover:
 
-- The three complete event suites from `a3d_notifications`, plus real render and
+- The three complete event suites from `a3d_notifications`, plus the authoritative
   stream crossing, replacement/removal, generation fences and waiter reentry.
   `a3d_stream_notification_tests` builds the existing full notification suite
   against an actual `ResManStreamBuffer` and `DalBufferInfo` submission fixture.
@@ -37,6 +37,9 @@ The 23 CTest entries cover:
   bytes. Natural STOP waits for submitted audio to drain. Source format/control
   metadata is owned, duplicate PCM storage is shared with one writer, and native
   stream DS/3D/DAL views use the same canonical IUnknown.
+- Deterministic final-stream-release/shutdown overlap, wrapped and reused-ring
+  nonlooping tails, concurrent mode changes/creation (also checked with TSan),
+  and actual local-factory parent allocation failure/unwind.
 - Actual parent/source/duplicate acquisition failure, source QI retention,
   `held_source_after_parent` and `held_buffer_after_source`. The lifetime fixture
   observes the source's actual owned buffer via fixture-only `-fno-access-control`;
@@ -51,3 +54,11 @@ compiled out of the production graph. Intermediate source unwind comparisons
 ignore only transient callback activity; final shutdown still requires every
 counter to be zero. Full module export admission/unload, public acoustic feature
 qualification, physical audio and game acceptance remain separate gates.
+
+The render notification suites remain in `../a3d_notifications`; both owners use
+the same authoritative test source. Resource-specific ownership, tail, queue and
+pool tests live here without copied render crossing/fence/reentry test bodies.
+The resource-mode race can be checked in a separate Debug build with
+`-DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"` and
+`-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread`, running only
+`concurrent_resource_modes` with `TSAN_OPTIONS=halt_on_error=1`.

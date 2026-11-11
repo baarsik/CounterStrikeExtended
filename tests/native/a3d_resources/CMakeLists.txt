@@ -56,10 +56,8 @@ if(A3D_SANITIZERS)
     target_compile_options(a3d_notification_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(a3d_notification_tests PRIVATE -fsanitize=address,undefined)
 endif()
-foreach(case notification_crossings notification_replace_remove notification_waiter_reentry)
-    add_test(NAME ${case} COMMAND a3d_notification_tests ${case})
-    set_tests_properties(${case} PROPERTIES TIMEOUT 15)
-endforeach()
+add_test(NAME resource_stream_ownership COMMAND a3d_notification_tests resource_stream_ownership)
+set_tests_properties(resource_stream_ownership PROPERTIES TIMEOUT 15)
 
 add_test(NAME typed_init_no_dword_pointer COMMAND a3d_notification_tests typed_init_no_dword_pointer)
 set_tests_properties(typed_init_no_dword_pointer PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
@@ -104,12 +102,14 @@ foreach(case notification_crossings notification_replace_remove notification_wai
     set_tests_properties(stream_${case} PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
 endforeach()
 
-foreach(case pool_failure_forwarding loopers_pending_streams software_capacity_not_hardware guid_copy_survives no_factory_recursion tick_wrap_expiry legacy_notify_views)
+foreach(case wrapped_stream_tail factory_allocation_failure concurrent_resource_modes pool_failure_forwarding loopers_pending_streams software_capacity_not_hardware guid_copy_survives no_factory_recursion tick_wrap_expiry legacy_notify_views)
     add_test(NAME ${case} COMMAND a3d_notification_tests ${case})
     set_tests_properties(${case} PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")
 endforeach()
 
 add_test(NAME native_capacity_uuid COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/capacity_uuid_test.py" "${A3D}/native_capacity.h")
+add_test(NAME release_during_shutdown COMMAND a3d_lifetime_tests release_during_shutdown)
+set_tests_properties(release_during_shutdown PROPERTIES TIMEOUT 15)
 get_property(resource_tests DIRECTORY PROPERTY TESTS)
 set_tests_properties(${resource_tests} PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")

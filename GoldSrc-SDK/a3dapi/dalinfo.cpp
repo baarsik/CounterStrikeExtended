@@ -466,6 +466,7 @@ HRESULT DalBufferInfo::FormatAndFillBuffer( LPVOID pDestination, DWORD dwDestina
 		break;
 	}
 
+#ifdef _WIN32
 	if ( dwSourceBytes == *pdwSourcePosition && !( dwFlags & A3D_RENDER_LOOPING ) )
 	{
 		DWORD dwStatus = 0;
@@ -476,6 +477,8 @@ HRESULT DalBufferInfo::FormatAndFillBuffer( LPVOID pDestination, DWORD dwDestina
 		if ( ( dwStatus & DSBSTATUS_PLAYING ) && ( dwStatus & DSBSTATUS_LOOPING ) )
 			m_pSoundBuffer->Play( 0, 0, 0 );
 	}
+
+#endif
 
 	return S_OK;
 }

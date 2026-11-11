@@ -71,8 +71,9 @@ retained PCM arithmetic and adds no Windows structure fields. A separate logical
 notification baseline is reset by seek and advances by real consumed bytes;
 DWORD cursor snapshots alone are not used to infer full laps.
 
-All six named suites are registered, but Task 5 remains incomplete until retained
-`STREAM_SUBMITTED` updates, typed provider/resource attachment, held source and
-buffer references, provider concurrency and complete acquisition/shutdown cases
-are implemented and tested. Export descriptor/admitted module unload remains
-Task 7. Private event counts are not a claim that `DllCanUnloadNow` is integrated.
+All six named suites are registered. The resource fixture now covers retained
+`STREAM_SUBMITTED` updates, typed
+provider/resource attachment, held source/buffer references, concurrency and
+acquisition/shutdown cases. Task 5 remains subject to independent review; public
+acoustic feature qualification is Task 6, and exported ABI/admitted module unload
+remains Task 7. Private event counts do not establish `DllCanUnloadNow` integration.

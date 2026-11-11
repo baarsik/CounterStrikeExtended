@@ -22,6 +22,17 @@
 #ifndef _WIN32
 
 
+#ifdef A3D_EVENT_TESTING
+namespace {
+void (*finalStreamReleaseHook)(void*) = nullptr;
+void* finalStreamReleaseContext = nullptr;
+}
+void A3dNativeSetFinalStreamReleaseHook(void (*hook)(void*), void* context) noexcept {
+    finalStreamReleaseHook = hook;
+    finalStreamReleaseContext = context;
+}
+#endif
+
 std::recursive_mutex& A3dNativeResourceMutex() noexcept {
     static std::recursive_mutex mutex;
     return mutex;
@@ -273,7 +284,12 @@ HRESULT STDMETHODCALLTYPE ResMan::CreateSoundBuffer( LPCDSBUFFERDESC pDesc,
     }
     a3d_platform_buffer_desc_t desc{sizeof(desc), pDesc->dwFlags, pDesc->dwBufferBytes,
         pDesc->dwReserved, pDesc->lpwfxFormat};
-    if (m_dwResourceManagerMode == A3D_RESOURCE_MODE_OFF || pDesc->dwFlags & DSBCAPS_PRIMARYBUFFER) {
+    DWORD mode;
+    {
+        std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+        mode = m_dwResourceManagerMode;
+    }
+    if (mode == A3D_RESOURCE_MODE_OFF || pDesc->dwFlags & DSBCAPS_PRIMARYBUFFER) {
         const HRESULT result = m_pDefaultPool->GetIDal()->CreateSoundBufferEx(&desc, nullptr, ppBuffer, nullptr);
         if (SUCCEEDED(result)) {
             if (auto* native = dynamic_cast<A3dNativeBuffer*>(*ppBuffer)) {
@@ -282,7 +298,7 @@ HRESULT STDMETHODCALLTYPE ResMan::CreateSoundBuffer( LPCDSBUFFERDESC pDesc,
         }
         return result;
     }
-    return CreateSecondaryBuffer(&desc, ppBuffer, nullptr);
+    return CreateSecondaryBuffer(&desc, ppBuffer, nullptr, mode);
 #else
 	if ( !m_dwInitialized )
 		return DSERR_UNINITIALIZED;
@@ -708,16 +724,27 @@ ULONG STDMETHODCALLTYPE ResManBuffer::Release()
 {
 #ifndef _WIN32
     LONG remaining;
+    ResManStreamBuffer* retired = nullptr;
     {
         std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
         remaining = A3dReferenceDecrement(&m_cReferences);
-    }
-    if (!remaining) {
-        auto* stream = dynamic_cast<ResManStreamBuffer*>(this);
-        auto* owner = dynamic_cast<ResMan*>(m_pOwner);
-        if (stream && owner) {
-            owner->ReleaseNativeBuffer(stream);
+        if (!remaining) {
+            auto* stream = dynamic_cast<ResManStreamBuffer*>(this);
+            auto* owner = dynamic_cast<ResMan*>(m_pOwner);
+            if (stream && owner && owner->UnlinkNativeBuffer(stream)) {
+                retired = stream;
+            }
         }
+    }
+    // Zero transition and weak-list retirement are atomic. Shutdown can no
+    // longer pin this object; destruction and notification fencing stay unlocked.
+    if (retired) {
+#ifdef A3D_EVENT_TESTING
+        if (finalStreamReleaseHook) {
+            finalStreamReleaseHook(finalStreamReleaseContext);
+        }
+#endif
+        delete retired;
     }
     return remaining;
 #else
@@ -1075,7 +1102,7 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::Play( DWORD dwReserved, DWORD dwPriority
     if (dwReserved || dwPriority || dwFlags & ~DSBPLAY_LOOPING || !m_nativeSamples) {
         return E_INVALIDARG;
     }
-    if (m_dwReadPosition == m_Desc.dwBufferBytes) {
+    if (m_dwReadPosition == m_Desc.dwBufferBytes && m_dwOverridePosition == A3D_BUFFER_POSITION_UNSET) {
         m_dwOverridePosition = 0;
     }
     m_dwStatus = A3D_BUFFER_STATE_PLAYING;
@@ -1666,8 +1693,13 @@ HRESULT STDMETHODCALLTYPE ResMan::DuplicateSoundBuffer( IDirectSoundBuffer* pBuf
 #endif
 }
 
+#ifndef _WIN32
+HRESULT ResMan::CreateSecondaryBuffer(a3d_platform_buffer_desc_t* pDesc,
+    IDirectSoundBuffer** ppBuffer, IUnknown*, DWORD mode)
+#else
 HRESULT ResMan::CreateSecondaryBuffer( a3d_platform_buffer_desc_t* pDesc,
 		IDirectSoundBuffer** ppBuffer, IUnknown* )
+#endif
 {
 #ifndef _WIN32
     if (!ppBuffer) {
@@ -1675,7 +1707,7 @@ HRESULT ResMan::CreateSecondaryBuffer( a3d_platform_buffer_desc_t* pDesc,
     }
     *ppBuffer = nullptr;
     auto* buffer = new (std::nothrow) ResManStreamBuffer(static_cast<IDirectSound*>(this),
-        m_dwResourceManagerMode);
+        mode);
     if (!buffer) {
         return E_OUTOFMEMORY;
     }
@@ -2257,12 +2289,14 @@ HRESULT ResManBuffer::CaptureNativeUpdate(DWORD time, A3dNativeNotificationBatch
         if (FAILED(result)) {
             return result;
         }
-        if (!remaining || !(status & DSBSTATUS_PLAYING)) {
+        if (!remaining) {
             result = m_pStream->GetDSBuffer()->Stop();
             if (FAILED(result)) {
                 return result;
             }
             CaptureNativeStop(batch);
+        } else if (!(status & DSBSTATUS_PLAYING)) {
+            return m_pStream->GetDSBuffer()->Play(0, 0, DSBPLAY_LOOPING);
         }
         return S_OK;
     }
@@ -2283,8 +2317,9 @@ HRESULT ResManBuffer::CaptureNativeUpdate(DWORD time, A3dNativeNotificationBatch
     m_nativeNotifications.Capture(oldPosition, m_pStream->m_nativeSubmittedBytes,
         m_Desc.dwBufferBytes, false, batch);
     if (!(status & DSBSTATUS_PLAYING)) {
-        const bool tail = position == m_Desc.dwBufferBytes && !(m_dwFlags & A3D_RENDER_LOOPING);
-        return m_pStream->GetDSBuffer()->Play(0, 0, tail ? 0 : DSBPLAY_LOOPING);
+        // The destination ring wraps independently of source completion.
+        // GetAudioBytesQueued owns the terminal boundary, including wrapped tails.
+        return m_pStream->GetDSBuffer()->Play(0, 0, DSBPLAY_LOOPING);
     }
     return S_OK;
 }
@@ -2614,7 +2649,7 @@ void ResMan::ShutdownNative() noexcept {
     m_nativeAttached = false;
 }
 
-void ResMan::ReleaseNativeBuffer(ResManStreamBuffer* buffer) noexcept {
+bool ResMan::UnlinkNativeBuffer(ResManStreamBuffer* buffer) noexcept {
     bool owned = false;
     {
         std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
@@ -2643,9 +2678,7 @@ void ResMan::ReleaseNativeBuffer(ResManStreamBuffer* buffer) noexcept {
             break;
         }
     }
-    if (owned) {
-        delete buffer;
-    }
+    return owned;
 }
 
 HRESULT ResMan::TickNative(DWORD time) {

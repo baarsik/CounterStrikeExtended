@@ -175,9 +175,18 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 
 #endif
 
+#ifndef _WIN32
+    CA3d* pA3dObject = A3dNativeAcquisitionSucceeded() ? new (std::nothrow) CA3d(bLegacyDriver) : nullptr;
+#else
 	CA3d* pA3dObject = new ( std::nothrow ) CA3d( bLegacyDriver );
-	if ( !pA3dObject )
-		return E_OUTOFMEMORY;
+#endif
+    if (!pA3dObject) {
+#ifndef _WIN32
+        pDirectSound->Release();
+        pA3d2->Release();
+#endif
+        return E_OUTOFMEMORY;
+    }
 
 	if ( FAILED( pA3dObject->InitializeInterfaces( pDirectSound, pA3d2, pA3d ) ) )
 	{
