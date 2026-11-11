@@ -4204,6 +4204,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_notifications.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/native_output.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -4507,6 +4517,16 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_notifications.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "posix",
