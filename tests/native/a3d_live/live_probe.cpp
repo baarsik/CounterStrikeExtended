@@ -277,7 +277,14 @@ struct Module {
         CHECK(object->CreateInstance(nullptr, IID_IDirectSound, reinterpret_cast<void**>(&sound)) == S_OK);
         object->Release();
         auto* device = Query<independent::Device>(sound, independent::DeviceIid);
+        // Deliberately rejected input preserves the existing negative contract;
+        // accepted/selectable tokens above come only from the public enumerator.
+        constexpr GUID kInvalidDeviceGuid{0xffffffff, 0xffff, 0xffff, {}};
         DWORD features = 0;
+        CHECK(FAILED(device->InitializeDevice(&kInvalidDeviceGuid, kDirectFeature,
+            kNativeInitializationMode, &features)));
+        CHECK(features == 0);
+        std::printf("invalid_guid_rejected=1 supported_features=0\n");
         capture.admitting = true;
         const HRESULT result = device->InitializeDevice(selecting ? &selected.device : nullptr,
             kDirectFeature, kNativeInitializationMode, &features);
