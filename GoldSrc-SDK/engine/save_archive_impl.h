@@ -48,6 +48,48 @@ bool ReadExact(FileHandle_t file, void *output, std::uint32_t bytes) {
         && FS_Tell(file) == start + bytes);
 }
 
+bool ReservedDeviceName(const char *name, std::size_t length) {
+    // Win32 treats device basenames as devices even with additional extensions. Apply the same
+    // rejection on every target; ASCII-space normalization must not disguise a reserved basename.
+    std::size_t start = 0;
+    while (start < length && name[start] == ' ') {
+        ++start;
+    }
+    std::size_t end = start;
+    while (end < length && name[end] != '.') {
+        ++end;
+    }
+    while (end > start && name[end - 1] == ' ') {
+        --end;
+    }
+    constexpr const char *kReservedNames[] = {
+        "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        // Microsoft also reserves superscript1/2/3. Cover both single-byte Latin1 and UTF8 names.
+        "COM\xb9", "COM\xb2", "COM\xb3", "LPT\xb9", "LPT\xb2", "LPT\xb3",
+        "COM\xc2\xb9", "COM\xc2\xb2", "COM\xc2\xb3", "LPT\xc2\xb9", "LPT\xc2\xb2", "LPT\xc2\xb3"
+    };
+    for (const char *reserved : kReservedNames) {
+        if (end - start != std::strlen(reserved)) {
+            continue;
+        }
+        bool matches = true;
+        for (std::size_t index = 0; index < end - start; ++index) {
+            const char character = name[start + index];
+            const char upper = character >= 'a' && character <= 'z' ? character - ('a' - 'A') : character;
+            if (upper != reserved[index]) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ValidName(const char *name, std::size_t bytes, std::size_t &length) {
     length = 0;
     while (length < bytes && name[length] != '\0') {
@@ -69,7 +111,7 @@ bool ValidName(const char *name, std::size_t bytes, std::size_t &length) {
             return false;
         }
     }
-    return true;
+    return !ReservedDeviceName(name, length);
 }
 
 bool MakePath(const char *name, char (&path)[kPathBytes]) {

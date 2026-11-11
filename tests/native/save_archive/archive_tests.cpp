@@ -113,6 +113,84 @@ void rejected(const Bytes &data, int count) {
     check(files.at("SAVE/bad.sav").data == data, "Host_Load modified malformed input");
 }
 
+// DOS device names must fail complete archive validation before the valid first output opens.
+void reservedDeviceNames() {
+    bool allSafe = true;
+    const auto expect = [&](bool value, const char *message) {
+        if (!value) {
+            allSafe = false;
+            std::cerr << message << '\n';
+        }
+    };
+    const char *reservedNames[] = {
+        "NUL.HL1", "con.HL2", "pRn.HL3", "AuX.HL1", "CONIN$.HL1", "conout$.HL2",
+        "COM1.HL2", "com9.HL1", "LPT1.HL3", "lPt9.HL2", "NUL.extra.HL1",
+        "NUL .HL1", " NUL.HL1", "  nUl  .extra.HL2",
+        "COM\xb9.HL1", "lpt\xb2.HL2", "COM\xb3.HL3",
+        "COM\xc2\xb9.HL1", "lpt\xc2\xb2.HL2", "COM\xc2\xb3.HL3"
+    };
+    for (const char *name : reservedNames) {
+        for (auto width : {260, 1024}) {
+            const auto first = entry(width, "first.HL1", {0x11, 0x22, 0x33});
+            const auto second = entry(width, name, {0xfe, 0, 0xed}, 0xa5);
+            Bytes data = first;
+            data.insert(data.end(), second.begin(), second.end());
+            reset();
+            MemoryFile input{data};
+            Layout layout{1, 2, 3, 4};
+            const bool accepted = ReadLayout(&input, 2, layout);
+            expect(!accepted && layout.start == 0 && layout.end == 0 && layout.fileCount == 0
+                && layout.nameBytes == 0, "reserved later entry accepted by ReadLayout");
+            expect(input.data == data && outputOpens == 0, "ReadLayout changed input/opened outputs");
+            reset();
+            input = {data};
+            expect(!Extract(&input, {0, static_cast<unsigned int>(data.size()), 2,
+                static_cast<unsigned int>(width)}), "reserved later entry accepted by Extract");
+            expect(input.data == data && outputOpens == 0, "reserved Extract opened outputs/changed input");
+            reset();
+            input = {data};
+            expect(!DirectoryExtract(&input, 2), "reserved later entry accepted by DirectoryExtract");
+            expect(input.data == data && outputOpens == 0, "reserved DirectoryExtract opened outputs/changed input");
+            reset();
+            files["SAVE/reserved.sav"].data = data;
+            declaredCount = 2;
+            mapped = 0;
+            expect(Host_Load("reserved") == 0 && mapped == 0 && outputOpens == 0,
+                "reserved later entry accepted/opened outputs through Host_Load");
+            expect(files.at("SAVE/reserved.sav").data == data, "reserved Host_Load input changed");
+        }
+        reset();
+        addName(name);
+        files[std::string("SAVE/") + name].data = {0x71};
+        MemoryFile output;
+        expect(!WriteDirectory("SAVE/*.HL?", &output, 1) && output.data.empty(), "reserved writer name accepted");
+        expect(!DirectoryCopy("SAVE/*.HL?", &output, 1) && output.data.empty(), "reserved DirectoryCopy accepted");
+        check(files.at(std::string("SAVE/") + name).data == Bytes({0x71}), "reserved writer changed input");
+    }
+    const char *safeNames[] = {
+        "NULmap.HL1", "CONtext.HL2", "AUXiliary.HL3", "COM10.HL1", "COM1map.HL2",
+        "LPT10.HL3", "LPT9map.HL1", "map.NUL.HL2", "COM\xc2\xb9map.HL3", "map\xc3\xb3.HL1"
+    };
+    for (const char *name : safeNames) {
+        for (auto width : {260, 1024}) {
+            reset();
+            const auto data = entry(width, name, {0x71});
+            MemoryFile input{data};
+            Layout layout{};
+            check(ReadLayout(&input, 1, layout) && Extract(&input, layout), "safe device lookalike rejected");
+            check(files.at(std::string("SAVE/") + name).data == Bytes({0x71}) && input.data == data,
+                "safe device lookalike output/input changed");
+        }
+        reset();
+        addName(name);
+        files[std::string("SAVE/") + name].data = {0x71};
+        MemoryFile output;
+        check(WriteDirectory("SAVE/*.HL?", &output, 1) && output.data == entry(260, name, {0x71}),
+            "safe device lookalike writer rejected/changed bytes");
+    }
+    check(allSafe, "reserved device rejection matrix failed");
+}
+
 void malformedReaders() {
     rejected(archive(260), -1);
     rejected(archive(260), INT_MAX);
@@ -326,6 +404,7 @@ void faults() {
 int main() {
     try {
         validReaders();
+        reservedDeviceNames();
         malformedReaders();
         writers();
         chunkedCopy();
