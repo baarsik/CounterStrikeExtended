@@ -1,8 +1,9 @@
 #pragma once
 
-#include <windows.h>
-#include <mmsystem.h>
-#include <dsound.h>
+#include "platform_dsound.h"
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 
 #define A3D_RENDER_WRITE_BUFFER	0x01
 #define A3D_RENDER_LOOPING		0x02
@@ -52,6 +53,10 @@ class DalInfo
 public:
 	DalInfo( IA3dDal* pBackend, const a3d_render_description_t* pDescription );
 
+#ifndef _WIN32
+    ~DalInfo();
+    A3dNativeOwnerLease m_nativePoolLease{A3dNativeOwnerKind::Pool};
+#endif
 	IA3dDal* GetIDal() { return m_pBackend; }
 
 	DWORD GetNumAvailable();
@@ -77,6 +82,15 @@ public:
 		const a3d_render_description_t* pDescription, DWORD dwType );
 	~DalBufferInfo();
 
+#ifndef _WIN32
+    A3dNativeOwnerLease m_nativePoolBufferLease{A3dNativeOwnerKind::PoolBuffer};
+    // Reset by each Write; counted at conversion before any loop projection.
+    std::uint64_t m_nativeSubmittedBytes = 0;
+    std::uint64_t m_nativeConsumedBaseline = 0;
+    DWORD m_nativeQueuedBytes = 0;
+    static constexpr std::uint64_t kNativeTailUnset = UINT64_MAX;
+    std::uint64_t m_nativeTailBytes = kNativeTailUnset;
+#endif
 	IDirectSoundBuffer* GetDSBuffer() { return m_pSoundBuffer; }
 	IA3dDalBuffer* GetIDalBuffer() { return (IA3dDalBuffer*)m_pRenderBuffer; }
 
@@ -86,7 +100,11 @@ public:
 	HRESULT GetBytesQueued( LPDWORD pdwQueuedBytes );
 	HRESULT GetAudioBytesQueued( LPDWORD pdwRemainingBytes );
 	HRESULT ConvertPcm( LPWORD pDestination, const BYTE* pSource, DWORD dwSamples, DWORD dwFlags );
+#ifdef _WIN32
 	void Reset();
+#else
+    HRESULT Reset();
+#endif
 	HRESULT FormatAndFillBuffer( LPVOID pDestination, DWORD dwDestinationBytes, const BYTE* pSource,
 		DWORD dwSourceBytes, LPDWORD pdwSourcePosition, DWORD dwFlags );
 	HRESULT Write( DWORD dwTime, const BYTE* pSource, DWORD dwSourceBytes,

@@ -11,6 +11,12 @@ public:
 };
 class CA3d {
 public:
+    // This component fixture covers the external typed-device/fallback boundary.
+    // Owned native provider behavior is exercised by the actual-module suites.
+    bool UsesNativeProvider() const {
+        return false;
+    }
+    DWORD m_dwEnabledFeatures = 0;
     HRESULT SetupBackend(IDirectSound*, IA3d2*, IA3d*);
     HRESULT ShutdownBackend();
     HRESULT STDMETHODCALLTYPE Init(LPGUID, DWORD, DWORD);

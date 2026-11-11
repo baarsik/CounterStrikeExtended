@@ -1,4 +1,23 @@
 #pragma once
+#ifndef _WIN32
+#include "native_platform.h"
+#include "native_notifications.h"
+#include "A3dSource.h"
+#include <mutex>
+
+std::recursive_mutex& A3dNativeResourceMutex() noexcept;
+#ifdef A3D_EVENT_TESTING
+void A3dNativeSetFinalStreamReleaseHook(void (*hook)(void*), void* context) noexcept;
+#endif
+class ResManBuffer;
+struct A3dNativeStreamSamples {
+    A3dNativeOwnerLease m_nativeSamplesLease{A3dNativeOwnerKind::Samples};
+    BYTE* data = nullptr;
+    DWORD bytes = 0;
+    ULONG references = 1;
+    ResManBuffer* writer = nullptr;
+};
+#endif
 
 #include "backend_legacy.h"
 
@@ -84,8 +103,25 @@ public:
 	HRESULT SetStream( DalBufferInfo* pStream );
 	HRESULT Duplicate( const ResManBuffer* pBuffer );
 	HRESULT Update( DWORD dwTime );
+#ifndef _WIN32
+    HRESULT CaptureNativeUpdate(DWORD time, A3dNativeNotificationBatch& batch);
+    void CaptureNativeStop(A3dNativeNotificationBatch& batch);
+#endif
 
 protected:
+#ifndef _WIN32
+    A3dNativeOwnerLease m_nativeStreamBufferLease{A3dNativeOwnerKind::StreamBuffer};
+    friend class ResMan;
+    bool m_nativeRetired = false;
+    WAVEFORMATEX m_nativeFormat{};
+    A3DCTRL_SRC_SUPER m_nativeControl{};
+    bool m_nativeHasControl = false;
+    DS3DBUFFER m_nativeSpatial{};
+    DWORD m_nativeLockOffset = 0;
+    DWORD m_nativeLockBytes = 0;
+    A3dNativeStreamSamples* m_nativeSamples = nullptr;
+    A3dNativeNotifications m_nativeNotifications;
+#endif
 	LONG							m_cReferences;
 	void*							m_pBufferToken;
 	DalBufferInfo*			m_pStream;
@@ -108,11 +144,49 @@ protected:
 	HANDLE							m_hNotificationMutex;
 };
 
-class ResManStreamBuffer : public ResManBuffer
+class ResManStreamBuffer
+#ifndef _WIN32
+    final
+#endif
+    : public ResManBuffer
+#ifndef _WIN32
+    , public IA3dNativeNotifyV1, public IDirectSound3DBuffer
+#endif
 {
 public:
 	ResManStreamBuffer( IUnknown* pOwner, DWORD dwBufferKind );
 	~ResManStreamBuffer();
+#ifndef _WIN32
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** object) override;
+    ULONG STDMETHODCALLTYPE AddRef() override {
+        return ResManBuffer::AddRef();
+    }
+    ULONG STDMETHODCALLTYPE Release() override {
+        return ResManBuffer::Release();
+    }
+    HRESULT STDMETHODCALLTYPE GetAllParameters(LPDS3DBUFFER pParameters) override;
+    HRESULT STDMETHODCALLTYPE GetConeAngles(LPDWORD pdwInside, LPDWORD pdwOutside) override;
+    HRESULT STDMETHODCALLTYPE GetConeOrientation(LPD3DVECTOR pOrientation) override;
+    HRESULT STDMETHODCALLTYPE GetConeOutsideVolume(LPLONG plVolume) override;
+    HRESULT STDMETHODCALLTYPE GetMaxDistance(D3DVALUE* pflDistance) override;
+    HRESULT STDMETHODCALLTYPE GetMinDistance(D3DVALUE* pflDistance) override;
+    HRESULT STDMETHODCALLTYPE GetMode(LPDWORD pdwMode) override;
+    HRESULT STDMETHODCALLTYPE GetPosition(LPD3DVECTOR pPosition) override;
+    HRESULT STDMETHODCALLTYPE GetVelocity(LPD3DVECTOR pVelocity) override;
+    HRESULT STDMETHODCALLTYPE SetAllParameters(LPCDS3DBUFFER pParameters, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetConeAngles(DWORD dwInside, DWORD dwOutside, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetConeOrientation(D3DVALUE flX, D3DVALUE flY, D3DVALUE flZ, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetConeOutsideVolume(LONG lVolume, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetMaxDistance(D3DVALUE flDistance, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetMinDistance(D3DVALUE flDistance, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetMode(DWORD dwMode, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetPosition(D3DVALUE flX, D3DVALUE flY, D3DVALUE flZ, DWORD dwApply) override;
+    HRESULT STDMETHODCALLTYPE SetVelocity(D3DVALUE flX, D3DVALUE flY, D3DVALUE flZ, DWORD dwApply) override;
+    using ResManBuffer::SetNotificationPositions;
+    HRESULT STDMETHODCALLTYPE GetNotificationCaps(A3dNativeNotificationCapsV1* caps) override;
+    HRESULT STDMETHODCALLTYPE SetNotificationPositions(DWORD count,
+        const A3dNativeNotificationPositionV1* positions) override;
+#endif
 };
 
 typedef struct a3d_platform_buffer_node_s
@@ -152,6 +226,16 @@ class ResMan : public IDirectSound, public IA3dDal, public IA3d2
 {
 public:
 	ResMan();
+#ifndef _WIN32
+    ~ResMan();
+    void StopNativeWorker() noexcept;
+    HRESULT AttachNativeBackend(IUnknown* leaf);
+    void ShutdownNative() noexcept;
+    // Caller holds the resource mutex across the zero-reference transition.
+    bool UnlinkNativeBuffer(ResManStreamBuffer* buffer) noexcept;
+    HRESULT TickNative(DWORD time);
+
+#endif
 
 	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID iid, void** ppObject );
 	ULONG STDMETHODCALLTYPE AddRef();
@@ -192,7 +276,12 @@ public:
 	HRESULT StartRenderer( DWORD dwFirst, DWORD dwSecond, void* pConfiguration, void* pBackend );
 	HRESULT InitResMan( DWORD dwFirst, DWORD dwSecond, void* pConfiguration, void* pBackend );
 	HRESULT CreatePrimaryBuffer( a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer, IUnknown* pOuter );
+#ifndef _WIN32
+    HRESULT CreateSecondaryBuffer(a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer,
+        IUnknown* pOuter, DWORD mode);
+#else
 	HRESULT CreateSecondaryBuffer( a3d_platform_buffer_desc_t* pDesc, IDirectSoundBuffer** ppBuffer, IUnknown* pOuter );
+#endif
 	DWORD GetSoftwareStreamCount();
 	DWORD CountPlayingSoftwareVoices();
 	DWORD GetFreeSoftwareVoices();
@@ -221,6 +310,12 @@ protected:
 	DalInfo*				m_pSecondaryPool;
 	DWORD							m_dwResourceManagerMode;
 	DWORD							m_dwThreadId;
+#ifndef _WIN32
+    A3dNativeOwnerLease m_nativeResourceManagerLease{A3dNativeOwnerKind::ResourceManager};
+    std::recursive_mutex m_nativeAdmission;
+    bool m_nativeAttached = false;
+    A3dNativeWorker m_nativeWorker;
+#endif
 	HANDLE							m_hThread;
 	HANDLE							m_hUpdateEvent;
 	DWORD							m_dwWaitTime;

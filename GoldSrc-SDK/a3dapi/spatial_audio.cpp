@@ -189,6 +189,20 @@ static const IID IID_A3dRenderBuffer =
 CA3dSource::CA3dSource( const CA3dSource& source, HRESULT* pStatus )
 {
 	memcpy( (a3d_source_state_t*)this, (const a3d_source_state_t*)&source, sizeof( a3d_source_state_t ) );
+#ifndef _WIN32
+    if (m_pA3d->UsesNativeProvider()) {
+        m_pA3d->AddRef();
+        m_nativeParentRetained = true;
+        m_cReferences = 1;
+        m_bRegistered = FALSE;
+        m_pBuffer = nullptr;
+        m_pBuffer3d = nullptr;
+        m_pSourceBackend = nullptr;
+        m_pRenderStates[0] = nullptr;
+        m_pRenderStates[1] = nullptr;
+        m_pRenderState = nullptr;
+    }
+#endif
 	m_pReflections[0] = NULL;
 	m_pReflections[1] = NULL;
 	m_nReflections[0] = 0;
@@ -202,17 +216,53 @@ CA3dSource::CA3dSource( const CA3dSource& source, HRESULT* pStatus )
 		return;
 	}
 
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
 	if ( FAILED( m_pBuffer->QueryInterface( IID_IDirectSound3DBuffer, (void**)&m_pBuffer3d ) ) )
 	{
 		*pStatus = A3DERROR_FAILED_DUPLICATION;
 		return;
 	}
 
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
 	if ( FAILED( m_pBuffer->QueryInterface( IID_A3dRenderBuffer, (void**)&m_pSourceBackend ) ) )
 		m_pSourceBackend = NULL;
 
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
 	m_pRenderStates[0] = (A3DCTRL_SRC_SUPER*)calloc( 1, sizeof( A3DCTRL_SRC_SUPER ) );
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
 	m_pRenderStates[1] = (A3DCTRL_SRC_SUPER*)calloc( 1, sizeof( A3DCTRL_SRC_SUPER ) );
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
+#ifndef _WIN32
+    if (m_nativeParentRetained && (!m_pRenderStates[0] || !m_pRenderStates[1])) {
+        *pStatus = E_OUTOFMEMORY;
+        return;
+    }
+#endif
 	m_iRenderState = 0;
 	m_pRenderState = m_pRenderStates[0];
 	InitializeRenderState();

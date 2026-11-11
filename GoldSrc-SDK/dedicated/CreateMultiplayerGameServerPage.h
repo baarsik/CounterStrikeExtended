@@ -10,6 +10,7 @@
 #include "../vgui2/controls/Frame.h"
 #include "../engine/utlvector.h"
 #include "../tracker/common/server.h"
+#include "native/AdminCommands.h"
 
 class CMainPanel;
 class KeyValues;
@@ -32,9 +33,13 @@ public:
 	void GetServerInfo( serveritem_t* server );
 	void OnCommand( const char* command ) override;
 	virtual void EnableModSelection();
+    const cse::dedicated::StartupSettings& StartupSettings() const {
+        return m_startupSettings;
+    }
 
 private:
 	friend class CMainPanel;
+    cse::dedicated::StartupSettings m_startupSettings;
 
 	enum
 	{

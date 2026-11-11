@@ -32,6 +32,7 @@ public:
     }
 
     ~GeometryFixture() {
+        Check(geometry.fixtureReferences == 1, "all recorded lists released their parent");
         // Existing frame recycling owns/frees reflection nodes. Exercise it twice
         // rather than introducing a different cleanup contract in this fixture.
         source.BeginReflectionFrame();

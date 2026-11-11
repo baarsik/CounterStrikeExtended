@@ -8,6 +8,8 @@
 #ifndef _IA3DAPI_H_
 #define _IA3DAPI_H_
 
+#include "platform_com.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

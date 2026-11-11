@@ -1,4 +1,5 @@
 #include "legacy_commands.h"
+#include "capture_allocation.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -169,6 +170,36 @@ bool AttributeOperation(Op operation) {
 
 }
 
+Recorder::Recorder(CaptureLimits limits) : limits_(limits),
+    textures_(limits.textureStorageBytes, limits.textureNames) {
+}
+
+bool Recorder::AtFrameBoundary() const {
+    return !begin_ && !compiling_;
+}
+
+Status Recorder::TakeFrameDraws(std::vector<DrawPacket>& output) {
+    if (!output.empty() || !AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    output.swap(draws_);
+    frameVertices_ = 0;
+    return Status::Ok;
+}
+
+void Recorder::AbortPendingFrame() {
+    ClearDraws();
+    // Destroy pending ownership without constructing a new recorder or allocating.
+    std::vector<Command>().swap(pendingList_);
+    pendingDraw_ = DrawPacket{};
+    pendingVertices_ = 0;
+    pendingUploadBytes_ = 0;
+    compiling_ = 0;
+    executeList_ = false;
+    compileBegin_ = false;
+    begin_ = false;
+}
+
 DrawPacket Recorder::Snapshot(Primitive primitive) const {
     DrawPacket draw;
     draw.primitive = primitive;
@@ -225,6 +256,9 @@ Status Recorder::EndList() {
         pendingUploadBytes_ > limits_.listUploadBytes - (storedUploadBytes_ - oldBytes)) {
         return Status::LimitExceeded;
     }
+    if (old == lists_.end()) {
+        BeforeCaptureAllocation(CaptureAllocationSite::PendingListStorage);
+    }
     lists_[compiling_] = std::move(pendingList_);
     storedVertices_ = storedVertices_ - oldVertices + pendingVertices_;
     storedCommands_ = storedCommands_ - oldCommands + lists_[compiling_].size();
@@ -258,6 +292,9 @@ Status Recorder::Submit(const Command& input) {
     Command captured;
     const bool upload = input.op == Op::TextureImage || input.op == Op::TextureSubImage;
     if (upload) {
+        if (compiling_ && !input.upload.bytes.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
+        }
         captured = input;
         captured.unpack = textures_.Unpack();
     }
@@ -293,6 +330,12 @@ Status Recorder::Submit(const Command& input) {
             return Status::LimitExceeded;
         }
         if (!executeList_) {
+            if (pendingList_.size() == pendingList_.capacity()) {
+                BeforeCaptureAllocation(CaptureAllocationSite::PendingListStorage);
+            }
+            if (!command.upload.bytes.empty()) {
+                BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
+            }
             pendingList_.push_back(command);
             pendingVertices_ += addition;
             pendingUploadBytes_ += command.upload.bytes.size();
@@ -305,6 +348,12 @@ Status Recorder::Submit(const Command& input) {
     std::size_t budget = limits_.replayCommands;
     const auto result = Execute(command, 0, budget);
     if (compiling_ && result == Status::Ok) {
+        if (pendingList_.size() == pendingList_.capacity()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::PendingListStorage);
+        }
+        if (!command.upload.bytes.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
+        }
         pendingList_.push_back(command);
         pendingVertices_ += command.vertices.size() + (command.op == Op::Vertex ? 1 : 0);
         pendingUploadBytes_ += command.upload.bytes.size();
@@ -529,6 +578,9 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
             return Status::LimitExceeded;
         }
         auto draw = Snapshot(static_cast<Primitive>(command.argument));
+        if (!command.vertices.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+        }
         draw.vertices = command.vertices;
         for (auto& vertex : draw.vertices) {
             vertex.color = state_.Current().color;

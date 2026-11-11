@@ -1,6 +1,6 @@
 #pragma once
 
-#include <unknwn.h>
+#include "platform_com.h"
 
 // Owned native contract version 1. UUIDv5 of the URL-namespace name
 // "CounterStrikeExtended/IA3dNativeDeviceV1"; never the legacy IA3dDal IID.

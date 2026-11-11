@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include "platform_types.h"
 
 struct a3d_hrtf_definition_s;
 

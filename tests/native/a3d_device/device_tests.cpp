@@ -6,20 +6,7 @@
 #include <string>
 #include "native_device_init.h"
 
-#if defined(_WIN32)
-#include <mmsystem.h>
-#include <dsound.h>
-#else
-using LPCGUID = const GUID*;
-constexpr DWORD FACILITY_ITF = 4;
-#define MAKE_HRESULT(severity, facility, code) \
-    static_cast<HRESULT>(static_cast<std::int64_t>(severity) * -2147483648LL + (facility) * 65536LL + (code))
-class IDirectSound : public IUnknown {
-public:
-    virtual HRESULT Initialize(LPCGUID) = 0;
-};
-class IDirectSoundBuffer : public IUnknown {};
-#endif
+#include "platform_dsound.h"
 
 struct a3d_platform_buffer_desc_s;
 using a3d_platform_buffer_desc_t = a3d_platform_buffer_desc_s;
@@ -146,7 +133,6 @@ public:
     HRESULT STDMETHODCALLTYPE DeviceCompatibility5(void*, void*, void*) override {
         std::abort();
     }
-#if defined(_WIN32)
     HRESULT STDMETHODCALLTYPE CreateSoundBuffer(LPCDSBUFFERDESC, IDirectSoundBuffer**, IUnknown*) override {
         std::abort();
     }
@@ -168,7 +154,6 @@ public:
     HRESULT STDMETHODCALLTYPE SetSpeakerConfig(DWORD) override {
         std::abort();
     }
-#endif
 
 private:
     void RecordDevice(const GUID* device) {

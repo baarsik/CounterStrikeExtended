@@ -33,7 +33,11 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisSucceededFile>$(IntDir)$(TargetName).lastcodeanalysissucceeded</CodeAnalysisSucceededFile>
   </PropertyGroup>
-  <PropertyGroup><CseSdl3Shared>false</CseSdl3Shared></PropertyGroup>
+  <PropertyGroup>
+    <CseSdl3Shared>false</CseSdl3Shared>
+    <CseNativeSdl3>true</CseNativeSdl3>
+    <CseMacDedicatedResources>Admin.html;BanPanel.res;CreateMultiplayerGameServerPage.res;DialogAddBan.res;DialogCvarChange.res;DialogGamePanelInfo.res;GamePanelInfo.res;GraphPanel.res;MainServerConfig.vdf;MapCycleEditDialog.res;PlayerPanel.res;RawLogPanel.res;ServerConfigPanel.res;VarEditDialog_ComboBox.res;VarEditDialog_String.res;server_english.txt</CseMacDedicatedResources>
+  </PropertyGroup>
   <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>
@@ -108,6 +112,10 @@
       <CseTargetOS>macos</CseTargetOS>
     </ClCompile>
     <ClCompile Include="..\..\dedicated\native\NativeGui.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\AdminFiles.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>
     </ClCompile>

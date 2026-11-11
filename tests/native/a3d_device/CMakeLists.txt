@@ -23,8 +23,6 @@ target_include_directories(a3d_device_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}
 if(WIN32)
   target_compile_definitions(a3d_device_tests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   target_link_libraries(a3d_device_tests PRIVATE ole32 uuid dxguid)
-else()
-  target_include_directories(a3d_device_tests PRIVATE platform)
 endif()
 if(MSVC)
   set_property(TARGET a3d_device_tests PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")

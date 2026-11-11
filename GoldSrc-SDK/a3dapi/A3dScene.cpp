@@ -1,3 +1,4 @@
+#include "native_platform.h"
 #include "A3dScene.h"
 #include "A3d3.h"
 #include "ChunkPage.h"
@@ -1713,6 +1714,15 @@ HRESULT CA3d::ShutdownBackend()
 
 HRESULT STDMETHODCALLTYPE CA3d::IsFeatureAvailable( DWORD dwFeatures )
 {
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        if (dwFeatures && (m_dwFeaturesAvailable & dwFeatures) == dwFeatures) {
+            return S_OK;
+        }
+        return (m_dwRequestedFeatures & dwFeatures) ? A3DERROR_FEATURE_NOT_SUPPORTED :
+            A3DERROR_FEATURE_NOT_REQUESTED;
+    }
+#endif
 	if ( m_dwFeaturesAvailable & dwFeatures )
 		return S_OK;
 	if ( m_dwRequestedFeatures & dwFeatures )
@@ -1773,13 +1783,24 @@ static HRESULT InitializeNativeA3dDevice(IDirectSound* directSound, const GUID* 
 HRESULT STDMETHODCALLTYPE CA3d::Init( LPGUID pDevice, DWORD dwFeatures, DWORD )
 {
 	DWORD dwSupportedFeatures = 0;
-	m_dwRequestedFeatures = dwFeatures;
+#ifndef _WIN32
+    if (!UsesNativeProvider()) {
+        m_dwRequestedFeatures = dwFeatures;
+    }
+#else
+    m_dwRequestedFeatures = dwFeatures;
+#endif
 
 #if UINTPTR_MAX > UINT32_MAX
     IA3dDal* initializedBackend = nullptr;
     HRESULT hr = InitializeNativeA3dDevice(m_pDirectSound, pDevice, dwFeatures,
         A3D_BACKEND_INITIALIZATION_MODE, s_BackendInterfaceId, &initializedBackend, &dwSupportedFeatures);
     if (FAILED(hr)) {
+#ifndef _WIN32
+        if (UsesNativeProvider() && hr == A3DERROR_FEATURE_NOT_SUPPORTED) {
+            return hr;
+        }
+#endif
         return A3DERROR_FAILED_INIT;
     }
     if (m_pBackend) {
@@ -1813,7 +1834,16 @@ HRESULT STDMETHODCALLTYPE CA3d::Init( LPGUID pDevice, DWORD dwFeatures, DWORD )
 			dwSupportedFeatures &= ~A3D_1ST_REFLECTIONS;
 	}
 
-	m_dwFeaturesAvailable = dwSupportedFeatures | A3D_OCCLUSIONS | A3D_DIRECT_PATH_A3D;
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        m_dwRequestedFeatures = dwFeatures;
+        m_dwFeaturesAvailable = dwSupportedFeatures;
+        m_dwEnabledFeatures = dwSupportedFeatures;
+    } else
+#endif
+    {
+        m_dwFeaturesAvailable = dwSupportedFeatures | A3D_OCCLUSIONS | A3D_DIRECT_PATH_A3D;
+    }
 	SetResourceManagerMode( A3D_RESOURCE_MODE_DYNAMIC );
 	return S_OK;
 }
@@ -1869,7 +1899,7 @@ HRESULT STDMETHODCALLTYPE CA3d::Clear()
 
 HRESULT STDMETHODCALLTYPE CA3d::Flush()
 {
-	double flMilliseconds = (double)timeGetTime();
+	double flMilliseconds = (double)A3dMonotonicMilliseconds();
 	double flFrameTime = ( flMilliseconds - s_lastFlush.flMilliseconds ) * A3D_SECONDS_PER_MILLISECOND;
 	m_flFrameTime = (A3DVAL)flFrameTime;
 	if ( !( flFrameTime >= 0.0 ) || flFrameTime > A3D_MAX_FRAME_TIME )

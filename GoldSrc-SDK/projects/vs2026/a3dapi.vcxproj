@@ -31,6 +31,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
+    <CseNativeSdl3>true</CseNativeSdl3>
     <A3dSourceDir>$([MSBuild]::NormalizeDirectory('$(ProjectDir)', '..', '..', 'a3dapi'))</A3dSourceDir>
     <OutDir>$([MSBuild]::NormalizeDirectory('$(ProjectDir)', '..', '..', 'bin', '$(Platform)', '$(Configuration)'))</OutDir>
     <IntDir>$([MSBuild]::NormalizeDirectory('$(ProjectDir)', '..', '..', 'bin', 'obj', '$(ProjectName)', '$(Platform)', '$(Configuration)'))</IntDir>
@@ -86,6 +87,48 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\a3dapi\native_provider.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_buffer.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_mix.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_platform.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_exports.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_notifications.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_output.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\a3dapi\A3d3.cpp" />
     <ClCompile Include="..\..\a3dapi\a3d_guids.cpp" />
     <ClCompile Include="..\..\a3dapi\resman.cpp" />
@@ -170,6 +213,18 @@
     <ClInclude Include="..\..\a3dapi\A3dGeom.h" />
     <ClInclude Include="..\..\a3dapi\native_geometry_identity.h" />
     <ClInclude Include="..\..\a3dapi\native_device_init.h" />
+    <ClInclude Include="..\..\a3dapi\native_platform.h" />
+    <ClInclude Include="..\..\a3dapi\native_provider.h" />
+    <ClInclude Include="..\..\a3dapi\native_capacity.h" />
+    <ClInclude Include="..\..\a3dapi\native_output.h" />
+    <ClInclude Include="..\..\a3dapi\native_notifications.h" />
+    <ClInclude Include="..\..\public\cse_a3d_notifications.h" />
+    <ClInclude Include="..\..\public\cse_a3d_abi.h" />
+    <ClInclude Include="..\..\a3dapi\native_mix.h" />
+    <ClInclude Include="..\..\a3dapi\native_buffer.h" />
+    <ClInclude Include="..\..\a3dapi\platform_types.h" />
+    <ClInclude Include="..\..\a3dapi\platform_com.h" />
+    <ClInclude Include="..\..\a3dapi\platform_dsound.h" />
     <ClInclude Include="..\..\a3dapi\dalinfo.h" />
     <ClInclude Include="..\..\a3dapi\HrtfMgr.h" />
     <ClInclude Include="..\..\a3dapi\a2d.h" />

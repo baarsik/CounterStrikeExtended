@@ -129,7 +129,7 @@ bool DedicatedSession::Open(int argc, const char* const* argv, std::string& erro
     mounted_ = true;
     if (!command_.Console()) {
         logGui = &gui_;
-        if (!gui_.Open(modules_, error)) {
+        if (!gui_.Open(modules_, error, generation_, root_)) {
             Close();
             return false;
         }
@@ -150,6 +150,12 @@ int DedicatedSession::Run() {
         }
         const timespec delay{0, 1000000};
         nanosleep(&delay, nullptr);
+    }
+    std::string error;
+    if (guiOpen_ && !gui_.ApplyStartup(command_, error)) {
+        std::fprintf(stderr, "%s\n", error.c_str());
+        Close();
+        return EXIT_FAILURE;
     }
     state_ = State::Starting;
     engineEntered_ = true;
@@ -217,6 +223,9 @@ int DedicatedSession::Run() {
     }
     // Provider sys_engine.cpp maps state 5 to QUIT_RESTART; 3 is DLL_CLOSE.
     constexpr int DedicatedRestartState = 5;
+    if (guiOpen_) {
+        gui_.Stop();
+    }
     const int result = modules_.Shutdown();
     engineEntered_ = false;
     restart_ = result == DedicatedRestartState && !stop_ && !ShutdownRequested;

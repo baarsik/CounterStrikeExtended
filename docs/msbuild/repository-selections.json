@@ -4153,6 +4153,7 @@
           "PlatformToolset": "v145",
           "CharacterSet": "MultiByte",
           "UseDebugLibraries": "true",
+          "CseNativeSdl3": "true",
           "A3dSourceDir": "${CSE_SDK_DIR}/a3dapi/",
           "OutDir": "${CSE_SDK_DIR}/bin/Win32/Debug/",
           "IntDir": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Debug/",
@@ -4191,6 +4192,76 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_provider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_buffer.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_mix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_exports.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_notifications.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_output.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3d3.cpp",
@@ -4442,6 +4513,7 @@
           "PlatformToolset": "v145",
           "CharacterSet": "MultiByte",
           "UseDebugLibraries": "false",
+          "CseNativeSdl3": "true",
           "A3dSourceDir": "${CSE_SDK_DIR}/a3dapi/",
           "OutDir": "${CSE_SDK_DIR}/bin/Win32/Release/",
           "IntDir": "${CSE_SDK_DIR}/bin/obj/a3dapi/Win32/Release/",
@@ -4482,6 +4554,76 @@
           }
         },
         "items": [
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_provider.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_buffer.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_mix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_platform.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_exports.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_notifications.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/a3dapi/native_output.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "posix",
+              "ExceptionHandling": "false",
+              "FloatingPointModel": "Precise"
+            }
+          },
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/a3dapi/A3d3.cpp",
@@ -12345,6 +12487,8 @@
           "GenerateManifest": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Debug\\hlds.lastcodeanalysissucceeded",
           "CseSdl3Shared": "false",
+          "CseNativeSdl3": "true",
+          "CseMacDedicatedResources": "Admin.html;BanPanel.res;CreateMultiplayerGameServerPage.res;DialogAddBan.res;DialogCvarChange.res;DialogGamePanelInfo.res;GamePanelInfo.res;GraphPanel.res;MainServerConfig.vdf;MapCycleEditDialog.res;PlayerPanel.res;RawLogPanel.res;ServerConfigPanel.res;VarEditDialog_ComboBox.res;VarEditDialog_String.res;server_english.txt",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -12436,6 +12580,14 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/AdminFiles.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos"
@@ -12832,6 +12984,8 @@
           "GenerateManifest": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\hlds\\Win32\\Release\\hlds.lastcodeanalysissucceeded",
           "CseSdl3Shared": "false",
+          "CseNativeSdl3": "true",
+          "CseMacDedicatedResources": "Admin.html;BanPanel.res;CreateMultiplayerGameServerPage.res;DialogAddBan.res;DialogCvarChange.res;DialogGamePanelInfo.res;GamePanelInfo.res;GraphPanel.res;MainServerConfig.vdf;MapCycleEditDialog.res;PlayerPanel.res;RawLogPanel.res;ServerConfigPanel.res;VarEditDialog_ComboBox.res;VarEditDialog_String.res;server_english.txt",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -12924,6 +13078,14 @@
           {
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/AdminFiles.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos"

@@ -55,3 +55,8 @@ private:
 	a3d_mix_voice_t				m_Voice;
 	CHrtfMgr*				m_pHrtfFilter;
 };
+
+// Same retained control arithmetic, shared by legacy and owned native voices.
+struct A3DCTRL_SRC_SUPER;
+HRESULT A3dApplyA2DControl(a3d_mix_voice_t& voice, DWORD frequency,
+    CHrtfMgr& hrtf, const A3DCTRL_SRC_SUPER& control);

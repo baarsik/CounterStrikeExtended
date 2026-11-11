@@ -18,6 +18,9 @@ and [reproduction tools](../tools/qualification/README.md) are separate from the
 | V18 production CS camera, x64 Release and Debug | Each has 1,041 alive frames, 199 movement-command frames and 410 exact rendered angle samples. Debug adds 18 read-only state samples. Separate multiplayer case retains third-person rejection | Threaded single-player camera only; no internal query/warp-order, atomic snapshot, other-mode or Mac camera claim |
 | SDL_GPU renderer components | Three selected Windows D3D12 profiles and first native Metal profile match 12,288 GL RGB bytes each; R/D and Mac instrumented CPU variants checked | Only readback row order normalized. Production backend is unselected; other branches, precision formats and scene coverage remain open |
 | Mac ARM64 client, 2026-11-09 Release/Debug | Fresh `cse_client` builds link all 14 client responsibilities and CEF helpers; 13 actual dylibs load in separate processes, launcher architecture checked | Standalone dedicated/A3D owners remain unported. No complete game startup, embedded VGUI1 admission, scene rendering or gameplay acceptance |
+| Mac ARM64 full runtime, frozen `6f27bef`, 2026-11-11 Release/Debug | Normal `cse_runtime` builds all 19 roles; 38 ARM64-containing images per profile. Fresh Release CS map/reload/quit and HL controlled save/load quit normally on M5 Max OpenGL | Later enumeration/harness edits are separately qualified, not a new full19 cohort. Existing build warnings remain; no production Metal or full gameplay/provider acceptance |
+| Mac native A3D enumeration/selection, `9498efa` | Reviewed public copied-GUID interface; 18 final dummy cases/54 lifetimes. Four actual R/D instrumented Speakers cases/12 lifetimes verify explicit selection apart from default plus separate DMA/music PCM progress after A3D teardown | No RODE open retry, acoustic consumption, physical removal/Restore, microphone/OEM or actual-game A3D routing qualification; 16 unchanged production warnings/profile |
+| Save archive width, `25fb58a` fixtures and `6f27bef` actual HL | Actual MSVC Win32/x64 R/D: four profiles/eight in-memory cases pass. Actual Mac HL saves use canonical260 entries and restore armor 0→15→0→15 plus weapon mask; all component lengths/hashes/EOF retained | Same-build player-marker proof only. Entity-table counts differ 336→271 after load; tables include free allocation entries, so complete entity/callback parity needs its own test. No cross-platform payload exchange or campaign acceptance |
 | Mac actual-library UI, Release/Debug | Clock/arguments/date/disk, VGUI1 CP1252 and VGUI2 UTF16 clipboard reads, key translation, native font raster, inset borders, shared popup bitmaps and SDL video lease teardown pass | SDL dummy video/software renderer; physical input, General pasteboard publication and default font/layout parity are unqualified |
 | Mac ARM64 user gameplay, 2026-11-10 Release | Half-Life launches into a rendered map and the user reports flawless mouse behavior. Counter-Strike runs a local match; the user confirms smooth fast turns, wheel bhops and menu transitions with no pointer, plus fullscreen retention from 1080p to 1440p | Selected hardware-renderer flows and normal user input settings only. Other raw/grab, software-renderer and focus/resize cases remain unqualified. The short recorded trace validates the recorder and typed engine channels, not physical mouse performance |
 | Windows regression for Mac client changes | Ten current owning C++ files compile on VM1 in Win32/x64 Release/Debug; COFF checks retain the C++ vector-origin owners | Owning-file checks reuse the V18 compiler/dependency policies; not a fresh complete Windows link/runtime cohort |
@@ -310,3 +313,24 @@ were made.
 Task2 Windows owning/reference and the remaining full connection/input/runtime
 gates remain open. The separate CoreAudio startup failure, terminal Atlas/TLV recovery,
 physical/performance/authentication and whole-migration gates are unchanged.
+
+## 2026-11-11 current bounded runtime receipts
+
+Mac full19 build evidence: `build/a3d-native-20261111/task8-controller-audit.json`.
+Reviewed enumeration/harness source and artifact audit:
+`build/native-selected-probe-controller-audit.json`; actual selected/default-separated
+and coexistence cases: `build/native-selected-device-live-v1/root-live-subgate-summary.json`.
+The original RODE output UID and input/system/volume/mute were preserved/restored.
+
+Fresh CS lifecycle: `build/native-client-6f27bef-qualification-v3/cs/root-post-lifecycle-review.json`.
+Its original wrapper remains failed for a stale helper hash in the CF restore
+receipt; separate exact-domain recovery is pinned in `root-cf-recovery-001/receipt.json`.
+Fresh HL archive marker reparse:
+`build/native-client-6f27bef-qualification-v4/hl/root-save-marker-review.json`.
+HL normal exit0 takes109.21 seconds; its corrected wrapper restores CF3 and audio.
+Both SDK snapshots equal all669 records. Prior CEF files are unchanged and added
+files belong only to each new owned namespace. Steam localconfig activity-key
+deltas were reviewed read-only; their normal-activity interpretation is inference,
+not an opaque byte-equality claim. No Steam file was restored. Initial after hashes
+and a later stable private semantic snapshot are distinguished in the receipts.
+These are narrow checks; full target acceptance and production Metal remain open.

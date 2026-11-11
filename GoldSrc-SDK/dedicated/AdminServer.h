@@ -25,6 +25,10 @@
 #include "utllinkedlist.h"
 #include "utlsymbol.h"
 #include "utlvector.h"
+#include <cstdint>
+#include <memory>
+#include <vector>
+#include <string>
 
 #define SERVERDATA_REQUESTVALUE 0
 #define SERVERDATA_SETVALUE 1
@@ -58,43 +62,39 @@ public:
 	virtual void OnServerDataResponse( const char* value, const char* response ) = 0;
 };
 
-class CRemoteServer
-{
+class CRemoteServer {
 public:
-	CRemoteServer();
-	~CRemoteServer();
-
-	void Initialize();
-
-	void SetValue( const char* variable, const char* value );
-	void SendCommand( const char* commandString );
-	void RequestValue( IServerDataResponse* requester, const char* variable );
-
-	void AddServerMessageHandler( IServerDataResponse* handler, const char* update );
-	void RemoveServerDataResponseTarget( IServerDataResponse* invalidTarget );
-
-	bool ProcessServerResponse();
+    CRemoteServer();
+    ~CRemoteServer();
+    void Initialize();
+    bool Bind(IGameServerData* provider, std::uint64_t generation);
+    void Shutdown();
+    bool IsBound() const {
+        return m_provider != nullptr;
+    }
+    void SetValue(const char* variable, const char* value);
+    void SendCommand(const char* commandString);
+    void RequestValue(IServerDataResponse* requester, const char* variable);
+    void AddServerMessageHandler(IServerDataResponse* handler, const char* update);
+    void RemoveServerDataResponseTarget(IServerDataResponse* invalidTarget);
+    bool ProcessServerResponse();
 
 private:
-	void WriteRequest( int requestType, const char* variable, int variableLength, const char* value,
-		int valueLength );
-
-	struct ResponseHandlerRecord_t
-	{
-		int						requestID;
-		IServerDataResponse*	handler;
-	};
-
-	struct MessageHandlerRecord_t
-	{
-		char					messageName[32];
-		IServerDataResponse*	handler;
-	};
-
-	int													m_iCurrentRequestID;
-	bool												m_bInitialized;
-	CUtlLinkedList<ResponseHandlerRecord_t, int>		m_ResponseHandlers;
-	CUtlLinkedList<MessageHandlerRecord_t, int>			m_MessageHandlers;
+    bool WriteRequest(int requestType, const char* variable, int variableLength, const char* value, int valueLength);
+    struct Registration {
+        std::int32_t requestID = 0;
+        IServerDataResponse* handler = nullptr;
+        std::string name;
+        bool live = true;
+    };
+    using Registrations = std::vector<std::shared_ptr<Registration>>;
+    IGameServerData* m_provider = nullptr;
+    std::uint64_t m_generation = 0;
+    // Never reuse a wire ID, including across rebinds: old packets carry no generation field.
+    std::int64_t m_nextRequestID = 0;
+    bool m_processing = false;
+    Registrations m_ResponseHandlers;
+    Registrations m_MessageHandlers;
 };
 
 CRemoteServer& RemoteServer();
@@ -235,6 +235,7 @@ protected:
 	virtual void OnEditVariable( KeyValues* rule );
 
 	void SetVarString( const char* varName, const char* value );
+    void AddReadOnlyValue(const char* name, const char* label);
 	const char* GetVarString( const char* varName );
 	void SetCustomStringList( const char* varName, const char* stringList );
 
@@ -664,7 +665,7 @@ public:
 private:
 	struct OpenedManageDialog_t
 	{
-		unsigned long	handle;
+		vgui2::HPanel	handle;
 		IManageServer*	manageInterface;
 	};
 

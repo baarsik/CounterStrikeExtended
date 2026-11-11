@@ -48,6 +48,18 @@ function(cse_runtime_directory target relative)
   set_target_properties(${target} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>"
     LIBRARY_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>")
+  if(APPLE)
+    # The staged dependency directory is shared by root and game-relative images.
+    # Do not encode the owning build tree into relocatable runtime load commands.
+    file(RELATIVE_PATH runtime_root "${CSE_OUTPUT_DIRECTORY}/${relative}" "${CSE_OUTPUT_DIRECTORY}")
+    if(runtime_root)
+      set(runtime_rpath "@loader_path/${runtime_root}")
+    else()
+      set(runtime_rpath "@loader_path")
+    endif()
+    set_target_properties(${target} PROPERTIES
+      INSTALL_RPATH "${runtime_rpath}" BUILD_WITH_INSTALL_RPATH YES)
+  endif()
   # Resource compiler file-backed inputs are resolved using the source directory.
   get_target_property(sources ${target} SOURCES)
   foreach(source IN LISTS sources)
@@ -56,6 +68,18 @@ function(cse_runtime_directory target relative)
       set_property(SOURCE "${source}" APPEND PROPERTY INCLUDE_DIRECTORIES "${resource_dir}")
     endif()
   endforeach()
+endfunction()
+
+# Required runtime assets are restored even when the binary itself is already current.
+# The retained manifest/translator supplies the explicit inventory, independently of optional distribution materials.
+function(cse_runtime_assets target relative)
+  set(destination "${CSE_OUTPUT_DIRECTORY}/${relative}")
+  add_custom_target(${target}_runtime_assets
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${destination}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${ARGN} "${destination}"
+    DEPENDS ${ARGN}
+    VERBATIM COMMENT "Stage required ${target} runtime resources")
+  add_dependencies(${target} ${target}_runtime_assets)
 endfunction()
 
 function(cse_native_module_alias target name)
