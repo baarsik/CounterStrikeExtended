@@ -77,6 +77,22 @@ inline int writeBudget = -1;
 inline bool wrongReadPosition = false;
 inline bool wrongWritePosition = false;
 inline unsigned int fakeSize = 0;
+struct ReadObservation {
+    unsigned int position;
+    int requested;
+    int actual;
+    int outputs;
+};
+struct SeekObservation {
+    unsigned int before;
+    unsigned int target;
+    int outputs;
+};
+inline std::vector<ReadObservation> readObservations;
+inline std::vector<SeekObservation> seekObservations;
+inline int failReadCall = -1;
+inline int wrongReadCall = -1;
+inline int failSeekCall = -1;
 inline void reset() {
     files.clear();
     findNames.clear();
@@ -89,6 +105,11 @@ inline void reset() {
     wrongReadPosition = false;
     wrongWritePosition = false;
     fakeSize = 0;
+    readObservations.clear();
+    seekObservations.clear();
+    failReadCall = -1;
+    wrongReadCall = -1;
+    failSeekCall = -1;
 }
 inline void check(bool value, const char *message) {
     if (!value) {
@@ -142,16 +163,25 @@ inline unsigned int FS_Size(FileHandle_t file) {
     return fakeSize ? fakeSize : file ? static_cast<unsigned int>(file->data.size()) : 0;
 }
 inline void FS_Seek(FileHandle_t file, int offset, FileSystemSeek_t type) {
-    if (!file || failSeek || offset < 0) {
+    if (!file || offset < 0) {
         return;
     }
-    file->position = type == FILESYSTEM_SEEK_HEAD ? static_cast<unsigned int>(offset) : file->position + offset;
+    const auto target = type == FILESYSTEM_SEEK_HEAD ? static_cast<unsigned int>(offset) : file->position + offset;
+    const auto call = static_cast<int>(seekObservations.size());
+    seekObservations.push_back({file->position, target, outputOpens});
+    if (!failSeek && call != failSeekCall) {
+        file->position = target;
+    }
 }
 inline int FS_Read(void *output, int size, int count, FileHandle_t file) {
     if (!file || size < 0 || count != 1 || file->position > file->data.size()) {
         return 0;
     }
     int actual = static_cast<int>(std::min<std::size_t>(size, file->data.size() - file->position));
+    const auto call = static_cast<int>(readObservations.size());
+    if (call == failReadCall && actual != 0) {
+        --actual;
+    }
     if (readBudget >= 0) {
         actual = std::min(actual, readBudget);
         readBudget -= actual;
@@ -159,7 +189,8 @@ inline int FS_Read(void *output, int size, int count, FileHandle_t file) {
     if (actual != 0) {
         std::memcpy(output, file->data.data() + file->position, actual);
     }
-    if (!wrongReadPosition) {
+    readObservations.push_back({file->position, size, actual, outputOpens});
+    if (!wrongReadPosition && call != wrongReadCall) {
         file->position += actual;
     }
     return actual;

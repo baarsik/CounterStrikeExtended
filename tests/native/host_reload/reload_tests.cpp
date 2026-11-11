@@ -28,10 +28,13 @@ void Reset(const std::string &mode) {
     sv.num_edicts = svs.maxclients + 1;
     if (mode != "missing" && mode != "absent" && mode != "spawn") {
         Bytes bytes = entry(260, "saved.HL1", {0x12, 0x34});
-        if (mode == "archive") {
+        if (mode == "archive" || mode == "repeat-success") {
             const auto block = bytes;
             bytes.insert(bytes.end(), block.begin(), block.end());
             bytes.insert(bytes.end(), block.begin(), block.end());
+            if (mode == "archive") {
+                bytes.back() ^= 1; // A differing repeated payload remains an invalid archive under D2.
+            }
         }
         files["SAVE/slot.sav"] = {bytes};
     }
@@ -55,7 +58,7 @@ void Reload(const std::string &mode) {
     check(giStateInfo == 0, "reload inherited explicit-load failure UI state");
     check(std::find(events.begin(), events.end(), "execute disconnect") == events.end(),
         "reload scheduled a teardown for its replacement server");
-    if (mode == "success") {
+    if (mode == "success" || mode == "repeat-success") {
         check(mapped == 1 && entityCallbacks == 0 && activations == 0, "successful load fell back");
         check(files.at("SAVE/saved.HL1").data == Bytes({0x12, 0x34}), "archive extraction changed");
     } else if (mode == "spawn") {
@@ -112,6 +115,9 @@ int main(int argc, char **argv) {
             Cycles();
         } else {
             Reload(mode);
+            if (mode == "success") {
+                Reload("repeat-success");
+            }
         }
         std::cout << "PASS " << mode << '\n';
         return 0;

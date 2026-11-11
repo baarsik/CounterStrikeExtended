@@ -14,9 +14,10 @@ constexpr std::uint32_t kLengthBytes = 4;
 
 struct Layout {
     std::uint32_t start;
-    std::uint32_t end;
+    std::uint32_t end; // Physical EOF, including any admitted identical copies.
     std::int32_t fileCount;
     std::uint32_t nameBytes;
+    std::uint32_t recordsEnd; // End of the declared first set; only this set is extracted.
 };
 
 namespace {
@@ -136,7 +137,36 @@ bool ReadRecord(FileHandle_t file, std::uint32_t width, char (&name)[kPriorNativ
     return true;
 }
 
-Validation Validate(FileHandle_t file, const Layout &layout) {
+Validation ValidateRepeats(FileHandle_t file, const Layout &layout) {
+    if (layout.recordsEnd == layout.end) {
+        return Validation::Valid; // Canonical single-set admission still requires exact EOF.
+    }
+    const auto setBytes = layout.recordsEnd - layout.start;
+    if (setBytes == 0 || (layout.end - layout.recordsEnd) % setBytes != 0) {
+        return Validation::Invalid;
+    }
+    unsigned char first[kCopyBytes];
+    unsigned char repeated[kCopyBytes];
+    for (auto copyStart = layout.recordsEnd; copyStart < layout.end; copyStart += setBytes) {
+        std::uint32_t offset = 0;
+        while (offset < setBytes) {
+            const auto remaining = setBytes - offset;
+            const auto chunk = remaining > sizeof(first) ? static_cast<std::uint32_t>(sizeof(first)) : remaining;
+            // The divisible tail and bounded offset keep both complete reads within their respective sets.
+            if (!Seek(file, layout.start + offset) || !ReadExact(file, first, chunk)
+                || !Seek(file, copyStart + offset) || !ReadExact(file, repeated, chunk)) {
+                return Validation::IoFailure;
+            }
+            if (std::memcmp(first, repeated, chunk) != 0) {
+                return Validation::Invalid;
+            }
+            offset += chunk;
+        }
+    }
+    return Validation::Valid;
+}
+
+Validation Validate(FileHandle_t file, Layout &layout) {
     if (!Seek(file, layout.start)) {
         return Validation::IoFailure;
     }
@@ -157,14 +187,18 @@ Validation Validate(FileHandle_t file, const Layout &layout) {
         std::size_t nameLength = 0;
         char path[kPathBytes]{};
         if (!ValidName(name, layout.nameBytes, nameLength) || !MakePath(name, path)
-            || length > kMaximumSeek || length > layout.end - FS_Tell(file)) {
+            || length > kMaximumSeek || FS_Tell(file) > layout.end || length > layout.end - FS_Tell(file)) {
             return Validation::Invalid;
         }
         if (!Seek(file, FS_Tell(file) + length)) {
             return Validation::IoFailure;
         }
     }
-    return FS_Tell(file) == layout.end ? Validation::Valid : Validation::Invalid;
+    layout.recordsEnd = FS_Tell(file);
+    if (layout.recordsEnd < layout.start || layout.recordsEnd > layout.end) {
+        return Validation::Invalid;
+    }
+    return ValidateRepeats(file, layout);
 }
 
 bool Copy(FileHandle_t output, FileHandle_t input, std::uint32_t bytes);
@@ -207,7 +241,7 @@ bool ReadLayout(FileHandle_t file, std::int32_t fileCount, Layout &layout) {
     if (start > end || end > kMaximumSeek) {
         return false;
     }
-    Layout legacy{start, end, fileCount, kLegacyNameBytes};
+    Layout legacy{start, end, fileCount, kLegacyNameBytes, start};
     if (fileCount == 0) {
         if (start != end || !Seek(file, start)) {
             return false;
@@ -215,11 +249,12 @@ bool ReadLayout(FileHandle_t file, std::int32_t fileCount, Layout &layout) {
         layout = legacy;
         return true;
     }
-    Layout native{start, end, fileCount, kPriorNativeNameBytes};
+    Layout native{start, end, fileCount, kPriorNativeNameBytes, start};
     const auto legacyResult = Validate(file, legacy);
     const auto nativeResult = legacyResult == Validation::IoFailure ? Validation::IoFailure : Validate(file, native);
     const bool restored = Seek(file, start);
-    if (!restored || legacyResult == Validation::IoFailure || nativeResult == Validation::IoFailure
+    if (!restored || FS_Size(file) != end
+        || legacyResult == Validation::IoFailure || nativeResult == Validation::IoFailure
         || (legacyResult == Validation::Valid) == (nativeResult == Validation::Valid)) {
         return false;
     }
@@ -228,7 +263,8 @@ bool ReadLayout(FileHandle_t file, std::int32_t fileCount, Layout &layout) {
 }
 
 bool Extract(FileHandle_t file, const Layout &layout) {
-    if (!file || layout.fileCount < 0 || layout.start > layout.end || layout.end != FS_Size(file)
+    if (!file || layout.fileCount < 0 || layout.start > layout.recordsEnd || layout.recordsEnd > layout.end
+        || layout.end != FS_Size(file)
         || layout.end > kMaximumSeek
         || (layout.nameBytes != kLegacyNameBytes && layout.nameBytes != kPriorNativeNameBytes)
         || !Seek(file, layout.start)) {
@@ -236,7 +272,8 @@ bool Extract(FileHandle_t file, const Layout &layout) {
     }
     Layout checked{};
     if (!ReadLayout(file, layout.fileCount, checked) || checked.start != layout.start || checked.end != layout.end
-        || checked.nameBytes != layout.nameBytes) {
+        || checked.nameBytes != layout.nameBytes || checked.recordsEnd != layout.recordsEnd
+        || checked.fileCount != layout.fileCount) {
         return false;
     }
     for (std::int32_t index = 0; index < layout.fileCount; ++index) {
@@ -245,8 +282,8 @@ bool Extract(FileHandle_t file, const Layout &layout) {
         std::uint32_t length = 0;
         std::size_t nameLength = 0;
         if (!ReadRecord(file, layout.nameBytes, name, length) || !ValidName(name, layout.nameBytes, nameLength)
-            || !MakePath(name, path) || length > kMaximumSeek || FS_Tell(file) > layout.end
-            || length > layout.end - FS_Tell(file)) {
+            || !MakePath(name, path) || length > kMaximumSeek || FS_Tell(file) > layout.recordsEnd
+            || length > layout.recordsEnd - FS_Tell(file)) {
             return false;
         }
         const auto output = FS_OpenPathID(path, "wb", "GAMECONFIG");
@@ -259,7 +296,8 @@ bool Extract(FileHandle_t file, const Layout &layout) {
             return false;
         }
     }
-    return FS_Tell(file) == layout.end;
+    return FS_Tell(file) == layout.recordsEnd && FS_Size(file) == layout.end
+        && (layout.recordsEnd == layout.end || Seek(file, layout.end));
 }
 
 bool WriteDirectory(const char *pattern, FileHandle_t file, std::int32_t expectedFileCount) {

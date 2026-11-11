@@ -24,11 +24,47 @@ ctest --test-dir build/save-archive-20261111/sanitize --parallel 1 --output-on-f
 Both 260 and 1024 host-limit configurations compare canonical bytes with independently
 placed 260 filename/four-byte little-endian fields. They also read both widths with
 nonzero old padding, zero payloads, nonzero archive starts, exact EOF, long names and
-empty archives. Malformed counts, lengths, terminators, traversal, field/payload
-truncations, trailing data, ambiguous complete layouts, forged layouts, failed/incorrect
+empty archives. A unique 260 or 1024 layout may also contain complete byte-identical
+copies of the declared first set. Every repeated byte, including name padding, length
+fields and payload, must match. The writer still emits exactly one canonical 260 set.
+Malformed counts, lengths, terminators, traversal, field/payload
+truncations, partial/differing/arbitrary trailing data, ambiguous layouts (including
+exact versus repeated interpretations), forged layouts, failed/incorrect
 cursor progress, signed seek bounds and injected open/read/write/copy failures are
 covered. Original input bytes remain intact. Validation failures open no output files;
 later IO failures may leave partial outputs and return failure, including SaveGameSlot.
+
+Private `Layout.end` is physical EOF; `recordsEnd` ends the declared first set.
+ReadLayout checks both widths and restores the initial source cursor on success. It
+clears the returned layout on failure and attempts cursor restoration after candidate
+validation; a failed restoration cannot promise a cursor position. Extract revalidates
+the complete physical layout before opening output, writes only the first set, and
+leaves the source at physical EOF on success. A final EOF-seek failure can therefore
+return false after all output payloads have been written. Opened outputs are closed on
+copy failure, but partial outputs are not rolled back; the input remains caller-owned.
+Canonical preflight checks headers and seeks over payloads, so extraction-time read
+faults can also leave partial output. Layout metadata does not authenticate the input
+against concurrent mutation or a same-sized replacement with another valid archive.
+
+Repeated-set tests cover two, three and additional copies, nonzero archive starts,
+padding, empty and multi-chunk payloads, long names, width ambiguity, changed metadata
+and source extents, and targeted read/seek failures in both width configurations.
+IO observations check bounded read requests and a linear total-byte bound. The separate
+host_reload fixture retains failure-lifecycle cases with a genuinely differing repeated
+payload and separately checks that identical repeated input loads without fallback.
+
+An explicit read-only corpus mode accepts a path and independently established archive
+start, declared count, first-set end and physical end:
+
+```sh
+build/save-archive-20261111/release/archive_1024 --corpus /absolute/path/quick.sav 4458 18 291981 867027
+```
+
+Record the input SHA256 before and after this opt-in invocation. The fixture reads the
+file into memory, independently decodes first-set record payloads, then runs production
+ReadLayout and Extract with all outputs confined to the in-memory filesystem. This is
+actual-corpus archive-reader evidence; it does not validate the full save envelope,
+global/entity restore, or gameplay. Ordinary CTest cases use generated input only.
 
 To reproduce the original defect without changing any production source:
 
@@ -51,5 +87,6 @@ padding overread. GREEN writer tests use short heap strings throughout.
 
 The source archive path may be overridden with `CSE_ARCHIVE_OLD_SOURCE`, but its digest
 must still match. No original save, game asset, device, VM, provider or live application
-is accessed by these fixtures. Windows fixture execution and actual cross-platform
+is accessed by ordinary CTest cases; the explicit corpus mode only reads its supplied
+file. Windows fixture execution and actual cross-platform
 campaign/global/entity roundtrips remain separate controller gates.
