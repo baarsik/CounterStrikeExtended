@@ -28,7 +28,8 @@ target_compile_options(a3d_enumeration_tests PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(a3d_enumeration_tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 foreach(case public_selected_initialize copied_record_name sized_output_validation empty_snapshot
         held_enumerator_unload shared_audio_ownership concurrent_snapshot_reads snapshot_failure_cleanup
-        stale_foreign_tokens enumeration_admission_mutations repeated_enumerator_reload)
+        stale_foreign_tokens enumeration_admission_mutations repeated_enumerator_reload
+        enumeration_admission_dispatch_positive)
     add_test(NAME ${case} COMMAND a3d_enumeration_tests "${A3D_MODULE}" ${case} "${A3D_FOREIGN_MODULE}")
     set_tests_properties(${case} PROPERTIES TIMEOUT 30 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
 endforeach()
@@ -53,3 +54,10 @@ if(A3D_BASELINE_MODULE)
         enumeration_baseline_rejection "${A3D_BASELINE_MODULE}")
     set_tests_properties(enumeration_baseline_rejection PROPERTIES TIMEOUT 30 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
 endif()
+
+foreach(regression early_factory early_virtual)
+    add_test(NAME enumeration_admission_${regression} COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/check_admission_regression.py" "$<TARGET_FILE:a3d_enumeration_tests>"
+        "${A3D_MODULE}" "enumeration_admission_${regression}")
+    set_tests_properties(enumeration_admission_${regression} PROPERTIES TIMEOUT 30 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
+endforeach()

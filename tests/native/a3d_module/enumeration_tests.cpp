@@ -36,8 +36,6 @@ struct Module {
     GetClass getClass;
     Unload unload;
     Owners owners;
-    unsigned factoryCalls = 0;
-    unsigned virtualCalls = 0;
     unsigned audioState = 0;
 
     explicit Module(const char* filename) : path(filename) {
@@ -67,7 +65,6 @@ struct Module {
     }
     Enumerator* Create() {
         Enumerator* result = nullptr;
-        ++factoryCalls;
         CHECK(factory(&result) == S_OK && result);
         return result;
     }
@@ -83,6 +80,209 @@ struct Module {
         std::printf("image absent after dlclose: %s\n", path.c_str());
     }
 };
+
+// This loader does not pre-admit the A3D image. Establish host SDL thread identity
+// through the independently held SDL library before testing any candidate gate.
+class AdmissionImage {
+public:
+    explicit AdmissionImage(const char* filename) : path_(filename) {
+        const std::string sdlPath = path_.substr(0, path_.find_last_of('/') + 1) + "libSDL3.0.dylib";
+        sdl_ = dlopen(sdlPath.c_str(), RTLD_NOW | RTLD_LOCAL);
+        CHECK(sdl_);
+        auto mainReady = reinterpret_cast<void (*)()>(dlsym(sdl_, "SDL_SetMainReady"));
+        audioState_ = reinterpret_cast<unsigned (*)(unsigned)>(dlsym(sdl_, "SDL_WasInit"));
+        CHECK(mainReady && audioState_);
+        mainReady();
+        initialAudio_ = audioState_(kAudio);
+        image = dlopen(filename, RTLD_NOW | RTLD_LOCAL);
+        CHECK(image);
+        describe = reinterpret_cast<cse::abi::GetModuleAbi>(dlsym(image, "CseGetModuleAbi"));
+        CHECK(describe);
+    }
+    ~AdmissionImage() {
+        // Independent cleanup witness after the tested candidate path has finished.
+        // Only now admit the actual trusted fixture for diagnostic export access.
+        CHECK(cse::abi::Check(ExpectedA3dEnumerationDescriptor(), describe()) ==
+            cse::abi::Compatibility::Compatible);
+        auto owners = reinterpret_cast<Owners>(dlsym(image, "_Z15A3dNativeOwnersv"));
+        auto unload = reinterpret_cast<Unload>(dlsym(image, "DllCanUnloadNow"));
+        CHECK(owners && unload);
+        for (auto count : owners()) {
+            CHECK(count == 0);
+        }
+        CHECK(unload() == S_OK && audioState_(kAudio) == initialAudio_);
+        CHECK(dlclose(image) == 0);
+        CHECK(dlopen(path_.c_str(), RTLD_NOW | RTLD_NOLOAD) == nullptr);
+        CHECK(dlclose(sdl_) == 0);
+        std::puts("admission fixture clean: owners=0 audio=baseline unload=S_OK image=absent");
+    }
+    void* image = nullptr;
+    cse::abi::GetModuleAbi describe = nullptr;
+private:
+    std::string path_;
+    void* sdl_ = nullptr;
+    unsigned (*audioState_)(unsigned) = nullptr;
+    unsigned initialAudio_ = 0;
+};
+
+struct DispatchCounts {
+    unsigned factory = 0;
+    unsigned virtualCalls = 0;
+    unsigned beforeAdmission = 0;
+};
+
+// Raw function/object pointers never leave this boundary. Every actual factory
+// and virtual dispatch (including null-output calls and cleanup) is observed here.
+class AdmissionDispatch {
+public:
+    void BeginCandidate() {
+        counts = {};
+        admitted_ = false;
+        factory_ = nullptr;
+    }
+    bool Resolve(void* image, const char* name) {
+        factory_ = reinterpret_cast<independent::Factory>(dlsym(image, name));
+        return factory_ != nullptr;
+    }
+    void Admit() {
+        admitted_ = true;
+    }
+    HRESULT Create(bool nullOutput = false) {
+        CHECK(factory_ && !object_);
+        Observe(counts.factory);
+        return factory_(nullOutput ? nullptr : &object_);
+    }
+    HRESULT Count(DWORD* count) {
+        CHECK(object_);
+        Observe(counts.virtualCalls);
+        return object_->GetCount(count);
+    }
+    HRESULT Info(DeviceInfo* info, char* name, DWORD capacity, DWORD* required) {
+        CHECK(object_);
+        Observe(counts.virtualCalls);
+        return object_->GetInfo(0, independent::Version, sizeof(*info), info, name, capacity, required);
+    }
+    void Release() {
+        if (object_) {
+            Observe(counts.virtualCalls);
+            CHECK(object_->Release() == 0);
+            object_ = nullptr;
+        }
+    }
+    bool HasObject() const {
+        return object_ != nullptr;
+    }
+    ~AdmissionDispatch() {
+        CHECK(!object_); // Every exit must account for terminal release before reporting counts.
+    }
+    DispatchCounts counts;
+private:
+    void Observe(unsigned& kind) {
+        ++kind;
+        if (!admitted_) {
+            ++counts.beforeAdmission;
+        }
+    }
+    independent::Factory factory_ = nullptr;
+    Enumerator* object_ = nullptr;
+    bool admitted_ = false;
+};
+
+enum class AdmissionRegression { None, EarlyFactory, EarlyVirtual };
+
+bool GuardedInvoke(void* image, const cse::abi::Descriptor& expected, const cse::abi::Descriptor* offered,
+    const char* requiredExport, AdmissionDispatch& boundary,
+    AdmissionRegression regression = AdmissionRegression::None, bool retainAnchor = false) {
+    boundary.BeginCandidate();
+    // Intentional test-only regressions execute real early dispatch through the
+    // identical observed boundary. They cannot fabricate an accepted device token.
+    if (regression == AdmissionRegression::EarlyFactory) {
+        CHECK(boundary.Resolve(image, independent::FactoryName));
+        CHECK(boundary.Create() == S_OK);
+    } else if (regression == AdmissionRegression::EarlyVirtual) {
+        DWORD count = 0;
+        CHECK(boundary.Count(&count) == S_OK);
+    }
+    const bool accepted = cse::abi::Check(expected, offered) == cse::abi::Compatibility::Compatible &&
+        boundary.Resolve(image, requiredExport);
+    if (accepted) {
+        boundary.Admit();
+        CHECK(boundary.Create(true) == E_POINTER); // Direct null-output factory calls count too.
+        CHECK(boundary.Create() == S_OK);
+        DWORD count = 0;
+        CHECK(boundary.Count(&count) == S_OK);
+        if (count) {
+            DeviceInfo info{};
+            DWORD required = 0;
+            CHECK(boundary.Info(&info, nullptr, 0, &required) == S_FALSE && required > 0);
+            std::vector<char> label(required);
+            CHECK(boundary.Info(&info, label.data(), required, &required) == S_OK);
+            CHECK(info.structureBytes == sizeof(info) && info.version == independent::Version);
+        }
+    }
+    if (!accepted || !retainAnchor) {
+        boundary.Release();
+    }
+    return accepted;
+}
+
+bool RejectedWithoutCalls(const char* label, bool accepted, const DispatchCounts& counts) {
+    const bool clean = !accepted && !counts.factory && !counts.virtualCalls && !counts.beforeAdmission;
+    std::printf("candidate=%s accepted=%u factory=%u virtual=%u before_admission=%u zero_call_gate=%s\n",
+        label, accepted, counts.factory, counts.virtualCalls, counts.beforeAdmission, clean ? "PASS" : "FAIL");
+    return clean;
+}
+
+bool ProbeRejectedCandidate(void* context, const char* label, const cse::abi::Descriptor& expected,
+    const cse::abi::Descriptor* offered, const char* requiredExport) {
+    AdmissionDispatch boundary;
+    const bool accepted = GuardedInvoke(context, expected, offered, requiredExport, boundary);
+    return RejectedWithoutCalls(label, accepted, boundary.counts);
+}
+
+void PositiveAdmission(AdmissionImage& image, AdmissionDispatch& boundary, bool retainAnchor = false) {
+    CHECK(GuardedInvoke(image.image, ExpectedA3dEnumerationDescriptor(), image.describe(),
+        independent::FactoryName, boundary, AdmissionRegression::None, retainAnchor));
+    std::printf("positive observed factory=%u virtual=%u before_admission=%u anchor=%u\n",
+        boundary.counts.factory, boundary.counts.virtualCalls, boundary.counts.beforeAdmission, retainAnchor);
+    CHECK(boundary.counts.factory > 0 && boundary.counts.virtualCalls > 0 && !boundary.counts.beforeAdmission);
+}
+
+int AdmissionCases(const char* filename, const std::string& name, const char* baselinePath) {
+    constexpr int kDetectedEarlyDispatch = 71;
+    AdmissionImage image(filename);
+    AdmissionDispatch boundary;
+    if (name == "enumeration_admission_early_factory" || name == "enumeration_admission_early_virtual") {
+        const bool earlyVirtual = name == "enumeration_admission_early_virtual";
+        if (earlyVirtual) {
+            // Seed through a fully admitted, separately observed real factory invocation.
+            // The main-thread anchor remains private until the rejected attempt cleans it.
+            PositiveAdmission(image, boundary, true);
+        }
+        const bool accepted = GuardedInvoke(image.image, ExpectedA3dEnumerationDescriptor(), nullptr,
+            independent::FactoryName, boundary,
+            earlyVirtual ? AdmissionRegression::EarlyVirtual : AdmissionRegression::EarlyFactory);
+        const bool gatePassed = RejectedWithoutCalls(name.c_str(), accepted, boundary.counts);
+        return gatePassed ? 0 : kDetectedEarlyDispatch;
+    }
+    PositiveAdmission(image, boundary);
+    if (name == "enumeration_admission_mutations") {
+        CHECK(CheckEnumerationAdmissionMutations(*image.describe(), ProbeRejectedCandidate, image.image));
+    } else if (name == "enumeration_baseline_rejection") {
+        CHECK(baselinePath && baselinePath[0]);
+        void* baseline = dlopen(baselinePath, RTLD_NOW | RTLD_LOCAL);
+        CHECK(baseline);
+        auto describe = reinterpret_cast<cse::abi::GetModuleAbi>(dlsym(baseline, "CseGetModuleAbi"));
+        CHECK(describe);
+        CHECK(ProbeRejectedCandidate(baseline, "new_caller_old_image", ExpectedA3dEnumerationDescriptor(),
+            describe(), independent::FactoryName));
+        CHECK(ProbeRejectedCandidate(image.image, "old_caller_new_image", *describe(), image.describe(),
+            independent::FactoryName));
+        CHECK(dlclose(baseline) == 0);
+        CHECK(dlopen(baselinePath, RTLD_NOW | RTLD_NOLOAD) == nullptr);
+    }
+    return 0;
+}
 
 struct Copy {
     DeviceInfo info{};
@@ -301,6 +501,9 @@ int main(int argc, char** argv) {
     CHECK(argc >= 3);
     CHECK(std::getenv("SDL_AUDIO_DRIVER") && std::strcmp(std::getenv("SDL_AUDIO_DRIVER"), "dummy") == 0);
     const std::string name = argv[2];
+    if (name.rfind("enumeration_admission_", 0) == 0 || name == "enumeration_baseline_rejection") {
+        return AdmissionCases(argv[1], name, argc >= 4 ? argv[3] : nullptr);
+    }
     if (name == "repeated_enumerator_reload") {
         Copy previous;
         for (unsigned cycle = 0; cycle < 3; ++cycle) {
@@ -322,35 +525,6 @@ int main(int argc, char** argv) {
         return 0;
     }
     Module module(argv[1]);
-    if (name == "enumeration_admission_mutations") {
-        CHECK(CheckEnumerationAdmissionMutations(*module.describe()));
-        const auto admits = [&](const cse::abi::Descriptor* descriptor, const char* requiredExport) {
-            if (cse::abi::Check(ExpectedA3dEnumerationDescriptor(), descriptor) !=
-                cse::abi::Compatibility::Compatible) {
-                return false;
-            }
-            return dlsym(module.handle, requiredExport) != nullptr;
-        };
-        CHECK(!admits(nullptr, independent::FactoryName));
-        CHECK(!admits(module.describe(), "CseCreateA3dNativeDeviceEnumeratorMissing"));
-        CHECK(module.factoryCalls == 0 && module.virtualCalls == 0);
-        return 0;
-    }
-    if (name == "enumeration_baseline_rejection") {
-        CHECK(argc >= 4 && argv[3][0]);
-        void* baseline = dlopen(argv[3], RTLD_NOW | RTLD_LOCAL);
-        CHECK(baseline);
-        auto describe = reinterpret_cast<cse::abi::GetModuleAbi>(dlsym(baseline, "CseGetModuleAbi"));
-        CHECK(describe);
-        CHECK(cse::abi::Check(ExpectedA3dEnumerationDescriptor(), describe()) ==
-            cse::abi::Compatibility::TableLayout);
-        CHECK(cse::abi::Check(*describe(), module.describe()) == cse::abi::Compatibility::TableLayout);
-        CHECK(dlsym(baseline, independent::FactoryName) == nullptr);
-        CHECK(module.factoryCalls == 0 && module.virtualCalls == 0);
-        CHECK(dlclose(baseline) == 0);
-        std::puts("old/new profile rejection in both directions; factory=0 virtual=0");
-        return 0;
-    }
     CHECK(module.factory(nullptr) == E_POINTER);
     if (name == "snapshot_failure_cleanup") {
         Enumerator* wrongThread = reinterpret_cast<Enumerator*>(1);

@@ -31,4 +31,7 @@ struct Device : IUnknown {
 using Factory = HRESULT (CSE_ABI_CALL *)(Enumerator**);
 }
 cse::abi::Descriptor ExpectedA3dEnumerationDescriptor();
-bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered);
+using EnumerationAdmissionProbe = bool (*)(void* context, const char* label,
+    const cse::abi::Descriptor& expected, const cse::abi::Descriptor* offered, const char* requiredExport);
+bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered,
+    EnumerationAdmissionProbe probe, void* context);

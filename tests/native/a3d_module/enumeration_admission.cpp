@@ -2,6 +2,7 @@
 #include "cse_a3d_abi.h"
 #include <array>
 #include <type_traits>
+#include <string>
 
 namespace {
 using namespace cse::a3d_abi;
@@ -130,14 +131,17 @@ cse::abi::Descriptor ExpectedA3dEnumerationDescriptor() {
     return expected;
 }
 
-bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered) {
+bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered,
+    EnumerationAdmissionProbe probe, void* context) {
     const auto expected = ExpectedA3dEnumerationDescriptor();
-    const auto rejects = [&](const cse::abi::Descriptor* candidate) {
-        return cse::abi::Check(expected, candidate) != cse::abi::Compatibility::Compatible;
-    };
-    if (rejects(&offered) || !rejects(nullptr)) {
+    // Generate independent facts only. Every candidate is exercised by the same
+    // actual admission/dispatch function as the positive case in the caller TU.
+    if (!probe(context, "missing_descriptor", expected, nullptr, independent::FactoryName) ||
+        !probe(context, "missing_export", expected, &offered, "CseCreateA3dNativeDeviceEnumeratorMissing")) {
         return false;
     }
+    constexpr const char* commonNames[] = {"bytes", "descriptor_version", "runtime_version", "architecture",
+        "pointer_bits", "compiler_abi", "table_count", "reserved"};
     // Every common field and every table field must be admitted before calling code.
     for (unsigned field = 0; field < 8; ++field) {
         auto changed = offered;
@@ -145,7 +149,8 @@ bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered) {
             &changed.runtimeVersion, &changed.architecture, &changed.pointerBits, &changed.compilerAbi,
             &changed.tableCount, &changed.reserved};
         ++*fields[field];
-        if (!rejects(&changed)) {
+        const std::string label = std::string("common.") + commonNames[field];
+        if (!probe(context, label.c_str(), expected, &changed, independent::FactoryName)) {
             return false;
         }
     }
@@ -159,7 +164,9 @@ bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered) {
             } else {
                 ++changed.tables[index].signature;
             }
-            if (!rejects(&changed)) {
+            constexpr const char* fields[] = {"identifier", "reserved", "signature"};
+            const std::string label = "table." + std::to_string(index) + "." + fields[field];
+            if (!probe(context, label.c_str(), expected, &changed, independent::FactoryName)) {
                 return false;
             }
         }
@@ -184,10 +191,15 @@ bool CheckEnumerationAdmissionMutations(const cse::abi::Descriptor& offered) {
         {IdentityContract, IdentityFacts(changedIid)},
         {ProviderRole, ProfileFacts(2)}
     }};
-    for (const auto& change : semanticChanges) {
+    constexpr const char* semanticNames[] = {"record.width_offset", "record.order", "record.alignment",
+        "record.signedness", "method.order", "method.parameter_width", "private.iid", "record.version",
+        "record.bytes_policy", "query.policy", "export.signature", "export.name", "identity.iid", "profile"};
+    static_assert(std::size(semanticNames) == semanticChanges.size());
+    for (std::size_t index = 0; index < semanticChanges.size(); ++index) {
+        const auto& change = semanticChanges[index];
         auto changedExpected = expected;
         Replace(changedExpected, change.first, change.second);
-        if (cse::abi::Check(changedExpected, &offered) == cse::abi::Compatibility::Compatible) {
+        if (!probe(context, semanticNames[index], changedExpected, &offered, independent::FactoryName)) {
             return false;
         }
     }
