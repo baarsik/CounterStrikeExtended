@@ -1,4 +1,5 @@
 #include "legacy_texture.h"
+#include "capture_allocation.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -107,9 +108,11 @@ void StoreComponents(std::array<std::uint8_t, 4>& value, InternalFormat internal
 }
 
 TextureStore::TextureStore(std::size_t storageLimit, std::size_t namesLimit)
-    : storage_(std::make_shared<Storage>()), namesLimit_(namesLimit) {
+    : storage_((BeforeCaptureAllocation(CaptureAllocationSite::RecorderConstruction), std::make_shared<Storage>())),
+      namesLimit_(namesLimit) {
     storage_->limit = storageLimit;
     for (std::size_t index = 0; index < defaults_.size(); ++index) {
+        BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
         auto object = std::make_shared<TextureObject>();
         object->target = static_cast<TextureTarget>(index);
         if (object->target == TextureTarget::Rectangle) {
@@ -131,8 +134,14 @@ std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
     }
     auto storage = storage_;
     // The charge survives the store if an immutable draw snapshot still owns the image.
+    BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     std::unique_ptr<TextureImage> image(new TextureImage);
+    if (bytes != 0) {
+        BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
+    }
     image->pixels.resize(bytes);
+    // The shared owner needs a control block; inject before charging so an injected failure is uncharged.
+    BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     storage_->used += bytes;
     return std::shared_ptr<TextureImage>(image.release(), [storage, bytes](TextureImage* value) {
         delete value;
@@ -178,6 +187,7 @@ Status TextureStore::Bind(LegacyState& state, TextureTarget target, std::uint32_
             if (generation_ == std::numeric_limits<std::uint64_t>::max()) {
                 return Status::LimitExceeded;
             }
+            BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
             auto object = std::make_shared<TextureObject>();
             object->target = target;
             object->generation = ++generation_;
@@ -252,6 +262,7 @@ Status TextureStore::Parameter(const LegacyState& state, TextureTarget target, T
     if (!TargetValid(target) || !std::isfinite(value) || value < 0 || value > std::numeric_limits<int>::max()) {
         return Status::InvalidValue;
     }
+    BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
     auto object = std::make_shared<TextureObject>(*Bound(state, target));
     auto& sampler = object->sampler;
     if (parameter == TextureParameter::Anisotropy) {
@@ -369,6 +380,7 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
             }
         }
     }
+    BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
     auto object = std::make_shared<TextureObject>(*prior);
     object->levels[upload.level] = std::move(image);
     Commit(state, target, std::move(object));

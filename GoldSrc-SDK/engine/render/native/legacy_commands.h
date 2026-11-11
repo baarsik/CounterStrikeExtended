@@ -69,9 +69,7 @@ Status ExpandTopology(const DrawPacket& draw, std::vector<Vertex>& output, Primi
 
 class Recorder {
 public:
-    explicit Recorder(CaptureLimits limits = {}) : limits_(limits),
-        textures_(limits.textureStorageBytes, limits.textureNames) {
-    }
+    explicit Recorder(CaptureLimits limits = {});
     // Value copies own geometry/list bytes; immutable texture versions use copy-on-write and a
     // shared physical-storage charge. No moved-from counters can outlive their containers.
     Recorder(const Recorder&) = default;
@@ -92,6 +90,9 @@ public:
     const std::vector<DrawPacket>& Draws() const {
         return draws_;
     }
+    bool AtFrameBoundary() const;
+    Status TakeFrameDraws(std::vector<DrawPacket>& output);
+    void AbortPendingFrame();
     void ClearDraws() {
         draws_.clear();
         frameVertices_ = 0;

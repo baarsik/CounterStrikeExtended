@@ -6,7 +6,7 @@ Source-derived profile: `GL_Init` in `gl_vidnt.cpp` establishes alpha/depth/blen
 
 `LegacyState` stores column-major float matrices, postmultiplication, bounded modelview/projection/per-unit texture stacks, current color and three units of coordinates. `Recorder` owns geometry commands and list definitions. A draw snapshots matrices/raster state; vertex submission latches current attributes. Compile-only lists preserve caller state; replay uses the later matrices/current attributes. Replacing a list commits at EndList, and deleting a list cannot invalidate copied draw packets. VGUI's enabled arrays supply only positions and unit0 UVs; other units and color remain execution-time current state. Copies own all storage; there are no borrowed list/client-array pointers.
 
-The raster profile includes enables, depth write/comparison/range, alpha reference/comparison, blend factors, cull mode, shading, viewport/scissor, fog parameters, polygon mode/offset, front-face orientation and fog/perspective hints. Framebuffer/presentation/readback commands and shader selection remain subsequent work. This layer is not a general OpenGL emulator. Its private checked limits are not advertised as driver limits. Standard container allocation exceptions remain possible; explicit limits/invalid values use Status. Replay depth/work and aggregate list/frame storage are bounded. Invalid matrix queries throw out_of_range rather than indexing outside storage. Unrepresentable projection coefficients and command scalar narrowing fail before conversion. A failed aggregate EndList or frame End retains pending owned storage for an explicit retry after capacity is released; replay limits may leave already executed state/draws, and are not transactional rollback.
+The raster profile includes enables, depth write/comparison/range, alpha reference/comparison, blend factors, cull mode, shading, viewport/scissor, fog parameters, polygon mode/offset, front-face orientation and fog/perspective hints. GPU framebuffer/presentation/readback execution and shader selection remain subsequent work. This layer is not a general OpenGL emulator. Its private checked limits are not advertised as driver limits. Standard container allocation exceptions remain possible; explicit limits/invalid values use Status. Replay depth/work and aggregate list/frame storage are bounded. Invalid matrix queries throw out_of_range rather than indexing outside storage. Unrepresentable projection coefficients and command scalar narrowing fail before conversion. A failed aggregate EndList or frame End retains pending owned storage for an explicit retry after capacity is released; replay limits may leave already executed state/draws, and are not transactional rollback.
 
 Triangle lists/strips/fans and lines/line loops can be lowered with preserved winding and flat provoking color. Original quads/quad strips/polygons remain owned packets; lowering returns UnsupportedTopology. This deliberately does not establish a diagonal, interpolation or edge rule for those modes. Incomplete triangle/line tails are omitted during supported lowering.
 
@@ -106,3 +106,60 @@ draw operations, fog/list calls, and the framebuffer/presentation route. No
 callsite has been hooked, so neither raw calls nor qgl calls reach this CPU layer
 in production. Shader selection, framebuffer/MSAA/resolve, clears, screenshots,
 presentation, driver precision/filtering and all GPU execution remain open.
+
+## Owned ordered CPU frame capture
+
+`FrameRecorder` wraps the persistent legacy Recorder with an explicit frame
+boundary. A sealed `FrameSnapshot` owns draw geometry, immutable texture versions,
+and the ordered Draw/Clear/Readback stream; it contains no callback, client pointer,
+GL/SDL object or native handle. List replay contributes each draw in order. Clear
+records explicit private mask bits, write masks and scissor state. Readback records
+only an ID, validated stage and contained GL bottom-left pixel rectangle; no GPU
+readback occurs here.
+
+Frames require a nonzero serial/display epoch and positive dimensions bounded by
+`kTextureDimension`. Commands and forwarding methods require an active frame.
+The first command/validation/allocation failure poisons the frame; Seal preserves
+its output on failure. Successful Seal requires empty output vectors and moves
+ownership without resetting persistent state, texture objects or completed lists.
+An empty frame is valid. Event count is independently bounded from draw/geometry
+and texture quotas. Accepted nonzero readback IDs increase strictly across seals
+and Abort; failed appends do not consume IDs and exhaustion requires a fresh
+recorder epoch.
+
+Abort discards draws/events and unfinished primitives/list compilation without
+allocating. It releases pending list/upload/vertex ownership while retaining
+completed lists, submitted state/texture mutations and the accepted ID watermark.
+Allocation exceptions are caught only at this private FrameRecorder boundary and
+reported as `LimitExceeded`; constructor failure propagates `std::bad_alloc` to
+its owner. The standalone legacy Recorder retains its existing exception policy.
+
+The private `render_frame_tests` executable registers `render-frame-order`,
+`render-frame-owned`, `render-frame-boundaries`, `render-frame-limits`,
+`render-frame-abort`, `render-frame-persistent`, and
+`render-frame-allocation-failure`. The private CPU library and frame fixture
+compile with `CSE_CAPTURE_FAULT_INJECTION=1`; an RAII fixture hook can fail the Nth
+named ownership allocation. Existing state/texture fixtures leave the borrowed
+thread-local hook unset. Production manifests do not define this switch, and its
+checkpoints compile to no-ops outside the fixture. The allocation case reports
+actual named hits and tests later-hit cleanup, sticky failure, allocation-free
+Abort, retained snapshots and recovery. The ownership case requires actual source
+pixel/vertex addresses above `UINT32_MAX` on 64-bit lanes; unavailable placement
+is an explicit failed/unqualified case, never a skip. Win32 omits that address
+requirement while retaining the ownership assertions.
+
+CPU-only configuration (from an initialized matching MSVC environment on Windows):
+
+```sh
+cmake -S tests/native/render_state -B build/render-frame-x64-debug -G Ninja -DCSE_RENDER_GL_ORACLE=OFF -DCSE_TARGET_ARCH=x64 -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/render-frame-x64-debug --target render_frame_tests render_state_tests render_texture_tests --parallel 1
+ctest --test-dir build/render-frame-x64-debug --output-on-failure --parallel 1
+```
+
+Use a separate Release directory and `CMAKE_BUILD_TYPE=Release`. Qualification
+order is actual Windows x64 Debug/Release first, then Mac ARM64 Debug/Release with
+`CSE_TARGET_ARCH=arm64`, `CMAKE_OSX_ARCHITECTURES=arm64`, and
+`CMAKE_OSX_DEPLOYMENT_TARGET=14.0`, followed by the Clang CPU sanitizer variant.
+The missing-member compile RED and linked missing-Draw-event behavior RED are
+preserved as separate external evidence. This source change does not claim full
+renderer, backend, game, pixel equivalence or migration acceptance.
