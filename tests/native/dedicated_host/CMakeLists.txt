@@ -36,6 +36,12 @@ set_target_properties(fixture_filesystem PROPERTIES PREFIX "" OUTPUT_NAME filesy
 foreach(target fixture_engine fixture_filesystem)
   target_include_directories(${target} PRIVATE "${SDK}")
 endforeach()
+# Console-only controlled providers cannot satisfy the standalone GUI cohort.
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/cohort" "${CMAKE_CURRENT_BINARY_DIR}/missing-cohort")
+foreach(directory cohort missing-cohort)
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${directory}/cse_standalone_cohort_images.h"
+    "#pragma once\nnamespace cse_standalone_images { constexpr char VguiSha256[] = \"\"; constexpr char FilesystemSha256[] = \"\"; }\n")
+endforeach()
 set(cohort "${CMAKE_CURRENT_BINARY_DIR}/cohort/cse_native_cohort_images.h")
 add_custom_command(OUTPUT "${cohort}"
   COMMAND "${CMAKE_COMMAND}" "-DCSE_ENGINE=$<TARGET_FILE:fixture_engine>"

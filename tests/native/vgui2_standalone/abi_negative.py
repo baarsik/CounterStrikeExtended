@@ -25,7 +25,10 @@ color = (public / 'Color.h').read_text(encoding='latin1')
 assert '_color[4]' in color
 record = output / 'changed_color.h'
 record.write_text(color.replace('_color[4]', '_color[5]'), encoding='latin1')
-for target, suffix in evidence.CONTEXTS:
+dedicated = len(sys.argv) > 3 and sys.argv[3] == '--dedicated-consumers'
+contexts = [('hlds', '/dedicated/native/DedicatedModuleSet.cpp'),
+            ('hlds', '/dedicated/native/NativeGui.cpp')] if dedicated else evidence.CONTEXTS
+for target, suffix in contexts:
     rows = [row for row in database if row['file'].endswith(suffix) and f'targets/{target}/' in row['command']]
     assert len(rows) == 1
     row = rows[0]
@@ -39,20 +42,24 @@ for target, suffix in evidence.CONTEXTS:
             skip = True
         elif arg not in ['-MD', '-MMD', '-c', row['file']]:
             clean.append(arg)
-    source = output / (target + '.cpp')
-    source.write_text('#include "' + row['file'] + '"\n' + evidence.PROBE)
+    label = target + '-' + Path(row['file']).stem
+    source = output / (label + '.cpp')
+    extra = '#include "' + str(root / 'GoldSrc-SDK/cstrike/public/vgui/KeyValues.h') + '"\n' if dedicated else ''
+    probe = ('#include "native_standalone_interfaces.h"\n' + evidence.PROBE[evidence.PROBE.index('void SurfaceEvidence'):]) \
+        if dedicated else evidence.PROBE
+    source.write_text('#include "' + row['file'] + '"\n' + extra + probe)
     for kind, header in [('methods', reordered), ('record', record)]:
         command = clean + ['-include', str(header), '-Xclang', '-fdump-vtable-layouts',
                            '-Xclang', '-fdump-record-layouts', '-S', '-emit-llvm', str(source),
-                           '-o', str(output / (target + '-' + kind + '.ll'))]
+                           '-o', str(output / (label + '-' + kind + '.ll'))]
         result = subprocess.run(command, cwd=row['directory'], capture_output=True, timeout=180)
         log = (result.stdout + result.stderr).decode(errors='replace')
-        (output / (target + '-' + kind + '.log')).write_text(log)
-        (output / (target + '-' + kind + '-command.json')).write_text(json.dumps(command, indent=2))
+        (output / (label + '-' + kind + '.log')).write_text(log)
+        (output / (label + '-' + kind + '-command.json')).write_text(json.dumps(command, indent=2))
         if kind == 'methods':
             assert result.returncode == 0, log[-2000:]
             actual = evidence.facts(log)
             assert actual['vgui2::ISurface'] != expected['vgui2::ISurface'], 'reordered slots escaped schema gate'
         else:
             assert result.returncode != 0 and 'static assertion failed' in log and 'sizeof(Color)' in log
-        print('REJECTED actual owning', target, kind, 'mutation before any runtime factory')
+        print('REJECTED actual owning', label, kind, 'mutation before any runtime factory')

@@ -63,3 +63,17 @@ if(TARGET hlds AND TARGET vgui2)
   add_dependencies(hlds cse_standalone_cohort)
   target_sources(hlds PRIVATE "${standalone_cohort_header}")
 endif()
+
+if(TARGET hlds AND TARGET vgui2)
+  add_custom_target(cse_dedicated_standalone_abi_evidence
+    COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tools/standalone_vgui_abi_evidence.py"
+      --database "${CMAKE_BINARY_DIR}/compile_commands.json"
+      --output "${CMAKE_BINARY_DIR}/dedicated-standalone-evidence/$<CONFIG>"
+      --dedicated-consumers
+    COMMENT "Verify standalone ABI in actual dedicated module and GUI consumers"
+    VERBATIM)
+  # Consumer sources include the real finished-image hash headers. Check them
+  # after provider evidence/linking, without a circular provider dependency or fake hashes.
+  add_dependencies(cse_dedicated_standalone_abi_evidence cse_native_cohort cse_standalone_cohort)
+  add_dependencies(hlds cse_dedicated_standalone_abi_evidence)
+endif()

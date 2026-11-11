@@ -2,14 +2,7 @@
 // Native standalone role only. The mandatory owning compiler gate checks the
 // frozen complete method signatures/physical slots and exchanged public records.
 #include "native_dedicated_abi.h"
-#include "vgui/ISurface.h"
-#include "vgui/IVGui.h"
-#include "vgui/IPanel.h"
-#include "vgui/IInputInternal.h"
-#include "vgui/ISystem.h"
-#include "vgui/ILocalize.h"
-#include "vgui/IScheme.h"
-#include "IKeyValues.h"
+#include "native_standalone_interfaces.h"
 
 namespace cse::standalone_abi {
 constexpr char Symbol[] = "CseGetStandaloneVguiAbiV1";

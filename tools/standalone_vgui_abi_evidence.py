@@ -88,6 +88,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--database', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--dedicated-consumers', action='store_true')
     options = parser.parse_args()
     options.output = options.output.resolve()
     options.output.mkdir(parents=True, exist_ok=True)
@@ -100,14 +101,20 @@ def main():
         raise RuntimeError("Runtime descriptor is not bound to the frozen physical schema")
     database = json.loads(options.database.read_text())
     receipts = []
-    for target, suffix in CONTEXTS:
+    contexts = [('hlds', '/dedicated/native/DedicatedModuleSet.cpp'),
+                ('hlds', '/dedicated/native/NativeGui.cpp')] if options.dedicated_consumers else CONTEXTS
+    for target, suffix in contexts:
         selected = [row for row in database if row['file'].endswith(suffix) and f'targets/{target}/' in row['command']]
         if len(selected) != 1:
             raise RuntimeError(f'Expected actual owning recipe: {target} {suffix}')
         row = selected[0]
         label = target + '-' + Path(row['file']).stem
         source = options.output / (label + '.cpp')
-        source.write_text('#include "' + row['file'] + '"\n' + PROBE)
+        extra = '#include "' + str(ROOT / 'GoldSrc-SDK/cstrike/public/vgui/KeyValues.h') + '"\n' \
+            if options.dedicated_consumers else ''
+        probe = ('#include "native_standalone_interfaces.h"\n' + PROBE[PROBE.index('void SurfaceEvidence'):]) \
+            if options.dedicated_consumers else PROBE
+        source.write_text('#include "' + row['file'] + '"\n' + extra + probe)
         args = shlex.split(row['command'])
         clean = []
         skip = False
@@ -120,7 +127,7 @@ def main():
                 raise RuntimeError('Unqualified response-file owning recipe')
             elif arg not in ['-MD', '-MMD', '-c', row['file']]:
                 clean.append(arg)
-        command = clean + ['-Xclang', '-fdump-vtable-layouts', '-Xclang', '-fdump-record-layouts',
+        command = clean + ['-H', '-Xclang', '-fdump-vtable-layouts', '-Xclang', '-fdump-record-layouts',
                            '-S', '-emit-llvm', str(source), '-o', str(options.output / (label + '.ll'))]
         result = subprocess.run(command, cwd=row['directory'], capture_output=True, timeout=180)
         log = options.output / (label + '.log')
@@ -138,7 +145,9 @@ def main():
         receipts.append(dict(owner=row, owner_sha256=digest(Path(row['file']).read_bytes()), command=command,
                              compiler_sha256=digest(Path(clean[0]).read_bytes()), compiler=compiler.decode(),
                              preprocessed_sha256=digest(preprocessed.stdout), log_sha256=digest(log.read_bytes()),
-                             physical_slots=current))
+                             physical_slots=current,
+                             include_provenance=[line for line in result.stderr.decode(errors='replace').splitlines()
+                                                 if re.match(r'^\.+ /', line)]))
     stamp.write_text(json.dumps({'schema_sha256': digest(SCHEMA.read_bytes()), 'receipts': receipts,
         'scope': 'nine complete factory views plus internal input, scheme view and client panel callback'}, indent=2))
     print('Accepted standalone VGUI physical ABI:', len(receipts), 'actual owning contexts')
