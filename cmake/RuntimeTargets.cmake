@@ -1,4 +1,5 @@
 include_guard(GLOBAL)
+include("${CMAKE_CURRENT_LIST_DIR}/MainImagePublication.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/BinaryArchitecture.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeRuntimeDependencies.cmake")
 
