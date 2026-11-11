@@ -72,3 +72,7 @@ Actual firstfullfixture compile after policy correction fails C4459/C2220 becaus
 ### Task3 fixround2 actual owning-policy restoration
 
 Complete Windows keep-going RED has10failedCPProws:8optionalfixtureCRT-deprecationfailures plus2entryfixtureC4535. Restore existingproduction_CRT_SECURE_NO_WARNINGS onlyonconnection/details/modelretirement targets and actualsys_dll2/EHa onlyontwoentrytargets, preservingW4/WX andallotherpolicies. Rulingtask-3-fix-round-2-ruling.md governs exactscope. Production106 unchanged; failed3ee/op4 neverqualifies156. Actual freshsixconfigs/strictsecuredefinitionandfinaleffectiveEH audit remainrequired; noTask2sixthsourcewave.
+
+### Task3 fixround3 retry fixture platform contract
+
+Actualop5compilesall21rowsandexecutes72Windowscases,71pass. RetrytestincorrectlyexpectsApple-onlyHost_ShutdownServerhelper1onWindowswhereactualguardkeeps0. Restoreplatformhelper0/1assertionandpositivecommonSV_ServerShutdownoncecheck, retainingallotheronce/refusalchecks/testnames/flags; no productionfixwave. DetailedRulingtask-3-fix-round-3-ruling.md; freshreviewedWindows72/156stillrequired.

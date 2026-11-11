@@ -280,7 +280,12 @@ int main(int argc, char **argv) {
             browserReady = true;
 #endif
             Host_Shutdown();
+#if defined(__APPLE__)
             Require(Count("Host_ShutdownServer") == 1, "retry repeated server teardown");
+#else
+            Require(Count("Host_ShutdownServer") == 0, "retry invoked Apple-only server teardown");
+#endif
+            Require(Count("SV_ServerShutdown") == 1, "retry did not retire shared server exactly once");
             Require(Count("Voice_Deinit") == 1, "retry repeated voice teardown");
             Require(Count("CDAudio_Shutdown") == 1, "retry repeated CD teardown");
             Require(Count("wrapper1.deleted") == 1, "retry did not retire wrapper1 exactly once");
