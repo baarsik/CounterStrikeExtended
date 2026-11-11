@@ -56,7 +56,15 @@ destroying its mixer. Native owner classes are noncopyable where they own lists.
 
 DuplicateBuffer accepts only a currently attached buffer from the same mixer,
 without calling foreign QI. Each duplicate retains the sample allocation and
-has an independent voice/cursor/control. Lock grants one shared-storage writer;
+snapshots the effective kernel/control state, including an initial voice with no
+submitted record or a completed rate ramp. The pending frequency scalar is copied
+separately and takes effect only on a later explicit control submission. Duplication
+does not replay a zero-initialized or last-submitted record. Its independent
+playhead starts at zero, using the same cursor/phase/delay reset as an explicit seek.
+Fallible initialization finishes while borrowing the source storage under the mix
+lock, before acquiring the duplicate's shared reference. A fixture-only one-shot
+nothrow-allocation override exercises actual allocation failure and surviving
+shared-storage playback; production has no fault hook. Lock grants one shared-storage writer;
 Render skips that storage until validated Unlock. The caller must retain its
 buffer while using its borrowed Lock pointers. Control submission copies the
 entire record and consumes only the stock direct-channel fields immediately.

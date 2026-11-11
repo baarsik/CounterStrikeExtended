@@ -157,23 +157,29 @@ HRESULT A3dNativeMixer::DuplicateBuffer(IDirectSoundBuffer* source, IDirectSound
     if (!duplicate) {
         return E_OUTOFMEMORY;
     }
-    duplicate->samples_ = original->samples_;
-    ++duplicate->samples_->references;
     duplicate->format_ = original->format_;
     duplicate->spatial_ = original->spatial_;
     duplicate->flags_ = original->flags_;
     duplicate->volume_ = original->volume_;
     duplicate->pan_ = original->pan_;
-    HRESULT status = duplicate->voice_.Initialize(
-        duplicate->samples_->data, duplicate->samples_->bytes, duplicate->format_);
-    if (SUCCEEDED(status)) {
-        duplicate->voice_.frequency_ = original->voice_.frequency_;
-        status = duplicate->voice_.ApplyControl(original->voice_.control_);
-    }
+    // The source cannot release its storage while the mix lock is held. Finish
+    // fallible initialization before acquiring another shared-storage reference.
+    const HRESULT status = duplicate->voice_.Initialize(
+        original->samples_->data, original->samples_->bytes, duplicate->format_);
     if (FAILED(status)) {
         delete duplicate;
         return status;
     }
+    duplicate->samples_ = original->samples_;
+    ++duplicate->samples_->references;
+    // Kernel state is the effective applied state, including an initial voice
+    // with no control submission and any completed rate ramp. frequency_ is
+    // separate pending bookkeeping; replaying control_ would consume it early.
+    duplicate->voice_.voice_ = original->voice_.voice_;
+    duplicate->voice_.control_ = original->voice_.control_;
+    duplicate->voice_.frequency_ = original->voice_.frequency_;
+    duplicate->voice_.voice_.bLooping = FALSE;
+    duplicate->Seek(0);
     duplicate->Attach(*this);
     *output = duplicate;
     return S_OK;

@@ -1,6 +1,8 @@
 #include "native_buffer.h"
 #include "A3dSource.h"
 #include <array>
+#include <atomic>
+#include <new>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -16,6 +18,19 @@
             std::exit(1); \
         } \
     } while (0)
+
+namespace {
+std::atomic<bool> failBufferAllocation{false};
+}
+
+// Fixture-only one-shot failure of the real owner allocation call. Successful
+// allocations use the C++ allocator, paired with the normal object delete.
+void* operator new(std::size_t size, const std::nothrow_t&) noexcept {
+    if (size == sizeof(A3dNativeBuffer) && failBufferAllocation.exchange(false)) {
+        return nullptr;
+    }
+    return ::operator new(size);
+}
 
 WAVEFORMATEX Format(WORD bits = 16, WORD channels = 1) {
     WAVEFORMATEX format{};
@@ -58,6 +73,31 @@ void Fill(IDirectSoundBuffer* buffer, DWORD bytes) {
     CHECK(render->SetA3dSuperCtrl(&control, 0) == S_OK);
     control = {}; // The submitted record must already be copied.
     render->Release();
+}
+
+HRESULT Submit(IDirectSoundBuffer* buffer, float pitch = 1) {
+    IA3dDalBuffer* render = nullptr;
+    CHECK(buffer->QueryInterface(IID_A3dNativeRenderBuffer, reinterpret_cast<void**>(&render)) == S_OK);
+    A3DCTRL_SRC_SUPER control{};
+    control.flPitch = pitch;
+    control.Left.flGain = 1;
+    control.Right.flGain = 0.5f;
+    const HRESULT status = render->SetA3dSuperCtrl(&control, 0);
+    render->Release();
+    return status;
+}
+
+std::array<SHORT, 64> RenderOne(A3dNativeMixer& mixer, IDirectSoundBuffer* buffer, DWORD expectedCursor) {
+    constexpr DWORD frames = 32;
+    CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+    std::array<SHORT, frames * 2> output{};
+    CHECK(mixer.Render(output.data(), frames) == S_OK);
+    CHECK(buffer->Stop() == S_OK);
+    DWORD cursor = UINT32_MAX;
+    CHECK(buffer->GetCurrentPosition(&cursor, nullptr) == S_OK);
+    std::printf("CURSOR actual=%u expected=%u\n", cursor, expectedCursor);
+    CHECK(cursor == expectedCursor);
+    return output;
 }
 
 int main(int argc, char** argv) {
@@ -151,27 +191,84 @@ int main(int argc, char** argv) {
         for (SHORT sample : output) {
             CHECK(sample == 0);
         }
-    } else if (name == "duplicate_control_failure") {
+    } else if (name == "duplicate_initial_state") {
+        IDirectSoundBuffer* duplicate = nullptr;
+        CHECK(mixer.DuplicateBuffer(buffer, &duplicate) == S_OK);
+        CHECK(buffer->Play(0, 0, 0) == S_OK);
+        CHECK(duplicate->Play(0, 0, 0) == S_OK);
+        std::array<SHORT, 64> output{};
+        CHECK(mixer.Render(output.data(), 32) == S_OK);
+        DWORD originalCursor = 0;
+        DWORD duplicateCursor = 0;
+        CHECK(buffer->GetCurrentPosition(&originalCursor, nullptr) == S_OK && originalCursor == 64);
+        CHECK(duplicate->GetCurrentPosition(&duplicateCursor, nullptr) == S_OK);
+        std::printf("INITIAL original=%u duplicate=%u expected=64\n", originalCursor, duplicateCursor);
+        CHECK(duplicateCursor == 64);
+        for (SHORT sample : output) {
+            CHECK(sample == 0);
+        }
+        duplicate->Release();
+    } else if (name == "duplicate_pending_frequency") {
         Fill(buffer, 128);
-        IA3dDalBuffer* render = nullptr;
-        CHECK(buffer->QueryInterface(IID_A3dNativeRenderBuffer, reinterpret_cast<void**>(&render)) == S_OK);
-        A3DCTRL_SRC_SUPER control{};
-        control.flPitch = 2;
-        control.Left.flGain = 1;
-        control.Right.flGain = 0.5f;
-        CHECK(render->SetA3dSuperCtrl(&control, 0) == S_OK);
-        render->Release();
+        CHECK(buffer->SetFrequency(11025) == S_OK);
+        IDirectSoundBuffer* duplicate = nullptr;
+        CHECK(mixer.DuplicateBuffer(buffer, &duplicate) == S_OK);
+        DWORD frequency = 0;
+        CHECK(buffer->GetFrequency(&frequency) == S_OK && frequency == 11025);
+        CHECK(duplicate->GetFrequency(&frequency) == S_OK && frequency == 11025);
+        const auto originalPcm = RenderOne(mixer, buffer, 64);
+        CHECK(RenderOne(mixer, duplicate, 64) == originalPcm);
+        CHECK(buffer->SetCurrentPosition(0) == S_OK);
+        CHECK(duplicate->SetCurrentPosition(0) == S_OK);
+        CHECK(Submit(buffer) == S_OK);
+        CHECK(Submit(duplicate) == S_OK);
+        const auto appliedPcm = RenderOne(mixer, buffer, 48);
+        CHECK(RenderOne(mixer, duplicate, 48) == appliedPcm);
+        CHECK(appliedPcm != originalPcm);
+        duplicate->Release();
+    } else if (name == "duplicate_effective_rate") {
+        Fill(buffer, 128);
+        CHECK(Submit(buffer, 0.5f) == S_OK);
+        RenderOne(mixer, buffer, 48);
+        CHECK(buffer->SetCurrentPosition(0) == S_OK);
+        CHECK(buffer->SetFrequency(44100) == S_OK);
+        IDirectSoundBuffer* duplicate = nullptr;
+        CHECK(mixer.DuplicateBuffer(buffer, &duplicate) == S_OK);
+        const auto originalPcm = RenderOne(mixer, buffer, 32);
+        CHECK(RenderOne(mixer, duplicate, 32) == originalPcm);
+        duplicate->Release();
+    } else if (name == "duplicate_rejected_control") {
+        Fill(buffer, 128);
+        CHECK(Submit(buffer, 2) == S_OK);
         CHECK(buffer->SetFrequency(UINT32_MAX) == S_OK);
-        IDirectSoundBuffer* duplicate = reinterpret_cast<IDirectSoundBuffer*>(1);
-        CHECK(mixer.DuplicateBuffer(buffer, &duplicate) == E_INVALIDARG && !duplicate);
-        CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
-        std::array<SHORT, 128> output{};
-        CHECK(mixer.Render(output.data(), 64) == S_OK);
+        IDirectSoundBuffer* duplicate = nullptr;
+        CHECK(mixer.DuplicateBuffer(buffer, &duplicate) == S_OK);
+        DWORD frequency = 0;
+        CHECK(duplicate->GetFrequency(&frequency) == S_OK && frequency == UINT32_MAX);
+        // The pending scalar is consumed only by this explicit submission.
+        // Failure must preserve both previously applied voices and owned storage.
+        CHECK(Submit(buffer, 2) == E_INVALIDARG);
+        CHECK(Submit(duplicate, 2) == E_INVALIDARG);
+        const auto originalPcm = RenderOne(mixer, buffer, 94);
+        CHECK(RenderOne(mixer, duplicate, 94) == originalPcm);
+        duplicate->Release();
+    } else if (name == "duplicate_allocation_failure") {
+        Fill(buffer, 128);
+        IDirectSoundBuffer* survivor = nullptr;
+        CHECK(mixer.DuplicateBuffer(buffer, &survivor) == S_OK);
+        failBufferAllocation = true;
+        IDirectSoundBuffer* failed = reinterpret_cast<IDirectSoundBuffer*>(1);
+        CHECK(mixer.DuplicateBuffer(buffer, &failed) == E_OUTOFMEMORY && !failed);
+        CHECK(!failBufferAllocation);
+        buffer->Release();
+        buffer = nullptr;
+        const auto output = RenderOne(mixer, survivor, 64);
         bool nonzero = false;
         for (SHORT sample : output) {
             nonzero |= sample != 0;
         }
         CHECK(nonzero);
+        survivor->Release();
     } else if (name == "parent_lifetime") {
         auto* parent = new A3dNativeMixer;
         auto* child = Buffer(*parent);

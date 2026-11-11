@@ -42,7 +42,9 @@ foreach(target a3d_buffer_tests a3d_mix_tests)
 endforeach()
 enable_testing()
 foreach(case public_buffer_roundtrip split_lock_wrap duplicate_lifetime stopped_loop_tail_cursor
-        high_address_storage format_size_overflow release_while_playing parent_lifetime spatial_parameters duplicate_shared_lock duplicate_control_failure)
+        high_address_storage format_size_overflow release_while_playing parent_lifetime spatial_parameters duplicate_shared_lock
+        duplicate_initial_state duplicate_pending_frequency duplicate_effective_rate duplicate_rejected_control
+        duplicate_allocation_failure)
     add_test(NAME ${case} COMMAND a3d_buffer_tests ${case})
     set_tests_properties(${case} PROPERTIES TIMEOUT 30)
 endforeach()
