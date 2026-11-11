@@ -560,10 +560,16 @@ struct A3dNativeNotificationSet {
 namespace {
 std::atomic<A3dNativeEventHook> dispatchHook{nullptr};
 std::atomic<void*> dispatchContext{nullptr};
+std::atomic<A3dNativeCommitHook> commitHook{nullptr};
+std::atomic<void*> commitContext{nullptr};
 }
 void A3dNativeDispatchTestHook(A3dNativeEventHook hook, void* context) noexcept {
     dispatchContext.store(context);
     dispatchHook.store(hook);
+}
+void A3dNativeCommitTestHook(A3dNativeCommitHook hook, void* context) noexcept {
+    commitContext.store(context);
+    commitHook.store(hook);
 }
 #endif
 
@@ -587,15 +593,31 @@ void A3dNativeNotificationBatch::Dispatch() noexcept {
         return;
     }
     decltype(matches_) committed{};
-    for (DWORD i = 0; i < set_->count; ++i) {
-        if (matches_[i / kBitsPerWord] & (std::uint64_t{1} << (i % kBitsPerWord))) {
-            const DWORD target = set_->positions[i].targetIndex;
-            const auto mask = std::uint64_t{1} << (target % kBitsPerWord);
-            if (!(committed[target / kBitsPerWord] & mask)) {
-                committed[target / kBitsPerWord] |= mask;
-                // One progress batch coalesces duplicate targets and laps.
-                // Close after admission is deliberately a dropped signal.
-                A3dSignalNativeEvent(set_->positions[i].event);
+    // One fence and one coalescing bitmap cover both passes. Completion must
+    // never become visible before any final byte-offset commit in this batch.
+    for (const bool stopPass : {false, true}) {
+        for (DWORD i = 0; i < set_->count; ++i) {
+            if ((set_->positions[i].offset == A3D_NATIVE_NOTIFICATION_STOP) != stopPass) {
+                continue;
+            }
+            if (matches_[i / kBitsPerWord] & (std::uint64_t{1} << (i % kBitsPerWord))) {
+                const DWORD target = set_->positions[i].targetIndex;
+                const auto mask = std::uint64_t{1} << (target % kBitsPerWord);
+                if (!(committed[target / kBitsPerWord] & mask)) {
+                    committed[target / kBitsPerWord] |= mask;
+                    // One progress batch coalesces duplicate targets and laps.
+                    // Close after admission is deliberately a dropped signal.
+                    const HRESULT result = A3dSignalNativeEvent(set_->positions[i].event);
+    #ifdef A3D_EVENT_TESTING
+                    if (SUCCEEDED(result)) {
+                        if (const auto hook = commitHook.load()) {
+                            hook(commitContext.load(), set_->positions[i].offset, set_->positions[i].event.identity);
+                        }
+                    }
+    #else
+                    (void)result;
+    #endif
+                }
             }
         }
     }

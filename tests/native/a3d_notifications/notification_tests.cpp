@@ -126,6 +126,56 @@ void Crossings() {
     }
 }
 
+struct CommitOrder {
+    std::array<DWORD, 3> offsets{};
+    std::size_t count = 0;
+    IA3dNativeEventV1* byteEvent = nullptr;
+    bool byteVisibleAtStop = false;
+    static void Observe(void* context, DWORD offset, IA3dNativeEventV1*) {
+        auto& order = *static_cast<CommitOrder*>(context);
+        CHECK(order.count < order.offsets.size());
+        order.offsets[order.count++] = offset;
+        if (offset == A3D_NATIVE_NOTIFICATION_STOP) {
+            order.byteVisibleAtStop = Poll(order.byteEvent);
+        }
+    }
+};
+
+void StopAfterOffsets(bool sharedTarget) {
+    Fixture f;
+    auto* byteEvent = Event();
+    auto* stopEvent = sharedTarget ? byteEvent : Event();
+    auto* otherByte = Event();
+    const A3dNativeNotificationPositionV1 positions[]{
+        {A3D_NATIVE_NOTIFICATION_STOP, 0, stopEvent}, {15, 0, otherByte}, {12, 0, byteEvent}};
+    CHECK(f.notify->SetNotificationPositions(3, positions) == S_OK);
+    CHECK(f.buffer->SetCurrentPosition(12) == S_OK);
+    CHECK(f.buffer->Play(0, 0, 0) == S_OK);
+    CommitOrder order;
+    order.byteEvent = byteEvent;
+    A3dNativeCommitTestHook(CommitOrder::Observe, &order);
+    f.Advance(8);
+    A3dNativeCommitTestHook(nullptr, nullptr);
+    CHECK(order.count == (sharedTarget ? 2 : 3));
+    CHECK(order.offsets[0] == 15 && order.offsets[1] == 12);
+    if (!sharedTarget) {
+        CHECK(order.offsets[2] == A3D_NATIVE_NOTIFICATION_STOP);
+        CHECK(order.byteVisibleAtStop);
+    }
+    CHECK(Poll(stopEvent));
+    CHECK(!Poll(stopEvent));
+    CHECK(Poll(otherByte));
+    CHECK(f.notify->SetNotificationPositions(0, nullptr) == S_OK);
+    if (!sharedTarget) {
+        stopEvent->Close();
+        stopEvent->Release();
+    }
+    byteEvent->Close();
+    byteEvent->Release();
+    otherByte->Close();
+    otherByte->Release();
+}
+
 struct Barrier {
     std::mutex mutex;
     std::condition_variable condition;
@@ -437,6 +487,8 @@ int main(int argc, char** argv) {
     CHECK(argc == 2);
     if (!std::strcmp(argv[1], "notification_crossings")) {
         Crossings();
+        StopAfterOffsets(false);
+        StopAfterOffsets(true);
         DuplicateTargetCoalescing();
         Shutdown();
         FinalRelease();

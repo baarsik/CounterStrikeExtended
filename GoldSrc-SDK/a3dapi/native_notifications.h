@@ -78,4 +78,8 @@ private:
 #ifdef A3D_EVENT_TESTING
 // Runs after capture, before the generation fence, without any owner lock.
 void A3dNativeDispatchTestHook(A3dNativeEventHook hook, void* context) noexcept;
+// Observes each actual successful dispatch commit after its event lock is left.
+// Fixture-only; it must not replace registrations while the commit fence is held.
+using A3dNativeCommitHook = void (*)(void*, DWORD, IA3dNativeEventV1*);
+void A3dNativeCommitTestHook(A3dNativeCommitHook hook, void* context) noexcept;
 #endif
