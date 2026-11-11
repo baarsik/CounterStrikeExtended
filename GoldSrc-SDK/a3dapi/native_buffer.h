@@ -1,3 +1,6 @@
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 #pragma once
 #include "native_mix.h"
 #include "backend_legacy.h"
@@ -10,6 +13,7 @@ constexpr IID IID_A3dNativeBufferControl = {
     0xcbd91fa8, 0x41c6, 0x11d2, {0xbb, 0x48, 0x00, 0x60, 0x08, 0x2f, 0x3c, 0x00}};
 
 struct A3dNativeSamples {
+    A3dNativeOwnerLease m_nativeSamplesLease{A3dNativeOwnerKind::Samples};
     BYTE* data = nullptr;
     DWORD bytes = 0;
     ULONG references = 1;
@@ -21,6 +25,8 @@ struct A3dNativeSamples {
 class A3dNativeBuffer final : public IDirectSoundBuffer, public IDirectSound3DBuffer,
     public IA3dDalBuffer, public IResManBuffer, public IA3dNativeNotifyV1 {
 public:
+    void RetainNativeOwner(IUnknown* owner);
+    std::uint64_t NativeConsumedBytes() const noexcept;
     HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** object) override;
     ULONG STDMETHODCALLTYPE AddRef() override;
     ULONG STDMETHODCALLTYPE Release() override;
@@ -87,7 +93,9 @@ private:
     void Attach(A3dNativeMixer& mixer);
     void Detach();
     A3dNativeNotifications notifications_;
+    A3dNativeOwnerLease m_nativeDirectBufferLease{A3dNativeOwnerKind::DirectBuffer};
     ULONG references_ = 1;
+    IUnknown* owner_ = nullptr;
     A3dNativeMixer* mixer_ = nullptr;
     A3dNativeBuffer* next_ = nullptr;
     A3dNativeBuffer* previous_ = nullptr;
@@ -98,6 +106,7 @@ private:
     DWORD flags_ = 0;
     DWORD cursor_ = 0;
     DWORD notificationPosition_ = 0;
+    std::uint64_t nativeConsumedBytes_ = 0;
     DWORD state_ = A3D_BUFFER_STATE_STOPPED;
     DWORD priority_ = 0;
     LONG volume_ = 0;

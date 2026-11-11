@@ -936,11 +936,13 @@ ResManStatBuffer::ResManStatBuffer( IUnknown* pOwner, DWORD dwBufferKind )
 
 ResManStatBuffer::~ResManStatBuffer()
 {
+#ifdef _WIN32
 	if ( m_hNotificationMutex != NULL )
 	{
 		CloseHandle( m_hNotificationMutex );
 		m_hNotificationMutex = NULL;
 	}
+#endif
 
 	if ( m_pOwner != NULL )
 	{
@@ -968,10 +970,12 @@ HRESULT STDMETHODCALLTYPE ResManStatBuffer::QueryInterface( REFIID iid, void** p
 	{
 		pObject = (IResManBuffer*)this;
 	}
+#ifdef _WIN32
 	else if ( !memcmp( &iid, &IID_IDirectSoundNotify, sizeof( IID ) ) )
 	{
 		pObject = (IDirectSoundBuffer*)this;
 	}
+#endif
 	else if ( !memcmp( &iid, &IID_A3dHardwareBufferControl, sizeof( IID ) ) )
 	{
 		pObject = (IResManBuffer*)this;
@@ -1206,30 +1210,45 @@ HRESULT STDMETHODCALLTYPE ResManStatBuffer::SetA3dDirectCtrl( DWORD dwFirst, DWO
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::GetPriority( LPDWORD pdwControl )
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	*pdwControl = m_dwControl;
 	return DS_OK;
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::GetBufferState( LPDWORD pdwStatus )
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	*pdwStatus = m_dwStatus;
 	return DS_OK;
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::SetPriority( DWORD dwFlags )
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	m_dwControl = dwFlags;
 	return DS_OK;
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::Mute()
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	m_dwFlags |= A3D_RENDER_WRITE_BUFFER;
 	return DS_OK;
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::UnMute()
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	m_dwFlags &= ~A3D_RENDER_WRITE_BUFFER;
 	return DS_OK;
 }
@@ -1237,6 +1256,11 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::UnMute()
 HRESULT STDMETHODCALLTYPE ResManBuffer::SetNotificationPositions( DWORD dwCount,
 		LPCDSBPOSITIONNOTIFY pNotifications )
 {
+#ifndef _WIN32
+    (void)dwCount;
+    (void)pNotifications;
+    return E_NOTIMPL;
+#else
 	if ( dwCount )
 	{
 		if ( pNotifications == NULL )
@@ -1262,10 +1286,59 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::SetNotificationPositions( DWORD dwCount,
 	}
 
 	return DS_OK;
+#endif
 }
 
 HRESULT ResManBuffer::Init( const a3d_platform_buffer_desc_t* pDesc, void* pBufferToken )
 {
+#ifndef _WIN32
+    if (!pDesc || !pDesc->lpwfxFormat || !pBufferToken) {
+        return E_POINTER;
+    }
+    if (m_nativeSamples || pDesc->dwFlags & DSBCAPS_CTRLPOSITIONNOTIFY) {
+        return DSERR_UNSUPPORTED;
+    }
+    const WAVEFORMATEX& format = *pDesc->lpwfxFormat;
+    constexpr DWORD kBitsPerByte = 8;
+    if (pDesc->dwSize != sizeof(*pDesc) || format.wFormatTag != WAVE_FORMAT_PCM ||
+        format.cbSize || !format.nSamplesPerSec ||
+        (format.nChannels != 1 && format.nChannels != 2) ||
+        (format.wBitsPerSample != 8 && format.wBitsPerSample != 16) ||
+        format.nBlockAlign != format.nChannels * (format.wBitsPerSample / kBitsPerByte) ||
+        static_cast<std::uint64_t>(format.nAvgBytesPerSec) !=
+            static_cast<std::uint64_t>(format.nSamplesPerSec) * format.nBlockAlign ||
+        !pDesc->dwBufferBytes || pDesc->dwBufferBytes > INT32_MAX ||
+        pDesc->dwBufferBytes % format.nBlockAlign) {
+        return E_INVALIDARG;
+    }
+    auto* samples = new (std::nothrow) A3dNativeStreamSamples;
+    if (!samples) {
+        return E_OUTOFMEMORY;
+    }
+    samples->data = static_cast<BYTE*>(A3dAllocate(pDesc->dwBufferBytes));
+    if (!samples->data) {
+        delete samples;
+        return E_OUTOFMEMORY;
+    }
+    constexpr BYTE kPcm8Silence = 128;
+    memset(samples->data, format.wBitsPerSample == kBitsPerByte ? kPcm8Silence : 0, pDesc->dwBufferBytes);
+    samples->bytes = pDesc->dwBufferBytes;
+    m_nativeSamples = samples;
+    m_nativeFormat = format;
+    m_Desc = *pDesc;
+    m_Desc.lpwfxFormat = &m_nativeFormat;
+    m_pBufferToken = pBufferToken;
+    m_hData = samples->data;
+    m_dwOriginalFrequency = format.nSamplesPerSec;
+    m_dwFrequency = format.nSamplesPerSec;
+    if (format.nChannels == 2) {
+        m_dwFlags |= A3D_RENDER_STEREO;
+    }
+    if (format.wBitsPerSample == 16) {
+        m_dwFlags |= A3D_RENDER_16BIT;
+    }
+    return S_OK;
+#else
 	if ( pDesc == NULL )
 		return E_POINTER;
 	if ( pBufferToken == NULL )
@@ -1288,16 +1361,24 @@ HRESULT ResManBuffer::Init( const a3d_platform_buffer_desc_t* pDesc, void* pBuff
 		m_dwFlags |= A3D_RENDER_16BIT;
 
 	return DS_OK;
+#endif
 }
 
 HRESULT ResManBuffer::GetRenderStream( DalBufferInfo** ppStream )
 {
+#ifndef _WIN32
+    std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+#endif
 	*ppStream = m_pStream;
 	return DS_OK;
 }
 
 HRESULT ResManStatBuffer::ProcessNotifications( DWORD dwTime )
 {
+#ifndef _WIN32
+    (void)dwTime;
+    return E_NOTIMPL;
+#else
 	(void)dwTime;
 
 	DWORD dwPreviousPosition = m_dwPreviousPosition;
@@ -1321,6 +1402,7 @@ HRESULT ResManStatBuffer::ProcessNotifications( DWORD dwTime )
 	}
 
 	return DS_OK;
+#endif
 }
 
 #define A3D_TIMING_BYTES_PER_MILLISECOND	11
@@ -1364,10 +1446,12 @@ HRESULT STDMETHODCALLTYPE EMUBuffer::QueryInterface( REFIID iid, void** ppObject
 	{
 		pObject = (IResManBuffer*)this;
 	}
+#ifdef _WIN32
 	else if ( !memcmp( &iid, &IID_IDirectSoundNotify, sizeof( IID ) ) )
 	{
 		pObject = (IDirectSoundBuffer*)this;
 	}
+#endif
 	else
 	{
 		*ppObject = NULL;

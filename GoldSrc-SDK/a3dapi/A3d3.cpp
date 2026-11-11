@@ -1,4 +1,7 @@
 #include "native_platform.h"
+#ifndef _WIN32
+#include "native_provider.h"
+#endif
 #include "a3dclsfc.h"
 #include "ia3dapi.h"
 #include "A3d3.h"
@@ -45,6 +48,7 @@ extern "C" HRESULT __stdcall DllCanUnloadNow()
 	return g_cA3dObjects || g_cA3dLocks;
 }
 
+#ifdef _WIN32
 static const CLSID s_A3dDalClassId =
 {
 	0x442d12a1, 0x2641, 0x11d2, { 0x90, 0xfb, 0x00, 0x60, 0x08, 0xa1, 0xf4, 0x41 }
@@ -54,6 +58,7 @@ static const IID s_A3dDalInterfaceId =
 {
 	0xa3c62f2a, 0x2671, 0x11d2, { 0xbb, 0x48, 0x00, 0x60, 0x08, 0x2f, 0x3c, 0x00 }
 };
+#endif
 
 static const IID s_A3dPlatformInterfaceId =
 {
@@ -112,6 +117,23 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 	if ( pOuter )
 		return CLASS_E_NOAGGREGATION;
 
+#ifndef _WIN32
+    HRESULT activation = A3dCreateNativeProvider(&pDriver);
+    if (FAILED(activation)) {
+        return activation;
+    }
+    activation = pDriver->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&pDirectSound));
+    if (SUCCEEDED(activation)) {
+        activation = pDriver->QueryInterface(IID_IA3d2, reinterpret_cast<void**>(&pA3d2));
+    }
+    pDriver->Release();
+    if (FAILED(activation)) {
+        if (pDirectSound) {
+            pDirectSound->Release();
+        }
+        return activation;
+    }
+#else
 	if ( SUCCEEDED( CoCreateInstance( s_A3dDalClassId, NULL, CLSCTX_INPROC_SERVER,
 		s_A3dDalInterfaceId, (void**)&pDriver ) ) )
 	{
@@ -150,6 +172,8 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 
 		bLegacyDriver = TRUE;
 	}
+
+#endif
 
 	CA3d* pA3dObject = new ( std::nothrow ) CA3d( bLegacyDriver );
 	if ( !pA3dObject )
@@ -265,6 +289,9 @@ CA3d::~CA3d()
 HRESULT CA3d::InitializeInterfaces( IDirectSound* pDirectSound, IA3d2* pA3d2, IA3d* pA3d )
 {
 	m_cReferences = 0;
+#ifndef _WIN32
+    m_nativeProvider = A3dIsNativeProvider(pDirectSound);
+#endif
 	SetupBackend( pDirectSound, pA3d2, pA3d );
 	m_bGeometryInitialized = FALSE;
 	m_bListenerInitialized = FALSE;
@@ -324,12 +351,20 @@ HRESULT STDMETHODCALLTYPE CA3d::QueryInterface( REFIID iid, void** ppObject )
 
 ULONG STDMETHODCALLTYPE CA3d::AddRef()
 {
+#ifndef _WIN32
+    return __atomic_add_fetch(&m_cReferences, 1, __ATOMIC_SEQ_CST);
+#else
 	return ++m_cReferences;
+#endif
 }
 
 ULONG STDMETHODCALLTYPE CA3d::Release()
 {
+#ifndef _WIN32
+    const ULONG cReferences = __atomic_sub_fetch(&m_cReferences, 1, __ATOMIC_SEQ_CST);
+#else
 	ULONG cReferences = --m_cReferences;
+#endif
 	if ( !cReferences )
 		delete this;
 	return cReferences;
@@ -568,7 +603,11 @@ HRESULT STDMETHODCALLTYPE CA3d::NewSource( DWORD dwFlags, LPA3DSOURCE* ppSource 
 		return E_INVALIDARG;
 
 	*ppSource = NULL;
+#ifdef _WIN32
 	if ( !m_pPrimaryBuffer )
+#else
+    if (!m_pPrimaryBuffer && !m_nativeProvider)
+#endif
 	{
 		DSBUFFERDESC1 desc = {};
 		desc.dwSize = sizeof( desc );
@@ -588,7 +627,26 @@ HRESULT STDMETHODCALLTYPE CA3d::NewSource( DWORD dwFlags, LPA3DSOURCE* ppSource 
 	if ( !pSource )
 		return A3DERROR_MEMORY_ALLOCATION;
 
+#ifndef _WIN32
+    if (m_nativeProvider && (!pSource->m_pRenderStates[0] || !pSource->m_pRenderStates[1])) {
+        pSource->m_bRegistered = FALSE;
+        delete pSource;
+        return A3DERROR_MEMORY_ALLOCATION;
+    }
+#endif
+#ifndef _WIN32
+    if (m_nativeProvider) {
+        const HRESULT result = AttachNativeSource(pSource);
+        if (FAILED(result)) {
+            pSource->m_bRegistered = FALSE;
+            delete pSource;
+            return result;
+        }
+    } else
+#endif
+    {
 	m_Sources.Append( pSource );
+    }
 	*ppSource = (LPA3DSOURCE)pSource;
 	pSource->AddRef();
 	return S_OK;
@@ -600,6 +658,12 @@ HRESULT STDMETHODCALLTYPE CA3d::DuplicateSource( LPA3DSOURCE pSource, LPA3DSOURC
 		return E_INVALIDARG;
 	if ( !ppDuplicate )
 		return E_INVALIDARG;
+
+#ifndef _WIN32
+    if (m_nativeProvider) {
+        *ppDuplicate = nullptr;
+    }
+#endif
 
 	CA3dListNode* pNode = m_Sources.m_pFirst;
 	BOOL bFound = FALSE;
@@ -622,11 +686,35 @@ HRESULT STDMETHODCALLTYPE CA3d::DuplicateSource( LPA3DSOURCE pSource, LPA3DSOURC
 
 	HRESULT status = S_OK;
 	CA3dSource* pDuplicate = new ( std::nothrow ) CA3dSource( *pOriginal, &status );
-	if ( !pDuplicate || FAILED( status ) )
-		return A3DERROR_FAILED_DUPLICATION;
+	if ( !pDuplicate || FAILED( status ) ) {
+#ifndef _WIN32
+        if (m_nativeProvider) {
+            delete pDuplicate;
+        }
+#endif
+        return A3DERROR_FAILED_DUPLICATION;
+    }
+#ifndef _WIN32
+    if (m_nativeProvider) {
+        pDuplicate->m_bRegistered = TRUE;
+    }
+#endif
 
-	*ppDuplicate = (LPA3DSOURCE)pDuplicate;
-	m_Sources.Append( pDuplicate );
+#ifndef _WIN32
+    if (m_nativeProvider) {
+        const HRESULT result = AttachNativeSource(pDuplicate);
+        if (FAILED(result)) {
+            pDuplicate->m_bRegistered = FALSE;
+            delete pDuplicate;
+            *ppDuplicate = nullptr;
+            return result;
+        }
+    } else
+#endif
+    {
+        m_Sources.Append(pDuplicate);
+    }
+    *ppDuplicate = (LPA3DSOURCE)pDuplicate;
 	return S_OK;
 }
 
@@ -944,3 +1032,22 @@ int A3dCheckSystemDriverVersion()
 }
 
 #endif // _WIN32: actual Windows driver version inspection
+
+#ifndef _WIN32
+HRESULT CA3d::AttachNativeSource(CA3dSource* source) {
+    auto* node = new (std::nothrow) CA3dListNode(m_Sources.m_pLast, source);
+    if (!node || !A3dNativeAcquisitionSucceeded()) {
+        delete node;
+        return E_OUTOFMEMORY;
+    }
+    if (m_Sources.m_pLast) {
+        m_Sources.m_pLast->m_pNext = node;
+    } else {
+        m_Sources.m_pFirst = node;
+    }
+    m_Sources.m_pLast = node;
+    m_Sources.m_pCurrent = node;
+    ++m_Sources.m_nCount;
+    return S_OK;
+}
+#endif

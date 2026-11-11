@@ -65,10 +65,12 @@ HRESULT STDMETHODCALLTYPE A2DBuffer::QueryInterface( REFIID iid, void** ppObject
 	{
 		pObject = (IResManBuffer*)this;
 	}
+#ifdef _WIN32
 	else if ( !memcmp( &iid, &IID_IDirectSoundNotify, sizeof( IID ) ) )
 	{
 		pObject = (IDirectSoundBuffer*)this;
 	}
+#endif
 	else
 	{
 		*ppObject = NULL;

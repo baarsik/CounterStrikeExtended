@@ -3,7 +3,9 @@
 These tests exercise the actual event, native buffer, retained A2D kernel and
 notification owners. The waiter reentry suite also uses the actual SDL output
 owner with process-local `SDL_AUDIO_DRIVER=dummy`; it never selects a real device.
-They do not yet qualify the resource-stream/provider or loaded-module path.
+The resource fixture in `../a3d_resources` also compiles the complete notification
+suite against the actual stream submission owner. These fixtures do not qualify
+the loaded-module export/unload path.
 
 ```sh
 cmake -S tests/native/a3d_notifications -B build/a3d-native-20261111/notifications-task5-release -G Ninja \

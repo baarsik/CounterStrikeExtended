@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <atomic>
 
 std::uint32_t A3dMonotonicMilliseconds() noexcept {
     const auto elapsed = std::chrono::steady_clock::now().time_since_epoch();
@@ -48,6 +49,7 @@ HRESULT A3dNativeWorker::Start(Function function, void* context) noexcept {
         Stop();
         return E_FAIL;
     }
+    A3dNativeTrackOwner(A3dNativeOwnerKind::ResourceWorker, 1);
     return S_OK;
 }
 
@@ -68,6 +70,7 @@ void A3dNativeWorker::Stop() noexcept {
         SDL_BroadcastCondition(condition_);
         SDL_UnlockMutex(mutex_);
         SDL_WaitThread(thread_, nullptr);
+        A3dNativeTrackOwner(A3dNativeOwnerKind::ResourceWorker, -1);
         thread_ = nullptr;
     }
     SDL_DestroyCondition(condition_);
@@ -208,4 +211,42 @@ HRESULT A3dNativeWave::Load(const char* filename) noexcept {
         position += static_cast<std::uint64_t>(chunkBytes) + (chunkBytes & 1u);
     }
     return A3DERROR_UNRECOGNIZED_FORMAT;
+}
+
+namespace {
+std::array<std::atomic<std::size_t>, static_cast<std::size_t>(A3dNativeOwnerKind::Count)> nativeOwners{};
+#ifdef A3D_EVENT_TESTING
+std::atomic<LONG> nativeFailureAfter{-1};
+#endif
+}
+void A3dNativeTrackOwner(A3dNativeOwnerKind kind, int delta) noexcept {
+    auto& count = nativeOwners[static_cast<std::size_t>(kind)];
+    if (delta > 0) {
+        count.fetch_add(static_cast<std::size_t>(delta));
+    } else {
+        count.fetch_sub(static_cast<std::size_t>(-delta));
+    }
+}
+A3dNativeOwnerCounts A3dNativeOwners() noexcept {
+    A3dNativeOwnerCounts result{};
+    for (std::size_t index = 0; index < result.size(); ++index) {
+        result[index] = nativeOwners[index].load();
+    }
+    return result;
+}
+#ifdef A3D_EVENT_TESTING
+void A3dNativeFailAcquisitionAfter(LONG acquisitions) noexcept {
+    nativeFailureAfter = acquisitions;
+}
+#endif
+bool A3dNativeAcquisitionSucceeded() noexcept {
+#ifdef A3D_EVENT_TESTING
+    LONG remaining = nativeFailureAfter.load();
+    while (remaining >= 0) {
+        if (nativeFailureAfter.compare_exchange_weak(remaining, remaining - 1)) {
+            return remaining != 0;
+        }
+    }
+#endif
+    return true;
 }

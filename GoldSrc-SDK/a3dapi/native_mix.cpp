@@ -42,6 +42,10 @@ A3dNativeMixLock::~A3dNativeMixLock() {
 }
 
 A3dNativeMixer::~A3dNativeMixer() {
+    Shutdown();
+}
+
+void A3dNativeMixer::Shutdown() noexcept {
     for (;;) {
         A3dNativeNotificationBatch batch;
         A3dNativeBuffer* retired = nullptr;
@@ -183,6 +187,7 @@ HRESULT A3dNativeMixer::Render(SHORT* stereo, DWORD frames) {
                 if (!buffer->looping_) {
                     advance = std::min(advance, static_cast<std::uint64_t>(buffer->samples_->bytes - old));
                 }
+                buffer->nativeConsumedBytes_ += advance;
                 buffer->notifications_.Capture(old, advance, buffer->samples_->bytes, stopped, batches[index]);
                 buffer->notificationPosition_ = static_cast<DWORD>((old + advance) % buffer->samples_->bytes);
             }
@@ -195,4 +200,13 @@ HRESULT A3dNativeMixer::Render(SHORT* stereo, DWORD frames) {
         frames -= count;
     }
     return S_OK;
+}
+
+DWORD A3dNativeMixer::BufferCount() const {
+    A3dNativeMixLock lock;
+    DWORD count = 0;
+    for (auto* buffer = first_; buffer; buffer = buffer->next_) {
+        ++count;
+    }
+    return count;
 }

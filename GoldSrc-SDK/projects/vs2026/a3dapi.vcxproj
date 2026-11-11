@@ -87,6 +87,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\a3dapi\native_provider.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\a3dapi\native_buffer.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>posix</CseTargetOS>
@@ -202,6 +208,8 @@
     <ClInclude Include="..\..\a3dapi\native_geometry_identity.h" />
     <ClInclude Include="..\..\a3dapi\native_device_init.h" />
     <ClInclude Include="..\..\a3dapi\native_platform.h" />
+    <ClInclude Include="..\..\a3dapi\native_provider.h" />
+    <ClInclude Include="..\..\a3dapi\native_capacity.h" />
     <ClInclude Include="..\..\a3dapi\native_output.h" />
     <ClInclude Include="..\..\a3dapi\native_notifications.h" />
     <ClInclude Include="..\..\public\cse_a3d_notifications.h" />

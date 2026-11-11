@@ -1,3 +1,6 @@
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 #pragma once
 
 #include "platform_dsound.h"
@@ -128,6 +131,14 @@ class CA3d : public IA3dTarget, public IA3dGeomTarget, public IA3dListenerTarget
 {
 public:
 	CA3d( BOOL bLegacyDriver );
+#ifndef _WIN32
+    HRESULT AttachNativeSource(CA3dSource* source);
+    bool UsesNativeProvider() const {
+        return m_nativeProvider;
+    }
+    A3dNativeOwnerLease m_nativeParentLease{A3dNativeOwnerKind::Parent};
+    bool m_nativeProvider = false;
+#endif
 
 	HRESULT STDMETHODCALLTYPE QueryInterface( REFIID iid, void** ppObject );
 	ULONG STDMETHODCALLTYPE AddRef();

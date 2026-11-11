@@ -1,3 +1,6 @@
+#ifndef _WIN32
+#include "native_platform.h"
+#endif
 #pragma once
 
 #include "platform_dsound.h"
@@ -210,6 +213,10 @@ typedef struct a3d_source_state_s
 
 class CA3dSource : public IA3dSource202, public IA3dSourcePrivate, private a3d_source_state_t
 {
+#ifndef _WIN32
+    A3dNativeOwnerLease m_nativeSourceLease{A3dNativeOwnerKind::Source};
+    bool m_nativeParentRetained = false;
+#endif
 public:
 	CA3dSource( IDirectSound* pDirectSound, CA3d* pA3d, DWORD dwType );
 	CA3dSource( const CA3dSource& source, HRESULT* pStatus );

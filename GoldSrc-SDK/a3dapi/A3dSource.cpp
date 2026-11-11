@@ -48,6 +48,12 @@ CA3dSource::CA3dSource( IDirectSound* pDirectSound, CA3d* pA3d, DWORD dwType )
 	m_nAvgBytesPerSec = 0;
 	m_flPlaybackPitch = 1.0f;
 	m_pA3d = pA3d;
+#ifndef _WIN32
+    if (pA3d->UsesNativeProvider()) {
+        pA3d->AddRef();
+        m_nativeParentRetained = true;
+    }
+#endif
 	m_pBuffer = NULL;
 	m_pBuffer3d = NULL;
 	m_pSourceBackend = NULL;
@@ -103,7 +109,19 @@ CA3dSource::CA3dSource( IDirectSound* pDirectSound, CA3d* pA3d, DWORD dwType )
 	m_nReflections[1] = 0;
 	m_iReflectionBuffer = 0;
 	m_pRenderStates[0] = (A3DCTRL_SRC_SUPER*)calloc( 1, sizeof( A3DCTRL_SRC_SUPER ) );
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        free(m_pRenderStates[0]);
+        m_pRenderStates[0] = nullptr;
+    }
+#endif
 	m_pRenderStates[1] = (A3DCTRL_SRC_SUPER*)calloc( 1, sizeof( A3DCTRL_SRC_SUPER ) );
+#ifndef _WIN32
+    if (m_nativeParentRetained && !A3dNativeAcquisitionSucceeded()) {
+        free(m_pRenderStates[1]);
+        m_pRenderStates[1] = nullptr;
+    }
+#endif
 	m_iRenderState = 0;
 	m_pRenderState = m_pRenderStates[0];
 	m_iUpdateGroup = g_iSourceUpdateGroup;
@@ -139,6 +157,15 @@ CA3dSource::~CA3dSource()
 		m_pDirectSound->Release();
 		m_pDirectSound = NULL;
 	}
+#ifndef _WIN32
+    if (m_nativeParentRetained) {
+        free(m_pRenderStates[0]);
+        free(m_pRenderStates[1]);
+        m_pRenderStates[0] = nullptr;
+        m_pRenderStates[1] = nullptr;
+        m_pA3d->Release();
+    }
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::QueryInterface( REFIID iid, void** ppObject )
@@ -152,16 +179,32 @@ HRESULT STDMETHODCALLTYPE CA3dSource::QueryInterface( REFIID iid, void** ppObjec
 	else if ( !memcmp( &iid, &IID_A3dSourcePrivate, sizeof( IID ) ) )
 		*ppObject = (IA3dSourcePrivate*)this;
 
+#ifndef _WIN32
+    if (*ppObject && m_nativeParentRetained) {
+        AddRef();
+    }
+#endif
 	return *ppObject ? S_OK : E_NOINTERFACE;
 }
 
 ULONG STDMETHODCALLTYPE CA3dSource::AddRef()
 {
+#ifndef _WIN32
+    return __atomic_add_fetch(&m_cReferences, 1, __ATOMIC_SEQ_CST);
+#else
 	return ++m_cReferences;
+#endif
 }
 
 ULONG STDMETHODCALLTYPE CA3dSource::Release()
 {
+#ifndef _WIN32
+    const ULONG remaining = __atomic_sub_fetch(&m_cReferences, 1, __ATOMIC_SEQ_CST);
+    if (!remaining) {
+        delete this;
+    }
+    return remaining;
+#else
 	if ( !--m_cReferences )
 	{
 		delete this;
@@ -169,6 +212,7 @@ ULONG STDMETHODCALLTYPE CA3dSource::Release()
 	}
 
 	return m_cReferences;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::GetWaveSize()

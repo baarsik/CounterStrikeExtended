@@ -23,6 +23,32 @@ inline LONG A3dReferenceDecrement(LONG* value) noexcept {
     return InterlockedDecrement(value);
 }
 #else
+#include <array>
+enum class A3dNativeOwnerKind : std::size_t {
+    Provider, Leaf, Parent, Source, ResourceManager, StreamBuffer, DirectBuffer,
+    Samples, Pool, PoolBuffer, Output, OutputWorker, ResourceWorker, Callback, Count
+};
+using A3dNativeOwnerCounts = std::array<std::size_t, static_cast<std::size_t>(A3dNativeOwnerKind::Count)>;
+void A3dNativeTrackOwner(A3dNativeOwnerKind kind, int delta) noexcept;
+A3dNativeOwnerCounts A3dNativeOwners() noexcept;
+class A3dNativeOwnerLease {
+public:
+    explicit A3dNativeOwnerLease(A3dNativeOwnerKind kind) noexcept : kind_(kind) {
+        A3dNativeTrackOwner(kind_, 1);
+    }
+    ~A3dNativeOwnerLease() {
+        A3dNativeTrackOwner(kind_, -1);
+    }
+    A3dNativeOwnerLease(const A3dNativeOwnerLease&) = delete;
+    A3dNativeOwnerLease& operator=(const A3dNativeOwnerLease&) = delete;
+private:
+    A3dNativeOwnerKind kind_;
+};
+#ifdef A3D_EVENT_TESTING
+void A3dNativeFailAcquisitionAfter(LONG acquisitions) noexcept;
+#endif
+bool A3dNativeAcquisitionSucceeded() noexcept;
+
 struct SDL_Thread;
 struct SDL_Mutex;
 struct SDL_Condition;

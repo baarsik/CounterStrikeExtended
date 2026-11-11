@@ -1,5 +1,6 @@
 #pragma once
 #include "platform_types.h"
+#include "native_platform.h"
 #include <SDL3/SDL.h>
 #include <array>
 #include <atomic>
@@ -38,6 +39,7 @@ private:
     using Block = std::array<SHORT, kFramesPerBlock * kChannels>;
     static int Produce(void* context);
     static void SDLCALL Consume(void* context, SDL_AudioStream* stream, int additional, int total);
+    A3dNativeOwnerLease lifetime_{A3dNativeOwnerKind::Output};
     A3dNativeOutputOperations operations_;
     SDL_AudioStream* stream_ = nullptr;
     SDL_Mutex* mutex_ = nullptr;

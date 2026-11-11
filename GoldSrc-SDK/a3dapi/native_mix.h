@@ -22,6 +22,8 @@ public:
     ~A3dNativeMixer();
     A3dNativeMixer(const A3dNativeMixer&) = delete;
     A3dNativeMixer& operator=(const A3dNativeMixer&) = delete;
+    void Shutdown() noexcept;
+    DWORD BufferCount() const;
     HRESULT Render(SHORT* stereo, DWORD frames);
     HRESULT CreateBuffer(LPCDSBUFFERDESC description, IDirectSoundBuffer** buffer);
     HRESULT DuplicateBuffer(IDirectSoundBuffer* source, IDirectSoundBuffer** buffer);

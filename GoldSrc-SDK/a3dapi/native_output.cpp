@@ -100,6 +100,7 @@ HRESULT A3dNativeOutput::Open(const GUID* device, A3dNativeMixer& mixer) {
         Close();
         return E_FAIL;
     }
+    A3dNativeTrackOwner(A3dNativeOwnerKind::OutputWorker, 1);
     return S_OK;
 }
 
@@ -124,6 +125,7 @@ void A3dNativeOutput::Close() noexcept {
     stopping_ = true;
     if (producer_) {
         SDL_WaitThread(producer_, nullptr);
+        A3dNativeTrackOwner(A3dNativeOwnerKind::OutputWorker, -1);
         producer_ = nullptr;
     }
     if (stream_) {
@@ -175,6 +177,7 @@ int A3dNativeOutput::Produce(void* context) {
 }
 
 void SDLCALL A3dNativeOutput::Consume(void* context, SDL_AudioStream* stream, int additional, int) {
+    A3dNativeOwnerLease callback(A3dNativeOwnerKind::Callback);
     auto* output = static_cast<A3dNativeOutput*>(context);
     constexpr DWORD kFrameBytes = kChannels * sizeof(SHORT);
     constexpr DWORD kBlockBytes = kFramesPerBlock * kFrameBytes;

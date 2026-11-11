@@ -228,10 +228,16 @@ ULONG A3dNativeBuffer::Release() {
         }
     }
     if (!remaining) {
+        IUnknown* owner = owner_;
         batch.Dispatch();
         notifications_.Shutdown();
-        A3dNativeMixLock lock;
-        delete this;
+        {
+            A3dNativeMixLock lock;
+            delete this;
+        }
+        if (owner) {
+            owner->Release();
+        }
     }
     return remaining;
 }
@@ -670,4 +676,19 @@ HRESULT A3dNativeBuffer::SetMode(DWORD value, DWORD apply) {
     }
     spatial_.dwMode = value;
     return S_OK;
+}
+
+void A3dNativeBuffer::RetainNativeOwner(IUnknown* owner) {
+    // Called once before publishing the buffer, outside mixer ownership.
+    owner->AddRef();
+    IUnknown* previous = owner_;
+    owner_ = owner;
+    if (previous) {
+        previous->Release();
+    }
+}
+
+std::uint64_t A3dNativeBuffer::NativeConsumedBytes() const noexcept {
+    A3dNativeMixLock lock;
+    return nativeConsumedBytes_;
 }

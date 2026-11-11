@@ -1,6 +1,10 @@
 #include "native_buffer.h"
 #include "native_notifications.h"
 #include "native_output.h"
+#ifdef A3D_STREAM_FIXTURE
+#include "resman.h"
+#include "dalinfo.h"
+#endif
 #include <array>
 #include <atomic>
 #include <cstdio>
@@ -38,6 +42,10 @@ bool Poll(IA3dNativeEventV1* event) {
 
 struct Fixture {
     A3dNativeMixer mixer;
+#ifdef A3D_STREAM_FIXTURE
+    ResMan resourceOwner;
+    ResManStreamBuffer streamBuffer{static_cast<IDirectSound*>(&resourceOwner), A3D_RESOURCE_MODE_DYNAMIC};
+#endif
     IDirectSoundBuffer* buffer = nullptr;
     IA3dNativeNotifyV1* notify = nullptr;
     Fixture() {
@@ -46,14 +54,26 @@ struct Fixture {
         desc.dwSize = sizeof(desc);
         desc.dwBufferBytes = kBytes;
         desc.lpwfxFormat = &format;
+#ifdef A3D_STREAM_FIXTURE
+        a3d_platform_buffer_desc_t streamDesc{sizeof(streamDesc), 0, kBytes, 0, &format};
+        CHECK(streamBuffer.Init(&streamDesc, std::malloc(sizeof(DWORD))) == S_OK);
+        buffer = static_cast<IDirectSoundBuffer*>(&streamBuffer);
+        buffer->AddRef();
+#else
         CHECK(mixer.CreateBuffer(&desc, &buffer) == S_OK);
+#endif
         CHECK(buffer->QueryInterface(IID_IA3dNativeNotifyV1, reinterpret_cast<void**>(&notify)) == S_OK);
         A3dNativeNotificationCapsV1 caps{};
         caps.structureBytes = sizeof(caps);
         caps.version = 1;
         CHECK(notify->GetNotificationCaps(&caps) == S_OK);
         CHECK(caps.flags == 0x1f && caps.maximumPositions == 1024);
+#ifdef A3D_STREAM_FIXTURE
+        CHECK(caps.cursorKind == A3D_NATIVE_CURSOR_STREAM_SUBMITTED);
+        CHECK(streamBuffer.SetNotificationPositions(1, static_cast<LPCDSBPOSITIONNOTIFY>(nullptr)) == E_NOTIMPL);
+#else
         CHECK(caps.cursorKind == A3D_NATIVE_CURSOR_RENDER_CONSUMED);
+#endif
         CHECK(caps.reserved[0] == 0 && caps.reserved[1] == 0 && caps.reserved[2] == 0);
         CHECK(notify->GetNotificationCaps(nullptr) == E_POINTER);
         caps.version = 2;
@@ -80,7 +100,32 @@ struct Fixture {
     }
     void Advance(DWORD bytes) {
         std::array<SHORT, 128> output{};
+#ifdef A3D_STREAM_FIXTURE
+        if (!bytes) {
+            return;
+        }
+        WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
+        DSBUFFERDESC description{};
+        description.dwSize = sizeof(description);
+        description.dwBufferBytes = bytes;
+        description.lpwfxFormat = &format;
+        IDirectSoundBuffer* destination = nullptr;
+        CHECK(mixer.CreateBuffer(&description, &destination) == S_OK);
+        a3d_render_description_t streamDescription{A3D_RENDER_WRITE_BUFFER, bytes, 22050, 16, bytes};
+        DalBufferInfo stream(nullptr, destination, &streamDescription, 2);
+        CHECK(streamBuffer.SetStream(&stream) == S_OK);
+        CHECK(streamBuffer.Update(0) == S_OK);
+        DWORD status = 0;
+        CHECK(buffer->GetStatus(&status) == S_OK);
+        if (!(status & DSBSTATUS_LOOPING)) {
+            CHECK(mixer.Render(output.data(), bytes / 2) == S_OK);
+            CHECK(streamBuffer.Update(10) == S_OK);
+        }
+        CHECK(streamBuffer.SetStream(nullptr) == S_OK);
+        destination->Release();
+#else
         CHECK(mixer.Render(output.data(), bytes / 2) == S_OK);
+#endif
     }
 };
 
@@ -472,8 +517,14 @@ void ReentryOutput() {
     });
     CHECK(A3dNativeEventTestAwaitSleeping(1, kWaitMilliseconds));
     CHECK(f.buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+#ifdef A3D_STREAM_FIXTURE
+    // Deterministic stream submission uses the real retained writer. The full
+    // provider-worker/output variant is exercised in a3d_resources.
+    f.Advance(4);
+#else
     CHECK(output.Open(nullptr, f.mixer) == S_OK);
     CHECK(output.Start() == S_OK);
+#endif
     waiter.join();
     output.Close();
     CHECK(output.Status() == S_OK);
@@ -487,8 +538,11 @@ int main(int argc, char** argv) {
     CHECK(argc == 2);
     if (!std::strcmp(argv[1], "notification_crossings")) {
         Crossings();
+#ifndef A3D_STREAM_FIXTURE
+        // Stream natural STOP is a later drain update, not the submission batch.
         StopAfterOffsets(false);
         StopAfterOffsets(true);
+#endif
         DuplicateTargetCoalescing();
         Shutdown();
         FinalRelease();
@@ -502,6 +556,9 @@ int main(int argc, char** argv) {
         ReentryOutput();
     } else {
         return 2;
+    }
+    for (const auto owned : A3dNativeOwners()) {
+        CHECK(owned == 0);
     }
     const auto counts = A3dNativeEventLifetime();
     CHECK(!counts.objects && !counts.retainedStates && !counts.waits && !counts.calls);
