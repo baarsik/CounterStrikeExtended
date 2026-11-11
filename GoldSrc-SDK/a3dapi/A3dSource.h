@@ -1,9 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <unknwn.h>
-#include <mmsystem.h>
-#include <dsound.h>
+#include "platform_dsound.h"
 #include <ia3dapi.h>
 #include "native_geometry_identity.h"
 

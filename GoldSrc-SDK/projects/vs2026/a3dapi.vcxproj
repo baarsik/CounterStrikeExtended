@@ -170,6 +170,9 @@
     <ClInclude Include="..\..\a3dapi\A3dGeom.h" />
     <ClInclude Include="..\..\a3dapi\native_geometry_identity.h" />
     <ClInclude Include="..\..\a3dapi\native_device_init.h" />
+    <ClInclude Include="..\..\a3dapi\platform_types.h" />
+    <ClInclude Include="..\..\a3dapi\platform_com.h" />
+    <ClInclude Include="..\..\a3dapi\platform_dsound.h" />
     <ClInclude Include="..\..\a3dapi\dalinfo.h" />
     <ClInclude Include="..\..\a3dapi\HrtfMgr.h" />
     <ClInclude Include="..\..\a3dapi\a2d.h" />

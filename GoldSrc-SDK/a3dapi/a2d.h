@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include "platform_types.h"
 
 #define A3D_MIX_MAX_FRAMES		4096
 #define A3D_MIX_FILTER_TAPS		50

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <windows.h>
+#include "platform_types.h"
 
 #define MIXER_FILTER_DELAY_CAPACITY	34
 

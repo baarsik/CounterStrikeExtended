@@ -1,8 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <mmsystem.h>
-#include <dsound.h>
+#include "platform_dsound.h"
 
 #define A3D_RENDER_WRITE_BUFFER	0x01
 #define A3D_RENDER_LOOPING		0x02

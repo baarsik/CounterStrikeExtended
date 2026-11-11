@@ -1,7 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <unknwn.h>
+#include "platform_com.h"
 
 class CA3dPrivateUnknown : public IUnknown
 {

@@ -1,6 +1,6 @@
-#include <windows.h>
-#include <unknwn.h>
-#include <mmsystem.h>
+#include "platform_com.h"
+#ifdef _WIN32
 #include <initguid.h>
+#endif
 
 #include "ia3dapi.h"

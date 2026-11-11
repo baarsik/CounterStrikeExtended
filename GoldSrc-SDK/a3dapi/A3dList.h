@@ -2,8 +2,7 @@
 
 #include "A3dGeom.h"
 
-#include <unknwn.h>
-#include <mmsystem.h>
+#include "platform_com.h"
 #include "ia3dapi.h"
 
 class CA3d;

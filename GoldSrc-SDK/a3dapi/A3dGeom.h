@@ -1,8 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <mmsystem.h>
-#include <unknwn.h>
+#include "platform_com.h"
 
 #include "ia3dapi.h"
 #include "listener.h"

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <windows.h>
-#include <mmsystem.h>
-#include <dsound.h>
+#include "platform_dsound.h"
 
 #include "ia3dapi.h"
 #include "A3dGeom.h"

@@ -2,7 +2,7 @@
 
 #include "A3dGeom.h"
 
-#include <unknwn.h>
+#include "platform_com.h"
 
 class CA3dOpening;
 class CA3dOpeningBuilder;
