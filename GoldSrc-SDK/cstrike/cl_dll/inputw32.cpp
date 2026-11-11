@@ -30,6 +30,9 @@ static cse::FractionalMotion s_relativeMotion;
 #include "vgui/ISurface.h"
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_gamepad.h>
+#if defined(__APPLE__)
+#include "../../cl_dll/Exports.h"
+#endif
 
 #define MOUSE_BUTTON_COUNT 5
 

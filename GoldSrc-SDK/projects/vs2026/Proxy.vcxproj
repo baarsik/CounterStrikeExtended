@@ -102,6 +102,11 @@
     <ClCompile Include="..\..\HLTV\Proxy\Status.cpp" />
     <ClCompile Include="..\..\HLTV\Proxy\FakeClient.cpp" />
     <ClCompile Include="..\..\HLTV\Core\private\common\BaseSystemModule.cpp" />
+    <ClCompile Include="..\..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseReplaces>$(ProjectDir)..\..\HLTV\Core\private\common\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="..\..\HLTV\Core\private\common\ObjectDictionary.cpp" />
     <ClCompile Include="..\..\common\ObjectList.cpp" />
     <ClCompile Include="..\..\common\TokenLine.cpp" />

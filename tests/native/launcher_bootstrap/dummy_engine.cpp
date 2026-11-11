@@ -1,11 +1,15 @@
 #include "public/engine_launcher_api.h"
 #include "public/filesystem.h"
 #include "../public/native_filesystem_module.h"
+#include "public/native_restart_command_line.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <crt_externs.h>
+
+void FixtureApplyVideoSettings(char* restart, const char* renderer);
 
 namespace {
 void Event(const char* name, const char* value = "") {
@@ -34,6 +38,17 @@ public:
         Event("run");
         Event("base", base);
         Event("command", command);
+        const auto native = cse_restart::ProcessArguments(*_NSGetArgc(), *_NSGetArgv());
+        for (const auto& argument : native) {
+            if (argument == "-soft" || argument == "-gl") {
+                Event("native_mode", argument.c_str());
+            }
+        }
+        for (std::size_t index = 1; index + 1 < native.size(); ++index) {
+            if (native[index] == "-literal") {
+                Event("native_literal", native[index + 1].c_str());
+            }
+        }
         auto* cwd = getcwd(nullptr, 0);
         Event("cwd", cwd ? cwd : "[failed]");
         std::free(cwd);
@@ -67,7 +82,15 @@ public:
             std::fclose(counter);
         }
         if (plan && std::strcmp(plan, "restart") == 0 && countRun == 0) {
-            std::strcpy(restart, "-game valve");
+            const char* changed = std::getenv("CSE_BOOTSTRAP_RESTART_OPTIONS");
+            std::strcpy(restart, changed ? changed : "-game valve");
+            if (const char* renderer = std::getenv("CSE_BOOTSTRAP_MENU_RENDERER")) {
+                FixtureApplyVideoSettings(restart, renderer);
+                Event("menu_restart", restart);
+            }
+            if (const char* remove = std::getenv("CSE_BOOTSTRAP_REMOVE_EXECUTABLE")) {
+                Event("removed_executable", unlink(remove) == 0 ? "yes" : "no");
+            }
             return kEngineRunRestart;
         }
         return kEngineRunNone;

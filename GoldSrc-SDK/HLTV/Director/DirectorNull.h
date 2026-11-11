@@ -15,6 +15,15 @@
 class DirectorNull : public IDirector, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::DirectorName)) {
+            return static_cast<IDirector*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	virtual void NewGame( IWorld* world, IProxy* ) override
 	{
 		static unsigned char cmd[] = { 1, DRC_CMD_START };

@@ -12,6 +12,8 @@ int RunCefHost(const CefMainArgs& arguments, CefRefPtr<CefCommandLine> commandLi
 void CloseCefHost();
 
 #if defined(__APPLE__)
+bool ConfigureCefHostMacBundle(CefSettings& settings);
+bool ConfigureCefHostMacStorage(CefSettings& settings);
 bool PrepareCefHostMacKey(CefKeyEvent& event);
 #endif
 

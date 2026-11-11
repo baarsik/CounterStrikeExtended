@@ -1,8 +1,10 @@
 #if defined(__APPLE__)
 #include "VGui1NativeRuntime.h"
+#include "filesystem.h"
 #include <cstdio>
 #endif
 #include "engine_apiproxy.h"
+#include "native_gameui_retirement.h"
 #include "IEngineSurface.h"
 #include "VGUI_EngineSurfaceWrap.h"
 #include "interface.h"
@@ -70,17 +72,37 @@ void VGuiWrap_SetRootPanelSize() {
 
 void VGuiWrap_Shutdown()
 {
+    cse::TryShutdownNativeVGuiWrap1();
+}
+
 #if defined(__APPLE__)
-    if (cse_vgui1_native::DetachEmbedded(staticEngineSurface) != cse_vgui1_native::Result::Ready) {
-        std::fputs("Native VGUI1 retirement pending; retaining surface and root image\n", stderr);
-        return;
+namespace {
+cse_vgui1_native::Result nativeVGui1RetirementResult = cse_vgui1_native::Result::Ready;
+}
+cse_vgui1_native::Result cse::NativeVGui1RetirementResult() noexcept {
+    return nativeVGui1RetirementResult;
+}
+#endif
+
+bool cse::TryShutdownNativeVGuiWrap1() {
+#if defined(__APPLE__)
+    const auto result = cse_vgui1_native::DetachEmbedded(staticEngineSurface);
+    if (result != cse_vgui1_native::Result::Ready) {
+        if (result != nativeVGui1RetirementResult) {
+            std::fprintf(stderr, "Native VGUI1 retirement refused (%d); dependent owners remain live\n",
+                static_cast<int>(result));
+        }
+        nativeVGui1RetirementResult = result;
+        return false;
     }
+    nativeVGui1RetirementResult = result;
 #endif
 	::operator delete( staticPanel );
 	staticPanel = NULL;
 
 	delete staticEngineSurface;
 	staticEngineSurface = NULL;
+    return true;
 }
 
 int VGuiWrap_CallEngineSurfaceAppHandler( void* event, void* userData )
@@ -158,12 +180,34 @@ void VGuiWrap_Startup()
 		return;
 
 #if defined(__APPLE__)
+    constexpr std::size_t MaximumResourcePathBytes = 4096;
+    char symbolFont[MaximumResourcePathBytes]{};
+    if (!FS_GetLocalPath("resource/marlett.ttf", symbolFont, sizeof(symbolFont))) {
+        cse_vgui1_native::InvalidEmbeddedUse("required game symbol font resource/marlett.ttf is missing");
+    }
+    const char* files[]{symbolFont};
+    char diagnostic[512]{};
+    const auto bound = cse_vgui1_native::BindEmbeddedFiles(files, 1, diagnostic, sizeof(diagnostic));
+    if (bound != cse_vgui1_native::Result::Ready) {
+        std::fprintf(stderr, "Native VGUI1 font binding failed: %s\n", diagnostic);
+        cse_vgui1_native::InvalidEmbeddedUse("game font binding failed before layout");
+    }
     cse_vgui1_native::Scope nativeUse(cse_vgui1_native::EmbeddedRuntime());
     if (nativeUse.Status() != cse_vgui1_native::Result::Ready) {
         cse_vgui1_native::InvalidEmbeddedUse("layout/paint before checked root admission");
     }
 #endif
 	vgui::App::getInstance()->reset();
+#if defined(__APPLE__)
+    cse_vgui1_selection::SchemeReport report{};
+    const auto prepared = cse_vgui1_native::PrepareEmbeddedScheme(vgui::App::getInstance()->getScheme(), report);
+    if (prepared != cse_vgui1_selection::Result::Ready) {
+        std::fprintf(stderr, "Native VGUI1 default font preparation failed: slot %u, result %d, service %d\n",
+            report.failedSlot, static_cast<int>(prepared), report.serviceResult);
+        cse_vgui1_native::InvalidEmbeddedUse("default scheme fonts are unavailable before layout");
+    }
+#endif
+
 
 	staticPanel = new vgui::Panel( 0, 0, 320, 240 );
 	staticPanel->setPaintBorderEnabled( false );

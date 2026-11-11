@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h> // MAX_PATH define
 #include <string.h>
+#include <climits>
 
 extern IGameUIFuncs* gameuifuncs; // for key binding details
 void DuckMessage( const char* text );
@@ -99,13 +100,18 @@ void CTeamMenu::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_pMapInfo->SetFgColor( scheme->GetColor( "MapDescriptionText", Color( 255, 255, 255, 0 ) ) );
 }
 
-void CTeamMenu::Activate()
-{
-	vgui2::Frame::Activate();
-	if ( !m_iJumpKey )
-		m_iJumpKey = gameuifuncs->GetVGUI2KeyCodeForBind( "jump" );
-	if ( !m_iScoreBoardKey )
-		m_iScoreBoardKey = gameuifuncs->GetVGUI2KeyCodeForBind( "showscores" );
+void CTeamMenu::Activate() {
+    if (m_bMapPageRequested) {
+        InvalidateMapPage();
+        LoadMapPage(m_mapPageName.c_str());
+    }
+    vgui2::Frame::Activate();
+    if (!m_iJumpKey) {
+        m_iJumpKey = gameuifuncs->GetVGUI2KeyCodeForBind("jump");
+    }
+    if (!m_iScoreBoardKey) {
+        m_iScoreBoardKey = gameuifuncs->GetVGUI2KeyCodeForBind("showscores");
+    }
 }
 
 void CTeamMenu::OnKeyCodePressed( vgui2::KeyCode key )
@@ -133,42 +139,63 @@ void CTeamMenu::AutoAssign()
 	OnTeamButton( m_iNumTeams );
 }
 
-void CTeamMenu::LoadMapPage( const char* map )
-{
-	char filename[260];
-	_snprintf( filename, sizeof( filename ), "maps/%s.txt", map );
-	filename[sizeof( filename ) - 1] = 0;
+void CTeamMenu::InvalidateMapPage() {
+    m_bMapPageLoaded = false;
+}
 
-	if ( !vgui2::filesystem()->FileExists( filename ) )
-	{
-		if ( !vgui2::filesystem()->FileExists( "maps/default.txt" ) )
-			return;
-		_snprintf( filename, sizeof( filename ), "maps/default.txt" );
-	}
+void CTeamMenu::LoadMapPage(const char* map) {
+    const std::string requestedMap = map ? map : "";
+    if (m_bMapPageLoaded && m_mapPageName == requestedMap) {
+        return;
+    }
+    m_bMapPageLoaded = false;
+    m_bMapPageRequested = true;
+    m_mapPageName = requestedMap;
 
-	FileHandle_t file = vgui2::filesystem()->Open( filename, "r", NULL );
+    constexpr std::size_t MapPagePathBytes = 260;
+    char filename[MapPagePathBytes];
+    _snprintf(filename, sizeof(filename), "maps/%s.txt", requestedMap.c_str());
+    filename[sizeof(filename) - 1] = 0;
+    if (!vgui2::filesystem()->FileExists(filename)) {
+        if (!vgui2::filesystem()->FileExists("maps/default.txt")) {
+            return;
+        }
+        _snprintf(filename, sizeof(filename), "maps/default.txt");
+    }
 
-	unsigned int size = vgui2::filesystem()->Size( file );
-	wchar_t* text = (wchar_t*)malloc( size + sizeof( wchar_t ) );
-	memset( text, 0, size + sizeof( wchar_t ) );
-	vgui2::filesystem()->Read( text, (int)size, file );
+    FileHandle_t file = vgui2::filesystem()->Open(filename, "r", NULL);
+    if (!file) {
+        return;
+    }
+    unsigned int size = vgui2::filesystem()->Size(file);
+    if (size > static_cast<unsigned int>(INT_MAX)) {
+        vgui2::filesystem()->Close(file);
+        return;
+    }
+    wchar_t* text = static_cast<wchar_t*>(malloc(size + sizeof(wchar_t)));
+    if (!text) {
+        vgui2::filesystem()->Close(file);
+        return;
+    }
+    memset(text, 0, size + sizeof(wchar_t));
+    int bytesRead = vgui2::filesystem()->Read(text, static_cast<int>(size), file);
+    vgui2::filesystem()->Close(file);
+    if (bytesRead != static_cast<int>(size)) {
+        free(text);
+        return;
+    }
 
-	// null-terminate the stream
-	text[size / sizeof( wchar_t )] = 0;
-
-	if ( *text == 0xFEFF )
-		m_pMapInfo->SetText( text + 1 );
-	else
-		m_pMapInfo->SetText( (const char*)text );
-
-	// go back to the top of the text buffer
-	m_pMapInfo->GotoTextStart();
-
-	vgui2::filesystem()->Close( file );
-	free( text );
-
-	InvalidateLayout( false, false );
-	Repaint();
+    text[size / sizeof(wchar_t)] = 0;
+    if (*text == 0xFEFF) {
+        m_pMapInfo->SetText(text + 1);
+    } else {
+        m_pMapInfo->SetText(reinterpret_cast<const char*>(text));
+    }
+    m_pMapInfo->GotoTextStart();
+    free(text);
+    m_bMapPageLoaded = true;
+    InvalidateLayout(false, false);
+    Repaint();
 }
 
 //-----------------------------------------------------------------------------

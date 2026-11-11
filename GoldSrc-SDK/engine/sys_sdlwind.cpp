@@ -2,6 +2,9 @@
 #include "VGui1NativeRuntime.h"
 #endif
 #include "../common/sdl3_input.h"
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+#include "../common/sdl3_native_mouse_bridge.h"
+#endif
 #include "../common/sdl3_keyboard.h"
 #if INTPTR_MAX > INT32_MAX
 #include "native_mouse_window.h"
@@ -130,6 +133,13 @@ bool CGame::IsMultiplayer()
 }
 
 bool CGame::Shutdown() {
+    if (videomode) {
+        videomode->ReleaseVideo();
+    }
+    if (!m_hSDLWindow) {
+        return true;
+    }
+
 #if defined(__APPLE__)
     if (cse_vgui1_native::RendererWillDestroy() != cse_vgui1_native::Result::Ready) {
         std::fputs("Native VGUI1 renderer retirement pending; retaining device\n", stderr);
@@ -137,7 +147,10 @@ bool CGame::Shutdown() {
     }
 #endif
 #if INTPTR_MAX > INT32_MAX
-    cse::NativeMouseWindowState().Invalidate(m_hSDLWindow);
+    if (!cse::NativeMouseWindowState().Invalidate(m_hSDLWindow)) {
+        std::fputs("Native input policy retirement pending; retaining window\n", stderr);
+        return false;
+    }
 #endif
     if (m_hSDLRenderer && m_bCreatedRenderer) {
         SDL_DestroyRenderer(m_hSDLRenderer);
@@ -403,7 +416,9 @@ void CGame::AppActivate( bool fActive )
 		if ( host_initialized )
 		{
 			ClearIOStates();
-#if defined( _WIN32 )
+#if defined(__APPLE__)
+            CDAudio_AppFocusChanged(true);
+#elif defined( _WIN32 )
 			cdaudio->Resume();
 #else
 			cdaudio->MP3_Resume_Audio();
@@ -431,7 +446,11 @@ void CGame::AppActivate( bool fActive )
 		{
 			if ( videomode->GetInitialized() && !VGuiWrap2_IsGameUIVisible() )
 				ClientDLL_DeactivateMouse();
+#if defined(__APPLE__)
+            CDAudio_AppFocusChanged(false);
+#else
 			cdaudio->Pause();
+#endif
 			if ( VGuiWrap2_IsInCareerMatch() && !cl.paused )
 			{
 				Cmd_ExecuteString( "setpause", src_command );
@@ -444,12 +463,41 @@ void CGame::AppActivate( bool fActive )
 
 void CGame::SleepUntilInput(int time) {
     SDL_Event ev;
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    const auto nextEvent = [&](bool wait) {
+        cse::RefreshNativeMouseCapture();
+        if (!cse::RefreshNativeGameplayShortcuts()) {
+            // Peep retrieves queued lifecycle/quit without native dispatch while
+            // keyboard policy retirement is still unresolved.
+            return SDL_PeepEvents(&ev, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST) > 0;
+        }
+        return wait ? SDL_WaitEventTimeout(&ev, time) : SDL_PollEvent(&ev);
+    };
+    if (cse::RefreshNativeGameplayShortcuts()) {
+        SDL_PumpEvents();
+    }
+    cse::RefreshNativeMouseCapture();
+    cse::NativeMouseWindowState().RefreshCursorPolicy();
+    if (!nextEvent(true)) {
+        return;
+    }
+#else
     SDL_PumpEvents();
     if (!SDL_WaitEventTimeout(&ev, time)) {
         return;
     }
+#endif
 
     do {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        cse::RefreshNativeMouseCapture();
+        if (!cse::NativeMouseWindowState().CaptureAllowed()) {
+            m_bExpectSyntheticMouseMotion = false;
+        }
+        if (!cse::NativeMouseWindowState().InputAllowed(ev)) {
+            continue;
+        }
+#endif
         if (ev.type == SDL_EVENT_TEXT_INPUT) {
             if (key_dest == key_message) {
                 const int copyLength =
@@ -461,6 +509,9 @@ void CGame::SleepUntilInput(int time) {
         } else if (ev.type == SDL_EVENT_KEY_DOWN || ev.type == SDL_EVENT_KEY_UP || ev.type == SDL_EVENT_QUIT ||
                    cse::IsWindowLifecycleEvent(ev.type)) {
             if (cse::IsWindowLifecycleEvent(ev.type)) {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+                cse::NativeMouseWindowState().InvalidateInteraction();
+#endif
                 switch (ev.type) {
                 case SDL_EVENT_WINDOW_RESTORED:
                 case SDL_EVENT_WINDOW_SHOWN:
@@ -845,6 +896,10 @@ void CGame::SleepUntilInput(int time) {
                    !g_bIsCZeroRitual
 #else
                    && (cl_mousegrab.value == 0.0f || m_rawinput.value == 0.0f)
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+                   && cse::NativeMouseWindowState().CaptureAllowed()
+                   && CseSdl_QueryMouseModeV1(CSE_SDL_MOUSE_MODE_CONTRACT_V1) == CseSdlMouseModeAbsolute
+#endif
 #endif
                    && m_bActiveApp && !g_BaseUISurface.IsCursorVisible() && !s_bCursorVisible && BUsesSDLInput()) {
             if (m_bExpectSyntheticMouseMotion && ev.motion.x == m_nMouseTargetX && ev.motion.y == m_nMouseTargetY) {
@@ -860,16 +915,25 @@ void CGame::SleepUntilInput(int time) {
                     SDL_WarpMouseInWindow(m_hSDLWindow, static_cast<float>(m_nMouseTargetX),
                                           static_cast<float>(m_nMouseTargetY));
                     m_bExpectSyntheticMouseMotion = true;
+                    // Pinned Cocoa excludes the synchronous warp from relative motion.
+                    // A post-warp pump/drain discards physical input arriving during that pump.
+#if !defined(__APPLE__) || INTPTR_MAX <= INT32_MAX
                     SDL_PumpEvents();
                     float deltaX = 0.0f;
                     float deltaY = 0.0f;
                     SDL_GetRelativeMouseState(&deltaX, &deltaY);
+#endif
                 }
             }
         }
 
         VGuiWrap2_CallEngineSurfaceAppHandler(&ev, NULL);
-    } while (SDL_PollEvent(&ev));
+    } while (
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        nextEvent(false));
+#else
+        SDL_PollEvent(&ev));
+#endif
 }
 
 bool CGame::OnlyLegacyRender() const
@@ -1226,7 +1290,10 @@ bool CGame::Shutdown() {
     }
 #endif
 #if INTPTR_MAX > INT32_MAX
-    cse::NativeMouseWindowState().Invalidate(m_hSDLWindow);
+    if (!cse::NativeMouseWindowState().Invalidate(m_hSDLWindow)) {
+        std::fputs("Native input policy retirement pending; retaining window\n", stderr);
+        return false;
+    }
 #endif
     if (m_hSDLRenderer && m_bCreatedRenderer) {
         SDL_DestroyRenderer(m_hSDLRenderer);
@@ -1542,7 +1609,9 @@ void CGame::AppActivate( bool fActive )
 		if ( host_initialized )
 		{
 			ClearIOStates();
-#if defined( _WIN32 )
+#if defined(__APPLE__)
+            CDAudio_AppFocusChanged(true);
+#elif defined( _WIN32 )
 			cdaudio->Resume();
 #else
 			cdaudio->MP3_Resume_Audio();
@@ -1570,7 +1639,11 @@ void CGame::AppActivate( bool fActive )
 		{
 			if ( videomode->GetInitialized() && !VGuiWrap2_IsGameUIVisible() )
 				ClientDLL_DeactivateMouse();
+#if defined(__APPLE__)
+            CDAudio_AppFocusChanged(false);
+#else
 			cdaudio->Pause();
+#endif
 			if ( VGuiWrap2_IsInCareerMatch() && !cl.paused )
 			{
 				Cmd_ExecuteString( "setpause", src_command );
@@ -1583,12 +1656,41 @@ void CGame::AppActivate( bool fActive )
 
 void CGame::SleepUntilInput(int time) {
     SDL_Event ev;
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    const auto nextEvent = [&](bool wait) {
+        cse::RefreshNativeMouseCapture();
+        if (!cse::RefreshNativeGameplayShortcuts()) {
+            // Peep retrieves queued lifecycle/quit without native dispatch while
+            // keyboard policy retirement is still unresolved.
+            return SDL_PeepEvents(&ev, 1, SDL_GETEVENT, SDL_EVENT_FIRST, SDL_EVENT_LAST) > 0;
+        }
+        return wait ? SDL_WaitEventTimeout(&ev, time) : SDL_PollEvent(&ev);
+    };
+    if (cse::RefreshNativeGameplayShortcuts()) {
+        SDL_PumpEvents();
+    }
+    cse::RefreshNativeMouseCapture();
+    cse::NativeMouseWindowState().RefreshCursorPolicy();
+    if (!nextEvent(true)) {
+        return;
+    }
+#else
     SDL_PumpEvents();
     if (!SDL_WaitEventTimeout(&ev, time)) {
         return;
     }
+#endif
 
     do {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        cse::RefreshNativeMouseCapture();
+        if (!cse::NativeMouseWindowState().CaptureAllowed()) {
+            m_bExpectSyntheticMouseMotion = false;
+        }
+        if (!cse::NativeMouseWindowState().InputAllowed(ev)) {
+            continue;
+        }
+#endif
         if (ev.type == SDL_EVENT_TEXT_INPUT) {
             if (key_dest == key_message) {
                 const int copyLength =
@@ -1600,6 +1702,9 @@ void CGame::SleepUntilInput(int time) {
         } else if (ev.type == SDL_EVENT_KEY_DOWN || ev.type == SDL_EVENT_KEY_UP || ev.type == SDL_EVENT_QUIT ||
                    cse::IsWindowLifecycleEvent(ev.type)) {
             if (cse::IsWindowLifecycleEvent(ev.type)) {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+                cse::NativeMouseWindowState().InvalidateInteraction();
+#endif
                 switch (ev.type) {
                 case SDL_EVENT_WINDOW_RESTORED:
                 case SDL_EVENT_WINDOW_SHOWN:
@@ -1687,6 +1792,10 @@ void CGame::SleepUntilInput(int time) {
                    !g_bIsCZeroRitual
 #else
                    && (cl_mousegrab.value == 0.0f || m_rawinput.value == 0.0f)
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+                   && cse::NativeMouseWindowState().CaptureAllowed()
+                   && CseSdl_QueryMouseModeV1(CSE_SDL_MOUSE_MODE_CONTRACT_V1) == CseSdlMouseModeAbsolute
+#endif
 #endif
                    && m_bActiveApp && !g_BaseUISurface.IsCursorVisible() && !s_bCursorVisible && BUsesSDLInput()) {
             if (m_bExpectSyntheticMouseMotion && ev.motion.x == m_nMouseTargetX && ev.motion.y == m_nMouseTargetY) {
@@ -1702,16 +1811,25 @@ void CGame::SleepUntilInput(int time) {
                     SDL_WarpMouseInWindow(m_hSDLWindow, static_cast<float>(m_nMouseTargetX),
                                           static_cast<float>(m_nMouseTargetY));
                     m_bExpectSyntheticMouseMotion = true;
+                    // Pinned Cocoa excludes the synchronous warp from relative motion.
+                    // A post-warp pump/drain discards physical input arriving during that pump.
+#if !defined(__APPLE__) || INTPTR_MAX <= INT32_MAX
                     SDL_PumpEvents();
                     float deltaX = 0.0f;
                     float deltaY = 0.0f;
                     SDL_GetRelativeMouseState(&deltaX, &deltaY);
+#endif
                 }
             }
         }
 
         VGuiWrap2_CallEngineSurfaceAppHandler(&ev, nullptr);
-    } while (SDL_PollEvent(&ev));
+    } while (
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        nextEvent(false));
+#else
+        SDL_PollEvent(&ev));
+#endif
 }
 
 bool CGame::OnlyLegacyRender() const
@@ -1733,3 +1851,34 @@ void CGame::UpdateWindowMetrics() {
     const int warpDistance = windowHeight / windowWarpDivisor;
     m_nWarpDelta = warpDistance < minimumWarpDistance ? minimumWarpDistance : warpDistance;
 }
+
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+bool cse::RefreshNativeMouseCapture() {
+    const bool activeApp = game && game->IsActiveApp();
+    const bool gameplayContext = activeApp && key_dest == key_game && !con_forcedup &&
+                                 !VGuiWrap2_IsGameUIVisible() && !VGuiWrap2_IsConsoleVisible();
+    const NativeMouseCaptureHooks hooks{
+        []() {
+            if (host_initialized) {
+                ClearIOStates();
+            }
+            mouseCode = 0;
+            s_wheelMotion.Reset();
+        },
+        [](bool active) {
+            if (active) {
+                ClientDLL_ActivateMouse();
+            } else {
+                ClientDLL_DeactivateMouse();
+            }
+        }
+    };
+    return NativeMouseWindowState().RefreshInteraction(activeApp, gameplayContext, hooks);
+}
+
+bool cse::RefreshNativeGameplayShortcuts() {
+    const bool gameplayKeyboard = game && game->IsActiveApp() && key_dest == key_game && !con_forcedup &&
+                                  !VGuiWrap2_IsGameUIVisible() && !VGuiWrap2_IsConsoleVisible();
+    return NativeMouseWindowState().RefreshGameplayShortcuts(gameplayKeyboard);
+}
+#endif

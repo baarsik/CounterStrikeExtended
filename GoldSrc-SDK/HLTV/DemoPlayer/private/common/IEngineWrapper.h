@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/native/IEngineWrapper.h"
+#else
 #ifndef IENGINEWRAPPER_H
 #define IENGINEWRAPPER_H
 
@@ -48,5 +52,7 @@ public:
 	virtual bool ValidStuffText( const char* text ) = 0;
 	virtual void Cbuf_AddFilteredText( char* text ) = 0;
 };
+
+#endif
 
 #endif

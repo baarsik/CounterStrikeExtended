@@ -29,6 +29,9 @@
 #include "ammo.h"
 #include "ammohistory.h"
 #include <stdarg.h>
+#if defined(__APPLE__)
+#include "../../../cl_dll/Exports.h"
+#endif
 
 // Pool of client side entities/entvars_t
 static entvars_t ev[32];

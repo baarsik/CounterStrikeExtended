@@ -187,6 +187,17 @@ void EmptyEntityHashTable()
 	}
 }
 
+static void InitializeEntityHashTable() {
+    // Preserve the original bucket count for both engine API entry points.
+    constexpr int EntityHashBucketCount = 2047;
+    EmptyEntityHashTable();
+    stringsHashTable.RemoveAll();
+    stringsHashTable.AddMultipleToTail(EntityHashBucketCount);
+    for (int index = 0; index < stringsHashTable.Count(); ++index) {
+        stringsHashTable[index] = hash_item_t{};
+    }
+}
+
 void OnFreeEntPrivateData( edict_t *pEnt )
 {
 	CBaseEntity *entity = CBaseEntity::Instance( pEnt );
@@ -353,40 +364,33 @@ static void SetObjectCollisionBox( entvars_t *pev );
 
 extern "C" {
 
-	int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
-{
+int GetEntityAPI(DLL_FUNCTIONS* functionTable, int interfaceVersion) {
     if (!CseGameEngineAbiBound()) {
         return FALSE;
     }
-
-	if ( !pFunctionTable || interfaceVersion != INTERFACE_VERSION )
-	{
-		return FALSE;
-	}
-	
-	memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ) );
-	stringsHashTable.AddMultipleToTail( 2047 );
-	for ( int i = 0; i < stringsHashTable.Count(); ++i )
-		stringsHashTable[i].next = NULL;
-	EmptyEntityHashTable();
-	return TRUE;
+    if (!functionTable || interfaceVersion != INTERFACE_VERSION) {
+        return FALSE;
+    }
+    memcpy(functionTable, &gFunctionTable, sizeof(DLL_FUNCTIONS));
+    InitializeEntityHashTable();
+    return TRUE;
 }
 
-int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
-{
+int GetEntityAPI2(DLL_FUNCTIONS* functionTable, int* interfaceVersion) {
     if (!CseGameEngineAbiBound()) {
         return FALSE;
     }
-
-	if ( !pFunctionTable || *interfaceVersion != INTERFACE_VERSION )
-	{
-		// Tell engine what version we had, so it can figure out who is out of date.
-		*interfaceVersion = INTERFACE_VERSION;
-		return FALSE;
-	}
-	
-	memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ) );
-	return TRUE;
+    if (!interfaceVersion) {
+        return FALSE;
+    }
+    if (!functionTable || *interfaceVersion != INTERFACE_VERSION) {
+        // Tell the engine the supported version without exposing a partial table.
+        *interfaceVersion = INTERFACE_VERSION;
+        return FALSE;
+    }
+    memcpy(functionTable, &gFunctionTable, sizeof(DLL_FUNCTIONS));
+    InitializeEntityHashTable();
+    return TRUE;
 }
 
 }

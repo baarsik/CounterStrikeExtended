@@ -1,4 +1,11 @@
 #include "host.h"
+#include "native_gameui_retirement.h"
+#if defined(__APPLE__)
+#include "native_frame_timings.h"
+#include "host_cmd.h"
+#include "igame.h"
+#include "vgui_intwrap2.h"
+#endif
 #include "engine_apiproxy.h"
 #include "sound.h"
 #include "common.h"
@@ -168,19 +175,174 @@ void SystemWrapper_ShutDown();
 void VGui_Shutdown();
 void VGui_Startup();
 
+static qboolean hostShutdownStarted;
+
+#if INTPTR_MAX > INT32_MAX
+namespace {
+enum class NativeHostShutdownPhase { Browser, Begin, Server, Voice, CD, VGui, Client, Core, Complete };
+NativeHostShutdownPhase nativeHostShutdownPhase = NativeHostShutdownPhase::Complete;
+cse::NativeHostInitPhase nativeHostInitPhase = cse::NativeHostInitPhase::NotStarted;
+bool nativeHostShutdownBusy = false;
+}
+
+void cse::SetNativeHostInitPhase(NativeHostInitPhase phase) {
+    if (!g_bIsDedicatedServer) {
+        nativeHostInitPhase = phase;
+    }
+}
+
+void cse::ResetNativeHostShutdown() {
+    if (nativeHostShutdownBusy || nativeHostShutdownPhase != NativeHostShutdownPhase::Complete) {
+        return;
+    }
+    nativeHostInitPhase = NativeHostInitPhase::NotStarted;
+    nativeHostShutdownPhase = NativeHostShutdownPhase::Browser;
+    hostShutdownStarted = false;
+}
+
+bool cse::TryShutdownNativeHost() {
+    if (nativeHostShutdownBusy || !NativeGameUIIsRetirementSafePoint()) {
+        return false;
+    }
+    if (nativeHostInitPhase == NativeHostInitPhase::NotStarted) {
+        nativeHostShutdownPhase = NativeHostShutdownPhase::Complete;
+        return true;
+    }
+    nativeHostShutdownBusy = true;
+    struct Guard {
+        ~Guard() {
+            nativeHostShutdownBusy = false;
+        }
+    } guard;
+    for (;;) {
+        switch (nativeHostShutdownPhase) {
+        case NativeHostShutdownPhase::Browser:
+            if (!TryRetireNativeGameUI()) {
+                return false;
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Begin;
+            break;
+        case NativeHostShutdownPhase::Begin:
+            hostShutdownStarted = true;
+#if defined(__APPLE__)
+            Host_ResetNativeVideoRestart();
+            cse_diagnostics::NativeFrameTimings().Flush();
+#endif
+            if (nativeHostInitPhase == NativeHostInitPhase::Complete && host_initialized) {
+                Host_WriteConfiguration();
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Server;
+            break;
+        case NativeHostShutdownPhase::Server:
+#if defined(__APPLE__)
+            Host_ShutdownServer(false);
+            Steam_Shutdown();
+#endif
+            SV_ServerShutdown();
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Voice;
+            break;
+        case NativeHostShutdownPhase::Voice:
+            if (nativeHostInitPhase >= NativeHostInitPhase::VoiceReady) {
+                Voice_Deinit();
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::CD;
+            break;
+        case NativeHostShutdownPhase::CD:
+            host_initialized = false;
+            if (nativeHostInitPhase >= NativeHostInitPhase::CDReady) {
+                CDAudio_Shutdown();
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::VGui;
+            break;
+        case NativeHostShutdownPhase::VGui:
+            if (nativeHostInitPhase >= NativeHostInitPhase::VGuiStarted && !TryShutdownNativeVGui()) {
+                return false;
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Client;
+            break;
+        case NativeHostShutdownPhase::Client:
+            if (nativeHostInitPhase >= NativeHostInitPhase::ClientReady) {
+                ClientDLL_Shutdown();
+            }
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Core;
+            break;
+        case NativeHostShutdownPhase::Core:
+            Cmd_RemoveGameCmds();
+            Cmd_Shutdown();
+            Cvar_ResetList();
+            HPAK_FlushHostQueue();
+            SV_DeallocateDynamicData();
+            for (int index = 0; index < svs.maxclientslimit; ++index) {
+                SV_ClearFrames(&svs.clients[index].frames);
+            }
+            SV_Shutdown();
+            SystemWrapper_ShutDown();
+            NET_Shutdown();
+            if (nativeHostInitPhase >= NativeHostInitPhase::SoundReady) {
+                S_Shutdown();
+            }
+            Con_Shutdown();
+            ReleaseEntityDlls();
+            CL_ShutDownClientStatic();
+            CM_FreePAS();
+            if (wadpath) {
+                Mem_Free(wadpath);
+                wadpath = nullptr;
+            }
+            if (nativeHostInitPhase >= NativeHostInitPhase::DrawReady) {
+                Draw_Shutdown();
+            }
+            Draw_DecalShutdown();
+            W_Shutdown();
+            Log_Printf("Server shutdown\n");
+            Log_Close();
+            COM_Shutdown();
+            if (nativeHostInitPhase >= NativeHostInitPhase::ClientReadyForFrames) {
+                CL_Shutdown();
+            }
+            DELTA_Shutdown();
+            Key_Shutdown();
+            realtime = 0.0;
+            sv.time = 0.0;
+            cl.time = 0.0;
+            nativeHostShutdownPhase = NativeHostShutdownPhase::Complete;
+            break;
+        case NativeHostShutdownPhase::Complete:
+            return true;
+        }
+    }
+}
+#endif
+
 void Host_Shutdown()
 {
-	static qboolean isdown;
-	if ( isdown )
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer) {
+        cse::TryShutdownNativeHost();
+        return;
+    }
+#endif
+	if ( hostShutdownStarted )
 	{
 		std::printf( "recursive shutdown\n" );
 		return;
 	}
-	isdown = 1;
+	hostShutdownStarted = 1;
+#if defined(__APPLE__)
+    Host_ResetNativeVideoRestart();
+    cse_diagnostics::NativeFrameTimings().Flush();
+#endif
 	if ( host_initialized )
 		Host_WriteConfiguration();
-	SV_ServerShutdown();
-	Voice_Deinit();
+#if defined(__APPLE__)
+    // Drain connected clients while their game DLL and network are still live.
+    // A late startup map can create a server after the first quit request, so
+    // full host teardown must retire it even if the earlier quit saw no map.
+    Host_ShutdownServer(false);
+    Steam_Shutdown();
+#endif
+    SV_ServerShutdown();
+    Voice_Deinit();
 	host_initialized = 0;
 	CDAudio_Shutdown();
 	VGui_Shutdown();
@@ -320,6 +482,12 @@ void _Host_Frame( float time )
 // decide the simulation time
 	if ( !Host_FilterTime( time ) )
 		return;			// don't run too fast, or packets will flood out
+#if defined(__APPLE__)
+    auto& timings = cse_diagnostics::NativeFrameTimings();
+    if (timings.Enabled()) {
+        timings.Sample(Sys_FloatTime(), cls.state == ca_active, VGuiWrap2_IsGameUIVisible() != 0, game->IsActiveApp());
+    }
+#endif
 	SystemWrapper_RunFrame( host_frametime );
 	if ( g_modfuncs.m_pfnFrameBegin )
 		g_modfuncs.m_pfnFrameBegin();
@@ -334,15 +502,50 @@ void _Host_Frame( float time )
 	host_times[1] = Sys_FloatTime();
 	SV_Frame();
 	host_times[2] = Sys_FloatTime();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.BeginClient(host_times[2]);
+    }
+#endif
 	SV_CheckForRcon();
 	if ( !sv.active )
 		CL_Move();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Move, Sys_FloatTime());
+    }
+#endif
 	ClientDLL_Frame( host_frametime );
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::ClientDll, Sys_FloatTime());
+    }
+#endif
 	CL_SetLastUpdate();
 	CL_ReadPackets();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Packets, Sys_FloatTime());
+    }
+#endif
 	CL_RedoPrediction();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Prediction, Sys_FloatTime());
+    }
+#endif
 	Voice_Idle( static_cast<float>( host_frametime ) );
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Voice, Sys_FloatTime());
+    }
+#endif
 	CL_EmitEntities();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Entities, Sys_FloatTime());
+    }
+#endif
 	CL_CheckForResend();
 	while ( CL_RequestMissingResources() )
 	{
@@ -362,10 +565,25 @@ void _Host_Frame( float time )
 		frames = DISCONNECTED_PAUSE_FRAMES;
 	}
 	CL_HTTPUpdate();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Resources, Sys_FloatTime());
+    }
+#endif
 	SteamAPI_RunCallbacks();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Steam, Sys_FloatTime());
+    }
+#endif
 	ClientDLL_CAM_Think();
 	CL_MoveSpectatorCamera();
 	host_times[3] = Sys_FloatTime();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.MarkClient(cse_diagnostics::FrameTimings::ClientPhase::Camera, host_times[3]);
+    }
+#endif
 	if ( !gfBackground )
 	{
 		SCR_UpdateScreen();
@@ -392,6 +610,11 @@ void _Host_Frame( float time )
 	}
 	host_times[0] = host_times[5];
 	host_times[5] = Sys_FloatTime();
+#if defined(__APPLE__)
+    if (timings.Enabled()) {
+        timings.Finish(host_times[1], host_times[2], host_times[3], host_times[4], host_times[5]);
+    }
+#endif
 	Host_Speeds( host_times );
 	++host_framecount;
 	CL_AdjustClock();
@@ -631,6 +854,18 @@ void Host_InitLocal()
 
 int Host_Init( quakeparms_t* parms )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer) {
+        cse::ResetNativeHostShutdown();
+    }
+#endif
+#if defined(__APPLE__)
+    Host_ResetNativeVideoRestart();
+#endif
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    // Shutdown remains recursive/repeated-call safe until a new session begins.
+    hostShutdownStarted = false;
+#endif
 	constexpr int VERSION_BUFFER_BYTES = 256;
 	constexpr int PALETTE_COLOR_COUNT = 256;
 	constexpr int PALETTE_COMPONENT_COUNT = 4;
@@ -682,6 +917,9 @@ int Host_Init( quakeparms_t* parms )
 	R_InitTextures(); // needed even for dedicated servers
 	HPAK_CheckIntegrity( const_cast<char*>( "custom" ) );
 	Q_memset( &g_module, 0, sizeof( g_module ) );
+#if INTPTR_MAX > INT32_MAX
+    cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::CoreReady);
+#endif
 
 	if ( cls.state != ca_dedicated )
 	{
@@ -703,20 +941,52 @@ int Host_Init( quakeparms_t* parms )
 		PM_Init( &g_clmove );
 		CL_InitEventSystem();
 		ClientDLL_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::ClientReady);
+#endif
 		VGui_Startup();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::VGuiStarted);
+#endif
 		if ( !VID_Init( host_basepal ) )
 		{
+#if INTPTR_MAX <= INT32_MAX
 			VGui_Shutdown();
+#endif
 			return 0;
 		}
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::VideoReady);
+#endif
 		Draw_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::DrawReady);
+#endif
 		SCR_Init();
 		R_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::RenderReady);
+#endif
 		S_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::SoundReady);
+#endif
 		CDAudio_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::CDReady);
+#endif
 		Voice_Init( "voice_speex", 1 );
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::VoiceReady);
+#endif
 		DemoPlayer_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::DemoReady);
+#endif
 		CL_Init();
+#if INTPTR_MAX > INT32_MAX
+        cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::ClientReadyForFrames);
+#endif
 	}
 	else
 	{
@@ -761,6 +1031,9 @@ int Host_Init( quakeparms_t* parms )
 	Cvar_SetValue( "violence_ablood", violence );
 	Cvar_SetValue( "violence_agibs", violence );
 	host_initialized = 1;
+#if INTPTR_MAX > INT32_MAX
+    cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::Complete);
+#endif
 	Steam_ProcessInsecureLaunchParameters();
 	return 1;
 }

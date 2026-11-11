@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "native/ISystemModule.h"
+#else
 #pragma once
 
 #include "../public/interface_registry.h"
@@ -26,3 +30,5 @@ public:
 
 	virtual void ShutDown() = 0;
 };
+
+#endif

@@ -1,3 +1,7 @@
+#if defined(__APPLE__)
+// Native consumers and the source-built provider share one class contract.
+#include "../lib-src/vgui/include/VGUI_TextImage.h"
+#else
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -56,3 +60,5 @@ protected:
 
 
 
+
+#endif // __APPLE__

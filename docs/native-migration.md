@@ -10,7 +10,7 @@ target has completed acceptance.** See [build commands](building.md),
 | Target | Commitment | Current state |
 | --- | --- | --- |
 | Windows 11 x64 | Required; first complete native target | All 19 targets build; selected CS/HL runtime checks pass on VM1 under x64 emulation |
-| macOS 14+ Apple Silicon | Required | Complete 14-target client builds in Release/Debug; native UI and module-load fixtures pass; gameplay and standalone server/A3D work remain |
+| macOS 14+ Apple Silicon | Required | A 17-role Release/Debug runtime cohort builds; native CS/HL gameplay has been exercised; current-source full acceptance, standalone server/A3D and production Metal work remain |
 | Windows ARM64 | Conditional | Native components pass selected checks; full providers/gameplay remain unqualified |
 | Linux x64 / ARM64 | Opportunistic | Reuse shared POSIX/SDL implementations only; defer substantial platform/provider work |
 
@@ -94,6 +94,128 @@ PDBs, import archives, tests and intermediates outside runtime outputs; Release
 symbols and distribution materials remain opt-in. After mandatory acceptance,
 make Windows x64 the default while preserving the root runtime-output contract
 and isolating explicit Win32 reference outputs.
+
+### macOS runtime checkpoint, 2026-11-10
+
+The user accepted smooth fast turns and scrollwheel bhops without a visible
+pointer, retained fullscreen after changing 1080p to 1440p in Counter-Strike,
+and the corrected timer colon with normal FPS/textures. Normal Counter-Strike
+sound and Half-Life music before/after app switching were also confirmed.
+These observations belong to their pinned test cohorts; they do not qualify
+later combined images automatically. The production client still uses OpenGL.
+A separate combined-image test selected Apple's software renderer and regressed
+FPS/surfaces; restoring the earlier engine tuple removed both symptoms. The
+selection cause remains open, and new hardware tests must verify the actual GPU.
+
+The reviewed Half-Life multisource compatibility repair restored the Unforeseen
+Consequences scene and movement, as confirmed by the user. Actual owning source
+and fixtures passed native Release/Debug/sanitizer checks and Windows Win32/x64
+Release/Debug checks. A later supervised Mac run loaded the autosave on the
+M5 Max, accepted movement, returned through the real Leave game menu, and exited0
+after a normal application-quit request at eight minutes. This bounded success
+does not close the older Leave game ED_Alloc report, all save/decal cases, or
+prior unexplained exits. Earlier direct launchers did not retain child status;
+future runtime phases use detached persistent supervisors.
+
+The Control-Space provider and gameplay/UI ownership integration are reviewed.
+Native Half-Life and Counter-Strike runs preserve the layout during gameplay,
+permit switching in observed chat/console/menu contexts and record simultaneous
+duck+jump commands. Half-Life also survives two same-PID fullscreen restart
+commands; both supervised tests quit normally with exit0 and restore settings.
+Windows qualification covers 60 actual owning compiles and 20 fixture/factory
+cases. These are native UI-driven functional checks, with no new human physical
+mouse/performance acceptance; see the [keyboard design](superpowers/specs/2026-11-10-macos-gameplay-shortcuts-design.md).
+The screenshot interaction-owner query detects the real native selected-portion
+overlay with the game-style window still focused and returns ownership after
+cancellation/Capture. The engine capture coordinator is reviewed and integrated. Its native checks
+show capture released during the actual OS overlay and reacquired after Capture
+or Cancel on the M5 Max; Windows qualification passes40owning compiles and24tests.
+A valid selected-portion clipboard image was inspected. Physical Cmd-Shift-4
+region dragging remains open because the UI automation cannot address the
+WindowServer selection surface. Native UI checks performed while the user is
+away are not human mouse/performance acceptance.
+
+The current Counter-Strike keyboard test renders on the M5 Max at 1440p fullscreen
+and displays MOTD HTML, but revealed garbage after developer notify text.
+Actual-source sanitizers reproduced a notify-buffer overread at 1440p. The
+reviewed bound/NUL repair passes native90cases, coherent Release/Debug engine
+links, Windows8owning compiles/80cases and live CS1440p long/short/cleared
+notification checks. Those bounded checks do not qualify all HUD rendering. Local listen gameplay does not qualify
+external Steam authentication; the console reports validation stalled. The
+current app layout also fails strict embedded-main resource verification while
+the exact standalone image bytes verify, so distribution packaging remains open.
+A retained CS110 CEF helper report records a launch-time SIGTRAP; its precise
+cause and relationship to the existing browser code-identity warning remain
+unresolved. Packaging also needs to account for relative `hl.conf` and
+`steam_appid.txt` writes as well as the VFS configuration/save/download paths.
+Successful MOTD rendering does not qualify every browser helper or final signing.
+
+A compiler-idle Release CS listen run records uneven frame delivery after a
+90-second warm-up:11,121focused gameplay frames over142seconds have median
+10.924ms/p99 24.841ms. Removing the broad CUA input interval leaves p99 24.877ms.
+Simulation/audio measurements are small; graphics and unmeasured outer-loop/OS
+scheduling require further attribution. Ordinary background apps/VMs/capture
+services stayed running. This is a measured lead, not proof of a renderer cause
+or a multiplayer/performance acceptance.
+
+The native Find Servers module/UI and checked host retirement are implemented,
+reviewed and integrated as source. Native Release/Debug owning links and real
+VGUI/module/component checks pass, including large-list close/reopen, region/tab
+identity, independent status messages and selection during rapid tab changes.
+The reviewed 54e360fd candidate is staged in both owned game apps. An actual
+Counter-Strike menu test opens Servers and populates Internet rows, but exposes
+unreadable controls under the game's HD parent and a native App-menu shutdown
+crash. The shutdown fault follows a detached embedded root into the VGUI input
+fallback. The independently reviewed native64 input guard is now integrated and
+staged as VGUI2 with the existing 54e GameUI/engine/main. Both games open Servers
+and complete native application-menu Quit with supervised OS exit 0; Half-Life
+also visibly populates Internet rows. These checks deliberately exclude audio,
+physical input and performance. The reviewed e7eb139 layout repair is now
+integrated and staged too. Actual Counter-Strike and Half-Life checks show
+readable HD controls, separated tabs and headers, live Internet rows and keyboard
+access to lower controls; both quit normally. Physical close/reopen, full live
+connection/authentication and Windows owning/reference qualification remain open. The final
+real Steam model probe discovers rows for app10/app70, fully drains storage with
+CloseStep(128), pumps callbacks after release and shuts down normally. Read-only
+favorite/history snapshots remain equal before/after both phases. These checks
+do not qualify live UI connect/authentication or accepted-history/password behavior
+in a complete game. Standalone server lifetime,
+A3D/spatial behavior, full renderer presentation, cross-target data round trips,
+voice/authentication and current-cohort packaging/provider acceptance remain
+part of the migration gates above. The microphone issue below is an explicit
+user-directed deferral, not a completed fix.
+
+The remaining A3D port now has an exact stock-library reference for its software
+A2D control path. Its pitch and direct-channel gain/delay/HRTF inputs match the
+retained source; that shipped routine also omits EQ and reflection records.
+This narrows software parity work without establishing OEM driver behavior.
+Native provider, buffer/worker lifetime, complete builds and actual consumer
+qualification remain open. Static evidence and its limits are recorded in
+`build/macos-runtime-bringup-20261109/a3d-reference-analysis-v1/findings.md`.
+
+### Deferred: microphone consent blocks initial loading
+
+**Status: deferred at the user's request, 2026-11-10; no implementation change.**
+On first launch of the macOS Counter-Strike test client, the microphone consent
+dialog appears while the game window is black and prevents initial loading from
+finishing until the user responds. This was reported with the
+`CounterStrikeExtendedMouseCS110` test bundle. Check Half-Life and the stable
+application identity when implementing the fix; their exact first-launch behavior
+has not been established by this report.
+
+Expected behavior: load the menu without requiring microphone authorization, then
+let the user explicitly enable microphone/voice access afterward. Pending or
+denied permission must not make ordinary startup, gameplay or audio output depend
+on granting microphone access. Preserve the user's OS permission choice.
+
+The current SDL capture initialization opens and resumes a recording stream in
+`GoldSrc-SDK/engine/voice_record_sdl.cpp` before `RecordStart()`. Investigate
+decoupling capture-device/permission acquisition from startup. The exact blocking
+call has not been profiled; this source path is a follow-up lead, not a completed
+root-cause diagnosis. Later acceptance should cover first launch, pending/denied
+permission, enabling voice from the loaded menu, later authorization and restart.
+Track this as an explicit deferred exception in migration reports; granting
+consent during a test does not resolve the startup issue.
 
 ## Promotion evidence
 

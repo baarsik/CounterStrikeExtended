@@ -93,6 +93,26 @@ HScheme CSchemeManager::GetScheme( const char* tag )
 
 void CSchemeManager::Shutdown( bool full )
 {
+#if defined(__APPLE__)
+    if (full) {
+        // A standalone GUI session can reopen in this image. Retire cached
+        // images before the surface textures and discard schemes whose data
+        // and font handles belong to the closing session.
+        for (int index = 0; index < m_Bitmaps.MaxElement(); ++index) {
+            if (m_Bitmaps.IsValidIndex(index)) {
+                delete m_Bitmaps[index].bitmap;
+            }
+        }
+        m_Bitmaps.RemoveAll();
+        while (_scheme.Count() > 1) {
+            const int index = _scheme.Count() - 1;
+            _scheme[index]->Shutdown(true);
+            delete _scheme[index];
+            _scheme.Remove(index);
+        }
+        return;
+    }
+#endif
 	if ( _scheme.Count() <= 1 )
 	{
 		return;

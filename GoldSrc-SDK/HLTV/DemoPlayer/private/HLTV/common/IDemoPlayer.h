@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../../common/native/IDemoPlayer.h"
+#else
 #ifndef IDEMOPLAYER_H
 #define IDEMOPLAYER_H
 
@@ -73,5 +77,7 @@ public:
 	virtual void ReadNetchanState( int* incomingSequence, int* incomingAcknowledged, int* incomingReliableAcknowledged,
 		int* incomingReliableSequence, int* outgoingSequence, int* reliableSequence, int* lastReliableSequence ) = 0;
 };
+
+#endif
 
 #endif

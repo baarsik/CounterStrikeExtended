@@ -1,4 +1,6 @@
-#if defined( SW_RENDERER )
+#include "../common/sdl3_keyboard.h"
+
+#if defined(SW_RENDERER) && defined(_WIN32)
 
 #include "ivideomode.h"
 #include "registry.h"
@@ -803,6 +805,11 @@ extern "C" void VideoMode_SwitchMode( int hardware, int windowed )
 #endif
 CVideoMode_Common::CVideoMode_Common() : m_nNumModes(0), m_nGameMode(0), m_bInitialized(false) {
     m_bWindowed = false;
+#if defined(__APPLE__)
+    if (!cse::ConfigureKeyboardMapping()) {
+        Sys_Error("SDL keyboard configuration failed: %s", SDL_GetError());
+    }
+#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         Sys_Error("SDL video initialization failed: %s", SDL_GetError());
     }
@@ -1232,6 +1239,475 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 	vid.conbuffer = (byte*)desc.lpSurface;
 	vid.buffer = (byte*)desc.lpSurface;
 	vid.rowbytes = desc.lPitch;
+}
+
+#elif defined(SW_RENDERER)
+
+#include "native_software_video.h"
+#include "model.h"
+#include "ivideomode.h"
+#include "registry.h"
+#include "igame.h"
+#include "common.h"
+#include "vid.h"
+#include "filesystem.h"
+#include "sys.h"
+#include "snd_win.h"
+#include "video_platform.h"
+#include "utlvector.h"
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <vector>
+#include <cstdlib>
+constexpr int MAX_VIDEO_MODES = 32;
+constexpr int STARTUP_IMAGE_BYTES = 256 * 256 * 4;
+extern "C" void VID_UpdateWindowVars(RECT *, int, int);
+extern "C" void VOX_Init();
+IVideoMode *videomode;
+class CVideoMode_NativeSoftware : public IVideoMode {
+  public:
+    virtual ~CVideoMode_NativeSoftware();
+    bool Init(void *instance) override;
+    void PlayStartupSequence() override;
+    void Shutdown() override;
+    bool AddMode(int width, int height, int bitsPerPixel) override;
+    vmode_s *GetCurrentMode() override;
+    vmode_s *GetMode(int index) override;
+    int GetModeCount() override;
+    bool IsWindowedMode() const override;
+    bool GetInitialized() const override;
+    void SetInitialized(bool initialized) override;
+    void UpdateWindowPosition() override;
+    void FlipScreen() override;
+    void RestoreVideo() override;
+    void ReleaseVideo() override;
+    const char *GetName() override {
+        return "software";
+    }
+    explicit CVideoMode_NativeSoftware(bool windowed);
+
+  protected:
+    void ReleaseFullScreen();
+    static float CalculatePixelAspect(unsigned int width, unsigned int height);
+
+  private:
+    void DrawStartupGraphic(CseGameWindowHandle window);
+    void LoadStartupGraphic();
+
+    struct bimage_t {
+        byte *buffer;
+        int x;
+        int y;
+        int width;
+        int height;
+        bool scaled;
+        bool fit;
+    };
+
+    vmode_s m_rgModeList[MAX_VIDEO_MODES];
+    vmode_s m_safeMode;
+    int m_nNumModes;
+    int m_nGameMode;
+    bool m_bInitialized;
+
+    CUtlVector<bimage_t> m_ImageID;
+    int m_iBaseResX;
+    int m_iBaseResY;
+
+  protected:
+    bool m_bWindowed;
+    CNativeSoftwareFramebuffer m_frame;
+};
+
+bool CVideoMode_NativeSoftware::AddMode(int width, int height, int bitsPerPixel) {
+    if (width <= 0 || height <= 0 || width > 5120 || height > 1600) {
+        return false;
+    }
+    if (m_nNumModes >= MAX_VIDEO_MODES) {
+        return false;
+    }
+    for (int i = 0; i < m_nNumModes; i++) {
+        if (m_rgModeList[i].width == width && m_rgModeList[i].height == height && m_rgModeList[i].bpp == bitsPerPixel) {
+            return true;
+        }
+    }
+    vmode_s &mode = m_rgModeList[m_nNumModes++];
+    mode.width = width;
+    mode.height = height;
+    mode.bpp = bitsPerPixel;
+    return true;
+}
+
+vmode_s *CVideoMode_NativeSoftware::GetMode(int index) {
+    if (index >= m_nNumModes || index < 0) {
+        return &m_safeMode;
+    }
+    return &m_rgModeList[index];
+}
+
+vmode_s *CVideoMode_NativeSoftware::GetCurrentMode() {
+    return GetMode(m_nGameMode);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+// Output : int
+//-----------------------------------------------------------------------------
+int CVideoMode_NativeSoftware::GetModeCount() {
+    return m_nNumModes;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CVideoMode_NativeSoftware::IsWindowedMode() const {
+    return m_bWindowed;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CVideoMode_NativeSoftware::GetInitialized() const {
+    return m_bInitialized;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose:
+// Input  : init -
+//-----------------------------------------------------------------------------
+void CVideoMode_NativeSoftware::SetInitialized(bool initialized) {
+    m_bInitialized = initialized;
+}
+
+float CVideoMode_NativeSoftware::CalculatePixelAspect(unsigned int width, unsigned int height) {
+    if (width > 639) {
+        return 1.0f;
+    }
+    return ((float)height / (float)width) * 1.3333334f;
+}
+
+void CVideoMode_NativeSoftware::LoadStartupGraphic() {
+    FileHandle_t file = FS_Open("resource/BackgroundLoadingLayout.txt", "rt");
+    if (!file) {
+        return;
+    }
+    unsigned int size = FS_Size(file);
+    std::vector<char> storage(static_cast<std::size_t>(size) + 1);
+    char *buffer = storage.data();
+    memset(buffer, 0, size + 1);
+    FS_Read(buffer, size, 1, file);
+    FS_Close(file);
+    char *data = buffer;
+    char token[512];
+    while (data && *data) {
+        data = FS_ParseFile(data, token, NULL);
+        if (!data || !token[0]) {
+            break;
+        }
+        if (!_stricmp(token, "resolution")) {
+            data = FS_ParseFile(data, token, NULL);
+            m_iBaseResX = atoi(token);
+            data = FS_ParseFile(data, token, NULL);
+            m_iBaseResY = atoi(token);
+        } else {
+            bimage_t &image = m_ImageID[m_ImageID.AddToTail()];
+            image.buffer = (byte *)malloc(STARTUP_IMAGE_BYTES);
+            if (!LoadTGA(token, image.buffer, STARTUP_IMAGE_BYTES, &image.width, &image.height)) {
+                free(image.buffer);
+                m_ImageID.Remove(m_ImageID.Count() - 1);
+                return;
+            }
+            data = FS_ParseFile(data, token, NULL);
+            image.scaled = !_stricmp(token, "scaled");
+            image.fit = !_stricmp(token, "fit");
+            data = FS_ParseFile(data, token, NULL);
+            image.x = atoi(token);
+            data = FS_ParseFile(data, token, NULL);
+            image.y = atoi(token);
+        }
+    }
+}
+
+void VideoMode_GetCurrentRenderer(char *name, int nameLength, int *windowed, int *hdModels, int *addons) {
+    if (name && nameLength > 0) {
+        strncpy(name, videomode->GetName(), nameLength);
+    }
+    if (windowed) {
+        *windowed = videomode->IsWindowedMode();
+    }
+    if (hdModels) {
+        *hdModels = registry->ReadInt("hdmodels", 0) > 0;
+    }
+    if (addons) {
+        *addons = registry->ReadInt("addons_folder", 0) > 0;
+    }
+}
+
+void VideoMode_GetVideoModes(vmode_s **modes, int *count) {
+    *count = videomode->GetModeCount();
+    *modes = videomode->GetMode(0);
+}
+
+extern "C" void VideoMode_RestoreVideo() {
+    videomode->RestoreVideo();
+}
+
+extern "C" int VideoMode_IsWindowed() {
+    return videomode && videomode->IsWindowedMode();
+}
+
+extern "C" qboolean R_UseLegacyRender() {
+    return game->OnlyLegacyRender();
+}
+
+extern "C" void VideoMode_GetCurrentVideoMode(int *width, int *height, int *bitsPerPixel) {
+    vmode_s *mode = videomode->GetCurrentMode();
+    if (!mode) {
+        return;
+    }
+    if (width) {
+        *width = mode->width;
+    }
+    if (height) {
+        *height = mode->height;
+    }
+    if (bitsPerPixel) {
+        *bitsPerPixel = mode->bpp;
+    }
+}
+
+extern "C" void VideoMode_SetVideoMode(int width, int height, int bitsPerPixel) {
+    registry->WriteInt("DisplayWidth", width);
+    registry->WriteInt("DisplayHeight", height);
+    registry->WriteInt("DisplayBPP", bitsPerPixel);
+}
+
+extern "C" void VideoMode_SwitchMode(int hardware, int windowed) {
+    if (hardware) {
+        registry->WriteString("EngineDLL", "hw.dll");
+        registry->WriteInt("EngineD3D", hardware == 2);
+    } else {
+        registry->WriteString("EngineDLL", "sw.dll");
+        registry->WriteInt("EngineD3D", 0);
+    }
+    registry->WriteInt("ScreenWindowed", windowed);
+}
+
+void CVideoMode_NativeSoftware::UpdateWindowPosition() {
+    int x;
+    int y;
+    int width;
+    int height;
+    // Get the window from the game ( right place for it? )
+    game->GetWindowRect(&x, &y, &width, &height);
+    RECT rect;
+    rect.left = x;
+    rect.top = y;
+    rect.right = x + width;
+    rect.bottom = y + height;
+    VID_UpdateWindowVars(&rect, x + width / 2, y + height / 2);
+}
+
+void CVideoMode_NativeSoftware::PlayStartupSequence() {
+    if (!COM_CheckParm("-novid")) {
+        game->PlayStartupVideos();
+    }
+    DrawStartupGraphic(game->GetMainWindow());
+}
+
+void CVideoMode_NativeSoftware::DrawStartupGraphic(CseGameWindowHandle) {
+    if (!m_ImageID.Count()) {
+        return;
+    }
+    vmode_s *mode = GetCurrentMode();
+    float xScale = (float)mode->width / (float)m_iBaseResX;
+    float yScale = (float)mode->height / (float)m_iBaseResY;
+    float fitScale = yScale;
+    float fitWidth = (float)m_iBaseResX * fitScale;
+    float fitHeight = (float)m_iBaseResY * fitScale;
+    if ((float)mode->width > fitWidth) {
+        fitScale = xScale;
+        fitWidth = (float)m_iBaseResX * fitScale;
+        fitHeight = (float)m_iBaseResY * fitScale;
+    }
+    int fitX = mode->width / 2 - (int)(fitWidth * 0.5f);
+    int fitY = mode->height / 2 - (int)(fitHeight * 0.5f);
+
+    for (int i = 0; i < m_ImageID.Count(); i++) {
+        bimage_t &image = m_ImageID[i];
+        int x;
+        int y;
+        int right;
+        int bottom;
+        if (image.scaled) {
+            x = image.x ? (int)ceil((double)(image.x * xScale)) : 0;
+            y = image.y ? (int)ceil((double)(image.y * yScale)) : 0;
+            right = (int)ceil((double)((image.x + image.width) * xScale));
+            bottom = (int)ceil((double)((image.y + image.height) * yScale));
+        } else if (image.fit) {
+            x = fitX + (image.x ? (int)ceil((double)(image.x * fitScale)) : 0);
+            y = fitY + (image.y ? (int)ceil((double)(image.y * fitScale)) : 0);
+            right = x + (int)ceil((double)(image.width * fitScale));
+            bottom = y + (int)ceil((double)(image.height * fitScale));
+        } else {
+            x = image.x;
+            y = image.y;
+            right = x + image.width;
+            bottom = y + image.height;
+        }
+        int width = right - x;
+        int height = bottom - y;
+        if (!image.buffer) {
+            continue;
+        }
+        float rowScale = (float)image.height / (float)height;
+        int columnStep = (int)(((float)image.width / (float)width) * 256.0f);
+        for (int row = 0; row < height; row++) {
+            byte *source = image.buffer + 4 * image.width * (int)(row * rowScale);
+            int column = 0;
+            for (int pixel = 0; pixel < width; pixel++) {
+                byte *rgba = source + 4 * (column >> 8);
+                const int targetX = x + pixel;
+                const int targetY = y + row;
+                if (targetX >= 0 && targetY >= 0 && targetX < mode->width && targetY < mode->height) {
+                    auto *destination = reinterpret_cast<unsigned short *>(vid.buffer + targetY * vid.rowbytes);
+                    destination[targetX] =
+                        static_cast<unsigned short>(((rgba[0] & 0xf8) << 8) | ((rgba[1] & 0xfc) << 3) | (rgba[2] >> 3));
+                }
+                column += columnStep;
+            }
+        }
+    }
+    FlipScreen();
+    for (int i = 0; i < m_ImageID.Count(); i++) {
+        if (m_ImageID[i].buffer) {
+            free(m_ImageID[i].buffer);
+        }
+    }
+    m_ImageID.Purge();
+}
+
+CVideoMode_NativeSoftware::CVideoMode_NativeSoftware(bool windowed)
+    : m_safeMode{640, 480, 32}, m_nNumModes(0), m_nGameMode(0), m_bInitialized(false), m_iBaseResX(640),
+      m_iBaseResY(480), m_bWindowed(windowed) {}
+CVideoMode_NativeSoftware::~CVideoMode_NativeSoftware() {}
+void VideoMode_Create() {
+    bool windowed = registry->ReadInt("ScreenWindowed", 0) != 0;
+    if (COM_CheckParm("-sw") || COM_CheckParm("-startwindowed") || COM_CheckParm("-windowed") ||
+        COM_CheckParm("-window")) {
+        windowed = true;
+    } else if (COM_CheckParm("-full") || COM_CheckParm("-fullscreen")) {
+        windowed = false;
+    }
+    registry->WriteInt("ScreenWindowed", windowed);
+    videomode = new CVideoMode_NativeSoftware(windowed);
+}
+bool CVideoMode_NativeSoftware::Init(void *) {
+    if (!cse::ConfigureKeyboardMapping() || !game->CreateGameWindow()) {
+        return false;
+    }
+    auto *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+    const SDL_DisplayMode *desktop = SDL_GetDesktopDisplayMode(SDL_GetPrimaryDisplay());
+    int width = registry->ReadInt("DisplayWidth", desktop ? desktop->w : 640);
+    int height = registry->ReadInt("DisplayHeight", desktop ? desktop->h : 480);
+    for (const char *option : {"-width", "-w", "-height", "-h"}) {
+        const int parameter = COM_CheckParm(option);
+        if (parameter > 0 && parameter + 1 < com_argc) {
+            if (option[1] == 'w') {
+                width = std::atoi(com_argv[parameter + 1]);
+            } else {
+                height = std::atoi(com_argv[parameter + 1]);
+            }
+        }
+    }
+    constexpr int kMaximumWidth = 5120;
+    constexpr int kMaximumHeight = 1600;
+    width = std::min(width, kMaximumWidth);
+    height = std::min(height, kMaximumHeight);
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+    int count = 0;
+    SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
+    for (int index = 0; index < count; ++index) {
+        AddMode(modes[index]->w, modes[index]->h, 32);
+    }
+    SDL_free(modes);
+    m_safeMode = {width, height, 32};
+    m_nGameMode = -1;
+    for (int index = 0; index < m_nNumModes; ++index) {
+        if (m_rgModeList[index].width == width && m_rgModeList[index].height == height) {
+            m_nGameMode = index;
+            break;
+        }
+    }
+    if (!m_bWindowed && !SDL_SetWindowFullscreen(window, true)) {
+        return false;
+    }
+    game->SetWindowSize(width, height);
+    SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    if (!m_frame.Allocate(width, height, false)) {
+        return false;
+    }
+    vid.buffer = m_frame.Pixels();
+    vid.direct = vid.buffer;
+    vid.conbuffer = vid.buffer;
+    vid.rowbytes = m_frame.Pitch();
+    vid.conrowbytes = m_frame.Pitch();
+    vid.width = vid.conwidth = width;
+    vid.height = vid.conheight = height;
+    vid.bits = 16;
+    vid.is15bit = 0;
+    vid.numpages = 1;
+    vid.aspect = CalculatePixelAspect(width, height);
+    vid.vidtype = VT_Software;
+    if (!m_frame.Present(SDL_GetRenderer(window))) {
+        ReleaseVideo();
+        return false;
+    }
+    registry->WriteInt("DisplayWidth", width);
+    registry->WriteInt("DisplayHeight", height);
+    registry->WriteInt("DisplayBPP", 32);
+    LoadStartupGraphic();
+    UpdateWindowPosition();
+    Snd_AcquireBuffer();
+    VOX_Init();
+    m_bInitialized = true;
+    return true;
+}
+void CVideoMode_NativeSoftware::FlipScreen() {
+    auto *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+    if (window) {
+        m_frame.Present(SDL_GetRenderer(window));
+    }
+}
+void CVideoMode_NativeSoftware::ReleaseVideo() {
+    auto *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+    m_frame.Release(window ? SDL_GetRenderer(window) : nullptr);
+}
+void CVideoMode_NativeSoftware::RestoreVideo() {
+    FlipScreen();
+}
+void CVideoMode_NativeSoftware::ReleaseFullScreen() {
+    auto *window = reinterpret_cast<SDL_Window *>(game->GetMainWindow());
+    if (window && !m_bWindowed) {
+        SDL_SetWindowFullscreen(window, false);
+    }
+}
+void CVideoMode_NativeSoftware::Shutdown() {
+    ReleaseVideo();
+    ReleaseFullScreen();
+    for (int index = 0; index < m_ImageID.Count(); ++index) {
+        free(m_ImageID[index].buffer);
+    }
+    m_ImageID.Purge();
+    vid.buffer = vid.direct = vid.conbuffer = nullptr;
+    m_bInitialized = false;
+    videomode = nullptr;
+    delete this;
 }
 
 #else
@@ -1743,6 +2219,11 @@ extern "C" void VideoMode_SwitchMode( int hardware, int windowed )
 #pragma warning( suppress: 26495 )
 #endif
 CVideoMode_Common::CVideoMode_Common() : m_nNumModes(0), m_nGameMode(0), m_bInitialized(false), m_bWindowed(false) {
+#if defined(__APPLE__)
+    if (!cse::ConfigureKeyboardMapping()) {
+        Sys_Error("SDL keyboard configuration failed: %s", SDL_GetError());
+    }
+#endif
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO)) {
         Sys_Error("SDL video initialization failed: %s", SDL_GetError());
     }

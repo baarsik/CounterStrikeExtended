@@ -47,3 +47,10 @@ Ordinary builds/CTest never run a real server session. The separate
 `tests/native/steam_transport` suite uses controlled exports to check atomic
 binding, high opaque pointers, retryable failures, independent owners and final
 pipe release, with no real SDK or socket.
+
+`SteamAppId=70 ./steam_shutdown_probe --run-isolated-client-server-shutdown`
+explicitly initializes a local client and server, without server login or
+advertisement, then shuts down the server, client, and module owner in the real
+listen-server order. AppID 10 is also supported. This regression checks that the
+owned Mac transport releases its pipe before SDK client shutdown invalidates the
+flat API's core pointer; returning from main alone is insufficient evidence.

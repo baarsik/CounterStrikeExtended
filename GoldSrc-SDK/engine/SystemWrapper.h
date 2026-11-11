@@ -1,3 +1,7 @@
+#include "../public/native_system_module_abi.h"
+#if CSE_NATIVE_SYSTEM_MODULE
+#include "../common/native/SystemModuleRegistry.h"
+#endif
 #pragma once
 
 #include "interface.h"
@@ -11,6 +15,9 @@ class IVGuiModule;
 struct client_data_s;
 struct event_args_s;
 
+#if INTPTR_MAX > INT32_MAX
+#include "../common/native/IEngineWrapper.h"
+#else
 class IEngineWrapper
 #if defined( _WIN32 )
 	: public ISystemModule
@@ -56,10 +63,20 @@ public:
 	virtual bool ValidStuffText( const char* message ) = 0;
 	virtual void Cbuf_AddFilteredText( char* text ) = 0;
 };
+#endif
 
 class EngineWrapper : public IEngineWrapper, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::EngineName)) {
+            return static_cast<IEngineWrapper*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	EngineWrapper();
 	~EngineWrapper() override;
 
@@ -97,6 +114,18 @@ public:
 class SystemWrapper : public IBaseSystem, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::SystemName)) {
+            return static_cast<IBaseSystem*>(this);
+        }
+        if (cse::modules::Is(name, cse::modules::LifetimeName)) {
+            return &m_NativeModules.lifetime;
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	struct command_t
 	{
 		char name[32];
@@ -180,6 +209,11 @@ public:
 	bool DispatchCommand( char* command );
 
 private:
+#if CSE_NATIVE_SYSTEM_MODULE
+    cse::modules::Registry m_NativeModules;
+    void RemoveNativeCommands(ISystemModule* module);
+#endif
+
 	enum
 	{
 		COMMAND_MODULES = 1,

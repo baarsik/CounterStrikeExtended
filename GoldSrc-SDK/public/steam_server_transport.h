@@ -65,6 +65,10 @@ public:
         return true;
     }
 
+    bool IsRetained() const {
+        return pipe_ != 0;
+    }
+
     const char* LastError() const {
         return error_;
     }

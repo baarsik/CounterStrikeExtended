@@ -27,6 +27,7 @@ add_library(foreign_fixture SHARED root.cpp)
 add_library(proxy_fixture SHARED proxy.cpp)
 target_link_libraries(proxy_fixture PRIVATE root_fixture)
 add_library(misplaced_owner SHARED misplaced.cpp)
+add_library(benign_insertion SHARED benign_insertion.cpp)
 if(EXISTS "${owner_source}")
     target_sources(misplaced_owner PRIVATE "${owner_source}")
 endif()
@@ -39,7 +40,7 @@ if(CSE_OWNER_TSAN)
     target_compile_definitions(host_native PRIVATE CSE_TSAN_SHORT_BURST)
 endif()
 foreach(target owner_native owner_injected host_native host_injected root_fixture foreign_fixture proxy_fixture
-        misplaced_owner)
+        misplaced_owner benign_insertion)
     target_include_directories(${target} PRIVATE
         "${CSE_OWNER_SOURCE_ROOT}/GoldSrc-SDK/launcher/native" "${CSE_ROOT}/GoldSrc-SDK/public")
     target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -fno-exceptions -fno-rtti
@@ -61,3 +62,7 @@ add_test(NAME injected-release-controls COMMAND host_injected "$<TARGET_FILE:roo
     "$<TARGET_FILE:foreign_fixture>" "$<TARGET_FILE:misplaced_owner>" "$<TARGET_FILE:proxy_fixture>" 1)
 add_test(NAME actual-reload-cycles COMMAND host_native "$<TARGET_FILE:root_fixture>"
     "$<TARGET_FILE:foreign_fixture>" "$<TARGET_FILE:misplaced_owner>" "$<TARGET_FILE:proxy_fixture>" 4)
+add_test(NAME inserted-native-owner COMMAND "${CMAKE_COMMAND}" -E env
+    "DYLD_INSERT_LIBRARIES=$<TARGET_FILE:benign_insertion>" CSE_OWNER_EXPECT_INSERTION=1
+    "$<TARGET_FILE:host_native>" "$<TARGET_FILE:root_fixture>"
+    "$<TARGET_FILE:foreign_fixture>" "$<TARGET_FILE:misplaced_owner>" "$<TARGET_FILE:proxy_fixture>" 1)

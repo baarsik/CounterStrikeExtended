@@ -7,6 +7,11 @@
 static IDemoPlayer* s_DemoPlayer;
 static int s_DemoPlayerMode;
 
+void DemoPlayer_Reset() {
+    s_DemoPlayer = nullptr;
+    s_DemoPlayerMode = 0;
+}
+
 void DemoPlayer_SetActive( int state )
 {
 	s_DemoPlayerMode = state;
@@ -69,9 +74,14 @@ int DemoPlayer_Init( void )
 	ISystemModule* module = gSystemWrapper.GetModule( "demoplayer001", "demoplayer", NULL );
 
 	s_DemoPlayerMode = 0;
+#if CSE_NATIVE_SYSTEM_MODULE
+    DemoPlayer_Reset();
+    s_DemoPlayer = cse::modules::Query<IDemoPlayer>(module, cse::modules::DemoName);
+#else
 	s_DemoPlayer = (IDemoPlayer*)module;
+#endif
 
-	if ( module )
+	if ( s_DemoPlayer )
 	{
 		s_DemoPlayer->SetEditMode( COM_CheckParm( "-demoedit" ) != 0 );
 		return 1;

@@ -4,8 +4,11 @@
 #include "../vgui2/controls/PHandle.h"
 #include "../tracker/common/server.h"
 
+#if defined(_WIN32)
 #include <windows.h>
+#endif
 
+namespace cse::dedicated { class NativeGui; }
 class CCreateMultiplayerGameServerPage;
 class IManageServer;
 
@@ -34,6 +37,7 @@ private:
 
 	friend int Main( int argc, wchar_t** argv );
 	friend int RunServer();
+    friend class cse::dedicated::NativeGui;
 
 	static vgui2::MessageMapItem_t	m_MessageMap[1];
 	static vgui2::PanelMap_t		m_PanelMap;
@@ -41,7 +45,9 @@ private:
 	IManageServer*					m_pManageServer;
 	vgui2::DHANDLE<vgui2::ProgressBox>	m_hProgress;
 	CCreateMultiplayerGameServerPage*	m_pConfig;
+#if defined(_WIN32)
 	HANDLE							m_hEvent;
+#endif
 	bool							m_bStarting;
 	bool							m_bStarted;
 	bool							m_bQuit;

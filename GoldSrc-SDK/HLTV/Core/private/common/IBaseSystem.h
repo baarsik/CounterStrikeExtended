@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/native/IBaseSystem.h"
+#else
 #ifndef IBASESYSTEM_H
 #define IBASESYSTEM_H
 
@@ -64,5 +68,7 @@ public:
 	virtual void Stop() = 0;
 	virtual char* COM_GetBaseDir() = 0;
 };
+
+#endif
 
 #endif

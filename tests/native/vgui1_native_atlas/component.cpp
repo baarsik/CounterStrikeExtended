@@ -134,6 +134,26 @@ extern "C" int FixtureOpen(std::uint64_t epoch, const char* root, const char* pr
     return 0;
 }
 
+extern "C" int FixtureOpenV2(std::uint64_t epoch, const char* root, const char* provider,
+    const cse_vgui1_host::HostReleasesV2* host) {
+    Check(host != nullptr, "actual main-image V2 host release owner");
+    const cse_vgui1_host::HostReleasesV2 missing{};
+    Check(runtime.Open(native::BindingV2{epoch, root, provider, missing}) == native::Result::InvalidArgument,
+        "missing V2 ownership route rejected before admission");
+    const cse_vgui1_host::HostReleasesV2 self{sizeof(self), cse_vgui1_host::HostReleasesVersion,
+        &runtime, SelfHostedDefer};
+    Check(runtime.Open(native::BindingV2{epoch, root, provider, self}) == native::Result::InvalidArgument,
+        "foreign dylib V2 callback rejected without invoking it");
+    Check(runtime.Open(native::BindingV2{epoch, "/owned/no-such-image.dylib", provider, *host})
+        == native::Result::Unavailable && !runtime.HasReferences(), "V2 wrong image cannot pin");
+    Check(runtime.Open(native::BindingV2{0, root, provider, *host}) == native::Result::InvalidArgument,
+        "V2 no fabricated epoch fallback");
+    Check(runtime.Open(native::BindingV2{epoch, root, provider, *host}) == native::Result::Ready,
+        "actual root/provider images plus main-image V2 release ownership");
+    Bind();
+    return 0;
+}
+
 extern "C" int FixtureSuite() {
     std::uint64_t providerFacts[10]{};
     std::uint64_t consumerFacts[10]{};

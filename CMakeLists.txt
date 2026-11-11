@@ -71,6 +71,9 @@ endif()
 foreach(target IN LISTS runtime_targets)
   add_subdirectory("${CSE_ROOT}/cmake/targets/${target}" "${CMAKE_BINARY_DIR}/targets/${target}")
 endforeach()
+if(APPLE AND NOT CSE_HARDWARE_ONLY)
+  include("${CSE_ROOT}/cmake/MacRuntimeBootstrap.cmake")
+endif()
 if(NOT CSE_TARGET_ARCH STREQUAL x86 AND NOT CSE_HARDWARE_ONLY)
   # This is an isolated process. Its provider compiler/CRT policy is local to
   # the subtree and does not replace the retained runtime per-file policies.

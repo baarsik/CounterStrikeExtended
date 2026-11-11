@@ -7,8 +7,10 @@
 #include "../iclientvgui.h"
 
 #include <cstdint>
+#include "../../public/native_gameui_retirement.h"
 #if INTPTR_MAX > INT32_MAX
 #include <memory>
+#include "../../vgui2/controls/PHandle.h"
 class IHTMLChromeController;
 #endif
 
@@ -35,6 +37,8 @@ public:
 	void Initialize( CreateInterfaceFn* factories, int count ) override;
 	void Start( cl_enginefuncs_s* engineFunctions, int interfaceVersion ) override;
 	void Shutdown() override;
+    bool TryShutdown();
+    bool TryRetireGameUI();
 
 	int Key_Event( int down, int keynum, const char* currentBinding ) override;
 	void CallEngineSurfaceAppHandler( void* event, void* userData ) override;
@@ -56,5 +60,14 @@ private:
 	bool				m_bHidingGameUI;
 #if INTPTR_MAX > INT32_MAX
     std::unique_ptr<IHTMLChromeController> m_nativeChromeController;
+    const cse::gameui_lifetime::RetirementV1* m_nativeRetirement = nullptr;
+    bool m_nativeGameUIInitialized = false;
+    bool m_nativeControlsInitialized = false;
+    bool m_nativeShutdownBusy = false;
+    bool m_nativeRetirementBusy = false;
+    bool m_nativeClientInitialized = false;
+    bool m_nativeClientShutdown = false;
+    bool m_nativeRootDeletionQueued = false;
+    vgui2::DHANDLE<CStaticPanel> m_nativeRoot;
 #endif
 };

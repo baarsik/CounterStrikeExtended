@@ -9,6 +9,10 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+#include <ifaddrs.h>
+#include <net/if.h>
+#endif
 typedef int SOCKET;
 #else
 #include <winsock2.h>
@@ -441,6 +445,21 @@ void NET_SendPacket( netsrc_t source, int length, void* data, netadr_t destinati
 		Con_Printf( "NET_SendPacket ERROR: %s\n", strerror( error ) );
 	else
 	{
+#if defined(__APPLE__)
+        if (destination.type == NA_IP && (error == EHOSTUNREACH || error == ENETUNREACH)) {
+            // Native reachability can change after a local-network policy decision.
+            // Leave retry/timeout ownership with the caller and bound repeated diagnostics.
+            constexpr double kReachabilityWarningIntervalSeconds = 1.0;
+            static double nextReachabilityWarningTime = 0.0;
+            const double now = Sys_FloatTime();
+            if (now >= nextReachabilityWarningTime) {
+                nextReachabilityWarningTime = now + kReachabilityWarningIntervalSeconds;
+                Con_Printf("NET_SendPacket: send to %s failed (%d: %s); waiting for normal retry/timeout\n",
+                    NET_AdrToString(destination), error, strerror(error));
+            }
+            return;
+        }
+#endif
 		if ( error != EADDRNOTAVAIL && error != ENOBUFS )
 			Sys_Error( "NET_SendPacket ERROR: %s\n", strerror( error ) );
 		Con_DPrintf( "NET_SendPacket Warning: %s : %s\n", strerror( error ), NET_AdrToString( destination ) );
@@ -1393,6 +1412,31 @@ void NET_OpenIP()
 	}
 }
 
+#if defined(__APPLE__)
+static in_addr NET_DefaultInterfaceIPv4() {
+    in_addr selected{};
+    selected.s_addr = htonl(INADDR_LOOPBACK);
+    ifaddrs* interfaces = nullptr;
+    if (getifaddrs(&interfaces) != 0) {
+        return selected;
+    }
+    constexpr unsigned int OperationalFlags = IFF_UP | IFF_RUNNING;
+    for (const ifaddrs* entry = interfaces; entry != nullptr; entry = entry->ifa_next) {
+        if (!entry->ifa_addr || entry->ifa_addr->sa_family != AF_INET ||
+            (entry->ifa_flags & OperationalFlags) != OperationalFlags || (entry->ifa_flags & IFF_LOOPBACK) != 0) {
+            continue;
+        }
+        const auto* address = reinterpret_cast<const sockaddr_in*>(entry->ifa_addr);
+        if (address->sin_addr.s_addr != htonl(INADDR_ANY)) {
+            selected = address->sin_addr;
+            break;
+        }
+    }
+    freeifaddrs(interfaces);
+    return selected;
+}
+#endif
+
 void NET_GetLocalAddress()
 {
 	if ( noip )
@@ -1424,24 +1468,35 @@ void NET_GetLocalAddress()
 		Steam_UpdateRichPresence();
 		return;
 	}
-	char name[LOCAL_HOSTNAME_BYTES];
-	if ( Q_strcmp( ipname.string, "localhost" ) != 0 )
-		Q_strncpy( name, ipname.string, sizeof( name ) - 1 );
-	else
-		gethostname( name, sizeof( name ) );
-	name[sizeof( name ) - 1] = 0;
-	Q_memset( &net_local_adr, 0, sizeof( net_local_adr ) );
-	if ( Q_strcmp( name, "localhost" ) != 0 && Q_strcmp( name, "127.0.0.1" ) != 0 )
-	{
-		sockaddr address;
-		if ( NET_StringToSockaddr( name, &address ) && address.sa_family == AF_INET )
-			SockadrToNetadr( &address, &net_local_adr );
-	}
-	else
-	{
-		Q_memset( &net_local_adr, 0, sizeof( net_local_adr ) );
-		net_local_adr.type = NA_LOOPBACK;
-	}
+    Q_memset(&net_local_adr, 0, sizeof(net_local_adr));
+#if defined(__APPLE__)
+    if (Q_strcmp(ipname.string, "localhost") == 0) {
+        // The default socket binds all interfaces. Discover a local IPv4 address
+        // without resolving the Mac's hostname through blocking DNS/mDNS.
+        sockaddr_in local{};
+        local.sin_family = AF_INET;
+        local.sin_addr = NET_DefaultInterfaceIPv4();
+        SockadrToNetadr(reinterpret_cast<sockaddr*>(&local), &net_local_adr);
+    } else {
+#endif
+        char name[LOCAL_HOSTNAME_BYTES];
+        if (Q_strcmp(ipname.string, "localhost") != 0) {
+            Q_strncpy(name, ipname.string, sizeof(name) - 1);
+        } else {
+            gethostname(name, sizeof(name));
+        }
+        name[sizeof(name) - 1] = 0;
+        if (Q_strcmp(name, "localhost") != 0 && Q_strcmp(name, "127.0.0.1") != 0) {
+            sockaddr address;
+            if (NET_StringToSockaddr(name, &address) && address.sa_family == AF_INET) {
+                SockadrToNetadr(&address, &net_local_adr);
+            }
+        } else {
+            net_local_adr.type = NA_LOOPBACK;
+        }
+#if defined(__APPLE__)
+    }
+#endif
 	sockaddr_in address;
 #if !defined( _WIN32 )
 	socklen_t addressLength = sizeof( address );

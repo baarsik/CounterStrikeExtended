@@ -3,6 +3,7 @@
 
 #include "VGui1NativeFontSelection.h"
 #include "../utils/vgui/lib-src/vgui/posix/VGui1FontServices.h"
+#include "../public/native_runtime_host.h"
 #include <cstdint>
 #include <map>
 #include <string>
@@ -14,6 +15,7 @@ class IEngineSurface;
 class EngineSurface;
 namespace vgui {
     class Font;
+    class Scheme;
 }
 
 namespace cse_vgui1_native {
@@ -45,6 +47,13 @@ struct Binding {
     HostReleasesV1 host;
 };
 
+struct BindingV2 {
+    std::uint64_t moduleEpoch;
+    const char* rootImagePath;
+    const char* fontImagePath;
+    cse_vgui1_host::HostReleasesV2 host;
+};
+
 class Scope;
 class Runtime {
 public:
@@ -53,6 +62,7 @@ public:
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
     Result Open(const Binding&) noexcept;
+    Result Open(const BindingV2&) noexcept;
     Result Close() noexcept;
     cse_vgui1_selection::OwnerV1 Owner() noexcept;
     Result BindFiles(const char* const*, std::uint32_t, char*, std::size_t) noexcept;
@@ -81,6 +91,8 @@ public:
 
 private:
     friend class Scope;
+    using ReleaseRoot = bool (*)(void*, void*);
+    Result OpenImpl(std::uint64_t, const char*, const char*, void*, ReleaseRoot) noexcept;
     Result BeginScope() noexcept;
     void EndScope() noexcept;
     struct Pin {
@@ -105,7 +117,8 @@ private:
     std::thread::id thread_{};
     std::map<std::uint64_t, Pin> pins_;
     std::vector<Pin> rollbacks_;
-    HostReleasesV1 host_{};
+    void* hostContext_ = nullptr;
+    ReleaseRoot releaseRoot_ = nullptr;
     std::uint64_t epoch_ = 0;
     std::uint64_t nextToken_ = 0;
     std::uint64_t uses_ = 0;
@@ -136,8 +149,10 @@ Runtime& EmbeddedRuntime() noexcept;
 // promotion is supplied here. Expected failures return ordinary status before
 // the old void VGUI entrypoints are called.
 Result ConfigureEmbedded(const Binding&) noexcept;
+Result ConfigureEmbedded(const BindingV2&) noexcept;
 Result BindEmbeddedFiles(const char* const*, std::uint32_t, char*, std::size_t) noexcept;
 Result ReleaseEmbeddedFiles(char*, std::size_t) noexcept;
+cse_vgui1_selection::Result PrepareEmbeddedScheme(vgui::Scheme*, cse_vgui1_selection::SchemeReport&) noexcept;
 Result CloseEmbedded() noexcept;
 Result AttachEmbedded(EngineSurfaceWrap*, IEngineSurface*) noexcept;
 Result DetachEmbedded(EngineSurfaceWrap*) noexcept;

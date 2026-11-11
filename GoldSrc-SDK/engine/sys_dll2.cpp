@@ -1,5 +1,18 @@
+#include "native_gameui_retirement.h"
+#include <atomic>
+#include <exception>
+#if INTPTR_MAX > INT32_MAX
+cse::NativeGameInitState cse::nativeGameInit;
+#endif
+
+#if defined(__APPLE__)
+#include "native_mouse_window.h"
+#include <pthread.h>
+#endif
+
 #if defined(__APPLE__) && !defined(_WIN32)
 #include "../common/NativeEngineMemory.h"
+#include "../public/native_engine_arguments.h"
 #endif
 
 #if defined(CSE_OWNED_STEAM_PROVIDER)
@@ -8,8 +21,14 @@
 
 #if defined( SW_RENDERER )
 
+#if defined(_WIN32)
 #include <winsock2.h>
 #include <Windows.h>
+#else
+#include <unistd.h>
+#include <netdb.h>
+#endif
+#include "video_platform.h"
 
 #include "interface.h"
 #include "keys.h"
@@ -33,6 +52,7 @@
 #include "registry.h"
 #include "sys.h"
 #include "traceinit.h"
+#include "zone.h"
 
 #include <SDL3/SDL.h>
 
@@ -40,15 +60,24 @@
 #include <cstdio>
 #include <cstdlib>
 #include <climits>
+#include <cstdint>
 #include <cstring>
+#if defined(_WIN32)
 #include <eh.h>
+#endif
 #include "surface_backend_config.h"
+#if defined(__APPLE__)
+#include "../public/native_dedicated_lifetime.h"
+#include "../public/native_dedicated_abi.h"
+#include "../public/native_filesystem_module.h"
+#endif
 
 #define MINIMUM_HEAP_SIZE	0xE00000
 #define MAXIMUM_HEAP_SIZE	0x8000000
 
 vgui2::KeyCode	GetVGUI2KeyCodeForBind( const char* binding );
 void			SetLoadingProgressBarStatusText( const char* statusText );
+void VID_ReleaseBuffers();
 
 class CGameUIFuncs : public IGameUIFuncs
 {
@@ -130,11 +159,13 @@ bool CGameUIFuncs::IsConnectedToVACSecureServer()
 	return ( cls.state == ca_connected || cls.state == ca_active ) && cls.isVAC2Secure != 0;
 }
 
+#if !defined(__APPLE__)
 class IDedicatedExports : public IBaseInterface
 {
 public:
 	virtual void Sys_Printf( char* text ) = 0;
 };
+#endif
 
 class IEngineAPI : public IBaseInterface
 {
@@ -143,16 +174,7 @@ public:
 		CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory ) = 0;
 };
 
-class IDedicatedServerAPI : public IBaseInterface
-{
-public:
-	virtual bool Init(
-		char* basedir, char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory ) = 0;
-	virtual int Shutdown() = 0;
-	virtual bool RunFrame() = 0;
-	virtual void AddConsoleText( char* text ) = 0;
-	virtual void UpdateStatus( float* fps, int* nActive, int* nMaxPlayers, char* pszMap ) = 0;
-};
+#include "../public/dedicated_api.h"
 
 class CEngineAPI : public IEngineAPI
 {
@@ -180,8 +202,25 @@ public:
 	void AddConsoleText( char* text ) override;
 	void UpdateStatus( float* fps, int* nActive, int* nMaxPlayers, char* pszMap ) override;
 
+#if defined(__APPLE__)
+    std::uint32_t Retire(std::uint32_t interfaceVersion);
+#endif
+
 private:
-	char	m_OrigCmd[1024];
+#if defined(__APPLE__)
+    bool m_initializing = false;
+    bool m_shuttingDown = false;
+    bool m_shutdownCompleted = false;
+    bool m_retired = false;
+#endif
+    char m_OrigCmd[1024]{};
+#if defined(__APPLE__)
+    bool m_registryInitialized = false;
+    bool m_filesystemInitialized = false;
+    bool m_gameInitialized = false;
+    bool m_engineStarted = false;
+    bool m_running = false;
+#endif
 };
 #ifdef _MSC_VER
 #pragma warning( pop )
@@ -216,9 +255,9 @@ int gHasMMXTechnology;
 void ( *VID_FlipScreen )();
 int ( *D_SurfaceCacheForRes )( int width, int height );
 void ( *Launcher_ConsolePrintf )( char* format, ... );
-HDC			maindc;
-HGLRC		baseRC;
-HINSTANCE	g_hOpenGL;
+CseVideoDC maindc;
+CseVideoContext baseRC;
+CseGLModule g_hOpenGL;
 char*		argv[MAX_NUM_ARGVS];
 qboolean	g_bPrintingKeepAliveDots;
 const char*	szReslistsExt = ".lst";
@@ -227,8 +266,10 @@ const char*	szCommonPreloads = "multiplayer_preloads";
 
 static IDedicatedExports* dedicated;
 static double g_flLastSteamProgressUpdateTime;
+#if defined(_WIN32)
 static qboolean g_PerfCounterInitialized;
 static CRITICAL_SECTION g_PerfCounterMutex;
+#endif
 
 CGameUIFuncs::~CGameUIFuncs()
 {
@@ -247,16 +288,35 @@ void Sys_VID_FlipScreen()
 	videomode->FlipScreen();
 }
 
-int Sys_GetSurfaceCacheSize( int width, int height )
-{
-	int parameter = COM_CheckParm( "-surfcachesize" );
-	if ( parameter )
-		return atoi( com_argv[parameter + 1] ) << 10;
-
-	int cached = 2953728 + 6 * height * width;
-	if ( 2 * height * width < 64001 )
-		return 3145728;
-	return cached;
+int Sys_GetSurfaceCacheSize(int width, int height) {
+    constexpr int kMaximumSoftwareWidth = 5120;
+    constexpr int kMaximumSoftwareHeight = 1600;
+    constexpr std::int64_t kCacheBaseBytes = 2953728;
+    constexpr std::int64_t kCacheBytesPerPixel = 6;
+    constexpr std::int64_t kSmallBufferLimit = 64001;
+    constexpr int kSmallSurfaceCacheBytes = 3145728;
+    constexpr int kBytesPerKibibyte = 1024;
+    if (width <= 0 || height <= 0 || width > kMaximumSoftwareWidth || height > kMaximumSoftwareHeight) {
+        return 0;
+    }
+    const int parameter = COM_CheckParm("-surfcachesize");
+    if (parameter) {
+        if (parameter + 1 >= com_argc) {
+            return 0;
+        }
+        char *end = nullptr;
+        const long long kibibytes = std::strtoll(com_argv[parameter + 1], &end, 10);
+        if (end == com_argv[parameter + 1] || *end != '\0' || kibibytes <= 0 ||
+            kibibytes > INT_MAX / kBytesPerKibibyte) {
+            return 0;
+        }
+        return static_cast<int>(kibibytes) * kBytesPerKibibyte;
+    }
+    const std::int64_t pixels = static_cast<std::int64_t>(height) * width;
+    if (sizeof(short) * pixels < kSmallBufferLimit) {
+        return kSmallSurfaceCacheBytes;
+    }
+    return static_cast<int>(kCacheBaseBytes + kCacheBytesPerPixel * pixels);
 }
 
 void Legacy_Sys_Printf( char* format, ... )
@@ -292,7 +352,9 @@ void Sys_SetupLegacyAPIs()
 void Sys_InitLauncherInterface()
 {
     gHasMMXTechnology = CsePackedSurfaceLightingAvailable();
+#if defined(_WIN32)
 	g_hOpenGL = GetModuleHandleA( "opengl32.dll" );
+#endif
 	VID_FlipScreen = Sys_VID_FlipScreen;
 	D_SurfaceCacheForRes = Sys_GetSurfaceCacheSize;
 	Launcher_ConsolePrintf = Legacy_Sys_Printf;
@@ -323,6 +385,7 @@ qboolean Sys_IsWin98()
 
 void Sys_CheckOSVersion()
 {
+#if defined(_WIN32)
 	OSVERSIONINFOA version = {};
 	version.dwOSVersionInfoSize = sizeof( version );
 #pragma warning( push )
@@ -340,17 +403,22 @@ void Sys_CheckOSVersion()
 		else if ( version.dwMinorVersion - 1 <= 88 )
 			g_bIsWin98 = true;
 	}
+#else
+    Win32AtLeastV4 = true;
+#endif
 }
 
 void Sys_Shutdown()
 {
 	Sys_ShutdownFloatTime();
 	Steam_ShutdownClient();
+#if defined(_WIN32)
 	if ( g_PerfCounterInitialized )
 	{
 		DeleteCriticalSection( &g_PerfCounterMutex );
 		g_PerfCounterInitialized = false;
 	}
+#endif
 }
 
 void Sys_ShutdownArgv()
@@ -359,6 +427,38 @@ void Sys_ShutdownArgv()
 
 void Sys_InitArgv( char* commandLine )
 {
+#if defined(__APPLE__) && !defined(_WIN32)
+    static_assert(MAX_NUM_ARGVS == cse::native_arguments::ArgumentCapacity,
+        "Native encoded argument limit must match the real engine argv storage");
+    argv[0] = const_cast<char*>(com_empty_string);
+    int argc = 1;
+    char* input = commandLine;
+    char* output = commandLine;
+    while (*input && argc < MAX_NUM_ARGVS) {
+        while (*input == ' ') {
+            ++input;
+        }
+        if (!*input) {
+            break;
+        }
+        argv[argc++] = output;
+        const bool quoted = *input == '"';
+        if (quoted) {
+            ++input;
+        }
+        while (*input && (quoted ? *input != '"' : *input != ' ')) {
+            *output++ = *input++;
+        }
+        if (quoted && *input == '"') {
+            ++input;
+        }
+        // Advance past the separator before writing the terminator in place.
+        if (*input == ' ') {
+            ++input;
+        }
+        *output++ = '\0';
+    }
+#else
 	argv[0] = (char*)com_empty_string;
 	int argc = 1;
 	host_parms.argc = 1;
@@ -384,6 +484,7 @@ void Sys_InitArgv( char* commandLine )
 		*commandLine++ = '\0';
 	}
 
+#endif
 	host_parms.argv = argv;
 	COM_InitArgv( argc, argv );
 	host_parms.argc = com_argc;
@@ -472,6 +573,12 @@ void Sys_InitMemory()
 void Sys_ShutdownMemory()
 {
 #if defined(__APPLE__) && !defined(_WIN32)
+    if (host_parms.membase && cache_head.next) {
+        // Cache users can live outside the hunk (notably mod_known). Retire
+        // their data pointers while the linked cache headers still exist.
+        Cache_Force_Flush();
+    }
+    VID_ReleaseBuffers();
     cse_native_engine_memory::ReleaseHeap(host_parms.membase, host_parms.memsize);
 #else
 	GlobalFree( host_parms.membase );
@@ -550,46 +657,51 @@ const char* GetRateRegistrySetting( const char* defaultRate )
 	return registry->ReadString( "rate", defaultRate );
 }
 
-void Sys_GetCDKey( char* key, int* length, int* dedicatedServer )
-{
-	char hostname[MAX_PATH];
-	char formatted[65];
-	if ( gethostname( hostname, sizeof( hostname ) ) != 0 )
-	{
-		_snprintf( formatted, sizeof( formatted ), "%u", (unsigned int)RandomLong( 0, 0x7FFF ) );
-	}
-	else
-	{
-#if defined( _MSC_VER )
-#pragma warning( push )
-#pragma warning( disable : 4996 )
+void Sys_GetCDKey(char *key, int *length, int *dedicatedServer) {
+    char hostname[MAX_PATH];
+    char formatted[65];
+    if (gethostname(hostname, MAX_PATH) != 0) {
+        _snprintf(formatted, sizeof(formatted), "%u", static_cast<unsigned int>(RandomLong(0, 0x7FFF)));
+    } else {
+#if defined(__APPLE__)
+        // This legacy LAN identifier is independent of Steam authentication.
+        // Resolving a Mac's local hostname can block the game thread in mDNS.
+        hostname[sizeof(hostname) - 1] = '\0';
+        CRC32_t crc;
+        CRC32_Init(&crc);
+        CRC32_ProcessBuffer(&crc, hostname, static_cast<int>(std::strlen(hostname)));
+        _snprintf(formatted, sizeof(formatted), "%u", CRC32_Final(crc));
+#else
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
 #endif
-		hostent* host = gethostbyname( hostname );
-#if defined( _MSC_VER )
-#pragma warning( pop )
+        hostent *host = gethostbyname(hostname);
+#if defined(_MSC_VER)
+#pragma warning(pop)
 #endif
-		unsigned char* address = NULL;
-		if ( host && host->h_length == 4 )
-			address = (unsigned char*)*host->h_addr_list;
-		if ( !address )
-		{
-			CRC32_t crc;
-			CRC32_ProcessBuffer( &crc, hostname, (int)strlen( hostname ) );
-			_snprintf( formatted, sizeof( formatted ), "%u", crc );
-		}
-		else
-		{
-			_snprintf(
-				formatted, sizeof( formatted ), "%u.%u.%u.%u", address[0], address[1], address[2], address[3] );
-		}
-	}
+        unsigned char *address = nullptr;
+        if (host != nullptr && host->h_length == 4) {
+            address = reinterpret_cast<unsigned char *>(*host->h_addr_list);
+        }
+        if (address == nullptr) {
+            CRC32_t crc;
+            CRC32_ProcessBuffer(&crc, hostname, static_cast<int>(std::strlen(hostname)));
+            _snprintf(formatted, sizeof(formatted), "%u", crc);
+        } else {
+            _snprintf(formatted, sizeof(formatted), "%u.%u.%u.%u", address[0], address[1], address[2], address[3]);
+        }
+#endif
+    }
 
-	formatted[sizeof( formatted ) - 1] = '\0';
-	strcpy( key, formatted );
-	if ( length )
-		*length = (int)strlen( formatted );
-	if ( dedicatedServer )
-		*dedicatedServer = 0;
+    formatted[sizeof(formatted) - 1] = '\0';
+    std::strcpy(key, formatted);
+    if (length != nullptr) {
+        *length = static_cast<int>(std::strlen(formatted));
+    }
+    if (dedicatedServer != nullptr) {
+        *dedicatedServer = 0;
+    }
 }
 
 int Sys_InitGame( char*, char*, void* windowAddress, int dedicatedServer )
@@ -609,20 +721,53 @@ int Sys_InitGame( char*, char*, void* windowAddress, int dedicatedServer )
 	SV_ResetModInfo();
 	TraceInit( "Sys_Init()", "Sys_Shutdown()", 0 );
 	Sys_Init();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.sysInitialized = true;
+    }
+#endif
 	FS_LogLevelLoadStarted( "Launcher" );
 	SeedRandomNumberGenerator();
 	TraceInit( "Sys_InitMemory()", "Sys_ShutdownMemory()", 0 );
 	Sys_InitMemory();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.memoryAllocated = host_parms.membase != nullptr;
+    }
+#endif
 	TraceInit( "Sys_InitLauncherInterface()", "Sys_ShutdownLauncherInterface()", 0 );
 	Sys_InitLauncherInterface();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.launcherInitialized = true;
+    }
+#endif
 
 	TraceInit( "Host_Init( &host_parms )", "Host_Shutdown()", 0 );
-	Host_Init( &host_parms );
-	if ( !host_initialized )
-		return 0;
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.hostAttempted = true;
+    }
+#endif
+#if INTPTR_MAX > INT32_MAX
+    const int hostResult = Host_Init(&host_parms);
+    if (hostResult == 0 || !host_initialized) {
+        return 0;
+    }
+#else
+    Host_Init(&host_parms);
+    if (!host_initialized) {
+        return 0;
+    }
+#endif
 
 	TraceInit( "Sys_InitAuthentication()", "Sys_ShutdownAuthentication()", 0 );
 	Sys_InitAuthentication();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.authenticationInitialized = true;
+    }
+#endif
 	if ( g_bIsDedicatedServer )
 	{
 		Host_InitializeGameDLL();
@@ -631,6 +776,11 @@ int Sys_InitGame( char*, char*, void* windowAddress, int dedicatedServer )
 	else
 	{
 		ClientDLL_ActivateMouse();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.clientMouseActivated = true;
+    }
+#endif
 	}
 
 	return 1;
@@ -638,6 +788,12 @@ int Sys_InitGame( char*, char*, void* windowAddress, int dedicatedServer )
 
 void Sys_ShutdownGame()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer) {
+        cse::TryShutdownNativeGame();
+        return;
+    }
+#endif
 	if ( !g_bIsDedicatedServer )
 		ClientDLL_DeactivateMouse();
 	TraceShutdown( "Host_Shutdown()", 0 );
@@ -655,7 +811,17 @@ void Sys_ShutdownGame()
 int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn, CreateInterfaceFn filesystemFactory )
 {
+#if defined(__APPLE__)
+    bool nativeReleaseVideo = false;
+    bool nativeShutdownGame = false;
+    bool nativeShutdownVideo = false;
+#endif
+#if INTPTR_MAX > INT32_MAX
+    cse::nativeGameInit = {};
+    cse::ResetNativeHostShutdown();
+#endif
 	static char OrigCmd[1024];
+    g_bIsDedicatedServer = false;
 	g_pPostRestartCmdLineArgs = postRestartCmdLineArgs;
 	Q_strncpy_s( OrigCmd, cmdline, sizeof( OrigCmd ) );
 	TraceInit( "Sys_InitArgv( OrigCmd )", "Sys_ShutdownArgv()", 0 );
@@ -663,20 +829,38 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 	eng->SetQuitting( 0 );
 	registry->Init();
 	Steam_InitClient();
+#if INTPTR_MAX > INT32_MAX
+    cse::nativeGameInit.steamClientInitialized = true;
+#endif
 	TraceInit( "FileSystem_Init(basedir, (void *)filesystemFactory)", "FileSystem_Shutdown()", 0 );
 	int initialized = FileSystem_Init( basedir, filesystemFactory );
-	if ( !initialized )
-		return initialized;
+    if (!initialized) {
+#if INTPTR_MAX > INT32_MAX
+        // Filesystem setup can partially bind an interface/image before returning failure.
+        FileSystem_Shutdown();
+        Steam_ShutdownClient();
+        cse::nativeGameInit.steamClientInitialized = false;
+        cse::nativeGameInit.complete = true;
+        registry->Shutdown();
+#endif
+        return initialized;
+    }
 
 	VideoMode_Create();
 	int result = 2;
 	registry->WriteInt( "CrashInitializingVideoMode", 1 );
 	if ( videomode->Init( instance ) )
 	{
+#if defined(__APPLE__)
+        nativeShutdownVideo = true;
+#endif
 		result = 0;
 		registry->WriteInt( "CrashInitializingVideoMode", 0 );
 		if ( game->Init( instance ) )
 		{
+#if defined(__APPLE__)
+            nativeShutdownGame = true;
+#endif
 			result = 2;
 			if ( eng->Load( false, basedir, cmdline ) )
 			{
@@ -684,25 +868,99 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 				for ( ;; )
 				{
 					game->SleepUntilInput( 0 );
-					if ( eng->GetQuitting() )
-						break;
+					if (eng->GetQuitting()) {
+#if defined(__APPLE__)
+                        if (!cse::NativeMouseWindowState().Invalidate(nullptr)) {
+                            // Retain this outer engine frame until native dispatch has unwound.
+                            SDL_Delay(1);
+                            continue;
+                        }
+#endif
+                        break;
+                    }
 					eng->Frame();
 				}
 				result = eng->GetQuitting() != 1;
-				eng->Unload();
+#if INTPTR_MAX <= INT32_MAX
+                eng->Unload();
+#endif
 			}
-			game->Shutdown();
+#if INTPTR_MAX > INT32_MAX
+            // Retain this run frame and AudioModuleShutdown until every inner owner has retired.
+            for (;;) {
+                bool retired = false;
+                if (cse::EnterNativeGameUIRetirement()) {
+                    retired = cse::TryUnloadNativeEngine();
+                    cse::LeaveNativeGameUIRetirement();
+                }
+                if (retired) {
+                    break;
+                }
+                constexpr unsigned int RetirementYieldMilliseconds = 1;
+                SDL_Delay(RetirementYieldMilliseconds);
+            }
+#endif
+#if defined(__APPLE__)
+            nativeReleaseVideo = true;
+#else
+			videomode->ReleaseVideo();
+            game->Shutdown();
+#endif
 		}
-		videomode->Shutdown();
-	}
+#if !defined(__APPLE__)
+        videomode->Shutdown();
+#endif
+    }
+#if !defined(_WIN32)
+    else {
+#if defined(__APPLE__)
+        nativeReleaseVideo = true;
+        nativeShutdownGame = true;
+        nativeShutdownVideo = true;
+#else
+        videomode->ReleaseVideo();
+        game->Shutdown();
+        videomode->Shutdown();
+#endif
+    }
+#endif
 
-	TraceShutdown( "FileSystem_Shutdown()", 0 );
+#if INTPTR_MAX > INT32_MAX
+    for (;;) {
+        bool retired = false;
+        if (cse::EnterNativeGameUIRetirement()) {
+            retired = cse::TryUnloadNativeEngine();
+            cse::LeaveNativeGameUIRetirement();
+        }
+        if (retired) {
+            break;
+        }
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+    }
+#endif
+#if defined(__APPLE__)
+    if (game->GetMainWindow()) {
+        nativeShutdownGame = true;
+        nativeShutdownVideo = true;
+    }
+    bool outerRetired = cse::BeginNativeListenShutdown(nativeReleaseVideo, nativeShutdownGame, nativeShutdownVideo);
+    while (!outerRetired) {
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+        outerRetired = cse::FinishNativeListenShutdown();
+    }
+    return result;
+#else
+    TraceShutdown( "FileSystem_Shutdown()", 0 );
 	FileSystem_Shutdown();
 	registry->Shutdown();
 	TraceShutdown( "Sys_ShutdownArgv()", 0 );
 	return result;
+#endif
 }
 
+#if defined(_WIN32)
 static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 {
 	char message[256];
@@ -711,26 +969,199 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 	SteamAPI_WriteMiniDump( code, exception, build_number() );
 }
 
+#endif
+
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if INTPTR_MAX > INT32_MAX
+    // Every ordinary return authorizes launcher image unload. Invalid ownership cannot return safely.
+    static std::atomic_flag nativeRunActive = ATOMIC_FLAG_INIT;
+    if (nativeRunActive.test_and_set(std::memory_order_acquire) || !cse::InitializeNativeGameUIHost()) {
+        std::fputs("Fatal native engine Run ownership invariant; active dependencies cannot be unloaded\n", stderr);
+        std::terminate();
+    }
+    struct NativeRunGuard {
+        std::atomic_flag& active;
+        ~NativeRunGuard() {
+            active.clear(std::memory_order_release);
+        }
+    } nativeRunGuard{nativeRunActive};
+#if defined(__APPLE__)
+    while (!cse::FinishNativeListenShutdown()) {
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+    }
+#endif
+#endif
     cse::AudioModuleShutdown audioModuleShutdown;
 	if ( !strstr( cmdline, "-nobreakpad" ) )
 	{
 		char* build = va( "%d", build_number() );
 		SteamAPI_UseBreakpadCrashHandler( build, "Oct  7 2024", "19:00:27", 0, NULL, NULL );
 	}
+#if defined(_WIN32)
 	_set_se_translator( ExceptionHandler );
+#endif
 	try
 	{
 		return RunListenServer( instance, basedir, cmdline, postRestartCmdLineArgs, launcherFactory, filesystemFactory );
 	}
 	catch ( ... )
 	{
+#if INTPTR_MAX > INT32_MAX
+        std::fputs("Fatal native engine exception; unknown partial ownership cannot be safely retired\n", stderr);
+        std::terminate();
+#else
 		return 0;
+#endif
 	}
 }
 
+#if defined(__APPLE__)
+bool CDedicatedServerAPI::Init(char *basedir, char *cmdline, CreateInterfaceFn launcherFactory,
+                               CreateInterfaceFn filesystemFactory) {
+#if defined(__APPLE__)
+    if (m_retired || m_initializing || m_shuttingDown) {
+        return false;
+    }
+#endif
+    static_assert(sizeof(m_OrigCmd) == cse::native_arguments::CommandCapacity);
+    if (!launcherFactory || !basedir || !cse::native_arguments::Validate(cmdline)) {
+        return false;
+    }
+    if (!cse::dedicated_abi::HostFactoryCompatible(launcherFactory)
+        || !cse::filesystem_abi::CompatibleFactory(filesystemFactory)) {
+        return false;
+    }
+    Shutdown();
+    if (!m_shutdownCompleted) {
+        return false;
+    }
+#if defined(__APPLE__)
+    m_shutdownCompleted = false;
+    m_initializing = true;
+    struct InitializationScope {
+        bool &active;
+        ~InitializationScope() {
+            active = false;
+        }
+    } initializationScope{m_initializing};
+#endif
+    dedicated = static_cast<IDedicatedExports *>(launcherFactory("VENGINE_DEDICATEDEXPORTS_API_VERSION001", nullptr));
+    if (!dedicated || !cse::dedicated_abi::ViewCompatible<IDedicatedExports>(dedicated, launcherFactory, 1)) {
+        dedicated = nullptr;
+        return false;
+    }
+    std::strcpy(m_OrigCmd, cmdline);
+    if (!std::strstr(cmdline, "-nobreakpad")) {
+        char *build = va("%d", build_number());
+        SteamAPI_UseBreakpadCrashHandler(build, "Oct  7 2024", "19:00:27", 0, nullptr, nullptr);
+    }
+    TraceInit("Sys_InitArgv( m_OrigCmd )", "Sys_ShutdownArgv()", 0);
+    Sys_InitArgv(m_OrigCmd);
+    eng->SetQuitting(0);
+    registry->Init();
+    m_registryInitialized = true;
+    g_bIsDedicatedServer = true;
+    TraceInit("FileSystem_Init(basedir, (void *)filesystemFactory)", "FileSystem_Shutdown()", 0);
+    m_filesystemInitialized = true;
+    if (!FileSystem_Init(basedir, filesystemFactory)) {
+        Shutdown();
+        return false;
+    }
+    if (!game->Init(nullptr)) {
+        Shutdown();
+        return false;
+    }
+    m_gameInitialized = true;
+    m_engineStarted = true;
+    if (!eng->Load(true, basedir, cmdline)) {
+        Shutdown();
+        return false;
+    }
+    m_running = true;
+    char command[256];
+    std::snprintf(command, sizeof(command), "exec %s\n", servercfgfile.string);
+    Cbuf_InsertText(command);
+    return true;
+}
+
+int CDedicatedServerAPI::Shutdown() {
+    if (m_shuttingDown) {
+        return giActive;
+    }
+    m_shuttingDown = true;
+    m_shutdownCompleted = false;
+    struct ShutdownScope {
+        bool &active;
+        ~ShutdownScope() {
+            active = false;
+        }
+    } shutdownScope{m_shuttingDown};
+
+    m_running = false;
+    // Keep each owner live until its external cleanup returns. Nested API calls
+    // cannot advance dependent teardown or publish completion during callbacks.
+    if (m_engineStarted) {
+        eng->Unload();
+        m_engineStarted = false;
+    }
+    if (m_gameInitialized) {
+        if (!game->Shutdown()) {
+            return giActive;
+        }
+        m_gameInitialized = false;
+    }
+    if (m_filesystemInitialized) {
+        TraceShutdown("FileSystem_Shutdown()", 0);
+        FileSystem_Shutdown();
+        m_filesystemInitialized = false;
+    }
+    if (m_registryInitialized) {
+        registry->Shutdown();
+        TraceShutdown("Sys_ShutdownArgv()", 0);
+        Sys_ShutdownArgv();
+        m_registryInitialized = false;
+    }
+    dedicated = nullptr;
+    m_shutdownCompleted = true;
+    return giActive;
+}
+
+#if defined(__APPLE__)
+std::uint32_t CDedicatedServerAPI::Retire(std::uint32_t interfaceVersion) {
+    if (interfaceVersion != CSE_NATIVE_DEDICATED_LIFETIME_VERSION) {
+        return CSE_DEDICATED_RETIRE_UNSUPPORTED_VERSION;
+    }
+    if (m_retired) {
+        return CSE_DEDICATED_RETIRE_ALREADY_RETIRED;
+    }
+    if (m_initializing || m_shuttingDown || m_registryInitialized || m_filesystemInitialized || m_gameInitialized ||
+        m_engineStarted ||
+        m_running || host_initialized || videomode) {
+        return CSE_DEDICATED_RETIRE_SESSION_ACTIVE;
+    }
+    if (!m_shutdownCompleted) {
+        return CSE_DEDICATED_RETIRE_SHUTDOWN_REQUIRED;
+    }
+    if (!CseSteamRetireServerTransport()) {
+        return CSE_DEDICATED_RETIRE_TRANSPORT_FAILURE;
+    }
+    m_retired = true;
+    return CSE_DEDICATED_RETIRE_READY;
+}
+#endif
+
+bool CDedicatedServerAPI::RunFrame() {
+    if (m_running && eng->GetQuitting() == 0) {
+        eng->Frame();
+        return true;
+    }
+    return false;
+}
+
+#else
 bool CDedicatedServerAPI::Init(
 	char* basedir, char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
@@ -790,6 +1221,8 @@ bool CDedicatedServerAPI::RunFrame()
 	}
 	return false;
 }
+
+#endif
 
 void CDedicatedServerAPI::AddConsoleText( char* text )
 {
@@ -887,7 +1320,22 @@ int BuildMapCycleListHints( char** hints )
 }
 
 EXPOSE_SINGLE_INTERFACE( CEngineAPI, IEngineAPI, VENGINE_LAUNCHER_API_VERSION );
+#if defined(__APPLE__)
+static CDedicatedServerAPI nativeDedicatedServer;
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CDedicatedServerAPI, IDedicatedServerAPI,
+    "VENGINE_HLDS_API_VERSION002", nativeDedicatedServer);
+extern "C" __attribute__((visibility("default"))) const cse::abi::Descriptor* CseGetDedicatedAbiV1() {
+    static constexpr auto descriptor = cse::engine_bootstrap_abi::DescribeEngine<IEngineAPI,
+        IDedicatedServerAPI, IDedicatedExports, CreateInterfaceFn>();
+    return &descriptor;
+}
+extern "C" __attribute__((visibility("default"))) std::uint32_t CseNativeDedicatedRetireV1(
+    std::uint32_t interfaceVersion) {
+    return nativeDedicatedServer.Retire(interfaceVersion);
+}
+#else
 EXPOSE_SINGLE_INTERFACE( CDedicatedServerAPI, IDedicatedServerAPI, "VENGINE_HLDS_API_VERSION002" );
+#endif
 EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSION001" );
 
 #else
@@ -1077,16 +1525,7 @@ public:
 		CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory ) = 0;
 };
 
-class IDedicatedServerAPI : public IBaseInterface
-{
-public:
-	virtual bool Init(
-		char* basedir, char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory ) = 0;
-	virtual int Shutdown() = 0;
-	virtual bool RunFrame() = 0;
-	virtual void AddConsoleText( char* text ) = 0;
-	virtual void UpdateStatus( float* fps, int* nActive, int* nMaxPlayers, char* pszMap ) = 0;
-};
+#include "../public/dedicated_api.h"
 
 class CEngineAPI : public IEngineAPI
 {
@@ -1599,6 +2038,15 @@ void Sys_GetCDKey(char *key, int *length, int *dedicatedServer) {
     if (gethostname(hostname, kHostNameBytes) != 0) {
         _snprintf(formatted, sizeof(formatted), "%u", static_cast<unsigned int>(RandomLong(0, kCdKeyRandomMaximum)));
     } else {
+#if defined(__APPLE__)
+        // This legacy LAN identifier is independent of Steam authentication.
+        // Resolving a Mac's local hostname can block the game thread in mDNS.
+        hostname[sizeof(hostname) - 1] = '\0';
+        CRC32_t crc;
+        CRC32_Init(&crc);
+        CRC32_ProcessBuffer(&crc, hostname, static_cast<int>(std::strlen(hostname)));
+        _snprintf(formatted, sizeof(formatted), "%u", CRC32_Final(crc));
+#else
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -1618,6 +2066,7 @@ void Sys_GetCDKey(char *key, int *length, int *dedicatedServer) {
         } else {
             _snprintf(formatted, sizeof(formatted), "%u.%u.%u.%u", address[0], address[1], address[2], address[3]);
         }
+#endif
     }
 
     formatted[kCdKeyBytes - 1] = '\0';
@@ -1647,22 +2096,60 @@ int Sys_InitGame( char* cmdline, [[maybe_unused]] char* basedir, void* windowAdd
 	SV_ResetModInfo();
 	TraceInit( "Sys_Init()", "Sys_Shutdown()", 0 );
 	Sys_Init();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.sysInitialized = true;
+    }
+#endif
 	FS_LogLevelLoadStarted( "Launcher" );
 	SeedRandomNumberGenerator();
 	TraceInit( "Sys_InitMemory()", "Sys_ShutdownMemory()", 0 );
 	Sys_InitMemory();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.memoryAllocated = host_parms.membase != nullptr;
+    }
+#endif
 	TraceInit( "Sys_InitLauncherInterface()", "Sys_ShutdownLauncherInterface()", 0 );
 	Sys_InitLauncherInterface();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.launcherInitialized = true;
+    }
+#endif
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.modeAttempted = true;
+    }
+#endif
 	if ( GL_SetMode( reinterpret_cast<CseGameWindowHandle>( *pmainwindow ), &maindc, &baseRC, gD3DMode, "opengl32.dll", cmdline ) == 0 )
 		return 0;
 
 	TraceInit( "Host_Init( &host_parms )", "Host_Shutdown()", 0 );
-	Host_Init( &host_parms );
-	if ( !host_initialized )
-		return 0;
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.hostAttempted = true;
+    }
+#endif
+#if INTPTR_MAX > INT32_MAX
+    const int hostResult = Host_Init(&host_parms);
+    if (hostResult == 0 || !host_initialized) {
+        return 0;
+    }
+#else
+    Host_Init(&host_parms);
+    if (!host_initialized) {
+        return 0;
+    }
+#endif
 
 	TraceInit( "Sys_InitAuthentication()", "Sys_ShutdownAuthentication()", 0 );
 	Sys_InitAuthentication();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.authenticationInitialized = true;
+    }
+#endif
 	if ( g_bIsDedicatedServer )
 	{
 		Host_InitializeGameDLL();
@@ -1671,6 +2158,11 @@ int Sys_InitGame( char* cmdline, [[maybe_unused]] char* basedir, void* windowAdd
 	else
 	{
 		ClientDLL_ActivateMouse();
+#if INTPTR_MAX > INT32_MAX
+    if (!dedicatedServer) {
+        cse::nativeGameInit.clientMouseActivated = true;
+    }
+#endif
 	}
 
 #if !defined( _WIN32 )
@@ -1692,6 +2184,12 @@ int Sys_InitGame( char* cmdline, [[maybe_unused]] char* basedir, void* windowAdd
 
 void Sys_ShutdownGame()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer) {
+        cse::TryShutdownNativeGame();
+        return;
+    }
+#endif
 	if ( !g_bIsDedicatedServer )
 		ClientDLL_DeactivateMouse();
 	TraceShutdown( "Host_Shutdown()", 0 );
@@ -1709,6 +2207,15 @@ void Sys_ShutdownGame()
 int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	[[maybe_unused]] CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if defined(__APPLE__)
+    bool nativeReleaseVideo = false;
+    bool nativeShutdownGame = false;
+    bool nativeShutdownVideo = false;
+#endif
+#if INTPTR_MAX > INT32_MAX
+    cse::nativeGameInit = {};
+    cse::ResetNativeHostShutdown();
+#endif
 	static char OrigCmd[1024];
 	g_pPostRestartCmdLineArgs = postRestartCmdLineArgs;
 	Q_strncpy_s( OrigCmd, cmdline, static_cast<int>( sizeof( OrigCmd ) ) );
@@ -1717,20 +2224,38 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 	eng->SetQuitting( 0 );
 	registry->Init();
 	Steam_InitClient();
+#if INTPTR_MAX > INT32_MAX
+    cse::nativeGameInit.steamClientInitialized = true;
+#endif
 	TraceInit( "FileSystem_Init(basedir, (void *)filesystemFactory)", "FileSystem_Shutdown()", 0 );
 	int initialized = FileSystem_Init( basedir, filesystemFactory );
-	if ( initialized == 0 )
-		return initialized;
+    if (!initialized) {
+#if INTPTR_MAX > INT32_MAX
+        // Filesystem setup can partially bind an interface/image before returning failure.
+        FileSystem_Shutdown();
+        Steam_ShutdownClient();
+        cse::nativeGameInit.steamClientInitialized = false;
+        cse::nativeGameInit.complete = true;
+        registry->Shutdown();
+#endif
+        return initialized;
+    }
 
 	VideoMode_Create();
 	int result = 2;
 	registry->WriteInt( "CrashInitializingVideoMode", 1 );
 	if ( videomode->Init( instance ) )
 	{
+#if defined(__APPLE__)
+        nativeShutdownVideo = true;
+#endif
 		result = 0;
 		registry->WriteInt( "CrashInitializingVideoMode", 0 );
 		if ( game->Init( instance ) )
 		{
+#if defined(__APPLE__)
+            nativeShutdownGame = true;
+#endif
 			result = 2;
 			// Start up the game engine
 			if ( eng->Load( false, basedir, cmdline ) )
@@ -1739,25 +2264,82 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 				for ( ;; )
 				{
 					game->SleepUntilInput( 0 );
-					if ( eng->GetQuitting() != 0 )
-						break;
+					if (eng->GetQuitting() != 0) {
+#if defined(__APPLE__)
+                        if (!cse::NativeMouseWindowState().Invalidate(nullptr)) {
+                            // Retain this outer engine frame until native dispatch has unwound.
+                            SDL_Delay(1);
+                            continue;
+                        }
+#endif
+                        break;
+                    }
 					eng->Frame();
 				}
 				result = eng->GetQuitting() != 1;
 				// Unload GL, Sound, etc.
-				eng->Unload();
+#if INTPTR_MAX <= INT32_MAX
+                eng->Unload();
+#endif
 			}
+#if INTPTR_MAX > INT32_MAX
+            // Retain this run frame and AudioModuleShutdown until every inner owner has retired.
+            for (;;) {
+                bool retired = false;
+                if (cse::EnterNativeGameUIRetirement()) {
+                    retired = cse::TryUnloadNativeEngine();
+                    cse::LeaveNativeGameUIRetirement();
+                }
+                if (retired) {
+                    break;
+                }
+                constexpr unsigned int RetirementYieldMilliseconds = 1;
+                SDL_Delay(RetirementYieldMilliseconds);
+            }
+#endif
 			// Shut down memory, etc.
+#if !defined(__APPLE__)
 			game->Shutdown();
+#endif
 		}
+#if !defined(__APPLE__)
 		videomode->Shutdown();
+#endif
 	}
 
-	TraceShutdown( "FileSystem_Shutdown()", 0 );
+#if INTPTR_MAX > INT32_MAX
+    for (;;) {
+        bool retired = false;
+        if (cse::EnterNativeGameUIRetirement()) {
+            retired = cse::TryUnloadNativeEngine();
+            cse::LeaveNativeGameUIRetirement();
+        }
+        if (retired) {
+            break;
+        }
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+    }
+#endif
+#if defined(__APPLE__)
+    if (game->GetMainWindow()) {
+        nativeShutdownGame = true;
+        nativeShutdownVideo = true;
+    }
+    bool outerRetired = cse::BeginNativeListenShutdown(nativeReleaseVideo, nativeShutdownGame, nativeShutdownVideo);
+    while (!outerRetired) {
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+        outerRetired = cse::FinishNativeListenShutdown();
+    }
+    return result;
+#else
+    TraceShutdown( "FileSystem_Shutdown()", 0 );
 	FileSystem_Shutdown();
 	registry->Shutdown();
 	TraceShutdown( "Sys_ShutdownArgv()", 0 );
 	return result;
+#endif
 }
 
 #if defined(_WIN32)
@@ -1774,6 +2356,26 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if INTPTR_MAX > INT32_MAX
+    // Every ordinary return authorizes launcher image unload. Invalid ownership cannot return safely.
+    static std::atomic_flag nativeRunActive = ATOMIC_FLAG_INIT;
+    if (nativeRunActive.test_and_set(std::memory_order_acquire) || !cse::InitializeNativeGameUIHost()) {
+        std::fputs("Fatal native engine Run ownership invariant; active dependencies cannot be unloaded\n", stderr);
+        std::terminate();
+    }
+    struct NativeRunGuard {
+        std::atomic_flag& active;
+        ~NativeRunGuard() {
+            active.clear(std::memory_order_release);
+        }
+    } nativeRunGuard{nativeRunActive};
+#if defined(__APPLE__)
+    while (!cse::FinishNativeListenShutdown()) {
+        constexpr unsigned int RetirementYieldMilliseconds = 1;
+        SDL_Delay(RetirementYieldMilliseconds);
+    }
+#endif
+#endif
     cse::AudioModuleShutdown audioModuleShutdown;
 	if ( std::strstr( cmdline, "-nobreakpad" ) == nullptr )
 	{
@@ -1789,7 +2391,12 @@ int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRes
 	}
 	catch ( ... )
 	{
+#if INTPTR_MAX > INT32_MAX
+        std::fputs("Fatal native engine exception; unknown partial ownership cannot be safely retired\n", stderr);
+        std::terminate();
+#else
 		return 0;
+#endif
 	}
 }
 
@@ -1949,4 +2556,139 @@ EXPOSE_SINGLE_INTERFACE( CEngineAPI, IEngineAPI, VENGINE_LAUNCHER_API_VERSION );
 EXPOSE_SINGLE_INTERFACE( CDedicatedServerAPI, IDedicatedServerAPI, "VENGINE_HLDS_API_VERSION002" );
 EXPOSE_SINGLE_INTERFACE( CGameUIFuncs, IGameUIFuncs, "VENGINE_GAMEUIFUNCS_VERSION001" );
 
+#endif
+
+#if INTPTR_MAX > INT32_MAX
+bool cse::TryShutdownNativeGame() {
+    auto& state = nativeGameInit;
+    if (state.shuttingDown || !NativeGameUIIsRetirementSafePoint()) {
+        return false;
+    }
+    if (state.complete) {
+        return true;
+    }
+    state.shuttingDown = true;
+    struct Guard {
+        NativeGameInitState& state;
+        ~Guard() {
+            state.shuttingDown = false;
+        }
+    } guard{state};
+    if (state.clientMouseActivated) {
+        ClientDLL_DeactivateMouse();
+        state.clientMouseActivated = false;
+    }
+    if (state.hostAttempted) {
+        if (!TryShutdownNativeHost()) {
+            return false;
+        }
+        state.hostAttempted = false;
+    }
+    if (state.memoryAllocated) {
+        Sys_ShutdownMemory();
+        state.memoryAllocated = false;
+    }
+    if (state.sysInitialized) {
+        Sys_Shutdown();
+        state.sysInitialized = false;
+        state.steamClientInitialized = false;
+    } else if (state.steamClientInitialized) {
+        Steam_ShutdownClient();
+        state.steamClientInitialized = false;
+    }
+    state.complete = true;
+    return true;
+}
+#endif
+
+#if defined(__APPLE__)
+namespace {
+enum class NativeListenShutdownPhase {
+    Idle,
+    ReleaseVideo,
+    Game,
+    Video,
+    FileSystem,
+    Registry,
+    Complete
+};
+NativeListenShutdownPhase nativeListenShutdownPhase = NativeListenShutdownPhase::Idle;
+bool nativeListenReleaseVideo = false;
+bool nativeListenShutdownGame = false;
+bool nativeListenShutdownVideo = false;
+bool nativeListenShutdownBusy = false;
+} // namespace
+
+bool cse::BeginNativeListenShutdown(bool releaseVideo, bool shutdownGame, bool shutdownVideo) {
+    if (!pthread_main_np()) {
+        return false;
+    }
+    if (nativeListenShutdownBusy || (nativeListenShutdownPhase != NativeListenShutdownPhase::Idle &&
+        nativeListenShutdownPhase != NativeListenShutdownPhase::Complete)) {
+        return false;
+    }
+    nativeListenReleaseVideo = releaseVideo;
+    nativeListenShutdownGame = shutdownGame;
+    nativeListenShutdownVideo = shutdownVideo;
+    nativeListenShutdownPhase = NativeListenShutdownPhase::ReleaseVideo;
+    return FinishNativeListenShutdown();
+}
+
+bool cse::FinishNativeListenShutdown() {
+    if (!pthread_main_np()) {
+        return false;
+    }
+    if (!EnterNativeGameUIRetirement()) {
+        return false;
+    }
+    const bool engineRetired = TryShutdownNativeGame();
+    LeaveNativeGameUIRetirement();
+    if (!engineRetired) {
+        return false;
+    }
+    if (nativeListenShutdownBusy) {
+        return false;
+    }
+    nativeListenShutdownBusy = true;
+    struct ShutdownScope {
+        ~ShutdownScope() {
+            nativeListenShutdownBusy = false;
+        }
+    } shutdownScope;
+    for (;;) {
+        switch (nativeListenShutdownPhase) {
+        case NativeListenShutdownPhase::Idle:
+        case NativeListenShutdownPhase::Complete:
+            return true;
+        case NativeListenShutdownPhase::ReleaseVideo:
+            if (nativeListenReleaseVideo) {
+                videomode->ReleaseVideo();
+            }
+            nativeListenShutdownPhase = NativeListenShutdownPhase::Game;
+            break;
+        case NativeListenShutdownPhase::Game:
+            if (nativeListenShutdownGame && !game->Shutdown()) {
+                return false;
+            }
+            nativeListenShutdownPhase = NativeListenShutdownPhase::Video;
+            break;
+        case NativeListenShutdownPhase::Video:
+            if (nativeListenShutdownVideo) {
+                videomode->Shutdown();
+            }
+            nativeListenShutdownPhase = NativeListenShutdownPhase::FileSystem;
+            break;
+        case NativeListenShutdownPhase::FileSystem:
+            TraceShutdown("FileSystem_Shutdown()", 0);
+            FileSystem_Shutdown();
+            nativeListenShutdownPhase = NativeListenShutdownPhase::Registry;
+            break;
+        case NativeListenShutdownPhase::Registry:
+            registry->Shutdown();
+            TraceShutdown("Sys_ShutdownArgv()", 0);
+            nativeListenShutdownPhase = NativeListenShutdownPhase::Complete;
+            break;
+        }
+    }
+}
 #endif

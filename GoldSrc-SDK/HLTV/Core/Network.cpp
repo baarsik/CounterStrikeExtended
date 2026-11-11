@@ -149,6 +149,21 @@ void Network::ShutDown()
 		return;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeShuttingDown) {
+        return;
+    }
+    m_NativeShuttingDown = true;
+    cse::modules::CallbackScope shutdown(m_System);
+    // Dependency teardown must not be skipped if a listener snapshot allocation
+    // fails. Drain borrowed registrations while callbacks may remove their peers.
+    while (m_Listener.begin() != m_Listener.end()) {
+        ISystemModule *listener = *m_Listener.begin();
+        m_Listener.Remove(listener);
+        listener->ReceiveSignal(this, cse::modules::NetworkShutdownSignal, nullptr);
+    }
+#endif
+
 	sock = (NetSocket*)m_Sockets.RemoveTail();
 	while ( sock != NULL )
 	{
@@ -170,6 +185,11 @@ void Network::ShutDown()
 
 INetSocket* Network::CreateSocket( int port, bool reuse, bool loopback )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeShuttingDown) {
+        return nullptr;
+    }
+#endif
 	NetSocket* socket;
 
 	socket = GetSocket( port );

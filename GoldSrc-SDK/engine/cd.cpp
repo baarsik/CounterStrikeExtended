@@ -69,6 +69,45 @@ const float CCDAudio::TRACK_EXTRA_TIME = 2.0f;
 static CCDAudio g_CDAudio;
 ICDAudio* cdaudio = &g_CDAudio;
 
+#if defined(__APPLE__)
+namespace {
+struct AppFocusRequests {
+    std::atomic<bool> active{true};
+    std::atomic<bool> pending{false};
+};
+AppFocusRequests appFocusRequests;
+constexpr int AppFocusTransition = 1;
+
+void TryQueueAppFocus() {
+    if (!appFocusRequests.pending.load()) {
+        return;
+    }
+    const int active = static_cast<int>(appFocusRequests.active.load());
+    if (thread->AddThreadItem(&CCDAudio::_ApplyAppFocus, active, 0)) {
+        appFocusRequests.pending.store(false);
+    }
+}
+}
+
+void CDAudio_AppFocusChanged(bool active) {
+    appFocusRequests.active.store(active);
+    appFocusRequests.pending.store(true);
+    TryQueueAppFocus();
+}
+
+void CCDAudio::_ApplyAppFocus(int active, int) {
+    if (!m_bEnabled) {
+        m_bResumeOnSwitch = false;
+        return;
+    }
+    if (active) {
+        _SwitchToEngine(0, 0);
+    } else {
+        _SwitchToLauncher(0, 0);
+    }
+}
+#endif
+
 void CDAudio_Init()
 {
     if (!thread->Init()) {
@@ -275,6 +314,12 @@ void CCDAudio::PlayFile(const char *filename, bool looping) {
 }
 
 void CCDAudio::_PlayFile(const char *filename, int looping) {
+#if defined(__APPLE__)
+    m_bResumeOnSwitch = false;
+    if (m_MP3.suspended) {
+        m_MP3.playing = false;
+    }
+#endif
     if (!m_bEnabled) {
         return;
     }
@@ -300,13 +345,28 @@ void CCDAudio::Resume()
 		thread->AddThreadItem( &CCDAudio::_Resume, 0, 0 );
 }
 
-void CCDAudio::_Pause( int, int )
-{
+void CCDAudio::_Pause(int focusTransition, int) {
+#if defined(__APPLE__)
+    if (focusTransition != AppFocusTransition) {
+        m_bResumeOnSwitch = false;
+        if (m_MP3.suspended) {
+            m_MP3.playing = false;
+        }
+    }
+#else
+    (void)focusTransition;
+#endif
 	if ( !m_bEnabled || !m_bIsPlaying )
 		return;
 
-	if ( m_MP3.inuse )
-		MP3_SetPause( true );
+    if (m_MP3.inuse) {
+        MP3_SetPause(true);
+#if defined(__APPLE__)
+        if (musicPlayer.IsPlaying()) {
+            return;
+        }
+#endif
+    }
 #if defined( _WIN32 )
 	else
 	{
@@ -322,14 +382,31 @@ void CCDAudio::_Pause( int, int )
 	m_szPendingPlayFilename[0] = '\0';
 }
 
-void CCDAudio::_Resume( int, int )
-{
+void CCDAudio::_Resume(int focusTransition, int) {
+#if defined(__APPLE__)
+    if (focusTransition != AppFocusTransition) {
+        m_bResumeOnSwitch = false;
+        if (m_bEnabled && m_bWasPlaying && m_MP3.suspended) {
+            m_MP3.playing = true;
+        }
+    }
+    if (m_bEnabled && m_MP3.playing && m_MP3.suspended) {
+        MP3_Resume_Audio();
+        return;
+    }
+#else
+    (void)focusTransition;
+#endif
 	if ( !m_bEnabled || !m_bWasPlaying )
 		return;
 
 	if ( m_MP3.inuse )
 	{
 		MP3_SetPause( false );
+#if defined(__APPLE__)
+        m_bIsPlaying = musicPlayer.IsPlaying();
+        return;
+#endif
 	}
 	else
 	{
@@ -367,9 +444,14 @@ void CCDAudio::_SwitchToLauncher( int, int )
 	if ( !m_bEnabled || !m_bIsPlaying )
 		return;
 
+#if defined(__APPLE__)
+    _Pause(AppFocusTransition, 0);
+    m_bResumeOnSwitch = !m_bIsPlaying && m_bWasPlaying;
+#else
 	m_bResumeOnSwitch = true;
 	// Pause device
 	_Pause( 0, 0 );
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -377,11 +459,21 @@ void CCDAudio::_SwitchToLauncher( int, int )
 //-----------------------------------------------------------------------------
 void CCDAudio::_SwitchToEngine( int, int )
 {
+#if defined(__APPLE__)
+    if (!m_bResumeOnSwitch && !(m_MP3.playing && m_MP3.suspended)) {
+        return;
+    }
+    _Resume(AppFocusTransition, 0);
+    if (m_bIsPlaying) {
+        m_bResumeOnSwitch = false;
+    }
+#else
 	if ( !m_bResumeOnSwitch )
 		return;
 
 	m_bResumeOnSwitch = false;
 	_Resume( 0, 0 );
+#endif
 }
 
 void CCDAudio::MP3_Suspend_Audio() {
@@ -395,8 +487,16 @@ void CCDAudio::MP3_Suspend_Audio() {
 
 void CCDAudio::_Stop( int, int )
 {
+#if defined(__APPLE__)
+    m_bResumeOnSwitch = false;
+    // A released stream can remain suspended after status clears both playback flags.
+    if (!m_MP3.suspended && (!m_bEnabled || (!m_bIsPlaying && !m_bWasPlaying))) {
+        return;
+    }
+#else
 	if ( !m_bEnabled || ( !m_bIsPlaying && !m_bWasPlaying ) )
 		return;
+#endif
 
 	m_bIsPlaying = false;
 	m_bWasPlaying = false;
@@ -418,6 +518,10 @@ void CCDAudio::_Stop( int, int )
 
 void CCDAudio::Shutdown()
 {
+#if defined(__APPLE__)
+    appFocusRequests.pending.store(false);
+    m_bResumeOnSwitch = false;
+#endif
 	if ( m_MP3.inuse )
 		MP3_SetPause( true );
 
@@ -448,6 +552,9 @@ void CCDAudio::_CDReset( int, int )
 //-----------------------------------------------------------------------------
 void CCDAudio::Frame()
 {
+#if defined(__APPLE__)
+    TryQueueAppFocus();
+#endif
 	if ( !m_bEnabled )
 		return;
 
@@ -713,6 +820,9 @@ bool CCDAudio::MP3_PlayTrackFinalize(int trackNum, bool looping) {
     m_bIsLooping = looping;
     m_nPlayTrack = trackNum;
     m_bIsPlaying = true;
+#if defined(__APPLE__)
+    m_bResumeOnSwitch = false;
+#endif
     if (m_flMP3Volume == 0.0f) {
         _Pause(0, 0);
     }
@@ -1028,6 +1138,12 @@ bool CCDAudio::MP3_PlayTrack( int trackNum, bool looping )
 //-----------------------------------------------------------------------------
 void CCDAudio::_Play( int track, int looping )
 {
+#if defined(__APPLE__)
+    m_bResumeOnSwitch = false;
+    if (m_MP3.suspended) {
+        m_MP3.playing = false;
+    }
+#endif
 	if ( !m_bEnabled )
 		return;
 
@@ -1123,6 +1239,44 @@ void CCDAudio::MP3_Resume_Audio()
 		else
 			MP3_PlayTrack( m_MP3.trackname, m_MP3.looping );
 	}
+#elif defined(__APPLE__)
+    if (!m_bEnabled || !m_MP3.playing || !m_MP3.suspended) {
+        return;
+    }
+    const _MP3_AUDIO_STATE suspended = m_MP3;
+    const bool resumeOnSwitch = m_bResumeOnSwitch;
+    const float playTime = m_flPlayTime;
+    const double startTime = m_dStartTime;
+    const double pauseTime = m_dPauseTime;
+    const double fadeOutTime = m_dFadeOutTime;
+    const int playTrack = m_nPlayTrack;
+    const bool looping = m_bIsLooping;
+    m_bIsPlaying = false;
+    bool restored = false;
+    if (MP3_Init()) {
+        if (suspended.tracknum) {
+            if (suspended.tracknum > 1 && suspended.tracknum < g_iMP3NumTracks) {
+                restored = MP3_PlayTrack(suspended.tracknum, suspended.looping);
+            }
+        } else {
+            restored = MP3_PlayTrack(suspended.trackname, suspended.looping);
+        }
+    }
+    if (restored) {
+        m_MP3.suspended = false;
+    } else {
+        // Reopening calls _Stop; keep the authored retry state if any stage fails.
+        MP3_StopStream();
+        m_MP3 = suspended;
+        m_bWasPlaying = true;
+        m_bResumeOnSwitch = resumeOnSwitch;
+        m_flPlayTime = playTime;
+        m_dStartTime = startTime;
+        m_dPauseTime = pauseTime;
+        m_dFadeOutTime = fadeOutTime;
+        m_nPlayTrack = playTrack;
+        m_bIsLooping = looping;
+    }
 #else
 	if ( !m_MP3.playing || !m_MP3.suspended )
 		return;

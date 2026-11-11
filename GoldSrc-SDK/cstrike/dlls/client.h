@@ -16,6 +16,7 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
+#include "../../public/cse_export.h"
 #include "weapontype.h"
 #include "player.h"
 
@@ -92,8 +93,13 @@ void BlinkAccount( CBasePlayer* player, int count );
 
 extern "C"
 {
+#if defined(__APPLE__)
+    CSE_PUBLIC_EXPORT int CountTeams();
+    CSE_PUBLIC_EXPORT int CountTeamPlayers(int team);
+#else
 	int CountTeams();
 	int CountTeamPlayers( int team );
+#endif
 	int Q_strlen( const char* string );
 }
 

@@ -591,16 +591,20 @@ bool TeamFortressViewport::AllowedToPrintText()
 	return menu != MENU_TEAM && menu != MENU_CLASS && menu != MENU_INTRO && menu != MENU_CLASSHELP;
 }
 
-void TeamFortressViewport::OnLevelChange()
-{
-	m_sMapName[0] = 0;
-	m_flScoreBoardLastUpdated = 0;
-	HideAllVGUIMenu();
-	m_pClientScoreBoard->Reset();
-	if ( m_pSpectatorGUI )
-		m_pSpectatorGUI->SetVisible( false );
-	if ( m_pClientScoreBoard )
-		m_pClientScoreBoard->SetVisible( false );
+void TeamFortressViewport::OnLevelChange() {
+    if (m_pTeamMenu) {
+        m_pTeamMenu->InvalidateMapPage();
+    }
+    m_sMapName[0] = 0;
+    m_flScoreBoardLastUpdated = 0;
+    HideAllVGUIMenu();
+    m_pClientScoreBoard->Reset();
+    if (m_pSpectatorGUI) {
+        m_pSpectatorGUI->SetVisible(false);
+    }
+    if (m_pClientScoreBoard) {
+        m_pClientScoreBoard->SetVisible(false);
+    }
 }
 
 //-----------------------------------------------------------------------------

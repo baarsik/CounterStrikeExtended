@@ -68,6 +68,22 @@ static void* InitializeInterface( const char* interfaceName, CreateInterfaceFn* 
 //-----------------------------------------------------------------------------
 bool VGui_InternalLoadInterfaces( CreateInterfaceFn* factoryList, int numFactories )
 {
+#if defined(__APPLE__)
+    auto* surface = static_cast<ISurface*>(InitializeInterface("VGUI_Surface026", factoryList, numFactories));
+    auto* filesystem = static_cast<IFileSystem*>(InitializeInterface("VFileSystem009", factoryList, numFactories));
+    auto* keys = static_cast<IKeyValues*>(InitializeInterface("KeyValues003", factoryList, numFactories));
+    auto* localize = static_cast<ILocalize*>(InitializeInterface("VGUI_Localize003", factoryList, numFactories));
+    auto* panels = static_cast<IPanel*>(InitializeInterface("VGUI_Panel007", factoryList, numFactories));
+    if (!surface || !filesystem || !keys || !localize || !panels || !g_pInput || !g_pSystem) {
+        return false;
+    }
+    g_pSurface = surface;
+    g_pFileSystem = filesystem;
+    g_pKeyValues = keys;
+    g_pLocalize = localize;
+    g_pIPanel = panels;
+    return true;
+#else
 	// loads all the interfaces
 	g_pSurface = (ISurface*)InitializeInterface( "VGUI_Surface026", factoryList, numFactories );
 	g_pFileSystem = (IFileSystem*)InitializeInterface( "VFileSystem009", factoryList, numFactories );
@@ -82,5 +98,6 @@ bool VGui_InternalLoadInterfaces( CreateInterfaceFn* factoryList, int numFactori
 	}
 
 	return false;
+#endif
 }
 } // namespace vgui

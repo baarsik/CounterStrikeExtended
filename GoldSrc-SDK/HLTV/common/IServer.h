@@ -12,12 +12,16 @@ class IDirector;
 class InfoString;
 
 class IServer
+#if INTPTR_MAX > INT32_MAX
+    : public virtual ISystemModule
+#endif
 {
 public:
 	virtual ~IServer()
 	{
 	}
 
+#if INTPTR_MAX <= INT32_MAX
 	virtual bool Init( IBaseSystem* system, int serial, char* name ) = 0;
 	virtual void RunFrame( double time ) = 0;
 	virtual void ReceiveSignal( ISystemModule* module, unsigned int signal, void* data ) = 0;
@@ -34,6 +38,7 @@ public:
 	virtual int GetState() = 0;
 	virtual int GetVersion() = 0;
 	virtual void ShutDown() = 0;
+#endif
 
 	virtual bool Connect( IWorld* world, NetAddress* address, INetSocket* socket ) = 0;
 	virtual bool LoadDemo( IWorld* world, char* filename, bool forceHLTV, bool continuous ) = 0;

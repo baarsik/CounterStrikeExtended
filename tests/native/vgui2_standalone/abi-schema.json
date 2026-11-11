@@ -1,0 +1,1674 @@
+{
+  "vgui2::ISurface": [
+    {
+      "slot": 0,
+      "signature": "vgui2::ISurface::~ISurface() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::ISurface::~ISurface() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void vgui2::ISurface::Shutdown()"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::ISurface::RunFrame()"
+    },
+    {
+      "slot": 4,
+      "signature": "VPANEL vgui2::ISurface::GetEmbeddedPanel()"
+    },
+    {
+      "slot": 5,
+      "signature": "void vgui2::ISurface::SetEmbeddedPanel(VPANEL)"
+    },
+    {
+      "slot": 6,
+      "signature": "void vgui2::ISurface::PushMakeCurrent(VPANEL, bool)"
+    },
+    {
+      "slot": 7,
+      "signature": "void vgui2::ISurface::PopMakeCurrent(VPANEL)"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::ISurface::DrawSetColor(int, int, int, int)"
+    },
+    {
+      "slot": 9,
+      "signature": "void vgui2::ISurface::DrawSetColor(Color)"
+    },
+    {
+      "slot": 10,
+      "signature": "void vgui2::ISurface::DrawFilledRect(int, int, int, int)"
+    },
+    {
+      "slot": 11,
+      "signature": "void vgui2::ISurface::DrawOutlinedRect(int, int, int, int)"
+    },
+    {
+      "slot": 12,
+      "signature": "void vgui2::ISurface::DrawLine(int, int, int, int)"
+    },
+    {
+      "slot": 13,
+      "signature": "void vgui2::ISurface::DrawPolyLine(int *, int *, int)"
+    },
+    {
+      "slot": 14,
+      "signature": "void vgui2::ISurface::DrawSetTextFont(HFont)"
+    },
+    {
+      "slot": 15,
+      "signature": "void vgui2::ISurface::DrawSetTextColor(int, int, int, int)"
+    },
+    {
+      "slot": 16,
+      "signature": "void vgui2::ISurface::DrawSetTextColor(Color)"
+    },
+    {
+      "slot": 17,
+      "signature": "void vgui2::ISurface::DrawSetTextPos(int, int)"
+    },
+    {
+      "slot": 18,
+      "signature": "void vgui2::ISurface::DrawGetTextPos(int &, int &)"
+    },
+    {
+      "slot": 19,
+      "signature": "void vgui2::ISurface::DrawPrintText(const wchar_t *, int)"
+    },
+    {
+      "slot": 20,
+      "signature": "void vgui2::ISurface::DrawUnicodeChar(wchar_t)"
+    },
+    {
+      "slot": 21,
+      "signature": "void vgui2::ISurface::DrawUnicodeCharAdd(wchar_t)"
+    },
+    {
+      "slot": 22,
+      "signature": "void vgui2::ISurface::DrawFlushText()"
+    },
+    {
+      "slot": 23,
+      "signature": "IHTML *vgui2::ISurface::CreateHTMLWindow(IHTMLEvents *, VPANEL)"
+    },
+    {
+      "slot": 24,
+      "signature": "void vgui2::ISurface::PaintHTMLWindow(IHTML *)"
+    },
+    {
+      "slot": 25,
+      "signature": "void vgui2::ISurface::DeleteHTMLWindow(IHTML *)"
+    },
+    {
+      "slot": 26,
+      "signature": "void vgui2::ISurface::DrawSetTextureFile(int, const char *, int, bool)"
+    },
+    {
+      "slot": 27,
+      "signature": "void vgui2::ISurface::DrawSetTextureRGBA(int, const unsigned char *, int, int, int, bool)"
+    },
+    {
+      "slot": 28,
+      "signature": "void vgui2::ISurface::DrawSetTexture(int)"
+    },
+    {
+      "slot": 29,
+      "signature": "void vgui2::ISurface::DrawGetTextureSize(int, int &, int &)"
+    },
+    {
+      "slot": 30,
+      "signature": "void vgui2::ISurface::DrawTexturedRect(int, int, int, int)"
+    },
+    {
+      "slot": 31,
+      "signature": "bool vgui2::ISurface::IsTextureIDValid(int)"
+    },
+    {
+      "slot": 32,
+      "signature": "int vgui2::ISurface::CreateNewTextureID(bool)"
+    },
+    {
+      "slot": 33,
+      "signature": "void vgui2::ISurface::GetScreenSize(int &, int &)"
+    },
+    {
+      "slot": 34,
+      "signature": "void vgui2::ISurface::SetAsTopMost(VPANEL, bool)"
+    },
+    {
+      "slot": 35,
+      "signature": "void vgui2::ISurface::BringToFront(VPANEL)"
+    },
+    {
+      "slot": 36,
+      "signature": "void vgui2::ISurface::SetForegroundWindow(VPANEL)"
+    },
+    {
+      "slot": 37,
+      "signature": "void vgui2::ISurface::SetPanelVisible(VPANEL, bool)"
+    },
+    {
+      "slot": 38,
+      "signature": "void vgui2::ISurface::SetMinimized(VPANEL, bool)"
+    },
+    {
+      "slot": 39,
+      "signature": "bool vgui2::ISurface::IsMinimized(VPANEL)"
+    },
+    {
+      "slot": 40,
+      "signature": "void vgui2::ISurface::FlashWindow(VPANEL, bool)"
+    },
+    {
+      "slot": 41,
+      "signature": "void vgui2::ISurface::SetTitle(VPANEL, const wchar_t *)"
+    },
+    {
+      "slot": 42,
+      "signature": "void vgui2::ISurface::SetAsToolBar(VPANEL, bool)"
+    },
+    {
+      "slot": 43,
+      "signature": "void vgui2::ISurface::CreatePopup(VPANEL, bool, bool, bool, bool, bool)"
+    },
+    {
+      "slot": 44,
+      "signature": "void vgui2::ISurface::SwapBuffers(VPANEL)"
+    },
+    {
+      "slot": 45,
+      "signature": "void vgui2::ISurface::Invalidate(VPANEL)"
+    },
+    {
+      "slot": 46,
+      "signature": "void vgui2::ISurface::SetCursor(HCursor)"
+    },
+    {
+      "slot": 47,
+      "signature": "bool vgui2::ISurface::IsCursorVisible()"
+    },
+    {
+      "slot": 48,
+      "signature": "void vgui2::ISurface::ApplyChanges()"
+    },
+    {
+      "slot": 49,
+      "signature": "bool vgui2::ISurface::IsWithin(int, int)"
+    },
+    {
+      "slot": 50,
+      "signature": "bool vgui2::ISurface::HasFocus()"
+    },
+    {
+      "slot": 51,
+      "signature": "bool vgui2::ISurface::SupportsFeature(SurfaceFeature_e)"
+    },
+    {
+      "slot": 52,
+      "signature": "void vgui2::ISurface::RestrictPaintToSinglePanel(VPANEL)"
+    },
+    {
+      "slot": 53,
+      "signature": "void vgui2::ISurface::SetModalPanel(VPANEL)"
+    },
+    {
+      "slot": 54,
+      "signature": "VPANEL vgui2::ISurface::GetModalPanel()"
+    },
+    {
+      "slot": 55,
+      "signature": "void vgui2::ISurface::UnlockCursor()"
+    },
+    {
+      "slot": 56,
+      "signature": "void vgui2::ISurface::LockCursor()"
+    },
+    {
+      "slot": 57,
+      "signature": "void vgui2::ISurface::SetTranslateExtendedKeys(bool)"
+    },
+    {
+      "slot": 58,
+      "signature": "VPANEL vgui2::ISurface::GetTopmostPopup()"
+    },
+    {
+      "slot": 59,
+      "signature": "void vgui2::ISurface::SetTopLevelFocus(VPANEL)"
+    },
+    {
+      "slot": 60,
+      "signature": "HFont vgui2::ISurface::CreateFont()"
+    },
+    {
+      "slot": 61,
+      "signature": "bool vgui2::ISurface::AddGlyphSetToFont(HFont, const char *, int, int, int, int, int, int, int)"
+    },
+    {
+      "slot": 62,
+      "signature": "bool vgui2::ISurface::AddCustomFontFile(const char *)"
+    },
+    {
+      "slot": 63,
+      "signature": "int vgui2::ISurface::GetFontTall(HFont)"
+    },
+    {
+      "slot": 64,
+      "signature": "void vgui2::ISurface::GetCharABCwide(HFont, int, int &, int &, int &)"
+    },
+    {
+      "slot": 65,
+      "signature": "int vgui2::ISurface::GetCharacterWidth(HFont, int)"
+    },
+    {
+      "slot": 66,
+      "signature": "void vgui2::ISurface::GetTextSize(HFont, const wchar_t *, int &, int &)"
+    },
+    {
+      "slot": 67,
+      "signature": "VPANEL vgui2::ISurface::GetNotifyPanel()"
+    },
+    {
+      "slot": 68,
+      "signature": "void vgui2::ISurface::SetNotifyIcon(VPANEL, HTexture, VPANEL, const char *)"
+    },
+    {
+      "slot": 69,
+      "signature": "void vgui2::ISurface::PlaySound(const char *)"
+    },
+    {
+      "slot": 70,
+      "signature": "int vgui2::ISurface::GetPopupCount()"
+    },
+    {
+      "slot": 71,
+      "signature": "VPANEL vgui2::ISurface::GetPopup(int)"
+    },
+    {
+      "slot": 72,
+      "signature": "bool vgui2::ISurface::ShouldPaintChildPanel(VPANEL)"
+    },
+    {
+      "slot": 73,
+      "signature": "bool vgui2::ISurface::RecreateContext(VPANEL)"
+    },
+    {
+      "slot": 74,
+      "signature": "void vgui2::ISurface::AddPanel(VPANEL)"
+    },
+    {
+      "slot": 75,
+      "signature": "void vgui2::ISurface::ReleasePanel(VPANEL)"
+    },
+    {
+      "slot": 76,
+      "signature": "void vgui2::ISurface::MovePopupToFront(VPANEL)"
+    },
+    {
+      "slot": 77,
+      "signature": "void vgui2::ISurface::MovePopupToBack(VPANEL)"
+    },
+    {
+      "slot": 78,
+      "signature": "void vgui2::ISurface::SolveTraverse(VPANEL, bool)"
+    },
+    {
+      "slot": 79,
+      "signature": "void vgui2::ISurface::PaintTraverse(VPANEL)"
+    },
+    {
+      "slot": 80,
+      "signature": "void vgui2::ISurface::EnableMouseCapture(VPANEL, bool)"
+    },
+    {
+      "slot": 81,
+      "signature": "void vgui2::ISurface::GetWorkspaceBounds(int &, int &, int &, int &)"
+    },
+    {
+      "slot": 82,
+      "signature": "void vgui2::ISurface::GetAbsoluteWindowBounds(int &, int &, int &, int &)"
+    },
+    {
+      "slot": 83,
+      "signature": "void vgui2::ISurface::GetProportionalBase(int &, int &)"
+    },
+    {
+      "slot": 84,
+      "signature": "void vgui2::ISurface::CalculateMouseVisible()"
+    },
+    {
+      "slot": 85,
+      "signature": "bool vgui2::ISurface::NeedKBInput()"
+    },
+    {
+      "slot": 86,
+      "signature": "bool vgui2::ISurface::HasCursorPosFunctions()"
+    },
+    {
+      "slot": 87,
+      "signature": "void vgui2::ISurface::SurfaceGetCursorPos(int &, int &)"
+    },
+    {
+      "slot": 88,
+      "signature": "void vgui2::ISurface::SurfaceSetCursorPos(int, int)"
+    },
+    {
+      "slot": 89,
+      "signature": "void vgui2::ISurface::DrawTexturedPolygon(VGuiVertex *, int)"
+    },
+    {
+      "slot": 90,
+      "signature": "int vgui2::ISurface::GetFontAscent(HFont, wchar_t)"
+    },
+    {
+      "slot": 91,
+      "signature": "void vgui2::ISurface::SetAllowHTMLJavaScript(bool)"
+    },
+    {
+      "slot": 92,
+      "signature": "void vgui2::ISurface::SetLanguage(const char *)"
+    },
+    {
+      "slot": 93,
+      "signature": "const char *vgui2::ISurface::GetLanguage()"
+    },
+    {
+      "slot": 94,
+      "signature": "bool vgui2::ISurface::DeleteTextureByID(int)"
+    },
+    {
+      "slot": 95,
+      "signature": "void vgui2::ISurface::DrawUpdateRegionTextureBGRA(int, int, int, const unsigned char *, int, int)"
+    },
+    {
+      "slot": 96,
+      "signature": "void vgui2::ISurface::DrawSetTextureBGRA(int, const unsigned char *, int, int)"
+    },
+    {
+      "slot": 97,
+      "signature": "void vgui2::ISurface::CreateBrowser(VPANEL, IHTMLResponses *, bool, const char *)"
+    },
+    {
+      "slot": 98,
+      "signature": "void vgui2::ISurface::RemoveBrowser(VPANEL, IHTMLResponses *)"
+    },
+    {
+      "slot": 99,
+      "signature": "IHTMLChromeController *vgui2::ISurface::AccessChromeHTMLController()"
+    },
+    {
+      "slot": 100,
+      "signature": "void vgui2::ISurface::DrawTexturedRectAdd(int, int, int, int)"
+    },
+    {
+      "slot": 101,
+      "signature": "void vgui2::ISurface::SetSupportsEsc(bool)"
+    },
+    {
+      "slot": 102,
+      "signature": "int vgui2::ISurface::GetFontBlur(HFont)"
+    },
+    {
+      "slot": 103,
+      "signature": "bool vgui2::ISurface::IsAdditive(HFont)"
+    },
+    {
+      "slot": 104,
+      "signature": "void vgui2::ISurface::SetProportionalBase(int, int)"
+    },
+    {
+      "slot": 105,
+      "signature": "void vgui2::ISurface::GetHDProportionalBase(int &, int &)"
+    },
+    {
+      "slot": 106,
+      "signature": "void vgui2::ISurface::SetHDProportionalBase(int, int)"
+    }
+  ],
+  "vgui2::IVGui": [
+    {
+      "slot": 0,
+      "signature": "vgui2::IVGui::~IVGui() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::IVGui::~IVGui() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "bool vgui2::IVGui::Init(CreateInterfaceFn *, int)"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::IVGui::Shutdown()"
+    },
+    {
+      "slot": 4,
+      "signature": "void vgui2::IVGui::Start()"
+    },
+    {
+      "slot": 5,
+      "signature": "void vgui2::IVGui::Stop()"
+    },
+    {
+      "slot": 6,
+      "signature": "bool vgui2::IVGui::IsRunning()"
+    },
+    {
+      "slot": 7,
+      "signature": "void vgui2::IVGui::RunFrame()"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::IVGui::ShutdownMessage(unsigned int)"
+    },
+    {
+      "slot": 9,
+      "signature": "vgui2::VPANEL vgui2::IVGui::AllocPanel()"
+    },
+    {
+      "slot": 10,
+      "signature": "void vgui2::IVGui::FreePanel(vgui2::VPANEL)"
+    },
+    {
+      "slot": 11,
+      "signature": "void vgui2::IVGui::DPrintf(const char *, ...)"
+    },
+    {
+      "slot": 12,
+      "signature": "void vgui2::IVGui::DPrintf2(const char *, ...)"
+    },
+    {
+      "slot": 13,
+      "signature": "void vgui2::IVGui::SpewAllActivePanelNames()"
+    },
+    {
+      "slot": 14,
+      "signature": "HPanel vgui2::IVGui::PanelToHandle(vgui2::VPANEL)"
+    },
+    {
+      "slot": 15,
+      "signature": "vgui2::VPANEL vgui2::IVGui::HandleToPanel(HPanel)"
+    },
+    {
+      "slot": 16,
+      "signature": "void vgui2::IVGui::MarkPanelForDeletion(vgui2::VPANEL)"
+    },
+    {
+      "slot": 17,
+      "signature": "void vgui2::IVGui::AddTickSignal(vgui2::VPANEL, int)"
+    },
+    {
+      "slot": 18,
+      "signature": "void vgui2::IVGui::RemoveTickSignal(vgui2::VPANEL)"
+    },
+    {
+      "slot": 19,
+      "signature": "void vgui2::IVGui::PostMessage(vgui2::VPANEL, KeyValues *, vgui2::VPANEL, float)"
+    },
+    {
+      "slot": 20,
+      "signature": "HContext vgui2::IVGui::CreateContext()"
+    },
+    {
+      "slot": 21,
+      "signature": "void vgui2::IVGui::DestroyContext(HContext)"
+    },
+    {
+      "slot": 22,
+      "signature": "void vgui2::IVGui::AssociatePanelWithContext(HContext, vgui2::VPANEL)"
+    },
+    {
+      "slot": 23,
+      "signature": "void vgui2::IVGui::ActivateContext(HContext)"
+    },
+    {
+      "slot": 24,
+      "signature": "void vgui2::IVGui::SetSleep(bool)"
+    },
+    {
+      "slot": 25,
+      "signature": "bool vgui2::IVGui::GetShouldVGuiControlSleep()"
+    }
+  ],
+  "IFileSystem": [
+    {
+      "slot": 0,
+      "signature": "IFileSystem::~IFileSystem() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "IFileSystem::~IFileSystem() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void IFileSystem::Mount()"
+    },
+    {
+      "slot": 3,
+      "signature": "void IFileSystem::Unmount()"
+    },
+    {
+      "slot": 4,
+      "signature": "void IFileSystem::RemoveAllSearchPaths()"
+    },
+    {
+      "slot": 5,
+      "signature": "void IFileSystem::AddSearchPath(const char *, const char *)"
+    },
+    {
+      "slot": 6,
+      "signature": "bool IFileSystem::RemoveSearchPath(const char *)"
+    },
+    {
+      "slot": 7,
+      "signature": "void IFileSystem::RemoveFile(const char *, const char *)"
+    },
+    {
+      "slot": 8,
+      "signature": "void IFileSystem::CreateDirHierarchy(const char *, const char *)"
+    },
+    {
+      "slot": 9,
+      "signature": "bool IFileSystem::FileExists(const char *)"
+    },
+    {
+      "slot": 10,
+      "signature": "bool IFileSystem::IsDirectory(const char *)"
+    },
+    {
+      "slot": 11,
+      "signature": "FileHandle_t IFileSystem::Open(const char *, const char *, const char *)"
+    },
+    {
+      "slot": 12,
+      "signature": "void IFileSystem::Close(FileHandle_t)"
+    },
+    {
+      "slot": 13,
+      "signature": "void IFileSystem::Seek(FileHandle_t, int, FileSystemSeek_t)"
+    },
+    {
+      "slot": 14,
+      "signature": "unsigned int IFileSystem::Tell(FileHandle_t)"
+    },
+    {
+      "slot": 15,
+      "signature": "unsigned int IFileSystem::Size(FileHandle_t)"
+    },
+    {
+      "slot": 16,
+      "signature": "unsigned int IFileSystem::Size(const char *)"
+    },
+    {
+      "slot": 17,
+      "signature": "int IFileSystem::GetFileTime(const char *)"
+    },
+    {
+      "slot": 18,
+      "signature": "void IFileSystem::FileTimeToString(char *, int, long)"
+    },
+    {
+      "slot": 19,
+      "signature": "bool IFileSystem::IsOk(FileHandle_t)"
+    },
+    {
+      "slot": 20,
+      "signature": "void IFileSystem::Flush(FileHandle_t)"
+    },
+    {
+      "slot": 21,
+      "signature": "bool IFileSystem::EndOfFile(FileHandle_t)"
+    },
+    {
+      "slot": 22,
+      "signature": "int IFileSystem::Read(void *, int, FileHandle_t)"
+    },
+    {
+      "slot": 23,
+      "signature": "int IFileSystem::Write(const void *, int, FileHandle_t)"
+    },
+    {
+      "slot": 24,
+      "signature": "char *IFileSystem::ReadLine(char *, int, FileHandle_t)"
+    },
+    {
+      "slot": 25,
+      "signature": "int IFileSystem::FPrintf(FileHandle_t, char *, ...)"
+    },
+    {
+      "slot": 26,
+      "signature": "void *IFileSystem::GetReadBuffer(FileHandle_t, int *, bool)"
+    },
+    {
+      "slot": 27,
+      "signature": "void IFileSystem::ReleaseReadBuffer(FileHandle_t, void *)"
+    },
+    {
+      "slot": 28,
+      "signature": "const char *IFileSystem::FindFirst(const char *, FileFindHandle_t *, const char *)"
+    },
+    {
+      "slot": 29,
+      "signature": "const char *IFileSystem::FindNext(FileFindHandle_t)"
+    },
+    {
+      "slot": 30,
+      "signature": "bool IFileSystem::FindIsDirectory(FileFindHandle_t)"
+    },
+    {
+      "slot": 31,
+      "signature": "void IFileSystem::FindClose(FileFindHandle_t)"
+    },
+    {
+      "slot": 32,
+      "signature": "void IFileSystem::GetLocalCopy(const char *)"
+    },
+    {
+      "slot": 33,
+      "signature": "const char *IFileSystem::GetLocalPath(const char *, char *, int)"
+    },
+    {
+      "slot": 34,
+      "signature": "char *IFileSystem::ParseFile(char *, char *, bool *)"
+    },
+    {
+      "slot": 35,
+      "signature": "bool IFileSystem::FullPathToRelativePath(const char *, char *)"
+    },
+    {
+      "slot": 36,
+      "signature": "bool IFileSystem::GetCurrentDirectory(char *, int)"
+    },
+    {
+      "slot": 37,
+      "signature": "void IFileSystem::PrintOpenedFiles()"
+    },
+    {
+      "slot": 38,
+      "signature": "void IFileSystem::SetWarningFunc(void (*)(const char *, ...))"
+    },
+    {
+      "slot": 39,
+      "signature": "void IFileSystem::SetWarningLevel(FileWarningLevel_t)"
+    },
+    {
+      "slot": 40,
+      "signature": "void IFileSystem::LogLevelLoadStarted(const char *)"
+    },
+    {
+      "slot": 41,
+      "signature": "void IFileSystem::LogLevelLoadFinished(const char *)"
+    },
+    {
+      "slot": 42,
+      "signature": "int IFileSystem::HintResourceNeed(const char *, int)"
+    },
+    {
+      "slot": 43,
+      "signature": "int IFileSystem::PauseResourcePreloading()"
+    },
+    {
+      "slot": 44,
+      "signature": "int IFileSystem::ResumeResourcePreloading()"
+    },
+    {
+      "slot": 45,
+      "signature": "int IFileSystem::SetVBuf(FileHandle_t, char *, int, long)"
+    },
+    {
+      "slot": 46,
+      "signature": "void IFileSystem::GetInterfaceVersion(char *, int)"
+    },
+    {
+      "slot": 47,
+      "signature": "bool IFileSystem::IsFileImmediatelyAvailable(const char *)"
+    },
+    {
+      "slot": 48,
+      "signature": "WaitForResourcesHandle_t IFileSystem::WaitForResources(const char *)"
+    },
+    {
+      "slot": 49,
+      "signature": "bool IFileSystem::GetWaitForResourcesProgress(WaitForResourcesHandle_t, float *, bool *)"
+    },
+    {
+      "slot": 50,
+      "signature": "void IFileSystem::CancelWaitForResources(WaitForResourcesHandle_t)"
+    },
+    {
+      "slot": 51,
+      "signature": "bool IFileSystem::IsAppReadyForOfflinePlay(int)"
+    },
+    {
+      "slot": 52,
+      "signature": "bool IFileSystem::AddPackFile(const char *, const char *)"
+    },
+    {
+      "slot": 53,
+      "signature": "FileHandle_t IFileSystem::OpenFromCacheForRead(const char *, const char *, const char *)"
+    },
+    {
+      "slot": 54,
+      "signature": "void IFileSystem::AddSearchPathNoWrite(const char *, const char *)"
+    },
+    {
+      "slot": 55,
+      "signature": "int IFileSystem::GetFileModificationTime(const char *)"
+    }
+  ],
+  "vgui2::IClientPanel": [
+    {
+      "slot": 0,
+      "signature": "VPANEL vgui2::IClientPanel::GetVPanel()"
+    },
+    {
+      "slot": 1,
+      "signature": "void vgui2::IClientPanel::Think()"
+    },
+    {
+      "slot": 2,
+      "signature": "void vgui2::IClientPanel::PerformApplySchemeSettings()"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::IClientPanel::PaintTraverse(bool, bool)"
+    },
+    {
+      "slot": 4,
+      "signature": "void vgui2::IClientPanel::Repaint()"
+    },
+    {
+      "slot": 5,
+      "signature": "VPANEL vgui2::IClientPanel::IsWithinTraverse(int, int, bool)"
+    },
+    {
+      "slot": 6,
+      "signature": "void vgui2::IClientPanel::GetInset(int &, int &, int &, int &)"
+    },
+    {
+      "slot": 7,
+      "signature": "void vgui2::IClientPanel::GetClipRect(int &, int &, int &, int &)"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::IClientPanel::OnChildAdded(VPANEL)"
+    },
+    {
+      "slot": 9,
+      "signature": "void vgui2::IClientPanel::OnSizeChanged(int, int)"
+    },
+    {
+      "slot": 10,
+      "signature": "void vgui2::IClientPanel::InternalFocusChanged(bool)"
+    },
+    {
+      "slot": 11,
+      "signature": "bool vgui2::IClientPanel::RequestInfo(KeyValues *)"
+    },
+    {
+      "slot": 12,
+      "signature": "void vgui2::IClientPanel::RequestFocus(int)"
+    },
+    {
+      "slot": 13,
+      "signature": "bool vgui2::IClientPanel::RequestFocusPrev(VPANEL)"
+    },
+    {
+      "slot": 14,
+      "signature": "bool vgui2::IClientPanel::RequestFocusNext(VPANEL)"
+    },
+    {
+      "slot": 15,
+      "signature": "void vgui2::IClientPanel::OnMessage(const KeyValues *, VPANEL)"
+    },
+    {
+      "slot": 16,
+      "signature": "VPANEL vgui2::IClientPanel::GetCurrentKeyFocus()"
+    },
+    {
+      "slot": 17,
+      "signature": "int vgui2::IClientPanel::GetTabPosition()"
+    },
+    {
+      "slot": 18,
+      "signature": "const char *vgui2::IClientPanel::GetName()"
+    },
+    {
+      "slot": 19,
+      "signature": "const char *vgui2::IClientPanel::GetClassName()"
+    },
+    {
+      "slot": 20,
+      "signature": "HScheme vgui2::IClientPanel::GetScheme()"
+    },
+    {
+      "slot": 21,
+      "signature": "bool vgui2::IClientPanel::IsProportional()"
+    },
+    {
+      "slot": 22,
+      "signature": "bool vgui2::IClientPanel::IsAutoDeleteSet()"
+    },
+    {
+      "slot": 23,
+      "signature": "void vgui2::IClientPanel::DeletePanel()"
+    },
+    {
+      "slot": 24,
+      "signature": "void *vgui2::IClientPanel::QueryInterface(EInterfaceID)"
+    },
+    {
+      "slot": 25,
+      "signature": "Panel *vgui2::IClientPanel::GetPanel()"
+    },
+    {
+      "slot": 26,
+      "signature": "const char *vgui2::IClientPanel::GetModuleName()"
+    }
+  ],
+  "vgui2::IPanel": [
+    {
+      "slot": 0,
+      "signature": "vgui2::IPanel::~IPanel() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::IPanel::~IPanel() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void vgui2::IPanel::Init(VPANEL, IClientPanel *)"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::IPanel::SetPos(VPANEL, int, int)"
+    },
+    {
+      "slot": 4,
+      "signature": "void vgui2::IPanel::GetPos(VPANEL, int &, int &)"
+    },
+    {
+      "slot": 5,
+      "signature": "void vgui2::IPanel::SetSize(VPANEL, int, int)"
+    },
+    {
+      "slot": 6,
+      "signature": "void vgui2::IPanel::GetSize(VPANEL, int &, int &)"
+    },
+    {
+      "slot": 7,
+      "signature": "void vgui2::IPanel::SetMinimumSize(VPANEL, int, int)"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::IPanel::GetMinimumSize(VPANEL, int &, int &)"
+    },
+    {
+      "slot": 9,
+      "signature": "void vgui2::IPanel::SetZPos(VPANEL, int)"
+    },
+    {
+      "slot": 10,
+      "signature": "int vgui2::IPanel::GetZPos(VPANEL)"
+    },
+    {
+      "slot": 11,
+      "signature": "void vgui2::IPanel::GetAbsPos(VPANEL, int &, int &)"
+    },
+    {
+      "slot": 12,
+      "signature": "void vgui2::IPanel::GetClipRect(VPANEL, int &, int &, int &, int &)"
+    },
+    {
+      "slot": 13,
+      "signature": "void vgui2::IPanel::SetInset(VPANEL, int, int, int, int)"
+    },
+    {
+      "slot": 14,
+      "signature": "void vgui2::IPanel::GetInset(VPANEL, int &, int &, int &, int &)"
+    },
+    {
+      "slot": 15,
+      "signature": "void vgui2::IPanel::SetVisible(VPANEL, bool)"
+    },
+    {
+      "slot": 16,
+      "signature": "bool vgui2::IPanel::IsVisible(VPANEL)"
+    },
+    {
+      "slot": 17,
+      "signature": "void vgui2::IPanel::SetParent(VPANEL, VPANEL)"
+    },
+    {
+      "slot": 18,
+      "signature": "int vgui2::IPanel::GetChildCount(VPANEL)"
+    },
+    {
+      "slot": 19,
+      "signature": "VPANEL vgui2::IPanel::GetChild(VPANEL, int)"
+    },
+    {
+      "slot": 20,
+      "signature": "VPANEL vgui2::IPanel::GetParent(VPANEL)"
+    },
+    {
+      "slot": 21,
+      "signature": "void vgui2::IPanel::MoveToFront(VPANEL)"
+    },
+    {
+      "slot": 22,
+      "signature": "void vgui2::IPanel::MoveToBack(VPANEL)"
+    },
+    {
+      "slot": 23,
+      "signature": "bool vgui2::IPanel::HasParent(VPANEL, VPANEL)"
+    },
+    {
+      "slot": 24,
+      "signature": "bool vgui2::IPanel::IsPopup(VPANEL)"
+    },
+    {
+      "slot": 25,
+      "signature": "void vgui2::IPanel::SetPopup(VPANEL, bool)"
+    },
+    {
+      "slot": 26,
+      "signature": "bool vgui2::IPanel::Render_GetPopupVisible(VPANEL)"
+    },
+    {
+      "slot": 27,
+      "signature": "void vgui2::IPanel::Render_SetPopupVisible(VPANEL, bool)"
+    },
+    {
+      "slot": 28,
+      "signature": "HScheme vgui2::IPanel::GetScheme(VPANEL)"
+    },
+    {
+      "slot": 29,
+      "signature": "bool vgui2::IPanel::IsProportional(VPANEL)"
+    },
+    {
+      "slot": 30,
+      "signature": "bool vgui2::IPanel::IsAutoDeleteSet(VPANEL)"
+    },
+    {
+      "slot": 31,
+      "signature": "void vgui2::IPanel::DeletePanel(VPANEL)"
+    },
+    {
+      "slot": 32,
+      "signature": "void vgui2::IPanel::SetKeyBoardInputEnabled(VPANEL, bool)"
+    },
+    {
+      "slot": 33,
+      "signature": "void vgui2::IPanel::SetMouseInputEnabled(VPANEL, bool)"
+    },
+    {
+      "slot": 34,
+      "signature": "bool vgui2::IPanel::IsKeyBoardInputEnabled(VPANEL)"
+    },
+    {
+      "slot": 35,
+      "signature": "bool vgui2::IPanel::IsMouseInputEnabled(VPANEL)"
+    },
+    {
+      "slot": 36,
+      "signature": "void vgui2::IPanel::Solve(VPANEL)"
+    },
+    {
+      "slot": 37,
+      "signature": "const char *vgui2::IPanel::GetName(VPANEL)"
+    },
+    {
+      "slot": 38,
+      "signature": "const char *vgui2::IPanel::GetClassName(VPANEL)"
+    },
+    {
+      "slot": 39,
+      "signature": "void vgui2::IPanel::SendMessage(VPANEL, KeyValues *, VPANEL)"
+    },
+    {
+      "slot": 40,
+      "signature": "void vgui2::IPanel::Think(VPANEL)"
+    },
+    {
+      "slot": 41,
+      "signature": "void vgui2::IPanel::PerformApplySchemeSettings(VPANEL)"
+    },
+    {
+      "slot": 42,
+      "signature": "void vgui2::IPanel::PaintTraverse(VPANEL, bool, bool)"
+    },
+    {
+      "slot": 43,
+      "signature": "void vgui2::IPanel::Repaint(VPANEL)"
+    },
+    {
+      "slot": 44,
+      "signature": "VPANEL vgui2::IPanel::IsWithinTraverse(VPANEL, int, int, bool)"
+    },
+    {
+      "slot": 45,
+      "signature": "void vgui2::IPanel::OnChildAdded(VPANEL, VPANEL)"
+    },
+    {
+      "slot": 46,
+      "signature": "void vgui2::IPanel::OnSizeChanged(VPANEL, int, int)"
+    },
+    {
+      "slot": 47,
+      "signature": "void vgui2::IPanel::InternalFocusChanged(VPANEL, bool)"
+    },
+    {
+      "slot": 48,
+      "signature": "bool vgui2::IPanel::RequestInfo(VPANEL, KeyValues *)"
+    },
+    {
+      "slot": 49,
+      "signature": "void vgui2::IPanel::RequestFocus(VPANEL, int)"
+    },
+    {
+      "slot": 50,
+      "signature": "bool vgui2::IPanel::RequestFocusPrev(VPANEL, VPANEL)"
+    },
+    {
+      "slot": 51,
+      "signature": "bool vgui2::IPanel::RequestFocusNext(VPANEL, VPANEL)"
+    },
+    {
+      "slot": 52,
+      "signature": "VPANEL vgui2::IPanel::GetCurrentKeyFocus(VPANEL)"
+    },
+    {
+      "slot": 53,
+      "signature": "int vgui2::IPanel::GetTabPosition(VPANEL)"
+    },
+    {
+      "slot": 54,
+      "signature": "SurfacePlat *vgui2::IPanel::Plat(VPANEL)"
+    },
+    {
+      "slot": 55,
+      "signature": "void vgui2::IPanel::SetPlat(VPANEL, SurfacePlat *)"
+    },
+    {
+      "slot": 56,
+      "signature": "Panel *vgui2::IPanel::GetPanel(VPANEL, const char *)"
+    },
+    {
+      "slot": 57,
+      "signature": "bool vgui2::IPanel::IsEnabled(VPANEL)"
+    },
+    {
+      "slot": 58,
+      "signature": "void vgui2::IPanel::SetEnabled(VPANEL, bool)"
+    },
+    {
+      "slot": 59,
+      "signature": "IClientPanel *vgui2::IPanel::Client(VPANEL)"
+    },
+    {
+      "slot": 60,
+      "signature": "const char *vgui2::IPanel::GetModuleName(VPANEL)"
+    }
+  ],
+  "vgui2::IInput": [
+    {
+      "slot": 0,
+      "signature": "vgui2::IInput::~IInput() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::IInput::~IInput() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void vgui2::IInput::SetMouseFocus(VPANEL)"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::IInput::SetMouseCapture(VPANEL)"
+    },
+    {
+      "slot": 4,
+      "signature": "void vgui2::IInput::GetKeyCodeText(KeyCode, char *, int)"
+    },
+    {
+      "slot": 5,
+      "signature": "VPANEL vgui2::IInput::GetFocus()"
+    },
+    {
+      "slot": 6,
+      "signature": "VPANEL vgui2::IInput::GetMouseOver()"
+    },
+    {
+      "slot": 7,
+      "signature": "void vgui2::IInput::SetCursorPos(int, int)"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::IInput::GetCursorPos(int &, int &)"
+    },
+    {
+      "slot": 9,
+      "signature": "bool vgui2::IInput::WasMousePressed(MouseCode)"
+    },
+    {
+      "slot": 10,
+      "signature": "bool vgui2::IInput::WasMouseDoublePressed(MouseCode)"
+    },
+    {
+      "slot": 11,
+      "signature": "bool vgui2::IInput::IsMouseDown(MouseCode)"
+    },
+    {
+      "slot": 12,
+      "signature": "void vgui2::IInput::SetCursorOveride(HCursor)"
+    },
+    {
+      "slot": 13,
+      "signature": "HCursor vgui2::IInput::GetCursorOveride()"
+    },
+    {
+      "slot": 14,
+      "signature": "bool vgui2::IInput::WasMouseReleased(MouseCode)"
+    },
+    {
+      "slot": 15,
+      "signature": "bool vgui2::IInput::WasKeyPressed(KeyCode)"
+    },
+    {
+      "slot": 16,
+      "signature": "bool vgui2::IInput::IsKeyDown(KeyCode)"
+    },
+    {
+      "slot": 17,
+      "signature": "bool vgui2::IInput::WasKeyTyped(KeyCode)"
+    },
+    {
+      "slot": 18,
+      "signature": "bool vgui2::IInput::WasKeyReleased(KeyCode)"
+    },
+    {
+      "slot": 19,
+      "signature": "VPANEL vgui2::IInput::GetAppModalSurface()"
+    },
+    {
+      "slot": 20,
+      "signature": "void vgui2::IInput::SetAppModalSurface(VPANEL)"
+    },
+    {
+      "slot": 21,
+      "signature": "void vgui2::IInput::ReleaseAppModalSurface()"
+    },
+    {
+      "slot": 22,
+      "signature": "void vgui2::IInput::GetCursorPosition(int &, int &)"
+    }
+  ],
+  "vgui2::IInputInternal": [
+    {
+      "slot": 0,
+      "signature": "vgui2::IInputInternal::~IInputInternal() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::IInputInternal::~IInputInternal() [deleting]"
+    },
+    {
+      "slot": 23,
+      "signature": "void vgui2::IInputInternal::RunFrame()"
+    },
+    {
+      "slot": 24,
+      "signature": "void vgui2::IInputInternal::UpdateMouseFocus(int, int)"
+    },
+    {
+      "slot": 25,
+      "signature": "void vgui2::IInputInternal::PanelDeleted(VPANEL)"
+    },
+    {
+      "slot": 26,
+      "signature": "void vgui2::IInputInternal::InternalCursorMoved(int, int)"
+    },
+    {
+      "slot": 27,
+      "signature": "void vgui2::IInputInternal::InternalMousePressed(MouseCode)"
+    },
+    {
+      "slot": 28,
+      "signature": "void vgui2::IInputInternal::InternalMouseDoublePressed(MouseCode)"
+    },
+    {
+      "slot": 29,
+      "signature": "void vgui2::IInputInternal::InternalMouseReleased(MouseCode)"
+    },
+    {
+      "slot": 30,
+      "signature": "void vgui2::IInputInternal::InternalMouseWheeled(int)"
+    },
+    {
+      "slot": 31,
+      "signature": "void vgui2::IInputInternal::InternalKeyCodePressed(KeyCode)"
+    },
+    {
+      "slot": 32,
+      "signature": "void vgui2::IInputInternal::InternalKeyCodeTyped(KeyCode)"
+    },
+    {
+      "slot": 33,
+      "signature": "void vgui2::IInputInternal::InternalKeyTyped(wchar_t)"
+    },
+    {
+      "slot": 34,
+      "signature": "void vgui2::IInputInternal::InternalKeyCodeReleased(KeyCode)"
+    },
+    {
+      "slot": 35,
+      "signature": "HInputContext vgui2::IInputInternal::CreateInputContext()"
+    },
+    {
+      "slot": 36,
+      "signature": "void vgui2::IInputInternal::DestroyInputContext(HInputContext)"
+    },
+    {
+      "slot": 37,
+      "signature": "void vgui2::IInputInternal::AssociatePanelWithInputContext(HInputContext, VPANEL)"
+    },
+    {
+      "slot": 38,
+      "signature": "void vgui2::IInputInternal::ActivateInputContext(HInputContext)"
+    }
+  ],
+  "vgui2::ISystem": [
+    {
+      "slot": 0,
+      "signature": "vgui2::ISystem::~ISystem() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::ISystem::~ISystem() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void vgui2::ISystem::Shutdown()"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::ISystem::RunFrame()"
+    },
+    {
+      "slot": 4,
+      "signature": "void vgui2::ISystem::ShellExecute(const char *, const char *)"
+    },
+    {
+      "slot": 5,
+      "signature": "double vgui2::ISystem::GetFrameTime()"
+    },
+    {
+      "slot": 6,
+      "signature": "double vgui2::ISystem::GetCurrentTime()"
+    },
+    {
+      "slot": 7,
+      "signature": "std::int32_t vgui2::ISystem::GetTimeMillis()"
+    },
+    {
+      "slot": 8,
+      "signature": "int vgui2::ISystem::GetClipboardTextCount()"
+    },
+    {
+      "slot": 9,
+      "signature": "void vgui2::ISystem::SetClipboardText(const char *, int)"
+    },
+    {
+      "slot": 10,
+      "signature": "void vgui2::ISystem::SetClipboardText(const wchar_t *, int)"
+    },
+    {
+      "slot": 11,
+      "signature": "int vgui2::ISystem::GetClipboardText(int, char *, int)"
+    },
+    {
+      "slot": 12,
+      "signature": "int vgui2::ISystem::GetClipboardText(int, wchar_t *, int)"
+    },
+    {
+      "slot": 13,
+      "signature": "bool vgui2::ISystem::SetRegistryString(const char *, const char *)"
+    },
+    {
+      "slot": 14,
+      "signature": "bool vgui2::ISystem::GetRegistryString(const char *, char *, int)"
+    },
+    {
+      "slot": 15,
+      "signature": "bool vgui2::ISystem::SetRegistryInteger(const char *, int)"
+    },
+    {
+      "slot": 16,
+      "signature": "bool vgui2::ISystem::GetRegistryInteger(const char *, int &)"
+    },
+    {
+      "slot": 17,
+      "signature": "KeyValues *vgui2::ISystem::GetUserConfigFileData(const char *, int)"
+    },
+    {
+      "slot": 18,
+      "signature": "void vgui2::ISystem::SetUserConfigFile(const char *, const char *)"
+    },
+    {
+      "slot": 19,
+      "signature": "void vgui2::ISystem::SaveUserConfigFile()"
+    },
+    {
+      "slot": 20,
+      "signature": "bool vgui2::ISystem::SetWatchForComputerUse(bool)"
+    },
+    {
+      "slot": 21,
+      "signature": "double vgui2::ISystem::GetTimeSinceLastUse()"
+    },
+    {
+      "slot": 22,
+      "signature": "int vgui2::ISystem::GetAvailableDrives(char *, int)"
+    },
+    {
+      "slot": 23,
+      "signature": "bool vgui2::ISystem::CommandLineParamExists(const char *)"
+    },
+    {
+      "slot": 24,
+      "signature": "const char *vgui2::ISystem::GetFullCommandLine()"
+    },
+    {
+      "slot": 25,
+      "signature": "bool vgui2::ISystem::GetCurrentTimeAndDate(int *, int *, int *, int *, int *, int *, int *)"
+    },
+    {
+      "slot": 26,
+      "signature": "double vgui2::ISystem::GetFreeDiskSpace(const char *)"
+    },
+    {
+      "slot": 27,
+      "signature": "bool vgui2::ISystem::CreateShortcut(const char *, const char *, const char *, const char *, const char *)"
+    },
+    {
+      "slot": 28,
+      "signature": "bool vgui2::ISystem::GetShortcutTarget(const char *, char *, char *, int)"
+    },
+    {
+      "slot": 29,
+      "signature": "bool vgui2::ISystem::ModifyShortcutTarget(const char *, const char *, const char *, const char *)"
+    },
+    {
+      "slot": 30,
+      "signature": "bool vgui2::ISystem::GetCommandLineParamValue(const char *, char *, int)"
+    },
+    {
+      "slot": 31,
+      "signature": "bool vgui2::ISystem::DeleteRegistryKey(const char *)"
+    },
+    {
+      "slot": 32,
+      "signature": "const char *vgui2::ISystem::GetDesktopFolderPath()"
+    },
+    {
+      "slot": 33,
+      "signature": "KeyCode vgui2::ISystem::KeyCode_VirtualKeyToVGUI(int)"
+    },
+    {
+      "slot": 34,
+      "signature": "int vgui2::ISystem::KeyCode_VGUIToVirtualKey(KeyCode)"
+    }
+  ],
+  "vgui2::ILocalize": [
+    {
+      "slot": 0,
+      "signature": "vgui2::ILocalize::~ILocalize() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::ILocalize::~ILocalize() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "bool vgui2::ILocalize::AddFile(IFileSystem *, const char *)"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::ILocalize::RemoveAll()"
+    },
+    {
+      "slot": 4,
+      "signature": "wchar_t *vgui2::ILocalize::Find(const char *)"
+    },
+    {
+      "slot": 5,
+      "signature": "int vgui2::ILocalize::ConvertANSIToUnicode(const char *, wchar_t *, int)"
+    },
+    {
+      "slot": 6,
+      "signature": "int vgui2::ILocalize::ConvertUnicodeToANSI(const wchar_t *, char *, int)"
+    },
+    {
+      "slot": 7,
+      "signature": "StringIndex_t vgui2::ILocalize::FindIndex(const char *)"
+    },
+    {
+      "slot": 8,
+      "signature": "void vgui2::ILocalize::ConstructString(wchar_t *, int, wchar_t *, int, ...)"
+    },
+    {
+      "slot": 9,
+      "signature": "const char *vgui2::ILocalize::GetNameByIndex(StringIndex_t)"
+    },
+    {
+      "slot": 10,
+      "signature": "wchar_t *vgui2::ILocalize::GetValueByIndex(StringIndex_t)"
+    },
+    {
+      "slot": 11,
+      "signature": "StringIndex_t vgui2::ILocalize::GetFirstStringIndex()"
+    },
+    {
+      "slot": 12,
+      "signature": "StringIndex_t vgui2::ILocalize::GetNextStringIndex(StringIndex_t)"
+    },
+    {
+      "slot": 13,
+      "signature": "void vgui2::ILocalize::AddString(const char *, wchar_t *, const char *)"
+    },
+    {
+      "slot": 14,
+      "signature": "void vgui2::ILocalize::SetValueByIndex(StringIndex_t, wchar_t *)"
+    },
+    {
+      "slot": 15,
+      "signature": "bool vgui2::ILocalize::SaveToFile(IFileSystem *, const char *)"
+    },
+    {
+      "slot": 16,
+      "signature": "int vgui2::ILocalize::GetLocalizationFileCount()"
+    },
+    {
+      "slot": 17,
+      "signature": "const char *vgui2::ILocalize::GetLocalizationFileName(int)"
+    },
+    {
+      "slot": 18,
+      "signature": "const char *vgui2::ILocalize::GetFileNameByIndex(StringIndex_t)"
+    },
+    {
+      "slot": 19,
+      "signature": "void vgui2::ILocalize::ReloadLocalizationFiles(IFileSystem *)"
+    },
+    {
+      "slot": 20,
+      "signature": "void vgui2::ILocalize::ConstructString(wchar_t *, int, const char *, KeyValues *)"
+    },
+    {
+      "slot": 21,
+      "signature": "void vgui2::ILocalize::ConstructString(wchar_t *, int, StringIndex_t, KeyValues *)"
+    }
+  ],
+  "vgui2::ISchemeManager": [
+    {
+      "slot": 0,
+      "signature": "vgui2::ISchemeManager::~ISchemeManager() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::ISchemeManager::~ISchemeManager() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "HScheme vgui2::ISchemeManager::LoadSchemeFromFile(const char *, const char *)"
+    },
+    {
+      "slot": 3,
+      "signature": "void vgui2::ISchemeManager::ReloadSchemes()"
+    },
+    {
+      "slot": 4,
+      "signature": "HScheme vgui2::ISchemeManager::GetDefaultScheme()"
+    },
+    {
+      "slot": 5,
+      "signature": "HScheme vgui2::ISchemeManager::GetScheme(const char *)"
+    },
+    {
+      "slot": 6,
+      "signature": "IImage *vgui2::ISchemeManager::GetImage(const char *, bool)"
+    },
+    {
+      "slot": 7,
+      "signature": "HTexture vgui2::ISchemeManager::GetImageID(const char *, bool)"
+    },
+    {
+      "slot": 8,
+      "signature": "IScheme *vgui2::ISchemeManager::GetIScheme(HScheme)"
+    },
+    {
+      "slot": 9,
+      "signature": "void vgui2::ISchemeManager::Shutdown(bool)"
+    },
+    {
+      "slot": 10,
+      "signature": "int vgui2::ISchemeManager::GetProportionalScaledValue(int)"
+    },
+    {
+      "slot": 11,
+      "signature": "int vgui2::ISchemeManager::GetProportionalNormalizedValue(int)"
+    },
+    {
+      "slot": 12,
+      "signature": "float vgui2::ISchemeManager::GetProportionalScale()"
+    },
+    {
+      "slot": 13,
+      "signature": "int vgui2::ISchemeManager::GetHDProportionalScaledValue(int)"
+    },
+    {
+      "slot": 14,
+      "signature": "int vgui2::ISchemeManager::GetHDProportionalNormalizedValue(int)"
+    }
+  ],
+  "vgui2::IScheme": [
+    {
+      "slot": 0,
+      "signature": "vgui2::IScheme::~IScheme() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "vgui2::IScheme::~IScheme() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "const char *vgui2::IScheme::GetResourceString(const char *)"
+    },
+    {
+      "slot": 3,
+      "signature": "IBorder *vgui2::IScheme::GetBorder(const char *)"
+    },
+    {
+      "slot": 4,
+      "signature": "HFont vgui2::IScheme::GetFont(const char *, bool)"
+    },
+    {
+      "slot": 5,
+      "signature": "Color vgui2::IScheme::GetColor(const char *, Color)"
+    },
+    {
+      "slot": 6,
+      "signature": "HFont vgui2::IScheme::GetFontEx(const char *, bool, bool)"
+    }
+  ],
+  "IKeyValues": [
+    {
+      "slot": 0,
+      "signature": "IKeyValues::~IKeyValues() [complete]"
+    },
+    {
+      "slot": 1,
+      "signature": "IKeyValues::~IKeyValues() [deleting]"
+    },
+    {
+      "slot": 2,
+      "signature": "void IKeyValues::RegisterSizeofKeyValues(int)"
+    },
+    {
+      "slot": 3,
+      "signature": "void *IKeyValues::AllocKeyValuesMemory(int)"
+    },
+    {
+      "slot": 4,
+      "signature": "void IKeyValues::FreeKeyValuesMemory(void *)"
+    },
+    {
+      "slot": 5,
+      "signature": "HKeySymbol IKeyValues::GetSymbolForString(const char *)"
+    },
+    {
+      "slot": 6,
+      "signature": "const char *IKeyValues::GetStringForSymbol(HKeySymbol)"
+    },
+    {
+      "slot": 7,
+      "signature": "void IKeyValues::GetLocalizedFromANSI(const char *, wchar_t *, int)"
+    },
+    {
+      "slot": 8,
+      "signature": "void IKeyValues::GetANSIFromLocalized(const wchar_t *, char *, int)"
+    },
+    {
+      "slot": 9,
+      "signature": "void IKeyValues::AddKeyValuesToMemoryLeakList(void *, HKeySymbol)"
+    },
+    {
+      "slot": 10,
+      "signature": "void IKeyValues::RemoveKeyValuesFromMemoryLeakList(void *)"
+    }
+  ],
+  "_records": {
+    "vgui2::ISurface": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IVGui": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IPanel": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IInput": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IInputInternal": "0 |   class vgui2::IInput (primary base)\n0 |     class IBaseInterface (primary base)\n0 |       (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::ISystem": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::ILocalize": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::ISchemeManager": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IScheme": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "IKeyValues": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "IFileSystem": "0 |   class IBaseInterface (primary base)\n0 |     (IBaseInterface vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "vgui2::IClientPanel": "0 |   (IClientPanel vtable pointer)\n| [sizeof=8, dsize=8, align=8,\n|  nvsize=8, nvalign=8]",
+    "Color": "0 |   unsigned char[4] _color\n| [sizeof=4, dsize=4, align=1,\n|  nvsize=4, nvalign=1]",
+    "KeyValues": "0 |   (KeyValues vtable pointer)\n8 |   int m_iKeyName\n16 |   union KeyValues::(anonymous union)\n16 |     int m_iValue\n16 |     float m_flValue\n16 |     void * m_pValue\n16 |     char * m_sValue\n16 |     unsigned char[4] m_Color\n24 |   unsigned short m_iDataType\n26 |   short m_iAllocationSize\n32 |   KeyValues * m_pPeer\n40 |   KeyValues * m_pSub\n| [sizeof=48, dsize=48, align=8,\n|  nvsize=48, nvalign=8]"
+  }
+}

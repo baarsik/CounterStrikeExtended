@@ -134,3 +134,20 @@ if(CSE_FILESYSTEM_LEAK_CHECKS)
       "${CSE_FILESYSTEM_RECEIPT_DIR}/leaks-${scenario}.log")
   endforeach()
 endif()
+
+if(APPLE)
+  add_executable(filesystem_pathmatch_capability_tests pathmatch_capability_tests.cpp)
+  target_compile_features(filesystem_pathmatch_capability_tests PRIVATE cxx_std_17)
+  target_include_directories(filesystem_pathmatch_capability_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/filesystem")
+  target_compile_options(filesystem_pathmatch_capability_tests PRIVATE -Wall -Wextra -UNDEBUG)
+  if(CSE_FILESYSTEM_SANITIZERS)
+    target_compile_options(filesystem_pathmatch_capability_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(filesystem_pathmatch_capability_tests PRIVATE -fsanitize=address,undefined)
+  endif()
+  foreach(scenario missing-pack create-rename sensitive-fallback unknown-fallback denied-capability nested-missing
+      not-directory symlink-capability dot-parent-volume capability-change fallback-create relative-parent
+      native-errors exact-priority host-volume)
+    add_test(NAME filesystem-pathmatch-${scenario} COMMAND filesystem_pathmatch_capability_tests
+      "${CMAKE_CURRENT_BINARY_DIR}/capability-fixtures/${scenario}" "${scenario}")
+  endforeach()
+endif()

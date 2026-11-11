@@ -94,6 +94,40 @@
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
     <ClCompile Include="..\..\dedicated\sys_ded.cpp" />
+    <ClCompile Include="..\..\dedicated\native\main.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)..\..\dedicated\sys_ded.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\DedicatedSession.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\DedicatedModuleSet.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\NativeGui.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\Signals.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\dedicated\native\TextConsolePosix.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)..\..\common\TextConsoleWin32.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="..\..\launcher\native\MacRuntimeSession.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="..\..\launcher\native\VGui1HostImageOwner.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
     <ClCompile Include="..\..\dedicated\CreateMultiplayerGameServerPage.cpp" />
     <ClCompile Include="..\..\dedicated\AdminServer.cpp" />
     <ClCompile Include="..\..\dedicated\console\conproc.cpp" />

@@ -10,7 +10,8 @@ if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_input.py
     "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cl_dll/inputw32.cpp"
-    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp")
+    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp"
+    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_input.py"
     "${CSE_INPUT_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 option(CSE_CLIENT_INPUT_SANITIZERS "Instrument only the controlled input fixture" OFF)

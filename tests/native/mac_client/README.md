@@ -23,6 +23,18 @@ and texture pixels, panel border/inset traversal, one Bitmap shared by two windo
 and balanced Surface window/renderer/video-subsystem shutdown. Font preparation is
 explicit; no embedded-runtime admission or default-font gate is bypassed.
 
+The surface-selection case loads distinct real engine and standalone Surface026
+providers, checks the standalone/filesystem ABI and complete interface views, and
+calls the existing `hw.dylib` controls initializer. Both the engine controls accessor
+and VGUI's internal consumer must select the engine-first factory, select the
+standalone provider when order is reversed, and select the engine again after
+shutdown/reinitialization. Discovery of standalone interfaces starts no SDL video
+or audio; loading the hardware engine retains its existing default-cursor video
+initialization, while consumer selection creates no windows or extra subsystems.
+This uses the compiled consumers and image-owned views, without substituting surface
+pointers or copying selection code. It does not execute `CBaseUI::Start` or render
+the full client; those remain separate live-game checks.
+
 The image case checks ARM64 architecture and eagerly loads all 13 client dylibs in
 separate processes, with the runtime as working directory for provider lookup. The
 launcher is checked as the fourteenth production responsibility. CEF runtime behavior
@@ -32,3 +44,10 @@ Passing these cases does not establish physical input/IME, host General clipboar
 publication, Windows text-allocation padding, default font metric/layout parity,
 standalone-window event routing, embedded VGUI root lifetimes, renderer scene parity
 or gameplay acceptance.
+
+The additional cases resolve native filesystem/GameUI names through the actual
+VFS, open/close the real engine's anchored root binding, reject missing/mixed
+engine/VGUI cohorts through the finished launcher, and exercise public SDK
+TextImage virtual overloads plus a TextGrid allocation canary. These catch
+consumer/provider contract differences that provider-only UI tests cannot see.
+They do not establish full game acceptance.

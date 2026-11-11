@@ -104,6 +104,11 @@
     <ClCompile Include="..\common\NetChannel.cpp" />
     <ClCompile Include="..\common\random.cpp" />
     <ClCompile Include="private\common\BaseSystemModule.cpp" />
+    <ClCompile Include="..\..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseReplaces>$(ProjectDir)private\common\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="private\common\ObjectDictionary.cpp" />
     <ClCompile Include="private\public\interface.cpp" />
     <ClCompile Include="..\..\common\ObjectList.cpp" />

@@ -58,6 +58,7 @@ struct ApiState {
     int options = 0;
     std::vector<SOCKET> closed;
     std::vector<std::string> diagnostics;
+    int debugDiagnosticCalls = 0;
 };
 inline ApiState api;
 inline bool liveLoopback = false;
@@ -212,6 +213,13 @@ struct IoState {
     bool forceSend = false;
     bool captureSend = true;
     NativeCount sendResult = 0;
+#if defined(_WIN32)
+    int sendError = WSAEWOULDBLOCK;
+#else
+    int sendError = EAGAIN;
+#endif
+    SOCKET sentSocket = 0;
+    sockaddr_in sentAddress{};
     NativeCount receiveResult = -1;
     NativeAddressLength receiveAddressLength = sizeof(sockaddr_in);
     NativeLength requestedLength = 0;
@@ -231,6 +239,10 @@ inline ssize_t FixtureSendTo(SOCKET socket, const void* data, std::size_t length
     ++io.sendCalls;
     io.requestedLength = length;
     io.addressLength = addressLength;
+    io.sentSocket = socket;
+    if (destination && addressLength == sizeof(sockaddr_in)) {
+        std::memcpy(&io.sentAddress, destination, sizeof(io.sentAddress));
+    }
     if (liveLoopback) {
         Require(destination && destination->sa_family == AF_INET
             && reinterpret_cast<const sockaddr_in*>(destination)->sin_addr.s_addr == htonl(INADDR_LOOPBACK),
@@ -251,9 +263,9 @@ inline ssize_t FixtureSendTo(SOCKET socket, const void* data, std::size_t length
     }
     if (io.forceSend) {
         if (io.sendResult < 0) {
-            errno = EAGAIN;
+            errno = io.sendError;
 #if defined(_WIN32)
-            fixtureSocketError = WSAEWOULDBLOCK;
+            fixtureSocketError = io.sendError;
 #endif
         }
         return io.sendResult;
@@ -319,6 +331,7 @@ inline void Con_Printf(const char* format, ...) {
 }
 
 inline void Con_DPrintf(const char* format, ...) {
+    ++api.debugDiagnosticCalls;
     va_list arguments;
     va_start(arguments, format);
     RecordDiagnostic(format, arguments);
@@ -333,6 +346,9 @@ inline void Q_memset(void* data, int value, std::size_t length) {
 }
 inline void Q_strncpy(char* to, const char* from, std::size_t length) {
     std::strncpy(to, from, length);
+}
+inline int Q_strcmp(const char* left, const char* right) {
+    return std::strcmp(left, right);
 }
 inline int Q_strcasecmp(const char* left, const char* right) {
 #if defined(_WIN32)

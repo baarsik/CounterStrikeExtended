@@ -34,6 +34,7 @@ public:
 	bool LoadPlatformModules( CreateInterfaceFn* factories, int count, bool useSteamModules );
 	bool InitializeAllModules( CreateInterfaceFn* factories, int count );
 	void ShutdownPlatformModules();
+    bool TryRetireNativeModules();
 	void DeactivatePlatformModules();
 	// Reenables all the deactivated platform modules
 	void ReactivatePlatformModules();
@@ -45,13 +46,23 @@ public:
 	bool ShouldPlatformRestart();
 
 private:
-	struct module_t
-	{
-		CSysModule*		module;
-		IVGuiModule*	moduleInterface;
-		KeyValues*		data;
-	};
+    enum class ModuleOwnership { ExternalImage, InternalGameUI };
+    enum class ModulePhase { Loaded, Initialized, PostInitialized, Attached, Retiring, Retired, Shutdown };
+    struct module_t {
+        CSysModule* module = nullptr;
+        IVGuiModule* moduleInterface = nullptr;
+        KeyValues* data = nullptr;
+        ModuleOwnership ownership = ModuleOwnership::ExternalImage;
+        CreateInterfaceFn factory = nullptr;
+        ModulePhase phase = ModulePhase::Loaded;
+        bool (*tryRetire)() = nullptr;
+        bool (*isRetired)() = nullptr;
+        bool initializeEntered = false;
+        bool initializeSucceeded = false;
+        bool postInitializeEntered = false;
+    };
 
+    size_t m_nativeCallDepth = 0;
 	bool					m_bModulesInitialized;
 	bool					m_bPlatformShouldRestartAfterExit;
 	CUtlVector<module_t>	m_Modules;

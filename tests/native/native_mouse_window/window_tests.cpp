@@ -22,7 +22,7 @@ SDL_Window *const fixtureWindow = reinterpret_cast<SDL_Window *>(static_cast<std
 SDL_Window *const otherWindow = reinterpret_cast<SDL_Window *>(static_cast<std::uintptr_t>(0x2345678910ULL));
 void *const nativeWindow = reinterpret_cast<void *>(static_cast<std::uintptr_t>(0x3456789010ULL));
 struct Scene {
-    bool main = true;
+    bool mainThread = true;
     bool alive = true;
     bool owned = true;
     bool focused = true;
@@ -32,6 +32,14 @@ struct Scene {
     bool publicRelative = false;
     bool applyMode = true;
     bool absoluteSuccess = true;
+    bool shortcutSuccess = true;
+    bool shortcutsEnabled = false;
+    int shortcutWrites = 0;
+    bool policySuccess = true;
+    bool policyFailAfterEffect = false;
+    bool policyHidden = false;
+    int policyWrites = 0;
+    SDL_WindowFlags windowFlags = 0;
     SDL_Window *keyboard = fixtureWindow;
     SDL_Window *mouse = fixtureWindow;
     void *native = nativeWindow;
@@ -51,10 +59,21 @@ struct Scene {
     int forbidden = 0;
     int pumps = 0;
     int drains = 0;
+    float relativeX = 0.0f;
+    float relativeY = 0.0f;
     int grabs = 0;
+    bool grabbed = false;
+    bool grabSuccess = true;
+    Uint64 ticks = 100000000;
+    std::uint32_t interactionResult = 1;
+    int interactionQueries = 0;
+    void (*onInteraction)() = nullptr;
+    void (*onFlush)(Uint32) = nullptr;
     int warps = 0;
     void (*onPump)() = nullptr;
     void (*onDrain)() = nullptr;
+    void (*onMode)() = nullptr;
+    void (*onGrab)() = nullptr;
     int calls = 0;
     char order[128]{};
     void (*reenter)() = nullptr;
@@ -95,7 +114,31 @@ bool Absolute(void *native, int width, int height, float *x, float *y) {
     return true;
 }
 cse::NativeMousePlatform Services() {
-    return {"fixture.native.window", Owned, Focused, Absolute};
+    return {"fixture.native.window", Owned, Focused, Absolute, [](void *native, bool hidden) {
+        CHECK(native == nativeWindow);
+        ++scene.policyWrites;
+        if (!scene.policySuccess) {
+            return false;
+        }
+        scene.policyHidden = hidden;
+        Reenter();
+        return !scene.policyFailAfterEffect;
+    }, [](void *native, bool enabled) {
+        CHECK(native == nativeWindow);
+        ++scene.shortcutWrites;
+        if (!scene.shortcutSuccess) {
+            return false;
+        }
+        scene.shortcutsEnabled = enabled;
+        return true;
+    }
+#if defined(CSE_CAPTURE_CALLER_TEST)
+    , [](void *) -> std::uint32_t {
+        ++scene.interactionQueries;
+        return scene.focused ? scene.interactionResult : 8;
+    }
+#endif
+    };
 }
 void Reset() {
     scene = Scene{};
@@ -118,6 +161,9 @@ void NestedDifferent() {
 void Invalidate() {
     active->Invalidate(fixtureWindow);
 }
+void RejectReentrantBind() {
+    CHECK(!active->Bind(fixtureWindow));
+}
 } // namespace
 
 namespace cse {
@@ -126,7 +172,7 @@ NativeMousePlatform NativeMouseDefaultPlatform() {
 }
 } // namespace cse
 extern "C" bool SDLCALL SDL_IsMainThread() {
-    return scene.main;
+    return scene.mainThread;
 }
 extern "C" SDL_WindowID SDLCALL SDL_GetWindowID(SDL_Window *value) {
     CHECK(value == fixtureWindow);
@@ -163,6 +209,11 @@ extern "C" bool SDLCALL SDL_SetWindowRelativeMouseMode(SDL_Window *value, bool e
     if (scene.applyMode) {
         scene.mode = enabled && scene.keyboard == fixtureWindow ? CseSdlMouseModeRelative : CseSdlMouseModeAbsolute;
     }
+    const auto callback = scene.onMode;
+    scene.onMode = nullptr;
+    if (callback) {
+        callback();
+    }
     return true;
 }
 extern "C" bool SDLCALL SDL_ShowCursor() {
@@ -183,7 +234,7 @@ extern "C" SDL_MouseButtonFlags SDLCALL SDL_GetMouseState(float *x, float *y) {
 }
 extern "C" std::uint32_t CSE_SDL_NATIVE_MOUSE_CALL CseSdl_QueryMouseModeV1(std::uint32_t version) {
     CHECK(version == CSE_SDL_MOUSE_MODE_CONTRACT_V1);
-    return scene.main ? scene.mode : static_cast<std::uint32_t>(CseSdlMouseModeWrongThread);
+    return scene.mainThread ? scene.mode : static_cast<std::uint32_t>(CseSdlMouseModeWrongThread);
 }
 extern "C" void SDLCALL SDL_PumpEvents() {
     ++scene.forbidden;
@@ -194,7 +245,15 @@ extern "C" void SDLCALL SDL_PumpEvents() {
         callback();
     }
 }
-extern "C" SDL_MouseButtonFlags SDLCALL SDL_GetRelativeMouseState(float *, float *) {
+extern "C" SDL_MouseButtonFlags SDLCALL SDL_GetRelativeMouseState(float *x, float *y) {
+    if (x) {
+        *x = scene.relativeX;
+    }
+    if (y) {
+        *y = scene.relativeY;
+    }
+    scene.relativeX = 0.0f;
+    scene.relativeY = 0.0f;
     ++scene.forbidden;
     ++scene.drains;
     const auto callback = scene.onDrain;
@@ -208,9 +267,18 @@ extern "C" void SDLCALL SDL_WarpMouseInWindow(SDL_Window *, float, float) {
     ++scene.forbidden;
     ++scene.warps;
 }
-extern "C" bool SDLCALL SDL_SetWindowMouseGrab(SDL_Window *value, bool) {
+extern "C" bool SDLCALL SDL_SetWindowMouseGrab(SDL_Window *value, bool grabbed) {
     CHECK(value == fixtureWindow);
     ++scene.grabs;
+    if (!scene.grabSuccess) {
+        return false;
+    }
+    scene.grabbed = grabbed;
+    const auto callback = scene.onGrab;
+    scene.onGrab = nullptr;
+    if (callback) {
+        callback();
+    }
     return true;
 }
 extern "C" bool SDLCALL SDL_GetWindowSize(SDL_Window *value, int *width, int *height) {
@@ -222,6 +290,40 @@ extern "C" bool SDLCALL SDL_GetWindowSize(SDL_Window *value, int *width, int *he
 
 int main() {
     static_assert(std::is_trivially_destructible<cse::NativeMouseWindow>::value, "No static cleanup");
+#if defined(__APPLE__)
+    // Native camera capture is independent of the saved raw-input preference.
+    for (bool rawInput : {false, true}) {
+        for (auto owner : {cse::NativeCursorOwner::VGui1, cse::NativeCursorOwner::VGui2}) {
+            Reset();
+            cse::NativeMouseWindow capture(Services());
+            Bind(capture);
+            for (bool visible : {false, true, false}) {
+                cse::NativeCursorTransaction ticket;
+                CHECK(capture.Begin(fixtureWindow, owner, visible, rawInput, ticket));
+                CHECK(scene.publicRelative == !visible);
+                CHECK(scene.mode == (visible ? CseSdlMouseModeAbsolute : CseSdlMouseModeRelative));
+                CHECK(ticket.Commit());
+                CHECK(scene.policyHidden == !visible);
+            }
+            // SDL's focus boundary releases effective capture while retaining
+            // this window's requested mode; returning focus reapplies that mode.
+            scene.keyboard = otherWindow;
+            scene.mouse = otherWindow;
+            scene.mode = CseSdlMouseModeAbsolute;
+            NoSample(capture);
+            scene.keyboard = fixtureWindow;
+            scene.mouse = fixtureWindow;
+            scene.mode = CseSdlMouseModeRelative;
+            float focusX = 0.0f;
+            float focusY = 0.0f;
+            CHECK(capture.Sample(fixtureWindow, 640, 480, &focusX, &focusY));
+            const int calls = scene.calls;
+            CHECK(capture.RefreshCursorPolicy());
+            CHECK(scene.calls == calls && scene.publicRelative && scene.policyHidden);
+            CHECK(capture.Invalidate(fixtureWindow));
+        }
+    }
+#endif
     Reset();
     cse::NativeMouseWindow state(Services());
     active = &state;
@@ -297,13 +399,19 @@ int main() {
         CHECK(retry.Current());
         NoSample(state); // Suppress reentrant queries through the entire caller handoff.
         CHECK(retry.Commit());
+        CHECK(scene.policyHidden);
     }
     CHECK(!state.NeedsRetry(cse::NativeCursorOwner::VGui1));
     for (bool visible : {false, true}) {
         cse::NativeCursorTransaction transaction;
         scene.calls = 0;
         CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, visible, false, transaction));
+#if defined(__APPLE__)
+        CHECK(scene.calls == 2 && scene.order[0] == (visible ? 'A' : 'S') &&
+              scene.order[1] == (visible ? 'S' : 'R'));
+#else
         CHECK(scene.calls == 2 && scene.order[0] == 'A' && scene.order[1] == (visible ? 'S' : 'H'));
+#endif
         CHECK(transaction.Commit());
     }
     {
@@ -311,6 +419,7 @@ int main() {
         CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, false, false, abandoned));
     }
     CHECK(state.NeedsRetry(cse::NativeCursorOwner::VGui1));
+    CHECK(!scene.policyHidden); // No policy acquire for an abandoned transaction.
     // A nested newer request during setter, pump, drain or game handoff supersedes the outer ticket.
     for (int stage = 0; stage < 4; ++stage) {
         cse::NativeCursorTransaction inner;
@@ -359,10 +468,83 @@ int main() {
     scene.applyMode = true;
     scene.mode = CseSdlMouseModeAbsolute;
     Bind(state);
-    scene.main = false;
+    scene.mainThread = false;
     NoSample(state);
-    scene.main = true;
-    CHECK(scene.forbidden == 0);
+    scene.mainThread = true;
+    CHECK(scene.forbidden == scene.drains);
+    {
+        scene.policySuccess = false;
+        cse::NativeCursorTransaction rejectedPolicy;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, false, false, rejectedPolicy));
+        CHECK(!rejectedPolicy.Commit());
+        CHECK(state.NeedsRetry(cse::NativeCursorOwner::VGui1));
+        CHECK(!scene.policyHidden);
+        scene.policySuccess = true;
+        cse::NativeCursorTransaction retriedPolicy;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui2, false, false, retriedPolicy));
+        CHECK(retriedPolicy.Commit() && scene.policyHidden);
+        scene.policySuccess = false;
+        CHECK(!state.Invalidate(fixtureWindow));
+        CHECK(scene.policyHidden); // Keep ownership available for a later release attempt.
+        scene.policySuccess = true;
+        CHECK(state.Invalidate(fixtureWindow));
+        CHECK(!scene.policyHidden);
+    }
+    Bind(state);
+    {
+        cse::NativeCursorTransaction reentrantPolicy;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, false, false, reentrantPolicy));
+        scene.reenter = Invalidate;
+        CHECK(!reentrantPolicy.Commit());
+        CHECK(!scene.policyHidden);
+        CHECK(state.Invalidate(nullptr));
+        CHECK(!scene.policyHidden);
+    }
+    for (bool refresh : {false, true}) {
+        Bind(state);
+        cse::NativeCursorTransaction hiddenPolicy;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, false, false, hiddenPolicy));
+        CHECK(hiddenPolicy.Commit());
+        cse::NativeCursorTransaction nestedPolicy;
+        nestedTicket = &nestedPolicy;
+        scene.reenter = NestedDifferent;
+        CHECK(!(refresh ? state.RefreshCursorPolicy() : state.Invalidate(fixtureWindow)));
+        CHECK(state.NeedsRetry(cse::NativeCursorOwner::VGui2));
+        CHECK(!nestedPolicy.Current());
+        cse::NativeCursorTransaction newestPolicy;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui2, true, true, newestPolicy));
+        CHECK(newestPolicy.Commit() && !scene.policyHidden);
+        scene.reenter = RejectReentrantBind;
+        CHECK(state.Invalidate(fixtureWindow));
+        CHECK(!scene.policyHidden);
+    }
+    Bind(state);
+    {
+        scene.policyFailAfterEffect = true;
+        cse::NativeCursorTransaction partiallyApplied;
+        CHECK(state.Begin(fixtureWindow, cse::NativeCursorOwner::VGui1, false, false, partiallyApplied));
+        CHECK(!partiallyApplied.Commit() && scene.policyHidden);
+        scene.policyFailAfterEffect = false;
+        CHECK(state.Invalidate(fixtureWindow));
+        CHECK(!scene.policyHidden);
+    }
     std::printf("native-window checks=%d\n", checks);
     return 0;
+}
+
+extern "C" bool SDLCALL SDL_GetWindowMouseGrab(SDL_Window *) {
+    return scene.grabbed;
+}
+extern "C" Uint64 SDLCALL SDL_GetTicksNS() {
+    return scene.ticks;
+}
+extern "C" void SDLCALL SDL_FlushEvent(Uint32 type) {
+    if (scene.onFlush) {
+        scene.onFlush(type);
+    }
+}
+
+extern "C" SDL_WindowFlags SDLCALL SDL_GetWindowFlags(SDL_Window *window) {
+    CHECK(window == fixtureWindow);
+    return scene.windowFlags;
 }

@@ -27,8 +27,79 @@ target_compile_options(mac_client_ui PRIVATE -Wall -Wextra -Werror -Wno-unused-p
 target_link_libraries(mac_client_ui PRIVATE "${cse_vgui}" "${cse_vgui2}" "${cse_SDL3}")
 set_target_properties(mac_client_ui PROPERTIES BUILD_RPATH "${CSE_CLIENT_RUNTIME}")
 enable_testing()
-add_test(NAME mac-client-ui COMMAND mac_client_ui -cse-fixture "argument with spaces")
-set_tests_properties(mac-client-ui PROPERTIES ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+add_test(NAME mac-client-ui COMMAND mac_client_ui -all_languages -cse-fixture "argument with spaces"
+  -literal "player \"bob\" smith")
+add_test(NAME mac-client-restart-system-arguments COMMAND mac_client_ui --cse-resume-command-line
+  "fixture -all_languages -cse-fixture \"argument with spaces\" -novid"
+  fixture -all_languages -cse-fixture "argument with spaces" -literal "player \"bob\" smith")
+set_tests_properties(mac-client-ui mac-client-restart-system-arguments PROPERTIES
+  ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
+add_executable(mac_client_surface_selection surface_selection.cpp)
+target_compile_features(mac_client_surface_selection PRIVATE cxx_std_17)
+target_include_directories(mac_client_surface_selection PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls"
+  "${CSE_ROOT}/GoldSrc-SDK/vgui2/src"
+  "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
+  "${CSE_ROOT}/GoldSrc-SDK/public"
+  "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+target_compile_options(mac_client_surface_selection PRIVATE -Wall -Wextra -Werror -Wno-unused-parameter)
+target_link_libraries(mac_client_surface_selection PRIVATE "${cse_SDL3}" "${CMAKE_DL_LIBS}")
+set_target_properties(mac_client_surface_selection PROPERTIES BUILD_RPATH "${CSE_CLIENT_RUNTIME}")
+add_test(NAME mac-client-surface-selection COMMAND mac_client_surface_selection "${CSE_CLIENT_RUNTIME}")
+set_tests_properties(mac-client-surface-selection PROPERTIES
+  WORKING_DIRECTORY "${CSE_CLIENT_RUNTIME}"
+  ENVIRONMENT "SDL_VIDEO_DRIVER=dummy;SDL_AUDIO_DRIVER=dummy;SDL_RENDER_DRIVER=software")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME mac-client-images COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/load_images.py"
   "${CSE_CLIENT_RUNTIME}")
+add_executable(mac_client_module_paths module_paths.cpp)
+target_compile_features(mac_client_module_paths PRIVATE cxx_std_17)
+target_include_directories(mac_client_module_paths PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_compile_options(mac_client_module_paths PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(mac_client_module_paths PRIVATE "${CMAKE_DL_LIBS}")
+add_test(NAME mac-client-vfs-module-paths COMMAND mac_client_module_paths "${CSE_CLIENT_RUNTIME}")
+add_executable(mac_client_bootstrap bootstrap.cpp
+  "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp")
+target_compile_features(mac_client_bootstrap PRIVATE cxx_std_17)
+target_include_directories(mac_client_bootstrap PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public"
+  "${CSE_ROOT}/GoldSrc-SDK/launcher/native")
+target_compile_options(mac_client_bootstrap PRIVATE -Wall -Wextra -Werror -fno-exceptions)
+target_link_libraries(mac_client_bootstrap PRIVATE "${CMAKE_DL_LIBS}")
+add_test(NAME mac-client-root-bootstrap COMMAND mac_client_bootstrap "${CSE_CLIENT_RUNTIME}")
+set_tests_properties(mac-client-root-bootstrap PROPERTIES WORKING_DIRECTORY "${CSE_CLIENT_RUNTIME}")
+add_executable(mac_client_consumer_contract consumer_contract.cpp)
+target_compile_features(mac_client_consumer_contract PRIVATE cxx_std_17)
+target_include_directories(mac_client_consumer_contract PRIVATE
+  "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include"
+  "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix")
+target_link_libraries(mac_client_consumer_contract PRIVATE "${cse_vgui}")
+set_target_properties(mac_client_consumer_contract PROPERTIES BUILD_RPATH "${CSE_CLIENT_RUNTIME}")
+add_test(NAME mac-client-consumer-font-contract COMMAND mac_client_consumer_contract font)
+add_test(NAME mac-client-consumer-grid-contract COMMAND mac_client_consumer_contract grid)
+add_test(NAME mac-client-cohort-rejection COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cohort_rejection.py" "${CSE_CLIENT_RUNTIME}")
+add_test(NAME mac-client-game-export-isolation COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/game_exports.py" "${CSE_CLIENT_RUNTIME}")
+
+if(EXISTS "${CSE_CLIENT_RUNTIME}/swds.dylib")
+  add_executable(mac_software_font software_font.cpp
+    "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp")
+  target_compile_features(mac_software_font PRIVATE cxx_std_17)
+  target_compile_options(mac_software_font PRIVATE -UNDEBUG)
+  target_include_directories(mac_software_font PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
+    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/launcher/native"
+    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/include"
+    "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+  target_link_libraries(mac_software_font PRIVATE "${CSE_CLIENT_RUNTIME}/swds.dylib" "${cse_vgui}")
+  set_target_properties(mac_software_font PROPERTIES BUILD_RPATH "${CSE_CLIENT_RUNTIME}")
+  add_test(NAME mac-software-font COMMAND mac_software_font "${CSE_CLIENT_RUNTIME}")
+  set_tests_properties(mac-software-font PROPERTIES WORKING_DIRECTORY "${CSE_CLIENT_RUNTIME}")
+  add_test(NAME mac-software-root-bootstrap COMMAND mac_client_bootstrap "${CSE_CLIENT_RUNTIME}" swds.dylib)
+  set_tests_properties(mac-software-root-bootstrap PROPERTIES WORKING_DIRECTORY "${CSE_CLIENT_RUNTIME}")
+endif()
+
+add_test(NAME mac-client-cohort-admission COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cohort_admission.py")
+
+add_test(NAME mac-client-cohort-alias-reuse COMMAND "${Python3_EXECUTABLE}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cohort_alias_reuse.py")

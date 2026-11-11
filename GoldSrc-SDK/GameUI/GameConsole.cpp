@@ -25,6 +25,37 @@
 #undef PostMessage
 #endif
 
+#if INTPTR_MAX > INT32_MAX
+namespace {
+vgui2::DHANDLE<CGameConsoleDialog> nativeConsolePanel;
+bool nativeConsoleDeletionQueued = false;
+}
+
+bool CGameConsole::TryRetireNativePanel() {
+    if (!m_pConsole) {
+        return true;
+    }
+    if (!nativeConsoleDeletionQueued) {
+        nativeConsolePanel = m_pConsole;
+        m_bInitialized = false;
+        m_pConsole->SetVisible(false);
+        m_pConsole->MarkForDeletion();
+        nativeConsoleDeletionQueued = true;
+    }
+    if (nativeConsolePanel.Get()) {
+        return false;
+    }
+    nativeConsolePanel = nullptr;
+    m_pConsole = nullptr;
+    nativeConsoleDeletionQueued = false;
+    return true;
+}
+
+bool CGameConsole::IsNativePanelRetired() const {
+    return m_pConsole == nullptr;
+}
+#endif
+
 CGameConsole g_GameConsole;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CGameConsole, IGameConsole, "GameConsole003", g_GameConsole );
 
@@ -38,6 +69,7 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CGameConsole, IGameConsole, "GameConsole003",
 CGameConsole::CGameConsole()
 {
 	m_bInitialized = false;
+    m_pConsole = nullptr;
 }
 #ifdef _MSC_VER
 #pragma warning( pop )

@@ -92,7 +92,15 @@ int FileSystem_Init( char* basedir, CreateInterfaceFn factory )
 
 void FileSystem_Shutdown()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (g_pFileSystem) {
+        g_pFileSystem->RemoveAllSearchPaths();
+    }
+    g_pFileSystem = nullptr;
+    g_FileSystemFactory = nullptr;
+#else
 	g_pFileSystem->RemoveAllSearchPaths();
+#endif
 	if ( g_pFileSystemModule )
 	{
 		Sys_UnloadModule( g_pFileSystemModule );

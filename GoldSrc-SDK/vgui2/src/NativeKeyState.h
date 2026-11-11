@@ -38,6 +38,15 @@ struct Snapshot {
     bool scrollLockToggled;
 };
 
+#if defined(__APPLE__)
+// The standalone event owner borrows this snapshot only while dispatching one
+// native event. SDL_GetKeyboardState otherwise reflects the end of a pumped batch.
+inline thread_local const Snapshot* standaloneEventSnapshot = nullptr;
+// Synchronize the active retained context without fabricating key callbacks for
+// native modifier events that have no window target.
+void ApplyStandaloneModifiers(const Snapshot& snapshot, bool leftCommandDown, bool rightCommandDown);
+#endif
+
 constexpr std::uint16_t PackedState(bool down, bool toggled = false) noexcept {
     constexpr std::uint16_t DownMask = 0x8000;
     constexpr std::uint16_t ToggleMask = 0x0001;

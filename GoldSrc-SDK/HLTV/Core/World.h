@@ -1,6 +1,9 @@
 #pragma once
 
 #include "HLTV/common/IWorld.h"
+#if INTPTR_MAX > INT32_MAX
+#include "engine/usermsg.h"
+#endif
 #include "common/BaseSystemModule.h"
 #include "common/entity_state.h"
 #include "common/ObjectDictionary.h"
@@ -20,6 +23,15 @@
 class World : public IWorld, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::WorldName)) {
+            return static_cast<IWorld*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	enum WorldState
 	{
 		WORLD_UNDEFINED		= 0,

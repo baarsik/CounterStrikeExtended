@@ -55,6 +55,14 @@ bounded retained counts, query/extra/anchor failure retention and retry, reentry
 and actual final unmapping only after root return. False accepts nothing.
 No unsafe callback-stack self-unmap is used as a negative control.
 
+`inserted-native-owner` runs the actual owner with an inert dylib supplied through
+DYLD_INSERT_LIBRARIES. The fixture verifies that insertion occurred, prints whether
+dyld index zero is the genuine executable, and retains the foreign/dependency and
+misplaced-owner rejection cases. Main identity comes from the public
+`_NSGetMachExecuteHeader` API; enumeration index zero may identify the inserted
+dylib on native ARM64. The callback must still reside in the actual main image,
+and the admitted root factory must still reside outside that main image.
+
 `run_macos.py --art NEW_DIRECTORY` freezes sources, builds Release/Debug/ASan+UBSan
 and an owned Unicode/path-space Release profile, checks actual CPU/minOS/imports,
 runs every case with a 45-second watchdog, and compiles the new source using

@@ -27,9 +27,10 @@ def main():
     options.output.mkdir(parents=True, exist_ok=True)
     sdk = options.root / 'GoldSrc-SDK'
     contexts = [
-        ('EngineProducer', 'engine/sys_dll2.cpp', ['IEngineAPI', 'IDedicatedServerAPI', 'IDedicatedExports']),
+        ('EngineProducer', 'engine/sys_dll2.cpp', ['IEngineAPI', 'IDedicatedExports']),
         ('LauncherCaller', 'launcher/public/engine_launcher_api.h', ['IEngineAPI']),
-        ('DedicatedCaller', 'dedicated/sys_ded.cpp', ['IDedicatedServerAPI']),
+        ('EngineProducer', 'public/dedicated_api.h', ['IDedicatedServerAPI']),
+        ('DedicatedCaller', 'public/dedicated_api.h', ['IDedicatedServerAPI']),
         ('DedicatedExportsCaller', 'public/idedicatedexports.h', ['IDedicatedExports'])]
     lines = ['#pragma once', '#include "' + str(sdk / 'public/interface_registry.h') + '"',
              '// Exact source-extracted declarations. Controlled bindings; no replacement production class.']

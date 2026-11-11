@@ -30,6 +30,12 @@ function(cse_add_runtime target kind output)
     # Mach-O otherwise coalesces weak inline registry functions across images,
     # binding an owned module's factory to the executable's private registry.
     set_property(TARGET ${target} PROPERTY VISIBILITY_INLINES_HIDDEN YES)
+    if(target MATCHES "^(cs_client|cs_server|hl_client|hl_server)$")
+      # Client prediction and server entities reuse C++ names with different
+      # definitions. Mach-O must never coalesce their private templates/RTTI.
+      # The SDK's explicit EXPORT declarations retain the public module surface.
+      set_target_properties(${target} PROPERTIES C_VISIBILITY_PRESET hidden CXX_VISIBILITY_PRESET hidden)
+    endif()
   endif()
   if(MSVC)
     target_link_options(${target} PRIVATE

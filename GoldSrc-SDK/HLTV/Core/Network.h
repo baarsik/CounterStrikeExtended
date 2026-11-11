@@ -11,6 +11,15 @@ class Network : public BaseSystemModule, public INetwork
 	friend class NetSocket;
 
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::NetworkName)) {
+            return static_cast<INetwork*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	Network();
 	virtual ~Network() override;
 

@@ -199,11 +199,32 @@ bool ArgvOverflow() {
 #endif
 }
 
+#if defined(__APPLE__)
+bool CanonicalRestart() {
+    const std::string canonical = "\"launcher with spaces\" -game cstrike -name \"player with spaces\" "
+                                  "-value backslash\\quote\"literal @unexpanded-response";
+    bool passed = Check(RestoreMacLauncherCommandLine(canonical.c_str()), "restore canonical restart text") &&
+                  Line(canonical, "restart bytes preserved without parsing or response expansion");
+    const std::string oversized(CommandPayloadBytes + 1, 'x');
+    passed = Check(!RestoreMacLauncherCommandLine(oversized.c_str()), "reject oversized canonical restart") && passed;
+    passed = Check(!RestoreMacLauncherCommandLine(nullptr), "reject null canonical restart") && passed;
+    passed = Line(canonical, "rejected restore preserves existing state") && passed;
+    const std::string boundary(CommandPayloadBytes, 'x');
+    return Check(RestoreMacLauncherCommandLine(boundary.c_str()), "accept canonical boundary") &&
+           Line(boundary, "canonical boundary bytes") && passed;
+}
+#endif
+
 int main(int argc, char** argv) {
     if (argc != 2 || !std::setlocale(LC_CTYPE, "C")) {
         return 2;
     }
     bool passed = false;
+#if defined(__APPLE__)
+    if (std::strcmp(argv[1], "canonical-restart") == 0) {
+        passed = CanonicalRestart();
+    }
+#endif
     if (std::strcmp(argv[1], "basic") == 0) {
         passed = Basic();
     }

@@ -116,6 +116,13 @@ extern "C" SDL_MouseButtonFlags SDLCALL SDL_GetRelativeMouseState(float *x, floa
 
 extern "C" void SDLCALL SDL_PumpEvents() {
     ++services.eventPumps;
+#if defined(__APPLE__)
+    if (services.onPump) {
+        const auto callback = services.onPump;
+        services.onPump = nullptr;
+        callback();
+    }
+#endif
 }
 
 extern "C" void SDLCALL SDL_CloseGamepad(SDL_Gamepad *gamepad) {
@@ -190,5 +197,18 @@ BOOL OwnedTerminateThread(HANDLE, DWORD) {
 
 #if !CSE_TEST_POLLING
 void PrintDiagnostic(const char *, ...) {
+}
+#endif
+
+#if defined(__APPLE__)
+extern "C" void SDLCALL SDL_WarpMouseInWindow(SDL_Window *, float, float) {
+    // Pinned Cocoa WarpMouseGlobal sends a synchronous absolute position after
+    // SDL_PerformWarpMouseInWindow clears has_position: this contributes zero motion.
+    ++services.windowWarps;
+    if (services.onWarp) {
+        const auto callback = services.onWarp;
+        services.onWarp = nullptr;
+        callback();
+    }
 }
 #endif

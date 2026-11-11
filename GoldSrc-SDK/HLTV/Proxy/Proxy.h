@@ -25,6 +25,15 @@ class Proxy : public IProxy, public BaseSystemModule
 	friend class Master;
 
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::ProxyName)) {
+            return static_cast<IProxy*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	Proxy();
 	virtual ~Proxy() override;
 

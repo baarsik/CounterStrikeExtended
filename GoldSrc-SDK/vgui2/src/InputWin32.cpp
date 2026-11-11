@@ -74,6 +74,11 @@ constexpr int VK_CONTROL = static_cast<int>(VirtualKey::Control);
 }
 
 cse_vgui2_input::Snapshot CaptureNativeKeyState() {
+#if defined(__APPLE__)
+    if (cse_vgui2_input::standaloneEventSnapshot) {
+        return *cse_vgui2_input::standaloneEventSnapshot;
+    }
+#endif
     int count = 0;
     const bool* down = SDL_GetKeyboardState(&count);
     const SDL_Keymod modifiers = SDL_GetModState();
@@ -118,6 +123,11 @@ static ToggleButton_t s_ToggleButtons[] =
 
 class CInputWin32 : public IInputInternal
 {
+#if defined(__APPLE__)
+    friend void vgui2::ResetStandaloneMouseState();
+    friend void cse_vgui2_input::ApplyStandaloneModifiers(
+        const cse_vgui2_input::Snapshot& snapshot, bool leftCommandDown, bool rightCommandDown);
+#endif
 public:
 	CInputWin32();
 
@@ -212,6 +222,47 @@ private:
 };
 
 CInputWin32 g_Input;
+
+#if defined(__APPLE__)
+void cse_vgui2_input::ApplyStandaloneModifiers(
+    const Snapshot& snapshot, bool leftCommandDown, bool rightCommandDown) {
+    struct ModifierState {
+        KeyCode code;
+        bool down;
+    };
+    const ModifierState states[] = {
+        {KEY_LSHIFT, snapshot.leftShiftDown},
+        {KEY_RSHIFT, snapshot.rightShiftDown},
+        {KEY_LCONTROL, snapshot.leftControlDown},
+        {KEY_RCONTROL, snapshot.rightControlDown},
+        {KEY_LALT, snapshot.leftAltDown},
+        {KEY_RALT, snapshot.rightAltDown},
+        {KEY_LWIN, leftCommandDown},
+        {KEY_RWIN, rightCommandDown},
+        {KEY_CAPSLOCKTOGGLE, snapshot.capsLockToggled},
+        {KEY_NUMLOCKTOGGLE, snapshot.numLockToggled},
+        {KEY_SCROLLLOCKTOGGLE, snapshot.scrollLockToggled}
+    };
+    auto* context = g_Input.GetInputContext(g_Input.m_hContext);
+    for (const auto& state : states) {
+        context->_keyDown[state.code] = state.down;
+    }
+}
+
+void vgui2::ResetStandaloneMouseState() {
+    const auto clear = [](auto& context) {
+        memset(context._mousePressed, 0, sizeof(context._mousePressed));
+        memset(context._mouseDoublePressed, 0, sizeof(context._mouseDoublePressed));
+        memset(context._mouseDown, 0, sizeof(context._mouseDown));
+        memset(context._mouseReleased, 0, sizeof(context._mouseReleased));
+    };
+    clear(g_Input.m_DefaultInputContext);
+    for (int index = g_Input.m_Contexts.Head(); index != g_Input.m_Contexts.InvalidIndex();
+         index = g_Input.m_Contexts.Next(index)) {
+        clear(g_Input.m_Contexts[index]);
+    }
+}
+#endif
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CInputWin32, IInput, "VGUI_Input004", g_Input ); // export IInput to everyone else, not IInputInternal!
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CInputWin32, IInputInternal, "VGUI_InputInternal001", g_Input ); // for use in external surfaces only! (like the engine surface)
@@ -747,8 +798,18 @@ void CInputWin32::UpdateMouseFocus( int x, int y )
 
 		if ( !focus )
 		{
+#if UINTPTR_MAX > UINT32_MAX
+            VPanel *embedded = reinterpret_cast<VPanel *>(g_pSurface->GetEmbeddedPanel());
+            // Retirement detaches the root before the final deletion-dispatch turn.
+            // Continue below with no focus so modal checks and stale-focus clearing still run.
+            IClientPanel *client = embedded ? embedded->Client() : nullptr;
+            if (client) {
+                focus = reinterpret_cast<VPanel *>(client->IsWithinTraverse(x, y, false));
+            }
+#else
 			VPanel* embedded = (VPanel*)g_pSurface->GetEmbeddedPanel();
 			focus = (VPanel*)embedded->Client()->IsWithinTraverse( x, y, false );
+#endif
 		}
 	}
 

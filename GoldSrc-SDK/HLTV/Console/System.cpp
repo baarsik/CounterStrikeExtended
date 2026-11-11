@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cstring>
 #if !defined(_WIN32)
 #include <sys/resource.h>
 #include <cerrno>
@@ -31,6 +32,26 @@ static System g_System;
 System::System()
 {
 	m_State = MODULE_UNDEFINED;
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_LastTime = 0;
+    m_FileSystemLibrary = nullptr;
+    m_FileSystem = nullptr;
+    m_VGuiLibrary = nullptr;
+    std::memset(m_BaseDir, 0, sizeof(m_BaseDir));
+    std::memset(m_StatusLine, 0, sizeof(m_StatusLine));
+    m_LogFile = nullptr;
+    std::memset(m_LogFileName, 0, sizeof(m_LogFileName));
+    m_MinFrameTime = 0;
+    m_RedirectBuffer = nullptr;
+    m_RedirectSize = 0;
+    m_Developer = false;
+    m_NextSerial = 0;
+    m_Tick = 0;
+    m_SleepTime = 0;
+    std::memset(m_Factories, 0, sizeof(m_Factories));
+    m_VGUI = false;
+    m_MainPanel = nullptr;
+#endif
 #if defined(_WIN32)
 	InitializeCriticalSection( &m_ClockLock );
 #endif
@@ -45,6 +66,13 @@ System::~System()
 
 bool System::Init( IBaseSystem* system, int serial, char* name )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    // A stopped run may still own providers until callback frames have unwound.
+    if (!m_NativeResourcesRetired || m_NativeShutdownActive) {
+        return false;
+    }
+    m_NativeResourcesRetired = false;
+#endif
 	if ( !BaseSystemModule::Init( system, serial, name ) )
 		return false;
 
@@ -146,6 +174,9 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 
 	m_Commands.Init();
 	m_Modules.Init();
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_NativeModules.Restart();
+#endif
 	m_Libraries.Init();
 	m_LogFile = NULL;
 	memset( m_LogFileName, 0, sizeof( m_LogFileName ) );
@@ -191,7 +222,14 @@ bool System::Init( IBaseSystem* system, int serial, char* name )
 	RegisterCommand( "unloadmodule", this, CMD_UNLOADMODULE );
 
 	SetTitle( "Console" );
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!GetModule("proxy001", "proxy", nullptr) || m_State == MODULE_DISCONNECTED) {
+        Errorf("Couldn't initialize required Proxy module.\n");
+        return false;
+    }
+#else
 	GetModule( "proxy001", "proxy", NULL );
+#endif
 	SetTitle( "HLTV" );
 	m_State = MODULE_RUNNING;
 	DPrintf( "System initialized.\n" );
@@ -292,6 +330,11 @@ void System::RunFrame( double time )
 			if ( m_SystemTime > nextConsoleUpdate )
 			{
 				ExecuteString( m_Console.GetLine() );
+#if CSE_NATIVE_SYSTEM_MODULE && !defined(_WIN32)
+                if (m_Console.InputEnded()) {
+                    Stop();
+                }
+#endif
 				m_Console.SetStatusLine( m_StatusLine );
 #if defined(_WIN32)
 				nextConsoleUpdate = (float)( m_SystemTime + 0.1f );
@@ -317,6 +360,19 @@ void System::RunFrame( double time )
 			}
 			else
 			{
+#if CSE_NATIVE_SYSTEM_MODULE
+                {
+                    cse::modules::CallbackScope callback(&m_NativeModules.lifetime);
+                    for (ISystemModule* module : m_NativeModules.Running()) {
+                        if (m_NativeModules.Running(module)) {
+                            module->RunFrame(m_SystemTime);
+                        }
+                    }
+                }
+                if (m_NativeModules.stopping) {
+                    break;
+                }
+#else
 				ISystemModule* module = (ISystemModule*)m_Modules.GetFirst();
 				while ( module )
 				{
@@ -325,6 +381,7 @@ void System::RunFrame( double time )
 					module->RunFrame( m_SystemTime );
 					module = (ISystemModule*)m_Modules.GetNext();
 				}
+#endif
 			}
 		}
 		else
@@ -343,6 +400,58 @@ void System::RunFrame( double time )
 
 void System::ShutDown()
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeResourcesRetired || m_NativeShutdownActive) {
+        return;
+    }
+    m_NativeShutdownActive = true;
+    struct ShutdownScope {
+        bool& active;
+        ~ShutdownScope() {
+            active = false;
+        }
+    } shutdown{m_NativeShutdownActive};
+    Stop();
+    m_NativeModules.Stop([this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    });
+    // Keep the filesystem, console and libraries alive while provider frames remain.
+    // A later owner call retries retirement after the callback scope has returned.
+    if (!m_NativeModules.ReleaseAll()) {
+        return;
+    }
+    m_Commands.Clear(true);
+    while (auto* library = static_cast<library_t*>(m_Libraries.RemoveTail())) {
+        if (library->module) {
+            Sys_UnloadModule(library->module);
+        }
+        free(library);
+    }
+    CloseLogFile();
+    RetireNativeVGUI();
+    if (m_FileSystem) {
+        m_FileSystem->Unmount();
+        m_FileSystem = nullptr;
+    }
+    if (m_FileSystemLibrary) {
+        Sys_UnloadModule(m_FileSystemLibrary);
+        m_FileSystemLibrary = nullptr;
+    }
+    if (m_Developer) {
+        constexpr unsigned int DeveloperShutdownDelay = 3000;
+#if defined(_WIN32)
+        Sleep(DeveloperShutdownDelay);
+#else
+        hltv_posix::SleepMilliseconds(DeveloperShutdownDelay);
+#endif
+    }
+    m_RedirectBuffer = nullptr;
+    m_RedirectSize = 0;
+    m_Console.ShutDown();
+    m_NativeResourcesRetired = true;
+#else
+
 	m_Commands.Clear( true );
 	ISystemModule* module = (ISystemModule*)m_Modules.GetFirst();
 	while ( module )
@@ -385,6 +494,7 @@ void System::ShutDown()
 #endif
 	m_Console.ShutDown();
 	m_State = MODULE_DISCONNECTED;
+#endif
 }
 
 double System::GetTime()
@@ -623,6 +733,20 @@ void System::CloseLogFile()
 
 bool System::AddModule( ISystemModule* module, char* name )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_NativeModules.Add(this, module, name, nullptr, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    })) {
+        return false;
+    }
+    if (!m_Modules.AddHead(module)) {
+        RemoveModule(module);
+        return false;
+    }
+    return true;
+#else
+
 	if ( !module )
 		return false;
 	if ( !module->Init( this, m_NextSerial, name ) )
@@ -634,10 +758,19 @@ bool System::AddModule( ISystemModule* module, char* name )
 	m_Modules.AddHead( module );
 	m_NextSerial++;
 	return true;
+
+#endif
 }
 
 bool System::RemoveModule( ISystemModule* module )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    return m_NativeModules.Remove(module, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    });
+#else
+
 	if ( !module )
 		return true;
 	module->ShutDown();
@@ -664,10 +797,24 @@ bool System::RemoveModule( ISystemModule* module )
 		entry = (ISystemModule*)m_Modules.GetNext();
 	}
 	return false;
+
+#endif
 }
 
 ISystemModule* System::FindModule( char* interfaceName, char* instanceName )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!interfaceName || !*interfaceName) {
+        return nullptr;
+    }
+    for (ISystemModule* module : m_NativeModules.Running()) {
+        if ((module->QueryInterface(interfaceName) || !_stricmp(interfaceName, module->GetType())) && (!instanceName || !strcmp(instanceName, module->GetName()))) {
+            return module;
+        }
+    }
+    return nullptr;
+#else
+
 	if ( !interfaceName || !*interfaceName )
 		return NULL;
 
@@ -682,6 +829,8 @@ ISystemModule* System::FindModule( char* interfaceName, char* instanceName )
 		module = (ISystemModule*)m_Modules.GetNext();
 	}
 	return NULL;
+
+#endif
 }
 
 ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* instanceName )
@@ -689,6 +838,12 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 	ISystemModule* module = FindModule( interfaceName, instanceName );
 	if ( module )
 		return module;
+
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_NativeModules.CanCreate() || !libraryName || !*libraryName) {
+        return nullptr;
+    }
+#endif
 
 #if defined(_WIN32)
 	char filename[MAX_PATH];
@@ -749,6 +904,28 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 		DPrintf( "Loaded library %s.\n", library->name );
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    const auto* provider = cse::modules::Admit(library->factory);
+    if (!provider) {
+        Printf(const_cast<char*>("Rejected incompatible native system-module provider %s.\n"), library->name);
+        return nullptr;
+    }
+    module = provider->Create(interfaceName);
+    if (!module) {
+        return nullptr;
+    }
+    if (!m_NativeModules.Add(this, module, instanceName, provider, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    })) {
+        return nullptr;
+    }
+    if (!m_Modules.AddHead(module)) {
+        RemoveModule(module);
+        return nullptr;
+    }
+    return module;
+#else
 	module = (ISystemModule*)library->factory( interfaceName, NULL );
 	if ( !module )
 	{
@@ -758,6 +935,7 @@ ISystemModule* System::GetModule( char* interfaceName, char* libraryName, char* 
 
 	AddModule( module, instanceName );
 	return module;
+#endif
 }
 
 bool System::RegisterCommand( char* name, ISystemModule* module, int commandID )
@@ -774,11 +952,23 @@ bool System::RegisterCommand( char* name, ISystemModule* module, int commandID )
 	}
 
 	command = (command_t*)malloc( sizeof( command_t ) );
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!command) {
+        return false;
+    }
+#endif
 	strncpy( command->name, name, sizeof( command->name ) );
 	command->module = module;
 	command->name[sizeof( command->name ) - 1] = 0;
 	command->id = commandID;
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_Commands.Add(command)) {
+        free(command);
+        return false;
+    }
+#else
 	m_Commands.Add( command );
+#endif
 	return true;
 }
 
@@ -858,10 +1048,14 @@ void System::ExecuteString( char* commands )
 				while ( command && _stricmp( command->name, tokens.GetToken( 0 ) ) )
 					command = (command_t*)m_Commands.GetNext();
 
-				if ( command )
-					command->module->ExecuteCommand( command->id, commandText );
-				else
-					Printf( "WARNING! System::DispatchCommand: command \"%s\" not registered.\n", commandText );
+                if (command) {
+#if CSE_NATIVE_SYSTEM_MODULE
+                    cse::modules::CallbackScope callback(&m_NativeModules.lifetime);
+#endif
+                    command->module->ExecuteCommand(command->id, commandText);
+                } else {
+                    Printf("WARNING! System::DispatchCommand: command \"%s\" not registered.\n", commandText);
+                }
 			}
 
 			output = text;
@@ -1039,8 +1233,52 @@ void System::ExecuteCommand( int commandID, char* commandLine )
 	}
 }
 
+#if CSE_NATIVE_SYSTEM_MODULE
+void System::RetireNativeVGUI() {
+    // Cleanup may call back into the owner. Preserve an outer shutdown guard and
+    // prevent recursive retirement while panel/surface/provider frames are live.
+    struct RetirementScope {
+        bool& active;
+        bool previous;
+        ~RetirementScope() {
+            active = previous;
+        }
+    } retirement{m_NativeShutdownActive, m_NativeShutdownActive};
+    m_NativeShutdownActive = true;
+    if (m_VGUI) {
+        m_VGUI = false;
+        vgui2::ivgui()->Stop();
+    }
+    if (m_MainPanel) {
+        vgui2::Panel* panel = m_MainPanel;
+        m_MainPanel = nullptr;
+        vgui2::surface()->SetEmbeddedPanel(0);
+        delete panel;
+    }
+    if (m_NativeVGuiControlsReady) {
+        m_NativeVGuiControlsReady = false;
+        // Panel destruction still needs the active control services, so it must
+        // precede surface shutdown (which also shuts down IVGui in this provider).
+        vgui2::surface()->Shutdown();
+    }
+    CSysModule* library = m_VGuiLibrary;
+    m_VGuiLibrary = nullptr;
+    std::memset(m_Factories, 0, sizeof(m_Factories));
+    if (library) {
+        Sys_UnloadModule(library);
+    }
+}
+#endif
+
 bool System::StartVGUI()
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeResourcesRetired || m_NativeShutdownActive) {
+        return false;
+    }
+    // A prior unsuccessful acquisition must not be overwritten by a retry.
+    RetireNativeVGUI();
+#endif
 	if ( !m_FileSystemLibrary )
 	{
 		Printf( "System::StartVGUI: filesystem not loaded." );
@@ -1060,9 +1298,15 @@ bool System::StartVGUI()
 	if ( !vgui2::VGuiControls_Init( "HLTV", m_Factories, 3 ) )
 	{
 		Printf( "System::StartVGUI: Could not initialize vgui." );
+#if CSE_NATIVE_SYSTEM_MODULE
+        RetireNativeVGUI();
+#endif
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_NativeVGuiControlsReady = true;
+#endif
 	vgui2::filesystem()->AddSearchPath( "platform", "PLATFORM" );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "Resource/platform_%language%.txt" );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "Resource/vgui_%language%.txt" );
@@ -1071,6 +1315,9 @@ bool System::StartVGUI()
 	if ( !vgui2::scheme()->LoadSchemeFromFile( "platform/resource/TrackerScheme.res", "DEFAULT" ) )
 	{
 		Printf( "System::StartVGUI: Could not load TrackerScheme.res\n" );
+#if CSE_NATIVE_SYSTEM_MODULE
+        RetireNativeVGUI();
+#endif
 		return false;
 	}
 
@@ -1090,7 +1337,11 @@ bool System::InitVGUI( IVGuiModule* module )
 	return true;
 }
 
+#if CSE_NATIVE_SYSTEM_MODULE && defined(_WIN32)
+void* System::GetPanel()
+#else
 vgui2::Panel* System::GetPanel()
+#endif
 {
 	if ( m_VGUI || StartVGUI() )
 		return m_MainPanel;
@@ -1112,6 +1363,14 @@ void System_Printf( const char* format, ... )
 int WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR commandLine, _In_ int )
 {
 	g_System.m_CommandLine.SetLine( commandLine );
+#if CSE_NATIVE_SYSTEM_MODULE
+    const bool initialized = g_System.Init(&g_System, 0, "Console");
+    if (initialized) {
+        g_System.RunFrame(0);
+    }
+    g_System.ShutDown();
+    return initialized ? EXIT_SUCCESS : EXIT_FAILURE;
+#else
 	if ( g_System.Init( &g_System, 0, "Console" ) )
 	{
 		g_System.RunFrame( 0 );
@@ -1122,6 +1381,7 @@ int WINAPI WinMain( _In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR commandLine, 
 		Sleep( 2000 );
 	}
 	return 0;
+#endif
 }
 #else
 int main(int argc, char** argv) {
@@ -1163,5 +1423,21 @@ int main(int argc, char** argv) {
         result = EXIT_FAILURE;
     }
     return result;
+}
+#endif
+
+#if CSE_NATIVE_SYSTEM_MODULE
+void System::RemoveNativeCommands(ISystemModule* module) {
+    std::vector<command_t*> commands;
+    for (auto* command = static_cast<command_t*>(m_Commands.GetFirst()); command;
+         command = static_cast<command_t*>(m_Commands.GetNext())) {
+        if (command->module == module) {
+            commands.push_back(command);
+        }
+    }
+    for (auto* command : commands) {
+        m_Commands.Remove(command);
+        free(command);
+    }
 }
 #endif

@@ -132,6 +132,9 @@
     <ClInclude Include="vgui_surfacelib\native\MacFontRegistration.h" />
     <ClInclude Include="..\public\native_module.h" />
     <ClInclude Include="src\NativeKeyState.h" />
+    <ClInclude Include="src\native\StandaloneWindow.h" />
+    <ClInclude Include="src\native\StandaloneRaster.h" />
+    <ClInclude Include="..\public\native_standalone_abi.h" />
     <ClInclude Include="src\Bitmap.h" />
     <ClInclude Include="src\Border.h" />
     <ClInclude Include="src\fileimage.h" />
@@ -194,10 +197,23 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ItemGroup>
+    <ClCompile Include="src\SurfaceSDL.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <CseReplaces>$(ProjectDir)src\Surface.cpp</CseReplaces>
+    </ClCompile>
+    <ClCompile Include="src\native\StandaloneWindow.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
+    <ClCompile Include="src\native\StandaloneRaster.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+    </ClCompile>
     <ClCompile Include="src\SystemMac.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>
-      <CseReplaces>$(ProjectDir)src\System.cpp;$(ProjectDir)src\Surface.cpp</CseReplaces>
+      <CseReplaces>$(ProjectDir)src\System.cpp</CseReplaces>
     </ClCompile>
     <ClCompile Include="src\NativeSystemClock.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

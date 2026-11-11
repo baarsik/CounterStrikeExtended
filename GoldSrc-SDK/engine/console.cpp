@@ -613,8 +613,11 @@ void Con_DrawNotify()
 		scr_copytop = 1;
 
 		x = 8;
-		for ( charpos = 0; charpos < con_linewidth; charpos++ )
-			x += Draw_Character( x, v, g_szNotifyAreaString[charpos], VGUI2_GetConsoleFont() );
+        constexpr int notifyCapacity = sizeof(g_szNotifyAreaString);
+        for (charpos = 0; charpos < con_linewidth && charpos < notifyCapacity
+            && g_szNotifyAreaString[charpos] != '\0'; ++charpos) {
+            x += Draw_Character(x, v, g_szNotifyAreaString[charpos], VGUI2_GetConsoleFont());
+        }
 
 		v += VGUI2_GetFontTall( VGUI2_GetConsoleFont() );
 	}

@@ -55,6 +55,9 @@ CBaseEntity
 #ifndef CBASE_DLLEXPORT
 #ifdef _WIN32
 #define CBASE_DLLEXPORT _declspec( dllexport )
+#elif defined(__APPLE__)
+// Match dllexport's retention of explicitly exported inline callbacks.
+#define CBASE_DLLEXPORT __attribute__((visibility("default"), used))
 #else
 #define CBASE_DLLEXPORT __attribute__ ((visibility("default")))
 #endif

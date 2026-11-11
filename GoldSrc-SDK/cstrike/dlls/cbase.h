@@ -59,6 +59,9 @@ CBaseEntity
 #ifndef CBASE_DLLEXPORT
 #ifdef _WIN32
 #define CBASE_DLLEXPORT _declspec( dllexport )
+#elif defined(__APPLE__)
+// Match dllexport's retention of explicitly exported inline callbacks.
+#define CBASE_DLLEXPORT __attribute__((visibility("default"), used))
 #else
 #define CBASE_DLLEXPORT __attribute__ ((visibility("default")))
 #endif
@@ -71,7 +74,11 @@ CBaseEntity
 #define EXPORT CBASE_DLLEXPORT
 
 extern "C" CBASE_DLLEXPORT int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion );
+#if defined(__APPLE__)
+extern "C" CBASE_DLLEXPORT int GetEntityAPI2(DLL_FUNCTIONS* functionTable, int* interfaceVersion);
+#else
 extern "C" int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion );
+#endif
 extern "C" CBASE_DLLEXPORT int GetNewDLLFunctions( NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion );
 
 extern int DispatchSpawn( edict_t *pent );

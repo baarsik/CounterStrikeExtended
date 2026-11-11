@@ -1,7 +1,7 @@
-// Native client System services. The client supplies VGUI_Surface026 through
-// EngineSurface; the GDI standalone-tools surface is Windows-only.
+// Native System services shared by the client and standalone SDL surface.
 #include "interface.h"
 #include "vgui_internal.h"
+#include "FileSystem.h"
 #include "vgui_key_translation.h"
 #include "KeyValues.h"
 #include "vgui/ISystem.h"
@@ -10,9 +10,14 @@
 #include "NativeClipboard.h"
 #include "../../common/sdl_ui_clipboard.h"
 #include "../../common/mac_settings_store.h"
+#include "../../public/native_restart_command_line.h"
 #include <SDL3/SDL.h>
 #include <crt_externs.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
+#include <algorithm>
+#include <cctype>
+#include <climits>
 #include <spawn.h>
 #include <sys/wait.h>
 #include <cerrno>
@@ -93,6 +98,7 @@ private:
     std::mutex m_TimeLock;
     cse_vgui2_clock::State m_clock{};
     std::string m_commandLine;
+    std::vector<std::string> m_arguments;
     std::string m_desktop;
 };
 
@@ -106,14 +112,13 @@ CSystem::CSystem() {
     if (!cse_vgui2_clock::Initialize(m_clock, cse_vgui2_clock::NanosecondsPerSecond)) {
         std::abort();
     }
-    const int count = *_NSGetArgc();
-    char** arguments = *_NSGetArgv();
-    for (int index = 0; index < count; ++index) {
+    m_arguments = cse_restart::ProcessArguments(*_NSGetArgc(), *_NSGetArgv());
+    for (std::size_t index = 0; index < m_arguments.size(); ++index) {
         if (index) {
             m_commandLine += ' ';
         }
         m_commandLine += '"';
-        for (const char* character = arguments[index]; *character; ++character) {
+        for (const char* character = m_arguments[index].c_str(); *character; ++character) {
             if (*character == '"' || *character == '\\') {
                 m_commandLine += '\\';
             }
@@ -176,14 +181,66 @@ void CSystem::ShellExecute(const char*, const char* file) {
     if (!file || !*file) {
         return;
     }
+    std::string target(file);
+    const auto separatorPosition = target.find(':');
+    bool uri = separatorPosition != std::string::npos && separatorPosition != 0 &&
+               std::isalpha(static_cast<unsigned char>(target[0]));
+    for (std::size_t index = 1; uri && index < separatorPosition; ++index) {
+        const unsigned char character = static_cast<unsigned char>(target[index]);
+        uri = std::isalnum(character) || character == '+' || character == '-' || character == '.';
+    }
+    if (!uri) {
+        std::replace(target.begin(), target.end(), '\\', '/');
+        if (target[0] != '/') {
+            if (!g_pFileSystem) {
+                SDL_Log("Cannot open native resource without a filesystem: %s", file);
+                return;
+            }
+            constexpr std::size_t InitialPathCapacity = 512;
+            constexpr std::size_t TruncationMargin = 2;
+            constexpr std::size_t GrowthFactor = 2;
+            std::vector<char> path(InitialPathCapacity);
+            for (;;) {
+                std::fill(path.begin(), path.end(), '\0');
+                const char* resolved = g_pFileSystem->GetLocalPath(target.c_str(), path.data(),
+                                                                  static_cast<int>(path.size()));
+                if (!resolved || !*resolved) {
+                    SDL_Log("Native resource is unavailable: %s", file);
+                    return;
+                }
+                if (strnlen(resolved, path.size()) < path.size() - TruncationMargin) {
+                    target = resolved;
+                    break;
+                }
+                if (path.size() > static_cast<std::size_t>(INT_MAX) / GrowthFactor) {
+                    SDL_Log("Native resource path cannot be represented: %s", file);
+                    return;
+                }
+                path.resize(path.size() * GrowthFactor);
+            }
+        }
+        struct stat information{};
+        if (stat(target.c_str(), &information) != 0) {
+            SDL_Log("Native resource is unavailable: %s", target.c_str());
+            return;
+        }
+    }
     char executable[] = "/usr/bin/open";
     char separator[] = "--";
-    char* arguments[]{executable, separator, const_cast<char*>(file), nullptr};
+    char* arguments[]{executable, separator, target.data(), nullptr};
     pid_t process = 0;
-    if (posix_spawn(&process, executable, nullptr, nullptr, arguments, *_NSGetEnviron()) == 0) {
+    const int result = posix_spawn(&process, executable, nullptr, nullptr, arguments, *_NSGetEnviron());
+    if (result == 0) {
         int status = 0;
-        while (waitpid(process, &status, 0) < 0 && errno == EINTR) {
+        pid_t waited = 0;
+        do {
+            waited = waitpid(process, &status, 0);
+        } while (waited < 0 && errno == EINTR);
+        if (waited < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+            SDL_Log("Native application could not open: %s", target.c_str());
         }
+    } else {
+        SDL_Log("Cannot launch native application for %s: %s", target.c_str(), std::strerror(result));
     }
 }
 
@@ -291,9 +348,8 @@ bool CSystem::CommandLineParamExists(const char* name) {
     if (!name) {
         return false;
     }
-    char** arguments = *_NSGetArgv();
-    for (int index = 1; index < *_NSGetArgc(); ++index) {
-        if (std::strcmp(arguments[index], name) == 0) {
+    for (std::size_t index = 1; index < m_arguments.size(); ++index) {
+        if (m_arguments[index] == name) {
             return true;
         }
     }
@@ -304,14 +360,13 @@ bool CSystem::GetCommandLineParamValue(const char* name, char* destination, int 
     if (!name || !destination || capacity <= 0) {
         return false;
     }
-    char** arguments = *_NSGetArgv();
-    for (int index = 1; index + 1 < *_NSGetArgc(); ++index) {
-        if (std::strcmp(arguments[index], name) == 0) {
-            const auto length = std::strlen(arguments[index + 1]);
+    for (std::size_t index = 1; index + 1 < m_arguments.size(); ++index) {
+        if (m_arguments[index] == name) {
+            const auto length = m_arguments[index + 1].size();
             if (length >= static_cast<std::size_t>(capacity)) {
                 return false;
             }
-            std::memcpy(destination, arguments[index + 1], length + 1);
+            std::memcpy(destination, m_arguments[index + 1].c_str(), length + 1);
             return true;
         }
     }

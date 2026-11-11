@@ -3,6 +3,7 @@
 #endif
 #include "../common/sdl3_input.h"
 #include "../common/sdl3_cursor.h"
+#include "../common/sdl3_keyboard.h"
 #include "VGUI_EngineSurfaceWrap.h"
 
 #include <VGUI_App.h>
@@ -30,6 +31,8 @@
 
 #include <cstddef>
 #include <cstring>
+#include <cstdio>
+#include <cstdlib>
 #include <new>
 #include "sdl3_window.h"
 
@@ -150,6 +153,12 @@ EngineSurfaceWrap::EngineSurfaceWrap(vgui::Panel *embeddedPanel, IEngineSurface 
     ::operator delete(stream);
 
     if (SDL_WasInit(SDL_INIT_VIDEO) == 0) {
+#if defined(__APPLE__)
+        if (!cse::ConfigureMacKeyRepeat()) {
+            std::fputs("SDL key-repeat configuration failed before VGUI1 startup\n", stderr);
+            std::abort();
+        }
+#endif
 #if !defined(_WIN32)
         SDL_SetHint("SDL_VIDEO_X11_XRANDR", "1");
         SDL_SetHint("SDL_VIDEO_X11_XVIDMODE", "1");
@@ -476,7 +485,11 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
     }
 #endif
 
-    if (s_bCursorVisible) {
+    if (s_bCursorVisible
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        && cse::NativeMouseWindowState().CaptureAllowed()
+#endif
+    ) {
         SDL_SetCursor(staticCurrentCursor);
     }
 
@@ -497,11 +510,18 @@ void EngineSurfaceWrap::setCursor(vgui::Cursor *cursor) {
                                      static_cast<float>(windowHeight / 2));
             }
 #endif
-            if (!s_bCursorVisible && transaction.Current()) {
+            if (!s_bCursorVisible && transaction.Current() && transaction.Changed()) {
+#if defined(__APPLE__)
+                if (!cse::RefreshNativeGameplayShortcuts()) {
+                    return;
+                }
+#endif
                 SDL_PumpEvents();
+#if !defined(__APPLE__)
                 if (transaction.Current()) {
                     SDL_GetRelativeMouseState(nullptr, nullptr);
                 }
+#endif
             }
             if (transaction.Commit()) {
                 s_bUsedRawInputLast = useRawInput;

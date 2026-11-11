@@ -1,6 +1,13 @@
 #include "controlled_services.h"
 #include <cstring>
 #include <limits>
+#if defined(__APPLE__)
+#include "sdl3_native_mouse_bridge.h"
+static bool gameplayRelativeMode = false;
+extern "C" std::uint32_t CSE_SDL_NATIVE_MOUSE_CALL CseSdl_QueryMouseModeV1(std::uint32_t) {
+    return gameplayRelativeMode ? CseSdlMouseModeRelative : CseSdlMouseModeAbsolute;
+}
+#endif
 #if defined(_WIN32) && defined(_WIN64)
 #include "native_mouse_poller_win.h"
 #include <type_traits>
@@ -494,7 +501,93 @@ static void TestCameraHandoff() {
 }
 #endif
 
+
+#if defined(__APPLE__)
+namespace gameplay_loop {
+cvar_t m_rawinput{};
+cvar_t cl_mousegrab{};
+bool s_bCursorVisible = false;
+struct Surface {
+    bool IsCursorVisible() const {
+        return services.cursorVisible;
+    }
+} g_BaseUISurface;
+int BUsesSDLInput() {
+    return 1;
+}
+void ClientDLL_IN_Accumulate() {
+    IN_Accumulate();
+}
+struct Game {
+    bool m_bActiveApp = true;
+    bool m_bCursorVisible = false;
+    bool m_bExpectSyntheticMouseMotion = false;
+    int m_nMouseTargetX = 320;
+    int m_nMouseTargetY = 240;
+    int m_nWarpDelta = 40;
+    SDL_Window *m_hSDLWindow = nullptr;
+    void Motion(float x, float y) {
+        SDL_Event ev{};
+        ev.type = SDL_EVENT_MOUSE_MOTION;
+        ev.motion.x = x;
+        ev.motion.y = y;
+        do {
+#include "engine_motion.inc"
+        } while (false);
+    }
+};
+void DuringPump() {
+    QueueMotion(17.75f, -4.75f);
+}
+void TestAcceptedMotion() {
+    for (bool captured : {false, true}) {
+        for (bool duringWarp : {false, true}) {
+            gameplayRelativeMode = captured;
+            for (int raw = 0; raw < 2; ++raw) {
+                for (int grab = 0; grab < 2; ++grab) {
+                    Reset(static_cast<float>(raw));
+                    m_rawinput.value = static_cast<float>(raw);
+                    cl_mousegrab.value = static_cast<float>(grab);
+                    Game game;
+                    QueueMotion(80.5f, -12.5f);
+                    if (duringWarp) {
+                        services.onWarp = DuringPump;
+                    } else {
+                        services.onPump = DuringPump;
+                    }
+                    game.Motion(400.5f, 227.5f);
+#if defined(__APPLE__)
+                    if (captured) {
+                        CHECK(services.windowWarps == 0);
+                    }
+#endif
+                    // Motion at the next input opportunity when this transport
+                    // does not need the controlled warp/pump boundary.
+                    if (services.onPump || services.onWarp) {
+                        services.onPump = nullptr;
+                        services.onWarp = nullptr;
+                        DuringPump();
+                    }
+                    Move(0.0f, 0.0f);
+                    std::printf("gameplay game=%s raw=%d grab=%d captured=%d during-warp=%d "
+                                "accepted=98.25,-17.25 yaw=%.2f warps=%d reads=%d\n",
+                                CSE_GAME_CS ? "CS" : "HL", raw, grab, captured, duringWarp,
+                                services.angles[YAW], services.windowWarps, services.relativeReads);
+                    CHECK(services.angles[YAW] == -49.0f);
+                    Move(0.75f, 0.0f);
+                    CHECK(services.angles[YAW] == -49.5f);
+                }
+            }
+        }
+    }
+}
+}
+#endif
+
 int main() {
+#if defined(__APPLE__)
+    gameplay_loop::TestAcceptedMotion();
+#endif
     TestRawTiming();
     TestRelativeAndFilter();
     TestMovementBranches();

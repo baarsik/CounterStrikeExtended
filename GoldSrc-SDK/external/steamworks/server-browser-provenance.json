@@ -1,0 +1,27 @@
+{
+  "commit": "be57e3d01ac7d7aa6a2cacbfef187c0b46616db0",
+  "headers": {
+    "isteammatchmaking.h": {
+      "url": "https://raw.githubusercontent.com/ValveSoftware/source-sdk-2013/be57e3d01ac7d7aa6a2cacbfef187c0b46616db0/src/public/steam/isteammatchmaking.h",
+      "bytes": 53353,
+      "sha256": "c48961fd70ec3dcfa9ff27db2b6f510ff1517d3547fa89b2dcf1742a686ab9e1",
+      "download": "curl normal TLS; exit0; no verification override"
+    },
+    "matchmakingtypes.h": {
+      "url": "https://raw.githubusercontent.com/ValveSoftware/source-sdk-2013/be57e3d01ac7d7aa6a2cacbfef187c0b46616db0/src/public/steam/matchmakingtypes.h",
+      "bytes": 7358,
+      "sha256": "6ee55eafcf3d6e833c7544d1204c0e25294fdbb5798ea8a71c345c8cebb428fa",
+      "download": "curl normal TLS; exit0; no verification override",
+      "baselinePath": "upstream/matchmakingtypes.h",
+      "active": {
+        "path": "matchmakingtypes.h",
+        "bytes": 7374,
+        "sha256": "eaee2dcbe58d035371fe619ec29d6878f49c51566cc47ff407826302b0524672",
+        "patchPath": "patches/matchmakingtypes-format-signedness.patch",
+        "patchSha256": "e747806920c46cc0e6197ee42c8dec3068d7dd62f9b677cc8d0ebd2b45910f0f",
+        "scope": "Only the two inline servernetadr_t::ToString snprintf statements: use signed decimal conversion for explicit int octets; narrow statement formatting. Declarations, layouts, vtables and arguments unchanged.",
+        "reason": "Original MSVC GameUI /W4 /WX /analyze rejects unsigned format conversions with explicit int octet arguments (C6340/C2220)."
+      }
+    }
+  }
+}

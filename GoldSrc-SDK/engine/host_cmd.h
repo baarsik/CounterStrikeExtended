@@ -43,3 +43,7 @@ void				EntityPatchWrite( SAVERESTOREDATA* save, const char* level );
 int					CreateEntityList( SAVERESTOREDATA* save, int levelMask );
 void				LoadAdjacentEntities( const char* oldLevel, const char* landmarkName );
 int					LoadGamestate( char* level, int createPlayers );
+
+#if defined(__APPLE__)
+void Host_ResetNativeVideoRestart();
+#endif

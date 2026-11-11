@@ -162,6 +162,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/HLTV/Core/private\\common\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Core/private/common/ObjectDictionary.cpp",
             "metadata": {}
           },
@@ -394,6 +403,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/HLTV/Core/private\\common\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Core/private/common/ObjectDictionary.cpp",
             "metadata": {}
           },
@@ -570,6 +588,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private\\common\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/common/ObjectDictionary.cpp",
             "metadata": {}
           },
@@ -696,6 +723,15 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/common/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/HLTV/DemoPlayer/private\\common\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -1069,6 +1105,24 @@
             "kind": "ResourceCompile",
             "path": "${CSE_SDK_DIR}/launcher/hl.rc",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/MacRuntimeSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
           }
         ],
         "imports": [
@@ -1173,6 +1227,24 @@
             "kind": "ResourceCompile",
             "path": "${CSE_SDK_DIR}/launcher/hl.rc",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/MacRuntimeSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
           }
         ],
         "imports": [
@@ -1628,6 +1700,69 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserModel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConfig.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserPresentation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConnection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserDetails.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserDialog.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/AnimatingImagePanel.cpp",
             "metadata": {}
           },
@@ -1876,6 +2011,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -2436,6 +2581,69 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserModel.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConfig.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserPresentation.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConnection.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserDetails.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserDialog.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/GameUI/native/ServerBrowserModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/controls/AnimatingImagePanel.cpp",
             "metadata": {}
           },
@@ -2684,6 +2892,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -2948,6 +3166,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Core\\private\\common\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/common/ObjectList.cpp",
             "metadata": {}
           },
@@ -3190,6 +3418,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Core/private/common/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "ExceptionHandling": "Sync",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Core\\private\\common\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -3499,6 +3737,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Core\\private\\common\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Core/private/common/ObjectDictionary.cpp",
             "metadata": {}
           },
@@ -3752,6 +3999,15 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/HLTV/Core/private/common/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\HLTV\\Core\\private\\common\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -12132,6 +12388,72 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/main.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated\\sys_ded.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/DedicatedSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/DedicatedModuleSet.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/Signals.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/TextConsolePosix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\common\\TextConsoleWin32.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/MacRuntimeSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/CreateMultiplayerGameServerPage.cpp",
             "metadata": {}
           },
@@ -12541,6 +12863,72 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/dedicated/sys_ded.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/main.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\dedicated\\sys_ded.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/DedicatedSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/DedicatedModuleSet.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/NativeGui.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/Signals.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/dedicated/native/TextConsolePosix.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\common\\TextConsoleWin32.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/MacRuntimeSession.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
           },
           {
             "kind": "ClCompile",
@@ -13006,6 +13394,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -14041,6 +14439,15 @@
               "Project": "{A43B1363-C70A-42C5-9614-F88891995C46}",
               "ReferenceOutputAssembly": "false"
             }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_runtime_bootstrap.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
           }
         ],
         "imports": [
@@ -14231,6 +14638,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\engine\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -15266,6 +15683,15 @@
               "Project": "{A43B1363-C70A-42C5-9614-F88891995C46}",
               "ReferenceOutputAssembly": "false"
             }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_runtime_bootstrap.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
           }
         ],
         "imports": [
@@ -15755,6 +16181,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\BaseSystemModule.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/bitmap_win.cpp",
             "metadata": {}
           },
@@ -16338,6 +16774,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_getmodes.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_software_video.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
@@ -16761,6 +17207,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_runtime_bootstrap.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -17051,6 +17506,16 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CsePointerWidth": "64",
+              "FloatingPointModel": "Precise",
+              "CseReplaces": "${CSE_SDK_DIR}/swds/..\\engine\\BaseSystemModule.cpp"
+            }
           },
           {
             "kind": "ClCompile",
@@ -17640,6 +18105,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_software_video.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/sys_sdlwind.cpp",
             "metadata": {}
           },
@@ -18056,6 +18531,15 @@
             "metadata": {
               "ObjectFileName": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\vgui_controls.obj",
               "PREfastLogFile": "${CSE_SDK_DIR}/swds/..\\bin\\obj\\swds\\Win32\\Release\\vgui_controls.nativecodeanalysis.xml"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_runtime_bootstrap.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false"
             }
           },
           {
@@ -19888,11 +20372,36 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/SurfaceSDL.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/native/StandaloneWindow.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/native/StandaloneRaster.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/src/SystemMac.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
-              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp;${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp"
             }
           },
           {
@@ -20167,11 +20676,36 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/SurfaceSDL.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/native/StandaloneWindow.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/vgui2/src/native/StandaloneRaster.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/vgui2/src/SystemMac.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
-              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp;${CSE_SDK_DIR}/vgui2/src\\Surface.cpp"
+              "CseReplaces": "${CSE_SDK_DIR}/vgui2/src\\System.cpp"
             }
           },
           {

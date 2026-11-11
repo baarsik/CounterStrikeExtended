@@ -61,4 +61,4 @@ shutil.copytree(args.build / 'callers', args.evidence / 'imported-caller-lifecyc
 (args.evidence / 'receipt.json').write_text(json.dumps(dict(config=args.config, sanitizers=args.sanitizers,
     commands=records, images=images, success=True, injected_services_only=True, physical_window_acceptance=False,
     provider_or_game_executed=False), indent=2) + '\n')
-print(args.config + ': four suites pass; old helper compile0/run17', flush=True)
+print(args.config + ': component suites pass; old helper compile0/run17', flush=True)

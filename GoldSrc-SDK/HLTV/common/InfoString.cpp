@@ -1,3 +1,4 @@
+#include <cstdint>
 #include "HLTV/common/InfoString.h"
 
 #include "HLTV/common/mem.h"
@@ -249,7 +250,12 @@ bool InfoString::RemoveKey( const char* key )
 		*dst = 0;
 		if ( !strcmp( key, pkey ) )
 		{
+#if INTPTR_MAX > INT32_MAX
+            // Removing a key shifts the remaining suffix within this same buffer.
+            memmove(start, s, strlen(s) + 1);
+#else
 			strcpy( start, s );
+#endif
 			return true;
 		}
 

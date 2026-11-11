@@ -5,6 +5,7 @@
 #include "VGUI_ImagePanel.h"
 #include "VGUI_Panel.h"
 #include "../posix/VGui1FontPlatform.h"
+#include "../../../../../common/sdl3_keyboard.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cstdio>
@@ -115,6 +116,10 @@ bool Surface::createPlat() {
     int width = 0;
     int height = 0;
     getPanel()->getSize(width, height);
+    if (!cse::ConfigureMacKeyRepeat()) {
+        std::fputs("VGUI1 key-repeat configuration failed\n", stderr);
+        std::abort();
+    }
     _plat->videoInitialized = SDL_InitSubSystem(SDL_INIT_VIDEO);
     if (!_plat->videoInitialized
         || !SDL_CreateWindowAndRenderer("CounterStrikeExtended", std::max(width, 1), std::max(height, 1),

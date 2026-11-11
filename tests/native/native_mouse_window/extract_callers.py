@@ -21,6 +21,7 @@ for name, relative, method in [
         depth += (text[end] == '{') - (text[end] == '}')
         end += 1
     full = text[begin:end]
+    (output / (name + '_full.inc')).write_bytes(full.encode('latin1'))
     block = full[full.index('    const bool useRawInput ='): -1]
     (output / (name + '_caller.inc')).write_bytes(block.encode('latin1'))
     rows.append(dict(relative=relative, method=method, source_sha256=hashlib.sha256(data).hexdigest(),
@@ -59,7 +60,8 @@ for body in startups:
     assert end < body.index('SDL_ShowWindow(')
     startup_blocks.append(block)
 assert startup_blocks[0] == startup_blocks[1]
-shutdown_blocks = [body[:body.index('    if (m_hSDLRenderer && m_bCreatedRenderer)')] for body in shutdowns]
+shutdown_blocks = [body[body.index('#if defined(__APPLE__)'):body.index('    if (m_hSDLRenderer && m_bCreatedRenderer)')]
+                   for body in shutdowns]
 assert shutdown_blocks[0] == shutdown_blocks[1]
 assert shutdown_blocks[0].index('RendererWillDestroy') < shutdown_blocks[0].index('NativeMouseWindowState().Invalidate')
 (output / 'hidden_bind.inc').write_bytes(startup_blocks[0].encode('latin1'))
@@ -69,4 +71,9 @@ assert shutdown_blocks[0].index('RendererWillDestroy') < shutdown_blocks[0].inde
     bind_after_last_create_before_show=True, font_retirement_before_invalidation=True,
     bind_sha256=hashlib.sha256(startup_blocks[0].encode('latin1')).hexdigest(),
     shutdown_prefix_sha256=hashlib.sha256(shutdown_blocks[0].encode('latin1')).hexdigest(),
-    scope='Exact hook blocks plus complete shutdown prefix; surrounding platform/renderer startup is not executed'), indent=2) + '\n')
+    scope='Exact hook blocks and shutdown retirement section; preceding software ReleaseVideo and renderer lifecycle are outside fixture'), indent=2) + '\n')
+
+text = (repo / 'GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp').read_text(encoding='latin1')
+begin = text.index('    SetCursor(vgui2::dc_none);', text.index('void BaseUISurface::CalculateMouseVisible()'))
+end = text.index('\n}\n', begin)
+(output / 'base_no_popup.inc').write_text(text[begin:end])

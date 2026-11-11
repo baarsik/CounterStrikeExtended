@@ -7,13 +7,26 @@ class INetChannel;
 class INetSocket;
 class NetAddress;
 
+#if INTPTR_MAX > INT32_MAX
+namespace cse {
+namespace modules {
+// Sent before provider-owned sockets are closed; borrowers must detach synchronously.
+constexpr unsigned int NetworkShutdownSignal = 1;
+}
+}
+#endif
+
 class INetwork
+#if INTPTR_MAX > INT32_MAX
+    : public virtual ISystemModule
+#endif
 {
 public:
 	virtual ~INetwork()
 	{
 	}
 
+#if INTPTR_MAX <= INT32_MAX
 	virtual bool Init( IBaseSystem* system, int serial, char* name ) = 0;
 	virtual void RunFrame( double time ) = 0;
 	virtual void ReceiveSignal( ISystemModule* module, unsigned int signal, void* data ) = 0;
@@ -30,6 +43,7 @@ public:
 	virtual int GetState() = 0;
 	virtual int GetVersion() = 0;
 	virtual void ShutDown() = 0;
+#endif
 
 	virtual INetSocket* CreateSocket( int port, bool reuse, bool loopback ) = 0;
 	virtual bool RemoveSocket( INetSocket* netsocket ) = 0;

@@ -1,4 +1,5 @@
 #include "vgui_int.h"
+#include "native_gameui_retirement.h"
 #include "vgui_intwrap2.h"
 #include "vgui_EngineSurface.h"
 #include "const.h"
@@ -13,17 +14,70 @@ using RGBQUAD = cse_bmp::PaletteEntry;
 #endif
 #include <cstdlib>
 
+namespace {
+enum class NativeVGuiShutdownPhase { Browser, Wrap1, Wrap2, EngineSurface, Complete };
+NativeVGuiShutdownPhase nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::Complete;
+bool nativeVGuiShutdownBusy = false;
+}
+
 void VGui_Startup()
 {
+    nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::Browser;
 	VGuiWrap_Startup();
 	VGuiWrap2_Startup();
 }
 
 void VGui_Shutdown()
 {
-	VGuiWrap_Shutdown();
-	VGuiWrap2_Shutdown();
-	EngineSurface::freeEngineSurface();
+#if INTPTR_MAX > INT32_MAX
+    cse::TryShutdownNativeVGui();
+#else
+    VGuiWrap_Shutdown();
+    VGuiWrap2_Shutdown();
+    EngineSurface::freeEngineSurface();
+#endif
+}
+
+bool cse::TryShutdownNativeVGui() {
+    if (nativeVGuiShutdownBusy) {
+        return false;
+    }
+    nativeVGuiShutdownBusy = true;
+    struct Guard {
+        ~Guard() {
+            nativeVGuiShutdownBusy = false;
+        }
+    } guard;
+    for (;;) {
+        switch (nativeVGuiShutdownPhase) {
+        case NativeVGuiShutdownPhase::Browser:
+#if INTPTR_MAX > INT32_MAX
+            if (!TryRetireNativeGameUI()) {
+                return false;
+            }
+#endif
+            nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::Wrap1;
+            break;
+        case NativeVGuiShutdownPhase::Wrap1:
+            if (!TryShutdownNativeVGuiWrap1()) {
+                return false;
+            }
+            nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::Wrap2;
+            break;
+        case NativeVGuiShutdownPhase::Wrap2:
+            if (!TryShutdownNativeVGuiWrap2()) {
+                return false;
+            }
+            nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::EngineSurface;
+            break;
+        case NativeVGuiShutdownPhase::EngineSurface:
+            EngineSurface::freeEngineSurface();
+            nativeVGuiShutdownPhase = NativeVGuiShutdownPhase::Complete;
+            break;
+        case NativeVGuiShutdownPhase::Complete:
+            return true;
+        }
+    }
 }
 
 void VGui_CallEngineSurfaceAppHandler( void* event, void* userData )

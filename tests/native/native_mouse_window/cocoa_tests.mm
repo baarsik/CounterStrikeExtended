@@ -1,4 +1,5 @@
 #include "sdl3_native_cocoa_mouse_private.h"
+#include <SDL3/SDL_mouse.h>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -105,6 +106,11 @@ extern "C" uint32_t CSE_SDL_NATIVE_MOUSE_CALL CseSdl_QueryMouseModeV1(uint32_t v
     CHECK(version == CSE_SDL_MOUSE_MODE_CONTRACT_V1);
     ++bridgeCalls;
     return bridgeMode;
+}
+
+extern "C" bool SDLCALL SDL_CursorVisible() {
+    CHECK(false); // Opt-in diagnostics must remain disabled in this injected component.
+    return false;
 }
 
 int main() {

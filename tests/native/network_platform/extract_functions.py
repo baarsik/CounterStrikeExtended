@@ -29,7 +29,8 @@ def run(args):
     selected = [name for name in helpers if re.search(r'^\w+ ' + name + r'\(', text, re.M)]
     (args.output / 'actual_posix_helpers.h').write_text('#if !defined(_WIN32)\n' + '\n\n'.join(extract(text, name) for name in selected) + '\n#endif\n')
     for filename, names in [('actual_open.h', ['NET_ErrorString', 'NET_StringToSockaddr', 'NET_IPSocket']),
-                            ('actual_transport.h', ['SockadrToNetadr', 'NET_AdrToString', 'NET_SendLong', 'NET_SendToImpl', 'NET_Sleep', 'NET_Sleep_Timeout'])]:
+                            ('actual_transport.h', ['SockadrToNetadr', 'NET_AdrToString', 'NET_StringToAdr',
+                             'NET_SendLong', 'NET_SendPacket', 'NET_SendToImpl', 'NET_Sleep', 'NET_Sleep_Timeout'])]:
         bodies = []
         for name in names:
             body = extract(text, name)
@@ -41,7 +42,8 @@ def run(args):
             bodies.append(body)
         (args.output / filename).write_text('\n\n'.join(bodies) + '\n')
     constants = []
-    for name in ['NET_SOCKET_SOURCES', 'MAX_ROUTABLE_PACKET', 'SPLIT_PAYLOAD_BYTES', 'SPLIT_PACKET_ID',
+    for name in ['MAX_LOOPBACK', 'LOOPBACK_MESSAGE_BYTES', 'LOOPBACK_CHANNELS', 'NET_SOCKET_SOURCES',
+                 'MAX_ROUTABLE_PACKET', 'SPLIT_PAYLOAD_BYTES', 'SPLIT_PACKET_ID',
                  'SPLIT_PACKET_NUMBER_SHIFT', 'SHOW_SPLIT_PACKETS', 'SOCKET_ADDRESS_TEXT_BYTES', 'PORT_ANY']:
         matches = re.findall(r'^constexpr [\w:<>]+ ' + name + r'\s*=[^;]*;', text, re.M)
         if len(matches) != 1:
@@ -52,7 +54,22 @@ def run(args):
     start = text.index('namespace\n{\n#if defined( CSE_ENGINE_WSOCK32 )')
     end = text.index('\n}\n#endif', start) + 2
     block = '#if defined(_WIN32)\n' + text[start:end] + '\n#endif\n'
-    (args.output / 'actual_types.h').write_text(packet[0] + '\n' + '\n'.join(constants) + '\n' + block)
+    loops = re.search(r'typedef struct\s*\{\s*byte data\[LOOPBACK_MESSAGE_BYTES\];.*?'
+                      r'static_assert\( sizeof\( loopback_t \) == 24184 \);', text, re.S)
+    assert loops
+    client = args.source.with_name('cl_main.cpp').read_text(encoding='cp1252')
+    client_header = args.source.with_name('client.h').read_text(encoding='cp1252')
+    states = re.search(r'enum cactive_t\s*\{.*?\};', client_header, re.S)
+    assert states
+    client_constants = []
+    for name in ('CL_CONNECTION_RETRIES', 'PORT_SERVER', 'PROTOCOL_STEAM'):
+        matches = re.findall(r'^#define ' + name + r' [^\n]+', client, re.M)
+        assert len(matches) == 1, name
+        client_constants += matches
+    (args.output / 'actual_types.h').write_text(packet[0] + '\n' + '\n'.join(constants)
+        + '\n' + loops[0] + '\n' + states[0] + '\n' + block)
+    (args.output / 'actual_resend.h').write_text('\n'.join(client_constants) + '\n'
+        + extract(client, 'CL_CheckForResend') + '\n')
 
 
 if __name__ == '__main__':

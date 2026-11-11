@@ -11,6 +11,9 @@
 #include "pm_shared.h"
 #include "particleman.h"
 #include "../game_shared/voice_status.h"
+#if defined(__APPLE__)
+#include "../../cl_dll/Exports.h"
+#endif
 
 extern IParticleMan* g_pParticleMan;
 void Game_AddObjects();

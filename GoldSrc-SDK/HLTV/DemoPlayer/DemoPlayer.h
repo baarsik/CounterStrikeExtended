@@ -19,6 +19,18 @@ typedef struct ref_params_s ref_params_t;
 class DemoPlayer : public IDemoPlayer, public BaseSystemModule, public IDirector
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::DemoName)) {
+            return static_cast<IDemoPlayer*>(this);
+        }
+        if (cse::modules::Is(name, cse::modules::DirectorName)) {
+            return static_cast<IDirector*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	DemoPlayer();
 	virtual ~DemoPlayer() override;
 
@@ -108,6 +120,7 @@ public:
 	IDirector* GetDirector();
 
 protected:
+
 	enum PlayerState
 	{
 		DEMO_INACTIVE	= 0,

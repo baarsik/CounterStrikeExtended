@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
 
 namespace {
 void Check(bool condition, const char* message) {
@@ -138,6 +139,10 @@ void ForgetEngineSurface(EngineSurface* surface) noexcept {
     remembered = nullptr;
 }
 }
+#if defined(CSE_SW_WIN32_BRANCH)
+#undef INTPTR_MAX
+#define INTPTR_MAX INT32_MAX
+#endif
 #include "sw_retirement.inc"
 #include "sw_unrelated.inc"
 namespace {
@@ -159,14 +164,26 @@ int main() {
     std::array<unsigned char, static_cast<std::size_t>(Side) * Side * 4> pixels{};
     surface->drawSetTextureRGBA(101, reinterpret_cast<const char*>(pixels.data()), Side, Side, 0, 0);
     surface->drawSetTexture(101);
+    for (int width : {0, -1, (std::numeric_limits<int>::max)(),
+        (std::numeric_limits<int>::max)() / 4 + 1}) {
+        surface->drawSetTextureRGBA(101, reinterpret_cast<const char*>(pixels.data()), width, 1, 0, 0);
+        Check(plat->current && plat->current->wide == Side && plat->current->tall == Side,
+            "invalid upload preserves the existing bound page without allocation");
+    }
+
     Check(plat->current && surface->isTextureIdValid(101), "actual SW owned storage and binding");
+    pixels[0] = 19;
+    pixels[2] = 73;
+    surface->drawSetTextureBGRA(101, reinterpret_cast<const char*>(pixels.data()), Side, Side, 0, 0);
+    Check(plat->current == plat->textures->GetTexture(101), "BGRA replacement repairs the bound metadata pointer");
+#if defined(CSE_SW_WIN32_BRANCH)
+    Check(plat->current->prgba[0] == 19 && plat->current->prgba[2] == 73,
+        "Win32 replacement keeps its retained byte interpretation");
+#endif
     Check(surface->RetireNativeFontPage(101) && plat->current == nullptr && !surface->isTextureIdValid(101),
         "actual SW retirement unlinks metadata, clears binding and releases array with delete[]");
     Check(surface->RetireNativeFontPage(101) && !surface->RetireNativeFontPage(0), "idempotent/invalid bounds");
     delete surface;
-    // Fixture-only repair of inherited render-plat object ownership after the
-    // actual destructor releases its now-empty texture table. No production claim.
-    delete plat;
     std::puts("PASS actual SW complete owner and private storage retirement body");
     return 0;
 }

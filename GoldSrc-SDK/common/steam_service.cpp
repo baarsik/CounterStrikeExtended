@@ -51,10 +51,33 @@ NativeProvider& Owner() {
     return owner;
 }
 
+#if defined(__APPLE__)
+void FinalizeServerTransport() {
+    NativeProvider& owner = Owner();
+    if (!owner.serverTransport.Close()) {
+        std::fprintf(stderr, "Unable to retire native Steam server transport at module exit: %s\n",
+            owner.serverTransport.LastError());
+        std::abort();
+    }
+}
+#endif
+
 const cse_steam::Api& Api() {
     return Owner().provider.Functions();
 }
 } // namespace
+
+#if defined(__APPLE__)
+extern "C" __attribute__((visibility("hidden"))) bool CseSteamRetireServerTransport() {
+    NativeProvider& owner = Owner();
+    if (!owner.serverTransport.Close()) {
+        std::fprintf(stderr, "Unable to retire native Steam transport before module unload: %s\n",
+            owner.serverTransport.LastError());
+        return false;
+    }
+    return true;
+}
+#endif
 
 S_API void S_CALLTYPE CseSteamModuleInitialize() {
     (void)Api();
@@ -65,7 +88,21 @@ S_API bool S_CALLTYPE SteamAPI_Init() {
 }
 
 S_API void S_CALLTYPE SteamAPI_Shutdown() {
+#if defined(__APPLE__)
+    NativeProvider& owner = Owner();
+    // SteamAPI_Shutdown invalidates the core client used by the flat pipe API.
+    // Balance our anonymous pipe while that client still exists, rather than
+    // calling it later from the module/global destructor with a stale pointer.
+    if (!owner.serverTransport.Close()) {
+        std::fprintf(stderr, "Unable to retire native Steam transport before client shutdown: %s\n",
+            owner.serverTransport.LastError());
+        std::fflush(stderr);
+        std::_Exit(EXIT_FAILURE);
+    }
+    owner.provider.Functions().shutdown();
+#else
     Api().shutdown();
+#endif
 }
 
 S_API void S_CALLTYPE SteamAPI_RunCallbacks() {
@@ -98,12 +135,24 @@ S_API bool S_CALLTYPE SteamInternal_GameServer_Init(uint32 ip, uint16 legacyStea
         return false;
     }
 #if defined(__APPLE__)
-    // Keep the anonymous backend for this module's lifetime, across server map/session restarts.
+    // Keep the anonymous backend across map/session restarts. Register final
+    // retirement after the SDK has registered its own globals, so our pipe is
+    // closed while SteamClient is still alive. Darwin atexit binds this callback
+    // to its owning image and runs it on dlclose as well as process exit.
     // No client login or unauthenticated game user is created.
     NativeProvider& owner = Owner();
+    const bool alreadyRetained = owner.serverTransport.IsRetained();
     if (!owner.serverTransport.Retain(owner.provider.Functions(), owner.provider.NativeModule())) {
         std::fprintf(stderr, "Unable to retain native Steam server transport: %s\n",
             owner.serverTransport.LastError());
+        Api().shutdownServer();
+        return false;
+    }
+    if (!alreadyRetained && std::atexit(FinalizeServerTransport) != 0) {
+        std::fputs("Unable to register native Steam transport retirement\n", stderr);
+        if (!owner.serverTransport.Close()) {
+            std::abort();
+        }
         Api().shutdownServer();
         return false;
     }

@@ -1,3 +1,7 @@
+#include "../../public/native_system_module_abi.h"
+#if CSE_NATIVE_SYSTEM_MODULE
+#include "../../common/native/SystemModuleRegistry.h"
+#endif
 #pragma once
 
 #include "common/BaseSystemModule.h"
@@ -9,10 +13,12 @@
 #include "TextConsolePosix.h"
 #include "PosixSystem.h"
 #include <cstdint>
+#endif
+
 namespace vgui2 {
 class Panel;
 }
-#endif
+
 #if defined(_WIN32)
 #include "FileSystem.h"
 #else
@@ -25,6 +31,18 @@ class Panel;
 class System : public BaseSystemModule, public IBaseSystem
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::SystemName)) {
+            return static_cast<IBaseSystem*>(this);
+        }
+        if (cse::modules::Is(name, cse::modules::LifetimeName)) {
+            return &m_NativeModules.lifetime;
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	System();
 	~System() override;
 
@@ -49,7 +67,9 @@ public:
 	void ShowConsole( bool visible ) override;
 	void LogConsole( char* filename ) override;
 	bool InitVGUI( IVGuiModule* module ) override;
-#if defined(_WIN32)
+#if CSE_NATIVE_SYSTEM_MODULE && defined(_WIN32)
+    void* GetPanel() override;
+#elif defined(_WIN32)
 	vgui2::Panel* GetPanel() override;
 #else
     vgui2::Panel* GetPanel();
@@ -67,6 +87,15 @@ public:
 	char* COM_GetBaseDir() override;
 
 private:
+#if CSE_NATIVE_SYSTEM_MODULE
+    cse::modules::Registry m_NativeModules;
+    bool m_NativeResourcesRetired = true;
+    bool m_NativeShutdownActive = false;
+    bool m_NativeVGuiControlsReady = false;
+    void RetireNativeVGUI();
+    void RemoveNativeCommands(ISystemModule* module);
+#endif
+
 #if defined(_WIN32)
 	friend int WINAPI WinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE previous,
 			_In_ LPSTR commandLine, _In_ int show );

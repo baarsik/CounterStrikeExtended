@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <crt_externs.h>
 #include <dlfcn.h>
 #include <limits>
 #include <mach-o/dyld.h>
@@ -59,7 +60,7 @@ bool ImageOwner::ReadIdentity(void* reference, const char* path, Identity& outpu
     const void* factory = cse_platform::GetSymbol(reference, cse_platform::InterfaceFactorySymbol);
     Dl_info actual{};
     if (!factory || !dladdr(factory, &actual) || !actual.dli_fbase || !actual.dli_fname
-        || actual.dli_fbase == _dyld_get_image_header(0)) {
+        || actual.dli_fbase == _NSGetMachExecuteHeader()) {
         return false;
     }
     char actualPath[PATH_MAX]{};
@@ -101,8 +102,9 @@ Result ImageOwner::Open(const AdmittedImageV1& image, AnchorMode mode, void* ini
         return Result::InvalidEpoch;
     }
     Dl_info callback{};
+    // Inserted dylibs can precede MH_EXECUTE in dyld's image enumeration on ARM64.
     if (!dladdr(reinterpret_cast<const void*>(&Accept), &callback)
-        || callback.dli_fbase != _dyld_get_image_header(0)) {
+        || callback.dli_fbase != _NSGetMachExecuteHeader()) {
         return Result::InvalidCallbackImage;
     }
     Identity identity{};

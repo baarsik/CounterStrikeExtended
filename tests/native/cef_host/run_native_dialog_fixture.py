@@ -130,7 +130,7 @@ def run(executable, evidence, selected):
         server.shutdown()
         worker.join(timeout=10)
         server.server_close()
-        remaining = [entry for storage in evidence.glob('storage-*') for entry in reap_check(storage)]
+        remaining = [entry for case in CASES for entry in reap_check(evidence / ('storage-' + case))]
         cleanup = {'remaining_helpers': remaining, 'fixture_keychain_id': fixture_id or None}
         if fixture_id and not remaining:
             cleanup.update(delete_fixture_keychain(fixture_id))

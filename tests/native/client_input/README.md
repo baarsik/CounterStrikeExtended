@@ -42,3 +42,13 @@ The implementation packet and actual receipts are under the owned artifact prefi
 The first POINT/raw compile failures, declaration-only CS Init failure, Init-only CS refresh failure, and Windows-only SPI
 storage warning failures are retained. The Windows compiler fixture's first conversion-warning failure is also retained.
 Native camera/engine ABI work is a separate unimplemented Chunk B.
+
+On Apple only, the Cocoa gameplay regression additionally imports the complete identical HW/SW SleepUntilInput
+mouse-motion branch and executes it against those actual client functions. It distinguishes accepted physical motion before recenter, motion arriving at
+controlled warp/pump boundaries, synthetic Cocoa warp contribution (zero), and fractional carry across final movement.
+Both raw/grab choices run with absolute fallback and effective relative capture. The complete native event queue,
+Cocoa acceleration itself, physical smoothness and pointer visibility are outside this component fixture.
+
+This Cocoa regression and its mode/warp/pump doubles are excluded on other platforms. The existing Windows actual-client
+and mouse-polling fixture paths retain their platform-specific assertions and engine-independent service set. They do not
+adopt Cocoa's accepted-motion expectation: the retained Windows engine recenter branch still pumps and drains by policy.

@@ -183,35 +183,32 @@ void CMultiSource::Spawn()
 	SetThink(&CMultiSource::Register);
 }
 
-void CMultiSource::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{ 
-	int i = 0;
+void CMultiSource::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value) {
+    if (m_iTotal <= 0 || m_iTotal > MS_MAX_TARGETS) {
+        return;
+    }
 
-	// Find the entity in our list
-	while ( i < m_iTotal && i < MS_MAX_TARGETS && m_rgEntities[i] != pCaller )
-		i++;
+    int i = 0;
+    while (i < m_iTotal && m_rgEntities[i] != pCaller) {
+        i++;
+    }
 
-	// if we didn't find it, report error and leave
-	if ( i >= m_iTotal || i >= MS_MAX_TARGETS )
-	{
-		if ( pCaller )
-			ALERT(at_console, "MultiSrc:Used by non member %s.\n", STRING(pCaller->pev->classname));
-		return;	
-	}
+    if (i == m_iTotal) {
+        // c1a0c's delayed fade_in relay relies on the legacy unmatched-caller final-slot fallback.
+        i = m_iTotal - 1;
+    }
 
-	// CONSIDER: a Use input to the multisource always toggles.  Could check useType for ON/OFF/TOGGLE
+    // A Use input always toggles, regardless of the requested use type.
+    m_rgTriggered[i] ^= 1;
 
-	m_rgTriggered[i] ^= 1;
-
-	// 
-	if ( IsTriggered( pActivator ) )
-	{
-		ALERT( at_aiconsole, "Multisource %s enabled (%d inputs)\n", STRING(pev->targetname), m_iTotal );
-		USE_TYPE useType = USE_TOGGLE;
-		if ( m_globalstate )
-			useType = USE_ON;
-		SUB_UseTargets( NULL, useType, 0 );
-	}
+    if (IsTriggered(pActivator)) {
+        ALERT(at_aiconsole, "Multisource %s enabled (%d inputs)\n", STRING(pev->targetname), m_iTotal);
+        USE_TYPE outputUseType = USE_TOGGLE;
+        if (m_globalstate) {
+            outputUseType = USE_ON;
+        }
+        SUB_UseTargets(NULL, outputUseType, 0);
+    }
 }
 
 

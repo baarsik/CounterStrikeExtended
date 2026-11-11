@@ -44,11 +44,14 @@ sw = (args.sdk / 'engine/vgui_EngineSurfaceSW.cpp').read_text(encoding='cp1252')
 start = sw.index('#define TEXTURE_HASH_SIZE')
 end = sw.index('\nint g_TranslateX', start)
 parts = [sw[start:end], 'EngineSurface* EngineSurface::s_pEngineSurface = nullptr;']
+helper_start = sw.index('namespace {\nconstexpr std::size_t TextureChannels')
+helper_end = sw.index('\nvoid EngineSurfaceTextures::Insert', helper_start)
+parts.append(sw[helper_start:helper_end])
 for name in ['EngineSurfaceTextures', '~EngineSurfaceTextures', 'InitTextures', 'FreeTextures', 'GetHashVal',
              'Insert', 'Remove', 'GetTexture', 'RetireAtlasPage']:
     parts.append(body(sw, r'^(?:[^\n]*\s)?EngineSurfaceTextures::' + re.escape(name) + r'\([^\n]*\)'))
 actual = ['EngineSurface', '~EngineSurface', 'createRenderPlat', 'deleteRenderPlat', 'RetireNativeFontPage',
-          'drawSetTextureRGBA', 'drawSetTexture', 'isTextureIdValid']
+          'drawSetTextureRGBA', 'drawSetTextureBGRA', 'drawSetTexture', 'isTextureIdValid']
 for name in actual:
     parts.append(body(sw, r'^(?:[^\n]*\s)?EngineSurface::' + re.escape(name) + r'\([^\n]*\)(?: noexcept)?'))
 (args.output / 'sw_retirement.inc').write_text('\n\n'.join(parts) + '\n')

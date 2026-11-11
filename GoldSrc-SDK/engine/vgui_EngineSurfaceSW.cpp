@@ -17,6 +17,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <limits>
+#include <memory>
 
 #define TEXTURE_HASH_SIZE	317
 
@@ -161,7 +163,7 @@ void EngineSurfaceTextures::FreeTextures()
 		while ( texture )
 		{
 			vgui_texture_t* next = texture->next;
-			delete texture->prgba;
+            delete[] texture->prgba;
 			delete texture;
 			texture = next;
 		}
@@ -171,22 +173,66 @@ void EngineSurfaceTextures::FreeTextures()
 
 int EngineSurfaceTextures::GetHashVal( int id )
 {
-	return id % TEXTURE_HASH_SIZE;
+	return static_cast<unsigned int>(id) % TEXTURE_HASH_SIZE;
 }
 
-void EngineSurfaceTextures::Insert( int id, int wide, int tall, const char* pixels )
-{
-	Remove( id );
-	vgui_texture_t* texture = new vgui_texture_t;
-	texture->id = id;
-	unsigned int bytes = 4u * (unsigned int)tall * (unsigned int)wide;
-	texture->prgba = new unsigned char[bytes];
-	memcpy( texture->prgba, pixels, bytes );
-	texture->wide = wide;
-	texture->tall = tall;
-	int bucket = GetHashVal( id );
-	texture->next = hash[bucket];
-	hash[bucket] = texture;
+namespace {
+constexpr std::size_t TextureChannels = 4;
+
+void NormalizeTransparentTexels(unsigned char* pixels, std::size_t bytes) {
+#if INTPTR_MAX > INT32_MAX
+    constexpr std::size_t AlphaChannel = 3;
+    for (std::size_t offset = 0; offset < bytes; offset += TextureChannels) {
+        // The retained SW text rasterizer uses a nonzero packed RGBA mask.
+        // Native FreeType glyphs can contain white RGB with zero coverage.
+        // Normalize only fully transparent storage; keep coverage and all
+        // visible RGB bytes intact for the retained image/additive equations.
+        if (pixels[offset + AlphaChannel] == 0) {
+            std::memset(pixels + offset, 0, TextureChannels);
+        }
+    }
+#else
+    (void)pixels;
+    (void)bytes;
+#endif
+}
+
+
+bool TextureBytes(int width, int height, std::size_t& bytes) {
+    if (width <= 0 || height <= 0) {
+        return false;
+    }
+    // The retained rasterizer computes byte offsets in signed int arithmetic.
+    constexpr std::size_t MaximumTextureBytes = (std::numeric_limits<int>::max)();
+    if (static_cast<std::size_t>(width) > MaximumTextureBytes / TextureChannels) {
+        return false;
+    }
+    const std::size_t row = static_cast<std::size_t>(width) * TextureChannels;
+    if (row > MaximumTextureBytes / static_cast<std::size_t>(height)) {
+        return false;
+    }
+    bytes = row * static_cast<std::size_t>(height);
+    return true;
+}
+}
+
+void EngineSurfaceTextures::Insert(int id, int wide, int tall, const char* pixels) {
+    std::size_t bytes = 0;
+    if (id <= 0 || !pixels || !TextureBytes(wide, tall, bytes)) {
+        return;
+    }
+    std::unique_ptr<unsigned char[]> storage(new unsigned char[bytes]);
+    std::memcpy(storage.get(), pixels, bytes);
+    NormalizeTransparentTexels(storage.get(), bytes);
+    std::unique_ptr<vgui_texture_t> texture(new vgui_texture_t{});
+    texture->id = id;
+    texture->prgba = storage.release();
+    texture->wide = wide;
+    texture->tall = tall;
+    Remove(id);
+    const int bucket = GetHashVal(id);
+    texture->next = hash[bucket];
+    hash[bucket] = texture.release();
 }
 
 void EngineSurfaceTextures::Remove( int id )
@@ -198,7 +244,7 @@ void EngineSurfaceTextures::Remove( int id )
 		if ( texture->id == id )
 		{
 			*link = texture->next;
-			delete texture->prgba;
+            delete[] texture->prgba;
 			delete texture;
 			return;
 		}
@@ -221,13 +267,12 @@ void EngineSurface::createRenderPlat()
 	_renderPlat->textures = new EngineSurfaceTextures;
 }
 
-void EngineSurface::deleteRenderPlat()
-{
-	if ( _renderPlat->textures )
-	{
-		delete _renderPlat->textures;
-		_renderPlat->textures = NULL;
-	}
+void EngineSurface::deleteRenderPlat() {
+    if (_renderPlat) {
+        delete _renderPlat->textures;
+        delete _renderPlat;
+        _renderPlat = nullptr;
+    }
 }
 
 void EngineSurface::resetViewPort()
@@ -277,16 +322,35 @@ void EngineSurface::drawTexturedPolygon( vgui2::VGuiVertex*, int )
 {
 }
 
-void EngineSurface::drawSetTextureRGBA( int id, const char* pixels, int wide, int tall, int, int )
-{
-	if ( _renderPlat->textures )
-		_renderPlat->textures->Insert( id, wide, tall, pixels );
+void EngineSurface::drawSetTextureRGBA(int id, const char* pixels, int wide, int tall, int, int) {
+    if (_renderPlat->textures) {
+        const bool bound = _renderPlat->current && _renderPlat->current->id == id;
+        _renderPlat->textures->Insert(id, wide, tall, pixels);
+        if (bound) {
+            _renderPlat->current = _renderPlat->textures->GetTexture(id);
+        }
+    }
 }
 
-void EngineSurface::drawSetTextureBGRA( int id, const char* pixels, int wide, int tall, int, int )
-{
-	if ( _renderPlat->textures )
-		_renderPlat->textures->Insert( id, wide, tall, pixels );
+void EngineSurface::drawSetTextureBGRA(int id, const char* pixels, int wide, int tall, int filter, int reload) {
+#if INTPTR_MAX > INT32_MAX
+    std::size_t bytes = 0;
+    if (id <= 0 || !pixels || !TextureBytes(wide, tall, bytes)) {
+        return;
+    }
+    std::unique_ptr<unsigned char[]> rgba(new unsigned char[bytes]);
+    for (std::size_t offset = 0; offset < bytes; offset += TextureChannels) {
+        rgba[offset] = static_cast<unsigned char>(pixels[offset + 2]);
+        rgba[offset + 1] = static_cast<unsigned char>(pixels[offset + 1]);
+        rgba[offset + 2] = static_cast<unsigned char>(pixels[offset]);
+        rgba[offset + 3] = static_cast<unsigned char>(pixels[offset + 3]);
+    }
+    drawSetTextureRGBA(id, reinterpret_cast<const char*>(rgba.get()), wide, tall, filter, reload);
+#else
+    // Win32 retains its original byte interpretation, but shares replacement
+    // ownership repair with RGBA so the currently bound pointer cannot dangle.
+    drawSetTextureRGBA(id, pixels, wide, tall, filter, reload);
+#endif
 }
 
 void EngineSurface::drawSetTexture( int id )
@@ -360,20 +424,61 @@ void EngineSurface::drawFlushText()
 {
 }
 
-void EngineSurface::drawSetSubTextureRGBA( int id, int x, int y, const unsigned char* pixels, int wide, int tall )
-{
-	vgui_texture_t* texture = _renderPlat->textures->GetTexture( id );
-	unsigned int bytes = 4u * (unsigned int)wide;
-	for ( int row = 0; row < tall; row++ )
-	{
-		memcpy( texture->prgba + 4 * ( x + ( y + row ) * texture->wide ), pixels, bytes );
-		pixels += bytes;
-	}
-	_renderPlat->current = texture;
+namespace {
+bool TextureRegion(const vgui_texture_t* texture, int x, int y, int width, int height,
+    const unsigned char* pixels) {
+    return texture && pixels && x >= 0 && y >= 0 && width > 0 && height > 0
+        && x <= texture->wide && y <= texture->tall
+        && width <= texture->wide - x && height <= texture->tall - y;
+}
 }
 
-void EngineSurface::drawUpdateRegionTextureBGRA( int, int, int, const unsigned char*, int, int )
-{
+void EngineSurface::drawSetSubTextureRGBA(int id, int x, int y, const unsigned char* pixels, int wide, int tall) {
+    vgui_texture_t* texture = _renderPlat->textures->GetTexture(id);
+    if (!TextureRegion(texture, x, y, wide, tall, pixels)) {
+        return;
+    }
+    const std::size_t rowBytes = TextureChannels * static_cast<std::size_t>(wide);
+    for (int row = 0; row < tall; ++row) {
+        const std::size_t offset = (static_cast<std::size_t>(y + row) * texture->wide + x) * TextureChannels;
+        std::memcpy(texture->prgba + offset, pixels, rowBytes);
+        NormalizeTransparentTexels(texture->prgba + offset, rowBytes);
+        pixels += rowBytes;
+    }
+    _renderPlat->current = texture;
+}
+
+void EngineSurface::drawUpdateRegionTextureBGRA(int id, int x, int y, const unsigned char* pixels,
+    int wide, int tall) {
+#if INTPTR_MAX > INT32_MAX
+    vgui_texture_t* texture = _renderPlat->textures->GetTexture(id);
+    if (!TextureRegion(texture, x, y, wide, tall, pixels)) {
+        return;
+    }
+    for (int row = 0; row < tall; ++row) {
+        const std::size_t offset = (static_cast<std::size_t>(y + row) * texture->wide + x) * TextureChannels;
+        unsigned char* target = texture->prgba + offset;
+        // HTML passes its complete frame, not a packed dirty rectangle.
+        const unsigned char* source = pixels + offset;
+        for (int column = 0; column < wide; ++column) {
+            target[0] = source[2];
+            target[1] = source[1];
+            target[2] = source[0];
+            target[3] = source[3];
+            target += TextureChannels;
+            source += TextureChannels;
+        }
+        NormalizeTransparentTexels(texture->prgba + offset, static_cast<std::size_t>(wide) * TextureChannels);
+    }
+    _renderPlat->current = texture;
+#else
+    (void)id;
+    (void)x;
+    (void)y;
+    (void)pixels;
+    (void)wide;
+    (void)tall;
+#endif
 }
 
 void EngineSurface::drawSetTextureFile( int id, const char* filename, int hardwareFilter, bool forceReload )
@@ -503,7 +608,7 @@ namespace cse_vgui1_native {
 bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
     constexpr int Side = 512;
     constexpr std::size_t PageBytes = static_cast<std::size_t>(Side) * Side * 4;
-    if (!surface || id <= 0 || !pixels || bytes != PageBytes) {
+    if (!FindOwnedEngineSurface(surface) || id <= 0 || !pixels || bytes != PageBytes) {
         return false;
     }
     return UploadOwnedInterface(surface, id, pixels, Side);

@@ -60,6 +60,7 @@ extern cvar_t *cl_min_t;
 extern cvar_t *cl_min_ct;
 extern char *sPlayerModelFiles[];
 extern ICareerUI *g_pCareerUI;
+extern vgui2::HFont _font;
 bool IsBombPlanted();
 bool BIsValidTModelIndex(int index);
 bool BIsValidCTModelIndex(int index);
@@ -764,7 +765,7 @@ int CHudRoundTimer::Draw(float time)
 	}
 	int textY = y - (gHUD.m_iFontEngineHeight - gHUD.m_iFontHeight) / 2 - 1;
 	x = gHUD.DrawHudNumber(x, y, DHN_DRAWZERO | DHN_2DIGITS, seconds / 60, r, g, b);
-	x = gHUD.DrawHudString(x, textY, ScreenWidth - 1, ":", r, g, b);
+    x += gEngfuncs.pfnVGUI2DrawCharacterAdd(x, textY, ':', r, g, b, _font);
 	x = gHUD.DrawHudNumber(x, y, DHN_DRAWZERO | DHN_2DIGITS | DHN_FILLZERO, seconds % 60, r, g, b);
 	m_closestRight = (int)(digitWidth * 1.5 + x);
 	return 1;
@@ -1088,7 +1089,7 @@ int CHudCareerTaskTimer::Draw(float time)
 	}
 	int textY = y - (gHUD.m_iFontEngineHeight - gHUD.m_iFontHeight) / 2 - 1;
 	x = gHUD.DrawHudNumber(x, y, DHN_DRAWZERO | DHN_2DIGITS, seconds / 60, r, g, b);
-	x = gHUD.DrawHudString(x, textY, ScreenWidth - 1, ":", r, g, b);
+    x += gEngfuncs.pfnVGUI2DrawCharacterAdd(x, textY, ':', r, g, b, _font);
 	gHUD.DrawHudNumber(x, y, DHN_DRAWZERO | DHN_2DIGITS | DHN_FILLZERO, seconds % 60, r, g, b);
 	return 1;
 }

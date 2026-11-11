@@ -1,4 +1,5 @@
 #include "controls.h"
+#include "native_gameui_retirement.h"
 #include "vgui_intwrap2.h"
 #include "vgui_int.h"
 #include "vgui2/BaseUISurface.h"
@@ -237,11 +238,22 @@ void VGUI2_OnDisconnectFromServer( int eLoginFailure )
 
 void VGuiWrap2_Shutdown()
 {
+    cse::TryShutdownNativeVGuiWrap2();
+}
+
+bool cse::TryShutdownNativeVGuiWrap2() {
 	if ( staticUIFuncs )
 	{
+#if INTPTR_MAX > INT32_MAX
+        if (!TryShutdownNativeBaseUI()) {
+            return false;
+        }
+#else
 		staticUIFuncs->Shutdown();
+#endif
 		staticUIFuncs = NULL;
 	}
+    return true;
 }
 
 int VGuiWrap2_CallEngineSurfaceAppHandler( void* event, void* userData )

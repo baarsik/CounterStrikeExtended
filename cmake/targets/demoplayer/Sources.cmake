@@ -12,3 +12,7 @@ target_sources(demoplayer PRIVATE
   "${CSE_SDK_DIR}/common/TokenLine.cpp"
   "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/public/interface.cpp"
 )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set_property(SOURCE "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/common/BaseSystemModule.cpp" PROPERTY HEADER_FILE_ONLY TRUE)
+  target_sources(demoplayer PRIVATE "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp")
+endif()

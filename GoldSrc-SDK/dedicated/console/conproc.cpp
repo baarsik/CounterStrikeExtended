@@ -2,12 +2,14 @@
 
 #if defined( _WIN32 )
 
-#include "../sys_ded.h"
+#include "inherited_handle.h"
+
+void Sys_Printf(char* format, ...);
 #include "../../common/icommandline.h"
 
 #include <ctype.h>
 #include <process.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <windows.h>
 
 static HANDLE	heventDone;
@@ -16,6 +18,7 @@ static HANDLE	heventChildSend;
 static HANDLE	heventParentSend;
 static HANDLE	hStdout;
 static HANDLE	hStdin;
+static HANDLE workerThread;
 
 /*
 ==============
@@ -191,15 +194,16 @@ BOOL WriteText( const char* text )
 unsigned __stdcall RequestProc( void* )
 {
 	HANDLE waitEvents[2];
-	waitEvents[0] = heventParentSend;
-	waitEvents[1] = heventDone;
+	waitEvents[0] = heventDone;
+	waitEvents[1] = heventParentSend;
 
 	for ( ;; )
 	{
 		DWORD event = WaitForMultipleObjects( 2, waitEvents, FALSE, INFINITE );
 		// heventDone fired, so we're exiting.
-		if ( event == WAIT_OBJECT_0 + 1 )
-			break;
+		if (event != WAIT_OBJECT_0 + 1) {
+            break;
+        }
 
 		int* buffer = (int*)GetMappedBuffer( hfileBuffer );
 		if ( !buffer )
@@ -245,59 +249,70 @@ DeinitConProc
 
 ==============
 */
-void DeinitConProc()
-{
-	if ( heventDone )
-		SetEvent( heventDone );
+void DeinitConProc() {
+    if (heventDone) {
+        SetEvent(heventDone);
+    }
+    if (workerThread) {
+        // The worker borrows all remaining globals, including caller-owned
+        // inherited events/mapping and the console. Quiesce before release.
+        if (WaitForSingleObject(workerThread, INFINITE) != WAIT_OBJECT_0) {
+            std::abort();
+        }
+        CloseHandle(workerThread);
+        workerThread = nullptr;
+    }
+    if (heventDone) {
+        CloseHandle(heventDone);
+        heventDone = nullptr;
+    }
+    hfileBuffer = nullptr;
+    heventParentSend = nullptr;
+    heventChildSend = nullptr;
+    hStdout = nullptr;
+    hStdin = nullptr;
 }
 
-void InitConProc()
-{
-	HANDLE file = NULL;
-	HANDLE parent = NULL;
-	HANDLE child = NULL;
-	char* p;
-
-	if ( cmdline->CheckParm( "-HFILE", &p ) && p )
-		file = (HANDLE)(INT_PTR)atoi( p );
-	if ( cmdline->CheckParm( "-HPARENT", &p ) && p )
-		parent = (HANDLE)(INT_PTR)atoi( p );
-	if ( cmdline->CheckParm( "-HCHILD", &p ) && p )
-		child = (HANDLE)(INT_PTR)atoi( p );
-
-	if ( !file || !parent || !child )
-		return;
-
-	Sys_Printf( "\n\nInitConProc:  Setting up external control.\n" );
-	hfileBuffer = file;
-	heventParentSend = parent;
-	heventChildSend = child;
-
-	// So we'll know when to go away.
-	heventDone = CreateEventA( NULL, FALSE, FALSE, NULL );
-	if ( !heventDone )
-	{
-		Sys_Printf( "InitConProc:  Couldn't create heventDone\n" );
-		return;
-	}
-
-	unsigned thread;
-	if ( !_beginthreadex( NULL, 0, RequestProc, NULL, 0, &thread ) )
-	{
-		CloseHandle( heventDone );
-		Sys_Printf( "InitConProc:  Couldn't create third party thread\n" );
-		return;
-	}
-
-	// save off the input/output handles.
-	hStdout = GetStdHandle( STD_OUTPUT_HANDLE );
-	hStdin = GetStdHandle( STD_INPUT_HANDLE );
-
-	int height = 50;
-	if ( cmdline->CheckParm( "-conheight", &p ) && p )
-		height = atoi( p );
-	// Force 80 character width, at least 25 character height
-	SetConsoleCXCY( hStdout, 80, height );
+void InitConProc() {
+    DeinitConProc();
+    HANDLE inherited[3]{};
+    constexpr const char* Names[] = {"-HFILE", "-HPARENT", "-HCHILD"};
+    for (std::size_t index = 0; index < 3; ++index) {
+        char* parameter = nullptr;
+        std::uintptr_t value = 0;
+        if (!cmdline->CheckParm(Names[index], &parameter)) {
+            return;
+        }
+        if (!cse::dedicated::ParseInheritedHandle(parameter, value)) {
+            Sys_Printf((char*)"Invalid inherited console handle: %s\n", Names[index]);
+            return;
+        }
+        inherited[index] = reinterpret_cast<HANDLE>(value);
+    }
+    hfileBuffer = inherited[0];
+    heventParentSend = inherited[1];
+    heventChildSend = inherited[2];
+    hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
+    hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    heventDone = CreateEventA(nullptr, TRUE, FALSE, nullptr);
+    if (!heventDone) {
+        DeinitConProc();
+        return;
+    }
+    constexpr int ConsoleWidth = 80;
+    constexpr int DefaultConsoleHeight = 50;
+    int height = DefaultConsoleHeight;
+    char* parameter = nullptr;
+    if (cmdline->CheckParm("-conheight", &parameter) && parameter) {
+        height = atoi(parameter);
+    }
+    SetConsoleCXCY(hStdout, ConsoleWidth, height);
+    unsigned int threadId = 0;
+    workerThread = reinterpret_cast<HANDLE>(_beginthreadex(nullptr, 0, RequestProc, nullptr, 0, &threadId));
+    if (!workerThread) {
+        DeinitConProc();
+        Sys_Printf((char*)"InitConProc: Could not create control worker\n");
+    }
 }
 
 #endif

@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/native/BaseSystemModule.h"
+#else
 #ifndef BASESYSTEMMODULE_H
 #define BASESYSTEMMODULE_H
 
@@ -52,5 +56,7 @@ protected:
 	unsigned int	m_Serial;
 	double			m_SystemTime;
 };
+
+#endif
 
 #endif

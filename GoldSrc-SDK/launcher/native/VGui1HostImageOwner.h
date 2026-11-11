@@ -10,21 +10,15 @@
 #include <limits.h>
 #include <pthread.h>
 #include <type_traits>
+#include "../../public/native_runtime_host.h"
 
 namespace cse_vgui1_host {
-constexpr std::uint32_t HostReleasesVersion = 2;
 constexpr std::uint32_t AdmittedImageVersion = 1;
 
 // NEW semantics, deliberately distinct from the frozen Runtime HostReleasesV1.
 // True transfers one genuine owning root reference. The main-image owner keeps
 // one exact-image anchor through the outermost root return and may immediately
 // balance additional references while that anchor is held. False accepts NONE.
-struct HostReleasesV2 {
-    std::uint32_t structBytes;
-    std::uint32_t version;
-    void* context;
-    bool (*acceptRoot)(void*, void* ownedRootReference) noexcept;
-};
 
 enum class AnchorMode : std::uint32_t { AdoptInitialReference = 1, FirstTransferredReference = 2 };
 enum class State : std::uint32_t { Closed, Open, Closing };

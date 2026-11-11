@@ -124,6 +124,12 @@
     </ClCompile>
     <ClCompile Include="..\..\common\steam_service.cpp" />
     <ClCompile Include="..\..\engine\BaseSystemModule.cpp" />
+    <ClCompile Include="..\..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <CseReplaces>$(ProjectDir)..\..\engine\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="..\..\engine\bitmap_win.cpp" />
     <ClCompile Include="..\..\engine\buildnum.cpp" />
     <ClCompile Include="..\..\engine\cd.cpp">
@@ -693,5 +699,12 @@
     <ClInclude Include="..\..\common\cse_rect.h" />
     <ClInclude Include="..\..\common\legacy_bmp_records.h" />
     <ClInclude Include="..\..\engine\posix_process_stats.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\engine\native_runtime_bootstrap.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
   </ItemGroup>
 </Project>

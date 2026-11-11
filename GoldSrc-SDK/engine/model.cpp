@@ -48,8 +48,16 @@ extern byte texgammatable[256];
 
 qboolean	IsCZPlayerModel( CRC32_t crc, const char* name );
 
-void SW_Mod_Init()
-{
+void SW_Mod_Init() {
+#if defined(__APPLE__)
+    // A native software engine can begin another dedicated session in the same
+    // image. The previous heap's brush and cache pointers must not be reused.
+    std::memset(mod_known, 0, sizeof(mod_known));
+    std::memset(mod_known_info, 0, sizeof(mod_known_info));
+    mod_numknown = 0;
+    loadmodel = nullptr;
+    mod_base = nullptr;
+#endif
 }
 
 /*

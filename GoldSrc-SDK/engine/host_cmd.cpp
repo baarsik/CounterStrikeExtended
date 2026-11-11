@@ -2,6 +2,9 @@
 #include "../common/dll_state.h"
 #include "gl_model.h"
 #include "host_cmd.h"
+#if defined(__APPLE__)
+#include "native_video_restart.h"
+#endif
 #include "world.h"
 #include "registry.h"
 #include "pr_dlls.h"
@@ -80,6 +83,14 @@ double cpuPercent;
 int startTime;
 int g_iQuitCommandIssued;
 char* g_pPostRestartCmdLineArgs;
+
+#if defined(__APPLE__)
+static cse_restart::VideoSettings nativeVideoRestart;
+
+void Host_ResetNativeVideoRestart() {
+    nativeVideoRestart.Reset();
+}
+#endif
 
 CareerStateType g_careerState;
 qboolean g_bMajorMapChange;
@@ -446,21 +457,41 @@ void Host_Quit_f()
 
 void Host_Quit_Restart_f()
 {
+#if defined(__APPLE__)
+    std::string resumeCommands;
+#endif
 	giActive = 5;
 	giStateInfo = DLL_QUIT;
 
 	if ( !sv.active && cls.state == ca_active && cls.trueaddress[0] && g_pPostRestartCmdLineArgs )
 	{
+#if defined(__APPLE__)
+        resumeCommands = " +connect ";
+        resumeCommands += cls.servername;
+#else
 		strcat( g_pPostRestartCmdLineArgs, " +connect " );
 		strcat( g_pPostRestartCmdLineArgs, cls.servername );
+#endif
 	}
 
 	if ( sv.active && svs.maxclients == 1 && cls.state == ca_active && g_pPostRestartCmdLineArgs )
 	{
 		Cbuf_AddText( "save quick\n" );
 		Cbuf_Execute();
+#if defined(__APPLE__)
+        resumeCommands += " +load quick";
+#else
 		strcat( g_pPostRestartCmdLineArgs, " +load quick" );
+#endif
 	}
+
+#if defined(__APPLE__)
+    if (!nativeVideoRestart.Append(g_pPostRestartCmdLineArgs, cse_restart::GeneratedCommandCapacity,
+        resumeCommands)) {
+        Sys_Error("Native restart command exceeds launcher capacity");
+        return;
+    }
+#endif
 
 	if ( Host_IsServerActive() )
 		Host_ShutdownServer( FALSE );
@@ -2288,40 +2319,29 @@ SAVERESTOREDATA *SaveInit(int size) {
 #ifdef _MSC_VER
 #pragma warning( suppress: 6262 )
 #endif
-void CL_Save( const char* name )
-{
-	DECALLIST decalList[4096];
-	DECALLIST* entry;
-	FileHandle_t pFile;
-	int i, decalCount, tag;
-
-	decalCount = DecalListCreate( decalList );
-
-	pFile = FS_OpenPathID( name, "wb", "GAMECONFIG" );
-	if ( !pFile )
-		return;
-
-	tag = SAVEFILE_HEADER;
-	FS_Write( &tag, sizeof( int ), 1, pFile );
-	tag = SAVEGAME_VERSION;
-	FS_Write( &tag, sizeof( int ), 1, pFile );
-	FS_Write( &decalCount, sizeof( int ), 1, pFile );
-
-	for ( i = 0; i < decalCount; i++ )
-	{
-		entry = &decalList[i];
-#ifdef _WIN32
-		FS_Write( entry->name, DECAL_NAME_BYTES, 1, pFile );
-#else
-		FS_Write( entry->name, sizeof( entry->name ), 1, pFile );
-#endif
-		FS_Write( &entry->entityIndex, sizeof( entry->entityIndex ), 1, pFile );
-		FS_Write( &entry->depth, sizeof( entry->depth ), 1, pFile );
-		FS_Write( &entry->flags, sizeof( entry->flags ), 1, pFile );
-		FS_Write( entry->position, sizeof( entry->position ), 1, pFile );
-	}
-
-	FS_Close( pFile );
+void CL_Save(const char* name) {
+    constexpr int MaximumSavedDecals = 4096;
+    DECALLIST decals[MaximumSavedDecals];
+    const int decalCount = DecalListCreate(decals);
+    FileHandle_t file = FS_OpenPathID(name, "wb", "GAMECONFIG");
+    if (!file) {
+        return;
+    }
+    const int header = SAVEFILE_HEADER;
+    const int version = SAVEGAME_VERSION;
+    FS_Write(&header, sizeof(header), 1, file);
+    FS_Write(&version, sizeof(version), 1, file);
+    FS_Write(&decalCount, sizeof(decalCount), 1, file);
+    for (int index = 0; index < decalCount; ++index) {
+        const DECALLIST& decal = decals[index];
+        // The disk record contains sixteen name bytes, never the native pointer width.
+        FS_Write(decal.name, DECAL_NAME_BYTES, 1, file);
+        FS_Write(&decal.entityIndex, sizeof(decal.entityIndex), 1, file);
+        FS_Write(&decal.depth, sizeof(decal.depth), 1, file);
+        FS_Write(&decal.flags, sizeof(decal.flags), 1, file);
+        FS_Write(decal.position, sizeof(decal.position), 1, file);
+    }
+    FS_Close(file);
 }
 
 SAVERESTOREDATA* SaveGamestate()
@@ -3301,6 +3321,9 @@ void Host_SetRenderer_f()
 		windowed = !Q_strcasecmp( Cmd_Argv( 2 ), "windowed" );
 
 	VideoMode_SwitchMode( hardware, windowed );
+#if defined(__APPLE__)
+    nativeVideoRestart.SetRenderer(hardware, windowed != 0);
+#endif
 }
 
 void Host_SetVideoMode_f()
@@ -3317,6 +3340,9 @@ void Host_SetVideoMode_f()
 		bpp = Q_atoi( Cmd_Argv( 3 ) );
 
 	VideoMode_SetVideoMode( width, height, bpp );
+#if defined(__APPLE__)
+    nativeVideoRestart.SetSize(width, height);
+#endif
 }
 
 void Host_ShowOSK_f()

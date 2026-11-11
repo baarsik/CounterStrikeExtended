@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/IDirector.h"
+#else
 #ifndef IDIRECTOR_H
 #define IDIRECTOR_H
 
@@ -23,5 +27,7 @@ public:
 	virtual DirectorCmd* GetLastCommand() = 0;
 	virtual IObjectContainer* GetCommands() = 0;
 };
+
+#endif
 
 #endif

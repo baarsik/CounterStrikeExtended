@@ -26,6 +26,7 @@ class IVGui;
 class ISystem;
 
 bool			VGuiControls_Init( const char* moduleName, CreateInterfaceFn* factories, int count );
+void VGuiControls_Shutdown();
 char*			GetControlsModuleName();
 
 IFileSystem*	filesystem();

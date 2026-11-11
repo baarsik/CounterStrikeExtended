@@ -56,7 +56,8 @@ if(APPLE)
     if(NOT EXISTS "${CSE_SDL_CONFIG}/SDL_build_config.h")
         message(FATAL_ERROR "Provide actual SDL provider CSE_SDL_CONFIG for Cocoa service body")
     endif()
-    add_executable(native_mouse_platform_tests cocoa_tests.mm "${CSE_NATIVE_MOUSE_COCOA_SOURCE}")
+    add_executable(native_mouse_platform_tests cocoa_tests.mm ../gameplay_shortcuts/fixture_sdl.cpp
+        "${CSE_NATIVE_MOUSE_COCOA_SOURCE}")
     target_compile_options(native_mouse_platform_tests PRIVATE -fobjc-arc -fvisibility=hidden)
     target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_SDL_CONFIG}")
     target_link_libraries(native_mouse_platform_tests PRIVATE "-framework Cocoa")
@@ -88,13 +89,17 @@ endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CSE_NATIVE_MOUSE_CALLER_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/callers")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_callers.py
+    "${CSE_ROOT}/GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp"
+    "${CSE_ROOT}/GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp"
+    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_callers.py"
     "${CSE_ROOT}" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}" COMMAND_ERROR_IS_FATAL ANY)
 add_executable(native_mouse_caller_tests caller_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
 target_include_directories(native_mouse_caller_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
 target_compile_definitions(native_mouse_caller_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
-set_target_properties(native_mouse_caller_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+set_target_properties(native_mouse_caller_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
     target_compile_options(native_mouse_caller_tests PRIVATE /W4 /WX /fp:precise /EHs-c- /GR
         $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
@@ -113,7 +118,7 @@ set_tests_properties(actual-ui-cursor-transactions PROPERTIES TIMEOUT 15)
 
 add_executable(native_mouse_lifecycle_tests lifecycle_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
 target_include_directories(native_mouse_lifecycle_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
 target_compile_definitions(native_mouse_lifecycle_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
 set_target_properties(native_mouse_lifecycle_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
@@ -131,3 +136,21 @@ else()
 endif()
 add_test(NAME actual-lifecycle-mouse-hooks COMMAND native_mouse_lifecycle_tests)
 set_tests_properties(actual-lifecycle-mouse-hooks PROPERTIES TIMEOUT 15)
+
+if(APPLE)
+    get_filename_component(CSE_SDL_PINNED_SOURCE "${CSE_SDL_INCLUDE}/.." ABSOLUTE)
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_cocoa_delta.py"
+        "${CSE_SDL_PINNED_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
+    add_executable(native_mouse_cocoa_delta_tests cocoa_delta_tests.mm)
+    target_include_directories(native_mouse_cocoa_delta_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+    target_link_libraries(native_mouse_cocoa_delta_tests PRIVATE "-framework Cocoa")
+    target_compile_options(native_mouse_cocoa_delta_tests PRIVATE -fobjc-arc -Wall -Wextra -Werror
+        -Wno-unused-variable -Wno-overriding-option -fno-exceptions -ffp-model=precise -ffp-contract=off
+        "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" "$<$<CONFIG:Debug>:-g>")
+    set_target_properties(native_mouse_cocoa_delta_tests PROPERTIES OBJCXX_STANDARD 14 OBJCXX_STANDARD_REQUIRED YES)
+    if(CSE_NATIVE_MOUSE_SANITIZERS)
+        target_compile_options(native_mouse_cocoa_delta_tests PRIVATE -fsanitize=address,undefined)
+        target_link_options(native_mouse_cocoa_delta_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME pinned-cocoa-native-deltas COMMAND native_mouse_cocoa_delta_tests)
+endif()

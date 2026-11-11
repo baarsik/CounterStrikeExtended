@@ -42,3 +42,18 @@ component's engine Objective-C translation unit remains preserved as a negative 
 The current implementation moves those exact service bodies behind three C exports in SDL; see
 `../sdl_cocoa_mouse/README.md` for the distinct real hidden-window/provider/unload gate. That gate qualifies
 its small C++ consumer, not full engine unload. Runtime10 and legacy Win32 selected behavior remain unchanged.
+
+Gameplay mouse coverage adds the complete actual BaseUISurface SetCursor body, its no-popup CalculateMouseVisible tail,
+and the exact identical HW/SW recenter branch coupled to the actual HL/CS client functions in `../client_input`.
+On native macOS the single owner now requests relative camera capture for dc_none with either raw preference, while
+custom dc_user stays absolute with the OS cursor hidden. UI/console/MOTD visibility transitions, fresh binding intent,
+no-change owner fences, focus boundary routing and stale transaction cancellation remain explicit controls.
+The raw-off path keeps pinned Cocoa's NSEvent deltas and system acceleration; no cvar or scale hint is forced.
+Pinned SDL 3.4.20 also uses NSEvent for raw-on; this change does not claim GCMouse/unaccelerated qualification.
+
+`extract_cocoa_delta.py` verifies the pinned Cocoa source hash and imports its complete mouse-event dispatcher unchanged.
+Its NSEvent/NSWindow and SDL state/send boundaries are doubles, proving that queued delivered deltas survive independently
+of a fixed global edge coordinate. It never samples a physical mouse or changes focus. The original backend source is read
+only; no upstream/vendor code is changed. Real pointer disappearance and rapid-turn smoothness require controller gameplay
+qualification in both games. Software ReleaseVideo before the shutdown retirement hook is outside this fixture; the
+actual identical retirement section is extracted without assuming HW/SW lifecycle prefixes are identical.

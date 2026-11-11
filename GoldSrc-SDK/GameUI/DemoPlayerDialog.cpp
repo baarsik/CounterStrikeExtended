@@ -22,6 +22,12 @@
 #include "vgui/ISurface.h"
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
+#if CSE_NATIVE_SYSTEM_MODULE
+#include "../common/mathlib.h"
+#else
+// Match the legacy math declarations included by engine/IDemoPlayer.h.
+#include "../engine/mathlib.h"
+#endif
 #include "../common/const.h"
 #include "../HLTV/common/IWorld.h"
 
@@ -200,31 +206,70 @@ void CDemoPlayerDialog::Update()
 bool CDemoPlayerDialog::LoadModules()
 {
 	m_System = g_pSystemWrapper;
-	if ( !m_System )
+	if ( !m_System ) {
+#if CSE_NATIVE_SYSTEM_MODULE
+        m_DemoPlayer = nullptr;
+        m_Engine = nullptr;
+        m_World = nullptr;
+#endif
 		return false;
+    }
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_Engine = cse::modules::Acquire<IEngineWrapper>(m_System, "enginewrapper002", "", NULL);
+#else
 	m_Engine = (IEngineWrapper*)m_System->GetModule( "enginewrapper002", "", NULL );
+#endif
 	if ( !m_Engine )
 	{
 		m_System->Printf( "CDemoPlayerDialog::LoadModules: couldn't get engine interface.\n" );
+#if CSE_NATIVE_SYSTEM_MODULE
+        m_DemoPlayer = nullptr;
+        m_Engine = nullptr;
+        m_World = nullptr;
+#endif
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_DemoPlayer = cse::modules::Acquire<IDemoPlayer>(m_System, "demoplayer001", "", NULL);
+#else
 	m_DemoPlayer = (IDemoPlayer*)m_System->GetModule( "demoplayer001", "", NULL );
+#endif
 	if ( !m_DemoPlayer )
 	{
 		m_System->Printf( "CDemoPlayerDialog::LoadModules: couldn't load demo player module.\n" );
+#if CSE_NATIVE_SYSTEM_MODULE
+        m_DemoPlayer = nullptr;
+        m_Engine = nullptr;
+        m_World = nullptr;
+#endif
 		return false;
 	}
 
+#if !CSE_NATIVE_SYSTEM_MODULE
 	m_DemoPlayer->RegisterListener( this );
+#endif
 	m_World = m_DemoPlayer->GetWorld();
 	if ( !m_World )
 	{
 		m_System->Printf( "CDemoPlayerDialog::LoadModules: couldn't get world module.\n" );
+#if CSE_NATIVE_SYSTEM_MODULE
+        m_DemoPlayer = nullptr;
+        m_Engine = nullptr;
+        m_World = nullptr;
+#endif
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!cse::modules::Subscribe(m_DemoPlayer, this)) {
+        m_DemoPlayer = nullptr;
+        m_Engine = nullptr;
+        m_World = nullptr;
+        return false;
+    }
+#endif
 	return true;
 }
 

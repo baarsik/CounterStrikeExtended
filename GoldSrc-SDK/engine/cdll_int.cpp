@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_mouse_window.h"
+#endif
 #include "../common/sdl3_input.h"
 #include "engine_apiproxy.h"
 #include "client.h"
@@ -498,6 +501,11 @@ void ClientDLL_CAM_Think()
 
 void ClientDLL_ActivateMouse()
 {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    if (!cse::NativeMouseWindowState().CaptureAllowed()) {
+        return;
+    }
+#endif
 	if ( fClientLoaded && cl_funcs.pIN_ActivateMouse )
 		cl_funcs.pIN_ActivateMouse();
 }

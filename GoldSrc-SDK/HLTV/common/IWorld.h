@@ -2,9 +2,22 @@
 #define IWORLD_H
 
 #include "common/ISystemModule.h"
+#if INTPTR_MAX > INT32_MAX
+struct entity_state_s;
+typedef entity_state_s entity_state_t;
+struct clientdata_s;
+typedef clientdata_s clientdata_t;
+struct movevars_s;
+typedef movevars_s movevars_t;
+#else
 #include "common/entity_state.h"
 #include "pm_shared/pm_movevars.h"
+#endif
+#if INTPTR_MAX > INT32_MAX
+struct _UserMsg;
+#else
 #include "engine/usermsg.h"
+#endif
 
 class BitBuffer;
 class IBSPModel;
@@ -103,12 +116,16 @@ struct resource_s
 typedef resource_s resource_t;
 
 class IWorld
+#if INTPTR_MAX > INT32_MAX
+    : public virtual ISystemModule
+#endif
 {
 public:
 	virtual ~IWorld()
 	{
 	}
 
+#if INTPTR_MAX <= INT32_MAX
 	virtual bool Init( IBaseSystem* system, int serial, char* name ) = 0;
 	virtual void RunFrame( double time ) = 0;
 	virtual void ReceiveSignal( ISystemModule* module, unsigned int signal, void* data ) = 0;
@@ -125,6 +142,7 @@ public:
 	virtual int GetState() = 0;
 	virtual int GetVersion() = 0;
 	virtual void ShutDown() = 0;
+#endif
 
 	virtual double GetTime() = 0;
 	virtual NetAddress* GetGameServerAddress() = 0;

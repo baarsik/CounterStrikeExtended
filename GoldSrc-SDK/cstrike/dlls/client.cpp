@@ -102,6 +102,9 @@ static inline const char* CMD_ARGV( int argument )
 	return NULL;
 }
 
+#if defined(__APPLE__)
+CSE_PUBLIC_EXPORT
+#endif
 float g_flTimeLimit;
 float g_flResetTime;
 unsigned short m_usResetDecals;

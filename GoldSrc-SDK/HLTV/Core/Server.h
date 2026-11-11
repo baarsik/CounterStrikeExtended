@@ -8,12 +8,27 @@
 #include "HLTV/common/InfoString.h"
 #include "HLTV/common/Bitbuffer.h"
 #include "HLTV/common/DemoFile.h"
+#if INTPTR_MAX > INT32_MAX
+#include "common/entity_state.h"
+#include "engine/usermsg.h"
+#include "pm_shared/pm_movevars.h"
+#endif
 
 class IFileSystem;
 
 class Server : public IServer, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    bool m_NativeChannelInitialized = false;
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::ServerName)) {
+            return static_cast<IServer*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	enum ServerState
 	{
 		SERVER_UNDEFINED			= 0,

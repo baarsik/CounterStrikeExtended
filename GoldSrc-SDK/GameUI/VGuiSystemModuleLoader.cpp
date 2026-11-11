@@ -7,6 +7,8 @@
 #include "VGuiSystemModuleLoader.h"
 #include "GameUI_Interface.h"
 #include "Taskbar.h"
+#include "native/ServerBrowserModule.h"
+#include <vector>
 
 #include "common/IVGuiModule.h"
 #include "filesystem.h"
@@ -23,6 +25,22 @@
 #define stricmp strcasecmp
 #endif
 #include <string.h>
+
+#if INTPTR_MAX > INT32_MAX
+namespace {
+class NativeModuleCallScope final {
+public:
+    explicit NativeModuleCallScope(size_t& depth) : depth_(depth) {
+        ++depth_;
+    }
+    ~NativeModuleCallScope() {
+        --depth_;
+    }
+private:
+    size_t& depth_;
+};
+}
+#endif
 
 CVGuiSystemModuleLoader g_VModuleLoader;
 
@@ -65,7 +83,11 @@ const char* CVGuiSystemModuleLoader::GetModuleLabel( int moduleIndex )
 //-----------------------------------------------------------------------------
 CreateInterfaceFn CVGuiSystemModuleLoader::GetModuleFactory( int moduleIndex )
 {
-	return Sys_GetFactory( m_Modules[moduleIndex].module );
+#if INTPTR_MAX > INT32_MAX
+    return m_Modules.IsValidIndex(moduleIndex) ? m_Modules[moduleIndex].factory : nullptr;
+#else
+    return Sys_GetFactory(m_Modules[moduleIndex].module);
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -76,7 +98,13 @@ bool CVGuiSystemModuleLoader::ActivateModule( int moduleIndex )
 	if ( !m_Modules.IsValidIndex( moduleIndex ) )
 		return false;
 
-	m_Modules[moduleIndex].moduleInterface->Activate();
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth || m_Modules[moduleIndex].phase != ModulePhase::Attached) {
+        return false;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
+    m_Modules[moduleIndex].moduleInterface->Activate();
 	if ( g_pTaskbar )
 	{
 		wchar_t titleBuffer[1024];
@@ -104,8 +132,12 @@ bool CVGuiSystemModuleLoader::ActivateModule( const char* moduleName )
 		if ( !stricmp( GetModuleLabel( i ), moduleName ) ||
 			!stricmp( m_Modules[i].data->GetName(), moduleName ) )
 		{
+#if INTPTR_MAX > INT32_MAX
+            return ActivateModule(i);
+#else
 			ActivateModule( i );
 			return true;
+#endif
 		}
 	}
 
@@ -138,6 +170,54 @@ bool CVGuiSystemModuleLoader::ShouldPlatformRestart()
 
 bool CVGuiSystemModuleLoader::InitializeAllModules( CreateInterfaceFn* factories, int count )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        return false;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+    bool success = true;
+    std::vector<CreateInterfaceFn> moduleFactories;
+    for (int index = 0; index < count; ++index) {
+        moduleFactories.push_back(factories[index]);
+    }
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        auto& record = m_Modules[index];
+        moduleFactories.push_back(record.factory);
+        if (record.initializeEntered) {
+            success = success && record.phase == ModulePhase::Attached;
+            continue;
+        }
+        record.initializeEntered = true;
+        if (!record.moduleInterface->Initialize(factories, count)) {
+            success = false;
+            continue;
+        }
+        record.initializeSucceeded = true;
+        record.phase = ModulePhase::Initialized;
+    }
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        auto& record = m_Modules[index];
+        if (record.phase != ModulePhase::Initialized || record.postInitializeEntered) {
+            continue;
+        }
+        record.postInitializeEntered = true;
+        if (!record.moduleInterface->PostInitialize(moduleFactories.data(),
+            static_cast<int>(moduleFactories.size()))) {
+            success = false;
+            continue;
+        }
+        record.phase = ModulePhase::PostInitialized;
+        if (!g_pTaskbar) {
+            success = false;
+            continue;
+        }
+        record.moduleInterface->SetParent(g_pTaskbar->GetVPanel());
+        g_pTaskbar->AddTask(record.moduleInterface->GetPanel());
+        record.phase = ModulePhase::Attached;
+    }
+    m_bModulesInitialized = success;
+    return success;
+#else
 	bool success = true;
 	// Init vgui in the modules
 	for ( int i = 0; i < m_Modules.Count(); i++ )
@@ -174,87 +254,165 @@ bool CVGuiSystemModuleLoader::InitializeAllModules( CreateInterfaceFn* factories
 
 	m_bModulesInitialized = true;
 	return success;
+#endif
 }
 
-bool CVGuiSystemModuleLoader::LoadPlatformModules( CreateInterfaceFn* factories, int count, bool useSteamModules )
-{
-	// load platform menu
-	KeyValues* platformData = new KeyValues( "Platform" );
-	if ( !platformData->LoadFromFile( vgui2::filesystem(), "steam/games/PlatformMenu.vdf", "PLATFORM" ) )
-	{
-		platformData->deleteThis();
-		return false;
-	}
+bool CVGuiSystemModuleLoader::LoadPlatformModules( CreateInterfaceFn* factories, int count, bool useSteamModules ) {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth || m_pPlatformModuleData) {
+        return !m_nativeCallDepth && m_bModulesInitialized;
+    }
+#endif
+    // load platform menu
+    KeyValues* platformData = new KeyValues( "Platform" );
+    if ( !platformData->LoadFromFile( vgui2::filesystem(), "steam/games/PlatformMenu.vdf", "PLATFORM" ) ) {
+        platformData->deleteThis();
+        return false;
+    }
 
-	bool success = true;
-	// walk the platform menu loading all the interfaces
-	KeyValues* menu = platformData->FindKey( "Menu", true );
-	for ( KeyValues* data = menu->GetFirstSubKey(); data; data = data->GetNextKey() )
-	{
-		// see if we should skip steam modules
-		if ( !useSteamModules && data->GetInt( "SteamApp", 0 ) )
-			continue;
+    bool success = true;
+    // walk the platform menu loading all the interfaces
+    KeyValues* menu = platformData->FindKey( "Menu", true );
+    {
+#if INTPTR_MAX > INT32_MAX
+        NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
+        for ( KeyValues* data = menu->GetFirstSubKey(); data; data = data->GetNextKey() ) {
+            // see if we should skip steam modules
+            if (!useSteamModules && data->GetInt("SteamApp", 0)) {
+                continue;
+            }
 
-		const char* interfaceName = data->GetString( "interface" );
-		if ( !stricmp( interfaceName, "VGuiModuleTracker001" ) )
-			continue;
+            const char* interfaceName = data->GetString( "interface" );
+            if (!stricmp(interfaceName, "VGuiModuleTracker001")) {
+                continue;
+            }
 
-		const char* moduleName = data->GetString( "dll" );
+#if INTPTR_MAX > INT32_MAX
+            if (std::strcmp(data->GetName(), "Servers") == 0 &&
+                std::strcmp(interfaceName, cse::server_browser::ModuleInterface) == 0) {
+                const auto factory = cse::server_browser::ServerBrowserFactory();
+                auto* moduleInterface = factory ? static_cast<IVGuiModule*>(factory(interfaceName, nullptr)) : nullptr;
+                if (!moduleInterface) {
+                    success = false;
+                    continue;
+                }
+                const int index = m_Modules.AddToTail();
+                auto& record = m_Modules[index];
+                record.module = nullptr;
+                record.ownership = ModuleOwnership::InternalGameUI;
+                record.factory = factory;
+                record.moduleInterface = moduleInterface;
+                record.data = data;
+                record.tryRetire = cse::server_browser::TryRetireServerBrowser;
+                record.isRetired = cse::server_browser::IsServerBrowserRetired;
+                continue;
+            }
+#endif
+            const char* moduleName = data->GetString( "dll" );
 #ifndef _WIN32
-		char dllPath[512];
-		strncpy( dllPath, moduleName, sizeof( dllPath ) );
-		char* extension = strrchr( dllPath, '.' );
-		if ( extension )
-			*extension = 0;
-		strcat( dllPath, "_linux.so" );
-		moduleName = dllPath;
+            char dllPath[512];
+            strncpy( dllPath, moduleName, sizeof( dllPath ) );
+            char* extension = strrchr( dllPath, '.' );
+            if (extension) {
+                *extension = 0;
+            }
+            strcat( dllPath, "_linux.so" );
+            moduleName = dllPath;
 #endif
 
-		// load the dll
-		char localPath[512];
-		if ( !vgui2::filesystem()->GetLocalPath( moduleName, localPath, sizeof( localPath ) ) )
-		{
-			vgui2::ivgui()->DPrintf2( "Platform Error: couldn't find %s, not loading\n", data->GetString( "dll" ) );
-			success = false;
-			continue;
-		}
+            // load the dll
+            char localPath[512];
+            if ( !vgui2::filesystem()->GetLocalPath( moduleName, localPath, sizeof( localPath ) ) ) {
+                vgui2::ivgui()->DPrintf2( "Platform Error: couldn't find %s, not loading\n", data->GetString( "dll" ) );
+                success = false;
+                continue;
+            }
 
-		vgui2::filesystem()->GetLocalCopy( localPath );
-		CSysModule* module = Sys_LoadModule( localPath );
-		if ( !module )
-		{
-			vgui2::ivgui()->DPrintf2( "Platform Error: bad module '%s', not loading\n", data->GetString( "dll" ) );
-			success = false;
-			continue;
-		}
+            vgui2::filesystem()->GetLocalCopy( localPath );
+            CSysModule* module = Sys_LoadModule( localPath );
+            if ( !module ) {
+                vgui2::ivgui()->DPrintf2( "Platform Error: bad module '%s', not loading\n", data->GetString( "dll" ) );
+                success = false;
+                continue;
+            }
 
-		CreateInterfaceFn factory = Sys_GetFactory( module );
-		IVGuiModule* moduleInterface = (IVGuiModule*)factory( interfaceName, NULL );
-		if ( !moduleInterface )
-		{
-			vgui2::ivgui()->DPrintf2( "Platform Error: module version ('%s, %s) invalid, not loading\n",
-				data->GetString( "dll" ), data->GetString( "interface" ) );
-			success = false;
-			continue;
-		}
+            CreateInterfaceFn factory = Sys_GetFactory( module );
+            IVGuiModule* moduleInterface = factory ? static_cast<IVGuiModule*>(factory(interfaceName, nullptr)) : nullptr;
+            if ( !moduleInterface ) {
+                vgui2::ivgui()->DPrintf2( "Platform Error: module version ('%s, %s) invalid, not loading\n",
+                    data->GetString( "dll" ), data->GetString( "interface" ) );
+                success = false;
+#if INTPTR_MAX > INT32_MAX
+                Sys_UnloadModule(module);
+#endif
+                continue;
+            }
 
-		// store off the module
-		int index = m_Modules.AddToTail();
-		m_Modules[index].module = module;
-		m_Modules[index].moduleInterface = moduleInterface;
-		m_Modules[index].data = data;
-	}
+            // store off the module
+            int index = m_Modules.AddToTail();
+            m_Modules[index].module = module;
+            m_Modules[index].factory = factory;
+            m_Modules[index].moduleInterface = moduleInterface;
+            m_Modules[index].data = data;
+        }
+    }
 
-	m_pPlatformModuleData = platformData;
-	bool initialized = InitializeAllModules( factories, count );
-	return success && initialized;
+    m_pPlatformModuleData = platformData;
+    bool initialized = InitializeAllModules( factories, count );
+    return success && initialized;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: gives all platform modules a chance to Shutdown gracefully
 //-----------------------------------------------------------------------------
+bool CVGuiSystemModuleLoader::TryRetireNativeModules() {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        return false;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        auto& record = m_Modules[index];
+        if (record.ownership != ModuleOwnership::InternalGameUI || record.phase == ModulePhase::Retired ||
+            record.phase == ModulePhase::Shutdown) {
+            continue;
+        }
+        record.phase = ModulePhase::Retiring;
+        if (!record.tryRetire || !record.isRetired || !record.tryRetire() || !record.isRetired()) {
+            return false;
+        }
+        record.phase = ModulePhase::Retired;
+    }
+#endif
+    return true;
+}
+
 void CVGuiSystemModuleLoader::ShutdownPlatformModules()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!TryRetireNativeModules()) {
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        auto& record = m_Modules[index];
+        if (record.phase == ModulePhase::Shutdown) {
+            continue;
+        }
+        // Publish first so a synchronous module shutdown callback cannot run this phase twice.
+        record.phase = ModulePhase::Shutdown;
+        if (!record.initializeEntered) {
+            continue;
+        }
+        if (record.initializeSucceeded) {
+            record.moduleInterface->Deactivate();
+        }
+        record.moduleInterface->Shutdown();
+    }
+    m_bModulesInitialized = false;
+    return;
+#else
 	// static include guard to prevent recursive calls
 	static bool runningFunction = false;
 	if ( runningFunction )
@@ -274,21 +432,44 @@ void CVGuiSystemModuleLoader::ShutdownPlatformModules()
 	for ( int i = 0; i < m_Modules.Count(); i++ )
 		m_Modules[i].moduleInterface->Shutdown();
 	runningFunction = false;
+#endif
 }
 
-void CVGuiSystemModuleLoader::DeactivatePlatformModules()
-{
-	for ( int i = 0; i < m_Modules.Count(); i++ )
-		m_Modules[i].moduleInterface->Deactivate();
+void CVGuiSystemModuleLoader::DeactivatePlatformModules() {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+#if INTPTR_MAX > INT32_MAX
+        if (m_Modules[index].phase != ModulePhase::Attached) {
+            continue;
+        }
+#endif
+        m_Modules[index].moduleInterface->Deactivate();
+    }
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Reenables all the deactivated platform modules
 //-----------------------------------------------------------------------------
-void CVGuiSystemModuleLoader::ReactivatePlatformModules()
-{
-	for ( int i = 0; i < m_Modules.Count(); i++ )
-		m_Modules[i].moduleInterface->Reactivate();
+void CVGuiSystemModuleLoader::ReactivatePlatformModules() {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+#if INTPTR_MAX > INT32_MAX
+        if (m_Modules[index].phase != ModulePhase::Attached) {
+            continue;
+        }
+#endif
+        m_Modules[index].moduleInterface->Reactivate();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -296,8 +477,17 @@ void CVGuiSystemModuleLoader::ReactivatePlatformModules()
 //-----------------------------------------------------------------------------
 void CVGuiSystemModuleLoader::UnloadPlatformModules()
 {
-	for ( int i = 0; i < m_Modules.Count(); i++ )
-		Sys_UnloadModule( m_Modules[i].module );
+#if INTPTR_MAX > INT32_MAX
+    if (!TryRetireNativeModules()) {
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        if (m_Modules[index].ownership == ModuleOwnership::ExternalImage && m_Modules[index].module) {
+            Sys_UnloadModule(m_Modules[index].module);
+        }
+    }
 	m_Modules.RemoveAll();
 
 	if ( m_pPlatformModuleData )
@@ -309,8 +499,21 @@ void CVGuiSystemModuleLoader::UnloadPlatformModules()
 
 void CVGuiSystemModuleLoader::RunFrame()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
 	for ( int i = 0; i < m_Modules.Count(); i++ )
-		m_Modules[i].moduleInterface->RunFrame();
+    {
+#if INTPTR_MAX > INT32_MAX
+        if (m_Modules[i].phase != ModulePhase::Attached) {
+            continue;
+        }
+#endif
+        m_Modules[i].moduleInterface->RunFrame();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -326,8 +529,20 @@ bool CVGuiSystemModuleLoader::IsModuleHidden( int moduleIndex )
 //-----------------------------------------------------------------------------
 void CVGuiSystemModuleLoader::PostMessageToAllModules( KeyValues* message )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_nativeCallDepth) {
+        message->deleteThis();
+        return;
+    }
+    NativeModuleCallScope nativeCall(m_nativeCallDepth);
+#endif
 	for ( int i = 0; i < m_Modules.Count(); i++ )
 	{
+#if INTPTR_MAX > INT32_MAX
+        if (m_Modules[i].phase != ModulePhase::Attached) {
+            continue;
+        }
+#endif
 		vgui2::ivgui()->PostMessage( m_Modules[i].moduleInterface->GetPanel(), message->MakeCopy(), 0 );
 	}
 	message->deleteThis();

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "IGameConsole.h"
+#include <cstdint>
 
 class CGameConsoleDialog;
 
@@ -17,6 +18,10 @@ public:
 	CGameConsole();
 	~CGameConsole() override;
 
+#if INTPTR_MAX > INT32_MAX
+    bool TryRetireNativePanel();
+    bool IsNativePanelRetired() const;
+#endif
 	void Activate() override;
 	// sets up the console for use
 	void Initialize() override;

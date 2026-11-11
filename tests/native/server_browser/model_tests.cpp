@@ -1,0 +1,477 @@
+#include "ServerBrowserModel.h"
+#include <cstdlib>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <stdexcept>
+#include <thread>
+#include <ctime>
+using namespace cse::server_browser;
+#define CHECK(value) do { if (!(value)) { throw std::runtime_error(#value); } } while (false)
+
+// The pinned address type supplies assignment, not a copy constructor. Exercise its declared
+// assignment path explicitly so the fixture does not trigger deprecated implicit copies.
+struct FixtureServer : gameserveritem_t {
+    FixtureServer() = default;
+    FixtureServer(const FixtureServer& other) {
+        gameserveritem_t::operator=(other);
+    }
+    FixtureServer& operator=(const FixtureServer& other) {
+        gameserveritem_t::operator=(other);
+        return *this;
+    }
+};
+
+// Provider boundary fixture: real model decisions run against the exact Valve interface.
+struct Provider final : ISteamMatchmakingServers {
+    struct Request {
+        ISteamMatchmakingServerListResponse* callback;
+        std::vector<FixtureServer> rows;
+        bool refreshing = true;
+    };
+    std::map<HServerListRequest, Request> requests;
+    std::vector<FixtureServer> nextRows;
+    std::function<void()> duringRequest;
+    std::function<void()> duringDetails;
+    bool synchronous = false;
+    bool cancelCallbacks = false;
+    bool failRequest = false;
+    int canceled = 0;
+    int released = 0;
+    int refreshed = 0;
+    int lastIndex = -1;
+    ListKind lastKind = ListKind::Internet;
+    AppId_t lastApp = 0;
+    std::map<std::string, std::string> lastFilters;
+    HServerListRequest current = nullptr;
+    uintptr_t serial = 0;
+    HServerListRequest Start(ListKind kind, AppId_t app, MatchMakingKeyValuePair_t** filters,
+        uint32 count, ISteamMatchmakingServerListResponse* callback) {
+        lastKind = kind;
+        lastApp = app;
+        lastFilters.clear();
+        for (uint32 index = 0; index < count; ++index) {
+            lastFilters[filters[index]->m_szKey] = filters[index]->m_szValue;
+        }
+        if (failRequest) {
+            return nullptr;
+        }
+        current = reinterpret_cast<HServerListRequest>(++serial);
+        requests.emplace(current, Request{callback, nextRows});
+        if (synchronous) {
+            callback->ServerResponded(current, 0);
+            Complete();
+        }
+        if (duringRequest) {
+            duringRequest();
+        }
+        return current;
+    }
+#define LIST_METHOD(method, kind) \
+    HServerListRequest method(AppId_t app, MatchMakingKeyValuePair_t** filters, uint32 count, \
+        ISteamMatchmakingServerListResponse* callback) override { \
+        return Start(ListKind::kind, app, filters, count, callback); \
+    }
+    LIST_METHOD(RequestInternetServerList, Internet)
+    LIST_METHOD(RequestFavoritesServerList, Favorites)
+    LIST_METHOD(RequestHistoryServerList, History)
+    LIST_METHOD(RequestFriendsServerList, Friends)
+    LIST_METHOD(RequestSpectatorServerList, Spectate)
+    HServerListRequest RequestLANServerList(AppId_t app, ISteamMatchmakingServerListResponse* callback) override {
+        return Start(ListKind::LAN, app, nullptr, 0, callback);
+    }
+    void CancelQuery(HServerListRequest request) override {
+        ++canceled;
+        requests.at(request).refreshing = false;
+        if (cancelCallbacks) {
+            requests.at(request).callback->ServerResponded(request, 0);
+            requests.at(request).callback->RefreshComplete(request, eServerFailedToRespond);
+        }
+    }
+    void ReleaseRequest(HServerListRequest request) override {
+        ++released;
+        if (cancelCallbacks) {
+            requests.at(request).callback->ServerFailedToRespond(request, 0);
+        }
+        requests.erase(request);
+    }
+    gameserveritem_t* GetServerDetails(HServerListRequest request, int index) override {
+        if (duringDetails) {
+            duringDetails();
+        }
+        auto& rows = requests.at(request).rows;
+        return index >= 0 && static_cast<size_t>(index) < rows.size() ? &rows[static_cast<size_t>(index)] : nullptr;
+    }
+    int GetServerCount(HServerListRequest request) override {
+        return static_cast<int>(requests.at(request).rows.size());
+    }
+    bool IsRefreshing(HServerListRequest request) override {
+        return requests.at(request).refreshing;
+    }
+    void RefreshQuery(HServerListRequest request) override {
+        ++refreshed;
+        requests.at(request).refreshing = true;
+    }
+    void RefreshServer(HServerListRequest request, int index) override {
+        lastIndex = index;
+        requests.at(request).callback->ServerResponded(request, index);
+    }
+    HServerQuery PingServer(uint32, uint16, ISteamMatchmakingPingResponse*) override {
+        return HSERVERQUERY_INVALID;
+    }
+    HServerQuery PlayerDetails(uint32, uint16, ISteamMatchmakingPlayersResponse*) override {
+        return HSERVERQUERY_INVALID;
+    }
+    HServerQuery ServerRules(uint32, uint16, ISteamMatchmakingRulesResponse*) override {
+        return HSERVERQUERY_INVALID;
+    }
+    void CancelServerQuery(HServerQuery) override {}
+    void Complete(EMatchMakingServerResponse result = eServerResponded) {
+        requests.at(current).refreshing = false;
+        requests.at(current).callback->RefreshComplete(current, result);
+    }
+};
+
+struct Favorites final : IFavoriteStore {
+    std::vector<FavoriteRecord> records;
+    bool failing = false;
+    FavoriteReadResult ReadAll() override { return {!failing, records, failing ? "read failure" : ""}; }
+    FavoriteWriteResult Add(const FavoriteRecord& record) override {
+        if (failing) {
+            return {false, "write failure"};
+        }
+        for (auto& existing : records) {
+            if (existing.app == record.app && existing.address == record.address) {
+                existing.flags = record.flags;
+                existing.lastPlayed = record.lastPlayed;
+                return {true, {}};
+            }
+        }
+        records.push_back(record);
+        return {true, {}};
+    }
+    FavoriteWriteResult Remove(const FavoriteRecord& record) override {
+        for (auto& existing : records) {
+            if (existing.app == record.app && existing.address == record.address) {
+                existing.flags &= ~record.flags;
+            }
+        }
+        return {!failing, failing ? "remove failure" : ""};
+    }
+};
+
+FixtureServer Server(uint32 ip = 0x7f000001U, const char* name = "Alpha") {
+    FixtureServer row;
+    row.m_NetAdr.Init(ip, 27016, 27015);
+    row.SetName(name);
+    std::strcpy(row.m_szGameDir, "cstrike");
+    std::strcpy(row.m_szMap, "de_dust2");
+    row.m_nAppID = 10;
+    row.m_bHadSuccessfulResponse = true;
+    row.m_nPing = 42;
+    row.m_nPlayers = 3;
+    row.m_nMaxPlayers = 16;
+    return row;
+}
+Filters DefaultFilters() {
+    Filters filters;
+    filters.app = 10;
+    return filters;
+}
+void Drain(ServerBrowserModel& model) {
+    for (int step = 0; step < 1000; ++step) {
+        const size_t work = model.Pump(37);
+        CHECK(work <= 37);
+        model.TakeUpdates(37);
+        if (!model.GetStatus().viewUpdating && model.GetStatus().pending == 0) {
+            return;
+        }
+    }
+    throw std::runtime_error("bounded drain did not converge");
+}
+void Addresses() {
+    Address address;
+    CHECK(ParseAddress("255.128.0.1:65535", address));
+    CHECK(address.ip == 0xff800001U && address.connectionPort == 65535 && address.queryPort == 65535);
+    CHECK(ConnectionAddress(address) == "255.128.0.1:65535");
+    for (const char* bad : {"1.2.3.4", "1.2.3.256:1", "1.2.3.4:0", "1.2.3.4:65536", "a:1",
+             "1.2.3.4:1;quit", "1.2.3.4:1\n", " 1.2.3.4:1", "1.2.3.4:-1"}) {
+        CHECK(!ParseAddress(bad, address));
+    }
+}
+void ListsAndRetirement() {
+    Provider provider;
+    provider.nextRows = {Server()};
+    provider.synchronous = true;
+    provider.cancelCallbacks = true;
+    ServerBrowserModel model({&provider, nullptr});
+    int count = 0;
+    for (ListKind kind : {ListKind::Internet, ListKind::Favorites, ListKind::History,
+             ListKind::LAN, ListKind::Friends, ListKind::Spectate}) {
+        CHECK(model.Refresh(kind, DefaultFilters()));
+        Drain(model);
+        CHECK(provider.lastKind == kind && provider.lastApp == 10);
+        CHECK(model.OrderedKeys().size() == 1);
+        CHECK(model.GetStatus().phase == Phase::Complete);
+        ++count;
+        CHECK(provider.released == count - 1);
+    }
+    CHECK(model.BeginClose());
+    CHECK(model.IsQuiescent());
+    CHECK(provider.released == 6 && provider.canceled == 6 && provider.requests.empty());
+    CHECK(!model.Refresh(ListKind::Internet, DefaultFilters()));
+}
+void PartialFiltersAndSort() {
+    Provider provider;
+    auto unanswered = Server(0x80000001U, "No response");
+    unanswered.m_bHadSuccessfulResponse = false;
+    provider.nextRows = {Server(0x7f000001U, "Z\n\t\177\303\251"), Server(0x7f000002U, "Alpha"), unanswered};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    CHECK(!model.QuickRefresh());
+    provider.requests.at(provider.current).callback->ServerFailedToRespond(provider.current, 2);
+    provider.Complete(eServerFailedToRespond);
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Failed);
+    CHECK(model.OrderedKeys().size() == 3);
+    const RowKey key{0x7f000001U, 27015, 27016};
+    CHECK(model.Find(key)->name == "Z\303\251");
+    model.Select(key);
+    auto filters = DefaultFilters();
+    filters.nonempty = true;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 2);
+    CHECK(model.Selection() == key);
+    model.SetSort({Column::Name, true});
+    Drain(model);
+    CHECK(model.OrderedKeys().front().ip == 0x7f000002U);
+    model.SetSort({Column::Name, false});
+    Drain(model);
+    CHECK(model.OrderedKeys().front() == key);
+    CHECK(model.QuickRefresh(key));
+    CHECK(provider.lastIndex == 0);
+    CHECK(model.QuickRefresh());
+    CHECK(!model.QuickRefresh());
+    CHECK(provider.refreshed == 1);
+    provider.Complete();
+    CHECK(model.GetStatus().error.empty());
+    model.Stop();
+    CHECK(model.GetStatus().phase == Phase::Stopped && provider.requests.empty());
+    CHECK(model.Find(key) != nullptr);
+    filters.region = 3;
+    CHECK(!model.Refresh(ListKind::LAN, filters));
+    CHECK(!model.GetStatus().error.empty());
+    filters.region = -1;
+    filters.notFull = true;
+    CHECK(model.Refresh(ListKind::Internet, filters));
+    Drain(model);
+    CHECK(provider.lastFilters.count("hasplayers") && provider.lastFilters.count("notfull"));
+}
+void LargeList() {
+    Provider provider;
+    for (uint32 index = 0; index < 10000; ++index) {
+        provider.nextRows.push_back(Server(0x0a000001U + index));
+    }
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    for (int index = 0; index < 10000; ++index) {
+        provider.requests.at(provider.current).callback->ServerResponded(provider.current, index);
+    }
+    provider.Complete();
+    CHECK(model.Pump(11) <= 11);
+    CHECK(model.OrderedKeys().size() <= 11);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 10000);
+    auto filters = DefaultFilters();
+    filters.name = "missing";
+    model.SetFilters(filters);
+    CHECK(model.GetStatus().viewUpdating);
+    CHECK(model.Pump(11) <= 11);
+    CHECK(model.GetStatus().viewUpdating);
+    Drain(model);
+    CHECK(model.OrderedKeys().empty());
+    filters.app = 70;
+    model.SetFilters(filters);
+    CHECK(model.Find({0x0a000001U, 27015, 27016}) == nullptr);
+    CHECK(provider.requests.empty());
+}
+void ReentrantClose() {
+    Provider provider;
+    provider.nextRows = {Server()};
+    provider.cancelCallbacks = true;
+    ServerBrowserModel model({&provider, nullptr});
+    provider.duringRequest = [&] {
+        CHECK(!model.BeginClose()); CHECK(!model.IsQuiescent());
+    };
+    CHECK(!model.Refresh(ListKind::Internet, DefaultFilters()));
+    CHECK(model.BeginClose());
+    CHECK(provider.canceled == 1 && provider.released == 1);
+    Provider second;
+    second.nextRows = {Server()};
+    ServerBrowserModel other({&second, nullptr});
+    CHECK(other.Refresh(ListKind::Internet, DefaultFilters()));
+    second.duringDetails = [&] {
+        CHECK(!other.BeginClose());
+    };
+    other.Pump();
+    CHECK(other.BeginClose());
+    CHECK(second.released == 1);
+}
+void ReentrantViewChange() {
+    Provider provider;
+    provider.nextRows = {Server()};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    provider.duringDetails = [&] {
+        auto filters = DefaultFilters();
+        filters.app = 70;
+        model.SetFilters(filters);
+        model.SetSort({Column::Ping, false});
+    };
+    model.Pump();
+    CHECK(!provider.requests.empty());
+    CHECK(model.Find({0x7f000001U, 27015, 27016}) != nullptr);
+    CHECK(!model.GetStatus().error.empty());
+    CHECK(model.BeginClose());
+}
+void FavoritePreservation() {
+    Favorites store;
+    Address address{0x7f000001U, 27015, 27016};
+    store.records = {{70, address, 3, 42}, {10, address, 2, 57}};
+    ServerBrowserModel model({nullptr, &store});
+    CHECK(model.AddFavorite(10, address));
+    CHECK(store.records.size() == 2 && store.records[0].flags == 3 && store.records[0].lastPlayed == 42);
+    CHECK(store.records[1].flags == 3 && store.records[1].lastPlayed == 57);
+    CHECK(model.RemoveFavorite(10, address));
+    CHECK(store.records[1].flags == 2 && store.records[0].flags == 3);
+    CHECK(model.RecordAcceptedConnection(10, address, 123));
+    CHECK(store.records[1].lastPlayed == 123 && store.records[1].address.queryPort == 27016);
+    CHECK(store.records[0].lastPlayed == 42);
+    const auto before = std::time(nullptr);
+    CHECK(model.AddFavorite(10, {0x7f000002U, 27015, 27016}));
+    const auto after = std::time(nullptr);
+    CHECK(store.records.back().lastPlayed > 0);
+    CHECK(store.records.back().lastPlayed >= before && store.records.back().lastPlayed <= after);
+    store.failing = true;
+    CHECK(!model.AddFavorite(10, address));
+    CHECK(!model.GetStatus().actionError.empty());
+    CHECK(model.GetStatus().error.empty());
+}
+void EverySortAndFilter() {
+    Provider provider;
+    auto first = Server(0x7f000001U, "Zulu");
+    first.m_bPassword = true;
+    first.m_bSecure = true;
+    first.m_nPlayers = 16;
+    first.m_nPing = 90;
+    std::strcpy(first.m_szMap, "de_train");
+    std::strcpy(first.m_szGameDescription, "Zulu game");
+    auto second = Server(0x7f000002U, "Alpha");
+    std::strcpy(second.m_szGameDescription, "Alpha game");
+    provider.nextRows = {first, second};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+    for (Column column : {Column::Password, Column::Secure, Column::Name, Column::Game,
+             Column::Map, Column::Players, Column::Ping, Column::Address}) {
+        model.SetSort({column, true});
+        Drain(model);
+        CHECK(model.OrderedKeys().front().ip == (column == Column::Address ? 0x7f000001U : 0x7f000002U));
+        model.SetSort({column, false});
+        Drain(model);
+        CHECK(model.OrderedKeys().front().ip == (column == Column::Address ? 0x7f000002U : 0x7f000001U));
+    }
+    auto filters = DefaultFilters();
+    filters.secure = Requirement::Yes;
+    filters.password = Requirement::Yes;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1 && model.OrderedKeys().front().ip == 0x7f000001U);
+    filters = DefaultFilters();
+    filters.notFull = true;
+    filters.maxPing = 50;
+    filters.map = "DE_DUST2";
+    filters.gameDirectory = "CSTRIKE";
+    filters.name = "LPH";
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1 && model.OrderedKeys().front().ip == 0x7f000002U);
+    filters.password = Requirement::No;
+    filters.secure = Requirement::No;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1);
+}
+void ReplacementAndFailure() {
+    Provider provider;
+    provider.nextRows = {Server()};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+    provider.nextRows = {Server(0x7f000002U)};
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    CHECK(model.Find({0x7f000001U, 27015, 27016}) != nullptr);
+    Drain(model);
+    provider.Complete();
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1);
+    CHECK(model.Find({0x7f000001U, 27015, 27016}) == nullptr);
+    provider.failRequest = true;
+    // Replacement is accepted while the old request storage retires; failure is then asynchronous.
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Failed && !model.GetStatus().error.empty());
+    CHECK(provider.requests.empty());
+    ServerBrowserModel unavailable({});
+    CHECK(!unavailable.Refresh(ListKind::Internet, DefaultFilters()));
+    CHECK(unavailable.GetStatus().phase == Phase::Unavailable);
+}
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "wrong-thread") {
+        ServerBrowserModel model({});
+        std::thread wrong([&] {
+            model.Pump();
+        });
+        wrong.join();
+        return 2;
+    }
+    if (argc == 2 && std::string(argv[1]) == "wrong-thread-callback") {
+        Provider provider;
+        ServerBrowserModel model({&provider, nullptr});
+        model.Refresh(ListKind::Internet, DefaultFilters());
+        std::thread wrong([&] {
+            provider.requests.at(provider.current).callback->ServerResponded(provider.current, 0);
+        });
+        wrong.join();
+        return 2;
+    }
+    if (argc == 2 && std::string(argv[1]) == "live-destruction") {
+        Provider provider;
+        auto model = std::make_unique<ServerBrowserModel>(SteamServices{&provider, nullptr});
+        provider.duringRequest = [&] {
+            model.reset();
+        };
+        model->Refresh(ListKind::Internet, DefaultFilters());
+        return 2;
+    }
+
+    try {
+        Addresses();
+        ListsAndRetirement();
+        PartialFiltersAndSort();
+        LargeList();
+        ReentrantClose();
+        ReentrantViewChange();
+        FavoritePreservation();
+        ReplacementAndFailure();
+        EverySortAndFilter();
+        std::cout << "9 model cases passed\n";
+    } catch (const std::exception& error) {
+        std::cerr << "FAIL: " << error.what() << '\n';
+        return EXIT_FAILURE;
+    }
+}

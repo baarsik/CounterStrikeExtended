@@ -1,3 +1,4 @@
+#include "../public/native_system_module_abi.h"
 //========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
 //
 // Purpose: Implements all the functions exported by the GameUI dll
@@ -7,12 +8,14 @@
 
 #include "GameUI_Interface.h"
 #include "BasePanel.h"
+#include "GameConsole.h"
 #include "CareerGame.h"
 #include "LoadingDialog.h"
 #include "ModInfo.h"
 #include "Sys_Utils.h"
 #include "Taskbar.h"
 #include "VGuiSystemModuleLoader.h"
+#include "native/ServerBrowserModule.h"
 #include "common/ienginevgui.h"
 
 #include "IBaseUI.h"
@@ -63,6 +66,49 @@ IGameUIFuncs* gameuifuncs;
 vgui2::ISurface* enginesurfacefuncs;
 static CBasePanel* staticPanel;
 vgui2::DHANDLE<CLoadingDialog> g_hLoadingDialog;
+#if INTPTR_MAX > INT32_MAX
+namespace {
+vgui2::DHANDLE<CBasePanel> nativeGameUIRoot;
+bool nativeDemoStopped = false;
+bool nativeRootDeletionQueued = false;
+bool nativeGameUIShutdownComplete = false;
+}
+
+bool cse::server_browser::TryRetireGameUIPanels() {
+    if (!nativeDemoStopped) {
+        if (g_pTaskbar) {
+            g_pTaskbar->ShutdownDemoPlayer();
+        }
+        nativeDemoStopped = true;
+    }
+    if (!g_VModuleLoader.TryRetireNativeModules() || !TryRetireServerBrowser()) {
+        return false;
+    }
+    // The console was reparented to the engine's game panel. Retire it before this image can unload.
+    if (!g_GameConsole.TryRetireNativePanel()) {
+        return false;
+    }
+    if (staticPanel && !nativeRootDeletionQueued) {
+        nativeGameUIRoot = staticPanel;
+        staticPanel->SetVisible(false);
+        staticPanel->MarkForDeletion();
+        nativeRootDeletionQueued = true;
+    }
+    if (nativeGameUIRoot.Get()) {
+        return false;
+    }
+    nativeGameUIRoot = nullptr;
+    staticPanel = nullptr;
+    g_pTaskbar = nullptr;
+    nativeRootDeletionQueued = false;
+    return true;
+}
+
+bool cse::server_browser::AreGameUIPanelsRetired() {
+    return !staticPanel && g_GameConsole.IsNativePanelRetired() && IsServerBrowserRetired();
+}
+#endif
+
 
 CGameUI g_GameUI;
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CGameUI, IGameUI, "GameUI007", g_GameUI );
@@ -138,6 +184,9 @@ CGameUI::~CGameUI()
 
 void CGameUI::Initialize( CreateInterfaceFn* factories, int count )
 {
+#if INTPTR_MAX > INT32_MAX
+    cse::server_browser::BindServerBrowserHost(factories, count);
+#endif
 //	TRACE_FUNCTION("CGameUI::Initialize");
 	CreateInterfaceFn engineFactory = factories[0];
 	CreateInterfaceFn clientFactory = count > 5 ? factories[5] : NULL;
@@ -149,6 +198,11 @@ void CGameUI::Initialize( CreateInterfaceFn* factories, int count )
 	m_FactoryList[4] = clientFactory;
 	vgui2::VGuiControls_Init( "GameUI", m_FactoryList, count );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "resource/gameui_%language%.txt" );
+#if INTPTR_MAX > INT32_MAX
+    nativeDemoStopped = false;
+    nativeRootDeletionQueued = false;
+    nativeGameUIShutdownComplete = false;
+#endif
 	staticPanel = new CBasePanel;
 	staticPanel->SetBounds( 0, 0, 400, 300 );
 	staticPanel->SetPaintBorderEnabled( false );
@@ -261,6 +315,20 @@ void CGameUI::Start( cl_enginefuncs_s* engineFunctions, int, IBaseSystem* system
 //-----------------------------------------------------------------------------
 void CGameUI::Shutdown()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (nativeGameUIShutdownComplete || !cse::server_browser::AreGameUIPanelsRetired()) {
+        return;
+    }
+    nativeGameUIShutdownComplete = true;
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+#if INTPTR_MAX <= INT32_MAX
+    if (g_pTaskbar) {
+        g_pTaskbar->ShutdownDemoPlayer();
+    }
+#endif
+    g_pSystemWrapper = nullptr;
+#endif
 	// notify all the modules of Shutdown
 	g_VModuleLoader.ShutdownPlatformModules();
 	// unload the modules them from memory
@@ -500,6 +568,13 @@ void CGameUI::OnDisconnectFromServer( int failureCode, const char* username )
 
 void CGameUI::ConnectToServer( const char* game, int address, int port )
 {
+#if INTPTR_MAX > INT32_MAX
+    // This call originates at ca_active/SIGNONS; the later module-message replay is deliberately not observed.
+    if (port > 0 && port <= UINT16_MAX) {
+        cse::server_browser::ServerBrowserAcceptedConnection(game, static_cast<uint32_t>(address),
+            static_cast<uint16_t>(port));
+    }
+#endif
 	if ( TheCareerGame && TheCareerGame->IsPlayingMatch() )
 	{
 		baseuifuncs->ActivateGameUI();
@@ -583,6 +658,9 @@ void CGameUI::LoadingFinished( const char* resourceType, const char* resourceNam
 //-----------------------------------------------------------------------------
 void CGameUI::DisconnectFromServer()
 {
+#if INTPTR_MAX > INT32_MAX
+    cse::server_browser::ServerBrowserDisconnected();
+#endif
 	ActivateGameUI();
 	m_iGameIP = 0;
 	m_iGamePort = 0;
@@ -616,3 +694,12 @@ bool CGameUI::IsRunningOnSteamDeck() const
 {
 	return m_bIsRunningOnDeck;
 }
+
+#if CSE_NATIVE_SYSTEM_MODULE
+static void* NativeSystemModuleConsumer() {
+    static auto descriptor = cse::modules::Contract;
+    return &descriptor;
+}
+static InterfaceReg nativeSystemModuleConsumerRegistration(
+    NativeSystemModuleConsumer, cse::modules::ConsumerName);
+#endif

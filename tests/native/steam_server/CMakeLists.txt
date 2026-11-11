@@ -100,3 +100,37 @@ if(CSE_STEAM_SERVER_BUILD_DIRECT_CONTROL)
   endif()
   add_dependencies(steam_server_direct_module steam_server_direct_probe)
 endif()
+
+# Explicit listen-server exit regression; it creates a local SDK server without login/advertisement.
+add_executable(steam_shutdown_probe shutdown_probe.cpp "${CSE_ROOT}/GoldSrc-SDK/common/steam_service.cpp")
+target_compile_features(steam_shutdown_probe PRIVATE cxx_std_17)
+target_include_directories(steam_shutdown_probe PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(steam_shutdown_probe SYSTEM PRIVATE "${CSE_ROOT}/GoldSrc-SDK/external/steamworks")
+target_compile_definitions(steam_shutdown_probe PRIVATE CSE_OWNED_STEAM_PROVIDER=1
+  "CSE_STEAM_PROVIDER_PATH=\"${CSE_STEAM_FIXTURE_PROVIDER}\"")
+cse_force_steam_initialization(steam_shutdown_probe)
+target_link_libraries(steam_shutdown_probe PRIVATE "${CMAKE_DL_LIBS}")
+
+# Explicit lifecycle control: retire the module-owned transport outside the
+# loader lock before dlclose; the late finalizer is an idempotent fallback.
+add_library(steam_shutdown_owned_module SHARED shutdown_probe.cpp "${CSE_ROOT}/GoldSrc-SDK/common/steam_service.cpp")
+target_compile_features(steam_shutdown_owned_module PRIVATE cxx_std_17)
+target_include_directories(steam_shutdown_owned_module PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(steam_shutdown_owned_module SYSTEM PRIVATE "${CSE_ROOT}/GoldSrc-SDK/external/steamworks")
+target_compile_definitions(steam_shutdown_owned_module PRIVATE CSE_OWNED_STEAM_PROVIDER=1
+  CSE_SHUTDOWN_MODULE_FIXTURE=1 "CSE_STEAM_PROVIDER_PATH=\"${CSE_STEAM_FIXTURE_PROVIDER}\"")
+cse_force_steam_initialization(steam_shutdown_owned_module)
+target_link_libraries(steam_shutdown_owned_module PRIVATE "${CMAKE_DL_LIBS}")
+set_target_properties(steam_shutdown_owned_module PROPERTIES CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+add_executable(steam_shutdown_module_probe shutdown_module_probe.cpp)
+target_compile_features(steam_shutdown_module_probe PRIVATE cxx_std_17)
+target_include_directories(steam_shutdown_module_probe PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_link_libraries(steam_shutdown_module_probe PRIVATE "${CMAKE_DL_LIBS}")
+add_dependencies(steam_shutdown_module_probe steam_shutdown_owned_module)
+
+# This driver intentionally uses assertions to invoke and validate the lifecycle.
+if(MSVC)
+  target_compile_options(steam_shutdown_module_probe PRIVATE /UNDEBUG)
+else()
+  target_compile_options(steam_shutdown_module_probe PRIVATE -UNDEBUG)
+endif()

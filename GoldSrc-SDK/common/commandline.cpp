@@ -290,6 +290,64 @@ const char* CCommandLine::GetCmdLine()
 
 char* CCommandLine::CheckParm( const char* psz, char** ppszValue )
 {
+#if !defined(_WIN32)
+    // Match complete tokens and preserve quoted UTF-8 values. The Windows
+    // parser remains unchanged; native dedicated argv is validated upstream.
+    static char value[COMMAND_LINE_SIZE];
+    if (ppszValue) {
+        *ppszValue = nullptr;
+    }
+    if (!m_pszCmdLine || !psz) {
+        return nullptr;
+    }
+    char* cursor = m_pszCmdLine;
+    while (*cursor) {
+        while (*cursor && isspace(static_cast<unsigned char>(*cursor))) {
+            ++cursor;
+        }
+        char* token = cursor;
+        const bool quoted = *cursor == '"';
+        if (quoted) {
+            ++cursor;
+        }
+        char* begin = cursor;
+        while (*cursor && (quoted ? *cursor != '"' : !isspace(static_cast<unsigned char>(*cursor)))) {
+            ++cursor;
+        }
+        const size_t length = static_cast<size_t>(cursor - begin);
+        if (*cursor && quoted) {
+            ++cursor;
+        }
+        if (strlen(psz) != length || strncmp(begin, psz, length) != 0) {
+            continue;
+        }
+        if (!ppszValue) {
+            return token;
+        }
+        while (*cursor && isspace(static_cast<unsigned char>(*cursor))) {
+            ++cursor;
+        }
+        if (!*cursor) {
+            return token;
+        }
+        const bool valueQuoted = *cursor == '"';
+        if (valueQuoted) {
+            ++cursor;
+        }
+        size_t copied = 0;
+        while (*cursor && (valueQuoted ? *cursor != '"' : !isspace(static_cast<unsigned char>(*cursor)))) {
+            if (copied + 1 >= sizeof(value)) {
+                return token;
+            }
+            value[copied++] = *cursor++;
+        }
+        value[copied] = '\0';
+        *ppszValue = value;
+        return token;
+    }
+    return nullptr;
+#else
+
 	static char sz[MAX_PARAMETER_LEN];
 	if ( !m_pszCmdLine )
 		return NULL;
@@ -311,4 +369,5 @@ char* CCommandLine::CheckParm( const char* psz, char** ppszValue )
 	sz[i] = '\0';
 	*ppszValue = sz;
 	return pret;
+#endif
 }

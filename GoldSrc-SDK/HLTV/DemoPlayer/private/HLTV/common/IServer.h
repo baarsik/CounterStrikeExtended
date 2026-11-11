@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/IServer.h"
+#else
 #ifndef ISERVER_H
 #define ISERVER_H
 
@@ -75,5 +79,7 @@ public:
 	virtual float GetPacketLoss() = 0;
 	virtual int GetProtocol() = 0;
 };
+
+#endif
 
 #endif

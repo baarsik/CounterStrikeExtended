@@ -418,6 +418,17 @@ bool DemoPlayer::Init( IBaseSystem* system, int serial, char* name )
 	if ( !BaseSystemModule::Init( system, serial, name ) )
 		return false;
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_Engine = nullptr;
+    m_Server = nullptr;
+    m_World = nullptr;
+    m_PlayerState = DEMO_INACTIVE;
+    m_LastCmd = nullptr;
+    m_IsSaving = false;
+    m_ForceHLTV = false;
+    m_NativeShuttingDown = false;
+#endif
+
 #if defined( _MSC_VER )
 #pragma warning( push )
 #pragma warning( disable : 4996 )
@@ -439,7 +450,11 @@ bool DemoPlayer::Init( IBaseSystem* system, int serial, char* name )
 #pragma warning( pop )
 #endif
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_Engine = cse::modules::Acquire<IEngineWrapper>(m_System, "enginewrapper002", "", NULL);
+#else
 	m_Engine = (IEngineWrapper*)m_System->GetModule( "enginewrapper002", "", NULL );
+#endif
 
 	if ( !m_Engine )
 	{
@@ -447,7 +462,11 @@ bool DemoPlayer::Init( IBaseSystem* system, int serial, char* name )
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_Server = cse::modules::Acquire<IServer>(m_System, "server001", "core", "DemoServer");
+#else
 	m_Server = (IServer*)m_System->GetModule( "server001", "core", "DemoServer" );
+#endif
 
 	if ( !m_Server )
 	{
@@ -455,11 +474,21 @@ bool DemoPlayer::Init( IBaseSystem* system, int serial, char* name )
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!cse::modules::Subscribe(m_Server, this)) {
+        return false;
+    }
+#else
 	m_Server->RegisterListener( this );
+#endif
 	m_Server->SetDirector( this );
 	m_Server->SetDelayReconnect( false );
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_World = cse::modules::Acquire<IWorld>(m_System, "world001", "core", "DemoWorld");
+#else
 	m_World = (IWorld*)m_System->GetModule( "world001", "core", "DemoWorld" );
+#endif
 
 	if ( !m_World )
 	{
@@ -467,14 +496,56 @@ bool DemoPlayer::Init( IBaseSystem* system, int serial, char* name )
 		return false;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_jump", this, CMD_ID_JUMP )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_jump", this, CMD_ID_JUMP );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_forcehltv", this, CMD_ID_FORCEHLTV )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_forcehltv", this, CMD_ID_FORCEHLTV );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_pause", this, CMD_ID_PAUSE )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_pause", this, CMD_ID_PAUSE );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_speed", this, CMD_ID_SPEED )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_speed", this, CMD_ID_SPEED );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_start", this, CMD_ID_START )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_start", this, CMD_ID_START );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_System->RegisterCommand( "dem_save", this, CMD_ID_SAVE )) {
+        return false;
+    }
+#else
 	m_System->RegisterCommand( "dem_save", this, CMD_ID_SAVE );
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!cse::modules::Subscribe(m_World, this) || !m_DemoStream.Resize(DEMO_STREAM_CAPACITY)) {
+        return false;
+    }
+#else
 	m_World->RegisterListener( this );
 	m_DemoStream.Resize( DEMO_STREAM_CAPACITY );
+#endif
 	SetTimeScale( 1.0f );
 	SetPaused( false );
 	m_LastCmd = NULL;
@@ -1051,6 +1122,38 @@ void DemoPlayer::NewGame( IWorld* world, IProxy* )
 
 void DemoPlayer::ShutDown()
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_State == MODULE_DISCONNECTED || m_NativeShuttingDown) {
+        return;
+    }
+    m_NativeShuttingDown = true;
+    m_PlayerState = DEMO_INACTIVE;
+    IServer* server = m_Server;
+    IWorld* world = m_World;
+    m_Server = nullptr;
+    m_World = nullptr;
+    m_Engine = nullptr;
+    if (server) {
+        server->RemoveListener(this);
+        server->SetDirector(nullptr);
+    }
+    if (world) {
+        world->RemoveListener(this);
+    }
+    // Server disconnect may consult its world, so disconnect it before releasing world resources.
+    if (server) {
+        m_System->RemoveModule(server);
+    }
+    if (world) {
+        m_System->RemoveModule(world);
+    }
+    m_DemoStream.Free();
+    m_Commands.Clear(true);
+    m_LastCmd = nullptr;
+    BaseSystemModule::ShutDown();
+    m_NativeShuttingDown = false;
+#else
+
 	if ( m_State == MODULE_DISCONNECTED )
 		return;
 
@@ -1064,10 +1167,26 @@ void DemoPlayer::ShutDown()
 	m_Commands.Clear( true );
 	BaseSystemModule::ShutDown();
 	m_System->DPrintf( "DemoPlayer module Shutdown.\n" );
+#endif
 }
 
 void DemoPlayer::ReceiveSignal( ISystemModule* module, unsigned int signal, void* )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!module || m_NativeShuttingDown || m_State == MODULE_DISCONNECTED) {
+        return;
+    }
+    if (m_Server && module == static_cast<ISystemModule*>(m_Server)) {
+        if (signal == SERVER_SIGNAL_DISCONNECT) {
+            m_System->Printf(const_cast<char*>("Demo file completely loaded.\n"));
+        }
+        return;
+    }
+    if (!m_World || module != static_cast<ISystemModule*>(m_World)) {
+        return;
+    }
+#else
+
 #ifdef _WIN32
 	int serverSerial = m_Server->GetSerial();
 	int senderSerial = module->GetSerial();
@@ -1093,6 +1212,7 @@ void DemoPlayer::ReceiveSignal( ISystemModule* module, unsigned int signal, void
 	if ( senderSerial != worldSerial )
 		return;
 
+#endif
 	BitBuffer message( PAUSE_MESSAGE_CAPACITY );
 
 	if ( signal == WORLD_SIGNAL_NEWGAME )
@@ -1180,3 +1300,21 @@ int DemoPlayer::ReadDemoMessage( unsigned char* buffer, int size )
 	m_DemoStream.FastClear();
 	return length;
 }
+
+#if CSE_NATIVE_SYSTEM_MODULE
+static ISystemModule* CSE_ABI_CALL CreateNativeModule(const char* name) {
+    return cse::modules::Is(name, cse::modules::DemoName) ? static_cast<ISystemModule*>(&g_DemoPlayerSingleton) : nullptr;
+}
+
+static void CSE_ABI_CALL ReleaseNativeModule(ISystemModule*) {
+    // Provider-owned singleton: it remains alive until this image is unloaded.
+}
+
+static void* NativeFactory() {
+    static cse::modules::Factory factory{cse::modules::Contract, sizeof(cse::modules::Factory),
+        cse::modules::ContractRevision, CreateNativeModule, ReleaseNativeModule};
+    return &factory;
+}
+
+static InterfaceReg nativeFactoryRegistration(NativeFactory, cse::modules::FactoryName);
+#endif

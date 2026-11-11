@@ -12,4 +12,10 @@ S_API void S_CALLTYPE SteamAPI_UseBreakpadCrashHandler(const char* version, cons
 S_API void S_CALLTYPE SteamAPI_SetMiniDumpComment(const char* comment);
 S_API void S_CALLTYPE SteamAPI_WriteMiniDump(uint32 exceptionCode, void* exceptionInfo, uint32 build);
 
+#if defined(__APPLE__)
+// Module-local owner hook. Call only after its server sessions and callbacks
+// are quiescent, outside dynamic-loader finalization.
+extern "C" __attribute__((visibility("hidden"))) bool CseSteamRetireServerTransport();
+#endif
+
 #endif

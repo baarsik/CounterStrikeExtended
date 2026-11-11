@@ -1,0 +1,90 @@
+{
+  "status": "Executable scenario mapping; exact profile results live in final native packet and SDD report",
+  "driver": "vgui_tests.cpp",
+  "cases": {
+    "bounded": [
+      "10000 results",
+      "geometry-sized slots",
+      "actual header message",
+      "displayed canonical slot order",
+      "resize",
+      "logical final row"
+    ],
+    "tabs": [
+      "six real pages",
+      "typed provider selection"
+    ],
+    "filters": [
+      "name/map/ping/security/password/nonempty/not-full/region controls",
+      "negative requirements"
+    ],
+    "input-actions": [
+      "queued End/Home/Down/Enter",
+      "queued double-click",
+      "selected RowKey numeric endpoint"
+    ],
+    "actions": [
+      "favorite/remove",
+      "actual context favorite",
+      "quick-selected/quick/refresh/stop",
+      "attempt is not history"
+    ],
+    "password": [
+      "retained resource",
+      "mask/bound",
+      "Unicode password",
+      "visible/undo erase",
+      "explicit retry",
+      "queued duplicate Connect",
+      "direct cvar restoration"
+    ],
+    "other-game": [
+      "browse other retained game",
+      "disabled connect reason"
+    ],
+    "localization": [
+      "missing fallback",
+      "preserved installed value",
+      "copy lifetime"
+    ],
+    "unsaved": [
+      "temporary filesystem failure",
+      "plain visible status",
+      "usable browser"
+    ],
+    "favorite-error": [
+      "action error clears independently of query failure"
+    ],
+    "details-live": [
+      "typed query port",
+      "20000 actual displayed results",
+      "logical final row",
+      "W-size ListPanel"
+    ],
+    "details-pending": [
+      "mixed query/display aggregate32 close"
+    ],
+    "details-retirement": [
+      "outstanding typed cancellation",
+      "real child deletion"
+    ],
+    "existing-owners": [
+      "actual GameUI/console shutdown bodies",
+      "reparented real panels",
+      "delayed deletion",
+      "repeat shutdown/reopen"
+    ],
+    "baseui-owner": [
+      "actual BaseUI/surface bodies",
+      "detach before dispatch traversal",
+      "partial owner state",
+      "same-owner restart"
+    ]
+  },
+  "moduleDriver": "module_tests.cpp: lifecycle, unavailable, unsupported-game; actual accepted CGameUI hooks and delayed replay",
+  "limits": [
+    "component UI input events, not operating-system input capture or staged gameplay",
+    "retained dependency dylibs are not sanitizer-instrumented",
+    "initial planning scenarios are not themselves executable evidence"
+  ]
+}

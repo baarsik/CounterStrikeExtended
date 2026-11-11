@@ -1,4 +1,5 @@
 #include "SystemWrapper.h"
+#include "IDemoPlayer.h"
 
 #include "engine_apiproxy.h"
 #include "TokenLine.h"
@@ -18,6 +19,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
+
+void DemoPlayer_Reset();
 
 static void CopyLimited( char* dest, const char* src, int count )
 {
@@ -227,16 +231,14 @@ void SystemWrapper::Printf( char* fmt, ... )
 	Con_Printf( "%s", string );
 }
 
-void SystemWrapper::DPrintf( char* fmt, ... )
-{
-	static char string[8192];
-	va_list argptr;
-
-	va_start( argptr, fmt );
-	vsnprintf( string, sizeof( string ), fmt, argptr );
-	va_end( argptr );
-
-	Con_DPrintf( string );
+void SystemWrapper::DPrintf(char* fmt, ...) {
+    constexpr std::size_t DebugMessageBytes = 8192;
+    static char message[DebugMessageBytes];
+    va_list arguments;
+    va_start(arguments, fmt);
+    vsnprintf(message, sizeof(message), fmt, arguments);
+    va_end(arguments);
+    Con_DPrintf("%s", message);
 }
 
 void SystemWrapper::ExecuteFile( char* filename )
@@ -269,6 +271,20 @@ void SystemWrapper::LogConsole( char* filename )
 
 bool SystemWrapper::AddModule( ISystemModule* module, char* name )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_NativeModules.Add(this, module, name, nullptr, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    })) {
+        return false;
+    }
+    if (!m_Modules.AddHead(module)) {
+        RemoveModule(module);
+        return false;
+    }
+    return true;
+#else
+
 	if ( !module )
 		return false;
 
@@ -281,6 +297,8 @@ bool SystemWrapper::AddModule( ISystemModule* module, char* name )
 	m_Modules.AddHead( module );
 	m_SerialCounter++;
 	return true;
+
+#endif
 }
 
 void SystemWrapper::Errorf( char* fmt, ... )
@@ -331,8 +349,19 @@ bool SystemWrapper::Init( IBaseSystem* system, int serial, char* name )
 	m_Libraries.Init();
 	m_Listener.Init();
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_EngineWrapper = new (std::nothrow) EngineWrapper();
+#else
 	m_EngineWrapper = new EngineWrapper();
-#if defined( _WIN32 )
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_NativeModules.Restart();
+    if (!AddModule(static_cast<ISystemModule*>(m_EngineWrapper), const_cast<char*>(cse::modules::EngineName))) {
+        delete m_EngineWrapper;
+        m_EngineWrapper = nullptr;
+        return false;
+    }
+#elif defined( _WIN32 )
 	AddModule( m_EngineWrapper, "enginewrapper002" );
 #endif
 
@@ -342,6 +371,32 @@ bool SystemWrapper::Init( IBaseSystem* system, int serial, char* name )
 
 void SystemWrapper::ShutDown()
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_State == MODULE_DISCONNECTED) {
+        return;
+    }
+    DemoPlayer_Reset();
+    m_NativeModules.Stop([this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    });
+    if (!m_NativeModules.ReleaseAll()) {
+        return;
+    }
+    m_Listener.clear();
+    m_Commands.Clear(true);
+    while (auto* library = static_cast<library_t*>(m_Libraries.RemoveTail())) {
+        if (library->handle) {
+            Sys_UnloadModule(library->handle);
+        }
+        Mem_Free(library);
+    }
+    delete m_EngineWrapper;
+    m_EngineWrapper = nullptr;
+    Cmd_RemoveWrapperCmds();
+    m_State = MODULE_DISCONNECTED;
+#else
+
 	ISystemModule* module;
 	library_t* lib;
 
@@ -363,10 +418,36 @@ void SystemWrapper::ShutDown()
 
 	Cmd_RemoveWrapperCmds();
 	m_State = MODULE_DISCONNECTED;
+
+#endif
 }
 
 void SystemWrapper::RunFrame( double time )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeModules.stopping) {
+        ShutDown();
+        return;
+    }
+    m_SystemTime += time;
+    ++m_Tick;
+    if (m_State != MODULE_RUNNING) {
+        return;
+    }
+    {
+        cse::modules::CallbackScope callback(&m_NativeModules.lifetime);
+        for (ISystemModule* module : m_NativeModules.Running()) {
+            if (m_NativeModules.Running(module)) {
+                module->RunFrame(m_SystemTime);
+            }
+        }
+    }
+    m_LastTime = m_SystemTime;
+    if (m_NativeModules.stopping) {
+        ShutDown();
+    }
+#else
+
 	ISystemModule* module;
 
 	m_SystemTime += time;
@@ -384,10 +465,24 @@ void SystemWrapper::RunFrame( double time )
 	}
 
 	m_LastTime = m_SystemTime;
+
+#endif
 }
 
 ISystemModule* SystemWrapper::FindModule( char* type, char* name )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!type || !*type) {
+        return nullptr;
+    }
+    for (ISystemModule* module : m_NativeModules.Running()) {
+        if ((module->QueryInterface(type) || !Q_strcasecmp(type, module->GetType())) && (!name || !strcmp(name, module->GetName()))) {
+            return module;
+        }
+    }
+    return nullptr;
+#else
+
 	ISystemModule* module;
 
 	if ( !type || !type[0] )
@@ -400,6 +495,8 @@ ISystemModule* SystemWrapper::FindModule( char* type, char* name )
 	}
 
 	return NULL;
+
+#endif
 }
 
 void SystemWrapper::ExecuteSingleCommand( char* text )
@@ -478,7 +575,17 @@ bool SystemWrapper::DispatchCommand( char* command )
 	{
 		if ( !Q_strnicmp( cmd->name, command, (int)strlen( cmd->name ) ) )
 		{
+#if CSE_NATIVE_SYSTEM_MODULE
+            {
+                cse::modules::CallbackScope callback(&m_NativeModules.lifetime);
+                cmd->module->ExecuteCommand(cmd->commandID, command);
+            }
+            if (m_NativeModules.stopping) {
+                ShutDown();
+            }
+#else
 			cmd->module->ExecuteCommand( cmd->commandID, command );
+#endif
 			return true;
 		}
 	}
@@ -549,10 +656,38 @@ ISystemModule* SystemWrapper::GetModule( char* interfacename, char* library, cha
 			return module;
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_NativeModules.CanCreate() || !library || !*library) {
+        return nullptr;
+    }
+#endif
+
 	lib = GetLibrary( library );
 	if ( !lib )
 		return NULL;
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    const auto* provider = cse::modules::Admit(lib->createInterfaceFn);
+    if (!provider) {
+        Printf(const_cast<char*>("Rejected incompatible native system-module provider %s.\n"), lib->name);
+        return nullptr;
+    }
+    module = provider->Create(interfacename);
+    if (!module) {
+        return nullptr;
+    }
+    if (!m_NativeModules.Add(this, module, instancename, provider, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    })) {
+        return nullptr;
+    }
+    if (!m_Modules.AddHead(module)) {
+        RemoveModule(module);
+        return nullptr;
+    }
+    return module;
+#else
 	module = (ISystemModule*)lib->createInterfaceFn( interfacename, NULL );
 	if ( !module )
 	{
@@ -562,6 +697,7 @@ ISystemModule* SystemWrapper::GetModule( char* interfacename, char* library, cha
 
 	AddModule( module, instancename );
 	return module;
+#endif
 }
 
 void SystemWrapper::CMD_UnloadModule( char* cmdLine )
@@ -627,12 +763,24 @@ bool SystemWrapper::RegisterCommand( char* name, ISystemModule* module, int comm
 	}
 
 	cmd = (command_t*)Mem_ZeroMalloc( sizeof( command_t ) );
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!cmd) {
+        return false;
+    }
+#endif
 	CopyLimited( cmd->name, name, sizeof( cmd->name ) );
 	cmd->name[sizeof( cmd->name ) - 1] = '\0';
 	cmd->module = module;
 	cmd->commandID = commandID;
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (!m_Commands.Add(cmd)) {
+        Mem_Free(cmd);
+        return false;
+    }
+#else
 	m_Commands.Add( cmd );
+#endif
 	Cmd_AddWrapperCommand( cmd->name, SystemWrapperCommandForwarder );
 	return true;
 }
@@ -676,6 +824,13 @@ void SystemWrapper::ExecuteCommand( int commandID, char* commandLine )
 
 bool SystemWrapper::RemoveModule( ISystemModule* module )
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    return m_NativeModules.Remove(module, [this](ISystemModule* removed) {
+        RemoveNativeCommands(removed);
+        m_Modules.Remove(removed);
+    });
+#else
+
 	command_t* cmd;
 	ISystemModule* current;
 
@@ -704,6 +859,8 @@ bool SystemWrapper::RemoveModule( ISystemModule* module )
 	}
 
 	return false;
+
+#endif
 }
 
 #if defined( _MSC_VER )
@@ -763,3 +920,27 @@ int SystemWrapper_LoadModule( char* interfacename, char* library, char* instance
 {
 	return gSystemWrapper.GetModule( interfacename, library, instancename ) ? 1 : 0;
 }
+
+#if CSE_NATIVE_SYSTEM_MODULE
+void SystemWrapper::RemoveNativeCommands(ISystemModule* module) {
+    if (cse::modules::Query<IDemoPlayer>(module, cse::modules::DemoName)) {
+        DemoPlayer_Reset();
+    }
+    std::vector<command_t*> commands;
+    for (auto* command = static_cast<command_t*>(m_Commands.GetFirst()); command;
+         command = static_cast<command_t*>(m_Commands.GetNext())) {
+        if (command->module == module) {
+            commands.push_back(command);
+        }
+    }
+    for (auto* command : commands) {
+        m_Commands.Remove(command);
+        Mem_Free(command);
+    }
+    Cmd_RemoveWrapperCmds();
+    for (auto* command = static_cast<command_t*>(m_Commands.GetFirst()); command;
+         command = static_cast<command_t*>(m_Commands.GetNext())) {
+        Cmd_AddWrapperCommand(command->name, SystemWrapperCommandForwarder);
+    }
+}
+#endif

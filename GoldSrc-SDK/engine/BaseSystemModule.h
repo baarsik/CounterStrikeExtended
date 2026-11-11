@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../common/native/BaseSystemModule.h"
+#else
 #pragma once
 
 #include "ISystemModule.h"
@@ -53,3 +57,5 @@ protected:
 	double m_SystemTime;
 };
 #pragma pack( pop )
+
+#endif

@@ -84,6 +84,9 @@ public:
     void _PrimeFile(const char *filename, int looping);
 	void _Pause( int, int );
 	void _Resume( int, int );
+#if defined(__APPLE__)
+    void _ApplyAppFocus(int, int);
+#endif
 	void _Stop( int, int );
 	void _Eject( int, int );
 	void _CloseDoor( int, int );
@@ -132,6 +135,10 @@ void		CDAudio_Shutdown();
 void		CDAudio_Play( int track, int looping );
 void		CDAudio_Pause();
 void		CDAudio_Resume();
+#if defined(__APPLE__)
+// Engine-private focus intent; the existing worker owns playback transitions.
+void CDAudio_AppFocusChanged(bool active);
+#endif
 void		MP3_Suspend_Audio();
 void		PrimeMusicStream( char* filename, int looping );
 

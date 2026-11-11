@@ -5,7 +5,78 @@
 #include "cd.h"
 #include "keys.h"
 #include "client.h"
+#include "server.h"
 #include "../common/dll_state.h"
+#include "native_gameui_retirement.h"
+#include "interface.h"
+#include <thread>
+#if defined(__APPLE__)
+#include <pthread.h>
+#endif
+
+#if INTPTR_MAX > INT32_MAX
+namespace {
+std::thread::id nativeGameUIThread;
+size_t nativeGameUIUseDepth = 0;
+bool nativeGameUIRetiring = false;
+const cse::gameui_lifetime::HostV1 nativeGameUIHost{
+    sizeof(cse::gameui_lifetime::HostV1), cse::gameui_lifetime::ContractVersion,
+    cse::NativeGameUIIsMainThread, cse::NativeGameUIIsRetirementSafePoint};
+void* NativeGameUIHostFactory() {
+    return const_cast<cse::gameui_lifetime::HostV1*>(&nativeGameUIHost);
+}
+}
+EXPOSE_INTERFACE_FN(NativeGameUIHostFactory, CSEGameUIHost, cse::gameui_lifetime::HostInterface);
+
+bool cse::InitializeNativeGameUIHost() {
+#if defined(__APPLE__)
+    if (!pthread_main_np()) {
+        return false;
+    }
+#endif
+    if (nativeGameUIUseDepth || nativeGameUIRetiring) {
+        return false;
+    }
+    if (nativeGameUIThread != std::thread::id{} && nativeGameUIThread != std::this_thread::get_id()) {
+        return false;
+    }
+    nativeGameUIThread = std::this_thread::get_id();
+    return true;
+}
+
+bool cse::NativeGameUIIsMainThread() {
+#if defined(__APPLE__)
+    if (!pthread_main_np()) {
+        return false;
+    }
+#endif
+    return nativeGameUIThread != std::thread::id{} && nativeGameUIThread == std::this_thread::get_id();
+}
+
+bool cse::NativeGameUIIsRetirementSafePoint() {
+    return NativeGameUIIsMainThread() && nativeGameUIRetiring && nativeGameUIUseDepth == 0;
+}
+
+void cse::EnterNativeGameUIUse() {
+    ++nativeGameUIUseDepth;
+}
+
+void cse::LeaveNativeGameUIUse() {
+    --nativeGameUIUseDepth;
+}
+
+bool cse::EnterNativeGameUIRetirement() {
+    if (!NativeGameUIIsMainThread() || nativeGameUIRetiring || nativeGameUIUseDepth) {
+        return false;
+    }
+    nativeGameUIRetiring = true;
+    return true;
+}
+
+void cse::LeaveNativeGameUIRetirement() {
+    nativeGameUIRetiring = false;
+}
+#endif
 
 #define DLL_RESTARTING	5
 
@@ -22,6 +93,7 @@ public:
 	~CEngine() override;
 	bool Load( bool dedicated, char* basedir, char* cmdline ) override;
 	void Unload() override;
+    bool TryUnload();
 	void SetState( int state ) override;
 	int GetState() override;
 	void SetSubState( int state ) override;
@@ -82,6 +154,9 @@ CEngine::~CEngine()
 
 bool CEngine::Load( bool dedicated, char* basedir, char* cmdline )
 {
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeGameUIUseScope nativeUse;
+#endif
 	// Activate engine
 	SetState( DLL_ACTIVE );
 	if ( !Sys_InitGame( cmdline, basedir, game->GetMainWindowAddress(), dedicated ) )
@@ -96,8 +171,33 @@ bool CEngine::Load( bool dedicated, char* basedir, char* cmdline )
 //-----------------------------------------------------------------------------
 void CEngine::Unload()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer) {
+        TryUnload();
+        return;
+    }
+#endif
 	Sys_ShutdownGame();
 	m_nDLLState = DLL_INACTIVE;
+}
+
+bool CEngine::TryUnload() {
+#if INTPTR_MAX > INT32_MAX
+    if (!g_bIsDedicatedServer && !cse::TryShutdownNativeGame()) {
+        return false;
+    }
+    if (g_bIsDedicatedServer) {
+        Sys_ShutdownGame();
+    }
+#else
+    Sys_ShutdownGame();
+#endif
+    m_nDLLState = DLL_INACTIVE;
+    return true;
+}
+
+bool cse::TryUnloadNativeEngine() {
+    return g_Engine.TryUnload();
 }
 
 //-----------------------------------------------------------------------------
@@ -132,6 +232,9 @@ int CEngine::GetSubState()
 
 int CEngine::Frame()
 {
+#if INTPTR_MAX > INT32_MAX
+    cse::NativeGameUIUseScope nativeUse;
+#endif
 	cdaudio->Frame();
 
 	if ( !game->IsActiveApp() )

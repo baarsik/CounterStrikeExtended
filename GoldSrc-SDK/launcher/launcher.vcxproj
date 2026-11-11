@@ -126,4 +126,16 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
+  <ItemGroup>
+    <ClCompile Include="native\MacRuntimeSession.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+    <ClCompile Include="native\VGui1HostImageOwner.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+    </ClCompile>
+  </ItemGroup>
 </Project>

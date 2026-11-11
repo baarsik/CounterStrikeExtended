@@ -6,7 +6,7 @@
 #include "vgui_EngineSurface.h"
 #include <algorithm>
 #include "../public/native_module.h"
-#include <mach-o/dyld.h>
+#include <crt_externs.h>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -37,8 +37,19 @@ bool MainImageQueue(const HostReleasesV1& host) noexcept {
         return false;
     }
     Dl_info image{};
+    // A process-local inserted dylib can occupy dyld enumeration index zero on ARM64.
     return dladdr(reinterpret_cast<const void*>(host.deferRoot), &image) != 0
-        && image.dli_fbase == _dyld_get_image_header(0);
+        && image.dli_fbase == _NSGetMachExecuteHeader();
+}
+
+bool MainImageOwner(const cse_vgui1_host::HostReleasesV2& host) noexcept {
+    if (host.structBytes != sizeof(host) || host.version != cse_vgui1_host::HostReleasesVersion
+        || !host.context || !host.acceptRoot) {
+        return false;
+    }
+    Dl_info image{};
+    return dladdr(reinterpret_cast<const void*>(host.acceptRoot), &image) != 0
+        && image.dli_fbase == _NSGetMachExecuteHeader();
 }
 
 void* LoadExact(const char* path) noexcept {
@@ -77,7 +88,9 @@ bool Runtime::CodePending() const noexcept {
 }
 
 bool Runtime::DeferRoot(void* reference) noexcept {
-    return reference && host_.deferRoot && host_.deferRoot(host_.context, reference);
+    // V1 queues until root return. V2 balances extras under a genuine host
+    // anchor. Both accept ownership only on true and retain code on failure.
+    return reference && releaseRoot_ && releaseRoot_(hostContext_, reference);
 }
 
 bool Runtime::DrainRollbacks() noexcept {
@@ -92,29 +105,47 @@ bool Runtime::DrainRollbacks() noexcept {
 }
 
 Result Runtime::Open(const Binding& binding) noexcept {
+    if (!MainImageQueue(binding.host)) {
+        return Result::InvalidArgument;
+    }
+    return OpenImpl(binding.moduleEpoch, binding.rootImagePath, binding.fontImagePath,
+        binding.host.context, binding.host.deferRoot);
+}
+
+Result Runtime::Open(const BindingV2& binding) noexcept {
+    if (!MainImageOwner(binding.host)) {
+        return Result::InvalidArgument;
+    }
+    return OpenImpl(binding.moduleEpoch, binding.rootImagePath, binding.fontImagePath,
+        binding.host.context, binding.host.acceptRoot);
+}
+
+Result Runtime::OpenImpl(std::uint64_t epoch, const char* rootPath, const char* fontPath,
+    void* context, ReleaseRoot release) noexcept {
     if (root_ || font_ || !pins_.empty() || !rollbacks_.empty()) {
         return Result::Busy;
     }
-    if (!binding.moduleEpoch || !binding.rootImagePath || !binding.fontImagePath || !MainImageQueue(binding.host)) {
+    if (!epoch || !rootPath || !fontPath || !context || !release) {
         return Result::InvalidArgument;
     }
-    if (!MatchesImage(binding.rootImagePath, reinterpret_cast<const void*>(&RootCodeAnchor))
-        || !MatchesImage(binding.fontImagePath, reinterpret_cast<const void*>(&CseVgui1FontQueryV1))) {
+    if (!MatchesImage(rootPath, reinterpret_cast<const void*>(&RootCodeAnchor))
+        || !MatchesImage(fontPath, reinterpret_cast<const void*>(&CseVgui1FontQueryV1))) {
         return Result::Unavailable;
     }
-    void* root = LoadExact(binding.rootImagePath);
+    void* root = LoadExact(rootPath);
     if (!root) {
         return Result::Unavailable;
     }
     // Establish recoverable ownership before a second load can fail. Even an
     // incomplete Open requires explicit Close if the host queue rejects rollback.
-    rootPath_ = binding.rootImagePath;
-    fontPath_ = binding.fontImagePath;
-    host_ = binding.host;
+    rootPath_ = rootPath;
+    fontPath_ = fontPath;
+    hostContext_ = context;
+    releaseRoot_ = release;
     thread_ = std::this_thread::get_id();
-    epoch_ = binding.moduleEpoch;
+    epoch_ = epoch;
     root_ = root;
-    font_ = LoadExact(binding.fontImagePath);
+    font_ = LoadExact(fontPath);
     if (!font_ || cse_platform::GetSymbol(font_, "CseVgui1FontQueryV1")
         != reinterpret_cast<void*>(&CseVgui1FontQueryV1)) {
         const auto closed = Close();
@@ -145,7 +176,8 @@ Result Runtime::Close() noexcept {
     fontPath_.clear();
     closeReleasePending_ = false;
     mutating_ = false;
-    host_ = {};
+    hostContext_ = nullptr;
+    releaseRoot_ = nullptr;
     cse_platform::UnloadModule(font);
     return Result::Closed;
 }
@@ -374,6 +406,9 @@ Runtime& EmbeddedRuntime() noexcept {
 Result ConfigureEmbedded(const Binding& binding) noexcept {
     return State().runtime.Open(binding);
 }
+Result ConfigureEmbedded(const BindingV2& binding) noexcept {
+    return State().runtime.Open(binding);
+}
 Result BindEmbeddedFiles(const char* const* paths, std::uint32_t count, char* diagnostic,
     std::size_t capacity) noexcept {
     return State().runtime.BindFiles(paths, count, diagnostic, capacity);
@@ -381,6 +416,18 @@ Result BindEmbeddedFiles(const char* const* paths, std::uint32_t count, char* di
 Result ReleaseEmbeddedFiles(char* diagnostic, std::size_t capacity) noexcept {
     return State().runtime.ReleaseFiles(diagnostic, capacity);
 }
+cse_vgui1_selection::Result PrepareEmbeddedScheme(vgui::Scheme* scheme,
+    cse_vgui1_selection::SchemeReport& report) noexcept {
+    auto& state = State();
+    if (!state.runtime.IsOpen() || !state.rendererLive) {
+        return cse_vgui1_selection::Result::Unavailable;
+    }
+    cse_vgui1_selection::SchemeAdmission admission;
+    const auto prepared = admission.Prepare(scheme, state.runtime.Owner(), state.rendererEpoch, report);
+    const auto retired = admission.Retire();
+    return retired == cse_vgui1_selection::Result::Retired ? prepared : retired;
+}
+
 Result CloseEmbedded() noexcept {
     if (!embeddedState) {
         return Result::Closed;

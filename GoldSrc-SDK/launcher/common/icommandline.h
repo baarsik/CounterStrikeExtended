@@ -34,4 +34,10 @@ public:
 
 extern ICommandLine*	cmdline;
 
+#if defined(__APPLE__)
+// Restore a previously expanded launcher command line without interpreting
+// response files again. This is internal to fresh-process macOS restarts.
+bool RestoreMacLauncherCommandLine(const char* commandLine);
+#endif
+
 #endif

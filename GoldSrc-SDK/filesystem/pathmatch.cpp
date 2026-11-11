@@ -1,4 +1,7 @@
 #include "basefilesystem.h"
+#if defined(__APPLE__)
+#include "native_case_lookup.h"
+#endif
 
 #include <cstdlib>
 #include <cstring>
@@ -250,6 +253,15 @@ static char Descend( char* pPath, unsigned int nStartIdx, bool bAllowBasenameMis
 int ResolveCaseInsensitivePath( const char* pszIn, char** ppszOut, bool bAllowBasenameMismatch,
 		char* pszOutBuf, size_t OutBufLen )
 {
+#if defined(__APPLE__)
+    if (cse::filesystem::ParentUsesCaseInsensitiveLookup(pszIn)) {
+        // The kernel already resolves case on this actual containing path.
+        // Leave absence/errors and create/rename spelling to the real syscall.
+        *ppszOut = nullptr;
+        return kPathUnchanged;
+    }
+#endif
+
 	char* out;
 
 	char* steam;

@@ -55,6 +55,13 @@ CseSdl_ReadCocoaMouseAbsoluteV1(uint32_t version, void *window, int32_t width, i
     return result;
 }
 
+extern "C" uint32_t CSE_SDL_NATIVE_MOUSE_CALL
+CseSdl_SetCocoaGameplayCursorV1(uint32_t version, void *window, uint32_t hidden) {
+    Arguments(version, window);
+    Check(hidden <= 1, "fixed-width gameplay intent");
+    return result;
+}
+
 int main() {
     using Absolute = uint32_t (CSE_SDL_NATIVE_MOUSE_CALL *)(uint32_t, void *, int32_t, int32_t, float *, float *);
     static_assert(std::is_same<decltype(&CseSdl_ReadCocoaMouseAbsoluteV1), Absolute>::value,
@@ -86,7 +93,9 @@ int main() {
               "only Ready admits relative focus");
         Check(platform.absolutePosition(expectedWindow, expectedWidth, expectedHeight, expectedX, expectedY) == ready,
               "only Ready admits absolute output");
-        Check(calls == 3, "each C entry called exactly once");
+        Check(platform.gameplayCursor(expectedWindow, true) == ready, "only Ready admits gameplay policy");
+        Check(platform.gameplayCursor(expectedWindow, false) == ready, "only Ready admits menu policy");
+        Check(calls == 5, "each C entry called exactly once per intent");
         Check(output.x == (ready ? -31.5f : 123.5f) && output.y == (ready ? 701.25f : 456.5f),
               "successful coordinates and failed output identity");
         Check(output.before == 0xa5a5a5a5U && output.after == 0x5a5a5a5aU, "caller canaries retained");

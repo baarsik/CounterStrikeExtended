@@ -14,8 +14,7 @@ cmake --build build/launcher-bootstrap-debug --parallel 2
 ctest --test-dir build/launcher-bootstrap-debug --output-on-failure -V
 ```
 
-The 12 CTest cases cover 11 bootstrap scenarios plus the existing three bounded
-argument-entry checks. Bootstrap scenarios cover an unrelated working directory,
+The bootstrap scenarios and bounded argument-entry checks cover an unrelated working directory,
 Unicode and space-containing executable paths, a path over 260 bytes, relative
 `argv[0]`, explicit game selection, executable alias, software-engine selection,
 normal return, unload/restart, borrowed factory queries, retained peer ownership,
@@ -53,4 +52,22 @@ The final evidence packet records exact source, selected inputs, binaries,
 compiler flags, native CPU/minimum-OS identities, preserved failure receipts and
 limits under `launcher-bootstrap-final` in the migration artifact directory.
 Executable-relative module lookup is bounded by the existing 4096-byte launcher
-path storage. No process working-directory or real Steam settings are changed.
+path storage. The Apple launcher establishes that canonical runtime directory
+after caller-relative response-file expansion and before loading modules or
+reading `hl.conf`. Tests only change the child process cwd and owned temporary settings.
+
+Set `CSE_BOOTSTRAP_RUNTIME=/absolute/path/to/complete/runtime` to add the actual
+cohort/provider startup fixture. It generates exact hashes from the finished HW,
+SW and VGUI images, stages the complete runtime, and compiles the actual retained
+launcher/session. Only the call to the engine's `Run` method is replaced: real
+filesystem, engine constructors, stock Steam export binding, root admission and
+close remain active. The probe never calls `SteamAPI_Init` or starts game/UI/audio.
+It checks no-argument startup from `/` and an unrelated directory, canonical
+symlink aliases, spaces/Unicode, paths over 260 bytes, caller-relative response
+expansion, and executable-owned renderer/window/size settings against conflicting
+caller settings. Controlled OS errors cover executable-path and cwd failures
+before settings mutation. Missing/incompatible providers and modified software
+images fail closed; the latter is rejected before a missing provider could be
+loaded by an engine constructor. This pre-Run fixture does not qualify a real
+LaunchServices menu, live Steam authentication, normal game shutdown or per-user
+writable-data separation; those remain controller acceptance work.

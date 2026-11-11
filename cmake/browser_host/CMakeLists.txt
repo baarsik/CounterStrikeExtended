@@ -64,6 +64,8 @@ if(APPLE)
   add_executable(${CEF_TARGET} MACOSX_BUNDLE "${CSE_HOST_SOURCE}/cef_host.cpp" "${CSE_HOST_SOURCE}/cef_host_mac.mm")
   SET_EXECUTABLE_TARGET_PROPERTIES(${CEF_TARGET})
   target_compile_options(${CEF_TARGET} PRIVATE -fobjc-arc)
+  target_compile_definitions(${CEF_TARGET} PRIVATE CSE_CEF_DEBUG_PROFILE=$<IF:$<CONFIG:Debug>,1,0>)
+  target_link_libraries(${CEF_TARGET} PRIVATE "-framework Security")
   set_target_properties(${CEF_TARGET} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in")
   set(CEF_APP "${CEF_TARGET_OUT_DIR}/${CEF_TARGET}.app")
   COPY_MAC_FRAMEWORK("${CEF_TARGET}" "${CEF_BINARY_DIR}" "${CEF_APP}")
@@ -81,6 +83,8 @@ if(APPLE)
     target_compile_features(${helper} PRIVATE cxx_std_20)
     set_target_properties(${helper} PROPERTIES OUTPUT_NAME "${helper_name}"
       MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_BINARY_DIR}/helper${target_suffix}.plist")
+    add_custom_command(TARGET ${helper} POST_BUILD
+      COMMAND /usr/bin/codesign --force --sign - "${CEF_TARGET_OUT_DIR}/${helper_name}.app" VERBATIM)
     add_dependencies(${CEF_TARGET} ${helper})
     add_custom_command(TARGET ${CEF_TARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory
       "${CEF_TARGET_OUT_DIR}/${helper_name}.app" "${CEF_APP}/Contents/Frameworks/${helper_name}.app" VERBATIM)
@@ -120,3 +124,9 @@ add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CEF_ROOT}/LICENSE.txt"
     "${CSE_HOST_LICENSE_DIR}/LICENSE.cef-provider.txt"
   VERBATIM)
+if(APPLE)
+  # Seal only our host after all owned helpers/resources are staged. Preserve
+  # the pinned vendor framework and its signature; never deep-resign it.
+  add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
+    COMMAND /usr/bin/codesign --force --sign - "${CEF_APP}" VERBATIM)
+endif()

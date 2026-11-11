@@ -131,6 +131,12 @@
     </ClCompile>
     <ClCompile Include="..\common\steam_service.cpp" />
     <ClCompile Include="..\engine\BaseSystemModule.cpp" />
+    <ClCompile Include="..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <CseReplaces>$(ProjectDir)..\engine\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="..\engine\bitmap_win.cpp" />
     <ClCompile Include="..\engine\buildnum.cpp" />
     <ClCompile Include="..\engine\cd.cpp">
@@ -258,6 +264,12 @@
     </ClCompile>
     <ClCompile Include="..\engine\sys_engine.cpp" />
     <ClCompile Include="..\engine\sys_getmodes.cpp" />
+    <ClCompile Include="..\engine\native_software_video.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\engine\sys_sdlwind.cpp" />
     <ClCompile Include="..\engine\textures.cpp" />
     <ClCompile Include="..\engine\thread.cpp" />
@@ -358,6 +370,7 @@
     <ClInclude Include="..\public\cse_filesystem_abi.h" />
     <ClInclude Include="..\public\cse_filesystem_methods.inc" />
     <ClInclude Include="..\public\native_filesystem_module.h" />
+    <ClInclude Include="..\public\native_dedicated_lifetime.h" />
     <ClInclude Include="..\vgui2\vgui_surfacelib\native\MacFontDiscovery.h" />
     <ClInclude Include="..\vgui2\vgui_surfacelib\native\MacFontRegistration.h" />
     <ClInclude Include="..\engine\network_worker.h" />
@@ -451,6 +464,11 @@
     <ClCompile Include="..\vgui2\controls\controls.cpp">
       <ObjectFileName>$(IntDir)vgui_controls.obj</ObjectFileName>
       <PREfastLogFile>$(IntDir)vgui_controls.nativecodeanalysis.xml</PREfastLogFile>
+    </ClCompile>
+    <ClCompile Include="..\engine\native_runtime_bootstrap.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
     <ClCompile Include="..\engine\VGui1NativeRuntime.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>

@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../common/native/IDemoPlayer.h"
+#else
 #pragma once
 
 #include "const.h"
@@ -71,3 +75,5 @@ public:
 		int* incomingReliableAcknowledged, int* incomingReliableSequence, int* outgoingSequence,
 		int* reliableSequence, int* lastReliableSequence );
 };
+
+#endif

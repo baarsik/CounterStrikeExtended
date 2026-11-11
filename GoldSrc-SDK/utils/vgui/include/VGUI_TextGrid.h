@@ -1,3 +1,7 @@
+#if defined(__APPLE__)
+// Native consumers and the source-built provider share one class contract.
+#include "../lib-src/vgui/include/VGUI_TextGrid.h"
+#else
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -40,3 +44,4 @@ protected:
 }
 
 #endif
+#endif // __APPLE__

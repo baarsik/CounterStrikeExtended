@@ -2011,8 +2011,11 @@ void COM_CreatePath( char* path )
 
 int COM_ExpandFilename( char* filename )
 {
-	char localPath[GAME_DIRECTORY_BYTES];
-	FS_GetLocalPath( filename, localPath, sizeof( localPath ) );
+    char localPath[GAME_DIRECTORY_BYTES]{};
+    if (!FS_GetLocalPath(filename, localPath, sizeof(localPath))) {
+        filename[0] = '\0';
+        return 0;
+    }
 
 	const char* source = localPath;
 	char* destination = filename;

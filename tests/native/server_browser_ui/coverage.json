@@ -1,0 +1,80 @@
+{
+  "baseline": "f8d744fc5999a62e5018ad42e65c820ea1694324",
+  "state": "implemented; executed component and actual VGUI/module cases; final profile/owner receipts recorded in Task2 SDD report",
+  "limitations": [
+    "Extracted owner fixtures use controlled leaf services and do not replace whole owning TU/link qualification",
+    "Actual panel tests use real VGUI dispatch; partial/restart checkpoint controls do not execute every whole-game initializer",
+    "Apple and Windows branches must be built by actual corresponding compilers; reference loader requires actual 32-bit compiler",
+    "Death fixture exit hook is not production retirement or a live game test",
+    "Native component and tuple builds are not Windows, staged gameplay, authentication, physical-device, performance or distribution acceptance",
+    "Original Task1 M2 repeatability and M3 legacy warnings remain deferred"
+  ],
+  "actualComponentCoverage": {
+    "actualModel": [
+      "existing favorite no-op clears action failure",
+      "absent favorite remove clears action failure",
+      "favorite write preserves query error",
+      "query completion preserves action error",
+      "refresh preserves history action error"
+    ],
+    "actualLoaderBodies": [
+      "native platform Servers chooses internal factory without external image",
+      "stored internal factory avoids fake handle lookup",
+      "internal record never reaches dynamic unload",
+      "failed initialize is not attached/published ready"
+    ],
+    "actualRetirementBodies": [
+      "wrapper1 Busy retains VGUI2/surface",
+      "Host retains client/commands/cvars/network",
+      "ReleaseFailed retains dependencies",
+      "Sys retains memory/Steam",
+      "engine preserves active state on refusal",
+      "later retry resumes without duplicate server/voice/CD teardown",
+      "successful cleanup control"
+    ],
+    "actualStartupBodies": [
+      "SW Host_Init return propagated",
+      "HW Host_Init return propagated",
+      "both unset host flags rejected",
+      "both successful startup controls",
+      "hardware GL mode failure never starts Host"
+    ]
+  },
+  "actualOwnerScope": {
+    "actualLoader": [
+      "exact native64/version/name selection and Win32 external nonselection",
+      "post-initialize failure rollback",
+      "parent/activate/deactivate/frame/shutdown/reopen order",
+      "private contract mismatch and main-thread admission",
+      "reentrant retirement and delayed queued module messages"
+    ],
+    "actualHost": [
+      "new private helpers and phase state included in extraction and full owning context",
+      "RunListenServer attempted-Load cleanup",
+      "VID failure with partial VGUI and exact acquired-owner cleanup",
+      "filesystem partial initialization",
+      "reentry/typed failure diagnostics/bounded retry cadence",
+      "restart guard reset and dedicated nonselection",
+      "actual BaseUI/GameUI/Chrome/image teardown"
+    ],
+    "actualVgui": [
+      "viewport slot capacity versus 10000 logical rows",
+      "header sort and actual base SortList work bound",
+      "logical scrollbar/Home/End/PageUp/PageDown/wheel",
+      "selection/double-click/Enter/context actions use RowKey",
+      "all six actual tabs and filters",
+      "bounded sort/reset/reclamation under repeated intents",
+      "real masked TextEntry and queued panel/tick destruction"
+    ],
+    "actualData": [
+      "typed player/rule synchronous/reentrant/cancel/complete ownership",
+      "current-game-only connect and foreign-game disabled reason",
+      "password direct-cvar apply/restore/intervening change/supersession",
+      "accepted-only history with actual IP byte-order and distinct query port",
+      "delayed initial connection replay",
+      "browser-only write failure leaves UI usable"
+    ]
+  },
+  "actualVguiMapping": "vgui_scenarios.json",
+  "componentCases": 73
+}

@@ -6,6 +6,8 @@
 #include <vector>
 #include <exception>
 #include <cstring>
+#include <crt_externs.h>
+#include <mach-o/dyld.h>
 
 namespace {
 void Check(bool value, const char* message) {
@@ -63,6 +65,13 @@ int main(int argc, char** argv) {
     Check(argc == 4 || argc == 5, "root provider repeats and optional fault mode");
     const int repeats = std::atoi(argv[3]);
     Check(repeats > 0 && repeats <= 16, "bounded repeats");
+    const bool bindingV2 = argc == 5 && std::strcmp(argv[4], "--binding-v2") == 0;
+    if (std::getenv("CSE_OWNER_EXPECT_INSERTION")) {
+        Check(dlsym(RTLD_DEFAULT, "CseOwnerBenignInsertion") != nullptr, "actual benign image insertion");
+        std::printf("PASS benign insertion; dyld index zero %s genuine executable\n",
+            reinterpret_cast<const void*>(_dyld_get_image_header(0)) == _NSGetMachExecuteHeader() ? "is" : "is not");
+        std::fflush(stdout);
+    }
     using Open = int (*)(std::uint64_t, const char*, const char*, const cse_vgui1_native::HostReleasesV1*);
     using Call = int (*)();
     for (int index = 0; index < repeats; ++index) {
@@ -71,7 +80,7 @@ int main(int argc, char** argv) {
             &queue, Enqueue};
         void* image = cse_platform::LoadModule(argv[1], cse_platform::ModuleFallback::None);
         Check(image != nullptr, "load actual owned root dylib");
-        if (argc == 5) {
+        if (argc == 5 && !bindingV2) {
             std::set_terminate([] {
                 std::fputs("EXPECTED allocation termination before EH host catch\n", stderr);
                 std::_Exit(86);
@@ -95,8 +104,16 @@ int main(int argc, char** argv) {
         }
         {
             RootCall call(queue);
-            Check(Symbol<Open>(image, "FixtureOpen")(static_cast<std::uint64_t>(index) + 1,
-                argv[1], argv[2], &host) == 0, "nonreused epoch and real main-image ownership route");
+            if (bindingV2) {
+                using OpenV2 = int (*)(std::uint64_t, const char*, const char*, const cse_vgui1_host::HostReleasesV2*);
+                const cse_vgui1_host::HostReleasesV2 hostV2{sizeof(hostV2), cse_vgui1_host::HostReleasesVersion,
+                    &queue, Enqueue};
+                Check(Symbol<OpenV2>(image, "FixtureOpenV2")(static_cast<std::uint64_t>(index) + 1,
+                    argv[1], argv[2], &hostV2) == 0, "actual V2 main-image ownership route");
+            } else {
+                Check(Symbol<Open>(image, "FixtureOpen")(static_cast<std::uint64_t>(index) + 1,
+                    argv[1], argv[2], &host) == 0, "nonreused epoch and real main-image ownership route");
+            }
             Check(Symbol<Call>(image, "FixtureSuite")() == 0, "actual root/API suite");
             Check(Symbol<Call>(image, "FixtureConcurrentGuards")() == 0, "concurrent callback control");
             Check(Symbol<Call>(image, "FixtureHoldSelection")() == 0, "owned unpin setup");

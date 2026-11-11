@@ -99,13 +99,26 @@ entry-point and provider license notices into the application resources or Windo
   content/scroll extents are checked before conversion or scrollbar arithmetic. Malformed metadata is ignored and
   logged while later valid queries remain usable. Negative RTL scroll offsets remain representable.
 
-macOS encryption uses CEF API 15600's owned Keychain service/account fields. Release uses
-`CounterStrikeExtended Browser Safe Storage`, Debug uses `CounterStrikeExtended Browser Debug Safe Storage`, and both
-use account `CounterStrikeExtended`. These names are stable per configuration. They deliberately avoid the shared
-Chromium credential. Changing the identity does not migrate previously encrypted profiles. Unsigned developer
-rebuilds can trigger a macOS Keychain approval prompt; the user must approve it locally and the executable must remain
-unchanged while approval is pending. Distributable update continuity requires a stable signing identity. Encryption
-and the sandbox stay enabled during these tests.
+macOS encryption uses CEF API 15600's owned Keychain service/account fields. The
+host validates its own code identity before inspecting signing information. A valid
+Apple-signed host uses a stable Release/Debug service owned by CounterStrikeExtended;
+update continuity still requires a consistent signing identity and designated
+requirement, and has not been qualified with a distribution certificate here.
+
+Ad-hoc development builds use a service and profile directory derived from their
+validated code identity and canonical executable path. Release and Debug are
+explicitly separated by the owning target, independently of `NDEBUG`. Rebuilding
+or moving an unsigned host creates a fresh encrypted development store instead of
+requesting approval to read an older executable's protected key. Existing keys and
+profiles remain untouched; development cookies persist for that exact build and
+location. No Keychain access lists, system preferences, encryption or sandbox
+settings are weakened. The build ad-hoc signs only the owned host and helper bundles;
+the pinned vendor framework and signature remain unchanged.
+
+`storage_policy.py` runs actual settings-only probes for identity reuse/change,
+relocation, Release/Debug separation, Unicode/space paths and an invalid signature.
+It initializes no Chromium browser, creates no profile, and accesses no Keychain.
+The host's `--cse-inspect-storage-policy` switch is the read-only probe entry point.
 
 Development fixtures use `--cse-fixture-keychain=<64 lowercase hex characters>` on macOS. The identifier is SHA-256
 of the unchanged executable bytes plus the absolute evidence directory; every process lifetime in that test reuses
@@ -114,7 +127,7 @@ and account `CounterStrikeExtended Fixture`. This avoids opening a protected pro
 rebuild. The direct protocol runner enables this by default, verifies the host's public namespace marker, checks
 that all owned helpers have exited, then deletes only that exact fixture service/account item. The cleanup result
 is recorded in `keychain-cleanup.json`; unsuccessful cleanup fails a passing test and is retained for diagnosis.
-No key value is read or logged. `--production-keychain` explicitly opts into a sealed-build production-key test;
+No key value is read or logged. `--production-keychain` explicitly opts into the host's normal storage-selection policy;
 ordinary game/controller configuration omits the fixture flag and retains the production names above.
 
 ## Evidence boundaries and integration
@@ -191,3 +204,19 @@ conversion check cannot replace that native DOM result.
 then removal during asynchronous creation while another browser remains usable. Run it with the same `--executable`
 and a fresh `--evidence` directory as the protocol fixture. The fixture uses the same isolated encrypted Keychain
 identity and cleanup rules on macOS. Widget ownership is checked separately in `tests/native/motd_lifetime/`.
+
+On macOS, `Host` places each isolated profile and its Chromium log beneath
+`~/Library/Caches/CounterStrikeExtended/native-validation/cef-host/`, keyed by
+the requested evidence storage path. Evidence files remain in the requested
+directory, and the result records actual storage paths. This follows the game's
+cache-location policy and avoids requiring helper access to protected Documents
+or Desktop folders. A GPU helper was observed blocked opening a fixture's
+Documents-based `cef.log`; the same binary rendered immediately with cache
+storage. No browser graphics flags, sandbox changes or additional access grants
+are required. Helper cleanup matches actual storage command-line switches,
+rather than parent fixture arguments that merely mention the same path.
+
+`CSE_CEF_FRAME_TRACE=/absolute/path.csv` enables a bounded, UI-thread callback
+order recorder in the owned host. It writes only after CEF shuts down, so logging
+does not change startup I/O. Normal hosts create no diagnostic files. This is a
+macOS investigation aid, separate from protocol or gameplay qualification.

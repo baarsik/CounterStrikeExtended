@@ -113,3 +113,21 @@ for game, relative in [('hl', 'GoldSrc-SDK/cl_dll/inputw32.cpp'),
     (out / (game + '_functions.inc')).write_text('\n'.join(bodies))
     assert path.read_bytes() == data, 'production changed during extraction'
 (out / 'actual_bodies.json').write_text(json.dumps(receipts, indent=2) + '\n')
+
+# Execute the complete retained event-loop mouse branch with real game consumers.
+engine = root / 'GoldSrc-SDK/engine/sys_sdlwind.cpp'
+data = engine.read_bytes()
+text = data.decode('latin1')
+blocks = []
+offset = 0
+needle = '} else if (ev.type == SDL_EVENT_MOUSE_MOTION'
+while (begin := text.find(needle, offset)) >= 0:
+    begin += len('} else ')
+    end = text.index('\n\n        VGuiWrap2_CallEngineSurfaceAppHandler', begin)
+    blocks.append(text[begin:end])
+    offset = end
+assert len(blocks) == 2 and blocks[0] == blocks[1]
+(out / 'engine_motion.inc').write_text(blocks[0])
+(out / 'engine_motion.json').write_text(json.dumps(dict(source=str(engine.relative_to(root)),
+    source_sha256=hashlib.sha256(data).hexdigest(), body_sha256=hashlib.sha256(blocks[0].encode('latin1')).hexdigest(),
+    scope='Exact identical HW/SW mouse-motion branch; event queue and OS warp/pump are controlled seams'), indent=2) + '\n')

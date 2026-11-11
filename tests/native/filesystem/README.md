@@ -24,7 +24,7 @@ create and mount a disposable sparse image in an owned directory:
 ```sh
 hdiutil create -size 128m -fs 'Case-sensitive APFS' -volname CseFileSystemFixture -type SPARSE /absolute/owned/fixture.sparseimage
 mkdir -p build/filesystem-case-sensitive
-hdiutil attach -nobrowse -nospotlight -mountpoint "$PWD/build/filesystem-case-sensitive" /absolute/owned/fixture.sparseimage
+hdiutil attach -nobrowse -mountpoint "$PWD/build/filesystem-case-sensitive" /absolute/owned/fixture.sparseimage
 cmake -S tests/native/filesystem -B build/filesystem-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 -DCSE_FILESYSTEM_CASE_ROOT="$PWD/build/filesystem-case-sensitive/release" -DCSE_FILESYSTEM_LEAK_CHECKS=ON
 cmake --build build/filesystem-release --parallel
 ctest --test-dir build/filesystem-release --output-on-failure

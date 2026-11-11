@@ -37,18 +37,35 @@ def read_string(payload, offset=0):
     return payload[offset + 4:offset + 4 + length].decode('utf-8'), offset + 4 + length
 
 
+def fixture_storage_path(storage):
+    storage = Path(storage).resolve()
+    if sys.platform != 'darwin':
+        return storage
+    # Keep helper-owned profiles/logs out of protected Documents/Desktop paths.
+    # Evidence may live in a source checkout; the runtime uses the app cache.
+    cache = Path.home() / 'Library/Caches/CounterStrikeExtended/native-validation/cef-host'
+    if storage.is_relative_to(cache):
+        return storage
+    return cache / hashlib.sha256(str(storage).encode('utf-8')).hexdigest()
+
+
 def remaining_helpers(storage):
+    storage = fixture_storage_path(storage)
     if os.name == 'nt':
         quoted = "'" + str(storage).replace("'", "''") + "'"
         script = ('$needle=' + quoted + '; Get-CimInstance Win32_Process | Where-Object {'
                   '$_.ProcessId -ne $PID -and $_.CommandLine -and '
-                  '$_.CommandLine.IndexOf($needle,[StringComparison]::OrdinalIgnoreCase) -ge 0} | '
+                  '($_.CommandLine.IndexOf("--cse-storage="+$needle,[StringComparison]::OrdinalIgnoreCase) -ge 0 '
+                  '-or $_.CommandLine.IndexOf("--user-data-dir="+$needle,[StringComparison]::OrdinalIgnoreCase) -ge 0)} | '
                   'Select-Object ProcessId,CommandLine | ConvertTo-Json -Compress')
         output = subprocess.check_output(['powershell.exe', '-NoProfile', '-Command', script], text=True).strip()
         rows = json.loads(output) if output else []
         return [rows] if isinstance(rows, dict) else rows
     output = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,args='], text=True)
-    return [row.strip() for row in output.splitlines() if str(storage) in row]
+    needles = ['--cse-storage=' + str(storage), '--user-data-dir=' + str(storage)]
+    return [row.strip() for row in output.splitlines()
+            if row.strip() and row.split(None, 1)[0] != str(os.getpid()) and
+            any(needle in row for needle in needles)]
 
 
 def reap_check(storage):
@@ -119,9 +136,9 @@ class Host:
         self.navigation = []
         self.last_paint = {}
         self.replies = queue.Queue()
-        self.storage = storage
+        self.storage = fixture_storage_path(storage)
         self.stderr = log.open('wb')
-        command = [str(executable), '--cse-browser-host', f'--cse-storage={storage}']
+        command = [str(executable), '--cse-browser-host', f'--cse-storage={self.storage}']
         if fixture_keychain:
             command.append('--cse-fixture-keychain=' + fixture_keychain)
         self.process = subprocess.Popen(command,
@@ -265,6 +282,12 @@ def run(executable, evidence, production_keychain=False):
         assert post['method'] == 'POST' and post['body'] == 'alpha=one&beta=two', post
         assert post['header'] == 'preserved' and post['agent'] == 'CSE Protocol Fixture', post
         assert host.navigation[-1]['post'] == 'alpha=one&beta=two'
+        # A working DOM alone does not prove the compositor has an automatic frame source.
+        # Require its first animation and pixel frame before the later queue-ordering burst.
+        host.command('ExecuteJavaScript', string("requestAnimationFrame(()=>document.title='initial-frame-ready')"))
+        host.title('initial-frame-ready')
+        host.command('FullRepaint')
+        host.wait(lambda event: event[0] == 4)
         host.command('PostURL', string(origin + '/stopped-policy') + string(''))
         host.wait(lambda event: event[1] == OPERATIONS['StartRequest'] and
                   read_string(event[4])[0] == origin + '/stopped-policy')
@@ -432,6 +455,7 @@ def run(executable, evidence, production_keychain=False):
         host.close(expected=1)
         cases.append({'name': 'truncated-input-frame-rejected', 'passed': True})
         report = {'cases': cases, 'requests': server.requests,
+                  'storage_paths': [str(fixture_storage_path(path)) for path in storage_paths],
                   'executable_sha256': hashlib.sha256(executable.read_bytes()).hexdigest(),
                   'fixture_keychain_id': fixture_keychain or None}
 

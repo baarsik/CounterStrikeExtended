@@ -56,3 +56,10 @@ GPU, renderer pixels or whole UI runs occur. AppCold/App services/Surface/readab
 flags remain false. Production bootstrap must supply a checked, nonreused epoch /
 image binding, checked default and retired-font preparation, and consume shutdown
 status before legacy void entrypoints. Whole-game/UI/layout acceptance stays open.
+
+The Runtime V1 and V2 binding cases each run with a real inert
+DYLD_INSERT_LIBRARIES image. Both retain missing-route, foreign-dylib callback,
+wrong-image and zero-epoch rejection before the full real-loader suite. The
+inserted host verifies that the inert image loaded and reports whether dyld
+enumeration index zero names the genuine executable. Runtime admission uses the
+public `_NSGetMachExecuteHeader` identity for both callback versions.

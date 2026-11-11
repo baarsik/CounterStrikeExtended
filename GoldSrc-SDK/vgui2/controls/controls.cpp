@@ -127,10 +127,19 @@ bool VGuiControls_Init( const char* moduleName, CreateInterfaceFn* factories, in
 	g_pFileSystemInterface = (IFileSystem*)InitializeInterface( "VFileSystem009", factories, count );
 	g_pKeyValuesInterface = (IKeyValues*)InitializeInterface( "KeyValues003", factories, count );
 
+#if defined(__APPLE__)
+    if (!g_pSchemeInterface || !g_pSurfaceInterface || !g_pSystemInterface || !g_pInputInterface ||
+        !g_pVGuiInterface || !g_pFileSystemInterface || !g_pLocalizeInterface || !g_pKeyValuesInterface ||
+        !g_pPanelInterface || !g_pVGuiInterface->Init(factories, count)) {
+        VGuiControls_Shutdown();
+        return false;
+    }
+#else
 	if ( !g_pVGuiInterface )
 		return false;
 
 	g_pVGuiInterface->Init( factories, count );
+#endif
 
 	if ( g_pKeyValuesInterface )
 		g_pKeyValuesInterface->RegisterSizeofKeyValues( sizeof( KeyValues ) );
@@ -139,7 +148,18 @@ bool VGuiControls_Init( const char* moduleName, CreateInterfaceFn* factories, in
 		   && g_pFileSystemInterface && g_pLocalizeInterface && g_pKeyValuesInterface && g_pPanelInterface;
 }
 
-void VGuiControls_Shutdown()
-{
+void VGuiControls_Shutdown() {
+#if defined(__APPLE__)
+    g_pInputInterface = nullptr;
+    g_pSchemeInterface = nullptr;
+    g_pSurfaceInterface = nullptr;
+    g_pSystemInterface = nullptr;
+    g_pVGuiInterface = nullptr;
+    g_pFileSystemInterface = nullptr;
+    g_pPanelInterface = nullptr;
+    g_pLocalizeInterface = nullptr;
+    g_pKeyValuesInterface = nullptr;
+    g_szControlsModuleName[0] = '\0';
+#endif
 }
 } // namespace vgui

@@ -2592,9 +2592,17 @@ void TextEntry::OnKeyCodeTyped( KeyCode code )
 	if ( !input()->IsKeyDown( KEY_LWIN ) )
 		static_cast<void>( input()->IsKeyDown( KEY_RWIN ) );
 
-	bool chain = true;
-	if ( ctrl )
-	{
+    bool editShortcut = ctrl;
+#if defined(__APPLE__) && !defined(_WIN32)
+    // Command is the native edit modifier; keep actual Control and game key
+    // bindings distinct and limit this addition to standard text edit actions.
+    const bool command = input()->IsKeyDown(KEY_LWIN) || input()->IsKeyDown(KEY_RWIN);
+    if (command && (code == KEY_A || code == KEY_C || code == KEY_X || code == KEY_V)) {
+        editShortcut = true;
+    }
+#endif
+    bool chain = true;
+    if (editShortcut) {
 		switch ( code )
 		{
 		case KEY_A:

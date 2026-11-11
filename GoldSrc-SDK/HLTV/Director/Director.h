@@ -20,6 +20,15 @@ struct frame_s;
 class Director : public IDirector, public BaseSystemModule
 {
 public:
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char* name) override {
+        if (cse::modules::Is(name, cse::modules::DirectorName)) {
+            return static_cast<IDirector*>(this);
+        }
+        return BaseSystemModule::QueryInterface(name);
+    }
+#endif
+
 	Director();
 	virtual ~Director() override;
 

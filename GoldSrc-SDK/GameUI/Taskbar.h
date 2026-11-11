@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "EditablePanel.h"
 #include "PHandle.h"
 #include "GameUI/ICareerUI.h"
@@ -38,6 +40,10 @@ class CTaskbar : public vgui::EditablePanel
 	DECLARE_CLASS_SIMPLE( CTaskbar, vgui::EditablePanel );
 
 public:
+#if INTPTR_MAX > INT32_MAX
+    void ShutdownDemoPlayer();
+#endif
+
 	CTaskbar( vgui2::Panel* parent, const char* panelName );
 	~CTaskbar() override;
 

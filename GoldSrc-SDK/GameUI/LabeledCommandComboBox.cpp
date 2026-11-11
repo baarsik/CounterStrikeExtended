@@ -36,10 +36,11 @@ CLabeledCommandComboBox::~CLabeledCommandComboBox()
 {
 }
 
-void CLabeledCommandComboBox::DeleteAllItems()
-{
-	BaseClass::DeleteAllItems();
-	m_Items.RemoveAll();
+void CLabeledCommandComboBox::DeleteAllItems() {
+    BaseClass::DeleteAllItems();
+    m_Items.RemoveAll();
+    m_iCurrentSelection = -1;
+    m_iStartSelection = -1;
 }
 
 bool CLabeledCommandComboBox::HasItem( const char* text ) const
@@ -69,22 +70,20 @@ void CLabeledCommandComboBox::AddItem( const char* text, const char* engineComma
 	strcpy( item.command, engineCommand );
 }
 
-void CLabeledCommandComboBox::ActivateItem( int index )
-{
-	if ( index < m_Items.Size() )
-	{
-		BaseClass::ActivateItem( m_Items[index].comboBoxID );
-		m_iCurrentSelection = index;
-	}
+void CLabeledCommandComboBox::ActivateItem(int index) {
+    if (!m_Items.IsValidIndex(index)) {
+        return;
+    }
+    BaseClass::ActivateItem(m_Items[index].comboBoxID);
+    m_iCurrentSelection = index;
 }
 
-void CLabeledCommandComboBox::SetInitialItem( int index )
-{
-	if ( index < m_Items.Size() )
-	{
-		m_iStartSelection = index;
-		ActivateItem( m_Items[index].comboBoxID );
-	}
+void CLabeledCommandComboBox::SetInitialItem(int index) {
+    if (!m_Items.IsValidIndex(index)) {
+        return;
+    }
+    m_iStartSelection = index;
+    ActivateItem(index);
 }
 
 void CLabeledCommandComboBox::OnTextChanged( const char* text )
@@ -104,9 +103,11 @@ void CLabeledCommandComboBox::OnTextChanged( const char* text )
 //	PostMessage( GetParent()->GetVPanel(), new vgui::KeyValues( "TextChanged", "text", text ) );
 }
 
-const char* CLabeledCommandComboBox::GetActiveItemCommand()
-{
-	return m_iCurrentSelection == -1 ? NULL : m_Items[m_iCurrentSelection].command;
+const char* CLabeledCommandComboBox::GetActiveItemCommand() {
+    if (!m_Items.IsValidIndex(m_iCurrentSelection)) {
+        return nullptr;
+    }
+    return m_Items[m_iCurrentSelection].command;
 }
 
 void CLabeledCommandComboBox::ApplyChanges()

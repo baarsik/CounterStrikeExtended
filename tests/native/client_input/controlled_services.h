@@ -43,6 +43,11 @@ struct TestServices {
     float relativeY = 0.0f;
     int relativeReads = 0;
     int eventPumps = 0;
+#if defined(__APPLE__)
+    void (*onPump)() = nullptr;
+    void (*onWarp)() = nullptr;
+    int windowWarps = 0;
+#endif
     int joystickCloses = 0;
     int startupJoystick = 0;
     int joystickMoves = 0;

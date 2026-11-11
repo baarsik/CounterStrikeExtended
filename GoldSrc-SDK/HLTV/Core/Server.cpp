@@ -145,7 +145,11 @@ bool Server::GetAutoRetry()
 void Server::SetProxy( IProxy* proxy )
 {
 	m_Proxy = proxy;
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_Director = proxy ? proxy->GetDirector() : nullptr;
+#else
 	m_Director = proxy->GetDirector();
+#endif
 }
 
 void Server::SetDirector( IDirector* director )
@@ -1338,10 +1342,20 @@ bool Server::Init( IBaseSystem* system, int serial, char* name )
 	char* rate;
 	char* updaterate;
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    state = SERVER_INITILAZING;
+#else
 	if ( state != SERVER_INITILAZING )
 		state = SERVER_INITILAZING;
+#endif
 
 	BaseSystemModule::Init( system, serial, name );
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_NativeChannelInitialized = false;
+    m_World = nullptr;
+    m_Proxy = nullptr;
+    m_Director = nullptr;
+#endif
 	if ( name != NULL )
 	{
 		strncpy( m_Name, name, 0xFEu );
@@ -1370,7 +1384,14 @@ bool Server::Init( IBaseSystem* system, int serial, char* name )
 	serverSocket = NULL;
 	isGameServer = false;
 	isVoiceBlocking = false;
+#if CSE_NATIVE_SYSTEM_MODULE
+    m_NativeChannelInitialized = true;
+    if (!serverChannel.Create(system, nullptr, nullptr)) {
+        return false;
+    }
+#else
 	serverChannel.Create( system, NULL, NULL );
+#endif
 	serverinfo.SetMaxSize( 512 );
 	SetState( SERVER_DISCONNECTED );
 	reliableData.Resize( DATAGRAM_SIZE );
@@ -1765,7 +1786,13 @@ void Server::Disconnect()
 		m_System->Printf( "Disconnected.\n" );
 	}
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_World && m_World->GetState() != MODULE_DISCONNECTED) {
+        m_World->FinishGame();
+    }
+#else
 	m_World->FinishGame();
+#endif
 	Reset();
 	ScheduleAutoRetry();
 	serverChannel.Close();
@@ -1776,8 +1803,22 @@ void Server::ShutDown()
 	if ( m_State == 4 )
 		return;
 
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeShuttingDown) {
+        return;
+    }
+    m_NativeShuttingDown = true;
+    if (m_State == MODULE_RUNNING) {
+        Disconnect();
+    }
+    if (m_NativeChannelInitialized) {
+        serverChannel.Close();
+        m_NativeChannelInitialized = false;
+    }
+#else
 	Disconnect();
 	serverChannel.Close();
+#endif
 	reliableData.Free();
 	unreliableData.Free();
 	voiceData.Free();

@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_mouse_window.h"
+#endif
 #include "sound.h"
 #include "sound_backend_config.h"
 #include "conprint.h"
@@ -856,8 +859,14 @@ void S_ExtraUpdate()
 {
 	if ( !VGuiWrap2_IsGameUIVisible() )
 	{
-		SDL_PumpEvents();
-		ClientDLL_IN_Accumulate();
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+        if (cse::RefreshNativeGameplayShortcuts()) {
+            SDL_PumpEvents();
+        }
+#else
+        SDL_PumpEvents();
+#endif
+        ClientDLL_IN_Accumulate();
 	}
 	if ( snd_noextraupdate.value == 0.0f )
 		S_Update_();

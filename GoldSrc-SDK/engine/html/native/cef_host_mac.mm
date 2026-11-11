@@ -1,11 +1,55 @@
 // Cocoa event scoping and dynamic loading follow CEF's BSD-licensed cefsimple example.
 #import <Cocoa/Cocoa.h>
+#include <Security/Security.h>
+#include <CommonCrypto/CommonDigest.h>
 
 #include "cef_host.h"
 #include "include/cef_application_mac.h"
 #include "include/cef_command_line.h"
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_library_loader.h"
+#include <mach-o/dyld.h>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <vector>
+#include <array>
+#include <limits>
+
+#ifndef CSE_CEF_DEBUG_PROFILE
+#error The owning browser host target must select its storage profile
+#endif
+
+namespace {
+template<class T>
+struct ScopedCF {
+    ScopedCF() = default;
+    ScopedCF(const ScopedCF&) = delete;
+    ScopedCF& operator=(const ScopedCF&) = delete;
+    T value = nullptr;
+    ~ScopedCF() {
+        if (value) {
+            CFRelease(value);
+        }
+    }
+};
+
+std::filesystem::path HostExecutablePath() {
+    constexpr std::uint32_t InitialExecutablePathBytes = 1024;
+    std::vector<char> executable(InitialExecutablePathBytes);
+    std::uint32_t bytes = static_cast<std::uint32_t>(executable.size());
+    if (_NSGetExecutablePath(executable.data(), &bytes) != 0) {
+        executable.resize(bytes);
+        if (_NSGetExecutablePath(executable.data(), &bytes) != 0) {
+            return {};
+        }
+    }
+    const std::unique_ptr<char, decltype(&std::free)> canonical(realpath(executable.data(), nullptr), &std::free);
+    return canonical ? std::filesystem::path(canonical.get()) : std::filesystem::path{};
+}
+}
+
 
 @interface CseHostApplication : NSApplication <CefAppProtocol> {
     BOOL handlingSendEvent_;
@@ -27,6 +71,102 @@
     CloseCefHost();
 }
 @end
+
+bool ConfigureCefHostMacBundle(CefSettings& settings) {
+    const auto image = HostExecutablePath();
+    if (image.empty()) {
+        return false;
+    }
+    const auto contents = image.parent_path().parent_path();
+    if (image.parent_path().filename() != "MacOS" || contents.filename() != "Contents") {
+        return false;
+    }
+    const auto bundle = contents.parent_path();
+    const auto framework = contents / "Frameworks/Chromium Embedded Framework.framework";
+    std::error_code error;
+    if (!std::filesystem::is_directory(framework, error) || error) {
+        std::fprintf(stderr, "CEF host framework is missing from its own bundle: %s\n", framework.c_str());
+        return false;
+    }
+    // A helper nested in the game app must own its CEF bundle identity. Empty
+    // settings make Chromium choose the outer game app and its absent framework.
+    CefString(&settings.main_bundle_path) = bundle.string();
+    CefString(&settings.framework_dir_path) = framework.string();
+    return true;
+}
+
+bool ConfigureCefHostMacStorage(CefSettings& settings) {
+    ScopedCF<SecCodeRef> code;
+    ScopedCF<CFDictionaryRef> information;
+    if (SecCodeCopySelf(kSecCSDefaultFlags, &code.value) != errSecSuccess ||
+        SecCodeCheckValidity(code.value, kSecCSDefaultFlags, nullptr) != errSecSuccess ||
+        SecCodeCopySigningInformation(code.value, kSecCSSigningInformation, &information.value) != errSecSuccess) {
+        return false;
+    }
+    const auto flagsValue = static_cast<CFNumberRef>(CFDictionaryGetValue(information.value, kSecCodeInfoFlags));
+    std::uint32_t flags = 0;
+    if (!flagsValue || CFGetTypeID(flagsValue) != CFNumberGetTypeID() ||
+        !CFNumberGetValue(flagsValue, kCFNumberSInt32Type, &flags)) {
+        return false;
+    }
+    bool stableSigner = false;
+    if ((flags & kSecCodeSignatureAdhoc) == 0) {
+        ScopedCF<SecRequirementRef> requirement;
+        stableSigner = SecRequirementCreateWithString(CFSTR("anchor apple generic"), kSecCSDefaultFlags,
+            &requirement.value) == errSecSuccess &&
+            SecCodeCheckValidity(code.value, kSecCSDefaultFlags, requirement.value) == errSecSuccess;
+    }
+    constexpr bool DebugProfile = CSE_CEF_DEBUG_PROFILE != 0;
+    CefString(&settings.keychain_account_name) = "CounterStrikeExtended";
+    if (stableSigner) {
+        CefString(&settings.keychain_service_name) = DebugProfile ?
+            "CounterStrikeExtended Browser Debug Safe Storage" : "CounterStrikeExtended Browser Safe Storage";
+        std::fputs("cef_host_storage_scope=signed\n", stderr);
+        return true;
+    }
+
+    // Ad-hoc rebuilds have different Keychain access requirements. Give each
+    // code identity its own encrypted development store instead of requesting
+    // approval to read a previous executable's protected key and cookie profile.
+    const auto unique = static_cast<CFDataRef>(CFDictionaryGetValue(information.value, kSecCodeInfoUnique));
+    constexpr CFIndex MaximumSigningIdentityBytes = 128;
+    if (!unique || CFGetTypeID(unique) != CFDataGetTypeID() || CFDataGetLength(unique) <= 0 ||
+        CFDataGetLength(unique) > MaximumSigningIdentityBytes) {
+        return false;
+    }
+    const auto image = HostExecutablePath();
+    if (image.empty()) {
+        return false;
+    }
+    const std::string imagePath = image.string();
+    std::vector<unsigned char> identity(CFDataGetBytePtr(unique),
+                                       CFDataGetBytePtr(unique) + CFDataGetLength(unique));
+    identity.push_back(0);
+    identity.insert(identity.end(), imagePath.begin(), imagePath.end());
+    if (identity.size() > (std::numeric_limits<CC_LONG>::max)()) {
+        return false;
+    }
+    std::array<unsigned char, CC_SHA256_DIGEST_LENGTH> digest{};
+    CC_SHA256(identity.data(), static_cast<CC_LONG>(identity.size()), digest.data());
+    constexpr char Digits[] = "0123456789abcdef";
+    constexpr unsigned int NibbleBits = 4;
+    constexpr unsigned int NibbleMask = 0xf;
+    std::string fingerprint;
+    for (unsigned char byte : digest) {
+        fingerprint += Digits[byte >> NibbleBits];
+        fingerprint += Digits[byte & NibbleMask];
+    }
+    const std::string flavor = DebugProfile ? "debug" : "release";
+    const std::filesystem::path requested(CefString(&settings.root_cache_path).ToString());
+    const std::string storage = (requested / "development" / flavor / fingerprint).string();
+    CefString(&settings.root_cache_path) = storage;
+    CefString(&settings.cache_path) = storage + "/profile";
+    CefString(&settings.log_file) = storage + "/cef.log";
+    CefString(&settings.keychain_service_name) =
+        "CounterStrikeExtended Browser Development " + flavor + " " + fingerprint;
+    std::fprintf(stderr, "cef_host_storage_scope=development/%s/%s\n", flavor.c_str(), fingerprint.c_str());
+    return true;
+}
 
 int main(int argc, char* argv[]) {
     CefScopedLibraryLoader loader;

@@ -45,6 +45,13 @@ extern IFileSystem*		g_pFileSystem;
 extern ILocalize*		g_pLocalize;
 extern IPanel*			g_pIPanel;
 
+#if defined(__APPLE__)
+// Keep retained callback modifier state aligned with each standalone native event.
+void DispatchStandaloneInputMessages();
+// Retire native held-button state without dispatching synthetic releases.
+void ResetStandaloneMouseState();
+#endif
+
 bool	VGui_InternalLoadInterfaces( CreateInterfaceFn* factoryList, int numFactories );
 
 } // namespace vgui

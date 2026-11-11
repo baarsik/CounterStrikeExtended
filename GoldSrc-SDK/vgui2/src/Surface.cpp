@@ -1224,6 +1224,19 @@ VPANEL CWin32Surface::GetEmbeddedPanel()
 
 void CWin32Surface::SetEmbeddedPanel( VPANEL pEmbeddedPanel )
 {
+#if INTPTR_MAX > INT32_MAX
+    if (!pEmbeddedPanel) {
+        // Native owners detach before destroying their root panel. Keep popup and
+        // platform ownership in ReleasePanel; a null root cannot create a popup.
+        const VPANEL previousEmbeddedPanel = _embeddedPanel;
+        _embeddedPanel = 0;
+        if (_currentContextPanel == previousEmbeddedPanel) {
+            SetContextPanel(0);
+        }
+        staticSurfaceAvailable = 0;
+        return;
+    }
+#endif
 	staticSurfaceAvailable = 1;
 	_embeddedPanel = pEmbeddedPanel;
 	SetContextPanel( pEmbeddedPanel );

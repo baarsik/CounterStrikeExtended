@@ -9,6 +9,7 @@
 
 #include "Frame.h"
 #include "utlvector.h"
+#include <string>
 
 namespace vgui2
 {
@@ -37,6 +38,7 @@ public:
 	MESSAGE_FUNC_INT( OnTeamButton, "TeamButton", team );
 	void AutoAssign();
 	void LoadMapPage( const char* mapName );
+    void InvalidateMapPage();
 	void MakeTeamButtons( const char** teamNames, int numTeams );
 	void Update( const char* mapName, bool allowSpectators, const char** teamNames, int numTeams );
 
@@ -44,6 +46,9 @@ public:
 	void SetLabelText( const char* textEntryName, const char* text );
 
 private:
+    std::string m_mapPageName;
+    bool m_bMapPageLoaded = false;
+    bool m_bMapPageRequested = false;
 	vgui2::RichText*	m_pMapInfo;
 	vgui2::Label*	m_pMapName;
 	int				m_iNumTeams;

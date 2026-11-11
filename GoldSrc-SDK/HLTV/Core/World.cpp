@@ -1697,8 +1697,17 @@ bool World::Init( IBaseSystem* system, int serial, char* name )
 	unsigned int frameBytes;
 
 	BaseSystemModule::Init( system, serial, name );
+#if CSE_NATIVE_SYSTEM_MODULE
+    frameCache = nullptr;
+    deltaCache = nullptr;
+    maxCacheIndex = 0;
+#endif
+#if CSE_NATIVE_SYSTEM_MODULE
+    state = WORLD_INITILAZING;
+#else
 	if ( state != WORLD_INITILAZING )
 		state = WORLD_INITILAZING;
+#endif
 	if ( name != NULL )
 		SetName( name );
 	else
@@ -1748,6 +1757,12 @@ bool World::Init( IBaseSystem* system, int serial, char* name )
 
 void World::ShutDown()
 {
+#if CSE_NATIVE_SYSTEM_MODULE
+    if (m_NativeShuttingDown) {
+        return;
+    }
+    m_NativeShuttingDown = true;
+#endif
 	if ( m_State == 4 )
 		return;
 	Reset();

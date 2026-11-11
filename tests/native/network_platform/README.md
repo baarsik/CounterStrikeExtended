@@ -4,7 +4,7 @@ execute the engine, its static Steam initializer, the cooperative network worker
 netchan, fakelag or a game. The whole production translation unit is separately
 compiled using the actual generated Release/Debug command row and headers.
 
-The seven Mac tests cover:
+The original seven Mac transport tests cover:
 
 - Open success, IPv4/port/options, all existing fatal open stages, exact owned
   close counts and saved errno, descriptor zero duplication, duplication failure,
@@ -19,6 +19,43 @@ The seven Mac tests cover:
   inherited short-send counting; FakeIP dispatch precedence through a controlled
   binding only (no provider qualification).
 - Real owned local pipe readiness, finite timeout, error and one-close lifetime.
+
+The additional send/startup cases extract the actual `NET_SendPacket`,
+`NET_SendLong`, numeric address parser and `CL_CheckForResend` owners. Native send
+controls set only the OS result/errno and capture the attempted datagram; the
+fixture records fatal/console boundaries, uses an actual mutex and the extracted
+loopback ring types, and drives the production retry clock/caller state. It does
+not duplicate the error classification, split encoder or resend algorithm.
+The client context supplies only fields consumed by these owners and makes no
+client-structure ABI claim. Local/passive-connect and
+multicast-leave callbacks record calls; every ordinary unicast retry immediately
+requires both counts to remain zero after the real resend owner returns. The
+`resend-unexpected-paths` scenario invokes the actual passive timeout branches at
+31 seconds with and without a challenge in separately reset state. It proves the
+shared guard rejects both branches, checks exact callback/datagram counts, and
+asserts their distinct connection-state and disconnection results. These returning
+seams avoid a fixture-only unreachable-code diagnostic in optimized MSVC builds.
+Normal disconnect is observed after the real resend owner resets its state.
+
+The complete Mac suite has 28 tests. Apple unicast `EHOSTUNREACH`/`ENETUNREACH`
+return without immediate retry, report numeric errno/native text/destination on
+the visible console at most once per second, and permit a later successful send
+with identical bytes. Persistent failure and a later successful send without a
+reply both stop at the existing four attempts and normal 24-second timeout at
+default settings. Lower/upper resend clamps, connected-state stop, programming
+errors, dedicated diagnostics, broadcast success/error behavior, closed sockets,
+real loopback storage, split bytes/failure and FakeIP delegation are preserved.
+The broadcast reachability errors retain their original fatal behavior; the
+repair is scoped to the actual unicast startup failure.
+
+Ten additional Mac controls temporarily deselect `__APPLE__` only while including
+the exact extracted transport owner, after the real Darwin SDK headers have been
+loaded. They prove unchanged non-Apple branch selection/behavior in this fixture;
+they are not a Linux compiler/runtime claim. Windows runs the send scenarios
+under both retained socket policies and continues to expect unreachable errors
+to be fatal. Fresh Windows execution remains a separate controller-owned gate.
+No test initializes Steam, opens a UDP socket, changes network permissions or
+proves OS delivery/LaunchServices acceptance.
 
 The typed socket API controls never open a real socket. Their signatures use the
 platform's actual `ssize_t`/`size_t`/`socklen_t` or Winsock `int` types. The synthetic

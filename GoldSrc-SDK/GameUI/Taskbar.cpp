@@ -1628,3 +1628,10 @@ void CTaskbar::UpdateTaskButtons()
 		x += buttonWide;
 	}
 }
+
+#if INTPTR_MAX > INT32_MAX
+void CTaskbar::ShutdownDemoPlayer() {
+    delete m_hDemoPlayerDialog.Get();
+    m_hDemoPlayerDialog = nullptr;
+}
+#endif

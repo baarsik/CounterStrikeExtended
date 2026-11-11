@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_mouse_window.h"
+#endif
 #include "webm_video.h"
 #include "webm_pcm_allocation.h"
 
@@ -1703,12 +1706,22 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
             S_Update(vec3_origin, vec3_origin, vec3_origin, vec3_origin);
             bool skipped = false;
             SDL_Event event;
-            while (SDL_PollEvent(&event)) {
+            while (
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+                cse::RefreshNativeGameplayShortcuts() &&
+#endif
+                SDL_PollEvent(&event)) {
                 if (PlaybackKey(event)) {
                     skipped = true;
                 }
             }
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+            if (cse::RefreshNativeGameplayShortcuts()) {
+                SDL_PumpEvents();
+            }
+#else
             SDL_PumpEvents();
+#endif
             Sys_Sleep(1);
             if (skipped) {
                 Con_Printf("VIDEO PLAYBACK: user skipped playback.\n");

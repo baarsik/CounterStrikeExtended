@@ -30,12 +30,7 @@
 #define SERVERDATA_RESPONSE_VALUE 0
 #define SERVERDATA_UPDATE 1
 
-class IGameServerData : public IBaseInterface
-{
-public:
-	virtual void WriteDataRequest( const void* buffer, int bufferSize ) = 0;
-	virtual int ReadDataResponse( void* buffer, int bufferSize ) = 0;
-};
+#include "../public/game_server_data.h"
 
 class CServerRemoteAccess : public IGameServerData
 {
@@ -411,3 +406,10 @@ void NotifyDedicatedServerUI( const char* message )
 {
 	g_ServerRemoteAccess.SendMessageToAdminUI( message );
 }
+
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "../public/native_dedicated_abi.h"
+extern "C" __attribute__((visibility("default"))) const cse::abi::Descriptor* CseGetGameServerDataAbiV1() {
+    return &cse::dedicated_abi::Admin;
+}
+#endif

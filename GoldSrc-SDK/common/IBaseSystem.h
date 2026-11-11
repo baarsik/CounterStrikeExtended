@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "native/IBaseSystem.h"
+#else
 #pragma once
 
 #include "ISystemModule.h"
@@ -45,3 +49,5 @@ public:
 	virtual void Stop() = 0;
 	virtual char* COM_GetBaseDir() = 0;
 };
+
+#endif

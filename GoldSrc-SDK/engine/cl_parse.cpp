@@ -1,4 +1,7 @@
 #include "cl_demo.h"
+#if defined(__APPLE__)
+#include "native_frame_timings.h"
+#endif
 #include "client.h"
 #include "cmd.h"
 #include "common.h"
@@ -558,7 +561,16 @@ void CL_ParseServerMessage( qboolean normal_message )
 		if ( command > svc_lastmsg )
 		{
 			++msg_buckets[MESSAGE_USER_BUCKET];
+#if defined(__APPLE__)
+            auto& timings = cse_diagnostics::NativeFrameTimings();
+            double messageStart = timings.Enabled() ? Sys_FloatTime() : 0.0;
+#endif
 			DispatchUserMsg( command );
+#if defined(__APPLE__)
+            if (timings.Enabled()) {
+                timings.RecordPacketEvent(host_framecount, command, CL_MsgInfo(command), messageStart, Sys_FloatTime());
+            }
+#endif
 			last_data[MESSAGE_USER_BUCKET] += msg_readcount - commandStart;
 			frame_t* frame = &cl.frames[cl.parsecountmod];
 			frame->usrbytes = static_cast<unsigned short>( frame->usrbytes + msg_readcount - commandStart );
@@ -578,7 +590,16 @@ void CL_ParseServerMessage( qboolean normal_message )
 		{
 			if ( cl_showmessages.value != 0.0f )
 				Con_DPrintf( "Msg: %s\n", cl_parsefuncs[command].pszname );
+#if defined(__APPLE__)
+            auto& timings = cse_diagnostics::NativeFrameTimings();
+            double messageStart = timings.Enabled() ? Sys_FloatTime() : 0.0;
+#endif
 			parse();
+#if defined(__APPLE__)
+            if (timings.Enabled()) {
+                timings.RecordPacketEvent(host_framecount, command, CL_MsgInfo(command), messageStart, Sys_FloatTime());
+            }
+#endif
 		}
 		last_data[command] += msg_readcount - commandStart;
 		frame_t* frame = &cl.frames[cl.parsecountmod];
@@ -1342,45 +1363,59 @@ void CL_ParseResourceList()
 	CL_StartResourceDownloading( const_cast<char*>( "Verifying and downloading resources...\n" ), false );
 }
 
-void CL_Restore( const char* fileName )
-{
-	constexpr unsigned int SAVEGAME_HEADER = 'V' | ( 'A' << 8 ) | ( 'L' << 16 ) | ( 'V' << 24 );
-	constexpr int RESTORE_FILE_BUFFER_BYTES = 4096;
-	FileHandle_t file = FS_Open( fileName, "rb" );
-	if ( file )
-	{
-		FS_SetVBuf( file, nullptr, _IOFBF, RESTORE_FILE_BUFFER_BYTES );
-		unsigned int header;
-		int version;
-		FS_Read( &header, sizeof( header ), 1, file );
-		FS_Read( &version, sizeof( version ), 1, file );
-		if ( header == SAVEGAME_HEADER )
-		{
-			int decalCount;
-			FS_Read( &decalCount, sizeof( decalCount ), 1, file );
-			for ( int i = 0; i < decalCount; ++i )
-			{
-				char name[DECAL_NAME_BYTES];
-				DECALLIST decalList;
-				decalList.name = name;
-				FS_Read( name, sizeof( name ), 1, file );
-				FS_Read( &decalList.entityIndex, sizeof( decalList.entityIndex ), 1, file );
-				FS_Read( &decalList.depth, sizeof( decalList.depth ), 1, file );
-				FS_Read( &decalList.flags, sizeof( decalList.flags ), 1, file );
-				FS_Read( decalList.position, sizeof( decalList.position ), 1, file );
-				if ( r_decals.value != 0.0f )
-				{
-					int index = Draw_DecalIndexFromName( decalList.name );
-					R_DecalShoot(
-						Draw_DecalIndex( index ), decalList.entityIndex, 0, decalList.position, decalList.flags );
-				}
-			}
-		}
-		FS_Close( file );
-	}
-	int mapCount = MSG_ReadByte();
-	for ( int i = 0; i < mapCount; ++i )
-		Con_Printf( "Loading decals from %s\n", MSG_ReadString() );
+void CL_Restore(const char* fileName) {
+    constexpr unsigned int ClientSaveHeader = 'V' | ('A' << 8) | ('L' << 16) | ('V' << 24);
+    constexpr int ClientSaveVersion = 0x0071;
+    constexpr int RestoreFileBufferBytes = 4096;
+    constexpr int MaximumSavedDecals = 4096;
+    constexpr unsigned int DecalRecordBytes = DECAL_NAME_BYTES + sizeof(DECALLIST::entityIndex)
+        + sizeof(DECALLIST::depth) + sizeof(DECALLIST::flags) + sizeof(DECALLIST::position);
+    static_assert(DecalRecordBytes == 32, "Retain the Win32 client-decal disk record");
+    FileHandle_t file = FS_Open(fileName, "rb");
+    if (file) {
+        FS_SetVBuf(file, nullptr, _IOFBF, RestoreFileBufferBytes);
+        unsigned int header = 0;
+        int version = 0;
+        int decalCount = 0;
+        bool valid = FS_Read(&header, sizeof(header), 1, file) == sizeof(header)
+            && FS_Read(&version, sizeof(version), 1, file) == sizeof(version)
+            && FS_Read(&decalCount, sizeof(decalCount), 1, file) == sizeof(decalCount)
+            && header == ClientSaveHeader && version == ClientSaveVersion
+            && decalCount >= 0 && decalCount <= MaximumSavedDecals;
+        const unsigned int position = FS_Tell(file);
+        const unsigned int bytes = FS_Size(file);
+        valid = valid && position <= bytes && static_cast<unsigned int>(decalCount)
+            <= (bytes - position) / DecalRecordBytes;
+        for (int index = 0; valid && index < decalCount; ++index) {
+            char name[DECAL_NAME_BYTES + 1]{};
+            DECALLIST decal{};
+            decal.name = name;
+            valid = FS_Read(name, DECAL_NAME_BYTES, 1, file) == DECAL_NAME_BYTES
+                && FS_Read(&decal.entityIndex, sizeof(decal.entityIndex), 1, file) == sizeof(decal.entityIndex)
+                && FS_Read(&decal.depth, sizeof(decal.depth), 1, file) == sizeof(decal.depth)
+                && FS_Read(&decal.flags, sizeof(decal.flags), 1, file) == sizeof(decal.flags)
+                && FS_Read(decal.position, sizeof(decal.position), 1, file) == sizeof(decal.position);
+            if (!valid) {
+                break;
+            }
+            if (decal.entityIndex < 0 || decal.entityIndex >= cl.max_edicts) {
+                Con_Printf("Invalid saved decal entity %d in %s\n", decal.entityIndex, fileName);
+                continue;
+            }
+            if (r_decals.value != 0.0f) {
+                const int texture = Draw_DecalIndexFromName(decal.name);
+                R_DecalShoot(Draw_DecalIndex(texture), decal.entityIndex, 0, decal.position, decal.flags);
+            }
+        }
+        if (!valid) {
+            Con_Printf("Invalid client decal save %s; decals were not restored completely\n", fileName);
+        }
+        FS_Close(file);
+    }
+    const int mapCount = MSG_ReadByte();
+    for (int index = 0; index < mapCount; ++index) {
+        Con_Printf("Loading decals from %s\n", MSG_ReadString());
+    }
 }
 
 void CL_SendConsistencyInfo( sizebuf_t* message )

@@ -1,6 +1,9 @@
 #include "VGui1HostImageOwner.h"
 #include "native_module.h"
 #include <dlfcn.h>
+#include <crt_externs.h>
+#include <mach-o/dyld.h>
+#include <mach-o/loader.h>
 #include <atomic>
 #include <cerrno>
 #include <cstdio>
@@ -312,6 +315,15 @@ void Failures(const char* rootPath) {
 }
 
 int main(int argc, char** argv) {
+    if (std::getenv("CSE_OWNER_EXPECT_INSERTION")) {
+        Check(dlsym(RTLD_DEFAULT, "CseOwnerBenignInsertion") != nullptr, "actual benign image insertion");
+        const auto* mainHeader = _NSGetMachExecuteHeader();
+        Check(mainHeader && mainHeader->magic == MH_MAGIC_64 && mainHeader->filetype == MH_EXECUTE,
+            "public executable-header API identifies the genuine main image");
+        std::printf("PASS benign insertion loaded; dyld index zero %s genuine main\n",
+            reinterpret_cast<const void*>(_dyld_get_image_header(0)) == mainHeader ? "is" : "is not");
+        std::fflush(stdout);
+    }
     Check(argc == 6, "four exact image paths plus bounded cycles");
     const int cycles = std::atoi(argv[5]);
     Check(cycles > 0 && cycles <= 4, "bounded cycle count");

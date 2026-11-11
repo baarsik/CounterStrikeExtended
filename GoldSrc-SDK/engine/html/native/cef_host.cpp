@@ -8,6 +8,7 @@
 #endif
 
 #include "cef_host.h"
+#include "cef_frame_diagnostics.h"
 #include "browser_commands.h"
 #include "browser_wire.h"
 #include "../../../public/html_key_modifiers.h"
@@ -378,6 +379,7 @@ public:
     }
 
     void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rectangle) override {
+        diagnostics::Frames().Add(identifier_, "view_rect", width_, height_);
         rectangle = CefRect(0, 0, width_, height_);
     }
 
@@ -388,6 +390,7 @@ public:
     }
 
     bool GetScreenInfo(CefRefPtr<CefBrowser>, CefScreenInfo& info) override {
+        diagnostics::Frames().Add(identifier_, "screen_info", width_, height_);
         info.device_scale_factor = 1.0f;
         info.depth = 32;
         info.depth_per_component = 8;
@@ -398,6 +401,7 @@ public:
     }
 
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
+        diagnostics::Frames().Add(identifier_, "created");
         browser_ = browser;
         if (nativePopup_ == 0 && (!nativeParent_ ||
             !IsCefHostNativeWindow(browser_->GetHost()->GetWindowHandle()))) {
@@ -461,6 +465,7 @@ public:
     }
 
     void OnBeforeClose(CefRefPtr<CefBrowser>) override {
+        diagnostics::Frames().Add(identifier_, "closed");
         if (nativePopup_ == 0) {
             host_.Cancel(identifier_);
             host_.ClosePopups(identifier_);
@@ -608,6 +613,7 @@ public:
 
     void OnLoadEnd(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame, int) override {
         if (frame->IsMain()) {
+            diagnostics::Frames().Add(identifier_, "load_end", frame->GetURL() == "about:blank", width_, height_);
             if (frame->GetURL() == "about:blank") {
                 initialLoaded_ = true;
                 MaybeReady();
@@ -758,6 +764,7 @@ public:
 
     void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList&, const void* pixels,
         int width, int height) override {
+        diagnostics::Frames().Add(identifier_, "on_paint", type, width, height);
         if (width <= 0 || height <= 0 || width > MaximumDimension || height > MaximumDimension || closing_) {
             return;
         }
@@ -895,6 +902,7 @@ private:
 
     void MaybeReady() {
         if (nativePopup_ == 0 && initialLoaded_ && agentReady_ && !readySent_ && !closing_) {
+            diagnostics::Frames().Add(identifier_, "ready");
             readySent_ = true;
             Emit(eHTMLCommands_BrowserReady);
             // VGUI configures controls immediately after CreateBrowser. CEF creation,
@@ -954,6 +962,7 @@ private:
     }
 
     void Paint() {
+        diagnostics::Frames().Add(identifier_, "paint", mainPixels_.empty(), painting_, popupVisible_);
         if (mainPixels_.empty() || painting_ || (popupVisible_ && popupPixels_.empty())) {
             paintPending_ = true;
             return;
@@ -1069,6 +1078,7 @@ void Client::Command(const Message& message) {
     case eHTMLCommands_BrowserSize:
         if (reader.I32(a) && reader.I32(b) && reader.Finish() && a >= 0 && b >= 0 &&
             a <= MaximumDimension && b <= MaximumDimension) {
+            diagnostics::Frames().Add(identifier_, "size", a, b);
             width_ = std::max(DefaultWidth, a);
             height_ = std::max(DefaultHeight, b);
             browserHost->WasHidden(a == 0 || b == 0);
@@ -1130,6 +1140,7 @@ void Client::Command(const Message& message) {
                 browser_->GoForward();
                 break;
             default:
+                diagnostics::Frames().Add(identifier_, "invalidate");
                 browserHost->Invalidate(PET_VIEW);
                 Query(0, 0, 0);
                 break;
@@ -1336,6 +1347,7 @@ private:
 };
 
 void Host::OnContextInitialized() {
+    diagnostics::Frames().Add(0, "context_ready");
     Writer payload;
     payload.U32(ProviderContractVersion);
     payload.U32(ProviderApiVersion);
@@ -1799,12 +1811,6 @@ int RunCefHost(const CefMainArgs& arguments, CefRefPtr<CefCommandLine> commandLi
 #else
     signal(SIGPIPE, SIG_IGN);
 #endif
-    std::error_code error;
-    std::filesystem::create_directories(storagePath, error);
-    if (error) {
-        return 2;
-    }
-
     CefSettings settings;
     settings.windowless_rendering_enabled = true;
     settings.no_sandbox = false;
@@ -1814,6 +1820,10 @@ int RunCefHost(const CefMainArgs& arguments, CefRefPtr<CefCommandLine> commandLi
     CefString(&settings.log_file) = storage + "/cef.log";
     CefString(&settings.user_agent_product) = "CounterStrikeExtended/1";
 #if defined(__APPLE__)
+    if (!ConfigureCefHostMacBundle(settings)) {
+        std::fputs("Unable to resolve the CEF host's own application bundle\n", stderr);
+        return 2;
+    }
     // This provider owns its encryption identity. Never request another Chromium application's key.
     if (fixtureKeychain) {
         // Build/test-scoped identities prevent unsigned development rebuilds from touching production keys.
@@ -1822,14 +1832,26 @@ int RunCefHost(const CefMainArgs& arguments, CefRefPtr<CefCommandLine> commandLi
         CefString(&settings.keychain_account_name) = "CounterStrikeExtended Fixture";
         std::fprintf(stderr, "cef_host_fixture_keychain=%s\n", fixtureIdentifier.c_str());
     } else {
-#if defined(NDEBUG)
-        CefString(&settings.keychain_service_name) = "CounterStrikeExtended Browser Safe Storage";
-#else
-        CefString(&settings.keychain_service_name) = "CounterStrikeExtended Browser Debug Safe Storage";
-#endif
-        CefString(&settings.keychain_account_name) = "CounterStrikeExtended";
+        if (!ConfigureCefHostMacStorage(settings)) {
+            std::fputs("Unable to establish the browser host's own encrypted storage identity\n", stderr);
+            return 2;
+        }
     }
 #endif
+    const std::string resolvedStorage = CefString(&settings.root_cache_path).ToString();
+    if (commandLine->HasSwitch("cse-inspect-storage-policy")) {
+        // Read-only qualification: no Chromium initialization or Keychain access.
+        std::fprintf(stdout, "cef_host_storage_root=%s\ncef_host_storage_cache=%s\ncef_host_storage_service=%s\n",
+            resolvedStorage.c_str(), CefString(&settings.cache_path).ToString().c_str(),
+            CefString(&settings.keychain_service_name).ToString().c_str());
+        return 0;
+    }
+    std::error_code error;
+    std::filesystem::create_directories(
+        std::filesystem::path(std::u8string(resolvedStorage.begin(), resolvedStorage.end())), error);
+    if (error) {
+        return 2;
+    }
     CefRefPtr<Host> host = new Host;
     currentHost = host.get();
     if (!CefInitialize(arguments, settings, host, sandbox)) {
@@ -1843,6 +1865,7 @@ int RunCefHost(const CefMainArgs& arguments, CefRefPtr<CefCommandLine> commandLi
     currentHost = nullptr;
     CefShutdown();
     host = nullptr;
+    diagnostics::Frames().Flush();
     return failed ? 1 : 0;
 }
 

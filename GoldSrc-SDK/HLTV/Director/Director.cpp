@@ -1,4 +1,7 @@
 #include "Director.h"
+#if INTPTR_MAX > INT32_MAX
+#include "common/entity_state.h"
+#endif
 
 #include "HLTV/common/DirectorCmd.h"
 #include "HLTV/common/IProxy.h"

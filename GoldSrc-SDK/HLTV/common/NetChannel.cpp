@@ -8,6 +8,7 @@
 #include "utils/bzip2/bzlib.h"
 
 #include <new>
+#include <cstdint>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,8 +100,16 @@ NetAddress* NetChannel::GetTargetAddress()
 
 void NetChannel::Close()
 {
+#if INTPTR_MAX > INT32_MAX
+    INetSocket *socket = sock;
+    sock = nullptr;
+    if (socket) {
+        socket->RemoveChannel(this);
+    }
+#else
 	if ( sock != NULL )
 		sock->RemoveChannel( this );
+#endif
 
 	Clear();
 	reliableStream.Free();

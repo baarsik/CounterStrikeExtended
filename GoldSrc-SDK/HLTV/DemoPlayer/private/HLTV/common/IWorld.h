@@ -1,3 +1,7 @@
+#include <cstdint>
+#if INTPTR_MAX > INT32_MAX
+#include "../../../../common/IWorld.h"
+#else
 #ifndef IWORLD_H
 #define IWORLD_H
 
@@ -158,5 +162,7 @@ public:
 	virtual int MoveFrames( unsigned int start, unsigned int end, double time ) = 0;
 	virtual int RevertFrames( unsigned int start, unsigned int end ) = 0;
 };
+
+#endif
 
 #endif

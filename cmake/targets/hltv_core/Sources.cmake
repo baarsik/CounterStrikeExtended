@@ -32,3 +32,7 @@ target_sources(hltv_core PRIVATE
   "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/huffman.c"
   "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/randtable.c"
 )
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/common/BaseSystemModule.cpp" PROPERTY HEADER_FILE_ONLY TRUE)
+  target_sources(hltv_core PRIVATE "${CSE_SDK_DIR}/common/native/BaseSystemModule.cpp")
+endif()

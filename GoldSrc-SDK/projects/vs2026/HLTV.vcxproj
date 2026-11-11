@@ -101,6 +101,12 @@
     <ClCompile Include="..\..\HLTV\common\common.cpp" />
     <ClCompile Include="..\..\HLTV\common\random.cpp" />
     <ClCompile Include="..\..\HLTV\Core\private\common\BaseSystemModule.cpp" />
+    <ClCompile Include="..\..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <CseReplaces>$(ProjectDir)..\..\HLTV\Core\private\common\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="..\..\common\ObjectList.cpp" />
     <ClCompile Include="..\..\common\TokenLine.cpp" />
     <ClCompile Include="..\..\engine\interface.cpp" />

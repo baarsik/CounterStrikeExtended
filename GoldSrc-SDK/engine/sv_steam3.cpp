@@ -1223,21 +1223,27 @@ void CSteam3Client::OnGameOverlayActivated( GameOverlayActivated_t* activated )
 		Cbuf_AddText( "unpause;" );
 }
 
-void CSteam3Client::Shutdown()
-{
-	if ( !m_bLoggedOn )
-		return;
-
-	if ( SteamNetworkingSockets_SteamAPI() && ip_fakeudpports[NS_CLIENT] )
-	{
-		ip_fakeudpports[NS_CLIENT]->DestroyFakeUDPPort();
-		ip_fakeudpports[NS_CLIENT] = nullptr;
-	}
-	if ( SteamInput() )
-		SteamInput()->Shutdown();
-	if ( eng->GetQuitting() == 1 )
-		SteamAPI_Shutdown();
-	m_bLoggedOn = false;
+void CSteam3Client::Shutdown() {
+    if (!m_bLoggedOn) {
+        return;
+    }
+    if (SteamNetworkingSockets_SteamAPI() && ip_fakeudpports[NS_CLIENT]) {
+        ip_fakeudpports[NS_CLIENT]->DestroyFakeUDPPort();
+        ip_fakeudpports[NS_CLIENT] = nullptr;
+    }
+    if (SteamInput()) {
+        SteamInput()->Shutdown();
+    }
+#if defined(__APPLE__)
+    // Native macOS restarts replace the process. Retire the anonymous server
+    // transport while SteamClient is alive, including the restart quitting state.
+    SteamAPI_Shutdown();
+#else
+    if (eng->GetQuitting() == 1) {
+        SteamAPI_Shutdown();
+    }
+#endif
+    m_bLoggedOn = false;
 }
 
 void CSteam3Client::OnNewUrlLaunchParameters( NewUrlLaunchParameters_t* )

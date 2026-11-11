@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include "../../public/interface.h"
+#include "../../public/runtime_module_names.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "../../cl_dll/Exports.h"
@@ -142,7 +143,7 @@ extern "C" int EXPORT Initialize( cl_enginefunc_t* pEnginefuncs, int iVersion )
 	EV_HookEvents();
 	CL_LoadParticleMan();
 
-	const char* szFsModule = "filesystem_stdio.dll";
+	const char* szFsModule = cse::runtime_modules::FileSystem;
 	char szFSDir[MAX_PATH];
 	szFSDir[0] = 0;
 	if ( gEngfuncs.COM_ExpandFilename( szFsModule, szFSDir, sizeof( szFSDir ) ) == FALSE )
@@ -163,7 +164,7 @@ extern "C" int EXPORT Initialize( cl_enginefunc_t* pEnginefuncs, int iVersion )
 		return false;
 
 	char szDir[512];
-	if ( gEngfuncs.COM_ExpandFilename( "cl_dlls\\GameUI.dll", szDir, sizeof( szDir ) ) )
+	if ( gEngfuncs.COM_ExpandFilename( cse::runtime_modules::GameUI, szDir, sizeof( szDir ) ) )
 	{
 		g_hGameUIModule = Sys_LoadModule( szDir );
 		if ( !g_hGameUIModule )

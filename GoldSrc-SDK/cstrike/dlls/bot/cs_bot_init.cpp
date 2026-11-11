@@ -35,14 +35,12 @@ cvar_t cv_bot_defer_to_human = { "bot_defer_to_human", "0", FCVAR_SERVER, 0.0f, 
 cvar_t cv_bot_chatter = { "bot_chatter", "normal", FCVAR_SERVER, 0.0f, NULL };
 cvar_t cv_bot_profile_db = { "bot_profile_db", "BotProfile.db", FCVAR_SERVER, 0.0f, NULL };
 
-void InstallBotControl()
-{
-	if ( TheBots != NULL )
-	{
-		TheBots->~CBotManager();
-		::operator delete( TheBots );
-	}
-	TheBots = new CCSBotManager;
+void InstallBotControl() {
+    // This owner installs CCSBotManager exclusively. Destroy the complete object
+    // so its resources are retired before replacing it for the next map.
+    delete static_cast<CCSBotManager*>(TheBots);
+    TheBots = nullptr;
+    TheBots = new CCSBotManager;
 }
 
 void Bot_ServerCommand()

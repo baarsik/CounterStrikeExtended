@@ -70,7 +70,6 @@ void Pixel(SDL_Renderer* renderer, int x, int y, Uint8 red, Uint8 green, Uint8 b
 }
 
 int main() {
-    Require(SDL_Init(SDL_INIT_VIDEO), "initialize dummy video");
     auto factory = reinterpret_cast<CreateInterfaceFn>(dlsym(RTLD_DEFAULT, "CreateInterface"));
     // Resolve vgui2's factory specifically; both UI libraries export this name.
     Dl_info library{};
@@ -83,16 +82,28 @@ int main() {
     Require(factory != nullptr, "resolve vgui2 factory");
     auto* system = static_cast<vgui2::ISystem*>(factory("VGUI_System009", nullptr));
     Require(system != nullptr, "load real native System interface");
-    Require(factory("VGUI_Surface026", nullptr) == nullptr, "native client must use engine Surface");
+    Require(factory("VGUI_Surface026", nullptr) != nullptr, "native standalone Surface coexists with client UI");
+    Require(SDL_WasInit(SDL_INIT_VIDEO) == 0, "native interface discovery leaves video uninitialized");
+    Require(SDL_Init(SDL_INIT_VIDEO), "initialize dummy video");
+    int initialWindowCount = 0;
+    SDL_Window** initialWindows = SDL_GetWindows(&initialWindowCount);
+    SDL_free(initialWindows);
+    Require(initialWindowCount == 0, "standalone interface discovery creates no client window");
     const double before = system->GetCurrentTime();
     SDL_Delay(5);
     Require(system->GetCurrentTime() >= before, "monotonic native clock");
     system->RunFrame();
     Require(system->GetFrameTime() >= before, "native frame clock");
     Require(system->CommandLineParamExists("-cse-fixture"), "native process argument");
+    Require(system->CommandLineParamExists("-all_languages"), "native language switch survives restart");
+    Require(!system->CommandLineParamExists("--cse-resume-command-line"), "private restart wrapper stays internal");
+    Require(std::strstr(system->GetFullCommandLine(), "--cse-resume-command-line") == nullptr,
+            "full command line exposes game arguments");
     char argument[64]{};
     Require(system->GetCommandLineParamValue("-cse-fixture", argument, sizeof(argument)), "native argument value");
     Require(std::strcmp(argument, "argument with spaces") == 0, "quoted argument preservation");
+    Require(system->GetCommandLineParamValue("-literal", argument, sizeof(argument)) &&
+            std::strcmp(argument, "player \"bob\" smith") == 0, "literal quotes survive native restart arguments");
     Require(!system->GetCommandLineParamValue("-missing", argument, sizeof(argument)), "missing argument failure");
     int year = 0;
     int month = 0;

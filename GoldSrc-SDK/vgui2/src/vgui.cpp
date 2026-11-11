@@ -139,6 +139,9 @@ public:
 	};
 
 private:
+#if defined(__APPLE__)
+    friend void vgui2::DispatchStandaloneInputMessages();
+#endif
 	struct Context_t
 	{
 		vgui2::HInputContext	m_hInputContext;
@@ -178,6 +181,13 @@ CVGui g_VGui;
 namespace vgui2
 {
 IVGui* g_pIVgui = &g_VGui;
+#if defined(__APPLE__)
+void DispatchStandaloneInputMessages() {
+    if (!g_VGui.m_InDispatcher) {
+        g_VGui.DispatchMessages();
+    }
+}
+#endif
 }
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CVGui, IVGui, "VGUI_ivgui006", g_VGui );
 
@@ -219,8 +229,13 @@ bool CVGui::Init( CreateInterfaceFn* factoryList, int numFactories )
 		return true;
 	}
 
+#if defined(__APPLE__)
+    m_bInitialized = vgui2::VGui_InternalLoadInterfaces(factoryList, numFactories);
+    return m_bInitialized;
+#else
 	m_bInitialized = true;
 	return vgui2::VGui_InternalLoadInterfaces( factoryList, numFactories );
+#endif
 }
 
 vgui2::HContext CVGui::CreateContext()
@@ -332,10 +347,13 @@ void CVGui::DPrintf2( const char* format, ... )
 #endif
 }
 
-void CVGui::Shutdown()
-{
-	DestroyAllContexts();
-	ClearMessageQueues();
+void CVGui::Shutdown() {
+    DestroyAllContexts();
+    ClearMessageQueues();
+#if defined(__APPLE__)
+    m_bInitialized = false;
+    m_bRunning = false;
+#endif
 }
 
 void CVGui::Start()

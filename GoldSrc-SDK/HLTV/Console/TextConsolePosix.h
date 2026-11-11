@@ -21,6 +21,9 @@ public:
     void Echo(char* text, int length = 0) override;
     char* GetLine() override;
     int GetWidth() override;
+    bool InputEnded() const {
+        return m_InputEnded;
+    }
     void SetVisible(bool visible) override;
 
 private:

@@ -20,6 +20,9 @@ constexpr int kNullFactoryModuleStillLoaded = 17;
 }
 
 int main(int argc, const char** argv) {
+    if (argc > 3 && std::strcmp(argv[1], "--cse-resume-command-line") == 0) {
+        return CseActualLauncherMain(argc, argv, nullptr);
+    }
     if (argc < 3) {
         return kMissingProbeArguments;
     }

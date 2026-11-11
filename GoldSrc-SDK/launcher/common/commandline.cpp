@@ -16,6 +16,7 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
+#include <new>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -66,6 +67,9 @@ public:
 	void AppendParm( const char* parameter, const char* values ) override;
 	void SetParm( const char* parameter, const char* values ) override;
 	void SetParm( const char* parameter, int value ) override;
+#if defined(__APPLE__)
+    bool RestoreCanonical(const char* commandLine);
+#endif
 
 private:
 	char*	m_pszCmdLine;
@@ -74,6 +78,30 @@ private:
 static CCommandLine g_CmdLine;
 
 ICommandLine* cmdline = &g_CmdLine;
+
+#if defined(__APPLE__)
+bool CCommandLine::RestoreCanonical(const char* commandLine) {
+    if (!commandLine) {
+        return false;
+    }
+    const std::size_t bytes = strnlen(commandLine, COMMAND_BUFFER_SIZE);
+    if (bytes >= COMMAND_BUFFER_SIZE) {
+        return false;
+    }
+    char* restored = new (std::nothrow) char[bytes + 1];
+    if (!restored) {
+        return false;
+    }
+    std::memcpy(restored, commandLine, bytes + 1);
+    delete[] m_pszCmdLine;
+    m_pszCmdLine = restored;
+    return true;
+}
+
+bool RestoreMacLauncherCommandLine(const char* commandLine) {
+    return g_CmdLine.RestoreCanonical(commandLine);
+}
+#endif
 
 CCommandLine::CCommandLine()
 	: m_pszCmdLine( NULL )
@@ -278,6 +306,46 @@ void CCommandLine::RemoveParm( const char* parameter )
 		return;
 	}
 
+#if defined(__APPLE__)
+    // Edit exact spans in the already-expanded canonical line. Rebuilding it
+    // from native argv would lose its existing quoting and response-file text.
+    const auto tokenEnd = [](char* token) {
+        if (*token == '"') {
+            ++token;
+            while (*token && *token != '"') {
+                ++token;
+            }
+            return *token ? token + 1 : token;
+        }
+        while (*token && !IsCommandWhitespace(*token)) {
+            ++token;
+        }
+        return token;
+    };
+    const std::size_t parameterLength = std::strlen(parameter);
+    char* cursor = m_pszCmdLine;
+    while (*cursor) {
+        while (IsCommandWhitespace(*cursor)) {
+            ++cursor;
+        }
+        char* end = tokenEnd(cursor);
+        if (static_cast<std::size_t>(end - cursor) != parameterLength ||
+            std::strncmp(cursor, parameter, parameterLength) != 0) {
+            cursor = end;
+            continue;
+        }
+        while (*end) {
+            while (IsCommandWhitespace(*end)) {
+                ++end;
+            }
+            if (!*end || *end == '-' || *end == '+') {
+                break;
+            }
+            end = tokenEnd(end);
+        }
+        std::memmove(cursor, end, std::strlen(end) + 1);
+    }
+#else
 	char* command = m_pszCmdLine;
 	size_t length = strlen( command );
 
@@ -303,6 +371,8 @@ void CCommandLine::RemoveParm( const char* parameter )
 		command = m_pszCmdLine;
 		length = strlen( command );
 	}
+
+#endif
 
 	for ( ;; )
 	{

@@ -95,6 +95,11 @@
     <ClCompile Include="private\HLTV\common\DirectorCmd.cpp" />
     <ClCompile Include="private\HLTV\common\mathlib.cpp" />
     <ClCompile Include="private\common\BaseSystemModule.cpp" />
+    <ClCompile Include="..\..\common\native\BaseSystemModule.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CsePointerWidth>64</CsePointerWidth>
+      <CseReplaces>$(ProjectDir)private\common\BaseSystemModule.cpp</CseReplaces>
+    </ClCompile>
     <ClCompile Include="private\common\ObjectDictionary.cpp" />
     <ClCompile Include="..\..\common\ObjectList.cpp" />
     <ClCompile Include="..\..\common\TokenLine.cpp" />

@@ -22,6 +22,8 @@ get_target_property(font_owner_sources atlas_font_owner SOURCES)
 set_source_files_properties(${font_owner_sources} PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(atlas_root_owner PRIVATE atlas_font_owner)
 add_executable(atlas_owned_host host.cpp)
+add_library(atlas_benign_insertion SHARED
+    "${CSE_ROOT}/tests/native/vgui1_host_image_owner/benign_insertion.cpp")
 foreach(target atlas_font_owner atlas_root_owner atlas_owned_host)
     set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
     target_include_directories(${target} PRIVATE "${CSE_NATIVE_SOURCE_ROOT}/GoldSrc-SDK/engine"
@@ -47,6 +49,18 @@ endif()
 enable_testing()
 add_test(NAME actual-owner-one-unload COMMAND atlas_owned_host "$<TARGET_FILE:atlas_root_owner>"
     "$<TARGET_FILE:atlas_font_owner>" 1)
+add_test(NAME actual-owner-v2-one-unload COMMAND atlas_owned_host "$<TARGET_FILE:atlas_root_owner>"
+    "$<TARGET_FILE:atlas_font_owner>" 1 --binding-v2)
+foreach(binding v1 v2)
+    set(binding_argument)
+    if(binding STREQUAL "v2")
+        set(binding_argument --binding-v2)
+    endif()
+    add_test(NAME inserted-runtime-${binding} COMMAND "${CMAKE_COMMAND}" -E env
+        "DYLD_INSERT_LIBRARIES=$<TARGET_FILE:atlas_benign_insertion>" CSE_OWNER_EXPECT_INSERTION=1
+        "$<TARGET_FILE:atlas_owned_host>" "$<TARGET_FILE:atlas_root_owner>"
+        "$<TARGET_FILE:atlas_font_owner>" 1 ${binding_argument})
+endforeach()
 if(NOT CSE_ATLAS_SANITIZERS)
     add_test(NAME actual-owner-reloads COMMAND atlas_owned_host "$<TARGET_FILE:atlas_root_owner>"
         "$<TARGET_FILE:atlas_font_owner>" 4)
@@ -60,7 +74,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_retirement.py"
     --sdk "${CSE_NATIVE_SOURCE_ROOT}/GoldSrc-SDK" --output "${CMAKE_CURRENT_BINARY_DIR}/retirement"
     COMMAND_ERROR_IS_FATAL ANY)
-foreach(mode hw sw)
+foreach(mode hw sw sw_win32)
     add_executable(retirement_${mode} retirement.cpp)
     set_target_properties(retirement_${mode} PROPERTIES CXX_STANDARD 17)
     target_include_directories(retirement_${mode} PRIVATE "${CSE_NATIVE_SOURCE_ROOT}/GoldSrc-SDK/engine"
@@ -70,6 +84,9 @@ foreach(mode hw sw)
     target_compile_options(retirement_${mode} PRIVATE -Wall -Wextra -Werror -fno-exceptions)
     if(mode STREQUAL "hw")
         target_compile_definitions(retirement_${mode} PRIVATE CSE_RETIRE_HW)
+    endif()
+    if(mode STREQUAL "sw_win32")
+        target_compile_definitions(retirement_${mode} PRIVATE CSE_SW_WIN32_BRANCH)
     endif()
     if(CSE_ATLAS_SANITIZERS)
         target_compile_options(retirement_${mode} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
