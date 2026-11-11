@@ -83,6 +83,34 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE BindSource( LPA3DSOURCE pSource ) = 0;
 	virtual HRESULT STDMETHODCALLTYPE NewEnvironment( LPA3DENVIRONMENT* ppEnvironment ) = 0;
 	virtual HRESULT STDMETHODCALLTYPE BindEnvironment( LPA3DENVIRONMENT pEnvironment ) = 0;
+#ifndef _WIN32
+    // Complete the native SDK view without advertising unimplemented trailing operations.
+    virtual HRESULT STDMETHODCALLTYPE SetRenderMode(DWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetRenderMode(LPDWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetPolygonBloatFactor(A3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetPolygonBloatFactor(LPA3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetReflectionUpdateInterval(DWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetReflectionUpdateInterval(LPDWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetOcclusionUpdateInterval(DWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetOcclusionUpdateInterval(LPDWORD) {
+        return E_NOTIMPL;
+    }
+#endif
+
 };
 
 class IA3dListenerTarget : public IUnknown

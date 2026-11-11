@@ -225,6 +225,10 @@ public:
         }
         return ResMan::QueryInterface(iid, object);
     }
+    HRESULT STDMETHODCALLTYPE Initialize(LPCGUID device) override {
+        DWORD supported = 0;
+        return InitializeDevice(device, 0, kInitializationMode, &supported);
+    }
     HRESULT STDMETHODCALLTYPE InitializeDevice(const GUID* device, DWORD features, DWORD mode,
         DWORD* supported) override {
         std::lock_guard<std::recursive_mutex> admission(m_nativeAdmission);

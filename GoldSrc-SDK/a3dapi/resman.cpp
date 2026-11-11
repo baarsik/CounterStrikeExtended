@@ -768,6 +768,8 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::GetCaps( LPDSBCAPS caps )
     const DWORD flags = (m_Desc.dwFlags & ~(DSBCAPS_LOCHARDWARE | DSBCAPS_CTRLPOSITIONNOTIFY)) |
         DSBCAPS_LOCSOFTWARE;
     *caps = {sizeof(*caps), flags, m_Desc.dwBufferBytes, 0, 0};
+#else
+    (void)caps;
 #endif
 	return DS_OK;
 }
@@ -788,18 +790,29 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::GetFormat( LPWAVEFORMATEX format, DWORD 
     *format = m_nativeFormat;
     return S_OK;
 #else
+    (void)format;
+    (void)bytes;
+    (void)written;
 	return DS_OK;
 #endif
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::Initialize( LPDIRECTSOUND, LPCDSBUFFERDESC )
 {
-	return DS_OK;
+#ifndef _WIN32
+    return E_NOTIMPL;
+#else
+    return DS_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::SetFormat( LPCWAVEFORMATEX )
 {
-	return DS_OK;
+#ifndef _WIN32
+    return E_NOTIMPL;
+#else
+    return DS_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE ResManBuffer::Unlock( LPVOID first, DWORD firstBytes, LPVOID second, DWORD secondBytes )
@@ -820,6 +833,10 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::Unlock( LPVOID first, DWORD firstBytes, 
     m_nativeLockBytes = 0;
     return S_OK;
 #else
+    (void)first;
+    (void)firstBytes;
+    (void)second;
+    (void)secondBytes;
 	return DS_OK;
 #endif
 }

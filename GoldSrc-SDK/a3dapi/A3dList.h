@@ -20,7 +20,12 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE Begin();
 	virtual HRESULT STDMETHODCALLTYPE End();
 	virtual HRESULT STDMETHODCALLTYPE Call();
-	virtual ~CA3dList();
+#ifndef _WIN32
+    virtual HRESULT STDMETHODCALLTYPE EnableBoundingVol() {
+        return E_NOTIMPL;
+    }
+#endif
+    virtual ~CA3dList();
 
 private:
 	friend class CA3dScene;

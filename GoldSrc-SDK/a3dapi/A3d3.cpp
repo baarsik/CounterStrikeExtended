@@ -1,6 +1,7 @@
 #include "native_platform.h"
 #ifndef _WIN32
 #include "native_provider.h"
+#include "native_notifications.h"
 #endif
 #include "a3dclsfc.h"
 #include "ia3dapi.h"
@@ -26,6 +27,12 @@ LONG g_cA3dLocks = 0;
 
 extern "C" HRESULT __stdcall DllGetClassObject( REFCLSID clsid, REFIID iid, void** ppObject )
 {
+#ifndef _WIN32
+    if (!ppObject) {
+        return E_POINTER;
+    }
+    *ppObject = nullptr;
+#endif
 	if ( memcmp( &clsid, &CLSID_A3dApi, sizeof( CLSID ) ) &&
 		memcmp( &clsid, &CLSID_A3d, sizeof( CLSID ) ) )
 	{
@@ -45,7 +52,21 @@ extern "C" HRESULT __stdcall DllGetClassObject( REFCLSID clsid, REFIID iid, void
 
 extern "C" HRESULT __stdcall DllCanUnloadNow()
 {
-	return g_cA3dObjects || g_cA3dLocks;
+#ifndef _WIN32
+    if (__atomic_load_n(&g_cA3dObjects, __ATOMIC_SEQ_CST) ||
+        __atomic_load_n(&g_cA3dLocks, __ATOMIC_SEQ_CST)) {
+        return S_FALSE;
+    }
+    for (const auto count : A3dNativeOwners()) {
+        if (count) {
+            return S_FALSE;
+        }
+    }
+    const auto events = A3dNativeEventLifetime();
+    return events.objects || events.retainedStates || events.waits || events.calls ? S_FALSE : S_OK;
+#else
+    return g_cA3dObjects || g_cA3dLocks;
+#endif
 }
 
 #ifdef _WIN32
@@ -67,15 +88,26 @@ static const IID s_A3dPlatformInterfaceId =
 
 CA3dClassFactory::CA3dClassFactory()
 {
+#ifndef _WIN32
+    A3dReferenceIncrement(&g_cA3dObjects);
+#endif
 	m_cReferences = 0;
 }
 
 CA3dClassFactory::~CA3dClassFactory()
 {
+#ifndef _WIN32
+    A3dReferenceDecrement(&g_cA3dObjects);
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dClassFactory::QueryInterface( REFIID iid, void** ppObject )
 {
+#ifndef _WIN32
+    if (!ppObject) {
+        return E_POINTER;
+    }
+#endif
 	if ( memcmp( &iid, &IID_IUnknown, sizeof( IID ) ) &&
 		memcmp( &iid, &IID_IClassFactory, sizeof( IID ) ) )
 	{
@@ -95,6 +127,13 @@ ULONG STDMETHODCALLTYPE CA3dClassFactory::AddRef()
 
 ULONG STDMETHODCALLTYPE CA3dClassFactory::Release()
 {
+#ifndef _WIN32
+    const ULONG remaining = A3dReferenceDecrement(&m_cReferences);
+    if (!remaining) {
+        delete this;
+    }
+    return remaining;
+#else
 	if ( m_cReferences > 0 && !A3dReferenceDecrement( &m_cReferences ) )
 	{
 		delete this;
@@ -102,10 +141,65 @@ ULONG STDMETHODCALLTYPE CA3dClassFactory::Release()
 	}
 
 	return m_cReferences;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, REFIID iid, void** ppObject )
 {
+#ifndef _WIN32
+    if (!ppObject) {
+        return E_POINTER;
+    }
+    *ppObject = nullptr;
+    if (pOuter) {
+        return CLASS_E_NOAGGREGATION;
+    }
+    const bool api = IsEqualIID(iid, IID_IA3d3) || IsEqualIID(iid, IID_IUnknown);
+    const bool providerView = IsEqualIID(iid, IID_IDirectSound) || IsEqualIID(iid, IID_IA3d) ||
+        IsEqualIID(iid, IID_IA3d2) || IsEqualIID(iid, IID_IA3dNativeDeviceV1) ||
+        IsEqualIID(iid, s_A3dPlatformInterfaceId);
+    if (!api && !providerView) {
+        return E_NOINTERFACE;
+    }
+    IUnknown* provider = nullptr;
+    HRESULT result = A3dCreateNativeProvider(&provider);
+    if (FAILED(result)) {
+        return result;
+    }
+    if (providerView) {
+        result = provider->QueryInterface(iid, ppObject);
+        provider->Release();
+        return result;
+    }
+    IDirectSound* sound = nullptr;
+    IA3d2* api2 = nullptr;
+    result = provider->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&sound));
+    if (SUCCEEDED(result)) {
+        result = provider->QueryInterface(IID_IA3d2, reinterpret_cast<void**>(&api2));
+    }
+    provider->Release();
+    if (FAILED(result)) {
+        if (sound) {
+            sound->Release();
+        }
+        return result;
+    }
+    CA3d* parent = A3dNativeAcquisitionSucceeded() ? new (std::nothrow) CA3d(FALSE) : nullptr;
+    if (!parent) {
+        sound->Release();
+        api2->Release();
+        return E_OUTOFMEMORY;
+    }
+    result = parent->InitializeInterfaces(sound, api2, nullptr);
+    if (SUCCEEDED(result)) {
+        result = parent->QueryInterface(iid, ppObject);
+    }
+    if (FAILED(result)) {
+        delete parent;
+    }
+    return result;
+#else
+
 	*ppObject = NULL;
 
 	IUnknown* pDriver = NULL;
@@ -117,23 +211,6 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 	if ( pOuter )
 		return CLASS_E_NOAGGREGATION;
 
-#ifndef _WIN32
-    HRESULT activation = A3dCreateNativeProvider(&pDriver);
-    if (FAILED(activation)) {
-        return activation;
-    }
-    activation = pDriver->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&pDirectSound));
-    if (SUCCEEDED(activation)) {
-        activation = pDriver->QueryInterface(IID_IA3d2, reinterpret_cast<void**>(&pA3d2));
-    }
-    pDriver->Release();
-    if (FAILED(activation)) {
-        if (pDirectSound) {
-            pDirectSound->Release();
-        }
-        return activation;
-    }
-#else
 	if ( SUCCEEDED( CoCreateInstance( s_A3dDalClassId, NULL, CLSCTX_INPROC_SERVER,
 		s_A3dDalInterfaceId, (void**)&pDriver ) ) )
 	{
@@ -165,26 +242,15 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 				return hr;
 		}
 
-#ifdef _WIN32
 		if ( !A3dCheckSystemDriverVersion() )
 			return E_FAIL;
-#endif
 
 		bLegacyDriver = TRUE;
 	}
 
-#endif
 
-#ifndef _WIN32
-    CA3d* pA3dObject = A3dNativeAcquisitionSucceeded() ? new (std::nothrow) CA3d(bLegacyDriver) : nullptr;
-#else
 	CA3d* pA3dObject = new ( std::nothrow ) CA3d( bLegacyDriver );
-#endif
     if (!pA3dObject) {
-#ifndef _WIN32
-        pDirectSound->Release();
-        pA3d2->Release();
-#endif
         return E_OUTOFMEMORY;
     }
 
@@ -219,16 +285,32 @@ HRESULT STDMETHODCALLTYPE CA3dClassFactory::CreateInstance( IUnknown* pOuter, RE
 
 	A3dReferenceIncrement( &g_cA3dObjects );
 	return S_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dClassFactory::LockServer( BOOL bLock )
 {
+#ifndef _WIN32
+    if (bLock) {
+        A3dReferenceIncrement(&g_cA3dLocks);
+        return S_OK;
+    }
+    LONG locks = __atomic_load_n(&g_cA3dLocks, __ATOMIC_SEQ_CST);
+    while (locks > 0) {
+        if (__atomic_compare_exchange_n(&g_cA3dLocks, &locks, locks - 1, false,
+            __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)) {
+            return S_OK;
+        }
+    }
+    return E_INVALIDARG;
+#else
 	if ( bLock )
 		A3dReferenceIncrement( &g_cA3dLocks );
 	else
 		A3dReferenceDecrement( &g_cA3dLocks );
 
 	return S_OK;
+#endif
 }
 
 static const IID s_SceneFactoryInterfaceId =
@@ -310,6 +392,15 @@ HRESULT CA3d::InitializeInterfaces( IDirectSound* pDirectSound, IA3d2* pA3d2, IA
 
 HRESULT STDMETHODCALLTYPE CA3d::QueryInterface( REFIID iid, void** ppObject )
 {
+#ifndef _WIN32
+    // Only admitted native views are public. Retained private scene-builder and
+    // compatibility routes are not qualified native module contracts.
+    if (ppObject && (IsEqualIID(iid, s_SceneFactoryInterfaceId) ||
+        IsEqualIID(iid, s_CompatibilityInterfaceId) || IsEqualIID(iid, s_DirectSoundInterfaceId))) {
+        *ppObject = nullptr;
+        return E_NOINTERFACE;
+    }
+#endif
 	if ( !ppObject )
 		return E_INVALIDARG;
 
@@ -396,7 +487,12 @@ HRESULT STDMETHODCALLTYPE CA3d::SetOcclusionModeInternal( DWORD )
 
 HRESULT STDMETHODCALLTYPE CA3d::SetReflectionModeInternal( DWORD )
 {
-	return S_OK;
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        return E_NOTIMPL;
+    }
+#endif
+    return S_OK;
 }
 
 HRESULT CA3d::InitializeSceneFactory()

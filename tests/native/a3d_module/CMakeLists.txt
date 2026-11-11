@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.25)
+project(A3dNativeModule LANGUAGES CXX)
+get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+if(NOT EXISTS "${A3D_MODULE}")
+    message(FATAL_ERROR "A3D_MODULE must identify the actual owning production dylib")
+endif()
+find_package(Threads REQUIRED)
+add_executable(a3d_module_tests module_tests.cpp)
+target_compile_features(a3d_module_tests PRIVATE cxx_std_17)
+target_include_directories(a3d_module_tests PRIVATE "${ROOT}/GoldSrc-SDK/public" "${ROOT}/GoldSrc-SDK/a3dapi")
+target_compile_options(a3d_module_tests PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(a3d_module_tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+enable_testing()
+foreach(case reject_abi_before_factory class_iid_aggregation canonical_unknown qi_failure_cleanup
+        source_buffer_playback held_interface_unload_refusal factory_lock_balance repeated_load_unload
+        notification_busy_unload notification_public_admission callable_operation_matrix)
+    add_test(NAME ${case} COMMAND a3d_module_tests "${A3D_MODULE}" ${case} "${A3D_FOREIGN_MODULE}")
+    set_tests_properties(${case} PROPERTIES TIMEOUT 30 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
+endforeach()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME abi_slot_declarations COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_LIST_DIR}/check_contract.py" "${ROOT}")

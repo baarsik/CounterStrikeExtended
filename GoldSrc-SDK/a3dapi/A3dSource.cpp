@@ -174,8 +174,14 @@ HRESULT STDMETHODCALLTYPE CA3dSource::QueryInterface( REFIID iid, void** ppObjec
 		return E_INVALIDARG;
 
 	*ppObject = NULL;
+#ifndef _WIN32
+    if (IsEqualIID(iid, IID_IUnknown) || IsEqualIID(iid, IID_IA3dSource)) {
+        *ppObject = static_cast<IA3dSource202*>(this);
+    }
+#else
 	if ( !memcmp( &iid, &IID_IUnknown, sizeof( IID ) ) )
 		*ppObject = (IA3dSource202*)this;
+#endif
 	else if ( !memcmp( &iid, &IID_A3dSourcePrivate, sizeof( IID ) ) )
 		*ppObject = (IA3dSourcePrivate*)this;
 
@@ -228,7 +234,11 @@ HRESULT STDMETHODCALLTYPE CA3dSource::GetType( LPDWORD pdwType )
 
 HRESULT STDMETHODCALLTYPE CA3dSource::Rewind()
 {
-	return S_OK;
+#ifndef _WIN32
+    return SetWavePosition(0);
+#else
+    return S_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::SetWaveTime( A3DVAL )
@@ -243,20 +253,33 @@ HRESULT STDMETHODCALLTYPE CA3dSource::GetWaveTime( LPA3DVAL )
 
 HRESULT STDMETHODCALLTYPE CA3dSource::SetWavePosition( DWORD dwPosition )
 {
+#ifndef _WIN32
+    return m_pBuffer ? m_pBuffer->SetCurrentPosition(dwPosition) : A3DERROR_NO_WAVE_DATA;
+#else
 	if ( m_pBuffer )
 		m_pBuffer->SetCurrentPosition( dwPosition );
 
 	return S_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::GetWavePosition( LPDWORD pdwPosition )
 {
+#ifndef _WIN32
+    if (!pdwPosition) {
+        return E_INVALIDARG;
+    }
+    *pdwPosition = 0;
+    DWORD writePosition = 0;
+    return m_pBuffer ? m_pBuffer->GetCurrentPosition(pdwPosition, &writePosition) : A3DERROR_NO_WAVE_DATA;
+#else
 	DWORD dwWritePosition;
 
 	if ( m_pBuffer )
 		m_pBuffer->GetCurrentPosition( pdwPosition, &dwWritePosition );
 
 	return S_OK;
+#endif
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::SetPosition3f( A3DVAL x, A3DVAL y, A3DVAL z )
@@ -796,7 +819,10 @@ HRESULT STDMETHODCALLTYPE CA3dSource::AllocateWaveData( INT nSize )
 		m_pBuffer = NULL;
 	}
 
-	if ( !m_wBitsPerSample )
+#ifndef _WIN32
+    m_nWaveSize = 0;
+#endif
+    if ( !m_wBitsPerSample )
 		return A3DERROR_NEEDS_FORMAT_INFORMATION;
 
 	DSBUFFERDESC1 desc = {};
@@ -831,7 +857,10 @@ HRESULT STDMETHODCALLTYPE CA3dSource::AllocateWaveData( INT nSize )
 	if ( FAILED( m_pBuffer->QueryInterface( IID_A3dRenderBuffer, (void**)&m_pSourceBackend ) ) )
 		m_pSourceBackend = NULL;
 
-	InitializeRenderState();
+#ifndef _WIN32
+    m_nWaveSize = static_cast<DWORD>(nSize);
+#endif
+    InitializeRenderState();
 	return S_OK;
 }
 
@@ -1027,7 +1056,10 @@ HRESULT STDMETHODCALLTYPE CA3dSource::FreeWaveData()
 		m_pSourceBackend = NULL;
 	}
 
-	return S_OK;
+#ifndef _WIN32
+    m_nWaveSize = 0;
+#endif
+    return S_OK;
 }
 
 HRESULT STDMETHODCALLTYPE CA3dSource::SetWaveFormat( LPVOID pFormat )

@@ -111,6 +111,12 @@
       <ExceptionHandling>false</ExceptionHandling>
       <FloatingPointModel>Precise</FloatingPointModel>
     </ClCompile>
+    <ClCompile Include="..\..\a3dapi\native_exports.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>posix</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\a3dapi\native_notifications.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>posix</CseTargetOS>
@@ -213,6 +219,7 @@
     <ClInclude Include="..\..\a3dapi\native_output.h" />
     <ClInclude Include="..\..\a3dapi\native_notifications.h" />
     <ClInclude Include="..\..\public\cse_a3d_notifications.h" />
+    <ClInclude Include="..\..\public\cse_a3d_abi.h" />
     <ClInclude Include="..\..\a3dapi\native_mix.h" />
     <ClInclude Include="..\..\a3dapi\native_buffer.h" />
     <ClInclude Include="..\..\a3dapi\platform_types.h" />

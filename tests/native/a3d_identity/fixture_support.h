@@ -12,6 +12,15 @@ class CA3d;
 using IA3dGeomTarget = CA3d;
 class CA3d {
 public:
+    // The identity component owns this parent on the stack. Mirror only the
+    // retained-list reference balance; real module deletion is tested elsewhere.
+    ULONG fixtureReferences = 1;
+    ULONG AddRef() {
+        return ++fixtureReferences;
+    }
+    ULONG Release() {
+        return --fixtureReferences;
+    }
     HRESULT STDMETHODCALLTYPE Begin(DWORD);
     HRESULT STDMETHODCALLTYPE End();
     HRESULT STDMETHODCALLTYPE Tag(DWORD);

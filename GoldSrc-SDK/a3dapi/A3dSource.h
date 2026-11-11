@@ -131,6 +131,40 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE GetAudibility( LPA3DVAL pAudibility ) = 0;
 	virtual HRESULT STDMETHODCALLTYPE GetOcclusionFactor( LPA3DVAL pFactor ) = 0;
 	virtual HRESULT STDMETHODCALLTYPE GetStatus( LPDWORD pdwStatus ) = 0;
+#ifndef _WIN32
+    // Complete the native SDK view without advertising unimplemented trailing operations.
+    virtual HRESULT STDMETHODCALLTYPE SetPanValues(DWORD, LPA3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetPanValues(DWORD, LPA3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetWaveEvent(DWORD, HANDLE) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE ClearWaveEvents() {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetTransformMode(DWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetTransformMode(LPDWORD) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetReflectionDelayScale(A3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetReflectionDelayScale(LPA3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE SetReflectionGainScale(A3DVAL) {
+        return E_NOTIMPL;
+    }
+    virtual HRESULT STDMETHODCALLTYPE GetReflectionGainScale(LPA3DVAL) {
+        return E_NOTIMPL;
+    }
+#endif
+
 };
 
 class IA3dSourcePrivate : public IUnknown

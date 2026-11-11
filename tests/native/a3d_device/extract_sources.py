@@ -52,7 +52,7 @@ for name in ["A3D_1ST_REFLECTIONS", "A3D_DIRECT_PATH_A3D", "A3D_OCCLUSIONS", "A3
              "A3D_RESOURCE_MODE_DYNAMIC"]:
     match = re.search(r"^#define " + name + r"\s+[^\n]+", text, re.MULTILINE)
     add("ia3dapi.h", match.start(), match.group())
-for name in ["A3DERROR_CODE", "A3DERROR_FAILED_INIT"]:
+for name in ["A3DERROR_CODE", "A3DERROR_FAILED_INIT", "A3DERROR_FEATURE_NOT_SUPPORTED"]:
     match = re.search(r"^#define " + name + r"(?:\([^\n]+?\))?\s+[^\n]+", text, re.MULTILINE)
     add("ia3dapi.h", match.start(), match.group())
 text = (args.source / "A3d3.h").read_text(encoding="cp1252")

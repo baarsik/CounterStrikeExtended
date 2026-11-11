@@ -1838,7 +1838,7 @@ HRESULT STDMETHODCALLTYPE CA3d::Init( LPGUID pDevice, DWORD dwFeatures, DWORD )
     if (UsesNativeProvider()) {
         m_dwRequestedFeatures = dwFeatures;
         m_dwFeaturesAvailable = dwSupportedFeatures;
-        m_dwEnabledFeatures &= dwSupportedFeatures;
+        m_dwEnabledFeatures = dwSupportedFeatures;
     } else
 #endif
     {
