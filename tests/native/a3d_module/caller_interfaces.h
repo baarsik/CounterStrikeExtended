@@ -1,8 +1,7 @@
 #pragma once
 #include "ia3dapi.h"
 #include "platform_dsound.h"
-class IA3dGeomTarget : public IUnknown
-{
+class IA3dGeomTarget : public IUnknown {
 public:
     virtual HRESULT STDMETHODCALLTYPE Enable( DWORD dwFeatures ) = 0;
     virtual HRESULT STDMETHODCALLTYPE Disable( DWORD dwFeatures ) = 0;
@@ -54,8 +53,7 @@ public:
 
 };
 
-class IA3dListenerTarget : public IUnknown
-{
+class IA3dListenerTarget : public IUnknown {
 public:
     virtual HRESULT STDMETHODCALLTYPE ListenerSetPosition3f( A3DVAL x, A3DVAL y, A3DVAL z ) = 0;
     virtual HRESULT STDMETHODCALLTYPE ListenerGetPosition3f( LPA3DVAL pX, LPA3DVAL pY, LPA3DVAL pZ ) = 0;
@@ -77,8 +75,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE ListenerGetVelocity3fv( LPA3DVAL pVelocity ) = 0;
 };
 
-class IA3dSource202 : public IUnknown
-{
+class IA3dSource202 : public IUnknown {
 public:
     virtual HRESULT STDMETHODCALLTYPE LoadWaveFile( LPSTR pFilename ) = 0;
     virtual HRESULT STDMETHODCALLTYPE LoadWaveData( LPVOID pData, DWORD dwSize ) = 0;

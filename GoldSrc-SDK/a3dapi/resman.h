@@ -144,7 +144,11 @@ protected:
 	HANDLE							m_hNotificationMutex;
 };
 
-class ResManStreamBuffer : public ResManBuffer
+class ResManStreamBuffer
+#ifndef _WIN32
+    final
+#endif
+    : public ResManBuffer
 #ifndef _WIN32
     , public IA3dNativeNotifyV1, public IDirectSound3DBuffer
 #endif

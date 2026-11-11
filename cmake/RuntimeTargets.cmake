@@ -48,6 +48,18 @@ function(cse_runtime_directory target relative)
   set_target_properties(${target} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>"
     LIBRARY_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>")
+  if(APPLE)
+    # The staged dependency directory is shared by root and game-relative images.
+    # Do not encode the owning build tree into relocatable runtime load commands.
+    file(RELATIVE_PATH runtime_root "${CSE_OUTPUT_DIRECTORY}/${relative}" "${CSE_OUTPUT_DIRECTORY}")
+    if(runtime_root)
+      set(runtime_rpath "@loader_path/${runtime_root}")
+    else()
+      set(runtime_rpath "@loader_path")
+    endif()
+    set_target_properties(${target} PROPERTIES
+      INSTALL_RPATH "${runtime_rpath}" BUILD_WITH_INSTALL_RPATH YES)
+  endif()
   # Resource compiler file-backed inputs are resolved using the source directory.
   get_target_property(sources ${target} SOURCES)
   foreach(source IN LISTS sources)

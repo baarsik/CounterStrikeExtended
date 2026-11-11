@@ -218,7 +218,9 @@ int main(int argc, char** argv) {
         control.Right.flElevation = -halfPi;
         CHECK(render->SetA3dSuperCtrl(&control, 0) == S_OK);
         const auto output = Render(owner, 64);
-        CHECK(std::any_of(output.begin(), output.end(), [](SHORT sample) { return sample != 0; }));
+        CHECK(std::any_of(output.begin(), output.end(), [](SHORT sample) {
+            return sample != 0;
+        }));
         control.flPitch = 0;
         CHECK(render->SetA3dSuperCtrl(&control, 0) == S_OK);
         render->Release();

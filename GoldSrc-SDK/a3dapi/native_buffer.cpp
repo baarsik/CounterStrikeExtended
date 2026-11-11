@@ -279,19 +279,21 @@ HRESULT A3dNativeBuffer::GetFormat(LPWAVEFORMATEX format, DWORD bytes, LPDWORD w
 }
 
 HRESULT A3dNativeBuffer::GetVolume(LPLONG volume) {
-
     return Read(volume_, volume);
-
 }
+
 HRESULT A3dNativeBuffer::GetPan(LPLONG pan) {
     return Read(pan_, pan);
 }
+
 HRESULT A3dNativeBuffer::GetFrequency(LPDWORD frequency) {
     return Read(voice_.frequency_, frequency);
 }
+
 HRESULT A3dNativeBuffer::GetPriority(LPDWORD priority) {
     return Read(priority_, priority);
 }
+
 HRESULT A3dNativeBuffer::GetBufferState(LPDWORD state) {
     return Read(state_, state);
 }
@@ -309,31 +311,37 @@ HRESULT A3dNativeBuffer::GetStatus(LPDWORD status) {
 }
 
 HRESULT A3dNativeBuffer::Initialize(LPDIRECTSOUND, LPCDSBUFFERDESC) {
-
     return E_NOTIMPL;
-
 }
+
 HRESULT A3dNativeBuffer::SetFormat(LPCWAVEFORMATEX) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::Restore() {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::GetAllocationStatus(DWORD) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::GetWave(DWORD) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::GetDriverInfo(DWORD, DWORD) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::SetNewBuffer(DWORD, DWORD) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::SetA3dDirectCtrl(DWORD, DWORD) {
     return E_NOTIMPL;
 }
+
 HRESULT A3dNativeBuffer::GetStatusEx(DWORD) {
     return E_NOTIMPL;
 }

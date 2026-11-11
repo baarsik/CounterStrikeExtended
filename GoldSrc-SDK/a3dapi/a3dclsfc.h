@@ -2,7 +2,11 @@
 
 #include "platform_com.h"
 
-class CA3dClassFactory : public IClassFactory
+class CA3dClassFactory
+#ifndef _WIN32
+    final
+#endif
+    : public IClassFactory
 {
 public:
 	CA3dClassFactory();
