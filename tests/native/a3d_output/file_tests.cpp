@@ -9,7 +9,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <vector>
-#define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); std::exit(1); } } while (0)
+#define CHECK(value) \
+    do { \
+        if (!(value)) { \
+            std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); \
+            std::exit(1); \
+        } \
+    } while (0)
 static int OpenDescriptors() {
     int count = 0;
     constexpr int kProbeDescriptors = 1024;
@@ -57,7 +63,9 @@ int main(int argc, char** argv) {
         return 0;
     }
     A3dNativeWave wave(!std::strcmp(test, "wave_allocation_failure") ?
-        +[](std::size_t) -> void* { return nullptr; } : A3dAllocate);
+        +[](std::size_t) -> void* {
+            return nullptr;
+        } : A3dAllocate);
     if (!std::strcmp(test, "missing_file")) {
         CHECK(wave.Load("/no/such/a3d-fixture.wav") == A3DERROR_FAILED_FILE_OPEN);
         CHECK(!wave.Data() && !wave.Size());

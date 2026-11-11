@@ -5,7 +5,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
-#define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); std::exit(1); } } while (0)
+#define CHECK(value) \
+    do { \
+        if (!(value)) { \
+            std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); \
+            std::exit(1); \
+        } \
+    } while (0)
 extern std::atomic<int> fixtureRenderCount;
 extern std::atomic<bool> fixtureBlockRender;
 extern std::atomic<bool> fixtureRenderEntered;
@@ -151,7 +157,10 @@ int main(int argc, char** argv) {
         CHECK(output.Open(nullptr, mixer) == S_OK);
         Until(fixtureRenderEntered);
         std::atomic<bool> closed{false};
-        std::thread closer([&] { output.Close(); closed = true; });
+        std::thread closer([&] {
+            output.Close();
+            closed = true;
+        });
         SDL_Delay(20);
         CHECK(!closed && destroyed == 0);
         fixtureBlockRender = false;
@@ -161,10 +170,16 @@ int main(int argc, char** argv) {
         CHECK(output.Open(nullptr, mixer) == S_OK);
         Prepared();
         blockPut = true;
-        std::thread callback([] { SHORT data[512]; SDL_GetAudioStreamData(stream, data, sizeof(data)); });
+        std::thread callback([] {
+            SHORT data[512];
+            SDL_GetAudioStreamData(stream, data, sizeof(data));
+        });
         Until(enteredPut);
         std::atomic<bool> closed{false};
-        std::thread closer([&] { output.Close(); closed = true; });
+        std::thread closer([&] {
+            output.Close();
+            closed = true;
+        });
         SDL_Delay(20);
         CHECK(!closed && destroyed == 0);
         blockPut = false;

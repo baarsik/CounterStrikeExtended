@@ -4,14 +4,23 @@
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
-#define CHECK(value) do { if (!(value)) { std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); std::exit(1); } } while (0)
+#define CHECK(value) \
+    do { \
+        if (!(value)) { \
+            std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); \
+            std::exit(1); \
+        } \
+    } while (0)
 // Labeled local test doubles: no ABI or real provider acceptance is implied.
 struct BufferFixture {
     int references = 3;
     bool failLock = false;
     bool failUnlock = false;
     BYTE bytes[4]{};
-    void Release() { --references; }
+    void Release() {
+        --references;
+    }
+
     HRESULT Lock(DWORD, DWORD, void** first, DWORD* firstBytes, void** second, DWORD* secondBytes, DWORD) {
         if (failLock) {
             return E_FAIL;
@@ -22,7 +31,10 @@ struct BufferFixture {
         *secondBytes = 2;
         return S_OK;
     }
-    HRESULT Unlock(void*, DWORD, void*, DWORD) { return failUnlock ? E_FAIL : S_OK; }
+
+    HRESULT Unlock(void*, DWORD, void*, DWORD) {
+        return failUnlock ? E_FAIL : S_OK;
+    }
 };
 class CA3dSource {
 public:
