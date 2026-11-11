@@ -14,7 +14,33 @@
 #include <string>
 #include <vector>
 
+#ifdef _WIN32
+// Host_Load's real fail-fast branch needs the SDK constant and compiler intrinsic.
+// Preserve the fixture's independently selected 260/1024 host path width.
+#pragma push_macro("MAX_PATH")
+#pragma push_macro("NOMINMAX")
+#pragma push_macro("WIN32_LEAN_AND_MEAN")
+#pragma push_macro("FALSE")
+#pragma push_macro("TRUE")
+#pragma push_macro("ARRAYSIZE")
+#undef MAX_PATH
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <intrin.h>
+#pragma pop_macro("ARRAYSIZE")
+#pragma pop_macro("TRUE")
+#pragma pop_macro("FALSE")
+#pragma pop_macro("WIN32_LEAN_AND_MEAN")
+#pragma pop_macro("NOMINMAX")
+#pragma pop_macro("MAX_PATH")
+#else
 #define __cdecl
+#endif
 #define _snprintf std::snprintf
 #define FILE_COPY_SIZE 1024
 #define Q_strstr std::strstr
