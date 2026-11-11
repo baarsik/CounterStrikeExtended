@@ -1,4 +1,9 @@
 #pragma once
+#if defined(CSE_TEST_SOCKET_OWNER)
+#include "native_socket_lifetime.h"
+#include "SocketImageOwner.h"
+#include <dlfcn.h>
+#endif
 #if defined(_WIN32)
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -69,7 +74,17 @@ constexpr int kInjectedSocketError = WSAENOBUFS;
 inline int fixtureSocketError = kInjectedSocketError;
 #endif
 
+#if defined(CSE_TEST_SOCKET_OWNER)
+void InitializeSocketFixture();
+#endif
 inline void ResetApi() {
+#if defined(CSE_TEST_SOCKET_OWNER)
+    InitializeSocketFixture();
+    if (!liveLoopback) {
+        cse::socket_lifetime::CloseUdp(api.created);
+        cse::socket_lifetime::CloseUdp(api.duplicate);
+    }
+#endif
     api = {};
     errno = 0;
 #if defined(_WIN32)
@@ -398,3 +413,54 @@ inline hostent* FixtureControlledHostname(const char* name) {
 #undef WSAGetLastError
 #undef sendto
 #undef recvfrom
+
+#if defined(CSE_TEST_SOCKET_OWNER)
+int CseTestSocket(int family, int type, int protocol) {
+    return FixtureSocket(family, type, protocol);
+}
+int CseTestClose(int descriptor) {
+    return FixtureClose(descriptor);
+}
+int CseTestFcntl(int descriptor, int command, ...) {
+    va_list args;
+    va_start(args, command);
+    const int value = va_arg(args, int);
+    va_end(args);
+    if (command == F_SETFD) {
+        Require(value == FD_CLOEXEC, "additional exec protection on actual host-created descriptor");
+        return liveLoopback ? ::fcntl(descriptor, command, value) : 0;
+    }
+    return FixtureDuplicate(descriptor, command, value);
+}
+int CseTestDlclose(void* image) {
+    return ::dlclose(image);
+}
+int CseTestAtfork(void (*prepare)(), void (*parent)(), void (*child)()) {
+    return ::pthread_atfork(prepare, parent, child);
+}
+inline void InitializeSocketFixture() {
+    static bool initialized = false;
+    if (initialized) {
+        return;
+    }
+    Require(cse::socket_lifetime::InitializeProcess(), "actual executable process installer");
+    Dl_info physical{};
+    Require(dladdr(reinterpret_cast<const void*>(&cse::socket_lifetime::CreateUdp), &physical) != 0,
+            "actual linked socket producer provenance");
+    void* image = dlopen(physical.dli_fname, RTLD_NOW | RTLD_LOCAL | RTLD_NOLOAD);
+    Require(image != nullptr, "linked fixture producer reference");
+    struct Lifetime {
+        cse::socket_lifetime::SocketImageOwner owner;
+        ~Lifetime() {
+            cse::socket_lifetime::CloseUdp(api.created);
+            cse::socket_lifetime::CloseUdp(api.duplicate);
+            Require(owner.Retire(), "linked transport fixture actual terminal cleanup");
+        }
+    };
+    // Linked component evidence, not a cold-load or physical-unmap claim.
+    static Lifetime lifetime;
+    Require(lifetime.owner.Open(image, physical.dli_fname), "actual executable owner binds actual producer");
+    Require(dlclose(image) == 0, "balance temporary lookup reference");
+    initialized = true;
+}
+#endif

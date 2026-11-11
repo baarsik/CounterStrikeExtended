@@ -68,6 +68,11 @@ bool DedicatedModuleSet::Open(const char* root, bool gui, std::string& error) {
         retire_ = nullptr;
         return false;
     }
+    if (!sockets_.Open(engineModule_, enginePath.c_str())) {
+        error = "Missing or incompatible executable socket owner";
+        Close();
+        return false;
+    }
     if (!software_.Open(engineModule_, enginePath.c_str(), software_lifetime::Mode::Dedicated)) {
         error = "Missing or incompatible whole-software retirement owner";
         Close();
@@ -154,7 +159,7 @@ bool DedicatedModuleSet::Retire() noexcept {
         return true;
     }
     Shutdown();
-    if (!software_.Retire()) {
+    if (!software_.Retire() || !sockets_.Retire()) {
         return false;
     }
     retired_ = true;

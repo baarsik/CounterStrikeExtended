@@ -12,6 +12,9 @@ game_source=game_owner.read_text()
 game_body='\n'.join(extract(game_source,name,0,1)[0] for name in ['cse::InitializeNativeGameUIHost','cse::NativeGameUIIsMainThread','cse::NativeGameUIIsRetirementSafePoint','cse::EnterNativeGameUIUse','cse::LeaveNativeGameUIUse','cse::EnterNativeGameUIRetirement','cse::LeaveNativeGameUIRetirement'])
 (out/'game_identity.inc').write_text(game_body)
 command=['clang++','-std=c++17',('-Os' if '--release' in sys.argv else '-O0'),'-UNDEBUG','-DSW_RENDERER','-Wall','-Wextra','-Werror','-I'+str(out),'-I'+str(root/'GoldSrc-SDK'),str(root/'tests/native/software_lifetime/bootstrap.cpp'),str(root/'GoldSrc-SDK/engine/native_software_lifetime.cpp'),'-o',str(out/'bootstrap')]
+sys.path.insert(0, str(root / 'tests/native/socket_lifetime'))
+from linked_owner import arguments
+command += arguments(root, out, '-Os' if '--release' in sys.argv else '-O0')
 run=subprocess.run(command,capture_output=True);(out/'compile.log').write_bytes(run.stdout+run.stderr)
 receipt={'source_sha256':hashlib.sha256(owner.read_bytes()).hexdigest(),'game_identity_source_sha256':hashlib.sha256(game_owner.read_bytes()).hexdigest(),'game_identity_body_sha256':hashlib.sha256(game_body.encode()).hexdigest(),'body_sha256':hashlib.sha256(body.encode()).hexdigest(),'command':command,'compile_exit':run.returncode}
 if not run.returncode:

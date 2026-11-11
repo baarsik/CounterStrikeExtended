@@ -68,6 +68,16 @@ def run(args):
         client_constants += matches
     (args.output / 'actual_types.h').write_text(packet[0] + '\n' + '\n'.join(constants)
         + '\n' + loops[0] + '\n' + states[0] + '\n' + block)
+    # Exact production owner-state declarations and terminal query, independently of transport stubs.
+    state = ['using qboolean = int;', 'using SOCKET = int;']
+    for pattern in [r'^constexpr int NET_SOCKET_SOURCES[^;]*;', r'^qboolean net_thread_initialized;',
+                    r'^SOCKET ip_sockets\[NET_SOCKET_SOURCES\];', r'^int net_configured;']:
+        matches = re.findall(pattern, text, re.M)
+        assert len(matches) == 1, pattern
+        state += matches
+    (args.output / 'actual_network_state.h').write_text('\n'.join(state) + '\n')
+    query = extract(text, 'NET_NativeSocketsQuiescent') if 'bool NET_NativeSocketsQuiescent()' in text else ''
+    (args.output / 'actual_network_quiescence.h').write_text(query + '\n')
     (args.output / 'actual_resend.h').write_text('\n'.join(client_constants) + '\n'
         + extract(client, 'CL_CheckForResend') + '\n')
 

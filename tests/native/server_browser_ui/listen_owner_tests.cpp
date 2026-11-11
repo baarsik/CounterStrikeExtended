@@ -1,3 +1,7 @@
+#if defined(__APPLE__)
+#include "engine/native_socket_lifetime.h"
+#include <pthread.h>
+#endif
 #include "check.h"
 #include "native_gameui_retirement.h"
 #include <algorithm>
@@ -172,9 +176,6 @@ bool FinishNativeListenShutdown();
 #endif
 }
 #if defined(__APPLE__)
-int pthread_main_np() {
-    return 1;
-}
 #include "listen_state.inc"
 #include "listen_retirement.inc"
 #endif
@@ -183,7 +184,11 @@ int pthread_main_np() {
 #else
 #include "listen_sw.inc"
 #endif
+#if defined(__APPLE__)
+extern "C" __attribute__((visibility("default"))) int CseTestListenRun(int argc, char **argv) {
+#else
 int main(int argc, char **argv) {
+#endif
     if (argc != 2) {
         return 2;
     }

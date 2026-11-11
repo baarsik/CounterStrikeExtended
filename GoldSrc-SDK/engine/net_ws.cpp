@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_socket_lifetime.h"
+#endif
 #if !defined( _WIN32 )
 #include <cerrno>
 #include <cstdint>
@@ -167,7 +170,11 @@ bool NET_PosixBuildReadSet(const SOCKET (&sockets)[NET_SOCKET_SOURCES], fd_set& 
 
 SOCKET NET_PosixCloseOpenFailure(SOCKET socket, int savedError) {
     constexpr SOCKET kClosedEngineSocket = 0;
+#if defined(__APPLE__)
+    cse::socket_lifetime::CloseUdp(socket);
+#else
     close(socket);
+#endif
     errno = savedError;
     return kClosedEngineSocket;
 }
@@ -910,6 +917,21 @@ qboolean noip;
 int net_configured;
 int net_sleepforever = 1;
 
+#if defined(__APPLE__)
+bool NET_NativeSocketsQuiescent() {
+    // Main-thread terminal query after the actual shutdown/join. Never clear an owner to manufacture proof.
+    if (net_thread_initialized || net_configured) {
+        return false;
+    }
+    for (const SOCKET descriptor : ip_sockets) {
+        if (descriptor != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+#endif
+
 cvar_t net_address = { const_cast<char*>( "net_address" ), const_cast<char*>( "" ), 0, 0.0f, nullptr };
 cvar_t ipname = { const_cast<char*>( "ip" ), const_cast<char*>( "localhost" ), 0, 0.0f, nullptr };
 cvar_t iphostport = { const_cast<char*>( "ip_hostport" ), const_cast<char*>( "0" ), 0, 0.0f, nullptr };
@@ -1109,6 +1131,11 @@ void NET_Config( qboolean multiplayer )
             if (ip_sockets[source]) {
 #if defined(_WIN32)
                 closesocket(ip_sockets[source]);
+#elif defined(__APPLE__)
+                const auto closed = cse::socket_lifetime::CloseUdp(ip_sockets[source]);
+                if (closed.disposition != cse::socket_lifetime::CloseDisposition::Consumed) {
+                    continue;
+                }
 #else
                 close(ip_sockets[source]);
 #endif
@@ -1220,11 +1247,17 @@ SOCKET NET_IPSocket( char* networkInterface, int port, qboolean multicast )
 {
 #if !defined(_WIN32)
     constexpr SOCKET kClosedEngineSocket = 0;
+#if !defined(__APPLE__)
     constexpr int kFirstPositiveSocket = 1;
+#endif
     constexpr int kLowDelayTypeOfService = 16;
     int nonblocking = 1;
     int option = 1;
+#if defined(__APPLE__)
+    SOCKET socket = cse::socket_lifetime::CreateUdp();
+#else
     SOCKET socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#endif
     if (socket < 0) {
         const int error = errno;
         if (error != EAFNOSUPPORT) {
@@ -1233,6 +1266,7 @@ SOCKET NET_IPSocket( char* networkInterface, int port, qboolean multicast )
         errno = error;
         return kClosedEngineSocket;
     }
+#if !defined(__APPLE__)
     if (socket == kClosedEngineSocket) {
         const int positive = fcntl(socket, F_DUPFD, kFirstPositiveSocket);
         if (positive < 0) {
@@ -1247,6 +1281,7 @@ SOCKET NET_IPSocket( char* networkInterface, int port, qboolean multicast )
         Con_Printf("WARNING: UDP_OpenSocket: descriptor %d exceeds select capacity %d\n", socket, FD_SETSIZE);
         return NET_PosixCloseOpenFailure(socket, EMFILE);
     }
+#endif
     if (ioctl(socket, FIONBIO, &nonblocking) == -1) {
         const int error = errno;
         Con_Printf("WARNING: UDP_OpenSocket: port: %d  ioctl FIONBIO: %s\n", port, strerror(error));

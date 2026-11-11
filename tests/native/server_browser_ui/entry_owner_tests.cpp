@@ -1,3 +1,15 @@
+#if defined(__APPLE__)
+#include "engine/native_software_lifetime.h"
+#include "engine/native_socket_lifetime.h"
+bool nativeSoftwareClientEntered = false;
+static bool fixtureRunActive = false;
+namespace cse::software_lifetime {
+bool RetireResources(Mode mode) {
+    // This controlled leaf contains only the extracted Run entry and private gates, no SDK/UI/device owners.
+    return mode == Mode::Client && !fixtureRunActive;
+}
+}
+#endif
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -65,7 +77,17 @@ int RunListenServer(void *, char *base, char *command, char *restart, CreateInte
 #else
 #include "entry_sw.inc"
 #endif
+#if defined(__APPLE__)
+extern "C" __attribute__((visibility("default"))) int CseTestEntryRun(int argc, char **argv) {
+    fixtureRunActive = true;
+    struct ActiveCall {
+        ~ActiveCall() {
+            fixtureRunActive = false;
+        }
+    } activeCall;
+#else
 int main(int argc, char **argv) {
+#endif
     if (argc != 2) {
         return 2;
     }

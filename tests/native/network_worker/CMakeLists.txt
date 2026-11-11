@@ -58,3 +58,18 @@ foreach(target IN LISTS worker_targets)
   add_test(NAME ${target} COMMAND ${target})
   set_tests_properties(${target} PROPERTIES TIMEOUT 30)
 endforeach()
+
+if(APPLE)
+  execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/network_platform/extract_functions.py"
+    "${CSE_NETWORK_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/socket-state" COMMAND_ERROR_IS_FATAL ANY)
+  add_library(worker_socket_producer SHARED "${CSE_ROOT}/GoldSrc-SDK/engine/native_socket_lifetime.cpp"
+    "${CSE_ROOT}/tests/native/socket_lifetime/empty_provider.cpp"
+        "${CSE_ROOT}/tests/native/socket_lifetime/network_environment.cpp")
+  target_compile_features(worker_socket_producer PRIVATE cxx_std_17)
+  target_include_directories(worker_socket_producer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/socket-state")
+  target_sources(network_worker_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
+  target_include_directories(network_worker_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK"
+    "${CSE_ROOT}/tests/native/socket_lifetime")
+  target_link_libraries(network_worker_tests PRIVATE worker_socket_producer)
+  target_link_options(network_worker_tests PRIVATE -Wl,-export_dynamic)
+endif()

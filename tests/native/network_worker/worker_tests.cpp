@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "linked_owner.h"
+#endif
 #if defined(_WIN32)
 #include <winsock2.h>
 #include <Windows.h>
@@ -20,6 +23,7 @@ using SOCKET = int;
 #include <condition_variable>
 #include <cstddef>
 #include <future>
+#include <limits>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -160,7 +164,11 @@ static void NET_ClearLaggedList(packetlag_t*) {
 #include "actual_network.h"
 
 static SOCKET OpenSocket(sockaddr_in& address) {
+#if defined(__APPLE__)
+    SOCKET socket = cse::socket_lifetime::CreateUdp();
+#else
     SOCKET socket = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+#endif
     Require(socket != cse::kInvalidNetworkWorkerSocket && socket != 0, "could not open fixture UDP socket");
     address = {};
     address.sin_family = AF_INET;
@@ -185,6 +193,9 @@ static SOCKET OpenSocket(sockaddr_in& address) {
 static void CloseSocket(SOCKET socket) {
 #if defined(_WIN32)
     closesocket(socket);
+#elif defined(__APPLE__)
+    Require(cse::socket_lifetime::CloseUdp(socket).disposition ==
+        cse::socket_lifetime::CloseDisposition::Consumed, "actual shared owner closes only owned UDP");
 #else
     close(socket);
 #endif
@@ -533,6 +544,9 @@ static void TestConfigureAndShutdownLifetimes() {
 }
 
 int main() {
+#if defined(__APPLE__)
+    LinkedSocketOwner socketOwner;
+#endif
 #if defined(_WIN32)
     WSADATA data;
     Require(WSAStartup(MAKEWORD(1, 1), &data) == 0, "Winsock startup failed");

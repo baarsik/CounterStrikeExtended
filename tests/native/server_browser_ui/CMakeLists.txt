@@ -213,8 +213,31 @@ if(CSE_BROWSER_UI_MODEL_RETIREMENT_TESTS)
     endforeach()
 endif()
 
+if(APPLE)
+    execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_REPO}/tests/native/network_platform/extract_functions.py"
+        "${sdk}/engine/net_ws.cpp" "${CMAKE_CURRENT_BINARY_DIR}/socket-network" COMMAND_ERROR_IS_FATAL ANY)
+endif()
 foreach(renderer hw sw)
-    add_executable(browser_entry_${renderer}_tests entry_owner_tests.cpp)
+    if(APPLE)
+        add_library(browser_entry_${renderer}_provider SHARED entry_owner_tests.cpp
+            "${sdk}/engine/native_software_lifetime.cpp" "${sdk}/engine/native_socket_lifetime.cpp"
+            "${CSE_REPO}/tests/native/socket_lifetime/empty_provider.cpp"
+            "${CSE_REPO}/tests/native/socket_lifetime/network_environment.cpp")
+        add_dependencies(browser_entry_${renderer}_provider extract_browser_ui_owners)
+        target_include_directories(browser_entry_${renderer}_provider PRIVATE "${generated}" "${sdk}"
+            "${CMAKE_CURRENT_BINARY_DIR}/socket-network")
+        target_compile_definitions(browser_entry_${renderer}_provider PRIVATE
+            CSE_TEST_HARDWARE=$<IF:$<STREQUAL:${renderer},hw>,1,0>)
+        target_compile_options(browser_entry_${renderer}_provider PRIVATE -Wall -Wextra -Werror)
+        add_executable(browser_entry_${renderer}_tests entry_socket_host.cpp "${sdk}/launcher/native/SocketImageOwner.cpp")
+        add_dependencies(browser_entry_${renderer}_tests browser_entry_${renderer}_provider)
+        target_include_directories(browser_entry_${renderer}_tests PRIVATE "${sdk}")
+        target_compile_definitions(browser_entry_${renderer}_tests PRIVATE
+            CSE_ENTRY_PROVIDER="$<TARGET_FILE:browser_entry_${renderer}_provider>")
+        target_link_options(browser_entry_${renderer}_tests PRIVATE -Wl,-export_dynamic)
+    else()
+        add_executable(browser_entry_${renderer}_tests entry_owner_tests.cpp)
+    endif()
     add_dependencies(browser_entry_${renderer}_tests extract_browser_ui_owners)
     target_include_directories(browser_entry_${renderer}_tests PRIVATE "${generated}")
     if(renderer STREQUAL "hw")
@@ -233,7 +256,27 @@ foreach(renderer hw sw)
 endforeach()
 
 foreach(renderer hw sw)
-    add_executable(browser_listen_${renderer}_tests listen_owner_tests.cpp)
+    if(APPLE)
+        add_library(browser_listen_${renderer}_provider SHARED listen_owner_tests.cpp
+            "${sdk}/engine/native_socket_lifetime.cpp"
+            "${CSE_REPO}/tests/native/socket_lifetime/empty_provider.cpp"
+            "${CSE_REPO}/tests/native/socket_lifetime/network_environment.cpp")
+        add_dependencies(browser_listen_${renderer}_provider extract_browser_ui_owners)
+        target_include_directories(browser_listen_${renderer}_provider PRIVATE "${generated}" "${sdk}"
+            "${sdk}/engine" "${sdk}/public" "${CMAKE_CURRENT_BINARY_DIR}/socket-network")
+        target_compile_definitions(browser_listen_${renderer}_provider PRIVATE
+            CSE_TEST_HARDWARE=$<IF:$<STREQUAL:${renderer},hw>,1,0>)
+        target_compile_options(browser_listen_${renderer}_provider PRIVATE -Wall -Wextra -Werror)
+        add_executable(browser_listen_${renderer}_tests listen_socket_host.cpp
+            "${sdk}/launcher/native/SocketImageOwner.cpp")
+        add_dependencies(browser_listen_${renderer}_tests browser_listen_${renderer}_provider)
+        target_include_directories(browser_listen_${renderer}_tests PRIVATE "${sdk}")
+        target_compile_definitions(browser_listen_${renderer}_tests PRIVATE
+            CSE_LISTEN_PROVIDER="$<TARGET_FILE:browser_listen_${renderer}_provider>")
+        target_link_options(browser_listen_${renderer}_tests PRIVATE -Wl,-export_dynamic)
+    else()
+        add_executable(browser_listen_${renderer}_tests listen_owner_tests.cpp)
+    endif()
     add_dependencies(browser_listen_${renderer}_tests extract_browser_ui_owners)
     target_include_directories(browser_listen_${renderer}_tests PRIVATE "${generated}" "${sdk}/engine" "${sdk}/public")
     if(renderer STREQUAL "hw")

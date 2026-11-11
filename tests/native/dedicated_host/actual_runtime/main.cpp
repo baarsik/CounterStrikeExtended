@@ -4,6 +4,8 @@
 #include <cstring>
 #include <mach-o/dyld.h>
 #include <string>
+#include <sys/wait.h>
+#include <unistd.h>
 
 namespace {
 bool CohortUnmapped(int cycle) {
@@ -87,6 +89,22 @@ int main(int argc, char** argv) {
             std::printf("ACTUAL_SESSION_UNMAPPED cycle=%d\n", cycle);
         }
         std::fflush(stdout);
+        if (moduleOnly || clientNoRun) {
+            const pid_t child = fork();
+            if (child < 0) {
+                return 7;
+            }
+            if (child == 0) {
+                // The actual software cohort is physically absent; all fork callbacks must still be executable-owned.
+                return cse::socket_lifetime::InitializeProcess() ? 8 : 0;
+            }
+            int status = 0;
+            if (waitpid(child, &status, 0) != child || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+                return 9;
+            }
+            std::printf("POST_UNMAP_FORK cycle=%d child=%d normal_exit=0 inherited_owner_rejected=1\n",
+                cycle, static_cast<int>(child));
+        }
     }
     return 0;
 }

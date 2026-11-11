@@ -19,9 +19,26 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extra
 get_filename_component(CSE_ENGINE_DIRECTORY "${CSE_NETWORK_SOURCE}" DIRECTORY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_NETWORK_SOURCE}"
     "${CSE_ENGINE_DIRECTORY}/cl_main.cpp" "${CSE_ENGINE_DIRECTORY}/client.h" "${CMAKE_CURRENT_LIST_DIR}/extract_functions.py")
+if(APPLE)
+    add_library(network_socket_producer SHARED "${CSE_REPOSITORY}/GoldSrc-SDK/engine/native_socket_lifetime.cpp"
+        "${CSE_REPOSITORY}/tests/native/socket_lifetime/empty_provider.cpp"
+        "${CSE_REPOSITORY}/tests/native/socket_lifetime/network_environment.cpp")
+    target_include_directories(network_socket_producer PRIVATE "${extracted}")
+    add_library(network_socket_owner OBJECT "${CSE_REPOSITORY}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
+    target_compile_options(network_socket_owner PRIVATE -Wall -Wextra -Werror
+        -include "${CSE_REPOSITORY}/tests/native/socket_lifetime/syscall_redirect.h")
+endif()
 function(network_target target source policy)
     add_executable(${target} "${source}")
     target_include_directories(${target} PRIVATE "${extracted}" "${CSE_NETWORK_COMMON}")
+    if(APPLE)
+        target_sources(${target} PRIVATE $<TARGET_OBJECTS:network_socket_owner>)
+        target_link_libraries(${target} PRIVATE network_socket_producer)
+        target_link_options(${target} PRIVATE -Wl,-export_dynamic)
+        target_compile_definitions(${target} PRIVATE CSE_TEST_SOCKET_OWNER=1)
+        target_include_directories(${target} PRIVATE "${CSE_REPOSITORY}/GoldSrc-SDK/engine"
+            "${CSE_REPOSITORY}/GoldSrc-SDK/launcher/native")
+    endif()
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /EHsc)
         target_compile_definitions(${target} PRIVATE WIN32 _CRT_SECURE_NO_WARNINGS ${policy})

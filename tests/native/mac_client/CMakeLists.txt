@@ -59,7 +59,8 @@ target_compile_options(mac_client_module_paths PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(mac_client_module_paths PRIVATE "${CMAKE_DL_LIBS}")
 add_test(NAME mac-client-vfs-module-paths COMMAND mac_client_module_paths "${CSE_CLIENT_RUNTIME}")
 add_executable(mac_client_bootstrap bootstrap.cpp
-  "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp")
+  "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp"
+  "${CSE_ROOT}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
 target_compile_features(mac_client_bootstrap PRIVATE cxx_std_17)
 target_include_directories(mac_client_bootstrap PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public"
   "${CSE_ROOT}/GoldSrc-SDK/launcher/native")
@@ -83,7 +84,8 @@ add_test(NAME mac-client-game-export-isolation COMMAND "${Python3_EXECUTABLE}"
 
 if(EXISTS "${CSE_CLIENT_RUNTIME}/swds.dylib")
   add_executable(mac_software_font software_font.cpp
-    "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp")
+    "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp"
+  "${CSE_ROOT}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
   target_compile_features(mac_software_font PRIVATE cxx_std_17)
   target_compile_options(mac_software_font PRIVATE -UNDEBUG)
   target_include_directories(mac_software_font PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
@@ -103,3 +105,8 @@ add_test(NAME mac-client-cohort-admission COMMAND "${Python3_EXECUTABLE}"
 
 add_test(NAME mac-client-cohort-alias-reuse COMMAND "${Python3_EXECUTABLE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/cohort_alias_reuse.py")
+
+set_target_properties(mac_client_bootstrap PROPERTIES ENABLE_EXPORTS ON)
+if(TARGET mac_software_font)
+  set_target_properties(mac_software_font PROPERTIES ENABLE_EXPORTS ON)
+endif()

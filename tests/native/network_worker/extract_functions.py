@@ -39,7 +39,9 @@ if __name__ == '__main__':
     worker_names = ['NET_WorkerSockets', 'NET_WorkerQueuePacket']
     worker_names = [name for name in worker_names if re.search(r'^static .*\b' + name + r'\(', source, re.M)]
     names[3:3] = worker_names
-    args.output.write_text('\n\n'.join(extract(source, name) for name in names) + '\n', encoding='utf-8')
+    helpers = ['NET_PosixSocketCount', 'NET_PosixAddressLength', 'NET_PosixReceiveFrom']
+    prelude = '#if !defined(_WIN32)\n' + '\n\n'.join(extract(source, name) for name in helpers) + '\n#endif\n'
+    args.output.write_text(prelude + '\n\n'.join(extract(source, name) for name in names) + '\n', encoding='utf-8')
     structures = []
     for tag, name in [('packetlag_s', 'packetlag_t'), ('net_messages_s', 'net_messages_t')]:
         matches = re.findall(r'typedef struct ' + tag + r'\s*\{[^}]*\}\s*' + name + r';', source)

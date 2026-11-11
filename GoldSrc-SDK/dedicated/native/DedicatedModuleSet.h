@@ -4,6 +4,7 @@
 #include "../../public/game_server_data.h"
 #include "../../public/native_dedicated_lifetime.h"
 #include "../../launcher/native/SoftwareImageOwner.h"
+#include "../../launcher/native/SocketImageOwner.h"
 #include <string>
 namespace cse::dedicated {
 class DedicatedModuleSet {
@@ -39,11 +40,12 @@ public:
         return vguiFactory_;
     }
     bool IsClosed() const noexcept {
-        return !engineModule_ && !filesystemModule_ && !vguiModule_ && !fontModule_ && !software_.Active();
+        return !engineModule_ && !filesystemModule_ && !vguiModule_ && !fontModule_ && !software_.Active() && !sockets_.Active();
     }
 
 private:
     software_lifetime::ImageOwner software_;
+    socket_lifetime::SocketImageOwner sockets_;
     void* fontModule_ = nullptr;
     void* engineModule_ = nullptr;
     void* filesystemModule_ = nullptr;

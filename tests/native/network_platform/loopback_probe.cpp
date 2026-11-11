@@ -32,6 +32,9 @@ std::vector<byte> Receive(SOCKET socket, unsigned short senderPort, Clock::time_
 
 void Run() {
     const auto deadline = Clock::now() + kMaximumRuntime;
+#if defined(CSE_TEST_SOCKET_OWNER)
+    InitializeSocketFixture();
+#endif
     liveLoopback = true;
     char interfaceName[] = "127.0.0.1";
     const SOCKET receiver = NET_IPSocket(interfaceName, PORT_ANY, false);
@@ -70,7 +73,12 @@ void Run() {
     Require(NET_PosixReceiveFrom(receiver, &empty, sizeof(empty), 0, reinterpret_cast<sockaddr*>(&from), &fromLength)
         == -1 && (errno == EAGAIN || errno == EWOULDBLOCK), "nonblocking empty receive");
     ip_sockets[0] = 0;
+#if defined(CSE_TEST_SOCKET_OWNER)
+    Require(cse::socket_lifetime::CloseUdp(sender).nativeError == 0 &&
+        cse::socket_lifetime::CloseUdp(receiver).nativeError == 0, "close both sole owned references");
+#else
     Require(FixtureClose(sender) == 0 && FixtureClose(receiver) == 0, "close both sole owned references");
+#endif
     Require(api.closed == std::vector<SOCKET>({sender, receiver}), "one close per owned reference");
     Require(fakeSendCalls == 0, "no FakeIP provider invoked");
     Require(Clock::now() < deadline, "complete within total five-second deadline");

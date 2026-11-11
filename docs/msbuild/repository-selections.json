@@ -1117,6 +1117,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/SocketImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -1235,6 +1245,16 @@
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
               "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/SocketImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
             }
           },
           {
@@ -12446,6 +12466,15 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/SocketImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/launcher/native/VGui1HostImageOwner.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -12920,6 +12949,15 @@
             "metadata": {
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/launcher/native/SocketImageOwner.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "CsePointerWidth": "64"
             }
           },
           {
@@ -14448,6 +14486,16 @@
               "CseTargetOS": "macos",
               "ExceptionHandling": "false"
             }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_socket_lifetime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
+            }
           }
         ],
         "imports": [
@@ -15691,6 +15739,16 @@
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
               "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_socket_lifetime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
             }
           }
         ],
@@ -17217,6 +17275,16 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_socket_lifetime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/VGui1NativeRuntime.cpp",
             "metadata": {
               "ExcludedFromBuild": "true",
@@ -18553,6 +18621,16 @@
               "ExcludedFromBuild": "true",
               "CseTargetOS": "macos",
               "ExceptionHandling": "false"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/native_socket_lifetime.cpp",
+            "metadata": {
+              "ExcludedFromBuild": "true",
+              "CseTargetOS": "macos",
+              "ExceptionHandling": "false",
+              "CsePointerWidth": "64"
             }
           },
           {

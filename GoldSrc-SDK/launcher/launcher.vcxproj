@@ -132,6 +132,12 @@
       <CseTargetOS>macos</CseTargetOS>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
+    <ClCompile Include="native\SocketImageOwner.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CsePointerWidth>64</CsePointerWidth>
+    </ClCompile>
     <ClCompile Include="native\VGui1HostImageOwner.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <CseTargetOS>macos</CseTargetOS>

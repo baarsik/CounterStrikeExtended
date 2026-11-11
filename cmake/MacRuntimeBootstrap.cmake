@@ -77,3 +77,24 @@ if(TARGET hlds AND TARGET vgui2)
   add_dependencies(cse_dedicated_standalone_abi_evidence cse_native_cohort cse_standalone_cohort)
   add_dependencies(hlds cse_dedicated_standalone_abi_evidence)
 endif()
+
+# Every actual socket publisher/consumer build rechecks current physical records,
+# exact callback types and canonical executable roles under its own compiler recipe.
+set(socket_evidence_roles hw_engine launcher)
+if(TARGET swds)
+  list(APPEND socket_evidence_roles swds)
+endif()
+if(TARGET hlds)
+  list(APPEND socket_evidence_roles hlds)
+endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set_target_properties(${socket_evidence_roles} PROPERTIES EXPORT_COMPILE_COMMANDS ON)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_target(cse_socket_abi_evidence
+  COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tools/socket_abi_evidence.py"
+    --database "${CMAKE_BINARY_DIR}/compile_commands.json"
+    --output "${CMAKE_BINARY_DIR}/socket-evidence/$<CONFIG>" --roles ${socket_evidence_roles}
+  COMMENT "Verify actual socket producer/executable layouts, signatures and callback roles" VERBATIM)
+foreach(owner IN LISTS socket_evidence_roles)
+  add_dependencies(${owner} cse_socket_abi_evidence)
+endforeach()

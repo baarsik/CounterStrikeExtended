@@ -1,3 +1,4 @@
+#include "SocketImageOwner.h"
 #include "VGui1NativeRuntime.h"
 #include "IEngineSurface.h"
 #include "vid.h"
@@ -22,6 +23,7 @@ int main(int argc, char** argv) {
     using namespace cse_vgui1_native;
     const std::string enginePath = std::string(argv[1]) + "/swds.dylib";
     const std::string fontPath = std::string(argv[1]) + "/vgui.dylib";
+    assert(cse::socket_lifetime::InitializeProcess());
     void* image = cse_platform::LoadModule(enginePath.c_str(), cse_platform::ModuleFallback::None);
     assert(image);
     auto factory = reinterpret_cast<void* (*)(const char*, int*)>(cse_platform::GetSymbol(image, "CreateInterface"));
@@ -29,6 +31,8 @@ int main(int argc, char** argv) {
     auto* backend = static_cast<IEngineSurface*>(factory("EngineSurface007", nullptr));
     assert(backend);
     // This is a linked component fixture, not cold admission or physical-unmap qualification.
+    cse::socket_lifetime::SocketImageOwner sockets;
+    assert(sockets.Open(image, enginePath.c_str()));
     cse::software_lifetime::ImageOwner software;
     assert(software.Open(image, enginePath.c_str(), cse::software_lifetime::Mode::Client));
     cse_vgui1_host::ImageOwner owner;
@@ -115,7 +119,8 @@ int main(int argc, char** argv) {
     } // Destroy the real font while its independent root and software image anchors are still owned.
     assert(CseNativeRuntimeCloseV1() == cse::native_runtime::Closed);
     assert(owner.LeaveRoot() == cse_vgui1_host::Result::Ready);
-    assert(owner.Close() == cse_vgui1_host::Result::Closed);
     assert(software.Retire());
+    assert(sockets.Retire());
+    assert(owner.Close() == cse_vgui1_host::Result::Closed);
     std::puts("PASS actual SW atlas, real Helvetica glyph bytes, 555/565, pen advance, quiescence and recreation");
 }

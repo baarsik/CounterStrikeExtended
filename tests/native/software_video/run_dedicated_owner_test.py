@@ -17,7 +17,7 @@ owner = source[source.index('class CDedicatedServerAPI :'):source.index('\n#ifde
 start = source.index('bool CDedicatedServerAPI::Init(char *')
 methods = source[start:source.index('\n#else\nbool CDedicatedServerAPI::Init(', start)]
 fixture = out / 'dedicated_owner_actual.cpp'
-fixture.write_text('#include "dedicated_owner_services.h"\n#include "engine/native_software_lifetime.h"\n' + definitions(root) + interfaces + owner +
+fixture.write_text('#include "linked_owner.h"\n#include "dedicated_owner_services.h"\n#include "engine/native_software_lifetime.h"\n' + definitions(root) + interfaces + owner +
                    '\nstatic IDedicatedExports *dedicated;\n' + methods +
                    '\n#include "dedicated_owner_fixture.cpp"\n')
 optimization = sys.argv[2] if len(sys.argv) > 2 else '-O0'
@@ -26,5 +26,8 @@ command = ['clang++', optimization, '-ffp-model=precise', '-ffp-contract=off', '
            '-I' + str(root / 'GoldSrc-SDK/public'), '-I' + str(root / 'GoldSrc-SDK'),
            '-I' + str(root / 'tests/native/software_video'), str(fixture), str(root / 'GoldSrc-SDK/engine/native_software_lifetime.cpp'),
            '-Wl,-export_dynamic', '-o', str(out / 'dedicated_owner_test')]
+sys.path.insert(0, str(root / 'tests/native/socket_lifetime'))
+from linked_owner import arguments
+command += arguments(root, out, optimization)
 subprocess.run(command, check=True)
 subprocess.run([str(out / 'dedicated_owner_test')], check=True)

@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_socket_lifetime.h"
+#endif
 #if defined(__APPLE__) && defined(SW_RENDERER)
 #include "native_software_lifetime.h"
 #include "VGui1NativeRuntime.h"
@@ -1047,7 +1050,7 @@ bool CDedicatedServerAPI::Init(char *basedir, char *cmdline, CreateInterfaceFn l
     }
 
 #if defined(__APPLE__)
-    if (m_retired || m_initializing || m_shuttingDown) {
+    if (!cse::socket_lifetime::Admitted() || m_retired || m_initializing || m_shuttingDown) {
         return false;
     }
 #endif
@@ -1399,6 +1402,9 @@ bool cse::software_lifetime::RetireResources(Mode mode) {
     // Consume the real embedded-font owner independently of whole-module callback retirement.
     // It refuses live surfaces, pins, pending releases and active use; no font proof substitutes for this gate.
     if (cse_vgui1_native::CloseEmbedded() != cse_vgui1_native::Result::Closed) {
+        return false;
+    }
+    if (cse::socket_lifetime::Retire() != cse::socket_lifetime::Status::Retired) {
         return false;
     }
     return CseSteamRetireModuleCallbacks() && RetireRemoteAccess();
@@ -2294,6 +2300,11 @@ int RunListenServer( void* instance, char* basedir, char* cmdline, char* postRes
 	[[maybe_unused]] CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
 #if defined(__APPLE__)
+    if (!cse::socket_lifetime::Admitted()) {
+        return 0;
+    }
+#endif
+#if defined(__APPLE__)
     bool nativeReleaseVideo = false;
     bool nativeShutdownGame = false;
     bool nativeShutdownVideo = false;
@@ -2442,6 +2453,11 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if defined(__APPLE__)
+    if (!cse::socket_lifetime::Admitted()) {
+        return 0;
+    }
+#endif
 #if INTPTR_MAX > INT32_MAX
     // Every ordinary return authorizes launcher image unload. Invalid ownership cannot return safely.
     static std::atomic_flag nativeRunActive = ATOMIC_FLAG_INIT;
@@ -2489,6 +2505,11 @@ int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRes
 bool CDedicatedServerAPI::Init(
 	char* basedir, char* cmdline, CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if defined(__APPLE__)
+    if (!cse::socket_lifetime::Admitted()) {
+        return false;
+    }
+#endif
 	dedicated =
 		reinterpret_cast<IDedicatedExports*>( launcherFactory( "VENGINE_DEDICATEDEXPORTS_API_VERSION001", nullptr ) );
 	if ( dedicated == nullptr )

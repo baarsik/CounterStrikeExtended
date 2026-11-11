@@ -1,3 +1,4 @@
+#include "linked_owner.h"
 #include "engine/native_software_lifetime.h"
 #include "public/native_dedicated_lifetime.h"
 #include <cassert>
@@ -71,6 +72,7 @@ static bool Exclusive(void*, const void*, std::uint64_t) noexcept {
 }
 static void NetworkLog(ESteamNetworkingSocketsDebugOutputType, const char*) {}
 int main(int argc, char** argv) {
+    LinkedSocketOwner socketOwner;
     assert(argc == 2);
     const bool dedicated = std::strcmp(argv[1], "dedicated") == 0;
     nativeSoftwareClientEntered = std::strcmp(argv[1], "client-run") == 0;

@@ -52,6 +52,7 @@ add_executable(session_tests session_tests.cpp "${cohort}"
   "${SDK}/dedicated/native/DedicatedSession.cpp" "${SDK}/dedicated/native/DedicatedModuleSet.cpp"
   "${SDK}/dedicated/native/Signals.cpp" "${SDK}/dedicated/native/TextConsolePosix.cpp"
   "${SDK}/launcher/native/MacRuntimeSession.cpp" "${SDK}/launcher/native/VGui1HostImageOwner.cpp"
+  "${SDK}/launcher/native/SocketImageOwner.cpp"
   "${SDK}/engine/interface.cpp" "${SDK}/engine/mem.c" "${SDK}/common/ObjectList.cpp"
   "${SDK}/common/textconsole.cpp" "${SDK}/common/commandline.cpp")
 target_include_directories(session_tests PRIVATE "${SDK}" "${SDK}/public" "${SDK}/engine"
@@ -125,6 +126,13 @@ add_test(NAME actual_startup_command_roundtrip COMMAND "${Python3_EXECUTABLE}"
 
 # The host fixture uses the production mandatory whole-image gate; only resource owners are controlled.
 foreach(target fixture_engine fixture_missing_retire)
-  target_sources(${target} PRIVATE "${SDK}/engine/native_software_lifetime.cpp")
+  target_sources(${target} PRIVATE "${SDK}/engine/native_software_lifetime.cpp" "${SDK}/engine/native_socket_lifetime.cpp")
   target_compile_definitions(${target} PRIVATE SW_RENDERER)
+endforeach()
+
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/../network_platform/extract_functions.py"
+  "${SDK}/engine/net_ws.cpp" "${CMAKE_CURRENT_BINARY_DIR}/socket-network" COMMAND_ERROR_IS_FATAL ANY)
+foreach(target fixture_engine fixture_missing_retire)
+  target_sources(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../socket_lifetime/network_environment.cpp")
+  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/socket-network")
 endforeach()

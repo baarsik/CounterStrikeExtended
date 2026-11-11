@@ -24,6 +24,7 @@ add_executable(actual_dedicated_runtime main.cpp "${cohort}" "${standalone}"
   "${SDK}/dedicated/native/DedicatedSession.cpp" "${SDK}/dedicated/native/DedicatedModuleSet.cpp"
   "${SDK}/dedicated/native/Signals.cpp" "${SDK}/dedicated/native/TextConsolePosix.cpp"
   "${SDK}/launcher/native/MacRuntimeSession.cpp" "${SDK}/launcher/native/VGui1HostImageOwner.cpp"
+  "${SDK}/launcher/native/SocketImageOwner.cpp"
   "${SDK}/engine/interface.cpp" "${SDK}/engine/mem.c" "${SDK}/common/ObjectList.cpp"
   "${SDK}/common/textconsole.cpp" "${SDK}/common/commandline.cpp"
   "${SOURCE_ROOT}/tests/native/dedicated_host/gui_boundary.cpp")

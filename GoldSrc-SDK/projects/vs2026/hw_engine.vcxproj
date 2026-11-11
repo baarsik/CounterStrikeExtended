@@ -706,5 +706,11 @@
       <CseTargetOS>macos</CseTargetOS>
       <ExceptionHandling>false</ExceptionHandling>
     </ClCompile>
+    <ClCompile Include="..\..\engine\native_socket_lifetime.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <CseTargetOS>macos</CseTargetOS>
+      <ExceptionHandling>false</ExceptionHandling>
+      <CsePointerWidth>64</CsePointerWidth>
+    </ClCompile>
   </ItemGroup>
 </Project>

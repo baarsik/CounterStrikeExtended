@@ -1,3 +1,4 @@
+#include "linked_owner.h"
 #include "engine/native_software_lifetime.h"
 #include "public/native_runtime_host.h"
 #include <cassert>
@@ -74,6 +75,7 @@ static bool Exclusive(void*, const void*, std::uint64_t) noexcept {
 }
 static void NetworkLog(ESteamNetworkingSocketsDebugOutputType, const char*) {}
 int main() {
+    LinkedSocketOwner socketOwner;
     using RootResult = cse_vgui1_native::Result;
     Binding binding{sizeof(Binding), Version,      1, _dyld_get_image_header(0), &opens, Exclusive,
                     NetworkLog,      Mode::Client, 0};

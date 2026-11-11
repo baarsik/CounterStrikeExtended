@@ -2,6 +2,7 @@
 
 #include "VGui1HostImageOwner.h"
 #include "SoftwareImageOwner.h"
+#include "SocketImageOwner.h"
 #include "../../public/native_runtime_host.h"
 
 namespace cse_mac_runtime {
@@ -28,6 +29,7 @@ public:
 private:
     cse_vgui1_host::ImageOwner owner_;
     cse::software_lifetime::ImageOwner software_;
+    cse::socket_lifetime::SocketImageOwner sockets_;
     void* fontPreload_ = nullptr;
     bool softwareSelected_ = false;
     cse::native_runtime::Close close_ = nullptr;

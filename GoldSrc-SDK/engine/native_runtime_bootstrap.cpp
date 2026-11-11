@@ -1,3 +1,6 @@
+#if defined(__APPLE__)
+#include "native_socket_lifetime.h"
+#endif
 #if defined(__APPLE__) && defined(SW_RENDERER)
 #include "native_software_lifetime.h"
 #endif
@@ -20,6 +23,11 @@ extern "C" CSE_PUBLIC_EXPORT int CseNativeRuntimeOpenV1(const cse::native_runtim
         return static_cast<int>(cse_vgui1_native::Result::Busy);
     }
 #endif
+#if defined(__APPLE__)
+    if (!cse::socket_lifetime::Admitted()) {
+        return static_cast<int>(cse_vgui1_native::Result::Busy);
+    }
+#endif
     // Explicit admitted Open owns this main-thread identity even when Run is never entered.
     // The helper rejects conflicting use/retirement and does not initialize platform resources.
     if (!cse::InitializeNativeGameUIHost()) {
@@ -36,5 +44,12 @@ extern "C" CSE_PUBLIC_EXPORT int CseNativeRuntimeCloseV1() noexcept {
         !cse::NativeMouseWindowState().Invalidate(nullptr)) {
         return static_cast<int>(cse_vgui1_native::Result::Busy);
     }
-    return static_cast<int>(cse_vgui1_native::CloseEmbedded());
+    const auto result = cse_vgui1_native::CloseEmbedded();
+#if defined(__APPLE__)
+    if (result == cse_vgui1_native::Result::Closed &&
+        cse::socket_lifetime::Retire() != cse::socket_lifetime::Status::Retired) {
+        return static_cast<int>(cse_vgui1_native::Result::Busy);
+    }
+#endif
+    return static_cast<int>(result);
 }

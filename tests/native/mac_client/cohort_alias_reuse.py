@@ -32,6 +32,7 @@ extern "C" int EngineMarker() {
                     str(root / 'tests/native/mac_client/cohort_alias_reuse.cpp'),
                     str(root / 'GoldSrc-SDK/launcher/native/MacRuntimeSession.cpp'),
                     str(root / 'GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp'),
+                    str(root / 'GoldSrc-SDK/launcher/native/SocketImageOwner.cpp'),
                     '-o', str(stage / 'driver')], check=True)
     subprocess.run([str(stage / 'driver'), str(stage / 'renamed-provider.dylib'),
                     str(stage / 'hw.dylib'), str(stage / 'vgui.dylib')], check=True)

@@ -94,6 +94,7 @@ static bool NoTerminalAdmission(void*, const void*, std::uint64_t) noexcept {
 static void FixtureNetworkLog(ESteamNetworkingSocketsDebugOutputType, const char*) {}
 
 int main() {
+    LinkedSocketOwner socketOwner;
     using namespace cse::software_lifetime;
     const Binding binding{sizeof(Binding), Version, 1, _dyld_get_image_header(0), &owner,
         NoTerminalAdmission, FixtureNetworkLog, Mode::Dedicated, 0};

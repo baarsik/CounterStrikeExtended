@@ -21,6 +21,7 @@ with tempfile.TemporaryDirectory(prefix='cse-exact-cohort-') as directory:
                         str(root / 'tests/native/mac_client/cohort_admission.cpp'),
                         str(root / 'GoldSrc-SDK/launcher/native/MacRuntimeSession.cpp'),
                         str(root / 'GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp'),
+                    str(root / 'GoldSrc-SDK/launcher/native/SocketImageOwner.cpp'),
                         '-o', str(stage / 'admit')], check=True)
         subprocess.run([str(stage / 'admit'), str(stage), 'software' if software else 'hardware'], check=True)
         foreign = stage / 'foreign'

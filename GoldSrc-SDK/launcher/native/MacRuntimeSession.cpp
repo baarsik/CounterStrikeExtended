@@ -135,7 +135,7 @@ bool MatchesCohort(const char* path, const char* expected) noexcept {
 }
 
 Session::~Session() noexcept {
-    if (active_ || entered_ || software_.Active()) {
+    if (active_ || entered_ || software_.Active() || sockets_.Active()) {
         std::fputs("Native runtime session exited without quiescent root teardown\n", stderr);
         std::_Exit(EXIT_FAILURE);
     }
@@ -169,6 +169,9 @@ void* Session::LoadAdmitted(const char* enginePath, const char* fontPath, Engine
     if (ownedFont || !Admit(enginePath, fontPath, image)) {
         return nullptr;
     }
+    if (!cse::socket_lifetime::InitializeProcess()) {
+        return nullptr;
+    }
     const bool software = image == EngineImage::Software;
     if (software) {
         // Resolve the font provider's weak allocator edges before the parent is in dyld's load group.
@@ -186,7 +189,7 @@ void* Session::LoadAdmitted(const char* enginePath, const char* fontPath, Engine
 }
 
 void* Session::Load(const char* enginePath, const char* fontPath, EngineImage image) noexcept {
-    if (active_ || entered_ || software_.Active()) {
+    if (active_ || entered_ || software_.Active() || sockets_.Active()) {
         return nullptr;
     }
     return LoadAdmitted(enginePath, fontPath, image, fontPreload_);
@@ -216,6 +219,9 @@ bool Session::Open(void* image, const char* enginePath, const char* fontPath, bo
     }
     active_ = true;
     adopted = true;
+    if (!sockets_.Open(image, enginePath)) {
+        return false;
+    }
     const char* leaf = std::strrchr(enginePath, '/');
     softwareSelected_ = leaf && std::strcmp(leaf + 1, "swds.dylib") == 0;
     if (softwareSelected_ && !software_.Open(image, enginePath, cse::software_lifetime::Mode::Client)) {
@@ -254,6 +260,9 @@ bool Session::Close() noexcept {
             return false;
         }
         entered_ = false;
+    }
+    if (!sockets_.Retire()) {
+        return false;
     }
     if (owner_.Close() != cse_vgui1_host::Result::Closed) {
         std::fputs("Native main-image root reference remains owned; unload refused\n", stderr);

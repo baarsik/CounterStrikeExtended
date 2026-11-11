@@ -1,3 +1,4 @@
+#include "SocketImageOwner.h"
 #include "native_module.h"
 #include "native_runtime_host.h"
 #include "VGui1HostImageOwner.h"
@@ -20,6 +21,7 @@ int main(int argc, char** argv) {
     Require(argc == 2 || argc == 3, "runtime directory and optional engine image");
     const std::string engine = std::string(argv[1]) + "/" + (argc == 3 ? argv[2] : "hw.dylib");
     const std::string font = std::string(argv[1]) + "/vgui.dylib";
+    Require(cse::socket_lifetime::InitializeProcess(), "explicit executable socket infrastructure before load");
     void* image = cse_platform::LoadModule(engine.c_str(), cse_platform::ModuleFallback::None);
     Require(image != nullptr, "load actual engine root");
     const auto open = reinterpret_cast<cse::native_runtime::Open>(
@@ -27,6 +29,8 @@ int main(int argc, char** argv) {
     const auto close = reinterpret_cast<cse::native_runtime::Close>(
         cse_platform::GetSymbol(image, cse::native_runtime::CloseSymbol));
     Require(open && close, "actual engine publishes checked native bootstrap entries");
+    cse::socket_lifetime::SocketImageOwner sockets;
+    Require(sockets.Open(image, engine.c_str()), "mandatory shared socket owner for actual engine");
     cse::software_lifetime::ImageOwner software;
     const bool softwareImage = argc == 3 && std::strcmp(argv[2], "swds.dylib") == 0;
     if (softwareImage) {
@@ -58,6 +62,7 @@ int main(int argc, char** argv) {
     Require(owner.Inspect(statistics) == cse_vgui1_host::Result::Ready, "read retained-reference counts");
     Require(statistics.retainedReferences == 1 && statistics.acceptedTransfers >= 1,
         "root callbacks balance extra references while executable retains its anchor");
-    Require(owner.Close() == cse_vgui1_host::Result::Closed, "release executable root after quiescence");
     Require(software.Retire(), "complete actual software terminal retirement after independent root cleanup");
+    Require(sockets.Retire(), "socket terminal empty proof before final engine anchor release");
+    Require(owner.Close() == cse_vgui1_host::Result::Closed, "release executable root after quiescence");
 }
