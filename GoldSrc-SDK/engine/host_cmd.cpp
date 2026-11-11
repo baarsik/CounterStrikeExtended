@@ -1437,13 +1437,14 @@ void Host_Motd_Write_f()
 	Con_Printf( "Done.\n" );
 }
 
+#include "save_archive_impl.h"
+
 int __cdecl Host_Load( const char* pName )
 {
 	char name[256];
 	GAME_HEADER gameHeader;
 	FileHandle_t pFile;
 	const char* pszExt;
-	int i;
 
 	if ( !pName || !pName[0] )
 		return 0;
@@ -1522,33 +1523,14 @@ int __cdecl Host_Load( const char* pName )
 	SV_InactivateClients();
 	SCR_BeginLoadingPlaque( FALSE );
 
-	for ( i = 0; i < gameHeader.mapCount; i++ )
-	{
-		char fileName[MAX_PATH];
-		int fileSize;
-
-		FS_Read( fileName, sizeof( fileName ), 1, pFile );
-		fileName[sizeof( fileName ) - 1] = '\0';
-		FS_Read( &fileSize, sizeof( fileSize ), 1, pFile );
-
-		pszExt = COM_FileExtension( fileName );
-		if ( !pszExt || Q_strstr( fileName, "\\" ) || Q_strstr( fileName, ":" ) || Q_strstr( fileName, ".." )
-			 || Q_strstr( fileName, "~" ) || fileName[0] == '/' || pszExt[0] != 'H' || pszExt[1] != 'L' )
-		{
-			FS_Seek( pFile, fileSize, FILESYSTEM_SEEK_CURRENT );
-		}
-		else
-		{
-			char szPath[MAX_PATH];
-
-			_snprintf( szPath, sizeof( szPath ), "%s%s", Host_SaveGameDirectory(), fileName );
-			COM_FixSlashes( szPath );
-
-			FileHandle_t pCopy = FS_OpenPathID( szPath, "wb", "GAMECONFIG" );
-			FileCopy( pCopy, pFile, fileSize );
-			FS_Close( pCopy );
-		}
-	}
+    cse::save_archive::Layout archiveLayout{};
+    if (!cse::save_archive::ReadLayout(pFile, gameHeader.mapCount, archiveLayout)
+        || !cse::save_archive::Extract(pFile, archiveLayout)) {
+        FS_Close(pFile);
+        giStateInfo = STATE_ENDTRAINING;
+        Cbuf_AddText("\ndisconnect\n");
+        return 0;
+    }
 
 	FS_Close( pFile );
 
@@ -2790,65 +2772,13 @@ void Host_Crash_f()
 	*(volatile int*)NULL = (int)0xDEADBEEF;
 }
 
-void DirectoryCopy( const char* pPath, FileHandle_t pFile )
-{
-	char basefindfn[MAX_PATH];
-	char szName[MAX_PATH];
-	const char* findfn;
-	FileHandle_t pCopy;
-	int size;
-
-	for ( findfn = Sys_FindFirst( pPath, basefindfn ); findfn; findfn = Sys_FindNext( basefindfn ) )
-	{
-		_snprintf( szName, sizeof( szName ), "%s%s", Host_SaveGameDirectory(), findfn );
-		COM_FixSlashes( szName );
-
-		pCopy = FS_OpenPathID( szName, "rb", "GAMECONFIG" );
-		size = FileSize( pCopy );
-
-		FS_Write( findfn, MAX_PATH, 1, pFile );
-		FS_Write( &size, sizeof( int ), 1, pFile );
-		FileCopy( pFile, pCopy, size );
-		FS_Close( pCopy );
-	}
-
-	Sys_FindClose();
+bool DirectoryCopy(const char *path, FileHandle_t file, std::int32_t expectedFileCount) {
+    return cse::save_archive::WriteDirectory(path, file, expectedFileCount);
 }
 
-void DirectoryExtract( FileHandle_t pFile, int fileCount )
-{
-	char fileName[MAX_PATH];
-	char szName[MAX_PATH];
-	char* pszExt;
-	FileHandle_t pCopy;
-	int i, fileSize;
-
-#if defined( _WIN32 ) && ( defined( HL25_HW_ENGINE ) || defined( SW_RENDERER ) )
-	for ( i = 0; i < fileCount; i++ )
-#else
-	for ( i = 0; i != fileCount; i++ )
-#endif
-	{
-		// Filename can only be as long as a map name + extension
-		FS_Read( fileName, MAX_PATH, 1, pFile );
-		fileName[MAX_PATH - 1] = '\0';
-		FS_Read( &fileSize, sizeof( int ), 1, pFile );
-
-		pszExt = COM_LastFileExtension( fileName );
-		if ( !pszExt || Q_strstr( fileName, "\\" ) || Q_strstr( fileName, ":" ) || Q_strstr( fileName, ".." )
-			 || Q_strstr( fileName, "~" ) || fileName[0] == '/' || pszExt[0] != 'H' || pszExt[1] != 'L' )
-		{
-			FS_Seek( pFile, fileSize, FILESYSTEM_SEEK_CURRENT );
-			continue;
-		}
-
-		_snprintf( szName, sizeof( szName ), "%s%s", Host_SaveGameDirectory(), fileName );
-		COM_FixSlashes( szName );
-
-		pCopy = FS_OpenPathID( szName, "wb", "GAMECONFIG" );
-		FileCopy( pCopy, pFile, fileSize );
-		FS_Close( pCopy );
-	}
+bool DirectoryExtract(FileHandle_t file, int fileCount) {
+    cse::save_archive::Layout layout{};
+    return cse::save_archive::ReadLayout(file, fileCount, layout) && cse::save_archive::Extract(file, layout);
 }
 
 void LandmarkOrigin( SAVERESTOREDATA* pSaveData, vec_t* output, const char* pLandmarkName )
@@ -3523,22 +3453,22 @@ int SaveGameSlot( const char* pSaveName, const char* pSaveComment )
 
 	pFile = FS_OpenPathID( name, "wb", "GAMECONFIG" );
 
-	tag = SAVEGAME_HEADER;
-	FS_Write( &tag, sizeof( int ), 1, pFile );
-	tag = SAVEGAME_VERSION;
-	FS_Write( &tag, sizeof( int ), 1, pFile );
-	FS_Write( &pSaveData->size, sizeof( int ), 1, pFile );
-	FS_Write( &pSaveData->tokenCount, sizeof( int ), 1, pFile );
-	FS_Write( &pSaveData->tokenSize, sizeof( int ), 1, pFile );
-	FS_Write( pTokenData, pSaveData->tokenSize, 1, pFile );
-	FS_Write( pSaveData->pBaseData, pSaveData->size, 1, pFile );
-
-	DirectoryCopy( hlPath, pFile );
-	FS_Close( pFile );
-
-	SaveExit( pSaveData );
-
-	return 1;
+    bool written = pFile != nullptr;
+    tag = SAVEGAME_HEADER;
+    written = written && cse::save_archive::WriteExact(pFile, &tag, sizeof(tag));
+    tag = SAVEGAME_VERSION;
+    written = written && cse::save_archive::WriteExact(pFile, &tag, sizeof(tag))
+        && cse::save_archive::WriteExact(pFile, &pSaveData->size, sizeof(pSaveData->size))
+        && cse::save_archive::WriteExact(pFile, &pSaveData->tokenCount, sizeof(pSaveData->tokenCount))
+        && cse::save_archive::WriteExact(pFile, &pSaveData->tokenSize, sizeof(pSaveData->tokenSize))
+        && cse::save_archive::WriteExact(pFile, pTokenData, pSaveData->tokenSize)
+        && cse::save_archive::WriteExact(pFile, pSaveData->pBaseData, pSaveData->size)
+        && DirectoryCopy(hlPath, pFile, gameHeader.mapCount);
+    if (pFile) {
+        FS_Close(pFile);
+    }
+    SaveExit(pSaveData);
+    return written ? 1 : 0;
 }
 
 int SaveGame( const char* pszSlot, const char* pszComment )
