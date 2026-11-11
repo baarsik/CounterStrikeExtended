@@ -3,6 +3,7 @@
 #include "../../public/dedicated_api.h"
 #include "../../public/game_server_data.h"
 #include "../../public/native_dedicated_lifetime.h"
+#include "../../launcher/native/SoftwareImageOwner.h"
 #include <string>
 namespace cse::dedicated {
 class DedicatedModuleSet {
@@ -13,6 +14,10 @@ public:
     DedicatedModuleSet& operator=(const DedicatedModuleSet&) = delete;
     bool Open(const char* runtimeRoot, bool gui, std::string& error);
     void Close() noexcept;
+    bool Initialize(char* base, char* command, CreateInterfaceFn host);
+    bool Frame();
+    void AddText(char* text);
+    void Status(float* fps, int* active, int* maximum, char* map);
     int Shutdown() noexcept;
     bool Retire() noexcept;
     IDedicatedServerAPI* Engine() const noexcept {
@@ -34,10 +39,12 @@ public:
         return vguiFactory_;
     }
     bool IsClosed() const noexcept {
-        return !engineModule_ && !filesystemModule_ && !vguiModule_;
+        return !engineModule_ && !filesystemModule_ && !vguiModule_ && !fontModule_ && !software_.Active();
     }
 
 private:
+    software_lifetime::ImageOwner software_;
+    void* fontModule_ = nullptr;
     void* engineModule_ = nullptr;
     void* filesystemModule_ = nullptr;
     void* vguiModule_ = nullptr;

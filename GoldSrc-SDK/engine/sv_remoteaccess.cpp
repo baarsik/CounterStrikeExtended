@@ -1,3 +1,6 @@
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "native_software_lifetime.h"
+#endif
 #include "utlbuffer.h"
 #include "utllinkedlist.h"
 #include "interface.h"
@@ -50,6 +53,9 @@ public:
 	void WriteDataRequest( const void* buffer, int bufferSize );
 	int ReadDataResponse( void* buffer, int bufferSize );
 	void SendMessageToAdminUI( const char* message );
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    bool RetireResponses() noexcept;
+#endif
 
 private:
 	void SetValue( const char* variable, const char* value );
@@ -79,6 +85,12 @@ CServerRemoteAccess::~CServerRemoteAccess()
 
 void CServerRemoteAccess::WriteDataRequest( const void* buffer, int bufferSize )
 {
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    cse::software_lifetime::Entry entry;
+    if (!entry) {
+        return;
+    }
+#endif
 	m_iBytesReceived += bufferSize;
 
 	CUtlBuffer cmd( buffer, bufferSize, false );
@@ -120,6 +132,12 @@ void CServerRemoteAccess::WriteDataRequest( const void* buffer, int bufferSize )
 
 int CServerRemoteAccess::ReadDataResponse( void* buffer, int bufferSize )
 {
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    cse::software_lifetime::Entry entry;
+    if (!entry) {
+        return 0;
+    }
+#endif
 	int i = m_ResponsePackets.Head();
 	if ( !m_ResponsePackets.IsValidIndex( i ) )
 		return 0;
@@ -390,6 +408,12 @@ void CServerRemoteAccess::RequestValue( int requestID, const char* variable )
 
 void CServerRemoteAccess::SendMessageToAdminUI( const char* message )
 {
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    cse::software_lifetime::Entry entry;
+    if (!entry) {
+        return;
+    }
+#endif
 	int i = m_ResponsePackets.AddToTail();
 	CUtlBuffer& response = m_ResponsePackets[i].packet;
 
@@ -397,6 +421,16 @@ void CServerRemoteAccess::SendMessageToAdminUI( const char* message )
 	response.PutInt( SERVERDATA_UPDATE );
 	response.PutString( message );
 }
+
+#if defined(__APPLE__) && defined(SW_RENDERER)
+bool CServerRemoteAccess::RetireResponses() noexcept {
+    if (!cse::software_lifetime::RetirementInProgress()) {
+        return false;
+    }
+    m_ResponsePackets.RemoveAll();
+    return true;
+}
+#endif
 
 CServerRemoteAccess g_ServerRemoteAccess;
 
@@ -411,5 +445,11 @@ void NotifyDedicatedServerUI( const char* message )
 #include "../public/native_dedicated_abi.h"
 extern "C" __attribute__((visibility("default"))) const cse::abi::Descriptor* CseGetGameServerDataAbiV1() {
     return &cse::dedicated_abi::Admin;
+}
+#endif
+
+#if defined(__APPLE__) && defined(SW_RENDERER)
+bool cse::software_lifetime::RetireRemoteAccess() noexcept {
+    return g_ServerRemoteAccess.RetireResponses();
 }
 #endif

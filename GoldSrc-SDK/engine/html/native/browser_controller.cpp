@@ -314,6 +314,10 @@ public:
         hello_ = false;
     }
 
+    bool Quiescent() const {
+        return !channel_.Started() && browsers_.empty() && pending_.empty();
+    }
+
     void BeginShutdown() {
         if (preparingShutdown_) {
             return;
@@ -972,6 +976,10 @@ void Controller::Dispatch(const Message& message) {
 
 std::unique_ptr<IHTMLChromeController> CreateController(const ControllerConfig& config) {
     return std::make_unique<Controller>(config);
+}
+
+bool ControllerQuiescent(IHTMLChromeController& controller) {
+    return static_cast<Controller&>(controller).Quiescent();
 }
 
 void BeginControllerShutdown(IHTMLChromeController& controller) {

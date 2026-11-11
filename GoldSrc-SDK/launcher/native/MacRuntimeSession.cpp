@@ -135,9 +135,12 @@ bool MatchesCohort(const char* path, const char* expected) noexcept {
 }
 
 Session::~Session() noexcept {
-    if (active_ || entered_) {
+    if (active_ || entered_ || software_.Active()) {
         std::fputs("Native runtime session exited without quiescent root teardown\n", stderr);
         std::_Exit(EXIT_FAILURE);
+    }
+    if (fontPreload_) {
+        dlclose(fontPreload_);
     }
 }
 
@@ -159,6 +162,34 @@ bool Session::Admit(const char* enginePath, const char* fontPath, EngineImage im
         : cse_native_cohort::EngineSha256;
     return MatchesCohort(enginePath, expected)
         && MatchesCohort(fontPath, cse_native_cohort::VguiSha256);
+}
+
+void* Session::LoadAdmitted(const char* enginePath, const char* fontPath, EngineImage image,
+                             void*& ownedFont) noexcept {
+    if (ownedFont || !Admit(enginePath, fontPath, image)) {
+        return nullptr;
+    }
+    const bool software = image == EngineImage::Software;
+    if (software) {
+        // Resolve the font provider's weak allocator edges before the parent is in dyld's load group.
+        ownedFont = dlopen(fontPath, RTLD_NOW | RTLD_LOCAL);
+        if (!ownedFont) {
+            return nullptr;
+        }
+    }
+    void* engine = dlopen(enginePath, RTLD_NOW | (software ? RTLD_LOCAL : RTLD_GLOBAL));
+    if (!engine && ownedFont) {
+        dlclose(ownedFont);
+        ownedFont = nullptr;
+    }
+    return engine;
+}
+
+void* Session::Load(const char* enginePath, const char* fontPath, EngineImage image) noexcept {
+    if (active_ || entered_ || software_.Active()) {
+        return nullptr;
+    }
+    return LoadAdmitted(enginePath, fontPath, image, fontPreload_);
 }
 
 bool Session::Open(void* image, const char* enginePath, const char* fontPath, bool& adopted) noexcept {
@@ -185,10 +216,18 @@ bool Session::Open(void* image, const char* enginePath, const char* fontPath, bo
     }
     active_ = true;
     adopted = true;
+    const char* leaf = std::strrchr(enginePath, '/');
+    softwareSelected_ = leaf && std::strcmp(leaf + 1, "swds.dylib") == 0;
+    if (softwareSelected_ && !software_.Open(image, enginePath, cse::software_lifetime::Mode::Client)) {
+        return false;
+    }
     entered_ = owner_.EnterRoot() == cse_vgui1_host::Result::Ready;
     const cse::native_runtime::BindingV1 binding{sizeof(binding), cse::native_runtime::BindingVersion,
         epoch, enginePath, fontPath, owner_.Contract()};
-    const int result = entered_ ? open(&binding) : 0;
+    const int result = [&]() {
+        cse::software_lifetime::ImageOwner::Call call(SoftwareOwner());
+        return call && entered_ ? open(&binding) : 0;
+    }();
     if (result != cse::native_runtime::Ready) {
         std::fprintf(stderr, "Native engine root binding failed (%d)\n", result);
         if (!Close()) {
@@ -200,6 +239,11 @@ bool Session::Open(void* image, const char* enginePath, const char* fontPath, bo
 }
 
 bool Session::Close() noexcept {
+    // This gate closes real whole-module owners first, including the separate embedded-font runtime.
+    // The host root lease remains live until after the provider has returned successfully.
+    if (!software_.Retire()) {
+        return false;
+    }
     if (entered_) {
         const int result = close_();
         if (result != cse::native_runtime::Closed) {
@@ -217,6 +261,13 @@ bool Session::Close() noexcept {
     }
     active_ = false;
     close_ = nullptr;
+    if (fontPreload_) {
+        if (dlclose(fontPreload_) != 0) {
+            return false;
+        }
+        fontPreload_ = nullptr;
+    }
+    softwareSelected_ = false;
     return true;
 }
 

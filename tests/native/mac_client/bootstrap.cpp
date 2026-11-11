@@ -1,6 +1,8 @@
 #include "native_module.h"
 #include "native_runtime_host.h"
 #include "VGui1HostImageOwner.h"
+#include "SoftwareImageOwner.h"
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
@@ -25,6 +27,12 @@ int main(int argc, char** argv) {
     const auto close = reinterpret_cast<cse::native_runtime::Close>(
         cse_platform::GetSymbol(image, cse::native_runtime::CloseSymbol));
     Require(open && close, "actual engine publishes checked native bootstrap entries");
+    cse::software_lifetime::ImageOwner software;
+    const bool softwareImage = argc == 3 && std::strcmp(argv[2], "swds.dylib") == 0;
+    if (softwareImage) {
+        Require(software.Open(image, engine.c_str(), cse::software_lifetime::Mode::Client),
+            "bind the mandatory whole-software image owner before root entry");
+    }
     cse_vgui1_host::ImageOwner owner;
     const cse_vgui1_host::AdmittedImageV1 admitted{sizeof(admitted), cse_vgui1_host::AdmittedImageVersion,
         1, image, engine.c_str()};
@@ -51,4 +59,5 @@ int main(int argc, char** argv) {
     Require(statistics.retainedReferences == 1 && statistics.acceptedTransfers >= 1,
         "root callbacks balance extra references while executable retains its anchor");
     Require(owner.Close() == cse_vgui1_host::Result::Closed, "release executable root after quiescence");
+    Require(software.Retire(), "complete actual software terminal retirement after independent root cleanup");
 }

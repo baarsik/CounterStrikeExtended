@@ -1,3 +1,7 @@
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "native_software_lifetime.h"
+#endif
+#include "native_gameui_retirement.h"
 #include "VGui1NativeRuntime.h"
 #include "native_mouse_window.h"
 #include <pthread.h>
@@ -8,6 +12,18 @@ extern "C" CSE_PUBLIC_EXPORT int CseNativeRuntimeOpenV1(const cse::native_runtim
     if (!binding || binding->structBytes != sizeof(*binding)
         || binding->version != cse::native_runtime::BindingVersion) {
         return static_cast<int>(cse_vgui1_native::Result::InvalidArgument);
+    }
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Client,
+        cse::software_lifetime::EntryKind::Outermost);
+    if (!entry) {
+        return static_cast<int>(cse_vgui1_native::Result::Busy);
+    }
+#endif
+    // Explicit admitted Open owns this main-thread identity even when Run is never entered.
+    // The helper rejects conflicting use/retirement and does not initialize platform resources.
+    if (!cse::InitializeNativeGameUIHost()) {
+        return static_cast<int>(cse_vgui1_native::Result::Busy);
     }
     const cse_vgui1_native::BindingV2 runtime{binding->epoch, binding->enginePath, binding->fontPath, binding->host};
     return static_cast<int>(cse_vgui1_native::ConfigureEmbedded(runtime));

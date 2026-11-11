@@ -112,6 +112,23 @@ public:
         module_ = nullptr;
     }
 
+#if defined(__APPLE__)
+    // Terminal caller holds its own image anchor and has stopped sessions and callbacks.
+    // Keep the complete binding available for retry if the OS rejects release.
+    bool CloseChecked() {
+        if (!module_) {
+            return true;
+        }
+        if (dlclose(module_) != 0) {
+            error_ = "Unable to retire native Steam provider reference";
+            return false;
+        }
+        module_ = nullptr;
+        api_ = {};
+        return true;
+    }
+#endif
+
     const Api& Functions() const {
         return api_;
     }

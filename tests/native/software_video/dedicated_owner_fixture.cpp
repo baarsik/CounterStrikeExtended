@@ -81,7 +81,23 @@ bool CseSteamRetireServerTransport() {
     return true;
 }
 
+#include <mach-o/dyld.h>
+namespace cse::software_lifetime {
+bool RetireResources(Mode) {
+    return false; // This fixture exercises session owners; the separate terminal suite owns final retirement.
+}
+}
+extern "C" const cse::software_lifetime::Api CseNativeSoftwareLifetimeV1;
+static bool NoTerminalAdmission(void*, const void*, std::uint64_t) noexcept {
+    return false;
+}
+static void FixtureNetworkLog(ESteamNetworkingSocketsDebugOutputType, const char*) {}
+
 int main() {
+    using namespace cse::software_lifetime;
+    const Binding binding{sizeof(Binding), Version, 1, _dyld_get_image_header(0), &owner,
+        NoTerminalAdmission, FixtureNetworkLog, Mode::Dedicated, 0};
+    assert(CseNativeSoftwareLifetimeV1.bind(&binding) == Result::Ready);
     {
         CDedicatedServerAPI candidate;
         owner = &candidate;

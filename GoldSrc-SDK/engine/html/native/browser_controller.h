@@ -25,4 +25,7 @@ std::unique_ptr<IHTMLChromeController> CreateController(const ControllerConfig& 
 // retaining serializers and the provider while the owner drains deferred widget deletion. Call Shutdown
 // after that drain; widgets must have called RemoveBrowser before the controller itself is destroyed.
 void BeginControllerShutdown(IHTMLChromeController& controller);
+// Physical owner completion, independent of the retained child-exit/error diagnostic.
+// Only for this module's CreateController instances; does not extend a public virtual interface.
+bool ControllerQuiescent(IHTMLChromeController& controller);
 }

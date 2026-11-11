@@ -7,6 +7,9 @@
 #include "../iclientvgui.h"
 
 #include <cstdint>
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "../../public/native_vgui_completion.h"
+#endif
 #include "../../public/native_gameui_retirement.h"
 #if INTPTR_MAX > INT32_MAX
 #include <memory>
@@ -60,6 +63,9 @@ private:
 	bool				m_bHidingGameUI;
 #if INTPTR_MAX > INT32_MAX
     std::unique_ptr<IHTMLChromeController> m_nativeChromeController;
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    const cse::vgui_completion::Api* m_nativeCompletion = nullptr;
+#endif
     const cse::gameui_lifetime::RetirementV1* m_nativeRetirement = nullptr;
     bool m_nativeGameUIInitialized = false;
     bool m_nativeControlsInitialized = false;

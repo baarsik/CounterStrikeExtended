@@ -432,6 +432,31 @@ def emit_native_sdl3_dependency(lines, target, configs):
         lines.append('endif()')
 
 
+def emit_mac_software_lifetime(lines, target, configs):
+    """Only the owning swds module may select its qualified private clipboard registry."""
+    values = [configs[config]['properties'].get('CseMacSoftwareLifetime', '') for config in ('Debug', 'Release')]
+    if values == ['', '']:
+        return
+    if target != 'swds' or values != ['1', '1']:
+        raise ValueError('CseMacSoftwareLifetime revision 1 requires the exact swds Debug/Release owner')
+    paths = ('common/TextEntryClipboard.cpp', 'engine/native_software_lifetime.cpp')
+    for config in ('Debug', 'Release'):
+        for relative in paths:
+            matches = [item for item in configs[config]['items']
+                       if item['kind'] == 'ClCompile' and Path(item['path']) == SDK / relative]
+            if len(matches) != 1 or matches[0]['metadata'].get('ExceptionHandling') != 'Sync':
+                raise ValueError('Software retirement requires both actual Sync owning translation units')
+            metadata = matches[0]['metadata']
+            if relative.startswith('engine/') and (metadata.get('CseTargetOS') != 'macos'
+                    or metadata.get('CsePointerWidth') != '64' or metadata.get('ExcludedFromBuild') != 'true'):
+                raise ValueError('Software terminal owner must be a mandatory macOS-native64 member')
+    lines.append('if(APPLE AND CMAKE_SIZEOF_VOID_P EQUAL 8)')
+    for relative in paths:
+        lines.append('  set_property(SOURCE "${CSE_SDK_DIR}/' + relative +
+                     '" APPEND PROPERTY COMPILE_DEFINITIONS CSE_TEXT_ENTRY_USE_PTHREAD_KEY=1)')
+    lines.append('endif()')
+
+
 def emit_platform_sources(lines, target, configs):
     """Manifest-owned OS/width additions remain outside reference Win32 selections."""
     predicates = {'macos': 'APPLE', 'windows': 'WIN32', 'linux': 'CMAKE_SYSTEM_NAME STREQUAL "Linux"',
@@ -689,6 +714,7 @@ def main():
             lines.extend('    ' + quote(cmake_source(item)) for item in resources)
             lines.extend(['  )', 'endif()'])
         emit_platform_sources(lines, target, configs)
+        emit_mac_software_lifetime(lines, target, configs)
         portable_policy = True
         if portable_policy:
             sources = ROOT / 'cmake/targets' / target / 'Sources.cmake'

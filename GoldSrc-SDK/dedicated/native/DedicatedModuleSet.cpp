@@ -49,7 +49,8 @@ bool DedicatedModuleSet::Open(const char* root, bool gui, std::string& error) {
         error = "Software engine/VGUI cohort mismatch before module constructors";
         return false;
     }
-    engineModule_ = cse_platform::LoadModule(enginePath.c_str(), cse_platform::ModuleFallback::None);
+    engineModule_ = cse_mac_runtime::Session::LoadAdmitted(enginePath.c_str(), fontPath.c_str(),
+        cse_mac_runtime::EngineImage::Software, fontModule_);
     if (!engineModule_) {
         error = "Cannot load admitted software engine";
         return false;
@@ -65,6 +66,11 @@ bool DedicatedModuleSet::Open(const char* root, bool gui, std::string& error) {
         cse_platform::UnloadModule(engineModule_);
         engineModule_ = nullptr;
         retire_ = nullptr;
+        return false;
+    }
+    if (!software_.Open(engineModule_, enginePath.c_str(), software_lifetime::Mode::Dedicated)) {
+        error = "Missing or incompatible whole-software retirement owner";
+        Close();
         return false;
     }
     filesystemModule_ =
@@ -107,8 +113,36 @@ bool DedicatedModuleSet::Open(const char* root, bool gui, std::string& error) {
     return true;
 }
 
+bool DedicatedModuleSet::Initialize(char* base, char* command, CreateInterfaceFn host) {
+    software_lifetime::ImageOwner::Call call(&software_);
+    return call && engine_ && engine_->Init(base, command, host, filesystemFactory_);
+}
+
+bool DedicatedModuleSet::Frame() {
+    software_lifetime::ImageOwner::Call call(&software_);
+    return call && engine_ && engine_->RunFrame();
+}
+
+void DedicatedModuleSet::AddText(char* text) {
+    software_lifetime::ImageOwner::Call call(&software_);
+    if (call && engine_) {
+        engine_->AddConsoleText(text);
+    }
+}
+
+void DedicatedModuleSet::Status(float* fps, int* active, int* maximum, char* map) {
+    software_lifetime::ImageOwner::Call call(&software_);
+    if (call && engine_) {
+        engine_->UpdateStatus(fps, active, maximum, map);
+    }
+}
+
 int DedicatedModuleSet::Shutdown() noexcept {
     if (engine_ && !shutdown_) {
+        software_lifetime::ImageOwner::Call call(&software_);
+        if (!call) {
+            return shutdownResult_;
+        }
         shutdownResult_ = engine_->Shutdown();
         shutdown_ = true;
     }
@@ -116,16 +150,11 @@ int DedicatedModuleSet::Shutdown() noexcept {
 }
 
 bool DedicatedModuleSet::Retire() noexcept {
-    if (!engine_ || retired_) {
+    if (retired_) {
         return true;
     }
     Shutdown();
-    const std::uint32_t result = retire_(CSE_NATIVE_DEDICATED_LIFETIME_VERSION);
-    if (result != CSE_DEDICATED_RETIRE_READY && result != CSE_DEDICATED_RETIRE_ALREADY_RETIRED) {
-        std::fprintf(stderr, "Dedicated retirement rejected (%u); images remain owned\n", result);
-        if (result == CSE_DEDICATED_RETIRE_SESSION_ACTIVE || result == CSE_DEDICATED_RETIRE_SHUTDOWN_REQUIRED) {
-            shutdown_ = false;
-        }
+    if (!software_.Retire()) {
         return false;
     }
     retired_ = true;
@@ -142,6 +171,8 @@ void DedicatedModuleSet::Close() noexcept {
     retire_ = nullptr;
     cse_platform::UnloadModule(engineModule_);
     engineModule_ = nullptr;
+    cse_platform::UnloadModule(fontModule_);
+    fontModule_ = nullptr;
     cse_platform::UnloadModule(vguiModule_);
     vguiModule_ = nullptr;
     vguiFactory_ = nullptr;

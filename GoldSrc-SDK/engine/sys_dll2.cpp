@@ -1,3 +1,10 @@
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "native_software_lifetime.h"
+#include "VGui1NativeRuntime.h"
+namespace {
+bool nativeSoftwareClientEntered = false;
+}
+#endif
 #include "native_gameui_retirement.h"
 #include <atomic>
 #include <exception>
@@ -204,6 +211,7 @@ public:
 
 #if defined(__APPLE__)
     std::uint32_t Retire(std::uint32_t interfaceVersion);
+    int ShutdownResources();
 #endif
 
 private:
@@ -978,6 +986,14 @@ static void ExceptionHandler( unsigned int code, EXCEPTION_POINTERS* exception )
 int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRestartCmdLineArgs,
 	CreateInterfaceFn launcherFactory, CreateInterfaceFn filesystemFactory )
 {
+#if defined(__APPLE__)
+    cse::software_lifetime::Entry softwareEntry(cse::software_lifetime::Mode::Client);
+    if (!softwareEntry) {
+        return 0;
+    }
+    nativeSoftwareClientEntered = true;
+#endif
+
 #if INTPTR_MAX > INT32_MAX
     // Every ordinary return authorizes launcher image unload. Invalid ownership cannot return safely.
     static std::atomic_flag nativeRunActive = ATOMIC_FLAG_INIT;
@@ -1025,6 +1041,11 @@ int CEngineAPI::Run( void* instance, char* basedir, char* cmdline, char* postRes
 #if defined(__APPLE__)
 bool CDedicatedServerAPI::Init(char *basedir, char *cmdline, CreateInterfaceFn launcherFactory,
                                CreateInterfaceFn filesystemFactory) {
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return false;
+    }
+
 #if defined(__APPLE__)
     if (m_retired || m_initializing || m_shuttingDown) {
         return false;
@@ -1092,6 +1113,14 @@ bool CDedicatedServerAPI::Init(char *basedir, char *cmdline, CreateInterfaceFn l
 }
 
 int CDedicatedServerAPI::Shutdown() {
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return giActive;
+    }
+    return ShutdownResources();
+}
+
+int CDedicatedServerAPI::ShutdownResources() {
     if (m_shuttingDown) {
         return giActive;
     }
@@ -1158,6 +1187,11 @@ std::uint32_t CDedicatedServerAPI::Retire(std::uint32_t interfaceVersion) {
 #endif
 
 bool CDedicatedServerAPI::RunFrame() {
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return false;
+    }
+
     if (m_running && eng->GetQuitting() == 0) {
         eng->Frame();
         return true;
@@ -1230,11 +1264,25 @@ bool CDedicatedServerAPI::RunFrame()
 
 void CDedicatedServerAPI::AddConsoleText( char* text )
 {
+#if defined(__APPLE__)
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return;
+    }
+#endif
+
 	Cbuf_AddText( text );
 }
 
 void CDedicatedServerAPI::UpdateStatus( float* fps, int* nActive, int* nMaxPlayers, char* pszMap )
 {
+#if defined(__APPLE__)
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return;
+    }
+#endif
+
 	Host_GetHostInfo( fps, nActive, NULL, nMaxPlayers, pszMap );
 }
 
@@ -1326,6 +1374,36 @@ int BuildMapCycleListHints( char** hints )
 EXPOSE_SINGLE_INTERFACE( CEngineAPI, IEngineAPI, VENGINE_LAUNCHER_API_VERSION );
 #if defined(__APPLE__)
 static CDedicatedServerAPI nativeDedicatedServer;
+extern "C" bool CseSteamRetireModuleCallbacks();
+bool cse::software_lifetime::RetireResources(Mode mode) {
+    if (!RetirementInProgress()) {
+        return false;
+    }
+    if (mode == Mode::Dedicated) {
+        nativeDedicatedServer.ShutdownResources();
+        const auto result = nativeDedicatedServer.Retire(CSE_NATIVE_DEDICATED_LIFETIME_VERSION);
+        if (result != CSE_DEDICATED_RETIRE_READY && result != CSE_DEDICATED_RETIRE_ALREADY_RETIRED) {
+            return false;
+        }
+    } else {
+        // A bound image may be closed without ever entering Run. Establish only
+        // the existing main-thread identity; never invent initialized resources.
+        if ((!nativeSoftwareClientEntered && !cse::InitializeNativeGameUIHost())
+            || !cse::FinishNativeListenShutdown()) {
+            return false;
+        }
+    }
+    if (host_initialized || videomode || !CDAudio_ShutdownForModuleUnload()) {
+        return false;
+    }
+    // Consume the real embedded-font owner independently of whole-module callback retirement.
+    // It refuses live surfaces, pins, pending releases and active use; no font proof substitutes for this gate.
+    if (cse_vgui1_native::CloseEmbedded() != cse_vgui1_native::Result::Closed) {
+        return false;
+    }
+    return CseSteamRetireModuleCallbacks() && RetireRemoteAccess();
+}
+
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CDedicatedServerAPI, IDedicatedServerAPI,
     "VENGINE_HLDS_API_VERSION002", nativeDedicatedServer);
 extern "C" __attribute__((visibility("default"))) const cse::abi::Descriptor* CseGetDedicatedAbiV1() {
@@ -1335,6 +1413,10 @@ extern "C" __attribute__((visibility("default"))) const cse::abi::Descriptor* Cs
 }
 extern "C" __attribute__((visibility("default"))) std::uint32_t CseNativeDedicatedRetireV1(
     std::uint32_t interfaceVersion) {
+    cse::software_lifetime::Entry entry(cse::software_lifetime::Mode::Dedicated);
+    if (!entry) {
+        return CSE_DEDICATED_RETIRE_SESSION_ACTIVE;
+    }
     return nativeDedicatedServer.Retire(interfaceVersion);
 }
 #else

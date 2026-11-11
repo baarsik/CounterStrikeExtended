@@ -154,14 +154,14 @@ int DedicatedSession::Run() {
     state_ = State::Starting;
     engineEntered_ = true;
     std::string command = command_.Encoded();
-    if (!modules_.Engine()->Init(root_.data(), command.data(), Sys_GetFactoryThis(), modules_.FilesystemFactory())) {
+    if (!modules_.Initialize(root_.data(), command.data(), Sys_GetFactoryThis())) {
         Close();
         return EXIT_FAILURE;
     }
     if (guiOpen_) {
         std::string error;
         if (const char* commands = gui_.Commands()) {
-            modules_.Engine()->AddConsoleText(const_cast<char*>(commands));
+            modules_.AddText(const_cast<char*>(commands));
         }
         if (!gui_.Started(error)) {
             std::fprintf(stderr, "%s\n", error.c_str());
@@ -180,14 +180,14 @@ int DedicatedSession::Run() {
             if (char* line = console_.GetLine()) {
                 std::string input(line);
                 input += '\n';
-                modules_.Engine()->AddConsoleText(input.data());
+                modules_.AddText(input.data());
             }
             if (console_.InputFailed() || console_.OutputFailed()) {
                 Close();
                 return EXIT_FAILURE;
             }
         }
-        if (!modules_.Engine()->RunFrame()) {
+        if (!modules_.Frame()) {
             break;
         }
         if (consoleOpen_) {
@@ -204,7 +204,7 @@ int DedicatedSession::Run() {
                 int active = 0;
                 int maximum = 0;
                 char map[cse::engine_bootstrap_abi::StatusMapBytes]{};
-                modules_.Engine()->UpdateStatus(&fps, &active, &maximum, map);
+                modules_.Status(&fps, &active, &maximum, map);
                 map[sizeof(map) - 1] = '\0';
                 char status[MAX_CONSOLE_TEXTLEN]{};
                 std::snprintf(status, sizeof(status), "%.1f fps %2i/%2i on %16s", fps, active, maximum, map);

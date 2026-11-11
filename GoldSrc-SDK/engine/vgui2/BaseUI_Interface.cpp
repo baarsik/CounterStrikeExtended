@@ -239,6 +239,13 @@ void CBaseUI::Initialize( CreateInterfaceFn* factories, int )
 	fileSystemFactory( "VFileSystem009", nullptr );
 	m_hVGuiModule = Sys_LoadModule( "vgui2.dll" );
 	CreateInterfaceFn vguiFactory = Sys_GetFactory( m_hVGuiModule );
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    m_nativeCompletion = cse::vgui_completion::Admit(m_hVGuiModule, reinterpret_cast<const void*>(vguiFactory));
+    if (!m_nativeCompletion) {
+        Sys_Error("VGUI has an incompatible private client completion contract");
+        return;
+    }
+#endif
 #if INTPTR_MAX > INT32_MAX
     std::string browserError;
     m_nativeChromeController = cse::browser::CreateEngineController(browserError);
@@ -500,7 +507,32 @@ bool CBaseUI::TryShutdown() {
 #if INTPTR_MAX > INT32_MAX
     if (m_nativeChromeController) {
         cse::browser::BeginControllerShutdown(*m_nativeChromeController);
+#if defined(__APPLE__) && defined(SW_RENDERER)
+        m_nativeChromeController->Shutdown();
+        if (!cse::browser::ControllerQuiescent(*m_nativeChromeController)) {
+            return false;
+        }
+#endif
     }
+#if defined(__APPLE__) && defined(SW_RENDERER)
+    if (m_hVGuiModule) {
+        if (!m_nativeCompletion) {
+            return false;
+        }
+        if (m_nativeControlsInitialized) {
+            vgui2::system()->SaveUserConfigFile();
+        }
+        const void* selectedSurface = m_nativeControlsInitialized ? vgui2::surface() : nullptr;
+        const auto result = m_nativeCompletion->finish(selectedSurface);
+        if (result != cse::vgui_completion::Result::Complete) {
+            if (result == cse::vgui_completion::Result::Busy && m_nativeControlsInitialized) {
+                // Give already-owned serial deletion/messages one bounded lifecycle turn.
+                vgui2::ivgui()->RunFrame();
+            }
+            return false;
+        }
+    }
+#endif
     // Every widget owner has now been observed deleted with its code and services alive.
     if (staticSurface != nullptr) {
         staticSurface->Shutdown();
@@ -515,9 +547,20 @@ bool CBaseUI::TryShutdown() {
 	staticGameUIFuncs = nullptr;
 #if INTPTR_MAX > INT32_MAX
     m_nativeRetirement = nullptr;
+#if !defined(__APPLE__) || !defined(SW_RENDERER)
     if (m_nativeControlsInitialized) {
         vgui2::system()->SaveUserConfigFile();
     }
+#else
+    vgui2::VGuiControls_Shutdown();
+    g_InputInternal = nullptr;
+    for (auto& factory : m_FactoryList) {
+        factory = nullptr;
+    }
+    m_iNumFactories = 0;
+    gEngfuncs = {};
+    m_nativeCompletion = nullptr;
+#endif
     m_nativeControlsInitialized = false;
 #else
 	vgui2::system()->SaveUserConfigFile();

@@ -1,3 +1,4 @@
+#include "engine/native_software_lifetime.h"
 #include "public/native_dedicated_abi.h"
 #include "public/native_dedicated_lifetime.h"
 #include <cstdio>
@@ -91,3 +92,18 @@ extern "C" __attribute__((visibility("default"))) uint32_t CseNativeDedicatedRet
 }
 #endif
 __attribute__((destructor)) static void Unload() { Event("unload"); }
+
+namespace cse::software_lifetime {
+bool RetireResources(Mode mode) {
+    if (mode != Mode::Dedicated || !RetirementInProgress()) {
+        return false;
+    }
+    engine.Shutdown();
+#ifndef CSE_TEST_MISSING_RETIRE
+    const auto result = CseNativeDedicatedRetireV1(CSE_NATIVE_DEDICATED_LIFETIME_VERSION);
+    return result == CSE_DEDICATED_RETIRE_READY || result == CSE_DEDICATED_RETIRE_ALREADY_RETIRED;
+#else
+    return false;
+#endif
+}
+}

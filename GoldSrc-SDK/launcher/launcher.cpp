@@ -1129,17 +1129,23 @@ int main( int argc, const char** argv, const char** )
             return EXIT_FAILURE;
         }
 #endif
+#if defined(CSE_NATIVE_RUNTIME_BOOTSTRAP)
+        cse_mac_runtime::Session nativeSession;
+        CSysModule* engineModule = static_cast<CSysModule*>(nativeSession.Load(enginePath, fontPath, selectedImage));
+#else
 		CSysModule* engineModule = Sys_LoadModule( engineDll );
+#endif
 		bool restart = false;
 
 		if ( engineModule != NULL )
 		{
 #if defined(CSE_NATIVE_RUNTIME_BOOTSTRAP)
-            cse_mac_runtime::Session nativeSession;
             bool adopted = false;
             if (!nativeSession.Open(engineModule, enginePath, fontPath, adopted)) {
                 if (!adopted) {
                     Sys_UnloadModule(engineModule);
+                } else if (!nativeSession.Close()) {
+                    return EXIT_FAILURE;
                 }
                 g_pFileSystem->Unmount();
                 Sys_UnloadModule(fileSystemModule);
@@ -1156,8 +1162,16 @@ int main( int argc, const char** argv, const char** )
 
 			if ( engine != NULL )
 			{
-				const int runResult = engine->Run( NULL, szBaseDir, cmdline->GetCmdLine(), szNewCommandParams,
-					Sys_GetFactoryThis(), Sys_GetFactory( fileSystemModule ) );
+                const int runResult = [&]() -> int {
+#if defined(CSE_NATIVE_RUNTIME_BOOTSTRAP)
+                    cse::software_lifetime::ImageOwner::Call call(nativeSession.SoftwareOwner());
+                    if (!call) {
+                        return kEngineRunVideoModeFailed;
+                    }
+#endif
+                    return engine->Run(NULL, szBaseDir, cmdline->GetCmdLine(), szNewCommandParams,
+                        Sys_GetFactoryThis(), Sys_GetFactory(fileSystemModule));
+                }();
 #if defined(CSE_NATIVE_RUNTIME_BOOTSTRAP)
                 if (!nativeSession.Close()) {
                     std::_Exit(EXIT_FAILURE);

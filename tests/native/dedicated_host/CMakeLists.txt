@@ -122,3 +122,9 @@ add_test(NAME excess_arguments_before_effects COMMAND "${Python3_EXECUTABLE}"
 add_test(NAME actual_startup_command_roundtrip COMMAND "${Python3_EXECUTABLE}"
   "${CMAKE_CURRENT_SOURCE_DIR}/run_startup_commands.py" "${CMAKE_CURRENT_BINARY_DIR}/actual-startup"
   "$<IF:$<CONFIG:Release>,-Os,-O0>")
+
+# The host fixture uses the production mandatory whole-image gate; only resource owners are controlled.
+foreach(target fixture_engine fixture_missing_retire)
+  target_sources(${target} PRIVATE "${SDK}/engine/native_software_lifetime.cpp")
+  target_compile_definitions(${target} PRIVATE SW_RENDERER)
+endforeach()

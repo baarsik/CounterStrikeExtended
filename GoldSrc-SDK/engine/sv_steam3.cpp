@@ -1,3 +1,6 @@
+#if defined(__APPLE__) && defined(SW_RENDERER)
+#include "native_software_lifetime.h"
+#endif
 #if defined(_WIN32)
 #include <winsock2.h>
 #else
@@ -81,6 +84,7 @@ struct SteamDebugOutput_t
 static std::vector<SteamDebugOutput_t> g_SteamDebugOutputQueue;
 static std::mutex g_SteamDebugOutputMutex;
 
+#if !defined(__APPLE__) || !defined(SW_RENDERER)
 static void SteamNetworkingSocketsDebugOutput( ESteamNetworkingSocketsDebugOutputType nType, const char* pszMsg )
 {
 	g_SteamDebugOutputMutex.lock();
@@ -88,13 +92,19 @@ static void SteamNetworkingSocketsDebugOutput( ESteamNetworkingSocketsDebugOutpu
 	g_SteamDebugOutputQueue.push_back( debugOutput );
 	g_SteamDebugOutputMutex.unlock();
 }
+#endif
 
 void SetSteamNetworkingSocketsDebugOutputFunction()
 {
 	if ( SteamNetworkingUtils_SteamAPI() )
 	{
 		SteamNetworkingUtils_SteamAPI()->SetDebugOutputFunction(
-			k_ESteamNetworkingSocketsDebugOutputType_Msg, SteamNetworkingSocketsDebugOutput );
+			k_ESteamNetworkingSocketsDebugOutputType_Msg,
+#if defined(__APPLE__) && defined(SW_RENDERER)
+            cse::software_lifetime::HostNetworkLog());
+#else
+            SteamNetworkingSocketsDebugOutput);
+#endif
 	}
 }
 
