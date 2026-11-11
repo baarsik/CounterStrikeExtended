@@ -9,14 +9,16 @@
 namespace {
 constexpr DWORD kSoftwareVoices = 8; // Retained A2D pool limit; never hardware capacity.
 constexpr DWORD kInitializationMode = 1;
+// Qualified by the retained source -> complete control -> software PCM path.
+// EQ/reflections remain stock-unread; generic/occlusion rendering is unqualified.
+constexpr DWORD kQualifiedRenderingFeatures = A3D_DIRECT_PATH_A3D;
 
 HRESULT ValidateRequest(DWORD features, DWORD mode, DWORD* supported) {
     if (!supported) {
         return E_POINTER;
     }
     *supported = 0;
-    // No acoustic bit is qualified until the producer-to-PCM Task 6 gate.
-    if (features & ~A3D_DISABLE_SPLASHSCREEN) {
+    if (features & ~(kQualifiedRenderingFeatures | A3D_DISABLE_SPLASHSCREEN)) {
         return A3DERROR_FEATURE_NOT_SUPPORTED;
     }
     return mode == kInitializationMode ? S_OK : E_INVALIDARG;
@@ -88,6 +90,7 @@ public:
         }
         device_ = requested;
         initialized_ = true;
+        *supported = kQualifiedRenderingFeatures;
         return S_OK;
     }
     HRESULT STDMETHODCALLTYPE Initialize(LPCGUID device) override {

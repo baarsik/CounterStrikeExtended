@@ -18,6 +18,15 @@
 
 HRESULT STDMETHODCALLTYPE CA3d::Enable( DWORD dwFeatures )
 {
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        if (!dwFeatures || (m_dwFeaturesAvailable & dwFeatures) != dwFeatures) {
+            return A3DERROR_FEATURE_NOT_SUPPORTED;
+        }
+        m_dwEnabledFeatures |= dwFeatures;
+        return S_OK;
+    }
+#endif
 	if ( !( m_dwFeaturesAvailable & dwFeatures ) )
 		return A3DERROR_FEATURE_NOT_SUPPORTED;
 
@@ -27,6 +36,12 @@ HRESULT STDMETHODCALLTYPE CA3d::Enable( DWORD dwFeatures )
 
 HRESULT STDMETHODCALLTYPE CA3d::Disable( DWORD dwFeatures )
 {
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        m_dwEnabledFeatures &= ~dwFeatures;
+        return S_OK;
+    }
+#endif
 	if ( m_dwEnabledFeatures & dwFeatures )
 		m_dwEnabledFeatures -= dwFeatures;
 
@@ -35,6 +50,11 @@ HRESULT STDMETHODCALLTYPE CA3d::Disable( DWORD dwFeatures )
 
 BOOL STDMETHODCALLTYPE CA3d::IsEnabled( DWORD dwFeatures )
 {
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        return dwFeatures && (m_dwEnabledFeatures & dwFeatures) == dwFeatures;
+    }
+#endif
 	return ( m_dwEnabledFeatures & dwFeatures ) != 0;
 }
 
@@ -3548,7 +3568,14 @@ HRESULT CA3d::InitializeGeometryState()
     m_PrimitiveIdentity = A3dGeometryIdentity::PublicTag(0);
 #endif
 	m_bGeometryInitialized = TRUE;
-	m_dwEnabledFeatures = A3D_DIRECT_PATH_A3D | A3D_DIRECT_PATH_GENERIC;
+#ifndef _WIN32
+    if (UsesNativeProvider()) {
+        m_dwEnabledFeatures = m_dwFeaturesAvailable & A3D_DIRECT_PATH_A3D;
+    } else
+#endif
+    {
+        m_dwEnabledFeatures = A3D_DIRECT_PATH_A3D | A3D_DIRECT_PATH_GENERIC;
+    }
 	m_dwOcclusionMode = A3D_FASTEST;
 	m_dwReflectionMode = A3D_FASTEST;
 	Compat( A3D_COMPAT_LEGACY_STATE_ALTERNATE, 1 );

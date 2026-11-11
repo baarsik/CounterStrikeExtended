@@ -168,7 +168,7 @@ void TypedProvider() {
     CHECK(supported == 0);
     GUID invalid{0xdeadbeef, 0, 0, {}};
     CHECK(FAILED(device->InitializeDevice(&invalid, 0, 1, &supported)) && supported == 0);
-    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK && supported == 0);
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK && supported == A3D_DIRECT_PATH_A3D);
     IDirectSound* sound = nullptr;
     CHECK(provider->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&sound)) == S_OK);
     DSCAPS caps{};
