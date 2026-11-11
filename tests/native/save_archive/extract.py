@@ -40,8 +40,13 @@ if __name__ == '__main__':
     if not args.old:
         ANCHORS['DirectoryCopy'] = ('bool DirectoryCopy(const char *path, FileHandle_t file, std::int32_t expectedFileCount) {', '\nbool DirectoryExtract(')
         ANCHORS['DirectoryExtract'] = ('bool DirectoryExtract(FileHandle_t file, int fileCount) {', ANCHORS['DirectoryExtract'][1])
+        if 'enum class HostLoadFailurePolicy' in data.decode():
+            ANCHORS['LoadFailurePolicy'] = ('namespace {\nenum class HostLoadFailurePolicy', '\nint Host_ValidSave();')
+            ANCHORS['Host_Load'] = ('namespace {\nint Host_LoadWithFailurePolicy(', ANCHORS['Host_Load'][1])
     names = ['FileCopy', 'FileSize', 'DirectoryCopy', 'DirectoryExtract']
     if not args.old:
+        if 'LoadFailurePolicy' in ANCHORS:
+            names += ['LoadFailurePolicy']
         names += ['Host_Load', 'SaveGameSlot']
     args.output.write_text(extract(data.decode(), names))
     args.output.with_suffix('.json').write_text(json.dumps({'source': str(args.source), 'sha256': digest, 'anchors': names}, indent=2))

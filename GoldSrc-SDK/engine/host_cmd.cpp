@@ -165,6 +165,14 @@ void Host_ClearGameState();
 void Host_InitializeGameDLL();
 void Host_Map( qboolean bIsDemo, char* mapstring, char* mapName, qboolean loadGame );
 int __cdecl Host_Load( const char* name );
+namespace {
+enum class HostLoadFailurePolicy {
+    Disconnect,
+    ReloadFallback
+};
+
+int Host_LoadWithFailurePolicy(const char *name, HostLoadFailurePolicy failurePolicy);
+} // namespace
 int Host_ValidSave();
 void FileCopy( FileHandle_t output, FileHandle_t input, int fileSize );
 int FileSize( FileHandle_t file );
@@ -1329,12 +1337,13 @@ void Host_Reload_f()
 	SV_ServerShutdown();
 
 	pSaveName = Host_FindRecentSave( name, sizeof( name ) );
-	if ( !pSaveName || !Host_Load( pSaveName ) )
-	{
-		SV_SpawnServer( FALSE, gHostMap.string, NULL );
-		SV_LoadEntities();
-		SV_ActivateServer( 1 );
-	}
+    // Game rules execute queued commands during spawn; reload must own recovery without a deferred disconnect.
+    if (!pSaveName || !Host_LoadWithFailurePolicy(pSaveName, HostLoadFailurePolicy::ReloadFallback)) {
+        if (SV_SpawnServer(FALSE, gHostMap.string, NULL)) {
+            SV_LoadEntities();
+            SV_ActivateServer(1);
+        }
+    }
 }
 
 void Host_Motd_f()
@@ -1439,8 +1448,8 @@ void Host_Motd_Write_f()
 
 #include "save_archive_impl.h"
 
-int __cdecl Host_Load( const char* pName )
-{
+namespace {
+int Host_LoadWithFailurePolicy(const char *pName, HostLoadFailurePolicy failurePolicy) {
 	char name[256];
 	GAME_HEADER gameHeader;
 	FileHandle_t pFile;
@@ -1514,8 +1523,10 @@ int __cdecl Host_Load( const char* pName )
 
 	if ( !SaveReadHeader( pFile, &gameHeader, 1 ) )
 	{
-		giStateInfo = STATE_ENDTRAINING;
-		Cbuf_AddText( "\ndisconnect\n" );
+        if (failurePolicy == HostLoadFailurePolicy::Disconnect) {
+            giStateInfo = STATE_ENDTRAINING;
+            Cbuf_AddText("\ndisconnect\n");
+        }
 		return 0;
 	}
 
@@ -1527,8 +1538,10 @@ int __cdecl Host_Load( const char* pName )
     if (!cse::save_archive::ReadLayout(pFile, gameHeader.mapCount, archiveLayout)
         || !cse::save_archive::Extract(pFile, archiveLayout)) {
         FS_Close(pFile);
-        giStateInfo = STATE_ENDTRAINING;
-        Cbuf_AddText("\ndisconnect\n");
+        if (failurePolicy == HostLoadFailurePolicy::Disconnect) {
+            giStateInfo = STATE_ENDTRAINING;
+            Cbuf_AddText("\ndisconnect\n");
+        }
         return 0;
     }
 
@@ -1549,6 +1562,11 @@ int __cdecl Host_Load( const char* pName )
 	Host_Map( FALSE, name, gameHeader.mapName, TRUE );
 
 	return 1;
+}
+} // namespace
+
+int __cdecl Host_Load(const char *pName) {
+    return Host_LoadWithFailurePolicy(pName, HostLoadFailurePolicy::Disconnect);
 }
 
 void FileCopy( FileHandle_t pOutput, FileHandle_t pInput, int fileSize )
