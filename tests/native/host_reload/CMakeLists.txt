@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 3.25)
+project(CseHostReload LANGUAGES CXX)
+enable_testing()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+option(CSE_RELOAD_SANITIZE "Enable scoped address and undefined sanitizers" OFF)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
+    "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/owners.h" COMMAND_ERROR_IS_FATAL ANY)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract.py
+    "${CSE_ROOT}/GoldSrc-SDK/engine/host_cmd.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/cmd.cpp"
+    "${CSE_ROOT}/GoldSrc-SDK/engine/cl_main.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/host.cpp"
+    "${CSE_ROOT}/GoldSrc-SDK/engine/pr_edict.cpp")
+add_executable(host_reload reload_tests.cpp)
+target_compile_features(host_reload PRIVATE cxx_std_17)
+target_include_directories(host_reload PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/engine")
+if(MSVC)
+    target_compile_options(host_reload PRIVATE /W4 /EHsc)
+    target_compile_definitions(host_reload PRIVATE _CRT_SECURE_NO_WARNINGS)
+else()
+    target_compile_options(host_reload PRIVATE -Wall -Wextra -Werror)
+    if(CSE_RELOAD_SANITIZE)
+        target_compile_options(host_reload PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(host_reload PRIVATE -fsanitize=address,undefined)
+    endif()
+endif()
+foreach(case header archive extraction missing absent success explicit spawn cycles)
+    add_test(NAME reload-${case} COMMAND host_reload ${case})
+endforeach()
