@@ -295,6 +295,24 @@ Status TextureStore::Parameter(const LegacyState& state, TextureTarget target, T
     return Status::Ok;
 }
 
+Status TextureStore::UploadByteExtent(const TextureUpload& upload, const PixelStoreState& unpack,
+    std::size_t& output) {
+    if (upload.width < 0 || upload.height < 0 || upload.width > kTextureDimension ||
+        upload.height > kTextureDimension || upload.format > PixelFormat::ColorIndex) {
+        return Status::InvalidValue;
+    }
+    std::size_t stride = 0;
+    std::size_t extent = 0;
+    if (!Layout(upload, unpack, stride, extent)) {
+        return Status::InvalidValue;
+    }
+    if (extent > kTextureUploadBytes) {
+        return Status::LimitExceeded;
+    }
+    output = extent;
+    return Status::Ok;
+}
+
 Status TextureStore::ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage) {
     if (upload.level < 0 || upload.level >= kTextureLevels || upload.width < 0 || upload.height < 0 ||
         upload.width > kTextureDimension || upload.height > kTextureDimension || upload.x < 0 || upload.y < 0 ||

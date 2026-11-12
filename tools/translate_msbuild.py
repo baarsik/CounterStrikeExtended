@@ -432,6 +432,19 @@ def emit_native_sdl3_dependency(lines, target, configs):
         lines.append('endif()')
 
 
+def emit_native_windows_libraries(lines, target, configs):
+    """The native GameUI resolver owns Winsock2; keep reference Win32 and POSIX selections unchanged."""
+    selections = [split(configs[name]['properties'].get('CseNativeWindowsLibraries', ''))
+                  for name in ('Debug', 'Release')]
+    if not any(selections):
+        return
+    if target != 'gameui' or selections != [['ws2_32.lib'], ['ws2_32.lib']]:
+        raise ValueError('Native Windows libraries require the exact GameUI Winsock2 Debug/Release selection')
+    lines.append('if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)')
+    lines.append('  target_link_libraries(gameui PRIVATE ws2_32.lib)')
+    lines.append('endif()')
+
+
 def emit_mac_dedicated_resources(lines, target, configs):
     selections = [split(configs[name]['properties'].get('CseMacDedicatedResources', ''))
                   for name in ('Debug', 'Release')]
@@ -895,6 +908,7 @@ def main():
         emit_native_module_aliases(lines, target, configs)
         emit_native_sdl3_dependency(lines, target, configs)
         emit_mac_dedicated_resources(lines, target, configs)
+        emit_native_windows_libraries(lines, target, configs)
         if target == 'vgui':
             lines.append('cse_vgui_import_archive()')
         dest = ROOT / 'cmake/targets' / target / 'CMakeLists.txt'

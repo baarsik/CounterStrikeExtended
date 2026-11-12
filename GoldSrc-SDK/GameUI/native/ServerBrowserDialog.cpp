@@ -1,6 +1,15 @@
 #include "ServerBrowserDialog.h"
 #include "Button.h"
 #include "CheckButton.h"
+#include "ToggleButton.h"
+#include "RadioButton.h"
+#include "MessageBox.h"
+#include "vgui/ISystem.h"
+#include "../../external/steamworks/isteamapps.h"
+#include <deque>
+#include <cstdio>
+#include "ImageList.h"
+#include "vgui/IScheme.h"
 #include "ComboBox.h"
 #include "Label.h"
 #include "ListPanel.h"
@@ -24,24 +33,28 @@
 #include <cmath>
 #include <cstring>
 #include <functional>
+#include <ctime>
 
 namespace cse::server_browser {
 namespace {
-constexpr int Margin = 8;
-constexpr int ControlHeight = 24;
-constexpr int ColumnWidth = 90;
-constexpr int NameColumnWidth = 200;
 constexpr int ScrollWidth = 18;
-constexpr AppId_t CounterStrikeApp = 10;
+constexpr size_t OriginalPasswordCapacity = 64;
 constexpr AppId_t HalfLifeApp = 70;
 const char *const TabLabels[]{"#ServerBrowser_InternetTab", "#ServerBrowser_FavoritesTab",
-                              "#ServerBrowser_HistoryTab",  "#ServerBrowser_LanTab",
-                              "#ServerBrowser_FriendsTab",  "#ServerBrowser_SpectateTab"};
-const char *const ColumnNames[]{"password", "secure", "name", "game", "map", "players", "ping", "address"};
-const char *const ColumnLabels[]{"#ServerBrowser_PasswordLabel", "#ServerBrowser_ValidSteamAccount",
-                                 "#ServerBrowser_ServerLabel",   "#ServerBrowser_Game",
-                                 "#ServerBrowser_Map",           "#ServerBrowser_Players",
-                                 "#ServerBrowser_Latency",       "#ServerBrowser_IPAddressLabel"};
+    "#ServerBrowser_HistoryTab", "#ServerBrowser_SpectateTab", "#ServerBrowser_LanTab", "#ServerBrowser_FriendsTab"};
+const char *const PageNames[]{"InternetGames", "FavoriteGames", "HistoryGames", "SpectateGames", "LanGames", "FriendsGames"};
+constexpr std::array<Column, 10> VisualColumns{Column::Password, Column::Bots, Column::Secure, Column::Players,
+    Column::Name, Column::Game, Column::Map, Column::Ping, Column::Address, Column::LastPlayed};
+const char *const ColumnNames[]{"Password", "Bots", "Secure", "Players", "Name", "GameDesc", "Map", "Ping",
+    "IPAddr", "LastPlayed"};
+const char *const ColumnLabels[]{"#ServerBrowser_Password", "#ServerBrowser_Bots", "#ServerBrowser_Secure",
+    "#ServerBrowser_Players", "#ServerBrowser_Servers", "#ServerBrowser_Game", "#ServerBrowser_Map",
+    "#ServerBrowser_Latency", "#ServerBrowser_IPAddress", "#ServerBrowser_LastPlayed"};
+constexpr std::array<int, 10> ColumnWidths{16, 20, 16, 55, 50, 112, 90, 55, 64, 100};
+constexpr int ReferencePageWidth = 624;
+constexpr int ReferencePageHeight = 278;
+constexpr int OriginalMinimumWidth = 640;
+constexpr int OriginalMinimumHeight = 384;
 int SlotOrder(vgui2::ListPanel *, const vgui2::ListPanelItem &left, const vgui2::ListPanelItem &right) {
     const int a = left.kv->GetInt("slot");
     const int b = right.kv->GetInt("slot");
@@ -92,19 +105,6 @@ private:
     std::function<void(size_t)> seek_;
     bool updating_ = false;
 };
-struct Extent {
-    int width;
-    int height;
-};
-Extent LabelExtent(vgui2::Label &label) {
-    Extent extent{};
-    label.GetContentSize(extent.width, extent.height);
-    extent.height = std::max(extent.height, vgui2::surface()->GetFontTall(label.GetFont()));
-    return extent;
-}
-int Padding(vgui2::Panel &panel) {
-    return std::max(Margin, panel.GetProportionalScaledValue(Margin));
-}
 void ClampFrame(vgui2::Frame &frame) {
     int x = 0;
     int y = 0;
@@ -115,7 +115,7 @@ void ClampFrame(vgui2::Frame &frame) {
         vgui2::surface()->GetScreenSize(width, height);
     }
     constexpr int MinimumWidth = 640;
-    constexpr int MinimumHeight = 480;
+    constexpr int MinimumHeight = 384;
     const int minimumWidth = std::min(width, frame.GetProportionalScaledValue(MinimumWidth));
     const int minimumHeight = std::min(height, frame.GetProportionalScaledValue(MinimumHeight));
     frame.SetMinimumSize(minimumWidth, minimumHeight);
@@ -125,90 +125,13 @@ void ClampFrame(vgui2::Frame &frame) {
     frame.GetPos(left, top);
     frame.SetPos(std::clamp(left, x, x + width - frame.GetWide()), std::clamp(top, y, y + height - frame.GetTall()));
 }
-class BrowserSheet final : public vgui2::PropertySheet {
-public:
-    explicit BrowserSheet(vgui2::Panel *parent) : PropertySheet(parent, "GameTabs") {}
-
-    void AddPage(vgui2::Panel *page, const char *title) override {
-        const int previousCount = GetNumPages();
-        PropertySheet::AddPage(page, title);
-        if (GetNumPages() == previousCount) {
-            return;
-        }
-        // Capture each of the six tabs when its logical page is added. Selecting
-        // a page changes child stacking order but must not change visual order.
-        for (int index = 0; index < GetChildCount(); ++index) {
-            auto *tab = dynamic_cast<vgui2::Label *>(GetChild(index));
-            if (tab && !std::strcmp(tab->GetName(), "tab") &&
-                std::find(tabs_.begin(), tabs_.end(), tab) == tabs_.end()) {
-                tabs_.push_back(tab);
-                break;
-            }
-        }
-    }
-
-    int TabHeight(int width) {
-        int x = 0;
-        int y = 0;
-        int rowHeight = 0;
-        const int gap = Padding(*this);
-        // Exactly the six browser tabs, independent of the number of server rows.
-        for (auto *tab : tabs_) {
-            const auto size = LabelExtent(*tab);
-            const int tabWidth = size.width + 2 * gap;
-            const int tabHeight = size.height + gap;
-            if (x && x + tabWidth > width) {
-                x = 0;
-                y += rowHeight + 1;
-                rowHeight = 0;
-            }
-            tab->SetBounds(x, y, tabWidth, tabHeight);
-            x += tabWidth + 1;
-            rowHeight = std::max(rowHeight, tabHeight);
-        }
-        return y + rowHeight + gap;
-    }
-    int MinimumWidth() {
-        int width = 0;
-        for (auto *tab : tabs_) {
-            width = std::max(width, LabelExtent(*tab).width + 2 * Padding(*this));
-        }
-        return width;
-    }
-
-protected:
-    void PerformLayout() override {
-        PropertySheet::PerformLayout();
-        const int top = TabHeight(GetWide());
-        if (auto *page = GetActivePage()) {
-            page->SetBounds(0, top, GetWide(), std::max(0, GetTall() - top));
-        }
-    }
-
-private:
-    std::vector<vgui2::Label *> tabs_;
-};
-
 class SlotList : public vgui2::ListPanel {
 public:
     SlotList(vgui2::Panel *parent, const char *name) : ListPanel(parent, name) {
-        SetMultiSelectEnabled(false);
+        SetMultiSelectEnabled(true);
         // Every column compares the canonical viewport slot; ListPanel otherwise leaves sort indices unset.
         constexpr int SlotSortColumn = 0;
         SetSortColumn(SlotSortColumn);
-    }
-    void AddMeasuredColumn(int index, const char *name, const char *text, int width) {
-        AddColumnHeader(index, name, text, width, 0);
-        headers_.push_back(static_cast<vgui2::Label *>(FindChildByName(name, false)));
-        widths_.push_back(width);
-    }
-    int MinimumWidth() {
-        int width = 2 * Padding(*this);
-        for (size_t index = 0; index < headers_.size(); ++index) {
-            width += std::max(GetProportionalScaledValue(widths_[index]),
-                              LabelExtent(*headers_[index]).width + 2 * Padding(*this));
-        }
-        return width;
     }
     size_t Capacity() {
         return static_cast<size_t>(std::max(1.0f, std::floor(GetRowsPerPage())));
@@ -218,34 +141,7 @@ protected:
     int GetStartItem() override {
         return 0;
     }
-    void PerformLayout() override {
-        int headerHeight = 0;
-        for (auto *header : headers_) {
-            headerHeight = std::max(headerHeight, LabelExtent(*header).height + Padding(*this));
-        }
-        SetColumnHeaderHeight(headerHeight);
-        ListPanel::PerformLayout();
-        int left = 0;
-        for (size_t index = 0; index < headers_.size(); ++index) {
-            const int width = std::max(GetProportionalScaledValue(widths_[index]),
-                                       LabelExtent(*headers_[index]).width + 2 * Padding(*this));
-            headers_[index]->SetBounds(left, 0, width, headerHeight);
-            left += width;
-        }
-        if (auto *internal = dynamic_cast<vgui2::ScrollBar *>(FindChildByName("VertScrollBar", false))) {
-            internal->SetVisible(false);
-            // Slots are already the visible window. The retained internal bar is
-            // unused, including when a scheme reload explicitly lays out hidden children.
-            constexpr int InactiveScrollExtent = 1;
-            internal->SetRange(0, InactiveScrollExtent);
-            internal->SetRangeWindow(0);
-            internal->SetValue(0);
-        }
-    }
 
-private:
-    std::vector<vgui2::Label *> headers_;
-    std::vector<int> widths_;
 };
 void AddFallback(const char *token, const wchar_t *text) {
     if (!vgui2::localize()->Find(token)) {
@@ -271,161 +167,6 @@ void RegisterFallbacks() {
 }
 }
 
-// Only browser-owned fixed controls and the viewport-sized table live here.
-// Scrolling moves their parent; it never creates, measures or visits model rows.
-class BrowserOverflow final : public vgui2::EditablePanel {
-public:
-    BrowserOverflow(vgui2::Panel *parent, const char *name) : EditablePanel(parent, name) {
-        SetTabPosition(1);
-        content_ = new vgui2::EditablePanel(this, "Contents");
-        content_->SetTabPosition(1);
-        horizontal_ = new Bar(this, "HorizontalOverflow", false);
-        vertical_ = new Bar(this, "VerticalOverflow", true);
-        horizontal_->SetTabPosition(2);
-        vertical_->SetTabPosition(3);
-    }
-    vgui2::Panel *Contents() const {
-        return content_;
-    }
-    int ViewWidth() {
-        return std::max(1, GetWide() - GetProportionalScaledValue(ScrollWidth));
-    }
-    int ViewHeight() {
-        return std::max(1, GetTall() - GetProportionalScaledValue(ScrollWidth));
-    }
-    void SetContentSize(int width, int height) {
-        content_->SetSize(std::max(width, ViewWidth()), std::max(height, ViewHeight()));
-        PerformLayout();
-    }
-    void OnThink() override {
-        Panel::OnThink();
-        const auto focus = vgui2::input()->GetFocus();
-        if (!focus) {
-            lastFocus_ = 0;
-            return;
-        }
-        auto *panel = vgui2::ipanel()->GetPanel(focus, vgui2::GetControlsModuleName());
-        if (!panel || panel == content_ || !panel->HasParent(content_->GetVPanel()) || panel->IsPopup()) {
-            lastFocus_ = 0;
-            return;
-        }
-        int left = 0;
-        int top = 0;
-        panel->LocalToScreen(left, top);
-        content_->ScreenToLocal(left, top);
-        const std::array<int, 6> geometry{left, top, panel->GetWide(), panel->GetTall(), ViewWidth(), ViewHeight()};
-        if (focus == lastFocus_ && geometry == lastFocusGeometry_) {
-            return;
-        }
-        // Retained focus may move during resize/scheme layout. Measure the actual
-        // descendant, including nested table scrolling, without visiting rows.
-        // Unchanged geometry leaves deliberate user scrolling alone.
-        lastFocus_ = focus;
-        lastFocusGeometry_ = geometry;
-        Reveal(*horizontal_, left, panel->GetWide(), ViewWidth());
-        Reveal(*vertical_, top, panel->GetTall(), ViewHeight());
-    }
-
-protected:
-    void PerformLayout() override {
-        const int bar = GetProportionalScaledValue(ScrollWidth);
-        const int width = ViewWidth();
-        const int height = ViewHeight();
-        horizontal_->SetBounds(0, height, width, bar);
-        vertical_->SetBounds(width, 0, bar, height);
-        horizontal_->SetRange(0, content_->GetWide());
-        // An inactive retained slider uses a zero window; range == window would
-        // divide by zero in its knob calculation even while the control is disabled.
-        horizontal_->SetRangeWindow(content_->GetWide() > width ? width : 0);
-        vertical_->SetRange(0, content_->GetTall());
-        vertical_->SetRangeWindow(content_->GetTall() > height ? height : 0);
-        horizontal_->SetEnabled(content_->GetWide() > width);
-        vertical_->SetEnabled(content_->GetTall() > height);
-        // Zero-window sliders do not initialize a drawable knob. Hide inactive
-        // bars while retaining the same reserved viewport geometry.
-        horizontal_->SetVisible(horizontal_->IsEnabled());
-        vertical_->SetVisible(vertical_->IsEnabled());
-        horizontal_->SetValue(std::min(horizontal_->GetValue(), std::max(0, content_->GetWide() - width)));
-        vertical_->SetValue(std::min(vertical_->GetValue(), std::max(0, content_->GetTall() - height)));
-        Position();
-    }
-    void OnMouseWheeled(int delta) override {
-        if (vertical_->IsEnabled()) {
-            vertical_->SetValue(vertical_->GetValue() - delta * GetProportionalScaledValue(ControlHeight));
-        }
-    }
-
-private:
-    class Bar final : public vgui2::ScrollBar {
-    public:
-        Bar(BrowserOverflow *parent, const char *name, bool vertical)
-            : ScrollBar(parent, name, vertical), owner_(*parent) {}
-
-    protected:
-        void SendSliderMoveMessage(int) override {
-            owner_.Position();
-        }
-        void OnKeyCodeTyped(vgui2::KeyCode code) override {
-            if (!IsEnabled()) {
-                return;
-            }
-            const int step = GetProportionalScaledValue(ControlHeight);
-            switch (code) {
-            case vgui2::KEY_LEFT:
-            case vgui2::KEY_UP:
-                SetValue(GetValue() - step);
-                break;
-            case vgui2::KEY_RIGHT:
-            case vgui2::KEY_DOWN:
-                SetValue(GetValue() + step);
-                break;
-            case vgui2::KEY_PAGEUP:
-                SetValue(GetValue() - GetRangeWindow());
-                break;
-            case vgui2::KEY_PAGEDOWN:
-                SetValue(GetValue() + GetRangeWindow());
-                break;
-            case vgui2::KEY_HOME:
-                SetValue(0);
-                break;
-            case vgui2::KEY_END: {
-                int minimum = 0;
-                int maximum = 0;
-                GetRange(minimum, maximum);
-                SetValue(maximum);
-                break;
-            }
-            default:
-                ScrollBar::OnKeyCodeTyped(code);
-                break;
-            }
-        }
-
-    private:
-        BrowserOverflow &owner_;
-    };
-    static void Reveal(Bar &bar, int start, int extent, int window) {
-        if (!bar.IsEnabled()) {
-            return;
-        }
-        if (start < bar.GetValue()) {
-            bar.SetValue(start);
-        } else if (start + extent > bar.GetValue() + window) {
-            bar.SetValue(std::max(start, start + extent - window));
-        }
-    }
-    void Position() {
-        if (content_ && horizontal_ && vertical_) {
-            content_->SetPos(-horizontal_->GetValue(), -vertical_->GetValue());
-        }
-    }
-    vgui2::Panel *content_ = nullptr;
-    Bar *horizontal_ = nullptr;
-    Bar *vertical_ = nullptr;
-    vgui2::VPANEL lastFocus_ = 0;
-    std::array<int, 6> lastFocusGeometry_{};
-};
-
 BrowserSession::BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamMatchmaking *favoriteProvider,
                                IFileSystem *filesystem, IConnectionEngine &engine, AppId_t app, const char *game,
                                std::string preferenceRoot, IFavoriteStore *injectedFavorites)
@@ -441,19 +182,85 @@ BrowserSession::BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamM
     presentation.RequestSort(settings.sort);
 }
 
+bool BrowserSession::AddFavorite(AppId_t app, Address address) {
+    const bool added = model.AddFavorite(app, address);
+    favoritesDirty = favoritesDirty || added;
+    return added;
+}
+
 class BrowserViewport : public SlotList {
     DECLARE_CLASS_SIMPLE_NAMED(BrowserViewport, SlotList, "ListPanel");
 
 public:
-    BrowserViewport(vgui2::Panel *parent, ServerBrowserDialog &owner) : SlotList(parent, "ServerList"), owner_(owner) {
-        for (size_t index = 0; index < std::size(ColumnNames); ++index) {
-            AddMeasuredColumn(static_cast<int>(index), ColumnNames[index], ColumnLabels[index],
-                              index == static_cast<size_t>(Column::Name) ? NameColumnWidth : ColumnWidth);
+    BrowserViewport(vgui2::Panel *parent, ServerBrowserDialog &owner, bool history)
+        : SlotList(parent, "gamelist"), owner_(owner) {
+        const size_t count = history ? VisualColumns.size() : VisualColumns.size() - 1;
+        for (size_t index = 0; index < count; ++index) {
+            int flags = 0;
+            if (VisualColumns[index] == Column::Password || VisualColumns[index] == Column::Secure) {
+                flags = COLUMN_FIXEDSIZE | COLUMN_IMAGE;
+            } else if (VisualColumns[index] == Column::Name) {
+                flags = COLUMN_RESIZEWITHWINDOW | COLUMN_UNHIDABLE;
+            } else if (VisualColumns[index] == Column::Address) {
+                flags = COLUMN_HIDDEN;
+            }
+            AddColumnHeader(static_cast<int>(index), ColumnNames[index], ColumnLabels[index], ColumnWidths[index], flags);
             SetSortFunc(static_cast<int>(index), SlotOrder);
         }
+        SetAllowUserModificationOfColumns(true);
+        SetColumnHeaderTooltip(0, "#ServerBrowser_PasswordColumn_Tooltip");
+        SetColumnHeaderTooltip(1, "#ServerBrowser_BotColumn_Tooltip");
+        SetColumnHeaderTooltip(2, "#ServerBrowser_SecureColumn_Tooltip");
+    }
+    uint32_t HiddenColumns() {
+        auto *settings = new KeyValues("columns");
+        GetUserConfigSettings(settings);
+        uint32_t hidden = 0;
+        for (int column = 0; column < GetNumColumnHeaders(); ++column) {
+            if (settings->GetInt((std::to_string(column) + "_hidden").c_str())) {
+                hidden |= 1U << column;
+            }
+        }
+        settings->deleteThis();
+        return hidden;
+    }
+    void RestoreListFont() {
+        auto *style = vgui2::scheme()->GetIScheme(GetScheme());
+        auto font = style->GetFont("ListSmall", IsProportional());
+        if (!font) {
+            font = style->GetFont("DefaultSmall", IsProportional());
+        }
+        SetFont(font);
     }
 
 protected:
+    void ApplySchemeSettings(vgui2::IScheme *style) override {
+        SlotList::ApplySchemeSettings(style);
+        auto *images = new vgui2::ImageList(false);
+        for (const char *name : {"servers/icon_password", "servers/icon_bots", "servers/icon_robotron",
+                 "servers/icon_secure_deny", "servers/icon_password_column", "servers/icon_bots_column",
+                 "servers/icon_robotron_column"}) {
+            images->AddImage(vgui2::scheme()->GetImage(name, false));
+        }
+        SetImageList(images, true);
+        constexpr int PasswordHeaderImage = 5;
+        constexpr int BotsHeaderImage = 6;
+        constexpr int SecureHeaderImage = 7;
+        SetColumnHeaderImage(0, PasswordHeaderImage);
+        SetColumnHeaderImage(1, BotsHeaderImage);
+        SetColumnHeaderImage(2, SecureHeaderImage);
+        RestoreListFont();
+    }
+    void PerformLayout() override {
+        // Ordinary ListPanel owns column resize/visibility. Slots contain only the bounded viewport.
+        vgui2::ListPanel::PerformLayout();
+        if (auto *bar = dynamic_cast<vgui2::ScrollBar *>(FindChildByName("VertScrollBar", false))) {
+            bar->SetVisible(false);
+            bar->SetRange(0, 1);
+            bar->SetRangeWindow(0);
+            bar->SetValue(0);
+        }
+    }
     MESSAGE_FUNC_INT(OnBrowserSort, "SetSortColumn", column) {
         owner_.ChooseSort(column);
     }
@@ -505,108 +312,133 @@ protected:
 
 private:
     void Select() {
-        if (GetSelectedItemsCount()) {
-            owner_.SelectVisible(static_cast<size_t>(GetItem(GetSelectedItem(0))->GetInt("slot")));
+        std::vector<size_t> selected;
+        for (int index = 0; index < GetSelectedItemsCount(); ++index) {
+            selected.push_back(static_cast<size_t>(GetItem(GetSelectedItem(index))->GetInt("slot")));
         }
+        owner_.SelectVisibleItems(selected);
     }
     ServerBrowserDialog &owner_;
 };
 
 class BrowserPasswordDialog final : public vgui2::Frame {
     DECLARE_CLASS_SIMPLE_NAMED(BrowserPasswordDialog, vgui2::Frame, "Frame");
-
 public:
-    BrowserPasswordDialog(ServerBrowserDialog &parent, BrowserSession &session, Row row)
-        : Frame(&parent, "DialogServerPassword", false, false), parent_(parent), session_(session),
-          row_(std::move(row)) {
+    BrowserPasswordDialog(vgui2::Panel *parent, BrowserSession &session, const Row &row,
+                          std::function<void(std::string_view)> submit)
+        : Frame(parent, "DialogServerPassword", false, false), session_(session), submit_(std::move(submit)) {
         SetDeleteSelfOnClose(true);
+        SetSizeable(false);
+        SetTitle("#ServerBrowser_ServerRequiresPasswordTitle", true);
         entry_ = new vgui2::TextEntry(this, "PasswordEntry");
         LoadControlSettings("servers/DialogServerPassword.res", "PLATFORM");
         entry_->SetTextHidden(true);
-        entry_->SetMaximumCharCount(static_cast<int>(ServerPasswordCapacity - 1));
+        // Original UI owns a 64-byte buffer, independently of the engine's 128-byte capacity.
+        entry_->SetMaximumCharCount(static_cast<int>(OriginalPasswordCapacity - 1));
         entry_->SetAllowNonAsciiCharacters(true);
-        SetControlString("GameLabel", row_.name.c_str());
+        SetControlString("GameLabel", row.name.empty() ? ConnectionAddress(row.key).c_str() : row.name.c_str());
+        MoveToCenterOfScreen();
+        entry_->RequestFocus(0);
     }
     void Retire() {
-        if (retiring_) {
+        if (!retiring_) {
+            retiring_ = true;
+            submit_ = {};
+            Clear();
+            Frame::OnClose();
+        }
+    }
+protected:
+    void OnCommand(const char *command) override {
+        BrowserUse use(session_);
+        if (retiring_ || session_.closing || !session_.active) {
+            Retire();
             return;
         }
-        retiring_ = true;
-        Clear();
-        Frame::OnClose();
+        if (std::strcmp(command, "Connect") == 0) {
+            std::array<char, OriginalPasswordCapacity> buffer{};
+            entry_->GetText(buffer.data(), static_cast<int>(buffer.size()));
+            auto submit = std::move(submit_);
+            // Invalidate before calling the owner: duplicate queued commands cannot connect twice.
+            Retire();
+            if (submit) {
+                submit(buffer.data());
+            }
+            volatile char *bytes = buffer.data();
+            for (size_t index = 0; index < buffer.size(); ++index) {
+                bytes[index] = 0;
+            }
+        } else {
+            Frame::OnCommand(command);
+        }
     }
+    void OnClose() override {
+        Retire();
+    }
+private:
     void Clear() {
-        // The retained control keeps capacity after SetText/SaveUndoState. Overwrite both bounded streams first.
-        std::array<wchar_t, ServerPasswordCapacity> blank{};
+        std::array<wchar_t, OriginalPasswordCapacity> blank{};
         std::fill(blank.begin(), blank.end() - 1, L' ');
         entry_->SetText(blank.data());
         entry_->SaveUndoState();
         entry_->SetText(L"");
         entry_->SaveUndoState();
     }
-
-protected:
-    void OnCommand(const char *command) override {
-        BrowserUse use(session_);
-        if (session_.closing || !session_.active || retiring_) {
-            Clear();
-            return;
-        }
-        if (std::strcmp(command, "Connect") == 0) {
-            std::array<char, ServerPasswordCapacity> buffer{};
-            entry_->GetText(buffer.data(), static_cast<int>(buffer.size()));
-            parent_.ConnectRow(row_, buffer.data());
-            volatile char *erase = buffer.data();
-            for (size_t index = 0; index < buffer.size(); ++index) {
-                erase[index] = 0;
-            }
-            Clear();
-            Close();
-            return;
-        }
-        Clear();
-        Frame::OnCommand(command);
-    }
-    void OnClose() override {
-        Clear();
-        Frame::OnClose();
-    }
-
-private:
-    ServerBrowserDialog &parent_;
     BrowserSession &session_;
-    Row row_;
+    std::function<void(std::string_view)> submit_;
     vgui2::TextEntry *entry_;
     bool retiring_ = false;
 };
 
-class BrowserDetailsDialog final : public vgui2::Frame {
+class BrowserDetailsDialog : public vgui2::Frame {
     DECLARE_CLASS_SIMPLE_NAMED(BrowserDetailsDialog, vgui2::Frame, "Frame");
-
 public:
     BrowserDetailsDialog(ServerBrowserDialog &parent, BrowserSession &session, const Row &row)
-        : Frame(&parent, "DialogGameInfo", false, false), session_(session), details_(session.servers) {
-        SetHDProportional(true);
-        constexpr int DetailsWidth = 600;
-        constexpr int DetailsHeight = 440;
-        SetSize(DetailsWidth, DetailsHeight);
-        SetTitle("#ServerBrowser_GameInfoTitle", true);
+        : Frame(&parent, "DialogGameInfo", false, false), parent_(parent), session_(session), row_(row),
+          acceptedSerial_(session.connection.AcceptanceSerial()) {
         SetDeleteSelfOnClose(false);
-        body_ = new BrowserOverflow(this, "DetailsOverflow");
-        info_ = new vgui2::Label(body_->Contents(), "ServerInfo", row.name.c_str());
-        endpoint_ = new vgui2::Label(body_->Contents(), "Endpoint", ConnectionAddress(row.key).c_str());
-        table_ = new BrowserOverflow(body_->Contents(), "DetailsTableOverflow");
-        list_ = new SlotList(table_->Contents(), "DetailsList");
-        list_->AddMeasuredColumn(0, "kind", "#ServerBrowser_GameInfoTitle", ColumnWidth);
-        list_->AddMeasuredColumn(1, "name", "#ServerBrowser_Players", NameColumnWidth);
-        list_->AddMeasuredColumn(2, "value", "#CSEServerBrowser_Value", NameColumnWidth);
-        for (int index = 0; index < 3; ++index) {
-            list_->SetSortFunc(index, SlotOrder);
-            list_->SetColumnSortable(index, false);
+        constexpr int OriginalInfoMinimumWidth = 416;
+        constexpr int OriginalInfoMinimumHeight = 340;
+        SetMinimumSize(OriginalInfoMinimumWidth, OriginalInfoMinimumHeight);
+        SetTitle("#ServerBrowser_GameInfoWithNameTitle", true);
+        SetDialogVariable("game", row.name.c_str());
+        for (const char *name : {"Connect", "Close", "Refresh"}) {
+            auto *button = new vgui2::Button(this, name, "");
+            button->SetCommand(name);
+            button->AddActionSignalTarget(this);
         }
-        scroll_ = new LogicalScroll(body_->Contents(), [this](size_t position) { first_ = position; });
-        status_ = new vgui2::Label(body_->Contents(), "Status", "#ServerBrowser_RefreshingServerList");
-        details_.Start(row.key);
+        retry_ = new vgui2::ToggleButton(this, "AutoRetry", "");
+        retry_->AddActionSignalTarget(this);
+        alert_ = new vgui2::RadioButton(this, "AutoRetryAlert", "");
+        join_ = new vgui2::RadioButton(this, "AutoRetryJoin", "");
+        list_ = new vgui2::ListPanel(this, "PlayerList");
+        list_->AddColumnHeader(0, "PlayerName", "#ServerBrowser_PlayerName", 156, 0);
+        list_->AddColumnHeader(1, "Score", "#ServerBrowser_Score", 64, 0);
+        list_->AddColumnHeader(2, "Time", "#ServerBrowser_Time", 64, 0);
+        list_->SetSortFunc(2, [](vgui2::ListPanel *, const vgui2::ListPanelItem &a, const vgui2::ListPanelItem &b) {
+            const float left = a.kv->GetFloat("TimeSec");
+            const float right = b.kv->GetFloat("TimeSec");
+            return (left < right) - (left > right);
+        });
+        list_->SetSortColumn(1);
+        LoadControlSettings("servers/DialogGameInfo.res", "PLATFORM");
+        alert_->SetSelected(true);
+        Refresh();
+        UpdateText();
+    }
+    RowKey Key() const {
+        return row_.key;
+    }
+    bool Closing() const {
+        return closing_;
+    }
+    void Connect() {
+        if (!closing_) {
+            connectPending_ = true;
+            failed_ = false;
+            full_ = false;
+            Refresh();
+        }
     }
     void Pump() {
         if (closing_) {
@@ -615,360 +447,666 @@ public:
             }
             return;
         }
-        for (auto &update : details_.TakeUpdates()) {
-            rows_.emplace(next_++, std::move(update));
-        }
-        const size_t window = list_->Capacity();
-        ResizeSlots(*list_, slots_, window);
-        first_ = std::min(first_, rows_.size() > window ? rows_.size() - window : 0);
-        auto cursor = rows_.lower_bound(first_);
-        for (size_t slot = 0; slot < slots_.size(); ++slot) {
-            const bool visible = cursor != rows_.end();
-            list_->SetItemVisible(slots_[slot], visible);
-            if (!visible) {
-                continue;
+        if (acceptedSerial_ != session_.connection.AcceptanceSerial()) {
+            acceptedSerial_ = session_.connection.AcceptanceSerial();
+            const auto current = session_.connection.CurrentServer();
+            if (current && current->address.ip == row_.key.ip &&
+                current->address.connectionPort == row_.key.connectionPort) {
+                OnClose();
+                return;
             }
-            auto *item = list_->GetItem(slots_[slot]);
-            const auto &row = cursor++->second;
-            item->SetString("kind",
-                            row.kind == DetailKind::Player ? "#ServerBrowser_Players" : "#CSEServerBrowser_Rules");
-            item->SetString("name", row.name.c_str());
-            const std::string value =
-                row.kind == DetailKind::Player
-                    ? std::to_string(row.score) + " / " +
-                          std::to_string(static_cast<int>(std::min(row.seconds, static_cast<float>(INT_MAX / 2)))) +
-                          " s"
-                    : row.value;
-            item->SetString("value", value.c_str());
-            list_->ApplyItemChanges(slots_[slot]);
         }
-        list_->SortList();
-        scroll_->Synchronize(rows_.size(), window, first_);
-        const auto status = details_.Status();
-        const char *text = status.playersFailed || status.rulesFailed       ? "#CSEServerBrowser_DetailsFailed"
-                           : status.playersComplete && status.rulesComplete ? ""
-                                                                            : "#ServerBrowser_RefreshingServerList";
-        if (shownStatus_ != text) {
-            shownStatus_ = text;
-            status_->SetText(text);
-            InvalidateLayout(false, false);
+        const auto now = static_cast<uint64_t>(vgui2::system()->GetTimeMillis());
+        if (deadline_ && deadline_ < now) {
+            Refresh();
         }
+        if (refreshPending_) {
+            if (!details_) {
+                details_.reset(new ServerBrowserDetails(session_.servers));
+                details_->Start(row_.key);
+            } else if (!details_->RefreshMetadata()) {
+                return;
+            }
+            refreshPending_ = false;
+            deadline_ = now + GameInfoRefreshMilliseconds;
+        }
+        for (auto &metadata : details_->TakeMetadata()) {
+            row_ = std::move(metadata);
+            responded_ = true;
+            failed_ = false;
+            if (connectPending_) {
+                DispatchConnect();
+            } else if (retry_->IsSelected() && row_.players < row_.maxPlayers) {
+                vgui2::surface()->PlaySound("Servers/game_ready.wav");
+                vgui2::surface()->FlashWindow(GetVPanel(), true);
+                if (join_->IsSelected()) {
+                    DispatchConnect();
+                }
+            } else {
+                if (details_->StartPlayers()) {
+                    // Admission retires the old display even if the new result is empty.
+                    // Merely starting metadata above leaves its independent players owned.
+                    clearPlayers_ = true;
+                    replacementPlayers_ = true;
+                    playerGeneration_ = NoPlayerGeneration;
+                }
+            }
+            if (closing_ || !session_.active) {
+                return;
+            }
+        }
+        if (details_->MetadataFailed() && !responded_) {
+            failed_ = true;
+        }
+        for (auto &player : details_->TakeUpdates()) {
+            if (replacementPlayers_) {
+                clearPlayers_ = true;
+                replacementPlayers_ = false;
+                playerGeneration_ = player.generation;
+            }
+            if (clearPlayers_) {
+                // Player results are drained on the same bounded pump; old display items are
+                // removed incrementally below before the first replacement is applied.
+                pendingPlayers_.push_back(std::move(player));
+            } else {
+                AddPlayer(player);
+            }
+        }
+        if (clearPlayers_) {
+            size_t budget = DetailFrameBudget;
+            while (budget && list_->GetItemCount()) {
+                list_->RemoveItem(list_->GetItemIDFromRow(0));
+                --budget;
+            }
+            if (!list_->GetItemCount()) {
+                clearPlayers_ = false;
+            }
+        }
+        size_t work = 0;
+        while (!clearPlayers_ && !pendingPlayers_.empty() && work++ < DetailFrameBudget) {
+            if (pendingPlayers_.front().generation == playerGeneration_) {
+                AddPlayer(pendingPlayers_.front());
+            }
+            pendingPlayers_.pop_front();
+        }
+        UpdateText();
     }
     bool BeginClose() {
         BrowserUse use(session_);
         closing_ = true;
+        connectPending_ = false;
         SetVisible(false);
-        if (!queryClosed_) {
-            // The query queue and copied display rows share one detail reclamation budget.
-            queryClosed_ = details_.BeginClose();
+        if (password_.Get()) {
+            password_->Retire();
+        }
+        ErasePassword();
+        if (!queryClosed_ && details_) {
+            queryClosed_ = details_->BeginClose();
             return false;
         }
         size_t work = 0;
-        while (!rows_.empty() && work < DetailFrameBudget) {
-            rows_.erase(rows_.begin());
-            ++work;
+        while (!pendingPlayers_.empty() && work++ < DetailFrameBudget) {
+            pendingPlayers_.pop_front();
         }
-        return rows_.empty();
+        while (list_->GetItemCount() && work++ < DetailFrameBudget) {
+            list_->RemoveItem(list_->GetItemIDFromRow(0));
+        }
+        return pendingPlayers_.empty() && !list_->GetItemCount() && !password_.Get();
     }
-
 protected:
+    void OnCommand(const char *command) override {
+        BrowserUse use(session_);
+        if (closing_ || session_.closing || !session_.active) {
+            return;
+        }
+        if (std::strcmp(command, "Connect") == 0) {
+            Connect();
+        } else if (std::strcmp(command, "Refresh") == 0) {
+            Refresh();
+        } else {
+            Frame::OnCommand(command);
+        }
+    }
+    void OnClose() override {
+        closing_ = true;
+        connectPending_ = false;
+        SetVisible(false);
+    }
+    MESSAGE_FUNC(OnRetryToggled, "ButtonToggled") {
+        if (retryShown_ == retry_->IsSelected()) {
+            return;
+        }
+        retryShown_ = retry_->IsSelected();
+        int x = 0;
+        int y = 0;
+        GetPos(x, y);
+        const int width = GetWide();
+        constexpr int RetryHeight = 60;
+        const int height = GetTall() + (retryShown_ ? RetryHeight : -RetryHeight);
+        LoadControlSettings(retryShown_ ? "servers/DialogGameInfo_AutoRetry.res" :
+            "servers/DialogGameInfo.res", "PLATFORM");
+        SetBounds(x, y, width, height);
+        alert_->SetSelected(true);
+        retry_->SetVisible(full_ || retryShown_);
+        UpdateText();
+    }
+private:
+    void Refresh() {
+        refreshPending_ = true;
+    }
+    void ErasePassword() {
+        volatile char *bytes = secret_.data();
+        for (size_t index = 0; index < secret_.size(); ++index) {
+            bytes[index] = 0;
+        }
+    }
+    void DispatchConnect() {
+        connectPending_ = false;
+        if (row_.secure && session_.apps && session_.apps->BIsVACBanned()) {
+            class Refusal final : public vgui2::Frame {
+            public:
+                explicit Refusal(vgui2::Panel *parent) : Frame(parent, "VACBannedConnRefusedDialog", false, false) {
+                    SetDeleteSelfOnClose(true);
+                    LoadControlSettings("servers/VACBannedConnRefusedDialog.res", "PLATFORM");
+                }
+            };
+            auto *refusal = new Refusal(&parent_);
+            parent_.OwnMessage(refusal);
+            refusal->DoModal();
+            OnClose();
+            return;
+        }
+        if (row_.password && !secret_[0]) {
+            if (!password_.Get()) {
+                password_ = new BrowserPasswordDialog(this, session_, row_, [this](std::string_view value) {
+                    if (!closing_ && session_.active && !session_.closing) {
+                        ErasePassword();
+                        std::copy_n(value.begin(), std::min(value.size(), secret_.size() - 1), secret_.begin());
+                        Connect();
+                    }
+                });
+                password_->DoModal();
+            }
+            return;
+        }
+        if (row_.players >= row_.maxPlayers) {
+            full_ = true;
+            retry_->SetVisible(true);
+            return;
+        }
+        parent_.ConnectRow(row_, secret_.data());
+    }
+    void AddPlayer(const DetailUpdate &player) {
+        auto *item = new KeyValues("player");
+        item->SetString("PlayerName", player.name.c_str());
+        item->SetInt("Score", player.score);
+        item->SetFloat("TimeSec", player.seconds);
+        constexpr int SecondsPerMinute = 60;
+        constexpr int SecondsPerHour = 3600;
+        const int seconds = static_cast<int>(std::min(player.seconds, static_cast<float>(INT_MAX / 2)));
+        char duration[32]{};
+        if (seconds >= SecondsPerHour) {
+            std::snprintf(duration, sizeof(duration), "%d:%02d:%02d", seconds / SecondsPerHour,
+                seconds / SecondsPerMinute % SecondsPerMinute, seconds % SecondsPerMinute);
+        } else {
+            std::snprintf(duration, sizeof(duration), "%d:%02d", seconds / SecondsPerMinute, seconds % SecondsPerMinute);
+        }
+        item->SetString("Time", duration);
+        list_->AddItem(item, 0, false, true);
+        item->deleteThis();
+    }
+    void UpdateText() {
+        SetControlString("ServerText", row_.name.empty() ? ConnectionAddress(row_.key).c_str() : row_.name.c_str());
+        SetControlString("GameText", row_.gameDescription.c_str());
+        SetControlString("MapText", row_.map.c_str());
+        SetControlString("GameTags", row_.tags.c_str());
+        SetControlString("ServerIPText", ConnectionAddress(row_.key).c_str());
+        SetControlString("PingText", responded_ ? std::to_string(row_.ping).c_str() : "");
+        SetControlString("SecureText", responded_ ?
+            (row_.secure ? "#ServerBrowser_Secure" : "#ServerBrowser_NotSecure") : "");
+        const auto humans = std::max<int64_t>(static_cast<int64_t>(row_.players) - row_.bots, 0);
+        SetControlString("PlayersText", row_.maxPlayers > 0 ?
+            (std::to_string(humans) + " / " + std::to_string(row_.maxPlayers)).c_str() : "");
+        SetControlEnabled("Connect", row_.key.ip && row_.key.queryPort);
+        SetControlString("InfoLabel", failed_ ? "#ServerBrowser_ServerNotResponding" :
+            retry_->IsSelected() ? (join_->IsSelected() ? "#ServerBrowser_JoinWhenSlotIsFree" :
+                "#ServerBrowser_AlertWhenSlotIsFree") : full_ ? "#ServerBrowser_CouldNotConnectServerFull" :
+                "#ServerBrowser_PressJoinToConnect");
+        list_->SetEmptyListText(responded_ && humans == 0 ? "#ServerBrowser_ServerHasNoPlayers" :
+            "#ServerBrowser_ServerNotResponding");
+    }
+    ServerBrowserDialog &parent_;
+    BrowserSession &session_;
+    Row row_;
+    std::unique_ptr<ServerBrowserDetails> details_;
+    vgui2::DHANDLE<BrowserPasswordDialog> password_;
+    vgui2::ListPanel *list_;
+    vgui2::ToggleButton *retry_;
+    vgui2::RadioButton *alert_;
+    vgui2::RadioButton *join_;
+    std::array<char, OriginalPasswordCapacity> secret_{};
+    std::deque<DetailUpdate> pendingPlayers_;
+    uint64_t deadline_ = 0;
+    uint64_t acceptedSerial_;
+    // No queued player is admitted until a genuine successor callback supplies its generation.
+    static constexpr uint64_t NoPlayerGeneration = 0;
+    uint64_t playerGeneration_ = NoPlayerGeneration;
+    bool clearPlayers_ = false;
+    bool replacementPlayers_ = false;
+    bool queryClosed_ = false;
+    bool refreshPending_ = false;
+    bool connectPending_ = false;
+    bool responded_ = false;
+    bool failed_ = false;
+    bool full_ = false;
+    bool retryShown_ = false;
+    bool closing_ = false;
+};
+
+class BrowserAddServerDialog : public vgui2::Frame {
+    DECLARE_CLASS_SIMPLE_NAMED(BrowserAddServerDialog, vgui2::Frame, "Frame");
+public:
+    BrowserAddServerDialog(ServerBrowserDialog &parent, BrowserSession &session)
+        : Frame(&parent, "DialogAddServer", false, false), session_(session) {
+        SetDeleteSelfOnClose(false);
+        SetSizeable(false);
+        SetTitle("#ServerBrowser_AddServersTitle", true);
+        tabs_ = new vgui2::PropertySheet(this, "GameTabs");
+        entry_ = new vgui2::TextEntry(this, "ServerNameText");
+        entry_->AddActionSignalTarget(this);
+        list_ = new vgui2::ListPanel(tabs_, "Servers");
+        const char *names[]{"Password", "Bots", "Secure", "Players", "Name", "IPAddr", "GameDesc", "Map", "Ping"};
+        const int widths[]{16, 16, 16, 60, 20, 60, 150, 80, 60};
+        for (int index = 0; index < static_cast<int>(std::size(names)); ++index) {
+            int flags = index < 3 ? vgui2::ListPanel::COLUMN_FIXEDSIZE | vgui2::ListPanel::COLUMN_IMAGE : 0;
+            if (index == 4) {
+                flags = vgui2::ListPanel::COLUMN_RESIZEWITHWINDOW;
+            } else if (index == 5) {
+                flags = vgui2::ListPanel::COLUMN_HIDDEN;
+            }
+            const std::string token = std::string("#ServerBrowser_") +
+                (index == 4 ? "Servers" : index == 5 ? "IPAddress" : index == 6 ? "Game" :
+                    index == 8 ? "Latency" : names[index]);
+            list_->AddColumnHeader(index, names[index], token.c_str(), widths[index], flags);
+        }
+        list_->SetSortColumn(8);
+        list_->AddActionSignalTarget(this);
+        tabs_->AddPage(list_, "#ServerBrowser_ServersRespondingLocal");
+        LoadControlSettings("servers/DialogAddServer.res", "PLATFORM");
+        static_cast<vgui2::Button *>(FindChildByName("SelectedOKButton", false))->SetCommand("addselected");
+        SetControlEnabled("OKButton", false);
+        SetControlEnabled("TestServersButton", false);
+        SetControlEnabled("SelectedOKButton", false);
+        tabs_->SetVisible(false);
+        FindChildByName("SelectedOKButton", false)->SetVisible(false);
+        SetTall(CollapsedHeight);
+        entry_->RequestFocus(0);
+    }
+    void Pump() {
+        if (closing_) {
+            if (BeginClose()) {
+                MarkForDeletion();
+            }
+            return;
+        }
+        if (restart_) {
+            if (!RetireQueries()) {
+                return;
+            }
+            resolver_.reset(new ServerAddressResolver);
+            resolver_->Start(input_);
+            restart_ = false;
+        }
+        if (resolver_ && resolver_->Complete()) {
+            auto address = resolver_->Result();
+            resolver_->BeginClose();
+            resolver_.reset();
+            if (!address) {
+                auto *error = new vgui2::MessageBox("#ServerBrowser_AddServerErrorTitle",
+                    "#ServerBrowser_AddServerError", GetParent());
+                static_cast<ServerBrowserDialog *>(GetParent())->OwnMessage(error);
+                error->DoModal(nullptr);
+                if (direct_) {
+                    OnClose();
+                }
+                return;
+            }
+            if (direct_) {
+                if (!address->connectionPort) {
+                    address->connectionPort = DefaultServerPort;
+                    address->queryPort = DefaultServerPort;
+                }
+                session_.AddFavorite(session_.settings.filters.app, *address);
+                OnClose();
+                return;
+            }
+            // A test searches query ports; the returned connection port may legitimately differ.
+            address->connectionPort = 0;
+            ping_.reset(new ServerBrowserPing(session_.servers));
+            ping_->Start(*address, true);
+        }
+        if (ping_) {
+            for (const auto &row : ping_->TakeUpdates()) {
+                auto *item = new KeyValues("server");
+                item->SetString("Name", row.name.c_str());
+                item->SetString("IPAddr", ConnectionAddress(row.key).c_str());
+                item->SetString("GameDesc", row.gameDescription.c_str());
+                item->SetString("Map", row.map.c_str());
+                item->SetInt("Ping", row.ping);
+                item->SetString("Players", (std::to_string(row.players) + " / " + std::to_string(row.maxPlayers)).c_str());
+                item->SetInt("Password", row.password ? 1 : 0);
+                item->SetInt("Bots", row.bots > 0 ? 2 : 0);
+                item->SetInt("Secure", row.secure ? (session_.apps && session_.apps->BIsVACBanned() ? 4 : 3) : 0);
+                const int id = list_->AddItem(item, 0, false, true);
+                rows_.emplace(id, row);
+                item->deleteThis();
+                if (!list_->GetSelectedItemsCount()) {
+                    list_->SetSingleSelectedItem(id);
+                }
+            }
+            if (ping_->Failed()) {
+                list_->SetEmptyListText("#ServerBrowser_ServerNotResponding");
+            }
+        }
+        SetControlEnabled("SelectedOKButton", list_->GetSelectedItemsCount() > 0);
+    }
+    bool BeginClose() {
+        closing_ = true;
+        SetVisible(false);
+        return RetireQueries();
+    }
+protected:
+    void ApplySchemeSettings(vgui2::IScheme *scheme) override {
+        Frame::ApplySchemeSettings(scheme);
+        auto *images = new vgui2::ImageList(false);
+        for (const char *name : {"servers/icon_password", "servers/icon_bots", "servers/icon_robotron",
+                 "servers/icon_secure_deny", "servers/icon_password_column", "servers/icon_bots_column",
+                 "servers/icon_robotron_column"}) {
+            images->AddImage(vgui2::scheme()->GetImage(name, false));
+        }
+        list_->SetImageList(images, true);
+        constexpr int PasswordHeaderImage = 5;
+        constexpr int BotsHeaderImage = 6;
+        constexpr int SecureHeaderImage = 7;
+        list_->SetColumnHeaderImage(0, PasswordHeaderImage);
+        list_->SetColumnHeaderImage(1, BotsHeaderImage);
+        list_->SetColumnHeaderImage(2, SecureHeaderImage);
+        list_->SetColumnHeaderTooltip(0, "#ServerBrowser_PasswordColumn_Tooltip");
+        list_->SetColumnHeaderTooltip(1, "#ServerBrowser_BotColumn_Tooltip");
+        list_->SetColumnHeaderTooltip(2, "#ServerBrowser_SecureColumn_Tooltip");
+        auto font = scheme->GetFont("ListSmall", IsProportional());
+        list_->SetFont(font ? font : scheme->GetFont("DefaultSmall", IsProportional()));
+    }
+    MESSAGE_FUNC(OnTextChanged, "TextChanged") {
+        const bool enabled = !Text(entry_).empty();
+        SetControlEnabled("OKButton", enabled);
+        SetControlEnabled("TestServersButton", enabled);
+    }
+    void OnCommand(const char *command) override {
+        BrowserUse use(session_);
+        if (closing_ || session_.closing || !session_.active) {
+            return;
+        }
+        if (std::strcmp(command, "OK") == 0 || std::strcmp(command, "TestServers") == 0) {
+            input_ = Text(entry_);
+            direct_ = std::strcmp(command, "OK") == 0;
+            restart_ = true;
+            if (!direct_) {
+                list_->DeleteAllItems();
+                rows_.clear();
+                list_->SetEmptyListText("");
+                SetTall(ExpandedHeight);
+                tabs_->SetVisible(true);
+                FindChildByName("SelectedOKButton", false)->SetVisible(true);
+                std::array<wchar_t, 512> title{};
+                std::array<wchar_t, 256> address{};
+                vgui2::localize()->ConvertANSIToUnicode(input_.c_str(), address.data(), sizeof(address));
+                auto *format = vgui2::localize()->Find("#ServerBrowser_ServersResponding");
+                if (format) {
+                    vgui2::localize()->ConstructString(title.data(), sizeof(title), format, 1, address.data());
+                }
+                if (auto *tab = dynamic_cast<vgui2::Label *>(tabs_->GetActiveTab())) {
+                    tab->SetText(format ? title.data() : address.data());
+                }
+            }
+        } else if (std::strcmp(command, "addselected") == 0) {
+            if (list_->GetSelectedItemsCount()) {
+                const int id = list_->GetSelectedItem(0);
+                const auto found = rows_.find(id);
+                if (found != rows_.end() && session_.AddFavorite(found->second.app, found->second.key)) {
+                    list_->RemoveItem(id);
+                    rows_.erase(found);
+                    list_->SetEmptyListText("");
+                }
+            }
+        } else {
+            Frame::OnCommand(command);
+        }
+    }
     void OnClose() override {
         closing_ = true;
         SetVisible(false);
     }
-    void PerformLayout() override {
-        ClampFrame(*this);
-        Frame::PerformLayout();
-        int left = 0;
-        int top = 0;
+private:
+    bool RetireQueries() {
+        const bool resolverClosed = !resolver_ || resolver_->BeginClose();
+        const bool pingClosed = !ping_ || ping_->BeginClose();
+        if (resolverClosed && pingClosed) {
+            resolver_.reset();
+            ping_.reset();
+            return true;
+        }
+        return false;
+    }
+    static constexpr int CollapsedHeight = 205;
+    static constexpr int ExpandedHeight = 471;
+    BrowserSession &session_;
+    vgui2::PropertySheet *tabs_;
+    vgui2::TextEntry *entry_;
+    vgui2::ListPanel *list_;
+    std::map<int, Row> rows_;
+    std::unique_ptr<ServerAddressResolver> resolver_;
+    std::unique_ptr<ServerBrowserPing> ping_;
+    std::string input_;
+    bool restart_ = false;
+    bool direct_ = false;
+    bool closing_ = false;
+};
+
+class BrowserPage final : public vgui2::PropertyPage {
+public:
+    BrowserPage(vgui2::Panel *parent, ServerBrowserDialog &owner, const char *name, ListKind kind)
+        : PropertyPage(parent, name, true) {
+        SetSize(ReferencePageWidth, ReferencePageHeight);
+        list = new BrowserViewport(this, owner, kind == ListKind::History);
+        scroll = new LogicalScroll(list, [&owner](size_t position) { owner.Seek(position); });
+        auto button = [&](const char *controlName) {
+            auto *control = new vgui2::Button(this, controlName, "");
+            control->AddActionSignalTarget(&owner);
+            return control;
+        };
+        connect = button("ConnectButton");
+        refresh = button("RefreshButton");
+        quick = button("RefreshQuickButton");
+        addServer = button("AddServerButton");
+        addCurrent = button("AddCurrentServerButton");
+        toggle = new vgui2::ToggleButton(this, "Filter", "");
+        summary = new vgui2::Label(this, "FilterString", "");
+        game = new vgui2::ComboBox(this, "GameFilter", 6, false);
+        game->AddItem("Counter-Strike", nullptr);
+        game->AddItem("Half-Life", nullptr);
+        map = new vgui2::TextEntry(this, "MapFilter");
+        constexpr int MapFilterCharacters = 30;
+        map->SetMaximumCharCount(MapFilterCharacters);
+        ping = new vgui2::ComboBox(this, "PingFilter", 6, false);
+        for (const char *label : {"#ServerBrowser_All", "#ServerBrowser_LessThan50", "#ServerBrowser_LessThan100",
+                 "#ServerBrowser_LessThan150", "#ServerBrowser_LessThan250", "#ServerBrowser_LessThan350",
+                 "#ServerBrowser_LessThan600"}) {
+            ping->AddItem(label, nullptr);
+        }
+        secure = new vgui2::ComboBox(this, "SecureFilter", 3, false);
+        for (const char *label : {"#ServerBrowser_All", "#ServerBrowser_SecureOnly", "#ServerBrowser_InsecureOnly"}) {
+            secure->AddItem(label, nullptr);
+        }
+        nonempty = new vgui2::CheckButton(this, "ServerEmptyFilterCheck", "");
+        notFull = new vgui2::CheckButton(this, "ServerFullFilterCheck", "");
+        password = new vgui2::CheckButton(this, "NoPasswordFilterCheck", "");
+        account = new vgui2::CheckButton(this, "ValidSteamAccountFilterCheck", "");
+        for (vgui2::Panel *control : std::initializer_list<vgui2::Panel *>{toggle, game, map, ping, secure,
+                 nonempty, notFull, password, account}) {
+            control->AddActionSignalTarget(&owner);
+        }
+        Reload(false);
+    }
+    void Reload(bool expanded) {
         int width = 0;
         int height = 0;
-        GetClientArea(left, top, width, height);
-        const int gap = Padding(*this);
-        body_->SetBounds(left + gap, top + gap, std::max(1, width - 2 * gap), std::max(1, height - 2 * gap));
-        const auto info = LabelExtent(*info_);
-        const auto endpoint = LabelExtent(*endpoint_);
-        const auto status = LabelExtent(*status_);
-        width = std::max({body_->ViewWidth(), info.width, endpoint.width, status.width});
-        info_->SetBounds(0, 0, width, info.height + gap);
-        endpoint_->SetBounds(0, info.height + gap, width, endpoint.height + gap);
-        const int tableTop = info.height + endpoint.height + 2 * gap;
-        constexpr int MinimumTableRows = 6;
-        const int tableHeight =
-            std::max(MinimumTableRows * (status.height + gap), body_->ViewHeight() - tableTop - status.height - gap);
-        const int bar = GetProportionalScaledValue(ScrollWidth);
-        table_->SetBounds(0, tableTop, std::max(1, width - bar), tableHeight);
-        const int listWidth = std::max(table_->ViewWidth(), list_->MinimumWidth());
-        list_->SetBounds(0, 0, listWidth, table_->ViewHeight());
-        list_->InvalidateLayout(true, false);
-        table_->SetContentSize(listWidth, table_->ViewHeight());
-        scroll_->SetBounds(width - bar, tableTop, bar, tableHeight);
-        status_->SetBounds(0, tableTop + tableHeight, width, status.height + gap);
-        body_->SetContentSize(width, tableTop + tableHeight + status.height + gap);
+        GetSize(width, height);
+        SetSize(ReferencePageWidth, ReferencePageHeight);
+        LoadControlSettings(expanded ? "servers/InternetGamesPage_Filters.res" : "servers/InternetGamesPage.res",
+                            "PLATFORM");
+        // The expanded file's labels are absent from the collapsed file; hide them explicitly.
+        for (const char *name : {"GameFilterLabel", "MapFilterLabel", "PingFilterLabel", "SecureFilterLabel"}) {
+            if (auto *label = FindChildByName(name, false)) {
+                label->SetVisible(expanded);
+            }
+        }
+        toggle->SetSelected(expanded);
+        game->SetEnabled(false); // The host supplies the active mod, as in UpdateGameFilter.
+        connect->SetAsDefaultButton(true);
+        list->RestoreListFont();
+        SetSize(width, height);
+        InvalidateLayout(true, false);
     }
+    BrowserViewport *list = nullptr;
+    LogicalScroll *scroll = nullptr;
+    vgui2::Button *connect = nullptr;
+    vgui2::Button *refresh = nullptr;
+    vgui2::Button *quick = nullptr;
+    vgui2::Button *addServer = nullptr;
+    vgui2::Button *addCurrent = nullptr;
+    vgui2::ToggleButton *toggle = nullptr;
+    vgui2::Label *summary = nullptr;
+    vgui2::ComboBox *game = nullptr;
+    vgui2::TextEntry *map = nullptr;
+    vgui2::ComboBox *ping = nullptr;
+    vgui2::ComboBox *secure = nullptr;
+    vgui2::CheckButton *nonempty = nullptr;
+    vgui2::CheckButton *notFull = nullptr;
+    vgui2::CheckButton *password = nullptr;
+    vgui2::CheckButton *account = nullptr;
 
-private:
-    BrowserSession &session_;
-    ServerBrowserDetails details_;
-    BrowserOverflow *body_;
-    BrowserOverflow *table_;
-    vgui2::Label *info_;
-    vgui2::Label *endpoint_;
-    std::string shownStatus_;
-    SlotList *list_;
-    LogicalScroll *scroll_;
-    vgui2::Label *status_;
-    std::map<size_t, DetailUpdate> rows_;
-    std::vector<int> slots_;
-    size_t first_ = 0;
-    size_t next_ = 0;
-    bool closing_ = false;
-    bool queryClosed_ = false;
+protected:
+    void PerformLayout() override {
+        PropertyPage::PerformLayout();
+        scroll->SetBounds(std::max(0, list->GetWide() - ScrollWidth), 0, ScrollWidth, list->GetTall());
+    }
 };
 
 ServerBrowserDialog::ServerBrowserDialog(BrowserSession &session)
     : Frame(nullptr, "CServerBrowserDialog", true, false), session_(session) {
-    SetHDProportional(true);
+    // Original resources use logical pixels; do not inherit the host's HD proportional form scaling.
+    SetHDProportional(vgui2::Panel::HD_PROPORTIONAL_FORCE_DISABLED);
+    SetProportional(false);
     RegisterFallbacks();
     vgui2::localize()->AddFile(vgui2::filesystem(), "servers/serverbrowser_%language%.txt");
     SetTitle("#ServerBrowser_Servers", true);
     SetDeleteSelfOnClose(false);
     SetSizeable(true);
-    body_ = new BrowserOverflow(this, "BrowserOverflow");
-    auto *contents = body_->Contents();
-    tabs_ = new BrowserSheet(this);
+    SetMinimumSize(OriginalMinimumWidth, OriginalMinimumHeight);
+    SetSize(OriginalMinimumWidth, OriginalMinimumHeight);
+    tabs_ = new vgui2::PropertySheet(this, "GameTabs");
+    tabs_->SetTabWidth(72);
     status_ = new vgui2::Label(this, "StatusLabel", "");
-    actionStatusLabel_ = new vgui2::Label(this, "ActionStatusLabel", "");
+    for (size_t index = 0; index < BrowserTabKinds.size(); ++index) {
+        tabs_->AddPage(new BrowserPage(tabs_, *this, PageNames[index], BrowserTabKinds[index]), TabLabels[index]);
+        tabStates_[index].filters.app = session.settings.filters.app;
+        tabStates_[index].filters.gameDirectory = session.settings.filters.gameDirectory;
+        const auto &stored = session.settings.pages[static_cast<size_t>(BrowserTabKinds[index])];
+        if (stored.initialized) {
+            tabStates_[index].filters = stored.filters;
+            tabStates_[index].filters.app = session.settings.filters.app;
+            tabStates_[index].filters.gameDirectory = session.settings.filters.gameDirectory;
+            tabStates_[index].filtersExpanded = stored.filtersExpanded;
+        }
+        auto *page = static_cast<BrowserPage *>(tabs_->GetPage(static_cast<int>(index)));
+        for (int column = 0; column < page->list->GetNumColumnHeaders(); ++column) {
+            if (VisualColumns[static_cast<size_t>(column)] != Column::Name) {
+                page->list->SetColumnVisible(column, !(stored.hiddenColumns & (1U << column)));
+            }
+        }
+        if (BrowserTabKinds[index] == ListKind::History) {
+            tabStates_[index].sort = {Column::LastPlayed, false};
+        }
+    }
     LoadControlSettings("servers/DialogServerBrowser.res", "PLATFORM");
-    tabs_->SetParent(contents);
-    status_->SetParent(contents);
-    actionStatusLabel_->SetParent(contents);
-    for (auto *control : {static_cast<vgui2::Panel *>(tabs_), static_cast<vgui2::Panel *>(status_),
-                          static_cast<vgui2::Panel *>(actionStatusLabel_)}) {
-        control->SetAutoResize(vgui2::Panel::AUTORESIZE_NO);
-        control->SetPinCorner(vgui2::Panel::PIN_TOPLEFT);
-    }
-    // Browser preferences have always stored physical pixels, never proportional units.
-    SetSize(session.settings.width, session.settings.height);
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    GetDefaultScreenPosition(x, y, width, height);
+    SetBounds(x, y, session.settings.savedSize ? session.settings.width : width,
+              session.settings.savedSize ? session.settings.height : height);
     ClampFrame(*this);
-    for (const char *label : TabLabels) {
-        tabs_->AddPage(new vgui2::PropertyPage(tabs_, label, false), label);
-    }
-    tabs_->SetActivePage(tabs_->GetPage(static_cast<int>(session.settings.kind)));
-    table_ = new BrowserOverflow(tabs_->GetActivePage(), "TableOverflow");
-    list_ = new BrowserViewport(table_->Contents(), *this);
-    scroll_ = new LogicalScroll(tabs_->GetActivePage(), [this](size_t position) { Seek(position); });
-    auto addFilter = [this](const char *name, const char *label, vgui2::Panel *control) {
-        filterControls_.push_back(new vgui2::Label(body_->Contents(), name, label));
-        filterControls_.push_back(control);
-    };
-    game_ = new vgui2::ComboBox(body_->Contents(), "GameFilter", 2, false);
-    game_->AddItem("Counter-Strike", nullptr);
-    game_->AddItem("Half-Life", nullptr);
-    game_->ActivateItem(session.settings.filters.app == HalfLifeApp ? 1 : 0);
-    addFilter("GameLabel", "#ServerBrowser_Game", game_);
-    name_ = new vgui2::TextEntry(contents, "NameFilter");
-    name_->SetMaximumCharCount(255);
-    name_->SetText(session.settings.filters.name.c_str());
-    addFilter("NameLabel", "#CSEServerBrowser_Name", name_);
-    map_ = new vgui2::TextEntry(contents, "MapFilter");
-    map_->SetMaximumCharCount(255);
-    map_->SetText(session.settings.filters.map.c_str());
-    addFilter("MapLabel", "#ServerBrowser_Map", map_);
-    ping_ = new vgui2::TextEntry(contents, "PingFilter");
-    ping_->SetMaximumCharCount(5);
-    ping_->SetAllowNumericInputOnly(true);
-    ping_->SetText(std::to_string(session.settings.filters.maxPing).c_str());
-    addFilter("PingLabel", "#ServerBrowser_Latency", ping_);
-    auto requirement = [this](const char *name, Requirement selected) {
-        auto *control = new vgui2::ComboBox(body_->Contents(), name, 3, false);
-        control->AddItem("#ServerBrowser_All", nullptr);
-        control->AddItem("#CSEServerBrowser_Yes", nullptr);
-        control->AddItem("#CSEServerBrowser_No", nullptr);
-        control->ActivateItem(static_cast<int>(selected));
-        return control;
-    };
-    password_ = requirement("PasswordFilter", session.settings.filters.password);
-    addFilter("PasswordLabel", "#ServerBrowser_PasswordLabel", password_);
-    secure_ = requirement("SecureFilter", session.settings.filters.secure);
-    addFilter("SecureLabel", "#CSEServerBrowser_Secure", secure_);
-    region_ = new vgui2::ComboBox(body_->Contents(), "RegionFilter", 9, false);
-    const char *regions[]{"#ServerBrowser_World",        "#ServerBrowser_US_East",    "#ServerBrowser_US_West",
-                          "#ServerBrowser_SouthAmerica", "#ServerBrowser_Europe",     "#ServerBrowser_Asia",
-                          "#ServerBrowser_Australia",    "#ServerBrowser_MiddleEast", "#ServerBrowser_Africa"};
-    for (const char *region : regions) {
-        region_->AddItem(region, nullptr);
-    }
-    region_->ActivateItem(session.settings.filters.region + 1);
-    addFilter("RegionLabel", "#ServerBrowser_Location", region_);
-    nonempty_ = new vgui2::CheckButton(contents, "NonemptyFilter", "#ServerBrowser_HasUsersPlaying");
-    nonempty_->SetSelected(session.settings.filters.nonempty);
-    filterControls_.push_back(nonempty_);
-    notFull_ = new vgui2::CheckButton(contents, "NotFullFilter", "#ServerBrowser_ServerNotFull");
-    notFull_->SetSelected(session.settings.filters.notFull);
-    filterControls_.push_back(notFull_);
-    auto addAction = [this](const char *command, const char *label) {
-        auto *button = new vgui2::Button(body_->Contents(), command, label);
-        button->SetCommand(command);
-        button->AddActionSignalTarget(this);
-        actions_.push_back(button);
-        return button;
-    };
-    addAction("Apply", "#CSEServerBrowser_Apply");
-    addAction("Refresh", "#ServerBrowser_RefreshAll");
-    addAction("Stop", "#ServerBrowser_StopRefreshingList");
-    addAction("Quick", "#ServerBrowser_RefreshQuick");
-    addAction("QuickSelected", "#ServerBrowser_Refresh");
-    connect_ = addAction("Connect", "#ServerBrowser_Connect");
-    addAction("Details", "#ServerBrowser_GameInfoTitle");
-    addAction("Favorite", "#ServerBrowser_AddToFavorites");
-    addAction("RemoveFavorite", "#ServerBrowser_RemoveServerFromFavorites");
-    addAction("AddAddress", "#ServerBrowser_AddServerByIP");
-    address_ = new vgui2::TextEntry(contents, "FavoriteAddress");
-    constexpr int AddressTextLimit = 64;
-    address_->SetMaximumCharCount(AddressTextLimit);
-    address_->SetText("127.0.0.1:27015");
-    for (auto &tab : tabStates_) {
-        tab.filters.app = session.settings.filters.app;
-        tab.filters.gameDirectory = session.settings.filters.gameDirectory;
-    }
-    int tabPosition = 1;
-    for (size_t index = 1; index < filterControls_.size() - 2; index += 2) {
-        filterControls_[index]->SetTabPosition(tabPosition++);
-    }
-    nonempty_->SetTabPosition(tabPosition++);
-    notFull_->SetTabPosition(tabPosition++);
-    tabs_->SetTabPosition(tabPosition++);
-    for (auto *button : actions_) {
-        button->SetTabPosition(tabPosition++);
-    }
-    address_->SetTabPosition(tabPosition);
-    list_->SetTabPosition(1);
-    auto &savedTab = tabStates_[static_cast<size_t>(session.settings.kind)];
+    const auto saved = std::find(BrowserTabKinds.begin(), BrowserTabKinds.end(), session.settings.kind);
+    const int tab = static_cast<int>(saved - BrowserTabKinds.begin());
+    tabs_->SetActivePage(tabs_->GetPage(tab));
+    auto &savedTab = tabStates_[static_cast<size_t>(tab)];
     savedTab.filters = session.settings.filters;
     savedTab.sort = session.settings.sort;
+    savedTab.filtersExpanded = session.settings.filtersExpanded;
+    BindPage();
+    ReloadPage();
+    RestoreFilters();
     SetVisible(false);
 }
 
 ServerBrowserDialog::~ServerBrowserDialog() = default;
 
+bool ServerBrowserDialog::GetDefaultScreenPosition(int &x, int &y, int &width, int &height) {
+    int workspaceX = 0;
+    int workspaceY = 0;
+    vgui2::surface()->GetWorkspaceBounds(workspaceX, workspaceY, width, height);
+    constexpr double LeftFraction = 0.05;
+    constexpr double TopFraction = 0.40;
+    constexpr double WidthFraction = 0.50;
+    constexpr double HeightFraction = 0.55;
+    x = workspaceX + static_cast<int>(width * LeftFraction);
+    y = workspaceY + static_cast<int>(height * TopFraction);
+    width = static_cast<int>(width * WidthFraction);
+    height = static_cast<int>(height * HeightFraction);
+    return true;
+}
+
+void ServerBrowserDialog::BindPage() {
+    page_ = static_cast<BrowserPage *>(tabs_->GetActivePage());
+    list_ = page_->list;
+    scroll_ = page_->scroll;
+    connect_ = page_->connect;
+    refresh_ = page_->refresh;
+    quick_ = page_->quick;
+    addServer_ = page_->addServer;
+    addCurrent_ = page_->addCurrent;
+    filterToggle_ = page_->toggle;
+    filterSummary_ = page_->summary;
+    game_ = page_->game;
+    map_ = page_->map;
+    ping_ = page_->ping;
+    secure_ = page_->secure;
+    nonempty_ = page_->nonempty;
+    notFull_ = page_->notFull;
+    password_ = page_->password;
+    validAccount_ = page_->account;
+}
+
+void ServerBrowserDialog::ReloadPage() {
+    page_->Reload(session_.settings.filtersExpanded);
+    UpdateActions();
+}
+
 void ServerBrowserDialog::PerformLayout() {
     ClampFrame(*this);
     Frame::PerformLayout();
-    int left = 0;
-    int top = 0;
-    int clientWidth = 0;
-    int clientHeight = 0;
-    GetClientArea(left, top, clientWidth, clientHeight);
-    const int gap = Padding(*this);
-    body_->SetBounds(left + gap, top + gap, std::max(1, clientWidth - 2 * gap), std::max(1, clientHeight - 2 * gap));
-    constexpr size_t FilterPairs = 7;
-    std::array<Extent, FilterPairs> groups{};
-    int width = std::max(body_->ViewWidth(), static_cast<BrowserSheet *>(tabs_)->MinimumWidth());
-    for (size_t index = 0; index < FilterPairs; ++index) {
-        auto *label = static_cast<vgui2::Label *>(filterControls_[2 * index]);
-        auto *control = filterControls_[2 * index + 1];
-        auto size = LabelExtent(*label);
-        const int controlHeight = size.height + 2 * gap;
-        constexpr int EntryWidth = 150;
-        size.width = std::max(size.width, GetProportionalScaledValue(EntryWidth));
-        if (auto *combo = dynamic_cast<vgui2::ComboBox *>(control)) {
-            auto *menu = combo->GetMenu();
-            for (int item = 0; item < menu->GetItemCount(); ++item) {
-                auto *choice = menu->GetMenuItem(menu->GetMenuID(item));
-                size.width = std::max(size.width, LabelExtent(*choice).width + controlHeight + 2 * gap);
-            }
-        }
-        groups[index] = {size.width + 2 * gap, size.height + controlHeight + gap};
-        width = std::max(width, groups[index].width);
-    }
-    for (auto *check : {nonempty_, notFull_}) {
-        width = std::max(width, LabelExtent(*check).width + 2 * gap);
-    }
-    for (auto *button : actions_) {
-        width = std::max(width, LabelExtent(*button).width + 2 * gap);
-    }
-    for (auto *label : {status_, actionStatusLabel_}) {
-        width = std::max(width, LabelExtent(*label).width + 2 * gap);
-    }
-    int x = 0;
-    int y = 0;
-    int rowHeight = 0;
-    auto next = [&](int itemWidth, int itemHeight) {
-        if (x && x + itemWidth > width) {
-            x = 0;
-            y += rowHeight + gap;
-            rowHeight = 0;
-        }
-        rowHeight = std::max(rowHeight, itemHeight);
-    };
-    for (size_t index = 0; index < FilterPairs; ++index) {
-        const auto size = groups[index];
-        next(size.width, size.height);
-        auto *label = static_cast<vgui2::Label *>(filterControls_[2 * index]);
-        const int labelHeight = LabelExtent(*label).height;
-        label->SetBounds(x, y, size.width, labelHeight);
-        filterControls_[2 * index + 1]->SetBounds(x, y + labelHeight + gap, size.width,
-                                                  size.height - labelHeight - gap);
-        x += size.width + gap;
-    }
-    for (auto *check : {nonempty_, notFull_}) {
-        const auto size = LabelExtent(*check);
-        next(size.width + 2 * gap, size.height + gap);
-        check->SetBounds(x, y, size.width + 2 * gap, size.height + gap);
-        x += size.width + 3 * gap;
-    }
-    y += rowHeight + gap;
-    const int tabTop = y;
-    // Reserve the action flow and both independent message lines before assigning
-    // remaining height to the table. Small workspaces scroll this fixed content.
-    x = 0;
-    y = 0;
-    rowHeight = 0;
-    for (auto *button : actions_) {
-        const auto size = LabelExtent(*button);
-        next(size.width + 2 * gap, size.height + 2 * gap);
-        button->SetBounds(x, y, size.width + 2 * gap, size.height + 2 * gap);
-        x += size.width + 3 * gap;
-    }
-    constexpr int AddressWidth = 240;
-    const int addressHeight = LabelExtent(*connect_).height + 2 * gap;
-    const int addressWidth = std::min(width, GetProportionalScaledValue(AddressWidth));
-    next(addressWidth, addressHeight);
-    address_->SetBounds(x, y, addressWidth, addressHeight);
-    const int actionHeight = y + rowHeight + gap;
-    const int statusHeight = LabelExtent(*status_).height + gap;
-    const int actionStatusHeight = LabelExtent(*actionStatusLabel_).height + gap;
-    const int tabHeight = static_cast<BrowserSheet *>(tabs_)->TabHeight(width);
-    constexpr int MinimumTableRows = 6;
-    const int minimumTable = (LabelExtent(*status_).height + gap) * MinimumTableRows;
-    const int tableHeight = std::max(minimumTable, body_->ViewHeight() - tabTop - tabHeight - actionHeight -
-                                                       statusHeight - actionStatusHeight - gap);
-    tabs_->SetBounds(0, tabTop, width, tabHeight + tableHeight);
-    tabs_->InvalidateLayout(true, false);
-    const int actionTop = tabTop + tabs_->GetTall() + gap;
-    for (auto *button : actions_) {
-        int buttonX = 0;
-        int buttonY = 0;
-        button->GetPos(buttonX, buttonY);
-        button->SetPos(buttonX, actionTop + buttonY);
-    }
-    int addressX = 0;
-    int addressY = 0;
-    address_->GetPos(addressX, addressY);
-    address_->SetPos(addressX, actionTop + addressY);
-    status_->SetBounds(0, actionTop + actionHeight, width, statusHeight);
-    actionStatusLabel_->SetBounds(0, actionTop + actionHeight + statusHeight, width, actionStatusHeight);
-    body_->SetContentSize(width, actionTop + actionHeight + statusHeight + actionStatusHeight);
-    if (auto *page = tabs_->GetActivePage()) {
-        const int scrollWidth = GetProportionalScaledValue(ScrollWidth);
-        table_->SetBounds(0, 0, std::max(1, page->GetWide() - scrollWidth), page->GetTall());
-        const int listWidth = std::max(table_->ViewWidth(), list_->MinimumWidth());
-        list_->SetBounds(0, 0, listWidth, table_->ViewHeight());
-        list_->InvalidateLayout(true, false);
-        table_->SetContentSize(listWidth, table_->ViewHeight());
-        scroll_->SetBounds(page->GetWide() - scrollWidth, 0, scrollWidth, page->GetTall());
-    }
 }
 
 void ServerBrowserDialog::Activate() {
@@ -1008,6 +1146,22 @@ void ServerBrowserDialog::OnMessage(const KeyValues *message, vgui2::VPANEL send
         inactiveDispatchObserved_ = true;
         return;
     }
+    auto *source = static_cast<vgui2::Panel *>(const_cast<KeyValues *>(message)->GetPtr("panel", nullptr));
+    if (session_.active && !session_.closing && source && source->GetParent() == page_) {
+        if (std::strcmp(message->GetName(), "ButtonToggled") == 0 && source == filterToggle_) {
+            session_.settings.filtersExpanded = filterToggle_->IsSelected();
+            ReloadPage();
+            RestoreFilters();
+            SaveSettings();
+            return;
+        }
+        if (std::strcmp(message->GetName(), "TextChanged") == 0 ||
+            std::strcmp(message->GetName(), "CheckButtonChecked") == 0 ||
+            std::strcmp(message->GetName(), "ButtonToggled") == 0) {
+            ApplyFilters();
+            return;
+        }
+    }
     Frame::OnMessage(message, sender);
 }
 
@@ -1016,17 +1170,69 @@ void ServerBrowserDialog::OnClose() {
 }
 
 void ServerBrowserDialog::RestoreFilters() {
+    restoringFilters_ = true;
     const auto &filters = session_.settings.filters;
     game_->ActivateItem(filters.app == HalfLifeApp ? 1 : 0);
-    name_->SetText(filters.name.c_str());
+    game_->SetEnabled(false);
     map_->SetText(filters.map.c_str());
-    ping_->SetText(std::to_string(filters.maxPing).c_str());
-    password_->ActivateItem(static_cast<int>(filters.password));
+    const auto ping = std::find(BrowserPingLimits.begin(), BrowserPingLimits.end(), filters.maxPing);
+    ping_->ActivateItem(ping == BrowserPingLimits.end() ? 0 : static_cast<int>(ping - BrowserPingLimits.begin()));
+    password_->SetSelected(filters.password == Requirement::No);
     secure_->ActivateItem(static_cast<int>(filters.secure));
-    region_->ActivateItem(filters.region + 1);
-    region_->SetEnabled(session_.settings.kind == ListKind::Internet || session_.settings.kind == ListKind::Spectate);
     nonempty_->SetSelected(filters.nonempty);
     notFull_->SetSelected(filters.notFull);
+    validAccount_->SetSelected(filters.validSteamAccount);
+    filterToggle_->SetSelected(session_.settings.filtersExpanded);
+    restoringFilters_ = false;
+    UpdateFilterSummary();
+}
+
+void ServerBrowserDialog::UpdateFilterSummary() {
+    const auto &filters = session_.settings.filters;
+    std::wstring summary;
+    const auto localized = [](const char *token) {
+        const auto *text = vgui2::localize()->Find(token);
+        return text ? std::wstring(text) : std::wstring{};
+    };
+    if (!filters.gameDirectory.empty()) {
+        std::array<wchar_t, 128> game{};
+        game_->GetText(game.data(), static_cast<int>(sizeof(game)));
+        summary += game.data();
+        summary += L"; ";
+    }
+    if (filters.secure != Requirement::Any) {
+        summary += localized(filters.secure == Requirement::Yes ? "#ServerBrowser_FilterDescSecureOnly" :
+                             "#ServerBrowser_FilterDescInsecureOnly") + L"; ";
+    }
+    if (filters.maxPing) {
+        summary += localized("#ServerBrowser_FilterDescLatency") + L" < " + std::to_wstring(filters.maxPing) + L"; ";
+    }
+    for (const auto &entry : {std::pair{filters.notFull, "#ServerBrowser_FilterDescNotFull"},
+             std::pair{filters.nonempty, "#ServerBrowser_FilterDescNotEmpty"},
+             std::pair{filters.password == Requirement::No, "#ServerBrowser_FilterDescNoPassword"},
+             std::pair{filters.validSteamAccount, "#ServerBrowser_FilterDescValidSteamAccount"}}) {
+        if (entry.first) {
+            summary += localized(entry.second) + L"; ";
+        }
+    }
+    std::array<wchar_t, 256> map{};
+    vgui2::localize()->ConvertANSIToUnicode(filters.map.c_str(), map.data(), static_cast<int>(sizeof(map)));
+    summary += map.data();
+    filterSummary_->SetText(summary.c_str());
+}
+
+void ServerBrowserDialog::UpdateActions() {
+    const bool internet = session_.settings.kind == ListKind::Internet || session_.settings.kind == ListKind::Spectate;
+    const bool favorites = session_.settings.kind == ListKind::Favorites;
+    const bool refreshing = session_.model.GetStatus().phase == Phase::Refreshing;
+    refresh_->SetText(refreshing ? "#ServerBrowser_StopRefreshingList" :
+                      (internet ? "#ServerBrowser_RefreshAll" : "#ServerBrowser_Refresh"));
+    refresh_->SetCommand(refreshing ? "stoprefresh" : "GetNewList");
+    quick_->SetVisible(internet);
+    quick_->SetEnabled(!refreshing && session_.presentation.VisibleCount() > 0);
+    addServer_->SetVisible(favorites);
+    addCurrent_->SetVisible(favorites);
+    addCurrent_->SetEnabled(session_.connection.CurrentServer().has_value());
 }
 
 bool ServerBrowserDialog::ChangeTab(int tab) {
@@ -1037,12 +1243,13 @@ bool ServerBrowserDialog::ChangeTab(int tab) {
         auto &outgoing = tabStates_[static_cast<size_t>(activeTab_)];
         outgoing.filters = session_.settings.filters;
         outgoing.sort = session_.settings.sort;
+        outgoing.filtersExpanded = session_.settings.filtersExpanded;
         // A bounded reset clears the live selection before its saved RowKey can be restored.
         if (!restoreSelection_) {
             outgoing.selection = session_.model.Selection();
         }
     }
-    const auto kind = static_cast<ListKind>(tab);
+    const auto kind = BrowserTabKinds[static_cast<size_t>(tab)];
     auto &destination = tabStates_[static_cast<size_t>(tab)];
     if (kind != ListKind::Internet && kind != ListKind::Spectate) {
         destination.filters.region = Filters{}.region;
@@ -1061,16 +1268,22 @@ bool ServerBrowserDialog::ChangeTab(int tab) {
         return false;
     }
     transitioning_ = activeTab_ >= 0 && activeTab_ != tab;
+    selectedKeys_.clear();
+    keyboardCursor_.reset();
+    rangeAnchor_.reset();
     activeTab_ = tab;
     session_.settings.kind = kind;
     session_.settings.filters = destination.filters;
     session_.settings.sort = destination.sort;
+    session_.settings.filtersExpanded = destination.filtersExpanded;
     session_.model.SetSort(destination.sort);
     session_.presentation.RequestSort(destination.sort);
     restoreSelection_ = destination.selection.has_value();
+    list_->RemoveAll();
+    slots_.clear();
+    BindPage();
+    ReloadPage();
     RestoreFilters();
-    table_->SetParent(tabs_->GetActivePage());
-    scroll_->SetParent(tabs_->GetActivePage());
     InvalidateLayout(false, false);
     return true;
 }
@@ -1087,11 +1300,20 @@ void ServerBrowserDialog::Pump() {
             ChangeTab(tab);
         }
     }
+    if (session_.active && session_.settings.kind == ListKind::Favorites && session_.favoritesDirty) {
+        session_.favoritesDirty = false;
+        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+    }
     session_.model.Pump(BrowserFrameBudget);
     session_.presentation.Pump(BrowserFrameBudget);
     if (session_.presentation.CanAcceptUpdates()) {
         for (const auto &update : session_.model.TakeUpdates(BrowserFrameBudget)) {
             session_.presentation.Apply(update);
+            if (update.reset) {
+                selectedKeys_.clear();
+                keyboardCursor_.reset();
+                rangeAnchor_.reset();
+            }
         }
     }
     const auto state = session_.model.GetStatus();
@@ -1115,12 +1337,24 @@ void ServerBrowserDialog::Pump() {
         const auto selection = tabStates_[static_cast<size_t>(activeTab_)].selection;
         if (selection && session_.model.Find(*selection)) {
             session_.model.Select(selection);
+            selectedKeys_ = {*selection};
+            keyboardCursor_ = selection;
+            rangeAnchor_ = selection;
             restoreSelection_ = false;
         }
     }
     UpdateRows();
-    if (detailsDialog_.Get()) {
-        detailsDialog_->Pump();
+    UpdateActions();
+    auto liveDialogs = detailsDialogs_;
+    for (auto &dialog : liveDialogs) {
+        if (dialog.Get()) {
+            dialog->Pump();
+        }
+    }
+    detailsDialogs_.erase(std::remove_if(detailsDialogs_.begin(), detailsDialogs_.end(),
+        [](auto &dialog) { return !dialog.Get(); }), detailsDialogs_.end());
+    if (addServerDialog_.Get()) {
+        addServerDialog_->Pump();
     }
     const char *text = "";
     if (!state.error.empty()) {
@@ -1136,18 +1370,18 @@ void ServerBrowserDialog::Pump() {
     } else if (!session_.presentation.VisibleCount()) {
         text = "#ServerBrowser_NoInternetGames";
     }
-    if (shownQuery_ != text) {
-        shownQuery_ = text;
-        status_->SetText(text);
-        InvalidateLayout(false, false);
+    // Resolve the one visible label before comparing its cache. An unchanged failure
+    // must retain priority while the underlying query enters or leaves refresh/sort states.
+    const char *effective = actionStatus_.empty() ? state.actionError.c_str() : actionStatus_.c_str();
+    if (!*effective && !session_.config.Status().error.empty()) {
+        effective = "#CSEServerBrowser_Unsaved";
     }
-    const char *action = actionStatus_.empty() ? state.actionError.c_str() : actionStatus_.c_str();
-    if (!*action && !session_.config.Status().error.empty()) {
-        action = "#CSEServerBrowser_Unsaved";
+    if (!*effective) {
+        effective = text;
     }
-    if (shownAction_ != action) {
-        shownAction_ = action;
-        actionStatusLabel_->SetText(action);
+    if (shownStatus_ != effective) {
+        shownStatus_ = effective;
+        status_->SetText(effective);
         InvalidateLayout(false, false);
     }
 }
@@ -1165,19 +1399,40 @@ void ServerBrowserDialog::UpdateRows() {
         }
         const auto &row = visible_[slot];
         auto *item = list_->GetItem(slots_[slot]);
-        item->SetString("name", row.name.c_str());
-        item->SetString("game", row.gameDescription.c_str());
-        item->SetString("map", row.map.c_str());
-        item->SetString("address", ConnectionAddress(row.key).c_str());
-        item->SetString("password", row.responded ? (row.password ? "#CSEServerBrowser_Yes" : "") : "?");
-        item->SetString("secure", row.responded ? (row.secure ? "#CSEServerBrowser_Yes" : "") : "?");
-        item->SetString("players", row.responded
-                                       ? (std::to_string(row.players) + "/" + std::to_string(row.maxPlayers)).c_str()
-                                       : "?");
-        item->SetString("ping", row.responded ? std::to_string(row.ping).c_str() : "?");
+        item->SetString("Name", row.name.empty() ? ConnectionAddress(row.key).c_str() : row.name.c_str());
+        item->SetString("GameDesc", row.responded ? row.gameDescription.c_str() : "#ServerBrowser_NotResponding");
+        item->SetString("Map", row.responded ? row.map.c_str() : "");
+        item->SetString("IPAddr", ConnectionAddress(row.key).c_str());
+        constexpr int PasswordImage = 1;
+        constexpr int SecureImage = 3;
+        item->SetInt("Password", row.responded && row.password ? PasswordImage : 0);
+        constexpr int SecureDeniedImage = 4;
+        item->SetInt("Secure", row.responded && row.secure ?
+            (session_.apps && session_.apps->BIsVACBanned() ? SecureDeniedImage : SecureImage) : 0);
+        item->SetString("Bots", row.responded && row.bots > 0 ? std::to_string(row.bots).c_str() : "");
+        const auto humans = std::max<int64_t>(static_cast<int64_t>(row.players) - row.bots, 0);
+        item->SetString("Players", row.responded
+            ? (std::to_string(humans) + " / " + std::to_string(row.maxPlayers)).c_str() : "");
+        item->SetString("Ping", row.responded ? std::to_string(row.ping).c_str() : "");
+        std::array<char, 64> played{};
+        const std::time_t playedTime = row.lastPlayed;
+        if (row.lastPlayed) {
+            if (const auto *local = std::localtime(&playedTime)) {
+                std::strftime(played.data(), played.size(), "%a %d %b %I:%M%p", local);
+            }
+        }
+        const size_t length = std::strlen(played.data());
+        for (size_t index = length > 4 ? length - 4 : 0; index < length; ++index) {
+            if (played[index] >= 'A' && played[index] <= 'Z') {
+                played[index] += 'a' - 'A';
+            }
+        }
+        item->SetString("LastPlayed", played.data());
         list_->ApplyItemChanges(slots_[slot]);
+        if (std::find(selectedKeys_.begin(), selectedKeys_.end(), row.key) != selectedKeys_.end()) {
+            list_->AddSelectedItem(slots_[slot]);
+        }
         if (selection && row.key == *selection) {
-            list_->SetSingleSelectedItem(slots_[slot]);
             canConnect = row.responded && !row.failed && session_.connection.CanConnect(row);
             if (!session_.connection.CanConnect(row)) {
                 actionStatus_ = "#CSEServerBrowser_CurrentGame";
@@ -1199,8 +1454,14 @@ void ServerBrowserDialog::ChooseSort(int column) {
         return;
     }
     auto &sort = session_.settings.sort;
-    sort.ascending = sort.column == static_cast<Column>(column) ? !sort.ascending : true;
-    sort.column = static_cast<Column>(column);
+    const auto selectedColumn = VisualColumns[static_cast<size_t>(column)];
+    const auto descendingComparison = [](Column value) {
+        return value == Column::Bots || value == Column::Players || value == Column::LastPlayed;
+    };
+    const bool primaryAscending = sort.ascending != descendingComparison(sort.column);
+    sort.ascending = sort.column == selectedColumn ? !sort.ascending :
+        primaryAscending != descendingComparison(selectedColumn);
+    sort.column = VisualColumns[static_cast<size_t>(column)];
     session_.model.SetSort(sort);
     session_.presentation.RequestSort(sort);
     SaveSettings();
@@ -1216,9 +1477,39 @@ void ServerBrowserDialog::SelectVisible(size_t slot) {
     BrowserUse use(session_);
     if (!session_.closing && session_.active && slot < visible_.size()) {
         restoreSelection_ = false;
+        selectedKeys_ = {visible_[slot].key};
+        keyboardCursor_ = visible_[slot].key;
+        rangeAnchor_ = visible_[slot].key;
         session_.model.Select(visible_[slot].key);
         actionStatus_.clear();
     }
+}
+void ServerBrowserDialog::SelectVisibleItems(const std::vector<size_t> &slots) {
+    BrowserUse use(session_);
+    if (session_.closing || !session_.active || transitioning_) {
+        return;
+    }
+    const bool extend = vgui2::input()->IsKeyDown(vgui2::KEY_LCONTROL) ||
+        vgui2::input()->IsKeyDown(vgui2::KEY_RCONTROL) || vgui2::input()->IsKeyDown(vgui2::KEY_LSHIFT) ||
+        vgui2::input()->IsKeyDown(vgui2::KEY_RSHIFT);
+    if (!extend) {
+        selectedKeys_.clear();
+    } else {
+        // Reconcile only the current viewport; offscreen selections retain their RowKeys.
+        for (const auto &row : visible_) {
+            selectedKeys_.erase(std::remove(selectedKeys_.begin(), selectedKeys_.end(), row.key), selectedKeys_.end());
+        }
+    }
+    for (const size_t slot : slots) {
+        if (slot < visible_.size()) {
+            selectedKeys_.push_back(visible_[slot].key);
+        }
+    }
+    restoreSelection_ = false;
+    session_.model.Select(selectedKeys_.empty() ? std::nullopt : std::optional<RowKey>{selectedKeys_.front()});
+    keyboardCursor_ = selectedKeys_.empty() ? std::nullopt : std::optional<RowKey>{selectedKeys_.back()};
+    rangeAnchor_ = session_.model.Selection();
+    actionStatus_.clear();
 }
 void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
     BrowserUse use(session_);
@@ -1229,9 +1520,10 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
     restoreSelection_ = false;
     size_t rank = session_.presentation.FirstVisibleRank();
     const auto selected = session_.model.Selection();
-    if (selected) {
-        if (const auto selectedRank = session_.presentation.RankForUserAction(*selected)) {
-            rank = *selectedRank;
+    const auto cursor = keyboardCursor_ ? keyboardCursor_ : selected;
+    if (cursor) {
+        if (const auto cursorRank = session_.presentation.RankForUserAction(*cursor)) {
+            rank = *cursorRank;
         }
     }
     const auto target = endpoint
@@ -1240,7 +1532,34 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
     session_.presentation.SeekForUserAction(static_cast<size_t>(target));
     const auto selectedRow = session_.presentation.ReadViewport(1);
     if (!selectedRow.empty()) {
-        session_.model.Select(selectedRow.front().key);
+        const bool extend = vgui2::input()->IsKeyDown(vgui2::KEY_LSHIFT) ||
+            vgui2::input()->IsKeyDown(vgui2::KEY_RSHIFT);
+        const auto anchor = rangeAnchor_ ? rangeAnchor_ : selected;
+        const auto anchorRank = anchor ? session_.presentation.RankForUserAction(*anchor) : std::nullopt;
+        if (extend && anchorRank && !session_.model.GetStatus().viewUpdating &&
+            !session_.presentation.IsUpdating()) {
+            const auto keys = session_.model.OrderedKeys();
+            if (keys.empty()) {
+                return;
+            }
+            // The range is replaced, not accumulated: reversing the moving cursor shrinks it.
+            // Keep the anchor first so Connect/Info retain the first-selected identity.
+            selectedKeys_ = {*anchor};
+            const size_t first = std::min(*anchorRank, static_cast<size_t>(target));
+            const size_t last = std::min(std::max(*anchorRank, static_cast<size_t>(target)), keys.size() - 1);
+            for (size_t index = first; index <= last; ++index) {
+                if (!(keys[index] == *anchor)) {
+                    selectedKeys_.push_back(keys[index]);
+                }
+            }
+            rangeAnchor_ = anchor;
+            session_.model.Select(anchor);
+        } else {
+            selectedKeys_ = {selectedRow.front().key};
+            rangeAnchor_ = selectedRow.front().key;
+            session_.model.Select(selectedRow.front().key);
+        }
+        keyboardCursor_ = selectedRow.front().key;
     }
     UpdateRows();
 }
@@ -1258,16 +1577,14 @@ void ServerBrowserDialog::ConnectSelection() {
         ShowActionStatus("#CSEServerBrowser_CurrentGame");
         return;
     }
-    if (row->password) {
-        if (passwordDialog_.Get()) {
-            passwordDialog_->Retire();
-            return;
-        }
-        passwordDialog_ = new BrowserPasswordDialog(*this, session_, *row);
-        passwordDialog_->DoModal();
-    } else {
-        ConnectRow(*row, "");
+    if (auto *dialog = OpenDetails()) {
+        dialog->Connect();
     }
+}
+
+void ServerBrowserDialog::OwnMessage(vgui2::Frame *message) {
+    messageDialogs_.emplace_back();
+    messageDialogs_.back() = message;
 }
 void ServerBrowserDialog::ConnectRow(const Row &row, std::string_view password) {
     BrowserUse use(session_);
@@ -1283,33 +1600,60 @@ void ServerBrowserDialog::ConnectRow(const Row &row, std::string_view password) 
                                                                     : "#ServerBrowser_ServerNotResponding");
     }
 }
-void ServerBrowserDialog::OpenDetails() {
-    if (detailsDialog_.Get()) {
-        detailsDialog_->Activate();
-        return;
-    }
+BrowserDetailsDialog *ServerBrowserDialog::OpenDetails() {
     const auto selected = session_.model.Selection();
     const Row *row = selected ? session_.model.Find(*selected) : nullptr;
-    if (row) {
-        detailsDialog_ = new BrowserDetailsDialog(*this, session_, *row);
-        detailsDialog_->Activate();
+    if (!row) {
+        return nullptr;
     }
+    const Row captured = *row;
+    session_.model.Stop();
+    if (session_.closing || !session_.active) {
+        return nullptr;
+    }
+    for (auto &dialog : detailsDialogs_) {
+        if (dialog.Get() && !dialog->Closing() && dialog->Key() == captured.key) {
+            dialog->Activate();
+            return dialog.Get();
+        }
+    }
+    auto *dialog = new BrowserDetailsDialog(*this, session_, captured);
+    detailsDialogs_.emplace_back();
+    detailsDialogs_.back() = dialog;
+    dialog->Activate();
+    return dialog;
 }
 void ServerBrowserDialog::ShowContextMenu() {
     BrowserUse use(session_);
     if (session_.closing || !session_.active) {
         return;
     }
+    const bool selected = session_.model.Selection().has_value();
+    const auto kind = session_.settings.kind;
+    if (!selected && kind != ListKind::Favorites && kind != ListKind::History) {
+        return;
+    }
     if (!contextMenu_.Get()) {
         contextMenu_ = new vgui2::Menu(this, "ServerContext");
-        contextMenu_->AddMenuItem("Connect", "#ServerBrowser_Connect", "Connect", this, nullptr);
-        contextMenu_->AddMenuItem("Details", "#ServerBrowser_GameInfoTitle", "Details", this, nullptr);
-        contextMenu_->AddMenuItem("Favorite", "#ServerBrowser_AddToFavorites", "Favorite", this, nullptr);
-        contextMenu_->AddMenuItem("Remove", "#ServerBrowser_RemoveServerFromFavorites", "RemoveFavorite", this,
-                                  nullptr);
-        contextMenu_->AddMenuItem("Refresh", "#ServerBrowser_Refresh", "QuickSelected", this, nullptr);
     }
     auto *menu = contextMenu_.Get();
+    menu->DeleteAllItems();
+    if (selected) {
+        menu->AddMenuItem("Connect", "#ServerBrowser_Connect", "ConnectToServer", this, nullptr);
+        menu->AddMenuItem("Details", "#ServerBrowser_GameInfoTitle", "ViewGameInfo", this, nullptr);
+        menu->AddMenuItem("Refresh", "#ServerBrowser_Refresh", "RefreshServer", this, nullptr);
+        if (kind != ListKind::Favorites && kind != ListKind::LAN) {
+            menu->AddMenuItem("Favorite", "#ServerBrowser_AddToFavorites", "AddToFavorites", this, nullptr);
+        }
+        if (kind == ListKind::Favorites) {
+            menu->AddMenuItem("Remove", "#ServerBrowser_RemoveServerFromFavorites", "RemoveFromFavorites", this, nullptr);
+        } else if (kind == ListKind::History) {
+            menu->AddMenuItem("Remove", "#ServerBrowser_RemoveServerFromHistory", "RemoveFromHistory", this, nullptr);
+        }
+    }
+    if (kind == ListKind::Favorites) {
+        menu->AddMenuItem("AddServer", "#ServerBrowser_AddServerByIP", "AddServerByName", this, nullptr);
+    }
     int x = 0;
     int y = 0;
     vgui2::input()->GetCursorPos(x, y);
@@ -1317,21 +1661,33 @@ void ServerBrowserDialog::ShowContextMenu() {
     menu->SetVisible(true);
 }
 void ServerBrowserDialog::ApplyFilters() {
+    if (restoringFilters_ || !session_.active || session_.closing) {
+        return;
+    }
     restoreSelection_ = false;
-    auto &filters = session_.settings.filters;
-    filters.app = game_->GetActiveItem() == 1 ? HalfLifeApp : CounterStrikeApp;
-    filters.gameDirectory = filters.app == HalfLifeApp ? "valve" : "cstrike";
-    filters.name = Text(name_);
+    auto filters = session_.settings.filters;
+    filters.name.clear();
+    filters.region = -1;
     filters.map = Text(map_);
-    filters.maxPing = std::atoi(Text(ping_).c_str());
-    filters.password = static_cast<Requirement>(password_->GetActiveItem());
+    const int ping = ping_->GetActiveItem();
+    filters.maxPing = ping >= 0 && static_cast<size_t>(ping) < BrowserPingLimits.size() ? BrowserPingLimits[ping] : 0;
+    filters.password = password_->IsSelected() ? Requirement::No : Requirement::Any;
     filters.secure = static_cast<Requirement>(secure_->GetActiveItem());
-    filters.region = region_->GetActiveItem() - 1;
     filters.nonempty = nonempty_->IsSelected();
     filters.notFull = notFull_->IsSelected();
-    session_.model.Refresh(session_.settings.kind, filters);
+    filters.validSteamAccount = validAccount_->IsSelected();
+    const auto &old = session_.settings.filters;
+    if (std::tie(filters.map, filters.maxPing, filters.password, filters.secure, filters.nonempty,
+                 filters.notFull, filters.validSteamAccount) ==
+        std::tie(old.map, old.maxPing, old.password, old.secure, old.nonempty, old.notFull, old.validSteamAccount)) {
+        return;
+    }
+    session_.settings.filters = filters;
+    session_.model.SetFilters(filters);
+    UpdateFilterSummary();
     SaveSettings();
 }
+
 void ServerBrowserDialog::OnCommand(const char *command) {
     BrowserUse use(session_);
     if (session_.closing || !session_.active) {
@@ -1339,31 +1695,57 @@ void ServerBrowserDialog::OnCommand(const char *command) {
     }
     actionStatus_.clear();
     const auto selected = session_.model.Selection();
-    const Row *row = selected ? session_.model.Find(*selected) : nullptr;
-    if (std::strcmp(command, "Apply") == 0) {
-        ApplyFilters();
-    } else if (std::strcmp(command, "Refresh") == 0) {
+    std::vector<Row> selectedRows;
+    for (const auto &key : selectedKeys_) {
+        if (session_.presentation.RankForUserAction(key)) {
+            if (const auto *row = session_.model.Find(key)) {
+                selectedRows.push_back(*row);
+            }
+        }
+    }
+    if (selectedRows.empty() && selected) {
+        if (const auto *row = session_.model.Find(*selected)) {
+            selectedRows.push_back(*row);
+        }
+    }
+    if (std::strcmp(command, "GetNewList") == 0) {
         session_.model.Refresh(session_.settings.kind, session_.settings.filters);
-    } else if (std::strcmp(command, "Stop") == 0) {
+    } else if (std::strcmp(command, "stoprefresh") == 0) {
         session_.model.Stop();
-    } else if (std::strcmp(command, "Quick") == 0) {
+    } else if (std::strcmp(command, "refresh") == 0) {
         session_.model.QuickRefresh();
-    } else if (std::strcmp(command, "QuickSelected") == 0 && selected) {
-        session_.model.QuickRefresh(*selected);
-    } else if (std::strcmp(command, "Connect") == 0) {
+    } else if (std::strcmp(command, "QuickSelected") == 0 || std::strcmp(command, "RefreshServer") == 0) {
+        for (const auto &row : selectedRows) {
+            session_.model.QuickRefresh(row.key);
+        }
+    } else if (std::strcmp(command, "connect") == 0 || std::strcmp(command, "Connect") == 0 ||
+               std::strcmp(command, "ConnectToServer") == 0) {
         ConnectSelection();
-    } else if (std::strcmp(command, "Details") == 0) {
+    } else if (std::strcmp(command, "Details") == 0 || std::strcmp(command, "ViewGameInfo") == 0) {
         OpenDetails();
-    } else if (std::strcmp(command, "Favorite") == 0 && row) {
-        session_.model.AddFavorite(row->app, row->key);
-    } else if (std::strcmp(command, "RemoveFavorite") == 0 && row) {
-        session_.model.RemoveFavorite(row->app, row->key);
-    } else if (std::strcmp(command, "AddAddress") == 0) {
-        Address address;
-        if (ParseAddress(Text(address_), address)) {
-            session_.model.AddFavorite(session_.settings.filters.app, address);
-        } else {
-            ShowActionStatus("#ServerBrowser_AddServerError");
+    } else if (std::strcmp(command, "Favorite") == 0 || std::strcmp(command, "AddToFavorites") == 0) {
+        for (const auto &row : selectedRows) {
+            session_.AddFavorite(row.app, row.key);
+        }
+    } else if (std::strcmp(command, "RemoveFavorite") == 0 || std::strcmp(command, "RemoveFromFavorites") == 0) {
+        for (const auto &row : selectedRows) {
+            session_.model.RemoveFavorite(row.app, row.key);
+        }
+        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+    } else if (std::strcmp(command, "RemoveFromHistory") == 0) {
+        for (auto row = selectedRows.rbegin(); row != selectedRows.rend(); ++row) {
+            session_.model.RemoveHistory(row->app, row->key);
+        }
+        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+    } else if (std::strcmp(command, "AddServerByName") == 0) {
+        if (!addServerDialog_.Get()) {
+            addServerDialog_ = new BrowserAddServerDialog(*this, session_);
+        }
+        addServerDialog_->Activate();
+    } else if (std::strcmp(command, "AddCurrentServer") == 0) {
+        const auto current = session_.connection.CurrentServer();
+        if (current) {
+            session_.AddFavorite(current->app, current->address);
         }
     } else {
         SaveSettings();
@@ -1372,13 +1754,27 @@ void ServerBrowserDialog::OnCommand(const char *command) {
 }
 void ServerBrowserDialog::ShowActionStatus(const char *token) {
     actionStatus_ = token;
-    shownAction_ = token;
-    actionStatusLabel_->SetText(token);
+    shownStatus_ = token;
+    status_->SetText(token);
     InvalidateLayout(false, false);
 }
 void ServerBrowserDialog::SaveSettings() {
+    session_.settings.savedSize = true;
     session_.settings.width = GetWide();
     session_.settings.height = GetTall();
+    if (activeTab_ >= 0) {
+        auto &active = tabStates_[static_cast<size_t>(activeTab_)];
+        active.filters = session_.settings.filters;
+        active.filtersExpanded = session_.settings.filtersExpanded;
+    }
+    for (size_t index = 0; index < BrowserTabKinds.size(); ++index) {
+        auto &stored = session_.settings.pages[static_cast<size_t>(BrowserTabKinds[index])];
+        stored.filters = tabStates_[index].filters;
+        stored.filtersExpanded = tabStates_[index].filtersExpanded;
+        stored.initialized = true;
+        auto *page = static_cast<BrowserPage *>(tabs_->GetPage(static_cast<int>(index)));
+        stored.hiddenColumns = page->list->HiddenColumns();
+    }
     session_.config.SetSettings(session_.settings);
     session_.config.Save();
 }
@@ -1387,16 +1783,29 @@ bool ServerBrowserDialog::RetireChildren() {
         contextMenu_->SetVisible(false);
         contextMenu_->MarkForDeletion();
     }
-    if (passwordDialog_.Get()) {
-        passwordDialog_->Retire();
-    }
-    if (detailsDialog_.Get()) {
-        if (!detailsDialog_->BeginClose()) {
-            return false;
+    bool retired = !contextMenu_.Get();
+    for (auto &message : messageDialogs_) {
+        if (message.Get()) {
+            message->SetVisible(false);
+            message->MarkForDeletion();
+            retired = false;
         }
-        detailsDialog_->MarkForDeletion();
     }
-    return !contextMenu_.Get() && !passwordDialog_.Get() && !detailsDialog_.Get();
+    for (auto &dialog : detailsDialogs_) {
+        if (dialog.Get()) {
+            if (dialog->BeginClose()) {
+                dialog->MarkForDeletion();
+            }
+            retired = false;
+        }
+    }
+    if (addServerDialog_.Get()) {
+        if (addServerDialog_->BeginClose()) {
+            addServerDialog_->MarkForDeletion();
+        }
+        retired = false;
+    }
+    return retired;
 }
 
 bool ServerBrowserDialog::BeginClose() {

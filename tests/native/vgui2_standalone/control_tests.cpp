@@ -23,6 +23,7 @@
 #include "../../../GoldSrc-SDK/vgui2/controls/ScrollBar.h"
 #include "../../../GoldSrc-SDK/engine/controls.h"
 #include "FileSystem.h"
+#include "vgui/KeyValues.h"
 #include "vgui/IVGui.h"
 #include "vgui/IScheme.h"
 #include "vgui/IInput.h"
@@ -126,6 +127,123 @@ public:
         TextEntry::OnMousePressed(code);
     }
 };
+
+// Catches a later native snapshot overwriting a retained command in one surface event batch.
+class MidBatchResizeFrame : public vgui2::Frame {
+public:
+    MidBatchResizeFrame(int wide, int initialTall, int requestedTall)
+        : Frame(nullptr, "MidBatchResize", false, false), requestedTall_(requestedTall) {
+        SetDeleteSelfOnClose(false);
+        SetTitle("Mid-batch resize", true);
+        SetSize(wide, initialTall);
+        Activate();
+    }
+
+    SDL_Window* nativeWindow = nullptr;
+    bool armed = false;
+    bool inSurfaceFrame = false;
+    bool inCommand = false;
+    int commands = 0;
+    int nativeTallAtCommand = 0;
+    int immediateTall = 0;
+    std::vector<int> laterHeights;
+    std::vector<int> commandHeights;
+
+    void OnCommand(const char* command) override {
+        if (std::strcmp(command, "ExpandDuringNativeBatch") != 0) {
+            Frame::OnCommand(command);
+            return;
+        }
+        Require(armed && inSurfaceFrame, "ordinary command dispatch occurs inside actual surface RunFrame");
+        ++commands;
+        if (!commandHeights.empty()) {
+            Require(static_cast<std::size_t>(commands) <= commandHeights.size(), "one height per queued command");
+            requestedTall_ = commandHeights[static_cast<std::size_t>(commands - 1)];
+        }
+        int nativeWide = 0;
+        Require(SDL_GetWindowSize(nativeWindow, &nativeWide, &nativeTallAtCommand), "sample live size before command");
+        std::fprintf(stderr, "RESIZE_ORDER command window=%u panel=%llu native=%dx%d requested=%d\n",
+                     SDL_GetWindowID(nativeWindow), static_cast<unsigned long long>(GetVPanel()),
+                     nativeWide, nativeTallAtCommand, requestedTall_);
+        inCommand = true;
+        SetTall(requestedTall_);
+        immediateTall = GetTall();
+        inCommand = false;
+        std::fprintf(stderr, "RESIZE_ORDER immediate retained=%d\n", immediateTall);
+    }
+
+    void OnSizeChanged(int wide, int tall) override {
+        if (armed) {
+            int nativeWide = 0;
+            int nativeTall = 0;
+            Require(SDL_GetWindowSize(nativeWindow, &nativeWide, &nativeTall), "sample live size in callback");
+            std::fprintf(stderr, "RESIZE_ORDER callback surface=%d command=%d retained=%dx%d native=%dx%d\n",
+                         inSurfaceFrame, inCommand, wide, tall, nativeWide, nativeTall);
+            if (commands != 0 && !inCommand) {
+                Require(inSurfaceFrame, "later resize callback occurs in the same surface frame");
+                laterHeights.push_back(tall);
+            }
+        }
+        Frame::OnSizeChanged(wide, tall);
+    }
+
+private:
+    int requestedTall_;
+};
+
+class ResizeCallbackPanel : public FixturePanel {
+public:
+    ResizeCallbackPanel() : FixturePanel("Resize callback") {
+    }
+    std::function<void()> resizeCallback;
+
+    void OnSizeChanged(int wide, int tall) override {
+        FixturePanel::OnSizeChanged(wide, tall);
+        auto callback = std::move(resizeCallback);
+        if (callback) {
+            callback();
+        }
+    }
+};
+
+std::function<void()> resizeSyncAction;
+
+void ResizeSyncCallback() {
+    auto callback = std::move(resizeSyncAction);
+    Require(static_cast<bool>(callback), "armed completion callback");
+    callback();
+}
+
+struct ResizeObserver {
+    using Observe = void (*)(SDL_Window*, int, int, int, void (*)());
+    Observe observe = reinterpret_cast<Observe>(dlsym(RTLD_DEFAULT, "CseTestObserveResize"));
+    int (*count)(bool) = reinterpret_cast<int (*)(bool)>(dlsym(RTLD_DEFAULT, "CseTestResizeCount"));
+    void (*density)(float) = reinterpret_cast<void (*)(float)>(dlsym(RTLD_DEFAULT, "CseTestResizeDensity"));
+
+    ResizeObserver() {
+        Require(observe && count && density, "actual SDL geometry boundary observer loaded");
+    }
+};
+
+void QueueWindowEvent(SDL_Window* window, SDL_EventType type) {
+    SDL_Event event{};
+    event.type = type;
+    event.window.windowID = SDL_GetWindowID(window);
+    event.common.timestamp = SDL_GetTicksNS();
+    Require(SDL_PushEvent(&event), "queue routed native geometry event");
+}
+
+void RequireGeometry(vgui2::Panel* panel, SDL_Window* window, int wide, int tall, int density = 1) {
+    int nativeWide = 0;
+    int nativeTall = 0;
+    Require(SDL_GetWindowSize(window, &nativeWide, &nativeTall), "read accepted native logical geometry");
+    Require(panel->GetWide() == wide && panel->GetTall() == tall && nativeWide == wide && nativeTall == tall,
+            "retained and accepted native logical dimensions agree with expected result");
+    SDL_Surface* pixels = SDL_RenderReadPixels(SDL_GetRenderer(window), nullptr);
+    Require(pixels && pixels->w == wide * density && pixels->h == tall * density,
+            "actual backing dimensions agree with retained logical size and density");
+    SDL_DestroySurface(pixels);
+}
 
 class ControlFrame : public vgui2::Frame {
 public:
@@ -712,6 +830,390 @@ int main(int argc, char** argv) {
         gui->RunFrame();
         Require(!traced->shiftDuringText, "next text callback observes prior windowless modifier release");
         delete editor;
+    } else if (scenario == "resize_intent_sequences") {
+        ResizeObserver observer;
+        constexpr int SequenceWidth = 438;
+        constexpr int InitialHeight = 173;
+        constexpr int FinalHeight = 361;
+        auto* growing = new MidBatchResizeFrame(SequenceWidth, InitialHeight, FinalHeight);
+        auto* shrinking = new MidBatchResizeFrame(360, 420, 190);
+        shrinking->SetTitle("Independent shrink", true);
+        gui->RunFrame();
+        auto* growWindow = FindWindow("Mid-batch resize");
+        auto* shrinkWindow = FindWindow("Independent shrink");
+        Require(growWindow && shrinkWindow && growWindow != shrinkWindow, "independent native resize owners");
+        growing->nativeWindow = growWindow;
+        shrinking->nativeWindow = shrinkWindow;
+        growing->commandHeights = {450, 160, FinalHeight};
+        growing->armed = true;
+        shrinking->armed = true;
+        observer.observe(growWindow, 0, 0, 0, nullptr);
+        for (std::size_t command = 0; command < growing->commandHeights.size(); ++command) {
+            gui->PostMessage(growing->GetVPanel(), new KeyValues("Command", "command", "ExpandDuringNativeBatch"),
+                             0, 0.0f);
+        }
+        gui->PostMessage(shrinking->GetVPanel(), new KeyValues("Command", "command", "ExpandDuringNativeBatch"),
+                         0, 0.0f);
+        QueueWindowEvent(growWindow, SDL_EVENT_WINDOW_EXPOSED);
+        QueueWindowEvent(shrinkWindow, SDL_EVENT_WINDOW_RESIZED);
+        QueueWindowEvent(growWindow, SDL_EVENT_WINDOW_RESIZED);
+        growing->inSurfaceFrame = true;
+        shrinking->inSurfaceFrame = true;
+        surface->RunFrame();
+        growing->inSurfaceFrame = false;
+        shrinking->inSurfaceFrame = false;
+        Require(static_cast<std::size_t>(growing->commands) == growing->commandHeights.size() &&
+                    shrinking->commands == 1,
+                "ordinary queued grow/shrink commands dispatched");
+        RequireGeometry(growing, growWindow, SequenceWidth, FinalHeight);
+        RequireGeometry(shrinking, shrinkWindow, 360, 190);
+        Require(observer.count(false) == 1 && observer.count(true) == 1,
+                "only latest queued intent is submitted and completed once");
+        growing->armed = false;
+        shrinking->armed = false;
+        constexpr int StabilityFrames = 3;
+        for (int frame = 0; frame < StabilityFrames; ++frame) {
+            gui->RunFrame();
+        }
+        Require(observer.count(false) == 1 && observer.count(true) == 1, "stable frames never resubmit geometry");
+        RequireGeometry(growing, growWindow, SequenceWidth, FinalHeight);
+        RequireGeometry(shrinking, shrinkWindow, 360, 190);
+        observer.observe(nullptr, 0, 0, 0, nullptr);
+        delete growing;
+        delete shrinking;
+    } else if (scenario == "resize_external_clamp_density") {
+        ResizeObserver observer;
+        observer.observe(firstWindow, 0, 0, 0, nullptr);
+        Require(SDL_SetWindowSize(firstWindow, 430, 270), "genuine external native resize");
+        gui->RunFrame();
+        RequireGeometry(first, firstWindow, 430, 270);
+        Require(observer.count(false) == 1 && observer.count(true) == 0,
+                "native external resize is accepted without a retained resubmission");
+        Require(SDL_SetWindowMaximumSize(firstWindow, 330, 240), "apply real SDL native size constraint");
+        gui->RunFrame();
+        observer.observe(firstWindow, 0, 0, 0, nullptr);
+        first->SetSize(500, 400);
+        gui->RunFrame();
+        RequireGeometry(first, firstWindow, 330, 240);
+        Require(observer.count(false) == 1 && observer.count(true) == 1, "actual SDL clamp resolves once");
+        constexpr int StabilityFrames = 3;
+        for (int frame = 0; frame < StabilityFrames; ++frame) {
+            gui->RunFrame();
+        }
+        Require(observer.count(false) == 1 && observer.count(true) == 1, "clamp never waits for requested equality");
+        observer.observe(firstWindow, 0, 0, 0, nullptr);
+        first->SetMinimumSize(400, 280);
+        gui->RunFrame();
+        Require(first->GetWide() == 400 && first->GetTall() == 280,
+                "retained minimum remains authoritative when native maximum is smaller");
+        int clampedWide = 0;
+        int clampedTall = 0;
+        SDL_GetWindowSize(firstWindow, &clampedWide, &clampedTall);
+        Require(clampedWide == 330 && clampedTall == 240, "actual native maximum remains accepted");
+        for (int frame = 0; frame < StabilityFrames; ++frame) {
+            gui->RunFrame();
+        }
+        Require(observer.count(false) == 1 && observer.count(true) == 1,
+                "automatic retained minimum clamp does not create an endless native request loop");
+        first->SetMinimumSize(0, 0);
+        Require(SDL_SetWindowMaximumSize(firstWindow, 0, 0), "remove real native constraint");
+        gui->RunFrame();
+        observer.observe(firstWindow, 0, 0, 0, nullptr);
+        first->SetSize(420, 280);
+        gui->RunFrame();
+        RequireGeometry(first, firstWindow, 420, 280);
+        constexpr int DoubleDensity = 2;
+        observer.density(static_cast<float>(DoubleDensity));
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED);
+        gui->RunFrame();
+        RequireGeometry(first, firstWindow, 420, 280, DoubleDensity);
+        Require(observer.count(false) == 1 && observer.count(true) == 1,
+                "density notification updates backing without logical-size resubmission");
+        observer.density(1.0f);
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED);
+        gui->RunFrame();
+        RequireGeometry(first, firstWindow, 420, 280);
+        observer.observe(nullptr, 0, 0, 0, nullptr);
+    } else if (scenario == "resize_backing_failure_recovery") {
+        ResizeObserver observer;
+        auto blockBacking = reinterpret_cast<void (*)(bool)>(dlsym(RTLD_DEFAULT, "CseTestFailBackingAllocations"));
+        auto failures = reinterpret_cast<int (*)()>(dlsym(RTLD_DEFAULT, "CseTestBackingAllocationFailures"));
+        Require(blockBacking && failures, "continuous backing-allocation failure boundary loaded");
+        constexpr int InitialWidth = 320;
+        constexpr int InitialHeight = 200;
+        constexpr int RequestedWidth = 410;
+        constexpr int RequestedHeight = 270;
+        RequireGeometry(first, firstWindow, InitialWidth, InitialHeight);
+        observer.observe(firstWindow, 0, 0, 0, nullptr);
+        blockBacking(true);
+        first->SetSize(RequestedWidth, RequestedHeight);
+        // Keep allocation blocked through the production surface's entire resize-event batch.
+        gui->RunFrame();
+        int nativeWidth = 0;
+        int nativeHeight = 0;
+        Require(SDL_GetWindowSize(firstWindow, &nativeWidth, &nativeHeight), "sample accepted logical resize");
+        Require(first->GetWide() == RequestedWidth && first->GetTall() == RequestedHeight &&
+                    nativeWidth == RequestedWidth && nativeHeight == RequestedHeight,
+                "native and retained resize finish despite backing allocation failure");
+        const auto readBacking = [&](int& width, int& height) {
+            SDL_Surface* pixels = SDL_RenderReadPixels(SDL_GetRenderer(firstWindow), nullptr);
+            Require(pixels != nullptr, "read actual retained backing dimensions");
+            width = pixels->w;
+            height = pixels->h;
+            SDL_DestroySurface(pixels);
+        };
+        int backingWidth = 0;
+        int backingHeight = 0;
+        readBacking(backingWidth, backingHeight);
+        std::fprintf(stderr,
+                     "BACKING_RECOVERY blocked native=%dx%d retained=%dx%d backing=%dx%d failures=%d set=%d sync=%d\n",
+                     nativeWidth, nativeHeight, first->GetWide(), first->GetTall(), backingWidth, backingHeight,
+                     failures(), observer.count(false), observer.count(true));
+        Require(failures() > 0 && backingWidth == InitialWidth && backingHeight == InitialHeight,
+                "complete batch preserves the old backing while its replacement allocation fails");
+        Require(observer.count(false) == 1 && observer.count(true) == 1,
+                "logical resize submits and completes only once while backing is unavailable");
+        Require(!SDL_HasEvent(SDL_EVENT_WINDOW_RESIZED) && !SDL_HasEvent(SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED),
+                "resize batch is exhausted before allocations recover");
+        blockBacking(false);
+        // No injected geometry event, new size request, RecreateContext or manual ApplyChanges.
+        gui->RunFrame();
+        readBacking(backingWidth, backingHeight);
+        std::fprintf(stderr, "BACKING_RECOVERY ordinary-frame backing=%dx%d desired=%dx%d set=%d sync=%d\n",
+                     backingWidth, backingHeight, RequestedWidth, RequestedHeight,
+                     observer.count(false), observer.count(true));
+        Require(observer.count(false) == 1 && observer.count(true) == 1,
+                "backing-only recovery cannot repeat the terminal native request or completion");
+        Require(backingWidth == RequestedWidth && backingHeight == RequestedHeight,
+                "ordinary unchanged frame repairs pending backing allocation after resources recover");
+        RequireGeometry(first, firstWindow, RequestedWidth, RequestedHeight);
+        observer.observe(nullptr, 0, 0, 0, nullptr);
+    } else if (scenario == "resize_boundary_outcomes") {
+        ResizeObserver observer;
+        constexpr int RejectRequest = 1;
+        constexpr int TimeoutCompletion = 2;
+        constexpr int ClampAtCompletion = 3;
+        constexpr int FullscreenPolicy = 4;
+        constexpr int StabilityFrames = 3;
+        for (int mode : {RejectRequest, TimeoutCompletion, ClampAtCompletion, FullscreenPolicy}) {
+            observer.observe(nullptr, 0, 0, 0, nullptr);
+            first->SetSize(320, 200);
+            gui->RunFrame();
+            observer.observe(firstWindow, mode, 370, 230, nullptr);
+            first->SetSize(450, 310);
+            gui->RunFrame();
+            const int acceptedWidth = mode == ClampAtCompletion ? 370 : 320;
+            const int acceptedHeight = mode == ClampAtCompletion ? 230 : 200;
+            RequireGeometry(first, firstWindow, acceptedWidth, acceptedHeight);
+            const int requests = mode == FullscreenPolicy ? 0 : 1;
+            const int completions = mode == RejectRequest || mode == FullscreenPolicy ? 0 : 1;
+            Require(observer.count(false) == requests && observer.count(true) == completions,
+                    "request rejection, finite timeout and delayed clamp each terminate once");
+            for (int frame = 0; frame < StabilityFrames; ++frame) {
+                gui->RunFrame();
+            }
+            Require(observer.count(false) == requests && observer.count(true) == completions,
+                    "rejected or clamped fallback does not resubmit the old request");
+            observer.observe(nullptr, 0, 0, 0, nullptr);
+            Require(SDL_SetWindowSize(firstWindow, 380, 250), "external resize after terminal request outcome");
+            gui->RunFrame();
+            RequireGeometry(first, firstWindow, 380, 250);
+            observer.observe(firstWindow, 0, 0, 0, nullptr);
+            first->SetSize(450, 310);
+            gui->RunFrame();
+            RequireGeometry(first, firstWindow, 450, 310);
+            Require(observer.count(false) == 1 && observer.count(true) == 1,
+                    "same requested dimensions explicitly requested again form a new intent after fallback");
+        }
+        observer.observe(nullptr, 0, 0, 0, nullptr);
+    } else if (scenario == "resize_reentrant_size_callback") {
+        ResizeObserver observer;
+        for (bool nested : {false, true}) {
+            auto* callbackPanel = new ResizeCallbackPanel();
+            surface->CreatePopup(callbackPanel->GetVPanel(), false, true, false, true, true);
+            surface->SetTitle(callbackPanel->GetVPanel(), L"Reentrant size owner");
+            gui->RunFrame();
+            auto* window = FindWindow("Reentrant size owner");
+            Require(window != nullptr, "actual reentrant size callback owner");
+            int callbacks = 0;
+            callbackPanel->resizeCallback = [&] {
+                ++callbacks;
+                callbackPanel->SetSize(460, 300);
+                if (nested) {
+                    surface->RunFrame();
+                }
+            };
+            observer.observe(window, 0, 0, 0, nullptr);
+            Require(SDL_SetWindowSize(window, 350, 240), "native resize invokes real OnSizeChanged");
+            gui->RunFrame();
+            Require(callbacks == 1, "one-shot actual size callback requests newer intent");
+            RequireGeometry(callbackPanel, window, 460, 300);
+            Require(observer.count(false) == 2 && observer.count(true) == 1,
+                    "callback intent submits once after the one external resize");
+            observer.observe(nullptr, 0, 0, 0, nullptr);
+            delete callbackPanel;
+        }
+    } else if (scenario == "resize_sync_reentrancy") {
+        ResizeObserver observer;
+        constexpr int NewerIntent = 0;
+        constexpr int DeleteAndReplace = 1;
+        constexpr int ReplaceWindow = 2;
+        for (int mode : {NewerIntent, DeleteAndReplace, ReplaceWindow}) {
+            auto* target = new FixturePanel("Native completion callback");
+            surface->CreatePopup(target->GetVPanel(), false, true, false, true, true);
+            surface->SetTitle(target->GetVPanel(), L"Native completion callback");
+            gui->RunFrame();
+            auto* window = FindWindow("Native completion callback");
+            Require(window != nullptr, "real owner before controlled completion callback");
+            const auto oldHandle = gui->PanelToHandle(target->GetVPanel());
+            const SDL_WindowID oldId = SDL_GetWindowID(window);
+            int callbacks = 0;
+            resizeSyncAction = [&] {
+                ++callbacks;
+                if (mode == NewerIntent) {
+                    target->SetSize(470, 320);
+                } else if (mode == DeleteAndReplace) {
+                    delete target;
+                    target = new FixturePanel("Completion replacement");
+                    target->SetSize(370, 210);
+                    surface->CreatePopup(target->GetVPanel(), false, true, false, true, true);
+                } else {
+                    surface->ReleasePanel(target->GetVPanel());
+                    target->SetSize(370, 210);
+                    surface->CreatePopup(target->GetVPanel(), false, true, false, true, true);
+                }
+                Require(SDL_GetWindowFromID(oldId) == window,
+                        "retired native owner remains leased across the actual SDL completion call");
+                surface->SetTitle(target->GetVPanel(), L"Native completion callback");
+                surface->RunFrame();
+            };
+            observer.observe(window, 0, 0, 0, ResizeSyncCallback);
+            target->SetSize(410, 270);
+            gui->RunFrame();
+            Require(callbacks == 1, "completion boundary invokes one nested frame/callback");
+            auto* currentWindow = FindWindow("Native completion callback");
+            Require(currentWindow != nullptr, "completion callback leaves a live current owner");
+            if (mode == NewerIntent) {
+                RequireGeometry(target, currentWindow, 470, 320);
+                Require(observer.count(false) == 2 && observer.count(true) == 2,
+                        "nested in-flight frame never resubmits; newer intent completes afterward");
+            } else {
+                RequireGeometry(target, currentWindow, 370, 210);
+                Require(SDL_GetWindowID(currentWindow) != oldId, "replacement has a distinct native ID");
+                Require(SDL_GetWindowFromID(oldId) == nullptr, "retired native owner closes after completion returns");
+                Require((gui->HandleToPanel(oldHandle) != 0) == (mode == ReplaceWindow),
+                        "window generation replacement and panel retirement remain distinct");
+            }
+            observer.observe(nullptr, 0, 0, 0, nullptr);
+            delete target;
+        }
+    } else if (scenario == "resize_sync_shutdown") {
+        ResizeObserver observer;
+        const SDL_WindowID oldId = SDL_GetWindowID(firstWindow);
+        bool callbackRan = false;
+        resizeSyncAction = [&] {
+            callbackRan = true;
+            surface->Shutdown();
+            Require(SDL_WasInit(SDL_INIT_VIDEO) != 0 && SDL_GetWindowFromID(oldId) == firstWindow,
+                    "video subsystem and in-call owner survive surface shutdown until native completion returns");
+        };
+        observer.observe(firstWindow, 0, 0, 0, ResizeSyncCallback);
+        constexpr int RequestedWidth = 410;
+        constexpr int RequestedHeight = 270;
+        first->SetSize(RequestedWidth, RequestedHeight);
+        surface->RunFrame();
+        Require(callbackRan && SDL_WasInit(SDL_INIT_VIDEO) == 0,
+                "final native completion lease releases video after shutdown");
+        observer.observe(nullptr, 0, 0, 0, nullptr);
+    } else if (scenario == "resize_old_id_and_pending_move") {
+        ResizeObserver observer;
+        constexpr int MovedX = 75;
+        constexpr int MovedY = 85;
+        Require(SDL_SetWindowPosition(firstWindow, MovedX, MovedY), "pending genuine native move");
+        first->SetSize(410, 260);
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_MOVED);
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_RESIZED);
+        gui->RunFrame();
+        int nativeX = 0;
+        int nativeY = 0;
+        SDL_GetWindowPosition(firstWindow, &nativeX, &nativeY);
+        int retainedX = 0;
+        int retainedY = 0;
+        first->GetPos(retainedX, retainedY);
+        Require(nativeX == MovedX && nativeY == MovedY && retainedX == MovedX && retainedY == MovedY,
+                "new size intent preserves pending native move");
+        RequireGeometry(first, firstWindow, 410, 260);
+        RequireGeometry(second, secondWindow, 320, 200);
+        const auto retired = gui->PanelToHandle(first->GetVPanel());
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_RESIZED);
+        QueueWindowEvent(firstWindow, SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED);
+        delete first;
+        first = new FixturePanel("Resize ID replacement");
+        first->SetSize(390, 230);
+        surface->CreatePopup(first->GetVPanel(), false, true, false, true, true);
+        surface->SetTitle(first->GetVPanel(), L"Resize ID replacement");
+        gui->RunFrame();
+        firstWindow = FindWindow("Resize ID replacement");
+        Require(firstWindow && !gui->HandleToPanel(retired), "old serial handle is retired before old events route");
+        RequireGeometry(first, firstWindow, 390, 230);
+        RequireGeometry(second, secondWindow, 320, 200);
+    } else if (scenario == "mid_batch_resize_intent" || scenario == "mid_batch_resize_intent_alternate") {
+        constexpr int BrowserWidth = 572;
+        constexpr int BrowserInitialHeight = 205;
+        constexpr int BrowserExpandedHeight = 471;
+        constexpr int AlternateWidth = 438;
+        constexpr int AlternateInitialHeight = 173;
+        constexpr int AlternateExpandedHeight = 389;
+        const bool alternate = scenario == "mid_batch_resize_intent_alternate";
+        const int wide = alternate ? AlternateWidth : BrowserWidth;
+        const int initialTall = alternate ? AlternateInitialHeight : BrowserInitialHeight;
+        const int requestedTall = alternate ? AlternateExpandedHeight : BrowserExpandedHeight;
+        auto* frame = new MidBatchResizeFrame(wide, initialTall, requestedTall);
+        gui->RunFrame();
+        SDL_Window* window = FindWindow("Mid-batch resize");
+        Require(window != nullptr, "actual retained Frame owns a native window");
+        frame->nativeWindow = window;
+        int nativeWide = 0;
+        int nativeTall = 0;
+        Require(SDL_GetWindowSize(window, &nativeWide, &nativeTall), "sample initial native size");
+        Require(frame->GetWide() == wide && frame->GetTall() == initialTall &&
+                    nativeWide == wide && nativeTall == initialTall,
+                "retained and live native initial size have settled before ordering test");
+        frame->armed = true;
+        const SDL_WindowID windowId = SDL_GetWindowID(window);
+        gui->PostMessage(frame->GetVPanel(), new KeyValues("Command", "command", "ExpandDuringNativeBatch"), 0, 0.0f);
+        SDL_Event harmless{};
+        harmless.type = SDL_EVENT_WINDOW_EXPOSED;
+        harmless.window.windowID = windowId;
+        harmless.common.timestamp = SDL_GetTicksNS();
+        Require(SDL_PushEvent(&harmless), "queue harmless routed native event before resize");
+        SDL_Event stale{};
+        stale.type = SDL_EVENT_WINDOW_RESIZED;
+        stale.window.windowID = windowId;
+        stale.common.timestamp = SDL_GetTicksNS();
+        stale.window.data1 = wide;
+        stale.window.data2 = initialTall;
+        Require(SDL_PushEvent(&stale), "queue later old native-size notification");
+        const auto panelHandle = gui->PanelToHandle(frame->GetVPanel());
+        std::fprintf(stderr, "RESIZE_ORDER queued window=%u handle=%u events=%u,%u initial=%dx%d desired=%dx%d\n",
+                     windowId, panelHandle, harmless.type, stale.type, wide, initialTall, wide, requestedTall);
+        // The production surface owns polling and the inter-event VGUI dispatcher. No fixture pump or sync.
+        frame->inSurfaceFrame = true;
+        surface->RunFrame();
+        frame->inSurfaceFrame = false;
+        Require(SDL_GetWindowSize(window, &nativeWide, &nativeTall), "sample final live native size");
+        std::fprintf(stderr, "RESIZE_ORDER final commands=%d immediate=%d retained=%d native=%d later_callbacks=%zu\n",
+                     frame->commands, frame->immediateTall, frame->GetTall(), nativeTall, frame->laterHeights.size());
+        Require(frame->commands == 1 && frame->nativeTallAtCommand == initialTall &&
+                    frame->immediateTall == requestedTall,
+                "ordering setup: command requests new height while actual native height remains old");
+        Require(SDL_GetWindowID(window) == windowId && gui->HandleToPanel(panelHandle) == frame->GetVPanel(),
+                "resize retains the same native owner and serial panel handle");
+        Require(frame->GetTall() == requestedTall,
+                "latest retained size intent survives a later old native snapshot in the same batch");
+        Require(nativeWide == wide && nativeTall == requestedTall, "native size converges to retained command");
+        frame->armed = false;
+        delete frame;
     } else if (scenario == "popup_event_generation") {
         first->SetPos(55, 65);
         SDL_Event oldMove{};

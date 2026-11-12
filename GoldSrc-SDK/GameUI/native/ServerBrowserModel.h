@@ -14,7 +14,7 @@
 namespace cse::server_browser {
 enum class ListKind { Internet, Favorites, History, LAN, Friends, Spectate };
 enum class Requirement { Any, Yes, No };
-enum class Column { Password, Secure, Name, Game, Map, Players, Ping, Address };
+enum class Column { Password, Secure, Name, Game, Map, Players, Ping, Address, Bots, LastPlayed };
 enum class Phase { Unavailable, Idle, Refreshing, Complete, Stopped, Failed, Closing, Closed };
 
 // All fields are host order: 127.0.0.1 == 0x7f000001. Never conflate the two ports.
@@ -46,6 +46,7 @@ struct Filters {
     Requirement secure = Requirement::Any;
     int maxPing = 0;
     int region = -1;
+    bool validSteamAccount = false;
 };
 struct Sort {
     Column column = Column::Name;
@@ -67,7 +68,11 @@ struct Row {
     bool secure = false;
     bool responded = false;
     bool failed = false;
+    uint32_t lastPlayed = 0;
+    bool hasSteamAccount = false;
 };
+Row CopyServerRow(const gameserveritem_t &item);
+
 struct RowUpdate {
     Row row;
     bool visible = false;
@@ -155,6 +160,7 @@ public:
     Status GetStatus() const;
     bool AddFavorite(AppId_t app, Address address);
     bool RemoveFavorite(AppId_t app, RowKey key);
+    bool RemoveHistory(AppId_t app, RowKey key);
     // Caller must have observed an accepted connection, never just a connect attempt.
     bool RecordAcceptedConnection(AppId_t app, Address address, uint32_t unixTime);
     // BeginClose/IsQuiescent report callback/provider safety, not retained data storage destruction.

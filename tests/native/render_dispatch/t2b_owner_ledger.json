@@ -1,0 +1,3663 @@
+{
+  "scope": "T2b five-owner preprocessor-union lexical ledger; not runtime reachability",
+  "contract_sha256": "562a4fb24e7b743645a4a397a0ab23e94bd183ea5986f3c983c6a9788bf864ae",
+  "root_ruling": "R1 includes the three state entries and raw Enable/Disable/Fogi",
+  "owners": [
+    {
+      "path": "GoldSrc-SDK/engine/gl_draw.cpp",
+      "base_sha256": "f9bc02979bd839c86d5cf32ecc613e1ae2ddce7903dfd7450ac494651f538194",
+      "calls": [
+        {
+          "symbol": "qglSelectTextureSGIS",
+          "line": 121,
+          "source": "qglSelectTextureSGIS( target );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColorTableEXT",
+          "line": 138,
+          "source": "qglColorTableEXT(",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 152,
+          "source": "qglBindTexture( GL_TEXTURE_2D, texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 403,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, scaled_width, scaled_height, 0, GL_COLOR_INDEX,",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 405,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 406,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 407,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 629,
+          "source": "qglTexImage2D(",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 649,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, internalformat, scaled_width, scaled_height, 0, format, GL_UNSIGNED_BYTE, scaled );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 667,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, miplevel, internalformat, scaled_width, scaled_height, 0, format,",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 673,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)( mipmap ? gl_filter_min : filter ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 674,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)( mipmap ? gl_filter_max : filter ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 675,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 836,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)gl_filter_min );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 837,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)gl_filter_max );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 838,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglDeleteTextures",
+          "line": 875,
+          "source": "qglDeleteTextures( 1, (const GLuint*)&glt->texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglGenTextures",
+          "line": 894,
+          "source": "qglGenTextures( 1, &texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglScissor",
+          "line": 977,
+          "source": "qglScissor( scissor_x, scissor_y, scissor_width, scissor_height );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_scope_ruling_state"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 978,
+          "source": "qglEnable( GL_SCISSOR_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 984,
+          "source": "qglDepthMask( GL_FALSE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 988,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 990,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 991,
+          "source": "qglTexCoord2f( fLeft, fTop );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 992,
+          "source": "qglVertex2f( x, y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 993,
+          "source": "qglTexCoord2f( fRight, fTop );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 994,
+          "source": "qglVertex2f( (float)iWidth + x, y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 995,
+          "source": "qglTexCoord2f( fRight, fBottom );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 996,
+          "source": "qglVertex2f( (float)iWidth + x, (float)iHeight + y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 997,
+          "source": "qglTexCoord2f( fLeft, fBottom );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 998,
+          "source": "qglVertex2f( x, (float)iHeight + y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 999,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 1001,
+          "source": "qglDepthMask( GL_TRUE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1002,
+          "source": "qglDisable( GL_SCISSOR_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1012,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1016,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1017,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1022,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1023,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1028,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1029,
+          "source": "qglBlendFunc( GL_ONE, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1033,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1045,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1046,
+          "source": "qglBlendFunc( src, dest );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1050,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1096,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1107,
+          "source": "qglEnable( GL_SHARED_TEXTURE_PALETTE_EXT );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1290,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1291,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1292,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1293,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1295,
+          "source": "qglColor4f( (float)( r / 255.0 ), (float)( g / 255.0 ), (float)( b / 255.0 ), (float)( a / 255.0 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1297,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1298,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1299,
+          "source": "qglVertex2f( (float)( x + w ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1300,
+          "source": "qglVertex2f( (float)( x + w ), (float)( y + h ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1301,
+          "source": "qglVertex2f( (float)x, (float)( y + h ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1302,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1304,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1305,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1306,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1313,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1314,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1315,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1316,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1318,
+          "source": "qglColor4f( (float)( r / 255.0 ), (float)( g / 255.0 ), (float)( b / 255.0 ), (float)( a / 255.0 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1320,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1321,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1322,
+          "source": "qglVertex2f( (float)( x + w ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1323,
+          "source": "qglVertex2f( (float)( x + w ), (float)( y + h ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1324,
+          "source": "qglVertex2f( (float)x, (float)( y + h ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1325,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1327,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1328,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1329,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1422,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1423,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1424,
+          "source": "qglDisable( GL_DEPTH_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1425,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1426,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1427,
+          "source": "qglColor4f( 1, 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1432,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1433,
+          "source": "qglTexCoord2f( gl->sl, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1434,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1435,
+          "source": "qglTexCoord2f( gl->sh, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1436,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1437,
+          "source": "qglTexCoord2f( gl->sh, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1438,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1439,
+          "source": "qglTexCoord2f( gl->sl, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1440,
+          "source": "qglVertex2f( (float)x, (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1441,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1456,
+          "source": "qglBlendFunc( GL_ONE, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1457,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1458,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1459,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1462,
+          "source": "qglColor4f( (float)pc->r * alpha / 256.0f, (float)pc->g * alpha / 256.0f, (float)pc->b * alpha / 256.0f, 1.0f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1472,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1473,
+          "source": "qglTexCoord2f( fLeft, fTop );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1474,
+          "source": "qglVertex2f( (float)xDest, (float)yDest );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1475,
+          "source": "qglTexCoord2f( fRight, fTop );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1476,
+          "source": "qglVertex2f( (float)( xDest + iWidth ), (float)yDest );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1477,
+          "source": "qglTexCoord2f( fRight, fBottom );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1478,
+          "source": "qglVertex2f( (float)( xDest + iWidth ), (float)( yDest + iHeight ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1479,
+          "source": "qglTexCoord2f( fLeft, fBottom );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1480,
+          "source": "qglVertex2f( (float)xDest, (float)( yDest + iHeight ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1481,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1483,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1496,
+          "source": "qglBlendFunc( GL_ONE, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1497,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1498,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1499,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1503,
+          "source": "qglColor3f( (float)pc->r * alpha / 256.0f, (float)pc->g * alpha / 256.0f, (float)pc->b * alpha / 256.0f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1505,
+          "source": "qglColor3f( alpha, alpha, alpha );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1510,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1511,
+          "source": "qglTexCoord2f( gl->sl, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1512,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1513,
+          "source": "qglTexCoord2f( gl->sh, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1514,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1515,
+          "source": "qglTexCoord2f( gl->sh, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1516,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1517,
+          "source": "qglTexCoord2f( gl->sl, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1518,
+          "source": "qglVertex2f( (float)x, (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1519,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1521,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1534,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1535,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1536,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1537,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1538,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1542,
+          "source": "qglColor4f( (float)pc->r / 255.0f, (float)pc->g / 255.0f, (float)pc->b / 255.0f, alpha );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1544,
+          "source": "qglColor4f( 1, 1, 1, alpha );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1549,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1550,
+          "source": "qglTexCoord2f( gl->sl, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1551,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1552,
+          "source": "qglTexCoord2f( gl->sh, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1553,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1554,
+          "source": "qglTexCoord2f( gl->sh, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1555,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1556,
+          "source": "qglTexCoord2f( gl->sl, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1557,
+          "source": "qglVertex2f( (float)x, (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1558,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1560,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)gl_filter_max );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1572,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1573,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1574,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1575,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1576,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)gl_filter_max );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1581,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1582,
+          "source": "qglTexCoord2f( gl->sl, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1583,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1584,
+          "source": "qglTexCoord2f( gl->sh, gl->tl );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1585,
+          "source": "qglVertex2f( (float)( x + w ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1586,
+          "source": "qglTexCoord2f( gl->sh, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1587,
+          "source": "qglVertex2f( (float)( x + w ), (float)( y + h - 1 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1588,
+          "source": "qglTexCoord2f( gl->sl, gl->th );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1589,
+          "source": "qglVertex2f( (float)x, (float)( y + h - 1 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1590,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglGenTextures",
+          "line": 1635,
+          "source": "qglGenTextures( 1, &texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 1655,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1656,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1657,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1658,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1660,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1661,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1662,
+          "source": "qglTexCoord2f( 0, 0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1663,
+          "source": "qglVertex2f( (float)x, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1664,
+          "source": "qglTexCoord2f( 1, 0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1665,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1666,
+          "source": "qglTexCoord2f( 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1667,
+          "source": "qglVertex2f( (float)( x + pic->width ), (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1668,
+          "source": "qglTexCoord2f( 0, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1669,
+          "source": "qglVertex2f( (float)x, (float)( y + pic->height ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1670,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1712,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1713,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1714,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1715,
+          "source": "qglColor4f( 0, 0, 0, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1717,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1718,
+          "source": "qglVertex2f( 0, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1719,
+          "source": "qglVertex2f( (float)glwidth, (float)y );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1720,
+          "source": "qglVertex2f( (float)glwidth, (float)lines );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1721,
+          "source": "qglVertex2f( 0, (float)lines );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1722,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1724,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1725,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1759,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1760,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1761,
+          "source": "qglColor4f( 0, 0, 0, 0.8f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1763,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1764,
+          "source": "qglVertex2f( 0, 0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1765,
+          "source": "qglVertex2f( (float)glwidth, 0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1766,
+          "source": "qglVertex2f( (float)glwidth, (float)glheight );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 1767,
+          "source": "qglVertex2f( 0, (float)glheight );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1768,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1770,
+          "source": "qglColor4f( 1, 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1771,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1772,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglGenTextures",
+          "line": 1875,
+          "source": "qglGenTextures( 1, &texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexSubImage2D",
+          "line": 1894,
+          "source": "qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, 8, 8, GL_RGB, GL_UNSIGNED_BYTE, pixels );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglGenTextures",
+          "line": 1900,
+          "source": "qglGenTextures( 1, &texnum );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 1905,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, GL_RGB, 8, 8, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 1906,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 1907,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 1908,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 1909,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1910,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        }
+      ]
+    },
+    {
+      "path": "GoldSrc-SDK/engine/gl_model.cpp",
+      "base_sha256": "ae854dff51df8407a79ef7f757e91bcfeee6bdf3331cb2b55337a943efe6093d",
+      "calls": [
+        {
+          "symbol": "glDeleteLists",
+          "line": 128,
+          "source": "glDeleteLists( dl->gl_displaylist, 1 );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "glDeleteLists",
+          "line": 2005,
+          "source": "glDeleteLists( dl->gl_displaylist, 1 );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        }
+      ]
+    },
+    {
+      "path": "GoldSrc-SDK/engine/gl_rsurf.cpp",
+      "base_sha256": "f8e5529f287afe7087015736e2c968fa4dfb565cc87cb44dc4a81aa51987a9c8",
+      "calls": [
+        {
+          "symbol": "qglGetProgramiv",
+          "line": 60,
+          "source": "qglGetProgramiv( program, GL_LINK_STATUS, &status );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetProgramiv",
+          "line": 61,
+          "source": "qglGetProgramiv( program, GL_INFO_LOG_LENGTH, &logLength );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetProgramInfoLog",
+          "line": 73,
+          "source": "qglGetProgramInfoLog( program, logLength, NULL, log );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetShaderiv",
+          "line": 87,
+          "source": "qglGetShaderiv( shader, GL_COMPILE_STATUS, &status );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetShaderiv",
+          "line": 88,
+          "source": "qglGetShaderiv( shader, GL_INFO_LOG_LENGTH, &logLength );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetShaderInfoLog",
+          "line": 100,
+          "source": "qglGetShaderInfoLog( shader, logLength, NULL, log );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglCreateShader",
+          "line": 124,
+          "source": "shader = qglCreateShader( type );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglShaderSource",
+          "line": 125,
+          "source": "qglShaderSource( shader, 2, buffer, bufferLen );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglCompileShader",
+          "line": 127,
+          "source": "qglCompileShader( shader );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 132,
+          "source": "qglDeleteShader( shader );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglCreateProgram",
+          "line": 141,
+          "source": "program = qglCreateProgram();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglAttachShader",
+          "line": 143,
+          "source": "qglAttachShader( program, pShaders[i] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglLinkProgram",
+          "line": 144,
+          "source": "qglLinkProgram( program );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteProgram",
+          "line": 149,
+          "source": "qglDeleteProgram( program );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 163,
+          "source": "qglDeleteShader( shaders[0] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 165,
+          "source": "qglDeleteShader( shaders[1] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 170,
+          "source": "qglDeleteShader( shaders[0] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 171,
+          "source": "qglDeleteShader( shaders[1] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteProgram",
+          "line": 183,
+          "source": "qglDeleteProgram( g_fsWorldProgram[i] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetUniformLocation",
+          "line": 219,
+          "source": "g_nFogEnabledUniformLocation[i] = qglGetUniformLocation( g_fsWorldProgram[i], \"fogEnabled\" );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglGetUniformLocation",
+          "line": 220,
+          "source": "g_nFogModeUniformLocation[i] = qglGetUniformLocation( g_fsWorldProgram[i], \"fogMode\" );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglUseProgram",
+          "line": 243,
+          "source": "qglUseProgram( program );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "glEnable",
+          "line": 253,
+          "source": "glEnable( GL_FOG );",
+          "kind": "raw_gl",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "glDisable",
+          "line": 255,
+          "source": "glDisable( GL_FOG );",
+          "kind": "raw_gl",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglUniform1ui",
+          "line": 267,
+          "source": "qglUniform1ui( g_nFogEnabledUniformLocation[i], bEnable );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglCreateProgram",
+          "line": 282,
+          "source": "program = qglCreateProgram();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglAttachShader",
+          "line": 283,
+          "source": "qglAttachShader( program, shader );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglLinkProgram",
+          "line": 284,
+          "source": "qglLinkProgram( program );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteProgram",
+          "line": 287,
+          "source": "qglDeleteProgram( program );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglDeleteShader",
+          "line": 291,
+          "source": "qglDeleteShader( shader );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "glFogi",
+          "line": 307,
+          "source": "glFogi( GL_FOG_MODE, mode );",
+          "kind": "raw_gl",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglUniform1ui",
+          "line": 326,
+          "source": "qglUniform1ui( g_nFogModeUniformLocation[i], shaderMode );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2d_shader_intent_deferred"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 545,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 561,
+          "source": "qglBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 564,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 565,
+          "source": "qglColor4f( 0, 0, 0, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 566,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 569,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 630,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPushMatrix",
+          "line": 666,
+          "source": "qglPushMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 718,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 719,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthFunc",
+          "line": 728,
+          "source": "qglDepthFunc( GL_EQUAL );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthFunc",
+          "line": 732,
+          "source": "qglDepthFunc( GL_LEQUAL );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthFunc",
+          "line": 734,
+          "source": "qglDepthFunc( GL_GEQUAL );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPopMatrix",
+          "line": 746,
+          "source": "qglPopMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 748,
+          "source": "qglDepthMask( GL_TRUE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 749,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglAlphaFunc",
+          "line": 750,
+          "source": "qglAlphaFunc( GL_NOTEQUAL, 0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 751,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 759,
+          "source": "qglColor4f( 1, 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 762,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvi",
+          "line": 763,
+          "source": "qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 764,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 767,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 768,
+          "source": "qglBlendFunc( GL_ONE, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 769,
+          "source": "qglColor4f( r_blend, r_blend, r_blend, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 770,
+          "source": "qglDepthMask( GL_FALSE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 771,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 774,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 775,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 776,
+          "source": "qglColor4f( 1, 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 777,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglAlphaFunc",
+          "line": 778,
+          "source": "qglAlphaFunc( GL_GREATER, gl_alphamin.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 781,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 782,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 783,
+          "source": "qglColor4f( 1, 1, 1, r_blend );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 784,
+          "source": "qglDepthMask( GL_FALSE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 785,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 893,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 897,
+          "source": "qglTexCoord2f( v[3], v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 898,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 900,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 917,
+          "source": "qglBegin( GL_TRIANGLE_FAN );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 921,
+          "source": "qglTexCoord2f( v[3], v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 926,
+          "source": "qglVertex3fv( nv );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 928,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 964,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 966,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1047,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1048,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1051,
+          "source": "qglDisable( GL_DEPTH_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1053,
+          "source": "qglBegin( GL_LINE_LOOP );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1055,
+          "source": "qglVertex3fv( p->verts[i] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1056,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1058,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1061,
+          "source": "qglEnable( GL_DEPTH_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1090,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1091,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1094,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1096,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1135,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1138,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexSubImage2D",
+          "line": 1152,
+          "source": "qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, theRect->t, BLOCK_WIDTH, theRect->h, gl_lightmap_format,",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1160,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "glDeleteLists",
+          "line": 1178,
+          "source": "glDeleteLists( displaylist->gl_displaylist, 1 );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "glCallList",
+          "line": 1184,
+          "source": "glCallList( displaylist->gl_displaylist );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "glGenLists",
+          "line": 1190,
+          "source": "displaylist->gl_displaylist = glGenLists( 1 );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "glNewList",
+          "line": 1194,
+          "source": "glNewList( displaylist->gl_displaylist, GL_COMPILE_AND_EXECUTE );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1197,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMTexCoord2fSGIS",
+          "line": 1201,
+          "source": "qglMTexCoord2fSGIS( TEXTURE0_SGIS, v[3] + sOffset, v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMTexCoord2fSGIS",
+          "line": 1202,
+          "source": "qglMTexCoord2fSGIS( TEXTURE1_SGIS, v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1205,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1207,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "glEndList",
+          "line": 1210,
+          "source": "glEndList();",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1265,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1266,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1270,
+          "source": "qglTexCoord2f( v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1271,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1273,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1274,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1430,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1434,
+          "source": "qglTexCoord2f( v[3] + sOffset, v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1435,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1437,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1444,
+          "source": "qglColor4f( (float)( currententity->curstate.rendercolor.r / 256.0 ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1448,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1450,
+          "source": "qglVertex3fv( p->verts[i] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1451,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1456,
+          "source": "qglDisable( GL_DEPTH_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1458,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1459,
+          "source": "qglBegin( GL_LINE_LOOP );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1461,
+          "source": "qglVertex3fv( p->verts[i] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1462,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1465,
+          "source": "qglEnable( GL_DEPTH_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1480,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1491,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1503,
+          "source": "qglBegin( GL_TRIANGLE_FAN );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1507,
+          "source": "qglTexCoord2f( v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1512,
+          "source": "qglVertex3fv( nv );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1514,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1527,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 1528,
+          "source": "qglColor3f( 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1532,
+          "source": "qglTexCoord2f( v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1538,
+          "source": "qglVertex3fv( tempVert );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1540,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 1558,
+          "source": "qglDepthMask( GL_FALSE ); // don't bother writing Z",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1562,
+          "source": "qglBlendFunc( GL_ZERO, GL_ONE_MINUS_SRC_COLOR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1566,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1567,
+          "source": "qglColor4f( 0, 0, 0, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1568,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1572,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1575,
+          "source": "qglBlendFunc( GL_DST_COLOR, GL_SRC_COLOR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1576,
+          "source": "qglColor4f( 2.0f / 3.0f, 2.0f / 3.0f, 2.0f / 3.0f, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1580,
+          "source": "qglBlendFunc( GL_ZERO, GL_SRC_COLOR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 1585,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1594,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1595,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexSubImage2D",
+          "line": 1600,
+          "source": "qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, BLOCK_WIDTH, BLOCK_HEIGHT, gl_lightmap_format, GL_UNSIGNED_BYTE,",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 1616,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 1620,
+          "source": "qglTexCoord2f( v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 1621,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 1623,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 1628,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 1631,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 1635,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4f",
+          "line": 1636,
+          "source": "qglColor4f( 1, 1, 1, 1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 1639,
+          "source": "qglDepthMask( GL_TRUE ); // back to normal Z buffering",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1930,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 1931,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglPixelStorei",
+          "line": 1932,
+          "source": "qglPixelStorei( GL_UNPACK_ALIGNMENT, 4 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 1933,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, lightmap_used, BLOCK_WIDTH, BLOCK_HEIGHT, 0, gl_lightmap_format,",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 2346,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 2351,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMTexCoord2fSGIS",
+          "line": 2354,
+          "source": "qglMTexCoord2fSGIS( TEXTURE0_SGIS, v[3], v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMTexCoord2fSGIS",
+          "line": 2355,
+          "source": "qglMTexCoord2fSGIS( TEXTURE1_SGIS, v[5], v[6] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 2356,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 2358,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 2375,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 2376,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 2377,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 2378,
+          "source": "qglDepthMask( GL_FALSE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 2382,
+          "source": "qglEnable( GL_POLYGON_OFFSET_FILL );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPolygonOffset",
+          "line": 2385,
+          "source": "qglPolygonOffset( -1, -gl_polyoffset.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_scope_ruling_state"
+        },
+        {
+          "symbol": "qglPolygonOffset",
+          "line": 2387,
+          "source": "qglPolygonOffset( 1, gl_polyoffset.value );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_scope_ruling_state"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 2424,
+          "source": "qglDisable( GL_POLYGON_OFFSET_FILL );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 2426,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 2427,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDepthMask",
+          "line": 2428,
+          "source": "qglDepthMask( GL_TRUE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 3003,
+          "source": "qglColor4ub( 255, 255, 255, 255 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 3135,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 3137,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 3140,
+          "source": "qglTexCoord2f( v[3], v[4] );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex3fv",
+          "line": 3141,
+          "source": "qglVertex3fv( v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 3143,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        }
+      ]
+    },
+    {
+      "path": "GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp",
+      "base_sha256": "345fb55e4d6f00b97a7014c11c6b18c4477e1d5900a0a39d8750b2f14da1ebdb",
+      "calls": [
+        {
+          "symbol": "qglDeleteTextures",
+          "line": 211,
+          "source": "qglDeleteTextures( 1, &id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        }
+      ]
+    },
+    {
+      "path": "GoldSrc-SDK/engine/vgui_EngineSurfaceHW.cpp",
+      "base_sha256": "735932311438a74474ada32140c07327afe81932709f31033eb42c81eeac3aff",
+      "calls": [
+        {
+          "symbol": "qglDisable",
+          "line": 216,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 217,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawColor[0] ), static_cast<GLubyte>( _drawColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 219,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 220,
+          "source": "qglVertex2f( static_cast<float>( rectangle.left ), static_cast<float>( rectangle.top ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 221,
+          "source": "qglVertex2f( static_cast<float>( rectangle.right ), static_cast<float>( rectangle.top ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 222,
+          "source": "qglVertex2f( static_cast<float>( rectangle.right ), static_cast<float>( rectangle.bottom ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 223,
+          "source": "qglVertex2f( static_cast<float>( rectangle.left ), static_cast<float>( rectangle.bottom ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 224,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 225,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 233,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 234,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawColor[0] ), static_cast<GLubyte>( _drawColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 244,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 245,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 246,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 247,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 248,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawTextColor[0] ), static_cast<GLubyte>( _drawTextColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 250,
+          "source": "qglBegin( GL_LINES );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 251,
+          "source": "qglVertex2f( static_cast<float>( x0 ), static_cast<float>( y0 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 252,
+          "source": "qglVertex2f( static_cast<float>( x1 ), static_cast<float>( y1 ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 253,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 254,
+          "source": "qglColor3f( 1.0f, 1.0f, 1.0f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 255,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 256,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 261,
+          "source": "qglDisable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 262,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 263,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 264,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 265,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawTextColor[0] ), static_cast<GLubyte>( _drawTextColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 267,
+          "source": "qglBegin( GL_LINES );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 273,
+          "source": "qglVertex2f( static_cast<float>( x[index] ), static_cast<float>( y[index] ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 274,
+          "source": "qglVertex2f( static_cast<float>( nextX ), static_cast<float>( nextY ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 276,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor3f",
+          "line": 277,
+          "source": "qglColor3f( 1.0f, 1.0f, 1.0f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 278,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 279,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 287,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawColor[0] ), static_cast<GLubyte>( _drawColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 289,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 290,
+          "source": "qglBegin( GL_POLYGON );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 296,
+          "source": "qglTexCoord2f( vertex->u, vertex->v );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 297,
+          "source": "qglVertex2f( static_cast<float>( x ), static_cast<float>( y ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 299,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPushMatrix",
+          "line": 315,
+          "source": "qglPushMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMatrixMode",
+          "line": 316,
+          "source": "qglMatrixMode(GL_PROJECTION);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglLoadIdentity",
+          "line": 317,
+          "source": "qglLoadIdentity();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglOrtho",
+          "line": 318,
+          "source": "qglOrtho(0.0, static_cast<double>(width), static_cast<double>(height), 0.0, -1.0, 1.0);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMatrixMode",
+          "line": 319,
+          "source": "qglMatrixMode(GL_MODELVIEW);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPushMatrix",
+          "line": 320,
+          "source": "qglPushMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglLoadIdentity",
+          "line": 321,
+          "source": "qglLoadIdentity();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTranslatef",
+          "line": 322,
+          "source": "qglTranslatef(static_cast<float>(insets[0]), static_cast<float>(insets[1]), 0.0f);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTranslatef",
+          "line": 327,
+          "source": "qglTranslatef(static_cast<float>(absoluteX), static_cast<float>(absoluteY), 0.0f);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 335,
+          "source": "qglEnable(GL_BLEND);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 336,
+          "source": "qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMatrixMode",
+          "line": 342,
+          "source": "qglMatrixMode( GL_PROJECTION );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglMatrixMode",
+          "line": 343,
+          "source": "qglMatrixMode( GL_MODELVIEW );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPopMatrix",
+          "line": 344,
+          "source": "qglPopMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglPopMatrix",
+          "line": 345,
+          "source": "qglPopMatrix();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 347,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBegin",
+          "line": 354,
+          "source": "qglBegin( GL_QUADS );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 355,
+          "source": "qglTexCoord2f( coordinates.s0, coordinates.t0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 356,
+          "source": "qglVertex2f( static_cast<float>( rectangle.left ), static_cast<float>( rectangle.top ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 357,
+          "source": "qglTexCoord2f( coordinates.s1, coordinates.t0 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 358,
+          "source": "qglVertex2f( static_cast<float>( rectangle.right ), static_cast<float>( rectangle.top ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 359,
+          "source": "qglTexCoord2f( coordinates.s1, coordinates.t1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 360,
+          "source": "qglVertex2f( static_cast<float>( rectangle.right ), static_cast<float>( rectangle.bottom ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoord2f",
+          "line": 361,
+          "source": "qglTexCoord2f( coordinates.s0, coordinates.t1 );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglVertex2f",
+          "line": 362,
+          "source": "qglVertex2f( static_cast<float>( rectangle.left ), static_cast<float>( rectangle.bottom ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnd",
+          "line": 363,
+          "source": "qglEnd();",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 405,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 406,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 407,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 408,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 409,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawTextColor[0] ), static_cast<GLubyte>( _drawTextColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 412,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 413,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 426,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 427,
+          "source": "qglBindTexture( GL_TEXTURE_2D, texture->_id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 429,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawColor[0] ), static_cast<GLubyte>( _drawColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 444,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 445,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 446,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 447,
+          "source": "qglEnable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 448,
+          "source": "qglBindTexture( GL_TEXTURE_2D, texture->_id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 450,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawColor[0] ), static_cast<GLubyte>( _drawColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 453,
+          "source": "qglDisable( GL_ALPHA_TEST );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 454,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnableClientState",
+          "line": 461,
+          "source": "qglEnableClientState( GL_VERTEX_ARRAY );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglEnableClientState",
+          "line": 462,
+          "source": "qglEnableClientState( GL_TEXTURE_COORD_ARRAY );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 463,
+          "source": "qglEnable( GL_TEXTURE_2D );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglEnable",
+          "line": 464,
+          "source": "qglEnable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 465,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBlendFunc",
+          "line": 466,
+          "source": "qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglColor4ub",
+          "line": 467,
+          "source": "qglColor4ub( static_cast<GLubyte>( _drawTextColor[0] ), static_cast<GLubyte>( _drawTextColor[1] ),",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexCoordPointer",
+          "line": 469,
+          "source": "qglTexCoordPointer( 2, GL_FLOAT, sizeof( VertexBuffer_t ), g_VertexBuffer[0].texcoords );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglVertexPointer",
+          "line": 470,
+          "source": "qglVertexPointer( 2, GL_FLOAT, sizeof( VertexBuffer_t ), g_VertexBuffer[0].vertex );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglDrawArrays",
+          "line": 471,
+          "source": "qglDrawArrays( GL_QUADS, 0, g_iVertexBufferEntriesUsed );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglDisable",
+          "line": 472,
+          "source": "qglDisable( GL_BLEND );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 484,
+          "source": "qglBindTexture( GL_TEXTURE_2D, id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 629,
+          "source": "qglBindTexture( GL_TEXTURE_2D, id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 631,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 632,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 633,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 634,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 635,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, static_cast<GLfloat>( GL_MODULATE ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 641,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, internalFormat, uploadWide, uploadTall, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 686,
+          "source": "qglBindTexture( GL_TEXTURE_2D, id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 688,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 689,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 690,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameteri",
+          "line": 691,
+          "source": "qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexEnvf",
+          "line": 692,
+          "source": "qglTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, static_cast<GLfloat>( GL_MODULATE ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "existing_T2a_wrapper_via_qgl_or_replace_raw"
+        },
+        {
+          "symbol": "qglTexImage2D",
+          "line": 693,
+          "source": "qglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, uploadWide, uploadTall, 0, GL_BGRA, GL_UNSIGNED_BYTE, bgra );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexSubImage2D",
+          "line": 700,
+          "source": "qglTexSubImage2D( GL_TEXTURE_2D, 0, x, y, wide, tall, GL_RGBA, GL_UNSIGNED_BYTE, rgba );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 706,
+          "source": "qglBindTexture( GL_TEXTURE_2D, id );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 707,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0.0f );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 708,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLfloat>( GL_LINEAR ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 709,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLfloat>( GL_LINEAR ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 710,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<GLfloat>( GL_CLAMP_TO_EDGE ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexParameterf",
+          "line": 711,
+          "source": "qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLfloat>( GL_CLAMP_TO_EDGE ) );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglPixelStorei",
+          "line": 712,
+          "source": "qglPixelStorei( GL_UNPACK_ROW_LENGTH, texture->_wide );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglTexSubImage2D",
+          "line": 715,
+          "source": "qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, texture->_wide, tall, GL_BGRA, GL_UNSIGNED_BYTE, bgra + rowOffset );",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "glPixelStorei",
+          "line": 716,
+          "source": "glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );",
+          "kind": "raw_gl",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "SDL_GL_GetProcAddress",
+          "line": 808,
+          "source": "const auto getError = reinterpret_cast<decltype(&glGetError)>(SDL_GL_GetProcAddress(\"glGetError\"));",
+          "kind": "dynamic_loader",
+          "candidate_disposition": "T2d_diagnostic_resolver_deferred"
+        },
+        {
+          "symbol": "qglBindTexture",
+          "line": 843,
+          "source": "qglBindTexture(GL_TEXTURE_2D, 0);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        },
+        {
+          "symbol": "qglDeleteTextures",
+          "line": 848,
+          "source": "qglDeleteTextures(1, &texture);",
+          "kind": "qgl_dispatch",
+          "candidate_disposition": "T2b_texture_list_array"
+        }
+      ]
+    }
+  ]
+}

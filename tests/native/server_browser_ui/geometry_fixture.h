@@ -3,6 +3,7 @@
 #include "vgui/IPanel.h"
 #include "Panel.h"
 #include <cstring>
+#include <string>
 
 namespace geometry_fixture {
 using namespace vgui2;
@@ -26,6 +27,9 @@ inline EngineFunctions gEngfuncs;
 class BaseUISurface final : public ISurface {
 public:
     explicit BaseUISurface(ISurface *real) : real_(real) {}
+    // Passive paint observation; every character still reaches the actual surface.
+    std::wstring paintedText;
+    bool observeText = false;
     bool forceCursorWithin = false;
     bool forceWindowFocus = false;
     void InspectionRoot(VPANEL root) {

@@ -3,6 +3,7 @@
 #include <SDL3/SDL_filesystem.h>
 #include <SDL3/SDL_stdinc.h>
 
+#include <algorithm>
 #include <charconv>
 #include <cstdio>
 #include <cstdlib>
@@ -43,8 +44,10 @@ void CheckThread(std::thread::id thread) {
     }
 }
 using Fields = std::map<std::string, std::string>;
-Fields EncodeFields(const BrowserSettings& settings) {
-    return {{"kind", std::to_string(static_cast<int>(settings.kind))},
+constexpr const char *PageFilterFields[]{"app", "game", "map", "name", "nonempty", "notfull",
+    "password", "secure", "maxping", "region", "validaccount"};
+Fields EncodeFields(const BrowserSettings& settings, bool includePages = true) {
+    Fields fields = {{"kind", std::to_string(static_cast<int>(settings.kind))},
         {"app", std::to_string(settings.filters.app)}, {"game", settings.filters.gameDirectory},
         {"map", settings.filters.map}, {"name", settings.filters.name},
         {"nonempty", settings.filters.nonempty ? "1" : "0"}, {"notfull", settings.filters.notFull ? "1" : "0"},
@@ -53,7 +56,25 @@ Fields EncodeFields(const BrowserSettings& settings) {
         {"maxping", std::to_string(settings.filters.maxPing)}, {"region", std::to_string(settings.filters.region)},
         {"sort", std::to_string(static_cast<int>(settings.sort.column))},
         {"ascending", settings.sort.ascending ? "1" : "0"},
-        {"width", std::to_string(settings.width)}, {"height", std::to_string(settings.height)}};
+        {"width", std::to_string(settings.width)}, {"height", std::to_string(settings.height)},
+        {"originalui", "1"},
+        {"savedsize", settings.savedSize ? "1" : "0"},
+        {"validaccount", settings.filters.validSteamAccount ? "1" : "0"}};
+    if (includePages) {
+        for (size_t index = 0; index < settings.pages.size(); ++index) {
+            BrowserSettings page;
+            page.filters = settings.pages[index].filters;
+            page.filtersExpanded = settings.pages[index].filtersExpanded;
+            const std::string prefix = "page" + std::to_string(index) + ".";
+            const auto pageFields = EncodeFields(page, false);
+            for (const char *key : PageFilterFields) {
+                fields[prefix + key] = pageFields.at(key);
+            }
+            fields[prefix + "initialized"] = settings.pages[index].initialized ? "1" : "0";
+            fields[prefix + "hidden"] = std::to_string(settings.pages[index].hiddenColumns);
+        }
+    }
+    return fields;
 }
 std::string Escape(std::string_view value) {
     constexpr char Hex[] = "0123456789ABCDEF";
@@ -110,7 +131,7 @@ template<class Integer> bool Number(const std::string& text, Integer& value, Int
     const auto parsed = std::from_chars(text.data(), text.data() + text.size(), value);
     return parsed.ec == std::errc{} && parsed.ptr == text.data() + text.size() && value >= minimum && value <= maximum;
 }
-bool DecodeFields(const Fields& fields, BrowserSettings& settings) {
+bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includePages = true) {
     // Known strings share Unescape's NUL-free domain on both Load and Save.
     // Unknown raw fields remain opaque and are preserved separately.
     for (const char* key : {"game", "map", "name"}) {
@@ -125,14 +146,18 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings) {
     int ascending = 0;
     int nonempty = 0;
     int notFull = 0;
+    int savedSize = 0;
+    int validAccount = 0;
     constexpr int MaximumPing = 1000000;
     constexpr AppId_t MaximumApp = UINT32_MAX;
     if (!Number(fields.at("kind"), kind, 0, static_cast<int>(ListKind::Spectate)) ||
         !Number(fields.at("password"), password, 0, static_cast<int>(Requirement::No)) ||
         !Number(fields.at("secure"), secure, 0, static_cast<int>(Requirement::No)) ||
-        !Number(fields.at("sort"), column, 0, static_cast<int>(Column::Address)) ||
+        !Number(fields.at("sort"), column, 0, static_cast<int>(Column::LastPlayed)) ||
         !Number(fields.at("ascending"), ascending, 0, 1) || !Number(fields.at("nonempty"), nonempty, 0, 1) ||
         !Number(fields.at("notfull"), notFull, 0, 1) ||
+        !Number(fields.at("savedsize"), savedSize, 0, 1) ||
+        !Number(fields.at("validaccount"), validAccount, 0, 1) ||
         !Number(fields.at("app"), settings.filters.app, AppId_t{0}, MaximumApp) ||
         !Number(fields.at("width"), settings.width, MinimumDimension, MaximumDimension) ||
         !Number(fields.at("height"), settings.height, MinimumDimension, MaximumDimension) ||
@@ -149,6 +174,28 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings) {
     settings.filters.gameDirectory = fields.at("game");
     settings.filters.map = fields.at("map");
     settings.filters.name = fields.at("name");
+    settings.savedSize = savedSize != 0;
+    settings.filters.validSteamAccount = validAccount != 0;
+    if (includePages) {
+        for (size_t index = 0; index < settings.pages.size(); ++index) {
+            BrowserSettings page;
+            auto pageFields = EncodeFields(page, false);
+            const std::string prefix = "page" + std::to_string(index) + ".";
+            for (const char *key : PageFilterFields) {
+                pageFields[key] = fields.at(prefix + key);
+            }
+            int initialized = 0;
+            constexpr uint32_t AllColumnBits = (1U << 10) - 1;
+            if (!DecodeFields(pageFields, page, false) ||
+                !Number(fields.at(prefix + "initialized"), initialized, 0, 1) ||
+                !Number(fields.at(prefix + "hidden"), settings.pages[index].hiddenColumns, 0U, AllColumnBits)) {
+                return false;
+            }
+            settings.pages[index].filters = page.filters;
+            settings.pages[index].filtersExpanded = page.filtersExpanded;
+            settings.pages[index].initialized = initialized != 0;
+        }
+    }
     return true;
 }
 }
@@ -202,6 +249,30 @@ bool ServerBrowserConfig::Load() {
     if (!DecodeFields(fields, settings)) {
         state.status.error = "Invalid browser setting value";
         return false;
+    }
+    // Retire constraints the original controls cannot represent. Existing numeric tab IDs stay unchanged.
+    const auto migrate = [](Filters &filters) {
+        filters.name.clear();
+        filters.region = NoRegion;
+        if (filters.password == Requirement::Yes) {
+            filters.password = Requirement::Any;
+        }
+        if (std::find(BrowserPingLimits.begin(), BrowserPingLimits.end(), filters.maxPing) == BrowserPingLimits.end()) {
+            filters.maxPing = 0;
+        }
+    };
+    migrate(settings.filters);
+    for (auto &page : settings.pages) {
+        migrate(page.filters);
+    }
+    if (!knownSeen.count("originalui")) {
+        // The previous custom default was 640x480, not a user-chosen original-browser rectangle.
+        settings.savedSize = knownSeen.count("width") && knownSeen.count("height") &&
+            (settings.width != 640 || settings.height != 480);
+        if (!settings.savedSize) {
+            settings.width = 640;
+            settings.height = 384;
+        }
     }
     state.settings = std::move(settings);
     state.unknown = std::move(unknown);

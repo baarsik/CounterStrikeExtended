@@ -177,6 +177,7 @@ private:
         HPanel panel = 0;
         HPanel window = 0;
         std::uint64_t generation = 0;
+        bool hasWindow = false;
     };
     CallbackOwner TrackCallback(VPANEL panel);
     VPANEL ResolveCallback(const CallbackOwner& owner);
@@ -186,12 +187,13 @@ private:
     void ContextChanged();
     void MoveCursor(int x, int y);
     void ResetMouseButtons();
+    void ReconcileSize(VPANEL panel, bool nativeEvent);
     void Event(const SDL_Event& event, StandaloneWindow& window, VPANEL panel);
     void TexturedRect(int x0, int y0, int x1, int y1, bool additive);
     void Glyph(wchar_t character, bool additive);
     bool ReadFile(const char* name, std::vector<unsigned char>& bytes);
     void Traverse(VPANEL panel, int phase, bool force);
-    std::map<HPanel, std::unique_ptr<StandaloneWindow>> windows_;
+    std::map<HPanel, std::shared_ptr<StandaloneWindow>> windows_;
     std::vector<HPanel> popups_;
     std::map<int, RasterImage> textures_;
     std::map<std::pair<HFont, wchar_t>, int> glyphs_;
@@ -279,10 +281,11 @@ StandaloneWindow* CSDLSurface::Current() {
 
 CSDLSurface::CallbackOwner CSDLSurface::TrackCallback(VPANEL panel) {
     CallbackOwner owner;
-    owner.panel = panel ? g_pIVgui->PanelToHandle(panel) : 0;
+    owner.panel = g_pIVgui->PanelToHandle(panel);
     if (auto* window = Window(panel)) {
         owner.window = window->Panel();
         owner.generation = window->Generation();
+        owner.hasWindow = true;
     }
     return owner;
 }
@@ -292,7 +295,8 @@ VPANEL CSDLSurface::ResolveCallback(const CallbackOwner& owner) {
     if (!panel) {
         return 0;
     }
-    if (owner.window) {
+    // Packed HPanel zero is valid for the first panel, not an absent-owner sentinel.
+    if (owner.hasWindow) {
         const auto found = windows_.find(owner.window);
         if (found == windows_.end() || found->second->Generation() != owner.generation ||
             Window(panel) != found->second.get()) {
@@ -789,7 +793,7 @@ void CSDLSurface::CreatePopup(VPANEL panel, bool minimized, bool taskbar, bool d
     int height = 0;
     Panel(panel)->GetPos(x, y);
     Panel(panel)->GetSize(width, height);
-    auto window = std::make_unique<StandaloneWindow>();
+    auto window = std::make_shared<StandaloneWindow>();
     if (!window->Open(handle, ++generation_, x, y, std::max(1, width), std::max(1, height), !taskbar)) {
         SDL_Log("VGUI popup creation failed: %s", SDL_GetError());
         return;
@@ -1011,27 +1015,153 @@ bool CSDLSurface::RecreateContext(VPANEL panel) {
     return window->Resize(width, height);
 }
 
+void CSDLSurface::ReconcileSize(VPANEL panel, bool nativeEvent) {
+    const auto callback = TrackCallback(panel);
+    const auto found = windows_.find(callback.window);
+    if (!callback.hasWindow || found == windows_.end() || found->second->SizeRequestInFlight()) {
+        return;
+    }
+    // SyncWindow pumps native callbacks. Retiring a panel must remove routing
+    // immediately, but SDL's in-call window data and video subsystem must survive
+    // until the native call returns. Destruction order releases the owner first.
+    struct VideoReference {
+        bool retained = false;
+        ~VideoReference() {
+            if (retained) {
+                SDL_QuitSubSystem(SDL_INIT_VIDEO);
+            }
+        }
+    } videoReference;
+    const auto nativeLease = found->second;
+    auto* window = nativeLease.get();
+    int requestedWidth = 0;
+    int requestedHeight = 0;
+    Panel(panel)->GetSize(requestedWidth, requestedHeight);
+    const bool newIntent = window->HasSizeIntent(requestedWidth, requestedHeight);
+    if (!newIntent && !nativeEvent && !window->BackingResizePending()) {
+        return;
+    }
+    videoReference.retained = SDL_InitSubSystem(SDL_INIT_VIDEO);
+    if (!videoReference.retained) {
+        return;
+    }
+    if (!newIntent && !nativeEvent) {
+        // Native geometry already settled. Retry only the independent backing
+        // allocation, using current retained dimensions; never resubmit the request.
+        if (window->Resize(requestedWidth, requestedHeight)) {
+            panel = ResolveCallback(callback);
+            if (panel) {
+                Invalidate(panel);
+            }
+        }
+        return;
+    }
+    if (newIntent) {
+        window->BeginSizeRequest(requestedWidth, requestedHeight);
+        // Standalone popups never request native fullscreen/maximize. SDL may defer
+        // a size indefinitely in those states, even when SyncWindow returns true.
+        constexpr SDL_WindowFlags UnsupportedSizeStates = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_MAXIMIZED;
+        const SDL_WindowID id = window->Id();
+        const bool supported = (SDL_GetWindowFlags(window->Window()) & UnsupportedSizeStates) == 0;
+        const bool submitted = supported && SDL_SetWindowSize(window->Window(), requestedWidth, requestedHeight);
+        panel = ResolveCallback(callback);
+        if (!panel) {
+            return;
+        }
+        window = Window(panel);
+        // SDL 3.4.20 documents this finite completion boundary; Cocoa can wait up
+        // to 2.5 seconds during a native transition. Never synchronize unchanged
+        // requests or infer completion from requested-size equality.
+        const bool synchronized = submitted && SDL_SyncWindow(window->Window());
+        panel = ResolveCallback(callback);
+        if (!panel) {
+            return;
+        }
+        window = Window(panel);
+        const bool completed = synchronized &&
+            (SDL_GetWindowFlags(window->Window()) & UnsupportedSizeStates) == 0;
+        window->EndSizeRequest(completed);
+        if (!completed) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_VIDEO,
+                        "VGUI size request rejected: window=%u requested=%dx%d supported=%d submitted=%d: %s",
+                        id, requestedWidth, requestedHeight, supported, submitted, SDL_GetError());
+        }
+        int currentWidth = 0;
+        int currentHeight = 0;
+        Panel(panel)->GetSize(currentWidth, currentHeight);
+        if (!window->MatchesSizeRequest(currentWidth, currentHeight)) {
+            // A nested frame/callback made newer intent. Leave its retained value
+            // intact; the next event or ApplyChanges will submit it independently.
+            return;
+        }
+        // Failure is terminal for this request, not an acknowledgement. Settle to
+        // live geometry, including denial/clamp, without resubmitting the fallback.
+        // A later real native resize or a new retained request remains admissible.
+    }
+    int nativeWidth = 0;
+    int nativeHeight = 0;
+    if (!SDL_GetWindowSize(window->Window(), &nativeWidth, &nativeHeight)) {
+        return;
+    }
+    int minimumWidth = 0;
+    int minimumHeight = 0;
+    Panel(panel)->GetMinimumSize(minimumWidth, minimumHeight);
+    const int acceptedWidth = std::max(nativeWidth, minimumWidth);
+    const int acceptedHeight = std::max(nativeHeight, minimumHeight);
+    // VPanel clamps to its own minimum before the callback. That automatic clamp
+    // is not a new request, even when the WM imposes an incompatible smaller size.
+    window->AcceptRetainedSize(acceptedWidth, acceptedHeight);
+    Panel(panel)->SetSize(nativeWidth, nativeHeight);
+    panel = ResolveCallback(callback);
+    if (!panel) {
+        return;
+    }
+    int retainedWidth = 0;
+    int retainedHeight = 0;
+    Panel(panel)->GetSize(retainedWidth, retainedHeight);
+    if (retainedWidth != acceptedWidth || retainedHeight != acceptedHeight) {
+        // OnSizeChanged may request another size, replace the owner, or run a
+        // nested frame. Never resize the backing from the pre-callback snapshot.
+        return;
+    }
+    Window(panel)->Resize(retainedWidth, retainedHeight);
+    Invalidate(panel);
+}
+
 void CSDLSurface::ApplyChanges() {
     const auto handles = popups_;
     for (HPanel handle : handles) {
-        const VPANEL panel = g_pIVgui->HandleToPanel(handle);
-        auto found = windows_.find(handle);
-        if (!panel || found == windows_.end()) {
+        VPANEL panel = g_pIVgui->HandleToPanel(handle);
+        if (!panel || windows_.find(handle) == windows_.end()) {
             continue;
         }
-        auto& owner = *found->second;
+        const auto callback = TrackCallback(panel);
+        ReconcileSize(panel, false);
+        panel = ResolveCallback(callback);
+        if (!panel) {
+            continue;
+        }
         int x = 0;
         int y = 0;
-        int width = 0;
-        int height = 0;
         Panel(panel)->GetPos(x, y);
-        Panel(panel)->GetSize(width, height);
-        owner.SynchronizeBounds(x, y, width, height);
+        Window(panel)->SynchronizePosition(x, y);
+        panel = ResolveCallback(callback);
+        if (!panel) {
+            continue;
+        }
         SetPanelVisible(panel, Panel(panel)->IsVisible());
+        panel = ResolveCallback(callback);
+        if (!panel) {
+            continue;
+        }
+        auto* window = Window(panel);
         const auto* modal = Window(g_pInput->GetAppModalSurface());
-        const bool desiredModal = modal == &owner && SDL_GetWindowParent(owner.Window()) != nullptr;
-        if (owner.modal != desiredModal && SDL_SetWindowModal(owner.Window(), desiredModal)) {
-            owner.modal = desiredModal;
+        const bool desiredModal = modal == window && SDL_GetWindowParent(window->Window()) != nullptr;
+        if (window->modal != desiredModal && SDL_SetWindowModal(window->Window(), desiredModal)) {
+            panel = ResolveCallback(callback);
+            if (panel) {
+                Window(panel)->modal = desiredModal;
+            }
         }
     }
 }
@@ -1143,16 +1273,7 @@ void CSDLSurface::Event(const SDL_Event& event, StandaloneWindow& window, VPANEL
         return;
     }
     if (event.type == SDL_EVENT_WINDOW_RESIZED || event.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED) {
-        int width = 0;
-        int height = 0;
-        SDL_GetWindowSize(window.Window(), &width, &height);
-        Panel(panel)->SetSize(width, height);
-        panel = ResolveCallback(owner);
-        if (!panel) {
-            return;
-        }
-        Window(panel)->Resize(width, height);
-        Invalidate(panel);
+        ReconcileSize(panel, true);
         return;
     }
     if (event.type == SDL_EVENT_WINDOW_MOVED) {
@@ -1321,8 +1442,11 @@ void CSDLSurface::RunFrame() {
         return;
     }
     // Apply newly requested retained geometry before reading old creation events.
-    // StandaloneWindow only applies changed requests, preserving pending OS moves.
+    // Only changed retained requests are submitted, preserving pending OS moves.
     ApplyChanges();
+    if (!video_) {
+        return;
+    }
     SDL_Event event{};
     while (SDL_PollEvent(&event)) {
         // SDL's global modifiers already describe the end of the pumped batch.
@@ -1364,11 +1488,20 @@ void CSDLSurface::RunFrame() {
                 break;
             }
         }
+        if (!video_) {
+            cse_vgui2_input::standaloneEventSnapshot = nullptr;
+            return;
+        }
         // Controls inspect IInput state inside their queued callbacks. Dispatch
         // before the next native event can release modifiers or change focus.
         // This occurs outside the owner iteration because callbacks can delete panels.
+        // A size-completion callback may have entered a nested surface frame.
+        cse_vgui2_input::standaloneEventSnapshot = &snapshot;
         DispatchStandaloneInputMessages();
         cse_vgui2_input::standaloneEventSnapshot = nullptr;
+        if (!video_) {
+            return;
+        }
     }
     ApplyChanges();
     const auto handles = popups_;

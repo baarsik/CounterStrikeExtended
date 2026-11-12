@@ -1,336 +1,208 @@
 # Validation status
 
-No native target is fully qualified. The table records selected frozen cohorts;
-later source edits require fresh build/runtime evidence. Windows results use
-VM1, Windows 11 ARM64 running x86/x64 code under emulation. Mac fixtures run on
-Apple Silicon with a macOS 14 deployment target; this is not a macOS 14 hardware
-runtime qualification. [Remaining gates](native-migration.md#remaining-work-and-gates)
-and [reproduction tools](../tools/qualification/README.md) are separate from these results.
+**No native target is fully qualified.** Results below belong to frozen inputs;
+later source edits require fresh evidence. Windows VM1 runs Windows 11 ARM64 with
+x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
+not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
+and [reproduction](../tests/native/README.md) remain separate from build results.
 
-## Native migration cohorts
+## Evidence by boundary
 
-| Evidence | Result | Limits |
+| Boundary/cohort | Bounded result | Limit / next gate |
 | --- | --- | --- |
-| V18 Win32 / Windows x64 Release and Debug | All 19 targets build; 21 Win32 and 30 x64 PE images per configuration; output/import/export/resource checks pass | Native Debug was interrupted at the disk reserve and resumed with identical inputs. Later HL length changes have owning-file/component checks, not a new complete cohort |
-| V17 CS/HL x64 Release and Debug | Four selected gameplay/recording/full-replay cases; 651 frames and 15 pinned loaded images per case | Selected flows only; presentation, lifecycle, voice and numerical acceptance remain incomplete |
-| V17 external Win32 server, x64 Release and Debug | Steam authorization, AMXX menus/HUD/messages/cvar replies, downloads, consistency and alive movement; 124 nonempty frames and 14 pinned loaded images per case | Unchanged ReHLDS 3.15.0.896 / Metamod-R 1.3.0.149 / AMXX 1.9.0.5303. No voice/audibility or live VAC-secure-bit claim |
-| V11 data and server lifecycle | Eight selected Win32↔x64 demo replays, four HL save legs and selected reconnect/changelevel cases | Not complete entity, transition, C4 or navigation acceptance; not Mac game round trips |
-| V18 production CS camera, x64 Release and Debug | Each has 1,041 alive frames, 199 movement-command frames and 410 exact rendered angle samples. Debug adds 18 read-only state samples. Separate multiplayer case retains third-person rejection | Threaded single-player camera only; no internal query/warp-order, atomic snapshot, other-mode or Mac camera claim |
-| SDL_GPU renderer components | Three selected Windows D3D12 profiles and first native Metal profile match 12,288 GL RGB bytes each; R/D and Mac instrumented CPU variants checked | Only readback row order normalized. Production backend is unselected; other branches, precision formats and scene coverage remain open |
-| Mac ARM64 client, 2026-11-09 Release/Debug | Fresh `cse_client` builds link all 14 client responsibilities and CEF helpers; 13 actual dylibs load in separate processes, launcher architecture checked | Standalone dedicated/A3D owners remain unported. No complete game startup, embedded VGUI1 admission, scene rendering or gameplay acceptance |
-| Mac ARM64 full runtime, frozen `6f27bef`, 2026-11-11 Release/Debug | Normal `cse_runtime` builds all 19 roles; 38 ARM64-containing images per profile. Fresh Release CS map/reload/quit and HL controlled save/load quit normally on M5 Max OpenGL | Later enumeration/harness edits are separately qualified, not a new full19 cohort. Existing build warnings remain; no production Metal or full gameplay/provider acceptance |
-| Mac native A3D enumeration/selection, `9498efa` | Reviewed public copied-GUID interface; 18 final dummy cases/54 lifetimes. Four actual R/D instrumented Speakers cases/12 lifetimes verify explicit selection apart from default plus separate DMA/music PCM progress after A3D teardown | No RODE open retry, acoustic consumption, physical removal/Restore, microphone/OEM or actual-game A3D routing qualification; 16 unchanged production warnings/profile |
-| Save archive width, `25fb58a` fixtures and `6f27bef` actual HL | Actual MSVC Win32/x64 R/D: four profiles/eight in-memory cases pass. Actual Mac HL saves use canonical260 entries and restore armor 0→15→0→15 plus weapon mask; all component lengths/hashes/EOF retained | Same-build player-marker proof only. Entity-table counts differ 336→271 after load; tables include free allocation entries, so complete entity/callback parity needs its own test. No cross-platform payload exchange or campaign acceptance |
-| Mac actual-library UI, Release/Debug | Clock/arguments/date/disk, VGUI1 CP1252 and VGUI2 UTF16 clipboard reads, key translation, native font raster, inset borders, shared popup bitmaps and SDL video lease teardown pass | SDL dummy video/software renderer; physical input, General pasteboard publication and default font/layout parity are unqualified |
-| Mac ARM64 user gameplay, 2026-11-10 Release | Half-Life launches into a rendered map and the user reports flawless mouse behavior. Counter-Strike runs a local match; the user confirms smooth fast turns, wheel bhops and menu transitions with no pointer, plus fullscreen retention from 1080p to 1440p | Selected hardware-renderer flows and normal user input settings only. Other raw/grab, software-renderer and focus/resize cases remain unqualified. The short recorded trace validates the recorder and typed engine channels, not physical mouse performance |
-| Windows regression for Mac client changes | Ten current owning C++ files compile on VM1 in Win32/x64 Release/Debug; COFF checks retain the C++ vector-origin owners | Owning-file checks reuse the V18 compiler/dependency policies; not a fresh complete Windows link/runtime cohort |
-| Build-tool/component checks | 106 build-tool tests and 19-project translator check pass; selected component matrices include R/D, high addresses and sanitizers | Individual fixtures define their covered inputs; they do not establish complete game or provider acceptance |
+| Windows V18 Win32/x64 R/D | All 19 builds; architecture/import/export/resource checks. Native Debug resumed after disk reserve with identical inputs | Historical cohort; fresh combined build after later edits |
+| Windows V17 x64 CS/HL R/D | Four recording/full-replay cases, 651 frames and 15 loaded-image pins each | Selected flows; complete lifecycle/presentation/voice/numerics open |
+| Windows V17 external server R/D | Authorization, AMXX menus/HUD/messages/cvars, downloads, consistency and alive movement | Unchanged ReHLDS 3.15.0.896/Metamod-R 1.3.0.149/AMXX 1.9.0.5303; no voice/audibility or live VAC-secure-bit claim |
+| Windows V11 data/lifecycle | Eight Win32↔x64 demo legs, four HL save legs, selected reconnect/changelevel | Full entities/transitions/C4/navigation and Mac exchange open |
+| Windows V18 camera R/D | 1041 alive frames, 199 movement-command frames, 410 exact angle samples each; Debug 18 state samples; multiplayer third-person rejection | Threaded single-player camera scope only |
+| Mac `6f27bef` full 19 R/D | Normal `cse_runtime`, 38 images containing ARM64 per profile; selected CS map/reload/quit and controlled HL archive marker on M5 Max OpenGL | Historical runtime checks; current combined builds recorded separately |
+| Native A3D `9498efa` R/D | Reviewed enumeration/selection; 18 dummy cases/54 lifetimes; four real Speakers cases/12 lifetimes, separate default-selection and DMA/music coexistence | PCM submission is not acoustics, RODE startup repair, physical removal, OEM or actual-game routing |
+| Save archive `25fb58a` + `6f27bef` HL | MSVC Win32/x64 R/D: eight in-memory cases; actual 260-byte entries and armor 0→15→0→15 plus weapon-mask restore | Same-build player marker only; entity-table counts 336→271 do not prove entity/callback parity; no cross-platform/campaign acceptance |
+| Mac actual-library UI R/D | Selected clock/args/date/disk, clipboard reads, keys, fonts/borders/popup bitmaps and lease teardown | Dummy video/software renderer; physical input/pasteboard publication/default layout open |
+| Mac historical user checks, November 10 | Mouse/fast turns/wheel bhops, no pointer, CS 1080→1440 fullscreen, timer colon/effects; HL music focus/resume and repaired Unforeseen Consequences observed | Original cohorts only; no acceptance transfer to new combined images |
+| Input/capture/notify repairs | Reviewed source and owning R/D/Windows/component checks; observed gameplay/UI shortcut ownership, native capture overlay release/reacquire, bounded 1440p notify rendering | Physical region drag remains unqualified; no broad input/HUD/performance claim |
+| Private SDL_GPU components | Three selected D3D12 profiles and one Metal profile match 12,288 frozen GL RGB bytes; only row order normalized | Offscreen/private profiles; production backend unselected; other features/driver reference failures retained |
+| Legacy dispatch T2a `cd36b23` | Windows x64 D/R 62 and Mac ARM64 D/R/sanitizer 93 cases; six-TU M5 Max GL2.1 comparison matches exact RGBA/state/query outputs, zero errors and traces across 45 entries, including forwarding after deferred-clear/vertex-limit refusal | Restricted gl_rmain/r_triangle/glHud profile; CaptureOnly stays fixture-only; full producers/startup, deferred capture, T3 barriers and game acceptance open |
+| Standalone VGUI resize `cce153` | 56 R/D/sanitizer component cases, original no-drain Add Server/eight ready-window dummy cases and four controlled Cocoa window-API cases pass; Add Server 471 height / 14 query ports retained | Software-widget/window-API evidence only; live Steam, pixels/visuals, physical input, game/GPU/audio and full migration open |
+| Extended capture T2b17 | Frozen Windows 90 and Mac 135 D/R/sanitizer cases pass; six real-GL M5 Max cases match pixels/state/errors/arguments; scoped result review `0f40cbfc` PASS | Palette unavailable explicitly unqualified; no production Metal/D3D12 or complete-game claim |
+| Combined Mac all19-002 | Both actual `cse_runtime` Release/Debug commands exit 0; 19 roles, 307 files, five links and 38 images containing ARM64 per profile; independent specification/quality review PASS | Incremental build/image inventories only; no game execution, complete ABI/provider qualification or native acceptance |
+| Original browser Tasks1/2 | Reviewed original-resource/model/secondary source and CPU/dummy-widget cases; frozen Mac Debug GameUI 139 TUs plus 62 CPU checks / 154 recorded commands pass, independently reviewed `a88d895a` | Source/component evidence; Windows fix7 owning/CPU slice recorded separately |
+| Windows browser fix7 | Final actual PASS: x64 Debug/Release 137 owning GameUI TUs and 62 ordinary cases each; x86 Debug/Release 130 TUs and 53 cases each; 230 total, 72 commands exit 0; independent specification/evidence-quality review PASS within scope | Build/link/CPU only; archived 229-case progress is interim, final external receipt is authoritative; no visual/provider/gameplay or full Task3 acceptance |
+| Final GameInfo player-generation repair, November 12 | Mac Release/Debug: changed owning GameUI TU rebuilt and full module linked with 138 unchanged reviewed owner objects per profile; 20 actual-dialog dummy cases across ordinary and ASan/UBSan R/D, plus 14 focused details-owner controls pass | Focused build/component evidence on the repaired sources; dependency images remain uninstrumented, Windows was not rerun, and Task 3/runtime acceptance remains incomplete |
+| Windows browser failed fix5/fix6 | fix5 stopped at x86 SDL configure after 124 x64 CPU passes; fix6 retained the x86 signed/unsigned rank-fixture compile failure | Immutable failed packets remain historical; fix7 does not rewrite them |
+| Original browser actual 012 | Actual native frame/all 6 tabs and selected History/Spectate rows; scoped lifecycle/protection evidence reviewed | Original quality FAIL and parked prose-hash finding remain; no expanded interaction or full-fidelity qualification |
+| Original browser actual 021 | Partial Internet-open observation accepted; original120 tab-observation phase expired; recorded retirement/app/config/CF3/audio/TIS restoration reviewed | Runtime remains failed/unaccepted; no all-tabs or interaction qualification; later CS026/HL027 remain separate failed cases |
+| Original browser CS026 | FAIL/unqualified: submitted open record omitted required `browser_visible:true`; partial actual Servers/Internet-opening evidence and bounded closure reviewed | No repaired field or accepted open/tabs/filters/quit coverage; CmdQ cleanup is not typed-quit protocol; opaque Steam drift remains |
+| Original browser HL027 | Consumed/unqualified: specification/procedure FAIL; accepted open and Internet rows only; independent closure-audit quality PASS within restoration/opaque-Steam-drift limits | First click already showed ambiguity; later second click and held Ctrl+Tab violated stop rule; wrong stage-path-string hash stop was correctly refused; no tabs/filter/query/list/resize/focus/secondary/close-reopen/typed-quit or full-browser qualification |
+| Original browser CS031 | Full-browser specification FAIL / strict procedure FAIL; independently reviewed narrow functional PARTIAL PASS with documented held-shortcut discriminator deviation: five groups, 32 ordinary actions/32 images through open/tabs/filters/query/list; bounded evidence/closure quality PASS with opaque Steam drift | Six tabs, Map d+Backspace, one checkbox on/off, expand/collapse, Refresh/Stop and Internet/History list only; latency/security choices/authentication inconclusive; edge drag selected a row, then correct-hash stop/safe CmdQ; no resize/focus/secondary/context/close-reopen/typed-quit or full Task3/runtime qualification |
+| HL fresh 017–020 | 017 paste field stayed empty/no Return; 019 operator120 timeout; actual020 failed with missing map-Return protocol receipt despite Root-reported Return/world; retirement/restoration reviewed | No own-save/death/reload acceptance; preserve original failed receipts |
+| HL actual023 | Original signon-display/helper-retirement gates failed; later Root quiescence and app recovery reviewed | Original retirement flag remains false; raw after display unbound; no runtime/save/death acceptance |
+| HL actual024 | Echo/map Return and first-world observations recorded; initial-status console phase expired at original120; retirement/app/CF3/audio/TIS/display restoration reviewed | Runtime remains failed; no save/death/reload or accepted quit; retained sample text does not prove sample exit 0 |
+| HL actual025 | Consumed at prelaunch only: actual two 144-Hz displays mismatched prospective one 1080p60 display; owned controller aborted through normal cleanup; no game PID or execution | Restoration reviewed; raw prelaunch/after equality does not qualify the unbound display contract; actual028 failure is recorded separately |
+| HL actual028 | Runtime FAIL/unaccepted: genuine n28 native save and recorded kill/death/one Space named reload to c1a0/server2; duplicate/foreign quick activity and unresolved post-reload UI timeout retained; bounded closure/recovery audit PASS with external drift | No accepted final WORLD/movement/typed quit or entity/callback/campaign qualification; general outside interaction does not attribute individual inputs; later separate028/CS021 revival recovery preserves user outputs and never repairs original failed receipts |
+| HL actual029 | Narrow assisted functional PASS: genuine native n29 save, one kill/death, one Space/named reload, current-world movement/status and normal quit; independent bound-evidence/closure review and Root scope ruling | STRICT PROCEDURE FAIL: Root continued after no-focus trace/no-response instead of stopping, then used one neutral human activation click; original accepted=false unchanged; no strict unattended, full entity/callback/campaign or native-target acceptance |
 
-The frozen producing-source/package manifests, imported/loaded-image hashes,
-failed attempts and reports are retained outside the repository under:
+The accepted T2a green-2 source archive contains 5,300 files, SHA-256
+`0a008c890329a1511fd31d03f3a932b26a54056f2e3b27d8d3301521af2d2d55`.
+Each T2a profile includes 10 dispatch plus 21 retained frame/state/texture cases:
+CaptureOnly query refusal within Begin/End, unchanged outputs, sticky failure
+and Abort recovery. Production continues to select ReferenceGL. Resize probes
+retired normally and restored CF3 exactly; their software rendering remains a
+separate boundary from production OpenGL.
 
-```text
-~/.codex/artifacts/cse-native64-20261108/
-```
+Combined all19-002 binds 5,306 source files to source ZIP SHA-256
+`b2d4c60d3d7a3df88a8634623b02c7c69cf5a9a17069f49a1d94e89b9b9d064d`;
+its receipt SHA-256 is
+`ab022374eeeea32bd65fdee46ddce9bae7106ccbe885580d4171b70d78c34588`.
+The intermediate source ZIP
+`d7742ac578b02fa038a6ff26fc620b4ed55d5124e7ce4380ff7fdf45f708b811`
+changes three Windows browser fixture files. Final Windows fix7 source ZIP
+`e93a11cf75c6208cd24c84e905e5ad979c644d911c6c58805ad14e65e34dc9ba`
+contains 5,306 files and adds only the presentation rank-fixture type correction
+to that intermediate snapshot. All four deltas from all19-002 are fixture files;
+production/Mac inputs are unchanged between those build snapshots. Before the
+final player-generation repair, PUB production sources and tests except
+`tests/native/README.md` matched fix7 byte for byte. The reviewed documentation
+cleanup deleted 26 files and replaced four, reducing the manifest from 5,306 to
+5,280 members; it did not establish whole-manifest equality. The later
+player-generation source/test repair has the separate focused proof in the table
+above. Windows fix7 and all19-002 retain their historical source boundaries; no
+runtime outcome is transferred.
 
-Useful entries: `runtime-platform-v18-*`, `native-camera-production-v18-final/`,
-`hl-ui-lengths-v1/`, `render-metal-v1/`, `xcode-metal-component-v1/`, and
-`macos-runtime-build-native-audit-v19-*`. Their reports and SHA-256 indexes bind
-claims to exact inputs. A private machine path is not a substitute for rerunning
-the checked-in [fixtures](../tests/native/README.md).
+A scoped MSVC-only C6101 push/pop around `ws2tcpip.h` in
+`ServerBrowserDetails.cpp` addresses a pinned SDK 10.0.26100.0 unused-inline
+analysis diagnostic. Final fix7 actual commands preserve owning per-source
+policies, /W4 /WX, CRT and /analyze bounds; its independent review passes the
+four owning builds and 230 ordinary CPU cases. Final external receipt SHA-256
+`57815c0d6f2b0c43d7fafd090bc19626dcb4cd4c40d93a478efa649e59b32935`
+binds immutable result ZIP
+`0a5889851695e03dc48a6eacce3dc6808445166602d321f00fac0796a37d868d`.
+The archived progress snapshot remains interim FAILED/229 cases/three completed
+profiles; the final receipt records all four profiles and 230 passes. Do not
+rewrite that interim snapshot or infer visual/provider/game acceptance.
+Preserve failed fix5 archive
+`0edd92bd24aeda872185bdbfb35bd5e417680ea46e3b197e3f18eb71b8170b43`
+and the separate fix6 failure. Actual029 adds only the separately reviewed assisted
+functional sequence; strict activation-guide compliance remains FAIL. Root continued
+after inactive/no-response evidence, then requested one neutral human activation
+click; later commands stayed under original clocks and ownership checks. This is
+not human gameplay acceptance or retrospective permission to waive the guide.
+CS026 remains failed for missing `browser_visible:true`. HL027 now has final
+specification/procedure FAIL and bounded closure-audit quality PASS; its first
+ambiguous click was already a stop condition, before the second click/Ctrl+Tab.
+CS031 final independent review records full-browser specification FAIL and strict
+procedure FAIL: the prospective Root discriminator ruling did not satisfy the
+original stop-on-ambiguity guide. Five groups/32 actions/32 images support narrow
+functional PARTIAL PASS with that deviation; only one checkbox was toggled.
+Default-duration tab input did not switch tabs; held0.2-second Ctrl+bracket input
+did, without proving the initial no-response cause. Latency/security dropdowns
+and authentication remain inconclusive. Edge drag selected a row rather than
+resizing; Root correctly stopped and used safe CmdQ, not typed quit. Bounded
+closure/evidence quality PASS includes opaque Steam drift; pointer/resize/focus,
+secondary/context/close-reopen/typed-quit and full Task3/runtime remain unqualified.
+Full runtime/Task3/campaign qualification remains pending; failed028 and assisted029
+retain distinct results and procedural/protection limits.
 
-The 2026-11-10 Mac gameplay records are in
-`build/macos-runtime-bringup-20261109/`: `mouse-timing109-smoke4.json`,
-`gameplay-cs110-baseline.json` and their completion receipts. The candidate uses
-the reviewed mouse changes and genuine-main executable identity fixes; its
-coherent engine/launcher overrides and retained image hashes are recorded in
-`mouse-timing109-bootstrap-r1-stage.json`. This does not promote all 19 runtime
-responsibilities or qualify a distribution package.
+## Open runtime gates
 
-Open runtime findings include fullscreen macOS region-screenshot mouse capture, native Find Servers Windows/live-connection/input qualification,
-intermittent CoreAudio playback startup blocking, Counter-Strike music-cohort acceptance, and the reported Half-Life campaign,
-save/load and Leave Game failures. Microphone consent blocking initial loading is an
-[explicitly deferred issue](native-migration.md#deferred-microphone-consent-blocks-initial-loading).
+**INCOMPLETE / UNQUALIFIED; deferred for publication only by explicit user
+instruction:** “Ignore those validations, mark them incomplete and proceed as is.
+After you commit and push, let me know what I need to test manually and give me a
+link to the app”. This removes the missing runtime validations as publication
+prerequisites; it does not complete Task 3, repair failed receipts, transfer
+acceptance, or qualify the full native migration. The publication handoff must
+include the remaining manual checks and a link to the delivered app candidate.
 
-A later frozen notify-f0 Half-Life check loaded the protected c1a0c autosave,
-accepted movement, returned through actual Leave Game, reloaded through VGUI,
-created and loaded a unique owned save, left again and quit with supervised OS
-exit0. No no-edicts/nonmember diagnostic was observed in that sequence; this
-does not close all campaign/save/Leave Game reports. All eight original saves,
-four settings files and289runtime hashes were restored/verified. A distinct
-post-exit LaunchServices instance then blocked before Host_Frame in SDL's
-CoreAudio playback startup: main waited on readiness while the AudioQueue worker
-waited in CoreAudio HAL property IPC. It required guarded forced test cleanup
-after normal quit and SIGTERM could not complete. This is not microphone consent,
-normal successful shutdown or an audio/performance acceptance. System audio
-routes, permissions and other apps were unchanged. Evidence and limits:
-`build/macos-runtime-bringup-20261109/hl109-campaign-leave-v1/report.md`.
+- Complete actual combined-cohort runtime checks. Preserve Windows fix7 as
+  four-profile owning/230-case build/CPU evidence and all19-002 as Mac incremental
+  build/image evidence; full module ABI, exports/imports/resources, generated
+  policy and provider acceptance remain separate gates.
+- Complete original-browser filters/resize/selection/context/secondary dialogs,
+  close/reopen, connection/gameplay/disconnect and external authentication.
+- Complete HL campaign/entity/callback/save/death/transition tests and bidirectional
+  native/updated-Win32 save/demo/navigation exchange. Later successful bounded
+  Leave Game/player-marker sequences do not close the broader historical reports.
+- Qualify physical mouse/fullscreen region capture, focus, text/IME/layout, normal
+  audio/capture/voice, default RODE startup, full spatial/OEM/game routing and
+  dedicated/admin/HLTV/software behavior on the combined cohort.
+- Finish production renderer work and measured presentation/pacing; keep OpenGL
+  production/default until feature, scene, lifetime and display gates pass.
+- Complete provider failure/restart, CEF helper identity/signing and writable-data
+  packaging. HTML rendering alone does not qualify every helper. Relative
+  `hl.conf`/`steam_appid.txt` and VFS config/save/download writes remain packaging
+  obligations. The historical CEF helper SIGTRAP remains unresolved.
+- Preserve the [deferred microphone-consent startup issue](native-migration.md#deferred-microphone-consent-blocks-initial-loading).
+  Playback HAL blocking and microphone consent are different findings.
 
+Historical uneven Release delivery measured 11,121 focused frames over 142 seconds,
+median 10.924 ms / p99 24.841 ms after 90-second warm-up. Lag-aligned analysis does not
+establish graphics as sole cause; intentional 100-FPS filtering (`fps_override 0`),
+outer-loop work and OS scheduling remain contributors to investigate. The old
+combined candidate that selected Apple's CPU GL renderer is a retained regression,
+not current hardware acceptance. Verify actual GPU selection on each new cohort.
 
-Subsequent silent native API probes reproduced the current RODECaster83 startup
-stall without SDL/game code: both AudioQueue worker and main-runloop-pump cases
-blocked at start, and DefaultOutput AudioUnit blocked during construction. A
-fresh per-queue Speakers73 control started/stopped/disposed with exit0; the
-global default stayed RODECaster83, whose repeat still blocked. Native samples
-converge on CoreAudio IOProc creation/stream-usage property IPC. Read-only device
-metadata returned promptly with alive1, hogPID-1,48000Hz and512frames. This narrows
-the observed playback path, not a proven driver/OS cause or product repair.
-Only owned diagnostic processes were cleaned up after bounded deadlines; no
-system route, daemon, permission or VM setting changed. Exact evidence and limits
-are in the same report/receipt.
+## Evidence locations and interpretation
 
-The timer report concerned the colon between the digits. Both timer paths now
-draw it with the legacy font used for their baseline, through the existing
-explicit-font callback. The actual-source fixture passes 44 Debug/Release and
-sanitizer case runs; native client owning compile/link checks pass. In the
-isolated CS110 colon-only test, the user confirms the corrected colon, normal
-FPS and textures in fullscreen. The same process was restarted with the test-only
-dummy-audio environment removed, and the user confirms normal game sounds again
-through the RODECaster default output. This acceptance uses the earlier reviewed
-engine/launcher tuple with the new CS client, not the later music-engine tuple.
+Exact source/tool/command/object/image manifests, original failures and reports
+are external evidence, not shipped runtime files. Preserve failed attempts and
+private data; do not overwrite a failed wrapper with a later recovery result.
 
-An earlier combined music-engine/timer-client test rendered through Apple's CPU
-OpenGL renderer with missing surfaces and approximately 4 FPS. Restoring the
-earlier engine/client tuple restored the M5 Max renderer; the user confirms the
-rendering defects disappeared. The colon-only client also runs on the M5 Max
-renderer with normal presentation. The cause of the combined candidate's
-renderer selection remains open. These tests still use the OpenGL engine;
-the production SDL_GPU Metal backend remains unselected.
+| Evidence root | Useful receipts |
+| --- | --- |
+| `~/.codex/artifacts/cse-native64-20261108/` | `runtime-platform-v18-*`, `native-camera-production-v18-final/`, `hl-ui-lengths-v1/`, `render-metal-v1/`, `xcode-metal-component-v1/`, `macos-runtime-build-native-audit-v19-*` |
+| `build/macos-runtime-bringup-20261109/` | Original gameplay/input/notify/music/multisource, browser provider/Steam snapshots, frame trace, CoreAudio/crash/packaging findings and immutable source/image packets |
+| `build/a3d-native-20261111/` | `task8-controller-audit.json` full 19 build proof |
+| `build/native-selected-device-live-v1/` | `root-live-subgate-summary.json`; output/default-separated and coexistence cases |
+| `build/native-client-6f27bef-qualification-v3/cs/` | `root-post-lifecycle-review.json`; failed stale-CF wrapper and separate `root-cf-recovery-001/receipt.json` retained |
+| `build/native-client-6f27bef-qualification-v4/hl/` | `root-save-marker-review.json`; corrected CF3/audio restore and 109.21-second normal exit |
+| `build/production-render-dispatch-2a-20261111/` | `green-2/root-actual-windows-green-gate.json`, `mac-qualification-green2/receipt.json`, `real-gl-root-output-001/receipt.json` and scoped review; GL receipt SHA-256 `6c07f9c82d3c005e38f134b5c9578e4fda5b283be61af6d9f69fdcaf5614ce04` |
+| `build/native-vgui-resize-runtime-candidate-v3/` | `root-green-gate.json`; replay and controlled Cocoa gates in sibling `native-vgui-browser-replay-v1/root-result.json` and `native-vgui-browser-cocoa-v1/root-cocoa-gate.json` |
+| `build/production-render-dispatch-2b-20261112/` | Frozen Windows/Mac/real-GL packets, failed controls and independent review |
+| `build/original-browser-task3-build-qualification-v2-mac-actual-001/` | Current frozen Mac Debug owning/component result |
+| PUB `build/final-publisher-integration-20261112/all19-002/` | Actual `receipt.json`, source binding, both runtime inventories and `independent-actual-review.json`; build/image inventory only |
+| `build/original-browser-task3-build-qualification-v1-windows-fix7/actual-review-001/` | Final `actual-review.md/json`, evidence pins and authoritative fix7 publication receipt/result ZIP; prior fix5/fix6 failures retained separately |
+| `build/native-hl-native-own-save-death-runtime-preparation-v7/`, `-v8/`, `-v9/`, `-v11/` | Actual020/023/024/025 sibling `root-actualNNN-closure-review-001/report.md/json`; failed or prelaunch-only cases remain unaccepted |
+| `build/original-browser-task3-remaining-native-preparation-v2/CS021/` | Actual021 partial Internet-open/tab-timeout closure; later attempts retain separate evidence |
+| `build/native-hl-native-own-save-death-runtime-preparation-v12/root-actual028-closure-review-001/` | Actual028 failed partial save/death/reload, unresolved UI/extra quick activity and bounded closure/recovery audit; no accepted final WORLD/quit |
+| `build/post-user-interference-recovery-20261112-plan-001/root-actual-001/` | Separate `receipt-028.json` and `receipt-021.json`: later app revivals recovered, user outputs preserved twice and six physical trees independently checked; old qualification unchanged |
+| `build/native-hl-native-own-save-death-runtime-preparation-v13/root-actual029-review-001/` and `build/native029-functional-scope-ruling-20261112.json` | Actual029 assisted functional PASS, strict procedure FAIL, bounded closure and Root acceptance-scope ruling; original receipt/guide unchanged |
+| `build/original-browser-task3-remaining-native-preparation-v4/CS026/root-actual026-closure-review-001/` | Failed missing-`browser_visible:true` open record and bounded closure; no accepted tab/interaction coverage |
+| `build/original-browser-task3-remaining-native-preparation-v4/HL027/root-actual027-closure-review-001/` | Final spec/procedure FAIL, first-ambiguity continuation and wrong stage-path hash; closure quality PASS within recorded restoration/opaque-Steam-drift limits; original failures unchanged |
+| `build/original-browser-task3-remaining-cs031-preparation-v1/CS031/root-actual031-closure-review-001/` | Final `report.md/json` and `pins.json`: full-browser/strict-procedure FAIL, narrow functional PARTIAL PASS with discriminator deviation, bounded evidence/closure PASS; retained actual records and failed receipt remain unchanged |
 
-The separate windowed HL109 music-v3 test reached gameplay on the M5 Max with the
-normal RODECaster output. The user confirms that music is audible and resumes
-after switching applications. This closes that bounded Half-Life music focus
-check; it does not qualify the separate Counter-Strike fullscreen music cohort.
+Native 012 lifecycle/protection and honest-coverage reviews pass within their
+recorded bounds. All 669 Steam favorites/history records match; previous CEF
+files are unchanged and new files belong to the owned namespace. Opaque Steam
+localconfig content drift remains unresolved and is not field-level causality
+proof. No opaque Steam restore was performed. A nonoperative prose-hash typo in
+the external 012 handoff remains a parked quality finding with an explicit Root
+ruling; do not relabel the original quality FAIL. Actual021 adds only a partial
+Internet-open observation before its tab timeout, with no interaction qualification.
+Actual020/023/024/025 closure reports distinguish recorded retirement/restoration
+from failed or unexecuted runtime cases. Each retains unresolved opaque Steam
+byte drift. For023, later recovery does not rewrite the original failed helper
+retirement flag; for025, raw display equality does not repair missing accepted
+bindings. Earlier CS CF restoration failure/recovery and later HL exact-domain
+success likewise remain distinct.
 
-The user then encountered `MultiSrc:Used by non member DelayedUse.` and a black
-screen entering Unforeseen Consequences. The preserved `c1a0c` entity data and
-read-only live state identify a blocked teleport master: the one-input
-`tele_start_ms` remains off after rejecting the delayed relay, while the player
-stays in the dark initial room. The fade has expired, sign-on is complete and
-the M5 Max renderer remains selected. The reviewed repair preserves the bounded
-legacy final-slot fallback for valid unmatched inputs, including this delayed
-relay. Native Release/Debug server links and actual-source sanitizer checks pass;
-all four Windows owning compiles and Win32/x64 Release/Debug fixture runs pass.
-Live inspection confirms the master turns on and the player reaches the chamber;
-the user confirms the chapter is visible and movement works. Evidence is under
-`hl109-unforeseen-consequences-black-screen/` in the same build directory.
-
-The subsequent native autosave completed and was loaded into a visible world.
-One direct test launch later disappeared at approximately two minutes without a
-contemporary crash report. A separate process control exposed inherited process
-group cleanup in the diagnostic launcher. Relaunching the unchanged images in a
-separate session survives beyond that cutoff; the historical signal sender was
-not observed, so this is not a general crash-resolution claim. The earlier music
-session completed server/world shutdown and had a voluntary OS exit context,
-with an unknown initiating cause. Both observations are preserved under
-`hl109-multisource-v1-autosave-exit/`. The loaded save also logs decal restoration
-warnings; broader save/decal and transition qualification remains open.
-
-In the separate CS110 `shottrace` session, the user reproduced the trapped region
-screenshot cursor. Existing cursor tracing recorded relative mode with native
-active/key flags still set while the front window under the pointer was foreign.
-The preserved log and reproduction receipt are under
-`user-runtime-findings-20261110/` in the same build directory. Overlay timestamps
-were not separately recorded, so the trace is an ownership investigation lead,
-not a qualified overlay detector. That session ended, its four settings files
-were restored and eleven save files were preserved.
-
-The later `keyboard-policy-v1` tests bind the additive Control-Space provider to
-current gameplay ownership. HL109 records 45 and CS110 44 actual simultaneous
-duck+jump user commands. Fresh-process layout snapshots confirm gameplay
-preservation and switching in observed chat, console and menu contexts. Both
-supervised runs quit with OS exit 0; Half-Life survives two fullscreen restart
-commands. Hardware getters select M5 Max, including CS2560x1440 fullscreen.
-Four settings files per app are restored; save contents are preserved. Windows
-qualification records 60 owning compiles, 120 preprocessing invocations and
-20/20 retained fixture/factory cases; all 860 sealed evidence files rehash.
-Detailed native observations are `{hl109,cs110}-keyboard-policy-v1-observations.json`
-and Windows results are `gameplay-shortcuts-windows/report.md` in the same build
-directory. CUA chords emit both Control keys; these results do not imply new
-human mouse, performance or audibility acceptance. One compressed transition
-sequence is explicitly inconclusive; isolated observed-context tests qualify
-the layout behavior. Screenshot capture remains a separate open repair.
-
-The same Counter-Strike test reveals junk suffixes after developer notify text.
-An unmodified complete `Con_DrawNotify` diagnostic reproduces a global-buffer
-overread:318 columns at2560px exceed the256-byte message array, while1920px/238
-columns completes. Evidence is in `notify-text-diagnostic-v1/receipt.json`; the
-repair and real-game visual check remain pending. There is also
-a Steam validation-stalled diagnostic, and a CEF signature-category warning
-although MOTD HTML renders. These remain separate runtime/provider findings.
-The embedded main image fails strict app-resource verification; exact standalone
-image bytes verify. A distribution bundle is not qualified by local launch.
-
-Find Servers investigation separately compiles a typed native Steam capability
-probe using pinned official headers. Its actual provider requests list CS and HL
-servers and receive responses, then cancel/release both requests and exit0.
-`server-browser-investigation-v1/runtime-v2-receipt.json` preserves the counts,
-time bounds and original loader failure. Queries were intentionally stopped
-while still refreshing; this does not qualify complete lists, UI, connections
-or authentication. Native UI and lifecycle integration remain unimplemented.
-
-The Mac client build logs, image/source identities and Windows owning-file probe
-logs are under `mac-client-build-20261109/`. The current local build receipt is
-`build/mac-client-verification-20261109/verification.json`; its evidence is for
-compilation and the named integration cases, not native-target promotion.
+Actual028 retains its failed receipt despite genuine n28 save/death/Space reload.
+Later unresolved UI tool timeouts and extra quick-save/load activity do not prove
+which individual events came from the generally acknowledged user interaction.
+Separately started028/CS021 apps were recovered under separate receipts; both
+private bundles match baseline and each user-output preservation/exchanged tree
+matches its retained state (six trees independently reviewed). Original failures
+remain unchanged. SDK669 records match, while prior CEF drift and opaque Steam
+hash drift remain; no per-event attribution or opaque restore is inferred.
+Historical display equality is not a final post-interference quiet proof. Recovery
+PASS is bounded restoration evidence, not clean full runtime protection.
 
 ## Earlier Win32 reference
 
-| Migration | Pinned implementation | Evidence |
-| --- | --- | --- |
-| SDL2 → SDL3 3.4.20 | `c4f729d`, compared with SDL2 `23a2135` | Four build presets, selected CS/HL R/D recording/full replay, input/focus, startup video, effects and dedicated-server checks |
-| Miles music → mpg123 1.33.7 / SDL3 | `af5210a` | Decoder/player/worker checks, captured loop/pause/resume/volume/fade/replacement, selected CS/HL R/D replay and dedicated-server checks |
-
-The SDL3 benchmark compared only those historical packages with matched providers;
-its emulated-VM timings are not current-build or native-hardware performance claims.
-One mpg123-era CS launch failed with `ucrtbase.dll` exception `0xc0000417`; unchanged
-retries passed, but the cause remains unresolved. Exclusive fullscreen visuals,
-physical devices/hotplug and complete non-ASCII UI acceptance were not established
-by those runs.
-
-Historical receipts remain under `~/.codex/artifacts/cse-sdl3-assessment-20261106/migration/`
-and `~/.codex/artifacts/cse-mpg123-20261107/`; Git retains their original reports.
-
-### 2026-11-10: notify bounds and Release frame delivery
-
-Exact f0a6de98 notify repair: native60complete-function cases +30retained
-mouse/keyboard/capture cases, coherent native HW/SW/launcher Release/Debug links,
-and VM1 Windows8owning compiles/16preprocessing/80cases pass. Original stale-suffix
-and sanitizer overread RED retained. Controller rehashes5048source/685native
-artifacts and278sealedWindowsfiles with0mismatches. Actual CS1440p/M5Max displays
-clean join/scoring text, long notification, short replacement and empty area
-after actual Con_ClearNotify. Temporary test-only con_notifytime30 restored4;
-developer/FPS/input/audio unchanged. Normal OS exit 0,4settings restored/11saves
-preserved. Evidence: build/macos-runtime-bringup-20261109/cs110-notify-bounds-v1-observations.json
-and notify-text-windows/report.md. This is bounded notification qualification.
-
-Separate opt-in traced Release CS local listen run: after90seconds,11,121focused
-connected/nonmenu/completed frames over142seconds have mean12.783ms,median10.924ms,
-p99 24.841ms and496intervals over20ms. Excluding the broad CUA input interval leaves
-9,945samples/p99 24.877ms/max37.957ms. Full-sample99.191ms maximum occurs within
-that input interval and is not claimed as an unassisted game stall. GPU getter
-during warm-up confirms M5Max/1440p then detaches; no compilers/debugger during
-selected window. Ordinary background apps/VMs/capture services retained. Graphics
-work varies most, but interval n contains previous-frame work plus unmeasured
-outer-loop/scheduling: same-row phases do not establish cause. No performance fix,
-physical input acceptance or busy multiplayer result follows. Raw CSV/phase/message/
-process/analysis: build/macos-runtime-bringup-20261109/cs110-release-frame-v1-analysis.json.
-Normal OS exit 0 and settings restored.
-
-Controller follow-up evidence,2026-11-10: `build/macos-runtime-bringup-20261109/native-crash-inventory-v1/` pins eight historical hl IPS reports and two CEF helper reports using actual captureTime/PID/image UUID. No retained hl report establishes the later user-reported disappearance; keep that report open. A CS110 helper SIGTRAP at18:34:51local remains a browser-helper/provider/packaging gate. The inventory induces no crash or signature change. `macos-packaging-investigation-v1/writable-owner-followup-v1.md` records direct relative registry/Steam app-ID writes plus explicit and unqualified VFS writers; no packaging fix is claimed. `network-r5-fixture-investigation-v1/` identifies the existing optimized MSVC fixture noreturn-stub C4702 lead; the original Release gate remains open until a separate reviewed fixture repair and matrix run.
-
-Earlier native server-browser Task1 checkpoint at7bdce560 (superseded by the finalf8d744fc checkpoint below): I1 NUL persistence rejection was repaired; three initial Minor observations were deferred. Real ARM64 model/provider probes for app10/app70 ran8seconds each, copied10000/1534 owned rows and10587/2176 updates with13/44 failed rows, then cancelled/released to quiescence, pumped callbacks after release and shut down Steam; both exited0. No separate successful-response count, complete-list, UI, connection/authentication or live favorites/history-write acceptance is implied. Evidence: `build/macos-runtime-bringup-20261109/server-browser-task1-provider-v1/`. Windows qualification was pending at that earlier checkpoint.
-
-Read-only A3D stock-reference analysis uses the exact VM1 A3dApi.dll SHA256f05b2eeb and Ghidra12.2 complete function bodies. Factory0x10002a80 activates an external OEM/legacy COM provider; the software A2D control body0x10001600..0x1000173a reads only pitch and direct-channel azimuth/elevation/gain/delay, matching retained source inputs. Actual assembly, rather than incomplete x87 pseudocode arguments, supports this mapping. Three PE byte ranges/vtable slots were independently checked; six source files and the exported21-record Evidence bundle are pinned in `build/macos-runtime-bringup-20261109/a3d-reference-analysis-v1/`. No native implementation, output, runtime routing, full DSP/sample parity or OEM EQ/reflection acceptance is claimed. The owned analysis target was closed and the investigation exported/reset; no production source, original assets, VM settings, audio route or permissions changed.
-
-Existing Release frame trace follow-up: correctly lag-aligning interval n with measured work n−1, requiring both rows in focused gameplay after90seconds and excluding145..160seconds of CUA input, leaves9943pairs/446intervals over20ms. Interval/prior-graphics correlation is0.330;227slowpairs retain at least10ms outside the measured prior core, while163have at least15ms of prior measured work. Thus graphics alone is not an established cause. Remainder includes deliberate100fps filtering, host tail, event/policy/music-wrapper work and OS scheduling; none is individually attributed. `cs110-release-frame-v1-lag-analysis.json` retains the paired values and limits. No new runtime, settings change or performance acceptance occurred.
-
-Native server-browser Task1 completed atf8d744fc: reviewed unused model/config plus minimal upstreamformatterpatch/baseline provenance integrated as24exactsourcepaths;453otherdirtyfiles and rootHEADf376 preserved. NativeR/DfullGameUIlinks and Release/Debug/ASan+UBSan components cover both1027-caseformatterbranches; allactualheaderconsumers rebuilt. Final real-modelapp10/70 probes copied10000/1536ownedrows, cancelled/releasedquiescent and shut down withOS exit 0. Windowsactual4newowningcompiles/4fullGameUIlinks/10CTest/28corecases/4108formatterchecks pass underretainedpolicies. Boundedreplay andrecursiveexplicit/DEFAULTLIBclosure are documented; nofreshfullcanonicalrootbuild, loaded-membertrace orliveWindowsUIclaim. Candidate2seals232files(SHAd79ce2a9bc8196d5fd080dadbc8cbc0081e191934179b4d97f186347a8917055), independentlyrehashed0failures and1024originalmetadatarecords unchanged. SourceTask1M1-M3remain deferred, withM1carriedasTask2UIdependency. Task2implementation isactive after23actualsourceRED/controlcases; browserUI/connect/auth/gameplay andwholemigrationacceptance remainopen.
-
-
-Native server-browser Task2 source is reviewed through54e360fd and integrated as61
-exact paths;5,048 outside paths and root HEAD are preserved. Initial/fix1 native
-coverage includes75 components,20 real VGUI,5 actual module and5 original CTest
-groups per profile. Fix2 newly executes six VGUI plus module deactivate per
-Release/Debug/ASan+UBSan profile (21 executions); both full GameUI links contain
-one fresh Dialog object and138 individually proven reused objects. Unchanged
-suite evidence is inherited with exact input/recipe/object proof. Both scoped
-reviews close their original Important findings; deferred count/sort feedback and warning
-debt remain for parent review. The independent final controller audit checks
-561,548 identities/conditions with zero failures. These are source/component and
-owning-build results, not complete-game or Windows acceptance.
-
-At that same final model, actual Steam app10/app70 Internet discovery runs8seconds
-each and copies10,000/1,533 rows. Full CloseStep(128) storage retirement takes329/59
-incomplete turns, followed by provider quiescence, post-release callback pumps and
-Steam shutdown; both processes exit0. Four typed read-only snapshot processes also
-exit0; all669 favorite/history records remain logically unchanged around both
-phases. No Steam setter, connection, audio or game runtime action occurred. Exact
-private snapshots, source/provider pins and limits are sealed in
-`build/macos-runtime-bringup-20261109/server-browser-task2-provider-v1/`.
-The 54e360fd candidate was subsequently staged into both owned game apps. Actual
-Counter-Strike keyboard menu activation opens Servers and populates Internet rows
-on the M5 Max at 1600x1200. The inherited HD font context makes the browser's fixed
-controls unreadable and overlaps tabs with the list header (I5). Native App-menu
-Quit exits 1; guarded reproduction and exact-image disassembly identify an absent
-embedded-root fallback in CInputWin32::UpdateMouseFocus (I6). An initial debugger
-watch incorrectly continued unexpected fault stops until its deadline; that
-instrumentation failure is preserved separately from the actual crash evidence.
-Those original exit1 runs are not normal-exit acceptance. Settings, saves and browser preferences were
-restored, all 669 Steam records remained equal, and 289 runtime files plus five
-symlinks were verified after each phase.
-
-Round 3 candidate 90548ca passes 96 selected R/D/ASan+UBSan cases and independent
-controller audit 373,100 checks with zero failures. Scoped review accepts I6's
-native64 guard but retains I5 focus after resize/nested focus and raises unstable
-tab order from mutable z-order. A fresh round 4 implementer owns those browser-local
-repairs; 905 layout is not integrated or staged.
-
-Only reviewed 905 InputWin32.cpp and its new VGUI2 image were subsequently admitted
-with existing 54e GameUI/engine/main. Exact 38-TU Release/Debug dependency proof shows
-InputWin32 as the sole changed production input; root HEAD/index and 5,108 outside
-files remain unchanged. Actual CS 63458 and HL 63579 open Servers and complete native
-App-menu Quit with supervised OS exit 0. Half-Life visibly populates Internet rows,
-and lsof resolves its staged VGUI2/GameUI. No debugger/forced cleanup is used.
-Each phase restores four settings/all original saves (11 CS/8 HL)/browser preferences,
-all 669 Steam records remain equal, 289 runtime files/five symlinks verify and no
-owned process remains. Deliberate process-local dummy audio and potentially active
-layout compilers exclude audio/physical/performance acceptance. Evidence is sealed
-in `build/macos-runtime-bringup-20261109/server-browser-i6-only-stage-v1/`.
-At that I6-only checkpoint, combined-candidate checks remain required; it closes
-only the bounded native menu-quit repro in the explicitly composed cohort.
-
-Round 4 e7eb139 addresses retained/nested focus and stable logical tab order, with
-fresh scoped approval and no open findings. Its 45 selected R/D/sanitizer cases and
-two binding runs pass; independent controller audit 369,707 checks/26,478 files has
-zero mismatches. All 67 Task2 paths are integrated into root (10 changed relative
-to the approved 54e+I6 composition), preserving 5,047 outside files, HEAD and index.
-Only new GameUI is staged; the already reviewed VGUI2 remains byte-identical.
-
-Actual CS 67614 and HL 69257 show readable 1600x1200 browser controls, separated tabs/
-headers and Internet rows. Keyboard traversal reveals lower controls; Half-Life's
-Quick Refresh starts a visible refresh. Both native App-menu quits return OS exit 0.
-Each phase restores four settings/all original saves/browser preferences; 669 Steam
-records stay equal, 289 runtime files/five symlinks verify and no owned process
-remains. No debugger or forced cleanup is used. These phases use deliberate dummy
-audio and do not qualify audio/performance/physical input. CUA coordinate clicks
-retain the earlier physical-pointer limitation; Escape is inherited nonmodal Frame
-behavior and CtrlF4 did not visibly close. Browser close/reopen and live tab/resize
-actuation are not claimed from these phases; actual VGUI source regressions remain
-separate. Records: `server-browser-live-cs110-fix4-v1/`,
-`server-browser-live-hl109-fix4-v1/` and
-`server-browser-task2-fix4-integration-stage-v1/` under the runtime evidence root.
-
-VM1's console and existing read-only source share work despite bounded host
-guest-exec timeouts. An ordinary-user collector verifies12 tool files,78 fixture
-files and2,003 preserved inputs with no identity/stability mismatch; disk floors
-pass. Both running fixture image/argument queries are denied and remain unknown.
-Primary game ports are present; port27440 is also observed, consistent with the
-historical -sport argument but outside the old primary-port readiness reference.
-The expanded Windows input-owner closure and final source/command admission remain
-pending. No VM configuration, security, audio route or global permission changes
-were made.
-Task2 Windows owning/reference and the remaining full connection/input/runtime
-gates remain open. The separate CoreAudio startup failure, terminal Atlas/TLV recovery,
-physical/performance/authentication and whole-migration gates are unchanged.
-
-## 2026-11-11 current bounded runtime receipts
-
-Mac full19 build evidence: `build/a3d-native-20261111/task8-controller-audit.json`.
-Reviewed enumeration/harness source and artifact audit:
-`build/native-selected-probe-controller-audit.json`; actual selected/default-separated
-and coexistence cases: `build/native-selected-device-live-v1/root-live-subgate-summary.json`.
-The original RODE output UID and input/system/volume/mute were preserved/restored.
-
-Fresh CS lifecycle: `build/native-client-6f27bef-qualification-v3/cs/root-post-lifecycle-review.json`.
-Its original wrapper remains failed for a stale helper hash in the CF restore
-receipt; separate exact-domain recovery is pinned in `root-cf-recovery-001/receipt.json`.
-Fresh HL archive marker reparse:
-`build/native-client-6f27bef-qualification-v4/hl/root-save-marker-review.json`.
-HL normal exit0 takes109.21 seconds; its corrected wrapper restores CF3 and audio.
-Both SDK snapshots equal all669 records. Prior CEF files are unchanged and added
-files belong only to each new owned namespace. Steam localconfig activity-key
-deltas were reviewed read-only; their normal-activity interpretation is inference,
-not an opaque byte-equality claim. No Steam file was restored. Initial after hashes
-and a later stable private semantic snapshot are distinguished in the receipts.
-These are narrow checks; full target acceptance and production Metal remain open.
+SDL3 `c4f729d` versus SDL2 `23a2135` qualified four historical presets and selected
+CS/HL R/D record/replay, startup video/effects/input/focus/dedicated paths. mpg123
+`af5210a` qualified decoder/player/worker and selected capture/replay/server paths.
+Their receipts remain under `~/.codex/artifacts/cse-sdl3-assessment-20261106/migration/`
+and `~/.codex/artifacts/cse-mpg123-20261107/`; Git retains original reports.
+One mpg123-era CS `ucrtbase.dll` exception 0xc0000417 remains unexplained despite
+passing unchanged retries. Exclusive fullscreen, hotplug, complete non-ASCII UI
+and native-target acceptance do not follow from those old emulated-VM checks.

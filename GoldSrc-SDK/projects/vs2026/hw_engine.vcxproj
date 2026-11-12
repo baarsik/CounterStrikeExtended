@@ -211,6 +211,26 @@
     <ClCompile Include="..\..\engine\pr_cmds.cpp" />
     <ClCompile Include="..\..\engine\pr_edict.cpp" />
     <ClCompile Include="..\..\engine\qgl.cpp" />
+    <ClCompile Include="..\..\engine\render\native\legacy_state.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\render\native\legacy_commands.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\render\native\legacy_texture.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\render\native\frame_stream.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="..\..\engine\render\native\legacy_dispatch.cpp">
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
     <ClCompile Include="..\..\engine\registry.cpp" />
     <ClCompile Include="..\..\engine\r_efx.cpp" />
     <ClCompile Include="..\..\engine\r_part.cpp" />

@@ -1,23 +1,24 @@
 # Native x64 and ARM64 migration
 
-The migration preserves Counter-Strike 1.6, Half-Life, their UI/media, dedicated
-servers and HLTV. Win32 remains the maintained reference and default. **No native
-target has completed acceptance.** See [build commands](building.md),
-[validation evidence](validation.md) and [component tests](../tests/native/README.md).
+Preserve Counter-Strike 1.6, Half-Life, their UI/media, dedicated servers and HLTV.
+Win32 remains the maintained reference and default. **No native target has completed
+acceptance.** [Build commands](building.md), [bounded evidence](validation.md) and
+[component reproduction](../tests/native/README.md) describe different stages.
 
 ## Targets
 
-| Target | Commitment | Current state |
+| Target | Commitment | Status |
 | --- | --- | --- |
-| Windows 11 x64 | Required; first complete native target | All 19 targets build; selected CS/HL runtime checks pass on VM1 under x64 emulation |
-| macOS 14+ Apple Silicon | Required | All 19 runtime roles build in a frozen Release/Debug cohort; fresh CS lifecycle and HL save-marker roundtrip pass on Apple Silicon. Current-source combined acceptance and production Metal remain |
-| Windows ARM64 | Conditional | Native components pass selected checks; full providers/gameplay remain unqualified |
-| Linux x64 / ARM64 | Opportunistic | Reuse shared POSIX/SDL implementations only; defer substantial platform/provider work |
+| Windows 11 x64 | Required; first mandatory native target | Frozen all-19 Release/Debug builds and selected CS/HL/server checks; complete acceptance open |
+| macOS 14+ Apple Silicon | Required | Combined all-19 Release/Debug builds and image inventories pass; selected earlier M5 Max OpenGL checks; acceptance open |
+| Windows ARM64 | Conditional | Selected native components; complete providers/gameplay unqualified |
+| Linux x64 / ARM64 | Opportunistic | Reuse shared POSIX/SDL owners; substantial platform/provider work deferred |
 
-Windows ARM64 must work on available hardware or a qualified Parallels graphics
-path. A necessary x64 provider helper may use a versioned, pointer-free protocol;
-it must retain full provider behavior and clean failure/shutdown. No additional
-renderer project or hardware purchase is part of conditional-target work.
+Windows ARM64 requires available hardware or a qualified Parallels graphics path.
+A necessary x64 provider helper must use a versioned pointer-free protocol and
+retain full behavior and clean failure/shutdown. No extra renderer project or
+hardware purchase is required for this conditional target. After mandatory
+acceptance, promote Windows x64 while retaining explicit Win32 reference outputs.
 
 ## Compatibility requirements
 
@@ -40,175 +41,215 @@ renderer project or hardware purchase is part of conditional-target work.
   is excluded. Developer builds and a local Mac app bundle are in scope;
   installers, publication and notarization are deferred.
 
-## Implemented boundaries
+## Implementation boundaries
 
-| Area | Implementation and evidence | Remaining work |
-| --- | --- | --- |
-| Build/dependencies | One generated inventory from retained manifests; explicit OS/CPU/compiler policies; source-built SDL3 3.4.20, mpg123 1.33.7 and pinned media/font/compression libraries; source-built CS controls | Fresh complete builds after later source edits; conditional-target qualification |
-| Module ABI | `CseGetModuleAbi` checks architecture, pointer/compiler profile, role and consumed table signatures for selected game/client/filesystem exchanges; runtime ABI 10 | Other C++ boundaries and rejection before all static callbacks |
-| Data | Native handles/string storage, typed callback registration, explicit Win32 demo/navigation records, symbolic C4 phase, HPAK records and bounded custom-decal parsing | Full entity/transition/C4/nav writing, VFS/spray integration and Mac game round trips |
-| Platform/numerics | Owned module loading, cooperative workers, UDP components, CPU/timer discovery, scalar packed lighting, legacy conversion helpers and native client video/bootstrap compilation | Current-cohort dedicated/admin runtime, complete client restart/unload and platform acceptance |
-| Audio | mpg123 music, SDL DMA/capture components, retained mixing/DSP rules and native voice-mixer component | Native A3D software provider and public device enumeration are implemented; selected Speakers and DMA/music coexistence pass R/D. Default RODE HAL startup, acoustic delivery/capture/voice, complete spatial/OEM parity and measured cross-CPU conversion differences remain |
-| Steam/CEF | Owned Steam service and sandboxed CEF controller/host; real provider fixtures on Windows x64 and Mac ARM64 | Full game/browser/voice integration and provider failure/lifetime acceptance |
-| UI/text/input | Native Mac App/System, SDL VGUI1 Surface, selected CoreText/FreeType provider, CP1252 clipboard bridge and UTF-16 VGUI2 reads; actual-library drawing/clipboard/key translation checks | Embedded VGUI1 root admission, default font selection/layout parity, physical input, standalone-window event routing and quiescence |
-| Renderer | Private command/state/texture layer; three selected D3D12 raster profiles and one Metal profile match frozen GL RGB bytes; offline DXBC/metallib tooling | Production wiring, unsupported legacy branches, full world/model/UI/media presentation and parity |
+All 19 runtime responsibilities remain in scope. Generated manifests own source
+selection, OS replacements, exports and per-file FP/EH/RTTI/CRT/diagnostic policy.
+Keep symbols, import/static libraries, tests and intermediates outside runtime
+outputs; Release diagnostics and distribution materials remain opt-in. Rebuild
+all owned modules together after ABI changes. Source-built pinned dependencies,
+source provenance and provider locks remain authoritative.
 
-The ABI descriptor does not make every module safe to exchange native C++ objects.
-The AppCold loader, experimental clipboard owners and alternate TextEntry lifetime
-components remain unselected until their real host ownership and shutdown prerequisites
-hold. The selected client App/System use synchronous SDL clipboard copies; the
-native OS publication is text, without Windows allocation padding or embedded-NUL tails.
-Font lookup or raster availability alone does not qualify layout or readable UI.
+- Module admission checks architecture, compiler/pointer profile, role, consumed
+  table signatures and cohort hashes before factories/callbacks. A descriptor
+  does not qualify every C++ boundary. Retain high-address tests and explicit
+  factory/view/slot admission. Borrowed tables and callback targets remain alive
+  through quiescence; join workers and retire Steam outside the loader lock before
+  unloading code. Reject partial/mixed cohorts without bypasses.
+- Preserve VFS search order, fallback/case/symlink/mount behavior, settings and
+  writable-data ownership. Native game loading uses `gamedll_osx`/`gamedll_linux`
+  with guarded platform aliases. App launch from arbitrary working directories,
+  quoting/exact-token command editing and restart intent must preserve the selected
+  renderer and mode. Recoverable Apple UDP reachability errors retain normal
+  retry/timeout behavior, packet bytes and authentication.
+- Dedicated console and graphical administration are implemented owners, with
+  real stdin/stdout, partial-init rollback, repeated-session cleanup, generation
+  bound callbacks and terminal restoration. Full current-cohort admin/server
+  acceptance remains separate. Software rendering retains the actual 16-bit
+  RGB555/565 framebuffer, palette/cache, pitch and snapshot rules; window 32-bit
+  presentation does not change it. Dedicated loading stays windowless.
+- Shared native standalone windows retain newer geometry across older queued
+  resize events. Backing allocation retries on an unchanged frame independently
+  of native request completion; one Set/Sync occurs per new request. Resolve
+  rejection, timeout and accepted clamps explicitly. Retire routes while retaining
+  in-call native owners. Pinned Cocoa `SDL_SyncWindow` may block up to 2.5 seconds;
+  controlled software-widget checks do not qualify game pixels or physical input.
+- Native Mac App/System, font and clipboard owners use explicit CP1252/UTF-16/text
+  boundaries and synchronous copied clipboard storage. Unselected experimental
+  AppCold/clipboard/TextEntry paths need their real host prerequisites. Font
+  availability does not qualify layout, physical input or standalone routing.
+- Control-Space ownership applies only to the current gameplay window; text/UI
+  contexts retain layout switching and ordinary SDL key delivery. System capture
+  ownership suspends relative mode/grab without repeated warps or stale input;
+  reacquisition requires current focus/window generation and gameplay intent.
+  Preserve mouse behavior, fullscreen restart and the timer's legacy-font colon.
+  Console notifications remain bounded by capacity, columns and first NUL.
+- Save archives write canonical 260-byte names, signed32 little-endian nonnegative
+  lengths and unchanged payloads. Readers validate one complete 260- or prior
+  native 1024-byte layout through exact EOF before output creation, reject
+  ambiguity/truncation/traversal and preserve input bytes. Zero-count archives
+  require empty remainder. Propagate all I/O failures. Keep entity/callback,
+  transition, C4, demo and navigation encoding acceptance separate from player
+  marker roundtrips. The multisource repair retains the bounded legacy fallback.
+
+### Audio and external providers
+
+mpg123 music, SDL DMA/capture, retained mixing/DSP, native A3D software, copied-GUID
+public device enumeration and typed notification owners are implemented. Preserve
+track/loop/position/pause intent on focus changes, failure recovery and shutdown.
+A3D software acceptance is distinct from OEM algorithms and actual game routing:
+stock A2D uses pitch/direct-channel controls; omitted EQ/reflection records must
+not be presented as implemented OEM DSP. Retain geometry/reflection producer data,
+full-width identities, scalar layouts and source-specific numerical policies.
+A2D remains 22050-Hz stereo S16 with 8192-byte buffer, 4096-byte low-water,
+20-ms schedule and at most 4096-frame kernel calls; ResMan retains its separate
+44100-Hz/88200-byte domain and 10-ms/100-ms schedules.
+
+Native notifications use copied registrations and same-module retained events,
+atomic replacement/removal generation fences, real auto/manual reset waits,
+cancellation/close precedence, wrap/multiple-lap half-open crossings and once-only
+STOP transitions. Keep stream-submitted and render-consumed cursors distinct from
+DAC/audible timing. No legacy HANDLE emulation or new engine consumer is implied.
+Enumeration copies bounded UTF-8 names/records; tokens are ephemeral, snapshots
+remain live through initialization and hotplug requires a new snapshot. Unknown,
+stale or foreign identities fail truthfully. See [actual A3D boundary tests](../tests/native/a3d_module/README.md)
+and [notification contract](../tests/native/a3d_notifications/README.md).
+
+Selected Speakers output and DMA/music PCM coexistence are bounded evidence;
+RODECaster HAL startup blocking, acoustic output/capture/voice, hardware removal,
+complete spatial/OEM parity and cross-CPU conversion differences remain open.
+Owned Steam sessions must retain authentication, callbacks, servers and encoded
+voice. CEF must retain sandboxed helpers, OSR pixels/input, cookies/cache and MOTD;
+text-only MOTD, missing voice or success stubs do not satisfy acceptance.
+
+### Faithful original server browser
+
+Port the original Steam browser interface and behavior in both retained games.
+The reference is installed i386 `serverbrowser_osx.dylib`, SHA-256
+`ce7386935527cdd49e51137fa35628989203158dcc74a6611ffb250ce323a644`, original
+resources and pinned recovered procedures. Static recovery is not runtime fidelity.
+Native64 keeps the internal GameUI module and real Steam adapter; Win32 retains
+its original external module path and public IVGuiModule ABI.
+
+- Use the ordinary resource-backed VGUI2 frame, tabs above the list, optional
+  compact filters below it, bottom actions and status line. Visual order is
+  Internet, Favorites, History, Spectate, LAN, Friends; preserve persisted enum
+  meanings via explicit mappings. Minimum640x384 and original reference 624×278
+  page sizing, anchors and saved/workspace bounds apply. Default placement is
+  x 5%, y 40%, width 50%, height 55%, constrained by minimum and workspace.
+- Retain original Password/Bots/Secure/Players/Name/GameDesc/Map/Ping/hidden-IPAddr
+  columns, History LastPlayed, icons, resizable Name and ListSmall→DefaultSmall
+  font fallback. Preserve supported user column settings and stable selection.
+- Filters apply immediately: active-mod Game restriction, case-insensitive Map
+  prefix, original latency choices All/<50/<100/<150/<250/<350/<600, secure tri-state,
+  not-full, human players (`players-bots>0`), no-password and valid-account
+  (`m_steamID.GetAccountID()!=0`). AccountID is distinct from VAC/IsValid/fullID.
+  Clear invisible custom name/region constraints and normalize unsupported old
+  settings rather than silently filtering with hidden values.
+- Preserve one stateful Refresh/Stop, page-specific quick refresh/add/current/
+  history actions, context menus, Enter/double-click and selection enablement.
+  Add Server uses `DialogAddServer.res` plus its programmatic Servers list;
+  GameInfo owns real PingServer/PlayerDetails polling/retry. Use genuine
+  SteamApps::BIsVACBanned for the distinct ban capability; unavailable capability
+  remains a blocker. Retain original child-dialog resources and query-port rules.
+- Copy provider results while valid; preserve bounded view/callback retirement,
+  stale-generation rejection and hide/reopen versus destruction. Cancel/release
+  requests before their callbacks, panels, module or Steam owner can retire.
+  Numeric validated connect endpoints use connection ports distinct from query
+  ports; remote text is display data. History records accepted connections only.
+- Mask passwords, set the password cvar directly, queue only validated numeric
+  connect commands, clear secrets and restore prior state only if still owned.
+  Superseding/retry/disconnect/shutdown must retire pending state without clobbering
+  intervening user changes. Preserve favorites/history and unknown config fields.
+  Browser preferences use the existing SDL per-user identity and a distinct
+  browser-only VFS mount; do not repoint shared CONFIG or write original assets.
+
+Actual acceptance requires both games, all tabs/filter states, resize, selection,
+context/secondary dialogs, refresh/stop, close/reopen/focus, controlled discovery,
+connect/play/disconnect and authentication. Source/CPU/dummy-widget tests and live
+returned rows each cover only their recorded boundaries. No custom replacement UI
+or whole-window form scrolling is the fidelity reference.
+
+The user explicitly deferred the missing runtime validations for publication
+only. Browser Task 3 and the broader runtime gates remain **INCOMPLETE /
+UNQUALIFIED**; publication does not repair the failed receipts or establish full
+migration acceptance. The delivered app link and remaining manual-test checklist
+are required in the publication handoff. See [validation status](validation.md).
+
+### Shared renderer: remaining production work
+
+OpenGL remains the production/reference backend. Current ordered-frame/semantic
+capture and selected offscreen D3D12/Metal pixels do not select a production GPU
+renderer. Continue the following gates in Windows x64 Debug/Release, then Mac
+ARM64 Debug/Release, with unchanged Win32 OpenGL reference:
+
+1. Bind the semantic dispatch and persistent main-window session; admit ordered,
+   immutable segments owning draws/clears/targets/resources. Normal frames submit
+   once at explicit end; initialization, browser and video use the same lifetime.
+   No callback buffer survives borrowed, and no client DLL owns recorder state.
+2. Synchronous ReadPixels executes its exact prefix, applies format/pack rules
+   and fills the caller before return; failure leaves its destination unchanged
+   and terminates the legacy call. Finish waits all preceding work without a
+   readback or implicit frame end. Repeated BeginRendering is view continuation:
+   six envmap reads complete before one explicit final end, with no callback replay.
+3. Preserve separate logical Front/Back colors, shared default depth/stencil and
+   independent FBO draw/read bindings. Reads never substitute latest-scene data.
+   Publish dirty Front at explicit barriers without a logical swap; NULL acquire
+   retains target/dirty state and valid completion. Swap colors only after actual
+   presentation submission; preserve FBO/depth/MSAA contents across prefix reads.
+4. Admit each segment before execution. A later error cannot roll back earlier
+   readbacks/publications: record partial progress, poison the session, refuse new
+   draws/presentation, drain submitted resources and discard only unsubmitted work.
+   Keep cumulative budgets and strictly increasing nonzero request IDs across
+   segment/seal/abort; no hidden GL fallback, replay or one-frame backend mixing.
+5. Match matrices, clip-depth/orientation, projective coordinates, all used
+   topology/provoking rules, raster/alpha/depth/blend/cull/fog/scissor/mask/offset,
+   palette/precision/pack/subimage/mip/sampler/rectangle/border/anisotropy semantics.
+   Unsupported line/point/stencil or driver behavior remains explicit until matched.
+   Preserve CPU lighting/mips and source quantization; qualify lowering against GL.
+6. Port every world/model/sprite/particle/triangle callback, lightmap/detail/sky/
+   water/decal/list path, VGUI/font/browser pixel and startup/WebM frame scope.
+   Preserve CPU model arithmetic, order, unload ownership and source resource versions.
+   Standalone SDL_Renderer windows retain separate ownership; embedded game UI must
+   never resolve that standalone surface or share its window with SDL_GPU.
+7. Preserve all eight world shader masks from three texture bits, shader-off paths,
+   `gl_use_shaders`/`sv_allow_shaders`, reload/reset and VFS override rejection.
+   Original vertex/fragment SHA-256 values are respectively
+   `850e07ee3fb2dadc6eec25189538c5431c0fd8c5aaff3b520c1705834ef0b83b` and
+   `cdd87d3bb499b3a133cee3cbe1de573354cf9c3a49138c95f8102041b4f3693d`.
+   Their transformed xy sampling has no q divide, lightmap uses 128/192 and ordered
+   double product, detail uses ×2, alpha follows albedo/vertex color and fog is RGB-only.
+   Preserve operation order and record the actual selected VFS provider/hash.
+8. Qualify resolution/fullscreen/minimize/focus/HiDPI/recreation, gamma/vsync/MSAA,
+   front/back/FBO screenshots and settings/restart. Keep bounded fence lifetimes,
+   device/window ownership and backpressure. Use pinned offline DXBC/metallib
+   containers/layout/toolchain receipts per backend/configuration, no runtime compiler.
+   Retain FXC SDK 10.0.26100.0 and native Metal 27B47/MSL3.1/macOS 14 pins and
+   original GL/provider/source policies; toolchain upgrades require separate scope.
+9. Run a fresh all-19 combined cohort and full CS/HL scenario union before backend
+   promotion. Measure warmed compiler-idle same-hardware pacing; batch only adjacent
+   compatible packets without crossing ordering/resource/barrier boundaries. No
+   per-draw fence/allocation churn, unbounded caches or invented universal FPS target.
+   Keep two bounded in-flight slots and fence-tagged monotonic submission serials.
+   Keep OpenGL available/default for unqualified configurations and report the
+   intentional 100-FPS cap with `fps_override 0` when interpreting frame intervals.
+
+The private [renderer fixtures](../tests/native/render_state/README.md) and
+[offline GPU probes](../tests/native/render_gpu/README.md) retain reproduction and
+bounded reference failures. Production Metal/D3D12 gates T3–T12 after the present capture
+slices remain open; this publication does not close them.
 
 ## Remaining work and gates
 
-1. **Close interfaces and serialization.** Finish native C++ module boundaries,
-   reject mismatches before callback exchange, and run high-address fixtures.
-   Separate native entity offsets from fixed-width network/save identifiers.
-   Verify every save callback, transition and C4 phase, including legacy imports
-   reconstructed from attenuation. Complete bidirectional demo/save/nav tests.
-2. **Complete native platform owners.** Finish dedicated/admin and A3D dependencies
-   and qualify the compiled client owners. Preserve VFS search order,
-   game/fallback paths, case behavior, settings, directories, clipboard and shell
-   functions. Bind real font, input and clipboard services with explicit UTF-16
-   boundaries and owner lifetimes. Join workers before releasing their code.
-3. **Qualify providers in the game.** Preserve Steam sessions/authentication,
-   callbacks, server functions and encoded voice. CEF must retain off-screen
-   pixels, input, cookies/cache and MOTD. Keep writable data in user locations.
-   Missing voice, authentication stubs or text-only MOTD do not satisfy this gate.
-4. **Finish the shared renderer.** Retain Windows OpenGL for comparison; implement
-   the shared command/state contract through SDL_GPU D3D12/Metal, with offline
-   shaders. Cover fixed-function state/topology, world/models/sprites, lightmaps,
-   fog/transparency, decals/particles/triangle APIs, VGUI/browser/video textures,
-   screenshots, MSAA and display controls. Select SDL_GPU only after parity.
-5. **Accept mandatory targets.** Run complete Windows x64 first, then Mac ARM64,
-   including local app-bundle helpers/library paths and writable-data separation.
-   Require Release and Debug evidence below before promotion.
-6. **Evaluate conditional targets.** Check actual ARM64 images/native execution and
-   complete provider/gameplay behavior. Linux may add small build/naming/package
-   changes using POSIX, SDL and existing providers; defer either architecture if
-   a new backend/provider or substantial platform work is necessary.
-
-All 19 runtime responsibilities remain in the acceptance inventory. Keep libraries,
-PDBs, import archives, tests and intermediates outside runtime outputs; Release
-symbols and distribution materials remain opt-in. After mandatory acceptance,
-make Windows x64 the default while preserving the root runtime-output contract
-and isolating explicit Win32 reference outputs.
-
-### macOS runtime checkpoint, 2026-11-10
-
-The user accepted smooth fast turns and scrollwheel bhops without a visible
-pointer, retained fullscreen after changing 1080p to 1440p in Counter-Strike,
-and the corrected timer colon with normal FPS/textures. Normal Counter-Strike
-sound and Half-Life music before/after app switching were also confirmed.
-These observations belong to their pinned test cohorts; they do not qualify
-later combined images automatically. The production client still uses OpenGL.
-A separate combined-image test selected Apple's software renderer and regressed
-FPS/surfaces; restoring the earlier engine tuple removed both symptoms. The
-selection cause remains open, and new hardware tests must verify the actual GPU.
-
-The reviewed Half-Life multisource compatibility repair restored the Unforeseen
-Consequences scene and movement, as confirmed by the user. Actual owning source
-and fixtures passed native Release/Debug/sanitizer checks and Windows Win32/x64
-Release/Debug checks. A later supervised Mac run loaded the autosave on the
-M5 Max, accepted movement, returned through the real Leave game menu, and exited0
-after a normal application-quit request at eight minutes. This bounded success
-does not close the older Leave game ED_Alloc report, all save/decal cases, or
-prior unexplained exits. Earlier direct launchers did not retain child status;
-future runtime phases use detached persistent supervisors.
-
-The Control-Space provider and gameplay/UI ownership integration are reviewed.
-Native Half-Life and Counter-Strike runs preserve the layout during gameplay,
-permit switching in observed chat/console/menu contexts and record simultaneous
-duck+jump commands. Half-Life also survives two same-PID fullscreen restart
-commands; both supervised tests quit normally with exit0 and restore settings.
-Windows qualification covers 60 actual owning compiles and 20 fixture/factory
-cases. These are native UI-driven functional checks, with no new human physical
-mouse/performance acceptance; see the [keyboard design](superpowers/specs/2026-11-10-macos-gameplay-shortcuts-design.md).
-The screenshot interaction-owner query detects the real native selected-portion
-overlay with the game-style window still focused and returns ownership after
-cancellation/Capture. The engine capture coordinator is reviewed and integrated. Its native checks
-show capture released during the actual OS overlay and reacquired after Capture
-or Cancel on the M5 Max; Windows qualification passes40owning compiles and24tests.
-A valid selected-portion clipboard image was inspected. Physical Cmd-Shift-4
-region dragging remains open because the UI automation cannot address the
-WindowServer selection surface. Native UI checks performed while the user is
-away are not human mouse/performance acceptance.
-
-The current Counter-Strike keyboard test renders on the M5 Max at 1440p fullscreen
-and displays MOTD HTML, but revealed garbage after developer notify text.
-Actual-source sanitizers reproduced a notify-buffer overread at 1440p. The
-reviewed bound/NUL repair passes native90cases, coherent Release/Debug engine
-links, Windows8owning compiles/80cases and live CS1440p long/short/cleared
-notification checks. Those bounded checks do not qualify all HUD rendering. Local listen gameplay does not qualify
-external Steam authentication; the console reports validation stalled. The
-current app layout also fails strict embedded-main resource verification while
-the exact standalone image bytes verify, so distribution packaging remains open.
-A retained CS110 CEF helper report records a launch-time SIGTRAP; its precise
-cause and relationship to the existing browser code-identity warning remain
-unresolved. Packaging also needs to account for relative `hl.conf` and
-`steam_appid.txt` writes as well as the VFS configuration/save/download paths.
-Successful MOTD rendering does not qualify every browser helper or final signing.
-
-A compiler-idle Release CS listen run records uneven frame delivery after a
-90-second warm-up:11,121focused gameplay frames over142seconds have median
-10.924ms/p99 24.841ms. Removing the broad CUA input interval leaves p99 24.877ms.
-Simulation/audio measurements are small; graphics and unmeasured outer-loop/OS
-scheduling require further attribution. Ordinary background apps/VMs/capture
-services stayed running. This is a measured lead, not proof of a renderer cause
-or a multiplayer/performance acceptance.
-
-The native Find Servers module/UI and checked host retirement are implemented,
-reviewed and integrated as source. Native Release/Debug owning links and real
-VGUI/module/component checks pass, including large-list close/reopen, region/tab
-identity, independent status messages and selection during rapid tab changes.
-The reviewed 54e360fd candidate is staged in both owned game apps. An actual
-Counter-Strike menu test opens Servers and populates Internet rows, but exposes
-unreadable controls under the game's HD parent and a native App-menu shutdown
-crash. The shutdown fault follows a detached embedded root into the VGUI input
-fallback. The independently reviewed native64 input guard is now integrated and
-staged as VGUI2 with the existing 54e GameUI/engine/main. Both games open Servers
-and complete native application-menu Quit with supervised OS exit 0; Half-Life
-also visibly populates Internet rows. These checks deliberately exclude audio,
-physical input and performance. The reviewed e7eb139 layout repair is now
-integrated and staged too. Actual Counter-Strike and Half-Life checks show
-readable HD controls, separated tabs and headers, live Internet rows and keyboard
-access to lower controls; both quit normally. Physical close/reopen, full live
-connection/authentication and Windows owning/reference qualification remain open. The final
-real Steam model probe discovers rows for app10/app70, fully drains storage with
-CloseStep(128), pumps callbacks after release and shuts down normally. Read-only
-favorite/history snapshots remain equal before/after both phases. These checks
-do not qualify live UI connect/authentication or accepted-history/password behavior
-in a complete game. Standalone server lifetime,
-A3D/spatial behavior, full renderer presentation, cross-target data round trips,
-voice/authentication and current-cohort packaging/provider acceptance remain
-part of the migration gates above. The microphone issue below is an explicit
-user-directed deferral, not a completed fix.
-
-The native A3D software provider, buffers, workers, resource/event ownership and
-public copied-GUID device enumeration are now implemented and reviewed. The
-frozen `6f27bef` cohort builds all 19 Mac runtime roles in both configurations;
-`9498efa` adds the reviewed enumeration/selection harness cohort. Actual Release
-and Debug probes select Mac Studio Speakers while the system default remains the
-RODECaster, then separately prove DMA/music coexistence under a temporary
-Speakers default. All four bounded cases restore or preserve the original route,
-input, system output, volume and mute. Successful PCM submission is not acoustic
-audibility, hardware removal/Restore, game-consumer routing or OEM driver parity.
-The unchanged RODE HAL startup stall remains open. The stock software A2D
-pitch/direct-channel reference and its omitted EQ/reflection records remain
-bounded evidence, not an OEM acceptance claim.
-
-Fresh `6f27bef` Counter-Strike completes map/reload/quit normally on the M5 Max
-OpenGL renderer. Half-Life completes a same-build canonical 260-byte archive
-roundtrip: actual saved player armor is 0, then 15 after a controlled grant,
-0 after map reset, and 15 after load; the weapon mask is restored too. This does
-not establish complete entity/callback/campaign or cross-platform save parity.
-The CS wrapper's stale CF receipt was rejected before restoration writes and was
-recovered separately; that failed wrapper remains recorded. The corrected HL
-wrapper restores all three settings domains and the original output normally.
-Both cases preserve the original assets and app baseline, SDK history records
-match before/after, and old encrypted browser-cache files remain unchanged.
-Browser HTML, physical audibility and performance are separate outstanding gates.
+The combined Mac all-19 Release/Debug build and image inventory pass within
+the frozen all19-002 scope. Windows fix7 passes the four-profile owning GameUI
+build and 230 ordinary CPU-case slice. Actual combined-cohort runtime checks
+remain open. Complete native C++
+boundaries, full serialization/entity/campaign roundtrips, provider failure/
+authentication/voice, software/dedicated/admin/HLTV, writable-data/bundle signing,
+physical input/audio and production renderer acceptance remain open. Preserve
+selected historical user acceptance within its original cohorts; do not transfer
+it to later combined images. Installers/publication/notarization remain deferred.
 
 ### Deferred: microphone consent blocks initial loading
 

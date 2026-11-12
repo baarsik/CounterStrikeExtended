@@ -3,6 +3,7 @@
 #include "const.h"
 #include <SDL3/SDL_opengl.h>
 #include "glquake.h"
+#include "render/native/legacy_dispatch.h"
 #include <SDL3/SDL_video.h>
 
 #include <cstdio>
@@ -2816,6 +2817,7 @@ static void APIENTRY logViewport( GLint x, GLint y, GLsizei width, GLsizei heigh
 
 extern "C" void QGL_Shutdown()
 {
+    cse::render::RemoveLegacyDispatch();
 	glw_state.hinstOpenGL = NULL;
 
 	qglAccum = NULL;
@@ -3178,6 +3180,7 @@ extern "C" void QGL_Shutdown()
 
 extern "C" CseGLModule QGL_Init( const char*, const char* )
 {
+    cse::render::RemoveLegacyDispatch();
     // The retained return value marks a populated GL function table, not an OS module lease.
     constexpr std::uintptr_t FunctionTableLoadedSentinel = 1;
     glw_state.hinstOpenGL = reinterpret_cast<CseGLModule>(FunctionTableLoadedSentinel);
@@ -3586,6 +3589,11 @@ extern "C" CseGLModule QGL_Init( const char*, const char* )
 	qwglSwapBuffers = NULL;
 #endif
 
+    std::string dispatchError;
+    if (!cse::render::InstallLegacyDispatch(cse::render::DispatchMode::ReferenceGL, nullptr, dispatchError)) {
+        QGL_Shutdown();
+        return nullptr;
+    }
 	return glw_state.hinstOpenGL;
 }
 
@@ -4287,6 +4295,7 @@ extern "C" void GLimp_EnableLogging()
 		qglVertexPointer = dllVertexPointer;
 		qglViewport = dllViewport;
 	}
+    cse::render::RefreshLegacyDispatchReferences();
 }
 
 extern "C" void GLimp_LogNewFrame()

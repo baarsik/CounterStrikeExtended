@@ -86,11 +86,11 @@ Core and DemoPlayer remain enabled when broadcasting is disabled.
 
 The software client renderer (`sw.dll`) is unavailable; the inherited video
 settings still offer it. The dedicated engine (`swds.dll`) is separate.
-Windows x64 is in native bring-up. Windows ARM64 remains conditional; complete
-macOS builds the complete client through `cse_client`; standalone server/A3D
-source portability is incomplete. Linux
-composition remains gated. See [migration requirements and status](native-migration.md) before treating an
-opt-in target as playable.
+Windows x64 is in native bring-up. Windows ARM64 remains conditional. macOS
+builds all 19 runtime roles through `cse_runtime`; `cse_client` builds the 14 client
+responsibilities only. Linux composition remains gated. See
+[migration requirements and status](native-migration.md) before treating an opt-in
+target as playable.
 
 ## Native Windows bring-up
 
@@ -135,11 +135,12 @@ cmake --preset runtime-macos-arm64-release \
   -DCSE_NATIVE_THIRD_PARTY_PREFIX=/absolute/dependencies/cse-arm64-macos \
   -DCSE_STEAM_PROVIDER_FILE=/absolute/providers/libsteam_api.dylib \
   -DCEF_ROOT=/absolute/providers/cef-macosarm64
-cmake --build --preset runtime-macos-arm64-release --target cse_client --parallel
+cmake --build --preset runtime-macos-arm64-release --target cse_runtime --parallel
 ```
 
-Use `runtime-macos-arm64-debug` with the same provider paths and `--target cse_client`
-for Debug. Both presets configure all 19 responsibilities and isolate their runtime under
+Use `runtime-macos-arm64-debug` with the same provider paths and `--target cse_runtime`
+for Debug. The default/all-runtime build also selects all 19 roles. Both presets
+configure all 19 responsibilities and isolate their runtime under
 `build/<preset>/runtime/<Configuration>/`. The native browser helper path is
 provided by the preset. No private local provider paths are stored in it.
 
@@ -150,10 +151,12 @@ the shared font-registration service and the sandboxed CEF helpers. Release and
 Debug compile/link and actual native module-load checks pass. The client uses
 the engine's VGUI2 Surface; the standalone GDI tools surface is Windows-only.
 
-Building the default/all-runtime target still reaches unported standalone
-dedicated-server and A3D owners. Client compilation does not qualify gameplay,
-embedded VGUI1 root admission, font/layout parity, physical input or presentation.
-These presets do not deliver the complete macOS game/app bundle yet. See the
+The standalone dedicated/admin, software-engine and A3D owners are implemented.
+The frozen combined all19-002 cohort builds all 19 roles in Release/Debug and
+passes image inventories. These are incremental build results, with 38 images
+containing ARM64 per profile. Build success does not qualify
+gameplay, full provider behavior, font/layout parity, physical input or presentation.
+The local app bundle is not a qualified distribution package. See the
 [actual-library integration fixture](../tests/native/mac_client/README.md).
 Offline Metal shader tools are also required for the
 shared renderer. C++ exceptions follow the owning per-file policy; explicitly
@@ -264,6 +267,7 @@ Native-only manifest metadata:
 | --- | --- |
 | `CseTargetOS` / `CseReplaces` | Select an OS replacement while preserving the reference source inventory; accepted OS values are `macos`, `linux`, `windows`, `posix` |
 | `CseNativeSdl3` | Route non-Windows consumers through the existing pinned SDL3 target; Release/Debug values must agree |
+| `CseNativeWindowsLibraries` | Exact GameUI-only `ws2_32.lib` selection in both Debug and Release; generated linking applies only to Windows with 64-bit pointers, preserving Win32 and POSIX selections |
 | `CseNativeModuleAliases` | Add guarded relative POSIX library aliases; CS keeps `mp` and provides `cs.dylib` / `cs.so` |
 
 Native game loading uses `gamedll_osx` or `gamedll_linux`. If absent, Windows

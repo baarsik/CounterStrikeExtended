@@ -33,6 +33,7 @@
     <CodeAnalysisSucceededFile>$(IntDir)$(TargetName).lastcodeanalysissucceeded</CodeAnalysisSucceededFile>
   </PropertyGroup>
   <PropertyGroup><CseSdl3Shared>true</CseSdl3Shared></PropertyGroup>
+  <PropertyGroup><CseNativeWindowsLibraries>ws2_32.lib</CseNativeWindowsLibraries></PropertyGroup>
   <Import Project="SDL3.props" />
   <ItemDefinitionGroup>
     <ClCompile>

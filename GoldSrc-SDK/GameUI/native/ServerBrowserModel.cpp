@@ -54,16 +54,17 @@ bool Matches(const Row& row, const Filters& filters) {
     }
     const bool needsResponse = !filters.gameDirectory.empty() || !filters.map.empty() || filters.nonempty ||
         filters.notFull || filters.maxPing > 0 || filters.password != Requirement::Any ||
-        filters.secure != Requirement::Any;
+        filters.secure != Requirement::Any || filters.validSteamAccount;
     if (needsResponse && !row.responded) {
         return false;
     }
     return (filters.gameDirectory.empty() || Fold(filters.gameDirectory) == Fold(row.gameDirectory)) &&
-        (filters.map.empty() || Fold(filters.map) == Fold(row.map)) &&
-        (!filters.nonempty || row.players > 0) && (!filters.notFull || row.players < row.maxPlayers) &&
+        (filters.map.empty() || Fold(row.map).compare(0, filters.map.size(), Fold(filters.map)) == 0) &&
+        (!filters.nonempty || static_cast<int64_t>(row.players) - row.bots > 0) && (!filters.notFull || row.players < row.maxPlayers) &&
         (filters.maxPing <= 0 || (row.ping >= 0 && row.ping <= filters.maxPing)) &&
         (filters.password == Requirement::Any || row.password == (filters.password == Requirement::Yes)) &&
-        (filters.secure == Requirement::Any || row.secure == (filters.secure == Requirement::Yes));
+        (filters.secure == Requirement::Any || row.secure == (filters.secure == Requirement::Yes)) &&
+        (!filters.validSteamAccount || row.hasSteamAccount);
 }
 struct RowLess {
     Sort sort;
@@ -93,13 +94,25 @@ struct RowLess {
                 comparison = compare(Fold(left.map), Fold(right.map));
                 break;
             case Column::Players:
-                comparison = compare(left.players, right.players);
+                comparison = compare(std::max<int64_t>(static_cast<int64_t>(left.players) - left.bots, 0),
+                                     std::max<int64_t>(static_cast<int64_t>(right.players) - right.bots, 0));
+                if (comparison == 0) {
+                    comparison = compare(std::max<int64_t>(static_cast<int64_t>(left.maxPlayers) - left.bots, 0),
+                                         std::max<int64_t>(static_cast<int64_t>(right.maxPlayers) - right.bots, 0));
+                }
                 break;
             case Column::Ping:
                 comparison = compare(left.ping, right.ping);
                 break;
+            case Column::Bots:
+                comparison = compare(left.bots, right.bots);
+                break;
+            case Column::LastPlayed:
+                comparison = compare(left.lastPlayed, right.lastPlayed);
+                break;
             case Column::Address:
-                comparison = compare(left.key, right.key);
+                comparison = compare(std::tie(left.key.ip, left.key.queryPort),
+                                     std::tie(right.key.ip, right.key.queryPort));
                 break;
         }
         if (comparison == 0) {
@@ -121,6 +134,9 @@ Row CopyRow(const gameserveritem_t& item, bool failed) {
     row.players = item.m_nPlayers;
     row.maxPlayers = item.m_nMaxPlayers;
     row.bots = item.m_nBotPlayers;
+    row.lastPlayed = item.m_ulTimeLastPlayed;
+    // Original CheckSecondaryFilters tests the account component, not IsValid() or VAC.
+    row.hasSteamAccount = item.m_steamID.GetAccountID() != 0;
     row.password = item.m_bPassword;
     row.secure = item.m_bSecure;
     row.responded = item.m_bHadSuccessfulResponse;
@@ -242,8 +258,7 @@ struct ServerBrowserModel::State {
         HServerListRequest handle = nullptr;
         bool accepting = true;
         bool completed = false;
-        bool quickSingle = false;
-        int singleIndex = -1;
+        std::set<int> quickPending;
         int enumerate = 0;
         int count = 0;
         std::map<int, bool> dirty;
@@ -269,9 +284,8 @@ struct ServerBrowserModel::State {
             ++owner.callbackDepth;
             if (Accept(incoming) && index >= 0) {
                 dirty[index] = failed;
-                if (quickSingle && index == singleIndex) {
+                if (quickPending.erase(index) && quickPending.empty()) {
                     completed = true;
-                    quickSingle = false;
                     owner.status.phase = Phase::Complete;
                 }
             }
@@ -348,7 +362,7 @@ struct ServerBrowserModel::State {
     size_t StorageNodes() const {
         const auto requestNodes = [](const std::unique_ptr<Request>& owner) {
             return owner ? owner->dirty.size() + owner->seen.size() + owner->membership.size() +
-                owner->filters.size() + owner->filterPointers.size() : size_t{0};
+                owner->filters.size() + owner->filterPointers.size() + owner->quickPending.size() : size_t{0};
         };
         return rows.size() + indexes.size() + updates.size() + (ordered ? ordered->size() : 0) +
             (rebuilding ? rebuilding->size() : 0) + (retiredIndex ? retiredIndex->size() : 0) +
@@ -412,7 +426,7 @@ struct ServerBrowserModel::State {
     void NormalizeEmptyRoots() {
         if (retiredRequest && retiredRequest->dirty.empty() && retiredRequest->seen.empty() &&
             retiredRequest->membership.empty() && retiredRequest->filters.empty() &&
-            retiredRequest->filterPointers.empty() && indexes.empty()) {
+            retiredRequest->filterPointers.empty() && retiredRequest->quickPending.empty() && indexes.empty()) {
             retiredRequest.reset();
         }
         if (retiredIndex && retiredIndex->empty()) {
@@ -440,7 +454,8 @@ struct ServerBrowserModel::State {
         while (lastReclamationWork < budget) {
             if (retiredRequest) {
                 auto& owner = *retiredRequest;
-                if (eraseOne(owner.dirty) || eraseOne(owner.seen) || eraseOne(owner.membership)) {
+                if (eraseOne(owner.dirty) || eraseOne(owner.seen) || eraseOne(owner.membership) ||
+                    eraseOne(owner.quickPending)) {
                     continue;
                 }
                 if (!owner.filterPointers.empty()) {
@@ -598,9 +613,7 @@ bool ServerBrowserModel::State::StartRequest() {
     if (!listFilters.gameDirectory.empty()) {
         add("gamedir", listFilters.gameDirectory);
     }
-    if (!listFilters.map.empty()) {
-        add("map", listFilters.map);
-    }
+    // Map is a case-insensitive prefix applied locally, not the provider exact-map key.
     if (listFilters.nonempty) {
         add("hasplayers", "1");
     }
@@ -706,14 +719,17 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
     state.Check();
     const auto found = state.indexes.find(key);
     if (state.closing || state.refreshPending || !state.request || !state.request->handle ||
-        !state.request->completed || found == state.indexes.end() ||
+        (!state.request->completed && state.request->quickPending.empty()) || found == state.indexes.end() ||
         state.providerDepth || state.callbackDepth) {
         return false;
     }
     auto& request = *state.request;
+    // Selected refreshes share a list handle and may finish in any order. Track each
+    // outstanding index so a preceding asynchronous response cannot block the next row.
+    if (!request.quickPending.insert(found->second).second) {
+        return true;
+    }
     request.completed = false;
-    request.quickSingle = true;
-    request.singleIndex = found->second;
     state.status.phase = Phase::Refreshing;
     state.status.error.clear();
     state.Provider([&] {
@@ -746,7 +762,7 @@ void ServerBrowserModel::SetFilters(const Filters& filters) {
         state.ResetRows();
     }
     if (filters.region != state.filters.region || filters.gameDirectory != state.filters.gameDirectory ||
-        filters.map != state.filters.map || (state.filters.nonempty && !filters.nonempty) ||
+        (state.filters.nonempty && !filters.nonempty) ||
         (state.filters.notFull && !filters.notFull) ||
         (state.filters.secure == Requirement::Yes && filters.secure != Requirement::Yes)) {
         state.status.error = "Provider filter changes require a full refresh for complete membership";
@@ -919,6 +935,14 @@ Status ServerBrowserModel::GetStatus() const {
     }
     return result;
 }
+Row CopyServerRow(const gameserveritem_t &item) {
+    return CopyRow(item, false);
+}
+
+bool ServerBrowserModel::RemoveHistory(AppId_t app, RowKey key) {
+    return state_->Favorite(app, key, k_unFavoriteFlagHistory, 0, true);
+}
+
 bool ServerBrowserModel::AddFavorite(AppId_t app, Address address) {
     return state_->Favorite(app, address, k_unFavoriteFlagFavorite, 0, false);
 }

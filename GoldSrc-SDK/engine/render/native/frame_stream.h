@@ -63,10 +63,16 @@ public:
     explicit FrameRecorder(FrameLimits limits = {});
     Status BeginFrame(const FrameInfo& info);
     Status Submit(const Command& command);
+    Status Refuse(Status reason);
+    Status CaptureStatus() const;
+    bool InPrimitive() const;
     Status Clear(const ClearEvent& clear);
     Status Readback(const ReadbackEvent& readback);
     Status Seal(FrameSnapshot& output);
     void Abort();
+    const FrameLimits& Limits() const {
+        return limits_;
+    }
     const LegacyState& State() const;
     const TextureStore& Textures() const;
     Status BeginList(std::uint32_t id, bool execute);

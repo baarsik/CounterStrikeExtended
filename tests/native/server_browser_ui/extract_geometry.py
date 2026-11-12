@@ -31,6 +31,10 @@ for method in methods:
     signature = f'{result} {name}({params}) override'
     if name == 'GetEmbeddedPanel':
         lines.append(signature + ' { return _embeddedPanel; }')
+    elif name in {'DrawUnicodeChar', 'DrawUnicodeCharAdd'}:
+        lines.append(signature + ' { if (observeText) { paintedText += ch; } real_->' + name + '(ch); }')
+    elif name == 'DrawPrintText':
+        lines.append(signature + ' { if (observeText) { paintedText.append(text, length); } real_->DrawPrintText(text, length); }')
     elif name == 'HasFocus':
         lines.append(signature + ' { return forceWindowFocus || real_->HasFocus(); }')
     elif name == 'GetPopupCount':

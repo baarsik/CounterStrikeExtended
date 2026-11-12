@@ -30,6 +30,7 @@ bool StandaloneWindow::Open(vgui2::HPanel panel, std::uint64_t generation, int x
     SDL_SetWindowPosition(window_, x, y);
     x_ = x;
     y_ = y;
+    AcceptRetainedSize(width, height);
     if (!SDL_StartTextInput(window_)) {
         Close();
         return false;
@@ -69,26 +70,56 @@ void StandaloneWindow::Close() {
     window_ = nullptr;
     id_ = 0;
     panel_ = 0;
+    retainedWidth_ = 0;
+    retainedHeight_ = 0;
+    requestedWidth_ = 0;
+    requestedHeight_ = 0;
+    sizeRequestResult_ = SizeRequestResult::None;
+    backingResizePending_ = false;
 }
 
 bool StandaloneWindow::Resize(int width, int height) {
     const float scale = SDL_GetWindowPixelDensity(window_);
-    if (!raster.Resize(width, height, scale > 0.0f ? scale : 1.0f)) {
-        return false;
-    }
-    width_ = width;
-    height_ = height;
-    return true;
+    const bool resized = raster.Resize(width, height, scale > 0.0f ? scale : 1.0f);
+    backingResizePending_ = !resized;
+    return resized;
 }
 
-void StandaloneWindow::SynchronizeBounds(int x, int y, int width, int height) {
-    // Compare retained requests with the last synchronized request, not live OS
-    // bounds: a pending user move/resize must survive until its event is handled.
-    if (width > 0 && height > 0 && (width != width_ || height != height_)) {
-        if (SDL_SetWindowSize(window_, width, height)) {
-            Resize(width, height);
-        }
-    }
+bool StandaloneWindow::BackingResizePending() const {
+    return backingResizePending_;
+}
+
+bool StandaloneWindow::HasSizeIntent(int width, int height) const {
+    return width > 0 && height > 0 && (width != retainedWidth_ || height != retainedHeight_);
+}
+
+bool StandaloneWindow::SizeRequestInFlight() const {
+    return sizeRequestResult_ == SizeRequestResult::Pending;
+}
+
+bool StandaloneWindow::MatchesSizeRequest(int width, int height) const {
+    return width == requestedWidth_ && height == requestedHeight_;
+}
+
+void StandaloneWindow::BeginSizeRequest(int width, int height) {
+    retainedWidth_ = width;
+    retainedHeight_ = height;
+    requestedWidth_ = width;
+    requestedHeight_ = height;
+    sizeRequestResult_ = SizeRequestResult::Pending;
+}
+
+void StandaloneWindow::EndSizeRequest(bool completed) {
+    sizeRequestResult_ = completed ? SizeRequestResult::Accepted : SizeRequestResult::Rejected;
+}
+
+void StandaloneWindow::AcceptRetainedSize(int width, int height) {
+    retainedWidth_ = width;
+    retainedHeight_ = height;
+}
+
+void StandaloneWindow::SynchronizePosition(int x, int y) {
+    // Preserve pending OS moves when the retained position has not changed.
     if (x != x_ || y != y_) {
         if (SDL_SetWindowPosition(window_, x, y)) {
             x_ = x;

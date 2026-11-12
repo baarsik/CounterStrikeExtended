@@ -16,6 +16,7 @@ using BITMAPINFOHEADER = cse_bmp::InfoHeader;
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_properties.h>
 #include "glquake.h"
+#include "render/native/legacy_dispatch.h"
 #include "filesystem.h"
 #include "ivideomode.h"
 #include "mem.h"
@@ -248,25 +249,26 @@ void GL_Config()
 	}
 }
 
-void CheckTextureExtensions()
-{
-	if ( gl_extensions && Q_strstr( gl_extensions, "GL_EXT_paletted_texture" )
-		 && Q_strstr( gl_extensions, "GL_EXT_shared_texture_palette" ) )
-	{
-		qglColorTableEXT = (decltype( qglColorTableEXT ))SDL_GL_GetProcAddress( "glColorTableEXT" );
-		Con_DPrintf( "Found paletted texture extension.\n" );
-	}
-	else
-	{
-		qglColorTableEXT = NULL;
-	}
+void CheckTextureExtensions() {
+    if (gl_extensions && Q_strstr(gl_extensions, "GL_EXT_paletted_texture") &&
+        Q_strstr(gl_extensions, "GL_EXT_shared_texture_palette")) {
+        qglColorTableEXT = reinterpret_cast<decltype(qglColorTableEXT)>(
+            cse::render::RouteLegacyExtension("glColorTableEXT",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glColorTableEXT"))));
+        Con_DPrintf("Found paletted texture extension.\n");
+    } else {
+        qglColorTableEXT = reinterpret_cast<decltype(qglColorTableEXT)>(
+            cse::render::RouteLegacyExtension("glColorTableEXT", nullptr));
+    }
 
-	if ( gl_extensions && Q_strstr( gl_extensions, "GL_EXT_texture_object " ) )
-	{
-		qglBindTexture = (decltype( qglBindTexture ))SDL_GL_GetProcAddress( "glBindTextureEXT" );
-		if ( !qglBindTexture )
-			Sys_Error( "GetProcAddress for BindTextureEXT failed" );
-	}
+    if (gl_extensions && Q_strstr(gl_extensions, "GL_EXT_texture_object ")) {
+        qglBindTexture = reinterpret_cast<decltype(qglBindTexture)>(
+            cse::render::RouteLegacyExtension("glBindTextureEXT",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glBindTextureEXT"))));
+        if (!qglBindTexture) {
+            Sys_Error("GetProcAddress for BindTextureEXT failed");
+        }
+    }
 }
 
 void CheckMultiTextureExtensions()
@@ -274,8 +276,12 @@ void CheckMultiTextureExtensions()
 	if ( gl_extensions && Q_strstr( gl_extensions, "GL_ARB_multitexture " ) )
 	{
 		Con_DPrintf( "ARB Multitexture extensions found.\n" );
-		qglMTexCoord2fSGIS = (decltype( qglMTexCoord2fSGIS ))SDL_GL_GetProcAddress( "glMultiTexCoord2fARB" );
-		qglSelectTextureSGIS = (decltype( qglSelectTextureSGIS ))SDL_GL_GetProcAddress( "glActiveTextureARB" );
+        qglMTexCoord2fSGIS = reinterpret_cast<decltype(qglMTexCoord2fSGIS)>(
+            cse::render::RouteLegacyExtension("glMultiTexCoord2fARB",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glMultiTexCoord2fARB"))));
+        qglSelectTextureSGIS = reinterpret_cast<decltype(qglSelectTextureSGIS)>(
+            cse::render::RouteLegacyExtension("glActiveTextureARB",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glActiveTextureARB"))));
 		TEXTURE0_SGIS = GL_TEXTURE0_ARB;
 		TEXTURE1_SGIS = GL_TEXTURE1_ARB;
 		TEXTURE2_SGIS = GL_TEXTURE2_ARB;
@@ -300,8 +306,12 @@ void CheckMultiTextureExtensions()
 	else if ( gl_extensions && Q_strstr( gl_extensions, "GL_SGIS_multitexture " ) )
 	{
 		Con_DPrintf( "Multitexture extensions found.\n" );
-		qglMTexCoord2fSGIS = (decltype( qglMTexCoord2fSGIS ))SDL_GL_GetProcAddress( "glMTexCoord2fSGIS" );
-		qglSelectTextureSGIS = (decltype( qglSelectTextureSGIS ))SDL_GL_GetProcAddress( "glSelectTextureSGIS" );
+        qglMTexCoord2fSGIS = reinterpret_cast<decltype(qglMTexCoord2fSGIS)>(
+            cse::render::RouteLegacyExtension("glMTexCoord2fSGIS",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glMTexCoord2fSGIS"))));
+        qglSelectTextureSGIS = reinterpret_cast<decltype(qglSelectTextureSGIS)>(
+            cse::render::RouteLegacyExtension("glSelectTextureSGIS",
+                reinterpret_cast<cse::render::LegacyProcedure>(SDL_GL_GetProcAddress("glSelectTextureSGIS"))));
 		TEXTURE0_SGIS = GL_TEXTURE0_SGIS;
 		TEXTURE1_SGIS = GL_TEXTURE1_SGIS;
 		TEXTURE2_SGIS = GL_TEXTURE2_SGIS;

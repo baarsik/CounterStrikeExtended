@@ -12,6 +12,7 @@
 #include "Label.h"
 #include "ComboBox.h"
 #include "CheckButton.h"
+#include "ToggleButton.h"
 #include "Menu.h"
 #include "ScrollBar.h"
 #include "vgui/IVGui.h"
@@ -23,6 +24,7 @@
 #include "filesystem.h"
 #include "vgui/KeyValues.h"
 #include "geometry_fixture.h"
+#include "system_fixture.h"
 #include "layout_fixture.h"
 #include "input_retirement_fixture.h"
 #include <dlfcn.h>
@@ -77,7 +79,8 @@ void StartList(ServerBrowserDialog &dialog, BrowserSession &session, DetailProvi
     Settle(dialog, session);
 }
 vgui2::ListPanel *List(ServerBrowserDialog &dialog) {
-    auto *result = dynamic_cast<vgui2::ListPanel *>(dialog.FindChildByName("ServerList", true));
+    auto *tabs = static_cast<vgui2::PropertySheet *>(dialog.FindChildByName("GameTabs", false));
+    auto *result = dynamic_cast<vgui2::ListPanel *>(tabs->GetActivePage()->FindChildByName("gamelist", false));
     Require(result != nullptr, "actual ListPanel missing");
     return result;
 }
@@ -102,6 +105,8 @@ int main(int argc, char **argv) {
         auto guiFactory = reinterpret_cast<CreateInterfaceFn>(dlsym(guiImage, "CreateInterface"));
         auto filesystemFactory = reinterpret_cast<CreateInterfaceFn>(dlsym(filesystemImage, "CreateInterface"));
         auto *filesystem = static_cast<IFileSystem *>(filesystemFactory("VFileSystem009", nullptr));
+        system_fixture::BorrowedSystem privateSystem(guiImage,
+            static_cast<vgui2::ISystem *>(guiFactory("VGUI_System009", nullptr)));
         filesystem->Mount();
         filesystem->AddSearchPath(argv[3], "PLATFORM");
         geometry_fixture::BaseUISurface geometry(
@@ -111,20 +116,23 @@ int main(int argc, char **argv) {
                                  layoutCase == "focus-tab" || layoutCase == "focus-header";
         const bool hdLayout = layoutCase == "hd-layout" || layoutCase == "hd-saved" || focusLayout ||
                               layoutCase == "tab-order";
+        const bool playerRefresh = layoutCase == "original-game-info" ||
+            layoutCase == "original-game-info-sync-empty" || layoutCase == "original-game-info-generation";
         const bool inputRetirement = std::string(argv[5]) == "input-retirement";
-        geometry_fixture::surface = hdLayout || inputRetirement ? &geometry : nullptr;
+        geometry_fixture::surface = hdLayout || inputRetirement || playerRefresh ? &geometry : nullptr;
         geometry.forceWindowFocus = hdLayout;
         if (layoutCase == "focus-tab") {
             // Construct with the installed scheme at a real tall workspace before
             // shrinking; Label deliberately retains its already assigned font.
             geometry.Resize(3840, 2160);
         }
-        CreateInterfaceFn factories[]{geometry_fixture::Factory, guiFactory, filesystemFactory};
-        Require(vgui2::VGuiControls_Init("SERVER_BROWSER_TEST", factories, 3), "initialize actual VGUI controls");
+        CreateInterfaceFn factories[]{system_fixture::Factory, geometry_fixture::Factory, guiFactory, filesystemFactory};
+        Require(vgui2::VGuiControls_Init("SERVER_BROWSER_TEST", factories, 4), "initialize actual VGUI controls");
+        Require(vgui2::system() == system_fixture::current, "controls bypassed the private registry fixture");
         auto *gui = vgui2::ivgui();
         gui->SetSleep(false);
         gui->Start();
-        auto *hdParent = hdLayout ? geometry_fixture::CreateParent(geometry) : nullptr;
+        auto *hdParent = hdLayout || playerRefresh ? geometry_fixture::CreateParent(geometry) : nullptr;
         Require(vgui2::scheme()->LoadSchemeFromFile("resource/TrackerScheme.res", nullptr) != 0,
                 "load original retained scheme");
         if (inputRetirement) {
@@ -135,6 +143,7 @@ int main(int argc, char **argv) {
             vgui2::surface()->Shutdown();
             vgui2::VGuiControls_Shutdown();
             filesystem->Unmount();
+            privateSystem.Restore();
             dlclose(guiImage);
             dlclose(filesystemImage);
             return;
@@ -151,12 +160,12 @@ int main(int argc, char **argv) {
         Favorites favorites;
         Engine engine;
         const std::string name = argv[5];
-        for (size_t index = 0;
-             index < ((name == "bounded" || name == "navigation-sort" || name == "navigation-update" ||
-                       name == "rapid-tabs" || name == "tab-selection-supersession" || name == "hd-layout")
-                          ? ServerCount
-                          : 3);
-             ++index) {
+        constexpr size_t KeyboardFixtureRows = 64;
+        const bool largeFixture = name == "bounded" || name == "navigation-sort" || name == "navigation-update" ||
+            name == "rapid-tabs" || name == "tab-selection-supersession" || name == "hd-layout";
+        const size_t fixtureRows = name == "original-keyboard-range" ? KeyboardFixtureRows :
+            (largeFixture ? ServerCount : 3);
+        for (size_t index = 0; index < fixtureRows; ++index) {
             auto row = Server(0x7f000001U + static_cast<uint32_t>(index), ("Server " + std::to_string(index)).c_str());
             row.m_nPing = static_cast<int>(index % 200);
             row.m_bPassword = name == "password" || name == "inactive-close";
@@ -174,6 +183,7 @@ int main(int argc, char **argv) {
             ServerBrowserConfig config(storage);
             Require(config.Load(), "fixture could not initialize owned browser preferences");
             BrowserSettings settings;
+            settings.savedSize = true;
             settings.width = 16384;
             settings.height = 16384;
             config.SetSettings(settings);
@@ -191,275 +201,143 @@ int main(int argc, char **argv) {
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
-        if (focusLayout || name == "tab-order") {
-            auto *body = layout_fixture::Child(*dialog, "BrowserOverflow");
-            auto *table = layout_fixture::Child(*dialog, "TableOverflow");
+        if (focusLayout || name == "tab-order" || name == "hd-layout") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
-            auto *vertical = static_cast<vgui2::ScrollBar *>(body->FindChildByName("VerticalOverflow", false));
-            auto *horizontal = static_cast<vgui2::ScrollBar *>(body->FindChildByName("HorizontalOverflow", false));
-            auto settleLayout = [&] {
-                constexpr int LayoutTurns = 8;
-                for (int turn = 0; turn < LayoutTurns; ++turn) {
-                    Settle(*dialog, session);
-                    body->OnThink();
-                    table->OnThink();
-                    vgui2::surface()->SolveTraverse(dialog->GetVPanel(), false);
-                }
-            };
-            auto resize = [&](int width, int height, bool schemeChange) {
-                geometry.Resize(width, height);
-                hdParent->SetSize(width, height);
-                if (schemeChange) {
-                    // Switch to another owned handle for the identical installed
-                    // scheme; keep the old real font/border resources alive.
-                    const auto path = std::filesystem::path(argv[4]) / "focus-scheme.res";
-                    std::filesystem::copy_file(std::filesystem::path(argv[3]) / "resource/TrackerScheme.res", path,
-                                               std::filesystem::copy_options::overwrite_existing);
-                    filesystem->AddSearchPath(argv[4], "SKIN");
-                    const auto scheme = vgui2::scheme()->LoadSchemeFromFile("focus-scheme.res", "FocusScheme");
-                    Require(scheme != 0, "retained-focus real scheme failed to load");
-                    dialog->SetScheme(scheme);
-                }
-                dialog->SetSize(width, height);
-                dialog->InvalidateLayout(true, schemeChange);
-                settleLayout();
-            };
-            resize(name == "focus-tab" ? 3840 : 1600, name == "focus-tab" ? 2160 : 1200, false);
-            const auto logicalTabs = layout_fixture::LogicalTabs(*tabs);
-            if (name == "tab-order") {
-                constexpr std::array<std::array<int, 2>, 2> sizes{{{1600, 1200}, {640, 480}}};
-                for (const auto &size : sizes) {
-                    resize(size[0], size[1], false);
-                    const auto positions = layout_fixture::Bounds(logicalTabs);
-                    for (int page : {4, 1, 5, 2, 0, 3}) {
-                        tabs->SetActivePage(tabs->GetPage(page));
-                        dialog->InvalidateLayout(true, false);
-                        settleLayout();
-                        Require(layout_fixture::Bounds(logicalTabs) == positions,
-                                "selecting a page changed the logical tabs' positions after layout");
-                    }
-                    layout_fixture::LogicalOrder(logicalTabs, size[0] == 640);
-                    tabs->SetActivePage(tabs->GetPage(0));
-                    tabs->RequestFocus(1);
-                    settleLayout();
-                    Require(vgui2::input()->GetFocus() == logicalTabs[0]->GetVPanel(),
-                            "forward traversal did not enter the actual first tab");
-                    for (int page = 1; page < tabs->GetNumPages(); ++page) {
-                        layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_RIGHT);
-                        settleLayout();
-                        Require(tabs->GetActivePageNum() == page,
-                                "right arrow did not follow the visible logical tab order");
-                        Require(layout_fixture::Bounds(logicalTabs) == positions,
-                                "keyboard selection changed wrapped tab positions");
-                    }
-                    for (int page = tabs->GetNumPages() - 2; page >= 0; --page) {
-                        layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_LEFT);
-                        settleLayout();
-                        Require(tabs->GetActivePageNum() == page && layout_fixture::Bounds(logicalTabs) == positions,
-                                "left arrow changed the visible logical tab order or positions");
-                    }
-                }
-            } else {
-                auto *focus = layout_fixture::Child(*dialog, "AddAddress");
-                focus->RequestFocus(0);
-                settleLayout();
-                Require(vgui2::input()->GetFocus() == focus->GetVPanel(), "actual action focus was not delivered");
-                Require(!vertical->IsEnabled() && !horizontal->IsEnabled(),
-                        "retained-focus control must start without outer overflow");
-                Require(vertical->GetValue() == 0 && horizontal->GetValue() == 0,
-                        "nonoverflow control moved its inactive scrollbars");
-                layout_fixture::VisibleWithin(*focus, *body);
-                resize(640, 480, name == "focus-scheme");
-                if (name == "focus-tab" || name == "focus-header") {
-                    focus = name == "focus-tab" ? logicalTabs[1] : layout_fixture::Child(*List(*dialog), "password");
-                    if (name == "focus-header") {
-                        auto *tableHorizontal =
-                            static_cast<vgui2::ScrollBar *>(table->FindChildByName("HorizontalOverflow", false));
-                        Require(tableHorizontal->IsEnabled(), "nested header fixture needs horizontal overflow");
-                        tableHorizontal->SetValue(0);
-                    }
-                    focus->RequestFocus(0);
-                    settleLayout();
-                }
-                Require(vgui2::input()->GetFocus() == focus->GetVPanel(),
-                        "resize/scheme transition lost the actual focused descendant");
-                layout_fixture::VisibleWithin(*focus, *body);
-                if (name == "focus-header") {
-                    layout_fixture::VisibleWithin(*focus, *table);
-                    focus = layout_fixture::Child(*List(*dialog), "address");
-                    focus->RequestFocus(0);
-                    settleLayout();
-                    Require(vgui2::input()->GetFocus() == focus->GetVPanel(),
-                            "actual last header focus was not delivered");
-                    layout_fixture::VisibleWithin(*focus, *body);
-                    layout_fixture::VisibleWithin(*focus, *table);
-                }
-                // An ordinary user scroll must remain effective with unchanged
-                // focus and geometry, rather than being undone every frame.
-                vertical->SetValue(0);
-                settleLayout();
-                Require(vertical->GetValue() == 0, "unchanged focus repeatedly overrides manual scrolling");
-                resize(name == "focus-tab" ? 3840 : 1600, name == "focus-tab" ? 2160 : 1200, false);
-                Require(!vertical->IsEnabled() && !horizontal->IsEnabled() &&
-                            vertical->GetValue() == 0 && horizontal->GetValue() == 0,
-                        "expansion left an inactive outer scrollbar moved or enabled");
-                layout_fixture::VisibleWithin(*focus, *body);
+            auto *initialPage = tabs->GetActivePage();
+            vgui2::Panel *retainedFocus = nullptr;
+            if (name == "focus-header") {
+                retainedFocus = layout_fixture::Child(*List(*dialog), "Name");
+            } else if (name == "focus-resize" || name == "focus-scheme") {
+                retainedFocus = layout_fixture::Child(*initialPage, "RefreshButton");
             }
-        }
-        if (name == "hd-layout") {
-            auto *label = dynamic_cast<vgui2::Label *>(layout_fixture::Child(*dialog, "NameLabel"));
-            Require(label->IsHDProportional(), "fixture failed actual HD parent inheritance");
-            Require(vgui2::surface()->GetFontTall(label->GetFont()) >= 24,
-                    "fixture did not load real HD scheme fonts through surface factory");
-            Require(session.presentation.VisibleCount() == ServerCount, "HD layout dropped legitimate results");
-            layout_fixture::Check(*dialog, 1600, 1200);
-            constexpr std::array<std::array<int, 2>, 5> sizes{
-                {{640, 480}, {1280, 720}, {1600, 1200}, {3840, 2160}, {640, 480}}};
-            int schemeGeneration = 0;
+            if (retainedFocus) {
+                retainedFocus->RequestFocus(0);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*retainedFocus);
+            }
+            constexpr std::array<std::array<int, 2>, 4> sizes{{{640, 384}, {1280, 720}, {1600, 1200}, {640, 384}}};
             for (const auto &size : sizes) {
                 geometry.Resize(size[0], size[1]);
-                hdParent->SetSize(size[0], size[1]);
-                // Keep the previous scheme's borders alive while live controls switch.
-                // Every variant is an exact byte copy of the installed scheme, not a smaller test font.
-                const auto schemeName = "layout-scheme-" + std::to_string(schemeGeneration++) + ".res";
-                const auto schemePath = std::filesystem::path(argv[4]) / schemeName;
-                std::filesystem::copy_file(std::filesystem::path(argv[3]) / "resource/TrackerScheme.res", schemePath,
-                                           std::filesystem::copy_options::overwrite_existing);
-                filesystem->AddSearchPath(argv[4], "SKIN");
-                const auto changedScheme = vgui2::scheme()->LoadSchemeFromFile(schemeName.c_str(), schemeName.c_str());
-                Require(changedScheme != 0, "real alternate scheme failed to load");
-                dialog->SetScheme(changedScheme);
                 dialog->SetSize(size[0], size[1]);
                 dialog->InvalidateLayout(true, true);
-                for (int turn = 0; turn < 8; ++turn) {
-                    Settle(*dialog, session);
-                }
-                std::fprintf(stderr, "layout %dx%d\n", size[0], size[1]);
+                Settle(*dialog, session);
                 layout_fixture::Check(*dialog, size[0], size[1]);
-            }
-            auto *table = layout_fixture::Child(*dialog, "TableOverflow");
-            auto *horizontal = dynamic_cast<vgui2::ScrollBar *>(layout_fixture::Child(*table, "HorizontalOverflow"));
-            Require(horizontal->IsEnabled(), "small workspace hides required horizontal table overflow");
-            layout_fixture::Key(*horizontal, vgui2::KEY_END);
-            Require(horizontal->GetValue() > 0, "keyboard cannot reach right-hand table columns");
-            auto *body = layout_fixture::Child(*dialog, "BrowserOverflow");
-            auto *vertical = dynamic_cast<vgui2::ScrollBar *>(layout_fixture::Child(*body, "VerticalOverflow"));
-            // Find the outer bar directly: the table owns another fixed pair.
-            vertical = dynamic_cast<vgui2::ScrollBar *>(body->FindChildByName("VerticalOverflow", false));
-            Require(vertical && vertical->IsEnabled(), "small workspace hides required control overflow");
-            layout_fixture::Key(*vertical, vgui2::KEY_END);
-            Require(vertical->GetValue() > 0, "keyboard cannot reach bottom actions/messages");
-            auto *first = layout_fixture::Child(*dialog, "NameFilter");
-            first->RequestFocus(0);
-            for (int turn = 0; turn < 8; ++turn) {
+                if (retainedFocus) {
+                    layout_fixture::FocusVisible(*retainedFocus);
+                }
+                auto *toggle = static_cast<vgui2::ToggleButton *>(layout_fixture::Child(*initialPage, "Filter"));
+                toggle->DoClick();
                 gui->RunFrame();
-                body->OnThink();
-            }
-            Require(vgui2::input()->GetFocus() == first->GetVPanel(),
-                    "actual input did not receive queued filter focus");
-            int firstX = 0;
-            int firstY = 0;
-            first->LocalToScreen(firstX, firstY);
-            body->ScreenToLocal(firstX, firstY);
-            Require(firstY >= 0 && firstY + first->GetTall() <= body->GetTall(),
-                    "focused filter remains outside scroll viewport");
-            layout_fixture::Key(*first, vgui2::KEY_TAB);
-            for (int turn = 0; turn < 8; ++turn) {
+                Settle(*dialog, session);
+                Require(toggle->IsSelected(), "Filter did not expand");
+                layout_fixture::Check(*dialog, size[0], size[1]);
+                if (retainedFocus) {
+                    layout_fixture::FocusVisible(*retainedFocus);
+                }
+                toggle->DoClick();
                 gui->RunFrame();
-                body->OnThink();
-            }
-            Require(vgui2::input()->GetFocus() == layout_fixture::Child(*dialog, "MapFilter")->GetVPanel(),
-                    "actual Tab navigation cannot cross the new fixed-control hierarchy");
-            wchar_t longLabel[] = L"Bardzo długa zlokalizowana etykieta przycisku i ustawień serwera";
-            vgui2::localize()->AddString("CSEServerBrowser_LayoutFixture", longLabel, "fixture");
-            for (const char *control : {"NameLabel", "RemoveFavorite", "Apply"}) {
-                static_cast<vgui2::Label *>(layout_fixture::Child(*dialog, control))
-                    ->SetText("#CSEServerBrowser_LayoutFixture");
-            }
-            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
-            for (int index = 0; index < tabs->GetChildCount(); ++index) {
-                if (auto *tab = dynamic_cast<vgui2::Label *>(tabs->GetChild(index))) {
-                    if (std::string(tab->GetName()) == "tab") {
-                        tab->SetText("#CSEServerBrowser_LayoutFixture");
-                    }
+                Settle(*dialog, session);
+                layout_fixture::Check(*dialog, size[0], size[1]);
+                if (retainedFocus) {
+                    layout_fixture::FocusVisible(*retainedFocus);
                 }
             }
-            dialog->InvalidateLayout(true, true);
+            if (name == "focus-scheme") {
+                auto *toggle = static_cast<vgui2::ToggleButton *>(layout_fixture::Child(*initialPage, "Filter"));
+                toggle->DoClick();
+                gui->RunFrame();
+                Settle(*dialog, session);
+                auto *map = layout_fixture::Child(*initialPage, "MapFilter");
+                map->RequestFocus(0);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*map);
+                const auto originalScheme = dialog->GetScheme();
+                constexpr const char *SchemeFilename = "fix1-focus-scheme.res";
+                const auto schemePath = std::filesystem::path(argv[4]) / SchemeFilename;
+                std::filesystem::copy_file(std::filesystem::path(argv[3]) / "resource/TrackerScheme.res", schemePath);
+                filesystem->AddSearchPath(argv[4], "SKIN");
+                const auto alternateScheme = vgui2::scheme()->LoadSchemeFromFile(SchemeFilename, "Fix1FocusScheme");
+                Require(alternateScheme != 0 && alternateScheme != originalScheme,
+                        "focus-scheme did not load a distinct actual scheme handle");
+                dialog->SetScheme(alternateScheme);
+                dialog->InvalidateLayout(true, true);
+                Settle(*dialog, session);
+                Require(dialog->GetScheme() == alternateScheme && map->GetScheme() == alternateScheme,
+                        "alternate scheme was not inherited by the focused original control");
+                layout_fixture::FocusVisible(*map);
+                layout_fixture::Check(*dialog, 640, 384);
+            }
+            const bool keyboardTabs = name == "focus-tab" || name == "tab-order";
+            if (keyboardTabs) {
+                tabs->RequestFocus(1);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*tabs->GetActiveTab());
+            }
+            for (size_t index = 0; index < BrowserTabKinds.size(); ++index) {
+                if (keyboardTabs) {
+                    if (index) {
+                        layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_RIGHT);
+                    }
+                } else {
+                    tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
+                }
+                Settle(*dialog, session);
+                provider.lists.Complete();
+                Settle(*dialog, session);
+                Require(tabs->GetActivePageNum() == static_cast<int>(index) &&
+                            session.settings.kind == BrowserTabKinds[index],
+                        "tab traversal changed visual or stored tab identity");
+                if (keyboardTabs) {
+                    layout_fixture::FocusVisible(*tabs->GetActiveTab());
+                }
+                layout_fixture::Check(*dialog, 640, 384);
+                auto *page = tabs->GetActivePage();
+                const bool internet = BrowserTabKinds[index] == ListKind::Internet ||
+                    BrowserTabKinds[index] == ListKind::Spectate;
+                const bool favoritesPage = BrowserTabKinds[index] == ListKind::Favorites;
+                Require(layout_fixture::Child(*page, "RefreshQuickButton")->IsVisible() == internet,
+                        "quick-refresh capability differs from original page");
+                Require(layout_fixture::Child(*page, "AddServerButton")->IsVisible() == favoritesPage,
+                        "Add Server escaped Favorites");
+            }
+            if (keyboardTabs) {
+                for (int index = static_cast<int>(BrowserTabKinds.size()) - 2; index >= 0; --index) {
+                    layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_LEFT);
+                    Settle(*dialog, session);
+                    provider.lists.Complete();
+                    Settle(*dialog, session);
+                    Require(tabs->GetActivePageNum() == index &&
+                                session.settings.kind == BrowserTabKinds[static_cast<size_t>(index)],
+                            "Left key did not select the preceding original page");
+                    layout_fixture::FocusVisible(*tabs->GetActiveTab());
+                }
+                auto *page = tabs->GetActivePage();
+                auto *refresh = layout_fixture::Child(*page, "RefreshButton");
+                layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_TAB);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*refresh);
+                layout_fixture::Key(*refresh, vgui2::KEY_TAB);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*layout_fixture::Child(*page, "Filter"));
+                // A Tab message dispatched through the ordinary page enters its first enabled resource control.
+                layout_fixture::Key(*page, vgui2::KEY_TAB);
+                Settle(*dialog, session);
+                layout_fixture::FocusVisible(*refresh);
+            }
+            auto *reopenFocus = layout_fixture::Child(*tabs->GetActivePage(), "RefreshButton");
+            reopenFocus->RequestFocus(0);
             Settle(*dialog, session);
-            layout_fixture::Check(*dialog, 640, 480);
-            dialog->SetSize(16384, 16384);
-            dialog->InvalidateLayout(true, false);
-            Settle(*dialog, session);
-            layout_fixture::Check(*dialog, 640, 480);
-            dialog->SaveSettings();
-            const int savedWidth = dialog->GetWide();
-            const int savedHeight = dialog->GetTall();
-            session.config.Load();
-            Require(session.config.Settings().width == savedWidth && session.config.Settings().height == savedHeight,
-                    "saved browser dimensions changed physical-pixel units");
+            layout_fixture::FocusVisible(*reopenFocus);
             dialog->Deactivate();
             dialog->Activate();
             for (int turn = 0; turn < MaxFrames && !dialog->IsVisible(); ++turn) {
                 dialog->Pump();
                 gui->RunFrame();
             }
-            Require(dialog->IsVisible(), "layout reopen did not finish bounded inactive drain");
+            Require(dialog->IsVisible(), "reopen did not finish bounded retirement");
             StartList(*dialog, session, provider);
-            Require(dialog->GetWide() == savedWidth && dialog->GetTall() == savedHeight,
-                    "reopening repeatedly rescales saved physical dimensions");
-            // Label retains an assigned font across SetScheme. Construct details
-            // with a newly loaded real HD scheme first, then resize its live controls.
-            geometry.Resize(1600, 1200);
-            hdParent->SetSize(1600, 1200);
-            const auto detailsSchemePath = std::filesystem::path(argv[4]) / "details-initial-scheme.res";
-            std::filesystem::copy_file(std::filesystem::path(argv[3]) / "resource/TrackerScheme.res", detailsSchemePath,
-                                       std::filesystem::copy_options::overwrite_existing);
-            const auto detailsScheme =
-                vgui2::scheme()->LoadSchemeFromFile("details-initial-scheme.res", "DetailsInitialHD");
-            Require(detailsScheme != 0, "initial real details HD scheme failed to load");
-            dialog->SetScheme(detailsScheme);
-            dialog->SelectVisible(0);
-            Send(*dialog, "Details");
-            auto *details = layout_fixture::Child(*dialog, "DialogGameInfo");
-            for (int turn = 0; turn < 8; ++turn) {
-                dialog->Pump();
-                gui->RunFrame();
-                vgui2::surface()->SolveTraverse(details->GetVPanel(), false);
-            }
-            for (const char *control : {"ServerInfo", "Endpoint", "Status", "kind", "name", "value"}) {
-                layout_fixture::Fits(*details, control);
-            }
-            static_cast<vgui2::Label *>(layout_fixture::Child(*details, "ServerInfo"))
-                ->SetText("#CSEServerBrowser_LayoutFixture");
-            for (const auto &size : sizes) {
-                geometry.Resize(size[0], size[1]);
-                hdParent->SetSize(size[0], size[1]);
-                const auto schemeName = "details-scheme-" + std::to_string(schemeGeneration++) + ".res";
-                const auto schemePath = std::filesystem::path(argv[4]) / schemeName;
-                std::filesystem::copy_file(std::filesystem::path(argv[3]) / "resource/TrackerScheme.res", schemePath,
-                                           std::filesystem::copy_options::overwrite_existing);
-                const auto changedScheme = vgui2::scheme()->LoadSchemeFromFile(schemeName.c_str(), schemeName.c_str());
-                Require(changedScheme != 0, "real details scheme failed to load");
-                details->SetScheme(changedScheme);
-                details->SetSize(size[0], size[1]);
-                details->InvalidateLayout(true, true);
-                for (int turn = 0; turn < 8; ++turn) {
-                    dialog->Pump();
-                    gui->RunFrame();
-                    vgui2::surface()->SolveTraverse(details->GetVPanel(), false);
-                    vgui2::surface()->PaintTraverse(details->GetVPanel());
-                }
-                Require(details->GetWide() <= size[0] && details->GetTall() <= size[1],
-                        "details physical frame exceeds the actual workspace");
-                for (const char *control : {"ServerInfo", "Endpoint", "Status", "kind", "name", "value"}) {
-                    layout_fixture::Fits(*details, control);
-                }
-                if (size[1] >= 1200) {
-                    auto *info = static_cast<vgui2::Label *>(layout_fixture::Child(*details, "ServerInfo"));
-                    Require(vgui2::surface()->GetFontTall(info->GetFont()) >= 24,
-                            "details did not inherit tall actual scheme fonts");
-                }
-            }
+            layout_fixture::FocusVisible(*reopenFocus);
+            layout_fixture::Check(*dialog, 640, 384);
         } else if (name == "hd-saved") {
             Require(dialog->GetWide() == 1600 && dialog->GetTall() == 1200,
                     "saved physical dimensions were not clamped to the real workspace");
@@ -477,7 +355,7 @@ int main(int argc, char **argv) {
             for (size_t index = 0; index < window; ++index) {
                 provider.lists.nextRows.push_back(Server(0x7f000001U + static_cast<uint32_t>(index)));
             }
-            Send(*dialog, "Refresh");
+            Send(*dialog, "GetNewList");
             StartList(*dialog, session, provider);
             Require(session.presentation.VisibleCount() == dialog->WindowSize() &&
                         List(*dialog)->GetItemCount() == static_cast<int>(window),
@@ -524,7 +402,7 @@ int main(int argc, char **argv) {
             const auto last = session.model.Selection();
             Require(session.presentation.FirstVisibleRank() + list->GetItemCount() == ServerCount,
                     "logical scrollbar cannot reach final row");
-            auto *sortMessage = new KeyValues("SetSortColumn", "column", static_cast<int>(Column::Ping));
+            auto *sortMessage = new KeyValues("SetSortColumn", "column", 7);
             gui->PostMessage(list->GetVPanel(), sortMessage, 0, 0);
             Settle(*dialog, session);
             Require(session.model.Selection() == last, "header sort replaced RowKey selection");
@@ -613,7 +491,7 @@ int main(int argc, char **argv) {
             const auto original = session.model.Selection();
             Require(original.has_value(), "large-list original selection was not established");
             auto switchOnce = [&](ListKind kind) {
-                tabs->SetActivePage(tabs->GetPage(static_cast<int>(kind)));
+                tabs->SetActivePage(tabs->GetPage(static_cast<int>(std::find(BrowserTabKinds.begin(), BrowserTabKinds.end(), kind) - BrowserTabKinds.begin())));
                 dialog->Pump();
                 gui->RunFrame();
                 Require(session.settings.kind == kind, "rapid tab intention was not admitted");
@@ -667,94 +545,82 @@ int main(int argc, char **argv) {
                         engine.commands.back() == "connect " + ConnectionAddress(*expected) + "\n",
                     "restored tab selection connected an unexpected numeric endpoint");
         } else if (name == "region-tabs") {
-            auto *tabs = dynamic_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", true));
-            auto *region = dynamic_cast<vgui2::ComboBox *>(dialog->FindChildByName("RegionFilter", true));
-            auto *nameFilter = dynamic_cast<vgui2::TextEntry *>(dialog->FindChildByName("NameFilter", true));
-            nameFilter->SetText("Server 1");
-            region->ActivateItem(4);
-            Send(*dialog, "Apply");
-            dialog->ChooseSort(static_cast<int>(Column::Ping));
+            auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
+            auto *map = static_cast<vgui2::TextEntry *>(tabs->GetActivePage()->FindChildByName("MapFilter", false));
+            map->SetText("DE_");
+            gui->RunFrame();
             Settle(*dialog, session);
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(provider.lists.lastFilters["region"] == "3", "non-world Internet fixture was not admitted");
-            dialog->SelectVisible(0);
-            const auto internetSelection = session.model.Selection();
-            for (int index = 1; index < tabs->GetNumPages(); ++index) {
-                tabs->SetActivePage(tabs->GetPage(index));
+            for (size_t index = 1; index < BrowserTabKinds.size(); ++index) {
+                tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
                 Settle(*dialog, session);
-                Require(provider.lists.lastKind == static_cast<ListKind>(index),
-                        "new tab continued the old Internet request after region refusal");
-                Require(session.settings.kind == static_cast<ListKind>(index),
-                        "tab did not publish admitted query identity");
-                const bool supportsRegion = index == static_cast<int>(ListKind::Spectate);
-                Require(region->IsEnabled() == supportsRegion,
-                        "unsupported destination retained enabled region filter");
-                Require(session.settings.filters.name.empty(), "destination inherited another tab's name filter");
-                Require(session.settings.sort.column == Column::Name, "destination inherited another tab's sort");
                 provider.lists.Complete();
                 Settle(*dialog, session);
-                Require(session.presentation.VisibleCount() == 3, "new tab retained previous filtered membership");
+                Require(session.settings.kind == BrowserTabKinds[index], "stable tab mapping changed");
+                Require(session.settings.filters.map.empty(), "page inherited another page's map filter");
             }
             tabs->SetActivePage(tabs->GetPage(0));
             Settle(*dialog, session);
-            Require(region->GetActiveItem() == 4 && provider.lists.lastFilters["region"] == "3",
-                    "returning to Internet lost its supported per-tab region state");
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(session.settings.filters.name == "Server 1" && session.settings.sort.column == Column::Ping &&
-                        session.presentation.VisibleCount() == 1 && session.model.Selection() == internetSelection,
-                    "returning to Internet lost supported filter/sort/membership/selection state");
-            provider.lists.failRequest = true;
-            tabs->SetActivePage(tabs->GetPage(static_cast<int>(ListKind::Favorites)));
-            Settle(*dialog, session);
-            const auto refused = session.model.GetStatus();
-            Require(refused.kind == ListKind::Favorites && refused.phase == Phase::Failed && !refused.error.empty() &&
-                        session.settings.kind == ListKind::Favorites && session.presentation.VisibleCount() == 0 &&
-                        List(*dialog)->GetItemCount() == 0,
-                    "provider refusal displayed old Internet results under a new query identity");
-            provider.lists.failRequest = false;
-            Send(*dialog, "Refresh");
-            Settle(*dialog, session);
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(session.presentation.VisibleCount() == 3, "refused destination could not recover honestly");
+            Require(session.settings.filters.map == "DE_", "returning to Internet lost per-page filters");
         } else if (name == "status-fields") {
-            auto *query = dynamic_cast<vgui2::Label *>(dialog->FindChildByName("StatusLabel", true));
-            auto *action = dynamic_cast<vgui2::Label *>(dialog->FindChildByName("ActionStatusLabel", true));
-            Require(query && action, "query/progress and action result do not have independent visible fields");
-            auto labelText = [](vgui2::Label &label) {
+            auto *status = static_cast<vgui2::Label *>(dialog->FindChildByName("StatusLabel", false));
+            Require(status && !dialog->FindChildByName("ActionStatusLabel", true), "original status parentage changed");
+            const auto displayed = [&] {
                 std::array<char, 512> text{};
-                label.GetText(text.data(), static_cast<int>(text.size()));
+                status->GetText(text.data(), static_cast<int>(text.size()));
                 return std::string(text.data());
             };
-            provider.lists.requests.at(provider.lists.current)
-                .callback->RefreshComplete(provider.lists.current, eServerFailedToRespond);
+            const auto transitionQuery = [&](const std::string &expected) {
+                Require(session.model.QuickRefresh(), "status regression did not enter a new refresh");
+                dialog->Pump();
+                Require(session.model.GetStatus().phase == Phase::Refreshing,
+                        "status regression did not observe refreshing state");
+                Require(displayed() == expected, "query start erased an unchanged failure");
+                provider.lists.Complete();
+                Settle(*dialog, session);
+                Require(session.model.GetStatus().phase == Phase::Complete,
+                        "status regression did not observe completed state");
+                Require(displayed() == expected, "query completion erased an unchanged failure");
+            };
             favorites.failing = true;
             dialog->SelectVisible(0);
             Send(*dialog, "Favorite");
             dialog->Pump();
-            const auto queryError = session.model.GetStatus().error;
-            Require(query->IsVisible() && action->IsVisible() && labelText(*query) == queryError &&
-                        labelText(*action) == session.model.GetStatus().actionError && !labelText(*action).empty(),
-                    "an action result hid simultaneous query failure");
+            const auto actionFailure = session.model.GetStatus().actionError;
+            Require(!actionFailure.empty() && displayed() == actionFailure,
+                    "action failure is not surfaced in original status label");
+            transitionQuery(actionFailure);
             favorites.failing = false;
             Send(*dialog, "Favorite");
             dialog->Pump();
-            Require(labelText(*query) == queryError && labelText(*action).empty(),
-                    "successful action recovery cleared query truth or left its obsolete action visible");
-            favorites.failing = true;
-            Send(*dialog, "RemoveFavorite");
-            Send(*dialog, "Refresh");
+            Require(session.model.GetStatus().actionError.empty() && displayed().empty(),
+                    "successful action recovery did not restore the completed query's empty status");
+
+            dialog->SaveSettings();
+            const auto settingsPath = std::filesystem::path(session.storage.Directory()) / "settings.cfg";
+            const auto preservedPath = settingsPath.parent_path() / "status-regression-preserved.cfg";
+            std::filesystem::rename(settingsPath, preservedPath);
+            std::filesystem::create_directory(settingsPath);
+            dialog->SaveSettings();
             dialog->Pump();
-            Require(!labelText(*query).empty() && !labelText(*action).empty(),
-                    "an unresolved action hid query progress");
+            Require(!session.config.Status().error.empty(), "status regression did not produce config failure");
+            const auto configFailure = displayed();
+            std::array<char, 512> expectedConfigFailure{};
+            vgui2::localize()->ConvertUnicodeToANSI(vgui2::localize()->Find("CSEServerBrowser_Unsaved"),
+                expectedConfigFailure.data(), static_cast<int>(expectedConfigFailure.size()));
+            Require(configFailure == expectedConfigFailure.data(), "config failure was not displayed");
+            transitionQuery(configFailure);
+            std::filesystem::remove(settingsPath);
+            std::filesystem::rename(preservedPath, settingsPath);
+            dialog->SaveSettings();
+            dialog->Pump();
+            Require(session.config.Status().error.empty() && displayed().empty(),
+                    "successful config recovery did not restore the completed query's empty status");
         } else if (name == "navigation-sort" || name == "navigation-update") {
             dialog->SelectVisible(1);
             const auto selected = session.model.Selection();
             Require(selected.has_value(), "navigation fixture selection absent");
             if (name == "navigation-sort") {
-                dialog->ChooseSort(static_cast<int>(Column::Name));
+                dialog->ChooseSort(4);
             } else {
                 auto &request = provider.lists.requests.at(provider.lists.current);
                 for (size_t index = 0; index < request.rows.size(); ++index) {
@@ -769,7 +635,7 @@ int main(int argc, char **argv) {
             auto *list = List(*dialog);
             Require(list->GetSelectedItemsCount() == 0, "fixture did not move the selected non-anchor key offviewport");
             if (name == "navigation-update") {
-                dialog->ChooseSort(static_cast<int>(Column::Ping));
+                dialog->ChooseSort(7);
                 dialog->Pump();
                 Require(session.presentation.IsUpdating(), "pending-sort navigation fixture settled prematurely");
             }
@@ -805,10 +671,395 @@ int main(int argc, char **argv) {
             for (int index = 0; index < tabs->GetNumPages(); ++index) {
                 tabs->SetActivePage(tabs->GetPage(index));
                 dialog->Pump();
-                Require(provider.lists.lastKind == static_cast<ListKind>(index), "tab dispatched wrong typed request");
+                Require(provider.lists.lastKind == BrowserTabKinds[static_cast<size_t>(index)], "tab dispatched wrong typed request");
                 provider.lists.Complete();
                 Settle(*dialog, session);
             }
+        } else if (name == "original-keyboard-range") {
+            auto *list = List(*dialog);
+            auto *input = static_cast<vgui2::IInputInternal *>(guiFactory(VGUI_INPUTINTERNAL_INTERFACE_VERSION, nullptr));
+            Require(input != nullptr, "actual input interface missing");
+            const auto keys = session.model.OrderedKeys();
+            const size_t anchor = dialog->WindowSize() - 1;
+            Require(anchor + 2 < keys.size(), "keyboard fixture does not span viewport boundary");
+            dialog->SelectVisible(anchor);
+            // The default context polls physical SDL modifiers, which would replace
+            // injected Shift immediately. A real private VGUI context owns fixture input.
+            struct InputContextScope {
+                vgui2::IVGui *gui;
+                vgui2::HContext context;
+                ~InputContextScope() {
+                    constexpr vgui2::HContext DefaultVguiContext = static_cast<vgui2::HContext>(~0);
+                    gui->ActivateContext(DefaultVguiContext);
+                    gui->DestroyContext(context);
+                }
+            } controlledInput{gui, gui->CreateContext()};
+            gui->AssociatePanelWithContext(controlledInput.context, dialog->GetVPanel());
+            gui->ActivateContext(controlledInput.context);
+            list->RequestFocus(0);
+            input->InternalKeyCodePressed(vgui2::KEY_LSHIFT);
+            Require(input->IsKeyDown(vgui2::KEY_LSHIFT), "controlled VGUI context did not retain injected Shift");
+            std::cerr << "TRACE shift after press=" << input->IsKeyDown(vgui2::KEY_LSHIFT) << " anchor=" << anchor << "\n";
+            const auto key = [&](vgui2::KeyCode code) {
+                gui->PostMessage(list->GetVPanel(), new KeyValues("KeyCodeTyped", "code", code), 0, 0);
+                gui->RunFrame();
+                dialog->Pump();
+                if (code != vgui2::KEY_ENTER) {
+                    Require(input->IsKeyDown(vgui2::KEY_LSHIFT),
+                            "native event changed the controlled modifier before navigation completed");
+                }
+            };
+            key(vgui2::KEY_DOWN);
+            std::cerr << "TRACE after down1 shift=" << input->IsKeyDown(vgui2::KEY_LSHIFT)
+                << " rank=" << session.presentation.FirstVisibleRank() << " selected="
+                << ConnectionAddress(*session.model.Selection()) << "\n";
+            key(vgui2::KEY_DOWN);
+            std::cerr << "TRACE after down2 shift=" << input->IsKeyDown(vgui2::KEY_LSHIFT)
+                << " rank=" << session.presentation.FirstVisibleRank() << " selected="
+                << ConnectionAddress(*session.model.Selection()) << "\n";
+            Require(session.presentation.FirstVisibleRank() > anchor,
+                    "actual Shift navigation did not cross the viewport boundary");
+            Send(*dialog, "AddToFavorites");
+            std::cerr << "TRACE range favorites=" << favorites.records.size() << "\n";
+            for (const auto &record : favorites.records) {
+                std::cerr << "TRACE favorite=" << ConnectionAddress(record.address) << "\n";
+            }
+            Require(favorites.records.size() == 3 && favorites.records[0].address == keys[anchor] &&
+                favorites.records[1].address == keys[anchor + 1] && favorites.records[2].address == keys[anchor + 2],
+                "actual repeated Shift+Down did not select anchor through third row");
+            favorites.records.clear();
+            key(vgui2::KEY_UP);
+            Send(*dialog, "AddToFavorites");
+            Require(favorites.records.size() == 2 && favorites.records[0].address == keys[anchor] &&
+                favorites.records[1].address == keys[anchor + 1], "actual Shift+Up did not shrink the range");
+            Require(session.model.Selection() == std::optional<RowKey>{keys[anchor]},
+                    "actual range extension changed first-selected identity");
+            input->InternalKeyCodeReleased(vgui2::KEY_LSHIFT);
+            key(vgui2::KEY_ENTER);
+            Require(engine.commands.empty() && provider.pings == 1, "Enter skipped fresh anchored metadata");
+            auto item = Server(keys[anchor].ip);
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(keys[anchor]) + "\n"},
+                    "actual Enter connected keyboard cursor instead of first-selected anchor");
+        } else if (name == "original-info-stop" || name == "original-connect-stop") {
+            Send(*dialog, "GetNewList");
+            Settle(*dialog, session);
+            const auto request = provider.lists.current;
+            provider.lists.requests.at(request).callback->ServerResponded(request, 0);
+            Settle(*dialog, session);
+            Require(session.model.GetStatus().phase == Phase::Refreshing, "source list is not actively refreshing");
+            dialog->SelectVisible(0);
+            const auto captured = *session.model.Selection();
+            const int canceled = provider.lists.canceled;
+            provider.lists.cancelCallbacks = true;
+            Send(*dialog, name == "original-info-stop" ? "ViewGameInfo" : "ConnectToServer");
+            dialog->Pump();
+            gui->RunFrame();
+            Require(session.model.GetStatus().phase == Phase::Stopped && provider.lists.canceled == canceled + 1,
+                    "opening original GameInfo did not cancel/stop the live source query");
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto *address = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*info, "ServerIPText"));
+            char text[64]{};
+            address->GetText(text, sizeof(text));
+            Require(ConnectionAddress(captured) == text, "source cancellation changed captured GameInfo endpoint");
+            Require(provider.pings == 1 && provider.pingPorts.front() == captured.queryPort && engine.commands.empty(),
+                    "source Stop lost independent child ping or bypassed metadata");
+            auto item = Server(captured.ip);
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            if (name == "original-connect-stop") {
+                Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(captured) + "\n"},
+                        "Join lost the snapshot after stopping its source list");
+            } else {
+                Require(engine.commands.empty() && provider.players,
+                        "ViewGameInfo should query players without connecting");
+            }
+        } else if (name == "original-add-server") {
+            Send(*dialog, "AddServerByName");
+            auto *add = layout_fixture::Child(*dialog, "DialogAddServer");
+            Require(add->GetWide() == 572 && add->GetTall() == 205, "Add Server original collapsed extent changed");
+            auto *entry = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*add, "ServerNameText"));
+            Require(!layout_fixture::Child(*add, "GameTabs")->IsVisible(), "Add Server test page initially visible");
+            vgui2::DHANDLE<vgui2::Panel> firstAdd;
+            firstAdd = add;
+            entry->SetText("127.0.0.7");
+            Send(*add, "OK");
+            for (int frame = 0; frame < 8; ++frame) {
+                dialog->Pump();
+                gui->RunFrame();
+            }
+            Require(favorites.records.size() == 1 && favorites.records[0].address == Address{0x7f000007U, 27015, 27015},
+                    "direct Add Server did not use entered address/default port");
+            Require(provider.pings == 0, "direct add incorrectly requires ping response");
+            Send(*dialog, "AddServerByName");
+            add = layout_fixture::Child(*dialog, "DialogAddServer");
+            entry = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*add, "ServerNameText"));
+            // Finish native popup creation before injecting a ready-window command.
+            // SurfaceSDL dispatches queued VGUI messages between creation/resize events.
+            constexpr int PopupCreationFrames = 8;
+            for (int frame = 0; frame < PopupCreationFrames; ++frame) {
+                gui->RunFrame();
+                dialog->Pump();
+            }
+            Require(!firstAdd.Get() && add->IsVisible() && add->GetTall() == 205 && provider.pings == 0,
+                    "reopened AddServer did not settle at its original collapsed state");
+            std::cerr << "TRACE reopen oldAlive=" << (firstAdd.Get() != nullptr)
+                << " same=" << (firstAdd.Get() == add) << " tall=" << add->GetTall()
+                << " visible=" << add->IsVisible() << " active=" << session.active
+                << " closing=" << session.closing << " depth=" << session.useDepth << "\n";
+            entry->SetText("127.0.0.8");
+            Send(*add, "TestServers");
+            dialog->Pump();
+            std::cerr << "TRACE test tall=" << add->GetTall() << " pings=" << provider.pings
+                << " visible=" << add->IsVisible() << " active=" << session.active
+                << " closing=" << session.closing << " depth=" << session.useDepth << "\n";
+            Require(add->GetTall() == 471 && provider.pings == 14, "original expanded test/14 ports missing");
+            const std::vector<uint16_t> expected{27015, 26900, 27016, 26901, 27017, 26902, 27018,
+                26903, 27019, 26904, 27020, 26905, 4242, 27215};
+            Require(provider.pingPorts == expected, "Add Server changed original common-port order");
+            entry->SetText("127.0.0.9:27020");
+            Send(*add, "TestServers");
+            dialog->Pump();
+            Require(provider.canceled == 14 && provider.pings == 15, "retest failed to retire old generation");
+            auto *servers = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*add, "Servers"));
+            Require(servers->GetItemCount() == 0, "old canceled ping contaminated new test rows");
+            auto item = Server(0x7f000009U, "returned endpoint");
+            item.m_NetAdr.Init(0x7f000009U, 27020, 27021);
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(servers->GetItemCount() == 1, "valid tested server response absent");
+            Send(*add, "addselected");
+            Require(favorites.records.size() == 2 &&
+                favorites.records.back().address == Address{0x7f000009U, 27021, 27020},
+                "addselected lost distinct connection/query ports");
+            Require(add->IsVisible() && servers->GetItemCount() == 0, "selected add must remove row and stay open");
+            Send(*add, "Close");
+        } else if (name == "original-password") {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "Connect");
+            dialog->Pump();
+            Require(provider.pings == 1 && engine.commands.empty(), "Connect dispatched without fresh metadata");
+            auto item = Server(target.ip);
+            item.m_bPassword = true;
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            Require(info->FindChildByName("PlayerList", false) && !info->FindChildByName("DetailsOverflow", false),
+                    "GameInfo uses custom presentation instead of original resource controls");
+            auto *prompt = layout_fixture::Child(*info, "DialogServerPassword");
+            auto *entry = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*prompt, "PasswordEntry"));
+            entry->SetText("discarded");
+            Send(*prompt, "Close");
+            dialog->Pump();
+            gui->RunFrame();
+            Require(engine.commands.empty() && engine.password == "before", "cancelled password connected/mutated cvar");
+            Send(*info, "Connect");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            prompt = layout_fixture::Child(*info, "DialogServerPassword");
+            entry = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*prompt, "PasswordEntry"));
+            entry->SetText("secret");
+            dialog->SelectVisible(1);
+            Send(*prompt, "Connect");
+            const int before = provider.pings;
+            dialog->Pump();
+            Require(provider.pings == before + 1 && engine.commands.empty(), "password result skipped fresh ping");
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
+                    "password submission connected a changed selection");
+            Require(engine.password == "secret", "password ownership did not reach safe engine setter");
+        } else if (playerRefresh) {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            dialog->Pump();
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto item = Server(target.ip);
+            item.m_nPlayers = 20;
+            item.m_nBotPlayers = 20;
+            item.m_nMaxPlayers = 20;
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            gui->RunFrame();
+            Require(provider.players && !provider.rules, "GameInfo did not use original PlayerDetails-only flow");
+            auto *players = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "PlayerList"));
+            constexpr size_t ReplacementCount = DetailFrameBudget * 3 + 1;
+            const auto pumpPlayers = [&] {
+                for (size_t frame = 0; frame < ReplacementCount; ++frame) {
+                    dialog->Pump();
+                    gui->RunFrame();
+                }
+            };
+            const auto populate = [&](const char *prefix) {
+                for (size_t index = 0; index < ReplacementCount; ++index) {
+                    const auto playerName = std::string(prefix) + std::to_string(index);
+                    provider.players->AddPlayerToList(playerName.c_str(), static_cast<int>(index), 60.0f);
+                }
+            };
+            populate("old-");
+            provider.players->PlayersRefreshComplete();
+            pumpPlayers();
+            Require(players->GetItemCount() == static_cast<int>(ReplacementCount),
+                "initial player generation did not span frame budgets");
+            auto *oldPlayers = provider.players;
+            Send(*info, "Refresh");
+            dialog->Pump();
+            Require(provider.players == oldPlayers, "metadata refresh retired independent players early");
+            Require(players->GetItemCount() == static_cast<int>(ReplacementCount),
+                "merely starting metadata cleared independent visible players");
+            if (name == "original-game-info-sync-empty") {
+                provider.duringStart = [&] { provider.players->PlayersRefreshComplete(); };
+            }
+            auto empty = item;
+            empty.m_nPlayers = 0;
+            empty.m_nBotPlayers = 0;
+            provider.pingCallbacks.rbegin()->second->ServerResponded(empty);
+            dialog->Pump();
+            Require(players->GetItemCount() > 0 &&
+                players->GetItemCount() >= static_cast<int>(ReplacementCount - DetailFrameBudget),
+                "replacement cleared more than one display frame budget");
+            if (name != "original-game-info-sync-empty") {
+                provider.players->PlayersRefreshComplete();
+            }
+            pumpPlayers();
+            Require(players->GetItemCount() == 0, "successful empty player generation left stale visible rows");
+            geometry.paintedText.clear();
+            geometry.observeText = true;
+            vgui2::surface()->SolveTraverse(info->GetVPanel(), false);
+            vgui2::surface()->PaintTraverse(info->GetVPanel());
+            geometry.observeText = false;
+            const auto *noPlayers = vgui2::localize()->Find("ServerBrowser_ServerHasNoPlayers");
+            Require(noPlayers && geometry.paintedText.find(noPlayers) != std::wstring::npos,
+                "empty actual PlayerList did not paint original no-players text");
+            provider.duringStart = {};
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            populate("new-");
+            provider.players->PlayersRefreshComplete();
+            dialog->Pump();
+            Require(players->GetItemCount() <= static_cast<int>(DetailFrameBudget),
+                "replacement applied more than one player frame budget");
+            pumpPlayers();
+            Require(players->GetItemCount() == static_cast<int>(ReplacementCount),
+                "nonempty replacement lost rows across frame budgets");
+            for (int row = 0; row < players->GetItemCount(); ++row) {
+                Require(std::string(players->GetItem(players->GetItemIDFromRow(row))->GetString("PlayerName"))
+                    .find("new-") == 0, "replacement revived an old player row");
+            }
+            if (name == "original-game-info-generation") {
+                Send(*info, "Refresh");
+                dialog->Pump();
+                provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+                dialog->Pump();
+                populate("superseded-");
+                dialog->Pump();
+                // Leave this generation incomplete with queued rows during bounded clearing.
+                auto *independentPlayers = provider.players;
+                const int cancellations = provider.canceled;
+                Send(*info, "Refresh");
+                dialog->Pump();
+                Require(provider.players == independentPlayers && provider.canceled == cancellations,
+                    "starting metadata retired an active independent player generation");
+                provider.pingCallbacks.rbegin()->second->ServerResponded(empty);
+                dialog->Pump();
+                provider.players->PlayersRefreshComplete();
+                pumpPlayers();
+                Require(players->GetItemCount() == 0, "superseded pending rows revived after empty successor");
+                Send(*info, "Refresh");
+                dialog->Pump();
+                provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+                dialog->Pump();
+                populate("closed-");
+                dialog->Pump();
+                vgui2::DHANDLE<vgui2::Panel> closingInfo;
+                closingInfo = info;
+                Send(*info, "Close");
+                pumpPlayers();
+                Require(!closingInfo.Get(), "closed player generation retained its actual dialog");
+                Require(engine.commands.empty(), "closing queued player generation unexpectedly connected");
+            } else {
+                Send(*info, "Connect");
+                dialog->Pump();
+                provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+                dialog->Pump();
+                gui->RunFrame();
+                Require(engine.commands.empty(), "bot-only full server incorrectly treated human count as free slot");
+                auto *retry = static_cast<vgui2::ToggleButton *>(layout_fixture::Child(*info, "AutoRetry"));
+                Require(retry->IsVisible(), "full server did not expose original AutoRetry control");
+                const int normalHeight = info->GetTall();
+                retry->DoClick();
+                gui->RunFrame();
+                Require(info->GetTall() == normalHeight + 60 &&
+                    layout_fixture::Child(*info, "AutoRetryAlert")->IsVisible(),
+                    "retry resource did not add original 60-pixel options area");
+                Send(*info, "Connect");
+                dialog->Pump();
+                Send(*info, "Close");
+                item.m_nPlayers = 0;
+                provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+                dialog->Pump();
+                Require(engine.commands.empty(), "closed GameInfo connected after late metadata callback");
+            }
+        } else if (name == "original-multiselect") {
+            dialog->SelectVisibleItems({0, 1});
+            const auto first = *session.model.Selection();
+            dialog->ChooseSort(4);
+            Settle(*dialog, session);
+            Send(*dialog, "AddToFavorites");
+            Require(favorites.records.size() == 2, "batch favorite ignored stable multiselection");
+            provider.deferListRefresh = true;
+            const size_t before = provider.refreshedIndexes.size();
+            Send(*dialog, "RefreshServer");
+            Require(provider.refreshedIndexes.size() == before + 2,
+                    "selected refresh did not visit both identities before callbacks");
+            const auto request = provider.lists.current;
+            auto &controlled = provider.lists.requests.at(request);
+            for (size_t index = 0; index < favorites.records.size(); ++index) {
+                const int refreshed = provider.refreshedIndexes[before + index];
+                const auto &address = controlled.rows.at(static_cast<size_t>(refreshed)).m_NetAdr;
+                Require(address.GetIP() == favorites.records[index].address.ip &&
+                    address.GetConnectionPort() == favorites.records[index].address.connectionPort,
+                    "selected refresh retargeted a sorted identity");
+            }
+            controlled.callback->ServerResponded(request, provider.refreshedIndexes[before + 1]);
+            Require(session.model.GetStatus().phase == Phase::Refreshing,
+                    "one selected response prematurely completed both queries");
+            controlled.callback->ServerResponded(request, provider.refreshedIndexes[before]);
+            dialog->Pump();
+            Require(session.model.GetStatus().phase == Phase::Complete, "selected refresh failed to complete");
+            Require(session.model.Selection() && *session.model.Selection() == first,
+                    "sort changed first-selected connect identity");
+            for (const auto &favorite : favorites.records) {
+                session.model.RecordAcceptedConnection(10, favorite.address, 123);
+            }
+            Send(*dialog, "RemoveFromHistory");
+            for (const auto &favorite : favorites.records) {
+                Require(favorite.flags == k_unFavoriteFlagFavorite, "History batch removed Favorite flags");
+            }
+            StartList(*dialog, session, provider);
+            Send(*dialog, "AddToFavorites");
+            Require(favorites.records.size() == 2, "stale generation selection targeted recycled viewport slots");
+        } else if (name == "original-add-current") {
+            unsigned char bytes[]{127, 0, 0, 9};
+            uint32_t raw = 0;
+            std::memcpy(&raw, bytes, sizeof(raw));
+            session.connection.Accepted("cstrike", raw, 27018, 123);
+            dialog->SelectVisible(0);
+            Send(*dialog, "AddCurrentServer");
+            Require(favorites.records.size() == 1 && favorites.records[0].address == Address{0x7f000009U, 27018, 27018},
+                    "Add Current used selected row or normalized host IP twice");
+            Require(favorites.records[0].flags == (k_unFavoriteFlagFavorite | k_unFavoriteFlagHistory),
+                    "Add Current lost independent History flag");
+            Require(!dialog->FindChildByName("DialogAddServer", true), "Add Current incorrectly opened child dialog");
+            session.connection.Disconnected();
+            Send(*dialog, "AddCurrentServer");
+            Require(favorites.records.size() == 1, "disconnected Add Current retained stale endpoint");
         } else if (name == "actions") {
             dialog->SelectVisible(0);
             Send(*dialog, "Favorite");
@@ -818,23 +1069,23 @@ int main(int argc, char **argv) {
                     "remove control lost favorite semantics");
             dialog->ShowContextMenu();
             auto *menu = dynamic_cast<vgui2::Menu *>(dialog->FindChildByName("ServerContext", false));
-            Require(menu && menu->GetItemCount() == 5, "actual retained row context actions missing");
-            menu->ActivateItemByRow(2);
+            Require(menu && menu->GetItemCount() == 4, "actual retained row context actions missing");
+            menu->ActivateItemByRow(3);
             gui->RunFrame();
             Require((favorites.records.back().flags & k_unFavoriteFlagFavorite) != 0,
                     "actual context-menu favorite action did not reach selected RowKey");
             Send(*dialog, "QuickSelected");
             Require(provider.lists.lastIndex >= 0, "selected quick refresh did not reach provider");
             const int previousRefreshes = provider.lists.refreshed;
-            Send(*dialog, "Quick");
+            Send(*dialog, "refresh");
             Require(provider.lists.refreshed == previousRefreshes + 1, "full quick refresh missed live request");
             provider.lists.Complete();
             Settle(*dialog, session);
-            Send(*dialog, "Refresh");
+            Send(*dialog, "GetNewList");
             Settle(*dialog, session);
-            Send(*dialog, "Stop");
+            Send(*dialog, "stoprefresh");
             Require(session.model.GetStatus().phase == Phase::Stopped, "Stop control left request refreshing");
-            Send(*dialog, "Refresh");
+            Send(*dialog, "GetNewList");
             Settle(*dialog, session);
             provider.lists.Complete();
             Settle(*dialog, session);
@@ -847,56 +1098,34 @@ int main(int argc, char **argv) {
                         (favorites.records[0].flags & k_unFavoriteFlagHistory) == 0,
                     "connect control wrote accepted history prematurely");
         } else if (name == "filters") {
-            auto *text = dynamic_cast<vgui2::TextEntry *>(dialog->FindChildByName("NameFilter", true));
-            Require(text != nullptr, "name filter control absent");
-            text->SetText("Server 1");
-            Send(*dialog, "Apply");
+            auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
+            auto *page = tabs->GetActivePage();
+            auto *map = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*page, "MapFilter"));
+            auto *ping = static_cast<vgui2::ComboBox *>(layout_fixture::Child(*page, "PingFilter"));
+            auto *passwordFilter = static_cast<vgui2::CheckButton *>(layout_fixture::Child(*page, "NoPasswordFilterCheck"));
+            auto *account = static_cast<vgui2::CheckButton *>(layout_fixture::Child(*page, "ValidSteamAccountFilterCheck"));
+            const auto request = provider.lists.current;
+            map->SetText("dE_dU");
+            ping->ActivateItem(1);
+            passwordFilter->SetSelected(true);
+            gui->RunFrame();
             Settle(*dialog, session);
-            provider.lists.Complete();
+            Require(session.presentation.VisibleCount() == 3, "mixed-case prefix filter excluded matching maps");
+            Require(provider.lists.current == request, "secondary filter unexpectedly restarted discovery");
+            account->SetSelected(true);
+            gui->RunFrame();
             Settle(*dialog, session);
-            Require(session.presentation.VisibleCount() == 1, "actual filter control did not filter rows");
-            text->SetText("");
-            auto *map = dynamic_cast<vgui2::TextEntry *>(dialog->FindChildByName("MapFilter", true));
-            auto *ping = dynamic_cast<vgui2::TextEntry *>(dialog->FindChildByName("PingFilter", true));
-            auto *passwordFilter = dynamic_cast<vgui2::ComboBox *>(dialog->FindChildByName("PasswordFilter", true));
-            auto *secureFilter = dynamic_cast<vgui2::ComboBox *>(dialog->FindChildByName("SecureFilter", true));
-            auto *region = dynamic_cast<vgui2::ComboBox *>(dialog->FindChildByName("RegionFilter", true));
-            auto *nonempty = dynamic_cast<vgui2::CheckButton *>(dialog->FindChildByName("NonemptyFilter", true));
-            auto *notFull = dynamic_cast<vgui2::CheckButton *>(dialog->FindChildByName("NotFullFilter", true));
-            Require(map && ping && passwordFilter && secureFilter && region && nonempty && notFull,
-                    "retained filter controls missing");
-            map->SetText("de_dust2");
-            ping->SetText("50");
-            passwordFilter->ActivateItem(1);
-            secureFilter->ActivateItem(1);
-            region->ActivateItem(4);
-            nonempty->SetSelected(true);
-            notFull->SetSelected(true);
-            for (auto &row : provider.lists.nextRows) {
-                row.m_bPassword = true;
-                row.m_bSecure = true;
-            }
-            provider.lists.nextRows[0].m_nPlayers = 0;
-            provider.lists.nextRows[2].m_nPlayers = provider.lists.nextRows[2].m_nMaxPlayers;
-            provider.lists.nextRows[2].m_nPing = 100;
-            Send(*dialog, "Apply");
+            Require(session.presentation.VisibleCount() == 0, "missing server account passed original account filter");
+            account->SetSelected(false);
+            map->SetText("dust");
+            gui->RunFrame();
             Settle(*dialog, session);
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(session.presentation.VisibleCount() == 1 && provider.lists.lastFilters["region"] == "3",
-                    "map/ping/password/security/occupancy/location controls lost canonical filtering");
-            passwordFilter->ActivateItem(2);
-            secureFilter->ActivateItem(2);
-            Send(*dialog, "Apply");
-            Settle(*dialog, session);
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(session.presentation.VisibleCount() == 0, "negative security/password filter was ignored");
+            Require(session.presentation.VisibleCount() == 0, "map filter matched a substring instead of a prefix");
         } else if (name == "unsaved") {
-            Send(*dialog, "Apply");
+            dialog->SaveSettings();
             Settle(*dialog, session);
             Require(!session.config.Status().error.empty(), "fixture did not produce a settings save failure");
-            auto *label = dynamic_cast<vgui2::Label *>(dialog->FindChildByName("ActionStatusLabel", true));
+            auto *label = dynamic_cast<vgui2::Label *>(dialog->FindChildByName("StatusLabel", true));
             Require(label != nullptr, "status label absent");
             std::array<wchar_t, 256> status{};
             label->GetText(status.data(), static_cast<int>(status.size()));
@@ -965,24 +1194,12 @@ int main(int argc, char **argv) {
             session.connection.Disconnected();
         } else if (name == "other-game") {
             auto *game = dynamic_cast<vgui2::ComboBox *>(dialog->FindChildByName("GameFilter", true));
-            Require(game != nullptr, "retained game selector absent");
+            Require(game && !game->IsEnabled(), "active mod must constrain original game selector");
             game->ActivateItem(1);
-            for (auto &row : provider.lists.nextRows) {
-                row.m_nAppID = 70;
-                std::strcpy(row.m_szGameDir, "valve");
-            }
-            Send(*dialog, "Apply");
+            gui->RunFrame();
             Settle(*dialog, session);
-            provider.lists.Complete();
-            Settle(*dialog, session);
-            Require(provider.lists.lastApp == 70 &&
-                        session.presentation.VisibleCount() == provider.lists.nextRows.size(),
-                    "other retained game could not be browsed");
-            dialog->SelectVisible(0);
-            dialog->Pump();
-            Require(!dialog->FindChildByName("Connect", true)->IsEnabled(), "other-game row enabled connect");
-            Send(*dialog, "Connect");
-            Require(engine.commands.empty(), "other-game row issued a connection command");
+            Require(session.settings.filters.app == 10 && provider.lists.lastApp == 10,
+                    "disabled game selector changed active host game");
         } else if (name == "localization" || name == "existing-owners" || name == "baseui-owner") {
             Require(std::wstring(vgui2::localize()->Find("CSEServerBrowser_CurrentGame")) == preserved,
                     "fallback overwrote an existing localized token");
@@ -1065,7 +1282,7 @@ int main(int argc, char **argv) {
             session.presentation.Pump(BrowserFrameBudget);
         }
         std::vector<vgui2::DHANDLE<vgui2::Panel>> layoutChildren;
-        for (const char *name : {"BrowserOverflow", "TableOverflow"}) {
+        for (const char *name : {"GameTabs"}) {
             auto *owner = layout_fixture::Child(*dialog, name);
             vgui2::DHANDLE<vgui2::Panel> child;
             child = owner;
@@ -1097,6 +1314,7 @@ int main(int argc, char **argv) {
         vgui2::surface()->Shutdown();
         vgui2::VGuiControls_Shutdown();
         filesystem->Unmount();
+        privateSystem.Restore();
         dlclose(guiImage);
         dlclose(filesystemImage);
     });

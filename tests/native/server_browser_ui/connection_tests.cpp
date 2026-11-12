@@ -55,16 +55,26 @@ int main(int argc, char **argv) {
             Require(engine.password == "secret", "direct password assignment missing");
             connection.Accepted("cstrike", RawLoopback(), SelectedAddress.connectionPort, 123456);
             Require(favorites.records.size() == 1, "accepted connection missing history");
+            Require(connection.CurrentServer() && connection.CurrentServer()->address == SelectedAddress,
+                    "accepted current-server identity lost distinct query port");
             Require(favorites.records.front().address == SelectedAddress, "history lost distinct query port");
             Require(favorites.records.front().app == CurrentApp, "history borrowed mutable browse app");
             Require(engine.password == "previous", "accepted connection failed to restore owned cvar");
         } else if (name == "unrelated-acceptance") {
             connection.Accepted("cstrike", RawLoopback(), SelectedAddress.connectionPort, 123456);
-            Require(favorites.records.empty(), "initial replay wrote history without pending request");
+            Require(favorites.records.size() == 1, "accepted external connection did not record history");
+            Require(favorites.records.front().address.queryPort == SelectedAddress.connectionPort,
+                    "external acceptance did not use documented same-port fallback");
             Require(connection.Begin(row, "secret") == ConnectResult::Started, "valid connect rejected");
             connection.Accepted("cstrike", RawLoopback(), SelectedAddress.queryPort, 123456);
-            Require(favorites.records.empty(), "unmatched connection wrote selected-server history");
+            Require(favorites.records.size() == 2, "new accepted external endpoint missing history");
+            Require(connection.CurrentServer() && connection.CurrentServer()->address.queryPort == SelectedAddress.queryPort,
+                    "external current-server identity borrowed pending query port");
+            Require(favorites.records.back().address.connectionPort == SelectedAddress.queryPort,
+                    "unmatched acceptance borrowed pending endpoint");
             Require(engine.password == "previous", "unmatched terminal connection retained secret");
+            connection.Disconnected();
+            Require(!connection.CurrentServer(), "disconnect retained Add Current endpoint");
         } else if (name == "intervening-change") {
             Require(connection.Begin(row, "secret") == ConnectResult::Started, "valid connect rejected");
             engine.password = "user changed it";

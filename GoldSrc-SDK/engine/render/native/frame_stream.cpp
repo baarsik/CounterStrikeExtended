@@ -14,11 +14,27 @@ Status FrameRecorder::Gate() const {
     return active_ ? failure_ : Status::InvalidOperation;
 }
 
+Status FrameRecorder::CaptureStatus() const {
+    return Gate();
+}
+
+bool FrameRecorder::InPrimitive() const {
+    return recorder_.InPrimitive();
+}
+
 Status FrameRecorder::Fail(Status status) {
     if (failure_ == Status::Ok) {
         failure_ = status;
     }
     return failure_;
+}
+
+Status FrameRecorder::Refuse(Status reason) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    return Fail(reason == Status::Ok ? Status::InvalidValue : reason);
 }
 
 Status FrameRecorder::BeginFrame(const FrameInfo& info) {

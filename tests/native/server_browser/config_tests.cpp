@@ -35,14 +35,14 @@ void MissingAndRoundTrip() {
     CHECK(config.Load());
     auto settings = config.Settings();
     settings.filters.app = 70;
-    settings.filters.name = "a=b\n\303\251%";
+    settings.filters.map = "a=b\n\303\251%";
     settings.kind = ListKind::History;
     settings.sort = {Column::Ping, false};
     config.SetSettings(settings);
     CHECK(config.Status().dirty && config.Save() && !config.Status().dirty);
     ServerBrowserConfig second(storage);
     CHECK(second.Load());
-    CHECK(second.Settings().filters.name == "a=b\n\303\251%");
+    CHECK(second.Settings().filters.map == "a=b\n\303\251%");
     CHECK(second.Settings().filters.app == 70 && second.Settings().kind == ListKind::History);
     CHECK(second.Settings().sort.column == Column::Ping && !second.Settings().sort.ascending);
 }
@@ -90,7 +90,7 @@ void RejectKnownStringNul() {
         CHECK(!config.Save());
         CHECK(storage.bytes == old && config.Status().dirty && !config.Status().error.empty());
         ServerBrowserConfig preserved(storage);
-        CHECK(preserved.Load() && preserved.Settings().filters.name == "valid");
+        CHECK(preserved.Load() && preserved.Settings().filters.name.empty());
     }
     config.SetSettings(valid);
     CHECK(config.Save());
@@ -107,8 +107,56 @@ void RejectKnownStringNul() {
     storage.bytes = old;
     CHECK(config.Load() && config.Save() && storage.bytes == old);
 }
-void NativeAtomic(const std::filesystem::path& root) {
-    std::filesystem::create_directories(root);
+void OriginalSettingsAndStableTabs() {
+    MemoryStorage storage;
+    storage.missing = false;
+    storage.bytes = "kind=3\nwidth=640\nheight=480\nname=hidden\nregion=4\npassword=1\nmaxping=87\n";
+    ServerBrowserConfig config(storage);
+    CHECK(config.Load());
+    auto settings = config.Settings();
+    CHECK(settings.kind == ListKind::LAN);
+    CHECK(BrowserTabKinds[3] == ListKind::Spectate && BrowserTabKinds[4] == ListKind::LAN);
+    CHECK(settings.filters.name.empty() && settings.filters.region == -1);
+    CHECK(settings.filters.password == Requirement::Any && settings.filters.maxPing == 0);
+    CHECK(settings.height == 384 && !settings.savedSize);
+    settings.kind = ListKind::Spectate;
+    settings.filtersExpanded = true;
+    settings.filters.password = Requirement::No;
+    settings.filters.maxPing = 150;
+    settings.filters.validSteamAccount = true;
+    settings.sort = {Column::LastPlayed, false};
+    auto &history = settings.pages[static_cast<size_t>(ListKind::History)];
+    history.initialized = true;
+    history.filters.map = "De_";
+    history.filters.validSteamAccount = true;
+    history.filtersExpanded = true;
+    history.hiddenColumns = 1U << 5;
+    config.SetSettings(settings);
+    CHECK(config.Save());
+    ServerBrowserConfig reopened(storage);
+    CHECK(reopened.Load());
+    const auto &restored = reopened.Settings();
+    CHECK(restored.kind == ListKind::Spectate && !restored.filtersExpanded);
+    CHECK(restored.filters.password == Requirement::No && restored.filters.maxPing == 150);
+    CHECK(restored.filters.validSteamAccount && restored.sort.column == Column::LastPlayed && !restored.sort.ascending);
+    const auto &savedHistory = restored.pages[static_cast<size_t>(ListKind::History)];
+    CHECK(savedHistory.initialized && savedHistory.filters.map == "De_" && savedHistory.filters.validSteamAccount);
+    CHECK(!savedHistory.filtersExpanded && savedHistory.hiddenColumns == 1U << 5);
+}
+void NativeAtomic(const std::filesystem::path& parent) {
+    std::filesystem::create_directories(parent);
+    // Every invocation owns a newly created child. Retain prior failure fixtures and
+    // never remove an existing settings path supplied by the caller.
+    constexpr size_t MaximumFixtureAttempts = 1024;
+    std::filesystem::path root;
+    for (size_t attempt = 0; attempt < MaximumFixtureAttempts; ++attempt) {
+        const auto candidate = parent / ("native-atomic-" + std::to_string(attempt));
+        if (std::filesystem::create_directory(candidate)) {
+            root = candidate;
+            break;
+        }
+    }
+    CHECK(!root.empty());
     MountFilesystem filesystem;
     {
         NativeConfigStorage storage(&filesystem, root.string());
@@ -151,10 +199,11 @@ int main(int argc, char** argv) {
     try {
         CHECK(argc == 2);
         MissingAndRoundTrip();
+        OriginalSettingsAndStableTabs();
         UnknownAndFailures();
         RejectKnownStringNul();
         NativeAtomic(std::filesystem::absolute(argv[1]));
-        std::cout << "4 config cases passed\n";
+        std::cout << "5 config cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

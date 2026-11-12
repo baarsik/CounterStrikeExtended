@@ -177,3 +177,14 @@ void		AllowFog( int allowed );
 int			SignbitsForPlane( mplane_s* plane );
 
 extern "C" qboolean R_UseLegacyRender();
+
+// Private render facade for the finite raw-call owners; not exported engine/client ABI.
+void APIENTRY CseRenderEnable(GLenum capability);
+void APIENTRY CseRenderDisable(GLenum capability);
+void APIENTRY CseRenderFogi(GLenum name, GLint value);
+void APIENTRY CseRenderPixelStorei(GLenum name, GLint value);
+GLuint APIENTRY CseRenderGenLists(GLsizei range);
+void APIENTRY CseRenderNewList(GLuint list, GLenum mode);
+void APIENTRY CseRenderEndList();
+void APIENTRY CseRenderCallList(GLuint list);
+void APIENTRY CseRenderDeleteLists(GLuint list, GLsizei range);

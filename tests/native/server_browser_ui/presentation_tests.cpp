@@ -165,15 +165,42 @@ void RemovedEndAnchorDuringSort() {
 void ExplicitRankUsesActiveOrdering() {
     ServerBrowserPresentation view;
     Fill(view);
-    const auto key = MakeRow(123).key;
-    Require(view.RankForUserAction(key) == 123, "explicit rank did not resolve offscreen key");
+    constexpr size_t SelectedRank = 123;
+    const auto key = MakeRow(SelectedRank).key;
+    Require(view.RankForUserAction(key) == SelectedRank, "explicit rank did not resolve offscreen key");
     view.RequestSort({Column::Name, false});
     Maintenance(view);
-    Require(view.RankForUserAction(key) == 123, "navigation used incomplete requested ordering");
+    Require(view.RankForUserAction(key) == SelectedRank, "navigation used incomplete requested ordering");
     Settle(view);
-    Require(view.RankForUserAction(key) == ServerCount - 124, "navigation did not adopt active ordering");
-    view.Apply({MakeRow(123), false, false, Generation});
+    Require(view.RankForUserAction(key) == ServerCount - SelectedRank - 1,
+            "navigation did not adopt active ordering");
+    view.Apply({MakeRow(SelectedRank), false, false, Generation});
     Require(!view.RankForUserAction(key), "removed key retained a navigation rank");
+}
+
+void OriginalColumnsUseCanonicalOrdering() {
+    ServerBrowserPresentation view;
+    auto first = MakeRow(1);
+    auto second = MakeRow(2);
+    first.bots = 9;
+    first.lastPlayed = 100;
+    second.bots = 1;
+    second.lastPlayed = 200;
+    view.Apply({first, true, false, Generation});
+    view.Apply({second, true, false, Generation});
+    view.RequestSort({Column::Bots, false});
+    Settle(view);
+    view.SeekForUserAction(0);
+    Require(view.ReadViewport(2).front().key == first.key, "Bots order differs from canonical model ordering");
+    view.RequestSort({Column::LastPlayed, false});
+    Settle(view);
+    view.SeekForUserAction(0);
+    Require(view.ReadViewport(2).front().key == second.key, "History is not newest-first");
+    first.lastPlayed = 300;
+    view.Apply({first, true, false, Generation});
+    Settle(view);
+    view.SeekForUserAction(0);
+    Require(view.ReadViewport(2).front().key == first.key, "History mutation did not update bounded ordering");
 }
 
 } // namespace
@@ -184,7 +211,9 @@ int main(int argc, char **argv) {
     }
     const std::string name = argv[1];
     return RunCase([&] {
-        if (name == "reachability") {
+        if (name == "original-columns") {
+            OriginalColumnsUseCanonicalOrdering();
+        } else if (name == "reachability") {
             CompleteReachability();
         } else if (name == "anchor-rank") {
             AnchorRankAfterOrdinaryUpdates();

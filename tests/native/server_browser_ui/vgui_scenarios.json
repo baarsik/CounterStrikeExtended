@@ -15,8 +15,10 @@
       "typed provider selection"
     ],
     "filters": [
-      "name/map/ping/security/password/nonempty/not-full/region controls",
-      "negative requirements"
+      "original Game/Map/Latency/Secure controls and four checkboxes",
+      "mixed-case map prefix applies immediately without discovery restart",
+      "account component nonzero independent of VAC",
+      "no custom name/region/password-combo controls"
     ],
     "input-actions": [
       "queued End/Home/Down/Enter",
@@ -39,8 +41,8 @@
       "direct cvar restoration"
     ],
     "other-game": [
-      "browse other retained game",
-      "disabled connect reason"
+      "active host mod displayed in disabled original GameFilter",
+      "programmatic selection cannot change host app restriction"
     ],
     "localization": [
       "missing fallback",
@@ -79,6 +81,96 @@
       "detach before dispatch traversal",
       "partial owner state",
       "same-owner restart"
+    ],
+    "region-tabs": [
+      "stable visual-to-ListKind mapping",
+      "independent live per-page map filter",
+      "returning to Internet restores its original filters"
+    ],
+    "status-fields": [
+      "one frame-owned rendered status",
+      "unchanged action failure survives refresh start/completion",
+      "unchanged config-save failure survives refresh start/completion",
+      "successful action/config recovery restores query status"
+    ],
+    "focus-resize": [
+      "actual RefreshButton focus owner and unclipped rectangle",
+      "focus retained through resize and both filter resource reloads",
+      "expected focus owner restored after close/reopen"
+    ],
+    "focus-header": [
+      "actual Name column header focus owner and unclipped rectangle",
+      "header focus survives resize and filter resource reloads",
+      "reopen restores chosen original page action focus"
+    ],
+    "focus-scheme": [
+      "actual MapFilter focus owner",
+      "distinct loaded scheme handle applied to dialog and inherited by focused control",
+      "unclipped focus retained across scheme change and reopen"
+    ],
+    "focus-tab": [
+      "actual Right and Left messages traverse all six ordinary PropertySheet tabs",
+      "focus remains on the active visible tab",
+      "Tab moves from active tab to RefreshButton then Filter",
+      "Tab through ordinary page selects first enabled resource control",
+      "reopen restores original page action focus"
+    ],
+    "tab-order": [
+      "actual Right and Left messages traverse all six ordinary PropertySheet tabs",
+      "focus remains on the active visible tab",
+      "Tab moves from active tab to RefreshButton then Filter",
+      "Tab through ordinary page selects first enabled resource control",
+      "reopen restores original page action focus"
+    ],
+    "original-add-server": [
+      "native popup creation settled before ready-window command injection; source resize race tracked separately",
+      "resource-owned 572x205 collapsed and 471 expanded geometry",
+      "direct default-port favorite without ping",
+      "exact 14-port test order",
+      "retest retires old callbacks",
+      "addselected preserves distinct ports and remains open"
+    ],
+    "original-password": [
+      "Connect requires fresh metadata",
+      "original PlayerList resource controls",
+      "cancel changes no cvar or engine command",
+      "password submits to captured endpoint after selection change",
+      "fresh ping after password before safe engine connect"
+    ],
+    "original-multiselect": [
+      "stable batch favorites after sort",
+      "typed per-server query identities submitted before asynchronous callbacks; reverse-order completion",
+      "first selected identity retained",
+      "History flag 2 preserves Favorite flag 1",
+      "reset discards selected viewport generation"
+    ],
+    "original-add-current": [
+      "accepted host normalized once",
+      "external connection same-port fallback",
+      "no child dialog or selected-row substitution",
+      "disconnect clears current identity"
+    ],
+    "original-game-info": [
+      "PingServer then PlayerDetails only",
+      "metadata refresh preserves independent player request",
+      "total players determines full status even with zero humans",
+      "original retry resource height plus60",
+      "close rejects late connect callback"
+    ],
+    "original-keyboard-range": [
+      "private real VGUI input context retains asserted Shift state through ListPanel Down Down Up events",
+      "range crosses viewport boundary and shrinks",
+      "first-selected anchor remains Connect endpoint"
+    ],
+    "original-info-stop": [
+      "ViewGameInfo cancels active source refresh",
+      "synchronous source cancellation preserves captured endpoint",
+      "independent child metadata and player query"
+    ],
+    "original-connect-stop": [
+      "Join cancels active source refresh",
+      "snapshot survives cancellation callback",
+      "independent fresh child ping precedes captured numeric connect"
     ]
   },
   "moduleDriver": "module_tests.cpp: lifecycle, unavailable, unsupported-game; actual accepted CGameUI hooks and delayed replay",

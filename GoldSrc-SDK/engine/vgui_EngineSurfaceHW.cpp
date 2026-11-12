@@ -713,7 +713,7 @@ void EngineSurface::drawUpdateRegionTextureBGRA( int id, int, int y, const unsig
 	std::uint32_t rowOffset = SURFACE_PIXEL_BYTES * static_cast<std::uint32_t>( y );
 	rowOffset *= static_cast<std::uint32_t>( texture->_wide );
 	qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, texture->_wide, tall, GL_BGRA, GL_UNSIGNED_BYTE, bgra + rowOffset );
-	glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+    CseRenderPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
 }
 
 namespace

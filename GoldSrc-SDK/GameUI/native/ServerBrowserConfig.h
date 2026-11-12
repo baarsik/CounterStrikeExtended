@@ -2,6 +2,7 @@
 #define CSE_SERVER_BROWSER_CONFIG_H
 
 #include "ServerBrowserModel.h"
+#include <array>
 class IFileSystem;
 namespace cse::server_browser {
 enum class ReadResult { Missing, Ok, Error };
@@ -11,12 +12,25 @@ public:
     virtual ReadResult Read(std::string& output, std::string& error) = 0;
     virtual bool AtomicReplace(std::string_view bytes, std::string& error) = 0;
 };
+// Visual order is independent of the stored ListKind numeric identity.
+inline constexpr std::array<ListKind, 6> BrowserTabKinds{ListKind::Internet, ListKind::Favorites,
+    ListKind::History, ListKind::Spectate, ListKind::LAN, ListKind::Friends};
+inline constexpr std::array<int, 7> BrowserPingLimits{0, 50, 100, 150, 250, 350, 600};
+struct BrowserPageSettings {
+    Filters filters;
+    bool initialized = false;
+    bool filtersExpanded = false;
+    uint32_t hiddenColumns = 1U << 8; // Original IPAddr visual column.
+};
 struct BrowserSettings {
     ListKind kind = ListKind::Internet;
     Filters filters;
-    Sort sort;
+    Sort sort{Column::Address, true};
     int width = 640;
-    int height = 480;
+    int height = 384;
+    bool filtersExpanded = false;
+    bool savedSize = false;
+    std::array<BrowserPageSettings, BrowserTabKinds.size()> pages;
 };
 struct ConfigStatus {
     bool available = false;

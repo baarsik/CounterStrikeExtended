@@ -1,5 +1,6 @@
 #include "ServerBrowserModule.h"
 #include "ServerBrowserDialog.h"
+#include "../../external/steamworks/isteamapps.h"
 #include "../GameUI_Interface.h"
 #include "../VGuiSystemModuleLoader.h"
 #include "../common/IVGuiModule.h"
@@ -47,6 +48,11 @@ public:
         auto *favorites = static_cast<ISteamMatchmaking *>(
             SteamInternal_FindOrCreateUserInterface(user, STEAMMATCHMAKING_INTERFACE_VERSION));
         session_.reset(new BrowserSession(servers, favorites, vgui2::filesystem(), connectionEngine_, app, game));
+        session_->apps = static_cast<ISteamApps *>(
+            SteamInternal_FindOrCreateUserInterface(user, STEAMAPPS_INTERFACE_VERSION));
+        if (accepted_) {
+            session_->connection.Accepted(acceptedGame_.c_str(), acceptedIP_, acceptedPort_, acceptedTime_);
+        }
         dialog_ = new ServerBrowserDialog(*session_);
         retiring_ = false;
         initialized_ = true;
@@ -134,17 +140,24 @@ public:
         return !session_;
     }
     void Accepted(const char *game, uint32_t rawIP, uint16_t port) {
+        const std::time_t now = std::time(nullptr);
+        accepted_ = game && *game && rawIP && port && now > 0 && static_cast<uint64_t>(now) <= UINT32_MAX;
+        acceptedGame_ = accepted_ ? game : "";
+        acceptedIP_ = rawIP;
+        acceptedPort_ = port;
+        acceptedTime_ = accepted_ ? static_cast<uint32_t>(now) : 0;
         if (session_ && !retiring_) {
             BrowserUse use(*session_);
-            const std::time_t now = std::time(nullptr);
-            if (now > 0 && static_cast<uint64_t>(now) <= UINT32_MAX) {
-                session_->connection.Accepted(game, rawIP, port, static_cast<uint32_t>(now));
+            if (accepted_) {
+                session_->connection.Accepted(acceptedGame_.c_str(), rawIP, port, acceptedTime_);
             } else {
                 session_->connection.Disconnected();
             }
         }
     }
     void Disconnected() {
+        accepted_ = false;
+        acceptedGame_.clear();
         if (session_) {
             BrowserUse use(*session_);
             session_->connection.Disconnected();
@@ -156,6 +169,11 @@ private:
     ConnectionEngine connectionEngine_;
     std::unique_ptr<BrowserSession> session_;
     vgui2::DHANDLE<ServerBrowserDialog> dialog_;
+    bool accepted_ = false;
+    std::string acceptedGame_;
+    uint32_t acceptedIP_ = 0;
+    uint16_t acceptedPort_ = 0;
+    uint32_t acceptedTime_ = 0;
     bool initialized_ = false;
     bool retiring_ = false;
     bool busy_ = false;

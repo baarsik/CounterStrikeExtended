@@ -22,6 +22,10 @@ public:
     bool CanConnect(const Row &row) const;
     void Accepted(const char *game, uint32_t rawIP, uint16_t connectionPort, uint32_t unixTime);
     void Disconnected();
+    std::optional<FavoriteRecord> CurrentServer() const;
+    uint64_t AcceptanceSerial() const {
+        return acceptanceSerial_;
+    }
 
 private:
     void Retire();
@@ -30,6 +34,8 @@ private:
     AppId_t app_;
     std::string game_;
     std::optional<Address> pending_;
+    std::optional<FavoriteRecord> current_;
+    uint64_t acceptanceSerial_ = 0;
     std::array<char, ServerPasswordCapacity> password_{};
     std::string previous_;
 };

@@ -111,13 +111,25 @@ void ServerBrowserConnection::Accepted(const char *game, uint32_t rawIP, uint16_
     for (const unsigned char byte : bytes) {
         ip = (ip << OctetBits) | byte;
     }
-    if (pending_ && game && game_ == game && pending_->ip == ip && pending_->connectionPort == connectionPort) {
-        model_.RecordAcceptedConnection(app_, *pending_, unixTime);
+    ++acceptanceSerial_;
+    current_.reset();
+    if (game && game_ == game && ip && connectionPort) {
+        Address address{ip, connectionPort, connectionPort};
+        if (pending_ && pending_->ip == ip && pending_->connectionPort == connectionPort) {
+            address = *pending_;
+        }
+        current_ = FavoriteRecord{app_, address, k_unFavoriteFlagHistory, unixTime};
+        model_.RecordAcceptedConnection(app_, address, unixTime);
     }
     Retire();
 }
 
+std::optional<FavoriteRecord> ServerBrowserConnection::CurrentServer() const {
+    return current_;
+}
+
 void ServerBrowserConnection::Disconnected() {
+    current_.reset();
     Retire();
 }
 

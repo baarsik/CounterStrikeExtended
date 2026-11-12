@@ -31,7 +31,11 @@ window and network probes are separate authorized actions, not implied by a buil
 | Steam and browser | [Steam](steam/), [service lifetime](steam_service/), [server](steam_server/README.md), [CEF](cef_host/README.md) |
 | Text and UI | [text encoding](text_encoding/README.md), [UI lengths](ui_lengths/README.md), [VGUI1 Debug](vgui1_debug/README.md) |
 | Built Apple Silicon client | [actual-library UI, font and module-load checks](mac_client/README.md) |
-| Renderer | [state/texture capture](render_state/README.md), [offline GPU shaders and adapters](render_gpu/README.md) |
+| Software and dedicated | [software video](software_video/README.md), [lifetime](software_lifetime/README.md), [dedicated host](dedicated_host/README.md), [admin](dedicated_admin/README.md), [standalone VGUI](vgui2_standalone/README.md) |
+| Browser | [model/provider](server_browser/README.md), [actual VGUI/lifetime/original-view cases](server_browser_ui/README.md) |
+| Input and bounded repairs | [gameplay shortcuts](gameplay_shortcuts/README.md), [system capture](system_capture/README.md), [timer](hud_timer/README.md), [notify](console_notify/README.md), [multisource](multisource/README.md), [network](network_platform/README.md) |
+| Native A3D contract | [buffers](a3d_buffers/README.md), [events/notifications](a3d_notifications/README.md), [resources](a3d_resources/README.md), [device](a3d_device/README.md), [spatial](a3d_spatial/README.md) |
+| Renderer | [state/texture/ordered frames](render_state/README.md), [offline GPU shaders and adapters](render_gpu/README.md) |
 
 To qualify a changed implementation, compare it with a pinned reference under
 the same inputs and per-file policy. Preserve exact byte/count/state oracles and
@@ -87,3 +91,19 @@ peer module to test repeated peer unload/reload and global cleanup.
 `python3 tests/native/steam_service/check_staging.py --provider /absolute/provider
 --target macos-arm64` checks restoration and hash-based staging rejection without
 initializing Steam. Use `windows-x64` in the matching MSVC environment on Windows.
+
+## Source provenance and binary inventories
+
+Use the [qualification inventory/export commands](../../tools/qualification/README.md#source-and-binary-inventory)
+to capture and verify a committed source reference, audit explicitly supplied
+runtime architecture/imports, and compare native game exports against a retained
+Win32 dump. Static inventories do not prove actual loading or gameplay. Preserve
+exact upstream/reference/license text and pinned header baselines; approved
+minimal active patches need their own hashes/provenance. The server-browser Valve
+formatter patch preserves declarations, layout and output; its unmodified
+upstream baseline remains separate. Build-policy checks use generated actual
+owning commands, not replayed stale commands or fixture defaults.
+
+Sound-provider, module-loading ASan, real Steam binding/service and inventory
+commands above remain explicit boundaries. CTest dummy providers do not imply
+physical output, live network/provider execution or full target acceptance.

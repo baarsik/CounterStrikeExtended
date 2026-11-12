@@ -405,6 +405,71 @@ void EverySortAndFilter() {
     Drain(model);
     CHECK(model.OrderedKeys().size() == 1);
 }
+void OriginalMapAndHumanFilters() {
+    Provider provider;
+    auto human = Server(0x7f000001U);
+    std::strcpy(human.m_szMap, "De_Dust2");
+    human.m_nPlayers = 3;
+    human.m_nBotPlayers = 2;
+    auto bots = human;
+    bots.m_NetAdr.SetIP(0x7f000002U);
+    bots.m_nPlayers = 2;
+    provider.nextRows = {human, bots};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+    auto filters = DefaultFilters();
+    filters.map = "dE_dU";
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 2);
+    filters.nonempty = true;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1);
+    CHECK(model.OrderedKeys().front().ip == 0x7f000001U);
+    filters.map = "dust";
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().empty());
+}
+void OriginalAccountAndHistoryData() {
+    Provider provider;
+    auto nonzeroAccount = Server(0x7f000001U);
+    nonzeroAccount.m_steamID.SetFromUint64(7); // Invalid type/universe, but original nonzero account predicate passes.
+    nonzeroAccount.m_ulTimeLastPlayed = 200;
+    nonzeroAccount.m_nBotPlayers = 5;
+    auto upperBitsOnly = Server(0x7f000002U);
+    upperBitsOnly.m_steamID.SetFromUint64(uint64_t{1} << 56);
+    upperBitsOnly.m_bSecure = true;
+    upperBitsOnly.m_ulTimeLastPlayed = 300;
+    upperBitsOnly.m_nBotPlayers = 1;
+    provider.nextRows = {nonzeroAccount, upperBitsOnly};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::History, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+    CHECK(!nonzeroAccount.m_steamID.IsValid());
+    const auto *copied = model.Find({0x7f000001U, 27015, 27016});
+    CHECK(copied && copied->hasSteamAccount && copied->lastPlayed == 200 && copied->bots == 5);
+    CHECK(!model.Find({0x7f000002U, 27015, 27016})->hasSteamAccount);
+    model.SetSort({Column::LastPlayed, false});
+    Drain(model);
+    CHECK(model.OrderedKeys().front().ip == 0x7f000002U);
+    model.SetSort({Column::Bots, false});
+    Drain(model);
+    CHECK(model.OrderedKeys().front().ip == 0x7f000001U);
+    auto filters = DefaultFilters();
+    filters.validSteamAccount = true;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().size() == 1 && model.OrderedKeys().front().ip == 0x7f000001U);
+    filters.secure = Requirement::Yes;
+    model.SetFilters(filters);
+    Drain(model);
+    CHECK(model.OrderedKeys().empty()); // VAC cannot substitute for the separate account predicate.
+}
 void ReplacementAndFailure() {
     Provider provider;
     provider.nextRows = {Server()};
@@ -460,6 +525,8 @@ int main(int argc, char** argv) {
     }
 
     try {
+        OriginalMapAndHumanFilters();
+        OriginalAccountAndHistoryData();
         Addresses();
         ListsAndRetirement();
         PartialFiltersAndSort();
@@ -469,7 +536,7 @@ int main(int argc, char** argv) {
         FavoritePreservation();
         ReplacementAndFailure();
         EverySortAndFilter();
-        std::cout << "9 model cases passed\n";
+        std::cout << "11 model cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

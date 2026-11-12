@@ -92,6 +92,8 @@ public:
         return pixelStore_;
     }
     Status Parameter(const LegacyState& state, TextureTarget target, TextureParameter parameter, double value);
+    // Allocation-free caller-copy bound; output is unchanged on failure.
+    static Status UploadByteExtent(const TextureUpload& upload, const PixelStoreState& unpack, std::size_t& output);
     static Status ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage);
     Status Upload(const LegacyState& state, TextureTarget target, const TextureUpload& upload,
         const PixelStoreState& unpack, bool subimage);

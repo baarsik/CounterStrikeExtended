@@ -24,7 +24,7 @@ Exact selections and metadata are in `msbuild/repository-selections.json`; gener
 | `projects/vs2026/hl_cdll.vcxproj` | `hl_client` | 83 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/hldll.vcxproj` | `hl_server` | 103 | MultiThreadedDebug / MultiThreaded | yes |
 | `projects/vs2026/hlds.vcxproj` | `hlds` | 55 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
-| `projects/vs2026/hw_engine.vcxproj` | `hw_engine` | 178 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
+| `projects/vs2026/hw_engine.vcxproj` | `hw_engine` | 183 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `projects/vs2026/particleman.vcxproj` | `particleman` | 6 | MultiThreadedDebugDLL / MultiThreadedDLL | yes |
 | `swds/swds.vcxproj` | `swds` | 192 | MultiThreadedDebugDLL / MultiThreadedDLL | no |
 | `tier0/tier0.vcxproj` | `tier0` | 19 | MultiThreadedDebugDLL / MultiThreadedDLL | no |

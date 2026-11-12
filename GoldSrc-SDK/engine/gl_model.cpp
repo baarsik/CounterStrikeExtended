@@ -125,7 +125,7 @@ void Mod_ClearAll()
 				dl = &mod->surfaces[j].displaylist;
 				if ( dl->gl_displaylist )
 				{
-					glDeleteLists( dl->gl_displaylist, 1 );
+                    CseRenderDeleteLists( dl->gl_displaylist, 1 );
 					dl->gl_displaylist = 0;
 				}
 			}
@@ -2002,7 +2002,7 @@ void Mod_ChangeGame()
 			dl = &mod->surfaces[j].displaylist;
 			if ( dl->gl_displaylist )
 			{
-				glDeleteLists( dl->gl_displaylist, 1 );
+                CseRenderDeleteLists( dl->gl_displaylist, 1 );
 				dl->gl_displaylist = 0;
 			}
 		}

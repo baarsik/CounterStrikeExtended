@@ -90,6 +90,9 @@ public:
     const std::vector<DrawPacket>& Draws() const {
         return draws_;
     }
+    bool InPrimitive() const {
+        return begin_ || compileBegin_;
+    }
     bool AtFrameBoundary() const;
     Status TakeFrameDraws(std::vector<DrawPacket>& output);
     void AbortPendingFrame();

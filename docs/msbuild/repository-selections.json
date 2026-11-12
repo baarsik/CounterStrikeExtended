@@ -1321,6 +1321,7 @@
           "LinkIncremental": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Debug\\GameUI.lastcodeanalysissucceeded",
           "CseSdl3Shared": "true",
+          "CseNativeWindowsLibraries": "ws2_32.lib",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -2205,6 +2206,7 @@
           "LinkIncremental": "false",
           "CodeAnalysisSucceededFile": "${CSE_SDK_DIR}/projects/vs2026/..\\..\\bin\\obj\\GameUI\\Win32\\Release\\GameUI.lastcodeanalysissucceeded",
           "CseSdl3Shared": "true",
+          "CseNativeWindowsLibraries": "ws2_32.lib",
           "CseSdl3Version": "3.4.20",
           "CseSdl3Root": "${CSE_SDK_DIR}/external/SDL3/",
           "CseSdl3Include": "${CSE_SDK_DIR}/external/SDL3/include",
@@ -13984,6 +13986,46 @@
           },
           {
             "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_state.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_commands.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_texture.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/frame_stream.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_dispatch.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/registry.cpp",
             "metadata": {}
           },
@@ -15235,6 +15277,46 @@
             "kind": "ClCompile",
             "path": "${CSE_SDK_DIR}/engine/qgl.cpp",
             "metadata": {}
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_state.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_commands.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_texture.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/frame_stream.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
+          },
+          {
+            "kind": "ClCompile",
+            "path": "${CSE_SDK_DIR}/engine/render/native/legacy_dispatch.cpp",
+            "metadata": {
+              "ExceptionHandling": "Sync",
+              "FloatingPointModel": "Precise"
+            }
           },
           {
             "kind": "ClCompile",
