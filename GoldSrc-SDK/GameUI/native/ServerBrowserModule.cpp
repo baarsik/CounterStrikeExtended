@@ -1,6 +1,7 @@
 #include "ServerBrowserModule.h"
 #include "ServerBrowserDialog.h"
 #include "../../external/steamworks/isteamapps.h"
+#include "../../public/native_gameui_connection.h"
 #include "../GameUI_Interface.h"
 #include "../VGuiSystemModuleLoader.h"
 #include "../common/IVGuiModule.h"
@@ -14,6 +15,7 @@
 namespace cse::server_browser {
 namespace {
 const gameui_lifetime::HostV1 *host = nullptr;
+const gameui_connection::HostV1 *connectionHost = nullptr;
 class ConnectionEngine final : public IConnectionEngine {
 public:
     const char *Password() override {
@@ -160,7 +162,7 @@ public:
         acceptedGame_.clear();
         if (session_) {
             BrowserUse use(*session_);
-            session_->connection.Disconnected();
+            session_->connection.Disconnected(connectionHost ? connectionHost->PreparingAddress() : nullptr);
         }
     }
 
@@ -214,6 +216,7 @@ bool BindServerBrowserHost(CreateInterfaceFn *factories, int count) {
                 return false;
             }
             host = candidate;
+            connectionHost = gameui_connection::AdmitHost(factories[index]);
             return true;
         }
     }

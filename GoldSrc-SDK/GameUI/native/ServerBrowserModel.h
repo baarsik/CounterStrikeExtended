@@ -155,6 +155,7 @@ public:
     size_t Pump(size_t rowBudget = 128);
     std::vector<RowUpdate> TakeUpdates(size_t maxUpdates = 128);
     const Row* Find(RowKey key) const;
+    bool IsVisible(RowKey key) const;
     // Explicit O(n) snapshot for user actions/diagnostics, never the frame update interface.
     std::vector<RowKey> OrderedKeys() const;
     Status GetStatus() const;

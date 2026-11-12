@@ -6,6 +6,9 @@ Steam session or network request.
 
 It checks pointer-width serializer identity, all virtual serializer methods,
 convenience forwarding, UTF-16 code units and supplementary scalar characters.
+The popup input fixture extracts complete production widget methods and checks
+popup-to-view coordinates against controlled panel geometry, including the
+cursor position retained for clicks. It does not start a CEF process.
 `verify_reference.py <immutable-reference-HTML.h> <shared-header>` compares the
 ordered response and serializer declarations with a retained Windows header.
 

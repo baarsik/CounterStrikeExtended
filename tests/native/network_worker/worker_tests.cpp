@@ -23,6 +23,7 @@ using SOCKET = int;
 #include <condition_variable>
 #include <cstddef>
 #include <future>
+#include <deque>
 #include <limits>
 #include <mutex>
 #include <stdexcept>
@@ -150,7 +151,26 @@ static qboolean NET_LagPacket(qboolean newData, netsrc_t, netadr_t*, sizebuf_t*)
 static qboolean NET_GetLong(char*, int, int*) { return false; }
 static const char* NET_AdrToString(netadr_t) { return "fixture"; }
 [[maybe_unused]] static const char* NET_ErrorString(int) { return "fixture socket error"; }
-static int NET_SteamFakeIPRecvFrom(netsrc_t, char*, int, int, int result, sockaddr*, int*) { return result; }
+static std::array<std::deque<std::vector<byte>>, NET_SOCKET_SOURCES> providerPackets;
+constexpr uint16_t ProviderSenderPort = 27016;
+static int NET_SteamFakeIPRecvFrom(netsrc_t source, char* data, int capacity, int, int result,
+    sockaddr* from, int* fromLength) {
+    auto& packets = providerPackets[source];
+    if (packets.empty()) {
+        return result;
+    }
+    const auto packet = std::move(packets.front());
+    packets.pop_front();
+    Require(packet.size() <= static_cast<size_t>(capacity), "controlled provider packet exceeds receive buffer");
+    std::memcpy(data, packet.data(), packet.size());
+    sockaddr_in sender{};
+    sender.sin_family = AF_INET;
+    sender.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sender.sin_port = htons(ProviderSenderPort);
+    std::memcpy(from, &sender, sizeof(sender));
+    *fromLength = sizeof(sender);
+    return static_cast<int>(packet.size());
+}
 static bool NET_ShouldUseSteamFakeIP() { return true; }
 static void NET_GetLocalAddress() {}
 static void NET_OpenIP();
@@ -312,6 +332,25 @@ static void TestSourceDrainOrderAndBytes(bool sleepForever) {
         RequirePacket(static_cast<netsrc_t>(packet[4]), packet, senderAddress.sin_port);
     }
     CloseSocket(sender);
+    FlushFixture();
+}
+
+static void TestProviderReceptionWithoutUdpTraffic(bool sleepForever, bool withUdpSocket) {
+    AllocateFixture(sleepForever);
+    sockaddr_in destination{};
+    if (withUdpSocket) {
+        ip_sockets[NS_CLIENT] = OpenSocket(destination);
+    }
+    NET_StartThread();
+    const std::vector<byte> packet{1, 2, 3, 4, 5, 6};
+    {
+        std::lock_guard<std::recursive_mutex> lock(net_thread_mutex);
+        providerPackets[NS_CLIENT].push_back(packet);
+    }
+    // No UDP send or wake is issued. Only the worker's bounded provider polling can deliver this packet.
+    WaitForPackets(1);
+    NET_StopThread();
+    RequirePacket(NS_CLIENT, packet, htons(ProviderSenderPort));
     FlushFixture();
 }
 
@@ -555,6 +594,10 @@ int main() {
         RunCase("private-native-queue-layouts", TestPrivateQueueLayouts);
         RunCase("source-drain-order-forever", [] { TestSourceDrainOrderAndBytes(true); });
         RunCase("source-drain-order-poll", [] { TestSourceDrainOrderAndBytes(false); });
+        RunCase("provider-only-default", [] { TestProviderReceptionWithoutUdpTraffic(true, false); });
+        RunCase("provider-only-netsleep", [] { TestProviderReceptionWithoutUdpTraffic(false, false); });
+        RunCase("provider-idle-udp-default", [] { TestProviderReceptionWithoutUdpTraffic(true, true); });
+        RunCase("provider-idle-udp-netsleep", [] { TestProviderReceptionWithoutUdpTraffic(false, true); });
         RunCase("preallocated-and-heap-packet-ownership", TestPreallocatedAndHeapPacketOwnership);
         RunCase("stop-joins-in-flight-packet", [] { TestStopJoinsInFlightPacket(false); });
         RunCase("flush-joins-in-flight-packet", [] { TestStopJoinsInFlightPacket(true); });

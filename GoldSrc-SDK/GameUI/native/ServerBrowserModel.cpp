@@ -16,6 +16,7 @@ constexpr uint32_t MaximumPort = 65535;
 constexpr int BitsPerOctet = 8;
 constexpr int MaximumRegion = 7;
 constexpr int NoRegion = -1;
+constexpr size_t MaximumRefreshPings = 32;
 
 void RequireThread(std::thread::id owner) {
     if (std::this_thread::get_id() != owner) {
@@ -252,6 +253,42 @@ FavoriteWriteResult SteamFavoriteStore::Remove(const FavoriteRecord& record) {
 struct ServerBrowserModel::State {
     using Index = std::set<Row, RowLess>;
     using Rows = std::map<RowKey, Row>;
+    struct Ping final : ISteamMatchmakingPingResponse {
+        State& owner;
+        Row original;
+        HServerQuery handle = HSERVERQUERY_INVALID;
+        std::optional<Row> result;
+        bool complete = false;
+        bool accepting = true;
+        Ping(State& state, const Row& row) : owner(state), original(row) {}
+        void ServerResponded(gameserveritem_t& item) override {
+            owner.Check();
+            ++owner.callbackDepth;
+            if (accepting && !owner.closing && !complete) {
+                Row row = CopyRow(item, false);
+                if (row.key.ip == original.key.ip && row.key.connectionPort == original.key.connectionPort) {
+                    row.key = original.key;
+                    row.lastPlayed = original.lastPlayed;
+                    result = std::move(row);
+                } else {
+                    result = original;
+                    result->failed = true;
+                }
+                complete = true;
+            }
+            --owner.callbackDepth;
+        }
+        void ServerFailedToRespond() override {
+            owner.Check();
+            ++owner.callbackDepth;
+            if (accepting && !owner.closing && !complete) {
+                result = original;
+                result->failed = true;
+                complete = true;
+            }
+            --owner.callbackDepth;
+        }
+    };
     struct Request final : ISteamMatchmakingServerListResponse {
         State& owner;
         uint64_t generation;
@@ -326,6 +363,9 @@ struct ServerBrowserModel::State {
     Status status;
     std::unique_ptr<Request> request;
     std::unique_ptr<Request> retiredRequest;
+    std::set<RowKey> pingPending;
+    std::map<RowKey, std::unique_ptr<Ping>> pings;
+    bool pingRefresh = false;
     bool refreshPending = false;
     bool resetPending = false;
     bool rebuildPending = false;
@@ -366,13 +406,23 @@ struct ServerBrowserModel::State {
         };
         return rows.size() + indexes.size() + updates.size() + (ordered ? ordered->size() : 0) +
             (rebuilding ? rebuilding->size() : 0) + (retiredIndex ? retiredIndex->size() : 0) +
-            requestNodes(request) + requestNodes(retiredRequest);
+            requestNodes(request) + requestNodes(retiredRequest) + pingPending.size() + pings.size();
     }
     void Retire() {
         if (!retirePending || providerDepth || callbackDepth || retiring) {
             return;
         }
         retiring = true;
+        for (auto& entry : pings) {
+            auto& ping = *entry.second;
+            ping.accepting = false;
+            if (ping.handle != HSERVERQUERY_INVALID) {
+                Provider([&] {
+                    services.servers->CancelServerQuery(ping.handle);
+                });
+            }
+        }
+        pings.clear();
         if (request && request->handle) {
             request->accepting = false;
             const auto handle = request->handle;
@@ -399,6 +449,10 @@ struct ServerBrowserModel::State {
     }
     void Invalidate() {
         ++generation;
+        pingRefresh = false;
+        for (auto& entry : pings) {
+            entry.second->accepting = false;
+        }
         if (request) {
             request->accepting = false;
         }
@@ -452,6 +506,9 @@ struct ServerBrowserModel::State {
             return true;
         };
         while (lastReclamationWork < budget) {
+            if (!pingRefresh && eraseOne(pingPending)) {
+                continue;
+            }
             if (retiredRequest) {
                 auto& owner = *retiredRequest;
                 if (eraseOne(owner.dirty) || eraseOne(owner.seen) || eraseOne(owner.membership) ||
@@ -503,7 +560,7 @@ struct ServerBrowserModel::State {
     void Queue(const Row& row) {
         updates[row.key] = {row, Matches(row, filters), false, generation};
     }
-    void Apply(Row row, int index) {
+    void Apply(Row row, std::optional<int> index = std::nullopt) {
         if (!ValidAddress(row.key)) {
             return;
         }
@@ -523,8 +580,10 @@ struct ServerBrowserModel::State {
             }
         }
         rows[row.key] = row;
-        indexes[row.key] = index;
-        request->membership.insert(row.key);
+        if (index && request) {
+            indexes[row.key] = *index;
+            request->membership.insert(row.key);
+        }
         if (row.failed) {
             ++status.failed;
         }
@@ -535,6 +594,55 @@ struct ServerBrowserModel::State {
             }
         }
         Queue(row);
+        if (selection == row.key && !Matches(row, filters)) {
+            selection.reset();
+        }
+    }
+    size_t PumpPings(size_t budget) {
+        size_t work = 0;
+        auto entry = pings.begin();
+        while (entry != pings.end() && work < budget && pingRefresh && !closing) {
+            auto& ping = *entry->second;
+            if (!ping.complete) {
+                ++entry;
+                continue;
+            }
+            if (ping.result) {
+                Apply(std::move(*ping.result));
+            }
+            ping.accepting = false;
+            if (ping.handle != HSERVERQUERY_INVALID) {
+                Provider([&] {
+                    services.servers->CancelServerQuery(ping.handle);
+                });
+            }
+            entry = pings.erase(entry);
+            ++work;
+        }
+        while (work < budget && pingRefresh && !closing && !pingPending.empty() &&
+               pings.size() < MaximumRefreshPings) {
+            const RowKey key = *pingPending.begin();
+            pingPending.erase(pingPending.begin());
+            ++work;
+            const auto row = rows.find(key);
+            if (row == rows.end()) {
+                continue;
+            }
+            auto query = std::make_unique<Ping>(*this, row->second);
+            auto& ping = *query;
+            pings.emplace(key, std::move(query));
+            ping.handle = Provider([&] {
+                return services.servers->PingServer(key.ip, key.queryPort, &ping);
+            });
+            if (ping.handle == HSERVERQUERY_INVALID && !ping.complete) {
+                ping.ServerFailedToRespond();
+            }
+        }
+        if (pingRefresh && pingPending.empty() && pings.empty()) {
+            pingRefresh = false;
+            status.phase = Phase::Complete;
+        }
+        return work;
     }
     bool Favorite(AppId_t app, Address address, uint32_t flag, uint32_t timestamp, bool remove) {
         Check();
@@ -700,8 +808,28 @@ bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters) {
 bool ServerBrowserModel::QuickRefresh() {
     auto& state = *state_;
     state.Check();
-    if (state.closing || state.refreshPending || !state.request || !state.request->handle ||
-        !state.request->completed || state.providerDepth || state.callbackDepth) {
+    if (state.closing || !state.services.servers || state.refreshPending || state.resetPending ||
+        state.providerDepth || state.callbackDepth || state.retiring) {
+        return false;
+    }
+    if (!state.request || !state.request->handle) {
+        if (state.rows.empty()) {
+            return false;
+        }
+        if (!state.pingRefresh) {
+            state.pingPending.clear();
+        }
+        for (const auto& entry : state.rows) {
+            if (!state.pings.count(entry.first)) {
+                state.pingPending.insert(entry.first);
+            }
+        }
+        state.pingRefresh = true;
+        state.status.phase = Phase::Refreshing;
+        state.status.error.clear();
+        return true;
+    }
+    if (!state.request->completed) {
         return false;
     }
     auto& request = *state.request;
@@ -718,9 +846,26 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
     auto& state = *state_;
     state.Check();
     const auto found = state.indexes.find(key);
-    if (state.closing || state.refreshPending || !state.request || !state.request->handle ||
-        (!state.request->completed && state.request->quickPending.empty()) || found == state.indexes.end() ||
-        state.providerDepth || state.callbackDepth) {
+    if (state.closing || !state.services.servers || state.refreshPending || state.resetPending ||
+        state.providerDepth || state.callbackDepth || state.retiring) {
+        return false;
+    }
+    if (!state.request || !state.request->handle) {
+        if (!Find(key)) {
+            return false;
+        }
+        if (!state.pingRefresh) {
+            state.pingPending.clear();
+        }
+        if (!state.pings.count(key)) {
+            state.pingPending.insert(key);
+        }
+        state.pingRefresh = true;
+        state.status.phase = Phase::Refreshing;
+        state.status.error.clear();
+        return true;
+    }
+    if ((!state.request->completed && state.request->quickPending.empty()) || found == state.indexes.end()) {
         return false;
     }
     auto& request = *state.request;
@@ -768,6 +913,9 @@ void ServerBrowserModel::SetFilters(const Filters& filters) {
         state.status.error = "Provider filter changes require a full refresh for complete membership";
     }
     state.filters = filters;
+    if (state.selection && !IsVisible(*state.selection)) {
+        state.selection.reset();
+    }
     state.Rebuild();
 }
 void ServerBrowserModel::SetSort(Sort sort) {
@@ -783,7 +931,7 @@ void ServerBrowserModel::SetSort(Sort sort) {
 }
 void ServerBrowserModel::Select(std::optional<RowKey> key) {
     state_->Check();
-    state_->selection = !state_->resetPending && key && state_->rows.count(*key) ? key : std::nullopt;
+    state_->selection = key && IsVisible(*key) ? key : std::nullopt;
 }
 std::optional<RowKey> ServerBrowserModel::Selection() const {
     state_->Check();
@@ -797,6 +945,7 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
         return 0;
     }
     size_t work = state.Reclaim(rowBudget);
+    work += state.PumpPings(rowBudget - work);
     if (state.CanStartRequest()) {
         state.StartRequest();
     }
@@ -903,6 +1052,10 @@ const Row* ServerBrowserModel::Find(RowKey key) const {
     const auto found = state_->rows.find(key);
     return found == state_->rows.end() ? nullptr : &found->second;
 }
+bool ServerBrowserModel::IsVisible(RowKey key) const {
+    const Row *row = Find(key);
+    return row && Matches(*row, state_->filters);
+}
 std::vector<RowKey> ServerBrowserModel::OrderedKeys() const {
     state_->Check();
     std::vector<RowKey> keys;
@@ -919,7 +1072,8 @@ Status ServerBrowserModel::GetStatus() const {
     Status result = state_->status;
     result.kind = state_->kind;
     result.requestRetired = !state_->request && !state_->retiredRequest && !state_->providerDepth &&
-        !state_->callbackDepth && !state_->retirePending && !state_->retiring && !state_->refreshPending;
+        !state_->callbackDepth && !state_->retirePending && !state_->retiring && !state_->refreshPending &&
+        state_->pings.empty() && state_->pingPending.empty();
     result.rows = state_->rows.size();
     result.retainedNodes = state_->StorageNodes();
     result.retainedGenerations = (state_->retiredRequest ? 1 : 0) + (state_->retiredIndex ? 1 : 0) +
@@ -929,6 +1083,7 @@ Status ServerBrowserModel::GetStatus() const {
         state_->rebuilding != nullptr ||
         (state_->request && state_->request->completed && state_->request->prunePending);
     result.pending = state_->updates.size() + (state_->resetUpdate ? 1 : 0);
+    result.pending += state_->pingPending.size() + state_->pings.size();
     if (state_->request) {
         result.pending += state_->request->dirty.size();
         result.pending += static_cast<size_t>(std::max(0, state_->request->count - state_->request->enumerate));

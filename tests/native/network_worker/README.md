@@ -10,7 +10,7 @@ contain native pointers; their struct bytes are never sent as protocol records.
 The fixtures use real nonblocking loopback UDP sockets. They verify source
 0/1/2 drain order, FIFO bytes and sender address, pool exhaustion and heap
 ownership, packet-size boundaries, stop/flush during an in-flight packet,
-indefinite idle wake/join, 64 restart cycles, stop during a continuously busy
+idle wake/join with both sleep preferences, 64 restart cycles, stop during a continuously busy
 drain, failed creation followed by restart, socket replacement and shutdown.
 POSIX failure fixtures use real descriptor limits, including denial of the
 second wake socket. Windows failure fixtures temporarily shut down their own
@@ -20,7 +20,9 @@ receive and queue bodies.
 
 Engine dependencies are controlled: allocation tracks every queue-owned block;
 the lag callback passes through packets with no artificial lag; split-packet
-assembly and Steam FakeIP delivery are not exercised. Socket opening in the
+assembly and the live Steam provider are not exercised. A controlled FakeIP-style
+message queue verifies reception without UDP traffic, both with idle UDP sockets
+and without UDP sockets, with and without `-netsleep`. Socket opening in the
 configure fixture is a local UDP provider. No game, network server, microphone,
 netchan, authentication, integrity policy or external plugin runs in this suite.
 Passing these fixtures does not qualify the complete engine translation unit,

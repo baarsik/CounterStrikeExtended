@@ -97,7 +97,7 @@ void NetworkWorker::CloseWakeSockets() {
     wakeRead_ = kInvalidNetworkWorkerSocket;
 }
 
-bool NetworkWorker::Start(CollectSockets collectSockets, QueuePacket queuePacket, bool sleepForever) {
+bool NetworkWorker::Start(CollectSockets collectSockets, QueuePacket queuePacket, bool /*sleepForever*/) {
     if (thread_.joinable()) {
         return true;
     }
@@ -107,7 +107,6 @@ bool NetworkWorker::Start(CollectSockets collectSockets, QueuePacket queuePacket
 
     collectSockets_ = collectSockets;
     queuePacket_ = queuePacket;
-    sleepForever_ = sleepForever;
     stopping_.store(false, std::memory_order_release);
     try {
         thread_ = std::thread(&NetworkWorker::Run, this);
@@ -161,19 +160,22 @@ int NetworkWorker::WaitForPackets() {
     }
 
     timeval timeout = { 0, kNetworkPollMicroseconds };
+    // Steam FakeIP queues have no kernel descriptor that can wake select. Bound the wait
+    // even without -netsleep, so those transports receive the same polling as UDP.
 #if defined(_WIN32)
     // Winsock ignores nfds. Do not truncate a 64-bit SOCKET to form it.
     constexpr int kIgnoredSocketCount = 0;
-    return select(kIgnoredSocketCount, &readSockets, nullptr, nullptr, sleepForever_ ? nullptr : &timeout);
+    return select(kIgnoredSocketCount, &readSockets, nullptr, nullptr, &timeout);
 #else
-    return select(maxSocket + 1, &readSockets, nullptr, nullptr, sleepForever_ ? nullptr : &timeout);
+    return select(maxSocket + 1, &readSockets, nullptr, nullptr, &timeout);
 #endif
 }
 
 void NetworkWorker::Run() {
     while (!stopping_.load(std::memory_order_acquire)) {
-        int ready = WaitForPackets();
-        while (ready != 0 && !stopping_.load(std::memory_order_acquire)) {
+        WaitForPackets();
+        // A timeout is also a polling opportunity for transports outside the socket set.
+        while (!stopping_.load(std::memory_order_acquire)) {
             bool idle = true;
             // Preserve the engine's round-robin source order and drain until
             // idle, with a stop point between complete, owned queue packets.

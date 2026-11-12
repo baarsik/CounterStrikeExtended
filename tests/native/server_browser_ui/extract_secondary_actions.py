@@ -18,6 +18,8 @@ signatures = [
     'void ServerBrowserDialog::SelectVisible(',
     'void ServerBrowserDialog::SelectVisibleItems(',
     'void ServerBrowserDialog::MoveSelection(',
+    'void ServerBrowserDialog::ScrollViewport(',
+    'void ServerBrowserDialog::ReconcileSelection()',
     'void ServerBrowserDialog::ConnectSelection(',
     'BrowserDetailsDialog *ServerBrowserDialog::OpenDetails()',
 ]

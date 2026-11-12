@@ -83,6 +83,7 @@ public:
     void OwnMessage(vgui2::Frame *message);
     void ShowContextMenu();
     void MoveSelection(int delta, bool endpoint = false);
+    void ScrollViewport(int delta);
     size_t WindowSize() const;
 
 protected:
@@ -93,6 +94,7 @@ protected:
 
 private:
     void ApplyFilters();
+    void ReconcileSelection();
     void BindPage();
     void ReloadPage();
     void UpdateActions();

@@ -743,102 +743,77 @@ qboolean NET_GetLong( char* data, int length, int* outputLength )
 	return true;
 }
 
-qboolean NET_QueuePacket( netsrc_t source )
-{
-#if !defined( _WIN32 )
-	SOCKET socket = ip_sockets[source];
-	if ( socket )
-	{
-		sockaddr from;
-		int fromLength = sizeof( from );
-		char data[MAX_RECEIVE_PACKET_BYTES];
-        int result = NET_PosixReceiveFrom(socket, data, sizeof(data), 0, &from, &fromLength);
-		if ( result <= 0 )
-			result = NET_SteamFakeIPRecvFrom( source, data, sizeof( data ), 0, result, &from, &fromLength );
-		if ( result == -1 )
-		{
-			int error = errno;
-			if ( error != ECONNRESET && error != EAGAIN && error != ECONNREFUSED )
-			{
-				if ( error == EMSGSIZE )
-					Con_DPrintf( "NET_QueuePacket:  Ignoring oversized network message\n" );
-				else
-				{
-					const char* description = strerror( error );
-					if ( cls.state != ca_dedicated )
-						Sys_Error( "NET_QueuePacket: %s", description );
-					Con_Printf( "NET_QueuePacket: %s\n", description );
-				}
-			}
-		}
-		else
-		{
-			SockadrToNetadr( &from, &in_from );
-			if ( result == static_cast<int>( sizeof( data ) ) )
-				Con_Printf( "NET_QueuePacket:  Oversize packet from %s\n", NET_AdrToString( in_from ) );
-			else
-			{
-				Q_memcpy( in_message.data, data, result );
-				in_message.cursize = result;
-				if ( reinterpret_cast<SPLITPACKET*>( in_message.data )->netID != SPLIT_PACKET_ID )
-					return NET_LagPacket( true, source, &in_from, &in_message );
-				if ( static_cast<unsigned int>( result ) >= sizeof( SPLITPACKET ) )
-					return NET_GetLong( reinterpret_cast<char*>( in_message.data ), result, &in_message.cursize );
-				Con_Printf( "Invalid split packet length %i\n", result );
-				return false;
-			}
-		}
-	}
-	return NET_LagPacket( false, source, nullptr, nullptr );
+qboolean NET_QueuePacket(netsrc_t source) {
+#if defined(_WIN32)
+    constexpr int ReceiveAttempts = LOOPBACK_CHANNELS;
 #else
-	SOCKET socket = 0;
-	for ( int attempt = 0; attempt < LOOPBACK_CHANNELS; ++attempt )
-	{
-		if ( !attempt )
-			socket = ip_sockets[source];
-		if ( !socket )
-			continue;
-		sockaddr from;
-		int fromLength = sizeof( from );
-		char data[MAX_RECEIVE_PACKET_BYTES];
-		int result = recvfrom( socket, data, sizeof( data ), 0, &from, &fromLength );
-		if ( result <= 0 )
-			result = NET_SteamFakeIPRecvFrom( source, data, sizeof( data ), 0, result, &from, &fromLength );
-		if ( result == SOCKET_ERROR )
-		{
-			int error = WSAGetLastError();
-			if ( error != WSAENETRESET && error != WSAEWOULDBLOCK && error != WSAECONNRESET
-				 && error != WSAECONNREFUSED )
-			{
-				if ( error == WSAEMSGSIZE )
-					Con_DPrintf( "NET_QueuePacket:  Ignoring oversized network message\n" );
-				else
-				{
-					const char* description = NET_ErrorString( error );
-					if ( cls.state != ca_dedicated )
-						Sys_Error( "NET_QueuePacket: %s", description );
-					Con_Printf( "NET_QueuePacket: %s\n", description );
-				}
-			}
-			continue;
-		}
-		SockadrToNetadr( &from, &in_from );
-		if ( result == sizeof( data ) )
-		{
-			Con_Printf( "NET_QueuePacket:  Oversize packet from %s\n", NET_AdrToString( in_from ) );
-			continue;
-		}
-		Q_memcpy( in_message.data, data, result );
-		in_message.cursize = result;
-		if ( reinterpret_cast<SPLITPACKET*>( in_message.data )->netID != SPLIT_PACKET_ID )
-			return NET_LagPacket( true, source, &in_from, &in_message );
-		if ( static_cast<unsigned int>( result ) >= sizeof( SPLITPACKET ) )
-			return NET_GetLong( reinterpret_cast<char*>( in_message.data ), result, &in_message.cursize );
-		Con_Printf( "Invalid split packet length %i\n", result );
-		return false;
-	}
-	return NET_LagPacket( false, source, nullptr, nullptr );
+    constexpr int ReceiveAttempts = 1;
 #endif
+    const SOCKET socket = ip_sockets[source];
+    for (int attempt = 0; attempt < ReceiveAttempts; ++attempt) {
+        sockaddr from{};
+        int fromLength = sizeof(from);
+        char data[MAX_RECEIVE_PACKET_BYTES];
+        int result = 0;
+        if (socket) {
+#if defined(_WIN32)
+            result = recvfrom(socket, data, sizeof(data), 0, &from, &fromLength);
+#else
+            result = NET_PosixReceiveFrom(socket, data, sizeof(data), 0, &from, &fromLength);
+#endif
+        }
+        // Steam has a separate message queue and can deliver without any UDP socket.
+        if (result <= 0) {
+            result = NET_SteamFakeIPRecvFrom(source, data, sizeof(data), 0, result, &from, &fromLength);
+        }
+        if (result == 0) {
+            continue;
+        }
+        if (result < 0) {
+#if defined(_WIN32)
+            const int error = WSAGetLastError();
+            const bool expected = error == WSAENETRESET || error == WSAEWOULDBLOCK || error == WSAECONNRESET ||
+                error == WSAECONNREFUSED;
+            constexpr int OversizedMessage = WSAEMSGSIZE;
+#else
+            const int error = errno;
+            const bool expected = error == ECONNRESET || error == EAGAIN || error == ECONNREFUSED;
+            constexpr int OversizedMessage = EMSGSIZE;
+#endif
+            if (!expected) {
+                if (error == OversizedMessage) {
+                    Con_DPrintf("NET_QueuePacket:  Ignoring oversized network message\n");
+                } else {
+#if defined(_WIN32)
+                    const char* description = NET_ErrorString(error);
+#else
+                    const char* description = strerror(error);
+#endif
+                    if (cls.state != ca_dedicated) {
+                        Sys_Error("NET_QueuePacket: %s", description);
+                    }
+                    Con_Printf("NET_QueuePacket: %s\n", description);
+                }
+            }
+            continue;
+        }
+        SockadrToNetadr(&from, &in_from);
+        if (result == static_cast<int>(sizeof(data))) {
+            Con_Printf("NET_QueuePacket:  Oversize packet from %s\n", NET_AdrToString(in_from));
+            continue;
+        }
+        Q_memcpy(in_message.data, data, result);
+        in_message.cursize = result;
+        if (reinterpret_cast<SPLITPACKET*>(in_message.data)->netID != SPLIT_PACKET_ID) {
+            return NET_LagPacket(true, source, &in_from, &in_message);
+        }
+        if (static_cast<unsigned int>(result) >= sizeof(SPLITPACKET)) {
+            return NET_GetLong(reinterpret_cast<char*>(in_message.data), result, &in_message.cursize);
+        }
+        Con_Printf("Invalid split packet length %i\n", result);
+        return false;
+    }
+    return NET_LagPacket(false, source, nullptr, nullptr);
 }
 
 qboolean NET_GetPacket( netsrc_t source )

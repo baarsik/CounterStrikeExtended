@@ -163,7 +163,8 @@ if(CSE_BROWSER_UI_CONNECTION_TESTS)
             target_link_options(browser_connection_tests PRIVATE -fsanitize=address,undefined)
         endif()
     endif()
-    foreach(case accepted-distinct-port unrelated-acceptance intervening-change supersession validation unicode-password)
+    foreach(case accepted-distinct-port unrelated-acceptance intervening-change supersession validation unicode-password
+            preparatory-disconnect nested-preparatory-disconnect superseding-console-connect failed-handshake)
         add_test(NAME browser_connection_${case} COMMAND browser_connection_tests ${case})
     endforeach()
 endif()
@@ -334,7 +335,10 @@ if(CSE_BROWSER_UI_SECONDARY_ACTION_TESTS)
             target_link_options(browser_secondary_action_tests PRIVATE -fsanitize=address,undefined)
         endif()
     endif()
-    foreach(case shift-range shift-reverse info-stop connect-stop async-multiselect refresh-cancel-reentry)
+    foreach(case shift-range shift-reverse info-stop connect-stop async-multiselect refresh-cancel-reentry
+            filter-selection filter-partial wheel-selection wheel-shift wheel-offscreen stopped-quick-all
+            stopped-quick-selected info-quick-selected fallback-cancel fallback-wrong-endpoint fallback-failed-start
+            fallback-restart fallback-bounded)
         add_test(NAME browser_secondary_${case} COMMAND browser_secondary_action_tests ${case})
     endforeach()
 endif()

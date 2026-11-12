@@ -21,7 +21,7 @@ public:
     ConnectResult Begin(const Row &row, std::string_view password);
     bool CanConnect(const Row &row) const;
     void Accepted(const char *game, uint32_t rawIP, uint16_t connectionPort, uint32_t unixTime);
-    void Disconnected();
+    void Disconnected(const char *preparingAddress = nullptr);
     std::optional<FavoriteRecord> CurrentServer() const;
     uint64_t AcceptanceSerial() const {
         return acceptanceSerial_;

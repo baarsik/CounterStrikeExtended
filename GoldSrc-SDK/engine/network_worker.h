@@ -35,6 +35,7 @@ public:
     NetworkWorker(const NetworkWorker&) = delete;
     NetworkWorker& operator=(const NetworkWorker&) = delete;
 
+    // The legacy sleep preference is bounded because non-socket transports also need polling.
     bool Start(CollectSockets collectSockets, QueuePacket queuePacket, bool sleepForever);
     void Stop();
 
@@ -54,7 +55,6 @@ private:
     NetworkWorkerSocket wakeWrite_ = kInvalidNetworkWorkerSocket;
     CollectSockets collectSockets_ = nullptr;
     QueuePacket queuePacket_ = nullptr;
-    bool sleepForever_ = true;
 };
 
 }

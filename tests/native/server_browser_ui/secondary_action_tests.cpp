@@ -56,6 +56,11 @@ public:
     void SelectVisible(size_t slot);
     void SelectVisibleItems(const std::vector<size_t> &slots);
     void MoveSelection(int delta, bool endpoint = false);
+    void ScrollViewport(int delta);
+    void ReconcileSelection();
+    size_t WindowSize() const {
+        return 2;
+    }
     void ConnectSelection();
     BrowserDetailsDialog *OpenDetails();
     void UpdateRows() {
@@ -137,7 +142,125 @@ int main(int argc, char **argv) {
         dialog.UpdateRows();
         dialog.SelectVisible(0);
         const auto keys = session.model.OrderedKeys();
-        if (name == "async-multiselect" || name == "refresh-cancel-reentry") {
+        if (name == "filter-selection" || name == "filter-partial") {
+            dialog.SelectVisibleItems({0, 1});
+            auto filters = DefaultFilters();
+            filters.name = name == "filter-partial" ? "Server 1" : "absent";
+            session.model.SetFilters(filters);
+            // The view rebuild has not run: actions must already respect the new membership.
+            Require(!session.model.Selection(), "hidden primary selection survived filter change");
+            dialog.ConnectSelection();
+            Require(dialog.detailsDialogs_.empty(), "Enter opened a filtered-out endpoint");
+            dialog.ReconcileSelection();
+            const std::vector<RowKey> expected = name == "filter-partial" ? std::vector<RowKey>{keys[1]} :
+                std::vector<RowKey>{};
+            Require(dialog.selectedKeys_ == expected, "filter reconciliation retained hidden batch members");
+            Require(!dialog.rangeAnchor_, "filter retained a hidden Shift anchor");
+            if (name == "filter-selection") {
+                Require(!dialog.keyboardCursor_, "filter retained hidden keyboard cursor");
+                session.model.SetFilters(DefaultFilters());
+                dialog.ReconcileSelection();
+                Require(dialog.selectedKeys_.empty(), "relaxing filters resurrected hidden selection");
+            } else {
+                Require(session.model.Selection() == std::optional<RowKey>{keys[1]},
+                    "remaining visible selection did not become actionable");
+            }
+        } else if (name == "wheel-selection" || name == "wheel-shift" || name == "wheel-offscreen") {
+            if (name == "wheel-offscreen") {
+                dialog.MoveSelection(1, true);
+                session.presentation.SeekForUserAction(0);
+                dialog.UpdateRows();
+            }
+            const auto selected = dialog.selectedKeys_;
+            const auto cursor = dialog.keyboardCursor_;
+            const auto anchor = dialog.rangeAnchor_;
+            vgui2::input()->shift = name == "wheel-shift";
+            dialog.ScrollViewport(-1);
+            Require(session.presentation.FirstVisibleRank() == 3, "wheel followed selection instead of viewport");
+            Require(dialog.selectedKeys_ == selected && dialog.keyboardCursor_ == cursor && dialog.rangeAnchor_ == anchor,
+                "wheel changed selection, keyboard cursor, or Shift anchor");
+            dialog.ScrollViewport(-1);
+            Require(session.presentation.FirstVisibleRank() == 4, "wheel scrolled beyond last full page");
+            dialog.ScrollViewport(100);
+            Require(session.presentation.FirstVisibleRank() == 0 && dialog.selectedKeys_ == selected,
+                "wheel endpoint clamp changed selection");
+        } else if (name == "stopped-quick-all" || name == "stopped-quick-selected" ||
+                   name == "info-quick-selected" || name == "fallback-cancel" ||
+                   name == "fallback-wrong-endpoint" || name == "fallback-failed-start" ||
+                   name == "fallback-restart" || name == "fallback-bounded") {
+            if (name == "info-quick-selected") {
+                dialog.OpenDetails();
+                // Isolate the independently owned GameInfo ping from list refresh pings.
+                for (auto &child : dialog.detailsDialogs_) {
+                    delete child.Get();
+                }
+                dialog.detailsDialogs_.clear();
+            } else {
+                session.model.Stop();
+            }
+            for (int turn = 0; turn < 20; ++turn) {
+                session.model.Pump(128);
+            }
+            const int before = provider.pings;
+            const bool all = name == "stopped-quick-all" || name == "fallback-bounded";
+            Require(all ? session.model.QuickRefresh() : session.model.QuickRefresh(keys[0]),
+                "retired list request disabled quick refresh");
+            if (!all) {
+                Require(session.model.QuickRefresh(keys[0]), "pending selected refresh did not coalesce");
+            }
+            if (name == "fallback-cancel") {
+                provider.duringPing = [&] { session.model.Stop(); };
+            }
+            if (name == "fallback-failed-start") {
+                provider.failPing = true;
+            }
+            session.model.Pump(name == "fallback-bounded" ? 1 : 128);
+            if (name == "fallback-bounded") {
+                Require(provider.pings == before + 1 && session.model.GetStatus().pending >= keys.size(),
+                    "fallback exceeded one unit of query-start work or lost pending rows");
+                session.model.Stop();
+                while (!session.model.CloseStep(1)) {
+                    Require(session.model.GetStatus().lastReclamationWork <= 1,
+                        "fallback retirement exceeded node budget");
+                }
+            } else if (name == "fallback-cancel") {
+                Require(session.model.GetStatus().phase == Phase::Stopped && provider.pingCallbacks.empty(),
+                    "Stop reentry left a fallback callback owner live");
+            } else if (name == "fallback-failed-start") {
+                session.model.Pump(128);
+                Require(session.model.GetStatus().phase == Phase::Complete && session.model.Find(keys[0])->failed,
+                    "invalid ping handle left fallback refresh running forever");
+            } else {
+                Require(provider.pings == before + (all ? static_cast<int>(keys.size()) : 1),
+                    "fallback queried the wrong number of endpoints");
+                Require(provider.pingPorts.back() == keys[0].queryPort, "fallback confused query and connection port");
+                auto callbacks = provider.pingCallbacks;
+                for (const auto &entry : callbacks) {
+                    auto item = Server(name == "fallback-wrong-endpoint" ? 0x01020304U :
+                        (all ? keys[static_cast<size_t>(entry.first - callbacks.begin()->first)].ip : keys[0].ip),
+                        "Updated server");
+                    entry.second->ServerResponded(item);
+                }
+                session.model.Pump(128);
+                Require(session.model.GetStatus().phase == Phase::Complete && provider.pingCallbacks.empty(),
+                    "completed fallback did not retire its callback owners");
+                Require(session.model.Find(keys[0])->key == keys[0], "fallback retargeted selected endpoint");
+                if (name == "fallback-wrong-endpoint") {
+                    Require(session.model.Find(keys[0])->name == "Server 0" && session.model.Find(keys[0])->failed,
+                        "wrong-endpoint ping replaced the selected row");
+                } else {
+                    Require(session.model.Find(keys[0])->name == "Updated server", "fallback result was not applied");
+                }
+                if (name == "fallback-restart") {
+                    Require(session.model.QuickRefresh(), "second fallback refresh rejected");
+                    session.model.Pump(1);
+                    session.model.Stop();
+                    Require(session.model.QuickRefresh(keys[0]), "Stop left queued fallback work blocking restart");
+                    session.model.Pump(128);
+                    Require(provider.pingCallbacks.size() == 1, "selected restart revived unrelated queued rows");
+                }
+            }
+        } else if (name == "async-multiselect" || name == "refresh-cancel-reentry") {
             provider.lists.Complete();
             provider.deferListRefresh = true;
             if (name == "refresh-cancel-reentry") {
@@ -158,12 +281,13 @@ int main(int argc, char **argv) {
                 callback->ServerResponded(request, 0);
                 Require(session.model.GetStatus().phase == Phase::Complete, "last batch callback did not complete");
             } else {
-                Require(!second && provider.refreshedIndexes == std::vector<int>{0},
-                    "Stop during selected refresh allowed another provider call");
+                Require(second && provider.refreshedIndexes == std::vector<int>{0},
+                    "Stop did not switch the next selected refresh to the request-free fallback");
                 callback->ServerResponded(request, 0);
                 callback->ServerFailedToRespond(request, 1);
                 session.model.Pump(1);
-                Require(session.model.GetStatus().phase == Phase::Stopped, "late callback changed reentrant Stop");
+                Require(session.model.GetStatus().phase == Phase::Refreshing,
+                    "late list callback changed new fallback refresh state");
             }
         } else if (name == "shift-range") {
             vgui2::input()->shift = true;

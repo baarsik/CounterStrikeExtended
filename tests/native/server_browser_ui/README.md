@@ -14,6 +14,9 @@ The component suite covers:
 - Aggregate model close/replacement reclamation, coalesced latest intent, cancellation/startup reentry.
 - Typed player/rule copy/cancel/complete ownership and bounded callback storage retirement.
 - Numeric connection commands, distinct ports, accepted-only history and owned password restoration.
+- Scoped preparatory disconnects (including nested listen-server shutdown), terminal failure and supersession.
+- Immediate filter membership checks, hidden-selection retirement and selection-preserving wheel scrolling.
+- Request-free quick refresh pings after Stop/GameInfo, bounded starts, endpoint validation and cancellation reentry.
 - Actual loader selection, failed initialize/postinitialize, module call reentry and once-only retirement.
 - Actual VGUI1/VGUI2/Host/Sys/engine refusal chain, typed Apple failure and partial Host video failure.
 - Both actual Sys_InitGame, CEngineAPI::Run and RunListenServer bodies: partial startup, retained dependencies,

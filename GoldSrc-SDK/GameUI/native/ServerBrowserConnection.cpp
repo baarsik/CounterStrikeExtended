@@ -128,8 +128,13 @@ std::optional<FavoriteRecord> ServerBrowserConnection::CurrentServer() const {
     return current_;
 }
 
-void ServerBrowserConnection::Disconnected() {
+void ServerBrowserConnection::Disconnected(const char *preparingAddress) {
     current_.reset();
+    // CL_Connect_f can emit nested disconnects while shutting down a listen server.
+    // Preserve the attempt only within preparation for this exact numeric endpoint.
+    if (pending_ && preparingAddress && ConnectionAddress(*pending_) == preparingAddress) {
+        return;
+    }
     Retire();
 }
 

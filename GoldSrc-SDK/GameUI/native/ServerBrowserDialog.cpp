@@ -278,8 +278,7 @@ protected:
         }
     }
     void OnMouseWheeled(int delta) override {
-        constexpr int WheelRows = 3;
-        owner_.MoveSelection(-delta * WheelRows);
+        owner_.ScrollViewport(delta);
     }
     void OnKeyCodeTyped(vgui2::KeyCode code) override {
         switch (code) {
@@ -1309,6 +1308,16 @@ void ServerBrowserDialog::Pump() {
     if (session_.presentation.CanAcceptUpdates()) {
         for (const auto &update : session_.model.TakeUpdates(BrowserFrameBudget)) {
             session_.presentation.Apply(update);
+            if (!update.visible && !update.reset) {
+                selectedKeys_.erase(std::remove(selectedKeys_.begin(), selectedKeys_.end(), update.row.key),
+                    selectedKeys_.end());
+                if (keyboardCursor_ == update.row.key) {
+                    keyboardCursor_.reset();
+                }
+                if (rangeAnchor_ == update.row.key) {
+                    rangeAnchor_.reset();
+                }
+            }
             if (update.reset) {
                 selectedKeys_.clear();
                 keyboardCursor_.reset();
@@ -1335,7 +1344,7 @@ void ServerBrowserDialog::Pump() {
     }
     if (restoreSelection_) {
         const auto selection = tabStates_[static_cast<size_t>(activeTab_)].selection;
-        if (selection && session_.model.Find(*selection)) {
+        if (selection && session_.model.IsVisible(*selection)) {
             session_.model.Select(selection);
             selectedKeys_ = {*selection};
             keyboardCursor_ = selection;
@@ -1475,7 +1484,8 @@ void ServerBrowserDialog::Seek(size_t position) {
 }
 void ServerBrowserDialog::SelectVisible(size_t slot) {
     BrowserUse use(session_);
-    if (!session_.closing && session_.active && slot < visible_.size()) {
+    if (!session_.closing && session_.active && slot < visible_.size() &&
+        session_.model.IsVisible(visible_[slot].key)) {
         restoreSelection_ = false;
         selectedKeys_ = {visible_[slot].key};
         keyboardCursor_ = visible_[slot].key;
@@ -1501,7 +1511,7 @@ void ServerBrowserDialog::SelectVisibleItems(const std::vector<size_t> &slots) {
         }
     }
     for (const size_t slot : slots) {
-        if (slot < visible_.size()) {
+        if (slot < visible_.size() && session_.model.IsVisible(visible_[slot].key)) {
             selectedKeys_.push_back(visible_[slot].key);
         }
     }
@@ -1563,13 +1573,28 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
     }
     UpdateRows();
 }
+void ServerBrowserDialog::ScrollViewport(int delta) {
+    BrowserUse use(session_);
+    if (session_.closing || !session_.active || transitioning_) {
+        return;
+    }
+    constexpr long long WheelRows = 3;
+    const size_t count = session_.presentation.VisibleCount();
+    const size_t capacity = WindowSize();
+    const size_t lastPage = count > capacity ? count - capacity : 0;
+    const auto position = std::clamp(static_cast<long long>(session_.presentation.FirstVisibleRank()) -
+        static_cast<long long>(delta) * WheelRows, 0LL, static_cast<long long>(lastPage));
+    session_.presentation.SeekForUserAction(static_cast<size_t>(position));
+    UpdateRows();
+}
+
 void ServerBrowserDialog::ConnectSelection() {
     BrowserUse use(session_);
     if (session_.closing || !session_.active) {
         return;
     }
     const auto selected = session_.model.Selection();
-    const Row *row = selected ? session_.model.Find(*selected) : nullptr;
+    const Row *row = selected && session_.model.IsVisible(*selected) ? session_.model.Find(*selected) : nullptr;
     if (!row) {
         return;
     }
@@ -1602,7 +1627,7 @@ void ServerBrowserDialog::ConnectRow(const Row &row, std::string_view password) 
 }
 BrowserDetailsDialog *ServerBrowserDialog::OpenDetails() {
     const auto selected = session_.model.Selection();
-    const Row *row = selected ? session_.model.Find(*selected) : nullptr;
+    const Row *row = selected && session_.model.IsVisible(*selected) ? session_.model.Find(*selected) : nullptr;
     if (!row) {
         return nullptr;
     }
@@ -1684,8 +1709,25 @@ void ServerBrowserDialog::ApplyFilters() {
     }
     session_.settings.filters = filters;
     session_.model.SetFilters(filters);
+    ReconcileSelection();
     UpdateFilterSummary();
     SaveSettings();
+}
+
+void ServerBrowserDialog::ReconcileSelection() {
+    selectedKeys_.erase(std::remove_if(selectedKeys_.begin(), selectedKeys_.end(), [this](const RowKey &key) {
+        return !session_.model.IsVisible(key);
+    }), selectedKeys_.end());
+    if (keyboardCursor_ && !session_.model.IsVisible(*keyboardCursor_)) {
+        keyboardCursor_.reset();
+    }
+    if (rangeAnchor_ && !session_.model.IsVisible(*rangeAnchor_)) {
+        rangeAnchor_.reset();
+    }
+    const auto selected = session_.model.Selection();
+    if (!selected || !session_.model.IsVisible(*selected)) {
+        session_.model.Select(selectedKeys_.empty() ? std::nullopt : std::optional<RowKey>{selectedKeys_.front()});
+    }
 }
 
 void ServerBrowserDialog::OnCommand(const char *command) {
@@ -1697,13 +1739,13 @@ void ServerBrowserDialog::OnCommand(const char *command) {
     const auto selected = session_.model.Selection();
     std::vector<Row> selectedRows;
     for (const auto &key : selectedKeys_) {
-        if (session_.presentation.RankForUserAction(key)) {
+        if (session_.model.IsVisible(key)) {
             if (const auto *row = session_.model.Find(key)) {
                 selectedRows.push_back(*row);
             }
         }
     }
-    if (selectedRows.empty() && selected) {
+    if (selectedRows.empty() && selected && session_.model.IsVisible(*selected)) {
         if (const auto *row = session_.model.Find(*selected)) {
             selectedRows.push_back(*row);
         }

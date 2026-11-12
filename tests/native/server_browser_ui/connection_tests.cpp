@@ -9,6 +9,7 @@ constexpr Address SelectedAddress{0x7f000001U, 27015, 27016};
 struct Engine final : IConnectionEngine {
     std::string password = "previous";
     std::vector<std::string> commands;
+    std::function<void()> duringConnect;
     const char *Password() override {
         return password.c_str();
     }
@@ -17,6 +18,9 @@ struct Engine final : IConnectionEngine {
     }
     void Connect(const char *command) override {
         commands.emplace_back(command);
+        if (duringConnect) {
+            duringConnect();
+        }
     }
 };
 Row Selected() {
@@ -46,8 +50,32 @@ int main(int argc, char **argv) {
         ServerBrowserModel model({nullptr, &favorites});
         Engine engine;
         ServerBrowserConnection connection(engine, model, CurrentApp, "cstrike");
+        engine.duringConnect = [&] { connection.Disconnected(ConnectionAddress(SelectedAddress).c_str()); };
         Row row = Selected();
-        if (name == "accepted-distinct-port") {
+        if (name == "preparatory-disconnect" || name == "nested-preparatory-disconnect") {
+            engine.duringConnect = {};
+            Require(connection.Begin(row, "new secret") == ConnectResult::Started, "queued connect rejected");
+            connection.Disconnected(ConnectionAddress(SelectedAddress).c_str());
+            if (name == "nested-preparatory-disconnect") {
+                connection.Disconnected(ConnectionAddress(SelectedAddress).c_str());
+            }
+            Require(engine.password == "new secret", "preparatory disconnect restored old password before handshake");
+            Require(favorites.records.empty(), "preparatory disconnect wrote history");
+            connection.Accepted("cstrike", RawLoopback(), SelectedAddress.connectionPort, 123456);
+            Require(favorites.records.size() == 1 && favorites.records.front().address == SelectedAddress,
+                "preparatory disconnect discarded the selected query port");
+            Require(engine.password == "previous", "acceptance failed to restore original password");
+        } else if (name == "superseding-console-connect") {
+            Require(connection.Begin(row, "new secret") == ConnectResult::Started, "queued connect rejected");
+            connection.Disconnected("127.0.0.1:27017");
+            Require(engine.password == "previous", "another connect retained the browser attempt's secret");
+        } else if (name == "failed-handshake") {
+            Require(connection.Begin(row, "new secret") == ConnectResult::Started, "queued connect rejected");
+            Require(engine.password == "new secret", "preparatory disconnect lost secret");
+            connection.Disconnected();
+            Require(engine.password == "previous", "terminal disconnect did not retire failed handshake");
+            Require(favorites.records.empty(), "failed handshake wrote history");
+        } else if (name == "accepted-distinct-port") {
             Require(connection.Begin(row, "secret") == ConnectResult::Started, "valid connect rejected");
             Require(favorites.records.empty(), "connect attempt wrote history");
             Require(engine.commands == std::vector<std::string>{"connect 127.0.0.1:27015\n"},

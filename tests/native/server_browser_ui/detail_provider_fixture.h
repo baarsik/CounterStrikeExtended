@@ -52,6 +52,7 @@ public:
     std::map<HServerQuery, ISteamMatchmakingPingResponse *> pingCallbacks;
     std::vector<uint16_t> pingPorts;
     bool pingSynchronous = false;
+    bool failPing = false;
     std::function<void()> duringPing;
     HServerQuery nextPing = 100;
     uint16_t port = 0;
@@ -99,6 +100,9 @@ public:
     HServerQuery PingServer(uint32 ip, uint16 queryPort, ISteamMatchmakingPingResponse *response) override {
         ++pings;
         pingPorts.push_back(queryPort);
+        if (failPing) {
+            return HSERVERQUERY_INVALID;
+        }
         const auto handle = nextPing++;
         pingCallbacks.emplace(handle, response);
         if (pingSynchronous) {
