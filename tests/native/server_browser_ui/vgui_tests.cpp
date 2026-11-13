@@ -685,19 +685,20 @@ int main(int argc, char **argv) {
             auto found = std::find(keys.begin(), keys.end(), *selected);
             Require(found != keys.end(), "selected row left full filtered model unexpectedly");
             size_t rank = static_cast<size_t>(found - keys.begin());
-            auto navigate = [&](vgui2::KeyCode code, long long delta) {
-                rank = static_cast<size_t>(
-                    (std::clamp)(static_cast<long long>(rank) + delta, 0LL, static_cast<long long>(keys.size() - 1)));
+            auto navigate = [&](vgui2::KeyCode code, size_t expectedRank) {
                 gui->PostMessage(list->GetVPanel(), new KeyValues("KeyCodeTyped", "code", code), 0, 0);
                 gui->RunFrame();
                 dialog->Pump();
-                Require(session.model.Selection() == keys[rank],
+                Require(session.model.Selection() == keys[expectedRank],
                         "keyboard navigation used viewport anchor instead of selected RowKey");
+                rank = expectedRank;
             };
-            navigate(vgui2::KEY_UP, -1);
-            navigate(vgui2::KEY_DOWN, 1);
-            navigate(vgui2::KEY_PAGEUP, -static_cast<long long>(dialog->WindowSize()));
-            navigate(vgui2::KEY_PAGEDOWN, static_cast<long long>(dialog->WindowSize()));
+            navigate(vgui2::KEY_UP, rank > 0 ? rank - 1 : 0);
+            navigate(vgui2::KEY_DOWN, std::min(rank + 1, keys.size() - 1));
+            // After Up/Down, PageUp selects this page's first edge; PageDown then selects its last edge.
+            navigate(vgui2::KEY_PAGEUP, session.presentation.FirstVisibleRank());
+            navigate(vgui2::KEY_PAGEDOWN, std::min(
+                session.presentation.FirstVisibleRank() + dialog->WindowSize() - 1, keys.size() - 1));
             gui->PostMessage(list->GetVPanel(), new KeyValues("KeyCodeTyped", "code", vgui2::KEY_ENTER), 0, 0);
             gui->RunFrame();
             Require(engine.commands.size() == 1 &&
@@ -755,8 +756,8 @@ int main(int argc, char **argv) {
             std::cerr << "TRACE after down2 shift=" << input->IsKeyDown(vgui2::KEY_LSHIFT)
                 << " rank=" << session.presentation.FirstVisibleRank() << " selected="
                 << ConnectionAddress(*session.model.Selection()) << "\n";
-            Require(session.presentation.FirstVisibleRank() > anchor,
-                    "actual Shift navigation did not cross the viewport boundary");
+            Require(session.presentation.FirstVisibleRank() + dialog->WindowSize() - 1 == anchor + 2,
+                    "actual Shift navigation did not keep the moving cursor at the viewport edge");
             Send(*dialog, "AddToFavorites");
             std::cerr << "TRACE range favorites=" << favorites.records.size() << "\n";
             for (const auto &record : favorites.records) {

@@ -82,7 +82,7 @@ public:
     void ConnectRow(const Row &row, std::string_view password);
     void OwnMessage(vgui2::Frame *message);
     void ShowContextMenu();
-    void MoveSelection(int delta, bool endpoint = false);
+    void MoveSelection(int delta, bool endpoint = false, bool page = false);
     void ScrollViewport(int delta);
     size_t WindowSize() const;
 

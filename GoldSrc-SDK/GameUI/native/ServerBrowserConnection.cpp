@@ -77,7 +77,7 @@ ServerBrowserConnection::~ServerBrowserConnection() {
 }
 
 bool ServerBrowserConnection::CanConnect(const Row &row) const {
-    return row.app == app_ && row.gameDirectory == game_;
+    return row.app == app_ && GameDirectoriesMatch(row.gameDirectory, game_);
 }
 
 ConnectResult ServerBrowserConnection::Begin(const Row &row, std::string_view password) {
@@ -113,7 +113,7 @@ void ServerBrowserConnection::Accepted(const char *game, uint32_t rawIP, uint16_
     }
     ++acceptanceSerial_;
     current_.reset();
-    if (game && game_ == game && ip && connectionPort) {
+    if (game && GameDirectoriesMatch(game_, game) && ip && connectionPort) {
         Address address{ip, connectionPort, connectionPort};
         if (pending_ && pending_->ip == ip && pending_->connectionPort == connectionPort) {
             address = *pending_;

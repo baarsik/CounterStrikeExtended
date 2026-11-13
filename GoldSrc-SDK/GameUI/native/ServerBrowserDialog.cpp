@@ -96,7 +96,8 @@ public:
 
 protected:
     void SendSliderMoveMessage(int position) override {
-        if (!updating_) {
+        // Slider action signals are queued: an older value may arrive after synchronization.
+        if (!updating_ && position == GetValue()) {
             seek_(static_cast<size_t>(std::max(position, 0)));
         }
     }
@@ -295,10 +296,10 @@ protected:
             owner_.MoveSelection(1);
             break;
         case vgui2::KEY_PAGEUP:
-            owner_.MoveSelection(-static_cast<int>(owner_.WindowSize()));
+            owner_.MoveSelection(-1, false, true);
             break;
         case vgui2::KEY_PAGEDOWN:
-            owner_.MoveSelection(static_cast<int>(owner_.WindowSize()));
+            owner_.MoveSelection(1, false, true);
             break;
         case vgui2::KEY_HOME:
             owner_.MoveSelection(-1, true);
@@ -1405,7 +1406,13 @@ void ServerBrowserDialog::UpdateRows() {
     ResizeSlots(*list_, slots_, list_->Capacity());
     list_->ClearSelectedItems();
     const auto selection = session_.model.Selection();
-    bool canConnect = false;
+    const Row *selectedRow = selection && session_.model.IsVisible(*selection)
+        ? session_.model.Find(*selection) : nullptr;
+    const bool canConnect = selectedRow && selectedRow->responded && !selectedRow->failed &&
+        session_.connection.CanConnect(*selectedRow);
+    if (selectedRow && !session_.connection.CanConnect(*selectedRow)) {
+        actionStatus_ = "#CSEServerBrowser_CurrentGame";
+    }
     for (size_t slot = 0; slot < slots_.size(); ++slot) {
         list_->SetItemVisible(slots_[slot], slot < visible_.size());
         if (slot >= visible_.size()) {
@@ -1446,12 +1453,6 @@ void ServerBrowserDialog::UpdateRows() {
         if (std::find(selectedKeys_.begin(), selectedKeys_.end(), row.key) != selectedKeys_.end()) {
             list_->AddSelectedItem(slots_[slot]);
         }
-        if (selection && row.key == *selection) {
-            canConnect = row.responded && !row.failed && session_.connection.CanConnect(row);
-            if (!session_.connection.CanConnect(row)) {
-                actionStatus_ = "#CSEServerBrowser_CurrentGame";
-            }
-        }
     }
     list_->SortList();
     connect_->SetEnabled(canConnect);
@@ -1473,9 +1474,14 @@ void ServerBrowserDialog::ChooseSort(int column) {
         return value == Column::Bots || value == Column::Players || value == Column::LastPlayed;
     };
     const bool primaryAscending = sort.ascending != descendingComparison(sort.column);
-    sort.ascending = sort.column == selectedColumn ? !sort.ascending :
-        primaryAscending != descendingComparison(selectedColumn);
-    sort.column = VisualColumns[static_cast<size_t>(column)];
+    if (sort.column == selectedColumn) {
+        sort.ascending = !sort.ascending;
+    } else {
+        sort.secondaryColumn = sort.column;
+        sort.secondaryAscending = sort.ascending;
+        sort.ascending = primaryAscending != descendingComparison(selectedColumn);
+        sort.column = selectedColumn;
+    }
     session_.model.SetSort(sort);
     session_.presentation.RequestSort(sort);
     SaveSettings();
@@ -1483,7 +1489,10 @@ void ServerBrowserDialog::ChooseSort(int column) {
 void ServerBrowserDialog::Seek(size_t position) {
     BrowserUse use(session_);
     if (!session_.closing && session_.active) {
-        session_.presentation.SeekForUserAction(position);
+        // Synchronization also queues slider signals after streaming updates adjust the anchor's rank.
+        if (position != session_.presentation.FirstVisibleRank()) {
+            session_.presentation.SeekForUserAction(position);
+        }
         UpdateRows();
     }
 }
@@ -1526,14 +1535,16 @@ void ServerBrowserDialog::SelectVisibleItems(const std::vector<size_t> &slots) {
     rangeAnchor_ = session_.model.Selection();
     actionStatus_.clear();
 }
-void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
+void ServerBrowserDialog::MoveSelection(int delta, bool endpoint, bool page) {
     BrowserUse use(session_);
     const size_t count = session_.presentation.VisibleCount();
     if (session_.closing || !session_.active || !count) {
         return;
     }
     restoreSelection_ = false;
-    size_t rank = session_.presentation.FirstVisibleRank();
+    const size_t capacity = WindowSize();
+    const size_t firstVisible = session_.presentation.FirstVisibleRank();
+    size_t rank = 0;
     const auto selected = session_.model.Selection();
     const auto cursor = keyboardCursor_ ? keyboardCursor_ : selected;
     if (cursor) {
@@ -1541,12 +1552,25 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
             rank = *cursorRank;
         }
     }
-    const auto target = endpoint
-                            ? (delta < 0 ? 0 : static_cast<long long>(count - 1))
-                            : std::clamp(static_cast<long long>(rank) + delta, 0LL, static_cast<long long>(count - 1));
-    session_.presentation.SeekForUserAction(static_cast<size_t>(target));
-    const auto selectedRow = session_.presentation.ReadViewport(1);
-    if (!selectedRow.empty()) {
+    long long target = static_cast<long long>(rank) + delta;
+    if (endpoint) {
+        target = delta < 0 ? 0 : static_cast<long long>(count - 1);
+    } else if (page) {
+        const auto pageStep = static_cast<long long>(capacity - 1);
+        if (delta < 0) {
+            target = firstVisible >= rank ? static_cast<long long>(rank) - pageStep
+                                          : static_cast<long long>(firstVisible);
+        } else {
+            target = static_cast<long long>(firstVisible) + pageStep;
+            if (target <= static_cast<long long>(rank)) {
+                target = static_cast<long long>(rank) + pageStep;
+            }
+        }
+    }
+    const size_t targetRank = static_cast<size_t>(
+        std::clamp(target, 0LL, static_cast<long long>(count - 1)));
+    const auto targetKey = session_.presentation.KeyForUserAction(targetRank);
+    if (targetKey && session_.model.IsVisible(*targetKey)) {
         const bool extend = vgui2::input()->IsKeyDown(vgui2::KEY_LSHIFT) ||
             vgui2::input()->IsKeyDown(vgui2::KEY_RSHIFT);
         const auto anchor = rangeAnchor_ ? rangeAnchor_ : selected;
@@ -1560,8 +1584,8 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
             // The range is replaced, not accumulated: reversing the moving cursor shrinks it.
             // Keep the anchor first so Connect/Info retain the first-selected identity.
             selectedKeys_ = {*anchor};
-            const size_t first = std::min(*anchorRank, static_cast<size_t>(target));
-            const size_t last = std::min(std::max(*anchorRank, static_cast<size_t>(target)), keys.size() - 1);
+            const size_t first = std::min(*anchorRank, targetRank);
+            const size_t last = std::min(std::max(*anchorRank, targetRank), keys.size() - 1);
             for (size_t index = first; index <= last; ++index) {
                 if (!(keys[index] == *anchor)) {
                     selectedKeys_.push_back(keys[index]);
@@ -1570,11 +1594,19 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint) {
             rangeAnchor_ = anchor;
             session_.model.Select(anchor);
         } else {
-            selectedKeys_ = {selectedRow.front().key};
-            rangeAnchor_ = selectedRow.front().key;
-            session_.model.Select(selectedRow.front().key);
+            selectedKeys_ = {*targetKey};
+            rangeAnchor_ = targetKey;
+            session_.model.Select(targetKey);
         }
-        keyboardCursor_ = selectedRow.front().key;
+        keyboardCursor_ = targetKey;
+        size_t first = firstVisible;
+        if (targetRank < first) {
+            first = targetRank;
+        } else if (targetRank - first >= capacity) {
+            first = targetRank - capacity + 1;
+        }
+        const size_t lastPage = count > capacity ? count - capacity : 0;
+        session_.presentation.SeekForUserAction(std::min(first, lastPage));
     }
     UpdateRows();
 }

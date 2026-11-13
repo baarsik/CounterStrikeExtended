@@ -55,7 +55,7 @@ public:
     ~ServerBrowserDialog();
     void SelectVisible(size_t slot);
     void SelectVisibleItems(const std::vector<size_t> &slots);
-    void MoveSelection(int delta, bool endpoint = false);
+    void MoveSelection(int delta, bool endpoint = false, bool page = false);
     void ScrollViewport(int delta);
     void ReconcileSelection();
     size_t WindowSize() const {

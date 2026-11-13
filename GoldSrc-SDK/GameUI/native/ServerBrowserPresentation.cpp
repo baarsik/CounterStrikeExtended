@@ -13,9 +13,6 @@ struct Less {
         return RowPrecedes(left, right, sort);
     }
 };
-bool SameSort(Sort left, Sort right) {
-    return left.column == right.column && left.ascending == right.ascending;
-}
 }
 
 struct ServerBrowserPresentation::State {
@@ -146,7 +143,7 @@ size_t ServerBrowserPresentation::Pump(size_t workBudget) {
         } else if (state.requestedSort && !state.closing) {
             const Sort sort = *state.requestedSort;
             state.requestedSort.reset();
-            if (!SameSort(sort, state.active->key_comp().sort)) {
+            if (!(sort == state.active->key_comp().sort)) {
                 state.building.reset(new State::Index(Less{sort}));
                 state.buildCursor.reset();
                 state.buildingRank = 0;
@@ -172,6 +169,15 @@ std::optional<size_t> ServerBrowserPresentation::RankForUserAction(const RowKey 
         ++rank;
     }
     return std::nullopt;
+}
+
+std::optional<RowKey> ServerBrowserPresentation::KeyForUserAction(size_t rank) const {
+    if (rank >= state_->active->size()) {
+        return std::nullopt;
+    }
+    auto row = state_->active->begin();
+    std::advance(row, static_cast<State::Index::difference_type>(rank));
+    return row->key;
 }
 
 void ServerBrowserPresentation::SeekForUserAction(size_t firstVisibleRank) {
@@ -201,8 +207,10 @@ std::vector<Row> ServerBrowserPresentation::ReadViewport(size_t maxRows) {
         return result;
     }
     auto cursor = state.anchor ? state.active->lower_bound(*state.anchor) : state.active->begin();
-    if (cursor == state.active->end()) {
+    const size_t lastPage = state.active->size() > maxRows ? state.active->size() - maxRows : 0;
+    if (state.rank > lastPage || cursor == state.active->end()) {
         // Keep a valid last page without walking the full index or recomputing a distance.
+        cursor = state.active->end();
         size_t backwards = 0;
         while (cursor != state.active->begin() && backwards < maxRows) {
             --cursor;

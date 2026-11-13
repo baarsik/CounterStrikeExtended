@@ -1,8 +1,15 @@
-# Unused native server-browser owner
+# Native server-browser component fixtures
 
-These tests execute the actual private GameUI model/config implementations. The production GameUI target
-contains the owner on 64-bit targets but never constructs it. Win32 keeps its external browser unchanged.
-There is no menu activation, connection command, password dialog, details query or new callback pump here.
+These component fixtures execute the private GameUI model/config implementations. The production 64-bit
+GameUI now constructs the native browser through its module factory; Win32 keeps its external browser.
+The historical component packet described here does not qualify full menu activation, connection commands,
+password dialogs, details queries or the production callback pump.
+
+The November 13 six-finding follow-up restores consistent game-directory case matching, original keyboard
+ensure-visible/page navigation, Connect eligibility for offscreen logical selections, and previous-column
+secondary sorting. Secondary sort state is session-only; older primary-only configuration remains valid.
+That follow-up received static source/diff review only. No fixture, build, compiler probe, UI, game or live
+provider operation was run; older packet results below apply to their frozen source inputs.
 
 `ServerBrowserModel` borrows typed Steam services on its constructor thread. The existing engine remains
 responsible for callback dispatch. Every request owns a distinct callback object and copied filter storage.
@@ -15,8 +22,9 @@ partial/prior valid data with a failed status. Selected identity includes both c
 
 `BeginClose(false)` requires keeping the model, GameUI image and borrowed Steam services alive. Retry outside
 provider/callback dispatch. Destruction while a provider/callback stack is live is an invariant violation.
-The next UI task must add the private host retirement handshake before GameUI unload/Steam client shutdown;
-the existing void public shutdown ABI alone cannot acknowledge deferred retirement. This code does not add it.
+The current module owner coordinates private retirement before GameUI unload/Steam client shutdown;
+the public void shutdown ABI alone cannot acknowledge deferred retirement. The historical component packet
+does not qualify that production host handshake.
 
 Favorites/history writes carry explicit app IDs. Only an accepted connection may invoke history recording.
 The adapter confirms additions by typed readback because Valve does not document an integer success sentinel.

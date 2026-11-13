@@ -34,6 +34,7 @@ struct Address {
 using RowKey = Address;
 bool ParseAddress(std::string_view text, Address& address);
 std::string ConnectionAddress(Address address);
+bool GameDirectoriesMatch(std::string_view left, std::string_view right);
 
 struct Filters {
     AppId_t app = 0;
@@ -51,6 +52,13 @@ struct Filters {
 struct Sort {
     Column column = Column::Name;
     bool ascending = true;
+    // Changing primary columns retains the previous comparator for this session only.
+    std::optional<Column> secondaryColumn;
+    bool secondaryAscending = true;
+    bool operator==(const Sort& other) const {
+        return std::tie(column, ascending, secondaryColumn, secondaryAscending) ==
+            std::tie(other.column, other.ascending, other.secondaryColumn, other.secondaryAscending);
+    }
 };
 struct Row {
     RowKey key;

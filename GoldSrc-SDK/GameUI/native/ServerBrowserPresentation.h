@@ -18,6 +18,7 @@ public:
     // Explicit user action only; may traverse O(n). Never call from ordinary frame/range updates.
     void SeekForUserAction(size_t firstVisibleRank);
     std::optional<size_t> RankForUserAction(const RowKey &key) const;
+    std::optional<RowKey> KeyForUserAction(size_t rank) const;
     std::vector<Row> ReadViewport(size_t maxRows);
     size_t FirstVisibleRank() const;
     Sort ActiveSort() const;

@@ -26,11 +26,15 @@ void RequireThread(std::thread::id owner) {
 bool ValidAddress(Address address) {
     return address.ip != 0 && address.connectionPort != 0 && address.queryPort != 0;
 }
+char FoldCharacter(char character) {
+    if (character >= 'A' && character <= 'Z') {
+        return static_cast<char>(character + ('a' - 'A'));
+    }
+    return character;
+}
 std::string Fold(std::string text) {
     for (char& character : text) {
-        if (character >= 'A' && character <= 'Z') {
-            character = static_cast<char>(character + ('a' - 'A'));
-        }
+        character = FoldCharacter(character);
     }
     return text;
 }
@@ -64,7 +68,7 @@ bool Matches(const Row& row, const Filters& filters, ListKind kind) {
         return false;
     }
     return (filters.gameDirectory.empty() || unknownSavedGame ||
-        Fold(filters.gameDirectory) == Fold(row.gameDirectory)) &&
+        GameDirectoriesMatch(filters.gameDirectory, row.gameDirectory)) &&
         (filters.map.empty() || Fold(row.map).compare(0, filters.map.size(), Fold(filters.map)) == 0) &&
         (!filters.nonempty || static_cast<int64_t>(row.players) - row.bots > 0) &&
         (!filters.notFull || row.players < row.maxPlayers) &&
@@ -75,16 +79,12 @@ bool Matches(const Row& row, const Filters& filters, ListKind kind) {
 }
 struct RowLess {
     Sort sort;
-    bool operator()(const Row& left, const Row& right) const {
+    static int CompareColumn(const Row& left, const Row& right, Column column) {
         int comparison = 0;
         const auto compare = [](const auto& a, const auto& b) {
             return a < b ? -1 : (b < a ? 1 : 0);
         };
-        // Unknown fields sort after known fields regardless of direction.
-        if (left.responded != right.responded) {
-            return left.responded;
-        }
-        switch (sort.column) {
+        switch (column) {
             case Column::Password:
                 comparison = compare(left.password, right.password);
                 break;
@@ -122,10 +122,22 @@ struct RowLess {
                                      std::tie(right.key.ip, right.key.queryPort));
                 break;
         }
+        return comparison;
+    }
+    bool operator()(const Row& left, const Row& right) const {
+        // Unknown fields sort after known fields regardless of either direction.
+        if (left.responded != right.responded) {
+            return left.responded;
+        }
+        const int primary = CompareColumn(left, right, sort.column);
+        if (primary != 0) {
+            return sort.ascending ? primary < 0 : primary > 0;
+        }
+        const int comparison = sort.secondaryColumn ? CompareColumn(left, right, *sort.secondaryColumn) : 0;
         if (comparison == 0) {
             return left.key < right.key;
         }
-        return sort.ascending ? comparison < 0 : comparison > 0;
+        return sort.secondaryAscending ? comparison < 0 : comparison > 0;
     }
 };
 Row CopyRow(const gameserveritem_t& item, bool failed) {
@@ -150,6 +162,13 @@ Row CopyRow(const gameserveritem_t& item, bool failed) {
     row.failed = failed;
     return row;
 }
+}
+
+bool GameDirectoriesMatch(std::string_view left, std::string_view right) {
+    return left.size() == right.size() && std::equal(left.begin(), left.end(), right.begin(),
+        [](char a, char b) {
+            return FoldCharacter(a) == FoldCharacter(b);
+        });
 }
 
 bool RowPrecedes(const Row& left, const Row& right, Sort sort) {
@@ -930,7 +949,7 @@ void ServerBrowserModel::SetSort(Sort sort) {
         state_->status.error = "View changes require returning from the provider callback";
         return;
     }
-    if (!state_->closing) {
+    if (!state_->closing && !(state_->sort == sort)) {
         state_->sort = sort;
         state_->Rebuild();
     }

@@ -76,7 +76,8 @@ void CompleteReachability() {
     Fill(view);
     view.SeekForUserAction(ServerCount - 1);
     const auto tail = view.ReadViewport(ViewportRows);
-    Require(!tail.empty() && tail.front().name == "server-09999", "logical scrollbar cannot reach last result");
+    Require(tail.size() == ViewportRows && tail.back().name == "server-09999",
+        "logical scrollbar cannot reach a complete last page");
     view.SeekForUserAction(0);
     const auto head = view.ReadViewport(ViewportRows);
     Require(head.size() == ViewportRows && head.front().name == "server-00000", "logical Home lost first result");

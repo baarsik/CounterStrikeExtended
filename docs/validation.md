@@ -6,6 +6,15 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The later November 13 six-finding static-review follow-up changes final Windows
+fast-mutex release ordering, macOS microphone channel/source control compatibility,
+and native browser game-directory matching, keyboard viewport/selection handling
+and secondary sorting. These changes received source/diff review only, under the
+user's no-testing instruction. No tests, compiler probes, builds, game/UI launches
+or device checks were run for this follow-up. Earlier receipts below apply to
+their frozen inputs and do not qualify the resulting source. The spectator
+micro-flick still has no established cause.
+
 The November 13 seven-finding parity follow-up restores native VGUI1 font
 weight/style/width/rotation requests and ordinary missing-name fallback; native
 HTML dirty upload bounds across paint acknowledgements, including the standalone
