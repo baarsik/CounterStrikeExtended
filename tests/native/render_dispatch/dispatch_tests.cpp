@@ -599,6 +599,14 @@ int main(int argc, char** argv) {
     Check(argc == 2, "one named case required");
     const std::string name = argv[1];
     if (name == "lifecycle") {
+        ResetDriver();
+        Install(DispatchMode::ReferenceGL, nullptr);
+        Check(LegacyIndexedDrawingAllowed(), "reference renderer must permit indexed studio drawing");
+        FrameRecorder frame;
+        Install(DispatchMode::ShadowCapture, &frame);
+        Check(!LegacyIndexedDrawingAllowed(), "shadow capture must retain immediate studio commands");
+        Install(DispatchMode::CaptureOnly, &frame);
+        Check(!LegacyIndexedDrawingAllowed(), "capture-only must retain immediate studio commands");
         Lifecycle();
         RefreshOwnership();
         ForwardingSurface();

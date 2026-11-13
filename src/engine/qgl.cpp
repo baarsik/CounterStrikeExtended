@@ -10,6 +10,8 @@
 #include <ctime>
 #include <cstdint>
 
+void R_ResetStudioMeshBatch();
+
 typedef struct glwstate_s
 {
 	CseGLModule hInstance;
@@ -2817,6 +2819,7 @@ static void APIENTRY logViewport( GLint x, GLint y, GLsizei width, GLsizei heigh
 
 extern "C" void QGL_Shutdown()
 {
+    R_ResetStudioMeshBatch();
     cse::render::RemoveLegacyDispatch();
 	glw_state.hinstOpenGL = NULL;
 
@@ -3180,6 +3183,7 @@ extern "C" void QGL_Shutdown()
 
 extern "C" CseGLModule QGL_Init( const char*, const char* )
 {
+    R_ResetStudioMeshBatch();
     cse::render::RemoveLegacyDispatch();
     // The retained return value marks a populated GL function table, not an OS module lease.
     constexpr std::uintptr_t FunctionTableLoadedSentinel = 1;

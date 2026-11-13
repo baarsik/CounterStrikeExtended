@@ -1503,3 +1503,10 @@ set_property(SOURCE "${CSE_SDK_DIR}/engine/VGUI_EngineSurfaceWrap.cpp" APPEND PR
 endif()
 target_link_libraries(hw_engine PRIVATE vgui)
 cse_runtime_directory(hw_engine "")
+
+# Indexed studio topology allocations fall back to the retained immediate renderer.
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/engine/r_studio.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/engine/r_studio.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()

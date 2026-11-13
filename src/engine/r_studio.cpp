@@ -3885,6 +3885,11 @@ void R_StudioDrawPoints()
 
 #else
 
+#include "studio_mesh_batch.h"
+#include "studio_mesh_gl.h"
+#include "render/native/legacy_dispatch.h"
+#include <SDL3/SDL_video.h>
+
 #include "gl_model.h"
 #include "common.h"
 #include "cvar.h"
@@ -5584,225 +5589,356 @@ static void R_LightStrength( int bone, float* vert, float light[3][4] )
 	}
 }
 
-void R_GLStudioDrawPoints()
-{
-	int i, j, k;
-	int flags, index;
-	float s, t, lv_tmp;
-	qboolean additive, flipped, forcedChrome;
-	vec3_t fl, tmp;
-	byte* pvertbone;
-	byte* pnormbone;
-	vec3_t* pstudioverts;
-	vec3_t* pstudionorms;
-	vec3_t* lv;
-	short* pskinref;
-	short* ptricmds;
-	studiohdr_t* ptexturehdr;
-	mstudiotexture_t* ptexture;
-	mstudiomesh_t* pmesh;
+namespace {
+    cse::studio::MeshCache studioMeshCache;
+    std::vector<cse::studio::DrawVertex> studioDrawVertices;
+    cse::studio::GLFunctions studioBatchGL;
+    bool studioBatchContextInitialized = false;
 
-	pvertbone = (byte*)pstudiohdr + psubmodel->vertinfoindex;
-	pnormbone = (byte*)pstudiohdr + psubmodel->norminfoindex;
+    bool StudioHasExtension(const char* extensions, const char* name) {
+        if (!extensions) {
+            return false;
+        }
+        const std::size_t length = std::strlen(name);
+        const char* match = extensions;
+        while ((match = std::strstr(match, name)) != nullptr) {
+            if ((match == extensions || match[-1] == ' ') && (match[length] == ' ' || match[length] == '\0')) {
+                return true;
+            }
+            match += length;
+        }
+        return false;
+    }
 
-	ptexturehdr = R_LoadTextures( r_model );
-	ptexture = (mstudiotexture_t*)( (byte*)ptexturehdr + ptexturehdr->textureindex );
+    cse::studio::GLFunctions StudioBatchFunctions() {
+        if (!studioBatchContextInitialized) {
+            const auto* version = reinterpret_cast<const char*>(qglGetString(GL_VERSION));
+            int major = 0;
+            int minor = 0;
+            if (!version || std::sscanf(version, "%d.%d", &major, &minor) != 2) {
+                return {};
+            }
+            const auto* extensions = reinterpret_cast<const char*>(qglGetString(GL_EXTENSIONS));
+            const auto atLeast = [major, minor](int wantedMajor, int wantedMinor) {
+                return major > wantedMajor || (major == wantedMajor && minor >= wantedMinor);
+            };
+            studioBatchGL.bufferObjects = atLeast(1, 5) || StudioHasExtension(extensions, "GL_ARB_vertex_buffer_object");
+            studioBatchGL.shaders = atLeast(2, 0);
+            studioBatchGL.extendedArrays = atLeast(1, 4);
+            if (atLeast(1, 3) || StudioHasExtension(extensions, "GL_ARB_multitexture")) {
+                auto procedure = SDL_GL_GetProcAddress("glClientActiveTexture");
+                if (!procedure) {
+                    procedure = SDL_GL_GetProcAddress("glClientActiveTextureARB");
+                }
+                studioBatchGL.ClientActiveTexture =
+                reinterpret_cast<decltype(studioBatchGL.ClientActiveTexture)>(procedure);
+                constexpr GLenum MaximumTextureUnits = 0x84E2;
+                qglGetIntegerv(MaximumTextureUnits, &studioBatchGL.textureUnits);
+                if (!studioBatchGL.ClientActiveTexture || studioBatchGL.textureUnits < 1) {
+                    return {};
+                }
+            }
+            studioBatchContextInitialized = true;
+        }
+        // Refresh routed pointers on every model: gl_log can replace the qgl slots.
+        auto gl = studioBatchGL;
+        gl.GetIntegerv = qglGetIntegerv;
+        gl.PushClientAttrib = qglPushClientAttrib;
+        gl.PopClientAttrib = qglPopClientAttrib;
+        gl.DisableClientState = qglDisableClientState;
+        gl.EnableClientState = qglEnableClientState;
+        gl.VertexPointer = qglVertexPointer;
+        gl.TexCoordPointer = qglTexCoordPointer;
+        gl.ColorPointer = qglColorPointer;
+        gl.DrawElements = qglDrawElements;
+        gl.TexCoord2f = qglTexCoord2f;
+        gl.Color4f = qglColor4f;
+        return gl;
+    }
 
-	pstudioverts = (vec3_t*)( (byte*)pstudiohdr + psubmodel->vertindex );
-	pstudionorms = (vec3_t*)( (byte*)pstudiohdr + psubmodel->normindex );
-	pmesh = (mstudiomesh_t*)( (byte*)pstudiohdr + psubmodel->meshindex );
+    bool R_StudioDrawIndexedMesh(const cse::studio::GLFunctions& gl, const mstudiomesh_t& mesh,
+        const vec3_t* normals, float s, float t, bool chromeTexture, bool forcedChrome, bool flipped) {
+        // Mod_LoadStudioModel discards texture pixels after upload; length can exceed
+        // the resident allocation. Bound every topology read to retained geometry.
+        const int retainedBytes = pstudiohdr->textureindex ? pstudiohdr->texturedataindex : pstudiohdr->length;
+    if (retainedBytes < static_cast<int>(sizeof(studiohdr_t)) || mesh.triindex < 0 ||
+        mesh.triindex % alignof(std::int16_t) != 0 ||
+            mesh.triindex >= retainedBytes || psubmodel->numverts > MAXSTUDIOVERTS ||
+            psubmodel->numnorms > pvlightvalues_size) {
+            return false;
+        }
+        const auto* commands = reinterpret_cast<const std::int16_t*>(
+            reinterpret_cast<const byte*>(pstudiohdr) + mesh.triindex);
+        const auto availableWords = static_cast<std::size_t>(retainedBytes - mesh.triindex) / sizeof(*commands);
+        const auto* topology = studioMeshCache.Get(commands, availableWords, psubmodel->numverts, psubmodel->numnorms);
+        if (!topology) {
+            return false;
+        }
+        try {
+            studioDrawVertices.resize(topology->vertices.size());
+        } catch (const std::bad_alloc&) {
+            return false;
+        } catch (const std::length_error&) {
+            return false;
+        }
+        for (std::size_t index = 0; index < topology->vertices.size(); ++index) {
+            const auto& source = topology->vertices[index];
+            auto& vertex = studioDrawVertices[index];
+            std::memcpy(vertex.position, pauxverts[source.position].fv, sizeof(vertex.position));
+            if (chromeTexture) {
+                const int normal = forcedChrome ? g_NormalIndex[source.position] : source.normal;
+                vertex.texcoord[0] = chrome[normal][0] * s;
+                vertex.texcoord[1] = chrome[normal][1] * t;
+            } else {
+                vertex.texcoord[0] = source.s * s;
+                vertex.texcoord[1] = source.t * t;
+            }
+            if (!forcedChrome) {
+                vec3_t adjustedNormal;
+                const float* normal = normals[source.normal];
+                if (flipped && !chromeTexture) {
+                    adjustedNormal[0] = normal[0];
+                    adjustedNormal[1] = -normal[1];
+                    adjustedNormal[2] = normal[2];
+                    normal = adjustedNormal;
+                }
+                R_LightLambert(lightpos[source.position], const_cast<float*>(normal),
+                    pvlightvalues[source.normal], vertex.color);
+                vertex.color[3] = r_blend;
+            }
+        }
+        return cse::studio::SubmitIndexed(gl, *topology, studioDrawVertices.data(), !forcedChrome);
+    }
+}
 
-	pskinref = (short*)( (byte*)ptexturehdr + ptexturehdr->skinindex );
-	if ( currententity->curstate.skin != 0 && currententity->curstate.skin < ptexturehdr->numskinfamilies )
-		pskinref += currententity->curstate.skin * ptexturehdr->numskinref;
+void R_ResetStudioMeshBatch() {
+    studioMeshCache.Clear();
+    std::vector<cse::studio::DrawVertex>().swap(studioDrawVertices);
+    studioBatchGL = {};
+    studioBatchContextInitialized = false;
+}
 
-	if ( currententity->curstate.renderfx == kRenderFxGlowShell )
-	{
-		BuildNormalIndexTable();
-		BuildGlowShellVerts( pstudioverts, pauxverts );
-	}
-	else
-	{
-		for ( i = 0; i < psubmodel->numverts; i++ )
-			R_StudioTransformAuxVert( &pauxverts[i], pvertbone[i], pstudioverts[i] );
-	}
+extern cvar_t r_studio_batch;
 
-	for ( i = 0; i < psubmodel->numverts; i++ )
-		R_LightStrength( pvertbone[i], pstudioverts[i], lightpos[i] );
+void R_GLStudioDrawPoints() {
+    int i;
+    int j;
+    int k;
+    int flags;
+    int index;
+    float s;
+    float t;
+    float lv_tmp;
+    qboolean additive;
+    qboolean flipped;
+    qboolean forcedChrome;
+    vec3_t fl;
+    vec3_t tmp;
+    byte* pvertbone;
+    byte* pnormbone;
+    vec3_t* pstudioverts;
+    vec3_t* pstudionorms;
+    vec3_t* lv;
+    short* pskinref;
+    short* ptricmds;
+    studiohdr_t* ptexturehdr;
+    mstudiotexture_t* ptexture;
+    mstudiomesh_t* pmesh;
 
-	lv = pvlightvalues;
-	for ( j = 0; j < psubmodel->nummesh; j++ )
-	{
-		flags = g_ForcedFaceFlags | ptexture[pskinref[pmesh[j].skinref]].flags;
-		if ( r_fullbright.value >= 2.0f )
-			flags &= ~( STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME );
+    const bool indexedAllowed = r_studio_batch.value != 0.0f && cse::render::LegacyIndexedDrawingAllowed();
+    const auto batchGL = indexedAllowed ? StudioBatchFunctions() : cse::studio::GLFunctions{};
 
-		additive = currententity->curstate.rendermode == kRenderTransAdd;
+    pvertbone = (byte*)pstudiohdr + psubmodel->vertinfoindex;
+    pnormbone = (byte*)pstudiohdr + psubmodel->norminfoindex;
 
-		for ( k = 0; k < pmesh[j].numnorms; k++, lv++ )
-		{
-			index = (int)( lv - pvlightvalues );
-			if ( index >= pvlightvalues_size )
-				break;
+    ptexturehdr = R_LoadTextures( r_model );
+    ptexture = (mstudiotexture_t*)( (byte*)ptexturehdr + ptexturehdr->textureindex );
 
-			if ( additive )
-			{
-				( *lv )[0] = r_blend;
-				( *lv )[1] = r_blend;
-				( *lv )[2] = r_blend;
+    pstudioverts = (vec3_t*)( (byte*)pstudiohdr + psubmodel->vertindex );
+    pstudionorms = (vec3_t*)( (byte*)pstudiohdr + psubmodel->normindex );
+    pmesh = (mstudiomesh_t*)( (byte*)pstudiohdr + psubmodel->meshindex );
 
-				if ( flags & STUDIO_NF_CHROME )
-					R_StudioChrome( chrome[index], *pnormbone, *pstudionorms );
-			}
-			else
-			{
-				R_StudioLighting( &lv_tmp, *pnormbone, (signed char)flags, *pstudionorms );
+    pskinref = (short*)( (byte*)ptexturehdr + ptexturehdr->skinindex );
+    if ( currententity->curstate.skin != 0 && currententity->curstate.skin < ptexturehdr->numskinfamilies ) {
+        pskinref += currententity->curstate.skin * ptexturehdr->numskinref;
+    }
 
-				if ( flags & STUDIO_NF_CHROME )
-					R_StudioChrome( chrome[index], *pnormbone, *pstudionorms );
+    if ( currententity->curstate.renderfx == kRenderFxGlowShell ) {
+        BuildNormalIndexTable();
+        BuildGlowShellVerts( pstudioverts, pauxverts );
+    }
+    else {
+        for ( i = 0; i < psubmodel->numverts; i++ ) {
+            R_StudioTransformAuxVert( &pauxverts[i], pvertbone[i], pstudioverts[i] );
+        }
+    }
 
-				( *lv )[0] = lv_tmp * r_colormix[0];
-				( *lv )[1] = lv_tmp * r_colormix[1];
-				( *lv )[2] = lv_tmp * r_colormix[2];
+    for ( i = 0; i < psubmodel->numverts; i++ ) {
+        R_LightStrength( pvertbone[i], pstudioverts[i], lightpos[i] );
+    }
 
-				pnormbone++;
-				pstudionorms++;
-			}
-		}
-	}
+    lv = pvlightvalues;
+    for ( j = 0; j < psubmodel->nummesh; j++ ) {
+        flags = g_ForcedFaceFlags | ptexture[pskinref[pmesh[j].skinref]].flags;
+        if ( r_fullbright.value >= 2.0f ) {
+            flags &= ~( STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME );
+        }
 
-	qglCullFace( GL_FRONT );
+        additive = currententity->curstate.rendermode == kRenderTransAdd;
 
-	flipped = IsFlippedViewModel();
-	if ( flipped )
-		qglDisable( GL_CULL_FACE );
+        for ( k = 0; k < pmesh[j].numnorms; k++, lv++ ) {
+            index = (int)( lv - pvlightvalues );
+            if ( index >= pvlightvalues_size ) {
+                break;
+            }
 
-	pstudionorms = (vec3_t*)( (byte*)pstudiohdr + psubmodel->normindex );
-	for ( j = 0; j < psubmodel->nummesh; j++ )
-	{
-		pmesh = (mstudiomesh_t*)( (byte*)pstudiohdr + psubmodel->meshindex ) + j;
-		ptricmds = (short*)( (byte*)pstudiohdr + pmesh->triindex );
+            if ( additive ) {
+                ( *lv )[0] = r_blend;
+                ( *lv )[1] = r_blend;
+                ( *lv )[2] = r_blend;
 
-		c_alias_polys += pmesh->numtris;
+                if ( flags & STUDIO_NF_CHROME ) {
+                    R_StudioChrome( chrome[index], *pnormbone, *pstudionorms );
+                }
+            }
+            else {
+                R_StudioLighting( &lv_tmp, *pnormbone, (signed char)flags, *pstudionorms );
 
-		index = pskinref[pmesh->skinref];
-		flags = g_ForcedFaceFlags | ptexture[index].flags;
-		if ( r_fullbright.value >= 2.0f )
-			flags &= ~( STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME );
+                if ( flags & STUDIO_NF_CHROME ) {
+                    R_StudioChrome( chrome[index], *pnormbone, *pstudionorms );
+                }
 
-		if ( flags & STUDIO_NF_MASKED )
-		{
-			qglEnable( GL_ALPHA_TEST );
-			qglAlphaFunc( GL_GREATER, 0.5f );
-			qglDepthMask( GL_TRUE );
-		}
+                ( *lv )[0] = lv_tmp * r_colormix[0];
+                ( *lv )[1] = lv_tmp * r_colormix[1];
+                ( *lv )[2] = lv_tmp * r_colormix[2];
 
-		additive = ( flags & STUDIO_NF_ADDITIVE ) && currententity->curstate.rendermode == kRenderNormal;
-		if ( additive )
-		{
-			qglBlendFunc( GL_ONE, GL_ONE );
-			qglEnable( GL_BLEND );
-			qglDepthMask( GL_FALSE );
-			qglShadeModel( GL_SMOOTH );
-		}
+                pnormbone++;
+                pstudionorms++;
+            }
+        }
+    }
 
-		if ( r_fullbright.value < 2.0f )
-		{
-			s = (float)( 1.0 / (float)ptexture[index].width );
-			t = (float)( 1.0 / (float)ptexture[index].height );
-			R_StudioSetupSkin( ptexturehdr, index );
-		}
-		else
-		{
-			tri.SpriteTexture( cl_sprite_white, 0 );
-			s = t = 1.0f / 256;
-		}
+    qglCullFace( GL_FRONT );
 
-		if ( flags & STUDIO_NF_CHROME )
-		{
-			s = (float)( s * ( 1.0 / 1024 ) );
-			t = (float)( t * ( 1.0 / 1024 ) );
-		}
+    flipped = IsFlippedViewModel();
+    if ( flipped ) {
+        qglDisable( GL_CULL_FACE );
+    }
 
-		forcedChrome = ( flags & STUDIO_NF_CHROME ) && ( g_ForcedFaceFlags & STUDIO_NF_CHROME );
+    pstudionorms = (vec3_t*)( (byte*)pstudiohdr + psubmodel->normindex );
+    for ( j = 0; j < psubmodel->nummesh; j++ ) {
+        pmesh = (mstudiomesh_t*)( (byte*)pstudiohdr + psubmodel->meshindex ) + j;
+        ptricmds = (short*)( (byte*)pstudiohdr + pmesh->triindex );
 
-		while ( ( i = *( ptricmds++ ) ) != 0 )
-		{
-			if ( i < 0 )
-			{
-				qglBegin( GL_TRIANGLE_FAN );
-				i = -i;
-			}
-			else
-			{
-				qglBegin( GL_TRIANGLE_STRIP );
-			}
+        c_alias_polys += pmesh->numtris;
 
-			for ( ; i > 0; i--, ptricmds += 4 )
-			{
-				if ( flags & STUDIO_NF_CHROME )
-				{
-					if ( forcedChrome )
-					{
-						qglTexCoord2f(
-							chrome[g_NormalIndex[ptricmds[0]]][0] * s, chrome[g_NormalIndex[ptricmds[0]]][1] * t );
-					}
-					else
-					{
-						if ( ptricmds[1] >= pvlightvalues_size )
-							break;
+        index = pskinref[pmesh->skinref];
+        flags = g_ForcedFaceFlags | ptexture[index].flags;
+        if ( r_fullbright.value >= 2.0f ) {
+            flags &= ~( STUDIO_NF_FLATSHADE | STUDIO_NF_CHROME );
+        }
 
-						qglTexCoord2f( chrome[ptricmds[1]][0] * s, chrome[ptricmds[1]][1] * t );
+        if ( flags & STUDIO_NF_MASKED ) {
+            qglEnable( GL_ALPHA_TEST );
+            qglAlphaFunc( GL_GREATER, 0.5f );
+            qglDepthMask( GL_TRUE );
+        }
 
-						R_LightLambert(
-							lightpos[ptricmds[0]], pstudionorms[ptricmds[1]], pvlightvalues[ptricmds[1]], fl );
-						qglColor4f( fl[0], fl[1], fl[2], r_blend );
-					}
-				}
-				else
-				{
-					if ( ptricmds[1] >= pvlightvalues_size )
-						break;
+        additive = ( flags & STUDIO_NF_ADDITIVE ) && currententity->curstate.rendermode == kRenderNormal;
+        if ( additive ) {
+            qglBlendFunc( GL_ONE, GL_ONE );
+            qglEnable( GL_BLEND );
+            qglDepthMask( GL_FALSE );
+            qglShadeModel( GL_SMOOTH );
+        }
 
-					qglTexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
+        if ( r_fullbright.value < 2.0f ) {
+            s = (float)( 1.0 / (float)ptexture[index].width );
+            t = (float)( 1.0 / (float)ptexture[index].height );
+            R_StudioSetupSkin( ptexturehdr, index );
+        }
+        else {
+            tri.SpriteTexture( cl_sprite_white, 0 );
+            s = t = 1.0f / 256;
+        }
 
-					if ( flipped )
-					{
-						tmp[0] = pstudionorms[ptricmds[1]][0];
-						tmp[1] = -pstudionorms[ptricmds[1]][1];
-						tmp[2] = pstudionorms[ptricmds[1]][2];
-						R_LightLambert( lightpos[ptricmds[0]], tmp, pvlightvalues[ptricmds[1]], fl );
-					}
-					else
-					{
-						R_LightLambert(
-							lightpos[ptricmds[0]], pstudionorms[ptricmds[1]], pvlightvalues[ptricmds[1]], fl );
-					}
+        if ( flags & STUDIO_NF_CHROME ) {
+            s = (float)( s * ( 1.0 / 1024 ) );
+            t = (float)( t * ( 1.0 / 1024 ) );
+        }
 
-					qglColor4f( fl[0], fl[1], fl[2], r_blend );
-				}
+        forcedChrome = ( flags & STUDIO_NF_CHROME ) && ( g_ForcedFaceFlags & STUDIO_NF_CHROME );
 
-				qglVertex3f( pauxverts[ptricmds[0]].fv[0], pauxverts[ptricmds[0]].fv[1], pauxverts[ptricmds[0]].fv[2] );
-			}
+        if (!indexedAllowed || !R_StudioDrawIndexedMesh(batchGL, *pmesh, pstudionorms, s, t,
+            (flags & STUDIO_NF_CHROME) != 0, forcedChrome != 0, flipped != 0)) {
+            while ( ( i = *( ptricmds++ ) ) != 0 ) {
+                if ( i < 0 ) {
+                    qglBegin( GL_TRIANGLE_FAN );
+                    i = -i;
+                }
+                else {
+                    qglBegin( GL_TRIANGLE_STRIP );
+                }
 
-			qglEnd();
-		}
+                for ( ; i > 0; i--, ptricmds += 4 ) {
+                    if ( flags & STUDIO_NF_CHROME ) {
+                        if ( forcedChrome ) {
+                            qglTexCoord2f(
+                                chrome[g_NormalIndex[ptricmds[0]]][0] * s, chrome[g_NormalIndex[ptricmds[0]]][1] * t );
+                        }
+                        else {
+                            if ( ptricmds[1] >= pvlightvalues_size ) {
+                                break;
+                            }
 
-		if ( flags & STUDIO_NF_MASKED )
-		{
-			qglAlphaFunc( GL_NOTEQUAL, 0.0f );
-			qglDisable( GL_ALPHA_TEST );
-		}
+                            qglTexCoord2f( chrome[ptricmds[1]][0] * s, chrome[ptricmds[1]][1] * t );
 
-		if ( additive )
-		{
-			qglDisable( GL_BLEND );
-			qglDepthMask( GL_TRUE );
-			qglShadeModel( GL_FLAT );
-		}
-	}
+                            R_LightLambert(
+                                lightpos[ptricmds[0]], pstudionorms[ptricmds[1]], pvlightvalues[ptricmds[1]], fl );
+                            qglColor4f( fl[0], fl[1], fl[2], r_blend );
+                        }
+                    }
+                    else {
+                        if ( ptricmds[1] >= pvlightvalues_size ) {
+                            break;
+                        }
 
-	qglEnable( GL_CULL_FACE );
+                        qglTexCoord2f( ptricmds[2] * s, ptricmds[3] * t );
+
+                        if ( flipped ) {
+                            tmp[0] = pstudionorms[ptricmds[1]][0];
+                            tmp[1] = -pstudionorms[ptricmds[1]][1];
+                            tmp[2] = pstudionorms[ptricmds[1]][2];
+                            R_LightLambert( lightpos[ptricmds[0]], tmp, pvlightvalues[ptricmds[1]], fl );
+                        }
+                        else {
+                            R_LightLambert(
+                                lightpos[ptricmds[0]], pstudionorms[ptricmds[1]], pvlightvalues[ptricmds[1]], fl );
+                        }
+
+                        qglColor4f( fl[0], fl[1], fl[2], r_blend );
+                    }
+
+                    qglVertex3f( pauxverts[ptricmds[0]].fv[0], pauxverts[ptricmds[0]].fv[1], pauxverts[ptricmds[0]].fv[2] );
+                }
+
+                qglEnd();
+            }
+        }
+
+        if ( flags & STUDIO_NF_MASKED ) {
+            qglAlphaFunc( GL_NOTEQUAL, 0.0f );
+            qglDisable( GL_ALPHA_TEST );
+        }
+
+        if ( additive ) {
+            qglDisable( GL_BLEND );
+            qglDepthMask( GL_TRUE );
+            qglShadeModel( GL_FLAT );
+        }
+    }
+
+    qglEnable( GL_CULL_FACE );
 }
 
 void R_StudioRenderFinal()

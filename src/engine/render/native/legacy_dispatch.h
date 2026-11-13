@@ -24,6 +24,8 @@ void RemoveLegacyDispatch();
 // Rebind after qgl logging changes without resetting the current frame or capture failure.
 void RefreshLegacyDispatchReferences();
 Status LegacyDispatchStatus();
+// Indexed studio arrays are outside the immediate-mode capture surface.
+bool LegacyIndexedDrawingAllowed();
 LegacyProcedure RouteLegacyExtension(const char* name, LegacyProcedure procedure);
 
 }

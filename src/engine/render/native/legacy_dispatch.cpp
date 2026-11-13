@@ -814,6 +814,10 @@ Status LegacyDispatchStatus() {
     return failure;
 }
 
+bool LegacyIndexedDrawingAllowed() {
+    return !Capturing();
+}
+
 LegacyProcedure RouteLegacyExtension(const char* name, LegacyProcedure procedure) {
     if (!name || !installed) {
         return nullptr;

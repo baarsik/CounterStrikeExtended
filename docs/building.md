@@ -216,3 +216,15 @@ inventory inspection.
 Native game loading uses `gamedll_osx` or `gamedll_linux`. If absent, Windows
 `gamedll` entries retain their order and adapt their extension through the VFS.
 An alias must not replace an unrelated file.
+
+## Studio model batching
+
+The hardware renderer batches each studio mesh into one indexed triangle draw by
+default. `r_studio_batch 0` selects the retained immediate renderer for A/B checks;
+`r_studio_batch 1` enables batching again. Animation, lighting and material settings
+keep their existing behavior. Native capture modes and unsupported client GL state
+use the immediate path automatically.
+
+The [studio batching fixtures](../tests/native/studio_batch/README.md) cover topology,
+engine attribute integration, client state and optional real OpenGL pixel comparisons.
+Their model-topology microbenchmarks do not measure gameplay FPS.

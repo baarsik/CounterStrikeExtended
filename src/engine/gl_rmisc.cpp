@@ -30,6 +30,7 @@ cvar_t sp_decals = { "sp_decals", "4096", FCVAR_ARCHIVE };
 cvar_t mp_decals = { "mp_decals", "300", FCVAR_ARCHIVE };
 cvar_t r_drawentities = { "r_drawentities", "1" };
 cvar_t r_drawviewmodel = { "r_drawviewmodel", "1" };
+cvar_t r_studio_batch = {const_cast<char*>("r_studio_batch"), const_cast<char*>("1"), 0, 0.0f, nullptr};
 cvar_t r_mirroralpha = { "r_mirroralpha", "1" };
 cvar_t r_wateralpha = { "r_wateralpha", "1" };
 cvar_t r_dynamic = { "r_dynamic", "1" };
@@ -265,6 +266,7 @@ void R_Init()
 	Cvar_SetValue( "r_decals", 4096 );
 	Cvar_RegisterVariable( &r_drawentities );
 	Cvar_RegisterVariable( &r_drawviewmodel );
+    Cvar_RegisterVariable(&r_studio_batch);
 	Cvar_RegisterVariable( &r_mirroralpha );
 	Cvar_RegisterVariable( &r_wateralpha );
 	Cvar_RegisterVariable( &r_dynamic );
