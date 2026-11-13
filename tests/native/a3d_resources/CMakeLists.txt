@@ -121,3 +121,8 @@ foreach(case managed_output_failure_recovers managed_terminal_output_failure)
     set_tests_properties(${case} PROPERTIES TIMEOUT 15
         ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")
 endforeach()
+
+foreach(case virtual_source_progress virtual_source_promotion)
+    add_test(NAME ${case} COMMAND a3d_notification_tests ${case})
+    set_tests_properties(${case} PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")
+endforeach()

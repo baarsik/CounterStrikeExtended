@@ -10,8 +10,9 @@ namespace {
 constexpr DWORD kSoftwareVoices = 8; // Retained A2D pool limit; never hardware capacity.
 constexpr DWORD kInitializationMode = 1;
 // Qualified by the retained source -> complete control -> software PCM path.
-// EQ/reflections remain stock-unread; generic/occlusion rendering is unqualified.
-constexpr DWORD kQualifiedRenderingFeatures = A3D_DIRECT_PATH_A3D;
+// Occlusions retain software gain attenuation; EQ/reflections remain stock-unread.
+// Generic DirectSound spatial rendering and full OEM acoustics remain unqualified.
+constexpr DWORD kQualifiedRenderingFeatures = A3D_DIRECT_PATH_A3D | A3D_OCCLUSIONS;
 
 HRESULT ValidateRequest(DWORD features, DWORD mode, DWORD* supported) {
     if (!supported) {

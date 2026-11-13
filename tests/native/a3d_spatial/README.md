@@ -50,9 +50,11 @@ checks, not physical-output, loaded-export, OEM, or game-consumer qualification.
   bits but retain distinct owned identities through face submission and source
   reflection pruning, also distinct from a numerically matching public DWORD tag.
 - `occlusion_direct_gain`: real wall/material/occlusion producers attenuate the
-  direct record and PCM. Changing only the produced EQ term leaves PCM identical.
+  direct record and PCM through public `Enable(A3D_OCCLUSIONS)` and source
+  `SetRenderMode`. Changing only the produced EQ term leaves PCM identical.
 - `native_feature_negotiation`: actual native leaf/provider and `CA3d` APIs accept
-  qualified `A3D_DIRECT_PATH_A3D=0x08`. All other 30 single-bit rendering/unknown
+  `A3D_DIRECT_PATH_A3D=0x08` and retained software attenuation via
+  `A3D_OCCLUSIONS=0x40`, including Init and later Enable. All other 29 single-bit rendering/unknown
   requests, combined with direct, fail without initialized device state. Failed
   requests return a zero supported mask; `0x80` remains only the splash option.
   Mixed masks, zero masks, geometry defaults and disabling are checked through
@@ -66,8 +68,8 @@ control body `0x10001600..0x1000173a`. EQ/reflection invariance is specific to t
 routine; it does not establish OEM semantics. The Task 6 field/evidence matrix is
 `build/a3d-native-20261111/control-contract.md` in the owned source worktree.
 
-Native `A3D_1ST_REFLECTIONS=0x02`, `A3D_DIRECT_PATH_GENERIC=0x20` and
-`A3D_OCCLUSIONS=0x40` stay unsupported. The actual selected route is the native
+Native `A3D_1ST_REFLECTIONS=0x02` and `A3D_DIRECT_PATH_GENERIC=0x20` stay
+unsupported. `A3D_OCCLUSIONS=0x40` restores the retained software gain attenuation. The actual selected route is the native
 super-control software path; no generic DirectSound 3D renderer is qualified.
 Occlusion's full material/filter/opening meaning is not demonstrated by direct
 attenuation alone, especially with unread software EQ and the observed opening

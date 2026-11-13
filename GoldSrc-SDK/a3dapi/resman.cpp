@@ -1137,6 +1137,10 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::Play( DWORD dwReserved, DWORD dwPriority
     if (m_dwReadPosition == m_Desc.dwBufferBytes && m_dwOverridePosition == A3D_BUFFER_POSITION_UNSET) {
         m_dwOverridePosition = 0;
     }
+    if (m_dwStatus != A3D_BUFFER_STATE_PLAYING) {
+        m_nativeVirtual = false;
+        m_nativeVirtualRemainder = 0;
+    }
     m_dwStatus = A3D_BUFFER_STATE_PLAYING;
     if (dwFlags & DSBPLAY_LOOPING) {
         m_dwFlags |= A3D_RENDER_LOOPING;
@@ -1246,6 +1250,10 @@ HRESULT ResManBuffer::SetStream( DalBufferInfo* pStream )
         }
     }
     m_pStream = pStream;
+    if (pStream) {
+        m_nativeVirtual = false;
+        m_nativeVirtualRemainder = 0;
+    }
     return S_OK;
 #else
 	m_pStream = pStream;
@@ -1445,6 +1453,12 @@ HRESULT ResMan::DetachStream( DWORD dwTime, ResManBuffer* pBuffer,
 	pStream->m_dwState = 1;
 	pStream->m_pOwner = NULL;
 	pBuffer->SetStream( NULL );
+#ifndef _WIN32
+    // Begin the timing-only interval at demotion, retaining the submitted cursor.
+    pBuffer->m_nativeVirtual = true;
+    pBuffer->m_nativeVirtualTick = dwTime;
+    pBuffer->m_nativeVirtualRemainder = 0;
+#endif
 	return S_OK;
 }
 
@@ -2306,10 +2320,45 @@ void ResManBuffer::CaptureNativeStop(A3dNativeNotificationBatch& batch) {
 }
 
 HRESULT ResManBuffer::CaptureNativeUpdate(DWORD time, A3dNativeNotificationBatch& batch) {
-    if (!m_pStream) {
-        return E_ABORT;
-    }
     if (m_dwStatus != A3D_BUFFER_STATE_PLAYING || (m_nativeSamples && m_nativeSamples->writer)) {
+        return S_OK;
+    }
+    if (!m_pStream) {
+        // DAL_EMU's retained clock uses 11 bytes/ms, not frequency or pitch.
+        // Adapt its logical progression without allocating another rendered voice
+        // or reproducing the old timing ring's prefetch/submission pipeline.
+        constexpr DWORD kTimingBytesPerMillisecond = 11;
+        DWORD elapsed = time - m_nativeVirtualTick;
+        if (time < m_nativeVirtualTick) {
+            --elapsed; // Preserve the retained DWORD-rollover convention.
+        }
+        if (!m_nativeVirtual || m_dwOverridePosition != A3D_BUFFER_POSITION_UNSET) {
+            elapsed = 0;
+            m_nativeVirtualRemainder = 0;
+        }
+        m_nativeVirtual = true;
+        m_nativeVirtualTick = time;
+        if (m_dwOverridePosition != A3D_BUFFER_POSITION_UNSET) {
+            m_dwReadPosition = m_dwOverridePosition;
+            m_dwOverridePosition = A3D_BUFFER_POSITION_UNSET;
+        }
+        // Keep a sub-frame remainder: native PCM submission requires aligned
+        // source positions, whereas the original timing leaf exposed raw bytes.
+        const std::uint64_t bytes = static_cast<std::uint64_t>(elapsed) * kTimingBytesPerMillisecond +
+            m_nativeVirtualRemainder;
+        m_nativeVirtualRemainder = static_cast<DWORD>(bytes % m_nativeFormat.nBlockAlign);
+        std::uint64_t advance = bytes - m_nativeVirtualRemainder;
+        const DWORD oldPosition = m_dwReadPosition;
+        const bool looping = (m_dwFlags & A3D_RENDER_LOOPING) != 0;
+        const bool stopped = !looping && advance >= m_Desc.dwBufferBytes - oldPosition;
+        if (stopped) {
+            advance = m_Desc.dwBufferBytes - oldPosition;
+            m_dwReadPosition = m_Desc.dwBufferBytes;
+            m_dwStatus = A3D_BUFFER_STATE_STOPPED;
+        } else {
+            m_dwReadPosition = static_cast<DWORD>((oldPosition + advance) % m_Desc.dwBufferBytes);
+        }
+        m_nativeNotifications.Capture(oldPosition, advance, m_Desc.dwBufferBytes, stopped, batch);
         return S_OK;
     }
     if (m_dwOverridePosition != A3D_BUFFER_POSITION_UNSET) {
@@ -2748,6 +2797,21 @@ HRESULT ResMan::TickNative(DWORD time) {
         if (FAILED(result)) {
             return result;
         }
+        const DWORD buffers = static_cast<DWORD>(m_SoftwareBuffers.cBuffers);
+        // A promoted source can produce both a logical crossing and a real
+        // submission this tick. Keep their immutable notification snapshots separate.
+        constexpr DWORD kBatchesPerBuffer = 2;
+        batches = new (std::nothrow) A3dNativeNotificationBatch[
+            static_cast<std::size_t>(buffers) * kBatchesPerBuffer];
+        if (!batches && buffers) {
+            m_nativeRenderStatus = E_OUTOFMEMORY;
+            return E_OUTOFMEMORY;
+        }
+        for (auto* node = m_SoftwareBuffers.pHead; node; node = node->pNext) {
+            if (!node->pBuffer->m_pStream) {
+                node->pBuffer->CaptureNativeUpdate(time, batches[count++]);
+            }
+        }
         if (time - m_dwPreviousUpdate > m_dwUpdateInterval) {
             m_dwPreviousUpdate = time;
             result = FreeReleasedStreams(time);
@@ -2766,21 +2830,15 @@ HRESULT ResMan::TickNative(DWORD time) {
             if (SUCCEEDED(result)) {
                 result = m_pDefaultPool->Update(time);
             }
-            if (FAILED(result)) {
-                m_nativeRenderStatus = result;
-                return result;
-            }
         }
-        const DWORD buffers = static_cast<DWORD>(m_SoftwareBuffers.cBuffers);
-        batches = new (std::nothrow) A3dNativeNotificationBatch[buffers];
-        if (!batches && buffers) {
-            m_nativeRenderStatus = E_OUTOFMEMORY;
-            return E_OUTOFMEMORY;
-        }
-        for (auto* node = m_SoftwareBuffers.pHead; node; node = node->pNext) {
-            const HRESULT update = node->pBuffer->CaptureNativeUpdate(time, batches[count++]);
-            if (FAILED(update) && update != E_ABORT) {
-                result = update;
+        if (SUCCEEDED(result)) {
+            for (auto* node = m_SoftwareBuffers.pHead; node; node = node->pNext) {
+                if (node->pBuffer->m_pStream) {
+                    const HRESULT update = node->pBuffer->CaptureNativeUpdate(time, batches[count++]);
+                    if (FAILED(update)) {
+                        result = update;
+                    }
+                }
             }
         }
         // The worker otherwise ignores this result. Publish it before

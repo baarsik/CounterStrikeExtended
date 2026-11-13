@@ -103,6 +103,126 @@ void WrappedStreamTail() {
     stopped->Release();
 }
 
+// The retained DAL_EMU clock advances 11 source bytes per millisecond,
+// independently of frequency/pitch. Only the output pool owns rendered voices.
+void VirtualProgress(bool promote) {
+    IUnknown* provider = nullptr;
+    CHECK(A3dCreateNativeProvider(&provider) == S_OK);
+    IA3dNativeDeviceV1* device = nullptr;
+    CHECK(provider->QueryInterface(IID_IA3dNativeDeviceV1, reinterpret_cast<void**>(&device)) == S_OK);
+    DWORD supported = 0;
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK);
+    auto* manager = dynamic_cast<ResMan*>(provider);
+    manager->StopNativeWorker();
+    CHECK(manager->SetResourceManagerMode(A3D_RESOURCE_MODE_DYNAMIC) == S_OK);
+    constexpr DWORD kSourceBytes = 1000;
+    constexpr DWORD kFiniteBytes = 110;
+    constexpr DWORD kRenderedVoices = 8;
+    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
+    DSBUFFERDESC desc{};
+    desc.dwSize = sizeof(desc);
+    desc.lpwfxFormat = &format;
+    std::array<IDirectSoundBuffer*, kRenderedVoices + 2> buffers{};
+    for (std::size_t index = 0; index < buffers.size(); ++index) {
+        desc.dwBufferBytes = index == kRenderedVoices ? kFiniteBytes : kSourceBytes;
+        CHECK(manager->CreateSoundBuffer(&desc, &buffers[index], nullptr) == S_OK);
+        CHECK(buffers[index]->Play(0, 0, index == kRenderedVoices ? 0 : DSBPLAY_LOOPING) == S_OK);
+    }
+    auto* finite = dynamic_cast<ResManStreamBuffer*>(buffers[kRenderedVoices]);
+    auto* looping = dynamic_cast<ResManStreamBuffer*>(buffers.back());
+    void* samples = nullptr;
+    DWORD sampleBytes = 0;
+    CHECK(looping->Lock(0, kSourceBytes, &samples, &sampleBytes, nullptr, nullptr, 0) == S_OK);
+    for (DWORD index = 0; index < sampleBytes / sizeof(SHORT); ++index) {
+        static_cast<SHORT*>(samples)[index] = static_cast<SHORT>(index + 1);
+    }
+    CHECK(looping->Unlock(samples, sampleBytes, nullptr, 0) == S_OK);
+    auto* stopped = Event();
+    auto* crossed = Event();
+    A3dNativeNotificationPositionV1 stopPosition{A3D_NATIVE_NOTIFICATION_STOP, 0, stopped};
+    A3dNativeNotificationPositionV1 loopPosition{100, 0, crossed};
+    CHECK(finite->SetNotificationPositions(1, &stopPosition) == S_OK);
+    CHECK(looping->SetNotificationPositions(1, &loopPosition) == S_OK);
+    CHECK(manager->TickNative(200) == S_OK);
+    CHECK(manager->GetSoftwareStreamCount() == kRenderedVoices);
+    DalBufferInfo* stream = nullptr;
+    CHECK(looping->GetRenderStream(&stream) == S_OK && !stream);
+    CHECK(manager->TickNative(210) == S_OK);
+    DWORD status = 0;
+    CHECK(finite->GetStatus(&status) == S_OK && !(status & DSBSTATUS_PLAYING));
+    CHECK(Poll(stopped));
+    DWORD position = 0;
+    CHECK(finite->GetCurrentPosition(&position, nullptr) == S_OK && position == kFiniteBytes);
+    CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 110);
+    CHECK(Poll(crossed));
+    CHECK(looping->SetFrequency(44100) == S_OK);
+    CHECK(manager->TickNative(211) == S_OK);
+    CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 120);
+    CHECK(manager->TickNative(212) == S_OK);
+    CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 132);
+    CHECK(!Poll(stopped) && !Poll(crossed));
+    if (promote) {
+        CHECK(looping->SetPriority(100) == S_OK);
+        CHECK(manager->TickNative(400) == S_OK);
+        CHECK(looping->GetRenderStream(&stream) == S_OK && stream);
+        // Virtual cursor is 2200 % 1000 = 200 before the real first refill.
+        const DWORD submitted = static_cast<DWORD>(stream->m_nativeSubmittedBytes);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK);
+        CHECK(position == (200 + submitted) % kSourceBytes);
+        CHECK(stream->GetDSBuffer()->Lock(0, sizeof(SHORT), &samples, &sampleBytes, nullptr, nullptr, 0) == S_OK);
+        CHECK(*static_cast<SHORT*>(samples) == 101); // First PCM frame at virtual source byte 200.
+        CHECK(stream->GetDSBuffer()->Unlock(samples, sampleBytes, nullptr, 0) == S_OK);
+        CHECK(finite->GetRenderStream(&stream) == S_OK && !stream);
+        CHECK(looping->SetPriority(0) == S_OK);
+        CHECK(manager->TickNative(600) == S_OK);
+        CHECK(looping->GetRenderStream(&stream) == S_OK && !stream);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK);
+        const DWORD demotedPosition = position;
+        CHECK(manager->TickNative(610) == S_OK);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK);
+        CHECK(position == (demotedPosition + 110) % kSourceBytes);
+        CHECK(!Poll(stopped));
+    } else {
+        CHECK(manager->TickNative(400) == S_OK);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 200);
+        CHECK(Poll(crossed)); // Crossed again after a full virtual lap.
+        CHECK(!Poll(stopped));
+        CHECK(finite->Play(0, 0, 0) == S_OK);
+        CHECK(looping->SetCurrentPosition(800) == S_OK);
+        CHECK(manager->TickNative(410) == S_OK);
+        CHECK(finite->GetCurrentPosition(&position, nullptr) == S_OK && position == 0);
+        CHECK(!Poll(stopped));
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 800);
+        CHECK(manager->TickNative(412) == S_OK);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 822);
+        CHECK(looping->Stop() == S_OK);
+        CHECK(manager->TickNative(450) == S_OK);
+        CHECK(Poll(stopped));
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 822);
+        CHECK(looping->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+        CHECK(manager->TickNative(460) == S_OK);
+        CHECK(manager->TickNative(470) == S_OK);
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 932);
+        CHECK(looping->Stop() == S_OK);
+        CHECK(looping->SetCurrentPosition(0) == S_OK);
+        CHECK(looping->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+        CHECK(manager->TickNative(0xfffffff0u) == S_OK);
+        CHECK(manager->TickNative(0x10u) == S_OK);
+        // Retained EMU subtracts one millisecond on DWORD rollover: 31 * 11,
+        // rounded down to a complete mono16 frame, with one byte carried.
+        CHECK(looping->GetCurrentPosition(&position, nullptr) == S_OK && position == 340);
+    }
+    for (auto* buffer : buffers) {
+        buffer->Release();
+    }
+    stopped->Close();
+    stopped->Release();
+    crossed->Close();
+    crossed->Release();
+    device->Release();
+    provider->Release();
+}
+
 void FactoryAllocationFailure() {
     CA3dClassFactory factory;
     const auto baseline = A3dNativeOwners();
@@ -172,7 +292,7 @@ void TypedProvider() {
     CHECK(supported == 0);
     GUID invalid{0xdeadbeef, 0, 0, {}};
     CHECK(FAILED(device->InitializeDevice(&invalid, 0, 1, &supported)) && supported == 0);
-    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK && supported == A3D_DIRECT_PATH_A3D);
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK && supported == (A3D_DIRECT_PATH_A3D | A3D_OCCLUSIONS));
     IDirectSound* sound = nullptr;
     CHECK(provider->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&sound)) == S_OK);
     DSCAPS caps{};
@@ -756,7 +876,11 @@ void ManagedOutputFailure(bool terminal) {
 
 int main(int argc, char** argv) {
     CHECK(argc == 2);
-    if (!std::strcmp(argv[1], "managed_output_failure_recovers")) {
+    if (!std::strcmp(argv[1], "virtual_source_progress")) {
+        VirtualProgress(false);
+    } else if (!std::strcmp(argv[1], "virtual_source_promotion")) {
+        VirtualProgress(true);
+    } else if (!std::strcmp(argv[1], "managed_output_failure_recovers")) {
         ManagedOutputFailure(false);
     } else if (!std::strcmp(argv[1], "managed_terminal_output_failure")) {
         ManagedOutputFailure(true);

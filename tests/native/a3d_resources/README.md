@@ -19,7 +19,7 @@ Use a separate Debug directory; add `-DA3D_SANITIZERS=ON` in another Debug
 directory for ASan/UBSan. Every CTest process uses `UBSAN_OPTIONS=halt_on_error=1`.
 All builds, dependency builds and tests remain serial.
 
-The 27 CTest entries cover:
+The 29 CTest entries cover:
 
 - The three complete event suites from `a3d_notifications`, plus the authoritative
   stream crossing, replacement/removal, generation fences and waiter reentry.
@@ -78,3 +78,25 @@ flags on error; source status propagates that error without adding the waiting
 flag. Deferred source Play checks health and uses the existing
 `A3DERROR_FAILED_PLAY` mapping. Successful SDL retry restores public operations.
 Both regression cases check final zero owner/event counts after healthy teardown.
+
+`virtual_source_progress` and `virtual_source_promotion` use ten managed sources,
+stop the actual resource worker, and supply controlled `TickNative` timestamps.
+Eight voices remain rendered. Excess finite sources complete and emit STOP once;
+loops advance, wrap, seek, stop/replay and cross notifications while virtual.
+Priority promotion writes PCM from the progressed position, and demotion resumes
+virtual progression from the existing submitted cursor. No additional voice cap
+is imposed. The dummy SDL output worker remains active; there is no physical device.
+
+The source-local fallback adapts the retained `EMUBuffer` timing rule: fixed
+11 source bytes/ms, independent of frequency/pitch, including its DWORD-rollover
+one-millisecond adjustment. Sub-frame bytes are carried until a complete source
+PCM frame is available. A new virtual interval or a pending seek begins at the
+next resource update; demotion starts its interval at the assignment tick.
+This restores logical progression at the native boundary, rather than reactivating
+the legacy DAL/QI/timing-ring prefetch pipeline or claiming exact old pipeline
+latency. Notifications use virtual logical advancement while no rendered stream
+exists and retain native stream-submission semantics when rendered.
+
+The resource worker still waits 10 ms and updates assignment after the retained
+100 ms interval. This is separate from the native output worker's 20 ms poll,
+8192-byte whole refill and strict 4096-byte low-water behavior.

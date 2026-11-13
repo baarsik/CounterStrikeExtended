@@ -113,6 +113,9 @@ protected:
     A3dNativeOwnerLease m_nativeStreamBufferLease{A3dNativeOwnerKind::StreamBuffer};
     friend class ResMan;
     bool m_nativeRetired = false;
+    bool m_nativeVirtual = false;
+    DWORD m_nativeVirtualTick = 0;
+    DWORD m_nativeVirtualRemainder = 0;
     WAVEFORMATEX m_nativeFormat{};
     A3DCTRL_SRC_SUPER m_nativeControl{};
     bool m_nativeHasControl = false;

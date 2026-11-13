@@ -210,8 +210,8 @@ void Occlusion() {
     const auto direct = clear.Render();
     const auto pcm = clear.sink.pcm.Render();
     Scene blocked;
-    blocked.parent->m_dwEnabledFeatures |= A3D_OCCLUSIONS;
-    blocked.source->m_dwRenderMode |= A3DSOURCE_RENDERMODE_OCCLUSIONS;
+    CHECK(blocked.parent->Enable(A3D_OCCLUSIONS) == S_OK);
+    CHECK(blocked.source->SetRenderMode(blocked.source->m_dwRenderMode | A3DSOURCE_RENDERMODE_OCCLUSIONS) == S_OK);
     CA3dMaterial material;
     CHECK(material.SetTransmittance(0.25f, 0.5f) == S_OK);
     CHECK(blocked.parent->BindMaterial(&material) == S_OK);
@@ -283,8 +283,8 @@ void MaterialOpeningTransforms() {
     CHECK(scene.parent->Clear() == S_OK);
 
     Scene passage;
-    passage.parent->m_dwEnabledFeatures |= A3D_OCCLUSIONS;
-    passage.source->m_dwRenderMode |= A3DSOURCE_RENDERMODE_OCCLUSIONS;
+    CHECK(passage.parent->Enable(A3D_OCCLUSIONS) == S_OK);
+    CHECK(passage.source->SetRenderMode(passage.source->m_dwRenderMode | A3DSOURCE_RENDERMODE_OCCLUSIONS) == S_OK);
     A3DVECTOR blockingPosition{0, 0, 1, 1};
     CA3dGeometryFace blockingFace(&wall, 0, blockingPosition, kForward, kUp);
     CA3dOpening aperture(&builder, blockingPosition, kForward, kUp);
@@ -298,7 +298,7 @@ void MaterialOpeningTransforms() {
         open.Left.flGain, open.flEq, partial.Left.flGain, partial.flEq, passage.source->m_flOcclusionFactor);
     // Retained RenderSources continues scanning at factor 1, then applies the
     // solid-wall material at end-of-commands. This observed source behavior is
-    // not a claim of correct OEM opening acoustics; public occlusion stays off.
+    // not a claim of correct OEM opening acoustics; full OEM opening acoustics remain unqualified.
     CHECK(open.Left.flGain == 0 && open.flEq == 0.99f);
     CHECK(partial.Left.flGain > open.Left.flGain && partial.flEq < open.flEq);
     CHECK(passage.source->m_flOcclusionFactor == 0.25f);

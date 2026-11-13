@@ -4,17 +4,19 @@ int main() {
     static_assert(A3D_DIRECT_PATH_A3D == 0x08 && A3D_1ST_REFLECTIONS == 0x02);
     static_assert(A3D_DIRECT_PATH_GENERIC == 0x20 && A3D_OCCLUSIONS == 0x40);
     static_assert(A3D_DISABLE_SPLASHSCREEN == 0x80);
-    constexpr DWORD kQualified = A3D_DIRECT_PATH_A3D;
+    constexpr DWORD kQualified = A3D_DIRECT_PATH_A3D | A3D_OCCLUSIONS;
     CA3d* initial = CreateParent();
     CHECK(initial->Init(nullptr, 0, 0) == S_OK);
     CHECK(initial->m_dwFeaturesAvailable == kQualified);
+    CHECK(initial->Disable(A3D_OCCLUSIONS) == S_OK);
+    CHECK(initial->Enable(A3D_OCCLUSIONS) == S_OK);
     CHECK(initial->IsFeatureAvailable(kQualified | A3D_1ST_REFLECTIONS) != S_OK);
     CHECK(initial->Enable(kQualified | A3D_1ST_REFLECTIONS) == A3DERROR_FEATURE_NOT_SUPPORTED);
     CHECK(initial->Release() == 0);
     for (bool leaf : {false, true}) {
         for (unsigned bit = 0; bit < 32; ++bit) {
             const DWORD feature = DWORD{1} << bit;
-            if (feature == kQualified || feature == A3D_DISABLE_SPLASHSCREEN) {
+            if ((feature & kQualified) || feature == A3D_DISABLE_SPLASHSCREEN) {
                 continue;
             }
             IUnknown* provider = nullptr;
@@ -46,7 +48,7 @@ int main() {
     }
     for (unsigned bit = 0; bit < 32; ++bit) {
         const DWORD feature = DWORD{1} << bit;
-        if (feature == kQualified || feature == A3D_DISABLE_SPLASHSCREEN) {
+        if ((feature & kQualified) || feature == A3D_DISABLE_SPLASHSCREEN) {
             continue;
         }
         CA3d* parent = CreateParent();
@@ -73,7 +75,7 @@ int main() {
     CHECK(!parent->IsEnabled(A3D_DIRECT_PATH_GENERIC));
     CHECK(parent->Enable(kQualified) == S_OK);
     CHECK(parent->IsEnabled(kQualified));
-    CHECK(!parent->IsEnabled(kQualified | A3D_OCCLUSIONS));
+    CHECK(parent->IsEnabled(A3D_OCCLUSIONS));
     CHECK(parent->Disable(kQualified | A3D_OCCLUSIONS) == S_OK);
     CHECK(parent->m_dwEnabledFeatures == 0);
     geometry->Release();
