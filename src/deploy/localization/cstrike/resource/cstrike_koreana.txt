@@ -1818,7 +1818,7 @@ There is one enemy left.
 
 Recent enemies killed:
 %s1"
-"Cstrike_Tutor_You_Spawned"		"카운터 스트라이크 세계에 오신 것을 환영합니다!"
+"Cstrike_Tutor_You_Spawned"		"Counter-Strike 세계에 오신 것을 환영합니다!"
 "[english]Cstrike_Tutor_You_Spawned"		"Welcome to Counter-strike!"
 "Cstrike_Tutor_You_See_Loose_Weapon"		"떨어뜨린 무기입니다.
 
@@ -2303,7 +2303,7 @@ Try to avoid injuring them."
 "[english]Career_Map_de_piranesi_cz"		"Piranesi"
 "Cstrike_Bot_Defer"		"봇이 인간에게 목표 전달"
 "[english]Cstrike_Bot_Defer"		"Bots defer goals to humans"
-"Career_NewGame"		"카운터 스트라이크: 컨디션 제로 플레이(&P)"
+"Career_NewGame"		"Counter-Strike: Condition Zero 플레이(&P)"
 "[english]Career_NewGame"		"&Play Counter-Strike: Condition Zero"
 "Career_RestartConfirmationTitle"		"커리어 게임을 다시 시작하시겠습니까?"
 "[english]Career_RestartConfirmationTitle"		"Restart Career Game?"
@@ -3197,7 +3197,7 @@ in First-Person mode while playing."
 "[english]CZero_Credits_Special_Thanks"		"Special Thanks"
 "CZero_NewCustomGame"		"커스텀 게임 플레이(&C)"
 "[english]CZero_NewCustomGame"		"Play &custom game"
-"CZero_PlayOnLine"		"스팀을 이용한 온라인 플레이 (&S)"
+"CZero_PlayOnLine"		"Steam을 이용한 온라인 플레이 (&S)"
 "[english]CZero_PlayOnLine"		"Play online using &Steam"
 "CZero_PlayOnLineText"		"현재 게임을 끝냅니다.
 정말로 끝내시겠습니까?"
@@ -3250,7 +3250,7 @@ Lead your elite counter-terrorism team through increasingly challenging scenario
 
 The fate of countless innocent victims is in your hands!
 "
-"Career_MissionPackTitleCT"		"컨디션 제로"
+"Career_MissionPackTitleCT"		"Condition Zero"
 "[english]Career_MissionPackTitleCT"		"CONDITION ZERO"
 "Cstrike_BuyPresetUnavailable"		"사용 못함"
 "[english]Cstrike_BuyPresetUnavailable"		"Unavailable"

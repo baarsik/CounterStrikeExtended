@@ -5,6 +5,7 @@
 //=============================================================================
 
 #include "OptionsSubAudio.h"
+#include "ObsoleteSoundCredit.h"
 #include "CvarSlider.h"
 #include "LabeledCommandComboBox.h"
 #include "GameUI_Interface.h"
@@ -24,6 +25,7 @@ COptionsSubAudio::COptionsSubAudio( vgui2::Panel* parent ) : vgui2::PropertyPage
 	m_pSoundQualityCombo->AddItem( "#GameUI_High", "hisound 1" );
 	m_pSoundQualityCombo->AddItem( "#GameUI_Low", "hisound 0" );
 	m_pSoundQualityCombo->SetInitialItem( engine->pfnGetCvarFloat( "hisound" ) == 0.0f ? 1 : 0 );
+    new cse::gameui::ObsoleteSoundCredit(this, "MilesAudioLabel");
 	LoadControlSettings( "Resource\\OptionsSubAudio.res", NULL );
 
 	// override, hide the HEV suit volume when not in half-life

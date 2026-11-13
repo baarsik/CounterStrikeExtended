@@ -149,7 +149,7 @@
         "VAC_BannedFromServers" "Отказано в доступе на ряд защищенных серверов."
         "VAC_NoBans" "имя активно"
         "VAC_Status" "Статус VAC:"
-        "Steam_ValidLoginRequiredTitle" "Требуется зарегистрированное имя"
+        "Steam_ValidLoginRequiredTitle" "Требуется вход в Steam"
         "Steam_ValidLoginRequired" "Не удается установить соединение с серверами Steam VAC.  Для получения дополнительной информации перейдите по следующей ссылке."
         "VAC_ConnectionIssuesSupport_Title" "Сбой безопасного соединения"
         "VAC_ConnectionIssuesSupportSite" "Перейти в раздел поддержки Steam"

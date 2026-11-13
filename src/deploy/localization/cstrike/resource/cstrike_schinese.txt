@@ -1171,7 +1171,7 @@ training insurgent detachments, etc."
 "[english]Cstrike_Player_Shadows"		"Player Shadows"
 "Cstrike_Auto_Buy"		"自动购买装备"
 "[english]Cstrike_Auto_Buy"		"Automatically Buy Equipment"
-"Career_NewGame"		"&开始游戏反恐精英：零点行动 (&P)"
+"Career_NewGame"		"&开始游戏Counter-Strike: Condition Zero (&P)"
 "[english]Career_NewGame"		"&Play Counter-Strike: Condition Zero"
 "Career_MapPage"		"选择地点"
 "[english]Career_MapPage"		"SELECT LOCATION"
@@ -1778,7 +1778,7 @@ Recent enemies killed:
 
 Recent enemies killed:
 %s1"
-"Cstrike_Tutor_You_Spawned"		"欢迎进入反恐精英！"
+"Cstrike_Tutor_You_Spawned"		"欢迎进入Counter-Strike！"
 "[english]Cstrike_Tutor_You_Spawned"		"Welcome to Counter-strike!"
 "Cstrike_Tutor_You_See_Loose_Weapon"		"这是一个掉落的武器。
 
@@ -3138,7 +3138,7 @@ You can't buy anything!"
 "[english]Career_Weapon_fn57"		"with an ES five-seven"
 "CStrike_Tutor_Toggle"		"开关辅导系统"
 "[english]CStrike_Tutor_Toggle"		"Toggle Tutor"
-"CZero_Credits_Title"		"反恐精英：零点行动"
+"CZero_Credits_Title"		"Counter-Strike: Condition Zero"
 "[english]CZero_Credits_Title"		"Counter-Strike: Condition Zero"
 "CZero_Credits_Programming"		"编程"
 "[english]CZero_Credits_Programming"		"Programming"
@@ -3231,12 +3231,7 @@ is now disabled."
 "[english]Career_NoTeammates"		"Be careful! You have no teammates during this match!"
 "Career_EnemyListSingle"		"这次对抗中你将遇到1个敌人： "
 "[english]Career_EnemyListSingle"		"You will face 1 enemy in this match: "
-"Career_MissionPackCT"		"这些是《反恐精英：零点行动》内置的游戏任务。
-你也可以下载更多任务或创建自己的任务。请访问以下地址，了解具体的操作方法。
-
-领导你的反恐部队精英通过难度不断升级的游戏关，挫败邪恶的恐怖组织一心想杀死或毁灭你的反恐部队的企图。
-
-无数个无辜受害者的命运掌握在你的手中！"
+"Career_MissionPackCT"		"这些是《Counter-Strike: Condition Zero》内置的游戏任务。\n你也可以下载更多任务或创建自己的任务。请访问以下地址，了解具体的操作方法。\n\n领导你的反恐部队精英通过难度不断升级的游戏关，挫败邪恶的恐怖组织一心想杀死或毁灭你的反恐部队的企图。\n\n无数个无辜受害者的命运掌握在你的手中！"
 "[english]Career_MissionPackCT"		"These are the original Counter-Strike: Condition Zero missions.
 You can also download more or create your own.  See the address below to find out how.
 
@@ -3244,7 +3239,7 @@ Lead your elite counter-terrorism team through increasingly challenging scenario
 
 The fate of countless innocent victims is in your hands!
 "
-"Career_MissionPackTitleCT"		"零点行动"
+"Career_MissionPackTitleCT"		"Condition Zero"
 "[english]Career_MissionPackTitleCT"		"CONDITION ZERO"
 "Cstrike_BuyPresetUnavailable"		"不可用"
 "[english]Cstrike_BuyPresetUnavailable"		"Unavailable"

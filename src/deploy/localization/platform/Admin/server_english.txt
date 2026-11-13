@@ -6,9 +6,9 @@
 // the list of mods and their server names
 "cstrike"			"Counter-Strike"
 "valve"				"Half-Life"
-"tfc"				"TeamFortress Classic"
+"tfc"				"Team Fortress Classic"
 "dmc"				"Deathmatch Classic"
-"gearbox"			"Opposing Forces"
+"gearbox"			"Opposing Force"
 "ricochet"			"Ricochet"
 "3wave"				"ThreeWave CTF"
 

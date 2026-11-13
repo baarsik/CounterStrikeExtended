@@ -236,8 +236,7 @@ counterstrike.speakeasy.net:27016
 "ServerBrowser_LastPlayed"			"최근 플레이한 서버"
 "[english]ServerBrowser_LastPlayed"			"Last played"
 
-"ServerBrowser_OfflineMode" 			"스팀이 현재 오프라인 모드입니다. 인터넷 게임을 플레이하려면 인터넷에 연결하고 
-스팀을 다시 시작해야 합니다."
+"ServerBrowser_OfflineMode" 			"Steam이 현재 오프라인 모드입니다. 인터넷 게임을 플레이하려면 인터넷에 연결하고 \nSteam을 다시 시작해야 합니다."
 "[english]ServerBrowser_OfflineMode" 			"Steam is currently in Offline Mode. Internet games will not be available until you restart
 steam while connected to the Internet."
 
@@ -277,9 +276,9 @@ Please restart the game."
 
 "VAC_BanNotification"	"VAC(Valve Anti-Cheat) 알림"
 "[english]VAC_BanNotification"	"Valve Anti-Cheat Notification"
-"VAC_AccountBanned"	"금지된 스팀 계정"
+"VAC_AccountBanned"	"금지된 Steam 계정"
 "[english]VAC_AccountBanned"	"Steam account banned"
-"VAC_YourAccountBanned"	"귀하의 '%account%' 스팀 계정은 부정 행위로 인해 보안 게임 서버에서 금지되었습니다."
+"VAC_YourAccountBanned"	"귀하의 '%account%' Steam 계정은 부정 행위로 인해 보안 게임 서버에서 금지되었습니다."
 "[english]VAC_YourAccountBanned"	"Your Steam account '%account%' has been banned from secure game servers due to a cheating infraction."
 "VAC_GamesAffected"	"해당 게임은 다음과 같습니다."
 "[english]VAC_GamesAffected"	"The following games are affected:"
@@ -287,15 +286,11 @@ Please restart the game."
 "[english]VAC_ForDetails"	"Click here for details"
 "VAC_ConnectionRefusedTitle"	"연결 거부 - VAC"
 "[english]VAC_ConnectionRefusedTitle"	"Connection Refused - VAC"
-"VAC_ConnectionRefusedDetail"	"VAC(Valve Anti-Cheat) 보안 모드에서 작동 중이므로 선택한 서버에 연결할 수 없습니다.
-
-본 스팀 계정은 부정 행위로 인해 보안 서버에서 금지되었습니다."
+"VAC_ConnectionRefusedDetail"	"VAC(Valve Anti-Cheat) 보안 모드에서 작동 중이므로 선택한 서버에 연결할 수 없습니다.\n\n본 Steam 계정은 부정 행위로 인해 보안 서버에서 금지되었습니다."
 "[english]VAC_ConnectionRefusedDetail"	"You cannot connect to the selected server, because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
-"VAC_ConnectionRefusedByServer"	"VAC(Valve Anti-Cheat) 보안 모드에서 작동 중이므로 서버에 연결할 수 없습니다.
-
-본 스팀 계정은 부정 행위로 인해 보안 서버에서 금지되었습니다."
+"VAC_ConnectionRefusedByServer"	"VAC(Valve Anti-Cheat) 보안 모드에서 작동 중이므로 서버에 연결할 수 없습니다.\n\n본 Steam 계정은 부정 행위로 인해 보안 서버에서 금지되었습니다."
 "[english]VAC_ConnectionRefusedByServer"	"The server denied your connection because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
@@ -320,21 +315,21 @@ Cheating will result in a permanent ban."
 "[english]VAC_NoBans"	"In good standing"
 "VAC_Status"	"VAC 상태:"
 "[english]VAC_Status"	"VAC Status:"
-"Steam_ValidLoginRequiredTitle"	"적합한 스팀 로그인 필요"
+"Steam_ValidLoginRequiredTitle"	"적합한 Steam 로그인 필요"
 "[english]Steam_ValidLoginRequiredTitle"	"Valid Steam Login Required"
 
 // need to remove the VAC line from this when we have our authentication system going via the Steam servers (when it should change to a login failure)
-"Steam_ValidLoginRequired"	"스팀 VAC 서버에 연결할 수 없습니다.  네트워크 문제를 해결하려면 아래 링크를 클릭하십시오."
+"Steam_ValidLoginRequired"	"Steam VAC 서버에 연결할 수 없습니다.  네트워크 문제를 해결하려면 아래 링크를 클릭하십시오."
 "[english]Steam_ValidLoginRequired"	"A connection to the Steam VAC servers could not be made.  For troubleshooting network issues, please click the link below."
 "VAC_ConnectionIssuesSupport_Title"	"보안 연결 실패"
 "[english]VAC_ConnectionIssuesSupport_Title"	"Secure Connection Failed"
-"VAC_ConnectionIssuesSupportSite"	"스팀 지원으로 이동하려면 여기를 클릭"
+"VAC_ConnectionIssuesSupportSite"	"Steam 지원으로 이동하려면 여기를 클릭"
 "[english]VAC_ConnectionIssuesSupportSite"	"Click here to visit Steam support"
 "VAC_ConnectionIssuesSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=374"
 "[english]VAC_ConnectionIssuesSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=374"
 "VAC_LoggedInElsewhere_Title"		"계정이 이미 사용 중"
 "[english]VAC_LoggedInElsewhere_Title"		"Account Used Elsewhere"
-"VAC_LoggedInElsewhereReason"		"다른 컴퓨터에서 이 스팀 계정으로 로그인했습니다. 스팀을 계속 이용하려면 다시 로그인하십시오."
+"VAC_LoggedInElsewhereReason"		"다른 컴퓨터에서 이 Steam 계정으로 로그인했습니다. Steam을 계속 이용하려면 다시 로그인하십시오."
 "[english]VAC_LoggedInElsewhereReason"		"This Steam account has been used to log in from another computer. To continue using Steam, you need to log in again."
 
 "ServerBrowser_FriendNotInGameServer"	"현재 %friend%님이 게임을 플레이하고 있는 서버가 없습니다."

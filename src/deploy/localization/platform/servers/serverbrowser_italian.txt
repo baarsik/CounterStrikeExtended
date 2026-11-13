@@ -217,7 +217,7 @@ counterstrike.speakeasy.net:27016
 "[english]ServerBrowser_Secure"				"Secure"
 "ServerBrowser_IPAddress"			"Indirizzo IP"
 "[english]ServerBrowser_IPAddress"			"IP Address"
-"ServerBrowser_SecureColumn_Tooltip"		"Server protetto con tecnologia Anti-trucchi di Valve"
+"ServerBrowser_SecureColumn_Tooltip"		"Server protetto con tecnologia Valve Anti-Cheat"
 "[english]ServerBrowser_SecureColumn_Tooltip"		"Server protected by Valve Anti-Cheat technology"
 "ServerBrowser_AntiCheat"			"Anti-trucchi"
 "[english]ServerBrowser_AntiCheat"			"Anti-cheat"
@@ -269,14 +269,14 @@ Please restart the game."
 
 "ServerBrowser_ServerName"		"Nome:"
 "[english]ServerBrowser_ServerName"		"Name:"
-"ServerBrowser_ValveAntiCheat"		"Anti-trucchi di Valve:"
+"ServerBrowser_ValveAntiCheat"		"VAC:"
 "[english]ServerBrowser_ValveAntiCheat"		"Valve Anti-Cheat:"
 "ServerBrowser_NotSecure"		"Non protetto"
 "[english]ServerBrowser_NotSecure"		"Not secure"
 "ServerBrowser_ServerHasNoPlayers"	"Nessun utente attualmente presente sul server."
 "[english]ServerBrowser_ServerHasNoPlayers"	"No users currently playing on this server."
 
-"VAC_BanNotification"	"Notifica Anti-trucchi di Valve"
+"VAC_BanNotification"	"Notifica Valve Anti-Cheat"
 "[english]VAC_BanNotification"	"Valve Anti-Cheat Notification"
 "VAC_AccountBanned"	"Account Steam bloccato"
 "[english]VAC_AccountBanned"	"Steam account banned"
@@ -288,21 +288,17 @@ Please restart the game."
 "[english]VAC_ForDetails"	"Click here for details"
 "VAC_ConnectionRefusedTitle"	"Connessione rifiutata - VAC"
 "[english]VAC_ConnectionRefusedTitle"	"Connection Refused - VAC"
-"VAC_ConnectionRefusedDetail"	"Non puoi connetterti al server selezionato, poiché è in modalità sicura VAC (Anti-trucchi di Valve).
-
-A questo account Steam è stato impedito l'accesso ai server protetti a causa di un'infrazione delle regole sui trucchi."
+"VAC_ConnectionRefusedDetail"	"Impossibile connettersi: il server è protetto da VAC (Valve Anti-Cheat).\n\nQuesto account Steam è stato escluso dai server protetti per uso di trucchi."
 "[english]VAC_ConnectionRefusedDetail"	"You cannot connect to the selected server, because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
-"VAC_ConnectionRefusedByServer"	"Il server ha rifiutato la tua connessione poiché in modalità sicura VAC (Anti-trucchi di Valve).
-
-A questo account Steam è stato impedito l'accesso ai server protetti a causa di un'infrazione delle regole sui trucchi."
+"VAC_ConnectionRefusedByServer"	"Il server ha rifiutato la tua connessione poiché in modalità sicura VAC (Valve Anti-Cheat).\n\nA questo account Steam è stato impedito l'accesso ai server protetti a causa di un'infrazione delle regole sui trucchi."
 "[english]VAC_ConnectionRefusedByServer"	"The server denied your connection because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
 "VAC_BanSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=370"
 "[english]VAC_BanSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=370"
-"VAC_SecureServerToolTip"	"Anti-trucchi di Valve - Protetto"
+"VAC_SecureServerToolTip"	"Valve Anti-Cheat - Protetto"
 "[english]VAC_SecureServerToolTip"	"Valve Anti-Cheat - Secure"
 "VAC_BannedFromServerToolTip"	"Non puoi connetterti a questo server protetto"
 "[english]VAC_BannedFromServerToolTip"	"You cannot connect to this secure server"

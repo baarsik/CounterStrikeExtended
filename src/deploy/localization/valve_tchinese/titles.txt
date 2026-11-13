@@ -212,7 +212,7 @@ $holdtime 4
 
 VALVEIS
 {
-設定值為：
+Valve：
 }
 
 END1
@@ -532,7 +532,7 @@ $fadeout 1.5
 
 GAMETITLE
 {
-戰慄時空
+Half-Life
 }
 
 //HAZARD COURSE TEXT

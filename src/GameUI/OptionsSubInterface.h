@@ -17,6 +17,7 @@ public:
     explicit COptionsSubInterface(vgui2::Panel* parent);
 
     bool ApplyLanguage();
+    bool HasLanguageChange() const;
 
 protected:
     void OnResetData() override;

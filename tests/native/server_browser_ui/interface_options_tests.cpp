@@ -1,5 +1,7 @@
 #include "model_fixture.inc"
 #include "controls.h"
+#include "wrect.h"
+#include "cl_dll.h"
 #include "../../../src/GameUI/OptionsDialog.h"
 #include "../../../src/GameUI/OptionsSubInterface.h"
 #include "../../../src/common/interface_language.h"
@@ -57,9 +59,22 @@ std::string ReadSavedPreference() {
 // Only unrelated pages/game/taskbar are doubles. The complete OptionsDialog
 // methods are copied unchanged with a source receipt; page and shared controls
 // compile from production files with their owning CMake flags.
+int appliedOtherPages = 0;
+int expectedOtherPages = 0;
+int restartCommands = 0;
+int RecordClientCommand(char* command) {
+    Require(std::strcmp(command, "_restart\n") == 0, "only the normal restart command is issued");
+    Require(appliedOtherPages == expectedOtherPages, "all Options pages apply before language restart");
+    ++restartCommands;
+    return 1;
+}
+cl_enginefuncs_s gEngfuncs{};
+cl_enginefuncs_s* engine = &gEngfuncs;
+
 class EmptyPage : public vgui2::PropertyPage {
 public:
     explicit EmptyPage(vgui2::Panel* parent) : PropertyPage(parent, "OtherPage", true) {}
+    void OnApplyChanges() override { ++appliedOtherPages; }
 };
 using COptionsSubMultiplayer = EmptyPage;
 using COptionsSubAudio = EmptyPage;
@@ -87,6 +102,7 @@ class TestOptions : public COptionsDialog {
 public:
     explicit TestOptions(vgui2::Panel* parent) : COptionsDialog(parent) {}
     using COptionsDialog::OnCommand;
+    using COptionsDialog::OnClose;
 };
 
 namespace {
@@ -195,6 +211,7 @@ int main(int argc, char** argv) {
         auto fontForChar = reinterpret_cast<void* (*)(void*, vgui2::HFont, wchar_t)>(
             dlsym(image, "_ZN12CFontManager14GetFontForCharEjw"));
         Require(manager && fontForChar, "actual native font coverage probes");
+        gEngfuncs.pfnClientCmd = RecordClientCommand;
         std::ofstream report(output / "fit.tsv");
         for (int kind = 0; kind < 3; ++kind) {
             testMod.kind = kind;
@@ -244,6 +261,18 @@ int main(int argc, char** argv) {
             Require(combo && !combo->IsEditable() && combo->GetItemCount() == 11, "automatic plus all ten languages");
             Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"),
                 kind == 2 ? "polish" : "") == 0, "saved or invalid preference reflected in selection");
+            auto reopenAfterRestart = [&] {
+                delete dialog;
+                dialog = new TestOptions(root);
+                dialog->SetScheme(tracker);
+                dialog->SetVisible(true);
+                sheet = dialog->GetPropertySheet();
+                page = dynamic_cast<COptionsSubInterface*>(sheet->GetPage(interfaceIndex));
+                sheet->SetActivePage(page);
+                Settle(*root);
+                combo = dynamic_cast<vgui2::ComboBox*>(page->FindChildByName("Language", false));
+            };
+            expectedOtherPages = sheet->GetNumPages() - 1;
             system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey, "russian");
             rejectSavedLanguage = true;
             dialog->ResetAllData();
@@ -253,19 +282,30 @@ int main(int argc, char** argv) {
             Select(*combo, "russian");
             Settle(*root);
             const int beforeRepair = system_fixture::current->stringWrites;
+            int beforeRestart = restartCommands;
+            appliedOtherPages = 0;
+            vgui2::PHandle restartOwner;
+            restartOwner.Set(dialog);
             dialog->OnCommand("Apply");
+            dialog->OnCommand("OK");
+            dialog->OnClose();
             Settle(*root);
+            Require(restartOwner.Get() != nullptr, "close cannot discard a pending forced restart owner");
             Require(system_fixture::current->stringWrites == beforeRepair + 1,
                 "choosing a rejected stored id must rewrite a valid preference");
+            Require(restartCommands == beforeRestart + 1, "changed language Apply forces one restart");
             rejectSavedLanguage = false;
+            reopenAfterRestart();
             system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey,
                 kind == 2 ? "polish" : "");
             dialog->ResetAllData();
             Settle(*root);
             const int writes = system_fixture::current->stringWrites;
+            beforeRestart = restartCommands;
             dialog->OnCommand("Apply");
             Settle(*root);
             Require(system_fixture::current->stringWrites == writes, "unchanged Apply must not write");
+            Require(restartCommands == beforeRestart, "unchanged Apply must not restart");
             for (const auto& language : cse::interface_language::BundledLanguages) {
                 Select(*combo, language.id);
                 Settle(*root);
@@ -301,19 +341,23 @@ int main(int argc, char** argv) {
             Select(*combo, "russian");
             Settle(*root);
             Require(dialog->IsApplyButtonEnabled(), "selection enables Apply");
+            beforeRestart = restartCommands;
             system_fixture::current->failStringWrites = true;
             dynamic_cast<vgui2::Button*>(dialog->FindChildByName("OKButton", false))->DoClick();
             Settle(*root);
             Require(dialog->IsVisible() && dialog->IsApplyButtonEnabled(), "failed save stays open for retry");
             Require(page->FindChildByName("SaveFailed", false)->IsVisible(), "save error visible");
+            Require(restartCommands == beforeRestart, "failed save must not restart");
             Fit(*dialog, report);
             system_fixture::current->failStringWrites = false;
+            appliedOtherPages = 0;
             dynamic_cast<vgui2::Button*>(dialog->FindChildByName("ApplyButton", false))->DoClick();
             Settle(*root);
             char saved[cse::interface_language::PreferenceBufferBytes]{};
             Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
                 && std::strcmp(saved, "russian") == 0, "Apply persists stable id");
-            Require(!dialog->IsApplyButtonEnabled(), "successful Apply clears pending state");
+            Require(restartCommands == beforeRestart + 1, "successful save retry forces restart");
+            reopenAfterRestart();
             Select(*combo, "polish");
             Settle(*root);
             dialog->ResetAllData();
@@ -321,10 +365,14 @@ int main(int argc, char** argv) {
             Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"), "russian") == 0,
                 "reset restores saved value");
             Select(*combo, "");
+            beforeRestart = restartCommands;
+            appliedOtherPages = 0;
             dialog->OnCommand("Apply");
             Settle(*root);
             Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
                 && saved[0] == '\0', "automatic clears saved id");
+            Require(restartCommands == beforeRestart + 1, "restoring automatic forces restart");
+            reopenAfterRestart();
             system_fixture::current->languageOverride = "german";
             dialog->ResetAllData();
             Settle(*root);
@@ -344,14 +392,20 @@ int main(int argc, char** argv) {
             }
             Select(*combo, "polish");
             const int beforeCancel = system_fixture::current->stringWrites;
+            beforeRestart = restartCommands;
             if (kind == 2) {
+                appliedOtherPages = 0;
                 dialog->OnCommand("OK");
                 Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
                     && std::strcmp(saved, "polish") == 0, "OK persists selection");
+                Settle(*root);
+                Require(restartCommands == beforeRestart + 1, "OK forces restart with launch override present");
+                delete dialog;
             } else {
                 dynamic_cast<vgui2::Button*>(dialog->FindChildByName("CancelButton", false))->DoClick();
                 Settle(*root);
                 Require(system_fixture::current->stringWrites == beforeCancel, "Cancel must not persist selection");
+                Require(restartCommands == beforeRestart, "Cancel must not restart");
             }
             Settle(*root);
         }

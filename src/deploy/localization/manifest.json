@@ -552,6 +552,19 @@
         "cstrike_koreana/resource/cstrike_koreana.txt",
         "cstrike/resource/cstrike_korean.txt",
         "cstrike_korean/resource/cstrike_korean.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "Cstrike_Tutor_You_Spawned",
+            "Career_NewGame",
+            "CZero_PlayOnLine",
+            "Career_MissionPackTitleCT"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -605,6 +618,20 @@
       },
       "aliases": [
         "cstrike_schinese/resource/cstrike_schinese.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "Career_NewGame",
+            "Cstrike_Tutor_You_Spawned",
+            "CZero_Credits_Title",
+            "Career_MissionPackCT",
+            "Career_MissionPackTitleCT"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -643,6 +670,20 @@
       },
       "aliases": [
         "cstrike_tchinese/resource/cstrike_tchinese.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "Career_NewGame",
+            "Cstrike_Tutor_You_Spawned",
+            "CZero_Credits_Title",
+            "Career_MissionPackCT",
+            "Career_MissionPackTitleCT"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -5088,7 +5129,18 @@
         "path": "platform/admin/server_english.txt",
         "sha256": "0ba206272df79b4664b4a7dff67680dd1fbd89236e137b58eb7389979b5da44a",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "tfc",
+            "gearbox"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_french.txt",
@@ -5104,7 +5156,19 @@
         "path": "platform/admin/server_french.txt",
         "sha256": "7ca78ee36197cf02d9a0bebd0320fedb8da08b7dc53820a033d11c343b711539",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "tfc",
+            "gearbox",
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_german.txt",
@@ -5120,7 +5184,18 @@
         "path": "platform/admin/server_german.txt",
         "sha256": "dc976ef6006fe85634b2bd8fbbb4dec653e65d36c0d3066daadf5302b02a36b9",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "dmc",
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_italian.txt",
@@ -5136,7 +5211,17 @@
         "path": "platform/admin/server_italian.txt",
         "sha256": "fe2b644ec27d93bec62960152ab7ffe616579480d60e297740760c1246b872b5",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_koreana.txt",
@@ -5155,6 +5240,23 @@
       },
       "aliases": [
         "platform/Admin/server_korean.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "cstrike",
+            "valve",
+            "tfc",
+            "dmc",
+            "gearbox",
+            "ricochet",
+            "Start_Server_Offline_Warning",
+            "Start_Server_FSMount_Error"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -5169,7 +5271,18 @@
         "sha256": "433edbc94bc34b591c1ed19e24c7cb16ddefcc81ec92d4ef651efcd8b06a335a",
         "encoding": "utf-8",
         "source_language": "english"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "tfc",
+            "gearbox"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_russian.txt",
@@ -5186,7 +5299,20 @@
         "sha256": "8479aa0460b331836034a4e52c480d39dcdda00b5906924f4d71dc38518054da",
         "encoding": "utf-16-le-bom"
       },
-      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected.",
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "tfc",
+            "dmc",
+            "gearbox",
+            "ricochet"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_schinese.txt",
@@ -5202,7 +5328,23 @@
         "path": "platform/admin/server_schinese.txt",
         "sha256": "2dc032eaf2d359a4f8e56b3d84be1fd49346a39c2da17c4c56a55abb8e2b838b",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "cstrike",
+            "valve",
+            "tfc",
+            "dmc",
+            "gearbox",
+            "ricochet",
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_spanish.txt",
@@ -5218,7 +5360,21 @@
         "path": "platform/admin/server_spanish.txt",
         "sha256": "24f068b9d43379ee6cc42e02a680131a2465bcdb963eeb090a9e286b2cc008bf",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "tfc",
+            "dmc",
+            "gearbox",
+            "ricochet",
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/Admin/server_tchinese.txt",
@@ -5234,7 +5390,22 @@
         "path": "platform/admin/server_tchinese.txt",
         "sha256": "c0986a879ee0073ced44408065c53f46cfc218030ca48a5a58a78150a9e7695e",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "cstrike",
+            "valve",
+            "tfc",
+            "dmc",
+            "gearbox",
+            "Start_Server_Secure"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/resource/cse_english.txt",
@@ -5701,7 +5872,24 @@
         "path": "platform/servers/serverbrowser_french.txt",
         "sha256": "026fce952fd474cd324494cf8a2f1ed11c3948618508cc2db8ce94699d6672c4",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_ConnectionRefusedTitle",
+            "VAC_ConnectionRefusedDetail",
+            "VAC_ConnectionRefusedByServer",
+            "VAC_SecureServerToolTip",
+            "VAC_ConnectingToSecureServer"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_german.txt",
@@ -5717,7 +5905,20 @@
         "path": "platform/servers/serverbrowser_german.txt",
         "sha256": "dbd05e58a147a228e8a9791763085b57780ab8dd358f3db892cb2fdcc89b05e9",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_SecureServerToolTip"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_italian.txt",
@@ -5733,7 +5934,22 @@
         "path": "platform/servers/serverbrowser_italian.txt",
         "sha256": "8b3a58570f2f61289a50a93395d93157783adec8210081c54c8674fa5038f6b9",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_ConnectionRefusedDetail",
+            "VAC_ConnectionRefusedByServer",
+            "VAC_SecureServerToolTip"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_koreana.txt",
@@ -5752,6 +5968,24 @@
       },
       "aliases": [
         "platform/servers/serverbrowser_korean.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_OfflineMode",
+            "VAC_AccountBanned",
+            "VAC_YourAccountBanned",
+            "VAC_ConnectionRefusedDetail",
+            "VAC_ConnectionRefusedByServer",
+            "Steam_ValidLoginRequiredTitle",
+            "Steam_ValidLoginRequired",
+            "VAC_ConnectionIssuesSupportSite",
+            "VAC_LoggedInElsewhereReason"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -5792,7 +6026,17 @@
         "sha256": "5d6d27e1a1b43e02512088687d42f1dc47eaa7745ee49e127e3de61ca2ae0e4c",
         "encoding": "utf-16-le-bom"
       },
-      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected.",
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "Steam_ValidLoginRequiredTitle"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_schinese.txt",
@@ -5808,7 +6052,22 @@
         "path": "platform/servers/serverbrowser_schinese.txt",
         "sha256": "fd19db71911dcf82945f70987f0849452501147af325f4fce267e8fcd417a663",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_ConnectionRefusedDetail",
+            "VAC_ConnectionRefusedByServer",
+            "VAC_SecureServerToolTip"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_spanish.txt",
@@ -5824,7 +6083,20 @@
         "path": "platform/servers/serverbrowser_spanish.txt",
         "sha256": "8fce3c5bd9bcf72ab139394bc38f85e9640c12e1c9ef9c7ad10443623b699baf",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_SecureServerToolTip"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "platform/servers/serverbrowser_tchinese.txt",
@@ -5840,7 +6112,21 @@
         "path": "platform/servers/serverbrowser_tchinese.txt",
         "sha256": "52891f3ad1eebbf65f3ee07d2e3836a0020a87f3c8f4b07f1658fd170aaa7ecf",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "ServerBrowser_SecureColumn_Tooltip",
+            "ServerBrowser_ValveAntiCheat",
+            "VAC_BanNotification",
+            "VAC_ConnectionRefusedDetail",
+            "VAC_SecureServerToolTip"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "valve/gfx/shell/kb_act.lst",
@@ -5950,6 +6236,16 @@
         "valve_koreana/resource/gameui_koreana.txt",
         "valve/resource/gameui_korean.txt",
         "valve_korean/resource/gameui_korean.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GameUI_D3D"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -6003,6 +6299,17 @@
       },
       "aliases": [
         "valve_schinese/resource/gameui_schinese.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GameUI_PlayGame",
+            "GameUI_MainMenu_Hint_QuitGame"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -6022,6 +6329,18 @@
       },
       "aliases": [
         "valve_spanish/resource/gameui_spanish.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GameUI_PlayGame",
+            "GameUI_PlayGame_Alt",
+            "GameUI_MainMenu_Hint_QuitGame"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -6169,6 +6488,16 @@
       },
       "aliases": [
         "valve_russian/resource/valve_russian.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "OF0A0"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -6475,6 +6804,16 @@
       },
       "aliases": [
         "valve_korean/titles.txt"
+      ],
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GAMETITLE"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
       ]
     },
     {
@@ -6603,7 +6942,17 @@
         "path": "valve_schinese/titles.txt",
         "sha256": "b4d6a396dc019b5ed67f01f5d2bfb3d452f0df3de70d4b4074642719994b95ea",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GAMETITLE"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     },
     {
       "source": "valve_spanish/spectatormenu.txt",
@@ -6667,7 +7016,18 @@
         "path": "valve_tchinese/titles.txt",
         "sha256": "54691569abc3ebf310387afbb7e81c150683127f49506e6e4892fbfdd2643a85",
         "encoding": "utf-16-le-bom"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "preserve-proper-names",
+          "date": "2026-11-13",
+          "tokens": [
+            "GAMETITLE",
+            "VALVEIS"
+          ],
+          "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        }
+      ]
     }
   ],
   "scope": "Stock CS/HL interface text, dedicated administration and CSE additions. Audio and server-owned MOTD/configuration are excluded.",

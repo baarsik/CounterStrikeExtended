@@ -27,7 +27,7 @@
         "CSEInterface_Tab" "Интерфейс"
         "CSEInterface_Language" "Язык"
         "CSEInterface_Automatic" "Использовать язык Steam"
-        "CSEInterface_RestartRequired" "Язык изменится после перезапуска игры."
+        "CSEInterface_RestartRequired" "При применении изменений языка игра перезапустится."
         "CSEInterface_SaveFailed" "Не удалось сохранить язык. Повторите попытку."
         "CSEInterface_LaunchOverride" "Параметр запуска -language имеет приоритет над этой настройкой."
 

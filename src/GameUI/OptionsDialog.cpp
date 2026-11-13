@@ -8,6 +8,9 @@
 #include "OptionsDialog.h"
 
 #include "GameUI_Interface.h"
+#include "wrect.h"
+#include "cl_dll.h"
+#include "vgui/KeyValues.h"
 #include "ModInfo.h"
 #include "MultiplayerAdvancedDialog.h"
 #include "OptionsSubAdvanced.h"
@@ -122,10 +125,12 @@ void COptionsDialog::Run()
 //-----------------------------------------------------------------------------
 // Purpose: Deletes the dialog on close
 //-----------------------------------------------------------------------------
-void COptionsDialog::OnClose()
-{
-	vgui2::Frame::OnClose();
-	MarkForDeletion();
+void COptionsDialog::OnClose() {
+    if (m_languageRestartPending) {
+        return;
+    }
+    vgui2::Frame::OnClose();
+    MarkForDeletion();
 }
 
 void COptionsDialog::PerformLayout() {
@@ -183,11 +188,35 @@ void COptionsDialog::PerformLayout() {
 }
 
 void COptionsDialog::OnCommand(const char* command) {
-    const bool appliesChanges = stricmp(command, "Apply") == 0 || stricmp(command, "OK") == 0;
-    if (appliesChanges && !m_interfacePage->ApplyLanguage()) {
-        GetPropertySheet()->SetActivePage(m_interfacePage);
-        EnableApplyButton(true);
+    if (m_languageRestartPending) {
         return;
     }
+    const bool appliesChanges = stricmp(command, "Apply") == 0 || stricmp(command, "OK") == 0;
+    if (appliesChanges) {
+        const bool languageChanged = m_interfacePage->HasLanguageChange();
+        if (!m_interfacePage->ApplyLanguage()) {
+            GetPropertySheet()->SetActivePage(m_interfacePage);
+            EnableApplyButton(true);
+            return;
+        }
+        if (languageChanged) {
+            m_languageRestartPending = true;
+            // Keep this dialog alive for OK as well as Apply. PropertyDialog queues
+            // each page's changes; our later message runs after all of those pages.
+            vgui2::PropertyDialog::OnCommand("Apply");
+            SetEnabled(false);
+            PostMessage(this, new KeyValues("RestartForLanguageChange"), 0.0f);
+            return;
+        }
+    }
     vgui2::PropertyDialog::OnCommand(command);
+}
+
+void COptionsDialog::OnRestartForLanguageChange() {
+    if (!m_languageRestartPending) {
+        return;
+    }
+    m_languageRestartPending = false;
+    char restartCommand[] = "_restart\n";
+    engine->pfnClientCmd(restartCommand);
 }

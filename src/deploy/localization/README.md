@@ -22,9 +22,10 @@ upstream notices and attribution when updating or distributing the files.
 
 Select the interface language in **Options → Interface → Language**. The tab follows
 Video and lists all ten bundled languages by their native names. Apply or OK saves
-the CSE preference for the next game restart; Cancel discards the pending selection.
+the CSE preference and forces a game restart after applying all Options pages;
+Cancel discards the pending selection.
 “Use Steam language” clears that preference. A failed save leaves Options open
-with a retryable error. Restarting is left to the player.
+with a retryable error and does not restart. Unchanged selections do not restart.
 
 An explicit launch option such as `-language russian` or `-language polish`
 (for example, `hl.exe -game cstrike -language polish`) takes precedence over the
@@ -96,6 +97,15 @@ are outside this text pack. Text briefings accompanying stock maps are included.
 Edit the UTF-8 sources; do not edit generated output files. Add new CSE tokens to
 every `cse_<language>.txt` file, preserving substitution arguments. The maintained
 English catalogue also supplies the generated emergency browser fallbacks.
+
+Keep game/product titles and recognized technology names in their canonical form:
+Counter-Strike, Half-Life, Team Fortress Classic, Opposing Force, Condition Zero,
+Steam, Valve, VAC / Valve Anti-Cheat, HLTV, OpenGL, Direct3D and similar brands.
+Translate surrounding prose and common UI labels. Canonical VAC shorthand is valid;
+generic words such as security, multiplayer and opposing forces in military prose
+remain localized. This policy intentionally amends some historical Valve text;
+`files[].cse_amendments` records the affected tokens while original upstream hashes
+remain unchanged. The regression policy is `tests/localization_resources/brand_names.json`.
 
 When refreshing stock text, acquire the exact desired official Steam depot into
 a separate content cache with `download_depot APP DEPOT MANIFEST`. Import only

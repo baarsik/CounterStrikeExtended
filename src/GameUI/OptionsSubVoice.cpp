@@ -1,4 +1,5 @@
 #include "OptionsSubVoice.h"
+#include "ObsoleteSoundCredit.h"
 #include "CvarSlider.h"
 #include "CvarToggleCheckButton.h"
 #include "GameUI_Interface.h"
@@ -39,6 +40,7 @@ COptionsSubVoice::COptionsSubVoice( vgui2::Panel* parent ) : vgui2::PropertyPage
 	m_pMicBoost = new vgui2::CheckButton( this, "MicBoost", "#GameUI_BoostMicrophone" );
 	m_pMicBoost->AddActionSignalTarget( this );
 	m_pTestMicrophoneButton = new vgui2::Button( this, "TestMicrophone", "#GameUI_TestMicrophone" );
+    new cse::gameui::ObsoleteSoundCredit(this, "MilesVoiceLabel");
 	LoadControlSettings( "Resource\\OptionsSubVoice.res", NULL );
 
 	int imageWide, imageTall;

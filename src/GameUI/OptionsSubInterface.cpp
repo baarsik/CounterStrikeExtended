@@ -108,6 +108,10 @@ void COptionsSubInterface::OnTextChanged() {
     }
 }
 
+bool COptionsSubInterface::HasLanguageChange() const {
+    return GetSelectedLanguage() != m_originalLanguage;
+}
+
 bool COptionsSubInterface::ApplyLanguage() {
     const std::string selected = GetSelectedLanguage();
     if (selected == m_originalLanguage) {

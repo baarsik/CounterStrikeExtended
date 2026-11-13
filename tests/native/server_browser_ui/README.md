@@ -100,7 +100,10 @@ text comes from the generated packet. The geometry bridge sets real 640×480
 screen metrics before loading schemes. Checks cover CS, HL and single-player-only
 tab composition, all tab bounds/text, page notes and dropdown item glyph coverage,
 non-editable stable ids, default/invalid/saved state, unchanged Apply, save failure
-and retry, Apply/OK/Cancel/reset, automatic clearing and launch-override notice.
+and retry, Apply/OK/Cancel/reset, automatic clearing and launch-override notice. Language changes queue the normal
+restart only after every Options page applies; successful Apply/OK/automatic
+changes restart, while failed saves, unchanged selection and Cancel do not.
+The fixture captures engine commands and simulates reopening after each restart.
 `fit.tsv`, `options.bmp` and `languages.bmp` contain measured and rendered evidence.
 Empty image-only frame decorations are outside translated-text measurement.
 This component test does not launch a full game or instantiate other Options pages.

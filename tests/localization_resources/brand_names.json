@@ -1,0 +1,319 @@
+{
+  "description": "Token-specific product identities. Alternatives permit canonical VAC shorthand; case-insensitive matching preserves title-card capitalization. Generic opposing-force prose and localized common labels are intentionally outside these policies.",
+  "catalogues": {
+    "platform/Admin/server": {
+      "cstrike": [
+        [
+          "Counter-Strike"
+        ]
+      ],
+      "valve": [
+        [
+          "Half-Life"
+        ]
+      ],
+      "tfc": [
+        [
+          "Team Fortress Classic"
+        ]
+      ],
+      "dmc": [
+        [
+          "Deathmatch Classic"
+        ]
+      ],
+      "gearbox": [
+        [
+          "Opposing Force"
+        ]
+      ],
+      "ricochet": [
+        [
+          "Ricochet"
+        ]
+      ],
+      "Start_Server_Secure": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "Start_Server_Offline_Warning": [
+        [
+          "Steam"
+        ]
+      ],
+      "Start_Server_FSMount_Error": [
+        [
+          "Steam"
+        ]
+      ]
+    },
+    "cstrike/resource/cstrike": {
+      "Career_NewGame": [
+        [
+          "Counter-Strike: Condition Zero"
+        ]
+      ],
+      "Career_MissionPackCT": [
+        [
+          "Counter-Strike: Condition Zero"
+        ]
+      ],
+      "Career_MissionPackTitleCT": [
+        [
+          "Condition Zero"
+        ]
+      ],
+      "Cstrike_Tutor_You_Spawned": [
+        [
+          "Counter-Strike"
+        ]
+      ],
+      "CZero_Credits_Title": [
+        [
+          "Counter-Strike: Condition Zero"
+        ]
+      ],
+      "CZero_PlayOnLine": [
+        [
+          "Steam"
+        ]
+      ]
+    },
+    "valve/resource/gameui": {
+      "GameUI_PlayGame": [
+        [
+          "Half-Life"
+        ]
+      ],
+      "GameUI_PlayGame_Alt": [
+        [
+          "Half-Life"
+        ]
+      ],
+      "GameUI_MainMenu_Hint_QuitGame": [
+        [
+          "Half-Life"
+        ]
+      ],
+      "GameUI_EnableEAX": [
+        [
+          "EAX"
+        ]
+      ],
+      "GameUI_EnableA3D": [
+        [
+          "A3D"
+        ]
+      ],
+      "GameUI_MP3Volume": [
+        [
+          "MP3"
+        ]
+      ],
+      "GameUI_OpenGL": [
+        [
+          "OpenGL"
+        ]
+      ],
+      "GameUI_D3D": [
+        [
+          "D3D"
+        ]
+      ],
+      "GameUI_SteamPassword": [
+        [
+          "Steam"
+        ]
+      ],
+      "GameUI_UpdatingSteamResources": [
+        [
+          "Steam"
+        ]
+      ],
+      "GameUI_RefreshLogin_InfoTicketExpired": [
+        [
+          "Steam"
+        ]
+      ],
+      "GameUI_SetSteamCommunityName": [
+        [
+          "Steam"
+        ]
+      ]
+    },
+    "valve/resource/valve": {
+      "OF0A0": [
+        [
+          "Opposing Force"
+        ]
+      ],
+      "Valve_Enable_SteamNetworking": [
+        [
+          "Steam"
+        ]
+      ]
+    },
+    "platform/servers/serverbrowser": {
+      "ServerBrowser_SecureColumn_Tooltip": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "ServerBrowser_ValveAntiCheat": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "VAC_BanNotification": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "VAC_SecureServerToolTip": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "VAC_ConnectionRefusedTitle": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "VAC_ConnectionRefusedDetail": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ],
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_ConnectionRefusedByServer": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ],
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_ConnectingToSecureServer": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "VAC_Status": [
+        [
+          "VAC",
+          "Valve Anti-Cheat"
+        ]
+      ],
+      "ServerBrowser_ValidSteamAccount": [
+        [
+          "Steam"
+        ]
+      ],
+      "ServerBrowser_FilterDescValidSteamAccount": [
+        [
+          "Steam"
+        ]
+      ],
+      "ServerBrowser_OfflineMode": [
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_AccountBanned": [
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_YourAccountBanned": [
+        [
+          "Steam"
+        ]
+      ],
+      "Steam_ValidLoginRequiredTitle": [
+        [
+          "Steam"
+        ]
+      ],
+      "Steam_ValidLoginRequired": [
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_ConnectionIssuesSupportSite": [
+        [
+          "Steam"
+        ]
+      ],
+      "VAC_LoggedInElsewhereReason": [
+        [
+          "Steam"
+        ]
+      ]
+    }
+  },
+  "legacy": {
+    "valve": {
+      "GAMETITLE": [
+        [
+          "Half-Life"
+        ]
+      ],
+      "VALVEIS": [
+        [
+          "Valve"
+        ]
+      ]
+    }
+  },
+  "translated_technology_names": [
+    "Valve Anti-triche",
+    "Anti-triche de Valve",
+    "Valve-Cheat-Schutz",
+    "Valve Cheat-Schutz",
+    "Anti-trucchi di Valve",
+    "Antitrampas de Valve",
+    "Sistema antitrampas de Valve",
+    "Valve 反作弊",
+    "Valve反作弊",
+    "Valve 防作弊",
+    "Valve防作弊"
+  ],
+  "translated_game_title_aliases": [
+    "絕對武力",
+    "反恐精英",
+    "半條命",
+    "半条命",
+    "半衰期",
+    "戰慄時空",
+    "一觸即發",
+    "零点行动",
+    "카운터 스트라이크",
+    "하프 라이프",
+    "컨디션 제로",
+    "팀포트리스",
+    "Силы противника",
+    "Рикошет",
+    "ПРОТИВОСТОЯНИЕ"
+  ],
+  "pure_game_titles": {
+    "cstrike/resource/cstrike": {
+      "Career_MissionPackTitleCT": "Condition Zero",
+      "CZero_Credits_Title": "Counter-Strike: Condition Zero"
+    },
+    "valve/resource/valve": {
+      "OF0A0": "Opposing Force"
+    }
+  }
+}

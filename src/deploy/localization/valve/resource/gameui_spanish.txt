@@ -56,8 +56,8 @@
 "GameUI_NewGameHelpTextUplink"	"Selecciona un nivel de dificultad para la campaña principal,\no selecciona Uplink o la sala de entrenamiento,\ny haz clic en «Jugar»."
 "GameUI_Difficulty"			"Selecciona la dificultad"
 "GameUI_TrainingRoom"		"Sala de entrenamiento"
-"GameUI_PlayGame"			"Jugar a Half‑Life"
-"GameUI_PlayGame_Alt"			"Jugar a Half‑Life: Uplink"
+"GameUI_PlayGame"			"Jugar a Half-Life"
+"GameUI_PlayGame_Alt"			"Jugar a Half-Life: Uplink"
 "GameUI_Easy"			"Fácil"
 "GameUI_Medium"			"Media"
 "GameUI_Hard"			"Difícil"
@@ -280,6 +280,6 @@ Ten en cuenta que no se mostrarán en línea hasta que hayan aceptado tu solicit
 "GameUI_MainMenu_Hint_FindServer"	"Buscar servidores multijugador en línea."
 "GameUI_MainMenu_Hint_CreateServer"	"Alojar un servidor multijugador en línea para que otros se unan."
 "GameUI_MainMenu_Hint_ChangeGame"	"Seleccionar un mod diferente al que jugar"
-"GameUI_MainMenu_Hint_QuitGame"	"Dejar de jugar a Half‑Life."
+"GameUI_MainMenu_Hint_QuitGame"	"Dejar de jugar a Half-Life."
 } 
 }  

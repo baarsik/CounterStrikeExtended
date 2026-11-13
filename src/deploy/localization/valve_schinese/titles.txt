@@ -532,7 +532,7 @@ $fadeout 1.5
 
 GAMETITLE
 {
-半条命
+Half-Life
 }
 
 //HAZARD COURSE TEXT

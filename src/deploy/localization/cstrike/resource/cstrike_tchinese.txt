@@ -1091,7 +1091,7 @@ or eliminate all of the Counter-Terrorists."
 "[english]Career_LevelDesc3"		"Good"
 "Career_LevelDesc4"		"真好"
 "[english]Career_LevelDesc4"		"High"
-"Career_NewGame"		"進行 絕對武力：一觸即發(&P)"
+"Career_NewGame"		"進行 Counter-Strike: Condition Zero(&P)"
 "[english]Career_NewGame"		"&Play Counter-Strike: Condition Zero"
 "Career_Start"		"開始比賽！"
 "[english]Career_Start"		"START MATCH!"
@@ -2197,7 +2197,7 @@ You should reload your weapon.
 小心點！"
 "[english]Cstrike_Tutor_You_Were_Just_Hurt"		"That hurt!
 Be careful!"
-"Cstrike_Tutor_You_Spawned"		"歡迎來到「戰慄時空之絕對武力」的世界！"
+"Cstrike_Tutor_You_Spawned"		"歡迎來到「Counter-Strike」的世界！"
 "[english]Cstrike_Tutor_You_Spawned"		"Welcome to Counter-strike!"
 "Cstrike_Tutor_You_See_Planted_Bomb_T"		"炸彈完成安裝並且快要爆炸了！
 
@@ -3108,7 +3108,7 @@ You can't buy anything!"
 "[english]Career_Weapon_fn57"		"with an ES five-seven"
 "CStrike_Tutor_Toggle"		"切換教學"
 "[english]CStrike_Tutor_Toggle"		"Toggle Tutor"
-"CZero_Credits_Title"		"絕對武力：一觸即發"
+"CZero_Credits_Title"		"Counter-Strike: Condition Zero"
 "[english]CZero_Credits_Title"		"Counter-Strike: Condition Zero"
 "CZero_Credits_Programming"		"Programming"
 "[english]CZero_Credits_Programming"		"Programming"
@@ -3212,13 +3212,7 @@ in First-Person mode while playing."
 "[english]Career_NoTeammates"		"Be careful! You have no teammates during this match!"
 "Career_EnemyListSingle"		"您將與 1 位對手交戰： "
 "[english]Career_EnemyListSingle"		"You will face 1 enemy in this match: "
-"Career_MissionPackCT"		"這些是《Counter-Strike: Condition Zero》(絕對武力之一觸即發) 的原創任務。
-您也可以下載更多任務，或者自創任務。
-請造訪下列網址，瞭解詳細資訊。
-
-帶領您的反恐隊伍菁英經歷一次又一次的挑戰，打擊邪惡的恐怖組織帶來死亡與毀滅世界的企圖。
-
-無數無辜受害者的命運掌握在您手中！"
+"Career_MissionPackCT"		"這些是《Counter-Strike: Condition Zero》 的原創任務。\n您也可以下載更多任務，或者自創任務。\n請造訪下列網址，瞭解詳細資訊。\n\n帶領您的反恐隊伍菁英經歷一次又一次的挑戰，打擊邪惡的恐怖組織帶來死亡與毀滅世界的企圖。\n\n無數無辜受害者的命運掌握在您手中！"
 "[english]Career_MissionPackCT"		"These are the original Counter-Strike: Condition Zero missions.
 You can also download more or create your own.  See the address below to find out how.
 
@@ -3226,7 +3220,7 @@ Lead your elite counter-terrorism team through increasingly challenging scenario
 
 The fate of countless innocent victims is in your hands!
 "
-"Career_MissionPackTitleCT"		"一觸即發"
+"Career_MissionPackTitleCT"		"Condition Zero"
 "[english]Career_MissionPackTitleCT"		"CONDITION ZERO"
 "Cstrike_BuyPresetUnavailable"		"無法使用"
 "[english]Cstrike_BuyPresetUnavailable"		"Unavailable"

@@ -56,7 +56,7 @@
 "GameUI_NewGameHelpTextUplink"	"选择主战役的难度级别，\n或者选择 Uplink 或训练室，\n然后点击“开始游戏”。"
 "GameUI_Difficulty"			"选择难度"
 "GameUI_TrainingRoom"		"训练室"
-"GameUI_PlayGame"			"玩《半衰期》"
+"GameUI_PlayGame"			"玩《Half-Life》"
 "GameUI_PlayGame_Alt"			"玩 Half-Life: Uplink"
 "GameUI_Easy"			"简单"
 "GameUI_Medium"			"中等"
@@ -279,6 +279,6 @@
 "GameUI_MainMenu_Hint_FindServer"	"搜索在线多人联机服务器。"
 "GameUI_MainMenu_Hint_CreateServer"	"主持在线多人联机服务器供他人加入。"
 "GameUI_MainMenu_Hint_ChangeGame"	"选择不同的模组进行游戏。"
-"GameUI_MainMenu_Hint_QuitGame"	"退出《半衰期》。"
+"GameUI_MainMenu_Hint_QuitGame"	"退出《Half-Life》。"
 } 
 }  

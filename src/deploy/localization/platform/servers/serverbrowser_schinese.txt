@@ -217,7 +217,7 @@ counterstrike.speakeasy.net:27016
 "[english]ServerBrowser_Secure"				"Secure"
 "ServerBrowser_IPAddress"			"IP地址"
 "[english]ServerBrowser_IPAddress"			"IP Address"
-"ServerBrowser_SecureColumn_Tooltip"		"服务器受Valve反作弊技术保护"
+"ServerBrowser_SecureColumn_Tooltip"		"服务器受Valve Anti-Cheat技术保护"
 "[english]ServerBrowser_SecureColumn_Tooltip"		"Server protected by Valve Anti-Cheat technology"
 "ServerBrowser_AntiCheat"			"反作弊"
 "[english]ServerBrowser_AntiCheat"			"Anti-cheat"
@@ -269,14 +269,14 @@ Please restart the game."
 
 "ServerBrowser_ServerName"		"名称："
 "[english]ServerBrowser_ServerName"		"Name:"
-"ServerBrowser_ValveAntiCheat"		"Valve 反作弊："
+"ServerBrowser_ValveAntiCheat"		"VAC："
 "[english]ServerBrowser_ValveAntiCheat"		"Valve Anti-Cheat:"
 "ServerBrowser_NotSecure"		"不安全"
 "[english]ServerBrowser_NotSecure"		"Not secure"
 "ServerBrowser_ServerHasNoPlayers"	"此服务器当前没有玩家。"
 "[english]ServerBrowser_ServerHasNoPlayers"	"No users currently playing on this server."
 
-"VAC_BanNotification"	"Valve 反作弊通知"
+"VAC_BanNotification"	"Valve Anti-Cheat通知"
 "[english]VAC_BanNotification"	"Valve Anti-Cheat Notification"
 "VAC_AccountBanned"	"Steam 帐户被禁止"
 "[english]VAC_AccountBanned"	"Steam account banned"
@@ -288,21 +288,17 @@ Please restart the game."
 "[english]VAC_ForDetails"	"Click here for details"
 "VAC_ConnectionRefusedTitle"	"拒绝连接 - VAC"
 "[english]VAC_ConnectionRefusedTitle"	"Connection Refused - VAC"
-"VAC_ConnectionRefusedDetail"	"您无法连接至选定的服务器，因为该服务器运行于 VAC（Valve 反作弊）安全模式下。
-
-由于作弊违规，此 Steam 帐户已被禁止使用安全服务器。"
+"VAC_ConnectionRefusedDetail"	"VAC (Valve Anti-Cheat) 连接被拒。\n\n此 Steam 帐户因作弊被安全服务器封禁。"
 "[english]VAC_ConnectionRefusedDetail"	"You cannot connect to the selected server, because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
-"VAC_ConnectionRefusedByServer"	"服务器拒绝您的连接，因为该服务器运行于 VAC（Valve 反作弊）安全模式下。
-
-由于作弊违规，此 Steam 帐户已被禁止使用安全服务器。"
+"VAC_ConnectionRefusedByServer"	"服务器拒绝您的连接，因为该服务器运行于 VAC（Valve Anti-Cheat）安全模式下。\n\n由于作弊违规，此 Steam 帐户已被禁止使用安全服务器。"
 "[english]VAC_ConnectionRefusedByServer"	"The server denied your connection because it is running in VAC (Valve Anti-Cheat) secure mode.
 
 This Steam account has been banned from secure servers due to a cheating infraction."
 "VAC_BanSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=370"
 "[english]VAC_BanSupportURL"	"http://support.steampowered.com/cgi-bin/steampowered.cfg/php/enduser/std_adp.php?p_faqid=370"
-"VAC_SecureServerToolTip"	"Valve 反作弊 - 安全"
+"VAC_SecureServerToolTip"	"Valve Anti-Cheat - 安全"
 "[english]VAC_SecureServerToolTip"	"Valve Anti-Cheat - Secure"
 "VAC_BannedFromServerToolTip"	"您无法连接到此安全服务器"
 "[english]VAC_BannedFromServerToolTip"	"You cannot connect to this secure server"

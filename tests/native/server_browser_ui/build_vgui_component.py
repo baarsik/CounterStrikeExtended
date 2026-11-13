@@ -15,7 +15,7 @@ parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
 parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
 parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
-parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options'], default='vgui')
+parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options', 'options_voice'], default='vgui')
 args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
@@ -24,7 +24,7 @@ subprocess.run(['python3', str(repo / 'tools/build_localization.py'),
     '--source', str(repo / 'src/deploy/localization'), '--output', str(packet / 'resources'),
     '--fallback-header', str(packet / 'extracted/ServerBrowserEnglish.generated.inc'),
     '--language-header', str(packet / 'extracted/InterfaceLanguages.generated.inc')], check=True)
-if args.driver in ('translation_fit', 'interface_options'):
+if args.driver in ('translation_fit', 'interface_options', 'options_voice'):
     shutil.copytree(repo / 'src/deploy/platform', packet / 'resources/platform', dirs_exist_ok=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
 cache = args.recipe_cache.resolve() if args.recipe_cache else cache
@@ -60,7 +60,14 @@ if args.driver == 'interface_options':
     (packet / 'extracted/options-receipt.json').write_text(json.dumps({
         'sourceSha256': hashlib.sha256((repo / 'src/GameUI/OptionsDialog.cpp').read_bytes()).hexdigest(),
         'bodySha256': hashlib.sha256(body.encode()).hexdigest()}, indent=2) + '\n')
-selected.append(dict(owner, file=str(repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp'))))
+if args.driver == 'options_voice':
+    for name in ('OptionsSubVoice', 'OptionsSubAudio', 'CvarSlider', 'CvarToggleCheckButton',
+                 'LabeledCommandComboBox', 'ModInfo'):
+        selected.append(dict(owner, file=str(repo / 'src/GameUI' / (name + '.cpp'))))
+    driver_source = repo / 'tests/native/options_voice/options_voice_tests.cpp'
+else:
+    driver_source = repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp')
+selected.append(dict(owner, file=str(driver_source)))
 
 def run(pair):
     index, entry = pair

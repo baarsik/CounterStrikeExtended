@@ -2,9 +2,9 @@
 
 Add an Interface tab immediately after Video in the existing CS/HL Options dialog.
 Its non-editable Language dropdown lists all ten bundled languages and an automatic
-Use Steam language choice. Apply/OK saves a CSE-owned preference; Cancel/reset does
-not write it. The page explains that the change takes effect after restarting.
-It does not automatically interrupt a game or change Steam's language preference.
+Use Steam language choice. Apply/OK saves a CSE-owned preference and forces a restart if the choice changes;
+Cancel/reset does not write it. The page warns before applying. A failed save or
+unchanged selection does not restart. Steam's language preference is unchanged.
 
 Continue the existing PropertyPage/ComboBox, CSE catalogue and startup language
 resolver architecture. Keep explicit `-language` highest priority, then the saved
@@ -26,7 +26,7 @@ page layout that wraps notes and keeps the dropdown/selected item visible. Adapt
 the Options tab-strip width/minimum so adding the tab does not hide existing tabs
 at640x480. No new external dependency or public engine/VGUI ABI slot is needed.
 
-Live language switching would require replacing loaded game paths, fonts and HUD
-state; applying on the next restart follows current startup ownership and avoids
-partial translations. This is the implementation default for the user's explicit
-request, not a separate approval gate.
+Language changes use the existing `_restart` engine flow after all Options pages
+have applied. A deferred dialog message keeps the OK owner alive until those
+queued page changes finish. This forced-restart behavior follows the user's
+subsequent correction to the original manual-restart default.
