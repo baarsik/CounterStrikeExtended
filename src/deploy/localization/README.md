@@ -56,6 +56,10 @@ briefings keep the game-relative paths used by the filesystem. The manifest
 preserves their individual runtime encodings, including UTF-16 files supplied by
 Valve. Language-specific resources are also exposed at the original localized
 game paths. Missing upstream localized menu variants use the base game files.
+The title-message, command-menu and CS client/server briefing readers decode BOM-marked UTF-16
+using explicit 16-bit cells before parsing. UTF-8 BOMs are removed; files without
+a BOM keep their original bytes. This supports both native 32-bit `wchar_t` and
+Windows without treating the disk encoding as a native wide-character buffer.
 
 Audio, maps/models themselves, README files and server-owned MOTD/configuration
 are outside this text pack. Text briefings accompanying stock maps are included.
@@ -82,3 +86,8 @@ python3 tools/build_localization.py --source src/deploy/localization --output /a
 CMake owns normal generation and staging. Its shared resource target runs on
 subsequent builds as well, restoring deleted resource files without relinking
 consumers or rewriting unchanged files.
+
+Native consumer fixtures and the optional real VGUI loader check are documented
+in [tests/native/README.md](../../../tests/native/README.md). These checks cover
+resource loading and parsed text; full-game layout and legacy HUD CJK glyph
+rendering have not been qualified by this pack.

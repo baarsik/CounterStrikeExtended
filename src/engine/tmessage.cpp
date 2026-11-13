@@ -6,6 +6,7 @@
 #include "sys.h"
 #include "vgui/ISurface.h"
 #include "vgui_intwrap2.h"
+#include "../common/resource_text.h"
 
 constexpr int MAX_MESSAGES = 1000;
 constexpr int NAME_HEAP_SIZE = 16384;
@@ -412,19 +413,18 @@ void TextMessageShutdown()
 	}
 }
 
-void TextMessageInit()
-{
-	int fileSize;
-	byte* loaded;
+void TextMessageInit() {
+    if (gMessageTable) {
+        Mem_Free(gMessageTable);
+        gMessageTable = nullptr;
+    }
+    gMessageTableCount = 0;
 
-	// Clear out any old data that's sitting around.
-	if ( gMessageTable )
-	{
-		Mem_Free( gMessageTable );
-		gMessageTable = nullptr;
-	}
-
-	loaded = COM_LoadTempFile( const_cast<char*>( "titles.txt" ), &fileSize );
-	if ( loaded )
-		TextMessageParse( loaded, fileSize );
+    int fileSize = 0;
+    byte* loaded = COM_LoadTempFile(const_cast<char*>("titles.txt"), &fileSize);
+    std::string text;
+    if (loaded && fileSize > 0 && cse::resource_text::Decode(loaded, static_cast<std::size_t>(fileSize), text)
+        && !text.empty() && text.size() <= static_cast<std::size_t>(INT_MAX)) {
+        TextMessageParse(reinterpret_cast<byte*>(&text[0]), static_cast<int>(text.size()));
+    }
 }

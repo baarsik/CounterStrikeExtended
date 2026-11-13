@@ -1,4 +1,5 @@
 #include "CreateCommandMenu.h"
+#include "../../../common/resource_text.h"
 #include "iviewport.h"
 #include "vgui_controls/ComboBox.h"
 #include "Menu.h"
@@ -68,9 +69,19 @@ Menu* CCreateCommandComboMenu::CreateCommandMenu( char* menuFile, int playerTeam
 	root->SetVisible( false );
 	Menu* currentMenu = root;
 
-	char* file = (char*)gViewPortInterface->GetClientDllInterface()->COM_LoadFile( menuFile, 5, NULL );
-	if ( !file )
-		return NULL;
+    int fileBytes = 0;
+    void* loaded = gViewPortInterface->GetClientDllInterface()->COM_LoadFile(menuFile, 5, &fileBytes);
+    std::string text;
+    const bool decoded = loaded && fileBytes >= 0
+        && cse::resource_text::Decode(loaded, static_cast<std::size_t>(fileBytes), text);
+    if (loaded) {
+        gViewPortInterface->GetClientDllInterface()->COM_FreeFile(loaded);
+    }
+    if (!decoded || text.empty()) {
+        delete root;
+        return NULL;
+    }
+    char* file = &text[0];
 
 	char lastButtonText[32] = "file start";
 	char token[1024];
@@ -228,7 +239,6 @@ Menu* CCreateCommandComboMenu::CreateCommandMenu( char* menuFile, int playerTeam
 		data = gViewPortInterface->GetClientDllInterface()->COM_ParseFile( data, token );
 	}
 
-	gViewPortInterface->GetClientDllInterface()->COM_FreeFile( data );
 	return root;
 }
 

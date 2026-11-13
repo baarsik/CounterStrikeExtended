@@ -49,6 +49,9 @@ prefix=r'''
 #include <memory>
 #include <string>
 #include <vector>
+#if __has_include("resource_text.h")
+#include "resource_text.h"
+#endif
 #include "teammenu.h"
 #define _snprintf std::snprintf
 namespace vgui2 {
@@ -129,6 +132,23 @@ public:
 # The production methods call these inherited UI services.
 frame=(stubs/'Frame.h').read_text().replace(' void SetVisible(bool) {}',' void SetVisible(bool) {}\n void InvalidateLayout(bool, bool) {}\n void Repaint() {}')
 (stubs/'Frame.h').write_text(frame)
+def cpp_bytes(data):
+ return 'std::string("'+''.join('\\x%02x'%b for b in data)+'", '+str(len(data))+')'
+
+manifest=json.loads((a.root/'src/deploy/localization/manifest.json').read_text())
+unicode_checks=[]
+for entry in manifest['files']:
+ if '/maps/' in entry['destination'] and entry['destination'].endswith('.txt'):
+  text=(a.root/'src/deploy/localization'/entry['source']).read_text(encoding='utf-8')
+  encoding=entry['encoding']
+  data=b'\xff\xfe'+text.encode('utf-16-le') if encoding=='utf-16-le-bom' else text.encode(encoding)
+  name=entry['destination'].replace('/','_').removesuffix('.txt')
+  unicode_checks += ['fs.files["maps/'+name+'.txt"] = '+cpp_bytes(data)+';',
+   'update("'+name+'");', 'assert(page->text == '+cpp_bytes(text.encode('utf-8'))+');']
+for endian,bom in [('le',b'\xff\xfe'),('be',b'\xfe\xff')]:
+ text='Briefing: français 中文 한국어 \U0001f680'
+ unicode_checks += ['fs.files["maps/'+endian+'.txt"] = '+cpp_bytes(bom+text.encode('utf-16-'+endian))+';',
+  'update("'+endian+'");', 'assert(page->text == '+cpp_bytes(text.encode('utf-8'))+');']
 main=r'''
 int main(int argc, char** argv) {
  assert(argc == 2);
@@ -179,20 +199,22 @@ int main(int argc, char** argv) {
   fs.failOpen = false; fs.files["maps/a.txt"] = "new A text!!";
   update("a"); update("a");
   assert(page->text == "new A text!!" && fs.opens == 4 && fs.closes == 3);
+ } else if (mode == "unicode") {
+  UNICODE_CHECKS
  } else { return 2; }
  assert(fs.closes == static_cast<int>(fs.handles.size()));
  return 0;
 }
-'''
+'''.replace('UNICODE_CHECKS','\n  '.join(unicode_checks))
 cpp=a.evidence/'actual_page.cpp'
 cpp.write_text(prefix+'\n\n'+'\n\n'.join(methods)+'\n'+main)
 exe=a.evidence/'actual_page'
-command=['clang++','-std=c++17','-fsanitize=address,undefined','-fno-omit-frame-pointer','-g','-I',str(stubs),'-I',str(header.parent),str(cpp),'-o',str(exe)]
+command=['clang++','-std=c++17','-fsanitize=address,undefined','-fno-omit-frame-pointer','-g','-I',str(stubs),'-I',str(header.parent),'-I',str(a.root/'src/common'),str(cpp),'-o',str(exe)]
 build=subprocess.run(command,capture_output=True,text=True)
 (a.evidence/'build.log').write_text(build.stdout+build.stderr)
 assert build.returncode==0,build.stderr
 results=[]
-for mode in ['repeated','empty-fallback','retry','level-change','activation']:
+for mode in ['repeated','empty-fallback','retry','level-change','activation','unicode']:
  r=subprocess.run([str(exe),mode],capture_output=True,text=True)
  results.append({'case':mode,'exit':r.returncode,'output':r.stdout+r.stderr})
 report={'sources':{str(x.relative_to(a.root)):hashlib.sha256(x.read_bytes()).hexdigest() for x in [source,viewport,header]},'compile_command':command,'results':results}

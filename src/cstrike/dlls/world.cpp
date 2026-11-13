@@ -21,6 +21,7 @@
 */
 
 #include "extdll.h"
+#include "../../common/resource_text.h"
 #include "util.h"
 #include "cbase.h"
 #include "nodes.h"
@@ -346,6 +347,17 @@ void ResetGlobalState()
 	gInitHUD = TRUE;	// Init the HUD on a new game / load game
 }
 
+static void SetMapBriefingText(const char* data, int bytes) {
+    std::string text;
+    if (bytes <= 0 || !cse::resource_text::Decode(data, static_cast<std::size_t>(bytes), text)) {
+        return;
+    }
+    // Preserve the legacy 510-byte limit in the 512-byte briefing buffer.
+    constexpr std::size_t ReservedBriefingBytes = 2;
+    const std::size_t copied = text.copy(g_szMapBriefingText, sizeof(g_szMapBriefingText) - ReservedBriefingBytes);
+    g_szMapBriefingText[copied] = 0;
+}
+
 void CWorld::Spawn()
 {
     m_worldMapTeamsKnown = true;
@@ -357,7 +369,7 @@ void CWorld::Spawn()
 	char* pText = (char*)LOAD_FILE_FOR_ME( UTIL_VarArgs( "maps/%s.txt", STRING( gpGlobals->mapname ) ), &length );
 	if ( pText && length )
 	{
-		strncpy( g_szMapBriefingText, pText, sizeof( g_szMapBriefingText ) - 2 );
+        SetMapBriefingText(pText, length);
 		PRECACHE_GENERIC( UTIL_VarArgs( "maps/%s.txt", STRING( gpGlobals->mapname ) ) );
 		FREE_FILE( pText );
 	}
@@ -366,7 +378,7 @@ void CWorld::Spawn()
 		pText = (char*)LOAD_FILE_FOR_ME( UTIL_VarArgs( "maps/default.txt" ), &length );
 		if ( pText && length )
 		{
-			strncpy( g_szMapBriefingText, pText, sizeof( g_szMapBriefingText ) - 2 );
+            SetMapBriefingText(pText, length);
 			PRECACHE_GENERIC( UTIL_VarArgs( "maps/default.txt" ) );
 			FREE_FILE( pText );
 		}

@@ -18,6 +18,15 @@ On macOS, configure with `-DCSE_LOCALIZATION_RUNTIME_ROOT=/absolute/runtime/root
 to also exercise the actual VGUI/filesystem loader for every supported language,
 the Korean alias, stock catalogue families and English fallback. This uses the
 existing runtime libraries with dummy SDL providers; it does not launch a game.
+With a C++ compiler, `-DCSE_LOCALIZATION_NATIVE_TESTS=ON` also checks the portable
+disk-text decoder (UTF-16 endian variants, surrogate pairs, BOMs and legacy bytes).
+The real-loader option enables that decoder check automatically.
+
+The [legacy text consumer fixtures](localization_text/README.md) run the actual
+title-message initializer/parser against all bundled title files and the
+[team-menu fixture](team_menu/README.md) checks every bundled map briefing.
+The [bundled-translation verification record](../../docs/superpowers/validation/2026-11-13-bundled-translations.md)
+lists observed results and remaining runtime limits.
 
 For a pure component, from the repository root:
 
@@ -41,7 +50,7 @@ window and network probes are separate authorized actions, not implied by a buil
 | Save/demo/navigation/archive data | [save callbacks](callbacks/), [canonical archive](save_archive/), [demo](demo/), [navigation](navigation/), [HPAK](hpak_records/README.md) |
 | Audio and voice | [sound](sound/), [A3D module/device ABI](a3d_module/README.md), [selected output/coexistence](a3d_live/README.md), [capture](voice_capture/README.md), [mixer](voice_mixer/README.md), [caller wiring](voice_capture_wiring/README.md) |
 | Steam and browser | [Steam](steam/), [service lifetime](steam_service/), [server](steam_server/README.md), [CEF](cef_host/README.md) |
-| Text and UI | [text encoding](text_encoding/README.md), [UI lengths](ui_lengths/README.md), [death notices](death_notice/README.md), [VGUI1 Debug](vgui1_debug/README.md) |
+| Text and UI | [text encoding](text_encoding/README.md), [localized resources](localization_text/README.md), [UI lengths](ui_lengths/README.md), [death notices](death_notice/README.md), [VGUI1 Debug](vgui1_debug/README.md) |
 | Built Apple Silicon client | [actual-library UI, font and module-load checks](mac_client/README.md) |
 | Software and dedicated | [software video](software_video/README.md), [lifetime](software_lifetime/README.md), [dedicated host](dedicated_host/README.md), [admin](dedicated_admin/README.md), [standalone VGUI](vgui2_standalone/README.md) |
 | Browser | [model/provider](server_browser/README.md), [actual VGUI/lifetime/original-view cases](server_browser_ui/README.md) |

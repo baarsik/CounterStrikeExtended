@@ -35,6 +35,7 @@
 #include<VGUI_BuildGroup.h>
 
 #include "hud.h"
+#include "../common/resource_text.h"
 #include "cl_util.h"
 #include "camera.h"
 #include "kbutton.h"
@@ -709,13 +710,21 @@ int TeamFortressViewport::CreateCommandMenu( char * menuFile, int direction, int
 
 	// Read Command Menu from the txt file
 	char token[1024];
-	char *pfile = (char*)gEngfuncs.COM_LoadFile( menuFile, 5, NULL);
-	if (!pfile)
-	{
-		gEngfuncs.Con_DPrintf( "Unable to open %s\n", menuFile);
-		SetCurrentCommandMenu( NULL );
-		return newIndex;
-	}
+    int fileBytes = 0;
+    char* loaded = reinterpret_cast<char*>(gEngfuncs.COM_LoadFile(menuFile, 5, &fileBytes));
+    std::string text;
+    const bool decoded = loaded && fileBytes >= 0
+        && cse::resource_text::Decode(loaded, static_cast<std::size_t>(fileBytes), text);
+    if (loaded) {
+        gEngfuncs.COM_FreeFile(loaded);
+    }
+    if (!decoded || text.empty()) {
+        gEngfuncs.Con_DPrintf("Unable to read %s\n", menuFile);
+        SetCurrentCommandMenu(NULL);
+        return newIndex;
+    }
+
+    char* pfile = &text[0];
 
 #ifdef _WIN32
 try
@@ -940,7 +949,6 @@ catch( CException *e )
 
 	SetCurrentMenu( NULL );
 	SetCurrentCommandMenu( NULL );
-	gEngfuncs.COM_FreeFile( pfile );
 
 	m_iInitialized = true;
 	return newIndex;

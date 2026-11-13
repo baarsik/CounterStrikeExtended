@@ -17,3 +17,9 @@ missing/Open/short-read retries, map changes, same-map level reset, and immediat
 when opening the menu. Failed activation refreshes revoke the previous cache entry.
 Successful descriptions remain cached between menu openings, map changes and level resets;
 this is not continuous file hot reload.
+
+The Unicode case feeds every maintained stock map briefing in its declared disk
+encoding into the actual `LoadMapPage` method and compares the complete UTF-8
+text handed to the UI. Additional little-/big-endian UTF-16 inputs include Western,
+CJK and supplementary characters. This checks decoding on macOS's four-byte
+`wchar_t`; it does not qualify rendered fonts or layout.
