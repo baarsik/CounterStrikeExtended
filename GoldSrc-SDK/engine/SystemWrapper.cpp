@@ -475,8 +475,9 @@ ISystemModule* SystemWrapper::FindModule( char* type, char* name )
     if (!type || !*type) {
         return nullptr;
     }
-    for (ISystemModule* module : m_NativeModules.Running()) {
-        if ((module->QueryInterface(type) || !Q_strcasecmp(type, module->GetType())) && (!name || !strcmp(name, module->GetName()))) {
+    for (ISystemModule *module : m_NativeModules.Running()) {
+        if ((module->QueryInterface(type) || !Q_strcasecmp(type, module->GetType())) &&
+            (!name || !Q_strcasecmp(name, module->GetName()))) {
             return module;
         }
     }

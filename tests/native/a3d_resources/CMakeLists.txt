@@ -29,7 +29,9 @@ function(cse_a3d_geometry_source filename selector)
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/${filename}"
         "#define ${selector}\n#include \"${A3D}/A3dGeom.cpp\"\n")
 endfunction()
-add_library(a3dapi STATIC)
+add_library(a3dapi STATIC output_faults.cpp)
+set_source_files_properties("${A3D}/native_output.cpp" PROPERTIES
+    COMPILE_DEFINITIONS "SDL_PutAudioStreamData=A3dFixturePutAudioStreamData")
 include("${ROOT}/cmake/targets/a3dapi/Sources.cmake")
 target_include_directories(a3dapi PUBLIC "${A3D}" "${ROOT}/GoldSrc-SDK/public")
 target_link_libraries(a3dapi PUBLIC SDL3::SDL3 Threads::Threads)
@@ -113,3 +115,9 @@ add_test(NAME release_during_shutdown COMMAND a3d_lifetime_tests release_during_
 set_tests_properties(release_during_shutdown PROPERTIES TIMEOUT 15)
 get_property(resource_tests DIRECTORY PROPERTY TESTS)
 set_tests_properties(${resource_tests} PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")
+
+foreach(case managed_output_failure_recovers managed_terminal_output_failure)
+    add_test(NAME ${case} COMMAND a3d_notification_tests ${case})
+    set_tests_properties(${case} PROPERTIES TIMEOUT 15
+        ENVIRONMENT "SDL_AUDIO_DRIVER=dummy;UBSAN_OPTIONS=halt_on_error=1")
+endforeach()

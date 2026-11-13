@@ -148,7 +148,8 @@ if(APPLE)
  endif()
 endif()
 
-foreach(mode reactivation self-removal removal-frame publication)
+foreach(mode reactivation self-removal removal-frame publication
+ running-order find-order frame-order instance-find instance-acquire)
  add_test(NAME registry_${mode} COMMAND lifecycle $<TARGET_FILE:hltv_core> $<TARGET_FILE:demoplayer> ${mode})
  add_test(NAME console_registry_${mode} COMMAND console_lifecycle $<TARGET_FILE:hltv_core>
   $<TARGET_FILE:demoplayer> ${mode})

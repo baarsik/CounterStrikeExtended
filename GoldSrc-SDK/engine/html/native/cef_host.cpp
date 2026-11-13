@@ -957,7 +957,8 @@ private:
         payload.I32(vertical ? width - thickness : 0);
         payload.I32(vertical ? 0 : height - thickness);
         payload.I32(vertical ? thickness : width);
-        payload.I32(vertical ? height : thickness);
+        // Retained widgets use a positive height to identify a present scrollbar.
+        payload.I32(thickness > 0 ? (vertical ? height : thickness) : 0);
         payload.I32(scroll);
         payload.I32(std::max(0, content - viewport));
         std::uint32_t zoom = 0;

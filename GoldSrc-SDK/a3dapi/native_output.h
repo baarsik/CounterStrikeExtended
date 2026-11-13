@@ -34,9 +34,14 @@ public:
     HRESULT DeviceGuid(DWORD index, GUID* guid);
 private:
     static constexpr DWORD kChannels = 2;
-    static constexpr DWORD kFramesPerBlock = 256;
-    static constexpr DWORD kBlockCount = 8;
-    using Block = std::array<SHORT, kFramesPerBlock * kChannels>;
+    static constexpr DWORD kFrameBytes = kChannels * sizeof(SHORT);
+    // DAL_A2D's 8192-byte ring and strict 4096-byte low-water mark determine
+    // whole kernel invocations; SDL transport packet sizes must not split ramps.
+    static constexpr DWORD kBufferBytes = 8192;
+    static constexpr DWORD kLowWaterBytes = 4096;
+    static constexpr DWORD kTransportBytes = 256 * kFrameBytes;
+    static constexpr Uint32 kPollMilliseconds = 20;
+    using Prepared = std::array<SHORT, kBufferBytes / sizeof(SHORT)>;
     static int Produce(void* context);
     static void SDLCALL Consume(void* context, SDL_AudioStream* stream, int additional, int total);
     A3dNativeOwnerLease lifetime_{A3dNativeOwnerKind::Output};
@@ -45,11 +50,11 @@ private:
     SDL_Mutex* mutex_ = nullptr;
     SDL_Thread* producer_ = nullptr;
     A3dNativeMixer* mixer_ = nullptr;
-    std::array<Block, kBlockCount> queue_{};
+    Prepared queue_{};
     DWORD read_ = 0;
     DWORD write_ = 0;
-    DWORD count_ = 0;
-    DWORD offset_ = 0;
+    DWORD queuedBytes_ = 0;
+    Uint64 retryAfter_ = 0;
     bool audioOwned_ = false;
     bool started_ = false;
     std::atomic<bool> stopping_{true};

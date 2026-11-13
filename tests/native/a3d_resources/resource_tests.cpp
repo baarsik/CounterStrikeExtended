@@ -22,6 +22,10 @@
 #define CHECK(value) do { if (!(value)) { \
     std::fprintf(stderr, "line %d: %s\n", __LINE__, #value); std::exit(1); } } while (0)
 
+extern std::atomic<bool> fixtureFailOutputPut;
+extern std::atomic<unsigned> fixtureOutputPutFailures;
+extern std::atomic<unsigned> fixtureOutputPutSuccesses;
+
 namespace {
 constexpr DWORD kBytes = 16;
 constexpr DWORD kWaitMilliseconds = 2000;
@@ -635,11 +639,128 @@ void StreamOwnership() {
     output->Release();
 }
 
+
+void ManagedOutputFailure(bool terminal) {
+    IUnknown* provider = nullptr;
+    CHECK(A3dCreateNativeProvider(&provider) == S_OK);
+    IA3dNativeDeviceV1* device = nullptr;
+    CHECK(provider->QueryInterface(IID_IA3dNativeDeviceV1, reinterpret_cast<void**>(&device)) == S_OK);
+    DWORD supported = 0;
+    CHECK(device->InitializeDevice(nullptr, 0, 1, &supported) == S_OK);
+    IDirectSound* sound = nullptr;
+    CHECK(provider->QueryInterface(IID_IDirectSound, reinterpret_cast<void**>(&sound)) == S_OK);
+    auto* manager = dynamic_cast<ResMan*>(provider);
+    CHECK(manager && manager->SetResourceManagerMode(A3D_RESOURCE_MODE_DYNAMIC) == S_OK);
+    WAVEFORMATEX format{WAVE_FORMAT_PCM, 1, 22050, 44100, 2, 16, 0};
+    DSBUFFERDESC desc{};
+    desc.dwSize = sizeof(desc);
+    desc.dwBufferBytes = 16384;
+    desc.lpwfxFormat = &format;
+    IDirectSoundBuffer* buffer = nullptr;
+    IDirectSoundBuffer* pending = nullptr;
+    CHECK(sound->CreateSoundBuffer(&desc, &buffer, nullptr) == S_OK);
+    CHECK(sound->CreateSoundBuffer(&desc, &pending, nullptr) == S_OK);
+    CHECK(dynamic_cast<ResManStreamBuffer*>(buffer));
+    IA3d2* resource = nullptr;
+    CHECK(provider->QueryInterface(IID_IA3d2, reinterpret_cast<void**>(&resource)) == S_OK);
+    auto* parent = new CA3d(FALSE);
+    // InitializeInterfaces consumes both references. Retain the public sound
+    // view separately for the remaining create/duplicate assertions.
+    sound->AddRef();
+    CHECK(parent->InitializeInterfaces(sound, resource, nullptr) == S_OK);
+    parent->AddRef();
+    LPA3DSOURCE sourceInterface = nullptr;
+    CHECK(parent->NewSource(A3DSOURCE_TYPEDEFAULT, &sourceInterface) == S_OK);
+    auto* source = reinterpret_cast<IA3dSource202*>(sourceInterface);
+    CHECK(source->SetWaveFormat(&format) == S_OK);
+    CHECK(source->AllocateWaveData(desc.dwBufferBytes) == S_OK);
+    CHECK(source->Play(A3D_LOOPED) == S_OK);
+    CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+    // Let the real resource worker attach and feed the provider-owned stream.
+    const Uint64 assignedEnd = SDL_GetTicks() + kWaitMilliseconds;
+    DalBufferInfo* assigned = nullptr;
+    while (!assigned && SDL_GetTicks() < assignedEnd) {
+        CHECK(static_cast<ResManStreamBuffer*>(buffer)->GetRenderStream(&assigned) == S_OK);
+        SDL_Delay(1);
+    }
+    CHECK(assigned);
+    const HRESULT expected = terminal ? E_INVALIDARG : E_FAIL;
+    if (terminal) {
+        IA3dDalBuffer* controlView = nullptr;
+        CHECK(buffer->QueryInterface(IID_A3dNativeRenderBuffer, reinterpret_cast<void**>(&controlView)) == S_OK);
+        A3DCTRL_SRC_SUPER control{};
+        control.flPitch = 1;
+        control.Left.flGain = 1;
+        control.Right.flGain = 1;
+        control.Left.flDelay = 0.2f;
+        CHECK(controlView->SetA3dSuperCtrl(&control, 0) == S_OK);
+        controlView->Release();
+    } else {
+        fixtureFailOutputPut = true;
+        const Uint64 failureEnd = SDL_GetTicks() + kWaitMilliseconds;
+        while (!fixtureOutputPutFailures && SDL_GetTicks() < failureEnd) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureOutputPutFailures > 0);
+    }
+    // Public status must observe the real background TickNative outcome.
+    DWORD status = UINT32_MAX;
+    const Uint64 failureEnd = SDL_GetTicks() + kWaitMilliseconds;
+    HRESULT result = S_OK;
+    while (SUCCEEDED(result) && SDL_GetTicks() < failureEnd) {
+        result = buffer->GetStatus(&status);
+        SDL_Delay(1);
+    }
+    CHECK(result == expected && status == 0);
+    CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == expected);
+    CHECK(pending->GetStatus(&status) == expected && status == 0);
+    CHECK(pending->Play(0, 0, DSBPLAY_LOOPING) == expected);
+    DSCAPS caps{};
+    caps.dwSize = sizeof(caps);
+    CHECK(sound->GetCaps(&caps) == expected);
+    status = UINT32_MAX;
+    CHECK(source->GetStatus(&status) == expected && status == 0);
+    CHECK(source->Play(A3D_LOOPED) == A3DERROR_FAILED_PLAY);
+    IDirectSoundBuffer* created = nullptr;
+    CHECK(sound->CreateSoundBuffer(&desc, &created, nullptr) == expected && !created);
+    CHECK(sound->DuplicateSoundBuffer(buffer, &created) == expected && !created);
+    if (!terminal) {
+        fixtureFailOutputPut = false;
+        const unsigned before = fixtureOutputPutSuccesses;
+        const Uint64 recoveryEnd = SDL_GetTicks() + kWaitMilliseconds;
+        while ((fixtureOutputPutSuccesses == before || FAILED(buffer->GetStatus(&status))) &&
+            SDL_GetTicks() < recoveryEnd) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureOutputPutSuccesses > before);
+        CHECK(buffer->GetStatus(&status) == S_OK && (status & DSBSTATUS_PLAYING));
+        CHECK(buffer->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+        CHECK(pending->Play(0, 0, DSBPLAY_LOOPING) == S_OK);
+        CHECK(source->GetStatus(&status) == S_OK);
+        CHECK(source->Play(A3D_LOOPED) == S_OK);
+        CHECK(sound->CreateSoundBuffer(&desc, &created, nullptr) == S_OK && created);
+        created->Release();
+        CHECK(sound->DuplicateSoundBuffer(buffer, &created) == S_OK && created);
+        created->Release();
+    }
+    source->Release();
+    parent->Release();
+    pending->Release();
+    buffer->Release();
+    sound->Release();
+    device->Release();
+    provider->Release();
+}
+
 }
 
 int main(int argc, char** argv) {
     CHECK(argc == 2);
-    if (!std::strcmp(argv[1], "wrapped_stream_tail")) {
+    if (!std::strcmp(argv[1], "managed_output_failure_recovers")) {
+        ManagedOutputFailure(false);
+    } else if (!std::strcmp(argv[1], "managed_terminal_output_failure")) {
+        ManagedOutputFailure(true);
+    } else if (!std::strcmp(argv[1], "wrapped_stream_tail")) {
         WrappedStreamTail();
     } else if (!std::strcmp(argv[1], "factory_allocation_failure")) {
         FactoryAllocationFailure();

@@ -13,6 +13,8 @@
         } \
     } while (0)
 extern std::atomic<int> fixtureRenderCount;
+extern std::atomic<DWORD> fixtureRenderFrames[32];
+extern std::atomic<Uint64> fixtureRenderTicks[32];
 extern std::atomic<bool> fixtureBlockRender;
 extern std::atomic<bool> fixtureRenderEntered;
 extern std::atomic<bool> fixtureFailRender;
@@ -20,12 +22,15 @@ static bool failOpen = false;
 static bool failResume = false;
 static bool failThread = false;
 static bool failPut = false;
+static int putCalls = 0;
 static std::atomic<bool> blockPut{false};
 static std::atomic<bool> enteredPut{false};
 static std::atomic<int> destroyed{0};
 static int initialized = 0;
 static int quit = 0;
 static SDL_AudioStream* stream = nullptr;
+static SDL_AudioStreamCallback consume = nullptr;
+static void* consumeContext = nullptr;
 static SDL_AudioDeviceID selected = 0;
 static SDL_AudioDeviceID liveDevice = 42;
 static bool Init(SDL_InitFlags flags) {
@@ -47,6 +52,8 @@ static SDL_AudioDeviceID* Devices(int* count) {
 static SDL_AudioStream* Open(SDL_AudioDeviceID device, const SDL_AudioSpec* spec,
         SDL_AudioStreamCallback callback, void* context) {
     selected = device;
+    consume = callback;
+    consumeContext = context;
     CHECK(spec->freq == 22050 && spec->channels == 2 && spec->format == SDL_AUDIO_S16);
     if (failOpen) {
         return nullptr;
@@ -64,6 +71,7 @@ static bool Resume(SDL_AudioStream*) {
     return !failResume;
 }
 static bool Put(SDL_AudioStream* value, const void* data, int length) {
+    ++putCalls;
     enteredPut = true;
     while (blockPut) {
         SDL_Delay(1);
@@ -195,6 +203,94 @@ int main(int argc, char** argv) {
         SHORT data[512]{};
         CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == sizeof(data));
         CHECK(data[0] == 1234 && data[1] == -2345 && data[511] == -2345);
+        output.Close();
+    } else if (!std::strcmp(test, "retained_refill_cadence")) {
+        CHECK(output.Open(nullptr, mixer) == S_OK);
+        Prepared();
+        // DAL_A2D fills all 8192 bytes in one invocation, preserving kernel ramps.
+        CHECK(fixtureRenderCount == 1 && fixtureRenderFrames[0] == 2048);
+        SHORT half[2048]{};
+        CHECK(SDL_GetAudioStreamData(stream, half, sizeof(half)) == sizeof(half));
+        SDL_Delay(60);
+        // Exactly 4096 queued bytes is not below the retained low-water mark.
+        CHECK(fixtureRenderCount == 1);
+        SHORT packet[512]{};
+        CHECK(SDL_GetAudioStreamData(stream, packet, sizeof(packet)) == sizeof(packet));
+        const Uint64 end = SDL_GetTicks() + 2000;
+        while (fixtureRenderCount == 1 && SDL_GetTicks() < end) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureRenderCount == 2 && fixtureRenderFrames[1] == 1280);
+        SDL_Delay(40);
+        CHECK(fixtureRenderCount == 2);
+        output.Close();
+    } else if (!std::strcmp(test, "transported_pcm_counts_toward_low_water")) {
+        CHECK(output.Open(nullptr, mixer) == S_OK);
+        Prepared();
+        CHECK(fixtureRenderCount == 1);
+        // Hand bytes to SDL without consuming them. They still occupy the
+        // retained output buffer, even though the prepared ring has space.
+        CHECK(SDL_LockAudioStream(stream));
+        consume(consumeContext, stream, 5120, 5120);
+        CHECK(SDL_UnlockAudioStream(stream));
+        CHECK(SDL_GetAudioStreamQueued(stream) == 5120);
+        SDL_Delay(60);
+        CHECK(fixtureRenderCount == 1);
+        SHORT data[2560]{};
+        CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == sizeof(data));
+        const Uint64 end = SDL_GetTicks() + 2000;
+        while (fixtureRenderCount == 1 && SDL_GetTicks() < end) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureRenderCount == 2 && fixtureRenderFrames[1] == 1280);
+        output.Close();
+    } else if (!std::strcmp(test, "transient_put_recovers")) {
+        CHECK(output.Open(nullptr, mixer) == S_OK);
+        Prepared();
+        failPut = true;
+        SHORT data[512]{};
+        CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == 0);
+        CHECK(FAILED(output.Status()));
+        failPut = false;
+        SDL_Delay(25);
+        CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == sizeof(data));
+        CHECK(data[0] == 1234 && data[1] == -2345);
+        CHECK(output.Status() == S_OK);
+        output.Close();
+        CHECK(destroyed == 1 && initialized == quit);
+    } else if (!std::strcmp(test, "persistent_put_is_paced")) {
+        CHECK(output.Open(nullptr, mixer) == S_OK);
+        Prepared();
+        failPut = true;
+        SHORT data[512]{};
+        const Uint64 end = SDL_GetTicks() + 75;
+        while (SDL_GetTicks() < end) {
+            CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == 0);
+            SDL_Delay(1);
+        }
+        CHECK(FAILED(output.Status()));
+        CHECK(putCalls >= 2 && putCalls <= 5);
+        // Persistent failures retain PCM and remain recoverable without reopening.
+        failPut = false;
+        SDL_Delay(25);
+        CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == sizeof(data));
+        CHECK(data[0] == 1234 && output.Status() == S_OK);
+        output.Close();
+        CHECK(destroyed == 1 && initialized == quit);
+    } else if (!std::strcmp(test, "producer_poll_cadence")) {
+        CHECK(output.Open(nullptr, mixer) == S_OK);
+        const Uint64 end = SDL_GetTicks() + 2000;
+        while (!fixtureRenderCount && SDL_GetTicks() < end) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureRenderCount == 1);
+        SHORT data[4096]{};
+        CHECK(SDL_GetAudioStreamData(stream, data, sizeof(data)) == sizeof(data));
+        while (fixtureRenderCount < 2 && SDL_GetTicks() < end) {
+            SDL_Delay(1);
+        }
+        CHECK(fixtureRenderCount == 2);
+        CHECK(fixtureRenderTicks[1] - fixtureRenderTicks[0] >= 19);
         output.Close();
     } else if (!std::strcmp(test, "put_failure")) {
         CHECK(output.Open(nullptr, mixer) == S_OK);

@@ -802,8 +802,9 @@ ISystemModule* System::FindModule( char* interfaceName, char* instanceName )
     if (!interfaceName || !*interfaceName) {
         return nullptr;
     }
-    for (ISystemModule* module : m_NativeModules.Running()) {
-        if ((module->QueryInterface(interfaceName) || !_stricmp(interfaceName, module->GetType())) && (!instanceName || !strcmp(instanceName, module->GetName()))) {
+    for (ISystemModule *module : m_NativeModules.Running()) {
+        if ((module->QueryInterface(interfaceName) || !_stricmp(interfaceName, module->GetType())) &&
+            (!instanceName || !_stricmp(instanceName, module->GetName()))) {
             return module;
         }
     }

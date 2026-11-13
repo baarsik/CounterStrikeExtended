@@ -10,6 +10,12 @@ The popup input fixtures independently extract complete production widget method
 from the common and Counter-Strike implementations and check
 popup-to-view coordinates against controlled panel geometry, including the
 cursor position retained for clicks. It does not start a CEF process.
+The native scrollbar cases compile the complete CEF geometry producer and each
+widget's response, layout and resize methods together. Fitted pages retain their
+full viewport across repeated replies; first overflow and overflow-to-fit replies
+update either scrollbar immediately, including two-axis and disabled controls.
+Only panel/scrollbar storage and the final browser-size receiver are controlled;
+the wire encoding and production geometry/layout decisions execute unchanged.
 `verify_reference.py <immutable-reference-HTML.h> <shared-header>` compares the
 ordered response and serializer declarations with a retained Windows header.
 

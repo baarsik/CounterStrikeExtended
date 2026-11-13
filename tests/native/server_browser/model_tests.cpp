@@ -470,6 +470,164 @@ void OriginalAccountAndHistoryData() {
     Drain(model);
     CHECK(model.OrderedKeys().empty()); // VAC cannot substitute for the separate account predicate.
 }
+
+void OfflineSavedRowsWithCurrentGameFilters() {
+    constexpr size_t RowBudget = 37;
+    constexpr int MaximumAcceptedPing = 100;
+    struct Game {
+        AppId_t app;
+        const char* directory;
+        const char* otherDirectory;
+    };
+    for (const Game game : {Game{10, "cstrike", "valve"}, Game{70, "valve", "cstrike"}}) {
+        for (const ListKind kind : {ListKind::Favorites, ListKind::History}) {
+            Provider provider;
+            Favorites store;
+            FixtureServer offline;
+            offline.m_NetAdr.Init(0x7f000001U, 27016, 27015);
+            offline.m_nAppID = game.app;
+            offline.SetName("Saved endpoint");
+            const Address address{0x7f000001U, 27015, 27016};
+            const uint32_t flag = kind == ListKind::Favorites ? k_unFavoriteFlagFavorite : k_unFavoriteFlagHistory;
+            store.records = {{game.app, address, flag, 0}};
+            auto otherGame = Server(0x7f000002U);
+            otherGame.m_nAppID = game.app;
+            std::strcpy(otherGame.m_szGameDir, game.otherDirectory);
+            auto unresponsiveOtherGame = otherGame;
+            unresponsiveOtherGame.m_NetAdr.SetIP(0x7f000003U);
+            unresponsiveOtherGame.m_bHadSuccessfulResponse = false;
+            auto otherApp = offline;
+            otherApp.m_NetAdr.SetIP(0x7f000004U);
+            otherApp.m_nAppID = game.app == 10 ? 70 : 10;
+            provider.nextRows = {offline, otherGame, unresponsiveOtherGame, otherApp};
+            Filters filters;
+            filters.app = game.app;
+            filters.gameDirectory = game.directory;
+            ServerBrowserModel model({&provider, &store});
+            CHECK(model.Refresh(kind, filters));
+            provider.requests.at(provider.current).callback->ServerFailedToRespond(provider.current, 0);
+            provider.Complete();
+            model.Pump(RowBudget);
+            bool visibleUpdate = false;
+            for (const auto& update : model.TakeUpdates(RowBudget)) {
+                if (!update.reset && update.row.key == address) {
+                    visibleUpdate = update.visible;
+                }
+            }
+            CHECK(visibleUpdate);
+            Drain(model);
+            CHECK(provider.lastFilters.at("gamedir") == game.directory);
+            CHECK(model.OrderedKeys() == std::vector<RowKey>{address});
+            CHECK(model.IsVisible(address));
+            CHECK(model.Find(address)->failed && !model.Find(address)->responded);
+            CHECK(!model.IsVisible({0x7f000002U, 27015, 27016}));
+            CHECK(!model.IsVisible({0x7f000003U, 27015, 27016}));
+            CHECK(!model.IsVisible({0x7f000004U, 27015, 27016}));
+            model.Select(address);
+            CHECK(model.Selection() == address);
+            CHECK(model.QuickRefresh(address));
+            CHECK(provider.lastIndex == 0);
+            Drain(model);
+            CHECK(kind == ListKind::Favorites ? model.RemoveFavorite(game.app, address) :
+                model.RemoveHistory(game.app, address));
+            CHECK((store.records.front().flags & flag) == 0);
+
+            // Unknown metadata must never satisfy an explicit filter, including negative requirements.
+            for (const auto& configure : std::vector<std::function<void(Filters&)>>{
+                     [](Filters& value) {
+                         value.map = "de_";
+                     },
+                     [](Filters& value) {
+                         value.nonempty = true;
+                     },
+                     [](Filters& value) {
+                         value.notFull = true;
+                     },
+                     [](Filters& value) {
+                         value.maxPing = MaximumAcceptedPing;
+                     },
+                     [](Filters& value) {
+                         value.password = Requirement::Yes;
+                     },
+                     [](Filters& value) {
+                         value.password = Requirement::No;
+                     },
+                     [](Filters& value) {
+                         value.secure = Requirement::Yes;
+                     },
+                     [](Filters& value) {
+                         value.secure = Requirement::No;
+                     },
+                     [](Filters& value) {
+                         value.validSteamAccount = true;
+                     },
+                     [](Filters& value) {
+                         value.name = "missing";
+                     }}) {
+                auto filtered = filters;
+                configure(filtered);
+                model.SetFilters(filtered);
+                Drain(model);
+                CHECK(model.OrderedKeys().empty());
+                CHECK(!model.IsVisible(address));
+            }
+            model.SetFilters(filters);
+            Drain(model);
+            CHECK(model.OrderedKeys() == std::vector<RowKey>{address});
+            CHECK(model.IsVisible(address));
+        }
+    }
+    for (const ListKind kind : {ListKind::Internet, ListKind::LAN, ListKind::Friends, ListKind::Spectate}) {
+        Provider provider;
+        auto unanswered = Server();
+        unanswered.m_bHadSuccessfulResponse = false;
+        unanswered.m_szGameDir[0] = '\0';
+        provider.nextRows = {unanswered};
+        auto filters = DefaultFilters();
+        filters.gameDirectory = "cstrike";
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(kind, filters));
+        provider.Complete();
+        Drain(model);
+        CHECK(model.OrderedKeys().empty());
+        CHECK(!model.IsVisible({0x7f000001U, 27015, 27016}));
+    }
+}
+
+void FailedSavedRowsRetainSuccessfulMetadata() {
+    constexpr int MaximumAcceptedPing = 100;
+    for (const ListKind kind : {ListKind::Favorites, ListKind::History}) {
+        Provider provider;
+        auto responded = Server();
+        responded.m_bSecure = true;
+        provider.nextRows = {responded};
+        auto filters = DefaultFilters();
+        filters.gameDirectory = "cstrike";
+        filters.map = "de_";
+        filters.maxPing = MaximumAcceptedPing;
+        filters.secure = Requirement::Yes;
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(kind, filters));
+        provider.Complete();
+        Drain(model);
+        const Address address{0x7f000001U, 27015, 27016};
+        CHECK(model.IsVisible(address));
+        auto& failed = provider.requests.at(provider.current).rows.front();
+        failed.m_bHadSuccessfulResponse = false;
+        failed.m_szGameDir[0] = '\0';
+        failed.m_szMap[0] = '\0';
+        failed.m_bSecure = false;
+        CHECK(model.QuickRefresh(address));
+        provider.requests.at(provider.current).callback->ServerFailedToRespond(provider.current, 0);
+        Drain(model);
+        CHECK(model.Find(address)->failed && model.Find(address)->responded);
+        CHECK(model.Find(address)->gameDirectory == "cstrike");
+        CHECK(model.Find(address)->map == "de_dust2");
+        CHECK(model.OrderedKeys() == std::vector<RowKey>{address});
+        CHECK(model.IsVisible(address));
+    }
+}
+
 void ReplacementAndFailure() {
     Provider provider;
     provider.nextRows = {Server()};
@@ -525,6 +683,8 @@ int main(int argc, char** argv) {
     }
 
     try {
+        OfflineSavedRowsWithCurrentGameFilters();
+        FailedSavedRowsRetainSuccessfulMetadata();
         OriginalMapAndHumanFilters();
         OriginalAccountAndHistoryData();
         Addresses();
@@ -536,7 +696,7 @@ int main(int argc, char** argv) {
         FavoritePreservation();
         ReplacementAndFailure();
         EverySortAndFilter();
-        std::cout << "11 model cases passed\n";
+        std::cout << "13 model cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

@@ -91,3 +91,13 @@ state is preserved and the fixture restores the caller's complete FP environment
 The immutable capture receipt SHA256 is
 `4038be1435b8548c16941d19964d7d0c188490672aa134c1b20e56231af65f62`;
 `../a3d_float_state/fixtures/conversion-manifest.json` records exact provenance.
+
+
+The output integration cases compile `native_output.cpp` with the same actual
+buffer/mixer/kernel objects and use real, unbound SDL conversion streams. They
+compare a gain/pitch/delay transition against one retained 2048-frame invocation,
+check that failed puts retry the identical PCM, and verify that transient output
+and terminal render errors reach existing buffer GetStatus/Play and mixer
+CreateBuffer/DuplicateBuffer paths. Successful retry restores those operations.
+All output cases explicitly use `SDL_AUDIO_DRIVER=dummy`; no physical device is
+opened and no game is launched.

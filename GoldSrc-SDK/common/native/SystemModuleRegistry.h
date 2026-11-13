@@ -91,8 +91,8 @@ public:
             return false;
         }
         record->state = State::Running;
-        // Match legacy AddHead publication order without moving records or changing
-        // frame iteration. Successful publications cannot exceed the serial limit.
+        // Match legacy AddHead after successful Init, including nested initialization.
+        // Successful publications cannot exceed the serial limit.
         record->publicationOrder = m_NextPublication++;
         return true;
     }
@@ -164,11 +164,19 @@ public:
     }
 
     std::vector<ISystemModule *> Running() const {
-        std::vector<ISystemModule *> modules;
+        std::vector<const Record *> running;
         for (const auto &record : m_Records) {
             if (record.state == State::Running) {
-                modules.push_back(record.module);
+                running.push_back(&record);
             }
+        }
+        std::sort(running.begin(), running.end(), [](const Record *left, const Record *right) {
+            return left->publicationOrder > right->publicationOrder;
+        });
+        std::vector<ISystemModule *> modules;
+        modules.reserve(running.size());
+        for (const Record *record : running) {
+            modules.push_back(record->module);
         }
         return modules;
     }

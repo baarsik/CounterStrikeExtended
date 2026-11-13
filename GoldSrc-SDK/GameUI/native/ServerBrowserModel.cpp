@@ -46,22 +46,28 @@ std::string CopyText(const char* source, size_t bound) {
     }
     return result;
 }
-bool Matches(const Row& row, const Filters& filters) {
+bool Matches(const Row& row, const Filters& filters, ListKind kind) {
     if (filters.app != 0 && row.app != filters.app) {
         return false;
     }
     if (!filters.name.empty() && Fold(row.name).find(Fold(filters.name)) == std::string::npos) {
         return false;
     }
-    const bool needsResponse = !filters.gameDirectory.empty() || !filters.map.empty() || filters.nonempty ||
-        filters.notFull || filters.maxPing > 0 || filters.password != Requirement::Any ||
+    const bool savedList = kind == ListKind::Favorites || kind == ListKind::History;
+    // Saved endpoints carry an app ID before their first response, but no game directory yet.
+    // Keep them available for retry/removal without admitting known different-game servers.
+    const bool unknownSavedGame = savedList && !row.responded && row.gameDirectory.empty();
+    const bool needsResponse = (!filters.gameDirectory.empty() && !savedList) || !filters.map.empty() ||
+        filters.nonempty || filters.notFull || filters.maxPing > 0 || filters.password != Requirement::Any ||
         filters.secure != Requirement::Any || filters.validSteamAccount;
     if (needsResponse && !row.responded) {
         return false;
     }
-    return (filters.gameDirectory.empty() || Fold(filters.gameDirectory) == Fold(row.gameDirectory)) &&
+    return (filters.gameDirectory.empty() || unknownSavedGame ||
+        Fold(filters.gameDirectory) == Fold(row.gameDirectory)) &&
         (filters.map.empty() || Fold(row.map).compare(0, filters.map.size(), Fold(filters.map)) == 0) &&
-        (!filters.nonempty || static_cast<int64_t>(row.players) - row.bots > 0) && (!filters.notFull || row.players < row.maxPlayers) &&
+        (!filters.nonempty || static_cast<int64_t>(row.players) - row.bots > 0) &&
+        (!filters.notFull || row.players < row.maxPlayers) &&
         (filters.maxPing <= 0 || (row.ping >= 0 && row.ping <= filters.maxPing)) &&
         (filters.password == Requirement::Any || row.password == (filters.password == Requirement::Yes)) &&
         (filters.secure == Requirement::Any || row.secure == (filters.secure == Requirement::Yes)) &&
@@ -558,7 +564,7 @@ struct ServerBrowserModel::State {
     }
     bool StartRequest();
     void Queue(const Row& row) {
-        updates[row.key] = {row, Matches(row, filters), false, generation};
+        updates[row.key] = {row, Matches(row, filters, kind), false, generation};
     }
     void Apply(Row row, std::optional<int> index = std::nullopt) {
         if (!ValidAddress(row.key)) {
@@ -587,14 +593,14 @@ struct ServerBrowserModel::State {
         if (row.failed) {
             ++status.failed;
         }
-        if (Matches(row, filters)) {
+        if (Matches(row, filters, kind)) {
             ordered->insert(row);
             if (rebuilding) {
                 rebuilding->insert(row);
             }
         }
         Queue(row);
-        if (selection == row.key && !Matches(row, filters)) {
+        if (selection == row.key && !Matches(row, filters, kind)) {
             selection.reset();
         }
     }
@@ -1010,7 +1016,7 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
         } else if (state.rebuilding) {
             if (state.rebuildCursor != state.rows.end()) {
                 const auto& row = (state.rebuildCursor++)->second;
-                if (Matches(row, state.filters)) {
+                if (Matches(row, state.filters, state.kind)) {
                     state.rebuilding->insert(row);
                 }
                 state.Queue(row);
@@ -1054,7 +1060,7 @@ const Row* ServerBrowserModel::Find(RowKey key) const {
 }
 bool ServerBrowserModel::IsVisible(RowKey key) const {
     const Row *row = Find(key);
-    return row && Matches(*row, state_->filters);
+    return row && Matches(*row, state_->filters, state_->kind);
 }
 std::vector<RowKey> ServerBrowserModel::OrderedKeys() const {
     state_->Check();

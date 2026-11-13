@@ -3,6 +3,8 @@
 #include <SDL3/SDL.h>
 #include <atomic>
 std::atomic<int> fixtureRenderCount{0};
+std::atomic<DWORD> fixtureRenderFrames[32]{};
+std::atomic<Uint64> fixtureRenderTicks[32]{};
 std::atomic<bool> fixtureBlockRender{false};
 std::atomic<bool> fixtureRenderEntered{false};
 std::atomic<bool> fixtureFailRender{false};
@@ -16,6 +18,11 @@ HRESULT A3dNativeMixer::Render(SHORT* stereo, DWORD frames) {
     }
     if (fixtureFailRender) {
         return E_INVALIDARG;
+    }
+    const int call = fixtureRenderCount.load();
+    if (call < 32) {
+        fixtureRenderFrames[call] = frames;
+        fixtureRenderTicks[call] = SDL_GetTicks();
     }
     ++fixtureRenderCount;
     for (DWORD frame = 0; frame < frames; ++frame) {

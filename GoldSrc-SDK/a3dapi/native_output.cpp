@@ -321,6 +321,7 @@ HRESULT A3dNativeOutput::Open(const GUID* device, A3dNativeMixer& mixer) {
     constexpr int kSampleRate = 22050;
     const SDL_AudioSpec spec{SDL_AUDIO_S16, static_cast<int>(kChannels), kSampleRate};
     mixer_ = &mixer;
+    mixer_->outputStatus_ = S_OK;
     stopping_ = false;
     stream_ = operations_.open(selected, &spec, Consume, this);
     if (!stream_) {
@@ -372,8 +373,8 @@ void A3dNativeOutput::Close() noexcept {
     mixer_ = nullptr;
     read_ = 0;
     write_ = 0;
-    count_ = 0;
-    offset_ = 0;
+    queuedBytes_ = 0;
+    retryAfter_ = 0;
     started_ = false;
     if (audioOwned_) {
         operations_.quit(SDL_INIT_AUDIO);
@@ -383,26 +384,45 @@ void A3dNativeOutput::Close() noexcept {
 
 int A3dNativeOutput::Produce(void* context) {
     auto* output = static_cast<A3dNativeOutput*>(context);
-    constexpr Uint32 kProducerPollMilliseconds = 2;
     while (!output->stopping_) {
-        SDL_LockMutex(output->mutex_);
-        const bool space = output->count_ < kBlockCount;
-        SDL_UnlockMutex(output->mutex_);
-        if (!space) {
-            SDL_Delay(kProducerPollMilliseconds);
-            continue;
-        }
-        Block prepared;
-        const HRESULT status = output->mixer_->Render(prepared.data(), kFramesPerBlock);
-        if (FAILED(status)) {
-            output->status_ = status;
-            output->stopping_ = true;
+        // Retain DAL_A2D's polling interval, including the first refill.
+        SDL_Delay(kPollMilliseconds);
+        if (output->stopping_) {
             break;
         }
+        // Match callback lock order. Count both prepared PCM and SDL-owned input
+        // under the stream lock so transferring bytes cannot look like playback.
+        SDL_LockAudioStream(output->stream_);
         SDL_LockMutex(output->mutex_);
-        output->queue_[output->write_] = prepared;
-        output->write_ = (output->write_ + 1) % kBlockCount;
-        ++output->count_;
+        const int transported = SDL_GetAudioStreamQueued(output->stream_);
+        const DWORD queued = output->queuedBytes_ + static_cast<DWORD>(std::max(transported, 0));
+        if (transported < 0) {
+            output->status_ = E_FAIL;
+            output->mixer_->outputStatus_ = E_FAIL;
+            output->stopping_ = true;
+        }
+        SDL_UnlockMutex(output->mutex_);
+        SDL_UnlockAudioStream(output->stream_);
+        if (output->stopping_ || queued >= kLowWaterBytes) {
+            continue;
+        }
+        const DWORD bytes = (kBufferBytes - queued) / kFrameBytes * kFrameBytes;
+        Prepared prepared;
+        const HRESULT status = output->mixer_->Render(prepared.data(), bytes / kFrameBytes);
+        SDL_LockMutex(output->mutex_);
+        if (FAILED(status)) {
+            output->status_ = status;
+            output->mixer_->outputStatus_ = status;
+            output->stopping_ = true;
+        } else {
+            const DWORD first = std::min(bytes, kBufferBytes - output->write_);
+            auto* queue = reinterpret_cast<BYTE*>(output->queue_.data());
+            const auto* data = reinterpret_cast<const BYTE*>(prepared.data());
+            std::memcpy(queue + output->write_, data, first);
+            std::memcpy(queue, data + first, bytes - first);
+            output->write_ = (output->write_ + bytes) % kBufferBytes;
+            output->queuedBytes_ += bytes;
+        }
         SDL_UnlockMutex(output->mutex_);
     }
     return 0;
@@ -411,26 +431,29 @@ int A3dNativeOutput::Produce(void* context) {
 void SDLCALL A3dNativeOutput::Consume(void* context, SDL_AudioStream* stream, int additional, int) {
     A3dNativeOwnerLease callback(A3dNativeOwnerKind::Callback);
     auto* output = static_cast<A3dNativeOutput*>(context);
-    constexpr DWORD kFrameBytes = kChannels * sizeof(SHORT);
-    constexpr DWORD kBlockBytes = kFramesPerBlock * kFrameBytes;
     // No mixing, allocation, source traversal or external event dispatch on SDL's callback.
     SDL_LockMutex(output->mutex_);
-    while (!output->stopping_ && output->count_ && additional >= static_cast<int>(kFrameBytes)) {
-        const DWORD bytes = std::min(static_cast<DWORD>(additional) / kFrameBytes * kFrameBytes,
-            kBlockBytes - output->offset_);
-        const auto* data = reinterpret_cast<const BYTE*>(output->queue_[output->read_].data());
-        if (!output->operations_.put(stream, data + output->offset_, static_cast<int>(bytes))) {
-            output->status_ = E_FAIL;
-            output->stopping_ = true;
+    while (!output->stopping_ && output->queuedBytes_ && additional >= static_cast<int>(kFrameBytes)) {
+        if (SDL_GetTicks() < output->retryAfter_) {
             break;
         }
-        output->offset_ += bytes;
-        additional -= static_cast<int>(bytes);
-        if (output->offset_ == kBlockBytes) {
-            output->offset_ = 0;
-            output->read_ = (output->read_ + 1) % kBlockCount;
-            --output->count_;
+        const DWORD bytes = std::min({static_cast<DWORD>(additional) / kFrameBytes * kFrameBytes,
+            kTransportBytes, output->queuedBytes_, kBufferBytes - output->read_});
+        const auto* data = reinterpret_cast<const BYTE*>(output->queue_.data());
+        if (!output->operations_.put(stream, data + output->read_, static_cast<int>(bytes))) {
+            // Preserve prepared PCM for the next callback. DAL_A2D also retries
+            // failed output copies; pacing bounds repeated SDL demand callbacks.
+            output->status_ = E_FAIL;
+            output->mixer_->outputStatus_ = E_FAIL;
+            output->retryAfter_ = SDL_GetTicks() + kPollMilliseconds;
+            break;
         }
+        output->status_ = S_OK;
+        output->mixer_->outputStatus_ = S_OK;
+        output->retryAfter_ = 0;
+        output->read_ = (output->read_ + bytes) % kBufferBytes;
+        output->queuedBytes_ -= bytes;
+        additional -= static_cast<int>(bytes);
     }
     SDL_UnlockMutex(output->mutex_);
 }

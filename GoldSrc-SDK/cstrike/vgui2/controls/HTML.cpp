@@ -1153,7 +1153,12 @@ void HTML::ApplySchemeSettings( IScheme* scheme )
 void HTML::BrowserHorizontalScrollBarSizeResponse(
 	int x, int y, int wide, int tall, int scroll, int scroll_max, float zoom )
 {
+#if INTPTR_MAX > INT32_MAX
+    // Native responses describe the current geometry, including disappearance.
+    const bool wasTall = tall > 0;
+#else
 	bool wasTall = m_scrollHorizontal.m_nTall > 0;
+#endif
 	bool unchanged = wasTall == m_scrollHorizontal.m_bVisible && x == m_scrollHorizontal.m_nX
 					 && y == m_scrollHorizontal.m_nY && m_scrollHorizontal.m_nWide == wide
 					 && tall == m_scrollHorizontal.m_nTall && scroll_max == m_scrollHorizontal.m_nMax
@@ -1173,7 +1178,12 @@ void HTML::BrowserHorizontalScrollBarSizeResponse(
 void HTML::BrowserVerticalScrollBarSizeResponse(
 	int x, int y, int wide, int tall, int scroll, int scroll_max, float zoom )
 {
+#if INTPTR_MAX > INT32_MAX
+    // Native responses describe the current geometry, including disappearance.
+    const bool wasTall = tall > 0;
+#else
 	bool wasTall = m_scrollVertical.m_nTall > 0;
+#endif
 	bool unchanged = wasTall == m_scrollVertical.m_bVisible && x == m_scrollVertical.m_nX && y == m_scrollVertical.m_nY
 					 && m_scrollVertical.m_nWide == wide && tall == m_scrollVertical.m_nTall
 					 && scroll_max == m_scrollVertical.m_nMax && scroll == m_scrollVertical.m_nScroll;
@@ -1390,11 +1400,17 @@ void HTML::GetLinkAtPosition( int x, int y )
 
 void HTML::UpdateSizeAndScrollBars()
 {
+#if INTPTR_MAX <= INT32_MAX
 	BrowserResize();
+#endif
 	int wide = 0;
 	int tall = 0;
 	GetSize( wide, tall );
 	CalcScrollBars( wide, tall );
+#if INTPTR_MAX > INT32_MAX
+    // Resize with the borders from this response, including their removal.
+    BrowserResize();
+#endif
 	InvalidateLayout( false, false );
 }
 

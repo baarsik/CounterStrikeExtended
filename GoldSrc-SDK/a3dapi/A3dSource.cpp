@@ -877,6 +877,14 @@ HRESULT STDMETHODCALLTYPE CA3dSource::Play( INT nPlayMode )
 	else
 		return A3DERROR_UNKNOWN_PLAYMODE;
 
+#ifndef _WIN32
+    // Deferred Play also needs backend admission: it otherwise reports success
+    // without calling the buffer until Flush, even after output has failed.
+    DWORD status = 0;
+    if (FAILED(m_pBuffer->GetStatus(&status))) {
+        return A3DERROR_FAILED_PLAY;
+    }
+#endif
 	if ( m_pA3d->m_dwCompatValue1000 )
 	{
 		m_nPlaybackState = 0;
@@ -1135,10 +1143,21 @@ HRESULT STDMETHODCALLTYPE CA3dSource::GetStatus( LPDWORD pdwStatus )
 	if ( !pdwStatus )
 		return E_INVALIDARG;
 
+#ifndef _WIN32
+    *pdwStatus = 0;
+    if (m_pBuffer) {
+        const HRESULT status = m_pBuffer->GetStatus(pdwStatus);
+        if (FAILED(status)) {
+            *pdwStatus = 0;
+            return status;
+        }
+    }
+#else
 	if ( m_pBuffer )
 		m_pBuffer->GetStatus( pdwStatus );
 	else
 		*pdwStatus = 0;
+#endif
 
 	if ( m_nPlaybackState == 1 )
 		*pdwStatus |= A3DSTATUS_WAITING_FOR_FLUSH;

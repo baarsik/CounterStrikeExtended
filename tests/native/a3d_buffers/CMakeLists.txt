@@ -69,3 +69,21 @@ add_test(NAME retained_pcm_receipts COMMAND a3d_retained_pcm_tests pcm
 add_test(NAME retained_float_state COMMAND a3d_retained_pcm_tests state)
 
 add_test(NAME qualified_conversion_edges COMMAND a3d_retained_pcm_tests conversion)
+
+# Real retained kernels behind an unbound SDL transport; no physical device opens.
+add_executable(a3d_output_kernel_tests output_tests.cpp "${A3D}/native_output.cpp")
+target_link_libraries(a3d_output_kernel_tests PRIVATE a3d_buffer_subject)
+target_link_options(a3d_output_kernel_tests PRIVATE -Wl,-dead_strip)
+target_compile_features(a3d_output_kernel_tests PRIVATE cxx_std_17)
+target_compile_definitions(a3d_output_kernel_tests PRIVATE "$<$<CONFIG:Debug>:_DEBUG>" "$<$<CONFIG:Release>:NDEBUG>")
+target_compile_options(a3d_output_kernel_tests PRIVATE -Wall -Wextra -Werror -fno-exceptions -frtti
+    -ffp-model=precise -ffp-contract=off -Wno-overriding-option
+    "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")
+if(A3D_SANITIZERS)
+    target_compile_options(a3d_output_kernel_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(a3d_output_kernel_tests PRIVATE -fsanitize=address,undefined)
+endif()
+foreach(case output_retained_ramp_pcm output_failure_reaches_buffers output_terminal_render_reaches_buffers)
+    add_test(NAME ${case} COMMAND a3d_output_kernel_tests ${case})
+    set_tests_properties(${case} PROPERTIES TIMEOUT 15 ENVIRONMENT "SDL_AUDIO_DRIVER=dummy")
+endforeach()

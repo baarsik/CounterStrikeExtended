@@ -161,11 +161,21 @@ public:
 class OrderedModule : public BaseSystemModule {
 public:
     std::vector<int> *order = nullptr;
+    std::vector<int> *frameOrder = nullptr;
     int id = 0;
     OrderedModule *child = nullptr;
+    char *GetType() override {
+        return const_cast<char *>("OrderedModule");
+    }
     bool Init(IBaseSystem *system, int serial, char *name) override {
         BaseSystemModule::Init(system, serial, name);
         return !child || system->AddModule(child, const_cast<char *>("ordered-child"));
+    }
+    void RunFrame(double time) override {
+        BaseSystemModule::RunFrame(time);
+        if (frameOrder) {
+            frameOrder->push_back(id);
+        }
     }
     void ShutDown() override {
         if (m_State != MODULE_DISCONNECTED) {
@@ -174,6 +184,72 @@ public:
         BaseSystemModule::ShutDown();
     }
 };
+
+static void RunningPublicationOrder(SystemWrapper &system, const std::string &mode) {
+    std::vector<int> shutdownOrder;
+    std::vector<int> frameOrder;
+    OrderedModule oldest;
+    OrderedModule parent;
+    OrderedModule child;
+    oldest.order = &shutdownOrder;
+    parent.order = &shutdownOrder;
+    child.order = &shutdownOrder;
+    oldest.frameOrder = &frameOrder;
+    parent.frameOrder = &frameOrder;
+    child.frameOrder = &frameOrder;
+    oldest.id = 1;
+    parent.id = 2;
+    child.id = 3;
+    parent.child = &child;
+    Require(system.AddModule(&oldest, const_cast<char *>("oldest")), "oldest setup failed");
+    Require(system.AddModule(&parent, const_cast<char *>("parent")), "nested parent setup failed");
+    for (bool reactivated : {false, true}) {
+        if (reactivated) {
+            system.RemoveModule(&oldest);
+            Require(system.AddModule(&oldest, const_cast<char *>("reactivated")), "oldest retry failed");
+        }
+        const std::vector<int> expected = reactivated ? std::vector<int>{1, 2, 3} : std::vector<int>{2, 3, 1};
+        if (mode == "running-order") {
+            std::vector<int> actual;
+            for (ISystemModule *module : system.m_NativeModules.Running()) {
+                if (module == &oldest) {
+                    actual.push_back(oldest.id);
+                } else if (module == &parent) {
+                    actual.push_back(parent.id);
+                } else if (module == &child) {
+                    actual.push_back(child.id);
+                }
+            }
+            Require(actual == expected, "running snapshot did not follow reverse successful-publication order");
+        } else if (mode == "find-order") {
+            ISystemModule *expectedModule = reactivated ? &oldest : &parent;
+            Require(system.FindModule(const_cast<char *>("OrderedModule"), nullptr) == expectedModule,
+                    "unnamed lookup did not select most recently published module");
+        } else {
+            frameOrder.clear();
+            system.RunFrame(0);
+            Require(frameOrder == expected, "RunFrame did not follow reverse successful-publication order");
+        }
+    }
+    system.ShutDown();
+}
+
+static void InstanceCasePreservation(SystemWrapper &system, const std::string &mode) {
+    char *type = const_cast<char *>(cse::modules::ServerName);
+    char *library = const_cast<char *>("core");
+    ISystemModule *server = system.GetModule(type, library, const_cast<char *>("MiXeDServer"));
+    Require(server, "named server setup failed");
+    for (const char *variant : {"mixedserver", "MIXEDSERVER", "MiXeDServer"}) {
+        ISystemModule *found;
+        if (mode == "instance-find") {
+            found = system.FindModule(type, const_cast<char *>(variant));
+        } else {
+            found = system.GetModule(type, library, const_cast<char *>(variant));
+        }
+        Require(found == server, "case variant did not reuse the existing named module");
+    }
+    system.ShutDown();
+}
 
 static void RegistryRegression(SystemWrapper &system, const std::string &mode) {
     if (mode == "publication") {
@@ -298,6 +374,14 @@ int main(int argc, char** argv) {
             const std::string mode = argv[3];
             if (mode == "name-copy") {
                 NameCopyPreservation(system);
+                return 0;
+            }
+            if (mode == "running-order" || mode == "find-order" || mode == "frame-order") {
+                RunningPublicationOrder(system, mode);
+                return 0;
+            }
+            if (mode == "instance-find" || mode == "instance-acquire") {
+                InstanceCasePreservation(system, mode);
                 return 0;
             }
             if (mode == "reactivation" || mode == "self-removal" || mode == "removal-frame" ||

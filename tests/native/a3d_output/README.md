@@ -28,8 +28,24 @@ owner's return values and teardown effects. The dummy-stream and enumeration cas
 use the real SDL open/resume/destroy operations with the dummy driver. They cannot
 establish physical playback. The callback never invokes the fixture mixer.
 
-The output contract uses app-side 22050-Hz stereo S16 PCM, eight 256-frame prepared
-blocks, one producer and an open-paused SDL transport. Start propagates SDL resume
+The output contract uses app-side 22050-Hz stereo S16 PCM, an 8192-byte prepared
+ring, one producer and an open-paused SDL transport. The producer retains DAL_A2D's
+20-ms poll, strict <4096-byte low-water test, and one Render invocation for the
+whole refill (8192 minus queued bytes). Queued bytes include both the prepared
+ring and SDL-owned source input; moving PCM into SDL does not count as playback.
+The callback submits already mixed PCM in packets of at most 256 frames, preserving
+the original kernel gain/pitch/delay interpolation over the whole refill.
+
+A failed SDL put retains the same PCM and retries on later callbacks, with at most
+one failed attempt per 20 ms. Output Status and the mixer's existing buffer/create
+paths report E_FAIL until a successful retry restores health. Render errors stop
+the producer and propagate their original HRESULT through those same paths.
+The output regressions cover exact 2048/1280-frame refill sizes, strict low-water,
+poll cadence, transferred-but-unconsumed PCM, transient/persistent put errors and
+healthy teardown. The sibling a3d_buffers fixture additionally checks exact PCM
+against the real retained kernels and consumer-visible buffer failure/recovery.
+
+Start propagates SDL resume
 failure and closes the partial owner. Close stops/joins production, fences/removes
 the SDL callback, destroys its stream and queue state, then releases only its own
 SDL reference. Open/Start/Close/DeviceGuid require external serialization; the mixer

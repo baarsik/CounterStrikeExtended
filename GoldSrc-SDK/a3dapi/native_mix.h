@@ -3,6 +3,7 @@
 #include "a2d.h"
 #include "HrtfMgr.h"
 #include "A3dSource.h"
+#include <atomic>
 
 class A3dNativeBuffer;
 
@@ -29,6 +30,8 @@ public:
     HRESULT DuplicateBuffer(IDirectSoundBuffer* source, IDirectSoundBuffer** buffer);
 private:
     friend class A3dNativeBuffer;
+    friend class A3dNativeOutput;
+    std::atomic<HRESULT> outputStatus_{S_OK};
     A3dNativeBuffer* first_ = nullptr;
     A3dNativeBuffer* last_ = nullptr;
 };

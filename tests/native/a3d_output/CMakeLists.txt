@@ -25,6 +25,7 @@ foreach(target a3d_output_tests a3d_file_tests)
 endforeach()
 enable_testing()
 foreach(case partial_open_unwinds resume_failure double_close other_sdl_user_survives callback_quiescence
+        retained_refill_cadence transported_pcm_counts_toward_low_water transient_put_recovers persistent_put_is_paced producer_poll_cadence
         producer_quiescence copied_guid unknown_device bounded_pcm put_failure render_failure dummy_stream enumerated_device)
     add_test(NAME ${case} COMMAND a3d_output_tests ${case})
     set_tests_properties(${case} PROPERTIES ENVIRONMENT "SDL_AUDIO_DRIVER=dummy" TIMEOUT 15)

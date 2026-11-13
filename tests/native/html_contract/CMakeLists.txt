@@ -27,6 +27,26 @@ foreach(widget common cstrike)
     target_compile_options(html_popup_${widget}_tests PRIVATE -Wall -Wextra -Werror)
   endif()
   add_test(NAME html-popup-input-${widget} COMMAND html_popup_${widget}_tests)
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(host_source "${CSE_ROOT}/GoldSrc-SDK/engine/html/native/cef_host.cpp")
+    add_custom_command(OUTPUT "${widget_output}/scrollbars.inc" "${widget_output}/host_geometry.inc"
+      COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_scrollbars.py"
+        "${widget_source}" "${host_source}" "${widget_output}"
+      DEPENDS extract_scrollbars.py "${widget_source}" "${host_source}" VERBATIM)
+    add_executable(html_scrollbar_${widget}_tests scrollbar_tests.cpp
+      "${widget_output}/scrollbars.inc" "${widget_output}/host_geometry.inc")
+    target_compile_features(html_scrollbar_${widget}_tests PRIVATE cxx_std_17)
+    target_include_directories(html_scrollbar_${widget}_tests PRIVATE "${widget_output}"
+      "${CSE_ROOT}/GoldSrc-SDK/engine")
+    if(MSVC)
+      target_compile_options(html_scrollbar_${widget}_tests PRIVATE /W4 /WX /EHsc)
+    else()
+      target_compile_options(html_scrollbar_${widget}_tests PRIVATE -Wall -Wextra -Werror)
+    endif()
+    foreach(scenario fit vertical horizontal both disabled)
+      add_test(NAME html-scrollbar-${widget}-${scenario} COMMAND html_scrollbar_${widget}_tests ${scenario})
+    endforeach()
+  endif()
 endforeach()
 add_executable(html_contract_tests contract_tests.cpp)
 target_compile_features(html_contract_tests PRIVATE cxx_std_17)

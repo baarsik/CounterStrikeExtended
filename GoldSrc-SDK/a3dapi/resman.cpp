@@ -282,6 +282,12 @@ HRESULT STDMETHODCALLTYPE ResMan::CreateSoundBuffer( LPCDSBUFFERDESC pDesc,
     if (pDesc->dwFlags & DSBCAPS_CTRLPOSITIONNOTIFY) {
         return DSERR_UNSUPPORTED;
     }
+    DSCAPS caps{};
+    caps.dwSize = sizeof(caps);
+    const HRESULT outputStatus = GetCaps(&caps);
+    if (FAILED(outputStatus)) {
+        return outputStatus;
+    }
     a3d_platform_buffer_desc_t desc{sizeof(desc), pDesc->dwFlags, pDesc->dwBufferBytes,
         pDesc->dwReserved, pDesc->lpwfxFormat};
     DWORD mode;
@@ -1003,6 +1009,11 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::GetStatus( LPDWORD pdwStatus )
         return E_POINTER;
     }
     std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+    *pdwStatus = 0;
+    auto* owner = dynamic_cast<ResMan*>(m_pOwner);
+    if (!m_nativeRetired && owner && FAILED(owner->m_nativeRenderStatus)) {
+        return owner->m_nativeRenderStatus;
+    }
     *pdwStatus = m_dwStatus == A3D_BUFFER_STATE_PLAYING ? DSBSTATUS_PLAYING : 0;
     if (m_dwFlags & A3D_RENDER_LOOPING) {
         *pdwStatus |= DSBSTATUS_LOOPING;
@@ -1118,6 +1129,10 @@ HRESULT STDMETHODCALLTYPE ResManBuffer::Play( DWORD dwReserved, DWORD dwPriority
     }
     if (dwReserved || dwPriority || dwFlags & ~DSBPLAY_LOOPING || !m_nativeSamples) {
         return E_INVALIDARG;
+    }
+    auto* owner = dynamic_cast<ResMan*>(m_pOwner);
+    if (owner && FAILED(owner->m_nativeRenderStatus)) {
+        return owner->m_nativeRenderStatus;
     }
     if (m_dwReadPosition == m_Desc.dwBufferBytes && m_dwOverridePosition == A3D_BUFFER_POSITION_UNSET) {
         m_dwOverridePosition = 0;
@@ -1550,6 +1565,12 @@ HRESULT STDMETHODCALLTYPE ResMan::DuplicateSoundBuffer( IDirectSoundBuffer* pBuf
     *ppDuplicate = nullptr;
     if (!pBuffer || !m_nativeAttached) {
         return E_INVALIDARG;
+    }
+    DSCAPS caps{};
+    caps.dwSize = sizeof(caps);
+    const HRESULT outputStatus = GetCaps(&caps);
+    if (FAILED(outputStatus)) {
+        return outputStatus;
     }
     auto* original = dynamic_cast<ResManStreamBuffer*>(pBuffer);
     if (!original) {
@@ -2602,6 +2623,10 @@ HRESULT ResMan::AttachNativeBackend(IUnknown* leaf) {
     m_pDefaultPool = pool;
     m_dwWaitTime = A3D_RENDER_WAIT_MILLISECONDS;
     m_dwUpdateInterval = A3D_RENDER_UPDATE_MILLISECONDS;
+    {
+        std::lock_guard<std::recursive_mutex> lock(A3dNativeResourceMutex());
+        m_nativeRenderStatus = S_OK;
+    }
     m_nativeAttached = true;
     m_dwInitialized = TRUE;
     result = m_nativeWorker.Start(RenderThread, this);
@@ -2707,6 +2732,22 @@ HRESULT ResMan::TickNative(DWORD time) {
         if (!m_nativeAttached) {
             return DSERR_UNINITIALIZED;
         }
+        // Poll the existing backend caps/status path even with no assigned
+        // streams. Managed pending buffers must observe a failed output too.
+        IDirectSound* output = nullptr;
+        result = m_pDefaultPool->GetIDal()->GetDS(&output);
+        if (SUCCEEDED(result)) {
+            DSCAPS caps{};
+            caps.dwSize = sizeof(caps);
+            result = output ? output->GetCaps(&caps) : E_FAIL;
+        }
+        if (output) {
+            output->Release();
+        }
+        m_nativeRenderStatus = result;
+        if (FAILED(result)) {
+            return result;
+        }
         if (time - m_dwPreviousUpdate > m_dwUpdateInterval) {
             m_dwPreviousUpdate = time;
             result = FreeReleasedStreams(time);
@@ -2726,12 +2767,14 @@ HRESULT ResMan::TickNative(DWORD time) {
                 result = m_pDefaultPool->Update(time);
             }
             if (FAILED(result)) {
+                m_nativeRenderStatus = result;
                 return result;
             }
         }
         const DWORD buffers = static_cast<DWORD>(m_SoftwareBuffers.cBuffers);
         batches = new (std::nothrow) A3dNativeNotificationBatch[buffers];
         if (!batches && buffers) {
+            m_nativeRenderStatus = E_OUTOFMEMORY;
             return E_OUTOFMEMORY;
         }
         for (auto* node = m_SoftwareBuffers.pHead; node; node = node->pNext) {
@@ -2740,6 +2783,9 @@ HRESULT ResMan::TickNative(DWORD time) {
                 result = update;
             }
         }
+        // The worker otherwise ignores this result. Publish it before
+        // dispatching notifications so public buffer calls see the failure.
+        m_nativeRenderStatus = result;
     }
     for (DWORD index = 0; index < count; ++index) {
         batches[index].Dispatch();

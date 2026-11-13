@@ -106,7 +106,7 @@ public:
         caps->dwSize = sizeof(*caps);
         caps->dwFlags = DSCAPS_PRIMARYSTEREO | DSCAPS_PRIMARY16BIT | DSCAPS_SECONDARYMONO |
             DSCAPS_SECONDARYSTEREO | DSCAPS_SECONDARY8BIT | DSCAPS_SECONDARY16BIT;
-        return initialized_ ? S_OK : DSERR_UNINITIALIZED;
+        return initialized_ ? output_.Status() : DSERR_UNINITIALIZED;
     }
     HRESULT STDMETHODCALLTYPE GetVoiceCapacity(DWORD* total, DWORD* available) override {
         std::lock_guard<std::recursive_mutex> admission(admission_);

@@ -6,6 +6,22 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The November 13 six-finding review fixes restore native module publication order
+and case-insensitive instance lookup, retain unreachable saved browser endpoints,
+preserve whole-refill A3D interpolation, propagate output failure/recovery through
+managed buffers and public sources, and repair native HTML scrollbar geometry and
+resize ordering. Fresh macOS ARM64 Release/Debug `cse_runtime` builds complete for
+all 19 roles. No game was launched for these fixes.
+
+Focused checks: system modules 42/42 ordinary cases; HTML 13/13 ordinary and
+ASan/UBSan cases; browser five CTests plus three expected-abort controls in each
+Release/Debug/ASan+UBSan profile; A3D output 33/33, buffers 31/31 and resources
+27/27 in each profile. Supplemental system-module sanitizers pass 44/45: the
+enabled `lifecycle_image_reload` case retains the documented AppleClang 21 globals
+registration failure, freshly reproduced by the project-independent reload
+fixture. This is component/dummy-output and build evidence, not physical output,
+gameplay or complete native-target acceptance.
+
 ## Evidence by boundary
 
 | Boundary/cohort | Bounded result | Limit / next gate |

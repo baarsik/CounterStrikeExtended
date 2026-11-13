@@ -95,6 +95,10 @@ HRESULT A3dNativeMixer::CreateBuffer(LPCDSBUFFERDESC description, IDirectSoundBu
         return E_POINTER;
     }
     *buffer = nullptr;
+    const HRESULT outputStatus = outputStatus_.load();
+    if (FAILED(outputStatus)) {
+        return outputStatus;
+    }
     if (!description || (description->dwSize != sizeof(DSBUFFERDESC) &&
         description->dwSize != sizeof(DSBUFFERDESC1)) ||
         !ValidFormat(description->lpwfxFormat, description->dwBufferBytes)) {
@@ -148,6 +152,10 @@ HRESULT A3dNativeMixer::DuplicateBuffer(IDirectSoundBuffer* source, IDirectSound
         return E_POINTER;
     }
     *output = nullptr;
+    const HRESULT outputStatus = outputStatus_.load();
+    if (FAILED(outputStatus)) {
+        return outputStatus;
+    }
     A3dNativeMixLock lock;
     A3dNativeBuffer* original = first_;
     while (original && static_cast<IDirectSoundBuffer*>(original) != source) {
@@ -303,6 +311,13 @@ HRESULT A3dNativeBuffer::GetStatus(LPDWORD status) {
         return E_POINTER;
     }
     A3dNativeMixLock lock;
+    *status = 0;
+    if (mixer_) {
+        const HRESULT outputStatus = mixer_->outputStatus_.load();
+        if (FAILED(outputStatus)) {
+            return outputStatus;
+        }
+    }
     *status = state_ == A3D_BUFFER_STATE_PLAYING ? DSBSTATUS_PLAYING : 0;
     if (looping_) {
         *status |= DSBSTATUS_LOOPING;
@@ -426,6 +441,10 @@ HRESULT A3dNativeBuffer::Play(DWORD reserved, DWORD priority, DWORD flags) {
     }
     if (!mixer_) {
         return E_ABORT;
+    }
+    const HRESULT outputStatus = mixer_->outputStatus_.load();
+    if (FAILED(outputStatus)) {
+        return outputStatus;
     }
     if (cursor_ == samples_->bytes) {
         Seek(0);

@@ -19,7 +19,7 @@ Use a separate Debug directory; add `-DA3D_SANITIZERS=ON` in another Debug
 directory for ASan/UBSan. Every CTest process uses `UBSAN_OPTIONS=halt_on_error=1`.
 All builds, dependency builds and tests remain serial.
 
-The 25 CTest entries cover:
+The 27 CTest entries cover:
 
 - The three complete event suites from `a3d_notifications`, plus the authoritative
   stream crossing, replacement/removal, generation fences and waiter reentry.
@@ -62,3 +62,19 @@ The resource-mode race can be checked in a separate Debug build with
 `-DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"` and
 `-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread`, running only
 `concurrent_resource_modes` with `TSAN_OPTIONS=halt_on_error=1`.
+
+
+The managed-output regressions use real provider-created `ResManStreamBuffer`
+objects and a real `CA3d`/`IA3dSource202` consumer. Only the SDL put boundary in
+`native_output.cpp` is redirected, through this fixture's source-local compile
+definition, to `output_faults.cpp`; successful puts still use real SDL. The
+production graph has no injection hook or added source membership.
+
+Persistent copy failures and terminal mixer admission errors must reach public
+GetStatus/Play, including pending buffers without assigned streams, and public
+CreateSoundBuffer/DuplicateSoundBuffer. The actual resource worker publishes its
+latest tick status under the resource mutex. Managed buffer status returns zero
+flags on error; source status propagates that error without adding the waiting
+flag. Deferred source Play checks health and uses the existing
+`A3DERROR_FAILED_PLAY` mapping. Successful SDL retry restores public operations.
+Both regression cases check final zero owner/event counts after healthy teardown.

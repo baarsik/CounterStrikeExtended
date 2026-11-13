@@ -89,6 +89,13 @@ original provider Release callback exactly once. Self-removal during Init and pa
 reactivation during child cleanup must be rejected until the active frame unwinds;
 ordinary retries then succeed.
 
+The running-order, find-order and frame-order modes require newest successful
+publication first after nested Init and reactivation. The instance-find and
+instance-acquire modes require case variants of an instance name to reuse the same
+real Core Server. Both loaders use their owning FindModule/GetModule methods;
+RunFrame is extracted from the engine in both fixtures, so the Console's complete
+frame loop is not exercised by these component cases.
+
 `fakeclient_cleanup_{success,failure}` compiles the complete production FakeClient TU.
 It uses complete extracted Network CreateSocket/GetSocket/RemoveSocket/ShutDown methods
 (with original-region hashes), renaming the owner and substituting a controlled socket

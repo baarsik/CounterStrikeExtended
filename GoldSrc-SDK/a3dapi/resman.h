@@ -313,6 +313,10 @@ protected:
 #ifndef _WIN32
     A3dNativeOwnerLease m_nativeResourceManagerLease{A3dNativeOwnerKind::ResourceManager};
     std::recursive_mutex m_nativeAdmission;
+    friend class ResManBuffer;
+    // Published/read under the resource mutex; buffer calls never invert the
+    // manager admission -> resource lock order to ask the backend for health.
+    HRESULT m_nativeRenderStatus = S_OK;
     bool m_nativeAttached = false;
     A3dNativeWorker m_nativeWorker;
 #endif
