@@ -6,6 +6,14 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The November 13 kill-feed follow-up centers weapon and headshot sprites within
+console text lines that are taller than the sprites. The retained source and
+shipped x86 Mac client both used top alignment, so this corrects an inherited
+high-resolution layout defect. Text and normal-size sprite positions are
+preserved. The complete production draw-body fixture passes 16 cases in each
+Release, Debug and ASan/UBSan profile; both full ARM64 runtime builds pass.
+No game was launched and visual acceptance remains a manual check.
+
 The November 13 manual-test follow-up preserves client mouse activation requests
 across native capture suspension, including recovery while a menu remains open.
 Ordinary deactivation still cancels the request. The actual owner, client wrappers

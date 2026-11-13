@@ -115,8 +115,11 @@ int CHudDeathNotice::Draw( float time )
 			continue;
 		int y = top + i * m_iDeathNoticeGap;
 		int id = notice.iId == -1 ? m_HUD_d_skull : notice.iId;
-		int x = ScreenWidth - ConsoleStringLen( notice.szVictim ) - gHUD.GetSpriteWidth( id )
-			- m_iDeathNoticeGapRight - m_iDeathTextGap;
+        int victimWidth = 0;
+        int textHeight = 0;
+        GetConsoleStringSize(notice.szVictim, &victimWidth, &textHeight);
+        int x = ScreenWidth - victimWidth - gHUD.GetSpriteWidth(id)
+            - m_iDeathNoticeGapRight - m_iDeathTextGap;
 		if ( notice.iHeadShotId >= 0 )
 			x -= gHUD.GetSpriteWidth( notice.iHeadShotId ) + m_iDeathTextGap;
 		if ( !notice.iSuicide )
@@ -132,12 +135,24 @@ int CHudDeathNotice::Draw( float time )
 
 		// Draw death weapon
 		SPR_Set( gHUD.GetSprite( id ), r, g, b );
-		SPR_DrawAdditive( 0, x, y, &gHUD.GetSpriteRect( id ) );
+        // Larger console fonts need each sprite centered within the text line.
+        constexpr int spriteCenterDivisor = 2;
+        int weaponY = y;
+        int weaponHeight = gHUD.GetSpriteHeight(id);
+        if (textHeight > weaponHeight) {
+            weaponY += (textHeight - weaponHeight) / spriteCenterDivisor;
+        }
+        SPR_DrawAdditive(0, x, weaponY, &gHUD.GetSpriteRect(id));
 		x += gHUD.GetSpriteWidth( id ) + m_iDeathTextGap;
 		if ( notice.iHeadShotId >= 0 )
 		{
 			SPR_Set( gHUD.GetSprite( notice.iHeadShotId ), r, g, b );
-			SPR_DrawAdditive( 0, x, y, &gHUD.GetSpriteRect( notice.iHeadShotId ) );
+            int headshotY = y;
+            int headshotHeight = gHUD.GetSpriteHeight(notice.iHeadShotId);
+            if (textHeight > headshotHeight) {
+                headshotY += (textHeight - headshotHeight) / spriteCenterDivisor;
+            }
+            SPR_DrawAdditive(0, x, headshotY, &gHUD.GetSpriteRect(notice.iHeadShotId));
 			x += gHUD.GetSpriteWidth( notice.iHeadShotId ) + m_iDeathTextGap;
 		}
 		if ( !notice.iNonPlayerKill )
