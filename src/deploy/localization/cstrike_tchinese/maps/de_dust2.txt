@@ -1,0 +1,12 @@
+Dust II - 炸彈/拆除
+*** GameHelper.com 專有 ***
+由 DaveJ (http://www.johnsto.co.uk/)製作
+材質由 MacMan (MacManInfi@aol.com)製作
+
+反恐精英：防止恐佈份子炸毀化學武器。
+隊員必須拆除任何威脅目標地區的炸彈。
+
+恐佈份子：帶著 C4 的恐佈份子必須炸毀
+任一個化學武器庫。
+
+備註：任務中總共有兩個化學武器庫。

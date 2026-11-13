@@ -1,0 +1,11 @@
+Inferno - 防爆
+由 Chris Auty (Barney) (narby@counter-strike.net)製作
+貼圖材質由 Valve software 製作
+
+恐佈份子計劃炸毀通過一個小村莊的兩條重要油管線。
+
+反恐精英：阻止恐佈份子的破壞行動。
+
+恐佈份子：把兩條油管線都炸毀。
+
+備註：任務中共有兩個炸彈目標區。

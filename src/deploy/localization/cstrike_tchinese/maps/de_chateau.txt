@@ -1,0 +1,12 @@
+Chateau - 炸彈/拆除
+
+Macman    *chrisa@valvesoftware.com*
+Ido Magal *ido@valvesoftware.com*
+
+恐佈份子：在失去 Cobble 之後，Lord
+Williams 開始重建他的避暑別墅。
+你必須阻止他的重製。在前院或後院
+安裝 C4 炸藥。
+
+反恐精英：保護 Lord William 的投資
+並阻止恐佈分子破壞他新家的行動。

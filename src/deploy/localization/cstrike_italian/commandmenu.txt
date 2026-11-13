@@ -1,0 +1,258 @@
+// Command Menu definition
+// 
+// Basic Format:
+//		"<Bound Key>" "<Button Text>" "<Command sent to server>"
+//
+// 
+//
+//
+// Buttons can also open up submenus, as follows:
+// {
+// 	"Some More Options",
+//	{
+//		...
+//	}
+// }
+//
+//
+// Buttons preceded with "CUSTOM" are handled in special ways. They can only be moved
+// around or deleted.
+//
+//
+// Limitations:
+//		Maximum of 40 menus.
+//		Maximum of 100 buttons per menu.
+
+//--------------------------------------------------------
+// Everything below here is editable
+
+"1" "GUIDA"
+{
+	CUSTOM		"1" "Descrizione mappa"	"!MAPBRIEFING"
+	"2" "Tempo rimasto" "timeleft"
+	"3" "Modifica mirino" "adjust_crosshair"
+	"4" "Usa mano sinistra" "cl_righthand 0"
+	"5" "Usa mano destra" "cl_righthand 1"
+}
+
+
+"2" "CAMBIA SQUADRA"	"chooseteam"
+
+// Here are the rest of the buttons and submenus
+// You can change these safely if you want.
+"3" "MESSAGGIO SQUADRA"
+{
+	// Map Specific
+
+	MAP cs_siege "1" "mappa cs_siege"
+	{
+		"1" "'Raggiungere i sotterranei'" "say_team Raggiungere i sotterranei!"
+		"2" "'Nemico nel garage'" "say_team Nemico nel garage!"
+		"3" "'Vai a stanza dell'ostaggio'"   "say_team Subito nella stanza dell'ostaggio!"
+		"4" "'Cecchini! Attenzione!'"  "say_team Cecchini! Attenzione!"
+		"5" "'Seguire percorso superiore'"  "say_team Seguire il percorso superiore!"
+	}
+
+
+	MAP de_train "1" "mappa de_train"
+	{
+		"1" "'Vai a bomba dello scalo'" "say_team Subito presso la bomba dello scalo!"
+		"2" "'Vai al luogo della bomba'" "say_team Subito presso il luogo della bomba!"
+		"3" "'Di lato'"   "say_team Di lato!"
+		"4" "'Luogo della bomba sicuro'"  "say_team Luogo della bomba sicuro!"
+		"5" "'Mi serve il cannone ionico'"  "say_team Mi serve il cannone ionico!"
+	}
+
+
+	MAP de_vertigo "1" "mappa de_vertigo"
+	{
+		"1" "'Subito al piano superiore'" "say_team Subito al piano superiore!"
+		"2" "'Subito al piano inferiore'" "say_team Subito al piano inferiore!"
+		"3" "'Di lato'"   "say_team Di lato!"
+		"4" "'Cecchini! Attenzione!'"  "say_team Cecchini! Attenzione!"
+		"5" "'Luogo della bomba sicuro'"  "say_team Luogo della bomba sicuro!"
+	}
+
+
+	MAP de_prodigy "1" "mappa de_prodigy"
+	{
+		"1" "'Subito verso i tubi'" "say_team Subito verso il luogo della bomba!"
+		"2" "'Subito al laboratorio'" "say_team Subito al laboratorio!"
+		"3" "'Prendere il corridoio'"   "say_team Prendere il corridoio!"
+		"4" "'Di lato'"  "say_team Di lato!"
+		"5" "'Prendere il percorso APC'"  "say_team Prendere il percorso APC!"
+	}
+
+
+	MAP de_aztec "1" "mappa de_aztec"
+	{
+		"1" "'Prendere il ponte'" "say_team Prendere il ponte!"
+		"2" "'Nemico presso la bomba'" "say_team Narby, nemico sul luogo della bomba!"
+		"3" "'Subito presso la bomba'"   "say_team Subito sul luogo della bomba!"
+		"4" "'Luogo della bomba sicuro'"  "say_team Luogo della bomba sicuro!"
+		"5" "'Prendere percorso acqua'"  "say_team Prendere il percorso dell'acqua!"
+	}
+
+	MAP de_inferno "1" "mappa de_inferno"
+	{
+		"1" "'Prendere il ponte'" "say_team Prendere il ponte!"
+		"2" "'Nemico sul luogo della bomba'" "say_team Narby, nemico sul luogo della bomba!"
+		"3" "'Subito sul luogo della bomba'"   "say_team Subito sul luogo della bomba!"
+		"4" "'Luogo della bomba sicuro'"  "say_team Luogo della bomba sicuro!"
+		"5" "'Prendere il percorso dell'acqua'"  "say_team Prendere il percorso dell'acqua!"
+	}
+
+
+
+
+	MAP cs_office "1" "mappa cs_office"
+	{
+		"1" "'Prendere percorso post.'" "say_team Prendere il percorso posteriore!"
+		"2" "'Subito dagli ostaggi'" "say_team Subito dagli ostaggi!"
+		"3" "'Per Manilov'"   "say_team Fatelo per Manilov!"
+		"4" "'Prendere percorso ant.'"  "say_team Prendere il percorso anteriore!"
+		"5" "'Di lato'"  "say_team Di lato!"
+	}
+
+
+
+	MAP cs_backalley "1" "mappa cs_backalley"
+	{
+		"1" "'Di lato'" "say_team Di lato!"
+		"2" "'Nemico in alto'" "say_team Nemico in alto!"
+		"3" "'Subito dagli ostaggi'"   "say_team Subito dagli ostaggi!"
+		"4" "'Fatti sotto'"  "say_team Fatti sotto!"
+		"5" "'Fuoco con cannone ionico'"  "say_team Fuoco con cannone ionico!"
+	}
+
+
+	MAP cs_747 "1" "mappa cs_747"
+	{
+		"1" "'Subito presso l'aereo'" "say_team Subito presso l'aereo!"
+		"2" "'Ritrovo al terminal'" "say_team Ritrovo al terminal!"
+		"3" "'Nemico fuori dall'aereo'"   "say_team Nemico fuori dall'aereo!"
+		"4" "'Nemico in area di carico'"  "say_team Nemico nell'area di carico!"
+		"5" "'Di lato'"  "say_team Di lato!"
+	}
+
+
+	MAP as_oilrig "1" "mappa as_oilrig"
+	{
+		"1" "'Subito all'elicottero'" "say_team Subito presso l'elicottero!"
+		"2" "'All'ascensore'" "say_team All'ascensore!"
+		"3" "'VIP individuato'"   "say_team VIP individuato!"
+		"4" "'Cecchino individuato'"  "say_team Cecchino individuato! Attenzione!"
+		"5" "'Proteggere il VIP'"  "say_team Proteggere il VIP!"
+	}
+
+
+
+	MAP cs_assault "1" "mappa cs_assault"
+	{
+		"1" "'Subito presso l'edificio'" "say_team Subito presso l'edificio!"
+		"2" "'Prendere le uscite'" "say_team Prendere le uscite!"
+		"3" "'Nemico presso le uscite'"   "say_team Nemico presso le uscite!"
+		"4" "'Subito in stanza ostaggi'"  "say_team Subito nella stanza degli ostaggi!"
+		"5" "'Squadra! Raggrupparsi!'"  "say_team Squadra! Raggrupparsi!"
+	}
+
+
+
+	MAP de_nuke "1" "mappa de_nuke"
+	{
+		"1" "'Alla sala principale'" "say_team Alla sala principale!"
+		"2" "'Nel sotterraneo'" "say_team Nel sotterraneo!"
+		"3" "'Accanto all'area'"   "say_team Accanto all'area!"
+		"4" "'Accanto a comunicazioni'"  "say_team Accanto alle comunicazioni!"
+		"5" "'All'ingresso'"  "say_team All'ingresso!"
+	}
+
+
+	MAP de_cbble "1" "mappa de_cbble"
+	{
+		"1" "'Verso corridoio centrale'" "say_team Verso il corridoio centrale!"
+		"2" "'Verso il sottopassaggio'" "say_team Verso il sottopassaggio!"
+		"3" "'Cecchino nella torre'"   "say_team Nemico nella torre!"
+		"4" "'Aree della bomba sicure'"  "say_team Aree della bomba sicure!"
+		"5" "'Vigilare area partenza'"  "say_team Sorvegliare l'area di partenza!"
+	}
+
+
+	MAP de_dust "1" "mappa de_dust"
+	{
+		"1" "'Verso il corridoio'" "say_team Verso il corridoio!"
+		"2" "'Verso il sottopassaggio'" "say_team Verso il sottopassaggio!"
+		"3" "'Area A sicura'"   "say_team Area A della bomba sicura!"
+		"4" "'Area B sicura'"  "say_team Area B della bomba sicura!"
+		"5" "'Cecchino in sottopasso'"  "say_team Cecchini nel sottopassaggio!"
+	}
+
+
+
+	MAP de_dust2 "1" "mappa de_dust2"
+	{
+		"1" "'Verso il corridoio'" "say_team Verso il corridoio!"
+		"2" "'Verso il sottopassaggio'" "say_team Verso il sottopassaggio!"
+		"3" "'Area A sicura'"   "say_team Area A della bomba sicura!"
+		"4" "'Area B sicura'"  "say_team Area B della bomba sicura!"
+		"5" "'Verso la galleria'"  "say_team Verso la galleria!"
+	}
+
+	MAP cs_italy "1" "mappa cs_italy"
+	{
+		"1" "'Ritrovo al mercato'" "say_team Ritrovo al mercato!"
+		"2" "'Subito verso la casa'" "say_team Subito nella casa!"
+		"3" "'Verso la cantina dei vini'"   "say_team Verso la cantina dei vini!"
+		"4" "'Al passaggio lungo'"  "say_team Subito nel passaggio lungo!"
+		"5" "'Recupero degli ostaggi'"  "say_team Recupero degli ostaggi!"
+	}
+
+
+	MAP cs_estate "1" "mappa cs_estate"
+	{
+		"1" "'Verso le fogne'" "say_team Verso le fogne!"
+		"2" "'Nemico al primo piano'" "say_team Nemico al primo piano!"
+		"3" "'Nemico al secondo piano'"   "say_team Nemico al secondo piano!"
+		"4" "'Nemico sul retro'"  "say_team Nemico sul retro della casa!"
+		"5" "'Nemico davanti'"  "say_team Nemico davanti alla casa!"
+	}
+	
+	
+	MAP as_tundra "1" "mappa as_tundra"
+	{
+		"1" "'Usare percorso secondario'" "say_team Usare il percorso secondario!"
+		"2" "'Usare percorso primario'" "say_team Usare il percorso primario!"
+		"3" "'Cecchini! Attenzione!'"   "say_team Cecchini! Attenzione!"
+		"4" "'Subito all'APC'"  "say_team Subito all'APC!"
+		"5" "'Subito all'elicottero'"  "say_team Subito all'elicottero!"
+	}	
+	
+
+	MAP cs_militia "1" "mappa cs_militia"
+	{
+		"1" "'Ritrovo al garage'" "say_team Ritrovo all'uscita del garage!"
+		"2" "'Ritrovo davanti alla casa'" "say_team Ritrovo davanti alla casa!"
+		"3" "'Ritrovo sul retro'"   "say_team Ritrovo sul retro!"
+		"4" "'Nemico in alto'"  "say_team Nemico in alto!"
+		"5" "'Il nemico è nelle fogne'"  "say_team Il nemico e nelle fogne!"
+	}
+	
+
+
+
+
+
+
+
+     "2" "'Ricevuto'"			"say_team Ricevuto"
+     "3" "'Negativo'"			"say_team Negativo"
+     "4" "'Via, via, via!'"		"say_team Via, via, via!"
+     "5" "'In azione'"			"say_team In azione"
+     "6" "'Rinforzi necessari'"		"say_team Rinforzi necessari!"
+}
+
+"4" "LASCIA ARMA IN USO" 	"drop"
+
+
+
+

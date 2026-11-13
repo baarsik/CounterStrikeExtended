@@ -1,0 +1,16 @@
+劫持747 - 拯救人质
+设计：Stephen "Judas" Superville
+(witchdawn@hotmail.com)
+材质："The Postman" 
+(heavengame@yahoo.com)
+
+反恐菁英：侵入飞机之内，从恐怖分子手中
+拯救幸存的人质。
+
+恐怖分子：防止反恐菁英搭救人质。
+
+其他附注：
+飞机上共有五名人质。
+ 
+特别感谢Leon Nieuwoudt，他是开创这系列
+地图的人。

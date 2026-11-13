@@ -1,0 +1,3468 @@
+"lang"
+{
+"Language" "korean"
+"Tokens"
+{
+"Cstrike_Reset_View"		"시점 재설정"
+"[english]Cstrike_Reset_View"		"Reset view"
+"Cstrike_Mouse_Look"		"마우스 보기"
+"[english]Cstrike_Mouse_Look"		"Mouse look"
+"Cstrike_Keyboard_Look"		"키보드 보기"
+"[english]Cstrike_Keyboard_Look"		"Keyboard look"
+"Cstrike_Standard_Radio"		"일반 무전 메시지"
+"[english]Cstrike_Standard_Radio"		"Standard radio messages"
+"Cstrike_Group_Radio"		"그룹 무전 메시지"
+"[english]Cstrike_Group_Radio"		"Group radio messages"
+"Cstrike_Report_Radio"		"무전 메시지 보고"
+"[english]Cstrike_Report_Radio"		"Report radio messages"
+"Cstrike_Nightvision"		"야시경 켜기/끄기"
+"[english]Cstrike_Nightvision"		"Turn nightvision on/off"
+"Cstrike_Menu_Title"		"메뉴"
+"[english]Cstrike_Menu_Title"		"MENU"
+"Cstrike_Buy_Menu"		"구입 메뉴"
+"[english]Cstrike_Buy_Menu"		"Buy Menu"
+"Cstrike_Buy_Primary_Ammo"		"주 탄약 구입(옵션)"
+"[english]Cstrike_Buy_Primary_Ammo"		"Buy primary ammo (optional)"
+"Cstrike_Buy_Secondary_Ammo"		"보조 탄약 구입(옵션)"
+"[english]Cstrike_Buy_Secondary_Ammo"		"Buy secondary ammo (optional)"
+"Cstrike_Buy_Equip_Menu"		"장비 구입 메뉴(옵션)"
+"[english]Cstrike_Buy_Equip_Menu"		"Buy equipment menu (optional)"
+"Cstrike_Menu_Item_0"		"메뉴 아이템 0"
+"[english]Cstrike_Menu_Item_0"		"Menu item 0"
+"Cstrike_Menu_Item_1"		"메뉴 아이템 1"
+"[english]Cstrike_Menu_Item_1"		"Menu item 1"
+"Cstrike_Menu_Item_2"		"메뉴 아이템 2"
+"[english]Cstrike_Menu_Item_2"		"Menu item 2"
+"Cstrike_Menu_Item_3"		"메뉴 아이템 3"
+"[english]Cstrike_Menu_Item_3"		"Menu item 3"
+"Cstrike_Menu_Item_4"		"메뉴 아이템 4"
+"[english]Cstrike_Menu_Item_4"		"Menu item 4"
+"Cstrike_Menu_Item_5"		"메뉴 아이템 5"
+"[english]Cstrike_Menu_Item_5"		"Menu item 5"
+"Cstrike_Menu_Item_6"		"메뉴 아이템 6"
+"[english]Cstrike_Menu_Item_6"		"Menu item 6"
+"Cstrike_Menu_Item_7"		"메뉴 아이템 7"
+"[english]Cstrike_Menu_Item_7"		"Menu item 7"
+"Cstrike_Menu_Item_8"		"메뉴 아이템 8"
+"[english]Cstrike_Menu_Item_8"		"Menu item 8"
+"Cstrike_Menu_Item_9"		"메뉴 아이템 9"
+"[english]Cstrike_Menu_Item_9"		"Menu item 9"
+"Cstrike_Mission_Briefing"		"미션 브리핑 다시보기"
+"[english]Cstrike_Mission_Briefing"		"Recap mission briefing"
+"Cstrike_Fire"		"발사"
+"[english]Cstrike_Fire"		"Fire"
+"Cstrike_Weapon_Special_Func"		"무기 특수 기능"
+"[english]Cstrike_Weapon_Special_Func"		"Weapon special function"
+"Cstrike_Drop_Weapon"		"현재 무기 버리기"
+"[english]Cstrike_Drop_Weapon"		"Drop current weapon"
+"Cstrike_Combat_Title"		"전투"
+"[english]Cstrike_Combat_Title"		"COMBAT"
+"Cstrike_Select_Team"		"팀 선택"
+"[english]Cstrike_Select_Team"		"Select team"
+"Cstrike_Corpse_Stay"		"시체가 남아있는 시간"
+"[english]Cstrike_Corpse_Stay"		"Time before dead bodies disappear"
+"Cstrike_Max_Shells"		"최대 탄피 수"
+"[english]Cstrike_Max_Shells"		"Max shells"
+"Cstrike_Max_Smoke_Puffs"		"연막효과 최대치"
+"[english]Cstrike_Max_Smoke_Puffs"		"Max smoke puffs"
+"Cstrike_Smoke_Quality"		"연막 수류탄 스프라이트 묘사"
+"[english]Cstrike_Smoke_Quality"		"Smoke Gas Grenade sprite quality"
+"Cstrike_Smoke_Best"		"그래픽 최고, 속도 느림"
+"[english]Cstrike_Smoke_Best"		"Best looking, slowest"
+"Cstrike_Smoke_Medium"		"중간 묘사"
+"[english]Cstrike_Smoke_Medium"		"Medium quality"
+"Cstrike_Smoke_Worst"		"그래픽 최저, 속도 빠름"
+"[english]Cstrike_Smoke_Worst"		"Worst looking, fastest"
+"Cstrike_Weapon_Alignment"		"무기 드는 손"
+"[english]Cstrike_Weapon_Alignment"		"Weapon alignment"
+"Cstrike_Left_Handed"		"왼손잡이"
+"[english]Cstrike_Left_Handed"		"Left handed"
+"Cstrike_Right_Handed"		"오른손잡이"
+"[english]Cstrike_Right_Handed"		"Right handed"
+"Cstrike_Buy_Menu_Type"		"구입 메뉴 종류"
+"[english]Cstrike_Buy_Menu_Type"		"Buy menu type"
+"Cstrike_Old_Style_Menus"		"이전 스타일 메뉴"
+"[english]Cstrike_Old_Style_Menus"		"Old style menus"
+"Cstrike_VGUI_Menus"		"VGUI 메뉴"
+"[english]Cstrike_VGUI_Menus"		"VGUI menus"
+"Cstrike_Automatic_Weapon_Switch"		"획득한 무기로 자동 전환(더 강력한 무기일 경우)"
+"[english]Cstrike_Automatic_Weapon_Switch"		"Automatically switch to picked up weapons (if more powerful)"
+"Cstrike_AutoHelp"		"자동 도움말"
+"[english]Cstrike_AutoHelp"		"Auto-help"
+"Cstrike_Timelimit"		"맵 지속 시간(분)"
+"[english]Cstrike_Timelimit"		"Time per map (minutes)"
+"Cstrike_WinLimit"		"승수 제한(라운드)"
+"[english]Cstrike_WinLimit"		"Win limit (rounds)"
+"Cstrike_RoundLimit"		"라운드 제한(라운드)"
+"[english]Cstrike_RoundLimit"		"Round limit (rounds)"
+"Cstrike_RoundTime"		"라운드 시간(분)"
+"[english]Cstrike_RoundTime"		"Time per round (minutes)"
+"Cstrike_FreezeTime"		"프리즈 시간(초)"
+"[english]Cstrike_FreezeTime"		"Freeze time (seconds)"
+"Cstrike_BuyTime"		"구입 시간(분)"
+"[english]Cstrike_BuyTime"		"Buy time (minutes)"
+"Cstrike_StartMoney"		"초기 소유 금액"
+"[english]Cstrike_StartMoney"		"Starting money"
+"Cstrike_Death_Camera_Type"		"데스 카메라 종류"
+"[english]Cstrike_Death_Camera_Type"		"Death camera type"
+"Cstrike_Spectate_Anyone"		"모두"
+"[english]Cstrike_Spectate_Anyone"		"Spectate anyone"
+"Cstrike_Spectate_Team_Only"		"아군만"
+"[english]Cstrike_Spectate_Team_Only"		"Spectate team only"
+"Cstrike_Only_First_Person"		"1인칭 시점만"
+"[english]Cstrike_Only_First_Person"		"Only first-person"
+"Cstrike_Fade_To_Black"		"체이스/데스 카메라 사용 안함"
+"[english]Cstrike_Fade_To_Black"		"Disable chase/death cam"
+"Cstrike_TK_Punish"		"다음 라운드에 팀 킬러 죽임"
+"[english]Cstrike_TK_Punish"		"Kill TKers on next round"
+"Cstrike_AutoKick"		"팀 킬러 및 비활동 플레이어 추방"
+"[english]Cstrike_AutoKick"		"Kick idlers and TKers"
+"Cstrike_Hostage_Penalty"		"최대 인질 사살 수"
+"[english]Cstrike_Hostage_Penalty"		"Kick after (x) hostage kills"
+"Cstrike_Allow_Flashlight"		"플래시 사용 가능"
+"[english]Cstrike_Allow_Flashlight"		"Allow flashlight"
+"Cstrike_Spec_Ter_Score"		"테러리스트 :"
+"[english]Cstrike_Spec_Ter_Score"		"Terrorists :"
+"Cstrike_Spec_CT_Score"		"대 테러리스트 :"
+"[english]Cstrike_Spec_CT_Score"		"Counter-Terrorists :"
+"Cstrike_ScoreBoard_Ter"		"테러리스트"
+"[english]Cstrike_ScoreBoard_Ter"		"Terrorists"
+"Cstrike_ScoreBoard_CT"		"대 테러리스트"
+"[english]Cstrike_ScoreBoard_CT"		"Counter-Terrorists"
+"Cstrike_ScoreBoard_Player"		"%s1    -   %s2 플레이어"
+"[english]Cstrike_ScoreBoard_Player"		"%s1    -   %s2 player"
+"Cstrike_ScoreBoard_Players"		"%s1    -   %s2 플레이어"
+"[english]Cstrike_ScoreBoard_Players"		"%s1    -   %s2 players"
+"Cstrike_DEAD"		"사망"
+"[english]Cstrike_DEAD"		"Dead"
+"Cstrike_VIP"		"VIP"
+"[english]Cstrike_VIP"		"VIP"
+"Cstrike_BOMB"		"폭탄"
+"[english]Cstrike_BOMB"		"Bomb"
+"Cstrike_cancel"		"&0 취소"
+"[english]Cstrike_cancel"		"&0 CANCEL"
+"Cstrike_cancelLabel"		"취소"
+"[english]Cstrike_cancelLabel"		"CANCEL"
+"Cstrike_OK"		"확인(&O)"
+"[english]Cstrike_OK"		"&OK"
+"Cstrike_Join_Team"		"팀 선택"
+"[english]Cstrike_Join_Team"		"SELECT TEAM"
+"Cstrike_Terrorist_Forces"		"&1 테러리스트"
+"[english]Cstrike_Terrorist_Forces"		"&1 TERRORIST FORCES"
+"Cstrike_CT_Forces"		"&2 대 테러리스트"
+"[english]Cstrike_CT_Forces"		"&2 CT FORCES"
+"Cstrike_VIP_Team"		"&3 VIP"
+"[english]Cstrike_VIP_Team"		"&3 VIP"
+"Cstrike_Team_AutoAssign"		"&5 자동 지정"
+"[english]Cstrike_Team_AutoAssign"		"&5 AUTO ASSIGN"
+"Cstrike_Menu_Spectate"		"&6 옵저버"
+"[english]Cstrike_Menu_Spectate"		"&6 SPECTATE"
+"Cstrike_Join_Class"		"클래스 선택"
+"[english]Cstrike_Join_Class"		"CHOOSE A CLASS"
+"Cstrike_Auto_Select"		"&5 자동 선택"
+"[english]Cstrike_Auto_Select"		"&5 AUTO-SELECT"
+"Cstrike_Terror"		"&1 피닉스 커넥션"
+"[english]Cstrike_Terror"		"&1 PHOENIX CONNEXION"
+"Cstrike_L337_Krew"		"&2 엘리트 요원"
+"[english]Cstrike_L337_Krew"		"&2 ELITE CREW"
+"Cstrike_Arctic"		"&3 아틱 어벤저"
+"[english]Cstrike_Arctic"		"&3 ARCTIC AVENGERS"
+"Cstrike_Guerilla"		"&4 게릴라군"
+"[english]Cstrike_Guerilla"		"&4 GUERILLA WARFARE"
+"Cstrike_map_militia"		"map cs_militia"
+"[english]Cstrike_map_militia"		"map cs_militia"
+"Cstrike_Urban"		"&1 씰 팀 6"
+"[english]Cstrike_Urban"		"&1 SEAL TEAM 6"
+"Cstrike_GSG9"		"&2 GSG-9"
+"[english]Cstrike_GSG9"		"&2 GSG-9"
+"Cstrike_SAS"		"&3 SAS"
+"[english]Cstrike_SAS"		"&3 SAS"
+"Cstrike_GIGN"		"&4 GIGN"
+"[english]Cstrike_GIGN"		"&4 GIGN"
+"Cstrike_Spetsnaz"		"&5 스페츠나츠"
+"[english]Cstrike_Spetsnaz"		"&5 SPETSNAZ"
+"Cstrike_Terror_Name"		"피닉스 팩션"
+"[english]Cstrike_Terror_Name"		"THE PHOENIX FACTION"
+"Cstrike_Leet_Name"		"ELITE_CREW"
+"[english]Cstrike_Leet_Name"		"ELITE_CREW"
+"Cstrike_Arctic_Name"		"아틱 어벤저"
+"[english]Cstrike_Arctic_Name"		"ARCTIC AVENGERS"
+"Cstrike_Guerilla_Name"		"게릴라군"
+"[english]Cstrike_Guerilla_Name"		"GUERILLA WARFARE"
+"Cstrike_Militia_Name"		"중서부 민병대"
+"[english]Cstrike_Militia_Name"		"MIDWEST MILITIA"
+"Cstrike_Urban_Name"		"씰 팀 6"
+"[english]Cstrike_Urban_Name"		"SEAL TEAM 6"
+"Cstrike_GSG9_Name"		"GSG-9(GRENZSCHUTZGRUPPE-9)"
+"[english]Cstrike_GSG9_Name"		"GRENZSCHUTZGRUPPE-9"
+"Cstrike_SAS_Name"		"SAS(BRITISH SPECIAL AIR SERVICE)"
+"[english]Cstrike_SAS_Name"		"BRITISH SPECIAL AIR SERVICE"
+"Cstrike_GIGN_Name"		"GIGN(GROUPE D'INTERVENTION DE LA GENDARMERIE NATIONALE)"
+"[english]Cstrike_GIGN_Name"		"GROUPE D'INTERVENTION DE LA GENDARMERIE NATIONALE"
+"Cstrike_Spetsnaz_Name"		"스페츠나츠"
+"[english]Cstrike_Spetsnaz_Name"		"SPETSNAZ"
+"Cstrike_Autoselect_Name"		"캐릭터 클래스 랜덤 선택"
+"[english]Cstrike_Autoselect_Name"		"RANDOMLY SELECT A CHARACTER CLASS"
+"Cstrike_Terror_Label"		"앞을 막는 자는 누구든 없애버린다는 평판을 얻고 있는 피닉스 팩션은
+동유럽에서 가장 위협적인 테러리스트 그룹 중의 하나임.
+이들은 구소련 붕괴 직후 생겨난 것으로 알려져 있음."
+"[english]Cstrike_Terror_Label"		"Having established a reputation for killing anyone that 
+gets in their way, the Phoenix Faction is one of 
+the most feared terrorist groups in Eastern Europe. 
+Formed shortly after the breakup of the USSR. "
+"Cstrike_Leet_Label"		"세계 정복을 비롯한 다양한 야망을 품고 있는 중동의 근본주의자들."
+"[english]Cstrike_Leet_Label"		"Middle Eastern fundamentalist group bent on world 
+domination and various other evil deeds."
+"Cstrike_Arctic_Label"		"1977년에 생겨난 스웨덴의 테러리스트 조직. 1990년에 발생한 캐나다
+대사관 폭파 사건으로 유명함."
+"[english]Cstrike_Arctic_Label"		"Swedish terrorist faction founded in 1977. Famous for 
+their bombing of the Canadian embassy in 1990."
+"Cstrike_Guerilla_Label"		"잔인하기로 유명한 중동의 테러리스트 조직. 1982년에 로큰롤
+뮤지션들이 타고 있던 학교 버스를 폭파함으로써 그들의
+미국식 생활 방식에 대한 증오심을 나타낸 바 있음."
+"[english]Cstrike_Guerilla_Label"		"A terrorist faction founded in the Middle East, this 
+group has a reputation for ruthlessness. Their 
+disgust for the American lifestyle was demonstrated in 
+their 1982 bombing of a school bus full of Rock and Roll 
+musicians."
+"Cstrike_Militia_Label"		"중서부 민병대는 정규 및 비정규적인 준군사 무장 
+단체로 구성된 과격한 극우 운동입니다.
+이 반정부 집단은 텍사스의 웨이코 사건 직후인 
+1993년에 조직되었습니다."
+"[english]Cstrike_Militia_Label"		"The Midwest Militia is a right-wing extremist movement
+consisting of formal and informal armed paramilitary groups.
+This anti-government group was founded in 1993 after the
+standoff in Waco, Texas."
+"Cstrike_Urban_Label"		"1980년 리차드 마르신코 소령의 지휘하에 조직된 ST-6
+(이후 DEVGRU로 변경됨)는 전세계에 위치한 미국 목표물을 보호하기
+위해 항시 가동되고 있음"
+"[english]Cstrike_Urban_Label"		"ST-6 (to be known later as DEVGRU) was founded in 1980 
+under the command of Lieutenant-Commander Richard 
+Marcincko. ST-6 was placed on permanent alert to respond 
+to terrorist attacks against American targets worldwide."
+"Cstrike_GSG9_Label"		"1972년 독일 뮌헨 올림픽 도중 발생한 테러리스트 공격으로 이스라엘의
+운동 선수들이 희생 당한 이후 결성된 대테러 부대."
+"[english]Cstrike_GSG9_Label"		"GSG-9 was born out of the tragic events that led to the 
+death of several Israeli athletes during the 
+1972 Olympic games in Munich, Germany."
+"Cstrike_SAS_Label"		"전세계적으로 유명한 영국의 SAS는 2차 세계 대전 도중 데이빗 스털링
+이란 인물에 의해 조직되었음. 2차 세계 대전 당시 이 부대의 역할은
+적의 후방 깊숙이 침투하여 정보를 수집하고 주요 목표물에 대한
+사보타주 및 암살 임무를 수행하는 것이었음."
+"[english]Cstrike_SAS_Label"		"The world-renowned British SAS was founded in the Second 
+World War by a man named David Stirling. Their 
+role during WW2 involved gathering intelligence behind 
+enemy lines and executing sabotage strikes and 
+assassinations against key targets."
+"Cstrike_GIGN_Label"		"프랑스의 엘리트 대테러 부대인 GIGN은 어떠한 규모의 테러리스트
+공격에 대해서도 신속하게 대응할 수 있도록 구성되어 있음.
+100명 정도의 인원으로 구성된 GIGN은 그 동안 다양한 임무를
+성공적으로 수행함으로써 명성을 얻게 되었음."
+"[english]Cstrike_GIGN_Label"		"France's elite Counter-Terrorist unit, the GIGN, was 
+designed to be a fast response force that could 
+decisively react to any large-scale terrorist incident. 
+Consisting of no more than 100 men, the GIGN has earned 
+its reputation through a history of successful ops."
+"Cstrike_Spetsnaz_Label"		" 러시아 스페츠나츠의 주요 임무는 다음과 같습니다.
+주요 경제 및 군사 시설에 대한 첩보 활동 및 파괴 
+공작 또는 무력화, 내부 방해 공작 및 전향 선동, 
+저항 세력 응징 작전 수행, 해외 반란군 조직 
+및 훈련 등이 있습니다."
+"[english]Cstrike_Spetsnaz_Label"		"The primary missions of the Russian SPETSNAZ are:
+acquiring intelligence on major economic and military
+installations and either destroying them or putting them out
+of action, organizing sabotage and acts of subversion;
+carrying out punitive operations against rebels; forming and
+training insurgent detachments, etc."
+"Cstrike_AutoSelect_Label"		"자동 선택을 클릭하면 캐릭터 모델을 임의로 선택하게 됩니다."
+"[english]Cstrike_AutoSelect_Label"		"Auto-Select randomly selects a character model."
+"Cstrike_Select_Category"		"종류별 구입"
+"[english]Cstrike_Select_Category"		"SHOP BY CATEGORY"
+"Cstrike_Pistols"		"&1  권총"
+"[english]Cstrike_Pistols"		"&1 PISTOLS"
+"Cstrike_Shotguns"		"&2  샷건"
+"[english]Cstrike_Shotguns"		"&2 SHOTGUNS"
+"Cstrike_SubMachineGuns"		"&3  기관단총"
+"[english]Cstrike_SubMachineGuns"		"&3 SMG"
+"Cstrike_Rifles"		"&4  소총"
+"[english]Cstrike_Rifles"		"&4 RIFLES"
+"Cstrike_MachineGuns"		"&5  기관총"
+"[english]Cstrike_MachineGuns"		"&5 MACHINE GUNS"
+"Cstrike_Prim_Ammo"		"&6  주 탄약"
+"[english]Cstrike_Prim_Ammo"		"&6 PRIMARY AMMO"
+"Cstrike_Sec_Ammo"		"&7  보조 탄약"
+"[english]Cstrike_Sec_Ammo"		"&7 SECONDARY AMMO"
+"Cstrike_Equipment"		"&8  장비"
+"[english]Cstrike_Equipment"		"&8 EQUIPMENT"
+"Cstrike_PistolsLabel"		"권총 구입(보조 무기)"
+"[english]Cstrike_PistolsLabel"		"BUY PISTOLS (SECONDARY WEAPON)"
+"Cstrike_ShotgunsLabel"		"샷건 구입(주 무기)"
+"[english]Cstrike_ShotgunsLabel"		"BUY SHOTGUNS (PRIMARY WEAPON)"
+"Cstrike_SubmachinegunsLabel"		"기관단총(주 무기)"
+"[english]Cstrike_SubmachinegunsLabel"		"BUY SUBMACHINE GUNS (PRIMARY WEAPON)"
+"Cstrike_RiflesLabel"		"소총 구입(주 무기)"
+"[english]Cstrike_RiflesLabel"		"BUY RIFLES (PRIMARY WEAPON)"
+"Cstrike_MachinegunsLabel"		"기관총 구입(주 무기)"
+"[english]Cstrike_MachinegunsLabel"		"BUY MACHINE GUNS (PRIMARY WEAPON)"
+"Cstrike_PrimaryammoLabel"		"주 무기 탄약 구입"
+"[english]Cstrike_PrimaryammoLabel"		"BUY AMMO FOR PRIMARY WEAPON"
+"Cstrike_SecammoLabel"		"보조 무기 탄약 구입"
+"[english]Cstrike_SecammoLabel"		"BUY AMMO FOR SECONDARY WEAPON"
+"Cstrike_EquipmentLabel"		"장비 구입"
+"[english]Cstrike_EquipmentLabel"		"BUY EQUIPMENT"
+"Cstrike_Select_Pistol"		"권총 선택"
+"[english]Cstrike_Select_Pistol"		"SELECT A PISTOL"
+"Cstrike_Glock18"		"&1  9X19MM 사이드암"
+"[english]Cstrike_Glock18"		"&1 9X19MM SIDEARM"
+"Cstrike_USP45"		"&2  K&M .45 택티컬"
+"[english]Cstrike_USP45"		"&2 K&M .45 TACTICAL"
+"Cstrike_P228"		"&3  228 컴팩트"
+"[english]Cstrike_P228"		"&3 228 COMPACT"
+"Cstrike_DesertEagle"		"&4  나이트 호크 .50C"
+"[english]Cstrike_DesertEagle"		"&4 NIGHT HAWK .50C"
+"Cstrike_FiveSeven"		"&5  ES 파이브-세븐"
+"[english]Cstrike_FiveSeven"		"&5 ES FIVE-SEVEN"
+"Cstrike_Elites"		"&5 .40 듀얼 엘리트"
+"[english]Cstrike_Elites"		"&5 .40 DUAL ELITES"
+"Cstrike_m3"		"&1  레오네 12 게이지 슈퍼"
+"[english]Cstrike_m3"		"&1 LEONE 12 GAUGE SUPER"
+"Cstrike_xm1014"		"&2  레오네 YG1265 자동 샷건"
+"[english]Cstrike_xm1014"		"&2 LEONE YG1265 AUTO SHOTGUN"
+"Cstrike_Tmp"		"&1  슈미트 머신 피스톨"
+"[english]Cstrike_Tmp"		"&1 SCHMIDT MACHINE PISTOL"
+"Cstrike_MP5"		"&2  K&M 기관단총"
+"[english]Cstrike_MP5"		"&2 K&M SUB-MACHINE GUN"
+"Cstrike_UMP45"		"&3  K&M UMP45"
+"[english]Cstrike_UMP45"		"&3 K&M UMP45"
+"Cstrike_P90"		"&4  ES C90"
+"[english]Cstrike_P90"		"&4 ES C90"
+"Cstrike_MAC10"		"&1  잉그람 MAC-10"
+"[english]Cstrike_MAC10"		"&1 INGRAM MAC-10"
+"Cstrike_Scout_CT"		"&2  슈미트 스카우트"
+"[english]Cstrike_Scout_CT"		"&2 SCHMIDT SCOUT"
+"Cstrike_Scout_TER"		"&3  슈미트 스카우트"
+"[english]Cstrike_Scout_TER"		"&3 SCHMIDT SCOUT"
+"Cstrike_M4A1"		"&3  매버릭 M4A1 카빈"
+"[english]Cstrike_M4A1"		"&3 MAVERICK M4A1 CARBINE"
+"Cstrike_Aug"		"&4  불펍"
+"[english]Cstrike_Aug"		"&4 BULLPUP"
+"Cstrike_SG550"		"&5  크릭 550 코맨도"
+"[english]Cstrike_SG550"		"&5 KRIEG 550 COMMANDO"
+"Cstrike_SG552"		"&4  크릭 552"
+"[english]Cstrike_SG552"		"&4 KRIEG 552"
+"Cstrike_AWP_CT"		"&6  매그넘 스나이퍼 라이플"
+"[english]Cstrike_AWP_CT"		"&6 MAGNUM SNIPER RIFLE"
+"Cstrike_AWP_TER"		"&5  매그넘 스나이퍼 라이플"
+"[english]Cstrike_AWP_TER"		"&5 MAGNUM SNIPER RIFLE"
+"Cstrike_AK47"		"&2  CV-47"
+"[english]Cstrike_AK47"		"&2 CV-47"
+"Cstrike_G3SG1"		"&6  D3/AU-1"
+"[english]Cstrike_G3SG1"		"&6 D3/AU-1"
+"Cstrike_M249"		"&1  M249"
+"[english]Cstrike_M249"		"&1 M249"
+"Cstrike_Kevlar"		"&1  케블러"
+"[english]Cstrike_Kevlar"		"&1 KEVLAR"
+"Cstrike_Kevlar_Helmet"		"&2  케블러+헬멧"
+"[english]Cstrike_Kevlar_Helmet"		"&2 KEVLAR+HELMET"
+"Cstrike_Flashbang"		"&3  플래시뱅"
+"[english]Cstrike_Flashbang"		"&3 FLASHBANG"
+"Cstrike_HE_Grenade"		"&4  HE 수류탄"
+"[english]Cstrike_HE_Grenade"		"&4 HE GRENADE"
+"Cstrike_Smoke_Grenade"		"&5  연막 수류탄"
+"[english]Cstrike_Smoke_Grenade"		"&5 SMOKE GRENADE"
+"Cstrike_Defuser"		"&6  폭탄 해체 키트"
+"[english]Cstrike_Defuser"		"&6 DEFUSAL KIT"
+"Cstrike_NightVision_Button_CT"		"&7  야간 투시경"
+"[english]Cstrike_NightVision_Button_CT"		"&7 NIGHTVISION"
+"Cstrike_NightVision_Button_TER"		"&6  야간 투시경"
+"[english]Cstrike_NightVision_Button_TER"		"&6 NIGHTVISION"
+"Cstrike_Shield"		"&8  전술 방패"
+"[english]Cstrike_Shield"		"&8 TACTICAL SHIELD"
+"CStrike_PriceLabel"		"가격"
+"[english]CStrike_PriceLabel"		"PRICE"
+"CStrike_OriginLabel"		"원산지"
+"[english]CStrike_OriginLabel"		"COUNTRY OF ORIGIN"
+"CStrike_CalibreLabel"		"구경"
+"[english]CStrike_CalibreLabel"		"CALIBER"
+"CStrike_ClipCapacityLabel"		"장탄수"
+"[english]CStrike_ClipCapacityLabel"		"CLIP CAPACITY"
+"CStrike_RateOfFireLabel"		"연사속도"
+"[english]CStrike_RateOfFireLabel"		"RATE OF FIRE"
+"CStrike_WeightLoadedLabel"		"무게(장전시)"
+"[english]CStrike_WeightLoadedLabel"		"WEIGHT (LOADED)"
+"CStrike_WeightEmptyLabel"		"무게(비 장전시)"
+"[english]CStrike_WeightEmptyLabel"		"WEIGHT (EMPTY)"
+"CStrike_ProjectileWeightLabel"		"탄약 무게"
+"[english]CStrike_ProjectileWeightLabel"		"PROJECTILE WEIGHT"
+"CStrike_MuzzleVelocityLabel"		"탄환 초속"
+"[english]CStrike_MuzzleVelocityLabel"		"MUZZLE VELOCITY"
+"CStrike_MuzzleEnergyLabel"		"탄환 에너지"
+"[english]CStrike_MuzzleEnergyLabel"		"MUZZLE ENERGY"
+"Cstrike_DescriptionLabel"		"설명"
+"[english]Cstrike_DescriptionLabel"		"DESCRIPTION"
+"CStrike_GlockPrice"		": $400"
+"[english]CStrike_GlockPrice"		": $400"
+"CStrike_GlockOrigin"		": 오스트리아"
+"[english]CStrike_GlockOrigin"		": AUSTRIA"
+"CStrike_GlockCalibre"		": 9MM 파라벨럼"
+"[english]CStrike_GlockCalibre"		": 9MM PARABELLUM"
+"CStrike_GlockClipCapacity"		": 20 발"
+"[english]CStrike_GlockClipCapacity"		": 20 ROUNDS"
+"CStrike_GlockRateOfFire"		": 해당없음"
+"[english]CStrike_GlockRateOfFire"		": N/A"
+"CStrike_GlockWeightLoaded"		": 0.9KG"
+"[english]CStrike_GlockWeightLoaded"		": 0.9KG"
+"CStrike_GlockProjectileWeight"		": 8 그램"
+"[english]CStrike_GlockProjectileWeight"		": 8 GRAMS"
+"CStrike_GlockMuzzleVelocity"		": 1132 피트/초"
+"[english]CStrike_GlockMuzzleVelocity"		": 1132 FEET/SECOND"
+"CStrike_GlockMuzzleEnergy"		": 475 줄(J)"
+"[english]CStrike_GlockMuzzleEnergy"		": 475 JOULES"
+"CStrike_USP45Price"		": $500"
+"[english]CStrike_USP45Price"		": $500"
+"CStrike_USP45Origin"		": 독일"
+"[english]CStrike_USP45Origin"		": GERMANY"
+"CStrike_USP45Calibre"		": .45 ACP"
+"[english]CStrike_USP45Calibre"		": .45 ACP"
+"CStrike_USP45ClipCapacity"		": 12 발"
+"[english]CStrike_USP45ClipCapacity"		": 12 ROUNDS"
+"CStrike_USP45RateOfFire"		": 해당없음"
+"[english]CStrike_USP45RateOfFire"		": N/A"
+"CStrike_USP45WeightEmpty"		": 1KG"
+"[english]CStrike_USP45WeightEmpty"		": 1KG"
+"CStrike_USP45ProjectileWeight"		": 15.2 그램"
+"[english]CStrike_USP45ProjectileWeight"		": 15.2 GRAMS"
+"CStrike_USP45MuzzleVelocity"		": 886 피트/초"
+"[english]CStrike_USP45MuzzleVelocity"		": 886 FEET/SECOND"
+"CStrike_USP45MuzzleEnergy"		": 553 줄(J)"
+"[english]CStrike_USP45MuzzleEnergy"		": 553 JOULES"
+"CStrike_P228Price"		": $600"
+"[english]CStrike_P228Price"		": $600"
+"CStrike_P228Origin"		": 스위스/독일"
+"[english]CStrike_P228Origin"		": SWITZERLAND/GERMANY"
+"CStrike_P228Calibre"		": .357 SIG"
+"[english]CStrike_P228Calibre"		": .357 SIG"
+"CStrike_P228ClipCapacity"		": 13 발"
+"[english]CStrike_P228ClipCapacity"		": 13 ROUNDS"
+"CStrike_P228RateOfFire"		": 해당없음"
+"[english]CStrike_P228RateOfFire"		": N/A"
+"CStrike_P228WeightLoaded"		": 1.03KG"
+"[english]CStrike_P228WeightLoaded"		": 1.03KG"
+"CStrike_P228ProjectileWeight"		": 8.1 그램"
+"[english]CStrike_P228ProjectileWeight"		": 8.1 GRAMS"
+"CStrike_P228MuzzleVelocity"		": 1400 피트/초"
+"[english]CStrike_P228MuzzleVelocity"		": 1400 FEET/SECOND"
+"CStrike_P228MuzzleEnergy"		": 600 줄(J)"
+"[english]CStrike_P228MuzzleEnergy"		": 600 JOULES"
+"CStrike_DesertEaglePrice"		": $650"
+"[english]CStrike_DesertEaglePrice"		": $650"
+"CStrike_DesertEagleOrigin"		": 이스라엘"
+"[english]CStrike_DesertEagleOrigin"		": ISRAEL"
+"CStrike_DesertEagleCalibre"		": .50 액션 익스프레스"
+"[english]CStrike_DesertEagleCalibre"		": .50 ACTION EXPRESS"
+"CStrike_DesertEagleClipCapacity"		": 7 발"
+"[english]CStrike_DesertEagleClipCapacity"		": 7 ROUNDS"
+"CStrike_DesertEagleRateOfFire"		": 해당없음"
+"[english]CStrike_DesertEagleRateOfFire"		": N/A"
+"CStrike_DesertEagleWeightLoaded"		": 1.8KG"
+"[english]CStrike_DesertEagleWeightLoaded"		": 1.8KG"
+"CStrike_DesertEagleProjectileWeight"		": 19.4 그램"
+"[english]CStrike_DesertEagleProjectileWeight"		": 19.4 GRAMS"
+"CStrike_DesertEagleMuzzleVelocity"		": 1380 피트/초"
+"[english]CStrike_DesertEagleMuzzleVelocity"		": 1380 FEET/SECOND"
+"CStrike_DesertEagleMuzzleEnergy"		": 1650 줄(J)"
+"[english]CStrike_DesertEagleMuzzleEnergy"		": 1650 JOULES"
+"CStrike_FiveSevenPrice"		": $750"
+"[english]CStrike_FiveSevenPrice"		": $750"
+"CStrike_FiveSevenOrigin"		": 벨기에"
+"[english]CStrike_FiveSevenOrigin"		": BELGIUM"
+"CStrike_FiveSevenCalibre"		": 5.7 X 28MM"
+"[english]CStrike_FiveSevenCalibre"		": 5.7 X 28MM"
+"CStrike_FiveSevenClipCapacity"		": 20 발"
+"[english]CStrike_FiveSevenClipCapacity"		": 20 ROUNDS"
+"CStrike_FiveSevenRateOfFire"		": 해당없음"
+"[english]CStrike_FiveSevenRateOfFire"		": N/A"
+"CStrike_FiveSevenWeightLoaded"		": 0.618KG"
+"[english]CStrike_FiveSevenWeightLoaded"		": 0.618KG"
+"CStrike_FiveSevenProjectileWeight"		": 2 그램"
+"[english]CStrike_FiveSevenProjectileWeight"		": 2 GRAMS"
+"CStrike_FiveSevenMuzzleVelocity"		": 2345 피트/초"
+"[english]CStrike_FiveSevenMuzzleVelocity"		": 2345 FEET/SECOND"
+"CStrike_FiveSevenMuzzleEnergy"		": 465 줄(J)"
+"[english]CStrike_FiveSevenMuzzleEnergy"		": 465 JOULES"
+"CStrike_ElitesPrice"		": $800"
+"[english]CStrike_ElitesPrice"		": $800"
+"CStrike_ElitesOrigin"		": 이탈리아"
+"[english]CStrike_ElitesOrigin"		": ITALY"
+"CStrike_ElitesCalibre"		": 9MM 파라벨럼"
+"[english]CStrike_ElitesCalibre"		": 9MM PARABELLUM"
+"CStrike_ElitesClipCapacity"		": 15 발"
+"[english]CStrike_ElitesClipCapacity"		": 15 ROUNDS"
+"CStrike_ElitesRateOfFire"		": 해당없음"
+"[english]CStrike_ElitesRateOfFire"		": N/A"
+"CStrike_ElitesWeightLoaded"		": 1.15KG"
+"[english]CStrike_ElitesWeightLoaded"		": 1.15KG"
+"CStrike_ElitesProjectileWeight"		": 8 그램"
+"[english]CStrike_ElitesProjectileWeight"		": 8 GRAMS"
+"CStrike_ElitesMuzzleVelocity"		": 1280 피트/초"
+"[english]CStrike_ElitesMuzzleVelocity"		": 1280 FEET/SECOND"
+"CStrike_ElitesMuzzleEnergy"		": 606 줄(J)"
+"[english]CStrike_ElitesMuzzleEnergy"		": 606 JOULES"
+"CStrike_M3Price"		": $1700"
+"[english]CStrike_M3Price"		": $1700"
+"CStrike_M3Origin"		": 이탈리아"
+"[english]CStrike_M3Origin"		": ITALY"
+"CStrike_M3Calibre"		": 12 게이지"
+"[english]CStrike_M3Calibre"		": 12 GAUGE"
+"CStrike_M3ClipCapacity"		": 8 발"
+"[english]CStrike_M3ClipCapacity"		": 8 ROUNDS"
+"CStrike_M3RateOfFire"		": 해당없음"
+"[english]CStrike_M3RateOfFire"		": N/A"
+"CStrike_M3WeightEmpty"		": 3.5KG"
+"[english]CStrike_M3WeightEmpty"		": 3.5KG"
+"CStrike_M3ProjectileWeight"		": 3.8 그램"
+"[english]CStrike_M3ProjectileWeight"		": 3.8 GRAMS"
+"CStrike_M3MuzzleVelocity"		": 1250 피트/초"
+"[english]CStrike_M3MuzzleVelocity"		": 1250 FEET/SECOND"
+"CStrike_M3MuzzleEnergy"		": 2429 줄(J)"
+"[english]CStrike_M3MuzzleEnergy"		": 2429 JOULES"
+"CStrike_XM1014Price"		": $3000"
+"[english]CStrike_XM1014Price"		": $3000"
+"CStrike_XM1014Origin"		": 이탈리아"
+"[english]CStrike_XM1014Origin"		": ITALY"
+"CStrike_XM1014Calibre"		": 12 게이지"
+"[english]CStrike_XM1014Calibre"		": 12 GAUGE"
+"CStrike_XM1014ClipCapacity"		": 7 발"
+"[english]CStrike_XM1014ClipCapacity"		": 7 ROUNDS"
+"CStrike_XM1014RateOfFire"		": 분당 400 발"
+"[english]CStrike_XM1014RateOfFire"		": 400 RPM"
+"CStrike_XM1014WeightEmpty"		": 4KG"
+"[english]CStrike_XM1014WeightEmpty"		": 4KG"
+"CStrike_XM1014ProjectileWeight"		": 3.8 그램/펠렛"
+"[english]CStrike_XM1014ProjectileWeight"		": 3.8 GRAMS/PELLET"
+"CStrike_XM1014MuzzleVelocity"		": 1250 피트/초"
+"[english]CStrike_XM1014MuzzleVelocity"		": 1250 FEET/SECOND"
+"CStrike_XM1014MuzzleEnergy"		": 2429 줄(J)"
+"[english]CStrike_XM1014MuzzleEnergy"		": 2429 JOULES"
+"CStrike_TMPPrice"		": $1250"
+"[english]CStrike_TMPPrice"		": $1250"
+"CStrike_TMPOrigin"		": 오스트리아"
+"[english]CStrike_TMPOrigin"		": AUSTRIA"
+"CStrike_TMPCalibre"		": 9MM 파라벨럼"
+"[english]CStrike_TMPCalibre"		": 9MM PARABELLUM"
+"CStrike_TMPClipCapacity"		": 30 발"
+"[english]CStrike_TMPClipCapacity"		": 30 ROUNDS"
+"CStrike_TMPRateOfFire"		": 분당 857 발"
+"[english]CStrike_TMPRateOfFire"		": 857 RPM"
+"CStrike_TMPWeightEmpty"		": 1.3KG"
+"[english]CStrike_TMPWeightEmpty"		": 1.3KG"
+"CStrike_TMPProjectileWeight"		": 8 그램"
+"[english]CStrike_TMPProjectileWeight"		": 8 GRAMS"
+"CStrike_TMPMuzzleVelocity"		": 1280 피트/초"
+"[english]CStrike_TMPMuzzleVelocity"		": 1280 FEET/SECOND"
+"CStrike_TMPMuzzleEnergy"		": 606 줄(J)"
+"[english]CStrike_TMPMuzzleEnergy"		": 606 JOULES"
+"CStrike_MP5Price"		": $1500"
+"[english]CStrike_MP5Price"		": $1500"
+"CStrike_MP5Origin"		": 독일"
+"[english]CStrike_MP5Origin"		": GERMANY"
+"CStrike_MP5Calibre"		": 9MM 파라벨럼"
+"[english]CStrike_MP5Calibre"		": 9MM PARABELLUM"
+"CStrike_MP5ClipCapacity"		": 30 발"
+"[english]CStrike_MP5ClipCapacity"		": 30 ROUNDS"
+"CStrike_MP5RateOfFire"		": 분당 800 발"
+"[english]CStrike_MP5RateOfFire"		": 800 RPM"
+"CStrike_MP5WeightEmpty"		": 3.42KG"
+"[english]CStrike_MP5WeightEmpty"		": 3.42KG"
+"CStrike_MP5ProjectileWeight"		": 8 그램"
+"[english]CStrike_MP5ProjectileWeight"		": 8 GRAMS"
+"CStrike_MP5MuzzleVelocity"		": 1132 피트/초"
+"[english]CStrike_MP5MuzzleVelocity"		": 1132 FEET/SECOND"
+"CStrike_MP5MuzzleEnergy"		": 637 줄(J)"
+"[english]CStrike_MP5MuzzleEnergy"		": 637 JOULES"
+"CStrike_Mac10Price"		": $1400"
+"[english]CStrike_Mac10Price"		": $1400"
+"CStrike_Mac10Origin"		": 미국"
+"[english]CStrike_Mac10Origin"		": UNITED STATES OF AMERICA"
+"CStrike_Mac10Calibre"		": .45 ACP"
+"[english]CStrike_Mac10Calibre"		": .45 ACP"
+"CStrike_Mac10ClipCapacity"		": 30 발"
+"[english]CStrike_Mac10ClipCapacity"		": 30 ROUNDS"
+"CStrike_Mac10RateOfFire"		": 분당 857 발"
+"[english]CStrike_Mac10RateOfFire"		": 857 RPM"
+"CStrike_Mac10WeightLoaded"		": 3.82 KG"
+"[english]CStrike_Mac10WeightLoaded"		": 3.82 KG"
+"CStrike_Mac10ProjectileWeight"		": 15.2 그램"
+"[english]CStrike_Mac10ProjectileWeight"		": 15.2 GRAMS"
+"CStrike_Mac10MuzzleVelocity"		": 919 피트/초"
+"[english]CStrike_Mac10MuzzleVelocity"		": 919 FEET/SECOND"
+"CStrike_Mac10MuzzleEnergy"		": 584 줄(J)"
+"[english]CStrike_Mac10MuzzleEnergy"		": 584 JOULES"
+"CStrike_UMP45Price"		": $1700"
+"[english]CStrike_UMP45Price"		": $1700"
+"CStrike_UMP45Origin"		": 독일"
+"[english]CStrike_UMP45Origin"		": GERMANY"
+"CStrike_UMP45Calibre"		": .45 ACP"
+"[english]CStrike_UMP45Calibre"		": .45 ACP"
+"CStrike_UMP45ClipCapacity"		": 25 발"
+"[english]CStrike_UMP45ClipCapacity"		": 25 ROUNDS"
+"CStrike_UMP45RateOfFire"		": 분당 600 발"
+"[english]CStrike_UMP45RateOfFire"		": 600 RPM"
+"CStrike_UMP45WeightLoaded"		": 2.27KG"
+"[english]CStrike_UMP45WeightLoaded"		": 2.27KG"
+"CStrike_UMP45ProjectileWeight"		": 15.2 그램"
+"[english]CStrike_UMP45ProjectileWeight"		": 15.2 GRAMS"
+"CStrike_UMP45MuzzleVelocity"		": 1005 피트/초"
+"[english]CStrike_UMP45MuzzleVelocity"		": 1005 FEET/SECOND"
+"CStrike_UMP45MuzzleEnergy"		": 625 줄(J)"
+"[english]CStrike_UMP45MuzzleEnergy"		": 625 JOULES"
+"CStrike_P90Price"		": $2350"
+"[english]CStrike_P90Price"		": $2350"
+"CStrike_P90Origin"		": 벨기에"
+"[english]CStrike_P90Origin"		": BELGIUM"
+"CStrike_P90Calibre"		": .338 라푸아 매그넘"
+"[english]CStrike_P90Calibre"		": .338 LAPUA MAGNUM"
+"CStrike_P90ClipCapacity"		": 50 발"
+"[english]CStrike_P90ClipCapacity"		": 50 ROUNDS"
+"CStrike_P90RateOfFire"		": 분당 900 발"
+"[english]CStrike_P90RateOfFire"		": 900 RPM"
+"CStrike_P90WeightLoaded"		": 3KG"
+"[english]CStrike_P90WeightLoaded"		": 3KG"
+"CStrike_P90ProjectileWeight"		": 2 그램"
+"[english]CStrike_P90ProjectileWeight"		": 2 GRAMS"
+"CStrike_P90MuzzleVelocity"		": 2345 피트/초"
+"[english]CStrike_P90MuzzleVelocity"		": 2345 FEET/SECOND"
+"CStrike_P90MuzzleEnergy"		": 465 줄(J)"
+"[english]CStrike_P90MuzzleEnergy"		": 465 JOULES"
+"CStrike_FamasPrice"		": $2250"
+"[english]CStrike_FamasPrice"		": $2250"
+"CStrike_FamasOrigin"		": 프랑스"
+"[english]CStrike_FamasOrigin"		": FRANCE"
+"CStrike_FamasCalibre"		": 5.56 NATO"
+"[english]CStrike_FamasCalibre"		": 5.56 NATO"
+"CStrike_FamasClipCapacity"		": 25 발"
+"[english]CStrike_FamasClipCapacity"		": 25 ROUNDS"
+"CStrike_FamasRateOfFire"		": 분당 1100 발"
+"[english]CStrike_FamasRateOfFire"		": 1100 RPM"
+"CStrike_FamasWeightLoaded"		": 3.40KG"
+"[english]CStrike_FamasWeightLoaded"		": 3.40KG"
+"CStrike_FamasProjectileWeight"		": 4 그램"
+"[english]CStrike_FamasProjectileWeight"		": 4 GRAMS"
+"CStrike_FamasMuzzleVelocity"		": 2212 피트/초"
+"[english]CStrike_FamasMuzzleVelocity"		": 2212 FEET/SECOND"
+"CStrike_FamasMuzzleEnergy"		": 1712 줄(J)"
+"[english]CStrike_FamasMuzzleEnergy"		": 1712 JOULES"
+"CStrike_ScoutPrice"		": $2750"
+"[english]CStrike_ScoutPrice"		": $2750"
+"CStrike_ScoutOrigin"		": 오스트리아"
+"[english]CStrike_ScoutOrigin"		": AUSTRIA"
+"CStrike_ScoutCalibre"		": 7.62 NATO"
+"[english]CStrike_ScoutCalibre"		": 7.62 NATO"
+"CStrike_ScoutClipCapacity"		": 10 발"
+"[english]CStrike_ScoutClipCapacity"		": 10 ROUNDS"
+"CStrike_ScoutRateOfFire"		": 해당없음"
+"[english]CStrike_ScoutRateOfFire"		": N/A"
+"CStrike_ScoutWeightEmpty"		": 3.3KG"
+"[english]CStrike_ScoutWeightEmpty"		": 3.3KG"
+"CStrike_ScoutProjectileWeight"		": 8 그램"
+"[english]CStrike_ScoutProjectileWeight"		": 8 GRAMS"
+"CStrike_ScoutMuzzleVelocity"		": 2800 피트/초"
+"[english]CStrike_ScoutMuzzleVelocity"		": 2800 FEET/SECOND"
+"CStrike_ScoutMuzzleEnergy"		": 2200 줄(J)"
+"[english]CStrike_ScoutMuzzleEnergy"		": 2200 JOULES"
+"CStrike_AK47Price"		": $2500"
+"[english]CStrike_AK47Price"		": $2500"
+"CStrike_AK47Origin"		": 러시아"
+"[english]CStrike_AK47Origin"		": RUSSIA"
+"CStrike_AK47Calibre"		": 7.62 NATO"
+"[english]CStrike_AK47Calibre"		": 7.62 NATO"
+"CStrike_AK47ClipCapacity"		": 30 발"
+"[english]CStrike_AK47ClipCapacity"		": 30 ROUNDS"
+"CStrike_AK47RateOfFire"		": 분당 600 발"
+"[english]CStrike_AK47RateOfFire"		": 600 RPM"
+"CStrike_AK47WeightLoaded"		": 4.79KG"
+"[english]CStrike_AK47WeightLoaded"		": 4.79KG"
+"CStrike_AK47ProjectileWeight"		": 7.9 그램"
+"[english]CStrike_AK47ProjectileWeight"		": 7.9 GRAMS"
+"CStrike_AK47MuzzleVelocity"		": 2329 피트/초"
+"[english]CStrike_AK47MuzzleVelocity"		": 2329 FEET/SECOND"
+"CStrike_AK47MuzzleEnergy"		": 1992 줄(J)"
+"[english]CStrike_AK47MuzzleEnergy"		": 1992 JOULES"
+"CStrike_GalilPrice"		": $2000"
+"[english]CStrike_GalilPrice"		": $2000"
+"CStrike_GalilOrigin"		": 이스라엘"
+"[english]CStrike_GalilOrigin"		": ISRAEL"
+"CStrike_GalilCalibre"		": .308"
+"[english]CStrike_GalilCalibre"		": .308"
+"CStrike_GalilClipCapacity"		": 35 발"
+"[english]CStrike_GalilClipCapacity"		": 35 ROUNDS"
+"CStrike_GalilRateOfFire"		": 분당 675 발"
+"[english]CStrike_GalilRateOfFire"		": 675 RPM"
+"CStrike_GalilWeightLoaded"		": 4.35KG"
+"[english]CStrike_GalilWeightLoaded"		": 4.35KG"
+"CStrike_GalilProjectileWeight"		": 4 그램"
+"[english]CStrike_GalilProjectileWeight"		": 4 GRAMS"
+"CStrike_GalilMuzzleVelocity"		": 2013 피트/초"
+"[english]CStrike_GalilMuzzleVelocity"		": 2013 FEET/SECOND"
+"CStrike_GalilMuzzleEnergy"		": 1712	 줄(J)"
+"[english]CStrike_GalilMuzzleEnergy"		": 1712	 JOULES"
+"CStrike_M4A1Price"		": $3100"
+"[english]CStrike_M4A1Price"		": $3100"
+"CStrike_M4A1Origin"		": 미국"
+"[english]CStrike_M4A1Origin"		": UNITED STATES OF AMERICA"
+"CStrike_M4A1Calibre"		": 5.56 NATO"
+"[english]CStrike_M4A1Calibre"		": 5.56 NATO"
+"CStrike_M4A1ClipCapacity"		": 30 발"
+"[english]CStrike_M4A1ClipCapacity"		": 30 ROUNDS"
+"CStrike_M4A1RateOfFire"		": 분당 685 발"
+"[english]CStrike_M4A1RateOfFire"		": 685 RPM"
+"CStrike_M4A1WeightEmpty"		": 3.22KG"
+"[english]CStrike_M4A1WeightEmpty"		": 3.22KG"
+"CStrike_M4A1ProjectileWeight"		": 4 그램"
+"[english]CStrike_M4A1ProjectileWeight"		": 4 GRAMS"
+"CStrike_M4A1MuzzleVelocity"		": 2900 피트/초"
+"[english]CStrike_M4A1MuzzleVelocity"		": 2900 FEET/SECOND"
+"CStrike_M4A1MuzzleEnergy"		": 1570 줄(J)"
+"[english]CStrike_M4A1MuzzleEnergy"		": 1570 JOULES"
+"CStrike_AugPrice"		": $3500"
+"[english]CStrike_AugPrice"		": $3500"
+"CStrike_AugOrigin"		": 오스트리아"
+"[english]CStrike_AugOrigin"		": AUSTRIA"
+"CStrike_AugCalibre"		": 5.56 NATO"
+"[english]CStrike_AugCalibre"		": 5.56 NATO"
+"CStrike_AugClipCapacity"		": 30 발"
+"[english]CStrike_AugClipCapacity"		": 30 ROUNDS"
+"CStrike_AugRateOfFire"		": 분당 727 발"
+"[english]CStrike_AugRateOfFire"		": 727 RPM"
+"CStrike_AugWeightLoaded"		": 4.09KG"
+"[english]CStrike_AugWeightLoaded"		": 4.09KG"
+"CStrike_AugProjectileWeight"		": 4 그램"
+"[english]CStrike_AugProjectileWeight"		": 4 GRAMS"
+"CStrike_AugMuzzleVelocity"		": 2900 피트/초"
+"[english]CStrike_AugMuzzleVelocity"		": 2900 FEET/SECOND"
+"CStrike_AugMuzzleEnergy"		": 1570 줄(J)"
+"[english]CStrike_AugMuzzleEnergy"		": 1570 JOULES"
+"CStrike_SG550Price"		": $4200"
+"[english]CStrike_SG550Price"		": $4200"
+"CStrike_SG550Origin"		": 스위스"
+"[english]CStrike_SG550Origin"		": SWITZERLAND"
+"CStrike_SG550Calibre"		": 5.56 NATO"
+"[english]CStrike_SG550Calibre"		": 5.56 NATO"
+"CStrike_SG550ClipCapacity"		": 30 발"
+"[english]CStrike_SG550ClipCapacity"		": 30 ROUNDS"
+"CStrike_SG550RateOfFire"		": 해당없음"
+"[english]CStrike_SG550RateOfFire"		": N/A"
+"CStrike_SG550WeightEmpty"		": 7.02KG"
+"[english]CStrike_SG550WeightEmpty"		": 7.02KG"
+"CStrike_SG550ProjectileWeight"		": 4 그램"
+"[english]CStrike_SG550ProjectileWeight"		": 4 GRAMS"
+"CStrike_SG550MuzzleVelocity"		": 3100 피트/초"
+"[english]CStrike_SG550MuzzleVelocity"		": 3100 FEET/SECOND"
+"CStrike_SG550MuzzleEnergy"		": 1650 줄(J)"
+"[english]CStrike_SG550MuzzleEnergy"		": 1650 JOULES"
+"CStrike_SG552Price"		": $3500"
+"[english]CStrike_SG552Price"		": $3500"
+"CStrike_SG552Origin"		": 스위스"
+"[english]CStrike_SG552Origin"		": SWITZERLAND"
+"CStrike_SG552Calibre"		": 5.56 NATO"
+"[english]CStrike_SG552Calibre"		": 5.56 NATO"
+"CStrike_SG552ClipCapacity"		": 30 발"
+"[english]CStrike_SG552ClipCapacity"		": 30 ROUNDS"
+"CStrike_SG552RateOfFire"		": 분당 727 발"
+"[english]CStrike_SG552RateOfFire"		": 727 RPM"
+"CStrike_SG552WeightEmpty"		": 3.1KG"
+"[english]CStrike_SG552WeightEmpty"		": 3.1KG"
+"CStrike_SG552ProjectileWeight"		": 4 그램"
+"[english]CStrike_SG552ProjectileWeight"		": 4 GRAMS"
+"CStrike_SG552MuzzleVelocity"		": 2900 피트/초"
+"[english]CStrike_SG552MuzzleVelocity"		": 2900 FEET/SECOND"
+"CStrike_SG552MuzzleEnergy"		": 1570 줄(J)"
+"[english]CStrike_SG552MuzzleEnergy"		": 1570 JOULES"
+"CStrike_AWPPrice"		": $4750"
+"[english]CStrike_AWPPrice"		": $4750"
+"CStrike_AWPOrigin"		": 영국"
+"[english]CStrike_AWPOrigin"		": UNITED KINGDOM"
+"CStrike_AWPCalibre"		": .338 라푸아 매그넘"
+"[english]CStrike_AWPCalibre"		": .338 LAPUA MAGNUM"
+"CStrike_AWPClipCapacity"		": 10 발"
+"[english]CStrike_AWPClipCapacity"		": 10 ROUNDS"
+"CStrike_AWPRateOfFire"		": 해당없음"
+"[english]CStrike_AWPRateOfFire"		": N/A"
+"CStrike_AWPWeightLoaded"		": 6KG"
+"[english]CStrike_AWPWeightLoaded"		": 6KG"
+"CStrike_AWPProjectileWeight"		": 16.2 그램"
+"[english]CStrike_AWPProjectileWeight"		": 16.2 GRAMS"
+"CStrike_AWPMuzzleVelocity"		": 3000 피트/초"
+"[english]CStrike_AWPMuzzleVelocity"		": 3000 FEET/SECOND"
+"CStrike_AWPMuzzleEnergy"		": 7000 줄(J)"
+"[english]CStrike_AWPMuzzleEnergy"		": 7000 JOULES"
+"CStrike_G3SG1Price"		": $5000"
+"[english]CStrike_G3SG1Price"		": $5000"
+"CStrike_G3SG1Origin"		": 독일"
+"[english]CStrike_G3SG1Origin"		": GERMANY"
+"CStrike_G3SG1Calibre"		": 7.62 NATO"
+"[english]CStrike_G3SG1Calibre"		": 7.62 NATO"
+"CStrike_G3SG1ClipCapacity"		": 20 발"
+"[english]CStrike_G3SG1ClipCapacity"		": 20 ROUNDS"
+"CStrike_G3SG1RateOfFire"		": 해당없음"
+"[english]CStrike_G3SG1RateOfFire"		": N/A"
+"CStrike_G3SG1WeightLoaded"		": 4.41KG"
+"[english]CStrike_G3SG1WeightLoaded"		": 4.41KG"
+"CStrike_G3SG1ProjectileWeight"		": 8 그램"
+"[english]CStrike_G3SG1ProjectileWeight"		": 8 GRAMS"
+"CStrike_G3SG1MuzzleVelocity"		": 2800 피트/초"
+"[english]CStrike_G3SG1MuzzleVelocity"		": 2800 FEET/SECOND"
+"CStrike_G3SG1MuzzleEnergy"		": 2200 줄(J)"
+"[english]CStrike_G3SG1MuzzleEnergy"		": 2200 JOULES"
+"CStrike_M249Price"		": $5750"
+"[english]CStrike_M249Price"		": $5750"
+"CStrike_M249Origin"		": 벨기에"
+"[english]CStrike_M249Origin"		": BELGIUM"
+"CStrike_M249Calibre"		": 5.56 파라벨럼"
+"[english]CStrike_M249Calibre"		": 5.56 PARABELLUM"
+"CStrike_M249ClipCapacity"		": 100 발"
+"[english]CStrike_M249ClipCapacity"		": 100 ROUNDS"
+"CStrike_M249RateOfFire"		": 분당 600 발"
+"[english]CStrike_M249RateOfFire"		": 600 RPM"
+"CStrike_M249WeightLoaded"		": 6KG"
+"[english]CStrike_M249WeightLoaded"		": 6KG"
+"CStrike_M249ProjectileWeight"		": 4 그램"
+"[english]CStrike_M249ProjectileWeight"		": 4 GRAMS"
+"CStrike_M249MuzzleVelocity"		": 3000 피트/초"
+"[english]CStrike_M249MuzzleVelocity"		": 3000 FEET/SECOND"
+"CStrike_M249MuzzleEnergy"		": 1600 줄(J)"
+"[english]CStrike_M249MuzzleEnergy"		": 1600 JOULES"
+"Cstrike_KevlarPrice"		": $650"
+"[english]Cstrike_KevlarPrice"		": $650"
+"Cstrike_KevlarDescription"		": 탄환을 막아주는 케블러 방탄복."
+"[english]Cstrike_KevlarDescription"		": A Kevlar vest that protects 
+ against projectiles."
+"Cstrike_KevlarHelmetPrice"		": $1000"
+"[english]Cstrike_KevlarHelmetPrice"		": $1000"
+"Cstrike_KevlarHelmetDescription"		": 탄환을 막아주는 케블러 방탄복과
+헬멧."
+"[english]Cstrike_KevlarHelmetDescription"		": A kevlar vest and a ballistic 
+ helmet which both protect 
+ against projectiles."
+"Cstrike_NightvisionPrice"		": $1250"
+"[english]Cstrike_NightvisionPrice"		": $1250"
+"Cstrike_NightvisionDescription"		": 어두운 곳에서도 잘 볼 수 있게
+해주는 야간 투시경."
+"[english]Cstrike_NightvisionDescription"		": Nightvision goggles which 
+ allow the user to see more 
+ effectively in dark areas."
+"Cstrike_ShieldPrice"		": $2200"
+"[english]Cstrike_ShieldPrice"		": $2200"
+"Cstrike_ShieldDescription"		": 시가전용으로 제작된 방패."
+"[english]Cstrike_ShieldDescription"		": Barrier-type shield for 
+ street tactics and 
+ intervention."
+"Cstrike_SmokeGrenadePrice"		": $300"
+"[english]Cstrike_SmokeGrenadePrice"		": $300"
+"Cstrike_SmokeGrenadeDescription"		": 엄폐물 간의 이동시 적의 시야를
+가려줄 수 있는 장비"
+"[english]Cstrike_SmokeGrenadeDescription"		": A diversionary device that 
+ can be used to provide 
+ temporary cover for moving 
+ from place to place."
+"Cstrike_DefuserPrice"		": $200"
+"[english]Cstrike_DefuserPrice"		": $200"
+"Cstrike_DefuserDescription"		": 폭탄 해체에 걸리는 시간을
+단축시켜주는 폭탄 해체 키트"
+"[english]Cstrike_DefuserDescription"		": A bomb defusal kit used to 
+ speed up the bomb defusal 
+ process."
+"Cstrike_FlashbangPrice"		": $200"
+"[english]Cstrike_FlashbangPrice"		": $200"
+"Cstrike_FlashbangDescription"		": 적이 위치한 곳으로 진입하기 전에
+투척하면 큰 소리와 함께 섬광을
+발산하여 적을 혼란스럽게 만듬."
+"[english]Cstrike_FlashbangDescription"		": Makes a loud noise and 
+ blinding flash when thrown 
+ at enemy (pull pin first). 
+ Useful for causing distractions 
+ before entering an area."
+"Cstrike_HEGrenadePrice"		": $300"
+"[english]Cstrike_HEGrenadePrice"		": $300"
+"Cstrike_HEGrenadeDescription"		": 고성능 폭약. 안전핀과 레버를
+제거한 후 투척."
+"[english]Cstrike_HEGrenadeDescription"		": A high-explosive device. Pull 
+ the pin, release the spoon 
+ and throw."
+"Cstrike_Listen_MapName"		"맵"
+"[english]Cstrike_Listen_MapName"		"Map"
+"Cstrike_Bot_IncludeBots"		"이 게임에 CPU 플레이어(봇) 참가시키기"
+"[english]Cstrike_Bot_IncludeBots"		"Include CPU players (Bots) in this game"
+"Cstrike_Bot_NumberOfBots"		"CPU 플레이어 수"
+"[english]Cstrike_Bot_NumberOfBots"		"Number of CPU players"
+"Cstrike_Bot_Difficulty"		"난이도"
+"[english]Cstrike_Bot_Difficulty"		"Difficulty"
+"Cstrike_Bot_Difficulty0"		"쉬움"
+"[english]Cstrike_Bot_Difficulty0"		"Easy"
+"Cstrike_Bot_Difficulty1"		"보통"
+"[english]Cstrike_Bot_Difficulty1"		"Normal"
+"Cstrike_Bot_Difficulty2"		"어려움"
+"[english]Cstrike_Bot_Difficulty2"		"Hard"
+"Cstrike_Bot_Difficulty3"		"전문가"
+"[english]Cstrike_Bot_Difficulty3"		"Expert"
+"CStrike_Bot_JoinAfterPlayer"		"플레이어 조인 후 봇 참여"
+"[english]CStrike_Bot_JoinAfterPlayer"		"Bots join after a player joins"
+"CStrike_Bot_GoRogue"		"봇 무단 행동 허용"
+"[english]CStrike_Bot_GoRogue"		"Bots can go rogue"
+"CStrike_Bot_AllowWeapon"		"봇 무기"
+"[english]CStrike_Bot_AllowWeapon"		"Bots can use"
+"CStrike_Bot_UsePistols"		"권총"
+"[english]CStrike_Bot_UsePistols"		"Pistols"
+"CStrike_Bot_UseShotguns"		"샷건"
+"[english]CStrike_Bot_UseShotguns"		"Shotguns"
+"CStrike_Bot_UseSub"		"기관단총"
+"[english]CStrike_Bot_UseSub"		"Submachine guns"
+"CStrike_Bot_UseRifles"		"소총"
+"[english]CStrike_Bot_UseRifles"		"Rifles"
+"CStrike_Bot_UseMachineGuns"		"기관총"
+"[english]CStrike_Bot_UseMachineGuns"		"Machine guns"
+"CStrike_Bot_UseGrenades"		"수류탄"
+"[english]CStrike_Bot_UseGrenades"		"Grenades"
+"CStrike_Bot_UseSniper"		"스나이퍼 라이플"
+"[english]CStrike_Bot_UseSniper"		"Sniper Rifles"
+"CStrike_Bot_UseShield"		"방패"
+"[english]CStrike_Bot_UseShield"		"Shields"
+"CStrike_Bot_Quota"		"최소 봇 수"
+"[english]CStrike_Bot_Quota"		"Minimum # of Bots"
+"CStrike_Bot_NamePrefix"		"봇 이름 접두사"
+"[english]CStrike_Bot_NamePrefix"		"Bot Name Prefix"
+"CStrike_Bot_JoinTeam"		"봇 팀"
+"[english]CStrike_Bot_JoinTeam"		"Bots Join Team"
+"Cstrike_Already_Own_Weapon"		"이미 그 무기를 가지고 있습니다."
+"[english]Cstrike_Already_Own_Weapon"		"You already own that weapon."
+"Cstrike_Not_Available"		"이 맵에서는 이 아이템을 구입할 수 없습니다."
+"[english]Cstrike_Not_Available"		"This selection is not available for purchase on this map."
+"Cstrike_HELP"		"도움말"
+"[english]Cstrike_HELP"		"HELP"
+"Cstrike_Map_Desc"		"맵 설명"
+"[english]Cstrike_Map_Desc"		"Map Description"
+"Cstrike_Time_Left"		"남은 시간"
+"[english]Cstrike_Time_Left"		"Time Left"
+"Cstrike_Adjust_Crosshair"		"조준선 조절"
+"[english]Cstrike_Adjust_Crosshair"		"Adjust Crosshair"
+"Cstrike_Use_Left_Hand"		"왼손 사용"
+"[english]Cstrike_Use_Left_Hand"		"Use Left Hand"
+"Cstrike_Use_Right_Hand"		"오른손 사용"
+"[english]Cstrike_Use_Right_Hand"		"Use Right Hand"
+"Cstrike_CHANGE_TEAM"		"팀 변경"
+"[english]Cstrike_CHANGE_TEAM"		"CHANGE TEAM"
+"Cstrike_TEAM_MESSAGE"		"팀 메시지"
+"[english]Cstrike_TEAM_MESSAGE"		"TEAM MESSAGE"
+"Cstrike_Map_Siege"		"map cs_siege"
+"[english]Cstrike_Map_Siege"		"map cs_siege"
+"Cstrike_take_underground"		"'지하실을 확보하라'"
+"[english]Cstrike_take_underground"		"'Take the underground'"
+"Cstrike_enemy_garage"		"주차장에 적 발견'"
+"[english]Cstrike_enemy_garage"		"Enemy in parking garage'"
+"Cstrike_rush_hostage_room"		"'인질 방으로 러쉬!'"
+"[english]Cstrike_rush_hostage_room"		"'Rush hostage room!'"
+"Cstrike_snipers_watch_out"		"'스나이퍼를 조심하라!'"
+"[english]Cstrike_snipers_watch_out"		"'Snipers! Watch out!'"
+"Cstrike_take_upper_route"		"'위쪽 이동로로 이동하라'"
+"[english]Cstrike_take_upper_route"		"'Take the upper route'"
+"Cstrike_train"		"map de_train"
+"[english]Cstrike_train"		"map de_train"
+"Cstrike_rush_trainyard"		"'열차 정류장 폭파 목표로 러쉬!'"
+"[english]Cstrike_rush_trainyard"		"'Rush trainyard bomb!'"
+"Cstrike_rush_enclosed"		"'실내 폭파 목표로 러쉬!'"
+"[english]Cstrike_rush_enclosed"		"'Rush enclosed bomb site!'"
+"Cstrike_flank_them"		"'측면 우회 공격!'"
+"[english]Cstrike_flank_them"		"'Flank them!'"
+"Cstrike_bomb_site_secure"		"'폭파 목표 확보!'"
+"[english]Cstrike_bomb_site_secure"		"'Bomb site secure!'"
+"Cstrike_lend_me_blaster"		"'블래스터 빌려줘!'"
+"[english]Cstrike_lend_me_blaster"		"'Lend me your blaster!'"
+"Cstrike_vertigo"		"map de_vertigo"
+"[english]Cstrike_vertigo"		"map de_vertigo"
+"Cstrike_rush_upper_level"		"'윗층으로 러쉬!'"
+"[english]Cstrike_rush_upper_level"		"'Rush the upper level!'"
+"Cstrike_rush_lower_level"		"'아래층으로 러쉬!'"
+"[english]Cstrike_rush_lower_level"		"'Rush the lower level!'"
+"Cstrike_prodigy"		"map de_prodigy"
+"[english]Cstrike_prodigy"		"map de_prodigy"
+"Cstrike_rush_to_pipes"		"'파이프로 러쉬'"
+"[english]Cstrike_rush_to_pipes"		"'Rush to pipes'"
+"Cstrike_rush_to_lab"		"'연구실로 러쉬!'"
+"[english]Cstrike_rush_to_lab"		"'Rush to the lab!'"
+"Cstrike_take_the hallway"		"'복도를 확보하라!'"
+"[english]Cstrike_take_the hallway"		"'Take the hallway!'"
+"Cstrike_take_the_apc"		"'장갑차 이동로를 확보하라!'"
+"[english]Cstrike_take_the_apc"		"'Take the APC route!'"
+"Cstrike_aztec"		"map de_aztec"
+"[english]Cstrike_aztec"		"map de_aztec"
+"Cstrike_take_bridge"		"'다리를 확보하라!'"
+"[english]Cstrike_take_bridge"		"'Take the bridge!'"
+"Cstrike_enemy_at_bomb_site"		"'폭파 목표에 적 발견'"
+"[english]Cstrike_enemy_at_bomb_site"		"'Enemy at bomb site'"
+"Cstrike_rush_to_bomb_site"		"'폭파 목표로 러쉬'"
+"[english]Cstrike_rush_to_bomb_site"		"'Rush to bomb site'"
+"Cstrike_take_water_route"		"'수로를 통해 이동하라!'"
+"[english]Cstrike_take_water_route"		"'Take the water route!'"
+"Cstrike_inferno"		"map de_inferno"
+"[english]Cstrike_inferno"		"map de_inferno"
+"Cstrike_office"		"map cs_office"
+"[english]Cstrike_office"		"map cs_office"
+"Cstrike_take_back_route"		"'뒤쪽 길을 통해 이동하라!'"
+"[english]Cstrike_take_back_route"		"'Take the back route!'"
+"Cstrike_rush_to_hostages"		"'인질 위치로 러쉬!'"
+"[english]Cstrike_rush_to_hostages"		"'Rush to the hostages!'"
+"Cstrike_do_it_for_manilov"		"'매닐로프를 위하여!'"
+"[english]Cstrike_do_it_for_manilov"		"'Do it for Manilov!'"
+"Cstrike_take_front_route"		"'전면 이동로를 통해 이동하라!'"
+"[english]Cstrike_take_front_route"		"'Take the front route!'"
+"Cstrike_backalley"		"map cs_backalley"
+"[english]Cstrike_backalley"		"map cs_backalley"
+"Cstrike_enemy_overhead"		"'위쪽에 적 출현!'"
+"[english]Cstrike_enemy_overhead"		"'Enemy overhead!'"
+"Cstrike_go_you_blaster"		"'죽어라!'"
+"[english]Cstrike_go_you_blaster"		"'Go you blaster!'"
+"Cstrike_taking_heavy_fire"		"'적의 집중 사격을 받고 있다!'"
+"[english]Cstrike_taking_heavy_fire"		"'Taking heavy blaster fire!'"
+"Cstrike_747"		"map cs_747"
+"[english]Cstrike_747"		"map cs_747"
+"Cstrike_rush_the_plane"		"'비행기로 러쉬'"
+"[english]Cstrike_rush_the_plane"		"'Rush the plane'"
+"Cstrike_meet_in_terminal"		"'터미널로 집결'"
+"[english]Cstrike_meet_in_terminal"		"'Meet in terminal'"
+"Cstrike_enemy_outside_plane"		"'비행기 외부에 적 발견'"
+"[english]Cstrike_enemy_outside_plane"		"'Enemy outside plane'"
+"Cstrike_enemy_in_cargo"		"'화물칸에 적 발견!'"
+"[english]Cstrike_enemy_in_cargo"		"'Enemy in cargo hold!'"
+"Cstrike_oilrig"		"map as_oilrig"
+"[english]Cstrike_oilrig"		"map as_oilrig"
+"Cstrike_rush_to_chopper"		"'헬기로 러쉬!'"
+"[english]Cstrike_rush_to_chopper"		"'Rush to chopper!'"
+"Cstrike_to_the_elevator"		"'엘리베이터로 이동'"
+"[english]Cstrike_to_the_elevator"		"'To the elevator'"
+"Cstrike_vip_spotted"		"'VIP 발견!'"
+"[english]Cstrike_vip_spotted"		"'VIP spotted!'"
+"Cstrike_sniper_spotted"		"'스나이퍼 발견'"
+"[english]Cstrike_sniper_spotted"		"'Sniper spotted'"
+"Cstrike_protect_the_vip"		"'VIP를 보호하라'"
+"[english]Cstrike_protect_the_vip"		"'Protect the VIP'"
+"Cstrike_assault"		"map cs_assault"
+"[english]Cstrike_assault"		"map cs_assault"
+"Cstrike_rush_the_building"		"'빌딩으로 러쉬!'"
+"[english]Cstrike_rush_the_building"		"'Rush the building!'"
+"Cstrike_take_the_vents"		"'환기구를 확보하라!'"
+"[english]Cstrike_take_the_vents"		"'Take the vents!'"
+"Cstrike_enemy_in_vents"		"'환기구 내에 적 발견!'"
+"[english]Cstrike_enemy_in_vents"		"'Enemy in vents!'"
+"Cstrike_team_regroup"		"'팀! 재정비하라!'"
+"[english]Cstrike_team_regroup"		"'Team! Regroup!'"
+"Cstrike_nuke"		"map de_nuke"
+"[english]Cstrike_nuke"		"map de_nuke"
+"Cstrike_go_to_main_hall"		"'메인 홀로 이동하라'"
+"[english]Cstrike_go_to_main_hall"		"'Go To Main hall'"
+"Cstrike_go_to_basement"		"'지하실로 이동하라'"
+"[english]Cstrike_go_to_basement"		"'Go To the Basement'"
+"Cstrike_flank_yard"		"'마당을 우회하라'"
+"[english]Cstrike_flank_yard"		"'Flank Yard'"
+"Cstrike_flank_comm_room"		"'통신실을 우회하라'"
+"[english]Cstrike_flank_comm_room"		"'Flank Comm-room'"
+"Cstrike_at_entrance_hall"		"'입구에 있음'"
+"[english]Cstrike_at_entrance_hall"		"'At the Entrance hall'"
+"Cstrike_cbble"		"map de_cbble"
+"[english]Cstrike_cbble"		"map de_cbble"
+"Cstrike_heading_central_hall"		"'중앙 복도로 이동중'"
+"[english]Cstrike_heading_central_hall"		"'Heading Central Hallway'"
+"Cstrike_heading_underpass"		"'지하도로 이동중'"
+"[english]Cstrike_heading_underpass"		"'Heading to Underpass'"
+"Cstrike_sniper_in_tower"		"'타워에 스나이퍼 출현'"
+"[english]Cstrike_sniper_in_tower"		"'Sniper in Tower'"
+"Cstrike_bomb_target_secure"		"'폭파 목표 지역 확보'"
+"[english]Cstrike_bomb_target_secure"		"'Bomb target areas secure'"
+"Cstrike_guard_start_area"		"'시작 지역을 방어하라'"
+"[english]Cstrike_guard_start_area"		"'Guard start area'"
+"Cstrike_dust"		"map de_dust"
+"[english]Cstrike_dust"		"map de_dust"
+"Cstrike_heading_to_hallway"		"'복도로 이동중'"
+"[english]Cstrike_heading_to_hallway"		"'Heading to Hallway'"
+"Cstrike_bomb_a_secure"		"'폭파 목표 A 확보'"
+"[english]Cstrike_bomb_a_secure"		"'Bomb A secure'"
+"Cstrike_bomb_b_secure"		"'폭파 목표 B 확보'"
+"[english]Cstrike_bomb_b_secure"		"'Bomb B secure'"
+"Cstrike_sniper_at_underpass"		"'지하도에 스나이퍼 출현'"
+"[english]Cstrike_sniper_at_underpass"		"'Sniper at Underpass'"
+"Cstrike_dust2"		"map de_dust2"
+"[english]Cstrike_dust2"		"map de_dust2"
+"Cstrike_heading_to_tunnel"		"'터널로 이동 중'"
+"[english]Cstrike_heading_to_tunnel"		"'Heading to tunnel'"
+"Cstrike_italy"		"map cs_italy"
+"[english]Cstrike_italy"		"map cs_italy"
+"Cstrike_meet_at_market"		"'시장으로 집결'"
+"[english]Cstrike_meet_at_market"		"'Meet at Market'"
+"Cstrike_rush_the_house"		"'집으로 러쉬'"
+"[english]Cstrike_rush_the_house"		"'Rush the House'"
+"Cstrike_head_to_wine_cellar"		"'와인 창고로 이동하라'"
+"[english]Cstrike_head_to_wine_cellar"		"'Head to Wine Cellar'"
+"Cstrike_rush_long_passage"		"'긴 통로로 러쉬'"
+"[english]Cstrike_rush_long_passage"		"'Rush Long Passage'"
+"Cstrike_hostages_rescued"		"'인질 구출 중'"
+"[english]Cstrike_hostages_rescued"		"'Hostages being rescued'"
+"Cstrike_estate"		"map cs_estate"
+"[english]Cstrike_estate"		"map cs_estate"
+"Cstrike_go_to_sewer"		"'하수도로 이동하라'"
+"[english]Cstrike_go_to_sewer"		"'Go to sewer'"
+"Cstrike_enemy_on_first_story"		"'1층에 적 출현'"
+"[english]Cstrike_enemy_on_first_story"		"'Enemy on first story'"
+"Cstrike_enemy_on_sec_story"		"'2층에 적 출현'"
+"[english]Cstrike_enemy_on_sec_story"		"'Enemy on second story'"
+"Cstrike_enemy_in_back"		"'후방에 적 출현'"
+"[english]Cstrike_enemy_in_back"		"'Enemy in back'"
+"Cstrike_enemy_in_front"		"'전방에 적 출현'"
+"[english]Cstrike_enemy_in_front"		"'Enemy in front'"
+"Cstrike_tundra"		"map as_tundra"
+"[english]Cstrike_tundra"		"map as_tundra"
+"Cstrike_use_sec_route"		"'2차 이동로로 이동하라'"
+"[english]Cstrike_use_sec_route"		"'Use secondary route'"
+"Cstrike_use_primary_route"		"'1차 이동로로 이동하라'"
+"[english]Cstrike_use_primary_route"		"'Use primary route'"
+"Cstrike_rush_to_apc"		"'장갑차로 러쉬'"
+"[english]Cstrike_rush_to_apc"		"'Rush to APC'"
+"Cstrike_meet_at_garage"		"'차고 환기구에서 집결'"
+"[english]Cstrike_meet_at_garage"		"'Meet at garage vent'"
+"Cstrike_meet_front_house"		"'집 앞으로 집결'"
+"[english]Cstrike_meet_front_house"		"'Meet at front of house'"
+"Cstrike_meet_backyard"		"'뒷마당으로 집결'"
+"[english]Cstrike_meet_backyard"		"'Meet in backyard'"
+"Cstrike_enemy_topside"		"'위쪽에 적 출현!'"
+"[english]Cstrike_enemy_topside"		"'Enemy is topside!'"
+"Cstrike_enemy_sewers"		"'하수도에 적 출현!'"
+"[english]Cstrike_enemy_sewers"		"'Enemy is in sewers!'"
+"Cstrike_Acknowledged"		"'알았다'"
+"[english]Cstrike_Acknowledged"		"'Acknowledged'"
+"Cstrike_Negative"		"'실행 불가'"
+"[english]Cstrike_Negative"		"'Negative'"
+"Cstrike_Go"		"'고 고 고!'"
+"[english]Cstrike_Go"		"'Go Go Go!'"
+"Cstrike_On_My_Way"		"'이동 중'"
+"[english]Cstrike_On_My_Way"		"'On my way'"
+"Cstrike_Need_Backup"		"'지원 요청'"
+"[english]Cstrike_Need_Backup"		"'Need backup'"
+"Cstrike_DROP_CURRENT_ITEM"		"현재 아이템 버리기"
+"[english]Cstrike_DROP_CURRENT_ITEM"		"DROP CURRENT ITEM"
+"Cstrike_Tutor_Current_Location"		"현재 위치: %s1"
+"[english]Cstrike_Tutor_Current_Location"		"Current Location: %s1"
+"Career_Map_cs_italy_cz_CAPS"		"ITALY"
+"[english]Career_Map_cs_italy_cz_CAPS"		"ITALY"
+"Cstrike_Tutor_Hint_1"		"달리고 있을 때는 적에게 발자국 소리가 들립니다.
+조용히 걸어가려면 걷기 키(기본 키는 Shift 키)를 사용하십시오."
+"[english]Cstrike_Tutor_Hint_1"		"Enemies can hear your footsteps when you run.
+Hold in the Walk key (default Shift) to walk silently..."
+"Cstrike_Famas"		"&1 클래리온 5.56"
+"[english]Cstrike_Famas"		"&1 CLARION 5.56"
+"Career_Cancel"		"취소"
+"[english]Career_Cancel"		"CANCEL"
+"Career_Restart"		"재시작"
+"[english]Career_Restart"		"Restart"
+"Career_Surrender"		"항복하기"
+"[english]Career_Surrender"		"Surrender"
+"Career_Match_Lose"		"플레이어 팀이 패배했습니다."
+"[english]Career_Match_Lose"		"Your Team has been Defeated"
+"Career_Autosave_Notice"		"게임이 자동으로 저장되었습니다."
+"[english]Career_Autosave_Notice"		"The game has been auto-saved."
+"Career_FinishMatch"		"완료"
+"[english]Career_FinishMatch"		"Finish"
+"Career_TeamT"		"테러리스트"
+"[english]Career_TeamT"		"Terrorist"
+"Career_ImminentVictory"		"고 고 고! 승리가 눈 앞에 있습니다!"
+"[english]Career_ImminentVictory"		"Go go go! Your victory is imminent!"
+"Career_FriendlyFireOn"		"조심하십시오! 무기를 잘못 사용하면 게임 도중 동료에게 피해를 입힐 수도 있습니다!"
+"[english]Career_FriendlyFireOn"		"Be careful! Your weapons can HURT FRIENDS during this match!"
+"Career_EnemyList"		"이 매치에서는 적 %s1명을 상대하게 됩니다:"
+"[english]Career_EnemyList"		"You will face %s1 enemies in this match: "
+"Career_EnemyListSeparator"		","
+"[english]Career_EnemyListSeparator"		", "
+"Career_TaskJustDoneSingle"		"도전 과제를 완료했습니다. 이제 도전 과제가 하나 남았습니다."
+"[english]Career_TaskJustDoneSingle"		"Challenge completed.
+There is one Challenge remaining."
+"Career_TaskStatusDone"		"이 매치의 모든 도전 과제를 완료했습니다."
+"[english]Career_TaskStatusDone"		"You have completed all Challenges for this match"
+"Career_RoundWin"		"플레이어 팀이 이번 라운드에 승리했습니다..."
+"[english]Career_RoundWin"		"Your Team has Won this Round..."
+"Career_TasksColon"		"도전 과제:"
+"[english]Career_TasksColon"		"Challenges:"
+"Career_Task_kill"		"적을 사살해야 합니다."
+"[english]Career_Task_kill"		"You must kill an enemy"
+"Career_Task_winfast_multi"		"%s2초 내에 게임에서 승리해야 합니다."
+"[english]Career_Task_winfast_multi"		"You must win a round in less than %s2 seconds"
+"Career_Task_defuse"		"폭탄을 해체해야 합니다."
+"[english]Career_Task_defuse"		"You must defuse the Bomb"
+"Career_Task_plant"		"폭탄을 설치해야 합니다."
+"[english]Career_Task_plant"		"You must plant the Bomb"
+"Career_Task_rescue"		"인질을 구출해야 합니다."
+"[english]Career_Task_rescue"		"You must rescue a Hostage"
+"Career_Task_rescue_multi"		"
+인질 %s2명을 구출해야 합니다.
+"
+"[english]Career_Task_rescue_multi"		"You must rescue %s2 Hostages"
+"Career_Task_defendhostages"		"인질이 구출되지 못하게 막아야 합니다."
+"[english]Career_Task_defendhostages"		"You must not allow a Hostage to be rescued"
+"Career_Task_Done"		"임무 완료:"
+"[english]Career_Task_Done"		"Task Complete:"
+"Career_Task_PartialTitle"		"상태:"
+"[english]Career_Task_PartialTitle"		"Status:"
+"Career_Task_PartialRemaining"		"%s1 남음"
+"[english]Career_Task_PartialRemaining"		"%s1 remaining"
+"Career_CorruptSaveTitle"		"손상된 저장 파일"
+"[english]Career_CorruptSaveTitle"		"Corrupt Saved Game"
+"Career_Map_de_airstrip_cz_CAPS"		"AIRSTRIP"
+"[english]Career_Map_de_airstrip_cz_CAPS"		"AIRSTRIP"
+"Career_Map_de_dust2_cz_CAPS"		"DUST II"
+"[english]Career_Map_de_dust2_cz_CAPS"		"DUST II"
+"Career_Map_de_aztec_cz_CAPS"		"AZTEC"
+"[english]Career_Map_de_aztec_cz_CAPS"		"AZTEC"
+"Career_Map_de_aztec_cz"		"Aztec"
+"[english]Career_Map_de_aztec_cz"		"Aztec"
+"Career_Map_cs_havana_cz"		"Havana"
+"[english]Career_Map_cs_havana_cz"		"Havana"
+"Career_Map_cs_italy_cz"		"Italy"
+"[english]Career_Map_cs_italy_cz"		"Italy"
+"Cstrike_Tutor_You_See_Friend_Corpse"		"동료의 시체입니다."
+"[english]Cstrike_Tutor_You_See_Friend_Corpse"		"This is a friend's corpse."
+"Cstrike_Tutor_You_Killed_Player_Headshot_One_left"		"적의 머리를 맞춰 사살했습니다.
+
+남은 적은 1명입니다.
+
+최근 사살한 적:
+%s1"
+"[english]Cstrike_Tutor_You_Killed_Player_Headshot_One_left"		"You have killed an enemy
+with a headshot.
+
+There is one enemy left.
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_You_Died"		"죽었습니다."
+"[english]Cstrike_Tutor_You_Died"		"You have died."
+"Cstrike_Tutor_Enemy_Killed"		"적을 사살했습니다.
+
+남은 적은 %s1명입니다."
+"[english]Cstrike_Tutor_Enemy_Killed"		"An enemy has been killed.
+
+There are %s1 enemies remaining.
+
+Recent enemies killed:
+%s2"
+"Cstrike_Tutor_Last_Enemy_Killed"		"적을 모두 사살했습니다!
+
+최근 사살한 적:
+%s1"
+"[english]Cstrike_Tutor_Last_Enemy_Killed"		"The last enemy has been killed!
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_Bomb_Exploded_T"		"폭탄이 폭발했습니다.
+플레이어 팀이 이번 라운드에 승리했습니다."
+"[english]Cstrike_Tutor_Bomb_Exploded_T"		"The bomb has exploded.
+Your team wins this round."
+"Cstrike_Tutor_Hostage_Rescued_T"		"대 테러리스트가 인질을 구출했습니다!
+
+더 이상 인질을 구출하지 못하도록 막아야 합니다."
+"[english]Cstrike_Tutor_Hostage_Rescued_T"		"The Counter-Terrorits
+have rescued a Hostage!
+
+Try to prevent them from rescuing any more."
+"Cstrike_Tutor_You_Damaged_Hostage"		"인질에게 부상을 입혔습니다.
+
+주의하십시오! 인질을 죽이면 불이익이 있습니다!"
+"[english]Cstrike_Tutor_You_Damaged_Hostage"		"You have injured a Hostage.
+
+Beware! Killing Hostages will cost you!"
+"Cstrike_Tutor_Time_Running_Out_CS_CT"		"시간이 얼마 남지 않았습니다!
+
+인질을 구출하십시오!"
+"[english]Cstrike_Tutor_Time_Running_Out_CS_CT"		"Time is about to run out!
+
+Rescue the Hostages!"
+"Cstrike_Tutor_Round_Start_CS_T"		"라운드가 시작되었습니다.
+
+대 테러리스트가 인질을 구출하지 못하도록 막아야 합니다."
+"[english]Cstrike_Tutor_Round_Start_CS_T"		"The round has begun.
+
+Prevent the Counter-Terrorists
+from rescuing your Hostages!"
+"Cstrike_Tutor_Round_Start_CS_CT"		"게임이 시작되었습니다.
+
+인질을 찾아서 인질 구출 장소까지 호위하십시오."
+"[english]Cstrike_Tutor_Round_Start_CS_CT"		"The round has begun.
+
+Find the Hostages and escort them
+to a Hostage Rescue Point!"
+"Cstrike_Tutor_Round_Over"		"게임이 끝났습니다."
+"[english]Cstrike_Tutor_Round_Over"		"This round is over."
+"Cstrike_Tutor_Round_Draw"		"이번 라운드는 비겼습니다!"
+"[english]Cstrike_Tutor_Round_Draw"		"This round has ended in a tie."
+"Cstrike_Tutor_CT_Win"		"이번 라운드는 대 테러리스트가 승리했습니다!"
+"[english]Cstrike_Tutor_CT_Win"		"The Counter-Terrorists
+have won this round!"
+"Cstrike_Tutor_T_Win"		"이번 라운드는 테러리스트가 승리했습니다!"
+"[english]Cstrike_Tutor_T_Win"		"The Terrorists have
+won this round!"
+"Cstrike_Tutor_Buy_Need_Primary"		"무기를 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Need_Primary"		"You should buy a weapon"
+"Cstrike_Tutor_Buy_Need_Primary_Ammo"		"무기에 사용할 탄약을 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Need_Primary_Ammo"		"You should buy ammo
+for your weapon"
+"Cstrike_Tutor_Buy_Need_Secondary_Ammo"		"권총에 사용할 탄약을 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Need_Secondary_Ammo"		"You should buy ammo
+for your Pistol"
+"Cstrike_Tutor_Buy_Need_Armor"		"케블러와 헬멧을 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Need_Armor"		"You should buy Kevlar and a Helmet"
+"Cstrike_Tutor_Buy_Defuse_Kit"		"폭탄 해체 키트를 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Defuse_Kit"		"You should buy a
+Defusal Kit"
+"Cstrike_Tutor_Buy_Grenades"		"수류탄을 구입해야 합니다."
+"[english]Cstrike_Tutor_Buy_Grenades"		"You should buy some
+Grenades"
+"Cstrike_TutorState_Looking_For_Hostage"		"인질 찾기"
+"[english]Cstrike_TutorState_Looking_For_Hostage"		"Find the Hostages"
+"Cstrike_TutorState_Escorting_Hostage"		"인질을 구출 지점으로 호위"
+"[english]Cstrike_TutorState_Escorting_Hostage"		"Escort the Hostages to a Rescue Point"
+"Cstrike_TutorState_Following_Hostage_Escort"		"인질 호위"
+"[english]Cstrike_TutorState_Following_Hostage_Escort"		"Follow and Protect the Hostages"
+"Cstrike_TutorState_Defusing_Bomb"		"폭탄 해체"
+"[english]Cstrike_TutorState_Defusing_Bomb"		"Defuse the Bomb"
+"Cstrike_TutorState_Guarding_Hostage"		"인질 경호"
+"[english]Cstrike_TutorState_Guarding_Hostage"		"Guard the Hostages"
+"Cstrike_TutorState_Planting_Bomb"		"폭탄 설치"
+"[english]Cstrike_TutorState_Planting_Bomb"		"Plant the Bomb"
+"Cstrike_TutorState_Buy_Time"		"무기 및 장비 구입"
+"[english]Cstrike_TutorState_Buy_Time"		"Buy Weapons and Equipment"
+"Cstrike_TutorState_Waiting_For_Start"		"라운드 시작 대기 중..."
+"[english]Cstrike_TutorState_Waiting_For_Start"		"Waiting for Round To Begin..."
+"Cstrike_Galil"		"&1 IDF 디펜더"
+"[english]Cstrike_Galil"		"&1 IDF DEFENDER"
+"Cstrike_Bot_Chatter"		"봇 무선 통신"
+"[english]Cstrike_Bot_Chatter"		"Bot Radio Chatter"
+"Cstrike_Bot_chatter_Off"		"끄기"
+"[english]Cstrike_Bot_chatter_Off"		"Off"
+"Cstrike_Bot_chatter_Radio"		"표준"
+"[english]Cstrike_Bot_chatter_Radio"		"Standard Radio"
+"Cstrike_Bot_chatter_Minimal"		"최소"
+"[english]Cstrike_Bot_chatter_Minimal"		"Minimal"
+"Cstrike_Bot_chatter_Normal"		"보통"
+"[english]Cstrike_Bot_chatter_Normal"		"Normal"
+"Cstrike_Random"		"랜덤"
+"[english]Cstrike_Random"		"Random"
+"Cstrike_Player_Shadows"		"플레이어 그림자"
+"[english]Cstrike_Player_Shadows"		"Player Shadows"
+"Cstrike_Auto_Buy"		"자동으로 장비 구입"
+"[english]Cstrike_Auto_Buy"		"Automatically Buy Equipment"
+"Career_MapPage"		"위치 선택"
+"[english]Career_MapPage"		"SELECT LOCATION"
+"Career_BotPage"		"팀 구성"
+"[english]Career_BotPage"		"ASSEMBLE TEAM"
+"Career_MapNext"		"팀 구성"
+"[english]Career_MapNext"		"ASSEMBLE TEAM"
+"Career_BotPrev"		"뒤로 이동"
+"[english]Career_BotPrev"		"GO BACK"
+"Career_Start"		"게임 시작!"
+"[english]Career_Start"		"START MATCH!"
+"Career_BuildTeamRoster"		"팀 구성"
+"[english]Career_BuildTeamRoster"		"Assemble Your Team"
+"Career_AutoRoster"		"팀 자동 선택:"
+"[english]Career_AutoRoster"		"QUICK-PICK TEAM:"
+"Career_PointsLeft"		"남은 포인트"
+"[english]Career_PointsLeft"		"Points Left"
+"Career_Hired"		"[02_소속 팀]"
+"[english]Career_Hired"		"[02_YOUR TEAM]"
+"Career_Pool"		"[01_선택 가능한 부대원]"
+"[english]Career_Pool"		"[01_AVAILABLE COMBATANTS]"
+"Career_OverwriteConfirmationTitle"		"저장된 프로필을 덮어씁니까"
+"[english]Career_OverwriteConfirmationTitle"		"OVERWRITE PROFILE"
+"Career_Match_End"		"게임 종료"
+"[english]Career_Match_End"		"The Match is Over"
+"Career_Match_Win"		"플레이어 팀이 승리했습니다!"
+"[english]Career_Match_Win"		"Your Team is Victorious!"
+"Career_ContinueMatch"		"계속하기"
+"[english]Career_ContinueMatch"		"Continue"
+"Career_TeamCT"		"대 테러리스트"
+"[english]Career_TeamCT"		"Counter-Terrorist"
+"Career_ImminentDefeat"		"경고! 이번 라운드에서 지면 이번 매치는 지게 됩니다."
+"[english]Career_ImminentDefeat"		"Warning! You are one round away from losing this match!"
+"Career_TaskJustDone"		"도전 과제 완료.
+%s1 개의 도전 과제 남음."
+"[english]Career_TaskJustDone"		"Challenge completed.
+There are %s1 Challenges remaining."
+"Career_TaskStatusUnfinished"		"%s1개의 도전 과제가 남아 있습니다."
+"[english]Career_TaskStatusUnfinished"		"There are %s1 Challenges remaining"
+"Career_TaskStatusUnfinishedSingle"		"도전 과제가 1개 남았습니다."
+"[english]Career_TaskStatusUnfinishedSingle"		"There is one Challenge remaining"
+"Career_EarnedReputationPoints"		"명성 포인트를 1점 얻었습니다!"
+"[english]Career_EarnedReputationPoints"		"You have earned another reputation point!"
+"Career_AllLocationsComplete"		"축하합니다!
+
+테러리스트의 위협을 제거하여 세계 치안 확립에 큰 공헌을 했습니다."
+"[english]Career_AllLocationsComplete"		"Congratulations, Commander!
+
+You have defeated the Terrorist threat and made the world a safer place."
+"Career_AwardedMedal"		"플레이어의 용맹성을 치하하여 훈장을 수여합니다."
+"[english]Career_AwardedMedal"		"You have been awarded a medal for your valiant service."
+"Career_EasyMedal"		"선행 훈장"
+"[english]Career_EasyMedal"		"Good Conduct Medal"
+"Career_NormalMedal"		"청동 성장"
+"[english]Career_NormalMedal"		"Bronze Star"
+"Career_HardMedal"		"은성 훈장"
+"[english]Career_HardMedal"		"Silver Star"
+"Career_ExpertMedal"		"국방성 공로 훈장"
+"[english]Career_ExpertMedal"		"Department of Defense Distinguished Service Medal"
+"Career_MedalListTitle"		"[수상 기록]"
+"[english]Career_MedalListTitle"		"[Your Awards]"
+"Career_RoundLose"		"플레이어 팀이 이번 라운드에서 패배했습니다..."
+"[english]Career_RoundLose"		"Your Team has Lost this Round..."
+"Career_RoundDraw"		"이번 라운드는 무승부입니다."
+"[english]Career_RoundDraw"		"This Round was a Draw"
+"Career_ScoreSoFar"		"현재까지의 점수:"
+"[english]Career_ScoreSoFar"		"The Score So Far:"
+"Career_RoundWinsCT"		"대 테러리스트: %s1"
+"[english]Career_RoundWinsCT"		"Counter-Terrorists: %s1"
+"Career_RoundWinsT"		"테러리스트: %s1"
+"[english]Career_RoundWinsT"		"Terrorists: %s1"
+"Career_Task_kill_multi"		"%s2명의 적을 사살해야 합니다."
+"[english]Career_Task_kill_multi"		"You must kill %s2 enemies"
+"Career_Task_killwith"		"%s1을(를) 이용하여 적을 사살해야합니다."
+"[english]Career_Task_killwith"		"You must kill an enemy %s1"
+"Career_Task_killblind"		"플래시뱅으로 인해 앞이 보이지 않는 적을 사살해야 합니다."
+"[english]Career_Task_killblind"		"You must kill a Flashbang-blinded enemy"
+"Career_Task_headshot"		"적의 머리를 맞혀 사살해야 합니다."
+"[english]Career_Task_headshot"		"You must kill an enemy with a headshot"
+"Career_Task_headshot_multi"		"%s2명의 적을 헤드샷으로 사살해야 합니다."
+"[english]Career_Task_headshot_multi"		"You must kill %s2 enemies with headshots"
+"Career_Task_killall"		"플레이어 팀은 최소한 한 번 이상 적을 모두 제거해야 합니다."
+"[english]Career_Task_killall"		"Your Team must eliminate all enemies at least once"
+"Career_Task_rescueall"		"인질을 모두 구출해야 합니다."
+"[english]Career_Task_rescueall"		"You must rescue all of the Hostages"
+"Career_Task_hostagessurvive"		"인질은 모두 생존해야 합니다."
+"[english]Career_Task_hostagessurvive"		"All Hostages must survive"
+"Career_Task_PartialMustLive"		"라운드에서 생존해야 합니다."
+"[english]Career_Task_PartialMustLive"		"Survive the round"
+"Career_Task_PartialIncomplete"		"미완료"
+"[english]Career_Task_PartialIncomplete"		"Incomplete"
+"Career_Task_Complete"		"완료"
+"[english]Career_Task_Complete"		"COMPLETE"
+"Career_CorruptSaveText"		"저장된 게임이 손상되어 불러올 수 없습니다."
+"[english]Career_CorruptSaveText"		"The saved game was corrupt and could not be loaded."
+"Career_Locked"		"잠김"
+"[english]Career_Locked"		"LOCKED"
+"Career_Unlocked"		"잠금 해제"
+"[english]Career_Unlocked"		"UNLOCKED"
+"Career_Current"		"현재"
+"[english]Career_Current"		"CURRENT"
+"Career_JumpTo"		"점프 위치:"
+"[english]Career_JumpTo"		"JUMP TO:"
+"Career_MapDescription"		"[02_선택한 지역]"
+"[english]Career_MapDescription"		"[02_SELECTED LOCATION]"
+"Career_MapSelection"		"[01_작전 지역]"
+"[english]Career_MapSelection"		"[01_TOURS OF DUTY / LOCATION]"
+"Career_Map_de_dust_cz_CAPS"		"DUST"
+"[english]Career_Map_de_dust_cz_CAPS"		"DUST"
+"Career_Map_cs_office_cz_CAPS"		"OFFICE"
+"[english]Career_Map_cs_office_cz_CAPS"		"OFFICE"
+"Career_Map_de_stadium_cz_CAPS"		"STADIUM"
+"[english]Career_Map_de_stadium_cz_CAPS"		"STADIUM"
+"Career_Map_de_prodigy_cz_CAPS"		"PRODIGY"
+"[english]Career_Map_de_prodigy_cz_CAPS"		"PRODIGY"
+"Career_Map_cs_miami_cz_CAPS"		"MIAMI"
+"[english]Career_Map_cs_miami_cz_CAPS"		"MIAMI"
+"Career_Map_de_inferno_cz_CAPS"		"INFERNO"
+"[english]Career_Map_de_inferno_cz_CAPS"		"INFERNO"
+"Career_Map_cs_militia_cz_CAPS"		"MILITIA"
+"[english]Career_Map_cs_militia_cz_CAPS"		"MILITIA"
+"Career_Map_cs_havana_cz_CAPS"		"HAVANA"
+"[english]Career_Map_cs_havana_cz_CAPS"		"HAVANA"
+"Career_Map_de_cbble_cz_CAPS"		"COBBLESTONE"
+"[english]Career_Map_de_cbble_cz_CAPS"		"COBBLESTONE"
+"Career_Map_de_vostok_cz_CAPS"		"VOSTOK"
+"[english]Career_Map_de_vostok_cz_CAPS"		"VOSTOK"
+"Career_Map_de_chateau_cz_CAPS"		"CHATEAU"
+"[english]Career_Map_de_chateau_cz_CAPS"		"CHATEAU"
+"Career_Map_de_fastline_cz_CAPS"		"FASTLINE"
+"[english]Career_Map_de_fastline_cz_CAPS"		"FASTLINE"
+"Career_Map_de_torn_cz_CAPS"		"TORN"
+"[english]Career_Map_de_torn_cz_CAPS"		"TORN"
+"Career_Map_de_truth_cz_CAPS"		"TRUTH"
+"[english]Career_Map_de_truth_cz_CAPS"		"TRUTH"
+"Career_Map_de_tides_cz_CAPS"		"TIDES"
+"[english]Career_Map_de_tides_cz_CAPS"		"TIDES"
+"Career_Map_de_dust_cz"		"Dust"
+"[english]Career_Map_de_dust_cz"		"Dust"
+"Career_Map_cs_office_cz"		"Office"
+"[english]Career_Map_cs_office_cz"		"Office"
+"Career_Map_de_stadium_cz"		"Stadium"
+"[english]Career_Map_de_stadium_cz"		"Stadium"
+"Career_Map_de_prodigy_cz"		"Prodigy"
+"[english]Career_Map_de_prodigy_cz"		"Prodigy"
+"Career_Map_cs_miami_cz"		"Miami"
+"[english]Career_Map_cs_miami_cz"		"Miami"
+"Career_Map_de_inferno_cz"		"Inferno"
+"[english]Career_Map_de_inferno_cz"		"Inferno"
+"Career_Map_de_airstrip_cz"		"Airstrip"
+"[english]Career_Map_de_airstrip_cz"		"Airstrip"
+"Career_Map_cs_militia_cz"		"Militia"
+"[english]Career_Map_cs_militia_cz"		"Militia"
+"Career_Map_de_dust2_cz"		"Dust II"
+"[english]Career_Map_de_dust2_cz"		"Dust II"
+"Career_Map_de_cbble_cz"		"Cobblestone"
+"[english]Career_Map_de_cbble_cz"		"Cobblestone"
+"Career_Map_de_vostok_cz"		"Vostok"
+"[english]Career_Map_de_vostok_cz"		"Vostok"
+"Career_Map_de_chateau_cz"		"Chateau"
+"[english]Career_Map_de_chateau_cz"		"Chateau"
+"Career_Map_de_fastline_cz"		"Fastline"
+"[english]Career_Map_de_fastline_cz"		"Fastline"
+"Career_Map_de_torn_cz"		"Torn"
+"[english]Career_Map_de_torn_cz"		"Torn"
+"Career_Map_de_truth_cz"		"Truth"
+"[english]Career_Map_de_truth_cz"		"Truth"
+"Career_Map_de_tides_cz"		"Tides"
+"[english]Career_Map_de_tides_cz"		"Tides"
+"Career_Play_As_CT"		"대 테러리스트로 플레이"
+"[english]Career_Play_As_CT"		"Play as a Counter-Terrorist"
+"Career_Play_As_T"		"테러리스트로 플레이"
+"[english]Career_Play_As_T"		"Play as a Terrorist"
+"Career_BombDefusalCT"		"폭탄 해체 시나리오:
+
+테러리스트가 폭탄 설치 지점 중 한 곳에 
+폭탄을 설치하지 못하도록 막아야 합니다. 
+폭탄을 해체하거나 테러리스트를 모두 
+제거하면 승리합니다."
+"[english]Career_BombDefusalCT"		"Bomb Defuse Scenario:
+Your Team must prevent the Terrorists from
+detonating their bomb at one of the bomb sites.
+To win, defuse the bomb or eliminate
+all of the Terrorists."
+"Career_HostageRescueCT"		"인질 구출 시나리오:
+
+테러리스트에게 인질이 붙잡혀 있습니다. 
+인질을 구출하여 구조 지점으로 데리고 
+가야합니다. 인질을 모두 구출하거나 
+테러리스트를 모두 제거하면 승리합니다."
+"[english]Career_HostageRescueCT"		"Hostage Rescue Scenario:
+The Terrorists have taken several hostages.
+You must rescue them by leading them to a
+Hostage Rescue Point.
+To win, rescue all of the Hostages or eliminate all
+of the Terrorists."
+"Career_BombDefusalT"		"폭탄 해체 시나리오:
+
+폭탄 설치 지점 중 한 곳에 폭탄을 설치
+해야 합니다. 폭탄을 설치하거나 대 테러
+리스트를 모두 제거하면 승리합니다."
+"[english]Career_BombDefusalT"		"Bomb Defuse Scenario:
+Your Team must detonate a bomb at one of the
+bomb sites on this map.
+To win, detonate the bomb or eliminate all
+of the Counter-Terrorists."
+"Career_HostageRescueT"		"인질 구출 시나리오:
+플레이어 팀은 인질 몇 명을 확보하고 있습
+니다. 대 테러리스트가 이들을 구출해서 
+구출 지점 까지 데리고 가지 못하도록 
+막아야 합니다."
+"[english]Career_HostageRescueT"		"Hostage Rescue Scenario:
+Your Team has several Hostages. You must
+prevent the Counter-Terrorists from stealing
+them and reaching a Hostage Rescue Point.
+To win, retain the Hostages for the entire round,
+or eliminate all of the Counter-Terrorists."
+"Career_MatchTasksTitle"		"승리 조건"
+"[english]Career_MatchTasksTitle"		"To Win the Match"
+"Career_MatchTasks"		"플레이어 팀이 최소한 %s1 라운드를 승리하고 적에게 %s2 라운드 이상 앞서나가야 클리어할 수 있습니다."
+"[english]Career_MatchTasks"		"Your Team must win at least %s1 rounds and lead the opposition by %s2 to win this match."
+"Career_MatchGoodLuck"		"행운을 빕니다!"
+"[english]Career_MatchGoodLuck"		"Good Luck!"
+"Career_SkillDesc"		"기술:"
+"[english]Career_SkillDesc"		"Skill: "
+"Career_TeamDesc"		"협동:"
+"[english]Career_TeamDesc"		"Co-op: "
+"Career_AggressionDesc"		"용기:"
+"[english]Career_AggressionDesc"		"Bravery: "
+"Career_LevelDesc0"		"나쁨"
+"[english]Career_LevelDesc0"		"Bad"
+"Career_LevelDesc1"		"낮음"
+"[english]Career_LevelDesc1"		"Low"
+"Career_LevelDesc2"		"보통"
+"[english]Career_LevelDesc2"		"Ok"
+"Career_LevelDesc3"		"좋음"
+"[english]Career_LevelDesc3"		"Good"
+"Career_LevelDesc4"		"매우좋음"
+"[english]Career_LevelDesc4"		"High"
+"Career_Weapon_scout"		"슈미트 스카우트"
+"[english]Career_Weapon_scout"		"with a Schmidt Scout"
+"Career_Weapon_xm1014"		"레오네 YG1265 자동 샷건"
+"[english]Career_Weapon_xm1014"		"with a Leone YG1265 Auto Shotgun"
+"Career_Weapon_mac10"		"잉그람 MAC-10"
+"[english]Career_Weapon_mac10"		"with an Ingram MAC-10"
+"Career_Weapon_aug"		"불펍"
+"[english]Career_Weapon_aug"		"with a Bullpup"
+"Career_Weapon_ump45"		"K&M UMP45"
+"[english]Career_Weapon_ump45"		"with a K&M UMP45"
+"Career_Weapon_sg550"		"크릭 550 코맨도"
+"[english]Career_Weapon_sg550"		"with a Krieg 550 Commando"
+"Career_Weapon_galil"		"IDF 디펜더"
+"[english]Career_Weapon_galil"		"with an IDF Defender"
+"Career_Weapon_famas"		"클래리온 5.56"
+"[english]Career_Weapon_famas"		"with a Clarion 5.56"
+"Career_Weapon_awp"		"매그넘 스나이퍼 라이플"
+"[english]Career_Weapon_awp"		"with a Magnum Sniper Rifle"
+"Career_Weapon_mp5"		"K&M 기관단총"
+"[english]Career_Weapon_mp5"		"with a K&M Submachine Gun"
+"Career_Weapon_m249"		"M249"
+"[english]Career_Weapon_m249"		"with an M249"
+"Career_Weapon_m3"		"레오네 12 게이지 슈퍼"
+"[english]Career_Weapon_m3"		"with a Leone 12 guage Super"
+"Career_Weapon_m4a1"		"매버릭 M4A1 카빈"
+"[english]Career_Weapon_m4a1"		"with a Maverick M4A1 Carbine"
+"Career_Weapon_tmp"		"슈미트 머신 피스톨"
+"[english]Career_Weapon_tmp"		"with a Schmidt Machine Pistol"
+"Career_Weapon_sg552"		"크릭 552"
+"[english]Career_Weapon_sg552"		"with a Krieg 552"
+"Career_Weapon_ak47"		"CV-47"
+"[english]Career_Weapon_ak47"		"with a CV-47"
+"Career_Weapon_p90"		"ES C90"
+"[english]Career_Weapon_p90"		"with an ES C90"
+"Career_Weapon_shield"		"전술 방패"
+"[english]Career_Weapon_shield"		"with a Tactical Shield"
+"Career_Weapon_knife"		"나이프"
+"[english]Career_Weapon_knife"		"with a Knife"
+"Career_Weapon_grenade"		"HE 수류탄"
+"[english]Career_Weapon_grenade"		"with an HE Grenade"
+"Career_Weapon_g3sg1"		"D3/AU-1"
+"[english]Career_Weapon_g3sg1"		"with a D3/AU-1"
+"Career_Weapon_usp"		"K&K .45 택티컬"
+"[english]Career_Weapon_usp"		"with a K&K .45 Tactical"
+"Career_Weapon_glock"		"9x19MM"
+"[english]Career_Weapon_glock"		"with a 9x19MM"
+"Career_Weapon_deagle"		"나이트 호크 .50C"
+"[english]Career_Weapon_deagle"		"with a Night Hawk .50C"
+"Career_Weapon_p228"		"228 컴팩트"
+"[english]Career_Weapon_p228"		"with a 228 Compact"
+"Career_Weapon_elite"		".40 듀얼 엘리트"
+"[english]Career_Weapon_elite"		"with .40 dual elites"
+"Career_Weapon_fiveseven"		"ES 파이브-세븐"
+"[english]Career_Weapon_fiveseven"		"with an ES five-seven"
+"Career_Weapon_any"		"아무런 무기"
+"[english]Career_Weapon_any"		"with any weapon"
+"Career_Weapon_pistol"		"권총"
+"[english]Career_Weapon_pistol"		"with a Pistol"
+"Career_Weapon_SMG"		"기관단총"
+"[english]Career_Weapon_SMG"		"with a Submachinegun"
+"Career_Weapon_machinegun"		"기관총"
+"[english]Career_Weapon_machinegun"		"with a Machinegun"
+"Career_Weapon_shotgun"		"샷건"
+"[english]Career_Weapon_shotgun"		"with a Shotgun"
+"Career_Weapon_rifle"		"소총"
+"[english]Career_Weapon_rifle"		"with a Rifle"
+"Career_Weapon_sniper"		"스나이퍼 라이플"
+"[english]Career_Weapon_sniper"		"with a Sniper Rifle"
+"GameUI_DetailTextures"		"세부 텍스쳐"
+"[english]GameUI_DetailTextures"		"Detail Textures"
+"Cstrike_Tutor_Off"		"끄기"
+"[english]Cstrike_Tutor_Off"		"Off"
+"Cstrike_Tutor_Beginner"		"켜기"
+"[english]Cstrike_Tutor_Beginner"		"On"
+"Cstrike_Tutor_Advanced"		"고급"
+"[english]Cstrike_Tutor_Advanced"		"Advanced"
+"CStrike_Listen_TutorLevel"		"도움 메시지 설정"
+"[english]CStrike_Listen_TutorLevel"		"Tutor Setting"
+"CStrike_Tutor_Enabled"		"도움 메시지 활성화"
+"[english]CStrike_Tutor_Enabled"		"Enable Tutor"
+"Cstrike_Tutor_You_See_Enemy"		"적을 발견했습니다."
+"[english]Cstrike_Tutor_You_See_Enemy"		"You have spotted an enemy."
+"Cstrike_Tutor_You_See_Friend"		"동료를 찾았습니다."
+"[english]Cstrike_Tutor_You_See_Friend"		"You have spotted a friend."
+"Cstrike_Tutor_You_See_Enemy_Corpse"		"적의 시체입니다."
+"[english]Cstrike_Tutor_You_See_Enemy_Corpse"		"This is an enemy's corpse."
+"Cstrike_Tutor_You_see_Breakable"		"파괴할 수 있는 물체입니다. 총으로 쏴 보십시오!"
+"[english]Cstrike_Tutor_You_see_Breakable"		"This is breakable.
+Try shooting it!"
+"Cstrike_Tutor_You_Fired_A_Shot"		"무기를 발사했습니다."
+"[english]Cstrike_Tutor_You_Fired_A_Shot"		"You have fired your weapon."
+"Cstrike_Tutor_You_Should_Reload"		"탄약이 얼마 남지 않았습니다.
+무기를 재장전해야 합니다.(기본 설정: R 키)
+"
+"[english]Cstrike_Tutor_You_Should_Reload"		"You are low on ammo.
+You should reload your weapon.
+(default R)"
+"Cstrike_Tutor_You_Are_Out_Of_Ammo"		"무기의 탄약이 모두 떨어졌습니다.
+다른 무기로 교체하십시오.(기본 설정: 숫자 1,2, 3 키)
+"
+"[english]Cstrike_Tutor_You_Are_Out_Of_Ammo"		"Your weapon is completely out of ammo.
+Switch to another weapon.
+(default 1, 2, or 3)"
+"Cstrike_Tutor_You_Killed_A_Teammate"		"동료를 사살했습니다!
+
+최근 사살한 동료:
+%s1"
+"[english]Cstrike_Tutor_You_Killed_A_Teammate"		"You have killed a friend!
+
+Recent teammates killed:
+%s1"
+"Cstrike_Tutor_You_Killed_Player"		"적을 사살했습니다.
+
+남은 적은 %s1명입니다."
+"[english]Cstrike_Tutor_You_Killed_Player"		"You have killed an enemy.
+
+There are %s1 enemies remaining.
+
+Recent enemies killed:
+%s2"
+"Cstrike_Tutor_You_Killed_Player_One_left"		"적을 사살했습니다.
+
+이제 남은 적은 1명입니다.
+
+"
+"[english]Cstrike_Tutor_You_Killed_Player_One_left"		"You have killed an enemy.
+
+There is one enemy left.
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_You_Killed_Last_Enemy"		"적을 모두 사살했습니다!
+
+최근 사살한 적:
+%s1"
+"[english]Cstrike_Tutor_You_Killed_Last_Enemy"		"You killed the last enemy!
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_You_Killed_Player_Headshot"		"적의 머리를 맞혀 사살했습니다!
+
+남은 적은 %s1명입니다."
+"[english]Cstrike_Tutor_You_Killed_Player_Headshot"		"You have killed an enemy
+with a headshot.
+
+There are %s1 enemies remaining.
+
+Recent enemies killed:
+%s2"
+"Cstrike_Tutor_You_Killed_Last_Enemy_Headshot"		"적의 머리를 맞혀 사살했습니다!
+
+최근 사살한 적:
+%s1"
+"[english]Cstrike_Tutor_You_Killed_Last_Enemy_Headshot"		"You killed the last enemy with a headshot!
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_You_Died_Headshot"		"머리에 맞아 죽었습니다."
+"[english]Cstrike_Tutor_You_Died_Headshot"		"You have died from a headshot."
+"Cstrike_Tutor_You_Fell_To_Your_Death"		"떨어져 죽었습니다.
+조심하십시오!
+"
+"[english]Cstrike_Tutor_You_Fell_To_Your_Death"		"You fell to your death.
+Be careful!"
+"Cstrike_Tutor_You_Were_Just_Hurt"		"위험합니다!
+조심하십시오!"
+"[english]Cstrike_Tutor_You_Were_Just_Hurt"		"That hurt!
+Be careful!"
+"Cstrike_Tutor_You_Have_Been_Shot_At"		"조심하십시오!
+누군가가 플레이어를 쏘고 있습니다!
+"
+"[english]Cstrike_Tutor_You_Have_Been_Shot_At"		"Watch out!
+Someone is shooting at you!"
+"Cstrike_Tutor_You_Attacked_Teammate"		"동료에게 부상을 입혔습니다!"
+"[english]Cstrike_Tutor_You_Attacked_Teammate"		"You have injured a friend!"
+"Cstrike_Tutor_You_Died_World"		"죽었습니다! 낭떠러지나 암벽 근처를 조심해야 합니다!
+"
+"[english]Cstrike_Tutor_You_Died_World"		"You have fallen to your death! Be careful near cliffs and ledges!"
+"Cstrike_Tutor_Buy_Time_Begin"		"새로운 라운드가 시작되었습니다.
+
+무기와 장비를 구입하려면 구입 메뉴(기본 설정: B)를 여십시오.
+장비를 자동으로 구입하려면 자동 구입(기본 설정: F1) 키를 누르십시오."
+"[english]Cstrike_Tutor_Buy_Time_Begin"		"A new round has begun.
+
+To buy weapons and equipment, open the Buy Menu (default B).
+To have equipment purchased for you, press the AutoBuy key (default F1)"
+"Cstrike_Tutor_Teammate_Killed"		"동료가 죽었습니다!
+
+%s1명의 동료가 남았습니다.
+"
+"[english]Cstrike_Tutor_Teammate_Killed"		"A teammate has died!
+
+You have %s1 teammates left.
+
+Recent teammates killed:
+%s2"
+"Cstrike_Tutor_Teammate_Killed_One_left"		"동료가 죽었습니다!
+
+이제 남은 동료는 1명입니다."
+"[english]Cstrike_Tutor_Teammate_Killed_One_left"		"A teammate has died!
+
+You have one teammate left!
+
+Recent teammates killed:
+%s1"
+"Cstrike_Tutor_Last_Teammate_Killed"		"동료가 모두 죽었습니다!
+
+이제 혼자서 싸워야 합니다...
+"
+"[english]Cstrike_Tutor_Last_Teammate_Killed"		"Your last teammate has died!
+
+You are on your own now...
+
+Recent teammates killed:
+%s1"
+"Cstrike_Tutor_Enemy_Killed_One_Left"		"적을 사살했습니다.
+
+이제 남은 적은 1명입니다.
+"
+"[english]Cstrike_Tutor_Enemy_Killed_One_Left"		"An enemy has been killed.
+
+There is one enemy left.
+
+Recent enemies killed:
+%s1"
+"Cstrike_Tutor_You_Spawned"		"카운터 스트라이크 세계에 오신 것을 환영합니다!"
+"[english]Cstrike_Tutor_You_Spawned"		"Welcome to Counter-strike!"
+"Cstrike_Tutor_You_See_Loose_Weapon"		"떨어뜨린 무기입니다.
+
+이 무기를 집으려면 먼저 기존 무기를 버린 후(기본 설정: G) 새 무기 위로 걸어가십시오."
+"[english]Cstrike_Tutor_You_See_Loose_Weapon"		"This is a dropped weapon.
+
+To pick it up, first drop your
+weapon and walk over it.
+(default G)"
+"Cstrike_Tutor_You_See_Loose_Defuser"		"폭탄 해체 키트입니다."
+"[english]Cstrike_Tutor_You_See_Loose_Defuser"		"This is a dropped
+Bomb Defuse Kit."
+"Cstrike_Tutor_You_Are_Blind_From_Flashbang"		"플래시뱅 때문에 앞이 보이지 않습니다!
+
+조금만 기다리면 다시 볼 수 있게 됩니다."
+"[english]Cstrike_Tutor_You_Are_Blind_From_Flashbang"		"A flashbang grenade has blinded you!
+
+Your vision will recover momentarily..."
+"Cstrike_Tutor_You_See_Loose_Bomb_T"		"폭탄이 여기에 떨어져 있습니다.
+
+폭탄을 주워서 폭탄 설치 지점으로 가서 설치하십시오!"
+"[english]Cstrike_Tutor_You_See_Loose_Bomb_T"		"The Bomb has been dropped here.
+
+Move over it to pick it up,
+then go to a Bomb Site and plant it!"
+"Cstrike_Tutor_You_See_Loose_Bomb_CT"		"폭탄이 여기에 떨어져 있습니다.
+
+테러리스트가 폭탄을 가져가지 못하도록 막아야 합니다."
+"[english]Cstrike_Tutor_You_See_Loose_Bomb_CT"		"The Bomb has been dropped here.
+
+Defend it and prevent the
+Terrorists from recovering it!"
+"Cstrike_Tutor_You_See_Bomb_Carrier_T"		"동료가 폭탄을 소지하고 있습니다.
+
+동료가 폭탄을 폭탄 설치 지점에 설치할 수 있도록 동료를 보호하십시오."
+"[english]Cstrike_Tutor_You_See_Bomb_Carrier_T"		"This teammate is carrying the Bomb.
+
+Protect him so he can
+plant it at a Bomb Site."
+"Cstrike_Tutor_You_See_Bomb_Carrier_CT"		"이 테러리스트가 폭탄을 소지하고 있습니다!
+
+공격하십시오!
+"
+"[english]Cstrike_Tutor_You_See_Bomb_Carrier_CT"		"This Terrorist is carrying the Bomb!
+
+Attack him!"
+"Cstrike_Tutor_You_See_Planted_Bomb_T"		"폭탄이 설치되었으며 곧 폭발합니다.
+
+대 테러리스트가 폭탄을 해체하지 못하도록 막아야 합니다.
+"
+"[english]Cstrike_Tutor_You_See_Planted_Bomb_T"		"This Bomb has been planted
+and will detonate soon.
+
+Defend the area to prevent the
+Counter-Terrorists from defusing it!"
+"Cstrike_Tutor_You_See_Planted_Bomb_CT"		"폭탄이 설치되었으며 곧 폭발합니다.
+
+폭탄 근처로 가서 '사용하기' 키를 누르면 폭탄을 해체할 수 있습니다."
+"[english]Cstrike_Tutor_You_See_Planted_Bomb_CT"		"This Bomb has been planted
+and will detonate soon!
+
+Move close to it and hold the Use key to defuse it!
+(default E)"
+"Cstrike_Tutor_Bomb_Planted_T"		"폭탄이 설치되었습니다!
+
+대 테러리스트가 폭탄을 해체하지 못하도록 막아야 합니다!
+"
+"[english]Cstrike_Tutor_Bomb_Planted_T"		"The Bomb has been planted!
+
+Make sure the Counter-Terrorists
+don't defuse it!"
+"Cstrike_Tutor_Bomb_Planted_CT"		"폭탄이 설치되었습니다!
+
+폭탄이 폭발하기 전에 설치 지점을 찾아 폭탄을 해체해야 합니다.
+"
+"[english]Cstrike_Tutor_Bomb_Planted_CT"		"The Bomb has been planted!
+
+Search the Bomb Sites and
+defuse it before it explodes!"
+"Cstrike_Tutor_You_Are_Bomb_Carrier"		"폭탄을 소지하고 있습니다.
+폭탄 설치 지점으로 가서 폭탄을 설치하십시오!"
+"[english]Cstrike_Tutor_You_Are_Bomb_Carrier"		"You are carrying the Bomb.
+Take it to a Bomb Site and plant it!"
+"Cstrike_Tutor_Defuse_Without_Kit"		"폭탄 해체 키트를 구입하면 폭탄을 더 빠르게 해체할 수 있습니다.
+"
+"[english]Cstrike_Tutor_Defuse_Without_Kit"		"Buying a defuse kit allows you to
+defuse Bombs much more quickly..."
+"Cstrike_Tutor_Time_Running_Out_DE_T"		"시간이 거의 다 되었습니다!
+
+폭탄을 반드시 폭발시켜야 합니다.
+"
+"[english]Cstrike_Tutor_Time_Running_Out_DE_T"		"Time is about to run out!
+
+Make sure the Bomb is detonated!"
+"Cstrike_Tutor_Time_Running_Out_DE_CT"		"시간이 거의 다 되었습니다!
+
+테러리스트에 대항하여 조금만 더 버티면 승리합니다."
+"[english]Cstrike_Tutor_Time_Running_Out_DE_CT"		"Time is about to run out!
+
+Hold off the Terrorists and you will win!"
+"Cstrike_Tutor_Bomb_Defused_T"		"대 테러리스트가 폭탄을 해체했습니다!
+이번 라운드는 패배했습니다."
+"[english]Cstrike_Tutor_Bomb_Defused_T"		"The Counter-Terrorists have defused the Bomb!
+You have lost this round."
+"Cstrike_Tutor_Bomb_Defused_CT"		"폭탄이 해체되었습니다!
+플레이어 팀이 이번 라운드에 승리했습니다.
+"
+"[english]Cstrike_Tutor_Bomb_Defused_CT"		"The Bomb has been defused!
+Your team wins this round."
+"Cstrike_Tutor_You_Defused_Bomb"		"폭탄 해체에 성공하여 팀을 승리로 이끌었습니다."
+"[english]Cstrike_Tutor_You_Defused_Bomb"		"You defused the Bomb and won the round for your team!"
+"Cstrike_Tutor_Bomb_Exploded_CT"		"폭탄이 폭발했습니다.
+테러리스트가 이번 라운드에 승리했습니다.
+"
+"[english]Cstrike_Tutor_Bomb_Exploded_CT"		"The bomb has exploded.
+The Terrorists win this round."
+"Cstrike_Tutor_Round_Start_DE_T"		"라운드가 시작되었습니다.
+
+폭탄이 폭탄 설치 지점에서 폭파되도록 해야 합니다."
+"[english]Cstrike_Tutor_Round_Start_DE_T"		"The round has begun.
+
+Make sure the Bomb
+is detonated at a Bomb Site!"
+"Cstrike_Tutor_Round_Start_DE_CT"		"라운드가 시작되었습니다.
+
+테러리스트가 폭탄을 폭발시키지 못하도록 막아야 합니다."
+"[english]Cstrike_Tutor_Round_Start_DE_CT"		"The round has begun.
+
+Prevent the Terrorists
+from detonating their Bomb!"
+"Cstrike_Tutor_You_See_Hostage_T"		"
+인질입니다.
+
+대 테러리스트가 구출하지 못하도록 막아야 합니다.
+"
+"[english]Cstrike_Tutor_You_See_Hostage_T"		"This is a Hostage.
+
+Prevent the Counter-Terrorists
+from rescuing him."
+"Cstrike_Tutor_You_See_Hostage_CT"		"인질을 찾았습니다.
+
+가까이 다가가서 사용하기 키를 눌러 따라오도록 명령하십시오."
+"[english]Cstrike_Tutor_You_See_Hostage_CT"		"This is a Hostage.
+
+Tell him to follow you by pressing the Use key
+when you are close to him.
+(default E)"
+"Cstrike_Tutor_You_See_Bombsite_T"		"이 곳이 폭탄 설치 지점입니다.
+
+이 곳에 폭탄을 설치할 수 있습니다."
+"[english]Cstrike_Tutor_You_See_Bombsite_T"		"This is a Bomb Site.
+
+The Bomb can be planted here."
+"Cstrike_Tutor_You_See_Bombsite_T_Bomb"		"
+폭탄 설치 지점입니다.
+
+이 곳을 선택하고(기본 설정: 숫자 5) 발사 단추(기본 설정: 왼쪽 마우스 버튼)를 클릭하면 폭탄이 설치됩니다.
+"
+"[english]Cstrike_Tutor_You_See_Bombsite_T_Bomb"		"This is a Bomb Site.
+
+Plant the Bomb there by selecting it (default 5)
+and holding your Fire Button.
+(default is left mouse button)"
+"Cstrike_Tutor_You_See_Bombsite_CT"		"이 곳이 폭탄 설치 지점입니다.
+
+이 곳에 폭탄을 설치할 수 있습니다.
+"
+"[english]Cstrike_Tutor_You_See_Bombsite_CT"		"This is a Bomb Site.
+
+The Bomb can be planted here."
+"Cstrike_Tutor_You_Used_Hostage_More_Left"		"이제 인질이 따라올 것입니다.
+
+나머지 인질들에게 말을 걸어 인질들을 모으십시오.
+"
+"[english]Cstrike_Tutor_You_Used_Hostage_More_Left"		"This Hostage will now follow you.
+
+Gather the remaining Hostages
+by talking to them."
+"Cstrike_Tutor_You_Used_Hostage_No_More_Left"		"이제 인질이 따라올 것입니다.
+
+인질을 가장 가까운 인질 구출 지점으로 인도하십시오."
+"[english]Cstrike_Tutor_You_Used_Hostage_No_More_Left"		"This Hostage will now follow you.
+
+Lead the Hostages to the
+nearest Hostage Rescue Point."
+"Cstrike_Tutor_All_Hostages_Following"		"인질을 호송 중입니다.
+
+탈출 지점까지 인질을 호위하십시오."
+"[english]Cstrike_Tutor_All_Hostages_Following"		"All Hostages are being escorted.
+Help escort them to the rescue zone."
+"Cstrike_Tutor_Hostage_Rescued_CT"		"인질을 구조했습니다!
+
+인질을 모두 구조하면 이번 라운드에 승리합니다."
+"[english]Cstrike_Tutor_Hostage_Rescued_CT"		"A Hostage has been rescued!
+
+Rescue them all to win the round!"
+"Cstrike_Tutor_You_Rescued_Hostage"		"인질을 구출하여 보상으로 현금 보너스를 받았습니다.
+
+인질을 모두 구출하면 이번 라운드를 승리하게 됩니다.
+"
+"[english]Cstrike_Tutor_You_Rescued_Hostage"		"You have rescued a Hostage
+and received a cash bonus!
+
+Rescue them all to win the round!"
+"Cstrike_Tutor_All_Hostages_Rescued_T"		"대 테러리스트가 인질을 모두 구출했습니다!
+
+이번 라운드는 패배했습니다."
+"[english]Cstrike_Tutor_All_Hostages_Rescued_T"		"The Counter-Terrorists
+have rescued all of your Hostages!
+
+You have lost this round."
+"Cstrike_Tutor_All_Hostages_Rescued_CT"		"축하합니다!
+인질을 구출했습니다. 
+
+이번 라운드는 승리했습니다.
+
+"
+"[english]Cstrike_Tutor_All_Hostages_Rescued_CT"		"Congratulations!
+The Hostages have been rescued!
+
+You have won this round."
+"Cstrike_Tutor_You_Killed_Hostage"		"인질을 죽였습니다!
+
+이에 대한 벌로 소지한 자금의 일부가 회수됩니다.
+"
+"[english]Cstrike_Tutor_You_Killed_Hostage"		"You killed a Hostage!
+
+You have lost money
+as punishment."
+"Cstrike_Tutor_All_Hostages_Dead"		"인질이 모두 살해되었습니다!
+
+승리하려면 테러리스트를 모두 제거해야 합니다.
+"
+"[english]Cstrike_Tutor_All_Hostages_Dead"		"All of the Hostages have been slain!
+
+Eliminate the Terrorists to win the round!"
+"Cstrike_Tutor_Time_Running_Out_CS_T"		"시간이 거의 다 되었습니다!
+
+대 테러리스트에 대항하여 조금만 더 버티면 승리합니다."
+"[english]Cstrike_Tutor_Time_Running_Out_CS_T"		"Time is about to run out!
+
+Hold off the Counter-Terrorists
+a bit longer and you will win!"
+"Cstrike_Tutor_Death_Camera_Start"		"관전자 모드로 변경되었습니다.
+
+이번 라운드가 끝나야 게임을 다시 할 수 있습니다.
+
+시점을 변경하려면 점프 키(기본 설정:스페이스바)를 누르십시오.
+
+다른 플레이어의 시점으로 변경하려면 발사(기본 설정: 왼쪽 마우스 버튼)
+
+또는 보조 기능 사용(기본 설정: 오른쪽 마우스 버튼)을 누르십시오."
+"[english]Cstrike_Tutor_Death_Camera_Start"		"You are now an observer.
+
+You must wait for the round to end to play again.
+To change view modes, press the Jump key (default spacebar).
+To select different players to observe, press Fire and Secondary Fire.
+(default is left and right mouse buttons)"
+"Cstrike_TutorState_Moving_To_Bombsite"		"폭탄 설치 지점 방어"
+"[english]Cstrike_TutorState_Moving_To_Bombsite"		"Defend a Bomb Site"
+"Cstrike_TutorState_Looking_For_Bomb_Carrier"		"폭탄 소지자 찾기"
+"[english]Cstrike_TutorState_Looking_For_Bomb_Carrier"		"Find the Bomb Carrier"
+"Cstrike_TutorState_Guarding_Loose_Bomb"		"떨어진 폭탄 보호"
+"[english]Cstrike_TutorState_Guarding_Loose_Bomb"		"Guard the Dropped Bomb"
+"Cstrike_TutorState_Looking_For_Hostage_Escort"		"인질 호송 팀 찾기"
+"[english]Cstrike_TutorState_Looking_For_Hostage_Escort"		"Find the Hostage Escort"
+"Cstrike_TutorState_Attacking_Hostage_Escort"		"인질 호송 팀 공격"
+"[english]Cstrike_TutorState_Attacking_Hostage_Escort"		"Attack the Hostage Escort"
+"Cstrike_TutorState_Escorting_Bomb_Carrier"		"폭탄 소지자 호위"
+"[english]Cstrike_TutorState_Escorting_Bomb_Carrier"		"Escort the Bomb Carrier"
+"Cstrike_TutorState_Moving_To_Bomb_Site"		"폭탄 설치 지점 보호"
+"[english]Cstrike_TutorState_Moving_To_Bomb_Site"		"Secure the Bomb Site"
+"Cstrike_TutorState_Guarding_Bomb"		"폭탄 보호"
+"[english]Cstrike_TutorState_Guarding_Bomb"		"Guard the Bomb"
+"Cstrike_TutorState_Looking_For_Loose_Bomb"		"떨어진 폭탄 찾기"
+"[english]Cstrike_TutorState_Looking_For_Loose_Bomb"		"Find the Dropped Bomb"
+"Cstrike_Tutor_Hint_2"		"점프를 하면 움직임이 느려지고 정확도가 떨어집니다."
+"[english]Cstrike_Tutor_Hint_2"		"Jumping slows your movement
+and decreases your accuracy."
+"Cstrike_Tutor_Hint_3"		"게임 내 많은 물체들은 파괴할 수 있는 물건들입니다. 창문이나 판자, 
+상자 등이 그런 경우입니다."
+"[english]Cstrike_Tutor_Hint_3"		"Many objects in the world can be
+broken, including some windows,
+boards, and boxes."
+"Cstrike_Tutor_Hint_4"		"팀 동료와 함께 다니는 것이 혼자 다니는 것보다 훨씬 효과적입니다."
+"[english]Cstrike_Tutor_Hint_4"		"Working with your teammates makes
+you much more effective than going it alone."
+"Cstrike_Tutor_Hint_5"		"현재 게임의 상태를 보려면 Tab 키를 누르십시오."
+"[english]Cstrike_Tutor_Hint_5"		"To get an overview of the current state
+of the game, hold down the TAB key."
+"Cstrike_Tutor_Hint_10"		"무기는 발사할 때 반동이 생깁니다. 보다 정확도를 높이려면 짧게 
+
+끊어서 연사를 해야 합니다. 반동에서 회복되는 시간이 필요하기 때문입니다."
+"[english]Cstrike_Tutor_Hint_10"		"Your weapon is not perfect - it recoils when you fire.
+To fire more accurately use short bursts of gunfire,
+pausing a moment to allow yourself to recover."
+"Cstrike_Tutor_Hint_11"		"움직이지 않는 상태에서는 정확도가 높아집니다. 앉은 상태에서는 
+
+정확도가 더 높아집니다."
+"[english]Cstrike_Tutor_Hint_11"		"You are more accurate when you stand still,
+and even more so when you crouch."
+"Cstrike_Tutor_Hint_12"		"적의 머리를 맞히면 즉사합니다. 이를 헤드샷이라고 부릅니다."
+"[english]Cstrike_Tutor_Hint_12"		"Shooting an enemy in the head is
+an instant kill - a 'headshot'"
+"Cstrike_Tutor_Hint_13"		"스나이퍼 라이플의 정확도를 높이려면 발사 시 움직임이 없어야 합니다."
+"[english]Cstrike_Tutor_Hint_13"		"To be accurate with a sniper rifle, you
+must stand still when you fire your shot."
+"Cstrike_Tutor_Hint_14"		"대부분의 무기는 보조 기능이 있어 무기에 따라 줌, 소음 또는 연사 
+
+등의 기능이 있습니다."
+"[english]Cstrike_Tutor_Hint_14"		"Many weapons have 'secondary fire',
+providing zoom, silencing, or burst fire
+depending on the weapon.
+
+Press <right mouse button> for secondary fire."
+"Cstrike_Tutor_Hint_15"		"여유가 있을 때 무기를 재장전해 주는 것이 필요합니다.
+
+하지만 부적절한 시기에 재장전 할 경우 잘못하면 죽는 상황이 벌어질 수도 있습니다.
+
+신중하게 선택하십시오."
+"[english]Cstrike_Tutor_Hint_15"		"Ammo management is extremely important -
+if your clip runs out in a firefight,you are in deep trouble.
+
+Remember to reload your weapon when you have a spare moment.
+However, reloading at the wrong time can get you killed.
+
+Choose wisely."
+"Cstrike_Tutor_Hint_20"		"매그넘 스나이퍼 라이플은 한 방에 적을 제거할 수 있을 정도로 파괴력이 강합니다. 강력한 줌 기능을 가지고 있으며 조준경 없이 사용하는 것은 거의 불가능합니다."
+"[english]Cstrike_Tutor_Hint_20"		"The Magnum Sniper Rifle is very powerful, and can usually
+kill an enemy with a single shot. It's extreme zoom
+capability is very powerful, but firing this weapon
+without using the scope is nearly impossible.
+
+Just make sure no-one gets close enough to be a problem."
+"Cstrike_Tutor_Hint_21"		"슈미트 스카우트는 사용하기 까다로운 스나이퍼 라이플입니다. 
+
+구입 비용은 적지만 데미지가 크지 않습니다. 헤드샷(머리에 맞히기)을 
+
+구사할 수 있을 정도의 기술을 가진 플레이어에게 적합한 무기입니다."
+"[english]Cstrike_Tutor_Hint_21"		"The Schmidt Scout is a challenging sniper rifle.
+It is inexpensive and does little damage -
+
+unless you are skilled enough to score a headshot..."
+"Cstrike_Tutor_Hint_22"		"레오네 YG1265 자동 샷건은 매우 강력한 무기이며 근접전에 유용합니다. 
+
+하지만 원거리에서는 거의 무용지물이나 다름없습니다.
+"
+"[english]Cstrike_Tutor_Hint_22"		"The Leone YG1265 Auto Shotgun is extremly powerful
+and very useful in close quarters.
+
+However, this weapon is all but useless at long range."
+"Cstrike_Tutor_Hint_23"		"매버릭 M4A1 카빈은 강력하고 정교한 소총입니다.
+
+소음기를 장착하여 보조 무기로 사용한다면 은밀한 작전에 유용합니다."
+"[english]Cstrike_Tutor_Hint_23"		"The Maverick M4A1 Carbine is a powerful and precise rifle.
+
+Using secondary fire to attach a silencer makes
+this the weapon of choice for the stealthy."
+"Cstrike_Tutor_Hint_24"		"CV-47은 강한 소음에 걸맞게 매우 강력합니다.
+
+반동이 세지만 정확도가 높아 명사수가 선호하는 무기입니다."
+"[english]Cstrike_Tutor_Hint_24"		"The CV-47 is as powerful as it is loud.
+
+Although it suffers from high recoil, accurate
+marksmen prefer it for its lethal first shot."
+"Cstrike_Tutor_Hint_25"		"나이트 호크 .50C는 소위 말해 '손에 들고 다니는 대포'라고 
+
+불릴만합니다. 강력한 파괴력으로 적들을 한 방에 제거할 수 있습니다."
+"[english]Cstrike_Tutor_Hint_25"		"The Night Hawk .50C is truly a 'hand cannon'.
+
+Its powerful ammunition stops enemies in their tracks.
+
+However, its clip is very small."
+"Cstrike_Tutor_Hint_26"		"전술 방패는 현대 기술력의 집약체입니다. 이 방패를 들고
+
+(보조 기능 사용 버튼) 뒤에 숨어서 이동할 경우 앞에서 오는 모든 데미지를 거의 다 막을 수 
+
+있습니다. 하지만 양 옆과 뒤가 취약점입니다. 또한 고성능 수류탄은 막을 수 없습니다."
+"[english]Cstrike_Tutor_Hint_26"		"The Tactical Shield is a marvel of modern engineering.
+
+If you deploy it (by pressing your secondary fire button)
+and crouch behind it, you are impervious to all damage
+coming towards your front.
+
+However, your sides and rear are vulnerable,
+and HE Grenades can still harm you."
+"Cstrike_Tutor_Hint_30"		"해체 키트를 사용하면 폭탄을 해체하는 시간을 단축시킬 수 있습니다."
+"[english]Cstrike_Tutor_Hint_30"		"A Defusal Kit dramatically decreases the
+amount of time it takes to defuse a bomb."
+"CStrike_Tutor_Hint_31"		"수류탄을 사용하려면 우선 수류탄을 선택한 후 (기본 키: 4) 발사 버튼
+
+(기본 설정: 마우스 왼쪽 버튼)을 누르십시오. 던지려면 발사 버튼을 
+
+누른 채로 목표를 조준한 후 버튼을 다시 놓으면 됩니다. 더 멀리 
+
+던지려면 시야를 위로 향한 후 목표물을 향해 달려가면서 수류탄을 
+
+던지면 됩니다."
+"[english]CStrike_Tutor_Hint_31"		"To use a grenade, equip it (default 4) and then press
+the Fire Button (default left mouse button).
+
+To throw it, hold in your Fire Button, aim, and release.
+
+To throw farther, tip your view upwards and run towards
+your target when you release the grenade."
+"CStrike_Tutor_Hint_32"		"'플래시뱅은 폭발 반경 내에 있는 사람들의 눈을 잠시 멀게 만듭니다.
+
+주의하십시오. 팀 동료 뿐 아니라 플레이어 자신에게도 영향을 미칩니다."
+"[english]CStrike_Tutor_Hint_32"		"'Flashbang' Grenades temporarily blind everyone
+in the area who can see them when they explode.
+
+Be careful - this includes your teammates and even yourself!"
+"Cstrike_Tutor_Hint_33"		"플래시뱅의 효과를 줄이려면 시야를 플래시뱅과 다른 쪽으로 돌리십시오."
+"[english]Cstrike_Tutor_Hint_33"		"Turning your view away from a Flashbang
+Grenade lessens its blinding effects."
+"Cstrike_Tutor_Hint_34"		"연막탄을 사용하면 짙은 연막이 발생해 플레이어의 움직임을 숨길 수 
+
+있습니다. 연막탄은 스나이퍼에게 매우 유용한 무기입니다."
+"[english]Cstrike_Tutor_Hint_34"		"Smoke Grenades emit large clouds of dense
+smoke that can hide player movements.
+
+Smoke can be very useful for slipping by a sniper."
+"Cstrike_Tutor_Hint_40"		"무전 명령을 사용하여 팀 동료에게 '따라오기', '위치 사수' 또는 '지원 요청' 명령을 내릴 수 있습니다.
+
+무선 명령을 보내려면 무전기 키(기본 설정: Z, X, C)를 사용하여 의사를 전달하십시오."
+"[english]Cstrike_Tutor_Hint_40"		"Your radio allows you to give commands to your teammates
+such as 'Follow me', 'Hold this position', or 'Need backup'.
+
+To send a radio command, use the Radio keys
+(default Z, X, and C) and select what you want to say."
+"Cstrike_Tutor_Hint_50"		"화면 왼쪽 상단 부분의 녹색 원이 레이더입니다.
+
+이 레이더에는 현재 플레이어의 위치와 방향을 기준으로 동료들의 위치가 표시됩니다.
+
+점이 12시 방향에 있으면 동료가 내 앞 쪽에 있다는 것을 나타냅니다.
+
+마찬가지로 6시 방향에 점이 있으면 동료가 내 뒤 쪽에 있다는 것을 나타냅니다."
+"[english]Cstrike_Tutor_Hint_50"		"The green circle in the upper left corner is your radar.
+
+It shows the positions of all of your surviving friends
+relative to your current position and direction you are looking.
+
+If a blip is at twelve o'clock, that friend is somewhere in front of you.
+Likewise, a blip at six o'clock is a friend behind you."
+"Cstrike_Tutor_Hint_51"		"레이더에 T자 표시는 동료가 더 높은 곳에 있다는 것을 나타냅니다. 
+
+거꾸로 뒤집은 T자 모양은 동료가 더 낮은 곳에 있다는 것을 나타냅니다."
+"[english]Cstrike_Tutor_Hint_51"		"On your radar, a blip shaped like a 'T' represents
+a friend somewhere above you.
+
+An upside-down 'T' blip is a friend somewhere below you."
+"Cstrike_Tutor_Hint_52"		"동료가 말을 하면 레이더에 오렌지색으로 깜박입니다."
+"[english]Cstrike_Tutor_Hint_52"		"If a friend is talking, his blip on
+the radar will flash an orange color."
+"Cstrike_Tutor_Hint_53"		"대 테러리스트일 경우 인질이 레이더에 깜박이는 파란 점으로 나타납니다."
+"[english]Cstrike_Tutor_Hint_53"		"If you are a Counter-Terrorist, Hostages
+will appear on your radar as flashing blue blips."
+"Cstrike_Tutor_Hint_60"		"폭탄 해체 지도에서는 폭탄 설치 지점이 여러 군데 있을 수 있습니다.
+"
+"[english]Cstrike_Tutor_Hint_60"		"Many bomb defusal maps have more than one bomb site..."
+"Cstrike_Tutor_Hint_61"		"적이 아무리 많이 남아있어도 폭탄을 해체하면 승리합니다."
+"[english]Cstrike_Tutor_Hint_61"		"Defusing the bomb is a sure way to win the round,
+regardless of how many enemies remain."
+"Cstrike_Tutor_Hint_70"		"인질 구출 지도에서는 인질 구출 지점이 한 군데 이상일 경우가 많습니다."
+"[english]Cstrike_Tutor_Hint_70"		"Hostage rescue maps often have more
+than one Hostage Rescue Point..."
+"Cstrike_Tutor_Hint_71"		"사용하기 키(기본 설정: E 키)를 눌러 인질에게 말을 걸면 바로 현금 보너스가 지급됩니다."
+"[english]Cstrike_Tutor_Hint_71"		"'Talking to' a Hostage by pressing the Use key (default E)
+rewards you with a cash bonus on the spot!"
+"Cstrike_Tutor_Hint_72"		"인질을 죽이게 되면 벌로 자금이 회수됩니다.
+
+인질이 다치지 않게 주의하십시오."
+"[english]Cstrike_Tutor_Hint_72"		"Killing a Hostage results in a severe cash penalty.
+
+Try to avoid injuring them."
+"Cstrike_Tutor_Hint_73"		"인질을 구출하면 많은 양의 현금 보너스가 주어집니다.
+"
+"[english]Cstrike_Tutor_Hint_73"		"Rescuing a Hostage rewards you with a healthy cash bonus!"
+"Career_Map_de_piranesi_cz_CAPS"		"PIRANESI"
+"[english]Career_Map_de_piranesi_cz_CAPS"		"PIRANESI"
+"Career_Map_de_piranesi_cz"		"Piranesi"
+"[english]Career_Map_de_piranesi_cz"		"Piranesi"
+"Cstrike_Bot_Defer"		"봇이 인간에게 목표 전달"
+"[english]Cstrike_Bot_Defer"		"Bots defer goals to humans"
+"Career_NewGame"		"카운터 스트라이크: 컨디션 제로 플레이(&P)"
+"[english]Career_NewGame"		"&Play Counter-Strike: Condition Zero"
+"Career_RestartConfirmationTitle"		"커리어 게임을 다시 시작하시겠습니까?"
+"[english]Career_RestartConfirmationTitle"		"Restart Career Game?"
+"Career_RestartConfirmationText"		"현재 커리어 게임을 끝냅니다.
+다시 시작하시겠습니까?"
+"[english]Career_RestartConfirmationText"		"This will end the current career game.
+Restart anyway?"
+"Career_OverwriteConfirmationText"		"저장된 프로필을 덮어씁니다.
+계속하시겠습니까?"
+"[english]Career_OverwriteConfirmationText"		"This will overwrite a saved profile.
+Continue anyway?"
+"Career_NewLocationsAvailable"		"새로운 작전 지역이 추가되었습니다!"
+"[english]Career_NewLocationsAvailable"		"New Locations are available!"
+"Career_Task_killwith_multi"		"%s1을(를) 이용하여 %s2명의 적을 사살해야 합니다."
+"[english]Career_Task_killwith_multi"		"You must kill %s2 enemies %s1"
+"Career_Task_killblind_multi"		"플래시뱅으로 앞이 보이지 않는 적 %s2명을 사살해야 합니다."
+"[english]Career_Task_killblind_multi"		"You must kill %s2 Flashbang-blinded enemies"
+"Career_Task_headshotwith"		"%s1을(를) 이용하여 한명의 적을 헤드샷으로 사살해야 합니다."
+"[english]Career_Task_headshotwith"		"You must kill an enemy with a headshot %s1"
+"Career_Task_headshotwith_multi"		"%s1을(를) 이용하여 %s2명의 적을 헤드샷으로 사살해야 합니다."
+"[english]Career_Task_headshotwith_multi"		"You must kill %s2 enemies with headshots %s1"
+"Career_Task_survive"		"%s1 또한 이번 라운드에서 살아남아야 합니다"
+"[english]Career_Task_survive"		"%s1 and survive the round"
+"Career_Task_inarow"		"죽지 않고 %s1"
+"[english]Career_Task_inarow"		"%s1 without dying"
+"Career_GameMenu_SaveGame"		"게임 저장하기"
+"[english]Career_GameMenu_SaveGame"		"Save Game"
+"Career_GameMenu_LoadGame"		"게임 불러오기"
+"[english]Career_GameMenu_LoadGame"		"Load Game"
+"Career_TripletNum"		"작전 지역 %s1"
+"[english]Career_TripletNum"		"Tour of Duty %s1"
+"Career_Map_cs_downed_cz_CAPS"		"DOWNED"
+"[english]Career_Map_cs_downed_cz_CAPS"		"DOWNED"
+"Career_Map_cs_downed_cz"		"Downed"
+"[english]Career_Map_cs_downed_cz"		"Downed"
+"Cstrike_TutorState_Moving_To_Intercept_Enemy"		"적 차단"
+"[english]Cstrike_TutorState_Moving_To_Intercept_Enemy"		"Intercept the Enemy"
+"Cstrike_TutorState_Running_Away_From_Ticking_Bomb"		"폭탄 피하기"
+"[english]Cstrike_TutorState_Running_Away_From_Ticking_Bomb"		"Escape the Bomb"
+"Cstrike_TutorState_Undefined"		" "
+"[english]Cstrike_TutorState_Undefined"		" "
+"Cstrike_TitlesTXT_AK47"		"CV-47"
+"[english]Cstrike_TitlesTXT_AK47"		"CV-47"
+"Cstrike_TitlesTXT_SG552"		"크리그 552 코만도"
+"[english]Cstrike_TitlesTXT_SG552"		"Krieg 552 Commando"
+"Cstrike_TitlesTXT_M4A1"		"매버릭 M4A1 카빈"
+"[english]Cstrike_TitlesTXT_M4A1"		"Maverick M4A1 Carbine"
+"Cstrike_TitlesTXT_Famas"		"클라리온 5.56"
+"[english]Cstrike_TitlesTXT_Famas"		"Clarion 5.56"
+"Cstrike_TitlesTXT_Galil"		"IDF 디펜더"
+"[english]Cstrike_TitlesTXT_Galil"		"IDF Defender"
+"Cstrike_TitlesTXT_Aug"		"불펍"
+"[english]Cstrike_TitlesTXT_Aug"		"Bullpup"
+"Cstrike_TitlesTXT_Scout"		"슈미트 스카우트"
+"[english]Cstrike_TitlesTXT_Scout"		"Schmidt Scout"
+"Cstrike_TitlesTXT_ArcticWarfareMagnum"		"매그넘 스나이퍼 라이플"
+"[english]Cstrike_TitlesTXT_ArcticWarfareMagnum"		"Magnum Sniper Rifle"
+"Cstrike_TitlesTXT_G3SG1"		"D3/AU-1 반자동 스나이퍼 라이플"
+"[english]Cstrike_TitlesTXT_G3SG1"		"D3/AU-1 Semi-Auto Sniper Rifle"
+"Cstrike_TitlesTXT_SG550"		"크리그 550 코만도"
+"[english]Cstrike_TitlesTXT_SG550"		"Krieg 550 Commando"
+"Cstrike_TitlesTXT_USP45"		"K&M .45 택티컬"
+"[english]Cstrike_TitlesTXT_USP45"		"K&M .45 Tactical"
+"Cstrike_TitlesTXT_Glock18"		"9X19mm 사이드암"
+"[english]Cstrike_TitlesTXT_Glock18"		"9X19mm Sidearm"
+"Cstrike_TitlesTXT_DesertEagle"		"나이트 호크 .50C"
+"[english]Cstrike_TitlesTXT_DesertEagle"		"Night Hawk .50C"
+"Cstrike_TitlesTXT_P228"		"228 컴팩트"
+"[english]Cstrike_TitlesTXT_P228"		"228 Compact"
+"Cstrike_TitlesTXT_Beretta96G"		".40 듀얼 엘리트"
+"[english]Cstrike_TitlesTXT_Beretta96G"		".40 Dual Elites"
+"Cstrike_TitlesTXT_FiveSeven"		"ES 파이브-세븐"
+"[english]Cstrike_TitlesTXT_FiveSeven"		"ES Five-Seven"
+"Cstrike_TitlesTXT_Super90"		"레오네 12 게이지 슈퍼"
+"[english]Cstrike_TitlesTXT_Super90"		"Leone 12 Gauge Super"
+"Cstrike_TitlesTXT_XM1014"		"레오네 YG1265 자동 샷건"
+"[english]Cstrike_TitlesTXT_XM1014"		"Leone YG1265 Auto Shotgun"
+"Cstrike_TitlesTXT_mp5navy"		"K&M 기관단총"
+"[english]Cstrike_TitlesTXT_mp5navy"		"K&M Sub-machinegun"
+"Cstrike_TitlesTXT_tmp"		"슈미트 머신 피스톨"
+"[english]Cstrike_TitlesTXT_tmp"		"Schmidt Machine Pistol"
+"Cstrike_TitlesTXT_FNP90"		"ES C90"
+"[english]Cstrike_TitlesTXT_FNP90"		"ES C90"
+"Cstrike_TitlesTXT_Mac10"		"잉그람 Mac-10"
+"[english]Cstrike_TitlesTXT_Mac10"		"Ingram Mac-10"
+"Cstrike_TitlesTXT_UMP45"		"K&M UMP45"
+"[english]Cstrike_TitlesTXT_UMP45"		"K&M UMP45"
+"Cstrike_TitlesTXT_M249"		"ES M249 파라"
+"[english]Cstrike_TitlesTXT_M249"		"ES M249 Para"
+"Cstrike_TitlesTXT_Krieg552"		"크리그 552"
+"[english]Cstrike_TitlesTXT_Krieg552"		"Krieg 552"
+"Cstrike_TitlesTXT_M4A1_Short"		"M4A1"
+"[english]Cstrike_TitlesTXT_M4A1_Short"		"M4A1"
+"Cstrike_TitlesTXT_Schmidt"		"슈미트"
+"[english]Cstrike_TitlesTXT_Schmidt"		"Schmidt"
+"Cstrike_TitlesTXT_Magnum"		"매그넘"
+"[english]Cstrike_TitlesTXT_Magnum"		"Magnum"
+"Cstrike_TitlesTXT_D3AU1"		"D3AU1"
+"[english]Cstrike_TitlesTXT_D3AU1"		"D3AU1"
+"Cstrike_TitlesTXT_Krieg550"		"크리그 550"
+"[english]Cstrike_TitlesTXT_Krieg550"		"Krieg 550"
+"Cstrike_TitlesTXT_KM45Tactical"		"K&M .45"
+"[english]Cstrike_TitlesTXT_KM45Tactical"		"K&M .45"
+"Cstrike_TitlesTXT_Sidearm9X19mm"		"9X19mm"
+"[english]Cstrike_TitlesTXT_Sidearm9X19mm"		"9X19mm"
+"Cstrike_TitlesTXT_NightHawk"		"나이트 호크"
+"[english]Cstrike_TitlesTXT_NightHawk"		"Night Hawk"
+"Cstrike_TitlesTXT_P228Compact"		"228"
+"[english]Cstrike_TitlesTXT_P228Compact"		"228"
+"Cstrike_TitlesTXT_Dual40"		".40 듀얼"
+"[english]Cstrike_TitlesTXT_Dual40"		".40 Dual"
+"Cstrike_TitlesTXT_ESFiveSeven"		"파이브-세븐"
+"[english]Cstrike_TitlesTXT_ESFiveSeven"		"Five-Seven"
+"Cstrike_TitlesTXT_Leone12"		"12 게이지"
+"[english]Cstrike_TitlesTXT_Leone12"		"12 Gauge"
+"Cstrike_TitlesTXT_AutoShotgun"		"자동 샷건"
+"[english]Cstrike_TitlesTXT_AutoShotgun"		"Auto Shotgun"
+"Cstrike_TitlesTXT_SubMachineGun"		"기관단총"
+"[english]Cstrike_TitlesTXT_SubMachineGun"		"SMG"
+"Cstrike_TitlesTXT_SchmidtMP"		"슈미트 MP"
+"[english]Cstrike_TitlesTXT_SchmidtMP"		"Schmidt MP"
+"Cstrike_TitlesTXT_ESC90"		"ES C90"
+"[english]Cstrike_TitlesTXT_ESC90"		"ES C90"
+"Cstrike_TitlesTXT_Mac10_Short"		"Mac-10"
+"[english]Cstrike_TitlesTXT_Mac10_Short"		"Mac-10"
+"Cstrike_TitlesTXT_KMUMP45"		"K&M UMP45"
+"[english]Cstrike_TitlesTXT_KMUMP45"		"K&M UMP45"
+"Cstrike_TitlesTXT_ESM249"		"ES M249"
+"[english]Cstrike_TitlesTXT_ESM249"		"ES M249"
+"Cstrike_TitlesTXT_TEAMS"		"팀"
+"[english]Cstrike_TitlesTXT_TEAMS"		"Teams"
+"Cstrike_TitlesTXT_PLAYERS"		"플레이어"
+"[english]Cstrike_TitlesTXT_PLAYERS"		"Players"
+"Cstrike_TitlesTXT_CLASS"		"클래스"
+"[english]Cstrike_TitlesTXT_CLASS"		"Class"
+"Cstrike_TitlesTXT_SCORE"		"점수"
+"[english]Cstrike_TitlesTXT_SCORE"		"SCORE"
+"Cstrike_TitlesTXT_DEATHS"		"죽은 횟수"
+"[english]Cstrike_TitlesTXT_DEATHS"		"DEATHS"
+"Cstrike_TitlesTXT_LATENCY"		"지연 시간"
+"[english]Cstrike_TitlesTXT_LATENCY"		"LATENCY"
+"Cstrike_TitlesTXT_VOICE"		"음성"
+"[english]Cstrike_TitlesTXT_VOICE"		"VOICE"
+"Cstrike_TitlesTXT_Menu_OK"		"확인"
+"[english]Cstrike_TitlesTXT_Menu_OK"		"OK"
+"Cstrike_TitlesTXT_Menu_Cancel"		"취소"
+"[english]Cstrike_TitlesTXT_Menu_Cancel"		"Cancel"
+"Cstrike_TitlesTXT_Menu_Spectate"		"관전"
+"[english]Cstrike_TitlesTXT_Menu_Spectate"		"Spectate"
+"Cstrike_TitlesTXT_Team_AutoAssign"		"자동 배정"
+"[english]Cstrike_TitlesTXT_Team_AutoAssign"		"Auto Assign"
+"Cstrike_TitlesTXT_Title_SelectYourTeam"		"팀 선택"
+"[english]Cstrike_TitlesTXT_Title_SelectYourTeam"		"Select Your Team"
+"Cstrike_TitlesTXT_Target_Bombed"		"목표물을 성공적으로 폭파했습니다!"
+"[english]Cstrike_TitlesTXT_Target_Bombed"		"Target Successfully Bombed!"
+"Cstrike_TitlesTXT_VIP_Escaped"		"VIP가 탈출했습니다!"
+"[english]Cstrike_TitlesTXT_VIP_Escaped"		"The VIP has escaped!"
+"Cstrike_TitlesTXT_VIP_Assassinated"		"VIP가 암살되었습니다!"
+"[english]Cstrike_TitlesTXT_VIP_Assassinated"		"VIP has been assassinated!"
+"Cstrike_TitlesTXT_Terrorists_Escaped"		"테러리스트가 탈출했습니다!"
+"[english]Cstrike_TitlesTXT_Terrorists_Escaped"		"The terrorists have escaped!"
+"Cstrike_TitlesTXT_CTs_PreventEscape"		"대 테러리스트가 탈출하려는 대부분의 테러리스트를 막았습니다!"
+"[english]Cstrike_TitlesTXT_CTs_PreventEscape"		"The CTs have prevented most
+of the terrorists from escaping!"
+"Cstrike_TitlesTXT_Escaping_Terrorists_Neutralized"		"탈출하려는 테러리스트를 모두 제거했습니다!"
+"[english]Cstrike_TitlesTXT_Escaping_Terrorists_Neutralized"		"Escaping terrorists have
+all been neutralized!"
+"Cstrike_TitlesTXT_Bomb_Defused"		"폭탄을 해체했습니다!"
+"[english]Cstrike_TitlesTXT_Bomb_Defused"		"The bomb has been defused!"
+"Cstrike_TitlesTXT_CTs_Win"		"대 테러리스트가 승리했습니다!"
+"[english]Cstrike_TitlesTXT_CTs_Win"		"Counter-Terrorists Win!"
+"Cstrike_TitlesTXT_Terrorists_Win"		"테러리스트가 승리했습니다!"
+"[english]Cstrike_TitlesTXT_Terrorists_Win"		"Terrorists Win!"
+"Cstrike_TitlesTXT_Round_Draw"		"라운드를 비겼습니다!"
+"[english]Cstrike_TitlesTXT_Round_Draw"		"Round Draw!"
+"Cstrike_TitlesTXT_All_Hostages_Rescued"		"모든 인질이 구출되었습니다!"
+"[english]Cstrike_TitlesTXT_All_Hostages_Rescued"		"All Hostages have been rescued!"
+"Cstrike_TitlesTXT_Target_Saved"		"목표물이 저장되었습니다!"
+"[english]Cstrike_TitlesTXT_Target_Saved"		"Target has been saved!"
+"Cstrike_TitlesTXT_Hostages_Not_Rescued"		"인질이 구출되지 않았습니다!"
+"[english]Cstrike_TitlesTXT_Hostages_Not_Rescued"		"Hostages have not been rescued!"
+"Cstrike_TitlesTXT_Terrorists_Not_Escaped"		"테러리스트들이 탈출하지 못했습니다!"
+"[english]Cstrike_TitlesTXT_Terrorists_Not_Escaped"		"Terrorists have not escaped!"
+"Cstrike_TitlesTXT_VIP_Not_Escaped"		"VIP가 탈출하지 못했습니다!"
+"[english]Cstrike_TitlesTXT_VIP_Not_Escaped"		"VIP has not escaped!"
+"Cstrike_TitlesTXT_Cannot_Buy_This"		"이 아이템을 구입할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Cannot_Buy_This"		"You cannot buy this item!"
+"Cstrike_TitlesTXT_Not_Enough_Money"		"자금이 부족합니다!"
+"[english]Cstrike_TitlesTXT_Not_Enough_Money"		"You have insufficient funds!"
+"Cstrike_TitlesTXT_Weapon_Not_Available"		"이 무기를 사용할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Weapon_Not_Available"		"This weapon is not available to you!"
+"Cstrike_TitlesTXT_Already_Have_Kevlar"		"이미 방탄복을 가지고 있습니다!"
+"[english]Cstrike_TitlesTXT_Already_Have_Kevlar"		"You already have kevlar!"
+"Cstrike_TitlesTXT_Already_Have_Kevlar_Helmet"		"이미 방탄복과 헬멧을 가지고 있습니다!"
+"[english]Cstrike_TitlesTXT_Already_Have_Kevlar_Helmet"		"You already have kevlar and a helmet!"
+"Cstrike_TitlesTXT_Cannot_Carry_Anymore"		"더 이상 들 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Cannot_Carry_Anymore"		"You cannot carry anymore!"
+"Cstrike_TitlesTXT_Already_Have_One"		"이미 가지고 있습니다!"
+"[english]Cstrike_TitlesTXT_Already_Have_One"		"You already have one!"
+"Cstrike_TitlesTXT_Cannot_Switch_From_VIP"		"플레이어가 VIP 입니다!
+이제 역할을 바꿀 수 없습니다."
+"[english]Cstrike_TitlesTXT_Cannot_Switch_From_VIP"		"You are the VIP!
+You cannot switch roles now."
+"Cstrike_TitlesTXT_All_Teams_Full"		"팀이 다 찼습니다!"
+"[english]Cstrike_TitlesTXT_All_Teams_Full"		"All teams are full!"
+"Cstrike_TitlesTXT_Terrorists_Full"		"테러리스트 팀이 다 찼습니다!"
+"[english]Cstrike_TitlesTXT_Terrorists_Full"		"The terrorist team is full!"
+"Cstrike_TitlesTXT_CTs_Full"		"대 테러리스트 팀이 다 찼습니다!"
+"[english]Cstrike_TitlesTXT_CTs_Full"		"The CT team is full!"
+"Cstrike_TitlesTXT_Too_Many_Terrorists"		"테러리스트가 너무 많습니다!"
+"[english]Cstrike_TitlesTXT_Too_Many_Terrorists"		"There are too many terrorists!"
+"Cstrike_TitlesTXT_Too_Many_CTs"		"대 테러리스트가 너무 많습니다!"
+"[english]Cstrike_TitlesTXT_Too_Many_CTs"		"There are too many CTs!"
+"Cstrike_TitlesTXT_Wait_3_Seconds"		"3초간 기다리십시오..."
+"[english]Cstrike_TitlesTXT_Wait_3_Seconds"		"Please wait 3 seconds."
+"Cstrike_TitlesTXT_Only_1_Team_Change"		"팀 변경은 한번만 허용됩니다..."
+"[english]Cstrike_TitlesTXT_Only_1_Team_Change"		"Only 1 team change is allowed."
+"Cstrike_TitlesTXT_Ignore_Broadcast_Messages"		"전체 메시지를 무시합니다."
+"[english]Cstrike_TitlesTXT_Ignore_Broadcast_Messages"		"Now ignoring BROADCAST messages"
+"Cstrike_TitlesTXT_Ignore_Broadcast_Team_Messages"		"팀/전체 메시지를 무시합니다."
+"[english]Cstrike_TitlesTXT_Ignore_Broadcast_Team_Messages"		"Now ignoring TEAM/BROADCAST messages"
+"Cstrike_TitlesTXT_Accept_All_Messages"		"모든 텍스트 메시지를 수신합니다."
+"[english]Cstrike_TitlesTXT_Accept_All_Messages"		"Now accepting ALL text messages"
+"Cstrike_TitlesTXT_Ignore_Radio"		"무전 메시지를 무시합니다."
+"[english]Cstrike_TitlesTXT_Ignore_Radio"		"Now IGNORING radio messages"
+"Cstrike_TitlesTXT_Accept_Radio"		"무전 메시지를 수신합니다."
+"[english]Cstrike_TitlesTXT_Accept_Radio"		"Now ACCEPTING radio messages"
+"Cstrike_TitlesTXT_Command_Not_Available"		"현재는 이 명령을 사용할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Command_Not_Available"		"This command is not available to you at this point"
+"Cstrike_TitlesTXT_Defusing_Bomb_With_Defuse_Kit"		"폭탄 해체 키트로 폭탄 해체 중..."
+"[english]Cstrike_TitlesTXT_Defusing_Bomb_With_Defuse_Kit"		"Defusing bomb WITH Defuse kit."
+"Cstrike_TitlesTXT_Defusing_Bomb_Without_Defuse_Kit"		"폭탄 해체 키트 없이 폭탄 해체 중..."
+"[english]Cstrike_TitlesTXT_Defusing_Bomb_Without_Defuse_Kit"		"Defusing bomb WITHOUT Defuse kit."
+"Cstrike_TitlesTXT_Killed_Hostage"		"인질을 사살했습니다!"
+"[english]Cstrike_TitlesTXT_Killed_Hostage"		"You killed a hostage!"
+"Cstrike_TitlesTXT_Injured_Hostage"		"인질에게 부상을 입혔습니다!"
+"[english]Cstrike_TitlesTXT_Injured_Hostage"		"You injured a hostage!"
+"Cstrike_TitlesTXT_Auto_Team_Balance_Next_Round"		"*** 다음 라운드에 팀 밸런스를 맞추게 됩니다. ***"
+"[english]Cstrike_TitlesTXT_Auto_Team_Balance_Next_Round"		"*** Auto-Team Balance next round ***"
+"Cstrike_TitlesTXT_All_VIP_Slots_Full"		"5개의 VIP 자리가 모두 찼습니다.
+나중에 다시 시도하십시오."
+"[english]Cstrike_TitlesTXT_All_VIP_Slots_Full"		"All 5 VIP slots have been filled up.
+Please try again later."
+"Cstrike_TitlesTXT_Killed_Teammate"		"팀원를 사살했습니다!"
+"[english]Cstrike_TitlesTXT_Killed_Teammate"		"You killed a teammate!"
+"Cstrike_TitlesTXT_Banned_For_Killing_Teammates"		"팀원을 너무 많이 죽여서 서버에서 추방되었습니다."
+"[english]Cstrike_TitlesTXT_Banned_For_Killing_Teammates"		"You are being banned from the server for killing too many teammates"
+"Cstrike_TitlesTXT_Cannot_Vote_Map"		"새로운 맵이 시작된 후 3분 동안은 투표할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Cannot_Vote_Map"		"You cannot vote within 3 minutes of a new map"
+"Cstrike_TitlesTXT_Weapon_Cannot_Be_Dropped"		"이 무기는 버릴 수 없습니다."
+"[english]Cstrike_TitlesTXT_Weapon_Cannot_Be_Dropped"		"This weapon cannot be dropped"
+"Cstrike_TitlesTXT_Terrorist_Escaped"		"테러리스트가 한 명 탈출했습니다!"
+"[english]Cstrike_TitlesTXT_Terrorist_Escaped"		"A terrorist has escaped!"
+"Cstrike_TitlesTXT_C4_Plant_At_Bomb_Spot"		"C4는 폭파 목표 지점에만 장착할 수 있습니다!"
+"[english]Cstrike_TitlesTXT_C4_Plant_At_Bomb_Spot"		"C4 must be planted at a bomb site!"
+"Cstrike_TitlesTXT_C4_Plant_Must_Be_On_Ground"		"땅 위에 서 있어야만 C4를 장착할 수 있습니다!"
+"[english]Cstrike_TitlesTXT_C4_Plant_Must_Be_On_Ground"		"You must be standing on
+the ground to plant the C4!"
+"Cstrike_TitlesTXT_C4_Arming_Cancelled"		"C4 장착이 취소 되었습니다.
+C4는 폭파 목표 지점에만 장착할 수 있습니다."
+"[english]Cstrike_TitlesTXT_C4_Arming_Cancelled"		"Arming Sequence Canceled. 
+C4 can only be placed at a Bomb Target."
+"Cstrike_TitlesTXT_Bomb_Planted"		"폭탄이 장착되었습니다!"
+"[english]Cstrike_TitlesTXT_Bomb_Planted"		"The bomb has been planted!"
+"Cstrike_TitlesTXT_C4_Activated_At_Bomb_Spot"		"C4는 폭파 목표 지점에서만 작동시킬 수 있습니다."
+"[english]Cstrike_TitlesTXT_C4_Activated_At_Bomb_Spot"		"C4 must be activated at a Bomb Target"
+"Cstrike_TitlesTXT_Switch_To_BurstFire"		"연사 모드로 변경했습니다."
+"[english]Cstrike_TitlesTXT_Switch_To_BurstFire"		"Switched to Burst-Fire mode"
+"Cstrike_TitlesTXT_Switch_To_SemiAuto"		"반자동 모드로 변경했습니다."
+"[english]Cstrike_TitlesTXT_Switch_To_SemiAuto"		"Switched to semi-automatic"
+"Cstrike_TitlesTXT_Switch_To_FullAuto"		"자동 모드로 변경했습니다."
+"[english]Cstrike_TitlesTXT_Switch_To_FullAuto"		"Switched to automatic"
+"Cstrike_TitlesTXT_TRAINING1"		"구입하기 키를 이용하여 다음을 구입하십시오:
+	-기관단총
+	-주 무기 탄약"
+"[english]Cstrike_TitlesTXT_TRAINING1"		"Use Your BUY key to purchase:
+      - Sub Machine Gun
+      - Primary Ammo"
+"Cstrike_TitlesTXT_TRAINING2"		"구입하기 키를 이용하여 다음을 구입하십시오:
+	- 매그넘 스나이퍼 라이플"
+"[english]Cstrike_TitlesTXT_TRAINING2"		"Use your BUY key to purchase:
+- Magnum Sniper Rifle"
+"Cstrike_TitlesTXT_TRAINING3"		"구입하기 키를 이용하여 다음을 구입하십시오:
+	- 연막탄"
+"[english]Cstrike_TitlesTXT_TRAINING3"		"Use your BUY key to purchase:
+     - Smoke Grenade"
+"Cstrike_TitlesTXT_TRAINING4"		"벤치에 있는 C4를 가져오십시오."
+"[english]Cstrike_TitlesTXT_TRAINING4"		"Collect the C4 from the bench."
+"Cstrike_TitlesTXT_TRAINING5"		"C4를 장착하고 안전한 곳으로 대피하십시오."
+"[english]Cstrike_TitlesTXT_TRAINING5"		"Place C4 then retreat to saftey."
+"Cstrike_TitlesTXT_TRAINING6"		"사용하기 키를 누른 상태로 유지하여 폭탄을 해체하십시오."
+"[english]Cstrike_TitlesTXT_TRAINING6"		"Defuse the bomb, by holding
+down your USE key."
+"Cstrike_TitlesTXT_TRAINING7"		"인질을 찾아 구출해내십시오."
+"[english]Cstrike_TitlesTXT_TRAINING7"		"Locate and rescue hostages."
+"Cstrike_TitlesTXT_GAMESAVED"		"저장 완료..."
+"[english]Cstrike_TitlesTXT_GAMESAVED"		"Saved"
+"Cstrike_TitlesTXT_Game_Commencing"		"게임이 시작됩니다!"
+"[english]Cstrike_TitlesTXT_Game_Commencing"		"Game Commencing!"
+"Cstrike_TitlesTXT_Game_connected"		"%s1님이 접속했습니다."
+"[english]Cstrike_TitlesTXT_Game_connected"		"%s1 connected"
+"Cstrike_TitlesTXT_Game_disconnected"		"%s1님이 게임에서 나갔습니다."
+"[english]Cstrike_TitlesTXT_Game_disconnected"		"%s1 has left the game"
+"Cstrike_TitlesTXT_Game_join_terrorist"		"%s1님이 테러리스트에 합류했습니다."
+"[english]Cstrike_TitlesTXT_Game_join_terrorist"		"%s1 is joining the Terrorist force"
+"Cstrike_TitlesTXT_Game_join_ct"		"%s1님이 대 테러리스트에 합류했습니다."
+"[english]Cstrike_TitlesTXT_Game_join_ct"		"%s1 is joining the Counter-Terrorist force"
+"Cstrike_TitlesTXT_Game_join_terrorist_auto"		"%s1님이 테러리스트에 합류했습니다(자동)."
+"[english]Cstrike_TitlesTXT_Game_join_terrorist_auto"		"%s1 is joining the Terrorist force (auto)"
+"Cstrike_TitlesTXT_Game_join_ct_auto"		"%s1님이 대 테러리스트에 합류했습니다(자동)."
+"[english]Cstrike_TitlesTXT_Game_join_ct_auto"		"%s1 is joining the Counter-Terrorist force (auto)"
+"Cstrike_TitlesTXT_Game_scoring"		"양 팀에 모두 플레이어가 들어가기 전에는 점수가 계산되지 않습니다."
+"[english]Cstrike_TitlesTXT_Game_scoring"		"Scoring will not start until both teams have players"
+"Cstrike_TitlesTXT_Game_idle_kick"		"%s1님이 너무 오랫동안 활동을 하지 않아 쫓겨났습니다."
+"[english]Cstrike_TitlesTXT_Game_idle_kick"		"%s1 has been idle for too long and has been kicked"
+"Cstrike_TitlesTXT_Game_bomb_drop"		"%s1님이 폭탄을 떨어뜨렸습니다."
+"[english]Cstrike_TitlesTXT_Game_bomb_drop"		"%s1 dropped the bomb"
+"Cstrike_TitlesTXT_Game_bomb_pickup"		"%s1님이 폭탄을 집었습니다."
+"[english]Cstrike_TitlesTXT_Game_bomb_pickup"		"%s1 picked up the bomb"
+"Cstrike_TitlesTXT_Game_no_timelimit"		"* 시간 제한 없음 *"
+"[english]Cstrike_TitlesTXT_Game_no_timelimit"		"* No Time Limit *"
+"Cstrike_TitlesTXT_Game_timelimit"		"남은 시간:  %s1:%s2"
+"[english]Cstrike_TitlesTXT_Game_timelimit"		"Time Remaining:  %s1:%s2"
+"Cstrike_TitlesTXT_Game_unknown_command"		"알 수 없는 명령: %s1"
+"[english]Cstrike_TitlesTXT_Game_unknown_command"		"Unknown command: %s1"
+"Cstrike_TitlesTXT_Game_in_position"		"이미 %s1 / 5 위치에 있습니다."
+"[english]Cstrike_TitlesTXT_Game_in_position"		"You are already in position %s1 of 5"
+"Cstrike_TitlesTXT_Game_added_position"		"%s1 / 5 위치에 추가되었습니다."
+"[english]Cstrike_TitlesTXT_Game_added_position"		"You have been added to position %s1 of 5"
+"Cstrike_TitlesTXT_Game_teammate_kills"		"팀원 킬 수: %s1 / 3"
+"[english]Cstrike_TitlesTXT_Game_teammate_kills"		"Teammate kills: %s1 of 3"
+"Cstrike_TitlesTXT_Game_required_votes"		"새로운 맵으로 바꾸기 위해 필요한 득표 수 = %s1"
+"[english]Cstrike_TitlesTXT_Game_required_votes"		"Required number of votes for a new map = %s1"
+"Cstrike_TitlesTXT_Game_radio"		"%s1 (무전): %s2"
+"[english]Cstrike_TitlesTXT_Game_radio"		"%s1 (RADIO): %s2"
+"Cstrike_TitlesTXT_Game_teammate_attack"		"%s1님이 팀원을 공격했습니다."
+"[english]Cstrike_TitlesTXT_Game_teammate_attack"		"%s1 attacked a teammate"
+"Cstrike_TitlesTXT_Game_kicked"		"%s1님을 추방했습니다."
+"[english]Cstrike_TitlesTXT_Game_kicked"		"Kicked %s1"
+"Cstrike_TitlesTXT_Game_vote_cast"		"플레이어 # %s1에 반대하는 표가 나왔습니다."
+"[english]Cstrike_TitlesTXT_Game_vote_cast"		"Vote cast against player # %s1"
+"Cstrike_TitlesTXT_Game_vote_usage"		"사용법:  vote <id>"
+"[english]Cstrike_TitlesTXT_Game_vote_usage"		"Usage:  vote <id>"
+"Cstrike_TitlesTXT_Game_vote_player_not_found"		"플레이어 # %s1를 찾을 수 없습니다."
+"[english]Cstrike_TitlesTXT_Game_vote_player_not_found"		"Player # %s1 was not found"
+"Cstrike_TitlesTXT_Game_vote_players_on_your_team"		"같은 팀에 있는 플레이어에 대해서만 투표할 수 있습니다."
+"[english]Cstrike_TitlesTXT_Game_vote_players_on_your_team"		"You can only vote for players on your team"
+"Cstrike_TitlesTXT_Game_vote_not_yourself"		"자기 스스로를 추방하겠다고 투표할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Game_vote_not_yourself"		"You can't vote to kick yourself!"
+"Cstrike_TitlesTXT_Game_voted_for_map"		"맵 번호 %s1에 투표했습니다."
+"[english]Cstrike_TitlesTXT_Game_voted_for_map"		"You voted for Map # %s1"
+"Cstrike_TitlesTXT_Game_votemap_usage"		"사용법:  votemap <id>"
+"[english]Cstrike_TitlesTXT_Game_votemap_usage"		"Usage:  votemap <id>"
+"Cstrike_TitlesTXT_Cannot_Vote_Need_More_People"		"혼자서 단독으로 맵에 투표할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Cannot_Vote_Need_More_People"		"You can't vote for a map by yourself!"
+"Cstrike_TitlesTXT_Map_Vote_Extend"		"이 맵에서의 플레이 시간이 30분 연장되었습니다."
+"[english]Cstrike_TitlesTXT_Map_Vote_Extend"		"Map has been extended for 30 minutes"
+"Cstrike_TitlesTXT_Cannot_Vote_With_Less_Than_Three"		"팀원이 3명 이하일 경우에는 투표할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Cannot_Vote_With_Less_Than_Three"		"You can't vote with less than three people on your team"
+"Cstrike_TitlesTXT_Game_will_restart_in"		"게임은 %s1 %s2 후 다시 시작됩니다."
+"[english]Cstrike_TitlesTXT_Game_will_restart_in"		"The game will restart in %s1 %s2"
+"Cstrike_TitlesTXT_Cover_me"		"엄호하라!"
+"[english]Cstrike_TitlesTXT_Cover_me"		"Cover Me!"
+"Cstrike_TitlesTXT_You_take_the_point"		"선두를 맡아라."
+"[english]Cstrike_TitlesTXT_You_take_the_point"		"You Take the Point."
+"Cstrike_TitlesTXT_Hold_this_position"		"이 위치를 사수하라."
+"[english]Cstrike_TitlesTXT_Hold_this_position"		"Hold This Position."
+"Cstrike_TitlesTXT_Regroup_team"		"팀을 재정비하라."
+"[english]Cstrike_TitlesTXT_Regroup_team"		"Regroup Team."
+"Cstrike_TitlesTXT_Follow_me"		"나를 따르라."
+"[english]Cstrike_TitlesTXT_Follow_me"		"Follow Me."
+"Cstrike_TitlesTXT_Taking_fire"		"공격받고 있다... 도움이 필요하다!"
+"[english]Cstrike_TitlesTXT_Taking_fire"		"Taking Fire...Need Assistance!"
+"Cstrike_TitlesTXT_Go_go_go"		"고 고 고!"
+"[english]Cstrike_TitlesTXT_Go_go_go"		"Go go go!"
+"Cstrike_TitlesTXT_Team_fall_back"		"팀, 후퇴하라!"
+"[english]Cstrike_TitlesTXT_Team_fall_back"		"Team, fall back!"
+"Cstrike_TitlesTXT_Stick_together_team"		"흩어지지 마라."
+"[english]Cstrike_TitlesTXT_Stick_together_team"		"Stick together, team."
+"Cstrike_TitlesTXT_Get_in_position_and_wait"		"위치를 잡고 나의 명령을 기다려라."
+"[english]Cstrike_TitlesTXT_Get_in_position_and_wait"		"Get in position and wait for my go."
+"Cstrike_TitlesTXT_Storm_the_front"		"정면으로 돌격하라!"
+"[english]Cstrike_TitlesTXT_Storm_the_front"		"Storm the Front!"
+"Cstrike_TitlesTXT_Report_in_team"		"상황을 보고하라."
+"[english]Cstrike_TitlesTXT_Report_in_team"		"Report in, team."
+"Cstrike_TitlesTXT_Affirmative"		"알았다."
+"[english]Cstrike_TitlesTXT_Affirmative"		"Affirmative."
+"Cstrike_TitlesTXT_Roger_that"		"알았다."
+"[english]Cstrike_TitlesTXT_Roger_that"		"Roger that."
+"Cstrike_TitlesTXT_Enemy_spotted"		"적을 발견했다."
+"[english]Cstrike_TitlesTXT_Enemy_spotted"		"Enemy spotted."
+"Cstrike_TitlesTXT_Need_backup"		"지원이 필요하다."
+"[english]Cstrike_TitlesTXT_Need_backup"		"Need backup."
+"Cstrike_TitlesTXT_Sector_clear"		"구역 확보 완료."
+"[english]Cstrike_TitlesTXT_Sector_clear"		"Sector clear."
+"Cstrike_TitlesTXT_In_position"		"위치에 도달했다."
+"[english]Cstrike_TitlesTXT_In_position"		"I'm in position."
+"Cstrike_TitlesTXT_Reporting_in"		"이상 없다."
+"[english]Cstrike_TitlesTXT_Reporting_in"		"Reporting in."
+"Cstrike_TitlesTXT_Get_out_of_there"		"어서 나가, 곧 폭발한다!"
+"[english]Cstrike_TitlesTXT_Get_out_of_there"		"Get out of there, it's gonna blow!"
+"Cstrike_TitlesTXT_Negative"		"실행할 수 없다."
+"[english]Cstrike_TitlesTXT_Negative"		"Negative."
+"Cstrike_TitlesTXT_Enemy_down"		"적을 사살했다."
+"[english]Cstrike_TitlesTXT_Enemy_down"		"Enemy down."
+"Cstrike_TitlesTXT_Hostage_down"		"인질이 사살되었다."
+"[english]Cstrike_TitlesTXT_Hostage_down"		"Hostage down."
+"Cstrike_TitlesTXT_Fire_in_the_hole"		"수류탄 투척!"
+"[english]Cstrike_TitlesTXT_Fire_in_the_hole"		"Fire in the hole!"
+"Cstrike_TitlesTXT_Cant_buy"		"%s1초가 경과했습니다...
+이젠 아무것도 구입할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Cant_buy"		"%s1 seconds have passed.
+You can't buy anything now!"
+"Cstrike_TitlesTXT_VIP_cant_buy"		"플레이어은 VIP입니다.
+아무 것도 구입할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_VIP_cant_buy"		"You are the VIP.
+You can't buy anything!"
+"Cstrike_TitlesTXT_CT_cant_buy"		"대 테러리스트는 이 맵에서 아무 것도 구입할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_CT_cant_buy"		"CTs aren't allowed to buy
+anything on this map!"
+"Cstrike_TitlesTXT_Terrorist_cant_buy"		"테러리스트는 이 맵에서 아무 것도 구입할 수 없습니다!"
+"[english]Cstrike_TitlesTXT_Terrorist_cant_buy"		"Terrorists aren't allowed to
+buy anything on this map!"
+"Cstrike_TitlesTXT_Vote"		"%s1 :  %s2 (%s3표)"
+"[english]Cstrike_TitlesTXT_Vote"		"%s1 :  %s2 (%s3 vote)"
+"Cstrike_TitlesTXT_Votes"		"%s1 :  %s2 (%s3표)"
+"[english]Cstrike_TitlesTXT_Votes"		"%s1 :  %s2 (%s3 votes)"
+"Cstrike_TitlesTXT_Hint_press_buy_to_purchase"		"아이템을 구입하려면 구입하기 키를 누르십시오."
+"[english]Cstrike_TitlesTXT_Hint_press_buy_to_purchase"		"Press the BUY key to purchase items."
+"Cstrike_TitlesTXT_Hint_use_nightvision"		"야시경 키를 눌러 야시경을 켜거나 끄십시오.
+야시경은 다음을 입력하여 조절할 수 있습니다:
+콘솔에서
++nvgadjust
+-nvgadjust"
+"[english]Cstrike_TitlesTXT_Hint_use_nightvision"		"Press the NIGHTVISION key to turn on/off nightvision goggles.
+Nightvision can be adjusted by typing:
++nvgadjust
+-nvgadjust
+at the console."
+"Cstrike_TitlesTXT_Hint_lost_money"		"인질을 사살했기 때문에 자금을 잃었습니다."
+"[english]Cstrike_TitlesTXT_Hint_lost_money"		"You have lost money for killing a hostage."
+"Cstrike_TitlesTXT_Hint_removed_for_next_hostage_killed"		"인질을 한 명 더 죽일 경우 서버에서 쫓겨나게 됩니다"
+"[english]Cstrike_TitlesTXT_Hint_removed_for_next_hostage_killed"		"If you kill one more hostage, 
+you will be removed from the server."
+"Cstrike_TitlesTXT_Hint_careful_around_hostages"		"인질 주위에서는 조심하십시오.
+인질을 죽이면 자금을 잃게 됩니다."
+"[english]Cstrike_TitlesTXT_Hint_careful_around_hostages"		"Be careful around hostages.
+You will lose money if you kill a hostage."
+"Cstrike_TitlesTXT_Hint_careful_around_teammates"		"조심하십시오!
+팀원을 사살하는 것은 허용되지 않습니다!"
+"[english]Cstrike_TitlesTXT_Hint_careful_around_teammates"		"Careful!
+Killing teammates will not be tolerated!"
+"Cstrike_TitlesTXT_Hint_reward_for_killing_vip"		"VIP를 사살한 댓가로 $2500을 얻었습니다!"
+"[english]Cstrike_TitlesTXT_Hint_reward_for_killing_vip"		"You have been rewarded $2500 for killing the VIP!"
+"Cstrike_TitlesTXT_Hint_win_round_by_killing_enemy"		"적을 사살했습니다!
+적을 모두 사살하여 이번 라운드에서 승리하십시오."
+"[english]Cstrike_TitlesTXT_Hint_win_round_by_killing_enemy"		"You killed an Enemy!
+Win the round by eliminating
+the opposing force."
+"Cstrike_TitlesTXT_Hint_try_not_to_injure_teammates"		"팀원에게 부상을 입히지 않도록 하십시오."
+"[english]Cstrike_TitlesTXT_Hint_try_not_to_injure_teammates"		"Try not to injure your teammates."
+"Cstrike_TitlesTXT_Hint_you_are_in_targetzone"		"폭파 목표 지점에 들어왔습니다.
+인벤토리에서 폭탄을 선택한 다음 폭탄이 장착될 때까지 발사 키를 계속 누르고 계십시오!"
+"[english]Cstrike_TitlesTXT_Hint_you_are_in_targetzone"		"You are in the target zone.
+Select the bomb in your inventory
+and plant it by holding FIRE!"
+"Cstrike_TitlesTXT_Hint_hostage_rescue_zone"		"인질 구출 지역에 들어왔습니다.
+인질을 찾아 이곳으로 데려오십시오!"
+"[english]Cstrike_TitlesTXT_Hint_hostage_rescue_zone"		"You are in a hostage rescue zone.
+Find the hostages and bring them here!"
+"Cstrike_TitlesTXT_Hint_terrorist_escape_zone"		"테러리스트 탈출 지역에 들어왔습니다.
+테러리스트들이 이곳에 도달하지 못하게 하십시오!"
+"[english]Cstrike_TitlesTXT_Hint_terrorist_escape_zone"		"You are in a terrorist escape zone.
+Prevent the terrorists from getting here!"
+"Cstrike_TitlesTXT_Hint_ct_vip_zone"		"VIP 탈출 지역에 들어왔습니다.
+VIP를 이 지역으로 안전하게 데려오십시오!"
+"[english]Cstrike_TitlesTXT_Hint_ct_vip_zone"		"You are in a VIP escape zone.
+Escort the VIP to any one of these zones!"
+"Cstrike_TitlesTXT_Hint_terrorist_vip_zone"		"VIP 탈출 지역에 들어왔습니다.
+VIP가 이 지역에 들어오지 못하게 하십시오."
+"[english]Cstrike_TitlesTXT_Hint_terrorist_vip_zone"		"You are in a VIP escape zone.
+Prevent the VIP from reaching any one of these zones."
+"Cstrike_TitlesTXT_Hint_cannot_play_because_tk"		"이전 라운드에서 팀원을 죽였기 때문에 이번 라운드에 참가할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Hint_cannot_play_because_tk"		"You're not allowed to play this
+round because you TK'd last round."
+"Cstrike_TitlesTXT_Hint_use_hostage_to_stop_him"		"인질이 더 이상 따라오지 않게 하려면 다시 '사용하기' 키를 한 번 더 누르면 됩니다."
+"[english]Cstrike_TitlesTXT_Hint_use_hostage_to_stop_him"		"You may USE the hostage again to
+stop him from following."
+"Cstrike_TitlesTXT_Hint_lead_hostage_to_rescue_point"		"인질을 탈출 지역으로 인도하십시오!
+인질에게 다시 사용하기 키를 누르면 더 이상 따라오지 않게 할 수 있습니다."
+"[english]Cstrike_TitlesTXT_Hint_lead_hostage_to_rescue_point"		"Lead the hostage to the rescue point!
+You may USE the hostage again to
+stop him from following."
+"Cstrike_TitlesTXT_Hint_you_have_the_bomb"		"폭탄을 가졌습니다!
+폭파 목표 지역을 찾아가거나 폭탄을 버려서 다른 테러리스트가 그것을 가질 수 있도록 하십시오."
+"[english]Cstrike_TitlesTXT_Hint_you_have_the_bomb"		"You have the bomb!
+Find the target zone or DROP
+the bomb for another Terrorist."
+"Cstrike_TitlesTXT_Hint_you_are_the_vip"		"플레이어가 VIP입니다.
+안전 지역으로 이동하십시오!"
+"[english]Cstrike_TitlesTXT_Hint_you_are_the_vip"		"You are the VIP
+Make your way to the safety zones!"
+"Cstrike_TitlesTXT_Hint_out_of_ammo"		"탄약이 다 떨어졌습니다.
+아이템 구입 지역으로 돌아가서 탄약을 더 구입하십시오."
+"[english]Cstrike_TitlesTXT_Hint_out_of_ammo"		"You are out of ammunition.
+Return to a buy zone to purchase more."
+"Cstrike_TitlesTXT_Hint_spotted_a_friend"		"아군을 발견했습니다."
+"[english]Cstrike_TitlesTXT_Hint_spotted_a_friend"		"You have spotted a friend."
+"Cstrike_TitlesTXT_Hint_spotted_an_enemy"		"적을 발견했습니다."
+"[english]Cstrike_TitlesTXT_Hint_spotted_an_enemy"		"You have spotted an enemy."
+"Cstrike_TitlesTXT_Hint_prevent_hostage_rescue"		"대 테러리스트들이 인질을 구출하지 못하도록 하십시오!"
+"[english]Cstrike_TitlesTXT_Hint_prevent_hostage_rescue"		"Prevent the Counter-Terrorists from
+rescuing the hostages!"
+"Cstrike_TitlesTXT_Hint_rescue_the_hostages"		"인질을 구출하여 자금을 버십시오!"
+"[english]Cstrike_TitlesTXT_Hint_rescue_the_hostages"		"Rescue the hostages for money!"
+"Cstrike_TitlesTXT_Hint_press_use_so_hostage_will_follow"		"사용하기 키를 눌러 인질이 따라오도록 하십시오."
+"[english]Cstrike_TitlesTXT_Hint_press_use_so_hostage_will_follow"		"Press USE to get the hostage to follow you."
+"Cstrike_TitlesTXT_Friend"		"동료"
+"[english]Cstrike_TitlesTXT_Friend"		"Friend"
+"Cstrike_TitlesTXT_Enemy"		"적"
+"[english]Cstrike_TitlesTXT_Enemy"		"Enemy"
+"Cstrike_TitlesTXT_Hostage"		"인질"
+"[english]Cstrike_TitlesTXT_Hostage"		"Hostage"
+"Cstrike_TitlesTXT_Health"		"체력"
+"[english]Cstrike_TitlesTXT_Health"		"Health"
+"Cstrike_TitlesTXT_Map_descr_not_avail"		"맵 설명이 없습니다."
+"[english]Cstrike_TitlesTXT_Map_descr_not_avail"		"Map description not available."
+"Cstrike_TitlesTXT_Class_descr_not_avail"		"클래스 설명이 없습니다."
+"[english]Cstrike_TitlesTXT_Class_descr_not_avail"		"Class description not available."
+"Cstrike_TitlesTXT_Title_terrorist_model_selection"		"테러리스트 모델 선택"
+"[english]Cstrike_TitlesTXT_Title_terrorist_model_selection"		"Terrorist Model Selection"
+"Cstrike_TitlesTXT_Phoenix_Connexion"		"피닉스 커넥션"
+"[english]Cstrike_TitlesTXT_Phoenix_Connexion"		"Phoenix Connexion"
+"Cstrike_TitlesTXT_L337_Krew"		"엘리트 요원"
+"[english]Cstrike_TitlesTXT_L337_Krew"		"Elite Crew"
+"Cstrike_TitlesTXT_Arctic_Avengers"		"아틱 어벤저"
+"[english]Cstrike_TitlesTXT_Arctic_Avengers"		"Arctic Avengers"
+"Cstrike_TitlesTXT_Guerilla_Warfare"		"게릴라전"
+"[english]Cstrike_TitlesTXT_Guerilla_Warfare"		"Guerilla Warfare"
+"Cstrike_TitlesTXT_Auto_Select"		"자동 선택"
+"[english]Cstrike_TitlesTXT_Auto_Select"		"Auto-Select"
+"Cstrike_TitlesTXT_Title_ct_model_selection"		"CT 모델 선택"
+"[english]Cstrike_TitlesTXT_Title_ct_model_selection"		"CT Model Selection"
+"Cstrike_TitlesTXT_Seal_Team_6"		"씰 팀 6"
+"[english]Cstrike_TitlesTXT_Seal_Team_6"		"Seal Team 6"
+"Cstrike_TitlesTXT_Title_seal_team"		"미국 씰 팀 6 (DEVGRU)"
+"[english]Cstrike_TitlesTXT_Title_seal_team"		"US Seal Team 6 (DEVGRU)"
+"Cstrike_TitlesTXT_GSG_9"		"GSG-9"
+"[english]Cstrike_TitlesTXT_GSG_9"		"GSG-9"
+"Cstrike_TitlesTXT_Title_gsg9"		"독일 GSG-9"
+"[english]Cstrike_TitlesTXT_Title_gsg9"		"German GSG-9"
+"Cstrike_TitlesTXT_SAS"		"SAS"
+"[english]Cstrike_TitlesTXT_SAS"		"SAS"
+"Cstrike_TitlesTXT_Title_sas"		"영국 SAS"
+"[english]Cstrike_TitlesTXT_Title_sas"		"UK Special Air Service"
+"Cstrike_TitlesTXT_GIGN"		"GIGN"
+"[english]Cstrike_TitlesTXT_GIGN"		"GIGN"
+"Cstrike_TitlesTXT_Title_gign"		"프랑스 GIGN"
+"[english]Cstrike_TitlesTXT_Title_gign"		"French GIGN"
+"Cstrike_TitlesTXT_Title_select_category_of_purchase"		"구입할 물건의 종류를 선택하십시오."
+"[english]Cstrike_TitlesTXT_Title_select_category_of_purchase"		"Select Category of Purchase"
+"Cstrike_TitlesTXT_Title_equipment_selection"		"장비 선택"
+"[english]Cstrike_TitlesTXT_Title_equipment_selection"		"Equipment Selection"
+"Cstrike_TitlesTXT_Kevlar"		"케블러 방탄복"
+"[english]Cstrike_TitlesTXT_Kevlar"		"Kevlar"
+"Cstrike_TitlesTXT_Kevlar_Vest"		"케블러 방탄복"
+"[english]Cstrike_TitlesTXT_Kevlar_Vest"		"Kevlar Vest"
+"Cstrike_TitlesTXT_Kevlar_Helmet"		"케블러 방탄복 + 헬멧"
+"[english]Cstrike_TitlesTXT_Kevlar_Helmet"		"Kevlar+Helmet"
+"Cstrike_TitlesTXT_Kevlar_Vest_Ballistic_Helmet"		"케블러 방탄복 + 헬멧"
+"[english]Cstrike_TitlesTXT_Kevlar_Vest_Ballistic_Helmet"		"Kevlar Vest + Ballistic Helmet"
+"Cstrike_TitlesTXT_Flashbang"		"플래시뱅"
+"[english]Cstrike_TitlesTXT_Flashbang"		"Flashbang"
+"Cstrike_TitlesTXT_HE_Grenade"		"수류탄"
+"[english]Cstrike_TitlesTXT_HE_Grenade"		"HE Grenade"
+"Cstrike_TitlesTXT_High_Explosive_Grenade"		"수류탄"
+"[english]Cstrike_TitlesTXT_High_Explosive_Grenade"		"High-Explosive Grenade"
+"Cstrike_TitlesTXT_Smoke_Grenade"		"연막탄"
+"[english]Cstrike_TitlesTXT_Smoke_Grenade"		"Smoke Grenade"
+"Cstrike_TitlesTXT_Defusal_Kit"		"폭탄 해체 키트"
+"[english]Cstrike_TitlesTXT_Defusal_Kit"		"Defusal Kit"
+"Cstrike_TitlesTXT_Bomb_Defusal_Kit"		"폭탄 해체 키트"
+"[english]Cstrike_TitlesTXT_Bomb_Defusal_Kit"		"Bomb Defusal Kit"
+"Cstrike_TitlesTXT_NightVision"		"야시경"
+"[english]Cstrike_TitlesTXT_NightVision"		"NightVision"
+"Cstrike_TitlesTXT_Nightvision_Goggles"		"야시경"
+"[english]Cstrike_TitlesTXT_Nightvision_Goggles"		"Nightvision Goggles"
+"Cstrike_TitlesTXT_TactShield"		"방패"
+"[english]Cstrike_TitlesTXT_TactShield"		"Tactical Shield"
+"Cstrike_TitlesTXT_TactShield_Desc"		"방패"
+"[english]Cstrike_TitlesTXT_TactShield_Desc"		"Tactical Shield"
+"Cstrike_TitlesTXT_Title_pistol_selection"		"권총 선택"
+"[english]Cstrike_TitlesTXT_Title_pistol_selection"		"Pistol Selection"
+"Cstrike_TitlesTXT_Pistols"		"권총"
+"[english]Cstrike_TitlesTXT_Pistols"		"Pistols"
+"Cstrike_TitlesTXT_Buy_pistols"		"권총 구입"
+"[english]Cstrike_TitlesTXT_Buy_pistols"		"Buy Pistols"
+"Cstrike_TitlesTXT_Title_shotgun_selection"		"샷건 선택"
+"[english]Cstrike_TitlesTXT_Title_shotgun_selection"		"Shotgun Selection"
+"Cstrike_TitlesTXT_Shotguns"		"샷건"
+"[english]Cstrike_TitlesTXT_Shotguns"		"Shotguns"
+"Cstrike_TitlesTXT_Buy_shotguns"		"샷건 구입"
+"[english]Cstrike_TitlesTXT_Buy_shotguns"		"Buy Shotguns"
+"Cstrike_TitlesTXT_Title_smg_selection"		"기관단총 선택"
+"[english]Cstrike_TitlesTXT_Title_smg_selection"		"SMG Selection"
+"Cstrike_TitlesTXT_SMGs"		"기관단총"
+"[english]Cstrike_TitlesTXT_SMGs"		"SMG's"
+"Cstrike_TitlesTXT_Buy_smgs"		"기관단총 구입"
+"[english]Cstrike_TitlesTXT_Buy_smgs"		"Buy Sub-Machine Guns"
+"Cstrike_TitlesTXT_Title_rifle_selection"		"소총 선택"
+"[english]Cstrike_TitlesTXT_Title_rifle_selection"		"Rifle Selection"
+"Cstrike_TitlesTXT_Rifles"		"소총"
+"[english]Cstrike_TitlesTXT_Rifles"		"Rifles"
+"Cstrike_TitlesTXT_Buy_rifles"		"소총 구입"
+"[english]Cstrike_TitlesTXT_Buy_rifles"		"Buy Rifles"
+"Cstrike_TitlesTXT_Title_machinegun_selection"		"기관총 선택"
+"[english]Cstrike_TitlesTXT_Title_machinegun_selection"		"Machine Gun Selection"
+"Cstrike_TitlesTXT_MachineGuns"		"기관총"
+"[english]Cstrike_TitlesTXT_MachineGuns"		"Machine Guns"
+"Cstrike_TitlesTXT_Buy_machineguns"		"기관총 구입"
+"[english]Cstrike_TitlesTXT_Buy_machineguns"		"Buy Machine Guns"
+"Cstrike_TitlesTXT_Prim_Ammo"		"주 무기 탄약"
+"[english]Cstrike_TitlesTXT_Prim_Ammo"		"Prim. Ammo"
+"Cstrike_TitlesTXT_Buy_prim_ammo"		"주 무기 탄약 구입"
+"[english]Cstrike_TitlesTXT_Buy_prim_ammo"		"Buy Primary Ammo"
+"Cstrike_TitlesTXT_Sec_Ammo"		"보조 무기 탄약"
+"[english]Cstrike_TitlesTXT_Sec_Ammo"		"Sec. Ammo"
+"Cstrike_TitlesTXT_Buy_sec_ammo"		"보조 무기 탄약 구입"
+"[english]Cstrike_TitlesTXT_Buy_sec_ammo"		"Buy Secondary Ammo"
+"Cstrike_TitlesTXT_Equipment"		"장비"
+"[english]Cstrike_TitlesTXT_Equipment"		"Equipment"
+"Cstrike_TitlesTXT_Buy_equipment"		"장비 구입"
+"[english]Cstrike_TitlesTXT_Buy_equipment"		"Buy Equipment"
+"Cstrike_TitlesTXT_Terrorist_Forces"		"테러리스트"
+"[english]Cstrike_TitlesTXT_Terrorist_Forces"		"Terrorist Forces"
+"Cstrike_TitlesTXT_CT_Forces"		"대 테러리스트"
+"[english]Cstrike_TitlesTXT_CT_Forces"		"CT Forces"
+"Cstrike_TitlesTXT_VIP"		"VIP"
+"[english]Cstrike_TitlesTXT_VIP"		"VIP"
+"Cstrike_TitlesTXT_WINS"		"승수"
+"[english]Cstrike_TitlesTXT_WINS"		"WINS"
+"Cstrike_TitlesTXT_BOMB"		"폭탄"
+"[english]Cstrike_TitlesTXT_BOMB"		"BOMB"
+"Cstrike_TitlesTXT_DEAD"		"사망"
+"[english]Cstrike_TitlesTXT_DEAD"		"DEAD"
+"Cstrike_TitlesTXT_SCORES"		"  점수"
+"[english]Cstrike_TitlesTXT_SCORES"		"  SCORES"
+"Cstrike_TitlesTXT_Player"		"플레이어"
+"[english]Cstrike_TitlesTXT_Player"		"player"
+"Cstrike_TitlesTXT_Player_plural"		"플레이어"
+"[english]Cstrike_TitlesTXT_Player_plural"		"players"
+"Cstrike_TitlesTXT_Got_defuser"		"폭탄 해체 키트를 집었습니다!"
+"[english]Cstrike_TitlesTXT_Got_defuser"		"You picked up a defuser kit!"
+"Cstrike_TitlesTXT_Got_bomb"		"폭탄을 집었습니다!"
+"[english]Cstrike_TitlesTXT_Got_bomb"		"You picked up the bomb!"
+"Cstrike_TitlesTXT_Mic_Volume"		"마이크 볼륨"
+"[english]Cstrike_TitlesTXT_Mic_Volume"		"Mic Volume"
+"Cstrike_TitlesTXT_Speaker_Volume"		"스피커 볼륨"
+"[english]Cstrike_TitlesTXT_Speaker_Volume"		"Speaker Volume"
+"Cstrike_TitlesTXT_Voice_Properties"		"음성 속성"
+"[english]Cstrike_TitlesTXT_Voice_Properties"		"Voice Properties"
+"Cstrike_TitlesTXT_Cannot_Be_Spectator"		"관전할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Cannot_Be_Spectator"		"You cannot become a spectator."
+"Cstrike_TitlesTXT_Map_Description_not_available"		"맵 설명이 없습니다."
+"[english]Cstrike_TitlesTXT_Map_Description_not_available"		"Map Description not available."
+"Cstrike_TitlesTXT_Muted"		"%s1님의 음성을 차단했습니다."
+"[english]Cstrike_TitlesTXT_Muted"		"You have muted %s1."
+"Cstrike_TitlesTXT_Unmuted"		"%s1님의 음성을 수신합니다."
+"[english]Cstrike_TitlesTXT_Unmuted"		"You have unmuted %s1."
+"Cstrike_TitlesTXT_No_longer_hear_that_player"		"선택한 플레이어의 음성을 더 이상 듣지 않게 됩니다."
+"[english]Cstrike_TitlesTXT_No_longer_hear_that_player"		"You will no longer hear that player speak."
+"Cstrike_TitlesTXT_OBS_NONE"		"카메라 옵션"
+"[english]Cstrike_TitlesTXT_OBS_NONE"		"Camera Options"
+"Cstrike_TitlesTXT_OBS_CHASE_LOCKED"		"고정 체이스 캠"
+"[english]Cstrike_TitlesTXT_OBS_CHASE_LOCKED"		"Locked Chase Cam"
+"Cstrike_TitlesTXT_OBS_CHASE_FREE"		"자유 체이스 캠"
+"[english]Cstrike_TitlesTXT_OBS_CHASE_FREE"		"Free Chase Cam"
+"Cstrike_TitlesTXT_OBS_ROAMING"		"자유 시점"
+"[english]Cstrike_TitlesTXT_OBS_ROAMING"		"Free Look"
+"Cstrike_TitlesTXT_OBS_IN_EYE"		"1인칭"
+"[english]Cstrike_TitlesTXT_OBS_IN_EYE"		"First Person"
+"Cstrike_TitlesTXT_OBS_MAP_FREE"		"자유 내려다 보기"
+"[english]Cstrike_TitlesTXT_OBS_MAP_FREE"		"Free Overview"
+"Cstrike_TitlesTXT_OBS_MAP_CHASE"		"추적 내려다 보기"
+"[english]Cstrike_TitlesTXT_OBS_MAP_CHASE"		"Chase Overview"
+"Cstrike_TitlesTXT_SPECT_OPTIONS"		"옵션"
+"[english]Cstrike_TitlesTXT_SPECT_OPTIONS"		"Options"
+"Cstrike_TitlesTXT_CAM_OPTIONS"		"카메라 옵션"
+"[english]Cstrike_TitlesTXT_CAM_OPTIONS"		"Camera Options"
+"Cstrike_TitlesTXT_Name_change_at_respawn"		"다음 리스폰 때 이름이 바뀌게 됩니다."
+"[english]Cstrike_TitlesTXT_Name_change_at_respawn"		"Your name will be changed after your next respawn."
+"Cstrike_TitlesTXT_C4_Defuse_Must_Be_On_Ground"		"폭탄을 해체하려면 땅 위에 서 있어야 합니다!"
+"[english]Cstrike_TitlesTXT_C4_Defuse_Must_Be_On_Ground"		"You must be on the ground
+to defuse the bomb!"
+"Cstrike_TitlesTXT_Spec_Mode1"		"고정 체이스 캠"
+"[english]Cstrike_TitlesTXT_Spec_Mode1"		"Locked Chase Cam"
+"Cstrike_TitlesTXT_Spec_Mode2"		"자유 체이스 캠"
+"[english]Cstrike_TitlesTXT_Spec_Mode2"		"Free Chase Cam"
+"Cstrike_TitlesTXT_Spec_Mode3"		"자유 시점"
+"[english]Cstrike_TitlesTXT_Spec_Mode3"		"Free Look"
+"Cstrike_TitlesTXT_Spec_Mode4"		"1인칭"
+"[english]Cstrike_TitlesTXT_Spec_Mode4"		"First Person"
+"Cstrike_TitlesTXT_Spec_Mode5"		"자유 내려다 보기"
+"[english]Cstrike_TitlesTXT_Spec_Mode5"		"Free Overview"
+"Cstrike_TitlesTXT_Spec_Mode6"		"추적 내려다 보기"
+"[english]Cstrike_TitlesTXT_Spec_Mode6"		"Chase Overview"
+"Cstrike_TitlesTXT_Spec_NoTarget"		"추적할 수 없는 목표물입니다. 체이스 캠 모드로 바꿀 수 없습니다."
+"[english]Cstrike_TitlesTXT_Spec_NoTarget"		"No valid targets. Cannot switch to Chase-Camera Mode."
+"Cstrike_TitlesTXT_Spec_Help_Title"		"관전 모드"
+"[english]Cstrike_TitlesTXT_Spec_Help_Title"		"Spectator Mode"
+"Cstrike_TitlesTXT_Spec_Help_Text"		"시점을 변경하려면 다음 키를 사용하십시오.
+
+ 주 장비 사용 - 다음 플레이어 추적하기
+ 보조 기능 사용 - 이전 플레이어 추적하기
+ 점프 - 시점 모드 변경
+ 사용하기 - 작은 창 모드 변경
+ 
+ 앉기  - 관전자 메뉴 보기
+  
+내려다 보기 모드에서는 다음 키를 이용하여 이동할 수 있습니다.
+
+ 왼쪽으로 이동 - 왼쪽으로 이동
+ 오른쪽으로 이동 - 오른쪽으로 이동
+ 앞으로 이동 - 줌 인
+ 뒤로 이동 - 줌 아웃
+ 마우스 - 맵/목표물을 중심으로 회전"
+"[english]Cstrike_TitlesTXT_Spec_Help_Text"		"Use the following keys to change view styles:
+
+ FIRE1 - Chase next player
+ FIRE2 - Chase previous player
+ JUMP - Change view modes
+ USE - Change inset window mode
+ 
+ DUCK  - Enable spectator menu
+  
+In Overview Map Mode move around with:
+
+ MOVELEFT - move left
+ MOVERIGHT - move right
+ FORWARD - zoom in
+ BACK - zoom out
+ MOUSE - rotate around map/target"
+"Cstrike_TitlesTXT_Spec_Slow_Motion"		"슬로우 모션"
+"[english]Cstrike_TitlesTXT_Spec_Slow_Motion"		"Slow Motion"
+"Cstrike_TitlesTXT_Spec_Replay"		"인스턴트 리플레이"
+"[english]Cstrike_TitlesTXT_Spec_Replay"		"Instant Replay"
+"Cstrike_TitlesTXT_Spec_Auto"		"자동"
+"[english]Cstrike_TitlesTXT_Spec_Auto"		"Auto"
+"Cstrike_TitlesTXT_Spec_Time"		"시간"
+"[english]Cstrike_TitlesTXT_Spec_Time"		"Time"
+"Cstrike_TitlesTXT_Spec_Map"		"맵"
+"[english]Cstrike_TitlesTXT_Spec_Map"		"Map"
+"Cstrike_TitlesTXT_Spectators"		"관전자"
+"[english]Cstrike_TitlesTXT_Spectators"		"Spectators"
+"Cstrike_TitlesTXT_Unassigned"		"할당되지 않음"
+"[english]Cstrike_TitlesTXT_Unassigned"		"Unassigned"
+"Cstrike_TitlesTXT_Only_CT_Can_Move_Hostages"		"대 테러리스트만이 인질을 이동시킬 수 있습니다!"
+"[english]Cstrike_TitlesTXT_Only_CT_Can_Move_Hostages"		"Only Counter-Terrorists can move the hostages!"
+"Cstrike_TitlesTXT_Spec_Duck"		"관전자 메뉴를 보려면 '앉기' 키를 누르십시오."
+"[english]Cstrike_TitlesTXT_Spec_Duck"		"Press DUCK for Spectator Menu"
+"Cstrike_TitlesTXT_Spec_Not_Valid_Choice"		"** 이 플레이어를 관전하도록 허가되지 않았습니다."
+"[english]Cstrike_TitlesTXT_Spec_Not_Valid_Choice"		"** You are not allowed to spectate this person."
+"Cstrike_TitlesTXT_Spec_Not_In_Spectator_Mode"		"** 관전자 모드에 있지 않습니다."
+"[english]Cstrike_TitlesTXT_Spec_Not_In_Spectator_Mode"		"** You are not in spectator mode."
+"Cstrike_TitlesTXT_Spec_NoPlayers"		"관전할 플레이어가 없습니다."
+"[english]Cstrike_TitlesTXT_Spec_NoPlayers"		"No Players to Spectate"
+"Cstrike_TitlesTXT_Spec_ListPlayers"		"플레이어 목록 보기"
+"[english]Cstrike_TitlesTXT_Spec_ListPlayers"		"List Players"
+"Cstrike_TitlesTXT_Selection_Not_Available"		"선택한 항목이 없습니다."
+"[english]Cstrike_TitlesTXT_Selection_Not_Available"		"Selection Not Available"
+"Cstrike_TitlesTXT_Alias_Not_Avail"		"현재 팀에서는 \"%s1\"을(를) 구입할 수 없습니다."
+"[english]Cstrike_TitlesTXT_Alias_Not_Avail"		"The \"%s1\"
+is not available for your team to buy."
+"Cstrike_TitlesTXT_Spec_No_PIP"		"플레이 도중의 1인칭 모드에서는 PIP 기능을 사용할 수 없습니다.
+"
+"[english]Cstrike_TitlesTXT_Spec_No_PIP"		"Picture-In-Picture is not available
+in First-Person mode while playing."
+"Cstrike_TitlesTXT_Cstrike_Already_Own_Weapon"		"이미 그 무기를 가지고 있습니다."
+"[english]Cstrike_TitlesTXT_Cstrike_Already_Own_Weapon"		"You already own that weapon."
+"Cstrike_BuyMenuRebuy"		"이전 장비 재구입(&R)"
+"[english]Cstrike_BuyMenuRebuy"		"&R RE-BUY PREVIOUS"
+"Cstrike_BuyMenuAutobuy"		"자동 구입(&A)"
+"[english]Cstrike_BuyMenuAutobuy"		"&A AUTO-BUY"
+"Career_EndRound"		"이번 라운드 포기(&G)"
+"[english]Career_EndRound"		"&Give up this Round"
+"Career_EndRoundText"		"이번 라운드를 포기하시겠습니까?"
+"[english]Career_EndRoundText"		"Do you want to give up this round?"
+"Career_New"		"새 프로필"
+"[english]Career_New"		"NEW PROFILE"
+"Career_Resume"		"선택한 프로필로 계속하기"
+"[english]Career_Resume"		"RESUME SELECTED PROFILE"
+"Career_Delete"		"선택한 프로필 삭제"
+"[english]Career_Delete"		"DELETE SELECTED PROFILE"
+"Career_Profile"		"[프로필 선택]"
+"[english]Career_Profile"		"[CHOOSE PROFILE]"
+"Career_NewProfile"		"프로파일 만들기"
+"[english]Career_NewProfile"		"CREATE PROFILE"
+"Career_PlayerName"		"플레이어 이름"
+"[english]Career_PlayerName"		"PLAYER NAME"
+"Career_Difficulty"		"[난이도 선택]"
+"[english]Career_Difficulty"		"[SELECT DIFFICULTY]"
+"Career_Difficulty0"		"초급 미션"
+"[english]Career_Difficulty0"		"EASY MISSIONS"
+"Career_Difficulty1"		"중급 미션"
+"[english]Career_Difficulty1"		"NORMAL MISSIONS"
+"Career_Difficulty2"		"고급 미션"
+"[english]Career_Difficulty2"		"HARD MISSIONS"
+"Career_Difficulty3"		"전문가 미션"
+"[english]Career_Difficulty3"		"EXPERT MISSIONS"
+"Career_EnableTutor"		"튜터 활성화"
+"[english]Career_EnableTutor"		"ENABLE TUTOR"
+"Career_DeleteProfileTitle"		"프로파일 삭제"
+"[english]Career_DeleteProfileTitle"		"DELETE PROFILE"
+"Career_DeleteProfileText"		"%s1(을)를 정말로 삭제하시겠습니까?"
+"[english]Career_DeleteProfileText"		"Are you sure you want to delete %s1?"
+"Career_RetryMatch"		"매치 재시도"
+"[english]Career_RetryMatch"		"Retry Match"
+"Career_Task_injurewith_multi"		"%s1을(를) 이용하여 %s2 명의 적에게 상처를 입혀야 합니다."
+"[english]Career_Task_injurewith_multi"		"You must injure %s2 enemies %s1"
+"Career_Cost"		"비용 %s1"
+"[english]Career_Cost"		"Cost %s1"
+"Career_FinalScore"		"최종 점수"
+"[english]Career_FinalScore"		"Final Score"
+"CStrike_Tutor_Toggle"		"튜터 토글"
+"[english]CStrike_Tutor_Toggle"		"Toggle Tutor"
+"CZero_Credits_Title"		"Counter-Strike: Condition Zero"
+"[english]CZero_Credits_Title"		"Counter-Strike: Condition Zero"
+"CZero_Credits_Programming"		"Programming"
+"[english]CZero_Credits_Programming"		"Programming"
+"CZero_Credits_Art"		"Art"
+"[english]CZero_Credits_Art"		"Art"
+"CZero_Credits_Managing_Director"		"Managing Director"
+"[english]CZero_Credits_Managing_Director"		"Managing Director"
+"CZero_Credits_COO"		"C.O.O."
+"[english]CZero_Credits_COO"		"C.O.O."
+"CZero_Credits_Production"		"Production"
+"[english]CZero_Credits_Production"		"Production"
+"CZero_Credits_Mapping"		"Mapping"
+"[english]CZero_Credits_Mapping"		"Mapping"
+"CZero_Credits_Art_Director"		"Art Director"
+"[english]CZero_Credits_Art_Director"		"Art Director"
+"CZero_Credits_Art_Lead"		"Art Lead"
+"[english]CZero_Credits_Art_Lead"		"Art Lead"
+"CZero_Credits_Technical_Art"		"Technical Art"
+"[english]CZero_Credits_Technical_Art"		"Technical Art"
+"CZero_Credits_Biz"		"Biz"
+"[english]CZero_Credits_Biz"		"Biz"
+"CZero_Credits_Game_Design"		"Game Design"
+"[english]CZero_Credits_Game_Design"		"Game Design"
+"CZero_Credits_Lead_Level_Designer"		"Lead Level Designer"
+"[english]CZero_Credits_Lead_Level_Designer"		"Lead Level Designer"
+"CZero_Credits_Level_Design"		"Level Design"
+"[english]CZero_Credits_Level_Design"		"Level Design"
+"CZero_Credits_Lead_Programmer"		"Lead Programmer"
+"[english]CZero_Credits_Lead_Programmer"		"Lead Programmer"
+"CZero_Credits_Project_Manager"		"Project Manager"
+"[english]CZero_Credits_Project_Manager"		"Project Manager"
+"CZero_Credits_Support"		"Support"
+"[english]CZero_Credits_Support"		"Support"
+"CZero_Credits_Testing"		"Testing"
+"[english]CZero_Credits_Testing"		"Testing"
+"CZero_Credits_Additional_Art"		"Additional Art"
+"[english]CZero_Credits_Additional_Art"		"Additional Art"
+"CZero_Credits_Executive_Producer"		"Executive Producer"
+"[english]CZero_Credits_Executive_Producer"		"Executive Producer"
+"CZero_Credits_Administration"		"Administration"
+"[english]CZero_Credits_Administration"		"Administration"
+"CZero_Credits_Marketing_Director"		"Marketing Director"
+"[english]CZero_Credits_Marketing_Director"		"Marketing Director"
+"CZero_Credits_Brand_Manager"		"Brand Manager"
+"[english]CZero_Credits_Brand_Manager"		"Brand Manager"
+"CZero_Credits_Director_of_Public_Relations"		"Director of Public Relations"
+"[english]CZero_Credits_Director_of_Public_Relations"		"Director of Public Relations"
+"CZero_Credits_Public_Relations_Manager"		"Public Relations Manager"
+"[english]CZero_Credits_Public_Relations_Manager"		"Public Relations Manager"
+"CZero_Credits_Creative_Group_Account_Supervisor"		"Creative Group Account Supervisor"
+"[english]CZero_Credits_Creative_Group_Account_Supervisor"		"Creative Group Account Supervisor"
+"CZero_Credits_Vice_President_Development"		"Vice President, Development"
+"[english]CZero_Credits_Vice_President_Development"		"Vice President, Development"
+"CZero_Credits_Operations_and_Production_Manager"		"Operations and Production Manager"
+"[english]CZero_Credits_Operations_and_Production_Manager"		"Operations and Production Manager"
+"CZero_Credits_Sr_Production_Admin"		"Sr. Production Admin"
+"[english]CZero_Credits_Sr_Production_Admin"		"Sr. Production Admin"
+"CZero_Credits_Vice_President_Finance"		"Vice President, Finance"
+"[english]CZero_Credits_Vice_President_Finance"		"Vice President, Finance"
+"CZero_Credits_Vice_President_and_Assistant_Counsel_VUG_Legal"		"Vice President and Assistant Counsel, VUG Legal"
+"[english]CZero_Credits_Vice_President_and_Assistant_Counsel_VUG_Legal"		"Vice President and Assistant Counsel, VUG Legal"
+"CZero_Credits_Corporate_Counsel_VUG_Legal"		"Corporate Counsel, VUG Legal"
+"[english]CZero_Credits_Corporate_Counsel_VUG_Legal"		"Corporate Counsel, VUG Legal"
+"CZero_Credits_Special_Thanks"		"Special Thanks"
+"[english]CZero_Credits_Special_Thanks"		"Special Thanks"
+"CZero_NewCustomGame"		"커스텀 게임 플레이(&C)"
+"[english]CZero_NewCustomGame"		"Play &custom game"
+"CZero_PlayOnLine"		"스팀을 이용한 온라인 플레이 (&S)"
+"[english]CZero_PlayOnLine"		"Play online using &Steam"
+"CZero_PlayOnLineText"		"현재 게임을 끝냅니다.
+정말로 끝내시겠습니까?"
+"[english]CZero_PlayOnLineText"		"This will exit your current game.
+Continue anyway?"
+"CZero_Tutor_Turned_On"		"인터렉티브 튜터가 활성화되었습니다."
+"[english]CZero_Tutor_Turned_On"		"The interactive tutor
+is now enabled."
+"CZero_Tutor_Turned_Off"		"인터렉티브 튜터가 비활성화되었습니다."
+"[english]CZero_Tutor_Turned_Off"		"The interactive tutor
+is now disabled."
+"Cstrike_ReBuy"		"이전 장비 재구입"
+"[english]Cstrike_ReBuy"		"Re-Buy Previous Equipment"
+"Cstrike_NewMultiplayerGame"		"새 멀티플레이 게임(&N)"
+"[english]Cstrike_NewMultiplayerGame"		"&New Multiplayer Game"
+"Career_Task_injurewith"		"%s1을(를) 이용하여 적에게 상처를 입혀야 합니다."
+"[english]Career_Task_injurewith"		"You must injure an enemy %s1"
+"Career_Secured"		"[확보]"
+"[english]Career_Secured"		"[SECURED]"
+"Career_Weapon_hegren"		"HE 수류탄"
+"[english]Career_Weapon_hegren"		"with HE Grenades"
+"Career_Weapon_elites"		".40 듀얼 엘리트"
+"[english]Career_Weapon_elites"		"with .40 dual elites"
+"Career_Weapon_fn57"		"ES 파이브 세븐"
+"[english]Career_Weapon_fn57"		"with an ES five-seven"
+"Cstrike_RadarType"		"레이더 종류"
+"[english]Cstrike_RadarType"		"Radar type"
+"Cstrike_Transparent"		"투명"
+"[english]Cstrike_Transparent"		"Transparent"
+"Cstrike_Solid"		"단색"
+"[english]Cstrike_Solid"		"Solid"
+"Career_MissionPack"		"[미션 선택]"
+"[english]Career_MissionPack"		"[CHOOSE MISSIONS]"
+"Career_Team"		"[SELECT TEAM]"
+"[english]Career_Team"		"[SELECT TEAM]"
+"Career_NoTeammates"		"조심하십시오! 아군 지원이 없는 단독 임무입니다!"
+"[english]Career_NoTeammates"		"Be careful! You have no teammates during this match!"
+"Career_EnemyListSingle"		"이번 미션에 적군 1명을 상대하게 됩니다. "
+"[english]Career_EnemyListSingle"		"You will face 1 enemy in this match: "
+"Career_MissionPackCT"		"오리지널 Counter-Strike: Condition Zero 미션입니다.
+추가 미션을 다운로드하거나 유저만의 미션을 만들 수 있습니다. 자세한 내용은 아래 주소를 참조하십시오.
+
+엘리트 대테러리스트 팀을 지휘하여 난이도 높은 시나리오를 차례대로 통과하면서 살생과 파괴를 꿈꾸는 테러리스트 그룹의 음모에 맞서 싸우십시오.
+
+수많은 인질들의 운명은 오직 대테러리스트의 손에 달려있습니다!"
+"[english]Career_MissionPackCT"		"These are the original Counter-Strike: Condition Zero missions.
+You can also download more or create your own.  See the address below to find out how.
+
+Lead your elite counter-terrorism team through increasingly challenging scenarios, thwarting the plans of evil terrorist groups bent on death and destruction.
+
+The fate of countless innocent victims is in your hands!
+"
+"Career_MissionPackTitleCT"		"컨디션 제로"
+"[english]Career_MissionPackTitleCT"		"CONDITION ZERO"
+"Cstrike_BuyPresetUnavailable"		"사용 못함"
+"[english]Cstrike_BuyPresetUnavailable"		"Unavailable"
+"Cstrike_BuyMenuPreset1"		"&S \"%s1\" ($%s2)"
+"[english]Cstrike_BuyMenuPreset1"		"&S \"%s1\" ($%s2)"
+"Cstrike_BuyMenuPreset2"		"&D \"%s1\" ($%s2)"
+"[english]Cstrike_BuyMenuPreset2"		"&D \"%s1\" ($%s2)"
+"Cstrike_BuyMenuPreset3"		"&F \"%s1\" ($%s2)"
+"[english]Cstrike_BuyMenuPreset3"		"&F \"%s1\" ($%s2)"
+"Cstrike_BuyMenuPreset4"		"&G \"%s1\" ($%s2)"
+"[english]Cstrike_BuyMenuPreset4"		"&G \"%s1\" ($%s2)"
+"Cstrike_BuyMenuPresetMultiplier"		"x%s1"
+"[english]Cstrike_BuyMenuPresetMultiplier"		"x%s1"
+"Cstrike_DescMainBuyPresetPanel"		"편집할 패키지를 클릭하십시오."
+"[english]Cstrike_DescMainBuyPresetPanel"		"CLICK ON A PACKAGE TO EDIT IT."
+"Cstrike_DescEditPresetPanel"		"내용을 편집하려면 해당 선택 항목을 클릭하십시오.
+패키지가 구입되면 패키지의 구입 가능한 첫 번째 항목이 구입됩니다."
+"[english]Cstrike_DescEditPresetPanel"		"CLICK WITHIN A CHOICE TO EDIT ITS CONTENTS.
+WHEN THIS PACKAGE IS BOUGHT, THE CONTENTS OF THE FIRST AFFORDABLE CHOICE ARE PURCHASED."
+"Cstrike_CurrentWeapon"		"< 없음 >"
+"[english]Cstrike_CurrentWeapon"		"< NONE >"
+"Cstrike_BuyPresetSpectator"		"구입 패키지 편집"
+"[english]Cstrike_BuyPresetSpectator"		"Edit Buy Packages"
+"Cstrike_BuyPresetEditPresetsButton"		"패키지 편집"
+"[english]Cstrike_BuyPresetEditPresetsButton"		"EDIT PACKAGES"
+"Cstrike_BuyPresetEditPresets"		"구입 패키지 편집"
+"[english]Cstrike_BuyPresetEditPresets"		"EDIT BUY PACKAGES"
+"Cstrike_BuyPresetEditPresetsDirty"		"구입 패키지 편집*"
+"[english]Cstrike_BuyPresetEditPresetsDirty"		"EDIT BUY PACKAGES *"
+"Cstrike_BuyPresetSavePresets"		"변경 사항 저장"
+"[english]Cstrike_BuyPresetSavePresets"		"SAVE CHANGES"
+"Cstrike_BuyPresetUseDefaults"		"기본값으로 재설정"
+"[english]Cstrike_BuyPresetUseDefaults"		"RESET TO DEFAULTS"
+"Cstrike_BuyPresetUseDefaultsText"		"모든 패키지가 기본 상태로 복원됩니다.
+
+계속 하시겠습니까?"
+"[english]Cstrike_BuyPresetUseDefaultsText"		"This will restore all packages to their default state.
+
+Are you sure?"
+"Cstrike_BuyPresetEditPresetTitle"		"구입 패키지 편집"
+"[english]Cstrike_BuyPresetEditPresetTitle"		"EDIT BUY PACKAGE"
+"Cstrike_BuyPresetPresetButtonLabel"		"%s1 - 총 비용 $%s2"
+"[english]Cstrike_BuyPresetPresetButtonLabel"		"%s1 - total cost $%s2"
+"Cstrike_BuyPresetBlank"		"< 비어 있음 >"
+"[english]Cstrike_BuyPresetBlank"		"< Unused >"
+"Cstrike_BuyPresetChoice"		"이후 구입 항목:"
+"[english]Cstrike_BuyPresetChoice"		"THEN TRY TO BUY:"
+"Cstrike_BuyPresetWizardPrimary"		"주 무기 및 실탄"
+"[english]Cstrike_BuyPresetWizardPrimary"		"PRIMARY WEAPON && AMMO"
+"Cstrike_BuyPresetWizardSecondary"		"피스톨 및 실탄"
+"[english]Cstrike_BuyPresetWizardSecondary"		"PISTOL && AMMO"
+"Cstrike_BuyPresetWizardEquipment"		"장비"
+"[english]Cstrike_BuyPresetWizardEquipment"		"EQUIPMENT"
+"Cstrike_BuyPresetMoveUp"		"이동"
+"[english]Cstrike_BuyPresetMoveUp"		"MOVE"
+"Cstrike_BuyPresetMoveDown"		"이동"
+"[english]Cstrike_BuyPresetMoveDown"		"MOVE"
+"Cstrike_BuyPresetPresetName"		"패키지 이름:"
+"[english]Cstrike_BuyPresetPresetName"		"PACKAGE NAME:"
+"Cstrike_BuyPresetExit"		"취소"
+"[english]Cstrike_BuyPresetExit"		"CANCEL"
+"Cstrike_BuyPresetExitConfirm"		"변경 사항은 저장되지 않습니다.
+
+계속 하시겠습니까?"
+"[english]Cstrike_BuyPresetExitConfirm"		"Your changes will be lost.
+
+Are you sure?"
+"Cstrike_BuyPresetEditArmor"		"케블러"
+"[english]Cstrike_BuyPresetEditArmor"		"KEVLAR"
+"Cstrike_BuyPresetEditHelmet"		"방탄 헬멧"
+"[english]Cstrike_BuyPresetEditHelmet"		"HELMET"
+"Cstrike_BuyPresetEditHEGrenade"		"HE 수류탄"
+"[english]Cstrike_BuyPresetEditHEGrenade"		"HE GRENADE"
+"Cstrike_BuyPresetEditSmokeGrenade"		"연막 수류탄"
+"[english]Cstrike_BuyPresetEditSmokeGrenade"		"SMOKE GRENADE"
+"Cstrike_BuyPresetEditFlashbangs"		"플래시뱅"
+"[english]Cstrike_BuyPresetEditFlashbangs"		"FLASHBANG"
+"Cstrike_BuyPresetEditDefuser"		"폭약 해제 키트"
+"[english]Cstrike_BuyPresetEditDefuser"		"DEFUSAL KIT"
+"Cstrike_BuyPresetEditNightvision"		"야간 투시경"
+"[english]Cstrike_BuyPresetEditNightvision"		"NIGHTVISION"
+"Cstrike_BuyPresetEditClipsOrMore"		"최소한 클립 %s1개"
+"[english]Cstrike_BuyPresetEditClipsOrMore"		"AT LEAST %s1 CLIPS"
+"Cstrike_BuyPresetEditWeaponFullClips"		"모든 클립"
+"[english]Cstrike_BuyPresetEditWeaponFullClips"		"ALL CLIPS"
+"Cstrike_BuyPresetEditWeaponClips"		"탄약"
+"[english]Cstrike_BuyPresetEditWeaponClips"		"AMMO"
+"Cstrike_BuyPresetCategoryRifle"		"소총"
+"[english]Cstrike_BuyPresetCategoryRifle"		"RIFLES"
+"Cstrike_BuyPresetCategorySniper"		"스나이퍼 라이플"
+"[english]Cstrike_BuyPresetCategorySniper"		"SNIPER RIFLES"
+"Cstrike_BuyPresetCategorySMG"		"기관단총"
+"[english]Cstrike_BuyPresetCategorySMG"		"SUBMACHINE GUNS"
+"Cstrike_BuyPresetCategoryHeavy"		"중화기"
+"[english]Cstrike_BuyPresetCategoryHeavy"		"HEAVY WEAPONS"
+"Career_ContinueDifficulty"		"계속하기"
+"[english]Career_ContinueDifficulty"		"CONTINUE"
+"Cstrike_BuyPresetPlainCost"		"$%s1"
+"[english]Cstrike_BuyPresetPlainCost"		"$%s1"
+"Cstrike_BuyPresetEditGrenades"		"수류탄"
+"[english]Cstrike_BuyPresetEditGrenades"		"Grenades"
+"Cstrike_BuyPresetEditEquipment"		"장비"
+"[english]Cstrike_BuyPresetEditEquipment"		"Equipment"
+"Cstrike_BuyPresetWizardGrenades"		"수류탄"
+"[english]Cstrike_BuyPresetWizardGrenades"		"GRENADES"
+"Cstrike_BuyPresetNewChoice"		" "
+"[english]Cstrike_BuyPresetNewChoice"		" "
+"Cstrike_BuyPresetEditPrimary"		"주 무기"
+"[english]Cstrike_BuyPresetEditPrimary"		"Primary Weapon"
+"Cstrike_BuyPresetEditSecondary"		"권총"
+"[english]Cstrike_BuyPresetEditSecondary"		"Pistol"
+"Career_Map_cs_assault_CAPS"		"ASSAULT"
+"[english]Career_Map_cs_assault_CAPS"		"ASSAULT"
+"Career_Map_cs_estate_CAPS"		"ESTATE"
+"[english]Career_Map_cs_estate_CAPS"		"ESTATE"
+"Career_Map_de_vertigo_CAPS"		"VERTIGO"
+"[english]Career_Map_de_vertigo_CAPS"		"VERTIGO"
+"Career_Map_de_survivor_CAPS"		"SURVIVOR"
+"[english]Career_Map_de_survivor_CAPS"		"SURVIVOR"
+"Career_Map_de_nuke_CAPS"		"NUKE"
+"[english]Career_Map_de_nuke_CAPS"		"NUKE"
+"Career_Map_as_oilrig_CAPS"		"OILRIG"
+"[english]Career_Map_as_oilrig_CAPS"		"OILRIG"
+"Career_Map_de_train_CAPS"		"TRAIN"
+"[english]Career_Map_de_train_CAPS"		"TRAIN"
+"Career_Map_cs_assault"		"Assault"
+"[english]Career_Map_cs_assault"		"Assault"
+"Career_Map_cs_estate"		"Estate"
+"[english]Career_Map_cs_estate"		"Estate"
+"Career_Map_de_vertigo"		"Vertigo"
+"[english]Career_Map_de_vertigo"		"Vertigo"
+"Career_Map_de_survivor"		"Survivor"
+"[english]Career_Map_de_survivor"		"Survivor"
+"Career_Map_de_nuke"		"Nuke"
+"[english]Career_Map_de_nuke"		"Nuke"
+"Career_Map_as_oilrig"		"Oilrig"
+"[english]Career_Map_as_oilrig"		"Oilrig"
+"Career_Map_de_train"		"Train"
+"[english]Career_Map_de_train"		"Train"
+"Cstrike_Quick_Buy"		"빠른 구입 명령"
+"[english]Cstrike_Quick_Buy"		"QUICK-BUY COMMANDS"
+"Cstrike_Current_Money"		"보유: $%s1"
+"[english]Cstrike_Current_Money"		"YOU HAVE $%s1"
+"Career_MissionPackAuthor"		"만든 사람: %s1"
+"[english]Career_MissionPackAuthor"		"Created By: %s1"
+"Career_Task_killdefuser"		"폭약을 해제하고 있는 CT를 사살해야 합니다."
+"[english]Career_Task_killdefuser"		"You must kill a CT in the act of defusing the Bomb"
+"Career_Task_killdefuser_multi"		"폭약을 해제하고 있는 CT %s2명을 사살해야 합니다."
+"[english]Career_Task_killdefuser_multi"		"You must kill %s2 CTs in the act of defusing the Bomb"
+"Career_Task_killvip"		"VIP를 사살해야 합니다."
+"[english]Career_Task_killvip"		"You must kill the VIP"
+"Career_Task_killvip_multi"		"VIP를 %s2번 사살해야 합니다."
+"[english]Career_Task_killvip_multi"		"You must kill the VIP %s2 times"
+"Career_Task_stoprescue"		"인질을 안전 지대로 호송 중인 CT를 사살해야 합니다."
+"[english]Career_Task_stoprescue"		"You must kill a CT escorting Hostages to a Rescue Zone"
+"Career_Task_stoprescue_multi"		"인질을 안전 지대로 호송 중인 CT %s2명을 사살해야 합니다."
+"[english]Career_Task_stoprescue_multi"		"You must kill %s2 CTs escorting Hostages to a Rescue Zone"
+"Career_Task_preventdefuse"		"폭약을 설치하고 CT에 의해 해제되는 것을 막아야 합니다."
+"[english]Career_Task_preventdefuse"		"You must plant the Bomb and prevent it from being defused"
+"Career_Task_preventdefuse_multi"		"폭약을 설치하고 CT에 의해 해제되는 것을 %s2번 막아야 합니다."
+"[english]Career_Task_preventdefuse_multi"		"You must plant the Bomb and prevent it from being defused %s2 times"
+"CZero_LearningMap"		"맵 확인 중..."
+"[english]CZero_LearningMap"		"Learning the map..."
+"CZero_AnalyzingHidingSpots"		"은신처 분석 중..."
+"[english]CZero_AnalyzingHidingSpots"		"Analyzing hiding spots..."
+"CZero_AnalyzingApproachPoints"		"접근 지점 분석 중..."
+"[english]CZero_AnalyzingApproachPoints"		"Analyzing approach points..."
+"Cstrike_BuyPresetChoice0"		"첫 번째 선택:"
+"[english]Cstrike_BuyPresetChoice0"		"FIRST CHOICE:"
+"Cstrike_BuyPresetChoice1"		"두 번째 선택:"
+"[english]Cstrike_BuyPresetChoice1"		"SECOND CHOICE:"
+"Cstrike_BuyPresetChoice2"		"세 번째 선택:"
+"[english]Cstrike_BuyPresetChoice2"		"THIRD CHOICE:"
+"Cstrike_BuyPresetChoice3"		"네 번째 선택:"
+"[english]Cstrike_BuyPresetChoice3"		"FOURTH CHOICE:"
+"Cstrike_BuyPresetChoice4"		"다섯 번째 선택:"
+"[english]Cstrike_BuyPresetChoice4"		"FIFTH CHOICE:"
+"Cstrike_BuyPresetSavePreset"		"변경 사항 적용"
+"[english]Cstrike_BuyPresetSavePreset"		"APPLY CHANGES"
+"Cstrike_BuyPresetEditPresetTitleDirty"		"구입 패키지 편집*"
+"[english]Cstrike_BuyPresetEditPresetTitleDirty"		"EDIT BUY PACKAGE *"
+"Cstrike_BuyPresetFirstChoice"		"구입 시도:"
+"[english]Cstrike_BuyPresetFirstChoice"		"TRY TO BUY:"
+"Cstrike_BuyPresetEditClips"		"클립 %s1개"
+"[english]Cstrike_BuyPresetEditClips"		"%s1 CLIPS"
+"Cstrike_BuyPresetEditClip"		"클립 1개"
+"[english]Cstrike_BuyPresetEditClip"		"1 CLIP"
+"Cstrike_BuyPresetEditClipOrMore"		"최소한 클립 1개"
+"[english]Cstrike_BuyPresetEditClipOrMore"		"AT LEAST 1 CLIP"
+"Cstrike_BuyPresetsBullets"		"(실탄 %s2 중 %s1)"
+"[english]Cstrike_BuyPresetsBullets"		"(%s1 of %s2 BULLETS)"
+"Cstrike_Chat_All"		"%s1 :  %s2"
+"[english]Cstrike_Chat_All"		"%s1 :  %s2"
+"Game_radio"		"%s1 (라디오): %s2"
+"[english]Game_radio"		"%s1 (RADIO): %s2"
+"Cstrike_Chat_CT"		"(대테러리스트) %s1 :  %s2"
+"[english]Cstrike_Chat_CT"	"(Counter-Terrorist) %s1 :  %s2"
+"Cstrike_Chat_T"		"(테러리스트) %s1 :  %s2"
+"[english]Cstrike_Chat_T"	"(Terrorist) %s1 :  %s2"
+"Cstrike_Chat_CT_Dead"		"*전사*(대테러리스트) %s1 :  %s2"
+"[english]Cstrike_Chat_CT_Dead"	"*DEAD*(Counter-Terrorist) %s1 :  %s2"
+"Cstrike_Chat_T_Dead"		"*전사*(테러리스트) %s1 :  %s2"
+"[english]Cstrike_Chat_T_Dead"	"*DEAD*(Terrorist) %s1 :  %s2"
+"Cstrike_Chat_Spec"		"(관전객) %s1 :  %s2"
+"[english]Cstrike_Chat_Spec"	"(Spectator) %s1 :  %s2"
+"Cstrike_Chat_AllDead"		"*전사* %s1 :  %s2"
+"[english]Cstrike_Chat_AllDead"	"*DEAD* %s1 :  %s2"
+"Cstrike_Chat_AllSpec"		"*관전객* %s1 :  %s2"
+"[english]Cstrike_Chat_AllSpec"	"*SPEC* %s1 :  %s2"
+"Cstrike_Name_Change"		"* %s1 은(는) %s2(으)로 변경"
+"[english]Cstrike_Name_Change"	"* %s1 changed name to %s2"
+"Cstrike_Militia"		"&5 중서부 민병대"
+"[english]Cstrike_Militia"		"&5 MIDWEST MILITIA"
+}
+}

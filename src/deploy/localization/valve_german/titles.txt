@@ -1,0 +1,1025 @@
+//TITLES FOR HALF-LIFE
+// Position command $position x y 
+// x & y are from 0 to 1 to be screen resolution independent
+// -1 means center in each dimension
+// Effect command $effect <effect number>
+// effect 0 is fade in/fade out
+// effect 1 is flickery credits
+// effect 2 is write out (training room)
+// Text color r g b command $color
+// fadein time fadeout time / hold time
+// $fadein (message fade in time - per character in effect 2)
+// $fadeout (message fade out time)
+// $holdtime (stay on the screen for this long)
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+CR27
+{
+Forschungsanstalt Black Mesa
+Black Mesa, New Mexico
+}
+
+
+//INTRO CREDITS
+// Test values -- JAY
+// Lower left
+$position 0.1 0.8
+$effect 1
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 1.5
+$fadeout 0.5
+$holdtime 1.2
+
+CR1
+{
+Ted Backman
+}
+
+CR2
+{
+TK Backman
+}
+
+CR3
+{
+Kelly Bailey
+}
+
+CR4
+{
+Yahn Bernier
+}
+
+CR5
+{
+Ken Birdwell
+}
+
+CR6
+{
+Steve Bond
+}
+
+CR7
+{
+Dario Casali
+}
+
+CR8
+{
+John Cook
+}
+
+CR9
+{
+Greg Coomer
+}
+
+CR10
+{
+Wes Cumberland
+}
+
+CR11
+{
+John Guthrie
+}
+
+CR12
+{
+Mona Lisa Guthrie
+}
+
+CR13
+{
+Mike Harrington
+}
+
+CR14
+{
+Monica Harrington
+}
+
+CR15
+{
+Brett Johnson
+}
+
+CR16
+{
+Chuck Jones
+}
+
+CR17
+{
+Marc Laidlaw
+}
+
+CR18
+{
+Karen Laur
+}
+
+CR19
+{
+Randy Lundeen
+}
+
+CR20
+{
+Yatsze Mark
+}
+
+CR21
+{
+Lisa Mennet
+}
+
+CR22
+{
+Gabe Newell
+}
+
+CR23
+{
+Dave Riller
+}
+
+CR24
+{
+Aaron Stackpole
+}
+
+CR25
+{
+Jay Stelly
+}
+
+CR26
+{
+Harry Teasley
+}
+
+CR35
+{
+Steve Theodore
+}
+
+CR36
+{
+Bill Van Buren
+}
+
+CR37
+{
+Robin Walker
+}
+
+CR38
+{
+Douglas R. Wood
+}
+
+//END CREDITS
+$position -1 -1
+$effect 0
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 0.5
+$fadeout 0.5
+$holdtime 4
+
+VALVEIS
+{
+Das ist Valve:
+}
+
+END1
+{
+Ted Backman
+TK Backman
+Kelly Bailey
+Yahn Bernier
+Ken Birdwell
+Steve Bond
+Dario Casali
+John Cook
+Greg Coomer
+Wes Cumberland
+}
+
+END2
+{
+John Guthrie
+Mona Lisa Guthrie
+Mike Harrington
+Monica Harrington
+Brett Johnson
+Chuck Jones
+Marc Laidlaw
+Karen Laur
+Randy Lundeen
+Yatsze Mark
+}
+
+END3
+{
+Lisa Mennet
+Gabe Newell
+Dave Riller
+Aaron Stackpole
+Jay Stelly
+Harry Teasley
+Steve Theodore
+Bill Van Buren
+Robin Walker
+Douglas R. Wood
+}
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+
+CR28
+{
+PERSON:
+Gordon Freeman
+Männlich, 27 Jahre
+}
+
+CR29
+{
+AUSBILDUNG:
+Ph.D., MIT, Theoretische Physik
+}
+
+CR30
+{
+POSITION:
+Forschungsassistent
+}
+
+CR31
+{
+ARBEITSPLATZ:
+Labor für anomale Materie
+}
+
+CR32
+{
+SICHERHEITSSTUFE:
+Level 3
+}
+
+CR33
+{
+VERWALTUNGSKONTAKT:
+Geheim
+}
+
+CR34
+{
+KATASTROPHENMELDEPRIORITÄT:
+Nach eigenem Ermessen
+}
+
+$fadein 0.03
+$holdtime 9
+
+GAMEOVER
+{
+PERSON: FREEMAN
+
+STATUS: BEWERTUNG ABGESCHLOSSEN
+
+ZUSAMMENFASSUNG:
+Person hat die menschlichen Möglichkeiten bei der
+Erreichung des Ziels nicht effektiv eingesetzt.
+}
+
+$fadein 0.03
+$holdtime 9
+TRAITOR
+{
+PERSON: FREEMAN
+
+STATUS: ANGESTELLT
+
+WARTET AUF AUFTRAG
+}
+
+
+$fadein 0.03
+$holdtime 9
+LOSER
+{
+PERSON: FREEMAN
+
+STATUS: BEOBACHTUNG ABGESCHLOSSEN
+
+ZUSAMMENFASSUNG:
+Person hat eine Anstellung abgelehnt.
+}
+
+//CHAPTER TITLES
+
+$fadein 0.01
+$position -1 0.4
+$holdtime 3.5
+T0A0TITLE
+{
+GEFAHRENKURS
+}
+
+$position -1 0.65
+C0A0TITLE
+{
+ZIEL: BLACK MESA, ZENTRUM
+}
+
+OPENTITLE3
+{
+
+}
+
+OPENTITLE4
+{
+
+}
+
+C0A1TITLE
+{
+ANOMALE MATERIALIEN
+}
+
+C1A1TITLE
+{
+UNVORHERGESEHENE KONSEQUENZEN
+}
+
+C1A2TITLE
+{
+BÜROKOMPLEX
+}
+
+C1A3TITLE
+{
+"FEIND IN SICHT"
+}
+
+C1A4TITLE
+{
+EXPLOSIONSKRATER
+}
+
+C2A1TITLE
+{
+ENERGIE
+}
+
+C2A2TITLE
+{
+AUF SCHIENEN
+}
+
+C2A3TITLE
+{
+FESTNAHME
+}
+
+C2A4TITLE1
+{
+RÜCKSTANDSVERARBEITUNG
+}
+
+C2A4TITLE2
+{
+FRAGWÜRDIGE ETHIK
+}
+
+C2A5TITLE
+{
+OBERFLÄCHENSPANNUNG
+}
+
+C3A1TITLE
+{
+"VERGISS FREEMAN!"
+}
+
+C3A2TITLE
+{
+LAMBDA KERN
+}
+
+C4A1TITLE
+{
+XEN
+}
+
+C4A1ATITLE
+{
+EINDRINGLING
+}
+
+C4A1BTITLE
+{
+
+}
+
+C4A1CTITLE
+{
+
+}
+
+C4A1ETITLE
+{
+
+}
+
+C4A1FTITLE
+{
+
+}
+
+C4A2TITLE
+{
+GONARCHS VERSTECK
+}
+
+C4A3TITLE
+{
+NIHILANTH
+}
+
+C5TITLE
+{
+ENDSPIEL
+}
+
+
+// In-Game messages
+$position -1 0.65
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 2.0
+// How long it takes to fade out the message after holding
+$fadeout 0.5
+
+GAMESAVED
+{
+Gespeichert ...
+}
+
+// Game title
+// This is a placeholder to hold the effects controls for the "Half-Life" title
+$position -1 -1
+// Only effect 0 is supported for game title
+$effect 0
+// This is the final color
+$color 180 180 180
+// Not used color2
+$color2 0 0 0
+// This is the time it takes to fade in the title
+$fadein 1.0
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.0
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+GAMETITLE
+{
+Half-Life
+}
+
+//HAZARD COURSE TEXT
+
+// Test values -- JAY
+$position -1 0.65
+// Scan-out text effect
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 0 200 50
+// This is the time it takes to fade each character
+$fadein 0.005
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.5
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+$position -1 0.3
+HZBUTTON1
+{
+Drücke die BENUTZEN-Taste, um einen 
+Knopf zu betätigen.
+}
+
+$position -1 0.65
+HZBUTTON2
+{
+Drücke die BENUTZEN-Taste, um einen
+Knopf zu betätigen.
+}
+
+HZMOVE
+{
+Drücke VORWÄRTS-Taste zum Vorwärtsgehen.
+Drücke RÜCKWÄRTS-Taste, um zurückzugehen.
+LINKS-Pfeil, um nach links zu gehen.
+RECHTS-Pfeil, um nach rechts zu gehen.
+
+}
+
+
+HZJUMP
+{
+Drücke VORWÄRTS-Taste zum Anlauf nehmen.
+Drücke SPRUNG-Taste, um zu springen.
+}
+
+HZDUCK
+{
+Drücke VORWÄRTS-Taste, um nach vorn 
+zu laufen.
+Drücke DUCKEN-Taste, um dich zu ducken.
+Drücke VORWÄRTS und DUCKEN zusammen,um
+dich im Schleichmodus zu bewegen.
+
+}
+
+HZCOMBO
+{
+Drücke die VORWÄRTS-Taste, um nach vorn
+zu laufen.
+Drücke SPRUNG-Taste, um zu springen.
+Drücke DUCKEN-Taste, um dich zu ducken.
+
+}
+
+HZDUCKJUMP
+{
+Drücke VORWÄRTS und SRPINGEN zusammen.
+Drücke dann die DUCKEN-Taste.
+}
+
+HZLADDER
+{
+Drücke die VORWÄRTS-Taste, um Leitern
+heraufzuklettern.
+Drücke die RÜCKWÄRTS-Taste, um Leitern
+herunterzuklettern.
+
+}
+
+HZLJUMP
+{
+Halte die DUCKEN-Taste während der
+Vorwärtsbewegung gedrückt.
+Drücke dann die SPRUNG-Taste.
+}
+
+$position -1 0.3
+HZLMOD
+{
+Vergewissere dich, dass du vor dem
+Hindernis das Modul für den
+LANGEN SPRUNG mitgenommen hast.
+}
+
+$position -1 0.65
+HZMEDKIT
+{
+Zur Nutzung von MEDI-KITS drücke die
+BENUTZEN-Taste.
+Halte diese so lange gedrückt, bis die
+Gesundheit wieder 100 erreicht hat
+oder das Kit verbraucht ist.
+
+
+}
+
+HZMOMENT
+{
+Räder und Anzeigen werden AKTIVIERT,
+indem die BENUTZEN-Taste gedrückt wird.
+Halte die BENUTZEN-Taste so lange
+gedrückt, bis die Brücke in Position ist.
+
+}
+
+HZPUSH
+{
+Drücke die VORWÄRTS-TASTE, um dich auf
+die Kiste zuzubewegen.
+Halte die VORWÄRTS-Taste gedrückt, um die
+Kiste zu SCHIEBEN.
+
+}
+
+HZPULL
+{
+Drücke BENUTZEN- und RÜCKWÄRTS zusammen,
+um die Kiste nach hinten zu ZIEHEN.
+}
+
+HZCROWBAR
+{
+Gehe zur BRECHSTANGE.
+Drücke die ANGRIFF1-Taste, um Gegenstände
+zu zerschlagen.
+}
+
+HZLITEON
+{
+Drücke die LAMPE-TASTE,um die
+TASCHENLAMPE EINZUSCHALTEN.
+}
+
+HZLITEOFF
+{
+Drücke die LAMPE-Taste erneut,
+um die TASCHENLAMPE AUSZUSCHALTEN.
+}
+
+HZWEAPON
+{
+Gehe zur WAFFE, um sie AUFZUHEBEN.
+}
+
+HZFIREWEAP
+{
+Drücke die ANGRIFF1-TASTE, um den
+Primärangriff auszulösen.
+Drücke die ANGRIFF2-TASTE, um den
+Sekundärangriff auszulösen.
+Drücke NACHLADEN, um nachzuladen.
+
+
+}
+
+HZARMOR
+{
+Drücke die BENUTZEN-Taste und halte sie
+gedrückt bis die ANZUGPANZERUNG
+aufgeladen oder die LADESTATION
+verbraucht ist.
+
+}
+
+HZSWIM
+{
+Drücke VORWÄRTS und ziele mit der Maus
+während du schwimmst.
+Suche nach LUFT, wenn GESUNDHEIT nach-
+läßt. Bleibe an der Luft bis diese ihr
+ursprüngliches Niveau wieder erreicht.
+
+
+}
+
+HZDAMAGE
+{
+Bestimmte BESCHÄDIGUNGEN werden von der
+HUD-ANZEIGE registriert.
+Die RICHTUNG der Beschädigung wird durch
+rote BLITZE in der Mitte des Bildschirmes
+angezeigt.
+
+
+}
+
+HZHAZARD
+{
+GEFÄHRLICHE STRAHLUNG
+aktiviert einen GEIGER-ZÄHLER.
+}
+
+HZSCIENTIST
+{
+Gehe auf einen WISSENSCHAFTLER zu und
+drücke die BENUTZEN-Taste, um medizinisch
+von ihm versorgt zu werden.
+}
+
+HZBARNEY
+{
+Gehe auf den Wächter zu und drücke die
+BENUTZEN-Taste, um HILFE zu erhalten
+Der Wächter aktiviert die Knöpfe, so daß
+du DURCH DIE TÜR GEHEN kannst.
+
+}
+
+HZTRAIN
+{
+Drücke BENUTZEN-Taste, um Zug zu starten.
+Drücke VORWÄRTS-Taste zum Beschleunigen.
+Drücke RÜCKWÄRTS-Taste, um abzubremsen.
+Drücke die BENUTZEN-Taste nochmal, um den
+Zug zu stoppen.
+
+
+}
+
+
+HZDONE
+{
+HERZLICHEN GLÜCKWUNSCH!
+Du hast den Black-Mesa Gefahrenkurs
+gemeistert.
+Du bist hier jederzeit wieder willkommen!
+}
+
+Spec_Mode1
+{
+Modus: Feste Verfolgerkamera
+}
+
+Spec_Mode2
+{
+Modus: Freie Verfolgerkamera
+}
+
+Spec_Mode3
+{
+Modus: Freie Bewegung
+}
+
+Spec_Mode4
+{
+Ich-Perspektive-Modus
+}
+
+Spec_Mode5
+{
+Uebersichtskarten-Modus
+}
+
+Spec_Mode6
+{
+Verfolgerkarten-Modus
+}
+
+Spec_NoTarget
+{
+Keine gultigen Ziele. Umschalten in Modus Feste Verfolgerkamera' ist nicht möglich.
+}
+
+Spec_Help_Title
+{
+Spectator Mode
+}
+
+Spec_Help_Text
+{
+Mit den folgenden Tasten wird die Perspektive geaendert:
+
+ FEUER 1 - Naechsten Spieler verfolgen
+ FEUER 2 - Vorigen Spieler verfolgen
+ SPRINGEN - Ansicht-Modus aendern
+ BENUTZEN - Fenster-Modus aendern
+ 
+ DUCKEN - Zuschauer-Menue aktivieren
+
+Im Uebersichtskarten-Modus bewegen mit:
+
+ LINKSBEWEGUNG - Nach links bewegen
+ RECHTSBEWEGUNG - Nach rechts bewegen
+ VORWAERTS - Heranzoomen
+ RUECKWAERTS - Wegzoomen
+ MAUS - Um Karte/Ziel rotieren
+}
+
+Spec_Help
+{
+ENTER: Spiel zurückzukehren. FEUERN: fixiertes Ziel zu wechseln. SPRINGEN: Modus zu wechseln.  
+}
+
+Spec_Only_Help
+{
+DUCKEN:Anzeige-Mod.-Wechsel FEUERN:nächs. Ziel ALT. FEUERN:vorig. Ziel SPRINGEN:Mod.-Wechsel
+}
+
+Spec_Map_Free_Help
+{
+DUCKEN: Anzeige-Modus-Wechsel  FEUERN: Einzoomen  ALT. FEUERN:Auszoomen  SPRINGEN:Modus-Wechsel
+}
+
+// Multiplayer Scoreboard
+Spec_Map
+{
+Map
+}
+
+Spectators
+{
+Zuschauer
+}
+
+Unassigned
+{
+Nicht zugewiesen
+}
+
+TEAMS
+{
+TEAMS
+}
+
+PLAYERS
+{
+Spieler
+}
+
+CLASS
+{
+Klasse
+}
+
+SCORE
+{
+Punkt.
+}
+
+DEATHS
+{
+Todesf.
+}
+
+LATENCY
+{
+Laten.
+}
+
+VOICE
+{
+Sprac.
+}
+
+// other menu text
+Menu_OK
+{
+OK
+}
+
+Menu_Cancel
+{
+ABBRECHEN
+}
+
+Mic_Volume
+{
+Mikro-Lautstärke
+}
+
+Speaker_Volume
+{
+Abhör-Lautstärke
+}
+
+Voice_Properties
+{
+Sprachausgabe-Eigenschaften
+}
+
+Map_Description_not_available
+{
+Karten-Beschreibung nicht verfügbar.
+}
+
+Player
+{
+Spieler
+}
+
+Player_plural
+{
+Spieler
+}
+
+Muted
+{
+Sie haben %s stumm geschaltet.
+}
+
+Unmuted
+{
+Sie haben die Stummschaltung von %s aufgehoben.
+}
+
+No_longer_hear_that_player
+{
+Sie koennen diesen Spieler nicht laenger hoeren.
+}
+
+OBS_NONE
+{
+Camera Options
+}
+
+OBS_CHASE_LOCKED
+{
+Feste Verfolgerkamera
+}
+
+OBS_CHASE_FREE
+{
+Freie Verfolgerkamera
+}
+
+OBS_ROAMING
+{
+Beweglich
+}
+
+OBS_IN_EYE
+{
+Ich-Perspektive
+}
+
+OBS_MAP_FREE
+{
+Freie Ubersicht
+}
+
+OBS_MAP_CHASE
+{
+Verfolgerkamera-Ubersicht
+}
+
+SPECT_OPTIONS
+{
+Optionen
+}
+
+CAM_OPTIONS
+{
+Kamera-Optionen
+}
+
+Spec_Duck
+{
+Zuschauer-Menu mit DUCKEN aufrufen.
+}
+
+Spec_Auto
+{
+Automatisch
+}
+
+Spec_Slow_Motion
+{
+Zeitlupe
+}
+
+Spec_Replay
+{
+Sofortwiederholung
+}

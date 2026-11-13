@@ -1,0 +1,23 @@
+// Original CounterStrikeExtended interface translations.
+"lang"
+{
+    "Language" "English"
+    "Tokens"
+    {
+        "CSEServerBrowser_CurrentGame" "Connect is available for the current game only."
+        "CSEServerBrowser_Updating" "Updating list..."
+        "CSEServerBrowser_Sorting" "Sorting..."
+        "CSEServerBrowser_Unsaved" "Could not save settings."
+        "CSEServerBrowser_Unavailable" "Steam server browsing is unavailable."
+        "CSEServerBrowser_PasswordInvalid" "Enter a valid server password."
+        "CSEServerBrowser_Name" "Server name"
+        "CSEServerBrowser_Secure" "Secure"
+        "CSEServerBrowser_Yes" "Yes"
+        "CSEServerBrowser_No" "No"
+        "CSEServerBrowser_Apply" "Apply filters"
+        "CSEServerBrowser_Rules" "Rules"
+        "CSEServerBrowser_Value" "Value"
+        "CSEServerBrowser_DetailsFailed" "Some server details could not be retrieved."
+        "Console_Submit" "Submit"
+    }
+}

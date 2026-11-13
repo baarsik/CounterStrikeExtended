@@ -1,0 +1,16 @@
+Dust II - Bombe/Désamorcer਍ഀ
+*** Exclusif GameHelper.com ***਍ഀ
+par DaveJ (http://www.johnsto.co.uk/)਍ഀ
+textures de MacMan (MacManInfi@aol.com)਍ഀ
+਍ഀ
+Antiterroristes : empêchez les terroristes਍ഀ
+de faire exploser les caisses d'armement chimique.਍ഀ
+Les membres de l'équipe doivent désamorcer toute bombe ਍ഀ
+menaçant la zone.਍ഀ
+਍ഀ
+Terroristes : le terroriste en charge du਍ഀ
+C4 doit détruire un des emplacements਍ഀ
+d'armement chimique. ਍ഀ
+਍ഀ
+Remarque : il y a 2 emplacements਍ഀ
+d'armement chimique dans la mission.਍ഀ

@@ -1,0 +1,257 @@
+// Command Menu definition
+// 
+// Basic Format:
+//		"<Bound Key>" "<Button Text>" "<Command sent to server>"
+//
+// 
+//
+//
+// Buttons can also open up submenus, as follows:
+// {
+// 	"Some More Options",
+//	{
+//		...
+//	}
+// }
+//
+//
+// Buttons preceded with "CUSTOM" are handled in special ways. They can only be moved
+// around or deleted.
+//
+//
+// Limitations:
+//		Maximum of 40 menus.
+//		Maximum of 100 buttons per menu.
+
+//--------------------------------------------------------
+// Everything below here is editable
+
+"1" "AYUDA"
+{
+	CUSTOM		"1" "Descripción de mapa"	"!MAPBRIEFING"
+	"2" "Tpo restante" "timeleft"
+	"3" "Ajustar mira" "adjust_crosshair"
+	"4" "Usar mano izq." "cl_righthand 0"
+	"5" "Usar mano dcha." "cl_righthand 1"
+}
+
+
+"2" "CAMBIAR EQUIPO"	"chooseteam"
+
+// Here are the rest of the buttons and submenus
+// You can change these safely if you want.
+"3" "MENSAJE A EQUIPO"
+{
+	// Map Specific
+
+	MAP cs_siege "1" "mapa cs_siege"
+	{
+		"1" "'Id por los subterráneos'" "say_team Id por los subterraneos!"
+		"2" "'Enemigo en aparcamientos'" "say_team Enemigo en aparcamientos!"
+		"3" "'¡A la sala de rehenes!'"   "say_team A la sala de rehenes!"
+		"4" "'¡Francotiradores!'"  "say_team Francotiradores!"
+		"5" "'Tomad la ruta superior'"  "say_team Tomad la ruta superior!"
+	}
+
+
+	MAP de_train "1" "mapa de_train"
+	{
+		"1" "'¡A bomba de estación!'" "say_team A la zona de bomba de estacion!"
+		"2" "'¡A zona cerr. de bomba!'" "say_team A zona cerrada de bomba!"
+		"3" "'¡Flanqueadlos!'"   "say_team Flanqueadlos!"
+		"4" "'¡Zona de bomba segura!'"  "say_team Zona de bomba segura!"
+		"5" "'¡Dejadme los bláster!'"  "say_team Dejadme los blaster!"
+	}
+
+
+	MAP de_vertigo "1" "mapa de_vertigo"
+	{
+		"1" "'¡Al nivel superior!'" "say_team Al nivel superior!"
+		"2" "'¡Al nivel inferior!'" "say_team Al nivel inferior!"
+		"3" "'¡Flanqueadlos!'"   "say_team Flanqueadlos!"
+		"4" "'¡Francotiradores!'"  "say_team Francotiradores!"
+		"5" "'Zona de bomba segura'"  "say_team Zona de bomba segura"
+	}
+
+
+	MAP de_prodigy "1" "mapa de_prodigy"
+	{
+		"1" "'A las tuberías'" "say_team A la zona de bomba de tuberias!"
+		"2" "'¡Al laboratorio!'" "say_team Al laboratorio!"
+		"3" "'¡Por el pasillo!'"   "say_team Por el pasillo!"
+		"4" "'¡Flanqueadlos!'"  "say_team Flanqueadlos!"
+		"5" "'¡Por la ruta APC!'"  "say_team Por la ruta APC!"
+	}
+
+
+	MAP de_aztec "1" "mapa de_aztec"
+	{
+		"1" "'¡Por el puente!'" "say_team Por el puente!"
+		"2" "'Enemigo en zona de bomba'" "say_team Enemigo en zona de bomba!"
+		"3" "'A la zona de bomba'"   "say_team A la zona de bomba!"
+		"4" "'Zona de bomba segura'"  "say_team Zona de bomba segura!"
+		"5" "'¡Por la ruta del agua!'"  "say_team Por la ruta del agua!"
+	}
+
+	MAP de_inferno "1" "mapa de_inferno"
+	{
+		"1" "'¡Por el puente!'" "say_team Por el puente!"
+		"2" "'Enemigo en zona de bomba'" "say_team Enemigo en zona de bomba!"
+		"3" "'A la zona de bomba'"   "say_team A la zona de bomba!"
+		"4" "'Zona de bomba segura'"  "say_team Zona de bomba segura!"
+		"5" "'¡Por la ruta del agua!'"  "say_team Por la ruta del agua!"
+	}
+
+
+
+
+	MAP cs_office "1" "mapa cs_office"
+	{
+		"1" "'¡Por la ruta de atrás!'" "say_team Por la ruta de atras!"
+		"2" "'¡A los rehenes!'" "say_team A los rehenes!"
+		"3" "'¡Hacedlo por Manilov!'"   "say_team Hacedlo por Manilov!"
+		"4" "'¡Por la ruta de delante!'"  "say_team Por la ruta de delante!"
+		"5" "'¡Flanqueadlos!'"  "say_team Flanqueadlos!"
+	}
+
+
+
+	MAP cs_backalley "1" "mapa cs_backalley"
+	{
+		"1" "'¡Flanqueadlos!'" "say_team Flanqueadlos!"
+		"2" "'¡Enemigo arriba!'" "say_team Enemigo arriba!"
+		"3" "'¡A los rehenes!'"   "say_team A los rehenes!"
+		"4" "'¡Adelante bláster!'"  "say_team Adelante blaster!"
+		"5" "'¡Fuego de bláster!'"  "say_team Fuego de blaster!"
+	}
+
+
+	MAP cs_747 "1" "map cs_747"
+	{
+		"1" "'Al avión'" "say_team Al avion!"
+		"2" "'Nos vemos en terminal'" "say_team Nos vemos en terminal"
+		"3" "'Enemigo fuera de avión'"   "say_team Enemigo fuera de avion!"
+		"4" "'¡Enemigo en bod. carga!'"  "say_team Enemigo en bodega carga!"
+		"5" "'Flanqueadlos'"  "say_team Flanqueadlos!"
+	}
+
+
+	MAP as_oilrig "1" "mapa as_oilrig"
+	{
+		"1" "'¡Al helicóptero!'" "say_team Al helicoptero!"
+		"2" "'Al ascensor'" "say_team Al ascensor!"
+		"3" "'¡VIP descubiertos!'"   "say_team VIP descubiertos!"
+		"4" "'Francotir. descubierto'"  "say_team Francotir. descubierto!"
+		"5" "'Proteged a los VIP'"  "say_team Proteged a los VIP!"
+	}
+
+
+
+	MAP cs_assault "1" "map cs_assault"
+	{
+		"1" "'¡Al edificio!'" "say_team Al edificio!"
+		"2" "'¡Por la ventilación!'" "say_team Por la ventilacion!"
+		"3" "'¡Enemigo en ventilación!'"   "say_team Enemigo en ventilacion!"
+		"4" "'¡A la sala de rehenes!'"  "say_team A la sala de rehenes!"
+		"5" "'¡Reagrupación!'"  "say_team Reagrupacion!"
+	}
+
+
+
+	MAP de_nuke "1" "mapa de_nuke"
+	{
+		"1" "'Id a sala principal'" "say_team Id a sala principal"
+		"2" "'Id al sótano'" "say_team Id al sotano"
+		"3" "'Flanquead patio'"   "say_team Flanquead patio"
+		"4" "'Flanquead sala-comun.'"  "say_team Flanquead sala-comun."
+		"5" "'En el vestíbulo'"  "say_team En el vestibulo"
+	}
+
+
+	MAP de_cbble "1" "mapa de_cbble"
+	{
+		"1" "'Hacia el pasillo central'" "say_team Hacia el pasillo central!"
+		"2" "'Hacia el paso inferior'" "say_team Hacia el paso inferior!"
+		"3" "'Francotirador en torre'"   "say_team Francotirador en torre!"
+		"4" "'Zonas obj. bom. seguras'"  "say_team Zonas obj. bom. seguras"
+		"5" "'Vigilad zona de inicio'"  "say_team Vigilad zona de inicio"
+	}
+
+
+	MAP de_dust "1" "mapa de_dust"
+	{
+		"1" "'Hacia el pasillo'" "say_team Hacia el pasillo!"
+		"2" "'Hacia el paso inferior'" "say_team Hacia el paso inferior!"
+		"3" "'Bomba A segura'"   "say_team Zona bomba A segura"
+		"4" "'Bomba B segura'"  "say_team Zona bomba B segura"
+		"5" "'Francotirador en paso'"  "say_team Francotirador en paso"
+	}
+
+
+
+	MAP de_dust2 "1" "mapa de_dust2"
+	{
+		"1" "'Hacia el pasillo'" "say_team Hacia el pasillo!"
+		"2" "'Hacia el paso inferior'" "say_team Hacia el paso inferior!"
+		"3" "'Bomba A segura'"   "say_team Zona bomba A segura"
+		"4" "'Bomba B segura'"  "say_team Zona bomba B segura"
+		"5" "'Hacia el tunel'"  "say_team Hacia el tunel!"
+	}
+
+	MAP cs_italy "1" "mapa cs_italy"
+	{
+		"1" "'Nos vemos en mercado" "say_team Nos vemos en mercado"
+		"2" "'A la casa'" "say_team A la casa!"
+		"3" "'Hacia la bodega de vino'"   "say_team Hacia la bodega de vino!"
+		"4" "'Hacia el paso largo'"  "say_team Hacia el paso largo!"
+		"5" "'Rehenes siendo salvados'"  "say_team Rehenes siendo salvados!"
+	}
+
+
+	MAP cs_estate "1" "mapa cs_estate"
+	{
+		"1" "'Id a la cloaca'" "say_team Id a la cloaca!"
+		"2" "'Enemigo en primer piso'" "say_team Enemigo en primer piso!"
+		"3" "'Enemigo en segundo piso'"   "say_team Enemigo en segundo piso!"
+		"4" "'Enemigo detrás'"  "say_team Enemigo detras de casa!"
+		"5" "'Enemigo delante'"  "say_team Enemigo delante de casa!"
+	}
+	
+	
+	MAP as_tundra "1" "mapa as_tundra"
+	{
+		"1" "'Usad ruta secundaria'" "say_team Usad ruta secundaria!"
+		"2" "'Usad ruta primaria'" "say_team Usad ruta primaria!"
+		"3" "'¡Francotiradores!'"   "say_team Francotiradores!"
+		"4" "'Al APC'"  "say_team Al APC!"
+		"5" "'¡Al helicóptero!'"  "say_team Al helicoptero!"
+	}	
+	
+
+	MAP cs_militia "1" "mapa cs_militia"
+	{
+		"1" "'A ventilación garage'" "say_team A ventilacion garage!"
+		"2" "'Nos vemos delante de casa'" "say_team Nos vemos delante de casa!"
+		"3" "'Nos vemos en patio'"   "say_team Nos vemos en patio"
+		"4" "'¡Enemigo arriba!'"  "say_team Enemigo arriba!"
+		"5" "'¡Enemigo en cloacas!'"  "say_team Enemigo en cloacas!"
+	}
+	
+
+
+
+
+
+
+
+     "2" "'Recibido'"			"say_team Recibido"
+     "3" "'Negativo'"				"say_team Negativo"
+     "4" "'¡Adelante!'"		"say_team Adelante!"
+     "5" "'En camino'"				"say_team En camino"
+     "6" "'Necesito apoyo'"			"say_team Necesito apoyo!"
+}
+
+"4" "SOLTAR OBJETO ACTUAL" 	"drop"
+
+
+

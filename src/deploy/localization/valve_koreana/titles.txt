@@ -1,0 +1,957 @@
+//TITLES FOR HALF-LIFE
+// Position command $position x y 
+// x & y are from 0 to 1 to be screen resolution independent
+// -1 means center in each dimension
+// Effect command $effect <effect number>
+// effect 0 is fade in/fade out
+// effect 1 is flickery credits
+// effect 2 is write out (training room)
+// Text color r g b command $color
+// fadein time fadeout time / hold time
+// $fadein (message fade in time - per character in effect 2)
+// $fadeout (message fade out time)
+// $holdtime (stay on the screen for this long)
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+CR27
+{
+블랙 메사 연구 시설
+뉴멕시코 블랙 메사
+}
+
+
+//INTRO CREDITS
+// Test values -- JAY
+// Lower left
+$position 0.1 0.8
+$effect 1
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 1.5
+$fadeout 0.5
+$holdtime 1.2
+
+CR1
+{
+Ted Backman
+}
+
+CR2
+{
+TK Backman
+}
+
+CR3
+{
+Kelly Bailey
+}
+
+CR4
+{
+Yahn Bernier
+}
+
+CR5
+{
+Ken Birdwell
+}
+
+CR6
+{
+Steve Bond
+}
+
+CR7
+{
+Dario Casali
+}
+
+CR8
+{
+John Cook
+}
+
+CR9
+{
+Greg Coomer
+}
+
+CR10
+{
+Wes Cumberland
+}
+
+CR11
+{
+John Guthrie
+}
+
+CR12
+{
+Mona Lisa Guthrie
+}
+
+CR13
+{
+Mike Harrington
+}
+
+CR14
+{
+Monica Harrington
+}
+
+CR15
+{
+Brett Johnson
+}
+
+CR16
+{
+Chuck Jones
+}
+
+CR17
+{
+Marc Laidlaw
+}
+
+CR18
+{
+Karen Laur
+}
+
+CR19
+{
+Randy Lundeen
+}
+
+CR20
+{
+Yatsze Mark
+}
+
+CR21
+{
+Lisa Mennet
+}
+
+CR22
+{
+Gabe Newell
+}
+
+CR23
+{
+Dave Riller
+}
+
+CR24
+{
+Aaron Stackpole
+}
+
+CR25
+{
+Jay Stelly
+}
+
+CR26
+{
+Harry Teasley 
+}
+
+CR35
+{
+Steve Theodore
+}
+
+CR36
+{
+Bill Van Buren
+}
+
+CR37
+{
+Robin Walker
+}
+
+CR38
+{
+Douglas R. Wood
+}
+
+//END CREDITS
+$position -1 -1
+$effect 0
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 0.5
+$fadeout 0.5
+$holdtime 4
+
+VALVEIS
+{
+Valve is:
+}
+
+END1
+{
+Ted Backman
+TK Backman
+Kelly Bailey
+Yahn Bernier
+Ken Birdwell
+Steve Bond
+Dario Casali
+John Cook
+Greg Coomer
+Wes Cumberland
+}
+
+END2
+{
+John Guthrie
+Mona Lisa Guthrie
+Mike Harrington
+Monica Harrington
+Brett Johnson
+Chuck Jones
+Marc Laidlaw
+Karen Laur
+Randy Lundeen
+Yatsze Mark
+}
+
+END3
+{
+Lisa Mennet
+Gabe Newell
+Dave Riller
+Aaron Stackpole
+Jay Stelly
+Harry Teasley
+Steve Theodore
+Bill Van Buren
+Robin Walker
+Douglas R. Wood
+}
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+
+CR28
+{
+대상:
+고든 프리먼
+남, 27세
+}
+
+CR29
+{
+학력:
+이론 물리학 박사, MIT
+}
+
+CR30
+{
+직책:
+연구직
+}
+
+CR31
+{
+소속:
+이상 물질 연구실
+}
+
+CR32
+{
+보안 허가:
+레벨 3
+}
+
+CR33
+{
+관리 책임자:
+기밀 사항
+}
+
+CR34
+{
+재난 대응 우선권:
+자유 재량권 부여
+}
+
+$fadein 0.03
+$holdtime 9
+
+GAMEOVER
+{
+대상:  프리먼
+
+상태:  평가 종료
+
+사후 분석:
+임무 완수를 위해 인적 자원을 효과적으로 활용하지 못했음.
+}
+
+$fadein 0.03
+$holdtime 9
+TRAITOR
+{
+대상:  프리먼
+
+상태:  채용
+
+임무 대기중
+}
+
+
+$fadein 0.03
+$holdtime 9
+LOSER
+{
+대상:  프리먼
+
+상태:  평가 종료
+
+사후 분석:
+대상이 채용을 거부함.
+}
+
+//CHAPTER TITLES
+
+$fadein 0.01
+$position -1 0.4
+$holdtime 3.5
+T0A0TITLE
+{
+장애물 코스
+}
+
+$position -1 0.65
+C0A0TITLE
+{
+블랙 메사 접근 중
+}
+
+OPENTITLE3
+{
+
+}
+
+OPENTITLE4
+{
+
+}
+
+C0A1TITLE
+{
+이상 물질
+}
+
+C1A1TITLE
+{
+예측하지 못한 결과
+}
+
+C1A2TITLE
+{
+사무실 시설
+}
+
+C1A3TITLE
+{
+"적 출현"
+}
+
+C1A4TITLE
+{
+블래스트 핏
+}
+
+C2A1TITLE
+{
+파워 업
+}
+
+C2A2TITLE
+{
+레일 위에서
+}
+
+C2A3TITLE
+{
+불안
+}
+
+C2A4TITLE1
+{
+잔여물 처리
+}
+
+C2A4TITLE2
+{
+의심스러운 윤리
+}
+
+C2A5TITLE
+{
+표면 장력
+}
+
+C3A1TITLE
+{
+"프리먼은 잊어버려!"
+}
+
+C3A2TITLE
+{
+람다 코어
+}
+
+C4A1TITLE
+{
+젠
+}
+
+C4A1ATITLE
+{
+침입자
+}
+
+C4A1BTITLE
+{
+
+}
+
+C4A1CTITLE
+{
+
+}
+
+C4A1ETITLE
+{
+
+}
+
+C4A1FTITLE
+{
+
+}
+
+C4A2TITLE
+{
+고나크의 레어
+}
+
+C4A3TITLE
+{
+공허
+}
+
+C5TITLE
+{
+최후의 게임
+}
+
+
+// In-Game messages
+$position -1 0.65
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 2.0
+// How long it takes to fade out the message after holding
+$fadeout 0.5
+
+GAMESAVED
+{
+저장 완료...
+}
+
+// Game title
+// This is a placeholder to hold the effects controls for the "Half-Life" title
+$position -1 -1
+// Only effect 0 is supported for game title
+$effect 0
+// This is the final color
+$color 180 180 180
+// Not used color2
+$color2 0 0 0
+// This is the time it takes to fade in the title
+$fadein 1.0
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.0
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+GAMETITLE
+{
+하프 라이프
+}
+
+//HAZARD COURSE TEXT
+
+// Test values -- JAY
+$position -1 0.65
+// Scan-out text effect
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 0 200 50
+// This is the time it takes to fade each character
+$fadein 0.005
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.5
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+$position -1 0.3
+HZBUTTON1
+{
+사용하기 키를 눌러 버튼을 누르십시오.
+}
+
+$position -1 0.65
+HZBUTTON2
+{
+사용하기 키를 눌러 버튼을 누르십시오.
+}
+
+HZMOVE
+{
+앞으로 이동하기 키를 눌러 앞으로 가십시오.
+뒤로 이동하기 키를 눌러 뒤로 가십시오.
+왼쪽으로 이동하기 키를 눌러 왼쪽으로 가십시오.
+오른쪽으로 이동하기 키를 눌러 오른쪽으로 가십시오.
+}
+
+HZJUMP
+{
+앞으로 이동하기 키를 눌러 앞으로 달리십시오.
+점프 키를 눌러 점프하십시오.
+}
+
+HZDUCK
+{
+앞으로 이동하기 키를 눌러 앞으로 달리십시오.
+앉기 키를 눌러 앉으십시오.
+앞으로 이동하기 키 + 앉기 키를 함께 눌러 스텔스 모드로 이동하십시오.
+}
+
+HZCOMBO
+{
+앞으로 이동하기 키를 눌러 앞으로 달리십시오.
+점프 키를 눌러 점프하십시오.
+앉기 키를 눌러 앉으십시오.
+점프 키를 눌러 점프하십시오.
+}
+
+HZDUCKJUMP
+{
+앞으로 이동하기 키와 점프 키를 같이 누른 후,
+앉기 키를 누르십시오.
+}
+
+HZLADDER
+{
+앞으로 이동하기 키를 눌러 사다리를 올라가십시오.
+뒤로 이동하기 키를 눌러 사다리를 내려가십시오.
+}
+
+HZLJUMP
+{
+앞으로 이동하는 도중 앉기 키를 누르고 있다가 점프 키를 누르십시오.
+}
+
+$position -1 0.3
+HZLMOD
+{
+장애물 코스를 시작하기 전에 롱점프 모듈을 반드시 얻도록 하십시오.
+}
+
+$position -1 0.65
+HZMEDKIT
+{
+사용하기 키를 눌러 비상 구급 키트를 이용하십시오. 
+체력이 100까지 차거나 비상 구급 키트가 소진될 때까지 키를 누르고 계십시오.
+}
+
+HZMOMENT
+{
+바퀴나 다이얼을 작동하려면 사용하기 키를 누르고 있으면 됩니다.
+다리가 제위치에 도달할 때까지 사용하기 키를 누르고 계십시오.
+}
+
+HZPUSH
+{
+앞으로 가기 키를 눌러 상자 앞으로 이동합니다.
+계속 키를 누르고 있으면 상자를 밀게 됩니다.
+}
+
+HZPULL
+{
+사용하기 키와 뒤로 가기 키를 같이 누르면 상자를 뒤로 당기게 됩니다.
+}
+
+HZCROWBAR
+{
+쇠지레가 있는 곳으로 올라가십시오.
+
+주 공격 키를 눌러 사물을 파괴하십시오.
+}
+ 
+HZLITEON
+{
+플래쉬 키를 눌러 플래쉬를 켭니다.
+}
+
+HZLITEOFF
+{
+플래쉬 키를 다시 누르면 플래쉬를 끄게 됩니다.
+}
+
+HZWEAPON
+{
+무기로 이동하여 그것을 집어드십시오.
+}
+
+HZFIREWEAP
+{
+
+주 공격 키를 눌러 주 공격을 하십시오.
+보조 공격 키를 눌러 보조 공격을 하십시오.
+재장전 키를 눌러 무기를 재장전 하십시오.
+}
+
+HZARMOR
+{
+아머가 모두 재충전되거나 충전기가 고갈될 때까지 사용하기 키를 계속 누르고 계십시오.
+}
+
+HZSWIM
+{
+앞으로 이동하기 키를 누르십시오.
+마우스를 이용하여 나아갈 방향을 잡도록 하십시오.
+체력이 떨어지기 시작하면 공기가 있는 곳으로 나간 다음
+체력이 회복될 때까지 기다리십시오.
+}
+
+HZDAMAGE
+{
+특정한 종류의 데미지를 입게 되면 그 종류가 화면에 표시됩니다.
+데미지가 가해진 방향은 화면 중앙에 붉은색으로 나타나게 됩니다.
+}
+
+HZHAZARD
+{
+방사능 위험
+가이거 카운터를 작동시키십시오.
+}
+
+HZSCIENTIST
+{
+과학자에게 접근하십시오.
+사용하기 키를 눌러 과학자로부터 체력을 얻도록 하십시오.
+}
+
+HZBARNEY
+{
+경비병에게 접근하십시오.
+사용하기 키를 눌러 그의 도움을 얻도록 하십시오.
+문을 향해 걸어가면 경비병이 버튼을 작동하게 됩니다.
+}
+
+HZTRAIN
+{
+사용하기 키를 눌러 열차를 가동합니다.
+앞으로 가기 키를 눌러 가속합니다.
+뒤로 가기 키를 눌러 감속합니다.
+사용하기 키를 다시 눌려 열차를 정지시킵니다.
+}
+
+HZDONE
+{
+축하합니다!
+블랙 메사 장애물 코스를 완료했습니다.
+언제든 다시 방문해주십시오.
+}
+
+Spec_Mode1
+{
+고정 체이스 카메라
+}
+
+Spec_Mode2
+{
+프리 체이스 카메라
+}
+
+Spec_Mode3
+{
+프리룩
+}
+
+Spec_Mode4
+{
+1인칭
+}
+
+Spec_Mode5
+{
+프리 맵 내려다 보기
+}
+
+Spec_Mode6
+{
+체이스 맵 내려다 보기
+}
+
+Spec_NoTarget
+{
+유효한 목표물이 아닙니다. 체이스 카메라 모드로 전환할 수 없습니다.
+}
+
+Spec_Help_Title
+{
+관전자 모드
+}
+
+Spec_Help_Text
+{
+시점을 변경하려면 다음 키를 사용하십시오.
+
+ 주 장비 사용 - 다음 플레이어 추적하기
+ 보조 기능 사용 - 이전 플레이어 추적하기
+ 점프 - 시점 모드 변경
+ 사용하기 - 작은 창 모드 변경
+ 
+ 앉기  - 관전자 메뉴 보기
+  
+내려다 보기 모드에서는 다음 키를 이용하여 이동할 수 있습니다.
+
+ 왼쪽으로 이동 - 왼쪽으로 이동
+ 오른쪽으로 이동 - 오른쪽으로 이동
+ 앞으로 이동 - 줌 인
+ 뒤로 이동 - 줌 아웃
+ 마우스 - 맵/목표물을 중심으로 회전
+}
+
+Spec_Slow_Motion
+{
+슬로우 모션
+}
+
+Spec_Replay
+{
+인스턴트 리플레이
+}
+
+Spec_Auto
+{
+자동
+}
+
+// Multiplayer Scoreboard
+Spec_Map
+{
+맵
+}
+
+Spectators
+{
+관전자
+}
+
+Unassigned
+{
+할당되지 않음
+}
+
+TEAMS
+{
+팀
+}
+
+PLAYERS
+{
+플레이어
+}
+
+CLASS
+{
+클래스
+}
+
+SCORE
+{
+점수
+}
+
+DEATHS
+{
+죽은 횟수
+}
+
+LATENCY
+{
+Ping
+}
+
+VOICE
+{
+음성
+}
+
+// other menu text
+Menu_OK
+{
+확인
+}
+
+Menu_Cancel
+{
+취소
+}
+
+Mic_Volume
+{
+마이크 볼륨
+}
+
+Speaker_Volume
+{
+스피커 볼륨
+}
+
+Voice_Properties
+{
+음성 속성
+}
+
+Map_Description_not_available
+{
+맵 설명이 없습니다.
+}
+
+Player
+{
+플레이어
+}
+
+Player_plural
+{
+플레이어들
+}
+
+Muted
+{
+%s의 음성을 들을 수 없게 했습니다.
+}
+
+Unmuted
+{
+%s의 음성을 들을 수 있게 했습니다.
+}
+
+No_longer_hear_that_player
+{
+그 플레이어가 하는 말을 더 이상 들을 수 없게 됩니다.
+}
+
+OBS_NONE
+{
+카메라 옵션
+}
+
+OBS_CHASE_LOCKED
+{
+고정 체이스캠
+}
+
+OBS_CHASE_FREE
+{
+프리 체이스캠
+}
+
+OBS_ROAMING
+{
+로밍
+}
+
+OBS_IN_EYE
+{
+1인칭
+}
+
+OBS_MAP_FREE
+{
+프리 내려다 보기
+}
+
+OBS_MAP_CHASE
+{
+체이스캠 내려다 보기
+}
+
+SPECT_OPTIONS
+{
+옵션
+}
+
+CAM_OPTIONS
+{
+카메라 옵션
+}
+
+Spec_Duck
+{
+관전자 메뉴를 보려면 앉기 키를 누르십시오.
+}

@@ -1,0 +1,951 @@
+//TITLES FOR HALF-LIFE
+// Position command $position x y 
+// x & y are from 0 to 1 to be screen resolution independent
+// -1 means center in each dimension
+// Effect command $effect <effect number>
+// effect 0 is fade in/fade out
+// effect 1 is flickery credits
+// effect 2 is write out (training room)
+// Text color r g b command $color
+// fadein time fadeout time / hold time
+// $fadein (message fade in time - per character in effect 2)
+// $fadeout (message fade out time)
+// $holdtime (stay on the screen for this long)
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+CR27
+{
+Black Mesa Research Facility
+Black Mesa, New Mexico
+}
+
+
+//INTRO CREDITS
+// Test values -- JAY
+// Lower left
+$position 0.1 0.8
+$effect 1
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 1.5
+$fadeout 0.5
+$holdtime 1.2
+
+CR1
+{
+Ted Backman
+}
+
+CR2
+{
+TK Backman
+}
+
+CR3
+{
+Kelly Bailey
+}
+
+CR4
+{
+Yahn Bernier
+}
+
+CR5
+{
+Ken Birdwell
+}
+
+CR6
+{
+Steve Bond
+}
+
+CR7
+{
+Dario Casali
+}
+
+CR8
+{
+John Cook
+}
+
+CR9
+{
+Greg Coomer
+}
+
+CR10
+{
+Wes Cumberland
+}
+
+CR11
+{
+John Guthrie
+}
+
+CR12
+{
+Mona Lisa Guthrie
+}
+
+CR13
+{
+Mike Harrington
+}
+
+CR14
+{
+Monica Harrington
+}
+
+CR15
+{
+Brett Johnson
+}
+
+CR16
+{
+Chuck Jones
+}
+
+CR17
+{
+Marc Laidlaw
+}
+
+CR18
+{
+Karen Laur
+}
+
+CR19
+{
+Randy Lundeen
+}
+
+CR20
+{
+Yatsze Mark
+}
+
+CR21
+{
+Lisa Mennet
+}
+
+CR22
+{
+Gabe Newell
+}
+
+CR23
+{
+Dave Riller
+}
+
+CR24
+{
+Aaron Stackpole
+}
+
+CR25
+{
+Jay Stelly
+}
+
+CR26
+{
+Harry Teasley 
+}
+
+CR35
+{
+Steve Theodore
+}
+
+CR36
+{
+Bill Van Buren
+}
+
+CR37
+{
+Robin Walker
+}
+
+CR38
+{
+Douglas R. Wood
+}
+
+//END CREDITS
+$position -1 -1
+$effect 0
+// Final fade-in color
+$color 128 128 128
+// This is the highlight/flash color
+$color2 0 0 0
+$fadein 0.5
+$fadeout 0.5
+$holdtime 4
+
+VALVEIS
+{
+設定值為：
+}
+
+END1
+{
+Ted Backman
+TK Backman
+Kelly Bailey
+Yahn Bernier
+Ken Birdwell
+Steve Bond
+Dario Casali
+John Cook
+Greg Coomer
+Wes Cumberland
+}
+
+END2
+{
+John Guthrie
+Mona Lisa Guthrie
+Mike Harrington
+Monica Harrington
+Brett Johnson
+Chuck Jones
+Marc Laidlaw
+Karen Laur
+Randy Lundeen
+Yatsze Mark
+}
+
+END3
+{
+Lisa Mennet
+Gabe Newell
+Dave Riller
+Aaron Stackpole
+Jay Stelly
+Harry Teasley
+Steve Theodore
+Bill Van Buren
+Robin Walker
+Douglas R. Wood
+}
+
+//INTRO TITLES
+// All centered for now
+$position -1 -1
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+
+CR28
+{
+SUBJECT:
+Gordon Freeman
+Male, age 27
+}
+
+CR29
+{
+EDUCATION:
+Ph.D., MIT, Theoretical Physics
+}
+
+CR30
+{
+POSITION:
+Research Associate
+}
+
+CR31
+{
+ASSIGNMENT:
+Anomalous Materials Laboratory
+}
+
+CR32
+{
+CLEARANCE:
+Level 3
+}
+
+CR33
+{
+ADMINISTRATIVE SPONSOR:
+Classified
+}
+
+CR34
+{
+DISASTER RESPONSE PRIORITY:
+Discretionary
+}
+
+$fadein 0.03
+$holdtime 9
+
+GAMEOVER
+{
+SUBJECT:  FREEMAN
+
+STATUS:  EVALUATION TERMINATED
+
+POSTMORTEM:
+Subject failed to effectively utilize
+human assets in achievement of goal.
+}
+
+$fadein 0.03
+$holdtime 9
+TRAITOR
+{
+SUBJECT:  FREEMAN
+
+STATUS:  HIRED
+
+AWAITING ASSIGNMENT
+}
+
+
+$fadein 0.03
+$holdtime 9
+LOSER
+{
+SUBJECT:  FREEMAN
+
+STATUS:  OBSERVATION TERMINATED
+
+POSTMORTEM:
+Subject declined offer of employment.
+}
+
+//CHAPTER TITLES
+
+$fadein 0.01
+$position -1 0.4
+$holdtime 3.5
+T0A0TITLE
+{
+HAZARD COURSE
+}
+
+$position -1 0.65
+C0A0TITLE
+{
+BLACK MESA INBOUND
+}
+
+OPENTITLE3
+{
+
+}
+
+OPENTITLE4
+{
+
+}
+
+C0A1TITLE
+{
+ANOMALOUS MATERIALS
+}
+
+C1A1TITLE
+{
+UNFORESEEN CONSEQUENCES
+}
+
+C1A2TITLE
+{
+OFFICE COMPLEX
+}
+
+C1A3TITLE
+{
+"WE'VE GOT HOSTILES"
+}
+
+C1A4TITLE
+{
+BLAST PIT
+}
+
+C2A1TITLE
+{
+POWER UP
+}
+
+C2A2TITLE
+{
+ON A RAIL
+}
+
+C2A3TITLE
+{
+APPREHENSION
+}
+
+C2A4TITLE1
+{
+RESIDUE PROCESSING
+}
+
+C2A4TITLE2
+{
+QUESTIONABLE ETHICS
+}
+
+C2A5TITLE
+{
+SURFACE TENSION
+}
+
+C3A1TITLE
+{
+"FORGET ABOUT FREEMAN!"
+}
+
+C3A2TITLE
+{
+LAMBDA CORE
+}
+
+C4A1TITLE
+{
+XEN
+}
+
+C4A1ATITLE
+{
+INTERLOPER
+}
+
+C4A1BTITLE
+{
+
+}
+
+C4A1CTITLE
+{
+
+}
+
+C4A1ETITLE
+{
+
+}
+
+C4A1FTITLE
+{
+
+}
+
+C4A2TITLE
+{
+GONARCH'S LAIR
+}
+
+C4A3TITLE
+{
+NIHILANTH
+}
+
+C5TITLE
+{
+ENDGAME
+}
+
+
+// In-Game messages
+$position -1 0.65
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 240 110 0
+// This is the time it takes to fade each character
+$fadein 0.01
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.25
+// How long to hold the message on the screen (after it scans out)
+$holdtime 2.0
+// How long it takes to fade out the message after holding
+$fadeout 0.5
+
+GAMESAVED
+{
+存檔完成...
+}
+
+// Game title
+// This is a placeholder to hold the effects controls for the "Half-Life" title
+$position -1 -1
+// Only effect 0 is supported for game title
+$effect 0
+// This is the final color
+$color 180 180 180
+// Not used color2
+$color2 0 0 0
+// This is the time it takes to fade in the title
+$fadein 1.0
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.0
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+GAMETITLE
+{
+戰慄時空
+}
+
+//HAZARD COURSE TEXT
+
+// Test values -- JAY
+$position -1 0.65
+// Scan-out text effect
+$effect 2
+// This is the final color
+$color 100 100 100
+// This is the highlight color
+$color2 0 200 50
+// This is the time it takes to fade each character
+$fadein 0.005
+// This is the amount of time the highlight lags behind the leading edge of the text
+$fxtime 0.5
+// How long to hold the message on the screen (after it scans out)
+$holdtime 3.5
+// How long it takes to fade out the message after holding
+$fadeout 1.5
+
+$position -1 0.3
+HZBUTTON1
+{
+按下使用鍵以按下按鈕
+}
+
+$position -1 0.65
+HZBUTTON2
+{
+按下使用鍵以按下按鈕
+}
+
+HZMOVE
+{
+按下向前移動鍵以向前移動
+按下向後移動鍵以向後移動
+按下向左移動鍵以向左移動
+按下向右移動鍵以向右移動
+}
+
+HZJUMP
+{
+按下向前移動鍵以向前奔跑
+按下跳躍鍵以進行跳躍
+}
+
+HZDUCK
+{
+按下向前移動鍵以向前奔跑
+按下蹲伏鍵以蹲下
+按下向前移動鍵+蹲下鍵 
+以隱密模式移動
+}
+
+HZCOMBO
+{
+按下向前移動鍵以向前奔跑
+按下跳躍鍵以進行跳躍
+按下蹲伏鍵以蹲下
+按下跳躍鍵以進行跳躍
+}
+
+HZDUCKJUMP
+{
+按住前進鍵 + 跳躍鍵向前跳躍。
+然後按蹲伏鍵，完成跳蹲動作
+}
+
+HZLADDER
+{
+按後退鍵在梯子上向下移動。或者向下看並按前進鍵
+按前進鍵在梯子上向上移動。或者向上看並按前進鍵
+}
+
+HZLJUMP
+{
+向前移動，按住蹲伏鍵然後跳起。
+}
+
+$position -1 0.3
+HZLMOD
+{
+確定你在障礙前面撿起了長跳模組
+}
+
+$position -1 0.65
+HZMEDKIT
+{
+按住使用鍵使用MED-KITS直到生命達到100或者完成KIT
+}
+
+HZMOMENT
+{
+通過不中斷點擊使用鍵轉動輪子或者圓盤直到完全打開大門
+}
+
+HZPUSH
+{
+在箱子邊持續按住前進鍵，向前推動箱子
+}
+
+HZPULL
+{
+按住使用+後退鍵可以向後拖拽箱子
+}
+
+HZCROWBAR
+{
+撿起鐵棍按攻擊1鍵破壞目標
+}
+ 
+HZLITEON
+{
+按手電筒鍵打開手電筒
+}
+
+HZLITEOFF
+{
+再按手電筒鍵關閉手電筒
+}
+
+HZWEAPON
+{
+移動到武器上就可以將它自動撿起
+}
+
+HZFIREWEAP
+{
+P按下攻擊1鍵進行射擊
+按下攻擊2鍵可以切換武器模式
+按下裝填鍵，裝填彈藥
+}
+
+HZARMOR
+{
+按下使用鍵直到防彈衣修補
+}
+
+HZSWIM
+{
+按下前進鍵和利用滑鼠瞄準來控制游泳。如果你在水下開始損失生命，找到空氣就可以立刻停止生命的減少
+}
+
+HZDAMAGE
+{
+確定的傷害將會顯是在你頭頂的顯示裝備上
+直接傷害用閃爍的紅字顯示在螢幕的中央
+
+}
+
+HZHAZARD
+{
+輻射傷害
+啟動GEIGER來防止傷害
+}
+
+HZSCIENTIST
+{
+接觸科學家
+按下使用鍵讓科學家跟隨你行動
+}
+
+HZBARNEY
+{
+接觸警衛
+按下使用鍵得到他的幫助
+向前移動到門邊，他將會幫你打開大門
+}
+
+HZTRAIN
+{
+按下使用鍵打開火車引擎
+按下前進鍵前進
+按下後退鍵後退
+再次按下使用離開
+}
+
+HZDONE
+{
+恭喜你！
+你已經完成了黑色平臺災難任務
+你可以隨時再回來
+}
+
+Spec_Mode1
+{
+鎖定視野
+}
+
+Spec_Mode2
+{
+自由跟隨視野
+}
+
+Spec_Mode3
+{
+自由觀看
+}
+
+Spec_Mode4
+{
+第一人稱
+}
+
+Spec_Mode5
+{
+自由觀看地圖
+}
+
+Spec_Mode6
+{
+跟隨觀看地圖模式
+}
+
+Spec_NoTarget
+{
+沒有有效的目標，無法切換到跟隨模式視野
+}
+
+Spec_Help_Title
+{
+觀察者模式
+}
+
+Spec_Help_Text
+{
+使用下列按鍵來切換觀察模式：
+
+ 主攻擊鍵 - 觀察下一個玩家
+ 次要攻擊鍵 - 觀察上一個玩家
+ 跳躍 - 切換觀察模式
+ 使用 - 變更置入視窗模式
+ 
+ 蹲下  - 開啟觀察者選單
+  
+在地圖模式中使用下列方式移動:
+
+ 往左轉 - 往左
+ 往右轉 - 往右
+ 前進 - 放大
+ 後退 - 縮小
+ 滑鼠 - 在地圖/目標之間旋轉視角
+}
+
+Spec_Slow_Motion
+{
+慢動作
+}
+
+Spec_Replay
+{
+Instant Replay
+}
+
+Spec_Auto
+{
+自動
+}
+
+// Multiplayer Scoreboard
+Spec_Map
+{
+地圖
+}
+
+Spectators
+{
+觀察者
+}
+
+Unassigned
+{
+尚未選隊
+}
+
+TEAMS
+{
+隊伍
+}
+
+PLAYERS
+{
+玩家
+}
+
+CLASS
+{
+職業
+}
+
+SCORE
+{
+分數
+}
+
+DEATHS
+{
+死亡次數
+}
+
+LATENCY
+{
+延遲率
+}
+
+VOICE
+{
+語音
+}
+
+// other menu text
+Menu_OK
+{
+確定
+}
+
+Menu_Cancel
+{
+取消
+}
+
+Mic_Volume
+{
+麥克風音量
+}
+
+Speaker_Volume
+{
+喇叭音量
+}
+
+Voice_Properties
+{
+音量調整
+}
+
+Map_Description_not_available
+{
+這個地圖檔沒有說明文件。
+}
+
+Player
+{
+玩家
+}
+
+Player_plural
+{
+玩家
+}
+
+Muted
+{
+你已經聽不到 %s 的聲音。
+}
+
+Unmuted
+{
+你現在可以聽到 %s 的聲音。
+}
+
+No_longer_hear_that_player
+{
+你現在將無法聽到那個玩家的說話了。
+}
+
+OBS_NONE
+{
+攝影機選項
+}
+
+OBS_CHASE_LOCKED
+{
+鎖定視野
+}
+
+OBS_CHASE_FREE
+{
+自由跟隨視野
+}
+
+OBS_ROAMING
+{
+自由觀看
+}
+
+OBS_IN_EYE
+{
+第一人稱
+}
+
+OBS_MAP_FREE
+{
+自由觀看
+}
+
+OBS_MAP_CHASE
+{
+跟隨觀看
+}
+
+SPECT_OPTIONS
+{
+選項
+}
+
+CAM_OPTIONS
+{
+攝影機選項
+}
+
+Spec_Duck
+{
+按下蹲下來開啟觀察者模式選單。
+}

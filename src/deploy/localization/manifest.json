@@ -1,0 +1,5799 @@
+{
+  "format_version": 1,
+  "languages": {
+    "english": "English",
+    "french": "French",
+    "german": "German",
+    "italian": "Italian",
+    "spanish": "Spanish",
+    "schinese": "Simplified Chinese",
+    "tchinese": "Traditional Chinese",
+    "koreana": "Korean"
+  },
+  "language_aliases": {
+    "korean": "koreana"
+  },
+  "files": [
+    {
+      "source": "cstrike/commandmenu.txt",
+      "destination": "cstrike/commandmenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/commandmenu.txt",
+        "sha256": "e38d975e35bf6df1aab61e10d3564bbe55809590114e1c0b1242bb6172dcdb80",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/gfx/shell/kb_act.lst",
+      "destination": "cstrike/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/gfx/shell/kb_act.lst",
+        "sha256": "98abbf6b4f2a9dc79ea1ea36ced65a6e77fb06d95df413fa650ea59bba9fbb26",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/as_oilrig.txt",
+      "destination": "cstrike/maps/as_oilrig.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/as_oilrig.txt",
+        "sha256": "347f4957d73321b832d62c89f98b35cee1925055fb978216249371fc3a718a48",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_747.txt",
+      "destination": "cstrike/maps/cs_747.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_747.txt",
+        "sha256": "73255f98b353255557f446a60de5e47e86885d9727f132f5870b712e293ca9e6",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_assault.txt",
+      "destination": "cstrike/maps/cs_assault.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_assault.txt",
+        "sha256": "1a702b58ff21283ed363f8dbc597143da459e68bcf204c17ba9d5dcaf8c4cc9a",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_backalley.txt",
+      "destination": "cstrike/maps/cs_backalley.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_backalley.txt",
+        "sha256": "eba7563264d728d11081e7fd6e295cbb2fd1cbb39865a330e18fc1d24c9027fd",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_estate.txt",
+      "destination": "cstrike/maps/cs_estate.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_estate.txt",
+        "sha256": "fab19ad12851830cd56f50811616f2a46be780184562b6da506f71a54e95da66",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_havana.txt",
+      "destination": "cstrike/maps/cs_havana.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_havana.txt",
+        "sha256": "ad72bf8e891d980219d8523caac9fe3f4c9555c27c2488b6ffb3107976c50de3",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_italy.txt",
+      "destination": "cstrike/maps/cs_italy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_italy.txt",
+        "sha256": "d74c1ecb450a222b6c44bcbd79edc8382c0247bfb889d8133f68d2371d1903a5",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_militia.txt",
+      "destination": "cstrike/maps/cs_militia.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_militia.txt",
+        "sha256": "f8793cbe5b3ee1180748ca6dcdf5091bfd3b545666cebff592f3a62df1b3ba4f",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_office.txt",
+      "destination": "cstrike/maps/cs_office.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_office.txt",
+        "sha256": "9d69d1511549fddcd1dc57108eadaca3b64fd86e8f27606bd4a3d2611185030a",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/cs_siege.txt",
+      "destination": "cstrike/maps/cs_siege.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/cs_siege.txt",
+        "sha256": "e60b61b59138157b305bad533624de4a46f3096c7cafff85350b4b191b9b18a1",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_airstrip.txt",
+      "destination": "cstrike/maps/de_airstrip.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_airstrip.txt",
+        "sha256": "b424bbfe9cc13ddb31c7486d8a602d6a0ffc68f448704f034d54cec4b4082d8b",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_aztec.txt",
+      "destination": "cstrike/maps/de_aztec.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_aztec.txt",
+        "sha256": "26fa112d235df206add78ef0e2aee39d08711171b33f85f4331a3ab8ffced025",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_cbble.txt",
+      "destination": "cstrike/maps/de_cbble.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_cbble.txt",
+        "sha256": "0be4b0425a01314aecd1f818ce5852269d55177cd85519c013723aa0f824e56b",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_cbble_detail.txt",
+      "destination": "cstrike/maps/de_cbble_detail.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_cbble_detail.txt",
+        "sha256": "5194642f9352f78933d10ba8e69a75682a8812138c4169be592cbc58da99f9ef",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_chateau.txt",
+      "destination": "cstrike/maps/de_chateau.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_chateau.txt",
+        "sha256": "52e10ffd3c6c6f54bc365693bee1ac975caf4dade6f20149d80895b490ca2542",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_dust.txt",
+      "destination": "cstrike/maps/de_dust.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_dust.txt",
+        "sha256": "c5ffb46f9d5dd14724c7d9b9beae7215b267e8f7564945c0c07bda7eefa96c24",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_dust2.txt",
+      "destination": "cstrike/maps/de_dust2.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_dust2.txt",
+        "sha256": "1812e8f86fb19ebfd5d9fc018a2b1c940d6ccafa98cfe0cd7362b319938290ea",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_inferno.txt",
+      "destination": "cstrike/maps/de_inferno.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_inferno.txt",
+        "sha256": "c73f814696c269365fd8c4d5397cafb49756c4b4521adccde9cebb81f9d51248",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_nuke.txt",
+      "destination": "cstrike/maps/de_nuke.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_nuke.txt",
+        "sha256": "aec2f181c4c92252109c735a6eedee12a10709155569baeb9db3b6a76d60c708",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_piranesi.txt",
+      "destination": "cstrike/maps/de_piranesi.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_piranesi.txt",
+        "sha256": "0f486f7041d1b9a78b45b3417ed19420d619398b1d439ff23c13ec63a1d14fd8",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_prodigy.txt",
+      "destination": "cstrike/maps/de_prodigy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_prodigy.txt",
+        "sha256": "0cb55909d883ebbf626e2912c973c21f26a0dc8c93441f98f50a717e2728c9ab",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_storm.txt",
+      "destination": "cstrike/maps/de_storm.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_storm.txt",
+        "sha256": "37ff1cedcbf24d25ae3ad29fb80736dfcc255b1cb465a749678226282c958beb",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_survivor.txt",
+      "destination": "cstrike/maps/de_survivor.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_survivor.txt",
+        "sha256": "e41fd92d3706accef77f634764269af412a0bac9bcc26944831123640cd5db17",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_torn.txt",
+      "destination": "cstrike/maps/de_torn.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_torn.txt",
+        "sha256": "7f6b825d5f17021cc5a75171eae77d556b58e10c3027a44491e855f618cb205c",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_train.txt",
+      "destination": "cstrike/maps/de_train.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_train.txt",
+        "sha256": "bbd6df80f79bfe0ab0c8e322cce1236997de30802d3129feb4847111ec3545c5",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/maps/de_vertigo.txt",
+      "destination": "cstrike/maps/de_vertigo.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/maps/de_vertigo.txt",
+        "sha256": "9c09dc9dd018a9b9ea7a81d9e8f29405bd7bb3880c11489bd0a440aaf675325a",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/resource/cstrike_english.txt",
+      "destination": "cstrike/resource/cstrike_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/resource/cstrike_english.txt",
+        "sha256": "b3cff0fd5f1ec2c8e5b0e10548410e4950107c723c693add2f035c14dfddb8ff",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike/resource/cstrike_french.txt",
+      "destination": "cstrike/resource/cstrike_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/resource/cstrike_french.txt",
+        "sha256": "3e5039bc97d910f79780936015ad42dd1cb5b6a75dbe91e0fd1264df4709a258",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_french/resource/cstrike_french.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_german.txt",
+      "destination": "cstrike/resource/cstrike_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/resource/cstrike_german.txt",
+        "sha256": "3e8ca67a398ec4d1791d4e120a374dac0349a5f00baa97de16e725ee131fd19e",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_german/resource/cstrike_german.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_italian.txt",
+      "destination": "cstrike/resource/cstrike_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/resource/cstrike_italian.txt",
+        "sha256": "7663c33e3b5795e3ff8d57ae3c52946ab5fe6c430974adc7e92f127480f95200",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_italian/resource/cstrike_italian.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_koreana.txt",
+      "destination": "cstrike/resource/cstrike_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/resource/cstrike_koreana.txt",
+        "sha256": "c568d52c64e128b5f6060f3830cb598086198db4ff82e4de46b8c8398ff139c1",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_koreana/resource/cstrike_koreana.txt",
+        "cstrike/resource/cstrike_korean.txt",
+        "cstrike_korean/resource/cstrike_korean.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_schinese.txt",
+      "destination": "cstrike/resource/cstrike_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 17,
+        "manifest": "8232848132911478974",
+        "path": "cstrike_schinese/resource/cstrike_schinese.txt",
+        "sha256": "fcbd9409cd4fbfebb1385b2b704fc810e29d62a05efbeb3314fdef77a81c15fc",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_schinese/resource/cstrike_schinese.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_spanish.txt",
+      "destination": "cstrike/resource/cstrike_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/resource/cstrike_spanish.txt",
+        "sha256": "5c079381663d1e96d92277bcd73ee4bd037d2291c9e371fb44466f86c45f0084",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_spanish/resource/cstrike_spanish.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_tchinese.txt",
+      "destination": "cstrike/resource/cstrike_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/resource/cstrike_tchinese.txt",
+        "sha256": "408d25e72f49e66451c684855ce170fe19e1b1ed04f0fe6c34676a74183a94c3",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_tchinese/resource/cstrike_tchinese.txt"
+      ]
+    },
+    {
+      "source": "cstrike/spectatormenu.txt",
+      "destination": "cstrike/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/spectatormenu.txt",
+        "sha256": "dff03d200405ec7f1b33e249c2a269295868406e40d64e4bb5414169b2dd26c4",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/spectcammenu.txt",
+      "destination": "cstrike/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/spectcammenu.txt",
+        "sha256": "a72824d21f435955d0636a39327c8a17990afc53ca53afe3847015fda11ed49d",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike/titles.txt",
+      "destination": "cstrike/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 10,
+        "depot": 11,
+        "manifest": "3018093494972814332",
+        "path": "cstrike/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike_french/commandmenu.txt",
+      "destination": "cstrike_french/commandmenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/commandmenu.txt",
+        "sha256": "14c3bcdc97dcc6cd3b40022271dff403671b69341df4154e4c71e63a02248dea",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/as_oilrig.txt",
+      "destination": "cstrike_french/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/as_oilrig.txt",
+        "sha256": "3f21b534a7bb63baf4ba2a810b857faa1336a00c731dfe2eb6f48604195bdb2a",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_747.txt",
+      "destination": "cstrike_french/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_747.txt",
+        "sha256": "ce19b9a623cca60e8b4656d83a2291f04e0dbc056b29b83bfb55c93652a6e731",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_assault.txt",
+      "destination": "cstrike_french/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_assault.txt",
+        "sha256": "9f12fbfda6893f2dbc381a8764ba48678943dabdfa6d4c04fb770b16be013749",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_backalley.txt",
+      "destination": "cstrike_french/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_backalley.txt",
+        "sha256": "0b57f7d69faa98b3f44b00726e025aefa7a20f013cc3794fde0b0bdedde29336",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_estate.txt",
+      "destination": "cstrike_french/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_estate.txt",
+        "sha256": "0dd7ae5ece2248fc57465a056c8d4414be693aef8644c1637b2c06b06baf5978",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_havana.txt",
+      "destination": "cstrike_french/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_havana.txt",
+        "sha256": "05b8eb17339e0cd33b54c211019bc094941c03346d58e7c13389e5788611d58f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_italy.txt",
+      "destination": "cstrike_french/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_italy.txt",
+        "sha256": "93e1c0b39887332096d9a559af9fd3534d842c46e2839066357b016417d561cd",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_militia.txt",
+      "destination": "cstrike_french/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_militia.txt",
+        "sha256": "71d37e256c3d42ef4b1a5b0bad1c8b7a542c7e863e1b27a2706bbc734a930d15",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_office.txt",
+      "destination": "cstrike_french/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_office.txt",
+        "sha256": "330a5428f39c97957745b1116d9caf2e142594f6b1cae45e90827f17895b6ee0",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/cs_siege.txt",
+      "destination": "cstrike_french/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/cs_siege.txt",
+        "sha256": "38f7405606fde0c16793fcdbe60c5b39aacf41f4f774dc4512b30b90b4f417a2",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_airstrip.txt",
+      "destination": "cstrike_french/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_airstrip.txt",
+        "sha256": "534eedce97dcdc2c6035bff4baad1798a1a5ce5ea5264c3e1e446d25c1e08e8a",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_aztec.txt",
+      "destination": "cstrike_french/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_aztec.txt",
+        "sha256": "348b85c3fc31a53fb661d336a5658a20349d403926f00dd35650baed336ca4e2",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_cbble.txt",
+      "destination": "cstrike_french/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_cbble.txt",
+        "sha256": "f0a74d087892f3f48263770eeca32797f5f88a3bfeae122b90b92da6dab49338",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_chateau.txt",
+      "destination": "cstrike_french/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_chateau.txt",
+        "sha256": "403565274963eb19cb08de34c780083ecb362fe9c53d29f0e9a7213c9595a870",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_dust.txt",
+      "destination": "cstrike_french/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_dust.txt",
+        "sha256": "d5147fe8df7998f5a916a7393f64e20216aaac3c271ec2d3dd0ceab056ef4abd",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_dust2.txt",
+      "destination": "cstrike_french/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_dust2.txt",
+        "sha256": "7845241e5759e3bd689ffdaefffc676c8e268c2989e6f5c18ee112d2462c4ead",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_inferno.txt",
+      "destination": "cstrike_french/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_inferno.txt",
+        "sha256": "76d5fb9ad1e1982b220e1665a4b568d3015c41333717aa7bb82e1abb83083be6",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_nuke.txt",
+      "destination": "cstrike_french/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_nuke.txt",
+        "sha256": "0e82101f1520218a14d58434000e8c602aa45f2e353efed23b87ba98c6d5dab1",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_piranesi.txt",
+      "destination": "cstrike_french/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_piranesi.txt",
+        "sha256": "94f2a115ed3f4acbc23dce195ba13b25871a144785758aeab5ebc8b71fb47225",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_prodigy.txt",
+      "destination": "cstrike_french/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_prodigy.txt",
+        "sha256": "4b5e5af017257c3080f592c52063953d64b6f3d6e3aa4c15955197690346dcb3",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_storm.txt",
+      "destination": "cstrike_french/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_storm.txt",
+        "sha256": "02c540ca469426c32d723912db749978826ba6e4c425f41e55b41a1430288b1c",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_survivor.txt",
+      "destination": "cstrike_french/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_survivor.txt",
+        "sha256": "c00898d674fa3815795a49e79698a9d3c51761dd687720ebb7a61e0c615bd205",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_torn.txt",
+      "destination": "cstrike_french/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_torn.txt",
+        "sha256": "3ccd7e2faabd24a7f40e209ab3e66a1be1b75aefca918a21a806f9080b4edecb",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_train.txt",
+      "destination": "cstrike_french/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_train.txt",
+        "sha256": "5cb9f4400e117ba83f6b15657730ad5e5f5affc97eb94731123f8f67ce480071",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/maps/de_vertigo.txt",
+      "destination": "cstrike_french/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/maps/de_vertigo.txt",
+        "sha256": "cb9f42be969a345124431f26b3c2de5d5a2d8f45cae89f5f5a7e0ff181b12698",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_french/titles.txt",
+      "destination": "cstrike_french/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 12,
+        "manifest": "7476629819067189879",
+        "path": "cstrike_french/titles.txt",
+        "sha256": "7633b328713111ff184a2b819486e979af24b7121c7ee2c6c20b89caeaeedc9e",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_german/commandmenu.txt",
+      "destination": "cstrike_german/commandmenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/commandmenu.txt",
+        "sha256": "c9d6ade185db66684490cf74a1493ccf79b491969d140c673eb38bf1d8d03fac",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/as_oilrig.txt",
+      "destination": "cstrike_german/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/as_oilrig.txt",
+        "sha256": "f0286acdbb3bf53d3363826b64dac78ac70a3605eb3742cf20f432cce2e1ca56",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_747.txt",
+      "destination": "cstrike_german/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_747.txt",
+        "sha256": "3ee68b0e5f6952298d123392cb5a59b528e4cd5e019c953b6728738bda703406",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_assault.txt",
+      "destination": "cstrike_german/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_assault.txt",
+        "sha256": "ae0d191194758a8a356b8e32cbb98047528ec7ed9c1398911c236b721d1f1782",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_backalley.txt",
+      "destination": "cstrike_german/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_backalley.txt",
+        "sha256": "4180966309ed4bb6b3b656e4109b99a76a6afb5c84c1657e68e5abb0d0e3d9e3",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_estate.txt",
+      "destination": "cstrike_german/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_estate.txt",
+        "sha256": "81118af7b9e47612e43545118a71f817df6d48571e6cbabe0d5bac68ab9859cf",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_havana.txt",
+      "destination": "cstrike_german/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_havana.txt",
+        "sha256": "d26e6c2826976cde3f96100a9da1320d4b5018fff9b2e785ef54e1785973291b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_italy.txt",
+      "destination": "cstrike_german/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_italy.txt",
+        "sha256": "fb777b280a2e93ec7b1759c77d9cd123c97d2196cf685f80684c132e1e46c291",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_militia.txt",
+      "destination": "cstrike_german/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_militia.txt",
+        "sha256": "0afa28bcb300b7ae0c77c5f14059c4b2dded6926b1ac8696644727472b6f70a2",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_office.txt",
+      "destination": "cstrike_german/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_office.txt",
+        "sha256": "8e4ce0b51d486a069c16806dddd85e9e3749e58a8984ff01df3d14bde9f1c988",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/cs_siege.txt",
+      "destination": "cstrike_german/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/cs_siege.txt",
+        "sha256": "76d65aff58a9dc7d5bf5a4fb4ca8a318961ff4e78f0bdc464fd8abdd222bf2b8",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_airstrip.txt",
+      "destination": "cstrike_german/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_airstrip.txt",
+        "sha256": "2e4e79cdf18d2af9c8094ef9203a1125dae61bd6755cf9e782a7abefc09c51e4",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_aztec.txt",
+      "destination": "cstrike_german/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_aztec.txt",
+        "sha256": "d480a325eb4b107ed465c46a26f54f893e43fecd7563e5acd5607f22d1589d87",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_cbble.txt",
+      "destination": "cstrike_german/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_cbble.txt",
+        "sha256": "e6e2a6973035e23ea9388184a8bb1d3abfdeb51a64dde8dc3b767c6e77f460a1",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_chateau.txt",
+      "destination": "cstrike_german/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_chateau.txt",
+        "sha256": "729b3ca63b12ee77a0c5f3e42d1bcf95281f887e0d4f4a78bee268226fe4d5fb",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_dust.txt",
+      "destination": "cstrike_german/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_dust.txt",
+        "sha256": "604c2254884a8a902e622e724db04ae2ced7a6fa083e8167f6f08885c8e63e94",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_dust2.txt",
+      "destination": "cstrike_german/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_dust2.txt",
+        "sha256": "b4f3b26747dc1a845fa91b61d0489ded79e480a02cecba1afdb1be981fdf9931",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_inferno.txt",
+      "destination": "cstrike_german/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_inferno.txt",
+        "sha256": "c2245af98e780b44ac5c04807d337157bc01c32ee6c2cb7c421c6c6b44f48cae",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_nuke.txt",
+      "destination": "cstrike_german/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_nuke.txt",
+        "sha256": "8de9e1f205c23f70022ba2a729c7dd2273171f5bc7fe12de2f5c1fdf9ef7cf1e",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_piranesi.txt",
+      "destination": "cstrike_german/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_piranesi.txt",
+        "sha256": "cd3f2d73be1231c327c7790534c06fcbeffdc3e52f35ae2542267ef3a844f592",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_prodigy.txt",
+      "destination": "cstrike_german/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_prodigy.txt",
+        "sha256": "322047c8131c6a2339c6229c877c98a7c400da71a28b8e28cd5a7a4de94cfe20",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_storm.txt",
+      "destination": "cstrike_german/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_storm.txt",
+        "sha256": "dbe4bdecf6f6e49fc7ac1a53bd4a7c61f8b9064e081222f9ec3cac2f96238482",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_survivor.txt",
+      "destination": "cstrike_german/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_survivor.txt",
+        "sha256": "50cef6fbdd5ce53f7ee7af242b9738f4d12297ed26cffe3c22b6a0d53360cafd",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_torn.txt",
+      "destination": "cstrike_german/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_torn.txt",
+        "sha256": "fcb980289f2748d2389bcbb12ff06a2fbb7d8ec51abfbd1bc316ea56cf5fb911",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_train.txt",
+      "destination": "cstrike_german/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_train.txt",
+        "sha256": "a063f089411fd6bd9ac8a898e28774dbccf6def556ba76627b9e47af590283fb",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/maps/de_vertigo.txt",
+      "destination": "cstrike_german/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/maps/de_vertigo.txt",
+        "sha256": "d6194073b3067ef965e7dbed3495369d7ff8fb5403cedaeb3a585383481b3b7b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_german/titles.txt",
+      "destination": "cstrike_german/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 14,
+        "manifest": "4163740413628378088",
+        "path": "cstrike_german/titles.txt",
+        "sha256": "c7eaa59fbb51208732500d10373311c97652ef10a6b1566331bea7b44cebdebe",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_italian/commandmenu.txt",
+      "destination": "cstrike_italian/commandmenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/commandmenu.txt",
+        "sha256": "8f2f5c6315041587c6592f4cc6810e526960198d622a98d8f8f2403c8dfb9a74",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/as_oilrig.txt",
+      "destination": "cstrike_italian/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/as_oilrig.txt",
+        "sha256": "1bbced78f041e9e3758f13ed321766951cb1bb551e2d5b54557b2908d9f6fd07",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_747.txt",
+      "destination": "cstrike_italian/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_747.txt",
+        "sha256": "c00780fe851b83172289e79437271d75bd36b58d2d445664e3f4169e12a9f0a0",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_assault.txt",
+      "destination": "cstrike_italian/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_assault.txt",
+        "sha256": "8463d2729410d709bc629e593f2f3b670126b93e2dcc567baaac4a5cd5ff905b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_backalley.txt",
+      "destination": "cstrike_italian/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_backalley.txt",
+        "sha256": "55eb4c31f80b1be16ef02dafb3b60376a585e7df1c9b602fab5103365565faf9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_estate.txt",
+      "destination": "cstrike_italian/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_estate.txt",
+        "sha256": "e5b34658e8c9754af458988da9101aef620b9e9581d70b841cd4735c08f9cd74",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_havana.txt",
+      "destination": "cstrike_italian/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_havana.txt",
+        "sha256": "a4a51e6ed994fa9d1dd1ec0ab3a18e3fbd85273c15ba745e94e455dfed2fb147",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_italy.txt",
+      "destination": "cstrike_italian/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_italy.txt",
+        "sha256": "48951b04a15fe6ad6dcd476ec62ed085cc6fb88af868f0e24a6c2dfcdc36085c",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_militia.txt",
+      "destination": "cstrike_italian/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_militia.txt",
+        "sha256": "a21c8d496c40eec34496ffc25397ff5166d1cb902b8d24af9d6d383225bf2083",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_office.txt",
+      "destination": "cstrike_italian/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_office.txt",
+        "sha256": "9cb960178a1bc033a605df281098ba9efd8929f03060d9867ff5b037ae1e0628",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/cs_siege.txt",
+      "destination": "cstrike_italian/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/cs_siege.txt",
+        "sha256": "7a5f01c7605f3972d2894e85f7be089c0bf7ac53efc44087c7491c533136dbc9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_airstrip.txt",
+      "destination": "cstrike_italian/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_airstrip.txt",
+        "sha256": "a44621246914853562145479935528691e2fb1d46a6185364d165498188b76b5",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_aztec.txt",
+      "destination": "cstrike_italian/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_aztec.txt",
+        "sha256": "49e1183255160eb51e33f85a7800d918461e902c7d7562a78ed5e46912da8f97",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_cbble.txt",
+      "destination": "cstrike_italian/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_cbble.txt",
+        "sha256": "90e697c93a1e4ecc7cd4fa4acf683ee3a4b5ef852d3bd02848b6c78f90839f60",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_chateau.txt",
+      "destination": "cstrike_italian/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_chateau.txt",
+        "sha256": "955d81dd11403a82494fb7e3d9df0b7fed34c7043f7c15845aa2a4e4e7131a4c",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_dust.txt",
+      "destination": "cstrike_italian/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_dust.txt",
+        "sha256": "cb94d92cd834b73c6270f2376110854b54b6f3bf4238e317f42a87eb04e5e6ac",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_dust2.txt",
+      "destination": "cstrike_italian/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_dust2.txt",
+        "sha256": "eb72bfd9d5679463990e2b30f2f71b27af19d6af444b0749951581473eaef76b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_inferno.txt",
+      "destination": "cstrike_italian/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_inferno.txt",
+        "sha256": "b66fd69540a866232b28141d3cafdad7a1b03472104730c9ff5a6f0cba0193ac",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_nuke.txt",
+      "destination": "cstrike_italian/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_nuke.txt",
+        "sha256": "af21a77d982ce0a3ccb9232ac522b3df9a50112bf36f9ded10a8e9226182b878",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_piranesi.txt",
+      "destination": "cstrike_italian/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_piranesi.txt",
+        "sha256": "1e32ad6d7211ca807677f10b7108d3dbb994eddd47ecf08e40b06004079c0c1f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_prodigy.txt",
+      "destination": "cstrike_italian/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_prodigy.txt",
+        "sha256": "50eb45b339546657615b8ed8fd30e335b0e99611a7f9e6843a013c90a38bdcf3",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_storm.txt",
+      "destination": "cstrike_italian/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_storm.txt",
+        "sha256": "f1ccec85c91711fd452f202a5b63a4679241120dd01e015179c7facd3421b225",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_survivor.txt",
+      "destination": "cstrike_italian/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_survivor.txt",
+        "sha256": "709082b09257def9ecf7ee295232fc80406aa80949eb623d91feb90ed52dccf1",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_torn.txt",
+      "destination": "cstrike_italian/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_torn.txt",
+        "sha256": "dfe625df9bfdefbdb2d45cf47609600444102351edd06f2d9e2067f091fb6320",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_train.txt",
+      "destination": "cstrike_italian/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_train.txt",
+        "sha256": "7edef210dded1d7db99bc88b6595c894439abaffce78388194cec7dd0899c1ba",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/maps/de_vertigo.txt",
+      "destination": "cstrike_italian/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/maps/de_vertigo.txt",
+        "sha256": "262351fb4d1abd9470cedab9cd9cb2eca805d75106155ebd0bb45d14562db8a7",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_italian/titles.txt",
+      "destination": "cstrike_italian/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 13,
+        "manifest": "1596103708518313909",
+        "path": "cstrike_italian/titles.txt",
+        "sha256": "db78b322a07d9b6c8fe4b4a879330eb9113aa2daed04256e148c28725a903d89",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike_koreana/maps/as_oilrig.txt",
+      "destination": "cstrike_koreana/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/as_oilrig.txt",
+        "sha256": "39fb724cc4026f37c3d6fb3ea6cf94e266a49cc186f5b3f1c5021f41e36ba53d",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/as_oilrig.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_747.txt",
+      "destination": "cstrike_koreana/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_747.txt",
+        "sha256": "caeb7fd58a8f5af243f938afaf4c1d0ccad9e9983501eee9e642e493c816210d",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_747.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_assault.txt",
+      "destination": "cstrike_koreana/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_assault.txt",
+        "sha256": "eefd095797bd8f7671f0a5da5ef6cdf60b3b5e6b0b48b62037619c45805f1758",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_assault.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_backalley.txt",
+      "destination": "cstrike_koreana/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_backalley.txt",
+        "sha256": "170a3d7b7669f086cf5fbe6fc929abceef94b2259d9502c5180232c3a349d00b",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_backalley.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_estate.txt",
+      "destination": "cstrike_koreana/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_estate.txt",
+        "sha256": "82b02ba463f5f8733598525dc55ced9495b106e6cee2c93be7154c2b35f47242",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_estate.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_havana.txt",
+      "destination": "cstrike_koreana/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_havana.txt",
+        "sha256": "72b69d3cc8a351b39080313be71eaad42aea7e2856297cb6f1891943dce0f3de",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_havana.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_italy.txt",
+      "destination": "cstrike_koreana/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_italy.txt",
+        "sha256": "9ede2e6d46429d5641919d1154b7a9f81cb3221fdb978fb7a434c890e4f20c50",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_italy.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_militia.txt",
+      "destination": "cstrike_koreana/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_militia.txt",
+        "sha256": "01bb5e33b723529811b0025866aecfb2a07831a0e4f9bd5c2c5ba42f71ac43f8",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_militia.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_office.txt",
+      "destination": "cstrike_koreana/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_office.txt",
+        "sha256": "b5dbb5830c85b7faffb5f0b43cdf1b74c98b4dd2de958e5f50f8388ddfab0545",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_office.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/cs_siege.txt",
+      "destination": "cstrike_koreana/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/cs_siege.txt",
+        "sha256": "dfd24093e908fd1a7ee71deff0949de1dff560fb98b1c1bb45c86ebc1109a69f",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/cs_siege.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_airstrip.txt",
+      "destination": "cstrike_koreana/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_airstrip.txt",
+        "sha256": "4c2afbc64086eec12350f20c8ea450870951b1568b696b0933cdac13bf1d9a96",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_airstrip.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_aztec.txt",
+      "destination": "cstrike_koreana/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_aztec.txt",
+        "sha256": "a4b4fb94c8ee3dafeda92fbdacca1bc5ef5503e92fc6ac24073af6533041b0ad",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_aztec.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_cbble.txt",
+      "destination": "cstrike_koreana/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_cbble.txt",
+        "sha256": "25e5f0cf3597a31a387b04bc01e038cd2f636d2f580fa07b1c529b6040657241",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_cbble.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_chateau.txt",
+      "destination": "cstrike_koreana/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_chateau.txt",
+        "sha256": "aadf48ff59337504921dfb53952d39d7ecfb0159845bcb9f1317f02fa557ff04",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_chateau.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_dust.txt",
+      "destination": "cstrike_koreana/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_dust.txt",
+        "sha256": "95c31f800c0df1ac21789b691742539e77b70d3b134dac203bd08f9ff81b7bba",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_dust.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_dust2.txt",
+      "destination": "cstrike_koreana/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_dust2.txt",
+        "sha256": "c4d143f84bcd49e8e989794c8bad7aafd222229b379bbefa9067fe41e2b50967",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_dust2.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_inferno.txt",
+      "destination": "cstrike_koreana/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_inferno.txt",
+        "sha256": "8f6519989be63df0f005afc96bf749ad6583682381861d29d51c502e1000e338",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_inferno.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_nuke.txt",
+      "destination": "cstrike_koreana/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_nuke.txt",
+        "sha256": "051cd964642e01900c42aa8c4e136e44c18271c361ec08366ba64d4c08739b32",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_nuke.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_piranesi.txt",
+      "destination": "cstrike_koreana/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_piranesi.txt",
+        "sha256": "0efce6df311ce66490a53e8b86356ea283bc4ce7a21101739d5f3cb350dda3f2",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_piranesi.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_prodigy.txt",
+      "destination": "cstrike_koreana/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_prodigy.txt",
+        "sha256": "397e44558e7b64ddd7b8cf2faec18c342a9acc06935ff767fd5a05d6ec3744b3",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_prodigy.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_storm.txt",
+      "destination": "cstrike_koreana/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_storm.txt",
+        "sha256": "609470c268509e011abf658c913405b0730cb8cc7a040a729a6d286221d87e7b",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_storm.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_survivor.txt",
+      "destination": "cstrike_koreana/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_survivor.txt",
+        "sha256": "019c7f457985a5cfcf7bc9f4e6e6e3e860e5963da546ac420ddd4a4b20891747",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_survivor.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_torn.txt",
+      "destination": "cstrike_koreana/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_torn.txt",
+        "sha256": "1244486a8922362ea83023c95fe200c5f06c62e70dd126b9489ccd09aae2a2bf",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_torn.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_train.txt",
+      "destination": "cstrike_koreana/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_train.txt",
+        "sha256": "3d0052122815596d0c7c938feb01913b2204c51d35b8a2f0a09396a30e14fb13",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_train.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/maps/de_vertigo.txt",
+      "destination": "cstrike_koreana/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/maps/de_vertigo.txt",
+        "sha256": "290c2e48cd1c1f98ee7a730b977aa174d4d544bccfcdd2b5f11414d19fd93493",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "cstrike_korean/maps/de_vertigo.txt"
+      ]
+    },
+    {
+      "source": "cstrike_koreana/titles.txt",
+      "destination": "cstrike_koreana/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 18,
+        "manifest": "9210252686867714338",
+        "path": "cstrike_koreana/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "cstrike_korean/titles.txt"
+      ]
+    },
+    {
+      "source": "cstrike_schinese/maps/as_oilrig.txt",
+      "destination": "cstrike_schinese/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/as_oilrig.txt",
+        "sha256": "6f5b60b4778f105c9387bf496c6616d5157f0fdbf42f9275cf7c13a71d6aa74f",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/as_oilrig.txt",
+          "sha256": "76c60bdd80ce19f30be5c3f83262cd8ecef6e989c03fad9e5c40480a1deb32a7"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_747.txt",
+      "destination": "cstrike_schinese/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_747.txt",
+        "sha256": "d503d0892597bb610fea7b0d907fbbcbacfc3872896425fb6e8754e3008df9e8",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_747.txt",
+          "sha256": "0efb5f3fcff10efd9fc769b7a42a25b045980813707261a066e3d9e6f6234108"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_assault.txt",
+      "destination": "cstrike_schinese/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_assault.txt",
+        "sha256": "1dc88d9d19f8b4071f897ae1e7e2414ece94aaa2835df2ebda59f7168954221a",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_assault.txt",
+          "sha256": "17c53af49ca3bcab0575d92f0310f007c3ec7df3c77be00531f3313660e646bd"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_backalley.txt",
+      "destination": "cstrike_schinese/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_backalley.txt",
+        "sha256": "f9e85af54aa839d2b0c313d1e754acb52cb63cf4ed5502ac962f17fbe6ee06c9",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_backalley.txt",
+          "sha256": "47ab4c4b5d84d52511f3d8dcd0cc51032ffe47195f650616769fc776bf7cde5c"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_estate.txt",
+      "destination": "cstrike_schinese/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_estate.txt",
+        "sha256": "5913f84c939818f28bc23c4c76b162bf4606e235233b81573883941c96875ff2",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_estate.txt",
+          "sha256": "e313421fd840f4bb1454ae6195a93d486326b6474cba35954f833ecab73e07de"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_havana.txt",
+      "destination": "cstrike_schinese/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_havana.txt",
+        "sha256": "4d2dd9f1bf8550bcb3e3bc95620c4507954d61df9b5299ae1a00e3dc59194fb2",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_havana.txt",
+          "sha256": "9e3524cc91d0ebf91159a79a1dd7fba25bfdbf5863a25d3fd7678054a9850f12"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_italy.txt",
+      "destination": "cstrike_schinese/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_italy.txt",
+        "sha256": "71575d143e3f1c3e9cae5765e76e30fcb1b7f1c604dd0ba259961f58b6f48c01",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_italy.txt",
+          "sha256": "94997d33218dd1e3f2eedcbe0dc9a036d0420c43b7491f49011924ea5b393b9e"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_militia.txt",
+      "destination": "cstrike_schinese/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_militia.txt",
+        "sha256": "2d75f088824e8d93af1d0049dfc499fe4f6d1a86ae8d7972dfe56cc33a3b15ff",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_militia.txt",
+          "sha256": "8a2d298107e9360024593a0f1dbabb8d04d4e06463dca9b832469e7faaf0f6f8"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_office.txt",
+      "destination": "cstrike_schinese/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_office.txt",
+        "sha256": "70f827810396640e01a35e0c35b4c0d6a269bc3189d1386aa74b1f448aa99d58",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_office.txt",
+          "sha256": "f95ca241c6ef79ecc49ddf82aa8b8798d2cc492b1528c0ec27bb33cf5c41fdee"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/cs_siege.txt",
+      "destination": "cstrike_schinese/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_siege.txt",
+        "sha256": "a53701a5c56c1c3f8dee483873d888e19a2c4074b5aa7d028d48f443d93fcd64",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/cs_siege.txt",
+          "sha256": "c3cf692618a78fc40657d6430a8a1bf40e848ce050bcde7b4bb3820a139934f4"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_airstrip.txt",
+      "destination": "cstrike_schinese/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_airstrip.txt",
+        "sha256": "41260167b068f54e5fd95d87d59defeaf4e381caa9cece0aac6461b308f263b9",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_airstrip.txt",
+          "sha256": "4fbbe61887a090f188c2c6cb7a14894ad5b84a7baeb2f0908d0d1e416cb35e1b"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_aztec.txt",
+      "destination": "cstrike_schinese/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_aztec.txt",
+        "sha256": "a41a5e1d39e4a2e8e2c2e83aef4377b036ca98025ec7d353c39993581003c15d",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_aztec.txt",
+          "sha256": "fedf56b122fd85ccd899efe069f677a2ae3e9d893b03a26f87a8dab25e22b6d6"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_cbble.txt",
+      "destination": "cstrike_schinese/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_cbble.txt",
+        "sha256": "c5ed3c7ef66a2bd07c327bfe26e957fb6c36c7fa919ce0979c18b2c52d121cd5",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_cbble.txt",
+          "sha256": "a96ca38dac2a8aa8e1a60e70769217271b5667590879c2a70df696240ab518f0"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_chateau.txt",
+      "destination": "cstrike_schinese/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_chateau.txt",
+        "sha256": "e50c9b45ff0efec1e6e7074b43598eba557bb6fd263942ed4a38a6ef7ee4bf06",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_chateau.txt",
+          "sha256": "36d1cfd1247dcf062ed9041801b8752099d4f235a9dcd92bf60ff93a62e76b9a"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_dust.txt",
+      "destination": "cstrike_schinese/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_dust.txt",
+        "sha256": "a85696831a8d315c1be9b32a1d4f81e5f1a6974663ae4e5760820472f34957c4",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_dust.txt",
+          "sha256": "8ca4aea270b00d899096349d1ebc534136837749b2a2d62e12bb5975f6fac866"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_dust2.txt",
+      "destination": "cstrike_schinese/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_dust2.txt",
+        "sha256": "aefce3652007d20109a608af8825c8e7828774f2e4ce22cfe7ec4fce3682b29f",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_dust2.txt",
+          "sha256": "a024db3596f701ed228fddb6e84f3aadc7372ba44bd4220b52bb65c79c759622"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_inferno.txt",
+      "destination": "cstrike_schinese/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_inferno.txt",
+        "sha256": "30d5f7c999ce6beee9e2615d0bce71ab84ecbc681418e4f7fd53565e67b9f832",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_inferno.txt",
+          "sha256": "edb643728a1fa59774af44dbe5fb509455fb6286010f80a685757c0e53168ff7"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_nuke.txt",
+      "destination": "cstrike_schinese/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_nuke.txt",
+        "sha256": "5ea7781e13fd9b609eb5c0540c58859e09814b65f94e0464c49e8640d2b64546",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_nuke.txt",
+          "sha256": "28f4fa564a153eb088b28318c57d45a003482c4c18635485344023af438a5ffb"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_piranesi.txt",
+      "destination": "cstrike_schinese/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_piranesi.txt",
+        "sha256": "09bfd044f4e2b007a64123acf900e8587d28ab0298d0f555295a66458354838f",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_piranesi.txt",
+          "sha256": "2d5841140836a7b3f2679974de0209e53cbf8a3172d73039d03c8d5ae1168ab0"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_prodigy.txt",
+      "destination": "cstrike_schinese/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_prodigy.txt",
+        "sha256": "db437f2bba3d3c912d21ae5c25b7cba249bc6fe7bd30ffa8c4b9a772745ac079",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_prodigy.txt",
+          "sha256": "3cfad525b710e39dcd195b35e22f0dcf42f19722cc3d231dd13d99ded7bc09b6"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_storm.txt",
+      "destination": "cstrike_schinese/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_storm.txt",
+        "sha256": "ac12788dad56c9d8357ab626722f5a3a96dc7b7c016d64e606bdc504fee2f0e7",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_storm.txt",
+          "sha256": "60b6108f41599cc79d807258549bf6dedc16698a775d03c18a9c016b9f80566c"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_survivor.txt",
+      "destination": "cstrike_schinese/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_survivor.txt",
+        "sha256": "afc41eb86bf7b991214121d6625cf2389141aeefae928f827a42af1b06100a04",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_survivor.txt",
+          "sha256": "263883b8abbea69fd27ff8174fd8addf0fb339f380d5865e9d61bc0c791ac382"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_torn.txt",
+      "destination": "cstrike_schinese/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_torn.txt",
+        "sha256": "bc2f3af52775d039546cdb50b69bbb1e7c63edb521a78bcb19d43701fedeb181",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_torn.txt",
+          "sha256": "96c49d67049ca62e9a3dfd9b8f5960a40493d26669462985730398eec2740a93"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_train.txt",
+      "destination": "cstrike_schinese/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_train.txt",
+        "sha256": "c1295f82f716a6c796967e54c9c928c24e75e782a02ada5cb570481086a97503",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_train.txt",
+          "sha256": "07304b96db058c200209afbbf49ba449c7206ebfebf929bf826ccae2f6a47104"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/maps/de_vertigo.txt",
+      "destination": "cstrike_schinese/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_vertigo.txt",
+        "sha256": "bb51a65b08690151fe8a35a15596805e61cd8b759102a28bb11a04ba016b686b",
+        "encoding": "utf-16-le-bom"
+      },
+      "derivation": {
+        "transform": "ICU Traditional-Simplified",
+        "version": "79.1",
+        "reason": "Official Simplified Chinese briefings contain corrupted UTF-16 code units and byte alignment.",
+        "replaces": {
+          "kind": "steam-depot",
+          "app": 10,
+          "depot": 17,
+          "manifest": "8232848132911478974",
+          "path": "cstrike_schinese/maps/de_vertigo.txt",
+          "sha256": "c1159ae00b02ab8c4f74120a6f4472f347183bd56b23f062c612b0f2a513510b"
+        }
+      }
+    },
+    {
+      "source": "cstrike_schinese/titles.txt",
+      "destination": "cstrike_schinese/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 17,
+        "manifest": "8232848132911478974",
+        "path": "cstrike_schinese/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "cstrike_spanish/commandmenu.txt",
+      "destination": "cstrike_spanish/commandmenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/commandmenu.txt",
+        "sha256": "d295162e00ac133a7c1c27d3f76ec7f1bc3d6a110c8a96a6d98d3f82aeda1c2a",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/as_oilrig.txt",
+      "destination": "cstrike_spanish/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/as_oilrig.txt",
+        "sha256": "37b389a72701260b7fc581743d0bc79efffa492f37a5e531aec74c8e550d7440",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_747.txt",
+      "destination": "cstrike_spanish/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_747.txt",
+        "sha256": "27a3565bc5579f330e8ace1ee32f06eaccabdd5b437dce0597d05cdb986224f0",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_assault.txt",
+      "destination": "cstrike_spanish/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_assault.txt",
+        "sha256": "6f9ae40bc083cfd863737b3ac50165d98eed2ead82132e83bb25cdea15bb0805",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_backalley.txt",
+      "destination": "cstrike_spanish/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_backalley.txt",
+        "sha256": "af4e21129516d8996ed7a3a9f1e5baea37a432089b85e37ff5ae8bda6ce3f585",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_estate.txt",
+      "destination": "cstrike_spanish/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_estate.txt",
+        "sha256": "afd50a34c58a9d3bfd58f36bd99b8910ad4990107b4da83e8eaba9ff46c89555",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_havana.txt",
+      "destination": "cstrike_spanish/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_havana.txt",
+        "sha256": "6e6d772c0449c762c1ca0ebfeec36247235d893977b6dbf0fc0a90344af1627f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_italy.txt",
+      "destination": "cstrike_spanish/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_italy.txt",
+        "sha256": "6da23de444769ac8e7dc183696078879019aac542ed663d06e7bd90731dd273c",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_militia.txt",
+      "destination": "cstrike_spanish/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_militia.txt",
+        "sha256": "e4f2a97473e76b930afb0f1109a06b2420061fcdcbe2b016f35e2ca6ebd7c0b6",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_office.txt",
+      "destination": "cstrike_spanish/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_office.txt",
+        "sha256": "f43f7a4774ea404998a9734ded81ea703e697d1ba52249274970df6c7f988a24",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/cs_siege.txt",
+      "destination": "cstrike_spanish/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/cs_siege.txt",
+        "sha256": "f46ff3e2b3696c9e59ae0c0e63e4e934a5345a2a34bcf8645e836b7e9891c588",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_airstrip.txt",
+      "destination": "cstrike_spanish/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_airstrip.txt",
+        "sha256": "1e0f575501db892d3871e9b3705e92e96fbc20c84f582e567253f10b487cd9bb",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_aztec.txt",
+      "destination": "cstrike_spanish/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_aztec.txt",
+        "sha256": "f45573dc81e2eebfdb4519964d287466f2cc604925f7e3fd43de3ab5db7fd93f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_cbble.txt",
+      "destination": "cstrike_spanish/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_cbble.txt",
+        "sha256": "a4fdd27b5632bf032867c94780a79b09de5a0fc7d592579096cd4667888d4e41",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_chateau.txt",
+      "destination": "cstrike_spanish/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_chateau.txt",
+        "sha256": "8b4785c635c2b25429bce9a09208bc60caff87158f04f03ee1cd7227ed04c67d",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_dust.txt",
+      "destination": "cstrike_spanish/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_dust.txt",
+        "sha256": "763013a619c012c40a4461ac82a9e689c6c073e2bc1ab946c2a56093ea9c406f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_dust2.txt",
+      "destination": "cstrike_spanish/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_dust2.txt",
+        "sha256": "4d2398db91a1fb89b40e994bbe152c679ba0c5459f26148d53fb3995262e3bd8",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_inferno.txt",
+      "destination": "cstrike_spanish/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_inferno.txt",
+        "sha256": "88f3e3ebacee9e989402371d96de36ac3ea2c1b5468c1b40d3ca6668d234cbfd",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_nuke.txt",
+      "destination": "cstrike_spanish/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_nuke.txt",
+        "sha256": "51690c7494dd0b2f7f7bc9cb05d9ad623d2aface7b8ddb34a2c8f89ac05e5d38",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_piranesi.txt",
+      "destination": "cstrike_spanish/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_piranesi.txt",
+        "sha256": "7caf19f1e8062f4c1d0fb07b3122be41310c5faf9cc8d14c2f42f364ab390f5e",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_prodigy.txt",
+      "destination": "cstrike_spanish/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_prodigy.txt",
+        "sha256": "35b690ea8cae8fcc1bf3eb504025b28ac184d6562b717fffb3875f200e6fbd63",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_storm.txt",
+      "destination": "cstrike_spanish/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_storm.txt",
+        "sha256": "8858a178f02a6696921079101f2693a31202fbc77a535cc81bd84a9a68493a58",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_survivor.txt",
+      "destination": "cstrike_spanish/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_survivor.txt",
+        "sha256": "99f231671bd78bb4b6abb9bd96b37e3c0de7672c9ba4f2b2889f9dc25dcf5d10",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_torn.txt",
+      "destination": "cstrike_spanish/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_torn.txt",
+        "sha256": "ae2b94c67dae55e3d7c3b801dc529e8ea105326ed72dd880d2b23c708d6e964d",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_train.txt",
+      "destination": "cstrike_spanish/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_train.txt",
+        "sha256": "76c14d11a175ca38a4062d6c6a5210f9ff65537370973996d33083d921be8084",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/maps/de_vertigo.txt",
+      "destination": "cstrike_spanish/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/maps/de_vertigo.txt",
+        "sha256": "3522a9dea4b79e77a836d418491a4b7ad50ce2b03ebd971f94e597f55df7f24d",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_spanish/titles.txt",
+      "destination": "cstrike_spanish/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 15,
+        "manifest": "2951655054604220030",
+        "path": "cstrike_spanish/titles.txt",
+        "sha256": "87eed561e6a2741d1c293c04f3e29f4871f7e9138f403246a60be6b7a78ef08a",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/as_oilrig.txt",
+      "destination": "cstrike_tchinese/maps/as_oilrig.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/as_oilrig.txt",
+        "sha256": "6f5b60b4778f105c9387bf496c6616d5157f0fdbf42f9275cf7c13a71d6aa74f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_747.txt",
+      "destination": "cstrike_tchinese/maps/cs_747.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_747.txt",
+        "sha256": "d503d0892597bb610fea7b0d907fbbcbacfc3872896425fb6e8754e3008df9e8",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_assault.txt",
+      "destination": "cstrike_tchinese/maps/cs_assault.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_assault.txt",
+        "sha256": "1dc88d9d19f8b4071f897ae1e7e2414ece94aaa2835df2ebda59f7168954221a",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_backalley.txt",
+      "destination": "cstrike_tchinese/maps/cs_backalley.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_backalley.txt",
+        "sha256": "f9e85af54aa839d2b0c313d1e754acb52cb63cf4ed5502ac962f17fbe6ee06c9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_estate.txt",
+      "destination": "cstrike_tchinese/maps/cs_estate.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_estate.txt",
+        "sha256": "5913f84c939818f28bc23c4c76b162bf4606e235233b81573883941c96875ff2",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_havana.txt",
+      "destination": "cstrike_tchinese/maps/cs_havana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_havana.txt",
+        "sha256": "4d2dd9f1bf8550bcb3e3bc95620c4507954d61df9b5299ae1a00e3dc59194fb2",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_italy.txt",
+      "destination": "cstrike_tchinese/maps/cs_italy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_italy.txt",
+        "sha256": "71575d143e3f1c3e9cae5765e76e30fcb1b7f1c604dd0ba259961f58b6f48c01",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_militia.txt",
+      "destination": "cstrike_tchinese/maps/cs_militia.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_militia.txt",
+        "sha256": "2d75f088824e8d93af1d0049dfc499fe4f6d1a86ae8d7972dfe56cc33a3b15ff",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_office.txt",
+      "destination": "cstrike_tchinese/maps/cs_office.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_office.txt",
+        "sha256": "70f827810396640e01a35e0c35b4c0d6a269bc3189d1386aa74b1f448aa99d58",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/cs_siege.txt",
+      "destination": "cstrike_tchinese/maps/cs_siege.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/cs_siege.txt",
+        "sha256": "a53701a5c56c1c3f8dee483873d888e19a2c4074b5aa7d028d48f443d93fcd64",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_airstrip.txt",
+      "destination": "cstrike_tchinese/maps/de_airstrip.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_airstrip.txt",
+        "sha256": "41260167b068f54e5fd95d87d59defeaf4e381caa9cece0aac6461b308f263b9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_aztec.txt",
+      "destination": "cstrike_tchinese/maps/de_aztec.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_aztec.txt",
+        "sha256": "a41a5e1d39e4a2e8e2c2e83aef4377b036ca98025ec7d353c39993581003c15d",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_cbble.txt",
+      "destination": "cstrike_tchinese/maps/de_cbble.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_cbble.txt",
+        "sha256": "c5ed3c7ef66a2bd07c327bfe26e957fb6c36c7fa919ce0979c18b2c52d121cd5",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_chateau.txt",
+      "destination": "cstrike_tchinese/maps/de_chateau.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_chateau.txt",
+        "sha256": "e50c9b45ff0efec1e6e7074b43598eba557bb6fd263942ed4a38a6ef7ee4bf06",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_dust.txt",
+      "destination": "cstrike_tchinese/maps/de_dust.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_dust.txt",
+        "sha256": "a85696831a8d315c1be9b32a1d4f81e5f1a6974663ae4e5760820472f34957c4",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_dust2.txt",
+      "destination": "cstrike_tchinese/maps/de_dust2.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_dust2.txt",
+        "sha256": "aefce3652007d20109a608af8825c8e7828774f2e4ce22cfe7ec4fce3682b29f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_inferno.txt",
+      "destination": "cstrike_tchinese/maps/de_inferno.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_inferno.txt",
+        "sha256": "30d5f7c999ce6beee9e2615d0bce71ab84ecbc681418e4f7fd53565e67b9f832",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_nuke.txt",
+      "destination": "cstrike_tchinese/maps/de_nuke.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_nuke.txt",
+        "sha256": "5ea7781e13fd9b609eb5c0540c58859e09814b65f94e0464c49e8640d2b64546",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_piranesi.txt",
+      "destination": "cstrike_tchinese/maps/de_piranesi.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_piranesi.txt",
+        "sha256": "09bfd044f4e2b007a64123acf900e8587d28ab0298d0f555295a66458354838f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_prodigy.txt",
+      "destination": "cstrike_tchinese/maps/de_prodigy.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_prodigy.txt",
+        "sha256": "db437f2bba3d3c912d21ae5c25b7cba249bc6fe7bd30ffa8c4b9a772745ac079",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_storm.txt",
+      "destination": "cstrike_tchinese/maps/de_storm.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_storm.txt",
+        "sha256": "ac12788dad56c9d8357ab626722f5a3a96dc7b7c016d64e606bdc504fee2f0e7",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_survivor.txt",
+      "destination": "cstrike_tchinese/maps/de_survivor.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_survivor.txt",
+        "sha256": "afc41eb86bf7b991214121d6625cf2389141aeefae928f827a42af1b06100a04",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_torn.txt",
+      "destination": "cstrike_tchinese/maps/de_torn.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_torn.txt",
+        "sha256": "bc2f3af52775d039546cdb50b69bbb1e7c63edb521a78bcb19d43701fedeb181",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_train.txt",
+      "destination": "cstrike_tchinese/maps/de_train.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_train.txt",
+        "sha256": "c1295f82f716a6c796967e54c9c928c24e75e782a02ada5cb570481086a97503",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/maps/de_vertigo.txt",
+      "destination": "cstrike_tchinese/maps/de_vertigo.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/maps/de_vertigo.txt",
+        "sha256": "bb51a65b08690151fe8a35a15596805e61cd8b759102a28bb11a04ba016b686b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "cstrike_tchinese/titles.txt",
+      "destination": "cstrike_tchinese/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 10,
+        "depot": 19,
+        "manifest": "5149037574830114753",
+        "path": "cstrike_tchinese/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_english.txt",
+      "destination": "platform/Admin/admin_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_english.txt",
+        "sha256": "0cbf6707f4f0256ab6a37e5163e977fce684f83f53c61f6eb556af021f0da68a",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_french.txt",
+      "destination": "platform/Admin/admin_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_french.txt",
+        "sha256": "a92c23c11d4fa153c39540002f7a48742aa8ebb4b705717c991ff1841cdaabc4",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_german.txt",
+      "destination": "platform/Admin/admin_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_german.txt",
+        "sha256": "0a142c2a5f1d330ec5465847239ffa37b9429ac088525d2a2d8cd9c05b5515e9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_italian.txt",
+      "destination": "platform/Admin/admin_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_italian.txt",
+        "sha256": "0b7662ac3f5fe87303cade0b0c2f08686bf2ea8eb83a33c6c3319e71515f47c6",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_koreana.txt",
+      "destination": "platform/Admin/admin_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_koreana.txt",
+        "sha256": "1b001107a3cb71e0df532179e68591eb831673b55a58cef7c01b88a617cd3648",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "platform/Admin/admin_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/Admin/admin_schinese.txt",
+      "destination": "platform/Admin/admin_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_schinese.txt",
+        "sha256": "d84e8c860f8c2efc2e4b979879aed0896f77cbbda9f8cc5ebd4e3c8d5fe4aba0",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_spanish.txt",
+      "destination": "platform/Admin/admin_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_spanish.txt",
+        "sha256": "b1e4cb69b43b08cb0eb4a6ecd25b06a4dfc00318bbcf3a70c49635bf8dc4e30e",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_tchinese.txt",
+      "destination": "platform/Admin/admin_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_tchinese.txt",
+        "sha256": "e0ecc58f7554d7ef0f92552816f06ddbd4ac5def40c132670a690f2fef7407bb",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_english.txt",
+      "destination": "platform/Admin/server_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_english.txt",
+        "sha256": "0ba206272df79b4664b4a7dff67680dd1fbd89236e137b58eb7389979b5da44a",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_french.txt",
+      "destination": "platform/Admin/server_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_french.txt",
+        "sha256": "7ca78ee36197cf02d9a0bebd0320fedb8da08b7dc53820a033d11c343b711539",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_german.txt",
+      "destination": "platform/Admin/server_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_german.txt",
+        "sha256": "dc976ef6006fe85634b2bd8fbbb4dec653e65d36c0d3066daadf5302b02a36b9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_italian.txt",
+      "destination": "platform/Admin/server_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_italian.txt",
+        "sha256": "fe2b644ec27d93bec62960152ab7ffe616579480d60e297740760c1246b872b5",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_koreana.txt",
+      "destination": "platform/Admin/server_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_koreana.txt",
+        "sha256": "54da8f019f6e14c7c785b6454a95d3ac59391989b9fe860c2824f808c0cf267c",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "platform/Admin/server_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/Admin/server_schinese.txt",
+      "destination": "platform/Admin/server_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_schinese.txt",
+        "sha256": "2dc032eaf2d359a4f8e56b3d84be1fd49346a39c2da17c4c56a55abb8e2b838b",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_spanish.txt",
+      "destination": "platform/Admin/server_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_spanish.txt",
+        "sha256": "24f068b9d43379ee6cc42e02a680131a2465bcdb963eeb090a9e286b2cc008bf",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/Admin/server_tchinese.txt",
+      "destination": "platform/Admin/server_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_tchinese.txt",
+        "sha256": "c0986a879ee0073ced44408065c53f46cfc218030ca48a5a58a78150a9e7695e",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/cse_english.txt",
+      "destination": "platform/resource/cse_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "english",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_french.txt",
+      "destination": "platform/resource/cse_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "french",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_german.txt",
+      "destination": "platform/resource/cse_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "german",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_italian.txt",
+      "destination": "platform/resource/cse_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "italian",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_koreana.txt",
+      "destination": "platform/resource/cse_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "koreana",
+      "upstream": {
+        "kind": "cse-original"
+      },
+      "aliases": [
+        "platform/resource/cse_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/resource/cse_schinese.txt",
+      "destination": "platform/resource/cse_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "schinese",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_spanish.txt",
+      "destination": "platform/resource/cse_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "spanish",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/cse_tchinese.txt",
+      "destination": "platform/resource/cse_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "cse-original"
+      }
+    },
+    {
+      "source": "platform/resource/platform_english.txt",
+      "destination": "platform/resource/platform_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_english.txt",
+        "sha256": "55fb8f090eda25120aadbc81e0200667baf0068776925781ac83a873c46461c1",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_french.txt",
+      "destination": "platform/resource/platform_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_french.txt",
+        "sha256": "94221b8ca03b289df4a7414b3e90287355eed6694102de1d0d4294963ad61303",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_german.txt",
+      "destination": "platform/resource/platform_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_german.txt",
+        "sha256": "a5311273bd68fd4d871321cfd25d9ed6633f53576cf66bf9e24b2e8e91e15448",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_italian.txt",
+      "destination": "platform/resource/platform_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_italian.txt",
+        "sha256": "6bfcfba628b28177bf1be6092044794cbef7d20a4c9ccf8f50e411671736df4e",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_koreana.txt",
+      "destination": "platform/resource/platform_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_koreana.txt",
+        "sha256": "50f50e22f4b83b84c0790aba00b94e795a5f8d4464470ff517a13c6b4285c440",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "platform/resource/platform_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/resource/platform_schinese.txt",
+      "destination": "platform/resource/platform_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_schinese.txt",
+        "sha256": "3d8e57f68f00ffdc1dfcf5e464a24e53417c7d2e4328c032f5948e75ef541289",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_spanish.txt",
+      "destination": "platform/resource/platform_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_spanish.txt",
+        "sha256": "65a3904a24e0124b2d0c14263e6fe2bba5bd7dae2f60e3021a96b7c683a90e6f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/platform_tchinese.txt",
+      "destination": "platform/resource/platform_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/platform_tchinese.txt",
+        "sha256": "dd862431508fe7676058cd992820b02cfe577d8337e960cd94f852371c572cc9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_english.txt",
+      "destination": "platform/resource/vgui_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_english.txt",
+        "sha256": "a3ed2d16abff0b4583bacf8924fd4dfe80d14af8412d55741d0a035d663e567f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_french.txt",
+      "destination": "platform/resource/vgui_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_french.txt",
+        "sha256": "6d537169f01e62330a8fdd2b1c34a046b1116ecc34e6d74bbc2a59117d876417",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_german.txt",
+      "destination": "platform/resource/vgui_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_german.txt",
+        "sha256": "264dfe139c372cbe719e5e1d3b888bb2d84945e135c2f147b217ebb9655aad78",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_italian.txt",
+      "destination": "platform/resource/vgui_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_italian.txt",
+        "sha256": "2356c44e50c5db9ba11285a031cd66c57d5e8c370aceeaf1189f8324c6b57b15",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_koreana.txt",
+      "destination": "platform/resource/vgui_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_koreana.txt",
+        "sha256": "17f880ef2907d845d2980d80560161601be411fa6a4ceb971a2901b90970ceb5",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "platform/resource/vgui_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/resource/vgui_schinese.txt",
+      "destination": "platform/resource/vgui_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_schinese.txt",
+        "sha256": "ee78348b60255fa4d3680ac93cbd520fbce17e5a3d065e41df318fe88aa2006f",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_spanish.txt",
+      "destination": "platform/resource/vgui_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_spanish.txt",
+        "sha256": "f523db7ad93b847eadf613c42c0c30c3fad829cfe468ba419e377f69848339f7",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_tchinese.txt",
+      "destination": "platform/resource/vgui_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/resource/vgui_tchinese.txt",
+        "sha256": "3643a339e910499ac6ad680f6d7675c5a7098867a8dcefb415c7983fc95aba83",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_english.txt",
+      "destination": "platform/servers/serverbrowser_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_english.txt",
+        "sha256": "d0b92aa38f27a9be7799a149b275fa8cc795f37a02b041848d4f4f3299accab6",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_french.txt",
+      "destination": "platform/servers/serverbrowser_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_french.txt",
+        "sha256": "026fce952fd474cd324494cf8a2f1ed11c3948618508cc2db8ce94699d6672c4",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_german.txt",
+      "destination": "platform/servers/serverbrowser_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_german.txt",
+        "sha256": "dbd05e58a147a228e8a9791763085b57780ab8dd358f3db892cb2fdcc89b05e9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_italian.txt",
+      "destination": "platform/servers/serverbrowser_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_italian.txt",
+        "sha256": "8b3a58570f2f61289a50a93395d93157783adec8210081c54c8674fa5038f6b9",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_koreana.txt",
+      "destination": "platform/servers/serverbrowser_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_koreana.txt",
+        "sha256": "7758f337170e5aba7268f2b6116d42f3ba298c77a32e3e2c36e165cf42c72f14",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "platform/servers/serverbrowser_korean.txt"
+      ]
+    },
+    {
+      "source": "platform/servers/serverbrowser_schinese.txt",
+      "destination": "platform/servers/serverbrowser_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_schinese.txt",
+        "sha256": "fd19db71911dcf82945f70987f0849452501147af325f4fce267e8fcd417a663",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_spanish.txt",
+      "destination": "platform/servers/serverbrowser_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_spanish.txt",
+        "sha256": "8fce3c5bd9bcf72ab139394bc38f85e9640c12e1c9ef9c7ad10443623b699baf",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_tchinese.txt",
+      "destination": "platform/servers/serverbrowser_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_tchinese.txt",
+        "sha256": "52891f3ad1eebbf65f3ee07d2e3836a0020a87f3c8f4b07f1658fd170aaa7ecf",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "valve/gfx/shell/kb_act.lst",
+      "destination": "valve/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/gfx/shell/kb_act.lst",
+        "sha256": "9993e8e5777e70fe30414a0546b58c3a76a737c3daa1149ae8bde87444f48440",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve/resource/gameui_english.txt",
+      "destination": "valve/resource/gameui_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/resource/gameui_english.txt",
+        "sha256": "aca17e06d49b14d1ae31f14fca77d02a5c0f9d41af27353f5a5362453c39d711",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "valve/resource/gameui_french.txt",
+      "destination": "valve/resource/gameui_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 72,
+        "manifest": "491735997354925434",
+        "path": "valve_french/resource/gameui_french.txt",
+        "sha256": "3e586bca54e5fd2cc5e5abeb760b1d317298cbf64805ed8ecd6ee613827059d7",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_french/resource/gameui_french.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_german.txt",
+      "destination": "valve/resource/gameui_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 74,
+        "manifest": "6929797608257779911",
+        "path": "valve_german/resource/gameui_german.txt",
+        "sha256": "6e131bc5f2f99ce9a48ab737ec2c20ad5724819d13449fd4d8796cebd9d484d8",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_german/resource/gameui_german.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_italian.txt",
+      "destination": "valve/resource/gameui_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 73,
+        "manifest": "3587203030189636184",
+        "path": "valve_italian/resource/gameui_italian.txt",
+        "sha256": "0190bbd71b5fbac08157f0d0e9f5e8d713c462dcee547b9bfa1bb2704ec49482",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_italian/resource/gameui_italian.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_koreana.txt",
+      "destination": "valve/resource/gameui_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 78,
+        "manifest": "2582370374354695075",
+        "path": "valve_koreana/resource/gameui_koreana.txt",
+        "sha256": "0a9cd6cdcd50d59200b6da2e3f54e60833c73755894b27cb92e4693452b9cdb4",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_koreana/resource/gameui_koreana.txt",
+        "valve/resource/gameui_korean.txt",
+        "valve_korean/resource/gameui_korean.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_schinese.txt",
+      "destination": "valve/resource/gameui_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 77,
+        "manifest": "8307934900153578333",
+        "path": "valve_schinese/resource/gameui_schinese.txt",
+        "sha256": "e2a1a0287536a6799b3a5f4afd5404559b6504dd363b441c0c781d185e7ad77a",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_schinese/resource/gameui_schinese.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_spanish.txt",
+      "destination": "valve/resource/gameui_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 75,
+        "manifest": "6599379689843151742",
+        "path": "valve_spanish/resource/gameui_spanish.txt",
+        "sha256": "4a2119a96abfbc547b7dcd9a209c1df3306ebfb6052fd6e644c8056e5df28f61",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_spanish/resource/gameui_spanish.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_tchinese.txt",
+      "destination": "valve/resource/gameui_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 79,
+        "manifest": "6488358189498321283",
+        "path": "valve_tchinese/resource/gameui_tchinese.txt",
+        "sha256": "90ebf24f7f3d1414d5725a0aa5db6209fb3a04d0362bd12a2ed1d4bbff252913",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_tchinese/resource/gameui_tchinese.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_english.txt",
+      "destination": "valve/resource/valve_english.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/resource/valve_english.txt",
+        "sha256": "9c1c35e2eeeb16a85eda90704dd4faa56c91f56a17ee9ea3d6d119805af65376",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "valve/resource/valve_french.txt",
+      "destination": "valve/resource/valve_french.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 72,
+        "manifest": "491735997354925434",
+        "path": "valve_french/resource/valve_french.txt",
+        "sha256": "1118e44117903df3d05106f026cf94ffc624f16517d54e8fc04b54098a8c196e",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_french/resource/valve_french.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_german.txt",
+      "destination": "valve/resource/valve_german.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 74,
+        "manifest": "6929797608257779911",
+        "path": "valve_german/resource/valve_german.txt",
+        "sha256": "34554231922fafd6d9c94906785bdbff54cf34b62c32eb19aee1c125c2197301",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_german/resource/valve_german.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_italian.txt",
+      "destination": "valve/resource/valve_italian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 73,
+        "manifest": "3587203030189636184",
+        "path": "valve_italian/resource/valve_italian.txt",
+        "sha256": "cfd0b474b62dca3e4e383d96199eca7fae3f9664fa5cf916f962fd745fd8366f",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_italian/resource/valve_italian.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_koreana.txt",
+      "destination": "valve/resource/valve_koreana.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 78,
+        "manifest": "2582370374354695075",
+        "path": "valve_koreana/resource/valve_koreana.txt",
+        "sha256": "1bce390e2b0d7dff501797fc5c57ed8bcb18af9cbb21f55d392f0306e1a76ae1",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_koreana/resource/valve_koreana.txt",
+        "valve/resource/valve_korean.txt",
+        "valve_korean/resource/valve_korean.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_schinese.txt",
+      "destination": "valve/resource/valve_schinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 77,
+        "manifest": "8307934900153578333",
+        "path": "valve_schinese/resource/valve_schinese.txt",
+        "sha256": "0c17de6295b242e96a63ac463f581286200931807e7e7f96d794edc4570eb4c7",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_schinese/resource/valve_schinese.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_spanish.txt",
+      "destination": "valve/resource/valve_spanish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 75,
+        "manifest": "6599379689843151742",
+        "path": "valve_spanish/resource/valve_spanish.txt",
+        "sha256": "15b3e255f2115bc5539432b426e356c7512e933efb1d227203e62ad24a80d53e",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_spanish/resource/valve_spanish.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_tchinese.txt",
+      "destination": "valve/resource/valve_tchinese.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 79,
+        "manifest": "6488358189498321283",
+        "path": "valve_tchinese/resource/valve_tchinese.txt",
+        "sha256": "ce8186de7f3599fa51c06074be7dacfa94d9008a6539ac176b341a730bd35a33",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_tchinese/resource/valve_tchinese.txt"
+      ]
+    },
+    {
+      "source": "valve/spectatormenu.txt",
+      "destination": "valve/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/spectatormenu.txt",
+        "sha256": "a718000e0f4ae8bb2075736c73e04d39e09dcf31c903a80bf7c50d87e5f2d3f3",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve/spectcammenu.txt",
+      "destination": "valve/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/spectcammenu.txt",
+        "sha256": "2f83ddeb331b35496acdf3b808fd9d00b9e353a335faafd235e584453b4eefe5",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve/titles.txt",
+      "destination": "valve/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "english",
+      "upstream": {
+        "kind": "installed-steam-content",
+        "app": 70,
+        "depot": 1,
+        "manifest": "2667117727132184734",
+        "path": "valve/titles.txt",
+        "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_french/spectatormenu.txt",
+      "destination": "valve_french/spectatormenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 72,
+        "manifest": "491735997354925434",
+        "path": "valve_french/spectatormenu.txt",
+        "sha256": "f35726852abff9b3f0d664bed971e25cf6508e835462d77e02d283a798653f09",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_french/spectcammenu.txt",
+      "destination": "valve_french/spectcammenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 72,
+        "manifest": "491735997354925434",
+        "path": "valve_french/spectcammenu.txt",
+        "sha256": "5da7f5bb11a138eb241480348c5b5efcdb5c459d252f5733b48806b76cb5d8e0",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_french/titles.txt",
+      "destination": "valve_french/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "french",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 72,
+        "manifest": "491735997354925434",
+        "path": "valve_french/titles.txt",
+        "sha256": "a40b62dbf8bede96654b30557dd761b0f54a939ac912fc8e0ce6e96836a4b4cf",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_german/spectatormenu.txt",
+      "destination": "valve_german/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 74,
+        "manifest": "6929797608257779911",
+        "path": "valve_german/spectatormenu.txt",
+        "sha256": "00fe976e898cb701a8a2386a28b6b35cbc6b1062fb02b4df6b4a67f1cac94906",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_german/spectcammenu.txt",
+      "destination": "valve_german/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 74,
+        "manifest": "6929797608257779911",
+        "path": "valve_german/spectcammenu.txt",
+        "sha256": "7126d100b7d6fba7722b77f1d331e119725406b248e4e78fc90bf81a11d319eb",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_german/titles.txt",
+      "destination": "valve_german/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "german",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 74,
+        "manifest": "6929797608257779911",
+        "path": "valve_german/titles.txt",
+        "sha256": "6c89d2e010afaa62eac7a312d1f93834b462af39babd7823e2239d586a3b2c25",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_italian/spectatormenu.txt",
+      "destination": "valve_italian/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 73,
+        "manifest": "3587203030189636184",
+        "path": "valve_italian/spectatormenu.txt",
+        "sha256": "f94df839a10b7e88c39674213135eaafd134dc44622e6d012a16a7527ab6258c",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_italian/spectcammenu.txt",
+      "destination": "valve_italian/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 73,
+        "manifest": "3587203030189636184",
+        "path": "valve_italian/spectcammenu.txt",
+        "sha256": "ca406a1ca7c65a5bf38e51354d3c50347d909c0ad4378fcb9c9129e02150733c",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_italian/titles.txt",
+      "destination": "valve_italian/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "italian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 73,
+        "manifest": "3587203030189636184",
+        "path": "valve_italian/titles.txt",
+        "sha256": "9314ed6836314acd21c4950d0575d95478723fa2c66d4aa27829c08f2416382a",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_koreana/spectatormenu.txt",
+      "destination": "valve_koreana/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 78,
+        "manifest": "2582370374354695075",
+        "path": "valve_koreana/spectatormenu.txt",
+        "sha256": "e8892d61207c10789f3ff1c8d862a5fbdbea6d720140f42f722ec6e223049e57",
+        "encoding": "utf-8"
+      },
+      "aliases": [
+        "valve_korean/spectatormenu.txt"
+      ]
+    },
+    {
+      "source": "valve_koreana/spectcammenu.txt",
+      "destination": "valve_koreana/spectcammenu.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 78,
+        "manifest": "2582370374354695075",
+        "path": "valve_koreana/spectcammenu.txt",
+        "sha256": "4d9621bac1ddd932c267dbbf01e96cc07d5c058a95cbe516cc0ed0ed16520538",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_korean/spectcammenu.txt"
+      ]
+    },
+    {
+      "source": "valve_koreana/titles.txt",
+      "destination": "valve_koreana/titles.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "koreana",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 78,
+        "manifest": "2582370374354695075",
+        "path": "valve_koreana/titles.txt",
+        "sha256": "0b867b1b78be9328a69aacdb7c718093fb4905f69f6346094cf98c5e7795ce98",
+        "encoding": "utf-16-le-bom"
+      },
+      "aliases": [
+        "valve_korean/titles.txt"
+      ]
+    },
+    {
+      "source": "valve_schinese/titles.txt",
+      "destination": "valve_schinese/titles.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "schinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 77,
+        "manifest": "8307934900153578333",
+        "path": "valve_schinese/titles.txt",
+        "sha256": "b4d6a396dc019b5ed67f01f5d2bfb3d452f0df3de70d4b4074642719994b95ea",
+        "encoding": "utf-16-le-bom"
+      }
+    },
+    {
+      "source": "valve_spanish/spectatormenu.txt",
+      "destination": "valve_spanish/spectatormenu.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 75,
+        "manifest": "6599379689843151742",
+        "path": "valve_spanish/spectatormenu.txt",
+        "sha256": "e43d1ed65ce28c8c0025f0d899fcfcca10fe49097a69f3acf8b3d8f07e9f21e1",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_spanish/spectcammenu.txt",
+      "destination": "valve_spanish/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 75,
+        "manifest": "6599379689843151742",
+        "path": "valve_spanish/spectcammenu.txt",
+        "sha256": "e09e35bd1ef0afe0d0911d79fcdd0aa4a7470345ddf2c149a25604e0b508f050",
+        "encoding": "utf-8"
+      }
+    },
+    {
+      "source": "valve_spanish/titles.txt",
+      "destination": "valve_spanish/titles.txt",
+      "encoding": "cp1252",
+      "kind": "legacy",
+      "language": "spanish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 75,
+        "manifest": "6599379689843151742",
+        "path": "valve_spanish/titles.txt",
+        "sha256": "9793d4d699fa4d0348effea407afad9fb11f87773ce5f3876650984d273921df",
+        "encoding": "cp1252"
+      }
+    },
+    {
+      "source": "valve_tchinese/titles.txt",
+      "destination": "valve_tchinese/titles.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "legacy",
+      "language": "tchinese",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 79,
+        "manifest": "6488358189498321283",
+        "path": "valve_tchinese/titles.txt",
+        "sha256": "54691569abc3ebf310387afbb7e81c150683127f49506e6e4892fbfdd2643a85",
+        "encoding": "utf-16-le-bom"
+      }
+    }
+  ],
+  "scope": "Stock CS/HL interface text, dedicated administration and CSE additions. Audio and server-owned MOTD/configuration are excluded.",
+  "official_language_sources": [
+    "https://store.steampowered.com/app/10/CounterStrike/?l=english",
+    "https://store.steampowered.com/app/70/HalfLife/?l=english"
+  ],
+  "upstream_fallbacks": {
+    "cstrike": {
+      "french": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ],
+      "german": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ],
+      "italian": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ],
+      "koreana": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ],
+      "schinese": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ],
+      "tchinese": [
+        "cstrike_account",
+        "cstrike_defuse_kit",
+        "cstrike_health"
+      ]
+    },
+    "gameui": {
+      "french": [
+        "gameui_useshaders"
+      ],
+      "german": [
+        "gameui_useshaders"
+      ],
+      "italian": [
+        "gameui_useshaders"
+      ],
+      "koreana": [
+        "gameui_colorprimary",
+        "gameui_colorsecondary",
+        "gameui_difficulty",
+        "gameui_loadgamehelp",
+        "gameui_mainmenu_hint_changegame",
+        "gameui_mainmenu_hint_configuration",
+        "gameui_mainmenu_hint_createserver",
+        "gameui_mainmenu_hint_findserver",
+        "gameui_mainmenu_hint_loadgame",
+        "gameui_mainmenu_hint_newgame",
+        "gameui_mainmenu_hint_quitgame",
+        "gameui_newgamehelptext",
+        "gameui_newgamehelptextuplink",
+        "gameui_outofdate_msg",
+        "gameui_playgame",
+        "gameui_playgame_alt",
+        "gameui_trainingroom",
+        "gameui_useshaders",
+        "gameui_widescreenfov"
+      ],
+      "schinese": [
+        "gameui_useshaders"
+      ],
+      "spanish": [
+        "gameui_useshaders"
+      ],
+      "tchinese": [
+        "gameui_colorprimary",
+        "gameui_colorsecondary",
+        "gameui_content",
+        "gameui_contentrestart",
+        "gameui_difficulty",
+        "gameui_loadgamehelp",
+        "gameui_mainmenu_hint_changegame",
+        "gameui_mainmenu_hint_configuration",
+        "gameui_mainmenu_hint_createserver",
+        "gameui_mainmenu_hint_findserver",
+        "gameui_mainmenu_hint_loadgame",
+        "gameui_mainmenu_hint_newgame",
+        "gameui_mainmenu_hint_quitgame",
+        "gameui_newgamehelptext",
+        "gameui_newgamehelptextuplink",
+        "gameui_outofdate_msg",
+        "gameui_playgame",
+        "gameui_playgame_alt",
+        "gameui_trainingroom",
+        "gameui_useshaders",
+        "gameui_widescreenfov"
+      ]
+    },
+    "serverbrowser": {
+      "french": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "german": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "italian": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "koreana": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "schinese": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "spanish": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ],
+      "tchinese": [
+        "serverbrowser_filterdescvalidsteamaccount",
+        "serverbrowser_validsteamaccount"
+      ]
+    },
+    "valve": {
+      "french": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "german": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "italian": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "koreana": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "schinese": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "spanish": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ],
+      "tchinese": [
+        "ba_canalstitle",
+        "ba_hazard",
+        "ba_outro",
+        "ba_powertitle",
+        "ba_securitytitle",
+        "ba_teleporttitle",
+        "ba_tramtitle",
+        "ba_xentitle",
+        "ba_yardtitle",
+        "of0a0",
+        "of1a1title",
+        "of1a3title",
+        "of1a5title",
+        "of2a1title",
+        "of2a4title",
+        "of3a1title",
+        "of3a3title",
+        "of4a1title",
+        "of4a4title",
+        "of5a1title",
+        "of6a1title",
+        "of6a4title",
+        "of7a0title",
+        "of_boot0title",
+        "valve_enable_steamnetworking",
+        "valve_lowpingphys",
+        "vgui_htmlback",
+        "vgui_htmlcopylink",
+        "vgui_htmlcopyurl",
+        "vgui_htmlforward",
+        "vgui_htmlreload",
+        "vgui_htmlstop"
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+// Original CounterStrikeExtended interface translations.
+"lang"
+{
+    "Language" "Italian"
+    "Tokens"
+    {
+        "CSEServerBrowser_CurrentGame" "È possibile connettersi solo ai server del gioco attuale."
+        "CSEServerBrowser_Updating" "Aggiornamento elenco..."
+        "CSEServerBrowser_Sorting" "Ordinamento..."
+        "CSEServerBrowser_Unsaved" "Impossibile salvare le impostazioni."
+        "CSEServerBrowser_Unavailable" "La ricerca dei server di Steam non è disponibile."
+        "CSEServerBrowser_PasswordInvalid" "Inserisci una password del server valida."
+        "CSEServerBrowser_Name" "Nome del server"
+        "CSEServerBrowser_Secure" "Protetto"
+        "CSEServerBrowser_Yes" "Sì"
+        "CSEServerBrowser_No" "No"
+        "CSEServerBrowser_Apply" "Applica filtri"
+        "CSEServerBrowser_Rules" "Regole"
+        "CSEServerBrowser_Value" "Valore"
+        "CSEServerBrowser_DetailsFailed" "Impossibile recuperare alcune informazioni del server."
+        "Console_Submit" "Invia"
+    }
+}

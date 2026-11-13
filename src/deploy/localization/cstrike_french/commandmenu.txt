@@ -1,0 +1,260 @@
+// Command Menu definition
+// 
+// Basic Format:
+//		"<Bound Key>" "<Button Text>" "<Command sent to server>"
+//
+// 
+//
+//
+// Buttons can also open up submenus, as follows:
+// {
+// 	"Some More Options",
+//	{
+//		...
+//	}
+// }
+//
+//
+// Buttons preceded with "CUSTOM" are handled in special ways. They can only be moved
+// around or deleted.
+//
+//
+// Limitations:
+//		Maximum of 40 menus.
+//		Maximum of 100 buttons per menu.
+
+//--------------------------------------------------------
+// Everything below here is editable
+
+"1" "AIDE"
+{
+	CUSTOM		"1" "Description carte"	"!MAPBRIEFING"
+	"2" "Temps restant" 	"timeleft"
+	"3" "Centrer viseur" 	"adjust_crosshair"
+	"4" "Gaucher" 		"cl_righthand 0"
+	"5" "Droitier" 		"cl_righthand 1"
+}
+
+
+"2" "CHANGER EQUIPE"	"chooseteam"
+
+// Here are the rest of the buttons and submenus
+// You can change these safely if you want.
+"3" "MESSAGE EQUIPE"
+{
+	// Map Specific
+
+	MAP cs_siege "1" "carte cs_siege"
+	{
+		"1" "'Prenez le sous-sol'" 	"say_team Prenez le sous-sol !"
+		"2" "'Ennemi dans le garage'" 	"say_team Ennemi dans le garage !"
+		"3" "'Assaut pièce des otages !'"  "say_team Prenez d'assaut la piece des otages !"
+		"4" "'Snipers ! Attention !'"  	"say_team Snipers ! Attention !"
+		"5" "'Passez par le haut'"  	"say_team Passez par le haut !"
+
+	}
+
+
+	MAP de_train "1" "carte de_train"
+	{
+		"1" "'Assaut site train !'" 	"say_team Prenez d'assaut le site du train !"
+		"2" "'Assaut site intérieur !'" "say_team Prenez d'assaut le site interieur !"
+		"3" "'Débordez-les !'"   		"say_team
+Débordez-les !"
+		"4" "'Site sécurisé !'"  		"say_team Site de la bombe securise !"
+		"5" "'Soutenez-moi !'"  	"say_team Soutenez-moi !"
+	}
+
+
+	MAP de_vertigo "1" "carte de_vertigo"
+	{
+		"1" "'Prenez le niveau sup. !'" "say_team Prenez le niveau superieur !"
+		"2" "'Prenez le niveau inf. !'" "say_team Prenez le niveau inferieur !"
+		"3" "'Débordez-les !'"   "say_team Debordez-les !"
+		"4" "'Snipers ! Attention !'"  "say_team Snipers ! Attention !"
+		"5" "'Sité sécurisé'"  "say_team Site de la bombe securise"
+	}
+
+
+	MAP de_prodigy "1" "carte de_prodigy"
+	{
+		"1" "'Attaquez les tuyaux'" "say_team Prenez le site des tuyaux !"
+		"2" "'Attaquez le labo !'" "say_team Prenez le labo !"
+		"3" "'Prenez le couloir !'"   "say_team Prenez le couloir !"
+		"4" "'Débordez-les !'"  "say_team Debordez-les !"
+		"5" "'Prenez la route du VAB !'"  "say_team Prenez la route du VAB !"
+	}
+
+
+	MAP de_aztec "1" "carte de_aztec"
+	{
+		"1" "'Prenez le pont !'" "say_team Prenez le pont !"
+		"2" "'Ennemi sur site'" "say_team Ennemi au site de la bombe !"
+		"3" "'Prenez le site'"   "say_team Prenez le site de la bombe !"
+		"4" "'Site sécurisé'"  "say_team Site de la bombe securise !"
+		"5" "'Passez par l'eau !'"  "say_team Passez par l'eau !"
+	}
+
+	MAP de_inferno "1" "carte de_inferno"
+	{
+		"1" "'Prenez le pont !'" "say_team Prenez le pont !"
+		"2" "'Ennemi sur site'" "say_team Ennemi au site de la bombe !"
+		"3" "'Prenez le site'"   "say_team Prenez le site de la bombe !"
+		"4" "'Site sécurisé'"  "say_team Site de la bombe securise !"
+		"5" "'Passez par l'eau !'"  "say_team Passez par l'eau !"
+	}
+
+
+
+
+	MAP cs_office "1" "carte cs_office"
+	{
+		"1" "'Passez par derrière !'" "say_team Passez par derriere !"
+		"2" "'Assaut jusqu'aux otages !'" "say_team Assaut jusqu'aux otages !"
+		"3" "'Faites-le pour Manilov !'"   "say_team Faites-le pour Manilov !"
+		"4" "'Passez par devant !'"  "say_team Passez par devant !"
+		"5" "'Contournez-les !'"  "say_team Contournez-les !"
+	}
+
+
+
+	MAP cs_backalley "1" "carte cs_backalley"
+	{
+		"1" "'Contournez-les !'"  "say_team Contournez-les !"
+		"2" "'Ennemi devant !'" "say_team Ennemi devant !"
+		"3" "'Assaut jusqu'aux otages !'" "say_team Assaut jusqu'aux otages !"
+		"4" "'A l'assaut !'"  "say_team A l'assaut !"
+		"5" "'On me tire dessus !'"  "say_team On me tire dessus !"
+	}
+
+
+	MAP cs_747 "1" "carte cs_747"
+	{
+		"1" "'Assaut sur l'avion'" "say_team Assaut sur l'avion !"
+		"2" "'RDV au terminal'" "say_team RDV au terminal"
+		"3" "'Ennemi hors de l'avion'"   "say_team Ennemi hors de l'avion !"
+		"4" "'Ennemi dans la soute !'"  "say_team Ennemi dans la soute !"
+		"5" "'Débordez-les !'"  "say_team Debordez-les !"
+	}
+
+
+	MAP as_oilrig "1" "carte as_oilrig"
+	{
+		"1" "'Assaut vers l'hélico !'" "say_team Assaut vers l'helico !"
+		"2" "'Au monte-charge !'" "say_team Au monte-charge !"
+		"3" "'VIP repéré !'"   "say_team VIP repere !"
+		"4" "'Sniper repéré'"  "say_team Sniper repere ! Attention !"
+		"5" "'Protégez le VIP'"  "say_team Protegez le VIP !"
+	}
+
+
+
+	MAP cs_assault "1" "carte cs_assault"
+	{
+		"1" "'Attaquez le bâtiment !'" "say_team Attaquez le batiment !"
+		"2" "'Par les conduits !'" "say_team Par les conduits!"
+		"3" "'Ennemi dans les conduits !'"   "say_team Ennemi dans les conduits !"
+		"4" "'Assaut jusqu'aux otages !'"  "say_team Assaut jusqu'aux otages !"
+		"5" "'Regroupez-vous !'"  "say_team Regroupez-vous !"
+	}
+
+
+
+	MAP de_nuke "1" "carte de_nuke"
+	{
+		"1" "'Par le hall principal'" "say_team Par le hall principal"
+		"2" "'Par le sous-sol'" "say_team Par le sous-sol"
+		"3" "'Contournez la cour'"   "say_team Contournez la cour"
+		"4" "'Contournez la salle radio'"  "say_team Contournez la salle radio"
+		"5" "'Hall d'entrée'"  "say_team Hall d'entree"
+	}
+
+
+	MAP de_cbble "1" "carte de_cbble"
+	{
+		"1" "'Vers le centre'" "say_team Vers le centre !"
+		"2" "'Vers le souterrain'" "say_team Vers le souterrain !"
+		"3" "'Sniper dans la tour'"   "say_team Sniper dans la tour !"
+		"4" "'Zones sécurisées'"  "say_team Sites de bombe securises"
+		"5" "'Gardez point de départ'"  "say_team Gardez notre point de depart"
+	}
+
+
+	MAP de_dust "1" "carte de_dust"
+	{
+		"1" "'Vers le hall'" "say_team Vers le hall !"
+		"2" "'Vers le souterrain'" "say_team Vers le souterrain !"
+		"3" "'Site A sécurisé'"   "say_team Site A securise"
+		"4" "'Site B sécurisé'"  "say_team Site B securise"
+		"5" "'Sniper dans le souterrain'"  "say_team Snipers dans le souterrain"
+	}
+
+
+
+	MAP de_dust2 "1" "carte de_dust2"
+	{
+		"1" "'Vers le hall'" "say_team Vers le hall !"
+		"2" "'Vers le souterrain'" "say_team Vers le souterrain !"
+		"3" "'Site A sécurisé'"   "say_team Site A securise"
+		"4" "'Site B sécurisé'"  "say_team Site B securise"
+		"5" "'Par le souterrain'"  "say_team Par le souterrain"
+	}
+
+	MAP cs_italy "1" "carte cs_italy"
+	{
+		"1" "'RDV au marché'" "say_team RDV au marche !"
+		"2" "'Assaut sur la maison'" "say_team Assaut sur la maison !"
+		"3" "'Par le cellier'"   "say_team Par le cellier !"
+		"4" "'Assaut par le passage'"  "say_team Assaut par le passage !"
+		"5" "'Libération en cours'"  "say_team Liberation des otages en cours !"
+	}
+
+
+	MAP cs_estate "1" "carte cs_estate"
+	{
+		"1" "'Par les égouts'" "say_team Par les egouts !"
+		"2" "'Ennemi au RDC'" "say_team Ennemi au RDC !"
+		"3" "'Enemmi au premier'"   "say_team Ennemi au premier !"
+		"4" "'Enemmi à l'arrière'"  "say_team Enemmi a l'arriere de la maison !"
+		"5" "'Enemmi à l'avant'"  "say_team Enemmi a l'avant de la maison !"
+	}
+	
+	
+	MAP as_tundra "1" "carte as_tundra"
+	{
+		"1" "'Par la voie secondaire'" "say_team Par la voie secondaire !"
+		"2" "'Par la voie principale'" "say_team Par la voie principale !"
+		"3" "'Snipers ! Attention !'"   "say_team Snipers ! Attention !"
+		"4" "'Assaut sur le VAB'"  "say_team Assaut sur le VAB !"
+		"5" "'Assaut sur l'hélico !'"  "say_team Assaut sur l'helico !"
+	}	
+	
+
+	MAP cs_militia "1" "carte cs_militia"
+	{
+		"1" "'RDV conduit du garage'" "say_team RDV conduit du garage !"
+		"2" "'RDV devant la maison'" "say_team RDV devant la maison !"
+		"3" "'RDV derrière'"   "say_team RDV derriere !"
+		"4" "'Enemmi sur le toit !'"  "say_team Enemmi sur le toit !"
+		"5" "'Ennemi dans les égoûts !'"  "say_team Enemmi dans les egouts !"
+	}
+	
+
+
+
+
+
+
+
+     "2" "'Bien reçu'"			"say_team Bien recu"
+     "3" "'Négatif'"				"say_team Negatif"
+     "4" "'Go Go Go !'"		"say_team Go Go Go !"
+     "5" "'En route'"				"say_team En route"
+     "6" "'Soutien'"			"say_team J'ai besoin de renforts !"
+}
+
+"4" "POSER OBJET" 	"drop"
+
+
+
+

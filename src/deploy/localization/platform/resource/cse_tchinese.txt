@@ -1,0 +1,23 @@
+// Original CounterStrikeExtended interface translations.
+"lang"
+{
+    "Language" "TChinese"
+    "Tokens"
+    {
+        "CSEServerBrowser_CurrentGame" "只能連線至目前遊戲的伺服器。"
+        "CSEServerBrowser_Updating" "正在更新清單..."
+        "CSEServerBrowser_Sorting" "正在排序..."
+        "CSEServerBrowser_Unsaved" "無法儲存設定。"
+        "CSEServerBrowser_Unavailable" "Steam 伺服器瀏覽功能無法使用。"
+        "CSEServerBrowser_PasswordInvalid" "請輸入有效的伺服器密碼。"
+        "CSEServerBrowser_Name" "伺服器名稱"
+        "CSEServerBrowser_Secure" "安全"
+        "CSEServerBrowser_Yes" "是"
+        "CSEServerBrowser_No" "否"
+        "CSEServerBrowser_Apply" "套用篩選條件"
+        "CSEServerBrowser_Rules" "規則"
+        "CSEServerBrowser_Value" "值"
+        "CSEServerBrowser_DetailsFailed" "無法取得部分伺服器詳細資料。"
+        "Console_Submit" "送出"
+    }
+}

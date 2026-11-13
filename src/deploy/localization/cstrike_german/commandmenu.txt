@@ -1,0 +1,258 @@
+// Command Menu definition
+// 
+// Basic Format:
+//		"<Bound Key>" "<Button Text>" "<Command sent to server>"
+//
+// 
+//
+//
+// Buttons can also open up submenus, as follows:
+// {
+// 	"Some More Options",
+//	{
+//		...
+//	}
+// }
+//
+//
+// Buttons preceded with "CUSTOM" are handled in special ways. They can only be moved
+// around or deleted.
+//
+//
+// Limitations:
+//		Maximum of 40 menus.
+//		Maximum of 100 buttons per menu.
+
+//--------------------------------------------------------
+// Everything below here is editable
+
+"1" "HILFE"
+{
+	CUSTOM		"1" "Karten-Beschreibung"	"!MAPBRIEFING"
+	"2" "Verbl. Zeit" "timeleft"
+	"3" "Fadenkreuz einrichten" "adjust_crosshair"
+	"4" "Linke Hand benutzen" "cl_righthand 0"
+	"5" "Rechte Hand benutzen" "cl_righthand 1"
+}
+
+
+"2" "TEAM WECHSELN"	"chooseteam"
+
+// Here are the rest of the buttons and submenus
+// You can change these safely if you want.
+"3" "TEAM-NACHRICHT"
+{
+	// Map Specific
+
+	MAP cs_siege "1" "map cs_siege"
+	{
+		"1" "'Kanäle benutzen'" "say_team Kanaele benutzen!"
+		"2" "'Feind im Parkhaus'" "say_team Feind im Parkhaus!"
+		"3" "'Geiselraum stürmen!'"   "say_team Den Geiselraum stuermen!"
+		"4" "'Scharfschützen! Achtung!'"  "say_team Scharfschuetzen! Achtung!"
+		"5" "'Obere Route nehmen'"  "say_team Obere Route nehmen!"
+	}
+
+
+	MAP de_train "1" "map de_train"
+	{
+		"1" "'Bahnhof - Bombe stürmen!'" "say_team Gueterbahnhof - Bombenort stuermen!"
+		"2" "'Inneren Bombenort stürmen!'" "say_team Inneren Bombenort stuermen!"
+		"3" "'Seitlich umgehen!'"   "say_team Seitlich umgehen!"
+		"4" "'Bombenort sicher!'"  "say_team Bombenort sicher!"
+		"5" "'Gib mir deinen Blaster!'"  "say_team Gib mir deinen Blaster!"
+	}
+
+
+	MAP de_vertigo "1" "map de_vertigo"
+	{
+		"1" "'Obere Etage stürmen!'" "say_team Obere Etage stuermen!"
+		"2" "'Untere Etage stürmen!'" "say_team Untere Etage stuermen!"
+		"3" "'Seitlich umgehen!'"   "say_team Seitlich umgehen!"
+		"4" "'Scharfschützen! Achtung!'"  "say_team Scharfschuetzen! Achtung!"
+		"5" "'Bombenort sicher'"  "say_team Bombenort sicher"
+	}
+
+
+	MAP de_prodigy "1" "map de_prodigy"
+	{
+		"1" "'Schnell zu den Röhren'" "say_team Schnell zum Roehren-Bombenort!"
+		"2" "'Schnell zum Labor!'" "say_team Schnell zum Labor!"
+		"3" "'Flur benutzen!'"   "say_team Flur benutzen!"
+		"4" "'Seitlich umgehen!'"  "say_team Seitlich umgehen!"
+		"5" "'PW-Route nehmen!'"  "say_team PW-Route nehmen!"
+	}
+
+
+	MAP de_aztec "1" "map de_aztec"
+	{
+		"1" "'Die Brücke benutzen!'" "say_team Die Bruecke benutzen!"
+		"2" "'Feind am Bombenort'" "say_team Narby, Feind am Bombenort!"
+		"3" "'Schnell zum Bombenort'"   "say_team Schnell zum Bombenort!"
+		"4" "'Bombenort sicher'"  "say_team Bombenort sicher!"
+		"5" "'Wasser-Route nehmen!'"  "say_team Wasser-Route nehmen!"
+	}
+
+	MAP de_inferno "1" "map de_inferno"
+	{
+		"1" "'Die Brücke benutzen!'" "say_team Die Bruecke benutzen!"
+		"2" "'Feind am Bombenort'" "say_team Narby, Feind am Bombenort!"
+		"3" "'Schnell zum Bombenort'"   "say_team Schnell zum Bombenort!"
+		"4" "'Bombenort sicher'"  "say_team Bombenort sicher!"
+		"5" "'Wasser-Route nehmen!'"  "say_team Wasser-Route nehmen!"
+	}
+
+
+
+
+	MAP cs_office "1" "map cs_office"
+	{
+		"1" "'Hintere Route nehmen!'" "say_team Hintere Route nehmen!"
+		"2" "'Schnell zu den Geiseln!'" "say_team Schnell zu den Geiseln!"
+		"3" "'Für Manilov!'"   "say_team Fuer Manilov!"
+		"4" "'Vordere Route nehmen!'"  "say_team Vordere Route nehmen!"
+		"5" "'Seitlich umgehen!'"  "say_team Seitlich umgehen!"
+	}
+
+
+
+	MAP cs_backalley "1" "map cs_backalley"
+	{
+		"1" "'Seitlich umgehen!'" "say_team Seitlich umgehen!"
+		"2" "'Feind oben!'" "say_team Feind oben!"
+		"3" "'Schnell zu den Geiseln!'"   "say_team Schnell zu den Geiseln!"
+		"4" "'Zum Blaster gehen!'"  "say_team Zum Blaster gehen!"
+		"5" "'Schweres Blaster-Feuer!'"  "say_team Schweres Blaster-Feuer!"
+	}
+
+
+	MAP cs_747 "1" "map cs_747"
+	{
+		"1" "'Das Flugzeug stürmen'" "say_team Das Flugzeug stuermen!"
+		"2" "'Treffpunkt im Terminal'" "say_team Treffpunkt im Terminal"
+		"3" "'Feind vor dem Flugzeug'"   "say_team Feind vor dem Flugzeug!"
+		"4" "'Feind im Frachtraum!'"  "say_team Feind im Frachtraum!"
+		"5" "'Seitlich umgehen.'"  "say_team Seitlich umgehen!"
+	}
+
+
+	MAP as_oilrig "1" "map as_oilrig"
+	{
+		"1" "'Schnell zum Heli!'" "say_team Schnell zum Heli!"
+		"2" "'Zum Aufzug'" "say_team Zum Aufzug!"
+		"3" "'VIP gesichtet!'"   "say_team VIP gesichtet!"
+		"4" "'Scharfschütze gesichtet'"  "say_team Scharfschuetze gesichtet! Achtung!"
+		"5" "'Den VIP beschützen'"  "say_team Den VIP beschuetzen!"
+	}
+
+
+
+	MAP cs_assault "1" "map cs_assault"
+	{
+		"1" "'Das Gebäude stürmen!'" "say_team Das Gebaeude stuermen!"
+		"2" "'Schächte benutzen!'" "say_team Schaechte benutzen!"
+		"3" "'Feind in den Schächten!'"   "say_team Feind in den Schaechten!"
+		"4" "'Geiselraum stürmen!'"  "say_team Den Geiselraum stuermen!"
+		"5" "'Team! Neu gruppieren!'"  "say_team Team! Neu gruppieren!"
+	}
+
+
+
+	MAP de_nuke "1" "map de_nuke"
+	{
+		"1" "'Zum Hauptraum gehen'" "say_team Zum Hauptraum gehen"
+		"2" "'In den Keller gehen'" "say_team In den Keller gehen"
+		"3" "'Hof umgehen'"   "say_team Hof umgehen"
+		"4" "'Komm-Raum umgehen'"  "say_team Komm-Raum umgehen"
+		"5" "'In der Eingangshalle'"  "say_team In der Eingangshalle"
+	}
+
+
+	MAP de_cbble "1" "map de_cbble"
+	{
+		"1" "'Unterwegs zum Zentralflur'" "say_team Unterwegs zum Zentralflur!"
+		"2" "'Unterwegs z. Unterführung'" "say_team Unterwegs z. Unterfuehrung!"
+		"3" "'Scharfschütze im Turm'"   "say_team Feind im Scharfschuetzenturm!"
+		"4" "'Bombenzielgebiete sicher'"  "say_team Bombenzielgebiete sicher"
+		"5" "'Startgebiet bewachen'"  "say_team Startgebiet bewachen"
+	}
+
+
+	MAP de_dust "1" "map de_dust"
+	{
+		"1" "'Unterwegs zum Flur'" "say_team Unterwegs zum Flur!"
+		"2" "'Unterwegs z. Unterführung'" "say_team Unterwegs z. Unterfuehrung!"
+		"3" "'Bombe A sicher'"   "say_team Bombengebiet A sicher"
+		"4" "'Bombe B sicher'"  "say_team Bombengebiet B sicher"
+		"5" "'Schütze bei Unterführung'"  "say_team Schuetze bei Unterfuehrung"
+	}
+
+
+
+	MAP de_dust2 "1" "map de_dust2"
+	{
+		"1" "'Unterwegs zum Flur'" "say_team Unterwegs zum Flur!"
+		"2" "'Unterwegs zur Unterführung'" "say_team Unterwegs z. Unterfuehrung!"
+		"3" "'Bombe A sicher'"   "say_team Bombengebiet A sicher"
+		"4" "'Bombe B sicher'"  "say_team Bombengebiet B sicher"
+		"5" "'Unterwegs zum Tunnel'"  "say_team Unterwegs zum Tunnel!"
+	}
+
+	MAP cs_italy "1" "map cs_italy"
+	{
+		"1" "'Treffpunkt am Markt'" "say_team Treffpunkt am Markt!"
+		"2" "'Das Haus stürmen'" "say_team Durch das Haus stuermen!"
+		"3" "'Zum Weinkeller gehen'"   "say_team Zum Weinkeller gehen!"
+		"4" "'Langen Gang stürmen'"  "say_team Den langen Gang stuermen!"
+		"5" "'Geiseln werden gerettet'"  "say_team Geiseln werden gerettet!"
+	}
+
+
+	MAP cs_estate "1" "map cs_estate"
+	{
+		"1" "'Zum Kanal gehen'" "say_team Zum Kanal gehen!"
+		"2" "'Feind auf Etage 1'" "say_team Feind auf Etage 1!"
+		"3" "'Feind auf Etage 2!'"   "say_team Feind auf Etage 2!"
+		"4" "'Feind hinten'"  "say_team Feind hinten im Haus!"
+		"5" "'Feind vorn'"  "say_team Feind vorn im Haus!"
+	}
+	
+	
+	MAP as_tundra "1" "map as_tundra"
+	{
+		"1" "'Sekundär-Route benutzen'" "say_team Sekundaer-Route benutzen!"
+		"2" "'Primär-Route benutzen'" "say_team Primaer-Route benutzen!"
+		"3" "'Scharfschützen! Achtung!'"   "say_team Scharfschuetzen! Achtung!"
+		"4" "'Schnell zum PW'"  "say_team Schnell zum PW!"
+		"5" "'Schnell zum Heli!'"  "say_team Schnell zum Heli!"
+	}	
+	
+
+	MAP cs_militia "1" "map cs_militia"
+	{
+		"1" "'Treffpunkt Garagenschacht'" "say_team Treffpunkt Garagenschacht!"
+		"2" "'Treffpunkt vor dem Haus'" "say_team Treffpunkt vor dem Haus!"
+		"3" "'Treffpunkt im Hinterhof'"   "say_team Treffpunkt im Hinterhof!"
+		"4" "'Feind ist oben!'"  "say_team Feind ist oben!"
+		"5" "'Feind ist in den Kanälen!'"  "say_team Feind ist in den Kanaelen!"
+	}
+	
+
+
+
+
+
+
+
+     "2" "'Bestätigt'"			"say_team Bestaetigt"
+     "3" "'Negativ'"			"say_team Negativ"
+     "4" "'Los, los, los!'"		"say_team Los, los, los!"
+     "5" "'Auf dem Weg'"		"say_team Auf dem Weg"
+     "6" "'Brauche Verstärkung'"	"say_team Brauche Verstaerkung!"
+}
+
+"4" "GEGENSTAND ABLEGEN" 	"drop"
+
+
+
+

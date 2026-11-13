@@ -1,0 +1,12 @@
+小型机场 - 拆除
+设计：Barney（又称narby）(narby@counter-strike.net)
+
+特别感谢Iikka Keranen、John Morello和Minh Le
+
+反恐菁英：阻止恐怖分子
+在小型机场区里布置炸弹。
+
+恐怖分子：在小型机场里布置C4炸弹，
+并破坏储放燃料、货物的区域
+
+附注：此地图中总共有两处炸弹放置点。

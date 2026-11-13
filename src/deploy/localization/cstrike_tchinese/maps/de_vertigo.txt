@@ -1,0 +1,11 @@
+Vertigo - 防爆
+by Chris Auty (Barney) (fragged101@yahoo.com)
+Texture builds by Telnets and J0esm0e
+
+恐佈份子計畫炸毀即將完工的 Rizzleton 塔。
+
+反恐精英：防止該建築物被炸毀。
+
+恐佈份子：安裝炸彈並且把高塔炸毀。
+
+備註：不要摔下來了。
