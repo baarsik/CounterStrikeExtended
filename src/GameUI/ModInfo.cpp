@@ -138,6 +138,11 @@ const char* CModInfo::GetGameDescription()
 	return m_pModData->GetString( "game", "Half-Life" );
 }
 
+bool CModInfo::SupportsBots() {
+    const char* gameDirectory = engine->pfnGetGameDirectory();
+    return CSE_ENABLE_ZBOT && (!stricmp(gameDirectory, "cstrike") || !stricmp(gameDirectory, "czero"));
+}
+
 const char* CModInfo::GetMPFilter()
 {
 	return m_pModData->GetString( "mpfilter", "" );

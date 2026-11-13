@@ -77,9 +77,12 @@ CCSBotManager::CCSBotManager()
 	m_isAnalysisRequested = false;
 	m_editCmd = EDIT_NONE;
 
-	TheBotPhrases = new BotPhraseManager;
-	TheBotPhrases->Initialize( "BotChatter.db", 0 );
-	TheBotProfiles = new BotProfileManager;
+    TheBotPhrases = new BotPhraseManager;
+    TheBotProfiles = new BotProfileManager;
+    if (!CSE_ENABLE_ZBOT) {
+        return;
+    }
+    TheBotPhrases->Initialize("BotChatter.db", 0);
 	TheBotProfiles->FindVoiceBankIndex( "BotChatter.db" );
 
 	int length;
@@ -107,7 +110,10 @@ CCSBotManager::CCSBotManager()
 
 void CCSBotManager::StartFrame()
 {
-	CBotManager::StartFrame();
+    if (!CSE_ENABLE_ZBOT) {
+        return;
+    }
+    CBotManager::StartFrame();
 	MonitorBotCVars();
 	if ( cv_bot_debug.value == 5.0f )
 	{
@@ -157,8 +163,9 @@ void CCSBotManager::ServerDeactivate()
 
 void CCSBotManager::ValidateMapData()
 {
-	if ( m_isMapDataLoaded || !UTIL_IsGame( "czero" ) )
-		return;
+    if (m_isMapDataLoaded || !CSE_ENABLE_ZBOT) {
+        return;
+    }
 	m_isMapDataLoaded = true;
 	if ( LoadNavigationMap() != NAV_OK )
 	{
@@ -367,8 +374,9 @@ void CCSBotManager::AddServerCommands()
 	if ( !firstTime )
 		return;
 	firstTime = false;
-	if ( !UTIL_IsGame( "czero" ) )
-		return;
+    if (!CSE_ENABLE_ZBOT) {
+        return;
+    }
 
 	AddServerCommand( "bot_about" );
 	AddServerCommand( "bot_add" );
@@ -415,8 +423,9 @@ void CCSBotManager::AddServerCommands()
 
 bool CCSBotManager::BotAddCommand( BotProfileTeamType team, bool isFromConsole )
 {
-	if ( m_isLearningMap || g_engfuncs.pfnCheckParm( "-nobots", NULL ) != 0 )
-		return false;
+    if (!CSE_ENABLE_ZBOT || m_isLearningMap || g_engfuncs.pfnCheckParm("-nobots", NULL) != 0) {
+        return false;
+    }
 	const BotProfile* profile;
 	if ( isFromConsole && CMD_ARGC() > 1 )
 	{
@@ -473,8 +482,9 @@ bool CCSBotManager::BotAddCommand( BotProfileTeamType team, bool isFromConsole )
 
 bool CCSBotManager::AddBot( const BotProfile* profile, BotProfileTeamType requestedTeam )
 {
-	if ( !UTIL_IsGame( "czero" ) )
-		return false;
+    if (!CSE_ENABLE_ZBOT) {
+        return false;
+    }
 	CHalfLifeMultiplay* rules = static_cast<CHalfLifeMultiplay*>( g_pGameRules );
 	TeamName team = UNASSIGNED;
 	if ( requestedTeam == BOT_TEAM_T )
@@ -562,8 +572,9 @@ void PrintAllEntities()
 
 void CCSBotManager::ServerCommand( const char* command )
 {
-	if ( !m_bServerActive || !UTIL_IsGame( "czero" ) )
-		return;
+    if (!m_bServerActive || !CSE_ENABLE_ZBOT) {
+        return;
+    }
 	if ( FStrEq( command, "bot_about" ) )
 	{
 		char message[400];

@@ -3,6 +3,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/MainImagePublication.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/BinaryArchitecture.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeRuntimeDependencies.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/Localization.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/ZBot.cmake")
 
 option(CSE_RELEASE_DIAGNOSTICS "Generate Release debug symbols and linker maps" OFF)
 option(CSE_STAGE_DISTRIBUTION_MATERIALS "Stage dependency license/source materials for distribution" OFF)

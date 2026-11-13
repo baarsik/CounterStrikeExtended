@@ -55,8 +55,27 @@ previously enabled options.
 The default build includes [all 19 production targets](project-scope.md#default-runtime)
 and their dependencies. `cse_runtime` explicitly selects the complete runtime;
 `cse_client` selects the 14 client and listen-server targets plus their dependencies.
-Stock and CSE interface translations are bundled. Other game assets are supplied
-separately. Builds do not launch games or run tests.
+Stock and CSE interface translations and ZBot resources are bundled. Other game
+assets are supplied separately. Builds do not launch games or run tests.
+
+## Counter-Strike bots
+
+`CSE_ENABLE_ZBOT` defaults to `ON` for runtime and game-module builds on every
+supported platform. It enables ZBot commands, cvars, navigation and the
+Counter-Strike create-server controls without requiring the Condition Zero game.
+Set `-DCSE_ENABLE_ZBOT=OFF` when configuring to disable those features and omit
+their resource staging. Shared bot/navigation code remains compiled for existing
+game DLL references. As with other build options, files from a previous enabled
+build are not deleted automatically.
+
+Building `cs_server` or `gameui` stages the bot profiles, chatter database, all
+referenced English voice recordings, create-server layouts and a `de_dust2` nav
+mesh beneath the runtime's `cstrike/` directory. Missing resources are restored
+on subsequent builds without relinking. Other maps use ZBot's existing navigation
+learning; the game still requires its separately supplied maps and other assets.
+See the [bot resource notes](../src/deploy/zbot/README.md) for provenance and map
+compatibility. Use `bot_add`, `bot_add_ct`, `bot_add_t` or the create-server bot
+controls to add players; the server's initial `bot_quota` remains zero.
 
 ## Interface translations
 

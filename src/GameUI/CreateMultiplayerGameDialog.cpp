@@ -34,7 +34,7 @@ CCreateMultiplayerGameDialog::CCreateMultiplayerGameDialog( vgui2::Panel* parent
 {
 	SetHDProportional( true );
 	SetSize( GetProportionalScaledValue( 448 ), GetProportionalScaledValue( 460 ) );
-	m_bBotsEnabled = !stricmp( ModInfo()->GetGameDescription(), "Condition Zero" );
+    m_bBotsEnabled = ModInfo()->SupportsBots();
 
 	SetCloseSound( "sound/UI/launch_dnmenu1.wav" );
 	g_pTaskbar->AddTask( GetVPanel() );
@@ -70,8 +70,7 @@ CCreateMultiplayerGameDialog::CCreateMultiplayerGameDialog( vgui2::Panel* parent
 		m_pBotSavedData->SetString( "bot_chatter", "normal" );
 	}
 
-	if ( !stricmp( ModInfo()->GetGameDescription(), "Condition Zero" ) )
-	{
+    if (m_bBotsEnabled) {
 		// add a page of advanced bot controls
 		// NOTE: These controls will use the bot keys to initialize their values
 		m_pBotPage = new CCreateMultiplayerGameBotPage( this, "BotPage", m_pBotSavedData );

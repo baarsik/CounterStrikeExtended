@@ -155,10 +155,9 @@ void BotProfileManager::Init( const char *filename, unsigned int *checksum )
 	if (dataFile == NULL)
 	{
 #ifndef GAMEUI_DLL
-		if ( UTIL_IsGame( "czero" ) )
-		{
-			CONSOLE_ECHO( "WARNING: Cannot access bot profile database '%s'\n", filename );
-		}
+        if (CSE_ENABLE_ZBOT) {
+            CONSOLE_ECHO("WARNING: Cannot access bot profile database '%s'\n", filename);
+        }
 #endif
 		return;
 	}

@@ -37,6 +37,7 @@ public:
 	bool UseFallbackDirMaps();
 	bool GetDetailedTexture();
 	const char* GetGameDescription();
+    bool SupportsBots();
 	const char* GetMPFilter();
 
 private:

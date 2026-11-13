@@ -48,7 +48,17 @@ CCreateMultiplayerGameServerPage::CCreateMultiplayerGameServerPage( vgui2::Panel
 	m_pEnableBotsCheck = new vgui2::CheckButton( this, "EnableBotsCheck", "Enable bots" );
 	m_pEnableSteamNetworkingCheck = new vgui2::CheckButton( this, "EnableSteamNetworkingCheck",
 		"Enable Steam Networking" );
-	LoadControlSettings( "Resource/CreateMultiplayerGameServerPage.res", NULL );
+    LoadControlSettings(ModInfo()->SupportsBots() ? "Resource/CseZBotServerPage.res"
+                                                : "Resource/CreateMultiplayerGameServerPage.res", NULL);
+    if (!ModInfo()->SupportsBots()) {
+        constexpr const char* BotControlNames[] = {
+            "EnableBotsCheck", "BotQuotaCombo", "SkillLevelEasy", "SkillLevelNormal",
+            "SkillLevelHard", "SkillLevelExpert", "BotDifficultyLabel", "BotLabel1", "BotLabel2"
+        };
+        for (const char* controlName : BotControlNames) {
+            SetControlVisible(controlName, false);
+        }
+    }
 	LoadMapList();
 
 	if ( stricmp( ModInfo()->GetGameDescription(), "Condition Zero" ) )

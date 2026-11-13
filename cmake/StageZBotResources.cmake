@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.25)
+
+if(NOT IS_DIRECTORY "${CSE_ZBOT_SOURCE}/cstrike" OR NOT CSE_ZBOT_OUTPUT)
+  message(FATAL_ERROR "ZBot staging requires a resource source and a runtime output directory")
+endif()
+file(GLOB_RECURSE resources RELATIVE "${CSE_ZBOT_SOURCE}" "${CSE_ZBOT_SOURCE}/cstrike/*")
+foreach(resource IN LISTS resources)
+  get_filename_component(directory "${CSE_ZBOT_OUTPUT}/${resource}" DIRECTORY)
+  file(MAKE_DIRECTORY "${directory}")
+  file(COPY_FILE "${CSE_ZBOT_SOURCE}/${resource}" "${CSE_ZBOT_OUTPUT}/${resource}" ONLY_IF_DIFFERENT)
+endforeach()

@@ -1,5 +1,7 @@
 # Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(cs_server SHARED "mp")
+target_compile_definitions(cs_server PRIVATE CSE_ENABLE_ZBOT=$<BOOL:${CSE_ENABLE_ZBOT}>)
+cse_zbot_assets(cs_server)
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
 target_compile_options(cs_server PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")

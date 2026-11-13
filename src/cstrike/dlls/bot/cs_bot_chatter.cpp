@@ -132,8 +132,9 @@ bool BotPhraseManager::Initialize( const char *filename, int voiceBank )
 	char *file = reinterpret_cast<char *>(g_engfuncs.pfnLoadFileForMe( const_cast<char *>(filename), &length ));
 	if ( file == NULL )
 	{
-		if ( UTIL_IsGame( "czero" ) )
-			CONSOLE_ECHO( "WARNING: Cannot access bot phrase database '%s'\n", filename );
+        if (CSE_ENABLE_ZBOT) {
+            CONSOLE_ECHO("WARNING: Cannot access bot phrase database '%s'\n", filename);
+        }
 		return false;
 	}
 
