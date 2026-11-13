@@ -68,6 +68,11 @@ if(APPLE)
   target_link_libraries(${CEF_TARGET} PRIVATE "-framework Security")
   set_target_properties(${CEF_TARGET} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in")
   set(CEF_APP "${CEF_TARGET_OUT_DIR}/${CEF_TARGET}.app")
+  # The vendor copy macro's ln -sf follows existing directory symlinks on relink.
+  # Recreate only our staged framework before copying to preserve its signed layout.
+  add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${CEF_APP}/Contents/Frameworks/Chromium Embedded Framework.framework"
+    VERBATIM)
   COPY_MAC_FRAMEWORK("${CEF_TARGET}" "${CEF_BINARY_DIR}" "${CEF_APP}")
   foreach(suffixes IN LISTS CEF_HELPER_APP_SUFFIXES)
     string(REPLACE ":" ";" suffixes "${suffixes}")
