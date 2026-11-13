@@ -6,6 +6,34 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The November 13 seven-finding parity follow-up restores native VGUI1 font
+weight/style/width/rotation requests and ordinary missing-name fallback; native
+HTML dirty upload bounds across paint acknowledgements, including the standalone
+backing-image stride; fullscreen FBO `-freq` selection at desktop dimensions;
+signed browser-position persistence; and VGUI1 event delivery for Half-Life's
+MOTD and other legacy controls. Native A3D retains eight rendered voices while
+excess managed sources advance logically, and exposes the retained software
+occlusion attenuation through explicit Enable. Existing font ABC/cropping,
+default feature activation, input eligibility and old browser config defaults
+remain covered.
+
+Focused Release/Debug/ASan+UBSan results per profile: font/FixedSys 4/4,
+A3D resources 29/29 and spatial 10/10, HTML 6/6, fullscreen 8/8, complete SDL
+pumps 2/2, browser config/model 5/5 and six actual-dialog geometry cases.
+The Windows min/max macro regression has a separate actual-source compile
+RED/green and config check, 2/2 per profile. Twelve affected owning TU
+compilations and both complete macOS ARM64 runtime builds pass. No game or
+physical testing was performed; dialog/provider checks use dummy services.
+
+Native font matching/synthesis is functional compatibility, not certified GDI
+pixel/metric identity. Virtual A3D uses the retained fixed 11 bytes/ms timing
+rule at the native source boundary; exact old timing-ring/prefetch latency and
+OEM acoustics remain unqualified. HTML still copies/transports full backing
+images. Windows/MSVC builds were not run. AppleClang LeakSanitizer is unsupported;
+supported ASan/UBSan checks pass with leak detection disabled. The pre-existing
+broad shortcut lifecycle fixture still has stale launcher/listen seams; focused
+complete-pump tests pass. The spectator micro-flick remains unresolved.
+
 The November 13 Half-Life scoreboard follow-up restores retained native font
 atlases across font switches. After three-font warmup (768 glyph rasters and
 three page uploads), 72 component selections/draws perform zero rasterizations,
