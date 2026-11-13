@@ -27,6 +27,8 @@ static void RoundTrip(const std::vector<std::string>& values) {
 
 int main() {
     RoundTrip({"hlds", "-console", "+hostname", "Zażółć gęślą", "-game", "my mod", "", " path "});
+    RoundTrip({"/runtime@local/hlds", "-console", "+rcon_password", "p@ssword"});
+    RoundTrip({"hlds", "@literal-response.cfg", "+hostname", "server@example.invalid"});
     RoundTrip({std::string(1023, 'x')});
     std::vector<std::string> maximum(MAX_NUM_ARGVS - 1, "a");
     maximum.back() = "last UTF-8 ż value";

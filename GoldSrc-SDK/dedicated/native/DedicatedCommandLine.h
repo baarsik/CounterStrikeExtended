@@ -34,7 +34,7 @@ class DedicatedCommandLine {
                     return false;
                 }
             }
-            if (argument.find_first_of("\"\r\n\t") != std::string::npos || argument.find('@') != std::string::npos) {
+            if (argument.find_first_of("\"\r\n\t") != std::string::npos) {
                 error = "Argument cannot round-trip through the legacy command parser";
                 return false;
             }

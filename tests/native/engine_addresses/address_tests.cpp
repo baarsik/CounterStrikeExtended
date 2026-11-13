@@ -253,6 +253,7 @@ void* Hunk_Alloc(int bytes) {
 }
 
 #include "actual_alias.inc"
+int is15bit = 0;
 #include "actual_flatcolor.inc"
 
 template<typename T>
@@ -372,16 +373,30 @@ void FlatColor() {
         std::uint32_t address;
         int index;
     };
-    // Fixed Win32 signed low-32 arithmetic shift/remainder results, including the inherited negative index.
+    // Keep ordinary Win32 colors and wrap formerly negative remainders into the palette.
     constexpr GoldenCase Cases[] = {
         {0x00000000, 0}, {0x0000000f, 0}, {0x00000010, 1}, {0x00000ff0, 0},
-        {0x12345678, 208}, {0x7fffffff, 7}, {0x80000000, -8}, {0x8000000f, -8},
-        {0xfffffff0, -1}, {0xffffffff, -1}, {0x89abcdef, -209}
+        {0x12345678, 208}, {0x7fffffff, 7}, {0x80000000, 247}, {0x8000000f, 247},
+        {0xfffffff0, 254}, {0xffffffff, 254}, {0x89abcdef, 46}
     };
+    constexpr int PaletteEntries = 256;
+    constexpr int PaletteComponents = 4;
+    word palette[PaletteEntries * PaletteComponents]{};
+    for (int index = 0; index < PaletteEntries; ++index) {
+        palette[index * PaletteComponents] = static_cast<word>(index);
+        palette[index * PaletteComponents + 1] = static_cast<word>(PaletteEntries - 1 - index);
+        palette[index * PaletteComponents + 2] = static_cast<word>(index);
+    }
     for (const auto& expected : Cases) {
         const auto lowAddress = static_cast<std::uintptr_t>(expected.address);
         const int actual = D_SurfaceFlatColorIndex(reinterpret_cast<const void*>(lowAddress));
-        Check(actual == expected.index, "Flatcolor signed low-32 reference result changed");
+        Check(actual == expected.index, "Flatcolor hash selected the wrong palette entry");
+        Check(actual >= 0 && actual < PaletteEntries, "Flatcolor hash escaped the palette");
+        for (const int packed15bit : {0, 1}) {
+            is15bit = packed15bit;
+            Check(hlRGB(palette, actual) == hlRGB(palette, expected.index),
+                "Flatcolor palette lookup changed the packed color");
+        }
         std::printf("flatcolor low32=%08x index=%d\n", static_cast<unsigned int>(expected.address), actual);
 #if UINTPTR_MAX > UINT32_MAX
         constexpr std::uintptr_t HighBits = UINT64_C(0x0000001200000000);

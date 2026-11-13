@@ -34,4 +34,10 @@ public:
 
 extern ICommandLine* cmdline;
 
+#if !defined(_WIN32)
+// Install an already-validated native encoding without expanding response files.
+// Failure preserves the current command line; the public virtual interface is unchanged.
+bool CreateNativeLiteralCommandLine(const char* commandLine);
+#endif
+
 #endif

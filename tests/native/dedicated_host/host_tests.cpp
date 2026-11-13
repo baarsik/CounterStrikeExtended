@@ -16,6 +16,31 @@ int main(int argc, char** argv) {
     Require(argc == 2, "case required");
     DedicatedCommandLine command;
     std::string error;
+    if (std::string(argv[1]) == "literal") {
+        const char* arguments[] = {"/runtime@local/hlds", "-console", "+rcon_password", "p@ssword",
+            "+hostname", "hello @server", "-literal", "@leading"};
+        const int argumentCount = static_cast<int>(sizeof(arguments) / sizeof(arguments[0]));
+        Require(command.Parse(argumentCount, arguments, error), error.c_str());
+        const std::string expected =
+            "/runtime@local/hlds -console +rcon_password p@ssword +hostname \"hello @server\" -literal @leading";
+        Require(command.Encoded() == expected, "unexpected literal command encoding");
+        Require(CreateNativeLiteralCommandLine(command.Encoded().c_str()), "literal initialization failed");
+        Require(cmdline->GetCmdLine() == expected, "literal initialization expanded an at sign");
+        char* value = nullptr;
+        Require(cmdline->CheckParm("+rcon_password", &value) && value && std::string(value) == "p@ssword",
+            "common parser changed the password");
+        Require(cmdline->CheckParm("+hostname", &value) && value && std::string(value) == "hello @server",
+            "common parser changed a quoted at sign");
+        Require(cmdline->CheckParm("-literal", &value) && value && std::string(value) == "@leading",
+            "common parser expanded a leading at sign");
+        Require(CreateNativeLiteralCommandLine(cmdline->GetCmdLine()), "literal self-copy failed");
+        Require(!CreateNativeLiteralCommandLine(nullptr), "null literal command must fail");
+        constexpr std::size_t CommonCommandCapacity = 4096;
+        const std::string oversized(CommonCommandCapacity, 'a');
+        Require(!CreateNativeLiteralCommandLine(oversized.c_str()), "oversized literal command must fail");
+        Require(cmdline->GetCmdLine() == expected, "failed literal update changed the active command");
+        return 0;
+    }
     if (std::string(argv[1]) == "flag") {
         const char* arguments[] = {"hlds", "-steam", "-console"};
         Require(command.Parse(3, arguments, error), error.c_str());

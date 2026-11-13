@@ -92,7 +92,13 @@ struct Serializer {
 class HTML : public Panel {
 public:
     void BrowserResize();
-    void OnCseEffectiveVisibilityChanged();
+#define MESSAGE_FUNC(name, message) void name()
+#if defined(CSE_TEST_CS_HTML)
+#include "actual_visibility_handler_cs.inc"
+#else
+#include "actual_visibility_handler.inc"
+#endif
+#undef MESSAGE_FUNC
     void GetSize(int& width, int& height) { width = fixtureWidth; height = fixtureHeight; }
     void SetTall(int value) { fixtureHeight = value; }
     void OnMessage(KeyValues* message, VPANEL) override {
@@ -113,7 +119,11 @@ public:
     int fixtureHeight = 80;
 };
 
+#if defined(CSE_TEST_CS_HTML)
+#include "actual_visibility_cs.inc"
+#else
 #include "actual_visibility.inc"
+#endif
 
 int main() {
     Panel root;

@@ -26,6 +26,10 @@ unknown names, output truncation/reset, repeated creation/cleanup, fallback
 cache reuse and discovery/registration lifetimes. Unknown families fail rather
 than selecting unrelated fonts. CoreText fallback is restricted to one explicit
 UTF-16 scalar; it does not replace the existing layout or shape text.
+The `font-runtime-raster-flags` case checks binary versus grayscale coverage,
+compares packed monochrome rows against FreeType's bitmap converter, checks
+underline/strikeout across a space's advance, and checks translated canvas
+pixels and guard bytes. Its oracle resolves the actual collection face.
 The native lookup uses Apple's [font descriptor attributes](https://developer.apple.com/documentation/coretext/font-attributes)
 and [single-string fallback](https://developer.apple.com/documentation/coretext/ctfontcreateforstring(_:_:_:)).
 

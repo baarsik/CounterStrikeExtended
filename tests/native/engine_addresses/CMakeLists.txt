@@ -12,6 +12,9 @@ option(CSE_ENGINE_ADDRESSES_SANITIZERS "Enable ASan and UBSan" OFF)
 foreach(source progs.h r_studio.cpp gl_mesh.cpp d_edge.cpp)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_ENGINE_ADDRESS_SOURCE_DIR}/${source}")
 endforeach()
+foreach(source draw.cpp engine_color.h)
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_ROOT}/GoldSrc-SDK/engine/${source}")
+endforeach()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_production.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_production.py"
   "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ENGINE_ADDRESS_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"

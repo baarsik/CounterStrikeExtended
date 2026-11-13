@@ -9,7 +9,8 @@ int main() {
     constexpr std::size_t MaximumTokenBytes = 514; // Actual Cmd_TokenizeString token limit, excluding terminator.
     const std::vector<std::string> testValues = {
         "CSE Zażółć gęślą", "", "C++ +/- literal - +", "+ literal", "- literal", "-42", "+42", "+/-", "-", "+",
-        "x;hostname injected", "a:b,(c)//d", std::string(MaximumTokenBytes, 'x')
+        "x;hostname injected", "a:b,(c)//d", "p@ssword", "@literal-response.cfg", "server@example.invalid",
+        std::string(MaximumTokenBytes, 'x')
     };
     for (const std::string& value : testValues) {
         cse::dedicated::DedicatedCommandLine command;

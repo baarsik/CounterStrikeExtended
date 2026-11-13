@@ -17,6 +17,7 @@
 #include "../../common/sdl3_keyboard.h"
 #include "../../common/sdl3_policy.h"
 #include "../../common/legacy_text_encoding.h"
+#include "../../common/legacy_bmp_records.h"
 #include <algorithm>
 #include <array>
 #include <climits>
@@ -49,6 +50,55 @@ constexpr int DefaultHeight = 480;
 constexpr int HdWidth = 1280;
 constexpr int HdHeight = 720;
 constexpr std::size_t MaximumFileBytes = 64 * 1024 * 1024;
+
+bool DecodeIndexedBitmap(const std::vector<unsigned char>& file, std::vector<unsigned char>& rgba,
+    int& width, int& height) {
+    constexpr std::uint16_t BitmapSignature = 0x4d42;
+    constexpr std::uint16_t IndexedBits = 8;
+    constexpr std::size_t PaletteEntries = 256;
+    constexpr std::size_t RowAlignment = 4;
+    constexpr std::size_t HeaderBytes = sizeof(cse_bmp::FileHeader) + sizeof(cse_bmp::InfoHeader);
+    constexpr std::size_t PaletteBytes = PaletteEntries * sizeof(cse_bmp::PaletteEntry);
+    if (file.size() < HeaderBytes + PaletteBytes) {
+        return false;
+    }
+    cse_bmp::FileHeader header{};
+    cse_bmp::InfoHeader info{};
+    std::memcpy(&header, file.data(), sizeof(header));
+    std::memcpy(&info, file.data() + sizeof(header), sizeof(info));
+    // Retain the original standalone loader's uncompressed, bottom-up 256-color BMP profile.
+    if (header.bfType != BitmapSignature || info.biSize != sizeof(info) || info.biPlanes != 1
+        || info.biBitCount != IndexedBits || info.biCompression != cse_bmp::RgbCompression
+        || info.biWidth <= 0 || info.biHeight <= 0 || info.biWidth > cse::vgui::MaximumRasterDimension
+        || info.biHeight > cse::vgui::MaximumRasterDimension || info.biClrUsed > PaletteEntries
+        || header.bfOffBits < HeaderBytes + PaletteBytes || header.bfOffBits > file.size()) {
+        return false;
+    }
+    const std::size_t pixels = static_cast<std::size_t>(info.biWidth) * info.biHeight;
+    const std::size_t pitch = (static_cast<std::size_t>(info.biWidth) + RowAlignment - 1) & ~(RowAlignment - 1);
+    if (pixels > MaximumFileBytes / cse::vgui::PixelChannels
+        || pitch > (file.size() - header.bfOffBits) / static_cast<std::size_t>(info.biHeight)) {
+        return false;
+    }
+    std::vector<unsigned char> replacement(pixels * cse::vgui::PixelChannels);
+    for (int y = 0; y < info.biHeight; ++y) {
+        const unsigned char* source = file.data() + header.bfOffBits
+            + static_cast<std::size_t>(info.biHeight - y - 1) * pitch;
+        for (int x = 0; x < info.biWidth; ++x) {
+            const unsigned char* color = file.data() + HeaderBytes + source[x] * sizeof(cse_bmp::PaletteEntry);
+            unsigned char* destination = replacement.data()
+                + (static_cast<std::size_t>(y) * info.biWidth + x) * cse::vgui::PixelChannels;
+            destination[0] = color[2];
+            destination[1] = color[1];
+            destination[2] = color[0];
+            destination[3] = OpaqueAlpha;
+        }
+    }
+    rgba.swap(replacement);
+    width = info.biWidth;
+    height = info.biHeight;
+    return true;
+}
 
 VPanel* Panel(VPANEL panel) {
     return reinterpret_cast<VPanel*>(panel);
@@ -191,7 +241,7 @@ private:
     void Event(const SDL_Event& event, StandaloneWindow& window, VPANEL panel);
     void TexturedRect(int x0, int y0, int x1, int y1, bool additive);
     void Glyph(wchar_t character, bool additive);
-    bool ReadFile(const char* name, std::vector<unsigned char>& bytes);
+    bool ReadFile(const char* name, std::vector<unsigned char>& bytes, const char* pathId = nullptr);
     void Traverse(VPANEL panel, int phase, bool force);
     std::map<HPanel, std::shared_ptr<StandaloneWindow>> windows_;
     std::vector<HPanel> popups_;
@@ -671,11 +721,11 @@ void CSDLSurface::DrawTexturedPolygon(VGuiVertex* vertices, int count) {
                        static_cast<int>(indices.size()));
 }
 
-bool CSDLSurface::ReadFile(const char* name, std::vector<unsigned char>& bytes) {
+bool CSDLSurface::ReadFile(const char* name, std::vector<unsigned char>& bytes, const char* pathId) {
     if (!g_pFileSystem || !name) {
         return false;
     }
-    FileHandle_t file = g_pFileSystem->Open(name, "rb", nullptr);
+    FileHandle_t file = g_pFileSystem->Open(name, "rb", pathId);
     if (!file) {
         return false;
     }
@@ -703,7 +753,20 @@ void CSDLSurface::DrawSetTextureFile(int id, const char* filename, int filter, b
         texture_ = id;
         return;
     }
-    if (!ReadFile(path.c_str(), file)) {
+    if (!ReadFile(path.c_str(), file, "SKIN") && !ReadFile(path.c_str(), file)) {
+        const std::string bitmapPath = path.substr(0, path.size() - 4) + ".bmp";
+        if (!ReadFile(bitmapPath.c_str(), file, "SKIN") && !ReadFile(bitmapPath.c_str(), file)) {
+            return;
+        }
+        std::vector<unsigned char> rgba;
+        int width = 0;
+        int height = 0;
+        if (DecodeIndexedBitmap(file, rgba, width, height)
+            && found->second.Assign(rgba.data(), width, height, false, filter != 0)) {
+            // Cache the requested TGA-first lookup, as the retained loader does.
+            found->second.filename = path;
+            texture_ = id;
+        }
         return;
     }
     // TGA uses an 18-byte serialized header; never read a native padded structure.

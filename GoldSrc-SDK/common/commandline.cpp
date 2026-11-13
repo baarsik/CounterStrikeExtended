@@ -18,6 +18,7 @@
 #include <string.h>
 
 #if !defined(_WIN32)
+#include <new>
 #include <stdexcept>
 #endif
 
@@ -38,6 +39,7 @@ public:
 	void CreateCmdLine( const char* commandline ) override;
 #if !defined( _WIN32 )
 	void CreateCmdLine( int argc, const char** argv ) override;
+    bool CreateLiteralCmdLine(const char* commandLine);
 #endif
 	const char* GetCmdLine() override;
 	char* CheckParm( const char* psz, char** ppszValue ) override;
@@ -68,6 +70,28 @@ CCommandLine::~CCommandLine()
 }
 
 #if !defined( _WIN32 )
+bool CCommandLine::CreateLiteralCmdLine(const char* commandLine) {
+    if (!commandLine) {
+        return false;
+    }
+    const size_t bytes = strnlen(commandLine, COMMAND_LINE_SIZE);
+    if (bytes >= COMMAND_LINE_SIZE) {
+        return false;
+    }
+    char* replacement = new (std::nothrow) char[bytes + 1];
+    if (!replacement) {
+        return false;
+    }
+    memcpy(replacement, commandLine, bytes + 1);
+    delete[] m_pszCmdLine;
+    m_pszCmdLine = replacement;
+    return true;
+}
+
+bool CreateNativeLiteralCommandLine(const char* commandLine) {
+    return g_CmdLine.CreateLiteralCmdLine(commandLine);
+}
+
 void CCommandLine::CreateCmdLine(int argc, const char** argv) {
     constexpr size_t PayloadLimit = COMMAND_LINE_SIZE - 1;
     constexpr size_t QuoteBytes = 2;

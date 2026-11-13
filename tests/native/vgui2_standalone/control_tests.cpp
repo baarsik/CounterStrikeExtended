@@ -30,6 +30,8 @@
 #include "vgui/ISystem.h"
 #include "vgui/IPanel.h"
 #include "vgui/IImage.h"
+#include "../../../GoldSrc-SDK/common/legacy_bmp_records.h"
+#include <unistd.h>
 
 namespace {
 bool diagnostics = false;
@@ -1667,6 +1669,95 @@ int main(int argc, char** argv) {
         surface->PopMakeCurrent(child->GetVPanel());
         surface->PopMakeCurrent(first->GetVPanel());
         delete child;
+    } else if (scenario == "indexed_bitmap_fallback") {
+        char directory[] = "/tmp/cse-standalone-bitmap-XXXXXX";
+        Require(mkdtemp(directory) != nullptr, "create isolated bitmap asset directory");
+        filesystem->AddSearchPath(directory, "SKIN");
+        constexpr std::size_t PaletteEntries = 256;
+        constexpr std::size_t HeaderBytes = sizeof(cse_bmp::FileHeader) + sizeof(cse_bmp::InfoHeader);
+        constexpr std::size_t PixelOffset = HeaderBytes + PaletteEntries * sizeof(cse_bmp::PaletteEntry);
+        constexpr int Width = 3;
+        constexpr int Height = 2;
+        constexpr std::size_t RowBytes = 4;
+        std::vector<unsigned char> bitmap(PixelOffset + RowBytes * Height);
+        cse_bmp::FileHeader fileHeader{};
+        fileHeader.bfType = 0x4d42;
+        fileHeader.bfSize = static_cast<std::uint32_t>(bitmap.size());
+        fileHeader.bfOffBits = PixelOffset;
+        cse_bmp::InfoHeader info{};
+        info.biSize = sizeof(info);
+        info.biWidth = Width;
+        info.biHeight = Height;
+        info.biPlanes = 1;
+        info.biBitCount = 8;
+        info.biSizeImage = RowBytes * Height;
+        std::memcpy(bitmap.data(), &fileHeader, sizeof(fileHeader));
+        std::memcpy(bitmap.data() + sizeof(fileHeader), &info, sizeof(info));
+        // Opaque palette colors; BMP's reserved palette byte is not alpha.
+        const cse_bmp::PaletteEntry palette[] = {{0, 0, 0, 0}, {0, 0, 255, 0},
+            {0, 255, 0, 0}, {255, 0, 0, 0}};
+        std::memcpy(bitmap.data() + HeaderBytes, palette, sizeof(palette));
+        const unsigned char indices[] = {3, 1, 2, 0xee, 1, 2, 3, 0xee};
+        std::memcpy(bitmap.data() + PixelOffset, indices, sizeof(indices));
+        const std::string base = std::string(directory) + "/indexed";
+        auto write = [&](const std::string& path, const std::vector<unsigned char>& bytes) {
+            FILE* file = std::fopen(path.c_str(), "wb");
+            Require(file != nullptr && std::fwrite(bytes.data(), 1, bytes.size(), file) == bytes.size(),
+                "write controlled texture asset");
+            Require(std::fclose(file) == 0, "close controlled texture asset");
+        };
+        write(base + ".bmp", bitmap);
+        const int texture = surface->CreateNewTextureID(true);
+        surface->DrawSetTextureFile(texture, "indexed", 0, false);
+        int wide = 0;
+        int tall = 0;
+        surface->DrawGetTextureSize(texture, wide, tall);
+        Require(wide == Width && tall == Height, "missing TGA loads indexed BMP through retained filesystem");
+        surface->SolveTraverse(first->GetVPanel(), false);
+        surface->PushMakeCurrent(first->GetVPanel(), false);
+        surface->DrawSetColor(0, 0, 0, 255);
+        surface->DrawFilledRect(0, 0, 320, 200);
+        auto check = [&](int width, int height, const unsigned char* expected) {
+            surface->DrawSetTexture(texture);
+            surface->DrawSetColor(255, 255, 255, 255);
+            surface->DrawTexturedRect(4, 4, 4 + width, 4 + height);
+            SDL_Surface* pixels = SDL_RenderReadPixels(SDL_GetRenderer(firstWindow), nullptr);
+            Require(pixels != nullptr, "read actual standalone texture pixels");
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    Uint8 red = 0;
+                    Uint8 green = 0;
+                    Uint8 blue = 0;
+                    Uint8 alpha = 0;
+                    SDL_ReadSurfacePixel(pixels, 4 + x, 4 + y, &red, &green, &blue, &alpha);
+                    const unsigned char* color = expected + (y * width + x) * 3;
+                    Require(red == color[0] && green == color[1] && blue == color[2] && alpha == 255,
+                        "indexed BMP palette, bottom-up rows and padding reach actual render pixels");
+                }
+            }
+            SDL_DestroySurface(pixels);
+        };
+        const unsigned char expected[] = {255, 0, 0, 0, 255, 0, 0, 0, 255,
+            0, 0, 255, 255, 0, 0, 0, 255, 0};
+        check(Width, Height, expected);
+        bitmap.pop_back();
+        write(base + ".bmp", bitmap);
+        surface->DrawSetTextureFile(texture, "indexed", 0, true);
+        check(Width, Height, expected);
+        // Existing .tga takes precedence over .bmp, including after a cached load.
+        const std::vector<unsigned char> tga = {0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            1, 0, 1, 0, 24, 0x20, 0, 255, 255};
+        write(base + ".tga", tga);
+        surface->DrawSetTextureFile(texture, "indexed", 0, true);
+        surface->DrawGetTextureSize(texture, wide, tall);
+        Require(wide == 1 && tall == 1, "TGA keeps precedence over BMP fallback");
+        const unsigned char yellow[] = {255, 255, 0};
+        check(1, 1, yellow);
+        surface->PopMakeCurrent(first->GetVPanel());
+        surface->DeleteTextureByID(texture);
+        filesystem->RemoveSearchPath(directory);
+        Require(std::remove((base + ".bmp").c_str()) == 0 && std::remove((base + ".tga").c_str()) == 0
+            && rmdir(directory) == 0, "retire isolated texture assets");
     } else if (scenario == "glyph_texture_pixels") {
         surface->SolveTraverse(first->GetVPanel(), false);
         surface->PushMakeCurrent(first->GetVPanel(), false);

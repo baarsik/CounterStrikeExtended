@@ -10,6 +10,7 @@ add_executable(host_tests host_tests.cpp "${SDK}/common/commandline.cpp")
 target_include_directories(host_tests PRIVATE "${SDK}")
 add_test(NAME argv_limit_before_init COMMAND host_tests argv)
 add_test(NAME console_flag_without_value COMMAND host_tests flag)
+add_test(NAME literal_dedicated_command_line COMMAND host_tests literal)
 add_executable(console_probe console_probe.cpp "${SDK}/dedicated/native/TextConsolePosix.cpp"
   "${SDK}/dedicated/native/Signals.cpp" "${SDK}/common/textconsole.cpp" "${SDK}/common/ObjectList.cpp")
 target_include_directories(console_probe PRIVATE "${SDK}" "${SDK}/public")

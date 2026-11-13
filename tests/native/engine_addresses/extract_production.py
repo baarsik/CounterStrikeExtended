@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def function(source, name):
-    match = re.search(r"^(?:static )?(?:int|void) " + name + r"\([^\n]*\)\s*\{", source, re.M)
+    match = re.search(r"^(?:static )?(?:int|void|short) " + name + r"\([^\n]*\)\s*\{", source, re.M)
     if not match:
         raise ValueError(f"Missing production function {name}")
     opening = source.index("{", match.start())
@@ -63,13 +63,18 @@ def main():
         color = ("static int D_SurfaceFlatColorIndex(const void* data) {\n"
                  "    struct Surface { const void* data; } surface{data};\n"
                  "    const auto* s = &surface;\n    return " + expression + ";\n}\n")
+    color_header = (engine / "engine_color.h").read_text(encoding="ascii")
+    for constant in ("COLOR_REDMASK_555", "COLOR_GREENMASK_555", "COLOR_REDMASK_565", "COLOR_GREENMASK_565"):
+        color += re.search(r"^#define " + constant + r"\s+.*$", color_header, re.M).group() + "\n"
+    color += function((engine / "draw.cpp").read_text(encoding="ascii"), "hlRGB")
     output.joinpath("actual_flatcolor.inc").write_text(color)
     output.joinpath("extraction-inputs.json").write_text(json.dumps({
         "selected_sources": str(selected), "production_types": str(engine),
         "boundaries": ["progs.h (whole header)", "R_StudioVertBuffer (whole function)",
                        "GL_MakeAliasModelDisplayLists (whole function)",
                        "GL_AliasDataOffset (whole helper when present)",
-                       "D_SurfaceFlatColorIndex (whole helper or frozen inline expression)"]}, indent=2) + "\n")
+                       "D_SurfaceFlatColorIndex (whole helper or frozen inline expression)",
+                       "hlRGB (whole production palette consumer)"]}, indent=2) + "\n")
 
 
 if __name__ == "__main__":

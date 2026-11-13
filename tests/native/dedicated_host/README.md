@@ -16,8 +16,10 @@ successful gameplay, Steam authentication, GUI admission or full hlds acceptance
 The GUI boundary aborts if the console tests accidentally call it.
 
 The suite checks exact 1023/1024 encoded command bounds, quoted UTF-8 and flag
-presence; final pipe line delivery and continued frames; real PTY editing and
-restoration after SIGINT/SIGTERM; closed descriptors; partial signal installation;
+presence; literal at signs in executable paths, passwords and quoted values through
+the actual common command-line owner without response-file expansion; atomic
+failure of literal initialization; final pipe line delivery and continued frames;
+real PTY editing and restoration after SIGINT/SIGTERM; closed descriptors; partial signal installation;
 fresh retry generations; shutdown/log/retirement/unmount/unload ordering; missing
 retirement export; descriptor-role and pre-constructor SHA mismatch rejection.
 The existing actual engine-owner extraction fixture additionally checks partial

@@ -11,6 +11,7 @@
 #include FT_FREETYPE_H
 #if defined(__APPLE__)
 #include "native/MacFontDiscovery.h"
+#include FT_TRUETYPE_TABLES_H
 #else
 #include <fontconfig/fontconfig.h>
 #endif
@@ -25,6 +26,7 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <limits>
 
 #if defined( _WIN32 )
 #include <windows.h>
@@ -833,10 +835,120 @@ void CLinuxFont::RenderWindowsGlyph( int ch, int rgbaX, int rgbaY, int rgbaWide,
 }
 #endif
 
+#if defined(__APPLE__)
+bool CLinuxFont::RenderNativeGlyph(int ch, int rgbaX, int rgbaY, int rgbaWide, int rgbaTall,
+    unsigned char* rgba) {
+    constexpr int ColorChannels = 4;
+    constexpr int AlphaChannel = 3;
+    constexpr unsigned char FullCoverage = 255;
+    constexpr unsigned int BitsPerByte = 8;
+    constexpr unsigned char MostSignificantBit = 0x80;
+    if (!face || !rgba || rgbaX < 0 || rgbaY < 0 || rgbaWide <= 0 || rgbaTall <= 0
+        || rgbaX >= rgbaWide || rgbaY >= rgbaTall
+        || static_cast<std::uint64_t>(rgbaWide) * rgbaTall
+            > static_cast<std::uint64_t>((std::numeric_limits<std::ptrdiff_t>::max)()) / ColorChannels) {
+        return false;
+    }
+    const FT_Int32 loadFlags = FT_LOAD_RENDER | (m_bAntiAliased
+        ? FT_LOAD_TARGET_LIGHT : FT_LOAD_TARGET_MONO | FT_LOAD_MONOCHROME);
+    if (FT_Load_Glyph(face, FT_Get_Char_Index(face, static_cast<FT_ULong>(ch)), loadFlags) != 0) {
+        return false;
+    }
+    const FT_GlyphSlot slot = face->glyph;
+    const FT_Bitmap& bitmap = slot->bitmap;
+    const bool monochrome = bitmap.pixel_mode == FT_PIXEL_MODE_MONO;
+    if (bitmap.rows != 0 && bitmap.width != 0) {
+        if (!bitmap.buffer || (!monochrome && bitmap.pixel_mode != FT_PIXEL_MODE_GRAY)
+            || (!monochrome && bitmap.num_grays < 2)) {
+            return false;
+        }
+        const std::int64_t pitch = bitmap.pitch;
+        const std::uint64_t rowBytes = static_cast<std::uint64_t>(pitch < 0 ? -pitch : pitch);
+        const std::uint64_t minimumRowBytes = monochrome
+            ? (static_cast<std::uint64_t>(bitmap.width) + BitsPerByte - 1) / BitsPerByte : bitmap.width;
+        if (rowBytes < minimumRowBytes || rowBytes * bitmap.rows
+            > static_cast<std::uint64_t>((std::numeric_limits<std::ptrdiff_t>::max)())) {
+            return false;
+        }
+        // FreeType's up-flow storage starts at the bottom row; pitch includes all row padding.
+        const unsigned char* firstRow = bitmap.buffer;
+        if (pitch < 0) {
+            firstRow += static_cast<std::size_t>(rowBytes) * (bitmap.rows - 1);
+        }
+        for (unsigned int y = 0; y < bitmap.rows; ++y) {
+            const std::int64_t targetY = static_cast<std::int64_t>(rgbaY) + m_iAscent - slot->bitmap_top + y;
+            if (targetY < rgbaY || targetY >= rgbaTall) {
+                continue;
+            }
+            const unsigned char* source = firstRow + static_cast<std::ptrdiff_t>(pitch * y);
+            for (unsigned int x = 0; x < bitmap.width; ++x) {
+                const std::int64_t targetX = static_cast<std::int64_t>(rgbaX) + slot->bitmap_left + x;
+                if (targetX < rgbaX || targetX >= rgbaWide) {
+                    continue;
+                }
+                const unsigned char coverage = monochrome
+                    ? ((source[x / BitsPerByte] & (MostSignificantBit >> (x % BitsPerByte))) ? FullCoverage : 0)
+                    : static_cast<unsigned char>(static_cast<unsigned int>(source[x]) * FullCoverage
+                        / (bitmap.num_grays - 1));
+                unsigned char* pixel = rgba
+                    + (static_cast<std::size_t>(targetY) * rgbaWide + targetX) * ColorChannels;
+                pixel[0] = FullCoverage;
+                pixel[1] = FullCoverage;
+                pixel[2] = FullCoverage;
+                pixel[AlphaChannel] = coverage;
+            }
+        }
+    }
+    if (m_bUnderlined || (m_iFlags & FONTFLAG_STRIKEOUT) != 0) {
+        int a = 0;
+        int b = 0;
+        int c = 0;
+        GetCharABCWidths(ch, a, b, c);
+        const std::int64_t advance = static_cast<std::int64_t>(a) + b + c;
+        const auto rule = [&](FT_Short position, FT_Short thickness) {
+            constexpr FT_Pos FixedPixelScale = 64;
+            constexpr FT_Pos HalfPixel = FixedPixelScale / 2;
+            const FT_Pos scaledPosition = FT_MulFix(position, face->size->metrics.y_scale);
+            const FT_Pos scaledThickness = FT_MulFix(thickness, face->size->metrics.y_scale);
+            const int pixelsThick = std::max(1, static_cast<int>((scaledThickness + HalfPixel) / FixedPixelScale));
+            const std::int64_t center = static_cast<std::int64_t>(rgbaY) + m_iAscent
+                - static_cast<int>(std::floor(static_cast<double>(scaledPosition) / FixedPixelScale + 0.5));
+            const std::int64_t top = center - pixelsThick / 2;
+            const std::int64_t right = std::min<std::int64_t>(rgbaWide,
+                static_cast<std::int64_t>(rgbaX) + advance);
+            const std::int64_t bottom = std::min<std::int64_t>(rgbaTall,
+                static_cast<std::int64_t>(rgbaY) + m_iHeight);
+            for (std::int64_t y = std::max<std::int64_t>(rgbaY, top); y < std::min(bottom, top + pixelsThick); ++y) {
+                for (std::int64_t x = rgbaX; x < right; ++x) {
+                    unsigned char* pixel = rgba + (static_cast<std::size_t>(y) * rgbaWide + x) * ColorChannels;
+                    std::memset(pixel, FullCoverage, ColorChannels);
+                }
+            }
+        };
+        if (m_bUnderlined) {
+            rule(face->underline_position, face->underline_thickness);
+        }
+        if ((m_iFlags & FONTFLAG_STRIKEOUT) != 0) {
+            const auto* metrics = static_cast<const TT_OS2*>(FT_Get_Sfnt_Table(face, ft_sfnt_os2));
+            // SFNT fonts carry the same baseline-relative strikeout metrics consumed by GDI.
+            // Non-SFNT faces use their ascent/descent midpoint and underline stem thickness.
+            const FT_Short position = metrics ? metrics->yStrikeoutPosition
+                : static_cast<FT_Short>((face->ascender + face->descender) / 2);
+            rule(position, metrics ? metrics->yStrikeoutSize : face->underline_thickness);
+        }
+    }
+    return true;
+}
+#endif
+
 void CLinuxFont::GetCharRGBA( int ch, int rgbaX, int rgbaY, int rgbaWide, int rgbaTall, unsigned char* rgba )
 {
 #if defined( _WIN32 )
 	RenderWindowsGlyph( ch, rgbaX, rgbaY, rgbaWide, rgbaTall, rgba );
+#elif defined(__APPLE__)
+    if (!RenderNativeGlyph(ch, rgbaX, rgbaY, rgbaWide, rgbaTall, rgba)) {
+        return;
+    }
 #else
 	FT_Error error = FT_Load_Glyph( face, FT_Get_Char_Index( face, (FT_ULong)ch ), FT_LOAD_RENDER | FT_LOAD_TARGET_LIGHT );
 	if ( error )

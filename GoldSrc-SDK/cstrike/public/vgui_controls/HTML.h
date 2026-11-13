@@ -179,6 +179,9 @@ public:
 	void PaintComboBox();
 
 private:
+#if UINTPTR_MAX > UINT32_MAX
+    MESSAGE_FUNC(OnCseEffectiveVisibilityChanged, "CseEffectiveVisibilityChanged");
+#endif
 	void UpdateCachedHTMLValues();
 
 	IHTMLSerializer*	m_Serializer;

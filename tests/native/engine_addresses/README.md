@@ -30,14 +30,13 @@ Coverage:
   The method must reject before updating the corresponding field or payload.
   Separate helper cases cover both signed limits and the first values outside
   them. Win32's valid pointer differences already fit the retained signed int.
-- Fixed flatcolor cases retain the Win32 signed low-32-bit arithmetic-shift and
-  signed-remainder results, including negative indices and values around the
-  sign/shift boundaries. Native high bits must not affect the result. The helper
+- Fixed flatcolor cases retain the ordinary Win32 signed low-32-bit hash colors
+  and normalize negative remainders into the palette range. Cases around the
+  sign/shift boundaries exercise the actual `hlRGB` palette consumer in both
+  15-bit and 16-bit modes. Native high bits must not affect the result. The helper
   explicitly sign-extends the logical shift, avoiding implementation-defined
-  signed casts/shifts. The frozen reference uses the exact old inline expression.
-  Negative indices are reported and preserved; this fixture never dereferences a
-  palette at such an index. The inherited negative palette-index issue is outside
-  this width repair.
+  signed casts/shifts. The frozen reference uses the exact old inline expression
+  and must fail the formerly negative cases before attempting a palette lookup.
 
 External alias file/hunk/logging services are fixture bindings. Cached triangle
 generation, real file I/O, normal hunk management, OpenGL/software drawing, model

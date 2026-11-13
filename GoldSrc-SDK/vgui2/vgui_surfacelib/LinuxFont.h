@@ -158,6 +158,7 @@ private:
 #endif
 
 #if defined(__APPLE__)
+    bool RenderNativeGlyph(int ch, int rgbaX, int rgbaY, int rgbaWide, int rgbaTall, unsigned char* rgba);
     std::string m_MacRequestedName;
     std::string m_MacPostScriptName;
     std::vector<CLinuxFont*> m_MacFallbackFonts;

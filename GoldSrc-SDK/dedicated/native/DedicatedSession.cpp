@@ -101,7 +101,11 @@ bool DedicatedSession::Open(int argc, const char* const* argv, std::string& erro
     std::free(canonical);
     const auto separator = root_.find_last_of('/');
     root_.resize(separator == 0 ? 1 : separator);
-    cmdline->CreateCmdLine(command_.Encoded().c_str());
+    if (!CreateNativeLiteralCommandLine(command_.Encoded().c_str())) {
+        error = "Cannot initialize the dedicated command line";
+        Close();
+        return false;
+    }
     if (!signals_.Install()) {
         error = "Cannot install dedicated signal handlers";
         Close();

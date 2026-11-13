@@ -42,7 +42,8 @@ inline bool TokenByte(unsigned char value) noexcept {
     return value >= ' ' && value != Delete;
 }
 
-// The native host emits whole-token quotes only; no escaping or response files.
+// The native host emits whole-token quotes only, without escaping or response-file expansion.
+// At signs are ordinary token bytes, including in passwords and executable paths.
 // Validate before any provider callbacks, then Sys_InitArgv can decode in place.
 inline bool Validate(const char* command) noexcept {
     if (!command) {
@@ -73,7 +74,7 @@ inline bool Validate(const char* command) noexcept {
         }
         const char* begin = cursor;
         while (*cursor && (quoted ? *cursor != '"' : *cursor != ' ')) {
-            if (!TokenByte(static_cast<unsigned char>(*cursor)) || *cursor == '"' || *cursor == '@') {
+            if (!TokenByte(static_cast<unsigned char>(*cursor)) || *cursor == '"') {
                 return false;
             }
             ++cursor;

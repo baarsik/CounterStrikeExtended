@@ -164,13 +164,14 @@ static int D_SurfaceFlatColorIndex(const void* surfaceData) {
     constexpr std::int32_t ShiftedSignRange = static_cast<std::int32_t>(AddressSignBit >> (AddressShift - 1));
     constexpr int FlatColorCount = 255;
 
-    // Preserve the Win32 signed low-32-bit arithmetic shift, including its negative remainder.
+    // Retain the Win32 signed low-32-bit hash, but keep its result inside the palette.
     const auto addressBits = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(surfaceData));
     auto shiftedAddress = static_cast<std::int32_t>(addressBits >> AddressShift);
     if ((addressBits & AddressSignBit) != 0) {
         shiftedAddress -= ShiftedSignRange;
     }
-    return shiftedAddress % FlatColorCount;
+    const int index = shiftedAddress % FlatColorCount;
+    return index < 0 ? index + FlatColorCount : index;
 }
 
 /*

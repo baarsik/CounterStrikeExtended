@@ -15,6 +15,12 @@ ctest --test-dir build/vgui2-standalone-debug --output-on-failure
 
 Repeat with `Release` and the owning Release build. The automated tests set SDL dummy video/audio and software rendering. They do not set keyboard-repeat hints; the production video owner must disable the macOS accent picker before SDL video initialization. Fractional wheel events are accumulated per native window and hovered panel serial handle; focus loss/leave discards unfinished fractions. SDL `FLIPPED` deltas are inverted to the retained positive-up convention before accumulation. A real TextEntry/ScrollBar test covers fractional sequences, distinct windows, focus reset and both directions. The renderer lifetime test instruments the real StandaloneWindow/Raster sources with ASan and UBSan for 100 window/renderer/texture generations and density-two clip pixels. The ownership interposer injects failures at actual SDL allocation boundaries and calls the real SDL functions on successful paths. The glyph reference uses retained FontManager glyph coverage and the pinned SDL compositor directly, bypassing the surface's glyph cache. The physical ABI negative test recompiles actual producer/control source recipes with deliberately reordered real interface declarations and a changed Color record, then exercises the production schema extraction.
 
+The `indexed_bitmap_fallback` case creates its own indexed BMP/TGA assets in a
+temporary search path. It checks opaque palette colors, bottom-up rows and BMP
+padding through the actual surface pixels, retains the previous texture after
+a truncated replacement, and verifies TGA precedence. It needs the harness's
+normal scheme resources but no external bitmap fixture.
+
 For controller-owned physical Cocoa acceptance, unset `SDL_VIDEODRIVER`, `SDL_RENDER_DRIVER` and `SDL_AUDIODRIVER`, then run:
 
 ```sh

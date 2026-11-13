@@ -289,6 +289,9 @@ HTML::HTML( Panel* parent, const char* name, bool allowJavaScript, bool bPopupWi
 	m_iCopyLinkMenuItemID =
 		menu->AddMenuItem( "#vgui_HTMLCopyLink", new KeyValues( "Command", "command", "copylink" ), this, NULL );
 	menu->SetItemVisible( m_iCopyLinkMenuItemID, false );
+#if UINTPTR_MAX > UINT32_MAX
+    BrowserResize();
+#endif
 }
 
 HTML::~HTML()
@@ -727,8 +730,29 @@ void HTML::CalcScrollBars( int w, int h )
 		InvalidateLayout( false, false );
 }
 
+#if UINTPTR_MAX > UINT32_MAX
+void HTML::OnCseEffectiveVisibilityChanged() {
+    BrowserResize();
+}
+#endif
+
 void HTML::BrowserResize()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+    for (VPANEL panel = GetVPanel(); panel != 0; panel = ipanel()->GetParent(panel)) {
+        if (!ipanel()->IsVisible(panel)) {
+            // Suspend hidden ancestry without changing local visibility or retained layout.
+            m_iWideLastHTMLSize = 0;
+            m_iTalLastHTMLSize = 0;
+            m_Serializer->SetFocus(false);
+            m_Serializer->BrowserSize(0, 0);
+            return;
+        }
+    }
+#endif
 	int wide = 0;
 	int tall = 0;
 	GetSize( wide, tall );
@@ -1070,6 +1094,13 @@ void HTML::OpenURL( const char* URL, const char* postData, bool force )
 
 void HTML::BrowserReady()
 {
+#if INTPTR_MAX > INT32_MAX
+    if (m_Serializer == nullptr) {
+        return;
+    }
+    // Readiness may follow a change to the retained ancestry's visibility.
+    BrowserResize();
+#endif
 	char* url = m_sPendingURLLoad.m_pchString;
 	if ( !url )
 		return;

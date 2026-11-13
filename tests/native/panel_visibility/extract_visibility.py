@@ -20,11 +20,15 @@ def function(source, signature):
 
 root = Path(sys.argv[1])
 out = Path(sys.argv[2])
+counter_strike = len(sys.argv) > 3 and sys.argv[3] == "cs"
+html_source = "cstrike/vgui2/controls/HTML.cpp" if counter_strike else "vgui2/controls/HTML.cpp"
+html_header = "cstrike/public/vgui_controls/HTML.h" if counter_strike else "vgui2/controls/HTML.h"
+suffix = "_cs" if counter_strike else ""
 methods = {
     "vgui2/controls/Panel.cpp": ["void Panel::SetVisible("],
     "vgui2/src/VPanel.cpp": ["static void NotifyEffectiveVisibilityChanged(",
                             "void VPanel::SetVisible(", "void VPanel::SetParent("],
-    "vgui2/controls/HTML.cpp": ["void HTML::OnCseEffectiveVisibilityChanged(", "void HTML::BrowserResize("],
+    html_source: ["void HTML::OnCseEffectiveVisibilityChanged(", "void HTML::BrowserResize("],
 }
 hashes = {}
 result = []
@@ -37,5 +41,11 @@ for relative, signatures in methods.items():
         body = function(source, signature)
         hashes[relative]["functions"][signature] = hashlib.sha256(body.encode()).hexdigest()
         result.append(body)
-(out / "actual_visibility.inc").write_text("\n".join(result))
-(out / "producing-hashes.json").write_text(json.dumps(hashes, indent=2) + "\n")
+header_bytes = (root / "GoldSrc-SDK" / html_header).read_bytes()
+header = header_bytes.decode("cp1252").replace("\r\n", "\n")
+registration = "\n".join(line.strip() for line in header.splitlines()
+                         if "MESSAGE_FUNC(OnCseEffectiveVisibilityChanged," in line)
+hashes[html_header] = {"sha256": hashlib.sha256(header_bytes).hexdigest()}
+(out / f"actual_visibility_handler{suffix}.inc").write_text(registration + "\n")
+(out / f"actual_visibility{suffix}.inc").write_text("\n".join(result))
+(out / f"producing-hashes{suffix}.json").write_text(json.dumps(hashes, indent=2) + "\n")

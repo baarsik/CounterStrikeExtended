@@ -27,7 +27,7 @@ target_include_directories(control_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine
   "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
   "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
 target_link_libraries(control_tests PRIVATE "${CSE_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib" objc)
-foreach(case IN ITEMS mid_batch_resize_intent mid_batch_resize_intent_alternate command_edit_accelerators command_modifier_order callback_resize_retirement callback_scheme_retirement callback_think_retirement mouse_button_retirement shift_click_event_order popup_event_generation fractional_wheel_controls focus_capture_and_text resize_hidpi_clip glyph_texture_pixels surface_partial_failure_reopen)
+foreach(case IN ITEMS mid_batch_resize_intent mid_batch_resize_intent_alternate command_edit_accelerators command_modifier_order callback_resize_retirement callback_scheme_retirement callback_think_retirement mouse_button_retirement shift_click_event_order popup_event_generation fractional_wheel_controls focus_capture_and_text resize_hidpi_clip indexed_bitmap_fallback glyph_texture_pixels surface_partial_failure_reopen)
   add_test(NAME ${case} COMMAND control_tests "${CSE_OWNER_BUILD}/runtime/${CMAKE_BUILD_TYPE}"
     "${CSE_RESOURCE_ROOT}" ${case})
   set_tests_properties(${case} PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy;SDL_RENDER_DRIVER=software")

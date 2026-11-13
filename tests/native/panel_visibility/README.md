@@ -4,6 +4,12 @@ methods without rewriting their bodies. Only the VGUI services, hierarchy
 storage, and browser serializer are controlled. Producing source and body hashes
 are generated beside the executable. It does not execute a browser or native UI.
 
+Both the shared HTML implementation and Counter-Strike's separate HTML implementation
+run through this hierarchy fixture. Each target extracts its notification declaration
+from the owning production header, so a missing CS handler cannot be supplied only
+by the fixture. The shared panel hierarchy supplies the same VPanel notification
+boundary to both implementations.
+
 The initial implementation fails because showing a parent overwrites an HTML
 child's own hidden flag. Native 64-bit builds now notify through the existing
 client message boundary, including nested hidden descendants and direct IPanel
