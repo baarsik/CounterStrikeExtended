@@ -58,7 +58,9 @@ checks, not physical-output, loaded-export, OEM, or game-consumer qualification.
   requests, combined with direct, fail without initialized device state. Failed
   requests return a zero supported mask; `0x80` remains only the splash option.
   Mixed masks, zero masks, geometry defaults and disabling are checked through
-  the native route. External/Windows legacy branches are preserved.
+  the native route. Init retains the direct-path default and leaves occlusion
+  disabled until Enable; first geometry initialization also keeps it disabled,
+  and repeated geometry queries preserve an explicit Enable. External/Windows legacy branches are preserved.
 
 The exact stock software control evidence is pinned in the existing
 `a3d-reference-analysis-v1/{findings.md,controller-checks.json,selected-evidence.json}`

@@ -1838,7 +1838,8 @@ HRESULT STDMETHODCALLTYPE CA3d::Init( LPGUID pDevice, DWORD dwFeatures, DWORD )
     if (UsesNativeProvider()) {
         m_dwRequestedFeatures = dwFeatures;
         m_dwFeaturesAvailable = dwSupportedFeatures;
-        m_dwEnabledFeatures = dwSupportedFeatures;
+        // Retain the direct-path default; available occlusion requires Enable.
+        m_dwEnabledFeatures = dwSupportedFeatures & A3D_DIRECT_PATH_A3D;
     } else
 #endif
     {

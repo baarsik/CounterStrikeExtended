@@ -8,8 +8,19 @@ int main() {
     CA3d* initial = CreateParent();
     CHECK(initial->Init(nullptr, 0, 0) == S_OK);
     CHECK(initial->m_dwFeaturesAvailable == kQualified);
+    CHECK(initial->IsEnabled(A3D_DIRECT_PATH_A3D));
+    CHECK(!initial->IsEnabled(A3D_OCCLUSIONS));
+    IA3dGeomTarget* initialGeometry = nullptr;
+    CHECK(initial->QueryInterface(IID_IA3dGeom, reinterpret_cast<void**>(&initialGeometry)) == S_OK);
+    CHECK(initial->IsEnabled(A3D_DIRECT_PATH_A3D));
+    CHECK(!initial->IsEnabled(A3D_OCCLUSIONS));
+    initialGeometry->Release();
     CHECK(initial->Disable(A3D_OCCLUSIONS) == S_OK);
     CHECK(initial->Enable(A3D_OCCLUSIONS) == S_OK);
+    CHECK(initial->IsEnabled(A3D_OCCLUSIONS));
+    CHECK(initial->QueryInterface(IID_IA3dGeom, reinterpret_cast<void**>(&initialGeometry)) == S_OK);
+    CHECK(initial->IsEnabled(A3D_OCCLUSIONS));
+    initialGeometry->Release();
     CHECK(initial->IsFeatureAvailable(kQualified | A3D_1ST_REFLECTIONS) != S_OK);
     CHECK(initial->Enable(kQualified | A3D_1ST_REFLECTIONS) == A3DERROR_FEATURE_NOT_SUPPORTED);
     CHECK(initial->Release() == 0);
@@ -57,6 +68,7 @@ int main() {
         CHECK(parent->m_dwRequestedFeatures == 0);
         CHECK(dynamic_cast<ResMan*>(parent->m_pDirectSound)->m_dwInitialized == 0);
         CHECK(parent->Init(nullptr, kQualified, 0) == S_OK);
+        CHECK(!parent->IsEnabled(A3D_OCCLUSIONS));
         CHECK(parent->IsFeatureAvailable(kQualified) == S_OK);
         CHECK(parent->IsFeatureAvailable(kQualified | feature) != S_OK);
         const DWORD enabledBefore = parent->m_dwEnabledFeatures;
