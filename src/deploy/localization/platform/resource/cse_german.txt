@@ -19,5 +19,11 @@
         "CSEServerBrowser_Value" "Wert"
         "CSEServerBrowser_DetailsFailed" "Einige Serverinformationen konnten nicht abgerufen werden."
         "Console_Submit" "Senden"
+        "CSEAdmin_ChangesOnOK" "Änderungen gelten nach OK."
+        "CSEAdmin_Uptime" "Laufzeit"
+        "CSEAdmin_UDPPort" "UDP-Port"
+        "CSEAdmin_MoveUp" "Nach oben"
+        "CSEAdmin_MoveDown" "Nach unten"
+
     }
 }

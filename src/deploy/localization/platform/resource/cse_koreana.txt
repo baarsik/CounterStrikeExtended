@@ -19,5 +19,11 @@
         "CSEServerBrowser_Value" "값"
         "CSEServerBrowser_DetailsFailed" "일부 서버 정보를 가져올 수 없습니다."
         "Console_Submit" "전송"
+        "CSEAdmin_ChangesOnOK" "OK를 누르면 변경됩니다."
+        "CSEAdmin_Uptime" "가동 시간"
+        "CSEAdmin_UDPPort" "UDP 포트"
+        "CSEAdmin_MoveUp" "위로"
+        "CSEAdmin_MoveDown" "아래로"
+
     }
 }

@@ -1,0 +1,18 @@
+"lang"
+{
+    "Language" "Russian"
+    "Tokens"
+    {
+        "App_SpecialOffers" "Специальные предложения"
+        "App_Friends" "Друзья"
+        "App_Games" "Играть в игры"
+        "App_Storefront" "Обзор игр"
+        "App_Servers" "Серверы"
+        "App_Browser" "Обозреватель интернет"
+        "Admin_Servers" "Мой серверы"
+        "App_Account" "Учетная запись"
+        "App_Settings" "Настройки"
+        "App_Monitor" "Монитор"
+        "App_News" "Новости"
+    }
+}

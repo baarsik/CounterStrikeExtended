@@ -1,0 +1,14 @@
+Chateau — podkładanie/rozbrajanie bomby
+
+Macman    *chrisa@valvesoftware.com*
+Ido Magal *ido@valvesoftware.com*
+
+Terroryści: Po utracie Cobble lord
+Williams odbudowuje letni zamek.
+Nie pozwólcie mu na remont.
+Podłóżcie C4 na przednim
+lub tylnym dziedzińcu.
+
+Antyterroryści: Chrońcie inwestycję
+lorda Williamsa. Nie pozwólcie
+terrorystom zniszczyć jego nowego domu.

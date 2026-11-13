@@ -1,0 +1,19 @@
+747 Hijack — ratowanie zakładników
+Autor: Stephen "Judas" Superville
+(witchdawn@hotmail.com)
+Tekstury: "The Postman"
+(heavengame@yahoo.com)
+
+Antyterroryści: Wejdźcie do samolotu
+i uratujcie pozostałych zakładników
+przetrzymywanych przez terrorystów.
+
+Terroryści: Nie pozwólcie
+antyterrorystom uratować
+zakładników.
+
+Uwagi:
+W samolocie jest 5 zakładników.
+
+Specjalne podziękowania dla Leona Nieuwoudta,
+który rozpoczął tworzenie mapy.

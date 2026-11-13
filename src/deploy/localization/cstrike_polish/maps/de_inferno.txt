@@ -1,0 +1,13 @@
+Inferno — rozbrajanie bomby
+Autor: Chris Auty (Barney) (narby@counter-strike.net)
+Tekstury: Valve Software
+
+Terroryści próbują wysadzić dwa ważne gazociągi
+przebiegające przez niewielką wioskę.
+
+Antyterroryści: Nie pozwólcie terrorystom
+zniszczyć gazociągów.
+
+Terroryści: Zniszczcie dwa gazociągi.
+
+Uwagi: W misji są 2 punkty podłożenia bomby.

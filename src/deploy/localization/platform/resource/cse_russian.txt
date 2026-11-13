@@ -1,0 +1,28 @@
+"lang"
+{
+    "Language" "Russian"
+    "Tokens"
+    {
+        "CSEServerBrowser_CurrentGame" "Подключение доступно только для текущей игры."
+        "CSEServerBrowser_Updating" "Обновление списка..."
+        "CSEServerBrowser_Sorting" "Сортировка..."
+        "CSEServerBrowser_Unsaved" "Не удалось сохранить настройки."
+        "CSEServerBrowser_Unavailable" "Поиск серверов Steam недоступен."
+        "CSEServerBrowser_PasswordInvalid" "Введите допустимый пароль сервера."
+        "CSEServerBrowser_Name" "Имя сервера"
+        "CSEServerBrowser_Secure" "Защита"
+        "CSEServerBrowser_Yes" "Да"
+        "CSEServerBrowser_No" "Нет"
+        "CSEServerBrowser_Apply" "Применить"
+        "CSEServerBrowser_Rules" "Правила"
+        "CSEServerBrowser_Value" "Значение"
+        "CSEServerBrowser_DetailsFailed" "Не удалось получить часть данных сервера."
+        "Console_Submit" "Отправить"
+        "CSEAdmin_ChangesOnOK" "Изменения — после OK."
+        "CSEAdmin_Uptime" "Время работы"
+        "CSEAdmin_UDPPort" "UDP-порт"
+        "CSEAdmin_MoveUp" "Выше"
+        "CSEAdmin_MoveDown" "Ниже"
+
+    }
+}

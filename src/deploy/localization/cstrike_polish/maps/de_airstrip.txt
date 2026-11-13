@@ -1,0 +1,13 @@
+Airstrip — rozbrajanie bomby
+Autor: Barney (aka narby) (narby@counter-strike.net)
+
+Specjalne podziękowania: Iikka Keranen, John Morello i Minh Le
+
+Antyterroryści: Nie pozwólcie terrorystom
+podłożyć ładunków na terenie
+lotniska.
+
+Terroryści: Podłóżcie C4 na lotnisku
+i zniszczcie paliwo oraz strefę ładunkową.
+
+Uwagi: Na mapie są 2 punkty podłożenia bomby.

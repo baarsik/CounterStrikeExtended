@@ -19,5 +19,11 @@
         "CSEServerBrowser_Value" "Valore"
         "CSEServerBrowser_DetailsFailed" "Impossibile recuperare alcune informazioni del server."
         "Console_Submit" "Invia"
+        "CSEAdmin_ChangesOnOK" "Modifiche applicate con OK."
+        "CSEAdmin_Uptime" "Tempo attività"
+        "CSEAdmin_UDPPort" "Porta UDP"
+        "CSEAdmin_MoveUp" "Su"
+        "CSEAdmin_MoveDown" "Giù"
+
     }
 }

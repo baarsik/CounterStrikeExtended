@@ -61,7 +61,8 @@ separately. Builds do not launch games or run tests.
 ## Interface translations
 
 Runtime builds bundle English, French, German, Italian, Spanish (Spain), Simplified
-Chinese, Traditional Chinese and Korean text. The shared resource target covers
+Chinese, Traditional Chinese and Korean text, plus CSE-maintained Russian and
+Polish translations. The shared resource target covers
 Windows x86/x64 and macOS ARM64 in Release and Debug, including custom runtime
 roots. It restores missing resource files on subsequent builds without relinking
 consumers and leaves unchanged files untouched.

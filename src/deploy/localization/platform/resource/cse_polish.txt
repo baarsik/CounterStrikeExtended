@@ -1,0 +1,29 @@
+// Polish catalogue. Maintained in UTF-8; staged as UTF-16LE with BOM.
+"lang"
+{
+    "Language" "Polish"
+    "Tokens"
+    {
+        "CSEServerBrowser_CurrentGame" "Łączenie jest dostępne tylko dla bieżącej gry."
+        "CSEServerBrowser_Updating" "Aktualizacja listy..."
+        "CSEServerBrowser_Sorting" "Sortowanie..."
+        "CSEServerBrowser_Unsaved" "Nie można zapisać ustawień."
+        "CSEServerBrowser_Unavailable" "Przeglądanie serwerów Steam jest niedostępne."
+        "CSEServerBrowser_PasswordInvalid" "Wpisz prawidłowe hasło serwera."
+        "CSEServerBrowser_Name" "Nazwa serwera"
+        "CSEServerBrowser_Secure" "Zabezpieczony"
+        "CSEServerBrowser_Yes" "Tak"
+        "CSEServerBrowser_No" "Nie"
+        "CSEServerBrowser_Apply" "Zastosuj filtry"
+        "CSEServerBrowser_Rules" "Reguły"
+        "CSEServerBrowser_Value" "Wartość"
+        "CSEServerBrowser_DetailsFailed" "Nie udało się pobrać części danych serwera."
+        "Console_Submit" "Wyślij"
+        "CSEAdmin_ChangesOnOK" "Przycisk OK stosuje zmiany."
+        "CSEAdmin_Uptime" "Czas pracy"
+        "CSEAdmin_UDPPort" "Port UDP"
+        "CSEAdmin_MoveUp" "W górę"
+        "CSEAdmin_MoveDown" "W dół"
+
+    }
+}

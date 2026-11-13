@@ -1,0 +1,14 @@
+Cobble — podkładanie/rozbrajanie bomby
+Autor: DaveJ (http://www.johnsto.co.uk/)
+Tekstury: MacMan (MacManInfi@aol.com)
+
+Antyterroryści: Nie pozwólcie terrorystom
+wysadzić wiejskiej posiadłości lorda
+Williama. Stał się celem zamachu
+w związku z ostatnimi propozycjami
+rządu.
+
+Terroryści: Niosący C4 musi podłożyć
+bombę w jednym z dwóch punktów
+na mapie, aby zabić lorda Williama
+i poważnie uszkodzić jego dom.

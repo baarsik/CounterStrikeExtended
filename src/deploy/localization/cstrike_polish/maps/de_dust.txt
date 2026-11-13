@@ -1,0 +1,15 @@
+Dust — podkładanie/rozbrajanie bomby
+Autor: DaveJ (http://www.johnsto.co.uk/)
+Tekstury: Macman (MacManInfi@aol.com)
+
+Antyterroryści: Nie pozwólcie terrorystom
+wysadzić skrzyń z bronią chemiczną.
+Rozbrójcie każdą bombę zagrażającą
+wyznaczonym obszarom.
+
+Terroryści: Niosący C4 musi
+zniszczyć jeden ze składów
+broni chemicznej.
+
+Uwagi: W misji są 2 składy
+broni chemicznej.

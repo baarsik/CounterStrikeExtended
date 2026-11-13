@@ -9,7 +9,9 @@ Steam and game installations are not needed during ordinary builds.
 
 Both games advertise English, French, German, Italian, Spanish (Spain), Simplified
 Chinese, Traditional Chinese and Korean. `manifest.json` records their Steam API
-identifiers and the legacy `korean` alias for `koreana`.
+identifiers and the legacy `korean` alias for `koreana`. Russian and Polish are
+additional CSE-maintained languages; `official_languages` distinguishes the
+original eight from these extensions.
 
 The eight stock token families are `valve`, `cstrike`, `gameui`, `platform`, `vgui`,
 `serverbrowser`, `admin` and `server`. Original CSE text is kept separately in
@@ -32,6 +34,11 @@ authentication material are deliberately absent.
 - English game catalogues and legacy text: the installed official Steam tree,
   with per-file hashes and owning content identities recorded in the manifest.
 
+Russian and Polish reuse the official platform/admin/server-browser text that
+exists in those depots. Missing game/catalogue/legacy text was authored from the
+maintained English baseline. Authored entries identify that source and its hash;
+fit adaptations and missing resource aliases are maintained CSE additions.
+
 No community translation pack was imported. The maintained sources normalize
 line endings to LF and use UTF-8; hashes describe the original upstream bytes,
 before that conversion.
@@ -49,7 +56,7 @@ text directly when making subsequent wording changes.
 The loader reads English first and overlays the selected language. Some official
 translations omit tokens that are present in current English catalogues. The
 `upstream_fallbacks` section lists these omissions explicitly; they use the stock
-English fallback. Every original CSE token is present in all eight catalogues.
+English fallback. Every CSE token is present in all ten catalogues.
 
 Legacy HUD messages, spectator menus, command menus, key-binding labels and map
 briefings keep the game-relative paths used by the filesystem. The manifest
@@ -89,5 +96,6 @@ consumers or rewriting unchanged files.
 
 Native consumer fixtures and the optional real VGUI loader check are documented
 in [tests/native/README.md](../../../tests/native/README.md). These checks cover
-resource loading and parsed text; full-game layout and legacy HUD CJK glyph
-rendering have not been qualified by this pack.
+resource loading and parsed text. Russian/Polish fit checks also use actual
+scheme fonts, retained control layouts and native rendered samples. Full-game
+interaction and all-language CJK acceptance remain separate checks.

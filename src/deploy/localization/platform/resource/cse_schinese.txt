@@ -19,5 +19,11 @@
         "CSEServerBrowser_Value" "值"
         "CSEServerBrowser_DetailsFailed" "无法获取部分服务器详情。"
         "Console_Submit" "提交"
+        "CSEAdmin_ChangesOnOK" "按 OK 应用更改。"
+        "CSEAdmin_Uptime" "运行时间"
+        "CSEAdmin_UDPPort" "UDP 端口"
+        "CSEAdmin_MoveUp" "上移"
+        "CSEAdmin_MoveDown" "下移"
+
     }
 }

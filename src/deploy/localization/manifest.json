@@ -8,7 +8,9 @@
     "spanish": "Spanish",
     "schinese": "Simplified Chinese",
     "tchinese": "Traditional Chinese",
-    "koreana": "Korean"
+    "koreana": "Korean",
+    "russian": "Russian",
+    "polish": "Polish"
   },
   "language_aliases": {
     "korean": "koreana"
@@ -538,6 +540,40 @@
         "cstrike_koreana/resource/cstrike_koreana.txt",
         "cstrike/resource/cstrike_korean.txt",
         "cstrike_korean/resource/cstrike_korean.txt"
+      ]
+    },
+    {
+      "destination": "cstrike/resource/cstrike_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "cstrike/resource/cstrike_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/resource/cstrike_english.txt",
+        "sha256": "0862a8f8175b4eca321d18f0dae7bb6d4197cc15c360c88540dd2a0045fe16a6",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "cstrike_polish/resource/cstrike_polish.txt"
+      ]
+    },
+    {
+      "source": "cstrike/resource/cstrike_russian.txt",
+      "destination": "cstrike/resource/cstrike_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/resource/cstrike_english.txt",
+        "sha256": "0862a8f8175b4eca321d18f0dae7bb6d4197cc15c360c88540dd2a0045fe16a6",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "cstrike_russian/resource/cstrike_russian.txt"
       ]
     },
     {
@@ -2436,6 +2472,846 @@
       ]
     },
     {
+      "destination": "cstrike_polish/commandmenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/commandmenu.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/commandmenu.txt",
+        "sha256": "e38d975e35bf6df1aab61e10d3564bbe55809590114e1c0b1242bb6172dcdb80",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/gfx/shell/kb_act.lst",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/gfx/shell/kb_act.lst",
+        "sha256": "98abbf6b4f2a9dc79ea1ea36ced65a6e77fb06d95df413fa650ea59bba9fbb26",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/as_oilrig.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/as_oilrig.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/as_oilrig.txt",
+        "sha256": "347f4957d73321b832d62c89f98b35cee1925055fb978216249371fc3a718a48",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_747.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_747.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_747.txt",
+        "sha256": "73255f98b353255557f446a60de5e47e86885d9727f132f5870b712e293ca9e6",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_assault.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_assault.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_assault.txt",
+        "sha256": "1a702b58ff21283ed363f8dbc597143da459e68bcf204c17ba9d5dcaf8c4cc9a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_backalley.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_backalley.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_backalley.txt",
+        "sha256": "eba7563264d728d11081e7fd6e295cbb2fd1cbb39865a330e18fc1d24c9027fd",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_estate.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_estate.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_estate.txt",
+        "sha256": "fab19ad12851830cd56f50811616f2a46be780184562b6da506f71a54e95da66",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_havana.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_havana.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_havana.txt",
+        "sha256": "ad72bf8e891d980219d8523caac9fe3f4c9555c27c2488b6ffb3107976c50de3",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_italy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_italy.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_italy.txt",
+        "sha256": "d74c1ecb450a222b6c44bcbd79edc8382c0247bfb889d8133f68d2371d1903a5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_militia.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_militia.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_militia.txt",
+        "sha256": "f8793cbe5b3ee1180748ca6dcdf5091bfd3b545666cebff592f3a62df1b3ba4f",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_office.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_office.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_office.txt",
+        "sha256": "9d69d1511549fddcd1dc57108eadaca3b64fd86e8f27606bd4a3d2611185030a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/cs_siege.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/cs_siege.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_siege.txt",
+        "sha256": "e60b61b59138157b305bad533624de4a46f3096c7cafff85350b4b191b9b18a1",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_airstrip.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_airstrip.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_airstrip.txt",
+        "sha256": "b424bbfe9cc13ddb31c7486d8a602d6a0ffc68f448704f034d54cec4b4082d8b",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_aztec.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_aztec.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_aztec.txt",
+        "sha256": "26fa112d235df206add78ef0e2aee39d08711171b33f85f4331a3ab8ffced025",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_cbble.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_cbble.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_cbble.txt",
+        "sha256": "0be4b0425a01314aecd1f818ce5852269d55177cd85519c013723aa0f824e56b",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_chateau.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_chateau.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_chateau.txt",
+        "sha256": "52e10ffd3c6c6f54bc365693bee1ac975caf4dade6f20149d80895b490ca2542",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_dust.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_dust.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_dust.txt",
+        "sha256": "c5ffb46f9d5dd14724c7d9b9beae7215b267e8f7564945c0c07bda7eefa96c24",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_dust2.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_dust2.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_dust2.txt",
+        "sha256": "1812e8f86fb19ebfd5d9fc018a2b1c940d6ccafa98cfe0cd7362b319938290ea",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_inferno.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_inferno.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_inferno.txt",
+        "sha256": "c73f814696c269365fd8c4d5397cafb49756c4b4521adccde9cebb81f9d51248",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_nuke.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_nuke.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_nuke.txt",
+        "sha256": "aec2f181c4c92252109c735a6eedee12a10709155569baeb9db3b6a76d60c708",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_piranesi.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_piranesi.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_piranesi.txt",
+        "sha256": "0f486f7041d1b9a78b45b3417ed19420d619398b1d439ff23c13ec63a1d14fd8",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_prodigy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_prodigy.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_prodigy.txt",
+        "sha256": "0cb55909d883ebbf626e2912c973c21f26a0dc8c93441f98f50a717e2728c9ab",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_storm.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_storm.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_storm.txt",
+        "sha256": "37ff1cedcbf24d25ae3ad29fb80736dfcc255b1cb465a749678226282c958beb",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_survivor.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_survivor.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_survivor.txt",
+        "sha256": "e41fd92d3706accef77f634764269af412a0bac9bcc26944831123640cd5db17",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_torn.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_torn.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_torn.txt",
+        "sha256": "7f6b825d5f17021cc5a75171eae77d556b58e10c3027a44491e855f618cb205c",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_train.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_train.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_train.txt",
+        "sha256": "bbd6df80f79bfe0ab0c8e322cce1236997de30802d3129feb4847111ec3545c5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/maps/de_vertigo.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/maps/de_vertigo.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_vertigo.txt",
+        "sha256": "9c09dc9dd018a9b9ea7a81d9e8f29405bd7bb3880c11489bd0a440aaf675325a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/spectatormenu.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/spectatormenu.txt",
+        "sha256": "dff03d200405ec7f1b33e249c2a269295868406e40d64e4bb5414169b2dd26c4",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/spectcammenu.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/spectcammenu.txt",
+        "sha256": "a72824d21f435955d0636a39327c8a17990afc53ca53afe3847015fda11ed49d",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "cstrike_polish/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "cstrike_polish/titles.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/commandmenu.txt",
+      "destination": "cstrike_russian/commandmenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/commandmenu.txt",
+        "sha256": "e38d975e35bf6df1aab61e10d3564bbe55809590114e1c0b1242bb6172dcdb80",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/gfx/shell/kb_act.lst",
+      "destination": "cstrike_russian/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/gfx/shell/kb_act.lst",
+        "sha256": "98abbf6b4f2a9dc79ea1ea36ced65a6e77fb06d95df413fa650ea59bba9fbb26",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/as_oilrig.txt",
+      "destination": "cstrike_russian/maps/as_oilrig.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/as_oilrig.txt",
+        "sha256": "347f4957d73321b832d62c89f98b35cee1925055fb978216249371fc3a718a48",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_747.txt",
+      "destination": "cstrike_russian/maps/cs_747.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_747.txt",
+        "sha256": "73255f98b353255557f446a60de5e47e86885d9727f132f5870b712e293ca9e6",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_assault.txt",
+      "destination": "cstrike_russian/maps/cs_assault.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_assault.txt",
+        "sha256": "1a702b58ff21283ed363f8dbc597143da459e68bcf204c17ba9d5dcaf8c4cc9a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_backalley.txt",
+      "destination": "cstrike_russian/maps/cs_backalley.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_backalley.txt",
+        "sha256": "eba7563264d728d11081e7fd6e295cbb2fd1cbb39865a330e18fc1d24c9027fd",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_estate.txt",
+      "destination": "cstrike_russian/maps/cs_estate.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_estate.txt",
+        "sha256": "fab19ad12851830cd56f50811616f2a46be780184562b6da506f71a54e95da66",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_havana.txt",
+      "destination": "cstrike_russian/maps/cs_havana.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_havana.txt",
+        "sha256": "ad72bf8e891d980219d8523caac9fe3f4c9555c27c2488b6ffb3107976c50de3",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_italy.txt",
+      "destination": "cstrike_russian/maps/cs_italy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_italy.txt",
+        "sha256": "d74c1ecb450a222b6c44bcbd79edc8382c0247bfb889d8133f68d2371d1903a5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_militia.txt",
+      "destination": "cstrike_russian/maps/cs_militia.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_militia.txt",
+        "sha256": "f8793cbe5b3ee1180748ca6dcdf5091bfd3b545666cebff592f3a62df1b3ba4f",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_office.txt",
+      "destination": "cstrike_russian/maps/cs_office.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_office.txt",
+        "sha256": "9d69d1511549fddcd1dc57108eadaca3b64fd86e8f27606bd4a3d2611185030a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/cs_siege.txt",
+      "destination": "cstrike_russian/maps/cs_siege.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/cs_siege.txt",
+        "sha256": "e60b61b59138157b305bad533624de4a46f3096c7cafff85350b4b191b9b18a1",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_airstrip.txt",
+      "destination": "cstrike_russian/maps/de_airstrip.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_airstrip.txt",
+        "sha256": "b424bbfe9cc13ddb31c7486d8a602d6a0ffc68f448704f034d54cec4b4082d8b",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_aztec.txt",
+      "destination": "cstrike_russian/maps/de_aztec.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_aztec.txt",
+        "sha256": "26fa112d235df206add78ef0e2aee39d08711171b33f85f4331a3ab8ffced025",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_cbble.txt",
+      "destination": "cstrike_russian/maps/de_cbble.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_cbble.txt",
+        "sha256": "0be4b0425a01314aecd1f818ce5852269d55177cd85519c013723aa0f824e56b",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_chateau.txt",
+      "destination": "cstrike_russian/maps/de_chateau.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_chateau.txt",
+        "sha256": "52e10ffd3c6c6f54bc365693bee1ac975caf4dade6f20149d80895b490ca2542",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_dust.txt",
+      "destination": "cstrike_russian/maps/de_dust.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_dust.txt",
+        "sha256": "c5ffb46f9d5dd14724c7d9b9beae7215b267e8f7564945c0c07bda7eefa96c24",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_dust2.txt",
+      "destination": "cstrike_russian/maps/de_dust2.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_dust2.txt",
+        "sha256": "1812e8f86fb19ebfd5d9fc018a2b1c940d6ccafa98cfe0cd7362b319938290ea",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_inferno.txt",
+      "destination": "cstrike_russian/maps/de_inferno.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_inferno.txt",
+        "sha256": "c73f814696c269365fd8c4d5397cafb49756c4b4521adccde9cebb81f9d51248",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_nuke.txt",
+      "destination": "cstrike_russian/maps/de_nuke.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_nuke.txt",
+        "sha256": "aec2f181c4c92252109c735a6eedee12a10709155569baeb9db3b6a76d60c708",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_piranesi.txt",
+      "destination": "cstrike_russian/maps/de_piranesi.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_piranesi.txt",
+        "sha256": "0f486f7041d1b9a78b45b3417ed19420d619398b1d439ff23c13ec63a1d14fd8",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_prodigy.txt",
+      "destination": "cstrike_russian/maps/de_prodigy.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_prodigy.txt",
+        "sha256": "0cb55909d883ebbf626e2912c973c21f26a0dc8c93441f98f50a717e2728c9ab",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_storm.txt",
+      "destination": "cstrike_russian/maps/de_storm.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_storm.txt",
+        "sha256": "37ff1cedcbf24d25ae3ad29fb80736dfcc255b1cb465a749678226282c958beb",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_survivor.txt",
+      "destination": "cstrike_russian/maps/de_survivor.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_survivor.txt",
+        "sha256": "e41fd92d3706accef77f634764269af412a0bac9bcc26944831123640cd5db17",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_torn.txt",
+      "destination": "cstrike_russian/maps/de_torn.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_torn.txt",
+        "sha256": "7f6b825d5f17021cc5a75171eae77d556b58e10c3027a44491e855f618cb205c",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_train.txt",
+      "destination": "cstrike_russian/maps/de_train.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_train.txt",
+        "sha256": "bbd6df80f79bfe0ab0c8e322cce1236997de30802d3129feb4847111ec3545c5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/maps/de_vertigo.txt",
+      "destination": "cstrike_russian/maps/de_vertigo.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/maps/de_vertigo.txt",
+        "sha256": "9c09dc9dd018a9b9ea7a81d9e8f29405bd7bb3880c11489bd0a440aaf675325a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/spectatormenu.txt",
+      "destination": "cstrike_russian/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/spectatormenu.txt",
+        "sha256": "dff03d200405ec7f1b33e249c2a269295868406e40d64e4bb5414169b2dd26c4",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/spectcammenu.txt",
+      "destination": "cstrike_russian/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/spectcammenu.txt",
+        "sha256": "a72824d21f435955d0636a39327c8a17990afc53ca53afe3847015fda11ed49d",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "cstrike_russian/titles.txt",
+      "destination": "cstrike_russian/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "cstrike/titles.txt",
+        "sha256": "445a1cddf402946c16097cc0a261c16293208c5a2f9d03278a4346da3fd73389",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
       "source": "cstrike_schinese/maps/as_oilrig.txt",
       "destination": "cstrike_schinese/maps/as_oilrig.txt",
       "encoding": "utf-16-le-bom",
@@ -4108,6 +4984,37 @@
       ]
     },
     {
+      "destination": "platform/Admin/admin_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "platform/Admin/admin_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/Admin/admin_english.txt",
+        "sha256": "fd0b580aea4354fa168d3d3d33a5b86f6fe80add00141c7662c5437310ca2d51",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "platform/Admin/admin_russian.txt",
+      "destination": "platform/Admin/admin_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/admin_russian.txt",
+        "sha256": "2f5f3772356e0eedfffd70b946870f1206f0cce30bb86b91f5b4e3812e2c2ed4",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
+    },
+    {
       "source": "platform/Admin/admin_schinese.txt",
       "destination": "platform/Admin/admin_schinese.txt",
       "encoding": "utf-16-le-bom",
@@ -4239,6 +5146,37 @@
       ]
     },
     {
+      "destination": "platform/Admin/server_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "platform/Admin/server_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/Admin/server_english.txt",
+        "sha256": "433edbc94bc34b591c1ed19e24c7cb16ddefcc81ec92d4ef651efcd8b06a335a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "platform/Admin/server_russian.txt",
+      "destination": "platform/Admin/server_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 90,
+        "depot": 5,
+        "manifest": "2602921513184876182",
+        "path": "platform/admin/server_russian.txt",
+        "sha256": "8479aa0460b331836034a4e52c480d39dcdda00b5906924f4d71dc38518054da",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
+    },
+    {
       "source": "platform/Admin/server_schinese.txt",
       "destination": "platform/Admin/server_schinese.txt",
       "encoding": "utf-16-le-bom",
@@ -4338,6 +5276,34 @@
       "aliases": [
         "platform/resource/cse_korean.txt"
       ]
+    },
+    {
+      "destination": "platform/resource/cse_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "source": "platform/resource/cse_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/resource/cse_english.txt",
+        "sha256": "e3834967dedfb671918031e861c6dccc2da39fa0ac1ce60aef8699a66027d83d",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "platform/resource/cse_russian.txt",
+      "destination": "platform/resource/cse_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "project",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/resource/cse_english.txt",
+        "sha256": "e3834967dedfb671918031e861c6dccc2da39fa0ac1ce60aef8699a66027d83d",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
     },
     {
       "source": "platform/resource/cse_schinese.txt",
@@ -4451,6 +5417,37 @@
       "aliases": [
         "platform/resource/platform_korean.txt"
       ]
+    },
+    {
+      "destination": "platform/resource/platform_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "platform/resource/platform_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/resource/platform_english.txt",
+        "sha256": "577b91478f69f3ecc10d875c19f96dac0d0d1beff842ef52d78a295e5735a949",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "platform/resource/platform_russian.txt",
+      "destination": "platform/resource/platform_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/resource/platform_russian.txt",
+        "sha256": "b283dbe0d259f40adcf44bac9b48ce809b04e13c5110d7f37feb1f70723eb04c",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
     },
     {
       "source": "platform/resource/platform_schinese.txt",
@@ -4584,6 +5581,37 @@
       ]
     },
     {
+      "destination": "platform/resource/vgui_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "platform/resource/vgui_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "platform/resource/vgui_english.txt",
+        "sha256": "5a3d5fe5b815ba982d7506b797cc62f2ee91b94196d12bc70f0ae864c215fd4f",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "platform/resource/vgui_russian.txt",
+      "destination": "platform/resource/vgui_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/resource/vgui_russian.txt",
+        "sha256": "4a0b14b7abf3b1cfbaae84ae9dc23df79647726fb7f056add8b93de7354d331d",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
+    },
+    {
       "source": "platform/resource/vgui_schinese.txt",
       "destination": "platform/resource/vgui_schinese.txt",
       "encoding": "utf-16-le-bom",
@@ -4713,6 +5741,46 @@
       "aliases": [
         "platform/servers/serverbrowser_korean.txt"
       ]
+    },
+    {
+      "destination": "platform/servers/serverbrowser_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "platform/servers/serverbrowser_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_polish.txt",
+        "sha256": "d45aafad5b7c938aa4a7ed61a069c7d6dd0fcab2e635571902ffd6329a5b29c1",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": {
+        "kind": "cse-translation",
+        "source_language": "english",
+        "path": "platform/servers/serverbrowser_english.txt",
+        "sha256": "318b4dfcec00c7465fbc71a6dddbd57c43e58507699b0d918d09bc8399de5da2",
+        "notes": "CSE fills eight English baseline tokens absent from the official catalogue and adapts compact labels, slot terminology, and protected/unprotected server wording. Maintains exactly the current English token set."
+      }
+    },
+    {
+      "source": "platform/servers/serverbrowser_russian.txt",
+      "destination": "platform/servers/serverbrowser_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "steam-depot",
+        "app": 70,
+        "depot": 3,
+        "manifest": "6081070194444336449",
+        "path": "platform/servers/serverbrowser_russian.txt",
+        "sha256": "5d6d27e1a1b43e02512088687d42f1dc47eaa7745ee49e127e3de61ca2ae0e4c",
+        "encoding": "utf-16-le-bom"
+      },
+      "adaptation": "CSE reviewed Russian catalogue, completed and adapted against the maintained English token baseline; untranslated paste label corrected."
     },
     {
       "source": "platform/servers/serverbrowser_schinese.txt",
@@ -4873,6 +5941,40 @@
       ]
     },
     {
+      "destination": "valve/resource/gameui_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "valve/resource/gameui_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/resource/gameui_english.txt",
+        "sha256": "c2e2f34b470d814545b98a92ac50bf3ec83d9c3cc66c43b31b75dd8b2b060d6e",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "valve_polish/resource/gameui_polish.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/gameui_russian.txt",
+      "destination": "valve/resource/gameui_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/resource/gameui_english.txt",
+        "sha256": "c2e2f34b470d814545b98a92ac50bf3ec83d9c3cc66c43b31b75dd8b2b060d6e",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "valve_russian/resource/gameui_russian.txt"
+      ]
+    },
+    {
       "source": "valve/resource/gameui_schinese.txt",
       "destination": "valve/resource/gameui_schinese.txt",
       "encoding": "utf-16-le-bom",
@@ -5021,6 +6123,40 @@
         "valve_koreana/resource/valve_koreana.txt",
         "valve/resource/valve_korean.txt",
         "valve_korean/resource/valve_korean.txt"
+      ]
+    },
+    {
+      "destination": "valve/resource/valve_polish.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "source": "valve/resource/valve_polish.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/resource/valve_english.txt",
+        "sha256": "cf8da36b5effd055481c6eb934e4b99f8b8f815d29641416fcc5d3b460c8f3a0",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "valve_polish/resource/valve_polish.txt"
+      ]
+    },
+    {
+      "source": "valve/resource/valve_russian.txt",
+      "destination": "valve/resource/valve_russian.txt",
+      "encoding": "utf-16-le-bom",
+      "kind": "vgui",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/resource/valve_english.txt",
+        "sha256": "cf8da36b5effd055481c6eb934e4b99f8b8f815d29641416fcc5d3b460c8f3a0",
+        "encoding": "utf-8",
+        "source_language": "english"
+      },
+      "aliases": [
+        "valve_russian/resource/valve_russian.txt"
       ]
     },
     {
@@ -5328,6 +6464,118 @@
       "aliases": [
         "valve_korean/titles.txt"
       ]
+    },
+    {
+      "destination": "valve_polish/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "valve_polish/gfx/shell/kb_act.lst",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/gfx/shell/kb_act.lst",
+        "sha256": "9993e8e5777e70fe30414a0546b58c3a76a737c3daa1149ae8bde87444f48440",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "valve_polish/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "valve_polish/spectatormenu.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/spectatormenu.txt",
+        "sha256": "a718000e0f4ae8bb2075736c73e04d39e09dcf31c903a80bf7c50d87e5f2d3f3",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "valve_polish/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "valve_polish/spectcammenu.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/spectcammenu.txt",
+        "sha256": "2f83ddeb331b35496acdf3b808fd9d00b9e353a335faafd235e584453b4eefe5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "destination": "valve_polish/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "source": "valve_polish/titles.txt",
+      "language": "polish",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/titles.txt",
+        "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "valve_russian/gfx/shell/kb_act.lst",
+      "destination": "valve_russian/gfx/shell/kb_act.lst",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/gfx/shell/kb_act.lst",
+        "sha256": "9993e8e5777e70fe30414a0546b58c3a76a737c3daa1149ae8bde87444f48440",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "valve_russian/spectatormenu.txt",
+      "destination": "valve_russian/spectatormenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/spectatormenu.txt",
+        "sha256": "a718000e0f4ae8bb2075736c73e04d39e09dcf31c903a80bf7c50d87e5f2d3f3",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "valve_russian/spectcammenu.txt",
+      "destination": "valve_russian/spectcammenu.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/spectcammenu.txt",
+        "sha256": "2f83ddeb331b35496acdf3b808fd9d00b9e353a335faafd235e584453b4eefe5",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
+    },
+    {
+      "source": "valve_russian/titles.txt",
+      "destination": "valve_russian/titles.txt",
+      "encoding": "utf-8",
+      "kind": "legacy",
+      "language": "russian",
+      "upstream": {
+        "kind": "cse-translation",
+        "path": "valve/titles.txt",
+        "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
+        "encoding": "utf-8",
+        "source_language": "english"
+      }
     },
     {
       "source": "valve_schinese/titles.txt",
@@ -5779,5 +7027,15 @@
         "vgui_htmlstop"
       ]
     }
-  }
+  },
+  "official_languages": [
+    "english",
+    "french",
+    "german",
+    "italian",
+    "spanish",
+    "schinese",
+    "tchinese",
+    "koreana"
+  ]
 }

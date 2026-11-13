@@ -19,5 +19,11 @@
         "CSEServerBrowser_Value" "Value"
         "CSEServerBrowser_DetailsFailed" "Some server details could not be retrieved."
         "Console_Submit" "Submit"
+        "CSEAdmin_ChangesOnOK" "Changes apply after OK."
+        "CSEAdmin_Uptime" "Uptime"
+        "CSEAdmin_UDPPort" "UDP Port"
+        "CSEAdmin_MoveUp" "Move up"
+        "CSEAdmin_MoveDown" "Move down"
+
     }
 }

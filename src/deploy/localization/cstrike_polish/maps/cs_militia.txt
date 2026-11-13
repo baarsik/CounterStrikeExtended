@@ -1,0 +1,13 @@
+Militia — ratowanie zakładników
+Autor: Andrew Aumann (andrewja@home.com)
+
+Antyterroryści: Wejdźcie do posiadłości
+Cliffe'a i uratujcie zakładników.
+Zlikwidujcie terrorystów,
+nie narażając zakładników.
+
+Terroryści: Nie pozwólcie antyterrorystom
+uratować zakładników.
+
+Uwagi: W misji jest 4 zakładników
+i jedne pływające zwłoki.

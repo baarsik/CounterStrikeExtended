@@ -1,0 +1,19 @@
+// Polish catalogue. Maintained in UTF-8; staged as UTF-16LE with BOM.
+"lang"
+{
+    "Language" "Polish"
+    "Tokens"
+    {
+        "App_SpecialOffers" "Oferty specjalne"
+        "App_Friends" "Znajomi"
+        "App_Games" "Graj"
+        "App_Storefront" "Przeglądaj gry"
+        "App_Servers" "Serwery"
+        "App_Browser" "Przeglądarka WWW"
+        "Admin_Servers" "Moje serwery"
+        "App_Account" "Konto"
+        "App_Settings" "Ustawienia"
+        "App_Monitor" "Monitor"
+        "App_News" "Aktualności"
+    }
+}
