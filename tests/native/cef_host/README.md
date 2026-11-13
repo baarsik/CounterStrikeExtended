@@ -79,6 +79,8 @@ entry-point and provider license notices into the application resources or Windo
 - Browser navigation, POST bytes, custom headers, native user-agent override, focus, mouse/keyboard input, scrolling,
   JavaScript, link queries and geometry queries remain inside the owned provider. POST is applied at the request
   callback after `LoadURL`, avoiding CEF's documented `LoadRequest` cross-origin initiator restriction.
+  The pending target and intercepted URL use CEF's canonical URL specification so changes in spelling,
+  including an omitted trailing slash, do not drop the body.
 - JavaScript alert/confirm and before-unload decisions use the legacy callback. Prompt text and file selection use
   CEF's native default dialogs because the legacy public response carries no text or filename. The file-dialog event
   remains a notification. The seven localized error strings populate the corresponding error/retry page UI.
@@ -135,7 +137,8 @@ ordinary game/controller configuration omits the fixture flag and retains the pr
 The protocol fixture exercises real native CEF processes: cookie RPC during initial/redirect policy decisions,
 allow/deny redirects, POST bytes/headers/user agent, file/data MOTD pages, actual native popup window existence,
 opener references, close-by-opener, parent-removal cancellation, StopLoad followed by a stale allow response,
-keypad-versus-ordinary Enter DOM location, multiple browser IDs, EOF during a decision and a
+keypad-versus-ordinary Enter DOM location, Command focus loss without a delivered release,
+POST URL normalization, multiple browser IDs, EOF during a decision and a
 persistent-cookie restart. The separate frontend driver adds BGRA resizing, mouse/input, Unicode plus virtual editing
 keys, JavaScript, alert/confirm, links, geometry, cookie/localStorage/cache persistence and clean process teardown.
 

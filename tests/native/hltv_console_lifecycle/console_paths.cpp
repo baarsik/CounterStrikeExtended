@@ -40,6 +40,30 @@ public:
     }
 };
 
+class InputEndedFrameProbe : public BaseSystemModule {
+public:
+    static constexpr int RequiredFrames = 3;
+    int frames = 0;
+
+    void RunFrame(double time) override {
+        BaseSystemModule::RunFrame(time);
+        ++frames;
+        if (frames >= RequiredFrames) {
+            m_System->Stop();
+        }
+    }
+};
+
+bool WriteContinuityStartup(const char* commands) {
+    auto* file = std::fopen("valve/eof-continuity.cfg", "w");
+    if (!Check(file != nullptr, "create private startup configuration")) {
+        return false;
+    }
+    const bool written = std::fputs(commands, file) >= 0;
+    const bool closed = std::fclose(file) == 0;
+    return Check(written && closed, "write private startup configuration");
+}
+
 }
 
 int main(int argc, char** argv) {
@@ -69,10 +93,16 @@ int main(int argc, char** argv) {
     char port[] = "-port";
     char ephemeral[] = "0";
     char quit[] = "+quit";
-    char* arguments[] = {executable, ip, loopback, port, ephemeral, quit};
-    constexpr int ArgumentCount = sizeof(arguments) / sizeof(arguments[0]);
+    char execute[] = "+exec";
+    char startup[] = "eof-continuity.cfg";
+    const bool continuity = std::strcmp(argv[1], "eof-continuity") == 0;
+    char* arguments[] = {executable, ip, loopback, port, ephemeral, continuity ? execute : quit, startup};
+    const int argumentCount = static_cast<int>(sizeof(arguments) / sizeof(arguments[0])) - (continuity ? 0 : 1);
+    if (continuity && !WriteContinuityStartup("quit\n")) {
+        return EXIT_FAILURE;
+    }
     if (early || partial) {
-        const int result = ProductionConsoleMain(ArgumentCount, arguments);
+        const int result = ProductionConsoleMain(argumentCount, arguments);
         bool valid = Check(result == EXIT_FAILURE, "failed Init must fail process entry point");
         valid = Check(g_System.GetFileSystem() == nullptr, "failed Init must retire filesystem") && valid;
         g_System.ShutDown();
@@ -81,13 +111,29 @@ int main(int argc, char** argv) {
         return valid ? EXIT_SUCCESS : EXIT_FAILURE;
     }
     char name[] = "Console";
-    if (ProductionConsoleMain(ArgumentCount, arguments) != EXIT_SUCCESS) {
+    if (ProductionConsoleMain(argumentCount, arguments) != EXIT_SUCCESS) {
+        return EXIT_FAILURE;
+    }
+    // Init replays startup commands. Only the bootstrap lifetime may quit before frame processing.
+    if (continuity && !WriteContinuityStartup("echo continuity-start\n")) {
         return EXIT_FAILURE;
     }
     if (!g_System.Init(&g_System, 0, name)) {
         return EXIT_FAILURE;
     }
     bool valid = true;
+    if (std::strcmp(argv[1], "eof-continuity") == 0) {
+        InputEndedFrameProbe probe;
+        char probeName[] = "input-ended-frame-probe";
+        valid = Check(g_System.AddModule(&probe, probeName), "add frame-continuity probe") && valid;
+        g_System.RunFrame(0);
+        valid = Check(probe.frames >= InputEndedFrameProbe::RequiredFrames,
+                      "stdin EOF must preserve frame processing until explicit Stop") && valid;
+        g_System.ShutDown();
+        valid = Check(g_System.GetFileSystem() == nullptr, "explicit Stop retires filesystem") && valid;
+        valid = Check(OpenDescriptors() == descriptors, "explicit Stop retires owned descriptors") && valid;
+        return valid ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
 #ifdef CONTROLLED_VGUI_SERVICES
     if (std::strncmp(argv[1], "vgui-", std::strlen("vgui-")) == 0) {
         if (std::strcmp(argv[1], "vgui-success") != 0) {

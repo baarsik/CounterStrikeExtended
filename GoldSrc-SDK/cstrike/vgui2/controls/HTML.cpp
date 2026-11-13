@@ -163,10 +163,18 @@ void HTMLComboBoxHost::OnKillFocus()
 	}
 }
 
-void HTMLComboBoxHost::OnCursorMoved( int x, int y )
-{
-	if ( vgui2::input()->GetMouseOver() == GetVPanel() && m_pParent->m_Serializer )
-		m_pParent->m_Serializer->MouseMove( x, y );
+void HTMLComboBoxHost::OnCursorMoved(int x, int y) {
+    if (m_pParent == nullptr || m_pParent->m_Serializer == nullptr) {
+        return;
+    }
+    if (vgui2::input()->GetMouseOver() == GetVPanel()) {
+#if INTPTR_MAX > INT32_MAX
+        // Match the common widget: CEF routes OSR popup input in browser-view coordinates.
+        LocalToScreen(x, y);
+        m_pParent->ScreenToLocal(x, y);
+#endif
+        m_pParent->m_Serializer->MouseMove(x, y);
+    }
 }
 
 void HTMLComboBoxHost::OnMousePressed( vgui2::MouseCode code )
@@ -826,12 +834,15 @@ void HTML::BrowserFinishedRequest( const char* url, const char* pagetitle )
 	UpdateCachedHTMLValues();
 }
 
-void HTML::BrowserSizePopup( int x, int y, int wide, int tall )
-{
-	int absX = 0;
-	int absY = 0;
-	ipanel()->GetAbsPos( GetVPanel(), absX, absY );
-	m_pComboBoxHost->SetBounds( x + absX + 1, absY + y, wide, tall );
+void HTML::BrowserSizePopup(int x, int y, int wide, int tall) {
+    int absX = 0;
+    int absY = 0;
+    ipanel()->GetAbsPos(GetVPanel(), absX, absY);
+#if INTPTR_MAX > INT32_MAX
+    m_pComboBoxHost->SetBounds(x + absX, absY + y, wide, tall);
+#else
+    m_pComboBoxHost->SetBounds(x + absX + 1, absY + y, wide, tall);
+#endif
 }
 
 void HTML::OnMove()

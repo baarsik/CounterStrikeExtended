@@ -282,6 +282,17 @@ def run(executable, evidence, production_keychain=False):
         assert post['method'] == 'POST' and post['body'] == 'alpha=one&beta=two', post
         assert post['header'] == 'preserved' and post['agent'] == 'CSE Protocol Fixture', post
         assert host.navigation[-1]['post'] == 'alpha=one&beta=two'
+        for requested, path, body in [
+                (origin, '/', 'normalized=root'),
+                (origin.replace('http://', 'HTTP://') + '/spelling/../canonical?value=one two',
+                 '/canonical?value=one%20two', 'normalized=path')]:
+            before = len(server.requests)
+            host.command('PostURL', string(requested) + string(body))
+            host.title(path, lambda _: True)
+            request = next(row for row in server.requests[before:] if row['path'] == path)
+            assert request['method'] == 'POST' and request['body'] == body, request
+            assert request['header'] == 'preserved' and request['agent'] == 'CSE Protocol Fixture', request
+            assert host.navigation[-1]['post'] == body, host.navigation[-1]
         # A working DOM alone does not prove the compositor has an automatic frame source.
         # Require its first animation and pixel frame before the later queue-ordering burst.
         host.command('ExecuteJavaScript', string("requestAnimationFrame(()=>document.title='initial-frame-ready')"))
@@ -319,6 +330,22 @@ def run(executable, evidence, production_keychain=False):
         host.command('KeyDown', integer(0x0d) + integer(0))
         host.command('KeyUp', integer(0x0d) + integer(0))
         host.title('key-location:0:Enter')
+        if sys.platform == 'darwin':
+            host.command('ExecuteJavaScript', string("document.addEventListener('keydown',event=>{"
+                "if(event.code==='KeyA'){event.preventDefault();document.title='focus-key:'+"
+                "event.metaKey+':'+event.ctrlKey+':'+event.altKey+':'+event.shiftKey}});"
+                "document.title='focus-keys-ready'"))
+            host.title('focus-keys-ready')
+            for command_key in (0x5b, 0x5c):
+                host.batch([('KeyDown', integer(command_key) + integer(0)),
+                            ('KeyDown', integer(0x41) + integer(0)),
+                            ('KeyUp', integer(0x41) + integer(0))])
+                host.title('focus-key:true:false:false:false')
+                # The Command release goes to another VGUI control, so no KeyUp reaches HTML.
+                host.batch([('SetFocus', integer(0)), ('SetFocus', integer(1)),
+                            ('KeyDown', integer(0x41) + integer(0)),
+                            ('KeyUp', integer(0x41) + integer(0))])
+                host.title('focus-key:false:false:false:false')
         host.command('PostURL', string(origin + '/scroll') + string(''))
         host.title('/scroll', lambda _: True)
         host.command('SetHorizontalScroll', integer(70))

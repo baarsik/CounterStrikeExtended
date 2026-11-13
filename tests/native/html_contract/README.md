@@ -6,7 +6,8 @@ Steam session or network request.
 
 It checks pointer-width serializer identity, all virtual serializer methods,
 convenience forwarding, UTF-16 code units and supplementary scalar characters.
-The popup input fixture extracts complete production widget methods and checks
+The popup input fixtures independently extract complete production widget methods
+from the common and Counter-Strike implementations and check
 popup-to-view coordinates against controlled panel geometry, including the
 cursor position retained for clicks. It does not start a CEF process.
 `verify_reference.py <immutable-reference-HTML.h> <shared-header>` compares the

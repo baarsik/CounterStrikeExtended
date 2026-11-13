@@ -22,10 +22,12 @@ it is not an instrumented full-runtime acceptance claim. Run the existing
 `tests/native/system_modules` sanitizer components separately. Its known sanitizer
 image reload limitation remains independent of this test.
 
-The nine cases exercise actual command quit/exit, stdin EOF, SIGTERM, repeated
+The twelve cases exercise actual command quit/exit, continued execution with
+`/dev/null`, a closed input pipe and a closed stdin descriptor, SIGTERM, repeated
 cleanup with a second complete Init, callback-deferred cleanup with recursive
 ShutDown, pre-console Init failure, missing required Proxy after filesystem Mount,
-and missing filesystem after Console Init. Every successful run must print each of
+and missing filesystem after Console Init. A borrowed module also requires three
+real frames after EOF before explicitly stopping its owner. Every successful run must print each of
 all seven provider/embedded module teardown messages exactly once. SIGTERM uses
 the real filesystem logfile because existing console output intentionally stops
 writing after the signal flag is set. The fixture also checks filesystem pointer
@@ -33,9 +35,10 @@ retirement, descriptor retirement (descriptors below 256), rejection of Init dur
 pending retirement, and exactly one borrowed-module cleanup across reentry/retry.
 
 `console_paths.cpp` includes the complete production `System.cpp`, renaming only
-its process entry point. The runner derives compile flags from the owning
-`compile_commands.json` and relinks the exact owning objects, replacing only the
-System object. Init, Stop, ShutDown, admission and provider code are not substituted.
+its process entry point. The runner freshly compiles this checkout's production
+entry point and fixture using flags from the owning `compile_commands.json`, then
+relinks the exact owning objects, replacing only the System object in its private
+stage. The configured runtime is unchanged. Init, Stop, ShutDown, admission and provider code are not substituted.
 Core/Proxy are real runtime images. Staged binary SHA256 values are printed.
 
 The harness requires the macOS Ninja runtime build layout and intentionally does

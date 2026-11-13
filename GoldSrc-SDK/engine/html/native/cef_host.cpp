@@ -141,6 +141,12 @@ std::uint32_t Modifiers(int legacy) {
     return result;
 }
 
+std::string CanonicalRequestUrl(const std::string& url) {
+    CefURLParts parts;
+    // The parser and CefRequest::GetURL both expose Chromium's canonical GURL specification.
+    return CefParseURL(url, parts) ? CefString(&parts.spec).ToString() : url;
+}
+
 std::string EscapeHTML(const std::string& input) {
     std::string result;
     for (char character : input) {
@@ -526,7 +532,7 @@ public:
         {
             std::lock_guard<std::mutex> lock(headersMutex_);
             if (request->GetResourceType() == RT_MAIN_FRAME &&
-                request->GetURL().ToString() == pendingPostUrl_ && !pendingPost_.empty()) {
+                CanonicalRequestUrl(request->GetURL().ToString()) == pendingPostUrl_ && !pendingPost_.empty()) {
                 auto element = CefPostDataElement::Create();
                 element->SetToBytes(pendingPost_.size(), pendingPost_.data());
                 auto post = CefPostData::Create();
@@ -1101,7 +1107,7 @@ void Client::Command(const Message& message) {
             CancelDialog(true);
             {
                 std::lock_guard<std::mutex> lock(headersMutex_);
-                pendingPostUrl_ = text;
+                pendingPostUrl_ = CanonicalRequestUrl(text);
                 pendingPost_ = second;
             }
             // LoadRequest cannot cross an unvisited origin (CEF INVALID_INITIATOR_ORIGIN 213).
@@ -1267,6 +1273,13 @@ void Client::Command(const Message& message) {
         break;
     case eHTMLCommands_SetFocus:
         if (reader.Boolean(flag) && reader.Finish()) {
+            if (!flag) {
+                // Releases can go to a different VGUI control after focus moves away.
+                commandKeys_ = 0;
+                keyModifiers_ = 0;
+                mouseButtons_ = 0;
+                mouse_.modifiers = 0;
+            }
             browserHost->SetFocus(flag);
             return;
         }

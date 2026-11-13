@@ -330,11 +330,6 @@ void System::RunFrame( double time )
 			if ( m_SystemTime > nextConsoleUpdate )
 			{
 				ExecuteString( m_Console.GetLine() );
-#if CSE_NATIVE_SYSTEM_MODULE && !defined(_WIN32)
-                if (m_Console.InputEnded()) {
-                    Stop();
-                }
-#endif
 				m_Console.SetStatusLine( m_StatusLine );
 #if defined(_WIN32)
 				nextConsoleUpdate = (float)( m_SystemTime + 0.1f );
