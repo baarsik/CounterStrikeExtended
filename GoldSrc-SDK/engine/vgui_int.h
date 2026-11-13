@@ -3,6 +3,8 @@
 #include "const.h"
 #include "filesystem.h"
 
+void VGui_CallEngineSurfaceAppHandler(void *event, void *userData);
+
 void		VGuiWrap_Startup();
 void		VGuiWrap_Shutdown();
 int			VGuiWrap_CallEngineSurfaceAppHandler( void* event, void* userData );

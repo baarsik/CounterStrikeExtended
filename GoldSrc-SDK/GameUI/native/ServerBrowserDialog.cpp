@@ -105,7 +105,7 @@ private:
     std::function<void(size_t)> seek_;
     bool updating_ = false;
 };
-void ClampFrame(vgui2::Frame &frame) {
+void ClampFrame(vgui2::Frame &frame, int left, int top) {
     int x = 0;
     int y = 0;
     int width = 0;
@@ -120,10 +120,13 @@ void ClampFrame(vgui2::Frame &frame) {
     const int minimumHeight = std::min(height, frame.GetProportionalScaledValue(MinimumHeight));
     frame.SetMinimumSize(minimumWidth, minimumHeight);
     frame.SetSize(std::clamp(frame.GetWide(), minimumWidth, width), std::clamp(frame.GetTall(), minimumHeight, height));
+    frame.SetPos(std::clamp(left, x, x + width - frame.GetWide()), std::clamp(top, y, y + height - frame.GetTall()));
+}
+void ClampFrame(vgui2::Frame &frame) {
     int left = 0;
     int top = 0;
     frame.GetPos(left, top);
-    frame.SetPos(std::clamp(left, x, x + width - frame.GetWide()), std::clamp(top, y, y + height - frame.GetTall()));
+    ClampFrame(frame, left, top);
 }
 class SlotList : public vgui2::ListPanel {
 public:
@@ -1044,9 +1047,11 @@ ServerBrowserDialog::ServerBrowserDialog(BrowserSession &session)
     int width = 0;
     int height = 0;
     GetDefaultScreenPosition(x, y, width, height);
-    SetBounds(x, y, session.settings.savedSize ? session.settings.width : width,
-              session.settings.savedSize ? session.settings.height : height);
-    ClampFrame(*this);
+    SetSize(session.settings.savedSize ? session.settings.width : width,
+            session.settings.savedSize ? session.settings.height : height);
+    // Clamp persisted coordinates before VPanel narrows positions to signed shorts.
+    ClampFrame(*this, session.settings.savedPosition ? session.settings.x : x,
+               session.settings.savedPosition ? session.settings.y : y);
     const auto saved = std::find(BrowserTabKinds.begin(), BrowserTabKinds.end(), session.settings.kind);
     const int tab = static_cast<int>(saved - BrowserTabKinds.begin());
     tabs_->SetActivePage(tabs_->GetPage(tab));
@@ -1801,6 +1806,8 @@ void ServerBrowserDialog::ShowActionStatus(const char *token) {
     InvalidateLayout(false, false);
 }
 void ServerBrowserDialog::SaveSettings() {
+    GetPos(session_.settings.x, session_.settings.y);
+    session_.settings.savedPosition = true;
     session_.settings.savedSize = true;
     session_.settings.width = GetWide();
     session_.settings.height = GetTall();

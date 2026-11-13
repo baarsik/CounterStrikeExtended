@@ -12,12 +12,15 @@ parser.add_argument('--repo', type=Path, required=True)
 parser.add_argument('--packet', type=Path, required=True)
 parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
+parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
+parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
 parser.add_argument('--driver', choices=['vgui', 'module'], default='vgui')
 args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
 packet.mkdir(exist_ok=False, parents=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
+cache = args.recipe_cache.resolve() if args.recipe_cache else cache
 entries = json.loads((cache / 'compile_commands.json').read_text())
 entries = [entry for entry in entries if '/gameui.dir/' in entry.get('output', '')]
 owner = next(entry for entry in entries if entry['file'].endswith('/GameUI/GameUI_Interface.cpp'))
@@ -68,6 +71,7 @@ for result in failed:
 if failed:
     raise SystemExit(1)
 sdl = repo / ('build/gameplay-shortcuts-fix-round1-20261110/provider-' + args.profile) / 'libSDL3.0.dylib'
+sdl = args.sdl_library.resolve() if args.sdl_library else sdl
 link = ['/usr/bin/c++', '-arch', 'arm64', '-mmacosx-version-min=14.0', '-o', str(packet / 'vgui_tests')]
 link += [result['object'] for result in results]
 link += [str(sdl), '-Wl,-rpath,' + str(sdl.parent), '-framework', 'CoreFoundation', '-framework', 'ApplicationServices']

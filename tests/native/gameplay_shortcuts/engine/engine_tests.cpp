@@ -92,9 +92,19 @@ void ClientDLL_IN_Accumulate() {
     ++accumulations;
 }
 int vguiDeliveries = 0;
-void VGuiWrap2_CallEngineSurfaceAppHandler(SDL_Event *, void *) {
+std::vector<std::pair<Uint32, int>> vguiOrder;
+int vgui2Result = 0;
+int VGuiWrap2_CallEngineSurfaceAppHandler(void *event, void *) {
     ++vguiDeliveries;
+    vguiOrder.emplace_back(static_cast<SDL_Event *>(event)->type, 2);
+    return vgui2Result;
 }
+int VGuiWrap_CallEngineSurfaceAppHandler(void *event, void *) {
+    vguiOrder.emplace_back(static_cast<SDL_Event *>(event)->type, 1);
+    return 0;
+}
+#include "vgui_dispatch.inc"
+
 #if defined(CSE_SHORTCUT_LIFECYCLE_TEST)
 bool videoInitSuccess = true;
 bool gameInitSuccess = true;
@@ -328,6 +338,7 @@ extern "C" bool SDLCALL SDL_WaitEventTimeout(SDL_Event *event, Sint32 time) {
     return SDL_PollEvent(event);
 }
 int EngineRegressionMain() {
+    (void)&VGui_CallEngineSurfaceAppHandler;
     CHECK(con_forcedup == 0 && VGuiWrap2_IsGameUIVisible() == 0 && VGuiWrap2_IsConsoleVisible() == 0);
     CHECK(DLL_ACTIVE == kEngineActive);
     Reset();
@@ -348,6 +359,35 @@ int EngineRegressionMain() {
     CHECK(delivered[1] == std::make_pair(static_cast<int>(K_SPACE), true));
     CHECK(delivered[2] == std::make_pair(static_cast<int>(K_SPACE), false));
     CHECK(delivered[3] == std::make_pair(static_cast<int>(K_CTRL), false));
+    // Exercise the complete production pump and combined dispatcher, observing only leaf deliveries.
+    vguiOrder.clear();
+    const Uint32 eventTypes[]{SDL_EVENT_MOUSE_BUTTON_DOWN, SDL_EVENT_MOUSE_BUTTON_UP,
+        SDL_EVENT_MOUSE_WHEEL, SDL_EVENT_KEY_DOWN, SDL_EVENT_KEY_UP};
+    for (const auto type : eventTypes) {
+        SDL_Event event{};
+        event.type = type;
+        event.common.timestamp = scene.ticks + 1;
+        if (type == SDL_EVENT_MOUSE_BUTTON_DOWN || type == SDL_EVENT_MOUSE_BUTTON_UP) {
+            event.button.button = SDL_BUTTON_LEFT;
+        } else if (type == SDL_EVENT_MOUSE_WHEEL) {
+            event.wheel.y = 1.0f;
+        } else {
+            event.key.scancode = SDL_SCANCODE_A;
+        }
+        queued.push_back(event);
+    }
+    Run(true);
+    CHECK(vguiOrder.size() == 2 * (sizeof(eventTypes) / sizeof(eventTypes[0])));
+    for (size_t index = 0; index < sizeof(eventTypes) / sizeof(eventTypes[0]); ++index) {
+        CHECK(vguiOrder[index * 2] == std::make_pair(eventTypes[index], 2));
+        CHECK(vguiOrder[index * 2 + 1] == std::make_pair(eventTypes[index], 1));
+    }
+    vguiOrder.clear();
+    vgui2Result = 1;
+    Key(SDL_SCANCODE_A, false);
+    Run(true);
+    CHECK(vguiOrder.size() == 1 && vguiOrder[0].second == 2);
+    vgui2Result = 0;
     const int steadyWrites = shortcutWrites;
     for (int frame = 0; frame < 5; ++frame) {
         Run(true);
@@ -371,7 +411,13 @@ int EngineRegressionMain() {
     Run(false);
     consoleUi = false;
     g_Game.m_bActiveApp = false;
+    vguiOrder.clear();
+    SDL_Event inactiveClick{};
+    inactiveClick.type = SDL_EVENT_MOUSE_BUTTON_DOWN;
+    inactiveClick.button.timestamp = scene.ticks + 1;
+    queued.push_back(inactiveClick);
     Run(false);
+    CHECK(vguiOrder.empty());
     g_Game.m_bActiveApp = true;
     scene.keyboard = otherWindow;
     Run(false);

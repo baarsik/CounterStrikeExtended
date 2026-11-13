@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 using namespace cse::server_browser;
 #define CHECK(value) do { if (!(value)) { throw std::runtime_error(#value); } } while (false)
@@ -34,6 +35,10 @@ void MissingAndRoundTrip() {
     ServerBrowserConfig config(storage);
     CHECK(config.Load());
     auto settings = config.Settings();
+    CHECK(!settings.savedPosition);
+    settings.x = -280;
+    settings.y = 140;
+    settings.savedPosition = true;
     settings.filters.app = 70;
     settings.filters.map = "a=b\n\303\251%";
     settings.kind = ListKind::History;
@@ -42,9 +47,33 @@ void MissingAndRoundTrip() {
     CHECK(config.Status().dirty && config.Save() && !config.Status().dirty);
     ServerBrowserConfig second(storage);
     CHECK(second.Load());
+    CHECK(second.Settings().savedPosition && second.Settings().x == -280 && second.Settings().y == 140);
     CHECK(second.Settings().filters.map == "a=b\n\303\251%");
     CHECK(second.Settings().filters.app == 70 && second.Settings().kind == ListKind::History);
     CHECK(second.Settings().sort.column == Column::Ping && !second.Settings().sort.ascending);
+}
+void PositionValidation() {
+    MemoryStorage storage;
+    storage.missing = false;
+    storage.bytes = "x=not-a-coordinate\ny=24\nsavedposition=1\n";
+    ServerBrowserConfig config(storage);
+    CHECK(!config.Load());
+    CHECK(!config.Save());
+    for (const auto *value : {"2147483648", "-2147483649", "12x"}) {
+        storage.bytes = std::string("savedposition=1\nx=") + value + "\ny=24\n";
+        CHECK(!config.Load() && !config.Save());
+    }
+    storage.bytes = "originalui=1\nwidth=800\nheight=500\nsavedsize=1\n";
+    CHECK(config.Load() && !config.Settings().savedPosition);
+    auto settings = config.Settings();
+    settings.savedPosition = true;
+    settings.x = std::numeric_limits<int>::max();
+    settings.y = std::numeric_limits<int>::min();
+    config.SetSettings(settings);
+    CHECK(config.Save());
+    ServerBrowserConfig restored(storage);
+    CHECK(restored.Load());
+    CHECK(restored.Settings().savedPosition && restored.Settings().x == settings.x && restored.Settings().y == settings.y);
 }
 void UnknownAndFailures() {
     MemoryStorage storage;
@@ -198,12 +227,13 @@ void NativeAtomic(const std::filesystem::path& parent) {
 int main(int argc, char** argv) {
     try {
         CHECK(argc == 2);
+        PositionValidation();
         MissingAndRoundTrip();
         OriginalSettingsAndStableTabs();
         UnknownAndFailures();
         RejectKnownStringNul();
         NativeAtomic(std::filesystem::absolute(argv[1]));
-        std::cout << "5 config cases passed\n";
+        std::cout << "6 config cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

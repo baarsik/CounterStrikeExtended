@@ -61,3 +61,13 @@ inheritance, unusable layout, unordered slot display and aggregate detail reclam
 and exact current results belong in the Task 2 SDD report and immutable build packets, not this generic guide.
 Windows owning policies, staged both-game behavior, authentication, physical devices and performance remain
 separate controller gates. No native component result alone qualifies deployment or parent migration completion.
+
+Position persistence cases are `position-saved`, `position-negative`, `position-offscreen`
+and `position-legacy`. They construct the actual dialog with serialized preferences,
+check workspace clamping, move/save/reload, and reconstruct the dialog. The component
+builder accepts `--recipe-cache /current/owning/cmake/build` and
+`--sdl-library /current/owning/runtime/libSDL3.0.dylib` to avoid stale historical paths.
+The `vgui_tests` driver accepts an optional final read-only game resource search path
+(for example, the original `valve` directory supplying `resource/marlett.ttf`). Run with
+explicit `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy SDL_RENDER_DRIVER=software` and
+fixture-owned temporary preferences, using matching current VGUI/filesystem dependencies.

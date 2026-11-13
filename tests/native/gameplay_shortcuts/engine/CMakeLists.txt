@@ -7,6 +7,7 @@ option(CSE_SHORTCUT_ENGINE_SANITIZERS "Instrument actual owner/caller bodies" OF
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract.py
     "${CSE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp"
+    "${CSE_ROOT}/GoldSrc-SDK/engine/vgui_int.cpp"
     "${CSE_ROOT}/GoldSrc-SDK/engine/cdll_int.cpp"
     "${CSE_ROOT}/GoldSrc-SDK/engine/sys_dll2.cpp"
     "${CSE_ROOT}/GoldSrc-SDK/engine/snd_dma.cpp"

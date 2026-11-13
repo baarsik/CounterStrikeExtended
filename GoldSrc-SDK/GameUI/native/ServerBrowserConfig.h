@@ -28,6 +28,9 @@ struct BrowserSettings {
     Sort sort{Column::Address, true};
     int width = 640;
     int height = 384;
+    int x = 0;
+    int y = 0;
+    bool savedPosition = false;
     bool filtersExpanded = false;
     bool savedSize = false;
     std::array<BrowserPageSettings, BrowserTabKinds.size()> pages;

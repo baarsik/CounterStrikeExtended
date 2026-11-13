@@ -94,7 +94,7 @@ size_t AllocatedSlots(vgui2::ListPanel &list) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 6) {
+    if (argc != 6 && argc != 7) {
         return 2;
     }
     return RunCase([&] {
@@ -109,13 +109,17 @@ int main(int argc, char **argv) {
             static_cast<vgui2::ISystem *>(guiFactory("VGUI_System009", nullptr)));
         filesystem->Mount();
         filesystem->AddSearchPath(argv[3], "PLATFORM");
+        if (argc == 7) {
+            filesystem->AddSearchPath(argv[6], "GAME");
+        }
         geometry_fixture::BaseUISurface geometry(
             static_cast<vgui2::ISurface *>(guiFactory("VGUI_Surface026", nullptr)));
         const std::string layoutCase = argv[5];
         const bool focusLayout = layoutCase == "focus-resize" || layoutCase == "focus-scheme" ||
                                  layoutCase == "focus-tab" || layoutCase == "focus-header";
+        const bool positionCase = layoutCase.rfind("position-", 0) == 0;
         const bool hdLayout = layoutCase == "hd-layout" || layoutCase == "hd-saved" || focusLayout ||
-                              layoutCase == "tab-order";
+                              layoutCase == "tab-order" || positionCase;
         const bool playerRefresh = layoutCase == "original-game-info" ||
             layoutCase == "original-game-info-sync-empty" || layoutCase == "original-game-info-generation";
         const bool inputRetirement = std::string(argv[5]) == "input-retirement";
@@ -189,6 +193,18 @@ int main(int argc, char **argv) {
             config.SetSettings(settings);
             Require(config.Save(), "fixture could not write owned extreme physical-size preference");
         }
+        if (positionCase) {
+            std::filesystem::create_directories(std::filesystem::path(sessionPreferences) / "server-browser");
+            std::ofstream settings(std::filesystem::path(sessionPreferences) / "server-browser/settings.cfg");
+            settings << "originalui=1\nsavedsize=1\nwidth=640\nheight=384\n";
+            if (name == "position-saved") {
+                settings << "savedposition=1\nx=120\ny=140\n";
+            } else if (name == "position-negative") {
+                settings << "savedposition=1\nx=-120\ny=-140\n";
+            } else if (name == "position-offscreen") {
+                settings << "savedposition=1\nx=2147483647\ny=2147483647\n";
+            }
+        }
         auto ownedSession = std::make_unique<BrowserSession>(&provider, nullptr, filesystem, engine, 10, "cstrike",
                                                              sessionPreferences, &favorites);
         auto &session = *ownedSession;
@@ -201,7 +217,29 @@ int main(int argc, char **argv) {
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
-        if (focusLayout || name == "tab-order" || name == "hd-layout") {
+        if (positionCase) {
+            int x = 0;
+            int y = 0;
+            dialog->GetPos(x, y);
+            if (name == "position-saved") {
+                Require(x == 120 && y == 140, "saved browser position was ignored");
+            } else if (name == "position-negative") {
+                Require(x == 0 && y == 0, "negative offscreen position was not clamped");
+            } else if (name == "position-offscreen") {
+                Require(x == 1600 - dialog->GetWide() && y == 1200 - dialog->GetTall(),
+                        "positive offscreen position was not clamped");
+            } else {
+                Require(x == 80 && y == 480, "old config changed default browser positioning");
+            }
+            dialog->SetPos(160, 180);
+            dialog->SaveSettings();
+            Require(session.config.Load(), "saved position could not be reloaded");
+            session.settings = session.config.Settings();
+            auto *restored = new ServerBrowserDialog(session);
+            restored->GetPos(x, y);
+            Require(x == 160 && y == 180, "moved browser position did not survive reconstruction");
+            delete restored;
+        } else if (focusLayout || name == "tab-order" || name == "hd-layout") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
             auto *initialPage = tabs->GetActivePage();
             vgui2::Panel *retainedFocus = nullptr;

@@ -93,3 +93,7 @@ for method, name in [('void ClientDLL_SetNativeMouseCapture(bool active)', 'nati
 text = (root / 'GoldSrc-SDK/engine/sys_dll2.cpp').read_text()
 value, _ = body(text.index('void ClearIOStates()'))
 (out / 'clear_io.inc').write_text(value)
+
+text = (root / "GoldSrc-SDK/engine/vgui_int.cpp").read_text()
+value, _ = body(text.index("void VGui_CallEngineSurfaceAppHandler("))
+(out / "vgui_dispatch.inc").write_text(value)

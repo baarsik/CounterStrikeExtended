@@ -32,6 +32,7 @@ cse::FractionalMotion s_wheelMotion;
 #include "server.h"
 #include "sys.h"
 #include "vgui_intwrap2.h"
+#include "vgui_int.h"
 #include "webm_video.h"
 #include "vgui2/BaseUISurface.h"
 #include "cdll_int.h"
@@ -927,7 +928,7 @@ void CGame::SleepUntilInput(int time) {
             }
         }
 
-        VGuiWrap2_CallEngineSurfaceAppHandler(&ev, NULL);
+        VGui_CallEngineSurfaceAppHandler(&ev, NULL);
     } while (
 #if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
         nextEvent(false));
@@ -958,6 +959,7 @@ bool CGame::OnlyLegacyRender() const
 #include "server.h"
 #include "sys.h"
 #include "vgui_intwrap2.h"
+#include "vgui_int.h"
 #include "webm_video.h"
 #include "vgui2/BaseUISurface.h"
 #include "cdll_int.h"
@@ -1823,7 +1825,7 @@ void CGame::SleepUntilInput(int time) {
             }
         }
 
-        VGuiWrap2_CallEngineSurfaceAppHandler(&ev, nullptr);
+        VGui_CallEngineSurfaceAppHandler(&ev, nullptr);
     } while (
 #if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
         nextEvent(false));

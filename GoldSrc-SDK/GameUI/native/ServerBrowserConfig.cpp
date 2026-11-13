@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <fstream>
 #include <map>
+#include <limits>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -57,6 +58,8 @@ Fields EncodeFields(const BrowserSettings& settings, bool includePages = true) {
         {"sort", std::to_string(static_cast<int>(settings.sort.column))},
         {"ascending", settings.sort.ascending ? "1" : "0"},
         {"width", std::to_string(settings.width)}, {"height", std::to_string(settings.height)},
+        {"x", std::to_string(settings.x)}, {"y", std::to_string(settings.y)},
+        {"savedposition", settings.savedPosition ? "1" : "0"},
         {"originalui", "1"},
         {"savedsize", settings.savedSize ? "1" : "0"},
         {"validaccount", settings.filters.validSteamAccount ? "1" : "0"}};
@@ -147,6 +150,7 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
     int nonempty = 0;
     int notFull = 0;
     int savedSize = 0;
+    int savedPosition = 0;
     int validAccount = 0;
     constexpr int MaximumPing = 1000000;
     constexpr AppId_t MaximumApp = UINT32_MAX;
@@ -157,6 +161,9 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
         !Number(fields.at("ascending"), ascending, 0, 1) || !Number(fields.at("nonempty"), nonempty, 0, 1) ||
         !Number(fields.at("notfull"), notFull, 0, 1) ||
         !Number(fields.at("savedsize"), savedSize, 0, 1) ||
+        !Number(fields.at("savedposition"), savedPosition, 0, 1) ||
+        !Number(fields.at("x"), settings.x, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()) ||
+        !Number(fields.at("y"), settings.y, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()) ||
         !Number(fields.at("validaccount"), validAccount, 0, 1) ||
         !Number(fields.at("app"), settings.filters.app, AppId_t{0}, MaximumApp) ||
         !Number(fields.at("width"), settings.width, MinimumDimension, MaximumDimension) ||
@@ -175,6 +182,7 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
     settings.filters.map = fields.at("map");
     settings.filters.name = fields.at("name");
     settings.savedSize = savedSize != 0;
+    settings.savedPosition = savedPosition != 0;
     settings.filters.validSteamAccount = validAccount != 0;
     if (includePages) {
         for (size_t index = 0; index < settings.pages.size(); ++index) {

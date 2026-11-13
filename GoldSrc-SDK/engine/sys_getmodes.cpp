@@ -1718,6 +1718,7 @@ void CVideoMode_NativeSoftware::Shutdown() {
 #include "utlvector.h"
 #include "igame.h"
 #include "common.h"
+#include "conprint.h"
 #include "vid.h"
 #include "filesystem.h"
 #include "sys.h"
@@ -2352,9 +2353,32 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
         return;
     }
     SDL_Window *window = (SDL_Window *)game->GetMainWindow();
-    // GL fallback has already selected the exclusive mode. Scaled FBO uses the desktop.
-    if (!bNeedsFullScreenModeSwitch && !SDL_SetWindowFullscreenMode(window, nullptr)) {
-        Sys_Error("Failed to select desktop fullscreen: %s", SDL_GetError());
+    // GL fallback has already selected its render-resolution mode.
+    if (!bNeedsFullScreenModeSwitch) {
+        bool selectedRefresh = false;
+#if !defined(_WIN32)
+        const int frequencyParm = COM_CheckParm("-freq");
+        if (frequencyParm > 0 && frequencyParm + 1 < com_argc) {
+            const int refresh = atoi(com_argv[frequencyParm + 1]);
+            const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
+            const SDL_DisplayMode *desktop = SDL_GetDesktopDisplayMode(display);
+            SDL_DisplayMode mode{};
+            // SDL's closest result may substitute resolution or rate. Only accept the
+            // requested nominal Hz at desktop pixels; the FBO keeps the render size.
+            if (refresh > 0 && desktop &&
+                SDL_GetClosestFullscreenDisplayMode(display, desktop->w, desktop->h,
+                                                    static_cast<float>(refresh), false, &mode) &&
+                mode.w == desktop->w && mode.h == desktop->h && std::round(mode.refresh_rate) == refresh) {
+                selectedRefresh = SDL_SetWindowFullscreenMode(window, &mode);
+            }
+            if (!selectedRefresh) {
+                Con_DPrintf("Frequency %d is not supported at the desktop resolution\n", refresh);
+            }
+        }
+#endif
+        if (!selectedRefresh && !SDL_SetWindowFullscreenMode(window, nullptr)) {
+            Sys_Error("Failed to select desktop fullscreen: %s", SDL_GetError());
+        }
     }
     if (!SDL_SetWindowFullscreen(window, true)) {
         Sys_Error("Failed to enter fullscreen: %s", SDL_GetError());
