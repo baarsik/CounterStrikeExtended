@@ -11,6 +11,9 @@ option(CSE_BROWSER_SANITIZERS "Address and undefined behavior sanitizers" OFF)
 set(sdk "${CSE_BROWSER_SOURCE_ROOT}/GoldSrc-SDK")
 add_library(browser_model STATIC "${sdk}/GameUI/native/ServerBrowserModel.cpp")
 add_library(browser_config STATIC "${sdk}/GameUI/native/ServerBrowserConfig.cpp")
+add_library(browser_config_macro_contract OBJECT config_macro_contract.cpp)
+target_include_directories(browser_config_macro_contract PRIVATE "${sdk}/GameUI/native"
+    "${sdk}/external/SDL3/include" "${sdk}/public" "${sdk}/common")
 target_include_directories(browser_model PUBLIC "${sdk}/GameUI/native")
 target_include_directories(browser_config PUBLIC "${sdk}/GameUI/native" PRIVATE "${sdk}/external/SDL3/include"
     "${sdk}/public" "${sdk}/common")
@@ -31,7 +34,7 @@ foreach(branch little big)
     add_test(NAME server_browser_address_formatter_${branch} COMMAND address_formatter_${branch}_tests)
 endforeach()
 target_compile_definitions(address_formatter_big_tests PRIVATE VALVE_BIG_ENDIAN=1)
-foreach(target browser_model browser_config model_tests config_tests favorite_adapter_tests provider_probe
+foreach(target browser_model browser_config browser_config_macro_contract model_tests config_tests favorite_adapter_tests provider_probe
         address_formatter_little_tests address_formatter_big_tests)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /EHsc)
@@ -48,3 +51,7 @@ endforeach()
 add_test(NAME server_browser_model COMMAND model_tests)
 add_test(NAME server_browser_config COMMAND config_tests "${CMAKE_CURRENT_BINARY_DIR}/config-fixture")
 add_test(NAME server_browser_favorite_adapter COMMAND favorite_adapter_tests)
+
+add_test(NAME server_browser_config_macro_contract
+    COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
+        --target browser_config_macro_contract --config "$<CONFIG>")

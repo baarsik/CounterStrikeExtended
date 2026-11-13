@@ -162,8 +162,10 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
         !Number(fields.at("notfull"), notFull, 0, 1) ||
         !Number(fields.at("savedsize"), savedSize, 0, 1) ||
         !Number(fields.at("savedposition"), savedPosition, 0, 1) ||
-        !Number(fields.at("x"), settings.x, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()) ||
-        !Number(fields.at("y"), settings.y, std::numeric_limits<int>::min(), std::numeric_limits<int>::max()) ||
+        !Number(fields.at("x"), settings.x,
+                (std::numeric_limits<int>::min)(), (std::numeric_limits<int>::max)()) ||
+        !Number(fields.at("y"), settings.y,
+                (std::numeric_limits<int>::min)(), (std::numeric_limits<int>::max)()) ||
         !Number(fields.at("validaccount"), validAccount, 0, 1) ||
         !Number(fields.at("app"), settings.filters.app, AppId_t{0}, MaximumApp) ||
         !Number(fields.at("width"), settings.width, MinimumDimension, MaximumDimension) ||
