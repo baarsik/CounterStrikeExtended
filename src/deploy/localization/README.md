@@ -63,9 +63,8 @@ reinitialize viewports, reset scoreboards or replay gameplay/network commands.
 For console use, `cse_language russian` applies and saves a choice, and
 `cse_language auto` restores Steam resolution. Add `temporary` to avoid writing the
 saved preference. `cse_language` displays the current resolved language and
-revision. All paths still use the bundled-language allowlist. See
-[the live-localization spec](../../../docs/superpowers/specs/2026-11-13-live-localization.md)
-and the `tests/native/live_localization_*` fixture READMEs for ownership and
+revision. All paths still use the bundled-language allowlist. The
+`tests/native/live_localization_*` fixture READMEs describe ownership and
 transaction checks.
 
 ## Provenance

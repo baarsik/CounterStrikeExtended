@@ -28,7 +28,6 @@
         "CSEInterface_Tab" "介面"
         "CSEInterface_Language" "語言"
         "CSEInterface_Automatic" "使用 Steam 語言"
-        "CSEInterface_RestartRequired" "語言變更會立即生效。"
         "CSEInterface_SaveFailed" "無法變更語言。請重試。"
         "CSEInterface_LaunchOverride" "啟動選項 -language 會覆寫此設定。"
 

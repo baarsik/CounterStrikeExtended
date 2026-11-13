@@ -28,7 +28,6 @@
         "CSEInterface_Tab" "Interfejs"
         "CSEInterface_Language" "Język"
         "CSEInterface_Automatic" "Użyj języka Steam"
-        "CSEInterface_RestartRequired" "Zmiana języka jest stosowana od razu."
         "CSEInterface_SaveFailed" "Nie udało się zmienić języka. Spróbuj ponownie."
         "CSEInterface_LaunchOverride" "Opcja uruchamiania -language ma pierwszeństwo przed tym ustawieniem."
 

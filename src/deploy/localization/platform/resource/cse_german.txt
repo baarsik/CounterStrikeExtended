@@ -28,7 +28,6 @@
         "CSEInterface_Tab" "Oberfläche"
         "CSEInterface_Language" "Sprache"
         "CSEInterface_Automatic" "Steam-Sprache verwenden"
-        "CSEInterface_RestartRequired" "Sprachänderungen gelten sofort."
         "CSEInterface_SaveFailed" "Die Sprache konnte nicht geändert werden. Bitte erneut versuchen."
         "CSEInterface_LaunchOverride" "Die Startoption -language hat Vorrang vor dieser Einstellung."
 

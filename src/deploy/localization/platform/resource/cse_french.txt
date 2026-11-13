@@ -28,7 +28,6 @@
         "CSEInterface_Tab" "Interface"
         "CSEInterface_Language" "Langue"
         "CSEInterface_Automatic" "Utiliser la langue de Steam"
-        "CSEInterface_RestartRequired" "La langue change immédiatement."
         "CSEInterface_SaveFailed" "Impossible de changer la langue. Réessayez."
         "CSEInterface_LaunchOverride" "L’option de lancement -language remplace ce réglage."
 

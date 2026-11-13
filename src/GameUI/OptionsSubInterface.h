@@ -32,7 +32,6 @@ private:
 
     vgui2::ComboBox* m_languageCombo;
     vgui2::Label* m_languageLabel;
-    vgui2::Label* m_restartRequired;
     vgui2::Label* m_saveFailed;
     vgui2::Label* m_launchOverride;
     std::vector<int> m_languageItemIds;

@@ -28,7 +28,6 @@
         "CSEInterface_Tab" "Interface"
         "CSEInterface_Language" "Language"
         "CSEInterface_Automatic" "Use Steam language"
-        "CSEInterface_RestartRequired" "Language changes apply immediately."
         "CSEInterface_SaveFailed" "Could not apply the language. Please try again."
         "CSEInterface_LaunchOverride" "The launch option -language overrides this setting."
 

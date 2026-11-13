@@ -4,7 +4,6 @@
 /output-debug/
 /CMakeUserPresets.json
 /src/bin/
-/.superpowers/
 __pycache__/
 *.pyc
 

@@ -72,7 +72,6 @@ COptionsSubInterface::COptionsSubInterface(vgui2::Panel* parent)
         item->deleteThis();
     }
 
-    m_restartRequired = new InterfaceNotice(this, "RestartRequired", "#CSEInterface_RestartRequired");
     m_saveFailed = new InterfaceNotice(this, "SaveFailed", "#CSEInterface_SaveFailed");
     m_launchOverride = new InterfaceNotice(this, "LaunchOverride", "#CSEInterface_LaunchOverride");
     m_saveFailed->SetVisible(false);
@@ -97,7 +96,6 @@ void COptionsSubInterface::OnResetData() {
             break;
         }
     }
-    m_restartRequired->SetVisible(true);
     m_saveFailed->SetVisible(false);
     m_launchOverride->SetVisible(system && system->CommandLineParamExists("-language"));
     InvalidateLayout(false, false);
@@ -169,7 +167,10 @@ void COptionsSubInterface::PerformLayout() {
     int top = inset + labelHeight + controlGap;
     m_languageCombo->SetBounds(inset, top, width, comboHeight);
     top += comboHeight + noticeGap;
-    top += LayoutNotice(m_restartRequired, inset, top, width, minimumNoticeHeight) + noticeGap;
-    top += LayoutNotice(m_launchOverride, inset, top, width, minimumNoticeHeight) + noticeGap;
-    LayoutNotice(m_saveFailed, inset, top, width, minimumNoticeHeight);
+    if (m_launchOverride->IsVisible()) {
+        top += LayoutNotice(m_launchOverride, inset, top, width, minimumNoticeHeight) + noticeGap;
+    }
+    if (m_saveFailed->IsVisible()) {
+        LayoutNotice(m_saveFailed, inset, top, width, minimumNoticeHeight);
+    }
 }
