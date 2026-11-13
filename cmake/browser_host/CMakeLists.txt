@@ -69,7 +69,7 @@ if(APPLE)
   set_target_properties(${CEF_TARGET} PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in")
   set(CEF_APP "${CEF_TARGET_OUT_DIR}/${CEF_TARGET}.app")
   # The vendor copy macro's ln -sf follows existing directory symlinks on relink.
-  # Recreate only our staged framework before copying to preserve its signed layout.
+  # Recreate only our staged framework before copying to preserve its versioned layout.
   add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E rm -rf "${CEF_APP}/Contents/Frameworks/Chromium Embedded Framework.framework"
     VERBATIM)
@@ -130,8 +130,11 @@ add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
     "${CSE_HOST_LICENSE_DIR}/LICENSE.cef-provider.txt"
   VERBATIM)
 if(APPLE)
-  # Seal only our host after all owned helpers/resources are staged. Preserve
-  # the pinned vendor framework and its signature; never deep-resign it.
+  # The hash-verified provider has only a linker signature without a resource seal.
+  # Seal our staged framework copy directly, then the host, after all staging.
+  # The raw pinned provider remains untouched; never recursively resign with --deep.
   add_custom_command(TARGET ${CEF_TARGET} POST_BUILD
+    COMMAND /usr/bin/codesign --force --sign - --timestamp=none
+      "${CEF_APP}/Contents/Frameworks/Chromium Embedded Framework.framework"
     COMMAND /usr/bin/codesign --force --sign - "${CEF_APP}" VERBATIM)
 endif()

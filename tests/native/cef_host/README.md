@@ -114,8 +114,14 @@ or moving an unsigned host creates a fresh encrypted development store instead o
 requesting approval to read an older executable's protected key. Existing keys and
 profiles remain untouched; development cookies persist for that exact build and
 location. No Keychain access lists, system preferences, encryption or sandbox
-settings are weakened. The build ad-hoc signs only the owned host and helper bundles;
-the pinned vendor framework and signature remain unchanged.
+settings are weakened. The build verifies the raw pinned CEF provider hashes, then
+copies it into a fresh versioned framework layout on every host relink. The raw
+provider has a linker signature without a resource seal, so the build directly
+ad-hoc seals the staged framework copy before sealing the host; helpers are sealed
+separately. It never recursively resigns with `--deep` or modifies the raw provider.
+The staged framework executable's whole-file hash changes with its signature;
+the raw input remains the artifact checked against the pin. This local ad-hoc seal
+supports bundle integrity checks, not Developer ID distribution or notarization.
 
 `storage_policy.py` runs actual settings-only probes for identity reuse/change,
 relocation, Release/Debug separation, Unicode/space paths and an invalid signature.
