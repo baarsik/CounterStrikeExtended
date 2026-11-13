@@ -11,7 +11,8 @@ building. Omitting the SDL3 provider builds the offline wire fixture alone.
 `browser_process_tests --peer <other-architecture-fixture>` tests a differently
 sized process ABI on the same OS.
 
-The 24-byte header contains CSEB magic, a 16-bit protocol version and message kind,
+Protocol version 2 adds validated main-view dirty bounds to paint messages. Old
+helpers are rejected before callback dispatch. The 24-byte header contains CSEB magic, a 16-bit protocol version and message kind,
 then 32-bit operation, browser ID, request ID and payload length. Every integer
 has an explicit little-endian encoding. Payload strings are byte-counted. Native
 pointers, structures, C++ objects and function addresses never enter the stream.
@@ -31,7 +32,13 @@ Native builds additionally compile the owned HTML controller and
 dispatch, reentrant removal, cookie requests, provider failures and deferred UI
 deletion. Invalid image dimensions fail before UI callbacks; unknown UI keys are
 ignored before transmission. The image bound includes both view and popup BGRA
-buffers at the configured 8192-pixel dimension limit.
+buffers at the configured 8192-pixel dimension limit. The CPU paint accumulator
+fixture covers first/resize/full repaint, dirty rectangle unions across outstanding
+acknowledgements, popup-only updates, clipping and overflow. Controlled child paint
+messages verify callback bounds, full backing pointer/stride and malformed bounds
+rejection. A CPU raster fixture checks the standalone surface's full-backing adapter
+at nonzero x/y while preserving compact-image updates. These tests initialize no
+video, renderer, hardware device or real CEF browser.
 
 `browser_cef_probe` is a separately authorized real-provider fixture. Run it through
 `tests/native/cef_provider/run_fixture.py --argument=--cse-host=<absolute host>`;

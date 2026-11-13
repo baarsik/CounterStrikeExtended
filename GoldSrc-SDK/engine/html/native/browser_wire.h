@@ -15,7 +15,7 @@ namespace cse::browser {
 
 // This local provider protocol carries values and browser IDs, never native pointers or C++ object layouts.
 constexpr std::size_t HeaderBytes = 24;
-constexpr std::uint16_t ProtocolVersion = 1;
+constexpr std::uint16_t ProtocolVersion = 2;
 enum class Kind : std::uint16_t { Command = 1, Event = 2, Control = 3, Pixels = 4 };
 
 struct Header {

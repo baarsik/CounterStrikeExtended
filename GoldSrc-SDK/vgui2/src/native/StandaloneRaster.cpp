@@ -36,14 +36,29 @@ bool RasterImage::Assign(const unsigned char* source, int wide, int tall, bool b
 }
 
 bool RasterImage::Update(int x, int y, const unsigned char* source, int wide, int tall) {
+    return UpdateRegion(x, y, source, wide, tall, false);
+}
+
+bool RasterImage::UpdateFromBacking(int x, int y, const unsigned char* source, int wide, int tall) {
+    return UpdateRegion(x, y, source, wide, tall, true);
+}
+
+bool RasterImage::UpdateRegion(int x, int y, const unsigned char* source, int wide, int tall, bool fullBacking) {
+    if (fullBacking && x == 0 && y == 0 && wide == 0 && tall == 0) {
+        return true;
+    }
     std::size_t size = 0;
     if (!source || !ImageSize(wide, tall, size) || x < 0 || y < 0 || x > width || y > height || wide > width - x ||
         tall > height - y) {
         return false;
     }
+    const int sourceWidth = fullBacking ? width : wide;
+    const int sourceX = fullBacking ? x : 0;
+    const int sourceY = fullBacking ? y : 0;
     for (int row = 0; row < tall; ++row) {
         for (int column = 0; column < wide; ++column) {
-            const std::size_t from = (static_cast<std::size_t>(row) * wide + column) * PixelChannels;
+            const std::size_t from = (static_cast<std::size_t>(sourceY + row) * sourceWidth +
+                sourceX + column) * PixelChannels;
             const std::size_t to = (static_cast<std::size_t>(y + row) * width + x + column) * PixelChannels;
             pixels[to] = source[from + 2];
             pixels[to + 1] = source[from + 1];

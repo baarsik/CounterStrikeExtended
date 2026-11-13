@@ -1,4 +1,5 @@
 #include "browser_wire.h"
+#include "browser_commands.h"
 
 #include <array>
 #include <cstdio>
@@ -28,7 +29,7 @@ int main() {
     Require(writer.Data() == expectedPayload, "explicit little-endian field bytes");
     Header header{Kind::Command, 0x1234, 7, 9, static_cast<std::uint32_t>(writer.Data().size())};
     const auto bytes = EncodeHeader(header);
-    const std::array<std::uint8_t, HeaderBytes> expectedHeader = {0x43, 0x53, 0x45, 0x42, 1, 0, 1, 0,
+    const std::array<std::uint8_t, HeaderBytes> expectedHeader = {0x43, 0x53, 0x45, 0x42, 2, 0, 1, 0,
         0x34, 0x12, 0, 0, 7, 0, 0, 0, 9, 0, 0, 0, 31, 0, 0, 0};
     Require(bytes == expectedHeader, "fixed header bytes independent of native layout");
     std::vector<std::uint8_t> packet(bytes.begin(), bytes.end());
@@ -76,6 +77,23 @@ int main() {
         std::size_t used = 0;
         Require(decoder.Feed(invalid.data(), invalid.size(), used, message) == DecodeStatus::Invalid,
             "magic/version/kind mismatch rejected");
+    }
+    {
+        auto oldProtocol = packet;
+        oldProtocol[4] = 1;
+        oldProtocol[5] = 0;
+        Decoder decoder(FixturePayloadLimit);
+        Message message;
+        std::size_t used = 0;
+        Require(decoder.Feed(oldProtocol.data(), oldProtocol.size(), used, message) == DecodeStatus::Invalid,
+            "old helpers rejected before payload dispatch");
+        // Two 8192x8192 BGRA buffers plus nine integer fields and two blob lengths, then one excess byte.
+        constexpr std::uint32_t OversizedPaintBytes = 536870957;
+        Header oversized{Kind::Pixels, eHTMLCommands_NeedsPaint, 1, 0, OversizedPaintBytes};
+        const auto encoded = EncodeHeader(oversized);
+        Decoder bounded(MaximumPaintPayloadBytes);
+        Require(bounded.Feed(encoded.data(), encoded.size(), used, message) == DecodeStatus::Invalid,
+            "paint payload limit includes bounds and rejects excess before allocation");
     }
     {
         auto invalid = packet;

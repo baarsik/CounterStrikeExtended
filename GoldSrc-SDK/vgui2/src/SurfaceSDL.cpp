@@ -627,7 +627,7 @@ void CSDLSurface::DrawSetTextureBGRA(int id, const unsigned char* pixels, int wi
 void CSDLSurface::DrawUpdateRegionTextureBGRA(int id, int x, int y, const unsigned char* pixels, int wide, int tall) {
     auto found = textures_.find(id);
     if (found != textures_.end()) {
-        found->second.Update(x, y, pixels, wide, tall);
+        found->second.UpdateFromBacking(x, y, pixels, wide, tall);
     }
 }
 

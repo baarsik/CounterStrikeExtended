@@ -1,4 +1,5 @@
 #include "browser_controller.h"
+#include "browser_paint.h"
 #include "browser_commands.h"
 #include "process_channel.h"
 #include "../../utlstring.h"
@@ -943,20 +944,25 @@ void Controller::Dispatch(const Message& message) {
         std::int32_t texture = 0;
         std::int32_t width = 0;
         std::int32_t height = 0;
+        PaintBounds update;
         std::int32_t popupWidth = 0;
         std::int32_t popupHeight = 0;
         std::vector<std::uint8_t> pixels;
         std::vector<std::uint8_t> popup;
-        if (reader.I32(texture) && reader.I32(width) && reader.I32(height) && reader.I32(popupWidth) &&
-            reader.I32(popupHeight) && reader.Bytes(pixels) && reader.Bytes(popup) && reader.Finish() &&
+        if (reader.I32(texture) && reader.I32(width) && reader.I32(height) &&
+            reader.I32(update.x) && reader.I32(update.y) && reader.I32(update.width) && reader.I32(update.height) &&
+            reader.I32(popupWidth) && reader.I32(popupHeight) && reader.Bytes(pixels) && reader.Bytes(popup) &&
+            reader.Finish() &&
             width > 0 && width <= MaximumBrowserDimension && height > 0 && height <= MaximumBrowserDimension &&
             popupWidth >= 0 && popupWidth <= MaximumBrowserDimension &&
             popupHeight >= 0 && popupHeight <= MaximumBrowserDimension) {
             constexpr std::uint64_t PixelBytes = PaintBytesPerPixel;
             const std::uint64_t expected = static_cast<std::uint64_t>(width) * height * PixelBytes;
             const std::uint64_t expectedPopup = static_cast<std::uint64_t>(popupWidth) * popupHeight * PixelBytes;
-            if (pixels.size() == expected && popup.size() == expectedPopup) {
-                responses->BrowserNeedsPaint(texture, width, height, pixels.data(), 0, 0, width, height,
+            if (pixels.size() == expected && popup.size() == expectedPopup &&
+                ValidPaintBounds(update, width, height)) {
+                responses->BrowserNeedsPaint(texture, width, height, pixels.data(),
+                    update.x, update.y, update.width, update.height,
                     popupWidth, popupHeight, popup.empty() ? nullptr : popup.data());
                 return;
             }

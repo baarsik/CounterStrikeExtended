@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <string>
 #include <vector>
 #if defined(_WIN32)
@@ -119,6 +120,59 @@ static int Host(const std::vector<std::string>& arguments) {
                     Output({Kind::Event, eHTMLCommands_Close, command.header.browser, 0, 0}, closed);
                     continue;
                 }
+                const auto partialPaint = folder / "partial-paint";
+                if (std::filesystem::exists(partialPaint)) {
+                    std::filesystem::remove(partialPaint);
+                    Writer paint;
+                    // Full 8x6 backing pixels, but only the middle two rows changed.
+                    for (int value : {1, 8, 6, 2, 3, 3, 2, 0, 0}) {
+                        paint.I32(value);
+                    }
+                    std::vector<std::uint8_t> pixels(8 * 6 * 4);
+                    pixels[0] = 11;
+                    pixels[8 * 3 * 4] = 77;
+                    pixels.back() = 99;
+                    paint.Bytes(pixels.data(), pixels.size());
+                    paint.Bytes(nullptr, 0);
+                    Output({Kind::Pixels, eHTMLCommands_NeedsPaint, command.header.browser, 0, 0}, paint);
+                    continue;
+                }
+                const auto popupPaint = folder / "popup-paint";
+                if (std::filesystem::exists(popupPaint)) {
+                    std::filesystem::remove(popupPaint);
+                    Writer paint;
+                    for (int value : {1, 8, 6, 0, 0, 0, 0, 2, 2}) {
+                        paint.I32(value);
+                    }
+                    const std::vector<std::uint8_t> pixels(8 * 6 * 4, 13);
+                    const std::vector<std::uint8_t> popupPixels(2 * 2 * 4, 27);
+                    paint.Bytes(pixels.data(), pixels.size());
+                    paint.Bytes(popupPixels.data(), popupPixels.size());
+                    Output({Kind::Pixels, eHTMLCommands_NeedsPaint, command.header.browser, 0, 0}, paint);
+                    continue;
+                }
+                const auto invalidUpdate = folder / "invalid-update";
+                if (std::filesystem::exists(invalidUpdate)) {
+                    std::ifstream input(invalidUpdate);
+                    Writer paint;
+                    for (int value : {1, 8, 6}) {
+                        paint.I32(value);
+                    }
+                    int value = 0;
+                    for (int field = 0; field < 4; ++field) {
+                        Require(static_cast<bool>(input >> value), "invalid-update fixture fields");
+                        paint.I32(value);
+                    }
+                    input.close();
+                    std::filesystem::remove(invalidUpdate);
+                    paint.I32(0);
+                    paint.I32(0);
+                    const std::vector<std::uint8_t> pixels(8 * 6 * 4);
+                    paint.Bytes(pixels.data(), pixels.size());
+                    paint.Bytes(nullptr, 0);
+                    Output({Kind::Pixels, eHTMLCommands_NeedsPaint, command.header.browser, 0, 0}, paint);
+                    continue;
+                }
                 const auto badPaint = folder / "out-of-range-paint";
                 if (std::filesystem::exists(badPaint)) {
                     std::filesystem::remove(badPaint);
@@ -126,6 +180,10 @@ static int Host(const std::vector<std::string>& arguments) {
                     constexpr int PixelBytes = 4;
                     Writer paint;
                     paint.I32(1);
+                    paint.I32(InvalidWidth);
+                    paint.I32(1);
+                    paint.I32(0);
+                    paint.I32(0);
                     paint.I32(InvalidWidth);
                     paint.I32(1);
                     paint.I32(0);
@@ -163,6 +221,8 @@ public:
     int ready = 0;
     int titles = 0;
     int closed = 0;
+    int paints = 0;
+    bool expectPopupPaint = false;
     bool removeOnTitle = false;
     bool removeOnClose = false;
     bool alive = true;
@@ -180,7 +240,25 @@ public:
             serializer = nullptr;
         }
     }
-    void BrowserNeedsPaint(int , int , int , const unsigned char* , int , int , int , int , int , int , const unsigned char* ) override {}
+    void BrowserNeedsPaint(int texture, int width, int height, const unsigned char* pixels,
+        int x, int y, int updateWidth, int updateHeight, int popupWidth, int popupHeight,
+        const unsigned char* popup) override {
+        if (expectPopupPaint) {
+            Require(texture == 1 && width == 8 && height == 6 && x == 0 && y == 0 &&
+                updateWidth == 0 && updateHeight == 0 && popupWidth == 2 && popupHeight == 2 && popup,
+                "popup-only paint survives dispatch with empty main bounds");
+            Require(pixels[0] == 13 && pixels[8 * 6 * 4 - 1] == 13 && popup[0] == 27 && popup[15] == 27,
+                "popup-only paint preserves both backing buffers");
+        } else {
+            Require(texture == 1 && width == 8 && height == 6 && x == 2 && y == 3 &&
+                updateWidth == 3 && updateHeight == 2 && popupWidth == 0 && popupHeight == 0 && !popup,
+                "partial paint bounds survive wire dispatch");
+            Require(pixels[0] == 11 && pixels[8 * 3 * 4] == 77 && pixels[8 * 6 * 4 - 1] == 99,
+                "partial paint retains full backing pointer and row stride");
+        }
+        ++paints;
+        serializer->NeedsPaintResponse(texture);
+    }
     void BrowserStartRequest(const char* , const char* , const char* , bool ) override {}
     void BrowserURLChanged(const char* , const char* , bool ) override {}
     void BrowserFinishedRequest(const char* , const char* ) override {}
@@ -253,6 +331,13 @@ static int Run(const std::vector<std::string>& arguments) {
     CUtlString cookies;
     controller->GetWebCookiesForURL(&cookies, "https://fixture.invalid/", "fixture.invalid");
     Require(cookies.m_pchString && std::string(cookies.m_pchString) == "fixture=persisted", "cookie reply ownership");
+    std::ofstream(directory / "partial-paint").put('1');
+    responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    Pump(*controller, responses.paints, 1);
+    responses.expectPopupPaint = true;
+    std::ofstream(directory / "popup-paint").put('1');
+    responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    Pump(*controller, responses.paints, 2);
     responses.removeOnTitle = true;
     responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
     Pump(*controller, responses.titles, 1);
@@ -289,6 +374,28 @@ static int Run(const std::vector<std::string>& arguments) {
     controller->RemoveBrowser(invalidPaint.serializer->GetResponseTarget());
     invalidPaint.serializer = nullptr;
     controller->Shutdown();
+    for (const std::array<int, 4> update : std::vector<std::array<int, 4>>{
+        {-1, 0, 1, 1}, {0, -1, 1, 1}, {0, 0, -1, 1}, {0, 0, 1, -1}, {7, 0, 2, 1}, {0, 5, 1, 2},
+        {8, 0, 1, 1}, {0, 6, 1, 1}, {1, 0, 0, 0}, {0, 0, 0, 1}, {0, 0, 1, 0},
+        {1, 0, std::numeric_limits<int>::max(), 1}}) {
+        Require(controller->Init("cache", "cookies"), "restart for malformed update bounds");
+        Responses rejected;
+        rejected.serializer = controller->CreateSerializer(&rejected);
+        controller->CreateBrowser(rejected.serializer->GetResponseTarget(), false, "fixture-agent");
+        Pump(*controller, rejected.ready, 1);
+        {
+            std::ofstream marker(directory / "invalid-update");
+            for (int field : update) {
+                marker << field << ' ';
+            }
+        }
+        rejected.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+        Pump(*controller, rejected.closed, 1);
+        Require(rejected.paints == 0, "malformed bounds rejected before pixel callback");
+        controller->RemoveBrowser(rejected.serializer->GetResponseTarget());
+        rejected.serializer = nullptr;
+        controller->Shutdown();
+    }
     controller.reset();
     std::ofstream(directory / "fixture-keychain-option").put('1');
     ControllerConfig fixtureConfig{arguments[0], directory.u8string()};

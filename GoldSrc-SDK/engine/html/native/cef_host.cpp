@@ -10,6 +10,7 @@
 #include "cef_host.h"
 #include "cef_frame_diagnostics.h"
 #include "browser_commands.h"
+#include "browser_paint.h"
 #include "browser_wire.h"
 #include "../../../public/html_key_modifiers.h"
 
@@ -753,6 +754,9 @@ public:
             popupHeight_ = 0;
         }
         Emit(show ? eHTMLCommands_ShowPopup : eHTMLCommands_HidePopup);
+        if (!show) {
+            Paint();
+        }
     }
 
     void OnPopupSize(CefRefPtr<CefBrowser>, const CefRect& rectangle) override {
@@ -768,7 +772,7 @@ public:
         Query(0, 0, 0);
     }
 
-    void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList&, const void* pixels,
+    void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList& dirtyRectangles, const void* pixels,
         int width, int height) override {
         diagnostics::Frames().Add(identifier_, "on_paint", type, width, height);
         if (width <= 0 || height <= 0 || width > MaximumDimension || height > MaximumDimension || closing_) {
@@ -780,10 +784,12 @@ public:
             paintWidth_ = width;
             paintHeight_ = height;
             mainPixels_.assign(begin, begin + count);
+            pendingPaint_.View(width, height, dirtyRectangles);
         } else {
             popupWidth_ = width;
             popupHeight_ = height;
             popupPixels_.assign(begin, begin + count);
+            pendingPaint_.Popup();
         }
         Paint();
     }
@@ -969,17 +975,22 @@ private:
     }
 
     void Paint() {
-        diagnostics::Frames().Add(identifier_, "paint", mainPixels_.empty(), painting_, popupVisible_);
-        if (mainPixels_.empty() || painting_ || (popupVisible_ && popupPixels_.empty())) {
-            paintPending_ = true;
+        diagnostics::Frames().Add(identifier_, "paint", mainPixels_.empty(), pendingPaint_.InFlight(), popupVisible_);
+        if (mainPixels_.empty() || pendingPaint_.InFlight() || (popupVisible_ && popupPixels_.empty())) {
             return;
         }
-        painting_ = true;
-        paintPending_ = false;
+        PaintBounds update;
+        if (!pendingPaint_.BeginSend(update)) {
+            return;
+        }
         Writer payload;
         payload.I32(texture_);
         payload.I32(paintWidth_);
         payload.I32(paintHeight_);
+        payload.I32(update.x);
+        payload.I32(update.y);
+        payload.I32(update.width);
+        payload.I32(update.height);
         payload.I32(popupWidth_);
         payload.I32(popupHeight_);
         payload.Bytes(mainPixels_.data(), mainPixels_.size());
@@ -1030,8 +1041,7 @@ private:
     bool readySent_ = false;
     bool tooltipVisible_ = false;
     bool popupVisible_ = false;
-    bool painting_ = false;
-    bool paintPending_ = false;
+    PendingPaint pendingPaint_;
     std::deque<Message> pendingCommands_;
     std::size_t pendingCommandBytes_ = 0;
     IMPLEMENT_REFCOUNTING(Client);
@@ -1148,6 +1158,7 @@ void Client::Command(const Message& message) {
                 break;
             default:
                 diagnostics::Frames().Add(identifier_, "invalidate");
+                pendingPaint_.RequireFullView();
                 browserHost->Invalidate(PET_VIEW);
                 Query(0, 0, 0);
                 break;
@@ -1303,11 +1314,8 @@ void Client::Command(const Message& message) {
         }
         break;
     case eHTMLCommands_NeedsPaintResponse:
-        if (reader.I32(a) && reader.Finish() && painting_ && a == texture_) {
-            painting_ = false;
-            if (paintPending_) {
-                Paint();
-            }
+        if (reader.I32(a) && reader.Finish() && a == texture_ && pendingPaint_.Acknowledge()) {
+            Paint();
             return;
         }
         break;

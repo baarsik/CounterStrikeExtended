@@ -19,7 +19,7 @@ constexpr std::uint32_t ProviderApiVersion = 15600;
 constexpr std::uint32_t ProviderContractVersion = 1;
 constexpr int MaximumBrowserDimension = 8192;
 constexpr std::size_t PaintBytesPerPixel = 4;
-// A paint frame contains the view and popup BGRA images, five int32 fields and two blob-length fields.
+// A paint frame contains the view and popup BGRA images, nine int32 fields and two blob-length fields.
 constexpr std::size_t MaximumPaintPayloadBytes = 2 * static_cast<std::size_t>(MaximumBrowserDimension) *
-    MaximumBrowserDimension * PaintBytesPerPixel + 7 * sizeof(std::uint32_t);
+    MaximumBrowserDimension * PaintBytesPerPixel + 11 * sizeof(std::uint32_t);
 }

@@ -18,7 +18,12 @@ struct RasterImage {
     std::uint64_t revision = 0;
     std::vector<unsigned char> pixels;
     bool Assign(const unsigned char* source, int wide, int tall, bool bgra, bool filter);
+    // Update accepts compact BGRA regions; HTML callbacks instead supply the complete backing image.
     bool Update(int x, int y, const unsigned char* source, int wide, int tall);
+    bool UpdateFromBacking(int x, int y, const unsigned char* source, int wide, int tall);
+
+private:
+    bool UpdateRegion(int x, int y, const unsigned char* source, int wide, int tall, bool fullBacking);
 };
 
 class StandaloneRaster {
