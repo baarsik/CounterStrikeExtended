@@ -2,6 +2,7 @@
 #include "VGui1NativeRuntime.h"
 #endif
 #include "../common/sdl3_input.h"
+#include "../utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h"
 #include "../common/sdl3_cursor.h"
 #include "../common/sdl3_keyboard.h"
 #include "VGUI_EngineSurfaceWrap.h"
@@ -34,6 +35,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <new>
+#include <map>
 #include "sdl3_window.h"
 
 #if !defined(__APPLE__)
@@ -94,6 +96,13 @@ static FontInfoVGUI* staticFontInfoVGUI = nullptr;
 static vgui::Dar<FontInfoVGUI*> staticFontInfoVGUIDar;
 static int staticContextCount = 0;
 static unsigned char staticRGBA[FONT_TEXTURE_BYTES];
+struct UnicodeGlyphTexture {
+    int texture = 0;
+    int side = 0;
+};
+// Renderer-owned glyph textures share the ordinary surface context lifetime.
+// Cache by actual platform identity; cached Font facades can have ID -1.
+static std::map<vgui::BaseFontPlat*, std::map<int, UnicodeGlyphTexture>> staticUnicodeGlyphs;
 #endif
 static cse::FractionalMotion s_wheelMotion;
 static SDL_Cursor* staticDefaultCursor[CURSOR_SLOT_COUNT];
@@ -144,6 +153,7 @@ EngineSurfaceWrap::EngineSurfaceWrap(vgui::Panel *embeddedPanel, IEngineSurface 
     staticFont = nullptr;
     staticFontInfoVGUI = nullptr;
     staticFontInfoVGUIDar.setCount(0);
+    staticUnicodeGlyphs.clear();
     ++staticContextCount;
 #endif
 
@@ -411,11 +421,12 @@ void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 	int penX = x;
 	if ( textLen > 0 )
 	{
-		const char* cursor = text;
-		const char* end = text + textLen;
-		while ( cursor != end )
-		{
-			const int character = static_cast<unsigned char>( *cursor );
+        const std::size_t bytes = static_cast<std::size_t>(textLen);
+        const cse_vgui1::text::Run run(text, bytes);
+        for (std::size_t offset = 0; offset < bytes;) {
+            const auto decoded = run.GlyphAt(offset);
+            offset += decoded.bytes;
+            const int character = decoded.value < 0 ? static_cast<unsigned char>(decoded.value) : decoded.value;
 			int abcA = 0;
 			int abcB = 0;
 			int abcC = 0;
@@ -426,10 +437,30 @@ void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 #else
 			const int wide = staticFont->getWide();
 #endif
-			drawSetTexture( staticFontInfoVGUI->bindIndex[staticFontInfoVGUI->pageForChar[character]] );
-			const float* coord = staticFontInfoVGUI->texCoord[character];
-			drawPrintChar( x, y, wide, tall, coord[0], coord[1], coord[2], coord[3] );
-			++cursor;
+            constexpr int LegacyGlyphCount = 256;
+            if (character < LegacyGlyphCount) {
+                drawSetTexture(staticFontInfoVGUI->bindIndex[staticFontInfoVGUI->pageForChar[character]]);
+                const float* coord = staticFontInfoVGUI->texCoord[character];
+                drawPrintChar(x, y, wide, tall, coord[0], coord[1], coord[2], coord[3]);
+            } else if (wide > 0 && wide < FONT_TEXTURE_SIZE && tall > 0 && tall < FONT_TEXTURE_SIZE) {
+                auto& glyph = staticUnicodeGlyphs[staticFont->getPlat()][character];
+                if (glyph.texture == 0) {
+                    glyph.side = 1;
+                    while (glyph.side < wide || glyph.side < tall) {
+                        glyph.side *= 2;
+                    }
+                    constexpr int PixelChannels = 4;
+                    const auto pixels = static_cast<std::size_t>(glyph.side) * glyph.side * PixelChannels;
+                    std::memset(staticRGBA, 0, pixels);
+                    staticFont->getCharRGBA(character, 0, 0, glyph.side, glyph.side, staticRGBA);
+                    glyph.texture = createNewTextureID();
+                    drawSetTextureRGBA(glyph.texture, reinterpret_cast<const char*>(staticRGBA),
+                        glyph.side, glyph.side);
+                }
+                drawSetTexture(glyph.texture);
+                const float scale = 1.0f / static_cast<float>(glyph.side);
+                drawPrintChar(x, y, wide, tall, 0.0f, 0.0f, wide * scale, tall * scale);
+            }
 			penX = abcC + x + wide;
 			x = penX;
 		}

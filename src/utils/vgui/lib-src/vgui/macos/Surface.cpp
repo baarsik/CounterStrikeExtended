@@ -5,6 +5,7 @@
 #include "VGUI_ImagePanel.h"
 #include "VGUI_Panel.h"
 #include "../posix/VGui1FontPlatform.h"
+#include "../common/VGui1TextEncoding.h"
 #include "../../../../../common/sdl3_keyboard.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -181,20 +182,23 @@ void Surface::drawSetTextFont(Font* font) {
 }
 
 void Surface::drawPrintText(const char* text, int length) {
-    if (!text || !_plat->font) {
+    if (!text || length <= 0 || !_plat->font) {
         return;
     }
     constexpr int Channels = VGUI_RGBA_BYTES;
     const int height = _plat->font->getTall();
-    for (int index = 0; index < length; ++index) {
-        const unsigned char character = static_cast<unsigned char>(text[index]);
+    const cse_vgui1::text::Run run(text, static_cast<std::size_t>(length));
+    for (std::size_t offset = 0; offset < static_cast<std::size_t>(length);) {
+        const auto character = run.GlyphAt(offset);
+        offset += character.bytes;
+        const int glyph = character.value < 0 ? static_cast<unsigned char>(character.value) : character.value;
         int a = 0;
         int b = 0;
         int c = 0;
-        _plat->font->getCharABCwide(character, a, b, c);
+        _plat->font->getCharABCwide(glyph, a, b, c);
         if (b > 0 && height > 0 && b <= (std::numeric_limits<int>::max)() / Channels / height) {
             std::vector<unsigned char> pixels(static_cast<std::size_t>(b) * height * Channels);
-            _plat->font->getCharRGBA(character, 0, 0, b, height, pixels.data());
+            _plat->font->getCharRGBA(glyph, 0, 0, b, height, pixels.data());
             SDL_Texture* glyph = SDL_CreateTexture(_plat->renderer, SDL_PIXELFORMAT_RGBA32,
                 SDL_TEXTUREACCESS_STATIC, b, height);
             if (glyph) {

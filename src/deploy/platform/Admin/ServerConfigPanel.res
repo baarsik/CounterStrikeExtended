@@ -41,7 +41,7 @@
 		"visible"		"1"
 		"enabled"		"1"
 		"tabPosition"		"2"
-		"labelText"		"Edit..."
+		"labelText"		"#Ban_List_Edit"
 		"textAlignment"		"west"
 		"dulltext"		"0"
 		"brighttext"		"0"

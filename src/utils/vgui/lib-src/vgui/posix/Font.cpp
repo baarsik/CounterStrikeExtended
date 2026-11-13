@@ -14,6 +14,9 @@ namespace vgui {
 namespace {
 class BitmapFontPlat final : public BaseFontPlat {
 public:
+    BitmapFontPlat(const char* name, int weight, bool italic, bool underline, bool strikeout)
+        : name_(name ? name : ""), weight_(weight), italic_(italic), underline_(underline), strikeout_(strikeout) {}
+
     bool Load(void* data, int length) {
         constexpr std::size_t kTgaHeaderBytes = 18;
         constexpr std::size_t kTgaWidthOffset = 12;
@@ -50,6 +53,10 @@ public:
 
     void getCharRGBA(int ch, int x, int y, int wide, int tall, uchar* rgba) override {
         cse_vgui1::RequireReady(this);
+        if (ch >= VFONT_GLYPH_COUNT) {
+            UnicodeFallback()->getCharRGBA(ch, x, y, wide, tall, rgba);
+            return;
+        }
         if (ch < 0) {
             ch = 0;
         }
@@ -81,6 +88,10 @@ public:
 
     void getCharABCwide(int ch, int& a, int& b, int& c) override {
         cse_vgui1::RequireReady(this);
+        if (ch >= VFONT_GLYPH_COUNT) {
+            UnicodeFallback()->getCharABCwide(ch, a, b, c);
+            return;
+        }
         if (ch < 0) {
             ch = 0;
         } else if (ch >= VFONT_GLYPH_COUNT) {
@@ -107,7 +118,25 @@ public:
     }
 
 private:
+    BaseFontPlat* UnicodeFallback() {
+        if (!unicodeFallback_) {
+            // Original TGA byte glyphs stay intact. Missing Unicode cells use
+            // the same requested family and bitmap cell height, realized only
+            // when a validated UTF8 run actually needs a non-byte glyph.
+            unicodeFallback_ = cse_vgui1::CreatePlatform(name_.c_str(), data_.m_BitmapCharHeight, 0, 0.0f,
+                weight_, italic_, underline_, strikeout_, false);
+        }
+        cse_vgui1::RequireReady(unicodeFallback_);
+        return unicodeFallback_;
+    }
+
     VFontData data_;
+    std::string name_;
+    int weight_;
+    bool italic_;
+    bool underline_;
+    bool strikeout_;
+    BaseFontPlat* unicodeFallback_ = nullptr;
 };
 }
 
@@ -127,7 +156,7 @@ void Font::init(const char* name, void* data, int length, int tall, int wide, fl
     _plat = nullptr;
     _id = -1;
     if (data) {
-        std::unique_ptr<BitmapFontPlat> bitmap(new BitmapFontPlat);
+        std::unique_ptr<BitmapFontPlat> bitmap(new BitmapFontPlat(name, weight, italic, underline, strikeout));
         if (!bitmap->Load(data, length)) {
             cse_vgui1::RecordBitmapFailure(name);
             return;

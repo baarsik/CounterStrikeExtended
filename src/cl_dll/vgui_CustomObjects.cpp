@@ -125,38 +125,26 @@ void CommandButton::Init( void )
 // Purpose: Prepends the button text with the current bound key
 //			if no bound key, then a clear space ' ' instead
 //-----------------------------------------------------------------------------
-void CommandButton::RecalculateText( void )
-{
-	char szBuf[128];
-
-	if ( m_cBoundKey != 0 )
-	{
-		if ( m_cBoundKey == (char)255 )
-		{
-			strcpy( szBuf, m_sMainText );
-		}
-		else
-		{
-			sprintf( szBuf, "  %c  %s", m_cBoundKey, m_sMainText );
-		}
-		szBuf[MAX_BUTTON_SIZE-1] = 0;
-	}
-	else
-	{
-		// just draw a space if no key bound
-		sprintf( szBuf, "     %s", m_sMainText );
-		szBuf[MAX_BUTTON_SIZE-1] = 0;
-	}
-
-	Button::setText( szBuf );
+void CommandButton::RecalculateText() {
+    std::string display;
+    constexpr char NoBoundKeyPrefix = static_cast<char>(255);
+    if (m_cBoundKey == NoBoundKeyPrefix) {
+        display = m_sMainText;
+    } else if (m_cBoundKey != 0) {
+        display = "  ";
+        display.push_back(m_cBoundKey);
+        display += "  ";
+        display += m_sMainText;
+    } else {
+        display = "     ";
+        display += m_sMainText;
+    }
+    Button::setText(static_cast<int>(display.size()) + 1, display.c_str());
 }
 
-void CommandButton::setText( const char *text )
-{
-	strncpy( m_sMainText, text, MAX_BUTTON_SIZE );
-	m_sMainText[MAX_BUTTON_SIZE-1] = 0;
-
-	RecalculateText();
+void CommandButton::setText(const char* text) {
+    m_sMainText = text ? text : "";
+    RecalculateText();
 }
 
 void CommandButton::setBoundKey( char boundKey )

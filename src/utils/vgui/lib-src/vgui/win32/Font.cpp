@@ -1,10 +1,12 @@
 #include "VGUI_Font.h"
+#include "../common/VGui1TextEncoding.h"
 
 #include "VGUI_Dar.h"
 #include "fileimage.h"
 #include "vfontdata.h"
 #include "vgui_win32.h"
 
+#include <cstring>
 #include <stdlib.h>
 #include <string.h>
 
@@ -80,11 +82,18 @@ public:
 		SetBkColor( _dc, RGB( 0, 0, 0 ) );
 		SetTextColor( _dc, RGB( 255, 255, 255 ) );
 		SetBkMode( _dc, OPAQUE );
-		MoveToEx( _dc, -_abc[ch].abcA, 0, NULL );
-		const char character = (char)ch;
-		ExtTextOutA( _dc, 0, 0, 0, NULL, &character, 1, NULL );
+        const ABC abc = CharacterMetrics(ch);
+        MoveToEx(_dc, -abc.abcA, 0, nullptr);
+        if (ch >= GLYPH_COUNT) {
+            std::memset(_pixels, 0, VGUI_RGBA_BYTES * _bufferWide * _bufferTall);
+            const wchar_t character = static_cast<wchar_t>(cse_vgui1::text::UnicodeValue(ch));
+            ExtTextOutW(_dc, 0, 0, 0, nullptr, &character, 1, nullptr);
+        } else {
+            const char character = static_cast<char>(ch);
+            ExtTextOutA(_dc, 0, 0, 0, nullptr, &character, 1, nullptr);
+        }
 		SetBkMode( _dc, TRANSPARENT );
-		const int width = (int)_abc[ch].abcB < _bufferWide ? (int)_abc[ch].abcB : _bufferWide;
+		const int width = (int)abc.abcB < _bufferWide ? (int)abc.abcB : _bufferWide;
 		const int height = _metrics.tmHeight < _bufferTall ? _metrics.tmHeight : _bufferTall;
 		const float byteToUnit = 1.0f / 255.0f;
 		for ( int y = 0; y < height; ++y )
@@ -113,9 +122,10 @@ public:
 
 	virtual void getCharABCwide( int ch, int& a, int& b, int& c ) override
 	{
-		a = _abc[ch].abcA < 0 ? 0 : _abc[ch].abcA;
-		b = (int)_abc[ch].abcB;
-		c = _abc[ch].abcC;
+        const ABC abc = CharacterMetrics(ch);
+        a = abc.abcA < 0 ? 0 : abc.abcA;
+        b = static_cast<int>(abc.abcB);
+        c = abc.abcC;
 	}
 
 	virtual int getTall() override { return _metrics.tmHeight; }
@@ -126,6 +136,23 @@ public:
 	}
 
 private:
+    ABC CharacterMetrics(int character) {
+        const bool unicodeByte = cse_vgui1::text::IsUnicodeByteGlyph(character);
+        character = cse_vgui1::text::UnicodeValue(character);
+        if (character < 0) {
+            character = static_cast<unsigned char>(character);
+        }
+        if (!unicodeByte && character < GLYPH_COUNT) {
+            return _abc[character];
+        }
+        ABC abc{};
+        constexpr int BmpMaximum = 0xffff;
+        if (character <= BmpMaximum && GetCharABCWidthsW(_dc, character, character, &abc)) {
+            return abc;
+        }
+        return _abc[static_cast<unsigned char>('?')];
+    }
+
 	HFONT		_font;
 	HDC			_dc;
 	HBITMAP		_bitmap;
@@ -152,16 +179,18 @@ private:
 class FontPlat_Bitmap : public BaseFontPlat
 {
 public:
-	FontPlat_Bitmap() : _name( NULL )
+    FontPlat_Bitmap() : _name(nullptr), _unicodeFont(nullptr)
 	{
 	}
 
 	virtual ~FontPlat_Bitmap() override
 	{
-		delete[] _name;
-	}
+        delete[] _name;
+        delete _unicodeFont;
+    }
 
-	static FontPlat_Bitmap* Create( const char* name, FileImageStream* stream )
+    static FontPlat_Bitmap* Create(const char* name, FileImageStream* stream, int weight,
+        bool italic, bool underline, bool strikeout)
 	{
 		FontPlat_Bitmap* font = new FontPlat_Bitmap();
 		if ( !LoadVFontDataFrom32BitTGA( stream, &font->_data ) )
@@ -169,8 +198,12 @@ public:
 			delete font;
 			return NULL;
 		}
-		font->_name = vgui_strdup( name );
-		return font;
+        font->_name = vgui_strdup(name);
+        font->_weight = weight;
+        font->_italic = italic;
+        font->_underline = underline;
+        font->_strikeout = strikeout;
+        return font;
 	}
 
 	virtual bool equals( const char*, int, int, float, int, bool, bool, bool, bool ) override
@@ -180,10 +213,10 @@ public:
 
 	virtual void getCharRGBA( int ch, int rgbaX, int rgbaY, int rgbaWide, int rgbaTall, uchar* rgba ) override
 	{
-		if ( ch >= VFONT_GLYPH_COUNT )
-		{
-			ch = VFONT_GLYPH_COUNT;
-		}
+        if (ch >= VFONT_GLYPH_COUNT) {
+            UnicodeFallback()->getCharRGBA(ch, rgbaX, rgbaY, rgbaWide, rgbaTall, rgba);
+            return;
+        }
 		else if ( ch < 0 )
 		{
 			ch = 0;
@@ -212,10 +245,10 @@ public:
 		{
 			ch = 0;
 		}
-		if ( ch >= VFONT_GLYPH_COUNT )
-		{
-			ch = VFONT_GLYPH_COUNT - 1;
-		}
+        if (ch >= VFONT_GLYPH_COUNT) {
+            UnicodeFallback()->getCharABCwide(ch, a, b, c);
+            return;
+        }
 		a = c = 0;
 		b = _data.m_CharWidths[ch] + 1;
 	}
@@ -226,6 +259,19 @@ public:
 	}
 
 private:
+    FontPlat* UnicodeFallback() {
+        if (_unicodeFont == nullptr) {
+            _unicodeFont = new FontPlat(_name, _data.m_BitmapCharHeight, 0, 0.0f, _weight,
+                _italic, _underline, _strikeout, false);
+        }
+        return _unicodeFont;
+    }
+
+    FontPlat* _unicodeFont;
+    int _weight = 0;
+    bool _italic = false;
+    bool _underline = false;
+    bool _strikeout = false;
 	VFontData	_data;
 	char*		_name;
 };
@@ -255,7 +301,7 @@ void Font::init( const char* name, void* data, int length, int tall, int wide, f
 	if ( data != NULL )
 	{
 		FileImageStream_Memory stream( data, length );
-		_plat = FontPlat_Bitmap::Create( name, &stream );
+		_plat = FontPlat_Bitmap::Create(name, &stream, weight, italic, underline, strikeout);
 		if ( _plat == NULL )
 		{
 			return;

@@ -6,3 +6,6 @@ src/deploy/localization/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof
 # Retain the inherited worker files' CRLF without flagging CR as trailing whitespace.
 src/engine/thread.cpp whitespace=cr-at-eol
 src/engine/thread.h whitespace=cr-at-eol
+
+# Retained Windows admin layouts keep their original CRLF encoding.
+src/deploy/platform/Admin/*.res whitespace=cr-at-eol

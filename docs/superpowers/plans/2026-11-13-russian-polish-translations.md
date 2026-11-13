@@ -31,18 +31,25 @@
 **Files:** `src/deploy/localization/**/*_{russian,polish}.txt`, localized legacy directories, `manifest.json`, catalogue tests.
 **Interfaces:** Per-language workers own only their language files and supply a manifest-entry JSON fragment. Root owns manifest integration and shared tests.
 
-- [ ] Extend scope tests for ten languages and complete English-token/argument/legacy parity; observe missing-language failures.
-- [ ] Author Russian and Polish independently, reusing pinned official inputs where available; record provenance and any intentionally unchanged names/commands.
-- [ ] Integrate fragments and language metadata; stage both packs and run the complete resource suite.
-- [ ] Commit validated catalogue changes.
+- [x] Extend scope tests for ten languages and complete English-token/argument/legacy parity; observe missing-language failures.
+- [x] Author Russian and Polish independently, reusing pinned official inputs where available; record provenance and any intentionally unchanged names/commands.
+- [x] Integrate fragments and language metadata; stage both packs and run the complete resource suite.
+- [x] Commit validated catalogue changes.
 
 ### Task 2: Validate and adapt fit
 
 **Files:** Native localization/UI fixtures, fit evidence/report and translations needing adaptation.
 **Interfaces:** Read actual staged catalogues through VGUI; measure real scheme fonts and actual control content bounds at minimum dimensions. Render representative Russian/Polish samples to images for inspection.
 
-- [ ] Add failing actual-loader checks for Russian and Polish plus fit checks that detect a deliberately overlong label.
-- [ ] Measure buttons/tabs/columns/status and representative stock dialogs; validate glyph coverage and wrapping with actual providers.
-- [ ] Adapt translations or narrowly repair layout where needed; inspect rendered samples and rerun all affected checks.
-- [ ] Run native owning builds and Windows portable staging/decoder checks; update maintenance and verification documentation.
-- [ ] Obtain one fresh whole-change review, resolve material findings with regression checks, and commit the completed extension.
+- [x] Add failing actual-loader checks for Russian and Polish plus fit checks that detect a deliberately overlong label.
+- [x] Measure buttons/tabs/columns/status and representative stock dialogs; validate glyph coverage and wrapping with actual providers.
+- [x] Adapt translations or narrowly repair layout where needed; inspect rendered samples and rerun all affected checks.
+- [x] Run native owning builds and Windows portable staging/decoder checks; update maintenance and verification documentation.
+- [x] Obtain one fresh whole-change review, resolve material findings with regression checks, and commit the completed extension.
+
+## Outcome
+
+Implemented and checked in the existing isolated branch. The
+[verification record](../validation/2026-11-13-russian-polish-translations.md)
+records final true 480p native/Windows results, necessary Unicode/selection fixes,
+review regression repair and limits. No push or merge was requested.

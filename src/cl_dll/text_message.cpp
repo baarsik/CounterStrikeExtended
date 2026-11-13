@@ -25,6 +25,11 @@
 #include <string.h>
 #include <stdio.h>
 #include "parsemsg.h"
+#include "../common/legacy_text_encoding.h"
+
+#include <algorithm>
+#include <cstring>
+#include <string>
 
 #include "vgui_TeamFortressViewport.h"
 
@@ -44,50 +49,66 @@ int CHudTextMessage::Init(void)
 // Searches through the string for any msg names (indicated by a '#')
 // any found are looked up in titles.txt and the new message substituted
 // the new value is pushed into dst_buffer
-char *CHudTextMessage::LocaliseTextString( const char *msg, char *dst_buffer, int buffer_size )
-{
-	int len = buffer_size;
-	char *dst = dst_buffer;
-	for ( char *src = (char*)msg; *src != 0 && buffer_size > 0; buffer_size-- )
-	{
-		if ( *src == '#' )
-		{
-			// cut msg name out of string
-			static char word_buf[255];
-			char *wdst = word_buf, *word_start = src;
-			for ( ++src ; (*src >= 'A' && *src <= 'z') || (*src >= '0' && *src <= '9'); wdst++, src++ )
-			{
-				*wdst = *src;
-			}
-			*wdst = 0;
+namespace {
 
-			// lookup msg name in titles.txt
-			client_textmessage_t *clmsg = TextMessageGet( word_buf );
-			if ( !clmsg || !(clmsg->pMessage) )
-			{
-				src = word_start;
-				*dst = *src;
-				dst++, src++;
-				continue;
-			}
+std::size_t LocalizedPrefixBytes(const std::string& text, std::size_t capacity) {
+    std::size_t offset = 0;
+    std::size_t prefix = 0;
+    while (offset < text.size()) {
+        const auto* input = reinterpret_cast<const unsigned char*>(text.c_str() + offset);
+        const auto decoded = cse::legacy_text::detail::DecodeUtf8(input);
+        const auto encoded = cse::legacy_text::detail::EncodeUtf8(decoded.scalar);
+        if (decoded.consumed != encoded.count || std::memcmp(input, encoded.bytes, encoded.count) != 0) {
+            // Existing non-UTF8 titles retain their original byte semantics.
+            return (std::min)(capacity, text.size());
+        }
+        offset += decoded.consumed;
+        if (offset <= capacity) {
+            prefix = offset;
+        }
+    }
+    return prefix;
+}
 
-			// copy string into message over the msg name
-			for ( char *wsrc = (char*)clmsg->pMessage; *wsrc != 0; wsrc++, dst++ )
-			{
-				*dst = *wsrc;
-			}
-			*dst = 0;
-		}
-		else
-		{
-			*dst = *src;
-			dst++, src++;
-			*dst = 0;
-		}
-	}
+} // namespace
 
-	dst_buffer[len-1] = 0; // ensure null termination
-	return dst_buffer;
+char* CHudTextMessage::LocaliseTextString(const char* msg, char* dst_buffer, int buffer_size) {
+    if (!dst_buffer || buffer_size <= 0) {
+        return dst_buffer;
+    }
+    if (!msg) {
+        dst_buffer[0] = '\0';
+        return dst_buffer;
+    }
+
+    std::string expanded;
+    const char* source = msg;
+    while (*source) {
+        if (*source != '#') {
+            expanded.push_back(*source++);
+            continue;
+        }
+        const char* marker = source++;
+        const char* nameStart = source;
+        // Preserve the retained title-name alphabet, including underscores.
+        while ((*source >= 'A' && *source <= 'z') || (*source >= '0' && *source <= '9')) {
+            ++source;
+        }
+        const std::string name(nameStart, static_cast<std::size_t>(source - nameStart));
+        const auto* message = TextMessageGet(name.c_str());
+        if (message && message->pMessage) {
+            expanded += message->pMessage;
+        } else {
+            expanded.push_back('#');
+            source = marker + 1;
+        }
+    }
+
+    const auto capacity = static_cast<std::size_t>(buffer_size - 1);
+    const std::size_t copied = LocalizedPrefixBytes(expanded, capacity);
+    std::memcpy(dst_buffer, expanded.c_str(), copied);
+    dst_buffer[copied] = '\0';
+    return dst_buffer;
 }
 
 // As above, but with a local static buffer

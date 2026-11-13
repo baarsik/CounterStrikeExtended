@@ -57,7 +57,9 @@ int main(int argc, char** argv) {
         {"schinese", L"服务器名称"},
         {"tchinese", L"伺服器名稱"},
         {"koreana", L"서버 이름"},
-        {"korean", L"서버 이름"}
+        {"korean", L"서버 이름"},
+        {"russian", L"Имя сервера"},
+        {"polish", L"Nazwa serwera"}
     };
     for (const auto& test : cases) {
         localize->RemoveAll();

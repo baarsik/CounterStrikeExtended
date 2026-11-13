@@ -73,6 +73,10 @@ build tree. Stock translation gaps retain English fallback. See the
 [catalogue maintenance and provenance notes](../src/deploy/localization/README.md)
 for the language manifest, source hashes and update procedure.
 
+Use `-language russian` or `-language polish` when starting the client or
+dedicated GUI to select these CSE-maintained translations independently of Steam.
+Language identifiers are normalized and validated before forming resource paths.
+
 ## Hardware engine only
 
 From an x86 MSVC developer shell:

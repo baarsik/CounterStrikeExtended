@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 
 parser = argparse.ArgumentParser()
@@ -14,7 +15,7 @@ parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
 parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
 parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
-parser.add_argument('--driver', choices=['vgui', 'module'], default='vgui')
+parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit'], default='vgui')
 args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
@@ -22,6 +23,8 @@ packet.mkdir(exist_ok=False, parents=True)
 subprocess.run(['python3', str(repo / 'tools/build_localization.py'),
     '--source', str(repo / 'src/deploy/localization'), '--output', str(packet / 'resources'),
     '--fallback-header', str(packet / 'extracted/ServerBrowserEnglish.generated.inc')], check=True)
+if args.driver == 'translation_fit':
+    shutil.copytree(repo / 'src/deploy/platform', packet / 'resources/platform', dirs_exist_ok=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
 cache = args.recipe_cache.resolve() if args.recipe_cache else cache
 entries = json.loads((cache / 'compile_commands.json').read_text())

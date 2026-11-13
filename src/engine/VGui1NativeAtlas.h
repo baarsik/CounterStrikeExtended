@@ -85,7 +85,8 @@ private:
         cse_vgui1_selection::Selection selection;
         AtlasKey key;
         std::array<int, AtlasPageLimit> textures{};
-        std::array<Glyph, AtlasGlyphCount> glyphs{};
+        std::vector<unsigned int> characters;
+        std::vector<Glyph> glyphs;
         std::size_t pages = 0;
         std::size_t admitted = 0;
         int height = 0;

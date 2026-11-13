@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "../common/interface_language.h"
 #include "conprint.h"
 #include "../public/native_filesystem_module.h"
 #include "registry.h"
@@ -108,9 +109,17 @@ void FileSystem_Shutdown()
 	}
 }
 
+std::string FileSystem_GetInterfaceLanguage() {
+    const char* current = SteamApps() ? SteamApps()->GetCurrentGameLanguage() : nullptr;
+    const int option = COM_CheckParm("-language");
+    const char* requested = option > 0 && option < com_argc - 1 && com_argv ? com_argv[option + 1] : nullptr;
+    return cse::interface_language::Resolve(current, requested);
+}
+
 int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameDirectory )
 {
-	char language[128];
+    const std::string selectedLanguage = FileSystem_GetInterfaceLanguage();
+    const char* language = selectedLanguage.c_str();
 	char path[512];
 #if defined( _WIN32 ) && !defined( SWDS_DLL )
 	char baseDirectory[MAX_PATH];
@@ -119,7 +128,6 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 #endif
 
 	g_pFileSystem->RemoveAllSearchPaths();
-	language[0] = '\0';
 
 #if defined( _WIN32 )
 	char lowViolenceToken[128];
@@ -136,14 +144,6 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 
 	if ( !bLowViolenceBuild && SteamApps() && GetGameAppID() == APPID_HALF_LIFE )
 		bLowViolenceBuild = SteamApps()->BIsLowViolence();
-
-	const char* steamLanguage = NULL;
-	if ( SteamApps() )
-		steamLanguage = SteamApps()->GetCurrentGameLanguage();
-	if ( steamLanguage )
-		strncpy( language, steamLanguage, sizeof( language ) );
-	else
-		strncpy( language, "english", sizeof( language ) );
 
 	if ( !g_bIsDedicatedServer && !IsGameSubscribed( gameDirectory ) )
 		return 0;
@@ -417,21 +417,13 @@ CreateInterfaceFn GetFileSystemFactory()
 
 int FileSystem_AddFallbackGameDir( const char* pGameDir )
 {
-	char language[128];
+    const std::string selectedLanguage = FileSystem_GetInterfaceLanguage();
+    const char* language = selectedLanguage.c_str();
 #if defined( _WIN32 ) && !defined( SWDS_DLL )
 	char path[MAX_PATH];
 #else
 	char path[4096];
 #endif
-	const char* steamLanguage = NULL;
-
-	language[0] = '\0';
-	if ( SteamApps() )
-		steamLanguage = SteamApps()->GetCurrentGameLanguage();
-	if ( steamLanguage )
-		strncpy( language, steamLanguage, sizeof( language ) );
-	else
-		strncpy( language, "english", sizeof( language ) );
 
 	if ( language[0] && _stricmp( language, "english" ) )
 	{

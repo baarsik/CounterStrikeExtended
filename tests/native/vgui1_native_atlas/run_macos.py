@@ -23,6 +23,9 @@ owned_paths = [args.source_root / 'src/engine' / name for name in [
     'VGUI_EngineSurfaceWrap.cpp',
     'vgui_intwrap.cpp', 'vgui_EngineSurface.cpp', 'vgui_EngineSurfaceHW.cpp', 'vgui_EngineSurfaceSW.cpp',
     'vgui_EngineSurface.h', 'sys_sdlwind.cpp']]
+text_header = args.source_root / 'src/utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h'
+if text_header.is_file():
+    owned_paths.append(text_header)
 owned_paths += [repo / 'src/engine/VGui1NativeFontSelection.h',
                 repo / 'src/engine/VGui1NativeFontSelection.cpp']
 owned_paths += [path for path in Path(__file__).parent.iterdir() if path.is_file()]

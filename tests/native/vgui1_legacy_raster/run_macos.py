@@ -20,7 +20,8 @@ packet.mkdir(parents=True)
 source = packet / 'source'
 files = list((root / 'tests/native/vgui1_legacy_raster').glob('*'))
 files += list((root / 'src/utils/vgui/lib-src/vgui/posix/native').glob('VGui1LegacyRaster.*'))
-files += [root / 'src/utils/vgui/lib-src/vgui/win32/Font.cpp']
+files += [root / 'src/utils/vgui/lib-src/vgui/win32/Font.cpp',
+          root / 'src/utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h']
 for file in files:
     if file.is_file():
         output = source / file.relative_to(root)

@@ -1,4 +1,6 @@
 #include "VGUI_Surface.h"
+#include "../common/VGui1TextEncoding.h"
+#include <vector>
 
 #include "VGUI_App.h"
 #include "VGUI_Bitmap.h"
@@ -306,7 +308,20 @@ void Surface::drawPrintText( const char* text, int textLen )
 {
 	if ( text != NULL && textLen > 0 )
 	{
-		ExtTextOutA( _plat->drawDC, 0, 0, 0, NULL, text, textLen, NULL );
+        const cse_vgui1::text::Run run(text, static_cast<std::size_t>(textLen));
+        if (run.IsUtf8()) {
+            std::vector<wchar_t> unicode;
+            unicode.reserve(static_cast<std::size_t>(textLen));
+            for (std::size_t offset = 0; offset < static_cast<std::size_t>(textLen);) {
+                const auto character = run.At(offset);
+                offset += character.bytes;
+                constexpr int BmpMaximum = 0xffff;
+                unicode.push_back(static_cast<wchar_t>(character.value <= BmpMaximum ? character.value : '?'));
+            }
+            ExtTextOutW(_plat->drawDC, 0, 0, 0, nullptr, unicode.data(), static_cast<UINT>(unicode.size()), nullptr);
+        } else {
+            ExtTextOutA(_plat->drawDC, 0, 0, 0, nullptr, text, textLen, nullptr);
+        }
 	}
 }
 

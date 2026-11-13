@@ -2,6 +2,8 @@
 #ifndef TEAMFORTRESSVIEWPORT_H
 #define TEAMFORTRESSVIEWPORT_H
 
+#include <string>
+
 #include<VGUI_Panel.h>
 #include<VGUI_Frame.h>
 #include<VGUI_TextPanel.h>
@@ -170,7 +172,7 @@ private:
 	CCommandMenu *m_pParentMenu;
 	CommandLabel *m_pSubLabel;
 
-	char m_sMainText[MAX_BUTTON_SIZE];
+    std::string m_sMainText;
 	char m_cBoundKey;
 
 	SchemeHandle_t m_hTextScheme;

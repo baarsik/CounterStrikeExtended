@@ -4,6 +4,8 @@
 #include "VGUI_Font.h"
 #include "VGUI_Scheme.h"
 
+#include "common/VGui1TextEncoding.h"
+#include <algorithm>
 #include <new>
 #include <string.h>
 
@@ -42,182 +44,118 @@ void TextImage::getTextSize( int& wide, int& tall )
 	}
 }
 
-void TextImage::getTextSizeWrapped( int& wide, int& tall )
-{
-	wide = 0;
-	tall = 0;
-	if ( _text == NULL )
-		return;
+namespace {
+struct TextExtent {
+    int wide = 0;
+    int tall = 0;
+};
 
-	int availableWide;
-	int ignoredTall;
-	getSize( availableWide, ignoredTall );
-	Font* font = getFont();
-	int lineTall = font->getTall();
-	int x = 0;
-	int index = 0;
-	signed char ch = (signed char)_text[0];
-	int a;
-	int b;
-	int c;
-	font->getCharABCwide( ch, a, b, c );
-	int wordWide = c + a + b;
-	if ( ch == 0 )
-		return;
-
-	int y = lineTall;
-	do
-	{
-		if ( ch != '\r' )
-		{
-			if ( ch == '\n' )
-			{
-				x = 0;
-				y += lineTall;
-			}
-			else if ( ch == ' ' )
-			{
-				signed char next = (signed char)_text[index + 1];
-				font->getCharABCwide( ' ', a, b, c );
-				if ( next != 0 && next != '\n' && next != '\r' )
-				{
-					x += c + b + a;
-					if ( x > availableWide )
-					{
-						x = 0;
-						y += lineTall;
-					}
-				}
-			}
-			else
-			{
-				int length = 1;
-				for ( signed char next = (signed char)_text[index + length];
-					next != 0 && next != '\n' && next != '\r' && next != ' ';
-					next = (signed char)_text[index + ( ++length )] )
-				{
-					int aa;
-					int bb;
-					int cc;
-					font->getCharABCwide( next, aa, bb, cc );
-					wordWide += cc + bb + aa;
-				}
-
-				if ( x + wordWide > availableWide )
-				{
-					x = 0;
-					y += lineTall;
-				}
-
-				for ( int j = 0; j < length; ++j )
-				{
-					font->getCharABCwide( (signed char)_text[index + j], a, b, c );
-					int nextX = x + c + b + a;
-					if ( nextX > wide )
-						wide = nextX;
-					if ( y > tall )
-						tall = y;
-					x = nextX;
-				}
-				index += length - 1;
-			}
-		}
-		ch = (signed char)_text[++index];
-		font->getCharABCwide( ch, a, b, c );
-		wordWide = c + a + b;
-	}
-	while ( ch != 0 );
+template<typename Paint>
+TextExtent LayoutText(Font& font, const char* text, int availableWide, Paint paint) {
+    TextExtent extent;
+    const std::size_t length = strlen(text);
+    const cse_vgui1::text::Run run(text, length);
+    const int lineTall = font.getTall();
+    int x = 0;
+    int y = 0;
+    const auto advance = [&](int character) {
+        int a = 0;
+        int b = 0;
+        int c = 0;
+        font.getCharABCwide(character, a, b, c);
+        return a + b + c;
+    };
+    for (std::size_t offset = 0; offset < length;) {
+        const auto character = run.At(offset);
+        if (character.value == '\r') {
+            offset += character.bytes;
+        } else if (character.value == '\n') {
+            x = 0;
+            y += lineTall;
+            offset += character.bytes;
+        } else if (character.value == ' ') {
+            offset += character.bytes;
+            if (offset < length) {
+                const int next = run.At(offset).value;
+                if (next != '\n' && next != '\r') {
+                    x += advance(' ');
+                    if (x > availableWide) {
+                        x = 0;
+                        y += lineTall;
+                    }
+                }
+            }
+        } else {
+            std::size_t end = offset;
+            int wordWide = 0;
+            while (end < length) {
+                const auto next = run.At(end);
+                if (next.value == ' ' || next.value == '\n' || next.value == '\r') {
+                    break;
+                }
+                wordWide += advance(run.GlyphAt(end).value);
+                end += next.bytes;
+            }
+            if (x + wordWide > availableWide) {
+                x = 0;
+                y += lineTall;
+            }
+            while (offset < end) {
+                const auto next = run.At(offset);
+                paint(x, y, next.value, text + offset, next.bytes, run.IsUtf8());
+                x += advance(run.GlyphAt(offset).value);
+                extent.wide = std::max(extent.wide, x);
+                extent.tall = std::max(extent.tall, y + lineTall);
+                offset += next.bytes;
+            }
+        }
+    }
+    return extent;
+}
 }
 
-void TextImage::paint( Panel* )
-{
-	int availableWide;
-	int ignoredTall;
-	getSize( availableWide, ignoredTall );
-	if ( _text == NULL )
-		return;
+void TextImage::getTextSizeWrapped(int& wide, int& tall) {
+    wide = 0;
+    tall = 0;
+    if (_text == nullptr) {
+        return;
+    }
+    int availableWide = 0;
+    int ignoredTall = 0;
+    getSize(availableWide, ignoredTall);
+    const auto extent = LayoutText(*getFont(), _text, availableWide,
+        [](int, int, int, const char*, std::size_t, bool) {});
+    wide = extent.wide;
+    tall = extent.tall;
+}
 
-	Color color;
-	getColor( color );
-	int red;
-	int green;
-	int blue;
-	int alpha;
-	color.getColor( red, green, blue, alpha );
-	drawSetTextColor( red, green, blue, alpha );
-	Font* font = getFont();
-	drawSetTextFont( font );
-	int lineTall = font->getTall();
-	int x = 0;
-	int y = 0;
-	int index = 0;
-	signed char ch = (signed char)_text[0];
-	int a;
-	int b;
-	int c;
-	font->getCharABCwide( ch, a, b, c );
-	int wordWide = c + a + b;
-	if ( ch == 0 )
-		return;
-
-	do
-	{
-		if ( ch != '\r' )
-		{
-			if ( ch == '\n' )
-			{
-				x = 0;
-				y += lineTall;
-			}
-			else if ( ch == ' ' )
-			{
-				signed char next = (signed char)_text[index + 1];
-				font->getCharABCwide( ' ', a, b, c );
-				if ( next != 0 && next != '\n' && next != '\r' )
-				{
-					x += c + b + a;
-					if ( x > availableWide )
-					{
-						x = 0;
-						y += lineTall;
-					}
-				}
-			}
-			else
-			{
-				int length = 1;
-				for ( signed char next = (signed char)_text[index + length];
-					next != 0 && next != '\n' && next != '\r' && next != ' ';
-					next = (signed char)_text[index + ( ++length )] )
-				{
-					int aa;
-					int bb;
-					int cc;
-					font->getCharABCwide( next, aa, bb, cc );
-					wordWide += cc + bb + aa;
-				}
-
-				if ( x + wordWide > availableWide )
-				{
-					x = 0;
-					y += lineTall;
-				}
-
-				for ( int j = 0; j < length; ++j )
-				{
-					ch = (signed char)_text[index + j];
-					font->getCharABCwide( ch, a, b, c );
-					drawPrintChar( x, y, ch );
-					x += c + b + a;
-				}
-				index += length - 1;
-			}
-		}
-		ch = (signed char)_text[++index];
-		font->getCharABCwide( ch, a, b, c );
-		wordWide = c + a + b;
-	}
-	while ( ch != 0 );
+void TextImage::paint(Panel*) {
+    if (_text == nullptr) {
+        return;
+    }
+    int availableWide = 0;
+    int ignoredTall = 0;
+    getSize(availableWide, ignoredTall);
+    Color color;
+    getColor(color);
+    int red = 0;
+    int green = 0;
+    int blue = 0;
+    int alpha = 0;
+    color.getColor(red, green, blue, alpha);
+    drawSetTextColor(red, green, blue, alpha);
+    Font* font = getFont();
+    drawSetTextFont(font);
+    LayoutText(*font, _text, availableWide,
+        [&](int x, int y, int character, const char* bytes, std::size_t count, bool utf8) {
+            if (utf8) {
+                // Existing char-only drawPrintChar would truncate a Unicode
+                // scalar. The surface receives its complete original UTF8 run.
+                drawPrintText(x, y, bytes, static_cast<int>(count));
+            } else {
+                drawPrintChar(x, y, static_cast<char>(character));
+            }
+        });
 }
 
 void TextImage::setFont( Scheme::SchemeFont schemeFont )

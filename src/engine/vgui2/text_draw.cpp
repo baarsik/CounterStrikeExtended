@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cwchar>
 #include <cwctype>
+#include <string>
 
 static vgui2::HFont _consoleFont;
 static vgui2::HFont _creditsFont;
@@ -64,64 +65,81 @@ const wchar_t* VGUI2_Find_String( const char* text )
 	return tmpString;
 }
 
-int VGUI2_Draw_Character( int x, int y, int ch, unsigned int font )
-{
-	g_BaseUISurface.ResetViewPort();
-	vgui2::surface()->DrawSetTextFont( font );
-	vgui2::surface()->DrawSetTextPos( x, y );
-	vgui2::surface()->DrawSetTextColor( _col );
-	if ( std::iswprint( static_cast<std::wint_t>( ch ) ) )
-	{
-		vgui2::surface()->DrawUnicodeChar( static_cast<wchar_t>( ch ) );
-		vgui2::surface()->DrawFlushText();
-	}
-	int a, b, c;
-	vgui2::surface()->GetCharABCwide( font, ch, a, b, c );
-	return a + b + c;
+static bool VGUI2_IsDrawableCharacter(int character) {
+    // The process can use the C locale; Unicode visibility must not depend on it.
+    constexpr int FirstPrintableCharacter = 0x20;
+    constexpr int FirstControlCharacter = 0x7f;
+    constexpr int LastControlCharacter = 0x9f;
+    constexpr int FirstSurrogate = 0xd800;
+    constexpr int LastSurrogate = 0xdfff;
+    constexpr int NativeCharacterMaximum = sizeof(wchar_t) == 2 ? 0xffff : 0x10ffff;
+    return character >= FirstPrintableCharacter && character <= NativeCharacterMaximum
+        && (character < FirstControlCharacter || character > LastControlCharacter)
+        && (character < FirstSurrogate || character > LastSurrogate);
 }
 
-int VGUI2_Draw_CharacterAdd( int x, int y, int ch, int red, int green, int blue, unsigned int font )
-{
-	g_BaseUISurface.ResetViewPort();
-	_col.SetColor( red, green, blue, 255 );
-	vgui2::surface()->DrawSetTextFont( font );
-	vgui2::surface()->DrawSetTextPos( x, y );
-	vgui2::surface()->DrawSetTextColor( _col );
-	if ( std::iswprint( static_cast<std::wint_t>( ch ) ) )
-		vgui2::surface()->DrawUnicodeCharAdd( static_cast<wchar_t>( ch ) );
-	vgui2::surface()->GetFontTall( font );
-	int a, b, c;
-	vgui2::surface()->GetCharABCwide( font, ch, a, b, c );
-	return a + b + c;
+int VGUI2_Draw_Character( int x, int y, int ch, unsigned int font ) {
+    g_BaseUISurface.ResetViewPort();
+    vgui2::surface()->DrawSetTextFont( font );
+    vgui2::surface()->DrawSetTextPos( x, y );
+    vgui2::surface()->DrawSetTextColor( _col );
+    if (VGUI2_IsDrawableCharacter(ch)) {
+        vgui2::surface()->DrawUnicodeChar( static_cast<wchar_t>( ch ) );
+        vgui2::surface()->DrawFlushText();
+    }
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    vgui2::surface()->GetCharABCwide( font, ch, a, b, c );
+    return a + b + c;
+}
+
+int VGUI2_Draw_CharacterAdd( int x, int y, int ch, int red, int green, int blue, unsigned int font ) {
+    g_BaseUISurface.ResetViewPort();
+    constexpr int TextOpaqueAlpha = 255;
+    _col.SetColor(red, green, blue, TextOpaqueAlpha);
+    vgui2::surface()->DrawSetTextFont(font);
+    vgui2::surface()->DrawSetTextPos( x, y );
+    vgui2::surface()->DrawSetTextColor( _col );
+    if (VGUI2_IsDrawableCharacter(ch)) {
+        vgui2::surface()->DrawUnicodeCharAdd(static_cast<wchar_t>(ch));
+    }
+    vgui2::surface()->GetFontTall( font );
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    vgui2::surface()->GetCharABCwide( font, ch, a, b, c );
+    return a + b + c;
 }
 
 int VGUI2_Draw_StringLenW( const wchar_t* text, unsigned int font )
 {
-	int width = 0;
-	for ( std::size_t i = 0; i < std::wcslen( text ); ++i )
-	{
-		int a, b, c;
-		vgui2::surface()->GetCharABCwide( font, text[i], a, b, c );
-		width += a + b + c;
-	}
-	return width;
+    int width = 0;
+    for ( std::size_t i = 0; i < std::wcslen( text ); ++i )
+    {
+        int a = 0;
+        int b = 0;
+        int c = 0;
+        vgui2::surface()->GetCharABCwide( font, text[i], a, b, c );
+        width += a + b + c;
+    }
+    return width;
 }
 
-int VGUI2_DrawString( int x, int y, const char* text, unsigned int font )
-{
-	g_BaseUISurface.ResetViewPort();
-	vgui2::surface()->DrawSetTextFont( font );
-	vgui2::surface()->DrawSetTextPos( x, y );
-	vgui2::surface()->DrawSetTextColor( _col );
-	wchar_t* localizedString = const_cast<wchar_t*>( VGUI2_Find_String( text ) );
-	for ( std::size_t i = 0; i < std::wcslen( localizedString ); ++i )
-	{
-		if ( !std::iswprint( localizedString[i] ) )
-			localizedString[i] = L' ';
-	}
-	vgui2::surface()->DrawPrintText( localizedString, static_cast<int>( std::wcslen( localizedString ) ) );
-	vgui2::surface()->DrawFlushText();
-	return VGUI2_Draw_StringLenW( localizedString, font );
+int VGUI2_DrawString( int x, int y, const char* text, unsigned int font ) {
+    g_BaseUISurface.ResetViewPort();
+    vgui2::surface()->DrawSetTextFont( font );
+    vgui2::surface()->DrawSetTextPos( x, y );
+    vgui2::surface()->DrawSetTextColor( _col );
+    std::wstring localizedString = VGUI2_Find_String(text);
+    for (wchar_t& character : localizedString) {
+        if (!VGUI2_IsDrawableCharacter(character)) {
+            character = L' ';
+        }
+    }
+    vgui2::surface()->DrawPrintText(localizedString.c_str(), static_cast<int>(localizedString.size()));
+    vgui2::surface()->DrawFlushText();
+    return VGUI2_Draw_StringLenW(localizedString.c_str(), font);
 }
 
 int VGUI2_DrawStringClient( int x, int y, const char* text, int red, int green, int blue )

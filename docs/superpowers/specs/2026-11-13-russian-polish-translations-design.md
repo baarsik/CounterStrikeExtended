@@ -13,3 +13,18 @@ An external translation service would introduce an unnecessary dependency and se
 Validate with actual VGUI localization, font metrics and control layouts, using the retained schemes. Check Russian Cyrillic and Polish diacritics, minimum supported window sizes, button insets, list columns, long status text and wrapped descriptions. Adapt wording first; change shared layout only when text cannot remain clear at existing sizes. Produce rendered samples for visual inspection and a machine-readable fit report, and keep repeatable checks in the native fixtures. Distinguish tested sample coverage from whole-game acceptance.
 
 Preserve the original eight languages and Korean alias. Maintain complete new-language token/argument coverage, generated file restoration and build independence from Steam. No game assets or fonts are added without an observed need. Keep work on the existing isolated branch; no push or merge is requested.
+
+## Observed implementation requirements
+
+Validation exposed byte-only Half-Life HUD/VGUI1 paths that could not render these
+languages. The implementation preserves the public ABI and existing byte/TGA
+glyphs while adding valid BMP UTF-8 iteration, native-font glyph fallback and
+engine-owned Unicode measurement. Engine printable-character filtering no longer
+depends on the C locale. A shared validated `-language` override selects new
+resources consistently across game/fallback paths and client/dedicated UI without
+changing Steam preferences.
+
+Real Windows font checks also exposed desktop scaling in the initial Mac fixture.
+The final fixture injects the existing engine geometry implementation at 640x480
+and forwards all font/raster calls to the actual provider. Both native layouts
+and Win32 x86 GDI font budgets must pass, including oversized negative controls.

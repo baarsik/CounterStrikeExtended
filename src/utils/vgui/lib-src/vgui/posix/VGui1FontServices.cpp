@@ -4,6 +4,7 @@
 
 #include "VGui1FontServices.h"
 #include "VGui1FontPlatform.h"
+#include "../common/VGui1TextEncoding.h"
 #include <algorithm>
 #include <climits>
 #include <cstdio>
@@ -384,12 +385,18 @@ Record& Usable(ModuleData& data, vgui::BaseFontPlat* platform) {
     return *record;
 }
 
-unsigned int LegacyByte(int ch) {
-    // Retained callers sometimes sign-extend a byte char. Normalize only that
-    // explicit byte domain; arbitrary Unicode/int values are not truncated.
-    constexpr int kMinimumSignedByte = -128;
-    if (ch < kMinimumSignedByte || ch >= static_cast<int>(kLegacyByteCount)) {
-        cse_vgui1::InvalidLegacyUse("glyph index is outside the legacy byte domain");
+unsigned int GlyphCharacter(int ch) {
+    // Signed legacy bytes keep their CP1252 mapping; positive BMP characters
+    // above that domain are Unicode scalars from a validated UTF8 text run.
+    if (cse_vgui1::text::IsUnicodeByteGlyph(ch)) {
+        return static_cast<unsigned int>(ch);
+    }
+    constexpr int MinimumSignedByte = -128;
+    constexpr int BmpMaximum = 0xffff;
+    constexpr int FirstSurrogate = 0xd800;
+    constexpr int LastSurrogate = 0xdfff;
+    if (ch < MinimumSignedByte || ch > BmpMaximum || (ch >= FirstSurrogate && ch <= LastSurrogate)) {
+        cse_vgui1::InvalidLegacyUse("glyph is outside the legacy byte/Unicode BMP domain");
     }
     return static_cast<unsigned int>(ch < 0 ? ch + static_cast<int>(kLegacyByteCount) : ch);
 }
@@ -416,7 +423,20 @@ public:
                 > static_cast<std::uint64_t>((std::numeric_limits<std::ptrdiff_t>::max)()) / VGUI_RGBA_BYTES) {
             cse_vgui1::InvalidLegacyUse("invalid legacy raster canvas");
         }
-        if (!record.face->Raster(LegacyByte(ch), x, y, wide, tall, rgba)) {
+        auto character = GlyphCharacter(ch);
+        int a = 0;
+        int b = 0;
+        int c = 0;
+        if (character >= kLegacyByteCount && !record.face->RawAbc(character, a, b, c)) {
+            if (auto* fallback = UnicodeFallback(record)) {
+                fallback->getCharRGBA(ch, x, y, wide, tall, rgba);
+                return;
+            }
+            // Missing characters retain the selected donor's .notdef glyph;
+            // valid text from another language must not abort the process.
+            character = 0;
+        }
+        if (!record.face->Raster(character, x, y, wide, tall, rgba)) {
             cse_vgui1::InvalidLegacyUse("provider failed the requested legacy raster operation");
         }
     }
@@ -425,8 +445,22 @@ public:
         auto& data = g_State.data();
         std::lock_guard<std::recursive_mutex> guard(data.mutex);
         Record& record = Usable(data, this);
-        if (!record.face->RawAbc(LegacyByte(ch), a, b, c) || b < 0) {
+        const auto character = GlyphCharacter(ch);
+        if (!record.face->RawAbc(character, a, b, c)) {
+            if (character >= kLegacyByteCount) {
+                if (auto* fallback = UnicodeFallback(record)) {
+                    fallback->getCharABCwide(ch, a, b, c);
+                    return;
+                }
+                if (record.face->RawAbc(0, a, b, c) && b >= 0) {
+                    a = (std::max)(a, 0);
+                    return;
+                }
+            }
             cse_vgui1::InvalidLegacyUse("provider failed legacy ABC metrics");
+        }
+        if (b < 0) {
+            cse_vgui1::InvalidLegacyUse("provider returned a negative glyph ink width");
         }
         if (a < 0) {
             a = 0;
@@ -451,7 +485,26 @@ public:
     }
 
 private:
+    vgui::BaseFontPlat* UnicodeFallback(const Record& record) {
+        if ((record.request.flags & cse_vgui1::FontSymbol) != 0
+            || EqualName(record.request.requestedName.c_str(), "Arial")) {
+            return nullptr;
+        }
+        if (!unicodeFallback_) {
+            // The legacy Courier/FixedSys donor lacks Cyrillic on macOS.
+            // Preserve byte cells and use the existing ordinary fallback family
+            // only for Unicode glyphs absent from that donor.
+            unicodeFallback_ = cse_vgui1::CreatePlatform("Arial", record.metrics.height, 0, 0.0f,
+                record.request.weight, (record.request.flags & cse_vgui1::FontItalic) != 0,
+                (record.request.flags & cse_vgui1::FontUnderline) != 0,
+                (record.request.flags & cse_vgui1::FontStrikeout) != 0, false);
+        }
+        cse_vgui1::RequireReady(unicodeFallback_);
+        return unicodeFallback_;
+    }
+
     Record& record_;
+    vgui::BaseFontPlat* unicodeFallback_ = nullptr;
 };
 
 bool EnsureContext(ModuleData& data, std::string& diagnostic) {

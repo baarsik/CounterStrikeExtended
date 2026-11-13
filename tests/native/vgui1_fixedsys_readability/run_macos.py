@@ -36,7 +36,8 @@ root_deltas = {
 for name, digest in previous.items():
     assert sha(root / name) == root_deltas.get(name, digest), name
 files = list(previous)
-files += ['src/engine/VGUI_EngineSurfaceWrap.cpp',
+files += ['src/utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h',
+          'src/engine/VGUI_EngineSurfaceWrap.cpp',
           'src/utils/vgui/lib-src/vgui/TextEntry.cpp']
 files += [str(p.relative_to(root)) for p in sorted((root / 'tests/native/vgui1_fixedsys_readability').iterdir())
           if p.is_file()]

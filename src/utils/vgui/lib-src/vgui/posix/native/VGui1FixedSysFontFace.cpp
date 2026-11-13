@@ -1,5 +1,6 @@
 #include "VGui1FixedSysFontFace.h"
 
+#include "../../common/VGui1TextEncoding.h"
 #include <algorithm>
 #include <array>
 #include <climits>
@@ -383,7 +384,7 @@ FontMetrics FixedSysFontFace::Metrics() const noexcept {
 }
 
 bool FixedSysFontFace::RawAbc(unsigned int byte, int& a, int& b, int& c) noexcept {
-    if (byte >= kByteCount) {
+    if (byte >= kByteCount && GlyphIndex(byte) == 0) {
         return false;
     }
     a = 0;
@@ -393,7 +394,7 @@ bool FixedSysFontFace::RawAbc(unsigned int byte, int& a, int& b, int& c) noexcep
 }
 
 bool FixedSysFontFace::Raster(unsigned int byte, int x, int y, int wide, int tall, unsigned char* rgba) noexcept {
-    if (byte >= kByteCount || x < 0 || y < 0 || wide < 0 || tall < 0) {
+    if (x < 0 || y < 0 || wide < 0 || tall < 0 || (byte >= kByteCount && GlyphIndex(byte) == 0)) {
         return false;
     }
     std::size_t pixels = 0;
@@ -402,7 +403,45 @@ bool FixedSysFontFace::Raster(unsigned int byte, int x, int y, int wide, int tal
         || !Product(pixels, kPixelBytes, bytes)) {
         return false;
     }
-    const auto& cell = impl_->cells[byte];
+    std::array<unsigned char, kCellBytes> unicodeCell{};
+    if (byte >= kByteCount) {
+        bool fits = false;
+        Result result{};
+        int error = 0;
+        // Keep the measured legacy 8x15 cell/advance. A taller accented donor
+        // glyph may need a smaller realization to retain all of its ink.
+        for (int ppem = impl_->info.fitPpem; ppem > 0; --ppem) {
+            if (FT_Set_Pixel_Sizes(impl_->face, 0, static_cast<FT_UInt>(ppem)) != 0
+                || !impl_->Load(GlyphIndex(byte), result, error)) {
+                break;
+            }
+            const auto* slot = impl_->face->glyph;
+            const auto& bitmap = slot->bitmap;
+            const int top = kBaseline - slot->bitmap_top;
+            if (bitmap.width > static_cast<unsigned int>(kCellWidth) || top < 0
+                || static_cast<std::int64_t>(top) + bitmap.rows > kCellHeight) {
+                continue;
+            }
+            const int left = (kCellWidth - static_cast<int>(bitmap.width)) / 2;
+            for (unsigned int row = 0; row < bitmap.rows; ++row) {
+                for (unsigned int column = 0; column < bitmap.width; ++column) {
+                    const auto target = (static_cast<std::size_t>(top + row) * kCellWidth
+                        + left + column) * kPixelBytes;
+                    const auto value = bitmap.buffer[static_cast<std::size_t>(row) * bitmap.pitch + column];
+                    unicodeCell[target] = value;
+                    unicodeCell[target + 1] = value;
+                    unicodeCell[target + 2] = value;
+                }
+            }
+            fits = impl_->Nonempty();
+            break;
+        }
+        const int restored = FT_Set_Pixel_Sizes(impl_->face, 0, static_cast<FT_UInt>(impl_->info.fitPpem));
+        if (!fits || restored != 0) {
+            return false;
+        }
+    }
+    const auto& cell = byte < kByteCount ? impl_->cells[byte] : unicodeCell;
     const BgrView source{cell.data(), cell.size(), kCellWidth, kCellHeight, kCellWidth * kPixelBytes};
     return TransferLegacyBgr(source, kCellWidth, kCellHeight, x, y, {rgba, bytes, wide, tall}, byte == '\t')
         == Result::Ok;
@@ -417,7 +456,17 @@ bool FixedSysFontFace::Route(unsigned int byte, FixedSysByteRoute& route) const 
 }
 
 unsigned int FixedSysFontFace::GlyphIndex(unsigned int byte) const noexcept {
-    return byte < kByteCount ? impl_->glyphs[byte] : 0;
+    if (byte < kByteCount) {
+        return impl_->glyphs[byte];
+    }
+    byte = static_cast<unsigned int>(cse_vgui1::text::UnicodeValue(static_cast<int>(byte)));
+    constexpr unsigned int BmpMaximum = 0xffff;
+    constexpr unsigned int FirstSurrogate = 0xd800;
+    constexpr unsigned int LastSurrogate = 0xdfff;
+    if (byte > BmpMaximum || (byte >= FirstSurrogate && byte <= LastSurrogate)) {
+        return 0;
+    }
+    return FT_Get_Char_Index(impl_->face, byte);
 }
 
 const FixedSysRoleInfo& FixedSysFontFace::Info() const noexcept {

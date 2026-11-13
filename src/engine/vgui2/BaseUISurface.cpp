@@ -23,6 +23,7 @@
 #include "../cvar.h"
 #include <SDL3/SDL.h>
 #include "../filesystem.h"
+#include "../../common/interface_language.h"
 #include "../ivideomode.h"
 #include "../vid.h"
 #include "../../vgui2/controls/controls.h"
@@ -384,8 +385,8 @@ void BaseUISurface::Init( VPANEL embeddedPanel, IEngineSurface* engineSurface, I
 #endif
 	_engineSurface = engineSurface;
 	SetEmbeddedPanel( embeddedPanel );
-	if ( SteamApps() )
-		SetLanguage( SteamApps()->GetCurrentGameLanguage() );
+    const std::string language = FileSystem_GetInterfaceLanguage();
+    SetLanguage(language.c_str());
 	m_pEmulatedMouseImage = vgui2::scheme()->GetImage( "gfx/vgui/mouse", false );
 	Cvar_RegisterVariable( &sdl_double_click_size );
 	Cvar_RegisterVariable( &sdl_double_click_time );
@@ -1003,12 +1004,11 @@ void BaseUISurface::DrawSetTextureRGBAWithAlphaChannel(
 	_engineSurface->drawSetTextureRGBA( texture, (const char*)rgba, width, height, hardwareFilter, 1 );
 }
 
-void BaseUISurface::SetLanguage( const char* language )
-{
-	if ( language )
-		strncpy( m_szLanguage, language, sizeof( m_szLanguage ) );
-	else
-		strcpy( m_szLanguage, "english" );
+void BaseUISurface::SetLanguage(const char* language) {
+    static_assert(sizeof(m_szLanguage) == cse::interface_language::LanguageBufferBytes,
+        "Interface language limit must match the surface field");
+    const std::string selected = cse::interface_language::Resolve(nullptr, language);
+    std::memcpy(m_szLanguage, selected.c_str(), selected.size() + 1);
 }
 
 void BaseUISurface::SetSupportsEsc( bool state )

@@ -20,6 +20,11 @@ console's `Console_Submit` token. Stock translation text remains Valve material;
 keeping it here does not relicense it under the project's root license. Preserve
 upstream notices and attribution when updating or distributing the files.
 
+Select a language at startup with `-language russian` or `-language polish`
+(for example, `hl.exe -game cstrike -language polish`). The same override controls
+localized game paths, client UI and the dedicated GUI. Without an override, the
+existing Steam language remains the default. No Steam preference is changed.
+
 ## Provenance
 
 The initial import was made on 2026-11-13 from official Steam content. Each

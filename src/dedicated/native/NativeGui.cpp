@@ -1,4 +1,5 @@
 #include "NativeGui.h"
+#include "../../common/interface_language.h"
 #include "AdminFiles.h"
 #include "../AdminServer.h"
 #include <SDL3/SDL.h>
@@ -197,6 +198,9 @@ bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error, std::uint6
         Close();
         return false;
     }
+    const std::string language = cse::interface_language::ResolveFromSystem(
+        vgui2::surface()->GetLanguage(), vgui2::system());
+    vgui2::surface()->SetLanguage(language.c_str());
     initialized_ = true;
     vgui2::system()->SetUserConfigFile("DialogConfig.vdf", "CONFIG");
     auto factory = Sys_GetFactoryThis();

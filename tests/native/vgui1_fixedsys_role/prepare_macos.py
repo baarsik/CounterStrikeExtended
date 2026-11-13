@@ -27,7 +27,8 @@ for name, expected in baseline.items():
     assert sha(args.baseline / 'source-final' / name) == expected, name
     assert name == provider or sha(root / name) == expected, name
 native = 'src/utils/vgui/lib-src/vgui/posix/native/'
-files += [native + 'VGui1FixedSysFontFace.h', native + 'VGui1FixedSysFontFace.cpp']
+files += [native + 'VGui1FixedSysFontFace.h', native + 'VGui1FixedSysFontFace.cpp',
+          'src/utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h']
 files += [str(p.relative_to(root)) for p in sorted((root / 'tests/native/vgui1_fixedsys_role').iterdir())
           if p.is_file()]
 for name in files:

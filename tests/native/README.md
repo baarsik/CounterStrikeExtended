@@ -28,6 +28,10 @@ title-message initializer/parser against all bundled title files and the
 The [bundled-translation verification record](../../docs/superpowers/validation/2026-11-13-bundled-translations.md)
 lists observed results and remaining runtime limits.
 
+Russian/Polish validation additionally covers [actual font/layout fit](../localization_resources/README.md),
+[HL HUD Unicode](hl_message_utf8/README.md), [HL menu bounds and fit](hl_menu_localization/README.md), [VGUI1 text and bitmap fallback](vgui1_utf8/README.md),
+and [shared startup language selection](interface_language/README.md).
+
 For a pure component, from the repository root:
 
 ```sh

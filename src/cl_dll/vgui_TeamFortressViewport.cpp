@@ -739,14 +739,17 @@ try
 
 	// Now start parsing the menu structure
 	m_pCurrentCommandMenu = m_pCommandMenus[newIndex];
-	char szLastButtonText[32] = "file start";
+    // Match BufferedLocaliseTextString's retained message capacity. Both the
+    // display scratch and error-reporting copy must hold the expanded label.
+    constexpr int CommandMenuLabelBytes = 1024;
+    char szLastButtonText[CommandMenuLabelBytes] = "file start";
 	pfile = gEngfuncs.COM_ParseFile(pfile, token);
 	while ( ( strlen ( token ) > 0 ) && ( m_iNumMenus < MAX_MENUS ) )
 	{
 		// Keep looping until we hit the end of this menu
 		while ( token[0] != '}' && ( strlen( token ) > 0 ) )
 		{
-			char cText[32] = "";
+            char cText[CommandMenuLabelBytes] = "";
 			char cBoundKey[32] = "";
 			char cCustom[32] = "";
 			static const int cCommandLength = 128;
@@ -825,8 +828,8 @@ try
 			}
 
 			// Get the button bound key
-			strncpy( cBoundKey, token, 32 );
-			cText[31] = '\0';
+			strncpy( cBoundKey, token, sizeof(cBoundKey) );
+            cBoundKey[sizeof(cBoundKey) - 1] = '\0';
 
 			// Get the button text
 			pfile = gEngfuncs.COM_ParseFile(pfile, token);

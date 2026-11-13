@@ -1,4 +1,5 @@
 #include "sys_ded.h"
+#include "../common/interface_language.h"
 #include "DedicatedResult.h"
 #include "CreateMultiplayerGameServerPage.h"
 #include "console/conproc.h"
@@ -409,6 +410,9 @@ static int InitVGUI()
 		MessageBoxA( NULL, "Fatal Error: Could not initialize vgui.", "Steam - Fatal Error", MB_ICONERROR );
 		return -1;
 	}
+    const std::string language = cse::interface_language::ResolveFromSystem(
+        vgui2::surface()->GetLanguage(), vgui2::system());
+    vgui2::surface()->SetLanguage(language.c_str());
 	vgui2::filesystem()->AddSearchPath( ".", "MAIN" );
 	vgui2::filesystem()->AddSearchPath( "platform", "PLATFORM" );
 	char configPath[512];

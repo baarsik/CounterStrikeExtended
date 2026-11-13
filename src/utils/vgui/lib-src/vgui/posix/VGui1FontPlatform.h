@@ -68,6 +68,9 @@ class RealizedFace {
 public:
     virtual ~RealizedFace() = default;
     virtual FontMetrics Metrics() const noexcept = 0;
+    // Byte values keep their original CP1252 meaning. Larger inputs are BMP
+    // scalars or the private VGui1TextEncoding Unicode-Latin1 identity tag.
+    // These existing slots and object layouts remain unchanged.
     virtual bool RawAbc(unsigned int byte, int& a, int& b, int& c) noexcept = 0;
     virtual bool Raster(unsigned int byte, int x, int y, int wide, int tall, unsigned char* rgba) noexcept = 0;
 };

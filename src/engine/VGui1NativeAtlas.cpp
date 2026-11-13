@@ -1,5 +1,7 @@
 #include "VGui1NativeAtlas.h"
 #include "VGUI_Font.h"
+#include "../utils/vgui/lib-src/vgui/common/VGui1TextEncoding.h"
+#include <algorithm>
 #include "../utils/vgui/lib-src/vgui/posix/VGui1FontPlatform.h"
 #include <cstdio>
 #include <cstdlib>
@@ -168,7 +170,13 @@ Result Atlas::Build(Entry& entry, const selection::PreparedFont& prepared) noexc
     // BeginUse guard and genuine root/provider image leases. Never a Font cast.
     entry.valid = false;
     auto* face = static_cast<vgui::BaseFontPlat*>(const_cast<void*>(prepared.platform));
-    std::array<Glyph, AtlasGlyphCount> glyphs{};
+    if (entry.characters.empty()) {
+        entry.characters.reserve(AtlasGlyphCount);
+        for (std::size_t byte = 0; byte < AtlasGlyphCount; ++byte) {
+            entry.characters.push_back(static_cast<unsigned int>(byte));
+        }
+    }
+    std::vector<Glyph> glyphs(entry.characters.size());
     const int height = face->getTall();
     constexpr int LastCoordinate = AtlasSide - 1;
     if (height <= 0 || height > LastCoordinate) {
@@ -179,7 +187,7 @@ Result Atlas::Build(Entry& entry, const selection::PreparedFont& prepared) noexc
     std::size_t page = 0;
     for (std::size_t byte = 0; byte < glyphs.size(); ++byte) {
         auto& glyph = glyphs[byte];
-        face->getCharABCwide(static_cast<int>(byte), glyph.a, glyph.b, glyph.c);
+        face->getCharABCwide(static_cast<int>(entry.characters[byte]), glyph.a, glyph.b, glyph.c);
         if (glyph.a < 0 || glyph.b < 0 || glyph.b > LastCoordinate) {
             return Result::Capacity;
         }
@@ -218,7 +226,8 @@ Result Atlas::Build(Entry& entry, const selection::PreparedFont& prepared) noexc
         for (std::size_t byte = 0; byte < glyphs.size(); ++byte) {
             const auto& glyph = glyphs[byte];
             if (glyph.page == index) {
-                face->getCharRGBA(static_cast<int>(byte), glyph.x, glyph.y, AtlasSide, AtlasSide, pixels.get());
+                face->getCharRGBA(static_cast<int>(entry.characters[byte]), glyph.x, glyph.y,
+                    AtlasSide, AtlasSide, pixels.get());
             }
         }
         if (!renderer_.live(renderer_.context, prepared.rendererGeneration)) {
@@ -317,17 +326,47 @@ Result Atlas::Draw(const char* text, int length) noexcept {
         return Result::Ready; // Retained null/no-selected-font no-op, not face readiness.
     }
     Active active(active_);
+    const std::size_t admittedBefore = entry_->characters.size();
+    const std::size_t bytes = length > 0 ? static_cast<std::size_t>(length) : 0;
+    const cse_vgui1::text::Run run(text, bytes);
+    if (bytes != 0) {
+        for (std::size_t offset = 0; offset < bytes;) {
+            const auto decoded = run.GlyphAt(offset);
+            offset += decoded.bytes;
+            const auto character = static_cast<unsigned int>(decoded.value < 0
+                ? static_cast<unsigned char>(decoded.value) : decoded.value);
+            constexpr unsigned int BmpMaximum = 0xffff;
+            if (cse_vgui1::text::UnicodeValue(static_cast<int>(character)) > static_cast<int>(BmpMaximum)) {
+                return Result::Unavailable;
+            }
+            auto found = std::find(entry_->characters.begin(), entry_->characters.end(), character);
+            if (found == entry_->characters.end()) {
+                entry_->characters.push_back(character);
+                entry_->valid = false;
+            }
+        }
+    }
     selection::PreparedFont prepared{};
     const auto used = Use(*entry_, prepared);
     if (used != Result::Ready) {
+        // A single oversized/failed new Unicode run must not poison the
+        // previously usable byte atlas. Rebuild that prior set on retry.
+        entry_->characters.resize(admittedBefore);
         return used;
     }
     int x = 0;
     int y = 0;
     renderer_.getPen(renderer_.context, x, y);
     std::int64_t end = x;
-    for (int index = 0; index < length; ++index) {
-        const auto& glyph = entry_->glyphs[static_cast<unsigned char>(text[index])];
+    const auto indexFor = [&](int decoded) {
+        const auto character = static_cast<unsigned int>(decoded < 0 ? static_cast<unsigned char>(decoded) : decoded);
+        const auto found = std::find(entry_->characters.begin(), entry_->characters.end(), character);
+        return static_cast<std::size_t>(found - entry_->characters.begin());
+    };
+    for (std::size_t offset = 0; offset < bytes;) {
+        const auto decoded = run.GlyphAt(offset);
+        offset += decoded.bytes;
+        const auto& glyph = entry_->glyphs[indexFor(decoded.value)];
         if (glyph.page >= entry_->pages || glyph.page >= entry_->textures.size()
             || entry_->textures[glyph.page] <= 0 || !IntFits(end + glyph.a)
             || !IntFits(end + glyph.a + glyph.b) || !IntFits(static_cast<std::int64_t>(y) + entry_->height)
@@ -337,13 +376,15 @@ Result Atlas::Draw(const char* text, int length) noexcept {
         }
         end += glyph.a + static_cast<std::int64_t>(glyph.b) + glyph.c;
     }
-    for (int index = 0; index < length; ++index) {
+    for (std::size_t offset = 0; offset < bytes;) {
+        const auto decoded = run.GlyphAt(offset);
+        offset += decoded.bytes;
         if (!renderer_.live(renderer_.context, prepared.rendererGeneration)) {
             entry_->valid = false;
             entry_->selection.EndUse(prepared.useSerial);
             return Result::Unavailable;
         }
-        const auto& glyph = entry_->glyphs[static_cast<unsigned char>(text[index])];
+        const auto& glyph = entry_->glyphs[indexFor(decoded.value)];
         x += glyph.a;
         Quad quad{x, y, glyph.b, entry_->height, entry_->textures[glyph.page], {}};
         std::memcpy(quad.uv, glyph.uv, sizeof(quad.uv));
