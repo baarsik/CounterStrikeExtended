@@ -185,14 +185,14 @@ public:
 		((volatile CThreadFastMutex*)this)->Lock( sleepTime );
 	}
 
-	void Unlock() volatile
-	{
-		--m_depth;
-		if ( m_depth == 0 )
-		{
-			m_ownerID = 0;
-		}
-	}
+    void Unlock() volatile {
+        --m_depth;
+        if (m_depth == 0) {
+            constexpr LONG UnlockedOwner = 0;
+            // Publish protected writes before releasing ownership, including with ARM64 ISO volatile semantics.
+            InterlockedExchange(reinterpret_cast<volatile LONG*>(&m_ownerID), UnlockedOwner);
+        }
+    }
 
 	void Unlock() const volatile
 	{

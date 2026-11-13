@@ -32,6 +32,10 @@ LONG InterlockedCompareExchange(volatile LONG* destination, LONG value, LONG com
     return comparand;
 }
 
+LONG InterlockedExchange(volatile LONG* destination, LONG value) {
+    return __atomic_exchange_n(destination, value, __ATOMIC_SEQ_CST);
+}
+
 void* ThreadInterlockedCompareExchangePointer(void* volatile* destination, void* value, void* comparand) {
     // Safe byte-model negative reference: reproduce the old pointer-width CAS
     // operand over owner+depth without executing a misaligned pointer atomic.

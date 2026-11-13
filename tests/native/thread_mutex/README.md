@@ -1,10 +1,16 @@
 # Fast mutex owner-width fixtures
 
-The production repair changes only `CThreadFastMutex::TryLock` and its required
+The production repairs change `CThreadFastMutex::TryLock`, final `Unlock` and the required
 standard includes. Windows thread IDs and `m_ownerID` stay 32-bit. Acquisition
 uses the Windows `LONG` compare-exchange operand, with a byte copy preserving
 IDs above `INT_MAX` through its signed parameter. No field, exported tier0
-declaration, recursion/depth rule or unlock behavior changes.
+declaration or recursion/depth rule changes. Final unlock uses a 32-bit
+`InterlockedExchange` to publish protected writes before releasing ownership,
+including under Windows ARM64's default ISO volatile semantics.
+
+The November 13 release-ordering follow-up was reviewed statically only. No
+fixture, compiler probe or build was executed for that change; the historical
+fixture descriptions and results below do not qualify the new source.
 
 On Windows the fixture compiles the **complete production threadtools.h** with
 the real Windows SDK. Small platform/debug declaration shims remove DLL
@@ -65,5 +71,6 @@ Use `CSE_THREAD_MUTEX_SANITIZERS=ON` in a separate portable build for ASan/UBSan
 Selecting the archived old header and running `ctest -R operand-isolation`
 must fail because its pointer-width CAS also compares the depth sentinel.
 This negative model result is separate from the recorded actual Windows x64
-compiler failure. Existing volatile owner-load/plain-store unlock policy is
-retained; this work makes no broader memory-order or performance claim.
+compiler failure. The portable binding also provides a sequentially consistent
+32-bit exchange for the new final unlock. It does not qualify actual Windows
+ARM64 instruction lowering or performance.

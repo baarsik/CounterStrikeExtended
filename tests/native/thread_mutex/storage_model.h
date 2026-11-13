@@ -10,6 +10,7 @@ using LONG = std::int32_t;
 std::uint32_t ThreadGetCurrentId();
 void ThreadSleep(unsigned int duration);
 LONG InterlockedCompareExchange(volatile LONG* destination, LONG value, LONG comparand);
+LONG InterlockedExchange(volatile LONG* destination, LONG value);
 void* ThreadInterlockedCompareExchangePointer(void* volatile* destination, void* value, void* comparand);
 
 class CThreadFastMutex {
