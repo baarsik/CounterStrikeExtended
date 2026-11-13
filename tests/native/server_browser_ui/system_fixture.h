@@ -11,6 +11,9 @@ namespace system_fixture {
 class PrivateRegistry final : public vgui2::ISystem {
 public:
     explicit PrivateRegistry(vgui2::ISystem *real) : real_(real) {}
+    bool failStringWrites = false;
+    int stringWrites = 0;
+    std::string languageOverride;
     void Shutdown() override {
         return real_->Shutdown();
     }
@@ -45,6 +48,10 @@ public:
         return real_->GetClipboardText(offset, buffer, bufferLength);
     }
     bool SetRegistryString(const char* key, const char* value) override {
+        ++stringWrites;
+        if (failStringWrites) {
+            return false;
+        }
         strings_[key] = value;
         return true;
     }
@@ -88,6 +95,9 @@ public:
         return real_->GetAvailableDrives(buffer, bufferLength);
     }
     bool CommandLineParamExists(const char* parameter) override {
+        if (std::strcmp(parameter, "-language") == 0 && !languageOverride.empty()) {
+            return true;
+        }
         return real_->CommandLineParamExists(parameter);
     }
     const char* GetFullCommandLine() override {
@@ -112,6 +122,13 @@ public:
         return real_->ModifyShortcutTarget(linkFile, targetFile, arguments, workingDirectory);
     }
     bool GetCommandLineParamValue(const char* parameter, char* value, int valueLength) override {
+        if (std::strcmp(parameter, "-language") == 0 && !languageOverride.empty()) {
+            if (valueLength <= 0 || languageOverride.size() >= static_cast<size_t>(valueLength)) {
+                return false;
+            }
+            std::memcpy(value, languageOverride.c_str(), languageOverride.size() + 1);
+            return true;
+        }
         return real_->GetCommandLineParamValue(parameter, value, valueLength);
     }
     bool DeleteRegistryKey(const char* key) override {

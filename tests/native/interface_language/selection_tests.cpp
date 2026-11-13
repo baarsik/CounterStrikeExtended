@@ -9,6 +9,15 @@
 #include <vector>
 #include "interface_language.h"
 
+std::string savedPreference;
+namespace cse {
+namespace interface_language {
+std::string ReadSavedPreference() {
+    return savedPreference;
+}
+}
+}
+
 constexpr int APPID_HALF_LIFE = 70;
 const char* currentLanguage = "english";
 bool steamAvailable = true;
@@ -123,7 +132,9 @@ void Require(bool result, const char* message) {
         std::exit(1);
     }
 }
-void CheckSelection(const std::vector<std::string>& arguments, const char* steam, const std::string& expected) {
+void CheckSelection(const std::vector<std::string>& arguments, const char* steam, const std::string& expected,
+    const std::string& saved = {}) {
+    savedPreference = saved;
     std::vector<char*> argv;
     for (const auto& argument : arguments) {
         argv.push_back(const_cast<char*>(argument.c_str()));
@@ -161,6 +172,16 @@ void CheckSelection(const std::vector<std::string>& arguments, const char* steam
     }
 }
 int main() {
+    CheckSelection({"game"}, "german", "russian", "russian");
+    CheckSelection({"game"}, "german", "polish", "PoLiSh");
+    CheckSelection({"game", "-language", "english"}, "german", "english", "russian");
+    CheckSelection({"game", "-language", "custom_language"}, "german", "custom_language", "polish");
+    CheckSelection({"game", "-language", "../invalid"}, "german", "russian", "russian");
+    CheckSelection({"game"}, "german", "german", "");
+    for (const std::string& invalid : std::vector<std::string>{"../russian", "russian/polish", "custom_language",
+        "ru ssian", "русский", std::string(32, 'a'), std::string(128, 'a')}) {
+        CheckSelection({"game"}, "german", "german", invalid);
+    }
     CheckSelection({"game", "-language", "russian"}, "english", "russian");
     CheckSelection({"game", "-language", "PoLiSh"}, "german", "polish");
     CheckSelection({"game", "-language", "english"}, "german", "english");
@@ -188,6 +209,12 @@ int main() {
     BaseUISurface surface;
     surface.SetLanguage(unterminated);
     Require(std::strcmp(surface.GetLanguage(), "english") == 0, "nonterminated full field rejects without overread");
+    savedPreference = std::string(128, 'a');
+    dedicatedSurface.SetLanguage("french");
+    ApplyNativeDedicatedLanguage();
+    Require(std::strcmp(dedicatedSurface.GetLanguage(), "french") == 0,
+        "overlong dedicated saved value preserves current language");
+    savedPreference.clear();
     commandSystem.oversized = true;
     dedicatedSurface.SetLanguage("french");
     ApplyNativeDedicatedLanguage();

@@ -25,5 +25,12 @@
         "CSEAdmin_MoveUp" "上移"
         "CSEAdmin_MoveDown" "下移"
 
+        "CSEInterface_Tab" "介面"
+        "CSEInterface_Language" "語言"
+        "CSEInterface_Automatic" "使用 Steam 語言"
+        "CSEInterface_RestartRequired" "重新啟動遊戲後，語言設定才會生效。"
+        "CSEInterface_SaveFailed" "無法儲存語言設定。請重試。"
+        "CSEInterface_LaunchOverride" "啟動選項 -language 會覆寫此設定。"
+
     }
 }

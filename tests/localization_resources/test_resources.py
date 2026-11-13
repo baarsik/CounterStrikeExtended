@@ -19,7 +19,30 @@ class ResourceGenerationTests(unittest.TestCase):
         self.source = self.root / 'sdk/deploy/localization'
         self.output = self.root / 'runtime'
         self.source.mkdir(parents=True)
-        self.manifest = {'format_version': 1, 'files': []}
+        self.manifest = {'format_version': 1, 'files': [], 'languages': {'english': 'English'},
+                         'native_language_names': {'english': 'English'}}
+
+    def test_language_table_uses_manifest_order_and_unicode_names(self):
+        self.manifest['languages']['polish'] = 'Polish'
+        self.manifest['native_language_names']['polish'] = 'Polski'
+        self.manifest['languages']['russian'] = 'Russian'
+        self.manifest['native_language_names']['russian'] = 'Русский'
+        header = self.root / 'include/languages.inc'
+        result = self.run_generator('--language-header', str(header))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        actual = header.read_text(encoding='ascii')
+        self.assertIn('{"polish", L"Polski", "Polish"}', actual)
+        self.assertIn('{"russian", L"\\u0420\\u0443\\u0441\\u0441\\u043a\\u0438\\u0439", "Russian"}', actual)
+        self.assertLess(actual.index('"english"'), actual.index('"polish"'))
+        self.assertLess(actual.index('"polish"'), actual.index('"russian"'))
+
+    def test_language_table_rejects_missing_names_before_staging(self):
+        self.add_file('some.txt', 'text', encoding='utf-8')
+        self.manifest['languages']['polish'] = 'Polish'
+        result = self.run_generator('--language-header', str(self.root / 'languages.inc'))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('native', result.stderr.lower())
+        self.assertFalse(self.output.exists())
 
     def add_file(self, name, text, encoding='utf-16-le-bom', aliases=()):
         path = self.source / name

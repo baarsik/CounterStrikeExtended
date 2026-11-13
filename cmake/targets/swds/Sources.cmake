@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(swds PRIVATE
+  "${CSE_SDK_DIR}/common/interface_language_preference.cpp"
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
   "${CSE_SDK_DIR}/engine/bitmap_win.cpp"
@@ -1746,4 +1747,9 @@ endif()
 if(APPLE AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_DEFINITIONS CSE_TEXT_ENTRY_USE_PTHREAD_KEY=1)
   set_property(SOURCE "${CSE_SDK_DIR}/engine/native_software_lifetime.cpp" APPEND PROPERTY COMPILE_DEFINITIONS CSE_TEXT_ENTRY_USE_PTHREAD_KEY=1)
+endif()
+
+if(APPLE)
+  target_sources(swds PRIVATE "${CSE_SDK_DIR}/common/mac_settings_store.cpp")
+  target_link_libraries(swds PRIVATE "-framework CoreFoundation")
 endif()

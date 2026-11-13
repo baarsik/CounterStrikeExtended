@@ -285,36 +285,40 @@ bool ComboBox::UpdateItem( int itemID, const char* itemText, const KeyValues* us
 // Purpose: Updates a current item to the drop down
 // Input  : wchar_t *itemText - name of dropdown menu item
 //-----------------------------------------------------------------------------
-bool ComboBox::UpdateItem( int itemID, const wchar_t* itemText, const KeyValues* userData )
-{
-	if ( !m_pDropDown->IsValidMenuID( itemID ) )
-		return false;
+bool ComboBox::UpdateItem(int itemID, const wchar_t* itemText, const KeyValues* userData) {
+    if (!m_pDropDown->IsValidMenuID(itemID)) {
+        return false;
+    }
 
-	size_t length = wcslen( itemText );
-	if ( length >= INT_MAX )
-		return false;
+    const std::size_t length = wcslen(itemText);
+    if (length >= INT_MAX) {
+        return false;
+    }
 
-	int len = (int)length + 1;
-	std::unique_ptr<char[]> ansi( new char[len] );
-	localize()->ConvertUnicodeToANSI( itemText, ansi.get(), len );
-
-	// when the menu item is selected it will send the custom message "SetText"
-	m_pDropDown->UpdateMenuItem( itemID, itemText, new KeyValues( "SetText", "text", ansi.get() ), userData );
-	InvalidateLayout( false, false );
-	return true;
+    // Keep both the visible label and the selection command in their original Unicode form.
+    m_pDropDown->UpdateMenuItem(itemID, itemText, new KeyValues("SetText", "text", itemText), userData);
+    InvalidateLayout(false, false);
+    return true;
 }
 
-int ComboBox::AddItem( const wchar_t* itemText, const KeyValues* userData )
-{
-	size_t length = wcslen( itemText );
-	if ( length >= INT_MAX )
-		return m_pDropDown->GetInvalidMenuID();
+int ComboBox::AddItem(const wchar_t* itemText, const KeyValues* userData) {
+    // UTF-8 needs at most four bytes per wide character, plus the string terminator.
+    constexpr std::size_t MaximumUtf8BytesPerWideCharacter = 4;
+    constexpr std::size_t StringTerminatorBytes = 1;
+    constexpr std::size_t MaximumWideCharacters =
+        (INT_MAX - StringTerminatorBytes) / MaximumUtf8BytesPerWideCharacter;
+    const std::size_t length = wcslen(itemText);
+    if (length > MaximumWideCharacters) {
+        return m_pDropDown->GetInvalidMenuID();
+    }
 
-	int len = (int)length + 1;
-	std::unique_ptr<char[]> ansi( new char[len] );
-	localize()->ConvertUnicodeToANSI( itemText, ansi.get(), len );
+    const int bufferBytes = static_cast<int>(length * MaximumUtf8BytesPerWideCharacter + StringTerminatorBytes);
+    std::unique_ptr<char[]> panelName(new char[bufferBytes]{});
+    localize()->ConvertUnicodeToANSI(itemText, panelName.get(), bufferBytes);
 
-	return m_pDropDown->AddMenuItem( ansi.get(), new KeyValues( "SetText", "text", itemText ), this, userData );
+    // The converted name identifies the panel; rendering and selection retain the wide text.
+    return m_pDropDown->AddMenuItem(
+        panelName.get(), itemText, new KeyValues("SetText", "text", itemText), this, userData);
 }
 
 //-----------------------------------------------------------------------------

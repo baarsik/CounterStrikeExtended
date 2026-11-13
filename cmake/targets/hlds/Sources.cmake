@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(hlds PRIVATE
+  "${CSE_SDK_DIR}/common/interface_language_preference.cpp"
   "${CSE_SDK_DIR}/dedicated/sys_ded.cpp"
   "${CSE_SDK_DIR}/dedicated/CreateMultiplayerGameServerPage.cpp"
   "${CSE_SDK_DIR}/dedicated/AdminServer.cpp"
@@ -160,4 +161,9 @@ if(NOT WIN32)
     set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
     set_property(SOURCE "${CSE_SDK_DIR}/common/legacy_wide_format.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
   endif()
+endif()
+
+if(APPLE)
+  target_sources(hlds PRIVATE "${CSE_SDK_DIR}/common/mac_settings_store.cpp")
+  target_link_libraries(hlds PRIVATE "-framework CoreFoundation")
 endif()

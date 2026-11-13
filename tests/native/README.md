@@ -32,6 +32,10 @@ Russian/Polish validation additionally covers [actual font/layout fit](../locali
 [HL HUD Unicode](hl_message_utf8/README.md), [HL menu bounds and fit](hl_menu_localization/README.md), [VGUI1 text and bitmap fallback](vgui1_utf8/README.md),
 and [shared startup language selection](interface_language/README.md).
 
+The Interface language selector has [actual Options control checks](server_browser_ui/README.md#interface-options-page)
+and [strict native preference reader checks](interface_preferences/README.md).
+See its [validation record](../../docs/superpowers/validation/2026-11-13-interface-options.md).
+
 For a pure component, from the repository root:
 
 ```sh

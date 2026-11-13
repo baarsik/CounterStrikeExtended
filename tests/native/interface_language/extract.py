@@ -47,5 +47,6 @@ for name, function in (('src/dedicated/native/NativeGui.cpp', 'ApplyNativeDedica
 (out / 'source-manifest.json').write_text(json.dumps({
     name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in
     ('src/engine/filesystem.cpp', 'src/engine/vgui2/BaseUISurface.cpp',
-     'src/common/interface_language.h', 'src/dedicated/native/NativeGui.cpp', 'src/dedicated/sys_ded.cpp')
+     'src/common/interface_language.h', 'src/common/interface_language_preference.cpp',
+     'src/common/interface_language_catalogue.h', 'src/dedicated/native/NativeGui.cpp', 'src/dedicated/sys_ded.cpp')
 }, indent=2) + '\n')

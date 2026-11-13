@@ -20,10 +20,25 @@ console's `Console_Submit` token. Stock translation text remains Valve material;
 keeping it here does not relicense it under the project's root license. Preserve
 upstream notices and attribution when updating or distributing the files.
 
-Select a language at startup with `-language russian` or `-language polish`
-(for example, `hl.exe -game cstrike -language polish`). The same override controls
-localized game paths, client UI and the dedicated GUI. Without an override, the
-existing Steam language remains the default. No Steam preference is changed.
+Select the interface language in **Options → Interface → Language**. The tab follows
+Video and lists all ten bundled languages by their native names. Apply or OK saves
+the CSE preference for the next game restart; Cancel discards the pending selection.
+“Use Steam language” clears that preference. A failed save leaves Options open
+with a retryable error. Restarting is left to the player.
+
+An explicit launch option such as `-language russian` or `-language polish`
+(for example, `hl.exe -game cstrike -language polish`) takes precedence over the
+saved choice. The page displays a notice while this option is present. Without a
+valid saved choice or launch override, the existing Steam language remains the
+default. The same startup resolution controls localized game paths, client UI
+and the dedicated GUI. No Steam preference is changed.
+
+The CSE setting is stored under
+`HKEY_CURRENT_USER\Software\CounterStrikeExtended\Interface\Language` on Windows.
+macOS stores the same key in the existing `org.counterstrikeextended.settings`
+CFPreferences domain. Startup readers reject malformed or unbundled saved ids.
+The manifest's `languages` and `native_language_names` generate the dropdown table
+and saved-id allowlist during the normal offline build.
 
 ## Provenance
 

@@ -1,5 +1,6 @@
 #include "filesystem.h"
 #include "../common/interface_language.h"
+#include "../common/interface_language_preference.h"
 #include "conprint.h"
 #include "../public/native_filesystem_module.h"
 #include "registry.h"
@@ -113,7 +114,8 @@ std::string FileSystem_GetInterfaceLanguage() {
     const char* current = SteamApps() ? SteamApps()->GetCurrentGameLanguage() : nullptr;
     const int option = COM_CheckParm("-language");
     const char* requested = option > 0 && option < com_argc - 1 && com_argv ? com_argv[option + 1] : nullptr;
-    return cse::interface_language::Resolve(current, requested);
+    const std::string saved = cse::interface_language::ReadSavedPreference();
+    return cse::interface_language::Resolve(current, requested, saved.c_str());
 }
 
 int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameDirectory )

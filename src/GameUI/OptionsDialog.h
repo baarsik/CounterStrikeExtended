@@ -9,6 +9,8 @@
 
 #include "PropertyDialog.h"
 
+class COptionsSubInterface;
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -22,6 +24,11 @@ public:
 	void Activate() override;
 
 protected:
+    void PerformLayout() override;
+    void OnCommand(const char* command) override;
 	void SetTitle( const char* title, bool surfaceTitle ) override;
 	void OnClose() override;
+
+private:
+    COptionsSubInterface* m_interfacePage = nullptr;
 };

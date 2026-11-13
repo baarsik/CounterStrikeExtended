@@ -71,3 +71,36 @@ The `vgui_tests` driver accepts an optional final read-only game resource search
 (for example, the original `valve` directory supplying `resource/marlett.ttf`). Run with
 explicit `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy SDL_RENDER_DRIVER=software` and
 fixture-owned temporary preferences, using matching current VGUI/filesystem dependencies.
+
+## Interface Options page
+
+`--driver interface_options` builds the production language page and unchanged
+complete `OptionsDialog` methods against the real shared controls. Only unrelated
+Options pages, game metadata and taskbar are doubles. `options-receipt.json`
+records the copied method source/body hashes. Registry writes stay private to
+the fixture. A controlled provider models the strict native reader, including a record
+whose type/length is lost by ISystem; separate native preference fixtures cover
+actual backend validation.
+
+```sh
+python3 tests/native/server_browser_ui/build_vgui_component.py --repo . \
+  --packet build/interface-options-ui --profile release \
+  --recipe-cache build/runtime-macos-arm64-release \
+  --sdl-library build/runtime-macos-arm64-release/runtime/Release/libSDL3.0.dylib \
+  --driver interface_options
+build/interface-options-ui/vgui_tests /absolute/vgui2.dylib /absolute/filesystem_stdio.dylib \
+  "$PWD/build/interface-options-ui/resources" "$PWD/build/interface-options-ui/polish" polish \
+  "/absolute/Half-Life/platform"
+```
+
+Repeat the executable for every manifest language. The owning cache needs a full
+Ninja compilation database (`ninja -t compdb`), as for the existing drivers.
+The installed platform path supplies the actual Tracker scheme/assets; translation
+text comes from the generated packet. The geometry bridge sets real 640×480
+screen metrics before loading schemes. Checks cover CS, HL and single-player-only
+tab composition, all tab bounds/text, page notes and dropdown item glyph coverage,
+non-editable stable ids, default/invalid/saved state, unchanged Apply, save failure
+and retry, Apply/OK/Cancel/reset, automatic clearing and launch-override notice.
+`fit.tsv`, `options.bmp` and `languages.bmp` contain measured and rendered evidence.
+Empty image-only frame decorations are outside translated-text measurement.
+This component test does not launch a full game or instantiate other Options pages.

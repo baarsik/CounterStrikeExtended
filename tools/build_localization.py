@@ -167,15 +167,38 @@ def english_fallbacks(source):
     return ('\n'.join(lines) + '\n').encode('utf-8')
 
 
-def build(source, output, cache=None, fallback_header=None):
+def language_entries(source):
+    manifest = json.loads((source / 'manifest.json').read_text(encoding='utf-8'))
+    languages = manifest.get('languages', {})
+    native_names = manifest.get('native_language_names', {})
+    if not languages or languages.keys() != native_names.keys():
+        raise ValueError('Every bundled language requires a native name')
+    lines = ['// Generated from the maintained language manifest. Do not edit.']
+    for identifier, english_name in languages.items():
+        if not re.fullmatch(r'[a-z0-9_]{1,31}', identifier):
+            raise ValueError('Invalid bundled language identifier: ' + identifier)
+        native_name = native_names[identifier]
+        if any(not isinstance(name, str) or not name or any(ord(char) < 32 for char in name)
+               for name in (english_name, native_name)):
+            raise ValueError('Expected nonempty language display names: ' + identifier)
+        fields = (json.dumps(identifier), 'L' + json.dumps(native_name, ensure_ascii=True),
+                  json.dumps(english_name, ensure_ascii=True))
+        lines.append('{' + ', '.join(fields) + '},')
+    return ('\n'.join(lines) + '\n').encode('ascii')
+
+
+def build(source, output, cache=None, fallback_header=None, language_header=None):
     outputs = runtime_files(source)
     fallback = english_fallbacks(source) if fallback_header is not None else None
+    languages = language_entries(source) if language_header is not None else None
     for relative, data in outputs:
         if cache is not None:
             write_changed(cache / relative, data)
         write_changed(output / relative, data)
     if fallback_header is not None:
         write_changed(fallback_header, fallback)
+    if language_header is not None:
+        write_changed(language_header, languages)
     return len(outputs)
 
 
@@ -185,9 +208,11 @@ def main():
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--cache', type=Path)
     parser.add_argument('--fallback-header', type=Path)
+    parser.add_argument('--language-header', type=Path)
     arguments = parser.parse_args()
     try:
-        count = build(arguments.source, arguments.output, arguments.cache, arguments.fallback_header)
+        count = build(arguments.source, arguments.output, arguments.cache, arguments.fallback_header,
+                      arguments.language_header)
     except (OSError, ValueError, KeyError, TypeError, LookupError) as error:
         print('Localization generation failed: ' + str(error), file=sys.stderr)
         return 1

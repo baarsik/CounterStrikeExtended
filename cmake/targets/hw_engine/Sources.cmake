@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(hw_engine PRIVATE
+  "${CSE_SDK_DIR}/common/interface_language_preference.cpp"
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"
   "${CSE_SDK_DIR}/engine/bitmap_win.cpp"
@@ -1571,4 +1572,9 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set_property(SOURCE "${CSE_SDK_DIR}/engine/native_mouse_window.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
   endif()
   cse_configure_native_browser(hw_engine)
+endif()
+
+if(APPLE)
+  target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/common/mac_settings_store.cpp")
+  target_link_libraries(hw_engine PRIVATE "-framework CoreFoundation")
 endif()

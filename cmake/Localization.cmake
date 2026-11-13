@@ -38,16 +38,22 @@ function(cse_localization_assets target)
     find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
     set(generator "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../tools/build_localization.py")
     set(fallback_header "${CMAKE_BINARY_DIR}/localization/include/ServerBrowserEnglish.generated.inc")
+    set(language_header "${CMAKE_BINARY_DIR}/localization/include/InterfaceLanguages.generated.inc")
     add_custom_target(cse_localization_runtime_assets
       COMMAND "${Python3_EXECUTABLE}" "${generator}"
         --source "${source_root}"
         --cache "${CMAKE_BINARY_DIR}/localization/$<CONFIG>"
         --output "${CSE_OUTPUT_DIRECTORY}"
         --fallback-header "${fallback_header}"
-      BYPRODUCTS "${fallback_header}"
+        --language-header "${language_header}"
+      BYPRODUCTS "${fallback_header}" "${language_header}"
       DEPENDS "${generator}" ${sources}
       COMMENT "Staging bundled translations"
       VERBATIM)
+  endif()
+  get_target_property(target_type ${target} TYPE)
+  if(NOT target_type STREQUAL "UTILITY")
+    target_include_directories(${target} PRIVATE "${CMAKE_BINARY_DIR}/localization/include")
   endif()
   add_dependencies(${target} cse_localization_runtime_assets)
 endfunction()

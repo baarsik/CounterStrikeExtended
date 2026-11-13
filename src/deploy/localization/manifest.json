@@ -12,6 +12,18 @@
     "russian": "Russian",
     "polish": "Polish"
   },
+  "native_language_names": {
+    "english": "English",
+    "french": "Français",
+    "german": "Deutsch",
+    "italian": "Italiano",
+    "spanish": "Español",
+    "schinese": "简体中文 (Simplified Chinese)",
+    "tchinese": "繁體中文 (Traditional Chinese)",
+    "koreana": "한국어 (Korean)",
+    "russian": "Русский",
+    "polish": "Polski"
+  },
   "language_aliases": {
     "korean": "koreana"
   },

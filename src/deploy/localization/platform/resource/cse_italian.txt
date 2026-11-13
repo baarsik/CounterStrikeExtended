@@ -25,5 +25,12 @@
         "CSEAdmin_MoveUp" "Su"
         "CSEAdmin_MoveDown" "Giù"
 
+        "CSEInterface_Tab" "Interfaccia"
+        "CSEInterface_Language" "Lingua"
+        "CSEInterface_Automatic" "Usa la lingua di Steam"
+        "CSEInterface_RestartRequired" "La lingua cambierà al riavvio del gioco."
+        "CSEInterface_SaveFailed" "Impossibile salvare la lingua. Riprova."
+        "CSEInterface_LaunchOverride" "L’opzione di avvio -language ha la precedenza su questa impostazione."
+
     }
 }

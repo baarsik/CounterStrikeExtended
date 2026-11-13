@@ -15,15 +15,16 @@ parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
 parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
 parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
-parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit'], default='vgui')
+parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options'], default='vgui')
 args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
 packet.mkdir(exist_ok=False, parents=True)
 subprocess.run(['python3', str(repo / 'tools/build_localization.py'),
     '--source', str(repo / 'src/deploy/localization'), '--output', str(packet / 'resources'),
-    '--fallback-header', str(packet / 'extracted/ServerBrowserEnglish.generated.inc')], check=True)
-if args.driver == 'translation_fit':
+    '--fallback-header', str(packet / 'extracted/ServerBrowserEnglish.generated.inc'),
+    '--language-header', str(packet / 'extracted/InterfaceLanguages.generated.inc')], check=True)
+if args.driver in ('translation_fit', 'interface_options'):
     shutil.copytree(repo / 'src/deploy/platform', packet / 'resources/platform', dirs_exist_ok=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
 cache = args.recipe_cache.resolve() if args.recipe_cache else cache
@@ -49,6 +50,16 @@ if args.driver == 'module':
     new.append('ServerBrowserModule')
 for name in new:
     selected.append(dict(owner, file=str(repo / 'src/GameUI/native' / (name + '.cpp'))))
+if args.driver == 'interface_options':
+    selected.append(dict(owner, file=str(repo / 'src/GameUI/OptionsSubInterface.cpp')))
+    # Keep every real OptionsDialog method unchanged. Unrelated pages, ModInfo and
+    # taskbar are controlled doubles in this fixture; language page/controls are real.
+    source = (repo / 'src/GameUI/OptionsDialog.cpp').read_text(encoding='cp1252')
+    body = source[source.index('COptionsDialog::COptionsDialog'):]
+    (packet / 'extracted/options_fixture.inc').write_text(body, encoding='utf-8')
+    (packet / 'extracted/options-receipt.json').write_text(json.dumps({
+        'sourceSha256': hashlib.sha256((repo / 'src/GameUI/OptionsDialog.cpp').read_bytes()).hexdigest(),
+        'bodySha256': hashlib.sha256(body.encode()).hexdigest()}, indent=2) + '\n')
 selected.append(dict(owner, file=str(repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp'))))
 
 def run(pair):

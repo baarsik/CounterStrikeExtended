@@ -25,5 +25,12 @@
         "CSEAdmin_MoveUp" "Nach oben"
         "CSEAdmin_MoveDown" "Nach unten"
 
+        "CSEInterface_Tab" "Oberfläche"
+        "CSEInterface_Language" "Sprache"
+        "CSEInterface_Automatic" "Steam-Sprache verwenden"
+        "CSEInterface_RestartRequired" "Die Sprache ändert sich nach einem Neustart des Spiels."
+        "CSEInterface_SaveFailed" "Die Sprache konnte nicht gespeichert werden. Bitte erneut versuchen."
+        "CSEInterface_LaunchOverride" "Die Startoption -language hat Vorrang vor dieser Einstellung."
+
     }
 }
