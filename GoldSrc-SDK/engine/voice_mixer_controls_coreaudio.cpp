@@ -16,7 +16,7 @@ constexpr unsigned int propertyReadAttempts = 2;
 constexpr UInt32 inputStreamDirection = 1;
 constexpr UInt32 firstDeviceChannel = 1;
 
-static_assert(sizeof(Float32) == sizeof(float) && sizeof(UInt32) == 4,
+static_assert(sizeof(Float32) == sizeof(float) && sizeof(Float32) == sizeof(UInt32) && sizeof(UInt32) == 4,
     "Native mixer hardware scalars and identifiers retain their SDK widths");
 
 AudioObjectPropertyAddress Address(AudioObjectPropertySelector selector,
@@ -85,6 +85,9 @@ public:
     std::size_t Bytes() const {
         return bytes_;
     }
+    bool Same(const PropertyBuffer& other) const {
+        return bytes_ == other.bytes_ && (bytes_ == 0 || std::memcmp(data_, other.data_, bytes_) == 0);
+    }
 
 private:
     void Clear() {
@@ -113,7 +116,7 @@ public:
     }
 
     bool GetValue_Float(Control control, float& output) override {
-        Target target;
+        Target target(services_);
         if (!Resolve(control, target)) {
             return false;
         }
@@ -129,7 +132,7 @@ public:
             }
             value = ((raw != 0) != (target.kind == Kind::Monitoring)) ? 1.0f : 0.0f;
         }
-        Target verified;
+        Target verified(services_);
         if (!Resolve(control, verified) || !target.Same(verified)) {
             return false;
         }
@@ -141,42 +144,41 @@ public:
         if (control == MicVolume && !Normalized(value)) {
             return false;
         }
-        Target target;
-        if (!Resolve(control, target)) {
+        Target target(services_);
+        if (!Resolve(control, target, true)) {
             return false;
         }
-        Boolean settable = false;
-        if (services_.isSettable(services_.context, target.object, &target.address, &settable) != noErr
-                || !settable) {
+        auto secondAddress = target.address;
+        secondAddress.mElement = target.secondChannel;
+        if (!Writable(target.object, target.address)
+                || (target.hasSecondChannel && !Writable(target.object, secondAddress))) {
             return false;
         }
-        Target verified;
-        if (!Resolve(control, verified) || !target.Same(verified)) {
+        Target verified(services_);
+        if (!Resolve(control, verified, true) || !target.Same(verified)) {
             return false;
         }
         if (target.kind == Kind::Volume) {
-            return Write(target.object, target.address, value);
+            if (!Write(target.object, target.address, value)) {
+                return false;
+            }
+            if (target.hasSecondChannel) {
+                // HAL channel writes are separate operations; never retarget the second after a route change.
+                if (!Writable(target.object, secondAddress) || !Resolve(control, verified, true)
+                        || !target.Same(verified)) {
+                    return false;
+                }
+                return Write(target.object, secondAddress, value);
+            }
+            return true;
         }
         const UInt32 raw = ((value != 0) != (target.kind == Kind::Monitoring)) ? 1 : 0;
         return Write(target.object, target.address, raw);
     }
 
     bool SelectMicrophoneForWaveInput() override {
-        Binding binding;
-        if (!Bind(binding) || !binding.selector) {
-            return false;
-        }
-        const auto address = Address(kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeInput);
-        Boolean settable = false;
-        if (services_.isSettable(services_.context, binding.device, &address, &settable) != noErr || !settable) {
-            return false;
-        }
-        Binding verified;
-        if (!Bind(verified) || verified.device != binding.device || !verified.selector
-                || verified.source != binding.source) {
-            return false;
-        }
-        return Write(binding.device, address, binding.source);
+        // The original macOS implementation succeeds without changing the active input source.
+        return true;
     }
 
 private:
@@ -186,12 +188,21 @@ private:
         Boost
     };
     struct Target {
+        explicit Target(const CoreAudioMixerServices& services) : sources(services) {
+        }
         AudioObjectID owner = kAudioObjectUnknown;
         AudioObjectID object = kAudioObjectUnknown;
         AudioObjectPropertyAddress address = {};
         Kind kind = Kind::Volume;
+        UInt32 channels = 0;
+        bool selector = false;
+        PropertyBuffer sources;
+        bool hasSecondChannel = false;
+        AudioObjectPropertyElement secondChannel = kAudioObjectPropertyElementMain;
         bool Same(const Target& other) const {
             return owner == other.owner && object == other.object && kind == other.kind
+                && channels == other.channels && selector == other.selector && sources.Same(other.sources)
+                && hasSecondChannel == other.hasSecondChannel && secondChannel == other.secondChannel
                 && address.mSelector == other.address.mSelector && address.mScope == other.address.mScope
                 && address.mElement == other.address.mElement;
         }
@@ -200,8 +211,6 @@ private:
         AudioObjectID device = kAudioObjectUnknown;
         UInt32 channels = 0;
         UInt32 soleChannel = 0;
-        bool selector = false;
-        UInt32 source = 0;
     };
     struct Interval {
         UInt32 first;
@@ -240,6 +249,14 @@ private:
 
     bool Has(AudioObjectID object, const AudioObjectPropertyAddress& address) const {
         return services_.hasProperty(services_.context, object, &address) != 0;
+    }
+
+    bool Writable(AudioObjectID object, const AudioObjectPropertyAddress& address) const {
+        Boolean settable = false;
+        UInt32 bytes = 0;
+        return services_.isSettable(services_.context, object, &address, &settable) == noErr && settable
+            && services_.getSize(services_.context, object, &address, 0, nullptr, &bytes) == noErr
+            && bytes == sizeof(Float32);
     }
 
     bool Bind(Binding& binding) const {
@@ -293,14 +310,9 @@ private:
         for (std::size_t index = 0; index < count; ++index) {
             const auto stream = streams.At<AudioStreamID>(index * sizeof(AudioStreamID));
             UInt32 direction = 0;
-            UInt32 terminal = 0;
             UInt32 first = 0;
             AudioStreamBasicDescription format = {};
             if (!Read(stream, Address(kAudioStreamPropertyDirection), direction) || direction != inputStreamDirection
-                    || !Read(stream, Address(kAudioStreamPropertyTerminalType), terminal)
-                    || (terminal != kAudioStreamTerminalTypeMicrophone
-                        && terminal != kAudioStreamTerminalTypeHeadsetMicrophone
-                        && terminal != kAudioStreamTerminalTypeReceiverMicrophone)
                     || !Read(stream, Address(kAudioStreamPropertyStartingChannel), first) || first == 0
                     || !Read(stream, Address(kAudioStreamPropertyVirtualFormat), format)
                     || format.mChannelsPerFrame == 0) {
@@ -327,27 +339,10 @@ private:
         }
         binding.channels = static_cast<UInt32>(channels);
         binding.soleChannel = channels == 1 ? ranges[0].first : 0;
-        const auto available = Address(kAudioDevicePropertyDataSources, kAudioObjectPropertyScopeInput);
-        const auto current = Address(kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeInput);
-        const bool hasSources = Has(binding.device, available);
-        if (hasSources != Has(binding.device, current)) {
-            return false;
-        }
-        if (hasSources) {
-            PropertyBuffer choices(services_);
-            PropertyBuffer selected(services_);
-            if (!choices.Read(binding.device, available, sizeof(UInt32)) || choices.Bytes() != sizeof(UInt32)
-                    || !selected.Read(binding.device, current, sizeof(UInt32)) || selected.Bytes() != sizeof(UInt32)
-                    || choices.At<UInt32>(0) != selected.At<UInt32>(0)) {
-                return false;
-            }
-            binding.selector = true;
-            binding.source = choices.At<UInt32>(0);
-        }
         return true;
     }
 
-    bool Resolve(Control control, Target& target) const {
+    bool Resolve(Control control, Target& target, bool writing = false) const {
         if (control != MicVolume && control != MicMute && control != MicBoost) {
             return false;
         }
@@ -357,6 +352,20 @@ private:
         }
         target.owner = binding.device;
         target.object = binding.device;
+        target.address = {};
+        target.kind = Kind::Volume;
+        target.channels = binding.channels;
+        target.hasSecondChannel = false;
+        target.secondChannel = kAudioObjectPropertyElementMain;
+        const auto current = Address(kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeInput);
+        target.selector = Has(binding.device, current);
+        if (target.selector) {
+            if (!target.sources.Read(binding.device, current, sizeof(UInt32))) {
+                return false;
+            }
+        } else {
+            target.sources.Allocate(0);
+        }
         if (control == MicBoost) {
             return FindBoost(binding, target);
         }
@@ -366,11 +375,41 @@ private:
             return Has(binding.device, target.address);
         }
         target.address = Address(kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput);
-        if (!Has(binding.device, target.address)) {
+        if (writing) {
+            Boolean settable = false;
+            if (Has(binding.device, target.address)
+                    && services_.isSettable(services_.context, binding.device, &target.address, &settable) == noErr
+                    && settable) {
+                return true;
+            }
+            const auto preferred = Address(kAudioDevicePropertyPreferredChannelsForStereo,
+                kAudioObjectPropertyScopeInput);
+            if (Has(binding.device, preferred)) {
+                struct StereoChannels {
+                    UInt32 left;
+                    UInt32 right;
+                } stereo = {};
+                if (!Read(binding.device, preferred, stereo)) {
+                    return false;
+                }
+                // HAL imposes no channel-number restrictions on this advertised pair; validate actual properties.
+                target.address.mElement = stereo.left;
+                target.hasSecondChannel = stereo.right != stereo.left;
+                target.secondChannel = stereo.right;
+                auto secondAddress = target.address;
+                secondAddress.mElement = stereo.right;
+                return Has(binding.device, target.address) && Has(binding.device, secondAddress);
+            }
             if (binding.soleChannel == 0) {
                 return false;
             }
             target.address.mElement = binding.soleChannel;
+            return Has(binding.device, target.address);
+        }
+        // Original macOS volume reads use input channel 1. Keep master-only devices readable as well.
+        target.address.mElement = firstDeviceChannel;
+        if (!Has(binding.device, target.address)) {
+            target.address.mElement = kAudioObjectPropertyElementMain;
             if (!Has(binding.device, target.address)) {
                 return false;
             }

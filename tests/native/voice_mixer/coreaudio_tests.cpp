@@ -11,6 +11,9 @@ namespace {
 using fake_mixer::device;
 using fake_mixer::stream;
 
+constexpr AudioObjectPropertyElement firstInputChannel = 1;
+constexpr AudioObjectPropertyElement secondInputChannel = 2;
+
 void Require(bool value, const char* message) {
     if (!value) {
         std::fprintf(stderr, "CoreAudio mixer: %s\n", message);
@@ -54,20 +57,29 @@ void Volume() {
     }
     auto& main = owner.At(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput);
     main.writable = false;
-    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.2f, kAudioObjectPropertyScopeInput, 1);
-    Require(!mixer->SetValue_Float(IMixerControls::MicVolume, 0.25f) && owner.writes == writes,
-        "readonly main cannot be bypassed through a channel scalar");
+    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.2f, kAudioObjectPropertyScopeInput, firstInputChannel);
+    Require(mixer->SetValue_Float(IMixerControls::MicVolume, 0.25f) && owner.writes == writes + 1
+            && owner.ValueAt<Float32>(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput,
+                firstInputChannel) == 0.25f,
+        "readonly main permits a writable channel on a mono input");
     main.writable = true;
     main.readStatus = kAudioHardwareBadDeviceError;
     value = -7;
+    Require(mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == 0.25f,
+        "original input channel 1 read takes precedence over the master scalar");
+    auto& channel = owner.At(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput,
+        firstInputChannel);
+    channel.readStatus = kAudioHardwareBadDeviceError;
+    value = -7;
     Require(!mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == -7,
-        "failed main read preserves output and cannot fall back to a channel");
+        "failed channel read preserves output instead of substituting a different scalar");
+    channel.readStatus = noErr;
     owner.Erase(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput);
-    Require(mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == 0.2f,
-        "absent main may use the positively bound sole microphone channel");
+    Require(mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == 0.25f,
+        "channel 1 remains readable without a master");
     Require(mixer->SetValue_Float(IMixerControls::MicVolume, 0.75f)
-            && owner.ValueAt<Float32>(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput, 1)
-                == 0.75f, "sole-channel fallback writes only that actual channel");
+            && owner.ValueAt<Float32>(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput,
+                firstInputChannel) == 0.75f, "sole-channel fallback writes only that actual channel");
     mixer->Release();
     owner.CheckReleased();
 }
@@ -136,7 +148,8 @@ void Binding() {
             const UInt32 choices[] = {1, 2};
             owner.PutBytes(device, kAudioDevicePropertyDataSources, choices, sizeof(choices),
                 kAudioObjectPropertyScopeInput);
-            owner.Put(device, kAudioDevicePropertyDataSource, choices[0], kAudioObjectPropertyScopeInput);
+            owner.PutBytes(device, kAudioDevicePropertyDataSource, choices, sizeof(choices),
+                kAudioObjectPropertyScopeInput);
         } else if (scenario == 5) {
             owner.At(stream, kAudioStreamPropertyVirtualFormat).wrongReturnedSize = true;
         } else if (scenario == 6) {
@@ -148,39 +161,58 @@ void Binding() {
         }
         IMixerControls* mixer = cse::CreateCoreAudioMixerControls(owner.Services());
         float value = -7;
-        Require(!mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == -7
-                && !mixer->SetValue_Float(IMixerControls::MicVolume, 0.5f)
-                && !mixer->SelectMicrophoneForWaveInput() && owner.writes == 0,
-            "unproven/dead/malformed/ambiguous microphone routes cannot expose or modify a hardware control");
+        const bool supported = scenario == 0 || scenario == 4 || scenario == 6;
+        Require(mixer->GetValue_Float(IMixerControls::MicVolume, value) == supported
+                && value == (supported ? 0.625f : -7.0f)
+                && mixer->SetValue_Float(IMixerControls::MicVolume, 0.5f) == supported
+                && owner.writes == (supported ? 1u : 0u),
+            "terminal classification and source-choice count do not exclude an otherwise valid input control");
+        const unsigned int calls = owner.propertyCalls;
+        Require(mixer->SelectMicrophoneForWaveInput() && owner.propertyCalls == calls,
+            "original macOS source-selection no-op performs no hardware property access");
         mixer->Release();
         owner.CheckReleased();
     }
     fake_mixer::Store owner;
-    owner.FixedMicrophone(2);
+    owner.FixedMicrophone(secondInputChannel);
     owner.Erase(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput);
-    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.25f, kAudioObjectPropertyScopeInput, 1);
-    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.75f, kAudioObjectPropertyScopeInput, 2);
+    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.25f, kAudioObjectPropertyScopeInput, firstInputChannel);
+    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.75f, kAudioObjectPropertyScopeInput, secondInputChannel);
+    const UInt32 preferred[] = {firstInputChannel, secondInputChannel};
+    owner.PutBytes(device, kAudioDevicePropertyPreferredChannelsForStereo, preferred, sizeof(preferred),
+        kAudioObjectPropertyScopeInput);
     IMixerControls* mixer = cse::CreateCoreAudioMixerControls(owner.Services());
-    Require(!mixer->SetValue_Float(IMixerControls::MicVolume, 0.5f) && owner.writes == 0,
-        "multiple channels without a main scalar do not authorize averaging or all-channel writes");
+    float value = -7;
+    Require(mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == 0.25f,
+        "stereo input reads original channel 1 without a master scalar");
+    Require(mixer->SetValue_Float(IMixerControls::MicVolume, 0.5f) && owner.writes == 2
+            && owner.ValueAt<Float32>(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput,
+                firstInputChannel) == 0.5f
+            && owner.ValueAt<Float32>(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput,
+                secondInputChannel) == 0.5f,
+        "preferred stereo channels both receive volume when no writable master is available");
+    owner.Put(device, kAudioDevicePropertyVolumeScalar, 0.75f, kAudioObjectPropertyScopeInput);
+    owner.At(device, kAudioDevicePropertyVolumeScalar, kAudioObjectPropertyScopeInput).writable = false;
+    Require(mixer->SetValue_Float(IMixerControls::MicVolume, 0.25f) && owner.writes == 4,
+        "readonly master also permits the preferred-stereo fallback");
     mixer->Release();
 }
 
-void SingletonSelection() {
+void SourceSelectionNoOp() {
     fake_mixer::Store owner;
     owner.FixedMicrophone();
     IMixerControls* mixer = cse::CreateCoreAudioMixerControls(owner.Services());
-    Require(!mixer->SelectMicrophoneForWaveInput() && owner.writes == 0,
-        "fixed microphone endpoint with no selector reports unsupported selection");
+    Require(mixer->SelectMicrophoneForWaveInput() && owner.writes == 0 && owner.propertyCalls == 0,
+        "fixed microphone endpoint keeps the original successful source-selection no-op");
     constexpr UInt32 source = 91;
     owner.Put(device, kAudioDevicePropertyDataSources, source, kAudioObjectPropertyScopeInput);
     owner.Put(device, kAudioDevicePropertyDataSource, source, kAudioObjectPropertyScopeInput);
-    Require(mixer->SelectMicrophoneForWaveInput() && owner.writes == 1
+    Require(mixer->SelectMicrophoneForWaveInput() && owner.writes == 0 && owner.propertyCalls == 0
             && owner.ValueAt<UInt32>(device, kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeInput) == source,
-        "sole source/current item plus identified mic endpoint is unambiguous and uses its actual ID");
+        "source selection does not rewrite an existing selected source");
     owner.At(device, kAudioDevicePropertyDataSource, kAudioObjectPropertyScopeInput).writable = false;
-    Require(!mixer->SelectMicrophoneForWaveInput() && owner.writes == 1,
-        "readonly source selection propagates failure without a write");
+    Require(mixer->SelectMicrophoneForWaveInput() && owner.writes == 0 && owner.propertyCalls == 0,
+        "source-selection no-op does not require a writable selector");
     mixer->Release();
 }
 
@@ -300,16 +332,18 @@ void Topology() {
     Require(!mixer->SetValue_Float(IMixerControls::MicVolume, 0.5f) && owner.writes == 0,
         "endpoint changes after Settable cannot authorize a stale hardware write");
     owner.Put(kAudioObjectSystemObject, kAudioHardwarePropertyDefaultInputDevice, device);
+    constexpr UInt32 initialSource = 1;
+    owner.Put(device, kAudioDevicePropertyDataSource, initialSource, kAudioObjectPropertyScopeInput);
     owner.onGet = [&owner](const fake_mixer::Key& key) {
         if (key.address.mSelector == kAudioDevicePropertyVolumeScalar) {
-            owner.Put(stream, kAudioStreamPropertyTerminalType, static_cast<UInt32>(kAudioStreamTerminalTypeLine));
+            constexpr UInt32 changedSource = 2;
+            owner.Put(device, kAudioDevicePropertyDataSource, changedSource, kAudioObjectPropertyScopeInput);
         }
     };
     float value = -7;
     Require(!mixer->GetValue_Float(IMixerControls::MicVolume, value) && value == -7,
-        "route changes after reading a scalar cannot expose it as a microphone value");
+        "selected-source changes after reading a scalar cannot commit a value from the previous source");
     owner.onGet = {};
-    owner.Put(stream, kAudioStreamPropertyTerminalType, static_cast<UInt32>(kAudioStreamTerminalTypeMicrophone));
     auto& streams = owner.At(device, kAudioDevicePropertyStreams, kAudioObjectPropertyScopeInput);
     streams.overrideSize = true;
     streams.reportedSize = (std::numeric_limits<UInt32>::max)() - 3;
@@ -367,7 +401,7 @@ int main(int argc, char** argv) {
     } else if (std::strcmp(argv[1], "binding") == 0) {
         Binding();
     } else if (std::strcmp(argv[1], "selection") == 0) {
-        SingletonSelection();
+        SourceSelectionNoOp();
     } else if (std::strcmp(argv[1], "failures") == 0) {
         Failures();
     } else if (std::strcmp(argv[1], "topology") == 0) {
