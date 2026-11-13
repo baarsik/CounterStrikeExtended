@@ -11,8 +11,8 @@ int main() {
     titles.Commit();
     const auto* old = titles.Active()->Data();
     assert(titles.Active()->Count() == 2);
-    assert(std::strcmp(old[0].pMessage, "Polski") == 0);
-    assert(std::strcmp(old[1].pMessage, "Fallback") == 0);
+    assert(std::strcmp(old[0].pMessage, "Polski\r") == 0);
+    assert(std::strcmp(old[1].pMessage, "Fallback\r") == 0);
     assert(old[1].holdtime == 4.0f);
     assert(titles.IsCatalogue(old) && titles.IsCatalogue(old + 1));
     client_textmessage_t dynamic{};
@@ -22,9 +22,9 @@ int main() {
     assert(!titles.Prepare("", ""));
     assert(titles.Prepare(english, "ONE\n{\nDeutsch\n}\n"));
     titles.Commit();
-    assert(std::strcmp(old[0].pMessage, "Polski") == 0);
+    assert(std::strcmp(old[0].pMessage, "Polski\r") == 0);
     assert(titles.IsCatalogue(old));
-    assert(std::strcmp(titles.Active()->Data()[0].pMessage, "Deutsch") == 0);
+    assert(std::strcmp(titles.Active()->Data()[0].pMessage, "Deutsch\r") == 0);
     assert(titles.Prepare(english, "ONE\n{\nPolski\n}\n"));
     titles.Commit();
     assert(titles.Active()->Data() == old);

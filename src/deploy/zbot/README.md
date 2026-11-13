@@ -9,7 +9,10 @@ not newly authored CSE content.
 
 `resource/CseZBotServerPage.res` adapts Steam Counter-Strike's create-server page:
 its existing bot controls are visible and Steam Networking sits below them.
-GameUI selects this layout only when ZBot is enabled for Counter-Strike.
+The bot-options layout uses the available page width for translated labels,
+with full-width behavior checkboxes and a wider caption column.
+GameUI selects the server layout only when ZBot is enabled for Counter-Strike.
+The provenance hashes retain the original imported inputs before these layout edits.
 
 The included `maps/de_dust2.nav` uses the supported version 5 format and records
 a BSP size of 2,057,288 bytes. Its source BSP and the installed Steam CS 1.6 BSP

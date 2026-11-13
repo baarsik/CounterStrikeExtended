@@ -339,14 +339,16 @@ int CCSBot::FindOurPositionOnPath( Vector* closest, bool local ) const
 	return best;
 }
 
-int CCSBot::FindPathPoint( float aheadRange, Vector* point, int* previousIndex )
-{
-	Vector close;
-	int start = FindOurPositionOnPath( &close, true );
-	if ( previousIndex )
-		*previousIndex = start;
-	if ( start <= 0 )
-		return m_pathIndex;
+int CCSBot::FindPathPoint(float aheadRange, Vector* point, int* previousIndex) {
+    Vector close;
+    int start = FindOurPositionOnPath(&close, true);
+    if (previousIndex) {
+        // A blocked path returns -1, but movement uses this output to index the path-area scan.
+        *previousIndex = std::max(0, start);
+    }
+    if (start <= 0) {
+        return m_pathIndex;
+    }
 	if ( IsCrouching() )
 	{
 		int index = std::min( start + 1, m_pathLength - 1 );

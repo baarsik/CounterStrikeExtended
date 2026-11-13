@@ -15,7 +15,7 @@ parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
 parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
 parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
-parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options', 'options_voice', 'live_localization', 'label_layout'], default='vgui')
+parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options', 'options_voice', 'live_localization', 'label_layout', 'zbot_layout'], default='vgui')
 parser.add_argument('--label-variant', choices=('shared', 'cs'), default='shared',
                     help='Compile the actual shared or CS Label owner with real control dependencies')
 args = parser.parse_args()
@@ -77,6 +77,8 @@ elif args.driver == 'label_layout':
     driver_source = repo / 'tests/native/live_localization_vgui/label_layout_tests.cpp'
 elif args.driver == 'live_localization':
     driver_source = repo / 'tests/native/live_localization_vgui/runtime_tests.cpp'
+elif args.driver == 'zbot_layout':
+    driver_source = repo / 'tests/native/zbot_layout/layout_tests.cpp'
 else:
     driver_source = repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp')
 selected.append(dict(owner, file=str(driver_source)))

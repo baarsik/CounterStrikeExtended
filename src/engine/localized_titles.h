@@ -64,6 +64,10 @@ inline bool ParseTitleRecords(const std::string& source, std::vector<TitleRecord
             if (trimmed == "}") {
                 if (!text.empty() && text.back() == '\n') {
                     text.pop_back();
+                    // Match the cold parser's retained CR for both LF and CRLF files.
+                    if (text.empty() || text.back() != '\r') {
+                        text += '\r';
+                    }
                 }
                 if (records.size() >= MaximumMessages || nameBytes + name.size() + 1 > MaximumNameBytes) {
                     return false;

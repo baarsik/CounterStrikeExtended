@@ -7,7 +7,7 @@ python3 tests/native/live_localization_cs/run.py
 python3 tests/native/live_localization_cs/compile_production.py
 ```
 
-`run.py` compiles ten ASan/UBSan binaries. The shared snapshot test includes the real header; the remaining fixtures extract the actual production owning methods without rewriting their bodies, providing controlled catalogue/font/UI dependencies. They check:
+`run.py` compiles eleven ASan/UBSan binaries. The shared snapshot test includes the real header; the remaining fixtures extract the actual production owning methods without rewriting their bodies, providing controlled catalogue/font/UI dependencies. They check:
 
 - borrowed text lifetime, explicit catalogue/literal provenance, copy/move and style/timing preservation;
 - active HUD hint ownership, preserved deadline/style and literal network `#` payload;
@@ -16,6 +16,9 @@ python3 tests/native/live_localization_cs/compile_production.py
 - completed legacy menus versus incomplete packet assembly, unchanged valid slots/deadline;
 - status text translation without changing pointed player, health or health-display expiry;
 - bounded title expansion when a translation exceeds the caller's buffer;
+- separate connect, team-join and scoring console lines from bundled Russian titles,
+  through the actual cold/live title parsers, engine lookup and CS TextMsg consumer;
+- identical final LF/CRLF title separators, stripped argument separators and unchanged literal console fragments;
 - nested command menu text refresh preserving objects, actions, active selection and popup visibility.
 
 The bounded text fixture first reproduced an ASan stack overflow in the previous production implementation. Snapshot/menu/chat additions were preceded by missing-feature checks. These tests do not write user settings and do not send gameplay/network commands.

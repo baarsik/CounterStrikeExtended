@@ -121,7 +121,10 @@ for entry in manifest['files']:
         trimmed = line.strip()
         if body is not None:
             if trimmed.startswith('}'):
-                records.append(name.encode(output_encoding) + b'\0' + '\n'.join(body).encode(output_encoding) + b'\0')
+                # The title grammar supplies an automatic final line separator;
+                # preserve the legacy CR terminator even when staged source uses LF.
+                message = '\n'.join(body) + ('\r' if body else '')
+                records.append(name.encode(output_encoding) + b'\0' + message.encode(output_encoding) + b'\0')
                 body = None
             else:
                 body.append(line)

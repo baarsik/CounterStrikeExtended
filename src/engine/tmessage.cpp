@@ -357,8 +357,16 @@ void TextMessageParse( byte* pMemFile, int fileSize )
 				}
 
 				Q_strcpy( nameHeap + nameHeapSize, currentName );
-				// Terminate text in-place in the memory file (it's temporary memory that will be deleted)
-				pMemFile[lastLinePos - 1] = 0;
+                // Legacy CRLF titles retain a final CR for console line separation.
+                // Keep that terminator for LF files as well, including UTF-8 translations.
+                char* textEnd = reinterpret_cast<char*>(pMemFile + lastLinePos);
+                if (textEnd > pCurrentText && textEnd[-1] == '\n') {
+                    --textEnd;
+                    if (textEnd == pCurrentText || textEnd[-1] != '\r') {
+                        *textEnd++ = '\r';
+                    }
+                }
+                *textEnd = 0;
 				// Save name/text on heap
 				textMessages[messageCount] = gMessageParms;
 				textMessages[messageCount].pName = nameHeap + nameHeapSize;

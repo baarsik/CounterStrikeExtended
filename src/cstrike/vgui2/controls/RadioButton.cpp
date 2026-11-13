@@ -21,6 +21,7 @@
 #include "vgui/MessageMap.h"
 
 #include <cstdio>
+#include <algorithm>
 
 class RadioImage : public vgui2::Image
 {
@@ -31,6 +32,8 @@ public:
 	virtual void ApplySchemeSettings( vgui2::IScheme* scheme, bool proportional );
 
 private:
+    void UpdateSize();
+
 	vgui2::RadioButton* _radioButton;
 	Color _borderColor1;
 	Color _borderColor2;
@@ -45,16 +48,7 @@ RadioImage::RadioImage( vgui2::RadioButton* radioButton ) : _radioButton( radioB
 	m_pSelected = vgui2::scheme()->GetImage( "resource/icon_radiosel", true );
 	m_pDefault = vgui2::scheme()->GetImage( "resource/icon_radiounsel", true );
 
-	if ( radioButton )
-	{
-		int tall = radioButton->GetProportionalScaledValue( 13 );
-		int wide = radioButton->GetProportionalScaledValue( 20 );
-		SetSize( wide, tall );
-	}
-	else
-	{
-		SetSize( 20, 13 );
-	}
+    UpdateSize();
 }
 
 RadioImage::~RadioImage()
@@ -67,27 +61,50 @@ void RadioImage::ApplySchemeSettings( vgui2::IScheme* scheme, bool )
 	_borderColor1 = _radioButton->GetSchemeColor( "CheckButtonBorder1", Color( 20, 20, 20, 0 ), scheme );
 	_borderColor2 = _radioButton->GetSchemeColor( "CheckButtonBorder2", Color( 90, 90, 90, 0 ), scheme );
 	_checkColor = _radioButton->GetSchemeColor( "CheckButtonCheck", Color( 20, 20, 20, 0 ), scheme );
+    UpdateSize();
 }
 
-void RadioImage::Paint()
-{
-	if ( !_radioButton )
-		return;
+void RadioImage::UpdateSize() {
+    constexpr int IconTextGap = 4;
+    int width = 0;
+    int height = 0;
+    vgui2::IImage* images[] = {m_pDefault, m_pSelected};
+    for (vgui2::IImage* image : images) {
+        if (image) {
+            int imageWidth = 0;
+            int imageHeight = 0;
+            image->GetSize(imageWidth, imageHeight);
+            width = std::max(width, imageWidth);
+            height = std::max(height, imageHeight);
+        }
+    }
+    width += IconTextGap;
+    if (_radioButton) {
+        width = _radioButton->GetProportionalScaledValue(width);
+        height = _radioButton->GetProportionalScaledValue(height);
+    }
+    SetSize(width, height);
+}
 
-	vgui2::IImage* image = m_pDefault;
-	if ( _radioButton->IsSelected() )
-		image = m_pSelected;
-	if ( !image )
-		return;
-
-	int wide, tall;
-	image->GetSize( wide, tall );
-
-	int scaledTall = _radioButton->GetProportionalScaledValue( tall );
-	int scaledWide = _radioButton->GetProportionalScaledValue( wide );
-	image->SetSize( scaledWide, scaledTall );
-	image->Paint();
-	image->SetSize( wide, tall );
+void RadioImage::Paint() {
+    if (!_radioButton) {
+        return;
+    }
+    vgui2::IImage* image = _radioButton->IsSelected() ? m_pSelected : m_pDefault;
+    if (!image) {
+        return;
+    }
+    int width = 0;
+    int height = 0;
+    image->GetSize(width, height);
+    int x = 0;
+    int y = 0;
+    GetPos(x, y);
+    image->SetPos(x, y);
+    image->SetSize(_radioButton->GetProportionalScaledValue(width),
+                   _radioButton->GetProportionalScaledValue(height));
+    image->Paint();
+    image->SetSize(width, height);
 }
 
 namespace vgui2
