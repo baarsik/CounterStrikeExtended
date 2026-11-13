@@ -2,8 +2,8 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
-#include "../../../GoldSrc-SDK/engine/sound.h"
-#include "../../../GoldSrc-SDK/engine/sound_callback.h"
+#include "../../../src/engine/sound.h"
+#include "../../../src/engine/sound_callback.h"
 
 static int calls = 0;
 static_assert(offsetof(sfxcache_t, data) == 5 * sizeof(int), "PCM cache layout must stay unchanged");

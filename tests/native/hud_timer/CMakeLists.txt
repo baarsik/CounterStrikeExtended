@@ -9,17 +9,17 @@ add_custom_command(OUTPUT ${generated}
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
     DEPENDS extract_sources.py
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/health.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/health.h"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/message.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud_redraw.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/cl_util.h"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/vgui2/text_draw.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/health.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/health.h"
+        "${CSE_ROOT}/src/cstrike/cl_dll/message.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/hud.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/hud_redraw.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/cl_util.h"
+        "${CSE_ROOT}/src/engine/vgui2/text_draw.cpp"
     VERBATIM)
 add_executable(hud_timer timer_tests.cpp ${generated})
 target_compile_features(hud_timer PRIVATE cxx_std_17)
-target_include_directories(hud_timer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(hud_timer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/public")
 if(MSVC)
     target_compile_options(hud_timer PRIVATE /W4 /WX)
 else()

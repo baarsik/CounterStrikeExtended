@@ -10,12 +10,12 @@ add_custom_command(OUTPUT ${generated}
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_lifetime.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
   DEPENDS extract_lifetime.py
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/HTML.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/Panel.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/vgui2/controls/HTML.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/vgui2/controls/Panel.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/vgui2/game_controls/clientmotd.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/html/native/browser_controller.cpp"
+    "${CSE_ROOT}/src/vgui2/controls/HTML.cpp"
+    "${CSE_ROOT}/src/vgui2/controls/Panel.cpp"
+    "${CSE_ROOT}/src/cstrike/vgui2/controls/HTML.cpp"
+    "${CSE_ROOT}/src/cstrike/vgui2/controls/Panel.cpp"
+    "${CSE_ROOT}/src/cstrike/vgui2/game_controls/clientmotd.cpp"
+    "${CSE_ROOT}/src/engine/html/native/browser_controller.cpp"
   VERBATIM)
 enable_testing()
 foreach(variant IN ITEMS shared cs)

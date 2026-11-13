@@ -1,6 +1,6 @@
-#include "../../../GoldSrc-SDK/engine/model.h"
-#include "../../../GoldSrc-SDK/engine/zone.h"
-#include "../../../GoldSrc-SDK/engine/engine_studio.h"
+#include "../../../src/engine/model.h"
+#include "../../../src/engine/zone.h"
+#include "../../../src/engine/engine_studio.h"
 #include <dlfcn.h>
 #include <cassert>
 #include <cstdio>

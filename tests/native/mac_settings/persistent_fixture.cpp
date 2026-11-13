@@ -1,6 +1,6 @@
 // Deliberately excluded from CTest. This executable requires a unique owned domain
 // and explicit mode; no static initialization performs preferences operations.
-#include "../../../GoldSrc-SDK/common/mac_settings_store.cpp"
+#include "../../../src/common/mac_settings_store.cpp"
 
 #include <cstdio>
 #include <exception>

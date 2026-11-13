@@ -17,7 +17,7 @@ for platform,flags in [('apple',['-DOSX']),('linux-definition-on-apple-host',['-
             source.write_text(''.join('#include "'+header+'"\n' for header in includes)+'#include <stddef.h>\n'
                 +assertion+'(sizeof(RECT)==16 && offsetof(RECT,top)==4 && offsetof(RECT,right)==8,"canonical record");\n')
             command=[compiler,'-std='+standard,'-Wall','-Wextra','-Werror','-fsyntax-only']+flags+[
-                '-I'+str(root/'GoldSrc-SDK/common'),'-I'+str(root/'GoldSrc-SDK/public'),str(source)]
+                '-I'+str(root/'src/common'),'-I'+str(root/'src/public'),str(source)]
             result=subprocess.run(command,cwd=root,capture_output=True,text=True,timeout=20)
             (out/(name+'.log')).write_text(result.stdout+result.stderr)
             rows.append({'platform_definition':platform,'language':language,'order':order,'command':command,'exit':result.returncode})

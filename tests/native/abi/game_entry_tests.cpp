@@ -1,14 +1,14 @@
-#include "../../../GoldSrc-SDK/public/cse_module_abi.h"
+#include "../../../src/public/cse_module_abi.h"
 #include <cstdio>
 #include <cstdlib>
 
 typedef float vec_t;
 typedef float vec3_t[3];
-#include "../../../GoldSrc-SDK/common/const.h"
-#include "../../../GoldSrc-SDK/engine/progdefs.h"
-#include "../../../GoldSrc-SDK/engine/edict.h"
-#include "../../../GoldSrc-SDK/engine/eiface.h"
-#include "../../../GoldSrc-SDK/common/game_module_entry.h"
+#include "../../../src/common/const.h"
+#include "../../../src/engine/progdefs.h"
+#include "../../../src/engine/edict.h"
+#include "../../../src/engine/eiface.h"
+#include "../../../src/common/game_module_entry.h"
 
 static int exchanges = 0;
 extern "C" void CSE_GAME_GIVE_CALL GiveFnptrsToDll(enginefuncs_t *, globalvars_t *) {
@@ -21,7 +21,7 @@ extern "C" void CSE_GAME_GIVE_CALL GiveFnptrsToDll(enginefuncs_t *, globalvars_t
     ++exchanges;
 }
 
-#include "../../../GoldSrc-SDK/common/game_module_entry_impl.h"
+#include "../../../src/common/game_module_entry_impl.h"
 
 int main() {
     using namespace cse::abi;

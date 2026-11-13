@@ -41,7 +41,7 @@ function(cse_verify_steam_provider path target_os architecture)
 endfunction()
 
 function(cse_force_steam_initialization target)
-  set(header "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../GoldSrc-SDK/public/steam_module_initializer.h")
+  set(header "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../src/public/steam_module_initializer.h")
   if(MSVC)
     # cl treats a joined /FI//UNC path as another switch; use native backslashes.
     file(TO_NATIVE_PATH "${header}" native_header)

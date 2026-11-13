@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/GameUI.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(gameui PRIVATE
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp"

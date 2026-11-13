@@ -7,7 +7,7 @@ import sys
 
 root = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
-voice_path = root / 'GoldSrc-SDK/engine/voice.cpp'
+voice_path = root / 'src/engine/voice.cpp'
 voice_bytes = voice_path.read_bytes()
 voice = voice_bytes.decode('latin1')
 receipts = []
@@ -63,7 +63,7 @@ helpers = extract('Voice_ReleaseCaptureForModuleUnload') + extract('Voice_Releas
 (out / 'actual_deinit.inc').write_text(extract('Voice_Deinit'))
 (out / 'actual_init.inc').write_text(extract('Voice_Init'))
 rate = re.search(r'^#define VOICE_SAMPLE_RATE\s+\d+\s*$', voice, re.M).group(0)
-header = (root / 'GoldSrc-SDK/engine/voice.h').read_bytes().decode('latin1')
+header = (root / 'src/engine/voice.h').read_bytes().decode('latin1')
 channels = re.search(r'^#define VOICE_NUM_CHANNELS\s+\d+\s*$', header, re.M).group(0)
 (out / 'actual_constants.inc').write_text(rate + '\n' + channels + '\n')
 begin = voice.index('// The format we sample voice in.')

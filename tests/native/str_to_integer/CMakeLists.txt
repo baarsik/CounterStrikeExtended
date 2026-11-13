@@ -23,7 +23,7 @@ if(CSE_STR_BUILD_HELPER)
     include(CTest)
     get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
     add_executable(str_integer_tests helper_tests.cpp)
-    target_include_directories(str_integer_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+    target_include_directories(str_integer_tests PRIVATE "${CSE_ROOT}/src/common"
         "${CMAKE_CURRENT_BINARY_DIR}/corpus")
     if(MSVC)
         target_compile_options(str_integer_tests PRIVATE /W4 /WX /EHsc)
@@ -50,11 +50,11 @@ if(CSE_STR_BUILD_HELPER)
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/actual_scanf.h" COMMAND_ERROR_IS_FATAL ANY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
         "${CMAKE_CURRENT_SOURCE_DIR}/extract_scanf.py"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/utlbuffer.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/UtlBuffer.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/public/UtlBuffer.cpp")
+        "${CSE_ROOT}/src/engine/utlbuffer.cpp"
+        "${CSE_ROOT}/src/vgui2/src/public/UtlBuffer.cpp"
+        "${CSE_ROOT}/src/cstrike/public/UtlBuffer.cpp")
     add_executable(str_integer_consumer_tests consumer_tests.cpp)
-    target_include_directories(str_integer_consumer_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+    target_include_directories(str_integer_consumer_tests PRIVATE "${CSE_ROOT}/src/common"
         "${CMAKE_CURRENT_BINARY_DIR}")
     if(MSVC)
         target_compile_options(str_integer_consumer_tests PRIVATE /W4 /WX /EHsc)

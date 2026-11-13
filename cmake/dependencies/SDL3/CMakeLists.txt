@@ -24,7 +24,7 @@ if(APPLE AND CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT CMAKE_OBJCXX_COMPILER_LOADED)
   enable_language(OBJCXX)
 endif()
 add_subdirectory("${source_root}/SDL3-3.4.20" upstream EXCLUDE_FROM_ALL)
-# The runtime clears CMake's configuration defaults for its manifest-owned code.
+# The runtime clears CMake's configuration defaults for its CMake-owned code.
 # Supply the dependency policy privately, without changing assertions, CRT or FP.
 if(MSVC)
   target_compile_options(SDL3-shared PRIVATE

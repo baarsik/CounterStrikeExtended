@@ -21,9 +21,9 @@ shutil.copytree(args.inputs / 'source-final', source)
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 hashes = json.loads((args.inputs / 'source-final-hashes.json').read_text())
 assert all(sha(source / name) == digest for name, digest in hashes.items())
-before = source / 'GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap-before.cpp'
+before = source / 'src/engine/VGUI_EngineSurfaceWrap-before.cpp'
 shutil.copy2(args.inputs / 'before/VGUI_EngineSurfaceWrap.cpp', before)
-after = source / 'GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp'
+after = source / 'src/engine/VGUI_EngineSurfaceWrap.cpp'
 shell = ctypes.WinDLL('shell32', use_last_error=True)
 shell.CommandLineToArgvW.argtypes = [ctypes.c_wchar_p, ctypes.POINTER(ctypes.c_int)]
 shell.CommandLineToArgvW.restype = ctypes.POINTER(ctypes.c_wchar_p)

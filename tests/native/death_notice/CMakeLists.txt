@@ -9,8 +9,8 @@ add_custom_command(OUTPUT ${generated}
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
     DEPENDS extract_sources.py
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/death.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/cl_util.h"
+        "${CSE_ROOT}/src/cstrike/cl_dll/death.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/cl_util.h"
     VERBATIM)
 add_executable(death_notice death_notice_tests.cpp ${generated})
 target_compile_features(death_notice PRIVATE cxx_std_17)

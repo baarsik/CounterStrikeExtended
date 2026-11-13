@@ -10,11 +10,11 @@ typedef unsigned char byte;
 typedef float vec_t;
 typedef vec_t vec3_t[3];
 #else
-#include "../../../GoldSrc-SDK/cl_dll/util_vector.h"
+#include "../../../src/cl_dll/util_vector.h"
 #endif
 typedef int (*pfnUserMsgHook)(const char*, int, void*);
-#include "../../../GoldSrc-SDK/cl_dll/wrect.h"
-#include "../../../GoldSrc-SDK/common/const.h"
+#include "../../../src/cl_dll/wrect.h"
+#include "../../../src/common/const.h"
 #if defined(CSE_ABI_PROTOTYPE_MUTANT) || defined(CSE_ABI_DESTINATION_MUTANT) \
     || defined(CSE_ABI_MOUSE_SOURCE_MUTANT) || defined(CSE_ABI_MOUSE_DESTINATION_MUTANT)
 typedef int HANDLE_SPRITE;
@@ -34,12 +34,12 @@ typedef int HANDLE_SPRITE;
 
 #if defined(CSE_ABI_ENGINE_VIEW)
 #include "engine_model_view.h"
-#include "../../../GoldSrc-SDK/common/client_module_api_types.h"
-#include "../../../GoldSrc-SDK/engine/pm_defs.h"
-#include "../../../GoldSrc-SDK/engine/kbutton.h"
+#include "../../../src/common/client_module_api_types.h"
+#include "../../../src/engine/pm_defs.h"
+#include "../../../src/engine/kbutton.h"
 #else
 #if defined(CSE_ABI_NESTED_MUTANT)
 #include "mutant_event_api.h"
 #endif
-#include "../../../GoldSrc-SDK/common/client_module_types.h"
+#include "../../../src/common/client_module_types.h"
 #endif

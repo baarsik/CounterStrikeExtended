@@ -6,8 +6,8 @@ foreach(mode hardware dedicated)
   add_library(game_window_${mode} OBJECT game_window_types.cpp)
   target_compile_features(game_window_${mode} PRIVATE cxx_std_17)
   target_include_directories(game_window_${mode} PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/external/SDL3/include")
   if(mode STREQUAL dedicated)
     target_compile_definitions(game_window_${mode} PRIVATE SW_RENDERER)
   endif()

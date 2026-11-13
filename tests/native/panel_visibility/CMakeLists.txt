@@ -5,12 +5,12 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CsePanelVisibility LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_visibility.py
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/Panel.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/HTML.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/HTML.h"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/vgui2/controls/HTML.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/public/vgui_controls/HTML.h"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/VPanel.cpp")
+    "${CSE_ROOT}/src/vgui2/controls/Panel.cpp"
+    "${CSE_ROOT}/src/vgui2/controls/HTML.cpp"
+    "${CSE_ROOT}/src/vgui2/controls/HTML.h"
+    "${CSE_ROOT}/src/cstrike/vgui2/controls/HTML.cpp"
+    "${CSE_ROOT}/src/cstrike/public/vgui_controls/HTML.h"
+    "${CSE_ROOT}/src/vgui2/src/VPanel.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_visibility.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_visibility.py"

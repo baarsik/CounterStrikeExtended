@@ -42,7 +42,7 @@ for arch, machine, config in [(arch, machine, config)
     compiler = Path(shutil.which('cl.exe', path=paths))
     compiler_pins = {str(p): hashlib.sha256(p.read_bytes()).hexdigest()
                      for p in (compiler, compiler.parent / 'c1xx.dll', compiler.parent / 'c2.dll')}
-    prefix = (Path(r'\\Mac\CseNativeSource\GoldSrc-SDK\external\installed\x86-windows-static-md')
+    prefix = (Path(r'\\Mac\CseNativeSource\src\external\installed\x86-windows-static-md')
               if arch == 'x86' else Path(r'C:\CI\CSE-Native64-Vcpkg-20261108\installed-x64\x64-windows-static-md'))
     for name, expected in pinned[arch].items():
         assert hashlib.sha256(Path(name).read_bytes()).hexdigest() == expected, name

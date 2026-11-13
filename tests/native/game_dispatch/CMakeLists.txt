@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseGameDispatch LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_DISPATCH_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/sys_dll.cpp" CACHE FILEPATH "Actual dispatch implementation")
+set(CSE_DISPATCH_SOURCE "${CSE_ROOT}/src/engine/sys_dll.cpp" CACHE FILEPATH "Actual dispatch implementation")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_DISPATCH_SOURCE}" extract_dispatch.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_dispatch.py"
     "${CSE_DISPATCH_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/actual_dispatch.inc" COMMAND_ERROR_IS_FATAL ANY)
@@ -25,8 +25,8 @@ target_include_directories(game_dispatch_tests PRIVATE "${CMAKE_CURRENT_BINARY_D
 target_link_libraries(game_dispatch_tests PRIVATE ${CMAKE_DL_LIBS})
 foreach(target dispatch_first dispatch_second game_dispatch_tests)
     target_compile_features(${target} PRIVATE cxx_std_17)
-    target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
-        "${CSE_ROOT}/GoldSrc-SDK/public")
+    target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/engine"
+        "${CSE_ROOT}/src/public")
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /EHsc
             "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>" "$<$<CONFIG:Debug>:/RTC1>")

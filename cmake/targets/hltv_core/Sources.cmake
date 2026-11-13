@@ -1,4 +1,4 @@
-# Generated from HLTV/Core/Core.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hltv_core PRIVATE
   "${CSE_SDK_DIR}/HLTV/Core/BSPModel.cpp"
   "${CSE_SDK_DIR}/HLTV/Core/Core.cpp"

@@ -1,5 +1,5 @@
-#include "../../../GoldSrc-SDK/public/cse_module_abi.h"
-#include "../../../GoldSrc-SDK/public/cse_client_abi.h"
+#include "../../../src/public/cse_module_abi.h"
+#include "../../../src/public/cse_client_abi.h"
 #include <cstdio>
 #include <utility>
 

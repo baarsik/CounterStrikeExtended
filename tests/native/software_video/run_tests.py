@@ -32,7 +32,7 @@ for name in ('software_checked_allocations', 'software_snapshot_rows', 'software
     run([out / 'video_buffers_tests', name])
     print('PASS', name, flush=True)
 run(args + [root / 'tests/native/software_video/presenter_tests.cpp',
-            root / 'GoldSrc-SDK/engine/native_software_video.cpp', sdl, '-o', out / 'presenter_tests'])
+            root / 'src/engine/native_software_video.cpp', sdl, '-o', out / 'presenter_tests'])
 run([out / 'presenter_tests'])
 print('PASS software_video_lifecycle (real SDL dummy upload/readback)', flush=True)
 
@@ -42,14 +42,14 @@ run([out / 'presenter_failure_tests'])
 print('PASS software_video_lifecycle (controlled SDL allocation/texture configuration failures)', flush=True)
 
 run(args + [root / 'tests/native/software_video/retained_pixels_tests.cpp',
-            root / 'GoldSrc-SDK/engine/native_software_video.cpp', sdl, '-o', out / 'retained_pixels_tests'])
+            root / 'src/engine/native_software_video.cpp', sdl, '-o', out / 'retained_pixels_tests'])
 os.environ['DYLD_LIBRARY_PATH'] = str(next((build / 'runtime').glob('*/swds.dylib')).parent)
 run([out / 'retained_pixels_tests', next((build / 'runtime').glob('*/swds.dylib'))])
 
 run([sys.executable, root / 'tests/native/software_video/run_surface_tests.py', build])
 
 run(args + [root / 'tests/native/software_video/video_mode_tests.cpp',
-            root / 'GoldSrc-SDK/engine/native_software_video.cpp', sdl, '-o', out / 'video_mode_tests'])
+            root / 'src/engine/native_software_video.cpp', sdl, '-o', out / 'video_mode_tests'])
 run([out / 'video_mode_tests'])
 print('PASS software_video_lifecycle (actual IVideoMode partial window/renderer failure, aliases, restore, shutdown)', flush=True)
 
@@ -62,7 +62,7 @@ run(args + ['-dynamiclib', root / 'tests/native/software_video/forbid_video.cpp'
             '-o', out / 'forbid_video.dylib'])
 # Compile the exact production function and declarations, substituting only its
 # subsystem boundaries. No copy of the shutdown algorithm lives in the fixture.
-source = (root / 'GoldSrc-SDK/engine/host.cpp').read_text()
+source = (root / 'src/engine/host.cpp').read_text()
 owned = source[:source.index('\nqboolean Host_FilterTime')]
 fixture = out / 'host_shutdown_actual.cpp'
 fixture.write_text(owned + '\n' + (root / 'tests/native/software_video/host_shutdown_fixture.cpp').read_text())

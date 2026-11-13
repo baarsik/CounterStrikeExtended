@@ -1,7 +1,7 @@
 # PCX writer count and file-format fixture
 
 The fixture compiles the **exact production `pcx_t`, layout assertions and `WritePCXfile` body** extracted from
-`GoldSrc-SDK/engine/screen.cpp`. The renderer TU is not linked. `#line` locations and `extracted-bodies.json` identify
+`src/engine/screen.cpp`. The renderer TU is not linked. `#line` locations and `extracted-bodies.json` identify
 each compiled block; the fixture supplies only endian, allocation, memory and synchronous file-output hooks.
 No rendering, media, device or graphical API is started.
 

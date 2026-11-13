@@ -9,7 +9,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/make_owned_font.py"
     "${CMAKE_CURRENT_BINARY_DIR}/owned-inputs" COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_reference.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
     COMMAND_ERROR_IS_FATAL ANY)
 option(CSE_RASTER_REFERENCE_ONLY "Only compile the real Windows GDI authored-font reference" OFF)
 if(WIN32)
@@ -22,7 +22,7 @@ endif()
 if(CSE_RASTER_REFERENCE_ONLY)
     return()
 endif()
-set(raster_source "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native")
+set(raster_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/posix/native")
 add_library(legacy_raster STATIC "${raster_source}/VGui1LegacyRaster.cpp")
 target_include_directories(legacy_raster PUBLIC "${raster_source}")
 set(CSE_FREETYPE_PREFIX "" CACHE PATH "Exact pinned source-built FreeType dependency prefix")

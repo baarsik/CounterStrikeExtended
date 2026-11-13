@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/engine/l_studio.cpp"
+#include "../../../src/engine/l_studio.cpp"
 #include <cassert>
 #include <vector>
 #include <fstream>

@@ -184,11 +184,11 @@ def main():
         common += ["-std=c++14"] + flags
         objects = []
         for label, source, bindings in [
-                ("base", ROOT / "GoldSrc-SDK/HLTV/Console/TextConsole.cpp", []),
-                ("backend", ROOT / "GoldSrc-SDK/HLTV/Console/TextConsolePosix.cpp",
+                ("base", ROOT / "src/HLTV/Console/TextConsole.cpp", []),
+                ("backend", ROOT / "src/HLTV/Console/TextConsolePosix.cpp",
                  ["-Ddup=CseConsoleDuplicate", "-Dread=CseConsoleRead", "-Dwrite=CseConsoleWrite"]),
-                ("helpers", ROOT / "GoldSrc-SDK/HLTV/Console/PosixSystem.cpp", []),
-                ("list", ROOT / "GoldSrc-SDK/common/ObjectList.cpp", []),
+                ("helpers", ROOT / "src/HLTV/Console/PosixSystem.cpp", []),
+                ("list", ROOT / "src/common/ObjectList.cpp", []),
                 ("fixture", HERE / "backend_tests.cpp", [])]:
             obj = directory / (label + ".o")
             command = common + bindings + ["-c", str(source), "-o", str(obj)]

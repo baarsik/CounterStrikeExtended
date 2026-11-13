@@ -52,7 +52,7 @@ for cpu in ['x86', 'x64', 'arm64']:
                 closure.append({'path': str(path), 'sha256': digest})
                 # Preserve actual owned declaration and controlled fixture inputs;
                 # system/toolchain includes retain exact hashes without SDK copying.
-                marker = '\\goldsrc-sdk\\'
+                marker = '\\src\\'
                 lowered = str(path).lower()
                 if marker in lowered:
                     index = lowered.index(marker)

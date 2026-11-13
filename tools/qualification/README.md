@@ -81,16 +81,24 @@ python3 tools/qualification/capture_reference.py /absolute/evidence/reference --
 ```
 
 This archives sources and hashes; it neither builds nor qualifies a runtime.
-Inventory the explicitly supplied runtime separately:
+Generate the current CMake inventory for the Windows runtime's architecture and
+configuration, then inspect the explicitly supplied runtime:
 
 ```sh
+python3 tools/cmake_inventory.py --target-os windows --architecture x64 \
+  --configuration Release --output build/runtime-inventory.json
 python3 tools/qualification/audit_runtime_inventory.py /absolute/game-runtime \
-  --architecture x64 --output /absolute/evidence/runtime-inventory.json
+  --inventory build/runtime-inventory.json --architecture x64 \
+  --output /absolute/evidence/runtime-inventory.json
 ```
 
-The default source inventory is `docs/msbuild/repository-selections.json`; choose
-`x86`, `x64` or `arm64` to match the target. Reported imports and a binary inventory
-are static evidence, separate from actual OS/provider loading and gameplay.
+The binary audit requires `--inventory`; it has no fallback source list. Match
+the CMake inventory's OS, CPU and configuration to the runtime being inspected.
+The [CMake inventory tool](../../docs/build-system.md#inspecting-effective-target-settings)
+uses host-compiler metadata and symbolic dependencies; it does not cross-compile
+or verify provider binaries. The Windows binary audit reports PE imports,
+exports, resources, architecture and hashes as static evidence, separate from
+actual OS/provider loading and gameplay.
 
 Compare a rebuilt ARM64 game module's exports with a retained Win32 dump:
 
@@ -111,7 +119,7 @@ python3 tools/qualification/audit_sdl3.py --output repository-audit.json reposit
   --llvm-readobj /path/to/llvm-readobj
 ```
 
-This scans retained source/manifests and all tracked native artifacts, including
+This scans retained source/CMake definitions and all tracked native artifacts, including
 optional targets, COFF import identities, ELF/Mach-O needed libraries, and active
 Windows library architecture. Retained x64 package tooling is inventoried separately
 from selected x86 runtime providers. Upstream SDL3 headers remain unmodified, including

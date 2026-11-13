@@ -1,4 +1,4 @@
-"""Evaluate the retained particle module manifest, including per-file settings."""
+"""Query the owning particle CMake target, including effective per-file settings."""
 
 import json
 from pathlib import Path
@@ -15,26 +15,24 @@ if __name__ == '__main__':
     config = sys.argv[3]
     output = Path(sys.argv[4])
     sys.path.insert(0, str(root / 'tools'))
-    import translate_msbuild as translator
-    project = root / 'GoldSrc-SDK/projects/vs2026/particleman.vcxproj'
-    evaluated = translator.evaluate(project, config)
-    items = [item for item in evaluated['items'] if item['kind'] == 'ClCompile'
-             and item['metadata'].get('ExcludedFromBuild', 'false') != 'true']
+    from cmake_inventory import query_target
+    architecture = sys.argv[5] if len(sys.argv) > 5 else 'x86'
+    evaluated = query_target(root, 'particleman', configuration=config, target_os=target_os,
+                             architecture=architecture)
+    items = [item for item in evaluated['sources'] if item['language'] in ('C', 'CXX')]
+    if not items:
+        raise ValueError('Owning particle CMake target selected no compiled sources')
     lines = ['set(CSE_PARTICLE_SOURCES'] + ['  ' + quoted(item['path']) for item in items] + [')']
-    includes = [value for value in evaluated['definitions']['ClCompile'].get(
-        'AdditionalIncludeDirectories', '').split(';') if value]
+    common_includes = set(items[0]['include_directories'])
+    for item in items[1:]:
+        common_includes.intersection_update(item['include_directories'])
+    includes = [value for value in dict.fromkeys(items[0]['include_directories']) if value in common_includes]
     lines.extend(['set(CSE_PARTICLE_INCLUDE_DIRECTORIES ' + ' '.join(quoted(value) for value in includes) + ')'])
     for item in items:
-        metadata = item['metadata']
         settings = {
-            'INCLUDE_DIRECTORIES': metadata.get('AdditionalIncludeDirectories', '').split(';'),
-            'COMPILE_DEFINITIONS': metadata.get('PreprocessorDefinitions', '').split(';')}
-        if target_os != 'windows':
-            settings['COMPILE_DEFINITIONS'] = [value for value in settings['COMPILE_DEFINITIONS']
-                                               if value not in ('WIN32', '_WINDOWS')]
-        forced = [value for value in metadata.get('ForcedIncludeFiles', '').split(';') if value]
-        settings['COMPILE_OPTIONS'] = [('/FI' + value) for value in forced] if target_os == 'windows' else [
-            part for value in forced for part in ('-include', value)]
+            'INCLUDE_DIRECTORIES': item['include_directories'],
+            'COMPILE_DEFINITIONS': item['compile_definitions'],
+            'COMPILE_OPTIONS': item['compile_options']}
         for key, values in settings.items():
             values = [value for value in values if value]
             if values:

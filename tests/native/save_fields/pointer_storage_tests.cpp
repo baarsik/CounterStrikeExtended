@@ -9,7 +9,7 @@
 #endif
 #include "util.h"
 #include "cbase.h"
-#include "../../../GoldSrc-SDK/common/game_save_field_layout.h"
+#include "../../../src/common/game_save_field_layout.h"
 
 int main() {
     struct Snapshot {

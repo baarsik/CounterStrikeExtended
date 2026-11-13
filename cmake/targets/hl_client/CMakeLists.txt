@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/hl_cdll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(hl_client SHARED "client")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
@@ -28,7 +28,7 @@ set_property(TARGET hl_client APPEND_STRING PROPERTY MSVC_RUNTIME_LIBRARY "$<$<C
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(hl_client PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL>")
-cse_game_module_exports(hl_client "${CSE_SDK_DIR}/projects/vs2026/hl_cdll.def" "${CSE_ROOT}/cmake/exports/hl_client.def")
+cse_game_module_exports(hl_client "${CSE_ROOT}/cmake/exports/win32/hl_cdll.def" "${CSE_ROOT}/cmake/exports/hl_client.def")
 target_link_libraries(hl_client PRIVATE "$<$<CONFIG:Debug>:wsock32.lib>")
 cse_link_sdl3(hl_client Debug)
 target_compile_options(hl_client PRIVATE "$<$<AND:$<CONFIG:Release>,$<COMPILE_LANGUAGE:C,CXX>>:/W3>")

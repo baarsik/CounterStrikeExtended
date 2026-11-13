@@ -23,17 +23,17 @@ args = parser.parse_args()
 output = Path(args.output)
 output.mkdir(parents=True, exist_ok=True)
 sources = tuple(("cs_client", source) for source in (
-    "GoldSrc-SDK/cstrike/vgui2/game_controls/clientmotd.cpp",
-    "GoldSrc-SDK/cstrike/vgui2/controls/HTML.cpp",
-    "GoldSrc-SDK/cstrike/vgui2/controls/Frame.cpp",
-    "GoldSrc-SDK/cstrike/vgui2/controls/Panel.cpp",
-    "GoldSrc-SDK/cstrike/vgui2/controls/EditablePanel.cpp",
-    "GoldSrc-SDK/cstrike/vgui2/controls/BuildGroup.cpp",
+    "src/cstrike/vgui2/game_controls/clientmotd.cpp",
+    "src/cstrike/vgui2/controls/HTML.cpp",
+    "src/cstrike/vgui2/controls/Frame.cpp",
+    "src/cstrike/vgui2/controls/Panel.cpp",
+    "src/cstrike/vgui2/controls/EditablePanel.cpp",
+    "src/cstrike/vgui2/controls/BuildGroup.cpp",
 ))
 if args.html_only:
-    sources = (("cs_client", "GoldSrc-SDK/cstrike/vgui2/controls/HTML.cpp"),
-               ("hw_engine", "GoldSrc-SDK/vgui2/controls/HTML.cpp"),
-               ("gameui", "GoldSrc-SDK/vgui2/controls/HTML.cpp"))
+    sources = (("cs_client", "src/cstrike/vgui2/controls/HTML.cpp"),
+               ("hw_engine", "src/vgui2/controls/HTML.cpp"),
+               ("gameui", "src/vgui2/controls/HTML.cpp"))
 receipt = []
 for target, relative in sources:
     name = target + "-" + Path(relative).stem

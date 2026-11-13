@@ -96,7 +96,7 @@ def main():
     stamp.unlink(missing_ok=True)
     schema = json.loads(SCHEMA.read_text())
     signature = digest(SCHEMA.read_bytes())[:16]
-    header = (ROOT / "GoldSrc-SDK/public/native_standalone_abi.h").read_text()
+    header = (ROOT / "src/public/native_standalone_abi.h").read_text()
     if "0x" + signature + "ull" not in header:
         raise RuntimeError("Runtime descriptor is not bound to the frozen physical schema")
     database = json.loads(options.database.read_text())
@@ -110,7 +110,7 @@ def main():
         row = selected[0]
         label = target + '-' + Path(row['file']).stem
         source = options.output / (label + '.cpp')
-        extra = '#include "' + str(ROOT / 'GoldSrc-SDK/cstrike/public/vgui/KeyValues.h') + '"\n' \
+        extra = '#include "' + str(ROOT / 'src/cstrike/public/vgui/KeyValues.h') + '"\n' \
             if options.dedicated_consumers else ''
         probe = ('#include "native_standalone_interfaces.h"\n' + PROBE[PROBE.index('void SurfaceEvidence'):]) \
             if options.dedicated_consumers else PROBE

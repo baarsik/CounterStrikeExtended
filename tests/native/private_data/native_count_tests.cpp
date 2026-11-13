@@ -1,6 +1,6 @@
 #include <cstdint>
 #include <cstdio>
-#include "../../../GoldSrc-SDK/common/native_int_count.h"
+#include "../../../src/common/native_int_count.h"
 
 int main() {
     int result = -1;

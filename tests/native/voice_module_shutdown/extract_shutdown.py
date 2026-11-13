@@ -19,7 +19,7 @@ def body(text, expression):
     return text[match.start():end]
 
 
-voice = (root / "GoldSrc-SDK/engine/voice.cpp").read_bytes().decode("cp1252")
+voice = (root / "src/engine/voice.cpp").read_bytes().decode("cp1252")
 release = body(voice, r"void Voice_ReleaseCaptureForModuleUnload\(\)")
 if release is None:
     # Executable pre-change reference: the exact old normal-deinit release arm.
@@ -33,7 +33,7 @@ if mixer is None:
     block = body(deinit, r"if\s*\(\s*g_pMixerControls\s*\)")
     assert block is not None
     mixer = "void Voice_ReleaseMixerForModuleUnload() {\n" + block + "\n}"
-cd = (root / "GoldSrc-SDK/engine/cd.cpp").read_bytes().decode("cp1252")
+cd = (root / "src/engine/cd.cpp").read_bytes().decode("cp1252")
 shutdown = body(cd, r"bool CDAudio_ShutdownForModuleUnload\(\)")
 assert shutdown is not None
 (out / "actual_capture_close.inc").write_text(release, encoding="utf-8")

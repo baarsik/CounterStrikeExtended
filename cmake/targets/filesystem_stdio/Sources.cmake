@@ -1,4 +1,4 @@
-# Generated from filesystem/filesystem_stdio.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(filesystem_stdio PRIVATE
   "${CSE_SDK_DIR}/public/characterset.cpp"
   "${CSE_SDK_DIR}/filesystem/BaseFileSystem.cpp"

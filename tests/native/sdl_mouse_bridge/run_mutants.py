@@ -12,7 +12,7 @@ parser.add_argument("--build", type=Path, required=True)
 parser.add_argument("--evidence", type=Path, required=True)
 args = parser.parse_args()
 args.evidence.mkdir(parents=True, exist_ok=False)
-original = (args.repo / "GoldSrc-SDK/common/sdl3_native_mouse_bridge.c").read_text()
+original = (args.repo / "src/common/sdl3_native_mouse_bridge.c").read_text()
 before_return = "    return SDL_GetRelativeMouseMode() ? CseSdlMouseModeRelative : CseSdlMouseModeAbsolute;"
 changes = {
     "skip-identity": ("if (!CseSdl_UsesLocalDispatch())", "if (false && !CseSdl_UsesLocalDispatch())"),

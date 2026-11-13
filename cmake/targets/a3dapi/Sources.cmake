@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/a3dapi.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_a3d_geometry_source("geometry_objects.cpp" "A3D_GEOMETRY_OBJECTS")
 cse_a3d_geometry_source("geometry_finalize.cpp" "A3D_GEOMETRY_FINALIZE")
 cse_a3d_geometry_source("geometry_acoustics.cpp" "A3D_GEOMETRY_ACOUSTICS")

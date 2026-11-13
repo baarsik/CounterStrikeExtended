@@ -5,7 +5,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseHltvSizeFixtures LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
-set(CSE_HLTV_SIZE_SOURCE_DIR "${CSE_ROOT}/GoldSrc-SDK" CACHE PATH "Production SDK or archived negative sources")
+set(CSE_HLTV_SIZE_SOURCE_DIR "${CSE_ROOT}/src" CACHE PATH "Production SDK or archived negative sources")
 option(CSE_HLTV_SIZE_LEGACY "Allow visible narrowing diagnostics from archived negative sources" OFF)
 option(CSE_HLTV_SIZE_SANITIZERS "Enable ASan and UBSan" OFF)
 foreach(source HLTV/Core/BSPModel.cpp HLTV/common/DirectorCmd.cpp HLTV/common/InfoString.cpp HLTV/common/md5.cpp
@@ -14,13 +14,13 @@ foreach(source HLTV/Core/BSPModel.cpp HLTV/common/DirectorCmd.cpp HLTV/common/In
 endforeach()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_production.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_production.py"
-  "${CSE_ROOT}/GoldSrc-SDK" "${CSE_HLTV_SIZE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
+  "${CSE_ROOT}/src" "${CSE_HLTV_SIZE_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
   RESULT_VARIABLE extraction_status ERROR_VARIABLE extraction_error)
 if(NOT extraction_status EQUAL 0)
   message(FATAL_ERROR "Cannot extract production HLTV boundaries: ${extraction_error}")
 endif()
-add_executable(hltv_size_tests size_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
-add_executable(hltv_ctor_tests ctor_probe.cpp ctor_destroy.cpp "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
+add_executable(hltv_size_tests size_tests.cpp "${CSE_ROOT}/src/HLTV/common/byteorder.cpp")
+add_executable(hltv_ctor_tests ctor_probe.cpp ctor_destroy.cpp "${CSE_ROOT}/src/HLTV/common/byteorder.cpp")
 # The demo player retains a distinct private BitBuffer implementation and header.
 # Exercise its real constructors with the same separate-TU virtual-destruction probe.
 set(private_ctor_dir "${CMAKE_CURRENT_BINARY_DIR}/private-constructor")
@@ -28,13 +28,13 @@ file(MAKE_DIRECTORY "${private_ctor_dir}")
 file(WRITE "${private_ctor_dir}/actual_ctor_impl.inc"
   "#include \"${CSE_HLTV_SIZE_SOURCE_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp\"\n")
 add_executable(hltv_demoplayer_ctor_tests ctor_probe.cpp ctor_destroy.cpp
-  "${CSE_ROOT}/GoldSrc-SDK/HLTV/common/byteorder.cpp")
+  "${CSE_ROOT}/src/HLTV/common/byteorder.cpp")
 target_include_directories(hltv_demoplayer_ctor_tests BEFORE PRIVATE "${private_ctor_dir}"
-  "${CSE_ROOT}/GoldSrc-SDK/HLTV/DemoPlayer/private")
+  "${CSE_ROOT}/src/HLTV/DemoPlayer/private")
 foreach(fixture hltv_size_tests hltv_ctor_tests hltv_demoplayer_ctor_tests)
 target_compile_features(${fixture} PRIVATE cxx_std_17)
-target_include_directories(${fixture} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK"
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+target_include_directories(${fixture} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src"
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/common")
 target_compile_definitions(${fixture} PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
 if(MSVC)
   target_compile_options(${fixture} PRIVATE /W4 /EHsc "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")

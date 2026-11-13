@@ -242,21 +242,20 @@ def audit_repository(root, llvm_readobj):
     active_libraries = set()
     for target in (root / 'cmake/targets').rglob('CMakeLists.txt'):
         for name in re.findall(r'cse_link_import\([^\n]*?"\$\{CSE_SDK_DIR\}/([^"\n]+)"', target.read_text()):
-            active_libraries.add('GoldSrc-SDK/' + name)
-    active_libraries.update({'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.lib',
-                             'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.dll'})
+            active_libraries.add('src/' + name)
+    active_libraries.update({'src/external/SDL3/lib/x86/SDL3.lib',
+                             'src/external/SDL3/lib/x86/SDL3.dll'})
     checked = 0
-    source_suffixes = {'.h', '.hpp', '.c', '.cpp', '.cc', '.cxx', '.props', '.targets', '.vcxproj', '.cmake', '.inc', '.inl', '.mk'}
+    source_suffixes = {'.h', '.hpp', '.c', '.cpp', '.cc', '.cxx', '.cmake', '.inc', '.inl', '.mk'}
     for path in files:
         relative = path.relative_to(root).as_posix()
-        if relative.startswith('GoldSrc-SDK/external/SDL3/'):
+        if relative.startswith('src/external/SDL3/'):
             # Upstream headers intentionally contain migration notes and the unmodified oldnames header.
             if path.suffix.lower() not in {'.dll', '.lib'}:
                 continue
         if forbidden(relative):
             raise ValueError(f'Retained SDL2/compatibility artifact: {relative}')
-        if (path.suffix.lower() in source_suffixes or path.name.startswith(('CMakeLists', 'Makefile'))
-                or relative in {'docs/msbuild/repository-selections.json', 'tools/translate_msbuild.py'}):
+        if path.suffix.lower() in source_suffixes or path.name.startswith(('CMakeLists', 'Makefile')):
             check_source(relative, path.read_text(errors='replace'))
             checked += 1
         kind = binary_kind(path)
@@ -271,7 +270,7 @@ def audit_repository(root, llvm_readobj):
             records[relative] = info | {'sha256': sha256(path)}
     if not active_libraries <= set(records):
         raise ValueError(f'Active library/provider missing from binary audit: {active_libraries - set(records)}')
-    sdl_import = records['GoldSrc-SDK/external/SDL3/lib/x86/SDL3.lib']
+    sdl_import = records['src/external/SDL3/lib/x86/SDL3.lib']
     if sdl_import['imports'] != ['SDL3.dll']:
         raise ValueError('Pinned SDL3 import archive does not identify SDL3.dll')
     historical = root / 'docs/msbuild/upstream-manifests.zip'

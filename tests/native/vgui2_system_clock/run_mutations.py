@@ -13,7 +13,7 @@ repo = args.repo.resolve()
 art = args.art.resolve()
 root = art / 'mutations'
 root.mkdir(exist_ok=True)
-original = (repo / 'GoldSrc-SDK/vgui2/src/NativeSystemClock.h').read_text()
+original = (repo / 'src/vgui2/src/NativeSystemClock.h').read_text()
 controls = [
     ('backward-threshold', 'state.oldTime - sample < MaximumIgnoredBackwardStep',
         'state.oldTime - sample <= MaximumIgnoredBackwardStep', 'normal', '1000000'),
@@ -34,12 +34,12 @@ receipts = []
 for name, before, after, scenario, frequency in controls:
     assert original.count(before) == 1, name
     work = root / name
-    source = work / 'GoldSrc-SDK/vgui2/src'
-    common = work / 'GoldSrc-SDK/common'
+    source = work / 'src/vgui2/src'
+    common = work / 'src/common'
     source.mkdir(parents=True, exist_ok=True)
     common.mkdir(parents=True, exist_ok=True)
     (source / 'NativeSystemClock.h').write_text(original.replace(before, after))
-    shutil.copy2(repo / 'GoldSrc-SDK/common/legacy_double_to_int.h', common / 'legacy_double_to_int.h')
+    shutil.copy2(repo / 'src/common/legacy_double_to_int.h', common / 'legacy_double_to_int.h')
     exe = work / 'fixture'
     command = ['/usr/bin/clang++', '-std=c++14', '-O2', '-ffp-contract=off', '-Wall', '-Wextra', '-Werror',
         '-I' + str(source), str(repo / 'tests/native/vgui2_system_clock/clock_fixture.cpp'), '-o', str(exe)]

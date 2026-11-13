@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "../../../GoldSrc-SDK/common/native_int_count.h"
+#include "../../../src/common/native_int_count.h"
 
 #define REQUIRE(condition) do { if (!(condition)) { \
     std::fprintf(stderr, "Failed at line %d: %s\n", __LINE__, #condition); return 1; \

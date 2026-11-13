@@ -21,17 +21,17 @@ def function(source: str, signature: str) -> str:
 root = Path(sys.argv[1])
 output = Path(sys.argv[2])
 output.mkdir(parents=True, exist_ok=True)
-controller = (root / "GoldSrc-SDK/engine/html/native/browser_controller.cpp").read_text(encoding="latin1")
+controller = (root / "src/engine/html/native/browser_controller.cpp").read_text(encoding="latin1")
 (output / "detach.inc").write_text(
     function(controller, "void Detach()") + function(controller, "IHTMLResponses_HL1* CloseResponses()"))
-owner = (root / "GoldSrc-SDK/cstrike/vgui2/game_controls/clientmotd.cpp").read_text(encoding="latin1")
+owner = (root / "src/cstrike/vgui2/game_controls/clientmotd.cpp").read_text(encoding="latin1")
 owner_methods = ""
 for signature in ("CClientMOTD::~CClientMOTD()", "bool CClientMOTD::IsURL(",
                   "void CClientMOTD::Activate( const char*"):
     owner_methods += function(owner, signature)
 (output / "owner.inc").write_text(owner_methods, encoding="latin1")
-for variant, prefix in (("shared", "GoldSrc-SDK/vgui2/controls"),
-                        ("cs", "GoldSrc-SDK/cstrike/vgui2/controls")):
+for variant, prefix in (("shared", "src/vgui2/controls"),
+                        ("cs", "src/cstrike/vgui2/controls")):
     html = (root / prefix / "HTML.cpp").read_text(encoding="latin1")
     panel = (root / prefix / "Panel.cpp").read_text(encoding="latin1")
     methods = ""

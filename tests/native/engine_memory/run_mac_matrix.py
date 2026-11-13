@@ -48,16 +48,16 @@ def main():
             assert result.returncode != 0, label
         return result
 
-    source = repo / "GoldSrc-SDK/engine/sys_dll2.cpp"
-    helper = repo / "GoldSrc-SDK/common/NativeEngineMemory.h"
+    source = repo / "src/engine/sys_dll2.cpp"
+    helper = repo / "src/common/NativeEngineMemory.h"
     for name, text in functions(source.read_text()).items():
         (stage / name).write_text(text)
     # Independent expected bytes are captured from the actual Windows SDK/body
     # executions, never recomputed from the candidate helper.
     for name in ("cases.inc", "golden.inc", "COM_CheckParm.inc"):
         (stage / name).write_bytes((args.reference / name).read_bytes())
-    inputs = [source, helper, repo / "GoldSrc-SDK/common/legacy_text_to_integer.h",
-              repo / "GoldSrc-SDK/engine/host.h"] + sorted(tests.glob("*.*"))
+    inputs = [source, helper, repo / "src/common/legacy_text_to_integer.h",
+              repo / "src/engine/host.h"] + sorted(tests.glob("*.*"))
     inputs = [path for path in inputs if path.is_file()]
     before = {str(path): sha(path) for path in inputs}
     (out / "INPUTS.json").write_text(json.dumps(before, indent=2) + "\n")
@@ -67,8 +67,8 @@ def main():
     base = [str(compiler), "-std=c++14", "-arch", "arm64", "-mmacosx-version-min=14.0",
             "-Wall", "-Wextra", "-Werror", "-Wshorten-64-to-32", "-ffp-model=precise", "-ffp-contract=off",
             "-Wno-overriding-option",
-            "-fexceptions", "-I" + str(repo / "GoldSrc-SDK/common"),
-            "-I" + str(repo / "GoldSrc-SDK/engine"), "-I" + str(repo / "GoldSrc-SDK/public"),
+            "-fexceptions", "-I" + str(repo / "src/common"),
+            "-I" + str(repo / "src/engine"), "-I" + str(repo / "src/public"),
             "-I" + str(tests), "-I" + str(stage)]
     profiles = {"Release": ["-O2", "-DNDEBUG"], "Debug": ["-O0", "-g", "-D_DEBUG"],
                 "Sanitizers": ["-O1", "-g", "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]}

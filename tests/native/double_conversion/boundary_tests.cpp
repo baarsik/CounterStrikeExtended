@@ -3,7 +3,7 @@
 #include "retained_boundary_results.h"
 
 #if !defined(CSE_DOUBLE_NATIVE_CAST_BASELINE)
-#include "../../../GoldSrc-SDK/common/legacy_double_to_int.h"
+#include "../../../src/common/legacy_double_to_int.h"
 #endif
 
 #include <cstdint>

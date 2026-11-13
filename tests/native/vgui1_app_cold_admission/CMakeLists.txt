@@ -5,14 +5,14 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(reader_source "${CSE_ROOT}/GoldSrc-SDK/launcher/native/VGui1AppColdAdmission.cpp")
+set(reader_source "${CSE_ROOT}/src/launcher/native/VGui1AppColdAdmission.cpp")
 if(EXISTS "${reader_source}")
     add_library(app_cold_reader STATIC "${reader_source}")
 else()
     add_library(app_cold_reader STATIC missing.cpp)
 endif()
-target_include_directories(app_cold_reader PUBLIC "${CSE_ROOT}/GoldSrc-SDK/launcher/native"
-    "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(app_cold_reader PUBLIC "${CSE_ROOT}/src/launcher/native"
+    "${CSE_ROOT}/src/public")
 add_executable(reader_tests reader_tests.cpp)
 target_link_libraries(reader_tests PRIVATE app_cold_reader)
 add_executable(app_cold_inspect inspect.cpp)
@@ -30,11 +30,11 @@ if(CSE_APP_COLD_CONSTRUCTORS)
     endif()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include/VGUI_Panel.h"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.h" generate_abort_bindings.py)
+        "${CSE_ROOT}/src/utils/vgui/include/VGUI_Panel.h"
+        "${CSE_ROOT}/src/engine/VGUI_EngineSurfaceWrap.h" generate_abort_bindings.py)
     execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/generate_abort_bindings.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/abort_bindings.inc" COMMAND_ERROR_IS_FATAL ANY)
-    set(vgui "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+    set(vgui "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
     add_library(cold_counter SHARED counter.cpp)
     add_library(cold_vgui SHARED cold_provider.cpp cold_font_binding.cpp
         "${vgui}/App.cpp" "${vgui}/posix/App.cpp" "${vgui}/posix/VGui1AppPlatform.cpp"
@@ -46,25 +46,25 @@ if(CSE_APP_COLD_CONSTRUCTORS)
     target_link_libraries(cold_vgui PRIVATE cold_counter)
     target_link_libraries(cold_root PRIVATE cold_vgui cold_counter)
     foreach(target cold_vgui cold_root)
-        target_sources(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common/vgui1_app_cold_publisher.cpp")
+        target_sources(${target} PRIVATE "${CSE_ROOT}/src/common/vgui1_app_cold_publisher.cpp")
         target_compile_definitions(${target} PRIVATE CSE_APP_COLD_FIXTURE)
         target_include_directories(${target} PRIVATE "${vgui}/posix" "${vgui}/common")
         set_target_properties(${target} PROPERTIES VISIBILITY_INLINES_HIDDEN YES)
     endforeach()
     target_compile_definitions(cold_vgui PRIVATE CSE_APP_COLD_CURSOR_SOURCE="${vgui}/DefaultCursor.cpp")
-    target_compile_definitions(cold_root PRIVATE CSE_APP_COLD_ROOT_SOURCE="${CSE_ROOT}/GoldSrc-SDK/engine/vgui_intwrap.cpp")
+    target_compile_definitions(cold_root PRIVATE CSE_APP_COLD_ROOT_SOURCE="${CSE_ROOT}/src/engine/vgui_intwrap.cpp")
     target_compile_definitions(cold_root PRIVATE POSIX OSX HL25_HW_ENGINE)
-    target_compile_options(cold_root PRIVATE -Wno-error=delete-non-abstract-non-virtual-dtor -include "${CSE_ROOT}/GoldSrc-SDK/public/cse_posix_crt.h")
+    target_compile_options(cold_root PRIVATE -Wno-error=delete-non-abstract-non-virtual-dtor -include "${CSE_ROOT}/src/public/cse_posix_crt.h")
     target_include_directories(cold_vgui PRIVATE "${vgui}/include")
-    target_include_directories(cold_root PRIVATE "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include"
-        "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/public"
-        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/pm_shared"
-        "${CSE_ROOT}/GoldSrc-SDK/cl_dll"
-        "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include" "${CMAKE_CURRENT_BINARY_DIR}")
+    target_include_directories(cold_root PRIVATE "${CSE_ROOT}/src/utils/vgui/include"
+        "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/public"
+        "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/pm_shared"
+        "${CSE_ROOT}/src/cl_dll"
+        "${CSE_ROOT}/src/external/SDL3/include" "${CMAKE_CURRENT_BINARY_DIR}")
     # Unique ABSOLUTE provider identity; the reader refuses @rpath resolution.
     set_target_properties(cold_vgui cold_counter PROPERTIES BUILD_WITH_INSTALL_NAME_DIR YES
         INSTALL_NAME_DIR "${CMAKE_CURRENT_BINARY_DIR}")
-    set_property(SOURCE "${CSE_ROOT}/GoldSrc-SDK/common/vgui1_app_cold_publisher.cpp"
+    set_property(SOURCE "${CSE_ROOT}/src/common/vgui1_app_cold_publisher.cpp"
         TARGET_DIRECTORY cold_vgui APPEND PROPERTY COMPILE_DEFINITIONS
         "CSE_VGUI1_APP_COLD_GENERATED_HEADER=\"${CSE_APP_COLD_METADATA_HEADER}\"" CSE_VGUI1_APP_COLD_OFFER=1)
     # Source properties are directory-scoped, so the requirement publisher gets

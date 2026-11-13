@@ -41,7 +41,7 @@ public:
     vgui2::VPANEL HandleToPanel(vgui2::HPanel index);
 };
 #define INVALID_VGUI_PANEL static_cast<vgui2::HPanel>(UINT32_MAX)
-#include "../../../GoldSrc-SDK/vgui2/src/panel_handles_impl.h"
+#include "../../../src/vgui2/src/panel_handles_impl.h"
 
 #define CHECK(condition) do { \
     if (!(condition)) { \

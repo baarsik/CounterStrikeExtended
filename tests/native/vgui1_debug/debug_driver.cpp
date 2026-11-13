@@ -1,5 +1,5 @@
 #if defined(CSE_VGUI1_DEBUG_NATIVE)
-#include "../../../GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/Debug.cpp"
+#include "../../../src/utils/vgui/lib-src/vgui/posix/Debug.cpp"
 #else
 #include "VGUI.h"
 #endif

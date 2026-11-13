@@ -3,8 +3,8 @@
 This fixture compiles the real `native_buffer.cpp`, `native_mix.cpp`, `a2d.cpp`,
 `a2dbuffer.cpp` and platform allocation owner. It opens no device, initializes no
 SDL subsystem, and never links `a3d_output/fixture_mixer.cpp`. Subject TU options
-come from the retained manifest through the same translator used by the owning
-graph. The only extracted body is the exact integer multiply leaf from A3dGeom.
+come from a metadata query of the owning CMake target. The only extracted body
+is the exact integer multiply leaf from A3dGeom.
 
 Configure a new owning build directory with the available SDL3 config:
 

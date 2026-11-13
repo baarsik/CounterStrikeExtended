@@ -36,7 +36,7 @@ for mode in ['release','debug']:
     db=art.parent/('macos-runtime-policy-'+mode)/'compile_commands.json'
     entries=json.loads(db.read_text())
     for name in ['vgui_EngineSurfaceHW.cpp','gl_screen.cpp']:
-        source=root/'GoldSrc-SDK/engine'/name
+        source=root/'src/engine'/name
         entry=next(item for item in entries if Path(item['file'])==source)
         command=entry.get('arguments') or shlex.split(entry['command'])
         output=art/'owning-objects'/f'{mode}-{name}.o';output.parent.mkdir(exist_ok=True)

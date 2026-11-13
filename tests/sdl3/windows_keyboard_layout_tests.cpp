@@ -1,7 +1,7 @@
 // Native SDL3 Windows regression against the measured SDL2 2.0.20 layout/event baseline.
 #define SDL_MAIN_HANDLED
 #include <windows.h>
-#include "../../GoldSrc-SDK/common/sdl3_keyboard.h"
+#include "../../src/common/sdl3_keyboard.h"
 #include <cstdio>
 #include <cstring>
 

@@ -1,6 +1,6 @@
 // Compile the complete owner with its real flags; only rename its process entry point.
 #define main ProductionConsoleMain
-#include "../../../GoldSrc-SDK/HLTV/Console/System.cpp"
+#include "../../../src/HLTV/Console/System.cpp"
 #undef main
 
 #include <cstdio>

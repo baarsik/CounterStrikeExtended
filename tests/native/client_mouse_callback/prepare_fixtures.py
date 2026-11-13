@@ -33,10 +33,10 @@ def extract(path, pattern):
     return code
 
 
-callback = extract(root / 'GoldSrc-SDK/engine/cdll_int.cpp', r'int hudGetClientMousePositionAndCenter\(')
-destination = extract(root / 'GoldSrc-SDK/engine/module.cpp', r'void NullClientMousePositionAndCenterDst\(')
-table = extract(root / 'GoldSrc-SDK/engine/cdll_int.cpp', r'cl_enginefunc_t cl_enginefuncs\s*=') + ';'
-api = (root / 'GoldSrc-SDK/engine/APIProxy.h').read_bytes().decode('latin1')
+callback = extract(root / 'src/engine/cdll_int.cpp', r'int hudGetClientMousePositionAndCenter\(')
+destination = extract(root / 'src/engine/module.cpp', r'void NullClientMousePositionAndCenterDst\(')
+table = extract(root / 'src/engine/cdll_int.cpp', r'cl_enginefunc_t cl_enginefuncs\s*=') + ';'
+api = (root / 'src/engine/APIProxy.h').read_bytes().decode('latin1')
 members = fields(api, 'cl_enginefunc_t')
 values = table[table.index('{') + 1:table.rindex('}')].split(',')
 if len(members) != len(values):

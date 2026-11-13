@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/hw_engine.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(hw_engine SHARED "hw")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)

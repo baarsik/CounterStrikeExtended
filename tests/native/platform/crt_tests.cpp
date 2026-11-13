@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <climits>
 #include <limits>
-#include "../../../GoldSrc-SDK/public/cse_posix_crt.h"
+#include "../../../src/public/cse_posix_crt.h"
 
 int Format(char *destination, std::size_t capacity, const char *format, ...) {
     va_list arguments;

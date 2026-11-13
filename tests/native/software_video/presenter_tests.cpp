@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/engine/native_software_video.h"
+#include "../../../src/engine/native_software_video.h"
 #include <SDL3/SDL.h>
 #include <cassert>
 #include <cstring>

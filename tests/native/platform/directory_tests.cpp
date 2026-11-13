@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <filesystem>
-#include "../../../GoldSrc-SDK/public/cse_directories.h"
+#include "../../../src/public/cse_directories.h"
 
 int main(int argc, char **argv) {
     if (argc != 2) {

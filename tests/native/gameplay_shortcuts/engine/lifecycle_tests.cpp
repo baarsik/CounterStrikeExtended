@@ -1,6 +1,6 @@
 #include "engine_tests.cpp"
 #include <thread>
-#include "../../../../GoldSrc-SDK/launcher/native/VGui1HostImageOwner.h"
+#include "../../../../src/launcher/native/VGui1HostImageOwner.h"
 extern "C" int CseNativeRuntimeCloseV1() noexcept;
 namespace cse_mac_runtime {
 struct ControlledImageOwner {

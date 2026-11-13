@@ -12,7 +12,7 @@ items = [('engine/utlbuffer.cpp', 'EngineBuffer'), ('vgui2/src/public/UtlBuffer.
 functions = []
 receipts = []
 for relative, name in items:
-    source = root / 'GoldSrc-SDK' / relative
+    source = root / 'src' / relative
     data = source.read_bytes()
     text = data.decode('cp1252')
     match = re.search(r'int CUtlBuffer::VaScanf\([^\n]+\)\s*\{', text)

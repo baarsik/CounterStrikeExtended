@@ -1,4 +1,4 @@
-# Generated from swds/swds.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(swds PRIVATE
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/engine/BaseSystemModule.cpp"

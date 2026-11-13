@@ -38,7 +38,7 @@ def main():
         contexts = options.contexts / (profile + '-actual-contexts.json')
         run(profile + '-evidence', [sys.executable, ROOT / 'tools/vgui1_app_cold_evidence.py', 'generate',
             '--schema', ROOT / 'tools/vgui1_app_cold_evidence_schema.json', '--contexts', contexts,
-            '--foundation', ROOT / 'GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h', '--output', directory, '--metadata'])
+            '--foundation', ROOT / 'src/public/cse_vgui1_app_cold_abi.h', '--output', directory, '--metadata'])
         run(profile + '-actual-publisher', [sys.executable, ROOT / 'tests/native/vgui1_app_cold_admission/replay_publisher.py',
             '--evidence', directory, '--output', output / (profile + '-actual-publisher')])
     for profile, config, sanitize in [('release', 'Release', False), ('debug', 'Debug', False),

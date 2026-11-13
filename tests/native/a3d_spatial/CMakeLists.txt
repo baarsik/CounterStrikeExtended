@@ -4,8 +4,8 @@ get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 find_package(Threads REQUIRED)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(A3D "${ROOT}/GoldSrc-SDK/a3dapi")
-set(CSE_SDK_DIR "${ROOT}/GoldSrc-SDK")
+set(A3D "${ROOT}/src/a3dapi")
+set(CSE_SDK_DIR "${ROOT}/src")
 function(cse_a3d_geometry_source filename selector)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/generated/${filename}"
@@ -13,11 +13,11 @@ function(cse_a3d_geometry_source filename selector)
 endfunction()
 add_library(a3dapi STATIC)
 include("${ROOT}/cmake/targets/a3dapi/Sources.cmake")
-target_include_directories(a3dapi PUBLIC "${A3D}" "${ROOT}/GoldSrc-SDK/public")
+target_include_directories(a3dapi PUBLIC "${A3D}" "${ROOT}/src/public")
 target_link_libraries(a3dapi PUBLIC SDL3::SDL3 Threads::Threads)
 target_compile_features(a3dapi PRIVATE cxx_std_17)
 target_compile_definitions(a3dapi PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
-target_compile_options(a3dapi PRIVATE "SHELL:-include ${ROOT}/GoldSrc-SDK/public/cse_posix_crt.h")
+target_compile_options(a3dapi PRIVATE "SHELL:-include ${ROOT}/src/public/cse_posix_crt.h")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${ROOT}/tests/native/a3d_resources/prepare_policy.py"
     "${ROOT}" "${CMAKE_BUILD_TYPE}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 include("${CMAKE_CURRENT_BINARY_DIR}/subject-policy.cmake")
@@ -30,7 +30,7 @@ foreach(subject producer control capability)
     # Observation of real private state only; no alternate production algorithms.
     target_compile_options(a3d_${subject}_tests PRIVATE -fno-access-control -Wall -Wextra -Werror
         -fno-exceptions -frtti -ffp-model=precise -ffp-contract=off -Wno-overriding-option
-        "SHELL:-include ${ROOT}/GoldSrc-SDK/public/cse_posix_crt.h"
+        "SHELL:-include ${ROOT}/src/public/cse_posix_crt.h"
         "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")
     target_link_options(a3d_${subject}_tests PRIVATE -Wl,-dead_strip)
 endforeach()

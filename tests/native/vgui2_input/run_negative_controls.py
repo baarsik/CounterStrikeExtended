@@ -9,7 +9,7 @@ def run(name,phase,command,expected):
     result=subprocess.run([str(x) for x in command],cwd=root,capture_output=True,text=True,timeout=120)
     (out/f'{name}-{phase}.log').write_text(result.stdout+result.stderr);rows.append({'name':name,'phase':phase,'command':[str(x) for x in command],'exit':result.returncode});(out/'commands.json').write_text(json.dumps(rows,indent=2)+'\n')
     assert (result.returncode==0)==expected,(name,phase,result.stdout,result.stderr)
-source=(root/'GoldSrc-SDK/vgui2/src/InputWin32.cpp').read_bytes().decode('latin1').replace('\r\n','\n')
+source=(root/'src/vgui2/src/InputWin32.cpp').read_bytes().decode('latin1').replace('\r\n','\n')
 controls=[
  ('context-guard','if ( m_hContext != DEFAULT_INPUT_CONTEXT )','if ( false && m_hContext != DEFAULT_INPUT_CONTEXT )'),
  ('ignore-rule','if ( ignore != KEY_NONE && IsKeyDown( ignore ) )','if ( ignore != KEY_NONE )'),
@@ -26,7 +26,7 @@ for name,before,after in controls:
     run(name,'build',['cmake','--build',build,'--parallel','3'],True)
     run(name,'tests',['ctest','--test-dir',build,'--output-on-failure'],False)
     print('PASS rejected',name,flush=True)
-header=(root/'GoldSrc-SDK/vgui2/src/NativeKeyState.h').read_text()
+header=(root/'src/vgui2/src/NativeKeyState.h').read_text()
 for name,before,after in [('down-is-not-bool','DownMask = 0x8000','DownMask = 0x0100'),
     ('unknown-is-not-success','default:\n        return false;','default:\n        return true;')]:
     directory=out/name;directory.mkdir(exist_ok=True);assert header.count(before)==1

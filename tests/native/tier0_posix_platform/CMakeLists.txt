@@ -8,7 +8,7 @@ if(NOT APPLE)
 endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CSE_POSIX_PLATFORM_DATABASE "" CACHE FILEPATH "Actual generated compile_commands.json")
-set(CSE_POSIX_PLATFORM_SOURCE "${CSE_ROOT}/GoldSrc-SDK/tier0/platform_posix.cpp" CACHE FILEPATH
+set(CSE_POSIX_PLATFORM_SOURCE "${CSE_ROOT}/src/tier0/platform_posix.cpp" CACHE FILEPATH
   "Actual production source or an explicitly preserved negative reference")
 option(CSE_POSIX_PLATFORM_SANITIZERS "Instrument the complete actual TU and fixture" OFF)
 option(CSE_POSIX_PLATFORM_LEGACY_REFERENCE "Demote visible width/strncat warnings only in a preserved negative reference" OFF)
@@ -31,15 +31,15 @@ function(platform_fixture target)
   endif()
   add_custom_command(OUTPUT "${object}"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
-      --database "${CSE_POSIX_PLATFORM_DATABASE}" --sdk "${CSE_ROOT}/GoldSrc-SDK"
+      --database "${CSE_POSIX_PLATFORM_DATABASE}" --sdk "${CSE_ROOT}/src"
       --source "${CSE_POSIX_PLATFORM_SOURCE}" --output "${object}" ${options}
-    DEPENDS "${CSE_POSIX_PLATFORM_SOURCE}" "${CSE_ROOT}/GoldSrc-SDK/public/tier0/platform.h"
-      "${CSE_ROOT}/GoldSrc-SDK/public/cse_posix_crt.h" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
+    DEPENDS "${CSE_POSIX_PLATFORM_SOURCE}" "${CSE_ROOT}/src/public/tier0/platform.h"
+      "${CSE_ROOT}/src/public/cse_posix_crt.h" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
       "${CSE_POSIX_PLATFORM_DATABASE}" DEPFILE "${object}.d" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
   add_executable(${target} platform_tests.cpp "${object}")
   set_target_properties(${target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public" "${CMAKE_CURRENT_BINARY_DIR}")
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/public" "${CMAKE_CURRENT_BINARY_DIR}")
   target_compile_definitions(${target} PRIVATE TIER0_DLL POSIX OSX)
   target_compile_options(${target} PRIVATE -Wall -Wextra -Werror
     "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")

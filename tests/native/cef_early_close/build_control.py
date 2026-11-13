@@ -25,7 +25,7 @@ def main():
     work.mkdir(exist_ok=False)
     source_root = work / 'source'
     shutil.copytree(args.packet / 'current-source', source_root)
-    native = source_root / 'GoldSrc-SDK/engine/html/native'
+    native = source_root / 'src/engine/html/native'
     cpp = native / 'cef_host.cpp'
     source = cpp.read_text()
     original_cpp = source

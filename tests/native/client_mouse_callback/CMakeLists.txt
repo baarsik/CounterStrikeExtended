@@ -8,21 +8,21 @@ option(CSE_MOUSE_CALLBACK_SANITIZERS "Instrument owned callback and fake service
 if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
     message(FATAL_ERROR "Provide pinned SDL headers")
 endif()
-set(CSE_MOUSE_WINDOW_HEADER "${CSE_ROOT}/GoldSrc-SDK/engine/sdl3_window.h")
+set(CSE_MOUSE_WINDOW_HEADER "${CSE_ROOT}/src/engine/sdl3_window.h")
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/actual_callback.inc"
     "${CMAKE_CURRENT_BINARY_DIR}/actual_destination.inc" "${CMAKE_CURRENT_BINARY_DIR}/actual_engine_table.inc"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_fixtures.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
-    DEPENDS prepare_fixtures.py "${CSE_ROOT}/GoldSrc-SDK/engine/cdll_int.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/module.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/APIProxy.h"
+    DEPENDS prepare_fixtures.py "${CSE_ROOT}/src/engine/cdll_int.cpp"
+        "${CSE_ROOT}/src/engine/module.cpp" "${CSE_ROOT}/src/engine/APIProxy.h"
         "${CSE_ROOT}/tools/client_module_layouts.py"
         "${CSE_ROOT}/tests/native/client_abi/prepare_fixtures.py"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/client.h" "${CSE_ROOT}/GoldSrc-SDK/common/com_model.h" VERBATIM)
+        "${CSE_ROOT}/src/engine/client.h" "${CSE_ROOT}/src/common/com_model.h" VERBATIM)
 add_executable(client_mouse_callback_tests callback_tests.cpp
     ../client_mouse_coordinates/controlled_window.cpp "${CMAKE_CURRENT_BINARY_DIR}/actual_callback.inc")
 target_include_directories(client_mouse_callback_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+    "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/pm_shared")
 target_compile_definitions(client_mouse_callback_tests PRIVATE
     CSE_MOUSE_WINDOW_HEADER="${CSE_MOUSE_WINDOW_HEADER}" _CRT_SECURE_NO_WARNINGS NOMINMAX)
 set_target_properties(client_mouse_callback_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

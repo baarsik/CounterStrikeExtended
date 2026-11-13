@@ -4,14 +4,14 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseVoiceCaptureWiring LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_voice_init.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/voice.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/voice.h")
+    "${CSE_ROOT}/src/engine/voice.cpp" "${CSE_ROOT}/src/engine/voice.h")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_voice_init.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 add_library(voice_wiring_caller OBJECT fixture_seams.cpp)
 target_compile_definitions(voice_wiring_caller PRIVATE CSE_WIRING_CALLER_OBJECT)
 set(wiring_targets voice_wiring_caller)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_library(voice_wiring_delegates OBJECT "${CSE_ROOT}/GoldSrc-SDK/engine/voice_record_native.cpp")
+    add_library(voice_wiring_delegates OBJECT "${CSE_ROOT}/src/engine/voice_record_native.cpp")
     list(APPEND wiring_targets voice_wiring_delegates)
     set(delegate_object $<TARGET_OBJECTS:voice_wiring_delegates>)
 endif()
@@ -20,8 +20,8 @@ add_executable(voice_capture_wiring_tests wiring_tests.cpp fixture_seams.cpp
 list(APPEND wiring_targets voice_capture_wiring_tests)
 option(CSE_VOICE_WIRING_SANITIZERS "Instrument only the owned fake caller-wiring fixture" OFF)
 foreach(target IN LISTS wiring_targets)
-    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/engine"
-        "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+    target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/engine"
+        "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/common")
     set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     if(MSVC)
         target_compile_definitions(${target} PRIVATE WIN32 _CRT_SECURE_NO_WARNINGS

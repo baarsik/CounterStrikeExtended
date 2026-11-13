@@ -27,7 +27,7 @@ assert not source.exists()
 sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
 previous = json.loads((args.previous_prepared / 'source-hashes.json').read_text())
 root_deltas = {
-    'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/VGui1FontServices.cpp':
+    'src/utils/vgui/lib-src/vgui/posix/VGui1FontServices.cpp':
         '5b4d0a4bbe367b2d0889f74e944cf9142e81abb42604b57feb5d15f3f1db0609',
     'tests/native/vgui1_native_provider/CMakeLists.txt':
         'fecc6e12138a2b2914e742bdf73713683f4d381779cee6c5c6cd8c0382508066',
@@ -36,8 +36,8 @@ root_deltas = {
 for name, digest in previous.items():
     assert sha(root / name) == root_deltas.get(name, digest), name
 files = list(previous)
-files += ['GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp',
-          'GoldSrc-SDK/utils/vgui/lib-src/vgui/TextEntry.cpp']
+files += ['src/engine/VGUI_EngineSurfaceWrap.cpp',
+          'src/utils/vgui/lib-src/vgui/TextEntry.cpp']
 files += [str(p.relative_to(root)) for p in sorted((root / 'tests/native/vgui1_fixedsys_readability').iterdir())
           if p.is_file()]
 for name in files:

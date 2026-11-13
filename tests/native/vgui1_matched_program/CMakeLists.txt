@@ -11,7 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 execute_process(COMMAND "${Python3_EXECUTABLE}"
     "${CSE_ROOT}/tests/native/vgui1_legacy_raster/extract_reference.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_owner.py"
     "${CSE_ROOT}/tests/native/vgui1_legacy_raster/gdi_reference.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
@@ -32,7 +32,7 @@ find_path(BZIP2_INCLUDE_DIR NAMES bzlib.h PATHS "${CSE_FREETYPE_PREFIX}/include"
 find_package(BZip2 REQUIRED)
 find_package(PNG CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/png" NO_DEFAULT_PATH)
 find_package(freetype CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/freetype" NO_DEFAULT_PATH)
-set(raster "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native")
+set(raster "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/posix/native")
 add_library(matched_legacy_raster STATIC "${raster}/VGui1LegacyRaster.cpp")
 target_include_directories(matched_legacy_raster PUBLIC "${raster}")
 target_link_libraries(matched_legacy_raster PUBLIC Freetype::Freetype)

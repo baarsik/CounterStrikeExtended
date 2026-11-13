@@ -9,7 +9,7 @@ import shutil
 import subprocess
 parser=argparse.ArgumentParser();parser.add_argument('--source',type=Path,required=True);parser.add_argument('--headers',type=Path,required=True);parser.add_argument('--work',type=Path,required=True);parser.add_argument('--art',type=Path,required=True);args=parser.parse_args()
 work=args.work.resolve();art=args.art.resolve();work.mkdir(parents=True,exist_ok=True);art.mkdir(parents=True,exist_ok=True)
-source=work/'source';shutil.copytree(args.source,source,dirs_exist_ok=True);sdk=args.headers/'GoldSrc-SDK';rows=[]
+source=work/'source';shutil.copytree(args.source,source,dirs_exist_ok=True);sdk=args.headers/'src';rows=[]
 for cpu in ['x86','x64','arm64']:
     setup=work/f'setup-{cpu}.cmd';setup.write_text('@echo off\ncall "C:\\BuildTools\\2026\\Common7\\Tools\\VsDevCmd.bat" -no_logo -host_arch=arm64 -arch='+cpu+' >nul\nif errorlevel 1 exit /b 1\nset\n')
     result=subprocess.run(['cmd.exe','/d','/c',setup],capture_output=True,text=True,check=True);env=dict(os.environ)

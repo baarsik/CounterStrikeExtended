@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(CseVgui1DefaultCursor LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(VGUI_SOURCE "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(VGUI_SOURCE "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 set(CSE_CURSOR_SOURCE "${VGUI_SOURCE}/DefaultCursor.cpp" CACHE FILEPATH "Complete production constructor source")
 add_executable(default_cursor fixture.cpp public_headers.cpp unrelated.cpp
     "${VGUI_SOURCE}/Cursor.cpp" "${VGUI_SOURCE}/Bitmap.cpp" "${VGUI_SOURCE}/Image.cpp"
@@ -9,7 +9,7 @@ add_executable(default_cursor fixture.cpp public_headers.cpp unrelated.cpp
 set_target_properties(default_cursor PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(default_cursor PRIVATE "${VGUI_SOURCE}/include" "${VGUI_SOURCE}")
 set_source_files_properties(public_headers.cpp PROPERTIES
-    INCLUDE_DIRECTORIES "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include")
+    INCLUDE_DIRECTORIES "${CSE_ROOT}/src/utils/vgui/include")
 target_compile_definitions(default_cursor PRIVATE CSE_CURSOR_SOURCE="${CSE_CURSOR_SOURCE}")
 if(MSVC)
     target_compile_definitions(default_cursor PRIVATE VGUI_EXPORTS _HAS_EXCEPTIONS=0)

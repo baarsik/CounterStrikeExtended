@@ -2,7 +2,8 @@
 
 This directory is a read-only design spike. It publishes no production contract
 and does not link, load, or execute a module. The scripts use the actual retained
-19-target inventory and current macOS compiler recipes. Substituting a probe
+19-target CMake inventory and current macOS compiler recipes. The CMake metadata
+query does not cross-compile or qualify Windows binaries or external providers. Substituting a probe
 source into an owning recipe is explicitly a **header probe**, not a full
 production translation-unit qualification.
 

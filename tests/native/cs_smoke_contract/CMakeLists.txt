@@ -6,9 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_SMOKE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/ev_hldm.cpp" CACHE FILEPATH "Complete candidate source")
+set(CSE_SMOKE_SOURCE "${CSE_ROOT}/src/cstrike/cl_dll/ev_hldm.cpp" CACHE FILEPATH "Complete candidate source")
 set(CSE_SMOKE_REFERENCE "${CMAKE_CURRENT_LIST_DIR}/reference_ev_hldm.cpp.txt" CACHE FILEPATH "Frozen old source")
-set(queue_source "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud_redraw.cpp")
+set(queue_source "${CSE_ROOT}/src/cstrike/cl_dll/hud_redraw.cpp")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CSE_SMOKE_SOURCE}" "${CSE_SMOKE_REFERENCE}" "${queue_source}" extract.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
@@ -19,12 +19,12 @@ add_library(smoke_candidate OBJECT candidate.cpp)
 add_executable(smoke_cases cases.cpp queue.cpp $<TARGET_OBJECTS:smoke_reference> $<TARGET_OBJECTS:smoke_candidate>)
 foreach(target smoke_reference smoke_candidate smoke_cases)
     target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/bodies"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/engine" "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll" "${CSE_ROOT}/GoldSrc-SDK/cstrike/common"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared" "${CSE_ROOT}/GoldSrc-SDK/cstrike/public"
-        "${CSE_ROOT}/GoldSrc-SDK/dlls" "${CSE_ROOT}/GoldSrc-SDK/common"
-        "${CSE_ROOT}/GoldSrc-SDK/pm_shared" "${CSE_ROOT}/GoldSrc-SDK/public"
-        "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/game_shared")
+        "${CSE_ROOT}/src/cstrike/engine" "${CSE_ROOT}/src/cstrike/dlls"
+        "${CSE_ROOT}/src/cstrike/cl_dll" "${CSE_ROOT}/src/cstrike/common"
+        "${CSE_ROOT}/src/cstrike/pm_shared" "${CSE_ROOT}/src/cstrike/public"
+        "${CSE_ROOT}/src/dlls" "${CSE_ROOT}/src/common"
+        "${CSE_ROOT}/src/pm_shared" "${CSE_ROOT}/src/public"
+        "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/game_shared")
     target_compile_definitions(${target} PRIVATE CLIENT_DLL CLIENT_WEAPONS HL_DLL)
     if(MSVC)
         target_compile_definitions(${target} PRIVATE WIN32 _CRT_SECURE_NO_WARNINGS)
@@ -32,7 +32,7 @@ foreach(target smoke_reference smoke_candidate smoke_cases)
     else()
         target_compile_definitions(${target} PRIVATE POSIX OSX)
         target_compile_options(${target} PRIVATE -Wall -Wextra -fexceptions -fno-fast-math -ffp-contract=off
-            -include "${CSE_ROOT}/GoldSrc-SDK/public/cse_posix_crt.h"
+            -include "${CSE_ROOT}/src/public/cse_posix_crt.h"
             # Exact retained Apple owning-recipe warning policies; still emit
             # legacy header/body diagnostics, never suppress model diagnostics.
             -Wno-error=unknown-pragmas -Wno-error=deprecated-copy-with-user-provided-copy

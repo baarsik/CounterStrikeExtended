@@ -10,14 +10,14 @@ from macho_game_exports import check_exports
 
 runtime = Path(sys.argv[1]).resolve(strict=True)
 images = (
-    ('cstrike/cl_dlls/client.dylib', 'projects/vs2026/cstrike_cdll.def'),
-    ('cstrike/dlls/mp.dylib', 'projects/vs2026/cstrikedll.def'),
-    ('valve/cl_dlls/client.dylib', 'projects/vs2026/hl_cdll.def'),
-    ('valve/dlls/hl.dylib', 'dlls/hl.def'),
+    ('cstrike/cl_dlls/client.dylib', 'cmake/exports/win32/cstrike_cdll.def'),
+    ('cstrike/dlls/mp.dylib', 'cmake/exports/win32/cstrikedll.def'),
+    ('valve/cl_dlls/client.dylib', 'cmake/exports/win32/hl_cdll.def'),
+    ('valve/dlls/hl.dylib', 'src/dlls/hl.def'),
 )
 for image, manifest in images:
     names = []
-    for line in (root / 'GoldSrc-SDK' / manifest).read_text(encoding='latin1').splitlines():
+    for line in (root / manifest).read_text(encoding='latin1').splitlines():
         line = line.strip()
         if re.match(r'^SECTIONS\b', line, re.I):
             break

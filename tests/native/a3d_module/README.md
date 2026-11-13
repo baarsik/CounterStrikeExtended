@@ -45,7 +45,7 @@ load/release/unload. `callable_operation_matrix` checks supported outputs and
 explicit unsupported failures. `source_buffer_playback` verifies the real
 loaded source and native buffer routes rather than a PCM-only substitute.
 
-Public device enumeration is declared in `GoldSrc-SDK/public/cse_a3d_devices.h`.
+Public device enumeration is declared in `src/public/cse_a3d_devices.h`.
 The independent `a3d_enumeration_tests` caller uses only its own `enumeration_caller.h`
 record and vtable declarations across the loaded production image boundary. A separate
 admission TU compares record/method facts against production and constructs the expected

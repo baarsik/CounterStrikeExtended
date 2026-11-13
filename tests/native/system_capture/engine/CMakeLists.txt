@@ -6,21 +6,21 @@ set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL public headers")
 option(CSE_SHORTCUT_ENGINE_SANITIZERS "Instrument actual owner/caller bodies" OFF)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ../../gameplay_shortcuts/engine/extract.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/cdll_int.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_dll2.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/snd_dma.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/webm_video.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/launcher/native/MacRuntimeSession.cpp")
+    "${CSE_ROOT}/src/engine/sys_sdlwind.cpp"
+    "${CSE_ROOT}/src/engine/cdll_int.cpp"
+    "${CSE_ROOT}/src/engine/sys_dll2.cpp"
+    "${CSE_ROOT}/src/engine/snd_dma.cpp"
+    "${CSE_ROOT}/src/engine/webm_video.cpp"
+    "${CSE_ROOT}/src/launcher/native/MacRuntimeSession.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/../../gameplay_shortcuts/engine/extract.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bodies" COMMAND_ERROR_IS_FATAL ANY)
 enable_testing()
 foreach(mode hw sw)
     add_executable(capture_engine_${mode} capture_tests.cpp
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_cocoa.cpp")
+        "${CSE_ROOT}/src/engine/native_mouse_window.cpp"
+        "${CSE_ROOT}/src/engine/native_mouse_cocoa.cpp")
     target_include_directories(capture_engine_${mode} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/bodies"
-        "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public"
+        "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public"
         "${CSE_SDL_INCLUDE}")
     target_compile_definitions(capture_engine_${mode} PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1
         CSE_LOOP_BODY="${mode}_loop.inc")
@@ -41,12 +41,12 @@ endforeach()
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/../../native_mouse_window/extract_callers.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bodies" COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CSE_ROOT}/GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp")
-add_executable(capture_callers caller_capture_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
+    "${CSE_ROOT}/src/engine/vgui2/BaseUISurface.cpp"
+    "${CSE_ROOT}/src/engine/VGUI_EngineSurfaceWrap.cpp")
+add_executable(capture_callers caller_capture_tests.cpp "${CSE_ROOT}/src/engine/native_mouse_window.cpp")
 get_target_property(includes capture_engine_hw INCLUDE_DIRECTORIES)
 get_target_property(options capture_engine_hw COMPILE_OPTIONS)
-target_include_directories(capture_callers PRIVATE ${includes} "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include")
+target_include_directories(capture_callers PRIVATE ${includes} "${CSE_ROOT}/src/utils/vgui/include")
 target_compile_options(capture_callers PRIVATE ${options})
 target_compile_definitions(capture_callers PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
 set_target_properties(capture_callers PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

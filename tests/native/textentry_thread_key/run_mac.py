@@ -26,7 +26,7 @@ def main():
     rows = []
     common = ["/usr/bin/clang++", "-std=c++14", "-arch", "arm64", "-mmacosx-version-min=14.0",
               "-fexceptions", "-fno-fast-math", "-ffp-contract=off", "-Wall", "-Wextra", "-Werror",
-              "-DCSE_TEXT_ENTRY_USE_PTHREAD_KEY=1", "-I" + str(root / "GoldSrc-SDK/common"), "-I" + str(here)]
+              "-DCSE_TEXT_ENTRY_USE_PTHREAD_KEY=1", "-I" + str(root / "src/common"), "-I" + str(here)]
     hidden = ["-Wl,-unexported_symbol,_" + symbol for symbol in [
         "pthread_key_create", "pthread_key_delete", "pthread_getspecific", "pthread_setspecific",
         "pthread_mutex_lock", "pthread_mutex_unlock", "pthread_mutex_destroy"]]
@@ -62,7 +62,7 @@ def main():
         directory = out / profile
         directory.mkdir(exist_ok=True)
         flags = common + options
-        helper = str(root / "GoldSrc-SDK/common/TextEntryClipboard.cpp")
+        helper = str(root / "src/common/TextEntryClipboard.cpp")
         for name, sources in [("guard", [str(here / "guard_tests.cpp"), helper]),
                               ("failure", [str(here / "failure_tests.cpp"), str(here / "os_hooks.cpp"), helper])]:
             target = str(directory / name)
@@ -124,7 +124,7 @@ def main():
             execute(profile + "-prepare-" + owner, [sys.executable, str(accepted / "prepare_fixture.py"),
                     "--repo", str(root), "--out", str(fixture), "--database", str(database), "--owner", owner])
             context = json.loads((fixture / "owning-context.json").read_text())
-            vpanel = root / "GoldSrc-SDK/vgui2/src/VPanel.cpp"
+            vpanel = root / "src/vgui2/src/VPanel.cpp"
             entry = next(e for e in entries if e["file"] == str(vpanel))
             vflags = strip_recipe(entry)
             sanitize = ["-fsanitize=address,undefined", "-fno-omit-frame-pointer"] if profile == "Sanitizer" else []
@@ -135,8 +135,8 @@ def main():
                         + ["-c", str(source), "-o", obj], Path(entry["directory"]))
                 objects.append(obj)
             command = context["flags"] + ["-I" + str(fixture), "-I" + str(here), "-I" + str(accepted),
-                      "-I" + str(root / "GoldSrc-SDK/vgui2/src"), str(here / "widget_key_tests.cpp"),
-                      str(accepted / "unexpected_binding.cpp"), "-I" + str(root / "GoldSrc-SDK/common"),
+                      "-I" + str(root / "src/vgui2/src"), str(here / "widget_key_tests.cpp"),
+                      str(accepted / "unexpected_binding.cpp"), "-I" + str(root / "src/common"),
                       str(fixture / "actual_clipboard_helper.cpp"), str(here / "os_hooks.cpp"), *objects,
                       "-Wl,-dead_strip", *hidden, *sanitize, "-o", str(fixture / "widget-tests")]
             execute(profile + "-" + owner + "-compile-widget", command, Path(context["entry"]["directory"]))

@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_legacy_raster/extract_reference.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_matched_program/extract_owner.py"
     "${CSE_ROOT}/tests/native/vgui1_legacy_raster/gdi_reference.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
@@ -31,7 +31,7 @@ find_path(BZIP2_INCLUDE_DIR NAMES bzlib.h PATHS "${CSE_FREETYPE_PREFIX}/include"
 find_package(BZip2 REQUIRED)
 find_package(PNG CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/png" NO_DEFAULT_PATH)
 find_package(freetype CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/freetype" NO_DEFAULT_PATH)
-set(native "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native")
+set(native "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/posix/native")
 add_executable(fixedsys_source_probe probe.cpp "${native}/VGui1LegacyRaster.cpp")
 set_source_files_properties("${native}/VGui1LegacyRaster.cpp" PROPERTIES
     COMPILE_OPTIONS /EHs-c- COMPILE_DEFINITIONS _HAS_EXCEPTIONS=0)

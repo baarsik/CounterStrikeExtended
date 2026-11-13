@@ -9,8 +9,8 @@ import struct
 
 
 def prepare(source, destination):
-    cpp = source / 'GoldSrc-SDK/HLTV/common/DemoFile.cpp'
-    header = source / 'GoldSrc-SDK/HLTV/common/DemoFile.h'
+    cpp = source / 'src/HLTV/common/DemoFile.cpp'
+    header = source / 'src/HLTV/common/DemoFile.h'
     text = cpp.read_text()
     begin = text.index('bool DemoFile::StartRecording(')
     end = text.index('bool DemoFile::', begin + 1)

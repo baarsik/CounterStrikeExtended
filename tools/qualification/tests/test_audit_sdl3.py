@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 SPEC = importlib.util.spec_from_file_location('audit_sdl3', Path(__file__).parents[1] / 'audit_sdl3.py')
-PINNED_DLL = Path(__file__).resolve().parents[3] / 'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.dll'
+PINNED_DLL = Path(__file__).resolve().parents[3] / 'src/external/SDL3/lib/x86/SDL3.dll'
 audit = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(audit)
 

@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/cstrikedll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(cs_server PRIVATE
   "${CSE_SDK_DIR}/cstrike/dlls/saved_callbacks.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp"

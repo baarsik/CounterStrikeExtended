@@ -16,7 +16,7 @@ art = args.art.resolve()
 out = art / 'mac'
 out.mkdir(parents=True, exist_ok=True)
 tests = repo / 'tests/native/vgui2_system_clock'
-source = repo / 'GoldSrc-SDK/vgui2/src'
+source = repo / 'src/vgui2/src'
 compiler = Path('/usr/bin/clang++')
 commands = []
 

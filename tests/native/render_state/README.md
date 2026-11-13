@@ -80,8 +80,8 @@ expectation is retained as a RED receipt.
 
 ## Resource count comparison
 
-`operation_corpus.py` evaluates the actual owning hw manifest with the retained
-translator and records selected-source hashes, lexical calls and raw GL bypasses.
+`operation_corpus.py` queries the owning `hw_engine` CMake target and records
+CMake input hashes, selected-source hashes, lexical calls and raw GL bypasses.
 It does not preprocess branches or claim runtime coverage. The installed
 `platform/gl_shaders/vs_world.vert` and `fs_world.frag` were copied read-only to
 the external `renderer-asset-reference` artifact with source paths and hashes;

@@ -7,9 +7,9 @@ root = pathlib.Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('slots', root / 'tests/native/engine_bootstrap_abi/check_slots.py')
 slots = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(slots)
-header = (root / 'GoldSrc-SDK/public/dedicated_api.h').read_text()
+header = (root / 'src/public/dedicated_api.h').read_text()
 header = header.replace('#pragma once', '').replace('#include "interface_registry.h"',
-    '#include "' + str(root / 'GoldSrc-SDK/public/interface_registry.h') + '"')
+    '#include "' + str(root / 'src/public/interface_registry.h') + '"')
 probe = '''
 bool Frame(IDedicatedServerAPI* p) { return p->RunFrame(); }
 int Stop(IDedicatedServerAPI* p) { return p->Shutdown(); }

@@ -6,9 +6,9 @@ foreach(order api_first net_first)
   add_library(network_headers_${order} OBJECT network_headers.cpp)
   target_compile_features(network_headers_${order} PRIVATE cxx_std_17)
   target_include_directories(network_headers_${order} PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/cl_dll"
-    "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cl_dll"
+    "${CSE_ROOT}/src/pm_shared")
   if(order STREQUAL api_first)
     target_compile_definitions(network_headers_${order} PRIVATE CSE_API_FIRST)
   endif()

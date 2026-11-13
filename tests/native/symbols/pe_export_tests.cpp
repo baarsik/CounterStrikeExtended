@@ -7,7 +7,7 @@
 #include <iterator>
 #include <string>
 #include <vector>
-#include "../../../GoldSrc-SDK/common/pe_exports.h"
+#include "../../../src/common/pe_exports.h"
 #include "pe_test_image.h"
 
 namespace {

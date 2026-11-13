@@ -9,10 +9,11 @@ option(CSE_PARTICLE_MEMORY_SANITIZERS "Instrument the full actual particle modul
 option(CSE_PARTICLE_MEMORY_SANITIZE_MODULE "Instrument reloadable production objects as well as test drivers" ON)
 set(manifest_sources "${CMAKE_CURRENT_BINARY_DIR}/manifest_sources.cmake")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/manifest_sources.py"
-  "${CSE_ROOT}" "${CSE_TARGET_OS}" "${CMAKE_BUILD_TYPE}" "${manifest_sources}" COMMAND_ERROR_IS_FATAL ANY)
+  "${CSE_ROOT}" "${CSE_TARGET_OS}" "${CMAKE_BUILD_TYPE}" "${manifest_sources}" "${CSE_TARGET_ARCH}"
+  COMMAND_ERROR_IS_FATAL ANY)
 include("${manifest_sources}")
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${CSE_ROOT}/GoldSrc-SDK/projects/vs2026/particleman.vcxproj" "${CSE_ROOT}/tools/translate_msbuild.py"
+include("${CSE_ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${CSE_ROOT}"
   "${CMAKE_CURRENT_SOURCE_DIR}/manifest_sources.py")
 add_library(particleman_objects OBJECT ${CSE_PARTICLE_SOURCES})
 set_property(TARGET particleman_objects PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -23,7 +24,7 @@ set_property(TARGET particleman_objects PROPERTY MSVC_RUNTIME_LIBRARY "MultiThre
 if(MSVC)
   target_compile_options(particleman_objects PRIVATE /W4 /WX /EHsc)
   include("${CSE_ROOT}/cmake/RuntimeTargets.cmake")
-  cse_game_module_exports(particleman "${CSE_ROOT}/GoldSrc-SDK/projects/vs2026/particleman.def"
+  cse_game_module_exports(particleman "${CSE_ROOT}/cmake/exports/win32/particleman.def"
     "${CSE_ROOT}/cmake/exports/particleman.def")
 else()
   target_compile_options(particleman_objects PRIVATE -Wall -Wextra -Werror=shorten-64-to-32)

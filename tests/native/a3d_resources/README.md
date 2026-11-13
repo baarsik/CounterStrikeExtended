@@ -1,8 +1,8 @@
 # Native A3D resources and ownership
 
 This fixture compiles the actual retained `a3dapi` sources, all five geometry
-wrappers, and the native owners from the generated source manifest. Per-file
-FP/EH/RTTI/optimization options are evaluated from the retained MSBuild manifest.
+wrappers, and the native owners selected by the owning CMake source list. Per-file
+FP/EH/RTTI/optimization options are queried from that same CMake target.
 It uses the real provider, distinct leaf, resource manager, stream buffers,
 `DalBufferInfo`, native mixer/output, `CA3d`, and `CA3dSource`; there is no fixture
 provider or mixer. SDL output tests use process-local `SDL_AUDIO_DRIVER=dummy`.

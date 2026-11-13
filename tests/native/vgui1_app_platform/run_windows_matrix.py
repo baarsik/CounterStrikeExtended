@@ -22,10 +22,10 @@ work.mkdir(parents=True, exist_ok=True)
 local = work / 'source'
 shutil.copytree(source, local, dirs_exist_ok=True)
 tests = local / 'tests/native/vgui1_app_platform'
-vgui = local / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+vgui = local / 'src/utils/vgui/lib-src/vgui'
 header = work / 'public-declaring-header'
 header.mkdir(exist_ok=True)
-shutil.copy2(local / 'GoldSrc-SDK/utils/vgui/include/VGUI_App.h', header / 'VGUI_App.h')
+shutil.copy2(local / 'src/utils/vgui/include/VGUI_App.h', header / 'VGUI_App.h')
 vsdev = r'C:\BuildTools\2026\Common7\Tools\VsDevCmd.bat'
 rows = []
 

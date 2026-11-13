@@ -13,9 +13,9 @@ parser.add_argument('--evidence', type=Path, required=True)
 parser.add_argument('--sdl-config', type=Path)
 args = parser.parse_args()
 args.evidence.mkdir(parents=True, exist_ok=False)
-core = args.repo / 'GoldSrc-SDK/engine/native_mouse_window.cpp'
-cocoa = args.repo / 'GoldSrc-SDK/common/sdl3_native_cocoa_mouse.mm'
-windows = args.repo / 'GoldSrc-SDK/engine/native_mouse_windows.cpp'
+core = args.repo / 'src/engine/native_mouse_window.cpp'
+cocoa = args.repo / 'src/common/sdl3_native_cocoa_mouse.mm'
+windows = args.repo / 'src/engine/native_mouse_windows.cpp'
 cases = [
  ('absolute-cache', core, 'CORE', 'native_mouse_window_tests',
   '} else if (!platform.absolutePosition(handle, width, height, &resultX, &resultY)) {\n        return false;\n    }',

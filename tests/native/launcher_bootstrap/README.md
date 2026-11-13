@@ -1,7 +1,7 @@
 # macOS launcher bootstrap fixture
 
-This executes all four launcher translation units selected by the retained
-`launcher.vcxproj` evaluator. It loads an actual owned filesystem module and an
+This executes the launcher translation units selected by the owning
+`launcher` CMake target. It loads an actual owned filesystem module and an
 authored `IEngineAPI` engine from a temporary executable directory. It does not
 start the game, Steam, a window, audio, or a microphone.
 
@@ -41,8 +41,8 @@ runs cover normal return, restart and retained-peer cleanup. `leaks` reports its
 own analysis exit status, so the direct CTest case separately verifies the
 retained-owner launcher's failure status.
 
-`windows_compile.py` consumes a frozen receipt produced by the owning manifest
-evaluator. It initializes MSVC in RAM, compares real preprocessed Windows tokens
+`windows_compile.py` consumes a frozen historical Windows source inventory receipt.
+It initializes MSVC in RAM, compares real preprocessed Windows tokens
 at the same physical source path, and compiles all four selected translation
 units for x86, x64 and ARM64, Release and Debug, with `/W4 /WX`. It does not run a
 Windows launcher. The Linux-selected source tokens are unchanged; Linux runtime

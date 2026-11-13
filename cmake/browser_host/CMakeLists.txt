@@ -45,7 +45,7 @@ if(APPLE)
 endif()
 add_subdirectory("${CEF_LIBCEF_DLL_WRAPPER_PATH}" "${CMAKE_BINARY_DIR}/libcef_dll_wrapper")
 set(CEF_TARGET cse_cef_host)
-set(CSE_HOST_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/html/native")
+set(CSE_HOST_SOURCE "${CSE_ROOT}/src/engine/html/native")
 SET_CEF_TARGET_OUT_DIR()
 # A complete runtime stages the host beside the engine. Standalone fixtures
 # retain their own isolated provider directory. CEF flags remain in this subtree.

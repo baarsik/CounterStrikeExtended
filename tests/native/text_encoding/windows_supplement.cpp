@@ -1,7 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
-#include "../../../GoldSrc-SDK/common/legacy_text_encoding.h"
+#include "../../../src/common/legacy_text_encoding.h"
 #include <array>
 #include <cstdint>
 #include <cstdio>

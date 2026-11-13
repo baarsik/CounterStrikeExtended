@@ -2,8 +2,7 @@
 
 This project compiles the actual `filesystem_stdio` shared module and loads its
 `CreateInterface` / `VFileSystem009` boundary. `manifest_sources.py` calls the
-repository's retained MSBuild evaluator for both configurations, applies the
-source items' target-OS metadata, and writes the evaluated inventory into the
+owning CMake target for both configurations and the selected target OS, and writes the queried inventory into the
 build directory. There is no copied production source list.
 
 The fixture uses only its supplied owned directories and generated literal PACK
@@ -67,13 +66,13 @@ ctest --test-dir build/filesystem-x64-release --output-on-failure
 ```
 
 Repeat in Debug and in the Win32 compiler environment. The POSIX source items
-remain excluded by the retained Windows manifest. Windows ordering is compared
+remain excluded by the Windows CMake source selection. Windows ordering is compared
 against independent native `FindFirstFileA` results on the generated directories;
 the fixture does not assume POSIX order. Windows execution remains a separate
 qualification step.
 
-To compare a pinned reference, set `CSE_FILESYSTEM_MANIFEST` to a preserved
-filesystem manifest with its source tree, build target `filesystem_stdio`, then
+To compare a pinned reference, set `CSE_FILESYSTEM_POLICY_ROOT` to a preserved
+repository with its owning CMake definitions and source tree, build target `filesystem_stdio`, then
 run the current driver against that actual reference DLL:
 
 ```powershell

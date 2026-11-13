@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../GoldSrc-SDK/public/cse_module_abi.h"
+#include "../../../src/public/cse_module_abi.h"
 
 struct FixtureTable {
     std::uintptr_t (CSE_ABI_CALL *command)(std::uintptr_t);

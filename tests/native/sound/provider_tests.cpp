@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <thread>
-#include "../../../GoldSrc-SDK/engine/sdl3_audio_backend.h"
+#include "../../../src/engine/sdl3_audio_backend.h"
 
 #define CHECK(condition) do { \
     if (!(condition)) { \

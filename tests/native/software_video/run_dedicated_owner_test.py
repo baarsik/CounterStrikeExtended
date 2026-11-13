@@ -10,7 +10,7 @@ from actual_arguments import definitions
 
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-source = (root / 'GoldSrc-SDK/engine/sys_dll2.cpp').read_text()
+source = (root / 'src/engine/sys_dll2.cpp').read_text()
 interfaces = '#include "idedicatedexports.h"\n#include "dedicated_api.h"\n'
 
 owner = source[source.index('class CDedicatedServerAPI :'):source.index('\n#ifdef _MSC_VER', source.index('class CDedicatedServerAPI :'))]
@@ -23,8 +23,8 @@ fixture.write_text('#include "linked_owner.h"\n#include "dedicated_owner_service
 optimization = sys.argv[2] if len(sys.argv) > 2 else '-O0'
 assert optimization in ('-O0', '-O2', '-Os')
 command = ['clang++', optimization, '-ffp-model=precise', '-ffp-contract=off', '-Wno-overriding-option', '-std=c++17', '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
-           '-I' + str(root / 'GoldSrc-SDK/public'), '-I' + str(root / 'GoldSrc-SDK'),
-           '-I' + str(root / 'tests/native/software_video'), str(fixture), str(root / 'GoldSrc-SDK/engine/native_software_lifetime.cpp'),
+           '-I' + str(root / 'src/public'), '-I' + str(root / 'src'),
+           '-I' + str(root / 'tests/native/software_video'), str(fixture), str(root / 'src/engine/native_software_lifetime.cpp'),
            '-Wl,-export_dynamic', '-o', str(out / 'dedicated_owner_test')]
 sys.path.insert(0, str(root / 'tests/native/socket_lifetime'))
 from linked_owner import arguments

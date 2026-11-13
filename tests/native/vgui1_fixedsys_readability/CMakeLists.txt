@@ -17,7 +17,7 @@ endif()
 find_package(PNG CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/png" NO_DEFAULT_PATH)
 # Consume the current parent-owned provider membership; do not duplicate it.
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../vgui1_native_provider" baseline-provider)
-set(vgui_source "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(vgui_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 add_executable(fixedsys_owner_readability readability.cpp "${vgui_source}/posix/Font.cpp"
     "${vgui_source}/posix/VGui1FontServices.cpp" "${vgui_source}/Font.cpp"
     "${vgui_source}/common/fileimage.cpp" "${vgui_source}/common/vfontdata.cpp")

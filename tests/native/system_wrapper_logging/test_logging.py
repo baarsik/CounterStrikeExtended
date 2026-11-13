@@ -6,7 +6,7 @@ p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.a
 a=p.parse_args();a.root=a.root.resolve();a.evidence.mkdir(parents=True,exist_ok=False)
 spec=importlib.util.spec_from_file_location('extract',a.root/'tests/native/network_platform/extract_functions.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-source=a.root/'GoldSrc-SDK/engine/SystemWrapper.cpp'
+source=a.root/'src/engine/SystemWrapper.cpp'
 body=m.extract(source.read_text(),'SystemWrapper::DPrintf')
 prefix=r'''
 #include <cassert>

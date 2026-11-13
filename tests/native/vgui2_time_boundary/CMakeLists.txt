@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(CseVgui2TimeBoundary LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(sdk "${CSE_ROOT}/GoldSrc-SDK")
+set(sdk "${CSE_ROOT}/src")
 enable_testing()
 foreach(order canonical-first cs-first)
   foreach(entry engine lookup standalone cs-wrapper)

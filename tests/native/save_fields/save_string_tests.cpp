@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/legacy_save_strings.h"
+#include "../../../src/common/legacy_save_strings.h"
 #include <cstdio>
 #include <memory>
 

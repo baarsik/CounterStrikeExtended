@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../GoldSrc-SDK/common/legacy_text_encoding.h"
+#include "../../../src/common/legacy_text_encoding.h"
 
 #if !defined(_WIN32)
 using ucs2 = unsigned short;

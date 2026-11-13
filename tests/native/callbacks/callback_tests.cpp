@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/saved_callbacks.h"
+#include "../../../src/common/saved_callbacks.h"
 
 #include <array>
 #include <cstdint>

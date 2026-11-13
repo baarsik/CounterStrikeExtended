@@ -24,7 +24,7 @@ cache = args.recipe_cache.resolve() if args.recipe_cache else cache
 entries = json.loads((cache / 'compile_commands.json').read_text())
 entries = [entry for entry in entries if '/gameui.dir/' in entry.get('output', '')]
 owner = next(entry for entry in entries if entry['file'].endswith('/GameUI/GameUI_Interface.cpp'))
-source_prefix = owner['file'].split('/GoldSrc-SDK/')[0]
+source_prefix = owner['file'].split('/src/')[0]
 extra = ['engine/controls.cpp', 'engine/interface.cpp', 'engine/mem.c', 'engine/KeyValues.cpp',
          'engine/utlbuffer.cpp', 'engine/utlsymbol.cpp', 'engine/MemPool.cpp',
          'common/TextEntryClipboard.cpp', 'common/legacy_wide_format.cpp',
@@ -42,19 +42,19 @@ new = ['ServerBrowserModel', 'ServerBrowserConfig', 'ServerBrowserPresentation',
 if args.driver == 'module':
     new.append('ServerBrowserModule')
 for name in new:
-    selected.append(dict(owner, file=str(repo / 'GoldSrc-SDK/GameUI/native' / (name + '.cpp'))))
+    selected.append(dict(owner, file=str(repo / 'src/GameUI/native' / (name + '.cpp'))))
 selected.append(dict(owner, file=str(repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp'))))
 
 def run(pair):
     index, entry = pair
-    argv = [value.replace(source_prefix + '/GoldSrc-SDK', str(repo / 'GoldSrc-SDK'))
+    argv = [value.replace(source_prefix + '/src', str(repo / 'src'))
             for value in shlex.split(entry['command'])]
-    source = entry['file'].replace(source_prefix + '/GoldSrc-SDK', str(repo / 'GoldSrc-SDK'))
+    source = entry['file'].replace(source_prefix + '/src', str(repo / 'src'))
     output = packet / (f'{index:03d}-' + Path(source).name + '.o')
     argv[argv.index('-c') + 1] = source
     argv[argv.index('-o') + 1] = str(output)
     argv += ['-MD', '-MF', str(output.with_suffix('.d')), '-I' + str(packet / 'extracted'),
-             '-I' + str(repo / 'GoldSrc-SDK/GameUI/native')]
+             '-I' + str(repo / 'src/GameUI/native')]
     if args.sanitizers:
         argv += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer']
     before = hashlib.sha256(Path(source).read_bytes()).hexdigest()

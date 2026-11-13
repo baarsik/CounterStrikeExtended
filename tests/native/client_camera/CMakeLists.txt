@@ -7,15 +7,15 @@ option(CSE_CAMERA_SANITIZERS "Instrument actual camera bodies with controlled se
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hl_camera.inc" "${CMAKE_CURRENT_BINARY_DIR}/cs_camera.inc"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_camera.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
-    DEPENDS extract_camera.py "${CSE_ROOT}/GoldSrc-SDK/cl_dll/in_camera.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/in_camera.cpp" VERBATIM)
+    DEPENDS extract_camera.py "${CSE_ROOT}/src/cl_dll/in_camera.cpp"
+        "${CSE_ROOT}/src/cstrike/cl_dll/in_camera.cpp" VERBATIM)
 add_custom_target(camera_extract DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/hl_camera.inc")
 enable_testing()
 foreach(game hl cs)
     add_executable(camera_${game} ownership_tests.cpp)
     add_dependencies(camera_${game} camera_extract)
     target_include_directories(camera_${game} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/cl_dll")
+        "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/cl_dll")
     if(game STREQUAL cs)
         target_compile_definitions(camera_${game} PRIVATE CSE_CAMERA_CS=1)
     else()

@@ -22,7 +22,7 @@ def main():
         for profile in ['release', 'debug', 'sanitizers']:
             database = options.debug_database if profile == 'debug' else options.release_database
             candidates = [row for row in json.loads(database.read_text()) if
-                          row['file'] == str(ROOT / 'GoldSrc-SDK/HLTV' /
+                          row['file'] == str(ROOT / 'src/HLTV' /
                           ('common' if name == 'NetAddress' else 'Core') / (name + '.cpp'))]
             entry = next(row for row in candidates if 'targets/hltv_core/' in row['output'])
             command = shlex.split(entry['command'])

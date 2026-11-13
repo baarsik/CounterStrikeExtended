@@ -12,7 +12,7 @@ inputs = {}
 
 
 def read(name):
-    path = root / 'GoldSrc-SDK' / name
+    path = root / 'src' / name
     inputs[name] = hashlib.sha256(path.read_bytes()).hexdigest()
     return path.read_text(encoding='cp1252')
 

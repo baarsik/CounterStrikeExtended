@@ -1,6 +1,6 @@
 // Actual swds EngineSurface007 and Draw_RGBAImage; no replacement rasterizer.
-#include "../../../GoldSrc-SDK/engine/vid.h"
-#include "../../../GoldSrc-SDK/engine/IEngineSurface.h"
+#include "../../../src/engine/vid.h"
+#include "../../../src/engine/IEngineSurface.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>

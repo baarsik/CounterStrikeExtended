@@ -33,7 +33,7 @@ for case, target, filename, old, new in [
         '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Debug'], 0)
     path = build / 'imported' / filename
     if filename == 'draw.h':
-        path.write_bytes((args.repo / 'GoldSrc-SDK/engine/draw.h').read_bytes())
+        path.write_bytes((args.repo / 'src/engine/draw.h').read_bytes())
     original = path.read_text()
     assert old in original, (case, old)
     changed = original.replace(old, new)

@@ -1,6 +1,6 @@
 #define CSE_ABI_ENGINE_VIEW
 #include "../client_abi/fixture_types.h"
-#include "../../../GoldSrc-SDK/public/cse_module_abi.h"
+#include "../../../src/public/cse_module_abi.h"
 #include "../strings/high_offset_buffer.h"
 #include "../client_mouse_coordinates/controlled_window.h"
 #include <new>

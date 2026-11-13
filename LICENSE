@@ -7,16 +7,19 @@ The MIT text in LICENSES/MIT.txt applies only to copyrightable original
 contributions authored for this fork, to the extent their authors have the
 necessary rights. For the initial development work, that scope is the original
 build orchestration in CMakeLists.txt, CMakePresets.json, cmake/MSVCDefaults.cmake,
-cmake/RuntimeTargets.cmake, hardware/CMakeLists.txt, tools/translate_msbuild.py,
-tools/export-msbuild.ps1, .gitignore, and original prose in this fork's new docs
-and rewritten README.md. It does not cover quoted or copied third-party content.
+cmake/RuntimeTargets.cmake, hardware/CMakeLists.txt, tools/cmake_inventory.py,
+tools/generate_runtime_sources.py, .gitignore, and original prose in this fork's
+new docs and rewritten README.md. Original translation and MSBuild export tools
+recovered from Git history retain that same original-contribution scope. It does
+not cover quoted or copied third-party content.
 
-Inherited source and modifications to it under GoldSrc-SDK/, bundled libraries,
-headers, artwork, provider interfaces, upstream-manifests.zip, and generated
-MSBuild selection data retain their existing notices, restrictions and unresolved
-provenance. The generated cmake/targets/ files contain inherited source/flag/export
-selections: the license of the original generator does not grant new rights to
-the selected code or claim these inherited selections are wholly MIT.
+Inherited source and modifications to it under src/, bundled libraries,
+headers, artwork, provider interfaces, upstream-manifests.zip, and inherited build
+selection data retain their existing notices, restrictions and unresolved
+provenance. The cmake/targets/ files contain inherited source/flag/export
+selections: maintaining them directly in CMake and generating inventories does
+not grant new rights to the selected code or claim these inherited selections
+are wholly MIT. The license of original build tooling provides no such grant.
 
 No blanket MIT grant, commercial redistribution permission, or ownership of Valve,
 Id, Steamworks, Miles, Aureal or other inherited content is asserted. See

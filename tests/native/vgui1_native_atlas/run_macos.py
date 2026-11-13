@@ -18,13 +18,13 @@ args.art.mkdir(exist_ok=False)
 assert 'ASAN_OPTIONS' not in os.environ and 'UBSAN_OPTIONS' not in os.environ
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
 rows = []
-owned_paths = [args.source_root / 'GoldSrc-SDK/engine' / name for name in [
+owned_paths = [args.source_root / 'src/engine' / name for name in [
     'VGui1NativeRuntime.h', 'VGui1NativeRuntime.cpp', 'VGui1NativeAtlas.h', 'VGui1NativeAtlas.cpp',
     'VGUI_EngineSurfaceWrap.cpp',
     'vgui_intwrap.cpp', 'vgui_EngineSurface.cpp', 'vgui_EngineSurfaceHW.cpp', 'vgui_EngineSurfaceSW.cpp',
     'vgui_EngineSurface.h', 'sys_sdlwind.cpp']]
-owned_paths += [repo / 'GoldSrc-SDK/engine/VGui1NativeFontSelection.h',
-                repo / 'GoldSrc-SDK/engine/VGui1NativeFontSelection.cpp']
+owned_paths += [repo / 'src/engine/VGui1NativeFontSelection.h',
+                repo / 'src/engine/VGui1NativeFontSelection.cpp']
 owned_paths += [path for path in Path(__file__).parent.iterdir() if path.is_file()]
 initial = {str(path): sha(path) for path in owned_paths}
 (args.art / 'source-pins-before.json').write_text(json.dumps(initial, indent=2) + '\n')
@@ -82,7 +82,7 @@ for config in ['release', 'debug']:
         if not before.exists() and path.name == 'vgui_EngineSurface.cpp':
             before = args.before / 'engine/VGUI_EngineSurface.cpp'
         assert before.is_file(), before
-        for phase, source in [('before', before), ('after', args.source_root / 'GoldSrc-SDK/engine' / path.name)]:
+        for phase, source in [('before', before), ('after', args.source_root / 'src/engine' / path.name)]:
             command = original.copy()
             command[command.index('-c') + 1] = str(source)
             command[command.index('-o') + 1] = str(args.art / (label + '-' + phase + '.o'))
@@ -90,7 +90,7 @@ for config in ['release', 'debug']:
         if path.name == 'vgui_intwrap.cpp':
             for name in ['VGui1NativeRuntime.cpp', 'VGui1NativeAtlas.cpp']:
                 command = original.copy()
-                command[command.index('-c') + 1] = str(args.source_root / 'GoldSrc-SDK/engine' / name)
+                command[command.index('-c') + 1] = str(args.source_root / 'src/engine' / name)
                 command.append('-fexceptions') # Explicit proposed per-file Sync policy only.
                 command[command.index('-o') + 1] = str(args.art / (config + '-' + owner + '-derived-' + name + '.o'))
                 execute(config + '-' + owner + '-derived-' + name, command, cwd=entry['directory'])

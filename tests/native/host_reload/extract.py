@@ -43,7 +43,7 @@ def extract(root, output):
         'pr_edict.cpp': [('edict_t* ED_Alloc()\n{', '\nvoid SaveSpawnParms(')],
     }
     for name, anchors in selections.items():
-        path = root / 'GoldSrc-SDK/engine' / name
+        path = root / 'src/engine' / name
         raw = path.read_bytes()
         source = raw.decode().replace('\r\n', '\n')
         if name == 'host_cmd.cpp' and 'enum class HostLoadFailurePolicy' in source:

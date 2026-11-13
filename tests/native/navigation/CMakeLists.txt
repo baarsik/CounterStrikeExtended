@@ -6,11 +6,11 @@ include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 add_executable(graph_records_tests graph_records_tests.cpp)
 target_compile_features(graph_records_tests PRIVATE cxx_std_17)
 target_include_directories(graph_records_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common"
-  "${CSE_ROOT}/GoldSrc-SDK/engine"
-  "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+  "${CSE_ROOT}/src/dlls"
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common"
+  "${CSE_ROOT}/src/engine"
+  "${CSE_ROOT}/src/pm_shared")
 if(MSVC)
   target_compile_options(graph_records_tests PRIVATE /W4 /WX /EHsc)
 endif()
@@ -19,39 +19,39 @@ add_test(NAME legacy-navigation-records COMMAND graph_records_tests)
 add_executable(nav_reference_tests nav_reference_tests.cpp)
 target_compile_features(nav_reference_tests PRIVATE cxx_std_17)
 target_include_directories(nav_reference_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/bot"
-  "${CSE_ROOT}/GoldSrc-SDK/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/game_shared"
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common"
-  "${CSE_ROOT}/GoldSrc-SDK/engine"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared")
+  "${CSE_ROOT}/src/cstrike/dlls"
+  "${CSE_ROOT}/src/cstrike/game_shared/bot"
+  "${CSE_ROOT}/src/dlls"
+  "${CSE_ROOT}/src/game_shared"
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common"
+  "${CSE_ROOT}/src/engine"
+  "${CSE_ROOT}/src/cstrike/pm_shared")
 if(MSVC)
   target_compile_options(nav_reference_tests PRIVATE /W4 /WX /EHsc)
 endif()
 add_test(NAME native-navigation-references COMMAND nav_reference_tests)
 
 add_executable(nav_file_tests nav_file_tests.cpp
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/bot/nav_file.cpp"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/bot/nav_area.cpp"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/bot/nav_node.cpp")
+  "${CSE_ROOT}/src/cstrike/game_shared/bot/nav_file.cpp"
+  "${CSE_ROOT}/src/cstrike/game_shared/bot/nav_area.cpp"
+  "${CSE_ROOT}/src/cstrike/game_shared/bot/nav_node.cpp")
 target_compile_features(nav_file_tests PRIVATE cxx_std_17)
 target_include_directories(nav_file_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/engine"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls/bot"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls/hostage"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/common"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared"
-  "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/bot"
-  "${CSE_ROOT}/GoldSrc-SDK/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/pm_shared"
-  "${CSE_ROOT}/GoldSrc-SDK/game_shared"
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common"
-  "${CSE_ROOT}/GoldSrc-SDK/engine")
+  "${CSE_ROOT}/src/cstrike/engine"
+  "${CSE_ROOT}/src/cstrike/dlls"
+  "${CSE_ROOT}/src/cstrike/dlls/bot"
+  "${CSE_ROOT}/src/cstrike/dlls/hostage"
+  "${CSE_ROOT}/src/cstrike/common"
+  "${CSE_ROOT}/src/cstrike/pm_shared"
+  "${CSE_ROOT}/src/cstrike/game_shared"
+  "${CSE_ROOT}/src/cstrike/game_shared/bot"
+  "${CSE_ROOT}/src/dlls"
+  "${CSE_ROOT}/src/pm_shared"
+  "${CSE_ROOT}/src/game_shared"
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common"
+  "${CSE_ROOT}/src/engine")
 if(MSVC)
   target_compile_definitions(nav_file_tests PRIVATE WIN32)
   target_compile_options(nav_file_tests PRIVATE /EHsc /Gy /Gw)

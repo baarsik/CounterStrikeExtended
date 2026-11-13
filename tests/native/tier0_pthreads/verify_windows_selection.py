@@ -12,7 +12,7 @@ def digest(data):
 
 
 def run(args):
-    relative = Path('GoldSrc-SDK/tier0/threadtools.cpp')
+    relative = Path('src/tier0/threadtools.cpp')
     before = args.baseline / relative
     after = args.current / relative
     profiles = {}
@@ -31,7 +31,7 @@ def run(args):
         profiles[arch] = variants
     headers = {}
     for name in ['threadtools.h', 'platform.h', 'dbg.h']:
-        header = Path('GoldSrc-SDK/public/tier0') / name
+        header = Path('src/public/tier0') / name
         data = (args.baseline / header).read_bytes()
         assert data == (args.current / header).read_bytes(), header
         headers[header.as_posix()] = digest(data)

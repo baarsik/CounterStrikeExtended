@@ -1,6 +1,6 @@
-#include "../../../GoldSrc-SDK/engine/cd.h"
-#include "../../../GoldSrc-SDK/engine/ithread.h"
-#include "../../../GoldSrc-SDK/engine/mpg123_music.h"
+#include "../../../src/engine/cd.h"
+#include "../../../src/engine/ithread.h"
+#include "../../../src/engine/mpg123_music.h"
 #include <cstdio>
 #include <cstdlib>
 #if defined(_WIN32)

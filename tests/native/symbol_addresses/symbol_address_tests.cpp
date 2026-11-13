@@ -8,14 +8,14 @@
 #if !defined(_WIN32)
 #include <dlfcn.h>
 #endif
-#include "../../../GoldSrc-SDK/engine/pr_dlls.h"
+#include "../../../src/engine/pr_dlls.h"
 
 typedef float vec_t;
 typedef float vec3_t[3];
-#include "../../../GoldSrc-SDK/common/const.h"
-#include "../../../GoldSrc-SDK/engine/progdefs.h"
-#include "../../../GoldSrc-SDK/engine/edict.h"
-#include "../../../GoldSrc-SDK/engine/eiface.h"
+#include "../../../src/common/const.h"
+#include "../../../src/engine/progdefs.h"
+#include "../../../src/engine/edict.h"
+#include "../../../src/engine/eiface.h"
 #include "../strings/high_offset_buffer.h"
 
 static_assert(sizeof(functiontable_t::pFunction) == sizeof(std::uintptr_t), "Export addresses must be native width");
@@ -47,9 +47,9 @@ void *Mem_Malloc(std::size_t bytes) {
 #endif
 } // namespace
 
-#include "../../../GoldSrc-SDK/engine/symbol_lookup_impl.h"
+#include "../../../src/engine/symbol_lookup_impl.h"
 #if defined(_WIN32)
-#include "../../../GoldSrc-SDK/engine/export_table_impl.h"
+#include "../../../src/engine/export_table_impl.h"
 #endif
 
 #define CHECK(condition) do { \

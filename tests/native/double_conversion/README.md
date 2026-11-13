@@ -6,7 +6,7 @@ match every encoded result of the measured retained Win32 conversion. This is a
 component gate; it does not wire or qualify a VGUI backend or complete runtime.
 
 `extract_reference.py` copies the actual `CSystem::GetTimeMillis` body unchanged
-from `vgui2/src/System.cpp`, pins its source/manifest hashes, and verifies the
+from `vgui2/src/System.cpp`, pins its source hash and queried CMake compiler settings, and verifies the
 owning C++14, `/fp:precise`, and exception profile. A minimal class supplies only
 controlled double `GetCurrentTime` values. It is an arithmetic-body fixture, not
 the production provider or a replacement class ABI.

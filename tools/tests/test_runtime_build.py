@@ -1,19 +1,15 @@
 """Exercise runtime layout/staging and evaluated Release compile/link policy."""
 from pathlib import Path
-import importlib.util
 import json
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
-SPEC = importlib.util.spec_from_file_location('runtime_translator', ROOT / 'tools/translate_msbuild.py')
-translator = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(translator)
+from cmake_inventory import query_targets
 
 
 class RuntimeBuildTests(unittest.TestCase):
@@ -31,7 +27,7 @@ class RuntimeBuildTests(unittest.TestCase):
             (source / 'stub.c').write_text('int probe(void) { return 0; }\n')
             (source / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
 project(RuntimeLayout C)
-set(CSE_SDK_DIR "{ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "{ROOT}/src")
 set(CSE_OUTPUT_DIRECTORY "{output}")
 include("{ROOT}/cmake/RuntimeTargets.cmake")
 foreach(game cstrike valve)
@@ -57,7 +53,7 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/outputs.txt" CONTENT
             if sys.platform == 'win32':
                 self.assertTrue(Path(import_file).is_relative_to(build / 'lib'))
             staged = output / 'SDL3.dll'
-            expected = (ROOT / 'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.dll').read_bytes()
+            expected = (ROOT / 'src/external/SDL3/lib/x86/SDL3.dll').read_bytes()
             self.assertEqual(staged.read_bytes(), expected)
             staged.unlink()
             self.run_cmake('--build', build, '--target', 'provider_consumer')
@@ -65,64 +61,28 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/outputs.txt" CONTENT
             self.assertFalse(list(output.rglob('*.pdb')))
             self.assertFalse(list(output.rglob('*.map')))
 
-    def test_evaluated_release_diagnostics_require_opt_in(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            sdk = root / 'GoldSrc-SDK'
-            sdk.mkdir()
-            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', sdk / 'external/SDL3')
-            (sdk / 'stub.c').write_text('int probe(void) { return 0; }\n')
-            (sdk / 'fixture.vcxproj').write_text('''<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup><ConfigurationType>DynamicLibrary</ConfigurationType><LinkIncremental>false</LinkIncremental></PropertyGroup>
-  <ItemDefinitionGroup>
-    <ClCompile><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary><DebugInformationFormat>ProgramDatabase</DebugInformationFormat></ClCompile>
-    <Link><GenerateDebugInformation>true</GenerateDebugInformation><GenerateMapFile>true</GenerateMapFile><EnableUAC>true</EnableUAC></Link>
-  </ItemDefinitionGroup>
-  <ItemGroup><ClCompile Include="stub.c"><AdditionalOptions>/Z7</AdditionalOptions></ClCompile></ItemGroup>
-</Project>''')
-            (root / 'docs/msbuild').mkdir(parents=True)
-            with patch.multiple(translator, ROOT=root, SDK=sdk, TARGETS={'fixture': 'fixture'}, CASE_PATHS={}):
-                translator.main()
-            (root / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
-project(ReleasePolicy C)
-set(CSE_SDK_DIR "{sdk}")
-set(MSVC TRUE)
-include("{ROOT}/cmake/RuntimeTargets.cmake")
-add_subdirectory(cmake/targets/fixture)
-file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/link.txt" CONTENT "$<TARGET_PROPERTY:fixture,LINK_OPTIONS>" TARGET fixture)
-''')
-            for configuration, diagnostics in [('Release', 'OFF'), ('Release', 'ON'), ('Debug', 'OFF')]:
-                with self.subTest(configuration=configuration, diagnostics=diagnostics):
-                    build = root / f'{configuration}-{diagnostics}'
-                    self.run_cmake('-S', root, '-B', build, '-G', 'Ninja', '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
-                                   f'-DCMAKE_BUILD_TYPE={configuration}', f'-DCSE_RELEASE_DIAGNOSTICS={diagnostics}')
-                    command = json.loads((build / 'compile_commands.json').read_text())[0]['command'].split()
-                    link = (build / 'link.txt').read_text().split(';')
-                    self.assertIn("/MANIFESTUAC:level='asInvoker'", link)
-                    if configuration == 'Debug':
-                        databases = [Path(flag.removeprefix('/ILK:')) for flag in link if flag.startswith('/ILK:')]
-                        self.assertEqual(len(databases), 1)
-                        self.assertTrue(databases[0].is_relative_to(build))
-                        self.assertEqual(databases[0].name, 'fixture-Debug.ilk')
-                    else:
-                        self.assertFalse(any(flag.startswith('/ILK:') for flag in link))
-                    if configuration == 'Release' and diagnostics == 'OFF':
-                        self.assertNotIn('/Zi', command)
-                        self.assertNotIn('/Z7', command)
+
+    def test_production_release_diagnostics_require_opt_in(self):
+        for configuration, diagnostics in (('Release', False), ('Release', True), ('Debug', False)):
+            for data in query_targets(ROOT, configuration, diagnostics=diagnostics):
+                with self.subTest(target=data['target'], configuration=configuration, diagnostics=diagnostics):
+                    options = [flag for item in data['sources'] for flag in item['compile_options']]
+                    link = data['link_options']
+                    if configuration == 'Release' and not diagnostics:
+                        self.assertNotIn('/Zi', options)
+                        self.assertNotIn('/Z7', options)
                         self.assertNotIn('/DEBUG', link)
                         self.assertFalse(any(flag.startswith('/MAP:') for flag in link))
-                    else:
-                        self.assertIn('/Zi', command)
-                        self.assertIn('/Z7', command)
-                        self.assertIn('/DEBUG', link)
-                        self.assertTrue(any(flag.startswith('/MAP:') for flag in link))
+                    self.assertEqual(any(flag.startswith('/ILK:') for flag in link), configuration == 'Debug')
+        release = next(item for item in query_targets(ROOT, diagnostics=True) if item['target'] == 'hw_engine')
+        self.assertIn('/Zi', next(item for item in release['sources'] if item['language'] == 'CXX')['compile_options'])
+        self.assertTrue(any(flag.startswith('/MAP:') for flag in release['link_options']))
 
-    def test_generated_inventory_owns_runtime_output_contract(self):
-        records = json.loads((ROOT / 'docs/msbuild/repository-selections.json').read_text())
+    def test_cmake_targets_own_unique_game_relative_runtime_outputs(self):
+        records = query_targets(ROOT)
         self.assertEqual(len(records), 19)
         paths = []
         for record in records:
-            self.assertIn('runtime', record, 'output contract must come from the translator')
             runtime = record['runtime']
             suffix = '.exe' if runtime['kind'] == 'EXECUTABLE' else '.dll'
             paths.append(str(Path(runtime['directory']) / (runtime['name'] + suffix)))
@@ -133,34 +93,14 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/link.txt" CONTENT "$<TARGET_PROPERTY
         self.assertIn('a3dapi.dll', paths)
 
     def test_external_header_policy_does_not_enable_disabled_analysis(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            sdk = root / 'GoldSrc-SDK'
-            sdk.mkdir()
-            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', sdk / 'external/SDL3')
-            (sdk / 'stub.c').write_text('int probe(void) { return 0; }\n')
-            (root / 'docs/msbuild').mkdir(parents=True)
-            (root / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
-project(AnalysisPolicy C)
-set(CSE_SDK_DIR "{sdk}")
-set(MSVC TRUE)
-include("{ROOT}/cmake/RuntimeTargets.cmake")
-add_subdirectory(cmake/targets/fixture)
-''')
-            for enabled in ('false', 'true'):
-                (sdk / 'fixture.vcxproj').write_text(f'''<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-<PropertyGroup><ConfigurationType>DynamicLibrary</ConfigurationType></PropertyGroup>
-<ItemDefinitionGroup><ClCompile><RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-<EnablePREfast>{enabled}</EnablePREfast><DisableAnalyzeExternal>true</DisableAnalyzeExternal>
-</ClCompile></ItemDefinitionGroup><ItemGroup><ClCompile Include="stub.c"/></ItemGroup></Project>''')
-                with patch.multiple(translator, ROOT=root, SDK=sdk, TARGETS={'fixture': 'fixture'}, CASE_PATHS={}):
-                    translator.main()
-                build = root / enabled
-                self.run_cmake('-S', root, '-B', build, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
-                               '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON')
-                command = json.loads((build / 'compile_commands.json').read_text())[0]['command'].split()
-                flags = [flag for flag in command if flag.startswith('/analyze')]
-                self.assertEqual(flags, ['/analyze', '/analyze:external-'] if enabled == 'true' else [])
+        for configuration in ('Debug', 'Release'):
+            for data in query_targets(ROOT, configuration):
+                for source in data['sources']:
+                    if source['language'] not in ('C', 'CXX'):
+                        continue
+                    flags = [flag for flag in source['compile_options'] if flag.startswith('/analyze')]
+                    expected = ['/analyze', '/analyze:external-'] if data['target'] in ('gameui', 'hlds') else []
+                    self.assertEqual(flags, expected, data['target'] + '/' + source['path'])
 
     def test_decoder_staging_and_distribution_materials_require_opt_in(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -172,7 +112,7 @@ add_subdirectory(cmake/targets/fixture)
             (source / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
 project(DecoderStaging C)
 set(CSE_ROOT "{ROOT}")
-set(CSE_SDK_DIR "{ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "{ROOT}/src")
 set(CSE_OUTPUT_DIRECTORY "{output}")
 include("{ROOT}/cmake/Mpg123Dependency.cmake")
 add_library(consumer STATIC stub.c)
@@ -193,7 +133,7 @@ file(GENERATE OUTPUT "${{CMAKE_BINARY_DIR}}/decoder.txt" CONTENT "$<TARGET_FILE:
             self.run_cmake('--build', build, '--target', 'consumer', '--parallel', '2')
             for name in ['COPYING', 'AUTHORS', 'UPSTREAM.md', 'mpg123-1.33.7.tar.bz2']:
                 self.assertEqual((output / 'licenses/mpg123' / name).read_bytes(),
-                                 (ROOT / 'GoldSrc-SDK/external/mpg123' / name).read_bytes())
+                                 (ROOT / 'src/external/mpg123' / name).read_bytes())
 
     def test_ninja_presets_leave_old_generator_caches_untouched(self):
         with tempfile.TemporaryDirectory() as directory:

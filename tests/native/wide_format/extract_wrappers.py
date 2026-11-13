@@ -6,7 +6,7 @@ import re
 import sys
 
 root = Path(sys.argv[1])
-source = root / 'GoldSrc-SDK/cstrike/game_shared/shared_util.cpp'
+source = root / 'src/cstrike/game_shared/shared_util.cpp'
 out = Path(sys.argv[2])
 raw = source.read_bytes()
 text = raw.decode('cp1252')

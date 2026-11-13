@@ -14,7 +14,7 @@ def run(name,phase,command,success):
     (out/'commands.json').write_text(json.dumps(rows,indent=2)+'\n')
     assert (result.returncode==0)==success,(name,phase,result.stdout,result.stderr)
     return result
-source=(root/'GoldSrc-SDK/engine/vgui_EngineSurfaceHW.cpp').read_text()
+source=(root/'src/engine/vgui_EngineSurfaceHW.cpp').read_text()
 for name,before,after in [
     ('nonpositive-must-be-empty','rectangle->left >= rectangle->right || rectangle->top >= rectangle->bottom',
         'rectangle->left == rectangle->right && rectangle->top == rectangle->bottom'),
@@ -22,14 +22,14 @@ for name,before,after in [
     directory=out/name;directory.mkdir(exist_ok=True)
     assert before in source
     (directory/'vgui_EngineSurfaceHW.cpp').write_text(source.replace(before,after,1))
-    (directory/'gl_screen.cpp').write_bytes((root/'GoldSrc-SDK/engine/gl_screen.cpp').read_bytes())
+    (directory/'gl_screen.cpp').write_bytes((root/'src/engine/gl_screen.cpp').read_bytes())
     build=directory/'build'
     run(name,'configure',['cmake','-S',root/'tests/native/rect_clipping','-B',build,'-G','Ninja','-DCMAKE_BUILD_TYPE=Release',
         '-DRECT_SOURCE='+str(directory/'vgui_EngineSurfaceHW.cpp'),'-DRECT_GOLDEN='+str(art/'golden.jsonl')],True)
     run(name,'build',['cmake','--build',build,'--parallel','3'],True)
     run(name,'test',['ctest','--test-dir',build,'--output-on-failure'],False)
     print('PASS rejected',name,flush=True)
-header=(root/'GoldSrc-SDK/common/cse_rect.h').read_text()
+header=(root/'src/common/cse_rect.h').read_text()
 for name,before,after,compiles in [
     ('signed-mapping','return -1 - static_cast<std::int32_t>(UnsignedMaximum - bits);',
         'return static_cast<std::int32_t>(UnsignedMaximum - bits);',True),

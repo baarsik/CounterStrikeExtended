@@ -10,7 +10,7 @@ if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
 endif()
 add_executable(native_mouse_naive_red naive_sampler_red.cpp ../client_mouse_coordinates/controlled_window.cpp)
 target_include_directories(native_mouse_naive_red PRIVATE "${CSE_SDL_INCLUDE}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public")
 target_compile_definitions(native_mouse_naive_red PRIVATE SDL_STATIC_LIB=1
     CSE_MOUSE_WINDOW_HEADER="${CMAKE_CURRENT_LIST_DIR}/reference/engine/sdl3_window.h")
 set_target_properties(native_mouse_naive_red PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
@@ -24,12 +24,12 @@ else()
         $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
 endif()
 
-set(CSE_NATIVE_MOUSE_CORE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
-set(CSE_NATIVE_MOUSE_COCOA_SOURCE "${CSE_ROOT}/GoldSrc-SDK/common/sdl3_native_cocoa_mouse.mm" CACHE FILEPATH "Actual source or deliberate fixture mutant")
-set(CSE_NATIVE_MOUSE_WINDOWS_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_windows.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+set(CSE_NATIVE_MOUSE_CORE_SOURCE "${CSE_ROOT}/src/engine/native_mouse_window.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+set(CSE_NATIVE_MOUSE_COCOA_SOURCE "${CSE_ROOT}/src/common/sdl3_native_cocoa_mouse.mm" CACHE FILEPATH "Actual source or deliberate fixture mutant")
+set(CSE_NATIVE_MOUSE_WINDOWS_SOURCE "${CSE_ROOT}/src/engine/native_mouse_windows.cpp" CACHE FILEPATH "Actual source or deliberate fixture mutant")
 add_executable(native_mouse_window_tests window_tests.cpp "${CSE_NATIVE_MOUSE_CORE_SOURCE}")
 target_include_directories(native_mouse_window_tests PRIVATE "${CSE_SDL_INCLUDE}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common")
 target_compile_definitions(native_mouse_window_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
 set_target_properties(native_mouse_window_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 option(CSE_NATIVE_MOUSE_SANITIZERS "Instrument fake-service component only" OFF)
@@ -59,7 +59,7 @@ if(APPLE)
     add_executable(native_mouse_platform_tests cocoa_tests.mm ../gameplay_shortcuts/fixture_sdl.cpp
         "${CSE_NATIVE_MOUSE_COCOA_SOURCE}")
     target_compile_options(native_mouse_platform_tests PRIVATE -fobjc-arc -fvisibility=hidden)
-    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_SDL_CONFIG}")
+    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_ROOT}/src/common" "${CSE_SDL_CONFIG}")
     target_link_libraries(native_mouse_platform_tests PRIVATE "-framework Cocoa")
     set_target_properties(native_mouse_platform_tests PROPERTIES OBJCXX_STANDARD 14 OBJCXX_STANDARD_REQUIRED YES)
 elseif(WIN32)
@@ -68,7 +68,7 @@ elseif(WIN32)
     target_link_libraries(native_mouse_platform_tests PRIVATE user32)
 endif()
 if(TARGET native_mouse_platform_tests)
-    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine")
+    target_include_directories(native_mouse_platform_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/src/engine")
     target_compile_definitions(native_mouse_platform_tests PRIVATE SDL_STATIC_LIB=1)
     set_target_properties(native_mouse_platform_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     if(MSVC)
@@ -90,14 +90,14 @@ endif()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CSE_NATIVE_MOUSE_CALLER_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/callers")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_callers.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp")
+    "${CSE_ROOT}/src/engine/vgui2/BaseUISurface.cpp"
+    "${CSE_ROOT}/src/engine/VGUI_EngineSurfaceWrap.cpp"
+    "${CSE_ROOT}/src/engine/sys_sdlwind.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_callers.py"
     "${CSE_ROOT}" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}" COMMAND_ERROR_IS_FATAL ANY)
-add_executable(native_mouse_caller_tests caller_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
-target_include_directories(native_mouse_caller_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+add_executable(native_mouse_caller_tests caller_tests.cpp "${CSE_ROOT}/src/engine/native_mouse_window.cpp")
+target_include_directories(native_mouse_caller_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/src/engine"
+    "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
 target_compile_definitions(native_mouse_caller_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
 set_target_properties(native_mouse_caller_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)
@@ -116,9 +116,9 @@ endif()
 add_test(NAME actual-ui-cursor-transactions COMMAND native_mouse_caller_tests)
 set_tests_properties(actual-ui-cursor-transactions PROPERTIES TIMEOUT 15)
 
-add_executable(native_mouse_lifecycle_tests lifecycle_tests.cpp "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp")
-target_include_directories(native_mouse_lifecycle_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
+add_executable(native_mouse_lifecycle_tests lifecycle_tests.cpp "${CSE_ROOT}/src/engine/native_mouse_window.cpp")
+target_include_directories(native_mouse_lifecycle_tests PRIVATE "${CSE_SDL_INCLUDE}" "${CSE_ROOT}/src/engine"
+    "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public" "${CSE_NATIVE_MOUSE_CALLER_OUTPUT}")
 target_compile_definitions(native_mouse_lifecycle_tests PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1)
 set_target_properties(native_mouse_lifecycle_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 if(MSVC)

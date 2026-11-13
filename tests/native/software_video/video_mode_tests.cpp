@@ -1,5 +1,5 @@
 // Actual IVideoMode implementation, controlled engine services and real SDL.
-#include "../../../GoldSrc-SDK/engine/sys_getmodes.cpp"
+#include "../../../src/engine/sys_getmodes.cpp"
 #include <cassert>
 #include <stdexcept>
 viddef_t vid{};

@@ -8,15 +8,15 @@ foreach(game hl cs particle)
   add_executable(string_offsets_${game} string_offset_tests.cpp)
   target_compile_features(string_offsets_${game} PRIVATE cxx_std_17)
   if(game STREQUAL cs)
-    target_include_directories(string_offsets_${game} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls")
+    target_include_directories(string_offsets_${game} PRIVATE "${CSE_ROOT}/src/cstrike/dlls")
   elseif(game STREQUAL particle)
-    target_include_directories(string_offsets_${game} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/particleman/compat")
+    target_include_directories(string_offsets_${game} PRIVATE "${CSE_ROOT}/src/particleman/compat")
   endif()
   target_include_directories(string_offsets_${game} PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/dlls"
-    "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CSE_ROOT}/src/dlls"
+    "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/engine"
+    "${CSE_ROOT}/src/public")
   if(MSVC)
     target_compile_options(string_offsets_${game} PRIVATE /W4 /WX /EHsc)
     target_compile_definitions(string_offsets_${game} PRIVATE _CRT_NONSTDC_NO_WARNINGS)
@@ -31,7 +31,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     "${CMAKE_CURRENT_BINARY_DIR}/rejected-string-storage"
     SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/wrong_string_storage.cpp"
     CMAKE_FLAGS "-DCMAKE_CXX_STANDARD=17"
-      "-DINCLUDE_DIRECTORIES=${CSE_ROOT}/GoldSrc-SDK/public;${CSE_ROOT}/GoldSrc-SDK/common"
+      "-DINCLUDE_DIRECTORIES=${CSE_ROOT}/src/public;${CSE_ROOT}/src/common"
     OUTPUT_VARIABLE CSE_TRUNCATED_STRING_DIAGNOSTIC)
   if(CSE_TRUNCATED_STRING_COMPILES OR NOT CSE_TRUNCATED_STRING_DIAGNOSTIC MATCHES
       "Saved engine strings must use native string_t storage")

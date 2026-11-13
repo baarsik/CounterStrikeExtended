@@ -2,14 +2,14 @@
 #include <cstdio>
 #include <cstring>
 #include <new>
-#include "../../../GoldSrc-SDK/common/command_types.h"
+#include "../../../src/common/command_types.h"
 #include "../strings/high_offset_buffer.h"
 
 cmd_function_t *firstCommand = nullptr;
 cmd_function_t *Cmd_GetFirstCmd() {
     return firstCommand;
 }
-#include "../../../GoldSrc-SDK/engine/command_handles_impl.h"
+#include "../../../src/engine/command_handles_impl.h"
 
 static_assert(sizeof(decltype(GetFirstCmdFunctionHandle())) == sizeof(std::uintptr_t),
               "Command handles must retain native pointers");

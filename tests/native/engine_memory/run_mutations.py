@@ -13,7 +13,7 @@ def main():
     repo = Path(__file__).resolve().parents[3]
     tests = Path(__file__).resolve().parent
     args.art.mkdir(parents=True, exist_ok=True)
-    header = (repo / "GoldSrc-SDK/common/NativeEngineMemory.h").read_text()
+    header = (repo / "src/common/NativeEngineMemory.h").read_text()
     mutations = [
         ("wrong-sdk-names", "query_tests", "header", "::sysconf(_SC_PHYS_PAGES)", "::sysconf(85)"),
         ("truncated-page-count", "query_tests", "header", "ClassifyPhysicalMemory(pages, pageBytes)",
@@ -46,8 +46,8 @@ def main():
         assert replacements > 0, name
         exe = work / "control"
         command = ["/usr/bin/clang++", "-std=c++14", "-O0", "-fexceptions", "-I" + str(work),
-            "-I" + str(repo / "GoldSrc-SDK/common"), "-I" + str(repo / "GoldSrc-SDK/engine"),
-            "-I" + str(repo / "GoldSrc-SDK/public"), "-I" + str(tests), str(tests / (fixture + ".cpp")), "-o", str(exe)]
+            "-I" + str(repo / "src/common"), "-I" + str(repo / "src/engine"),
+            "-I" + str(repo / "src/public"), "-I" + str(tests), str(tests / (fixture + ".cpp")), "-o", str(exe)]
         compiled = subprocess.run(command, capture_output=True, timeout=120)
         (work / "compile.log").write_bytes(compiled.stdout + compiled.stderr)
         assert compiled.returncode == 0, (name, compiled.stderr.decode())

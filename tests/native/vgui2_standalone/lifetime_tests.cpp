@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/vgui2/src/native/StandaloneWindow.h"
+#include "../../../src/vgui2/src/native/StandaloneWindow.h"
 #include <climits>
 #include <cstdio>
 #include <cstdlib>

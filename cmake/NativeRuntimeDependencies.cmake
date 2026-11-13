@@ -151,7 +151,7 @@ function(cse_native_runtime_include reference_include output_var)
   cmake_path(IS_PREFIX prefix "${reference}" NORMALIZE retained_dependency)
   if(NOT retained_dependency)
     # Preserve other SDK include paths byte-for-byte; source membership and
-    # configuration guards remain the responsibility of the retained manifest.
+    # configuration guards remain the responsibility of the CMake definition.
     set(${output_var} "${reference_include}" PARENT_SCOPE)
     return()
   endif()

@@ -11,7 +11,7 @@ get_filename_component(repo "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/actual_functions.inc"
     COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/extract_reference.py"
         --root "${repo}" --output "${CMAKE_CURRENT_BINARY_DIR}"
-    DEPENDS extract_reference.py "${repo}/GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp" VERBATIM)
+    DEPENDS extract_reference.py "${repo}/src/vgui2/src/LocalizedStringTable.cpp" VERBATIM)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/windows_reference.csv"
     COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/prepare_oracle.py"
         --input "${CMAKE_CURRENT_SOURCE_DIR}/windows_reference.csv.gz"

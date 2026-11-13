@@ -31,8 +31,8 @@ option(CSE_WIDE_SANITIZERS "Instrument helper formatter fixtures" OFF)
 option(CSE_WIDE_FAST_FP "Compile the formatter core with inherited fast FP policy" OFF)
 if(CSE_WIDE_BUILD_HELPER)
     get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
-    add_library(legacy_wide_format STATIC "${CSE_ROOT}/GoldSrc-SDK/common/legacy_wide_format.cpp")
-    target_include_directories(legacy_wide_format PUBLIC "${CSE_ROOT}/GoldSrc-SDK/common")
+    add_library(legacy_wide_format STATIC "${CSE_ROOT}/src/common/legacy_wide_format.cpp")
+    target_include_directories(legacy_wide_format PUBLIC "${CSE_ROOT}/src/common")
     add_executable(wide_format_helper reference.cpp)
     target_compile_definitions(wide_format_helper PRIVATE CSE_WIDE_HELPER)
     target_link_libraries(wide_format_helper PRIVATE legacy_wide_format)
@@ -102,7 +102,7 @@ if(CSE_WIDE_BUILD_HELPER)
     execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_wrappers.py"
         "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/actual_wrappers.h" COMMAND_ERROR_IS_FATAL ANY)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/shared_util.cpp"
+        "${CSE_ROOT}/src/cstrike/game_shared/shared_util.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/extract_wrappers.py")
     add_executable(wide_format_wrapper_tests wrapper_tests.cpp)
     target_include_directories(wide_format_wrapper_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

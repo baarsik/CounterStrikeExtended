@@ -5,17 +5,17 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseVoiceModuleShutdown LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_shutdown.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/voice.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/cd.cpp")
+    "${CSE_ROOT}/src/engine/voice.cpp" "${CSE_ROOT}/src/engine/cd.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_shutdown.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 add_library(capture_close_boundary OBJECT capture_boundary.cpp)
 target_compile_features(capture_close_boundary PRIVATE cxx_std_14)
 target_include_directories(capture_close_boundary PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine")
+    "${CSE_ROOT}/src/engine")
 add_executable(voice_module_shutdown_tests shutdown_tests.cpp $<TARGET_OBJECTS:capture_close_boundary>)
 target_compile_features(voice_module_shutdown_tests PRIVATE cxx_std_14)
 target_include_directories(voice_module_shutdown_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine")
+    "${CSE_ROOT}/src/engine")
 option(CSE_VOICE_SHUTDOWN_SANITIZERS "Instrument owned close boundaries" OFF)
 if(MSVC)
     target_compile_options(capture_close_boundary PRIVATE /W4 /WX /EHs-c-

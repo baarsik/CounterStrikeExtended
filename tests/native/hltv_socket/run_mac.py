@@ -24,7 +24,7 @@ BEFORE_PASSES = set(SHARED + ['count-zero', 'count-max', 'count-error'])
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--source', type=Path, default=ROOT / 'GoldSrc-SDK/HLTV/Core/NetSocket.cpp')
+    parser.add_argument('--source', type=Path, default=ROOT / 'src/HLTV/Core/NetSocket.cpp')
     parser.add_argument('--recipes', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--before', action='store_true')
@@ -40,14 +40,14 @@ def main():
                 ('x86_64-release', 'x86_64', ['-O2', '-DNDEBUG']),
                 ('x86_64-debug', 'x86_64', ['-O0', '-g', '-D_DEBUG'])]
     receipt = {'compiles': [], 'cases': [], 'network': 'all socket/DNS entry points are typed controlled functions; no real endpoints'}
-    sources = [('socket', options.source), ('network', ROOT / 'GoldSrc-SDK/HLTV/Core/Network.cpp'),
-               ('base', ROOT / 'GoldSrc-SDK/HLTV/Core/private/common/BaseSystemModule.cpp'),
-               ('buffer', ROOT / 'GoldSrc-SDK/HLTV/common/BitBuffer.cpp'),
-               ('address', ROOT / 'GoldSrc-SDK/HLTV/common/NetAddress.cpp'),
-               ('byteorder', ROOT / 'GoldSrc-SDK/HLTV/common/byteorder.cpp'),
-               ('common', ROOT / 'GoldSrc-SDK/HLTV/common/common.cpp'),
-               ('list', ROOT / 'GoldSrc-SDK/common/ObjectList.cpp'),
-               ('tokens', ROOT / 'GoldSrc-SDK/common/TokenLine.cpp'), ('fixture', HERE / 'socket_tests.cpp')]
+    sources = [('socket', options.source), ('network', ROOT / 'src/HLTV/Core/Network.cpp'),
+               ('base', ROOT / 'src/HLTV/Core/private/common/BaseSystemModule.cpp'),
+               ('buffer', ROOT / 'src/HLTV/common/BitBuffer.cpp'),
+               ('address', ROOT / 'src/HLTV/common/NetAddress.cpp'),
+               ('byteorder', ROOT / 'src/HLTV/common/byteorder.cpp'),
+               ('common', ROOT / 'src/HLTV/common/common.cpp'),
+               ('list', ROOT / 'src/common/ObjectList.cpp'),
+               ('tokens', ROOT / 'src/common/TokenLine.cpp'), ('fixture', HERE / 'socket_tests.cpp')]
     for name, architecture, flags in profiles[:1] if options.pilot else profiles:
         output = options.output / name
         output.mkdir(exist_ok=True)

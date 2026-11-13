@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-# Source membership comes from the sole owning retained manifest. All consumers
+# Source membership comes from the sole owning CMake definition. All consumers
 # share this dylib: CoreText process registration does not provide ownership counts.
 function(cse_define_mac_font_registration_service source)
   if(NOT APPLE)

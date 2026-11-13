@@ -1,5 +1,5 @@
 #include <SDL3/SDL.h>
-#include "../../../GoldSrc-SDK/public/native_module.h"
+#include "../../../src/public/native_module.h"
 
 #include <array>
 #include <cstdint>

@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/Proxy.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hltv_proxy PRIVATE
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/HLTV/common/BaseClient.cpp"

@@ -11,12 +11,12 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ext
     --source "${CSE_MUSIC_SOURCE_ROOT}" --output "${CMAKE_CURRENT_BINARY_DIR}/actual"
     COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CSE_MUSIC_SOURCE_ROOT}/GoldSrc-SDK/engine/cd.cpp"
-    "${CSE_MUSIC_SOURCE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp")
+    "${CSE_MUSIC_SOURCE_ROOT}/src/engine/cd.cpp"
+    "${CSE_MUSIC_SOURCE_ROOT}/src/engine/sys_sdlwind.cpp")
 option(CSE_MUSIC_SANITIZERS "Instrument actual controller bodies and real CD worker" OFF)
 foreach(owner software hardware)
-    add_executable(music_focus_${owner} focus_tests.cpp "${CSE_MUSIC_SOURCE_ROOT}/GoldSrc-SDK/engine/thread.cpp")
-    target_include_directories(music_focus_${owner} PRIVATE "${CSE_MUSIC_SOURCE_ROOT}/GoldSrc-SDK/engine"
+    add_executable(music_focus_${owner} focus_tests.cpp "${CSE_MUSIC_SOURCE_ROOT}/src/engine/thread.cpp")
+    target_include_directories(music_focus_${owner} PRIVATE "${CSE_MUSIC_SOURCE_ROOT}/src/engine"
         "${CMAKE_CURRENT_BINARY_DIR}/actual")
     set_target_properties(music_focus_${owner} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     target_compile_options(music_focus_${owner} PRIVATE -Wall -Wextra -Werror)

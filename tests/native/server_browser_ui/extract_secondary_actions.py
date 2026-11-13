@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--repo', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
-source = args.repo / 'GoldSrc-SDK/GameUI/native/ServerBrowserDialog.cpp'
+source = args.repo / 'src/GameUI/native/ServerBrowserDialog.cpp'
 text = source.read_text()
 signatures = [
     'void ServerBrowserDialog::SelectVisible(',

@@ -21,7 +21,7 @@ def main():
     options.output.mkdir(parents=True, exist_ok=True)
     shutil.copytree(options.input, options.output / 'input', dirs_exist_ok=True)
     inputs = options.output / 'input'
-    sdk = inputs / 'GoldSrc-SDK'
+    sdk = inputs / 'src'
     compiler = Path(shutil.which('cl.exe')).resolve()
     receipt = {'compiler': str(compiler), 'compiler_sha256': hashlib.sha256(compiler.read_bytes()).hexdigest(),
                'arch': options.arch, 'phase': options.phase, 'compiles': [], 'whole_tus': [], 'cases': []}

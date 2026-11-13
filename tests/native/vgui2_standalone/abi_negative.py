@@ -14,7 +14,7 @@ database = json.loads(Path(sys.argv[1]).read_text())
 output = Path(sys.argv[2]).resolve()
 output.mkdir(parents=True, exist_ok=True)
 expected = json.loads(evidence.SCHEMA.read_text())
-public = root / 'GoldSrc-SDK/vgui2/src/public'
+public = root / 'src/vgui2/src/public'
 surface = (public / 'vgui/ISurface.h').read_text(encoding='latin1')
 first = '\tvirtual void DrawSetColor( int r, int g, int b, int a ) = 0;'
 second = '\tvirtual void DrawSetColor( Color color ) = 0;'
@@ -44,7 +44,7 @@ for target, suffix in contexts:
             clean.append(arg)
     label = target + '-' + Path(row['file']).stem
     source = output / (label + '.cpp')
-    extra = '#include "' + str(root / 'GoldSrc-SDK/cstrike/public/vgui/KeyValues.h') + '"\n' if dedicated else ''
+    extra = '#include "' + str(root / 'src/cstrike/public/vgui/KeyValues.h') + '"\n' if dedicated else ''
     probe = ('#include "native_standalone_interfaces.h"\n' + evidence.PROBE[evidence.PROBE.index('void SurfaceEvidence'):]) \
         if dedicated else evidence.PROBE
     source.write_text('#include "' + row['file'] + '"\n' + extra + probe)

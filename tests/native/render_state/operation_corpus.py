@@ -1,7 +1,6 @@
-"""Inventory selected owning-manifest GL calls; lexical evidence, not runtime coverage."""
+"""Inventory owning CMake target GL calls; lexical evidence, not runtime coverage."""
 import argparse
 import hashlib
-import importlib.util
 import json
 from pathlib import Path
 import re
@@ -15,15 +14,12 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     sys.path.insert(0, str(ROOT / 'tools'))
-    spec = importlib.util.spec_from_file_location('cse_translate', ROOT / 'tools/translate_msbuild.py')
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    manifest = ROOT / 'GoldSrc-SDK/projects/vs2026/hw_engine.vcxproj'
-    evaluated = module.evaluate(manifest, 'Release')
+    from cmake_inventory import query_target
+    evaluated = query_target(ROOT, 'hw_engine', configuration='Release', target_os='windows', architecture='x86')
     files = {}
     calls = []
-    for item in evaluated['items']:
-        if item['kind'] != 'ClCompile' or item['metadata'].get('ExcludedFromBuild', '').lower() == 'true':
+    for item in evaluated['sources']:
+        if item['language'] not in ('C', 'CXX'):
             continue
         path = Path(item['path'])
         if not path.is_file():
@@ -38,8 +34,11 @@ def main():
         for match in matches:
             calls.append({'file': relative, 'line': text.count('\n', 0, match.start()) + 1,
                           'operation': match[1] + match[2], 'raw_bypass': match[1] == 'gl'})
-    result = {'scope': 'Actual owning manifest Release source inventory; lexical calls, not runtime coverage',
-              'manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
+    cmake_inputs = sorted((ROOT / 'cmake').rglob('*.cmake')) + sorted((ROOT / 'cmake').rglob('CMakeLists.txt'))
+    cmake_inputs += [ROOT / 'CMakeLists.txt', ROOT / 'tools/cmake_inventory.py']
+    result = {'scope': 'Owning CMake Windows x86 Release source inventory; metadata and lexical calls, not runtime coverage',
+              'cmake_input_hashes': {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                                     for path in cmake_inputs},
               'selected_source_hashes': files, 'calls': calls,
               'resource_budget': {'fragment_samplers': 3, 'vertex_samplers': 0, 'storage_resources': 0,
                   'uniform_blocks': 'Not implemented/reflected. Matrix+fog+environment constants fit <=4 per stage.',

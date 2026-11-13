@@ -5,7 +5,7 @@ project(CseVoiceMixerReference LANGUAGES CXX)
 if(WIN32)
     add_executable(voice_mixer_windows_reference windows_reference.cpp)
     target_compile_definitions(voice_mixer_windows_reference PRIVATE WIN32
-        CSE_MIXER_SOURCE="${CSE_ROOT}/GoldSrc-SDK/engine/voice_mixer_controls.cpp")
+        CSE_MIXER_SOURCE="${CSE_ROOT}/src/engine/voice_mixer_controls.cpp")
     target_compile_options(voice_mixer_windows_reference PRIVATE /W4 /WX /EHsc /fp:precise
         $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od> $<$<CONFIG:Debug>:/Zi>)
     target_compile_definitions(voice_mixer_windows_reference PRIVATE
@@ -23,10 +23,10 @@ elseif(APPLE)
     if(CSE_MIXER_MISSING_BASELINE)
         set(mixer_source missing_coreaudio_baseline.cpp)
     else()
-        set(mixer_source "${CSE_ROOT}/GoldSrc-SDK/engine/voice_mixer_controls_coreaudio.cpp")
+        set(mixer_source "${CSE_ROOT}/src/engine/voice_mixer_controls_coreaudio.cpp")
     endif()
     add_library(coreaudio_mixer_component OBJECT ${mixer_source})
-    target_include_directories(coreaudio_mixer_component PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine")
+    target_include_directories(coreaudio_mixer_component PRIVATE "${CSE_ROOT}/src/engine")
     target_compile_options(coreaudio_mixer_component PRIVATE -Wall -Wextra -Werror -fno-exceptions -funwind-tables
         -ffp-model=precise -ffp-contract=off -Wno-overriding-option
         $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
@@ -34,7 +34,7 @@ elseif(APPLE)
         CXX_EXTENSIONS NO)
     add_executable(coreaudio_mixer_tests coreaudio_tests.cpp fake_coreaudio.cpp forbidden_native_hal.cpp
         $<TARGET_OBJECTS:coreaudio_mixer_component>)
-    target_include_directories(coreaudio_mixer_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine")
+    target_include_directories(coreaudio_mixer_tests PRIVATE "${CSE_ROOT}/src/engine")
     target_compile_options(coreaudio_mixer_tests PRIVATE -Wall -Wextra -Werror -ffp-model=precise -ffp-contract=off
         -Wno-overriding-option $<$<CONFIG:Release>:-O2> $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-g>)
     target_link_libraries(coreaudio_mixer_tests PRIVATE "-framework CoreFoundation")

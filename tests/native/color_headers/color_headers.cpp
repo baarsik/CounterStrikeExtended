@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "vgui/IScheme.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Panel.h"
+#include "../../../src/vgui2/controls/Panel.h"
 
 template <typename T, typename = void>
 struct HasEngineColorAccessors : std::false_type {};

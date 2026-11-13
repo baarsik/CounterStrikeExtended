@@ -25,7 +25,7 @@ def main():
     parser.add_argument('--output', type=Path, required=True)
     options = parser.parse_args()
     options.output.mkdir(parents=True, exist_ok=True)
-    sdk = options.root / 'GoldSrc-SDK'
+    sdk = options.root / 'src'
     contexts = [
         ('EngineProducer', 'engine/sys_dll2.cpp', ['IEngineAPI', 'IDedicatedExports']),
         ('LauncherCaller', 'launcher/public/engine_launcher_api.h', ['IEngineAPI']),

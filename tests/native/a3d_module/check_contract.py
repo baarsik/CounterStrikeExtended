@@ -4,10 +4,10 @@ import re
 import sys
 
 root = Path(sys.argv[1])
-sdk = root / 'GoldSrc-SDK/a3dapi'
+sdk = root / 'src/a3dapi'
 public = (sdk / 'ia3dapi.h').read_text()
 caller = (root / 'tests/native/a3d_module/caller_interfaces.h').read_text()
-abi = (root / 'GoldSrc-SDK/public/cse_a3d_abi.h').read_text()
+abi = (root / 'src/public/cse_a3d_abi.h').read_text()
 for target, view, file, parameter in [
     ('IA3dSource202', 'IA3dSource', 'A3dSource.h', 'Source'),
     ('IA3dGeomTarget', 'IA3dGeom', 'A3d3.h', 'Geometry'),
@@ -36,7 +36,7 @@ assert 'virtual ~' not in caller
 # Public enumeration is independently declared and preserves the existing V1 view.
 import uuid
 assert str(uuid.uuid5(uuid.NAMESPACE_URL, 'CounterStrikeExtended/IA3dNativeDeviceEnumeratorV1')) == '7dcfb8c4-f874-5872-9c0f-d417ca72dd2a'
-devices = root / 'GoldSrc-SDK/public/cse_a3d_devices.h'
+devices = root / 'src/public/cse_a3d_devices.h'
 assert devices.exists(), 'absent public native enumeration declarations'
 text = devices.read_text()
 assert 'virtual ~' not in text
@@ -45,7 +45,7 @@ assert 'CseCreateA3dNativeDeviceEnumeratorV1' in text
 assert 'NativeDeviceEnumerationProfile = 1' in abi
 old = (sdk / 'native_device_init.h').read_text()
 assert re.findall(r'virtual HRESULT STDMETHODCALLTYPE (\w+)\(', old) == ['InitializeDevice']
-assert 'MaxTables = 16' in (root / 'GoldSrc-SDK/public/cse_module_abi.h').read_text()
+assert 'MaxTables = 16' in (root / 'src/public/cse_module_abi.h').read_text()
 print('enumeration UUID, public slots, old device slots and descriptor capacity agree')
 import hashlib
 assert hashlib.sha256((sdk / 'a3dapi.def').read_bytes()).hexdigest() == \

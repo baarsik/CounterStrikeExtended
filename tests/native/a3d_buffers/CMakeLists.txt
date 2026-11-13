@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(A3dNativeBuffers LANGUAGES CXX)
 get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(A3D "${ROOT}/GoldSrc-SDK/a3dapi")
+set(A3D "${ROOT}/src/a3dapi")
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 option(A3D_SANITIZERS "Instrument actual native buffers and retained kernels" OFF)
@@ -17,7 +17,7 @@ add_library(a3d_buffer_subject STATIC "${A3D}/native_buffer.cpp" "${A3D}/native_
     "${A3D}/a2d.cpp" "${A3D}/a2dbuffer.cpp" "${A3D}/native_platform.cpp" "${A3D}/native_notifications.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/multiply.cpp")
 target_link_libraries(a3d_buffer_subject PUBLIC SDL3::SDL3)
-target_include_directories(a3d_buffer_subject PUBLIC "${A3D}" "${ROOT}/GoldSrc-SDK/public"
+target_include_directories(a3d_buffer_subject PUBLIC "${A3D}" "${ROOT}/src/public"
     "${CMAKE_CURRENT_BINARY_DIR}")
 add_executable(a3d_buffer_tests buffer_tests.cpp)
 add_executable(a3d_mix_tests mix_tests.cpp)
@@ -32,10 +32,13 @@ foreach(target a3d_buffer_subject a3d_buffer_tests a3d_mix_tests)
         target_link_options(${target} PRIVATE -fsanitize=address,undefined)
     endif()
 endforeach()
-target_compile_options(a3d_buffer_subject PRIVATE "SHELL:-include ${ROOT}/GoldSrc-SDK/public/cse_posix_crt.h")
+target_compile_options(a3d_buffer_subject PRIVATE "SHELL:-include ${ROOT}/src/public/cse_posix_crt.h")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_policy.py"
     "${ROOT}" "${CMAKE_BUILD_TYPE}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 include("${CMAKE_CURRENT_BINARY_DIR}/subject-policy.cmake")
+include("${ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${ROOT}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_policy.py"
+    "${ROOT}/tests/native/a3d_float_state/prepare_sources.py" "${A3D}/a2d.cpp" "${A3D}/A3dGeom.cpp")
 foreach(target a3d_buffer_tests a3d_mix_tests)
     target_link_libraries(${target} PRIVATE a3d_buffer_subject)
     target_link_options(${target} PRIVATE -Wl,-dead_strip)

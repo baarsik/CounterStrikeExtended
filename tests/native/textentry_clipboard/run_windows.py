@@ -19,7 +19,7 @@ work = args.work.resolve()
 work.mkdir(parents=True, exist_ok=True)
 outputs = art / "windows"
 outputs.mkdir(exist_ok=True)
-sdk = args.headers / "GoldSrc-SDK"
+sdk = args.headers / "src"
 stage = work / "source"
 for name, expected in json.loads((art / "PRODUCTION_FREEZE.json").read_text())["files"].items():
     source = art / "production-source" / name
@@ -106,9 +106,9 @@ for cpu in ["x86", "x64", "arm64"]:
                 if source.suffix not in [".cpp", ".inc"]:
                     continue
                 text = source.read_text(encoding="latin1")
-                mac_root = "/Users/mmalakhouski/Documents/GitHub/CounterStrikeExtended/GoldSrc-SDK"
+                mac_root = "/Users/mmalakhouski/Documents/GitHub/CounterStrikeExtended/src"
                 text = text.replace(mac_root + "/common/TextEntryClipboard.h",
-                                    (stage / "GoldSrc-SDK/common/TextEntryClipboard.h").as_posix())
+                                    (stage / "src/common/TextEntryClipboard.h").as_posix())
                 text = text.replace(mac_root, sdk.as_posix())
                 if source.name == "controlled_services.inc":
                     old = "std::int32_t GetTimeMillis() override"
@@ -116,7 +116,7 @@ for cpu in ["x86", "x64", "arm64"]:
                     text = text.replace(old, "long GetTimeMillis() override", 1)
                 (fixture / source.name).write_text(text, encoding="latin1")
             flags = flags_for(cpu, mode, target)
-            flags += ["/I" + str(fixture), "/I" + str(stage / "GoldSrc-SDK/common")]
+            flags += ["/I" + str(fixture), "/I" + str(stage / "src/common")]
             objects = list(vpanel_objects)
             for source, label in [(tests / "widget_tests.cpp", "widget"),
                                   (tests / "unexpected_binding.cpp", "reject"),
@@ -139,10 +139,10 @@ for cpu in ["x86", "x64", "arm64"]:
             print("PASS", tag, owner, len(CASES), "actual-class controls", flush=True)
         helper_obj = build / "pure-helper.obj"
         helper_exe = build / "pure-helper.exe"
-        flags = ["/nologo", "/std:c++14", "/EHsc", "/W4", "/WX", "/fp:precise", "/I" + str(stage / "GoldSrc-SDK/common")]
+        flags = ["/nologo", "/std:c++14", "/EHsc", "/W4", "/WX", "/fp:precise", "/I" + str(stage / "src/common")]
         flags += ["/O2", "/MD", "/DNDEBUG"] if mode == "Release" else ["/Od", "/Zi", "/MDd", "/D_DEBUG"]
         command = [str(compiler)] + flags + [str(tests / "helper_tests.cpp"),
-                    str(stage / "GoldSrc-SDK/common/TextEntryClipboard.cpp"), "/Fe" + str(helper_exe),
+                    str(stage / "src/common/TextEntryClipboard.cpp"), "/Fe" + str(helper_exe),
                     "/Fo" + str(build) + "\\", "/Fd" + str(build / "pure.pdb")]
         assert execute(command, env, build, tag + "-pure-helper-build").returncode == 0
         assert execute([str(helper_exe)], env, build, tag + "-pure-helper-run").returncode == 0

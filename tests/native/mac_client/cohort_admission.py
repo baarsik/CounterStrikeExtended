@@ -17,11 +17,11 @@ with tempfile.TemporaryDirectory(prefix='cse-exact-cohort-') as directory:
         subprocess.run(command + ['-P', str(root / 'cmake/WriteNativeCohort.cmake')], check=True)
         subprocess.run(['c++', '-std=c++17', '-DCSE_NATIVE_RUNTIME_BOOTSTRAP=1',
                         '-Wno-deprecated-declarations', '-I' + str(stage),
-                        '-I' + str(root / 'GoldSrc-SDK/launcher/native'),
+                        '-I' + str(root / 'src/launcher/native'),
                         str(root / 'tests/native/mac_client/cohort_admission.cpp'),
-                        str(root / 'GoldSrc-SDK/launcher/native/MacRuntimeSession.cpp'),
-                        str(root / 'GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp'),
-                    str(root / 'GoldSrc-SDK/launcher/native/SocketImageOwner.cpp'),
+                        str(root / 'src/launcher/native/MacRuntimeSession.cpp'),
+                        str(root / 'src/launcher/native/VGui1HostImageOwner.cpp'),
+                    str(root / 'src/launcher/native/SocketImageOwner.cpp'),
                         '-o', str(stage / 'admit')], check=True)
         subprocess.run([str(stage / 'admit'), str(stage), 'software' if software else 'hardware'], check=True)
         foreign = stage / 'foreign'

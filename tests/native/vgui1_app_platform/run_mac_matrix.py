@@ -13,7 +13,7 @@ args = parser.parse_args()
 art = args.art.resolve()
 root = Path(__file__).resolve().parents[3]
 source = root / 'tests/native/vgui1_app_platform'
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+vgui = root / 'src/utils/vgui/lib-src/vgui'
 art.mkdir(parents=True, exist_ok=True)
 rows = []
 

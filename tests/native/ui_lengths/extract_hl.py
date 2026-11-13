@@ -22,7 +22,7 @@ def function(text, signature):
 
 
 def add(name, select, prefix='', suffix=''):
-    path = root / 'GoldSrc-SDK/cl_dll' / name
+    path = root / 'src/cl_dll' / name
     data = path.read_bytes()
     text = data.decode('latin1')
     start, body = select(text)

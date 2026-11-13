@@ -33,7 +33,7 @@ for architecture in args.architectures:
     compiler_path = next(value for key, value in environment.items() if key.upper() == 'PATH')
     dumpbin = shutil.which('dumpbin.exe', path=compiler_path)
     assert dumpbin, 'The initialized compiler environment must provide dumpbin'
-    prefix = (Path(r'\\Mac\CseNativeSource\GoldSrc-SDK\external\installed\x86-windows-static-md')
+    prefix = (Path(r'\\Mac\CseNativeSource\src\external\installed\x86-windows-static-md')
         if architecture == 'x86' else Path(r'C:\CI\CSE-Native64-Vcpkg-20261108')
         / ('installed-' + architecture) / (architecture + '-windows-static-md'))
     expected = json.loads((args.inputs / 'pinned-windows-freetype.json').read_text())[architecture]

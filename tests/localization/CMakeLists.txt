@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 set(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../..")
 get_filename_component(CSE_ROOT "${CSE_ROOT}" ABSOLUTE)
-set(CSE_SDK_DIR "${CSE_ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "${CSE_ROOT}/src")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseLocalizationTests LANGUAGES CXX)
 if(NOT WIN32 OR NOT MSVC OR NOT CMAKE_SIZEOF_VOID_P EQUAL 4)

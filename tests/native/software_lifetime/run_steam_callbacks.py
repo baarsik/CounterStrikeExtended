@@ -9,7 +9,7 @@ sys.path.insert(0, str(root / 'tests/native/server_browser_ui'))
 from extract_owners import extract, closing_brace
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-owner = root / 'GoldSrc-SDK/common/steam_service.cpp'
+owner = root / 'src/common/steam_service.cpp'
 source = owner.read_text()
 names = ['SteamAPI_Init', 'SteamAPI_Shutdown', 'SteamInternal_GameServer_Init', 'SteamGameServer_Shutdown', 'SteamAPI_RunCallbacks', 'SteamGameServer_RunCallbacks', 'SteamAPI_RegisterCallback',
          'SteamAPI_UnregisterCallback', 'SteamAPI_RegisterCallResult', 'SteamAPI_UnregisterCallResult']

@@ -13,13 +13,13 @@ function(cse_add_vgui1_app_cold_metadata target role contexts evidence_directory
     endif()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     get_filename_component(root "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/.." ABSOLUTE)
-    set(publisher "${root}/GoldSrc-SDK/common/vgui1_app_cold_publisher.cpp")
+    set(publisher "${root}/src/common/vgui1_app_cold_publisher.cpp")
     # Always refresh the actual owning recipes and full include closure. No
     # generated header is force-included into App.cpp/vgui_intwrap.cpp probes.
     add_custom_target("${target}_app_cold_evidence"
         COMMAND "${Python3_EXECUTABLE}" "${root}/tools/vgui1_app_cold_evidence.py" generate
             --schema "${root}/tools/vgui1_app_cold_evidence_schema.json" --contexts "${contexts}"
-            --foundation "${root}/GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h"
+            --foundation "${root}/src/public/cse_vgui1_app_cold_abi.h"
             --output "${evidence_directory}" --metadata
         BYPRODUCTS "${evidence_directory}/metadata.h" "${evidence_directory}/metadata.stamp"
         VERBATIM)

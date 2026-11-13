@@ -3,7 +3,7 @@
 /output/
 /output-debug/
 /CMakeUserPresets.json
-/GoldSrc-SDK/bin/
+/src/bin/
 /.superpowers/
 __pycache__/
 *.pyc

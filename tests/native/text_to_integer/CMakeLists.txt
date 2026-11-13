@@ -12,7 +12,7 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/gen
     --output "${CMAKE_CURRENT_BINARY_DIR}/corpus" COMMAND_ERROR_IS_FATAL ANY)
 function(text_target name source)
     add_executable(${name} "${source}")
-    target_include_directories(${name} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common" "${CMAKE_CURRENT_BINARY_DIR}/corpus")
+    target_include_directories(${name} PRIVATE "${CSE_ROOT}/src/common" "${CMAKE_CURRENT_BINARY_DIR}/corpus")
     if(MSVC)
         target_compile_options(${name} PRIVATE /W4 /WX /EHsc)
         target_compile_definitions(${name} PRIVATE NOMINMAX)

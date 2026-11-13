@@ -84,7 +84,7 @@ class ManifestSnapshotTests(unittest.TestCase):
         receipt['input_digest'] = manifest.common.digest_bytes(manifest.common.stable({key: receipt[key] for key in keys}))
         reference = json.loads(self.observations_bytes)[0]
         header = manifest.evidence.metadata_header(reference, receipt['input_digest'],
-            ROOT / 'GoldSrc-SDK/public/cse_vgui1_app_cold_metadata.h')
+            ROOT / 'src/public/cse_vgui1_app_cold_metadata.h')
         (self.evidence / 'metadata.h').write_text(header)
         receipt['metadata_header_sha256'] = hashlib.sha256(header.encode()).hexdigest()
         (self.evidence / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

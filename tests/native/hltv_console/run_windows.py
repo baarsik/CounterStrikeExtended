@@ -23,7 +23,7 @@ def main():
         destination = options.output / phase
         shutil.copytree(options.source_stage / phase, destination, dirs_exist_ok=True)
         shutil.copy2(options.source_stage / 'history_tests.cpp', destination / 'history_tests.cpp')
-        sdk = destination / 'GoldSrc-SDK'
+        sdk = destination / 'src'
         includes = ['HLTV/Core/private', 'HLTV/Core/private/common', 'HLTV/Console', 'HLTV/common',
                     'engine', 'vgui2/src/public', 'public', 'common', '.']
         common = ['/nologo', '/std:c++14', '/W4', '/WX', '/EHsc', '/GR', '/fp:precise', '/Gy',

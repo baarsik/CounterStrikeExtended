@@ -4,8 +4,8 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseWaveRecords LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_WAVE_COMMON_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/common.cpp" CACHE FILEPATH "Actual common source")
-set(CSE_WAVE_VOICE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/voice_wavefile.cpp" CACHE FILEPATH "Actual voice source")
+set(CSE_WAVE_COMMON_SOURCE "${CSE_ROOT}/src/engine/common.cpp" CACHE FILEPATH "Actual common source")
+set(CSE_WAVE_VOICE_SOURCE "${CSE_ROOT}/src/engine/voice_wavefile.cpp" CACHE FILEPATH "Actual voice source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     "${CSE_WAVE_COMMON_SOURCE}" "${CSE_WAVE_VOICE_SOURCE}" extract_records.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_records.py"

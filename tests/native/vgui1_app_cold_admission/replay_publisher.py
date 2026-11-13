@@ -22,7 +22,7 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     receipt, _ = manifest.fresh_receipt(options.evidence.resolve())
     runs = []
-    source = ROOT / 'GoldSrc-SDK/common/vgui1_app_cold_publisher.cpp'
+    source = ROOT / 'src/common/vgui1_app_cold_publisher.cpp'
     for context in receipt['contexts']:
         role = 'OFFER' if context['role'] == 'provider' else 'REQUIREMENT'
         image = output / (context['name'] + '.o')

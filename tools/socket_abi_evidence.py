@@ -110,7 +110,7 @@ def main():
                              preprocessed_sha256=hashlib.sha256(preprocess).hexdigest(), log_sha256=digest(log),
                              physical_records=RECORDS))
     stamp.write_text(json.dumps(dict(scope='private socket owner only; no runtime acceptance',
-        header_sha256=digest(ROOT / 'GoldSrc-SDK/public/native_socket_host.h'), receipts=receipts), indent=2) + '\n')
+        header_sha256=digest(ROOT / 'src/public/native_socket_host.h'), receipts=receipts), indent=2) + '\n')
     print('Accepted actual socket layouts, signatures and canonical roles:', ', '.join(options.roles))
 
 

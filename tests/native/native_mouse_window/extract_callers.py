@@ -8,8 +8,8 @@ output = Path(sys.argv[2]).resolve()
 output.mkdir(parents=True, exist_ok=True)
 rows = []
 for name, relative, method in [
-    ('base', 'GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp', 'void BaseUISurface::SetCursor('),
-    ('wrap', 'GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp', 'void EngineSurfaceWrap::setCursor('),
+    ('base', 'src/engine/vgui2/BaseUISurface.cpp', 'void BaseUISurface::SetCursor('),
+    ('wrap', 'src/engine/VGUI_EngineSurfaceWrap.cpp', 'void EngineSurfaceWrap::setCursor('),
 ]:
     data = (repo / relative).read_bytes()
     text = data.decode('latin1')
@@ -30,7 +30,7 @@ for name, relative, method in [
         adaptation='Exact complete post-cursor-selection tail; typed game/cvar services supplied by fixture'))
 (output / 'caller-source-pins.json').write_text(json.dumps(rows, indent=2) + '\n')
 
-source = repo / 'GoldSrc-SDK/engine/sys_sdlwind.cpp'
+source = repo / 'src/engine/sys_sdlwind.cpp'
 data = source.read_bytes()
 text = data.decode('latin1')
 startups = []
@@ -73,7 +73,7 @@ assert shutdown_blocks[0].index('RendererWillDestroy') < shutdown_blocks[0].inde
     shutdown_prefix_sha256=hashlib.sha256(shutdown_blocks[0].encode('latin1')).hexdigest(),
     scope='Exact hook blocks and shutdown retirement section; preceding software ReleaseVideo and renderer lifecycle are outside fixture'), indent=2) + '\n')
 
-text = (repo / 'GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp').read_text(encoding='latin1')
+text = (repo / 'src/engine/vgui2/BaseUISurface.cpp').read_text(encoding='latin1')
 begin = text.index('    SetCursor(vgui2::dc_none);', text.index('void BaseUISurface::CalculateMouseVisible()'))
 end = text.index('\n}\n', begin)
 (output / 'base_no_popup.inc').write_text(text[begin:end])

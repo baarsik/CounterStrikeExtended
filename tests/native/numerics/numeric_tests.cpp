@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/legacy_float_to_int.h"
+#include "../../../src/common/legacy_float_to_int.h"
 
 #include <cfenv>
 #include <cstdint>

@@ -14,8 +14,8 @@ parser.add_argument('--build-prefix', required=True)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=False)
 records = []
-inputs = [ROOT / 'GoldSrc-SDK/cstrike/cl_dll/ev_hldm.cpp', ROOT / 'GoldSrc-SDK/cstrike/cl_dll/hud.h',
-          ROOT / 'GoldSrc-SDK/cstrike/cl_dll/hud_redraw.cpp']
+inputs = [ROOT / 'src/cstrike/cl_dll/ev_hldm.cpp', ROOT / 'src/cstrike/cl_dll/hud.h',
+          ROOT / 'src/cstrike/cl_dll/hud_redraw.cpp']
 inputs += [p for p in Path(__file__).parent.rglob('*') if p.is_file() and '__pycache__' not in p.parts]
 pins = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs}
 for profile, config, sanitize in [('release', 'Release', False), ('debug', 'Debug', False), ('sanitized', 'Debug', True)]:

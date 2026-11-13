@@ -11,8 +11,8 @@ developer shell for the target architecture; the build checks the
 compiler target independently of the host CPU. macOS builds require macOS 14+
 on Apple Silicon and Apple Clang from Xcode or Command Line Tools.
 
-Windows x86 uses the bundled headers and libraries under `GoldSrc-SDK/external/`
-and `GoldSrc-SDK/lib/`. Windows x64 and macOS use source-built packages from the
+Windows x86 uses the bundled headers and libraries under `src/external/`
+and `src/lib/`. Windows x64 and macOS use source-built packages from the
 [pinned dependency recipes](../cmake/dependencies/vcpkg/README.md), plus external
 Steam and CEF providers:
 
@@ -133,12 +133,12 @@ mpg123 materials; other components retain their own requirements.
 
 SDL3 3.4.20 headers, import library and DLL are bundled and hash-checked for x86.
 Native runtime presets build the pinned source instead. Consumers stage the
-shared library in the runtime root. See [SDL3 provenance](../GoldSrc-SDK/external/SDL3/UPSTREAM.md).
+shared library in the runtime root. See [SDL3 provenance](../src/external/SDL3/UPSTREAM.md).
 
 ### Source-built MP3 decoder
 
 The build verifies and extracts the bundled
-[mpg123 1.33.7 source archive](../GoldSrc-SDK/external/mpg123/UPSTREAM.md), then
+[mpg123 1.33.7 source archive](../src/external/mpg123/UPSTREAM.md), then
 builds its shared decoder without downloading dependencies. MSVC without yasm
 uses upstream's generic C decoder. The shared library is staged beside the
 engines. Music uses mpg123 and SDL3 streams; Windows sound effects use
@@ -182,26 +182,14 @@ Use separate Debug directories. Stream tests use SDL's dummy device;
 [qualification tools](../tools/qualification/README.md) cover game, server,
 provider and device checks separately.
 
-## Maintaining generated builds
+## Maintaining CMake builds
 
-Update the retained manifests or translator, then regenerate and check:
-
-```sh
-python3 tools/translate_msbuild.py
-python3 -m unittest discover -s tools/tests
-```
-
-[Manifest documentation](msbuild/README.md) describes source membership,
-per-file FP/EH/assertion settings, exports, resources and generated inputs.
-Keep generated target files synchronized through the translator and review
-generated changes together with their source manifests.
-
-| Native manifest property | Meaning |
-| --- | --- |
-| `CseTargetOS` / `CseReplaces` | Select an OS replacement while preserving the reference source inventory; values are `macos`, `linux`, `windows`, `posix` |
-| `CseNativeSdl3` | Route non-Windows consumers through pinned SDL3; Release/Debug values must agree |
-| `CseNativeWindowsLibraries` | Select GameUI's `ws2_32.lib` for Windows with 64-bit pointers |
-| `CseNativeModuleAliases` | Add guarded relative POSIX library aliases; CS keeps `mp` and provides `cs.dylib` / `cs.so` |
+CMake is the build source of truth. Edit `cmake/targets/<target>/CMakeLists.txt`
+and its adjacent `Sources.cmake` directly; shared runtime helpers live in
+`cmake/RuntimeTargets.cmake`. The [build-system reference](build-system.md)
+describes source membership, configuration and platform conditions, per-file
+FP/EH/assertion settings, exports, resources, generated inputs and CMake-derived
+inventory inspection.
 
 Native game loading uses `gamedll_osx` or `gamedll_linux`. If absent, Windows
 `gamedll` entries retain their order and adapt their extension through the VFS.

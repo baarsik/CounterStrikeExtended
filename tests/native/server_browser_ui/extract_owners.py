@@ -124,28 +124,28 @@ def main():
         ("engine/vgui_int.cpp", "namespace {\nenum class NativeVGuiShutdownPhase"),
         ("engine/host.cpp", "namespace {\nenum class NativeHostShutdownPhase"),
     ]
-    loader_path = args.repo / "GoldSrc-SDK/GameUI/VGuiSystemModuleLoader.cpp"
+    loader_path = args.repo / "src/GameUI/VGuiSystemModuleLoader.cpp"
     loader_source = loader_path.read_text(errors="surrogateescape")
     marker = "namespace {\nclass NativeModuleCallScope final"
     start = loader_source.index(marker)
     end = closing_brace(loader_source, loader_source.index("{", start))
     guard = loader_source[start:end]
     (args.output / "loader_guard.inc").write_text(guard)
-    receipt.append(dict(source="GoldSrc-SDK/GameUI/VGuiSystemModuleLoader.cpp", symbol="actual module call guard",
+    receipt.append(dict(source="src/GameUI/VGuiSystemModuleLoader.cpp", symbol="actual module call guard",
                         sourceSha256=hashlib.sha256(loader_path.read_bytes()).hexdigest(),
                         bodySha256=hashlib.sha256(guard.encode()).hexdigest()))
-    listen_path = args.repo / "GoldSrc-SDK/engine/sys_dll2.cpp"
+    listen_path = args.repo / "src/engine/sys_dll2.cpp"
     listen_source = listen_path.read_text(errors="surrogateescape")
     start = listen_source.index("namespace {\nenum class NativeListenShutdownPhase")
     end = closing_brace(listen_source, listen_source.index("{", start))
     listen_state = listen_source[start:end]
     (args.output / "listen_state.inc").write_text(listen_state)
-    receipt.append(dict(source="GoldSrc-SDK/engine/sys_dll2.cpp", symbol="actual outer listen phase state",
+    receipt.append(dict(source="src/engine/sys_dll2.cpp", symbol="actual outer listen phase state",
                         sourceSha256=hashlib.sha256(listen_path.read_bytes()).hexdigest(),
                         bodySha256=hashlib.sha256(listen_state.encode()).hexdigest()))
     states = []
     for relative, marker in state_regions:
-        raw = (args.repo / "GoldSrc-SDK" / relative).read_bytes()
+        raw = (args.repo / "src" / relative).read_bytes()
         source = raw.decode("utf-8")
         if source.count(marker) != 1:
             raise ValueError(f"{relative}: actual private phase region missing or ambiguous")
@@ -153,11 +153,11 @@ def main():
         end = closing_brace(source, source.index("{", start))
         body = source[start:end]
         line = source.count("\n", 0, start) + 1
-        declaration = f'#line {line} "GoldSrc-SDK/{relative}"\n{body}\n'
+        declaration = f'#line {line} "src/{relative}"\n{body}\n'
         if relative == "engine/vgui_intwrap.cpp":
             declaration = "#if defined(__APPLE__)\n" + declaration + "#endif\n"
         states.append(declaration)
-        receipt.append({"source": "GoldSrc-SDK/" + relative, "symbol": "private phase state", "line": line,
+        receipt.append({"source": "src/" + relative, "symbol": "private phase state", "line": line,
                         "sourceSha256": hashlib.sha256(raw).hexdigest(),
                         "bodySha256": hashlib.sha256(body.encode()).hexdigest()})
     (args.output / "retirement_state.inc").write_text("\n".join(states))
@@ -166,13 +166,13 @@ def main():
         ("GameUI/GameUI_Interface.cpp", "namespace {\nvgui2::DHANDLE<CBasePanel> nativeGameUIRoot"),
         ("GameUI/GameConsole.cpp", "namespace {\nvgui2::DHANDLE<CGameConsoleDialog> nativeConsolePanel"),
     ]:
-        raw = (args.repo / "GoldSrc-SDK" / relative).read_bytes()
+        raw = (args.repo / "src" / relative).read_bytes()
         source = raw.decode("utf-8", errors="surrogateescape")
         start = source.index(marker)
         end = closing_brace(source, source.index("{", start))
         body = source[start:end]
         panel_states.append(body)
-        receipt.append(dict(source="GoldSrc-SDK/" + relative, symbol="actual panel phase state",
+        receipt.append(dict(source="src/" + relative, symbol="actual panel phase state",
                             sourceSha256=hashlib.sha256(raw).hexdigest(),
                             bodySha256=hashlib.sha256(body.encode()).hexdigest()))
     (args.output / "panel_state.inc").write_text("\n".join(panel_states))
@@ -197,12 +197,12 @@ def main():
     for output_name, declarations in groups.items():
         bodies = []
         for relative, symbol, occurrence, expected_count in declarations:
-            path = args.repo / "GoldSrc-SDK" / relative
+            path = args.repo / "src" / relative
             raw = path.read_bytes()
             source = raw.decode("utf-8", errors="surrogateescape")
             body, line = extract(source, symbol, occurrence, expected_count)
-            bodies.append(f'#line {line} "GoldSrc-SDK/{relative}"\n{body}\n')
-            receipt.append({"source": "GoldSrc-SDK/" + relative, "symbol": symbol,
+            bodies.append(f'#line {line} "src/{relative}"\n{body}\n')
+            receipt.append({"source": "src/" + relative, "symbol": symbol,
                             "occurrence": occurrence, "line": line,
                             "sourceSha256": hashlib.sha256(raw).hexdigest(),
                             "bodySha256": hashlib.sha256(body.encode("utf-8", errors="surrogateescape")).hexdigest()})

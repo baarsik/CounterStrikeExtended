@@ -5,7 +5,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseEngineAddressFixtures LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
-set(CSE_ENGINE_ADDRESS_SOURCE_DIR "${CSE_ROOT}/GoldSrc-SDK/engine" CACHE PATH
+set(CSE_ENGINE_ADDRESS_SOURCE_DIR "${CSE_ROOT}/src/engine" CACHE PATH
   "Production sources, or an explicitly archived negative/reference snapshot")
 option(CSE_ENGINE_ADDRESSES_LEGACY "Allow visible truncation diagnostics from the archived negative reference" OFF)
 option(CSE_ENGINE_ADDRESSES_SANITIZERS "Enable ASan and UBSan" OFF)
@@ -13,11 +13,11 @@ foreach(source progs.h r_studio.cpp gl_mesh.cpp d_edge.cpp)
   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_ENGINE_ADDRESS_SOURCE_DIR}/${source}")
 endforeach()
 foreach(source draw.cpp engine_color.h)
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_ROOT}/GoldSrc-SDK/engine/${source}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_ROOT}/src/engine/${source}")
 endforeach()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_production.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_production.py"
-  "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ENGINE_ADDRESS_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
+  "${CSE_ROOT}/src/engine" "${CSE_ENGINE_ADDRESS_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
   RESULT_VARIABLE extraction_status ERROR_VARIABLE extraction_error)
 if(NOT extraction_status EQUAL 0)
   message(FATAL_ERROR "Cannot extract production address boundaries: ${extraction_error}")
@@ -26,8 +26,8 @@ add_executable(engine_address_tests address_tests.cpp)
 add_executable(engine_address_c_header extern_c_header.cpp)
 target_compile_features(engine_address_c_header PRIVATE cxx_std_17)
 target_include_directories(engine_address_c_header PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-  "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+  "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/pm_shared")
 if(MSVC)
   target_compile_options(engine_address_c_header PRIVATE /W4 /WX /EHsc)
 else()
@@ -35,8 +35,8 @@ else()
 endif()
 target_compile_features(engine_address_tests PRIVATE cxx_std_17)
 target_include_directories(engine_address_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-  "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+  "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/pm_shared")
 target_compile_definitions(engine_address_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
 if(MSVC)
   target_compile_options(engine_address_tests PRIVATE /W4 /EHsc

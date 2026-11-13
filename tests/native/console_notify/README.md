@@ -7,7 +7,7 @@ bookkeeping; the fixture changes no production body or loop. Source, function,
 declaration and include-file hashes are retained separately.
 
 ```sh
-python3 tests/native/console_notify/run.py --source GoldSrc-SDK/engine/console.cpp \
+python3 tests/native/console_notify/run.py --source src/engine/console.cpp \
   --packet build/console-notify-green-unique
 ```
 

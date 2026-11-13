@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 project(CseMultisource LANGUAGES CXX)
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(CSE_MULTISOURCE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/dlls/buttons.cpp" CACHE FILEPATH "Actual source under test")
+set(CSE_MULTISOURCE_SOURCE "${CSE_ROOT}/src/dlls/buttons.cpp" CACHE FILEPATH "Actual source under test")
 option(CSE_MULTISOURCE_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_MULTISOURCE_SOURCE}"
-    "${CMAKE_CURRENT_LIST_DIR}/extract.py" "${CSE_ROOT}/GoldSrc-SDK/dlls/cbase.h")
+    "${CMAKE_CURRENT_LIST_DIR}/extract.py" "${CSE_ROOT}/src/dlls/cbase.h")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
     "${CSE_MULTISOURCE_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/imported/multisource_bodies.inc"
     COMMAND_ERROR_IS_FATAL ANY)

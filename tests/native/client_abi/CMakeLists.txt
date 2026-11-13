@@ -20,21 +20,21 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hl_entries.inc" "${CMAKE_
     "${CMAKE_CURRENT_BINARY_DIR}/mutant_mouse_destination_APIProxy.h"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_fixtures.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS prepare_fixtures.py "${CSE_ROOT}/GoldSrc-SDK/engine/APIProxy.h"
-    "${CSE_ROOT}/GoldSrc-SDK/cl_dll/cdll_int.cpp" "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/cdll_int.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cl_dll/GameStudioModelRenderer.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/GameStudioModelRenderer.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/common/com_model.h" "${CSE_ROOT}/GoldSrc-SDK/engine/client.h"
-    "${CSE_ROOT}/GoldSrc-SDK/common/event_api.h" "${CSE_ROOT}/tools/client_module_layouts.py" "${CSE_ROOT}/GoldSrc-SDK/engine/cdll_int.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/common/client_module_required_exports.h" module.def VERBATIM)
+  DEPENDS prepare_fixtures.py "${CSE_ROOT}/src/engine/APIProxy.h"
+    "${CSE_ROOT}/src/cl_dll/cdll_int.cpp" "${CSE_ROOT}/src/cstrike/cl_dll/cdll_int.cpp"
+    "${CSE_ROOT}/src/cl_dll/GameStudioModelRenderer.cpp"
+    "${CSE_ROOT}/src/cstrike/cl_dll/GameStudioModelRenderer.cpp"
+    "${CSE_ROOT}/src/common/com_model.h" "${CSE_ROOT}/src/engine/client.h"
+    "${CSE_ROOT}/src/common/event_api.h" "${CSE_ROOT}/tools/client_module_layouts.py" "${CSE_ROOT}/src/engine/cdll_int.cpp"
+    "${CSE_ROOT}/src/common/client_module_required_exports.h" module.def VERBATIM)
 add_custom_target(client_abi_extract DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/hl_entries.inc"
     "${CMAKE_CURRENT_BINARY_DIR}/cs_entries.inc")
 function(configure_client_fixture target)
   add_dependencies(${target} client_abi_extract)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
   target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/pm_shared")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/pm_shared")
   target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS
     "$<$<CONFIG:Debug>:_DEBUG>" "$<$<CONFIG:Release>:NDEBUG>")
   if(MSVC)

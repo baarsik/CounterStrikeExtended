@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <vector>
-#include "../../../GoldSrc-SDK/engine/sdl3_audio_ring.h"
-#include "../../../GoldSrc-SDK/engine/vox_word.h"
+#include "../../../src/engine/sdl3_audio_ring.h"
+#include "../../../src/engine/vox_word.h"
 #include "../strings/high_offset_buffer.h"
 
 int main() {

@@ -20,7 +20,7 @@ def main():
     options = parser.parse_args()
     output = options.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    source = ROOT / 'GoldSrc-SDK/cstrike/cl_dll/ev_hldm.cpp'
+    source = ROOT / 'src/cstrike/cl_dll/ev_hldm.cpp'
     original = source.read_bytes()
     (output / 'ev_hldm-before.cpp').write_bytes(original)
     runs = []
@@ -36,7 +36,7 @@ def main():
         context = {'name': profile, 'role': 'consumer', 'source': str(source),
                    'directory': row['directory'], 'arguments': row.get('arguments') or shlex.split(row['command']),
                    'microsoft': False,
-                   'filesystem_abi_header': str(ROOT / 'GoldSrc-SDK/public/cse_module_abi.h')}
+                   'filesystem_abi_header': str(ROOT / 'src/public/cse_module_abi.h')}
         prefix = common.compilation_prefix(context)
         inputs = {str(source): common.file_digest(source), str(database): common.file_digest(database),
                   str(Path(__file__).resolve()): common.file_digest(__file__)}

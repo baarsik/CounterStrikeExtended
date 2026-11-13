@@ -7,7 +7,7 @@ endif()
 find_package(Threads REQUIRED)
 add_executable(a3d_module_tests module_tests.cpp)
 target_compile_features(a3d_module_tests PRIVATE cxx_std_17)
-target_include_directories(a3d_module_tests PRIVATE "${ROOT}/GoldSrc-SDK/public" "${ROOT}/GoldSrc-SDK/a3dapi")
+target_include_directories(a3d_module_tests PRIVATE "${ROOT}/src/public" "${ROOT}/src/a3dapi")
 target_compile_options(a3d_module_tests PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(a3d_module_tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 enable_testing()
@@ -23,7 +23,7 @@ add_test(NAME abi_slot_declarations COMMAND "${Python3_EXECUTABLE}"
 
 add_executable(a3d_enumeration_tests enumeration_tests.cpp enumeration_admission.cpp)
 target_compile_features(a3d_enumeration_tests PRIVATE cxx_std_17)
-target_include_directories(a3d_enumeration_tests PRIVATE "${ROOT}/GoldSrc-SDK/public" "${ROOT}/GoldSrc-SDK/a3dapi")
+target_include_directories(a3d_enumeration_tests PRIVATE "${ROOT}/src/public" "${ROOT}/src/a3dapi")
 target_compile_options(a3d_enumeration_tests PRIVATE -Wall -Wextra -Werror)
 target_link_libraries(a3d_enumeration_tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 foreach(case public_selected_initialize copied_record_name sized_output_validation empty_snapshot

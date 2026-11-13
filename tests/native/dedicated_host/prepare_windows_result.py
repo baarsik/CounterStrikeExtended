@@ -4,7 +4,7 @@ import re
 import sys
 
 root = pathlib.Path(__file__).resolve().parents[3]
-source = (root / 'GoldSrc-SDK/dedicated/sys_ded.cpp').read_text()
+source = (root / 'src/dedicated/sys_ded.cpp').read_text()
 main = source[source.index('int Main('):source.index('\nstatic void LaunchSteam(')]
 expression = re.findall(r'return ([^;]+);', main)[-1]
 includes = '\n'.join(line for line in source.splitlines() if 'DedicatedResult.h"' in line)

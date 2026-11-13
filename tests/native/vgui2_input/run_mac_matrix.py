@@ -26,7 +26,7 @@ for mode in ['Release','Debug','Sanitizers']:
     print('PASS Mac',mode,'6144 exact method rows, exhaustive protocol and4 expected failure children',flush=True)
 for mode in ['release','debug']:
     database=art.parent/('macos-runtime-policy-'+mode)/'compile_commands.json'
-    entry=next(item for item in json.loads(database.read_text()) if Path(item['file'])==root/'GoldSrc-SDK/vgui2/src/InputWin32.cpp')
+    entry=next(item for item in json.loads(database.read_text()) if Path(item['file'])==root/'src/vgui2/src/InputWin32.cpp')
     command=entry.get('arguments') or shlex.split(entry['command']);output=art/(mode+'-InputWin32.o')
     for index,arg in enumerate(command):
         if arg=='-o':command[index+1]=str(output)

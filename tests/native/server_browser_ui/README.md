@@ -52,8 +52,8 @@ These state controls do not pretend to run a whole game or every void initialize
 
 `build_gameui_packet.py` compiles every retained GameUI TU plus all new sources and full-links with pinned
 SDL/tier0 images. Engine qualification uses the existing `gameplay_shortcuts/build_engine_packet.py`, which
-checks the complete affected dependency closure and genuine-main predecessor objects. Generated manifests
-come from the retained vcxproj/translator, not independent edits.
+checks the complete affected dependency closure and genuine-main predecessor objects. Packet inputs pin the
+owning CMake target definitions and shared build helpers.
 
 Historical absence/configure/compiler fixture failures are not behavioral RED. Real RED packets include
 retirement/loader/action errors, panel-owner leaks, embedded-root use-after-delete risk, missing VGUI message-map

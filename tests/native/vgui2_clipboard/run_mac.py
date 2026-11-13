@@ -13,7 +13,7 @@ repo = args.repo.resolve()
 art = args.art.resolve()
 out = art / 'mac'
 out.mkdir(parents=True, exist_ok=True)
-source = repo / 'GoldSrc-SDK/vgui2/src'
+source = repo / 'src/vgui2/src'
 tests = repo / 'tests/native/vgui2_clipboard'
 commands = []
 for mode, flags in [('Release', ['-O2', '-DNDEBUG']), ('Debug', ['-O0', '-g', '-D_DEBUG']),

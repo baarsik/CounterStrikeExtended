@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/saved_callbacks.h"
+#include "../../../src/common/saved_callbacks.h"
 
 #include <cstdint>
 #include <cstdio>
@@ -40,7 +40,7 @@ using BASEPTR = void (CBaseEntity::*)();
 using ENTITYFUNCPTR = void (CBaseEntity::*)(CBaseEntity *);
 using USEPTR = void (CBaseEntity::*)(CBaseEntity *, CBaseEntity *, USE_TYPE, float);
 
-#include "../../../GoldSrc-SDK/common/game_saved_callbacks.h"
+#include "../../../src/common/game_saved_callbacks.h"
 
 TYPEDESCRIPTION CBaseEntity::m_SaveData[] = {
     {FIELD_FUNCTION, "m_pfnThink", 1},
@@ -64,7 +64,7 @@ enum { at_error = 0 };
 static void Alert(int, const char *, ...) { ++diagnostics; }
 #define ALERT Alert
 #define STRING(value) (value)
-#include "../../../GoldSrc-SDK/common/game_saved_callbacks_impl.h"
+#include "../../../src/common/game_saved_callbacks_impl.h"
 
 int main() {
     using Kind = CseSavedCallbackKind;

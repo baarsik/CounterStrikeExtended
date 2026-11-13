@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/c4_beep_state.h"
+#include "../../../src/common/c4_beep_state.h"
 #include <cmath>
 #include <cstdio>
 #include <cstring>

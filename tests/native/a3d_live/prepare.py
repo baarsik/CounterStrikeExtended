@@ -10,11 +10,11 @@ import sys
 root = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
 database = Path(sys.argv[3]).resolve()
-source = root / 'GoldSrc-SDK/engine/snd_sdl.cpp'
+source = root / 'src/engine/snd_sdl.cpp'
 text = source.read_text()
-sound = root / 'GoldSrc-SDK/engine/sound.h'
+sound = root / 'src/engine/sound.h'
 record = re.search(r'typedef struct\s*\{[^{}]*\}\s*dma_t;', sound.read_text()).group()
-boolean = re.search(r'typedef int qboolean;', (root / 'GoldSrc-SDK/engine/const.h').read_text()).group()
+boolean = re.search(r'typedef int qboolean;', (root / 'src/engine/const.h').read_text()).group()
 names = ['SNDDMA_Shutdown', 'SNDDMA_Init', 'SNDDMA_LockBuffer', 'SNDDMA_UnlockBuffer',
          'SNDDMA_GetDMAPos', 'S_BlockSound', 'S_UnblockSound']
 records = []

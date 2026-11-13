@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/GameUI.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(gameui SHARED "GameUI")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
@@ -43,7 +43,7 @@ target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/LARGEADDRESSAWARE>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/MACHINE:${CSE_MSVC_MACHINE}>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(gameui PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
-target_sources(gameui PRIVATE "${CSE_SDK_DIR}/projects/vs2026/GameUI.def")
+target_sources(gameui PRIVATE "${CSE_ROOT}/cmake/exports/win32/GameUI.def")
 cse_link_steam(gameui Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 target_link_libraries(gameui PRIVATE "$<$<CONFIG:Debug>:user32.lib>")
 cse_link_sdl3(gameui Debug)

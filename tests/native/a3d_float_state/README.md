@@ -1,6 +1,6 @@
 # A3D mixer floating-state boundary
 
-This standalone fixture tests the actual `a2d.cpp` mixer. On Windows, the subject TU includes the entire production file and the exact `Mixer_MultiplyFixed16` body extracted from `A3dGeom.cpp`. The retained A3D manifest is evaluated by the owned translator to derive the source's `/O2 /fp:precise /Oi` policy and Win32 `/arch:IA32`; the selected policy and source hashes are emitted into the build directory. The mixer remains optimized in Debug, matching its retained per-file settings. The independent state caller uses `/fp:strict`, explicit Release `/O2` or Debug `/Od /Zi`, and `/W4 /WX`.
+This standalone fixture tests the actual `a2d.cpp` mixer. On Windows, the subject TU includes the entire production file and the exact `Mixer_MultiplyFixed16` body extracted from `A3dGeom.cpp`. The owning A3D CMake target is queried for the source's `/O2 /fp:precise /Oi` policy and Win32 `/arch:IA32`; the selected policy and source hashes are emitted into the build directory. The mixer remains optimized in Debug, matching its retained per-file settings. The independent state caller uses `/fp:strict`, explicit Release `/O2` or Debug `/Od /Zi`, and `/W4 /WX`.
 
 Configure from an initialized MSVC environment, selecting the actual compiler CPU:
 

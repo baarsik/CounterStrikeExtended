@@ -37,7 +37,7 @@ def _fresh_receipt_snapshot(directory):
     common.require(len(observations) == 3 and len({row['signature'] for row in observations}) == 1
                    and observations[0]['signature'] == receipt['signature'], 'Compiler observations differ')
     expected_header = evidence.metadata_header(observations[0], digest,
-        Path(__file__).resolve().parents[1] / 'GoldSrc-SDK/public/cse_vgui1_app_cold_metadata.h')
+        Path(__file__).resolve().parents[1] / 'src/public/cse_vgui1_app_cold_metadata.h')
     common.require((directory / 'metadata.h').read_text() == expected_header, 'Generated metadata disagrees with facts')
     common.require((directory / 'receipt.json').read_bytes() == receipt_bytes
                    and (directory / 'observations.json').read_bytes() == observations_bytes,

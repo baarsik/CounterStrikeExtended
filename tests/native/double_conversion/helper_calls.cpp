@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/legacy_double_to_int.h"
+#include "../../../src/common/legacy_double_to_int.h"
 
 #include <cstdint>
 

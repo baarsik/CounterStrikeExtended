@@ -3,8 +3,8 @@ project(cse_network_platform LANGUAGES CXX)
 include(CTest)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 get_filename_component(CSE_REPOSITORY "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(CSE_NETWORK_SOURCE "${CSE_REPOSITORY}/GoldSrc-SDK/engine/net_ws.cpp" CACHE FILEPATH "Actual transport source")
-set(CSE_NETWORK_COMMON "${CSE_REPOSITORY}/GoldSrc-SDK/common" CACHE PATH "Actual common headers")
+set(CSE_NETWORK_SOURCE "${CSE_REPOSITORY}/src/engine/net_ws.cpp" CACHE FILEPATH "Actual transport source")
+set(CSE_NETWORK_COMMON "${CSE_REPOSITORY}/src/common" CACHE PATH "Actual common headers")
 option(CSE_NETWORK_SANITIZERS "Enable address and undefined behavior sanitizers" OFF)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,11 +20,11 @@ get_filename_component(CSE_ENGINE_DIRECTORY "${CSE_NETWORK_SOURCE}" DIRECTORY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_NETWORK_SOURCE}"
     "${CSE_ENGINE_DIRECTORY}/cl_main.cpp" "${CSE_ENGINE_DIRECTORY}/client.h" "${CMAKE_CURRENT_LIST_DIR}/extract_functions.py")
 if(APPLE)
-    add_library(network_socket_producer SHARED "${CSE_REPOSITORY}/GoldSrc-SDK/engine/native_socket_lifetime.cpp"
+    add_library(network_socket_producer SHARED "${CSE_REPOSITORY}/src/engine/native_socket_lifetime.cpp"
         "${CSE_REPOSITORY}/tests/native/socket_lifetime/empty_provider.cpp"
         "${CSE_REPOSITORY}/tests/native/socket_lifetime/network_environment.cpp")
     target_include_directories(network_socket_producer PRIVATE "${extracted}")
-    add_library(network_socket_owner OBJECT "${CSE_REPOSITORY}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
+    add_library(network_socket_owner OBJECT "${CSE_REPOSITORY}/src/launcher/native/SocketImageOwner.cpp")
     target_compile_options(network_socket_owner PRIVATE -Wall -Wextra -Werror
         -include "${CSE_REPOSITORY}/tests/native/socket_lifetime/syscall_redirect.h")
 endif()
@@ -36,8 +36,8 @@ function(network_target target source policy)
         target_link_libraries(${target} PRIVATE network_socket_producer)
         target_link_options(${target} PRIVATE -Wl,-export_dynamic)
         target_compile_definitions(${target} PRIVATE CSE_TEST_SOCKET_OWNER=1)
-        target_include_directories(${target} PRIVATE "${CSE_REPOSITORY}/GoldSrc-SDK/engine"
-            "${CSE_REPOSITORY}/GoldSrc-SDK/launcher/native")
+        target_include_directories(${target} PRIVATE "${CSE_REPOSITORY}/src/engine"
+            "${CSE_REPOSITORY}/src/launcher/native")
     endif()
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /EHsc)

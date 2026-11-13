@@ -4,7 +4,7 @@
   "root_ruling": "R1 includes the three state entries and raw Enable/Disable/Fogi",
   "owners": [
     {
-      "path": "GoldSrc-SDK/engine/gl_draw.cpp",
+      "path": "src/engine/gl_draw.cpp",
       "base_sha256": "f9bc02979bd839c86d5cf32ecc613e1ae2ddce7903dfd7450ac494651f538194",
       "calls": [
         {
@@ -1452,7 +1452,7 @@
       ]
     },
     {
-      "path": "GoldSrc-SDK/engine/gl_model.cpp",
+      "path": "src/engine/gl_model.cpp",
       "base_sha256": "ae854dff51df8407a79ef7f757e91bcfeee6bdf3331cb2b55337a943efe6093d",
       "calls": [
         {
@@ -1472,7 +1472,7 @@
       ]
     },
     {
-      "path": "GoldSrc-SDK/engine/gl_rsurf.cpp",
+      "path": "src/engine/gl_rsurf.cpp",
       "base_sha256": "f8e5529f287afe7087015736e2c968fa4dfb565cc87cb44dc4a81aa51987a9c8",
       "calls": [
         {
@@ -2773,7 +2773,7 @@
       ]
     },
     {
-      "path": "GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp",
+      "path": "src/engine/vgui2/BaseUISurface.cpp",
       "base_sha256": "345fb55e4d6f00b97a7014c11c6b18c4477e1d5900a0a39d8750b2f14da1ebdb",
       "calls": [
         {
@@ -2786,7 +2786,7 @@
       ]
     },
     {
-      "path": "GoldSrc-SDK/engine/vgui_EngineSurfaceHW.cpp",
+      "path": "src/engine/vgui_EngineSurfaceHW.cpp",
       "base_sha256": "735932311438a74474ada32140c07327afe81932709f31033eb42c81eeac3aff",
       "calls": [
         {

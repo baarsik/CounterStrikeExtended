@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_boundaries.py"
-    "${CSE_ROOT}/GoldSrc-SDK/filesystem/FileSystem_Stdio.cpp" "${CMAKE_CURRENT_BINARY_DIR}/actual_low_level.h"
+    "${CSE_ROOT}/src/filesystem/FileSystem_Stdio.cpp" "${CMAKE_CURRENT_BINARY_DIR}/actual_low_level.h"
     COMMAND_ERROR_IS_FATAL ANY)
 if(WIN32)
     add_executable(filesystem_reference reference.cpp)
@@ -21,7 +21,7 @@ if(APPLE)
     set(CSE_FILESYSTEM_SANITIZERS "${CSE_FS_PLATFORM_SANITIZERS}" CACHE BOOL "" FORCE)
     add_subdirectory("${CSE_ROOT}/tests/native/filesystem" actual_module)
     add_executable(filesystem_platform_tests native_tests.cpp)
-    target_include_directories(filesystem_platform_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/filesystem")
+    target_include_directories(filesystem_platform_tests PRIVATE "${CSE_ROOT}/src/filesystem")
     target_compile_options(filesystem_platform_tests PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
     target_link_libraries(filesystem_platform_tests PRIVATE filesystem_stdio)
     if(CSE_FS_PLATFORM_SANITIZERS)
@@ -50,19 +50,19 @@ if(APPLE)
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tus.py"
             --database "${CSE_FS_PLATFORM_DATABASE}" --output "${CMAKE_CURRENT_BINARY_DIR}/scalar-clock"
             --file dbg.cpp --controlled-clock ${san_args}
-        DEPENDS "${CSE_ROOT}/GoldSrc-SDK/filesystem/dbg.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tus.py"
+        DEPENDS "${CSE_ROOT}/src/filesystem/dbg.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tus.py"
         DEPFILE "${clock_object}.d" VERBATIM)
     set(path_object "${CMAKE_CURRENT_BINARY_DIR}/scalar-path/pathmatch.cpp.o")
     add_custom_command(OUTPUT "${path_object}"
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tus.py"
             --database "${CSE_FS_PLATFORM_DATABASE}" --output "${CMAKE_CURRENT_BINARY_DIR}/scalar-path"
             --file pathmatch.cpp --source "${CMAKE_CURRENT_SOURCE_DIR}/path_bridge.cpp" ${san_args}
-        DEPENDS "${CSE_ROOT}/GoldSrc-SDK/filesystem/pathmatch.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/path_bridge.cpp"
+        DEPENDS "${CSE_ROOT}/src/filesystem/pathmatch.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/path_bridge.cpp"
             "${CMAKE_CURRENT_SOURCE_DIR}/compile_tus.py"
         DEPFILE "${path_object}.d" VERBATIM)
     set_source_files_properties("${clock_object}" "${path_object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
     add_executable(filesystem_scalar_tests scalar_tests.cpp "${clock_object}" "${path_object}")
-    target_include_directories(filesystem_scalar_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/filesystem")
+    target_include_directories(filesystem_scalar_tests PRIVATE "${CSE_ROOT}/src/filesystem")
     target_compile_options(filesystem_scalar_tests PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion)
     if(CSE_FS_PLATFORM_SANITIZERS)
         target_compile_options(filesystem_scalar_tests PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all

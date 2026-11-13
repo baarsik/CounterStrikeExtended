@@ -55,8 +55,8 @@ def complete_function(text, name):
     raise AssertionError(name)
 
 
-for game, relative in [('hl', 'GoldSrc-SDK/cl_dll/inputw32.cpp'),
-                       ('cs', 'GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp')]:
+for game, relative in [('hl', 'src/cl_dll/inputw32.cpp'),
+                       ('cs', 'src/cstrike/cl_dll/inputw32.cpp')]:
     path = root / relative
     data = path.read_bytes()
     text = data.decode('latin1')
@@ -115,7 +115,7 @@ for game, relative in [('hl', 'GoldSrc-SDK/cl_dll/inputw32.cpp'),
 (out / 'actual_bodies.json').write_text(json.dumps(receipts, indent=2) + '\n')
 
 # Execute the complete retained event-loop mouse branch with real game consumers.
-engine = root / 'GoldSrc-SDK/engine/sys_sdlwind.cpp'
+engine = root / 'src/engine/sys_sdlwind.cpp'
 data = engine.read_bytes()
 text = data.decode('latin1')
 blocks = []

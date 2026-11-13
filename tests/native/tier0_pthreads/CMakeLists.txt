@@ -18,17 +18,17 @@ set(sanitizers)
 if(CSE_TIER0_PTHREAD_SANITIZERS)
   set(sanitizers --sanitizers)
 endif()
-file(GLOB headers "${CSE_ROOT}/GoldSrc-SDK/public/tier0/*.h")
+file(GLOB headers "${CSE_ROOT}/src/public/tier0/*.h")
 add_custom_command(OUTPUT "${object}"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_spike.py"
-    --database "${CSE_TIER0_SPIKE_DATABASE}" --sdk "${CSE_ROOT}/GoldSrc-SDK" --output "${object}" ${sanitizers}
-  DEPENDS "${CSE_ROOT}/GoldSrc-SDK/tier0/threadtools.cpp" ${headers}
+    --database "${CSE_TIER0_SPIKE_DATABASE}" --sdk "${CSE_ROOT}/src" --output "${object}" ${sanitizers}
+  DEPENDS "${CSE_ROOT}/src/tier0/threadtools.cpp" ${headers}
     "${CMAKE_CURRENT_SOURCE_DIR}/compile_spike.py" "${CSE_TIER0_SPIKE_DATABASE}"
   DEPFILE "${object}.d" VERBATIM)
 set_source_files_properties("${object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
 add_executable(tier0_pthread_tests pthread_tests.cpp "${object}")
 set_target_properties(tier0_pthread_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_include_directories(tier0_pthread_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(tier0_pthread_tests PRIVATE "${CSE_ROOT}/src/public")
 target_compile_definitions(tier0_pthread_tests PRIVATE TIER0_DLL POSIX OSX)
 target_compile_options(tier0_pthread_tests PRIVATE -Wall -Wextra -Werror
   "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")

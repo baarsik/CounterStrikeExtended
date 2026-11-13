@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--before', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     options = parser.parse_args()
-    source = ROOT / 'GoldSrc-SDK/HLTV/Core/NetSocket.cpp'
+    source = ROOT / 'src/HLTV/Core/NetSocket.cpp'
     before = options.before.read_bytes()
     after = source.read_bytes()
     rows = []

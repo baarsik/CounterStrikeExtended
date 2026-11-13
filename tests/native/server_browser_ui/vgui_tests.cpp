@@ -3,7 +3,7 @@
 #include "check.h"
 #include "detail_provider_fixture.h"
 #include "controls.h"
-#include "../../../GoldSrc-SDK/engine/controls.h"
+#include "../../../src/engine/controls.h"
 #include "ListPanel.h"
 #include "PropertySheet.h"
 #include "PropertyPage.h"
@@ -34,7 +34,7 @@
 // The component injects the typed provider below; it does not initialize the production Steam service.
 extern "C" void CseSteamModuleInitialize() {}
 
-#include "../../../GoldSrc-SDK/public/native_gameui_retirement.h"
+#include "../../../src/public/native_gameui_retirement.h"
 #include "panel_owner_fixture.h"
 #include "baseui_owner_fixture.h"
 

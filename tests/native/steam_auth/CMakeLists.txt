@@ -6,7 +6,7 @@ project(CseLegacySteamAuthenticationFixtures LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 include("${CSE_ROOT}/cmake/SteamDependency.cmake")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_AUTH_ENGINE_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine" CACHE PATH "Current or immutable reference engine source")
+set(CSE_AUTH_ENGINE_SOURCE "${CSE_ROOT}/src/engine" CACHE PATH "Current or immutable reference engine source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CSE_AUTH_ENGINE_SOURCE}/cl_main.cpp" "${CSE_AUTH_ENGINE_SOURCE}/sv_steam3.cpp"
   "${CSE_AUTH_ENGINE_SOURCE}/crc.cpp" "${CSE_AUTH_ENGINE_SOURCE}/info.cpp" extract_functions.py)
@@ -17,7 +17,7 @@ if(NOT status EQUAL 0)
 endif()
 function(configure_auth_fixture target)
   target_compile_features(${target} PRIVATE cxx_std_17)
-  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/public")
+  target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/public")
   target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
   if(WIN32)
     target_link_libraries(${target} PRIVATE ws2_32)
@@ -38,12 +38,12 @@ set(CSE_STEAM_FIXTURE_PROVIDER "" CACHE FILEPATH "Pinned real Steam provider; ex
 if(CSE_STEAM_FIXTURE_PROVIDER)
   cse_verify_steam_provider("${CSE_STEAM_FIXTURE_PROVIDER}" "${CSE_TARGET_OS}" "${CSE_TARGET_ARCH}")
   add_executable(steam_auth_server_probe server_probe.cpp production_body.cpp
-    "${CSE_ROOT}/GoldSrc-SDK/common/steam_service.cpp")
+    "${CSE_ROOT}/src/common/steam_service.cpp")
   configure_auth_fixture(steam_auth_server_probe)
   cse_force_steam_initialization(steam_auth_server_probe)
   target_compile_definitions(steam_auth_server_probe PRIVATE CSE_REAL_AUTH_PROVIDER CSE_OWNED_STEAM_PROVIDER=1
     "CSE_STEAM_PROVIDER_PATH=\"${CSE_STEAM_FIXTURE_PROVIDER}\"")
-  target_include_directories(steam_auth_server_probe SYSTEM PRIVATE "${CSE_ROOT}/GoldSrc-SDK/external/steamworks")
+  target_include_directories(steam_auth_server_probe SYSTEM PRIVATE "${CSE_ROOT}/src/external/steamworks")
   target_link_libraries(steam_auth_server_probe PRIVATE "${CMAKE_DL_LIBS}")
 endif()
 # CTest never opens a socket or a Steam session.

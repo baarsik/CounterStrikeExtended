@@ -26,7 +26,7 @@ entries = json.loads((cache / 'compile_commands.json').read_text())
 entries = [entry for entry in entries if '/vgui2.dir/' in entry.get('output', '')]
 assert len(entries) == 38, len(entries)
 assert any(entry['file'].endswith('/InputWin32.cpp') for entry in entries)
-source_prefix = entries[0]['file'].split('/GoldSrc-SDK/')[0]
+source_prefix = entries[0]['file'].split('/src/')[0]
 recipe = subprocess.run(['ninja', '-t', 'commands', 'vgui2'], cwd=cache, capture_output=True,
                         text=True, check=True).stdout
 (packet / 'retained-recipes.txt').write_text(recipe)
@@ -37,9 +37,9 @@ def digest(path):
 
 def compile_one(pair):
     index, entry = pair
-    argv = [value.replace(source_prefix + '/GoldSrc-SDK', str(repo / 'GoldSrc-SDK'))
+    argv = [value.replace(source_prefix + '/src', str(repo / 'src'))
             for value in shlex.split(entry['command'])]
-    source = Path(entry['file'].replace(source_prefix + '/GoldSrc-SDK', str(repo / 'GoldSrc-SDK')))
+    source = Path(entry['file'].replace(source_prefix + '/src', str(repo / 'src')))
     output = packet / (f'{index:03d}-' + source.name + '.o')
     argv[argv.index('-c') + 1] = str(source)
     argv[argv.index('-o') + 1] = str(output)

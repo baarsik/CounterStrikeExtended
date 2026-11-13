@@ -1,4 +1,4 @@
-"""Evaluate the retained A3D manifest, including generated geometry sections."""
+"""Query the owning A3D CMake target, including generated geometry sections."""
 from pathlib import Path
 import json
 import re
@@ -11,11 +11,10 @@ config = sys.argv[3]
 arch = sys.argv[4]
 output = Path(sys.argv[5])
 sys.path.insert(0, str(root / "tools"))
-import translate_msbuild as translator
+from cmake_inventory import query_target
 
-project = root / "GoldSrc-SDK/projects/vs2026/a3dapi.vcxproj"
-evaluated = translator.evaluate(project, config)
-original = root / "GoldSrc-SDK/a3dapi"
+evaluated = query_target(root, "a3dapi", configuration=config, target_os="windows", architecture=arch)
+original = root / "src/a3dapi"
 
 
 def mapped(path):
@@ -27,37 +26,25 @@ def quote(value):
     return '"' + str(value).replace("\\", "/").replace('"', '\\"') + '"'
 
 
-items = [item for item in evaluated["items"] if item["kind"] in ("ClCompile", "ResourceCompile")
-         and item["metadata"].get("ExcludedFromBuild", "false") != "true"]
+items = [item for item in evaluated["sources"]
+         if item["language"] in ("C", "CXX", "RC") or Path(item["path"]).suffix.lower() == ".rc"]
 paths = []
 settings = []
 for item in items:
-    metadata = item["metadata"]
     if "generated" in item:
         path = output.parent / Path(item["path"]).name
         path.write_text("#define " + item["generated"]["section"] + '\n#include "'
                         + str(source / "A3dGeom.cpp").replace("\\", "/") + '"\n')
     else:
         path = mapped(item["path"])
+    if not path.is_file():
+        raise ValueError(f"Selected A3D source is missing after query mapping: {path}")
     paths.append(path)
-    definitions = [v for v in metadata.get("PreprocessorDefinitions", "").split(";") if v]
-    includes = [mapped(v) for v in metadata.get("AdditionalIncludeDirectories", "").split(";") if v]
-    options = []
-    optimization = {"Disabled": "/Od", "MaxSpeed": "/O2"}.get(metadata.get("Optimization"))
-    if optimization:
-        options.append(optimization)
-    floating = {"Precise": "/fp:precise", "Strict": "/fp:strict", "Fast": "/fp:fast"}.get(metadata.get("FloatingPointModel"))
-    if floating:
-        options.append(floating)
-    exceptions = {"Sync": "/EHsc", "Async": "/EHa"}.get(metadata.get("ExceptionHandling"))
-    if exceptions:
-        options.append(exceptions)
-    if metadata.get("IntrinsicFunctions") == "true":
-        options.append("/Oi")
-    if arch == "x86" and metadata.get("EnableEnhancedInstructionSet") == "NoExtensions":
-        options.append("/arch:IA32")
+    definitions = item["compile_definitions"]
+    includes = [mapped(v) for v in item["include_directories"]]
+    options = item["compile_options"]
     for key, values in [("COMPILE_DEFINITIONS", definitions), ("INCLUDE_DIRECTORIES", includes),
-                        ("COMPILE_OPTIONS", options if item["kind"] == "ClCompile" else [])]:
+                        ("COMPILE_OPTIONS", options)]:
         if values:
             settings.append("set_property(SOURCE " + quote(path) + " APPEND PROPERTY " + key + " "
                             + " ".join(quote(v) for v in values) + ")")
@@ -74,7 +61,7 @@ if arch != "x86":
 paths.append(definition)
 lines = ["set(CSE_A3D_MODULE_SOURCES"] + ["  " + quote(p) for p in paths] + [")"] + settings
 lines += ["set(CSE_A3D_MODULE_INCLUDE " + quote(source) + ")"]
-libraries = [v for v in evaluated["definitions"]["Link"]["AdditionalDependencies"].split(";") if v]
+libraries = evaluated["link_libraries"]
 lines += ["set(CSE_A3D_MODULE_LIBRARIES " + " ".join(quote(v) for v in libraries) + ")"]
 output.write_text("\n".join(lines) + "\n")
 output.with_suffix(".json").write_text(json.dumps(evaluated, indent=2) + "\n")

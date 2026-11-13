@@ -12,13 +12,13 @@ args = parser.parse_args()
 root = args.root.resolve()
 output = args.output.resolve()
 output.mkdir(parents=True, exist_ok=True)
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+vgui = root / 'src/utils/vgui/lib-src/vgui'
 
 for view in ['public', 'private']:
     overlay = output / ('headers-' + view)
     overlay.mkdir(exist_ok=True)
-    shutil.copy2(root / 'GoldSrc-SDK/utils/vgui/include/VGUI_App.h', overlay / 'VGUI_App.h')
-    declaring = root / 'GoldSrc-SDK/utils/vgui/include' if view == 'public' else vgui / 'include'
+    shutil.copy2(root / 'src/utils/vgui/include/VGUI_App.h', overlay / 'VGUI_App.h')
+    declaring = root / 'src/utils/vgui/include' if view == 'public' else vgui / 'include'
     for name in ['VGUI_TextEntry.h', 'VGUI_EditPanel.h']:
         shutil.copy2(declaring / name, overlay / name)
 

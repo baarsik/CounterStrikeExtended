@@ -12,7 +12,7 @@ parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=False)
 root = Path(__file__).resolve().parents[3]
-helper = root / 'GoldSrc-SDK/common/legacy_wide_format.cpp'
+helper = root / 'src/common/legacy_wide_format.cpp'
 records = []
 for configuration in ('release', 'debug'):
     database = args.artifacts / ('macos-runtime-policy-' + configuration) / 'compile_commands.json'

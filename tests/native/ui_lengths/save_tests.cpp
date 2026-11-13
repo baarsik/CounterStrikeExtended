@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../GoldSrc-SDK/common/legacy_text_encoding.h"
+#include "../../../src/common/legacy_text_encoding.h"
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX

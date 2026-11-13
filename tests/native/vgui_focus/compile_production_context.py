@@ -24,9 +24,9 @@ args = parser.parse_args()
 output = Path(args.output)
 output.mkdir(parents=True, exist_ok=True)
 contexts = (
-    ("cs_client", "GoldSrc-SDK/cstrike/vgui2/controls/Panel.cpp"),
-    ("hw_engine", "GoldSrc-SDK/vgui2/controls/Panel.cpp"),
-    ("gameui", "GoldSrc-SDK/vgui2/controls/Panel.cpp"),
+    ("cs_client", "src/cstrike/vgui2/controls/Panel.cpp"),
+    ("hw_engine", "src/vgui2/controls/Panel.cpp"),
+    ("gameui", "src/vgui2/controls/Panel.cpp"),
 )
 receipt = []
 for target, relative in contexts:

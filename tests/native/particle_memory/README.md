@@ -1,9 +1,8 @@
 # Native particle allocation and pool fixture
 
-The actual module is selected from
-`GoldSrc-SDK/projects/vs2026/particleman.vcxproj`. `manifest_sources.py` invokes
-the repository's retained MSBuild evaluator and applies its six selected sources,
-include directories, per-file definitions, and forced includes. The shared module
+The actual module is selected from the owning `particleman` CMake target.
+`manifest_sources.py` queries its selected sources, include directories,
+effective compiler options, per-file definitions, and forced includes. The shared module
 and component executable use the same production object files. The fixture does
 not copy an allocation body or effects implementation.
 
@@ -85,13 +84,13 @@ For Windows, use the same configure/build/test commands from the corresponding
 x86, x64, or ARM64 MSVC environment, omit Apple's two CMAKE_OSX arguments and the
 leaks option, and choose a distinct directory. Windows uses /W4 /WX and matching
 Debug/Release DLL CRT settings. The boundary fixture disables exception handling;
-the actual module retains its manifest's existing exception policy.
+the actual module retains its owning CMake target's existing exception policy.
 
 ## Limits
 
 The fixture's own code treats warnings as errors. Legacy SDK headers are external
 includes for standalone test drivers. The actual production module uses ordinary
-manifest-owned includes with visible inherited warnings on Clang, and native
+CMake-owned includes with visible inherited warnings on Clang, and native
 integer narrowing is an error; no production warning suppression was added.
 The separate pre-existing CCoreTriangleEffect allocation/check helpers are unchanged.
 

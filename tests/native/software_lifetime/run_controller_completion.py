@@ -12,11 +12,11 @@ out.mkdir(parents=True, exist_ok=True)
 sdl = pathlib.Path(sys.argv[2]).resolve()
 commands = []
 common = ['clang++', '-std=c++17', ('-Os' if '--release' in sys.argv else '-O0'), '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
-          '-I' + str(root / 'GoldSrc-SDK/engine/html/native'), '-I' + str(root / 'GoldSrc-SDK/public'),
-          '-I' + str(root / 'GoldSrc-SDK/external/SDL3/include')]
+          '-I' + str(root / 'src/engine/html/native'), '-I' + str(root / 'src/public'),
+          '-I' + str(root / 'src/external/SDL3/include')]
 objects = []
-for source in [root / 'GoldSrc-SDK/engine/html/native/browser_controller.cpp',
-               root / 'GoldSrc-SDK/engine/html/native/process_channel.cpp',
+for source in [root / 'src/engine/html/native/browser_controller.cpp',
+               root / 'src/engine/html/native/process_channel.cpp',
                root / 'tests/native/software_lifetime/controller_completion.cpp']:
     obj = out / (source.stem + '.o')
     command = common + (['-DSDL_WaitProcess=CseControlledWait'] if source.stem == 'process_channel' else [])

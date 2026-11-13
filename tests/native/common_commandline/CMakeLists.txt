@@ -7,10 +7,10 @@ if(WIN32)
 endif()
 add_executable(common_commandline_tests
     "${CMAKE_CURRENT_LIST_DIR}/../launcher_commandline/commandline_tests.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/common/commandline.cpp")
+    "${CSE_ROOT}/src/common/commandline.cpp")
 set_target_properties(common_commandline_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_include_directories(common_commandline_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common")
-target_compile_options(common_commandline_tests PRIVATE -include "${CSE_ROOT}/GoldSrc-SDK/public/cse_posix_crt.h"
+target_include_directories(common_commandline_tests PRIVATE "${CSE_ROOT}/src/common")
+target_compile_options(common_commandline_tests PRIVATE -include "${CSE_ROOT}/src/public/cse_posix_crt.h"
     -Wall -Wextra -Werror -Wno-unknown-pragmas
     -Wno-error=sign-compare -Wno-error=deprecated-declarations)
 if(CSE_COMMANDLINE_SANITIZERS)

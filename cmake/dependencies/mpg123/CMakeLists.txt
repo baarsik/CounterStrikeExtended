@@ -4,7 +4,7 @@ project(CseMpg123 LANGUAGES C)
 include("${CMAKE_CURRENT_LIST_DIR}/../../RuntimeTargets.cmake")
 
 if(NOT DEFINED CSE_SDK_DIR)
-  get_filename_component(CSE_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../GoldSrc-SDK" ABSOLUTE)
+  get_filename_component(CSE_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../src" ABSOLUTE)
 endif()
 set(archive "${CSE_SDK_DIR}/external/mpg123/mpg123-1.33.7.tar.bz2")
 file(SHA256 "${archive}" archive_hash)

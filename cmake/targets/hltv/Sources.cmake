@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/HLTV.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hltv PRIVATE
   "${CSE_SDK_DIR}/HLTV/Console/System.cpp"
   "${CSE_SDK_DIR}/HLTV/Console/TextConsole.cpp"

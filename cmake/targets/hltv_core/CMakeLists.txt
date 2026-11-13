@@ -1,4 +1,4 @@
-# Generated from HLTV/Core/Core.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(hltv_core SHARED "Core")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)

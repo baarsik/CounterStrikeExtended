@@ -39,7 +39,7 @@ class ToolTests(unittest.TestCase):
             (output / name).write_text('OLD INVALID ACCEPTANCE')
         command = [sys.executable, str(ROOT / 'tools/vgui1_app_cold_evidence.py'), 'generate',
             '--schema', str(ROOT / 'tools/vgui1_app_cold_evidence_schema.json'),
-            '--foundation', str(ROOT / 'GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h'),
+            '--foundation', str(ROOT / 'src/public/cse_vgui1_app_cold_abi.h'),
             '--contexts', str(contexts or self.contexts), '--output', str(output), '--metadata'] + list(extra)
         result = subprocess.run(command, capture_output=True, text=True, timeout=120)
         self.assertNotEqual(result.returncode, 0, result.stdout)

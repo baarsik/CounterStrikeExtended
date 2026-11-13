@@ -83,7 +83,7 @@ scaffold = scaffold.replace(old, new)
     production_camera_bodies_changed=False, abi_claim=False), indent=2)+'\n')
 
 callers=[]
-for name,relative in [('base','GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp'),('wrap','GoldSrc-SDK/engine/VGUI_EngineSurfaceWrap.cpp')]:
+for name,relative in [('base','src/engine/vgui2/BaseUISurface.cpp'),('wrap','src/engine/VGUI_EngineSurfaceWrap.cpp')]:
     path=repo/relative
     data=path.read_bytes()
     text=data.decode('latin1')

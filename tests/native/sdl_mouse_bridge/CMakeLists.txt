@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(CSE_BRIDGE_SANITIZERS "Instrument controlled services and bridge" OFF)
-set(CSE_BRIDGE_TEST_SOURCE "${CSE_FIXTURE_ROOT}/GoldSrc-SDK/common/sdl3_native_mouse_bridge.c"
+set(CSE_BRIDGE_TEST_SOURCE "${CSE_FIXTURE_ROOT}/src/common/sdl3_native_mouse_bridge.c"
   CACHE FILEPATH "Controlled fixture bridge source; deliberate variants only")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/config")
 configure_file("${CSE_SDL_SOURCE_DIR}/include/build_config/SDL_build_config_minimal.h"
@@ -21,9 +21,9 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extra
 add_library(bridge_fixture SHARED sdk_fixture.c naive_bridge.c)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   target_sources(bridge_fixture PRIVATE "${CSE_BRIDGE_TEST_SOURCE}")
-  target_include_directories(bridge_fixture PRIVATE "${CSE_FIXTURE_ROOT}/GoldSrc-SDK/common")
+  target_include_directories(bridge_fixture PRIVATE "${CSE_FIXTURE_ROOT}/src/common")
   add_executable(bridge_tests controlled_tests.cpp)
-  target_include_directories(bridge_tests PRIVATE "${CSE_FIXTURE_ROOT}/GoldSrc-SDK/common")
+  target_include_directories(bridge_tests PRIVATE "${CSE_FIXTURE_ROOT}/src/common")
   target_link_libraries(bridge_tests PRIVATE bridge_fixture)
 endif()
 target_include_directories(bridge_fixture PRIVATE
@@ -33,7 +33,7 @@ target_compile_definitions(bridge_fixture PRIVATE SDL_STATIC_LIB=1 SDL_MAIN_HAND
 add_executable(bridge_naive_red naive_test.cpp)
 target_link_libraries(bridge_naive_red PRIVATE bridge_fixture)
 add_executable(bridge_header_probe header_probe.cpp)
-target_include_directories(bridge_header_probe PRIVATE "${CSE_FIXTURE_ROOT}/GoldSrc-SDK/common")
+target_include_directories(bridge_header_probe PRIVATE "${CSE_FIXTURE_ROOT}/src/common")
 set(fixture_targets bridge_fixture bridge_naive_red bridge_header_probe)
 if(TARGET bridge_tests)
   list(APPEND fixture_targets bridge_tests)

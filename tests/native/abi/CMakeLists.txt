@@ -34,14 +34,14 @@ add_test(NAME module-abi COMMAND abi_loader
 add_executable(game_layout_tests game_layout_tests.cpp)
 target_compile_features(game_layout_tests PRIVATE cxx_std_17)
 target_include_directories(game_layout_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common")
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common")
 add_test(NAME game-layouts COMMAND game_layout_tests)
 add_executable(game_entry_tests game_entry_tests.cpp)
 target_compile_features(game_entry_tests PRIVATE cxx_std_17)
 target_include_directories(game_entry_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common")
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common")
 add_test(NAME game-entry COMMAND game_entry_tests)
 if(MSVC)
   foreach(target game_layout_tests game_entry_tests)
@@ -52,8 +52,8 @@ endif()
 add_executable(game_module_probe game_module_probe.cpp)
 target_compile_features(game_module_probe PRIVATE cxx_std_17)
 target_include_directories(game_module_probe PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/public"
-  "${CSE_ROOT}/GoldSrc-SDK/common")
+  "${CSE_ROOT}/src/public"
+  "${CSE_ROOT}/src/common")
 target_link_libraries(game_module_probe PRIVATE ${CMAKE_DL_LIBS})
 if(MSVC)
   target_compile_options(game_module_probe PRIVATE /W4 /WX /EHsc)
@@ -66,14 +66,14 @@ if(WIN32 OR APPLE)
   target_link_libraries(c4_module_probe PRIVATE ${CMAKE_DL_LIBS})
   target_compile_definitions(c4_module_probe PRIVATE _CRT_SECURE_NO_WARNINGS)
   target_include_directories(c4_module_probe PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/common"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared"
-    "${CSE_ROOT}/GoldSrc-SDK/dlls"
-    "${CSE_ROOT}/GoldSrc-SDK/pm_shared"
-    "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/engine"
-    "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CSE_ROOT}/src/cstrike/dlls"
+    "${CSE_ROOT}/src/cstrike/common"
+    "${CSE_ROOT}/src/cstrike/pm_shared"
+    "${CSE_ROOT}/src/dlls"
+    "${CSE_ROOT}/src/pm_shared"
+    "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/engine"
+    "${CSE_ROOT}/src/public")
   if(MSVC)
     target_compile_options(c4_module_probe PRIVATE /W3 /EHsc)
   endif()
@@ -87,15 +87,15 @@ if(WIN32 OR APPLE)
     target_compile_definitions(world_module_probe_${game} PRIVATE _CRT_SECURE_NO_WARNINGS)
     if(game STREQUAL cs)
       target_include_directories(world_module_probe_${game} PRIVATE
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls"
-        "${CSE_ROOT}/GoldSrc-SDK/cstrike/pm_shared")
+        "${CSE_ROOT}/src/cstrike/dlls"
+        "${CSE_ROOT}/src/cstrike/pm_shared")
     endif()
     target_include_directories(world_module_probe_${game} PRIVATE
-      "${CSE_ROOT}/GoldSrc-SDK/dlls"
-      "${CSE_ROOT}/GoldSrc-SDK/pm_shared"
-      "${CSE_ROOT}/GoldSrc-SDK/common"
-      "${CSE_ROOT}/GoldSrc-SDK/engine"
-      "${CSE_ROOT}/GoldSrc-SDK/public")
+      "${CSE_ROOT}/src/dlls"
+      "${CSE_ROOT}/src/pm_shared"
+      "${CSE_ROOT}/src/common"
+      "${CSE_ROOT}/src/engine"
+      "${CSE_ROOT}/src/public")
     if(MSVC)
       target_compile_options(world_module_probe_${game} PRIVATE /W3 /EHsc)
     endif()

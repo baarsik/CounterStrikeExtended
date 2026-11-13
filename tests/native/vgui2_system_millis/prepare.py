@@ -18,8 +18,8 @@ art = args.art.resolve()
 art.mkdir(parents=True, exist_ok=True)
 manifest = original / 'FINAL_SHA256.json'
 assert hashlib.sha256(manifest.read_bytes()).hexdigest() == '4b479bc64e734149cc59ca39f579a79e8f81ad1753d15a2419a647838846503b'
-source = repo / 'GoldSrc-SDK/vgui2/src/System.cpp'
-before = (original / 'owning-inputs/GoldSrc-SDK/vgui2/src/System.cpp').read_bytes()
+source = repo / 'src/vgui2/src/System.cpp'
+before = (original / 'owning-inputs/src/vgui2/src/System.cpp').read_bytes()
 assert hashlib.sha256(before).hexdigest() == '52f95757ab48a39b983c99b9a68b02786d99f35e6aebdf430023e9210dbbb7e7'
 after = source.read_bytes()
 include = b'#if defined(_WIN64)\r\n#include "../../common/legacy_double_to_int.h"\r\n#endif\r\n\r\n'
@@ -31,7 +31,7 @@ assert after.count(b'\n') == after.count(b'\r\n'), 'Preserve original CRLF encod
 (art / 'System-before.cpp').write_bytes(before)
 (art / 'System-after.cpp').write_bytes(after)
 stage = art / 'windows-source'
-imports = stage / 'GoldSrc-SDK/vgui2/src'
+imports = stage / 'src/vgui2/src'
 imports.mkdir(parents=True, exist_ok=True)
 extractor = original / 'source/tests/native/vgui2_system_clock/extract_reference.py'
 subprocess.run(['python3', str(extractor), '--source', str(source), '--output', str(imports)], check=True)
@@ -41,9 +41,9 @@ assert prior['actual_class_sha256'] == current['actual_class_sha256']
 assert all(prior['methods'][key] == current['methods'][key] for key in ['constructor', 'destructor', 'current'])
 assert prior['methods']['millis'] != current['methods']['millis']
 (imports / 'actual_numeric_include.inc').write_bytes(include.replace(b'\r\n', b'\n'))
-helper = repo / 'GoldSrc-SDK/common/legacy_double_to_int.h'
-assert helper.read_bytes() == (original / 'component-source/GoldSrc-SDK/common/legacy_double_to_int.h').read_bytes()
-target = stage / 'GoldSrc-SDK/common/legacy_double_to_int.h'
+helper = repo / 'src/common/legacy_double_to_int.h'
+assert helper.read_bytes() == (original / 'component-source/src/common/legacy_double_to_int.h').read_bytes()
+target = stage / 'src/common/legacy_double_to_int.h'
 target.parent.mkdir(parents=True, exist_ok=True)
 shutil.copy2(helper, target)
 fixture = (original / 'source/tests/native/vgui2_system_clock/windows_reference.cpp').read_text()

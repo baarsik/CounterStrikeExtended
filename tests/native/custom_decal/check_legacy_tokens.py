@@ -37,7 +37,7 @@ pattern=re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//[^\n]*|/\*.*?\*/|[
 def tokens(text):return [x for x in pattern.findall(text) if not x.startswith(('//','/*'))]
 rows=[]
 for relative in paths:
- before=(args.reference/relative).read_text();after=(args.repo/'GoldSrc-SDK'/relative).read_text()
+ before=(args.reference/relative).read_text();after=(args.repo/'src'/relative).read_text()
  a=tokens(''.join(fold(before.splitlines(True),relative=='engine/com_custom.cpp')));b=tokens(''.join(fold(after.splitlines(True),relative=='engine/com_custom.cpp')))
  if a!=b:
   i=next((i for i,(x,y) in enumerate(zip(a,b)) if x!=y),min(len(a),len(b)));print(relative,'DIFF',i,a[max(i-8,0):i+15],b[max(i-8,0):i+15]);raise SystemExit(17)

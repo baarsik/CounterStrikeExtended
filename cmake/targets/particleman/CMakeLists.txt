@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/particleman.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(particleman SHARED "particleman")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
@@ -32,7 +32,7 @@ target_link_options(particleman PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(particleman PRIVATE "$<$<CONFIG:Debug>:/WX>")
 target_link_options(particleman PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(particleman PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
-cse_game_module_exports(particleman "${CSE_SDK_DIR}/projects/vs2026/particleman.def" "${CSE_ROOT}/cmake/exports/particleman.def")
+cse_game_module_exports(particleman "${CSE_ROOT}/cmake/exports/win32/particleman.def" "${CSE_ROOT}/cmake/exports/particleman.def")
 set_property(SOURCE "${CSE_SDK_DIR}/public/interface.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/FI${CSE_SDK_DIR}/particleman/compat/extdll.h>")
 set_property(SOURCE "${CSE_SDK_DIR}/public/interface.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/FI${CSE_SDK_DIR}/particleman/compat/util.h>")
 set_property(SOURCE "${CSE_SDK_DIR}/public/interface.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/FI${CSE_SDK_DIR}/particleman/compat/cbase.h>")

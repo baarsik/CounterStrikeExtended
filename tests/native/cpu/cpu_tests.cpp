@@ -1,6 +1,6 @@
 #include "tier0/platform.h"
 #include "tier0/fasttimer.h"
-#include "../../../GoldSrc-SDK/tier0/cpu_topology.h"
+#include "../../../src/tier0/cpu_topology.h"
 
 #include <chrono>
 #include <cstdarg>

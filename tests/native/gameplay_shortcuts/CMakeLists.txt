@@ -4,14 +4,14 @@ get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL public headers")
 set(CSE_SDL_CONFIG "" CACHE PATH "Qualified provider build_config directory")
-set(CSE_SHORTCUT_PROVIDER_SOURCE "${CSE_ROOT}/GoldSrc-SDK/common/sdl3_native_cocoa_mouse.mm" CACHE FILEPATH
+set(CSE_SHORTCUT_PROVIDER_SOURCE "${CSE_ROOT}/src/common/sdl3_native_cocoa_mouse.mm" CACHE FILEPATH
     "Complete actual owning Cocoa provider source")
 option(CSE_SHORTCUT_SANITIZERS "Instrument actual source with ASan/UBSan" OFF)
 add_library(shortcut_c_import OBJECT api_probe.c)
-target_include_directories(shortcut_c_import PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common")
+target_include_directories(shortcut_c_import PRIVATE "${CSE_ROOT}/src/common")
 set_target_properties(shortcut_c_import PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
 add_executable(shortcut_tests shortcut_tests.mm fixture_sdl.cpp "${CSE_SHORTCUT_PROVIDER_SOURCE}")
-target_include_directories(shortcut_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+target_include_directories(shortcut_tests PRIVATE "${CSE_ROOT}/src/common"
     "${CSE_SDL_INCLUDE}" "${CSE_SDL_CONFIG}")
 target_compile_options(shortcut_tests PRIVATE -Wall -Wextra -Werror -fobjc-arc -fvisibility=hidden
     -fno-exceptions -funwind-tables -ffp-model=precise -ffp-contract=off -Wno-overriding-option
@@ -35,7 +35,7 @@ foreach(suite cocoa interaction)
         set(fixture "${CMAKE_CURRENT_LIST_DIR}/../system_capture/interaction_tests.mm")
     endif()
     add_executable(old_${suite}_tests "${fixture}" fixture_sdl.cpp "${CSE_SHORTCUT_PROVIDER_SOURCE}")
-    target_include_directories(old_${suite}_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common"
+    target_include_directories(old_${suite}_tests PRIVATE "${CSE_ROOT}/src/common"
         "${CSE_SDL_INCLUDE}" "${CSE_SDL_CONFIG}")
     target_compile_options(old_${suite}_tests PRIVATE -Wall -Wextra -Werror -fobjc-arc -fvisibility=hidden
         -fno-exceptions -funwind-tables -ffp-model=precise -ffp-contract=off -Wno-overriding-option

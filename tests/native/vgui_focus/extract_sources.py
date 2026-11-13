@@ -21,7 +21,7 @@ def function(source: str, signature: str) -> str:
 root = Path(sys.argv[1])
 output = Path(sys.argv[2])
 output.mkdir(parents=True, exist_ok=True)
-header = (root / "GoldSrc-SDK/vgui2/controls/Panel.h").read_text(encoding="latin1")
+header = (root / "src/vgui2/controls/Panel.h").read_text(encoding="latin1")
 start = header.index("_MessageFuncCommon( OnRequestFocus")
 start = header.rfind("\n", 0, start) + 1
 previous = header.rfind("\n", 0, start - 1) + 1
@@ -31,8 +31,8 @@ end = header.index("virtual void OnRequestFocus", start)
 end = header.index(";", end) + 1
 (output / "focus_map.inc").write_text(header[start:end], encoding="latin1")
 for variant, relative in (
-    ("shared", "GoldSrc-SDK/vgui2/controls/Panel.cpp"),
-    ("cs", "GoldSrc-SDK/cstrike/vgui2/controls/Panel.cpp"),
+    ("shared", "src/vgui2/controls/Panel.cpp"),
+    ("cs", "src/cstrike/vgui2/controls/Panel.cpp"),
 ):
     source = (root / relative).read_text(encoding="latin1")
     bodies = function(source, "void PreparePanelMessageMap(")

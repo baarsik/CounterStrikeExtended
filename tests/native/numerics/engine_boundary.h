@@ -1,7 +1,7 @@
 #ifndef CSE_NUMERIC_ENGINE_BOUNDARY_H
 #define CSE_NUMERIC_ENGINE_BOUNDARY_H
-#include "../../../GoldSrc-SDK/common/legacy_float_to_int.h"
-#include "../../../GoldSrc-SDK/common/cvardef.h"
+#include "../../../src/common/legacy_float_to_int.h"
+#include "../../../src/common/cvardef.h"
 #include <climits>
 #include <cmath>
 #include <cstddef>

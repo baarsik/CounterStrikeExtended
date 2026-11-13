@@ -11,7 +11,7 @@ add_executable(prediction_callback_tests prediction_callback_tests.cpp)
 target_compile_features(symbol_address_tests PRIVATE cxx_std_17)
 target_compile_features(prediction_callback_tests PRIVATE cxx_std_17)
 target_include_directories(symbol_address_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/common")
 target_link_libraries(symbol_address_tests PRIVATE ${CMAKE_DL_LIBS})
 if(MSVC)
   target_compile_options(symbol_address_tests PRIVATE /W4 /WX /EHsc)

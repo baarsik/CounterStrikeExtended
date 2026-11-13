@@ -1,6 +1,6 @@
 #include "binary_io.h"
 #include "corpus.h"
-#include "../../../GoldSrc-SDK/common/legacy_double_to_int.h"
+#include "../../../src/common/legacy_double_to_int.h"
 
 #include <cstdint>
 #include <cstdio>

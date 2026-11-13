@@ -9,7 +9,7 @@ cse_load_native_third_party()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 set(fixture "${CMAKE_CURRENT_LIST_DIR}/..")
-set(engine "${CSE_ROOT}/GoldSrc-SDK/engine")
+set(engine "${CSE_ROOT}/src/engine")
 set(CSE_WEBM_SOURCE "${engine}/webm_video.cpp" CACHE FILEPATH "Actual WebM methods for extraction")
 set(generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
 add_custom_command(OUTPUT "${generated}/demux_reference.cpp" "${generated}/demux-source.json"

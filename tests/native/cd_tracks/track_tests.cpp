@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include "../../../GoldSrc-SDK/common/legacy_text_to_integer.h"
+#include "../../../src/common/legacy_text_to_integer.h"
 #include "actual_native_track.inc"
 
 namespace {

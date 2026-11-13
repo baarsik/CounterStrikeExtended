@@ -23,7 +23,7 @@
 
 - The build targets Windows x86 (Win32), using C, C++ and Windows resources,
   MSVC Build Tools and the Windows SDK.
-- Production source lives under `GoldSrc-SDK/`. The runtime includes the engine,
+- Production source lives under `src/`. The runtime includes the engine,
   launchers, Counter-Strike and Half-Life client/server DLLs, and shared runtime
   libraries. Each game keeps its own runtime-relative client/server outputs.
 - Root `CMakeLists.txt` composes the runtime. Target definitions under
@@ -46,10 +46,12 @@
 
 - Use `hardware-x86-release` or `hardware-x86-debug` with the same commands for
   only the hardware engine and its source-built VGUI1 dependency.
-- Generated target definitions and the MSBuild crosswalk come from
-  `tools/translate_msbuild.py`. Update the retained manifests or translator as
-  appropriate, then run `python tools/translate_msbuild.py`; keep generated
-  outputs synchronized rather than editing them independently.
+- CMake is the build source of truth. Edit target settings in
+  `cmake/targets/<target>/CMakeLists.txt` and source membership in the adjacent
+  `Sources.cmake` directly. Keep shared policies in `cmake/RuntimeTargets.cmake`
+  and per-file settings in the owning target directory. Regenerate derived
+  production source files with `python3 tools/generate_runtime_sources.py`
+  after changing their CMake-owned inputs. See [build-system.md](docs/build-system.md).
 - Default Release builds all 19 retained production targets into repository-root
   `output/`, using the actual game-relative paths. Debug uses `output-debug/`.
   Hardware-only outputs remain inside their preset build directory.

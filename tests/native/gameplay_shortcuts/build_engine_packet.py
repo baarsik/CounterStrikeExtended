@@ -189,8 +189,8 @@ assert not missing, 'Changed-header consumers omitted from owning rebuild: ' + '
 
 # Verify corrected current-source bootstrap anchors before preserving their objects.
 for source, expected in {
-    'GoldSrc-SDK/engine/VGui1NativeRuntime.cpp': '4cc77d72972d3607e7ccfbfb9b61961894b0f65b05e21701d15f8f56c806a2c5',
-    'GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp': 'e6216d79d22ae49c4b02c92313eeb86a1ab2d4057fd1116924433691e053175a',
+    'src/engine/VGui1NativeRuntime.cpp': '4cc77d72972d3607e7ccfbfb9b61961894b0f65b05e21701d15f8f56c806a2c5',
+    'src/launcher/native/VGui1HostImageOwner.cpp': 'e6216d79d22ae49c4b02c92313eeb86a1ab2d4057fd1116924433691e053175a',
 }.items():
     assert sha(repo / source) == expected
     pins[str(repo / source)] = expected

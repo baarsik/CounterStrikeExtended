@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/vgui2/src/native/StandaloneRaster.h"
+#include "../../../src/vgui2/src/native/StandaloneRaster.h"
 
 #include <cstdio>
 #include <cstdlib>

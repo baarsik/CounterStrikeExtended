@@ -1,49 +1,28 @@
-"""A native dependency must reach both configs without entering Windows selections."""
+"""The dedicated launcher selects SDL3 on native POSIX targets only."""
 from pathlib import Path
-import subprocess
 import sys
-import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
-import translate_msbuild as translator
+from cmake_inventory import query_target
 
 
 class NativeSdlPolicyTests(unittest.TestCase):
-    def configs(self, debug='true', release='true'):
-        return {name: {'properties': {'CseNativeSdl3': value}}
-                for name, value in [('Debug', debug), ('Release', release)]}
+    def test_hlds_provider_follows_target_platform_for_both_configurations(self):
+        for configuration in ('Debug', 'Release'):
+            for target_os, architecture, expected in (('windows', 'x86', False),
+                                                       ('windows', 'x64', False),
+                                                       ('macos', 'arm64', True),
+                                                       ('linux', 'x64', True)):
+                with self.subTest(configuration=configuration, target_os=target_os, architecture=architecture):
+                    data = query_target(ROOT, 'hlds', configuration, target_os, architecture)
+                    self.assertEqual(any('sdl3' in item.lower() for item in data['link_libraries']), expected)
 
-    def test_native_dependency_applies_both_configs_and_never_windows(self):
-        lines = []
-        translator.emit_native_sdl3_dependency(lines, 'fixture', self.configs())
-        with tempfile.TemporaryDirectory() as directory:
-            folder = Path(directory)
-            receipt = folder / 'calls.txt'
-            script = folder / 'policy.cmake'
-            script.write_text('function(cse_link_sdl3 target configuration)\n'
-                'file(APPEND "${CSE_RECEIPT}" "${target}:${configuration}\\n")\n'
-                'endfunction()\n' + '\n'.join(lines) + '\n')
-            for windows in ('ON', 'OFF'):
-                receipt.write_text('')
-                result = subprocess.run(['cmake', f'-DWIN32={windows}', f'-DCSE_RECEIPT={receipt}',
-                                         '-P', str(script)], capture_output=True, text=True)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                expected = [] if windows == 'ON' else ['fixture:Debug', 'fixture:Release']
-                self.assertEqual(receipt.read_text().splitlines(), expected)
-
-    def test_unrequested_targets_acquire_no_dependency(self):
-        for configs in (self.configs('false', 'false'),
-                        {name: {'properties': {}} for name in ('Debug', 'Release')}):
-            lines = []
-            translator.emit_native_sdl3_dependency(lines, 'fixture', configs)
-            self.assertEqual(lines, [])
-
-    def test_mismatched_or_invalid_policy_fails_before_generation(self):
-        for configs in (self.configs('true', 'false'), self.configs('SDL3', 'SDL3')):
-            with self.assertRaises(ValueError):
-                translator.emit_native_sdl3_dependency([], 'fixture', configs)
+    def test_unrequested_game_server_does_not_acquire_sdl3(self):
+        for target_os, architecture in (('windows', 'x86'), ('macos', 'arm64')):
+            data = query_target(ROOT, 'cs_server', 'Release', target_os, architecture)
+            self.assertFalse(any('sdl3' in item.lower() for item in data['link_libraries']))
 
 
 if __name__ == '__main__':

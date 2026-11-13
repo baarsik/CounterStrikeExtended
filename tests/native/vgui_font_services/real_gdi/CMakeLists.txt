@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_methods.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/win32/Font.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/extracted" COMMAND_ERROR_IS_FATAL ANY)
 add_executable(real_gdi_reference reference.cpp)
 target_include_directories(real_gdi_reference PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/extracted")

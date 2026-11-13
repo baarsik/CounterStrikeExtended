@@ -1,8 +1,8 @@
 #include <cstring>
-#include "../../../GoldSrc-SDK/engine/utlvector.h"
-#include "../../../GoldSrc-SDK/engine/utlrbtree.h"
-#include "../../../GoldSrc-SDK/engine/utllinkedlist.h"
-#include "../../../GoldSrc-SDK/cstrike/public/game_controls/utlstack.h"
+#include "../../../src/engine/utlvector.h"
+#include "../../../src/engine/utlrbtree.h"
+#include "../../../src/engine/utllinkedlist.h"
+#include "../../../src/cstrike/public/game_controls/utlstack.h"
 
 bool Less(const int &left, const int &right) {
     return left < right;

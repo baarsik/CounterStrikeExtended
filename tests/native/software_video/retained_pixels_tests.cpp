@@ -1,5 +1,5 @@
-#include "../../../GoldSrc-SDK/engine/vid.h"
-#include "../../../GoldSrc-SDK/engine/native_software_video.h"
+#include "../../../src/engine/vid.h"
+#include "../../../src/engine/native_software_video.h"
 #include <SDL3/SDL.h>
 #include <dlfcn.h>
 #include <cassert>

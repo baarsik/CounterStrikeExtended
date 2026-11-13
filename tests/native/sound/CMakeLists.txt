@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseSoundTransferFixtures LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
-set(CSE_SOUND_TRANSFER_IMPLEMENTATION "${CSE_ROOT}/GoldSrc-SDK/engine/sound_transfer_impl.h" CACHE FILEPATH
+set(CSE_SOUND_TRANSFER_IMPLEMENTATION "${CSE_ROOT}/src/engine/sound_transfer_impl.h" CACHE FILEPATH
   "Production transfer methods; a pinned archived implementation may be selected for reference evidence")
 configure_file(transfer_header.h.in transfer_header.h @ONLY)
 option(CSE_TEST_NATIVE_SOUND_TRANSFER "Test the native SDL lock boundary as well as the legacy reference" ON)
@@ -15,8 +15,8 @@ endif()
 enable_testing()
 add_executable(sound_callback_tests callback_tests.cpp)
 target_compile_features(sound_callback_tests PRIVATE cxx_std_17)
-target_include_directories(sound_callback_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
-  "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(sound_callback_tests PRIVATE "${CSE_ROOT}/src/engine"
+  "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public")
 target_compile_definitions(sound_callback_tests PRIVATE "$<$<PLATFORM_ID:Windows>:WIN32>" DLL_EXPORT=)
 if(MSVC)
   target_compile_options(sound_callback_tests PRIVATE /W4 /WX /EHsc)
@@ -76,7 +76,7 @@ if(CSE_SOUND_SDL_PROVIDER)
   endif()
   add_library(sound_sdl_provider SHARED IMPORTED)
   set_target_properties(sound_sdl_provider PROPERTIES IMPORTED_LOCATION "${CSE_SOUND_SDL_PROVIDER}"
-    INTERFACE_INCLUDE_DIRECTORIES "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+    INTERFACE_INCLUDE_DIRECTORIES "${CSE_ROOT}/src/external/SDL3/include")
   if(WIN32)
     cse_verify_binary("${CSE_SOUND_SDL_IMPORT_ARCHIVE}" "${CSE_TARGET_ARCH}")
     set_property(TARGET sound_sdl_provider PROPERTY IMPORTED_IMPLIB "${CSE_SOUND_SDL_IMPORT_ARCHIVE}")
@@ -93,11 +93,11 @@ if(CSE_SOUND_SDL_PROVIDER)
     add_executable(${target} "${source}")
     target_compile_features(${target} PRIVATE cxx_std_17)
     if(target STREQUAL dma_provider_tests)
-      target_sources(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine/snd_sdl.cpp")
+      target_sources(${target} PRIVATE "${CSE_ROOT}/src/engine/snd_sdl.cpp")
       target_compile_definitions(${target} PRIVATE CSE_SOUND_USE_SDL=1
         "$<$<PLATFORM_ID:Windows>:WIN32>" DLL_EXPORT=)
-      target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
-        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public")
+      target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/engine"
+        "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public")
     endif()
     target_link_libraries(${target} PRIVATE sound_sdl_provider Threads::Threads)
     if(MSVC)

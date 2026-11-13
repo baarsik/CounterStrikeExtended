@@ -9,7 +9,7 @@ get_filename_component(CSE_REPO "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CSE_BROWSER_SOURCE_ROOT "${CSE_REPO}" CACHE PATH "Actual immutable source snapshot root")
 option(CSE_BROWSER_UI_SANITIZERS "Address and undefined behavior sanitizer fixtures" OFF)
 option(CSE_BROWSER_UI_PRESENTATION_TESTS "Build tests against the actual new presentation component" OFF)
-set(sdk "${CSE_BROWSER_SOURCE_ROOT}/GoldSrc-SDK")
+set(sdk "${CSE_BROWSER_SOURCE_ROOT}/src")
 set(generated "${CMAKE_CURRENT_BINARY_DIR}/extracted")
 set(extracted
     "${generated}/retirement.inc"

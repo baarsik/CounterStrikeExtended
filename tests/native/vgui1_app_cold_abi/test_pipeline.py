@@ -15,7 +15,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 TOOL = ROOT / 'tools/vgui1_app_cold_evidence.py'
 SCHEMA = ROOT / 'tools/vgui1_app_cold_evidence_schema.json'
-FOUNDATION = ROOT / 'GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h'
+FOUNDATION = ROOT / 'src/public/cse_vgui1_app_cold_abi.h'
 DEFAULT_DB = Path('/Users/mmalakhouski/.codex/artifacts/cse-native64-20261108/macos-runtime-policy-release/compile_commands.json')
 
 
@@ -24,8 +24,8 @@ def fixture(directory, actual_pair=False):
     if not database.is_file():
         raise unittest.SkipTest('Pass CSE_VGUI1_COLD_DATABASE with actual owning Apple compile database')
     rows = json.loads(database.read_text())
-    private = ROOT / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/include'
-    public = ROOT / 'GoldSrc-SDK/utils/vgui/include'
+    private = ROOT / 'src/utils/vgui/lib-src/vgui/include'
+    public = ROOT / 'src/utils/vgui/include'
     directory.mkdir(parents=True)
     engine_headers = directory / 'engine-headers'
     provider_headers = directory / 'provider-headers'

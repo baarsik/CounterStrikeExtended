@@ -1,5 +1,5 @@
 #include "html_legacy_interfaces.h"
-#include "../../../GoldSrc-SDK/engine/html/ichromehtmlwrapper.h"
+#include "../../../src/engine/html/ichromehtmlwrapper.h"
 #include <cstdint>
 #include <cstdlib>
 #include <cstdio>

@@ -9,7 +9,7 @@ out.mkdir(parents=True, exist_ok=True)
 (out / 'actual_arguments.inc').write_text(definitions(root))
 command = ['clang++', sys.argv[2], '-std=c++17', '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
            '-ffp-model=precise', '-ffp-contract=off', '-Wno-overriding-option',
-           '-I' + str(root / 'GoldSrc-SDK'), '-I' + str(out),
+           '-I' + str(root / 'src'), '-I' + str(out),
            str(root / 'tests/native/dedicated_host/engine_arguments.cpp'), '-o', str(out / 'engine_arguments')]
 subprocess.run(command, check=True)
 subprocess.run([str(out / 'engine_arguments')], check=True)

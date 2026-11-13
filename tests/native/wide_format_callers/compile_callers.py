@@ -15,7 +15,7 @@ a = p.parse_args()
 a.output.mkdir(parents=True, exist_ok=False)
 root = Path(__file__).resolve().parents[3]
 names = [x for x in json.loads((a.before / 'before-hashes.json').read_text()) if x.endswith('.cpp')]
-names.append('GoldSrc-SDK/cstrike/public/KeyValues.cpp')
+names.append('src/cstrike/public/KeyValues.cpp')
 work = []
 missing = []
 for profile in ('release', 'debug'):

@@ -1,5 +1,5 @@
 #include "browser_controller.h"
-#include "../../../GoldSrc-SDK/engine/utlstring.h"
+#include "../../../src/engine/utlstring.h"
 #include <SDL3/SDL.h>
 #include <cstdio>
 #include <cstdlib>

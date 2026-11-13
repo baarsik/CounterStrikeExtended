@@ -45,7 +45,7 @@ def audit(root):
         errors.extend(audit_owner(owner, source))
         rows.append({"path": owner["path"], "entries": len(owner["calls"]),
                      "sha256": hashlib.sha256(source.encode()).hexdigest()})
-    aliases = (root / "GoldSrc-SDK/engine/gl_vidnt.cpp").read_text()
+    aliases = (root / "src/engine/gl_vidnt.cpp").read_text()
     for name in ("glBindTextureEXT", "glColorTableEXT"):
         if not re.search(r'RouteLegacyExtension\s*\(\s*"' + re.escape(name) + '"', aliases):
             errors.append("gl_vidnt.cpp: missing T2b alias handoff " + name)

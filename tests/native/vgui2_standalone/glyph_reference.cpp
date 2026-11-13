@@ -1,7 +1,7 @@
 // Reference is the retained font provider's raw glyph pixels, not a second surface renderer.
 #include <SDL3/SDL.h>
-#include "../../../GoldSrc-SDK/vgui2/vgui_surfacelib/FontManager.h"
-#include "../../../GoldSrc-SDK/vgui2/vgui_surfacelib/LinuxFont.h"
+#include "../../../src/vgui2/vgui_surfacelib/FontManager.h"
+#include "../../../src/vgui2/vgui_surfacelib/LinuxFont.h"
 #include <algorithm>
 #include <cstdio>
 #include <vector>

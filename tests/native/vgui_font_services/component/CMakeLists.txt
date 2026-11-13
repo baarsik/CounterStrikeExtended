@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(vgui_source "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(vgui_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 add_library(font_component SHARED "${vgui_source}/posix/Font.cpp" "${vgui_source}/posix/VGui1FontServices.cpp"
     "${vgui_source}/Font.cpp" "${vgui_source}/common/fileimage.cpp" "${vgui_source}/common/vfontdata.cpp")
 option(CSE_FONT_FIXTURE_BINDINGS "Link only fixture-owned provider/Surface bindings" ON)

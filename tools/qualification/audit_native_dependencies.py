@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from binary_identity import looks_native, require_architecture
 
 ROOT = Path(__file__).resolve().parents[2]
-REFERENCE = ROOT / 'GoldSrc-SDK/external/installed/x86-windows-static-md/share'
+REFERENCE = ROOT / 'src/external/installed/x86-windows-static-md/share'
 MANIFEST = ROOT / 'cmake/dependencies/vcpkg/vcpkg.json'
 
 

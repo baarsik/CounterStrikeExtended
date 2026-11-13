@@ -11,7 +11,7 @@ out.mkdir(parents=True, exist_ok=True)
 records = []
 
 for game, relative in [('hl', 'cl_dll'), ('cs', 'cstrike/cl_dll')]:
-    path = root / 'GoldSrc-SDK' / relative / 'in_camera.cpp'
+    path = root / 'src' / relative / 'in_camera.cpp'
     data = path.read_bytes()
     text = data.decode('latin1')
     start = re.search(r'^cvar_t\s*\*\s*cam_command;', text, re.M).start()

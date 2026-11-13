@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/hlds.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hlds PRIVATE
   "${CSE_SDK_DIR}/dedicated/sys_ded.cpp"
   "${CSE_SDK_DIR}/dedicated/CreateMultiplayerGameServerPage.cpp"

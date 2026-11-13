@@ -44,7 +44,7 @@ A normal evidence invocation selects actual compiler database entries:
 ```sh
 python3 tools/vgui1_app_cold_evidence.py generate \
   --schema tools/vgui1_app_cold_evidence_schema.json \
-  --foundation GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h \
+  --foundation src/public/cse_vgui1_app_cold_abi.h \
   --contexts /absolute/app-owner-contexts.json --output /absolute/evidence
 ```
 

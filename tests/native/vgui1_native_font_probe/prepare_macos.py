@@ -20,9 +20,9 @@ art.mkdir(parents=True)
 source = art / 'source'
 files = [p for p in (root / 'tests/native/vgui1_native_font_probe').iterdir() if p.is_file()]
 for name in ['MacFontDiscovery.h', 'MacFontDiscovery.cpp', 'MacFontRegistration.h', 'MacFontRegistration.cpp']:
-    files.append(root / 'GoldSrc-SDK/vgui2/vgui_surfacelib/native' / name)
+    files.append(root / 'src/vgui2/vgui_surfacelib/native' / name)
 for name in ['VGui1LegacyRaster.h', 'VGui1LegacyRaster.cpp']:
-    files.append(root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native' / name)
+    files.append(root / 'src/utils/vgui/lib-src/vgui/posix/native' / name)
 for name in ['cmake/MacFontService.cmake', 'cmake/dependencies/vcpkg/vcpkg.json',
              'cmake/dependencies/vcpkg/triplets/cse-arm64-macos.cmake',
              'tests/native/vgui1_legacy_raster/digest.h', 'tests/native/vgui1_legacy_raster/make_owned_font.py']:

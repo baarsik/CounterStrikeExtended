@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 project(CsePathResolution LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(owner "${CSE_ROOT}/GoldSrc-SDK/engine/common.cpp")
+set(owner "${CSE_ROOT}/src/engine/common.cpp")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${owner}" extract.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
   "${owner}" "${CMAKE_CURRENT_BINARY_DIR}/actual_resolution.inc" COMMAND_ERROR_IS_FATAL ANY)

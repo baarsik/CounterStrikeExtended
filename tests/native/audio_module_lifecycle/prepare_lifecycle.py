@@ -26,10 +26,10 @@ def extract(name, expression, occurrence=0):
     return f'#line {text.count(chr(10), 0, begin) + 1} "{path.as_posix()}"\n' + body + '\n'
 
 
-boundary = extract('GoldSrc-SDK/engine/cd.cpp', r'bool CDAudio_ShutdownForModuleUnload\(')
-boundary += extract('GoldSrc-SDK/engine/cd.cpp', r'cse::AudioModuleShutdown::~AudioModuleShutdown\(')
-dma = extract('GoldSrc-SDK/engine/snd_sdl.cpp', r'extern "C" void SNDDMA_Shutdown\(')
-run = extract('GoldSrc-SDK/engine/sys_dll2.cpp', r'int CEngineAPI::Run\(', 1)
+boundary = extract('src/engine/cd.cpp', r'bool CDAudio_ShutdownForModuleUnload\(')
+boundary += extract('src/engine/cd.cpp', r'cse::AudioModuleShutdown::~AudioModuleShutdown\(')
+dma = extract('src/engine/snd_sdl.cpp', r'extern "C" void SNDDMA_Shutdown\(')
+run = extract('src/engine/sys_dll2.cpp', r'int CEngineAPI::Run\(', 1)
 (out / 'production_audio_boundary.inc').write_text(boundary)
 (out / 'production_dma_close.inc').write_text(dma)
 (out / 'production_run.inc').write_text(run)

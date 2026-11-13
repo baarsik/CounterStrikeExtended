@@ -21,8 +21,8 @@ def extract(source, signature):
 if __name__ == '__main__':
     root = Path(sys.argv[1])
     methods = [
-        ('GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp', 'bool BaseUISurface::AddCustomFontFile('),
-        ('GoldSrc-SDK/vgui2/src/Surface.cpp', 'bool CWin32Surface::AddCustomFontFile('),
+        ('src/engine/vgui2/BaseUISurface.cpp', 'bool BaseUISurface::AddCustomFontFile('),
+        ('src/vgui2/src/Surface.cpp', 'bool CWin32Surface::AddCustomFontFile('),
     ]
     output = '\n\n'.join(extract((root / path).read_text(encoding='cp1252'), signature)
                          for path, signature in methods)

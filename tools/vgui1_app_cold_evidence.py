@@ -429,18 +429,18 @@ def metadata_contexts(entries, manifest, options, inputs):
     require(not options.fixture_only and manifest.get('compile_database'),
             'Metadata requires fresh actual owning database contexts, never fixture-only arguments')
     root = Path(__file__).resolve().parents[1]
-    require(options.foundation.resolve() == root / 'GoldSrc-SDK/public/cse_vgui1_app_cold_abi.h'
+    require(options.foundation.resolve() == root / 'src/public/cse_vgui1_app_cold_abi.h'
             and options.schema.resolve() == root / 'tools/vgui1_app_cold_evidence_schema.json',
             'Metadata requires the source-owned foundation/schema')
-    expected = {('consumer', 'hw_engine', str(root / 'GoldSrc-SDK/engine/vgui_intwrap.cpp')),
-                ('consumer', 'swds', str(root / 'GoldSrc-SDK/engine/vgui_intwrap.cpp')),
-                ('provider', 'vgui', str(root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/App.cpp'))}
+    expected = {('consumer', 'hw_engine', str(root / 'src/engine/vgui_intwrap.cpp')),
+                ('consumer', 'swds', str(root / 'src/engine/vgui_intwrap.cpp')),
+                ('provider', 'vgui', str(root / 'src/utils/vgui/lib-src/vgui/App.cpp'))}
     require(len(entries) == len(expected)
             and {(row['role'], row.get('target'), str(Path(row['source']).resolve())) for row in entries} == expected,
             'Metadata requires actual hw/sw App consumers and actual common VGUI App provider')
     require(not any('fixture_header_selection' in row for row in entries), 'Fixture header selection cannot publish')
-    for path in (root / 'GoldSrc-SDK/public/cse_vgui1_app_cold_metadata.h',
-                 root / 'GoldSrc-SDK/common/vgui1_app_cold_publisher.cpp'):
+    for path in (root / 'src/public/cse_vgui1_app_cold_metadata.h',
+                 root / 'src/common/vgui1_app_cold_publisher.cpp'):
         inputs[str(path)] = common.file_digest(path)
     return root
 
@@ -523,8 +523,8 @@ def generate(options):
             paths = common.dependency_paths(context, process.stdout + process.stderr, before, probe)
             hashes = {str(path): common.file_digest(path) for path in paths}
             if metadata_root:
-                expected_header = metadata_root / ('GoldSrc-SDK/utils/vgui/include/VGUI_App.h'
-                    if context['role'] == 'consumer' else 'GoldSrc-SDK/utils/vgui/lib-src/vgui/include/VGUI_App.h')
+                expected_header = metadata_root / ('src/utils/vgui/include/VGUI_App.h'
+                    if context['role'] == 'consumer' else 'src/utils/vgui/lib-src/vgui/include/VGUI_App.h')
                 declaring_headers = {path for path in paths if path.name == 'VGUI_App.h'}
                 require(declaring_headers == {expected_header},
                         'Metadata cannot use forced/copied alternate App declarations: ' + context['name'])
@@ -610,7 +610,7 @@ def generate(options):
         common.atomic(output / 'evidence.h', header)
         if metadata_root:
             common.atomic(output / 'metadata.h', metadata_header(reference, digest,
-                metadata_root / 'GoldSrc-SDK/public/cse_vgui1_app_cold_metadata.h'))
+                metadata_root / 'src/public/cse_vgui1_app_cold_metadata.h'))
         provenance.update(status='accepted_component_only', signature=signature, input_digest=digest,
                           publisher_ready=False, cold_load_ready=False,
                           metadata_ready=bool(metadata_root),

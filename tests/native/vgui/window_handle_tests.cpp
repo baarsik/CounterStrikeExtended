@@ -5,7 +5,7 @@
 #include <array>
 #include <cstdint>
 #include <cstdio>
-#include "../../../GoldSrc-SDK/vgui2/src/window_panel_handle.h"
+#include "../../../src/vgui2/src/window_panel_handle.h"
 
 int main() {
     HWND window = CreateWindowExA(0, "STATIC", "CSE owned panel handle fixture", 0,

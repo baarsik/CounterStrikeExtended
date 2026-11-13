@@ -38,7 +38,7 @@ def run(name, argv, cwd):
     return result.stdout
 
 
-source = args.repo / 'GoldSrc-SDK/common/sdl3_native_cocoa_mouse.mm'
+source = args.repo / 'src/common/sdl3_native_cocoa_mouse.mm'
 entries = json.loads((args.cache / 'compile_commands.json').read_text())
 owner = next(entry for entry in entries if entry['file'].endswith('/sdl3_native_cocoa_mouse.mm'))
 compile_argv = shlex.split(owner['command'])
@@ -69,7 +69,7 @@ for line in dependency_text.splitlines():
 assert dependencies
 dependency_pins = {str(path): digest(path) for path in sorted(dependencies)}
 
-archive = args.repo / 'GoldSrc-SDK/external/SDL3-source/SDL3-3.4.20.tar.gz'
+archive = args.repo / 'src/external/SDL3-source/SDL3-3.4.20.tar.gz'
 assert digest(archive) == 'f3bb06f55bed9557227a700af2ea62e49497ebdf58037732a731a5fb3ef8581f'
 upstream = args.cache / 'dependencies/SDL3/source'
 upstream_pins = {}

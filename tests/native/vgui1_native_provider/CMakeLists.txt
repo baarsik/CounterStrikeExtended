@@ -24,7 +24,7 @@ find_path(BZIP2_INCLUDE_DIR NAMES bzlib.h PATHS "${CSE_FREETYPE_PREFIX}/include"
 find_package(BZip2 REQUIRED)
 find_package(PNG CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/png" NO_DEFAULT_PATH)
 find_package(freetype CONFIG REQUIRED PATHS "${CSE_FREETYPE_PREFIX}/share/freetype" NO_DEFAULT_PATH)
-set(vgui_source "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(vgui_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 set(native_source "${vgui_source}/posix/native")
 add_library(native_face STATIC "${native_source}/VGui1NativeFontFace.cpp"
     "${native_source}/VGui1FixedSysFontFace.cpp"
@@ -35,7 +35,7 @@ add_library(native_provider STATIC "${native_source}/VGui1MacFontProvider.cpp")
 target_link_libraries(native_provider PUBLIC native_face)
 set_target_properties(native_provider PROPERTIES CXX_STANDARD 17)
 if(APPLE)
-    set(discovery "${CSE_ROOT}/GoldSrc-SDK/vgui2/vgui_surfacelib/native")
+    set(discovery "${CSE_ROOT}/src/vgui2/vgui_surfacelib/native")
     add_library(provider_discovery STATIC "${discovery}/MacFontDiscovery.cpp")
     target_include_directories(provider_discovery PUBLIC "${discovery}")
     target_link_libraries(provider_discovery PUBLIC Freetype::Freetype "-framework CoreText" "-framework CoreFoundation")

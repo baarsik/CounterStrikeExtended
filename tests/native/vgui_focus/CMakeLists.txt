@@ -11,34 +11,34 @@ add_custom_command(OUTPUT ${generated_sources}
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
   DEPENDS extract_sources.py
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/Panel.h"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/controls/Panel.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/vgui2/controls/Panel.cpp"
+    "${CSE_ROOT}/src/vgui2/controls/Panel.h"
+    "${CSE_ROOT}/src/vgui2/controls/Panel.cpp"
+    "${CSE_ROOT}/src/cstrike/vgui2/controls/Panel.cpp"
   VERBATIM)
 enable_testing()
 foreach(variant IN ITEMS shared cs public)
   if(variant STREQUAL "cs")
-    set(keyvalues_source "${CSE_ROOT}/GoldSrc-SDK/cstrike/public/KeyValues.cpp")
-    set(buffer_source "${CSE_ROOT}/GoldSrc-SDK/cstrike/public/UtlBuffer.cpp")
+    set(keyvalues_source "${CSE_ROOT}/src/cstrike/public/KeyValues.cpp")
+    set(buffer_source "${CSE_ROOT}/src/cstrike/public/UtlBuffer.cpp")
   elseif(variant STREQUAL "public")
-    set(keyvalues_source "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/KeyValues.cpp")
-    set(buffer_source "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/UtlBuffer.cpp")
+    set(keyvalues_source "${CSE_ROOT}/src/vgui2/src/public/KeyValues.cpp")
+    set(buffer_source "${CSE_ROOT}/src/vgui2/src/public/UtlBuffer.cpp")
   else()
-    set(keyvalues_source "${CSE_ROOT}/GoldSrc-SDK/engine/KeyValues.cpp")
-    set(buffer_source "${CSE_ROOT}/GoldSrc-SDK/engine/utlbuffer.cpp")
+    set(keyvalues_source "${CSE_ROOT}/src/engine/KeyValues.cpp")
+    set(buffer_source "${CSE_ROOT}/src/engine/utlbuffer.cpp")
   endif()
   add_executable(vgui_focus_${variant} focus_tests.cpp ${generated_sources}
     "${keyvalues_source}" "${buffer_source}")
   set_target_properties(vgui_focus_${variant} PROPERTIES
     CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
   target_include_directories(vgui_focus_${variant} PRIVATE
-    "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/public")
   if(variant STREQUAL "cs")
-    target_include_directories(vgui_focus_${variant} BEFORE PRIVATE "${CSE_ROOT}/GoldSrc-SDK/cstrike/public")
+    target_include_directories(vgui_focus_${variant} BEFORE PRIVATE "${CSE_ROOT}/src/cstrike/public")
     target_compile_definitions(vgui_focus_${variant} PRIVATE CSE_FOCUS_CS)
   elseif(variant STREQUAL "public")
     target_include_directories(vgui_focus_${variant} BEFORE PRIVATE
-      "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public" "${CSE_ROOT}/GoldSrc-SDK/vgui2/src")
+      "${CSE_ROOT}/src/vgui2/src/public" "${CSE_ROOT}/src/vgui2/src")
     target_compile_definitions(vgui_focus_${variant} PRIVATE CSE_FOCUS_PUBLIC)
   endif()
   if(MSVC)

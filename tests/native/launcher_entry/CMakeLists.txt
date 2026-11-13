@@ -9,15 +9,16 @@ endif()
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
 set(manifest_sources "${CMAKE_CURRENT_BINARY_DIR}/manifest_sources.cmake")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/manifest_sources.py"
-  "${CSE_ROOT}" "${CSE_TARGET_OS}" "${manifest_sources}" COMMAND_ERROR_IS_FATAL ANY)
+  "${CSE_ROOT}" "${CSE_TARGET_OS}" "${manifest_sources}" "${CSE_TARGET_ARCH}" COMMAND_ERROR_IS_FATAL ANY)
 include("${manifest_sources}")
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-  "${CSE_ROOT}/GoldSrc-SDK/launcher/launcher.vcxproj" "${CMAKE_CURRENT_SOURCE_DIR}/manifest_sources.py"
-  "${CSE_ROOT}/tests/native/filesystem/manifest_sources.py" "${CSE_ROOT}/tools/translate_msbuild.py")
+include("${CSE_ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${CSE_ROOT}" "${CMAKE_CURRENT_SOURCE_DIR}/manifest_sources.py"
+  "${CSE_ROOT}/tests/native/filesystem/manifest_sources.py")
 add_executable(launcher_entry ${CSE_LAUNCHER_SOURCES})
-set_target_properties(launcher_entry PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-target_include_directories(launcher_entry PRIVATE "${CSE_ROOT}/GoldSrc-SDK/launcher"
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK")
+set_target_properties(launcher_entry PROPERTIES CXX_STANDARD "${CSE_LAUNCHER_CXX_STANDARD}"
+  CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
+target_include_directories(launcher_entry PRIVATE "${CSE_ROOT}/src/launcher"
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src")
 target_compile_options(launcher_entry PRIVATE -Wall -Wextra -Wno-unknown-pragmas
   "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" "$<$<CONFIG:Debug>:-g>")
 target_link_libraries(launcher_entry PRIVATE ${CMAKE_DL_LIBS})

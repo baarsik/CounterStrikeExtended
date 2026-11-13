@@ -19,7 +19,7 @@ def block(source, signature):
 root = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2])
 out.mkdir(parents=True, exist_ok=True)
-paths = ['GoldSrc-SDK/cstrike/cl_dll/death.cpp', 'GoldSrc-SDK/cstrike/cl_dll/cl_util.h']
+paths = ['src/cstrike/cl_dll/death.cpp', 'src/cstrike/cl_dll/cl_util.h']
 death, util = [(root / path).read_text(encoding='latin1') for path in paths]
 notices = [next(line for line in death.splitlines() if line.startswith('#define MAX_DEATHNOTICES')),
            block(death, 'struct DeathNoticeItem') + ';']

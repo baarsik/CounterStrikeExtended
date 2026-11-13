@@ -5,7 +5,7 @@
 #include <cwchar>
 #include <string>
 
-#include "../../../GoldSrc-SDK/common/legacy_text_encoding.h"
+#include "../../../src/common/legacy_text_encoding.h"
 
 namespace {
 void Check(bool condition, const char* reason) {

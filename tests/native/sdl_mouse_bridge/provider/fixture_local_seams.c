@@ -1,6 +1,6 @@
 // Fixture-only lifecycle entry points. Never selected into the production provider.
 #define CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD 1
-#include "../../../../GoldSrc-SDK/common/sdl3_native_mouse_bridge.h"
+#include "../../../../src/common/sdl3_native_mouse_bridge.h"
 #include "SDL_internal.h"
 #include <SDL3/SDL_main.h>
 

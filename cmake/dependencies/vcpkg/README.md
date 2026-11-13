@@ -24,7 +24,7 @@ The SPDX creator hash identifies **vcpkg-tool**, not the ports registry.
 Defaults are disabled: this retains FreeType without HarfBuzz, libpng without
 APNG, VPX without high-bit-depth/realtime-only options, and fontconfig without
 iconv/NLS/tools. Source archive SHA512 and recipe/patch SHA256 values are in
-`GoldSrc-SDK/external/installed/x86-windows-static-md/share/<package>/vcpkg.spdx.json`.
+`src/external/installed/x86-windows-static-md/share/<package>/vcpkg.spdx.json`.
 The pinned recipes verify downloaded source archives before extracting them.
 
 Use an isolated vcpkg checkout; do not update its registry while qualifying:

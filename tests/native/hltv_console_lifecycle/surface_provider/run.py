@@ -25,7 +25,7 @@ def main():
     options = parser.parse_args()
     directory = Path(__file__).resolve().parent
     root = directory.parents[3]
-    sdk = root / 'GoldSrc-SDK'
+    sdk = root / 'src'
     options.output.mkdir(parents=True, exist_ok=True)
     output = options.output.resolve()
     methods = []

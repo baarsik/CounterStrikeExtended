@@ -19,8 +19,8 @@ result = {}
 for view, header in views.items():
     source = args.output / f"{view}-declarations.cpp"
     source.write_text(f'#include "{header}"\n')
-    common = [args.clang, "-std=c++14", "-I", str(args.root / "GoldSrc-SDK"),
-              "-I", str(args.root / "GoldSrc-SDK/public"), "-I", str(args.root / "GoldSrc-SDK/filesystem")]
+    common = [args.clang, "-std=c++14", "-I", str(args.root / "src"),
+              "-I", str(args.root / "src/public"), "-I", str(args.root / "src/filesystem")]
     ast_text = subprocess.check_output(common + ["-Xclang", "-ast-dump=json", "-Xclang",
         "-ast-dump-filter=IFileSystem", "-fsyntax-only", str(source)], text=True)
     (args.output / f"{view}-ast.json").write_text(ast_text)

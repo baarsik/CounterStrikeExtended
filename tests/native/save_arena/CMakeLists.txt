@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 project(CseNativeSaveArena LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 enable_testing()
-set(CSE_SAVE_ARENA_READER "${CSE_ROOT}/GoldSrc-SDK/engine/save_arena_impl.h" CACHE FILEPATH
+set(CSE_SAVE_ARENA_READER "${CSE_ROOT}/src/engine/save_arena_impl.h" CACHE FILEPATH
   "Production save reader; an archived implementation can be selected for regression evidence")
 configure_file(reader_header.h.in reader_header.h @ONLY)
 add_executable(save_arena_tests save_arena_tests.cpp)
@@ -12,7 +12,7 @@ add_executable(save_allocator_tests save_allocator_tests.cpp)
 foreach(target save_arena_tests save_allocator_tests)
   target_compile_features(${target} PRIVATE cxx_std_17)
   target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/common")
   if(MSVC)
     target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
     target_compile_options(${target} PRIVATE /W4 /WX /EHsc)

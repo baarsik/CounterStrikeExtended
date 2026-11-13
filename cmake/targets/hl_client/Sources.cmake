@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/hl_cdll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hl_client PRIVATE
   "${CSE_SDK_DIR}/cl_dll/ammo.cpp"
   "${CSE_SDK_DIR}/cl_dll/ammohistory.cpp"

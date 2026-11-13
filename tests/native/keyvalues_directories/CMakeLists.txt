@@ -5,7 +5,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseKeyValuesDirectories LANGUAGES CXX)
 add_executable(keyvalues_directory_tests directory_tests.cpp)
 target_compile_features(keyvalues_directory_tests PRIVATE cxx_std_14)
-target_include_directories(keyvalues_directory_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/common")
+target_include_directories(keyvalues_directory_tests PRIVATE "${CSE_ROOT}/src/common")
 option(CSE_KEYVALUES_DIRECTORY_SANITIZERS "Instrument native parent path selection" OFF)
 if(MSVC)
     target_compile_options(keyvalues_directory_tests PRIVATE /W4 /WX /EHsc

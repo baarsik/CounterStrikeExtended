@@ -1,4 +1,4 @@
-# Generated from tier0/tier0.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(tier0 PRIVATE
   "${CSE_SDK_DIR}/tier0/assert_dialog.cpp"
   "${CSE_SDK_DIR}/tier0/cpu.cpp"

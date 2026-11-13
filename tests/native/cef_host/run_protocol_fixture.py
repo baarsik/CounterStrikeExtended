@@ -17,7 +17,7 @@ HEADER = struct.Struct('<4sHHIIII')
 U32 = struct.Struct('<I')
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = re.findall(r'\beHTMLCommands_(\w+)\s*[,\n]',
-                      (ROOT / 'GoldSrc-SDK/engine/html/htmlmessages.h').read_text())
+                      (ROOT / 'src/engine/html/htmlmessages.h').read_text())
 OPERATIONS = {name: index for index, name in enumerate(COMMANDS)}
 FIXTURE_KEYCHAIN_PREFIX = 'CounterStrikeExtended Browser Fixture '
 FIXTURE_KEYCHAIN_ACCOUNT = 'CounterStrikeExtended Fixture'

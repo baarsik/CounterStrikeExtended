@@ -7,12 +7,12 @@ option(CSE_RELOAD_SANITIZE "Enable scoped address and undefined sanitizers" OFF)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/owners.h" COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/host_cmd.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/cmd.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/cl_main.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/host.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/pr_edict.cpp")
+    "${CSE_ROOT}/src/engine/host_cmd.cpp" "${CSE_ROOT}/src/engine/cmd.cpp"
+    "${CSE_ROOT}/src/engine/cl_main.cpp" "${CSE_ROOT}/src/engine/host.cpp"
+    "${CSE_ROOT}/src/engine/pr_edict.cpp")
 add_executable(host_reload reload_tests.cpp)
 target_compile_features(host_reload PRIVATE cxx_std_17)
-target_include_directories(host_reload PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/GoldSrc-SDK/engine")
+target_include_directories(host_reload PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/engine")
 if(MSVC)
     target_compile_options(host_reload PRIVATE /W4 /EHsc)
     target_compile_definitions(host_reload PRIVATE _CRT_SECURE_NO_WARNINGS)

@@ -22,7 +22,7 @@ def main():
     parser.add_argument('--original', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     options = parser.parse_args()
-    sdk = ROOT / 'GoldSrc-SDK'
+    sdk = ROOT / 'src'
     index = {str(Path(path)).casefold(): Path(path) for path in
              subprocess.check_output(['rg', '--files', str(sdk)], text=True).splitlines()}
     includes = [sdk / name for name in ['HLTV/Core/private', 'HLTV/Core/private/public',

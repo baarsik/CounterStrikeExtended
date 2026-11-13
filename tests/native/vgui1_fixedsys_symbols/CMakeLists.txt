@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_legacy_raster/extract_reference.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/win32/Font.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/vgui1_matched_program/extract_owner.py"
     "${CSE_ROOT}/tests/native/vgui1_legacy_raster/gdi_reference.cpp" "${CMAKE_CURRENT_BINARY_DIR}/extracted"

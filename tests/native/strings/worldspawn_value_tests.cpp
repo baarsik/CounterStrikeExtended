@@ -21,7 +21,7 @@ const char *COM_Parse(const char *cursor) {
     return cursor + 1;
 }
 
-#include "../../../GoldSrc-SDK/engine/worldspawn_value_impl.h"
+#include "../../../src/engine/worldspawn_value_impl.h"
 
 bool Check(std::initializer_list<const char *> input, bool expected, const char *value, std::size_t outputBytes = 64) {
     tokens = input;

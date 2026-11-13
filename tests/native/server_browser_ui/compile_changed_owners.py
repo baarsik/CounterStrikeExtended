@@ -23,12 +23,12 @@ names = ['sys_dll2.cpp', 'sys_engine.cpp', 'host.cpp', 'vgui_int.cpp', 'vgui_int
 selected = [entry for entry in entries if any(entry['file'].endswith('/' + name) for name in names)
             and any('/' + target + '.dir/' in entry.get('output', '') for target in ['hw_engine', 'swds'])]
 assert len(selected) == 2 * len(names), len(selected)
-source_prefix = next(entry['file'].split('/GoldSrc-SDK/')[0] for entry in selected)
+source_prefix = next(entry['file'].split('/src/')[0] for entry in selected)
 
 def run(entry):
     target = 'hw_engine' if '/hw_engine.dir/' in entry['output'] else 'swds'
     name = target + '-' + Path(entry['file']).name
-    argv = [value.replace(source_prefix + '/GoldSrc-SDK', str(repo / 'GoldSrc-SDK'))
+    argv = [value.replace(source_prefix + '/src', str(repo / 'src'))
             for value in shlex.split(entry['command'])]
     output = packet / (name + '.o')
     argv[argv.index('-o') + 1] = str(output)

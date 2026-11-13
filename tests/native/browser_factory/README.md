@@ -1,7 +1,7 @@
 # Native engine browser factory fixture
 
 The native engine creates its owned controller in `CBaseUI::Initialize` in
-`GoldSrc-SDK/engine/vgui2/BaseUI_Interface.cpp`. It exposes the controller to `BaseUISurface` only after the provider's
+`src/engine/vgui2/BaseUI_Interface.cpp`. It exposes the controller to `BaseUISurface` only after the provider's
 versioned handshake succeeds. Native builds do not load `chromehtml.dll` or query its C++ interface factory. The Win32
 loader and its `Init("htmlcache", "htmlcookies")` path remain in their existing branch.
 

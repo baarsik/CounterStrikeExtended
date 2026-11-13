@@ -1,7 +1,7 @@
 # Half-Life multisource compatibility fixture
 
 This fixture extracts the complete current `CMultiSource::Use` and
-`CMultiSource::IsTriggered` definitions from `GoldSrc-SDK/dlls/buttons.cpp` at
+`CMultiSource::IsTriggered` definitions from `src/dlls/buttons.cpp` at
 configure time. It does not carry another implementation of either decision.
 The array capacity and initialization flag also come from the actual sources.
 

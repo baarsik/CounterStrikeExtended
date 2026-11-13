@@ -20,13 +20,13 @@ root = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2])
 out.mkdir(parents=True, exist_ok=True)
 inputs = {
-    'health': 'GoldSrc-SDK/cstrike/cl_dll/health.cpp',
-    'classes': 'GoldSrc-SDK/cstrike/cl_dll/health.h',
-    'message': 'GoldSrc-SDK/cstrike/cl_dll/message.cpp',
-    'hud': 'GoldSrc-SDK/cstrike/cl_dll/hud.cpp',
-    'redraw': 'GoldSrc-SDK/cstrike/cl_dll/hud_redraw.cpp',
-    'engine': 'GoldSrc-SDK/engine/vgui2/text_draw.cpp',
-    'policy': 'GoldSrc-SDK/cstrike/cl_dll/cl_util.h',
+    'health': 'src/cstrike/cl_dll/health.cpp',
+    'classes': 'src/cstrike/cl_dll/health.h',
+    'message': 'src/cstrike/cl_dll/message.cpp',
+    'hud': 'src/cstrike/cl_dll/hud.cpp',
+    'redraw': 'src/cstrike/cl_dll/hud_redraw.cpp',
+    'engine': 'src/engine/vgui2/text_draw.cpp',
+    'policy': 'src/cstrike/cl_dll/cl_util.h',
 }
 sources = {key: (root / path).read_text(encoding='latin1') for key, path in inputs.items()}
 classes = '\n'.join(block(sources['classes'], 'class ' + name + ' :') + ';' for name in

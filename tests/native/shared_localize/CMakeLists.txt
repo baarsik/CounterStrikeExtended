@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseSharedLocalize LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_SHARED_UTIL_SOURCE "${CSE_ROOT}/GoldSrc-SDK/cstrike/game_shared/shared_util.cpp" CACHE FILEPATH
+set(CSE_SHARED_UTIL_SOURCE "${CSE_ROOT}/src/cstrike/game_shared/shared_util.cpp" CACHE FILEPATH
     "Actual selected Counter-Strike shared utility source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_SHARED_UTIL_SOURCE}" extract_find.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_find.py"

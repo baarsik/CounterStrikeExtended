@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.25)
 project(CseMacCursorPolicy LANGUAGES CXX OBJCXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 set(CSE_CLIENT_RUNTIME "" CACHE PATH "Actual native client runtime")
-set(CSE_KEYBOARD_POLICY_HEADER "${CSE_ROOT}/GoldSrc-SDK/common/sdl3_keyboard.h" CACHE FILEPATH
+set(CSE_KEYBOARD_POLICY_HEADER "${CSE_ROOT}/src/common/sdl3_keyboard.h" CACHE FILEPATH
     "Actual keyboard policy or frozen pre-fix header for RED qualification")
 add_executable(mac_cursor_policy policy.mm
-    "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_cocoa.cpp")
+    "${CSE_ROOT}/src/engine/native_mouse_window.cpp"
+    "${CSE_ROOT}/src/engine/native_mouse_cocoa.cpp")
 target_include_directories(mac_cursor_policy PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-    "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+    "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+    "${CSE_ROOT}/src/external/SDL3/include")
 target_link_libraries(mac_cursor_policy PRIVATE "${CSE_CLIENT_RUNTIME}/libSDL3.0.dylib" "-framework Cocoa")
 target_compile_definitions(mac_cursor_policy PRIVATE CSE_KEYBOARD_POLICY_HEADER="${CSE_KEYBOARD_POLICY_HEADER}")
 target_compile_options(mac_cursor_policy PRIVATE -Wall -Wextra -Werror -fno-exceptions

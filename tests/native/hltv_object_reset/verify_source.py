@@ -23,7 +23,7 @@ def main():
     parser.add_argument('--before', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     options = parser.parse_args()
-    prefix = Path('GoldSrc-SDK/HLTV')
+    prefix = Path('src/HLTV')
     old_network = (options.before / prefix / 'Core/Network.cpp').read_text()
     network = (ROOT / prefix / 'Core/Network.cpp').read_text()
     original_reset = '\tmemset( &m_LocalAddress, 0, sizeof( m_LocalAddress ) );'

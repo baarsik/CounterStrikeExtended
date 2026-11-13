@@ -15,7 +15,7 @@ struct InvalidEntity {};
 [[noreturn]] void Sys_Error(const char *, ...) {
     throw InvalidEntity{};
 }
-#include "../../../GoldSrc-SDK/engine/entity_offsets_impl.h"
+#include "../../../src/engine/entity_offsets_impl.h"
 
 #define CHECK(condition) do { \
     if (!(condition)) { \

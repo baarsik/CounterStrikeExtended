@@ -15,7 +15,7 @@ repo = args.repo.resolve()
 art = args.art.resolve()
 out = art / 'contract-audit'
 out.mkdir(exist_ok=True)
-sdk = repo / 'GoldSrc-SDK'
+sdk = repo / 'src'
 commands = []
 headers = ['engine/vgui/ISystem.h', 'vgui2/src/public/vgui/ISystem.h',
     'vgui2/src/public/ISystem.h', 'cstrike/public/vgui/ISystem.h']

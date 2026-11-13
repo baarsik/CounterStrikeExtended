@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "../../../GoldSrc-SDK/vgui2/src/public/UtlBuffer.h"
+#include "../../../src/vgui2/src/public/UtlBuffer.h"
 
 #define REQUIRE(condition) do { if (!(condition)) { \
     std::fprintf(stderr, "Failed at line %d: %s\n", __LINE__, #condition); return 1; \

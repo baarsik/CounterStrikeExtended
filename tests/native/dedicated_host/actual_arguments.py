@@ -4,7 +4,7 @@ import re
 
 
 def definitions(root: pathlib.Path) -> str:
-    sdk = root / 'GoldSrc-SDK/engine'
+    sdk = root / 'src/engine'
     limits = (sdk / 'common.h').read_text()
     common = (sdk / 'common.cpp').read_text()
     system = (sdk / 'sys_dll2.cpp').read_text()

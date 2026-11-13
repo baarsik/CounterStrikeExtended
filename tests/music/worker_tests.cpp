@@ -1,4 +1,4 @@
-#include "../../GoldSrc-SDK/engine/thread.h"
+#include "../../src/engine/thread.h"
 
 #include <array>
 #include <atomic>

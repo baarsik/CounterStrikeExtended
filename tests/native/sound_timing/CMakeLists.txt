@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseSoundTiming LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_SOUND_TIMING_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/snd_dma.cpp" CACHE FILEPATH "Actual timing implementation")
+set(CSE_SOUND_TIMING_SOURCE "${CSE_ROOT}/src/engine/snd_dma.cpp" CACHE FILEPATH "Actual timing implementation")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_SOUND_TIMING_SOURCE}" extract_timing.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_timing.py"
     "${CSE_SOUND_TIMING_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/actual_timing.inc" COMMAND_ERROR_IS_FATAL ANY)

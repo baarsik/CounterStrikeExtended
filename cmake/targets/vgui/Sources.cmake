@@ -1,4 +1,4 @@
-# Generated from utils/vgui/vgui.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(vgui PRIVATE
   "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/App.cpp"
   "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Bitmap.cpp"

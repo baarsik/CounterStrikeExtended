@@ -1,4 +1,4 @@
-# Generated from launcher/launcher.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(launcher PRIVATE
   "${CSE_SDK_DIR}/launcher/launcher.cpp"
   "${CSE_SDK_DIR}/launcher/common/commandline.cpp"

@@ -43,7 +43,7 @@ for cpu in ["x86", "x64"]:
             target = recipe["block"][0].split(" ")[1].split("\\")[1]
             fields = dict(line.strip().split(" = ", 1) for line in recipe["block"][1:] if " = " in line)
             flags = [word for key in ["DEFINES", "FLAGS", "INCLUDES"] for word in shlex.split(fields[key], posix=False)]
-            file = "GoldSrc-SDK/cstrike/vgui2/controls/TextEntry.cpp" if target == "cs_client" else "GoldSrc-SDK/vgui2/controls/TextEntry.cpp"
+            file = "src/cstrike/vgui2/controls/TextEntry.cpp" if target == "cs_client" else "src/vgui2/controls/TextEntry.cpp"
             # Relocation removes the implicit source-directory search. Restore
             # exactly that original directory before the retained /I list.
             original_directory = (Path(recipe["build"]).parent.parent / file).parent
@@ -52,7 +52,7 @@ for cpu in ["x86", "x64"]:
             build = args.work / tag
             build.mkdir(exist_ok=True)
             for source, label, extra in [(stage / file, "caller", []),
-                                         (stage / "GoldSrc-SDK/common/TextEntryClipboard.cpp", "helper", ["/EHsc"])]:
+                                         (stage / "src/common/TextEntryClipboard.cpp", "helper", ["/EHsc"])]:
                 dependency = build / (label + "-dependencies.json")
                 command = [str(compiler), "/nologo"] + flags + extra + ["/c", str(source),
                            "/Fo" + str(build / (label + ".obj")), "/Fd" + str(build / (label + ".pdb")),

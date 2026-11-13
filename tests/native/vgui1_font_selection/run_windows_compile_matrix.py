@@ -19,7 +19,7 @@ work.mkdir(parents=True, exist_ok=True)
 art.mkdir(parents=True, exist_ok=True)
 root = work / 'source'
 shutil.copytree(args.source, root, dirs_exist_ok=True)
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+vgui = root / 'src/utils/vgui/lib-src/vgui'
 rows = []
 for cpu in ('x86', 'x64', 'arm64'):
     setup = work / f'setup-{cpu}.cmd'
@@ -43,10 +43,10 @@ for cpu in ('x86', 'x64', 'arm64'):
             name = f'{cpu}-{view}-{mode}'
             build = work / name
             build.mkdir(exist_ok=True)
-            includes = [vgui / 'include', vgui, vgui / 'common', root / 'GoldSrc-SDK/engine']
+            includes = [vgui / 'include', vgui, vgui / 'common', root / 'src/engine']
             if view == 'public':
-                includes.insert(0, root / 'GoldSrc-SDK/utils/vgui/include')
-            for index, file in enumerate((root / 'GoldSrc-SDK/engine/VGui1NativeFontSelection.cpp',
+                includes.insert(0, root / 'src/utils/vgui/include')
+            for index, file in enumerate((root / 'src/engine/VGui1NativeFontSelection.cpp',
                 root / 'tests/native/vgui1_font_selection/actual_declaration_probe.cpp')):
                 dep = art / f'{name}-{index}-dependencies.json'
                 command = [str(compiler)] + flags + ['/I' + str(path) for path in includes] + ['/c', str(file),

@@ -5,7 +5,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseThreadMutexFixtures LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Threads REQUIRED)
-set(CSE_THREADTOOLS_HEADER "${CSE_ROOT}/GoldSrc-SDK/public/tier0/threadtools.h" CACHE FILEPATH
+set(CSE_THREADTOOLS_HEADER "${CSE_ROOT}/src/public/tier0/threadtools.h" CACHE FILEPATH
   "Actual production header or an explicitly archived negative reference")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_THREADTOOLS_HEADER}")
 add_executable(thread_mutex_tests mutex_tests.cpp)
@@ -16,7 +16,7 @@ if(WIN32)
   configure_file(selected_header.h.in selected_header.h @ONLY)
   target_sources(thread_mutex_tests PRIVATE windows_bindings.cpp)
   target_include_directories(thread_mutex_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/win_shims"
-    "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CSE_ROOT}/src/public")
   target_compile_definitions(thread_mutex_tests PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   set(fixture_kind windows)
 else()

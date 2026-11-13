@@ -1,5 +1,5 @@
 #include <cstring>
-#include "../../GoldSrc-SDK/engine/utlmemory.h"
+#include "../../src/engine/utlmemory.h"
 #include <cassert>
 
 int main() {

@@ -14,14 +14,14 @@ SPEC.loader.exec_module(sdl3)
 
 class PayloadTests(unittest.TestCase):
     def test_pinned_payload_identity(self):
-        entries = sdl3.validate_payload(ROOT / 'GoldSrc-SDK/external/SDL3')
+        entries = sdl3.validate_payload(ROOT / 'src/external/SDL3')
         self.assertGreater(len(entries), 90)
         self.assertIn('lib/x86/SDL3.dll', entries)
 
     def test_missing_and_mutated_providers_fail(self):
         with tempfile.TemporaryDirectory() as directory:
             payload = Path(directory) / 'SDL3'
-            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', payload)
+            shutil.copytree(ROOT / 'src/external/SDL3', payload)
             for relative in ['lib/x86/SDL3.lib', 'lib/x86/SDL3.dll', 'include/SDL3/SDL.h']:
                 with self.subTest(relative=relative):
                     path = payload / relative
@@ -37,7 +37,7 @@ class PayloadTests(unittest.TestCase):
     def test_manifest_cannot_drop_pinned_files(self):
         with tempfile.TemporaryDirectory() as directory:
             payload = Path(directory) / 'SDL3'
-            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', payload)
+            shutil.copytree(ROOT / 'src/external/SDL3', payload)
             manifest = payload / 'SHA256SUMS'
             manifest.write_text('\n'.join(manifest.read_text().splitlines()[1:]) + '\n')
             with self.assertRaisesRegex(ValueError, 'manifest hash mismatch'):
@@ -47,7 +47,7 @@ class PayloadTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             sdk = Path(directory) / 'sdk'
             payload = sdk / 'external/SDL3'
-            shutil.copytree(ROOT / 'GoldSrc-SDK/external/SDL3', payload)
+            shutil.copytree(ROOT / 'src/external/SDL3', payload)
             command = ['cmake', '-DCSE_SDK_DIR=' + str(sdk), '-P', str(ROOT / 'cmake/SDL3Dependency.cmake')]
             self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
             for relative in ['lib/x86/SDL3.lib', 'lib/x86/SDL3.dll']:
@@ -77,7 +77,7 @@ class StagingTests(unittest.TestCase):
 project(StagingContract C)
 set(CMAKE_SIZEOF_VOID_P 4)
 set(SDL_CPU_X86 1)
-set(CSE_SDK_DIR "{ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "{ROOT}/src")
 include("{ROOT}/cmake/SDL3Dependency.cmake")
 foreach(consumer probe client_probe)
   add_library(${{consumer}} STATIC stub.c)
@@ -92,7 +92,7 @@ endforeach()
             run('-S', str(source), '-B', str(build), '-DCMAKE_BUILD_TYPE=Release')
             run('--build', str(build), '--target', 'probe', 'client_probe', '--parallel', '2')
             staged = build / 'runtime/Release/SDL3.dll'
-            expected = (ROOT / 'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.dll').read_bytes()
+            expected = (ROOT / 'src/external/SDL3/lib/x86/SDL3.dll').read_bytes()
             self.assertEqual(staged.read_bytes(), expected)
             staged.unlink()
             run('--build', str(build), '--target', 'client_probe')

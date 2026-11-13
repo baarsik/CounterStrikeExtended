@@ -33,8 +33,8 @@ def add(relative, select, prefix='', suffix=''):
                     'line': line, 'body_sha256': hashlib.sha256(body.encode('latin1')).hexdigest()})
 
 
-add('GoldSrc-SDK/cstrike/cl_dll/hud.cpp', lambda text: function(text, 'void COM_FileBase('))
-add('GoldSrc-SDK/cstrike/cl_dll/hud_vgui2print.cpp',
+add('src/cstrike/cl_dll/hud.cpp', lambda text: function(text, 'void COM_FileBase('))
+add('src/cstrike/cl_dll/hud_vgui2print.cpp',
     lambda text: function(text, 'void CHudVGUI2Print::GetStringSize('))
 
 
@@ -44,7 +44,7 @@ def chat(text):
     return start, text[start:end]
 
 
-add('GoldSrc-SDK/cstrike/cl_dll/saytext.cpp', chat, 'std::wstring PrepareChat(const char* text) {',
+add('src/cstrike/cl_dll/saytext.cpp', chat, 'std::wstring PrepareChat(const char* text) {',
     '(void)finalBuffer; return localized; }')
 
 
@@ -54,14 +54,14 @@ def spectator(text):
     return start, text[start:end]
 
 
-add('GoldSrc-SDK/cstrike/cl_dll/hud_spectator.cpp', spectator,
+add('src/cstrike/cl_dll/hud_spectator.cpp', spectator,
     'int SpectatorOffset() { int i = 0; int lx = 0; char string[256];', 'return lx; }')
 for signature in ('CUtlBuffer::CUtlBuffer( int', 'CUtlBuffer::CUtlBuffer( const void*',
                   'void CUtlBuffer::Get(', 'void CUtlBuffer::EatWhiteSpace(',
                   'void CUtlBuffer::GetString(', 'void CUtlBuffer::SeekGet(',
                   'void CUtlBuffer::Put(', 'void CUtlBuffer::PutString(',
                   'bool CUtlBuffer::CheckPut(', 'void CUtlBuffer::SeekPut('):
-    add('GoldSrc-SDK/vgui2/src/public/UtlBuffer.cpp', lambda text, key=signature: function(text, key))
+    add('src/vgui2/src/public/UtlBuffer.cpp', lambda text, key=signature: function(text, key))
 
 output.mkdir(parents=True, exist_ok=True)
 (output / 'hud_bodies.inc').write_text('\n'.join(blocks))

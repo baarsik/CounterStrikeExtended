@@ -15,7 +15,7 @@ parser.add_argument('--after',type=Path,required=True)
 parser.add_argument('--headers',type=Path,required=True)
 parser.add_argument('--art',type=Path,required=True)
 parser.add_argument('--work',type=Path,required=True)
-args=parser.parse_args();art=args.art.resolve();work=args.work.resolve();sdk=args.headers/'GoldSrc-SDK'
+args=parser.parse_args();art=args.art.resolve();work=args.work.resolve();sdk=args.headers/'src'
 art.mkdir(parents=True,exist_ok=True);work.mkdir(parents=True,exist_ok=True)
 rows=[]
 for cpu in ['x86','x64','arm64']:
@@ -33,7 +33,7 @@ for cpu in ['x86','x64','arm64']:
         includes=[sdk/'engine',sdk/'external/installed/x86-windows-static-md/include',sdk/'external/installed/x86-windows-static-md/include/webm',
             sdk/'common',sdk/'cl_dll',sdk/'public',sdk/'pm_shared',sdk/'utils/vgui/include',sdk/'external/SDL3/include']
         flags+=['/I'+str(path) for path in includes]
-        for rel in ['GoldSrc-SDK/engine/vgui_EngineSurfaceHW.cpp','GoldSrc-SDK/engine/gl_screen.cpp','GoldSrc-SDK/common/port.h']:
+        for rel in ['src/engine/vgui_EngineSurfaceHW.cpp','src/engine/gl_screen.cpp','src/common/port.h']:
             # Identical primary filename for both runs preserves actual __FILE__ tokens.
             primary=work/'selected'/rel;primary.parent.mkdir(parents=True,exist_ok=True)
             selected={}

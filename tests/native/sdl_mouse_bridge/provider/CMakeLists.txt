@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 cmake_policy(SET CMP0091 NEW)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../.." ABSOLUTE)
-set(CSE_SDK_DIR "${CSE_ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "${CSE_ROOT}/src")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseSdlMouseBridgeProvider LANGUAGES C CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

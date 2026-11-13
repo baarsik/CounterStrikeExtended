@@ -34,7 +34,7 @@ void Con_DPrintf(const char *, ...) {
 }
 } // namespace
 
-#include "../../../GoldSrc-SDK/engine/pe_export_file_impl.h"
+#include "../../../src/engine/pe_export_file_impl.h"
 
 namespace {
 bool WriteImage(const char *path, const std::vector<unsigned char> &image) {

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(DedicatedConproc LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
-get_filename_component(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../../../../GoldSrc-SDK" ABSOLUTE)
+get_filename_component(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../../../../src" ABSOLUTE)
 add_executable(conproc_windows ../conproc_windows.cpp "${SDK}/common/commandline.cpp")
 target_include_directories(conproc_windows PRIVATE "${SDK}")
 target_compile_definitions(conproc_windows PRIVATE _CRT_SECURE_NO_WARNINGS)

@@ -1,7 +1,7 @@
 #include "pman_main.h"
 #include "pman_misc.h"
 #include "native_particle_phase.h"
-#include "../../../GoldSrc-SDK/cstrike/cl_dll/tri.h"
+#include "../../../src/cstrike/cl_dll/tri.h"
 
 #include <climits>
 #include <cstdint>

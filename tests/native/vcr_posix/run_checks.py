@@ -55,7 +55,7 @@ def run(arguments, log, cwd=ROOT):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--source", type=Path, default=ROOT / "GoldSrc-SDK/tier0/vcrmode_posix.cpp")
+    parser.add_argument("--source", type=Path, default=ROOT / "src/tier0/vcrmode_posix.cpp")
     parser.add_argument("--legacy-reference", action="store_true")
     parser.add_argument("--phase", choices=["red", "green"], required=True)
     parser.add_argument("--whole-tu-commands", type=Path)
@@ -64,7 +64,7 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     source = args.source.resolve()
     if args.legacy_reference:
-        assert source != ROOT / "GoldSrc-SDK/tier0/vcrmode_posix.cpp"
+        assert source != ROOT / "src/tier0/vcrmode_posix.cpp"
     oracle = packet_oracle()
     (output / "independent-v2.bin").write_bytes(oracle)
     controls = control_oracle()
@@ -95,7 +95,7 @@ def main():
                    "-DTIER0_DLL", "-DOSX", "-DPOSIX", "-Wall", "-Wextra", "-Werror", "-Wno-unknown-pragmas",
                    "-Werror=shorten-64-to-32", "-Werror=pointer-to-int-cast", "-ffp-model=precise", "-ffp-contract=off",
                    "-Wno-overriding-option",
-                   "-I" + str(ROOT / "GoldSrc-SDK/public"), '-DCSE_VCR_SOURCE="' + str(source) + '"'] + flags
+                   "-I" + str(ROOT / "src/public"), '-DCSE_VCR_SOURCE="' + str(source) + '"'] + flags
         if args.legacy_reference:
             command += ["-Wno-error=shorten-64-to-32"]
         command += [str(HERE / "vcr_tests.cpp"), "-o", str(binary)]

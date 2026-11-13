@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/cstrike_cdll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(cs_client SHARED "client")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
@@ -53,7 +53,7 @@ target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/DEBUG>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/WX>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/SUBSYSTEM:WINDOWS>")
 target_link_options(cs_client PRIVATE "$<$<CONFIG:Debug>:/INCREMENTAL:NO>")
-cse_game_module_exports(cs_client "${CSE_SDK_DIR}/projects/vs2026/cstrike_cdll.def" "${CSE_ROOT}/cmake/exports/cs_client.def")
+cse_game_module_exports(cs_client "${CSE_ROOT}/cmake/exports/win32/cstrike_cdll.def" "${CSE_ROOT}/cmake/exports/cs_client.def")
 cse_link_sdl3(cs_client Debug)
 cse_link_steam(cs_client Debug "${CSE_SDK_DIR}/lib/public/steam_api.lib")
 set_property(SOURCE "${CSE_SDK_DIR}/cstrike/cl_dll/ev_common.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")

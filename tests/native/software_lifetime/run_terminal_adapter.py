@@ -3,9 +3,9 @@ root=pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0,str(root/'tests/native/server_browser_ui'))
 from extract_owners import extract
 out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True)
-owner=root/'GoldSrc-SDK/engine/sys_dll2.cpp';body,_=extract(owner.read_text(),'cse::software_lifetime::RetireResources',0,1)
+owner=root/'src/engine/sys_dll2.cpp';body,_=extract(owner.read_text(),'cse::software_lifetime::RetireResources',0,1)
 (out/'terminal_adapter.inc').write_text(body)
-command=['clang++','-std=c++17',('-Os' if '--release' in sys.argv else '-O0'),'-UNDEBUG','-I'+str(out),'-I'+str(root/'GoldSrc-SDK'),str(root/'tests/native/software_lifetime/terminal_adapter.cpp'),str(root/'GoldSrc-SDK/engine/native_software_lifetime.cpp'),'-o',str(out/'terminal_adapter')]
+command=['clang++','-std=c++17',('-Os' if '--release' in sys.argv else '-O0'),'-UNDEBUG','-I'+str(out),'-I'+str(root/'src'),str(root/'tests/native/software_lifetime/terminal_adapter.cpp'),str(root/'src/engine/native_software_lifetime.cpp'),'-o',str(out/'terminal_adapter')]
 sys.path.insert(0, str(root / 'tests/native/socket_lifetime'))
 from linked_owner import arguments
 command += arguments(root, out, '-Os' if '--release' in sys.argv else '-O0')

@@ -7,7 +7,7 @@ enable_testing()
 add_executable(private_data_tests private_data_tests.cpp)
 target_compile_features(private_data_tests PRIVATE cxx_std_17)
 target_include_directories(private_data_tests PRIVATE
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/common")
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/common")
 if(MSVC)
   target_compile_options(private_data_tests PRIVATE /W4 /WX /EHsc)
 endif()
@@ -18,7 +18,7 @@ if(MSVC)
   target_compile_options(native_count_tests PRIVATE /W4 /WX /EHsc)
 endif()
 add_test(NAME native-counts COMMAND native_count_tests)
-set(CSE_AUTOBUY_IMPLEMENTATION "${CSE_ROOT}/GoldSrc-SDK/cstrike/dlls/autobuy_string_impl.h" CACHE FILEPATH
+set(CSE_AUTOBUY_IMPLEMENTATION "${CSE_ROOT}/src/cstrike/dlls/autobuy_string_impl.h" CACHE FILEPATH
   "Production autobuy method; an archived implementation can be selected for regression evidence")
 configure_file(autobuy_header.h.in autobuy_header.h @ONLY)
 add_executable(autobuy_tests autobuy_tests.cpp)

@@ -7,13 +7,13 @@ include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 option(CSE_VGUI_ALLOCATOR_SANITIZERS "Instrument production VGUI allocation/formatting and fixtures" OFF)
 foreach(fixture allocator printf)
   add_executable(vgui_${fixture}_tests ${fixture}_tests.cpp
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/vgui.cpp")
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/vgui.cpp")
 endforeach()
-add_library(vgui_taskbar_compile OBJECT "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/TaskBar.cpp")
+add_library(vgui_taskbar_compile OBJECT "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/TaskBar.cpp")
 add_dependencies(vgui_allocator_tests vgui_taskbar_compile)
 foreach(target vgui_allocator_tests vgui_printf_tests vgui_taskbar_compile)
   target_include_directories(${target} PRIVATE
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/include")
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/include")
   target_compile_features(${target} PRIVATE cxx_std_17)
   target_compile_definitions(${target} PRIVATE VGUI_EXPORTS
     _CRT_SECURE_NO_WARNINGS "$<$<CONFIG:Debug>:_DEBUG>" "$<$<CONFIG:Release>:NDEBUG>")

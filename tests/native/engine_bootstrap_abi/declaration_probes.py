@@ -52,7 +52,7 @@ def main():
                      and re.search(r'(?:^|/)targets/' + target + '/', row['output']))
         args = windows_args(entry['command']) if os.name == 'nt' else shlex.split(entry['command'])
         source = options.output / (label + '.cpp')
-        header = options.header or options.root / 'GoldSrc-SDK/public/cse_engine_bootstrap_abi.h'
+        header = options.header or options.root / 'src/public/cse_engine_bootstrap_abi.h'
         selected_namespaces = {
             'producer': ['EngineProducer'], 'launcher': ['LauncherCaller'],
             'dedicated': ['DedicatedCaller', 'DedicatedExportsCaller']}[label]
@@ -64,7 +64,7 @@ def main():
         assert context_bindings.count('{') == context_bindings.count('}'), label
         context_header = options.output / (label + '-bindings.h')
         context_header.write_text(context_bindings)
-        source.write_text('#include "' + str(options.root / 'GoldSrc-SDK/public/FileSystem.h') + '"\n'
+        source.write_text('#include "' + str(options.root / 'src/public/FileSystem.h') + '"\n'
                           + '#include "' + str(context_header) + '"\n'
                           + '#include "' + header.as_posix() + '"\n'
                           + aliases + calls + FACTORY_CALLS

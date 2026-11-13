@@ -19,13 +19,13 @@ work = args.work.resolve()
 work.mkdir(parents=True, exist_ok=True)
 out = art / 'whole-tu'
 out.mkdir(exist_ok=True)
-sdk = args.headers / 'GoldSrc-SDK'
-stage = work / 'GoldSrc-SDK'
+sdk = args.headers / 'src'
+stage = work / 'src'
 source = stage / 'vgui2/src/System.cpp'
 source.parent.mkdir(parents=True, exist_ok=True)
 helper = stage / 'common/legacy_double_to_int.h'
 helper.parent.mkdir(parents=True, exist_ok=True)
-shutil.copy2(art / 'windows-source/GoldSrc-SDK/common/legacy_double_to_int.h', helper)
+shutil.copy2(art / 'windows-source/src/common/legacy_double_to_int.h', helper)
 before = (art / 'System-before.cpp').read_bytes()
 after = (art / 'System-after.cpp').read_bytes()
 rows = []

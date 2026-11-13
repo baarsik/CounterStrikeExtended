@@ -21,7 +21,7 @@ class SDL3SourceTests(unittest.TestCase):
             (source / 'CMakeLists.txt').write_text(f'''cmake_minimum_required(VERSION 3.25)
 project(SDLSourceProbe C CXX)
 set(CSE_ROOT "{ROOT}")
-set(CSE_SDK_DIR "{ROOT}/GoldSrc-SDK")
+set(CSE_SDK_DIR "{ROOT}/src")
 set(CSE_OUTPUT_DIRECTORY "${{CMAKE_BINARY_DIR}}/runtime")
 set(CSE_SDL3_FROM_SOURCE ON)
 include("{ROOT}/cmake/TargetPlatform.cmake")

@@ -9,9 +9,9 @@ if(NOT EXISTS "${CSE_SDL_INCLUDE}/SDL3/SDL.h")
     message(FATAL_ERROR "Provide the pinned SDL3.4.20 include directory")
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract_input.py
-    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cl_dll/inputw32.cpp"
-    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp"
-    "${CSE_INPUT_SOURCE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp")
+    "${CSE_INPUT_SOURCE_ROOT}/src/cl_dll/inputw32.cpp"
+    "${CSE_INPUT_SOURCE_ROOT}/src/cstrike/cl_dll/inputw32.cpp"
+    "${CSE_INPUT_SOURCE_ROOT}/src/engine/sys_sdlwind.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_input.py"
     "${CSE_INPUT_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 option(CSE_CLIENT_INPUT_SANITIZERS "Instrument only the controlled input fixture" OFF)
@@ -19,8 +19,8 @@ enable_testing()
 foreach(game IN ITEMS hl cs)
     add_executable(${game}_input_tests input_tests.cpp controlled_services.cpp)
     target_include_directories(${game}_input_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_SDL_INCLUDE}"
-        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/engine"
-        "${CSE_ROOT}/GoldSrc-SDK/cl_dll" "${CSE_ROOT}/GoldSrc-SDK/public")
+        "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/engine"
+        "${CSE_ROOT}/src/cl_dll" "${CSE_ROOT}/src/public")
     set_target_properties(${game}_input_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
     target_compile_definitions(${game}_input_tests PRIVATE CSE_TEST_NATIVE_BRANCH=1 CSE_GAME_CS=$<STREQUAL:${game},cs>)
     if(MSVC)

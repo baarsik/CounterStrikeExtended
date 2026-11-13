@@ -13,7 +13,7 @@ parser.add_argument("--expect-flat-failure", action="store_true")
 args = parser.parse_args()
 args.out.mkdir(parents=True, exist_ok=True)
 here = Path(__file__).resolve().parent
-helper_root = args.helper_root or args.repo / "GoldSrc-SDK/common"
+helper_root = args.helper_root or args.repo / "src/common"
 flags = ["-std=c++14", "-arch", "arm64", "-mmacosx-version-min=14.0", "-fvisibility-inlines-hidden",
          "-fexceptions", "-fno-fast-math", "-ffp-contract=off", "-Wall", "-Wextra", "-Werror"]
 flags += ["-O2"] if args.mode == "Release" else ["-O0", "-g"]

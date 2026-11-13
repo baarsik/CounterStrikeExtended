@@ -17,7 +17,7 @@ endif()
 add_custom_command(OUTPUT "${object}"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
         --database "${CSE_TEST_THREAD_DATABASE}" --output "${object}" --controlled-create ${sanitizer}
-    DEPENDS "${CSE_ROOT}/GoldSrc-SDK/tier0/testthread.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
+    DEPENDS "${CSE_ROOT}/src/tier0/testthread.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
         "${CSE_TEST_THREAD_DATABASE}" DEPFILE "${object}.d" VERBATIM)
 set_source_files_properties("${object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)
 add_executable(test_thread_harness harness_tests.cpp "${object}")

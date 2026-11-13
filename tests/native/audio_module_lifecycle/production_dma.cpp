@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/engine/sdl3_audio_backend.h"
+#include "../../../src/engine/sdl3_audio_backend.h"
 extern cse::SdlAudioBackend audioBackend;
 struct FixtureDma {
     bool soundalive;

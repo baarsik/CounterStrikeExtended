@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(owner_source "${CSE_OWNER_SOURCE_ROOT}/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp")
+set(owner_source "${CSE_OWNER_SOURCE_ROOT}/src/launcher/native/VGui1HostImageOwner.cpp")
 foreach(mode native injected)
     add_library(owner_${mode} STATIC)
     if(EXISTS "${owner_source}")
@@ -42,7 +42,7 @@ endif()
 foreach(target owner_native owner_injected host_native host_injected root_fixture foreign_fixture proxy_fixture
         misplaced_owner benign_insertion)
     target_include_directories(${target} PRIVATE
-        "${CSE_OWNER_SOURCE_ROOT}/GoldSrc-SDK/launcher/native" "${CSE_ROOT}/GoldSrc-SDK/public")
+        "${CSE_OWNER_SOURCE_ROOT}/src/launcher/native" "${CSE_ROOT}/src/public")
     target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -fno-exceptions -fno-rtti
         -fno-fast-math -ffp-contract=off -fvisibility=hidden -fvisibility-inlines-hidden)
     if(CSE_OWNER_SANITIZERS)

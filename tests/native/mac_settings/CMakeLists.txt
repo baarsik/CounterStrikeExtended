@@ -12,8 +12,8 @@ if(WIN32)
         COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/extract_windows_fixture.py"
             --root "${source_root}" --output "${generated}"
         DEPENDS extract_windows_fixture.py
-            "${source_root}/GoldSrc-SDK/utils/vgui/lib-src/vgui/win32/App.cpp"
-            "${source_root}/GoldSrc-SDK/utils/vgui/lib-src/vgui/vgui.cpp"
+            "${source_root}/src/utils/vgui/lib-src/vgui/win32/App.cpp"
+            "${source_root}/src/utils/vgui/lib-src/vgui/vgui.cpp"
         VERBATIM)
     add_executable(mac_settings_win32_raw windows_registry_fixture.cpp "${generated}/app_registry.inc")
     target_include_directories(mac_settings_win32_raw PRIVATE "${generated}")
@@ -44,7 +44,7 @@ enable_testing()
 add_test(NAME mac_settings_nonpersistent_model COMMAND mac_settings_model)
 
 # Build actual production symbols, but do not execute product-domain preferences.
-add_library(mac_settings_store_compile STATIC ../../../GoldSrc-SDK/common/mac_settings_store.cpp)
+add_library(mac_settings_store_compile STATIC ../../../src/common/mac_settings_store.cpp)
 target_link_libraries(mac_settings_store_compile PRIVATE ${COREFOUNDATION_FRAMEWORK})
 target_compile_options(mac_settings_store_compile PRIVATE -Wall -Wextra -Wconversion -Wsign-conversion -Werror)
 add_executable(mac_settings_persistent persistent_fixture.cpp)

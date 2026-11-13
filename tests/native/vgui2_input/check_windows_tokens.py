@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from cpp_tokens import tokens
 parser=argparse.ArgumentParser();parser.add_argument('--before',type=Path,required=True);parser.add_argument('--after',type=Path,required=True);parser.add_argument('--headers',type=Path,required=True);parser.add_argument('--art',type=Path,required=True);parser.add_argument('--work',type=Path,required=True);args=parser.parse_args()
-art=args.art.resolve();work=args.work.resolve();sdk=args.headers/'GoldSrc-SDK';art.mkdir(parents=True,exist_ok=True);work.mkdir(parents=True,exist_ok=True);rows=[]
+art=args.art.resolve();work=args.work.resolve();sdk=args.headers/'src';art.mkdir(parents=True,exist_ok=True);work.mkdir(parents=True,exist_ok=True);rows=[]
 for cpu in ['x86','x64','arm64']:
     setup=work/f'setup-{cpu}.cmd';setup.write_text('@echo off\ncall "C:\\BuildTools\\2026\\Common7\\Tools\\VsDevCmd.bat" -no_logo -host_arch=arm64 -arch='+cpu+' >nul\nif errorlevel 1 exit /b 1\nset\n')
     result=subprocess.run(['cmd.exe','/d','/c',setup],capture_output=True,text=True,check=True);env=dict(os.environ)

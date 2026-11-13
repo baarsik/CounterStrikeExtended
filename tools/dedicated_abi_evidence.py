@@ -54,7 +54,7 @@ def main():
         label = target + '-' + Path(row['file']).stem
         source = options.output / (label + '.cpp')
         source.write_text('#include "' + row['file'] + '"\n#include "'
-                          + str(ROOT / 'GoldSrc-SDK/public/native_dedicated_abi.h') + '"\n' + PROBES)
+                          + str(ROOT / 'src/public/native_dedicated_abi.h') + '"\n' + PROBES)
         args = shlex.split(row['command'])
         if any(arg.startswith('@') for arg in args):
             raise RuntimeError('Unqualified response-file compile policy; refusing stale/partial evidence')

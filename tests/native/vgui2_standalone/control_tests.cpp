@@ -11,17 +11,17 @@
 #include <cstdint>
 #include <objc/message.h>
 #include <objc/runtime.h>
-#include "../../../GoldSrc-SDK/vgui2/controls/controls.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Panel.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Frame.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/TextEntry.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Label.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Button.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/CheckButton.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/ComboBox.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/Menu.h"
-#include "../../../GoldSrc-SDK/vgui2/controls/ScrollBar.h"
-#include "../../../GoldSrc-SDK/engine/controls.h"
+#include "../../../src/vgui2/controls/controls.h"
+#include "../../../src/vgui2/controls/Panel.h"
+#include "../../../src/vgui2/controls/Frame.h"
+#include "../../../src/vgui2/controls/TextEntry.h"
+#include "../../../src/vgui2/controls/Label.h"
+#include "../../../src/vgui2/controls/Button.h"
+#include "../../../src/vgui2/controls/CheckButton.h"
+#include "../../../src/vgui2/controls/ComboBox.h"
+#include "../../../src/vgui2/controls/Menu.h"
+#include "../../../src/vgui2/controls/ScrollBar.h"
+#include "../../../src/engine/controls.h"
 #include "FileSystem.h"
 #include "vgui/KeyValues.h"
 #include "vgui/IVGui.h"
@@ -30,7 +30,7 @@
 #include "vgui/ISystem.h"
 #include "vgui/IPanel.h"
 #include "vgui/IImage.h"
-#include "../../../GoldSrc-SDK/common/legacy_bmp_records.h"
+#include "../../../src/common/legacy_bmp_records.h"
 #include <unistd.h>
 
 namespace {

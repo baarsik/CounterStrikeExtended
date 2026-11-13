@@ -12,17 +12,17 @@ parser.add_argument('output', type=Path)
 options = parser.parse_args()
 options.output.mkdir(parents=True, exist_ok=False)
 mutations = [
-    ('missing-hook', 'GoldSrc-SDK/engine/cdll_int.cpp',
+    ('missing-hook', 'src/engine/cdll_int.cpp',
      '    g_engdstAddrs.pfnGetClientMousePositionAndCenter(&x, &y, &centerX, &centerY);', ''),
-    ('false-success', 'GoldSrc-SDK/engine/cdll_int.cpp',
+    ('false-success', 'src/engine/cdll_int.cpp',
      'return cse::TryGetEngineMousePositionAndCenter(*pmainwindow, x, y, centerX, centerY) ? 1 : 0;',
      'cse::TryGetEngineMousePositionAndCenter(*pmainwindow, x, y, centerX, centerY); return 1;'),
-    ('partial-write', 'GoldSrc-SDK/engine/cdll_int.cpp',
+    ('partial-write', 'src/engine/cdll_int.cpp',
      '    return cse::TryGetEngineMousePositionAndCenter(*pmainwindow, x, y, centerX, centerY) ? 1 : 0;',
      '    *x = 0;\n    return cse::TryGetEngineMousePositionAndCenter(*pmainwindow, x, y, centerX, centerY) ? 1 : 0;'),
-    ('misbound-table', 'GoldSrc-SDK/engine/cdll_int.cpp',
+    ('misbound-table', 'src/engine/cdll_int.cpp',
      '    hudGetClientMousePositionAndCenter\n};', '    UnavailableClientMouseQuery\n};'),
-    ('unbound-default', 'GoldSrc-SDK/engine/cdll_int.h',
+    ('unbound-default', 'src/engine/cdll_int.h',
      '    NullClientMousePositionAndCenterDst,', '    nullptr,')]
 rows = []
 for name, path, before, after in mutations:

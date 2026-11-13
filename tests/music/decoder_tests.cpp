@@ -1,4 +1,4 @@
-#include "../../GoldSrc-SDK/engine/mpg123_decoder.h"
+#include "../../src/engine/mpg123_decoder.h"
 
 #include <algorithm>
 #include <array>

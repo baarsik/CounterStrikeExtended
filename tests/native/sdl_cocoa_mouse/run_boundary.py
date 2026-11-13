@@ -62,7 +62,7 @@ run('build', ['cmake', '--build', args.build, '--parallel', '2'])
 run('exports', [args.build / 'cocoa_exports_probe', args.provider])
 run('c-import', [args.build / 'cocoa_c_import'])
 run('cpp-adapter', [args.build / 'cocoa_adapter_tests'])
-adapter = args.repo / 'GoldSrc-SDK/engine/native_mouse_cocoa.cpp'
+adapter = args.repo / 'src/engine/native_mouse_cocoa.cpp'
 mutant_text, replacements = re.subn(r'==\s*CseSdlCocoaMouseReady',
     '!= CseSdlCocoaMouseNotReady', adapter.read_text())
 assert replacements == 3

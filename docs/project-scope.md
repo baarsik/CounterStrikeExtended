@@ -3,15 +3,15 @@
 CounterStrikeExtended retains Counter-Strike 1.6, Half-Life, the shared runtime,
 dedicated servers and HLTV. Runtime builds target Windows x86, Windows x64 and
 macOS Apple Silicon; Windows x86 is the default preset.
-Of the original 57 non-external MSBuild projects, 19 remain and are enabled by
-default; 38 have been removed. Broadcasting, A3D and dedicated servers can be
-disabled for reduced builds.
+The runtime has 19 production CMake targets, enabled by default. They preserve
+the runtime scope of 19 of the original 57 non-external MSBuild projects; the
+other 38 projects were removed. The active build is maintained directly in
+CMake. Broadcasting, A3D and dedicated servers can be disabled for reduced builds.
 
-Source paths below are relative to `GoldSrc-SDK/`. The table shows Windows
+Source paths below are relative to `src/`. The table shows Windows
 runtime paths relative to the selected output root; macOS uses native executable
-and library names in the same game directories. Legacy MSBuild outputs use
-`GoldSrc-SDK/bin/Win32/<Configuration>/`. See [building.md](building.md) for
-commands, output roots and feature options.
+and library names in the same game directories. See [building.md](building.md)
+for commands, output roots and feature options.
 
 ## Default runtime
 
@@ -50,8 +50,7 @@ DemoPlayer remain required with broadcasting disabled. The engine requests
 | `CSE_BUILD_A3D` | `a3dapi` → `a3dapi.dll` | Legacy adapter, exports/resources and five generated geometry inputs |
 
 Both options default ON. Disable them explicitly for a reduced build. Their
-source and live MSBuild projects remain; the legacy solution includes all three
-projects in Debug/Release builds.
+source and CMake target definitions remain available in both Debug and Release.
 Building the A3D adapter does not establish compatibility with an A3D provider.
 
 ## Removed targets and source
@@ -104,14 +103,15 @@ Makefiles are historical; use the CMake presets for supported runtime builds.
 
 ## Build and provider boundaries
 
-The [generated crosswalk](msbuild-crosswalk.md) and
-`msbuild/repository-selections.json` are the authoritative repository source,
-flag, library, resource, export and per-file selections for all 19 projects.
-Generation preserves configuration-specific CRT/assertions, FP/EH overrides,
-include order, forced headers, exclusions, export names/ordinals and resources.
+CMake target definitions under `cmake/targets/` own source, flag, library,
+resource, export and per-file selections for all 19 production targets. Their
+`CMakeLists.txt` and `Sources.cmake` preserve configuration-specific CRT/assertions,
+FP/EH overrides, include order, forced headers, exclusions, export names/ordinals
+and resources. Inspect effective selections through the
+[CMake inventory tool](build-system.md#inspecting-effective-target-settings).
 CMake Release diagnostics are intentionally opt-in; Release incremental linking
 is disabled. Required intermediates remain under the selected build directory.
-The [build manifest reference](msbuild/README.md#generated-production-inputs)
+The [build-system reference](build-system.md#generated-production-inputs)
 describes VGUI1 import-library and A3D generation.
 The Windows engine retains its WSOCK32 multicast option values (4/5/6); other
 Winsock2 consumers keep their separate API constants. Do not interchange them.
@@ -119,14 +119,14 @@ Winsock2 consumers keep their separate API constants. Do not interchange them.
 Native SDL3 is pinned and staged for the five linker consumers: both engines,
 both game clients and GameUI. Both engines also build/stage the shared mpg123
 decoder; music uses SDL3 streams and no longer requires Miles. Steam, browser,
-voice and optional legacy modules also have runtime loading paths; static
-project references are not the complete module graph. Provider availability in
-the qualified SDL3 package does not establish redistribution rights; see
+voice and optional legacy modules also have runtime loading paths; CMake link
+dependencies are not the complete module graph. Provider availability in the
+qualified SDL3 package does not establish redistribution rights; see
 [licensing.md](licensing.md).
 
 The inherited dedicated configuration defines `SW_RENDERER` without explicitly
 defining `SWDS_DLL`; shared source has separate `SWDS_DLL` branches. Its export
-file declares `LIBRARY sw`, and the project suppresses the resulting linker
+file declares `LIBRARY sw`, and the target suppresses the resulting linker
 warning 4070 while producing `swds.dll`. These settings remain unchanged by
 pruning. The dedicated validation does not establish every conditional path.
 

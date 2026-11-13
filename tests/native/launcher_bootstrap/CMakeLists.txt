@@ -17,8 +17,12 @@ if(NOT EXISTS "${CSE_BOOTSTRAP_FILESYSTEM}")
 endif()
 execute_process(COMMAND "${Python3_EXECUTABLE}"
   "${CSE_ROOT}/tests/native/launcher_entry/manifest_sources.py" "${CSE_ROOT}" "${CSE_TARGET_OS}"
-  "${CMAKE_CURRENT_BINARY_DIR}/manifest_sources.cmake" COMMAND_ERROR_IS_FATAL ANY)
+  "${CMAKE_CURRENT_BINARY_DIR}/manifest_sources.cmake" "${CSE_TARGET_ARCH}" COMMAND_ERROR_IS_FATAL ANY)
 include("${CMAKE_CURRENT_BINARY_DIR}/manifest_sources.cmake")
+include("${CSE_ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${CSE_ROOT}"
+  "${CSE_ROOT}/tests/native/launcher_entry/manifest_sources.py"
+  "${CSE_ROOT}/tests/native/filesystem/manifest_sources.py")
 add_executable(bootstrap_launcher ${CSE_LAUNCHER_SOURCES})
 add_executable(bootstrap_probe ${CSE_LAUNCHER_SOURCES} probe.cpp)
 target_compile_definitions(bootstrap_probe PRIVATE main=CseActualLauncherMain)
@@ -26,11 +30,11 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ext
   "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}" COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CMAKE_CURRENT_SOURCE_DIR}/extract_menu_restart.py"
-  "${CSE_ROOT}/GoldSrc-SDK/launcher/launcher.cpp"
-  "${CSE_ROOT}/GoldSrc-SDK/engine/host.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/host_cmd.cpp" "${CSE_ROOT}/GoldSrc-SDK/engine/sys_getmodes.cpp"
-  "${CSE_ROOT}/GoldSrc-SDK/engine/registry.cpp" "${CSE_ROOT}/GoldSrc-SDK/gameui/OptionsSubVideo.cpp")
+  "${CSE_ROOT}/src/launcher/launcher.cpp"
+  "${CSE_ROOT}/src/engine/host.cpp" "${CSE_ROOT}/src/engine/host_cmd.cpp" "${CSE_ROOT}/src/engine/sys_getmodes.cpp"
+  "${CSE_ROOT}/src/engine/registry.cpp" "${CSE_ROOT}/src/gameui/OptionsSubVideo.cpp")
 add_library(bootstrap_engine SHARED dummy_engine.cpp menu_restart.cpp)
-add_executable(commandline_checks commandline_checks.cpp "${CSE_ROOT}/GoldSrc-SDK/launcher/common/commandline.cpp")
+add_executable(commandline_checks commandline_checks.cpp "${CSE_ROOT}/src/launcher/common/commandline.cpp")
 add_executable(menu_restart_checks menu_restart.cpp)
 add_executable(menu_restart_win32_checks menu_restart.cpp)
 target_compile_definitions(menu_restart_checks PRIVATE CSE_MENU_CHECKS=1)
@@ -50,7 +54,7 @@ if(CSE_BOOTSTRAP_RUNTIME)
     DEPENDS "${CSE_BOOTSTRAP_RUNTIME}/hw.dylib" "${CSE_BOOTSTRAP_RUNTIME}/swds.dylib"
       "${CSE_BOOTSTRAP_RUNTIME}/vgui.dylib" "${CSE_ROOT}/cmake/WriteNativeCohort.cmake" VERBATIM)
   set(runtime_probe_sources ${CSE_LAUNCHER_SOURCES})
-  list(REMOVE_ITEM runtime_probe_sources "${CSE_ROOT}/GoldSrc-SDK/launcher/launcher.cpp")
+  list(REMOVE_ITEM runtime_probe_sources "${CSE_ROOT}/src/launcher/launcher.cpp")
   add_executable(bootstrap_runtime_probe ${runtime_probe_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/runtime_launcher.cpp" runtime_probe.cpp "${cohort_header}")
   target_compile_features(bootstrap_runtime_probe PRIVATE cxx_std_17)
@@ -59,8 +63,8 @@ if(CSE_BOOTSTRAP_RUNTIME)
     realpath=CseFixtureRealpath chdir=CseFixtureChdir)
   target_compile_options(bootstrap_runtime_probe PRIVATE -UNDEBUG -fvisibility-inlines-hidden)
   target_include_directories(bootstrap_runtime_probe PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CMAKE_CURRENT_BINARY_DIR}/runtime-cohort" "${CSE_ROOT}/GoldSrc-SDK/launcher"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK")
+    "${CMAKE_CURRENT_BINARY_DIR}/runtime-cohort" "${CSE_ROOT}/src/launcher"
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src")
   if(CSE_BOOTSTRAP_SANITIZERS)
     target_compile_options(bootstrap_runtime_probe PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(bootstrap_runtime_probe PRIVATE -fsanitize=address,undefined)
@@ -77,12 +81,13 @@ set(targets bootstrap_launcher bootstrap_probe bootstrap_engine bootstrap_mismat
   menu_restart_checks menu_restart_win32_checks commandline_checks)
 foreach(target IN LISTS targets)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/launcher"
-    "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK")
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/launcher"
+    "${CSE_ROOT}/src/public" "${CSE_ROOT}/src")
   target_compile_options(${target} PRIVATE -Wall -Wextra -Wno-unknown-pragmas
     "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>" "$<$<CONFIG:Debug>:-g>")
   target_link_libraries(${target} PRIVATE ${CMAKE_DL_LIBS})
 endforeach()
+set_target_properties(bootstrap_launcher bootstrap_probe PROPERTIES CXX_STANDARD "${CSE_LAUNCHER_CXX_STANDARD}")
 if(CSE_BOOTSTRAP_HIDE_INLINES)
   foreach(target bootstrap_launcher bootstrap_probe)
     target_compile_options(${target} PRIVATE -fvisibility-inlines-hidden)

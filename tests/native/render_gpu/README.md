@@ -105,7 +105,7 @@ macOS. The compiler producer runs on Windows with a new local output directory:
 
 ```powershell
 python tests/native/render_gpu/compile_metal.py --toolchain C:/path/to/MetalTools `
-  --source GoldSrc-SDK/engine/render/native/shaders/legacy_first.metal `
+  --source src/engine/render/native/shaders/legacy_first.metal `
   --output C:/new/offline-shaders
 ```
 

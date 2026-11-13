@@ -27,8 +27,8 @@ results = []
 for name, game, original, replacement, expected in variants:
     case = output / name
     source = case / 'source'
-    for candidate, relative in [('hl', 'GoldSrc-SDK/cl_dll/inputw32.cpp'),
-                                ('cs', 'GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp')]:
+    for candidate, relative in [('hl', 'src/cl_dll/inputw32.cpp'),
+                                ('cs', 'src/cstrike/cl_dll/inputw32.cpp')]:
         path = root / relative
         data = path.read_bytes()
         if candidate == game:

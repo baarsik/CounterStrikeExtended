@@ -1,5 +1,5 @@
 #include "worker_fault_injection.h"
-#include "../../../GoldSrc-SDK/engine/thread.h"
+#include "../../../src/engine/thread.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>

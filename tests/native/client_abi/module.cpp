@@ -1,6 +1,6 @@
 #include "fixture_types.h"
-#include "../../../GoldSrc-SDK/public/interface.h"
-#include "../../../GoldSrc-SDK/common/client_module_entry.h"
+#include "../../../src/public/interface.h"
+#include "../../../src/common/client_module_entry.h"
 
 #if defined(_WIN32)
 #define FIXTURE_EXPORT __declspec(dllexport)
@@ -110,7 +110,7 @@ extern "C" {
 #if CSE_CLIENT_FIXTURE_FAULT == 15
 #define CseExchangeClientFunctions CseProductionExchangeClientFunctions
 #endif
-#include "../../../GoldSrc-SDK/common/client_module_entry_impl.h"
+#include "../../../src/common/client_module_entry_impl.h"
 #undef CseGetModuleAbi
 #undef CseClientConsumeFunctionAuthorization
 #if CSE_CLIENT_FIXTURE_FAULT == 14

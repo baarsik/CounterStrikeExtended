@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/particleman.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(particleman PRIVATE
   "${CSE_SDK_DIR}/particleman/pman_frustum.cpp"
   "${CSE_SDK_DIR}/particleman/pman_main.cpp"

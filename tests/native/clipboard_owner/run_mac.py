@@ -18,7 +18,7 @@ def main():
     compiler = pathlib.Path("/Library/Developer/CommandLineTools/usr/bin/clang++")
     common = [str(compiler), "-std=c++14", "-arch", "arm64", "-mmacosx-version-min=14.0",
               "-isysroot", "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
-              "-fexceptions", "-Wall", "-Wextra", "-Werror", "-I", str(root / "GoldSrc-SDK/vgui2/src")]
+              "-fexceptions", "-Wall", "-Wextra", "-Werror", "-I", str(root / "src/vgui2/src")]
     objc = ["-fobjc-arc", "-fobjc-exceptions", "-fobjc-arc-exceptions"]
     rows = []
 
@@ -51,9 +51,9 @@ def main():
             run(profile + "-compile-" + name, command)
             return str(target)
 
-        core = compile_object("core", "GoldSrc-SDK/vgui2/src/NativeClipboard.cpp")
-        owner = compile_object("owner", "GoldSrc-SDK/vgui2/src/NativeClipboardOwner.cpp")
-        backend = compile_object("backend", "GoldSrc-SDK/vgui2/src/NativeClipboardMac.mm")
+        core = compile_object("core", "src/vgui2/src/NativeClipboard.cpp")
+        owner = compile_object("owner", "src/vgui2/src/NativeClipboardOwner.cpp")
+        backend = compile_object("backend", "src/vgui2/src/NativeClipboardMac.mm")
         pure_test = compile_object("pure-test", "tests/native/clipboard_owner/owner_tests.cpp", False)
         named_test = compile_object("named-test", "tests/native/clipboard_owner/named_tests.mm", False)
         for name, objects, libraries in [("pure", [pure_test, core, owner], []),

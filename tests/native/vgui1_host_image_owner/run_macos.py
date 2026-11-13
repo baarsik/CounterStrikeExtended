@@ -15,9 +15,9 @@ repo = Path(__file__).resolve().parents[3]
 args.art.mkdir(exist_ok=False)
 assert not any(key in os.environ for key in ['ASAN_OPTIONS', 'UBSAN_OPTIONS', 'TSAN_OPTIONS'])
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
-sources = [repo / 'GoldSrc-SDK/launcher/native' / name for name in
+sources = [repo / 'src/launcher/native' / name for name in
            ['VGui1HostImageOwner.h', 'VGui1HostImageOwner.cpp']]
-sources += [repo / 'GoldSrc-SDK/public/native_module.h']
+sources += [repo / 'src/public/native_module.h']
 sources += sorted(path for path in Path(__file__).parent.iterdir() if path.is_file())
 pins = {str(path): sha(path) for path in sources}
 (args.art / 'pins-before.json').write_text(json.dumps(pins, indent=2) + '\n')
@@ -69,7 +69,7 @@ for profile in ['release', 'debug']:
     database = json.loads(database_path.read_text())
     entry, = [value for value in database if value['file'].endswith('/launcher/launcher.cpp')]
     command = shlex.split(entry['command'])
-    command[command.index('-c') + 1] = str(args.art / 'source/GoldSrc-SDK/launcher/native/VGui1HostImageOwner.cpp')
+    command[command.index('-c') + 1] = str(args.art / 'source/src/launcher/native/VGui1HostImageOwner.cpp')
     command[command.index('-o') + 1] = str(args.art / (profile + '-derived-launcher.o'))
     execute(profile + '-derived-launcher-policy', command, cwd=entry['directory'])
     (args.art / (profile + '-database-identity.json')).write_text(json.dumps({
@@ -79,7 +79,7 @@ for profile in ['release', 'debug']:
 for standard in ['c++14', 'c++17']:
     execute('typed-boundary-' + standard, ['xcrun', 'clang++', '-std=' + standard, '-arch', 'arm64',
         '-mmacosx-version-min=14.0', '-fno-exceptions', '-fno-rtti', '-Wall', '-Wextra', '-Werror',
-        '-I' + str(args.art / 'source/GoldSrc-SDK/launcher/native'), '-S', '-emit-llvm',
+        '-I' + str(args.art / 'source/src/launcher/native'), '-S', '-emit-llvm',
         Path(__file__).parent / 'boundary_probe.cpp', '-o', args.art / ('boundary-' + standard + '.ll')])
 for label, command in [('compiler', ['xcrun', 'clang++', '--version']), ('os', ['sw_vers']),
                        ('machine', ['uname', '-a'])]:

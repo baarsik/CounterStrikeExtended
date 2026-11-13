@@ -5,10 +5,10 @@ import json
 from pathlib import Path
 
 METHODS = (
-    ('GoldSrc-SDK/common/TextConsoleWin32.cpp', 'char* CTextConsoleWin32::GetLine()'),
-    ('GoldSrc-SDK/common/textconsole.cpp', 'bool CTextConsole::Init( IBaseSystem* system )'),
-    ('GoldSrc-SDK/common/textconsole.cpp', 'int CTextConsole::ReceiveNewline()'),
-    ('GoldSrc-SDK/common/textconsole.cpp', 'void CTextConsole::ReceiveStandardChar( char character )'),
+    ('src/common/TextConsoleWin32.cpp', 'char* CTextConsoleWin32::GetLine()'),
+    ('src/common/textconsole.cpp', 'bool CTextConsole::Init( IBaseSystem* system )'),
+    ('src/common/textconsole.cpp', 'int CTextConsole::ReceiveNewline()'),
+    ('src/common/textconsole.cpp', 'void CTextConsole::ReceiveStandardChar( char character )'),
 )
 
 

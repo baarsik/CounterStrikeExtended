@@ -5,13 +5,13 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CsePcxFixture LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
-set(CSE_PCX_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/screen.cpp" CACHE FILEPATH "Current or preserved screen.cpp")
+set(CSE_PCX_SOURCE "${CSE_ROOT}/src/engine/screen.cpp" CACHE FILEPATH "Current or preserved screen.cpp")
 option(CSE_PCX_REFERENCE "Allow the original implicit length narrowing for a reference comparison" OFF)
 option(CSE_PCX_SANITIZERS "Instrument the exact writer and allocation/file hooks" OFF)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/production_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
-    "${CSE_PCX_SOURCE}" "${CSE_ROOT}/GoldSrc-SDK/engine/zone.h" "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS "${CSE_PCX_SOURCE}" "${CSE_ROOT}/GoldSrc-SDK/engine/zone.h" extract_sources.py VERBATIM)
+    "${CSE_PCX_SOURCE}" "${CSE_ROOT}/src/engine/zone.h" "${CMAKE_CURRENT_BINARY_DIR}"
+  DEPENDS "${CSE_PCX_SOURCE}" "${CSE_ROOT}/src/engine/zone.h" extract_sources.py VERBATIM)
 add_executable(pcx_tests pcx_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/production_bodies.inc")
 target_compile_features(pcx_tests PRIVATE cxx_std_17)
 target_include_directories(pcx_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

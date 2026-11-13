@@ -23,7 +23,7 @@ def main():
     include = options.output / 'include/public'
     include.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(options.header, include / 'cse_engine_bootstrap_abi.h')
-    actual_fs = (options.root / 'GoldSrc-SDK/public/cse_filesystem_abi.h').as_posix()
+    actual_fs = (options.root / 'src/public/cse_filesystem_abi.h').as_posix()
     (include / 'cse_filesystem_abi.h').write_text('#pragma once\n#include "' + actual_fs + '"\n')
     if os.name == 'nt':
         assert options.profile != 'sanitized'
@@ -32,8 +32,8 @@ def main():
         command = [str(compiler), '/nologo', '/std:c++14', '/EHsc', '/W4', '/WX', '/fp:precise', '/DWIN32',
                    '/MDd' if options.profile == 'debug' else '/MD',
                    '/Od' if options.profile == 'debug' else '/O2',
-                   '/I' + str(include.parent), '/I' + str(options.root / 'GoldSrc-SDK'),
-                   '/I' + str(options.root / 'GoldSrc-SDK/public'), '/I' + str(options.bindings),
+                   '/I' + str(include.parent), '/I' + str(options.root / 'src'),
+                   '/I' + str(options.root / 'src/public'), '/I' + str(options.bindings),
                    str(options.source), '/Fe:' + str(executable),
                    '/Fo' + str(options.output / 'contract_test.obj'),
                    '/Fd' + str(options.output / 'contract_test.pdb')]
@@ -45,7 +45,7 @@ def main():
         command = [str(compiler), '-std=c++14', '-DOSX', '-DPOSIX', '-mmacosx-version-min=14.0',
                    '-Wall', '-Wextra', '-Werror', '-ffp-model=precise']
         command += flags[options.profile] + ['-I' + str(include.parent),
-            '-I' + str(options.root / 'GoldSrc-SDK'), '-I' + str(options.root / 'GoldSrc-SDK/public'),
+            '-I' + str(options.root / 'src'), '-I' + str(options.root / 'src/public'),
             '-I' + str(options.bindings), str(options.source), '-o', str(executable)]
     compile_run = subprocess.run(command, cwd=options.output, capture_output=True, timeout=120)
     (options.output / 'compile.log').write_bytes(compile_run.stdout + compile_run.stderr)

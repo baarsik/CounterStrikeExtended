@@ -43,9 +43,9 @@ def main():
             common.remove('-Werror')
         common += ['-std=c++14', '-I' + str(options.output), *flags]
         objects = []
-        for label, source in [('buffer', options.source_root / 'GoldSrc-SDK/HLTV/common/BitBuffer.cpp'),
-                              ('address', options.source_root / 'GoldSrc-SDK/HLTV/common/NetAddress.cpp'),
-                              ('byteorder', ROOT / 'GoldSrc-SDK/HLTV/common/byteorder.cpp'),
+        for label, source in [('buffer', options.source_root / 'src/HLTV/common/BitBuffer.cpp'),
+                              ('address', options.source_root / 'src/HLTV/common/NetAddress.cpp'),
+                              ('byteorder', ROOT / 'src/HLTV/common/byteorder.cpp'),
                               ('dispatch', HERE / 'virtual_calls.cpp'), ('fixture', HERE / 'reset_tests.cpp')]:
             obj = output / (label + '.o')
             extras = ['-include', str(HERE / 'allocation_hooks.h')] if label == 'buffer' else []

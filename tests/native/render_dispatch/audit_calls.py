@@ -21,17 +21,17 @@ def audit(root):
     errors = []
     rows = []
     for owner in OWNERS:
-        path = root / "GoldSrc-SDK/engine" / owner
+        path = root / "src/engine" / owner
         text = path.read_text()
         calls = [entry.split("(")[0].strip() for entry in raw_calls(text)]
         for name in calls:
             errors.append(f"{owner}: unowned raw call {name}")
         rows.append({"owner": owner, "raw_calls": calls, "scope": "T2a only"})
-    qgl = (root / "GoldSrc-SDK/engine/qgl.cpp").read_text()
+    qgl = (root / "src/engine/qgl.cpp").read_text()
     for required in ("InstallLegacyDispatch", "RemoveLegacyDispatch"):
         if required not in qgl:
             errors.append("qgl.cpp: missing " + required)
-    aliases = (root / "GoldSrc-SDK/engine/gl_vidnt.cpp").read_text()
+    aliases = (root / "src/engine/gl_vidnt.cpp").read_text()
     for name in ("glActiveTextureARB", "glMultiTexCoord2fARB", "glSelectTextureSGIS", "glMTexCoord2fSGIS"):
         if not re.search(r'RouteLegacyExtension\s*\(\s*"' + re.escape(name) + r'"', aliases):
             errors.append("gl_vidnt.cpp: unowned alias " + name)

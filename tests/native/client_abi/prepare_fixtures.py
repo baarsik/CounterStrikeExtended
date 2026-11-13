@@ -26,10 +26,10 @@ def body(text, expression):
     return start, text[start:end]
 
 
-members = fields((root / 'GoldSrc-SDK/engine/APIProxy.h').read_bytes().decode('latin1'), 'cldll_func_t')
+members = fields((root / 'src/engine/APIProxy.h').read_bytes().decode('latin1'), 'cldll_func_t')
 for variant, prefix in [('hl', 'cl_dll'), ('cs', 'cstrike/cl_dll')]:
     blocks = []
-    path = root / 'GoldSrc-SDK' / prefix / 'cdll_int.cpp'
+    path = root / 'src' / prefix / 'cdll_int.cpp'
     text = path.read_bytes().decode('latin1')
     for expression in (r'(?:extern "C" )?int (?:CL_DLLEXPORT|EXPORT) Initialize\(',
                        r'extern "C" void (?:CL_DLLEXPORT|EXPORT) F\('):
@@ -44,15 +44,15 @@ for variant, prefix in [('hl', 'cl_dll'), ('cs', 'cstrike/cl_dll')]:
         if not name or name in ('Initialize', 'HUD_GetStudioModelInterface', 'nullptr'):
             continue
         assert re.fullmatch(r'\w+', name), name
-        alias = re.search(r'\b(\w+)\s+' + member + r'\s*;', clean((root / 'GoldSrc-SDK/engine/APIProxy.h').read_bytes().decode('latin1')))[1]
+        alias = re.search(r'\b(\w+)\s+' + member + r'\s*;', clean((root / 'src/engine/APIProxy.h').read_bytes().decode('latin1')))[1]
         declaration = re.search(r'\btypedef\s+([^;]+?)\(\s*\*\s*' + alias + r'\s*\)\s*\(([^;]*)\)\s*;',
-                                clean((root / 'GoldSrc-SDK/engine/APIProxy.h').read_bytes().decode('latin1')), re.S)
+                                clean((root / 'src/engine/APIProxy.h').read_bytes().decode('latin1')), re.S)
         assert declaration, alias
         result = declaration[1].strip()
         arguments = declaration[2].strip()
         returned = 'return;' if result == 'void' else 'return {};'
         stubs.append(f'extern "C" FIXTURE_EXPORT {result} {name}({arguments}) {{ {returned} }}')
-    path = root / 'GoldSrc-SDK' / prefix / 'GameStudioModelRenderer.cpp'
+    path = root / 'src' / prefix / 'GameStudioModelRenderer.cpp'
     text = path.read_bytes().decode('latin1')
     start, code = body(text, r'int CL_DLLEXPORT HUD_GetStudioModelInterface\(')
     blocks.append(f'#line {text.count(chr(10), 0, start) + 1} "{path.as_posix()}"\n{code}\n')
@@ -64,7 +64,7 @@ for variant, prefix in [('hl', 'cl_dll'), ('cs', 'cstrike/cl_dll')]:
     endings = ['#ifdef _MSC_VER', '#pragma warning(pop)', '#else', '#pragma clang diagnostic pop', '#endif']
     (out / (variant + '_stubs.inc')).write_text('\n'.join(pragmas + stubs + endings) + '\n')
 
-api = (root / 'GoldSrc-SDK/engine/APIProxy.h').read_bytes().decode('latin1')
+api = (root / 'src/engine/APIProxy.h').read_bytes().decode('latin1')
 for name, before, after in [
     ('prototype', r'typedef float(\s*\(\*pfnEngSrc_GetClientMaxspeed_t\s*\))', r'typedef int\1'),
     ('destination', r'(\(\*DST_INITIALIZE_FUNC\)\s*\(\s*struct cl_enginefuncs_s\*\*,\s*)int\s*\*', r'\1float *'),
@@ -73,13 +73,13 @@ for name, before, after in [
     changed, count = re.subn(before, after, api)
     assert count == 1, (name, count)
     (out / ('mutant_' + name + '_APIProxy.h')).write_bytes(changed.encode('latin1'))
-event = (root / 'GoldSrc-SDK/common/event_api.h').read_bytes().decode('latin1')
+event = (root / 'src/common/event_api.h').read_bytes().decode('latin1')
 changed, count = re.subn(r'int(\s*\(\s*\*EV_IsLocal\s*\))', r'float\1', event)
 assert count == 1
 (out / 'mutant_event_api.h').write_bytes(changed.encode('latin1'))
-model = (root / 'GoldSrc-SDK/common/com_model.h').read_bytes().decode('latin1')
+model = (root / 'src/common/com_model.h').read_bytes().decode('latin1')
 model = model.replace('player_info_s', 'fixture_prefix_player_info_s').replace('player_info_t', 'fixture_prefix_player_info_t')
-owner = (root / 'GoldSrc-SDK/engine/client.h').read_bytes().decode('latin1')
+owner = (root / 'src/engine/client.h').read_bytes().decode('latin1')
 start = owner.index('typedef struct player_info_s')
 end = owner.index('} player_info_t;', start) + len('} player_info_t;')
 constant = re.search(r'#define HASHED_CDKEY_BYTES\s+[^\n]+', owner).group()
@@ -94,7 +94,7 @@ for family in ('MovementRecords', 'ModelRecords'):
         facts.append('{"' + name + '.sizeof", sizeof(' + name + ')},')
         facts.append('{"' + name + '.alignof", alignof(' + name + ')},')
         facts.append('{"' + name + '.contract", cse::abi::ClientLayout_' + name + '},')
-        for field in fields((root / 'GoldSrc-SDK' / header).read_bytes().decode('latin1'), name):
+        for field in fields((root / 'src' / header).read_bytes().decode('latin1'), name):
             access = f'(({name}*)nullptr)->{field}'
             facts.append('{"' + name + '.' + field + '", cse::abi::LayoutHash({'
                          + f'offsetof({name}, {field}), sizeof({access}), alignof(decltype({access})), '
@@ -102,7 +102,7 @@ for family in ('MovementRecords', 'ModelRecords'):
 facts.append('};')
 (out / 'movement_diagnostics.inc').write_text('\n'.join(facts) + '\n')
 
-engine_path = root / 'GoldSrc-SDK/engine/cdll_int.cpp'
+engine_path = root / 'src/engine/cdll_int.cpp'
 engine = engine_path.read_bytes().decode('latin1')
 functions = []
 for expression in (r'static void ClearOwnedClientBindings\(', r'static bool ValidateOwnedClientLibrary\(',
@@ -113,7 +113,7 @@ for expression in (r'static void ClearOwnedClientBindings\(', r'static bool Vali
     functions.append(f'#line {engine.count(chr(10), 0, start) + 1} "{engine_path.as_posix()}"\n{code}\n')
 (out / 'engine_loader_bodies.inc').write_text('\n'.join(functions))
 exports = (root / 'tests/native/client_abi/module.def').read_text()
-extra = re.findall(r'Apply\(\w+, "([^"]+)"\)', (root / 'GoldSrc-SDK/common/client_module_required_exports.h').read_text())
+extra = re.findall(r'Apply\(\w+, "([^"]+)"\)', (root / 'src/common/client_module_required_exports.h').read_text())
 existing = set(exports.split())
 exports += ''.join('    ' + name + '\n' for name in extra if name not in existing)
 (out / 'fixture_module.def').write_text(exports)

@@ -18,7 +18,7 @@ def main():
     options.output.mkdir(parents=True, exist_ok=True)
     inputs = options.output / 'input'
     shutil.copytree(options.input, inputs, dirs_exist_ok=True)
-    sdk = inputs / 'GoldSrc-SDK'
+    sdk = inputs / 'src'
     metadata = json.loads((inputs / 'fixture-input.json').read_text())
     shared = metadata['shared_cases']
     sources = metadata['sources']

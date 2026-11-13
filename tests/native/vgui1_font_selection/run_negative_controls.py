@@ -13,7 +13,7 @@ root = Path(__file__).resolve().parents[3]
 art = args.art.resolve() / 'negative-controls'
 art.mkdir(parents=True, exist_ok=True)
 resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-source = (root / 'GoldSrc-SDK/engine/VGui1NativeFontSelection.cpp').read_text()
+source = (root / 'src/engine/VGui1NativeFontSelection.cpp').read_text()
 controls = {
     'passive-query-cannot-admit': ('const auto prepared = CseVgui1FontPrepareV1',
         'const auto prepared = CseVgui1FontQueryV1'),

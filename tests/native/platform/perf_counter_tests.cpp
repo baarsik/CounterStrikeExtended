@@ -14,7 +14,7 @@ int FixtureGetTime(timeval *value, void *) {
 
 // Drive the production POSIX counter at a timestamp beyond the Win32 integer range.
 #define gettimeofday FixtureGetTime
-#include "../../../GoldSrc-SDK/game_shared/perf_counter.h"
+#include "../../../src/game_shared/perf_counter.h"
 #undef gettimeofday
 
 int main() {

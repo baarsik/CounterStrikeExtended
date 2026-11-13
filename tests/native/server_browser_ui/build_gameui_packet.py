@@ -1,7 +1,7 @@
 """Freshly compile every GameUI TU under retained owning flags and full-link a frozen packet.
 
 Read-only cache inputs; no configuration, dependency build, app mutation or runtime invocation.
-At most two compiler processes. New manifest-selected native sources inherit the target's exact policy.
+At most two compiler processes. New CMake-selected native sources inherit the target's exact policy.
 """
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -35,8 +35,8 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 def remap(value):
-    return value.replace(str(original_root / 'cmake/../GoldSrc-SDK'), str(repo / 'GoldSrc-SDK')).replace(
-        str(original_root / 'GoldSrc-SDK'), str(repo / 'GoldSrc-SDK'))
+    return value.replace(str(original_root / 'cmake/../src'), str(repo / 'src')).replace(
+        str(original_root / 'src'), str(repo / 'src'))
 
 def run(label, argv, cwd=cache):
     result = subprocess.run([str(value) for value in argv], cwd=cwd, capture_output=True, text=True)
@@ -59,7 +59,7 @@ assert recipe[:2] == [':', '&&'] and recipe[-2:] == ['&&', ':']
 link = recipe[2:-2]
 assert '&&' not in link
 # Freeze policy and source inputs before compiling. Only the actual used dependency closure is copied below.
-initial = {path.resolve(): digest(path) for path in (repo / 'GoldSrc-SDK').rglob('*')
+initial = {path.resolve(): digest(path) for path in (repo / 'src').rglob('*')
            if path.is_file() and path.suffix in ['.h', '.hpp', '.inc', '.cpp', '.c']}
 (packet / 'precompile-pins.json').write_text(json.dumps({str(k): v for k, v in initial.items()}, indent=2) + '\n')
 object_map = {}
@@ -78,7 +78,7 @@ for name in ['ServerBrowserModel', 'ServerBrowserConfig', 'ServerBrowserPresenta
     argv = [remap(value) for value in shlex.split(owner['command'])]
     output = packet / 'objects' / (name + '.o')
     argv[argv.index('-o') + 1] = str(output)
-    argv[argv.index('-c') + 1] = str(repo / 'GoldSrc-SDK/GameUI/native' / (name + '.cpp'))
+    argv[argv.index('-c') + 1] = str(repo / 'src/GameUI/native' / (name + '.cpp'))
     argv += ['-MD', '-MF', str(output.with_suffix('.d'))]
     jobs.append(('compile-' + name, argv))
 with ThreadPoolExecutor(max_workers=2) as pool:
@@ -129,14 +129,17 @@ for path in sorted(dependencies):
     if path in initial:
         assert initial[path] == sha, f'Input changed while compiling: {path}'
     pins[str(path)] = sha
-    if path.is_relative_to(repo / 'GoldSrc-SDK'):
+    if path.is_relative_to(repo / 'src'):
         target = packet / 'source' / path.relative_to(repo)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, target)
 for path, sha in inputs.items():
     assert digest(Path(path)) == sha
-for path in ['GoldSrc-SDK/projects/vs2026/GameUI.vcxproj', 'cmake/targets/gameui/Sources.cmake',
-             'tools/translate_msbuild.py', 'tests/native/server_browser_ui/build_gameui_packet.py']:
+cmake_inputs = sorted((repo / 'cmake').rglob('*.cmake')) + sorted((repo / 'cmake').rglob('CMakeLists.txt'))
+cmake_inputs += [repo / 'CMakeLists.txt', repo / 'tools/cmake_inventory.py',
+                 repo / 'tests/native/server_browser_ui/build_gameui_packet.py']
+for source in cmake_inputs:
+    path = source.relative_to(repo)
     target = packet / 'source' / path
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(repo / path, target)

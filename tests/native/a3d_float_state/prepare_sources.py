@@ -1,4 +1,4 @@
-"""Prepare exact leaf/body inputs and derive the mixer policy from its manifest."""
+"""Prepare exact leaf/body inputs and derive the mixer policy from owning CMake settings."""
 from pathlib import Path
 import hashlib
 import json
@@ -11,17 +11,19 @@ config = sys.argv[3]
 architecture = sys.argv[4]
 output = Path(sys.argv[5]).resolve()
 sys.path.insert(0, str(root / "tools"))
-import translate_msbuild as translator
+from cmake_inventory import query_target
 
-evaluated = translator.evaluate(root / "GoldSrc-SDK/projects/vs2026/a3dapi.vcxproj", config)
-item = next(item for item in evaluated["items"] if Path(item["path"]).name == "a2d.cpp")
-metadata = item["metadata"]
-assert metadata["Optimization"] == "MaxSpeed"
-assert metadata["FloatingPointModel"] == "Precise"
-assert metadata["IntrinsicFunctions"] == "true"
-options = ["/O2", "/fp:precise", "/Oi"]
-if architecture == "x86" and metadata["EnableEnhancedInstructionSet"] == "NoExtensions":
-    options.append("/arch:IA32")
+evaluated = query_target(root, "a3dapi", configuration=config, target_os="windows",
+                         architecture=architecture if architecture in ("x86", "x64") else "x64")
+item = next(item for item in evaluated["sources"] if Path(item["path"]).name == "a2d.cpp")
+options = [value for value in item["compile_options"]
+           if value in ("/Od", "/O1", "/O2", "/Ox", "/Oi", "/Oi-")
+           or value.startswith(("/fp:", "/arch:"))]
+assert next(value for value in reversed(options) if value in ("/Od", "/O1", "/O2", "/Ox")) == "/O2"
+assert next(value for value in reversed(options) if value.startswith("/fp:")) == "/fp:precise"
+assert next(value for value in reversed(options) if value in ("/Oi", "/Oi-")) == "/Oi"
+if architecture == "x86":
+    assert next(value for value in reversed(options) if value.startswith("/arch:")) == "/arch:IA32"
 output.mkdir(parents=True, exist_ok=True)
 (output / "selected_policy.cmake").write_text("set(CSE_A3D_SUBJECT_OPTIONS " + " ".join(options) + ")\n")
 (output / "selected_policy.json").write_text(json.dumps(item, indent=2) + "\n")

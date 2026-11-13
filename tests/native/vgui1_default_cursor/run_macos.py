@@ -27,8 +27,8 @@ def execute(label, command, cwd=repo, expected=0):
     assert result.returncode == expected, (label, result.returncode)
 
 
-source = repo / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/DefaultCursor.cpp'
-include = repo / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/include'
+source = repo / 'src/utils/vgui/lib-src/vgui/DefaultCursor.cpp'
+include = repo / 'src/utils/vgui/lib-src/vgui/include'
 for phase, path in [('before', args.before), ('after', source)]:
     ast = args.art / (phase + '-ast.json')
     command = ['xcrun', 'clang++', '-std=c++14', '-arch', 'arm64', '-mmacosx-version-min=14.0',

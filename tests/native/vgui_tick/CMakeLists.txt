@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.25)
 project(CseVguiTick LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(vgui_source "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(vgui_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 option(CSE_VGUI_TICK_SANITIZERS "Instrument the actual VGUI App scheduler" OFF)
 option(CSE_VGUI_TICK_LEGACY_RED "Allow the original LP64 narrowing to expose behavioral RED" OFF)
 add_library(vgui_tick_public_layout OBJECT public_layout.cpp)
-target_include_directories(vgui_tick_public_layout PRIVATE "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/include")
+target_include_directories(vgui_tick_public_layout PRIVATE "${CSE_ROOT}/src/utils/vgui/include")
 add_executable(vgui_tick_tests tick_tests.cpp controlled_bindings.cpp "${vgui_source}/App.cpp"
   $<TARGET_OBJECTS:vgui_tick_public_layout>)
 target_include_directories(vgui_tick_tests PRIVATE "${vgui_source}/include")

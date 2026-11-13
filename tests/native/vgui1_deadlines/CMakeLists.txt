@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(Vgui1Deadlines LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(VGUI "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui")
+set(VGUI "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 set(HEADER_VIEW private CACHE STRING "Actual widget declaring header view")
 option(DEADLINE_SANITIZERS "Instrument fake-service actual-method component" OFF)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)

@@ -9,7 +9,7 @@ sys.path.insert(0, str(root / 'tests/native/server_browser_ui'))
 from extract_owners import extract, closing_brace
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-owner = root / 'GoldSrc-SDK/engine/sv_remoteaccess.cpp'
+owner = root / 'src/engine/sv_remoteaccess.cpp'
 source = owner.read_text()
 start = source.index('class CServerRemoteAccess :')
 end = source.index('\n};', start) + 3
@@ -26,11 +26,11 @@ if 'CServerRemoteAccess::RetireResponses' in source:
     body += '\n' + source[start:closing_brace(source, source.index('{', start))]
 (out / 'remote_owner.inc').write_text(body)
 command = ['clang++', '-std=c++17', ('-Os' if '--release' in sys.argv else '-O0'), '-UNDEBUG', '-DSW_RENDERER', '-D_vsnprintf=vsnprintf',
-           '-I' + str(out), '-I' + str(root / 'GoldSrc-SDK'), '-I' + str(root / 'GoldSrc-SDK/engine'),
-           '-I' + str(root / 'GoldSrc-SDK/public'),
+           '-I' + str(out), '-I' + str(root / 'src'), '-I' + str(root / 'src/engine'),
+           '-I' + str(root / 'src/public'),
            str(root / 'tests/native/software_lifetime/remote_access.cpp'),
-           str(root / 'GoldSrc-SDK/engine/native_software_lifetime.cpp'),
-           str(root / 'GoldSrc-SDK/engine/utlbuffer.cpp'), '-o', str(out / 'remote_access')]
+           str(root / 'src/engine/native_software_lifetime.cpp'),
+           str(root / 'src/engine/utlbuffer.cpp'), '-o', str(out / 'remote_access')]
 if 'CServerRemoteAccess::RetireResponses' not in source:
     command.append('-DCSE_REMOTE_BASELINE')
 run = subprocess.run(command, capture_output=True)

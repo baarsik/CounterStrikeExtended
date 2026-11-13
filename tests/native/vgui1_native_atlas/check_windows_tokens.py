@@ -80,7 +80,7 @@ for name in names:
     before = args.before / 'engine' / name
     if not before.exists() and name == 'vgui_EngineSurface.cpp':
         before = args.before / 'engine/VGUI_EngineSurface.cpp'
-    after = args.after / 'GoldSrc-SDK/engine' / name
+    after = args.after / 'src/engine' / name
     row = {'source': name, 'before': hashlib.sha256(before.read_bytes()).hexdigest(),
            'after': hashlib.sha256(after.read_bytes()).hexdigest()}
     streams = []

@@ -37,7 +37,7 @@ public:
     ENTITYFUNCPTR m_pfnTouch = nullptr;
     USEPTR m_pfnUse = nullptr;
     ENTITYFUNCPTR m_pfnBlocked = nullptr;
-#include "../../../GoldSrc-SDK/particleman/compat/prediction_callbacks.h"
+#include "../../../src/particleman/compat/prediction_callbacks.h"
 };
 
 int main() {

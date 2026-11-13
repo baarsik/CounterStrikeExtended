@@ -20,11 +20,11 @@ art.mkdir(parents=True)
 source = art / 'source'
 files = [p for p in (root / 'tests/native/vgui1_native_provider').iterdir() if p.is_file()]
 for name in ['MacFontDiscovery.h', 'MacFontDiscovery.cpp', 'MacFontRegistration.h', 'MacFontRegistration.cpp']:
-    files.append(root / 'GoldSrc-SDK/vgui2/vgui_surfacelib/native' / name)
+    files.append(root / 'src/vgui2/vgui_surfacelib/native' / name)
 for name in ['VGui1LegacyRaster.h', 'VGui1LegacyRaster.cpp', 'VGui1NativeFontFace.h',
              'VGui1NativeFontFace.cpp', 'VGui1MacFontProvider.h', 'VGui1MacFontProvider.cpp']:
-    files.append(root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native' / name)
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+    files.append(root / 'src/utils/vgui/lib-src/vgui/posix/native' / name)
+vgui = root / 'src/utils/vgui/lib-src/vgui'
 for name in ['Font.cpp', 'include/VGUI.h', 'include/VGUI_Font.h', 'posix/Font.cpp',
              'posix/VGui1FontPlatform.h', 'posix/VGui1FontServices.h', 'posix/VGui1FontServices.cpp',
              'common/fileimage.h', 'common/fileimage.cpp', 'common/vfontdata.h', 'common/vfontdata.cpp']:

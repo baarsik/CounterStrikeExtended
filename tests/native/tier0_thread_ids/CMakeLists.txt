@@ -25,15 +25,15 @@ function(thread_fixture target source)
   endif()
   add_custom_command(OUTPUT "${object}"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py"
-      --database "${CSE_THREAD_ID_DATABASE}" --sdk "${CSE_ROOT}/GoldSrc-SDK" --output "${object}"
+      --database "${CSE_THREAD_ID_DATABASE}" --sdk "${CSE_ROOT}/src" --output "${object}"
       ${sanitizers} ${controlled}
-    DEPENDS "${CSE_ROOT}/GoldSrc-SDK/tier0/thread.cpp" "${CSE_ROOT}/GoldSrc-SDK/public/tier0/platform.h"
+    DEPENDS "${CSE_ROOT}/src/tier0/thread.cpp" "${CSE_ROOT}/src/public/tier0/platform.h"
       "${CMAKE_CURRENT_SOURCE_DIR}/compile_tu.py" "${CSE_THREAD_ID_DATABASE}"
     DEPFILE "${object}.d" VERBATIM)
   set_source_files_properties("${object}" PROPERTIES EXTERNAL_OBJECT TRUE GENERATED TRUE)
   add_executable(${target} "${source}" "${object}")
   set_target_properties(${target} PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/public")
   target_compile_definitions(${target} PRIVATE TIER0_DLL POSIX OSX)
   target_compile_options(${target} PRIVATE -Wall -Wextra -Werror
     "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")

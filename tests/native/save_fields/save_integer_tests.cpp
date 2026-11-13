@@ -1,5 +1,5 @@
-#include "../../../GoldSrc-SDK/common/save_field_storage.h"
-#include "../../../GoldSrc-SDK/common/legacy_save_integer.h"
+#include "../../../src/common/save_field_storage.h"
+#include "../../../src/common/legacy_save_integer.h"
 
 #include <array>
 #include <cstdint>

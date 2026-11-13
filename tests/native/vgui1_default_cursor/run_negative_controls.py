@@ -9,7 +9,7 @@ parser.add_argument('--art', required=True, type=Path)
 args = parser.parse_args()
 args.art.mkdir(exist_ok=False)
 repo = Path(__file__).resolve().parents[3]
-source = repo / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/DefaultCursor.cpp'
+source = repo / 'src/utils/vgui/lib-src/vgui/DefaultCursor.cpp'
 text = source.read_text()
 assert text.count(': _hotspot{0, 0}') == 1
 mutant = args.art / 'DefaultCursor-defined-one.cpp'

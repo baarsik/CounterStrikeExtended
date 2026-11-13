@@ -4,7 +4,7 @@ include("${CSE_ROOT}/cmake/PlatformDefaults.cmake")
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseRenderDispatchFixture LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
-set(native "${CSE_ROOT}/GoldSrc-SDK/engine/render/native")
+set(native "${CSE_ROOT}/src/engine/render/native")
 add_library(render_dispatch STATIC "${native}/legacy_state.cpp" "${native}/legacy_commands.cpp"
     "${native}/legacy_texture.cpp" "${native}/frame_stream.cpp")
 # The initial RED snapshot has no dispatch implementation/header. Do not provide a test substitute.
@@ -12,7 +12,7 @@ add_library(render_dispatch STATIC "${native}/legacy_state.cpp" "${native}/legac
 if(EXISTS "${native}/legacy_dispatch.cpp")
     target_sources(render_dispatch PRIVATE "${native}/legacy_dispatch.cpp")
 endif()
-target_include_directories(render_dispatch PUBLIC "${native}" "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+target_include_directories(render_dispatch PUBLIC "${native}" "${CSE_ROOT}/src/external/SDL3/include")
 add_executable(render_dispatch_tests dispatch_tests.cpp)
 target_link_libraries(render_dispatch_tests PRIVATE render_dispatch)
 option(CSE_RENDER_GL_ORACLE "Reserved for separately admitted actual GL comparison" OFF)

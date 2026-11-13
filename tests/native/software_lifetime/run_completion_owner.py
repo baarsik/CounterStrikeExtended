@@ -11,11 +11,11 @@ from extract_owners import extract
 
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-owner = root / 'GoldSrc-SDK/engine/vgui2/BaseUI_Interface.cpp'
+owner = root / 'src/engine/vgui2/BaseUI_Interface.cpp'
 body, line = extract(owner.read_text(), 'CBaseUI::TryShutdown', 0, 1)
 (out / 'actual_completion.inc').write_text(body)
 command = ['clang++', '-std=c++17', '-DSW_RENDERER', ('-Os' if '--release' in sys.argv else '-O0'), '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
-           '-I' + str(out), '-I' + str(root / 'GoldSrc-SDK/public'),
+           '-I' + str(out), '-I' + str(root / 'src/public'),
            str(root / 'tests/native/software_lifetime/completion_owner.cpp'), '-o', str(out / 'completion_owner')]
 result = subprocess.run(command, capture_output=True)
 (out / 'compile.log').write_bytes(result.stdout + result.stderr)

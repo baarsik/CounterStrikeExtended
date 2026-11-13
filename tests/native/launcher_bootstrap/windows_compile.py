@@ -1,4 +1,4 @@
-"""Headless MSVC compile/token gate; source inventory comes from the owning manifest receipt."""
+"""Headless MSVC compile/token gate using a frozen historical reference inventory receipt."""
 import argparse
 import hashlib
 import json
@@ -22,7 +22,7 @@ def run(args):
     for name, expected in manifest['hashes'].items():
         assert digest((source / name).read_bytes()) == expected, name
     receipt = {'inputs': manifest, 'cases': []}
-    launcher = source / 'GoldSrc-SDK/launcher/launcher.cpp'
+    launcher = source / 'src/launcher/launcher.cpp'
     vs = r'C:\BuildTools\2026\Common7\Tools\VsDevCmd.bat'
     for arch, machine in [('x86', 0x14c), ('x64', 0x8664), ('arm64', 0xaa64)]:
         initialized = subprocess.run(['cmd.exe', '/d', '/u', '/c',
@@ -69,7 +69,7 @@ def run(args):
             receipt['cases'].append(case)
             (args.receipts / 'windows-compile.json').write_text(json.dumps(receipt, indent=2) + '\n')
             print(arch, config, 'tokens identical; four actual launcher translation units compiled', flush=True)
-    assert digest(launcher.read_bytes()) == manifest['hashes']['GoldSrc-SDK/launcher/launcher.cpp']
+    assert digest(launcher.read_bytes()) == manifest['hashes']['src/launcher/launcher.cpp']
 
 
 if __name__ == '__main__':

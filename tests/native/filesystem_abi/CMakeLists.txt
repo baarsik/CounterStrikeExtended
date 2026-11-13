@@ -34,8 +34,8 @@ set(CSE_FS_ACTUAL_MODULE "" CACHE FILEPATH "Explicit source-built owned filesyst
 get_property(targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
 foreach(target IN LISTS targets)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK" "${CSE_ROOT}/GoldSrc-SDK/public"
-    "${CSE_ROOT}/GoldSrc-SDK/filesystem")
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src" "${CSE_ROOT}/src/public"
+    "${CSE_ROOT}/src/filesystem")
   if(WIN32 AND target MATCHES "^filesystem_(module_[0-5]|provider|missing|third_party)$")
     if(target MATCHES "(missing|third_party)$")
       target_sources(${target} PRIVATE module_without_descriptor.def)

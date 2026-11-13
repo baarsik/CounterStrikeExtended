@@ -4,7 +4,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseVoiceCaptureReferences LANGUAGES CXX)
 find_package(Threads REQUIRED)
 
-set(engine "${CSE_ROOT}/GoldSrc-SDK/engine")
+set(engine "${CSE_ROOT}/src/engine")
 add_executable(voice_openal_historical_reference openal_historical_reference.cpp)
 target_compile_definitions(voice_openal_historical_reference PRIVATE
     CSE_VOICE_OPENAL_SOURCE="${engine}/voice_record_openal.cpp")
@@ -15,15 +15,15 @@ if(WIN32)
         CSE_VOICE_WAVEIN_SOURCE="${engine}/voice_record_wavein.cpp"
         CSE_VOICE_DSOUND_SOURCE="${engine}/voice_record_dsound.cpp"
         CSE_VOICE_CIRCULAR_SOURCE="${engine}/CircularBuffer.cpp")
-    target_include_directories(voice_windows_reference PRIVATE "${engine}" "${CSE_ROOT}/GoldSrc-SDK/common"
-        "${CSE_ROOT}/GoldSrc-SDK/public")
+    target_include_directories(voice_windows_reference PRIVATE "${engine}" "${CSE_ROOT}/src/common"
+        "${CSE_ROOT}/src/public")
     list(APPEND reference_targets voice_windows_reference)
 endif()
 
 option(CSE_VOICE_COMPONENT_BASELINE "Build the failing missing-recorder test baseline" OFF)
 add_library(capture_fake_sdl SHARED fake_sdl.cpp)
 target_compile_definitions(capture_fake_sdl PRIVATE CSE_BUILD_FAKE_SDL)
-target_include_directories(capture_fake_sdl PUBLIC "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include"
+target_include_directories(capture_fake_sdl PUBLIC "${CSE_ROOT}/src/external/SDL3/include"
     "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(capture_fake_sdl PRIVATE Threads::Threads)
 if(WIN32)
@@ -43,7 +43,7 @@ if(NOT MSVC)
     target_compile_options(capture_component PRIVATE -fvisibility=hidden)
 endif()
 target_include_directories(capture_component PRIVATE "${engine}" "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public")
+    "${CSE_ROOT}/src/external/SDL3/include" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public")
 add_executable(voice_capture_tests component_tests.cpp allocation_fault.cpp $<TARGET_OBJECTS:capture_component>)
 target_include_directories(voice_capture_tests PRIVATE "${engine}")
 target_link_libraries(voice_capture_tests PRIVATE capture_fake_sdl Threads::Threads)

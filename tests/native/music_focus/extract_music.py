@@ -32,8 +32,8 @@ def span(path, pattern, occurrence=0, optional=False):
     return f'#line {line} "{path}"\n' + body + '\n'
 
 
-cd = args.source / 'GoldSrc-SDK/engine/cd.cpp'
-window = args.source / 'GoldSrc-SDK/engine/sys_sdlwind.cpp'
+cd = args.source / 'src/engine/cd.cpp'
+window = args.source / 'src/engine/sys_sdlwind.cpp'
 methods = ['CCDAudio', '~CCDAudio', 'Init', '_Init', 'Pause', 'Resume', '_Pause', '_Resume', '_Stop', 'Stop',
            'Play', 'PlayFile', '_Play', '_PlayFile', 'Frame', '_CDUpdate', '_SwitchToLauncher', '_SwitchToEngine',
            'Shutdown', 'ResetCDTimes', 'MP3_Init', 'MP3_Shutdown', 'MP3_ReleaseDriver', 'MP3_InitStream',

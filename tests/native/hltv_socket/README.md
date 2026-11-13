@@ -19,11 +19,11 @@ From repository root:
 ART=/Users/mmalakhouski/.codex/artifacts/cse-native64-20261108/hltv-socket-v1
 python3 tests/native/hltv_socket/run_mac.py --recipes "$ART/actual-tu-red.json" --output "$ART/recheck"
 python3 tests/native/hltv_socket/compile_tus.py --recipes "$ART/actual-tu-red.json" --output "$ART/tus-recheck"
-python3 tests/native/hltv_socket/verify_windows.py --before "$ART/before/GoldSrc-SDK/HLTV/Core/NetSocket.cpp" \
+python3 tests/native/hltv_socket/verify_windows.py --before "$ART/before/src/HLTV/Core/NetSocket.cpp" \
   --output "$ART/selection-recheck.json"
 ```
 
-Negative runtime control adds `--before --source "$ART/before/GoldSrc-SDK/HLTV/Core/NetSocket.cpp"`.
+Negative runtime control adds `--before --source "$ART/before/src/HLTV/Core/NetSocket.cpp"`.
 It retains visible original conversion warnings while omitting Werror gates only for that broken runtime
 source. Strict original full-TU REDs are separately retained. Positive components use C++14 and the owning
 warning/FP/exception profile; complete actual Mac TUs keep the retained C++17 recipe.

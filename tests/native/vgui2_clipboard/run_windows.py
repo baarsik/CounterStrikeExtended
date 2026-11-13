@@ -18,7 +18,7 @@ work = args.work.resolve()
 work.mkdir(parents=True, exist_ok=True)
 source = work / 'source'
 shutil.copytree(args.source, source, dirs_exist_ok=True)
-sdk = source / 'GoldSrc-SDK'
+sdk = source / 'src'
 tests = source / 'tests/native/vgui2_clipboard'
 records = []
 for cpu in ['x86', 'x64', 'arm64']:

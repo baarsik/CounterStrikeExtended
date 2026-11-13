@@ -7,15 +7,15 @@ include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 include("${CSE_ROOT}/cmake/NativeThirdParty.cmake")
 cse_load_native_third_party()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_WEBM_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/webm_video.cpp" CACHE FILEPATH "Actual current or preserved WebM source")
+set(CSE_WEBM_SOURCE "${CSE_ROOT}/src/engine/webm_video.cpp" CACHE FILEPATH "Actual current or preserved WebM source")
 add_executable(webm_tests webm_tests.cpp)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  target_sources(webm_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine/webm_pcm_allocation.cpp")
+  target_sources(webm_tests PRIVATE "${CSE_ROOT}/src/engine/webm_pcm_allocation.cpp")
 endif()
 target_compile_features(webm_tests PRIVATE cxx_std_17)
-target_include_directories(webm_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common"
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/pm_shared" "${CSE_ROOT}/GoldSrc-SDK/dlls"
-  "${CSE_ROOT}/GoldSrc-SDK/external/SDL3/include")
+target_include_directories(webm_tests PRIVATE "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common"
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/pm_shared" "${CSE_ROOT}/src/dlls"
+  "${CSE_ROOT}/src/external/SDL3/include")
 target_include_directories(webm_tests SYSTEM PRIVATE "${CSE_NATIVE_THIRD_PARTY_PREFIX}/include/webm")
 target_compile_definitions(webm_tests PRIVATE SW_RENDERER CSE_WEBM_SOURCE="${CSE_WEBM_SOURCE}"
   "$<$<PLATFORM_ID:Windows>:WIN32>" DLL_EXPORT=)
@@ -35,7 +35,7 @@ if(WIN32)
   target_link_libraries(webm_tests PRIVATE cse_webm_sdl3)
   # Link the actual converter needed by the otherwise unused software player.
   # Decoder tests do not exercise this converter or claim RGB presentation.
-  target_sources(webm_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine/yuv2rgb.cpp" unused_presentation_bindings.cpp)
+  target_sources(webm_tests PRIVATE "${CSE_ROOT}/src/engine/yuv2rgb.cpp" unused_presentation_bindings.cpp)
   add_custom_command(TARGET webm_tests POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different
     "$<TARGET_FILE:cse_webm_sdl3>" "$<TARGET_FILE_DIR:webm_tests>/SDL3.dll" VERBATIM)
   set(webm_provider_inputs

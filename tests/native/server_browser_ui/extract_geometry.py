@@ -15,8 +15,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--repo', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
-interface = args.repo / 'GoldSrc-SDK/engine/vgui/ISurface.h'
-source = args.repo / 'GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp'
+interface = args.repo / 'src/engine/vgui/ISurface.h'
+source = args.repo / 'src/engine/vgui2/BaseUISurface.cpp'
 text = interface.read_text(errors='replace')
 geometry = {'GetScreenSize', 'GetWorkspaceBounds', 'GetAbsoluteWindowBounds',
             'GetProportionalBase', 'GetHDProportionalBase'}

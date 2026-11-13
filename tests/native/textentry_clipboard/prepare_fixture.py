@@ -100,8 +100,8 @@ def main():
     parser.add_argument("--owner", choices=["common", "cs"], required=True)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    owner_file = args.repo / ("GoldSrc-SDK/vgui2/controls/TextEntry.cpp" if args.owner == "common"
-                              else "GoldSrc-SDK/cstrike/vgui2/controls/TextEntry.cpp")
+    owner_file = args.repo / ("src/vgui2/controls/TextEntry.cpp" if args.owner == "common"
+                              else "src/cstrike/vgui2/controls/TextEntry.cpp")
     target = "gameui" if args.owner == "common" else "cs_client"
     entries = [e for e in json.loads(args.database.read_text()) if e["file"] == str(owner_file)
                and (target + ".dir") in e["output"]]
@@ -123,9 +123,9 @@ def main():
     prefix += '\n'.join('#include "' + n + '"' for n in
                         ["vgui/ISystem.h", "vgui/IPanel.h", "vgui/IInput.h", "vgui/KeyValues.h",
                          "IKeyValues.h", "controls.h" if args.owner == "common" else "Controls.h",
-                         "vgui/IScheme.h", str(args.repo / "GoldSrc-SDK/engine/common.h"),
-                         str(args.repo / "GoldSrc-SDK/engine/controls.h"),
-                         str(args.repo / "GoldSrc-SDK/common/TextEntryClipboard.h"),
+                         "vgui/IScheme.h", str(args.repo / "src/engine/common.h"),
+                         str(args.repo / "src/engine/controls.h"),
+                         str(args.repo / "src/common/TextEntryClipboard.h"),
                          "vgui/IVGui.h", "vgui/Cursor.h", "Menu.h", "ScrollBar.h"])
     source_probe = args.out / "declarations.cpp"
     source_probe.write_text(prefix + "\n")
@@ -218,10 +218,10 @@ def main():
             base_bodies.append(signature(node, "IKeyValues") + " {\n" + ignore_parameters(node, "    ")
                                + reject_body(node, "base IKeyValues", "    ") + '\n}')
     (args.out / "keyvalues_base.inc").write_text("\n".join(base_bodies) + "\n")
-    panel_source = (args.repo / "GoldSrc-SDK/vgui2/controls/Panel.cpp").read_text(encoding="latin1")
+    panel_source = (args.repo / "src/vgui2/controls/Panel.cpp").read_text(encoding="latin1")
     (args.out / "actual_onmessage.inc").write_text(method(panel_source, "void Panel::OnMessage(") + "\n")
     (args.out / "actual_prepare_map.inc").write_text(method(panel_source, "void PreparePanelMessageMap(") + "\n")
-    kv_source = (args.repo / "GoldSrc-SDK/engine/KeyValues.cpp").read_text(encoding="latin1")
+    kv_source = (args.repo / "src/engine/KeyValues.cpp").read_text(encoding="latin1")
     kv_signatures = ["KeyValues::KeyValues( const char* name )",
                      "KeyValues::KeyValues( const char* name, const char* firstKey, const char* firstValue )",
                      "void KeyValues::Init(",
@@ -240,7 +240,7 @@ def main():
         kv_stubs.append(signature(node, "KeyValues") + '\n{\n' + ignore_parameters(node, "    ")
                         + reject_body(node, "KeyValues::" + node["name"], "    ") + '\n}')
     (args.out / "actual_keyvalues.inc").write_text("\n\n".join(kv_bodies + kv_stubs) + "\n")
-    helper = (args.repo / "GoldSrc-SDK/common/TextEntryClipboard.cpp").read_text()
+    helper = (args.repo / "src/common/TextEntryClipboard.cpp").read_text()
     default_allocator = method(helper, "Allocator DefaultAllocator()")
     binding = """Allocator DefaultAllocator() {
     return {&::ControlledTextAllocate, &::ControlledTextRelease};
@@ -253,7 +253,7 @@ void ControlledTextRelease(void* memory);
     (args.out / "actual_clipboard_helper.cpp").write_text(declarations + helper)
     (args.out / "allocator-binding.json").write_text(json.dumps({
         "status": "explicit controlled allocator backend only; actual Buffer/Frame implementations unchanged",
-        "production_source_sha256": digest((args.repo / "GoldSrc-SDK/common/TextEntryClipboard.cpp").read_bytes()),
+        "production_source_sha256": digest((args.repo / "src/common/TextEntryClipboard.cpp").read_bytes()),
         "production_default_allocator_sha256": digest(default_allocator.encode()),
         "bound_source_sha256": digest((declarations + helper).encode())}, indent=2) + "\n")
     (args.out / "owning-context.json").write_text(json.dumps({"entry": entry, "flags": flags,

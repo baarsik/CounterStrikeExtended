@@ -17,7 +17,7 @@ rows = json.loads(args.database.read_text())
 spec = importlib.util.spec_from_file_location('socket_evidence', root / 'tools/socket_abi_evidence.py')
 evidence = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(evidence)
-header = (root / 'GoldSrc-SDK/public/native_socket_host.h').read_text()
+header = (root / 'src/public/native_socket_host.h').read_text()
 mutations = {
     'binding-role-order': ('header', '    OwnsFn owns;\n    CreateUdpFn createUdp;',
                           '    CreateUdpFn createUdp;\n    OwnsFn owns;'),
@@ -41,14 +41,14 @@ for role in ['hw_engine', 'swds', 'launcher', 'hlds']:
             skip = True
         elif item not in ['-c', '-MD', '-MMD', row['file']]:
             clean.append(item)
-    owner = (root / 'GoldSrc-SDK' / relative).read_text()
-    owner_header = (root / 'GoldSrc-SDK' / relative.with_suffix('.h')).read_text()
+    owner = (root / 'src' / relative).read_text()
+    owner_header = (root / 'src' / relative.with_suffix('.h')).read_text()
     for name, (kind, before, after) in mutations.items():
         if kind == 'owner' and not is_host:
             continue
         directory = args.output / role / name
-        public = directory / 'GoldSrc-SDK/public'
-        native = directory / 'GoldSrc-SDK' / relative.parent
+        public = directory / 'src/public'
+        native = directory / 'src' / relative.parent
         public.mkdir(parents=True, exist_ok=True)
         native.mkdir(parents=True, exist_ok=True)
         assert before in (header if kind == 'header' else owner)

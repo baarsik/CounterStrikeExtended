@@ -14,13 +14,13 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[3]
     here = Path(__file__).resolve().parent
-    source = root / "GoldSrc-SDK/common/TextEntryClipboard.cpp"
+    source = root / "src/common/TextEntryClipboard.cpp"
     original = source.read_text()
     out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     flags = ["/usr/bin/clang++", "-std=c++14", "-arch", "arm64", "-mmacosx-version-min=14.0",
              "-O0", "-g", "-fexceptions", "-fno-fast-math", "-ffp-contract=off", "-Wall", "-Wextra", "-Werror",
-             "-DCSE_TEXT_ENTRY_USE_PTHREAD_KEY=1", "-I" + str(root / "GoldSrc-SDK/common"), "-I" + str(here)]
+             "-DCSE_TEXT_ENTRY_USE_PTHREAD_KEY=1", "-I" + str(root / "src/common"), "-I" + str(here)]
     hidden = ["-Wl,-unexported_symbol,_" + name for name in [
         "pthread_key_create", "pthread_key_delete", "pthread_getspecific", "pthread_setspecific",
         "pthread_mutex_lock", "pthread_mutex_unlock", "pthread_mutex_destroy"]]

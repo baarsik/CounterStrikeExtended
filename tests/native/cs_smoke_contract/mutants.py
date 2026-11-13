@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 args.output.mkdir(parents=True, exist_ok=False)
-source = (ROOT / 'GoldSrc-SDK/cstrike/cl_dll/ev_hldm.cpp').read_text(encoding='cp1252')
+source = (ROOT / 'src/cstrike/cl_dll/ev_hldm.cpp').read_text(encoding='cp1252')
 start = source.index('void EV_HLDM_CreateSmoke(')
 end = source.index('\n}\n#ifdef _MSC_VER', start) + 2
 body = source[start:end]

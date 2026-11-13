@@ -1,11 +1,11 @@
 #include <SDL3/SDL.h>
-#include "../../../GoldSrc-SDK/public/native_dedicated_lifetime.h"
+#include "../../../src/public/native_dedicated_lifetime.h"
 #include <dlfcn.h>
 #include <cassert>
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
-#include "../../../GoldSrc-SDK/public/native_dedicated_abi.h"
+#include "../../../src/public/native_dedicated_abi.h"
 using Factory = CreateInterfaceFn;
 using Dedicated = IDedicatedServerAPI;
 class Exports : public IDedicatedExports {

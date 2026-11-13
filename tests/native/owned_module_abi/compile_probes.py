@@ -54,7 +54,7 @@ def main():
     for label, header, suffix, target in headers:
         entry = owner(database, suffix, target)
         source = options.output / ('ibase-' + label + '.cpp')
-        source.write_text('#include "' + str(ROOT / 'GoldSrc-SDK' / header) + '''"
+        source.write_text('#include "' + str(ROOT / 'src' / header) + '''"
 #include <type_traits>
 template<class...> using ProbeVoid = void;
 template<class T, class = void> struct HasPanel : std::false_type {};
@@ -70,7 +70,7 @@ static_assert(std::is_same<decltype(&IBaseSystem::Printf), void (IBaseSystem::*)
         (options.output / ('ibase-' + label + '.ast.json')).write_bytes(run.stdout)
         (options.output / ('ibase-' + label + '.log')).write_bytes(run.stderr)
         row = {'case': 'ibase-' + label, 'header': header, 'target_profile': target, 'args': command,
-               'exit': run.returncode, 'header_sha256': hashlib.sha256((ROOT / 'GoldSrc-SDK' / header).read_bytes()).hexdigest()}
+               'exit': run.returncode, 'header_sha256': hashlib.sha256((ROOT / 'src' / header).read_bytes()).hexdigest()}
         rows.append(row)
         if run.returncode == 0:
             records = [node for node in walk(json.loads(run.stdout)) if node.get('kind') == 'CXXRecordDecl'
@@ -91,7 +91,7 @@ static_assert(std::is_same<decltype(&IBaseSystem::Printf), void (IBaseSystem::*)
     for name, header, view, suffix, target in concrete:
         entry = owner(database, suffix, target)
         source = options.output / ('view-' + name + '.cpp')
-        source.write_text('#include "' + str(ROOT / 'GoldSrc-SDK' / header) + '"\n#include <type_traits>\n'
+        source.write_text('#include "' + str(ROOT / 'src' / header) + '"\n#include <type_traits>\n'
             + 'static_assert(std::is_convertible<' + name + '*, ISystemModule*>::value, "Actual lifecycle base");\n'
             + 'static_assert(std::is_convertible<' + name + '*, ' + view + '*>::value, "Actual factory view");\n'
             + 'static_assert(sizeof(' + name + ') > 0, "Force actual complete record layout");\n'

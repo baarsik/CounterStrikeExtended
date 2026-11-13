@@ -17,7 +17,7 @@ else()
 endif()
 add_test(NAME legacy-numeric-conversion COMMAND numeric_tests "${CMAKE_CURRENT_BINARY_DIR}/numeric-results.bin")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_NUMERIC_SOURCE_DIR "${CSE_ROOT}/GoldSrc-SDK/engine" CACHE PATH "Production or pinned reference source")
+set(CSE_NUMERIC_SOURCE_DIR "${CSE_ROOT}/src/engine" CACHE PATH "Production or pinned reference source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CSE_NUMERIC_SOURCE_DIR}/common.cpp" "${CSE_NUMERIC_SOURCE_DIR}/cvar.cpp" extract_functions.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_functions.py"

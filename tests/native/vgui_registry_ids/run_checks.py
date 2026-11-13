@@ -11,7 +11,7 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
-SDK = ROOT / "GoldSrc-SDK"
+SDK = ROOT / "src"
 TABLE_CPP = SDK / "vgui2/src/LocalizedStringTable.cpp"
 
 

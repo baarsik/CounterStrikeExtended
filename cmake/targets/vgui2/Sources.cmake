@@ -1,4 +1,4 @@
-# Generated from vgui2/vgui2.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(vgui2 PRIVATE
   "${CSE_SDK_DIR}/vgui2/src/Bitmap.cpp"
   "${CSE_SDK_DIR}/vgui2/src/Border.cpp"

@@ -23,7 +23,7 @@ receipt = json.loads(receipt_path.read_text())
 owners = args.owner or ['ServerBrowserModel']
 assert len(owners) == len(set(owners))
 changed_headers = {(repo / path).resolve() for path in args.changed_header}
-changed_sources = {repo / 'GoldSrc-SDK/GameUI/native' / (owner + '.cpp') for owner in owners}
+changed_sources = {repo / 'src/GameUI/native' / (owner + '.cpp') for owner in owners}
 changed = changed_sources | changed_headers
 
 def digest(path):

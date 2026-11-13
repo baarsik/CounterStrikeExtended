@@ -1,7 +1,7 @@
 #include "browser_controller.h"
 #include "browser_commands.h"
 #include "process_channel.h"
-#include "../../../GoldSrc-SDK/engine/utlstring.h"
+#include "../../../src/engine/utlstring.h"
 
 #include <cstdio>
 #include <cstdlib>

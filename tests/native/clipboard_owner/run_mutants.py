@@ -16,8 +16,8 @@ def main():
     root = pathlib.Path(__file__).resolve().parents[3]
     output = arguments.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    backend = (root / "GoldSrc-SDK/vgui2/src/NativeClipboardMac.mm").read_text()
-    owner = (root / "GoldSrc-SDK/vgui2/src/NativeClipboardOwner.cpp").read_text()
+    backend = (root / "src/vgui2/src/NativeClipboardMac.mm").read_text()
+    owner = (root / "src/vgui2/src/NativeClipboardOwner.cpp").read_text()
     rows = []
 
     def replaced(source, before, after):
@@ -63,7 +63,7 @@ def main():
         directory.mkdir()
         for filename in ["NativeClipboard.h", "NativeClipboard.cpp", "NativeClipboardOwner.h",
                          "NativeClipboardOwner.cpp", "NativeClipboardMac.h", "NativeClipboardMac.mm"]:
-            shutil.copyfile(root / "GoldSrc-SDK/vgui2/src" / filename, directory / filename)
+            shutil.copyfile(root / "src/vgui2/src" / filename, directory / filename)
         filename = "NativeClipboardMac.mm" if kind == "backend" else "NativeClipboardOwner.cpp"
         (directory / filename).write_text(changed)
         target = directory / "control"

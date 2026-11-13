@@ -1,4 +1,4 @@
-#include "../../GoldSrc-SDK/engine/mpg123_music.h"
+#include "../../src/engine/mpg123_music.h"
 
 #include <SDL3/SDL.h>
 #include <atomic>

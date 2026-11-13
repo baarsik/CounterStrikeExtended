@@ -28,7 +28,7 @@ for architecture, machine in [('x86', 0x14c), ('x64', 0x8664), ('arm64', 0xaa64)
         key, separator, value = line.partition('=')
         if key and separator:
             environment[key] = value
-    prefix = (Path(r'\\Mac\CseNativeSource\GoldSrc-SDK\external\installed\x86-windows-static-md')
+    prefix = (Path(r'\\Mac\CseNativeSource\src\external\installed\x86-windows-static-md')
         if architecture == 'x86' else Path(r'C:\CI\CSE-Native64-Vcpkg-20261108')
         / ('installed-' + architecture) / (architecture + '-windows-static-md'))
     for configuration in ('Release', 'Debug'):

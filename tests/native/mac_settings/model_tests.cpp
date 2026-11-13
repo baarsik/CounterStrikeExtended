@@ -19,7 +19,7 @@ Boolean BlockedSync(CFStringRef, CFStringRef, CFStringRef) {
 #define CFPreferencesCopyValue BlockedCopy
 #define CFPreferencesSetValue BlockedSet
 #define CFPreferencesSynchronize BlockedSync
-#include "../../../GoldSrc-SDK/common/mac_settings_store.cpp"
+#include "../../../src/common/mac_settings_store.cpp"
 #undef CFPreferencesCopyValue
 #undef CFPreferencesSetValue
 #undef CFPreferencesSynchronize

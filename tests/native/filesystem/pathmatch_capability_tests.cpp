@@ -35,7 +35,7 @@ char* FixtureGetenv(const char* name);
 #define pathconf FixturePathconf
 #define opendir FixtureOpendir
 #define getenv FixtureGetenv
-#include "../../../GoldSrc-SDK/filesystem/pathmatch.cpp"
+#include "../../../src/filesystem/pathmatch.cpp"
 #undef getenv
 #undef opendir
 #undef pathconf

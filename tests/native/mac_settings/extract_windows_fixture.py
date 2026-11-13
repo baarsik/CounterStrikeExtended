@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    base = args.root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+    base = args.root / 'src/utils/vgui/lib-src/vgui'
     app = (base / 'win32/App.cpp').read_text()
     common = (base / 'vgui.cpp').read_text()
     definitions = 'namespace vgui {\n' + function(common, 'void vgui_strcpy(') + '\n}\n'

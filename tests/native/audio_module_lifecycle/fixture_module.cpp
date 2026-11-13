@@ -1,7 +1,7 @@
 // Actual owned worker, audio shutdown/DMA close/Run bodies; controlled game/controller dependencies.
-#include "../../../GoldSrc-SDK/engine/mpg123_music.h"
-#include "../../../GoldSrc-SDK/engine/sdl3_audio_backend.h"
-#include "../../../GoldSrc-SDK/engine/thread.h"
+#include "../../../src/engine/mpg123_music.h"
+#include "../../../src/engine/sdl3_audio_backend.h"
+#include "../../../src/engine/thread.h"
 #include "worker_fault_injection.h"
 #include <cstdio>
 #include <cstdlib>

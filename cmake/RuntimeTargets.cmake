@@ -71,7 +71,7 @@ function(cse_runtime_directory target relative)
 endfunction()
 
 # Required runtime assets are restored even when the binary itself is already current.
-# The retained manifest/translator supplies the explicit inventory, independently of optional distribution materials.
+# The owning CMake target supplies the explicit inventory, independently of optional distribution materials.
 function(cse_runtime_assets target relative)
   set(destination "${CSE_OUTPUT_DIRECTORY}/${relative}")
   add_custom_target(${target}_runtime_assets
@@ -176,6 +176,10 @@ function(cse_configure_native_browser target)
 endfunction()
 
 function(cse_game_module_exports target win32_definition native_definition)
+  # Keep both inputs queryable for derived-export regeneration. This metadata
+  # does not change which definition the actual Windows build selects.
+  set_property(TARGET ${target} PROPERTY CSE_WIN32_EXPORT_DEFINITION "${win32_definition}")
+  set_property(TARGET ${target} PROPERTY CSE_NATIVE_EXPORT_DEFINITION "${native_definition}")
   if(WIN32)
     if(CSE_TARGET_ARCH STREQUAL x86)
       target_sources(${target} PRIVATE "${win32_definition}")
@@ -187,9 +191,9 @@ function(cse_game_module_exports target win32_definition native_definition)
 endfunction()
 
 function(cse_a3d_geometry_source filename section)
-  # Equivalent to the upstream PrepareGeometryCompilation target: each unique
+  # Equivalent to the original geometry compilation recipe: each unique
   # translation unit selects a production section of A3dGeom.cpp. Per-file
-  # settings are applied by the generated a3dapi target module.
+  # settings are applied by the a3dapi target module.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
   file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/generated/${filename}"
     CONTENT "#define ${section}\n#include \"${CSE_SDK_DIR}/a3dapi/A3dGeom.cpp\"\n" @ONLY)
@@ -216,7 +220,7 @@ function(cse_link_native_font_services target)
   target_compile_features(${target} PRIVATE cxx_std_17)
   target_include_directories(${target} PRIVATE "${CSE_SDK_DIR}/vgui2/vgui_surfacelib/native")
   if(NOT TARGET cse_mac_font_registration)
-    message(FATAL_ERROR "The manifest-owned font registration service must precede its consumers")
+    message(FATAL_ERROR "The CMake-owned font registration service must precede its consumers")
   endif()
   target_link_libraries(${target} PRIVATE cse_mac_font_registration)
   target_link_options(${target} PRIVATE "-Wl,-rpath,@loader_path")

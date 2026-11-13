@@ -1,6 +1,6 @@
 # macOS legacy LAN identity
 
-Run `test_identity.py --source /absolute/path/to/GoldSrc-SDK/engine/sys_dll2.cpp
+Run `test_identity.py --source /absolute/path/to/src/engine/sys_dll2.cpp
 --evidence /absolute/fresh/receipt` on macOS with Clang. The fixture extracts the
 actual native `Sys_GetCDKey` function and production CRC32 routines, then builds
 with ASan/UBSan and controlled hostname/DNS calls. An independent Python zlib

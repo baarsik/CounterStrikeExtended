@@ -32,7 +32,7 @@ foreach(target fake_sdk mode_cs mode_hl)
     target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/config"
         "${CMAKE_CURRENT_BINARY_DIR}/imported" "${CSE_SDL_SOURCE_DIR}/include"
         "${CSE_SDL_SOURCE_DIR}/src" "${CSE_SDL_SOURCE_DIR}/src/video"
-        "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/cl_dll")
+        "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/cl_dll")
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /fp:precise
             $<$<CONFIG:Release>:/O2> $<$<CONFIG:Debug>:/Od>)

@@ -1,10 +1,10 @@
 #define CSE_ABI_ENGINE_VIEW
 #include "fixture_types.h"
-#include "../../../GoldSrc-SDK/common/client_module_contracts.h"
-#include "../../../GoldSrc-SDK/common/client_module_entry.h"
-#include "../../../GoldSrc-SDK/common/client_module_required_exports.h"
-#include "../../../GoldSrc-SDK/public/native_module.h"
-#include "../../../GoldSrc-SDK/engine/blob.h"
+#include "../../../src/common/client_module_contracts.h"
+#include "../../../src/common/client_module_entry.h"
+#include "../../../src/common/client_module_required_exports.h"
+#include "../../../src/public/native_module.h"
+#include "../../../src/engine/blob.h"
 #include <cstdarg>
 #include <stdexcept>
 

@@ -29,13 +29,13 @@ def add(relative, signature):
                     'line': line, 'body_sha256': hashlib.sha256(body.encode('latin1')).hexdigest()})
 
 
-save_path = Path(sys.argv[3]) if len(sys.argv) > 3 else root / 'GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp'
+save_path = Path(sys.argv[3]) if len(sys.argv) > 3 else root / 'src/vgui2/src/LocalizedStringTable.cpp'
 for signature in ('int CLocalizedStringTable::ConvertANSIToUnicode(', 'bool WriteLocalizationUTF16(',
                   'bool CLocalizedStringTable::SaveToFile('):
     if signature in save_path.read_bytes().decode('latin1'):
-        add('GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp', signature)
+        add('src/vgui2/src/LocalizedStringTable.cpp', signature)
 for signature in ('ucs2* AdvanceOverWhitespace(', 'ucs2* ReadUnicodeToken('):
-    add('GoldSrc-SDK/vgui2/src/public/UnicodeFileHelpers.cpp', signature)
+    add('src/vgui2/src/public/UnicodeFileHelpers.cpp', signature)
 output.mkdir(parents=True, exist_ok=True)
 (output / 'localization_bodies.inc').write_text('\n'.join(blocks))
 (output / 'extracted-localization.json').write_text(json.dumps(receipt, indent=2) + '\n')

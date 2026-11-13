@@ -6,7 +6,7 @@ p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.a
 a=p.parse_args();a.root=a.root.resolve();a.evidence.mkdir(parents=True,exist_ok=False)
 spec=importlib.util.spec_from_file_location('extract',a.root/'tests/native/network_platform/extract_functions.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-source=a.root/'GoldSrc-SDK/GameUI/LabeledCommandComboBox.cpp';text=source.read_text(encoding='cp1252')
+source=a.root/'src/GameUI/LabeledCommandComboBox.cpp';text=source.read_text(encoding='cp1252')
 names=['DeleteAllItems','HasItem','AddItem','ActivateItem','SetInitialItem','GetActiveItemCommand','ApplyChanges','HasBeenModified','Reset']
 bodies=[]
 for name in names:
@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
 }
 '''
 cpp=a.evidence/'actual_combo.cpp';cpp.write_text(prefix+methods+'\n'+main);exe=a.evidence/'actual_combo'
-command=['clang++','-std=c++17','-DUTL_ENGINE_ASSERTS=1','-fsanitize=address,undefined','-fno-omit-frame-pointer','-g','-I',str(stubs),'-I',str(source.parent),'-I',str(a.root/'GoldSrc-SDK/engine'),'-I',str(a.root/'GoldSrc-SDK/public'),str(cpp),'-o',str(exe)]
+command=['clang++','-std=c++17','-DUTL_ENGINE_ASSERTS=1','-fsanitize=address,undefined','-fno-omit-frame-pointer','-g','-I',str(stubs),'-I',str(source.parent),'-I',str(a.root/'src/engine'),'-I',str(a.root/'src/public'),str(cpp),'-o',str(exe)]
 b=subprocess.run(command,capture_output=True,text=True);(a.evidence/'build.log').write_text(b.stdout+b.stderr);assert b.returncode==0,b.stderr
 results=[]
 for mode in ['negative','item-id','deleted','upper','reset-apply']:

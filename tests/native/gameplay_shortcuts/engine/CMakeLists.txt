@@ -6,22 +6,22 @@ set(CSE_SDL_INCLUDE "" CACHE PATH "Pinned SDL public headers")
 option(CSE_SHORTCUT_ENGINE_SANITIZERS "Instrument actual owner/caller bodies" OFF)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS extract.py
-    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_sdlwind.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/vgui_int.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/cdll_int.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/sys_dll2.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/snd_dma.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/engine/webm_video.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/launcher/native/MacRuntimeSession.cpp")
+    "${CSE_ROOT}/src/engine/sys_sdlwind.cpp"
+    "${CSE_ROOT}/src/engine/vgui_int.cpp"
+    "${CSE_ROOT}/src/engine/cdll_int.cpp"
+    "${CSE_ROOT}/src/engine/sys_dll2.cpp"
+    "${CSE_ROOT}/src/engine/snd_dma.cpp"
+    "${CSE_ROOT}/src/engine/webm_video.cpp"
+    "${CSE_ROOT}/src/launcher/native/MacRuntimeSession.cpp")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bodies" COMMAND_ERROR_IS_FATAL ANY)
 enable_testing()
 foreach(mode hw sw)
     add_executable(shortcut_engine_${mode} engine_tests.cpp
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_cocoa.cpp")
+        "${CSE_ROOT}/src/engine/native_mouse_window.cpp"
+        "${CSE_ROOT}/src/engine/native_mouse_cocoa.cpp")
     target_include_directories(shortcut_engine_${mode} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/bodies"
-        "${CSE_ROOT}/GoldSrc-SDK/engine" "${CSE_ROOT}/GoldSrc-SDK/common" "${CSE_ROOT}/GoldSrc-SDK/public"
+        "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/public"
         "${CSE_SDL_INCLUDE}")
     target_compile_definitions(shortcut_engine_${mode} PRIVATE SDL_STATIC_LIB=1 CSE_SDL_NATIVE_MOUSE_BRIDGE_BUILD=1
         CSE_LOOP_BODY="${mode}_loop.inc")
@@ -41,9 +41,9 @@ endforeach()
 
 foreach(mode hw sw)
     add_executable(shortcut_lifecycle_${mode} lifecycle_tests.cpp
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_window.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_mouse_cocoa.cpp"
-        "${CSE_ROOT}/GoldSrc-SDK/engine/native_runtime_bootstrap.cpp")
+        "${CSE_ROOT}/src/engine/native_mouse_window.cpp"
+        "${CSE_ROOT}/src/engine/native_mouse_cocoa.cpp"
+        "${CSE_ROOT}/src/engine/native_runtime_bootstrap.cpp")
     get_target_property(includes shortcut_engine_${mode} INCLUDE_DIRECTORIES)
     get_target_property(options shortcut_engine_${mode} COMPILE_OPTIONS)
     get_target_property(definitions shortcut_engine_${mode} COMPILE_DEFINITIONS)

@@ -1,10 +1,10 @@
 // Real GameUI VGUI2 font manager/cache/surface draw chain. Initialization only
 // supplies the actual SW backend, avoiding unrelated Steam/scheme/window startup.
-#include "../../../GoldSrc-SDK/engine/vgui2/BaseUISurface.h"
-#include "../../../GoldSrc-SDK/engine/vgui_EngineSurface.h"
-#include "../../../GoldSrc-SDK/engine/vid.h"
-#include "../../../GoldSrc-SDK/vgui2/vgui_surfacelib/FontManager.h"
-#include "../../../GoldSrc-SDK/vgui2/vgui_surfacelib/LinuxFont.h"
+#include "../../../src/engine/vgui2/BaseUISurface.h"
+#include "../../../src/engine/vgui_EngineSurface.h"
+#include "../../../src/engine/vid.h"
+#include "../../../src/vgui2/vgui_surfacelib/FontManager.h"
+#include "../../../src/vgui2/vgui_surfacelib/LinuxFont.h"
 #include <algorithm>
 #include <cassert>
 #include <cstdio>

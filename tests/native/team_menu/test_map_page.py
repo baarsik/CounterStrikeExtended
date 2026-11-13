@@ -11,9 +11,9 @@ a.evidence.mkdir(parents=True,exist_ok=False)
 extractor=a.root/'tests/native/network_platform/extract_functions.py'
 spec=importlib.util.spec_from_file_location('extract',extractor)
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-source=a.root/'GoldSrc-SDK/cstrike/vgui2/game_controls/teammenu.cpp'
-viewport=a.root/'GoldSrc-SDK/cstrike/vgui2/game_controls/vgui_TeamFortressViewport.cpp'
-header=a.root/'GoldSrc-SDK/cstrike/public/game_controls/teammenu.h'
+source=a.root/'src/cstrike/vgui2/game_controls/teammenu.cpp'
+viewport=a.root/'src/cstrike/vgui2/game_controls/vgui_TeamFortressViewport.cpp'
+header=a.root/'src/cstrike/public/game_controls/teammenu.h'
 text=source.read_text(encoding='cp1252')
 methods=[m.extract(text,'CTeamMenu::'+n) for n in ['LoadMapPage','Update','Activate']]
 if 'void CTeamMenu::InvalidateMapPage(' in text:

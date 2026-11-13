@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/hldll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(hl_server PRIVATE
   "${CSE_SDK_DIR}/dlls/saved_callbacks.cpp"
   "${CSE_SDK_DIR}/dlls/aflock.cpp"

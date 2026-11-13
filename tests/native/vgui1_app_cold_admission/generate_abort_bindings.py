@@ -5,7 +5,7 @@ import re
 import sys
 
 root, destination = map(Path, sys.argv[1:])
-source = root / 'GoldSrc-SDK'
+source = root / 'src'
 panel = source / 'utils/vgui/include/VGUI_Panel.h'
 wrap = source / 'engine/VGUI_EngineSurfaceWrap.h'
 def unnamed(arguments):

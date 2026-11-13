@@ -1,4 +1,4 @@
-"""Native module names honor retained game metadata without changing Windows outputs."""
+"""Native module aliases use relative names and preserve unowned files."""
 from pathlib import Path
 import subprocess
 import sys
@@ -7,37 +7,28 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tools'))
-import translate_msbuild as translator
 
 
 class NativeModuleAliasesTests(unittest.TestCase):
-    def fixture(self):
-        return {config: {'properties': {'ConfigurationType': 'DynamicLibrary',
-                                       'CseNativeModuleAliases': 'cs'}} for config in ('Debug', 'Release')}
-
-    def test_alias_is_native_policy_with_one_retained_output(self):
-        lines = []
-        translator.emit_native_module_aliases(lines, 'cs_server', self.fixture())
-        self.assertEqual(lines, ['if(NOT WIN32)', '  cse_native_module_alias(cs_server "cs")', 'endif()'])
-
-    def test_alias_configurations_must_agree(self):
-        configs = self.fixture()
-        configs['Debug']['properties']['CseNativeModuleAliases'] = 'other'
-        with self.assertRaisesRegex(ValueError, 'configuration'):
-            translator.emit_native_module_aliases([], 'cs_server', configs)
-
-    def test_alias_rejects_paths_duplicate_names_and_executable_targets(self):
-        for alias in ('../cs', 'dlls/cs', 'cs\\other', 'cs;CS'):
-            configs = self.fixture()
-            for config in configs.values():
-                config['properties']['CseNativeModuleAliases'] = alias
-            with self.subTest(alias=alias), self.assertRaises(ValueError):
-                translator.emit_native_module_aliases([], 'cs_server', configs)
-        configs = self.fixture()
-        for config in configs.values():
-            config['properties']['ConfigurationType'] = 'Application'
-        with self.assertRaisesRegex(ValueError, 'library'):
-            translator.emit_native_module_aliases([], 'launcher', configs)
+    def test_real_alias_helper_rejects_paths_and_non_library_owners(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'stub.cpp').write_text('int main() { return 0; }\n')
+            cases = [('parent', '../cs', 'SHARED'), ('directory', 'dlls/cs', 'SHARED'),
+                     ('backslash', 'cs\\other', 'SHARED'), ('multiple', 'cs;CS', 'SHARED'),
+                     ('executable', 'cs', 'EXECUTABLE')]
+            for label, alias, kind in cases:
+                with self.subTest(case=label):
+                    declaration = ('add_executable(fixture stub.cpp)' if kind == 'EXECUTABLE'
+                                   else 'add_library(fixture SHARED stub.cpp)')
+                    (root / 'CMakeLists.txt').write_text(
+                        'cmake_minimum_required(VERSION 3.25)\nproject(AliasPolicy CXX)\nset(WIN32 FALSE)\n'
+                        f'include("{ROOT}/cmake/RuntimeTargets.cmake")\n{declaration}\n'
+                        f'cse_native_module_alias(fixture [[{alias}]])\n')
+                    result = subprocess.run(['cmake', '-S', str(root), '-B', str(root / label), '-G', 'Ninja'],
+                                            capture_output=True, text=True)
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn('Invalid native module alias', result.stdout + result.stderr)
 
     def run_script(self, alias, target):
         return subprocess.run(['cmake', f'-DCSE_MODULE_ALIAS={alias}', f'-DCSE_MODULE_TARGET={target}',

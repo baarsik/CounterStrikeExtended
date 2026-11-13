@@ -129,11 +129,11 @@ class BinaryIdentityTests(unittest.TestCase):
             identity.inspect_bytes(bad)
 
     def test_pinned_msvc_archive_with_empty_string_table_is_accepted(self):
-        path = Path(__file__).resolve().parents[2] / 'GoldSrc-SDK/external/installed/x86-windows-static-md/lib/freetype.lib'
+        path = Path(__file__).resolve().parents[2] / 'src/external/installed/x86-windows-static-md/lib/freetype.lib'
         self.assertEqual(identity.require_architecture(path.read_bytes(), 'x86')['architectures'], ['x86'])
 
     def test_truncated_real_producer_bodies_are_rejected(self):
-        provider = Path(__file__).resolve().parents[2] / 'GoldSrc-SDK/external/SDL3/lib/x86/SDL3.dll'
+        provider = Path(__file__).resolve().parents[2] / 'src/external/SDL3/lib/x86/SDL3.dll'
         data = provider.read_bytes()
         pe_offset, = struct.unpack_from('<I', data, 60)
         sections, = struct.unpack_from('<H', data, pe_offset + 6)

@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.25)
 project(A3dOutputOwnership LANGUAGES CXX)
 get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 find_package(SDL3 CONFIG REQUIRED)
-set(A3D_PLATFORM_SOURCE "${ROOT}/GoldSrc-SDK/a3dapi/native_platform.cpp" CACHE FILEPATH
+set(A3D_PLATFORM_SOURCE "${ROOT}/src/a3dapi/native_platform.cpp" CACHE FILEPATH
     "Platform owner implementation (override only for isolated negative controls)")
-set(A3D_OUTPUT_SOURCE "${ROOT}/GoldSrc-SDK/a3dapi/native_output.cpp" CACHE FILEPATH
+set(A3D_OUTPUT_SOURCE "${ROOT}/src/a3dapi/native_output.cpp" CACHE FILEPATH
     "Output owner implementation (override only for isolated negative controls)")
 option(A3D_SANITIZERS "Instrument lifetime tests" OFF)
 add_executable(a3d_output_tests output_tests.cpp fixture_mixer.cpp
@@ -12,7 +12,7 @@ add_executable(a3d_output_tests output_tests.cpp fixture_mixer.cpp
     "${A3D_PLATFORM_SOURCE}")
 add_executable(a3d_file_tests file_tests.cpp "${A3D_PLATFORM_SOURCE}")
 foreach(target a3d_output_tests a3d_file_tests)
-    target_include_directories(${target} PRIVATE "${ROOT}/GoldSrc-SDK/a3dapi")
+    target_include_directories(${target} PRIVATE "${ROOT}/src/a3dapi")
     target_link_libraries(${target} PRIVATE SDL3::SDL3)
     target_compile_features(${target} PRIVATE cxx_std_17)
     target_compile_definitions(${target} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
@@ -41,11 +41,11 @@ add_custom_target(a3d_manual_device_probe
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/load_wave_body.inc"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_wave.py"
-        "${ROOT}/GoldSrc-SDK/a3dapi/A3dSource.cpp" "${CMAKE_CURRENT_BINARY_DIR}/load_wave_body.inc"
-    DEPENDS extract_wave.py "${ROOT}/GoldSrc-SDK/a3dapi/A3dSource.cpp")
+        "${ROOT}/src/a3dapi/A3dSource.cpp" "${CMAKE_CURRENT_BINARY_DIR}/load_wave_body.inc"
+    DEPENDS extract_wave.py "${ROOT}/src/a3dapi/A3dSource.cpp")
 add_executable(a3d_wave_caller_tests wave_caller_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/load_wave_body.inc"
     "${A3D_PLATFORM_SOURCE}")
-target_include_directories(a3d_wave_caller_tests PRIVATE "${ROOT}/GoldSrc-SDK/a3dapi" "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(a3d_wave_caller_tests PRIVATE "${ROOT}/src/a3dapi" "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(a3d_wave_caller_tests PRIVATE SDL3::SDL3)
 target_compile_features(a3d_wave_caller_tests PRIVATE cxx_std_17)
 target_compile_definitions(a3d_wave_caller_tests PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")

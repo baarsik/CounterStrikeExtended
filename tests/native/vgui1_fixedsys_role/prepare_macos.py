@@ -21,12 +21,12 @@ art.mkdir(parents=True)
 source = art / 'source'
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
 baseline = json.loads((args.baseline / 'source-final-hashes.json').read_text())
-provider = 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native/VGui1MacFontProvider.cpp'
+provider = 'src/utils/vgui/lib-src/vgui/posix/native/VGui1MacFontProvider.cpp'
 files = list(baseline)
 for name, expected in baseline.items():
     assert sha(args.baseline / 'source-final' / name) == expected, name
     assert name == provider or sha(root / name) == expected, name
-native = 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native/'
+native = 'src/utils/vgui/lib-src/vgui/posix/native/'
 files += [native + 'VGui1FixedSysFontFace.h', native + 'VGui1FixedSysFontFace.cpp']
 files += [str(p.relative_to(root)) for p in sorted((root / 'tests/native/vgui1_fixedsys_role').iterdir())
           if p.is_file()]

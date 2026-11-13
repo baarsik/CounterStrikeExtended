@@ -21,7 +21,7 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
-    path = args.root / 'GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp'
+    path = args.root / 'src/vgui2/src/LocalizedStringTable.cpp'
     raw = path.read_bytes()
     text = raw.decode('latin1')
     signatures = ['int Q_UCS2ToUTF8(', 'int CLocalizedStringTable::ConvertANSIToUnicode(',

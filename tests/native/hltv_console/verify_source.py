@@ -8,7 +8,7 @@ import re
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
-CONSOLE = ROOT / 'GoldSrc-SDK/HLTV/Console'
+CONSOLE = ROOT / 'src/HLTV/Console'
 TOKEN = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|[A-Za-z_]\w*|[^\s]')
 
 

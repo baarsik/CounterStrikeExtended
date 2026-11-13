@@ -10,7 +10,7 @@ p.add_argument('--art', type=Path, required=True)
 args = p.parse_args()
 root = Path(__file__).resolve().parents[3]
 source = root / 'tests/native/vgui1_app_platform'
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix'
+vgui = root / 'src/utils/vgui/lib-src/vgui/posix'
 art = args.art.resolve()
 controls = [
     ('retain-reentry', 'VGui1AppPlatform.cpp', 'data.state = State::Binding;', 'data.state = State::Closing;', 'CSE_APP_ADAPTER_SOURCE'),

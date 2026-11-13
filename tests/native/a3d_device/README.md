@@ -28,8 +28,8 @@ CLSID 442d12a1 first, then legacy CLSID_A3d and A3D.DLL version checks. It does 
 create system DirectSound. A missing real audio device is an observed probe
 failure, not a successful provider result.
 
-The Windows full module is built from the retained manifest evaluated by the
-owned translator, including its five generated geometry sections and per-source
+The Windows full module is built from a query of its owning CMake target,
+including its five generated geometry sections and effective per-source
 settings. The factory probe loads that actual module, obtains DllGetClassObject,
 calls CreateInstance, and separately records actual OEM/legacy COM activation
 HRESULTs. The missing-provider test requires measured REGDB_E_CLASSNOTREG results
@@ -39,7 +39,7 @@ driver, replace COM activation, or substitute a successful provider.
 The full-module fixture preserves the original Win32 export definition. For
 native builds it projects only the two C export aliases to native C names,
 retaining ordinals 2/3 and PRIVATE. This is fixture-only export handling; root
-production manifest/translator integration is a separate requirement. No
+production export integration is a separate requirement. No
 production definition file is edited by this fixture.
 
 `CSE_A3D_DEVICE_BUILD_FULL_MODULE=OFF` explicitly limits a Windows run to the

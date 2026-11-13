@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(CseConsoleNotify LANGUAGES CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
-set(CSE_NOTIFY_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/console.cpp" CACHE FILEPATH "Actual owning console source")
+set(CSE_NOTIFY_SOURCE "${CSE_ROOT}/src/engine/console.cpp" CACHE FILEPATH "Actual owning console source")
 option(CSE_NOTIFY_SANITIZERS "Run actual notify body with ASan and UBSan" OFF)
 set(CSE_NOTIFY_SANITIZER_SET "address,undefined" CACHE STRING "Sanitizer instrumentation for isolated RED evidence")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

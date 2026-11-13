@@ -1,5 +1,5 @@
 // Exercises the selected owner, with only filesystem/hunk/audio services controlled.
-#include "../../../GoldSrc-SDK/engine/vid_win.cpp"
+#include "../../../src/engine/vid_win.cpp"
 #include <cassert>
 #include <vector>
 #include <stdexcept>

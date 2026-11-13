@@ -1,6 +1,6 @@
 #include <cstdio>
 #include <cstring>
-#include "../../../GoldSrc-SDK/engine/sound.h"
+#include "../../../src/engine/sound.h"
 #include <SDL3/SDL.h>
 
 volatile dma_t *shm = nullptr;

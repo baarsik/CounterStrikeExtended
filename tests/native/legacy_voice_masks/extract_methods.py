@@ -37,11 +37,11 @@ def extract(path, expressions):
     return '\n\n'.join(bodies) + '\n'
 
 
-voice = extract(args.voice_source or args.repo / 'GoldSrc-SDK/cl_dll/voice_status.cpp', [
+voice = extract(args.voice_source or args.repo / 'src/cl_dll/voice_status.cpp', [
     r'^void CVoiceStatus::UpdateServerState\(bool bForce\)',
     r'^void CVoiceStatus::HandleVoiceMaskMsg\(int iSize, void \*pbuf\)',
 ])
-ban = extract(args.repo / 'GoldSrc-SDK/game_shared/voice_banmgr.cpp', [
+ban = extract(args.repo / 'src/game_shared/voice_banmgr.cpp', [
     r'^unsigned char HashPlayerID\(char const playerID\[16\]\)',
     r'^CVoiceBanMgr::CVoiceBanMgr\(\)',
     r'^CVoiceBanMgr::~CVoiceBanMgr\(\)',

@@ -12,10 +12,10 @@ def arguments(root, output, optimization):
     extractor = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(extractor)
     from types import SimpleNamespace
-    extractor.run(SimpleNamespace(source=root / 'GoldSrc-SDK/engine/net_ws.cpp', output=output / 'network'))
+    extractor.run(SimpleNamespace(source=root / 'src/engine/net_ws.cpp', output=output / 'network'))
     library = output / 'component_socket.dylib'
     command = ['clang++', '-std=c++17', optimization, '-Wall', '-Wextra', '-Werror', '-dynamiclib',
-               str(root / 'GoldSrc-SDK/engine/native_socket_lifetime.cpp'),
+               str(root / 'src/engine/native_socket_lifetime.cpp'),
                str(root / 'tests/native/socket_lifetime/empty_provider.cpp'),
                str(root / 'tests/native/socket_lifetime/network_environment.cpp'), '-I' + str(output / 'network'), '-o', str(library)]
     result = subprocess.run(command, capture_output=True)
@@ -26,4 +26,4 @@ def arguments(root, output, optimization):
     if result.returncode:
         raise RuntimeError(log.read_text())
     return ['-I' + str(root / 'tests/native/socket_lifetime'),
-            str(root / 'GoldSrc-SDK/launcher/native/SocketImageOwner.cpp'), str(library), '-Wl,-export_dynamic']
+            str(root / 'src/launcher/native/SocketImageOwner.cpp'), str(library), '-Wl,-export_dynamic']

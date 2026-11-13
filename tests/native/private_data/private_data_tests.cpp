@@ -6,10 +6,10 @@
 
 typedef float vec_t;
 typedef float vec3_t[3];
-#include "../../../GoldSrc-SDK/common/const.h"
-#include "../../../GoldSrc-SDK/engine/progdefs.h"
-#include "../../../GoldSrc-SDK/engine/edict.h"
-#include "../../../GoldSrc-SDK/engine/eiface.h"
+#include "../../../src/common/const.h"
+#include "../../../src/engine/progdefs.h"
+#include "../../../src/engine/edict.h"
+#include "../../../src/engine/eiface.h"
 
 static_assert(std::is_same<decltype(enginefuncs_t::pfnPvAllocEntPrivateData),
     void *(*)(edict_t *, std::size_t)>::value, "Private allocation sizes must retain native width");
@@ -44,7 +44,7 @@ void *Mem_Calloc(int count, std::size_t bytes) {
 }
 } // namespace
 
-#include "../../../GoldSrc-SDK/engine/entity_private_data_impl.h"
+#include "../../../src/engine/entity_private_data_impl.h"
 
 #define CHECK(condition) do { \
     if (!(condition)) { \

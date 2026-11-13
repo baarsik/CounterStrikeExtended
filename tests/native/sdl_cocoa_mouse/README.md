@@ -43,7 +43,7 @@ python3 tests/native/sdl_cocoa_mouse/run_boundary.py \
   --repo "$PWD" --sdl-include /absolute/pinned/SDL3-3.4.20/include \
   --provider /absolute/production/libSDL3.0.dylib \
   --variant /absolute/fixture/libSDL3_cse_fixture.0.dylib \
-  --frozen-sdk /absolute/frozen/GoldSrc-SDK --config Release \
+  --frozen-sdk /absolute/frozen/src --config Release \
   --build /absolute/owned/build --evidence /absolute/new/evidence
 ```
 

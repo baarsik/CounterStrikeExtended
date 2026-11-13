@@ -13,7 +13,7 @@ foreach(target process_stats_tests process_stats_real)
     endif()
     add_executable(${target} ${source})
     set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
-    target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine")
+    target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/engine")
     target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -Wconversion -Wsign-conversion
         -fno-exceptions -fno-rtti)
     if(CSE_STATS_SANITIZERS)

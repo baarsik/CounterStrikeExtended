@@ -141,10 +141,10 @@ vgui::App::init this adjustor: 0
 vgui::App::updateMouseFocus this adjustor: 0
 vgui::App::setMouseFocus this adjustor: 0
 vgui::App::surfaceBaseCreated this adjustor: 0
-vgui::App::surfaceBaseDeleted this adjustoNote: including file:  C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Panel.h
-Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Scheme.h
-Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_Color.h
-Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\GoldSrc-SDK\utils\vgui\include\VGUI_RepaintSignal.h
+vgui::App::surfaceBaseDeleted this adjustoNote: including file:  C:\CI\CSE-Native64-RuntimeV14-20261109\source\src\utils\vgui\include\VGUI_Panel.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\src\utils\vgui\include\VGUI_Scheme.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\src\utils\vgui\include\VGUI_Color.h
+Note: including file:   C:\CI\CSE-Native64-RuntimeV14-20261109\source\src\utils\vgui\include\VGUI_RepaintSignal.h
 r: 0
 vgui::App::platTick this adjustor: 0
 vgui::App::internalTick this adjustor: 0

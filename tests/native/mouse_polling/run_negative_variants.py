@@ -10,7 +10,7 @@ parser.add_argument('--output', type=Path, required=True)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[3]
 args.output.mkdir(parents=True, exist_ok=False)
-core = root / 'GoldSrc-SDK/common/native_mouse_poller.h'
+core = root / 'src/common/native_mouse_poller.h'
 original = core.read_text()
 variants = {
     'mixed-pair': ('delta.y = static_cast<int>(pendingY_);', 'delta.y = static_cast<int>(pendingX_);'),

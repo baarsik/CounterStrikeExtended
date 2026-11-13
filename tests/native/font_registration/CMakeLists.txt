@@ -8,7 +8,7 @@ if(NOT APPLE)
 endif()
 include("${CSE_ROOT}/cmake/NativeThirdParty.cmake")
 cse_load_native_third_party()
-set(font_source "${CSE_ROOT}/GoldSrc-SDK/vgui2/vgui_surfacelib")
+set(font_source "${CSE_ROOT}/src/vgui2/vgui_surfacelib")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 find_file(CSE_FONT_FIXTURE_SOURCE NAMES Arial.ttf
   PATHS /System/Library/Fonts/Supplemental NO_DEFAULT_PATH REQUIRED)
@@ -28,8 +28,8 @@ set(surface_methods "${CMAKE_CURRENT_BINARY_DIR}/surface_font_methods.h")
 add_custom_command(OUTPUT "${surface_methods}"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_surface_methods.py"
     "${CSE_ROOT}" "${surface_methods}"
-  DEPENDS extract_surface_methods.py "${CSE_ROOT}/GoldSrc-SDK/engine/vgui2/BaseUISurface.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/Surface.cpp" VERBATIM)
+  DEPENDS extract_surface_methods.py "${CSE_ROOT}/src/engine/vgui2/BaseUISurface.cpp"
+    "${CSE_ROOT}/src/vgui2/src/Surface.cpp" VERBATIM)
 add_custom_target(surface_font_methods DEPENDS "${surface_methods}")
 include("${CSE_ROOT}/cmake/MacFontService.cmake")
 set(CSE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime")

@@ -24,7 +24,7 @@ shutil.copytree(a.source, root, dirs_exist_ok=True)
 baseline = work / 'baseline'
 shutil.copytree(a.baseline, baseline, dirs_exist_ok=True)
 tests = root / 'tests/native/vgui1_deadlines'
-vgui = root / 'GoldSrc-SDK/utils/vgui/lib-src/vgui'
+vgui = root / 'src/utils/vgui/lib-src/vgui'
 fixture = work / 'controlled-bindings'
 subprocess.run([sys.executable, str(tests / 'prepare_fixture.py'), '--root', str(root), '--output', str(fixture)], check=True)
 rows = []
@@ -67,7 +67,7 @@ for cpu in ['x86', 'x64', 'arm64']:
         pp = common + ['/I' + str(vgui / 'include'), '/I' + str(vgui), '/I' + str(vgui / 'common'), '/EP']
         name = cpu + '-' + configuration
         for file in ['App.cpp', 'TextEntry.cpp', 'EditPanel.cpp']:
-            old = baseline / 'GoldSrc-SDK/utils/vgui/lib-src/vgui' / file
+            old = baseline / 'src/utils/vgui/lib-src/vgui' / file
             before = run(name, file + '-before-preprocess', [compiler] + pp + [old], env, work)
             after = run(name, file + '-after-preprocess', [compiler] + pp + [vgui / file], env, work)
             old_tokens = tokens(before)

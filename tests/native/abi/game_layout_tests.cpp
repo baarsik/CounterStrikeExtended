@@ -1,12 +1,12 @@
-#include "../../../GoldSrc-SDK/public/cse_module_abi.h"
+#include "../../../src/public/cse_module_abi.h"
 
 typedef float vec_t;
 typedef float vec3_t[3];
-#include "../../../GoldSrc-SDK/common/const.h"
-#include "../../../GoldSrc-SDK/engine/progdefs.h"
-#include "../../../GoldSrc-SDK/engine/edict.h"
-#include "../../../GoldSrc-SDK/engine/eiface.h"
-#include "../../../GoldSrc-SDK/common/generated_game_module_layouts.h"
+#include "../../../src/common/const.h"
+#include "../../../src/engine/progdefs.h"
+#include "../../../src/engine/edict.h"
+#include "../../../src/engine/eiface.h"
+#include "../../../src/common/generated_game_module_layouts.h"
 
 int main() {
     using namespace cse::abi;

@@ -22,8 +22,8 @@ def function(text, signature):
 
 
 def extract(source_root, output):
-    world_path = source_root / 'GoldSrc-SDK/HLTV/Core/World.cpp'
-    network_path = source_root / 'GoldSrc-SDK/HLTV/Core/Network.cpp'
+    world_path = source_root / 'src/HLTV/Core/World.cpp'
+    network_path = source_root / 'src/HLTV/Core/Network.cpp'
     world = world_path.read_text()
     network = network_path.read_text()
     init = function(world, 'bool World::Init(')

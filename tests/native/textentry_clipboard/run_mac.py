@@ -18,7 +18,7 @@ here = Path(__file__).resolve().parent
 subprocess.run([sys.executable, str(here / "prepare_fixture.py"), "--repo", str(args.repo), "--out", str(args.out),
                 "--database", str(args.database), "--owner", args.owner], check=True)
 context = json.loads((args.out / "owning-context.json").read_text())
-vpanel_source = args.repo / "GoldSrc-SDK/vgui2/src/VPanel.cpp"
+vpanel_source = args.repo / "src/vgui2/src/VPanel.cpp"
 vpanel_entry = next(e for e in json.loads(args.database.read_text()) if e["file"] == str(vpanel_source))
 vpanel_flags = []
 skip = False
@@ -42,10 +42,10 @@ for source, name in [(vpanel_source, "actual_vpanel.o"), (here / "vpanel_binding
         print(result.stderr.decode()[-5000:])
         sys.exit(result.returncode)
 (args.out / "vpanel-commands.json").write_text(json.dumps(vpanel_commands, indent=2) + "\n")
-command = context["flags"] + ["-I" + str(args.out), "-I" + str(args.repo / "GoldSrc-SDK/vgui2/src"),
+command = context["flags"] + ["-I" + str(args.out), "-I" + str(args.repo / "src/vgui2/src"),
                                "-I" + str(here), str(here / "widget_tests.cpp"),
                                str(here / "unexpected_binding.cpp"),
-                               "-I" + str(args.repo / "GoldSrc-SDK/common"),
+                               "-I" + str(args.repo / "src/common"),
                                str(args.out / "actual_clipboard_helper.cpp"),
                                str(args.out / "actual_vpanel.o"), str(args.out / "vpanel_binding.o"),
                                "-Wl,-dead_strip", "-o", str(args.out / "widget-tests")]

@@ -5,7 +5,7 @@
 #include <array>
 #include <vector>
 #include <SDL3/SDL_events.h>
-#include "../../../GoldSrc-SDK/common/sdl3_policy.h"
+#include "../../../src/common/sdl3_policy.h"
 
 namespace {
 struct KeyValues {

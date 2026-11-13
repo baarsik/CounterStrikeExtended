@@ -17,7 +17,7 @@ call = re.compile(r'\b(' + '|'.join(names) + r')\s*\(')
 tokens = re.compile(r'//[^\n]*|/\*.*?\*/|L?"(?:\\.|[^"\\])*"|\x27(?:\\.|[^\x27\\])*\x27|[(),]', re.S)
 records = []
 hashes = {}
-for source in sorted((root / 'GoldSrc-SDK').rglob('*')):
+for source in sorted((root / 'src').rglob('*')):
     if source.suffix not in ('.cpp', '.h') or 'external' in source.relative_to(root).parts:
         continue
     raw = source.read_bytes()
@@ -51,7 +51,7 @@ for source in sorted((root / 'GoldSrc-SDK').rglob('*')):
             'kind': 'declaration_or_definition' if '...' in arguments else 'call',
             'arguments': arguments, 'format_expression': fmt, 'literal_parts': literal})
         hashes[str(source.relative_to(root))] = hashlib.sha256(raw).hexdigest()
-for name in ('GoldSrc-SDK/common/legacy_text_encoding.h', 'GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp'):
+for name in ('src/common/legacy_text_encoding.h', 'src/vgui2/src/LocalizedStringTable.cpp'):
     hashes[name] = hashlib.sha256((root / name).read_bytes()).hexdigest()
 data = {'compiler_database': str(a.database), 'database_sha256': hashlib.sha256(a.database.read_bytes()).hexdigest(),
         'source_hashes': hashes, 'records': records}

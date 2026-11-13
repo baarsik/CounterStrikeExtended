@@ -17,9 +17,9 @@ packet = args.packet.resolve()
 packet.mkdir(parents=True, exist_ok=False)
 source = packet / 'source'
 paths = []
-for relative in ['GoldSrc-SDK/GameUI/native', 'GoldSrc-SDK/external/steamworks',
-                 'tests/native/server_browser', 'GoldSrc-SDK/external/SDL3/include',
-                 'GoldSrc-SDK/public', 'GoldSrc-SDK/common']:
+for relative in ['src/GameUI/native', 'src/external/steamworks',
+                 'tests/native/server_browser', 'src/external/SDL3/include',
+                 'src/public', 'src/common']:
     for path in (repo / relative).rglob('*'):
         if path.is_file() and (path.suffix in ['.h', '.cpp', '.py', '.txt', '.json', '.patch', '.md'] or path.name == 'CMakeLists.txt'):
             paths.append(path)

@@ -1,8 +1,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <new>
-#include "../../../GoldSrc-SDK/common/checked_native_index.h"
-#include "../../../GoldSrc-SDK/engine/world_leaf_index.h"
+#include "../../../src/common/checked_native_index.h"
+#include "../../../src/engine/world_leaf_index.h"
 #include "../strings/high_offset_buffer.h"
 
 struct Record {

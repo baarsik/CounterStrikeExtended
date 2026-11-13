@@ -41,7 +41,7 @@ void UTIL_StringToVector(float *, const char *) {
     std::abort();
 }
 
-#include "../../../GoldSrc-SDK/common/game_entvars_keyvalue_impl.h"
+#include "../../../src/common/game_entvars_keyvalue_impl.h"
 
 string_t allocatedIdentity = 0;
 string_t AllocateIdentity(const char *) {

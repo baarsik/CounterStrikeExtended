@@ -73,7 +73,7 @@ def validate_payload(root):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--root', type=Path, default=ROOT / 'GoldSrc-SDK/external/SDL3')
+    parser.add_argument('--root', type=Path, default=ROOT / 'src/external/SDL3')
     args = parser.parse_args()
     try:
         entries = validate_payload(args.root)

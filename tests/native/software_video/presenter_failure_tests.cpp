@@ -25,7 +25,7 @@ static bool ControlledScale(SDL_Texture *texture, SDL_ScaleMode scale) {
 #define SDL_CreateTexture ControlledCreate
 #define SDL_DestroyTexture ControlledDestroy
 #define SDL_SetTextureScaleMode ControlledScale
-#include "../../../GoldSrc-SDK/engine/native_software_video.cpp"
+#include "../../../src/engine/native_software_video.cpp"
 #undef SDL_CreateTexture
 #undef SDL_DestroyTexture
 #undef SDL_SetTextureScaleMode

@@ -46,9 +46,9 @@ def main():
         common[common.index("-arch") + 1] = architecture
         common += ["-std=c++14"] + flags
         objects = []
-        for label, source in [("helpers", ROOT / "GoldSrc-SDK/HLTV/Console/PosixSystem.cpp"),
+        for label, source in [("helpers", ROOT / "src/HLTV/Console/PosixSystem.cpp"),
                               ("fixture", HERE / "helper_tests.cpp"),
-                              ("tokens", ROOT / "GoldSrc-SDK/common/TokenLine.cpp")]:
+                              ("tokens", ROOT / "src/common/TokenLine.cpp")]:
             obj = directory / (label + ".o")
             command = common + ["-c", str(source), "-o", str(obj)]
             result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)

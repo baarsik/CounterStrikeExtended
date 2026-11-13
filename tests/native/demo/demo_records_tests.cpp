@@ -4,14 +4,14 @@
 #include <cstring>
 #include <fstream>
 #include <memory>
-#include "../../../GoldSrc-SDK/common/legacy_demo_records.h"
+#include "../../../src/common/legacy_demo_records.h"
 
 typedef unsigned char byte;
 typedef float vec3_t[3];
 typedef int qboolean;
-#include "../../../GoldSrc-SDK/common/ref_params.h"
-#include "../../../GoldSrc-SDK/common/usercmd.h"
-#include "../../../GoldSrc-SDK/pm_shared/pm_movevars.h"
+#include "../../../src/common/ref_params.h"
+#include "../../../src/common/usercmd.h"
+#include "../../../src/pm_shared/pm_movevars.h"
 
 struct NativeDemoFrame {
     float timestamp;

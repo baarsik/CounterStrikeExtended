@@ -1,4 +1,4 @@
-# Generated from HLTV/DemoPlayer/demoplayer.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(demoplayer PRIVATE
   "${CSE_SDK_DIR}/HLTV/DemoPlayer/DemoPlayer.cpp"
   "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/BitBuffer.cpp"

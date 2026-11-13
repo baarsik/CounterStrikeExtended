@@ -23,7 +23,7 @@ def main():
                             (source if source in ['System', 'TextConsole'] else 'TextConsole') + '-' +
                             ('release' if profile == 'sanitizers' else profile))
             args = original['args'].copy()
-            args[-1] = str(ROOT / 'GoldSrc-SDK/HLTV/Console' / (source + '.cpp'))
+            args[-1] = str(ROOT / 'src/HLTV/Console' / (source + '.cpp'))
             args[args.index('-o') + 1] = str(options.output / (source + '-' + profile + '.o'))
             if profile == 'sanitizers':
                 args += ['-fsanitize=address,undefined', '-fno-sanitize-recover=all', '-fno-omit-frame-pointer']

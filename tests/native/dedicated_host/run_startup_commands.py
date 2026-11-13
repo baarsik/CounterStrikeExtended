@@ -8,7 +8,7 @@ from actual_arguments import definitions
 root = pathlib.Path(__file__).resolve().parents[3]
 out = pathlib.Path(sys.argv[1]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-engine = root / 'GoldSrc-SDK/engine'
+engine = root / 'src/engine'
 def body(file, name):
     source = (engine / file).read_text()
     start = re.search(r'^.*\b' + name + r'\(.*\)\n\{', source, re.M).start()
@@ -27,7 +27,7 @@ for name in ('Cvar_IsMultipleTokens', 'Cvar_CommandWithPrivilegeCheck'):
 (out / 'actual_startup.inc').write_text('\n'.join(parts))
 command = ['clang++', sys.argv[2], '-std=c++17', '-DSW_RENDERER', '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
            '-Wno-writable-strings', '-Wno-unused-variable', '-ffp-model=precise', '-ffp-contract=off',
-           '-Wno-overriding-option', '-I' + str(root / 'GoldSrc-SDK'), '-I' + str(out),
+           '-Wno-overriding-option', '-I' + str(root / 'src'), '-I' + str(out),
            '-I' + str(root / 'tests/native/dedicated_host'),
            str(root / 'tests/native/dedicated_host/startup_commands.cpp'), '-o', str(out / 'startup_commands')]
 subprocess.run(command, check=True)

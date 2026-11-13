@@ -13,10 +13,10 @@
 
 typedef float vec_t;
 typedef float vec3_t[3];
-#include "../../../GoldSrc-SDK/common/const.h"
-#include "../../../GoldSrc-SDK/engine/progdefs.h"
-#include "../../../GoldSrc-SDK/engine/edict.h"
-#include "../../../GoldSrc-SDK/engine/eiface.h"
+#include "../../../src/common/const.h"
+#include "../../../src/engine/progdefs.h"
+#include "../../../src/engine/edict.h"
+#include "../../../src/engine/eiface.h"
 
 namespace {
 constexpr std::int32_t SAVEFILE_HEADER = INT32_C(0x564c4156); // Legacy VALV file envelope.

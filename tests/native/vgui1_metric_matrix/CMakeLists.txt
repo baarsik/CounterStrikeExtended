@@ -8,7 +8,7 @@ get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_subdirectory("${CSE_ROOT}/tests/native/vgui1_matched_program" "${CMAKE_CURRENT_BINARY_DIR}/control")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_metrics.py"
-    "${CSE_ROOT}/GoldSrc-SDK/utils/vgui/lib-src/vgui/posix/native/VGui1LegacyRaster.cpp"
+    "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/posix/native/VGui1LegacyRaster.cpp"
     "${CMAKE_CURRENT_BINARY_DIR}/extracted" COMMAND_ERROR_IS_FATAL ANY)
 add_executable(metric_matrix matrix.cpp)
 target_include_directories(metric_matrix PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/control/extracted"

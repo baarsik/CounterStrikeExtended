@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/engine/surface_backend_config.h"
+#include "../../../src/engine/surface_backend_config.h"
 #include <cstdio>
 
 int main() {

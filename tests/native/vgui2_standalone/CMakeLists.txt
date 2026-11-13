@@ -9,11 +9,11 @@ endif()
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 add_executable(surface_tests surface_tests.cpp)
 target_compile_features(surface_tests PRIVATE cxx_std_17)
-target_include_directories(surface_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
-  "${CSE_ROOT}/GoldSrc-SDK/public")
+target_include_directories(surface_tests PRIVATE "${CSE_ROOT}/src/vgui2/src/public"
+  "${CSE_ROOT}/src/public")
 add_test(NAME standalone_surface_present COMMAND surface_tests "${CSE_OWNER_BUILD}/runtime/${CMAKE_BUILD_TYPE}/vgui2.dylib")
 set(CSE_RESOURCE_ROOT "${CSE_ROOT}/build/vgui2-standalone-assets" CACHE PATH "Isolated retained platform resources")
-set(owner_objects "${CSE_OWNER_BUILD}/targets/hlds/CMakeFiles/hlds.dir/__/__/__/GoldSrc-SDK")
+set(owner_objects "${CSE_OWNER_BUILD}/targets/hlds/CMakeFiles/hlds.dir/__/__/__/src")
 file(GLOB control_objects "${owner_objects}/vgui2/controls/*.o")
 foreach(source IN ITEMS controls.cpp interface.cpp mem.c KeyValues.cpp utlbuffer.cpp utlsymbol.cpp MemPool.cpp)
   list(APPEND control_objects "${owner_objects}/engine/${source}.o")
@@ -22,9 +22,9 @@ list(APPEND control_objects "${owner_objects}/common/TextEntryClipboard.cpp.o"
   "${owner_objects}/common/legacy_wide_format.cpp.o")
 add_executable(control_tests control_tests.cpp ${control_objects})
 target_compile_features(control_tests PRIVATE cxx_std_17)
-target_compile_options(control_tests PRIVATE -include "${CSE_ROOT}/GoldSrc-SDK/public/cse_posix_crt.h")
-target_include_directories(control_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/engine"
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
+target_compile_options(control_tests PRIVATE -include "${CSE_ROOT}/src/public/cse_posix_crt.h")
+target_include_directories(control_tests PRIVATE "${CSE_ROOT}/src/engine"
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/vgui2/src/public"
   "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
 target_link_libraries(control_tests PRIVATE "${CSE_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib" objc)
 foreach(case IN ITEMS mid_batch_resize_intent mid_batch_resize_intent_alternate command_edit_accelerators command_modifier_order callback_resize_retirement callback_scheme_retirement callback_think_retirement mouse_button_retirement shift_click_event_order popup_event_generation fractional_wheel_controls focus_capture_and_text resize_hidpi_clip indexed_bitmap_fallback glyph_texture_pixels surface_partial_failure_reopen)
@@ -33,10 +33,10 @@ foreach(case IN ITEMS mid_batch_resize_intent mid_batch_resize_intent_alternate 
   set_tests_properties(${case} PROPERTIES ENVIRONMENT "SDL_VIDEODRIVER=dummy;SDL_AUDIODRIVER=dummy;SDL_RENDER_DRIVER=software")
 endforeach()
 add_executable(lifetime_tests lifetime_tests.cpp
-  "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/native/StandaloneWindow.cpp"
-  "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/native/StandaloneRaster.cpp")
+  "${CSE_ROOT}/src/vgui2/src/native/StandaloneWindow.cpp"
+  "${CSE_ROOT}/src/vgui2/src/native/StandaloneRaster.cpp")
 target_compile_features(lifetime_tests PRIVATE cxx_std_17)
-target_include_directories(lifetime_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public"
+target_include_directories(lifetime_tests PRIVATE "${CSE_ROOT}/src/public"
   "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
 target_compile_options(lifetime_tests PRIVATE -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer)
 target_link_options(lifetime_tests PRIVATE -fsanitize=address,undefined)
@@ -73,8 +73,8 @@ target_compile_definitions(wrong_contract PRIVATE CSE_TEST_WRONG_CONTRACT)
 add_executable(admission_tests admission_tests.cpp)
 foreach(target IN ITEMS admission_tests wrong_role wrong_contract)
   target_compile_features(${target} PRIVATE cxx_std_17)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src" "${CSE_ROOT}/GoldSrc-SDK/public"
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/vgui2/src/public"
+    "${CSE_ROOT}/src/vgui2/src" "${CSE_ROOT}/src/public"
     "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
 endforeach()
 target_link_libraries(admission_tests PRIVATE "${CSE_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib")
@@ -82,8 +82,8 @@ add_test(NAME complete_factory_admission COMMAND "${Python3_EXECUTABLE}" "${CMAK
   "$<TARGET_FILE:admission_tests>" "${CSE_OWNER_BUILD}/runtime/${CMAKE_BUILD_TYPE}" "$<TARGET_FILE:wrong_role>" "$<TARGET_FILE:wrong_contract>")
 add_library(glyph_reference SHARED glyph_reference.cpp)
 target_compile_features(glyph_reference PRIVATE cxx_std_17)
-target_include_directories(glyph_reference PRIVATE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public"
-  "${CSE_ROOT}/GoldSrc-SDK/public" "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
+target_include_directories(glyph_reference PRIVATE "${CSE_ROOT}/src/vgui2/src/public"
+  "${CSE_ROOT}/src/public" "${CSE_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
 target_link_libraries(glyph_reference PRIVATE "${CSE_OWNER_BUILD}/runtime/${CMAKE_BUILD_TYPE}/vgui2.dylib"
   "${CSE_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib")
 

@@ -11,7 +11,7 @@ target_compile_definitions(transport_incomplete_provider PRIVATE CSE_INCOMPLETE_
 add_executable(transport_tests transport_tests.cpp)
 foreach(target transport_provider transport_incomplete_provider transport_tests)
   target_compile_features(${target} PRIVATE cxx_std_17)
-  target_include_directories(${target} PRIVATE "${CSE_ROOT}/GoldSrc-SDK/public")
+  target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/public")
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4 /WX /EHsc
       "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")

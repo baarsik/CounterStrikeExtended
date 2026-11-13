@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
-get_filename_component(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../../../GoldSrc-SDK" ABSOLUTE)
+get_filename_component(SDK "${CMAKE_CURRENT_SOURCE_DIR}/../../../src" ABSOLUTE)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/admin_actual.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_admin.py" "${SDK}"
     "${CMAKE_CURRENT_BINARY_DIR}/admin_actual.inc"
@@ -64,7 +64,7 @@ add_test(NAME retired_gui_preserves_new_session COMMAND gui_stop_tests)
 set(CSE_ADMIN_OWNER_BUILD "" CACHE PATH "Optional completed actual hlds owning graph for retained GUI fixture")
 set(CSE_ADMIN_RESOURCE_ROOT "" CACHE PATH "Copied isolated retained platform resources")
 if(CSE_ADMIN_OWNER_BUILD)
-  set(owner_objects "${CSE_ADMIN_OWNER_BUILD}/targets/hlds/CMakeFiles/hlds.dir/__/__/__/GoldSrc-SDK")
+  set(owner_objects "${CSE_ADMIN_OWNER_BUILD}/targets/hlds/CMakeFiles/hlds.dir/__/__/__/src")
   file(GLOB control_objects "${owner_objects}/vgui2/controls/*.o")
   foreach(source controls.cpp interface.cpp mem.c KeyValues.cpp utlbuffer.cpp utlsymbol.cpp MemPool.cpp)
     list(APPEND control_objects "${owner_objects}/engine/${source}.o")

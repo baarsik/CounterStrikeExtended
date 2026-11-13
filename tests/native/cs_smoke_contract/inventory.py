@@ -48,7 +48,7 @@ def main():
     records = []
     declarations = []
     source_hashes = {}
-    for path in sorted((ROOT / 'GoldSrc-SDK').rglob('*')):
+    for path in sorted((ROOT / 'src').rglob('*')):
         if path.suffix not in ('.h', '.cpp', '.c', '.def') or not path.is_file():
             continue
         raw = path.read_bytes()

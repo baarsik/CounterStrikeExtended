@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-FOLDER = ROOT / 'GoldSrc-SDK/utils/vgui/lib-src/vgui/posix'
+FOLDER = ROOT / 'src/utils/vgui/lib-src/vgui/posix'
 
 
 class SourceBoundaryTests(unittest.TestCase):

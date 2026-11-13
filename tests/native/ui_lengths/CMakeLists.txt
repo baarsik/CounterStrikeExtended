@@ -10,11 +10,11 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hud_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_sources.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
   DEPENDS extract_sources.py
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud_vgui2print.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/hud_spectator.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cstrike/cl_dll/saytext.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/UtlBuffer.cpp" VERBATIM)
+    "${CSE_ROOT}/src/cstrike/cl_dll/hud.cpp"
+    "${CSE_ROOT}/src/cstrike/cl_dll/hud_vgui2print.cpp"
+    "${CSE_ROOT}/src/cstrike/cl_dll/hud_spectator.cpp"
+    "${CSE_ROOT}/src/cstrike/cl_dll/saytext.cpp"
+    "${CSE_ROOT}/src/vgui2/src/public/UtlBuffer.cpp" VERBATIM)
 add_executable(ui_length_tests length_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/hud_bodies.inc")
 set_target_properties(ui_length_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(ui_length_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -38,8 +38,8 @@ endforeach()
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/localization_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_save.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS extract_save.py "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/LocalizedStringTable.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/public/UnicodeFileHelpers.cpp" VERBATIM)
+  DEPENDS extract_save.py "${CSE_ROOT}/src/vgui2/src/LocalizedStringTable.cpp"
+    "${CSE_ROOT}/src/vgui2/src/public/UnicodeFileHelpers.cpp" VERBATIM)
 add_executable(localization_save_tests save_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/localization_bodies.inc")
 set_target_properties(localization_save_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(localization_save_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -62,10 +62,10 @@ endforeach()
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/hl_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_hl.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}"
-  DEPENDS extract_hl.py "${CSE_ROOT}/GoldSrc-SDK/cl_dll/hud.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cl_dll/hud_servers.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cl_dll/hud_spectator.cpp"
-    "${CSE_ROOT}/GoldSrc-SDK/cl_dll/text_message.cpp" VERBATIM)
+  DEPENDS extract_hl.py "${CSE_ROOT}/src/cl_dll/hud.cpp"
+    "${CSE_ROOT}/src/cl_dll/hud_servers.cpp"
+    "${CSE_ROOT}/src/cl_dll/hud_spectator.cpp"
+    "${CSE_ROOT}/src/cl_dll/text_message.cpp" VERBATIM)
 add_executable(hl_ui_length_tests hl_length_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/hl_bodies.inc")
 set_target_properties(hl_ui_length_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
 target_include_directories(hl_ui_length_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")

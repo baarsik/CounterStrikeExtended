@@ -6,7 +6,7 @@ if(MSVC)
  # Match owning runtime policy for std::min and numeric_limits::max in fixture TUs.
  add_compile_definitions(NOMINMAX)
 endif()
-set(SDK "${CMAKE_CURRENT_LIST_DIR}/../../../GoldSrc-SDK")
+set(SDK "${CMAKE_CURRENT_LIST_DIR}/../../../src")
 add_executable(interface_contract interface_contract.cpp)
 target_include_directories(interface_contract PRIVATE "${SDK}/engine" "${SDK}/HLTV/Core/private" "${SDK}/HLTV/Core/private/common" "${SDK}" "${SDK}/common" "${SDK}/public" "${SDK}/public/tier1")
 if(MSVC)

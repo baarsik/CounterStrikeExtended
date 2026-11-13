@@ -8,7 +8,7 @@ import sys
 root = Path(sys.argv[1]).resolve()
 output = Path(sys.argv[2]).resolve()
 sdl = Path(sys.argv[3]).resolve()
-header = (root / 'GoldSrc-SDK/engine/sdl3_window.h').read_bytes()
+header = (root / 'src/engine/sdl3_window.h').read_bytes()
 commit = b'    *x = resultX;\n    *y = resultY;\n    *centerX = resultCenterX;\n    *centerY = resultCenterY;'
 combined_axes = b'''    if (!tryAxis(windowX, space.windowWidth, space.renderWidth, space.aspectX, resultCenterX, resultX) ||
         !tryAxis(windowY, space.windowHeight, space.renderHeight, space.aspectY, resultCenterY, resultY)) {
@@ -54,14 +54,14 @@ results = []
 for name, original, changed, expected in variants:
     assert helper.count(original) == 1, name
     case = output / name
-    source = case / 'source/GoldSrc-SDK'
+    source = case / 'source/src'
     path = source / 'engine/sdl3_window.h'
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(prefix + helper.replace(original, changed))
     for relative in ['common/sdl3_input.h', 'common/sdl3_policy.h']:
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(root / 'GoldSrc-SDK' / relative, target)
+        shutil.copy2(root / 'src' / relative, target)
     build = case / 'build'
     commands = [
         ['cmake', '-S', str(root / 'tests/native/client_mouse_coordinates'), '-B', str(build), '-G', 'Ninja',
@@ -80,4 +80,4 @@ for name, original, changed, expected in variants:
                     'output': result.stdout.decode()})
     print(name, 'rejected at', expected, flush=True)
 (output / 'results.json').write_text(json.dumps(results, indent=2) + '\n')
-assert (root / 'GoldSrc-SDK/engine/sdl3_window.h').read_bytes() == header
+assert (root / 'src/engine/sdl3_window.h').read_bytes() == header

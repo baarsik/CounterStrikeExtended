@@ -3,21 +3,23 @@ get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseDoubleConversion LANGUAGES CXX)
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
-set(CSE_DOUBLE_SYSTEM_SOURCE "${CSE_ROOT}/GoldSrc-SDK/vgui2/src/System.cpp" CACHE FILEPATH
+set(CSE_DOUBLE_SYSTEM_SOURCE "${CSE_ROOT}/src/vgui2/src/System.cpp" CACHE FILEPATH
   "Pinned retained Windows CSystem source")
-set(CSE_DOUBLE_MANIFEST "${CSE_ROOT}/GoldSrc-SDK/vgui2/vgui2.vcxproj" CACHE FILEPATH
-  "Owning retained VGUI2 compiler policy")
+set(CSE_DOUBLE_POLICY_ROOT "${CSE_ROOT}" CACHE PATH "Repository providing the owning VGUI2 CMake compiler policy")
 option(CSE_DOUBLE_REFERENCE_ONLY "Collect the actual Windows producer before helper implementation" OFF)
 option(CSE_DOUBLE_NATIVE_CAST_BASELINE "Demonstrate native casts against the measured Win32 boundary results" OFF)
 option(CSE_DOUBLE_SANITIZERS "Instrument the helper and comparison fixtures" OFF)
 set(CSE_DOUBLE_GOLDEN_PREFIX "" CACHE FILEPATH "Frozen measured Win32 corpus prefix")
 set(generated "${CMAKE_CURRENT_BINARY_DIR}/generated")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_reference.py"
-  "${CSE_DOUBLE_SYSTEM_SOURCE}" "${CSE_DOUBLE_MANIFEST}" "${generated}"
+  "${CSE_DOUBLE_SYSTEM_SOURCE}" "${CSE_DOUBLE_POLICY_ROOT}" "${generated}"
   RESULT_VARIABLE extraction_status ERROR_VARIABLE extraction_error)
 if(NOT extraction_status EQUAL 0)
   message(FATAL_ERROR "Cannot pin the retained time reference: ${extraction_error}")
 endif()
+include("${CSE_ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${CSE_DOUBLE_POLICY_ROOT}" "${CMAKE_CURRENT_LIST_DIR}/extract_reference.py"
+  "${CSE_DOUBLE_SYSTEM_SOURCE}")
 
 function(double_fixture_profile target)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)

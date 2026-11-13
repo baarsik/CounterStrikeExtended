@@ -5,13 +5,14 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseA3dFloatStateFixture LANGUAGES CXX)
 include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(CSE_A3D_MIXER_SOURCE "${CSE_ROOT}/GoldSrc-SDK/a3dapi/a2d.cpp" CACHE FILEPATH "Actual current or preserved mixer source")
+set(CSE_A3D_MIXER_SOURCE "${CSE_ROOT}/src/a3dapi/a2d.cpp" CACHE FILEPATH "Actual current or preserved mixer source")
 get_filename_component(mixer_directory "${CSE_A3D_MIXER_SOURCE}" DIRECTORY)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_sources.py"
   "${CSE_ROOT}" "${CSE_A3D_MIXER_SOURCE}" "${CMAKE_BUILD_TYPE}" "${CSE_TARGET_ARCH}" "${CMAKE_CURRENT_BINARY_DIR}"
   COMMAND_ERROR_IS_FATAL ANY)
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS prepare_sources.py "${CSE_A3D_MIXER_SOURCE}"
-  "${mixer_directory}/A3dGeom.cpp" "${CSE_ROOT}/GoldSrc-SDK/projects/vs2026/a3dapi.vcxproj")
+include("${CSE_ROOT}/tests/native/CMakeInventoryDependencies.cmake")
+cse_fixture_inventory_dependencies("${CSE_ROOT}" "${CMAKE_CURRENT_SOURCE_DIR}/prepare_sources.py"
+  "${CSE_A3D_MIXER_SOURCE}" "${mixer_directory}/A3dGeom.cpp")
 include("${CMAKE_CURRENT_BINARY_DIR}/selected_policy.cmake")
 add_executable(a3d_float_tests float_tests.cpp mixer_subject.cpp)
 target_compile_features(a3d_float_tests PRIVATE cxx_std_17)

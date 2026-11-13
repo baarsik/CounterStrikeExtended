@@ -1,4 +1,4 @@
-#include "../../GoldSrc-SDK/common/sdl3_input.h"
+#include "../../src/common/sdl3_input.h"
 #include <cassert>
 
 int main() {

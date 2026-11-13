@@ -45,7 +45,7 @@ def main():
     for label, target, suffix, header, interface, invocation in probes:
         entry = owner(database, suffix, target)
         source = options.output / (label + '.cpp')
-        source.write_text('#include "' + str(ROOT / 'GoldSrc-SDK' / header)
+        source.write_text('#include "' + str(ROOT / 'src' / header)
                           + '"\nvoid Probe(' + interface + '* value) {\n    value->' + invocation + ';\n}\n')
         command = prefix(entry) + ['-Xclang', '-fdump-vtable-layouts', '-S', '-emit-llvm', str(source),
                                    '-o', str(options.output / (label + '.ll'))]

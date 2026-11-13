@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect complete Windows production outputs using the generated inventory.
+"""Inspect complete Windows production outputs using an explicit CMake inventory.
 
 Reports architecture, hashes, exports/ordinals, imports and resource bytes.
 Does not load modules, resolve runtime-only providers, or qualify gameplay.
@@ -15,7 +15,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from binary_identity import looks_native, require_architecture
 from audit_sdl3 import is_system_dll, pe_info
 
-ROOT = Path(__file__).resolve().parents[2]
 NON_RUNTIME_EXTENSIONS = {'.lib', '.a', '.exp', '.obj', '.o', '.pdb', '.ilk', '.map', '.cmake', '.tlog'}
 
 
@@ -91,7 +90,8 @@ def audit_inventory(root, records, architecture):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('runtime', type=Path)
-    parser.add_argument('--inventory', type=Path, default=ROOT / 'docs/msbuild/repository-selections.json')
+    parser.add_argument('--inventory', type=Path, required=True,
+                        help='Current JSON from tools/cmake_inventory.py for the Windows runtime being inspected')
     parser.add_argument('--architecture', choices=['x86', 'x64', 'arm64'], required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()

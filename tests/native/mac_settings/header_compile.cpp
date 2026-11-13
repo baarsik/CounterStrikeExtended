@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/mac_settings_store.h"
+#include "../../../src/common/mac_settings_store.h"
 #include <type_traits>
 
 using ReadSignature = bool (*)(const char*, void*, std::size_t, std::size_t*);

@@ -52,8 +52,8 @@ source_names += ['tests/native/gameplay_shortcuts/build_engine_packet.py']
 sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
 (out / 'source-pins.json').write_text(json.dumps({name: sha(repo / name) for name in sorted(set(source_names))}, indent=2)+'\n')
 # Unchanged client mathematics, commands/bindings and AppActivate audio/career source owners.
-unchanged = ['GoldSrc-SDK/cl_dll/inputw32.cpp', 'GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp',
-             'GoldSrc-SDK/engine/cmd.cpp', 'GoldSrc-SDK/engine/keys.cpp', 'GoldSrc-SDK/engine/cd.cpp']
+unchanged = ['src/cl_dll/inputw32.cpp', 'src/cstrike/cl_dll/inputw32.cpp',
+             'src/engine/cmd.cpp', 'src/engine/keys.cpp', 'src/engine/cd.cpp']
 proof = {}
 for name in unchanged:
     before = subprocess.check_output(['git', 'show', '8369c9da1581ff8947bc929b085a2e6aac577b09:' + name], cwd=repo)

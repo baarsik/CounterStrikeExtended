@@ -70,7 +70,7 @@ symbols and intermediates stay in the build directory.
 
 - [Build options, dependencies and output layout](docs/building.md)
 - [Runtime targets and source scope](docs/project-scope.md)
-- [Build manifests](docs/msbuild/README.md) and [generated crosswalk](docs/msbuild-crosswalk.md)
+- [Maintaining CMake targets and inspecting source inventories](docs/build-system.md)
 - [Component tests](tests/native/README.md) and [runtime qualification tools](tools/qualification/README.md)
 
 ## Licensing

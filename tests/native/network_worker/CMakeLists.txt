@@ -7,7 +7,7 @@ include("${CSE_ROOT}/cmake/TargetPlatform.cmake")
 find_package(Threads REQUIRED)
 find_package(Python3 3.9 REQUIRED COMPONENTS Interpreter)
 enable_testing()
-set(CSE_NETWORK_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/net_ws.cpp" CACHE FILEPATH
+set(CSE_NETWORK_SOURCE "${CSE_ROOT}/src/engine/net_ws.cpp" CACHE FILEPATH
   "Production or pinned reference network source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CSE_NETWORK_SOURCE}" extract_functions.py)
@@ -17,7 +17,7 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extra
 if(NOT extract_status EQUAL 0)
   message(FATAL_ERROR "Cannot extract production network functions: ${extract_error}")
 endif()
-set(CSE_NETWORK_WORKER_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/network_worker.cpp" CACHE FILEPATH
+set(CSE_NETWORK_WORKER_SOURCE "${CSE_ROOT}/src/engine/network_worker.cpp" CACHE FILEPATH
   "Production worker or a temporary mutation for fixture sensitivity checks")
 set(CSE_NETWORK_SANITIZER "" CACHE STRING "Optional fixture sanitizer: address or thread")
 set_property(CACHE CSE_NETWORK_SANITIZER PROPERTY STRINGS "" address thread)
@@ -29,7 +29,7 @@ foreach(target IN LISTS worker_targets)
   add_executable(${target} worker_tests.cpp "${CSE_NETWORK_WORKER_SOURCE}")
   target_compile_features(${target} PRIVATE cxx_std_17)
   target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-    "${CSE_ROOT}/GoldSrc-SDK/engine")
+    "${CSE_ROOT}/src/engine")
   target_link_libraries(${target} PRIVATE Threads::Threads)
   if(MSVC)
     target_compile_options(${target} PRIVATE /W4 /WX /EHsc "$<$<CONFIG:Release>:/O2>" "$<$<CONFIG:Debug>:/Od>")
@@ -62,13 +62,13 @@ endforeach()
 if(APPLE)
   execute_process(COMMAND "${Python3_EXECUTABLE}" "${CSE_ROOT}/tests/native/network_platform/extract_functions.py"
     "${CSE_NETWORK_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/socket-state" COMMAND_ERROR_IS_FATAL ANY)
-  add_library(worker_socket_producer SHARED "${CSE_ROOT}/GoldSrc-SDK/engine/native_socket_lifetime.cpp"
+  add_library(worker_socket_producer SHARED "${CSE_ROOT}/src/engine/native_socket_lifetime.cpp"
     "${CSE_ROOT}/tests/native/socket_lifetime/empty_provider.cpp"
         "${CSE_ROOT}/tests/native/socket_lifetime/network_environment.cpp")
   target_compile_features(worker_socket_producer PRIVATE cxx_std_17)
   target_include_directories(worker_socket_producer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/socket-state")
-  target_sources(network_worker_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK/launcher/native/SocketImageOwner.cpp")
-  target_include_directories(network_worker_tests PRIVATE "${CSE_ROOT}/GoldSrc-SDK"
+  target_sources(network_worker_tests PRIVATE "${CSE_ROOT}/src/launcher/native/SocketImageOwner.cpp")
+  target_include_directories(network_worker_tests PRIVATE "${CSE_ROOT}/src"
     "${CSE_ROOT}/tests/native/socket_lifetime")
   target_link_libraries(network_worker_tests PRIVATE worker_socket_producer)
   target_link_options(network_worker_tests PRIVATE -Wl,-export_dynamic)

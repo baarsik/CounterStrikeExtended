@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/legacy_text_encoding.h"
+#include "../../../src/common/legacy_text_encoding.h"
 
 #include <array>
 #include <climits>

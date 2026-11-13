@@ -1,4 +1,4 @@
-#include "../../../GoldSrc-SDK/common/legacy_bmp_records.h"
+#include "../../../src/common/legacy_bmp_records.h"
 
 #include <algorithm>
 #include <cstdint>

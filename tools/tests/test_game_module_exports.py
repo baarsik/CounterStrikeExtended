@@ -9,8 +9,8 @@ from game_module_exports import native_definition
 class GameModuleExportTests(unittest.TestCase):
     def test_native_dedicated_and_particle_definitions_keep_factory_ordinals(self):
         root = Path(__file__).resolve().parents[2]
-        for path, expected in [('GoldSrc-SDK/swds/swds.def', ['CreateInterface @367', 'F @368']),
-                               ('GoldSrc-SDK/projects/vs2026/particleman.def', ['CreateInterface @2'])]:
+        for path, expected in [('src/swds/swds.def', ['CreateInterface @367', 'F @368']),
+                               ('cmake/exports/win32/particleman.def', ['CreateInterface @2'])]:
             with self.subTest(path=path):
                 result = native_definition((root / path).read_text())
                 exports = result.split('EXPORTS\n', 1)[1].strip().splitlines()
@@ -18,7 +18,7 @@ class GameModuleExportTests(unittest.TestCase):
 
     def test_native_cs_client_keeps_c_entry_ordinals(self):
         root = Path(__file__).resolve().parents[2]
-        result = native_definition((root / 'GoldSrc-SDK/projects/vs2026/cstrike_cdll.def').read_text())
+        result = native_definition((root / 'cmake/exports/win32/cstrike_cdll.def').read_text())
         self.assertNotIn('?AttemptToMaterialize', result)
         for entry in ['ClientFactory @18', 'CreateInterface @19', 'F @21']:
             self.assertIn(entry, result)
@@ -41,7 +41,7 @@ class GameModuleExportTests(unittest.TestCase):
 
     def test_native_a3d_keeps_private_com_exports_and_ordinals(self):
         root = Path(__file__).resolve().parents[2]
-        result = native_definition((root / 'GoldSrc-SDK/a3dapi/a3dapi.def').read_text())
+        result = native_definition((root / 'src/a3dapi/a3dapi.def').read_text())
         self.assertEqual(result, 'LIBRARY A3dApi\nEXPORTS\n'
                          '\tDllGetClassObject @2 PRIVATE\n\tDllCanUnloadNow @3 PRIVATE\n')
 

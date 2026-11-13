@@ -99,7 +99,7 @@ def main():
     commands = json.loads((build / 'compile_commands.json').read_text())
     entry = next(item for item in commands if item['file'].endswith('/HLTV/Console/System.cpp'))
     root = Path(__file__).resolve().parents[3]
-    source_prefix = entry['file'].split('/GoldSrc-SDK/')[0]
+    source_prefix = entry['file'].split('/src/')[0]
     compile_args = [value.replace(source_prefix, str(root)) for value in shlex.split(entry['command'])]
     sanitizer_flags = ['-fsanitize=address,undefined', '-fno-omit-frame-pointer'] if options.sanitize_console else []
     link = subprocess.check_output(['ninja', '-C', str(build), '-t', 'commands', 'hltv'], text=True).splitlines()[-1]
@@ -118,7 +118,7 @@ def main():
         compile_fixture(arguments + sanitizer_flags, build)
 
     # Compile both entry points from this checkout, without modifying the configured runtime's objects.
-    compile_owner(root / 'GoldSrc-SDK/HLTV/Console/System.cpp', 'hltv')
+    compile_owner(root / 'src/HLTV/Console/System.cpp', 'hltv')
     compile_owner(Path(__file__).resolve().with_name('console_paths.cpp'), 'console_paths')
     for path in stage.iterdir():
         if path.is_file():

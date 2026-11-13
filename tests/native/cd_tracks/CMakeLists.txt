@@ -5,7 +5,7 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CSE_ROOT}/cmake/MSVCDefaults.cmake")
 project(CseCdTrackValues LANGUAGES CXX)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 option(CSE_ENABLE_SANITIZERS "Check defined native track arithmetic" OFF)
-set(CSE_CD_SOURCE "${CSE_ROOT}/GoldSrc-SDK/engine/cd.cpp" CACHE FILEPATH "Actual CD command source")
+set(CSE_CD_SOURCE "${CSE_ROOT}/src/engine/cd.cpp" CACHE FILEPATH "Actual CD command source")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CSE_CD_SOURCE}" extract_track.py)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_track.py"
   "${CSE_CD_SOURCE}" "${CMAKE_CURRENT_BINARY_DIR}/actual_native_track.inc" COMMAND_ERROR_IS_FATAL ANY)

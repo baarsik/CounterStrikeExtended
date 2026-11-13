@@ -1,4 +1,4 @@
-#include "../../GoldSrc-SDK/common/sdl3_policy.h"
+#include "../../src/common/sdl3_policy.h"
 #include <cassert>
 #include <cstring>
 

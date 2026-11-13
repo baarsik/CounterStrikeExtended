@@ -3,8 +3,8 @@ project(A3dNativeNotifications LANGUAGES CXX)
 get_filename_component(ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 find_package(Threads REQUIRED)
 option(A3D_SANITIZERS "Instrument event lifetime and undefined behavior" OFF)
-add_executable(a3d_event_tests event_tests.cpp "${ROOT}/GoldSrc-SDK/a3dapi/native_notifications.cpp")
-target_include_directories(a3d_event_tests PRIVATE "${ROOT}/GoldSrc-SDK/a3dapi" "${ROOT}/GoldSrc-SDK/public")
+add_executable(a3d_event_tests event_tests.cpp "${ROOT}/src/a3dapi/native_notifications.cpp")
+target_include_directories(a3d_event_tests PRIVATE "${ROOT}/src/a3dapi" "${ROOT}/src/public")
 target_link_libraries(a3d_event_tests PRIVATE Threads::Threads)
 target_compile_features(a3d_event_tests PRIVATE cxx_std_17)
 target_compile_definitions(a3d_event_tests PRIVATE A3D_EVENT_TESTING "$<$<CONFIG:Debug>:_DEBUG>")
@@ -22,7 +22,7 @@ endforeach()
 
 find_package(SDL3 CONFIG REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
-set(A3D "${ROOT}/GoldSrc-SDK/a3dapi")
+set(A3D "${ROOT}/src/a3dapi")
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${ROOT}/tests/native/a3d_float_state/prepare_sources.py"
     "${ROOT}" "${A3D}/a2d.cpp" "${CMAKE_BUILD_TYPE}" arm64 "${CMAKE_CURRENT_BINARY_DIR}"
     COMMAND_ERROR_IS_FATAL ANY)
@@ -31,14 +31,14 @@ file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/multiply.cpp"
 add_executable(a3d_notification_tests notification_tests.cpp "${A3D}/native_buffer.cpp"
     "${A3D}/native_mix.cpp" "${A3D}/native_notifications.cpp" "${A3D}/native_output.cpp" "${A3D}/a2d.cpp"
     "${A3D}/a2dbuffer.cpp" "${A3D}/native_platform.cpp" "${CMAKE_CURRENT_BINARY_DIR}/multiply.cpp")
-target_include_directories(a3d_notification_tests PRIVATE "${A3D}" "${ROOT}/GoldSrc-SDK/public"
+target_include_directories(a3d_notification_tests PRIVATE "${A3D}" "${ROOT}/src/public"
     "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(a3d_notification_tests PRIVATE SDL3::SDL3 Threads::Threads)
 target_compile_features(a3d_notification_tests PRIVATE cxx_std_17)
 target_compile_definitions(a3d_notification_tests PRIVATE A3D_EVENT_TESTING "$<$<CONFIG:Debug>:_DEBUG>")
 target_compile_options(a3d_notification_tests PRIVATE -Wall -Wextra -Werror -fno-exceptions -frtti
     -ffp-model=precise -ffp-contract=off -Wno-overriding-option
-    "SHELL:-include ${ROOT}/GoldSrc-SDK/public/cse_posix_crt.h"
+    "SHELL:-include ${ROOT}/src/public/cse_posix_crt.h"
     "$<$<CONFIG:Release>:-O2>" "$<$<CONFIG:Debug>:-O0>")
 target_link_options(a3d_notification_tests PRIVATE -Wl,-dead_strip)
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${ROOT}/tests/native/a3d_buffers/prepare_policy.py"

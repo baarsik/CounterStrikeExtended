@@ -12,7 +12,7 @@ root = Path(__file__).resolve().parents[3]
 args.output.mkdir(parents=True, exist_ok=False)
 results = []
 for game in ['hl', 'cs']:
-    relative = 'GoldSrc-SDK/' + ('cstrike/' if game == 'cs' else '') + 'cl_dll/inputw32.cpp'
+    relative = 'src/' + ('cstrike/' if game == 'cs' else '') + 'cl_dll/inputw32.cpp'
     data = (root / relative).read_bytes()
     start = data.index(b'void IN_SetCameraMouseOwnership(bool owned) {')
     end = data.index(b'\n}\n#endif', start) + 2
@@ -28,8 +28,8 @@ for game in ['hl', 'cs']:
         assert changed != body
         case = args.output / (game + '-' + name)
         source = case / 'source'
-        for other, path in [('hl', 'GoldSrc-SDK/cl_dll/inputw32.cpp'),
-                            ('cs', 'GoldSrc-SDK/cstrike/cl_dll/inputw32.cpp')]:
+        for other, path in [('hl', 'src/cl_dll/inputw32.cpp'),
+                            ('cs', 'src/cstrike/cl_dll/inputw32.cpp')]:
             target = source / path
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data[:start] + changed + data[end:] if other == game else (root / path).read_bytes())

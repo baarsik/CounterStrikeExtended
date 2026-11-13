@@ -13,7 +13,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 TOOL = ROOT / 'tools/engine_bootstrap_evidence.py'
 SCHEMA = ROOT / 'tools/engine_bootstrap_evidence_schema.json'
-FOUNDATION = ROOT / 'GoldSrc-SDK/public/cse_engine_bootstrap_abi.h'
+FOUNDATION = ROOT / 'src/public/cse_engine_bootstrap_abi.h'
 
 
 def exact_declaration(path, name):
@@ -25,7 +25,7 @@ def exact_declaration(path, name):
 
 def fixture(directory):
     directory.mkdir(parents=True, exist_ok=True)
-    sdk = ROOT / 'GoldSrc-SDK'
+    sdk = ROOT / 'src'
     edge = directory / 'edge.h'
     edge.write_text('#pragma once\n#define PIPELINE_EXTRA_SLOT\n')
     engine = sdk / 'engine/sys_dll2.cpp'
@@ -276,7 +276,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
         for role in ['engine', 'launcher', 'dedicated']:
             text += 'add_library(ctx_' + role + ' OBJECT ' + role + '.cpp)\n'
             text += 'target_compile_definitions(ctx_' + role + ' PRIVATE OSX POSIX ACTUAL_CONTEXT_OPTION=1)\n'
-            text += 'target_include_directories(ctx_' + role + ' PRIVATE "' + (ROOT / 'GoldSrc-SDK/public').as_posix() + '")\n'
+            text += 'target_include_directories(ctx_' + role + ' PRIVATE "' + (ROOT / 'src/public').as_posix() + '")\n'
         (project / 'CMakeLists.txt').write_text(text)
         build = self.root / 'actual-context-build'
         result = subprocess.run(['cmake', '-S', str(project), '-B', str(build), '-G', 'Ninja'],

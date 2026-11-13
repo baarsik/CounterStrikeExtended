@@ -1,4 +1,4 @@
-# Generated from vgui2/vgui2.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(vgui2 SHARED "vgui2")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)

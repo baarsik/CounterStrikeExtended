@@ -1,4 +1,4 @@
-# Generated from projects/vs2026/cstrike_cdll.vcxproj; see tools/translate_msbuild.py.
+# Authoritative CMake build definition; edit this file directly.
 target_sources(cs_client PRIVATE
   "${CSE_SDK_DIR}/cstrike/cl_dll/ev_common.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/hl/hl_baseentity.cpp"
