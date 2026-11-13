@@ -35,6 +35,8 @@ prefix = r'''
 #include <vector>
 using qboolean = int;
 #include "Sequence.h"
+#include "localized_titles.h"
+void TextMessageRetireLanguageTables() {}
 #if __has_include("resource_text.h")
 #include "resource_text.h"
 #endif
@@ -63,6 +65,23 @@ int main(int argc, char** argv) {
     std::ifstream input(argv[1], std::ios::binary);
     loadedFile.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
     TextMessageInit();
+    std::string decoded;
+    assert(cse::resource_text::Decode(loadedFile.data(), loadedFile.size(), decoded));
+    std::vector<cse::localization::TitleRecord> liveRecords;
+    assert(cse::localization::ParseTitleRecords(decoded, liveRecords));
+    assert(liveRecords.size() == static_cast<std::size_t>(gMessageTableCount));
+    for (std::size_t index = 0; index < liveRecords.size(); ++index) {
+        assert(liveRecords[index].name == gMessageTable[index].pName);
+        assert(liveRecords[index].text == gMessageTable[index].pMessage);
+        const auto& actual = liveRecords[index].value;
+        const auto& reference = gMessageTable[index];
+        assert(actual.effect == reference.effect);
+        assert(actual.r1 == reference.r1 && actual.g1 == reference.g1 && actual.b1 == reference.b1);
+        assert(actual.r2 == reference.r2 && actual.g2 == reference.g2 && actual.b2 == reference.b2);
+        assert(actual.x == reference.x && actual.y == reference.y);
+        assert(actual.fadein == reference.fadein && actual.fadeout == reference.fadeout);
+        assert(actual.holdtime == reference.holdtime && actual.fxtime == reference.fxtime);
+    }
     std::ifstream expected(argv[2], std::ios::binary);
     int count = 0;
     std::string name;
@@ -82,7 +101,7 @@ cpp = args.evidence / 'actual_titles.cpp'
 cpp.write_text(prefix + '\n'.join(constants) + '\n' + '\n\n'.join(extract.extract(source, name) for name in functions) + main)
 exe = args.evidence / 'actual_titles'
 command = ['clang++', '-std=c++17', '-fsanitize=address,undefined', '-fno-omit-frame-pointer', '-g',
-           '-I', str(root / 'src/common'), str(cpp), '-o', str(exe)]
+           '-I', str(root / 'src/common'), '-I', str(root / 'src/engine'), str(cpp), '-o', str(exe)]
 build = subprocess.run(command, text=True, capture_output=True)
 (args.evidence / 'build.log').write_text(build.stdout + build.stderr)
 assert build.returncode == 0, build.stderr

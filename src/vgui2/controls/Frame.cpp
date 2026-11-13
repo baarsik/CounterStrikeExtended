@@ -1,3 +1,4 @@
+#include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -542,56 +543,39 @@ void Frame::OnMinimize()
 //-----------------------------------------------------------------------------
 // Purpose: Set the text in the title bar.
 //-----------------------------------------------------------------------------
-void Frame::SetTitle( const char* title, bool surfaceTitle )
-{
-	if ( _title == nullptr )
-		_title = new TextImage( "" );
-#if defined( _WIN32 )
-	ASSERT_AT( title, 993 );
-#endif
-	_title->SetText( title );
-
-	wchar_t unicodeTitle[128];
-	unicodeTitle[0] = 0;
-	// check if the new text is a localized string, if so undo it
-	if ( *title == '#' )
-	{
-		// try lookup in localization tables
-		StringIndex_t index = localize()->FindIndex( title + 1 );
-		if ( index != static_cast<StringIndex_t>( -1 ) )
-		{
-			const wchar_t* localized = localize()->GetValueByIndex( index );
-			std::wcsncpy( unicodeTitle, localized, 128 );
-		}
-	}
-	else
-	{
-		localize()->ConvertANSIToUnicode( title, unicodeTitle, sizeof( unicodeTitle ) );
-	}
-	if ( surfaceTitle )
-	{
-		ISurface* target = surface();
-		VPANEL panel = GetVPanel();
-		target->SetTitle( panel, unicodeTitle );
-	}
-	Repaint();
+void Frame::SetTitle(const char* title, bool surfaceTitle) {
+    if (!_title) {
+        _title = new TextImage("");
+    }
+    _title->SetText(title);
+    cse::localization::BindNativeCaption(this, surfaceTitle);
+    cse::localization::RememberControl(this);
+    if (surfaceTitle) {
+        constexpr int TitleBufferCells = 32767;
+        std::vector<wchar_t> rendered(TitleBufferCells, L'\0');
+        _title->GetText(rendered.data(), TitleBufferCells);
+        surface()->SetTitle(GetVPanel(), rendered.data());
+    }
+    Repaint();
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Sets the unicode text in the title bar
 //-----------------------------------------------------------------------------
-void Frame::SetTitle( const wchar_t* title, bool surfaceTitle )
-{
-	if ( _title == nullptr )
-		_title = new TextImage( "" );
-	_title->SetText( title );
-	if ( surfaceTitle )
-	{
-		ISurface* target = surface();
-		VPANEL panel = GetVPanel();
-		target->SetTitle( panel, title );
-	}
-	Repaint();
+void Frame::SetTitle(const wchar_t* title, bool surfaceTitle) {
+    if (!_title) {
+        _title = new TextImage("");
+    }
+    _title->SetText(title);
+    cse::localization::BindNativeCaption(this, surfaceTitle);
+    cse::localization::RememberControl(this);
+    if (surfaceTitle) {
+        constexpr int TitleBufferCells = 32767;
+        std::vector<wchar_t> rendered(TitleBufferCells, L'\0');
+        _title->GetText(rendered.data(), TitleBufferCells);
+        surface()->SetTitle(GetVPanel(), rendered.data());
+    }
+    Repaint();
 }
 
 //-----------------------------------------------------------------------------
@@ -607,6 +591,8 @@ void Frame::InternalSetTitle( const char* title )
 //-----------------------------------------------------------------------------
 void Frame::OnDialogVariablesChanged( KeyValues* variables )
 {
+    cse::localization::BindVariables(_title, variables);
+    cse::localization::PreserveTextBinding preserve(_title);
 	StringIndex_t titleIndex = _title->GetUnlocalizedTextSymbol();
 	if ( titleIndex == INVALID_STRING_INDEX )
 		return;
@@ -1142,6 +1128,7 @@ Frame::Frame( Panel* parent, const char* name, bool showTaskbarIcon, bool bForce
 //-----------------------------------------------------------------------------
 Frame::~Frame()
 {
+    cse::localization::ForgetControl(this);
 	delete _topGrip;
 	delete _bottomGrip;
 	delete _leftGrip;
@@ -1451,6 +1438,7 @@ void Frame::PerformLayout()
 //-----------------------------------------------------------------------------
 void Frame::ApplySchemeSettings( IScheme* scheme )
 {
+    RefreshLanguageText();
 	Panel::ApplySchemeSettings( scheme );
 	_titleBarFgColor = GetSchemeColor( "TitleBarFgColor", scheme );
 	_titleBarBgColor = GetSchemeColor( "TitleBarBgColor", scheme );
@@ -1684,4 +1672,31 @@ void Frame::LoadControlSettings( const char* resourceName, const char* pathID )
 	if ( defaultFocus != nullptr )
 		defaultFocus->RequestFocus( 0 );
 }
+}
+
+namespace vgui2 {
+void Frame::RefreshLanguageText() {
+    if (!_title) {
+        return;
+    }
+    const bool textChanged = cse::localization::RefreshText(_title);
+    const bool revisionChanged = cse::localization::ControlChanged(this);
+    if (!textChanged && !revisionChanged) {
+        return;
+    }
+    if (cse::localization::NativeCaptionEnabled(this)) {
+        constexpr int TitleBufferCells = 32767;
+        std::vector<wchar_t> rendered(TitleBufferCells, L'\0');
+        _title->GetText(rendered.data(), TitleBufferCells);
+        surface()->SetTitle(GetVPanel(), rendered.data());
+    }
+    InvalidateLayout(false, false);
+    Repaint();
+}
+
+void Frame::OnThink() {
+    BaseClass::OnThink();
+    RefreshLanguageText();
+}
+
 }

@@ -37,6 +37,24 @@ CFontAmalgam::~CFontAmalgam()
 void CFontAmalgam::RemoveAll()
 {
 	m_Fonts.RemoveAll();
+    m_iMaxHeight = 0;
+    m_iMaxWidth = 0;
+}
+
+void CFontAmalgam::ReserveReplacement(const CFontAmalgam& prepared) {
+    m_Fonts.EnsureCapacity(prepared.m_Fonts.Count());
+}
+
+void CFontAmalgam::ReplaceRangesFrom(const CFontAmalgam& prepared) {
+    // Faces belong to FontManager; range records only borrow their pointers.
+    // Reserve before replacing so a failed new face never destroys old ranges.
+    m_Fonts.EnsureCapacity(prepared.m_Fonts.Count());
+    m_Fonts.RemoveAll();
+    for (int index = 0; index < prepared.m_Fonts.Count(); ++index) {
+        m_Fonts.AddToTail(prepared.m_Fonts[index]);
+    }
+    m_iMaxHeight = prepared.m_iMaxHeight;
+    m_iMaxWidth = prepared.m_iMaxWidth;
 }
 
 //-----------------------------------------------------------------------------

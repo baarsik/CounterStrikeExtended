@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "teammenu.h"
+#include "../../../vgui2/controls/ScrollBar.h"
 #include "../../../vgui2/controls/Button.h"
 #include "../../../vgui2/controls/RichText.h"
 #include "../../../vgui2/controls/Label.h"
@@ -184,8 +185,7 @@ void CTeamMenu::LoadMapPage(const char* map) {
     if (!cse::resource_text::Decode(bytes.data(), bytes.size(), text)) {
         return;
     }
-    m_pMapInfo->SetText(text.c_str());
-    m_pMapInfo->GotoTextStart();
+    m_pMapInfo->SetTextPreservingView(text.c_str());
     m_bMapPageLoaded = true;
     InvalidateLayout(false, false);
     Repaint();
@@ -234,4 +234,19 @@ void CTeamMenu::SetLabelText( const char* name, const char* text )
 	vgui2::Label* label = dynamic_cast<vgui2::Label*>( FindChildByName( name, false ) );
 	if ( label )
 		label->SetText( text );
+}
+
+void CTeamMenu::RefreshLanguage() {
+    if (!m_bMapPageRequested) {
+        return;
+    }
+    auto* scroll = dynamic_cast<vgui2::ScrollBar*>(m_pMapInfo->FindChildByName("ScrollBar", false));
+    const int position = scroll ? scroll->GetValue() : 0;
+    const std::string map = m_mapPageName;
+    InvalidateMapPage();
+    LoadMapPage(map.c_str());
+    m_pMapInfo->InvalidateLayout(true, false);
+    if (scroll) {
+        scroll->SetValue(position);
+    }
 }

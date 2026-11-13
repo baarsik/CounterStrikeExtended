@@ -74,7 +74,8 @@ build tree. Stock translation gaps retain English fallback. See the
 for the language manifest, source hashes and update procedure.
 
 Choose **Options → Interface → Language** to save a bundled language; applying a
-change restarts the game. Use `-language russian` or `-language polish` when starting the client or
+change updates menus and HUD in the running CS or Half-Life session. Use
+`-language russian` or `-language polish` when starting the client or
 dedicated GUI to select these CSE-maintained translations independently of Steam.
 Language identifiers are normalized and validated before forming resource paths.
 

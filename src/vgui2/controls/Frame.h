@@ -35,6 +35,8 @@ public:
 	// Set the text in the title bar.  Set surfaceTitle=true if you want this to be the taskbar text as well.
 	virtual void SetTitle( const char* title, bool surfaceTitle );
 	virtual void SetTitle( const wchar_t* title, bool surfaceTitle );
+    void RefreshLanguageText();
+    void OnThink() override;
 
 	// Bring the frame to the front and requests focus, ensures it's not minimized
 	virtual void Activate();

@@ -21,6 +21,9 @@ public:
 	TutorWindowManager();
 	virtual ~TutorWindowManager();
 	void Think( float time );
+    void RefreshLanguage();
+    void RefreshText(const wchar_t* text);
+    void RefreshState(const wchar_t* text);
 	void CloseAllWindows();
 	void CloseTutorTextWindow();
 	void NewTutorWindow( const wchar_t* message, int id, int msgClass, int isSpectator );

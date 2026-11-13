@@ -12,10 +12,14 @@ constexpr LONG ERROR_SUCCESS = 0;
 constexpr LONG ERROR_FILE_NOT_FOUND = 2;
 constexpr LONG ERROR_MORE_DATA = 234;
 constexpr DWORD KEY_QUERY_VALUE = 1;
+constexpr DWORD KEY_SET_VALUE = 2;
 constexpr DWORD REG_SZ = 1;
 constexpr DWORD REG_BINARY = 3;
 LONG RegOpenKeyExA(HKEY root, const char* path, DWORD options, DWORD access, HKEY* key);
 LONG RegQueryValueExA(HKEY key, const char* name, DWORD* reserved, DWORD* type, BYTE* data, DWORD* bytes);
 LONG RegCloseKey(HKEY key);
+LONG RegCreateKeyExA(HKEY root, const char* path, DWORD reserved, char* className, DWORD options,
+    DWORD access, void* attributes, HKEY* key, DWORD* disposition);
+LONG RegSetValueExA(HKEY key, const char* name, DWORD reserved, DWORD type, const BYTE* data, DWORD bytes);
 
 #endif

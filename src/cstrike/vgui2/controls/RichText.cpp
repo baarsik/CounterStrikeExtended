@@ -1,3 +1,4 @@
+#include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -1924,4 +1925,48 @@ void RichText::OnThink()
 	if ( _invalidateVerticalScrollbarSlider )
 		LayoutVerticalScrollBarSlider();
 }
+}
+
+namespace vgui2 {
+
+void RichText::SetTextPreservingView(const char* text) {
+    if (text && text[0] == '#') {
+        if (const wchar_t* translated = localize()->Find(text)) {
+            SetTextPreservingView(translated);
+            return;
+        }
+    }
+    SetTextPreservingView(cse::localization::WideLiteral(text).c_str());
+}
+
+void RichText::SetTextPreservingView(const wchar_t* text) {
+    const int scroll = _vertScrollBar ? _vertScrollBar->GetValue() : 0;
+    const int cursor = _cursorPos;
+    const int first = _select[0];
+    const int last = _select[1];
+    SetText(text);
+    // Recompute the new line/range bounds before restoring the old viewport.
+    RecalculateLineBreaks();
+    LayoutVerticalScrollBarSlider();
+    InvalidateLayout(true, false);
+    const int count = m_TextStream.Count();
+    _cursorPos = std::max(0, std::min(cursor, count));
+    if (first < 0 || last < 0) {
+        _select[0] = -1;
+        _select[1] = -1;
+    } else {
+        _select[0] = std::min(first, count);
+        _select[1] = std::min(last, count);
+    }
+    if (_vertScrollBar) {
+        int minimum = 0;
+        int maximum = 0;
+        _vertScrollBar->GetRange(minimum, maximum);
+        const int lastPosition = std::max(minimum, maximum - _vertScrollBar->GetRangeWindow());
+        _vertScrollBar->SetValue(std::max(minimum, std::min(scroll, lastPosition)));
+    }
+    _recalcSavedRenderState = true;
+    Repaint();
+}
+
 }

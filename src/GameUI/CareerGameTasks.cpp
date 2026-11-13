@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <vector>
 
 #ifndef _WIN32
 #include <strings.h>
@@ -75,45 +76,34 @@ CCareerUITask::CCareerUITask( const char* taskName )
 		m_weapon[sizeof( m_weapon ) - 1] = 0;
 	}
 
-	m_localizedName[0] = 0;
-	char taskId[144];
-	sprintf( taskId, "#Career_Weapon_%s", m_weapon );
-	const wchar_t* weaponName = vgui2::localize()->Find( taskId );
-	if ( !weaponName )
-		weaponName = L"";
-
-	wchar_t repeat[16];
-#if defined(_WIN32)
-	swprintf( repeat, sizeof( repeat ) / sizeof( repeat[0] ), L"%d", m_repeat );
-#else
-    _snwprintf( repeat, sizeof( repeat ) / sizeof( repeat[0] ), L"%d", m_repeat );
-#endif
-	if ( m_repeat == 1 )
-		sprintf( taskId, "#Career_Task_%s", m_name );
-	else
-		sprintf( taskId, "#Career_Task_%s_multi", m_name );
-	if ( !stricmp( m_name, "winfast" ) )
-		m_isWinFast = true;
-
-	wchar_t taskText[512];
-	ConstructStringWithReordering( taskText, 512, vgui2::localize()->Find( taskId ), 2, weaponName, repeat );
-	if ( m_inarow )
-	{
-		vgui2::localize()->ConstructString( m_localizedName, 512,
-			vgui2::localize()->Find( "#Career_Task_inarow" ), 1, taskText );
-	}
-	else if ( m_survive )
-	{
-		vgui2::localize()->ConstructString( m_localizedName, 512,
-			vgui2::localize()->Find( "#Career_Task_survive" ), 1, taskText );
-	}
-	else
-	{
-		wcscpy( m_localizedName, taskText );
-	}
-	vgui2::localize()->ConstructString( m_localizedNameCompleted, sizeof( m_localizedNameCompleted ),
-		vgui2::localize()->Find( "#Career_Task_Done" ), 1, m_localizedName );
+    m_isWinFast = !stricmp(m_name, "winfast");
+    RefreshLanguagePresentation();
 	Reset();
+}
+
+void CCareerUITask::RefreshLanguagePresentation() {
+    char taskId[144] = {};
+    snprintf(taskId, sizeof(taskId), "#Career_Weapon_%s", m_weapon);
+    const wchar_t* weaponName = vgui2::localize()->Find(taskId);
+    if (!weaponName) {
+        weaponName = L"";
+    }
+    wchar_t repeat[16] = {};
+    swprintf(repeat, sizeof(repeat) / sizeof(repeat[0]), L"%d", m_repeat);
+    snprintf(taskId, sizeof(taskId), m_repeat == 1 ? "#Career_Task_%s" : "#Career_Task_%s_multi", m_name);
+    wchar_t taskText[512] = {};
+    ConstructStringWithReordering(taskText, sizeof(taskText), vgui2::localize()->Find(taskId), 2, weaponName, repeat);
+    if (m_inarow) {
+        vgui2::localize()->ConstructString(m_localizedName, sizeof(m_localizedName),
+            vgui2::localize()->Find("#Career_Task_inarow"), 1, taskText);
+    } else if (m_survive) {
+        vgui2::localize()->ConstructString(m_localizedName, sizeof(m_localizedName),
+            vgui2::localize()->Find("#Career_Task_survive"), 1, taskText);
+    } else {
+        wcscpy(m_localizedName, taskText);
+    }
+    vgui2::localize()->ConstructString(m_localizedNameCompleted, sizeof(m_localizedNameCompleted),
+        vgui2::localize()->Find("#Career_Task_Done"), 1, m_localizedName);
 }
 
 bool CCareerUITask::IsComplete()
@@ -205,86 +195,40 @@ bool CCareerUITask::IsMaxRoundTime() const
 	return m_isWinFast;
 }
 
-void ConstructStringWithReordering( wchar_t* output, int bufferSizeInBytes,
-	wchar_t* formatString, int numFormatParameters, ... )
-{
-	if ( !formatString )
-	{
-		output[0] = 0;
-		return;
-	}
-
-	int remaining = (unsigned int)bufferSizeInBytes / sizeof( wchar_t );
-	const wchar_t** parameters = new const wchar_t*[numFormatParameters];
-	va_list args;
-	va_start( args, numFormatParameters );
-	for ( int i = 0; i < numFormatParameters; ++i )
-		parameters[i] = va_arg( args, const wchar_t* );
-	va_end( args );
-	wchar_t* format = new wchar_t[wcslen( formatString ) + 1];
-	wcscpy( format, formatString );
-
-	wchar_t* cursor = format;
-	int ordered = 0;
-	while ( cursor && ordered < numFormatParameters )
-	{
-		cursor = wcsstr( cursor, L"%s" );
-		if ( !cursor )
-			break;
-		if ( cursor[2] < L'0' || cursor[2] > L'9' )
-			continue;
-
-		int index = cursor[2] - L'1';
-		if ( index < numFormatParameters )
-		{
-			const wchar_t* parameter = parameters[ordered];
-			parameters[ordered] = parameters[index];
-			parameters[index] = parameter;
-			wchar_t originalIndex = cursor[2];
-			cursor[2] = (wchar_t)( L'1' + ordered );
-			wchar_t search[4] = { L'%', L's', cursor[2], 0 };
-			wchar_t* repeated = wcsstr( cursor + 3, search );
-			if ( repeated )
-				repeated[2] = originalIndex;
-			++ordered;
-		}
-		cursor += 3;
-	}
-
-	const wchar_t* source = format;
-	wchar_t* dest = output;
-	for ( int i = 0; ; ++i )
-	{
-		char search[4] = { '%', 's', (char)( '1' + i ), 0 };
-		wchar_t unicodeSearch[4];
-		vgui2::localize()->ConvertANSIToUnicode( search, unicodeSearch, sizeof( unicodeSearch ) );
-		const wchar_t* found = wcsstr( source, unicodeSearch );
-		int count = found ? (int)( found - source ) : (int)wcslen( source ) + 1;
-		if ( count > remaining )
-			count = remaining;
-		wcsncpy( dest, source, count );
-		if ( !found )
-		{
-			dest[remaining - 1] = 0;
-			break;
-		}
-		dest += count;
-		source += count;
-		remaining -= count;
-		if ( i < numFormatParameters )
-		{
-			const wchar_t* parameter = parameters[i];
-			if ( !parameter )
-				break;
-			count = (int)wcslen( parameter );
-			if ( count > remaining )
-				count = remaining;
-			wcsncpy( dest, parameter, count );
-			dest += count;
-			source += 3;
-			remaining -= count;
-		}
-	}
-	delete[] format;
-	delete[] parameters;
+void ConstructStringWithReordering(wchar_t* output, int bufferSizeInBytes,
+    wchar_t* formatString, int numFormatParameters, ...) {
+    const int cells = bufferSizeInBytes / sizeof(wchar_t);
+    if (!output || cells <= 0) {
+        return;
+    }
+    output[0] = L'\0';
+    if (!formatString) {
+        return;
+    }
+    std::vector<const wchar_t*> parameters;
+    va_list args;
+    va_start(args, numFormatParameters);
+    for (int index = 0; index < numFormatParameters; ++index) {
+        parameters.push_back(va_arg(args, const wchar_t*));
+    }
+    va_end(args);
+    int written = 0;
+    for (const wchar_t* cursor = formatString; *cursor && written < cells - 1; ++cursor) {
+        constexpr wchar_t FirstParameter = L'1';
+        constexpr wchar_t LastParameter = L'9';
+        if (cursor[0] == L'%' && cursor[1] == L's' &&
+            cursor[2] >= FirstParameter && cursor[2] <= LastParameter) {
+            const int index = cursor[2] - FirstParameter;
+            if (index < numFormatParameters) {
+                const wchar_t* parameter = parameters[index];
+                while (parameter && *parameter && written < cells - 1) {
+                    output[written++] = *parameter++;
+                }
+                cursor += 2;
+                continue;
+            }
+        }
+        output[written++] = *cursor;
+    }
+    output[written] = L'\0';
 }

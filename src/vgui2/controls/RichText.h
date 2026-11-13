@@ -72,6 +72,8 @@ public:
 	// text manipulation
 	void SetText( const char* text );
 	void SetText( const wchar_t* text );
+    void SetTextPreservingView(const char* text);
+    void SetTextPreservingView(const wchar_t* text);
 	void GetText( int offset, wchar_t* buf, int bufLenInBytes );
 	void GetText( int offset, char* pch, int bufLenInBytes );
 	// inserts characters at the end of the stream

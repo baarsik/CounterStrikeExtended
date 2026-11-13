@@ -1,4 +1,5 @@
 #include "CareerBotFrame.h"
+#include "localization_controls.h"
 #include "CareerGame.h"
 #include "GameUI_Interface.h"
 #include "Taskbar.h"
@@ -54,6 +55,7 @@ public:
 	~CBotButton() override;
 
 	void SetCharacter( const CCareerCharacter* character );
+    void RefreshLanguagePresentation();
 	const CCareerCharacter* GetCharacter();
 	void SetAction( const char* action );
 	bool HasCharacter( const char* name );
@@ -286,8 +288,8 @@ void CBotButton::SetCategoryText( vgui2::TextImage* label, vgui2::TextImage* val
 	snprintf( colorBuf, sizeof( colorBuf ), "BotRange%d", level );
 	vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme( GetScheme() );
 	Color color = GetSchemeColor( colorBuf, GetSchemeColor( "ControlBG", scheme ), scheme );
-	label->SetText( vgui2::localize()->Find( catBuf ) );
-	value->SetText( vgui2::localize()->Find( levelBuf ) );
+	label->SetText(catBuf);
+	value->SetText(levelBuf);
 	value->SetColor( color );
 }
 
@@ -381,7 +383,7 @@ void CBotButton::SetCharacter( const CCareerCharacter* character )
 		strcpy( buf, m_char->GetName() );
 		for ( size_t i = 0; i < strlen( buf ); i++ )
 			buf[i] = (char)toupper( buf[i] );
-		m_pText[TEXT_NAME]->SetText( buf );
+		m_pText[TEXT_NAME]->SetText(cse::localization::WideLiteral(buf).c_str());
 		m_pText[TEXT_NAME]->SetColor( GetSchemeColor( "BotName", GetSchemeColor( "ControlBG", scheme ), scheme ) );
 		m_pText[TEXT_NAME]->SetFont( scheme->GetFontEx( scheme->GetResourceString( "BotNameFont" ),
 				IsProportional(), IsHDProportional() ) );
@@ -997,4 +999,25 @@ void CCareerBotFrame::OnKeyCodeTyped( vgui2::KeyCode code )
 		return;
 	}
 	vgui2::Frame::OnKeyCodeTyped( code );
+}
+
+void CBotButton::RefreshLanguagePresentation() {
+    if (!m_char) {
+        return;
+    }
+    wchar_t points[16] = {};
+    swprintf(points, sizeof(points) / sizeof(points[0]), L"%d", m_char->GetPoints() % 10);
+    wchar_t text[128] = {};
+    vgui2::localize()->ConstructString(text, sizeof(text), vgui2::localize()->Find("#Career_Cost"), 1, points);
+    m_pText[TEXT_POINTS]->SetText(text);
+    for (int index = 0; index < TEXT_MAX; ++index) {
+        cse::localization::RefreshText(m_pText[index]);
+    }
+    InvalidateLayout(false, false);
+}
+
+void RefreshCareerBotLanguagePresentation(vgui2::Panel* panel) {
+    if (auto* button = dynamic_cast<CBotButton*>(panel)) {
+        button->RefreshLanguagePresentation();
+    }
 }

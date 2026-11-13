@@ -10,6 +10,7 @@
 #include "pm_shared.h"
 #include "vgui_TeamFortressViewport.h"
 #include "vgui_SpectatorPanel.h"
+extern void COM_FileBase(const char*, char*);
 #include "vgui_ScorePanel.h"
 
 #include "Exports.h"
@@ -426,4 +427,35 @@ void SpectatorPanel::Update()
 		m_TeamScores[j]->getTextSize( iwidth, iheight );
 		m_TeamScores[j]->setBounds( ScreenWidth - ( iTextWidth + XRES_HD ( 2*SEPERATOR_WIDTH+2*SEPERATOR_WIDTH/2+offset ) + iwidth ), SEPERATOR_HEIGHT + ( iheight * j ), iwidth, iheight );
 	}
+}
+
+void SpectatorPanel::RefreshLanguage() {
+    m_OptionButton->BindLanguageSource("#SPECT_OPTIONS");
+    m_CamButton->BindLanguageSource(GetSpectatorLabel(g_iUser1));
+    auto* schemes = gViewPort->GetSchemeManager();
+    Font* small = schemes->getFont(schemes->getSchemeHandle("Team Info Text"));
+    m_ExtraInfo->setFont(small);
+    m_CurrentTime->setFont(small);
+    for (int index = 0; index < TEAM_NUMBER; ++index) {
+        m_TeamScores[index]->setFont(small);
+    }
+    char mode[64];
+    snprintf(mode, sizeof(mode), "#Spec_Mode%d", g_iUser1);
+    const bool followsPlayer = g_iUser2 > 0 && g_iUser2 <= gEngfuncs.GetMaxClients()
+        && g_iUser1 != OBS_ROAMING
+        && !(g_iUser1 == OBS_MAP_FREE && !gHUD.m_Spectator.m_pip->value);
+    const char* player = followsPlayer ? g_PlayerInfoList[g_iUser2].name : nullptr;
+    const std::string bottom = player ? player : LocalizeUi(mode, mode);
+    m_BottomMainLabel->setText(static_cast<int>(bottom.size()) + 1, bottom.c_str());
+    m_BottomMainButton->setText(bottom.c_str());
+    char extra[256];
+    if (gEngfuncs.IsSpectateOnly()) {
+        snprintf(extra, sizeof(extra), "%s: %d", LocalizeUi("#Spectators", "Spectators").c_str(),
+            gHUD.m_Spectator.m_iSpectatorNumber);
+    } else {
+        char map[64];
+        COM_FileBase(gEngfuncs.pfnGetLevelName(), map);
+        snprintf(extra, sizeof(extra), "%s: %s", LocalizeUi("#Spec_Map", "Map").c_str(), map);
+    }
+    m_ExtraInfo->setText(static_cast<int>(strlen(extra)) + 1, extra);
 }

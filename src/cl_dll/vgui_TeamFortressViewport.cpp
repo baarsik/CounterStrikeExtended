@@ -35,6 +35,8 @@
 #include<VGUI_BuildGroup.h>
 
 #include "hud.h"
+#include "localization_client.h"
+#include <map>
 #include "../common/resource_text.h"
 #include "cl_util.h"
 #include "camera.h"
@@ -80,7 +82,7 @@ int g_iUser3 = 0;
 
 void IN_ResetMouse( void );
 void IN_ResetRelativeMouseState( void );
-extern CMenuPanel *CMessageWindowPanel_Create( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall );
+extern CMenuPanel *CMessageWindowPanel_Create( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall, const char* titleToken, const char* bodyToken, const char* bodyFile );
 extern float * GetClientColor( int clientIndex );
 
 using namespace vgui;
@@ -683,6 +685,7 @@ void TeamFortressViewport::Initialize( void )
 	{
 		m_iValidClasses[i] = 0;
 		strcpy(m_sTeamNames[i], "");
+        m_teamNameSources[i].clear();
 	}
 
 	App::getInstance()->setCursorOveride( App::getInstance()->getScheme()->getCursor(Scheme::scu_none) );
@@ -743,6 +746,7 @@ try
     // display scratch and error-reporting copy must hold the expanded label.
     constexpr int CommandMenuLabelBytes = 1024;
     char szLastButtonText[CommandMenuLabelBytes] = "file start";
+    std::map<std::string, int> labelOccurrences;
 	pfile = gEngfuncs.COM_ParseFile(pfile, token);
 	while ( ( strlen ( token ) > 0 ) && ( m_iNumMenus < MAX_MENUS ) )
 	{
@@ -833,7 +837,8 @@ try
 
 			// Get the button text
 			pfile = gEngfuncs.COM_ParseFile(pfile, token);
-			CHudTextMessage::LocaliseTextString( token, cText, sizeof( cText ) );
+			const std::string labelSource = token;
+            CHudTextMessage::LocaliseTextString( token, cText, sizeof( cText ) );
 
 			// save off the last button text we've come across (for error reporting)
 			strcpy( szLastButtonText, cText );
@@ -842,6 +847,8 @@ try
 			pfile = gEngfuncs.COM_ParseFile(pfile, token);
 			strncpy( cCommand, token, cCommandLength );
 			cCommand[cCommandLength - 1] = '\0';
+            const std::string labelCommand = cCommand;
+            const int labelOccurrence = labelOccurrences[labelCommand]++;
 
 			iButtonY = (BUTTON_SIZE_Y-1) * m_pCurrentCommandMenu->GetNumButtons();
 			
@@ -892,7 +899,8 @@ try
 			// add the button into the command menu
 			if ( pButton )
 			{
-				m_pCurrentCommandMenu->AddButton( pButton );
+				pButton->BindLanguageSource(labelSource.c_str(), menuFile, labelCommand.c_str(), labelOccurrence);
+                m_pCurrentCommandMenu->AddButton( pButton );
 				pButton->setBoundKey( cBoundKey[0] );
 				pButton->setParentMenu( m_pCurrentCommandMenu );
 
@@ -977,6 +985,7 @@ CCommandMenu *TeamFortressViewport::CreateDisguiseSubmenu( CommandButton *pButto
 		
 		char sz[256]; 
 		sprintf(sz, "%s %d", commandText, i );
+		pDisguiseButton->BindLanguageSource(sLocalisedClasses[i]);
 		pDisguiseButton->addActionSignal(new CMenuHandler_StringCommand(sz));
 		
 		pMenu->AddButton( pDisguiseButton );
@@ -1020,11 +1029,13 @@ CommandButton *TeamFortressViewport::CreateCustomButton( char *pButtonText, char
 
 		// Auto Assign button
 		m_pTeamButtons[4] = new TeamButton(5, gHUD.m_TextMessage.BufferedLocaliseTextString( "#Team_AutoAssign" ), 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
+		m_pTeamButtons[4]->BindLanguageSource("#Team_AutoAssign");
 		m_pTeamButtons[4]->addActionSignal(new CMenuHandler_StringCommand( "jointeam 5" ));
 		pMenu->AddButton( m_pTeamButtons[4] ); 
 
 		// Spectate button
 		m_pTeamButtons[5] = new SpectateButton( CHudTextMessage::BufferedLocaliseTextString( "#Menu_Spectate" ), 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y, false);
+		m_pTeamButtons[5]->BindLanguageSource("#Menu_Spectate");
 		m_pTeamButtons[5]->addActionSignal(new CMenuHandler_StringCommand( "spectate" ));
 		pMenu->AddButton( m_pTeamButtons[5] ); 
 	}
@@ -1049,6 +1060,7 @@ CommandButton *TeamFortressViewport::CreateCustomButton( char *pButtonText, char
 			ClassButton *pClassButton = new ClassButton( i, sz, 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y, false);
 
 			sprintf(sz, "%s", sTFClassSelection[i]);
+			pClassButton->BindLanguageSource(sLocalisedClasses[i]);
 			pClassButton->addActionSignal(new CMenuHandler_StringCommandClassSelect(sz));
 			pMenu->AddButton( pClassButton );
 		}
@@ -1156,12 +1168,15 @@ CommandButton *TeamFortressViewport::CreateCustomButton( char *pButtonText, char
 		// Set detpack buttons
 		CommandButton *pDetButton;
 		pDetButton = new CommandButton(m_sDetpackStrings[0], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
+        pDetButton->BindLanguageSource("#DetpackSet_For5Seconds");
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 5"));
 		pMenu->AddButton( pDetButton );
 		pDetButton = new CommandButton(m_sDetpackStrings[1], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
+        pDetButton->BindLanguageSource("#DetpackSet_For20Seconds");
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 20"));
 		pMenu->AddButton( pDetButton );
 		pDetButton = new CommandButton(m_sDetpackStrings[2], 0, BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
+        pDetButton->BindLanguageSource("#DetpackSet_For50Seconds");
 		pDetButton->addActionSignal(new CMenuHandler_StringCommand("detstart 50"));
 		pMenu->AddButton( pDetButton );
 	}
@@ -1743,6 +1758,9 @@ CMenuPanel* TeamFortressViewport::CreateTextWindow( int iTextToShow )
 	char *pfile = NULL;
 	static const int MAX_TITLE_LENGTH = 64;
 	char cTitle[MAX_TITLE_LENGTH];
+    std::string titleToken;
+    std::string bodyToken;
+    std::string bodyFile;
 
 	if ( iTextToShow == SHOW_MOTD )
 	{
@@ -1789,7 +1807,8 @@ CMenuPanel* TeamFortressViewport::CreateTextWindow( int iTextToShow )
 			}
 		}
 
-		pfile = (char*)gEngfuncs.COM_LoadFile( sz, 5, NULL );
+		bodyFile = sz;
+        pfile = (char*)gEngfuncs.COM_LoadFile( sz, 5, NULL );
 
 		if (!pfile)
 			return NULL;
@@ -1836,7 +1855,8 @@ CMenuPanel* TeamFortressViewport::CreateTextWindow( int iTextToShow )
 		{
 			sprintf(sz, "classes/long_%s.txt", sTFClassSelection[ g_iPlayerClass ]);
 		}
-		char *pfile = (char*)gEngfuncs.COM_LoadFile( sz, 5, NULL );
+		bodyFile = sz;
+        pfile = (char*)gEngfuncs.COM_LoadFile( sz, 5, NULL );
 		if (pfile)
 		{
 			cText = pfile;
@@ -1845,7 +1865,9 @@ CMenuPanel* TeamFortressViewport::CreateTextWindow( int iTextToShow )
 #endif
 	else if ( iTextToShow == SHOW_SPECHELP )
 	{
-		CHudTextMessage::LocaliseTextString( "#Spec_Help_Title", cTitle, MAX_TITLE_LENGTH );
+		titleToken = "#Spec_Help_Title";
+        bodyToken = "#Spec_Help_Text";
+        CHudTextMessage::LocaliseTextString( "#Spec_Help_Title", cTitle, MAX_TITLE_LENGTH );
 		cTitle[MAX_TITLE_LENGTH-1] = 0;
 		
 		cText = CHudTextMessage::BufferedLocaliseTextString( "#Spec_Help_Text" );
@@ -1856,7 +1878,8 @@ CMenuPanel* TeamFortressViewport::CreateTextWindow( int iTextToShow )
 		return NULL;
 
 	// if we're in the game (ie. have selected a class), flag the menu to be only grayed in the dialog box, instead of full screen
-	CMenuPanel *pMOTDPanel = CMessageWindowPanel_Create( cText, cTitle, g_iPlayerClass == PC_UNDEFINED, false, 0, 0, ScreenWidth, ScreenHeight );
+	CMenuPanel *pMOTDPanel = CMessageWindowPanel_Create( cText, cTitle, g_iPlayerClass == PC_UNDEFINED, false, 0, 0, ScreenWidth, ScreenHeight,
+        titleToken.c_str(), bodyToken.c_str(), bodyFile.c_str());
 	pMOTDPanel->setParent( this );
 
 	if ( pfile )
@@ -2322,36 +2345,31 @@ int TeamFortressViewport::MsgFunc_ValClass(const char *pszName, int iSize, void 
 	return 1;
 }
 
-int TeamFortressViewport::MsgFunc_TeamNames(const char *pszName, int iSize, void *pbuf )
-{
-	BEGIN_READ( pbuf, iSize );
-	
-	m_iNumberOfTeams = READ_BYTE();
-
-	for (int i = 0; i < m_iNumberOfTeams; i++)
-	{
-		int teamNum = i + 1;
-
-		gHUD.m_TextMessage.LocaliseTextString( READ_STRING(), m_sTeamNames[teamNum], MAX_TEAMNAME_SIZE );
-
-		// Set the team name buttons
-		if (m_pTeamButtons[i])
-			m_pTeamButtons[i]->setText( m_sTeamNames[teamNum] );
-
-		// range check this value...m_pDisguiseButtons[5];
-		if ( teamNum < 5 )
-		{
-			// Set the disguise buttons
-			if ( m_pDisguiseButtons[teamNum] )
-				m_pDisguiseButtons[teamNum]->setText( m_sTeamNames[teamNum] );
-		}
-	}
-
-	// Update the Team Menu
-	if (m_pTeamMenu)
-		m_pTeamMenu->Update();
-
-	return 1;
+int TeamFortressViewport::MsgFunc_TeamNames(const char* pszName, int iSize, void* pbuf) {
+    BEGIN_READ(pbuf, iSize);
+    const int serverTeams = READ_BYTE();
+    constexpr int DisplayTeams = sizeof(m_sTeamNames) / sizeof(m_sTeamNames[0]) - 1;
+    m_iNumberOfTeams = (std::min)(serverTeams, DisplayTeams);
+    for (int index = 0; index < serverTeams; ++index) {
+        const char* source = READ_STRING();
+        if (index >= DisplayTeams) {
+            continue;
+        }
+        const int team = index + 1;
+        m_teamNameSources[team] = source;
+        CHudTextMessage::LocaliseTextString(m_teamNameSources[team].c_str(), m_sTeamNames[team],
+            sizeof(m_sTeamNames[team]));
+        if (m_pTeamButtons[index]) {
+            m_pTeamButtons[index]->setText(m_sTeamNames[team]);
+        }
+        if (m_pDisguiseButtons[team]) {
+            m_pDisguiseButtons[team]->setText(m_sTeamNames[team]);
+        }
+    }
+    if (m_pTeamMenu) {
+        m_pTeamMenu->Update();
+    }
+    return 1;
 }
 
 int TeamFortressViewport::MsgFunc_Feign(const char *pszName, int iSize, void *pbuf )
@@ -2661,4 +2679,46 @@ int TeamFortressViewport::MsgFunc_SpecFade( const char *pszName, int iSize, void
 #endif
 
 	return 1;
+}
+
+void TeamFortressViewport::RefreshLanguage(const char* language) {
+    m_SchemeManager.ReloadLanguage(language);
+    Scheme* scheme = App::getInstance()->getScheme();
+    const SchemeHandle_t primary = m_SchemeManager.getSchemeHandle("Primary Button Text");
+    scheme->setFont(Scheme::sf_primary1, m_SchemeManager.getFont(primary));
+    scheme->setFont(Scheme::sf_primary2,
+        m_SchemeManager.getFont(m_SchemeManager.getSchemeHandle("Scoreboard Text")));
+    scheme->setFont(Scheme::sf_primary3,
+        m_SchemeManager.getFont(m_SchemeManager.getSchemeHandle("CommandMenu Text")));
+    int red = 0;
+    int green = 0;
+    int blue = 0;
+    int alpha = 0;
+    m_SchemeManager.getFgColor(primary, red, green, blue, alpha);
+    scheme->setColor(Scheme::sc_primary1, red, green, blue, alpha);
+    m_SchemeManager.getBgColor(primary, red, green, blue, alpha);
+    scheme->setColor(Scheme::sc_primary3, red, green, blue, alpha);
+    m_SchemeManager.getFgArmedColor(primary, red, green, blue, alpha);
+    scheme->setColor(Scheme::sc_secondary2, red, green, blue, alpha);
+    m_SchemeManager.getBgArmedColor(primary, red, green, blue, alpha);
+    scheme->setColor(Scheme::sc_primary2, red, green, blue, alpha);
+    App::getInstance()->setScheme(scheme);
+    for (int team = 0; team < 5; ++team) {
+        CHudTextMessage::LocaliseTextString(m_teamNameSources[team].c_str(),
+            m_sTeamNames[team], sizeof(m_sTeamNames[team]));
+        if (team > 0 && team <= m_iNumberOfTeams) {
+            if (m_pTeamButtons[team - 1]) {
+                m_pTeamButtons[team - 1]->setText(m_sTeamNames[team]);
+            }
+            if (m_pDisguiseButtons[team]) {
+                m_pDisguiseButtons[team]->setText(m_sTeamNames[team]);
+            }
+        }
+    }
+    // Includes hidden/queued text windows. Binding lifetimes follow each control.
+    RefreshLanguageViews();
+    if (m_pTeamMenu) {
+        m_pTeamMenu->Update();
+    }
+    invalidateLayout(false);
 }

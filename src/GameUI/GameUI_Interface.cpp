@@ -7,6 +7,8 @@
 //=============================================================================
 
 #include "GameUI_Interface.h"
+#include "LanguagePresentation.h"
+#include "localization_controls.h"
 #include "BasePanel.h"
 #include "GameConsole.h"
 #include "CareerGame.h"
@@ -65,6 +67,7 @@ IBaseUI* baseuifuncs;
 IGameUIFuncs* gameuifuncs;
 vgui2::ISurface* enginesurfacefuncs;
 static CBasePanel* staticPanel;
+static std::uint64_t languagePresentationRevision = 0;
 vgui2::DHANDLE<CLoadingDialog> g_hLoadingDialog;
 #if INTPTR_MAX > INT32_MAX
 namespace {
@@ -197,6 +200,7 @@ void CGameUI::Initialize( CreateInterfaceFn* factories, int count )
 	m_FactoryList[3] = factories[2];
 	m_FactoryList[4] = clientFactory;
 	vgui2::VGuiControls_Init( "GameUI", m_FactoryList, count );
+    languagePresentationRevision = 0;
 	vgui2::localize()->AddFile( vgui2::filesystem(), "resource/gameui_%language%.txt" );
     vgui2::localize()->AddFile(vgui2::filesystem(), "resource/cse_%language%.txt");
 #if INTPTR_MAX > INT32_MAX
@@ -349,6 +353,11 @@ void CGameUI::Shutdown()
 //-----------------------------------------------------------------------------
 void CGameUI::RunFrame()
 {
+    const auto* localization = cse::localization::ControlsEngine();
+    if (localization && localization->Revision() != languagePresentationRevision) {
+        languagePresentationRevision = localization->Revision();
+        cse::gameui::RefreshLanguagePresentation(staticPanel, languagePresentationRevision);
+    }
 	// resize the background panel to the screen size
 	int wide, tall;
 	vgui2::surface()->GetScreenSize( wide, tall );

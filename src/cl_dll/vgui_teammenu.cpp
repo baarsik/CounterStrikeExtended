@@ -61,7 +61,7 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 	int r, g, b, a;
 
 	// Create the title
-	Label *pLabel = new Label( "", TEAMMENU_TITLE_X, TEAMMENU_TITLE_Y );
+	LocalizedLabel *pLabel = new LocalizedLabel( "", TEAMMENU_TITLE_X, TEAMMENU_TITLE_Y );
 	pLabel->setParent( this );
 	pLabel->setFont( pTitleFont );
 	pSchemes->getFgColor( hTitleScheme, r, g, b, a );
@@ -71,13 +71,15 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 	pLabel->setContentAlignment( vgui::Label::a_west );
 	pLabel->setText( "%s", gHUD.m_TextMessage.BufferedLocaliseTextString("#Title_SelectYourTeam"));
 
+    pLabel->BindLanguage("#Title_SelectYourTeam", "Title Font");
+
 	// Create the Info Window
 	m_pTeamWindow  = new CTransparentPanel( 255, TEAMMENU_WINDOW_X, TEAMMENU_WINDOW_Y, TEAMMENU_WINDOW_SIZE_X, TEAMMENU_WINDOW_SIZE_Y );
 	m_pTeamWindow->setParent( this );
 	m_pTeamWindow->setBorder( new LineBorder( Color(255*0.7,170*0.7,0,0 )) );
 
 	// Create the Map Name Label
-	m_pMapTitle = new Label( "", TEAMMENU_WINDOW_TITLE_X, TEAMMENU_WINDOW_TITLE_Y );
+	m_pMapTitle = new LocalizedLabel( "", TEAMMENU_WINDOW_TITLE_X, TEAMMENU_WINDOW_TITLE_Y );
 	m_pMapTitle->setFont( pTitleFont ); 
 	m_pMapTitle->setParent( m_pTeamWindow );
 	pSchemes->getFgColor( hTitleScheme, r, g, b, a );
@@ -86,13 +88,15 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 	m_pMapTitle->setBgColor( r, g, b, a );
 	m_pMapTitle->setContentAlignment( vgui::Label::a_west );
 
+    m_pMapTitle->BindLanguage(nullptr, "Title Font");
+
 	// Create the Scroll panel
 	m_pScrollPanel = new CTFScrollPanel( TEAMMENU_WINDOW_TEXT_X, TEAMMENU_WINDOW_TEXT_Y, TEAMMENU_WINDOW_SIZE_X - (TEAMMENU_WINDOW_TEXT_X * 2), TEAMMENU_WINDOW_TEXT_SIZE_Y );
 	m_pScrollPanel->setParent(m_pTeamWindow);
 	m_pScrollPanel->setScrollBarVisible(false, false);
 
 	// Create the Map Briefing panel
-	m_pBriefing = new TextPanel("", 0,0, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_TEXT_X, TEAMMENU_WINDOW_TEXT_SIZE_Y );
+	m_pBriefing = new LocalizedTextPanel("", 0,0, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_TEXT_X, TEAMMENU_WINDOW_TEXT_SIZE_Y );
 	m_pBriefing->setParent( m_pScrollPanel->getClient() );
 	m_pBriefing->setFont( pSchemes->getFont(hTeamWindowText) );
 	pSchemes->getFgColor( hTeamWindowText, r, g, b, a );
@@ -102,6 +106,9 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 
 	m_pBriefing->setText( gHUD.m_TextMessage.BufferedLocaliseTextString("#Map_Description_not_available") );
 	
+    m_pBriefing->BindLanguage("#Map_Description_not_available", "Briefing Text");
+    m_pBriefing->SetLanguageScroll(m_pScrollPanel);
+
 	// Team Menu buttons
 	for (int i = 1; i <= 5; i++)
 	{
@@ -120,6 +127,7 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 		{
 			m_pButtons[5]->setBoundKey( '5' );
 			m_pButtons[5]->setText( gHUD.m_TextMessage.BufferedLocaliseTextString("#Team_AutoAssign") );
+            m_pButtons[5]->BindLanguageSource("#Team_AutoAssign");
 			m_pButtons[5]->setVisible( true );
 		}
 
@@ -129,7 +137,7 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 		m_pButtons[i]->addInputSignal( new CHandler_MenuButtonOver(this, i) );
 
 		// Create the Team Info panel
-		m_pTeamInfoPanel[i] = new TextPanel("", TEAMMENU_WINDOW_INFO_X, TEAMMENU_WINDOW_INFO_Y, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_INFO_X, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_INFO_Y );
+		m_pTeamInfoPanel[i] = new LocalizedTextPanel("", TEAMMENU_WINDOW_INFO_X, TEAMMENU_WINDOW_INFO_Y, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_INFO_X, TEAMMENU_WINDOW_SIZE_X - TEAMMENU_WINDOW_INFO_Y );
 		m_pTeamInfoPanel[i]->setParent( m_pTeamWindow );
 		m_pTeamInfoPanel[i]->setFont( pSchemes->getFont(hTeamInfoText) );
 		m_pTeamInfoPanel[i]->setFgColor(	iTeamColors[i % iNumberOfTeamColors][0],
@@ -137,15 +145,18 @@ CTeamMenuPanel::CTeamMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide,i
 											iTeamColors[i % iNumberOfTeamColors][2],
 											0 );
 		m_pTeamInfoPanel[i]->setBgColor( 0,0,0, 255 );
+        m_pTeamInfoPanel[i]->BindLanguage(nullptr, "Team Info Text");
 	}
 
 	// Create the Cancel button
 	m_pCancelButton = new CommandButton( CHudTextMessage::BufferedLocaliseTextString( "#Menu_Cancel" ), TEAMMENU_TOPLEFT_BUTTON_X, 0, TEAMMENU_BUTTON_SIZE_X, TEAMMENU_BUTTON_SIZE_Y);
+    m_pCancelButton->BindLanguageSource("#Menu_Cancel");
 	m_pCancelButton->setParent( this );
 	m_pCancelButton->addActionSignal( new CMenuHandler_TextWindow(HIDE_TEXTWINDOW) );
 
 	// Create the Spectate button
 	m_pSpectateButton = new SpectateButton( CHudTextMessage::BufferedLocaliseTextString( "#Menu_Spectate" ), TEAMMENU_TOPLEFT_BUTTON_X, 0, TEAMMENU_BUTTON_SIZE_X, TEAMMENU_BUTTON_SIZE_Y, true);
+    m_pSpectateButton->BindLanguageSource("#Menu_Spectate");
 	m_pSpectateButton->setParent( this );
 	m_pSpectateButton->addActionSignal( new CMenuHandler_StringCommand( "spectate", true ) );
 	m_pSpectateButton->setBoundKey( '6' );
@@ -218,10 +229,11 @@ void CTeamMenuPanel::Update( void )
 				{
 					// Set the text of the info Panel
 					char szText[ ((MAX_PLAYER_NAME_LENGTH + 3) * 31) + 256 ]; 
-					if (iTotal == 1)
-						sprintf(szText, "%s: %d Player (%d points)", gViewPort->GetTeamName(i), iTotal, g_TeamInfo[i].frags );
-					else
-						sprintf(szText, "%s: %d Players (%d points)", gViewPort->GetTeamName(i), iTotal, g_TeamInfo[i].frags );
+                    const std::string players = LocalizeUi(iTotal == 1 ? "#Player" : "#Player_plural",
+                        iTotal == 1 ? "Player" : "Players");
+                    const std::string points = LocalizeUi("#CSE_UI_Points", "points");
+                    snprintf(szText, sizeof(szText), "%s: %d %s (%d %s)", gViewPort->GetTeamName(i),
+                        iTotal, players.c_str(), g_TeamInfo[i].frags, points.c_str());
 					strncat( szText, szPlayerList, sizeof(szText) - strlen(szText) );
 					szText[ sizeof(szText) - 1 ] = '\0';
 
@@ -294,17 +306,7 @@ void CTeamMenuPanel::Update( void )
 			ch = strchr( sz, '.' );
 			*ch = '\0';
 			strcat( sz, ".txt" );
-			char *pfile = (char*)gEngfuncs.COM_LoadFile( sz, 5, NULL );
-			if (pfile)
-			{
-				m_pBriefing->setText( pfile );
-
-				// Get the total size of the Briefing text and resize the text panel
-				int iXSize, iYSize;
-				m_pBriefing->getTextImage()->getTextSize( iXSize, iYSize );
-				m_pBriefing->setSize( iXSize, iYSize );
-				gEngfuncs.COM_FreeFile( pfile );
-			}
+            m_pBriefing->BindFile(sz, "#Map_Description_not_available");
 
 			m_bUpdatedMapName = true;
 		}

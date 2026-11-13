@@ -6,6 +6,9 @@
 //=============================================================================
 
 #include <VGUI_Font.h>
+#include <map>
+#include <string>
+#include <utility>
 
 
 // handle to an individual scheme
@@ -26,6 +29,7 @@ public:
 	// initialization
 	CSchemeManager( int xRes, int yRes );
 	virtual ~CSchemeManager();
+    void ReloadLanguage(const char* language);
 
 	// scheme handling
 	SchemeHandle_t getSchemeHandle( const char *schemeName );
@@ -47,6 +51,10 @@ private:
 
 	// Resolution we were initted at.
 	int		m_xRes;
+
+	void Load(int xRes);
+    std::string m_language;
+    std::map<std::string, std::pair<CScheme*, int>> m_languageSchemes;
 
 	CScheme *getSafeScheme( SchemeHandle_t schemeHandle );
 };

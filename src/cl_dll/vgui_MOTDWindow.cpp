@@ -46,9 +46,20 @@
 class CMessageWindowPanel : public CMenuPanel
 {
 public:
-	CMessageWindowPanel( const char *szMOTD, const char *szTitle, int iShadeFullScreen, int iRemoveMe, int x, int y, int wide, int tall );
+	CMessageWindowPanel( const char *szMOTD, const char *szTitle, int iShadeFullScreen, int iRemoveMe, int x, int y, int wide, int tall, const char* titleToken, const char* bodyToken, const char* bodyFile );
 
+    void Close() override {
+        // VGUI1 Panel has no virtual destructor and legacy windows are retained
+        // after closing. Stop callbacks when they leave the active menu queue.
+        m_title->StopWatchingLanguage();
+        m_body->StopWatchingLanguage();
+        m_ok->StopWatchingLanguage();
+        CMenuPanel::Close();
+    }
 private:
+    LocalizedLabel* m_title;
+    LocalizedTextPanel* m_body;
+    CommandButton* m_ok;
 	CTransparentPanel *m_pBackgroundPanel;
 
 };
@@ -57,15 +68,15 @@ private:
 // Purpose: Creates a new CMessageWindowPanel
 // Output : CMenuPanel - interface to the panel
 //-----------------------------------------------------------------------------
-CMenuPanel *CMessageWindowPanel_Create( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall )
+CMenuPanel *CMessageWindowPanel_Create( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall, const char* titleToken, const char* bodyToken, const char* bodyFile )
 {
-	return new CMessageWindowPanel( szMOTD, szTitle, iShadeFullscreen, iRemoveMe, x, y, wide, tall );
+	return new CMessageWindowPanel( szMOTD, szTitle, iShadeFullscreen, iRemoveMe, x, y, wide, tall, titleToken, bodyToken, bodyFile );
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructs a message panel
 //-----------------------------------------------------------------------------
-CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall ) : CMenuPanel( iShadeFullscreen ? 100 : 255, iRemoveMe, x, y, wide, tall )
+CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitle, int iShadeFullscreen, int iRemoveMe, int x, int y, int wide, int tall, const char* titleToken, const char* bodyToken, const char* bodyFile ) : CMenuPanel( iShadeFullscreen ? 100 : 255, iRemoveMe, x, y, wide, tall )
 {
 	// Get the scheme used for the Titles
 	CSchemeManager *pSchemes = gViewPort->GetSchemeManager();
@@ -88,7 +99,8 @@ CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitl
 	m_pBackgroundPanel->getSize( iXSize,iYSize );
 
 	// Create the title
-	Label *pLabel = new Label( "", iXPos + MOTD_TITLE_X, iYPos + MOTD_TITLE_Y );
+	LocalizedLabel *pLabel = new LocalizedLabel( "", iXPos + MOTD_TITLE_X, iYPos + MOTD_TITLE_Y );
+	m_title = pLabel;
 	pLabel->setParent( this );
 	pLabel->setFont( pSchemes->getFont(hTitleScheme) );
 	pLabel->setFont( Scheme::sf_primary1 );
@@ -101,6 +113,8 @@ CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitl
 	pLabel->setContentAlignment( vgui::Label::a_west );
 	pLabel->setText( "%s", szTitle);
 
+    pLabel->BindLanguage(titleToken, "Primary Button Text");
+
 	// Create the Scroll panel
 	ScrollPanel *pScrollPanel = new CTFScrollPanel( iXPos + XRES(16), iYPos + MOTD_TITLE_Y*2 + YRES(16), iXSize - XRES(32), iYSize - (YRES(48) + BUTTON_SIZE_Y*2) );
 	pScrollPanel->setParent(this);
@@ -111,7 +125,8 @@ CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitl
 	pScrollPanel->validate();
 
 	// Create the text panel
-	TextPanel *pText = new TextPanel( "", 0,0, 64,64);
+	LocalizedTextPanel *pText = new LocalizedTextPanel( "", 0,0, 64,64);
+	m_body = pText;
 	pText->setParent( pScrollPanel->getClient() );
 
 	// get the font and colors from the scheme
@@ -121,6 +136,11 @@ CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitl
 	pSchemes->getBgColor( hMOTDText, r, g, b, a );
 	pText->setBgColor( r, g, b, a );
 	pText->setText( szMOTD);
+    pText->SetLanguageScroll(pScrollPanel);
+    pText->BindLanguage(bodyToken, "Briefing Text");
+    if (bodyFile && bodyFile[0]) {
+        pText->BindFile(bodyFile, szMOTD);
+    }
 
 	// Get the total size of the MOTD text and resize the text panel
 	int iScrollSizeX, iScrollSizeY;
@@ -142,6 +162,8 @@ CMessageWindowPanel::CMessageWindowPanel( const char *szMOTD, const char *szTitl
 	pScrollPanel->validate();
 
 	CommandButton *pButton = new CommandButton( CHudTextMessage::BufferedLocaliseTextString( "#Menu_OK" ), iXPos + XRES(16), iYPos + iYSize - YRES(16) - BUTTON_SIZE_Y, CMENU_SIZE_X, BUTTON_SIZE_Y);
+    m_ok = pButton;
+    pButton->BindLanguageSource("#Menu_OK");
 	pButton->addActionSignal(new CMenuHandler_TextWindow(HIDE_TEXTWINDOW));
 	pButton->setParent(this);
 

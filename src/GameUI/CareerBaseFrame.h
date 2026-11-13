@@ -53,6 +53,7 @@ public:
 	CCareerButton( vgui2::Panel* parent, const char* name, const char* text,
 		const char* image, bool textFirst );
 	~CCareerButton() override;
+    void RefreshLanguagePresentation();
 
 	virtual void SetArmedBorder( vgui2::IBorder* border );
 
@@ -66,8 +67,8 @@ private:
 	vgui2::IImage*		m_image;
 	vgui2::TextImage*	m_textImage;
 	bool				m_textFirst;
-	int					m_textPad;
-	int					m_imagePad;
+	int					m_textPad = 0;
+	int					m_imagePad = 0;
 	Color				m_textNormalColor;
 	Color				m_textDisabledColor;
 };
@@ -77,6 +78,7 @@ class CCareerBaseFrame : public vgui2::Frame
 public:
 	CCareerBaseFrame( vgui2::Panel* parent, const char* name, bool showTaskbarIcon );
 	~CCareerBaseFrame() override;
+    void RefreshLanguagePresentation();
 
 	void SetImageBackground( bool state );
 	void DrawBackgroundImage();

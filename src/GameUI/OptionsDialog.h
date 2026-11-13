@@ -27,11 +27,12 @@ public:
 protected:
     void PerformLayout() override;
     void OnCommand(const char* command) override;
-    MESSAGE_FUNC(OnRestartForLanguageChange, "RestartForLanguageChange");
+    void OnThink() override;
 	void SetTitle( const char* title, bool surfaceTitle ) override;
 	void OnClose() override;
 
 private:
     COptionsSubInterface* m_interfacePage = nullptr;
-    bool m_languageRestartPending = false;
+    bool m_languageApplyPending = false;
+    bool m_closeAfterLanguageApply = false;
 };

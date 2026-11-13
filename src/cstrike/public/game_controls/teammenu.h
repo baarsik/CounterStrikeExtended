@@ -25,6 +25,7 @@ class CTeamMenu : public vgui2::Frame
 	DECLARE_CLASS_SIMPLE_NAMED( CTeamMenu, vgui2::Frame, "vgui::Frame" );
 
 public:
+    void RefreshLanguage();
 	CTeamMenu( vgui2::Panel* parent );
 	~CTeamMenu() override;
 	void ApplySchemeSettings( vgui2::IScheme* scheme ) override;

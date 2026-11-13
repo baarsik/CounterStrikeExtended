@@ -6,6 +6,7 @@ class CCareerUITask : public ICareerTask
 {
 public:
 	CCareerUITask( const char* taskName );
+    void RefreshLanguagePresentation();
 
 	bool IsComplete() override;
 	bool IsCompletedThisRound() override;

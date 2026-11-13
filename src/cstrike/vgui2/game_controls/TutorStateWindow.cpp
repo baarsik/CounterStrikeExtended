@@ -1,6 +1,8 @@
 #include "TutorStateWindow.h"
 #include "../../../vgui2/controls/MessageBox.h"
 #include "vgui_controls/Controls.h"
+#include "../../../vgui2/controls/Label.h"
+#include "../../../vgui2/controls/Button.h"
 #include "vgui/ISurface.h"
 
 using namespace vgui2;
@@ -96,4 +98,23 @@ void CTutorStateWindow::ComputeWindowPos( int screenwidth, int, int& xpos, int& 
 		xpos = screenwidth / 2 - wide / 2;
 		ypos = 10;
 	}
+}
+
+void CTutorStateWindow::ReplaceText(const wchar_t* text) {
+    if (m_messageBox) {
+        for (int index = 0; index < m_messageBox->GetChildCount(); ++index) {
+            vgui2::Panel* child = m_messageBox->GetChild(index);
+            auto* label = dynamic_cast<vgui2::Label*>(child);
+            if (label && !dynamic_cast<vgui2::Button*>(child)) {
+                label->SetText(text);
+            }
+        }
+        m_messageBox->InvalidateLayout(false, false);
+    }
+}
+
+void CTutorStateWindow::RefreshLanguage() {
+    if (m_messageBox) {
+        m_messageBox->InvalidateLayout(false, true);
+    }
 }

@@ -31,7 +31,11 @@ signatures = [
     'void CHudMessage::MessageDrawScan(',
     'int CHudMessage::Draw(',
 ]
-(out / 'message.inc').write_text('\n\n'.join(block(s) for s in signatures) + '\n')
+cached_deadlines = 'float CHudMessage::MessageEndTime(' in source
+if cached_deadlines:
+    signatures.extend(('float CHudMessage::MessageEndTime(', 'void CHudMessage::ReleaseMessage('))
+(out / 'message.inc').write_text('#define CSE_MESSAGE_CACHED_DEADLINES ' + str(int(cached_deadlines)) + '\n'
+    + '\n\n'.join(block(s) for s in signatures) + '\n')
 paths = [owner, root / 'src/cl_dll/legacy_message_text.h', root / 'src/common/legacy_text_encoding.h']
 (out / 'source-manifest.json').write_text(json.dumps({
     str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in paths

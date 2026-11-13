@@ -19,6 +19,7 @@ class CFontTextureCache
 public:
 	CFontTextureCache();
 	~CFontTextureCache();
+    void ClearForLanguage();
 
 	bool GetTextureForChar( vgui2::HFont font, wchar_t ch, int* textureID, float* texCoords );
 

@@ -40,6 +40,7 @@ public:
 	void ReactivatePlatformModules();
 	void UnloadPlatformModules();
 	void RunFrame();
+    void RefreshLanguagePresentation();
 	bool IsModuleHidden( int moduleIndex );
 	void PostMessageToAllModules( KeyValues* message );
 	bool IsPlatformReady();

@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "LoadingDialog.h"
+#include "localization_controls.h"
 #include "BitmapImagePanel.h"
 #include "CareerGame.h"
 #include "CareerMapFrame.h"
@@ -203,6 +204,7 @@ CLoadingDialog* LoadingDialog()
 //-----------------------------------------------------------------------------
 void CLoadingDialog::DisplayProgressBar( const char*, const char* )
 {
+    m_hasGenericError = false;
 	SetTitle( "#GameUI_Loading", true );
 	vgui2::surface()->RestrictPaintToSinglePanel( GetVPanel() );
 	vgui2::Frame::Activate();
@@ -216,6 +218,7 @@ void CLoadingDialog::DisplayProgressBar( const char*, const char* )
 
 void CLoadingDialog::SetupControlSettingsForErrorDisplay( const char* settingsFile )
 {
+    m_hasGenericError = false;
 	SetTitle( "#GameUI_Disconnected", true );
 	LoadControlSettings( settingsFile, NULL );
 	vgui2::surface()->RestrictPaintToSinglePanel( GetVPanel() );
@@ -244,28 +247,10 @@ void CLoadingDialog::DisplayGenericError( const char* failureReason, const char*
 		return;
 	}
 	SetupControlSettingsForErrorDisplay( "Resource/LoadingDialogError.res" );
-	if ( extendedReason && extendedReason[0] )
-	{
-		wchar_t compositeReason[256];
-		wchar_t format[256];
-		wchar_t message[512];
-		const wchar_t* localized = extendedReason[0] == '#' ? vgui2::localize()->Find( extendedReason ) : NULL;
-		if ( localized )
-			wcsncpy( compositeReason, localized, sizeof( compositeReason ) / sizeof( compositeReason[0] ) );
-		else
-			vgui2::localize()->ConvertANSIToUnicode( extendedReason, compositeReason, sizeof( compositeReason ) );
-		localized = failureReason[0] == '#' ? vgui2::localize()->Find( failureReason ) : NULL;
-		if ( localized )
-			wcsncpy( format, localized, sizeof( format ) / sizeof( format[0] ) );
-		else
-			vgui2::localize()->ConvertANSIToUnicode( failureReason, format, sizeof( format ) );
-		vgui2::localize()->ConstructString( message, sizeof( message ), format, 1, compositeReason );
-		m_pInfoLabel->SetText( message );
-	}
-	else
-	{
-		m_pInfoLabel->SetText( failureReason );
-	}
+    m_failureSource = failureReason ? failureReason : "";
+    m_extendedFailureSource = extendedReason ? extendedReason : "";
+    m_hasGenericError = true;
+    RefreshLanguagePresentation();
 }
 
 void CLoadingDialog::DisplayVACBannedError()
@@ -309,6 +294,7 @@ void CLoadingDialog::DisplaySteamConnectionError( const char* username, ESteamLo
 //-----------------------------------------------------------------------------
 void CLoadingDialog::SetStatusText( const char* statusText )
 {
+    m_hasGenericError = false;
 	m_pInfoLabel->SetText( statusText );
 }
 
@@ -514,4 +500,28 @@ void CLoadingDialog::ApplySchemeSettings( vgui2::IScheme* scheme )
 	vgui2::Frame::ApplySchemeSettings( scheme );
 	if ( m_pCareerMapImagePanel )
 		m_pCareerMapImagePanel->SetBorder( scheme->GetBorder( "InsetBorder" ) );
+}
+
+void CLoadingDialog::RefreshLanguagePresentation() {
+    if (m_hasGenericError) {
+        if (!m_extendedFailureSource.empty()) {
+            const auto resolve = [](const std::string& source) {
+                const wchar_t* localized = source[0] == '#' ? vgui2::localize()->Find(source.c_str()) : nullptr;
+                return localized ? std::wstring(localized) : cse::localization::WideLiteral(source.c_str());
+            };
+            const std::wstring reason = resolve(m_extendedFailureSource);
+            std::wstring format = m_failureSource.empty() ? L"" : resolve(m_failureSource);
+            wchar_t message[512] = {};
+            vgui2::localize()->ConstructString(message, sizeof(message), format.data(), 1, reason.c_str());
+            m_pInfoLabel->SetText(message);
+        } else {
+            m_pInfoLabel->SetText(m_failureSource.c_str());
+        }
+    }
+    if (m_isCareerLoadingDialog && m_pCareerMapDescLabel && TheCareerGame) {
+        vgui2::IScheme* style = vgui2::scheme()->GetIScheme(GetScheme());
+        ShowCareerMapDescription(m_pCareerMapDescLabel, TheCareerGame->GetLastMapPtr(),
+            style->GetColor("ControlText", Color(255, 255, 255, 255)),
+            style->GetColor("BrightControlText", Color(255, 242, 0, 255)), true);
+    }
 }

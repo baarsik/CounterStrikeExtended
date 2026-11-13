@@ -1,3 +1,4 @@
+#include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -98,6 +99,7 @@ static void* InitializeInterface( const char* name, CreateInterfaceFn* factories
 
 bool VGuiControls_Init( const char* moduleName, CreateInterfaceFn* factories, int count )
 {
+    cse::localization::BindControls(factories, count);
 	strncpy( g_szControlsModuleName, moduleName, sizeof( g_szControlsModuleName ) );
 	g_szControlsModuleName[sizeof( g_szControlsModuleName ) - 1] = '\0';
 
@@ -130,6 +132,7 @@ bool VGuiControls_Init( const char* moduleName, CreateInterfaceFn* factories, in
 
 void VGuiControls_Shutdown()
 {
+    cse::localization::ClearControls();
 }
 
 //-----------------------------------------------------------------------------

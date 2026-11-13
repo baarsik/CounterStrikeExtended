@@ -49,6 +49,7 @@ public:
 
 	// update the taskbar a frame
 	void RunFrame();
+    void RefreshLanguagePresentation();
 	// sets the title of a task
 	void SetTitle( vgui2::VPANEL panel, const wchar_t* title );
 	// adds a new task to the list

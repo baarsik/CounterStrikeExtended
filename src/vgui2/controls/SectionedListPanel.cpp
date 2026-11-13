@@ -1,3 +1,4 @@
+#include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -1052,7 +1053,7 @@ void CItemButton::PerformLayout()
 			image = textImage;
 			if ( textImage )
 			{
-				textImage->SetText( m_pData->GetString( name, "" ) );
+				cse::localization::SetCellText(textImage, m_pData, name);
 				textImage->ResizeImageToContentMaxWidth( width );
 				VPANEL focus = input()->GetFocus();
 				if ( m_bOverrideColors )

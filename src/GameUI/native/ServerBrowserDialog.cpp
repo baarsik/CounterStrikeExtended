@@ -1,4 +1,5 @@
 #include "ServerBrowserDialog.h"
+#include "localization_controls.h"
 #include "Button.h"
 #include "CheckButton.h"
 #include "ToggleButton.h"
@@ -416,6 +417,9 @@ public:
         Refresh();
         UpdateText();
     }
+    void RefreshLanguagePresentation() {
+        UpdateLocalizedText();
+    }
     RowKey Key() const {
         return row_.key;
     }
@@ -629,6 +633,7 @@ private:
     void AddPlayer(const DetailUpdate &player) {
         auto *item = new KeyValues("player");
         item->SetString("PlayerName", player.name.c_str());
+        item->SetInt("__cse_literal_PlayerName", 1);
         item->SetInt("Score", player.score);
         item->SetFloat("TimeSec", player.seconds);
         constexpr int SecondsPerMinute = 60;
@@ -646,18 +651,31 @@ private:
         item->deleteThis();
     }
     void UpdateText() {
-        SetControlString("ServerText", row_.name.empty() ? ConnectionAddress(row_.key).c_str() : row_.name.c_str());
-        SetControlString("GameText", row_.gameDescription.c_str());
-        SetControlString("MapText", row_.map.c_str());
-        SetControlString("GameTags", row_.tags.c_str());
+        const auto literal = [this](const char* name, const char* value) {
+            const std::wstring text = cse::localization::WideLiteral(value);
+            vgui2::Panel* control = FindChildByName(name, false);
+            if (auto* label = dynamic_cast<vgui2::Label*>(control)) {
+                label->SetText(text.c_str());
+            } else if (auto* entry = dynamic_cast<vgui2::TextEntry*>(control)) {
+                entry->SetText(text.c_str());
+            }
+        };
+        literal("ServerText", row_.name.empty() ? ConnectionAddress(row_.key).c_str() : row_.name.c_str());
+        literal("GameText", row_.gameDescription.c_str());
+        literal("MapText", row_.map.c_str());
+        literal("GameTags", row_.tags.c_str());
         SetControlString("ServerIPText", ConnectionAddress(row_.key).c_str());
         SetControlString("PingText", responded_ ? std::to_string(row_.ping).c_str() : "");
-        SetControlString("SecureText", responded_ ?
-            (row_.secure ? "#ServerBrowser_Secure" : "#ServerBrowser_NotSecure") : "");
         const auto humans = std::max<int64_t>(static_cast<int64_t>(row_.players) - row_.bots, 0);
         SetControlString("PlayersText", row_.maxPlayers > 0 ?
             (std::to_string(humans) + " / " + std::to_string(row_.maxPlayers)).c_str() : "");
         SetControlEnabled("Connect", row_.key.ip && row_.key.queryPort);
+        UpdateLocalizedText();
+    }
+    void UpdateLocalizedText() {
+        SetControlString("SecureText", responded_ ?
+            (row_.secure ? "#ServerBrowser_Secure" : "#ServerBrowser_NotSecure") : "");
+        const auto humans = std::max<int64_t>(static_cast<int64_t>(row_.players) - row_.bots, 0);
         SetControlString("InfoLabel", failed_ ? "#ServerBrowser_ServerNotResponding" :
             retry_->IsSelected() ? (join_->IsSelected() ? "#ServerBrowser_JoinWhenSlotIsFree" :
                 "#ServerBrowser_AlertWhenSlotIsFree") : full_ ? "#ServerBrowser_CouldNotConnectServerFull" :
@@ -732,6 +750,21 @@ public:
         SetTall(CollapsedHeight);
         entry_->RequestFocus(0);
     }
+    void RefreshLanguagePresentation() {
+        if (!tabs_->IsVisible()) {
+            return;
+        }
+        std::array<wchar_t, 512> title{};
+        std::array<wchar_t, 256> address{};
+        vgui2::localize()->ConvertANSIToUnicode(input_.c_str(), address.data(), sizeof(address));
+        auto *format = vgui2::localize()->Find("#ServerBrowser_ServersResponding");
+        if (format) {
+            vgui2::localize()->ConstructString(title.data(), sizeof(title), format, 1, address.data());
+        }
+        if (auto *tab = dynamic_cast<vgui2::Label *>(tabs_->GetActiveTab())) {
+            tab->SetText(format ? title.data() : address.data());
+        }
+    }
     void Pump() {
         if (closing_) {
             if (BeginClose()) {
@@ -779,6 +812,9 @@ public:
             for (const auto &row : ping_->TakeUpdates()) {
                 auto *item = new KeyValues("server");
                 item->SetString("Name", row.name.c_str());
+                item->SetInt("__cse_literal_Name", 1);
+                item->SetInt("__cse_literal_GameDesc", 1);
+                item->SetInt("__cse_literal_Map", 1);
                 item->SetString("IPAddr", ConnectionAddress(row.key).c_str());
                 item->SetString("GameDesc", row.gameDescription.c_str());
                 item->SetString("Map", row.map.c_str());
@@ -848,16 +884,7 @@ protected:
                 SetTall(ExpandedHeight);
                 tabs_->SetVisible(true);
                 FindChildByName("SelectedOKButton", false)->SetVisible(true);
-                std::array<wchar_t, 512> title{};
-                std::array<wchar_t, 256> address{};
-                vgui2::localize()->ConvertANSIToUnicode(input_.c_str(), address.data(), sizeof(address));
-                auto *format = vgui2::localize()->Find("#ServerBrowser_ServersResponding");
-                if (format) {
-                    vgui2::localize()->ConstructString(title.data(), sizeof(title), format, 1, address.data());
-                }
-                if (auto *tab = dynamic_cast<vgui2::Label *>(tabs_->GetActiveTab())) {
-                    tab->SetText(format ? title.data() : address.data());
-                }
+                RefreshLanguagePresentation();
             }
         } else if (std::strcmp(command, "addselected") == 0) {
             if (list_->GetSelectedItemsCount()) {
@@ -1408,6 +1435,9 @@ void ServerBrowserDialog::UpdateRows() {
         const auto &row = visible_[slot];
         auto *item = list_->GetItem(slots_[slot]);
         item->SetString("Name", row.name.empty() ? ConnectionAddress(row.key).c_str() : row.name.c_str());
+        item->SetInt("__cse_literal_Name", 1);
+        item->SetInt("__cse_literal_GameDesc", row.responded ? 1 : 0);
+        item->SetInt("__cse_literal_Map", 1);
         item->SetString("GameDesc", row.responded ? row.gameDescription.c_str() : "#ServerBrowser_NotResponding");
         item->SetString("Map", row.responded ? row.map.c_str() : "");
         item->SetString("IPAddr", ConnectionAddress(row.key).c_str());
@@ -1882,4 +1912,20 @@ bool ServerBrowserDialog::BeginClose() {
     return RetireChildren();
 }
 
+}
+
+namespace cse::server_browser {
+void ServerBrowserDialog::RefreshLanguagePresentation() {
+    // Reformat presentation from retained settings only. Do not touch queries,
+    // selected row keys, logical viewport, pending connection or typed filters.
+    UpdateFilterSummary();
+    for (auto& handle : detailsDialogs_) {
+        if (auto* details = handle.Get()) {
+            details->RefreshLanguagePresentation();
+        }
+    }
+    if (auto* add = addServerDialog_.Get()) {
+        add->RefreshLanguagePresentation();
+    }
+}
 }

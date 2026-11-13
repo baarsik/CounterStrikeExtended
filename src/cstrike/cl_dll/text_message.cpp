@@ -36,43 +36,43 @@ int CHudTextMessage::Init()
 	return 1;
 }
 
-char* CHudTextMessage::LocaliseTextString( const char* message, char* buffer, int size )
-{
-	int remaining = size;
-	char* destination = buffer;
-	for ( const char* source = message; *source && remaining > 0; remaining-- )
-	{
-		if ( *source == '#' )
-		{
-			// cut msg name out of string
-			static char word_buf[255];
-			char* word = word_buf;
-			const char* start = source++;
-			while ( ( *source >= 'A' && *source <= 'z' ) || ( *source >= '0' && *source <= '9' ) )
-				*word++ = *source++;
-			*word = 0;
-			client_textmessage_t* text = TextMessageGet( word_buf );
-			if ( !text || !text->pMessage )
-			{
-				source = start;
-				*destination++ = *source++;
-				continue;
-			}
-			for ( const char* textSource = text->pMessage; *textSource; textSource++ )
-				*destination++ = *textSource;
-			*destination = 0;
-		}
-		else
-		{
-			*destination++ = *source++;
-			*destination = 0;
-		}
-	}
-	buffer[size - 1] = 0;
-	return buffer;
+char* CHudTextMessage::LocaliseTextString(const char* message, char* buffer, int size) {
+    if (!buffer || size <= 0) {
+        return buffer;
+    }
+    buffer[0] = 0;
+    if (!message) {
+        return buffer;
+    }
+    int written = 0;
+    const char* source = message;
+    while (*source && written < size - 1) {
+        if (*source == '#') {
+            constexpr std::size_t TokenBytes = 255;
+            char token[TokenBytes]{};
+            const char* end = source + 1;
+            std::size_t length = 0;
+            while ((*end >= 'A' && *end <= 'z') || (*end >= '0' && *end <= '9')) {
+                if (length < sizeof(token) - 1) {
+                    token[length++] = *end;
+                }
+                ++end;
+            }
+            client_textmessage_t* text = TextMessageGet(token);
+            if (text && text->pMessage) {
+                for (const char* translated = text->pMessage; *translated && written < size - 1; ++translated) {
+                    buffer[written++] = *translated;
+                }
+                source = end;
+                continue;
+            }
+        }
+        buffer[written++] = *source++;
+    }
+    buffer[written] = 0;
+    return buffer;
 }
 
-// As above, but with a local static buffer
 char* CHudTextMessage::BufferedLocaliseTextString( const char* message )
 {
 	static char dst_buffer[1024];
@@ -151,9 +151,11 @@ int CHudTextMessage::MsgFunc_TextMsg( const char*, int size, void* buffer )
 	}
 	static char szBuf[6][128];
 	safe_strcpy( szBuf[0], LookupString( szMsg, &destination ), sizeof( szBuf[0] ) );
-	for ( int i = 1; i <= 4; i++ )
-	{
-		safe_strcpy( szBuf[i], LookupString( READ_STRING() ), sizeof( szBuf[i] ) );
+	std::string rawArguments[4];
+    for (int i = 1; i <= 4; i++) {
+        const char* raw = READ_STRING();
+        rawArguments[i - 1] = raw ? raw : "";
+        safe_strcpy(szBuf[i], LookupString(raw), sizeof(szBuf[i]));
 		StripEndNewlineFromString( szBuf[i] );
 	}
 	if ( gViewPortInterface && !gViewPortInterface->AllowedToPrintText() )
@@ -174,12 +176,14 @@ int CHudTextMessage::MsgFunc_TextMsg( const char*, int size, void* buffer )
 	case 5:
 		gHUD.m_SayText.SayTextPrint( szBuf[0], 128, destination == 5 ? client : -1,
 			szBuf[1], szBuf[2], szBuf[3], szBuf[4] );
-		break;
+        gHUD.m_SayText.CaptureTextMessageSources(szMsg, rawArguments);
+        break;
 	case HUD_PRINTCENTER:
 		StripEndNewlineFromString( szBuf[0] );
 		gHUD.m_VGUI2Print.VGUI2HudPrintArgs( szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4],
 			-1, (int)( ScreenHeight * 0.35 ), 1, 0.706, 0.118 );
-		break;
+        gHUD.m_VGUI2Print.CaptureTextMessageSources(szMsg, rawArguments);
+        break;
 	}
 	return 1;
 }

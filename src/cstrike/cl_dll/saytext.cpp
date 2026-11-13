@@ -27,6 +27,8 @@
 #include "../../external/steamworks/isteamfriends.h"
 #include <wchar.h>
 #include <wctype.h>
+#include <memory>
+#include <algorithm>
 
 #define MAX_LINES 5
 #define MAX_CHARS_PER_LINE 256  /* it can be less than this, depending on char size */
@@ -52,6 +54,131 @@ struct TextRange
 	float* color;
 };
 
+// Only structured catalogue templates are rerendered; arguments remain owned payloads.
+struct ChatSource {
+    std::string token;
+    std::string titleKey;
+    std::string argumentTitleKeys[4];
+    std::wstring arguments[4];
+    std::string argumentTokens[4];
+    std::wstring fallback;
+    int client = 0;
+    std::size_t discardedLines = 0;
+};
+
+std::wstring RenderChatSource(const ChatSource& source) {
+    std::string token = source.token;
+    if (!source.titleKey.empty()) {
+        const client_textmessage_t* title = TextMessageGet(source.titleKey.c_str());
+        if (title && title->pMessage) {
+            token = title->pMessage;
+            while (!token.empty() && (token.back() == '\n' || token.back() == '\r')) {
+                token.pop_back();
+            }
+        }
+    }
+    const wchar_t* format = token.empty() ? nullptr : vgui2::localize()->Find(token.c_str());
+    wchar_t literalFormat[MAX_CHARS_PER_LINE]{};
+    if (!format && !source.titleKey.empty()) {
+        vgui2::localize()->ConvertANSIToUnicode(token.c_str(), literalFormat, sizeof(literalFormat));
+        format = literalFormat;
+    }
+    if (!format) {
+        return source.fallback;
+    }
+    const wchar_t* arguments[4]{};
+    wchar_t titleArguments[4][MAX_CHARS_PER_LINE]{};
+    for (int index = 0; index < 4; ++index) {
+        if (!source.argumentTitleKeys[index].empty()) {
+            const client_textmessage_t* title = TextMessageGet(source.argumentTitleKeys[index].c_str());
+            if (title && title->pMessage) {
+                arguments[index] = vgui2::localize()->Find(title->pMessage);
+                if (!arguments[index]) {
+                    vgui2::localize()->ConvertANSIToUnicode(title->pMessage, titleArguments[index],
+                        sizeof(titleArguments[index]));
+                    arguments[index] = titleArguments[index];
+                }
+            }
+        }
+        if (!arguments[index] && !source.argumentTokens[index].empty()) {
+            arguments[index] = vgui2::localize()->Find(source.argumentTokens[index].c_str());
+        }
+        if (!arguments[index]) {
+            arguments[index] = source.arguments[index].c_str();
+        }
+    }
+    wchar_t text[MAX_CHARS_PER_LINE]{};
+    if (format == literalFormat) {
+        std::wstring expanded;
+        int sequential = 0;
+        for (std::size_t index = 0; format[index] && expanded.size() < MAX_CHARS_PER_LINE - 1; ++index) {
+            if (format[index] == L'%' && format[index + 1] == L'%') {
+                expanded += L'%';
+                ++index;
+            } else if (format[index] == L'%' && format[index + 1] == L's') {
+                index += 1;
+                int argument = sequential++;
+                if (format[index + 1] >= L'1' && format[index + 1] <= L'4') {
+                    argument = format[++index] - L'1';
+                }
+                if (argument < 4) {
+                    expanded += arguments[argument];
+                }
+            } else {
+                expanded += format[index];
+            }
+        }
+        wcsncpy(text, expanded.c_str(), MAX_CHARS_PER_LINE - 1);
+    } else {
+        vgui2::localize()->ConstructString(text, sizeof(text), const_cast<wchar_t*>(format), 4,
+            arguments[0], arguments[1], arguments[2], arguments[3]);
+    }
+    text[MAX_CHARS_PER_LINE - 1] = 0;
+    return text;
+}
+
+std::vector<std::wstring> WrapChatSource(const std::wstring& text) {
+    std::vector<std::wstring> lines;
+    std::size_t start = 0;
+    while (start < text.size()) {
+        int width = LINE_START;
+        std::size_t end = start;
+        std::size_t wordBreak = std::wstring::npos;
+        while (end < text.size() && end - start < MAX_CHARS_PER_LINE - 2) {
+            wchar_t character[2] = {text[end], 0};
+            int characterWidth = 0;
+            int height = 0;
+            gHUD.m_VGUI2Print.GetStringSize(character, &characterWidth, &height);
+            if (end > start && (width + characterWidth >= MAX_LINE_WIDTH || text[end] == L'\n')) {
+                break;
+            }
+            width += characterWidth;
+            if (text[end] == L' ' && end > start) {
+                wordBreak = end;
+            }
+            ++end;
+        }
+        if (end < text.size() && wordBreak != std::wstring::npos) {
+            end = wordBreak;
+        }
+        if (end == start) {
+            ++end;
+        }
+        std::wstring line = text.substr(start, end - start);
+        if (start > 0) {
+            line.insert(line.begin(), L' ');
+        }
+        lines.push_back(line);
+        start = end;
+        while (start < text.size() && (text[start] == L' ' || text[start] == L'\n')) {
+            ++start;
+        }
+    }
+    return lines;
+}
+
+extern float* GetClientColor(int client);
+
 class SayTextLine
 {
 public:
@@ -62,12 +189,26 @@ public:
 	void Clear();
 	void Draw( int x, int y, float r, float g, float b );
 	SayTextLine& operator=( const SayTextLine& other );
+    const std::shared_ptr<ChatSource>& GetSource() const {
+        return m_source;
+    }
+    int GetClientIndex() const {
+        return m_clientIndex;
+    }
+    void SetSource(const std::shared_ptr<ChatSource>& source) {
+        m_source = source;
+        if (source) {
+            m_clientIndex = source->client;
+            m_teamColor = m_clientIndex > 0 ? GetClientColor(m_clientIndex) : nullptr;
+        }
+    }
 
 private:
 	wchar_t m_line[MAX_CHARS_PER_LINE];
 	CUtlVector<TextRange> m_textRanges;
-	int m_clientIndex;
-	float* m_teamColor;
+	int m_clientIndex = 0;
+    float* m_teamColor = nullptr;
+    std::shared_ptr<ChatSource> m_source;
 };
 
 extern float* GetClientColor( int client );
@@ -91,12 +232,16 @@ SayTextLine::SayTextLine()
 void SayTextLine::Clear()
 {
 	m_line[0] = 0;
+    m_source.reset();
 	m_textRanges.RemoveAll();
 }
 
 SayTextLine& SayTextLine::operator=( const SayTextLine& other )
 {
-	memcpy( m_line, other.m_line, sizeof( m_line ) );
+	memcpy(m_line, other.m_line, sizeof(m_line));
+    m_source = other.m_source;
+    m_clientIndex = other.m_clientIndex;
+    m_teamColor = other.m_teamColor;
 	m_textRanges.RemoveAll();
 	for ( int i = 0; i < other.m_textRanges.Count(); i++ )
 		m_textRanges.AddToTail( other.m_textRanges[i] );
@@ -193,6 +338,7 @@ void SayTextLine::Draw( int x, int y, float r, float g, float b )
 }
 
 static SayTextLine g_sayTextLine[MAX_LINES + 1];
+static std::weak_ptr<ChatSource> g_lastChatSource;
 static float flScrollTime;
 static int Y_START;
 static int line_height;
@@ -234,6 +380,9 @@ int CHudSayText::VidInit()
 
 int ScrollTextUp()
 {
+    if (g_sayTextLine[0].GetSource()) {
+        ++g_sayTextLine[0].GetSource()->discardedLines;
+    }
 	if ( *g_sayTextLine[0].GetText() )
 	{
 		char buffer[512];
@@ -374,7 +523,8 @@ void CHudSayText::EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 			{
 				wcsncat( output, lastBreak, MAX_CHARS_PER_LINE );
 				output[MAX_CHARS_PER_LINE - 1] = 0;
-				g_sayTextLine[next].Colorize();
+				g_sayTextLine[next].SetSource(string.GetSource());
+                g_sayTextLine[next].Colorize();
 			}
 		}
 		else if ( wcslen( output ) - 2 - wcslen( lastBreak ) <= MAX_CHARS_PER_LINE - 1 )
@@ -382,7 +532,8 @@ void CHudSayText::EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 			wcsncat( output, L" ", MAX_CHARS_PER_LINE );
 			wcsncat( output, lastBreak, MAX_CHARS_PER_LINE );
 			output[MAX_CHARS_PER_LINE - 1] = 0;
-			g_sayTextLine[next].Colorize();
+			g_sayTextLine[next].SetSource(string.GetSource());
+                g_sayTextLine[next].Colorize();
 		}
 		*lastBreak = 0;
 		EnsureTextFitsInOneLineAndWrapIfHaveTo( next );
@@ -392,6 +543,7 @@ void CHudSayText::EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 
 void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, char* arg2, char* arg3, char* arg4 )
 {
+    g_lastChatSource.reset();
 	if ( gViewPortInterface && !gViewPortInterface->AllowedToPrintText() )
 		return;
 	if ( (unsigned int)( client - 1 ) < MAX_PLAYERS )
@@ -482,8 +634,10 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 	wchar_t* unicodeArgs[4] = { NULL, NULL, NULL, NULL };
 	for ( int i = 0; i < 4; i++ )
 	{
-		if ( *args[i] == '#' )
-			unicodeArgs[i] = vgui2::localize()->Find( args[i] );
+		const bool playerChat = strncmp(text, "#Cstrike_Chat_", strlen("#Cstrike_Chat_")) == 0;
+        if (i > 0 && !playerChat && *args[i] == '#') {
+            unicodeArgs[i] = vgui2::localize()->Find(args[i]);
+        }
 		if ( !unicodeArgs[i] )
 		{
 			vgui2::localize()->ConvertANSIToUnicode( args[i], wstr[i], sizeof( wstr[i] ) );
@@ -499,7 +653,24 @@ void CHudSayText::SayTextPrint( const char* text, int, int client, char* arg1, c
 		_snwprintf( finalBuffer, ARRAYSIZE( finalBuffer ), localized,
 			unicodeArgs[0], unicodeArgs[1], unicodeArgs[2], unicodeArgs[3] );
 	}
-	g_sayTextLine[line].SetText( finalBuffer, client );
+	g_sayTextLine[line].SetText(finalBuffer, client);
+    {
+        auto source = std::make_shared<ChatSource>();
+        if (text[0] == '#' && vgui2::localize()->Find(text)) {
+            source->token = text;
+        }
+        source->client = client;
+        source->fallback = finalBuffer;
+        const bool playerChat = strncmp(text, "#Cstrike_Chat_", strlen("#Cstrike_Chat_")) == 0;
+        for (int index = 0; index < 4; ++index) {
+            source->arguments[index] = unicodeArgs[index];
+            if (index > 0 && !playerChat && args[index][0] == '#' && vgui2::localize()->Find(args[index])) {
+                source->argumentTokens[index] = args[index];
+            }
+        }
+        g_sayTextLine[line].SetSource(source);
+        g_lastChatSource = source;
+    }
 	EnsureTextFitsInOneLineAndWrapIfHaveTo( line );
 	if ( !line )
 		flScrollTime = m_HUD_saytext_time->value + gHUD.m_flTime;
@@ -546,4 +717,69 @@ int CHudSayText::MsgFunc_SayText( const char*, int size, void* buffer )
 	delete[] args[1];
 	delete[] args[2];
 	return 1;
+}
+
+void CHudSayText::RefreshLanguage() {
+    struct Line {
+        std::wstring text;
+        std::shared_ptr<ChatSource> source;
+        int client;
+    };
+    std::vector<Line> rendered;
+    std::shared_ptr<ChatSource> previous;
+    for (int index = 0; index < MAX_LINES; ++index) {
+        SayTextLine& line = g_sayTextLine[index];
+        const auto source = line.GetSource();
+        if (source) {
+            if (source != previous) {
+                const auto lines = WrapChatSource(RenderChatSource(*source));
+                for (std::size_t row = source->discardedLines; row < lines.size(); ++row) {
+                    rendered.push_back({lines[row], source, source->client});
+                }
+            }
+        } else if (*line.GetText()) {
+            rendered.push_back({line.GetText(), nullptr, line.GetClientIndex()});
+        }
+        previous = source;
+    }
+    const std::size_t first = rendered.size() > MAX_LINES ? rendered.size() - MAX_LINES : 0;
+    for (std::size_t index = 0; index < first; ++index) {
+        if (rendered[index].source) {
+            ++rendered[index].source->discardedLines;
+        }
+    }
+    for (int index = 0; index <= MAX_LINES; ++index) {
+        g_sayTextLine[index].Clear();
+    }
+    for (std::size_t index = first; index < rendered.size(); ++index) {
+        SayTextLine& line = g_sayTextLine[index - first];
+        line.SetText(const_cast<wchar_t*>(rendered[index].text.c_str()), rendered[index].client);
+        line.SetSource(rendered[index].source);
+    }
+    // No packet/audio/console replay and no change to flScrollTime or active flags.
+    Y_START = GetTextPrintY();
+}
+
+void CHudSayText::CaptureTextMessageSources(const char* text, const std::string (&arguments)[4]) {
+    const auto source = g_lastChatSource.lock();
+    if (!source) {
+        return;
+    }
+    for (int index = 0; index < 5; ++index) {
+        const char* raw = index == 0 ? text : arguments[index - 1].c_str();
+        const bool playerChat = source->token.compare(0, strlen("#Cstrike_Chat_"), "#Cstrike_Chat_") == 0;
+        if (index == 1 || (index > 0 && playerChat)) {
+            wchar_t literal[MAX_CHARS_PER_LINE]{};
+            vgui2::localize()->ConvertANSIToUnicode(raw ? raw : "", literal, sizeof(literal));
+            source->arguments[index - 1] = literal;
+            source->argumentTokens[index - 1].clear();
+            continue;
+        }
+        const client_textmessage_t* title = raw && raw[0] == '#' ? TextMessageGet(raw + 1) : nullptr;
+        if (title && CS_IsCatalogueMessage(title)) {
+            std::string& target = index == 0 ? source->titleKey : source->argumentTitleKeys[index - 1];
+            target = raw + 1;
+        }
+    }
+    RefreshLanguage();
 }

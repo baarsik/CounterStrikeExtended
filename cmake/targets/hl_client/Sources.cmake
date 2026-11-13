@@ -32,6 +32,8 @@ target_sources(hl_client PRIVATE
   "${CSE_SDK_DIR}/cl_dll/inputw32.cpp"
   "${CSE_SDK_DIR}/cl_dll/interpolation.cpp"
   "${CSE_SDK_DIR}/cl_dll/in_camera.cpp"
+  "${CSE_SDK_DIR}/cl_dll/localization_client.cpp"
+  "${CSE_SDK_DIR}/cl_dll/vgui_language.cpp"
   "${CSE_SDK_DIR}/cl_dll/menu.cpp"
   "${CSE_SDK_DIR}/cl_dll/message.cpp"
   "${CSE_SDK_DIR}/cl_dll/saytext.cpp"

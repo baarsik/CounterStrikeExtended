@@ -29,10 +29,12 @@
 #endif
 
 #include "vgui_TeamFortressViewport.h"
+#include "localization_client.h"
 
 #define MAX_MENU_STRING	512
 char g_szMenuString[MAX_MENU_STRING];
 char g_szPrelocalisedMenuString[MAX_MENU_STRING];
+static char g_szCompletedMenuSource[MAX_MENU_STRING];
 
 int KB_ConvertString( char *in, char **ppout );
 
@@ -59,6 +61,7 @@ void CHudMenu :: InitHUDData( void )
 void CHudMenu :: Reset( void )
 {
 	g_szPrelocalisedMenuString[0] = 0;
+    g_szCompletedMenuSource[0] = 0;
 	m_fWaitingForMore = FALSE;
 }
 
@@ -250,7 +253,6 @@ void CHudMenu :: SelectMenuItem( int menu_item )
 // if this message is never received, then scores will simply be the combined totals of the players.
 int CHudMenu :: MsgFunc_ShowMenu( const char *pszName, int iSize, void *pbuf )
 {
-	char *temp = NULL;
 
 	BEGIN_READ( pbuf, iSize );
 
@@ -271,22 +273,15 @@ int CHudMenu :: MsgFunc_ShowMenu( const char *pszName, int iSize, void *pbuf )
 		}
 		else
 		{  // append to the current menu string
-			strncat( g_szPrelocalisedMenuString, READ_STRING(), MAX_MENU_STRING - strlen(g_szPrelocalisedMenuString) );
+			strncat( g_szPrelocalisedMenuString, READ_STRING(), MAX_MENU_STRING - strlen(g_szPrelocalisedMenuString) - 1 );
 		}
 		g_szPrelocalisedMenuString[MAX_MENU_STRING-1] = 0;  // ensure null termination (strncat/strncpy does not)
 
 		if ( !NeedMore )
 		{  // we have the whole string, so we can localise it now
-			strncpy( g_szMenuString, gHUD.m_TextMessage.BufferedLocaliseTextString( g_szPrelocalisedMenuString ), MAX_MENU_STRING );
-			g_szMenuString[MAX_MENU_STRING - 1] = '\0';
-
-			// Swap in characters
-			if ( KB_ConvertString( g_szMenuString, &temp ) )
-			{
-				strncpy( g_szMenuString, temp, MAX_MENU_STRING );
-				g_szMenuString[MAX_MENU_STRING - 1] = '\0';
-				free( temp );
-			}
+            strncpy(g_szCompletedMenuSource, g_szPrelocalisedMenuString, sizeof(g_szCompletedMenuSource));
+            g_szCompletedMenuSource[sizeof(g_szCompletedMenuSource) - 1] = 0;
+            RefreshLanguage();
 		}
 
 		m_fMenuDisplayed = 1;
@@ -301,4 +296,16 @@ int CHudMenu :: MsgFunc_ShowMenu( const char *pszName, int iSize, void *pbuf )
 	m_fWaitingForMore = NeedMore;
 
 	return 1;
+}
+
+void CHudMenu::RefreshLanguage() {
+    CHudTextMessage::LocaliseTextString(g_szCompletedMenuSource, g_szMenuString, sizeof(g_szMenuString));
+    char* converted = nullptr;
+    if (KB_ConvertString(g_szMenuString, &converted)) {
+        strncpy(g_szMenuString, converted, sizeof(g_szMenuString) - 1);
+        g_szMenuString[sizeof(g_szMenuString) - 1] = 0;
+        const char* sources[]{converted, "", "", "", ""};
+        FinishHudText(g_szMenuString, sources);
+        free(converted);
+    }
 }

@@ -17,6 +17,7 @@ class CCareerProfileFrame : public CCareerBaseFrame
 public:
 	CCareerProfileFrame( vgui2::Panel* parent );
 	~CCareerProfileFrame() override;
+    void RefreshLanguagePresentation();
 	void Activate() override;
 	void ApplySchemeSettings( vgui2::IScheme* scheme ) override;
 	void OnCommand( const char* command ) override;

@@ -118,28 +118,7 @@ void CDemoPlayerDialog::Update()
 	if ( !m_DemoPlayer )
 		return;
 
-	if ( m_DemoPlayer->IsActive() )
-	{
-		if ( m_DemoPlayer->IsLoading() )
-		{
-			wchar_t title[256];
-			wchar_t filename[128];
-			vgui2::localize()->ConvertANSIToUnicode( m_DemoPlayer->GetFileName(), filename, sizeof( filename ) );
-			vgui2::localize()->ConstructString( title, sizeof( title ),
-				vgui2::localize()->Find( "#GameUI_LoadingFilename" ), 1, filename );
-			SetTitle( title, false );
-		}
-		else
-		{
-			wchar_t title[128];
-			vgui2::localize()->ConvertANSIToUnicode( m_DemoPlayer->GetFileName(), title, sizeof( title ) );
-			SetTitle( title, false );
-		}
-	}
-	else
-	{
-		SetTitle( "#GameUI_DemoPlayer", false );
-	}
+    RefreshLanguagePresentation();
 
 	frame_t* firstFrame = m_World->GetFirstFrame();
 	frame_t* lastFrame = m_World->GetLastFrame();
@@ -150,7 +129,6 @@ void CDemoPlayerDialog::Update()
 	}
 
 	double worldTime = m_DemoPlayer->GetWorldTime();
-	float timeScale = m_DemoPlayer->GetTimeScale();
 	int sliderTime = m_pTimeSlider->GetValue();
 	if ( sliderTime != m_lastSliderTime )
 	{
@@ -166,41 +144,7 @@ void CDemoPlayerDialog::Update()
 		m_pTimeSlider->SetValue( (int)worldTime, true );
 	}
 
-	wchar_t* wDescription = vgui2::localize()->Find( "#Valve_Playing" );
-	if ( !m_DemoPlayer->IsActive() )
-		wDescription = vgui2::localize()->Find( "#Valve_Stopped" );
-	else if ( m_DemoPlayer->IsPaused() )
-		wDescription = vgui2::localize()->Find( "#Valve_Paused" );
 
-	wchar_t* wTimeScaleString;
-	if ( timeScale == 0.25f )
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1_4" );
-	else if ( timeScale == 0.5f )
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1_2" );
-	else if ( timeScale == 1.0f )
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1" );
-	else if ( timeScale == 2.0f )
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_2" );
-	else if ( timeScale == 4.0f )
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_4" );
-	else
-		wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1" );
-
-	char szTimeCode[32]; // mins:secs:msecs	
-	wchar_t wTimeCode[32];
-	wchar_t wTitle[128];
-#ifdef _WIN32
-	_snprintf( szTimeCode, sizeof( szTimeCode ) - 1, "%02u:%02u:%02u",
-#else
-	snprintf( szTimeCode, sizeof( szTimeCode ) - 1, "%02u:%02u:%02u",
-#endif
-		(unsigned int)( (int)worldTime / 60 ), (unsigned int)( (int)worldTime % 60 ),
-		(unsigned int)( (int)( worldTime * 100.0 ) % 100 ) );
-	szTimeCode[sizeof( szTimeCode ) - 1] = 0;
-	vgui2::localize()->ConvertANSIToUnicode( szTimeCode, wTimeCode, sizeof( wTimeCode ) );
-	wchar_t* wTemp = vgui2::localize()->Find( "#Valve_ViewDemoStatus" );
-	vgui2::localize()->ConstructString( wTitle, sizeof( wTitle ), wTemp, 3, wTimeCode, wTimeScaleString, wDescription );
-	m_pLableTimeCode->SetText( wTitle );
 }
 
 bool CDemoPlayerDialog::LoadModules()
@@ -464,4 +408,70 @@ void CDemoPlayerDialog::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_pButtonStop->SetImageAtIndex( 0, vgui2::scheme()->GetImage( "Resource\\icon_stop", false ), 0 );
 	m_pButtonFaster->SetImageAtIndex( 0, vgui2::scheme()->GetImage( "Resource\\icon_faster", false ), 0 );
 	m_pButtonSlower->SetImageAtIndex( 0, vgui2::scheme()->GetImage( "Resource\\icon_slower", false ), 0 );
+}
+
+void CDemoPlayerDialog::RefreshLanguagePresentation() {
+    if (!m_DemoPlayer) {
+        return;
+    }
+    if ( m_DemoPlayer->IsActive() )
+    {
+        if ( m_DemoPlayer->IsLoading() )
+        {
+            wchar_t title[256];
+            wchar_t filename[128];
+            vgui2::localize()->ConvertANSIToUnicode( m_DemoPlayer->GetFileName(), filename, sizeof( filename ) );
+            vgui2::localize()->ConstructString( title, sizeof( title ),
+                vgui2::localize()->Find( "#GameUI_LoadingFilename" ), 1, filename );
+            SetTitle( title, false );
+        }
+        else
+        {
+            wchar_t title[128];
+            vgui2::localize()->ConvertANSIToUnicode( m_DemoPlayer->GetFileName(), title, sizeof( title ) );
+            SetTitle( title, false );
+        }
+    }
+    else
+    {
+        SetTitle( "#GameUI_DemoPlayer", false );
+    }
+
+    const double worldTime = m_DemoPlayer->GetWorldTime();
+    const float timeScale = m_DemoPlayer->GetTimeScale();
+    wchar_t* wDescription = vgui2::localize()->Find( "#Valve_Playing" );
+    if ( !m_DemoPlayer->IsActive() )
+        wDescription = vgui2::localize()->Find( "#Valve_Stopped" );
+    else if ( m_DemoPlayer->IsPaused() )
+        wDescription = vgui2::localize()->Find( "#Valve_Paused" );
+
+    wchar_t* wTimeScaleString;
+    if ( timeScale == 0.25f )
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1_4" );
+    else if ( timeScale == 0.5f )
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1_2" );
+    else if ( timeScale == 1.0f )
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1" );
+    else if ( timeScale == 2.0f )
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_2" );
+    else if ( timeScale == 4.0f )
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_4" );
+    else
+        wTimeScaleString = vgui2::localize()->Find( "#Valve_x_1" );
+
+    char szTimeCode[32]; // mins:secs:msecs
+    wchar_t wTimeCode[32];
+    wchar_t wTitle[128];
+#ifdef _WIN32
+    _snprintf( szTimeCode, sizeof( szTimeCode ) - 1, "%02u:%02u:%02u",
+#else
+    snprintf( szTimeCode, sizeof( szTimeCode ) - 1, "%02u:%02u:%02u",
+#endif
+        (unsigned int)( (int)worldTime / 60 ), (unsigned int)( (int)worldTime % 60 ),
+        (unsigned int)( (int)( worldTime * 100.0 ) % 100 ) );
+    szTimeCode[sizeof( szTimeCode ) - 1] = 0;
+    vgui2::localize()->ConvertANSIToUnicode( szTimeCode, wTimeCode, sizeof( wTimeCode ) );
+    wchar_t* wTemp = vgui2::localize()->Find( "#Valve_ViewDemoStatus" );
+    vgui2::localize()->ConstructString( wTitle, sizeof( wTitle ), wTemp, 3, wTimeCode, wTimeScaleString, wDescription );
+    m_pLableTimeCode->SetText( wTitle );
 }

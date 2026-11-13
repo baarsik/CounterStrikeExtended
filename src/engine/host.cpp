@@ -1,3 +1,4 @@
+#include "localization.h"
 #include "host.h"
 #include "native_gameui_retirement.h"
 #if defined(__APPLE__)
@@ -488,6 +489,7 @@ void _Host_Frame( float time )
         timings.Sample(Sys_FloatTime(), cls.state == ca_active, VGuiWrap2_IsGameUIVisible() != 0, game->IsActiveApp());
     }
 #endif
+    cse::localization::ProcessFrame();
 	SystemWrapper_RunFrame( host_frametime );
 	if ( g_modfuncs.m_pfnFrameBegin )
 		g_modfuncs.m_pfnFrameBegin();
@@ -828,6 +830,7 @@ Host_InitLocal
 void Host_InitLocal()
 {
 	Host_InitCommands();
+    cse::localization::InitializeCommand();
 	Cvar_RegisterVariable( &host_killtime );
 	Cvar_RegisterVariable( &sys_ticrate );
 	Cvar_RegisterVariable( &fps_max );

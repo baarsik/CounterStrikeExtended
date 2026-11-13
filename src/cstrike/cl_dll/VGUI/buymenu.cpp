@@ -296,3 +296,10 @@ void FitToFullScreen( vgui2::EditablePanel* panel )
 		}
 	}
 }
+
+void CBuyMenu::RefreshLanguage() {
+    m_lastMoney = -1;
+    UpdateBuyPresets(true);
+    InvalidateLayout(false, false);
+    Repaint();
+}

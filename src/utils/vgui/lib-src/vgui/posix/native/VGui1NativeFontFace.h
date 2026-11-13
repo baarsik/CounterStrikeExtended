@@ -15,6 +15,12 @@ public:
     static std::unique_ptr<NativeFontFace> CreateOwned(const void* bytes, std::size_t length,
         long faceIndex, const char* expectedPostScriptName, const FontRequest& request,
         Result& result, int& nativeError, std::string& diagnostic) noexcept;
+    // Shared immutable programs avoid copying a system TTC for every font size.
+    // Each realized face still owns its own FT_Library/FT_Face/style/canvas.
+    static std::unique_ptr<NativeFontFace> CreateShared(
+        std::shared_ptr<const std::vector<unsigned char>> bytes, long faceIndex,
+        const char* expectedPostScriptName, const FontRequest& request,
+        Result& result, int& nativeError, std::string& diagnostic) noexcept;
     ~NativeFontFace() override;
 
     FontMetrics Metrics() const noexcept override;

@@ -185,3 +185,17 @@ bool CFontTextureCache::GetTextureForChar( vgui2::HFont font, wchar_t ch, int* t
 }
 
 CFontTextureCache g_FontTextureCache;
+
+void CFontTextureCache::ClearForLanguage() {
+    for (int index = 0; index < m_PageList.Count(); ++index) {
+        if (staticSurface) {
+            staticSurface->DeleteTextureByID(m_PageList[index].textureID);
+        }
+    }
+    m_PageList.RemoveAll();
+    m_CharCache.RemoveAll();
+    cacheentry_t listHead{};
+    m_LRUListHeadIndex = m_CharCache.Insert(listHead);
+    m_CharCache[m_LRUListHeadIndex].nextEntry = m_LRUListHeadIndex;
+    m_CharCache[m_LRUListHeadIndex].prevEntry = m_LRUListHeadIndex;
+}

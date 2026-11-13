@@ -28,6 +28,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include "../../public/localization_service.h"
+#include "../../common/resource_text.h"
+#include "Scheme.h"
+#include "RuntimeLocalization.h"
+#include "LocalizationCatalogue.h"
+#include "../vgui_surfacelib/FontManager.h"
+#include "../vgui_surfacelib/LocalizationFontBackend.h"
+#include <cstring>
+#include <cwchar>
+#include <algorithm>
+#include <map>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
+
+extern CSchemeManager g_Scheme;
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -60,6 +77,31 @@ struct LessCtx_t
 	{
 	}
 };
+
+}
+
+namespace {
+struct ProgrammaticText {
+    std::string name;
+    std::wstring value;
+    std::string filename;
+    bool fillMissing;
+};
+struct LocalizationState {
+    std::vector<std::string> requests;
+    std::map<std::wstring, int> values;
+    std::map<std::string, ProgrammaticText> programmatic;
+    std::set<vgui2::StringIndex_t> active;
+    bool fileParsing = false;
+    bool committing = false;
+};
+std::map<const CLocalizedStringTable*, LocalizationState>& LocalizationStates() {
+    static std::map<const CLocalizedStringTable*, LocalizationState> states;
+    return states;
+}
+LocalizationState& State(const CLocalizedStringTable* table) {
+    return LocalizationStates()[table];
+}
 
 }
 
@@ -174,6 +216,7 @@ CLocalizedStringTable::CLocalizedStringTable() :
 	m_Values( 2048 ),
 	m_FastValueLookup( 0, 0, FastValueLessFunc )
 {
+    State(this);
 	memset( m_szLanguage, 0, sizeof( m_szLanguage ) );
 	m_bUseOnlyLongestLanguageString = false;
 }
@@ -183,6 +226,7 @@ CLocalizedStringTable::CLocalizedStringTable() :
 //-----------------------------------------------------------------------------
 CLocalizedStringTable::~CLocalizedStringTable()
 {
+    LocalizationStates().erase(this);
 	m_Names.Purge();
 	m_Values.Purge();
 	m_LocalizationFiles.Purge();
@@ -191,35 +235,23 @@ CLocalizedStringTable::~CLocalizedStringTable()
 //-----------------------------------------------------------------------------
 // Purpose: Finds a string in the table
 //-----------------------------------------------------------------------------
-wchar_t* CLocalizedStringTable::Find( const char* pName )
-{
-	StringIndex_t idx;
-
-	idx = FindIndex( pName );
-	if ( idx == INVALID_LOCALIZE_STRING_INDEX )
-	{
-		return NULL;
-	}
-
-	return &m_Values[m_Lookup[idx].valueIndex];
+wchar_t* CLocalizedStringTable::Find(const char* name) {
+    return GetValueByIndex(FindIndex(name));
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: gets the name of the localization string by index
-//-----------------------------------------------------------------------------
-const char* CLocalizedStringTable::GetNameByIndex( StringIndex_t index )
-{
-	return &m_Names[m_Lookup[index].nameIndex];
+const char* CLocalizedStringTable::GetNameByIndex(StringIndex_t index) {
+    if (index == INVALID_LOCALIZE_STRING_INDEX || !m_Lookup.IsValidIndex(index)) {
+        return nullptr;
+    }
+    return &m_Names[m_Lookup[index].nameIndex];
 }
 
-wchar_t* CLocalizedStringTable::GetValueByIndex( StringIndex_t index )
-{
-	if ( index == INVALID_LOCALIZE_STRING_INDEX )
-	{
-		return NULL;
-	}
-
-	return &m_Values[m_Lookup[index].valueIndex];
+wchar_t* CLocalizedStringTable::GetValueByIndex(StringIndex_t index) {
+    if (index == INVALID_LOCALIZE_STRING_INDEX || !m_Lookup.IsValidIndex(index)
+        || State(this).active.count(index) == 0) {
+        return nullptr;
+    }
+    return &m_Values[m_Lookup[index].valueIndex];
 }
 
 //-----------------------------------------------------------------------------
@@ -230,14 +262,11 @@ int CLocalizedStringTable::GetLocalizationFileCount()
 	return m_LocalizationFiles.Count();
 }
 
-void CLocalizedStringTable::ReloadLocalizationFiles( IFileSystem* filesystem )
-{
-	int i;
-
-	for ( i = 0; i < m_LocalizationFiles.Count(); i++ )
-	{
-		AddFile( filesystem, m_LocalizationFiles[i].String() );
-	}
+void CLocalizedStringTable::ReloadLocalizationFiles(IFileSystem* filesystem) {
+    const auto requests = State(this).requests;
+    for (const auto& request : requests) {
+        AddFile(filesystem, request.c_str());
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -245,7 +274,7 @@ void CLocalizedStringTable::ReloadLocalizationFiles( IFileSystem* filesystem )
 //-----------------------------------------------------------------------------
 const char* CLocalizedStringTable::GetLocalizationFileName( int index )
 {
-	return m_LocalizationFiles[index].String();
+    return index >= 0 && index < m_LocalizationFiles.Count() ? m_LocalizationFiles[index].String() : nullptr;
 }
 
 //-----------------------------------------------------------------------------
@@ -253,31 +282,18 @@ const char* CLocalizedStringTable::GetLocalizationFileName( int index )
 //-----------------------------------------------------------------------------
 const char* CLocalizedStringTable::GetFileNameByIndex( StringIndex_t index )
 {
-	return m_Lookup[index].filename.String();
+    return index != INVALID_LOCALIZE_STRING_INDEX && m_Lookup.IsValidIndex(index)
+        ? m_Lookup[index].filename.String() : nullptr;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: sets the value in the index
 //-----------------------------------------------------------------------------
-void CLocalizedStringTable::SetValueByIndex( StringIndex_t index, wchar_t* newValue )
-{
-	// get the existing string
-	localizedstring_t& lstr = m_Lookup[index];
-	wchar_t* wstr = &m_Values[lstr.valueIndex];
-	int newLen = (int)wcslen( newValue );
-	int oldLen = (int)wcslen( wstr );
-
-	if ( newLen > oldLen )
-	{
-		// it won't fit, so allocate new memory - this is wasteful, but only happens in edit mode
-		lstr.valueIndex = m_Values.AddMultipleToTail( newLen + 1 );
-		memcpy( &m_Values[lstr.valueIndex], newValue, ( newLen + 1 ) * sizeof( wchar_t ) );
-	}
-	else
-	{
-		// copy the string into the old position
-		wcscpy( wstr, newValue );
-	}
+void CLocalizedStringTable::SetValueByIndex(StringIndex_t index, wchar_t* value) {
+    const char* name = GetNameByIndex(index);
+    if (name && value) {
+        AddString(name, value, GetFileNameByIndex(index));
+    }
 }
 
 void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
@@ -406,7 +422,11 @@ void CLocalizedStringTable::ConstructString( wchar_t* unicodeOutput, int unicode
 //-----------------------------------------------------------------------------
 StringIndex_t CLocalizedStringTable::GetFirstStringIndex()
 {
-	return m_Lookup.FirstInorder();
+    StringIndex_t index = m_Lookup.FirstInorder();
+    while (index != INVALID_LOCALIZE_STRING_INDEX && State(this).active.count(index) == 0) {
+        index = m_Lookup.NextInorder(index);
+    }
+    return index;
 }
 
 //-----------------------------------------------------------------------------
@@ -414,6 +434,7 @@ StringIndex_t CLocalizedStringTable::GetFirstStringIndex()
 //-----------------------------------------------------------------------------
 void CLocalizedStringTable::RemoveAll()
 {
+    State(this) = LocalizationState{};
 	m_Lookup.RemoveAll();
 	m_Names.RemoveAll();
 	m_Values.RemoveAll();
@@ -429,7 +450,7 @@ StringIndex_t CLocalizedStringTable::FindIndex( const char* pName )
 
 	if ( !pName )
 	{
-		return 0;
+        return INVALID_LOCALIZE_STRING_INDEX;
 	}
 
 	// strip the pound character (which is used elsewhere to indicate that it's a string that should be translated)
@@ -445,12 +466,20 @@ StringIndex_t CLocalizedStringTable::FindIndex( const char* pName )
 	invalidItem.valueIndex = INVALID_LOCALIZE_STRING_INDEX;
 	invalidItem.filename = CUtlSymbol();
 
-	return m_Lookup.Find( invalidItem );
+    const StringIndex_t index = m_Lookup.Find(invalidItem);
+    return State(this).active.count(index) != 0 ? index : INVALID_LOCALIZE_STRING_INDEX;
 }
 
 StringIndex_t CLocalizedStringTable::GetNextStringIndex( StringIndex_t index )
 {
-	return m_Lookup.NextInorder( index );
+    if (index == INVALID_LOCALIZE_STRING_INDEX || !m_Lookup.IsValidIndex(index)) {
+        return INVALID_LOCALIZE_STRING_INDEX;
+    }
+    index = m_Lookup.NextInorder(index);
+    while (index != INVALID_LOCALIZE_STRING_INDEX && State(this).active.count(index) == 0) {
+        index = m_Lookup.NextInorder(index);
+    }
+    return index;
 }
 
 int CLocalizedStringTable::ConvertANSIToUnicode( const char* ansi, wchar_t* unicode,
@@ -745,64 +774,90 @@ bool CLocalizedStringTable::SaveToFile(IFileSystem* fileSystem, const char* szFi
     return success;
 }
 
-void CLocalizedStringTable::AddString( const char* pString, wchar_t* pValue, const char* fileName )
-{
-	int valueIndex;
-	StringIndex_t stridx;
-	localizedstring_t item;
+void CLocalizedStringTable::AddString(const char* name, wchar_t* value, const char* filename) {
+    if (!name || !value) {
+        return;
+    }
+    if (name[0] == '#') {
+        ++name;
+    }
+    auto& state = State(this);
+    localizedstring_t key{};
+    key.nameIndex = INVALID_LOCALIZE_STRING_INDEX;
+    g_LessCtx.m_pTable = this;
+    g_LessCtx.m_pUserString = name;
+    const StringIndex_t found = m_Lookup.Find(key);
+    if (!state.fileParsing && !state.committing) {
+        std::string canonical(name);
+        for (char& cell : canonical) {
+            if (cell >= 'A' && cell <= 'Z') {
+                constexpr char CaseOffset = 'a' - 'A';
+                cell += CaseOffset;
+            }
+        }
+        // This owner registers emergency English only when the token is absent.
+        // Other programmatic AddString/SetValue calls are explicit overrides.
+        const bool fillMissing = filename && std::strcmp(filename, "CSEServerBrowser") == 0;
+        state.programmatic[canonical] = ProgrammaticText{name, value, filename ? filename : "", fillMissing};
+    }
+    int valueIndex = 0;
+    const auto existing = state.values.find(value);
+    if (existing != state.values.end()) {
+        valueIndex = existing->second;
+    } else {
+        const std::size_t length = std::wcslen(value) + 1;
+        if (length > static_cast<std::size_t>(INT_MAX)) {
+            return;
+        }
+        valueIndex = m_Values.AddMultipleToTail(static_cast<int>(length));
+        std::memcpy(&m_Values[valueIndex], value, length * sizeof(wchar_t));
+        state.values.emplace(value, valueIndex);
+    }
+    if (found == INVALID_LOCALIZE_STRING_INDEX) {
+        const std::size_t length = std::strlen(name) + 1;
+        if (length > static_cast<std::size_t>(INT_MAX)) {
+            return;
+        }
+        localizedstring_t item{};
+        item.nameIndex = m_Names.AddMultipleToTail(static_cast<int>(length));
+        std::memcpy(&m_Names[item.nameIndex], name, length);
+        item.valueIndex = valueIndex;
+        item.filename = filename ? CUtlSymbol(filename) : m_CurrentFile;
+        state.active.insert(m_Lookup.Insert(item));
+        return;
+    }
+    if (m_bUseOnlyLongestLanguageString && !state.committing) {
+        wchar_t* oldValue = GetValueByIndex(found);
+        if (oldValue) {
+            int newWidth = 0;
+            int oldWidth = 0;
+            int height = 0;
+            g_pSurface->GetTextSize(1, value, newWidth, height);
+            g_pSurface->GetTextSize(1, oldValue, oldWidth, height);
+            if (newWidth < oldWidth) {
+                return;
+            }
+        }
+    }
+    m_Lookup[found].valueIndex = valueIndex;
+    m_Lookup[found].filename = filename ? CUtlSymbol(filename) : m_CurrentFile;
+    state.active.insert(found);
+}
 
-	if ( !pString )
-	{
-		return;
-	}
-
-	valueIndex = FindExistingValueIndex( pValue );
-	if ( valueIndex == -1 )
-	{
-		int len = (int)wcslen( pValue ) + 1;
-
-		valueIndex = m_Values.AddMultipleToTail( len );
-		memcpy( &m_Values[valueIndex], pValue, len * sizeof( wchar_t ) );
-	}
-
-	stridx = FindIndex( pString );
-	item.nameIndex = stridx;
-
-	if ( stridx == INVALID_LOCALIZE_STRING_INDEX )
-	{
-		int len = (int)strlen( pString ) + 1;
-
-		stridx = m_Names.AddMultipleToTail( len );
-		memcpy( &m_Names[stridx], pString, len );
-
-		item.nameIndex = stridx;
-		item.valueIndex = valueIndex;
-		item.filename = fileName ? CUtlSymbol( fileName ) : m_CurrentFile;
-		m_Lookup.Insert( item );
-		return;
-	}
-
-	if ( m_bUseOnlyLongestLanguageString )
-	{
-		wchar_t* oldValue;
-		int newWide;
-		int oldWide;
-		int tall;
-
-		oldValue = GetValueByIndex( stridx );
-		g_pSurface->GetTextSize( 1, pValue, newWide, tall );
-		g_pSurface->GetTextSize( 1, oldValue, oldWide, tall );
-
-		if ( newWide < oldWide )
-		{
-			return;
-		}
-	}
-
-	item.nameIndex = (StringIndex_t)( GetNameByIndex( stridx ) - &m_Names[0] );
-	item.valueIndex = valueIndex;
-	item.filename = fileName ? CUtlSymbol( fileName ) : m_CurrentFile;
-	m_Lookup[stridx] = item;
+void CLocalizedStringTable::CommitLanguageSnapshot(CLocalizedStringTable& prepared) {
+    auto& state = State(this);
+    state.active.clear();
+    state.committing = true;
+    for (StringIndex_t index = prepared.GetFirstStringIndex(); index != INVALID_LOCALIZE_STRING_INDEX;
+         index = prepared.GetNextStringIndex(index)) {
+        AddString(prepared.GetNameByIndex(index), prepared.GetValueByIndex(index), prepared.GetFileNameByIndex(index));
+    }
+    state.committing = false;
+    m_LocalizationFiles.RemoveAll();
+    for (int index = 0; index < prepared.GetLocalizationFileCount(); ++index) {
+        m_LocalizationFiles.AddToTail(CUtlSymbol(prepared.GetLocalizationFileName(index)));
+    }
+    DiscardFastValueLookup();
 }
 
 void CLocalizedStringTable::BuildFastValueLookup()
@@ -824,191 +879,96 @@ void CLocalizedStringTable::BuildFastValueLookup()
 	}
 }
 
-bool CLocalizedStringTable::AddFile( IFileSystem* fileSystem, const char* szFileName )
-{
-	char language[64];
-	char fileName[MAX_PATH];
-	const char* langptr;
-	FileHandle_t file;
-	unsigned int fileSize;
-	ucs2* data;
-	ucs2* start;
-	bool bEnglishFile;
-	bool bQuoted;
-	int state;
+namespace {
+enum class CatalogueLoad { Missing, Invalid, Ready };
 
-	enum
-	{
-		STATE_BASE,
-		STATE_TOKENS
-	};
+CatalogueLoad ReadCatalogue(IFileSystem* filesystem, const std::string& path,
+    cse::localization::Catalogue& catalogue) {
+    FileHandle_t file = filesystem->Open(path.c_str(), "rb", nullptr);
+    if (!file) {
+        return CatalogueLoad::Missing;
+    }
+    constexpr unsigned int MaximumCatalogueBytes = 32 * 1024 * 1024;
+    const unsigned int size = filesystem->Size(file);
+    if (size < 2 || size > MaximumCatalogueBytes) {
+        filesystem->Close(file);
+        return CatalogueLoad::Invalid;
+    }
+    std::vector<unsigned char> bytes(size);
+    const int read = filesystem->Read(bytes.data(), static_cast<int>(size), file);
+    filesystem->Close(file);
+    cse::localization::CatalogueParser parser;
+    return read == static_cast<int>(size) && parser.Parse(bytes, catalogue)
+        ? CatalogueLoad::Ready : CatalogueLoad::Invalid;
+}
 
-	memset( language, 0, sizeof( language ) );
-	strncpy( fileName, szFileName, sizeof( fileName ) );
+std::string CataloguePath(const std::string& request, const char* language) {
+    std::string path = request;
+    const auto marker = path.find(s_LanguageToken);
+    if (marker != std::string::npos) {
+        path.replace(marker, std::strlen(s_LanguageToken), language);
+    }
+    return path;
+}
+} // namespace
 
-	langptr = strstr( szFileName, s_LanguageToken );
-	if ( langptr )
-	{
-		int offs;
-		bool success;
-		const char* surfaceLanguage;
-
-		offs = (int)( langptr - szFileName );
-		strncpy( fileName, szFileName, offs );
-		fileName[offs] = 0;
-
-		if ( g_pSystem->CommandLineParamExists( "-all_languages" ) )
-		{
-			m_bUseOnlyLongestLanguageString = true;
-			return AddAllLanguageFiles( fileSystem, fileName );
-		}
-
-		Q_strncat( fileName, s_English, sizeof( fileName ), -1 );
-		Q_strncat( fileName, szFileName + offs + (int)strlen( s_LanguageToken ), sizeof( fileName ), -1 );
-
-		success = AddFile( fileSystem, fileName );
-		surfaceLanguage = g_pSurface->GetLanguage();
-		if ( surfaceLanguage && surfaceLanguage[0] )
-		{
-			strncpy( language, surfaceLanguage, sizeof( language ) );
-		}
-
-		if ( !language[0] )
-		{
-			if ( !g_pSystem->GetRegistryString( "HKEY_CURRENT_USER\\Software\\Valve\\Steam\\Language",
-				language, (int)sizeof( language ) - 1 ) )
-			{
-				return success;
-			}
-		}
-
-		if ( language[0] && strcasecmp( language, s_English ) != 0 )
-		{
-			bool added;
-
-			strncpy( fileName, szFileName, offs );
-			fileName[offs] = 0;
-			Q_strncat( fileName, language, sizeof( fileName ), -1 );
-			Q_strncat( fileName, szFileName + offs + (int)strlen( s_LanguageToken ), sizeof( fileName ), -1 );
-			added = AddFile( fileSystem, fileName );
-			success = success & added;
-		}
-
-		return success;
-	}
-
-	file = fileSystem->Open( fileName, "rb", NULL );
-	if ( !file )
-	{
-		g_pIVgui->DPrintf( "ILocalize::AddFile() failed to load file \"%s\".\n", szFileName );
-		return false;
-	}
-
-	m_CurrentFile = CUtlSymbol( fileName );
-	for ( int i = 0; i < m_LocalizationFiles.Count(); ++i )
-	{
-		if ( m_LocalizationFiles[i] == m_CurrentFile )
-		{
-			m_LocalizationFiles.Remove( i );
-			break;
-		}
-	}
-	m_LocalizationFiles.AddToTail( m_CurrentFile );
-
-	fileSize = fileSystem->Size( file );
-	data = (ucs2*)malloc( (size_t)fileSize + sizeof( ucs2 ) );
-	fileSystem->Read( data, (int)fileSize, file );
-	data[fileSize >> 1] = 0;
-
-	if ( *data != 0xFEFF )
-	{
-		fileSystem->Close( file );
-		free( data );
-		return false;
-	}
-
-	start = data + 1;
-	bEnglishFile = strstr( fileName, "_english.txt" ) != NULL;
-	g_pSystem->CommandLineParamExists( "-ccsyntax" );
-	BuildFastValueLookup();
-	state = STATE_BASE;
-
-	while ( 1 )
-	{
-		ucs2 keytoken[128];
-		ucs2 valuetoken[2048];
-		char key[128];
-		ucs2* pchNewdata;
-
-		pchNewdata = ReadUnicodeToken( start, keytoken, 128, bQuoted );
-		if ( !keytoken[0] )
-		{
-			break;	// we've hit the null terminator
-		}
-
-		Q_UCS2ToUTF8( keytoken, (int)( (char*)pchNewdata - (char*)start ), key, (int)sizeof( key ) );
-
-		if ( strncasecmp( key, "//", 2 ) == 0 )
-		{
-			start = ReadToEndOfLine( pchNewdata );
-			continue;
-		}
-
-		start = ReadUnicodeToken( pchNewdata, valuetoken, 2048, bQuoted );
-		if ( !valuetoken[0] && !bQuoted )
-		{
-			break;	// we've hit the null terminator
-		}
-
-		if ( state == STATE_BASE )
-		{
-			if ( strcasecmp( key, "Language" ) == 0 )
-			{
-				// copy out our language setting
-				char value[2048];
-
-				Q_UCS2ToUTF8( valuetoken, (int)sizeof( valuetoken ), value, (int)sizeof( value ) );
-				strncpy( m_szLanguage, value, sizeof( m_szLanguage ) - 1 );
-			}
-			else if ( strcasecmp( key, "Tokens" ) == 0 )
-			{
-				state = STATE_TOKENS;
-			}
-			else if ( strcasecmp( key, "}" ) == 0 )
-			{
-				break;
-			}
-		}
-		else if ( strcasecmp( key, "}" ) == 0 )
-		{
-			state = STATE_BASE;
-		}
-		else if ( bEnglishFile || strncasecmp( key, "[english]", 9 ) != 0 )
-		{
-			wchar_t fullString[2049];
-			int j;
-
-			for ( j = 0; j != 2048; ++j )
-			{
-				if ( valuetoken[j] == 0 )
-				{
-					break;
-				}
-
-				fullString[j] = valuetoken[j];
-			}
-
-			fullString[j] = 0;
-			// add the string to the table
-			AddString( key, fullString, NULL );
-		}
-	}
-
-	DiscardFastValueLookup();
-	fileSystem->Close( file );
-	free( data );
-	m_CurrentFile = UTL_INVAL_SYMBOL;
-	return true;
+bool CLocalizedStringTable::AddFile(IFileSystem* filesystem, const char* filename) {
+    if (!filesystem || !filename || !filename[0]) {
+        return false;
+    }
+    const std::string request(filename);
+    const bool logical = request.find(s_LanguageToken) != std::string::npos;
+    if (logical && g_pSystem && g_pSystem->CommandLineParamExists("-all_languages")) {
+        m_bUseOnlyLongestLanguageString = true;
+        return AddAllLanguageFiles(filesystem, request.substr(0, request.find(s_LanguageToken)).c_str());
+    }
+    using Loaded = std::pair<std::string, cse::localization::Catalogue>;
+    std::vector<Loaded> loaded;
+    const std::string baseline = logical ? CataloguePath(request, s_English) : request;
+    cse::localization::Catalogue catalogue;
+    if (ReadCatalogue(filesystem, baseline, catalogue) != CatalogueLoad::Ready) {
+        return false;
+    }
+    loaded.emplace_back(baseline, std::move(catalogue));
+    if (logical) {
+        const char* selected = g_pSurface ? g_pSurface->GetLanguage() : nullptr;
+        if (selected && selected[0] && std::strcmp(selected, s_English) != 0) {
+            const std::string overlay = CataloguePath(request, selected);
+            const CatalogueLoad status = ReadCatalogue(filesystem, overlay, catalogue);
+            if (status == CatalogueLoad::Invalid) {
+                return false;
+            }
+            if (status == CatalogueLoad::Ready) {
+                loaded.emplace_back(overlay, std::move(catalogue));
+            }
+        }
+    }
+    auto& state = State(this);
+    const bool previousParsing = state.fileParsing;
+    state.fileParsing = true;
+    for (auto& file : loaded) {
+        m_CurrentFile = CUtlSymbol(file.first.c_str());
+        const bool english = file.first.find("_english.txt") != std::string::npos;
+        for (auto& token : file.second.tokens) {
+            if (english || strncasecmp(token.first.c_str(), "[english]", 9) != 0) {
+                AddString(token.first.c_str(), const_cast<wchar_t*>(token.second.c_str()), file.first.c_str());
+            }
+        }
+        std::snprintf(m_szLanguage, sizeof(m_szLanguage), "%s", file.second.language.c_str());
+        bool registered = false;
+        for (int index = 0; index < m_LocalizationFiles.Count(); ++index) {
+            registered = registered || m_LocalizationFiles[index] == m_CurrentFile;
+        }
+        if (!registered) {
+            m_LocalizationFiles.AddToTail(m_CurrentFile);
+        }
+    }
+    state.fileParsing = previousParsing;
+    m_CurrentFile = UTL_INVAL_SYMBOL;
+    if (std::find(state.requests.begin(), state.requests.end(), request) == state.requests.end()) {
+        state.requests.push_back(request);
+    }
+    return true;
 }
 
 CLocalizedStringTable_VGUI_Localize002::~CLocalizedStringTable_VGUI_Localize002()
@@ -1107,3 +1067,141 @@ const char* CLocalizedStringTable_VGUI_Localize002::GetFileNameByIndex( OldStrin
 {
 	return g_StringTable.GetFileNameByIndex( index );
 }
+
+namespace {
+struct PreparedLocalization {
+    std::unique_ptr<CLocalizedStringTable> table;
+    std::string language;
+};
+PreparedLocalization& Prepared() {
+    static PreparedLocalization prepared;
+    return prepared;
+}
+std::uint64_t runtimeRevision = 0;
+cse::localization::FontResetCallback fontReset = nullptr;
+const cse::localization::FontBackend* boundFontBackend = nullptr;
+const cse::localization::FontBackend* SelectedFontBackend() {
+    return boundFontBackend ? boundFontBackend : cse::localization::LocalFontBackend();
+}
+
+bool SafeLanguage(const char* language) {
+    if (!language || !language[0]) {
+        return false;
+    }
+    constexpr std::size_t MaximumLanguageBytes = 31;
+    for (std::size_t index = 0; index <= MaximumLanguageBytes; ++index) {
+        const unsigned char cell = static_cast<unsigned char>(language[index]);
+        if (!cell) {
+            return true;
+        }
+        if ((cell < 'a' || cell > 'z') && (cell < '0' || cell > '9') && cell != '_') {
+            return false;
+        }
+    }
+    return false;
+}
+std::string ExpandedPath(const std::string& request, const char* language) {
+    std::string result = request;
+    constexpr char Marker[] = "%language%";
+    const auto position = result.find(Marker);
+    if (position != std::string::npos) {
+        result.replace(position, sizeof(Marker) - 1, language);
+    }
+    return result;
+}
+bool CSE_ABI_CALL PrepareLanguage(IFileSystem* filesystem, const char* language) {
+    Prepared() = PreparedLocalization{};
+    const auto* fonts = SelectedFontBackend();
+    fonts->Discard();
+    if (!filesystem || !SafeLanguage(language)) {
+        return false;
+    }
+    auto candidate = std::make_unique<CLocalizedStringTable>();
+    // Logical requests are copied because a module may add another catalogue later.
+    const auto requests = State(&g_StringTable).requests;
+    for (const auto& request : requests) {
+        const bool localized = request.find("%language%") != std::string::npos;
+        const std::string baseline = localized ? ExpandedPath(request, "english") : request;
+        if (!candidate->AddFile(filesystem, baseline.c_str())) {
+            return false;
+        }
+        if (localized && std::strcmp(language, "english") != 0) {
+            const std::string overlay = ExpandedPath(request, language);
+            if (filesystem->FileExists(overlay.c_str())) {
+                if (!candidate->AddFile(filesystem, overlay.c_str())) {
+                    return false;
+                }
+            }
+        }
+    }
+    for (const auto& pair : State(&g_StringTable).programmatic) {
+        if (!pair.second.fillMissing || !candidate->Find(pair.second.name.c_str())) {
+            candidate->AddString(pair.second.name.c_str(), const_cast<wchar_t*>(pair.second.value.c_str()),
+                pair.second.filename.c_str());
+        }
+    }
+    if (!fonts->Begin(language)) {
+        fonts->Discard();
+        return false;
+    }
+    const bool fontsReady = ::g_Scheme.PrepareLanguageFonts(language);
+    fonts->Finish();
+    if (!fontsReady) {
+        fonts->Discard();
+        return false;
+    }
+    Prepared().table = std::move(candidate);
+    Prepared().language = language;
+    return true;
+}
+void CSE_ABI_CALL CommitLanguage(std::uint64_t revision) {
+    auto& prepared = Prepared();
+    if (!prepared.table) {
+        return;
+    }
+    g_StringTable.CommitLanguageSnapshot(*prepared.table);
+    SelectedFontBackend()->Commit();
+    runtimeRevision = revision;
+    prepared = PreparedLocalization{};
+}
+void CSE_ABI_CALL DiscardPrepared() {
+    Prepared() = PreparedLocalization{};
+    SelectedFontBackend()->Discard();
+}
+std::uint64_t CSE_ABI_CALL RuntimeRevision() {
+    return runtimeRevision;
+}
+void CSE_ABI_CALL BindFontReset(cse::localization::FontResetCallback callback) {
+    fontReset = callback;
+}
+const cse::localization::FontBackend* CSE_ABI_CALL BindFontBackend(
+    const cse::localization::FontBackend* backend) {
+    if (backend && (backend->size < sizeof(cse::localization::FontBackend)
+        || backend->version != cse::localization::InterfaceVersion || !backend->Begin || !backend->Stage
+        || !backend->Finish || !backend->Commit || !backend->Discard)) {
+        return nullptr;
+    }
+    DiscardPrepared();
+    boundFontBackend = backend;
+    return SelectedFontBackend();
+}
+void* RuntimeFactory() {
+    static const cse::localization::RuntimeApi api{sizeof(cse::localization::RuntimeApi),
+        cse::localization::InterfaceVersion, PrepareLanguage, CommitLanguage, DiscardPrepared,
+        RuntimeRevision, BindFontReset, BindFontBackend};
+    return const_cast<cse::localization::RuntimeApi*>(&api);
+}
+}
+
+bool StageLocalizationFont(std::uint32_t font, const char* name, int tall, int weight,
+    int blur, int scanlines, int flags) {
+    return SelectedFontBackend()->Stage(font, name, tall, weight, blur, scanlines, flags);
+}
+void ResetLocalizationFont(std::uint32_t font) {
+    if (fontReset) {
+        fontReset(font);
+    } else {
+        FontManager().ResetFont(font);
+    }
+}
+EXPOSE_INTERFACE_FN(RuntimeFactory, CSEVGuiLocalization, cse::localization::RuntimeInterface);

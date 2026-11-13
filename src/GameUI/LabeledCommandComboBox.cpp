@@ -59,13 +59,6 @@ void CLabeledCommandComboBox::AddItem( const char* text, const char* engineComma
 	COMMANDITEM& item = m_Items[m_Items.AddToTail()];
 	item.comboBoxID = BaseClass::AddItem( text, NULL );
 	strcpy( item.name, text );
-	if ( text[0] == '#' )
-	{
-		// need to localize the string
-		wchar_t* localized = vgui2::localize()->Find( text );
-		if ( localized )
-			vgui2::localize()->ConvertUnicodeToANSI( localized, item.name, sizeof( item.name ) );
-	}
 
 	strcpy( item.command, engineCommand );
 }
@@ -90,7 +83,7 @@ void CLabeledCommandComboBox::OnTextChanged( const char* text )
 {
 	for ( int i = 0; i < m_Items.Size(); i++ )
 	{
-		if ( !stricmp( m_Items[i].name, text ) )
+		if (BaseClass::GetActiveItem() == m_Items[i].comboBoxID)
 		{
 			//	engine->pfnClientCmd( item->command );
 			m_iCurrentSelection = i;

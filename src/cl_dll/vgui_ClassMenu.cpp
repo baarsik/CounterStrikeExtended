@@ -79,7 +79,7 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 	int r, g, b, a;
 
 	// Create the title
-	Label *pLabel = new Label( "", CLASSMENU_TITLE_X, CLASSMENU_TITLE_Y );
+	LocalizedLabel *pLabel = new LocalizedLabel( "", CLASSMENU_TITLE_X, CLASSMENU_TITLE_Y );
 	pLabel->setParent( this );
 	pLabel->setFont( pSchemes->getFont(hTitleScheme) );
 	pSchemes->getFgColor( hTitleScheme, r, g, b, a );
@@ -88,6 +88,8 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 	pLabel->setBgColor( r, g, b, a );
 	pLabel->setContentAlignment( vgui::Label::a_west );
 	pLabel->setText(gHUD.m_TextMessage.BufferedLocaliseTextString("#Title_SelectYourClass"));
+
+    pLabel->BindLanguage("#Title_SelectYourClass", "Title Font");
 
 	// Create the Scroll panel
 	m_pScrollPanel = new CTFScrollPanel( CLASSMENU_WINDOW_X, CLASSMENU_WINDOW_Y, CLASSMENU_WINDOW_SIZE_X, CLASSMENU_WINDOW_SIZE_Y );
@@ -149,7 +151,7 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 		// Create the Class Name Label
 		sprintf(sz, "#Title_%s", sTFClassSelection[i]);
 		char* localName=CHudTextMessage::BufferedLocaliseTextString( sz );
-		Label *pNameLabel = new Label( "", textOffs, CLASSMENU_WINDOW_NAME_Y );
+		LocalizedLabel *pNameLabel = new LocalizedLabel( "", textOffs, CLASSMENU_WINDOW_NAME_Y );
 		pNameLabel->setFont( pSchemes->getFont(hTitleScheme) ); 
 		pNameLabel->setParent( m_pClassInfoPanel[i] );
 		pSchemes->getFgColor( hTitleScheme, r, g, b, a );
@@ -159,6 +161,8 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 		pNameLabel->setContentAlignment( vgui::Label::a_west );
 		//pNameLabel->setBorder(new LineBorder());
 		pNameLabel->setText( "%s", localName);
+
+        pNameLabel->BindLanguage(sz, "Title Font");
 
 		// Create the Class Image
 		if ( bShowClassGraphic )
@@ -210,13 +214,16 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 		}
 		
 		// Create the Text info window
-		TextPanel *pTextWindow = new TextPanel(cText, textOffs, CLASSMENU_WINDOW_TEXT_Y, (CLASSMENU_WINDOW_SIZE_X - textOffs)-5, CLASSMENU_WINDOW_SIZE_Y - CLASSMENU_WINDOW_TEXT_Y);
+		LocalizedTextPanel *pTextWindow = new LocalizedTextPanel(cText, textOffs, CLASSMENU_WINDOW_TEXT_Y, (CLASSMENU_WINDOW_SIZE_X - textOffs)-5, CLASSMENU_WINDOW_SIZE_Y - CLASSMENU_WINDOW_TEXT_Y);
 		pTextWindow->setParent( m_pClassInfoPanel[i] );
 		pTextWindow->setFont( pSchemes->getFont(hClassWindowText) );
 		pSchemes->getFgColor( hClassWindowText, r, g, b, a );
 		pTextWindow->setFgColor( r, g, b, a );
 		pSchemes->getBgColor( hClassWindowText, r, g, b, a );
 		pTextWindow->setBgColor( r, g, b, a );
+
+        pTextWindow->BindLanguage(nullptr, "Briefing Text");
+        pTextWindow->BindFile(sz, "Class Description not available.");
 
 		// Resize the Info panel to fit it all
 		int wide,tall;
@@ -247,6 +254,7 @@ CClassMenuPanel::CClassMenuPanel(int iTrans, int iRemoveMe, int x,int y,int wide
 #endif
 	// Create the Cancel button
 	m_pCancelButton = new CommandButton( gHUD.m_TextMessage.BufferedLocaliseTextString( "#Menu_Cancel" ), CLASSMENU_TOPLEFT_BUTTON_X, 0, CLASSMENU_BUTTON_SIZE_X, CLASSMENU_BUTTON_SIZE_Y);
+    m_pCancelButton->BindLanguageSource("#Menu_Cancel");
 	m_pCancelButton->setParent( this );
 	m_pCancelButton->addActionSignal( new CMenuHandler_TextWindow(HIDE_TEXTWINDOW) );
 
@@ -440,4 +448,21 @@ void CClassMenuPanel::SetActiveInfo( int iInput )
 
 	m_pScrollPanel->setScrollValue(0,0);
 	m_pScrollPanel->validate();
+}
+
+void CClassMenuPanel::RefreshLanguage() {
+    CHudTextMessage::LocaliseTextString("#Title_CurrentlyOnYourTeam", m_sPlayersOnTeamString,
+        sizeof(m_sPlayersOnTeamString));
+#ifdef _TFC
+    auto* schemes = gViewPort->GetSchemeManager();
+    for (int index = 0; index < PC_LASTCLASS; ++index) {
+        if (m_pPlayers[index]) {
+            m_pPlayers[index]->setFont(schemes->getFont(schemes->getSchemeHandle("Briefing Text")));
+        }
+        if (m_pButtons[index]) {
+            m_pButtons[index]->BindLanguageSource(sLocalisedClasses[index]);
+        }
+    }
+#endif
+    Update();
 }

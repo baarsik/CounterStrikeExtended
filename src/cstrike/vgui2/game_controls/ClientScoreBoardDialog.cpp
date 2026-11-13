@@ -10,6 +10,7 @@
 #include "SectionedListPanel.h"
 #include "ImageList.h"
 #include "Label.h"
+#include <vector>
 #include "vgui_controls/Controls.h"
 #include "vgui/IImage.h"
 #include "vgui/KeyValues.h"
@@ -143,7 +144,8 @@ bool CClientScoreBoardDialog::GetPlayerScoreInfo( int playerIndex, KeyValues* kv
 	kv->SetInt( "deaths", playerInfo.deaths );
 	kv->SetInt( "frags", playerInfo.frags );
 	kv->SetInt( "ping", playerInfo.ping );
-	kv->SetString( "name", playerInfo.name );
+	kv->SetInt("__cse_literal_name", 1);
+    kv->SetString( "name", playerInfo.name );
 	kv->SetInt( "playerIndex", playerIndex );
 
 //	kv->SetInt("voice",	s_VoiceImage[GetClientVoice()->GetSpeakerStatus( playerIndex - 1) ]);	
@@ -437,7 +439,8 @@ void CClientScoreBoardDialog::UpdatePlayerInfo()
 			CUtlVector<char> name;
 			name.AddMultipleToTail( size );
 			gViewPortInterface->MakeSafeName( oldName, name.Base(), size );
-			data->SetString( "name", name.Base() );
+			data->SetInt("__cse_literal_name", 1);
+            data->SetString( "name", name.Base() );
 			int item = FindItemIDForPlayerIndex( player );
 			if ( playerInfo.thisplayer )
 				selectedRow = item;
@@ -471,7 +474,13 @@ void CClientScoreBoardDialog::Update( const char* servername, bool, bool )
 	// Set the title
 	if ( servername )
 	{
-		SetControlString( "ServerName", servername );
+		std::vector<wchar_t> title(strlen(servername) + 1);
+        vgui2::localize()->ConvertANSIToUnicode(servername, title.data(),
+            static_cast<int>(title.size() * sizeof(wchar_t)));
+        auto* label = dynamic_cast<vgui2::Label*>(FindChildByName("ServerName", true));
+        if (label) {
+            label->SetText(title.data());
+        }
 		MoveLabelToFront( "ServerName" );
 	}
 	if ( IsVisible() )

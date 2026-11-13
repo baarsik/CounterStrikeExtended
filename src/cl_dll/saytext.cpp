@@ -19,6 +19,10 @@
 //
 
 #include "hud.h"
+#include "localization_client.h"
+#include "../common/legacy_text_encoding.h"
+#include <set>
+#include <vector>
 #include "cl_util.h"
 #include "parsemsg.h"
 
@@ -43,6 +47,7 @@ static float SCROLL_SPEED = 5;
 static char g_szLineBuffer[ MAX_LINES + 1 ][ MAX_CHARS_PER_LINE ];
 static float *g_pflNameColors[ MAX_LINES + 1 ];
 static int g_iNameLengths[ MAX_LINES + 1 ];
+static std::shared_ptr<HudTextSource> g_lineSources[MAX_LINES + 1];
 static float flScrollTime = 0;  // the time at which the lines next scroll up
 
 static int Y_START = 0;
@@ -72,6 +77,9 @@ void CHudSayText :: InitHUDData( void )
 	memset( g_szLineBuffer, 0, sizeof g_szLineBuffer );
 	memset( g_pflNameColors, 0, sizeof g_pflNameColors );
 	memset( g_iNameLengths, 0, sizeof g_iNameLengths );
+    for (auto& source : g_lineSources) {
+        source.reset();
+    }
 }
 
 int CHudSayText :: VidInit( void )
@@ -82,6 +90,13 @@ int CHudSayText :: VidInit( void )
 
 int ScrollTextUp( void )
 {
+    if (g_lineSources[0]) {
+        ++g_lineSources[0]->discardedLines;
+    }
+    for (int index = 0; index < MAX_LINES; ++index) {
+        g_lineSources[index] = std::move(g_lineSources[index + 1]);
+    }
+    g_lineSources[MAX_LINES].reset();
 	ConsolePrint( g_szLineBuffer[0] ); // move the first line into the console buffer
 	g_szLineBuffer[MAX_LINES][0] = 0;
 	memmove( g_szLineBuffer, g_szLineBuffer + 1, sizeof(g_szLineBuffer) - sizeof(g_szLineBuffer[0]) ); // overwrite the first line
@@ -184,7 +199,8 @@ int CHudSayText :: MsgFunc_SayText( const char *pszName, int iSize, void *pbuf )
 	return 1;
 }
 
-void CHudSayText :: SayTextPrint( const char *pszBuf, int iBufSize, int clientIndex )
+void CHudSayText::SayTextPrint(const char* pszBuf, int iBufSize, int clientIndex,
+    std::shared_ptr<HudTextSource> localization)
 {
 	if ( !pszBuf || iBufSize <= 0 )
 		return;
@@ -210,6 +226,7 @@ void CHudSayText :: SayTextPrint( const char *pszBuf, int iBufSize, int clientIn
 		i = MAX_LINES - 1;
 	}
 
+    g_lineSources[i] = std::move(localization);
 	g_iNameLengths[i] = 0;
 	g_pflNameColors[i] = NULL;
 
@@ -351,6 +368,7 @@ void CHudSayText :: EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 					}
 				}
 
+                g_lineSources[j] = g_lineSources[line];
 				*last_break = 0; // cut off the last string
 
 				EnsureTextFitsInOneLineAndWrapIfHaveTo( j );
@@ -358,4 +376,96 @@ void CHudSayText :: EnsureTextFitsInOneLineAndWrapIfHaveTo( int line )
 			}
 		}
 	}
+}
+
+namespace {
+std::vector<std::string> WrapLocalizedSayText(std::string remaining) {
+    std::vector<std::string> lines;
+    while (!remaining.empty()) {
+        std::size_t lastSpace = std::string::npos;
+        std::size_t boundary = remaining.size();
+        for (std::size_t offset = 0; offset < remaining.size();) {
+            const auto character = cse::legacy_text::detail::DecodeUtf8(
+                reinterpret_cast<const unsigned char*>(remaining.c_str() + offset));
+            const std::size_t next = offset + character.consumed;
+            if (remaining[offset] == ' ' && offset > 0) {
+                lastSpace = offset;
+            }
+            int wide = 0;
+            const std::string prefix = remaining.substr(0, next);
+            GetConsoleStringSize(prefix.c_str(), &wide, &line_height);
+            if (wide + LINE_START > MAX_LINE_WIDTH && offset > 0) {
+                boundary = lastSpace != std::string::npos ? lastSpace : offset;
+                if (boundary == 1 && remaining[0] == ' ') {
+                    boundary = next;
+                }
+                break;
+            }
+            offset = next;
+        }
+        lines.push_back(remaining.substr(0, boundary));
+        remaining.erase(0, boundary);
+        if (!remaining.empty() && remaining[0] != ' ') {
+            remaining.insert(remaining.begin(), ' ');
+        }
+    }
+    return lines;
+}
+}
+
+void CHudSayText::RefreshLanguage() {
+    struct DisplayLine {
+        std::string text;
+        std::shared_ptr<HudTextSource> source;
+        float* color;
+        int nameLength;
+    };
+    std::vector<DisplayLine> lines;
+    std::set<HudTextSource*> seen;
+    for (int index = 0; index < MAX_LINES; ++index) {
+        const auto& source = g_lineSources[index];
+        if (!g_szLineBuffer[index][0]) {
+            continue;
+        }
+        if (!source) {
+            lines.push_back({g_szLineBuffer[index], {}, g_pflNameColors[index], g_iNameLengths[index]});
+            continue;
+        }
+        if (!seen.insert(source.get()).second) {
+            continue;
+        }
+        const std::string translated = source->Render();
+        if (translated.empty()) {
+            for (int row = index; row < MAX_LINES && g_lineSources[row] == source; ++row) {
+                lines.push_back({g_szLineBuffer[row], source, g_pflNameColors[row], g_iNameLengths[row]});
+            }
+            continue;
+        }
+        const auto wrapped = WrapLocalizedSayText(translated);
+        for (std::size_t row = static_cast<std::size_t>(source->discardedLines); row < wrapped.size(); ++row) {
+            lines.push_back({wrapped[row], source, nullptr, 0});
+        }
+    }
+    const std::size_t first = lines.size() > MAX_LINES ? lines.size() - MAX_LINES : 0;
+    for (std::size_t index = 0; index < first; ++index) {
+        if (lines[index].source) {
+            ++lines[index].source->discardedLines;
+        }
+    }
+    for (int row = 0; row <= MAX_LINES; ++row) {
+        g_szLineBuffer[row][0] = 0;
+        g_pflNameColors[row] = nullptr;
+        g_iNameLengths[row] = 0;
+        g_lineSources[row].reset();
+        const std::size_t index = first + static_cast<std::size_t>(row);
+        if (row < MAX_LINES && index < lines.size()) {
+            strncpy(g_szLineBuffer[row], lines[index].text.c_str(), MAX_CHARS_PER_LINE - 1);
+            g_szLineBuffer[row][MAX_CHARS_PER_LINE - 1] = 0;
+            g_pflNameColors[row] = lines[index].color;
+            g_iNameLengths[row] = lines[index].nameLength;
+            g_lineSources[row] = lines[index].source;
+        }
+    }
+    // Reflow preserves flScrollTime, flags, sound and console history.
+    Y_START = ScreenHeight - 60 - line_height * (MAX_LINES + 2);
 }

@@ -126,7 +126,7 @@ void COptionsDialog::Run()
 // Purpose: Deletes the dialog on close
 //-----------------------------------------------------------------------------
 void COptionsDialog::OnClose() {
-    if (m_languageRestartPending) {
+    if (m_languageApplyPending) {
         return;
     }
     vgui2::Frame::OnClose();
@@ -188,35 +188,48 @@ void COptionsDialog::PerformLayout() {
 }
 
 void COptionsDialog::OnCommand(const char* command) {
-    if (m_languageRestartPending) {
+    if (m_languageApplyPending) {
         return;
     }
     const bool appliesChanges = stricmp(command, "Apply") == 0 || stricmp(command, "OK") == 0;
     if (appliesChanges) {
-        const bool languageChanged = m_interfacePage->HasLanguageChange();
         if (!m_interfacePage->ApplyLanguage()) {
             GetPropertySheet()->SetActivePage(m_interfacePage);
             EnableApplyButton(true);
             return;
         }
-        if (languageChanged) {
-            m_languageRestartPending = true;
-            // Keep this dialog alive for OK as well as Apply. PropertyDialog queues
-            // each page's changes; our later message runs after all of those pages.
+        if (m_interfacePage->IsLanguagePending()) {
+            m_languageApplyPending = true;
+            m_closeAfterLanguageApply = stricmp(command, "OK") == 0;
+            // Apply the other pages once. Keep this owner alive until the engine
+            // reports the transaction result, including when OK requested closure.
             vgui2::PropertyDialog::OnCommand("Apply");
             SetEnabled(false);
-            PostMessage(this, new KeyValues("RestartForLanguageChange"), 0.0f);
             return;
         }
     }
     vgui2::PropertyDialog::OnCommand(command);
 }
 
-void COptionsDialog::OnRestartForLanguageChange() {
-    if (!m_languageRestartPending) {
+void COptionsDialog::OnThink() {
+    vgui2::PropertyDialog::OnThink();
+    if (!m_languageApplyPending) {
         return;
     }
-    m_languageRestartPending = false;
-    char restartCommand[] = "_restart\n";
-    engine->pfnClientCmd(restartCommand);
+    bool applied = false;
+    if (!m_interfacePage->CompleteLanguageRequest(applied)) {
+        return;
+    }
+    m_languageApplyPending = false;
+    SetEnabled(true);
+    if (!applied) {
+        m_closeAfterLanguageApply = false;
+        GetPropertySheet()->SetActivePage(m_interfacePage);
+        EnableApplyButton(true);
+        return;
+    }
+    if (m_closeAfterLanguageApply) {
+        m_closeAfterLanguageApply = false;
+        OnClose();
+    }
 }

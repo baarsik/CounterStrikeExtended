@@ -1,3 +1,4 @@
+#include "vgui_language.h"
 // vgui_SpectatorPanel.h: interface for the SpectatorPanel class.
 //
 //////////////////////////////////////////////////////////////////////
@@ -37,7 +38,7 @@ using namespace vgui;
 
 #define TEAM_NUMBER 2
 
-class SpectatorPanel : public Panel //, public vgui::CDefaultInputSignal
+class SpectatorPanel : public Panel, public LanguageView //, public vgui::CDefaultInputSignal
 {
 
 public:
@@ -49,6 +50,7 @@ public:
 	// InputSignal overrides.
 public:
 	void Initialize();
+    void RefreshLanguage() override;
 	void Update();
 	
 

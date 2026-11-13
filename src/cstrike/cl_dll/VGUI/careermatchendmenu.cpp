@@ -256,3 +256,8 @@ void CCSCareerMatchEndMenu::OnCommand( const char* command )
 		g_pCareerUI->OnMatchEndMenuClose( strcmp( command, "career_restart" ) == 0 );
 	}
 }
+
+void CCSCareerMatchEndMenu::RefreshLanguage() {
+    const bool playingCT = !g_pCareerUI || g_pCareerUI->PlayAsCT();
+    PopulateWinsAndLosses(playingCT, m_pWinsLabel, m_pLossesLabel);
+}

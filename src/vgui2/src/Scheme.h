@@ -65,7 +65,7 @@ private:
 
 	void Shutdown( bool full );
 	void LoadFromFile( const char* inFilename, const char* inTag, KeyValues* inKeys );
-	void LoadFonts();
+	bool LoadFonts();
 	void LoadBorders();
 	vgui2::HFont FindFontInAliasList( const char* fontName );
 	const char* GetMungedFontName( const char* fontName, const char* scheme, bool proportional, bool bHDProportional );
@@ -82,6 +82,8 @@ public:
 
 	vgui2::HScheme LoadSchemeFromFile( const char* fileName, const char* tag ) override;
 	void ReloadSchemes() override;
+    void RefreshLanguageFonts();
+    bool PrepareLanguageFonts(const char* language);
 	vgui2::HScheme GetDefaultScheme() override;
 	vgui2::HScheme GetScheme( const char* tag ) override;
 

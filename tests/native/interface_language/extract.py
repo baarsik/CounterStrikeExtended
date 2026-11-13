@@ -23,6 +23,8 @@ def block(source, signature):
 
 
 parts = []
+if 'std::string FileSystem_ResolveInterfaceLanguage(' in fs:
+    parts.append(block(fs, 'std::string FileSystem_ResolveInterfaceLanguage('))
 if 'std::string FileSystem_GetInterfaceLanguage(' in fs:
     parts.append(block(fs, 'std::string FileSystem_GetInterfaceLanguage('))
 parts.extend(block(fs, signature) for signature in

@@ -1,3 +1,4 @@
+#include "localization_center_text.h"
 #include "screen.h"
 #include "vid.h"
 #include "r_local.h"
@@ -210,6 +211,11 @@ void SCR_EraseCenterString()
 	{
 		scr_erase_lines = 0;
 	}
+}
+
+bool SCR_ReplaceCenterText(const char* expectedText, const char* replacementText) {
+    return cse::localization::ReplaceCenterBuffer(scr_centerstring, scr_center_lines, scr_erase_lines,
+        scr_centertime_off > 0.0f || cl.intermission, expectedText, replacementText);
 }
 
 void SCR_DrawCenterString()

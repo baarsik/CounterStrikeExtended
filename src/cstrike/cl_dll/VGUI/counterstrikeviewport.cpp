@@ -18,6 +18,7 @@
 
 // client dll/engine defines
 #include "hud.h"
+#include "../../../public/localization_service.h"
 #include "../../../cl_dll/Exports.h"
 #include "counterstrikeviewport.h"
 #include "cstriketeammenu.h"
@@ -49,6 +50,37 @@
 #include <string.h>
 
 extern engine_studio_api_t IEngineStudio;
+
+namespace {
+const cse::localization::EngineApi* g_languageService = nullptr;
+std::uint64_t g_languageRevision = 0;
+CounterStrikeViewport* g_languageViewport = nullptr;
+}
+
+bool CS_HasLanguageService() {
+    return g_languageService != nullptr;
+}
+
+bool CS_IsCatalogueMessage(const client_textmessage_s* message) {
+    return message && g_languageService && g_languageService->IsCatalogueMessage(message);
+}
+
+void CS_ForgetLanguageService() {
+    g_languageViewport = nullptr;
+    g_languageService = nullptr;
+    g_languageRevision = 0;
+}
+
+void CS_CheckLanguageRevision() {
+    if (!g_languageService || !g_languageViewport) {
+        return;
+    }
+    const std::uint64_t revision = g_languageService->Revision();
+    if (revision != g_languageRevision) {
+        g_languageViewport->RefreshLanguage();
+        g_languageRevision = revision;
+    }
+}
 
 ICSViewPort* gCSViewPortInterface;
 ICSViewPortMsgs* gCSViewPortMsgs;
@@ -86,17 +118,21 @@ CounterStrikeViewport::CounterStrikeViewport()
 //-----------------------------------------------------------------------------
 CounterStrikeViewport::~CounterStrikeViewport()
 {
+    CS_ForgetLanguageService();
 }
 
 void CounterStrikeViewport::Initialize( CreateInterfaceFn* factories, int count )
 {
-	TeamFortressViewport::Initialize( factories, count );
+	g_languageService = count > 0 ? cse::localization::QueryEngine(factories[0]) : nullptr;
+    g_languageRevision = g_languageService ? g_languageService->Revision() : 0;
+    TeamFortressViewport::Initialize( factories, count );
 	vgui2::scheme()->LoadSchemeFromFile( "Resource/CareerClientScheme.res", "CareerClientScheme" );
 	g_pBaseUI = (IBaseUI*)factories[0]( "BaseUI001", NULL );
 }
 
 void CounterStrikeViewport::Start()
 {
+    g_languageViewport = this;
 	// construct our panels
 	m_pClassMenu = NULL;
 	m_pTeamMenu = new CCSTeamMenu( NULL );
@@ -129,6 +165,7 @@ void CounterStrikeViewport::Start()
 
 void CounterStrikeViewport::Shutdown()
 {
+    CS_ForgetLanguageService();
 }
 
 void CounterStrikeViewport::SetParent( vgui2::VPANEL parent )
@@ -695,3 +732,44 @@ Sets the location of the input for chat text
 
 	EXPOSE_SINGLE_INTERFACE(CounterStrikeViewport, IClientVGUI, CLIENTVGUI_INTERFACE_VERSION);
 */
+
+void CounterStrikeViewport::RefreshLanguage() {
+    if (!m_bInitialized) {
+        return;
+    }
+    gHUD.m_Message.RefreshLanguage();
+    gHUD.m_Menu.RefreshLanguage();
+    gHUD.m_StatusBar.RefreshLanguage();
+    gHUD.m_VGUI2Print.RefreshLanguage();
+    gHUD.m_SayText.RefreshLanguage();
+    TeamFortressViewport::RefreshLanguage();
+    if (m_pTeamMenu) {
+        m_pTeamMenu->RefreshLanguage();
+    }
+    if (m_pPrivateCSClientScoreBoard) {
+        m_pPrivateCSClientScoreBoard->RefreshLanguage();
+    }
+    if (m_pPrivateSpectatorGUI) {
+        m_pPrivateSpectatorGUI->RefreshLanguage();
+        UpdateSpectatorPanel();
+    }
+    if (m_pBuyMenu) {
+        m_pBuyMenu->RefreshLanguage();
+    }
+    CCareerBaseBox::RefreshOpenBoxLanguage();
+    if (m_pBuyPresetMainMenu) {
+        m_pBuyPresetMainMenu->RefreshLanguage();
+    }
+    if (m_pBuyPresetEditMenu) {
+        m_pBuyPresetEditMenu->RefreshLanguage();
+    }
+    if (m_pCareerRoundEndMenu) {
+        m_pCareerRoundEndMenu->RefreshLanguage();
+    }
+    if (m_pCareerMatchEndMenu) {
+        m_pCareerMatchEndMenu->RefreshLanguage();
+    }
+    for (int player = 1; player <= MAX_PLAYERS; ++player) {
+        GetClientVoiceHud()->UpdateLocation(player, g_PlayerExtraInfo[player].location);
+    }
+}

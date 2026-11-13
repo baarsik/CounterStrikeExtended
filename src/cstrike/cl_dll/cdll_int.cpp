@@ -292,7 +292,8 @@ extern "C" void EXPORT HUD_Init()
 
 extern "C" void EXPORT HUD_Shutdown()
 {
-	ShutdownInput();
+	CS_ForgetLanguageService();
+    ShutdownInput();
 	CL_UnloadParticleMan();
 	if ( g_hTrackerModule )
 		Sys_UnloadModule( g_hTrackerModule );
@@ -325,7 +326,8 @@ extern "C" int EXPORT HUD_UpdateClientData( client_data_t* data, float time )
 
 extern "C" void EXPORT HUD_Frame( double time )
 {
-	GetClientVoice()->Frame( time );
+	CS_CheckLanguageRevision();
+    GetClientVoice()->Frame( time );
 }
 
 extern "C" void EXPORT HUD_VoiceStatus( int entity, qboolean talking )

@@ -13,6 +13,7 @@ class Label;
 class CCSCareerRoundEndMenu : public CCSCareerBaseMenu
 {
 public:
+    void RefreshLanguage();
 	CCSCareerRoundEndMenu( vgui2::Panel* parent );
 	~CCSCareerRoundEndMenu() override;
 	void Update();

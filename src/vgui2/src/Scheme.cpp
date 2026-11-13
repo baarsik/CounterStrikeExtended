@@ -11,6 +11,7 @@
 //=============================================================================
 
 #include "Scheme.h"
+#include "RuntimeLocalization.h"
 #include "Bitmap.h"
 #include "Border.h"
 #include "IKeyValues.h"
@@ -24,11 +25,16 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <string>
 
 #include "buildslave_assert.h"
 #define ASSERT_FILE BUILDSLAVE_PATH( L"vgui2\\src\\Scheme.cpp" )
 
 using namespace vgui2;
+namespace {
+bool refreshingLanguageFonts = false;
+std::string preparingLanguage;
+}
 
 const char* CSchemeManager::s_pszSearchString = NULL;
 
@@ -555,7 +561,7 @@ int CScheme::GetAdjustedFontHeightForCurrentLanguage( int tall )
 	int adjusted;
 
 	language[0] = 0;
-	pchLang = g_pSurface->GetLanguage();
+	pchLang = preparingLanguage.empty() ? g_pSurface->GetLanguage() : preparingLanguage.c_str();
 
 	if ( pchLang && pchLang[0] )
 	{
@@ -596,14 +602,37 @@ int CScheme::GetAdjustedFontHeightForCurrentLanguage( int tall )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CScheme::LoadFonts()
+
+
+void CSchemeManager::RefreshLanguageFonts() {
+    refreshingLanguageFonts = true;
+    for (int index = 1; index < _scheme.Count(); ++index) {
+        _scheme[index]->LoadFonts();
+    }
+    refreshingLanguageFonts = false;
+}
+
+bool CSchemeManager::PrepareLanguageFonts(const char* language) {
+    const std::string previous = preparingLanguage;
+    preparingLanguage = language ? language : "";
+    bool complete = true;
+    for (int index = 1; index < _scheme.Count(); ++index) {
+        complete = _scheme[index]->LoadFonts() && complete;
+    }
+    preparingLanguage = previous;
+    return complete;
+}
+
+bool CScheme::LoadFonts()
 {
+    const bool preparing = !preparingLanguage.empty();
+    bool complete = true;
 	KeyValues* pCustom;
 	KeyValues* pFont;
 	int screenWide;
 	int screenTall;
 
-	for ( pCustom = data->FindKey( "CustomFontFiles", true )->GetFirstSubKey(); pCustom != NULL;
+	for ( pCustom = preparing ? nullptr : data->FindKey( "CustomFontFiles", true )->GetFirstSubKey(); pCustom != NULL;
 			pCustom = pCustom->GetNextKey() )
 	{
 		const char* fontFile = pCustom->GetString();
@@ -625,7 +654,15 @@ void CScheme::LoadFonts()
 			bool proportional = ( i == 1 );
 			bool bHDProportional = ( i == 2 );
 			const char* fontName = GetMungedFontName( pFont->GetName(), tag, proportional, bHDProportional ); // first time it adds a normal font, and then a proportional one
-			HFont font = g_pSurface->CreateFont();
+            HFont font = FindFontInAliasList(fontName);
+            const bool existingAlias = font != 0;
+            bool configured = existingAlias && !refreshingLanguageFonts && !preparing;
+            if (preparing && !existingAlias) {
+                continue;
+            }
+            if (!existingAlias) {
+                font = g_pSurface->CreateFont();
+            }
 			KeyValues* pGlyph;
 
 			for ( pGlyph = pFont->GetFirstSubKey(); pGlyph != NULL; pGlyph = pGlyph->GetNextKey() )
@@ -636,7 +673,6 @@ void CScheme::LoadFonts()
 				int tall;
 				int blur;
 				int scanlines;
-				int index;
 
 				sscanf( pGlyph->GetString( "yres", "" ), "%d %d", &fontYResMin, &fontYResMax );
 				if ( fontYResMin )
@@ -724,7 +760,14 @@ void CScheme::LoadFonts()
 					tall = GetAdjustedFontHeightForCurrentLanguage( tall );
 				}
 
-				g_pSurface->AddGlyphSetToFont(
+                if (!configured && preparing) {
+                    configured = StageLocalizationFont(font, pGlyph->GetString("name", ""), tall,
+                        pGlyph->GetInt("weight"), blur, scanlines, flags);
+                } else if (!configured) {
+                    if (existingAlias && refreshingLanguageFonts) {
+                        ResetLocalizationFont(font);
+                    }
+                    configured = g_pSurface->AddGlyphSetToFont(
 					font,
 					pGlyph->GetString( "name", "" ),
 					tall,
@@ -733,14 +776,21 @@ void CScheme::LoadFonts()
 					scanlines,
 					flags,
 					0,
-					0xFFFF );
-
-				index = _fontAliases.AddToTail();
-				strncpy( _fontAliases[index]._fontName, fontName, sizeof( _fontAliases[index]._fontName ) );
-				_fontAliases[index]._font = font;
-			}
-		}
-	}
+                        0xFFFF);
+                }
+            }
+            if (preparing && !configured) {
+                complete = false;
+            }
+            if (!existingAlias && configured) {
+                const int index = _fontAliases.AddToTail();
+                strncpy(_fontAliases[index]._fontName, fontName, sizeof(_fontAliases[index]._fontName));
+                _fontAliases[index]._fontName[sizeof(_fontAliases[index]._fontName) - 1] = '\0';
+                _fontAliases[index]._font = font;
+            }
+        }
+    }
+    return complete;
 }
 
 void CScheme::LoadBorders()

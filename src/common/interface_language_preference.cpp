@@ -50,5 +50,32 @@ std::string ReadSavedPreference() {
     return IsBundled(language) ? language : std::string{};
 }
 
+bool WriteSavedPreference(const char* preference) {
+    if (!preference) {
+        return false;
+    }
+    const std::string language = Normalize(preference);
+    if (preference[0] && !IsBundled(language)) {
+        return false;
+    }
+#if defined(_WIN32)
+    constexpr char RegistryPath[] = "Software\\CounterStrikeExtended\\Interface";
+    constexpr char RegistryValue[] = "Language";
+    HKEY key = nullptr;
+    if (RegCreateKeyExA(HKEY_CURRENT_USER, RegistryPath, 0, nullptr, 0, KEY_SET_VALUE, nullptr,
+        &key, nullptr) != ERROR_SUCCESS) {
+        return false;
+    }
+    const LONG status = RegSetValueExA(key, RegistryValue, 0, REG_SZ,
+        reinterpret_cast<const BYTE*>(language.c_str()), static_cast<DWORD>(language.size() + 1));
+    RegCloseKey(key);
+    return status == ERROR_SUCCESS;
+#elif defined(__APPLE__)
+    return mac_settings::WriteString(PreferenceKey, language.c_str());
+#else
+    return false;
+#endif
+}
+
 } // namespace interface_language
 } // namespace cse

@@ -1008,7 +1008,11 @@ void BaseUISurface::SetLanguage(const char* language) {
     static_assert(sizeof(m_szLanguage) == cse::interface_language::LanguageBufferBytes,
         "Interface language limit must match the surface field");
     const std::string selected = cse::interface_language::Resolve(nullptr, language);
+    if (std::strcmp(m_szLanguage, selected.c_str()) != 0) {
+        g_FontTextureCache.ClearForLanguage();
+    }
     std::memcpy(m_szLanguage, selected.c_str(), selected.size() + 1);
+    FontManager().SetLanguage(selected.c_str());
 }
 
 void BaseUISurface::SetSupportsEsc( bool state )

@@ -9,6 +9,7 @@ namespace vgui2 { class Button; class Label; class TextEntry; }
 class CBuyPresetEditMenu : public CCSCareerBaseMenu
 {
 public:
+    void RefreshLanguage();
 	CBuyPresetEditMenu( vgui2::Panel* parent );
 	~CBuyPresetEditMenu() override;
 	void Update();

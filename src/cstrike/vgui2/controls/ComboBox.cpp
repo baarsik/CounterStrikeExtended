@@ -1,3 +1,4 @@
+#include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -95,6 +96,7 @@ ComboBox::ComboBox( Panel* parent, const char* panelName, int numLines, bool all
 	m_bHighlight = false;
 	m_iDirection = DOWN;
 	m_iOpenOffsetY = 0;
+    cse::localization::RememberControl(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -102,6 +104,7 @@ ComboBox::ComboBox( Panel* parent, const char* panelName, int numLines, bool all
 //-----------------------------------------------------------------------------
 ComboBox::~ComboBox()
 {
+    cse::localization::ForgetControl(this);
 	delete m_pDropDown;
 	delete m_pButton;
 }
@@ -675,3 +678,32 @@ void ComboBox::OnKeyTyped( wchar_t character )
 	m_pDropDown->ActivateItem( selected );
 }
 }
+
+namespace vgui2 {
+void ComboBox::RefreshLanguageText() {
+    if (!cse::localization::ControlChanged(this) || IsEditable() || !m_pDropDown) {
+        return;
+    }
+    const int selected = m_pDropDown->GetActiveItem();
+    if (!m_pDropDown->IsValidMenuID(selected)) {
+        return;
+    }
+    MenuItem* item = m_pDropDown->GetMenuItem(selected);
+    if (!item) {
+        return;
+    }
+    constexpr int DisplayTextCells = 32767;
+    std::vector<wchar_t> rendered(DisplayTextCells, L'\0');
+    item->GetText(rendered.data(), DisplayTextCells);
+    // This setter is quiet. Activating the row or OnSetText would send
+    // TextChanged and make an unchanged selection look like a user edit.
+    TextEntry::SetText(rendered.data());
+    InvalidateLayout(false, false);
+    Repaint();
+}
+
+void ComboBox::OnThink() {
+    BaseClass::OnThink();
+    RefreshLanguageText();
+}
+} // namespace vgui2

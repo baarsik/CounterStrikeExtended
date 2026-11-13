@@ -11,6 +11,10 @@
 #include<VGUI_Label.h>
 #include<VGUI_Button.h>
 #include<VGUI_ActionSignal.h>
+#include <VGUI_App.h>
+#include <VGUI_Font.h>
+#include <algorithm>
+#include <array>
 
 #include "hud.h"
 #include "cl_util.h"
@@ -145,27 +149,21 @@ public:
 		ServerPlayers( 0 );
 	}
 
-	virtual int getRowCount()
-	{
-		int rowcount;
-		int height, width;
+    int getRowCount() override {
+        int width = 0;
+        int height = 0;
+        getSize(width, height);
+        return (std::max)(0, height) / (getCellTall(0) + CellGridPixels);
+    }
 
-		getSize( width, height );
+    int getCellTall(int) override {
+        const int fontHeight = App::getInstance()->getScheme()->getFont(Scheme::sf_primary2)->getTall();
+        constexpr int VerticalTextPadding = 2;
+        return (std::max)(static_cast<int>(CELL_HEIGHT) - CellGridPixels, fontHeight + VerticalTextPadding);
+    }
 
-		// Space for buttons
-		height -= YRES(20);
-		height = max( 0, height );
+    static constexpr int CellGridPixels = 2; // Retained TablePanel grid pitch.
 
-		rowcount = height / CELL_HEIGHT;
-
-		return rowcount;
-	}
-
-	virtual int getCellTall(int row)
-	{
-		return CELL_HEIGHT - 2;
-	}
-	
 	virtual Panel* getCellRenderer(int column,int row,bool columnSelected,bool rowSelected,bool cellSelected)
 	{
 		const char *info;
@@ -252,11 +250,13 @@ public:
 			{
 				if ( ServersIsQuerying() )
 				{
-					m_pLabel->setText( "Waiting for servers to respond..." );
+					const std::string status = LocalizeUi("#CSE_UI_Waiting", "Waiting for servers to respond...");
+                    m_pLabel->setText(static_cast<int>(status.size()) + 1, status.c_str());
 				}
 				else
 				{
-					m_pLabel->setText( "Press 'Refresh' to search for servers..." );
+					const std::string status = LocalizeUi("#CSE_UI_Searching", "Press Refresh to search for servers...");
+                    m_pLabel->setText(static_cast<int>(status.size()) + 1, status.c_str());
 				}
 			}
 			else
@@ -431,7 +431,7 @@ public:
 	virtual void keyFocusTicked(Panel* panel) {};
 };
 
-class CSBLabel : public Label
+class CSBLabel : public LocalizedLabel
 {
 
 private:
@@ -439,7 +439,7 @@ private:
 	ServerBrowserTablePanel *m_pBrowser;
 
 public:
-	CSBLabel( char *name, char *sortkey ) : Label( name )
+	CSBLabel( char *name, char *sortkey ) : LocalizedLabel( name )
 	{
 		m_pBrowser = NULL;
 
@@ -485,10 +485,15 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	CSBLabel *pLabel[5];
 	
 	pLabel[0] = new CSBLabel( "Address", "address" );
+    pLabel[0]->BindLanguage("#CSE_UI_Address", nullptr);
 	pLabel[1] = new CSBLabel( "Server", "hostname" );
+    pLabel[1]->BindLanguage("#CSE_UI_Server", nullptr);
 	pLabel[2] = new CSBLabel( "Map", "map" );
+    pLabel[2]->BindLanguage("#CSE_UI_Map", nullptr);
 	pLabel[3] = new CSBLabel( "Current", "current" );
+    pLabel[3]->BindLanguage("#CSE_UI_Current", nullptr);
 	pLabel[4] = new CSBLabel( "Latency", "ping" );
+    pLabel[4]->BindLanguage("#CSE_UI_Latency", nullptr);
 
 	for ( i = 0; i < 5; i++ )
 	{
@@ -522,12 +527,14 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	int btnx = 10;
 
 	_connectButton = new CommandButton( "Connect", btnx, by, bw, bh );
+    _connectButton->BindLanguageSource("#CSE_UI_Connect");
 	_connectButton->setParent( this );
 	_connectButton->addActionSignal( new ConnectHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 
 	btnx += bw;
 
 	_refreshButton = new CommandButton( "Refresh", btnx, by, bw, bh );
+    _refreshButton->BindLanguageSource("#CSE_UI_Refresh");
 	_refreshButton->setParent( this );
 	_refreshButton->addActionSignal( new RefreshHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 
@@ -535,6 +542,7 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	btnx += bw;
 
 	_broadcastRefreshButton = new CommandButton( "LAN", btnx, by, bw, bh );
+    _broadcastRefreshButton->BindLanguageSource("#CSE_UI_LAN");
 	_broadcastRefreshButton->setParent( this );
 	_broadcastRefreshButton->addActionSignal( new BroadcastRefreshHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 	*/
@@ -542,6 +550,7 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	btnx += bw;
 
 	_stopButton = new CommandButton( "Stop", btnx, by, bw, bh );
+    _stopButton->BindLanguageSource("#CSE_UI_Stop");
 	_stopButton->setParent( this );
 	_stopButton->addActionSignal( new StopHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 
@@ -549,12 +558,14 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	btnx += bw;
 
 	_pingButton = new CommandButton( "Test", btnx, by, bw, bh );
+    _pingButton->BindLanguageSource("#CSE_UI_Test");
 	_pingButton->setParent( this );
 	_pingButton->addActionSignal( new PingHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 	
 	btnx += bw;
 
 	_sortButton = new CommandButton( "Sort", btnx, by, bw, bh );
+    _sortButton->BindLanguageSource("#CSE_UI_Sort");
 	_sortButton->setParent( this );
 	_sortButton->addActionSignal( new SortHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
 	*/
@@ -562,8 +573,11 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 	btnx += bw;
 
 	_cancelButton = new CommandButton( "Close", btnx, by, bw, bh );
+    _cancelButton->BindLanguageSource("#CSE_UI_Close");
 	_cancelButton->setParent( this );
 	_cancelButton->addActionSignal( new CancelHandler(  (ServerBrowserTablePanel * )_tablePanel ) );
+
+    LayoutPresentation();
 
 	setPaintBorderEnabled(false);
 	setPaintBackgroundEnabled(false);
@@ -571,23 +585,64 @@ ServerBrowser::ServerBrowser(int x,int y,int wide,int tall) : CTransparentPanel(
 
 }
 
-void ServerBrowser::setSize(int wide,int tall)
-{
-	Panel::setSize(wide,tall);
+void ServerBrowser::setSize(int wide, int tall) {
+    Panel::setSize(wide, tall);
+    LayoutPresentation();
+}
 
-	_headerPanel->setBounds(0,0,wide,HEADER_SIZE_Y);
-	_tablePanel->setBounds(0,HEADER_SIZE_Y,wide,tall - HEADER_SIZE_Y);
-	
-	_connectButton->setBounds( 5, tall - HEADER_SIZE_Y, 75, 15 );
-	_refreshButton->setBounds( 85, tall - HEADER_SIZE_Y, 75, 15 );
-	/*
-	_broadcastRefreshButton->setBounds( 165, tall - HEADER_SIZE_Y, 75, 15 );
-	*/
-	_stopButton->setBounds( 165, tall - HEADER_SIZE_Y, 75, 15 );
-	/*
-	_pingButton->setBounds( 325, tall - HEADER_SIZE_Y, 75, 15 );
-	*/
-	_cancelButton->setBounds( 245, tall - HEADER_SIZE_Y, 75, 15 );
+void ServerBrowser::RefreshLanguage() {
+    // The parent registers before its children. Refresh these four captions
+    // before measuring; the normal child callbacks remain pure and idempotent.
+    for (CommandButton* button : {_connectButton, _refreshButton, _stopButton, _cancelButton}) {
+        button->RefreshLanguage();
+    }
+    LayoutPresentation();
+}
+
+void ServerBrowser::LayoutPresentation() {
+    constexpr int HorizontalTextPadding = 8;
+    constexpr int VerticalTextPadding = 4;
+    const int outerPadding = (std::max)(1, static_cast<int>(XRES(5)));
+    const int buttonGap = (std::max)(1, static_cast<int>(XRES(5)));
+    const int minimumButtonWidth = XRES(75);
+    int width = 0;
+    int height = 0;
+    getSize(width, height);
+    const int availableWidth = (std::max)(1, width - 2 * outerPadding);
+    std::array<CommandButton*, 4> buttons{{_connectButton, _refreshButton, _stopButton, _cancelButton}};
+    std::array<int, 4> widths{};
+    std::array<int, 4> columns{};
+    std::array<int, 4> rows{};
+    int rowHeight = YRES(15);
+    int row = 0;
+    int column = outerPadding;
+    for (std::size_t index = 0; index < buttons.size(); ++index) {
+        int textWidth = 0;
+        int textHeight = 0;
+        // Label's extent is measured from the actual selected font and the
+        // displayed CommandButton string, including its five-space prefix.
+        buttons[index]->getTextSize(textWidth, textHeight);
+        widths[index] = (std::min)(availableWidth,
+            (std::max)(minimumButtonWidth, textWidth + HorizontalTextPadding));
+        rowHeight = (std::max)(rowHeight, textHeight + VerticalTextPadding);
+        if (column > outerPadding && column + widths[index] > width - outerPadding) {
+            ++row;
+            column = outerPadding;
+        }
+        columns[index] = column;
+        rows[index] = row;
+        column += widths[index] + buttonGap;
+    }
+    const int headerHeight = static_cast<int>(HEADER_SIZE_Y);
+    const int footerHeight = (row + 1) * rowHeight + row * buttonGap;
+    const int footerTop = (std::max)(headerHeight, height - footerHeight - outerPadding);
+    for (std::size_t index = 0; index < buttons.size(); ++index) {
+        buttons[index]->setBounds(columns[index], footerTop + rows[index] * (rowHeight + buttonGap),
+            widths[index], rowHeight);
+    }
+    _headerPanel->setBounds(0, 0, width, headerHeight);
+    _tablePanel->setBounds(0, headerHeight, width,
+        (std::max)(0, footerTop - headerHeight - buttonGap));
 }
 
 void CBrowser_InputSignal::mousePressed(MouseCode code,Panel* panel)
@@ -601,7 +656,7 @@ void CBrowser_InputSignal::mousePressed(MouseCode code,Panel* panel)
 	panel->getApp()->getCursorPos(x,y);
 	panel->screenToLocal( x, y );
 
-	therow = y / CELL_HEIGHT;
+	therow = y / (m_pBrowser->getCellTall(0) + ServerBrowserTablePanel::CellGridPixels);
 	
 	// Figure out which row it's on
 	m_pBrowser->setMouseOverRow( therow );
@@ -618,7 +673,7 @@ void CBrowser_InputSignal::mouseDoublePressed(MouseCode code,Panel* panel)
 	panel->getApp()->getCursorPos(x,y);
 	panel->screenToLocal( x, y );
 
-	therow = y / CELL_HEIGHT;
+	therow = y / (m_pBrowser->getCellTall(0) + ServerBrowserTablePanel::CellGridPixels);
 	
 	// Figure out which row it's on
 	m_pBrowser->setMouseOverRow( therow );

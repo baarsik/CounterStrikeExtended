@@ -135,7 +135,7 @@ bool SymbolMap(FT_Face face, std::array<FT_UInt, kByteCount>& output) {
 }
 
 struct NativeFontFace::Impl {
-    std::vector<unsigned char> bytes;
+    std::shared_ptr<const std::vector<unsigned char>> bytes;
     FT_Library library = nullptr;
     FT_Face face = nullptr;
     long faceIndex = 0;
@@ -213,12 +213,38 @@ std::unique_ptr<NativeFontFace> NativeFontFace::CreateOwned(const void* bytes, s
     }
     result = Result::Unrepresentable;
     diagnostic = "font byte span exceeds the native FT/addressable range";
+    if (length > kMaximumOffset || length > static_cast<std::size_t>((std::numeric_limits<FT_Long>::max)())) {
+        return {};
+    }
+    const auto* first = static_cast<const unsigned char*>(bytes);
+    auto owned = std::make_shared<const std::vector<unsigned char>>(first, first + length);
+    return CreateShared(std::move(owned), faceIndex, expectedPostScriptName, request, result, nativeError, diagnostic);
+}
+
+std::unique_ptr<NativeFontFace> NativeFontFace::CreateShared(
+    std::shared_ptr<const std::vector<unsigned char>> bytes, long faceIndex,
+    const char* expectedPostScriptName, const FontRequest& request,
+    Result& result, int& nativeError, std::string& diagnostic) noexcept {
+    const std::size_t length = bytes ? bytes->size() : 0;
+    result = Result::InvalidArgument;
+    nativeError = 0;
+    diagnostic = "invalid owned font input/index/identity";
+    if (!bytes || length == 0 || faceIndex < 0 || faceIndex > kMaximumFaceIndex
+        || !expectedPostScriptName || !expectedPostScriptName[0]) {
+        return {};
+    }
+    result = Result::UnsupportedRequest;
+    diagnostic = "native face does not support this geometry/style/byte encoding";
+    if (!SupportedRequest(request)) {
+        return {};
+    }
+    result = Result::Unrepresentable;
+    diagnostic = "font byte span exceeds the native FT/addressable range";
     if (length > static_cast<std::size_t>((std::numeric_limits<FT_Long>::max)()) || length > kMaximumOffset) {
         return {};
     }
     std::unique_ptr<Impl> impl(new Impl);
-    const auto* first = static_cast<const unsigned char*>(bytes);
-    impl->bytes.assign(first, first + length);
+    impl->bytes = std::move(bytes);
     result = Result::NativeFailure;
     diagnostic = "FreeType library/profile initialization failed";
     nativeError = FT_Init_FreeType(&impl->library);
@@ -239,7 +265,7 @@ std::unique_ptr<NativeFontFace> NativeFontFace::CreateOwned(const void* bytes, s
     }
     result = Result::InvalidFont;
     diagnostic = "indexed memory face is invalid or does not match discovered PostScript identity";
-    nativeError = FT_New_Memory_Face(impl->library, impl->bytes.data(), static_cast<FT_Long>(length),
+    nativeError = FT_New_Memory_Face(impl->library, impl->bytes->data(), static_cast<FT_Long>(length),
         static_cast<FT_Long>(faceIndex), &impl->face);
     if (nativeError != 0) {
         return {};

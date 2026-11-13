@@ -16,10 +16,30 @@
 #include <clocale>
 #include <cstring>
 #include <cwctype>
+#include <map>
+#include <set>
+#include <memory>
+#include <string>
 
 #if defined( _WIN32 )
 #define strcasecmp _stricmp
 #endif
+
+namespace {
+struct FontPlan {
+    bool preparing = false;
+    std::string previousLanguage;
+    std::map<vgui2::HFont, std::unique_ptr<CFontAmalgam>> ranges;
+};
+std::map<const CFontManager*, FontPlan>& FontPlans() {
+    static std::map<const CFontManager*, FontPlan> plans;
+    return plans;
+}
+std::map<const CFontManager*, std::set<vgui2::HFont>>& FontResetIntents() {
+    static std::map<const CFontManager*, std::set<vgui2::HFont>> intents;
+    return intents;
+}
+} // namespace
 
 struct FallbackFont_t
 {
@@ -155,6 +175,9 @@ static CFontManager g_FontManager;
 #endif
 CFontManager::CFontManager()
 {
+    FontResetIntents();
+    FontPlans();
+    std::strcpy(m_szLanguage, "english");
 	// add a single empty font, to act as an invalid font handle 0
 	constexpr int INITIAL_FONT_CAPACITY = 100;
 	m_FontAmalgams.EnsureCapacity( INITIAL_FONT_CAPACITY );
@@ -179,6 +202,8 @@ CFontManager& FontManager()
 
 CFontManager::~CFontManager()
 {
+    DiscardLanguageFonts();
+    FontResetIntents().erase(this);
 	int index = 0;
 	int count = m_Win32Fonts.Count();
 	if ( count > 0 )
@@ -214,6 +239,8 @@ void CFontManager::SetLanguage( const char* language )
 
 void CFontManager::ClearAllFonts()
 {
+    DiscardLanguageFonts();
+    FontResetIntents().erase(this);
 	int index = 0;
 	int count = m_Win32Fonts.Count();
 	if ( count > 0 )
@@ -234,6 +261,67 @@ void CFontManager::ClearAllFonts()
 
 	for ( int amalgam = 0; amalgam < m_FontAmalgams.Count(); ++amalgam )
 		m_FontAmalgams[amalgam].RemoveAll();
+}
+
+void CFontManager::ResetFont(vgui2::HFont font) {
+    // Zero is the reserved invalid font. Compare unsigned bounds before the
+    // conversion to the legacy container's signed index.
+    if (font == 0 || font >= static_cast<vgui2::HFont>(m_FontAmalgams.Count())) {
+        return;
+    }
+    FontResetIntents()[this].insert(font);
+}
+
+bool CFontManager::BeginLanguageFonts(const char* language) {
+    DiscardLanguageFonts();
+    if (!language || std::strlen(language) >= sizeof(m_szLanguage)) {
+        return false;
+    }
+    auto& plan = FontPlans()[this];
+    plan.previousLanguage = m_szLanguage;
+    plan.preparing = true;
+    SetLanguage(language);
+    return true;
+}
+
+bool CFontManager::StageLanguageFont(vgui2::HFont font, const char* name, int tall,
+    int weight, int blur, int scanlines, int flags) {
+    const auto found = FontPlans().find(this);
+    if (found == FontPlans().end() || !found->second.preparing || font == 0
+        || font >= static_cast<vgui2::HFont>(m_FontAmalgams.Count())) {
+        return false;
+    }
+    auto prepared = std::make_unique<CFontAmalgam>();
+    if (!ConfigureGlyphRanges(*prepared, name, tall, weight, blur, scanlines, flags)) {
+        return false;
+    }
+    m_FontAmalgams[static_cast<int>(font)].ReserveReplacement(*prepared);
+    found->second.ranges[font] = std::move(prepared);
+    return true;
+}
+
+void CFontManager::FinishLanguageFonts() {
+    const auto found = FontPlans().find(this);
+    if (found != FontPlans().end() && found->second.preparing) {
+        SetLanguage(found->second.previousLanguage.c_str());
+        found->second.preparing = false;
+    }
+}
+
+void CFontManager::CommitLanguageFonts() {
+    const auto found = FontPlans().find(this);
+    if (found == FontPlans().end()) {
+        return;
+    }
+    for (const auto& item : found->second.ranges) {
+        m_FontAmalgams[static_cast<int>(item.first)].ReplaceRangesFrom(*item.second);
+    }
+    FontPlans().erase(found);
+}
+
+void CFontManager::DiscardLanguageFonts() {
+    FinishLanguageFonts();
+    FontPlans().erase(this);
 }
 
 vgui2::HFont CFontManager::CreateFont()
@@ -282,19 +370,36 @@ CLinuxFont* CFontManager::CreateOrFindWin32Font(
 	return m_Win32Fonts[createdIndex];
 }
 
-bool CFontManager::AddGlyphSetToFont(
-	vgui2::HFont font, const char* name, int tall, int weight, int blur, int scanlines, int flags )
-{
-	if ( m_FontAmalgams[font].GetCount() > 0 )
-		return false;
+bool CFontManager::AddGlyphSetToFont(vgui2::HFont font, const char* name, int tall,
+    int weight, int blur, int scanlines, int flags) {
+    if (font == 0 || font >= static_cast<vgui2::HFont>(m_FontAmalgams.Count())) {
+        return false;
+    }
+    const bool replacing = FontResetIntents()[this].erase(font) != 0;
+    CFontAmalgam& current = m_FontAmalgams[static_cast<int>(font)];
+    if (!replacing && current.GetCount() > 0) {
+        return false;
+    }
+    CFontAmalgam prepared;
+    CFontAmalgam& target = replacing ? prepared : current;
+    if (!ConfigureGlyphRanges(target, name, tall, weight, blur, scanlines, flags)) {
+        return false;
+    }
+    if (replacing) {
+        current.ReplaceRangesFrom(prepared);
+    }
+    return true;
+}
 
+bool CFontManager::ConfigureGlyphRanges(CFontAmalgam& target, const char* name, int tall,
+    int weight, int blur, int scanlines, int flags) {
 #if defined(__APPLE__)
     CLinuxFont* primary = CreateOrFindWin32Font(name, tall, weight, blur, scanlines, flags);
     if (!primary) {
         return false;
     }
     constexpr int maxUnicodeScalar = 0x10ffff;
-    m_FontAmalgams[font].AddFont(primary, 0, maxUnicodeScalar);
+    target.AddFont(primary, 0, maxUnicodeScalar);
     return true;
 #else
 	const char* fontName = name;
@@ -317,7 +422,7 @@ bool CFontManager::AddGlyphSetToFont(
 		{
 			if ( primary != nullptr )
 			{
-				m_FontAmalgams[font].AddFont( primary, 0, 0xFFFF );
+				target.AddFont( primary, 0, 0xFFFF );
 				return true;
 			}
 		}
@@ -326,13 +431,13 @@ bool CFontManager::AddGlyphSetToFont(
 			CLinuxFont* fallback = CreateOrFindWin32Font( foreignFallback, tall, weight, blur, scanlines, flags );
 			if ( fallback != nullptr )
 			{
-				m_FontAmalgams[font].AddFont( fallback, 0, 0xFFFF );
+				target.AddFont( fallback, 0, 0xFFFF );
 				return true;
 			}
 		}
 		else if ( strcasecmp( foreignFallback, fontName ) == 0 )
 		{
-			m_FontAmalgams[font].AddFont( primary, 0, 0xFFFF );
+			target.AddFont( primary, 0, 0xFFFF );
 			return true;
 		}
 		else
@@ -340,8 +445,8 @@ bool CFontManager::AddGlyphSetToFont(
 			CLinuxFont* fallback = CreateOrFindWin32Font( foreignFallback, tall, weight, blur, scanlines, flags );
 			if ( fallback != nullptr )
 			{
-				m_FontAmalgams[font].AddFont( primary, 0, 255 );
-				m_FontAmalgams[font].AddFont( fallback, 256, 0xFFFF );
+				target.AddFont( primary, 0, 255 );
+				target.AddFont( fallback, 256, 0xFFFF );
 				return true;
 			}
 		}

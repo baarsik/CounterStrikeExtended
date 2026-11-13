@@ -132,6 +132,7 @@ public:
 
 protected:
 	void PerformLayout() override;
+    void OnThink() override;
 	virtual wchar_t CalculateHotkey( const char* text );
 	virtual wchar_t CalculateHotkey( const wchar_t* text );
 	virtual void ComputeAlignment( int& textWidth, int& textHeight, int& x, int& y );

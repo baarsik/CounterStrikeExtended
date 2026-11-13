@@ -18,6 +18,7 @@
 #include "keydefs.h"
 #include "vgui/Cursor.h"
 #include "vgui/ISystem.h"
+#include "vgui/ILocalize.h"
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
 #include "wrect.h"
@@ -611,7 +612,11 @@ void COptionsSubKeyboard::FillInDefaultBindings()
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
-void COptionsSubKeyboard::ParseActionDescriptions()
+void COptionsSubKeyboard::RefreshLanguagePresentation() {
+    ParseActionDescriptions(true);
+}
+
+void COptionsSubKeyboard::ParseActionDescriptions(bool presentationOnly)
 {
 	char filename[KEYBIND_PATH_MAX];
 	sprintf( filename, "%s/kb_act.lst", "gfx/shell" );
@@ -643,6 +648,13 @@ void COptionsSubKeyboard::ParseActionDescriptions()
 		if ( !stricmp( binding, "blank" ) )
 		{
 			section++;
+            if (presentationOnly) {
+                wchar_t wideDescription[256] = {};
+                vgui2::localize()->ConvertANSIToUnicode(description, wideDescription, sizeof(wideDescription));
+                m_pKeyBindList->ModifyColumn(section, "Action", wideDescription,
+                    m_pKeyBindList->GetColumnWidthBySection(section, 0));
+                continue;
+            }
 			m_pKeyBindList->AddSection( section, description, NULL );
 			m_pKeyBindList->AddColumnToSection( section, "Action", description,
 				vgui2::SectionedListPanel::COLUMN_BRIGHT, GetProportionalScaledValue( 226 ), 0 );
@@ -653,6 +665,19 @@ void COptionsSubKeyboard::ParseActionDescriptions()
 		}
 		else
 		{
+            if (presentationOnly) {
+                if (KeyValues* item = GetItemForBinding(binding)) {
+                    item->SetString("Action", description);
+                    for (int row = 0; row < m_pKeyBindList->GetItemCount(); ++row) {
+                        const int id = m_pKeyBindList->GetItemIDFromRow(row);
+                        if (m_pKeyBindList->GetItemData(id) == item) {
+                            m_pKeyBindList->InvalidateItem(id);
+                            break;
+                        }
+                    }
+                }
+                continue;
+            }
 			KeyValues* item = new KeyValues( "Item" );
 			// fill in data
 			item->SetString( "Action", description );

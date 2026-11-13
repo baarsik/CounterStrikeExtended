@@ -361,7 +361,7 @@ void CCareerProfileFrame::OnCommand( const char* command )
 		CCareerQueryBox* box = new CCareerQueryBox( vgui2::localize()->Find( "#Career_DeleteProfileTitle" ),
 			text, "CareerBoxDelete", this );
 		box->SetCancelButtonAsDefault();
-		box->SetLabelText( text );
+        box->SetLocalizedLabelText("#Career_DeleteProfileText", name);
 		box->AddActionSignalTarget( this );
 		box->ShowWindow();
 	}
@@ -409,4 +409,16 @@ void CCareerProfileFrame::OnKeyCodeTyped( vgui2::KeyCode code )
 		CCareerBaseFrame::OnKeyCodeTyped( vgui2::KEY_SPACE );
 	else
 		CCareerBaseFrame::OnKeyCodeTyped( code );
+}
+
+void CCareerProfileFrame::RefreshLanguagePresentation() {
+    CareerDefinition* active = TheCareerDefinitions->GetActiveCareerDefinition();
+    if (!active) {
+        return;
+    }
+    wchar_t author[256] = {};
+    wchar_t* format = vgui2::localize()->Find("#Career_MissionPackAuthor");
+    vgui2::localize()->ConstructString(author, sizeof(author), format ? format : (wchar_t*)L"%s1",
+        1, active->GetAuthor());
+    m_pMissionPackAuthor->SetText(author);
 }

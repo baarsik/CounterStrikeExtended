@@ -19,6 +19,7 @@
 #include "hud.h"
 #include "vgui_SchemeManager.h"
 #include "cvardef.h"
+#include "../cl_dll/localization_client.h"
 
 #include <string.h>
 
@@ -162,8 +163,13 @@ static void ParseRGBAFromString( byte colorArray[4], const char *colorVector )
 // Input  : xRes - 
 //			yRes - dimensions of output window
 //-----------------------------------------------------------------------------
-CSchemeManager::CSchemeManager( int xRes, int yRes )
-{
+CSchemeManager::CSchemeManager(int xRes, int yRes) {
+    const auto* engine = GetLocalizationEngine();
+    m_language = engine ? engine->Language() : "";
+    Load(xRes);
+}
+
+void CSchemeManager::Load(int xRes) {
 	// basic setup
 	m_pSchemeList = NULL;
 	m_iNumSchemes = 0;
@@ -433,6 +439,10 @@ buildDefaultFont:
 				false, 
 				false);
 			
+            if (pFontData) {
+                gEngfuncs.COM_FreeFile(pFontData);
+            }
+
 			m_pSchemeList[i].ownFontPointer = true;
 		}
 
@@ -449,10 +459,30 @@ buildDefaultFont:
 //-----------------------------------------------------------------------------
 // Purpose: frees all the memory used by the scheme manager
 //-----------------------------------------------------------------------------
-CSchemeManager::~CSchemeManager()
-{
-	delete [] m_pSchemeList;
-	m_iNumSchemes = 0;
+CSchemeManager::~CSchemeManager() {
+    delete[] m_pSchemeList;
+    for (const auto& cached : m_languageSchemes) {
+        if (cached.second.first != m_pSchemeList) {
+            delete[] cached.second.first;
+        }
+    }
+}
+
+void CSchemeManager::ReloadLanguage(const char* language) {
+    const std::string requested = language ? language : "";
+    if (requested == m_language) {
+        return;
+    }
+    // One generation per bundled locale keeps old Font pointers valid during rebind.
+    m_languageSchemes[m_language] = {m_pSchemeList, m_iNumSchemes};
+    const auto cached = m_languageSchemes.find(requested);
+    if (cached != m_languageSchemes.end()) {
+        m_pSchemeList = cached->second.first;
+        m_iNumSchemes = cached->second.second;
+    } else {
+        Load(m_xRes);
+    }
+    m_language = requested;
 }
 
 //-----------------------------------------------------------------------------

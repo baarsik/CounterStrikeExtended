@@ -14,3 +14,10 @@ client_textmessage_t*	TextMessageGet( const char* name );
 int						TextMessageDrawCharacter( int x, int y, int number, int red, int green, int blue );
 char*					memfgets( byte* file, int fileSize, int* position, char* buffer, int bufferSize );
 void					TrimSpace( const char* source, char* destination );
+
+class IFileSystem;
+bool TextMessagePrepareLanguage(IFileSystem* candidate, IFileSystem* baseline);
+void TextMessageCommitLanguage();
+void TextMessageDiscardLanguage();
+bool TextMessageIsCatalogue(const client_textmessage_t* message);
+void TextMessageRetireLanguageTables();

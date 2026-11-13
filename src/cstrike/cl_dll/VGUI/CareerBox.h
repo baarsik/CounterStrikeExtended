@@ -38,6 +38,7 @@ public:
 	void ActivateBuildMode() override;
 	void SetAutoClose( bool autoClose ) { m_shouldAutoClose = autoClose; }
 	void FriendLoadResources( const char* resourceName );
+	static void RefreshOpenBoxLanguage();
 	static bool IsBoxOpen() { return s_currentBox != NULL; }
 
 protected:
@@ -73,6 +74,7 @@ class CEquipmentSelectBox : public CBaseSelectBox
 {
 public:
 	CEquipmentSelectBox( vgui2::Panel* parent, WeaponSet* weaponSet );
+    void RefreshLanguage();
 	void OnControlChanged() override;
 private:
 	void OnCommand( const char* command ) override;
@@ -117,6 +119,7 @@ public:
 	~CWeaponSelectBox() override;
 	void ActivateBuildMode() override;
 	void UpdateClips();
+    void RefreshLanguage();
 protected:
 	void OnCommand( const char* command ) override;
 	void ApplySchemeSettings( vgui2::IScheme* scheme ) override;

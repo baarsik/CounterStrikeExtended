@@ -34,19 +34,7 @@ CPlayerListDialog::CPlayerListDialog( vgui2::Panel* parent )
 	SetMinimumSize( GetProportionalScaledValue( 300 ), GetProportionalScaledValue( 240 ) );
 	SetSize( GetProportionalScaledValue( 320 ), GetProportionalScaledValue( 240 ) );
 
-	if ( GameClientExports() )
-	{
-		wchar_t hostname[128];
-		wchar_t title[256];
-		vgui2::localize()->ConvertANSIToUnicode( GameClientExports()->GetServerHostName(), hostname, sizeof( hostname ) );
-		vgui2::localize()->ConstructString( title, sizeof( title ),
-			vgui2::localize()->Find( "#GameUI_PlayerListDialogTitle" ), 1, hostname );
-		SetTitle( title, true );
-	}
-	else
-	{
-		SetTitle( "#GameUI_CurrentPlayers", true );
-	}
+    RefreshLanguagePresentation();
 
 	m_pMuteButton = new vgui2::Button( this, "MuteButton", "" );
 	m_pPlayerList = new vgui2::ListPanel( this, "PlayerList" );
@@ -54,6 +42,23 @@ CPlayerListDialog::CPlayerListDialog( vgui2::Panel* parent )
 	m_pPlayerList->AddColumnHeader( 1, "Properties", "#GameUI_Properties", GetProportionalScaledValue( 80 ), 0 );
 	m_pPlayerList->SetEmptyListText( "#GameUI_NoOtherPlayersInGame" );
 	LoadControlSettings( "Resource/PlayerListDialog.res", NULL );
+}
+
+void CPlayerListDialog::RefreshLanguagePresentation() {
+    if ( GameClientExports() )
+    {
+        wchar_t hostname[128];
+        wchar_t title[256];
+        vgui2::localize()->ConvertANSIToUnicode( GameClientExports()->GetServerHostName(), hostname, sizeof( hostname ) );
+        vgui2::localize()->ConstructString( title, sizeof( title ),
+            vgui2::localize()->Find( "#GameUI_PlayerListDialogTitle" ), 1, hostname );
+        SetTitle( title, true );
+    }
+    else
+    {
+        SetTitle( "#GameUI_CurrentPlayers", true );
+    }
+
 }
 
 //-----------------------------------------------------------------------------
@@ -85,6 +90,7 @@ void CPlayerListDialog::Activate()
 			continue;
 
 		player->SetString( "Name", playerName );
+        player->SetInt("__cse_literal_Name", 1);
 		player->SetInt( "index", playerIndex );
 		// add to the list
 		m_pPlayerList->AddItem( player, 0, false, false );

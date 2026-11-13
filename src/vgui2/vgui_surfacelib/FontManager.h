@@ -24,6 +24,13 @@ public:
 
 	void SetLanguage( const char* language );
 	void ClearAllFonts();
+    void ResetFont(vgui2::HFont font);
+    bool BeginLanguageFonts(const char* language);
+    bool StageLanguageFont(vgui2::HFont font, const char* name, int tall, int weight,
+        int blur, int scanlines, int flags);
+    void FinishLanguageFonts();
+    void CommitLanguageFonts();
+    void DiscardLanguageFonts();
 
 	vgui2::HFont CreateFont();
 	bool AddGlyphSetToFont( vgui2::HFont font, const char* name, int tall, int weight, int blur, int scanlines,
@@ -47,6 +54,8 @@ public:
 	const char* GetForeignFallbackFontName();
 
 private:
+    bool ConfigureGlyphRanges(CFontAmalgam& target, const char* name, int tall, int weight,
+        int blur, int scanlines, int flags);
 	CUtlVector<CFontAmalgam>	m_FontAmalgams;
 	CUtlVector<CLinuxFont*>		m_Win32Fonts;
 	char						m_szLanguage[64];

@@ -1635,3 +1635,15 @@ void CTaskbar::ShutdownDemoPlayer() {
     m_hDemoPlayerDialog = nullptr;
 }
 #endif
+
+void CTaskbar::RefreshLanguagePresentation() {
+    const auto refresh = [this](vgui2::PHandle& handle, const char* token) {
+        if (vgui2::Panel* panel = handle.Get()) {
+            if (wchar_t* title = vgui2::localize()->Find(token)) {
+                SetTitle(panel->GetVPanel(), title);
+            }
+        }
+    };
+    refresh(m_hOptionsDialog, "#GameUI_Options");
+    refresh(m_hCreateMultiplayerGameDialog, "#GameUI_CreateServer");
+}

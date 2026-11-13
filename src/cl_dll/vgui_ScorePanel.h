@@ -1,3 +1,4 @@
+#include "vgui_language.h"
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -231,7 +232,7 @@ class ScoreTablePanel;
 //-----------------------------------------------------------------------------
 // Purpose: Scoreboard back panel
 //-----------------------------------------------------------------------------
-class ScorePanel : public Panel, public vgui::CDefaultInputSignal
+class ScorePanel : public Panel, public LanguageView, public vgui::CDefaultInputSignal
 {
 private:
 	// Default panel implementation doesn't forward mouse messages when there is no cursor and we need them.
@@ -296,6 +297,7 @@ public:
 	void DeathMsg( int killer, int victim );
 
 	void Initialize( void );
+    void RefreshLanguage() override;
 
 	void Open( void );
 

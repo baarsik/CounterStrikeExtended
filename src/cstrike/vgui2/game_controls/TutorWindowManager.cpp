@@ -158,3 +158,24 @@ void TutorWindowManager::InsertPlayerNames( wchar_t* string, int stringLength )
 		}
 	}
 }
+
+void TutorWindowManager::RefreshLanguage() {
+    if (m_currentWindow) {
+        m_currentWindow->RefreshLanguage();
+    }
+    if (m_currentStateWindow) {
+        m_currentStateWindow->RefreshLanguage();
+    }
+}
+
+void TutorWindowManager::RefreshText(const wchar_t* text) {
+    if (m_currentWindow) {
+        m_currentWindow->ReplaceText(text);
+    }
+}
+
+void TutorWindowManager::RefreshState(const wchar_t* text) {
+    if (m_currentStateWindow) {
+        m_currentStateWindow->ReplaceText(text);
+    }
+}

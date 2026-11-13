@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "basefilesystem.h"
+#include "localized_filesystem.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -258,6 +259,7 @@ void CBaseFileSystem::AddSearchPathInternal( const char* pPath, const char* path
 	int newIndex = m_SearchPaths.AddToTail();
 	CSearchPath* sp = &m_SearchPaths[newIndex];
 	sp->m_bAllowWrite = bAllowWrite;
+    sp->m_localizationGroup = cse::localized_filesystem::CurrentGroup();
 	sp->m_Path = pathSymbol;
 	sp->m_PathID = pathIDSymbol;
 
@@ -403,6 +405,8 @@ FileHandle_t CBaseFileSystem::FindFile( const CSearchPath* path, const char* pFi
         fh->m_nModificationTime = LegacyFileTimestamp32(path->m_lPackFileTime);
 #endif
 		fh->m_bPack = true;
+        fh->m_packOwner = path->m_hPackFile;
+        ++fh->m_packOwner->m_packBorrowers;
 		return (FileHandle_t)fh;
 	}
 
@@ -554,8 +558,15 @@ void CBaseFileSystem::Close( FileHandle_t file )
 	}
 
     if (fh->m_bPack) {
-        // Pack views own their wrapper; the search path owns the shared FILE.
+        CFileHandle* owner = fh->m_packOwner;
         delete fh;
+        if (owner) {
+            --owner->m_packBorrowers;
+            if (owner->m_retiredPack && owner->m_packBorrowers == 0) {
+                m_PackFileHandles.FindAndRemove(owner->m_pFile);
+                Close(owner);
+            }
+        }
         return;
     }
 
@@ -1090,6 +1101,7 @@ bool CBaseFileSystem::AddPackFileFromPath( const char* pPath, const char* pakfil
 	sp->m_Path = pPath;
 	sp->m_PathID = pathID;
 	sp->m_bIsPackFile = true;
+    sp->m_localizationGroup = cse::localized_filesystem::CurrentGroup();
 	sp->m_lPackFileTime = GetFileTime( pakfile );
 	sp->m_hPackFile = new CFileHandle;
 	sp->m_hPackFile->m_pFile = Trace_FOpen( fullpath, "rb", false );
@@ -1993,6 +2005,7 @@ CBaseFileSystem::CSearchPath::CSearchPath() : m_PackFiles( 0, FS_INITIAL_PACK_CA
 	m_lPackFileTime = 0L;
 	m_nNumPackFiles = 0;
 	m_bAllowWrite = true;
+    m_localizationGroup = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -2002,7 +2015,13 @@ CBaseFileSystem::CSearchPath::~CSearchPath()
 {
 	if ( m_bIsPackFile && m_hPackFile )
 	{
-		s_pFileSystem->m_PackFileHandles.FindAndRemove( m_hPackFile->m_pFile );
-		s_pFileSystem->Close( m_hPackFile );
+        if (m_hPackFile->m_packBorrowers != 0) {
+            // The mount disappears immediately, but open resource views keep the
+            // old stream until their final Close. No retired-mount cache is needed.
+            m_hPackFile->m_retiredPack = true;
+        } else {
+            s_pFileSystem->m_PackFileHandles.FindAndRemove(m_hPackFile->m_pFile);
+            s_pFileSystem->Close(m_hPackFile);
+        }
 	}
 }

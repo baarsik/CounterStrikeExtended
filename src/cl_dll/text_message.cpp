@@ -21,6 +21,7 @@
 //
 
 #include "hud.h"
+#include "localization_client.h"
 #include "cl_util.h"
 #include <string.h>
 #include <stdio.h>
@@ -191,23 +192,30 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 
 #define MSG_BUF_SIZE 128
 	static char szBuf[6][MSG_BUF_SIZE];
-	char *msg_text = LookupString( READ_STRING(), &msg_dest );
+	std::string sources[5];
+    sources[0] = READ_STRING();
+    char *msg_text = LookupString(sources[0].c_str(), &msg_dest);
 	msg_text = safe_strcpy( szBuf[0], msg_text , MSG_BUF_SIZE);
 
 	// keep reading strings and using C format strings for subsituting the strings into the localised text string
-	char *sstr1 = LookupString( READ_STRING() );
+	sources[1] = READ_STRING();
+    char *sstr1 = LookupString(sources[1].c_str());
 	sstr1 = safe_strcpy( szBuf[1], sstr1 , MSG_BUF_SIZE);
 	StripEndNewlineFromString( sstr1 );  // these strings are meant for subsitution into the main strings, so cull the automatic end newlines
-	char *sstr2 = LookupString( READ_STRING() );
+	sources[2] = READ_STRING();
+    char *sstr2 = LookupString(sources[2].c_str());
 	sstr2 = safe_strcpy( szBuf[2], sstr2 , MSG_BUF_SIZE);
 	StripEndNewlineFromString( sstr2 );
-	char *sstr3 = LookupString( READ_STRING() );
+	sources[3] = READ_STRING();
+    char *sstr3 = LookupString(sources[3].c_str());
 	sstr3 = safe_strcpy( szBuf[3], sstr3 , MSG_BUF_SIZE);
 	StripEndNewlineFromString( sstr3 );
-	char *sstr4 = LookupString( READ_STRING() );
+	sources[4] = READ_STRING();
+    char *sstr4 = LookupString(sources[4].c_str());
 	sstr4 = safe_strcpy( szBuf[4], sstr4 , MSG_BUF_SIZE);
 	StripEndNewlineFromString( sstr4 );
 	char *psz = szBuf[5];
+    const char* formatSources[]{szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]};
 
 	if ( gViewPort && gViewPort->AllowedToPrintText() == FALSE )
 		return 1;
@@ -216,25 +224,80 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 	{
 	case HUD_PRINTCENTER:
 		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
-		CenterPrint( ConvertCRtoNL( psz ) );
+        FinishHudText(psz, formatSources);
+        m_hasCenterSource = false;
+        for (int index = 0; index < 5; ++index) {
+            const bool token = sources[index].size() > 1 && sources[index][0] == '#'
+                && IsCatalogueMessage(TextMessageGet(sources[index].c_str() + 1));
+            m_centerTokens[index] = token;
+            m_centerSources[index] = token ? sources[index].substr(1) : szBuf[index];
+            m_hasCenterSource = m_hasCenterSource || token;
+        }
+        m_centerRendered = ConvertCRtoNL(psz);
+        CenterPrint(psz);
 		break;
 
 	case HUD_PRINTNOTIFY:
 		psz[0] = 1;  // mark this message to go into the notify buffer
 		safe_sprintf( psz+1, MSG_BUF_SIZE - 1, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        FinishHudText(psz + 1, formatSources);
 		ConsolePrint( ConvertCRtoNL( psz ) );
 		break;
 
 	case HUD_PRINTTALK:
 		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
-		gHUD.m_SayText.SayTextPrint( ConvertCRtoNL( psz ), 128 );
+        FinishHudText(psz, formatSources);
+		        {
+            auto source = std::make_shared<HudTextSource>();
+            const char* resolved[]{szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]};
+            if (!source->Capture(sources, resolved)) {
+                source.reset();
+            }
+            gHUD.m_SayText.SayTextPrint(ConvertCRtoNL(psz), MSG_BUF_SIZE, -1, source);
+        }
 		break;
 
 	case HUD_PRINTCONSOLE:
 		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        FinishHudText(psz, formatSources);
 		ConsolePrint( ConvertCRtoNL( psz ) );
 		break;
 	}
 
 	return 1;
+}
+
+void CHudTextMessage::RefreshLanguage() {
+    const auto* engine = GetLocalizationEngine();
+    if (!engine || !m_hasCenterSource) {
+        return;
+    }
+    std::string values[5];
+    for (int index = 0; index < 5; ++index) {
+        values[index] = m_centerSources[index];
+        if (m_centerTokens[index]) {
+            const auto* message = TextMessageGet(m_centerSources[index].c_str());
+            if (!message || !message->pMessage) {
+                return; // Keep the still-visible owned presentation on missing fallback.
+            }
+            values[index] = message->pMessage;
+        }
+        if (index > 0 && m_centerTokens[index] && !values[index].empty()
+            && (values[index].back() == '\n' || values[index].back() == '\r')) {
+            values[index].pop_back();
+        }
+    }
+    constexpr int CenterMessageBytes = 128; // Existing TextMsg display capacity.
+    char replacement[CenterMessageBytes];
+    safe_sprintf(replacement, sizeof(replacement), values[0].c_str(), values[1].c_str(),
+        values[2].c_str(), values[3].c_str(), values[4].c_str());
+    const char* sources[]{values[0].c_str(), values[1].c_str(), values[2].c_str(), values[3].c_str(),
+        values[4].c_str()};
+    FinishHudText(replacement, sources);
+    ConvertCRtoNL(replacement);
+    if (engine->ReplaceCenterText(m_centerRendered.c_str(), replacement)) {
+        m_centerRendered = replacement;
+    } else {
+        m_hasCenterSource = false;
+    }
 }

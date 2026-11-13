@@ -17,6 +17,7 @@ class CCareerMapFrame : public CCareerBaseFrame
 public:
 	CCareerMapFrame( vgui2::Panel* parent );
 	~CCareerMapFrame() override;
+    void RefreshLanguagePresentation();
 	void Activate() override;
 	virtual void OnSliderMoved( int position );
 	vgui2::Button* GetNextButton();
@@ -31,6 +32,7 @@ protected:
 	void OnThink() override;
 
 private:
+    char m_presentedMap[64] = {};
 	static vgui2::MessageMapItem_t m_MessageMap[1];
 	static vgui2::PanelMap_t m_PanelMap;
 
@@ -55,4 +57,4 @@ private:
 	Color						m_friendlyFireColor;
 };
 
-void ShowCareerMapDescription( vgui2::RichText* text, CCareerMap* map, Color normalColor, Color friendlyFireColor );
+void ShowCareerMapDescription( vgui2::RichText* text, CCareerMap* map, Color normalColor, Color friendlyFireColor, bool preserveView = false );

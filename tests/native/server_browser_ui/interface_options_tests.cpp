@@ -21,6 +21,8 @@
 #include "filesystem.h"
 #include "check.h"
 #include "system_fixture.h"
+#include "../../../src/engine/localization_state.h"
+#include "../../../src/public/localization_controls.h"
 #include "geometry_fixture.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -61,13 +63,111 @@ std::string ReadSavedPreference() {
 // compile from production files with their owning CMake flags.
 int appliedOtherPages = 0;
 int expectedOtherPages = 0;
-int restartCommands = 0;
-int RecordClientCommand(char* command) {
-    Require(std::strcmp(command, "_restart\n") == 0, "only the normal restart command is issued");
-    Require(appliedOtherPages == expectedOtherPages, "all Options pages apply before language restart");
-    ++restartCommands;
+int clientCommands = 0;
+int RecordClientCommand(char*) {
+    ++clientCommands;
     return 1;
 }
+
+namespace engine_fixture {
+using namespace cse::localization;
+
+class Backend final : public StateBackend {
+public:
+    bool failPrepare = false;
+    bool failPersist = false;
+    int prepares = 0;
+    int persists = 0;
+    int commits = 0;
+    int discards = 0;
+
+    std::string Resolve(const std::string& preference) override {
+        return preference.empty() ? "english" : preference;
+    }
+    bool Prepare(const std::string&, std::string& error) override {
+        ++prepares;
+        if (failPrepare) {
+            error = "Fixture rejected prepared catalogue";
+            return false;
+        }
+        return true;
+    }
+    bool Persist(const std::string& preference, std::string& error) override {
+        ++persists;
+        if (failPersist) {
+            error = "Fixture rejected preference write";
+            return false;
+        }
+        return system_fixture::current->SetRegistryString(
+            cse::interface_language::PreferenceKey, preference.c_str());
+    }
+    void Commit(const std::string&, std::uint64_t) override {
+        ++commits;
+    }
+    void Discard() override {
+        ++discards;
+    }
+};
+
+State state;
+Backend backend;
+bool expose = true;
+bool rejectRequest = false;
+int requests = 0;
+std::uint64_t lastRequest = InvalidRequest;
+
+void Initialize(const char* preference) {
+    backend = Backend{};
+    state.Initialize(preference[0] ? preference : "english", preference);
+    requests = 0;
+    lastRequest = InvalidRequest;
+    rejectRequest = false;
+    expose = true;
+    system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey, preference);
+}
+const char* CSE_ABI_CALL Language() {
+    return state.Language().c_str();
+}
+const char* CSE_ABI_CALL Preference() {
+    return state.Preference().c_str();
+}
+std::uint64_t CSE_ABI_CALL Revision() {
+    return state.Revision();
+}
+std::uint64_t CSE_ABI_CALL RequestLanguage(const char* preference, bool persist) {
+    ++requests;
+    Require(persist, "Options requests engine-owned persistence");
+    lastRequest = rejectRequest ? InvalidRequest : state.Request(preference, persist);
+    return lastRequest;
+}
+bool CSE_ABI_CALL Result(std::uint64_t request, RequestResult* result) {
+    return state.Result(request, result);
+}
+const char* CSE_ABI_CALL Error() {
+    return state.LastError();
+}
+bool CSE_ABI_CALL Catalogue(const client_textmessage_s*) {
+    return false;
+}
+bool CSE_ABI_CALL Center(const char*, const char*) {
+    return false;
+}
+EngineApi api{sizeof(EngineApi), InterfaceVersion, Language, Preference, Revision, RequestLanguage,
+    Result, Error, Catalogue, Center};
+void* Factory(const char* name, int*) {
+    return expose && std::strcmp(name, EngineInterface) == 0 ? &api : nullptr;
+}
+void Advance() {
+    state.Process(backend);
+}
+std::string Saved() {
+    char preference[cse::interface_language::PreferenceBufferBytes]{};
+    Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey,
+        preference, sizeof(preference)), "fixture has a stable saved preference");
+    return preference;
+}
+}
+
 cl_enginefuncs_s gEngfuncs{};
 cl_enginefuncs_s* engine = &gEngfuncs;
 
@@ -192,8 +292,9 @@ int main(int argc, char** argv) {
             static_cast<vgui2::ISurface*>(guiFactory("VGUI_Surface026", nullptr)));
         geometry_fixture::surface = &geometry;
         geometry.Resize(ScreenWidth, ScreenHeight);
-        CreateInterfaceFn factories[] = {system_fixture::Factory, geometry_fixture::Factory, guiFactory, fsFactory};
-        Require(vgui2::VGuiControls_Init("INTERFACE_OPTIONS", factories, 4), "initialize controls");
+        CreateInterfaceFn factories[] = {engine_fixture::Factory, system_fixture::Factory,
+            geometry_fixture::Factory, guiFactory, fsFactory};
+        Require(vgui2::VGuiControls_Init("INTERFACE_OPTIONS", factories, 5), "initialize controls");
         vgui2::ivgui()->Start();
         vgui2::ivgui()->SetSleep(false);
         auto* root = new vgui2::Panel(nullptr, "OptionsRoot");
@@ -215,8 +316,10 @@ int main(int argc, char** argv) {
         std::ofstream report(output / "fit.tsv");
         for (int kind = 0; kind < 3; ++kind) {
             testMod.kind = kind;
-            system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey,
-                kind == 1 ? "unsupported" : kind == 2 ? "polish" : "");
+            engine_fixture::Initialize(kind == 2 ? "polish" : "");
+            // The bound engine is authoritative even if a legacy/native reader disagrees.
+            rejectSavedLanguage = true;
+            Require(cse::localization::ControlsEngine() == &engine_fixture::api, "live service resolved by factory");
             system_fixture::current->languageOverride.clear();
             auto* dialog = new TestOptions(root);
             dialog->SetScheme(tracker);
@@ -261,8 +364,12 @@ int main(int argc, char** argv) {
             Require(combo && !combo->IsEditable() && combo->GetItemCount() == 11, "automatic plus all ten languages");
             Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"),
                 kind == 2 ? "polish" : "") == 0, "saved or invalid preference reflected in selection");
-            auto reopenAfterRestart = [&] {
-                delete dialog;
+            expectedOtherPages = sheet->GetNumPages() - 1;
+            auto rebuild = [&](const char* preference) {
+                if (dialog) {
+                    delete dialog;
+                }
+                engine_fixture::Initialize(preference);
                 dialog = new TestOptions(root);
                 dialog->SetScheme(tracker);
                 dialog->SetVisible(true);
@@ -271,41 +378,16 @@ int main(int argc, char** argv) {
                 sheet->SetActivePage(page);
                 Settle(*root);
                 combo = dynamic_cast<vgui2::ComboBox*>(page->FindChildByName("Language", false));
+                expectedOtherPages = sheet->GetNumPages() - 1;
+                appliedOtherPages = 0;
             };
-            expectedOtherPages = sheet->GetNumPages() - 1;
-            system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey, "russian");
-            rejectSavedLanguage = true;
-            dialog->ResetAllData();
-            Settle(*root);
-            Require(combo->GetActiveItemUserData()->GetString("language")[0] == '\0',
-                "page must reject a native record rejected by startup");
-            Select(*combo, "russian");
-            Settle(*root);
-            const int beforeRepair = system_fixture::current->stringWrites;
-            int beforeRestart = restartCommands;
+            const int unchangedWrites = system_fixture::current->stringWrites;
             appliedOtherPages = 0;
-            vgui2::PHandle restartOwner;
-            restartOwner.Set(dialog);
-            dialog->OnCommand("Apply");
-            dialog->OnCommand("OK");
-            dialog->OnClose();
-            Settle(*root);
-            Require(restartOwner.Get() != nullptr, "close cannot discard a pending forced restart owner");
-            Require(system_fixture::current->stringWrites == beforeRepair + 1,
-                "choosing a rejected stored id must rewrite a valid preference");
-            Require(restartCommands == beforeRestart + 1, "changed language Apply forces one restart");
-            rejectSavedLanguage = false;
-            reopenAfterRestart();
-            system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey,
-                kind == 2 ? "polish" : "");
-            dialog->ResetAllData();
-            Settle(*root);
-            const int writes = system_fixture::current->stringWrites;
-            beforeRestart = restartCommands;
             dialog->OnCommand("Apply");
             Settle(*root);
-            Require(system_fixture::current->stringWrites == writes, "unchanged Apply must not write");
-            Require(restartCommands == beforeRestart, "unchanged Apply must not restart");
+            Require(engine_fixture::requests == 0 && system_fixture::current->stringWrites == unchangedWrites,
+                "unchanged Apply neither requests nor writes a language");
+            Require(appliedOtherPages == expectedOtherPages, "unchanged Apply applies each other page once");
             for (const auto& language : cse::interface_language::BundledLanguages) {
                 Select(*combo, language.id);
                 Settle(*root);
@@ -334,45 +416,142 @@ int main(int argc, char** argv) {
                 vgui2::surface()->GetTextSize(font, name, width, height);
                 Require(width <= combo->GetWide() - 24 && height <= combo->GetTall(), "native language name fits");
             }
+            const int fitRequests = engine_fixture::requests;
             combo->OnKeyTyped(L'p');
             Settle(*root);
             Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"), "polish") == 0,
                 "keyboard language selection");
+            Require(engine_fixture::requests == fitRequests, "changing selection alone never requests language");
+            dialog->ResetAllData();
+            Settle(*root);
+
+            rebuild("");
             Select(*combo, "russian");
             Settle(*root);
             Require(dialog->IsApplyButtonEnabled(), "selection enables Apply");
-            beforeRestart = restartCommands;
-            system_fixture::current->failStringWrites = true;
-            dynamic_cast<vgui2::Button*>(dialog->FindChildByName("OKButton", false))->DoClick();
-            Settle(*root);
-            Require(dialog->IsVisible() && dialog->IsApplyButtonEnabled(), "failed save stays open for retry");
-            Require(page->FindChildByName("SaveFailed", false)->IsVisible(), "save error visible");
-            Require(restartCommands == beforeRestart, "failed save must not restart");
-            Fit(*dialog, report);
-            system_fixture::current->failStringWrites = false;
-            appliedOtherPages = 0;
+            const int pendingWrites = system_fixture::current->stringWrites;
+            vgui2::PHandle pendingOwner;
+            pendingOwner.Set(dialog);
             dynamic_cast<vgui2::Button*>(dialog->FindChildByName("ApplyButton", false))->DoClick();
             Settle(*root);
-            char saved[cse::interface_language::PreferenceBufferBytes]{};
-            Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
-                && std::strcmp(saved, "russian") == 0, "Apply persists stable id");
-            Require(restartCommands == beforeRestart + 1, "successful save retry forces restart");
-            reopenAfterRestart();
+            Require(page->IsLanguagePending() && !dialog->IsEnabled(), "Apply owns a pending disabled dialog");
+            Require(engine_fixture::requests == 1 && engine_fixture::Saved().empty()
+                && system_fixture::current->stringWrites == pendingWrites, "UI does not persist before engine acceptance");
+            Require(appliedOtherPages == expectedOtherPages, "accepted Apply applies other pages exactly once");
+            dialog->OnCommand("Apply");
+            dialog->OnCommand("OK");
+            dialog->OnCommand("Cancel");
+            dialog->OnClose();
+            Settle(*root);
+            Require(pendingOwner.Get() == dialog && page->IsLanguagePending(), "pending owner survives Apply OK Cancel close");
+            Require(engine_fixture::requests == 1 && appliedOtherPages == expectedOtherPages,
+                "duplicate pending commands neither request nor reapply pages");
+            engine_fixture::Advance();
+            Require(engine_fixture::Saved() == "russian" && engine_fixture::backend.commits == 1,
+                "engine persists stable id and commits the language");
+            Settle(*root);
+            Require(dialog->IsVisible() && dialog->IsEnabled() && !page->IsLanguagePending()
+                && !page->HasLanguageChange(), "completed Apply stays open with accepted original state");
+            Require(appliedOtherPages == expectedOtherPages, "completion does not apply pages twice");
             Select(*combo, "polish");
             Settle(*root);
             dialog->ResetAllData();
             Settle(*root);
             Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"), "russian") == 0,
-                "reset restores saved value");
+                "reset reads the engine accepted preference");
+
+            // Failure through OK must never discard this owner. Each attempt may apply
+            // unrelated pages once, but polling/repeated input may not apply them again.
+            for (const char* failure : {"request", "prepare", "persist", "missing", "superseded"}) {
+                rebuild("");
+                Select(*combo, "russian");
+                Settle(*root);
+                engine_fixture::rejectRequest = std::strcmp(failure, "request") == 0;
+                engine_fixture::backend.failPrepare = std::strcmp(failure, "prepare") == 0;
+                engine_fixture::backend.failPersist = std::strcmp(failure, "persist") == 0;
+                const int beforeFailureWrites = system_fixture::current->stringWrites;
+                vgui2::PHandle owner;
+                owner.Set(dialog);
+                dialog->OnCommand("OK");
+                Require(engine_fixture::requests == 1, "failure scenario made exactly one engine request");
+                if (std::strcmp(failure, "superseded") == 0) {
+                    engine_fixture::state.Request("german", false);
+                } else if (std::strcmp(failure, "missing") == 0) {
+                    // Exercise the real bounded State result history rather than
+                    // fabricating a missing response in the factory callback.
+                    constexpr int HistoryProbeLimit = 256;
+                    cse::localization::RequestResult result{sizeof(result),
+                        cse::localization::RequestState::Pending, 0};
+                    int displaced = 0;
+                    while (engine_fixture::state.Result(engine_fixture::lastRequest, &result)
+                        && displaced < HistoryProbeLimit) {
+                        engine_fixture::state.Request("german", false);
+                        ++displaced;
+                    }
+                    Require(!engine_fixture::state.Result(engine_fixture::lastRequest, &result),
+                        "production engine history expires the UI request status");
+                } else {
+                    engine_fixture::Advance();
+                }
+                Settle(*root);
+                Require(owner.Get() == dialog && dialog->IsVisible() && dialog->IsEnabled()
+                    && dialog->IsApplyButtonEnabled() && !page->IsLanguagePending(), "failed OK retains retryable owner");
+                Require(page->FindChildByName("SaveFailed", false)->IsVisible(), "failed transaction displays error");
+                Require(engine_fixture::state.Language() == "english" && engine_fixture::state.Preference().empty()
+                    && engine_fixture::state.Revision() == 1 && engine_fixture::Saved().empty(),
+                    "failure leaves active language preference revision and saved id unchanged");
+                Require(system_fixture::current->stringWrites == beforeFailureWrites, "failed attempt does not write registry");
+                Require(appliedOtherPages == (engine_fixture::rejectRequest ? 0 : expectedOtherPages),
+                    "other pages apply once only after request acceptance");
+                Require(std::strcmp(combo->GetActiveItemUserData()->GetString("language"), "russian") == 0,
+                    "failure preserves selected retry language");
+                Fit(*dialog, report);
+                engine_fixture::rejectRequest = false;
+                engine_fixture::backend.failPrepare = false;
+                engine_fixture::backend.failPersist = false;
+                            appliedOtherPages = 0;
+                dialog->OnCommand("OK");
+                Require(owner.Get() == dialog && page->IsLanguagePending(), "retry OK retains owner until completion");
+                Settle(*root);
+                Require(appliedOtherPages == expectedOtherPages && engine_fixture::requests == 2,
+                    "retry requests once and applies other pages once");
+                engine_fixture::Advance();
+                Settle(*root);
+                Require(owner.Get() == nullptr && engine_fixture::Saved() == "russian", "successful OK retry closes after commit");
+                dialog = nullptr;
+            }
+
+            rebuild("polish");
+            vgui2::PHandle unchangedOwner;
+            unchangedOwner.Set(dialog);
+            dialog->OnCommand("OK");
+            Settle(*root);
+            Require(unchangedOwner.Get() == nullptr && engine_fixture::requests == 0
+                && appliedOtherPages == expectedOtherPages, "unchanged OK closes normally without requesting language");
+            dialog = nullptr;
+
+            rebuild("");
+            Select(*combo, "english");
+            Settle(*root);
+            dialog->OnCommand("Apply");
+            engine_fixture::Advance();
+            Settle(*root);
+            Require(engine_fixture::Saved() == "english" && engine_fixture::backend.prepares == 0
+                && engine_fixture::backend.commits == 0 && engine_fixture::state.Revision() == 1,
+                "same effective language still persists explicit preference without unnecessary reload");
             Select(*combo, "");
-            beforeRestart = restartCommands;
+            Settle(*root);
             appliedOtherPages = 0;
             dialog->OnCommand("Apply");
+            Require(page->IsLanguagePending(), "automatic selection uses the engine transaction");
+            engine_fixture::Advance();
             Settle(*root);
-            Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
-                && saved[0] == '\0', "automatic clears saved id");
-            Require(restartCommands == beforeRestart + 1, "restoring automatic forces restart");
-            reopenAfterRestart();
+            Require(engine_fixture::Saved().empty() && engine_fixture::state.Preference().empty()
+                && !page->HasLanguageChange(), "automatic clears preference through engine persistence");
+            Require(appliedOtherPages == expectedOtherPages, "automatic applies other pages exactly once");
+
+            // Launch-override notice, all locale geometry, and captures remain the
+            // same real controls/layout checks used by the original fixture.
             system_fixture::current->languageOverride = "german";
             dialog->ResetAllData();
             Settle(*root);
@@ -391,22 +570,46 @@ int main(int argc, char** argv) {
                 combo->HideMenu();
             }
             Select(*combo, "polish");
-            const int beforeCancel = system_fixture::current->stringWrites;
-            beforeRestart = restartCommands;
-            if (kind == 2) {
-                appliedOtherPages = 0;
-                dialog->OnCommand("OK");
-                Require(system_fixture::current->GetRegistryString(cse::interface_language::PreferenceKey, saved, sizeof(saved))
-                    && std::strcmp(saved, "polish") == 0, "OK persists selection");
-                Settle(*root);
-                Require(restartCommands == beforeRestart + 1, "OK forces restart with launch override present");
-                delete dialog;
-            } else {
-                dynamic_cast<vgui2::Button*>(dialog->FindChildByName("CancelButton", false))->DoClick();
-                Settle(*root);
-                Require(system_fixture::current->stringWrites == beforeCancel, "Cancel must not persist selection");
-                Require(restartCommands == beforeRestart, "Cancel must not restart");
-            }
+            Settle(*root);
+            const int beforeCancelWrites = system_fixture::current->stringWrites;
+            const int beforeCancelRequests = engine_fixture::requests;
+            vgui2::PHandle cancelled;
+            cancelled.Set(dialog);
+            dynamic_cast<vgui2::Button*>(dialog->FindChildByName("CancelButton", false))->DoClick();
+            Settle(*root);
+            Require(cancelled.Get() == nullptr && system_fixture::current->stringWrites == beforeCancelWrites
+                && engine_fixture::requests == beforeCancelRequests, "Cancel discards selection without request or persistence");
+            dialog = nullptr;
+
+            // Without an engine provider only the strict native reader is allowed;
+            // a changed selection cannot fall back to page-owned setting writes.
+            engine_fixture::expose = false;
+            cse::localization::BindControls(factories, 5);
+            system_fixture::current->SetRegistryString(cse::interface_language::PreferenceKey, "russian");
+            rejectSavedLanguage = true;
+            dialog = new TestOptions(root);
+            dialog->SetScheme(tracker);
+            dialog->SetVisible(true);
+            sheet = dialog->GetPropertySheet();
+            page = dynamic_cast<COptionsSubInterface*>(sheet->GetPage(interfaceIndex));
+            sheet->SetActivePage(page);
+            Settle(*root);
+            combo = dynamic_cast<vgui2::ComboBox*>(page->FindChildByName("Language", false));
+            Require(combo->GetActiveItemUserData()->GetString("language")[0] == '\0', "fallback rejects malformed native record");
+            Select(*combo, "polish");
+            Settle(*root);
+            const int noServiceWrites = system_fixture::current->stringWrites;
+            const int noServiceRequests = engine_fixture::requests;
+            dialog->OnCommand("Apply");
+            Settle(*root);
+            Require(dialog->IsVisible() && page->FindChildByName("SaveFailed", false)->IsVisible()
+                && system_fixture::current->stringWrites == noServiceWrites && engine_fixture::requests == noServiceRequests,
+                "missing service keeps dialog open without native fallback write");
+            delete dialog;
+            dialog = nullptr;
+            engine_fixture::expose = true;
+            cse::localization::BindControls(factories, 5);
+            Require(clientCommands == 0, "no Apply OK failure Cancel or completion issues any client/restart command");
             Settle(*root);
         }
         vgui2::surface()->SetEmbeddedPanel(0);
@@ -417,6 +620,6 @@ int main(int argc, char** argv) {
         vgui2::VGuiControls_Shutdown();
         fs->Unmount();
         privateSystem.Restore();
-        std::puts("PASS: Options placement, fit and language preference behavior");
+        std::puts("PASS: live Options transactions, ownership, failure/retry, fit and native names");
     });
 }

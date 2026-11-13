@@ -38,6 +38,7 @@ target_sources(gameui PRIVATE
   "${CSE_SDK_DIR}/GameUI/GameConsole.cpp"
   "${CSE_SDK_DIR}/GameUI/GameConsoleDialog.cpp"
   "${CSE_SDK_DIR}/GameUI/GameUI_Interface.cpp"
+  "${CSE_SDK_DIR}/GameUI/LanguagePresentation.cpp"
   "${CSE_SDK_DIR}/GameUI/HelpDialog.cpp"
   "${CSE_SDK_DIR}/GameUI/ImageButton.cpp"
   "${CSE_SDK_DIR}/GameUI/KeyToggleCheckButton.cpp"

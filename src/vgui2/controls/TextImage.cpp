@@ -1,3 +1,4 @@
+#include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -41,6 +42,7 @@ HFont TextImage::GetFont()
 //-----------------------------------------------------------------------------
 StringIndex_t TextImage::GetUnlocalizedTextSymbol()
 {
+    cse::localization::RefreshText(this);
 	return _unlocalizedTextSymbol;
 }
 
@@ -68,6 +70,7 @@ void TextImage::SetSize( int width, int height )
 //-----------------------------------------------------------------------------
 void TextImage::GetContentSize( int& width, int& height )
 {
+    cse::localization::RefreshText(this);
 	GetTextSize( width, height );
 }
 
@@ -81,14 +84,22 @@ void TextImage::ResizeImageToContent()
 	SetSize( wide, tall );
 }
 
-void TextImage::GetText( char* buffer, int bufferSize )
-{
-	localize()->ConvertUnicodeToANSI( _utext, buffer, bufferSize );
+void TextImage::GetText(char* buffer, int bufferSize) {
+    if (!buffer || bufferSize <= 0) {
+        return;
+    }
+    cse::localization::RefreshText(this);
+    localize()->ConvertUnicodeToANSI(_utext ? _utext : L"", buffer, bufferSize);
+    buffer[bufferSize - 1] = '\0';
 }
 
-void TextImage::GetText( wchar_t* buffer, int bufferLength )
-{
-	wcsncpy( buffer, _utext, bufferLength );
+void TextImage::GetText(wchar_t* buffer, int bufferLength) {
+    if (!buffer || bufferLength <= 0) {
+        return;
+    }
+    cse::localization::RefreshText(this);
+    std::wcsncpy(buffer, _utext ? _utext : L"", static_cast<std::size_t>(bufferLength - 1));
+    buffer[bufferLength - 1] = L'\0';
 }
 
 void TextImage::SetWrap( bool state )
@@ -140,58 +151,53 @@ TextImage::TextImage( const wchar_t* text )
 //-----------------------------------------------------------------------------
 TextImage::~TextImage()
 {
+    cse::localization::ForgetText(this);
 	if ( _utext )
 		delete[] _utext;
 }
 
-void TextImage::SetText( const char* text )
-{
-	if ( !text )
-		text = "";
-
-	if ( text[0] == '#' )
-	{
-		_unlocalizedTextSymbol = localize()->FindIndex( text + 1 );
-		if ( _unlocalizedTextSymbol != INVALID_STRING_INDEX )
-		{
-			SetText( localize()->GetValueByIndex( _unlocalizedTextSymbol ) );
-			return;
-		}
-	}
-
-	// convert the ansi string to unicode and use that
-	wchar_t unicode[1024];
-	localize()->ConvertANSIToUnicode( text, unicode, sizeof( unicode ) );
-	SetText( unicode );
+void TextImage::SetText(const char* text) {
+    text = text ? text : "";
+    cse::localization::BindToken(this, text);
+    _unlocalizedTextSymbol = INVALID_STRING_INDEX;
+    cse::localization::PreserveTextBinding preserve(this);
+    if (text[0] == '#') {
+        _unlocalizedTextSymbol = localize()->FindIndex(text + 1);
+        if (_unlocalizedTextSymbol != INVALID_STRING_INDEX) {
+            SetText(localize()->GetValueByIndex(_unlocalizedTextSymbol));
+            return;
+        }
+    }
+    SetText(cse::localization::WideLiteral(text).c_str());
 }
 
-void TextImage::SetText( const wchar_t* text )
-{
-	if ( !text )
-		text = L"";
-
-	// reallocate the buffer if necessary
-	_textLen = (short)wcslen( text );
-	if ( _textLen >= _textBufferLen )
-	{
-		if ( _utext )
-			delete[] _utext;
-
-		_textBufferLen = (short)( _textLen + 1 );
-		_utext = new wchar_t[_textBufferLen];
-	}
-
-	m_LineBreaks.RemoveAll();
-	// store the text as unicode
-	wcscpy( _utext, text );
-
-	m_bRecalculateTruncation = true;
-	if ( m_bWrap )
-		RecalculateNewLinePositions();
+void TextImage::SetText(const wchar_t* text) {
+    if (!cse::localization::Binding(this).updating) {
+        _unlocalizedTextSymbol = INVALID_STRING_INDEX;
+    }
+    cse::localization::BindLiteral(this);
+    text = text ? text : L"";
+    // The retained ABI stores both lengths as signed short, including NUL.
+    constexpr std::size_t MaximumTextCells = 32766;
+    const std::size_t length = std::min(std::wcslen(text), MaximumTextCells);
+    _textLen = static_cast<short>(length);
+    if (_textLen >= _textBufferLen) {
+        delete[] _utext;
+        _textBufferLen = static_cast<short>(_textLen + 1);
+        _utext = new wchar_t[_textBufferLen];
+    }
+    m_LineBreaks.RemoveAll();
+    std::wmemmove(_utext, text, length);
+    _utext[length] = L'\0';
+    m_bRecalculateTruncation = true;
+    if (m_bWrap) {
+        RecalculateNewLinePositions();
+    }
 }
 
 void TextImage::GetTextSize( int& width, int& height )
 {
+    cse::localization::RefreshText(this);
 	int maxWidth = 0;
 	width = 0;
 	height = 0;
@@ -387,6 +393,7 @@ void TextImage::RecalculateEllipsesPosition()
 
 void TextImage::Paint()
 {
+    cse::localization::RefreshText(this);
 	int wide, tall;
 	GetSize( wide, tall );
 
@@ -462,6 +469,13 @@ void TextImage::Paint()
 //-----------------------------------------------------------------------------
 void TextImage::GetUnlocalizedText( char* buffer, int bufferSize )
 {
+    cse::localization::RefreshText(this);
+    const auto& source = cse::localization::Binding(this).token;
+    if (!source.empty() && buffer && bufferSize > 0) {
+        std::strncpy(buffer, source.c_str(), static_cast<std::size_t>(bufferSize));
+        buffer[bufferSize - 1] = '\0';
+        return;
+    }
 	if ( _unlocalizedTextSymbol == INVALID_STRING_INDEX )
 	{
 		GetText( buffer, bufferSize );

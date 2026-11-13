@@ -64,6 +64,7 @@ public:
 	void DisplayVGUIMenu( int menu ) override;
 	void OnTick() override;
 	void CenterWindow( vgui2::Frame* window );
+    void RefreshLanguage();
 
 private:
 	class CCSBackGroundPanel : public TeamFortressViewport::CBackGroundPanel

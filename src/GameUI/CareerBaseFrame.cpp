@@ -38,7 +38,7 @@ void CCareerPanelListPanel::ApplySchemeSettings( vgui2::IScheme* scheme )
 #pragma warning( suppress : 26495 )
 CCareerButton::CCareerButton( vgui2::Panel* parent, const char* name, const char* text,
 	const char* image, bool textFirst )
-	: vgui2::Button( parent, name, "" )
+	: vgui2::Button(parent, name, text)
 {
 	m_armedBorder = NULL;
 	m_textImage = new vgui2::TextImage( text );
@@ -110,17 +110,7 @@ void CCareerButton::ApplySchemeSettings( vgui2::IScheme* scheme )
 		m_imagePad = GetProportionalScaledValue( m_imagePad );
 	}
 
-	char text[128];
-	GetText( text, sizeof( text ) );
-	m_textImage->SetText( text );
-	m_textImage->ResizeImageToContent();
-	int buttonWide, buttonTall, imageWide, imageTall, textWide, textTall;
-	GetSize( buttonWide, buttonTall );
-	m_image->GetSize( imageWide, imageTall );
-	int textAreaWide = buttonWide - imageWide - m_imagePad - 2 * m_textPad;
-	m_textImage->GetContentSize( textWide, textTall );
-	if ( textAreaWide < textWide )
-		m_textImage->SetSize( textAreaWide, textTall );
+    RefreshLanguagePresentation();
 
 	Color background = scheme->GetColor( "CareerButtonBG", Color( 0, 0, 0, 0 ) );
 	SetDefaultColor( background, background );
@@ -392,21 +382,28 @@ void CCareerBaseFrame::Activate()
 		m_pMissionPackName->SetFgColor( career->GetTextColor() );
 	}
 
-	char name[32];
-	char nameCvar[] = "name";
-	strncpy( name, engine->pfnGetCvarString( nameCvar ), sizeof( name ) );
-	name[sizeof( name ) - 1] = 0;
-	char difficulty[32];
-	sprintf( difficulty, "#Cstrike_Bot_Difficulty%d", TheCareerGame->GetDifficulty() );
-	wchar_t playerName[128] = { 0 };
-	int length = sizeof( playerName ) / sizeof( playerName[0] );
+    RefreshLanguagePresentation();
+}
+
+void CCareerBaseFrame::RefreshLanguagePresentation() {
+    if (!TheCareerGame || !TheCareerDefinitions || !TheCareerDefinitions->GetActiveCareerDefinition()) {
+        return;
+    }
+    char name[32];
+    char nameCvar[] = "name";
+    strncpy( name, engine->pfnGetCvarString( nameCvar ), sizeof( name ) );
+    name[sizeof( name ) - 1] = 0;
+    char difficulty[32];
+    sprintf( difficulty, "#Cstrike_Bot_Difficulty%d", TheCareerGame->GetDifficulty() );
+    wchar_t playerName[128] = { 0 };
+    int length = sizeof( playerName ) / sizeof( playerName[0] );
 #ifdef _WIN32
-	BufWPrintf( playerName, length, L"%hs / %s", name, vgui2::localize()->Find( difficulty ) );
+    BufWPrintf( playerName, length, L"%hs / %s", name, vgui2::localize()->Find( difficulty ) );
 #else
     BufWPrintf( playerName, length, L"%hs / %s", name, vgui2::localize()->Find( difficulty ) );
 #endif
-	m_pPlayerName->SetText( playerName );
-	m_pMissionPackName->SetText( TheCareerDefinitions->GetActiveCareerDefinition()->GetTitle() );
+    m_pPlayerName->SetText( playerName );
+    m_pMissionPackName->SetText( TheCareerDefinitions->GetActiveCareerDefinition()->GetTitle() );
 }
 
 int GetAlternateProportionalValueFromNormal( vgui2::Panel* panel, int normalizedValue )
@@ -494,4 +491,22 @@ void CCareerBaseFrame::PerformLayout()
 			panel->SetPos( x + offsetX, y + offsetY );
 		}
 	}
+}
+
+void CCareerButton::RefreshLanguagePresentation() {
+    wchar_t text[512] = {};
+    GetText(text, static_cast<int>(sizeof(text) / sizeof(text[0])));
+    m_textImage->SetText(text);
+    m_textImage->ResizeImageToContent();
+    int imageWide = 0;
+    int imageTall = 0;
+    m_image->GetSize(imageWide, imageTall);
+    const int textAreaWide = GetWide() - imageWide - m_imagePad - 2 * m_textPad;
+    int textWide = 0;
+    int textTall = 0;
+    m_textImage->GetContentSize(textWide, textTall);
+    if (textAreaWide < textWide) {
+        m_textImage->SetSize(textAreaWide, textTall);
+    }
+    Repaint();
 }

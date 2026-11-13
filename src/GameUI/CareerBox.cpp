@@ -265,7 +265,9 @@ CCareerDifficultyBox::CCareerDifficultyBox( const char* panelName, vgui2::Panel*
 #else
 		snprintf( token, sizeof( token ), "#Career_Difficulty%d", i );
 #endif
-		if ( profile && profile->difficulty[i].played )
+        m_difficultyButtons[i] = buttons[i];
+        m_played[i] = profile && profile->difficulty[i].played;
+		if ( m_played[i] )
 		{
 			wchar_t* continued = vgui2::localize()->Find( "#Career_ContinueDifficulty" );
 			wchar_t* difficultyText = vgui2::localize()->Find( token );
@@ -301,4 +303,35 @@ void CCareerDifficultyBox::OnCommand( const char* command )
 		m_pEnableTutorCheck->ApplyChanges();
 
 	CCareerBaseBox::OnCommand( command );
+}
+
+void CCareerDifficultyBox::RefreshLanguagePresentation() {
+    for (int index = 0; index < MAX_CAREER_DIFFICULTY; ++index) {
+        char token[64] = {};
+        snprintf(token, sizeof(token), "#Career_Difficulty%d", index);
+        if (m_played[index]) {
+            wchar_t text[256] = {};
+            vgui2::localize()->ConstructString(text, sizeof(text), (wchar_t*)L"%s1 (%s2)", 2,
+                vgui2::localize()->Find(token), vgui2::localize()->Find("#Career_ContinueDifficulty"));
+            m_difficultyButtons[index]->SetText(text);
+        } else {
+            m_difficultyButtons[index]->SetText(token);
+        }
+    }
+}
+
+void CCareerQueryBox::SetLocalizedLabelText(const char* token, const wchar_t* parameter) {
+    m_labelToken = token ? token : "";
+    m_labelParameter = parameter ? parameter : L"";
+    RefreshLanguagePresentation();
+}
+
+void CCareerQueryBox::RefreshLanguagePresentation() {
+    if (m_labelToken.empty()) {
+        return;
+    }
+    wchar_t text[512] = {};
+    vgui2::localize()->ConstructString(text, sizeof(text), vgui2::localize()->Find(m_labelToken.c_str()),
+        1, m_labelParameter.c_str());
+    SetLabelText(text);
 }

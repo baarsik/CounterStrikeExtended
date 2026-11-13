@@ -192,6 +192,21 @@ void CHudMenu::SelectMenuItem( int item )
 }
 
 
+void CHudMenu::RefreshLanguage() {
+    if (m_fWaitingForMore) {
+        return;
+    }
+    const char* translated = gHUD.m_TextMessage.BufferedLocaliseTextString(g_szPrelocalisedMenuString);
+    strncpy(g_szMenuString, translated, sizeof(g_szMenuString) - 1);
+    g_szMenuString[sizeof(g_szMenuString) - 1] = 0;
+    char* converted = nullptr;
+    if (KB_ConvertString(g_szMenuString, &converted)) {
+        strncpy(g_szMenuString, converted, sizeof(g_szMenuString) - 1);
+        g_szMenuString[sizeof(g_szMenuString) - 1] = 0;
+        free(converted);
+    }
+}
+
 // Message handler for ShowMenu message
 // takes four values:
 //		short: a bitfield of keys that are valid input

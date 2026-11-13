@@ -63,10 +63,10 @@ void CHudStatusBar::Reset()
 #pragma warning(push)
 #pragma warning(disable : 4701)
 #endif
-void CHudStatusBar::ParseStatusString(int line)
+void CHudStatusBar::ParseStatusString(int line, bool updatePlayerState)
 {
 	char text[128] = {};
-	char replacement[128];
+	char replacement[128]{};
 	gHUD.m_TextMessage.LocaliseTextString(m_szStatusText[line], text, sizeof(text));
 	memset(m_szStatusBar[line], 0, sizeof(m_szStatusBar[line]));
 	char *src = text;
@@ -76,7 +76,7 @@ void CHudStatusBar::ParseStatusString(int line)
 	{
 		while (*src == '\n')
 			src++;  // skip over any newlines
-		if (src - text >= 128 || dst - dstStart >= 128)
+		if (src - text >= 127 || dst - dstStart >= 127)
 			break;
 		int index = atoi(src);
 		if (index >= 0 && index < 8 && m_iStatusValues[index])
@@ -87,7 +87,7 @@ void CHudStatusBar::ParseStatusString(int line)
 				continue;
 
 			// copy the text, char by char, until we hit a % or a \n
-			while (*src != '\n' && *src)
+			while (*src != '\n' && *src && dst - dstStart < static_cast<int>(sizeof(m_szStatusBar[line])) - 1)
 			{
 				if (*src != '%')
 				{  // just copy the character
@@ -115,8 +115,11 @@ void CHudStatusBar::ParseStatusString(int line)
 					gEngfuncs.pfnGetPlayerInfo(value, &g_PlayerInfoList[value]);
 					if (g_PlayerInfoList[value].name)
 					{
-						strncpy(replacement, g_PlayerInfoList[value].name, sizeof(replacement));
-						gHUD.m_Health.m_iPlayerLastPointedAt = value;
+						strncpy(replacement, g_PlayerInfoList[value].name, sizeof(replacement) - 1);
+                        replacement[sizeof(replacement) - 1] = 0;
+						if (updatePlayerState) {
+                            gHUD.m_Health.m_iPlayerLastPointedAt = value;
+                        }
 						m_pflNameColors[line] = GetClientColor(value);
 					}
 					else
@@ -125,8 +128,10 @@ void CHudStatusBar::ParseStatusString(int line)
 					}
 					break;
 				case 'i':  // number
-					g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].health = value;
-					g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].showhealth = gHUD.m_flTime + 5.0f;
+					if (updatePlayerState) {
+                        g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].health = value;
+                        g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].showhealth = gHUD.m_flTime + 5.0f;
+                    }
 					_snprintf(replacement, sizeof(replacement), "%d", value);
 					break;
 				case 'h':
@@ -165,7 +170,7 @@ void CHudStatusBar::ParseStatusString(int line)
 				default:
 					continue;
 				}
-				for (char *copy = replacement; *copy && dst - dstStart < 128; copy++, dst++)
+				for (char *copy = replacement; *copy && dst - dstStart < 127; copy++, dst++)
 					*dst = *copy;
 			}
 		}
@@ -175,7 +180,8 @@ void CHudStatusBar::ParseStatusString(int line)
 			while (*src && *src != '\n')
 				src++;
 		}
-	}
+    }
+    *dst = 0;
 }
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -236,4 +242,9 @@ int CHudStatusBar::Draw(float)
 		gEngfuncs.pfnDrawSetTextColor(m_pflNameColors[0][0], m_pflNameColors[0][1], m_pflNameColors[0][2]);
 	DrawConsoleString(x, y, m_szStatusBar[0]);
 	return 1;
+}
+
+void CHudStatusBar::RefreshLanguage() {
+    // Packet-derived health/target state and display deadlines belong to the match.
+    ParseStatusString(0, false);
 }

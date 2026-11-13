@@ -19,6 +19,7 @@ class CBottomBar;
 class ISpectatorInterface
 {
 public:
+
 	virtual void Activate() = 0;
 	virtual void ShowBottomBar() = 0;
 	virtual void HideGUI() = 0;
@@ -44,6 +45,7 @@ class CSpectatorGUI : public vgui2::Frame, public ISpectatorInterface
 
 public:
 	CSpectatorGUI( vgui2::Panel* parent );
+    void RefreshLanguage();
 	~CSpectatorGUI() override;
 	void Activate() override;
 	void ShowBottomBar() override;

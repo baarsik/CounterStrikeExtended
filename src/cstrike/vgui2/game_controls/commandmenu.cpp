@@ -134,3 +134,13 @@ bool CCommandMenu::SlotInput( int )
 {
 	return false;
 }
+
+void CCommandMenu::RefreshLanguage() {
+    if (!m_pMenu) {
+        return;
+    }
+    vgui2::Menu* translated = CreateCommandCombo()->CreateCommandMenu(m_szFilename, m_iTeamNumber, this);
+    RefreshCommandMenuText(m_pMenu, translated);
+    delete translated;
+    PositionCommandMenu();
+}

@@ -15,6 +15,7 @@ namespace vgui2 { class Menu; }
 class CCommandMenu : public vgui2::Panel
 {
 public:
+    void RefreshLanguage();
 	CCommandMenu( vgui2::Panel* parent, const char* filename );
 	~CCommandMenu() override;
 	void OnCommand( const char* command ) override;

@@ -69,6 +69,7 @@ public:
     explicit ServerBrowserDialog(BrowserSession &session);
     ~ServerBrowserDialog() override;
     void Pump();
+    void RefreshLanguagePresentation();
     void OnMessage(const KeyValues *message, vgui2::VPANEL sender) override;
     void Activate() override;
     void Deactivate();

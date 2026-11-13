@@ -9,6 +9,7 @@
 #include "utlrbtree.h"
 #include "utlsymbol.h"
 #include "utlvector.h"
+#include "LocalizationStorage.h"
 
 #include <stdarg.h>
 #include <stddef.h>
@@ -93,6 +94,8 @@ public:
 	virtual void ConstructString( wchar_t* unicodeOutput, int unicodeBufferSizeInBytes,
 		vgui2::StringIndex_t unlocalizedTextSymbol, KeyValues* localizationVariables ) override;
 
+    void CommitLanguageSnapshot(CLocalizedStringTable& prepared);
+
 private:
 	bool AddAllLanguageFiles( IFileSystem* fileSystem, const char* baseFileName );
 	void BuildFastValueLookup();
@@ -123,8 +126,8 @@ private:
 	char											m_szLanguage[64];
 	bool											m_bUseOnlyLongestLanguageString;
     CUtlRBTree<localizedstring_t, vgui2::StringIndex_t> m_Lookup;
-	CUtlVector< char >								m_Names;
-	CUtlVector< wchar_t >							m_Values;
+	LocalizationStorage<char>								m_Names;
+	LocalizationStorage<wchar_t>							m_Values;
 	CUtlSymbol										m_CurrentFile;
 	CUtlVector< CUtlSymbol >						m_LocalizationFiles;
 	CUtlRBTree< fastvalue_t, int >					m_FastValueLookup;

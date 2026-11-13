@@ -1,3 +1,4 @@
+#include <string>
 // cl.input.c  -- builds an intended movement command to send to the server
 
 //xxxxxx Move bob and pitch drifting code here and other stuff from view if needed
@@ -130,73 +131,39 @@ Removes references to +use and replaces them with the keyname in the output stri
 NOTE:  Only works for text with +word in it.
 ============
 */
-int KB_ConvertString( char *in, char **ppout )
-{
-	char sz[ 4096 ];
-	char binding[ 64 ];
-	char *p;
-	char *pOut;
-	char *pEnd;
-	const char *pBinding;
-
-	if ( !ppout )
-		return 0;
-
-	*ppout = NULL;
-	p = in;
-	pOut = sz;
-	while ( *p )
-	{
-		if ( *p == '+' )
-		{
-			pEnd = binding;
-			while ( *p && ( isalnum( *p ) || ( pEnd == binding ) ) && ( ( pEnd - binding ) < 63 ) )
-			{
-				*pEnd++ = *p++;
-			}
-
-			*pEnd =  '\0';
-
-			pBinding = NULL;
-			if ( strlen( binding + 1 ) > 0 )
-			{
-				// See if there is a binding for binding?
-				pBinding = gEngfuncs.Key_LookupBinding( binding + 1 );
-			}
-
-			if ( pBinding )
-			{
-				*pOut++ = '[';
-				pEnd = (char *)pBinding;
-			}
-			else
-			{
-				pEnd = binding;
-			}
-
-			while ( *pEnd )
-			{
-				*pOut++ = *pEnd++;
-			}
-
-			if ( pBinding )
-			{
-				*pOut++ = ']';
-			}
-		}
-		else
-		{
-			*pOut++ = *p++;
-		}
-	}
-
-	*pOut = '\0';
-
-	pOut = ( char * )malloc( strlen( sz ) + 1 );
-	strcpy( pOut, sz );
-	*ppout = pOut;
-
-	return 1;
+int KB_ConvertString(char* input, char** output) {
+    if (!output || !input) {
+        return 0;
+    }
+    *output = nullptr;
+    std::string expanded;
+    const char* cursor = input;
+    while (*cursor) {
+        if (*cursor != '+') {
+            expanded.push_back(*cursor++);
+            continue;
+        }
+        std::string action;
+        action.push_back(*cursor++);
+        constexpr std::size_t MaximumActionBytes = 63;
+        while (*cursor && isalnum(static_cast<unsigned char>(*cursor)) && action.size() < MaximumActionBytes) {
+            action.push_back(*cursor++);
+        }
+        const char* binding = action.size() > 1 ? gEngfuncs.Key_LookupBinding(action.c_str() + 1) : nullptr;
+        if (binding) {
+            expanded += '[';
+            expanded += binding;
+            expanded += ']';
+        } else {
+            expanded += action;
+        }
+    }
+    *output = static_cast<char*>(malloc(expanded.size() + 1));
+    if (!*output) {
+        return 0;
+    }
+    memcpy(*output, expanded.c_str(), expanded.size() + 1);
+    return 1;
 }
 
 /*

@@ -1017,3 +1017,61 @@ void CWeaponSelectBox::OnCommand( const char* command )
 	}
 	CCareerBaseBox::OnCommand( command );
 }
+
+void CCareerBaseBox::RefreshOpenBoxLanguage() {
+    if (auto* equipment = dynamic_cast<CEquipmentSelectBox*>(s_currentBox)) {
+        equipment->RefreshLanguage();
+    } else if (auto* grenades = dynamic_cast<CGrenadeSelectBox*>(s_currentBox)) {
+        grenades->OnControlChanged();
+    } else if (auto* weapons = dynamic_cast<CWeaponSelectBox*>(s_currentBox)) {
+        weapons->RefreshLanguage();
+    }
+}
+
+void CEquipmentSelectBox::RefreshLanguage() {
+    constexpr int KevlarCost = 650;
+    constexpr int HelmetCost = 350;
+    constexpr int DefuserCost = 200;
+    constexpr int NightvisionCost = 1250;
+    vgui2::ComboBox* controls[] = {m_pKevlar, m_pHelmet, m_pDefuser, m_pNightvision};
+    vgui2::Label* labels[] = {m_pKevlarLabel, m_pHelmetLabel, m_pDefuserLabel, m_pNightvisionLabel};
+    const int costs[] = {KevlarCost, HelmetCost, DefuserCost, NightvisionCost};
+    for (std::size_t index = 0; index < sizeof(controls) / sizeof(controls[0]); ++index) {
+        wchar_t text[256]{};
+        vgui2::localize()->ConstructString(text, sizeof(text), SharedFindString("#Cstrike_BuyPresetPlainCost"),
+            1, NumAsWString(costs[index] * controls[index]->GetActiveItem()));
+        labels[index]->SetText(text);
+    }
+}
+
+void CWeaponSelectBox::RefreshLanguage() {
+    if (!m_pClips || m_pClips->GetItemCount() == 0) {
+        return;
+    }
+    const int count = m_pClips->GetItemCount();
+    const int clipPairs = (count - 1) / 2;
+    const int activeItem = m_pClips->GetActiveItem();
+    for (int row = 0; row < count; ++row) {
+        wchar_t text[256]{};
+        if (row == 0) {
+            const wchar_t* full = vgui2::localize()->Find("#Cstrike_BuyPresetEditWeaponFullClips");
+            if (full) {
+                wcsncpy(text, full, sizeof(text) / sizeof(text[0]) - 1);
+            }
+        } else {
+            const int clips = clipPairs - (row + 1) / 2;
+            const bool orMore = (row % 2) != 0;
+            const char* token = clips == 1
+                ? (orMore ? "#Cstrike_BuyPresetEditClipOrMore" : "#Cstrike_BuyPresetEditClip")
+                : (orMore ? "#Cstrike_BuyPresetEditClipsOrMore" : "#Cstrike_BuyPresetEditClips");
+            vgui2::localize()->ConstructString(text, sizeof(text), vgui2::localize()->Find(token),
+                1, NumAsWString(clips));
+        }
+        const int item = m_pClips->GetMenu()->GetMenuID(row);
+        m_pClips->UpdateItem(item, text, nullptr);
+        if (item == activeItem) {
+            m_pClips->SetText(text);
+        }
+    }
+    UpdateClips();
+}

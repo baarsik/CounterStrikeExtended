@@ -49,7 +49,12 @@ int CHudMessage::Init()
 
 void CHudMessage::Reset()
 {
-	memset( m_pMessages, 0, sizeof( m_pMessages ) );
+	memset(m_pMessages, 0, sizeof(m_pMessages));
+    for (auto& snapshot : m_messageSnapshots) {
+        snapshot.Clear();
+    }
+    m_gameTitleSnapshot.Clear();
+    memset(m_messageEndTimes, 0, sizeof(m_messageEndTimes));
 	memset( m_startTime, 0, sizeof( m_startTime ) );
 	m_gameTitleTime = 0;
 	m_pGameTitle = NULL;
@@ -129,7 +134,9 @@ int CHudMessage::MessageAdd( const char* name, float time, int hintMessage, unsi
 	client_textmessage_t* message;
 	if ( *name == '#' )
 	{
-		message = TextMessageGet( name + 1 );
+		message = TextMessageGet(name + 1);
+        m_messageSnapshots[index].Assign(message, CS_IsCatalogueMessage(message));
+        message = m_messageSnapshots[index].Get();
 		if ( message && hintMessage )
 		{
 			message->effect = 2;
@@ -162,11 +169,15 @@ int CHudMessage::MessageAdd( const char* name, float time, int hintMessage, unsi
 	}
 	else
 	{
-		message = TextMessageGet( name );
+		message = TextMessageGet(name);
+        m_messageSnapshots[index].Assign(message, CS_IsCatalogueMessage(message));
+        message = m_messageSnapshots[index].Get();
 	}
 	m_pMessages[index].pMessage = message;
 	m_pMessages[index].font = font;
 	m_startTime[index] = time;
+    m_pMessages[index].numArgs = 0;
+    m_messageEndTimes[index] = MessageEndTime(index);
 	return index;
 }
 
@@ -181,9 +192,12 @@ void CHudMessage::MessageAdd( client_textmessage_t* message )
 	{
 		if ( !m_pMessages[i].pMessage )
 		{
-			m_pMessages[i].pMessage = message;
+			m_messageSnapshots[i].Assign(message, CS_IsCatalogueMessage(message));
+            m_pMessages[i].pMessage = m_messageSnapshots[i].Get();
 			m_pMessages[i].font = _Newfont;
 			m_startTime[i] = gHUD.m_flTime;
+            m_pMessages[i].numArgs = 0;
+            m_messageEndTimes[i] = MessageEndTime(i);
 			return;
 		}
 	}
@@ -240,7 +254,9 @@ int CHudMessage::MsgFunc_HudTextArgs( const char*, int size, void* buffer )
 
 int CHudMessage::MsgFunc_GameTitle( const char*, int, void* )
 {
-	m_pGameTitle = TextMessageGet( "GAMETITLE" );
+	client_textmessage_t* title = TextMessageGet("GAMETITLE");
+    m_gameTitleSnapshot.Assign(title, CS_IsCatalogueMessage(title));
+    m_pGameTitle = m_gameTitleSnapshot.Get();
 	if ( m_pGameTitle )
 	{
 		m_gameTitleTime = gHUD.m_flTime;
@@ -343,7 +359,8 @@ void CHudMessage::MessageDrawScan( client_message_t* clientMessage, float time, 
 	char token[256];
 	const size_t messageLength = strlen(message->pMessage);
 	wchar_t* text;
-	if ( *message->pMessage == '#' )
+	if ((m_messageSnapshots[clientMessage - m_pMessages].HasCatalogueSource() || !CS_HasLanguageService())
+        && *message->pMessage == '#')
 	{
 		strncpy( token, message->pMessage, sizeof( token ) - 1 );
 		token[sizeof( token ) - 1] = 0;
@@ -457,8 +474,11 @@ int CHudMessage::Draw( float time )
 	// Fixup level transitions
 	for ( int i = 0; i < 16; i++ )
 	{
-		if ( m_startTime[i] > gHUD.m_flTime || m_startTime[i] == 1 )
-			m_startTime[i] = gHUD.m_flTime + m_parms.time - m_startTime[i] + 0.2;	// Server takes 0.2 seconds to spawn, adjust for this
+		if (m_startTime[i] > gHUD.m_flTime || m_startTime[i] == 1) {
+            const float previousStart = m_startTime[i];
+            m_startTime[i] = gHUD.m_flTime + m_parms.time - previousStart + 0.2f;
+            m_messageEndTimes[i] += m_startTime[i] - previousStart;
+        }	// Server takes 0.2 seconds to spawn, adjust for this
 	}
 	float endTime;
 	for ( int i = 0; i < 16; i++ )
@@ -466,21 +486,7 @@ int CHudMessage::Draw( float time )
 		client_textmessage_t* message = m_pMessages[i].pMessage;
 		if ( !message )
 			continue;
-		switch ( message->effect )
-		{
-		case 0:
-		case 1:
-			endTime = m_startTime[i] + message->fadein + message->fadeout + message->holdtime;
-			break;
-		case 2:
-			if ( message->pMessage && *message->pMessage )
-				endTime = message->fadein * strlen( message->pMessage ) + m_startTime[i] + message->fadeout + message->holdtime;
-			else
-				endTime = m_startTime[i] + message->fadein + message->fadeout + message->holdtime;
-			break;
-		default:
-			continue;
-		}
+        endTime = m_messageEndTimes[i];
 		if ( time <= endTime )
 		{
 			MessageDrawScan( &m_pMessages[i], time - m_startTime[i], m_pMessages[i].font );
@@ -490,6 +496,7 @@ int CHudMessage::Draw( float time )
 		{
 			m_pMessages[i].pMessage = NULL;
 			m_pMessages[i].font = 0;
+            m_messageSnapshots[i].Clear();
 		}
 	}
 
@@ -499,4 +506,32 @@ int CHudMessage::Draw( float time )
 	if ( !drawn )
 		m_iFlags &= ~HUD_ACTIVE;
 	return 1;
+}
+
+float CHudMessage::MessageEndTime(int index) const {
+    const client_textmessage_t* message = m_pMessages[index].pMessage;
+    if (!message) {
+        return 0;
+    }
+    const float reveal = message->effect == 2 && message->pMessage
+        ? message->fadein * strlen(message->pMessage) : message->fadein;
+    return m_startTime[index] + reveal + message->fadeout + message->holdtime;
+}
+
+void CHudMessage::RefreshLanguage() {
+    vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme(vgui2::scheme()->GetDefaultScheme());
+    const vgui2::HFont oldLegacyFont = _font;
+    _font = scheme->GetFont("Legacy_CreditsFont", true);
+    _Newfont = scheme->GetFont("CreditsFont", true);
+    for (int index = 0; index < MESSAGE_SLOT_COUNT; ++index) {
+        if (!m_pMessages[index].pMessage) {
+            continue;
+        }
+        m_messageSnapshots[index].Relocalize(TextMessageGet);
+        m_pMessages[index].pMessage = m_messageSnapshots[index].Get();
+        m_pMessages[index].font = m_pMessages[index].font == oldLegacyFont ? _font : _Newfont;
+    }
+    m_gameTitleSnapshot.Relocalize(TextMessageGet);
+    m_pGameTitle = m_gameTitleSnapshot.Get();
+    m_parms.pMessage = nullptr;
 }

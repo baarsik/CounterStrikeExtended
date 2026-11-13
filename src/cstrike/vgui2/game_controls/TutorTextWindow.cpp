@@ -31,6 +31,10 @@ public:
 	void ApplySchemeSettings( IScheme* pScheme ) override;
 	void OnThink() override;
 	void SetAnimating( bool animating ) { m_isAnimating = animating; }
+    void ReplaceText(const wchar_t* text) {
+        m_pMessageLabel->SetText(text);
+        InvalidateLayout(false, false);
+    }
 
 private:
 	int					m_msgClass;
@@ -292,4 +296,16 @@ int CTutorTextWindow::ComputeWindowHeight( int screenheight )
 		return screenheight / 8;
 	}
 	return 10;
+}
+
+void CTutorTextWindow::ReplaceText(const wchar_t* text) {
+    if (m_messageBox) {
+        m_messageBox->ReplaceText(text);
+    }
+}
+
+void CTutorTextWindow::RefreshLanguage() {
+    if (m_messageBox) {
+        m_messageBox->InvalidateLayout(false, true);
+    }
 }

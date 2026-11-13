@@ -29,3 +29,5 @@ protected:
 };
 
 CCreateCommandComboMenu* CreateCommandCombo();
+
+void RefreshCommandMenuText(vgui2::Menu* destination, vgui2::Menu* source);

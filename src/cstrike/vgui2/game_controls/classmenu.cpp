@@ -61,7 +61,9 @@ const char* CClassMenu::ClassHelperPanel::GetClassPage( const char* name )
 
 void CClassMenu::ClassHelperPanel::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
-	LoadControlSettings( GetClassPage( GetName() ), NULL );
+	const bool visible = IsVisible();
+    LoadControlSettings(GetClassPage(GetName()), nullptr);
+    SetVisible(visible);
 	vgui2::Panel::ApplySchemeSettings( scheme );
 }
 

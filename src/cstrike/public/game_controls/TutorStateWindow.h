@@ -8,12 +8,14 @@ class MessageBox;
 class CTutorStateWindow
 {
 public:
+    void RefreshLanguage();
 	CTutorStateWindow();
 	virtual ~CTutorStateWindow();
 	virtual void Activate( const char* message );
 	virtual void Activate( const wchar_t* message );
 	virtual void UpdatePosition();
 	void GetPosition( int& x, int& y );
+    void ReplaceText(const wchar_t* text);
 	void ComputeWindowPos( int screenwidth, int screenheight, int& xpos, int& ypos );
 
 private:

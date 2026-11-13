@@ -1,3 +1,4 @@
+#include "localization_center_text.h"
 #include "client.h"
 #include "common.h"
 #include "cvar.h"
@@ -112,6 +113,11 @@ void SCR_CenterPrint( char* text )
 		if ( *character == '\n' )
 			scr_center_lines = ++lines;
 	}
+}
+
+bool SCR_ReplaceCenterText(const char* expectedText, const char* replacementText) {
+    return cse::localization::ReplaceCenterBuffer(scr_centerstring, scr_center_lines, scr_erase_lines,
+        scr_centertime_off > 0.0f || cl.intermission, expectedText, replacementText);
 }
 
 void SCR_DrawCenterString()

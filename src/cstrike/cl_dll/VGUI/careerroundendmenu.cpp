@@ -424,3 +424,17 @@ void CCSCareerRoundEndMenu::OnCommand( const char* command )
 		OnRoundEndMenuClose( _stricmp( command, "disconnect" ) != 0 );
 	}
 }
+
+void CCSCareerRoundEndMenu::RefreshLanguage() {
+    const bool playingCT = !g_pCareerUI || g_pCareerUI->PlayAsCT();
+    PopulateWinsAndLosses(playingCT, m_pWinsLabel, m_pLossesLabel);
+    wchar_t needed[1024]{};
+    wchar_t wins[16]{};
+    wchar_t winBy[16]{};
+    _snwprintf(wins, ARRAYSIZE(wins), L"%d", TheCareerMatchStatus.neededWins);
+    _snwprintf(winBy, ARRAYSIZE(winBy), L"%d", TheCareerMatchStatus.winBy);
+    vgui2::localize()->ConstructString(needed, sizeof(needed),
+        vgui2::localize()->Find("#Career_MatchTasks"), 2, wins, winBy);
+    m_pNeededLabel->SetText(needed);
+    PopulateTaskLabels(m_pTaskLabels, m_pTaskStatusLabels, m_pTaskNoticeLabel, true);
+}

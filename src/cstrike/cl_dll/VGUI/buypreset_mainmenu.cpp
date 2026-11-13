@@ -275,3 +275,8 @@ void CBuyPresetEditMainMenu::OnCommand( const char* command )
 	}
 	Frame::OnCommand( command );
 }
+
+void CBuyPresetEditMainMenu::RefreshLanguage() {
+    UpdateButtons();
+    InvalidateLayout(false, false);
+}

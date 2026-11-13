@@ -160,41 +160,27 @@ int TeamFortressViewport::MsgFunc_VGUIMenu( const char*, int size, void* buffer 
 int TeamFortressViewport::MsgFunc_TutorText( const char*, int size, void* buffer )
 {
 	BEGIN_READ( buffer, size );
-	const char* token = READ_STRING();
-	const wchar_t* localized = vgui2::localize()->Find( token );
-	wchar_t text[1024];
-	wchar_t expanded[1024];
-	wchar_t placeholder[32];
-	if ( localized )
-		wcsncpy( text, localized, ARRAYSIZE( text ) - 1 );
-	else
-		_snwprintf( text, ARRAYSIZE( text ), L"%hs", token );
-	text[ARRAYSIZE( text ) - 1] = 0;
-
-	int arguments = READ_BYTE();
-	for ( int i = 1; i <= arguments; i++ )
-	{
-		_snwprintf( placeholder, ARRAYSIZE( placeholder ), L"%%s%d", i );
-		wchar_t* match = wcsstr( text, placeholder );
-		if ( !match )
-			break;
-
-		size_t prefix = match - text;
-		wcsncpy( expanded, text, prefix );
-		size_t written = prefix;
-		int character = READ_BYTE();
-		while ( character > 0 )
-		{
-			if ( written < ARRAYSIZE( expanded ) - 1 )
-				expanded[written++] = (wchar_t)character;
-			character = READ_BYTE();
-		}
-		if ( character < 0 )
-			return 1;
-		expanded[written] = 0;
-		wcsncat( expanded, match + wcslen( placeholder ), ARRAYSIZE( expanded ) - written - 1 );
-		wcscpy( text, expanded );
-	}
+    const char* token = READ_STRING();
+    m_tutorToken = token ? token : "";
+    m_tutorArguments.clear();
+    const int arguments = READ_BYTE();
+    for (int index = 0; index < arguments; ++index) {
+        std::wstring argument;
+        int character = READ_BYTE();
+        while (character > 0) {
+            if (argument.size() < 1023) {
+                argument.push_back(static_cast<wchar_t>(character));
+            }
+            character = READ_BYTE();
+        }
+        if (character < 0) {
+            return 1;
+        }
+        m_tutorArguments.push_back(argument);
+    }
+    std::wstring rendered = RenderTutorText(m_tutorToken, m_tutorArguments);
+    wchar_t text[1024]{};
+    wcsncpy(text, rendered.c_str(), ARRAYSIZE(text) - 1);
 
 	int id = READ_SHORT();
 	int spectator = READ_SHORT();
@@ -215,15 +201,10 @@ int TeamFortressViewport::MsgFunc_TutorLine( const char*, int size, void* buffer
 int TeamFortressViewport::MsgFunc_TutorState( const char*, int size, void* buffer )
 {
 	BEGIN_READ( buffer, size );
-	const char* token = READ_STRING();
-	const wchar_t* localized = vgui2::localize()->Find( token );
-	if ( localized )
-		ShowTutorState( localized );
-
-	wchar_t text[1024];
-	_snwprintf( text, ARRAYSIZE( text ), L"%hs", token );
-	text[ARRAYSIZE( text ) - 1] = 0;
-	ShowTutorState( text );
+    const char* token = READ_STRING();
+    m_tutorStateToken = token ? token : "";
+    const std::wstring rendered = RenderTutorText(m_tutorStateToken, {});
+    ShowTutorState(rendered.c_str());
 	return 1;
 }
 

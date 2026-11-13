@@ -34,6 +34,7 @@ class CDemoPlayerDialog : public vgui::Frame, public BaseSystemModule
 public:
 	CDemoPlayerDialog( vgui2::Panel* parent );
 	~CDemoPlayerDialog() override;
+    void RefreshLanguagePresentation();
 	MESSAGE_FUNC_CHARPTR( OnLoadDemo, "DemoSelected", demoname );
 
 protected:

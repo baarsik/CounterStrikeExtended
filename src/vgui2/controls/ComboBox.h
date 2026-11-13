@@ -52,6 +52,8 @@ class ComboBox : public TextEntry
 public:
 	ComboBox( Panel* parent, const char* panelName, int numLines, bool allowEdit );
 	~ComboBox() override;
+    void RefreshLanguageText();
+    void OnThink() override;
 
 	void ApplySchemeSettings( IScheme* pScheme ) override;
 	void PerformLayout() override;

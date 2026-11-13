@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PropertyPage.h"
+#include "localization_service.h"
 
 #include <string>
 #include <vector>
@@ -18,10 +19,11 @@ public:
 
     bool ApplyLanguage();
     bool HasLanguageChange() const;
+    bool IsLanguagePending() const;
+    bool CompleteLanguageRequest(bool& applied);
 
 protected:
     void OnResetData() override;
-    void OnApplyChanges() override;
     void PerformLayout() override;
     MESSAGE_FUNC(OnTextChanged, "TextChanged");
 
@@ -35,4 +37,5 @@ private:
     vgui2::Label* m_launchOverride;
     std::vector<int> m_languageItemIds;
     std::string m_originalLanguage;
+    std::uint64_t m_languageRequest = cse::localization::InvalidRequest;
 };

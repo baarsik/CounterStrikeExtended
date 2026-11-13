@@ -131,6 +131,8 @@ const char* CCSClassMenu::ClassHelperPanel::GetClassPage( const char* className 
 void CCSClassMenu::ClassHelperPanel::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
 	ASSERT_AT( GetAssociatedButton(), 135 );
-	LoadControlSettings( GetClassPage( GetAssociatedButton()->GetName() ), NULL );
+	const bool visible = IsVisible();
+    LoadControlSettings(GetClassPage(GetAssociatedButton()->GetName()), nullptr);
+    SetVisible(visible);
 	vgui2::Panel::ApplySchemeSettings( scheme );
 }

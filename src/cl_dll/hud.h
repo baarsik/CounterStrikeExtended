@@ -32,6 +32,10 @@
 #include "wrect.h"
 #include "cl_dll.h"
 #include "ammo.h"
+#include "localization_message_snapshot.h"
+#include <string>
+#include <memory>
+struct HudTextSource;
 
 #define DHN_DRAWZERO 1
 #define DHN_2DIGITS  2
@@ -229,6 +233,7 @@ public:
 	int Draw( float flTime );
 	void Reset( void );
 	void ParseStatusString( int line_num );
+    void RefreshLanguage() { m_bReparseString = TRUE; }
 
 	int MsgFunc_StatusText( const char *pszName, int iSize, void *pbuf );
 	int MsgFunc_StatusValue( const char *pszName, int iSize, void *pbuf );
@@ -311,6 +316,7 @@ public:
 	void InitHUDData( void );
 	int VidInit( void );
 	void Reset( void );
+    void RefreshLanguage();
 	int Draw( float flTime );
 	int MsgFunc_ShowMenu( const char *pszName, int iSize, void *pbuf );
 
@@ -337,7 +343,9 @@ public:
 	int VidInit( void );
 	int Draw( float flTime );
 	int MsgFunc_SayText( const char *pszName, int iSize, void *pbuf );
-	void SayTextPrint( const char *pszBuf, int iBufSize, int clientIndex = -1 );
+	void SayTextPrint(const char* pszBuf, int iBufSize, int clientIndex = -1,
+        std::shared_ptr<HudTextSource> localization = {});
+    void RefreshLanguage();
 	void EnsureTextFitsInOneLineAndWrapIfHaveTo( int line );
 friend class CHudSpectator;
 
@@ -438,10 +446,17 @@ class CHudTextMessage: public CHudBase
 {
 public:
 	int Init( void );
+    void RefreshLanguage();
 	static char *LocaliseTextString( const char *msg, char *dst_buffer, int buffer_size );
 	static char *BufferedLocaliseTextString( const char *msg );
 	char *LookupString( const char *msg_name, int *msg_dest = NULL );
 	int MsgFunc_TextMsg(const char *pszName, int iSize, void *pbuf);
+private:
+    std::string m_centerSources[5];
+    bool m_centerTokens[5]{};
+    std::string m_centerRendered;
+    bool m_hasCenterSource = false;
+
 };
 
 //
@@ -468,8 +483,14 @@ public:
 	void MessageScanStart( void );
 	void MessageScanNextChar( void );
 	void Reset( void );
+    void RefreshLanguage();
 
 private:
+    float MessageEndTime(int index) const;
+    void ReleaseMessage(int index);
+    float m_messageEndTimes[maxHUDMessages]{};
+    cse::localization::MessageSnapshot<client_textmessage_t> m_ownedMessages[maxHUDMessages];
+    cse::localization::MessageSnapshot<client_textmessage_t> m_ownedGameTitle;
 	client_textmessage_t		*m_pMessages[maxHUDMessages];
 	float						m_startTime[maxHUDMessages];
 	message_parms_t				m_parms;

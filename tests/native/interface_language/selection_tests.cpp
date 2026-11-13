@@ -85,7 +85,36 @@ std::string liblistLanguage;
 void CheckLiblistForFallbackDir(const char*, bool localized, const char* language, bool) {
     liblistLanguage = localized ? language : "english";
 }
+// The committed-state controller has separate owner tests. This startup fixture
+// supplies its initialized language while exercising actual mount/surface bodies.
+std::string FileSystem_ResolveInterfaceLanguage(const char* preference);
+namespace cse {
+namespace localization {
+const char* Language() {
+    static std::string language;
+    language = FileSystem_ResolveInterfaceLanguage(savedPreference.c_str());
+    return language.c_str();
+}
+}
+}
+struct LanguageFilesystem {
+    void Reset() {}
+};
+LanguageFilesystem* languageFilesystem = nullptr;
+std::vector<int> languageMounts;
+void BeginLanguageMount(const char*, const char*, bool, bool, const char* = nullptr) {}
+void EndLanguageMount() {}
 #include "filesystem.inc"
+struct FontLanguage {
+    void SetLanguage(const char*) {}
+};
+FontLanguage& FontManager() {
+    static FontLanguage manager;
+    return manager;
+}
+struct GlyphCache {
+    void ClearForLanguage() {}
+} g_FontTextureCache;
 class BaseUISurface {
 public:
     char m_szLanguage[32]{};

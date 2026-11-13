@@ -20,6 +20,7 @@
 #include "vgui/KeyValues.h"
 #include "vgui/MessageMap.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace vgui2
@@ -280,83 +281,108 @@ void ScrollBarSlider::ApplySchemeSettings( IScheme* scheme )
 //-----------------------------------------------------------------------------
 // Purpose: Given the value of the ScrollBarSlider, adjust the ends of the nob.
 //-----------------------------------------------------------------------------
-void ScrollBarSlider::RecomputeNobPosFromValue()
-{
-	int wide, tall;
-	GetPaintSize( wide, tall );
+void ScrollBarSlider::RecomputeNobPosFromValue() {
+    int wide;
+    int tall;
+    GetPaintSize(wide, tall);
 
-	float frange = (float)( _range[1] - _range[0] );
-	float frangewindow = (float)_rangeWindow;
-	float fvalue = (float)( _value - _range[0] );
-	float fper = fvalue / ( frange - frangewindow );
-	float ftall = (float)tall - 1.0f;
-	float fwide = (float)wide;
+    const int visibleWindow = (std::max)(0, _rangeWindow);
+    const double range = static_cast<double>(_range[1]) - _range[0];
+    const int maximumValue = static_cast<int>((std::max)(static_cast<double>(_range[0]),
+        static_cast<double>(_range[1]) - visibleWindow));
+    _value = (std::max)(_range[0], (std::min)(_value, maximumValue));
 
-	if ( frangewindow > 0.0f )
-	{
-		if ( frange <= 0.0f )
-			frange = 1.0f;
+    // Preserve the legacy bottom-border convention, including horizontal minimum size.
+    constexpr int BorderPixels = 1;
+    const int verticalExtent = tall > 0 ? tall - BorderPixels : 0;
+    const int trackLength = _vertical ? verticalExtent : (std::max)(0, wide);
+    _nobPos[0] = 0;
+    _nobPos[1] = 0;
+    if (visibleWindow <= 0 || trackLength <= 0) {
+        Repaint();
+        return;
+    }
+    if (range <= visibleWindow) {
+        _nobPos[1] = trackLength;
+        Repaint();
+        return;
+    }
 
-		float flength = _vertical ? ftall : fwide;
-		float fminsize = _vertical ? fwide : ftall;
-
-		float fnobsize = fmaxf( fminsize, frangewindow / frange * flength );
-		float freepixels = flength - fnobsize;
-		float firstpixel = freepixels * fper;
-
-		_nobPos[0] = (int)firstpixel;
-		_nobPos[1] = (int)( firstpixel + fnobsize );
-
-		if ( (float)_nobPos[1] > flength )
-		{
-			_nobPos[0] = (int)freepixels;
-			_nobPos[1] = (int)flength;
-		}
-	}
-
-	Repaint();
+    const float length = static_cast<float>(trackLength);
+    const float minimumSize = static_cast<float>(_vertical ? (std::max)(0, wide) : verticalExtent);
+    const float nobSize = fmaxf(minimumSize, static_cast<float>(visibleWindow) / static_cast<float>(range) * length);
+    if (nobSize >= length) {
+        _nobPos[1] = trackLength;
+        Repaint();
+        return;
+    }
+    const float freePixels = length - nobSize;
+    const float scrollRange = static_cast<float>(range - visibleWindow);
+    const float value = static_cast<float>(static_cast<double>(_value) - _range[0]);
+    const float fraction = (std::max)(0.0f, (std::min)(1.0f, value / scrollRange));
+    const float firstPixel = freePixels * fraction;
+    const auto boundedPixel = [trackLength](float position) {
+        if (position <= 0.0f) {
+            return 0;
+        }
+        // A float-rounded INT_MAX can be one past int's range; clamp before conversion.
+        if (static_cast<double>(position) >= trackLength) {
+            return trackLength;
+        }
+        return static_cast<int>(position);
+    };
+    _nobPos[0] = boundedPixel(firstPixel);
+    _nobPos[1] = boundedPixel(firstPixel + nobSize);
+    Repaint();
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Get the ScrollBarSlider value using the location of the nob ends.
 //-----------------------------------------------------------------------------
-void ScrollBarSlider::RecomputeValueFromNobPos()
-{
-	int wide, tall;
-	GetPaintSize( wide, tall );
+void ScrollBarSlider::RecomputeValueFromNobPos() {
+    int wide;
+    int tall;
+    GetPaintSize(wide, tall);
 
-	float frangewindow = (float)_rangeWindow;
-	float frange = (float)( _range[1] - _range[0] );
-	float fvalue = (float)( _value - _range[0] );
+    const int visibleWindow = (std::max)(0, _rangeWindow);
+    const double range = static_cast<double>(_range[1]) - _range[0];
+    const int maximumValue = static_cast<int>((std::max)(static_cast<double>(_range[0]),
+        static_cast<double>(_range[1]) - visibleWindow));
+    _value = (std::max)(_range[0], (std::min)(_value, maximumValue));
+    const int trackLength = (std::max)(0, _vertical ? tall : wide);
+    if (visibleWindow <= 0 || range <= visibleWindow || trackLength <= 0) {
+        return;
+    }
 
-	if ( frangewindow > 0.0f )
-	{
-		if ( frange <= 0.0f )
-			frange = 1.0f;
+    const float length = static_cast<float>(trackLength);
+    const float minimumSize = static_cast<float>((std::max)(0, _vertical ? wide : tall));
+    const float rangeSize = static_cast<float>(range);
+    const float windowSize = static_cast<float>(visibleWindow);
+    const float nobSize = fmaxf(minimumSize, windowSize / rangeSize * length);
+    const float freePixels = length - nobSize;
+    if (freePixels <= 0.0f) {
+        // A collapsed track cannot encode a new value; retain the clamped logical position.
+        return;
+    }
 
-		float flength = _vertical ? (float)tall : (float)wide;
-		float fminsize = _vertical ? (float)wide : (float)tall;
-
-		float fnobsize = frangewindow / frange * flength;
-		if ( fminsize > fnobsize )
-			fnobsize = fminsize;
-
-		float fper = (float)_nobPos[0] / ( flength - fnobsize );
-		fvalue = fper * ( frange - frangewindow );
-	}
-
-	int maxValue = _range[1] - _rangeWindow;
-
-	if ( fabs( frangewindow + fvalue - (float)_range[1] ) < frange * 0.01f )
-	{
-		_value = maxValue;
-	}
-	else
-	{
-		float fpos = (float)_range[0] + fvalue;
-		int value = (int)( fpos + 0.5 );
-		_value = ( value < maxValue ) ? value : maxValue;
-	}
+    const float fraction = (std::max)(0.0f,
+        (std::min)(1.0f, static_cast<float>(_nobPos[0]) / freePixels));
+    const float value = fraction * static_cast<float>(range - visibleWindow);
+    constexpr float RangeEndTolerance = 0.01f;
+    if (fabs(windowSize + value - static_cast<float>(_range[1])) < rangeSize * RangeEndTolerance) {
+        _value = maximumValue;
+    } else {
+        const float position = static_cast<float>(_range[0]) + value;
+        constexpr double ValueRoundingBias = 0.5;
+        const double roundedPosition = position + ValueRoundingBias;
+        if (roundedPosition <= _range[0]) {
+            _value = _range[0];
+        } else if (roundedPosition >= maximumValue) {
+            _value = maximumValue;
+        } else {
+            _value = static_cast<int>(roundedPosition);
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------

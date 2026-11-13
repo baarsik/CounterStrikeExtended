@@ -28,8 +28,8 @@
         "CSEInterface_Tab" "Interfaz"
         "CSEInterface_Language" "Idioma"
         "CSEInterface_Automatic" "Usar el idioma de Steam"
-        "CSEInterface_RestartRequired" "Al aplicar un cambio de idioma, se reiniciará el juego."
-        "CSEInterface_SaveFailed" "No se pudo guardar el idioma. Inténtalo de nuevo."
+        "CSEInterface_RestartRequired" "El idioma cambia al instante."
+        "CSEInterface_SaveFailed" "No se pudo cambiar el idioma. Inténtalo de nuevo."
         "CSEInterface_LaunchOverride" "La opción de inicio -language tiene prioridad sobre este ajuste."
 
     }

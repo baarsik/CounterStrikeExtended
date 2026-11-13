@@ -77,10 +77,12 @@ fixture-owned temporary preferences, using matching current VGUI/filesystem depe
 `--driver interface_options` builds the production language page and unchanged
 complete `OptionsDialog` methods against the real shared controls. Only unrelated
 Options pages, game metadata and taskbar are doubles. `options-receipt.json`
-records the copied method source/body hashes. Registry writes stay private to
-the fixture. A controlled provider models the strict native reader, including a record
-whose type/length is lost by ISystem; separate native preference fixtures cover
-actual backend validation.
+records the copied method source/body hashes. A versioned `EngineApi` factory
+binds the production `localization::State` to a controlled `StateBackend`; only
+catalogue preparation and private fixture persistence are controlled. The page
+and dialog never own preference writes. The strict-reader fallback remains
+covered for missing service/malformed native records; separate native preference
+fixtures cover actual backend validation.
 
 ```sh
 python3 tests/native/server_browser_ui/build_vgui_component.py --repo . \
@@ -100,10 +102,15 @@ text comes from the generated packet. The geometry bridge sets real 640×480
 screen metrics before loading schemes. Checks cover CS, HL and single-player-only
 tab composition, all tab bounds/text, page notes and dropdown item glyph coverage,
 non-editable stable ids, default/invalid/saved state, unchanged Apply, save failure
-and retry, Apply/OK/Cancel/reset, automatic clearing and launch-override notice. Language changes queue the normal
-restart only after every Options page applies; successful Apply/OK/automatic
-changes restart, while failed saves, unchanged selection and Cancel do not.
-The fixture captures engine commands and simulates reopening after each restart.
+and retry, Apply/OK/Cancel/reset, automatic clearing and launch-override notice.
+Pending Apply/OK keeps the owner alive, ignores duplicate commands, and applies
+other pages once. Engine completion updates the accepted stable preference;
+only successful OK closes the dialog. Request rejection, preparation/save
+failure, supersession and actual production result-history eviction retain a
+retryable owner and the previous active/saved state. Unchanged Apply/OK and
+Cancel make no language request. Explicit preference changes with the same
+effective language persist without rebuilding. Every scenario asserts that no
+client or restart command is issued.
 `fit.tsv`, `options.bmp` and `languages.bmp` contain measured and rendered evidence.
 Empty image-only frame decorations are outside translated-text measurement.
 This component test does not launch a full game or instantiate other Options pages.

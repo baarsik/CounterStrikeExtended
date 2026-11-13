@@ -37,22 +37,14 @@ COptionsSubVideo::COptionsSubVideo( vgui2::Panel* parent ) : BaseClass( parent, 
 	m_pAspectRatio = new vgui2::ComboBox( this, "AspectRatio", 2, false );
 	m_pVsync = new CCvarToggleCheckButton( this, "Vsync", "#GameUI_VSync", "gl_vsync" );
 
-	vgui2::localize()->ConvertUnicodeToANSI( vgui2::localize()->Find( "#GameUI_AspectNormal" ),
-		m_pszAspectName[0], sizeof( m_pszAspectName[0] ) );
-	vgui2::localize()->ConvertUnicodeToANSI( vgui2::localize()->Find( "#GameUI_AspectWide" ),
-		m_pszAspectName[1], sizeof( m_pszAspectName[1] ) );
-	int normal = m_pAspectRatio->AddItem( m_pszAspectName[0], NULL );
-	int widescreen = m_pAspectRatio->AddItem( m_pszAspectName[1], NULL );
+	int normal = m_pAspectRatio->AddItem("#GameUI_AspectNormal", NULL);
+	int widescreen = m_pAspectRatio->AddItem("#GameUI_AspectWide", NULL);
 	m_bStartWidescreen = 3 * m_CurrentSettings.w != 4 * m_CurrentSettings.h;
 	m_pAspectRatio->ActivateItem( m_bStartWidescreen ? widescreen : normal );
 
-	vgui2::localize()->ConvertUnicodeToANSI( vgui2::localize()->Find( "#GameUI_Software" ),
-		m_pszRenderNames[0], sizeof( m_pszRenderNames[0] ) );
-	vgui2::localize()->ConvertUnicodeToANSI( vgui2::localize()->Find( "#GameUI_OpenGL" ),
-		m_pszRenderNames[1], sizeof( m_pszRenderNames[1] ) );
 	m_pRenderer = new vgui2::ComboBox( this, "Renderer", 2, false );
-	for ( int i = 0; i < 2; i++ )
-		m_pRenderer->AddItem( m_pszRenderNames[i], NULL );
+    m_pRenderer->AddItem("#GameUI_Software", NULL);
+    m_pRenderer->AddItem("#GameUI_OpenGL", NULL);
 	SetCurrentRendererComboItem();
 
 	m_pWindowed = new vgui2::CheckButton( this, "Windowed", "#GameUI_Windowed" );
@@ -149,7 +141,7 @@ void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 	m_pMode->DeleteAllItems();
 	char text[256];
 	m_pRenderer->GetText( text, sizeof( text ) );
-	bool software = stricmp( text, "software" ) == 0;
+	bool software = m_pRenderer->GetActiveItem() == 0;
 	int selectedItem = -1;
 	int itemsAdded = 0;
 	bool foundWidescreen = false;
@@ -236,12 +228,12 @@ void COptionsSubVideo::OnTextChanged( vgui2::Panel* panel, const char* text )
 	else if ( panel == m_pRenderer )
 	{
 		PrepareResolutionList( true );
-		if ( strcmp( text, m_pszRenderNames[m_iStartRenderer] ) != 0 )
+		if (m_pRenderer->GetActiveItem() != m_iStartRenderer)
 			OnDataChanged();
 	}
 	else if ( panel == m_pAspectRatio )
 	{
-		if ( strcmp( text, m_pszAspectName[m_bStartWidescreen] ) != 0 )
+		if (m_pAspectRatio->GetActiveItem() != static_cast<int>(m_bStartWidescreen))
 		{
 			m_bStartWidescreen = !m_bStartWidescreen;
 			PrepareResolutionList( true );
@@ -289,9 +281,9 @@ void COptionsSubVideo::ApplyVidSettings( bool forceRefresh )
 	if ( m_pRenderer )
 	{
 		m_pRenderer->GetText( text, sizeof( text ) );
-		if ( stricmp( text, m_pszRenderNames[0] ) == 0 )
+		if (m_pRenderer->GetActiveItem() == 0)
 			strcpy( m_CurrentSettings.renderer, "software" );
-		else if ( stricmp( text, m_pszRenderNames[1] ) == 0 )
+		else if (m_pRenderer->GetActiveItem() == 1)
 			strcpy( m_CurrentSettings.renderer, "gl" );
 
 		if ( stricmp( m_CurrentSettings.renderer, m_OrigSettings.renderer ) == 0 && m_OrigSettings.bpp == 16 )

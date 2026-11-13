@@ -28,6 +28,7 @@ class COptionsSubKeyboard : public vgui::PropertyPage
 public:
 	COptionsSubKeyboard( vgui2::Panel* parent );
 	~COptionsSubKeyboard() override;
+    void RefreshLanguagePresentation();
 
 protected:
 	virtual void Finish( int key, int button, const char* keyName );
@@ -60,7 +61,7 @@ private:
 	void UnbindKey( const char* key );
 	void ApplyAllBindings();
 	void FillInDefaultBindings();
-	void ParseActionDescriptions();
+	void ParseActionDescriptions(bool presentationOnly = false);
 
 	VControlsListPanel*	m_pKeyBindList;
 	vgui2::Button*		m_pSetBindingButton;

@@ -1,3 +1,4 @@
+#include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -802,7 +803,7 @@ int ListPanel::GetStartItem()
 
 bool ListPanel::GetCellText( int itemID, int column, wchar_t* text, int bufferSize )
 {
-	if ( !text || !bufferSize )
+	if ( !text || bufferSize <= 0 )
 		return false;
 	wcscpy( text, L"" );
 	KeyValues* item = GetItem( itemID );
@@ -811,10 +812,8 @@ bool ListPanel::GetCellText( int itemID, int column, wchar_t* text, int bufferSi
 	const char* name = m_ColumnsData[m_CurrentColumns[column]].m_pHeader->GetName();
 	if ( !name || !*name )
 		return false;
-	const wchar_t* value = item->GetWString( name, L"" );
-	if ( !value || !*name )
-		return false;
-	wcsncpy( text, value, bufferSize );
+    const std::wstring value = cse::localization::CellText(item, name);
+    std::wcsncpy(text, value.c_str(), static_cast<std::size_t>(bufferSize));
 	text[bufferSize - 1] = 0;
 	return *text != 0;
 }

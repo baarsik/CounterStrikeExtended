@@ -103,6 +103,8 @@ CommandButton::CommandButton(const char *text, int x, int y, int wide, int tall,
 
 void CommandButton::Init( void )
 {
+    // Literal player-list buttons do not need a language callback.
+    StopWatchingLanguage();
 	m_pSubMenu = NULL;
 	m_pSubLabel = NULL;
 	m_pParentMenu = NULL;
@@ -533,3 +535,24 @@ void CMenuHandler_StringCommandClassSelect::actionPerformed(Panel* panel)
 #endif
 }
 
+
+void CommandButton::BindLanguageSource(const char* source, const char* file, const char* command, int occurrence) {
+    WatchLanguage();
+    m_languageSource = source ? source : "";
+    m_languageFile = file ? file : "";
+    m_languageCommand = command ? command : "";
+    m_languageOccurrence = occurrence;
+    RefreshLanguage();
+}
+
+void CommandButton::RefreshLanguage() {
+    if (!m_languageSource.empty()) {
+        const std::string text = ResolveCommandLabel(m_languageFile, m_languageCommand,
+            m_languageOccurrence, m_languageSource);
+        // setText is literal by default, including player names beginning '#'.
+        m_sMainText = text;
+        RecalculateText();
+    }
+    LayoutLanguage();
+    invalidateLayout(false);
+}

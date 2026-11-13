@@ -547,3 +547,31 @@ void CVGuiSystemModuleLoader::PostMessageToAllModules( KeyValues* message )
 	}
 	message->deleteThis();
 }
+
+void CVGuiSystemModuleLoader::RefreshLanguagePresentation() {
+    if (!g_pTaskbar) {
+        return;
+    }
+    for (int index = 0; index < m_Modules.Count(); ++index) {
+        auto& module = m_Modules[index];
+        if (!module.moduleInterface || !module.data) {
+            continue;
+        }
+#if INTPTR_MAX > INT32_MAX
+        if (module.phase != ModulePhase::Attached) {
+            continue;
+        }
+#else
+        if (!m_bModulesInitialized) {
+            continue;
+        }
+#endif
+        wchar_t fallback[1024] = {};
+        wchar_t* title = vgui2::localize()->Find(module.data->GetName());
+        if (!title) {
+            vgui2::localize()->ConvertANSIToUnicode(module.data->GetName(), fallback, sizeof(fallback));
+            title = fallback;
+        }
+        g_pTaskbar->SetTitle(module.moduleInterface->GetPanel(), title);
+    }
+}

@@ -15,6 +15,8 @@ LONG openStatus = ERROR_SUCCESS;
 LONG queryStatus = ERROR_SUCCESS;
 int openedKeys = 0;
 int closedKeys = 0;
+LONG writeStatus = ERROR_SUCCESS;
+int writes = 0;
 
 void Require(bool condition, const char* message) {
     if (!condition) {
@@ -99,6 +101,28 @@ LONG RegCloseKey(HKEY key) {
     return ERROR_SUCCESS;
 }
 
+LONG RegCreateKeyExA(HKEY root, const char* path, DWORD reserved, char* className, DWORD options,
+    DWORD access, void* attributes, HKEY* key, DWORD* disposition) {
+    Require(root == HKEY_CURRENT_USER && std::strcmp(path, "Software\\CounterStrikeExtended\\Interface") == 0
+        && reserved == 0 && !className && !options && access == KEY_SET_VALUE && !attributes && !disposition,
+        "write only the CSE-owned language setting");
+    ++openedKeys;
+    *key = reinterpret_cast<HKEY>(2);
+    return ERROR_SUCCESS;
+}
+
+LONG RegSetValueExA(HKEY key, const char* name, DWORD reserved, DWORD type, const BYTE* data, DWORD bytes) {
+    Require(key == reinterpret_cast<HKEY>(2) && std::strcmp(name, "Language") == 0 && !reserved && type == REG_SZ,
+        "write a correctly typed language string");
+    if (writeStatus != ERROR_SUCCESS) {
+        return writeStatus;
+    }
+    record.assign(reinterpret_cast<const char*>(data), bytes);
+    recordType = type;
+    ++writes;
+    return ERROR_SUCCESS;
+}
+
 int main() {
     Check(std::string("russian\0", 8), "russian");
     Check(std::string("PoLiSh\0", 7), "polish");
@@ -118,5 +142,18 @@ int main() {
     openStatus = ERROR_SUCCESS;
     queryStatus = ERROR_FILE_NOT_FOUND;
     Check(std::string("russian\0", 8), "");
-    std::puts("PASS: actual Windows startup reader against controlled read-only registry API");
+    queryStatus = ERROR_SUCCESS;
+    Require(cse::interface_language::WriteSavedPreference("PoLiSh"), "persist canonical bundled preference");
+    Require(record == std::string("polish\0", 7), "persist canonical terminated bytes");
+    Require(cse::interface_language::ReadSavedPreference() == "polish", "writer and strict reader agree");
+    const int previousWrites = writes;
+    Require(!cse::interface_language::WriteSavedPreference("../russian"), "reject path input before registry write");
+    Require(!cse::interface_language::WriteSavedPreference("custom_language"), "reject unbundled saved value");
+    Require(!cse::interface_language::WriteSavedPreference(nullptr), "reject null preference");
+    Require(writes == previousWrites, "invalid writes do not touch registry");
+    writeStatus = ERROR_FILE_NOT_FOUND;
+    Require(!cse::interface_language::WriteSavedPreference("german"), "propagate native write failure");
+    Require(record == std::string("polish\0", 7), "failed writer leaves controlled record unchanged");
+    Require(openedKeys == closedKeys, "close successful read and write key handles");
+    std::puts("PASS: actual Windows preference reader/writer against controlled registry API");
 }

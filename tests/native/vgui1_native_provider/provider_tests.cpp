@@ -145,8 +145,12 @@ int main(int argc, char** argv) {
         && !diagnostic.empty(), "ordinary unavailable exact identity");
     services.unavailable = false;
     services.failRead = true;
-    Require(!provider.Realize(context, Request(), files, error, diagnostic) && error != 0,
+    // An already-owned program is immutable for this binding generation. Use a
+    // fresh context to exercise a failed initial read rather than a cache hit.
+    void* failedReadContext = CreateMacFontContextV1(callbacks);
+    Require(!provider.Realize(failedReadContext, Request(), files, error, diagnostic) && error != 0,
         "read failure never reports a successful face");
+    provider.DestroyContext(failedReadContext);
     services.failRead = false;
     services.failAcquire = true;
     Require(provider.RegisterFile(context, &ownerA, services.location.path.c_str()) != 0,
@@ -157,6 +161,11 @@ int main(int argc, char** argv) {
     services.failAcquire = false;
     Require(provider.ReleaseOwner(context, &ownerA) == 0 && provider.ReleaseOwner(context, &ownerB) == 0,
         "all owned tokens released before context destruction");
+    // New bytes at the same modeled path represent a new binding generation.
+    face.reset();
+    fallback.reset();
+    provider.DestroyContext(context);
+    context = CreateMacFontContextV1(callbacks);
     // A symbol request cannot use a same-named unbound installed program.
     services.bytes = Input(std::string(argv[1]) + "/symbol-high.ttf");
     services.location.postScriptName = "CSEOwnedSymbolV1-Regular";
@@ -174,9 +183,11 @@ int main(int argc, char** argv) {
         "bound resource provides all critical widget byte mappings");
     symbolFace.reset();
     services.bytes = Input(std::string(argv[1]) + "/symbol-missing.ttf");
-    Require(!provider.Realize(context, symbol, files, error, diagnostic) && error != 0
+    void* missingSymbolContext = CreateMacFontContextV1(callbacks);
+    Require(!provider.Realize(missingSymbolContext, symbol, files, error, diagnostic) && error != 0
         && diagnostic.find("required widget byte") != std::string::npos,
         "missing critical symbol is unavailable rather than a successful .notdef checkbox");
+    provider.DestroyContext(missingSymbolContext);
     Require(provider.ReleaseOwner(context, &ownerA) == 0, "symbol registration releases normally");
     face.reset();
     provider.DestroyContext(context);

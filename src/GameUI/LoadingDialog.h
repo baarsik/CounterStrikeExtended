@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Frame.h"
+#include <string>
 #include "common/steamloginfailure.h"
 
 class CareerRichText;
@@ -28,6 +29,7 @@ class CLoadingDialog : public vgui2::Frame
 public:
 	CLoadingDialog( vgui2::Panel* parent );
 	~CLoadingDialog() override;
+    void RefreshLanguagePresentation();
 	void DisplayProgressBar( const char* resourceType, const char* resourceName );
 	void SetupControlSettingsForErrorDisplay( const char* settingsFile );
 	void DisplayGenericError( const char* failureReason, const char* extendedReason );
@@ -52,6 +54,9 @@ protected:
 	void ApplySchemeSettings( vgui2::IScheme* scheme ) override;
 
 private:
+    std::string m_failureSource;
+    std::string m_extendedFailureSource;
+    bool m_hasGenericError = false;
 	vgui2::ProgressBar*	m_pProgress;
 	vgui2::ProgressBar*	m_pProgress2;
 	vgui2::Label*		m_pInfoLabel;

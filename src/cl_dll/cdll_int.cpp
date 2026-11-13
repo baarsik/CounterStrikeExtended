@@ -19,6 +19,7 @@
 //
 
 #include "hud.h"
+#include "localization_client.h"
 #include "cl_util.h"
 #include "netadr.h"
 #undef INTERFACE_H
@@ -271,6 +272,7 @@ Called by engine every frame that client .dll is loaded
 
 void CL_DLLEXPORT HUD_Frame( double time )
 {
+    RefreshClientLanguage();
 //	RecClHudFrame(time);
 
 	ServersThink( time );

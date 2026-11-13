@@ -290,10 +290,10 @@ void CCSClientScoreBoardDialog::UpdateColumnInAllSections( const char* column, c
 		m_pPlayerList->ModifyColumn( 3, column, NULL, width );
 }
 
-void CCSClientScoreBoardDialog::UpdateHeaders()
+void CCSClientScoreBoardDialog::UpdateHeaders(bool force)
 {
 	bool shortHeaders = (int)m_pShortHeaders->value != 0;
-	if ( shortHeaders == m_bShortHeaders )
+	if (!force && shortHeaders == m_bShortHeaders)
 		return;
 	m_bShortHeaders = shortHeaders;
 	UpdateColumnInAllSections( "frags", GetScoreHeader(), GetHeaderWidth( CSTRIKE_SCORE_WIDTH, 0 ), false );
@@ -491,7 +491,8 @@ bool CCSClientScoreBoardDialog::GetPlayerScoreInfo( int playerIndex, KeyValues* 
 			m_bMoneyUpdateReceived = true;
 		}
 	}
-	kv->SetString( "name", g_PlayerInfoList[playerIndex].name );
+	kv->SetInt("__cse_literal_name", 1);
+    kv->SetString( "name", g_PlayerInfoList[playerIndex].name );
 	if ( player.dead == true )
 		kv->SetString( "class", "#Cstrike_DEAD" );
 	else if ( player.has_c4 && ( g_iTeamNumber == 1 || g_iTeamNumber == 0 || g_PlayerExtraInfo[gEngfuncs.GetLocalPlayer()->index].dead == true ) )
@@ -741,7 +742,8 @@ void CCSClientScoreBoardDialog::UpdatePlayerInfo()
 			int capacity = 2 * (int)strlen( name );
 			char* safeName = (char*)malloc( capacity );
 			gViewPortInterface->MakeSafeName( name, safeName, capacity );
-			data->SetString( "name", safeName );
+			data->SetInt("__cse_literal_name", 1);
+            data->SetString( "name", safeName );
 			free( safeName );
 			int item = FindItemIDForPlayerIndex( i );
 			int section = player.teamnumber ? player.teamnumber : 3;
@@ -898,4 +900,22 @@ void CCSClientScoreBoardDialog::UpdatePlayerInfo()
 		}
 		data->deleteThis();
 	}
+}
+
+void CCSClientScoreBoardDialog::RefreshLanguage() {
+    if (!m_pShortHeaders) {
+        return;
+    }
+    UpdateHeaders(true);
+    constexpr int SpectatorSection = 3;
+    constexpr int CareerTaskSection = 5;
+    const wchar_t* spectators = vgui2::localize()->Find("#Spectators");
+    m_pPlayerList->ModifyColumn(SpectatorSection, "name", spectators ? spectators : L"Spectators", -1);
+    const wchar_t* tasks = vgui2::localize()->Find("#Career_TasksColon");
+    m_pPlayerList->ModifyColumn(CareerTaskSection, "name", tasks ? tasks : L"Tasks:", -1);
+    const wchar_t* status = vgui2::localize()->Find("#Career_Task_PartialTitle");
+    m_pPlayerList->ModifyColumn(CareerTaskSection, "status", status ? status : L"Status", -1);
+    UpdateTeamInfo();
+    UpdatePlayerInfo();
+    InvalidateLayout(false, false);
 }

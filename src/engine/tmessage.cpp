@@ -379,6 +379,10 @@ void TextMessageParse( byte* pMemFile, int fileSize )
 		}
 	}
 
+    if (messageCount == 0) {
+        gMessageTableCount = 0;
+        return;
+    }
 	Con_DPrintf( "Parsed %d text messages\n", messageCount );
 	int textHeapSize = 0;
 	for ( int index = 0; index < messageCount; ++index )
@@ -405,6 +409,8 @@ void TextMessageParse( byte* pMemFile, int fileSize )
 
 void TextMessageShutdown()
 {
+    TextMessageRetireLanguageTables();
+    gMessageTableCount = 0;
 	// Clear out any old data that's sitting around.
 	if ( gMessageTable )
 	{
@@ -414,11 +420,7 @@ void TextMessageShutdown()
 }
 
 void TextMessageInit() {
-    if (gMessageTable) {
-        Mem_Free(gMessageTable);
-        gMessageTable = nullptr;
-    }
-    gMessageTableCount = 0;
+    TextMessageShutdown();
 
     int fileSize = 0;
     byte* loaded = COM_LoadTempFile(const_cast<char*>("titles.txt"), &fileSize);

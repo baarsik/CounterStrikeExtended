@@ -729,3 +729,49 @@ void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly
 	if ( m_pExtraInfoLabel )
 		m_pExtraInfoLabel->SetText( text );
 }
+
+void CSpectatorGUI::RefreshLanguage() {
+    const int team = gViewPortInterface->GetClientDllInterface()->TeamNumber();
+    const char* files[2] = {"spectcammenu.txt", "spectatormenu.txt"};
+    CBottomBar::CommandComboBox* boxes[2] = {m_pBottomBar->m_pViewOptions, m_pBottomBar->m_pConfigSettings};
+    for (int index = 0; index < 2; ++index) {
+        Menu* translated = CreateCommandCombo()->CreateCommandMenu(const_cast<char*>(files[index]), team, boxes[index]);
+        RefreshCommandMenuText(boxes[index]->GetMenu(), translated);
+        delete translated;
+    }
+    // Update the existing item labels, retaining item IDs, active selection and popup path.
+    ComboBox* players = m_pBottomBar->m_pPlayerList;
+    for (int row = 0; row < players->GetItemCount(); ++row) {
+        const int item = players->GetMenu()->GetMenuID(row);
+        KeyValues* data = players->GetItemUserData(item);
+        if (!data) {
+            continue;
+        }
+        const char* name = data->GetString("player", "");
+        for (int player = 1; player < gViewPortInterface->GetClientDllInterface()->GetMaxPlayers(); ++player) {
+            VGuiLibraryPlayer_t info = gViewPortInterface->GetClientDllInterface()->CallEnghudGetPlayerInfo(player);
+            if (info.name && strcmp(info.name, name) == 0) {
+                wchar_t text[128]{};
+                wchar_t playerName[64]{};
+                wchar_t teamName[64]{};
+                localize()->ConvertANSIToUnicode(info.name, playerName, sizeof(playerName));
+                if (info.teamname && *info.teamname) {
+                    const char* teamToken = info.teamnumber == 1 ? "#TERRORIST"
+                        : info.teamnumber == 2 ? "#CT" : "";
+                    const wchar_t* translatedTeam = localize()->Find(teamToken);
+                    if (!translatedTeam) {
+                        localize()->ConvertANSIToUnicode(info.teamname, teamName, sizeof(teamName));
+                        translatedTeam = teamName;
+                    }
+                    localize()->ConstructString(text, sizeof(text), localize()->Find("#Spec_PlayerItem_Team"),
+                        2, playerName, translatedTeam);
+                } else {
+                    localize()->ConstructString(text, sizeof(text), localize()->Find("#Spec_PlayerItem"), 1, playerName);
+                }
+                players->UpdateItem(item, text, nullptr);
+                break;
+            }
+        }
+    }
+    InvalidateLayout(false, false);
+}

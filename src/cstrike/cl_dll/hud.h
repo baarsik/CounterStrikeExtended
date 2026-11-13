@@ -24,6 +24,15 @@
 #ifndef HUD_H
 #define HUD_H
 
+#include "../../public/localization_message_snapshot.h"
+#include <string>
+
+struct client_textmessage_s;
+bool CS_HasLanguageService();
+bool CS_IsCatalogueMessage(const client_textmessage_s* message);
+void CS_CheckLanguageRevision();
+void CS_ForgetLanguageService();
+
 #include "wrect.h"
 #include "cl_dll.h"
 #include "global_consts.h"
@@ -261,7 +270,8 @@ public:
 	int VidInit() override;
 	int Draw( float time ) override;
 	void Reset() override;
-	void ParseStatusString( int line );
+	void ParseStatusString(int line, bool updatePlayerState = true);
+    void RefreshLanguage();
 	int MsgFunc_StatusText( const char* name, int size, void* buffer );
 	int MsgFunc_StatusValue( const char* name, int size, void* buffer );
 	char m_szStatusText[1][128];
@@ -302,6 +312,8 @@ public:
 class CHudMenu : public CHudBase
 {
 public:
+    void RefreshLanguage();
+
 	int Init() override;
 	void InitHUDData() override;
 	int VidInit() override;
@@ -324,12 +336,14 @@ public:
 class CHudSayText : public CHudBase
 {
 public:
+    void RefreshLanguage();
 	int Init() override;
 	void InitHUDData() override;
 	int VidInit() override;
 	int Draw( float time ) override;
 	int MsgFunc_SayText( const char* name, int size, void* buffer );
 	void SayTextPrint( const char* text, int size, int clientIndex, char* arg1, char* arg2, char* arg3, char* arg4 );
+    void CaptureTextMessageSources(const char* text, const std::string (&arguments)[4]);
 	int GetTextPrintY();
 	void EnsureTextFitsInOneLineAndWrapIfHaveTo( int line );
 	void FindAudMessage( const char* text, int clientIndex, int pitch );
@@ -428,6 +442,8 @@ public:
 class CHudMessage : public CHudBase
 {
 public:
+    void RefreshLanguage();
+
 	int Init() override;
 	int VidInit() override;
 	int Draw( float time ) override;
@@ -445,7 +461,8 @@ public:
 private:
 	enum
 	{
-		MESSAGE_ARG_LEN = 64,
+		MESSAGE_SLOT_COUNT = 16,
+        MESSAGE_ARG_LEN = 64,
 		MAX_MESSAGE_ARGS = 4
 	};
 	typedef struct
@@ -458,7 +475,11 @@ private:
 	void MessageDrawScan( client_message_t* message, float time, unsigned int font );
 	void MessageScanStart();
 	void MessageScanNextChar( unsigned int font );
-	client_message_t m_pMessages[16];
+	client_message_t m_pMessages[MESSAGE_SLOT_COUNT];
+    cse::localization::MessageSnapshot<client_textmessage_t> m_messageSnapshots[MESSAGE_SLOT_COUNT];
+    cse::localization::MessageSnapshot<client_textmessage_t> m_gameTitleSnapshot;
+    float m_messageEndTimes[MESSAGE_SLOT_COUNT]{};
+    float MessageEndTime(int index) const;
 	float m_startTime[16];
 	message_parms_t m_parms;
 	float m_gameTitleTime;
@@ -591,6 +612,8 @@ public:
 class CHudVGUI2Print : public CHudBase
 {
 public:
+    void RefreshLanguage();
+
 	int Init() override;
 	int VidInit() override;
 	int DrawVGUI2String( char* text, int x, int y, float r, float g, float b );
@@ -611,6 +634,12 @@ public:
 #endif
 	float m_flVGUI2StringTime;
 	wchar_t m_wCharBuf[512];
+    std::string m_centerSource;
+    std::string m_centerArgs[4];
+    bool m_centerHasArgs = false;
+    void FormatCenterMessage();
+    void CaptureTextMessageSources(const char* text, const std::string (&arguments)[4]);
+    cse::localization::MessageSnapshot<client_textmessage_t> m_centerSnapshots[5];
 	float m_fR, m_fG, m_fB;
 	int m_iX, m_iY;
 #if defined( _MSC_VER )

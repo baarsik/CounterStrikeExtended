@@ -1,4 +1,7 @@
 #include "filesystem.h"
+#include "localization.h"
+#include "../public/localized_filesystem.h"
+#include <vector>
 #include "../common/interface_language.h"
 #include "../common/interface_language_preference.h"
 #include "conprint.h"
@@ -26,6 +29,93 @@ static CSysModule* g_pFileSystemModule;
 CreateInterfaceFn g_FileSystemFactory;
 bool bLowViolenceBuild;
 CUtlVector<char*> g_fallbackLocalizationFiles;
+
+namespace {
+struct LanguageMount {
+    std::uint32_t group;
+    std::string directory;
+    std::string pathId;
+    std::string anchor;
+    bool writable;
+};
+
+const cse::localized_filesystem::Api* languageFilesystem = nullptr;
+std::vector<LanguageMount> languageMounts;
+
+std::string MountPath(const std::string& path) {
+    std::string normalized = path;
+    for (char& character : normalized) {
+        if (character == '\\') {
+            character = '/';
+        }
+    }
+    return normalized;
+}
+
+void BeginLanguageMount(const char* directory, const char* pathId, bool writable, bool highDefinition,
+    const char* anchorOverride = nullptr) {
+    const auto group = static_cast<std::uint32_t>(languageMounts.size() + 1);
+    const std::string anchor = anchorOverride ? anchorOverride
+        : std::string(s_pBaseDir) + "/" + directory + (highDefinition ? "_hd" : "");
+    languageMounts.push_back({group, directory, pathId, MountPath(anchor), writable});
+    if (languageFilesystem) {
+        languageFilesystem->BeginGroup(group);
+    }
+}
+
+void EndLanguageMount() {
+    if (languageFilesystem) {
+        languageFilesystem->EndGroup();
+    }
+}
+} // namespace
+
+IFileSystem* FileSystem_PrepareInterfaceLanguage(const char* language) {
+    if (!languageFilesystem || !language) {
+        return nullptr;
+    }
+    std::vector<std::vector<std::string>> roots(languageMounts.size());
+    std::vector<std::vector<const char*>> pointers(languageMounts.size());
+    std::vector<cse::localized_filesystem::Replacement> replacements;
+    const bool localized = std::strcmp(language, "english") != 0;
+    for (std::size_t index = 0; index < languageMounts.size(); ++index) {
+        const LanguageMount& mount = languageMounts[index];
+        if (localized) {
+            roots[index].push_back(MountPath(std::string(s_pBaseDir) + "/" + mount.directory + "_" + language));
+            if (!COM_CheckParm("-steam")) {
+                std::string external(s_pBaseDir);
+                const auto game = external.find("\\game");
+                if (game != std::string::npos) {
+                    external.resize(game);
+                    roots[index].push_back(MountPath(external + "/localization/" + mount.directory + "_" + language));
+                }
+            }
+        }
+        for (const std::string& root : roots[index]) {
+            pointers[index].push_back(root.c_str());
+        }
+        replacements.push_back({mount.group, mount.anchor.c_str(), mount.pathId.c_str(), pointers[index].data(),
+            pointers[index].size(), mount.writable});
+    }
+    return languageFilesystem->Prepare(g_pFileSystem, replacements.data(), replacements.size());
+}
+
+IFileSystem* FileSystem_InterfaceLanguageBaseline() {
+    return languageFilesystem ? languageFilesystem->Baseline() : nullptr;
+}
+
+void FileSystem_CommitInterfaceLanguage() {
+    if (languageFilesystem) {
+        languageFilesystem->Commit();
+    }
+}
+
+void FileSystem_DiscardInterfaceLanguage() {
+    if (languageFilesystem) {
+        languageFilesystem->Discard();
+    }
+}
+
 
 bool BEnabledHDAddon()
 {
@@ -89,11 +179,19 @@ int FileSystem_Init( char* basedir, CreateInterfaceFn factory )
 		return 0;
 #endif
 
+    languageFilesystem = cse::localized_filesystem::Query(factory);
+    cse::localization::Initialize();
 	return COM_SetupDirectories() != 0;
 }
 
 void FileSystem_Shutdown()
 {
+    cse::localization::Shutdown();
+    if (languageFilesystem) {
+        languageFilesystem->Reset();
+    }
+    languageFilesystem = nullptr;
+    languageMounts.clear();
 #if INTPTR_MAX > INT32_MAX
     if (g_pFileSystem) {
         g_pFileSystem->RemoveAllSearchPaths();
@@ -110,12 +208,15 @@ void FileSystem_Shutdown()
 	}
 }
 
-std::string FileSystem_GetInterfaceLanguage() {
+std::string FileSystem_ResolveInterfaceLanguage(const char* preference) {
     const char* current = SteamApps() ? SteamApps()->GetCurrentGameLanguage() : nullptr;
     const int option = COM_CheckParm("-language");
     const char* requested = option > 0 && option < com_argc - 1 && com_argv ? com_argv[option + 1] : nullptr;
-    const std::string saved = cse::interface_language::ReadSavedPreference();
-    return cse::interface_language::Resolve(current, requested, saved.c_str());
+    return cse::interface_language::Resolve(current, requested, preference);
+}
+
+std::string FileSystem_GetInterfaceLanguage() {
+    return cse::localization::Language();
 }
 
 int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameDirectory )
@@ -130,6 +231,10 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 #endif
 
 	g_pFileSystem->RemoveAllSearchPaths();
+    if (languageFilesystem) {
+        languageFilesystem->Reset();
+    }
+    languageMounts.clear();
 
 #if defined( _WIN32 )
 	char lowViolenceToken[128];
@@ -174,6 +279,7 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 			g_pFileSystem->AddSearchPathNoWrite( path, "GAME" );
 		}
 
+        BeginLanguageMount(directory, "GAME", false, highDefinition);
 		if ( localized )
 		{
 			snprintf( path, sizeof( path ) - 1, "%s/%s_%s", s_pBaseDir, directory, language );
@@ -197,6 +303,7 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 			}
 		}
 
+        EndLanguageMount();
 		if ( highDefinition )
 		{
 			snprintf( path, sizeof( path ) - 1, "%s/%s_hd", s_pBaseDir, directory );
@@ -237,6 +344,7 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 			g_pFileSystem->AddSearchPathNoWrite( path, "DEFAULTGAME" );
 		}
 
+        BeginLanguageMount(defaultDirectory, "DEFAULTGAME", false, highDefinition);
 		snprintf( path, sizeof( path ) - 1, "%s/%s_%s", s_pBaseDir, defaultDirectory, language );
 		path[sizeof( path ) - 1] = '\0';
 		COM_FixSlashes( path );
@@ -257,6 +365,13 @@ int FileSystem_SetGameDirectory( const char* defaultDirectory, const char* gameD
 			}
 		}
 	}
+
+    if (localized) {
+        EndLanguageMount();
+    } else {
+        BeginLanguageMount(defaultDirectory, "DEFAULTGAME", false, highDefinition);
+        EndLanguageMount();
+    }
 
 	if ( highDefinition )
 	{
@@ -357,6 +472,7 @@ void CheckLiblistForFallbackDir( const char* pGameDir, bool bLanguage, const cha
 			g_pFileSystem->AddSearchPathNoWrite( path, "GAME_FALLBACK" );
 		}
 
+        BeginLanguageMount(fallback, "GAME_FALLBACK", true, BEnabledHDAddon());
 		if ( bLanguage && pLanguage )
 		{
 			snprintf( path, sizeof( path ) - 1, "%s/%s_%s", s_pBaseDir, fallback, pLanguage );
@@ -379,6 +495,8 @@ void CheckLiblistForFallbackDir( const char* pGameDir, bool bLanguage, const cha
 				}
 			}
 		}
+
+        EndLanguageMount();
 
 		if ( BEnabledHDAddon() )
 		{
@@ -427,6 +545,7 @@ int FileSystem_AddFallbackGameDir( const char* pGameDir )
 	char path[4096];
 #endif
 
+    BeginLanguageMount(pGameDir, "GAME", true, false, pGameDir);
 	if ( language[0] && _stricmp( language, "english" ) )
 	{
 		snprintf( path, sizeof( path ), "%s/%s_%s", s_pBaseDir, pGameDir, language );
@@ -434,6 +553,7 @@ int FileSystem_AddFallbackGameDir( const char* pGameDir )
 		g_pFileSystem->AddSearchPath( path, "GAME" );
 	}
 
+    EndLanguageMount();
 	g_pFileSystem->AddSearchPath( pGameDir, "GAME" );
 
 	return 1;

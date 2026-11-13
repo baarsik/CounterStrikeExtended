@@ -12,6 +12,7 @@ class Label;
 class CCSCareerMatchEndMenu : public CCSCareerBaseMenu
 {
 public:
+    void RefreshLanguage();
 	CCSCareerMatchEndMenu( vgui2::Panel* parent );
 	~CCSCareerMatchEndMenu() override;
 	void Update();

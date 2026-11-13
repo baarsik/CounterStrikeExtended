@@ -1,4 +1,5 @@
 #include "CareerMapFrame.h"
+#include "localization_controls.h"
 #include "CareerGame.h"
 #include "DottedLabel.h"
 #include "GameUI_Interface.h"
@@ -44,6 +45,7 @@ public:
 	void SetActive( bool active );
 	void SetDefeated( bool defeated );
 	void SetMapName( const char* mapName );
+    void RefreshLanguagePresentation();
 	void IgnoreDoubleClick() { m_ignoreDoubleClicks = true; }
 	Color GetBgColor() override;
 	Color GetImageColor() override;
@@ -86,7 +88,7 @@ private:
 	bimage_t				m_ImageID[IMAGE_MAX];
 };
 
-void ShowCareerMapDescription( vgui2::RichText* text, CCareerMap* map, Color normalColor, Color friendlyFireColor )
+void ShowCareerMapDescription( vgui2::RichText* text, CCareerMap* map, Color normalColor, Color friendlyFireColor, bool preserveView )
 {
 	if ( !text )
 		return;
@@ -160,9 +162,14 @@ void ShowCareerMapDescription( vgui2::RichText* text, CCareerMap* map, Color nor
 				MAX_CAREER_MAP_DESCRIPTION - wcslen( description ) - 1 );
 		wcsncat( description, L"\n", MAX_CAREER_MAP_DESCRIPTION - wcslen( description ) - 1 );
 	}
-	text->SetText( L"" );
-	text->InsertColorChange( normalColor );
-	text->InsertString( description );
+    if (preserveView) {
+        text->SetFgColor(normalColor);
+        text->SetTextPreservingView(description);
+    } else {
+        text->SetText(L"");
+        text->InsertColorChange(normalColor);
+        text->InsertString(description);
+    }
 	if ( !map->AreTeammatesAllowed() )
 	{
 		text->InsertColorChange( friendlyFireColor );
@@ -490,6 +497,7 @@ vgui2::Button* CCareerMapFrame::GetNextButton()
 
 void CCareerMapFrame::ShowMapDescription( CCareerMap* map )
 {
+    snprintf(m_presentedMap, sizeof(m_presentedMap), "%s", map ? map->GetName() : "");
 	if ( !map )
 	{
 		m_pMapDesc->SetText( L"" );
@@ -814,4 +822,22 @@ void CCareerMapFrame::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_friendlyFireColor = scheme->GetColor( "FriendlyFire", Color( 255, 255, 255, 255 ) );
 	m_mapDescriptionColor = scheme->GetColor( "MapText", Color( 255, 255, 255, 255 ) );
 	m_pMapScroll->SetBorder( scheme->GetBorder( "BrowserBorder" ) );
+}
+
+void CCareerMapFrame::RefreshLanguagePresentation() {
+    if (TheCareerGame && m_presentedMap[0]) {
+        ShowCareerMapDescription(m_pMapDesc, TheCareerGame->GetMap(m_presentedMap),
+            m_mapDescriptionColor, m_friendlyFireColor, true);
+    }
+}
+
+void CMapButton::RefreshLanguagePresentation() {
+    cse::localization::RefreshText(m_pDefeatedText);
+    m_pDefeatedText->ResizeImageToContent();
+}
+
+void RefreshCareerMapButtonLanguagePresentation(vgui2::Panel* panel) {
+    if (auto* button = dynamic_cast<CMapButton*>(panel)) {
+        button->RefreshLanguagePresentation();
+    }
 }

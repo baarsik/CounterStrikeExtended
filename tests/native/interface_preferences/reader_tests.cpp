@@ -66,5 +66,13 @@ int main(int argc, char** argv) {
     Require(cse::mac_settings::WriteBytes(cse::interface_language::PreferenceKey, MissingNul,
         sizeof(MissingNul)), "write nonterminated fixture");
     Require(cse::interface_language::ReadSavedPreference().empty(), "reject missing terminator");
-    std::puts("PASS: native macOS startup preference validation in isolated fixture domain");
+    Require(cse::interface_language::WriteSavedPreference("PoLiSh"), "persist canonical bundled choice");
+    Require(cse::interface_language::ReadSavedPreference() == "polish", "read actual native writer output");
+    Require(!cse::interface_language::WriteSavedPreference("custom_language"), "reject unbundled write");
+    Require(!cse::interface_language::WriteSavedPreference("../russian"), "reject path write");
+    Require(!cse::interface_language::WriteSavedPreference(nullptr), "reject null write");
+    Require(cse::interface_language::ReadSavedPreference() == "polish", "invalid writes preserve valid setting");
+    Require(cse::interface_language::WriteSavedPreference(""), "persist automatic choice");
+    Require(cse::interface_language::ReadSavedPreference().empty(), "read automatic choice");
+    std::puts("PASS: native macOS preference reader/writer in isolated fixture domain");
 }

@@ -119,6 +119,7 @@ void VGui_Startup()
 
 void VGui_Shutdown()
 {
+    ResetLanguageViews();
 	delete gViewPort;
 	gViewPort = NULL;
 }

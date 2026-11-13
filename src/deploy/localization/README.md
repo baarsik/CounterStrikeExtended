@@ -22,10 +22,11 @@ upstream notices and attribution when updating or distributing the files.
 
 Select the interface language in **Options → Interface → Language**. The tab follows
 Video and lists all ten bundled languages by their native names. Apply or OK saves
-the CSE preference and forces a game restart after applying all Options pages;
-Cancel discards the pending selection.
-“Use Steam language” clears that preference. A failed save leaves Options open
-with a retryable error and does not restart. Unchanged selections do not restart.
+the CSE preference and updates the current menus and HUD in place. The current
+map, connection, player state, menu selections and HUD deadlines are retained.
+Cancel discards the pending selection. “Use Steam language” clears the preference.
+Options stays open while the engine prepares the change; an application or save
+failure keeps the previous language active and offers a retry.
 
 An explicit launch option such as `-language russian` or `-language polish`
 (for example, `hl.exe -game cstrike -language polish`) takes precedence over the
@@ -40,6 +41,32 @@ macOS stores the same key in the existing `org.counterstrikeextended.settings`
 CFPreferences domain. Startup readers reject malformed or unbundled saved ids.
 The manifest's `languages` and `native_language_names` generate the dropdown table
 and saved-id allowlist during the normal offline build.
+
+## Live runtime ownership
+
+The engine exposes `CSEEngineLocalization001` through its existing factory. Both
+clients and GameUI borrow the versioned C-table in `src/public/localization_service.h`.
+A request is queued and processed at an accepted engine frame. Preparation reads a
+projected filesystem view without changing live search paths, titles or UI strings.
+Only after preparation and preference persistence succeed does the engine commit
+localized paths, title snapshots, surface/font changes and the VGUI catalogue;
+the committed revision is published last. Existing unrelated mounts and open
+handles retain their priority and position.
+
+The VGUI provider retains logical catalogue requests, token identities and borrowed
+text storage across commits. Generic controls retain tokens and formatting inputs;
+client and GameUI owners refresh eager caches when the revision changes. Catalogue
+messages retain owned source snapshots and timing; player names, server fields,
+chat bodies and other literal payloads remain literal. This refresh does not
+reinitialize viewports, reset scoreboards or replay gameplay/network commands.
+
+For console use, `cse_language russian` applies and saves a choice, and
+`cse_language auto` restores Steam resolution. Add `temporary` to avoid writing the
+saved preference. `cse_language` displays the current resolved language and
+revision. All paths still use the bundled-language allowlist. See
+[the live-localization spec](../../../docs/superpowers/specs/2026-11-13-live-localization.md)
+and the `tests/native/live_localization_*` fixture READMEs for ownership and
+transaction checks.
 
 ## Provenance
 

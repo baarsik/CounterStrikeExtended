@@ -28,6 +28,7 @@
 #include "vgui_controls/Controls.h"
 #include "vgui/ISurface.h"
 #include "vgui/IScheme.h"
+#include "vgui/ILocalize.h"
 #include "igameuifuncs.h"
 #include "keys.h"
 #include <stdio.h>
@@ -715,10 +716,12 @@ void TeamFortressViewport::DisplayVGUIMenu( int menu )
 			if ( slash )
 				memmove( m_sMapName, slash + 1, strlen( slash ) + 1 );
 		}
-		const char* text = (const char*)m_pClientDllInterface->COM_LoadFile( filename, 5, NULL );
+
 		strncpy( title, m_sMapName, sizeof( title ) );
 		title[sizeof( title ) - 1] = 0;
-		m_pMapBriefing->Activate( title, text );
+		m_pMapBriefing->Activate(title, "");
+        m_pMapBriefing->SetFileSource(filename);
+        m_pMapBriefing->RefreshLanguage();
 		break;
 	}
 	case MENU_INTRO:
@@ -728,7 +731,7 @@ void TeamFortressViewport::DisplayVGUIMenu( int menu )
 		break;
 	case MENU_SPECHELP:
 		m_pSpectatorGUI->SetVisible( false );
-		m_pSpecHelp->Activate( "#Spec_Help_Title", "#Spec_Help_Text" );
+		m_pSpecHelp->ActivateLocalized("#Spec_Help_Title", "#Spec_Help_Text");
 		break;
 	}
 }
@@ -796,4 +799,51 @@ void TeamFortressViewport::OnTick()
 			m_pBackGround->SetVisible( false );
 	}
 	m_pTutorWindowManager->Think( m_pClientDllInterface->HudTime() );
+}
+
+void TeamFortressViewport::RefreshLanguage() {
+    if (!m_bInitialized) {
+        return;
+    }
+    m_pCommandMenu->RefreshLanguage();
+    m_pMapBriefing->RefreshLanguage();
+    m_pSpecHelp->RefreshLanguage();
+    m_pClassHelp->RefreshLanguage();
+    m_pTutorWindowManager->RefreshLanguage();
+    if (!m_tutorToken.empty()) {
+        std::wstring text = RenderTutorText(m_tutorToken, m_tutorArguments);
+        wchar_t message[1024]{};
+        wcsncpy(message, text.c_str(), (sizeof(message) / sizeof(message[0])) - 1);
+        m_pTutorWindowManager->InsertPlayerNames(message, (sizeof(message) / sizeof(message[0])));
+        m_pTutorWindowManager->RefreshText(message);
+    }
+    if (!m_tutorStateToken.empty()) {
+        const std::wstring text = RenderTutorText(m_tutorStateToken, {});
+        m_pTutorWindowManager->RefreshState(text.c_str());
+    }
+}
+
+std::wstring RenderTutorText(const std::string& token, const std::vector<std::wstring>& arguments) {
+    const wchar_t* localized = vgui2::localize()->Find(token.c_str());
+    std::wstring text;
+    if (localized) {
+        text = localized;
+    } else {
+        std::vector<wchar_t> wide(token.size() + 1);
+        vgui2::localize()->ConvertANSIToUnicode(token.c_str(), wide.data(),
+            static_cast<int>(wide.size() * sizeof(wchar_t)));
+        text = wide.data();
+    }
+    for (std::size_t index = 0; index < arguments.size(); ++index) {
+        const std::wstring placeholder = L"%s" + std::to_wstring(index + 1);
+        const std::size_t position = text.find(placeholder);
+        if (position != std::wstring::npos) {
+            text.replace(position, placeholder.size(), arguments[index]);
+        }
+    }
+    constexpr std::size_t MaxTutorCharacters = 1023;
+    if (text.size() > MaxTutorCharacters) {
+        text.resize(MaxTutorCharacters);
+    }
+    return text;
 }

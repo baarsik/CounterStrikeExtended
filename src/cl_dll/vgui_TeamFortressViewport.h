@@ -3,6 +3,7 @@
 #define TEAMFORTRESSVIEWPORT_H
 
 #include <string>
+#include "vgui_language.h"
 
 #include<VGUI_Panel.h>
 #include<VGUI_Frame.h>
@@ -161,7 +162,7 @@ public:
 
 //============================================================
 // Command Buttons
-class CommandButton : public Button
+class CommandButton : public Button, public LanguageView
 {
 private:
 	int		m_iPlayerClass;
@@ -173,6 +174,10 @@ private:
 	CommandLabel *m_pSubLabel;
 
     std::string m_sMainText;
+    std::string m_languageSource;
+    std::string m_languageFile;
+    std::string m_languageCommand;
+    int m_languageOccurrence = 0;
 	char m_cBoundKey;
 
 	SchemeHandle_t m_hTextScheme;
@@ -189,6 +194,9 @@ public:
 	CommandButton( int iPlayerClass, const char* text,int x,int y,int wide,int tall, bool bFlat );
 
 	void Init( void );
+    void BindLanguageSource(const char* source, const char* file = "", const char* command = "", int occurrence = 0);
+    void RefreshLanguage() override;
+    virtual void LayoutLanguage() {}
 
 	// Menu Handling
 	void AddSubMenu( CCommandMenu *pNewMenu );
@@ -543,6 +551,7 @@ private:
 	int			m_iBuildState;
 	int			m_iRandomPC;
 	char		m_sTeamNames[5][MAX_TEAMNAME_SIZE];
+    std::string m_teamNameSources[5];
 
 	// Localisation strings
 	char		m_sDetpackStrings[3][MAX_BUTTON_SIZE];
@@ -555,6 +564,7 @@ private:
 public:
 	TeamFortressViewport(int x,int y,int wide,int tall);
 	void Initialize( void );
+    void RefreshLanguage(const char* language);
 
 	int		CreateCommandMenu( char * menuFile, int direction, int yOffset, bool flatDesign, float flButtonSizeX, float flButtonSizeY, int xOffset );
 	void	CreateScoreBoard( void );
@@ -1233,6 +1243,15 @@ public:
 		setFgColor(Scheme::sc_primary1);
 	}
 
+
+    void LayoutLanguage() override {
+        int wide = 0;
+        int tall = 0;
+        getTextSize(wide, tall);
+        pLabelOn->setPos(wide, (getTall() - pLabelOn->getTall()) / 2);
+        pLabelOff->setPos(wide, (getTall() - pLabelOff->getTall()) / 2);
+    }
+
 	virtual void cursorEntered(Panel* panel)
 	{
 		CommandButton::cursorEntered();
@@ -1304,6 +1323,14 @@ public:
 		// Reposition
 		pLabelOn->setPos( textwide, (tall - pLabelOn->getTall()) / 2 );
 	  } 
+
+
+    void LayoutLanguage() override {
+        int wide = 0;
+        int tall = 0;
+        getTextSize(wide, tall);
+        pLabelOn->setPos(wide, (getTall() - pLabelOn->getTall()) / 2);
+    }
 
 	virtual void cursorEntered(Panel* panel)
 	{
@@ -1611,7 +1638,7 @@ public:
 //================================================================
 // Menu Panels that take key input
 //============================================================
-class CClassMenuPanel : public CMenuPanel
+class CClassMenuPanel : public CMenuPanel, public LanguageView
 {
 private:
 	CTransparentPanel	*m_pClassInfoPanel[PC_LASTCLASS];
@@ -1635,6 +1662,7 @@ public:
 	virtual void Update( void );
 	virtual void SetActiveInfo( int iInput );
 	virtual void Initialize( void );
+    void RefreshLanguage() override;
 
 	virtual void Reset( void )
 	{
@@ -1648,9 +1676,9 @@ class CTeamMenuPanel : public CMenuPanel
 public:
 	ScrollPanel         *m_pScrollPanel;
 	CTransparentPanel	*m_pTeamWindow;
-	Label				*m_pMapTitle;
-	TextPanel			*m_pBriefing;
-	TextPanel			*m_pTeamInfoPanel[6];
+	LocalizedLabel       *m_pMapTitle;
+	LocalizedTextPanel  *m_pBriefing;
+	LocalizedTextPanel  *m_pTeamInfoPanel[6];
 	CommandButton		*m_pButtons[6];
 	bool				m_bUpdatedMapName;
 	CommandButton		*m_pCancelButton;

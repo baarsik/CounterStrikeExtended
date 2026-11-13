@@ -1,3 +1,4 @@
+#include "../localization.h"
 #include "../../public/native_system_module_abi.h"
 #include "BaseUI_Interface.h"
 #include "../native_gameui_retirement.h"
@@ -239,6 +240,7 @@ void CBaseUI::Initialize( CreateInterfaceFn* factories, int )
 	fileSystemFactory( "VFileSystem009", nullptr );
 	m_hVGuiModule = Sys_LoadModule( "vgui2.dll" );
 	CreateInterfaceFn vguiFactory = Sys_GetFactory( m_hVGuiModule );
+    cse::localization::BindRuntime(vguiFactory);
 #if defined(__APPLE__) && defined(SW_RENDERER)
     m_nativeCompletion = cse::vgui_completion::Admit(m_hVGuiModule, reinterpret_cast<const void*>(vguiFactory));
     if (!m_nativeCompletion) {
@@ -432,6 +434,9 @@ bool cse::TryShutdownNativeBaseUI() {
 }
 
 bool CBaseUI::TryShutdown() {
+#if INTPTR_MAX <= INT32_MAX
+    cse::localization::UnbindRuntime();
+#endif
 #if INTPTR_MAX > INT32_MAX
     if (m_nativeShutdownBusy || !TryRetireGameUI()) {
         return false;
@@ -446,6 +451,7 @@ bool CBaseUI::TryShutdown() {
             busy = false;
         }
     } shutdownGuard{m_nativeShutdownBusy};
+    cse::localization::UnbindRuntime();
     if (staticGameUIFuncs && m_nativeGameUIInitialized) {
         staticGameUIFuncs->Shutdown();
         m_nativeGameUIInitialized = false;

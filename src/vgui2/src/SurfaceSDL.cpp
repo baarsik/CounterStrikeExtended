@@ -1819,7 +1819,14 @@ bool CSDLSurface::IsAdditive(HFont font) {
 }
 
 void CSDLSurface::SetLanguage(const char* language) {
-    language_ = language ? language : "english";
+    const std::string selected = language ? language : "english";
+    if (selected != language_) {
+        for (const auto& glyph : glyphs_) {
+            DeleteTextureByID(glyph.second);
+        }
+        glyphs_.clear();
+    }
+    language_ = selected;
     FontManager().SetLanguage(language_.c_str());
 }
 

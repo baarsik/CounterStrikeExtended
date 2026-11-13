@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Frame.h"
+#include <string>
+#include "GameUI/ICareerUI.h"
 #include "vgui/Dar.h"
 
 class CCareerButton;
@@ -51,6 +53,12 @@ public:
 	CCareerQueryBox( const char* title, const char* labelText, const char* panelName, vgui2::Panel* parent );
 	CCareerQueryBox( const wchar_t* title, const wchar_t* labelText, const char* panelName, vgui2::Panel* parent );
 	~CCareerQueryBox() override;
+    void SetLocalizedLabelText(const char* token, const wchar_t* parameter);
+    void RefreshLanguagePresentation();
+
+private:
+    std::string m_labelToken;
+    std::wstring m_labelParameter;
 };
 
 class CCareerDifficultyBox : public CCareerBaseBox
@@ -58,12 +66,15 @@ class CCareerDifficultyBox : public CCareerBaseBox
 public:
 	CCareerDifficultyBox( const char* panelName, vgui2::Panel* parent );
 	~CCareerDifficultyBox() override;
+    void RefreshLanguagePresentation();
 	void ShowWindow() override;
 
 protected:
 	void OnCommand( const char* command ) override;
 
 private:
+    bool m_played[MAX_CAREER_DIFFICULTY] = {};
+    CCareerButton* m_difficultyButtons[MAX_CAREER_DIFFICULTY] = {};
 	CCareerButton*			m_pFocusButton;
 	CCvarToggleCheckButton*	m_pEnableTutorCheck;
 };

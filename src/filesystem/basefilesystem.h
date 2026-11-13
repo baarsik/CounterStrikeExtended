@@ -12,6 +12,7 @@
 #include "public/utlsymbol.h"
 #include "../public/characterset.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <stdio.h>
 #include <errno.h>
@@ -261,6 +262,9 @@ public:
 		{
 			m_pFile = NULL;
 			m_bPack = false;
+            m_packOwner = nullptr;
+            m_packBorrowers = 0;
+            m_retiredPack = false;
 			m_bErrorFlagged = false;
 			m_nStartOffset = 0;
 			m_nLength = 0;
@@ -270,6 +274,10 @@ public:
 
 		FILE*		m_pFile;
 		bool		m_bPack;
+        // Private pack views retain the native stream after its mount is replaced.
+        CFileHandle* m_packOwner;
+        std::size_t m_packBorrowers;
+        bool m_retiredPack;
 		bool		m_bErrorFlagged;
 
 		long long	m_nStartOffset;
@@ -313,6 +321,7 @@ public:
 		unsigned int					m_iCurSearchFile;
 
 		bool							m_bAllowWrite;
+        std::uint32_t m_localizationGroup;
 		CUtlRBTree<CPackFileEntry, int>	m_PackFiles;
 	};
 

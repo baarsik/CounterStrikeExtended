@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "clientmotd.h"
+#include <vector>
 #include "vgui_controls/HTML.h"
 #include "../../../vgui2/controls/Label.h"
 #include "vgui_controls/Controls.h"
@@ -69,8 +70,11 @@ bool CClientMOTD::IsURL( const char* text )
 void CClientMOTD::Activate( const char* title, const char* message )
 {
 	vgui2::Frame::Activate();
-	SetTitle( title, false );
-	SetControlString( "serverName", title );
+	std::vector<wchar_t> literalTitle(strlen(title ? title : "") + 1);
+    vgui2::localize()->ConvertANSIToUnicode(title ? title : "", literalTitle.data(),
+        static_cast<int>(literalTitle.size() * sizeof(wchar_t)));
+    SetTitle(literalTitle.data(), false);
+    m_pServerName->SetText(literalTitle.data());
 	if ( IsURL( message ) )
 		m_pMessage->OpenURL( message, NULL, false );
 	else
@@ -99,8 +103,8 @@ void CClientMOTD::Activate( const char* title, const char* message )
 void CClientMOTD::Activate( const wchar_t* title, const wchar_t* message )
 {
 	vgui2::Frame::Activate();
-	SetTitle( title, false );
-	m_pServerName->SetText( title );
+	SetTitle(title, false);
+    m_pServerName->SetText(title);
 	char ansiURL[256];
 	vgui2::localize()->ConvertUnicodeToANSI( message, ansiURL, sizeof( ansiURL ) );
 	if ( IsURL( ansiURL ) )

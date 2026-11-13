@@ -15,6 +15,7 @@
 #include "../../../src/engine/IKeyValues.h"
 extern "C" int FixtureKeyValuesBytes();
 #include "legacy_message_text.h"
+#include "localization_message_snapshot.h"
 
 extern "C" void CseSteamModuleInitialize() {}
 constexpr int maxHUDMessages = 16;
@@ -57,6 +58,8 @@ class CHudMessage {
 public:
     client_textmessage_t* m_pMessages[maxHUDMessages]{};
     float m_startTime[maxHUDMessages]{};
+    float m_messageEndTimes[maxHUDMessages]{};
+    cse::localization::MessageSnapshot<client_textmessage_t> m_ownedMessages[maxHUDMessages];
     message_parms_t m_parms{};
     float m_gameTitleTime{};
     client_textmessage_t* m_pGameTitle{};
@@ -71,6 +74,8 @@ public:
     void MessageScanStart();
     void MessageDrawScan(client_textmessage_t*, float);
     int Draw(float);
+    float MessageEndTime(int) const;
+    void ReleaseMessage(int);
 };
 struct Glyph {
     int x;
@@ -222,6 +227,9 @@ int main(int argc, char** argv) {
         const std::string text = u8"Привет";
         auto message = Message(text, 2);
         hud.m_pMessages[0] = &message;
+#if CSE_MESSAGE_CACHED_DEADLINES
+        hud.m_messageEndTimes[0] = hud.MessageEndTime(0);
+#endif
         glyphs.clear();
         gHUD.m_flTime = 0.15f;
         hud.Draw(gHUD.m_flTime);

@@ -1,3 +1,4 @@
+#include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -455,6 +456,25 @@ void Label::ComputeAlignment( int& x0, int& y0, int& x1, int& y1 )
 	y1 = (int)( (unsigned int)maxHeight + (unsigned int)y0 );
 }
 
+void Label::OnThink() {
+    Panel::OnThink();
+    if (!cse::localization::ControlChanged(this)) {
+        return;
+    }
+    // TextImage getters can already have consumed the token revision. The
+    // Label independently owns layout and accelerator refresh for that revision.
+    cse::localization::RefreshText(_textImage);
+    if (!cse::localization::Binding(_textImage).token.empty()) {
+        // TextImage stores at most 32766 characters plus its terminator.
+        constexpr int LabelTextCells = 32767;
+        std::vector<wchar_t> rendered(LabelTextCells, L'\0');
+        _textImage->GetText(rendered.data(), LabelTextCells);
+        SetHotkey(CalculateHotkey(rendered.data()));
+    }
+    InvalidateLayout(false, false);
+    Repaint();
+}
+
 void Label::PerformLayout()
 {
 	int wide, tall;
@@ -564,6 +584,7 @@ void Label::SizeToContents()
 //-----------------------------------------------------------------------------
 void Label::Init()
 {
+    cse::localization::RememberControl(this);
 	_textColorState = CS_NORMAL;
 	_textInset[0] = 0;
 	_textInset[1] = 0;
@@ -621,6 +642,7 @@ Label::Label( Panel* parent, const char* name, const wchar_t* text ) : Panel( pa
 //-----------------------------------------------------------------------------
 Label::~Label()
 {
+    cse::localization::ForgetControl(this);
 	delete _textImage;
 	if ( _associateName != NULL )
 	{
@@ -647,6 +669,8 @@ void Label::OnSetText( KeyValues* params )
 
 void Label::OnDialogVariablesChanged( KeyValues* dialogVariables )
 {
+    cse::localization::BindVariables(_textImage, dialogVariables);
+    cse::localization::PreserveTextBinding preserve(_textImage);
 	StringIndex_t symbol = _textImage->GetUnlocalizedTextSymbol();
 	if ( symbol == (StringIndex_t)-1 )
 		return;

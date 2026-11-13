@@ -9,6 +9,7 @@
 #define ServerBrowser_H
 
 #include<VGUI_Panel.h>
+#include "vgui_language.h"
 
 namespace vgui
 {
@@ -24,7 +25,7 @@ class CommandButton;
 #define SB_X_INDENT				(20 * ((float)ScreenHeight / 640))
 #define SB_Y_INDENT				(20 * ((float)ScreenHeight / 480))
 
-class ServerBrowser : public CTransparentPanel
+class ServerBrowser : public CTransparentPanel, public LanguageView
 {
 private:
 	HeaderPanel * _headerPanel;
@@ -42,7 +43,11 @@ private:
 public:
 	ServerBrowser(int x,int y,int wide,int tall);
 public:
-	virtual void setSize(int wide,int tall);
+    void setSize(int wide, int tall) override;
+    void RefreshLanguage() override;
+
+private:
+    void LayoutPresentation();
 };
 
 

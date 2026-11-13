@@ -5,6 +5,7 @@
 #include "TextImage.h"
 #include "interface_language.h"
 #include "interface_language_preference.h"
+#include "localization_controls.h"
 #include "vgui/ISystem.h"
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
@@ -84,7 +85,9 @@ std::string COptionsSubInterface::GetSelectedLanguage() const {
 }
 
 void COptionsSubInterface::OnResetData() {
-    m_originalLanguage = cse::interface_language::ReadSavedPreference();
+    const auto* localization = cse::localization::ControlsEngine();
+    m_originalLanguage = localization ? localization->Preference() : cse::interface_language::ReadSavedPreference();
+    m_languageRequest = cse::localization::InvalidRequest;
     vgui2::ISystem* system = vgui2::system();
 
     for (const int itemId : m_languageItemIds) {
@@ -113,23 +116,44 @@ bool COptionsSubInterface::HasLanguageChange() const {
 }
 
 bool COptionsSubInterface::ApplyLanguage() {
+    if (IsLanguagePending()) {
+        return true;
+    }
     const std::string selected = GetSelectedLanguage();
     if (selected == m_originalLanguage) {
         return true;
     }
-    vgui2::ISystem* system = vgui2::system();
-    if (!system || !system->SetRegistryString(cse::interface_language::PreferenceKey, selected.c_str())) {
-        m_saveFailed->SetVisible(true);
-        InvalidateLayout(false, false);
-        return false;
-    }
-    m_originalLanguage = selected;
-    m_saveFailed->SetVisible(false);
-    return true;
+    const auto* localization = cse::localization::ControlsEngine();
+    m_languageRequest = localization ? localization->RequestLanguage(selected.c_str(), true)
+        : cse::localization::InvalidRequest;
+    const bool accepted = IsLanguagePending();
+    m_saveFailed->SetVisible(!accepted);
+    InvalidateLayout(false, false);
+    return accepted;
 }
 
-void COptionsSubInterface::OnApplyChanges() {
-    ApplyLanguage();
+bool COptionsSubInterface::IsLanguagePending() const {
+    return m_languageRequest != cse::localization::InvalidRequest;
+}
+
+bool COptionsSubInterface::CompleteLanguageRequest(bool& applied) {
+    if (!IsLanguagePending()) {
+        return false;
+    }
+    const auto* localization = cse::localization::ControlsEngine();
+    cse::localization::RequestResult result{sizeof(result), cse::localization::RequestState::Failed, 0};
+    const bool found = localization && localization->GetRequestResult(m_languageRequest, &result);
+    if (found && result.state == cse::localization::RequestState::Pending) {
+        return false;
+    }
+    m_languageRequest = cse::localization::InvalidRequest;
+    applied = found && result.state == cse::localization::RequestState::Applied;
+    if (applied) {
+        m_originalLanguage = localization->Preference();
+    }
+    m_saveFailed->SetVisible(!applied);
+    InvalidateLayout(false, false);
+    return true;
 }
 
 void COptionsSubInterface::PerformLayout() {

@@ -6603,7 +6603,32 @@
         "path": "valve/titles.txt",
         "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
         "encoding": "utf-8"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_french/spectatormenu.txt",
@@ -6651,7 +6676,32 @@
         "path": "valve_french/titles.txt",
         "sha256": "a40b62dbf8bede96654b30557dd761b0f54a939ac912fc8e0ce6e96836a4b4cf",
         "encoding": "cp1252"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_german/spectatormenu.txt",
@@ -6699,7 +6749,32 @@
         "path": "valve_german/titles.txt",
         "sha256": "6c89d2e010afaa62eac7a312d1f93834b462af39babd7823e2239d586a3b2c25",
         "encoding": "cp1252"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_italian/spectatormenu.txt",
@@ -6747,7 +6822,32 @@
         "path": "valve_italian/titles.txt",
         "sha256": "9314ed6836314acd21c4950d0575d95478723fa2c66d4aa27829c08f2416382a",
         "encoding": "cp1252"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_koreana/spectatormenu.txt",
@@ -6813,6 +6913,29 @@
             "GAMETITLE"
           ],
           "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        },
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
         }
       ]
     },
@@ -6870,7 +6993,32 @@
         "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
         "encoding": "utf-8",
         "source_language": "english"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_russian/gfx/shell/kb_act.lst",
@@ -6926,7 +7074,32 @@
         "sha256": "9cfad58a728df6081271f0b1d53f3f382ddfda23a39500b1026afaf4856c465a",
         "encoding": "utf-8",
         "source_language": "english"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_schinese/titles.txt",
@@ -6951,6 +7124,29 @@
             "GAMETITLE"
           ],
           "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        },
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
         }
       ]
     },
@@ -7000,7 +7196,32 @@
         "path": "valve_spanish/titles.txt",
         "sha256": "9793d4d699fa4d0348effea407afad9fb11f87773ce5f3876650984d273921df",
         "encoding": "cp1252"
-      }
+      },
+      "cse_amendments": [
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
+        }
+      ]
     },
     {
       "source": "valve_tchinese/titles.txt",
@@ -7026,6 +7247,29 @@
             "VALVEIS"
           ],
           "reason": "Preserve canonical game/product titles and branded technology names; localize surrounding prose."
+        },
+        {
+          "kind": "live-interface-labels",
+          "date": "2026-11-13",
+          "tokens": [
+            "CSE_UI_Connect",
+            "CSE_UI_Refresh",
+            "CSE_UI_LAN",
+            "CSE_UI_Stop",
+            "CSE_UI_Test",
+            "CSE_UI_Sort",
+            "CSE_UI_Close",
+            "CSE_UI_Waiting",
+            "CSE_UI_Searching",
+            "CSE_UI_Players",
+            "CSE_UI_Points",
+            "CSE_UI_Address",
+            "CSE_UI_Server",
+            "CSE_UI_Map",
+            "CSE_UI_Current",
+            "CSE_UI_Latency"
+          ],
+          "reason": "Owned Half-Life VGUI1 labels used during in-place language refresh; upstream text retained."
         }
       ]
     }

@@ -10,6 +10,9 @@ namespace interface_language {
 // Missing, corrupt and unbundled identifiers return the automatic choice.
 std::string ReadSavedPreference();
 
+// Empty selects automatic; only bundled identifiers can be persisted.
+bool WriteSavedPreference(const char* preference);
+
 } // namespace interface_language
 } // namespace cse
 

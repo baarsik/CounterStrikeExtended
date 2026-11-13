@@ -41,6 +41,8 @@ public:
 	int GetCount();
 	bool GetUnderlined();
 	void RemoveAll();
+    void ReserveReplacement(const CFontAmalgam& prepared);
+    void ReplaceRangesFrom(const CFontAmalgam& prepared);
 
 private:
 	struct TFontRange

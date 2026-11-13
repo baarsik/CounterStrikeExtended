@@ -15,7 +15,9 @@ parser.add_argument('--profile', choices=['release', 'debug'], required=True)
 parser.add_argument('--sanitizers', action='store_true')
 parser.add_argument('--recipe-cache', type=Path, help='Current owning CMake build with compile_commands.json')
 parser.add_argument('--sdl-library', type=Path, help='SDL library matching the owning packet')
-parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options', 'options_voice'], default='vgui')
+parser.add_argument('--driver', choices=['vgui', 'module', 'translation_fit', 'interface_options', 'options_voice', 'live_localization', 'label_layout'], default='vgui')
+parser.add_argument('--label-variant', choices=('shared', 'cs'), default='shared',
+                    help='Compile the actual shared or CS Label owner with real control dependencies')
 args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
@@ -28,7 +30,8 @@ if args.driver in ('translation_fit', 'interface_options', 'options_voice'):
     shutil.copytree(repo / 'src/deploy/platform', packet / 'resources/platform', dirs_exist_ok=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
 cache = args.recipe_cache.resolve() if args.recipe_cache else cache
-entries = json.loads((cache / 'compile_commands.json').read_text())
+all_entries = json.loads((cache / 'compile_commands.json').read_text())
+entries = all_entries
 entries = [entry for entry in entries if '/gameui.dir/' in entry.get('output', '')]
 owner = next(entry for entry in entries if entry['file'].endswith('/GameUI/GameUI_Interface.cpp'))
 source_prefix = owner['file'].split('/src/')[0]
@@ -38,6 +41,11 @@ extra = ['engine/controls.cpp', 'engine/interface.cpp', 'engine/mem.c', 'engine/
          'public/characterset.cpp', 'vgui2/src/public/filesystem_helpers.cpp']
 selected = [entry for entry in entries if '/vgui2/controls/' in entry['file'] or
             any(entry['file'].endswith('/' + name) for name in extra)]
+if args.label_variant == 'cs':
+    cs_label = next(entry for entry in all_entries if '/cs_client.dir/' in entry.get('output', '')
+                    and entry['file'].endswith('/cstrike/vgui2/controls/Label.cpp'))
+    selected = [cs_label if entry['file'].endswith('/src/vgui2/controls/Label.cpp') else entry
+                for entry in selected]
 assert all(any(entry['file'].endswith('/' + name) for entry in selected)
            for name in ['Frame.cpp', 'ListPanel.cpp', 'TextEntry.cpp', 'KeyValues.cpp', 'controls.cpp'])
 subprocess.run(['python3', str(repo / 'tests/native/server_browser_ui/extract_owners.py'),
@@ -65,9 +73,33 @@ if args.driver == 'options_voice':
                  'LabeledCommandComboBox', 'ModInfo'):
         selected.append(dict(owner, file=str(repo / 'src/GameUI' / (name + '.cpp'))))
     driver_source = repo / 'tests/native/options_voice/options_voice_tests.cpp'
+elif args.driver == 'label_layout':
+    driver_source = repo / 'tests/native/live_localization_vgui/label_layout_tests.cpp'
+elif args.driver == 'live_localization':
+    driver_source = repo / 'tests/native/live_localization_vgui/runtime_tests.cpp'
 else:
     driver_source = repo / ('tests/native/server_browser_ui/' + args.driver + '_tests.cpp')
 selected.append(dict(owner, file=str(driver_source)))
+
+# The live Options fixture includes the production State inline in its driver.
+# Record its source/header inputs as one snapshot so concurrent control/header
+# edits cannot silently produce a mixed component packet.
+def options_inputs():
+    paths = {Path(entry['file'].replace(source_prefix + '/src', str(repo / 'src')))
+             for entry in selected}
+    for directory in ('src/public', 'src/vgui2', 'src/gameui', 'src/common', 'src/engine', 'src/filesystem'):
+        paths.update(path for path in (repo / directory).rglob('*')
+                     if path.is_file() and path.suffix in ('.h', '.inc'))
+    paths.update(repo / relative for relative in (
+        'src/engine/localization_state.h', 'src/common/interface_language.h',
+        'src/common/interface_language_preference.h', 'src/gameui/OptionsDialog.cpp',
+        'src/gameui/OptionsDialog.h', 'src/gameui/OptionsSubInterface.h'))
+    return {str(path.relative_to(repo)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted(paths) if path.is_file()}
+
+options_snapshot = options_inputs() if args.driver == 'interface_options' else None
+if options_snapshot is not None:
+    (packet / 'options-inputs-before.json').write_text(json.dumps(options_snapshot, indent=2) + '\n')
 
 def run(pair):
     index, entry = pair
@@ -89,6 +121,24 @@ def run(pair):
 with ThreadPoolExecutor(max_workers=2) as workers:
     results = list(workers.map(run, enumerate(selected)))
 (packet / 'commands.json').write_text(json.dumps(results, indent=2) + '\n')
+if options_snapshot is not None:
+    after = options_inputs()
+    (packet / 'options-inputs-after.json').write_text(json.dumps(after, indent=2) + '\n')
+    dependencies = {'src/gameui/optionsdialog.cpp'}
+    for result in results:
+        dependency_file = Path(result['object']).with_suffix('.d')
+        if dependency_file.is_file():
+            words = shlex.split(dependency_file.read_text().replace('\\\n', ' '))
+            for word in words[1:]:
+                try:
+                    dependencies.add(str(Path(word).relative_to(repo)).casefold())
+                except ValueError:
+                    pass
+    relevant = {path: digest for path, digest in options_snapshot.items() if path.casefold() in dependencies}
+    (packet / 'options-relevant-inputs.json').write_text(json.dumps(relevant, indent=2) + '\n')
+    changed = sorted(path for path, digest in relevant.items() if after.get(path) != digest)
+    if changed:
+        raise RuntimeError('Options source/header inputs changed during component build: ' + ', '.join(changed))
 failed = [result for result in results if result['exit']]
 for result in failed:
     print('FAILED', result['source'])

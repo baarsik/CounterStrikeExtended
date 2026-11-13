@@ -23,6 +23,10 @@ struct MacFontServicesV1 {
     bool (*Read)(void*, const char* path, std::vector<unsigned char>& bytes) noexcept;
     int (*Acquire)(void*, const void* owner, const char* path) noexcept;
     int (*Release)(void*, const void* owner) noexcept;
+    // Optional scalar discovery applies only after an ordinary donor misses a
+    // validated BMP character. Exact family/byte/symbol lookup stays separate.
+    bool (*LookupCharacter)(void*, FT_LibraryRec_*, const FontRequest&, unsigned int,
+        NativeFontLocation&) noexcept = nullptr;
 };
 
 void* CreateMacFontContextV1(const MacFontServicesV1& services) noexcept;

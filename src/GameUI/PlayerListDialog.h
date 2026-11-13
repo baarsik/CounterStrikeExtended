@@ -27,6 +27,7 @@ class CPlayerListDialog : public vgui::Frame
 public:
 	CPlayerListDialog( vgui2::Panel* parent );
 	~CPlayerListDialog() override;
+    void RefreshLanguagePresentation();
 
 	void Activate() override;
 

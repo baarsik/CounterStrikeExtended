@@ -13,6 +13,8 @@
 #include "utlvector.h"
 #include "Frame.h"
 #include "vguitextwindow.h"
+#include <string>
+#include <vector>
 
 #define MENU_TEAM			2
 #define MENU_CLASS			3
@@ -35,6 +37,7 @@ class CClientScoreBoardDialog;
 template<class T> class CUtlQueue
 {
 public:
+
 	CUtlVector<T> m_heap;
 	T m_current;
 #ifdef _MSC_VER
@@ -45,6 +48,7 @@ public:
 class TeamFortressViewport : public IViewPort, public IClientVGUI, public IViewPortMsgs
 {
 public:
+    void RefreshLanguage();
 	TeamFortressViewport();
 	~TeamFortressViewport() override;
 	void Initialize( CreateInterfaceFn* factories, int count ) override;
@@ -169,7 +173,10 @@ protected:
 	TutorWindowManager*			m_pTutorWindowManager;
 	CSpecHelpWindow*			m_pSpecHelp;
 	CBackGroundPanel*			m_pBackGround;
-	bool						m_bInitialized;
+	std::string m_tutorToken;
+    std::vector<std::wstring> m_tutorArguments;
+    std::string m_tutorStateToken;
+    bool						m_bInitialized;
 	CreateInterfaceFn			m_FactoryList[5];
 	CSpectatorGUI*				m_pPrivateSpectatorGUI;
 	CClientScoreBoardDialog*		m_pPrivateClientScoreBoard;
@@ -194,3 +201,5 @@ protected:
 	int							m_iUser2;
 	VGuiLibraryInterface_t*		m_pClientDllInterface;
 };
+
+std::wstring RenderTutorText(const std::string& token, const std::vector<std::wstring>& arguments);

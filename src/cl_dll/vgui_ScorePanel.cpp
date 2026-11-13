@@ -709,7 +709,7 @@ void ScorePanel::FillGrid()
 					}
 					else
 					{
-						sprintf( sz2, gViewPort->GetTeamName(team_info->teamnumber) );
+						snprintf(sz2, sizeof(sz2), "%s", gViewPort->GetTeamName(team_info->teamnumber));
 					}
 
 					strcpy(sz, sz2);
@@ -1151,4 +1151,33 @@ void CLabelHeader::calcAlignment(int iwide, int itall, int &x, int &y)
 
 	x += _offset[0];
 	y += _offset[1];
+}
+
+void ScorePanel::RefreshLanguage() {
+    auto* schemes = gViewPort->GetSchemeManager();
+    Font* title = schemes->getFont(schemes->getSchemeHandle("Scoreboard Title Text"));
+    Font* small = schemes->getFont(schemes->getSchemeHandle("Scoreboard Small Text"));
+    m_TitleLabel.setFont(title);
+    m_pCloseButton->setFont(title);
+    for (int column = 0; column < NUM_COLUMNS; ++column) {
+        m_HeaderLabels[column].setFont(small);
+        const char* source = g_ColumnInfo[column].m_pTitle;
+        if (source) {
+            const std::string text = source[0] == '#' ? LocalizeUi(source, source) : source;
+            m_HeaderLabels[column].setText(static_cast<int>(text.size()) + 1, text.c_str());
+        }
+    }
+    const int scroll = m_PlayerList.GetScrollPos();
+    const int highlight = m_iHighlightRow;
+    CLabelHeader* highlightedLabel = m_pCurrentHighlightLabel;
+    FillGrid();
+    m_iHighlightRow = highlight;
+    m_pCurrentHighlightLabel = highlightedLabel;
+    for (int row = 0; row < NUM_ROWS; ++row) {
+        m_PlayerGrids[row].AutoSetRowHeights();
+        m_PlayerGrids[row].setSize(PanelWidth(&m_PlayerGrids[row]), m_PlayerGrids[row].CalcDrawHeight());
+        m_PlayerGrids[row].RepositionContents();
+    }
+    m_PlayerList.SetScrollPos(scroll);
+    invalidateLayout(false);
 }

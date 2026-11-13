@@ -246,3 +246,21 @@ bool CCreateCommandComboMenu::IsCustomToken( const char* )
 {
 	return false;
 }
+
+void RefreshCommandMenuText(vgui2::Menu* destination, vgui2::Menu* source) {
+    if (!destination || !source || destination->GetItemCount() != source->GetItemCount()) {
+        return;
+    }
+    for (int row = 0; row < destination->GetItemCount(); ++row) {
+        vgui2::MenuItem* target = destination->GetMenuItem(destination->GetMenuID(row));
+        vgui2::MenuItem* replacement = source->GetMenuItem(source->GetMenuID(row));
+        if (!target || !replacement) {
+            continue;
+        }
+        wchar_t text[1024]{};
+        replacement->GetText(text, static_cast<int>(sizeof(text) / sizeof(text[0])));
+        target->SetText(text);
+        RefreshCommandMenuText(target->GetMenu(), replacement->GetMenu());
+    }
+    destination->InvalidateLayout(false, false);
+}

@@ -20,6 +20,7 @@ namespace vgui2
 class CCSClientScoreBoardDialog : public CClientScoreBoardDialog
 {
 public:
+    void RefreshLanguage();
 	CCSClientScoreBoardDialog( vgui2::Panel* parent );
 	~CCSClientScoreBoardDialog() override;
 
@@ -39,7 +40,7 @@ private:
 	void AddHeader() override; // add the start header of the scoreboard
 	virtual void AddSection( int teamType, int teamNumber ); // add a new section header for a team
 	bool ShowAvatars();
-	void UpdateHeaders();
+	void UpdateHeaders(bool force = false);
 	void UpdateColumnInAllSections( const char* column, const wchar_t* header, int width, bool spectator );
 	void UpdateOptionalColumns();
 	const wchar_t* GetHealthHeader();

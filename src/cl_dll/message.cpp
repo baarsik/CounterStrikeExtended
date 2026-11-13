@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include "parsemsg.h"
 #include "legacy_message_text.h"
+#include "localization_client.h"
 
 DECLARE_MESSAGE( m_Message, HudText )
 DECLARE_MESSAGE( m_Message, GameTitle )
@@ -55,14 +56,18 @@ int CHudMessage::VidInit( void )
 };
 
 
-void CHudMessage::Reset( void )
-{
- 	memset( m_pMessages, 0, sizeof( m_pMessages[0] ) * maxHUDMessages );
-	memset( m_startTime, 0, sizeof( m_startTime[0] ) * maxHUDMessages );
-	
-	m_bEndAfterMessage = false;
-	m_gameTitleTime = 0;
-	m_pGameTitle = NULL;
+void CHudMessage::Reset(void) {
+    m_parms.pMessage = nullptr;
+    for (int index = 0; index < maxHUDMessages; ++index) {
+        m_pMessages[index] = nullptr;
+        m_startTime[index] = 0;
+        m_messageEndTimes[index] = 0;
+        m_ownedMessages[index].Clear();
+    }
+    m_ownedGameTitle.Clear();
+    m_bEndAfterMessage = false;
+    m_gameTitleTime = 0;
+    m_pGameTitle = nullptr;
 }
 
 
@@ -343,72 +348,42 @@ int CHudMessage::Draw( float fTime )
 			drawn = 1;
 		}
 	}
-	// Fixup level transitions
-	for ( i = 0; i < maxHUDMessages; i++ )
-	{
-		// Assume m_parms.time contains last time
-		if ( m_pMessages[i] )
-		{
-			pMessage = m_pMessages[i];
-			if ( m_startTime[i] > gHUD.m_flTime )
-				m_startTime[i] = gHUD.m_flTime + m_parms.time - m_startTime[i] + 0.2;	// Server takes 0.2 seconds to spawn, adjust for this
-		}
-	}
+    // Keep the accepted message lifetime when the client clock changes levels.
+    constexpr double ServerSpawnDelaySeconds = 0.2;
+    for (i = 0; i < maxHUDMessages; ++i) {
+        if (m_pMessages[i] && m_startTime[i] > gHUD.m_flTime) {
+            const float previousStart = m_startTime[i];
+            m_startTime[i] = gHUD.m_flTime + m_parms.time - previousStart + ServerSpawnDelaySeconds;
+            m_messageEndTimes[i] += m_startTime[i] - previousStart;
+        }
+    }
 
-	for ( i = 0; i < maxHUDMessages; i++ )
-	{
-		if ( m_pMessages[i] )
-		{
-			pMessage = m_pMessages[i];
-
-			// This is when the message is over
-			switch( pMessage->effect )
-			{
-			case 0:
-			case 1:
-				endTime = m_startTime[i] + pMessage->fadein + pMessage->fadeout + pMessage->holdtime;
-				break;
-			
-            // Fade in is per visible character, using the same decoding as the scan.
-            case 2: {
-                const auto metrics = cse::hud_message::BorrowCreditsMetrics(
-                    reinterpret_cast<const void*>(gEngfuncs.pfnDrawCharacter));
-                const cse::hud_message::Text text(pMessage->pMessage, metrics);
-                endTime = m_startTime[i] + pMessage->fadein * text.VisibleLength() +
-                    pMessage->fadeout + pMessage->holdtime;
-                break;
+    for (i = 0; i < maxHUDMessages; ++i) {
+        if (!m_pMessages[i]) {
+            continue;
+        }
+        pMessage = m_pMessages[i];
+        switch (pMessage->effect) {
+        case 0:
+        case 1:
+        case 2:
+            endTime = m_messageEndTimes[i];
+            break;
+        default:
+            ReleaseMessage(i);
+            continue;
+        }
+        if (fTime <= endTime) {
+            const float messageTime = fTime - m_startTime[i];
+            MessageDrawScan(pMessage, messageTime);
+            ++drawn;
+        } else {
+            ReleaseMessage(i);
+            if (m_bEndAfterMessage) {
+                gEngfuncs.pfnClientCmd("wait\nwait\nwait\nwait\nwait\nwait\nwait\ndisconnect\n");
             }
-
-			default:
-				m_pMessages[i] = NULL;
-				continue;
-			}
-
-			if ( fTime <= endTime )
-			{
-				float messageTime = fTime - m_startTime[i];
-
-				// Draw the message
-				// effect 0 is fade in/fade out
-				// effect 1 is flickery credits
-				// effect 2 is write out (training room)
-				MessageDrawScan( pMessage, messageTime );
-
-				drawn++;
-			}
-			else
-			{
-				// The message is over
-				m_pMessages[i] = NULL;
-
-				if (m_bEndAfterMessage)
-				{
-					// leave game
-					gEngfuncs.pfnClientCmd("wait\nwait\nwait\nwait\nwait\nwait\nwait\ndisconnect\n");
-				}
-			}
-		}
-	}
+        }
+    }
 
 	// Remember the time -- to fix up level transitions
 	m_parms.time = gHUD.m_flTime;
@@ -450,7 +425,8 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 				g_pCustomMessage.fxtime = 0.25;
 				g_pCustomMessage.holdtime = 5;
 				g_pCustomMessage.pName = g_pCustomName;
-				strcpy( g_pCustomText, pName );
+				strncpy(g_pCustomText, pName, sizeof(g_pCustomText) - 1);
+                g_pCustomText[sizeof(g_pCustomText) - 1] = 0;
 				g_pCustomMessage.pMessage = g_pCustomText;
 
 				tempMessage = &g_pCustomMessage;
@@ -471,15 +447,17 @@ void CHudMessage::MessageAdd( const char *pName, float time )
 					{
 						if ( fabs( tempMessage->x - m_pMessages[j]->x ) < 0.0001 )
 						{
-							m_pMessages[j] = NULL;
+                            ReleaseMessage(j);
 						}
 					}
 				}
 			}
 
-			m_pMessages[i] = tempMessage;
-			m_startTime[i] = time;
-			return;
+			m_ownedMessages[i].Assign(tempMessage, IsCatalogueMessage(tempMessage));
+            m_pMessages[i] = m_ownedMessages[i].Get();
+            m_startTime[i] = time;
+            m_messageEndTimes[i] = MessageEndTime(i);
+            return;
 		}
 	}
 }
@@ -513,7 +491,9 @@ int CHudMessage::MsgFunc_HudText( const char *pszName,  int iSize, void *pbuf )
 
 int CHudMessage::MsgFunc_GameTitle( const char *pszName,  int iSize, void *pbuf )
 {
-	m_pGameTitle = TextMessageGet( "GAMETITLE" );
+	client_textmessage_t* title = TextMessageGet("GAMETITLE");
+    m_ownedGameTitle.Assign(title, IsCatalogueMessage(title));
+    m_pGameTitle = m_ownedGameTitle.Get();
 	if ( m_pGameTitle != NULL )
 	{
 		m_gameTitleTime = gHUD.m_flTime;
@@ -538,10 +518,51 @@ void CHudMessage::MessageAdd(client_textmessage_t * newMessage )
 	{
 		if ( !m_pMessages[i] )
 		{
-			m_pMessages[i] = newMessage;
-			m_startTime[i] = gHUD.m_flTime;
-			return;
+			m_ownedMessages[i].Assign(newMessage, false);
+            m_pMessages[i] = m_ownedMessages[i].Get();
+            m_startTime[i] = gHUD.m_flTime;
+            m_messageEndTimes[i] = MessageEndTime(i);
+            return;
 		}
 	}
 
+}
+
+void CHudMessage::RefreshLanguage() {
+    for (int index = 0; index < maxHUDMessages; ++index) {
+        if (m_pMessages[index]) {
+            m_ownedMessages[index].Relocalize(TextMessageGet);
+            m_pMessages[index] = m_ownedMessages[index].Get();
+        }
+    }
+    if (m_pGameTitle) {
+        m_ownedGameTitle.Relocalize(TextMessageGet);
+        m_pGameTitle = m_ownedGameTitle.Get();
+    }
+    m_parms.pMessage = nullptr;
+}
+
+float CHudMessage::MessageEndTime(int index) const {
+    const client_textmessage_t* message = m_pMessages[index];
+    if (!message) {
+        return 0;
+    }
+    float revealTime = message->fadein;
+    if (message->effect == 2) {
+        const auto metrics = cse::hud_message::BorrowCreditsMetrics(
+            reinterpret_cast<const void*>(gEngfuncs.pfnDrawCharacter));
+        const cse::hud_message::Text text(message->pMessage, metrics);
+        revealTime *= text.VisibleLength();
+    }
+    return m_startTime[index] + revealTime + message->fadeout + message->holdtime;
+}
+
+void CHudMessage::ReleaseMessage(int index) {
+    if (m_parms.pMessage == m_pMessages[index]) {
+        m_parms.pMessage = nullptr;
+    }
+    m_pMessages[index] = nullptr;
+    m_ownedMessages[index].Clear();
+    m_startTime[index] = 0;
+    m_messageEndTimes[index] = 0;
 }

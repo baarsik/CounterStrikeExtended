@@ -23,6 +23,7 @@ class Label;
 class CBuyMenu : public vgui2::WizardPanel
 {
 public:
+    void RefreshLanguage();
 	CBuyMenu( vgui2::Panel* parent );
 	~CBuyMenu() override;
 	void ActivateBuyMenu();
