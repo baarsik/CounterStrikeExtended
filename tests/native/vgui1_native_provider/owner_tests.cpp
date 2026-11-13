@@ -15,6 +15,7 @@ using namespace cse_vgui1;
 using Result = CseVgui1FontResultV1;
 struct Model {
     std::vector<unsigned char> bytes;
+    std::vector<unsigned char> bold;
     std::map<const void*, std::set<std::string>> owners;
     int lookups = 0;
     int releases = 0;
@@ -32,6 +33,11 @@ void Require(bool ok, const char* message) {
 }
 bool Lookup(void*, FT_LibraryRec_*, const FontRequest& request, NativeFontLocation& result) noexcept {
     ++model->lookups;
+    if (!model->unavailable && request.lookupIdentity == "Verdana-Bold") {
+        Require(request.weight == 500, "measured Verdana request retains original weight 500");
+        result = {path + ".bold", "Verdana-Bold", 0};
+        return true;
+    }
     if (model->unavailable || request.lookupIdentity != "CSE Owned Raster V1") {
         return false;
     }
@@ -39,8 +45,8 @@ bool Lookup(void*, FT_LibraryRec_*, const FontRequest& request, NativeFontLocati
     return true;
 }
 bool Read(void*, const char* filename, std::vector<unsigned char>& result) noexcept {
-    Require(path == filename, "exact bound path");
-    result = model->bytes;
+    Require(path == filename || path + ".bold" == filename, "exact bound path");
+    result = path == filename ? model->bytes : model->bold;
     return true;
 }
 int Acquire(void*, const void* owner, const char* filename) noexcept {
@@ -125,6 +131,11 @@ int main(int argc, char** argv) {
     const auto count = std::fread(buffer.data(), 1, buffer.size(), input);
     Require(count > 0 && count < buffer.size() && std::fclose(input) == 0, "bounded owned input");
     model->bytes.assign(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(count));
+    input = std::fopen((std::string(argv[1]) + "/verdana-bold.ttf").c_str(), "rb");
+    Require(input != nullptr, "authored Verdana identity fixture");
+    const auto boldCount = std::fread(buffer.data(), 1, buffer.size(), input);
+    Require(boldCount > 0 && boldCount < buffer.size() && std::fclose(input) == 0, "bounded bold input");
+    model->bold.assign(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(boldCount));
     auto bitmap = Bitmap();
     vgui::Font raster("Owned bitmap", bitmap.data(), static_cast<int>(bitmap.size()),
         99, 17, 45.0f, 900, true, true, true, true);
@@ -146,6 +157,12 @@ int main(int argc, char** argv) {
     model->acquireFailed = false;
     Require(Bind() == Result::FilesBound && Prepare(font, Result::Ready).capabilities != 0,
         "retired initial borrower can be prepared through real native face");
+    vgui::Font verdana("Verdana Bold", 20, 0, 0.0f, 500, false, false, false, false);
+    Require(Prepare(verdana, Result::Ready).capabilities != 0 && verdana.getTall() > 0,
+        "original weight500 Verdana-Bold profile realizes through actual owner and provider");
+    vgui::Font styled("CSE Owned Raster V1", 20, 20, 30.0f, 600, true, true, true, false);
+    Require(Prepare(styled, Result::Ready).capabilities != 0 && styled.getWide() > 0,
+        "owner accepts advertised style and geometry capabilities");
     void* platform = font.getPlat();
     const auto ready = Prepare(font, Result::Ready);
     const int attempts = model->lookups;
@@ -182,6 +199,7 @@ int main(int argc, char** argv) {
     Require(font.getPlat() == platform, "formerly ready borrower identity survives release/rebind");
     Require(CseVgui1FontsReleaseFilesV1(nullptr, 0) == Result::FilesReleased && model->owners.empty(),
         "all contexts released before fixture callback storage dies");
+    vgui::Font_Reset(); // Isolate the next lookup generation from the added styled borrowers.
     unsigned char invalid[18]{};
     const int beforeInvalidBitmap = model->lookups;
     vgui::Font malformed("Present invalid TGA", invalid, sizeof(invalid),

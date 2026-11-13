@@ -40,7 +40,7 @@ struct Context {
 #if defined(__APPLE__)
 bool LookupNative(void*, FT_Library library, const FontRequest& request, NativeFontLocation& output) noexcept {
     cse::fonts::FontFile file;
-    if (!cse::fonts::FindMacFontFile(library, request.lookupIdentity.c_str(), request.weight, false, file)) {
+    if (!cse::fonts::FindMacFontFile(library, request.lookupIdentity.c_str(), request.weight, (request.flags & FontItalic) != 0, file)) {
         return false;
     }
     output = {std::move(file.path), std::move(file.postScriptName), file.faceIndex};
@@ -169,8 +169,28 @@ std::unique_ptr<RealizedFace> Realize(void* value, const FontRequest& request,
     NativeFontLocation location;
     error = kUnavailable;
     diagnostic = "exact native font unavailable: " + request.lookupIdentity;
-    if (!context->services.Lookup(context->services.data, context->library, request, location)
-        || location.path.empty() || location.path[0] != '/' || location.postScriptName.empty()) {
+    bool found = context->services.Lookup(context->services.data, context->library, request, location);
+    // A family may have no requested styled face. Keep its regular donor and
+    // synthesize the requested effects in the owned FreeType face.
+    if (!found && !fixedSysRole && (request.flags & FontSymbol) == 0) {
+        auto donor = request;
+        donor.flags &= ~FontItalic;
+        donor.weight = 0;
+        found = context->services.Lookup(context->services.data, context->library, donor, location);
+        if (!found) {
+            // GDI substitutes absent ordinary names. Keep that policy here;
+            // symbol maps and the measured FixedSys role must never substitute.
+            constexpr const char* kFallbackFamilies[]{"Arial", "Helvetica"};
+            for (const char* family : kFallbackFamilies) {
+                donor.lookupIdentity = family;
+                found = context->services.Lookup(context->services.data, context->library, donor, location);
+                if (found) {
+                    break;
+                }
+            }
+        }
+    }
+    if (!found || location.path.empty() || location.path[0] != '/' || location.postScriptName.empty()) {
         return {};
     }
     // Default Marlett must use the explicitly approved/bound game resource.

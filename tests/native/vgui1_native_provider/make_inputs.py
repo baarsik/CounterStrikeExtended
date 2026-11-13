@@ -84,6 +84,9 @@ def main():
     struct.pack_into('>H', head, 44, 1)
     bold[b'head'] = bytes(head)
     outputs = {'regular.ttf': regular, 'bold.ttf': pack(bold, base.checksum)}
+    verdana = dict(bold)
+    verdana[b'name'] = names('Verdana', 'Bold', 'Verdana-Bold')
+    outputs['verdana-bold.ttf'] = pack(verdana, base.checksum)
     for mode in ('direct', 'high', 'both', 'ambiguous', 'missing'):
         symbol = dict(tables)
         symbol[b'name'] = names('CSE Owned Symbol V1', 'Regular', 'CSEOwnedSymbolV1-Regular')

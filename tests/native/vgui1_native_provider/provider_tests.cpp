@@ -23,6 +23,7 @@ struct Services {
     int reads = 0;
     int releases = 0;
     bool unavailable = false;
+    std::string missingIdentity;
     bool failRead = false;
     bool failAcquire = false;
     bool failRelease = false;
@@ -34,7 +35,7 @@ bool Lookup(void* data, FT_LibraryRec_*, const FontRequest& request, NativeFontL
     ++services.lookups;
     services.lastIdentity = request.lookupIdentity;
     services.lastWeight = request.weight;
-    if (services.unavailable) {
+    if (services.unavailable || request.lookupIdentity == services.missingIdentity) {
         return false;
     }
     location = services.location;
@@ -117,6 +118,16 @@ int main(int argc, char** argv) {
     auto face = provider.Realize(context, Request(), files, error, diagnostic);
     Require(face && error == 0 && diagnostic.empty() && services.lastWeight == 400
         && services.lastIdentity == Request().lookupIdentity, "actual provider returns owned ready face");
+    auto absent = Request();
+    absent.lookupIdentity = "CSE Deliberately Absent Font";
+    absent.requestedName = absent.lookupIdentity;
+    absent.flags = FontItalic | FontUnderline;
+    absent.weight = 600;
+    services.missingIdentity = absent.lookupIdentity;
+    auto fallback = provider.Realize(context, absent, files, error, diagnostic);
+    Require(fallback && error == 0 && fallback->Metrics().height > 0,
+        "missing ordinary name falls back to a usable styled face");
+    services.missingIdentity.clear();
     services.bytes.assign(services.bytes.size(), 0);
     int a = 0;
     int b = 0;

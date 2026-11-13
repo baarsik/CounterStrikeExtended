@@ -57,16 +57,17 @@ std::unique_ptr<NativeFontFace> Make(const std::vector<unsigned char>& input, lo
     }
     return face;
 }
-void Ordinary(const std::vector<unsigned char>& bytes) {
+void Ordinary(const std::vector<unsigned char>& bytes,
+    const char* identity = "CSEOwnedRasterV1-Regular", int weight = 400) {
     auto input = bytes;
-    auto face = Make(input, 0, "CSEOwnedRasterV1-Regular", Request());
+    auto face = Make(input, 0, identity, Request(weight));
     input.assign(input.size(), 0);
     Result result = Result::Ok;
     int error = 0;
     auto baseline = HarmonyCandidate::CreateOwned(bytes.data(), bytes.size(), 20, result, error);
     Require(baseline && result == Result::Ok, "frozen candidate comparator");
-    Require(face->FaceIndex() == 0 && face->PostScriptName() == "CSEOwnedRasterV1-Regular"
-        && face->IntrinsicWeight() == 400, "owned selected face provenance");
+    Require(face->FaceIndex() == 0 && face->PostScriptName() == identity
+        && face->IntrinsicWeight() == static_cast<unsigned int>(weight), "owned selected face provenance");
     const auto metrics = face->DetailedMetrics();
     const auto old = baseline->GetMetrics();
     Require(metrics.height == old.height && metrics.ascent == old.ascent && metrics.descent == old.descent
@@ -127,28 +128,124 @@ void StylesAndIndices(const std::string& directory, const std::vector<unsigned c
         rejected, nativeError, diagnostic) && rejected == Result::InvalidArgument, "null span rejected");
     Make(regular, 0, "Wrong-Identity", Request(), Result::InvalidFont);
     Make(regular, -1, "CSEOwnedRasterV1-Regular", Request(), Result::InvalidArgument);
-    Make(regular, 0, "CSEOwnedRasterV1-Regular", Request(700), Result::UnsupportedRequest);
-    Make(bold, 0, "CSEOwnedRasterV1-Bold", Request(), Result::UnsupportedRequest);
-    Make(regular, 0, "CSEOwnedRasterV1-Regular", Request(600), Result::UnsupportedRequest);
-    for (auto flag : {FontItalic, FontUnderline, FontStrikeout}) {
-        auto request = Request();
-        request.flags = flag;
-        Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::UnsupportedRequest);
-    }
+    Make(regular, 0, "CSEOwnedRasterV1-Regular", Request(700));
+    Make(bold, 0, "CSEOwnedRasterV1-Bold", Request());
+    Make(bold, 0, "CSEOwnedRasterV1-Bold", Request(500));
+    Make(regular, 0, "CSEOwnedRasterV1-Regular", Request(600));
     auto request = Request();
-    request.wide = 2;
-    Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::UnsupportedRequest);
-    request = Request();
-    request.rotation = 0.01f;
-    Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::UnsupportedRequest);
-    request = Request();
     request.ansiCodePage = 65001;
     Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::UnsupportedRequest);
     request = Request();
     request.tall = INT_MAX;
     Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::Unrepresentable);
+    request = Request();
+    request.wide = INT_MIN;
+    Make(regular, 0, "CSEOwnedRasterV1-Regular", request, Result::Unrepresentable);
     Make(std::vector<unsigned char>(16), 0, "invalid", Request(), Result::InvalidFont);
 }
+
+// These assertions catch dropped style/geometry requests using actual FT outlines,
+// not invented GDI pixel or metric equivalence.
+std::vector<unsigned char> Pixels(NativeFontFace& face, unsigned int byte) {
+    constexpr int kWidth = 128;
+    constexpr int kHeight = 64;
+    std::vector<unsigned char> pixels(kWidth * kHeight * 4, 0);
+    Require(face.Raster(byte, 0, 0, kWidth, kHeight, pixels.data()), "styled glyph raster succeeds");
+    return pixels;
+}
+
+void RequestedStyles(const std::vector<unsigned char>& regular) {
+    auto plain = Make(regular, 0, "CSEOwnedRasterV1-Regular", Request());
+    const auto ordinary = Pixels(*plain, 'A');
+    Require(std::any_of(ordinary.begin(), ordinary.end(), [](unsigned char pixel) { return pixel != 0; }),
+        "ordinary geometry has ink for style comparisons");
+    for (int weight : {600, 700}) {
+        auto face = Make(regular, 0, "CSEOwnedRasterV1-Regular", Request(weight));
+        Require(Pixels(*face, 'A') != ordinary, "missing intrinsic bold is synthesized");
+    }
+    for (auto flag : {FontItalic, FontUnderline, FontStrikeout}) {
+        auto request = Request();
+        request.flags = flag;
+        auto face = Make(regular, 0, "CSEOwnedRasterV1-Regular", request);
+        Require(Pixels(*face, 'A') != ordinary, "each requested style changes actual glyph pixels");
+        if (flag != FontItalic) {
+            for (unsigned int byte : {'A', ' '}) {
+                int plainA = 0;
+                int plainB = 0;
+                int plainC = 0;
+                int styledA = 0;
+                int styledB = 0;
+                int styledC = 0;
+                Require(plain->RawAbc(byte, plainA, plainB, plainC)
+                    && face->RawAbc(byte, styledA, styledB, styledC)
+                    && plainA == styledA && plainB == styledB && plainC == styledC,
+                    "decoration preserves the original ABC and cropped cell");
+                const auto pixels = Pixels(*face, byte);
+                constexpr int kWidth = 128;
+                constexpr int kHeight = 64;
+                constexpr int kPixelBytes = 4;
+                for (int row = 0; row < kHeight; ++row) {
+                    for (int column = plainB; column < kWidth; ++column) {
+                        Require(pixels[(row * kWidth + column) * kPixelBytes + 3] == 0,
+                            "decoration never extends beyond the retained glyph cell");
+                    }
+                }
+            }
+        }
+    }
+    auto wideRequest = Request();
+    wideRequest.wide = 20;
+    auto wide = Make(regular, 0, "CSEOwnedRasterV1-Regular", wideRequest);
+    int a = 0;
+    int b = 0;
+    int c = 0;
+    Require(plain->RawAbc('A', a, b, c), "plain advance");
+    const int ordinaryAdvance = a + b + c;
+    Require(wide->RawAbc('A', a, b, c) && a + b + c > ordinaryAdvance
+        && wide->DetailedMetrics().averageWidth == wideRequest.wide, "requested average width scales advances");
+    const int wideAdvance = a + b + c;
+    Require(wide->RawAbc('L', a, b, c) && a + b + c > wideAdvance,
+        "average width request preserves proportional advances");
+    Require(Pixels(*wide, 'A') != ordinary, "requested width scales rendered glyph");
+    auto rotatedRequest = Request();
+    rotatedRequest.rotation = 30.0f;
+    rotatedRequest.rotationTenths = 300;
+    auto rotated = Make(regular, 0, "CSEOwnedRasterV1-Regular", rotatedRequest);
+    Require(Pixels(*rotated, 'A') != ordinary, "escapement rotates actual outline");
+    int rotatedA = 0;
+    int rotatedB = 0;
+    int rotatedC = 0;
+    Require(plain->RawAbc('A', a, b, c) && rotated->RawAbc('A', rotatedA, rotatedB, rotatedC)
+        && a == rotatedA && b == rotatedB && c == rotatedC, "rotation preserves untransformed ABC contract");
+    // A positive right angle rotates top-aligned text above its unrotated cell.
+    // Baseline-pivot rotation instead leaves a conspicuous strip inside the cell.
+    auto uprightRequest = Request();
+    uprightRequest.rotation = 90.0f;
+    uprightRequest.rotationTenths = 900;
+    auto upright = Make(regular, 0, "CSEOwnedRasterV1-Regular", uprightRequest);
+    const auto uprightPixels = Pixels(*upright, 'H'); // Authored rectangle with positive left bearing.
+    Require(std::all_of(uprightPixels.begin(), uprightPixels.end(), [](unsigned char pixel) { return pixel == 0; }),
+        "positive escapement rotates around the original top-aligned pen");
+    rotatedRequest.rotation = -30.0f;
+    rotatedRequest.rotationTenths = -300;
+    auto clockwise = Make(regular, 0, "CSEOwnedRasterV1-Regular", rotatedRequest);
+    Require(Pixels(*clockwise, 'A') != ordinary && Pixels(*clockwise, 'A') != Pixels(*rotated, 'A'),
+        "negative escapement rotates in the opposite direction");
+    auto quantizedRequest = Request();
+    quantizedRequest.rotation = 0.01f;
+    auto quantized = Make(regular, 0, "CSEOwnedRasterV1-Regular", quantizedRequest);
+    Require(Pixels(*quantized, 'A') == ordinary, "sub-tenth rotation retains original integer quantization");
+    auto combinedRequest = wideRequest;
+    combinedRequest.rotation = -30.0f;
+    combinedRequest.rotationTenths = -300;
+    combinedRequest.flags = FontItalic | FontUnderline | FontStrikeout;
+    auto combined = Make(regular, 0, "CSEOwnedRasterV1-Regular", combinedRequest);
+    Require(Pixels(*combined, 'A') != Pixels(*wide, 'A'), "combined styles and clockwise rotation rasterize");
+    const auto tab = Pixels(*combined, '\t');
+    Require(std::all_of(tab.begin(), tab.end(), [](unsigned char pixel) { return pixel == 0; }),
+        "styled tab remains blank");
+}
+
 void Symbols(const std::string& directory) {
     auto request = Request(0);
     request.flags = FontSymbol;
@@ -170,6 +267,8 @@ int main(int argc, char** argv) {
     const std::string directory = argv[1];
     const auto regular = Read(directory + "/regular.ttf");
     Ordinary(regular);
+    Ordinary(Read(directory + "/bold.ttf"), "CSEOwnedRasterV1-Bold", 700);
+    RequestedStyles(regular);
     StylesAndIndices(directory, regular);
     Symbols(directory);
     for (int iteration = 0; iteration < 32; ++iteration) {
