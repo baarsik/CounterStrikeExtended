@@ -40,6 +40,13 @@ font-retirement path remains outside this patch. Private successful name retirem
 is one-shot owned input; Atlas clears each slot and makes public repeated retirement
 idempotent. This does not accept arbitrary or double private-name retirement.
 
+The HW upload regression supplies two unrelated pending GL errors before a valid
+font-page upload. The uploader must clear those errors before measuring its own
+operation, while still rejecting an error produced by the upload and preserving
+its metadata for caller rollback. A persistent error source must fail within the
+bounded drain without calling the backend. This is a CPU-only GL boundary test;
+it does not establish which error was present in a recorded game crash.
+
 Run `run_macos.py --art NEW_DIRECTORY --before PINNED_PRODUCTION_BEFORE_DIRECTORY`
 for the Mac matrix and existing/derived owner compiles. Actual whole changed TUs
 use existing hw/swds compiler recipes before/after. New private files compile under

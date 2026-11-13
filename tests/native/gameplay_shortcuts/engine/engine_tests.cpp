@@ -84,8 +84,10 @@ struct ClientMouseFunctions {
         ++clientDeactivations;
     };
 } cl_funcs;
+#include "mouse_activation_state.inc"
 #include "activate_mouse.inc"
 #include "deactivate_mouse.inc"
+#include "native_mouse_capture.inc"
 void ClientDLL_IN_Accumulate() {
     ++accumulations;
 }
@@ -331,6 +333,8 @@ int EngineRegressionMain() {
     Reset();
     active = &cse::NativeMouseWindowState();
     Bind(*active);
+    ClientDLL_DeactivateMouse();
+    ClientDLL_ActivateMouse();
     cse::NativeCursorTransaction transaction;
     CHECK(active->Begin(fixtureWindow, cse::NativeCursorOwner::VGui2, false, true, transaction));
     CHECK(transaction.Commit());

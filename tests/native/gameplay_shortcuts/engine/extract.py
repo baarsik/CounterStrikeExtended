@@ -81,7 +81,11 @@ source_files = ['GoldSrc-SDK/engine/sys_sdlwind.cpp', 'GoldSrc-SDK/engine/sys_dl
                                              for p in out.glob('*.inc')}, indent=2) + '\n')
 
 text = (root / 'GoldSrc-SDK/engine/cdll_int.cpp').read_text()
-for method, name in [('void ClientDLL_ActivateMouse()', 'activate_mouse'),
+begin = text.index('static bool nativeClientMouseRequested =')
+end = text.index('#endif', begin)
+(out / 'mouse_activation_state.inc').write_text(text[begin:end])
+for method, name in [('void ClientDLL_SetNativeMouseCapture(bool active)', 'native_mouse_capture'),
+                     ('void ClientDLL_ActivateMouse()', 'activate_mouse'),
                      ('void ClientDLL_DeactivateMouse()', 'deactivate_mouse')]:
     value, _ = body(text.index(method))
     (out / (name + '.inc')).write_text(value)

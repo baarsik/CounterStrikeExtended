@@ -1866,11 +1866,7 @@ bool cse::RefreshNativeMouseCapture() {
             s_wheelMotion.Reset();
         },
         [](bool active) {
-            if (active) {
-                ClientDLL_ActivateMouse();
-            } else {
-                ClientDLL_DeactivateMouse();
-            }
+            ClientDLL_SetNativeMouseCapture(active);
         }
     };
     return NativeMouseWindowState().RefreshInteraction(activeApp, gameplayContext, hooks);

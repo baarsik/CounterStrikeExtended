@@ -134,6 +134,9 @@ extern char ClientDLL_ClientTextureType( char *name );
 extern void ClientDLL_CreateMove( float frametime, struct usercmd_s *cmd, int active );
 extern void ClientDLL_ActivateMouse( void );
 extern void ClientDLL_DeactivateMouse( void );
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+extern void ClientDLL_SetNativeMouseCapture(bool active);
+#endif
 extern void ClientDLL_MouseEvent( int mstate );
 extern void ClientDLL_ClearStates( void );
 extern int ClientDLL_IsThirdPerson( void );

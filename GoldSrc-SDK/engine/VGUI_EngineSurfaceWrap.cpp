@@ -260,6 +260,7 @@ void EngineSurfaceWrap::drawSetTextFont( vgui::Font* font )
 #if defined(__APPLE__)
     const auto result = cse_vgui1_native::SelectEmbedded(this, font);
     if (result != cse_vgui1_native::Result::Ready) {
+        std::fprintf(stderr, "VGUI1 native font selection failed (result=%d)\n", static_cast<int>(result));
         cse_vgui1_native::InvalidEmbeddedUse("checked native font/atlas use failed");
     }
 #else
@@ -396,6 +397,7 @@ void EngineSurfaceWrap::drawPrintText( const char* text, int textLen )
 #if defined(__APPLE__)
     const auto result = cse_vgui1_native::DrawEmbedded(this, text, textLen);
     if (result != cse_vgui1_native::Result::Ready) {
+        std::fprintf(stderr, "VGUI1 native font drawing failed (result=%d)\n", static_cast<int>(result));
         cse_vgui1_native::InvalidEmbeddedUse("checked native font/atlas use failed");
     }
 #else

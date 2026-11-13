@@ -91,7 +91,16 @@ static CseInitializeClient initializeOwnedClient = nullptr;
 static CseExchangeClient exchangeOwnedClient = nullptr;
 static CseClientStudio getOwnedClientStudio = nullptr;
 
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+static bool nativeClientMouseRequested = false;
+static bool nativeClientMouseActive = false;
+#endif
+
 static void ClearOwnedClientBindings() {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    nativeClientMouseRequested = false;
+    nativeClientMouseActive = false;
+#endif
     initializeOwnedClient = nullptr;
     exchangeOwnedClient = nullptr;
     getOwnedClientStudio = nullptr;
@@ -499,22 +508,45 @@ void ClientDLL_CAM_Think()
 		cl_funcs.pCamThink();
 }
 
-void ClientDLL_ActivateMouse()
-{
+void ClientDLL_ActivateMouse() {
 #if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    // Native interaction may temporarily prevent delivery of an ordinary engine request.
+    nativeClientMouseRequested = fClientLoaded && cl_funcs.pIN_ActivateMouse;
     if (!cse::NativeMouseWindowState().CaptureAllowed()) {
         return;
     }
+    nativeClientMouseActive = nativeClientMouseRequested;
 #endif
-	if ( fClientLoaded && cl_funcs.pIN_ActivateMouse )
-		cl_funcs.pIN_ActivateMouse();
+    if (fClientLoaded && cl_funcs.pIN_ActivateMouse) {
+        cl_funcs.pIN_ActivateMouse();
+    }
 }
 
-void ClientDLL_DeactivateMouse()
-{
-	if ( fClientLoaded && cl_funcs.pIN_DeactivateMouse )
-		cl_funcs.pIN_DeactivateMouse();
+void ClientDLL_DeactivateMouse() {
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+    nativeClientMouseRequested = false;
+    nativeClientMouseActive = false;
+#endif
+    if (fClientLoaded && cl_funcs.pIN_DeactivateMouse) {
+        cl_funcs.pIN_DeactivateMouse();
+    }
 }
+
+#if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
+void ClientDLL_SetNativeMouseCapture(bool active) {
+    if (active) {
+        if (nativeClientMouseRequested && !nativeClientMouseActive) {
+            ClientDLL_ActivateMouse();
+        }
+    } else {
+        // Forced release is temporary; only the original engine caller owns activation intent.
+        nativeClientMouseActive = false;
+        if (fClientLoaded && cl_funcs.pIN_DeactivateMouse) {
+            cl_funcs.pIN_DeactivateMouse();
+        }
+    }
+}
+#endif
 
 void ClientDLL_IN_Accumulate()
 {

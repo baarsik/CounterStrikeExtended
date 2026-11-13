@@ -6,6 +6,24 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The November 13 manual-test follow-up preserves client mouse activation requests
+across native capture suspension, including recovery while a menu remains open.
+Ordinary deactivation still cancels the request. The actual owner, client wrappers
+and both UI cursor callers pass three component cases in each Release, Debug and
+ASan/UBSan profile. Related mouse transaction/lifecycle cases pass 3/3 and shortcut
+event loops 2/2. The broader shortcut lifecycle fixture still has stale seams;
+its compile failure also reproduces on the unchanged preceding source.
+
+The recorded Half-Life multiplayer dump identifies an intentional native VGUI1
+font-selection abort. A reproduced upload-boundary defect is corrected: prior
+shared-context GL errors no longer reject an otherwise successful font upload;
+errors from that upload still fail. Atlas component suites pass Release 10/10,
+Debug 10/10 and ASan/UBSan 9/9. The dump does not retain the failed result, so the
+connection between that defect and the exact reported abort remains an inference.
+Both complete ARM64 runtime build profiles pass; no game was launched by the
+agent. The reported spectator micro-flick remains unresolved. Camera behavior
+and defaults are unchanged.
+
 The November 13 six-finding review fixes restore native module publication order
 and case-insensitive instance lookup, retain unreachable saved browser endpoints,
 preserve whole-refill A3D interpolation, propagate output failure/recovery through

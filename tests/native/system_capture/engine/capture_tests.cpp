@@ -40,6 +40,10 @@ void Setup(bool pointerInside = true) {
     chat_bufferlen = 0;
     chat_buffer[0] = 0;
     Bind(*active);
+    ClientDLL_DeactivateMouse();
+    ClientDLL_ActivateMouse();
+    clientActivations = 0;
+    clientDeactivations = 0;
 }
 void Request(cse::NativeCursorOwner owner, bool visible, bool raw, bool grab, bool gameplay = true) {
     cse::NativeCursorTransaction transaction;

@@ -278,7 +278,12 @@ bool NativeMouseWindow::RefreshInteraction(bool activeApp, bool gameplayContext,
     interactionCached = true;
     const bool owned = activeApp && interactionResult == CseSdlCocoaMouseReady;
     if (owned && !captureSuspended) {
-        return true;
+        // A menu may have restored native ownership before gameplay capture resumed.
+        // Replay the caller's retained activation intent once both are current.
+        if (committedGameplayCapture && gameplayContext) {
+            hooks.setClientMouse(true);
+        }
+        return current() && CaptureAllowed();
     }
     if (!captureSuspended && !committedGameplayCapture && !gameplayCaptureAttempted && activeApp &&
         interactionResult == CseSdlCocoaMouseNotInteractionOwner && SDL_GetKeyboardFocus() == target &&

@@ -31,8 +31,16 @@ int flushes = 0;
 int deletes = 0;
 int binds = 0;
 GLenum error = GL_NO_ERROR;
+GLenum nextError = GL_NO_ERROR;
+GLenum uploadError = GL_NO_ERROR;
+bool persistentError = false;
 GLenum APIENTRY ControlledError() {
-    return error;
+    const GLenum result = error;
+    if (!persistentError) {
+        error = nextError;
+        nextError = GL_NO_ERROR;
+    }
+    return result;
 }
 void ControlledBind(GLenum target, GLuint id) {
     Check(target == GL_TEXTURE_2D && id == 0 && flushes > 0, "unbind follows flush");
@@ -56,6 +64,7 @@ public:
         auto* texture = staticAllocTextureForId(id);
         texture->_wide = wide;
         texture->_tall = tall;
+        error = uploadError;
     }
     int isTextureIdValid(int id) override {
         return staticGetTextureById(id) != nullptr;
@@ -120,8 +129,20 @@ int main() {
         "lost epoch invokes no GPU/bind/flush callback");
     Check(g_iVertexBufferEntriesUsed == 0 && !staticGetTextureById(102), "lost queue and real metadata cleared");
     error = GL_INVALID_OPERATION;
-    Check(!UploadEngineFontPage(&backend, 103, pixels.data(), pixels.size()) && !staticGetTextureById(103),
-        "preexisting GL error fails before upload");
+    nextError = GL_INVALID_ENUM;
+    Check(UploadEngineFontPage(&backend, 103, pixels.data(), pixels.size()) && staticGetTextureById(103),
+        "unrelated prior GL error does not reject a successful atlas upload");
+    Check(RetireEngineFontPage(&backend, 103, false), "retire atlas after unrelated prior error");
+    uploadError = GL_INVALID_OPERATION;
+    Check(!UploadEngineFontPage(&backend, 104, pixels.data(), pixels.size()) && staticGetTextureById(104),
+        "the atlas upload's own GL error remains a failure");
+    Check(RetireEngineFontPage(&backend, 104, false), "failed upload retains metadata for caller rollback");
+    uploadError = GL_NO_ERROR;
+    error = GL_INVALID_OPERATION;
+    persistentError = true;
+    Check(!UploadEngineFontPage(&backend, 105, pixels.data(), pixels.size()) && !staticGetTextureById(105),
+        "an error source that cannot clear is rejected before upload");
+    persistentError = false;
     std::puts("PASS actual HW metadata retirement/upload bodies with injected GL entrypoints");
     return 0;
 }

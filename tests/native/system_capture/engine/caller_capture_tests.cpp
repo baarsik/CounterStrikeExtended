@@ -1,6 +1,7 @@
 #define CSE_CAPTURE_CALLER_TEST 1
 #include "../../native_mouse_window/caller_tests.cpp"
 #include "VGUI_Cursor.h"
+#include "sdl3_native_cocoa_mouse.h"
 
 // The VGUI1 cursor value is a named fixture seam; the complete production owner body is extracted unchanged.
 vgui::Cursor::Cursor(DefaultCursor dc) : _hotspot{}, _bitmap(nullptr), _dc(dc) {}
@@ -38,19 +39,130 @@ class EngineSurfaceWrap {
 };
 #include "wrap_full.inc"
 bool clientActive = true;
-void Refresh() {
+int clientActivations = 0;
+bool fClientLoaded = true;
+struct ClientMouseFunctions {
+    void (*pIN_ActivateMouse)() = []() {
+        clientActive = true;
+        ++clientActivations;
+    };
+    void (*pIN_DeactivateMouse)() = []() {
+        clientActive = false;
+    };
+} cl_funcs;
+#include "mouse_activation_state.inc"
+#include "activate_mouse.inc"
+#include "deactivate_mouse.inc"
+#include "native_mouse_capture.inc"
+void Refresh(bool gameplayContext = true) {
     scene.ticks += UINT64_C(10000000);
-    const cse::NativeMouseCaptureHooks hooks{[]() {}, [](bool active) {
-        clientActive = active;
+    const cse::NativeMouseCaptureHooks hooks{[]() {}, [](bool enabled) {
+        ClientDLL_SetNativeMouseCapture(enabled);
     }};
-    active->RefreshInteraction(true, true, hooks);
+    active->RefreshInteraction(true, gameplayContext, hooks);
 }
+struct ActivationCursorOwner {
+    explicit ActivationCursorOwner(bool useLegacy) : legacy(useLegacy) {
+        s_bCursorVisible = true;
+        s_bUsedRawInputLast = false;
+        s_bUsedNativeCaptureLast = false;
+    }
+    void SetVisible(bool visible) {
+        if (legacy) {
+            wrap.setCursor(visible ? &arrow : &hidden);
+        } else {
+            surface.SetCursor(visible ? vgui2::dc_arrow : vgui2::dc_none);
+        }
+    }
+    bool legacy;
+    BaseUISurface surface;
+    EngineSurfaceWrap wrap;
+    vgui::Cursor arrow{vgui::Cursor::dc_arrow};
+    vgui::Cursor hidden{vgui::Cursor::dc_none};
+};
 void Fresh() {
     scene.relativeX = 13.25f;
     scene.relativeY = -6.75f;
 }
 }
 int main() {
+    // The original engine activation request survives native fencing, even when
+    // interaction returns while a menu is visible and its cursor later hides.
+    for (bool legacy : {false, true}) {
+        for (bool raw : {false, true}) {
+            for (bool requestAgain : {false, true}) {
+                Setup();
+                ClientDLL_DeactivateMouse();
+                ActivationCursorOwner owner(legacy);
+                m_rawinput.value = raw ? 1.0f : 0.0f;
+                owner.SetVisible(true);
+                ClientDLL_ActivateMouse();
+                CHECK(clientActive);
+                scene.interactionResult = CseSdlCocoaMouseRejected;
+                Refresh(false);
+                CHECK(!clientActive && !scene.publicRelative);
+                // A fresh activation request during foreign interaction must also
+                // remain pending, without activating while capture is fenced.
+                if (requestAgain) {
+                    ClientDLL_ActivateMouse();
+                }
+                CHECK(!clientActive);
+                scene.interactionResult = CseSdlCocoaMouseReady;
+                Refresh(false);
+                owner.SetVisible(false);
+                Refresh();
+                CHECK(scene.publicRelative && clientActive);
+                const int activations = clientActivations;
+                Refresh();
+                Refresh();
+                CHECK(clientActivations == activations);
+            }
+        }
+    }
+    // A blocked request before the first current ownership query is also retained.
+    // Neither no request nor an explicit cancellation may start the client later.
+    for (bool legacy : {false, true}) {
+        for (bool requested : {false, true}) {
+            for (bool cancel : {false, true}) {
+                Setup();
+                ClientDLL_DeactivateMouse();
+                ActivationCursorOwner owner(legacy);
+                m_rawinput.value = 0.0f;
+                owner.SetVisible(true);
+                active->InvalidateInteraction();
+                if (requested) {
+                    ClientDLL_ActivateMouse();
+                }
+                CHECK(!clientActive);
+                if (cancel) {
+                    ClientDLL_DeactivateMouse();
+                }
+                Refresh(false);
+                CHECK(!clientActive);
+                owner.SetVisible(false);
+                Refresh();
+                CHECK(scene.publicRelative);
+                CHECK(clientActive == (requested && !cancel));
+            }
+        }
+    }
+    // Explicit deactivation during a native suspension overrides the older active
+    // request, even after the original UI owner reacquires gameplay capture.
+    for (bool legacy : {false, true}) {
+        Setup();
+        ClientDLL_DeactivateMouse();
+        ActivationCursorOwner owner(legacy);
+        owner.SetVisible(false);
+        ClientDLL_ActivateMouse();
+        CHECK(clientActive);
+        scene.focused = false;
+        Refresh();
+        CHECK(!clientActive);
+        ClientDLL_DeactivateMouse();
+        scene.focused = true;
+        Refresh();
+        CHECK(scene.publicRelative && !clientActive);
+    }
     for (auto caller : {BaseCaller, WrapCaller}) {
         for (bool raw : {false, true}) {
             for (bool grab : {false, true}) {

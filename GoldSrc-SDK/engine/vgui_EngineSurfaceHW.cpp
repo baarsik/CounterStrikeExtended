@@ -806,8 +806,20 @@ void EngineSurface::resetViewPort()
 namespace cse_vgui1_native {
 bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
     const auto getError = reinterpret_cast<decltype(&glGetError)>(SDL_GL_GetProcAddress("glGetError"));
-    if (!surface || id <= 0 || !pixels || bytes != AtlasPageBytes || !getError
-        || getError() != GL_NO_ERROR) {
+    if (!surface || id <= 0 || !pixels || bytes != AtlasPageBytes || !getError) {
+        return false;
+    }
+    // GL errors belong to the shared context. Drain earlier rendering errors so
+    // only this upload's errors determine its result. Bound a broken error source.
+    constexpr int MaximumPendingErrorQueries = 16;
+    bool errorsCleared = false;
+    for (int query = 0; query < MaximumPendingErrorQueries; ++query) {
+        if (getError() == GL_NO_ERROR) {
+            errorsCleared = true;
+            break;
+        }
+    }
+    if (!errorsCleared) {
         return false;
     }
     return UploadOwnedInterface(surface, id, pixels, AtlasSide) && getError() == GL_NO_ERROR;
