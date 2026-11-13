@@ -8,6 +8,6 @@ subprocess.run(['c++','-std=c++17','-Wall','-Wextra','-Werror','-Wno-self-assign
                 '-fsanitize=address,undefined','-I',str(root/'src/public'),
                 str(root/'tests/native/live_localization_cs/snapshot_tests.cpp'),'-o',str(out/'snapshot')],check=True)
 subprocess.run([str(out/'snapshot')],check=True)
-for suite in ['owner_tests.py','text_tests.py','hud_tests.py','center_tests.py','chat_tests.py','menu_tree_tests.py']:
+for suite in ['owner_tests.py','text_tests.py','hud_tests.py','center_tests.py','chat_tests.py','menu_tree_tests.py','viewport_tests.py','spectator_tests.py']:
     subprocess.run(['python3',str(root/'tests/native/live_localization_cs'/suite)],check=True)
-print('CS live-localization: snapshot and six production-owner suites passed (ASan/UBSan).')
+print('CS live-localization: snapshot and eight production-owner suites passed (ASan/UBSan).')

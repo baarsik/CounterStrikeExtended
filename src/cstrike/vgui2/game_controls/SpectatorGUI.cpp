@@ -26,6 +26,8 @@
 #include <stdio.h> // _snprintf define
 #include <string.h>
 #include <climits>
+#include <map>
+#include <string>
 #include <wchar.h>
 #if defined(_WIN32)
 #include <malloc.h>
@@ -37,6 +39,79 @@ extern IGameUIFuncs* gameuifuncs; // for key binding details
 extern float* GetClientColor( int clientIndex );
 extern const char* GetSpectatorLabel( int mode );
 extern void DuckMessage( const char* text );
+
+// Owned spectator presentation inputs are captured only by normal gameplay updates.
+// Language replay must remain safe after disconnect, without querying client entities.
+namespace {
+struct SpectatorPlayerText {
+    std::wstring name;
+    std::wstring detail;
+    std::string detailToken;
+    std::wstring fallback;
+    bool withDetail = false;
+    bool formatted = false;
+};
+
+struct SpectatorPresentation {
+    bool hasUpdate = false;
+    bool captureTarget = false;
+    bool extraOverridden = false;
+    bool spectateOnly = false;
+    int spectatorCount = 0;
+    std::string mapName;
+    std::string modeToken;
+    SpectatorPlayerText target;
+    std::map<int, SpectatorPlayerText> rows;
+};
+
+std::map<const CSpectatorGUI*, SpectatorPresentation>& SpectatorPresentations() {
+    static std::map<const CSpectatorGUI*, SpectatorPresentation> presentations;
+    return presentations;
+}
+
+std::wstring FormatSpectatorPlayer(const SpectatorPlayerText& source) {
+    if (!source.formatted) {
+        return source.fallback;
+    }
+    wchar_t* format = localize()->Find(source.withDetail ? "#Spec_PlayerItem_Team" : "#Spec_PlayerItem");
+    if (!format) {
+        return source.fallback;
+    }
+    constexpr int PlayerTextCells = 256;
+    wchar_t text[PlayerTextCells]{};
+    const wchar_t* detail = source.detailToken.empty() ? nullptr : localize()->Find(source.detailToken.c_str());
+    if (!detail) {
+        detail = source.detail.c_str();
+    }
+    if (source.withDetail) {
+        localize()->ConstructString(text, sizeof(text), format, 2, source.name.c_str(), detail);
+    } else {
+        localize()->ConstructString(text, sizeof(text), format, 1, source.name.c_str());
+    }
+    return text;
+}
+
+std::wstring FormatSpectatorExtra(const SpectatorPresentation& source) {
+    constexpr int ExtraTextCells = 1024;
+    constexpr int MapNameCells = 64;
+    wchar_t text[ExtraTextCells]{};
+    if (source.spectateOnly) {
+        const std::wstring count = std::to_wstring(source.spectatorCount);
+        wchar_t* format = localize()->Find("#Spectators");
+        if (format) {
+            localize()->ConstructString(text, sizeof(text), format, 1, count.c_str());
+        }
+        return std::wstring(text) + L" " + count;
+    }
+    wchar_t mapName[MapNameCells]{};
+    localize()->ConvertANSIToUnicode(source.mapName.c_str(), mapName, sizeof(mapName));
+    wchar_t* format = localize()->Find("#Spec_Map");
+    if (format) {
+        localize()->ConstructString(text, sizeof(text), format, 1, mapName);
+    }
+    return text;
+}
+} // namespace
 
 class CLeftButton : public Button
 {
@@ -354,6 +429,7 @@ CSpectatorGUI::CSpectatorGUI( Panel* parent ) : Frame( parent, "SpectatorGUI", t
 //-----------------------------------------------------------------------------
 CSpectatorGUI::~CSpectatorGUI()
 {
+    SpectatorPresentations().erase(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -581,8 +657,12 @@ int CSpectatorGUI::GetBottomBarHeight()
 void CSpectatorGUI::SetLabelText( const char* name, const char* text )
 {
 	Label* label = dynamic_cast<Label*>( FindChildByName( name, false ) );
-	if ( label )
-		label->SetText( text );
+    if (label) {
+        label->SetText(text);
+        if (label == m_pExtraInfoLabel) {
+            SpectatorPresentations()[this].extraOverridden = true;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -591,8 +671,12 @@ void CSpectatorGUI::SetLabelText( const char* name, const char* text )
 void CSpectatorGUI::SetLabelText( const char* name, wchar_t* text )
 {
 	Label* label = dynamic_cast<Label*>( FindChildByName( name, false ) );
-	if ( label )
-		label->SetText( text );
+    if (label) {
+        label->SetText(text);
+        if (label == m_pExtraInfoLabel) {
+            SpectatorPresentations()[this].extraOverridden = true;
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -633,6 +717,14 @@ void CSpectatorGUI::GetPlayerLabelText( int player, wchar_t* text, int textLengt
 	{
 		localize()->ConstructString( text, textLength, localize()->Find( "#Spec_PlayerItem" ), 1, playerName );
 	}
+    SpectatorPresentation& presentation = SpectatorPresentations()[this];
+    if (presentation.captureTarget) {
+        presentation.target.name = playerName;
+        presentation.target.withDetail = info.health > 0;
+        presentation.target.detail = std::to_wstring(info.health);
+        presentation.target.fallback = text;
+        presentation.target.formatted = true;
+    }
 }
 
 void CSpectatorGUI::GetPlayerLabelColor( int player, Color& color )
@@ -658,6 +750,8 @@ void CSpectatorGUI::UpdateSpectatorPlayerList()
 	if ( !m_pBottomBar->IsVisible() )
 		return;
 
+    SpectatorPresentation& presentation = SpectatorPresentations()[this];
+    presentation.rows.clear();
 	m_pBottomBar->m_pPlayerList->DeleteAllItems();
 	int itemID = 0;
 	for ( int player = 1; player < gViewPortInterface->GetClientDllInterface()->GetMaxPlayers(); ++player )
@@ -686,17 +780,38 @@ void CSpectatorGUI::UpdateSpectatorPlayerList()
 			localize()->ConstructString( playerText, sizeof( playerText ),
 				localize()->Find( "#Spec_PlayerItem" ), 1, playerName );
 		}
+        SpectatorPlayerText row;
+        row.name = playerName;
+        row.withDetail = info.teamname != nullptr;
+        if (info.teamname) {
+            localize()->ConvertANSIToUnicode(info.teamname, teamText, sizeof(teamText));
+            row.detail = teamText;
+            // Only client-owned team labels are catalogue keys; arbitrary identities remain literal.
+            row.detailToken = info.teamnumber == 1 ? "#TERRORIST" : info.teamnumber == 2 ? "#CT" : "";
+        }
+        row.fallback = playerText;
+        row.formatted = true;
 		KeyValues* data = new KeyValues( "UserData", "player", info.name );
 		if ( m_pBottomBar->m_pPlayerList->IsItemIDValid( itemID ) )
 			m_pBottomBar->m_pPlayerList->UpdateItem( itemID++, playerText, data );
 		else
 			itemID = m_pBottomBar->m_pPlayerList->AddItem( playerText, data ) + 1;
+        presentation.rows[itemID - 1] = row;
 	}
 }
 
 void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly,
 	int spectatorCount, const char* mapName )
 {
+    SpectatorPresentation& presentation = SpectatorPresentations()[this];
+    presentation.hasUpdate = true;
+    presentation.extraOverridden = false;
+    presentation.spectateOnly = spectateOnly;
+    presentation.spectatorCount = spectatorCount;
+    presentation.mapName = mapName ? mapName : "";
+    presentation.modeToken = GetSpectatorLabel(mode);
+    presentation.target = SpectatorPlayerText{};
+    presentation.captureTarget = true;
 	m_pBottomBar->m_pViewOptions->SetText( GetSpectatorLabel( mode ) );
 	if ( !m_bHelpShown && !m_pBottomBar->IsVisible() && mode )
 	{
@@ -708,7 +823,13 @@ void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly
 	m_pBottomBar->m_pPlayerList->SetFgColor( color );
 	m_pPlayerLabel->SetFgColor( color );
 	wchar_t playerText[80];
-	GetPlayerLabelText( player, playerText, 80 );
+	GetPlayerLabelText( player, playerText, sizeof(playerText) );
+    presentation.captureTarget = false;
+    // An overriding formatter may own another presentation; retain that result literally.
+    if (presentation.target.fallback != playerText) {
+        presentation.target.formatted = false;
+    }
+    presentation.target.fallback = playerText;
 	m_pBottomBar->SetPlayerText( playerText );
 	m_pPlayerLabel->SetText( playerText );
 	wchar_t text[1024], wideName[64];
@@ -731,46 +852,43 @@ void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly
 }
 
 void CSpectatorGUI::RefreshLanguage() {
-    const int team = gViewPortInterface->GetClientDllInterface()->TeamNumber();
-    const char* files[2] = {"spectcammenu.txt", "spectatormenu.txt"};
-    CBottomBar::CommandComboBox* boxes[2] = {m_pBottomBar->m_pViewOptions, m_pBottomBar->m_pConfigSettings};
-    for (int index = 0; index < 2; ++index) {
-        Menu* translated = CreateCommandCombo()->CreateCommandMenu(const_cast<char*>(files[index]), team, boxes[index]);
-        RefreshCommandMenuText(boxes[index]->GetMenu(), translated);
-        delete translated;
+    // Generic menu bindings translate existing items without rebuilding commands.
+    // Consume revisions before restoring the headings and authoritative current mode.
+    m_pBottomBar->m_pViewOptions->RefreshLanguageText();
+    m_pBottomBar->m_pConfigSettings->RefreshLanguageText();
+    const wchar_t* settings = localize()->Find("#SPECT_OPTIONS");
+    if (settings) {
+        m_pBottomBar->m_pConfigSettings->TextEntry::SetText(settings);
     }
-    // Update the existing item labels, retaining item IDs, active selection and popup path.
-    ComboBox* players = m_pBottomBar->m_pPlayerList;
-    for (int row = 0; row < players->GetItemCount(); ++row) {
-        const int item = players->GetMenu()->GetMenuID(row);
-        KeyValues* data = players->GetItemUserData(item);
-        if (!data) {
-            continue;
+    const auto found = SpectatorPresentations().find(this);
+    if (found == SpectatorPresentations().end() || !found->second.hasUpdate) {
+        const wchar_t* camera = localize()->Find("#CAM_OPTIONS");
+        if (camera) {
+            m_pBottomBar->m_pViewOptions->TextEntry::SetText(camera);
         }
-        const char* name = data->GetString("player", "");
-        for (int player = 1; player < gViewPortInterface->GetClientDllInterface()->GetMaxPlayers(); ++player) {
-            VGuiLibraryPlayer_t info = gViewPortInterface->GetClientDllInterface()->CallEnghudGetPlayerInfo(player);
-            if (info.name && strcmp(info.name, name) == 0) {
-                wchar_t text[128]{};
-                wchar_t playerName[64]{};
-                wchar_t teamName[64]{};
-                localize()->ConvertANSIToUnicode(info.name, playerName, sizeof(playerName));
-                if (info.teamname && *info.teamname) {
-                    const char* teamToken = info.teamnumber == 1 ? "#TERRORIST"
-                        : info.teamnumber == 2 ? "#CT" : "";
-                    const wchar_t* translatedTeam = localize()->Find(teamToken);
-                    if (!translatedTeam) {
-                        localize()->ConvertANSIToUnicode(info.teamname, teamName, sizeof(teamName));
-                        translatedTeam = teamName;
-                    }
-                    localize()->ConstructString(text, sizeof(text), localize()->Find("#Spec_PlayerItem_Team"),
-                        2, playerName, translatedTeam);
-                } else {
-                    localize()->ConstructString(text, sizeof(text), localize()->Find("#Spec_PlayerItem"), 1, playerName);
-                }
-                players->UpdateItem(item, text, nullptr);
-                break;
-            }
+    }
+    if (found == SpectatorPresentations().end()) {
+        return;
+    }
+    const SpectatorPresentation& presentation = found->second;
+    if (presentation.hasUpdate) {
+        m_pBottomBar->m_pPlayerList->RefreshLanguageText();
+        const wchar_t* mode = localize()->Find(presentation.modeToken.c_str());
+        if (mode) {
+            m_pBottomBar->m_pViewOptions->TextEntry::SetText(mode);
+        }
+        const std::wstring playerText = FormatSpectatorPlayer(presentation.target);
+        m_pBottomBar->m_pPlayerList->TextEntry::SetText(playerText.c_str());
+        m_pPlayerLabel->SetText(playerText.c_str());
+        if (m_pExtraInfoLabel && !presentation.extraOverridden) {
+            const std::wstring extra = FormatSpectatorExtra(presentation);
+            m_pExtraInfoLabel->SetText(extra.c_str());
+        }
+    }
+    for (const auto& row : presentation.rows) {
+        if (m_pBottomBar->m_pPlayerList->IsItemIDValid(row.first)) {
+            const std::wstring text = FormatSpectatorPlayer(row.second);
+            m_pBottomBar->m_pPlayerList->UpdateItem(row.first, text.c_str(), nullptr);
         }
     }
     InvalidateLayout(false, false);

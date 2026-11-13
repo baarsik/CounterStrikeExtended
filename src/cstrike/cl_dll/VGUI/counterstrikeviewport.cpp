@@ -750,8 +750,8 @@ void CounterStrikeViewport::RefreshLanguage() {
         m_pPrivateCSClientScoreBoard->RefreshLanguage();
     }
     if (m_pPrivateSpectatorGUI) {
+        // The normal spectator update mutates settings and requires a live player entity.
         m_pPrivateSpectatorGUI->RefreshLanguage();
-        UpdateSpectatorPanel();
     }
     if (m_pBuyMenu) {
         m_pBuyMenu->RefreshLanguage();
