@@ -428,6 +428,8 @@ static int InitVGUI()
 	vgui2::localize()->AddFile( vgui2::filesystem(), "Resource/platform_%language%.txt" );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "Resource/vgui_%language%.txt" );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "Admin/server_%language%.txt" );
+    vgui2::localize()->AddFile(vgui2::filesystem(), "Admin/admin_%language%.txt");
+    vgui2::localize()->AddFile(vgui2::filesystem(), "Resource/cse_%language%.txt");
 	vgui2::ivgui()->Start();
 	CreateInterfaceFn adminFactory = Sys_GetFactoryThis();
 	g_pAdminServer = (IAdminServer*)adminFactory( ADMINSERVER_INTERFACE_VERSION, NULL );

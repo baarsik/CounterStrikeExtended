@@ -255,22 +255,6 @@
       }
     },
     {
-      "source": "cstrike/maps/de_cbble_detail.txt",
-      "destination": "cstrike/maps/de_cbble_detail.txt",
-      "encoding": "utf-8",
-      "kind": "legacy",
-      "language": "english",
-      "upstream": {
-        "kind": "installed-steam-content",
-        "app": 10,
-        "depot": 11,
-        "manifest": "3018093494972814332",
-        "path": "cstrike/maps/de_cbble_detail.txt",
-        "sha256": "5194642f9352f78933d10ba8e69a75682a8812138c4169be592cbc58da99f9ef",
-        "encoding": "utf-8"
-      }
-    },
-    {
       "source": "cstrike/maps/de_chateau.txt",
       "destination": "cstrike/maps/de_chateau.txt",
       "encoding": "utf-8",

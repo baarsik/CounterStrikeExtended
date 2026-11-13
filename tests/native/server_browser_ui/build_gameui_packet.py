@@ -24,6 +24,9 @@ cache = args.cache.resolve()
 packet = args.packet.resolve()
 packet.mkdir(parents=True, exist_ok=False)
 (packet / 'objects').mkdir()
+subprocess.run(['python3', str(repo / 'tools/build_localization.py'),
+    '--source', str(repo / 'src/deploy/localization'), '--output', str(packet / 'resources'),
+    '--fallback-header', str(packet / 'include/ServerBrowserEnglish.generated.inc')], check=True)
 entries = json.loads((cache / 'compile_commands.json').read_text())
 entries = [entry for entry in entries if '/gameui.dir/' in entry['output']]
 assert entries
@@ -69,7 +72,7 @@ for index, entry in enumerate(entries):
     old = argv[argv.index('-o') + 1]
     output = packet / 'objects' / f'{index:03d}-{Path(entry["file"]).name}.o'
     argv[argv.index('-o') + 1] = str(output)
-    argv += ['-MD', '-MF', str(output.with_suffix('.d'))]
+    argv += ['-MD', '-MF', str(output.with_suffix('.d')), '-I' + str(packet / 'include')]
     object_map[old] = str(output)
     jobs.append((f'compile-{index:03d}', argv))
 owner = next(entry for entry in entries if entry['file'].endswith('/GameUI/GameUI_Interface.cpp'))
@@ -79,7 +82,7 @@ for name in ['ServerBrowserModel', 'ServerBrowserConfig', 'ServerBrowserPresenta
     output = packet / 'objects' / (name + '.o')
     argv[argv.index('-o') + 1] = str(output)
     argv[argv.index('-c') + 1] = str(repo / 'src/GameUI/native' / (name + '.cpp'))
-    argv += ['-MD', '-MF', str(output.with_suffix('.d'))]
+    argv += ['-MD', '-MF', str(output.with_suffix('.d')), '-I' + str(packet / 'include')]
     jobs.append(('compile-' + name, argv))
 with ThreadPoolExecutor(max_workers=2) as pool:
     for result in pool.map(lambda job: run(*job), jobs):

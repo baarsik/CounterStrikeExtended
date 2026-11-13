@@ -63,7 +63,8 @@ paths for native builds:
 
 Windows x86 Debug writes to `output-debug/`; native Debug builds use
 `build/<debug-preset>/runtime/Debug/`. Outputs preserve the `cstrike/` and `valve/`
-directory layout. Game assets are supplied separately. Static/import libraries,
+directory layout. Interface translations are bundled; other game assets are
+supplied separately. Static/import libraries,
 symbols and intermediates stay in the build directory.
 
 ## Documentation

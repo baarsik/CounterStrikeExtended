@@ -19,6 +19,9 @@ args = parser.parse_args()
 repo = args.repo.resolve()
 packet = args.packet.resolve()
 packet.mkdir(exist_ok=False, parents=True)
+subprocess.run(['python3', str(repo / 'tools/build_localization.py'),
+    '--source', str(repo / 'src/deploy/localization'), '--output', str(packet / 'resources'),
+    '--fallback-header', str(packet / 'extracted/ServerBrowserEnglish.generated.inc')], check=True)
 cache = Path('/Users/mmalakhouski/Library/Caches/CounterStrikeExtended/CodexQualification/gameplay-mouse-20261110/final') / args.profile
 cache = args.recipe_cache.resolve() if args.recipe_cache else cache
 entries = json.loads((cache / 'compile_commands.json').read_text())

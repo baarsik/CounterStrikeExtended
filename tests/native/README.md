@@ -6,6 +6,19 @@ coverage limits. The options below cover the simpler projects that have no
 README. These fixtures check individual components; full runtime builds are
 described in the [build reference](../../docs/building.md).
 
+The portable bundled-translation checks live in `tests/localization_resources`:
+
+```sh
+cmake -S tests/localization_resources -B build/localization-resources -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/localization-resources --parallel
+ctest --test-dir build/localization-resources --output-on-failure
+```
+
+On macOS, configure with `-DCSE_LOCALIZATION_RUNTIME_ROOT=/absolute/runtime/root`
+to also exercise the actual VGUI/filesystem loader for every supported language,
+the Korean alias, stock catalogue families and English fallback. This uses the
+existing runtime libraries with dummy SDL providers; it does not launch a game.
+
 For a pure component, from the repository root:
 
 ```sh

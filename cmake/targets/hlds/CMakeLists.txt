@@ -409,6 +409,5 @@ if(APPLE)
     "${CSE_SDK_DIR}/deploy/platform/Admin/ServerConfigPanel.res"
     "${CSE_SDK_DIR}/deploy/platform/Admin/VarEditDialog_ComboBox.res"
     "${CSE_SDK_DIR}/deploy/platform/Admin/VarEditDialog_String.res"
-    "${CSE_SDK_DIR}/deploy/platform/Admin/server_english.txt"
   )
 endif()

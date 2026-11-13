@@ -198,6 +198,7 @@ void CGameUI::Initialize( CreateInterfaceFn* factories, int count )
 	m_FactoryList[4] = clientFactory;
 	vgui2::VGuiControls_Init( "GameUI", m_FactoryList, count );
 	vgui2::localize()->AddFile( vgui2::filesystem(), "resource/gameui_%language%.txt" );
+    vgui2::localize()->AddFile(vgui2::filesystem(), "resource/cse_%language%.txt");
 #if INTPTR_MAX > INT32_MAX
     nativeDemoStopped = false;
     nativeRootDeletionQueued = false;

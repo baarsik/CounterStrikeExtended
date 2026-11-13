@@ -853,6 +853,7 @@ set_property(SOURCE "${CSE_SDK_DIR}/HLTV/DemoPlayer/private/HLTV/common/common.c
 endif()
 target_link_libraries(gameui PRIVATE tier0)
 cse_runtime_directory(gameui "valve/cl_dlls")
+target_include_directories(gameui PRIVATE "${CMAKE_BINARY_DIR}/localization/include")
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   target_link_libraries(gameui PRIVATE ws2_32.lib)
 endif()

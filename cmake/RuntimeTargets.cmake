@@ -2,6 +2,7 @@ include_guard(GLOBAL)
 include("${CMAKE_CURRENT_LIST_DIR}/MainImagePublication.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/BinaryArchitecture.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/NativeRuntimeDependencies.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/Localization.cmake")
 
 option(CSE_RELEASE_DIAGNOSTICS "Generate Release debug symbols and linker maps" OFF)
 option(CSE_STAGE_DISTRIBUTION_MATERIALS "Stage dependency license/source materials for distribution" OFF)
@@ -45,6 +46,9 @@ function(cse_add_runtime target kind output)
 endfunction()
 
 function(cse_runtime_directory target relative)
+  if(target MATCHES "^(hw_engine|swds|hlds|gameui|cs_client|hl_client)$")
+    cse_localization_assets(${target})
+  endif()
   set_target_properties(${target} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>"
     LIBRARY_OUTPUT_DIRECTORY "${CSE_OUTPUT_DIRECTORY}/${relative}$<0:>")

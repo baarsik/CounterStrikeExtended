@@ -220,6 +220,8 @@ bool NativeGui::Open(DedicatedModuleSet& modules, std::string& error, std::uint6
     vgui2::localize()->AddFile(modules.Filesystem(), "Resource/platform_%language%.txt");
     vgui2::localize()->AddFile(modules.Filesystem(), "Resource/vgui_%language%.txt");
     vgui2::localize()->AddFile(modules.Filesystem(), "Admin/server_%language%.txt");
+    vgui2::localize()->AddFile(modules.Filesystem(), "Admin/admin_%language%.txt");
+    vgui2::localize()->AddFile(modules.Filesystem(), "Resource/cse_%language%.txt");
     vgui2::ivgui()->SetSleep(false);
     vgui2::ivgui()->Start();
     panel_->Initialize(factories, 4);

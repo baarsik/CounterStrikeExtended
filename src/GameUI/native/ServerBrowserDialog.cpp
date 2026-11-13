@@ -154,20 +154,7 @@ void AddFallback(const char *token, const wchar_t *text) {
     }
 }
 void RegisterFallbacks() {
-    AddFallback("CSEServerBrowser_CurrentGame", L"Connect is available for the current game only.");
-    AddFallback("CSEServerBrowser_Updating", L"Updating list...");
-    AddFallback("CSEServerBrowser_Sorting", L"Sorting...");
-    AddFallback("CSEServerBrowser_Unsaved", L"Could not save settings.");
-    AddFallback("CSEServerBrowser_Unavailable", L"Steam server browsing is unavailable.");
-    AddFallback("CSEServerBrowser_PasswordInvalid", L"Enter a valid server password.");
-    AddFallback("CSEServerBrowser_Name", L"Server name");
-    AddFallback("CSEServerBrowser_Secure", L"Secure");
-    AddFallback("CSEServerBrowser_Yes", L"Yes");
-    AddFallback("CSEServerBrowser_No", L"No");
-    AddFallback("CSEServerBrowser_Apply", L"Apply filters");
-    AddFallback("CSEServerBrowser_Rules", L"Rules");
-    AddFallback("CSEServerBrowser_Value", L"Value");
-    AddFallback("CSEServerBrowser_DetailsFailed", L"Some server details could not be retrieved.");
+#include "ServerBrowserEnglish.generated.inc"
 }
 }
 

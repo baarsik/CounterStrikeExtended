@@ -55,7 +55,22 @@ previously enabled options.
 The default build includes [all 19 production targets](project-scope.md#default-runtime)
 and their dependencies. `cse_runtime` explicitly selects the complete runtime;
 `cse_client` selects the 14 client and listen-server targets plus their dependencies.
-Game assets are supplied separately. Builds do not launch games or run tests.
+Stock and CSE interface translations are bundled. Other game assets are supplied
+separately. Builds do not launch games or run tests.
+
+## Interface translations
+
+Runtime builds bundle English, French, German, Italian, Spanish (Spain), Simplified
+Chinese, Traditional Chinese and Korean text. The shared resource target covers
+Windows x86/x64 and macOS ARM64 in Release and Debug, including custom runtime
+roots. It restores missing resource files on subsequent builds without relinking
+consumers and leaves unchanged files untouched.
+
+Maintained UTF-8 catalogues live under `src/deploy/localization/`; CMake generates
+the runtime encodings and the browser's emergency English fallback include in the
+build tree. Stock translation gaps retain English fallback. See the
+[catalogue maintenance and provenance notes](../src/deploy/localization/README.md)
+for the language manifest, source hashes and update procedure.
 
 ## Hardware engine only
 
