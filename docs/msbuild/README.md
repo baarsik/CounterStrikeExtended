@@ -62,11 +62,10 @@ intermediate directory and stage its runtime, notices and source archive.
 
 ## Retained platform recipes
 
-The Linux/macOS client Makefiles require native `pkg-config sdl3` and an explicit
-`VGUI_LIBRARY=/absolute/path/to/rebuilt/library`. Their Carbon/i386 paths do not
-establish a supported native port. The retained platform audio stream preserves
-the 64 KiB engine DMA ring. See the [native migration requirements](../native-migration.md)
-for platform and provider limitations.
+The inherited Linux/macOS client Makefiles require native `pkg-config sdl3` and
+an explicit `VGUI_LIBRARY=/absolute/path/to/rebuilt/library`. Their Carbon/i386
+paths are historical. Use the [CMake build instructions](../building.md) for
+supported platforms and provider requirements.
 
 ## Archived originals
 

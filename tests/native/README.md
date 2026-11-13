@@ -2,10 +2,9 @@
 
 Subdirectories are independent CMake projects. Where present, their README
 describes production bodies, controlled dependencies, covered inputs and
-remaining integration work. The options below cover the simpler projects that
-have no README. These fixtures do not collectively certify a
-playable target; see [migration status](../../docs/native-migration.md) and
-[validation](../../docs/validation.md).
+coverage limits. The options below cover the simpler projects that have no
+README. These fixtures check individual components; full runtime builds are
+described in the [build reference](../../docs/building.md).
 
 For a pure component, from the repository root:
 

@@ -188,8 +188,7 @@ Use the [music checks](#music-migration-closure) for the current music backend.
 
 ## Paired fixed-demo VM benchmark
 
-This tool reproduces historical SDL2/SDL3 paired comparisons; their pinned
-snapshots are listed in [validation](../../docs/validation.md#earlier-win32-reference).
+This tool runs fixed-demo comparisons between separately staged SDL2/SDL3 builds.
 It requires matching non-SDL providers, so it cannot compare the current mpg123
 runtime against a Miles baseline without changing the provider comparison.
 
@@ -278,9 +277,8 @@ python tools/qualification/audit_mpg123.py C:\qualification\music-fixture --outp
 ```
 
 This checks SDL3/formal import closure, rejects Miles modules/imports and requires
-both engines to import the staged mpg123 provider. See [build instructions](../../docs/building.md#source-built-mp3-decoder)
-for decoder/player/worker tests and [validation](../../docs/validation.md)
-for measured results and coverage limits.
+both engines to import the staged mpg123 provider. See [build instructions](../../docs/building.md#component-builds-and-tests)
+for decoder/player/worker tests.
 
 `invoke_music_probe.ps1` runs a one-second upstream sweep loop, pause/resume,
 quarter volume, fade, an existing Half-Life music file, file replacement and stop.
