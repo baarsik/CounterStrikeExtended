@@ -1,4 +1,5 @@
 #include "VGui1NativeAtlas.h"
+#include "VGUI_Font.h"
 #include "../utils/vgui/lib-src/vgui/posix/VGui1FontPlatform.h"
 #include <cstdio>
 #include <cstdlib>
@@ -46,7 +47,7 @@ Atlas::Atlas(Runtime& runtime, const RendererV1& renderer) noexcept : runtime_(r
 }
 
 Atlas::~Atlas() noexcept {
-    if (entry_ || pending_) {
+    if (!entries_.empty() || pending_) {
         std::fputs("VGUI1 native atlas destroyed before successful explicit retirement\n", stderr);
         std::abort();
     }
@@ -54,7 +55,8 @@ Atlas::~Atlas() noexcept {
 
 AtlasDiagnostics Atlas::Inspect() const noexcept {
     return entry_ ? AtlasDiagnostics{entry_->key, entry_->pages, entry_->admitted, entry_->valid,
-        static_cast<bool>(pending_)} : AtlasDiagnostics{{}, 0, 0, false, static_cast<bool>(pending_)};
+        static_cast<bool>(pending_) || retirementPending_} : AtlasDiagnostics{{}, 0, 0, false,
+        static_cast<bool>(pending_) || retirementPending_};
 }
 
 Result Atlas::ReleaseTextures(Entry& entry) noexcept {
@@ -96,9 +98,22 @@ Result Atlas::Retire() noexcept {
         return Result::Busy;
     }
     Active active(active_);
-    const auto pending = ReleaseEntry(pending_);
-    const auto entry = ReleaseEntry(entry_);
-    return pending != Result::Ready ? pending : entry;
+    Result result = ReleaseEntry(pending_);
+    for (auto iterator = entries_.begin(); iterator != entries_.end();) {
+        const bool selected = iterator->get() == entry_;
+        const auto released = ReleaseEntry(*iterator);
+        if (released == Result::Ready) {
+            if (selected) {
+                entry_ = nullptr;
+            }
+            iterator = entries_.erase(iterator);
+        } else {
+            result = released;
+            ++iterator;
+        }
+    }
+    retirementPending_ = result != Result::Ready;
+    return result;
 }
 
 Result Atlas::Invalidate() noexcept {
@@ -109,9 +124,14 @@ Result Atlas::Invalidate() noexcept {
         return Result::Busy;
     }
     Active active(active_);
-    const auto pending = pending_ ? ReleaseTextures(*pending_) : Result::Ready;
-    const auto entry = entry_ ? ReleaseTextures(*entry_) : Result::Ready;
-    return pending != Result::Ready ? pending : entry;
+    Result result = pending_ ? ReleaseTextures(*pending_) : Result::Ready;
+    for (auto& entry : entries_) {
+        const auto released = ReleaseTextures(*entry);
+        if (released != Result::Ready) {
+            result = released;
+        }
+    }
+    return result;
 }
 
 Result Atlas::Use(Entry& entry, selection::PreparedFont& prepared) noexcept {
@@ -241,29 +261,37 @@ Result Atlas::Select(vgui::Font* font) noexcept {
         return Result::InvalidArgument;
     }
     Active active(active_);
-    if (pending_) {
+    if (pending_ || retirementPending_) {
         return Result::ReleaseFailed;
     }
-    pending_.reset(new Entry);
-    const auto captured = pending_->selection.Capture(font, runtime_.Owner());
-    if (captured != selection::Result::Captured) {
-        const auto released = ReleaseEntry(pending_);
-        return released == Result::Ready ? Translate(captured) : released;
+    // Runtime owns the genuine baseline images throughout this scope. getPlat
+    // is a nonvirtual facade accessor; a cache hit needs no candidate Selection,
+    // allocation or loader reference. Use still prepares the held platform.
+    Scope scope(runtime_);
+    if (scope.Status() != Result::Ready) {
+        return scope.Status();
     }
-    const bool same = entry_ && entry_->selection.Inspect().platform == pending_->selection.Inspect().platform
-        && entry_->key.moduleEpoch == runtime_.ModuleEpoch();
-    if (same) {
-        const auto released = ReleaseEntry(pending_);
-        if (released != Result::Ready) {
-            return released;
+    const auto* platform = font->getPlat();
+    Entry* found = nullptr;
+    for (const auto& entry : entries_) {
+        if (entry->key.moduleEpoch == runtime_.ModuleEpoch()
+            && entry->selection.Inspect().platform == platform) {
+            found = entry.get();
+            break;
         }
-    } else {
-        const auto released = ReleaseEntry(entry_);
-        if (released != Result::Ready) {
-            return released;
-        }
-        entry_ = std::move(pending_);
     }
+    if (!found) {
+        pending_.reset(new Entry);
+        const auto captured = pending_->selection.Capture(font, runtime_.Owner());
+        if (captured != selection::Result::Captured) {
+            const auto released = ReleaseEntry(pending_);
+            return released == Result::Ready ? Translate(captured) : released;
+        }
+        pending_->key.moduleEpoch = runtime_.ModuleEpoch();
+        found = pending_.get();
+        entries_.push_back(std::move(pending_));
+    }
+    entry_ = found;
     selection::PreparedFont prepared{};
     const auto used = Use(*entry_, prepared);
     if (used == Result::Ready) {
@@ -282,7 +310,7 @@ Result Atlas::Draw(const char* text, int length) noexcept {
     if (!rendererValid_) {
         return Result::InvalidArgument;
     }
-    if (pending_) {
+    if (pending_ || retirementPending_) {
         return Result::ReleaseFailed;
     }
     if (!text || !entry_) {

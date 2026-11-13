@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
+#include <vector>
 
 namespace vgui {
     class Font;
@@ -55,9 +56,9 @@ struct AtlasDiagnostics {
     bool retirementPending;
 };
 
-// One active atlas per embedded surface. A second entry exists only while
-// checked replacement/rollback retires; no unbounded Font-history cache. Font*
-// is borrowed only by Capture; platform keys live ONLY with a held Selection.
+// Retain each actual platform atlas until explicit surface retirement, as the
+// legacy surface did. Every key owns a Selection with root/provider image leases.
+// Font facades are borrowed only during Select and are never retained.
 class Atlas {
 public:
     Atlas(Runtime&, const RendererV1&) noexcept;
@@ -96,8 +97,10 @@ private:
     Result ReleaseEntry(std::unique_ptr<Entry>&) noexcept;
     Runtime& runtime_;
     RendererV1 renderer_;
-    std::unique_ptr<Entry> entry_;
+    std::vector<std::unique_ptr<Entry>> entries_;
+    Entry* entry_ = nullptr;
     std::unique_ptr<Entry> pending_;
+    bool retirementPending_ = false;
     bool active_ = false;
     bool rendererValid_ = false;
 };

@@ -12,6 +12,8 @@ extern "C" bool FixtureProviderPlatformFacts(std::uint64_t*, std::uint32_t);
 extern "C" bool FixtureConsumerPlatformFacts(std::uint64_t*, std::uint32_t);
 extern "C" void FixtureFailFontRelease(int);
 extern "C" void FixtureSetRasterCallback(void (*)());
+extern "C" std::uint64_t FixtureRasterCalls();
+extern "C" std::size_t FixtureAllocationCalls();
 namespace {
 namespace native = cse_vgui1_native;
 native::Runtime runtime;
@@ -32,6 +34,7 @@ struct Renderer {
     int uploads = 0;
     int failure = 0;
     bool retireFailure = false;
+    int failedRetireId = 0;
     bool loseOnUpload = false;
     int liveRetires = 0;
     int lostRetires = 0;
@@ -40,6 +43,8 @@ struct Renderer {
     std::map<int, std::vector<unsigned char>> images;
     std::vector<native::Quad> draws;
 };
+std::unique_ptr<Renderer> heldAtlasRenderer;
+std::unique_ptr<native::Atlas> heldAtlas;
 std::uint64_t Generation(void* value) noexcept {
     return static_cast<Renderer*>(value)->epoch;
 }
@@ -70,7 +75,7 @@ bool Upload(void* value, int id, const unsigned char* data, std::size_t bytes) n
 bool Retire(void* value, int id, std::uint64_t epoch, bool live) noexcept {
     auto& renderer = *static_cast<Renderer*>(value);
     Check(live == Live(value, epoch), "live/lost epoch classified exactly");
-    if (renderer.retireFailure) {
+    if (renderer.retireFailure || renderer.failedRetireId == id) {
         return false;
     }
     Check(renderer.images.erase(id) == 1, "retire only owned texture once");
@@ -151,6 +156,105 @@ extern "C" int FixtureOpenV2(std::uint64_t epoch, const char* root, const char* 
     Check(runtime.Open(native::BindingV2{epoch, root, provider, *host}) == native::Result::Ready,
         "actual root/provider images plus main-image V2 release ownership");
     Bind();
+    return 0;
+}
+
+// Losing platform entries on font switches must fail this real Runtime/Atlas
+// workload: three scoreboard fonts, then repeated interleaved rows and frames.
+extern "C" int FixtureScoreboardSuite() {
+    Renderer renderer;
+    native::Atlas atlas(runtime, Ops(renderer));
+    auto* scoreboard = Font("Scoreboard", 20);
+    auto* header = Font("ScoreboardHeader", 24);
+    auto* small = Font("ScoreboardSmall", 16);
+    const std::array<vgui::Font*, 3> fonts{{scoreboard, header, small}};
+    const std::array<int, 3> heights{{20, 24, 16}};
+    const auto rasters = FixtureRasterCalls();
+    for (auto* font : fonts) {
+        Check(atlas.Select(font) == native::Result::Ready, "scoreboard warms each actual platform");
+    }
+    Check(FixtureRasterCalls() - rasters == 768 && renderer.creates == 3 && renderer.uploads == 3,
+        "three fonts each raster256 bytes and upload one complete page during warmup");
+    Check(renderer.liveRetires == 0 && renderer.images.size() == 3 && runtime.Pins() == 3,
+        "font switches retain all three leased platform atlases without retiring pages");
+    // Keep the authored renderer's recorded quads outside the measured allocation path.
+    constexpr int Frames = 3;
+    constexpr int Rows = 8;
+    constexpr int GlyphsPerCell = 3;
+    renderer.draws.reserve(Frames * Rows * fonts.size() * GlyphsPerCell);
+    const auto allocations = FixtureAllocationCalls();
+    const auto warmRasters = FixtureRasterCalls();
+    const auto warmCreates = renderer.creates;
+    const auto warmUploads = renderer.uploads;
+    for (int frame = 0; frame < Frames; ++frame) {
+        for (int row = 0; row < Rows; ++row) {
+            for (std::size_t index = 0; index < fonts.size(); ++index) {
+                renderer.x = 13;
+                Check(atlas.Select(fonts[index]) == native::Result::Ready
+                    && atlas.Draw("WiA", 3) == native::Result::Ready && renderer.x == 31,
+                    "warm scoreboard selection and draw preserve ABC endpen");
+                const auto first = renderer.draws.size() - 3;
+                Check(renderer.draws[first].x == 14 && renderer.draws[first].wide == 9
+                    && renderer.draws[first].tall == heights[index]
+                    && renderer.draws[first + 1].x == 24 && renderer.draws[first + 1].wide == 2
+                    && renderer.draws[first + 2].x == 27 && renderer.draws[first + 2].wide == 4,
+                    "interleaved scoreboard fonts preserve literal glyph rectangles");
+            }
+        }
+    }
+    Check(FixtureAllocationCalls() == allocations,
+        "warm scoreboard selections and draws allocate no candidates, leases or atlas pixels");
+    Check(FixtureRasterCalls() - rasters == 768 && renderer.creates == 3 && renderer.uploads == 3
+        && renderer.liveRetires == 0 && renderer.lostRetires == 0 && renderer.images.size() == 3,
+        "steady scoreboard frames perform zero raster, create, upload or retirement work");
+    std::printf("PASS scoreboard work: warmup rasters=%llu creates=%d uploads=%d; "
+        "steady cells=%zu glyphs=%zu rasters=%llu creates=%d uploads=%d retires=%d allocations=%zu\n",
+        static_cast<unsigned long long>(warmRasters - rasters), warmCreates, warmUploads,
+        Frames * Rows * fonts.size(), renderer.draws.size(),
+        static_cast<unsigned long long>(FixtureRasterCalls() - warmRasters), renderer.creates - warmCreates,
+        renderer.uploads - warmUploads, renderer.liveRetires + renderer.lostRetires,
+        FixtureAllocationCalls() - allocations);
+    const auto oldCatalog = atlas.Inspect().key.catalog;
+    const char* additiveFiles[]{"/authored/native-atlas/scoreboard-additive"};
+    Check(runtime.BindFiles(additiveFiles, 1, nullptr, 0) == native::Result::Ready,
+        "actual catalog advances while all three platform leases remain cached");
+    for (auto* font : fonts) {
+        Check(atlas.Select(font) == native::Result::Ready && atlas.Inspect().key.catalog != oldCatalog,
+            "each cached platform prepares and rebuilds after catalog advancement");
+    }
+    Check(FixtureRasterCalls() - rasters == 1536 && renderer.uploads == 6 && renderer.liveRetires == 3,
+        "catalog change rebuilds exactly one page per cached platform");
+    renderer.retireFailure = true;
+    Check(atlas.Invalidate() == native::Result::ReleaseFailed && renderer.images.size() == 3,
+        "failed invalidation retains all three cached texture owners");
+    renderer.retireFailure = false;
+    renderer.live = false;
+    Check(atlas.Invalidate() == native::Result::Ready && renderer.images.empty() && renderer.lostRetires == 3,
+        "invalidation retry retires every cached page without touching a lost device");
+    ++renderer.epoch;
+    renderer.live = true;
+    for (auto* font : fonts) {
+        Check(atlas.Select(font) == native::Result::Ready && atlas.Inspect().key.renderer == renderer.epoch,
+            "each invalidated platform rebuilds in the next live renderer epoch");
+        Delete(font);
+    }
+    Check(FixtureRasterCalls() - rasters == 2304 && renderer.uploads == 9 && renderer.images.size() == 3,
+        "renderer change rebuilds every cached platform exactly once");
+    renderer.retireFailure = true;
+    Check(atlas.Retire() == native::Result::ReleaseFailed && runtime.Pins() == 3
+        && renderer.images.size() == 3 && atlas.Inspect().retirementPending
+        && atlas.Draw("A", 1) == native::Result::ReleaseFailed,
+        "failed full retirement retains all three leases and blocks further drawing");
+    renderer.retireFailure = false;
+    renderer.failedRetireId = renderer.images.begin()->first;
+    Check(atlas.Retire() == native::Result::ReleaseFailed && renderer.images.size() == 1
+        && runtime.Pins() == 1 && atlas.Inspect().retirementPending && !atlas.Inspect().valid,
+        "partial retirement releases successful cached entries and retains only the failed owner");
+    renderer.failedRetireId = 0;
+    Check(atlas.Retire() == native::Result::Ready && renderer.images.empty()
+        && renderer.liveRetires == 6 && runtime.Pins() == 0 && runtime.Uses() == 0,
+        "all three cached platforms explicitly retire after borrowed facades are deleted");
+    std::puts("PASS scoreboard three-font warm768 rasters/3uploads; 72 warm selections/draws no allocation or rebuild");
     return 0;
 }
 
@@ -240,9 +344,10 @@ extern "C" int FixtureSuite() {
     Check(atlas.Draw("A", 1) == native::Result::ReleaseFailed && !atlas.Inspect().valid,
         "release failure authoritative with no stale cached draw");
     Check(atlas.Inspect().key.catalog == catalog, "release failure does not fabricate catalog advancement");
-    Check(runtime.Pins() == 1 && runtime.Close() == native::Result::ReleaseFailed, "retain real image leases/context");
-    Check(atlas.Retire() == native::Result::ReleaseFailed && runtime.Pins() == 1,
-        "failed unpin retains complete lease");
+    Check(runtime.Pins() == 2 && runtime.Close() == native::Result::ReleaseFailed,
+        "retain both cached platform image leases/context");
+    Check(atlas.Retire() == native::Result::ReleaseFailed && runtime.Pins() == 2,
+        "failed unpin retains both complete cached platform leases");
     Check(runtime.ReleaseFiles(nullptr, 0) == native::Result::Ready, "explicit successful file release retry");
     Check(atlas.Retire() == native::Result::Ready && runtime.Pins() == 0, "explicit failed unpin retry");
     Bind();
@@ -331,6 +436,42 @@ extern "C" int FixtureSuite() {
     Check(runtime.Pins() == 0 && runtime.Uses() == 0, "every real owned selection lease retired");
     Check(runtime.ReleaseFiles(nullptr, 0) == native::Result::Ready, "normal final file release");
     std::puts("PASS actual owner/Selection/Root + controlled renderer all256, 8/9pages, rollback/lifetime");
+    return 0;
+}
+extern "C" int FixtureHoldAtlas() {
+    Check(!heldAtlas && !heldAtlasRenderer, "one held atlas control");
+    Bind();
+    heldAtlasRenderer.reset(new Renderer);
+    heldAtlas.reset(new native::Atlas(runtime, Ops(*heldAtlasRenderer)));
+    auto* first = Font("PendingCaptureFirst");
+    auto* second = Font("PendingCaptureSecond");
+    Check(heldAtlas->Select(first) == native::Result::Ready
+        && heldAtlas->Select(second) == native::Result::Ready && runtime.Pins() == 2,
+        "two actual platform leases precede capture rollback failure");
+    Delete(first);
+    Delete(second);
+    return 0;
+}
+extern "C" int FixtureRejectAtlasCapture() {
+    unsigned char invalidBitmap = 0;
+    auto* invalid = new vgui::Font("InvalidBitmap", &invalidBitmap, 1, 20, 0, 0.0f, 400,
+        false, false, false, false);
+    Check(invalid->getPlat() == nullptr, "actual malformed bitmap owner yields no platform");
+    Check(heldAtlas->Select(invalid) == native::Result::ReleaseFailed && runtime.Pins() == 3
+        && heldAtlas->Inspect().retirementPending && heldAtlas->Draw("A", 1) == native::Result::ReleaseFailed,
+        "failed capture rollback retains pending candidate plus both cached platform leases");
+    Delete(invalid);
+    Check(heldAtlas->Retire() == native::Result::ReleaseFailed && runtime.Pins() == 3
+        && heldAtlasRenderer->images.empty(),
+        "failed host queue releases all cached pixels but retains every pending code lease");
+    return 0;
+}
+extern "C" int FixtureRetryAtlasRetire() {
+    Check(heldAtlas->Retire() == native::Result::Ready && runtime.Pins() == 0 && runtime.Uses() == 0,
+        "accepted host queue retires pending candidate and all cached entries exactly once");
+    heldAtlas.reset();
+    heldAtlasRenderer.reset();
+    Check(runtime.ReleaseFiles(nullptr, 0) == native::Result::Ready, "atlas rollback control normal file release");
     return 0;
 }
 extern "C" int FixtureHoldSelection() {

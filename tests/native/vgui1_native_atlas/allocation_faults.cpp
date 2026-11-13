@@ -5,7 +5,9 @@
 
 namespace {
 std::atomic<bool> failNext{false};
+std::atomic<std::size_t> allocationCalls{0};
 void* Allocate(std::size_t bytes) {
+    allocationCalls.fetch_add(1, std::memory_order_relaxed);
     if (failNext.exchange(false)) {
         std::fputs("CONTROLLED standard allocation throws std::bad_alloc\n", stderr);
         throw std::bad_alloc();
@@ -24,3 +26,7 @@ void operator delete[](void* memory) noexcept { std::free(memory); }
 void operator delete(void* memory, std::size_t) noexcept { std::free(memory); }
 void operator delete[](void* memory, std::size_t) noexcept { std::free(memory); }
 extern "C" void FixtureFailNextAllocation() { failNext = true; }
+
+extern "C" std::size_t FixtureAllocationCalls() {
+    return allocationCalls.load(std::memory_order_relaxed);
+}

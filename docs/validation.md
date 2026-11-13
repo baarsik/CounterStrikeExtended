@@ -6,6 +6,15 @@ x86/x64 emulation. Mac runs use Apple Silicon and a macOS 14 deployment target,
 not macOS 14 hardware acceptance. [Requirements and open gates](native-migration.md)
 and [reproduction](../tests/native/README.md) remain separate from build results.
 
+The November 13 Half-Life scoreboard follow-up restores retained native font
+atlases across font switches. After three-font warmup (768 glyph rasters and
+three page uploads), 72 component selections/draws perform zero rasterizations,
+texture creations/uploads/retirements or allocations. Cache hits also acquire
+no extra module references. Per-use preparation, catalog/renderer rebuilding,
+partial retirement and failed-release retry remain covered. Atlas suites pass
+Release 10/10, Debug 10/10 and ASan/UBSan 9/9; full ARM64 runtime builds pass in
+both profiles. This is component/build evidence; game FPS remains a manual check.
+
 The November 13 kill-feed follow-up centers weapon and headshot sprites within
 console text lines that are taller than the sprites. The retained source and
 shipped x86 Mac client both used top alignment, so this corrects an inherited

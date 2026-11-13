@@ -23,10 +23,25 @@ ownership and checked quads. Tests cover all256 byte admission, per-B geometry,
 ID-1 collisions, same-platform cache sharing, facade deletion, nested genuine
 leases/scopes/reentry, unchanged-catalog release failure, retained-state retry,
 normal/lost/changed epochs, loss during upload,8 complete pages,9th-page rejection,
-upload rollback and failed retirement. One active atlas is retained per surface;
-a second entry exists only during checked replacement/rollback. No historical
-Font pointer cache exists. Null/no-font and nonpositive-length no-ops preserve the
+upload rollback and failed retirement. Each surface retains atlases for its
+actual leased platform identities until explicit retirement. Lookup borrows a
+Font facade only within a genuine Runtime Scope; warm hits acquire no candidate
+Selection, allocation or loader reference, while Select and Draw still prepare
+through BeginUse. No historical Font pointer cache or guessed cache-size cap
+exists. Invalidate and Retire visit every cached entry, retaining failed owners
+for explicit retry and blocking use after incomplete full retirement. Null/no-font and nonpositive-length no-ops preserve the
 legacy method contract; they are not font readiness results.
+
+The scoreboard regression warms three independently realized fonts (768 raster
+calls, three complete uploads), then interleaves 72 selections/draws across rows
+and frames. It checks literal glyph rectangles and zero additional allocations,
+rasters, creates, uploads or retirements. The real main-image deferred-release
+queue receives exactly the three final platform retirements, proving warm hits
+never capture and unpin temporary code leases. Further three-entry cases cover
+catalog advancement, lost-device invalidation failure/retry, renderer rebuild,
+partial successful retirement, facade deletion, and pending capture rollback
+with failed host-queue acceptance. These structural work bounds are CPU component
+evidence, not measured game FPS or physical rendering acceptance.
 
 The HW/SW retirement executables extract exact private source bodies and metadata
 owner declarations. HW uses actual CUtlRBTree storage and injected GL/SDL lookup

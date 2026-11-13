@@ -6,6 +6,7 @@
 
 namespace {
 int failures = 0;
+std::uint64_t rasterCalls = 0;
 void (*reenter)() = nullptr;
 class Face final : public cse_vgui1::RealizedFace {
 public:
@@ -21,6 +22,7 @@ public:
         return true;
     }
     bool Raster(unsigned int byte, int x, int y, int wide, int tall, unsigned char* rgba) noexcept override {
+        ++rasterCalls;
         if (reenter) {
             reenter();
         }
@@ -77,4 +79,8 @@ extern "C" void FixtureFailFontRelease(int count) {
 }
 extern "C" void FixtureSetRasterCallback(void (*callback)()) {
     reenter = callback;
+}
+
+extern "C" std::uint64_t FixtureRasterCalls() {
+    return rasterCalls;
 }

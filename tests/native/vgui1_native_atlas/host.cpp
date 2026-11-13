@@ -114,8 +114,19 @@ int main(int argc, char** argv) {
                 Check(Symbol<Open>(image, "FixtureOpen")(static_cast<std::uint64_t>(index) + 1,
                     argv[1], argv[2], &host) == 0, "nonreused epoch and real main-image ownership route");
             }
+            const auto queuedBeforeScoreboard = queue.references.size();
+            Check(Symbol<Call>(image, "FixtureScoreboardSuite")() == 0, "actual scoreboard font-switch suite");
+            Check(queue.references.size() - queuedBeforeScoreboard == 3,
+                "only three final platform retirements enqueue root references; warm hits add none");
+            std::printf("PASS scoreboard deferred root references=%zu (three final retirements only)\n",
+                queue.references.size() - queuedBeforeScoreboard);
             Check(Symbol<Call>(image, "FixtureSuite")() == 0, "actual root/API suite");
             Check(Symbol<Call>(image, "FixtureConcurrentGuards")() == 0, "concurrent callback control");
+            Check(Symbol<Call>(image, "FixtureHoldAtlas")() == 0, "owned atlas rollback setup");
+            queue.reject = true;
+            Check(Symbol<Call>(image, "FixtureRejectAtlasCapture")() == 0, "failed atlas candidate retirement");
+            queue.reject = false;
+            Check(Symbol<Call>(image, "FixtureRetryAtlasRetire")() == 0, "explicit all-entry atlas retirement retry");
             Check(Symbol<Call>(image, "FixtureHoldSelection")() == 0, "owned unpin setup");
             queue.reject = true;
             Check(Symbol<Call>(image, "FixtureRejectUnpin")() == 0, "defined failed-host acceptance control");
