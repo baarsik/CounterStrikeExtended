@@ -11,6 +11,7 @@
 #include "engine_image.h"
 #include "../pm_shared/pm_movevars.h"
 
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -144,7 +145,7 @@ static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* w
     if (cse::image::HasWebPExtension(filename)) {
         return NULL;
     }
-    int fileLength;
+    int fileLength = 0;
     byte* file = cse::engine_image::LoadLegacyTarga(filename, &fileLength);
     if (!file) {
         return NULL;
@@ -155,136 +156,127 @@ static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* w
         COM_FreeFile(file);
         return loaded ? R_CopyWebPImage(decoded, buffer, width, height, output32bit) : NULL;
     }
-	if ( width )
-		*width = 0;
-	if ( height )
-		*height = 0;
-	byte* end = file + fileLength;
-	if ( end < file + 20 )
-	{
-		COM_FreeFile( file );
-		Con_DPrintf( "R_LoadTGA: file shorter than TGA file header length\n" );
-		return NULL;
-	}
-
-	int imageType = file[2];
-	int columns = file[12] + ( file[13] << 8 );
-	int rows = file[14] + ( file[15] << 8 );
-    int pixelSize = file[16];
-    if (requiredDimension > 0 && (columns != requiredDimension || rows != requiredDimension)) {
+    const auto fail = [&](const char* message) -> byte* {
         COM_FreeFile(file);
-        Con_DPrintf("R_LoadTGA: sky face must be %dx%d (%dx%d found)\n", requiredDimension, requiredDimension,
-                    columns, rows);
+        Con_DPrintf("%s", message);
         return NULL;
+    };
+    constexpr std::size_t HeaderBytes = 18;
+    constexpr int RawImageType = 2;
+    constexpr int RleImageType = 10;
+    constexpr int RgbBits = 24;
+    constexpr int RgbaBits = 32;
+    constexpr int BitsPerByte = 8;
+    constexpr byte OpaqueAlpha = 255;
+    constexpr byte RleRunFlag = 0x80;
+    constexpr byte RleCountMask = 0x7f;
+    if (fileLength < 0 || static_cast<std::size_t>(fileLength) < HeaderBytes) {
+        return fail("R_LoadTGA: file shorter than TGA file header length\n");
     }
-	if ( imageType != 2 && imageType != 10 )
-	{
-		COM_FreeFile( file );
-		Con_DPrintf( "R_LoadTGA: Only type 2 and 10 targa RGB images supported\n" );
-		return NULL;
-	}
-	if ( file[1] || ( pixelSize != 24 && pixelSize != 32 ) )
-	{
-		COM_FreeFile( file );
-		Con_DPrintf( "R_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n" );
-		return NULL;
-	}
-
-	int pixels = columns * rows;
-	int bytesPerPixel = output32bit && imageType == 2 ? 4 : 2;
-	if ( pixels > ( bytesPerPixel == 4 ? 0x1FFFFFFF : 0x3FFFFFFF ) )
-		return NULL;
-	int size = pixels * bytesPerPixel;
-	if ( buffer )
-	{
-		if ( size > bufferSize )
-		{
-			COM_FreeFile( file );
-			Con_DPrintf( "R_LoadTGA: texture too large (%ux%u)\n", columns, rows );
-			return NULL;
-		}
-	}
-	else
-		buffer = (byte*)Hunk_AllocName( size, "SKYBOX" );
-
-	byte* input = file + 18 + file[0];
-	if ( imageType == 2 )
-	{
-		if ( end < input + pixels * ( pixelSize / 8 ) )
-		{
-			COM_FreeFile( file );
-			Con_DPrintf( "R_LoadTGA: file shorter than length of texture\n" );
-			return NULL;
-		}
-		for ( int row = rows - 1; row >= 0; row-- )
-		{
-			byte* output = buffer + row * columns * bytesPerPixel;
-			for ( int column = 0; column < columns; column++ )
-			{
-				colorVec color;
-				color.b = *input++;
-				color.g = *input++;
-				color.r = *input++;
-				color.a = pixelSize == 32 ? *input++ : 255;
-				if ( output32bit )
-				{
-					*output++ = (byte)color.r;
-					*output++ = (byte)color.g;
-					*output++ = (byte)color.b;
-					*output++ = (byte)color.a;
-				}
-				else
-				{
-					*(short*)output = PutDitheredRGB( &color );
-					output += 2;
-				}
-			}
-		}
-	}
-	else
-	{
-		int row = rows - 1;
-		int column = 0;
-		while ( row >= 0 && columns )
-		{
-			int header = *input++;
-			int count = ( header & 0x7F ) + 1;
-			colorVec color;
-			if ( header & 0x80 )
-			{
-				color.b = *input++;
-				color.g = *input++;
-				color.r = *input++;
-				if ( pixelSize == 32 )
-					input++;
-			}
-			for ( int i = 0; i < count; i++ )
-			{
-				if ( !( header & 0x80 ) )
-				{
-					color.b = *input++;
-					color.g = *input++;
-					color.r = *input++;
-					if ( pixelSize == 32 )
-						input++;
-				}
-				( (short*)buffer )[row * columns + column] = PutDitheredRGB( &color );
-				if ( ++column == columns )
-				{
-					column = 0;
-					if ( --row < 0 )
-						break;
-				}
-			}
-		}
-	}
-
-	COM_FreeFile( file );
-	if ( width )
-		*width = columns;
-	if ( height )
-		*height = rows;
-	return buffer;
+    const int imageType = file[2];
+    const std::size_t columns = file[12] + (file[13] << BitsPerByte);
+    const std::size_t rows = file[14] + (file[15] << BitsPerByte);
+    const int pixelSize = file[16];
+    if (requiredDimension > 0 && (columns != static_cast<std::size_t>(requiredDimension)
+                                  || rows != static_cast<std::size_t>(requiredDimension))) {
+        return fail("R_LoadTGA: sky face has invalid dimensions\n");
+    }
+    if (imageType != RawImageType && imageType != RleImageType) {
+        return fail("R_LoadTGA: Only type 2 and 10 targa RGB images supported\n");
+    }
+    if (file[1] || (pixelSize != RgbBits && pixelSize != RgbaBits)) {
+        return fail("R_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n");
+    }
+    // Compressed legacy images have always produced packed pixels, including output32bit callers.
+    const bool rgbaOutput = output32bit && imageType == RawImageType;
+    const std::size_t outputPixelBytes = rgbaOutput ? cse::image::RgbaChannels : SoftwarePixelBytes;
+    if (!columns || !rows || columns > static_cast<std::size_t>(INT_MAX) / outputPixelBytes / rows) {
+        return fail("R_LoadTGA: invalid or oversized texture dimensions\n");
+    }
+    const std::size_t numPixels = columns * rows;
+    const std::size_t outputBytes = numPixels * outputPixelBytes;
+    if (buffer && outputBytes > static_cast<std::size_t>(bufferSize)) {
+        return fail("R_LoadTGA: texture exceeds output capacity\n");
+    }
+    const std::size_t remaining = static_cast<std::size_t>(fileLength) - HeaderBytes;
+    const std::size_t idBytes = file[0];
+    if (idBytes > remaining) {
+        return fail("R_LoadTGA: file shorter than TGA image ID\n");
+    }
+    const byte* const imageData = file + HeaderBytes + idBytes;
+    const std::size_t imageBytes = remaining - idBytes;
+    const std::size_t inputPixelBytes = pixelSize / BitsPerByte;
+    const auto decode = [&](byte* destination) -> bool {
+        const byte* input = imageData;
+        std::size_t inputRemaining = imageBytes;
+        std::size_t pixel = 0;
+        while (pixel < numPixels) {
+            std::size_t packetPixels = numPixels - pixel;
+            bool repeated = false;
+            if (imageType == RleImageType) {
+                if (!inputRemaining) {
+                    return false;
+                }
+                const byte packetHeader = *input++;
+                --inputRemaining;
+                const std::size_t packetCount = 1 + (packetHeader & RleCountMask);
+                if (packetPixels > packetCount) {
+                    packetPixels = packetCount;
+                }
+                repeated = (packetHeader & RleRunFlag) != 0;
+            }
+            const std::size_t inputPixels = repeated ? 1 : packetPixels;
+            if (inputPixels > inputRemaining / inputPixelBytes) {
+                return false;
+            }
+            const std::size_t packetBytes = inputPixels * inputPixelBytes;
+            inputRemaining -= packetBytes;
+            if (!destination) {
+                input += packetBytes;
+                pixel += packetPixels;
+                continue;
+            }
+            colorVec color{};
+            for (std::size_t index = 0; index < packetPixels; ++index, ++pixel) {
+                if (!repeated || !index) {
+                    color.b = *input++;
+                    color.g = *input++;
+                    color.r = *input++;
+                    color.a = pixelSize == RgbaBits ? *input++ : OpaqueAlpha;
+                }
+                const std::size_t row = rows - 1 - pixel / columns;
+                byte* output = destination + (row * columns + pixel % columns) * outputPixelBytes;
+                if (rgbaOutput) {
+                    output[0] = static_cast<byte>(color.r);
+                    output[1] = static_cast<byte>(color.g);
+                    output[2] = static_cast<byte>(color.b);
+                    output[3] = static_cast<byte>(color.a);
+                } else {
+                    const short packed = PutDitheredRGB(&color);
+                    std::memcpy(output, &packed, sizeof(packed));
+                }
+            }
+        }
+        return true;
+    };
+    // Validate the complete packet stream before creating a persistent hunk allocation.
+    if (!buffer) {
+        if (!decode(NULL)) {
+            return fail("R_LoadTGA: file shorter than length of texture\n");
+        }
+        buffer = static_cast<byte*>(Hunk_AllocName(static_cast<int>(outputBytes), "SKYBOX"));
+    }
+    if (!decode(buffer)) {
+        return fail("R_LoadTGA: file shorter than length of texture\n");
+    }
+    COM_FreeFile(file);
+    if (width) {
+        *width = static_cast<int>(columns);
+    }
+    if (height) {
+        *height = static_cast<int>(rows);
+    }
+    return buffer;
 }
 
 byte* R_LoadTGA(char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean output32bit) {

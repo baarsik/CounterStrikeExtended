@@ -303,19 +303,8 @@ qboolean LoadTGA2(char* filename, byte* buffer, int bufferSize, int* width, int*
 
 static qboolean LoadTargaImage(char* filename, byte* buffer, int bufferSize, int* width, int* height,
                               qboolean fatalErrors) {
-    int fileLength;
-	byte* file;
-	byte* end;
-	byte* input;
-	byte* pixbuf;
-	int columns, rows, numPixels;
-	int size, inputSize;
-	int row, column, j;
-	byte red, green, blue, alphabyte;
-	byte packetHeader;
-	int packetSize;
-
-    file = cse::engine_image::LoadLegacyTarga(filename, &fileLength);
+    int fileLength = 0;
+    byte* file = cse::engine_image::LoadLegacyTarga(filename, &fileLength);
     if (!file) {
         return FALSE;
     }
@@ -334,169 +323,124 @@ static qboolean LoadTargaImage(char* filename, byte* buffer, int bufferSize, int
         return FALSE;
     }
 
-	end = file + fileLength;
+    const auto fail = [&](const char* message) -> qboolean {
+        COM_FreeFile(file);
+        if (fatalErrors) {
+            Sys_Error("%s", message);
+        }
+        Con_Printf("%s", message);
+        return FALSE;
+    };
+    constexpr std::size_t HeaderBytes = 18;
+    constexpr int RawImageType = 2;
+    constexpr int RleImageType = 10;
+    constexpr int RgbBits = 24;
+    constexpr int RgbaBits = 32;
+    constexpr int BitsPerByte = 8;
+    constexpr byte OpaqueAlpha = 255;
+    constexpr byte RleRunFlag = 0x80;
+    constexpr byte RleCountMask = 0x7f;
+    constexpr std::size_t OutputPixelBytes = cse::image::RgbaChannels;
 
-	if ( width )
-		*width = 0;
-	if ( height )
-		*height = 0;
+    if (width) {
+        *width = 0;
+    }
+    if (height) {
+        *height = 0;
+    }
+    if (fileLength < 0 || static_cast<std::size_t>(fileLength) < HeaderBytes) {
+        return fail("LoadTGA: file shorter than TGA file header length\n");
+    }
 
-	if ( file + sizeof( TargaHeader ) > end )
-	{
-		if ( fatalErrors )
-			Sys_Error( "LoadTGA: file shorter than TGA file header length\n" );
-		COM_FreeFile( file );
-		Con_Printf( "LoadTGA: file shorter than TGA file header length\n" );
-		return FALSE;
-	}
+    byte* input = file;
+    targa_header.id_length = *input++;
+    targa_header.colormap_type = *input++;
+    targa_header.image_type = *input++;
+    targa_header.colormap_index = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.colormap_length = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.colormap_size = *input++;
+    targa_header.x_origin = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.y_origin = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.width = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.height = static_cast<unsigned short>(fgetLittleShort(&input));
+    targa_header.pixel_size = *input++;
+    targa_header.attributes = *input++;
 
-	input = file;
-	targa_header.id_length = *input++;
-	targa_header.colormap_type = *input++;
-	targa_header.image_type = *input++;
+    if (targa_header.image_type != RawImageType && targa_header.image_type != RleImageType) {
+        return fail("LoadTGA: Only type 2 and 10 targa RGB images supported\n");
+    }
+    if (targa_header.colormap_type || (targa_header.pixel_size != RgbBits && targa_header.pixel_size != RgbaBits)) {
+        return fail("Texture_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n");
+    }
 
-	targa_header.colormap_index = (unsigned short)fgetLittleShort( &input );
-	targa_header.colormap_length = (unsigned short)fgetLittleShort( &input );
-	targa_header.colormap_size = *input++;
-	targa_header.x_origin = (unsigned short)fgetLittleShort( &input );
-	targa_header.y_origin = (unsigned short)fgetLittleShort( &input );
-	targa_header.width = (unsigned short)fgetLittleShort( &input );
-	targa_header.height = (unsigned short)fgetLittleShort( &input );
-	targa_header.pixel_size = *input++;
-	targa_header.attributes = *input++;
+    const std::size_t columns = targa_header.width;
+    const std::size_t rows = targa_header.height;
+    if (!columns || !rows || columns > static_cast<std::size_t>(INT_MAX) / OutputPixelBytes / rows) {
+        return fail("LoadTGA: invalid or oversized texture dimensions\n");
+    }
+    const std::size_t numPixels = columns * rows;
+    const std::size_t outputBytes = numPixels * OutputPixelBytes;
+    if (!buffer || bufferSize <= 0 || outputBytes > static_cast<std::size_t>(bufferSize)) {
+        return fail("LoadTGA: texture exceeds output capacity\n");
+    }
 
-	if ( targa_header.image_type != 2 && targa_header.image_type != 10 )
-	{
-		if ( fatalErrors )
-			Sys_Error( "LoadTGA: Only type 2 and 10 targa RGB images supported\n" );
-		COM_FreeFile( file );
-		Con_Printf( "LoadTGA: Only type 2 and 10 targa RGB images supported\n" );
-		return FALSE;
-	}
+    std::size_t remaining = static_cast<std::size_t>(fileLength) - HeaderBytes;
+    if (targa_header.id_length > remaining) {
+        return fail("LoadTGA: file shorter than TGA image ID\n");
+    }
+    input += targa_header.id_length;
+    remaining -= targa_header.id_length;
+    const std::size_t inputPixelBytes = targa_header.pixel_size / BitsPerByte;
+    std::size_t pixel = 0;
+    while (pixel < numPixels) {
+        std::size_t packetPixels = numPixels - pixel;
+        bool repeated = false;
+        if (targa_header.image_type == RleImageType) {
+            if (!remaining) {
+                return fail("LoadTGA: truncated RLE packet header\n");
+            }
+            const byte packetHeader = *input++;
+            --remaining;
+            const std::size_t packetCount = 1 + (packetHeader & RleCountMask);
+            if (packetPixels > packetCount) {
+                packetPixels = packetCount;
+            }
+            repeated = (packetHeader & RleRunFlag) != 0;
+        }
+        // The final packet historically stops at the last output pixel, even if its count is larger.
+        const std::size_t inputPixels = repeated ? 1 : packetPixels;
+        if (inputPixels > remaining / inputPixelBytes) {
+            return fail("LoadTGA: file shorter than length of texture\n");
+        }
+        remaining -= inputPixels * inputPixelBytes;
+        byte red = 0;
+        byte green = 0;
+        byte blue = 0;
+        byte alpha = OpaqueAlpha;
+        for (std::size_t index = 0; index < packetPixels; ++index, ++pixel) {
+            if (!repeated || !index) {
+                blue = *input++;
+                green = *input++;
+                red = *input++;
+                alpha = targa_header.pixel_size == RgbaBits ? *input++ : OpaqueAlpha;
+            }
+            const std::size_t row = rows - 1 - pixel / columns;
+            byte* output = buffer + (row * columns + pixel % columns) * OutputPixelBytes;
+            output[0] = red;
+            output[1] = green;
+            output[2] = blue;
+            output[3] = alpha;
+        }
+    }
 
-	if ( targa_header.colormap_type || ( targa_header.pixel_size != 24 && targa_header.pixel_size != 32 ) )
-	{
-		if ( fatalErrors )
-			Sys_Error( "Texture_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n" );
-		COM_FreeFile( file );
-		Con_Printf( "Texture_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n" );
-		return FALSE;
-	}
-
-	columns = targa_header.width;
-	rows = targa_header.height;
-	numPixels = (int)( (unsigned int)columns * rows );
-
-	if ( numPixels > INT_MAX / 4 )
-		return FALSE;
-
-	size = (int)( (unsigned int)numPixels * 4 );
-
-	if ( width )
-		*width = columns;
-	if ( height )
-		*height = rows;
-
-	if ( size > bufferSize )
-	{
-		if ( fatalErrors )
-			Sys_Error( "LoadTGA: texture too large (%ux%u>256x256)\n", columns, rows );
-		COM_FreeFile( file );
-		Con_Printf( "LoadTGA: texture too large (%ux%u>256x256)\n", columns, rows );
-		return FALSE;
-	}
-
-	input += targa_header.id_length; // skip TARGA image comment
-
-	if ( targa_header.image_type == 2 )
-	{
-		// Uncompressed, RGB images
-		inputSize = targa_header.pixel_size == 24 ? (int)( (unsigned int)numPixels * 3 ) : size;
-		if ( input + inputSize > end )
-		{
-			if ( fatalErrors )
-				Sys_Error( "LoadTGA: file shorter than length of texture\n" );
-			COM_FreeFile( file );
-			Con_Printf( "LoadTGA: file shorter than length of texture\n" );
-			return FALSE;
-		}
-
-		for ( row = rows - 1; row >= 0; row-- )
-		{
-			pixbuf = buffer + row * columns * 4;
-			for ( column = 0; column < columns; column++ )
-			{
-				blue = *input++;
-				green = *input++;
-				red = *input++;
-				if ( targa_header.pixel_size == 32 )
-					alphabyte = *input++;
-				else
-					alphabyte = 255;
-
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = alphabyte;
-			}
-		}
-	}
-	else
-	{
-		// Runlength encoded RGB images
-		row = rows - 1;
-		column = 0;
-		pixbuf = buffer;
-		if ( row >= 0 )
-			pixbuf += row * columns * 4;
-
-		red = green = blue = 0;
-		alphabyte = 255;
-
-		while ( row >= 0 && columns )
-		{
-			packetHeader = *input++;
-			packetSize = 1 + ( packetHeader & 0x7f );
-			for ( j = 0; j < packetSize; j++ )
-			{
-				if ( !( packetHeader & 0x80 ) || !j )
-				{
-					blue = *input++;
-					green = *input++;
-					red = *input++;
-					if ( targa_header.pixel_size == 32 )
-						alphabyte = *input++;
-					else
-						alphabyte = 255;
-				}
-
-				*pixbuf++ = red;
-				*pixbuf++ = green;
-				*pixbuf++ = blue;
-				*pixbuf++ = alphabyte;
-
-				if ( ++column == columns )
-				{
-					// run spans across rows
-					column = 0;
-					if ( !row )
-						goto breakOut;
-					row--;
-					pixbuf = buffer + row * columns * 4;
-				}
-			}
-		}
-	breakOut:;
-	}
-
-	COM_FreeFile( file );
-
-	if ( width )
-		*width = targa_header.width;
-	if ( height )
-		*height = targa_header.height;
-
-	return TRUE;
+    COM_FreeFile(file);
+    if (width) {
+        *width = targa_header.width;
+    }
+    if (height) {
+        *height = targa_header.height;
+    }
+    return TRUE;
 }
 
 /*

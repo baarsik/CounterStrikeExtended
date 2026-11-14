@@ -29,7 +29,9 @@ byte* COM_LoadFile(char* path, int, int* length) {
     }
     *length = static_cast<int>(found->second.size());
     byte* result = static_cast<byte*>(std::malloc(found->second.size()));
-    std::memcpy(result, found->second.data(), found->second.size());
+    if (!found->second.empty()) {
+        std::memcpy(result, found->second.data(), found->second.size());
+    }
     ++liveFileAllocations;
     return result;
 }
@@ -298,7 +300,217 @@ static bool Load(const char* path, std::vector<byte>& output, int& width, int& h
     return LoadTGA(const_cast<char*>(path), output.data(), static_cast<int>(output.size()), &width, &height) != FALSE;
 }
 
+// These cases exercise the extracted production loaders, including their filesystem ownership.
+static void TestLegacyTargaBounds() {
+    constexpr std::size_t HeaderBytes = 18;
+    constexpr std::size_t GuardBytes = 16;
+    constexpr byte GuardValue = 0xa5;
+    constexpr int TestWidth = 3;
+    constexpr int TestHeight = 2;
+    constexpr int PixelCount = TestWidth * TestHeight;
+    constexpr int RawImageType = 2;
+    constexpr int RleImageType = 10;
+    constexpr int RgbBits = 24;
+    constexpr int RgbaBits = 32;
+    constexpr int BitsPerByte = 8;
+    constexpr int UnknownDimension = -1;
+    constexpr std::size_t ImageIdBytes = 3;
+    constexpr int RgbaBytes = PixelCount * cse::image::RgbaChannels;
+#ifdef TEST_SOFTWARE
+    constexpr int PackedBytes = PixelCount * sizeof(unsigned short);
+#endif
+    const char* path = "bounded-legacy.tga";
+    const auto header = [](int imageType, int pixelBits, int width = TestWidth, int height = TestHeight) {
+        std::vector<byte> result(HeaderBytes, 0);
+        result[2] = static_cast<byte>(imageType);
+        result[12] = static_cast<byte>(width);
+        result[13] = static_cast<byte>(width >> BitsPerByte);
+        result[14] = static_cast<byte>(height);
+        result[15] = static_cast<byte>(height >> BitsPerByte);
+        result[16] = static_cast<byte>(pixelBits);
+        return result;
+    };
+    const auto checkCase = [&](const std::vector<byte>& fixture, bool succeeds, int capacity,
+                               const std::vector<byte>& pixels, const char* label, bool packed = false,
+                               bool fatal = false) {
+        files[path] = fixture;
+        std::vector<byte> guarded(GuardBytes + capacity + GuardBytes, GuardValue);
+        byte* output = guarded.data() + GuardBytes;
+        int width = UnknownDimension;
+        int height = UnknownDimension;
+        const int allocationsBefore = liveFileAllocations;
+        bool loaded = false;
+        bool threw = false;
+        try {
+#ifdef TEST_HARDWARE
+            (void)packed;
+            loaded = LoadTGA2(const_cast<char*>(path), output, capacity, &width, &height, fatal) != FALSE;
+#else
+            (void)fatal;
+            loaded = R_LoadTGA(const_cast<char*>(path), output, capacity, &width, &height, !packed) != nullptr;
+#endif
+        } catch (const std::runtime_error&) {
+            threw = true;
+        }
+        const std::string description(label);
+#ifdef TEST_HARDWARE
+        Check(fatal && !succeeds ? threw : !threw && loaded == succeeds,
+              (description + ": preserves the requested failure behavior").c_str());
+#else
+        Check(!threw && loaded == succeeds, (description + ": returns the expected load result").c_str());
+#endif
+        Check(liveFileAllocations == allocationsBefore, (description + ": releases the source file").c_str());
+        Check(std::all_of(guarded.begin(), guarded.begin() + GuardBytes,
+                          [](byte value) { return value == GuardValue; })
+                  && std::all_of(guarded.end() - GuardBytes, guarded.end(),
+                                 [](byte value) { return value == GuardValue; }),
+              (description + ": preserves output canaries").c_str());
+        if (succeeds) {
+            Check(width == TestWidth && height == TestHeight,
+                  (description + ": preserves dimensions").c_str());
+            Check(std::equal(pixels.begin(), pixels.end(), output),
+                  (description + ": preserves decoded pixel bytes").c_str());
+            Check(std::all_of(output + pixels.size(), output + capacity,
+                              [](byte value) { return value == GuardValue; }),
+                  (description + ": preserves unused output capacity").c_str());
+        }
+    };
+
+    for (std::size_t length = 0; length < HeaderBytes; ++length) {
+        checkCase(std::vector<byte>(length, 0), false, RgbaBytes, {}, "truncated TGA header");
+    }
+    std::vector<byte> truncatedId = header(RawImageType, RgbBits);
+    truncatedId[0] = 255;
+    truncatedId.resize(HeaderBytes + 2, 0);
+    checkCase(truncatedId, false, RgbaBytes, {}, "TGA image ID exceeds the file");
+    for (std::vector<byte> invalid : {header(RawImageType, RgbBits, 0, TestHeight),
+                                     header(RawImageType, RgbBits, TestWidth, 0)}) {
+        invalid.resize(HeaderBytes + 2, 0);
+        checkCase(invalid, false, RgbaBytes, {}, "TGA zero dimension");
+    }
+
+    // File order is bottom-up: blue, white, white / white, white, red.
+    const std::vector<byte> rgba = {
+        255, 255, 255, 73, 255, 255, 255, 73, 255, 0, 0, 19,
+        0, 0, 255, 41, 255, 255, 255, 73, 255, 255, 255, 73
+    };
+    std::vector<byte> opaqueRgba = rgba;
+    for (std::size_t offset = 3; offset < opaqueRgba.size(); offset += cse::image::RgbaChannels) {
+        opaqueRgba[offset] = 255;
+    }
+#ifdef TEST_SOFTWARE
+    const std::vector<byte> packed565 = {255, 255, 255, 255, 0, 248, 31, 0, 255, 255, 255, 255};
+    const std::vector<byte> packed555 = {255, 127, 255, 127, 0, 124, 31, 0, 255, 127, 255, 127};
+    is15bit = false;
+#endif
+    for (int pixelBits : {RgbBits, RgbaBits}) {
+        std::vector<byte> raw = header(RawImageType, pixelBits);
+        // Include an image ID so successful ID skipping is covered as well.
+        raw[0] = ImageIdBytes;
+        raw.insert(raw.end(), {7, 11, 13});
+        for (const std::vector<byte>& color : {std::vector<byte>{255, 0, 0, 41},
+                                              std::vector<byte>{255, 255, 255, 73},
+                                              std::vector<byte>{255, 255, 255, 73},
+                                              std::vector<byte>{255, 255, 255, 73},
+                                              std::vector<byte>{255, 255, 255, 73},
+                                              std::vector<byte>{0, 0, 255, 19}}) {
+            raw.insert(raw.end(), color.begin(), color.begin() + pixelBits / BitsPerByte);
+        }
+        const std::vector<byte>& rawExpected = pixelBits == RgbaBits ? rgba : opaqueRgba;
+        checkCase(raw, true, RgbaBytes, rawExpected, "valid raw TGA");
+        checkCase(raw, false, RgbaBytes - 1, {}, "raw TGA output is one byte short");
+#ifdef TEST_HARDWARE
+        checkCase(raw, false, RgbaBytes - 1, {}, "fatal insufficient output frees its file", false, true);
+#endif
+#ifdef TEST_SOFTWARE
+        checkCase(raw, true, PackedBytes, packed565, "raw TGA packed RGB565", true);
+        checkCase(raw, false, PackedBytes - 1, {}, "raw packed TGA output is one byte short", true);
+        is15bit = true;
+        checkCase(raw, true, PackedBytes, packed555, "raw TGA packed RGB555", true);
+        is15bit = false;
+#endif
+        for (std::size_t length = HeaderBytes + ImageIdBytes; length < raw.size(); ++length) {
+            checkCase(std::vector<byte>(raw.begin(), raw.begin() + length), false, RgbaBytes, {},
+                      "truncated raw TGA pixels");
+        }
+        std::vector<byte> rle = header(RleImageType, pixelBits);
+        rle.push_back(0); // One literal blue pixel.
+        const std::vector<byte> blue = {255, 0, 0, 41};
+        rle.insert(rle.end(), blue.begin(), blue.begin() + pixelBits / BitsPerByte);
+        rle.push_back(0x83); // Four white pixels, crossing the row boundary.
+        const std::vector<byte> white = {255, 255, 255, 73};
+        rle.insert(rle.end(), white.begin(), white.begin() + pixelBits / BitsPerByte);
+        rle.push_back(0); // One literal red pixel.
+        const std::vector<byte> red = {0, 0, 255, 19};
+        rle.insert(rle.end(), red.begin(), red.begin() + pixelBits / BitsPerByte);
+#ifdef TEST_HARDWARE
+        checkCase(rle, true, RgbaBytes, rawExpected, "valid cross-row RLE TGA");
+#else
+        checkCase(rle, true, RgbaBytes, packed565, "RLE TGA retains historical packed public output");
+        checkCase(rle, true, PackedBytes, packed565, "RLE public output accepts its exact packed capacity");
+        checkCase(rle, false, PackedBytes - 1, {}, "RLE public output is one byte short");
+        checkCase(rle, true, PackedBytes, packed565, "RLE TGA packed RGB565", true);
+        checkCase(rle, false, PackedBytes - 1, {}, "RLE packed TGA output is one byte short", true);
+        is15bit = true;
+        checkCase(rle, true, PackedBytes, packed555, "RLE TGA packed RGB555", true);
+        is15bit = false;
+#endif
+        // Also exercise a literal packet crossing the row boundary.
+        std::vector<byte> literal = header(RleImageType, pixelBits);
+        literal.push_back(PixelCount - 1);
+        literal.insert(literal.end(), raw.begin() + HeaderBytes + ImageIdBytes, raw.end());
+#ifdef TEST_HARDWARE
+        checkCase(literal, true, RgbaBytes, rawExpected, "valid cross-row literal TGA packet");
+#else
+        checkCase(literal, true, PackedBytes, packed565, "valid cross-row literal packed TGA packet", true);
+#endif
+        // Legacy decoding stops at the final output pixel even for a larger declared packet count.
+        std::vector<byte> oversizedFinalPacket = rle;
+        oversizedFinalPacket[oversizedFinalPacket.size() - pixelBits / BitsPerByte - 1] = 0x7f;
+#ifdef TEST_HARDWARE
+        checkCase(oversizedFinalPacket, true, RgbaBytes, rawExpected, "oversized final literal packet count");
+#else
+        checkCase(oversizedFinalPacket, true, PackedBytes, packed565, "oversized final literal packet count", true);
+        files[path] = rle;
+        const std::size_t hunkCount = hunkAllocations.size();
+        byte* allocated = R_LoadTGA(const_cast<char*>(path), nullptr, 0, nullptr, nullptr, TRUE);
+        Check(allocated && std::memcmp(allocated, packed565.data(), packed565.size()) == 0
+                  && hunkAllocations.size() == hunkCount + 1,
+              "software RLE hunk allocation preserves packed output");
+#endif
+        for (const std::vector<byte>* encoded : {&rle, &literal}) {
+            for (std::size_t length = HeaderBytes; length < encoded->size(); ++length) {
+                checkCase(std::vector<byte>(encoded->begin(), encoded->begin() + length), false,
+                          RgbaBytes, {}, "truncated RLE TGA packet header or pixel");
+#ifdef TEST_SOFTWARE
+                files[path] = std::vector<byte>(encoded->begin(), encoded->begin() + length);
+                const std::size_t hunkCount = hunkAllocations.size();
+                const int fileCount = liveFileAllocations;
+                Check(!R_LoadTGA(const_cast<char*>(path), nullptr, 0, nullptr, nullptr, FALSE)
+                          && hunkAllocations.size() == hunkCount && liveFileAllocations == fileCount,
+                      "truncated RLE stream is rejected and released before hunk allocation");
+#endif
+            }
+        }
+    }
+    // These dimensions overflow the historical signed pixel/output calculations.
+    for (int height : {32768, 65535}) {
+        std::vector<byte> oversized = header(RawImageType, RgbaBits, 65535, height);
+        oversized.resize(HeaderBytes + 2, 0);
+        checkCase(oversized, false, RgbaBytes, {}, "oversized TGA dimensions");
+    }
+#ifdef TEST_HARDWARE
+    for (const std::vector<byte>& malformed : {
+             std::vector<byte>(HeaderBytes - 1, 0), truncatedId, header(1, RgbBits),
+             header(RawImageType, 16), header(RleImageType, RgbaBits)}) {
+        checkCase(malformed, false, RgbaBytes, {}, "fatal TGA failure frees its file", false, true);
+    }
+#endif
+    files.erase(path);
+}
+
 int main() {
+    TestLegacyTargaBounds();
     const std::vector<byte> webp = WebPFixture();
     files["legacy.webp"] = webp;
     files["legacy.tga"] = TargaFixture();
