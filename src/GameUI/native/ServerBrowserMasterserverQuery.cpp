@@ -62,6 +62,16 @@ struct Directory {
             worker.join();
         }
     }
+
+    bool CompleteAndDrained() {
+        // Only inspect emptiness after acquiring the worker's final address publication.
+        if (!done.load(std::memory_order_acquire)) {
+            return false;
+        }
+        std::lock_guard<std::mutex> lock(mutex);
+        return pending.empty();
+    }
+
     bool Query(const sockaddr* address, size_t addressSize, const std::string& filter,
                unsigned char region, std::set<Address>& seen) {
         Socket socket;
@@ -427,12 +437,7 @@ void MasterserverQueryProvider::Pump(size_t budget) {
                 row.complete = true;
             }
         }
-        bool drained = false;
-        {
-            std::lock_guard<std::mutex> lock(request->directory.mutex);
-            drained = request->directory.pending.empty();
-        }
-        if (request->refreshing && request->directory.done.load(std::memory_order_acquire) && drained &&
+        if (request->refreshing && request->directory.CompleteAndDrained() &&
             request->queued.empty() && request->active.empty()) {
             request->refreshing = false;
             request->callback->RefreshComplete(static_cast<HServerListRequest>(request.get()),
@@ -517,6 +522,8 @@ void MasterserverQueryProvider::RefreshQuery(HServerListRequest handle) {
         }
         return;
     }
+    // An empty request still needs a completion callback on the next pump.
+    found->second->refreshing = true;
     const auto count = found->second->rows.size();
     for (size_t index = 0; index < count; ++index) {
         RefreshServer(handle, static_cast<int>(index));

@@ -47,15 +47,77 @@ struct Responses final : ISteamMatchmakingServerListResponse {
     int failed = 0;
     bool complete = false;
     EMatchMakingServerResponse result = eServerFailedToRespond;
-    void ServerResponded(HServerListRequest, int) override { ++responses; }
-    void ServerFailedToRespond(HServerListRequest, int) override { ++responses; ++failed; }
+
+    void ServerResponded(HServerListRequest, int) override {
+        ++responses;
+    }
+
+    void ServerFailedToRespond(HServerListRequest, int) override {
+        ++responses;
+        ++failed;
+    }
+
     void RefreshComplete(HServerListRequest, EMatchMakingServerResponse value) override {
         complete = true;
         result = value;
     }
 };
+
+void PumpUntilSettled(MasterserverQueryProvider& provider, ServerBrowserModel& model,
+                      std::chrono::steady_clock::duration timeout) {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    while (std::chrono::steady_clock::now() < deadline) {
+        provider.Pump();
+        model.Pump();
+        model.TakeUpdates();
+        const auto status = model.GetStatus();
+        if (status.phase != Phase::Refreshing && !status.pending && !status.viewUpdating) {
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    throw std::runtime_error("model remained refreshing after the provider had no work");
+}
+
+void FailedEmptyRefresh(const char* directory, const char* unavailable) {
+    MetadataProvider steam;
+    MasterserverQueryProvider provider(&steam);
+    provider.Select({"loopback", "Loopback", {directory}});
+    {
+        ServerBrowserModel model({&provider, nullptr});
+        Filters filters;
+        constexpr AppId_t CounterStrikeApp = 10;
+        filters.app = CounterStrikeApp;
+        constexpr auto DirectoryWait = std::chrono::seconds(8);
+        CHECK(model.Refresh(ListKind::Internet, filters));
+        PumpUntilSettled(provider, model, DirectoryWait);
+        CHECK(model.GetStatus().phase == Phase::Complete);
+        CHECK(model.OrderedKeys().size() == 2);
+
+        provider.Select({"unavailable", "Unavailable", {unavailable}});
+        CHECK(model.Refresh(ListKind::Internet, filters));
+        PumpUntilSettled(provider, model, DirectoryWait);
+        CHECK(model.GetStatus().phase == Phase::Failed);
+        CHECK(model.OrderedKeys().size() == 2);
+
+        CHECK(model.QuickRefresh());
+        constexpr auto EmptyRefreshWait = std::chrono::seconds(1);
+        PumpUntilSettled(provider, model, EmptyRefreshWait);
+        CHECK(model.GetStatus().phase == Phase::Failed);
+        CHECK(model.OrderedKeys().size() == 2);
+    }
+    CHECK(provider.BeginClose());
+}
+
 int main(int argc, char** argv) {
     try {
+        CHECK(argc >= 3);
+        if (std::string(argv[2]) == "failed-empty-refresh") {
+            CHECK(argc == 4);
+            FailedEmptyRefresh(argv[1], argv[3]);
+            std::cout << "failed empty refresh completed\n";
+            return 0;
+        }
         CHECK(argc == 3);
         MetadataProvider steam;
         MasterserverQueryProvider provider(&steam);

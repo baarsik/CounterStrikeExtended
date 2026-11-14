@@ -3,7 +3,9 @@ import subprocess
 import sys
 import threading
 
-with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
+with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
+        socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as unavailable:
+    unavailable.bind(('127.0.0.1', 0))
     server.bind(('127.0.0.1', 0))
     server.settimeout(0.1)
     stopped = threading.Event()
@@ -35,7 +37,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server:
     if sys.argv[2] == 'backup':
         address = '127.0.0.1:1;' + address + ';' + address
     try:
-        subprocess.run([sys.argv[1], address, sys.argv[2]], check=True, timeout=15)
+        command = [sys.argv[1], address, sys.argv[2]]
+        if sys.argv[2] == 'failed-empty-refresh':
+            command.append(f'127.0.0.1:{unavailable.getsockname()[1]}')
+        subprocess.run(command, check=True, timeout=15)
         if sys.argv[2] != 'cancel':
             assert len(requests) >= 2
     finally:
