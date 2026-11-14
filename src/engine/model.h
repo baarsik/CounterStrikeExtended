@@ -423,7 +423,7 @@ void		Mod_LoadMarksurfaces( lump_t* lump );
 void		Mod_LoadSurfedges( lump_t* lump );
 void		Mod_LoadPlanes( lump_t* lump );
 float		RadiusFromBounds( vec_t* mins, vec_t* maxs );
-void		Mod_LoadBrushModel( model_t* model, void* buffer );
+void		Mod_LoadBrushModel( model_t* model, void* buffer, int fileBytes );
 void*		Mod_LoadAliasFrame( void* data, int* frameIndex, int vertexCount, trivertx_t* mins, trivertx_t* maxs,
 			aliashdr_t* header, char* name );
 void*		Mod_LoadAliasGroup( void* data, int* frameIndex, int vertexCount, trivertx_t* mins, trivertx_t* maxs,

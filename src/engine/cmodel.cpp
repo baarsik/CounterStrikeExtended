@@ -4,206 +4,226 @@
 #include "mem.h"
 #include "conprint.h"
 #include "server.h"
+#include "sys.h"
+#include "model_visibility.h"
 
+#include <algorithm>
 #include <cstring>
+#include <limits>
 
 static byte* gPAS;
 static byte* gPVS;
 static int gPVSRowBytes;
-static byte mod_novis[MAX_MAP_LEAFS / 8];
+static int gPVSLeafCount;
+static const model_t* gPVSModel;
+static byte mod_novis[ModelVisibility::MaximumRowBytes];
 
-/*
-===============================================================================
-
-PVS / PAS
-
-===============================================================================
-*/
-byte* CM_LeafPVS( int leafnum )
-{
-	if ( !gPVS )
-		return mod_novis;
-
-	return gPVS + leafnum * gPVSRowBytes;
+byte* CM_LeafPVS(int leafnum) {
+    if (!gPVS) {
+        return mod_novis;
+    }
+    if (leafnum < 0 || leafnum >= gPVSLeafCount) {
+        Sys_Error("CM_LeafPVS: invalid leaf index");
+        return mod_novis;
+    }
+    return gPVS + static_cast<std::size_t>(leafnum) * gPVSRowBytes;
 }
 
-byte* CM_LeafPAS( int leafnum )
-{
-	if ( !gPAS )
-		return mod_novis;
-
-	return gPAS + leafnum * gPVSRowBytes;
+byte* CM_LeafPAS(int leafnum) {
+    if (!gPAS) {
+        return mod_novis;
+    }
+    if (leafnum < 0 || leafnum >= gPVSLeafCount) {
+        Sys_Error("CM_LeafPAS: invalid leaf index");
+        return mod_novis;
+    }
+    return gPAS + static_cast<std::size_t>(leafnum) * gPVSRowBytes;
 }
 
-void Mod_Init()
-{
-#if defined( SW_RENDERER )
-	SW_Mod_Init();
+void Mod_Init() {
+#if defined(SW_RENDERER)
+    SW_Mod_Init();
 #endif
-	Q_memset( mod_novis, 255, sizeof( mod_novis ) );
+    std::memset(mod_novis, ModelVisibility::AllVisible, sizeof(mod_novis));
 }
 
-void CM_DecompressPVS( byte* in, byte* decompressed, int byteCount )
-{
-	int c;
-	byte* out;
+bool CM_DecompressPVS(const byte* input, std::size_t inputBytes, byte* output, std::size_t byteCount) {
+    if (byteCount == 0) {
+        return true;
+    }
+    if (!output || byteCount > ModelVisibility::MaximumRowBytes) {
+        return false;
+    }
+    if (!input) {
+        std::memset(output, ModelVisibility::AllVisible, byteCount);
+        return true;
+    }
 
-	if ( !in )
-	{
-		// no vis info, so make all visible
-		Q_memcpy( decompressed, mod_novis, byteCount );
-		return;
-	}
-
-	out = decompressed;
-	do
-	{
-		if ( *in )
-		{
-			*out++ = *in++;
-			continue;
-		}
-
-		c = in[1];
-		in += 2;
-		if ( c )
-		{
-			memset( out, 0, c );
-			out += c;
-		}
-	} while ( out < decompressed + byteCount );
+    std::size_t source = 0;
+    std::size_t destination = 0;
+    while (destination < byteCount) {
+        if (source == inputBytes) {
+            return false;
+        }
+        const byte value = input[source++];
+        if (value != 0) {
+            output[destination++] = value;
+            continue;
+        }
+        if (source == inputBytes || input[source] == 0) {
+            return false;
+        }
+        // BSP encoders may pad the last zero run beyond the logical visibility row.
+        const std::size_t run = std::min<std::size_t>(input[source++], byteCount - destination);
+        std::memset(output + destination, 0, run);
+        destination += run;
+    }
+    return true;
 }
 
-/*
-===================
-Mod_DecompressVis
-===================
-*/
-byte* Mod_DecompressVis( byte* in, model_t* model )
-{
-	static byte decompressed[MAX_MAP_LEAFS / 8];
-	int row;
-
-	if ( !in )
-		return mod_novis;
-
-	row = ( model->numleafs + 7 ) >> 3;
-	CM_DecompressPVS( in, decompressed, row );
-
-	return decompressed;
+static bool Mod_DecodeVisibility(const byte* input, model_t* model, byte* output, std::size_t rowBytes) {
+    const ModelVisibilityInfo info = Mod_GetVisibilityInfo(model);
+    std::size_t inputBytes;
+    return ModelVisibility::SourceBytes(model, input, info, inputBytes) &&
+        CM_DecompressPVS(input, inputBytes, output, rowBytes);
 }
 
-byte* Mod_LeafPVS( mleaf_t* leaf, model_t* model )
-{
-	if ( leaf == model->leafs )
-		return mod_novis;
-
-	if ( gPVS )
-		return CM_LeafPVS( (int)( leaf - model->leafs ) );
-
-	return Mod_DecompressVis( leaf->compressed_vis, model );
+byte* Mod_DecompressVis(byte* input, model_t* model) {
+    static byte decompressed[ModelVisibility::MaximumRowBytes];
+    std::size_t rowBytes;
+    const ModelVisibilityInfo info = Mod_GetVisibilityInfo(model);
+    if (!model || !ModelVisibility::RowBytes(model->numleafs, rowBytes) ||
+        info.leafCount <= model->numleafs ||
+        !Mod_DecodeVisibility(input, model, decompressed, rowBytes)) {
+        std::memset(decompressed, 0, sizeof(decompressed));
+        Sys_Error("Mod_DecompressVis: invalid visibility row");
+        return mod_novis;
+    }
+    return input ? decompressed : mod_novis;
 }
 
-void CM_FreePAS()
-{
-	if ( gPAS )
-		Mem_Free( gPAS );
-
-	if ( gPVS )
-		Mem_Free( gPVS );
-
-	gPVS = NULL;
-	gPAS = NULL;
+byte* Mod_LeafPVS(mleaf_t* leaf, model_t* model) {
+    int index;
+    if (!model || !ModelVisibility::LeafIndex(model, leaf, Mod_GetVisibilityInfo(model), index)) {
+        Sys_Error("Mod_LeafPVS: invalid leaf");
+        return mod_novis;
+    }
+    if (index == 0) {
+        return mod_novis;
+    }
+    if (gPVS && gPVSModel == model && index < gPVSLeafCount) {
+        return CM_LeafPVS(index);
+    }
+    return Mod_DecompressVis(leaf->compressed_vis, model);
 }
 
-void CM_CalcPAS( model_t* model )
-{
-	int rowwords;
-	int actualRowBytes;
-	int i, j, k, l;
-	int index;
-	int num;
-	int bitbyte;
-	unsigned int *dest, *src;
-	byte* scan;
-	int count, vcount, acount;
+void CM_FreePAS() {
+    if (gPAS) {
+        Mem_Free(gPAS);
+    }
+    if (gPVS) {
+        Mem_Free(gPVS);
+    }
+    gPVS = nullptr;
+    gPAS = nullptr;
+    gPVSRowBytes = 0;
+    gPVSLeafCount = 0;
+    gPVSModel = nullptr;
+}
 
-	Con_DPrintf( "Building PAS...\n" );
+void CM_InvalidatePAS(const model_t* model) {
+    if (gPVSModel == model) {
+        CM_FreePAS();
+    }
+}
 
-	CM_FreePAS();
+void CM_CalcPAS(model_t* model) {
+    Con_DPrintf("Building PAS...\n");
+    CM_FreePAS();
 
-	num = ( model->numleafs + 7 ) >> 3;
-	count = model->numleafs + 1;
-	actualRowBytes = ( num + 3 ) & ~3;
-	rowwords = actualRowBytes / 4;
-	gPVSRowBytes = actualRowBytes;
+    std::size_t rowBytes;
+    const ModelVisibilityInfo info = Mod_GetVisibilityInfo(model);
+    if (!model || !model->leafs || !ModelVisibility::RowBytes(model->numleafs, rowBytes) ||
+        info.leafCount <= model->numleafs) {
+        Sys_Error("CM_CalcPAS: invalid leaf count");
+        return;
+    }
+    if (rowBytes == 0) {
+        return;
+    }
 
-	gPVS = (byte*)Mem_Calloc( gPVSRowBytes, count );
+    constexpr std::size_t RowAlignment = sizeof(unsigned int);
+    const std::size_t alignedRowBytes = (rowBytes + RowAlignment - 1) & ~(RowAlignment - 1);
+    const int count = model->numleafs + 1;
+    if (static_cast<std::size_t>(count) > std::numeric_limits<std::size_t>::max() / alignedRowBytes) {
+        Sys_Error("CM_CalcPAS: visibility allocation overflow");
+        return;
+    }
+    const int rowwords = static_cast<int>(alignedRowBytes / RowAlignment);
+    gPVSRowBytes = static_cast<int>(alignedRowBytes);
+    gPVSLeafCount = count;
+    gPVSModel = model;
+    gPVS = static_cast<byte*>(Mem_Calloc(count, alignedRowBytes));
+    if (!gPVS) {
+        CM_FreePAS();
+        Sys_Error("CM_CalcPAS: visibility allocation failed");
+        return;
+    }
 
-	scan = gPVS;
-	vcount = 0;
-	for ( i = 0; i < count; i++, scan += gPVSRowBytes )
-	{
-		CM_DecompressPVS( model->leafs[i].compressed_vis, scan, num );
+    int vcount = 0;
+    for (int i = 0; i < count; ++i) {
+        byte* scan = CM_LeafPVS(i);
+        if (!Mod_DecodeVisibility(model->leafs[i].compressed_vis, model, scan, rowBytes)) {
+            CM_FreePAS();
+            Sys_Error("CM_CalcPAS: invalid visibility row");
+            return;
+        }
+        if (i != 0) {
+            for (int j = 0; j < model->numleafs; ++j) {
+                if (scan[j / ModelVisibility::BitsPerByte] & (1 << (j % ModelVisibility::BitsPerByte))) {
+                    ++vcount;
+                }
+            }
+        }
+    }
 
-		if ( i == 0 )
-			continue;
-
-		// FIXME: special case for axial
-
-		// general box case
-
-		// push the plane out apropriately for mins/maxs
-
-		// FIXME: use signbits into 8 way lookup for each mins/maxs
-		for ( j = 0; j < count; j++ )
-		{
-			if ( scan[j >> 3] & ( 1 << ( j & 7 ) ) )
-				vcount++;
-		}
-	}
-
-	gPAS = (byte*)Mem_Calloc( gPVSRowBytes, count );
-
-	acount = 0;
-	scan = gPVS;
-	dest = (unsigned int*)gPAS;
-	for ( i = 0; i < count; i++, scan += gPVSRowBytes, dest += rowwords )
-	{
-		Q_memcpy( dest, scan, gPVSRowBytes );
-
-		for ( j = 0; j < gPVSRowBytes; j++ )
-		{
-			bitbyte = scan[j];
-			if ( !bitbyte )
-				continue;
-
-			for ( k = 0; k < 8; k++ )
-			{
-				if ( !( bitbyte & ( 1 << k ) ) )
-					continue;
-
-				index = j * 8 + k + 1;
-				if ( index <= 0 || index >= count )
-					continue;
-
-				src = (unsigned int*)( gPVS + index * gPVSRowBytes );
-				for ( l = 0; l < rowwords; l++ )
-					dest[l] |= src[l];
-			}
-		}
-
-		if ( i == 0 )
-			continue;
-
-		for ( j = 0; j < count; j++ )
-		{
-			if ( ( (byte*)dest )[j >> 3] & ( 1 << ( j & 7 ) ) )
-				acount++;
-		}
-	}
-
-	Con_DPrintf( "Average leaves visible / audible / total: %i / %i / %i\n", vcount / count, acount / count, count );
+    gPAS = static_cast<byte*>(Mem_Calloc(count, alignedRowBytes));
+    if (!gPAS) {
+        CM_FreePAS();
+        Sys_Error("CM_CalcPAS: audibility allocation failed");
+        return;
+    }
+    int acount = 0;
+    for (int i = 0; i < count; ++i) {
+        const byte* scan = CM_LeafPVS(i);
+        unsigned int* destination = reinterpret_cast<unsigned int*>(CM_LeafPAS(i));
+        std::memcpy(destination, scan, alignedRowBytes);
+        for (std::size_t j = 0; j < rowBytes; ++j) {
+            const int bitbyte = scan[j];
+            for (int k = 0; k < ModelVisibility::BitsPerByte; ++k) {
+                if (!(bitbyte & (1 << k))) {
+                    continue;
+                }
+                const std::size_t index = j * ModelVisibility::BitsPerByte + k + 1;
+                if (index >= static_cast<std::size_t>(count)) {
+                    continue;
+                }
+                const unsigned int* source = reinterpret_cast<const unsigned int*>(CM_LeafPVS(static_cast<int>(index)));
+                for (int word = 0; word < rowwords; ++word) {
+                    destination[word] |= source[word];
+                }
+            }
+        }
+        if (i != 0) {
+            for (int j = 0; j < model->numleafs; ++j) {
+                if (reinterpret_cast<byte*>(destination)[j / ModelVisibility::BitsPerByte] &
+                    (1 << (j % ModelVisibility::BitsPerByte))) {
+                    ++acount;
+                }
+            }
+        }
+    }
+    Con_DPrintf("Average leaves visible / audible / total: %i / %i / %i\n", vcount / count, acount / count, count);
 }
 
 /*

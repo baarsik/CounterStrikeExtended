@@ -12,6 +12,8 @@
 #include "cdll_int.h"
 #include "engine_studio.h"
 #include "model_loading.h"
+#include "model_visibility.h"
+#include "cmodel.h"
 
 #include <cmath>
 #include <cstdio>
@@ -30,6 +32,7 @@ typedef struct mod_known_info_s
 	qboolean	shouldCRC;
 	qboolean	firstCRCDone;
 	CRC32_t		initialCRC;
+    ModelVisibilityInfo visibility;
 } mod_known_info_t;
 
 model_t		mod_known[MAX_KNOWN_MODELS];
@@ -44,6 +47,16 @@ static mod_known_info_t	mod_known_info[MAX_KNOWN_MODELS];
 static int				tested;
 static int				ad_enabled;
 static char				filename[MAX_OSPATH];
+
+ModelVisibilityInfo Mod_GetVisibilityInfo(const model_t* model) {
+    const std::uintptr_t start = reinterpret_cast<std::uintptr_t>(mod_known);
+    const std::uintptr_t address = reinterpret_cast<std::uintptr_t>(model);
+    if (!model || address < start || (address - start) % sizeof(model_t) != 0 ||
+        (address - start) / sizeof(model_t) >= static_cast<std::size_t>(mod_numknown)) {
+        return {};
+    }
+    return mod_known_info[(address - start) / sizeof(model_t)].visibility;
+}
 
 extern byte texgammatable[256];
 
@@ -93,11 +106,15 @@ Mod_ClearAll
 */
 void Mod_ClearAll()
 {
+    CM_FreePAS();
+
 	for ( int i = 0; i < mod_numknown; i++ )
 	{
 		model_t* mod = &mod_known[i];
 		if ( mod->needload == ( NL_NEEDS_LOADED | NL_UNREFERENCED ) )
 			continue;
+
+        mod_known_info[i].visibility = {};
 
 		mod->needload = NL_UNREFERENCED;
 		if ( mod->type == mod_sprite )
@@ -148,6 +165,8 @@ model_t* Mod_FindName( qboolean trackCRC, const char* name )
 		i = (int)( mod - mod_known );
 	}
 
+    CM_InvalidatePAS(mod);
+    mod_known_info[i].visibility = {};
 	Mod_FillInCRCInfo( trackCRC, i );
 	Q_strncpy( mod->name, name, sizeof( mod->name ) - 1 );
 	mod->name[sizeof( mod->name ) - 1] = 0;
@@ -322,7 +341,7 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
 		Mod_LoadStudioModel( mod, buffer, length );
 		break;
 	default:
-		Mod_LoadBrushModel( mod, buffer );
+		Mod_LoadBrushModel( mod, buffer, length );
 		break;
 	}
 
@@ -381,6 +400,10 @@ void Mod_Print()
 
 void Mod_ChangeGame()
 {
+    CM_FreePAS();
+    for (int index = 0; index < mod_numknown; ++index) {
+        mod_known_info[index].visibility = {};
+    }
 	for ( int i = 0; i < mod_numknown; i++ )
 	{
 		model_t* mod = &mod_known[i];
@@ -884,6 +907,7 @@ Mod_LoadVisibility
 */
 void Mod_LoadVisibility( lump_t* l )
 {
+    mod_known_info[loadmodel - mod_known].visibility.visBytes = static_cast<std::size_t>(l->filelen);
 	if ( !l->filelen )
 	{
 		loadmodel->visdata = NULL;
@@ -1124,36 +1148,47 @@ void Mod_LoadMarksurfaces( lump_t* l )
 Mod_LoadLeafs
 =================
 */
-void Mod_LoadLeafs( lump_t* l )
-{
-	dleaf_t* in = (dleaf_t*)( mod_base + l->fileofs );
-	if ( (unsigned int)l->filelen % sizeof( *in ) )
-		Sys_Error( "MOD_LoadBmodel: funny lump size in %s", loadmodel->name );
+void Mod_LoadLeafs(lump_t* lump) {
+    constexpr int BoundsDimensions = 3;
+    const int count = lump->filelen / static_cast<int>(sizeof(dleaf_t));
+    if (lump->filelen <= 0 || lump->filelen % sizeof(dleaf_t) != 0 ||
+        static_cast<std::size_t>(count) > cse::memory::MaximumHunkPayloadBytes / sizeof(mleaf_t)) {
+        Sys_Error("Mod_LoadLeafs: invalid leaf lump in %s", loadmodel->name);
+        return;
+    }
+    mleaf_t* leafs = static_cast<mleaf_t*>(Hunk_AllocName(static_cast<int>(count * sizeof(mleaf_t)), loadname));
+    loadmodel->leafs = leafs;
+    loadmodel->numleafs = count;
+    ModelVisibilityInfo& visibility = mod_known_info[loadmodel - mod_known].visibility;
+    visibility.leafCount = count;
 
-	int count = (unsigned int)l->filelen / sizeof( *in );
-	mleaf_t* out = (mleaf_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
-	loadmodel->leafs = out;
-	loadmodel->numleafs = count;
+    for (int i = 0; i < count; ++i) {
+        // Lump offsets need not align the native disk-record type.
+        dleaf_t input;
+        std::memcpy(&input, mod_base + lump->fileofs + i * sizeof(input), sizeof(input));
+        mleaf_t& output = leafs[i];
+        for (int axis = 0; axis < BoundsDimensions; ++axis) {
+            output.minmaxs[axis] = LittleShort(input.mins[axis]);
+            output.minmaxs[BoundsDimensions + axis] = LittleShort(input.maxs[axis]);
+        }
+        output.contents = LittleLong(input.contents);
+        output.firstmarksurface = loadmodel->marksurfaces + input.firstmarksurface;
+        output.nummarksurfaces = LittleShort(input.nummarksurfaces);
 
-	for ( int i = 0; i < count; i++ )
-	{
-		for ( int j = 0; j < 3; j++ )
-		{
-			out[i].minmaxs[j] = LittleShort( in[i].mins[j] );
-			out[i].minmaxs[j + 3] = LittleShort( in[i].maxs[j] );
-		}
-
-		out[i].contents = LittleLong( in[i].contents );
-		out[i].firstmarksurface = loadmodel->marksurfaces + in[i].firstmarksurface;
-		out[i].nummarksurfaces = LittleShort( in[i].nummarksurfaces );
-
-		int vis = LittleLong( in[i].visofs );
-		out[i].compressed_vis = vis == -1 ? NULL : loadmodel->visdata + vis;
-		out[i].efrags = NULL;
-
-		for ( int j = 0; j < NUM_AMBIENTS; j++ )
-			out[i].ambient_sound_level[j] = in[i].ambient_level[j];
-	}
+        const int offset = LittleLong(input.visofs);
+        if (offset == ModelVisibility::NoVisibilityOffset) {
+            output.compressed_vis = nullptr;
+        } else if (offset < 0 || static_cast<std::size_t>(offset) >= visibility.visBytes) {
+            Sys_Error("Mod_LoadLeafs: invalid visibility offset in %s", loadmodel->name);
+            return;
+        } else {
+            output.compressed_vis = loadmodel->visdata + offset;
+        }
+        output.efrags = nullptr;
+        for (int ambient = 0; ambient < NUM_AMBIENTS; ++ambient) {
+            output.ambient_sound_level[ambient] = input.ambient_level[ambient];
+        }
+    }
 }
 
 /*
@@ -1329,8 +1364,14 @@ float RadiusFromBounds( vec_t* mins, vec_t* maxs )
 Mod_LoadBrushModel
 =================
 */
-void Mod_LoadBrushModel( model_t* mod, void* buffer )
+void Mod_LoadBrushModel( model_t* mod, void* buffer, int fileBytes )
 {
+    CM_InvalidatePAS(mod);
+    mod_known_info[mod - mod_known].visibility = {};
+    if (!ModelVisibility::BrushLumps(buffer, fileBytes)) {
+        Sys_Error("Mod_LoadBrushModel: invalid visibility or leaf lump in %s", mod->name);
+        return;
+    }
 	dheader_t* header = (dheader_t*)buffer;
 	loadmodel->type = mod_brush;
 	int version = LittleLong( header->version );
@@ -1416,6 +1457,11 @@ void Mod_LoadBrushModel( model_t* mod, void* buffer )
 		VectorCopy( sub->maxs, mod->maxs );
 		VectorCopy( sub->mins, mod->mins );
 		mod->radius = RadiusFromBounds( mod->mins, mod->maxs );
+        if (sub->visleafs < 0 || sub->visleafs >=
+            mod_known_info[mod - mod_known].visibility.leafCount) {
+            Sys_Error("Mod_LoadBrushModel: invalid visible leaf count in %s", mod->name);
+            return;
+        }
 		mod->numleafs = sub->visleafs;
 
 		if ( i < mod->numsubmodels - 1 )
@@ -1424,6 +1470,7 @@ void Mod_LoadBrushModel( model_t* mod, void* buffer )
 			_snprintf( name, sizeof( name ), "*%i", i + 1 );
 			loadmodel = Mod_FindName( FALSE, name );
 			*loadmodel = *mod;
+            mod_known_info[loadmodel - mod_known].visibility = mod_known_info[mod - mod_known].visibility;
 			Q_strncpy( loadmodel->name, name, sizeof( loadmodel->name ) - 1 );
 			loadmodel->name[sizeof( loadmodel->name ) - 1] = 0;
 			mod = loadmodel;
