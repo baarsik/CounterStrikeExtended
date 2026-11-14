@@ -4,6 +4,14 @@ A fork of BlackShadow/GoldSrc-SDK for Counter-Strike 1.6 and Half-Life, includin
 the engine, game modules, shared runtime, dedicated servers and HLTV. The runtime
 uses SDL3 for platform services and libmpg123 for music playback.
 
+## AMX Mod X module
+
+The optional `cse_extstats` AMXX module for Win32/Linux32 Counter-Strike servers
+provides 32-bit health and armor messages and five-digit CSE HUD values up to
+99999. It includes automatic synchronization and Pawn natives for updating player
+stats while preserving legacy client compatibility. See the
+[build, installation and API guide](docs/extended-stats.md).
+
 ## Building
 
 Supported runtime builds are Windows x86, Windows x64 and macOS Apple Silicon.

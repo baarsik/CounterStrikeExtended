@@ -52,6 +52,8 @@ jobs:
               python -m pip install --disable-pip-version-check --no-cache-dir ninja==1.13.2
               cmake --preset amxx-linux32-release
               cmake --build --preset amxx-linux32-release --parallel 2
+              # Let the host runner add source archives to the container build outputs.
+              chown -R --reference=/workspace build/amxx-linux32-release
             '
 
       - name: Include corresponding source
