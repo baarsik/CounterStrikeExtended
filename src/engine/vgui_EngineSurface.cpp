@@ -2,6 +2,7 @@
 #include "VGui1NativeRuntime.h"
 #endif
 #include "vgui_EngineSurface.h"
+#include "image_consistency.h"
 #include "glquake.h"
 
 EngineSurface* EngineSurface::s_pEngineSurface = NULL;
@@ -19,6 +20,7 @@ EngineSurface::EngineSurface()
 
 EngineSurface::~EngineSurface()
 {
+    cse::engine_image::ForgetFileTextures(this);
 #if defined(__APPLE__)
     cse_vgui1_native::ForgetEngineSurface(this);
 #endif

@@ -573,7 +573,9 @@ void R_LoadSkys() {
 
 		if ( !paletted )
 		{
-			skipBMP = TRUE;
+            if (!webpLoaded) {
+                skipBMP = TRUE;
+            }
 			snprintf( name, sizeof( name ), "gfx/env/%s%s.tga", movevars.skyName, suf[i] );
 
             if (!webpLoaded && !LoadTargaImage(name, buffer, SkyFaceBytes, NULL, NULL, FALSE)) {

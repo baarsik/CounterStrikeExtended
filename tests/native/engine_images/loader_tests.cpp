@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 
 using byte = unsigned char;
 using qboolean = int;
@@ -97,11 +98,14 @@ struct TestCvar { float value; };
 static TestCvar fs_perf_warnings = {0};
 static bool IsPowerOfTwo(int value) { return value > 0 && !(value & (value - 1)); }
 #endif
-class EngineSurface {
+class IEngineSurface {};
+class EngineSurface : public IEngineSurface {
 public:
 #ifdef TEST_SOFTWARE
     TestRenderPlatform* _renderPlat = &renderPlatform;
 #endif
+    ~EngineSurface() { cse::engine_image::ForgetFileTextures(this); }
+    void refreshFileTextures() {}
     void drawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload);
     void drawSetTexture(int) {}
     void drawSetTextureRGBA(int, const char* data, int width, int height, int, int) {
@@ -109,6 +113,13 @@ public:
         textureExists = true;
     }
 };
+// This loader suite runs disconnected; connected policy/cache behavior lives in
+// tests/native/image_consistency and extracts the production connection lifecycle.
+enum { force_exactfile = 0 };
+struct consistency_t { char* filename; int issound; int check_type; };
+struct TestClientState { int num_consistency; consistency_t consistency_list[1]; };
+static TestClientState cl{};
+#include "image_policy.inc"
 #ifdef TEST_HARDWARE
 #include "hardware_surface.inc"
 #else
@@ -136,13 +147,27 @@ static TestCvar gl_palette_tex = {1};
 static TestCvar gl_dither = {0};
 static byte texgammatable[256];
 static struct { char skyName[32]; } movevars = {"test"};
-static std::vector<byte> uploadedPixels;
+constexpr int TestSkyFaceDimension = 256;
+constexpr int TestSkyFacePixels = TestSkyFaceDimension * TestSkyFaceDimension;
+constexpr int TestRgbaChannels = 4;
+struct SkyUpload {
+    int internalFormat;
+    int format;
+    int width;
+    int height;
+    std::vector<byte> pixels;
+};
+static std::vector<SkyUpload> skyUploads;
+static int skyBmpLoadCount = 0;
+static short skyPaletteAddResult = 0;
 static std::vector<byte> mapPixels;
 void* Mem_Malloc(int size) { return std::malloc(size); }
 void Mem_Free(void* pointer) { std::free(pointer); }
 void qglDeleteTextures(int, const GLuint*) {}
 void GL_PaletteClearSky() {}
-short GL_PaletteAdd(byte*, qboolean) { return 0; }
+short GL_PaletteAdd(byte*, qboolean) {
+    return skyPaletteAddResult;
+}
 int GL_GenTexture() { return 1; }
 void GL_Bind(int) {}
 void qglTexParameterf(int, int, int) {}
@@ -151,24 +176,19 @@ void VideoMode_GetCurrentVideoMode(int* width, int* height, int* bpp) {
     *height = 480;
     *bpp = 32;
 }
-void qglTexImage2D(int, int, int, int width, int height, int, int format, int, const byte* data) {
-    if (format == GL_RGBA) {
-        uploadedPixels.assign(data, data + width * height * 4);
-    } else {
-        uploadedPixels.assign(width * height * 4, 0);
-        for (int i = 0; i < width * height; ++i) {
-            uploadedPixels[i * 4] = 255;
-            uploadedPixels[i * 4 + 1] = 255;
-            uploadedPixels[i * 4 + 3] = 255;
-        }
-    }
+void qglTexImage2D(int, int, int internalFormat, int width, int height, int, int format, int, const byte* data) {
+    const int channels = format == GL_RGBA ? TestRgbaChannels : 1;
+    skyUploads.push_back({internalFormat, format, width, height, {data, data + width * height * channels}});
 }
-void LoadBMP8(FileHandle_t, byte** palette, int* count, byte** indexed, int* width, int* height) {
-    *palette = static_cast<byte*>(std::calloc(768, 1));
-    *indexed = static_cast<byte*>(std::calloc(256 * 256, 1));
+void LoadBMP8(FileHandle_t file, byte** palette, int* count, byte** indexed, int* width, int* height) {
+    constexpr int PaletteBytes = 256 * 3;
+    ++skyBmpLoadCount;
+    *palette = static_cast<byte*>(std::calloc(PaletteBytes, 1));
+    *indexed = static_cast<byte*>(std::malloc(TestSkyFacePixels));
+    std::memset(*indexed, file->front(), TestSkyFacePixels);
     *count = 1;
-    *width = 256;
-    *height = 256;
+    *width = TestSkyFaceDimension;
+    *height = TestSkyFaceDimension;
 }
 #define Q_strcmp strcmp
 #define Q_strcpy strcpy
@@ -375,34 +395,147 @@ int main() {
     surface.drawSetTextureFile(1, "explicit.WEBP", 0, true);
     Check(surfacePixels == expected, "surface accepts an explicit WebP path without appending .tga");
 #ifdef TEST_HARDWARE
-    std::vector<byte> skyPixels(256 * 256 * 4, 0);
-    for (int pixel = 0; pixel < 256 * 256; ++pixel) {
-        skyPixels[pixel * 4] = 255;
-        skyPixels[pixel * 4 + 3] = 255;
+    std::vector<byte> skyPixels(TestSkyFacePixels * TestRgbaChannels, 0);
+    std::vector<byte> targaSkyPixels(TestSkyFacePixels * TestRgbaChannels, 0);
+    for (int pixel = 0; pixel < TestSkyFacePixels; ++pixel) {
+        skyPixels[pixel * TestRgbaChannels] = 255;
+        skyPixels[pixel * TestRgbaChannels + 3] = 255;
+        targaSkyPixels[pixel * TestRgbaChannels] = 255;
+        targaSkyPixels[pixel * TestRgbaChannels + 1] = 255;
+        targaSkyPixels[pixel * TestRgbaChannels + 3] = 255;
     }
-    const std::vector<byte> skyWebP = WebPFixture(skyPixels, 256, 256);
+    const std::vector<byte> skyWebP = WebPFixture(skyPixels, TestSkyFaceDimension, TestSkyFaceDimension);
     const char* faces[] = {"rt", "bk", "lf", "ft", "up", "dn"};
+    constexpr std::size_t SkyFaceCount = sizeof(faces) / sizeof(faces[0]);
+    const int rgbaFormats[] = {GL_RGBA, GL_RGBA, GL_RGBA, GL_RGBA, GL_RGBA, GL_RGBA};
+    const int indexedFormats[] = {
+        GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX
+    };
+    auto resetHardwareSky = [&]() {
+        for (const char* face : faces) {
+            for (const char* extension : {".webp", ".bmp", ".tga"}) {
+                files.erase(std::string("gfx/env/test") + face + extension);
+            }
+        }
+        skyUploads.clear();
+        skyBmpLoadCount = 0;
+        skyPaletteAddResult = 0;
+        qglColorTableEXT = 1;
+        gl_palette_tex.value = 1;
+        std::snprintf(movevars.skyName, sizeof(movevars.skyName), "%s", "test");
+        gLoadSky = TRUE;
+    };
+    auto checkHardwareSky = [&](const int* formats, const std::vector<std::vector<byte>>& pixels, const char* label) {
+        const std::string description(label);
+        Check(skyUploads.size() == SkyFaceCount,
+              (description + ": uploads all six faces (got " + std::to_string(skyUploads.size()) + ")").c_str());
+        for (std::size_t face = 0; face < std::min(skyUploads.size(), SkyFaceCount); ++face) {
+            const SkyUpload& upload = skyUploads[face];
+            const std::string faceDescription = description + ": " + faces[face];
+            const int internalFormat = formats[face] == GL_RGBA ? GL_RGBA8 : GL_COLOR_INDEX8_EXT;
+            Check(upload.format == formats[face] && upload.internalFormat == internalFormat,
+                  (faceDescription + " uses the expected upload formats").c_str());
+            Check(upload.width == TestSkyFaceDimension && upload.height == TestSkyFaceDimension,
+                  (faceDescription + " uploads a complete 256x256 face").c_str());
+            Check(upload.pixels == pixels[face], (faceDescription + " preserves every face byte").c_str());
+        }
+    };
+    resetHardwareSky();
     for (const char* face : faces) {
         files[std::string("gfx/env/test") + face + ".webp"] = skyWebP;
         files[std::string("gfx/env/test") + face + ".bmp"] = {1};
     }
     R_LoadSkys();
-    Check(uploadedPixels == skyPixels, "hardware sky WebP replaces a same-base paletted BMP");
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, skyPixels),
+                     "hardware sky WebP replaces same-base paletted BMPs");
+    skyUploads.clear();
     for (const char* face : faces) {
         files[std::string("gfx/env/test") + face + ".webp"] = webp;
     }
     gLoadSky = TRUE;
     R_LoadSkys();
-    Check(uploadedPixels[0] == 255 && uploadedPixels[1] == 255 && uploadedPixels[2] == 0,
-          "wrong-sized WebP sky replacement retains the valid BMP fallback");
+    checkHardwareSky(indexedFormats,
+                     std::vector<std::vector<byte>>(SkyFaceCount, std::vector<byte>(TestSkyFacePixels, 1)),
+                     "wrong-sized WebP sky replacement retains valid BMP fallback");
+    skyUploads.clear();
     for (const char* face : faces) {
         files.erase(std::string("gfx/env/test") + face + ".bmp");
-        files[std::string("gfx/env/test") + face + ".tga"] = TargaFixture(256, 256);
+        files[std::string("gfx/env/test") + face + ".tga"] =
+            TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
     }
     gLoadSky = TRUE;
     R_LoadSkys();
-    Check(uploadedPixels[0] == 255 && uploadedPixels[1] == 255 && uploadedPixels[2] == 0,
-          "wrong-sized WebP sky replacement retains the valid TGA fallback");
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                     "wrong-sized WebP sky replacement retains valid TGA fallback");
+    struct MixedSkyCase {
+        const char* label;
+        std::size_t webpFace;
+        int formats[SkyFaceCount];
+    };
+    const MixedSkyCase mixedSkyCases[] = {
+        {"WebP first, six BMP originals", 0,
+         {GL_RGBA, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX}},
+        {"WebP middle, six BMP originals", 2,
+         {GL_COLOR_INDEX, GL_COLOR_INDEX, GL_RGBA, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX}},
+        {"WebP last, six BMP originals", 5,
+         {GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_COLOR_INDEX, GL_RGBA}}
+    };
+    const byte bmpFaceIndices[] = {11, 29, 53, 97, 151, 233};
+    for (const MixedSkyCase& test : mixedSkyCases) {
+        resetHardwareSky();
+        std::vector<std::vector<byte>> expectedSky;
+        for (std::size_t face = 0; face < SkyFaceCount; ++face) {
+            files[std::string("gfx/env/test") + faces[face] + ".bmp"] = {bmpFaceIndices[face]};
+            expectedSky.push_back(std::vector<byte>(TestSkyFacePixels, bmpFaceIndices[face]));
+        }
+        files[std::string("gfx/env/test") + faces[test.webpFace] + ".webp"] = skyWebP;
+        expectedSky[test.webpFace] = skyPixels;
+        R_LoadSkys();
+        checkHardwareSky(test.formats, expectedSky, test.label);
+        Check(skyBmpLoadCount == static_cast<int>(SkyFaceCount) - 1,
+              (std::string(test.label) + ": loads the other five BMP faces (got "
+               + std::to_string(skyBmpLoadCount) + ")").c_str());
+    }
+    const int disabledPaletteCapabilities[][2] = {{0, 1}, {1, 0}};
+    for (const auto& capability : disabledPaletteCapabilities) {
+        resetHardwareSky();
+        qglColorTableEXT = capability[0];
+        gl_palette_tex.value = static_cast<float>(capability[1]);
+        std::vector<std::vector<byte>> expectedSky(SkyFaceCount, targaSkyPixels);
+        for (const char* face : faces) {
+            files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+            files[std::string("gfx/env/test") + face + ".tga"] =
+                TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+        }
+        files["gfx/env/testlf.webp"] = skyWebP;
+        expectedSky[2] = skyPixels;
+        R_LoadSkys();
+        checkHardwareSky(rgbaFormats, expectedSky, "disabled palette capability retains WebP/TGA selection");
+        Check(skyBmpLoadCount == 0, "disabled palette capability never loads a BMP sky face");
+    }
+    resetHardwareSky();
+    for (const char* face : faces) {
+        files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+        files[std::string("gfx/env/test") + face + ".tga"] =
+            TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+    }
+    constexpr short InvalidPaletteIndex = -1;
+    skyPaletteAddResult = InvalidPaletteIndex;
+    R_LoadSkys();
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                     "failed BMP palette keeps TGA fallback for remaining sky faces");
+    Check(skyBmpLoadCount == 1, "failed BMP palette disables later BMP sky loads");
+    resetHardwareSky();
+    for (const char* face : faces) {
+        files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+        files[std::string("gfx/env/test") + face + ".tga"] =
+            TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+    }
+    files.erase("gfx/env/testrt.bmp");
+    R_LoadSkys();
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                     "missing first BMP retains TGA fallback for remaining sky faces");
+    Check(skyBmpLoadCount == 0, "missing first BMP retains the existing skip of later BMP sky loads");
     std::vector<byte> overview(128 * 128 * 4, 0);
     for (int pixel = 0; pixel < 128 * 128; ++pixel) {
         overview[pixel * 4] = 255;

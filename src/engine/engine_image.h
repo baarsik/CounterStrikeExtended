@@ -2,6 +2,7 @@
 #define CSE_ENGINE_IMAGE_H
 
 #include "image_codec.h"
+#include "image_consistency.h"
 
 #include <cstring>
 #include <string>
@@ -42,8 +43,13 @@ inline unsigned char* LoadLegacyTarga(const char* filename, int* length) {
     if (!filename || !*filename) {
         return nullptr;
     }
-    unsigned char* file = COM_LoadFile(const_cast<char*>(filename), HeapFileAllocation, length);
-    if (file || HasExtension(filename)) {
+    const FilePolicy policy = GetFilePolicy(filename);
+    if (policy.webpChecked && !policy.targaChecked) {
+        return nullptr;
+    }
+    const char* source = policy.targaChecked ? policy.targaPath.c_str() : filename;
+    unsigned char* file = COM_LoadFile(const_cast<char*>(source), HeapFileAllocation, length);
+    if (file || policy.targaChecked || HasExtension(filename)) {
         return file;
     }
     const std::string path = TargaPath(filename);
@@ -62,12 +68,12 @@ inline void CopyRGBA(const image::Image& decoded, unsigned char* buffer, int* wi
 
 inline bool LoadWebP(const char* filename, image::Image& decoded, std::size_t capacity) {
     constexpr int HeapFileAllocation = 5;
-    const std::string path = image::WebPPath(filename);
-    if (path.empty()) {
+    const FilePolicy policy = GetFilePolicy(filename);
+    if (policy.webpPath.empty() || (policy.targaChecked && !policy.webpChecked)) {
         return false;
     }
     int length = 0;
-    unsigned char* file = COM_LoadFile(const_cast<char*>(path.c_str()), HeapFileAllocation, &length);
+    unsigned char* file = COM_LoadFile(const_cast<char*>(policy.webpPath.c_str()), HeapFileAllocation, &length);
     if (!file) {
         return false;
     }

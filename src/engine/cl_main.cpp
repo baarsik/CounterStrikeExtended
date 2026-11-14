@@ -6,6 +6,7 @@
 #endif
 
 #include "client.h"
+#include "image_consistency.h"
 #include "pm_defs.h"
 #include "common.h"
 #include "cvar.h"
@@ -608,6 +609,10 @@ void CL_RegisterResources( sizebuf_t* msg )
 		AddStartupTiming( "begin CL_RegisterResources()" );
 
 	ContinueLoadingProgressBar( "ClientConnect", 8, 0.0f );
+
+    // HUD textures can be cached before the server's list and downloads arrive.
+    // Re-upload their checked files in place, including during demo playback.
+    cse::engine_image::RefreshFileTextures();
 
 	if ( !cls.demoplayback )
 		CL_SendConsistencyInfo( msg );

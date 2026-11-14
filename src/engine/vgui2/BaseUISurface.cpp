@@ -6,6 +6,7 @@
 #include "../../common/sdl3_keyboard.h"
 #include "BaseUISurface.h"
 #include "../keys.h"
+#include "../image_consistency.h"
 #include "../vgui/IPanel.h"
 #include "../vgui/IInput.h"
 #include "../vgui/IInputInternal.h"
@@ -208,6 +209,8 @@ bool BaseUISurface::DeleteTextureByID( int texture )
 	(void)texture;
 	return false;
 #else
+
+    cse::engine_image::ForgetFileTexture(_engineSurface, texture);
 	GLuint id = (GLuint)texture;
 	qglDeleteTextures( 1, &id );
 	return true;

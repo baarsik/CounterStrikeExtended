@@ -32,6 +32,8 @@ start = hardware.index('typedef struct _TargaHeader')
 end = hardware.index('static const char* suf[6]' if 'static const char* suf[6]' in hardware else 'static char* suf[6]', start)
 (out / 'hardware.inc').write_text(hardware[start:end])
 (out / 'sky.inc').write_text(hardware[end:hardware.index('void R_LoadSkys()', end)] + function(hardware, 'void R_LoadSkys('))
+policy = (root / 'src/engine/image_consistency.cpp').read_text()
+(out / 'image_policy.inc').write_text(policy[policy.index('namespace cse {'):])
 map_source = (root / 'src/engine/gl_rmain.cpp').read_text()
 (out / 'map.inc').write_text(function(map_source, 'model_t* R_LoadMapSprite('))
 for renderer, suffix in (('hardware', 'HW'), ('software', 'SW')):

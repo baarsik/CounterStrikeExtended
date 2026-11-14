@@ -254,6 +254,8 @@ Native image paths accept static lossy or lossless WebP, including transparency.
 For legacy `.tga` names and extensionless UI names, a same-basename `.webp` is
 preferred when available; existing TGA and BMP fallback remains supported.
 Explicit `.webp` paths are accepted. Existing game assets need no conversion.
+Scope images honor the server's exact-file requirements: an unchecked local WebP
+cannot replace a checked TGA. Cached images refresh after server resources arrive.
 
 The `screenshot` and `snapshot` commands, numbered movie frame captures and
 `envmap` cubemap captures write lossless `.webp` images. Capture dimensions,
