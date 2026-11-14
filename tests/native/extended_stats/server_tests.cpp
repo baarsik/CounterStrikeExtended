@@ -108,6 +108,11 @@ int main(int, char** argv) {
         state.Connect(1, 0.3);
         state.Frame(0.4, false, false);
         Check(host.kills == 1 && host.players[1].alive, "queued kill never reaches replacement connection");
+        state.Reset();
+        state.SetHealth(1, 65536, true);
+        state.Connect(1, 0.5);
+        state.Frame(0.6, false, false);
+        Check(host.players[1].health == 65536, "AMXX entry callback request survives module connection initialization");
     } else if (test == "publication_reentrancy") {
         Identify(state, host, 1);
         bool changed = false;

@@ -43,7 +43,9 @@ The buffered legacy hook fixture also verifies correction targets the spectated
 subject, follows the completed original in the same destination, and respects
 AMXX BLOCK_ONCE. This keeps unreliable originals ordered before their corrections. Final source checks also found narrow delta health still reaching predicted weapon
 life transitions and dead-view roll. Both consumers now prefer valid local Ex state,
-with regressions observed failing then passing. The final focused suite passes.
+with regressions observed failing then passing. A connection-ordering regression
+also verifies queued setters survive AMXX entry forwards before module initialization,
+while disconnect still discards the preceding connection's operations. The final focused suite passes.
 
 ## Remaining acceptance
 

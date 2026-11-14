@@ -1,3 +1,4 @@
+#include <utility>
 #include "stats_state.h"
 
 namespace cse::extstats {
@@ -26,7 +27,14 @@ void ServerState::Connect(int index, double now) {
     }
     invalid_[index] = true;
     Slot& slot = slots_[index];
+    // AMXX's entry forward can call a native before this module's post-entry hook.
+    // Disconnect already discarded operations belonging to the preceding connection.
+    std::vector<Operation> pending;
+    if (!slot.connected) {
+        pending = std::move(slot.pending);
+    }
     slot = {};
+    slot.pending = std::move(pending);
     slot.connected = true;
     slot.generation = ++nextConnection_;
     slot.alive = player.alive;
