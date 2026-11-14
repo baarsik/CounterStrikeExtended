@@ -3160,6 +3160,9 @@ FileOpenDialog::FileOpenDialog( vgui2::Panel* parent, const char* title, bool bO
 
 	m_pFullPathEdit = new vgui2::ComboBox( this, "FullPathEdit", 6, false );
     m_pFullPathEdit->SetMaximumCharCount(sizeof(m_szLastPath) - 1);
+#if !defined(_WIN32)
+    m_pFullPathEdit->AddActionSignalTarget(this);
+#endif
 
 	m_pFileList = new vgui2::ListPanel( this, "FileList" );
 	m_pFileList->AddColumnHeader( 0, "image", "#FileOpenDialog_Icon", 20, vgui2::ListPanel::COLUMN_IMAGE );
@@ -3634,19 +3637,22 @@ void FileOpenDialog::OnItemSelected()
 	InvalidateLayout( false, false );
 }
 
-void FileOpenDialog::OnTextChanged( KeyValues* kv )
-{
-	vgui2::Panel* pPanel = (vgui2::Panel*)kv->GetPtr( "panel", NULL );
+void FileOpenDialog::OnTextChanged(KeyValues* kv) {
+    auto* panel = static_cast<vgui2::Panel*>(kv->GetPtr("panel", nullptr));
 
-	if ( pPanel == m_pFullPathEdit )
-	{
-		m_pFileNameEdit->SetText( "" );
-		OnOpen();
-	}
-	else if ( pPanel == m_pFileTypeCombo )
-	{
-		PopulateFileList();
-	}
+    if (panel == m_pFullPathEdit) {
+        m_pFileNameEdit->SetText("");
+#if !defined(_WIN32)
+        ValidatePath();
+        PopulateFileList();
+        InvalidateLayout(false, false);
+        Repaint();
+#else
+        OnOpen();
+#endif
+    } else if (panel == m_pFileTypeCombo) {
+        PopulateFileList();
+    }
 }
 
 //-----------------------------------------------------------------------------

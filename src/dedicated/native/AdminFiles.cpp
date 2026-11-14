@@ -75,6 +75,10 @@ Result List(const std::string& path, const std::string& filter) {
     while (!error && iterator != end) {
         const auto& entry = *iterator;
         const bool directory = entry.is_directory(error); // follow directory links, never recurse
+        if (error == std::errc::no_such_file_or_directory) {
+            // A dangling symlink is still a directory entry; opening it validates the target separately.
+            error.clear();
+        }
         if (error) {
             break;
         }

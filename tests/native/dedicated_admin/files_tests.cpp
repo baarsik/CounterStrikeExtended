@@ -25,12 +25,20 @@ int main() {
     std::ofstream(directory / "bans.cfg") << "banid 0 STEAM_0:1:123\n";
     std::ofstream(directory / "ignored.txt") << "ignore";
     fs::create_directory_symlink(directory / "empty", directory / "link");
+    fs::create_symlink(directory / "missing", directory / "dangling.cfg");
     CHECK(files::Parent("/").path == "/");
     CHECK(!files::List("", "*").ok);
     CHECK(files::List((directory / "empty").u8string(), "*").ok);
     CHECK(files::List((directory / "empty").u8string(), "*").entries.empty());
     auto listing = files::List(directory.u8string(), "*.cfg");
-    CHECK(listing.ok && listing.entries.size() == 4); // directories stay navigable under filters
+    CHECK(listing.ok && listing.entries.size() == 5); // directories and dangling links retain their rows
+    bool danglingLinkListed = false;
+    for (const auto& entry : listing.entries) {
+        if (entry.name == "dangling.cfg" && !entry.directory) {
+            danglingLinkListed = true;
+        }
+    }
+    CHECK(danglingLinkListed);
     CHECK(files::Stat((directory / "link").u8string()).directory);
     CHECK(files::Join(directory.u8string(), "bans.cfg").path == (directory / "bans.cfg").u8string());
     CHECK(!files::Stat((directory / "missing").u8string()).ok);

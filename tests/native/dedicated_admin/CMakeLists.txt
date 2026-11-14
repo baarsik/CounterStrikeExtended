@@ -70,13 +70,14 @@ if(CSE_ADMIN_OWNER_BUILD)
     list(APPEND control_objects "${owner_objects}/engine/${source}.o")
   endforeach()
   list(APPEND control_objects "${owner_objects}/common/TextEntryClipboard.cpp.o"
-    "${owner_objects}/common/legacy_wide_format.cpp.o" "${owner_objects}/dedicated/AdminServer.cpp.o"
-    "${owner_objects}/dedicated/native/AdminFiles.cpp.o")
+    "${owner_objects}/common/legacy_wide_format.cpp.o" "${SDK}/dedicated/AdminServer.cpp"
+    "${SDK}/dedicated/native/AdminFiles.cpp")
   add_executable(gui_tests gui_tests.cpp provider_tests.cpp ${control_objects})
   target_compile_definitions(gui_tests PRIVATE CSE_PROVIDER_NO_MAIN=1)
   target_compile_options(gui_tests PRIVATE -include "${SDK}/public/cse_posix_crt.h" -fexceptions -frtti)
-  target_include_directories(gui_tests PRIVATE "${SDK}" "${SDK}/engine" "${SDK}/public"
-    "${SDK}/vgui2/controls" "${SDK}/vgui2/src/public" "${SDK}/common" "${SDK}/cl_dll" "${SDK}/pm_shared"
+  target_include_directories(gui_tests PRIVATE "${SDK}/dedicated" "${SDK}/cstrike/common"
+    "${SDK}/cstrike/public" "${SDK}/vgui2/controls" "${SDK}/cl_dll" "${SDK}/engine"
+    "${SDK}/vgui2/src/public" "${SDK}/common" "${SDK}/public" "${SDK}" "${SDK}/pm_shared"
     "${CSE_ADMIN_OWNER_BUILD}/dependencies/SDL3/source/SDL3-3.4.20/include")
   target_link_libraries(gui_tests PRIVATE
     "${CSE_ADMIN_OWNER_BUILD}/dependencies/SDL3/lib/${CMAKE_BUILD_TYPE}/libSDL3.0.dylib")
@@ -92,7 +93,7 @@ add_test(NAME oversized_response_queue COMMAND provider_tests oversized_response
 
 if(CSE_ADMIN_OWNER_BUILD)
   set(setup_control_objects ${control_objects})
-  list(FILTER setup_control_objects EXCLUDE REGEX "/dedicated/native/AdminFiles.cpp.o$")
+  list(FILTER setup_control_objects EXCLUDE REGEX "/dedicated/native/AdminFiles[.]cpp$")
   add_executable(setup_tests setup_tests.cpp provider_tests.cpp ${setup_control_objects}
     "${SDK}/dedicated/native/AdminFiles.cpp"
     "${SDK}/dedicated/CreateMultiplayerGameServerPage.cpp" "${SDK}/dedicated/native/NativeGui.cpp"

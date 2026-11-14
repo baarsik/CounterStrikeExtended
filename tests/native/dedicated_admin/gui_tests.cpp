@@ -6,13 +6,18 @@
 #include "vgui/ISurface.h"
 #include "vgui/ISystem.h"
 #include "vgui/IVGui.h"
+#include "vgui/KeyValues.h"
+#include "vgui2/controls/Button.h"
+#include "vgui2/controls/ComboBox.h"
 #include "vgui2/controls/ListPanel.h"
+#include "vgui2/controls/TextEntry.h"
 #include "vgui2/controls/controls.h"
 #include <SDL3/SDL.h>
 #include <cstdio>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <filesystem>
+#include <fstream>
 #include <string>
 #define CHECK(expr)                                                                                                    \
     do {                                                                                                               \
@@ -23,6 +28,76 @@
     } while (false)
 extern IGameServerData* ActualProvider();
 extern void PopulateProviderFixture();
+
+static void PumpMessages() {
+    constexpr int MessageFrames = 10;
+    for (int frame = 0; frame < MessageFrames; ++frame) {
+        vgui2::ivgui()->RunFrame();
+    }
+}
+
+static bool HasFile(vgui2::ListPanel* list, const char* name) {
+    for (int row = 0; row < list->GetItemCount(); ++row) {
+        if (std::string(list->GetItem(list->GetItemIDFromRow(row))->GetString("text")) == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void CheckBanImportDirectoryChanges(CGamePanelInfo* panel, const std::string& config) {
+    namespace fs = std::filesystem;
+    constexpr int PathBytes = 1024;
+    const fs::path directory = fs::path(config) / "ban-import zażółć";
+    fs::create_directories(directory / "empty");
+    std::ofstream(directory / "cse-ban-refresh-fixture.cfg") << "banid 0 STEAM_0:1:123\n";
+    std::ofstream(directory / "ignored.txt") << "ignore\n";
+
+    auto* bans = panel->FindChildByName("Ban List", true);
+    CHECK(bans);
+    vgui2::ivgui()->PostMessage(bans->GetVPanel(), new KeyValues("importban"), panel->GetVPanel(), 0.0f);
+    PumpMessages();
+    auto* dialog = bans->FindChildByName("FileOpenDialog", true);
+    CHECK(dialog);
+    auto* path = dynamic_cast<vgui2::ComboBox*>(dialog->FindChildByName("FullPathEdit", false));
+    auto* list = dynamic_cast<vgui2::ListPanel*>(dialog->FindChildByName("FileList", false));
+    auto* filename = dynamic_cast<vgui2::TextEntry*>(dialog->FindChildByName("FileNameEdit", false));
+    auto* open = dynamic_cast<vgui2::Button*>(dialog->FindChildByName("OpenButton", false));
+    CHECK(path && list && filename && open);
+
+    const int directoryItem = path->AddItem(directory.u8string().c_str(), nullptr);
+    filename->SetText("stale.cfg");
+    path->ActivateItem(directoryItem);
+    PumpMessages();
+    CHECK(HasFile(list, "cse-ban-refresh-fixture.cfg"));
+    CHECK(HasFile(list, "empty"));
+    CHECK(!HasFile(list, "ignored.txt"));
+    char selectedName[PathBytes];
+    filename->GetText(selectedName, sizeof(selectedName));
+    CHECK(selectedName[0] == '\0');
+    CHECK(dialog->IsVisible() && open->IsEnabled());
+
+    path->ActivateItemByRow(0); // The native roots list starts with /.
+    PumpMessages();
+    char selectedPath[PathBytes];
+    path->GetText(selectedPath, sizeof(selectedPath));
+    CHECK(std::string(selectedPath) == "/");
+    CHECK(HasFile(list, "tmp"));
+    CHECK(!HasFile(list, "cse-ban-refresh-fixture.cfg"));
+
+    const int emptyItem = path->AddItem((directory / "empty").u8string().c_str(), nullptr);
+    path->ActivateItem(emptyItem);
+    PumpMessages();
+    CHECK(list->GetItemCount() == 0);
+    CHECK(dialog->IsVisible() && open->IsEnabled());
+
+    const int missingItem = path->AddItem((directory / "missing").u8string().c_str(), nullptr);
+    path->ActivateItem(missingItem);
+    PumpMessages();
+    CHECK(list->GetItemCount() == 0);
+    CHECK(!open->IsEnabled());
+}
+
 int main(int argc, char** argv) {
     CHECK(argc == 4);
     const std::string runtime = argv[1];
@@ -71,6 +146,7 @@ int main(int argc, char** argv) {
         CHECK(info);
         auto* rules = dynamic_cast<vgui2::ListPanel*>(info->FindChildByName("RulesList", true));
         CHECK(rules && rules->GetItemCount() >= 6);
+        CheckBanImportDirectoryChanges(panel, config);
         admin.Shutdown();
         CHECK(!admin.IsValid());
         CHECK(admin.GetManageServerInterface(handle) == nullptr);
