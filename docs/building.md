@@ -247,3 +247,31 @@ use the immediate path automatically.
 The [studio batching fixtures](../tests/native/studio_batch/README.md) cover topology,
 engine attribute integration, client state and optional real OpenGL pixel comparisons.
 Their model-topology microbenchmarks do not measure gameplay FPS.
+
+## Image formats
+
+Native image paths accept static lossy or lossless WebP, including transparency.
+For legacy `.tga` names and extensionless UI names, a same-basename `.webp` is
+preferred when available; existing TGA and BMP fallback remains supported.
+Explicit `.webp` paths are accepted. Existing game assets need no conversion.
+
+The `screenshot` and `snapshot` commands, numbered movie frame captures and
+`envmap` cubemap captures write lossless `.webp` images. Capture dimensions,
+colors and existing naming/overwrite rules are retained.
+`src/devtools/image_to_background.py` also generates lossless WebP tiles and
+matching background layout names.
+
+libwebp 1.6.0 is built statically from the checked-in, SHA-256-verified archive
+under `src/external/libwebp-source/`; no system WebP installation or additional
+runtime DLL is required. The owning modules select a provider matching their
+MSVC CRT. Static archives and upstream intermediates stay in the build directory.
+For redistribution, include the source archive, `COPYING` and `PATENTS` from
+that directory.
+
+The focused codec tests run independently of the game:
+
+```sh
+cmake -S tests/native/webp_codec -B build/webp-codec -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/webp-codec --parallel
+ctest --test-dir build/webp-codec --output-on-failure
+```

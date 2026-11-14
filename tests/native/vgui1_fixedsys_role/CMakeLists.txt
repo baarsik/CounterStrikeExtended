@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1FixedSysRole LANGUAGES CXX)
+project(CseVgui1FixedSysRole LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)

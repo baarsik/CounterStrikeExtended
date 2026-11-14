@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1Utf8 LANGUAGES CXX)
+project(CseVgui1Utf8 LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
@@ -73,4 +73,13 @@ if(APPLE)
             "${CSE_HL_GAME}/valve/gfx/vgui/fonts/640_Primary Button Text.tga"
             "/System/Library/Fonts/Courier.ttc")
     endif()
+endif()
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET vgui1_utf8_bitmap_owner)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(vgui1_utf8_bitmap_owner PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(vgui1_utf8_bitmap_owner)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
 endif()

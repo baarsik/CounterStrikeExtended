@@ -1,3 +1,4 @@
+#include "screenshot.h"
 #include "vid.h"
 #include "d_local.h"
 #include "conprint.h"
@@ -14,7 +15,6 @@
 #else
 #include "../common/cse_rect.h"
 #endif
-#include "../common/legacy_bmp_records.h"
 #include <cstdint>
 #include <limits>
 #include <vector>
@@ -111,94 +111,35 @@ extern "C" int VID_Init(unsigned short *palette) {
     return 1;
 }
 
-void VID_TakeSnapshot(const char *pFilename) {
-    cse_bmp::FileHeader hdr{};
-    cse_bmp::InfoHeader bi{};
-    constexpr unsigned int kMaximumSoftwareWidth = 5120;
-    constexpr unsigned int kBitmapChannels = 3;
-    constexpr unsigned int kBitmapRowAlignment = 4;
-    if (!vid.buffer || vid.width == 0 || vid.height == 0 || vid.width > kMaximumSoftwareWidth ||
-        vid.height > MAXHEIGHT || vid.rowbytes < sizeof(unsigned short) * vid.width) {
-        Sys_Error("Invalid software snapshot buffer\n");
-        return;
+void VID_TakeSnapshot(const char* filename) {
+    std::vector<unsigned char> encoded;
+    if (!cse::capture::EncodeSoftware(vid.buffer, vid.width, vid.height, vid.rowbytes, vid.is15bit != 0, encoded) ||
+        !cse::capture::WriteWebP(filename, encoded)) {
+        Con_Printf("Couldn't write WebP snapshot %s\n", filename);
     }
-    const unsigned int rowBytes = kBitmapChannels * vid.width;
-    const unsigned int padded = (rowBytes + kBitmapRowAlignment - 1) & ~(kBitmapRowAlignment - 1);
-    std::vector<byte> rowbuffer(padded, 0);
-    const unsigned int imageBytes = padded * vid.height;
-    FileHandle_t file = FS_Open(pFilename, "wb");
-    if (!file) {
-        Sys_Error("Couldn't create file for snapshot.\n");
-    }
-
-    hdr.bfType = 0x4D42; // 'BM'
-    hdr.bfSize = imageBytes + sizeof(hdr) + sizeof(bi);
-    hdr.bfReserved1 = 0;
-    hdr.bfReserved2 = 0;
-    hdr.bfOffBits = sizeof(hdr) + sizeof(bi);
-    if (FS_Write(&hdr, sizeof(hdr), 1, file) != (int)sizeof(hdr)) {
-        Sys_Error("Couldn't write file header to snapshot.\n");
-    }
-
-    bi.biSize = sizeof(bi);
-    bi.biWidth = vid.width;
-    bi.biHeight = vid.height;
-    bi.biPlanes = 1;
-    bi.biBitCount = 24;
-    bi.biCompression = cse_bmp::RgbCompression;
-    bi.biSizeImage = 0;
-    bi.biXPelsPerMeter = 0;
-    bi.biYPelsPerMeter = 0;
-    bi.biClrUsed = 0;
-    bi.biClrImportant = 0;
-    if (FS_Write(&bi, sizeof(bi), 1, file) != (int)sizeof(bi)) {
-        Sys_Error("Couldn't write bitmap header to snapshot.\n");
-    }
-
-    byte *pSource = vid.buffer + static_cast<std::size_t>(vid.rowbytes) * vid.height;
-    for (unsigned int y = 0; y < vid.height; ++y) {
-        pSource -= vid.rowbytes;
-        unsigned short *pPixel = (unsigned short *)pSource;
-        byte *pDest = rowbuffer.data();
-        for (unsigned int x = 0; x < vid.width; ++x) {
-            unsigned short color = *pPixel++;
-            pDest[0] = (byte)(color << 3);
-            if (is15bit) {
-                pDest[1] = (byte)(color >> 2) & 0xF8;
-                pDest[2] = (byte)(color >> 7) & 0xF8;
-            } else {
-                pDest[1] = (byte)(color >> 3) & 0xFC;
-                pDest[2] = (byte)(color >> 8) & 0xF8;
-            }
-            pDest += 3;
-        }
-
-        if (FS_Write(rowbuffer.data(), padded, 1, file) != static_cast<int>(padded)) {
-            Sys_Error("Couldn't write bitmap data snapshot.\n");
-        }
-    }
-
-    FS_Close(file);
 }
 
-void VID_WriteBuffer(const char *pFilename) {
-    static char basefilename[MAX_PATH];
-    static int filenumber;
+void VID_WriteBuffer(const char* filenameBase) {
+    static char baseFilename[MAX_PATH];
+    static int fileNumber;
     char filename[MAX_PATH];
     int number;
 
-    if (pFilename) {
-        Q_strncpy(basefilename, pFilename, sizeof(basefilename) - 1);
+    if (filenameBase) {
+        Q_strncpy(baseFilename, filenameBase, sizeof(baseFilename) - 1);
         number = 1;
-        filenumber = 1;
+        fileNumber = 1;
     } else {
-        number = filenumber;
+        number = fileNumber;
     }
 
-    _snprintf(filename, sizeof(filename) - 1, "%s%05d.bmp", basefilename, number);
-    filename[sizeof(filename) - 1] = '\0';
+    const int filenameLength = snprintf(filename, sizeof(filename), "%s%05d.webp", baseFilename, number);
+    if (filenameLength < 0 || static_cast<std::size_t>(filenameLength) >= sizeof(filename)) {
+        Con_Printf("Couldn't write WebP movie frame: filename is too long\n");
+        return;
+    }
     VID_TakeSnapshot(filename);
-    filenumber++;
+    ++fileNumber;
 }
 
 extern "C" void VID_UpdateWindowVars(RECT *rect, int x, int y) {

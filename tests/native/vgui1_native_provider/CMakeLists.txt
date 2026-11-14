@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1NativeProvider LANGUAGES CXX)
+project(CseVgui1NativeProvider LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
@@ -95,4 +95,13 @@ if(APPLE)
     add_test(NAME native-owner-bitmap-lifecycle COMMAND native_owner_tests
         "${CMAKE_CURRENT_BINARY_DIR}/owned-inputs")
     set_tests_properties(native-owner-bitmap-lifecycle PROPERTIES TIMEOUT 30)
+endif()
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET native_owner_tests)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(native_owner_tests PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(native_owner_tests)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
 endif()

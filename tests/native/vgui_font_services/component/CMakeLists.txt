@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1FontComponent LANGUAGES CXX)
+project(CseVgui1FontComponent LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../../.." ABSOLUTE)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
@@ -81,3 +81,12 @@ set_tests_properties(font-component-contract font-scoped-preparation font-module
     font-module-repeated
     font-unexpected-use-guards
     PROPERTIES TIMEOUT 20)
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET font_component)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(font_component PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(font_component)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
+endif()

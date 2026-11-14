@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1AppColdAdmission LANGUAGES CXX)
+project(CseVgui1AppColdAdmission LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
@@ -95,4 +95,13 @@ if(CSE_APP_COLD_SANITIZERS)
             -fno-omit-frame-pointer)
         target_link_options(${target} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=all)
     endforeach()
+endif()
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET cold_vgui)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(cold_vgui PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(cold_vgui)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
 endif()

@@ -24,8 +24,8 @@ def convert_to_tiles(input_file, output_folder, tile_size=(256, 256)):
     #
     # resolution	800	600
     #
-    # resource/background/800_1_a_loading.tga		fit		0	0
-    # resource/background/800_1_b_loading.tga		fit		256	0
+    # resource/background/800_1_a_loading.webp		fit		0	0
+    # resource/background/800_1_b_loading.webp		fit		256	0
     # etc
 
     layout_file = f"resolution\t{width}\t{height}\n\n"
@@ -44,9 +44,9 @@ def convert_to_tiles(input_file, output_folder, tile_size=(256, 256)):
             tile = img.crop(box)
 
             tile_char = chr(ord('a')+col)
-            target_file = f"{prefix}_{row}_{tile_char}_loading.tga"
+            target_file = f"{prefix}_{row}_{tile_char}_loading.webp"
             tile_filename = os.path.join(output_img_folder, target_file)
-            tile.save(tile_filename)
+            tile.save(tile_filename, format="WEBP", lossless=True, exact=True)
             print(f"Saved {tile_filename}")
 
             line = f"resource/background/{target_file}\tfit\t{i}\t{j}\n"
@@ -68,7 +68,7 @@ def convert_to_tiles(input_file, output_folder, tile_size=(256, 256)):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python image_to_background.py path_to_image (psd/png/tga)")
+        print("Usage: python image_to_background.py path_to_image (psd/png/tga/webp)")
         sys.exit(1)
 
     img_path = sys.argv[1]

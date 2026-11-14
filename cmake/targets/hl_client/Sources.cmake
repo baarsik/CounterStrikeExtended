@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(hl_client PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/cl_dll/ammo.cpp"
   "${CSE_SDK_DIR}/cl_dll/ammohistory.cpp"
   "${CSE_SDK_DIR}/game_shared/ammo_secondary.cpp"

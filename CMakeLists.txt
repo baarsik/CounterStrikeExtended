@@ -53,6 +53,7 @@ set(CSE_OUTPUT_DIRECTORY "${default_output}" CACHE STRING "Game-relative runtime
 include("${CSE_ROOT}/cmake/RuntimeTargets.cmake")
 include("${CSE_ROOT}/cmake/SDL3Dependency.cmake")
 include("${CSE_ROOT}/cmake/Mpg123Dependency.cmake")
+include("${CSE_ROOT}/cmake/WebPDependency.cmake")
 # VGUI1 must exist before consumers reference its compatibility import library.
 set(runtime_targets vgui hw_engine)
 if(NOT CSE_HARDWARE_ONLY)

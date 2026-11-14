@@ -5,6 +5,7 @@ extern int cnttextures[2];
 #endif
 #include "engine_apiproxy.h"
 #include "vgui_EngineSurface.h"
+#include "engine_image.h"
 #include "glquake.h"
 #include "gl_model.h"
 #include "utlrbtree.h"
@@ -504,44 +505,39 @@ int EngineSurface::isTextureIdValid( int id )
 	return staticGetTextureById( id ) != nullptr;
 }
 
-void EngineSurface::drawSetTextureFile( int id, const char* filename, int hardwareFilter, bool forceReload )
-{
-	constexpr int SURFACE_IMAGE_BYTES = 1024 * 1024;
-	constexpr int SURFACE_IMAGE_PATH_BYTES = 512;
-	auto* texture = staticGetTextureById( id );
-	if ( texture && !forceReload )
-	{
-		drawSetTexture( id );
-		return;
-	}
-	byte* pixels = static_cast<byte*>( std::malloc( SURFACE_IMAGE_BYTES ) );
-	int width, height;
-	char path[SURFACE_IMAGE_PATH_BYTES];
-	_snprintf( path, sizeof( path ), "%s.tga", filename );
-	if ( LoadTGA( path, pixels, SURFACE_IMAGE_BYTES, &width, &height ) )
-	{
-#if defined( _WIN32 )
-		ASSERT_AT( width && height, 1025 );
+void EngineSurface::drawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload) {
+    constexpr int SURFACE_IMAGE_BYTES = 1024 * 1024;
+    auto* texture = staticGetTextureById(id);
+    if (texture && !forceReload) {
+        drawSetTexture(id);
+        return;
+    }
+    byte* pixels = static_cast<byte*>(std::malloc(SURFACE_IMAGE_BYTES));
+    int width = 0;
+    int height = 0;
+    const std::string path = cse::engine_image::TargaPath(filename);
+    if (LoadTGA(const_cast<char*>(path.c_str()), pixels, SURFACE_IMAGE_BYTES, &width, &height)) {
+#if defined(_WIN32)
+        ASSERT_AT(width && height, 1025);
 #endif
-		drawSetTextureRGBA( id, reinterpret_cast<const char*>( pixels ), width, height, hardwareFilter, 0 );
-		texture = staticGetTextureById( id );
-	}
-	else
-	{
-		_snprintf( path, sizeof( path ), "%s.bmp", filename );
-		FileHandle_t file = FS_Open( path, "rb" );
-		if ( file )
-		{
-			VGui_LoadBMP( file, pixels, SURFACE_IMAGE_BYTES, &width, &height );
-			drawSetTextureRGBA( id, reinterpret_cast<const char*>( pixels ), width, height, hardwareFilter, 0 );
-			texture = staticGetTextureById( id );
-		}
-	}
-	if ( fs_perf_warnings.value != 0.0f && ( !IsPowerOfTwo( width ) || !IsPowerOfTwo( height ) ) )
-		Con_DPrintf( "fs_perf_warnings: Resampling non-power-of-2 image '%s' (%dx%d)\n", filename, width, height );
-	std::free( pixels );
-	if ( texture )
-		drawSetTexture( id );
+        drawSetTextureRGBA(id, reinterpret_cast<const char*>(pixels), width, height, hardwareFilter, 0);
+        texture = staticGetTextureById(id);
+    } else {
+        const std::string bitmapPath = cse::engine_image::BitmapPath(filename);
+        FileHandle_t file = FS_Open(bitmapPath.c_str(), "rb");
+        if (file) {
+            VGui_LoadBMP(file, pixels, SURFACE_IMAGE_BYTES, &width, &height);
+            drawSetTextureRGBA(id, reinterpret_cast<const char*>(pixels), width, height, hardwareFilter, 0);
+            texture = staticGetTextureById(id);
+        }
+    }
+    if (fs_perf_warnings.value != 0.0f && (!IsPowerOfTwo(width) || !IsPowerOfTwo(height))) {
+        Con_DPrintf("fs_perf_warnings: Resampling non-power-of-2 image '%s' (%dx%d)\n", filename, width, height);
+    }
+    std::free(pixels);
+    if (texture) {
+        drawSetTexture(id);
+    }
 }
 
 static constexpr unsigned int SURFACE_PIXEL_BYTES = 4;

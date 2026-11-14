@@ -1,11 +1,7 @@
+#include "screenshot.h"
 #include "../common/sdl3_policy.h"
 // gl_vidnt.c -- NT GL vid component
 #include "video_platform.h"
-#if !defined(_WIN32)
-#include "../common/legacy_bmp_records.h"
-using BITMAPFILEHEADER = cse_bmp::FileHeader;
-using BITMAPINFOHEADER = cse_bmp::InfoHeader;
-#endif
 
 #include "cvar.h"
 #include "cmd.h"
@@ -994,155 +990,60 @@ void GL_Shutdown( CseGameWindowHandle, CseVideoDC, CseVideoContext )
 	FreeFBOObjects();
 }
 
-static void SwapSnapshotChannels( byte* pixels, int pixelCount )
-{
-	int i;
-	byte b;
-
-	// swap rgb to bgr
-	for ( i = 0; i < pixelCount; i++, pixels += 3 )
-	{
-		b = pixels[0];
-		pixels[0] = pixels[2];
-		pixels[2] = b;
-	}
+static bool CaptureSnapshot(const char* filename, int x, int y, int width, int height) {
+    std::vector<unsigned char> pixels;
+    std::vector<unsigned char> encoded;
+    if (!cse::capture::AllocateRGB(width, height, pixels)) {
+        return false;
+    }
+    qglPixelStorei(GL_PACK_ALIGNMENT, 1);
+    qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    return cse::image::EncodeWebPLossless(pixels.data(), width, height, width * cse::image::RgbChannels,
+        cse::image::RgbChannels, true, encoded) && cse::capture::WriteWebP(filename, encoded);
 }
 
-static void WriteSnapshotRows( FileHandle_t file, byte* pixels, int width, int height )
-{
-	int i;
-	int rowBytes = 3 * width;
-	int padded = rowBytes + ( -rowBytes & 3 );
-
-	for ( i = 0; i < height; i++, pixels += rowBytes )
-	{
-		if ( FS_Write( pixels, padded, 1, file ) != padded )
-			Sys_Error( "Couldn't write bitmap data snapshot.\n" );
-	}
+void VID_TakeSnapshot(const char* filename) {
+    int width;
+    int height;
+    if (bDoScaledFBO > 0 || VideoMode_IsWindowed()) {
+        width = static_cast<int>(window_rect.right - window_rect.left);
+        height = static_cast<int>(window_rect.bottom - window_rect.top);
+    } else {
+        width = static_cast<int>(vid.width);
+        height = static_cast<int>(vid.height);
+    }
+    if (!CaptureSnapshot(filename, 0, 0, width, height)) {
+        Con_Printf("Couldn't write WebP snapshot %s\n", filename);
+    }
 }
 
-/*
-===================
-VID_TakeSnapshot
-
-Write vid.buffer out as a windows bitmap file
-*/
-void VID_TakeSnapshot( const char* pFilename )
-{
-	int width, height;
-	int pixelCount;
-	FileHandle_t file;
-	BITMAPFILEHEADER hdr = {};
-	BITMAPINFOHEADER bi = {};
-	byte* pixels;
-
-	if ( bDoScaledFBO > 0 || VideoMode_IsWindowed() )
-	{
-		width = window_rect.right - window_rect.left;
-		height = window_rect.bottom - window_rect.top;
-	}
-	else
-	{
-		width = vid.width;
-		height = vid.height;
-	}
-
-	pixelCount = width * height;
-	file = FS_OpenPathID( pFilename, "wb", "GAMECONFIG" );
-	if ( !file )
-		Sys_Error( "Couldn't create file for snapshot.\n" );
-
-	// file header
-	hdr.bfType = 0x4D42; // 'BM'
-	hdr.bfSize = 3 * pixelCount + sizeof( hdr ) + sizeof( bi );
-	hdr.bfOffBits = sizeof( hdr ) + sizeof( bi );
-	if ( FS_Write( &hdr, sizeof( hdr ), 1, file ) != (int)sizeof( hdr ) )
-		Sys_Error( "Couldn't write file header to snapshot.\n" );
-
-	bi.biSize = sizeof( bi );
-	bi.biWidth = width;
-	bi.biHeight = height;
-	bi.biPlanes = 1;
-	bi.biBitCount = 24;
-	if ( FS_Write( &bi, sizeof( bi ), 1, file ) != (int)sizeof( bi ) )
-		Sys_Error( "Couldn't write bitmap header to snapshot.\n" );
-
-	pixels = (byte*)Mem_Malloc( 3 * width * height + 4 );
-	if ( !pixels )
-		Sys_Error( "Couldn't allocate bitmap header to snapshot.\n" );
-
-	qglPixelStorei( GL_PACK_ALIGNMENT, 1 );
-	qglReadPixels( 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
-	SwapSnapshotChannels( pixels, pixelCount );
-	WriteSnapshotRows( file, pixels, width, height );
-
-	Mem_Free( pixels );
-	FS_Close( file );
+void VID_TakeSnapshotRect(char* filename, int x, int y, int width, int height) {
+    if (!CaptureSnapshot(filename, x, y, width, height)) {
+        Con_Printf("Couldn't write WebP snapshot %s\n", filename);
+    }
 }
 
-void VID_TakeSnapshotRect( char* pFilename, int x, int y, int w, int h )
-{
-	int pixelCount;
-	FileHandle_t file;
-	BITMAPFILEHEADER hdr = {};
-	BITMAPINFOHEADER bi = {};
-	byte* pixels;
+void VID_WriteBuffer(const char* filenameBase) {
+    static char baseFilename[MAX_PATH];
+    static int fileNumber;
+    char filename[MAX_PATH];
+    int number;
 
-	pixelCount = w * h;
-	file = FS_OpenPathID( pFilename, "wb", "GAMECONFIG" );
-	if ( !file )
-		Sys_Error( "Couldn't create file for snapshot.\n" );
+    if (filenameBase) {
+        Q_strncpy(baseFilename, filenameBase, sizeof(baseFilename) - 1);
+        number = 1;
+        fileNumber = 1;
+    } else {
+        number = fileNumber;
+    }
 
-	// file header
-	hdr.bfType = 0x4D42; // 'BM'
-	hdr.bfSize = 3 * w * h + sizeof( hdr ) + sizeof( bi );
-	hdr.bfOffBits = sizeof( hdr ) + sizeof( bi );
-	if ( FS_Write( &hdr, sizeof( hdr ), 1, file ) != (int)sizeof( hdr ) )
-		Sys_Error( "Couldn't write file header to snapshot.\n" );
-
-	bi.biSize = sizeof( bi );
-	bi.biWidth = w;
-	bi.biHeight = h;
-	bi.biPlanes = 1;
-	bi.biBitCount = 24;
-	if ( FS_Write( &bi, sizeof( bi ), 1, file ) != (int)sizeof( bi ) )
-		Sys_Error( "Couldn't write bitmap header to snapshot.\n" );
-
-	pixels = (byte*)Mem_Malloc( 3 * pixelCount );
-	if ( !pixels )
-		Sys_Error( "Couldn't allocate bitmap header to snapshot.\n" );
-
-	qglPixelStorei( GL_PACK_ALIGNMENT, 1 );
-	qglReadPixels( x, y, w, h, GL_RGB, GL_UNSIGNED_BYTE, pixels );
-	SwapSnapshotChannels( pixels, pixelCount );
-	WriteSnapshotRows( file, pixels, w, h );
-
-	Mem_Free( pixels );
-	FS_Close( file );
-}
-
-void VID_WriteBuffer( const char* pFilename )
-{
-	static char basefilename[MAX_PATH];
-	static int filenumber;
-	char filename[MAX_PATH];
-	int number;
-
-	if ( pFilename )
-	{
-		Q_strncpy( basefilename, pFilename, sizeof( basefilename ) - 1 );
-		number = 1;
-		filenumber = 1;
-	}
-	else
-	{
-		number = filenumber;
-	}
-
-	_snprintf( filename, sizeof( filename ) - 1, "%s%05d.bmp", basefilename, number );
-	filename[sizeof( filename ) - 1] = '\0';
-	VID_TakeSnapshot( filename );
-	filenumber++;
+    const int filenameLength = snprintf(filename, sizeof(filename), "%s%05d.webp", baseFilename, number);
+    if (filenameLength < 0 || static_cast<std::size_t>(filenameLength) >= sizeof(filename)) {
+        Con_Printf("Couldn't write WebP movie frame: filename is too long\n");
+        return;
+    }
+    VID_TakeSnapshot(filename);
+    ++fileNumber;
 }
 
 int VID_AllocBuffers()

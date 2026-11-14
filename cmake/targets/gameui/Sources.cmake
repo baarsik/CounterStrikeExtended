@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(gameui PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/common/interface_language_preference.cpp"
   "${CSE_SDK_DIR}/GameUI/OptionsSubInterface.cpp"
   "${CSE_SDK_DIR}/common/steam_service.cpp"

@@ -18,6 +18,7 @@
 #include "../../common/sdl3_policy.h"
 #include "../../common/legacy_text_encoding.h"
 #include "../../common/legacy_bmp_records.h"
+#include "image_codec.h"
 #include <algorithm>
 #include <array>
 #include <climits>
@@ -744,17 +745,30 @@ void CSDLSurface::DrawSetTextureFile(int id, const char* filename, int filter, b
     if (found == textures_.end() || !filename) {
         return;
     }
-    std::vector<unsigned char> file;
-    std::string path(filename);
-    if (path.size() < 4 || path.substr(path.size() - 4) != ".tga") {
-        path += ".tga";
-    }
-    if (!force && found->second.filename == path && !found->second.pixels.empty()) {
+    const std::string request(filename);
+    if (!force && found->second.filename == request && !found->second.pixels.empty()) {
         texture_ = id;
         return;
     }
+    std::vector<unsigned char> file;
+    const std::string webpPath = cse::image::WebPPath(filename);
+    if (ReadFile(webpPath.c_str(), file, "SKIN") || ReadFile(webpPath.c_str(), file)) {
+        cse::image::Image image;
+        if (cse::image::DecodeWebP(file.data(), file.size(), image)
+            && found->second.Assign(image.rgba.data(), image.width, image.height, false, filter != 0)) {
+            found->second.filename = request;
+            texture_ = id;
+            return;
+        }
+    }
+    if (cse::image::HasWebPExtension(filename)) {
+        return;
+    }
+    const std::string stem = webpPath.substr(0, webpPath.size() - 5);
+    // Preserve the requested TGA spelling on case-sensitive filesystems.
+    const std::string path = request.size() == stem.size() + 4 ? request : stem + ".tga";
     if (!ReadFile(path.c_str(), file, "SKIN") && !ReadFile(path.c_str(), file)) {
-        const std::string bitmapPath = path.substr(0, path.size() - 4) + ".bmp";
+        const std::string bitmapPath = stem + ".bmp";
         if (!ReadFile(bitmapPath.c_str(), file, "SKIN") && !ReadFile(bitmapPath.c_str(), file)) {
             return;
         }
@@ -763,8 +777,7 @@ void CSDLSurface::DrawSetTextureFile(int id, const char* filename, int filter, b
         int height = 0;
         if (DecodeIndexedBitmap(file, rgba, width, height)
             && found->second.Assign(rgba.data(), width, height, false, filter != 0)) {
-            // Cache the requested TGA-first lookup, as the retained loader does.
-            found->second.filename = path;
+            found->second.filename = request;
             texture_ = id;
         }
         return;
@@ -837,7 +850,7 @@ void CSDLSurface::DrawSetTextureFile(int id, const char* filename, int filter, b
         }
     }
     if (found->second.Assign(rgba.data(), width, height, false, filter != 0)) {
-        found->second.filename = path;
+        found->second.filename = request;
         texture_ = id;
     }
 }

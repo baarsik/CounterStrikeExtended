@@ -161,3 +161,11 @@ if(NOT WIN32)
   cse_link_sdl3(vgui2 Debug)
   cse_link_sdl3(vgui2 Release)
 endif()
+
+# Shared image codec uses the same CRT as this module.
+cse_link_webp(vgui2)
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()

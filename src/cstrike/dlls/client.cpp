@@ -1896,6 +1896,34 @@ BOOL HandleBuyAliasCommands( CBasePlayer* player, const char* command )
 	return handled;
 }
 
+static void PrecacheScopeImages() {
+    struct ScopeImageFiles {
+        const char* targa;
+        const char* webp;
+    };
+    // The engine retains these filename pointers in its resource and consistency lists.
+    static const ScopeImageFiles images[] = {
+        {"sprites/scope_arc.tga", "sprites/scope_arc.webp"},
+        {"sprites/scope_arc_nw.tga", "sprites/scope_arc_nw.webp"},
+        {"sprites/scope_arc_ne.tga", "sprites/scope_arc_ne.webp"},
+        {"sprites/scope_arc_sw.tga", "sprites/scope_arc_sw.webp"}
+    };
+    Vector zero = g_vecZero;
+    for (const ScopeImageFiles& image : images) {
+        const bool hasTarga = g_engfuncs.pfnGetFileSize(const_cast<char*>(image.targa)) >= 0;
+        const bool hasWebP = g_engfuncs.pfnGetFileSize(const_cast<char*>(image.webp)) >= 0;
+        if (hasTarga || !hasWebP) {
+            // Retain the legacy missing-resource path when neither image is installed.
+            PRECACHE_GENERIC(const_cast<char*>(image.targa));
+            ENGINE_FORCE_UNMODIFIED(force_exactfile, zero, zero, image.targa);
+        }
+        if (hasWebP) {
+            PRECACHE_GENERIC(const_cast<char*>(image.webp));
+            ENGINE_FORCE_UNMODIFIED(force_exactfile, zero, zero, image.webp);
+        }
+    }
+}
+
 void ClientPrecache()
 {
 	const char* sounds[] =
@@ -1980,8 +2008,7 @@ void ClientPrecache()
 	const char* exactFiles[] =
 	{
 		"sprites/black_smoke1.spr", "sprites/black_smoke2.spr", "sprites/black_smoke3.spr", "sprites/black_smoke4.spr",
-		"sprites/fast_wallpuff1.spr", "sprites/smokepuff.spr", "sprites/gas_puff_01.spr",
-		"sprites/scope_arc.tga", "sprites/scope_arc_nw.tga", "sprites/scope_arc_ne.tga", "sprites/scope_arc_sw.tga"
+		"sprites/fast_wallpuff1.spr", "sprites/smokepuff.spr", "sprites/gas_puff_01.spr"
 	};
 	for ( int file = 0; file < ARRAYSIZE( exactFiles ); ++file )
 		ENGINE_FORCE_UNMODIFIED( force_exactfile, zero, zero, exactFiles[file] );
@@ -2070,10 +2097,7 @@ void ClientPrecache()
 	};
 	for ( int sprite = 0; sprite < ARRAYSIZE( sprites ); ++sprite )
 		PRECACHE_MODEL( (char*)sprites[sprite] );
-	PRECACHE_GENERIC( "sprites/scope_arc.tga" );
-	PRECACHE_GENERIC( "sprites/scope_arc_nw.tga" );
-	PRECACHE_GENERIC( "sprites/scope_arc_ne.tga" );
-	PRECACHE_GENERIC( "sprites/scope_arc_sw.tga" );
+    PrecacheScopeImages();
 	m_usResetDecals = PRECACHE_EVENT( 1, "events/decal_reset.sc" );
 }
 

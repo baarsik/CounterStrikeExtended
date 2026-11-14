@@ -4,6 +4,7 @@
 #include "const.h"
 #include "../engine/utlbuffer.h"
 #include "vgui_controls/Controls.h"
+#include "image_codec.h"
 
 #if defined(_WIN32)
 #include <malloc.h>
@@ -513,26 +514,57 @@ bool LoadTGA( const char* szFilename, byte* buffer, int bufferSize, int* width, 
 
 	(void)errFail;
 
-	FileHandle_t f = vgui2::filesystem()->Open( szFilename, "rb" );
-	int fileLen = vgui2::filesystem()->Size( f );
-
-#ifdef _MSC_VER
-#pragma warning( suppress : 6255 )
-#endif
-	tgafile_mem_buffer = (unsigned char*)_alloca( fileLen );
-	if ( !tgafile_mem_buffer )
-		return false;
-
-	vgui2::filesystem()->Read( tgafile_mem_buffer, fileLen, f );
-	vgui2::filesystem()->Close( f );
-
-	unsigned char* end = tgafile_mem_buffer + fileLen;
-	p = tgafile_mem_buffer;
-
-	if ( width )
-		*width = 0;
-	if ( height )
-		*height = 0;
+    if (width) {
+        *width = 0;
+    }
+    if (height) {
+        *height = 0;
+    }
+    if (!szFilename || !buffer || bufferSize <= 0) {
+        return false;
+    }
+    auto readImage = [](const char* path, std::vector<unsigned char>& bytes) {
+        FileHandle_t file = vgui2::filesystem()->Open(path, "rb");
+        if (!file) {
+            return false;
+        }
+        const unsigned int size = vgui2::filesystem()->Size(file);
+        bool success = false;
+        if (size > 0 && size <= cse::image::MaximumEncodedBytes) {
+            bytes.resize(size);
+            success = vgui2::filesystem()->Read(bytes.data(), static_cast<int>(size), file) == static_cast<int>(size);
+        }
+        vgui2::filesystem()->Close(file);
+        return success;
+    };
+    std::vector<unsigned char> encoded;
+    const std::string webpPath = cse::image::WebPPath(szFilename);
+    if (readImage(webpPath.c_str(), encoded)) {
+        cse::image::Image image;
+        if (cse::image::DecodeWebP(encoded.data(), encoded.size(), image, static_cast<std::size_t>(bufferSize))) {
+            memcpy(buffer, image.rgba.data(), image.rgba.size());
+            if (width) {
+                *width = image.width;
+            }
+            if (height) {
+                *height = image.height;
+            }
+            return true;
+        }
+    }
+    if (cse::image::HasWebPExtension(szFilename)) {
+        return false;
+    }
+    if (!readImage(szFilename, encoded)) {
+        const std::string tgaPath = webpPath.substr(0, webpPath.size() - 5) + ".tga";
+        if (!readImage(tgaPath.c_str(), encoded)) {
+            return false;
+        }
+    }
+    const int fileLen = static_cast<int>(encoded.size());
+    tgafile_mem_buffer = encoded.data();
+    unsigned char* end = tgafile_mem_buffer + fileLen;
+    p = tgafile_mem_buffer;
 
 	if ( fileLen < 18 )
 		return false;

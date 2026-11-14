@@ -10,6 +10,7 @@
 #include "VGUI.h"
 #include "vgui_loadtga.h"
 #include "VGUI_InputStream.h"
+#include "image_codec.h"
 
 
 // ---------------------------------------------------------------------- //
@@ -62,32 +63,51 @@ public:
 	int			m_ReadPos;
 };
 
-vgui::BitmapTGA* vgui_LoadTGA(char const *pFilename)
-{
-	MemoryInputStream stream;
-	
-	stream.m_pData = gEngfuncs.COM_LoadFile((char*)pFilename, 5, &stream.m_DataLen);
-	if(!stream.m_pData)
-		return NULL;
-	
-	stream.m_ReadPos = 0;
-	vgui::BitmapTGA *pRet = new vgui::BitmapTGA(&stream, true);
-	gEngfuncs.COM_FreeFile(stream.m_pData);
-	
-	return pRet;
+namespace {
+vgui::BitmapTGA* LoadBitmap(const char* filename, bool invertAlpha) {
+    MemoryInputStream stream;
+    stream.m_pData = gEngfuncs.COM_LoadFile(const_cast<char*>(filename), 5, &stream.m_DataLen);
+    if (!stream.m_pData) {
+        return NULL;
+    }
+    vgui::BitmapTGA* bitmap = new vgui::BitmapTGA(&stream, invertAlpha);
+    gEngfuncs.COM_FreeFile(stream.m_pData);
+    int width = 0;
+    int height = 0;
+    bitmap->getSize(width, height);
+    if (width <= 0 || height <= 0) {
+        delete bitmap;
+        return NULL;
+    }
+    return bitmap;
 }
 
-vgui::BitmapTGA* vgui_LoadTGANoInvertAlpha(char const *pFilename)
-{
-	MemoryInputStream stream;
-	
-	stream.m_pData = gEngfuncs.COM_LoadFile((char*)pFilename, 5, &stream.m_DataLen);
-	if(!stream.m_pData)
-		return NULL;
-	
-	stream.m_ReadPos = 0;
-	vgui::BitmapTGA *pRet = new vgui::BitmapTGA(&stream, false);
-	gEngfuncs.COM_FreeFile(stream.m_pData);
-	
-	return pRet;
+vgui::BitmapTGA* LoadBitmapWithReplacement(const char* filename, bool invertAlpha) {
+    if (!filename || !filename[0]) {
+        return NULL;
+    }
+    if (cse::image::HasWebPExtension(filename)) {
+        return LoadBitmap(filename, invertAlpha);
+    }
+    const std::string webpPath = cse::image::WebPPath(filename);
+    vgui::BitmapTGA* bitmap = LoadBitmap(webpPath.c_str(), invertAlpha);
+    if (bitmap) {
+        return bitmap;
+    }
+    bitmap = LoadBitmap(filename, invertAlpha);
+    if (bitmap) {
+        return bitmap;
+    }
+    // Legacy callers also pass extensionless image names.
+    const std::string tgaPath = webpPath.substr(0, webpPath.size() - 5) + ".tga";
+    return tgaPath == filename ? NULL : LoadBitmap(tgaPath.c_str(), invertAlpha);
+}
+}
+
+vgui::BitmapTGA* vgui_LoadTGA(const char* filename) {
+    return LoadBitmapWithReplacement(filename, true);
+}
+
+vgui::BitmapTGA* vgui_LoadTGANoInvertAlpha(const char* filename) {
+    return LoadBitmapWithReplacement(filename, false);
 }

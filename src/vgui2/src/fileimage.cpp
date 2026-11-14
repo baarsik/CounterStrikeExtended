@@ -11,6 +11,7 @@
 //=============================================================================
 
 #include "fileimage.h"
+#include "image_codec.h"
 #include "vgui_internal.h"
 #include "FileSystem.h"
 
@@ -94,15 +95,56 @@ bool Load32BitTGA( FileImageStream* fp, FileImage* pImage )
 	TGAFileHeader hdr;
 	char dummyChar;
 	int i, x, y;
-	long color;
+    unsigned char color[cse::image::RgbaChannels];
 	int runLength, curOut;
 	unsigned char* pLine;
 	unsigned char packetHeader;
 
 	pImage->Term();
 
-	// Read and verify the header.
-	fp->Read( &hdr, sizeof( hdr ) );
+    constexpr std::size_t RiffHeaderBytes = 12;
+    constexpr std::size_t RiffPrefixBytes = 8;
+    constexpr unsigned int BitsPerByte = 8;
+    constexpr std::size_t PixelChannels = cse::image::RgbaChannels;
+    unsigned char signature[RiffHeaderBytes] = {};
+    fp->Read(signature, sizeof(signature));
+    if (fp->ErrorStatus()) {
+        return false;
+    }
+    if (cse::image::IsWebP(signature, sizeof(signature))) {
+        const std::size_t riffBytes = static_cast<std::size_t>(signature[4])
+            | (static_cast<std::size_t>(signature[5]) << BitsPerByte)
+            | (static_cast<std::size_t>(signature[6]) << (BitsPerByte * 2))
+            | (static_cast<std::size_t>(signature[7]) << (BitsPerByte * 3));
+        if (riffBytes < RiffHeaderBytes - RiffPrefixBytes
+            || riffBytes > cse::image::MaximumEncodedBytes - RiffPrefixBytes) {
+            return false;
+        }
+        std::vector<unsigned char> encoded(riffBytes + RiffPrefixBytes);
+        memcpy(encoded.data(), signature, sizeof(signature));
+        fp->Read(encoded.data() + RiffHeaderBytes, static_cast<int>(encoded.size() - RiffHeaderBytes));
+        cse::image::Image decoded;
+        if (fp->ErrorStatus() || !cse::image::DecodeWebP(encoded.data(), encoded.size(), decoded)) {
+            return false;
+        }
+        pImage->m_Width = decoded.width;
+        pImage->m_Height = decoded.height;
+        pImage->m_pData = new unsigned char[decoded.rgba.size()];
+        // Existing font-atlas consumers expect top-down BGRA bytes.
+        for (std::size_t pixel = 0; pixel < decoded.rgba.size(); pixel += PixelChannels) {
+            pImage->m_pData[pixel] = decoded.rgba[pixel + 2];
+            pImage->m_pData[pixel + 1] = decoded.rgba[pixel + 1];
+            pImage->m_pData[pixel + 2] = decoded.rgba[pixel];
+            pImage->m_pData[pixel + 3] = decoded.rgba[pixel + 3];
+        }
+        return true;
+    }
+
+    memcpy(&hdr, signature, sizeof(signature));
+    fp->Read(reinterpret_cast<unsigned char*>(&hdr) + RiffHeaderBytes, sizeof(hdr) - RiffHeaderBytes);
+    if (fp->ErrorStatus()) {
+        return false;
+    }
 	if ( hdr.m_PixelDepth != 32 || hdr.m_ImageType != 10 )
 	{
 		return false;
@@ -139,10 +181,10 @@ bool Load32BitTGA( FileImageStream* fp, FileImage* pImage )
 
 			if ( packetHeader & ( 1 << 7 ) )
 			{
-				fp->Read( &color, 4 );
+				fp->Read(color, sizeof(color));
 				for ( x = 0; x < runLength; x++ )
 				{
-					*( (long*)pLine ) = color;
+					memcpy(pLine, color, sizeof(color));
 					pLine += 4;
 				}
 			}
@@ -150,8 +192,8 @@ bool Load32BitTGA( FileImageStream* fp, FileImage* pImage )
 			{
 				for ( x = 0; x < runLength; x++ )
 				{
-					fp->Read( &color, 4 );
-					*( (long*)pLine ) = color;
+					fp->Read(color, sizeof(color));
+					memcpy(pLine, color, sizeof(color));
 					pLine += 4;
 				}
 			}
@@ -187,7 +229,7 @@ void Save32BitTGA( FileHandle_t fp, FileImage* pImage )
 		for ( x = 0; x < pImage->m_Width; x++ )
 		{
 			if ( ( x - runStart ) >= 128
-				|| *( (long*)&pLine[runStart * 4] ) != *( (long*)&pLine[x * 4] ) )
+				|| memcmp(&pLine[runStart * 4], &pLine[x * 4], cse::image::RgbaChannels) != 0 )
 			{
 				// Encode this  Run.
 				WriteRun( &pLine[runStart * 4], fp, x - runStart );

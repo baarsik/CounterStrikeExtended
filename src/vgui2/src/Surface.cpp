@@ -23,6 +23,7 @@
 #include "VPanel.h"
 #include "KeyValues.h"
 #include "FileSystem.h"
+#include "image_codec.h"
 #include "utlrbtree.h"
 #include "utlsymbol.h"
 #include "utlvector.h"
@@ -442,6 +443,8 @@ private:
 
 	Texture* GetTextureById( int id );
 	Texture* AllocTextureForId( int id );
+    bool UploadImagePixels(Texture* texture, const unsigned char* rgba, int columns, int rows, bool hasAlpha);
+    bool LoadWebP(Texture* texture, const char* filename);
 	bool LoadTGA( Texture* texture, const char* filename );
 	bool LoadBMP( Texture* texture, const char* filename );
 
@@ -1710,18 +1713,132 @@ int CWin32Surface::CreateNewTextureID( bool procedural )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+bool CWin32Surface::UploadImagePixels(Texture* texture, const unsigned char* rgba,
+    int columns, int rows, bool hasAlpha) {
+    constexpr unsigned int TransparentMask = 0xffffffffu;
+    texture->_wide = columns;
+    texture->_tall = rows;
+    texture->_icon = NULL;
+
+    BITMAPINFO bitmapInfo;
+    HDC hdc = ContextPlat()->hdc;
+    bitmapInfo.bmiHeader.biWidth = columns;
+    bitmapInfo.bmiHeader.biHeight = -rows;
+    bitmapInfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biSizeImage = 0;
+    bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
+    bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
+    bitmapInfo.bmiHeader.biClrUsed = 0;
+    bitmapInfo.bmiHeader.biClrImportant = 0;
+    texture->_bitmap = CreateDIBSection( hdc, &bitmapInfo, DIB_RGB_COLORS, &texture->_bits, NULL, 0 );
+
+    texture->_masked = hasAlpha;
+    if ( hasAlpha ) {
+        hdc = ContextPlat()->hdc;
+        bitmapInfo.bmiHeader.biWidth = columns;
+        bitmapInfo.bmiHeader.biHeight = -rows;
+        bitmapInfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
+        bitmapInfo.bmiHeader.biPlanes = 1;
+        bitmapInfo.bmiHeader.biBitCount = 32;
+        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+        bitmapInfo.bmiHeader.biSizeImage = 0;
+        bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
+        bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
+        bitmapInfo.bmiHeader.biClrUsed = 0;
+        bitmapInfo.bmiHeader.biClrImportant = 0;
+        texture->_maskBitmap = CreateDIBSection( hdc, &bitmapInfo, DIB_RGB_COLORS, &texture->_maskBits, NULL, 0 );
+    } else {
+        texture->_maskBitmap = NULL;
+    }
+
+    for ( int y = 0; y < texture->_tall; y++ ) {
+        for ( int x = 0; x < texture->_wide; x++ ) {
+            int offset = (x + y * texture->_wide) * cse::image::RgbaChannels;
+            unsigned char* dest = (unsigned char*)texture->_bits + offset;
+            const unsigned char* src = rgba + offset;
+
+            if ( hasAlpha ) {
+                unsigned int* mask = (unsigned int*)( (unsigned char*)texture->_maskBits + offset );
+                if ( src[3] ) {
+                    *mask = TransparentMask;
+                    dest[0] = 0;
+                    dest[1] = 0;
+                    dest[2] = 0;
+                    dest[3] = 0;
+                } else {
+                    *mask = 0;
+                    dest[0] = src[2];
+                    dest[1] = src[1];
+                    dest[2] = src[0];
+                    dest[3] = src[3];
+                }
+            } else {
+                dest[0] = src[2];
+                dest[1] = src[1];
+                dest[2] = src[0];
+                dest[3] = src[3];
+            }
+        }
+    }
+
+    return true;
+}
+
+bool CWin32Surface::LoadWebP(Texture* texture, const char* filename) {
+    const std::string path = cse::image::WebPPath(filename);
+    FileHandle_t file = g_pFileSystem->Open(path.c_str(), "rb", "SKIN");
+    if (!file) {
+        file = g_pFileSystem->Open(path.c_str(), "rb", NULL);
+    }
+    if (!file) {
+        return false;
+    }
+    cse::image::Image image;
+    const unsigned int size = g_pFileSystem->Size(file);
+    bool decoded = false;
+    if (size > 0 && size <= cse::image::MaximumEncodedBytes) {
+        std::vector<unsigned char> encoded(size);
+        decoded = g_pFileSystem->Read(encoded.data(), static_cast<int>(size), file) == static_cast<int>(size)
+            && cse::image::DecodeWebP(encoded.data(), encoded.size(), image);
+    }
+    g_pFileSystem->Close(file);
+    if (!decoded) {
+        return false;
+    }
+    constexpr unsigned char OpaqueAlpha = 255;
+    bool hasAlpha = false;
+    for (std::size_t alpha = cse::image::RgbaChannels - 1; alpha < image.rgba.size();
+         alpha += cse::image::RgbaChannels) {
+        hasAlpha = hasAlpha || image.rgba[alpha] != OpaqueAlpha;
+        // The Win32 standalone renderer uses a binary transparency mask.
+        image.rgba[alpha] = image.rgba[alpha] == 0 ? OpaqueAlpha : 0;
+    }
+    return UploadImagePixels(texture, image.rgba.data(), image.width, image.height, hasAlpha);
+}
+
 bool CWin32Surface::LoadTGA( Texture* texture, const char* filename )
 {
-	char path[1024];
-	_snprintf( path, sizeof( path ), "%s.tga", filename );
+    if (LoadWebP(texture, filename)) {
+        return true;
+    }
+    if (cse::image::HasWebPExtension(filename)) {
+        return false;
+    }
+    const std::string webpPath = cse::image::WebPPath(filename);
+    const std::string stem = webpPath.substr(0, webpPath.size() - 5);
+    const std::string request(filename);
+    const std::string path = request.size() == stem.size() + 4 ? request : stem + ".tga";
 
-	FileHandle_t file = g_pFileSystem->Open( path, "rb", "SKIN" );
+	FileHandle_t file = g_pFileSystem->Open( path.c_str(), "rb", "SKIN" );
 	if ( !file )
 	{
-		file = g_pFileSystem->Open( path, "rb", NULL );
+		file = g_pFileSystem->Open( path.c_str(), "rb", NULL );
 		if ( !file )
 		{
-			return LoadBMP( texture, filename );
+			return LoadBMP(texture, stem.c_str());
 		}
 	}
 
@@ -1731,11 +1848,13 @@ bool CWin32Surface::LoadTGA( Texture* texture, const char* filename )
 	if ( header.image_type != 2 && header.image_type != 10 )
 	{
 		g_pIVgui->DPrintf2( "Error: texture file '%s' has invalid image_type %d\n", filename, header.image_type );
+        g_pFileSystem->Close(file);
 		return false;
 	}
 
 	if ( header.colormap_type != 0 || ( header.pixel_size != 24 && header.pixel_size != 32 ) )
 	{
+        g_pFileSystem->Close(file);
 		return false;
 	}
 
@@ -1886,87 +2005,9 @@ bool CWin32Surface::LoadTGA( Texture* texture, const char* filename )
 
 	g_pFileSystem->Close( file );
 
-	texture->_wide = columns;
-	texture->_tall = rows;
-	texture->_icon = NULL;
-
-	BITMAPINFO bitmapInfo;
-	HDC hdc = ContextPlat()->hdc;
-	bitmapInfo.bmiHeader.biWidth = columns;
-	bitmapInfo.bmiHeader.biHeight = -rows;
-	bitmapInfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
-	bitmapInfo.bmiHeader.biPlanes = 1;
-	bitmapInfo.bmiHeader.biBitCount = 32;
-	bitmapInfo.bmiHeader.biCompression = BI_RGB;
-	bitmapInfo.bmiHeader.biSizeImage = 0;
-	bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
-	bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
-	bitmapInfo.bmiHeader.biClrUsed = 0;
-	bitmapInfo.bmiHeader.biClrImportant = 0;
-	texture->_bitmap = CreateDIBSection( hdc, &bitmapInfo, DIB_RGB_COLORS, &texture->_bits, NULL, 0 );
-
-	texture->_masked = hasAlpha;
-	if ( hasAlpha )
-	{
-		hdc = ContextPlat()->hdc;
-		bitmapInfo.bmiHeader.biWidth = columns;
-		bitmapInfo.bmiHeader.biHeight = -rows;
-		bitmapInfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
-		bitmapInfo.bmiHeader.biPlanes = 1;
-		bitmapInfo.bmiHeader.biBitCount = 32;
-		bitmapInfo.bmiHeader.biCompression = BI_RGB;
-		bitmapInfo.bmiHeader.biSizeImage = 0;
-		bitmapInfo.bmiHeader.biXPelsPerMeter = 0;
-		bitmapInfo.bmiHeader.biYPelsPerMeter = 0;
-		bitmapInfo.bmiHeader.biClrUsed = 0;
-		bitmapInfo.bmiHeader.biClrImportant = 0;
-		texture->_maskBitmap = CreateDIBSection( hdc, &bitmapInfo, DIB_RGB_COLORS, &texture->_maskBits, NULL, 0 );
-	}
-	else
-	{
-		texture->_maskBitmap = NULL;
-	}
-
-	for ( int y = 0; y < texture->_tall; y++ )
-	{
-		for ( int x = 0; x < texture->_wide; x++ )
-		{
-			int offset = ( x + y * texture->_wide ) * 4;
-			unsigned char* dest = (unsigned char*)texture->_bits + offset;
-			unsigned char* src = rgba + offset;
-
-			if ( hasAlpha )
-			{
-				unsigned int* mask = (unsigned int*)( (unsigned char*)texture->_maskBits + offset );
-				if ( src[3] )
-				{
-					*mask = 0xFFFFFFFF;
-					dest[0] = 0;
-					dest[1] = 0;
-					dest[2] = 0;
-					dest[3] = 0;
-				}
-				else
-				{
-					*mask = 0;
-					dest[0] = src[2];
-					dest[1] = src[1];
-					dest[2] = src[0];
-					dest[3] = src[3];
-				}
-			}
-			else
-			{
-				dest[0] = src[2];
-				dest[1] = src[1];
-				dest[2] = src[0];
-				dest[3] = src[3];
-			}
-		}
-	}
-
-	free( rgba );
-	return true;
+    const bool loaded = UploadImagePixels(texture, rgba, columns, rows, hasAlpha);
+    free(rgba);
+    return loaded;
 }
 #pragma warning( pop )
 

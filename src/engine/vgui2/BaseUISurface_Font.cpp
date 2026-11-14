@@ -1,4 +1,5 @@
 #include "BaseUISurface_Font.h"
+#include "image_codec.h"
 
 #include "../controls.h"
 #include "../filesystem.h"
@@ -324,15 +325,53 @@ BaseFontPlat* EngineFont::getPlat()
 	return _plat;
 }
 
-bool Load32BitTGA( FileImageStream* fp, FileImage* pImage )
-{
+bool Load32BitTGA(FileImageStream* fp, FileImage* pImage) {
 	TGAFileHeader hdr;
 	char dummyChar;
 	unsigned char packetHeader;
 	unsigned int color;
 
-	pImage->Term();
-	fp->Read( &hdr, sizeof( hdr ) );
+    pImage->Term();
+    fp->Read(&hdr, sizeof(hdr));
+    if (fp->ErrorStatus()) {
+        return false;
+    }
+    if (cse::image::IsWebP(&hdr, sizeof(hdr))) {
+        constexpr std::size_t RiffSizeOffset = 4;
+        constexpr std::size_t RiffSizeBytes = 4;
+        constexpr std::size_t RiffPrefixBytes = 8;
+        constexpr unsigned int BitsPerByte = 8;
+        const auto* headerBytes = reinterpret_cast<const unsigned char*>(&hdr);
+        std::size_t payloadBytes = 0;
+        for (std::size_t index = 0; index < RiffSizeBytes; ++index) {
+            payloadBytes |= static_cast<std::size_t>(headerBytes[RiffSizeOffset + index]) << (index * BitsPerByte);
+        }
+        if (payloadBytes > cse::image::MaximumEncodedBytes - RiffPrefixBytes) {
+            return false;
+        }
+        const std::size_t encodedBytes = payloadBytes + RiffPrefixBytes;
+        if (encodedBytes < sizeof(hdr)) {
+            return false;
+        }
+        std::vector<unsigned char> encoded(encodedBytes);
+        std::memcpy(encoded.data(), &hdr, sizeof(hdr));
+        fp->Read(encoded.data() + sizeof(hdr), static_cast<int>(encodedBytes - sizeof(hdr)));
+        cse::image::Image decoded;
+        if (fp->ErrorStatus() || !cse::image::DecodeWebP(encoded.data(), encoded.size(), decoded)) {
+            return false;
+        }
+        pImage->m_pData = new unsigned char[decoded.rgba.size()];
+        pImage->m_Width = decoded.width;
+        pImage->m_Height = decoded.height;
+        // The font image API historically exposes BGRA, unlike the renderer's RGBA loader.
+        for (std::size_t offset = 0; offset < decoded.rgba.size(); offset += cse::image::RgbaChannels) {
+            pImage->m_pData[offset] = decoded.rgba[offset + 2];
+            pImage->m_pData[offset + 1] = decoded.rgba[offset + 1];
+            pImage->m_pData[offset + 2] = decoded.rgba[offset];
+            pImage->m_pData[offset + 3] = decoded.rgba[offset + 3];
+        }
+        return true;
+    }
 	if ( hdr.m_PixelDepth != 32 || hdr.m_ImageType != 10 )
 		return false;
 

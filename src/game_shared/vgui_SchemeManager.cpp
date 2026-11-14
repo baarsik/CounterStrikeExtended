@@ -20,11 +20,33 @@
 #include "vgui_SchemeManager.h"
 #include "cvardef.h"
 #include "../cl_dll/localization_client.h"
+#include "image_codec.h"
 
 #include <string.h>
 
 
 cvar_t *g_CV_BitmapFonts;
+
+namespace {
+unsigned char* LoadBitmapFontFile(const char* filename, int& length) {
+    // Preserve the engine-managed allocation used by the legacy atlas loader.
+    constexpr int ClientFileAllocation = 5;
+    const std::string webpPath = cse::image::WebPPath(filename);
+    int webpLength = -1;
+    unsigned char* bytes = gEngfuncs.COM_LoadFile(const_cast<char*>(webpPath.c_str()),
+        ClientFileAllocation, &webpLength);
+    if (bytes) {
+        cse::image::Image image;
+        if (webpLength > 0 && cse::image::DecodeWebP(bytes, static_cast<std::size_t>(webpLength), image)) {
+            length = webpLength;
+            return bytes;
+        }
+        gEngfuncs.COM_FreeFile(bytes);
+    }
+    length = -1;
+    return gEngfuncs.COM_LoadFile(const_cast<char*>(filename), ClientFileAllocation, &length);
+}
+}
 
 
 void Scheme_Init()
@@ -421,7 +443,7 @@ buildDefaultFont:
 					fontRes = 800;
 
 				sprintf(fontFilename, "gfx\\vgui\\fonts\\%d_%s.tga", fontRes, m_pSchemeList[i].schemeName);
-				pFontData = gEngfuncs.COM_LoadFile( fontFilename, 5, &fontFileLength );
+                pFontData = LoadBitmapFontFile(fontFilename, fontFileLength);
 				if(!pFontData)
 					gEngfuncs.Con_Printf("Missing bitmap font: %s\n", fontFilename);
 			}

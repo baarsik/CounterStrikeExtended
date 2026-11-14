@@ -13,6 +13,7 @@
 #include "glquake.h"
 #include "render.h"
 #include "sys.h"
+#include "engine_image.h"
 #include "../common/r_studioint.h"
 #include "../pm_shared/pm_movevars.h"
 
@@ -25,6 +26,7 @@
 #include <climits>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 
 #define SHADEDOT_QUANT 16
 
@@ -1141,10 +1143,12 @@ model_t* R_LoadMapSprite( const char* filename )
 	model = Mod_FindName( false, path );
 	model->needload = false;
 
-	ext = path + Q_strlen( path ) - 3;
-	tga = !Q_strcmp( "tga", ext );
-	if ( !tga && Q_strcmp( "bmp", ext ) )
-		Sys_Error( "Unsupported map image file format.\n" );
+    ext = std::strrchr(path, '.');
+    tga = !cse::engine_image::HasExtension(path) || (ext && !Q_strcmp(".tga", ext))
+        || cse::image::HasWebPExtension(path);
+    if (!tga && (!ext || Q_strcmp(".bmp", ext))) {
+        Sys_Error("Unsupported map image file format.\n");
+    }
 
 	pixels = (byte*)Mem_Malloc( MAP_IMAGE_SIZE );
 	if ( !pixels )

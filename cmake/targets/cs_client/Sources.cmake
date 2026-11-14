@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(cs_client PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/ev_common.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/hl/hl_baseentity.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/hl/hl_events.cpp"

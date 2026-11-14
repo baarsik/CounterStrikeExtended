@@ -8,10 +8,12 @@
 #include "pm_defs.h"
 #include "sys.h"
 #include "zone.h"
+#include "engine_image.h"
 #include "../pm_shared/pm_movevars.h"
 
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 #define MAX_CLIP_VERTS	64
 
@@ -86,12 +88,73 @@ short PutDitheredRGB( colorVec* color )
 		| ( ( color->r << 8 ) & COLOR_REDMASK_565 ) );
 }
 
-byte* R_LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean output32bit )
-{
-	int fileLength;
-	byte* file = COM_LoadFile( filename, 5, &fileLength );
-	if ( !file )
-		return NULL;
+static byte* R_CopyWebPImage(const cse::image::Image& decoded, byte* buffer, int* width, int* height,
+                            qboolean output32bit) {
+    constexpr std::size_t SoftwarePixelBytes = sizeof(unsigned short);
+    const std::size_t capacityScale = output32bit ? 1 : cse::image::RgbaChannels / SoftwarePixelBytes;
+    const std::size_t outputBytes = decoded.rgba.size() / capacityScale;
+    if (!buffer) {
+        buffer = static_cast<byte*>(Hunk_AllocName(static_cast<int>(outputBytes), "SKYBOX"));
+    }
+    if (output32bit) {
+        std::memcpy(buffer, decoded.rgba.data(), outputBytes);
+    } else {
+        for (std::size_t offset = 0; offset < decoded.rgba.size(); offset += cse::image::RgbaChannels) {
+            colorVec color;
+            color.r = decoded.rgba[offset];
+            color.g = decoded.rgba[offset + 1];
+            color.b = decoded.rgba[offset + 2];
+            color.a = decoded.rgba[offset + 3];
+            const short pixel = PutDitheredRGB(&color);
+            std::memcpy(buffer + offset / capacityScale, &pixel, sizeof(pixel));
+        }
+    }
+    if (width) {
+        *width = decoded.width;
+    }
+    if (height) {
+        *height = decoded.height;
+    }
+    return buffer;
+}
+
+static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* width, int* height,
+                            qboolean output32bit, int requiredDimension) {
+    if (width) {
+        *width = 0;
+    }
+    if (height) {
+        *height = 0;
+    }
+    if (buffer && bufferSize <= 0) {
+        return NULL;
+    }
+    constexpr std::size_t SoftwarePixelBytes = sizeof(unsigned short);
+    const std::size_t capacityScale = output32bit ? 1 : cse::image::RgbaChannels / SoftwarePixelBytes;
+    const std::size_t dimensionCapacity = requiredDimension > 0
+        ? static_cast<std::size_t>(requiredDimension) * requiredDimension * cse::image::RgbaChannels
+        : cse::image::MaximumDecodedBytes;
+    const std::size_t bufferCapacity = buffer ? static_cast<std::size_t>(bufferSize) * capacityScale : dimensionCapacity;
+    const std::size_t capacity = bufferCapacity < dimensionCapacity ? bufferCapacity : dimensionCapacity;
+    cse::image::Image decoded;
+    if (cse::engine_image::LoadWebP(filename, decoded, capacity)
+        && (!requiredDimension || (decoded.width == requiredDimension && decoded.height == requiredDimension))) {
+        return R_CopyWebPImage(decoded, buffer, width, height, output32bit);
+    }
+    if (cse::image::HasWebPExtension(filename)) {
+        return NULL;
+    }
+    int fileLength;
+    byte* file = cse::engine_image::LoadLegacyTarga(filename, &fileLength);
+    if (!file) {
+        return NULL;
+    }
+    if (fileLength > 0 && cse::image::IsWebP(file, static_cast<std::size_t>(fileLength))) {
+        const bool loaded = cse::image::DecodeWebP(file, static_cast<std::size_t>(fileLength), decoded, capacity)
+            && (!requiredDimension || (decoded.width == requiredDimension && decoded.height == requiredDimension));
+        COM_FreeFile(file);
+        return loaded ? R_CopyWebPImage(decoded, buffer, width, height, output32bit) : NULL;
+    }
 	if ( width )
 		*width = 0;
 	if ( height )
@@ -107,7 +170,13 @@ byte* R_LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int* 
 	int imageType = file[2];
 	int columns = file[12] + ( file[13] << 8 );
 	int rows = file[14] + ( file[15] << 8 );
-	int pixelSize = file[16];
+    int pixelSize = file[16];
+    if (requiredDimension > 0 && (columns != requiredDimension || rows != requiredDimension)) {
+        COM_FreeFile(file);
+        Con_DPrintf("R_LoadTGA: sky face must be %dx%d (%dx%d found)\n", requiredDimension, requiredDimension,
+                    columns, rows);
+        return NULL;
+    }
 	if ( imageType != 2 && imageType != 10 )
 	{
 		COM_FreeFile( file );
@@ -218,6 +287,11 @@ byte* R_LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int* 
 	return buffer;
 }
 
+byte* R_LoadTGA(char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean output32bit) {
+    constexpr int UnrestrictedDimension = 0;
+    return R_LoadTGAImage(filename, buffer, bufferSize, width, height, output32bit, UnrestrictedDimension);
+}
+
 /*
 =============
 LoadTGA
@@ -233,93 +307,98 @@ qboolean LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int*
 R_LoadSkys
 ==================
 */
-void R_LoadSkys()
-{
-	if ( !gLoadSky )
-		return;
+void R_LoadSkys() {
+    constexpr int SkyFaceDimension = 256;
+    constexpr int SkyFaceBytes = SkyFaceDimension * SkyFaceDimension * sizeof(unsigned short);
+    constexpr int SkyFaceCount = sizeof(suf) / sizeof(suf[0]);
+    constexpr int SkyVertexCount = sizeof(gFakeVerts) / sizeof(gFakeVerts[0]);
+    constexpr int RestartFaceSearch = -1;
+    constexpr float SkyTextureScale = 0.0625f;
+    constexpr float SkyPlaneDistance = 2048.0f;
+    constexpr float SkyTextureOffset = SkyFaceDimension / 2.0f;
+    if (!gLoadSky) {
+        return;
+    }
 
-	qboolean printed = FALSE;
-	for ( int i = 0; i < 6; i++ )
-	{
-		char name[64];
-		snprintf( name, sizeof( name ), "gfx/env/%s%s.tga", movevars.skyName, suf[i] );
-		gSkies[i] = R_LoadTGA( name, NULL, 0, NULL, NULL, FALSE );
-		if ( !gSkies[i] )
-		{
-			Con_Printf( "R_LoadSkys: Couldn't load %s\n", name );
-			gSkies[i] = NULL;
-			if ( !i && Q_strcmp( movevars.skyName, "desert" ) )
-			{
-				Cvar_Set( "movevars.skyname", "desert" );
-				i = -1;
-			}
-			continue;
-		}
-		if ( !printed )
-		{
-			Con_DPrintf( "SKY:  " );
-			printed = TRUE;
-		}
-		Con_DPrintf( "%s%s, ", movevars.skyName, suf[i] );
-		gFilteredSkies[i] = (pixel_t*)Hunk_AllocName( 256 * 256 * 2, "FILTEREDSKYBOX" );
-	}
-	if ( printed )
-		Con_DPrintf( "done\n" );
+    qboolean printed = FALSE;
+    for (int i = 0; i < SkyFaceCount; ++i) {
+        char name[MAX_QPATH];
+        snprintf(name, sizeof(name), "gfx/env/%s%s.tga", movevars.skyName, suf[i]);
+        gSkies[i] = R_LoadTGAImage(name, NULL, 0, NULL, NULL, FALSE, SkyFaceDimension);
+        if (!gSkies[i]) {
+            Con_Printf("R_LoadSkys: Couldn't load %s\n", name);
+            if (!i && Q_strcmp(movevars.skyName, "desert")) {
+                Cvar_Set("movevars.skyname", "desert");
+                i = RestartFaceSearch;
+            }
+            continue;
+        }
+        if (!printed) {
+            Con_DPrintf("SKY:  ");
+            printed = TRUE;
+        }
+        Con_DPrintf("%s%s, ", movevars.skyName, suf[i]);
+        gFilteredSkies[i] = static_cast<pixel_t*>(Hunk_AllocName(SkyFaceBytes, "FILTEREDSKYBOX"));
+    }
+    if (printed) {
+        Con_DPrintf("done\n");
+    }
 
-	for ( int i = 0; i < 4; i++ )
-	{
-		gFakeEdges[i].v[0] = &gFakeVerts[i];
-		gFakeEdges[i].v[1] = &gFakeVerts[( i + 1 ) & 3];
-		gFakeEdges[i].pnext = i < 3 ? &gFakeEdges[i + 1] : NULL;
-	}
-	gFakeTex.width = gFakeTex.height = 256;
-	Q_memset( gFakeSurface, 0, sizeof( gFakeSurface ) );
-	Q_memset( gFakeTexInfo, 0, 240 );
-	for ( int i = 0; i < 6; i++ )
-	{
-		msurface_t* surf = &gFakeSurface[i];
-		mtexinfo_t* tex = &gFakeTexInfo[i];
-		mplane_t* plane = &gFakePlanes[i];
-		int type = gFakePlaneType[i];
-		surf->texturemins[0] = surf->texturemins[1] = 0;
-		surf->extents[0] = surf->extents[1] = 256;
-		surf->texinfo = tex;
-		surf->samples = (color24*)gSkies[skytexorder[i]];
-		surf->plane = plane;
-		surf->flags = SURF_DRAWSKY;
-		VectorClear( plane->normal );
-		VectorClear( tex->vecs[0] );
-		VectorClear( tex->vecs[1] );
-		tex->texture = &gFakeTex;
-		switch ( type )
-		{
-		case 1:
-		case -1:
-			plane->normal[0] = 1;
-			plane->type = 0;
-			tex->vecs[0][1] = type < 0 ? 0.0625f : -0.0625f;
-			tex->vecs[1][2] = -0.0625f;
-			break;
-		case 2:
-		case -2:
-			plane->normal[1] = 1;
-			plane->type = 1;
-			tex->vecs[0][0] = type < 0 ? -0.0625f : 0.0625f;
-			tex->vecs[1][2] = 0.0625f;
-			break;
-		case 3:
-		case -3:
-			plane->normal[2] = 1;
-			plane->type = 2;
-			tex->vecs[0][1] = -0.0625f;
-			tex->vecs[1][0] = type < 0 ? -0.0625f : 0.0625f;
-			break;
-		}
-		plane->dist = type < 0 ? -2048.0f : 2048.0f;
-		tex->vecs[0][3] = tex->vecs[1][3] = 128;
-		tex->mipadjust = 1;
-	}
-	gLoadSky = 0;
+    for (int i = 0; i < SkyVertexCount; ++i) {
+        gFakeEdges[i].v[0] = &gFakeVerts[i];
+        gFakeEdges[i].v[1] = &gFakeVerts[(i + 1) % SkyVertexCount];
+        gFakeEdges[i].pnext = i + 1 < SkyVertexCount ? &gFakeEdges[i + 1] : NULL;
+    }
+    gFakeTex.width = SkyFaceDimension;
+    gFakeTex.height = SkyFaceDimension;
+    Q_memset(gFakeSurface, 0, sizeof(gFakeSurface));
+    Q_memset(gFakeTexInfo, 0, sizeof(gFakeTexInfo));
+    for (int i = 0; i < SkyFaceCount; ++i) {
+        msurface_t* surf = &gFakeSurface[i];
+        mtexinfo_t* tex = &gFakeTexInfo[i];
+        mplane_t* plane = &gFakePlanes[i];
+        const int type = gFakePlaneType[i];
+        surf->texturemins[0] = 0;
+        surf->texturemins[1] = 0;
+        surf->extents[0] = SkyFaceDimension;
+        surf->extents[1] = SkyFaceDimension;
+        surf->texinfo = tex;
+        surf->samples = reinterpret_cast<color24*>(gSkies[skytexorder[i]]);
+        surf->plane = plane;
+        surf->flags = SURF_DRAWSKY;
+        VectorClear(plane->normal);
+        VectorClear(tex->vecs[0]);
+        VectorClear(tex->vecs[1]);
+        tex->texture = &gFakeTex;
+        switch (type) {
+        case 1:
+        case -1:
+            plane->normal[0] = 1;
+            plane->type = 0;
+            tex->vecs[0][1] = type < 0 ? SkyTextureScale : -SkyTextureScale;
+            tex->vecs[1][2] = -SkyTextureScale;
+            break;
+        case 2:
+        case -2:
+            plane->normal[1] = 1;
+            plane->type = 1;
+            tex->vecs[0][0] = type < 0 ? -SkyTextureScale : SkyTextureScale;
+            tex->vecs[1][2] = SkyTextureScale;
+            break;
+        case 3:
+        case -3:
+            plane->normal[2] = 1;
+            plane->type = 2;
+            tex->vecs[0][1] = -SkyTextureScale;
+            tex->vecs[1][0] = type < 0 ? -SkyTextureScale : SkyTextureScale;
+            break;
+        }
+        plane->dist = type < 0 ? -SkyPlaneDistance : SkyPlaneDistance;
+        tex->vecs[0][3] = SkyTextureOffset;
+        tex->vecs[1][3] = SkyTextureOffset;
+        tex->mipadjust = 1;
+    }
+    gLoadSky = FALSE;
 }
 
 void DrawSkyPolygon( int nump, vec_t* vecs )

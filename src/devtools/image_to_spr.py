@@ -219,7 +219,7 @@ def save_as_png(filename, width, height, palette, data):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python image_to_spr.py path_to_image (psd/png)")
+        print("Usage: python image_to_spr.py path_to_image (psd/png/tga/webp)")
         sys.exit(1)
 
     img_path = sys.argv[1]

@@ -380,7 +380,9 @@ Grab six views for environment mapping tests
 */
 void R_Envmap_f()
 {
-	static const char* names[6] = { "%srt.bmp", "%sbk.bmp", "%slf.bmp", "%sft.bmp", "%sup.bmp", "%sdn.bmp" };
+    static const char* names[6] = {
+        "%srt.webp", "%sbk.webp", "%slf.webp", "%sft.webp", "%sup.webp", "%sdn.webp"
+    };
 	char name[1024];
 	vrect_t saveVrect;
 	char base[64];

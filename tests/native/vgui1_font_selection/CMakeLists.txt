@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(Vgui1FontSelection LANGUAGES CXX)
+project(Vgui1FontSelection LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(vgui "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 set(SELECTION_SOURCE "${CSE_ROOT}/src/engine/VGui1NativeFontSelection.cpp" CACHE FILEPATH
@@ -30,3 +30,12 @@ add_test(NAME font-selection COMMAND font_selection)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 add_test(NAME failure-children COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/failure_children.py"
   "$<TARGET_FILE:font_selection>")
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET font_selection)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(font_selection PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(font_selection)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
+endif()

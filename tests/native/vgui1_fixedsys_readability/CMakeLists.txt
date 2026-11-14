@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1FixedSysReadability LANGUAGES CXX)
+project(CseVgui1FixedSysReadability LANGUAGES C CXX)
 if(NOT APPLE)
     message(FATAL_ERROR "This fixture requires the actual Apple owner and scoped font services")
 endif()
@@ -33,3 +33,12 @@ if(CSE_PROVIDER_SANITIZERS)
 endif()
 # No automatic real-service CTest entry. The pinned runner supplies resources,
 # fresh output directories and a 45-second external watchdog for each profile.
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET fixedsys_owner_readability)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(fixedsys_owner_readability PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(fixedsys_owner_readability)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
+endif()

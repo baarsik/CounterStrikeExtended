@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(vgui2 PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/vgui2/src/Bitmap.cpp"
   "${CSE_SDK_DIR}/vgui2/src/Border.cpp"
   "${CSE_SDK_DIR}/vgui2/src/fileimage.cpp"

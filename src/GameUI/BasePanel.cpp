@@ -193,9 +193,6 @@ void CBasePanel::ApplySchemeSettings( vgui2::IScheme* scheme )
 		{
 			bimage_t& image = m_ImageID[m_ImageID.AddToTail()];
 			image.imageID = vgui2::surface()->CreateNewTextureID();
-			char* extension = strstr( token, ".tga" );
-			if ( extension )
-				*extension = 0;
 			vgui2::surface()->DrawSetTextureFile( image.imageID, token, 1, false );
 			vgui2::surface()->DrawGetTextureSize( image.imageID, image.width, image.height );
 

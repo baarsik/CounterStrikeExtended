@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(hltv_proxy PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/HLTV/common/BaseClient.cpp"
   "${CSE_SDK_DIR}/HLTV/common/BitBuffer.cpp"

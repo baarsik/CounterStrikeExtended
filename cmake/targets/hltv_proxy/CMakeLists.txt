@@ -360,3 +360,11 @@ set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/randtable.c" A
 set_property(SOURCE "${CSE_SDK_DIR}/HLTV/Core/private/utils/bzip2/randtable.c" APPEND PROPERTY COMPILE_DEFINITIONS "$<$<CONFIG:Release>:_WINSOCK_DEPRECATED_NO_WARNINGS>")
 endif()
 cse_runtime_directory(hltv_proxy "")
+
+# Shared image codec uses the same CRT as this module.
+cse_link_webp(hltv_proxy)
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()

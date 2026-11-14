@@ -2,6 +2,7 @@
 #include "VGui1NativeRuntime.h"
 #endif
 #include "vgui_EngineSurface.h"
+#include "engine_image.h"
 #include "draw.h"
 #include "screen.h"
 #include "engine_apiproxy.h"
@@ -481,42 +482,32 @@ void EngineSurface::drawUpdateRegionTextureBGRA(int id, int x, int y, const unsi
 #endif
 }
 
-void EngineSurface::drawSetTextureFile( int id, const char* filename, int hardwareFilter, bool forceReload )
-{
-	vgui_texture_t* texture = _renderPlat->textures->GetTexture( id );
-	if ( texture && !forceReload )
-	{
-		_renderPlat->current = texture;
-		return;
-	}
-
-	byte* pixels = (byte*)malloc( 1024 * 1024 );
-	int wide;
-	int tall;
-#ifdef _WIN32
-	char name[MAX_PATH];
-#else
-	char name[4096];
-#endif
-	_snprintf( name, sizeof( name ), "%s.tga", filename );
-	if ( LoadTGA( name, pixels, 1024 * 1024, &wide, &tall ) )
-	{
-		drawSetTextureRGBA( id, (const char*)pixels, wide, tall, hardwareFilter, 0 );
-	}
-	else
-	{
-		_snprintf( name, sizeof( name ), "%s.bmp", filename );
-		FileHandle_t file = FS_Open( name, "rb" );
-		if ( file )
-		{
-			VGui_LoadBMP( file, pixels, 1024 * 1024, &wide, &tall );
-			drawSetTextureRGBA( id, (const char*)pixels, wide, tall, hardwareFilter, 0 );
-		}
-	}
-	texture = _renderPlat->textures->GetTexture( id );
-	free( pixels );
-	if ( texture )
-		_renderPlat->current = texture;
+void EngineSurface::drawSetTextureFile(int id, const char* filename, int hardwareFilter, bool forceReload) {
+    constexpr int SurfaceImageBytes = 1024 * 1024;
+    vgui_texture_t* texture = _renderPlat->textures->GetTexture(id);
+    if (texture && !forceReload) {
+        _renderPlat->current = texture;
+        return;
+    }
+    byte* pixels = static_cast<byte*>(std::malloc(SurfaceImageBytes));
+    int wide = 0;
+    int tall = 0;
+    const std::string path = cse::engine_image::TargaPath(filename);
+    if (LoadTGA(const_cast<char*>(path.c_str()), pixels, SurfaceImageBytes, &wide, &tall)) {
+        drawSetTextureRGBA(id, reinterpret_cast<const char*>(pixels), wide, tall, hardwareFilter, 0);
+    } else {
+        const std::string bitmapPath = cse::engine_image::BitmapPath(filename);
+        FileHandle_t file = FS_Open(bitmapPath.c_str(), "rb");
+        if (file) {
+            VGui_LoadBMP(file, pixels, SurfaceImageBytes, &wide, &tall);
+            drawSetTextureRGBA(id, reinterpret_cast<const char*>(pixels), wide, tall, hardwareFilter, 0);
+        }
+    }
+    texture = _renderPlat->textures->GetTexture(id);
+    std::free(pixels);
+    if (texture) {
+        _renderPlat->current = texture;
+    }
 }
 
 void EngineSurface::drawGetTextureSize( int id, int& wide, int& tall )

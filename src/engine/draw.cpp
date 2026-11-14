@@ -121,7 +121,9 @@ short RGBToPacked( byte* color )
 
 void GetRGB( short pixel, colorVec* color )
 {
-	color->b = (byte)( pixel << 3 );
+    constexpr int FiveBitToEightBitShift = 3;
+    // Packed RGB565 pixels with red set can be negative in this legacy short ABI.
+    color->b = static_cast<byte>(static_cast<unsigned short>(pixel) << FiveBitToEightBitShift);
 	if ( is15bit )
 	{
 		color->r = ( pixel & COLOR_REDMASK_555 ) >> 7;

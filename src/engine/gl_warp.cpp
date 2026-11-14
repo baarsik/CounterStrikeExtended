@@ -13,6 +13,7 @@
 #include "sys.h"
 #include "zone.h"
 #include "ivideomode.h"
+#include "engine_image.h"
 
 #include <climits>
 #include <cmath>
@@ -268,14 +269,41 @@ int fgetLittleLong( byte** p )
 LoadTGA
 =============
 */
+static qboolean LoadTargaImage(char* filename, byte* buffer, int bufferSize, int* width, int* height,
+                              qboolean fatalErrors);
+
 qboolean LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int* height )
 {
 	return LoadTGA2( filename, buffer, bufferSize, width, height, FALSE );
 }
 
-qboolean LoadTGA2( char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean fatalErrors )
-{
-	int fileLength;
+qboolean LoadTGA2(char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean fatalErrors) {
+    if (width) {
+        *width = 0;
+    }
+    if (height) {
+        *height = 0;
+    }
+    if (!buffer || bufferSize <= 0) {
+        return FALSE;
+    }
+    cse::image::Image decoded;
+    if (cse::engine_image::LoadWebP(filename, decoded, static_cast<std::size_t>(bufferSize))) {
+        cse::engine_image::CopyRGBA(decoded, buffer, width, height);
+        return TRUE;
+    }
+    if (cse::image::HasWebPExtension(filename)) {
+        if (fatalErrors) {
+            Sys_Error("LoadTGA: invalid or oversized WebP image\n");
+        }
+        return FALSE;
+    }
+    return LoadTargaImage(filename, buffer, bufferSize, width, height, fatalErrors);
+}
+
+static qboolean LoadTargaImage(char* filename, byte* buffer, int bufferSize, int* width, int* height,
+                              qboolean fatalErrors) {
+    int fileLength;
 	byte* file;
 	byte* end;
 	byte* input;
@@ -287,9 +315,24 @@ qboolean LoadTGA2( char* filename, byte* buffer, int bufferSize, int* width, int
 	byte packetHeader;
 	int packetSize;
 
-	file = COM_LoadFile( filename, LOADFILE_HEAP, &fileLength );
-	if ( !file )
-		return FALSE;
+    file = cse::engine_image::LoadLegacyTarga(filename, &fileLength);
+    if (!file) {
+        return FALSE;
+    }
+    if (fileLength > 0 && cse::image::IsWebP(file, static_cast<std::size_t>(fileLength))) {
+        cse::image::Image decoded;
+        const bool loaded = cse::image::DecodeWebP(file, static_cast<std::size_t>(fileLength), decoded,
+                                                 static_cast<std::size_t>(bufferSize));
+        COM_FreeFile(file);
+        if (loaded) {
+            cse::engine_image::CopyRGBA(decoded, buffer, width, height);
+            return TRUE;
+        }
+        if (fatalErrors) {
+            Sys_Error("LoadTGA: invalid or oversized WebP image\n");
+        }
+        return FALSE;
+    }
 
 	end = file + fileLength;
 
@@ -461,12 +504,13 @@ qboolean LoadTGA2( char* filename, byte* buffer, int bufferSize, int* width, int
 R_LoadSkys
 ==================
 */
-static char* suf[6] = { "rt", "bk", "lf", "ft", "up", "dn" };
+static const char* suf[6] = { "rt", "bk", "lf", "ft", "up", "dn" };
 
 int gSkyTexNumber[6];
 
-void R_LoadSkys()
-{
+void R_LoadSkys() {
+    constexpr int SkyFaceDimension = 256;
+    constexpr int SkyFaceBytes = SkyFaceDimension * SkyFaceDimension * cse::image::RgbaChannels;
 	int i, j, k;
 	qboolean skipBMP, paletted, printed;
 	char name[MAX_QPATH];
@@ -494,15 +538,17 @@ void R_LoadSkys()
 		GL_PaletteClearSky();
 
 	printed = FALSE;
-	buffer = (byte*)Mem_Malloc( 256 * 256 * 4 );
+	buffer = (byte*)Mem_Malloc( SkyFaceBytes );
 
 	for ( i = 0; i < 6; i++ )
 	{
-		paletted = FALSE;
-		snprintf( name, sizeof( name ), "gfx/env/%s%s.bmp", movevars.skyName, suf[i] );
+        paletted = FALSE;
+        snprintf(name, sizeof(name), "gfx/env/%s%s.webp", movevars.skyName, suf[i]);
+        const qboolean webpLoaded = LoadTGA2(name, buffer, SkyFaceBytes, &width, &height, FALSE)
+            && width == SkyFaceDimension && height == SkyFaceDimension;
+        snprintf(name, sizeof(name), "gfx/env/%s%s.bmp", movevars.skyName, suf[i]);
 
-		if ( !skipBMP )
-		{
+        if (!webpLoaded && !skipBMP) {
 			file = FS_Open( name, "rb" );
 			if ( file )
 			{
@@ -530,8 +576,7 @@ void R_LoadSkys()
 			skipBMP = TRUE;
 			snprintf( name, sizeof( name ), "gfx/env/%s%s.tga", movevars.skyName, suf[i] );
 
-			if ( !LoadTGA2( name, buffer, 256 * 256 * 4, NULL, NULL, FALSE ) )
-			{
+            if (!webpLoaded && !LoadTargaImage(name, buffer, SkyFaceBytes, NULL, NULL, FALSE)) {
 				Con_Printf( "R_LoadSkys: Couldn't load %s\n", name );
 
 				if ( !i && Q_strcmp( movevars.skyName, "desert" ) )
@@ -544,7 +589,7 @@ void R_LoadSkys()
 
 			if ( gl_dither.value )
 			{
-				for ( j = 0; j < 256 * 256 * 4; j += 4 )
+				for ( j = 0; j < SkyFaceBytes; j += 4 )
 				{
 					for ( k = 0; k < 3; k++ )
 					{

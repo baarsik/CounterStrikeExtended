@@ -1,3 +1,4 @@
+#include "screenshot.h"
 #include "localization_center_text.h"
 #include "screen.h"
 #include "vid.h"
@@ -128,53 +129,33 @@ void SCR_SizeDown_f()
 SCR_ScreenShot_f
 ==================
 */
-void SCR_ScreenShot_f()
-{
-	char name[80];
-	Q_strcpy( name, "HalfLife__.tga" );
-	int i;
-	for ( i = 0; i < 100; ++i )
-	{
-		name[8] = (char)( '0' + i / 10 );
-		name[9] = (char)( '0' + i % 10 );
-		if ( !FS_FileExists( name ) )
-			break;	// file doesn't exist
-	}
-	if ( i == 100 )
-	{
-		Con_Printf( "SCR_ScreenShot_f: Couldn't create a TGA file\n" );
-		return;
-	}
-	FileHandle_t file = FS_OpenPathID( name, "wb", "GAMECONFIG" );
-	if ( !file )
-		Sys_Error( "Couldn't create file for snapshot.\n" );
-	byte header[18] = { 0 };
-	header[2] = 2;
-	*(word*)( header + 12 ) = (word)vid.width;
-	*(word*)( header + 14 ) = (word)vid.height;
-	header[16] = 24;
-	if ( FS_Write( header, sizeof( header ), 1, file ) != sizeof( header ) )
-		Sys_Error( "Couldn't write tga header screenshot.\n" );
-	byte line[2048 * 3];
-	byte* source = vid.buffer + vid.height * vid.rowbytes;
-	for ( unsigned int row = 0; row < vid.height; ++row )
-	{
-		source -= vid.rowbytes;
-		word* pixels = (word*)source;
-		for ( unsigned int col = 0; col < vid.width; ++col )
-		{
-			word color = pixels[col];
-			line[col * 3] = (byte)( color << 3 );
-			line[col * 3 + 1] = (byte)( ( color & COLOR_GREENMASK_565 ) >> 3 );
-			line[col * 3 + 2] = (byte)( ( color & COLOR_REDMASK_565 ) >> 8 );
-		}
-		int length = vid.width * 3;
-		if ( FS_Write( line, length, 1, file ) != length )
-			Sys_Error( "Couldn't write bitmap data snapshot.\n" );
-		source += 2 * vid.width - vid.rowbytes;
-	}
-	FS_Close( file );
-	Con_Printf( "Wrote %s\n", name );
+void SCR_ScreenShot_f() {
+    constexpr int ScreenshotNameLength = 80;
+    constexpr int ScreenshotLimit = 100;
+    constexpr int ScreenshotTens = 8;
+    constexpr int ScreenshotOnes = 9;
+    char filename[ScreenshotNameLength];
+    Q_strcpy(filename, "HalfLife__.webp");
+    int shot = 0;
+    for (; shot < ScreenshotLimit; ++shot) {
+        filename[ScreenshotTens] = static_cast<char>(shot / 10 + '0');
+        filename[ScreenshotOnes] = static_cast<char>(shot % 10 + '0');
+        if (!FS_FileExists(filename)) {
+            break;
+        }
+    }
+    if (shot == ScreenshotLimit) {
+        Con_Printf("SCR_ScreenShot_f: Couldn't create a WebP file\n");
+        return;
+    }
+
+    std::vector<unsigned char> encoded;
+    if (!cse::capture::EncodeSoftware(vid.buffer, vid.width, vid.height, vid.rowbytes, vid.is15bit != 0, encoded) ||
+        !cse::capture::WriteWebP(filename, encoded)) {
+        Con_Printf("SCR_ScreenShot_f: Couldn't write WebP screenshot %s\n", filename);
+        return;
+    }
+    Con_Printf("Wrote %s\n", filename);
 }
 
 /*

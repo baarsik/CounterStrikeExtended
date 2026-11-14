@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVguiFontServicesDesign LANGUAGES CXX)
+project(CseVguiFontServicesDesign LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
 set(vgui_source "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
 set(CMAKE_CXX_STANDARD 17)
@@ -29,4 +29,13 @@ else()
         "${CSE_ROOT}/src/vgui2/vgui_surfacelib"
         "${CSE_ROOT}/src/vgui2/src/public" "${CSE_ROOT}/src/public")
     target_compile_options(private_service_headers PRIVATE -Wall -Wextra -Werror -fno-exceptions)
+endif()
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET controlled_gdi)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(controlled_gdi PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(controlled_gdi)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
 endif()

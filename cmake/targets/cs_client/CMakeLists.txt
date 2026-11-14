@@ -676,3 +676,11 @@ set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPER
 set_property(SOURCE "${CSE_SDK_DIR}/common/TextEntryClipboard.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
 endif()
 cse_runtime_directory(cs_client "cstrike/cl_dlls")
+
+# Shared image codec uses the same CRT as this module.
+cse_link_webp(cs_client)
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()

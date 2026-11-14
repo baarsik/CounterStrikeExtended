@@ -1,5 +1,6 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(vgui PRIVATE
+  "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/App.cpp"
   "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/Bitmap.cpp"
   "${CSE_SDK_DIR}/utils/vgui/lib-src/vgui/BitmapTGA.cpp"

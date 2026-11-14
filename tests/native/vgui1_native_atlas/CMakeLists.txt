@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1NativeAtlas LANGUAGES CXX)
+project(CseVgui1NativeAtlas LANGUAGES C CXX)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 set(CSE_NATIVE_SOURCE_ROOT "${CSE_ROOT}" CACHE PATH "Frozen production cohort root override")
 set(VGUI "${CSE_ROOT}/src/utils/vgui/lib-src/vgui")
@@ -125,4 +125,13 @@ if(CSE_ATLAS_TSAN)
         target_compile_options(${target} PRIVATE -fsanitize=thread -fno-omit-frame-pointer)
         target_link_options(${target} PRIVATE -fsanitize=thread)
     endforeach()
+endif()
+
+# The actual font-atlas loader also accepts WebP.
+if(TARGET atlas_font_owner)
+    include("${CSE_ROOT}/cmake/WebPDependency.cmake")
+    target_sources(atlas_font_owner PRIVATE "${CSE_ROOT}/src/common/image_codec.cpp")
+    cse_link_webp(atlas_font_owner)
+    set_property(SOURCE "${CSE_ROOT}/src/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS
+        "$<$<CXX_COMPILER_ID:MSVC>:/EHsc>" "$<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fexceptions>")
 endif()

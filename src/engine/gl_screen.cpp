@@ -1,3 +1,4 @@
+#include "screenshot.h"
 #include "localization_center_text.h"
 #include "client.h"
 #include "common.h"
@@ -401,88 +402,55 @@ void SCR_SizeDown_f()
 	vid.recalc_refdef = 1;
 }
 
-void SCR_ScreenShot_f()
-{
-	constexpr int SCREENSHOT_NAME_LENGTH = 80;
-	constexpr int SCREENSHOT_LIMIT = 100;
-	constexpr int SCREENSHOT_TENS = 8;
-	constexpr int SCREENSHOT_ONES = 9;
-	constexpr int TARGA_HEADER_BYTES = 18;
-
-	int width;
-	int height;
-	if ( bDoScaledFBO > 0 || VideoMode_IsWindowed() != 0 )
-	{
+void SCR_ScreenShot_f() {
+    constexpr int ScreenshotNameLength = 80;
+    constexpr int ScreenshotLimit = 100;
+    constexpr int ScreenshotTens = 8;
+    constexpr int ScreenshotOnes = 9;
+    int width;
+    int height;
+    if (bDoScaledFBO > 0 || VideoMode_IsWindowed() != 0) {
 #if defined(_WIN32)
-		width = static_cast<int>( window_rect.right - window_rect.left );
-		height = static_cast<int>( window_rect.bottom - window_rect.top );
+        width = static_cast<int>(window_rect.right - window_rect.left);
+        height = static_cast<int>(window_rect.bottom - window_rect.top);
 #else
         width = cse_rect::Difference32(window_rect.right, window_rect.left);
         height = cse_rect::Difference32(window_rect.bottom, window_rect.top);
 #endif
-	}
-	else
-	{
-		width = static_cast<int>( vid.width );
-		height = static_cast<int>( vid.height );
-	}
+    } else {
+        width = static_cast<int>(vid.width);
+        height = static_cast<int>(vid.height);
+    }
 
-	char tgaName[SCREENSHOT_NAME_LENGTH];
-	Q_strcpy( tgaName, "HalfLife__.tga" );
-	int shot = 0;
-	for ( ;; )
-	{
-		tgaName[SCREENSHOT_TENS] = static_cast<char>( shot / 10 + '0' );
-		tgaName[SCREENSHOT_ONES] = static_cast<char>( shot % 10 + '0' );
-		if ( FS_FileExists( tgaName ) == 0 )
-			break;	// file doesn't exist
-		if ( ++shot == SCREENSHOT_LIMIT )
-		{
-			Con_Printf( "SCR_ScreenShot_f: Couldn't create a TGA file\n" );
-			return;
-		}
-	}
+    char filename[ScreenshotNameLength];
+    Q_strcpy(filename, "HalfLife__.webp");
+    int shot = 0;
+    for (; shot < ScreenshotLimit; ++shot) {
+        filename[ScreenshotTens] = static_cast<char>(shot / 10 + '0');
+        filename[ScreenshotOnes] = static_cast<char>(shot % 10 + '0');
+        if (!FS_FileExists(filename)) {
+            break;
+        }
+    }
+    if (shot == ScreenshotLimit) {
+        Con_Printf("SCR_ScreenShot_f: Couldn't create a WebP file\n");
+        return;
+    }
 
-	int pixelCount = height * width;
-	FileHandle_t file = FS_OpenPathID( tgaName, "wb", "GAMECONFIG" );
-	if ( file == nullptr )
-		Sys_Error( "Couldn't create file for snapshot.\n" );
-
-	byte targaHeader[TARGA_HEADER_BYTES] = {};
-	targaHeader[2] = static_cast<byte>( 2 );
-	targaHeader[12] = static_cast<byte>( width );
-	targaHeader[13] = static_cast<byte>( width >> 8 );
-	targaHeader[14] = static_cast<byte>( height );
-	targaHeader[15] = static_cast<byte>( height >> 8 );
-	targaHeader[16] = static_cast<byte>( 24 );
-	if ( FS_Write( targaHeader, TARGA_HEADER_BYTES, 1, file ) != TARGA_HEADER_BYTES )
-		Sys_Error( "Couldn't write tga header screenshot.\n" );
-
-	byte* pixels = static_cast<byte*>( Mem_Malloc( static_cast<std::size_t>( 3 * pixelCount ) ) );
-	if ( pixels == nullptr )
-		Sys_Error( "Couldn't allocate bitmap header to snapshot.\n" );
-
-	qglPixelStorei( GL_PACK_ALIGNMENT, 1 );
-	qglReadPixels( 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels );
-	if ( pixelCount > 0 )
-	{
-		byte* pixel = pixels;
-		byte* end = pixels + 3 * pixelCount;
-		do
-		{
-			byte red = *pixel;
-			pixel += 3;
-			byte blue = *( pixel - 1 );
-			*( pixel - 1 ) = red;
-			*( pixel - 3 ) = blue;
-		} while ( pixel != end );
-	}
-	if ( FS_Write( pixels, 3 * height * width, 1, file ) != 3 * height * width )
-		Sys_Error( "Couldn't write bitmap data screenshot.\n" );
-
-	Mem_Free( pixels );
-	FS_Close( file );
-	Con_Printf( "Wrote %s\n", tgaName );
+    std::vector<unsigned char> pixels;
+    std::vector<unsigned char> encoded;
+    if (!cse::capture::AllocateRGB(width, height, pixels)) {
+        Con_Printf("SCR_ScreenShot_f: Invalid capture dimensions or insufficient memory\n");
+        return;
+    }
+    qglPixelStorei(GL_PACK_ALIGNMENT, 1);
+    qglReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    if (!cse::image::EncodeWebPLossless(pixels.data(), width, height, width * cse::image::RgbChannels,
+        cse::image::RgbChannels, true, encoded) || !cse::capture::WriteWebP(filename, encoded)) {
+        Con_Printf("SCR_ScreenShot_f: Couldn't write WebP screenshot %s\n", filename);
+        return;
+    }
+    Con_Printf("Wrote %s\n", filename);
 }
 
 void SCR_Init()

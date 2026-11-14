@@ -348,22 +348,23 @@ void COptionsSubMultiplayer::InitLogoList( CLabeledCommandComboBox* combo )
 	FileFindHandle_t findHandle = 0;
 	char directory[512];
 	const char* logo = engine->pfnGetCvarString( (char*)"cl_logofile" );
-	sprintf( directory, "logos/*.bmp" );
+	sprintf( directory, "logos/*.*" );
 	const char* filename = vgui2::filesystem()->FindFirst( directory, &findHandle, NULL );
 	while ( filename )
 	{
-		if ( stricmp( filename, "remapped.bmp" ) != 0 && filename[0] && filename[0] != '.' )
-		{
-			// Strip the .bmp
-			char name[512];
-			strcpy( name, filename );
-			size_t length = strlen( name );
-			if ( length > 3 )
-				name[length - 4] = 0;
-
-			if ( names.Find( name ) == names.InvalidIndex() )
-				names.Insert( name );
-		}
+        const char* extension = strrchr(filename, '.');
+        if (extension && filename[0] != '.' && (!stricmp(extension, ".bmp")
+            || !stricmp(extension, ".tga") || !stricmp(extension, ".webp"))) {
+            char name[512];
+            const size_t nameLength = static_cast<size_t>(extension - filename);
+            if (nameLength < sizeof(name)) {
+                memcpy(name, filename, nameLength);
+                name[nameLength] = 0;
+                if (stricmp(name, "remapped") && names.Find(name) == names.InvalidIndex()) {
+                    names.Insert(name);
+                }
+            }
+        }
 		filename = vgui2::filesystem()->FindNext( findHandle );
 	}
 	vgui2::filesystem()->FindClose( findHandle );
@@ -525,8 +526,10 @@ void COptionsSubMultiplayer::RemapLogo()
 	char texture[256];
 	_snprintf( texture, sizeof( texture ), "logos/%s.tga", logoname );
 	texture[sizeof( texture ) - 1] = 0;
-	if ( vgui2::filesystem()->FileExists( texture ) )
-	{
+    char webpTexture[256];
+    _snprintf(webpTexture, sizeof(webpTexture), "logos/%s.webp", logoname);
+    webpTexture[sizeof(webpTexture) - 1] = 0;
+    if (vgui2::filesystem()->FileExists(texture) || vgui2::filesystem()->FileExists(webpTexture)) {
 		_snprintf( texture, sizeof( texture ), "logos/%s", logoname );
 		texture[sizeof( texture ) - 1] = 0;
 		m_pColorList->SetEnabled( false );
@@ -827,9 +830,11 @@ void COptionsSubMultiplayer::OnApplyChanges()
 		engine->pfnClientCmd( cmd );
 
 		char infile[256];
-		sprintf( infile, "logos/%s.tga", m_LogoName );
-		if ( vgui2::filesystem()->FileExists( infile ) )
-		{
+        sprintf(infile, "logos/%s.tga", m_LogoName);
+        char webpFile[256];
+        _snprintf(webpFile, sizeof(webpFile), "logos/%s.webp", m_LogoName);
+        webpFile[sizeof(webpFile) - 1] = 0;
+        if (vgui2::filesystem()->FileExists(infile) || vgui2::filesystem()->FileExists(webpFile)) {
 			UpdateLogoWADFromTGA( infile );
 		}
 		else

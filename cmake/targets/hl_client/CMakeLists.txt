@@ -177,3 +177,11 @@ cse_link_sdl3(hl_client Release)
 endif()
 target_link_libraries(hl_client PRIVATE vgui)
 cse_runtime_directory(hl_client "valve/cl_dlls")
+
+# Shared image codec uses the same CRT as this module.
+cse_link_webp(hl_client)
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()

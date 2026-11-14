@@ -2,8 +2,10 @@
 
 #include "VGUI.h"
 #include "VGUI_DataInputStream.h"
+#include "image_codec.h"
 
 #include <limits.h>
+#include <cstring>
 
 #define TGA_TRUE_COLOR		2
 #define TGA_RLE_TRUE_COLOR	10
@@ -23,6 +25,46 @@ bool BitmapTGA::loadTGA( InputStream* is, bool invertAlpha )
 {
 	if ( is == NULL )
 		return false;
+
+    constexpr std::size_t RiffHeaderBytes = 12;
+    constexpr unsigned int BitsPerByte = 8;
+    constexpr unsigned int OpaqueAlpha = 255;
+    unsigned char signature[RiffHeaderBytes] = {};
+    bool read = false;
+    is->readUChar(signature, sizeof(signature), read);
+    if (!read) {
+        return false;
+    }
+    if (cse::image::IsWebP(signature, sizeof(signature))) {
+        const std::size_t riffBytes = static_cast<std::size_t>(signature[4])
+            | (static_cast<std::size_t>(signature[5]) << BitsPerByte)
+            | (static_cast<std::size_t>(signature[6]) << (BitsPerByte * 2))
+            | (static_cast<std::size_t>(signature[7]) << (BitsPerByte * 3));
+        constexpr std::size_t RiffPrefixBytes = 8;
+        if (riffBytes < RiffHeaderBytes - RiffPrefixBytes
+            || riffBytes > cse::image::MaximumEncodedBytes - RiffPrefixBytes) {
+            return false;
+        }
+        std::vector<unsigned char> encoded(riffBytes + RiffPrefixBytes);
+        std::memcpy(encoded.data(), signature, sizeof(signature));
+        is->readUChar(encoded.data() + RiffHeaderBytes, static_cast<int>(encoded.size() - RiffHeaderBytes), read);
+        cse::image::Image image;
+        if (!read || !cse::image::DecodeWebP(encoded.data(), encoded.size(), image)) {
+            return false;
+        }
+        setSize(image.width, image.height);
+        std::memcpy(_rgba, image.rgba.data(), image.rgba.size());
+        if (!invertAlpha) {
+            for (std::size_t alpha = VGUI_RGBA_BYTES - 1; alpha < image.rgba.size(); alpha += VGUI_RGBA_BYTES) {
+                _rgba[alpha] = static_cast<uchar>(OpaqueAlpha - _rgba[alpha]);
+            }
+        }
+        return true;
+    }
+    is->seekStart(read);
+    if (!read) {
+        return false;
+    }
 
 	DataInputStream dis( is );
 	bool success = false;

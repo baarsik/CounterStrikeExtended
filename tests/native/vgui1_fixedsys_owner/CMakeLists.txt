@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(CseVgui1FixedSysOwner LANGUAGES CXX)
+project(CseVgui1FixedSysOwner LANGUAGES C CXX)
 enable_testing()
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/../vgui_font_services/component" owner-component)
 add_executable(fixedsys_owner_profiles profile_tests.cpp)

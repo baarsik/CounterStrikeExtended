@@ -550,9 +550,6 @@ void CSpectatorGUI::SetImage( const char* image )
         }
         imageName.AddMultipleToTail(static_cast<int>(imageBytes) + 1);
 		strcpy( imageName.Base(), image );
-		char* extension = strstr( imageName.Base(), ".tga" );
-		if ( extension )
-			*extension = 0;
 		m_pBannerImage->SetImage( scheme()->GetImage( imageName.Base(), false ) );
 		m_pBannerImage->InvalidateLayout( false, false );
 		m_pBannerImage->SetPos( 0, 0 );

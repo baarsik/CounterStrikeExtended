@@ -2,6 +2,7 @@
 #include "../../common/legacy_str_to_integer.h"
 #endif
 #include "Proxy.h"
+#include "image_codec.h"
 
 #include "ProxyClient.h"
 #include "FakeClient.h"
@@ -1346,32 +1347,63 @@ void Proxy::CMD_AutoRetry( char* cmdLine )
 	}
 }
 
-void Proxy::CMD_BannerFile( char* cmdLine )
-{
-	TokenLine params( cmdLine );
-	if ( params.CountToken() == 2 )
-	{
-		if ( !strcasecmp( "none", params.GetToken( 1 ) ) )
-			m_BannerTGA = NULL;
-		else
-		{
-			m_BannerTGA = AddResource( params.GetToken( 1 ), t_generic, NULL );
-			if ( m_BannerTGA )
-			{
-				snprintf( m_BannerTGA->szFileName, 64, "gfx/temp/%s.tga", COM_BinPrintf( m_BannerTGA->rgucMD5_hash, 16 ) );
-			}
-			else
-				m_System->Printf( "ERROR! Couldn't load banner file.\n" );
-		}
-	}
-	else
-	{
-		m_System->Printf( "Syntax: bannerfile <file.tga>\n" );
-		if ( m_BannerTGA )
-			m_System->Printf( "Current HLTV banner file is %s\n", m_BannerTGA->szFileName );
-		else
-			m_System->Printf( "No HLTV banner file specified.\n" );
-	}
+void Proxy::CMD_BannerFile(char* cmdLine) {
+    TokenLine params(cmdLine);
+    if (params.CountToken() == 2) {
+        if (!strcasecmp("none", params.GetToken(1))) {
+            m_BannerTGA = NULL;
+        } else {
+            const char* requested = params.GetToken(1);
+            const std::string webpPath = cse::image::WebPPath(requested);
+            resource_t* banner = LoadResourceFromFile(const_cast<char*>(webpPath.c_str()), t_generic);
+            if (banner) {
+                cse::image::Image image;
+                if (banner->nDownloadSize <= 0
+                    || !cse::image::DecodeWebP(banner->data, static_cast<std::size_t>(banner->nDownloadSize), image)) {
+                    FreeResource(banner);
+                    banner = NULL;
+                } else {
+                    m_Resources.Add(banner);
+                }
+            }
+            if (!banner && !cse::image::HasWebPExtension(requested)) {
+                banner = AddResource(params.GetToken(1), t_generic, NULL);
+                if (!banner) {
+                    const std::string tgaPath = webpPath.substr(0, webpPath.size() - 5) + ".tga";
+                    if (tgaPath != requested) {
+                        banner = AddResource(const_cast<char*>(tgaPath.c_str()), t_generic, NULL);
+                    }
+                }
+            }
+            bool webpPayload = false;
+            if (banner && banner->nDownloadSize > 0
+                && cse::image::IsWebP(banner->data, static_cast<std::size_t>(banner->nDownloadSize))) {
+                cse::image::Image image;
+                webpPayload = cse::image::DecodeWebP(banner->data, static_cast<std::size_t>(banner->nDownloadSize), image);
+                if (!webpPayload) {
+                    m_Resources.Remove(banner);
+                    FreeResource(banner);
+                    banner = NULL;
+                }
+            }
+            m_BannerTGA = banner;
+            if (m_BannerTGA) {
+                // Keep the opaque download bytes and director command unchanged;
+                // publish an extension matching the bytes clients will download.
+                snprintf(m_BannerTGA->szFileName, sizeof(m_BannerTGA->szFileName), "gfx/temp/%s.%s",
+                    COM_BinPrintf(m_BannerTGA->rgucMD5_hash, 16), webpPayload ? "webp" : "tga");
+            } else {
+                m_System->Printf("ERROR! Couldn't load banner file.\n");
+            }
+        }
+    } else {
+        m_System->Printf("Syntax: bannerfile <file.tga|file.webp>\n");
+        if (m_BannerTGA) {
+            m_System->Printf("Current HLTV banner file is %s\n", m_BannerTGA->szFileName);
+        } else {
+            m_System->Printf("No HLTV banner file specified.\n");
+        }
+    }
 }
 
 void Proxy::CMD_CheeringThreshold( char* cmdLine )

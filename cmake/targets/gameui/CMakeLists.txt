@@ -859,3 +859,11 @@ target_include_directories(gameui PRIVATE "${CMAKE_BINARY_DIR}/localization/incl
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8)
   target_link_libraries(gameui PRIVATE ws2_32.lib)
 endif()
+
+# Shared image codec uses the same CRT as this module.
+cse_link_webp(gameui)
+if(MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+else()
+  set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()
