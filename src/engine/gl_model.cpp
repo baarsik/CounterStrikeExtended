@@ -344,7 +344,7 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
             }
             const unsigned int fileBytes = FS_Size(file);
             // Hunk_TempAlloc takes an int and retains the historical trailing-byte reservation.
-            if (fileBytes < sizeof(int) || fileBytes > static_cast<unsigned int>(INT_MAX - 1)) {
+            if (!ModelLoading::WritableModelFileSize(fileBytes)) {
                 FS_Close(file);
                 Sys_Error("Mod_LoadModel: invalid file size for %s", mod->name);
                 return nullptr;

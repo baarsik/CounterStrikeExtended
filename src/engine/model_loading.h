@@ -1,6 +1,8 @@
 #pragma once
 
 // Private disk-input preflight. Runtime model structures and published interfaces stay unchanged.
+#include "zone.h"
+
 #include <climits>
 #include <cmath>
 #include <cstddef>
@@ -27,8 +29,16 @@ inline bool Range(std::size_t bytes, int offset, std::size_t length) {
     return offset >= 0 && static_cast<std::size_t>(offset) <= bytes && length <= bytes - offset;
 }
 
-inline bool NativeAllocation(std::size_t base, int count, std::size_t element) {
-    return count >= 0 && base <= INT_MAX && static_cast<std::size_t>(count) <= (INT_MAX - base) / element;
+inline bool NativeAllocation(std::size_t base, int count, std::size_t element,
+                             std::size_t maximumPayload = cse::memory::MaximumHunkPayloadBytes) {
+    return count >= 0 && base <= maximumPayload &&
+        static_cast<std::size_t>(count) <= (maximumPayload - base) / element;
+}
+
+inline bool WritableModelFileSize(unsigned int fileBytes) {
+    constexpr std::size_t TrailingByteReservation = 1;
+    return fileBytes >= sizeof(int) &&
+        fileBytes <= cse::memory::MaximumHunkPayloadBytes - TrailingByteReservation;
 }
 
 inline bool Pixels(int width, int height, std::size_t& pixels) {
@@ -51,7 +61,7 @@ inline bool Studio(const void* buffer, int fileBytes, studiohdr_t& header, int& 
         header.length = sizeof(header);
         header.texturedataindex = sizeof(header);
         allocationBytes = sizeof(header);
-        return true;
+        return NativeAllocation(0, allocationBytes, 1, cse::memory::MaximumCachePayloadBytes);
     }
     if (header.length < static_cast<int>(sizeof(header)) || header.length > fileBytes ||
         header.numtextures < 0 || header.textureindex < 0 || header.texturedataindex < 0 ||
@@ -60,7 +70,8 @@ inline bool Studio(const void* buffer, int fileBytes, studiohdr_t& header, int& 
     }
     allocationBytes = header.length;
     if (!header.textureindex) {
-        return header.numtextures == 0;
+        return header.numtextures == 0 &&
+            NativeAllocation(0, allocationBytes, 1, cse::memory::MaximumCachePayloadBytes);
     }
     if (header.texturedataindex < static_cast<int>(sizeof(header)) ||
         header.texturedataindex > header.length || header.textureindex < static_cast<int>(sizeof(header)) ||
@@ -72,7 +83,7 @@ inline bool Studio(const void* buffer, int fileBytes, studiohdr_t& header, int& 
     const byte* data = static_cast<const byte*>(buffer);
 #if defined(SW_RENDERER)
     constexpr std::size_t PaletteExpansion = ExpandedPaletteBytes - PaletteBytes;
-    if (!NativeAllocation(header.length, header.numtextures, PaletteExpansion)) {
+    if (!NativeAllocation(header.length, header.numtextures, PaletteExpansion, cse::memory::MaximumCachePayloadBytes)) {
         return false;
     }
     allocationBytes = static_cast<int>(header.length +
@@ -80,6 +91,9 @@ inline bool Studio(const void* buffer, int fileBytes, studiohdr_t& header, int& 
     std::size_t sequentialOffset = header.texturedataindex;
 #else
     allocationBytes = header.texturedataindex;
+    if (!NativeAllocation(0, allocationBytes, 1, cse::memory::MaximumCachePayloadBytes)) {
+        return false;
+    }
 #endif
     for (int i = 0; i < header.numtextures; ++i) {
         const mstudiotexture_t texture = Read<mstudiotexture_t>(data + header.textureindex +

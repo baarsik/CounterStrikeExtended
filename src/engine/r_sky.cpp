@@ -195,6 +195,9 @@ static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* w
     }
     const std::size_t numPixels = columns * rows;
     const std::size_t outputBytes = numPixels * outputPixelBytes;
+    if (!buffer && outputBytes > cse::memory::MaximumHunkPayloadBytes) {
+        return fail("R_LoadTGA: texture exceeds hunk allocation capacity\n");
+    }
     if (buffer && outputBytes > static_cast<std::size_t>(bufferSize)) {
         return fail("R_LoadTGA: texture exceeds output capacity\n");
     }

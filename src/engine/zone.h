@@ -3,6 +3,7 @@
 #include "quakedef.h"
 
 #include <cstddef>
+#include <climits>
 
 #define ZONE_ID 0x1d4a11
 #define ZONE_FREE_TAG 0
@@ -50,6 +51,15 @@ typedef struct cache_system_s
 	struct cache_system_s* lru_prev; // for LRU flushing
 	struct cache_system_s* lru_next;
 } cache_system_t;
+
+namespace cse {
+namespace memory {
+// These are payload ceilings for the existing int-sized allocator totals, including their rounding/header rules.
+constexpr std::size_t HunkAlignmentMask = HUNK_ALIGNMENT - 1;
+constexpr std::size_t MaximumHunkPayloadBytes = (INT_MAX - sizeof(hunk_t)) & ~HunkAlignmentMask;
+constexpr std::size_t MaximumCachePayloadBytes = (INT_MAX & ~HunkAlignmentMask) - sizeof(cache_system_t);
+} // namespace memory
+} // namespace cse
 
 void				Memory_Init( void* buffer, int size );
 

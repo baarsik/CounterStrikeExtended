@@ -18,9 +18,14 @@ using qboolean = int;
 constexpr qboolean TRUE = 1;
 constexpr qboolean FALSE = 0;
 #define LOADFILE_HEAP 5
+#include "zone_limits.inc"
 static std::map<std::string, std::vector<byte>> files;
 static std::vector<void*> hunkAllocations;
 static int liveFileAllocations = 0;
+#ifdef TEST_SOFTWARE
+static bool forbidHunkAllocation = false;
+static bool hunkAllocationAttempted = false;
+#endif
 
 byte* COM_LoadFile(char* path, int, int* length) {
     const auto found = files.find(path);
@@ -42,6 +47,12 @@ void COM_FreeFile(void* file) {
 }
 
 void* Hunk_AllocName(int bytes, const char*) {
+#ifdef TEST_SOFTWARE
+    if (forbidHunkAllocation) {
+        hunkAllocationAttempted = true;
+        throw std::runtime_error("unexpected large hunk allocation");
+    }
+#endif
     void* result = std::malloc(bytes);
     hunkAllocations.push_back(result);
     return result;
@@ -509,7 +520,57 @@ static void TestLegacyTargaBounds() {
     files.erase(path);
 }
 
+#ifdef TEST_SOFTWARE
+static void TestHunkPayloadLimit() {
+    constexpr int ReviewedWidth = 65532;
+    constexpr int ReviewedHeight = 16385;
+    constexpr int HeaderBytes = 18;
+    constexpr std::size_t ImageTypeOffset = 2;
+    constexpr std::size_t WidthOffset = 12;
+    constexpr std::size_t HeightOffset = 14;
+    constexpr std::size_t PixelDepthOffset = 16;
+    constexpr int BitsPerByte = 8;
+    constexpr int RleImageType = 10;
+    constexpr int RgbPixelBits = 24;
+    constexpr std::size_t MaximumPacketPixels = 128;
+    constexpr byte RepeatedPacket = 0x80;
+    const std::size_t pixels = static_cast<std::size_t>(ReviewedWidth) * ReviewedHeight;
+    std::vector<byte> encoded(HeaderBytes, 0);
+    encoded[ImageTypeOffset] = RleImageType;
+    encoded[WidthOffset] = static_cast<byte>(ReviewedWidth);
+    encoded[WidthOffset + 1] = static_cast<byte>(ReviewedWidth >> BitsPerByte);
+    encoded[HeightOffset] = static_cast<byte>(ReviewedHeight);
+    encoded[HeightOffset + 1] = static_cast<byte>(ReviewedHeight >> BitsPerByte);
+    encoded[PixelDepthOffset] = RgbPixelBits;
+    for (std::size_t remaining = pixels; remaining;) {
+        const std::size_t count = std::min(remaining, MaximumPacketPixels);
+        encoded.push_back(RepeatedPacket | static_cast<byte>(count - 1));
+        encoded.insert(encoded.end(), {0, 0, 0});
+        remaining -= count;
+    }
+    const char* path = "allocator-boundary.tga";
+    files[path] = std::move(encoded);
+    forbidHunkAllocation = true;
+    hunkAllocationAttempted = false;
+    byte* loaded = nullptr;
+    bool threw = false;
+    const int filesBefore = liveFileAllocations;
+    try {
+        loaded = R_LoadTGA(const_cast<char*>(path), nullptr, 0, nullptr, nullptr, FALSE);
+    } catch (const std::runtime_error&) {
+        threw = true;
+    }
+    forbidHunkAllocation = false;
+    Check(!loaded && !threw && !hunkAllocationAttempted && liveFileAllocations == filesBefore,
+          "software TGA rejects allocator-overhead overflow before hunk allocation and releases its file");
+    files.erase(path);
+}
+#endif
+
 int main() {
+#ifdef TEST_SOFTWARE
+    TestHunkPayloadLimit();
+#endif
     TestLegacyTargaBounds();
     const std::vector<byte> webp = WebPFixture();
     files["legacy.webp"] = webp;

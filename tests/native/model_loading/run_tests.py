@@ -10,6 +10,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('build', type=Path)
 parser.add_argument('--baseline', action='store_true')
 parser.add_argument('--heap-only', action='store_true')
+parser.add_argument('--boundaries-only', action='store_true')
 parser.add_argument('--source-revision', help='Read production loader bodies from a Git revision (for baseline RED).')
 parser.add_argument('--case', default='all')
 parser.add_argument('--assets', type=Path)
@@ -25,6 +26,17 @@ def production(name):
     return (root / 'src/engine' / name).read_text()
 
 (output / 'studio_loader.inc').write_text(production('l_studio.cpp'))
+zone = production('zone.cpp')
+hunk_start = zone.index('void* Hunk_AllocName(')
+cache_start = zone.index('void* Cache_Alloc(')
+hunk_expression = next(line.strip() for line in zone[hunk_start:].splitlines() if 'size = sizeof( hunk_t )' in line)
+temp_start = zone.index('void* Hunk_TempAlloc(')
+temp_expression = next(line.strip() for line in zone[temp_start:].splitlines() if 'size = ( size + 15 )' in line)
+cache_expression = next(line.strip() for line in zone[cache_start:].splitlines() if 'size = ( size + sizeof( cache_system_t )' in line)
+(output / 'allocator_expressions.inc').write_text(
+    'static int ActualHunkTotal(int size) {\n    ' + hunk_expression + '\n    return size;\n}\n' +
+    'static int ActualCacheTotal(int size) {\n    ' + cache_expression + '\n    return size;\n}\n' +
+    'static int ActualTemporaryHunkPayload(int size) {\n    ' + temp_expression + '\n    return size;\n}\n')
 entries = json.loads((build / 'compile_commands.json').read_text())
 for mode, source in [('hardware', 'gl_model.cpp'), ('software', 'model.cpp')]:
     if options.heap_only or options.mode not in ('both', mode):
@@ -36,6 +48,15 @@ for mode, source in [('hardware', 'gl_model.cpp'), ('software', 'model.cpp')]:
         index = args.index('-include')
         del args[index:index + 2]
     args = [arg for arg in args if arg not in ('-DNDEBUG', '-fno-exceptions')]
+    if not options.baseline:
+        boundary = output / (mode + '-allocation-boundaries')
+        subprocess.run(args + ['-O1', '-g', '-fexceptions', '-fsanitize=address,undefined',
+                       '-fno-sanitize-recover=all', '-I' + str(output),
+                       str(root / 'tests/native/model_loading/allocation_boundary_tests.cpp'),
+                       '-o', str(boundary)], cwd=root, check=True)
+        subprocess.run([str(boundary)], cwd=root, check=True)
+    if options.boundaries_only:
+        continue
     text = production(source)
     start = text.index('static void* LoadSpriteFrame(') if mode == 'hardware' else text.index('void* Mod_LoadSpriteFrame(')
     end = text.index('/*\n=================\nMod_FloodFillSkin', start) if mode == 'hardware' else text.index('/*\n=================\nMod_LoadAliasFrame', start)
@@ -52,6 +73,9 @@ for mode, source in [('hardware', 'gl_model.cpp'), ('software', 'model.cpp')]:
         command += [str(options.assets.resolve())]
     print('RUN', shlex.join(command), flush=True)
     subprocess.run(command, cwd=root, check=True)
+
+if options.boundaries_only:
+    raise SystemExit(0)
 
 common = production('common.cpp')
 start = common.index('enum\n{\n\tLOADFILE_ZONE')
