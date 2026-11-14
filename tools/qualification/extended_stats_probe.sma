@@ -53,6 +53,8 @@ public Run() {
         dllfunc(DLLFunc_ClientPutInServer, Subject);
         set_pev(Subject, pev_flags, pev(Subject, pev_flags) | FL_FAKECLIENT);
         cs_set_user_team(Subject, CS_TEAM_T);
+        engclient_cmd(Subject, "jointeam", "1");
+        engclient_cmd(Subject, "joinclass", "1");
     }
     if (!is_user_connected(Subject)) {
         server_print("CSE_PROBE error disconnected_subject");
