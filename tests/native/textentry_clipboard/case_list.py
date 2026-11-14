@@ -6,4 +6,6 @@ CASES = [
     "null", "self", "no-parent", "focus-null", "filter", "multiline", "numeric", "unicode", "unicode-blocked",
     "wrap", "ctrl-v", "shift-insert", "direct-selection", "identity", "hint-negative", "hint-overflow",
     "auto-hint-overflow", "progress-cycle", "exception",
+    "navigation-up", "navigation-up-last", "navigation-up-selection", "navigation-up-wrap",
+    "navigation-right-wrap", "navigation-right-selection", "navigation-right-end", "navigation-right-single",
 ]

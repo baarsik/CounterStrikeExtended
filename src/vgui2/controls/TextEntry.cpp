@@ -1360,30 +1360,22 @@ void TextEntry::GotoDown()
 //-----------------------------------------------------------------------------
 // Purpose: Move the cursor one line up 
 //-----------------------------------------------------------------------------
-void TextEntry::GotoUp()
-{
-	SelectCheck();
+void TextEntry::GotoUp() {
+    SelectCheck();
 
-	if ( _cursorIsAtEnd )
-	{
-		if ( GetCursorLine() == 1 )
-		{
-			// stay at end of line
-			_putCursorAtEnd = true;
-			return;	 // dont move the cursor
-		}
-		_cursorPos--;
-	}
+    if (_cursorIsAtEnd) {
+        if (GetCursorLine() == 1) {
+            // Stay at the end of the first visual line.
+            _putCursorAtEnd = true;
+            return;
+        }
+        _cursorPos--;
+    }
 
-	int cx = 0;
-	int cy = 0;
-	CursorToPixelSpace( _cursorPos, cx, cy );
-#if defined( _WIN32 )
-	// move the cursor to the previous line
-	MoveCursor( GetCursorLine() - 1, cx );
-#else
-	MoveCursor( GetCursorLine(), cx );
-#endif
+    int cx = 0;
+    int cy = 0;
+    CursorToPixelSpace(_cursorPos, cx, cy);
+    MoveCursor(GetCursorLine() - 1, cx);
 }
 
 //-----------------------------------------------------------------------------
@@ -1449,35 +1441,30 @@ void TextEntry::GotoWordRight()
 // Purpose: Move the cursor one character to the right, scroll the text
 //			horizontally if needed
 //-----------------------------------------------------------------------------
-void TextEntry::GotoRight()
-{
-	SelectCheck();
+void TextEntry::GotoRight() {
+    SelectCheck();
 
-	// if we are on a line break just move the cursor to the next line
-	if ( IsLineBreak( _cursorPos ) )
-	{
-		if ( _cursorIsAtEnd )
-			_putCursorAtEnd = false;
-#if defined( _WIN32 )
-		else if ( _cursorPos < m_TextStream.Count() )
-			_cursorPos++;
+    // A wrap boundary has an end-of-line and a start-of-line caret position.
+    if (IsLineBreak(_cursorPos)) {
+        if (_cursorIsAtEnd) {
+            _putCursorAtEnd = false;
+        } else if (_cursorPos < m_TextStream.Count()) {
+            _cursorPos++;
+        }
+    } else if (_cursorPos < m_TextStream.Count()) {
+        _cursorPos++;
+
+        if (IsLineBreak(_cursorPos) && !_cursorIsAtEnd) {
+            _putCursorAtEnd = true;
+        }
+    }
+
+    ScrollRight();
+#if !defined(_WIN32)
+    LayoutVerticalScrollBarSlider();
 #endif
-	}
-	else if ( _cursorPos < m_TextStream.Count() )
-	{
-		_cursorPos++;
-
-		if ( IsLineBreak( _cursorPos ) && !_cursorIsAtEnd )
-			_putCursorAtEnd = true;
-	}
-
-	// scroll right if we need to
-	ScrollRight();
-#if !defined( _WIN32 )
-	LayoutVerticalScrollBarSlider();
-#endif
-	ResetCursorBlink();
-	Repaint();
+    ResetCursorBlink();
+    Repaint();
 }
 
 bool TextEntry::NeedsEllipses( HFont font, int* pIndex )

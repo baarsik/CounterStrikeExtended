@@ -154,7 +154,10 @@ def main():
                 "void TextEntry::SetAllowNumericInputOnly(", "void TextEntry::SetMultiline("]
     selected += ["void TextEntry::SetAutoProgressOnHittingCharLimit(", "void TextEntry::SetWrap(",
                  "void TextEntry::SetTextHidden(", "void TextEntry::OnKeyCodeTyped(",
-                 "void TextEntry::DeleteSelected()", "void TextEntry::SelectNone()"]
+                 "void TextEntry::DeleteSelected()", "void TextEntry::SelectNone()",
+                 "void TextEntry::GotoUp()", "void TextEntry::GotoRight()",
+                 "int TextEntry::GetCursorLine()", "bool TextEntry::IsLineBreak(",
+                 "void TextEntry::SelectCheck()"]
     bodies = []
     imported_names = set()
     for sig in selected:

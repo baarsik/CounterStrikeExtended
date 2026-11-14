@@ -307,10 +307,47 @@ struct CursorTag {
     using Member = int vgui2::TextEntry::*;
     friend Member Access(CursorTag);
 };
+struct LineBreaksTag {
+    using Member = CUtlVector<int> vgui2::TextEntry::*;
+    friend Member Access(LineBreaksTag);
+};
+struct CursorAtEndTag {
+    using Member = bool vgui2::TextEntry::*;
+    friend Member Access(CursorAtEndTag);
+};
+struct PutCursorAtEndTag {
+    using Member = bool vgui2::TextEntry::*;
+    friend Member Access(PutCursorAtEndTag);
+};
 template struct AccessActual<TextTag, &vgui2::TextEntry::m_TextStream>;
 template struct AccessActual<SelectionTag, &vgui2::TextEntry::_select>;
 template struct AccessActual<DirtyTag, &vgui2::TextEntry::_dataChanged>;
 template struct AccessActual<CursorTag, &vgui2::TextEntry::_cursorPos>;
+template struct AccessActual<LineBreaksTag, &vgui2::TextEntry::m_LineBreaks>;
+template struct AccessActual<CursorAtEndTag, &vgui2::TextEntry::_cursorIsAtEnd>;
+template struct AccessActual<PutCursorAtEndTag, &vgui2::TextEntry::_putCursorAtEnd>;
+
+struct NavigationWidget : ActualWidget {
+    using ActualWidget::ActualWidget;
+    static constexpr int MeasuredColumn = 17;
+    static constexpr int NoMove = INT_MIN;
+    int requestedLine = NoMove;
+    int requestedColumn = NoMove;
+
+    // Geometry is controlled; navigation, line lookup, selection and key dispatch are actual.
+    void CursorToPixelSpace(int cursor, int& x, int& y) override {
+        if (cursor != this->*Access(CursorTag{})) {
+            throw Unexpected("navigation measured a different cursor");
+        }
+        x = MeasuredColumn;
+        y = 0;
+    }
+
+    void MoveCursor(int line, int pixelsAcross) override {
+        requestedLine = line;
+        requestedColumn = pixelsAcross;
+    }
+};
 
 static void SetCells(ActualWidget& widget, const Cells& cells) {
     auto& stream = widget.*Access(TextTag{});
@@ -388,7 +425,70 @@ int main(int argc, char** argv) {
         SetCells(widget, {L'A', L'\n', L'B'});
         fixtureEvents.clear();
         fixturePublications.clear();
-        if (test == "copy") {
+        if (test.compare(0, 11, "navigation-") == 0) {
+            NavigationWidget navigation(&parent, "navigation");
+            SetCells(navigation, {L'a', L'b', L'c', L'd', L'e', L'f', L'g', L'h', L'i', L'j', L'k', L'l'});
+            navigation.SetMultiline(test != "navigation-right-single");
+            auto& breaks = navigation.*Access(LineBreaksTag{});
+            breaks.RemoveAll();
+            if (test != "navigation-right-single") {
+                breaks.AddToTail(4);
+                breaks.AddToTail(8);
+            }
+            breaks.AddToTail(BUFFER_SIZE);
+            navigation.*Access(CursorAtEndTag{}) = false;
+            navigation.*Access(PutCursorAtEndTag{}) = false;
+            Select(navigation, -1, -1);
+            fixtureFocused = navigation.GetVPanel();
+            const bool selecting = test == "navigation-up-selection" || test == "navigation-right-selection";
+            if (selecting) {
+                pressedKeys.push_back(vgui2::KEY_LSHIFT);
+            }
+            if (test.compare(0, 14, "navigation-up-") == 0 || test == "navigation-up") {
+                navigation.*Access(CursorTag{}) = test == "navigation-up-last" ? 10 : 6;
+                if (test == "navigation-up-wrap") {
+                    navigation.*Access(CursorTag{}) = 4;
+                    navigation.*Access(PutCursorAtEndTag{}) = true;
+                }
+                navigation.OnKeyCodeTyped(vgui2::KEY_UP);
+                if (test == "navigation-up-wrap") {
+                    Check(navigation.requestedLine == NavigationWidget::NoMove &&
+                          navigation.*Access(CursorTag{}) == 4 && navigation.*Access(PutCursorAtEndTag{}),
+                          "Up keeps the caret at the end of the first wrapped line");
+                } else {
+                    const int expectedLine = test == "navigation-up-last" ? 1 : 0;
+                    Check(navigation.requestedLine == expectedLine, "Up requests the previous visual line");
+                    Check(navigation.requestedColumn == NavigationWidget::MeasuredColumn,
+                          "Up preserves the measured horizontal position");
+                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? 6 : -1),
+                          "Up preserves Shift selection anchoring");
+                }
+            } else {
+                const int initialCursor = test == "navigation-right-end" ? 12
+                    : test == "navigation-right-single" ? 1
+                    : test == "navigation-right-selection" ? 4 : 3;
+                navigation.*Access(CursorTag{}) = initialCursor;
+                navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
+                if (test == "navigation-right-wrap") {
+                    Check(navigation.*Access(CursorTag{}) == 4 && navigation.*Access(PutCursorAtEndTag{}),
+                          "Right first reaches the end of the wrapped line");
+                    navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
+                    Check(navigation.*Access(CursorTag{}) == 4 && !(navigation.*Access(PutCursorAtEndTag{})),
+                          "Right then moves to the start of the following visual line");
+                    navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
+                    Check(navigation.*Access(CursorTag{}) == 5, "Right advances past the wrap boundary");
+                } else {
+                    const int expectedCursor = test == "navigation-right-end" ? 12
+                        : test == "navigation-right-single" ? 2 : 5;
+                    Check(navigation.*Access(CursorTag{}) == expectedCursor,
+                          "Right advances one character without passing the text end");
+                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? 4 : -1),
+                          "Right preserves Shift selection anchoring");
+                    Check((navigation.*Access(SelectionTag{}))[1] == expectedCursor,
+                          "Right publishes the selection endpoint");
+                }
+            }
+        } else if (test == "copy") {
             Select(widget, 0, 3);
             widget.CopySelected();
             Check(fixturePublications == std::vector<Cells>{{L'A', L'\r', L'\n', L'B'}},

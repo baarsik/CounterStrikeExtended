@@ -8,6 +8,7 @@ def method_body(owner, name, type_):
         ("Panel", "~Panel"): "    UnregisterPanel(this);",
         ("Panel", "GetName"): "    return _panelName;",
         ("Panel", "IsEnabled"): "    return true;",
+        ("Panel", "HasFocus"): "    return fixtureFocused == GetVPanel();",
         ("Panel", "IsProportional"): "    return false;",
         ("Panel", "SetCursor"): "    _cursor = cursor;",
         ("Panel", "Repaint"): '    LayoutCall(this, "Repaint");',
