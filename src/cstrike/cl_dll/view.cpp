@@ -1,5 +1,6 @@
 // view/refresh setup functions
 
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "cvardef.h"
@@ -324,26 +325,19 @@ V_CalcViewRoll
 Roll is induced by movement and damage
 ==============
 */
-void V_CalcViewRoll ( struct ref_params_s *pparams )
-{
-	float		side;
-	cl_entity_t *viewentity;
-
-	viewentity = gEngfuncs.GetEntityByIndex( pparams->viewentity );
-	if ( !viewentity )
-		return;
-
-	side = V_CalcRoll ( viewentity->angles, pparams->simvel, pparams->movevars->rollangle, pparams->movevars->rollspeed );
-
-	pparams->viewangles[ROLL] += side;
-
-	if ( pparams->health <= 0 && ( pparams->viewheight[2] != 0 ) )
-	{
-		// only roll the view if the player is dead and the viewheight[2] is nonzero
-		// this is so deadcam in multiplayer will work.
-		pparams->viewangles[ROLL] = 80;	// dead view angle
-		return;
-	}
+void V_CalcViewRoll(struct ref_params_s* pparams) {
+    cl_entity_t* viewentity = gEngfuncs.GetEntityByIndex(pparams->viewentity);
+    if (!viewentity) {
+        return;
+    }
+    const float side = V_CalcRoll(viewentity->angles, pparams->simvel,
+        pparams->movevars->rollangle, pparams->movevars->rollspeed);
+    pparams->viewangles[ROLL] += side;
+    if (!CSE_ResolveLocalAlive(pparams->health > 0) && pparams->viewheight[2] != 0) {
+        constexpr float DeadViewRollDegrees = 80.0f;
+        pparams->viewangles[ROLL] = DeadViewRollDegrees;
+        return;
+    }
 }
 
 

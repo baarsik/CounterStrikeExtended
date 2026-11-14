@@ -8,10 +8,7 @@ struct edict_t {
     int index;
 };
 #define ENTINDEX(entity) ((entity)->index)
-enum {
-    MRES_IGNORED,
-    MRES_SUPERCEDE
-};
+enum { MRES_IGNORED, MRES_SUPERCEDE };
 struct Meta {
     int status = MRES_IGNORED;
 } meta;
@@ -27,14 +24,31 @@ struct Globals {
 } globals;
 static Globals* gpGlobals = &globals;
 static std::vector<int> rawWrites;
+static std::vector<int> destinations;
+static int blockedMessage = 0;
+static void MessageBlock(int, int, int* value) {
+    *value = blockedMessage;
+}
+static auto g_fn_MessageBlock = MessageBlock;
+#define MF_MessageBlock MessageBlock
+#define MSGBLOCK_GET 1
+#define BLOCK_NOT 0
+static void Begin(int destination, int, const float*, edict_t*) {
+    destinations.push_back(destination);
+}
+static void End() {
+}
 static void Write(int value) {
     rawWrites.push_back(value);
 }
 struct EngineFunctions {
+    void (*pfnMessageBegin)(int, int, const float*, edict_t*) = Begin;
+    void (*pfnMessageEnd)() = End;
     void (*pfnWriteByte)(int) = Write;
     void (*pfnWriteShort)(int) = Write;
 } g_engfuncs;
 namespace cse::extstats {
+EngineFunctions* HookedEngine = &g_engfuncs;
 bool Publishing = false;
 bool MessageOpen = false;
 int HealthId = 70;
@@ -88,12 +102,17 @@ int main() {
     edict_t owner{1};
     gpMetaGlobals->status = MRES_SUPERCEDE; // An earlier AMXX hook has captured the original message.
     host.players[1].armor = 100000;
-    StatsMessageBegin(1, ArmorId, nullptr, &owner);
+    StatsMessageBegin(8, ArmorId, nullptr, &owner);
     StatsWriteShort(100000);
     if (!rawWrites.empty()) {
         return 1;
     } // Never write a partial message behind AMXX's buffer.
     StatsMessageEnd();
+    if (rawWrites.empty() || rawWrites.back() != 999 || destinations.empty() || destinations.back() != 8) {
+        std::fputs("FAIL: buffered correction must follow the original in the same destination before packet flush\n",
+                   stderr);
+        return 1;
+    }
     State.Frame(0.1, false, false);
     if (host.legacy.empty() || host.legacy.front().armor != 999) {
         std::fputs("FAIL: buffered Battery did not queue a safe manual-mode fallback\n", stderr);
@@ -112,6 +131,18 @@ int main() {
     }
     if (!targetFallback) {
         std::fputs("FAIL: spectator normalization refreshed the observer instead of the stat subject\n", stderr);
+        return 1;
+    }
+    destinations.clear();
+    host.legacy.clear();
+    blockedMessage = 1;
+    StatsMessageBegin(8, ArmorId, nullptr, &owner);
+    StatsWriteShort(100000);
+    blockedMessage = 0; // AMXX consumes BLOCK_ONCE before the module's post-end callback.
+    StatsMessageEnd();
+    State.Frame(0.3, false, false);
+    if (!destinations.empty() || !host.legacy.empty()) {
+        std::fputs("FAIL: BLOCK_ONCE original generated a replacement message\n", stderr);
         return 1;
     }
     return 0;

@@ -32,6 +32,11 @@ class ProbeTests(unittest.TestCase):
         text = log() + '-------- Mapchange to de_dust2 --------\n[AMXX] Plugin failed to load\n'
         self.assertFalse(probe.analyze(text)['server_probe_pass'])
 
+    def test_buffered_legacy_destination_and_order(self):
+        evidence = log() + 'CSE_PROBE legacy dest=8 recipient=1 amount=100000\nCSE_PROBE legacy dest=8 recipient=1 amount=999\n'
+        self.assertTrue(probe.analyze(evidence)['buffered_legacy_correction'])
+        self.assertFalse(probe.analyze(evidence.replace('dest=8 recipient=1 amount=999', 'dest=1 recipient=1 amount=999'))['buffered_legacy_correction'])
+
     def test_no_downstream_acceptance_inference(self):
         result = probe.analyze(log())
         self.assertEqual(result['client_visual_acceptance'], 'unverified')

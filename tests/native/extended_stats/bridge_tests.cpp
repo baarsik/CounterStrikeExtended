@@ -2,11 +2,10 @@
 #include <cstdio>
 #include <cstring>
 #include "extended_stats.h"
-enum {
-    MAX_PLAYERS = 64
-};
+enum { MAX_PLAYERS = 64 };
 struct cl_entity_t {
     int index = 1;
+    float angles[3] = {};
 };
 static bool playingDemo = false;
 static double clientTime = 1;
@@ -19,6 +18,12 @@ struct Engine {
     cl_entity_t player;
     Demo* pDemoAPI = nullptr;
     cl_entity_t* GetLocalPlayer() {
+        return &player;
+    }
+    bool IsSpectateOnly() {
+        return false;
+    }
+    cl_entity_t* GetEntityByIndex(int) {
         return &player;
     }
     int GetMaxClients() {
@@ -73,9 +78,79 @@ int g_iUser2 = 2;
 void CHudHealth::SetHealth(int health) {
     gHUD.m_Health.SetHealth(health);
 }
+constexpr int ROLL = 2;
+constexpr int GIB_NORMAL = 0;
+struct ref_params_s {
+    int health = 0;
+    int viewentity = 1;
+    float viewheight[3] = {0, 0, 17};
+    float viewangles[3] = {};
+    float simvel[3] = {};
+    struct MoveVars {
+        float rollangle = 0;
+        float rollspeed = 0;
+    } settings;
+    MoveVars* movevars = &settings;
+};
+float V_CalcRoll(const float*, const float*, float, float) {
+    return 0;
+}
+struct PredictedPlayer {
+    int deaths = 0;
+    int spawns = 0;
+    void Killed(void*, int) {
+        ++deaths;
+    }
+    void Spawn() {
+        ++spawns;
+    }
+} player;
 #include "bridge_bodies.inc"
 int main(int, char** argv) {
-    if (std::strcmp(argv[1], "demo") == 0) {
+    if (std::strcmp(argv[1], "wide_life") == 0 || std::strcmp(argv[1], "wide_view") == 0) {
+        const unsigned char wide[] = {1, 0, 0, 1, 0}; // 65536, a legacy delta boundary.
+        CSE_HandleExtendedStats(cse::extstats::Stat::Health, wide, 5);
+        if (std::strcmp(argv[1], "wide_life") == 0) {
+            ApplyPredictedLife(100);
+            ApplyPredictedLife(0);
+            if (player.deaths != 0 || player.spawns != 1) {
+                std::fputs("FAIL: truncated delta health holstered a living player's weapon\n", stderr);
+                return 1;
+            }
+            const unsigned char dead[] = {1, 0, 0, 0, 0};
+            CSE_HandleExtendedStats(cse::extstats::Stat::Health, dead, 5);
+            ApplyPredictedLife(100);
+            if (player.deaths != 1) {
+                return 1;
+            }
+        } else {
+            ref_params_s view;
+            V_CalcViewRoll(&view);
+            if (view.viewangles[ROLL] != 0) {
+                std::fputs("FAIL: truncated delta health produced dead-view roll\n", stderr);
+                return 1;
+            }
+            const unsigned char dead[] = {1, 0, 0, 0, 0};
+            CSE_HandleExtendedStats(cse::extstats::Stat::Health, dead, 5);
+            view.health = 100;
+            g_iUser1 = 1;
+            V_CalcViewRoll(&view);
+            if (view.viewangles[ROLL] != 0) {
+                return 1;
+            }
+            g_iUser1 = 0;
+            V_CalcViewRoll(&view);
+            if (view.viewangles[ROLL] != 80) {
+                return 1;
+            }
+            CSE_ResetExtendedStats(true);
+            view.viewangles[ROLL] = 0;
+            V_CalcViewRoll(&view);
+            if (view.viewangles[ROLL] != 0) {
+                return 1;
+            }
+        }
+    } else if (std::strcmp(argv[1], "demo") == 0) {
         Demo demo;
         gEngfuncs.pDemoAPI = &demo;
         playingDemo = true;

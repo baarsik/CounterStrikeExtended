@@ -53,7 +53,8 @@ add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/bridge_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_bridge.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bridge_bodies.inc"
   DEPENDS extract_bridge.py "${CSE_ROOT}/src/cstrike/cl_dll/extended_stats.cpp"
-    "${CSE_ROOT}/src/cstrike/cl_dll/health.cpp" "${CSE_ROOT}/src/cstrike/cl_dll/battery.cpp" VERBATIM)
+    "${CSE_ROOT}/src/cstrike/cl_dll/health.cpp" "${CSE_ROOT}/src/cstrike/cl_dll/battery.cpp"
+    "${CSE_ROOT}/src/cstrike/cl_dll/view.cpp" "${CSE_ROOT}/src/cstrike/cl_dll/hl/hl_weapons.cpp" VERBATIM)
 add_executable(extended_stats_bridge_tests bridge_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/bridge_bodies.inc")
 target_compile_features(extended_stats_bridge_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_bridge_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
@@ -110,3 +111,6 @@ if(NOT MSVC AND CSE_EXTSTATS_SANITIZERS)
   target_link_options(extended_stats_legacy_hook_tests PRIVATE -fsanitize=address,undefined)
 endif()
 add_test(NAME buffered_legacy_hooks COMMAND extended_stats_legacy_hook_tests)
+
+add_test(NAME wide_predicted_life COMMAND extended_stats_bridge_tests wide_life)
+add_test(NAME wide_dead_view_roll COMMAND extended_stats_bridge_tests wide_view)

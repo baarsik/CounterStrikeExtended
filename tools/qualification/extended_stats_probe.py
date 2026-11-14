@@ -26,6 +26,8 @@ def analyze(text):
     wires = [dict(name=m[0], destination=int(m[1]), recipient=int(m[2]), subject=int(m[3]),
                   amount=int(m[4]), time=float(m[5])) for m in re.findall(
         r'CSE_PROBE wire name=(HealthEx|BatteryEx) dest=(\d+) recipient=(\d+) subject=(\d+) amount=(-?\d+) time=([0-9.]+)', current)]
+    legacy = [tuple(map(int, match)) for match in re.findall(
+        r'CSE_PROBE legacy dest=(\d+) recipient=(\d+) amount=(-?\d+)', current)]
     complete = re.findall(r'CSE_PROBE complete subject=(\d+)', current)
     subject = int(complete[-1]) if complete else None
     exact_cases = [case for case in cases if case[0] == subject]
@@ -37,10 +39,13 @@ def analyze(text):
                 for name in ('HealthEx', 'BatteryEx')}
     payloads_pass = all(all(value in amounts for value in VALUES) for amounts in observed.values())
     registered = bool(init and int(init[1]) > 0 and int(init[2]) > 0 and init[1] != init[2] and init[3] == '0')
+    corrected_legacy = any(before == (8, subject, 100000) and after == (8, subject, 999)
+                           for before, after in zip(legacy, legacy[1:])) if legacy else None
     errors = re.findall(r'CSE_PROBE (?:error|malformed)[^\r\n]*', current)
     return {'module_and_native_resolution': registered, 'boundary_gameplay_readback': case_pass,
             'server_msg_spec_payloads': payloads_pass, 'subject': subject, 'cases': exact_cases,
             'observed_values': observed, 'wire_callbacks': wires, 'errors': errors,
+            'buffered_legacy_correction': corrected_legacy, 'legacy_callbacks': legacy,
             'server_probe_pass': registered and case_pass and payloads_pass and not errors,
             'client_visual_acceptance': 'unverified', 'stock_client_acceptance': 'unverified',
             'ordinary_spectator_acceptance': 'unverified', 'hltv_late_join_and_demo_acceptance': 'unverified'}

@@ -18,6 +18,11 @@ public plugin_init() {
         register_message(armor, "OnArmor");
     }
     register_srvcmd("cse_probe_run", "Run");
+    register_message(get_user_msgid("Battery"), "OnLegacyArmor");
+}
+
+public OnLegacyArmor(message, destination, recipient) {
+    server_print("CSE_PROBE legacy dest=%d recipient=%d amount=%d", destination, recipient, get_msg_arg_int(1));
 }
 
 public OnHealth(message, destination, recipient) {
@@ -67,6 +72,9 @@ public Run() {
 
 public Next() {
     if (Step == sizeof(Values)) {
+        emessage_begin(MSG_ONE_UNRELIABLE, get_user_msgid("Battery"), _, Subject);
+        ewrite_short(100000);
+        emessage_end();
         server_print("CSE_PROBE complete subject=%d", Subject);
         return;
     }

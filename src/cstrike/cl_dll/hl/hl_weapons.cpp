@@ -13,6 +13,7 @@
 *
 ****/
 
+#include "extended_stats.h"
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -792,15 +793,16 @@ void HUD_WeaponsPostThink( local_state_s* from, local_state_s* to, usercmd_t* cm
 		else if ( player.m_flNextAttack <= 0 )
 			weapon->ItemPostFrame();
 	}
-	if ( g_runfuncs )
-	{
-		static int lastHealth;
-		if ( to->client.health <= 0 && lastHealth > 0 )
-			player.Killed( NULL, 0 );
-		else if ( to->client.health > 0 && lastHealth <= 0 )
-			player.Spawn();
-		lastHealth = (int)to->client.health;
-	}
+    if (g_runfuncs) {
+        static bool wasAlive = false;
+        const bool alive = CSE_ResolveLocalAlive(to->client.health > 0);
+        if (!alive && wasAlive) {
+            player.Killed(nullptr, GIB_NORMAL);
+        } else if (alive && !wasAlive) {
+            player.Spawn();
+        }
+        wasAlive = alive;
+    }
 
 	// Assume that we are not going to switch weapons
 	to->client.m_iId = from->client.m_iId;

@@ -78,6 +78,7 @@ ClientState& ClientStats();
 } // namespace cse::extstats
 
 int CSE_LocalPlayerIndex();
+bool CSE_ResolveLocalAlive(bool legacyAlive);
 bool CSE_HandleExtendedStats(cse::extstats::Stat stat, const void* buffer, int size);
 void CSE_UpdateLegacyHealth(int player, int health, bool localHud = false);
 void CSE_UpdateLegacyArmor(int armor);

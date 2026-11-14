@@ -89,3 +89,15 @@ void CSE_ThinkExtendedStats() {
         gHUD.m_Battery.SetArmor(0);
     }
 }
+
+bool CSE_ResolveLocalAlive(bool legacyAlive) {
+    using namespace cse::extstats;
+    CSE_ThinkExtendedStats();
+    if (g_iUser1 != 0 || gEngfuncs.IsSpectateOnly()) {
+        return legacyAlive;
+    }
+    const int player = CSE_LocalPlayerIndex();
+    return ValidPlayer(player) && ClientStats().HasExtended(Stat::Health, player)
+               ? ClientStats().Get(Stat::Health, player).amount > 0
+               : legacyAlive;
+}

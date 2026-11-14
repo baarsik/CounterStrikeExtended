@@ -7,6 +7,18 @@ static int Recipient = 0;
 static int Argument = 0;
 static int Subject = 0;
 static bool LegacyNeeded = false;
+struct LegacyCorrection {
+    int destination = 0;
+    edict_t* entity = nullptr;
+    std::array<float, 3> origin{};
+    bool hasOrigin = false;
+    std::array<int, 2> values{};
+    int fields = 0;
+    bool shortValue = false;
+    bool needed = false;
+    bool blocked = false;
+};
+static LegacyCorrection Correction;
 
 void ResetLegacyMessage() {
     CurrentType = 0;
@@ -15,12 +27,37 @@ void ResetLegacyMessage() {
     Subject = 0;
     LegacyNeeded = false;
     MessageOpen = false;
+    Correction = {};
 }
 } // namespace cse::extstats
 
-void StatsMessageBegin(int, int type, const float*, edict_t* entity) {
+void StatsMessageBegin(int destination, int type, const float* origin, edict_t* entity) {
     using namespace cse::extstats;
     MessageOpen = true;
+    Correction = {};
+    Correction.destination = destination;
+    Correction.entity = entity;
+    if (origin) {
+        for (std::size_t coordinate = 0; coordinate < Correction.origin.size(); ++coordinate) {
+            Correction.origin[coordinate] = origin[coordinate];
+        }
+        Correction.hasOrigin = true;
+    }
+    constexpr int SingleStatFields = 1;
+    constexpr int PlayerStatFields = 2;
+    if ((HealthId && type == HealthId) || (SpecHealthId && type == SpecHealthId)) {
+        Correction.fields = SingleStatFields;
+    } else if (ArmorId && type == ArmorId) {
+        Correction.fields = SingleStatFields;
+        Correction.shortValue = true;
+    } else if ((SpecHealth2Id && type == SpecHealth2Id) || (HltvId && type == HltvId)) {
+        Correction.fields = PlayerStatFields;
+    }
+    if (!Publishing && Correction.fields && g_fn_MessageBlock) {
+        int block = BLOCK_NOT;
+        MF_MessageBlock(MSGBLOCK_GET, type, &block);
+        Correction.blocked = block != BLOCK_NOT;
+    }
     CurrentType = type;
     Recipient = entity ? ENTINDEX(entity) : 0;
     Argument = 0;
@@ -33,9 +70,27 @@ void StatsMessageEnd() {
     using namespace cse::extstats;
     const int type = CurrentType;
     const int recipient = Recipient;
+    const LegacyCorrection correction = Correction;
+    const bool correct = correction.needed && !correction.blocked && Argument == correction.fields;
     ResetLegacyMessage();
     if (!Publishing && recipient > 0 && (type == ResetHudId || type == InitHudId)) {
         State.PublishStats(recipient, true);
+    }
+    if (!Publishing && correct && HookedEngine && (recipient == 0 || ReadEntityPlayer(recipient).connected)) {
+        // AMXX has finished replaying/resetting its buffer. Preserve the destination so an
+        // unreliable original cannot arrive after a correction from the reliable stream.
+        Publishing = true;
+        HookedEngine->pfnMessageBegin(correction.destination, type,
+                                      correction.hasOrigin ? correction.origin.data() : nullptr, correction.entity);
+        for (int field = 0; field < correction.fields; ++field) {
+            if (correction.shortValue) {
+                HookedEngine->pfnWriteShort(correction.values[field]);
+            } else {
+                HookedEngine->pfnWriteByte(correction.values[field]);
+            }
+        }
+        HookedEngine->pfnMessageEnd();
+        Publishing = false;
     }
     RETURN_META(MRES_IGNORED);
 }
@@ -60,7 +115,7 @@ void StatsWriteByte(int value) {
     } else if (CurrentType == SpecHealth2Id && argument == 0) {
         normalized = LegacyAmount(Stat::Health, value);
         LegacyNeeded = normalized != value;
-    } else if (CurrentType == SpecHealth2Id && argument == 1 && LegacyNeeded) {
+    } else if (CurrentType == SpecHealth2Id && argument == 1 && LegacyNeeded && !Correction.blocked) {
         State.QueueLegacy(value);
     } else if (CurrentType == HltvId) {
         if (argument == 0) {
@@ -81,9 +136,13 @@ void StatsWriteByte(int value) {
             }
         }
     }
+    if (Correction.fields && argument < Correction.fields) {
+        Correction.values[argument] = normalized;
+        Correction.needed = Correction.needed || (normalized != value && gpMetaGlobals->status >= MRES_SUPERCEDE);
+    }
     // AMXX may already be buffering this message. Do not partially write to the engine in that case.
     // The publication queue emits a complete safe fallback through the hook chain after the callback.
-    if (normalized != value && legacySubject > 0) {
+    if (normalized != value && legacySubject > 0 && !Correction.blocked) {
         State.QueueLegacy(legacySubject);
     }
     if (normalized != value && gpMetaGlobals->status < MRES_SUPERCEDE) {
@@ -98,7 +157,9 @@ void StatsWriteShort(int value) {
     const int argument = Argument++;
     if (!Publishing && CurrentType == ArmorId && argument == 0 && Recipient > 0) {
         const int normalized = LegacyAmount(Stat::Armor, NormalizeArmor(ReadEntityPlayer(Recipient).armor));
-        if (normalized != value) {
+        Correction.values[0] = normalized;
+        Correction.needed = normalized != value && gpMetaGlobals->status >= MRES_SUPERCEDE;
+        if (normalized != value && !Correction.blocked) {
             State.QueueLegacy(Recipient);
         }
         if (normalized != value && gpMetaGlobals->status < MRES_SUPERCEDE) {

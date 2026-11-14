@@ -21,6 +21,10 @@ cmake --preset amxx-linux32-release
 cmake --build --preset amxx-linux32-release
 ```
 
+The provided Linux archive uses the older-glibc compatibility build documented in
+[qualification coverage](extended-stats-qualification.md). Building on a newer Linux
+distribution can raise the output module's glibc requirement.
+
 These presets build the module independently of the CSE runtime. A 64-bit module
 is rejected. Each build writes `build/<preset>/package/`, containing the module,
 config, Pawn include/example source and SDK license notices. Copy its
@@ -36,7 +40,7 @@ Add this line to `addons/amxmodx/configs/modules.ini`:
 cse_extstats
 ```
 
-Restart the server or change maps after installation/removal. Confirm `amxx modules`
+Restart the server after installing or removing the module. Confirm `amxx modules`
 lists the module as running. Automatic mode needs no companion AMXX plugin. Compile
 `scripting/example.sma` using the installed AMXX compiler to try `/cse_stats` in chat;
 the example gives the caller 99999 health and armor. Use existing CStrike APIs to
@@ -98,7 +102,9 @@ these safe limited displays. Updated clients work on servers without the module
 using their legacy messages. Accurate larger values require the server extension.
 Existing AMXX message hooks remain in the publication path and can block/modify
 messages; an original game message and the module's canonical fallback can both
-invoke callbacks. Legacy-only correction queues also run in manual mode without
+invoke callbacks. Buffered corrections follow the completed original with its
+destination preserved, including unreliable delivery; BLOCK_ONCE is retained.
+Legacy-only correction queues also run in manual mode without
 changing the published Ex cache. Plugins overriding these messages must preserve the Ex contract
 or deliberately block it. Do not register the Ex names for another payload: an
 existing incompatible registration disables module publication and logs the reason.
