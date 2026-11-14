@@ -425,64 +425,71 @@ int main(int argc, char** argv) {
         SetCells(widget, {L'A', L'\n', L'B'});
         fixtureEvents.clear();
         fixturePublications.clear();
-        if (test.compare(0, 11, "navigation-") == 0) {
+        if (test.find("navigation-") == 0) {
+            constexpr int WrapWidth = 4;
+            constexpr int SecondWrap = WrapWidth + WrapWidth;
+            constexpr int SecondLineCursor = WrapWidth + WrapWidth / 2;
+            constexpr int ThirdLineCursor = SecondWrap + WrapWidth / 2;
+            constexpr int SingleLineCursor = 1;
+            constexpr int NoSelection = -1;
             NavigationWidget navigation(&parent, "navigation");
             SetCells(navigation, {L'a', L'b', L'c', L'd', L'e', L'f', L'g', L'h', L'i', L'j', L'k', L'l'});
+            const int textEnd = (navigation.*Access(TextTag{})).Count();
             navigation.SetMultiline(test != "navigation-right-single");
             auto& breaks = navigation.*Access(LineBreaksTag{});
             breaks.RemoveAll();
             if (test != "navigation-right-single") {
-                breaks.AddToTail(4);
-                breaks.AddToTail(8);
+                breaks.AddToTail(WrapWidth);
+                breaks.AddToTail(SecondWrap);
             }
             breaks.AddToTail(BUFFER_SIZE);
             navigation.*Access(CursorAtEndTag{}) = false;
             navigation.*Access(PutCursorAtEndTag{}) = false;
-            Select(navigation, -1, -1);
+            Select(navigation, NoSelection, NoSelection);
             fixtureFocused = navigation.GetVPanel();
             const bool selecting = test == "navigation-up-selection" || test == "navigation-right-selection";
             if (selecting) {
                 pressedKeys.push_back(vgui2::KEY_LSHIFT);
             }
-            if (test.compare(0, 14, "navigation-up-") == 0 || test == "navigation-up") {
-                navigation.*Access(CursorTag{}) = test == "navigation-up-last" ? 10 : 6;
+            if (test.find("navigation-up") == 0) {
+                navigation.*Access(CursorTag{}) = test == "navigation-up-last" ? ThirdLineCursor : SecondLineCursor;
                 if (test == "navigation-up-wrap") {
-                    navigation.*Access(CursorTag{}) = 4;
+                    navigation.*Access(CursorTag{}) = WrapWidth;
                     navigation.*Access(PutCursorAtEndTag{}) = true;
                 }
                 navigation.OnKeyCodeTyped(vgui2::KEY_UP);
                 if (test == "navigation-up-wrap") {
                     Check(navigation.requestedLine == NavigationWidget::NoMove &&
-                          navigation.*Access(CursorTag{}) == 4 && navigation.*Access(PutCursorAtEndTag{}),
+                          navigation.*Access(CursorTag{}) == WrapWidth && navigation.*Access(PutCursorAtEndTag{}),
                           "Up keeps the caret at the end of the first wrapped line");
                 } else {
                     const int expectedLine = test == "navigation-up-last" ? 1 : 0;
                     Check(navigation.requestedLine == expectedLine, "Up requests the previous visual line");
                     Check(navigation.requestedColumn == NavigationWidget::MeasuredColumn,
                           "Up preserves the measured horizontal position");
-                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? 6 : -1),
+                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? SecondLineCursor : NoSelection),
                           "Up preserves Shift selection anchoring");
                 }
             } else {
-                const int initialCursor = test == "navigation-right-end" ? 12
-                    : test == "navigation-right-single" ? 1
-                    : test == "navigation-right-selection" ? 4 : 3;
+                const int initialCursor = test == "navigation-right-end" ? textEnd
+                    : test == "navigation-right-single" ? SingleLineCursor
+                    : test == "navigation-right-selection" ? WrapWidth : WrapWidth - 1;
                 navigation.*Access(CursorTag{}) = initialCursor;
                 navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
                 if (test == "navigation-right-wrap") {
-                    Check(navigation.*Access(CursorTag{}) == 4 && navigation.*Access(PutCursorAtEndTag{}),
+                    Check(navigation.*Access(CursorTag{}) == WrapWidth && navigation.*Access(PutCursorAtEndTag{}),
                           "Right first reaches the end of the wrapped line");
                     navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
-                    Check(navigation.*Access(CursorTag{}) == 4 && !(navigation.*Access(PutCursorAtEndTag{})),
+                    Check(navigation.*Access(CursorTag{}) == WrapWidth && !(navigation.*Access(PutCursorAtEndTag{})),
                           "Right then moves to the start of the following visual line");
                     navigation.OnKeyCodeTyped(vgui2::KEY_RIGHT);
-                    Check(navigation.*Access(CursorTag{}) == 5, "Right advances past the wrap boundary");
+                    Check(navigation.*Access(CursorTag{}) == WrapWidth + 1, "Right advances past the wrap boundary");
                 } else {
-                    const int expectedCursor = test == "navigation-right-end" ? 12
-                        : test == "navigation-right-single" ? 2 : 5;
+                    const int expectedCursor = test == "navigation-right-end" ? textEnd
+                        : test == "navigation-right-single" ? SingleLineCursor + 1 : WrapWidth + 1;
                     Check(navigation.*Access(CursorTag{}) == expectedCursor,
                           "Right advances one character without passing the text end");
-                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? 4 : -1),
+                    Check((navigation.*Access(SelectionTag{}))[0] == (selecting ? WrapWidth : NoSelection),
                           "Right preserves Shift selection anchoring");
                     Check((navigation.*Access(SelectionTag{}))[1] == expectedCursor,
                           "Right publishes the selection endpoint");
