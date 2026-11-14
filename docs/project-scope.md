@@ -46,10 +46,11 @@ DemoPlayer remain required with broadcasting disabled. The engine requests
 
 | CMake option | Targets and outputs | Retained boundary |
 | --- | --- | --- |
+| `CSE_BUILD_DEDICATED` | `hlds` → `hlds.exe`, `swds` → `swds.dll` | Standalone dedicated launcher and engine; client and listen-server targets remain enabled |
 | `CSE_BUILD_BROADCASTING` | `hltv` → `hltv.exe`, `hltv_proxy` → `proxy.dll` | Standalone broadcaster, Proxy and Core's private support/bzip2 source |
 | `CSE_BUILD_A3D` | `a3dapi` → `a3dapi.dll` | Legacy adapter, exports/resources and five generated geometry inputs |
 
-Both options default ON. Disable them explicitly for a reduced build. Their
+All three options default ON. Disable them explicitly for a reduced build. Their
 source and CMake target definitions remain available in both Debug and Release.
 Building the A3D adapter does not establish compatibility with an A3D provider.
 
@@ -97,9 +98,9 @@ built provider. The separate dedicated `swds.dll` remains enabled.
 
 Shared engine compatibility strings for other games and compiled `engine/cz*`
 code are retained. They do not require the removed games' implementation trees.
-Dependency/resource directories such as `external/`, `lib/`, `deploy/`,
-`tracker/` and `network/` are outside the game-tree cleanup. Retained platform
-Makefiles are historical; use the CMake presets for supported runtime builds.
+Required dependencies, resources and compatibility headers remain under
+`external/`, `lib/`, `deploy/`, `tracker/` and `network/`. Supported runtime builds
+use the CMake presets; obsolete platform Makefiles have been removed.
 
 ## Build and provider boundaries
 
@@ -116,10 +117,11 @@ describes VGUI1 import-library and A3D generation.
 The Windows engine retains its WSOCK32 multicast option values (4/5/6); other
 Winsock2 consumers keep their separate API constants. Do not interchange them.
 
-Native SDL3 is pinned and staged for the five linker consumers: both engines,
-both game clients and GameUI. Both engines also build/stage the shared mpg123
-decoder; music uses SDL3 streams and no longer requires Miles. Steam, browser,
-voice and optional legacy modules also have runtime loading paths; CMake link
+SDL3 is pinned and staged for both engines, both game clients and GameUI.
+macOS also links SDL3 into VGUI1, VGUI2, the dedicated launcher and A3D.
+Both engines also build/stage the shared mpg123 decoder; music uses SDL3 streams
+and no longer requires Miles. Steam, browser, voice and optional legacy modules
+also have runtime loading paths; CMake link
 dependencies are not the complete module graph. Provider availability in the
 qualified SDL3 package does not establish redistribution rights; see
 [licensing.md](licensing.md).

@@ -144,7 +144,7 @@ try {
         if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Force }
     }
     # Screenshots are created only inside the owned sandbox, never the data source.
-    Get-ChildItem -LiteralPath $gameDirectory -Filter 'HalfLife*.tga' -File | Remove-Item -Force
+    Get-ChildItem -LiteralPath $gameDirectory -Filter 'HalfLife*.webp' -File | Remove-Item -Force
     $map = if ($Game -eq 'cstrike') { 'de_dust2' } else { 'crossfire' }
     $commands = @('developer 1', 'sv_lan 1', 'sv_cheats 1', 'fps_override 0', 'fps_max 100', 'gl_vsync 0', "map $map")
     $commands += @('wait') * 500
@@ -256,7 +256,7 @@ try {
             Copy-Item -LiteralPath $demoPath -Destination (Join-Path $EvidenceDirectory "$prefix.dem")
         }
         if (Test-Path -LiteralPath $gameDirectory) {
-            Get-ChildItem -LiteralPath $gameDirectory -Filter 'HalfLife*.tga' -File |
+            Get-ChildItem -LiteralPath $gameDirectory -Filter 'HalfLife*.webp' -File |
                 ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $EvidenceDirectory "$prefix-$($_.Name)") }
         }
     } catch {

@@ -100,7 +100,7 @@ Language identifiers are normalized and validated before forming resource paths.
 
 ## Hardware engine only
 
-From an x86 MSVC developer shell:
+From the repository root in an x86 MSVC developer shell:
 
 ```powershell
 cmake --preset hardware-x86-release
@@ -108,12 +108,7 @@ cmake --build --preset hardware-x86-release --parallel
 ```
 
 Use `hardware-x86-debug` for Debug. These builds include `hw.dll`, VGUI1,
-SDL3 and mpg123. The standalone entry point uses the same target definitions:
-
-```powershell
-cmake -S hardware -B build/hardware-standalone -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build build/hardware-standalone --parallel
-```
+SDL3 and mpg123.
 
 ## Build options
 
@@ -168,7 +163,7 @@ Release produces no debug symbols, maps or incremental-link files by default.
 
 Binary distributions require the notices and source materials described in
 [licensing](licensing.md). The distribution-materials option copies bundled
-mpg123 materials; other components retain their own requirements.
+mpg123 and libwebp materials; other components retain their own requirements.
 
 ## Bundled media dependencies
 

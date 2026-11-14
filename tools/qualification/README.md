@@ -45,6 +45,10 @@ only the process object it launched. Process logs, the demo, screenshots and res
 JSON remain in the evidence directory. Screenshots still need visual inspection;
 the result does not automatically qualify rendering or collect frame distributions.
 
+Before launch, the probe clears prior `HalfLife*.webp` captures only in the owned
+sandbox's game directory. It copies new WebP captures to the evidence directory
+with the run prefix, preserving their original bytes.
+
 Compile the optional collector directly from an x86 MSVC developer environment:
 
 ```powershell
@@ -125,8 +129,8 @@ Windows library architecture. Retained x64 package tooling is inventoried separa
 from selected x86 runtime providers. Upstream SDL3 headers remain unmodified, including
 `SDL_oldnames.h`; production must never opt into compatibility names. Original
 `docs/msbuild/upstream-manifests.zip` remains immutable historical evidence. SDL2
-platform providers and the two formally SDL2-linked VGUI artifacts are retired;
-`linux/release/vgui.so` remains and has no formal SDL2 dependency.
+platform providers and legacy prebuilt VGUI/control libraries have been removed.
+Runtime builds use source-built VGUI providers.
 
 A Steam data tree can contain `SDL2.dll`, stock `sw.dll` and other alternative
 modules even after overlaying a successful SDL3 build. For SDL3 qualification,

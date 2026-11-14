@@ -22,10 +22,14 @@ cmake --build --preset amxx-linux32-release
 ```
 
 The manual **Build AMXX module** GitHub Actions workflow builds both platforms.
-Once the workflow is on the default branch, open **Actions → Build AMXX module →
+Open **Actions → Build AMXX module →
 Run workflow**, select the ref to build, and download the `cse_extstats-win32` and
 `cse_extstats-linux32` ZIP artifacts. Each archive includes the module, config,
 Pawn include/example, SDK license notices, and corresponding source ZIP.
+
+The module's config, Pawn include, and example source live in
+`src/amxx/cse_extstats/deploy/`. CMake stages them into the package's AMXX
+directories during the build.
 
 The Linux workflow uses a pinned manylinux2014 i686 image with a glibc 2.17
 baseline and links libstdc++/libgcc statically. Building locally on a newer Linux

@@ -24,8 +24,8 @@ removed; CMake definitions preserve the retained runtime settings.
 Archive preservation does not establish Microsoft toolchain/user-property
 evaluation. Extract into a separate copy of the original tree for comparison.
 Removed source remains recoverable from the upstream Git commit. The inherited
-Linux/macOS Makefiles and archived build prose are historical as well; their
-Carbon/i386 paths and former provider requirements are not the supported build.
+Linux/macOS Makefiles have also been removed. Archived build prose describes
+historical Carbon/i386 paths and provider requirements, not the supported build.
 
 All inherited notices and rights apply unchanged to the archive contents. This
 archive is not covered by the license for original build contributions.

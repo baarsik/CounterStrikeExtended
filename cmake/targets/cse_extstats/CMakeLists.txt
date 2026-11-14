@@ -2,6 +2,7 @@ add_library(cse_extstats SHARED)
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 set(sdk "${CSE_ROOT}/src/external/amxx-sdk")
 set(own "${CSE_ROOT}/src/amxx/cse_extstats")
+set(deploy "${own}/deploy")
 target_include_directories(cse_extstats PRIVATE "${own}" "${CSE_ROOT}/src/public")
 target_include_directories(cse_extstats SYSTEM PRIVATE
   "${sdk}/amxmodx/public/sdk" "${sdk}/amxmodx/public" "${sdk}/metamod-hl1/metamod"
@@ -29,9 +30,9 @@ endif()
 add_custom_command(TARGET cse_extstats POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${package}/configs" "${package}/scripting/include"
     "${package}/scripting" "${CMAKE_BINARY_DIR}/package/licenses"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${own}/cse_extstats.cfg" "${package}/configs/"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${own}/cse_extstats.inc" "${package}/scripting/include/"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${own}/example.sma" "${package}/scripting/"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/cse_extstats.cfg" "${package}/configs/"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/cse_extstats.inc" "${package}/scripting/include/"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/example.sma" "${package}/scripting/"
   COMMAND "${CMAKE_COMMAND}" -E copy_directory "${sdk}/licenses" "${CMAKE_BINARY_DIR}/package/licenses"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${sdk}/lock.json" "${CMAKE_BINARY_DIR}/package/lock.json"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CSE_ROOT}/docs/extended-stats.md"

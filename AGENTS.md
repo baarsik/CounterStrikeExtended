@@ -21,41 +21,31 @@
 
 ## Architecture
 
-- The build targets Windows x86 (Win32), using C, C++ and Windows resources,
-  MSVC Build Tools and the Windows SDK.
-- Production source lives under `src/`. The runtime includes the engine,
-  launchers, Counter-Strike and Half-Life client/server DLLs, and shared runtime
-  libraries. Each game keeps its own runtime-relative client/server outputs.
-- Root `CMakeLists.txt` composes the runtime. Target definitions under
-  `cmake/targets/` use shared helpers in `cmake/RuntimeTargets.cmake`; per-file
-  settings are scoped to each target directory. `hardware/CMakeLists.txt`
-  provides the standalone hardware-engine entry point.
+- Runtime builds support Windows x86/x64 and macOS ARM64. Standalone AMXX modules
+  target Windows x86 and Linux x86; component presets do not imply full runtime support.
+- Production source lives under `src/`. Shared code can affect Counter-Strike,
+  Half-Life, dedicated servers and HLTV; check the consumers affected by a change.
 
-## Build workflow
+## Build maintenance
 
-- Run commands from the repository root in an x86 MSVC command-line
-  environment with the Windows SDK, CMake 3.25 or later, and Ninja.
-- Use the checked-in configure/build presets:
+- CMake is the build source of truth. Root `CMakeLists.txt` composes the runtime;
+  edit target settings in `cmake/targets/<target>/CMakeLists.txt` and source membership
+  in the adjacent `Sources.cmake`. Keep shared policies in `cmake/RuntimeTargets.cmake`
+  and per-file settings in the owning target directory.
+- Run build commands from the repository root using the preset and toolchain matching
+  the target platform, architecture and configuration. See [building.md](docs/building.md)
+  for requirements, commands, dependencies and output paths.
+- When changing inputs to generated ABI layouts, saved callbacks or exports, follow
+  the [generation workflow](docs/build-system.md#generated-production-inputs). Edit the
+  inputs, regenerate affected files and review both together instead of editing generated output.
+- Keep import/static libraries and intermediates in the selected build directory;
+  preserve game-relative runtime paths and keep non-runtime artifacts out of runtime output.
 
-  ```powershell
-  cmake --preset default
-  cmake --build --preset default --parallel
-  cmake --preset runtime-x86-debug
-  cmake --build --preset runtime-x86-debug --parallel
-  ```
+## Compatibility and scope
 
-- Use `hardware-x86-release` or `hardware-x86-debug` with the same commands for
-  only the hardware engine and its source-built VGUI1 dependency.
-- CMake is the build source of truth. Edit target settings in
-  `cmake/targets/<target>/CMakeLists.txt` and source membership in the adjacent
-  `Sources.cmake` directly. Keep shared policies in `cmake/RuntimeTargets.cmake`
-  and per-file settings in the owning target directory. Regenerate derived
-  production source files with `python3 tools/generate_runtime_sources.py`
-  after changing their CMake-owned inputs. See [build-system.md](docs/build-system.md).
-- Default Release builds all 19 retained production targets into repository-root
-  `output/`, using the actual game-relative paths. Debug uses `output-debug/`.
-  Hardware-only outputs remain inside their preset build directory.
-- Keep required import/static libraries and intermediates in the selected build
-  directory. Release diagnostics and distribution materials default OFF and must
-  be explicitly enabled. Do not add non-runtime artifacts to the default output.
-  See [building.md](docs/building.md) for target options and full commands.
+- Preserve exported interfaces, calling conventions, target-specific structure layouts
+  and network/save/demo formats. Make intentional compatibility changes explicit and verify them.
+- When moving sources or deployment resources, update CMake membership, packaging,
+  tooling and documentation references as applicable.
+- Preserve dependency pins, upstream notices and provenance. Keep dependency changes
+  explicit and relevant to the task.

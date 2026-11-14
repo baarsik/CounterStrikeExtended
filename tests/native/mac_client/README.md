@@ -1,6 +1,6 @@
 # Actual macOS client libraries
 
-Build the [Apple Silicon client](../../../docs/building.md#macos-apple-silicon-bring-up)
+Build the [Apple Silicon client](../../../README.md#macos-apple-silicon)
 first, supplying the pinned third-party, Steam and CEF paths. Then run:
 
 ```sh

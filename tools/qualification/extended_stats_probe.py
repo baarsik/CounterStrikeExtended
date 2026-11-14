@@ -93,7 +93,7 @@ def main():
         args.prepare.mkdir(parents=True, exist_ok=True)
         (args.prepare / 'include').mkdir(exist_ok=True)
         shutil.copyfile(Path(__file__).with_suffix('.sma'), args.prepare / 'extended_stats_probe.sma')
-        shutil.copyfile(root / 'src/amxx/cse_extstats/cse_extstats.inc', args.prepare / 'include/cse_extstats.inc')
+        shutil.copyfile(root / 'src/amxx/cse_extstats/deploy/cse_extstats.inc', args.prepare / 'include/cse_extstats.inc')
         if args.compiler:
             result = subprocess.run([str(args.compiler.resolve()), 'extended_stats_probe.sma',
                                      '-oextended_stats_probe.amxx'], cwd=args.prepare, capture_output=True, text=True)

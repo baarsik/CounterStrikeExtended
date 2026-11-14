@@ -1,7 +1,7 @@
 #ifndef CSE_EXTSTATS_MODULECONFIG_H
 #define CSE_EXTSTATS_MODULECONFIG_H
 #define MODULE_NAME "CSE Extended Stats"
-#define MODULE_VERSION "1.0.0"
+#define MODULE_VERSION "202611.1"
 #define MODULE_AUTHOR "CounterStrikeExtended"
 #define MODULE_URL "https://github.com/baarsik/CounterStrikeExtended"
 #define MODULE_LOGTAG "CSESTATS"

@@ -14,7 +14,9 @@ as [archived provenance](msbuild/README.md).
 | `cmake/targets/<target>/Sources.cmake` | Source membership, configuration exclusions and platform replacement sources |
 | `cmake/RuntimeTargets.cmake` and dependency modules | Shared runtime, dependency, staging, export and generated-input helpers |
 | `cmake/MSVCDefaults.cmake` | MSVC configuration defaults policy |
-| `hardware/CMakeLists.txt` | Standalone hardware-engine composition using the same target definitions |
+
+Use the root `hardware-x86-release` or `hardware-x86-debug` presets for
+hardware-only builds with the same target definitions.
 
 Keep source properties in the directory that creates the owning target. A shared
 source can have different forced includes, definitions, optimization, FP or EH
@@ -32,7 +34,8 @@ responsibility. Release symbols and linker maps are gated by
 Native SDL3 integration, Windows libraries used with 64-bit pointers and guarded
 POSIX module aliases are CMake target policies. Add platform replacement sources
 in `Sources.cmake` and matching platform flags/dependencies in `CMakeLists.txt`.
-Keep the reference Windows source inventory available in its Windows branch.
+Inspect platform-specific source selections with the
+[CMake inventory tool](#inspecting-effective-target-settings).
 Counter-Strike keeps the `mp` output name and provides the `cs.dylib` / `cs.so`
 alias on POSIX. Alias creation must not replace an unrelated file.
 
