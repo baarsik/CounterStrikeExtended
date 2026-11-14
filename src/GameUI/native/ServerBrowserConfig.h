@@ -2,6 +2,7 @@
 #define CSE_SERVER_BROWSER_CONFIG_H
 
 #include "ServerBrowserModel.h"
+#include "ServerBrowserMasterservers.h"
 #include <array>
 class IFileSystem;
 namespace cse::server_browser {
@@ -23,6 +24,7 @@ struct BrowserPageSettings {
     uint32_t hiddenColumns = 1U << 8; // Original IPAddr visual column.
 };
 struct BrowserSettings {
+    MasterserverSettings masterservers;
     ListKind kind = ListKind::Internet;
     Filters filters;
     Sort sort{Column::Address, true};

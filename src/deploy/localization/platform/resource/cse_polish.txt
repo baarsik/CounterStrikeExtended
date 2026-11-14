@@ -31,5 +31,14 @@
         "CSEInterface_SaveFailed" "Nie udało się zmienić języka. Spróbuj ponownie."
         "CSEInterface_LaunchOverride" "Opcja uruchamiania -language ma pierwszeństwo przed tym ustawieniem."
 
+        "CSEServerBrowser_Configuration" "Konfiguracja przeglądarki serwerów"
+        "CSEServerBrowser_Masterservers" "Masterserwery"
+        "CSEServerBrowser_MasterName" "Nazwa"
+        "CSEServerBrowser_MasterAddresses" "Adresy"
+        "CSEServerBrowser_MasterAddressHelp" "Użyj host:port; rozdziel adresy średnikami."
+        "CSEServerBrowser_AddMasterserver" "Dodaj"
+        "CSEServerBrowser_RemoveMasterserver" "Usuń"
+        "CSEServerBrowser_SteamDirectory" "Katalog Steam"
+        "CSEServerBrowser_InvalidMasterserver" "Podaj nazwę i poprawne adresy host:port."
     }
 }

@@ -30,5 +30,14 @@
         "CSEInterface_SaveFailed" "Не удалось изменить язык. Попробуйте ещё раз."
         "CSEInterface_LaunchOverride" "Параметр запуска -language имеет приоритет над этой настройкой."
 
+        "CSEServerBrowser_Configuration" "Настройки браузера серверов"
+        "CSEServerBrowser_Masterservers" "Мастер-серверы"
+        "CSEServerBrowser_MasterName" "Название"
+        "CSEServerBrowser_MasterAddresses" "Адреса"
+        "CSEServerBrowser_MasterAddressHelp" "Формат: хост:порт; разделяйте адреса точкой с запятой."
+        "CSEServerBrowser_AddMasterserver" "Добавить"
+        "CSEServerBrowser_RemoveMasterserver" "Удалить"
+        "CSEServerBrowser_SteamDirectory" "Каталог Steam"
+        "CSEServerBrowser_InvalidMasterserver" "Введите название и верные адреса хост:порт."
     }
 }

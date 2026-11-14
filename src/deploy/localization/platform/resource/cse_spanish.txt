@@ -31,5 +31,14 @@
         "CSEInterface_SaveFailed" "No se pudo cambiar el idioma. Inténtalo de nuevo."
         "CSEInterface_LaunchOverride" "La opción de inicio -language tiene prioridad sobre este ajuste."
 
+        "CSEServerBrowser_Configuration" "Configuración del navegador de servidores"
+        "CSEServerBrowser_Masterservers" "Servidores maestros"
+        "CSEServerBrowser_MasterName" "Nombre"
+        "CSEServerBrowser_MasterAddresses" "Direcciones"
+        "CSEServerBrowser_MasterAddressHelp" "Usa host:puerto; separa las direcciones con punto y coma."
+        "CSEServerBrowser_AddMasterserver" "Añadir"
+        "CSEServerBrowser_RemoveMasterserver" "Eliminar"
+        "CSEServerBrowser_SteamDirectory" "Directorio de Steam"
+        "CSEServerBrowser_InvalidMasterserver" "Introduce un nombre y direcciones host:puerto válidas."
     }
 }

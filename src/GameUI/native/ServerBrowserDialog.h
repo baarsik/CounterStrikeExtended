@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ServerBrowserConfig.h"
+#include "ServerBrowserMasterserverQuery.h"
 #include "ServerBrowserConnection.h"
 #include "ServerBrowserDetails.h"
 #include "ServerBrowserPresentation.h"
@@ -27,6 +28,7 @@ class Menu;
 namespace cse::server_browser {
 constexpr size_t BrowserFrameBudget = 128;
 struct BrowserSession {
+    MasterserverQueryProvider masterserverProvider;
     SteamFavoriteStore favorites;
     ServerBrowserModel model;
     ServerBrowserPresentation presentation;
@@ -62,6 +64,7 @@ class BrowserPage;
 class BrowserPasswordDialog;
 class BrowserDetailsDialog;
 class BrowserAddServerDialog;
+class BrowserSettingsDialog;
 class ServerBrowserDialog final : public vgui2::Frame {
     DECLARE_CLASS_SIMPLE_NAMED(ServerBrowserDialog, vgui2::Frame, "Frame");
 
@@ -95,6 +98,7 @@ protected:
 
 private:
     void ApplyFilters();
+    void ApplyMasterservers(const MasterserverSettings& settings);
     void ReconcileSelection();
     void BindPage();
     void ReloadPage();
@@ -114,6 +118,7 @@ private:
     vgui2::Label *status_ = nullptr;
     vgui2::Label *filterSummary_ = nullptr;
     vgui2::ToggleButton *filterToggle_ = nullptr;
+    vgui2::Button *settingsButton_ = nullptr;
     vgui2::Button *refresh_ = nullptr;
     vgui2::Button *quick_ = nullptr;
     vgui2::Button *addServer_ = nullptr;
@@ -134,6 +139,7 @@ private:
     vgui2::DHANDLE<vgui2::Menu> contextMenu_;
     std::vector<vgui2::DHANDLE<BrowserDetailsDialog>> detailsDialogs_;
     vgui2::DHANDLE<BrowserAddServerDialog> addServerDialog_;
+    vgui2::DHANDLE<BrowserSettingsDialog> settingsDialog_;
     std::vector<RowKey> selectedKeys_;
     std::optional<RowKey> keyboardCursor_;
     std::optional<RowKey> rangeAnchor_;

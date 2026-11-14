@@ -62,6 +62,9 @@ System *system() {
 }
 struct Controller {};
 namespace cse {
+namespace localization {
+void UnbindRuntime() {}
+}
 bool NativeGameUIIsRetirementSafePoint() {
     return true;
 }

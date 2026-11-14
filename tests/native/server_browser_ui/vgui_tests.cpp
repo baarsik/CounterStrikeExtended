@@ -208,6 +208,8 @@ int main(int argc, char **argv) {
         auto ownedSession = std::make_unique<BrowserSession>(&provider, nullptr, filesystem, engine, 10, "cstrike",
                                                              sessionPreferences, &favorites);
         auto &session = *ownedSession;
+        session.settings.masterservers.selected = "steam";
+        session.masterserverProvider.Select(session.settings.masterservers.Selected());
         auto *dialog = new ServerBrowserDialog(session);
         vgui2::DHANDLE<ServerBrowserDialog> handle;
         handle = dialog;
@@ -217,7 +219,83 @@ int main(int argc, char **argv) {
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
-        if (positionCase) {
+        if (name == "masterserver-settings") {
+            Require(dialog->FindChildByName("BrowserSettings", false) != nullptr, "cogwheel button missing");
+            Send(*dialog, "BrowserSettings");
+            auto* settings = dialog->FindChildByName("BrowserConfiguration", false);
+            Require(settings != nullptr, "settings dialog missing");
+            auto* masters = dynamic_cast<vgui2::ListPanel*>(settings->FindChildByName("Masterservers", false));
+            Require(masters && masters->GetItemCount() == 2, "predefined providers missing");
+            Send(*settings, "RemoveMasterserver");
+            Require(masters->GetItemCount() == 2, "predefined provider was removed");
+            auto* entry = dynamic_cast<vgui2::TextEntry*>(settings->FindChildByName("MasterName", false));
+            auto* address = dynamic_cast<vgui2::TextEntry*>(settings->FindChildByName("MasterAddresses", false));
+            Require(entry && address, "custom provider inputs missing");
+            entry->SetText("Community");
+            address->SetText("127.0.0.1:27010");
+            Send(*settings, "AddMasterserver");
+            Require(masters->GetItemCount() == 3, "custom provider not added to draft");
+            Require(session.settings.masterservers.custom.empty(), "draft edited live configuration");
+            Send(*settings, "Cancel");
+            vgui2::ivgui()->RunFrame();
+            Require(session.settings.masterservers.selected == "steam", "Cancel changed provider");
+            Send(*dialog, "BrowserSettings");
+            settings = dialog->FindChildByName("BrowserConfiguration", false);
+            Require(settings != nullptr, "settings did not reopen");
+            masters = dynamic_cast<vgui2::ListPanel*>(settings->FindChildByName("Masterservers", false));
+            Require(masters->GetItemCount() == 2, "Cancel retained custom draft");
+            masters->SetSingleSelectedItem(masters->GetItemIDFromRow(1));
+            Send(*settings, "OK");
+            Require(session.settings.masterservers.selected == "varq", "OK did not select Varq");
+            Require(List(*dialog)->GetSelectedItemsCount() == 0, "switch retained old selection");
+            for (int frame = 0; frame < MaxFrames; ++frame) {
+                dialog->Pump();
+                if (session.model.GetStatus().rows == 0) {
+                    break;
+                }
+            }
+            Require(session.model.GetStatus().rows == 0, "switch retained old server results");
+            ServerBrowserConfig persisted(session.storage);
+            Require(persisted.Load() && persisted.Settings().masterservers.selected == "varq",
+                "OK did not persist provider");
+            gui->RunFrame();
+            Send(*dialog, "BrowserSettings");
+            settings = dialog->FindChildByName("BrowserConfiguration", false);
+            entry = dynamic_cast<vgui2::TextEntry*>(settings->FindChildByName("MasterName", false));
+            address = dynamic_cast<vgui2::TextEntry*>(settings->FindChildByName("MasterAddresses", false));
+            entry->SetText("Community");
+            address->SetText("127.0.0.1:1; localhost:27010");
+            Send(*settings, "AddMasterserver");
+            Send(*settings, "OK");
+            Require(session.settings.masterservers.custom.size() == 1 &&
+                session.settings.masterservers.selected == "custom-1", "custom selection was not committed");
+            Require(persisted.Load() && persisted.Settings().masterservers.custom.front().endpoints.size() == 2,
+                "custom endpoints were not persisted");
+            gui->RunFrame();
+            Send(*dialog, "BrowserSettings");
+            settings = dialog->FindChildByName("BrowserConfiguration", false);
+            Send(*settings, "RemoveMasterserver");
+            Send(*settings, "Cancel");
+            Require(session.settings.masterservers.custom.size() == 1, "Cancel committed custom removal");
+            gui->RunFrame();
+            Send(*dialog, "BrowserSettings");
+            settings = dialog->FindChildByName("BrowserConfiguration", false);
+            Send(*settings, "RemoveMasterserver");
+            Send(*settings, "OK");
+            Require(session.settings.masterservers.custom.empty() && session.settings.masterservers.selected == "varq",
+                "removing the selected custom provider did not fall back to Varq");
+            gui->RunFrame();
+            Send(*dialog, "BrowserSettings");
+            settings = dialog->FindChildByName("BrowserConfiguration", false);
+            masters = dynamic_cast<vgui2::ListPanel*>(settings->FindChildByName("Masterservers", false));
+            masters->SetSingleSelectedItem(masters->GetItemIDFromRow(0));
+            Send(*settings, "Close");
+            Require(session.settings.masterservers.selected == "varq", "closing settings committed a selection");
+        }
+
+        if (name == "masterserver-settings") {
+            // Validated above; the remaining cases retain their existing branches.
+        } else if (positionCase) {
             int x = 0;
             int y = 0;
             dialog->GetPos(x, y);
@@ -1342,6 +1420,10 @@ int main(int argc, char **argv) {
         }
         Require(std::wstring(vgui2::localize()->Find("CSEServerBrowser_CurrentGame")) == preserved,
                 "dialog retirement invalidated copied localized text");
+        for (int attempt = 0; attempt < MaxFrames && !session.masterserverProvider.BeginClose(); ++attempt) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        Require(session.masterserverProvider.BeginClose(), "masterserver worker did not retire");
         ownedSession.reset();
         if (hdParent) {
             geometry.Root(0);

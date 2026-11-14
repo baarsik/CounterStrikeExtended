@@ -52,6 +52,40 @@ void MissingAndRoundTrip() {
     CHECK(second.Settings().filters.app == 70 && second.Settings().kind == ListKind::History);
     CHECK(second.Settings().sort.column == Column::Ping && !second.Settings().sort.ascending);
 }
+void MasterserverPreferences() {
+    MemoryStorage storage;
+    ServerBrowserConfig config(storage);
+    CHECK(config.Load());
+    auto settings = config.Settings();
+    CHECK(settings.masterservers.selected == "varq");
+    CHECK(settings.masterservers.Providers().size() == 2);
+    CHECK(!settings.masterservers.Remove("steam"));
+    CHECK(!settings.masterservers.Remove("varq"));
+    CHECK(settings.masterservers.Add("Community", "master.example:27010; backup.example:27011"));
+    settings.masterservers.selected = settings.masterservers.custom.back().id;
+    config.SetSettings(settings);
+    CHECK(config.Save());
+    ServerBrowserConfig restored(storage);
+    CHECK(restored.Load());
+    const auto& masters = restored.Settings().masterservers;
+    CHECK(masters.selected == settings.masterservers.selected);
+    CHECK(masters.custom.size() == 1 && masters.custom.front().name == "Community");
+    CHECK(masters.custom.front().endpoints.size() == 2);
+    CHECK(!settings.masterservers.Add("Bad", "example:0"));
+    CHECK(!settings.masterservers.Add("Bad", "https://example:27010"));
+    CHECK(!settings.masterservers.Add(" ", "example:27010"));
+    CHECK(!settings.masterservers.Add("Bad", "example:9999999999999999"));
+    CHECK(!settings.masterservers.Add("Bad", "999.0.0.1:27010"));
+    const auto saved = storage.bytes;
+    auto invalidId = settings;
+    invalidId.masterservers.custom.front().id = std::string("custom-1\0hidden", 15);
+    invalidId.masterservers.selected = invalidId.masterservers.custom.front().id;
+    config.SetSettings(invalidId);
+    CHECK(!config.Save() && storage.bytes == saved);
+    settings.masterservers.selected = "missing";
+    config.SetSettings(settings);
+    CHECK(!config.Save() && storage.bytes == saved);
+}
 void PositionValidation() {
     MemoryStorage storage;
     storage.missing = false;
@@ -229,11 +263,12 @@ int main(int argc, char** argv) {
         CHECK(argc == 2);
         PositionValidation();
         MissingAndRoundTrip();
+        MasterserverPreferences();
         OriginalSettingsAndStableTabs();
         UnknownAndFailures();
         RejectKnownStringNul();
         NativeAtomic(std::filesystem::absolute(argv[1]));
-        std::cout << "6 config cases passed\n";
+        std::cout << "7 config cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return 1;

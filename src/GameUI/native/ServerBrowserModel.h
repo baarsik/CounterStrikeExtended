@@ -152,7 +152,7 @@ public:
     ServerBrowserModel(const ServerBrowserModel&) = delete;
     ServerBrowserModel& operator=(const ServerBrowserModel&) = delete;
     // True accepts the latest intent. Replacements may start later as Pump retires the previous storage.
-    bool Refresh(ListKind kind, const Filters& filters);
+    bool Refresh(ListKind kind, const Filters& filters, bool clearResults = false);
     bool QuickRefresh();
     bool QuickRefresh(const RowKey& key);
     void Stop();

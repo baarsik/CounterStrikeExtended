@@ -64,6 +64,22 @@ Fields EncodeFields(const BrowserSettings& settings, bool includePages = true) {
         {"savedsize", settings.savedSize ? "1" : "0"},
         {"validaccount", settings.filters.validSteamAccount ? "1" : "0"}};
     if (includePages) {
+        fields["master.selected"] = settings.masterservers.selected;
+        fields["master.count"] = std::to_string(settings.masterservers.custom.size());
+        for (size_t index = 0; index < settings.masterservers.custom.size(); ++index) {
+            const auto& provider = settings.masterservers.custom[index];
+            const std::string prefix = "master.custom." + std::to_string(index) + ".";
+            fields[prefix + "id"] = provider.id;
+            fields[prefix + "name"] = provider.name;
+            std::string addresses;
+            for (const auto& endpoint : provider.endpoints) {
+                if (!addresses.empty()) {
+                    addresses += ';';
+                }
+                addresses += endpoint;
+            }
+            fields[prefix + "addresses"] = addresses;
+        }
         for (size_t index = 0; index < settings.pages.size(); ++index) {
             BrowserSettings page;
             page.filters = settings.pages[index].filters;
@@ -187,6 +203,25 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
     settings.savedPosition = savedPosition != 0;
     settings.filters.validSteamAccount = validAccount != 0;
     if (includePages) {
+        size_t count = 0;
+        if (!Number(fields.at("master.count"), count, size_t{0}, MaximumCustomMasterservers)) {
+            return false;
+        }
+        settings.masterservers.selected = fields.at("master.selected");
+        for (size_t index = 0; index < count; ++index) {
+            const std::string prefix = "master.custom." + std::to_string(index) + ".";
+            const auto id = fields.find(prefix + "id");
+            const auto name = fields.find(prefix + "name");
+            const auto addresses = fields.find(prefix + "addresses");
+            if (id == fields.end() || name == fields.end() || addresses == fields.end() ||
+                !settings.masterservers.Add(name->second, addresses->second)) {
+                return false;
+            }
+            settings.masterservers.custom.back().id = id->second;
+        }
+        if (!settings.masterservers.Valid()) {
+            return false;
+        }
         for (size_t index = 0; index < settings.pages.size(); ++index) {
             BrowserSettings page;
             auto pageFields = EncodeFields(page, false);
@@ -209,6 +244,167 @@ bool DecodeFields(const Fields& fields, BrowserSettings& settings, bool includeP
     return true;
 }
 }
+namespace {
+std::string TrimMasterText(std::string_view text) {
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string_view::npos) {
+        return {};
+    }
+    return std::string(text.substr(first, text.find_last_not_of(" \t\r\n") - first + 1));
+}
+}
+
+bool ParseMasterEndpoint(std::string_view text, MasterEndpoint& endpoint) {
+    constexpr size_t MaximumHostBytes = 253;
+    const auto colon = text.find(':');
+    if (colon == std::string_view::npos || colon == 0 || colon > MaximumHostBytes) {
+        return false;
+    }
+    const auto host = text.substr(0, colon);
+    const auto portText = text.substr(colon + 1);
+    unsigned int port = 0;
+    const auto parsed = std::from_chars(portText.data(), portText.data() + portText.size(), port);
+    if (parsed.ec != std::errc{} || parsed.ptr != portText.data() + portText.size() || port == 0 || port > UINT16_MAX) {
+        return false;
+    }
+    size_t labelLength = 0;
+    char previous = 0;
+    for (const unsigned char character : host) {
+        const bool alphanumeric = (character >= 'a' && character <= 'z') ||
+            (character >= 'A' && character <= 'Z') || (character >= '0' && character <= '9');
+        if (character == '.') {
+            if (!labelLength || previous == '-') {
+                return false;
+            }
+            labelLength = 0;
+        } else {
+            constexpr size_t MaximumDnsLabelBytes = 63;
+            if ((!alphanumeric && character != '-') || (!labelLength && character == '-') ||
+                ++labelLength > MaximumDnsLabelBytes) {
+                return false;
+            }
+        }
+        previous = static_cast<char>(character);
+    }
+    if (!labelLength || previous == '-') {
+        return false;
+    }
+    const bool numeric = std::all_of(host.begin(), host.end(), [](char character) {
+        return (character >= '0' && character <= '9') || character == '.';
+    });
+    if (numeric) {
+        constexpr size_t IPv4Octets = 4;
+        constexpr unsigned int MaximumOctetValue = 255;
+        size_t offset = 0;
+        for (size_t octet = 0; octet < IPv4Octets; ++octet) {
+            const auto dot = host.find('.', offset);
+            const auto value = host.substr(offset, dot == std::string_view::npos ? dot : dot - offset);
+            unsigned int number = 0;
+            if (!Number(std::string(value), number, 0U, MaximumOctetValue) ||
+                (value.size() > 1 && value.front() == '0') ||
+                (octet + 1 < IPv4Octets) != (dot != std::string_view::npos)) {
+                return false;
+            }
+            offset = dot == std::string_view::npos ? host.size() : dot + 1;
+        }
+    }
+    endpoint = {std::string(host), static_cast<uint16_t>(port)};
+    return true;
+}
+
+std::vector<Masterserver> MasterserverSettings::Providers() const {
+    // Steam resolves Valve's current directory through its existing API, rather than pinning a legacy IP.
+    std::vector<Masterserver> providers{{"steam", "Steam", {}, true},
+        {"varq", "Varq", {"ms.varq.net:27010", "ms2.varq.net:27010"}, true}};
+    providers.insert(providers.end(), custom.begin(), custom.end());
+    return providers;
+}
+
+Masterserver MasterserverSettings::Selected() const {
+    for (const auto& provider : Providers()) {
+        if (provider.id == selected) {
+            return provider;
+        }
+    }
+    return {};
+}
+
+bool MasterserverSettings::Add(std::string_view name, std::string_view addresses) {
+    Masterserver provider;
+    provider.name = TrimMasterText(name);
+    if (custom.size() >= MaximumCustomMasterservers || provider.name.empty() ||
+        provider.name.size() > MaximumMasterNameBytes || addresses.size() > MaximumMasterAddressBytes) {
+        return false;
+    }
+    for (const unsigned char character : provider.name) {
+        if (character < ' ' || character == 127) {
+            return false;
+        }
+    }
+    size_t offset = 0;
+    while (offset < addresses.size()) {
+        const auto end = addresses.find_first_of(";,\r\n", offset);
+        const auto value = TrimMasterText(addresses.substr(offset, end == std::string_view::npos ? end : end - offset));
+        if (!value.empty()) {
+            MasterEndpoint endpoint;
+            if (!ParseMasterEndpoint(value, endpoint)) {
+                return false;
+            }
+            if (std::find(provider.endpoints.begin(), provider.endpoints.end(), value) == provider.endpoints.end()) {
+                provider.endpoints.push_back(value);
+            }
+        }
+        offset = end == std::string_view::npos ? addresses.size() : end + 1;
+    }
+    if (provider.endpoints.empty() || provider.endpoints.size() > MaximumMasterEndpoints) {
+        return false;
+    }
+    size_t serial = 0;
+    do {
+        provider.id = "custom-" + std::to_string(++serial);
+    } while (std::any_of(custom.begin(), custom.end(), [&](const auto& item) { return item.id == provider.id; }));
+    custom.push_back(std::move(provider));
+    return true;
+}
+
+bool MasterserverSettings::Remove(std::string_view id) {
+    const auto found = std::find_if(custom.begin(), custom.end(), [&](const auto& item) { return item.id == id; });
+    if (found == custom.end() || id == "steam" || id == "varq") {
+        return false;
+    }
+    if (selected == id) {
+        selected = "varq";
+    }
+    custom.erase(found);
+    return true;
+}
+
+bool MasterserverSettings::Valid() const {
+    if (custom.size() > MaximumCustomMasterservers || Selected().id.empty()) {
+        return false;
+    }
+    std::set<std::string> ids{"steam", "varq"};
+    MasterserverSettings checked;
+    for (const auto& provider : custom) {
+        std::string addresses;
+        for (const auto& endpoint : provider.endpoints) {
+            if (!addresses.empty()) {
+                addresses += ';';
+            }
+            addresses += endpoint;
+        }
+        constexpr std::string_view CustomIdPrefix = "custom-";
+        size_t serial = 0;
+        if (provider.predefined || provider.id.compare(0, CustomIdPrefix.size(), CustomIdPrefix) != 0 ||
+            !Number(provider.id.substr(CustomIdPrefix.size()), serial, size_t{1}, MaximumCustomMasterservers) ||
+            !ids.insert(provider.id).second || !checked.Add(provider.name, addresses) ||
+            checked.custom.back().name != provider.name || checked.custom.back().endpoints != provider.endpoints) {
+            return false;
+        }
+    }
+    return true;
+}
+
 struct ServerBrowserConfig::State {
     IConfigStorage& storage;
     std::thread::id thread = std::this_thread::get_id();
@@ -243,7 +439,7 @@ bool ServerBrowserConfig::Load() {
         }
         const size_t equal = line.find('=');
         const auto key = line.substr(0, equal);
-        if (fields.count(key)) {
+        if (fields.count(key) || key.compare(0, 14, "master.custom.") == 0) {
             std::string value;
             if (equal == std::string::npos || !knownSeen.insert(key).second ||
                 !Unescape(std::string_view(line).substr(equal + 1), value)) {
@@ -303,6 +499,10 @@ bool ServerBrowserConfig::Save() {
     CheckThread(state.thread);
     state.status.dirty = true;
     if (!state.status.available) {
+        return false;
+    }
+    if (!state.settings.masterservers.Valid()) {
+        state.status.error = "Invalid masterserver settings";
         return false;
     }
     const Fields fields = EncodeFields(state.settings);

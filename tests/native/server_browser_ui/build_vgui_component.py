@@ -53,7 +53,7 @@ subprocess.run(['python3', str(repo / 'tests/native/server_browser_ui/extract_ow
 subprocess.run(['python3', str(repo / 'tests/native/server_browser_ui/extract_geometry.py'),
     '--repo', str(repo), '--output', str(packet / 'extracted')], check=True)
 new = ['ServerBrowserModel', 'ServerBrowserConfig', 'ServerBrowserPresentation', 'ServerBrowserConnection',
-       'ServerBrowserDetails', 'ServerBrowserDialog']
+       'ServerBrowserDetails', 'ServerBrowserMasterserverQuery', 'ServerBrowserSettingsDialog', 'ServerBrowserDialog']
 if args.driver == 'module':
     new.append('ServerBrowserModule')
 for name in new:

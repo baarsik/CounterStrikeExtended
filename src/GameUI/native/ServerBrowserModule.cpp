@@ -123,10 +123,11 @@ public:
             }
         }
         const bool modelClosed = session_->model.CloseStep(BrowserFrameBudget);
+        const bool masterserversClosed = session_->masterserverProvider.BeginClose();
         const bool viewClosed = session_->presentation.BeginClose();
         session_->presentation.Pump(BrowserFrameBudget);
         const bool childrenClosed = !dialog_.Get() || dialog_->BeginClose();
-        if (!modelClosed || !viewClosed || !childrenClosed) {
+        if (!modelClosed || !masterserversClosed || !viewClosed || !childrenClosed) {
             return false;
         }
         if (dialog_.Get()) {

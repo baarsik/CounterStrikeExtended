@@ -377,6 +377,9 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set_property(SOURCE "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConfig.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-frtti>")
     set_property(SOURCE "${CSE_SDK_DIR}/GameUI/native/ServerBrowserConfig.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:-funwind-tables>")
   endif()
+  target_sources(gameui PRIVATE
+    "${CSE_SDK_DIR}/GameUI/native/ServerBrowserMasterserverQuery.cpp"
+    "${CSE_SDK_DIR}/GameUI/native/ServerBrowserSettingsDialog.cpp")
   target_sources(gameui PRIVATE "${CSE_SDK_DIR}/GameUI/native/ServerBrowserPresentation.cpp")
   if(MSVC)
     set_property(SOURCE "${CSE_SDK_DIR}/GameUI/native/ServerBrowserPresentation.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Debug>:/EHsc>")

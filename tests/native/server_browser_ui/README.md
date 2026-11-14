@@ -114,3 +114,15 @@ client or restart command is issued.
 `fit.tsv`, `options.bmp` and `languages.bmp` contain measured and rendered evidence.
 Empty image-only frame decorations are outside translated-text measurement.
 This component test does not launch a full game or instantiate other Options pages.
+
+## Masterserver configuration
+
+`masterserver-settings` exercises the actual cogwheel/settings controls, protected
+Steam/Varq entries, adding and removing custom providers, OK persistence, Cancel/X
+rollback, and clearing prior results. Existing scenarios explicitly select Steam
+so their deterministic providers do not contact public directories.
+
+The sibling `tests/native/server_browser` suite covers custom endpoint validation,
+configuration migration, loopback masterserver pagination and deduplication,
+backup endpoints, failed metadata refresh, bounded retirement, and cancellation
+reentry. Varq uses both configured endpoints; Steam retains its API discovery.

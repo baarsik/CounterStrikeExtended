@@ -171,6 +171,13 @@
       "Join cancels active source refresh",
       "snapshot survives cancellation callback",
       "independent fresh child ping precedes captured numeric connect"
+    ],
+    "masterserver-settings": [
+      "cogwheel beside close",
+      "protected Steam and Varq entries",
+      "custom provider draft",
+      "Cancel discards draft",
+      "OK persists selection and clears results"
     ]
   },
   "moduleDriver": "module_tests.cpp: lifecycle, unavailable, unsupported-game; actual accepted CGameUI hooks and delayed replay",

@@ -34,7 +34,12 @@ foreach(branch little big)
     add_test(NAME server_browser_address_formatter_${branch} COMMAND address_formatter_${branch}_tests)
 endforeach()
 target_compile_definitions(address_formatter_big_tests PRIVATE VALVE_BIG_ENDIAN=1)
-foreach(target browser_model browser_config browser_config_macro_contract model_tests config_tests favorite_adapter_tests provider_probe
+add_executable(masterserver_tests masterserver_tests.cpp "${sdk}/GameUI/native/ServerBrowserMasterserverQuery.cpp")
+target_link_libraries(masterserver_tests PRIVATE browser_config browser_model)
+if(WIN32)
+    target_link_libraries(masterserver_tests PRIVATE ws2_32)
+endif()
+foreach(target browser_model browser_config browser_config_macro_contract model_tests config_tests favorite_adapter_tests provider_probe masterserver_tests
         address_formatter_little_tests address_formatter_big_tests)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /WX /EHsc)
@@ -55,3 +60,9 @@ add_test(NAME server_browser_favorite_adapter COMMAND favorite_adapter_tests)
 add_test(NAME server_browser_config_macro_contract
     COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
         --target browser_config_macro_contract --config "$<CONFIG>")
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+foreach(case pagination backup cancel reentry cancel-reentry)
+    add_test(NAME server_browser_master_${case} COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_LIST_DIR}/masterserver_fixture.py" "$<TARGET_FILE:masterserver_tests>" ${case})
+endforeach()

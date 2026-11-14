@@ -31,5 +31,14 @@
         "CSEInterface_SaveFailed" "無法變更語言。請重試。"
         "CSEInterface_LaunchOverride" "啟動選項 -language 會覆寫此設定。"
 
+        "CSEServerBrowser_Configuration" "伺服器瀏覽器設定"
+        "CSEServerBrowser_Masterservers" "主伺服器"
+        "CSEServerBrowser_MasterName" "名稱"
+        "CSEServerBrowser_MasterAddresses" "位址"
+        "CSEServerBrowser_MasterAddressHelp" "使用主機:連接埠格式，多個位址以分號分隔。"
+        "CSEServerBrowser_AddMasterserver" "新增"
+        "CSEServerBrowser_RemoveMasterserver" "移除"
+        "CSEServerBrowser_SteamDirectory" "Steam 目錄"
+        "CSEServerBrowser_InvalidMasterserver" "請輸入名稱和有效的主機:連接埠位址。"
     }
 }

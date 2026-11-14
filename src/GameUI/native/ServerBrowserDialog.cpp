@@ -1,4 +1,6 @@
 #include "ServerBrowserDialog.h"
+#include "ServerBrowserSettingsDialog.h"
+#include "Tooltip.h"
 #include "localization_controls.h"
 #include "Button.h"
 #include "CheckButton.h"
@@ -79,6 +81,45 @@ std::string Text(vgui2::TextEntry *entry) {
     entry->GetText(buffer.data(), static_cast<int>(buffer.size()));
     return buffer.data();
 }
+// Draw the cog as geometry so it works with every installed font and needs no raster asset.
+class BrowserSettingsButton final : public vgui2::Button {
+public:
+    explicit BrowserSettingsButton(vgui2::Panel* parent) : Button(parent, "BrowserSettings", "") {
+        SetCommand("BrowserSettings");
+        AddActionSignalTarget(parent);
+        GetTooltip()->SetText("#CSEServerBrowser_Configuration");
+    }
+protected:
+    void Paint() override {
+        Button::Paint();
+        constexpr int CogPoints = 32;
+        constexpr int PointsPerTooth = 4;
+        constexpr int CrestPoints = 2;
+        constexpr double FullCircle = 6.283185307179586;
+        constexpr double OuterRadius = 6.5;
+        constexpr double InnerRadius = 4.8;
+        constexpr double HoleRadius = 2.2;
+        const double centerX = GetWide() * 0.5;
+        const double centerY = GetTall() * 0.5;
+        std::array<int, CogPoints + 1> x{};
+        std::array<int, CogPoints + 1> y{};
+        vgui2::surface()->DrawSetColor(GetButtonFgColor());
+        for (int point = 0; point <= CogPoints; ++point) {
+            const double angle = FullCircle * point / CogPoints;
+            const double radius = point % PointsPerTooth < CrestPoints ? OuterRadius : InnerRadius;
+            x[point] = static_cast<int>(std::lround(centerX + std::cos(angle) * radius));
+            y[point] = static_cast<int>(std::lround(centerY + std::sin(angle) * radius));
+        }
+        vgui2::surface()->DrawPolyLine(x.data(), y.data(), static_cast<int>(x.size()));
+        for (int point = 0; point <= CogPoints; ++point) {
+            const double angle = FullCircle * point / CogPoints;
+            x[point] = static_cast<int>(std::lround(centerX + std::cos(angle) * HoleRadius));
+            y[point] = static_cast<int>(std::lround(centerY + std::sin(angle) * HoleRadius));
+        }
+        vgui2::surface()->DrawPolyLine(x.data(), y.data(), static_cast<int>(x.size()));
+    }
+};
+
 class LogicalScroll final : public vgui2::ScrollBar {
 public:
     LogicalScroll(vgui2::Panel *parent, std::function<void(size_t)> seek)
@@ -162,11 +203,13 @@ void RegisterFallbacks() {
 BrowserSession::BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamMatchmaking *favoriteProvider,
                                IFileSystem *filesystem, IConnectionEngine &engine, AppId_t app, const char *game,
                                std::string preferenceRoot, IFavoriteStore *injectedFavorites)
-    : favorites(favoriteProvider), model({serverProvider, injectedFavorites ? injectedFavorites : &favorites}),
+    : masterserverProvider(serverProvider), favorites(favoriteProvider),
+      model({serverProvider ? &masterserverProvider : nullptr, injectedFavorites ? injectedFavorites : &favorites}),
       storage(filesystem, std::move(preferenceRoot)), config(storage), connection(engine, model, app, game),
-      servers(serverProvider) {
+      servers(serverProvider ? &masterserverProvider : nullptr) {
     config.Load();
     settings = config.Settings();
+    masterserverProvider.Select(settings.masterservers.Selected());
     // Every session initially browses the running game. Saved remaining filters are retained.
     settings.filters.app = app;
     settings.filters.gameDirectory = game;
@@ -1057,6 +1100,7 @@ ServerBrowserDialog::ServerBrowserDialog(BrowserSession &session)
         }
     }
     LoadControlSettings("servers/DialogServerBrowser.res", "PLATFORM");
+    settingsButton_ = new BrowserSettingsButton(this);
     int x = 0;
     int y = 0;
     int width = 0;
@@ -1126,6 +1170,13 @@ void ServerBrowserDialog::ReloadPage() {
 void ServerBrowserDialog::PerformLayout() {
     ClampFrame(*this);
     Frame::PerformLayout();
+    constexpr int TitleButtonSize = 18;
+    constexpr int TitleButtonStep = 20;
+    constexpr int TitleButtonMargin = 5;
+    constexpr int TitleButtonTop = 8;
+    settingsButton_->SetBounds(GetWide() - TitleButtonMargin - 2 * TitleButtonStep, TitleButtonTop,
+        TitleButtonSize, TitleButtonSize);
+    settingsButton_->MoveToFront();
 }
 
 void ServerBrowserDialog::Activate() {
@@ -1323,6 +1374,7 @@ void ServerBrowserDialog::Pump() {
         session_.favoritesDirty = false;
         session_.model.Refresh(session_.settings.kind, session_.settings.filters);
     }
+    session_.masterserverProvider.Pump(BrowserFrameBudget);
     session_.model.Pump(BrowserFrameBudget);
     session_.presentation.Pump(BrowserFrameBudget);
     if (session_.presentation.CanAcceptUpdates()) {
@@ -1804,7 +1856,13 @@ void ServerBrowserDialog::OnCommand(const char *command) {
             selectedRows.push_back(*row);
         }
     }
-    if (std::strcmp(command, "GetNewList") == 0) {
+    if (std::strcmp(command, "BrowserSettings") == 0) {
+        if (!settingsDialog_.Get()) {
+            settingsDialog_ = new BrowserSettingsDialog(this, session_,
+                [this](const MasterserverSettings& settings) { ApplyMasterservers(settings); });
+        }
+        settingsDialog_->DoModal();
+    } else if (std::strcmp(command, "GetNewList") == 0) {
         session_.model.Refresh(session_.settings.kind, session_.settings.filters);
     } else if (std::strcmp(command, "stoprefresh") == 0) {
         session_.model.Stop();
@@ -1848,6 +1906,28 @@ void ServerBrowserDialog::OnCommand(const char *command) {
         Frame::OnCommand(command);
     }
 }
+void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& settings) {
+    if (!settings.Valid() || session_.closing || !session_.active) {
+        return;
+    }
+    session_.settings.masterservers = settings;
+    session_.masterserverProvider.Select(settings.Selected());
+    for (auto& tab : tabStates_) {
+        tab.selection.reset();
+    }
+    selectedKeys_.clear();
+    keyboardCursor_.reset();
+    rangeAnchor_.reset();
+    restoreSelection_ = false;
+    actionStatus_.clear();
+    transitioning_ = true;
+    list_->RemoveAll();
+    slots_.clear();
+    visible_.clear();
+    session_.model.Refresh(session_.settings.kind, session_.settings.filters, true);
+    SaveSettings();
+}
+
 void ServerBrowserDialog::ShowActionStatus(const char *token) {
     actionStatus_ = token;
     shownStatus_ = token;
@@ -1882,6 +1962,10 @@ bool ServerBrowserDialog::RetireChildren() {
         contextMenu_->MarkForDeletion();
     }
     bool retired = !contextMenu_.Get();
+    if (settingsDialog_.Get()) {
+        settingsDialog_->Retire();
+        retired = false;
+    }
     for (auto &message : messageDialogs_) {
         if (message.Get()) {
             message->SetVisible(false);

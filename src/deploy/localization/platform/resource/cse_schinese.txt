@@ -31,5 +31,14 @@
         "CSEInterface_SaveFailed" "无法更改语言。请重试。"
         "CSEInterface_LaunchOverride" "启动选项 -language 会覆盖此设置。"
 
+        "CSEServerBrowser_Configuration" "服务器浏览器配置"
+        "CSEServerBrowser_Masterservers" "主服务器"
+        "CSEServerBrowser_MasterName" "名称"
+        "CSEServerBrowser_MasterAddresses" "地址"
+        "CSEServerBrowser_MasterAddressHelp" "使用主机:端口格式，多个地址用分号分隔。"
+        "CSEServerBrowser_AddMasterserver" "添加"
+        "CSEServerBrowser_RemoveMasterserver" "删除"
+        "CSEServerBrowser_SteamDirectory" "Steam 目录"
+        "CSEServerBrowser_InvalidMasterserver" "请输入名称和有效的主机:端口地址。"
     }
 }

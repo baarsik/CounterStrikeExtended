@@ -805,7 +805,7 @@ ServerBrowserModel::~ServerBrowserModel() {
     while (!CloseStep(DestructionBatch)) {
     }
 }
-bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters) {
+bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters, bool clearResults) {
     auto& state = *state_;
     state.Check();
     if (state.closing || !state.services.servers || state.providerDepth || state.callbackDepth) {
@@ -817,7 +817,7 @@ bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters) {
         return false;
     }
     state.Invalidate();
-    if (state.kind != kind || state.filters.app != filters.app) {
+    if (clearResults || state.kind != kind || state.filters.app != filters.app) {
         state.ResetRows();
     }
     state.kind = kind;
