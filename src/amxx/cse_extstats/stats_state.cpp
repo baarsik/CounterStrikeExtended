@@ -28,6 +28,7 @@ void ServerState::Connect(int index, double now) {
     Slot& slot = slots_[index];
     slot = {};
     slot.connected = true;
+    slot.generation = ++nextConnection_;
     slot.alive = player.alive;
     slot.target = player.target;
     slot.refresh = true;
@@ -78,9 +79,13 @@ bool ServerState::HasProtocol(int index) const {
     return Valid(index) && slots_[index].connected && slots_[index].protocol;
 }
 
-bool ServerState::SetHealth(int index, std::int32_t amount) {
+bool ServerState::SetHealth(int index, std::int32_t amount, bool defer) {
     if (!Valid(index) || !host_.ReadPlayer(index).connected || host_.ReadPlayer(index).proxy) {
         return false;
+    }
+    if (defer || emitting_ || !slots_[index].pending.empty()) {
+        slots_[index].pending.push_back({Stat::Health, amount});
+        return true;
     }
     if (amount > 0) {
         host_.AssignHealth(index, static_cast<float>(amount));
@@ -90,12 +95,22 @@ bool ServerState::SetHealth(int index, std::int32_t amount) {
     return PublishStats(index, true);
 }
 
-bool ServerState::SetArmor(int index, std::int32_t amount) {
+bool ServerState::SetArmor(int index, std::int32_t amount, bool defer) {
     if (amount < 0 || !Valid(index) || !host_.ReadPlayer(index).connected || host_.ReadPlayer(index).proxy) {
         return false;
     }
+    if (defer || emitting_ || !slots_[index].pending.empty()) {
+        slots_[index].pending.push_back({Stat::Armor, amount});
+        return true;
+    }
     host_.AssignArmor(index, static_cast<float>(amount));
     return PublishStats(index, true);
+}
+
+void ServerState::QueueLegacy(int index) {
+    if (Valid(index) && host_.ReadPlayer(index).connected) {
+        slots_[index].legacy = true;
+    }
 }
 
 bool ServerState::PublishStats(int index, bool force) {
@@ -121,6 +136,35 @@ void ServerState::SendPair(int recipient, int subject, std::int32_t health, std:
 }
 
 void ServerState::Frame(double now, bool automatic, bool messageOpen) {
+    if (!messageOpen) {
+        for (int index = 1; index <= host_.MaxPlayers() && index <= MaxPlayerIndex; ++index) {
+            Slot& slot = slots_[index];
+            if (slot.pending.empty() || !slot.connected || !host_.ReadPlayer(index).connected) {
+                continue;
+            }
+            const std::uint64_t generation = slot.generation;
+            // Move before callbacks so newly queued operations survive until the next safe frame.
+            const std::vector<Operation> pending = std::move(slot.pending);
+            slot.pending.clear();
+            emitting_ = true;
+            for (const Operation& operation : pending) {
+                if (slot.generation != generation || !slot.connected || !host_.ReadPlayer(index).connected) {
+                    break;
+                }
+                if (operation.stat == Stat::Armor) {
+                    host_.AssignArmor(index, static_cast<float>(operation.amount));
+                } else if (operation.amount > 0) {
+                    host_.AssignHealth(index, static_cast<float>(operation.amount));
+                } else {
+                    host_.Kill(index);
+                }
+            }
+            emitting_ = false;
+            if (slot.generation == generation) {
+                PublishStats(index, true);
+            }
+        }
+    }
     const bool enabled = automatic && !automatic_;
     automatic_ = automatic;
     for (int index = 1; index <= host_.MaxPlayers() && index <= MaxPlayerIndex; ++index) {
@@ -155,35 +199,51 @@ void ServerState::Frame(double now, bool automatic, bool messageOpen) {
     if (snapshot) {
         nextSnapshot_ = now + SnapshotInterval;
     }
+    std::array<bool, MaxPlayerIndex + 1> refresh{};
+    for (std::size_t index = 0; index < slots_.size(); ++index) {
+        refresh[index] = slots_[index].refresh;
+        slots_[index].refresh = false;
+    }
+    emitting_ = true;
     for (int subject = 1; subject <= host_.MaxPlayers() && subject <= MaxPlayerIndex; ++subject) {
         Slot& slot = slots_[subject];
-        if (invalid_[subject]) {
+        const bool connected = slot.connected;
+        const bool dirty = slot.dirty;
+        const bool invalid = invalid_[subject];
+        const bool legacy = slot.legacy;
+        const std::int32_t health = slot.health;
+        const std::int32_t armor = slot.armor;
+        // Consume before hookable output. A callback's new request belongs to the next publication.
+        slot.dirty = false;
+        slot.legacy = false;
+        invalid_[subject] = false;
+        const Player actual = legacy ? host_.ReadPlayer(subject) : Player{};
+        if (invalid) {
             SendPair(0, subject, InvalidAmount, InvalidAmount);
         }
-        if (slot.connected && (slot.dirty || snapshot)) {
-            SendPair(0, subject, slot.health, slot.armor);
+        if (connected && (dirty || snapshot)) {
+            SendPair(0, subject, health, armor);
         }
         for (int recipient = 1; recipient <= host_.MaxPlayers() && recipient <= MaxPlayerIndex; ++recipient) {
             const Slot& target = slots_[recipient];
             if (!target.connected || (recipient != subject && target.target != subject)) {
                 continue;
             }
-            if (invalid_[subject] && target.protocol) {
+            if (invalid && target.protocol) {
                 SendPair(recipient, subject, InvalidAmount, InvalidAmount);
             }
-            if (slot.connected && (slot.dirty || target.refresh)) {
-                host_.EmitLegacy(recipient, subject, slot.health, slot.armor);
+            if (connected && (dirty || refresh[recipient])) {
+                host_.EmitLegacy(recipient, subject, health, armor);
                 if (target.protocol) {
-                    SendPair(recipient, subject, slot.health, slot.armor);
+                    SendPair(recipient, subject, health, armor);
                 }
+            } else if (connected && legacy && actual.connected) {
+                host_.EmitLegacy(recipient, subject, NormalizeHealth(actual.health, actual.alive),
+                                 NormalizeArmor(actual.armor));
             }
         }
-        invalid_[subject] = false;
-        slot.dirty = false;
     }
-    for (Slot& slot : slots_) {
-        slot.refresh = false;
-    }
+    emitting_ = false;
 }
 
 } // namespace cse::extstats

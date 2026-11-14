@@ -53,6 +53,7 @@ bool CSE_HandleExtendedStats(cse::extstats::Stat stat, const void* buffer, int s
 }
 
 void CSE_UpdateLegacyHealth(int player, int health, bool localHud) {
+    CSE_ThinkExtendedStats();
     if (ValidPlayer(player)) {
         cse::extstats::ClientStats().Legacy(cse::extstats::Stat::Health, player, health);
         ApplyHealth(player, localHud);
@@ -60,6 +61,7 @@ void CSE_UpdateLegacyHealth(int player, int health, bool localHud) {
 }
 
 void CSE_UpdateLegacyArmor(int armor) {
+    CSE_ThinkExtendedStats();
     using namespace cse::extstats;
     const int player = CSE_LocalPlayerIndex();
     gHUD.m_Battery.SetArmor(ValidPlayer(player) ? ClientStats().Legacy(Stat::Armor, player, armor) : armor);
@@ -83,5 +85,7 @@ void CSE_ThinkExtendedStats() {
         for (int player = 1; player <= MAX_PLAYERS; ++player) {
             g_PlayerExtraInfo[player].health = 0;
         }
+        gHUD.m_Health.SetHealth(0);
+        gHUD.m_Battery.SetArmor(0);
     }
 }

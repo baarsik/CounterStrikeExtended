@@ -28,6 +28,10 @@ class ProbeTests(unittest.TestCase):
         text = log() + 'CSE_PROBE init health_id=100 armor_id=101 invalid_identity=0\n'
         self.assertFalse(probe.analyze(text)['server_probe_pass'])
 
+    def test_failed_plugin_on_next_map_cannot_reuse_old_success(self):
+        text = log() + '-------- Mapchange to de_dust2 --------\n[AMXX] Plugin failed to load\n'
+        self.assertFalse(probe.analyze(text)['server_probe_pass'])
+
     def test_no_downstream_acceptance_inference(self):
         result = probe.analyze(log())
         self.assertEqual(result['client_visual_acceptance'], 'unverified')

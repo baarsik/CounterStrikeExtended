@@ -1,4 +1,5 @@
 #include <array>
+#include <functional>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -25,6 +26,8 @@ struct Engine : ServerHost {
     std::vector<Packet> packets;
     std::vector<Probe> probes;
     int kills = 0;
+    std::function<void(const Packet&)> onEmit;
+    std::vector<Packet> legacy;
     int MaxPlayers() const override {
         return 4;
     }
@@ -45,10 +48,15 @@ struct Engine : ServerHost {
     void Query(int i, const char* name, int request) override {
         probes.push_back({i, name, request});
     }
-    void EmitLegacy(int, int, std::int32_t, std::int32_t) override {
+    void EmitLegacy(int recipient, int subject, std::int32_t health, std::int32_t armor) override {
+        legacy.push_back({recipient, subject, Stat::Health, health});
+        legacy.push_back({recipient, subject, Stat::Armor, armor});
     }
     void Emit(int recipient, int subject, Stat stat, std::int32_t amount) override {
         packets.push_back({recipient, subject, stat, amount});
+        if (onEmit) {
+            onEmit(packets.back());
+        }
     }
     void Add(int i, bool bot = false) {
         players[i] = {true, bot, false, true, 100, 0, 0};
@@ -86,7 +94,47 @@ int main(int, char** argv) {
     ServerState state(host);
     state.Connect(1, 0);
     const std::string test = argv[1];
-    if (test == "native_setters") {
+    if (test == "deferred_native_operations") {
+        state.SetHealth(1, 0, true);
+        state.SetArmor(1, 500, true);
+        Check(host.kills == 0 && host.players[1].armor == 0, "hook setters defer message-producing gameplay");
+        state.Frame(0.1, false, true);
+        Check(host.kills == 0, "active message prevents queued kill");
+        state.Frame(0.2, false, false);
+        Check(host.kills == 1 && host.players[1].armor == 500, "safe frame preserves setter order");
+        state.SetHealth(1, 0, true);
+        state.Disconnect(1);
+        host.Add(1);
+        state.Connect(1, 0.3);
+        state.Frame(0.4, false, false);
+        Check(host.kills == 1 && host.players[1].alive, "queued kill never reaches replacement connection");
+    } else if (test == "publication_reentrancy") {
+        Identify(state, host, 1);
+        bool changed = false;
+        host.onEmit = [&](const Packet& packet) {
+            if (!changed && packet.recipient == 1 && packet.stat == Stat::Health) {
+                changed = true;
+                state.SetArmor(1, 1000);
+            }
+        };
+        state.Frame(0.1, false, false);
+        Check(host.Has(1, 1, Stat::Armor, 0), "one publication uses one captured state");
+        host.packets.clear();
+        state.Frame(0.2, false, false);
+        Check(host.Has(1, 1, Stat::Armor, 1000), "callback update survives consumption of earlier publication");
+    } else if (test == "legacy_manual_refresh") {
+        Identify(state, host, 1);
+        state.Frame(0.1, false, false);
+        host.packets.clear();
+        host.legacy.clear();
+        host.players[1].armor = 100000;
+        state.QueueLegacy(1);
+        state.Frame(0.2, false, false);
+        Check(!host.legacy.empty() && host.legacy.back().amount == 100000, "manual fallback samples actual amount");
+        Check(!host.Has(1, 1, Stat::Armor, 100000), "legacy safety does not opt into Ex observation");
+        state.Frame(1.2, false, false);
+        Check(host.Has(0, 1, Stat::Armor, 0), "manual broadcast snapshot still uses published cache");
+    } else if (test == "native_setters") {
         Check(state.SetHealth(1, 99999), "health native accepted");
         Check(state.SetArmor(1, 100000), "armor native accepted");
         Check(host.players[1].health == 99999 && host.players[1].armor == 100000, "native updates entities");

@@ -8,9 +8,11 @@ enum {
 struct cl_entity_t {
     int index = 1;
 };
+static bool playingDemo = false;
+static double clientTime = 1;
 struct Demo {
     bool IsPlayingback() {
-        return false;
+        return playingDemo;
     }
 };
 struct Engine {
@@ -23,7 +25,7 @@ struct Engine {
         return 32;
     }
     double GetClientTime() {
-        return 1;
+        return clientTime;
     }
 } gEngfuncs;
 struct Extra {
@@ -73,7 +75,21 @@ void CHudHealth::SetHealth(int health) {
 }
 #include "bridge_bodies.inc"
 int main(int, char** argv) {
-    if (std::strcmp(argv[1], "trailing") == 0) {
+    if (std::strcmp(argv[1], "demo") == 0) {
+        Demo demo;
+        gEngfuncs.pDemoAPI = &demo;
+        playingDemo = true;
+        clientTime = 20;
+        const unsigned char packet[] = {1, 0x9f, 0x86, 1, 0};
+        CSE_HandleExtendedStats(cse::extstats::Stat::Health, packet, 5);
+        CSE_HandleExtendedStats(cse::extstats::Stat::Armor, packet, 5);
+        clientTime = 5;
+        CSE_UpdateLegacyHealth(1, 42, true);
+        if (gHUD.m_Health.amount != 42 || gHUD.m_Battery.amount != 0) {
+            std::fputs("FAIL: demo reversal kept canonical future values or discarded incoming legacy data\n", stderr);
+            return 1;
+        }
+    } else if (std::strcmp(argv[1], "trailing") == 0) {
         unsigned char health[] = {42, 0};
         unsigned char armor[] = {0xf4, 1, 0};
         CHudHealth{}.MsgFunc_Health("Health", sizeof(health), health);

@@ -24,7 +24,8 @@ if(EXISTS "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
   target_sources(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
 endif()
 foreach(scenario IN ITEMS native_setters identity_vs_protocol query_timeout reused_slot_reply nested_publication
-    automatic_changes manual_mode live_mode_toggle lifecycle_force recipient_permissions hltv_stable_snapshot)
+    automatic_changes manual_mode live_mode_toggle lifecycle_force recipient_permissions hltv_stable_snapshot
+    deferred_native_operations publication_reentrancy legacy_manual_refresh)
   add_test(NAME ${scenario} COMMAND extended_stats_server_tests ${scenario})
 endforeach()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
@@ -90,3 +91,22 @@ endif()
 
 add_test(NAME qualification_evidence COMMAND "${Python3_EXECUTABLE}" -m unittest discover
   -s "${CMAKE_CURRENT_SOURCE_DIR}" -p test_probe.py)
+
+add_test(NAME late_legacy_registration COMMAND extended_stats_registration_tests late)
+add_test(NAME demo_bridge_reversal COMMAND extended_stats_bridge_tests demo)
+
+add_test(NAME spectator_language_replay COMMAND extended_stats_spectator_tests replay)
+add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
+  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_legacy_hooks.py"
+    "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
+  DEPENDS extract_legacy_hooks.py "${CSE_ROOT}/src/amxx/cse_extstats/legacy_messages.cpp" VERBATIM)
+add_executable(extended_stats_legacy_hook_tests legacy_hook_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
+  "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
+target_compile_features(extended_stats_legacy_hook_tests PRIVATE cxx_std_17)
+target_include_directories(extended_stats_legacy_hook_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/cse_extstats")
+if(NOT MSVC AND CSE_EXTSTATS_SANITIZERS)
+  target_compile_options(extended_stats_legacy_hook_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+  target_link_options(extended_stats_legacy_hook_tests PRIVATE -fsanitize=address,undefined)
+endif()
+add_test(NAME buffered_legacy_hooks COMMAND extended_stats_legacy_hook_tests)

@@ -14,6 +14,9 @@ VALUES = [0, 1, 255, 256, 511, 512, 999, 1000, 32767, 32768, 65535, 65536, 99999
 
 
 def analyze(text):
+    maps = list(re.finditer(r'-------- Mapchange to [^\r\n]+ --------', text))
+    if maps:
+        text = text[maps[-1].start():]
     starts = list(re.finditer(r'CSE_PROBE init health_id=(\d+) armor_id=(\d+) invalid_identity=(\d+)', text))
     # Analyze only the latest map/plugin instance; never borrow success from an earlier run.
     current = text[starts[-1].start():] if starts else text

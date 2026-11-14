@@ -105,6 +105,16 @@ class EngineHost final : public ServerHost {
 static EngineHost Host;
 ServerState State(Host);
 
+static void ResolveLegacyMessages() {
+    HealthId = GET_USER_MSG_ID(PLID, "Health", nullptr);
+    ArmorId = GET_USER_MSG_ID(PLID, "Battery", nullptr);
+    SpecHealthId = GET_USER_MSG_ID(PLID, "SpecHealth", nullptr);
+    SpecHealth2Id = GET_USER_MSG_ID(PLID, "SpecHealth2", nullptr);
+    HltvId = GET_USER_MSG_ID(PLID, "HLTV", nullptr);
+    ResetHudId = GET_USER_MSG_ID(PLID, "ResetHUD", nullptr);
+    InitHudId = GET_USER_MSG_ID(PLID, "InitHUD", nullptr);
+}
+
 static bool RegisterMessages() {
     HealthExId = 0;
     ArmorExId = 0;
@@ -133,13 +143,6 @@ static bool RegisterMessages() {
         MF_Log("Extended stats disabled: user-message registration failed");
         return false;
     }
-    HealthId = GET_USER_MSG_ID(PLID, "Health", nullptr);
-    ArmorId = GET_USER_MSG_ID(PLID, "Battery", nullptr);
-    SpecHealthId = GET_USER_MSG_ID(PLID, "SpecHealth", nullptr);
-    SpecHealth2Id = GET_USER_MSG_ID(PLID, "SpecHealth2", nullptr);
-    HltvId = GET_USER_MSG_ID(PLID, "HLTV", nullptr);
-    ResetHudId = GET_USER_MSG_ID(PLID, "ResetHUD", nullptr);
-    InitHudId = GET_USER_MSG_ID(PLID, "InitHUD", nullptr);
     return true;
 }
 
@@ -166,6 +169,11 @@ void StatsServerActivate(edict_t*, int, int) {
     // Identity queries remain available even when a conflicting Ex message disables publication.
     Active = true;
     ConfigPending = true;
+    RETURN_META(MRES_IGNORED);
+}
+
+void StatsServerActivated(edict_t*, int, int) {
+    cse::extstats::ResolveLegacyMessages();
     RETURN_META(MRES_IGNORED);
 }
 

@@ -3,7 +3,7 @@
 namespace cse::extstats {
 
 static cell AMX_NATIVE_CALL SetHealth(AMX* amx, cell* params) {
-    if (params[0] < static_cast<cell>(2 * sizeof(cell)) || !State.SetHealth(params[1], params[2])) {
+    if (params[0] < static_cast<cell>(2 * sizeof(cell)) || !State.SetHealth(params[1], params[2], MessageOpen)) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid player or health setter arguments");
         return 0;
     }
@@ -11,7 +11,7 @@ static cell AMX_NATIVE_CALL SetHealth(AMX* amx, cell* params) {
 }
 
 static cell AMX_NATIVE_CALL SetArmor(AMX* amx, cell* params) {
-    if (params[0] < static_cast<cell>(2 * sizeof(cell)) || !State.SetArmor(params[1], params[2])) {
+    if (params[0] < static_cast<cell>(2 * sizeof(cell)) || !State.SetArmor(params[1], params[2], MessageOpen)) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid player or negative armor amount");
         return 0;
     }

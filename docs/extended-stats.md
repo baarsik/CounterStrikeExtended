@@ -70,8 +70,8 @@ Setters and synchronization return 1 on success and raise native errors for inva
 or disconnected players. Bots can be stat subjects. Nonpositive health invokes the
 game DLL's normal client-kill path; positive health does not respawn dead players.
 Negative armor is an error. Synchronization republishes actual entity fields after
-changes made through another API. Calls from message hooks queue transmission until
-the current engine message ends.
+changes made through another API. Calls from message hooks queue setters and transmission until
+a safe server frame; this also defers the game DLL kill path and its messages.
 
 `cse_is_supported(index)` reports recognized **CSE identity**, independently of Ex
 protocol support. Invalid/disconnected clients, bots, HLTV proxies, unanswered or
@@ -98,7 +98,8 @@ these safe limited displays. Updated clients work on servers without the module
 using their legacy messages. Accurate larger values require the server extension.
 Existing AMXX message hooks remain in the publication path and can block/modify
 messages; an original game message and the module's canonical fallback can both
-invoke callbacks. Plugins overriding these messages must preserve the Ex contract
+invoke callbacks. Legacy-only correction queues also run in manual mode without
+changing the published Ex cache. Plugins overriding these messages must preserve the Ex contract
 or deliberately block it. Do not register the Ex names for another payload: an
 existing incompatible registration disables module publication and logs the reason.
 
@@ -119,7 +120,8 @@ The module also sends changes and full cached snapshots every second through
 messages. Stable late joins and demo resets wait for the next snapshot on the
 broadcast timeline, plus the relay's configured delay and network time. There is
 no immediate relay state injection. Backward demo time clears client Ex state;
-legacy fallbacks remain until the next snapshot.
+the canonical HUD is cleared too. Subsequent legacy messages serve as fallbacks
+while the client waits for the next snapshot.
 
 ## Verification
 
@@ -142,3 +144,6 @@ of downstream delivery. Run the live probe only on an owned test server: it crea
 a bot and changes its health/armor through the boundary sequence. Inspect 99999
 health and armor together at 640x480 and larger resolutions, death/respawn, stock
 clients, ordinary spectators, HLTV late joins and recorded-demo seeking before rollout.
+
+See [qualification coverage](extended-stats-qualification.md) for verified builds,
+live module-load evidence and the runtime acceptance checks that remain open.

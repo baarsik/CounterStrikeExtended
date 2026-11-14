@@ -16,6 +16,7 @@
 #include "hud_iga.h"
 #include "Label.h"
 #include "Controls.h"
+#include "ComboBox.h"
 #include "vgui/ILocalize.h"
 #include <stdio.h>
 #include <wchar.h>
@@ -232,8 +233,8 @@ void CCSSpectatorGUI::Update( const char* serverName, int player, int mode,
 
 void CCSSpectatorGUI::GetPlayerLabelText(int player, wchar_t* text, int textLength) {
     using namespace cse::extstats;
-    const int capacity = textLength / static_cast<int>(sizeof(wchar_t));
-    if (!text || capacity < 1) {
+    m_statsArmor = {};
+    if (!text || textLength < static_cast<int>(sizeof(wchar_t))) {
         return;
     }
     CSpectatorGUI::GetPlayerLabelText(player, text, textLength);
@@ -241,23 +242,36 @@ void CCSSpectatorGUI::GetPlayerLabelText(int player, wchar_t* text, int textLeng
     if (!armor.valid) {
         return;
     }
-    const VGuiLibraryPlayer_t info =
-        gViewPortInterface->GetClientDllInterface()->CallEnghudGetPlayerInfo(player);
+    const VGuiLibraryPlayer_t info = gViewPortInterface->GetClientDllInterface()->CallEnghudGetPlayerInfo(player);
     if (!info.name) {
         return;
     }
     constexpr int SafeNameBytes = 256;
-    constexpr int NameCharacters = 64;
+    char safeName[SafeNameBytes] = {};
+    gViewPortInterface->MakeSafeName(info.name, safeName, sizeof(safeName));
+    vgui2::localize()->ConvertANSIToUnicode(safeName, m_statsName, sizeof(m_statsName));
+    m_statsName[StatsNameCharacters - 1] = 0;
+    m_statsHealth = ClientStats().Get(Stat::Health, player);
+    m_statsArmor = armor;
+    FormatStatsLabel(text, textLength);
+}
+
+void CCSSpectatorGUI::FormatStatsLabel(wchar_t* text, int textLength) const {
+    using namespace cse::extstats;
+    const int capacity = textLength / static_cast<int>(sizeof(wchar_t));
+    if (!text || capacity < 1) {
+        return;
+    }
+    const Value health = m_statsHealth;
+    const Value armor = m_statsArmor;
+    constexpr int NameCharacters = StatsNameCharacters;
     constexpr int NumberCharacters = 16;
     constexpr int FormattedCharacters = 256;
-    char safeName[SafeNameBytes] = {};
     wchar_t name[NameCharacters] = {};
     wchar_t healthText[NumberCharacters] = {};
     wchar_t armorText[NumberCharacters] = {};
     wchar_t formatted[FormattedCharacters] = {};
-    gViewPortInterface->MakeSafeName(info.name, safeName, sizeof(safeName));
-    vgui2::localize()->ConvertANSIToUnicode(safeName, name, sizeof(name));
-    const Value health = ClientStats().Get(Stat::Health, player);
+    std::wcsncpy(name, m_statsName, StatsNameCharacters - 1);
     std::swprintf(healthText, NumberCharacters, L"%d", DisplayAmount(health.amount));
     std::swprintf(armorText, NumberCharacters, L"%d", DisplayAmount(armor.amount));
     const char* token = health.valid ? "#CSEStats_SpectatorHealthArmor" : "#CSEStats_SpectatorArmor";
@@ -285,4 +299,20 @@ void CCSSpectatorGUI::GetPlayerLabelText(int player, wchar_t* text, int textLeng
     }
     std::wcsncpy(text, formatted, capacity - 1);
     text[capacity - 1] = 0;
+}
+
+
+void CCSSpectatorGUI::RefreshLanguage() {
+    CSpectatorGUI::RefreshLanguage();
+    if (!m_statsArmor.valid) {
+        return;
+    }
+    // Replay only owned presentation inputs, including after the entity has disconnected.
+    wchar_t text[80] = {};
+    FormatStatsLabel(text, sizeof(text));
+    SetLabelText("playerlabel", text);
+    vgui2::ComboBox* combo = dynamic_cast<vgui2::ComboBox*>(FindChildByName("playercombo", true));
+    if (combo) {
+        combo->TextEntry::SetText(text);
+    }
 }

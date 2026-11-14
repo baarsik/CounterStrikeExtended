@@ -8,4 +8,12 @@ depth = 1
 while depth:
     depth += (text[end] == '{') - (text[end] == '}')
     end += 1
-Path(sys.argv[2]).write_text(text[begin:end])
+result = text[begin:end]
+name = text.index('ResolveLegacyMessages()')
+begin = text.rfind('\n', 0, name) + 1
+end = text.index('{', name) + 1
+depth = 1
+while depth:
+    depth += (text[end] == '{') - (text[end] == '}')
+    end += 1
+Path(sys.argv[2]).write_text(text[begin:end] + '\n' + result)

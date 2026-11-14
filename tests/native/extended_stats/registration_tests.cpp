@@ -58,6 +58,16 @@ int main(int, char** argv) {
         HookedRegister("HealthEx", 4);
     }
     RegisterMessages();
+    if (std::strcmp(argv[1], "late") == 0) {
+        HookedRegister("Health", 1);
+        HookedRegister("Battery", 2);
+        HookedRegister("ResetHUD", 1);
+        ResolveLegacyMessages();
+        if (!HealthId || !ArmorId || !ResetHudId) {
+            std::fputs("FAIL: game activation did not resolve late registered legacy IDs\n", stderr);
+            return 1;
+        }
+    }
     if (conflict) {
         if (HealthExId != 0 || ArmorExId != 0) {
             std::fputs("FAIL: incompatible existing message was adopted\n", stderr);

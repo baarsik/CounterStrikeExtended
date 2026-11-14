@@ -19,15 +19,15 @@ else:
         bodies.append(text[begin:end])
     output.write_text('\n\n'.join(bodies))
 spectator = (root / 'src/cstrike/cl_dll/VGUI/cstrikespectatorgui.cpp').read_text(encoding='latin1')
-signature = 'void CCSSpectatorGUI::GetPlayerLabelText('
 target = output.with_name('spectator_bodies.inc')
-if signature not in spectator:
-    target.write_text('#define CSE_SPECTATOR_STATS_MISSING\n')
-else:
+bodies = []
+for signature in ('void CCSSpectatorGUI::GetPlayerLabelText(', 'void CCSSpectatorGUI::FormatStatsLabel(',
+                  'void CCSSpectatorGUI::RefreshLanguage('):
     begin = spectator.index(signature)
     end = spectator.index('{', begin) + 1
     depth = 1
     while depth:
         depth += (spectator[end] == '{') - (spectator[end] == '}')
         end += 1
-    target.write_text(spectator[begin:end])
+    bodies.append(spectator[begin:end])
+target.write_text('\n\n'.join(bodies))

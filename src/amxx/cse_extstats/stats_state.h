@@ -2,6 +2,7 @@
 #define CSE_EXTSTATS_STATE_H
 
 #include <array>
+#include <vector>
 #include "cse_extended_stats_protocol.h"
 
 namespace cse::extstats {
@@ -39,13 +40,21 @@ class ServerState {
     void Reply(int index, int request, const char* name, const char* value, double now);
     bool IsCseClient(int index) const;
     bool HasProtocol(int index) const;
-    bool SetHealth(int index, std::int32_t amount);
-    bool SetArmor(int index, std::int32_t amount);
+    bool SetHealth(int index, std::int32_t amount, bool defer = false);
+    bool SetArmor(int index, std::int32_t amount, bool defer = false);
+    void QueueLegacy(int index);
     bool PublishStats(int index, bool force);
     void Frame(double now, bool automatic, bool messageOpen);
 
   private:
+    struct Operation {
+        Stat stat;
+        std::int32_t amount;
+    };
     struct Slot {
+        std::vector<Operation> pending;
+        std::uint64_t generation = 0;
+        bool legacy = false;
         bool connected = false;
         bool identity = false;
         bool protocol = false;
@@ -68,6 +77,8 @@ class ServerState {
     std::uint32_t nextRequest_ = 0x43530000u;
     double nextSnapshot_ = 0;
     bool automatic_ = false;
+    bool emitting_ = false;
+    std::uint64_t nextConnection_ = 0;
 };
 
 } // namespace cse::extstats

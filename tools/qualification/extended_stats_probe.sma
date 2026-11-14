@@ -52,7 +52,7 @@ public Run() {
         dllfunc(DLLFunc_ClientConnect, Subject, "CSEProbe", "127.0.0.1", reject);
         dllfunc(DLLFunc_ClientPutInServer, Subject);
         set_pev(Subject, pev_flags, pev(Subject, pev_flags) | FL_FAKECLIENT);
-        cs_set_user_team(Subject, CS_TEAM_T);
+        engclient_cmd(Subject, "jointeam", "6");
         engclient_cmd(Subject, "jointeam", "1");
         engclient_cmd(Subject, "joinclass", "1");
     }

@@ -13,12 +13,18 @@ ClientState& ClientStats() {
 }
 } // namespace cse::extstats
 static bool polish = false;
+static bool forbidEntityQueries = false;
+static std::wstring playerLabel;
+static std::wstring playerCombo;
 struct VGuiLibraryPlayer_t {
     const char* name;
     int health;
 };
 struct ClientDll {
     VGuiLibraryPlayer_t CallEnghudGetPlayerInfo(int) {
+        if (forbidEntityQueries) {
+            std::abort();
+        }
         return {"A very long player name that must not hide numeric health or armor", 100};
     }
 };
@@ -34,6 +40,15 @@ struct ViewPort {
 static ViewPort viewport;
 static ViewPort* gViewPortInterface = &viewport;
 namespace vgui2 {
+struct Panel {
+    virtual ~Panel() = default;
+};
+struct TextEntry : Panel {
+    void SetText(const wchar_t* text) {
+        playerCombo = text;
+    }
+};
+struct ComboBox : TextEntry {};
 struct Localize {
     std::wstring current;
     wchar_t* Find(const char* token) {
@@ -75,6 +90,15 @@ Localize* localize() {
 } // namespace vgui2
 class CSpectatorGUI {
   public:
+    void RefreshLanguage() {
+    }
+    void SetLabelText(const char*, wchar_t* text) {
+        playerLabel = text;
+    }
+    vgui2::Panel* FindChildByName(const char*, bool) {
+        static vgui2::ComboBox combo;
+        return &combo;
+    }
     void GetPlayerLabelText(int, wchar_t* text, int bytes) {
         const int capacity = bytes / static_cast<int>(sizeof(wchar_t));
         std::wcsncpy(text, L"legacy", capacity - 1);
@@ -84,6 +108,12 @@ class CSpectatorGUI {
 class CCSSpectatorGUI : public CSpectatorGUI {
   public:
     void GetPlayerLabelText(int player, wchar_t* text, int textLength);
+    void FormatStatsLabel(wchar_t* text, int textLength) const;
+    void RefreshLanguage();
+    static constexpr int StatsNameCharacters = 64;
+    wchar_t m_statsName[StatsNameCharacters] = {};
+    cse::extstats::Value m_statsHealth;
+    cse::extstats::Value m_statsArmor;
 };
 #include "spectator_bodies.inc"
 int main(int, char** argv) {
@@ -107,6 +137,15 @@ int main(int, char** argv) {
     if (!result) {
         std::fputs("FAIL: spectator fields, localization or bounds\n", stderr);
         return 1;
+    }
+    if (std::strcmp(argv[1], "replay") == 0) {
+        polish = true;
+        forbidEntityQueries = true;
+        gui.RefreshLanguage();
+        if (!std::wcsstr(playerLabel.c_str(), L"Zycie 99999 | Pancerz 99999") || playerCombo != playerLabel) {
+            std::fputs("FAIL: language replay retained literal target stats or missed a widget\n", stderr);
+            return 1;
+        }
     }
     return 0;
 #endif

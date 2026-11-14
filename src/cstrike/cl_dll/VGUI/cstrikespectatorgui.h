@@ -9,6 +9,7 @@
 #define CSTRIKESPECTATORGUI_H
 
 #include "game_controls/SpectatorGUI.h"
+#include "cse_extended_stats_protocol.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: Cstrike Spectator UI
@@ -19,6 +20,7 @@ public:
 	CCSSpectatorGUI( vgui2::Panel* parent );
 	~CCSSpectatorGUI() override;
     void GetPlayerLabelText(int player, wchar_t* text, int textLength) override;
+    void RefreshLanguage();
 	void UpdateSpectatorPlayerList() override;
 	void UpdateTimer() override;
 	void Update( const char* serverName, int player, int mode, bool spectateOnly,
@@ -26,6 +28,12 @@ public:
 	bool CanSpectateTeam( int team ) override;
 
 private:
+    void FormatStatsLabel(wchar_t* text, int textLength) const;
+    static constexpr int StatsNameCharacters = 64;
+    wchar_t m_statsName[StatsNameCharacters] = {};
+    cse::extstats::Value m_statsHealth;
+    cse::extstats::Value m_statsArmor;
+
 	void LayoutAd();
 	void StoreWidths();
 	void SizeControls();

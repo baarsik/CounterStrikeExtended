@@ -13,6 +13,7 @@
 #define FN_AMXX_ATTACH StatsAttach
 #define FN_AMXX_CHECKGAME StatsCheckGame
 #define FN_ServerActivate StatsServerActivate
+#define FN_ServerActivate_Post StatsServerActivated
 #define FN_ServerDeactivate StatsServerDeactivate
 #define FN_StartFrame_Post StatsStartFrame
 #define FN_ClientPutInServer_Post StatsClientEnter

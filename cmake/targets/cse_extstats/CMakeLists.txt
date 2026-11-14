@@ -33,6 +33,7 @@ add_custom_command(TARGET cse_extstats POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${own}/cse_extstats.inc" "${package}/scripting/include/"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${own}/example.sma" "${package}/scripting/"
   COMMAND "${CMAKE_COMMAND}" -E copy_directory "${sdk}/licenses" "${CMAKE_BINARY_DIR}/package/licenses"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${sdk}/lock.json" "${CMAKE_BINARY_DIR}/package/licenses/sdk-lock.json"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CSE_ROOT}/docs/extended-stats.md" "${CMAKE_BINARY_DIR}/package/"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${sdk}/lock.json" "${CMAKE_BINARY_DIR}/package/lock.json"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CSE_ROOT}/docs/extended-stats.md"
+    "${CSE_ROOT}/docs/extended-stats-qualification.md" "${CMAKE_BINARY_DIR}/package/"
   VERBATIM)
