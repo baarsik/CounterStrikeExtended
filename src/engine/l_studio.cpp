@@ -81,6 +81,11 @@ void Mod_LoadStudioModel(model_t* mod, void* buffer, int fileBytes) {
             std::memcpy(input + textureOffset, &texture, sizeof(texture));
         }
     }
+    // Texture-load callbacks can relocate or evict the cache allocation.
+    output = static_cast<byte*>(mod->cache.data);
+    if (!output) {
+        return;
+    }
     std::memcpy(output, input, allocationBytes);
 #endif
 }

@@ -30,6 +30,15 @@ constexpr std::size_t SpriteGroupCountOffset = 814;
 constexpr std::size_t SpriteFirstIntervalOffset = 818;
 #if !defined(SW_RENDERER)
 constexpr int FixtureTextureNumber = 17;
+constexpr int StudioTextureWidth = 4;
+constexpr byte ReusedCacheByte = 0x5a;
+
+enum class UploadCacheAction { None, Relocate, Evict };
+static UploadCacheAction uploadCacheAction;
+static bool mutateUploadPalette;
+static int cacheAllocationBytes;
+static byte* previousCache;
+static std::vector<byte*> expectedStudioPixels;
 #endif
 constexpr byte FixturePixel = 7;
 
@@ -76,13 +85,40 @@ void* Hunk_AllocName(int bytes, const char*) {
 }
 void* Cache_Alloc(cache_user_t* cache, int bytes, const char* name) {
     cache->data = Hunk_AllocName(bytes, name);
+#if !defined(SW_RENDERER)
+    cacheAllocationBytes = bytes;
+#endif
     return cache->data;
 }
 #if !defined(SW_RENDERER)
 int GL_LoadTexture(char*, GL_TEXTURETYPE, int width, int height, byte* pixels, int, int, byte* palette) {
     ++uploads;
+    if (!expectedStudioPixels.empty()) {
+        assert(static_cast<std::size_t>(uploads) <= expectedStudioPixels.size());
+        assert(width == StudioTextureWidth && height == 1);
+        assert(pixels == expectedStudioPixels[uploads - 1]);
+        assert(palette == pixels + StudioTextureWidth);
+    }
     uploadedPixels.assign(pixels, pixels + width * height);
     uploadedPalette.assign(palette, palette + RgbPaletteBytes);
+    // GL_LoadTexture2 invokes the allocation-capable hook before GL_Upload16 mutates the palette.
+    if (uploads == 1 && uploadCacheAction != UploadCacheAction::None) {
+        previousCache = static_cast<byte*>(loadmodel->cache.data);
+        if (uploadCacheAction == UploadCacheAction::Relocate) {
+            memory.emplace_back(new byte[cacheAllocationBytes]);
+            std::memcpy(memory.back().get(), previousCache, cacheAllocationBytes);
+            loadmodel->cache.data = memory.back().get();
+        } else {
+            loadmodel->cache.data = nullptr;
+        }
+        // Keep obsolete storage backed to detect final writes into its new owner's contents.
+        std::memset(previousCache, ReusedCacheByte, cacheAllocationBytes);
+    }
+    if (mutateUploadPalette) {
+        for (int i = 0; i < RgbPaletteBytes; ++i) {
+            palette[i] = texgammatable[palette[i]];
+        }
+    }
     return FixtureTextureNumber;
 }
 #endif
@@ -187,6 +223,13 @@ static void Reset() {
     memory.clear();
     uploadedPixels.clear();
     uploadedPalette.clear();
+#if !defined(SW_RENDERER)
+    uploadCacheAction = UploadCacheAction::None;
+    mutateUploadPalette = false;
+    cacheAllocationBytes = 0;
+    previousCache = nullptr;
+    expectedStudioPixels.clear();
+#endif
 }
 static void Reject(bool studio, std::vector<byte> bytes) {
     Reset();
@@ -256,6 +299,94 @@ static void Valid(bool studio, std::vector<byte> bytes) {
 #endif
     }
 }
+#if !defined(SW_RENDERER)
+static std::vector<byte> TwoTextureStudio(bool overlappingPalette) {
+    constexpr int TextureCount = 2;
+    studiohdr_t header{};
+    header.id = IDSTUDIOHEADER;
+    header.version = STUDIO_VERSION;
+    header.numtextures = TextureCount;
+    header.textureindex = sizeof(header);
+    header.texturedataindex = sizeof(header) + TextureCount * sizeof(mstudiotexture_t);
+    header.length = header.texturedataindex + TextureCount * (StudioTextureWidth + RgbPaletteBytes);
+    std::vector<byte> bytes(header.length);
+    Put(bytes, 0, header);
+    for (int i = 0; i < TextureCount; ++i) {
+        mstudiotexture_t texture{};
+        texture.width = StudioTextureWidth;
+        texture.height = 1;
+        texture.index = header.texturedataindex + i * (StudioTextureWidth + RgbPaletteBytes);
+        std::memset(bytes.data() + texture.index, FixturePixel + i, StudioTextureWidth);
+        std::memset(bytes.data() + texture.index + StudioTextureWidth, FixturePixel, RgbPaletteBytes);
+        Put(bytes, header.textureindex + i * sizeof(texture), texture);
+    }
+    if (overlappingPalette) {
+        // The first palette starts at the second descriptor's width and would change its checked fields.
+        const int index = header.textureindex + sizeof(mstudiotexture_t) +
+            offsetof(mstudiotexture_t, width) - StudioTextureWidth;
+        Put(bytes, header.textureindex + offsetof(mstudiotexture_t, index), index);
+    }
+    return bytes;
+}
+
+static void StudioUploadInteractions(bool overlappingPalette, UploadCacheAction cacheAction) {
+    Reset();
+    auto bytes = TwoTextureStudio(overlappingPalette);
+    const auto header = Read<studiohdr_t>(bytes, 0);
+    const std::vector<byte> originalPrefix(bytes.begin(), bytes.begin() + header.texturedataindex);
+    model_t model{};
+    mutateUploadPalette = true;
+    uploadCacheAction = cacheAction;
+    for (int i = 0; i < header.numtextures; ++i) {
+        const auto texture = Read<mstudiotexture_t>(bytes, header.textureindex + i * sizeof(mstudiotexture_t));
+        expectedStudioPixels.push_back(bytes.data() + texture.index);
+    }
+    // Preserve zero bytes while exercising GL_Upload16's real in-place gamma-table contract.
+    constexpr double GammaExponent = 0.5;
+    constexpr int MaximumPaletteChannel = PaletteEntries - 1;
+    for (int i = 0; i < PaletteEntries; ++i) {
+        texgammatable[i] = static_cast<byte>(MaximumPaletteChannel *
+            std::pow(static_cast<double>(i) / MaximumPaletteChannel, GammaExponent));
+    }
+    bool rejected = false;
+    try {
+        Load(true, model, bytes);
+    }
+    catch (const std::runtime_error&) {
+        rejected = true;
+    }
+    if (overlappingPalette) {
+        assert(rejected && allocations == 0 && uploads == 0);
+        assert(std::memcmp(bytes.data(), originalPrefix.data(), originalPrefix.size()) == 0);
+    } else {
+        assert(!rejected && uploads == header.numtextures);
+        for (int i = 0; i < header.numtextures; ++i) {
+            const std::size_t offset = header.textureindex + i * sizeof(mstudiotexture_t);
+            auto expected = Read<mstudiotexture_t>(originalPrefix, offset);
+            expected.index = FixtureTextureNumber;
+            const auto actual = Read<mstudiotexture_t>(bytes, offset);
+            assert(std::memcmp(&actual, &expected, sizeof(actual)) == 0);
+            assert(expectedStudioPixels[i][StudioTextureWidth] == texgammatable[FixturePixel]);
+        }
+        if (cacheAction == UploadCacheAction::Evict) {
+            assert(model.cache.data == nullptr);
+        } else {
+            assert(model.cache.data);
+            assert(std::memcmp(model.cache.data, bytes.data(), header.texturedataindex) == 0);
+        }
+        if (previousCache) {
+            for (int i = 0; i < cacheAllocationBytes; ++i) {
+                assert(previousCache[i] == ReusedCacheByte);
+            }
+        }
+    }
+    for (int i = 0; i < PaletteEntries; ++i) {
+        texgammatable[i] = static_cast<byte>(PaletteEntries - 1 - i);
+    }
+    std::puts("PASS studio palette mutation and cache callback interaction");
+}
+#endif
+
 int main(int argc, char** argv) {
     for (int i = 0; i < PaletteEntries; ++i) {
         texgammatable[i] = static_cast<byte>(PaletteEntries - 1 - i);
@@ -269,6 +400,21 @@ int main(int argc, char** argv) {
         Valid(false, Sprite(false));
         return 0;
     }
+#if !defined(SW_RENDERER)
+    if (selected == "studio-palette-overlap") {
+        StudioUploadInteractions(true, UploadCacheAction::None);
+        return 0;
+    }
+    if (selected == "studio-cache-relocation" || selected == "studio-cache-eviction") {
+        StudioUploadInteractions(false, selected == "studio-cache-relocation" ?
+            UploadCacheAction::Relocate : UploadCacheAction::Evict);
+        return 0;
+    }
+    StudioUploadInteractions(true, UploadCacheAction::None);
+    StudioUploadInteractions(false, UploadCacheAction::None);
+    StudioUploadInteractions(false, UploadCacheAction::Relocate);
+    StudioUploadInteractions(false, UploadCacheAction::Evict);
+#endif
     Valid(true, Studio(false));
     Valid(true, Studio(true));
     auto fallback = Studio(false);
@@ -281,6 +427,9 @@ int main(int argc, char** argv) {
 #if defined(SW_RENDERER)
     constexpr unsigned short SmallSoftwarePaletteEntries = 8;
     Valid(false, Sprite(false, SmallSoftwarePaletteEntries));
+    auto softwareSequentialTexture = Studio(true);
+    Put(softwareSequentialTexture, sizeof(studiohdr_t) + offsetof(mstudiotexture_t, index), 0);
+    Valid(true, softwareSequentialTexture);
 #else
     Reject(false, Sprite(false, PaletteEntries - 1));
 #endif
@@ -415,7 +564,11 @@ int main(int argc, char** argv) {
             };
             Load(identifier == IDSTUDIOHEADER, model, bytes);
             assert(model.cache.data);
-            if (identifier == IDSTUDIOHEADER) { ++models; } else { ++sprites; }
+            if (identifier == IDSTUDIOHEADER) {
+                ++models;
+            } else {
+                ++sprites;
+            }
         }
         std::printf("PASS corpus %d studio models, %d sprites\n", models, sprites);
     }

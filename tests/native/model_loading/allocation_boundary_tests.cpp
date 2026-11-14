@@ -96,6 +96,8 @@ int main() {
     header.texturedataindex = static_cast<int>(textured.size());
     header.length = LastCachePayload - PaletteExpansion;
 #else
+    // Isolate the retained-prefix ceiling without requiring payload beyond the int-sized file limit.
+    header.numtextures = 0;
     header.texturedataindex = LastCachePayload;
     header.length = LastCachePayload;
 #endif

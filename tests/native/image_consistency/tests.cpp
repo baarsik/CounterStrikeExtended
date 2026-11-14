@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <array>
+#include <climits>
+#include <cstddef>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -17,6 +19,7 @@
 using byte = unsigned char;
 using qboolean = int;
 using CRC32_t = unsigned int;
+#include "zone_limits.inc"
 constexpr qboolean TRUE = 1;
 constexpr qboolean FALSE = 0;
 constexpr int CL_UPDATE_BACKUP = 2;

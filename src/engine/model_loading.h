@@ -110,6 +110,11 @@ inline bool Studio(const void* buffer, int fileBytes, studiohdr_t& header, int& 
             return false;
         }
         sequentialOffset += pixels + PaletteBytes;
+#else
+        // Uploads mutate palettes in place, so texture data must not alias retained metadata.
+        if (texture.index < header.texturedataindex) {
+            return false;
+        }
 #endif
     }
     return true;

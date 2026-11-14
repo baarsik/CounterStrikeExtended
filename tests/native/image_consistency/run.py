@@ -24,6 +24,14 @@ def function(source, signature):
     return source[start:position] + '\n'
 
 
+zone = (root / 'src/engine/zone.h').read_text()
+quakedef = (root / 'src/engine/quakedef.h').read_text()
+cache_start = quakedef.index('typedef struct cache_user_s')
+cache_end = quakedef.index('} cache_user_t;', cache_start) + len('} cache_user_t;')
+zone_start = zone.index('#define ZONE_ID')
+zone_end = zone.index('Memory_Init(')
+zone_end = zone.rfind('void', zone_start, zone_end)
+(out / 'zone_limits.inc').write_text(quakedef[cache_start:cache_end] + '\n' + zone[zone_start:zone_end])
 hardware = (root / 'src/engine/gl_warp.cpp').read_text()
 start = hardware.index('typedef struct _TargaHeader')
 end = hardware.index('static const char* suf[6]', start)
