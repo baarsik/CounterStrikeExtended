@@ -26,11 +26,14 @@
 static int IdentityLong(int value) {
     return value;
 }
+
 static short IdentityShort(short value) {
     return value;
 }
+
 int (*LittleLong)(int) = IdentityLong;
 short (*LittleShort)(short) = IdentityShort;
+
 float Length(const vec_t* value) {
     return std::sqrt(value[0] * value[0] + value[1] * value[1] + value[2] * value[2]);
 }
@@ -38,13 +41,17 @@ float Length(const vec_t* value) {
 void Q_memcpy(void* output, const void* input, int count) {
     std::memcpy(output, input, count);
 }
+
 void Q_memset(void* output, int value, int count) {
     std::memset(output, value, count);
 }
+
 void Con_DPrintf(const char*, ...) {}
+
 static int liveCacheAllocations;
 static int failAllocationAfter = -1;
 static std::vector<void*> hunkAllocations;
+
 void* Mem_Calloc(int count, std::size_t size) {
     if (failAllocationAfter == 0) {
         return nullptr;
@@ -55,34 +62,46 @@ void* Mem_Calloc(int count, std::size_t size) {
     ++liveCacheAllocations;
     return std::calloc(count, size);
 }
+
 void Mem_Free(void* block) {
     --liveCacheAllocations;
     std::free(block);
 }
+
 void* Hunk_AllocName(int bytes, const char*) {
     void* allocation = std::calloc(1, bytes);
     hunkAllocations.push_back(allocation);
     return allocation;
 }
+
 void Q_strncpy(char* output, const char* input, int count) {
     std::strncpy(output, input, count);
 }
+
 int Q_strcmp(const char* first, const char* second) {
     return std::strcmp(first, second);
 }
+
 int Q_strcasecmp(const char* first, const char* second) {
     return strcasecmp(first, second);
 }
-void* Cache_Check(cache_user_t* user) { return user->data; }
+
+void* Cache_Check(cache_user_t* user) {
+    return user->data;
+}
+
 void Cache_Free(cache_user_t* user) {
     user->data = nullptr;
 }
+
 #if !defined(SW_RENDERER)
 void APIENTRY CseRenderDeleteLists(GLuint, GLsizei) {}
 #endif
+
 void Sys_Error(const char*, ...) {
     throw std::runtime_error("engine error");
 }
+
 #if defined(PVS_BASELINE)
 #if defined(SW_RENDERER)
 void SW_Mod_Init() {}
@@ -153,11 +172,21 @@ static void RunConsumers() {
         }
     }
     assert(Mod_LeafPVS(&model->leafs[4], model)[0] == 8);
-    ExpectError([] { CM_LeafPVS(-1); });
-    ExpectError([] { CM_LeafPAS(4); });
-    ExpectError([&] { Mod_LeafPVS(model->leafs + 5, model); });
-    ExpectError([&] { Mod_DecompressVis(model->visdata + 4, model); });
-    ExpectError([&] { Mod_DecompressVis(reinterpret_cast<byte*>(reinterpret_cast<std::uintptr_t>(model->visdata) - 1), model); });
+    ExpectError([] {
+        CM_LeafPVS(-1);
+    });
+    ExpectError([] {
+        CM_LeafPAS(4);
+    });
+    ExpectError([&] {
+        Mod_LeafPVS(model->leafs + 5, model);
+    });
+    ExpectError([&] {
+        Mod_DecompressVis(model->visdata + 4, model);
+    });
+    ExpectError([&] {
+        Mod_DecompressVis(reinterpret_cast<byte*>(reinterpret_cast<std::uintptr_t>(model->visdata) - 1), model);
+    });
 
     // A second model must decode its own row rather than reuse another owner's cache.
     model_t* second = &mod_known[mod_numknown++];
@@ -183,35 +212,49 @@ static void RunConsumers() {
     CM_CalcPAS(model);
     Mod_ClearAll();
     assert(liveCacheAllocations == 0);
-    ExpectError([&] { Mod_LeafPVS(model->leafs + 1, model); });
+    ExpectError([&] {
+        Mod_LeafPVS(model->leafs + 1, model);
+    });
     assert(Mod_GetVisibilityInfo(inlineModel).leafCount == 0);
 
     model = LoadFixture();
     CM_CalcPAS(model);
     Mod_ChangeGame();
     assert(liveCacheAllocations == 0);
-    ExpectError([&] { CM_CalcPAS(model); });
+    ExpectError([&] {
+        CM_CalcPAS(model);
+    });
     model = LoadFixture();
     for (int invalid : {-1, MAX_MAP_LEAFS, INT_MAX}) {
         model->numleafs = invalid;
-        ExpectError([&] { CM_CalcPAS(model); });
+        ExpectError([&] {
+            CM_CalcPAS(model);
+        });
         assert(liveCacheAllocations == 0);
     }
     model->numleafs = 5;
-    ExpectError([&] { CM_CalcPAS(model); });
+    ExpectError([&] {
+        CM_CalcPAS(model);
+    });
     model->numleafs = 3;
     for (int failAfter : {0, 1}) {
         failAllocationAfter = failAfter;
-        ExpectError([&] { CM_CalcPAS(model); });
+        ExpectError([&] {
+            CM_CalcPAS(model);
+        });
         assert(liveCacheAllocations == 0);
     }
     failAllocationAfter = -1;
     // Reject a malformed row after earlier rows have filled the new cache.
     model->visdata[3] = 0;
     model->leafs[2].compressed_vis = model->visdata + 3;
-    ExpectError([&] { CM_CalcPAS(model); });
+    ExpectError([&] {
+        CM_CalcPAS(model);
+    });
     assert(liveCacheAllocations == 0 && CM_LeafPVS(1)[0] == 255);
-    ExpectError([&] { Mod_DecompressVis(model->visdata + 3, model); });
+    ExpectError([&] {
+        Mod_DecompressVis(model->visdata + 3, model);
+    });
 
     model = LoadFixture();
     std::vector<byte> badLeaf(sizeof(dleaf_t) + 1);
@@ -222,7 +265,9 @@ static void RunConsumers() {
     for (int invalid : {-2, 4, INT_MAX}) {
         diskLeaf.visofs = invalid;
         std::memcpy(badLeaf.data() + 1, &diskLeaf, sizeof(diskLeaf));
-        ExpectError([&] { Mod_LoadLeafs(&lump); });
+        ExpectError([&] {
+            Mod_LoadLeafs(&lump);
+        });
     }
     diskLeaf.visofs = -1;
     std::memcpy(badLeaf.data() + 1, &diskLeaf, sizeof(diskLeaf));
@@ -244,7 +289,9 @@ static void RunConsumers() {
     CM_CalcPAS(model);
     assert(Mod_FindName(FALSE, "replacement") == model);
     assert(liveCacheAllocations == 0 && Mod_GetVisibilityInfo(model).leafCount == 0);
-    ExpectError([&] { CM_CalcPAS(model); });
+    ExpectError([&] {
+        CM_CalcPAS(model);
+    });
     model = LoadFixture();
     // A logical row at the limit may coexist with more physical leaves than the legacy limit.
     constexpr int PhysicalCount = MAX_MAP_LEAFS + 1;
@@ -364,7 +411,9 @@ int main(int argc, char** argv) {
         }
         Decode(compressed.data(), compressed.size(), maximum.data() + 1, ModelVisibility::MaximumRowBytes);
         assert(maximum.front() == 0xa5 && maximum.back() == 0xa5);
-        assert(std::all_of(maximum.begin() + 1, maximum.end() - 1, [](byte value) { return value == 0; }));
+        assert(std::all_of(maximum.begin() + 1, maximum.end() - 1, [](byte value) {
+            return value == 0;
+        }));
         RunConsumers();
         if (argc > 2) {
             RunCorpus(argv[2]);
