@@ -189,7 +189,7 @@ cvar_t cl_showmessages = { "cl_showmessages", "0" };
 cvar_t cl_weaponlistfix = { "cl_weaponlistfix", "0" };
 cvar_t cl_clockreset = { "cl_clockreset", "0.1" };
 cvar_t cl_download_ingame = { "cl_download_ingame", "1", FCVAR_ARCHIVE };
-cvar_t cl_filterstuffcmd = { "cl_filterstuffcmd", "0", FCVAR_ARCHIVE | FCVAR_PRIVILEGED };
+cvar_t cl_filterstuffcmd = { "cl_filterstuffcmd", "1", FCVAR_ARCHIVE | FCVAR_PRIVILEGED };
 cvar_t cl_lw = { "cl_lw", "1", FCVAR_ARCHIVE | FCVAR_USERINFO };
 
 int cl_numvisedicts;

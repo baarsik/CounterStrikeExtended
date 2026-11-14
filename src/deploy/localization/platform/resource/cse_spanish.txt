@@ -40,5 +40,10 @@
         "CSEServerBrowser_RemoveMasterserver" "Eliminar"
         "CSEServerBrowser_SteamDirectory" "Directorio de Steam"
         "CSEServerBrowser_InvalidMasterserver" "Introduce un nombre y direcciones host:puerto válidas."
+
+        "CSEMultiplayer_SlowhackingFilter" "Filtro Slowhacking"
+        "CSEMultiplayer_FilterBasic" "Básico"
+        "CSEMultiplayer_FilterDefault" "Predeterminado"
+        "CSEMultiplayer_FilterExtended" "Ampliado"
     }
 }

@@ -40,5 +40,10 @@
         "CSEServerBrowser_RemoveMasterserver" "삭제"
         "CSEServerBrowser_SteamDirectory" "Steam 디렉터리"
         "CSEServerBrowser_InvalidMasterserver" "이름과 올바른 호스트:포트 주소를 입력하세요."
+
+        "CSEMultiplayer_SlowhackingFilter" "Slowhacking 필터"
+        "CSEMultiplayer_FilterBasic" "기본"
+        "CSEMultiplayer_FilterDefault" "기본값"
+        "CSEMultiplayer_FilterExtended" "확장"
     }
 }

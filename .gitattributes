@@ -3,7 +3,8 @@ src/external/SDL3/** -text
 src/external/mpg123/** -text
 # Imported translation text retains upstream spacing; maintained files are UTF-8/LF.
 src/deploy/localization/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof
-# Retain the inherited worker files' CRLF without flagging CR as trailing whitespace.
+# Retain inherited source files' CRLF without flagging CR as trailing whitespace.
+src/engine/cmd.cpp whitespace=cr-at-eol
 src/engine/thread.cpp whitespace=cr-at-eol
 src/engine/thread.h whitespace=cr-at-eol
 src/vgui2/controls/RadioButton.cpp whitespace=cr-at-eol

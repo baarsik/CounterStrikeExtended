@@ -40,5 +40,10 @@
         "CSEServerBrowser_RemoveMasterserver" "删除"
         "CSEServerBrowser_SteamDirectory" "Steam 目录"
         "CSEServerBrowser_InvalidMasterserver" "请输入名称和有效的主机:端口地址。"
+
+        "CSEMultiplayer_SlowhackingFilter" "Slowhacking 过滤"
+        "CSEMultiplayer_FilterBasic" "基础"
+        "CSEMultiplayer_FilterDefault" "默认"
+        "CSEMultiplayer_FilterExtended" "扩展"
     }
 }

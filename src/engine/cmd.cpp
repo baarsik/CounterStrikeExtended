@@ -326,6 +326,19 @@ void Cmd_ExecuteStringWithPrivilegeCheck( const char* text, cmd_source_t src, qb
 	if ( !Cmd_Argc() )
 		return; // no tokens
 
+    constexpr float ExtendedStuffTextFilterLevel = 2.0f;
+    if (!bIsPrivileged && Cvar_VariableValue("cl_filterstuffcmd") >= ExtendedStuffTextFilterLevel) {
+        const char* const extendedFilteredCommands[] = {
+            "snapshot", "screenshot", "hideconsole", "name", "fps_override", "gamma", "brightness"
+        };
+        for (const char* filteredName : extendedFilteredCommands) {
+            if (Q_strcasecmp(cmd_argv[0], filteredName) == 0) {
+                Con_Printf("Could not execute privileged command %s\n", text);
+                return;
+            }
+        }
+    }
+
 	// check functions
 	for ( cmd = cmd_functions; cmd; cmd = cmd->next )
 	{

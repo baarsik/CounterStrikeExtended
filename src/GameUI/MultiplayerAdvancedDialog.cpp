@@ -390,6 +390,33 @@ bool CInfoDescription::InitFromFile( char* filename )
 		AddObject( copy );
 	}
 	delete defaults;
+
+    // Saved scripts may contain an older definition or put this option before newly added settings.
+    CScriptObject** link = &pObjList;
+    while (*link) {
+        CScriptObject* object = *link;
+        if (!stricmp(object->cvarname, "cl_filterstuffcmd")) {
+            *link = object->pNext;
+            object->pNext = nullptr;
+            delete object;
+        } else {
+            link = &object->pNext;
+        }
+    }
+
+    CScriptObject* filter = new CScriptObject;
+    filter->type = O_LIST;
+    strcpy(filter->cvarname, "cl_filterstuffcmd");
+    strcpy(filter->prompt, "#CSEMultiplayer_SlowhackingFilter");
+    strcpy(filter->defValue, "1");
+    constexpr float DefaultStuffTextFilterLevel = 1.0f;
+    filter->fdefValue = DefaultStuffTextFilterLevel;
+    filter->SetCurValue("1");
+    filter->AddItem(new CScriptListItem("#CSEMultiplayer_FilterBasic", "0"));
+    filter->AddItem(new CScriptListItem("#CSEMultiplayer_FilterDefault", "1"));
+    filter->AddItem(new CScriptListItem("#CSEMultiplayer_FilterExtended", "2"));
+    AddObject(filter);
+
 	return loaded;
 }
 

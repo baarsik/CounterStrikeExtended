@@ -40,5 +40,10 @@
         "CSEServerBrowser_RemoveMasterserver" "移除"
         "CSEServerBrowser_SteamDirectory" "Steam 目錄"
         "CSEServerBrowser_InvalidMasterserver" "請輸入名稱和有效的主機:連接埠位址。"
+
+        "CSEMultiplayer_SlowhackingFilter" "Slowhacking 過濾"
+        "CSEMultiplayer_FilterBasic" "基本"
+        "CSEMultiplayer_FilterDefault" "預設"
+        "CSEMultiplayer_FilterExtended" "擴充"
     }
 }
