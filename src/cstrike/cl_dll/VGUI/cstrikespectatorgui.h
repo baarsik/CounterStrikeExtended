@@ -18,6 +18,7 @@ class CCSSpectatorGUI : public CSpectatorGUI
 public:
 	CCSSpectatorGUI( vgui2::Panel* parent );
 	~CCSSpectatorGUI() override;
+    void GetPlayerLabelText(int player, wchar_t* text, int textLength) override;
 	void UpdateSpectatorPlayerList() override;
 	void UpdateTimer() override;
 	void Update( const char* serverName, int player, int mode, bool spectateOnly,

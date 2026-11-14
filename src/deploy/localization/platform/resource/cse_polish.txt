@@ -45,5 +45,7 @@
         "CSEMultiplayer_FilterBasic" "Podstawowy"
         "CSEMultiplayer_FilterDefault" "Domyślny"
         "CSEMultiplayer_FilterExtended" "Rozszerzony"
+        "CSEStats_SpectatorHealthArmor" "%s1 | Życie %s2 | Pancerz %s3"
+        "CSEStats_SpectatorArmor" "%s1 | Pancerz %s2"
     }
 }

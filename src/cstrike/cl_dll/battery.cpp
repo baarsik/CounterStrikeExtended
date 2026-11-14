@@ -18,11 +18,14 @@
 // implementation of CHudBattery class
 //
 
+#include "extended_stats.h"
+#include "hud_stat_numbers.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
 
 DECLARE_MESSAGE(m_Battery, Battery)
+DECLARE_MESSAGE(m_Battery, BatteryEx)
 DECLARE_MESSAGE(m_Battery, ArmorType)
 
 int CHudBattery::Init()
@@ -31,7 +34,8 @@ int CHudBattery::Init()
 	m_fFade = 0;
 	m_iFlags = 0;
 	m_iArmorType = 0;
-	HOOK_MESSAGE(Battery);
+    HOOK_MESSAGE(Battery);
+    HOOK_MESSAGE(BatteryEx);
 	HOOK_MESSAGE(ArmorType);
 	gHUD.AddHudElem(this);
 	return 1;
@@ -47,19 +51,30 @@ int CHudBattery::VidInit()
 	return 1;
 }
 
-int CHudBattery::MsgFunc_Battery(const char *, int size, void *buffer)
-{
-	m_iFlags |= HUD_ACTIVE;
-	BEGIN_READ(buffer, size);
-	int battery = READ_SHORT();
-	if (battery != m_iBat)
-	{
-		m_fFade = 100;
-		m_iBat = battery;
-		if (battery <= 0)
-			m_iArmorType = 0;
-	}
-	return 1;
+int CHudBattery::MsgFunc_Battery(const char*, int size, void* buffer) {
+    if (buffer == nullptr || size < 2) {
+        return 1;
+    }
+    BEGIN_READ(buffer, size);
+    CSE_UpdateLegacyArmor(READ_SHORT());
+    return 1;
+}
+
+int CHudBattery::MsgFunc_BatteryEx(const char*, int size, void* buffer) {
+    CSE_HandleExtendedStats(cse::extstats::Stat::Armor, buffer, size);
+    return 1;
+}
+
+void CHudBattery::SetArmor(int armor) {
+    m_iFlags |= HUD_ACTIVE;
+    if (armor != m_iBat) {
+        constexpr float ArmorFadeTime = 100.0f;
+        m_fFade = ArmorFadeTime;
+        m_iBat = armor;
+        if (armor <= 0) {
+            m_iArmorType = 0;
+        }
+    }
 }
 
 int CHudBattery::MsgFunc_ArmorType(const char *, int size, void *buffer)
@@ -96,7 +111,9 @@ int CHudBattery::Draw(float)
 	wrect_t &emptyRect = gHUD.GetSpriteRect(empty);
 	int offset = (emptyRect.bottom - emptyRect.top) / 6;
 	int y = ScreenHeight - gHUD.m_iFontHeight - gHUD.m_iFontHeight / 2 + 3 * (ScreenWidth > 639) + 1;
-	int x = ScreenWidth / 5;
+    const int digitWidth = gHUD.GetSpriteWidth(gHUD.m_HUD_number_0);
+    const int crossWidth = gHUD.GetSpriteWidth(gHUD.m_Health.m_HUD_cross);
+    const int x = cse::extstats::ArmorAnchor(ScreenWidth / 5, crossWidth, digitWidth, gHUD.m_Health.m_iHealth);
 	SPR_Set(gHUD.GetSprite(empty), r, g, b);
 	SPR_DrawAdditive(0, x, y - offset, &emptyRect);
 	if (rect.bottom > rect.top)
@@ -104,7 +121,7 @@ int CHudBattery::Draw(float)
 		SPR_Set(gHUD.GetSprite(full), r, g, b);
 		SPR_DrawAdditive(0, x, rect.top + y - offset - gHUD.GetSpriteRect(full).top, &rect);
 	}
-	gHUD.DrawHudNumber(emptyRect.right + x - emptyRect.left, y - (ScreenWidth > 639 ? 4 : 1),
-		DHN_3DIGITS | DHN_DRAWZERO, m_iBat, r, g, b);
+    gHUD.DrawHudStatNumber(emptyRect.right + x - emptyRect.left,
+        y - (ScreenWidth > 639 ? 4 : 1), m_iBat, r, g, b);
 	return 1;
 }

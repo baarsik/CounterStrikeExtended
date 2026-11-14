@@ -20,8 +20,7 @@ int main(int argc, char** argv) {
     using namespace cse::extstats;
     Check(argc == 2, "scenario argument");
     if (std::strcmp(argv[1], "conversion") == 0) {
-        const int amounts[] = {0, 1, 255, 256, 511, 512, 999, 1000, 32767, 32768,
-            65535, 65536, 99999, 100000};
+        const int amounts[] = {0, 1, 255, 256, 511, 512, 999, 1000, 32767, 32768, 65535, 65536, 99999, 100000};
         for (const int amount : amounts) {
             Check(NormalizeHealth(static_cast<float>(amount), amount > 0) == amount, "health not truncated");
             Check(NormalizeArmor(static_cast<float>(amount)) == amount, "armor not truncated");

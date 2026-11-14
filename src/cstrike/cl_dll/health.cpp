@@ -22,6 +22,7 @@
 #include "stdlib.h"
 #include "math.h"
 
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -35,6 +36,7 @@
 
 
 DECLARE_MESSAGE(m_Health, Health )
+DECLARE_MESSAGE(m_Health, HealthEx)
 DECLARE_MESSAGE(m_Health, Damage )
 DECLARE_MESSAGE(m_Health, Radar)
 DECLARE_MESSAGE(m_Health, Account)
@@ -88,7 +90,8 @@ int giDmgFlags[NUM_DMG_TYPES] =
 
 int CHudHealth::Init(void)
 {
-	HOOK_MESSAGE(Health);
+    HOOK_MESSAGE(Health);
+    HOOK_MESSAGE(HealthEx);
 	HOOK_MESSAGE(Damage);
 	HOOK_MESSAGE(Radar);
 	HOOK_MESSAGE(Account);
@@ -155,22 +158,32 @@ int CHudHealth::VidInit(void)
 	return 1;
 }
 
-int CHudHealth:: MsgFunc_Health(const char *,  int iSize, void *pbuf )
-{
-	// TODO: update local health data
-	BEGIN_READ( pbuf, iSize );
-	int x = READ_BYTE();
+int CHudHealth::MsgFunc_Health(const char*, int size, void* buffer) {
+    if (buffer == nullptr || size < 1) {
+        return 1;
+    }
+    BEGIN_READ(buffer, size);
+    const int health = READ_BYTE();
+    const int player = CSE_LocalPlayerIndex();
+    if (player > 0) {
+        CSE_UpdateLegacyHealth(player, health, true);
+    } else {
+        SetHealth(health);
+    }
+    return 1;
+}
 
-	m_iFlags |= HUD_ACTIVE;
+int CHudHealth::MsgFunc_HealthEx(const char*, int size, void* buffer) {
+    CSE_HandleExtendedStats(cse::extstats::Stat::Health, buffer, size);
+    return 1;
+}
 
-	// Only update the fade if we've changed health
-	if (x != m_iHealth)
-	{
-		m_fFade = FADE_TIME;
-		m_iHealth = x;
-	}
-
-	return 1;
+void CHudHealth::SetHealth(int health) {
+    m_iFlags |= HUD_ACTIVE;
+    if (health != m_iHealth) {
+        m_fFade = FADE_TIME;
+        m_iHealth = health;
+    }
 }
 
 
@@ -267,7 +280,7 @@ int CHudHealth::Draw(float flTime)
 
 		x = CrossWidth + HealthWidth / 2;
 
-		x = gHUD.DrawHudNumber(x, y, DHN_3DIGITS | DHN_DRAWZERO, m_iHealth, r, g, b);
+		x = gHUD.DrawHudStatNumber(x, y, m_iHealth, r, g, b);
 
 	}
 

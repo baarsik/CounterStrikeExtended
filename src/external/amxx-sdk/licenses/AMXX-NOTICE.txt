@@ -1,0 +1,4 @@
+AMX Mod X Module SDK. Copyright (C) The AMX Mod X Development Team.
+GNU GPL version 3 or later, with the upstream linking exception:
+https://alliedmods.net/amxmodx-license
+Pinned upstream source and local adapter patch: ../lock.json.

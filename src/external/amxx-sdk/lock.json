@@ -1,0 +1,20 @@
+{
+  "projects": [
+    {
+      "repository": "alliedmodders/amxmodx",
+      "commit": "b88b763a63bc7165f48e326c226eb05f9db0e54a"
+    },
+    {
+      "repository": "alliedmodders/metamod-hl1",
+      "commit": "18a10db686702e8ae9e0fcb5b5febf8881dc9c2d"
+    },
+    {
+      "repository": "alliedmodders/hlsdk",
+      "commit": "a0edb7792a96998d349325bebab8ea41ec5cb239"
+    }
+  ],
+  "patches": [
+    "AMXX SDK: expose FN_CvarValue2 through the existing NEW_DLL_FUNCTIONS callback slot.",
+    "AMXX SDK: include C++17 math before HLSDK legacy min/max macros."
+  ]
+}

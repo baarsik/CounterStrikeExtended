@@ -41,6 +41,7 @@ for key, signature in [
     ('message', 'int CHudMessage::VidInit()'),
     ('redraw', 'void ScaleColors('),
     ('redraw', 'int CHud::DrawHudString('),
+    ('engine', 'static bool VGUI2_IsDrawableCharacter('),
     ('engine', 'void VGUI2_Draw_Init()'),
     ('engine', 'int VGUI2_Draw_CharacterAdd('),
     ('engine', 'int VGUI2_DrawStringClient('),

@@ -44,5 +44,7 @@
         "CSEMultiplayer_FilterBasic" "Базовый"
         "CSEMultiplayer_FilterDefault" "Стандартный"
         "CSEMultiplayer_FilterExtended" "Расширенный"
+        "CSEStats_SpectatorHealthArmor" "%s1 | Здоровье %s2 | Броня %s3"
+        "CSEStats_SpectatorArmor" "%s1 | Броня %s2"
     }
 }

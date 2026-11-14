@@ -17,6 +17,7 @@
 //=============================================================================
 
 // client dll/engine defines
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_dll/IVGuiClientDll.h"
 #include "voice_status.h"
@@ -175,7 +176,7 @@ VGuiLibraryPlayer_t GetPlayerInfoFunc( int index )
 		info.frags = g_PlayerExtraInfo[index].frags;
 		info.deaths = g_PlayerExtraInfo[index].deaths;
 		info.playerclass = g_PlayerExtraInfo[index].playerclass;
-		info.health = g_PlayerExtraInfo[index].health;
+		info.health = cse::extstats::DisplayAmount(g_PlayerExtraInfo[index].health);
 		info.dead = g_PlayerExtraInfo[index].dead;
 		info.m_nSteamID = g_PlayerInfoList[index].m_nSteamID;
 	}

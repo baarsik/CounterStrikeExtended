@@ -19,6 +19,7 @@
 // runs across bottom of screen
 //
 
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -129,7 +130,7 @@ void CHudStatusBar::ParseStatusString(int line, bool updatePlayerState)
 					break;
 				case 'i':  // number
 					if (updatePlayerState) {
-                        g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].health = value;
+                        CSE_UpdateLegacyHealth(gHUD.m_Health.m_iPlayerLastPointedAt, value);
                         g_PlayerExtraInfo[gHUD.m_Health.m_iPlayerLastPointedAt].showhealth = gHUD.m_flTime + 5.0f;
                     }
 					_snprintf(replacement, sizeof(replacement), "%d", value);

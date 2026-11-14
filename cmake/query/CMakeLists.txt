@@ -92,6 +92,10 @@ foreach(directory IN LISTS children)
     continue()
   endif()
   get_filename_component(target "${directory}" NAME)
+  if(target STREQUAL "cse_extstats")
+    # The isolated AMXX package is not a game-relative runtime target.
+    continue()
+  endif()
   add_subdirectory("${directory}" "${CMAKE_BINARY_DIR}/targets/${target}")
   # A derived native export file may be absent precisely because the caller is
   # regenerating it. Original x86 definition inputs still must exist.

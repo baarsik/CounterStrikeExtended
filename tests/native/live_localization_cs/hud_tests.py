@@ -102,6 +102,7 @@ const char* healthText="Health";
 client_textmessage_t* TextMessageGet(const char*) {static client_textmessage_t text; text.pMessage=healthText; return &text;}
 struct { const char* name="#LiteralPlayer";} g_PlayerInfoList[33];
 struct {int health=0;float showhealth=0;} g_PlayerExtraInfo[33];
+void CSE_UpdateLegacyHealth(int player, int health) {g_PlayerExtraInfo[player].health=health;}
 struct {
  struct { void pfnGetPlayerInfo(int,void*) {} } unused;
  void pfnGetPlayerInfo(int,void*) {}

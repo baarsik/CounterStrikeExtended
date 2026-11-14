@@ -5,6 +5,9 @@
 // $NoKeywords: $
 //=============================================================================
 
+#include <algorithm>
+#include <cwchar>
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "cstrikespectatorgui.h"
@@ -12,6 +15,8 @@
 #include "game_controls/iviewport.h"
 #include "hud_iga.h"
 #include "Label.h"
+#include "Controls.h"
+#include "vgui/ILocalize.h"
 #include <stdio.h>
 #include <wchar.h>
 
@@ -223,4 +228,61 @@ void CCSSpectatorGUI::Update( const char* serverName, int player, int mode,
 		SetLabelText( "extrainfo", text );
 	}
 	SizeControls();
+}
+
+void CCSSpectatorGUI::GetPlayerLabelText(int player, wchar_t* text, int textLength) {
+    using namespace cse::extstats;
+    const int capacity = textLength / static_cast<int>(sizeof(wchar_t));
+    if (!text || capacity < 1) {
+        return;
+    }
+    CSpectatorGUI::GetPlayerLabelText(player, text, textLength);
+    const Value armor = ClientStats().Get(Stat::Armor, player);
+    if (!armor.valid) {
+        return;
+    }
+    const VGuiLibraryPlayer_t info =
+        gViewPortInterface->GetClientDllInterface()->CallEnghudGetPlayerInfo(player);
+    if (!info.name) {
+        return;
+    }
+    constexpr int SafeNameBytes = 256;
+    constexpr int NameCharacters = 64;
+    constexpr int NumberCharacters = 16;
+    constexpr int FormattedCharacters = 256;
+    char safeName[SafeNameBytes] = {};
+    wchar_t name[NameCharacters] = {};
+    wchar_t healthText[NumberCharacters] = {};
+    wchar_t armorText[NumberCharacters] = {};
+    wchar_t formatted[FormattedCharacters] = {};
+    gViewPortInterface->MakeSafeName(info.name, safeName, sizeof(safeName));
+    vgui2::localize()->ConvertANSIToUnicode(safeName, name, sizeof(name));
+    const Value health = ClientStats().Get(Stat::Health, player);
+    std::swprintf(healthText, NumberCharacters, L"%d", DisplayAmount(health.amount));
+    std::swprintf(armorText, NumberCharacters, L"%d", DisplayAmount(armor.amount));
+    const char* token = health.valid ? "#CSEStats_SpectatorHealthArmor" : "#CSEStats_SpectatorArmor";
+    wchar_t fallbackHealthArmor[] = L"%s1 | HP %s2 | AP %s3";
+    wchar_t fallbackArmor[] = L"%s1 | AP %s2";
+    wchar_t* pattern = vgui2::localize()->Find(token);
+    if (!pattern) {
+        pattern = health.valid ? fallbackHealthArmor : fallbackArmor;
+    }
+    auto format = [&]() {
+        if (health.valid) {
+            vgui2::localize()->ConstructString(formatted, sizeof(formatted), pattern, 3,
+                name, healthText, armorText);
+        } else {
+            vgui2::localize()->ConstructString(formatted, sizeof(formatted), pattern, 2, name, armorText);
+        }
+    };
+    format();
+    const int length = static_cast<int>(std::wcslen(formatted));
+    if (length >= capacity) {
+        const int nameLength = static_cast<int>(std::wcslen(name));
+        const int shorten = (std::min)(nameLength, length - capacity + 1);
+        name[nameLength - shorten] = 0;
+        format();
+    }
+    std::wcsncpy(text, formatted, capacity - 1);
+    text[capacity - 1] = 0;
 }

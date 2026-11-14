@@ -45,5 +45,7 @@
         "CSEMultiplayer_FilterBasic" "Basis"
         "CSEMultiplayer_FilterDefault" "Standard"
         "CSEMultiplayer_FilterExtended" "Erweitert"
+        "CSEStats_SpectatorHealthArmor" "%s1 | HP %s2 | AP %s3"
+        "CSEStats_SpectatorArmor" "%s1 | AP %s2"
     }
 }

@@ -23,7 +23,10 @@ inline constexpr std::int32_t InvalidAmount = -1;
 inline constexpr double QueryTimeout = 2.0;
 inline constexpr double SnapshotInterval = 1.0;
 
-enum class Stat { Health, Armor };
+enum class Stat {
+    Health,
+    Armor
+};
 
 struct Value {
     std::int32_t amount = 0;
@@ -56,8 +59,7 @@ inline int DisplayAmount(std::int32_t amount) {
     return amount > DisplayMaximum ? DisplayMaximum : amount;
 }
 
-inline bool DecodeMessage(const void* buffer, std::size_t size, int maxPlayers,
-    int& player, std::int32_t& amount) {
+inline bool DecodeMessage(const void* buffer, std::size_t size, int maxPlayers, int& player, std::int32_t& amount) {
     if (!buffer || size != MessageBytes) {
         return false;
     }
@@ -67,10 +69,10 @@ inline bool DecodeMessage(const void* buffer, std::size_t size, int maxPlayers,
         return false;
     }
     constexpr int ByteBits = 8;
-    const std::uint32_t bits = static_cast<std::uint32_t>(bytes[1])
-        | (static_cast<std::uint32_t>(bytes[2]) << ByteBits)
-        | (static_cast<std::uint32_t>(bytes[3]) << (ByteBits * 2))
-        | (static_cast<std::uint32_t>(bytes[4]) << (ByteBits * 3));
+    const std::uint32_t bits = static_cast<std::uint32_t>(bytes[1]) |
+                               (static_cast<std::uint32_t>(bytes[2]) << ByteBits) |
+                               (static_cast<std::uint32_t>(bytes[3]) << (ByteBits * 2)) |
+                               (static_cast<std::uint32_t>(bytes[4]) << (ByteBits * 3));
     std::int32_t decoded = 0;
     std::memcpy(&decoded, &bits, sizeof(decoded));
     if (decoded < InvalidAmount) {

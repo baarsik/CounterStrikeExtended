@@ -26,6 +26,7 @@
 
 #include "../../public/localization_message_snapshot.h"
 #include <string>
+#include <cstdint>
 
 struct client_textmessage_s;
 bool CS_HasLanguageService();
@@ -364,7 +365,9 @@ public:
 	int Init() override;
 	int VidInit() override;
 	int Draw( float time ) override;
-	int MsgFunc_Battery( const char* name, int size, void* buffer );
+    int MsgFunc_Battery(const char* name, int size, void* buffer);
+    int MsgFunc_BatteryEx(const char* name, int size, void* buffer);
+    void SetArmor(int armor);
 	int MsgFunc_ArmorType( const char* name, int size, void* buffer );
 	int GetArmorPercent() const;
 	bool HasHelmet() const;
@@ -741,6 +744,8 @@ public:
 	int DrawHudStringReverse( int x, int y, int minX, const char* text, int r, int g, int b );
 	int DrawHudNumberString( int x, int y, int minX, int number, int r, int g, int b );
 	int GetNumWidth( int number, int flags );
+    int DrawHudStatNumber(int x, int y, std::int32_t amount, int r, int g, int b);
+    int GetHudStatNumberWidth(std::int32_t amount);
 	void VGUI2HudPrint( char* text, int x, int y, int r, int g, int b );
 	int IsGame( const char* game );
 	HSPRITE GetSprite( int index ) { return index < 0 ? 0 : m_rghSprites[index]; }

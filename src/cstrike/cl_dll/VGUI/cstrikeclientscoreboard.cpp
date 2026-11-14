@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================
 
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "cstrikeclientscoreboard.h"
@@ -476,7 +477,7 @@ bool CCSClientScoreBoardDialog::GetPlayerScoreInfo( int playerIndex, KeyValues* 
 		{
 			if ( (int)m_pShowHealth->value )
 			{
-				_snprintf( buffer, sizeof( buffer ), "%d", player.sb_health );
+				_snprintf( buffer, sizeof( buffer ), "%d", cse::extstats::DisplayAmount(player.sb_health) );
 				kv->SetString( "health", buffer );
 			}
 			m_bHealthUpdateReceived = true;

@@ -1,0 +1,8 @@
+project(CseAmxxModules VERSION 1.0.0 LANGUAGES CXX)
+if(NOT (WIN32 AND MSVC) AND NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  message(FATAL_ERROR "AMXX module targets are Windows/MSVC x86 and Linux x86")
+endif()
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+  message(FATAL_ERROR "AMXX modules require a 32-bit compiler (x86 MSVC environment or GCC multilib -m32)")
+endif()
+add_subdirectory("${CSE_ROOT}/cmake/targets/cse_extstats" "${CMAKE_BINARY_DIR}/targets/cse_extstats")

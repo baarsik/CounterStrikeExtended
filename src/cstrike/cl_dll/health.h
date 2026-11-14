@@ -76,7 +76,9 @@ public:
 	int VidInit() override;
 	int Draw( float time ) override;
 	void Reset() override;
-	int MsgFunc_Health( const char* name, int size, void* buffer );
+    int MsgFunc_Health(const char* name, int size, void* buffer);
+    int MsgFunc_HealthEx(const char* name, int size, void* buffer);
+    void SetHealth(int health);
 	int MsgFunc_Damage( const char* name, int size, void* buffer );
 	int MsgFunc_Money( const char* name, int size, void* buffer );
 	int MsgFunc_Radar( const char* name, int size, void* buffer );

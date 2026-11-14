@@ -19,6 +19,7 @@
 #include <math.h>
 #include <string.h>
 #include <algorithm>
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -42,6 +43,7 @@ extern cvar_t* cl_fog_b;
 
 void CHud::MsgFunc_InitHUD( const char*, int, void* )
 {
+    CSE_ResetExtendedStats(true);
 	if ( gViewPortInterface )
 		gViewPortInterface->OnLevelChange();
 	for ( HUDLIST* item = m_pHudList; item; item = item->pNext )
@@ -97,6 +99,7 @@ void CHud::MsgFunc_Fog( const char*, int size, void* buffer )
 
 int CHud::MsgFunc_ResetHUD( const char*, int, void* )
 {
+    CSE_ResetExtendedStats(false);
 	for ( HUDLIST* item = m_pHudList; item; item = item->pNext )
 	{
 		if ( item->p )

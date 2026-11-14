@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "pm_shared.h"
@@ -52,6 +53,7 @@ Queue::~Queue()
 
 void CHud::Think()
 {
+    CSE_ThinkExtendedStats();
 	m_scrinfo.iSize = sizeof( m_scrinfo );
 	gEngfuncs.pfnGetScreenInfo( &m_scrinfo );
 	for ( HUDLIST* item = m_pHudList; item; item = item->pNext )

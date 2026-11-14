@@ -20,6 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "extended_stats.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "demo.h"
@@ -138,7 +139,7 @@ int CHud::MsgFunc_SpecHealth( const char*, int size, void* buffer )
 	BEGIN_READ( buffer, size );
 	int health = READ_BYTE();
 	gHUD.m_Health.m_iPlayerLastPointedAt = g_iUser2;
-	g_PlayerExtraInfo[g_iUser2].health = health;
+	CSE_UpdateLegacyHealth(g_iUser2, health);
 	gViewPortInterface->UpdateSpectatorPanel();
 	return 1;
 }
@@ -149,7 +150,7 @@ int CHud::MsgFunc_SpecHealth2( const char*, int size, void* buffer )
 	int health = READ_BYTE();
 	int player = READ_BYTE();
 	gHUD.m_Health.m_iPlayerLastPointedAt = g_iUser2;
-	g_PlayerExtraInfo[player].health = health;
+	CSE_UpdateLegacyHealth(player, health);
 	gViewPortInterface->UpdateSpectatorPanel();
 	return 1;
 }
@@ -441,6 +442,15 @@ void __CmdFunc_ClientBuy()
 
 void CHud::Init()
 {
+    CSE_ResetExtendedStats(true);
+    // The retained client API takes mutable pointers; keep stable copies of the shared names.
+    static char identityName[sizeof(cse::extstats::IdentityCvar)] = {};
+    static char protocolName[sizeof(cse::extstats::ProtocolCvar)] = {};
+    static char protocolVersion[] = "1";
+    std::memcpy(identityName, cse::extstats::IdentityCvar, sizeof(identityName));
+    std::memcpy(protocolName, cse::extstats::ProtocolCvar, sizeof(protocolName));
+    gEngfuncs.pfnRegisterVariable(identityName, protocolVersion, 0);
+    gEngfuncs.pfnRegisterVariable(protocolName, protocolVersion, 0);
 	HOOK_MESSAGE( Logo );
 	HOOK_MESSAGE( ResetHUD );
 	HOOK_MESSAGE( GameMode );
@@ -812,12 +822,13 @@ int CHud::MsgFunc_HLTV( const char*, int size, void* buffer )
 	{
 		value &= 0x7f;
 		if ( player )
-			g_PlayerExtraInfo[player].health = value;
-		else
-		{
-			for ( int i = 0; i < MAX_PLAYERS; i++ )
-				g_PlayerExtraInfo[i].health = value;
-		}
+			CSE_UpdateLegacyHealth(player, value);
+        else {
+            CSE_ResetExtendedStats(true);
+            for (int i = 1; i <= MAX_PLAYERS; ++i) {
+                CSE_UpdateLegacyHealth(i, value);
+            }
+        }
 	}
 	else
 	{
