@@ -21,9 +21,15 @@ cmake --preset amxx-linux32-release
 cmake --build --preset amxx-linux32-release
 ```
 
-The provided Linux archive uses the older-glibc compatibility build documented in
-[qualification coverage](extended-stats-qualification.md). Building on a newer Linux
-distribution can raise the output module's glibc requirement.
+The manual **Build AMXX module** GitHub Actions workflow builds both platforms.
+Once the workflow is on the default branch, open **Actions → Build AMXX module →
+Run workflow**, select the ref to build, and download the `cse_extstats-win32` and
+`cse_extstats-linux32` ZIP artifacts. Each archive includes the module, config,
+Pawn include/example, SDK license notices, and corresponding source ZIP.
+
+The Linux workflow uses a pinned manylinux2014 i686 image with a glibc 2.17
+baseline and links libstdc++/libgcc statically. Building locally on a newer Linux
+distribution can raise the module's glibc requirement.
 
 These presets build the module independently of the CSE runtime. A 64-bit module
 is rejected. Each build writes `build/<preset>/package/`, containing the module,
@@ -31,8 +37,7 @@ config, Pawn include/example source and SDK license notices. Copy its
 `addons/amxmodx/` tree into the server's game directory. Keep the accompanying
 license notices with redistributed packages. AMXX and Metamod must already be
 installed. The module uses the pinned AMXX **1.9.0.5303** SDK and standard engine
-interfaces, without ReAPI or private player offsets. Runtime qualification on
-1.9/1.10 is a separate check from the SDK build.
+interfaces, without ReAPI or private player offsets.
 
 Add this line to `addons/amxmodx/configs/modules.ini`:
 
@@ -143,13 +148,6 @@ ctest --test-dir build/tests/extended-stats --output-on-failure
 
 `tools/qualification/extended_stats_probe.py` prepares a controlled test plugin and
 analyzes its runtime log into JSON. Use `--help` for compiler, optional RCON/client/
-relay orchestration and evidence paths. Its result distinguishes binary inspection,
-module/native loading, observed server-side payloads and remaining client/HLTV
-visual acceptance. A green build or server callback log is not a screenshot or proof
-of downstream delivery. Run the live probe only on an owned test server: it creates
-a bot and changes its health/armor through the boundary sequence. Inspect 99999
-health and armor together at 640x480 and larger resolutions, death/respawn, stock
-clients, ordinary spectators, HLTV late joins and recorded-demo seeking before rollout.
-
-See [qualification coverage](extended-stats-qualification.md) for verified builds,
-live module-load evidence and the runtime acceptance checks that remain open.
+relay orchestration and output paths. Run the probe on a test server: it creates a
+bot and changes its health/armor through the boundary sequence. When changing
+message handling, also check the HUD, stock clients, spectators, HLTV, and demos.
