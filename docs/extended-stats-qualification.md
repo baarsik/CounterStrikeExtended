@@ -12,13 +12,15 @@ API details are in [extended-stats.md](extended-stats.md).
 | Win32 module | MSVC 19.44 x86 Release builds; PE32 and AMXX/Metamod exports verified |
 | Linux32 module | GCC 11 multilib and GCC 10.2.1 manylinux2014 i686 Release builds; ELF32 and AMXX/Metamod exports verified |
 | CS client | macOS ARM64 AppleClang 21 Release target links |
-| Focused production-code fixtures | 38/38 CTests with ASan/UBSan, including six probe-analyzer assertions |
+| Focused production-code fixtures | 39/39 CTests with ASan/UBSan, including six probe-analyzer assertions and HUD startup reset |
 | Existing fixtures | HUD timer 11/11, UI lengths 15/15, live-localization snapshot plus nine owner suites |
 | Resource/build tooling | Localization catalogue 3/3; runtime source regeneration passes |
 | Pawn source | Example and qualification plugin compile with AMXX 1.9.0.5303 |
 | Win32 AMXX 1.9.0.5303 | Corrected module and natives run; all 14 boundary values from 0 through 100000 match actual entity readback and MSG_SPEC callbacks, including death/respawn |
 | Win32 AMXX 1.10.0.5488 | Corrected module runs; all 14 boundary values from 0 through 100000 match actual entity readback and MSG_SPEC callbacks, including death/respawn |
 | Linux32 AMXX 1.9.0.5303 and 1.10.0.5488 | Minimal plugin resolves all four natives and sees Ex IDs 66/67 before Steam runtime startup fails under i386 emulation |
+| Linux32 AMXX 1.9.0.5303 under FEX | ReHLDS runs `de_dust2`; ReAPI, CSE Extended Stats and the example plugin report running; the updated macOS client connects and spawns |
+| Live macOS HUD | Example plugin runs on the Linux server; five-digit health (99836 during play) and armor (99999) are visible at 2560x1440 |
 
 The delivered Linux archive uses the older-glibc build: pinned manylinux2014 i686
 image `sha256:7ff084c274da66ed891df826b97cd5bb1b1d36db2cc86e4f052ce47cb4b69ead`,
@@ -50,14 +52,18 @@ while disconnect still discards the preceding connection's operations. The final
 ## Remaining acceptance
 
 Compilation and server callbacks do not establish downstream visual acceptance.
-The cloned macOS UI fixture could not finish startup reliably; debugger traces
-reach browser-process creation and resource case resolution during viewport
-startup. Duplicate test instances also affected the initial launch comparison. Linux live testing reaches
-a Steam runtime segmentation fault under QEMU i386 after native resolution. The boundary plugin now performs normal spectator/team selection; its final Win32
+Live client startup exposed an invalid non-null local entity pointer returned by
+GoldSrc before entity allocation. The client now checks maxclients before querying
+that entity; the new reset regression failed before the guard and passes after it.
+The complete macOS runtime now starts, connects to the Linux container and spawns.
+The container uses official FEX 2611.1 on ARM64 Ubuntu 24.04 with an Ubuntu 22.04
+x86 root filesystem, avoiding the Steam runtime fault under Docker's QEMU i386.
+Setup commands and captures are retained under `build/play-server/`.
+The boundary plugin now performs normal spectator/team selection; its final Win32
 1.9 run passes zero-health kill and respawn as well as all positive boundaries. The AMXX 1.10 fixture passes the same sequence after staging its complete game data.
 
 Still required before rollout: a Windows client build, local HUD inspection at
-640x480 and larger resolutions, joined-player kill/damage/armor behavior, the
+640x480, full joined-player kill/damage/armor qualification, the
 stock/updated client and old/new server matrix, ordinary spectator switching,
 reconnect/map changes, and an unmodified HLTV relay's stable late joins and recorded
 demo seeking. Those results remain **unverified**. The probe reports these dimensions

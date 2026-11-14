@@ -13,6 +13,11 @@ ClientState& ClientStats() {
 } // namespace cse::extstats
 
 int CSE_LocalPlayerIndex() {
+    // HUD initialization precedes entity allocation; GoldSrc can return an
+    // invalid non-null local-player pointer until a server supplies maxclients.
+    if (gEngfuncs.GetMaxClients() <= 0) {
+        return 0;
+    }
     const cl_entity_t* player = gEngfuncs.GetLocalPlayer();
     return player ? player->index : 0;
 }

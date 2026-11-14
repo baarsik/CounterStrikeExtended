@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include "extended_stats.h"
 enum { MAX_PLAYERS = 64 };
@@ -9,6 +10,7 @@ struct cl_entity_t {
 };
 static bool playingDemo = false;
 static double clientTime = 1;
+static int maxClients = 32;
 struct Demo {
     bool IsPlayingback() {
         return playingDemo;
@@ -18,6 +20,10 @@ struct Engine {
     cl_entity_t player;
     Demo* pDemoAPI = nullptr;
     cl_entity_t* GetLocalPlayer() {
+        if (maxClients == 0) {
+            std::fputs("FAIL: queried the engine's unallocated local entity during HUD initialization\n", stderr);
+            std::abort();
+        }
         return &player;
     }
     bool IsSpectateOnly() {
@@ -27,7 +33,7 @@ struct Engine {
         return &player;
     }
     int GetMaxClients() {
-        return 32;
+        return maxClients;
     }
     double GetClientTime() {
         return clientTime;
@@ -107,7 +113,18 @@ struct PredictedPlayer {
 } player;
 #include "bridge_bodies.inc"
 int main(int, char** argv) {
-    if (std::strcmp(argv[1], "wide_life") == 0 || std::strcmp(argv[1], "wide_view") == 0) {
+    if (std::strcmp(argv[1], "startup") == 0) {
+        maxClients = 0;
+        CSE_ResetExtendedStats(true);
+        CSE_ResetExtendedStats(false);
+        if (CSE_LocalPlayerIndex() != 0) {
+            return 1;
+        }
+        maxClients = 32;
+        if (CSE_LocalPlayerIndex() != 1) {
+            return 1;
+        }
+    } else if (std::strcmp(argv[1], "wide_life") == 0 || std::strcmp(argv[1], "wide_view") == 0) {
         const unsigned char wide[] = {1, 0, 0, 1, 0}; // 65536, a legacy delta boundary.
         CSE_HandleExtendedStats(cse::extstats::Stat::Health, wide, 5);
         if (std::strcmp(argv[1], "wide_life") == 0) {

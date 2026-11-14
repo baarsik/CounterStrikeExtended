@@ -114,3 +114,4 @@ add_test(NAME buffered_legacy_hooks COMMAND extended_stats_legacy_hook_tests)
 
 add_test(NAME wide_predicted_life COMMAND extended_stats_bridge_tests wide_life)
 add_test(NAME wide_dead_view_roll COMMAND extended_stats_bridge_tests wide_view)
+add_test(NAME hud_startup_reset COMMAND extended_stats_bridge_tests startup)
