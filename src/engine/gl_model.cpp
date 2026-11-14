@@ -15,6 +15,7 @@
 #include "sys.h"
 #include "zone.h"
 #include "engine_studio.h"
+#include "model_loading.h"
 
 #include <cmath>
 #include <cstdio>
@@ -330,18 +331,34 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
 	file = FS_Open( mod->name, "rb" );
 	if ( file )
 	{
-		buf = (byte*)FS_GetReadBuffer( file, &length );
-		if ( !buf || LittleLong( *(int*)buf ) == IDSTUDIOHEADER )
-		{
-			if ( buf )
-				FS_ReleaseReadBuffer( file, buf );
-
-			length = (int)FS_Size( file );
-			buf = (byte*)Hunk_TempAlloc( length + 1 );
-			FS_Read( buf, length, 1, file );
-			FS_Close( file );
-			file = NULL;
-		}
+        buf = static_cast<byte*>(FS_GetReadBuffer(file, &length));
+        if (buf && length < static_cast<int>(sizeof(int))) {
+            FS_ReleaseReadBuffer(file, buf);
+            FS_Close(file);
+            Sys_Error("Mod_LoadModel: truncated identifier in %s", mod->name);
+            return nullptr;
+        }
+        if (!buf || LittleLong(ModelLoading::Read<int>(buf)) == IDSTUDIOHEADER) {
+            if (buf) {
+                FS_ReleaseReadBuffer(file, buf);
+            }
+            const unsigned int fileBytes = FS_Size(file);
+            // Hunk_TempAlloc takes an int and retains the historical trailing-byte reservation.
+            if (fileBytes < sizeof(int) || fileBytes > static_cast<unsigned int>(INT_MAX - 1)) {
+                FS_Close(file);
+                Sys_Error("Mod_LoadModel: invalid file size for %s", mod->name);
+                return nullptr;
+            }
+            length = static_cast<int>(fileBytes);
+            buf = static_cast<byte*>(Hunk_TempAlloc(length + 1));
+            const int initializedBytes = FS_Read(buf, length, 1, file);
+            FS_Close(file);
+            file = nullptr;
+            if (initializedBytes != length) {
+                Sys_Error("Mod_LoadModel: incomplete read of %s", mod->name);
+                return nullptr;
+            }
+        }
 	}
 
 	if ( !buf )
@@ -402,18 +419,18 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
 	// call the apropriate loader
 	mod->needload = NL_PRESENT;
 
-	switch ( LittleLong( *(int*)buf ) )
+	switch (LittleLong(ModelLoading::Read<int>(buf)))
 	{
 	case IDPOLYHEADER:
 		Mod_LoadAliasModel( mod, buf );
 		break;
 
 	case IDSPRITEHEADER:
-		Mod_LoadSpriteModel( mod, buf );
+		Mod_LoadSpriteModel( mod, buf, length );
 		break;
 
 	case IDSTUDIOHEADER:
-		Mod_LoadStudioModel( mod, buf );
+		Mod_LoadStudioModel( mod, buf, length );
 		break;
 
 	default:
@@ -459,213 +476,120 @@ mleaf_t* Mod_PointInLeaf( vec_t* p, model_t* model )
 	return (mleaf_t*)node;
 }
 
-static void* LoadSpriteFrame( void* pin, mspriteframe_t** ppframe, int framenum, int* pTextureType )
-{
-	dspriteframe_t* pinframe;
-	mspriteframe_t* pspriteframe;
-	int width, height;
-	int origin[2];
-	int textureType;
-	byte* pixels;
-	byte palette[768];
-	char name[256];
+static void* LoadSpriteFrame(void* pin, mspriteframe_t** ppframe, int framenum, int* pTextureType) {
+    const dspriteframe_t frame = ModelLoading::Read<dspriteframe_t>(pin);
+    const int width = LittleLong(frame.width);
+    const int height = LittleLong(frame.height);
+    mspriteframe_t* output = static_cast<mspriteframe_t*>(Hunk_AllocName(sizeof(mspriteframe_t), loadname));
+    Q_memset(output, 0, sizeof(*output));
+    *ppframe = output;
+    output->width = width;
+    output->height = height;
+    const int x = LittleLong(frame.origin[0]);
+    const int y = LittleLong(frame.origin[1]);
+    output->up = static_cast<float>(y);
+    output->down = static_cast<float>(static_cast<long long>(y) - height);
+    output->left = static_cast<float>(x);
+    output->right = static_cast<float>(static_cast<long long>(x) + width);
 
-	Q_memcpy( palette, pspritepal, sizeof( palette ) );
-
-	pinframe = (dspriteframe_t*)pin;
-
-	width = LittleLong( pinframe->width );
-	height = LittleLong( pinframe->height );
-
-	pspriteframe = (mspriteframe_t*)Hunk_AllocName( sizeof( mspriteframe_t ), loadname );
-	Q_memset( pspriteframe, 0, sizeof( *pspriteframe ) );
-
-	*ppframe = pspriteframe;
-
-	pspriteframe->width = width;
-	pspriteframe->height = height;
-	origin[0] = LittleLong( pinframe->origin[0] );
-	origin[1] = LittleLong( pinframe->origin[1] );
-
-	pspriteframe->up = (float)origin[1];
-	pspriteframe->down = (float)( origin[1] - height );
-	pspriteframe->left = (float)origin[0];
-	pspriteframe->right = (float)( origin[0] + width );
-
-	snprintf( name, sizeof( name ), "%s_%i", loadmodel->name, framenum );
-
-	textureType = pTextureType ? *pTextureType : width * height;
-	switch ( gSpriteTextureFormat )
-	{
-	case SPR_NORMAL:
-	case SPR_ADDITIVE:
-		textureType = TEX_TYPE_NONE;
-		break;
-	case SPR_INDEXALPHA:
-		textureType = TEX_TYPE_ALPHA_GRADIENT;
-		break;
-	case SPR_ALPHTEST:
-		textureType = TEX_TYPE_ALPHA;
-		break;
-	}
-
-	if ( pTextureType )
-		*pTextureType = textureType;
-
-	pixels = (byte*)( pinframe + 1 );
-
-	if ( gSpriteMipMap )
-		pspriteframe->gl_texturenum =
-			GL_LoadTexture( name, GLT_SPRITE, width, height, pixels, gSpriteMipMap, textureType, palette );
-	else
-		pspriteframe->gl_texturenum =
-			GL_LoadTexture( name, GLT_HUDSPRITE, width, height, pixels, FALSE, textureType, palette );
-
-	return pixels + width * height;
+    char name[256];
+    snprintf(name, sizeof(name), "%s_%i", loadmodel->name, framenum);
+    int textureType = pTextureType ? *pTextureType : width * height;
+    switch (gSpriteTextureFormat) {
+    case SPR_NORMAL:
+    case SPR_ADDITIVE:
+        textureType = TEX_TYPE_NONE;
+        break;
+    case SPR_INDEXALPHA:
+        textureType = TEX_TYPE_ALPHA_GRADIENT;
+        break;
+    case SPR_ALPHTEST:
+        textureType = TEX_TYPE_ALPHA;
+        break;
+    }
+    if (pTextureType) {
+        *pTextureType = textureType;
+    }
+    byte palette[ModelLoading::PaletteBytes];
+    std::memcpy(palette, pspritepal, sizeof(palette));
+    byte* pixels = static_cast<byte*>(pin) + sizeof(frame);
+    output->gl_texturenum = GL_LoadTexture(name, gSpriteMipMap ? GLT_SPRITE : GLT_HUDSPRITE,
+        width, height, pixels, gSpriteMipMap, textureType, palette);
+    return pixels + width * height;
 }
 
-//=============================================================================
-/*
-=================
-Mod_LoadSpriteFrame
-=================
-*/
-void* Mod_LoadSpriteFrame( void* pin, mspriteframe_t** ppframe, int framenum )
-{
-	return LoadSpriteFrame( pin, ppframe, framenum, NULL );
+void* Mod_LoadSpriteFrame(void* pin, mspriteframe_t** frame, int frameNumber) {
+    return LoadSpriteFrame(pin, frame, frameNumber, nullptr);
 }
 
-/*
-=================
-Mod_LoadSpriteGroup
-=================
-*/
-void* Mod_LoadSpriteGroup( void* pin, mspriteframe_t** ppframe, int framenum )
-{
-	dspritegroup_t* pingroup;
-	mspritegroup_t* pspritegroup;
-	int i, numframes, groupsize;
-	dspriteinterval_t* pin_intervals;
-	float* poutintervals;
-	void* ptemp;
-	int textureType;
-
-	pingroup = (dspritegroup_t*)pin;
-
-	numframes = LittleLong( pingroup->numframes );
-
-	groupsize = sizeof( mspritegroup_t ) + ( numframes - 1 ) * sizeof( mspriteframe_t* );
-
-	pspritegroup = (mspritegroup_t*)Hunk_AllocName( groupsize, loadname );
-
-	pspritegroup->numframes = numframes;
-
-	*ppframe = (mspriteframe_t*)pspritegroup;
-
-	poutintervals = (float*)Hunk_AllocName( numframes * sizeof( float ), loadname );
-
-	pspritegroup->intervals = poutintervals;
-
-	pin_intervals = (dspriteinterval_t*)( pingroup + 1 );
-
-	for ( i = 0; i < numframes; i++ )
-	{
-		*poutintervals = LittleFloat( pin_intervals->interval );
-		if ( *poutintervals <= 0.0f )
-			Sys_Error( "Mod_LoadSpriteGroup: interval<=0" );
-
-		poutintervals++;
-		pin_intervals++;
-	}
-
-	ptemp = (void*)pin_intervals;
-
-	textureType = numframes;
-	for ( i = 0; i < numframes; i++ )
-		ptemp = LoadSpriteFrame( ptemp, &pspritegroup->frames[i], framenum * 100 + i, &textureType );
-
-	return ptemp;
+void* Mod_LoadSpriteGroup(void* pin, mspriteframe_t** frame, int frameNumber) {
+    const dspritegroup_t group = ModelLoading::Read<dspritegroup_t>(pin);
+    const int count = LittleLong(group.numframes);
+    const int size = static_cast<int>(sizeof(mspritegroup_t) + (count - 1) * sizeof(mspriteframe_t*));
+    mspritegroup_t* output = static_cast<mspritegroup_t*>(Hunk_AllocName(size, loadname));
+    output->numframes = count;
+    *frame = reinterpret_cast<mspriteframe_t*>(output);
+    output->intervals = static_cast<float*>(Hunk_AllocName(count * sizeof(float), loadname));
+    byte* data = static_cast<byte*>(pin) + sizeof(group);
+    for (int i = 0; i < count; ++i) {
+        const dspriteinterval_t interval = ModelLoading::Read<dspriteinterval_t>(data);
+        output->intervals[i] = LittleFloat(interval.interval);
+        data += sizeof(interval);
+    }
+    void* next = data;
+    int textureType = count;
+    constexpr int GroupFrameScale = 100;
+    for (int i = 0; i < count; ++i) {
+        next = LoadSpriteFrame(next, &output->frames[i], frameNumber * GroupFrameScale + i, &textureType);
+    }
+    return next;
 }
 
-/*
-=================
-Mod_LoadSpriteModel
-=================
-*/
-void Mod_LoadSpriteModel( model_t* mod, void* buffer )
-{
-	int i;
-	int version;
-	dsprite_t* pin;
-	msprite_t* psprite;
-	int numframes;
-	int size;
-	dspriteframetype_t* pframetype;
-	byte* palette;
-	int numi, palsize;
-	spriteframetype_t frametype;
+void Mod_LoadSpriteModel(model_t* mod, void* buffer, int fileBytes) {
+    if (!ModelLoading::Sprite(buffer, fileBytes)) {
+        Sys_Error("Mod_LoadSpriteModel: invalid or truncated sprite %s", mod->name);
+        return;
+    }
+    const dsprite_t input = ModelLoading::Read<dsprite_t>(buffer);
+    const int count = LittleLong(input.numframes);
+    const int size = static_cast<int>(sizeof(msprite_t) + (count - 1) * sizeof(mspriteframedesc_t));
+    const byte* palette = static_cast<byte*>(buffer) + sizeof(input);
+    const unsigned short entries = ModelLoading::Read<unsigned short>(palette);
+    const int paletteBytes = static_cast<int>(entries * ModelLoading::PaletteChannels + sizeof(entries));
+    msprite_t* output = static_cast<msprite_t*>(Hunk_AllocName(size + paletteBytes, loadname));
+    pspritepal = reinterpret_cast<byte*>(output) + size;
+    // Preserve the RGB palette at the historical hardware offset; the two spare bytes are not input RGB.
+    std::memcpy(pspritepal, palette + sizeof(entries), entries * ModelLoading::PaletteChannels);
+    output->paloffset = size + sizeof(entries);
+    gSpriteTextureFormat = static_cast<short>(LittleLong(input.texFormat));
+    mod->cache.data = output;
+    output->type = static_cast<short>(LittleLong(input.type));
+    output->texFormat = static_cast<short>(LittleLong(input.texFormat));
+    output->maxwidth = LittleLong(input.width);
+    output->maxheight = LittleLong(input.height);
+    output->beamlength = LittleFloat(input.beamlength);
+    output->numframes = count;
+    mod->synctype = static_cast<synctype_t>(LittleLong(input.synctype));
+    mod->mins[0] = mod->mins[1] = static_cast<float>(output->maxwidth / -2);
+    mod->maxs[0] = mod->maxs[1] = static_cast<float>(output->maxwidth / 2);
+    mod->mins[2] = static_cast<float>(output->maxheight / -2);
+    mod->maxs[2] = static_cast<float>(output->maxheight / 2);
+    mod->numframes = count;
+    mod->flags = 0;
 
-	pin = (dsprite_t*)buffer;
-
-	version = LittleLong( pin->version );
-	if ( version != SPRITE_VERSION )
-		Sys_Error( "%s has wrong version number (%i should be %i)", mod->name, version, SPRITE_VERSION );
-
-	numframes = LittleLong( pin->numframes );
-
-	palette = (byte*)( pin + 1 );
-	numi = *(short*)palette;
-	palsize = numi + 2 * ( numi + 1 );
-
-	size = sizeof( msprite_t ) + ( numframes - 1 ) * sizeof( mspriteframedesc_t );
-
-	psprite = (msprite_t*)Hunk_AllocName( size + palsize, loadname );
-
-	mod->cache.data = psprite;
-
-	psprite->type = (short)LittleLong( pin->type );
-	psprite->texFormat = (short)LittleLong( pin->texFormat );
-	gSpriteTextureFormat = psprite->texFormat;
-	psprite->maxwidth = LittleLong( pin->width );
-	psprite->maxheight = LittleLong( pin->height );
-	psprite->beamlength = LittleFloat( pin->beamlength );
-	mod->synctype = (synctype_t)LittleLong( pin->synctype );
-	psprite->numframes = numframes;
-
-	mod->mins[0] = mod->mins[1] = (float)( psprite->maxwidth / -2 );
-	mod->maxs[0] = mod->maxs[1] = (float)( psprite->maxwidth / 2 );
-	mod->mins[2] = (float)( psprite->maxheight / -2 );
-	mod->maxs[2] = (float)( psprite->maxheight / 2 );
-
-	psprite->paloffset = size + sizeof( short );
-	pspritepal = (byte*)psprite + size;
-	Q_memcpy( pspritepal, palette + sizeof( short ), palsize );
-
-	//
-	// load the frames
-	//
-	if ( numframes < 1 )
-		Sys_Error( "Mod_LoadSpriteModel: Invalid # of frames: %d\n", numframes );
-
-	mod->numframes = numframes;
-	mod->flags = 0;
-
-	pframetype = (dspriteframetype_t*)( palette + palsize );
-
-	for ( i = 0; i < numframes; i++ )
-	{
-		frametype = (spriteframetype_t)LittleLong( pframetype->type );
-		psprite->frames[i].type = frametype;
-
-		if ( frametype == SPR_SINGLE )
-			pframetype =
-				(dspriteframetype_t*)Mod_LoadSpriteFrame( pframetype + 1, &psprite->frames[i].frameptr, i );
-		else
-			pframetype =
-				(dspriteframetype_t*)Mod_LoadSpriteGroup( pframetype + 1, &psprite->frames[i].frameptr, i );
-	}
-
-	mod->type = mod_sprite;
+    byte* data = static_cast<byte*>(buffer) + sizeof(input) + sizeof(entries) +
+        entries * ModelLoading::PaletteChannels;
+    for (int i = 0; i < count; ++i) {
+        const dspriteframetype_t type = ModelLoading::Read<dspriteframetype_t>(data);
+        output->frames[i].type = static_cast<spriteframetype_t>(LittleLong(type.type));
+        data += sizeof(type);
+        if (output->frames[i].type == SPR_SINGLE) {
+            data = static_cast<byte*>(Mod_LoadSpriteFrame(data, &output->frames[i].frameptr, i));
+        } else {
+            data = static_cast<byte*>(Mod_LoadSpriteGroup(data, &output->frames[i].frameptr, i));
+        }
+    }
+    mod->type = mod_sprite;
 }
 
 /*

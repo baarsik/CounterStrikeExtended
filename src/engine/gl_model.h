@@ -395,8 +395,8 @@ void				Mod_FillInCRCInfo( qboolean trackCRC, int modelNumber );
 
 void				Mod_LoadBrushModel( model_t* model, void* buffer );
 void				Mod_LoadAliasModel( model_t* model, void* buffer );
-void				Mod_LoadSpriteModel( model_t* model, void* buffer );
-void				Mod_LoadStudioModel( model_t* model, void* buffer );
+void				Mod_LoadSpriteModel( model_t* model, void* buffer, int fileBytes );
+void				Mod_LoadStudioModel( model_t* model, void* buffer, int fileBytes );
 
 void*				Mod_LoadSpriteFrame( void* buffer, mspriteframe_t** frame, int frameNumber );
 void*				Mod_LoadSpriteGroup( void* buffer, mspriteframe_t** frame, int frameNumber );

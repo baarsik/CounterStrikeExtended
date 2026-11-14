@@ -6,6 +6,9 @@
 #include <cstring>
 #include <stdexcept>
 byte texgammatable[256];
+void Sys_Error(const char*, ...) {
+    throw std::runtime_error("invalid studio model");
+}
 static std::vector<byte> allocation;
 static int allocatedBytes;
 void *Cache_Alloc(cache_user_t *cache, int bytes, const char *) {
@@ -38,7 +41,7 @@ int main(int argc, char **argv) {
             continue;
         }
         model_t model{};
-        Mod_LoadStudioModel(&model, bytes.data());
+        Mod_LoadStudioModel(&model, bytes.data(), static_cast<int>(bytes.size()));
         for (std::size_t i = allocatedBytes; i < allocation.size(); ++i) {
             if (allocation[i] != 0xa5) {
                 std::fprintf(stderr, "OVERFLOW %s allocation=%d first=%zu\n", argv[arg], allocatedBytes, i);

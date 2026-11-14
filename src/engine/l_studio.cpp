@@ -1,14 +1,16 @@
 #include "gl_model.h"
-#if !defined( SW_RENDERER )
+#if !defined(SW_RENDERER)
 #include "glquake.h"
 #endif
 #include "common.h"
 #include "zone.h"
 #include "engine_studio.h"
+#include "sys.h"
+#include "model_loading.h"
 
 #include <cstdio>
 
-#if defined( SW_RENDERER )
+#if defined(SW_RENDERER)
 extern byte texgammatable[256];
 #endif
 
@@ -17,86 +19,68 @@ extern byte texgammatable[256];
 Mod_LoadStudioModel
 =================
 */
-void Mod_LoadStudioModel( model_t* mod, void* buffer )
-{
-	int i;
-#if !defined( SW_RENDERER )
-	int total;
-#endif
-	byte* pin;
-#if !defined( SW_RENDERER )
-	byte* pal;
-#endif
-	studiohdr_t* phdr;
-	mstudiotexture_t* ptexture;
-#if !defined( SW_RENDERER )
-	char name[256];
-#endif
+void Mod_LoadStudioModel(model_t* mod, void* buffer, int fileBytes) {
+    studiohdr_t header;
+    int allocationBytes;
+    if (!ModelLoading::Studio(buffer, fileBytes, header, allocationBytes)) {
+        Sys_Error("Mod_LoadStudioModel: invalid or truncated model %s", mod->name);
+        return;
+    }
 
-	pin = (byte*)buffer;
-	phdr = (studiohdr_t*)pin;
+    byte* input = static_cast<byte*>(buffer);
+    // Keep the historical writable-buffer fallback and hardware texture-index replacement.
+    std::memcpy(input, &header, sizeof(header));
+    mod->type = mod_studio;
+    mod->flags = header.flags;
+    Cache_Alloc(&mod->cache, allocationBytes, mod->name);
+    byte* output = static_cast<byte*>(mod->cache.data);
+    if (!output) {
+        return;
+    }
 
-	if ( LittleLong( phdr->version ) != STUDIO_VERSION )
-	{
-		Q_memset( phdr, 0, sizeof( *phdr ) );
-		Q_strcpy( phdr->name, "bogus" );
-		phdr->length = sizeof( *phdr );
-		phdr->texturedataindex = sizeof( *phdr );
-	}
-
-	mod->type = mod_studio;
-	mod->flags = phdr->flags;
-
-#if defined( SW_RENDERER )
-	Cache_Alloc( &mod->cache, phdr->length + phdr->numtextures * ( 256 * 4 * sizeof( word ) - 256 * 3 ), mod->name );
-	byte* pout = (byte*)mod->cache.data;
-	if ( !pout )
-		return;
-	if ( phdr->textureindex )
-	{
-		Q_memcpy( pout, pin, phdr->texturedataindex );
-		ptexture = (mstudiotexture_t*)( pout + phdr->textureindex );
-		byte* input = pin + phdr->texturedataindex;
-		byte* output = pout + phdr->texturedataindex;
-		for ( i = 0; i < phdr->numtextures; i++, ptexture++ )
-		{
-			int size = ptexture->width * ptexture->height;
-			ptexture->index = (int)( output - pout );
-			Q_memcpy( output, input, size );
-			input += size;
-			output += size;
-			word* palette = (word*)output;
-			for ( int j = 0; j < 256; j++, input += 3, palette += 4 )
-			{
-				palette[0] = texgammatable[input[0]];
-				palette[1] = texgammatable[input[1]];
-				palette[2] = texgammatable[input[2]];
-				palette[3] = 0;
-			}
-			output += 256 * 4 * sizeof( word );
-		}
-	}
-	else
-		Q_memcpy( pout, pin, phdr->length );
+#if defined(SW_RENDERER)
+    if (header.textureindex) {
+        std::memcpy(output, input, header.texturedataindex);
+        const byte* source = input + header.texturedataindex;
+        byte* destination = output + header.texturedataindex;
+        for (int i = 0; i < header.numtextures; ++i) {
+            const std::size_t textureOffset = header.textureindex +
+                static_cast<std::size_t>(i) * sizeof(mstudiotexture_t);
+            mstudiotexture_t texture = ModelLoading::Read<mstudiotexture_t>(input + textureOffset);
+            const int pixels = texture.width * texture.height;
+            texture.index = static_cast<int>(destination - output);
+            std::memcpy(output + textureOffset, &texture, sizeof(texture));
+            std::memcpy(destination, source, pixels);
+            source += pixels;
+            destination += pixels;
+            for (std::size_t color = 0; color < ModelLoading::PaletteEntries; ++color) {
+                const word channels[ModelLoading::ExpandedPaletteChannels] = {
+                    texgammatable[source[0]], texgammatable[source[1]], texgammatable[source[2]], 0
+                };
+                // Odd-sized textures legitimately leave this expanded word palette unaligned.
+                std::memcpy(destination, channels, sizeof(channels));
+                source += ModelLoading::PaletteChannels;
+                destination += sizeof(channels);
+            }
+        }
+    } else {
+        std::memcpy(output, input, header.length);
+    }
 #else
-	total = phdr->textureindex ? phdr->texturedataindex : phdr->length;
-
-	Cache_Alloc( &mod->cache, total, mod->name );
-	if ( !mod->cache.data )
-		return;
-
-	if ( phdr->textureindex )
-	{
-		ptexture = (mstudiotexture_t*)( pin + phdr->textureindex );
-		for ( i = 0; i < phdr->numtextures; i++, ptexture++ )
-		{
-			snprintf( name, sizeof( name ), "%s%s", mod->name, ptexture->name );
-			pal = pin + ptexture->index + ptexture->width * ptexture->height;
-			ptexture->index = GL_LoadTexture( name, GLT_STUDIO, ptexture->width, ptexture->height, pin + ptexture->index,
-				!( ptexture->flags & STUDIO_NF_NOMIPS ), ( ptexture->flags & STUDIO_NF_MASKED ) != 0, pal );
-		}
-	}
-
-	Q_memcpy( mod->cache.data, buffer, total );
+    if (header.textureindex) {
+        for (int i = 0; i < header.numtextures; ++i) {
+            const std::size_t textureOffset = header.textureindex +
+                static_cast<std::size_t>(i) * sizeof(mstudiotexture_t);
+            mstudiotexture_t texture = ModelLoading::Read<mstudiotexture_t>(input + textureOffset);
+            char name[256];
+            snprintf(name, sizeof(name), "%s%.*s", mod->name, static_cast<int>(sizeof(texture.name)), texture.name);
+            byte* pixels = input + texture.index;
+            byte* palette = pixels + texture.width * texture.height;
+            texture.index = GL_LoadTexture(name, GLT_STUDIO, texture.width, texture.height, pixels,
+                !(texture.flags & STUDIO_NF_NOMIPS), (texture.flags & STUDIO_NF_MASKED) != 0, palette);
+            std::memcpy(input + textureOffset, &texture, sizeof(texture));
+        }
+    }
+    std::memcpy(output, input, allocationBytes);
 #endif
 }

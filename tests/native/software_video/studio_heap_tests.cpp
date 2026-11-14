@@ -15,7 +15,7 @@ int main(int argc, char **argv) {
     void *module = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
     assert(module);
     auto init = reinterpret_cast<void (*)(void *, int)>(dlsym(module, "_Z11Memory_InitPvi"));
-    auto load = reinterpret_cast<void (*)(model_t *, void *)>(dlsym(module, "_Z19Mod_LoadStudioModelP7model_sPv"));
+    auto load = reinterpret_cast<void (*)(model_t *, void *, int)>(dlsym(module, "_Z19Mod_LoadStudioModelP7model_sPvi"));
     auto check = reinterpret_cast<void *(*)(cache_user_t *)>(dlsym(module, "_Z11Cache_CheckP12cache_user_s"));
     auto low = reinterpret_cast<void *(*)(int, const char *)>(dlsym(module, "_Z14Hunk_AllocNameiPKc"));
     assert(init && load && check && low);
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
         std::printf("LOAD %s\n", argv[arg]);
         model_t &model = models[arg - 2];
         std::snprintf(model.name, sizeof(model.name), "model%d", arg);
-        load(&model, bytes.data());
+        load(&model, bytes.data(), static_cast<int>(bytes.size()));
         assert(check(&model.cache));
         low(32768, "relocation");
         for (model_t &previous : models) {
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
         std::ifstream restartFile(argv[2], std::ios::binary);
         restartBytes.assign(std::istreambuf_iterator<char>(restartFile), {});
     }
-    load(retained, restartBytes.data());
+    load(retained, restartBytes.data(), static_cast<int>(restartBytes.size()));
     assert(retained->cache.data);
     // Host_Init starts a new hunk then calls Mod_Init. No old cache may survive.
     auto commandsShutdown = reinterpret_cast<void (*)()>(dlsym(module, "_Z12Cmd_Shutdownv"));

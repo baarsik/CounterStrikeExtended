@@ -11,6 +11,7 @@
 #include "zone.h"
 #include "cdll_int.h"
 #include "engine_studio.h"
+#include "model_loading.h"
 
 #include <cmath>
 #include <cstdio>
@@ -261,6 +262,12 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
 		return NULL;
 	}
 
+    if (length < static_cast<int>(sizeof(int))) {
+        Mem_Free(buffer);
+        Sys_Error("Mod_LoadModel: truncated identifier in %s", mod->name);
+        return nullptr;
+    }
+
 	if ( trackCRC && mod_known_info[mod - mod_known].shouldCRC )
 	{
 		mod_known_info_t* info = &mod_known_info[mod - mod_known];
@@ -303,16 +310,16 @@ model_t* Mod_LoadModel( model_t* mod, qboolean crash, qboolean trackCRC )
 // call the apropriate loader
 	mod->needload = NL_PRESENT;
 
-	switch ( LittleLong( *(int*)buffer ) )
+	switch (LittleLong(ModelLoading::Read<int>(buffer)))
 	{
 	case IDPOLYHEADER:
 		Mod_LoadAliasModel( mod, buffer );
 		break;
 	case IDSPRITEHEADER:
-		Mod_LoadSpriteModel( mod, buffer );
+		Mod_LoadSpriteModel( mod, buffer, length );
 		break;
 	case IDSTUDIOHEADER:
-		Mod_LoadStudioModel( mod, buffer );
+		Mod_LoadStudioModel( mod, buffer, length );
 		break;
 	default:
 		Mod_LoadBrushModel( mod, buffer );
@@ -391,126 +398,101 @@ Mod_LoadSpriteFrame
 =================
 */
 //=============================================================================
-void* Mod_LoadSpriteFrame( void* pin, mspriteframe_t** ppframe )
-{
-	dspriteframe_t* in = (dspriteframe_t*)pin;
-	int width = LittleLong( in->width );
-	int height = LittleLong( in->height );
-	int pixels = width * height;
-	int size = sizeof( mspriteframe_t ) + pixels * r_pixbytes;
-	mspriteframe_t* out = (mspriteframe_t*)Hunk_AllocName( size, loadname );
-
-	Q_memset( out, 0, size );
-	*ppframe = out;
-	out->width = width;
-	out->height = height;
-
-	int x = LittleLong( in->origin[0] );
-	int y = LittleLong( in->origin[1] );
-	out->up = (float)y;
-	out->down = (float)( y - height );
-	out->left = (float)x;
-	out->right = (float)( x + width );
-
-	if ( r_pixbytes == 1 )
-		Q_memcpy( out->pixels, in + 1, pixels );
-	else if ( r_pixbytes != 2 )
-		Sys_Error( "Mod_LoadSpriteFrame: driver set invalid r_pixbytes: %d\n", r_pixbytes );
-
-	return (byte*)( in + 1 ) + pixels;
+void* Mod_LoadSpriteFrame(void* pin, mspriteframe_t** frame) {
+    const dspriteframe_t input = ModelLoading::Read<dspriteframe_t>(pin);
+    const int width = LittleLong(input.width);
+    const int height = LittleLong(input.height);
+    const int pixels = width * height;
+    const int size = static_cast<int>(sizeof(mspriteframe_t) + static_cast<std::size_t>(pixels) * r_pixbytes);
+    mspriteframe_t* output = static_cast<mspriteframe_t*>(Hunk_AllocName(size, loadname));
+    Q_memset(output, 0, size);
+    *frame = output;
+    output->width = width;
+    output->height = height;
+    const int x = LittleLong(input.origin[0]);
+    const int y = LittleLong(input.origin[1]);
+    output->up = static_cast<float>(y);
+    output->down = static_cast<float>(static_cast<long long>(y) - height);
+    output->left = static_cast<float>(x);
+    output->right = static_cast<float>(static_cast<long long>(x) + width);
+    byte* data = static_cast<byte*>(pin) + sizeof(input);
+    if (r_pixbytes == 1) {
+        Q_memcpy(output->pixels, data, pixels);
+    }
+    return data + pixels;
 }
 
-/*
-=================
-Mod_LoadSpriteGroup
-=================
-*/
-void* Mod_LoadSpriteGroup( void* pin, mspriteframe_t** ppframe )
-{
-	dspritegroup_t* in = (dspritegroup_t*)pin;
-	int count = LittleLong( in->numframes );
-	mspritegroup_t* out = (mspritegroup_t*)Hunk_AllocName(
-		sizeof( mspritegroup_t ) + ( count - 1 ) * sizeof( out->frames[0] ), loadname );
-	out->numframes = count;
-	*ppframe = (mspriteframe_t*)out;
-	out->intervals = (float*)Hunk_AllocName( count * sizeof( float ), loadname );
-	dspriteinterval_t* intervals = (dspriteinterval_t*)( in + 1 );
-
-	for ( int i = 0; i < count; i++ )
-	{
-		out->intervals[i] = LittleFloat( intervals[i].interval );
-		if ( out->intervals[i] <= 0 )
-			Sys_Error( "Mod_LoadSpriteGroup: interval<=0" );
-	}
-
-	void* frame = intervals + ( count > 0 ? count : 0 );
-	for ( int i = 0; i < count; i++ )
-		frame = Mod_LoadSpriteFrame( frame, &out->frames[i] );
-
-	return frame;
+void* Mod_LoadSpriteGroup(void* pin, mspriteframe_t** frame) {
+    const dspritegroup_t input = ModelLoading::Read<dspritegroup_t>(pin);
+    const int count = LittleLong(input.numframes);
+    const int size = static_cast<int>(sizeof(mspritegroup_t) + (count - 1) * sizeof(mspriteframe_t*));
+    mspritegroup_t* output = static_cast<mspritegroup_t*>(Hunk_AllocName(size, loadname));
+    output->numframes = count;
+    *frame = reinterpret_cast<mspriteframe_t*>(output);
+    output->intervals = static_cast<float*>(Hunk_AllocName(count * sizeof(float), loadname));
+    byte* data = static_cast<byte*>(pin) + sizeof(input);
+    for (int i = 0; i < count; ++i) {
+        const dspriteinterval_t interval = ModelLoading::Read<dspriteinterval_t>(data);
+        output->intervals[i] = LittleFloat(interval.interval);
+        data += sizeof(interval);
+    }
+    void* next = data;
+    for (int i = 0; i < count; ++i) {
+        next = Mod_LoadSpriteFrame(next, &output->frames[i]);
+    }
+    return next;
 }
 
-/*
-=================
-Mod_LoadSpriteModel
-=================
-*/
-void Mod_LoadSpriteModel( model_t* mod, void* buffer )
-{
-	dsprite_t* in = (dsprite_t*)buffer;
-	int version = LittleLong( in->version );
-	if ( version != SPRITE_VERSION )
-		Sys_Error( "%s has wrong version number (%i should be %i)", mod->name, version, SPRITE_VERSION );
+void Mod_LoadSpriteModel(model_t* mod, void* buffer, int fileBytes) {
+    if (!ModelLoading::Sprite(buffer, fileBytes)) {
+        Sys_Error("Mod_LoadSpriteModel: invalid or truncated sprite %s", mod->name);
+        return;
+    }
+    const dsprite_t input = ModelLoading::Read<dsprite_t>(buffer);
+    const int count = LittleLong(input.numframes);
+    const int size = static_cast<int>(sizeof(msprite_t) + (count - 1) * sizeof(mspriteframedesc_t));
+    const byte* palette = static_cast<byte*>(buffer) + sizeof(input);
+    const unsigned short entries = ModelLoading::Read<unsigned short>(palette);
+    const int paletteBytes = static_cast<int>(entries * sizeof(PackedColorVec) + sizeof(entries));
+    msprite_t* output = static_cast<msprite_t*>(Hunk_AllocName(size + paletteBytes, loadname));
+    output->paloffset = size + sizeof(entries);
+    std::memcpy(reinterpret_cast<byte*>(output) + size, &entries, sizeof(entries));
+    byte* destination = reinterpret_cast<byte*>(output) + output->paloffset;
+    const byte* rgb = palette + sizeof(entries);
+    for (int i = 0; i < entries; ++i) {
+        const PackedColorVec color = {rgb[0], rgb[1], rgb[2], 0};
+        std::memcpy(destination, &color, sizeof(color));
+        destination += sizeof(color);
+        rgb += ModelLoading::PaletteChannels;
+    }
+    mod->cache.data = output;
+    output->type = static_cast<short>(LittleLong(input.type));
+    output->texFormat = static_cast<short>(LittleLong(input.texFormat));
+    output->maxwidth = LittleLong(input.width);
+    output->maxheight = LittleLong(input.height);
+    output->beamlength = LittleFloat(input.beamlength);
+    output->numframes = count;
+    mod->synctype = static_cast<synctype_t>(LittleLong(input.synctype));
+    mod->mins[0] = mod->mins[1] = static_cast<float>(output->maxwidth / -2);
+    mod->maxs[0] = mod->maxs[1] = static_cast<float>(output->maxwidth / 2);
+    mod->mins[2] = static_cast<float>(output->maxheight / -2);
+    mod->maxs[2] = static_cast<float>(output->maxheight / 2);
+    mod->numframes = count;
+    mod->flags = 0;
 
-	int count = LittleLong( in->numframes );
-	int size = sizeof( msprite_t ) + ( count - 1 ) * sizeof( mspriteframedesc_t );
-	byte* palette = (byte*)( in + 1 );
-	int entries = *(unsigned short*)palette;
-	msprite_t* out = (msprite_t*)Hunk_AllocName(
-		size + sizeof( PackedColorVec ) * *(short*)palette + sizeof( unsigned short ), loadname );
-
-	mod->cache.data = out;
-	out->type = (short)LittleLong( in->type );
-	out->texFormat = (short)LittleLong( in->texFormat );
-	out->maxwidth = LittleLong( in->width );
-	out->maxheight = LittleLong( in->height );
-	out->beamlength = LittleFloat( in->beamlength );
-	out->numframes = count;
-	mod->synctype = (synctype_t)LittleLong( in->synctype );
-
-	mod->mins[0] = mod->mins[1] = (float)( out->maxwidth / -2 );
-	mod->maxs[0] = mod->maxs[1] = (float)( out->maxwidth / 2 );
-	mod->mins[2] = (float)( out->maxheight / -2 );
-	mod->maxs[2] = (float)( out->maxheight / 2 );
-
-	out->paloffset = size + sizeof( unsigned short );
-	*(unsigned short*)( (byte*)out + size ) = (unsigned short)entries;
-	PackedColorVec* colors = (PackedColorVec*)( (byte*)out + out->paloffset );
-	byte* rgb = palette + sizeof( unsigned short );
-	for ( int i = 0; i < entries; i++, rgb += 3, colors++ )
-	{
-		colors->r = rgb[0];
-		colors->g = rgb[1];
-		colors->b = rgb[2];
-		colors->a = 0;
-	}
-
-	if ( count <= 0 )
-		Sys_Error( "Mod_LoadSpriteModel: Invalid # of frames: %d\n", count );
-
-	mod->numframes = count;
-	mod->flags = 0;
-	dspriteframetype_t* frame = (dspriteframetype_t*)( palette + sizeof( unsigned short ) + entries * 3 );
-	for ( int i = 0; i < count; i++ )
-	{
-		out->frames[i].type = (spriteframetype_t)LittleLong( frame->type );
-		if ( out->frames[i].type == SPR_SINGLE )
-			frame = (dspriteframetype_t*)Mod_LoadSpriteFrame( frame + 1, &out->frames[i].frameptr );
-		else
-			frame = (dspriteframetype_t*)Mod_LoadSpriteGroup( frame + 1, &out->frames[i].frameptr );
-	}
-
-	mod->type = mod_sprite;
+    byte* data = static_cast<byte*>(buffer) + sizeof(input) + sizeof(entries) +
+        entries * ModelLoading::PaletteChannels;
+    for (int i = 0; i < count; ++i) {
+        const dspriteframetype_t type = ModelLoading::Read<dspriteframetype_t>(data);
+        output->frames[i].type = static_cast<spriteframetype_t>(LittleLong(type.type));
+        data += sizeof(type);
+        if (output->frames[i].type == SPR_SINGLE) {
+            data = static_cast<byte*>(Mod_LoadSpriteFrame(data, &output->frames[i].frameptr));
+        } else {
+            data = static_cast<byte*>(Mod_LoadSpriteGroup(data, &output->frames[i].frameptr));
+        }
+    }
+    mod->type = mod_sprite;
 }
 
 /*

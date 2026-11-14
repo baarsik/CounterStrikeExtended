@@ -433,13 +433,13 @@ void*		Mod_LoadAliasSkinGroup( void* data, int* skinIndex, int skinSize, aliashd
 void		Mod_LoadAliasModel( model_t* model, void* buffer );
 void*		Mod_LoadSpriteFrame( void* data, mspriteframe_t** frame );
 void*		Mod_LoadSpriteGroup( void* data, mspriteframe_t** frame );
-void		Mod_LoadSpriteModel( model_t* model, void* buffer );
+void		Mod_LoadSpriteModel( model_t* model, void* buffer, int fileBytes );
 void		Mod_UnloadSpriteTextures( model_t* model );
 void		Mod_Print();
 void		Mod_ChangeGame();
 
 int		ModelFrameCount( model_t* model );
-void	Mod_LoadStudioModel( model_t* model, void* buffer );
+void	Mod_LoadStudioModel( model_t* model, void* buffer, int fileBytes );
 
 mspriteframe_t*	R_GetSpriteFrame( msprite_t* sprite, int frame );
 

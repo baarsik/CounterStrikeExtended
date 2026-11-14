@@ -1875,7 +1875,6 @@ byte* COM_LoadFile( char* path, int usehunk, int* pLength )
 	if ( !file )
 		return nullptr;
 
-#if INTPTR_MAX > INT32_MAX
     const unsigned int fileBytes = FS_Size(file);
     constexpr unsigned int MaximumHeapFileBytes = static_cast<unsigned int>(INT_MAX - 1);
     if (usehunk == LOADFILE_HEAP && fileBytes > MaximumHeapFileBytes) {
@@ -1883,9 +1882,6 @@ byte* COM_LoadFile( char* path, int usehunk, int* pLength )
         return nullptr;
     }
     int length = static_cast<int>(fileBytes);
-#else
-	int length = static_cast<int>( FS_Size( file ) );
-#endif
 	char base[FILE_LOAD_BASE_BYTES];
 	if ( !COM_FileBase_s( path, base, FILE_LOAD_BASE_BYTES ) )
 		Sys_Error( "COM_LoadFile: bad path name for %s", path );
@@ -1923,7 +1919,6 @@ byte* COM_LoadFile( char* path, int usehunk, int* pLength )
 		Sys_Error( "COM_LoadFile: not enough space for %s", path );
 
 	buffer[length] = '\0';
-#if INTPTR_MAX > INT32_MAX
     if (usehunk == LOADFILE_HEAP) {
         if (FS_Read(buffer, length, 1, file) != length) {
             FS_Close(file);
@@ -1933,9 +1928,6 @@ byte* COM_LoadFile( char* path, int usehunk, int* pLength )
     } else {
         FS_Read(buffer, length, 1, file);
     }
-#else
-	FS_Read( buffer, length, 1, file );
-#endif
 	FS_Close( file );
 	if ( pLength )
 		*pLength = length;

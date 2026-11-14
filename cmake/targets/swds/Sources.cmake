@@ -65,6 +65,7 @@ target_sources(swds PRIVATE
   "${CSE_SDK_DIR}/engine/KeyValues.cpp"
   "${CSE_SDK_DIR}/engine/LoadBlob.cpp"
   "${CSE_SDK_DIR}/engine/l_studio.cpp"
+  "${CSE_SDK_DIR}/engine/model_loading.h"
   "${CSE_SDK_DIR}/engine/mathlib.cpp"
   "${CSE_SDK_DIR}/engine/mem.cpp"
   "${CSE_SDK_DIR}/engine/MemPool.cpp"
