@@ -640,13 +640,13 @@ void Draw_DecalShutdown()
 	decal_wad = NULL;
 }
 
-void Draw_DecalSetName( int decal, char* name )
-{
-	if ( decal >= MAX_BASE_DECALS )
-		return;
+void Draw_DecalSetName(int decal, char* name) {
+    if (decal < 0 || static_cast<std::size_t>(decal) >= ARRAYSIZE(decal_names)) {
+        return;
+    }
 
-	Q_strncpy( decal_names[decal], name, sizeof( decal_names[0] ) - 1 );
-	decal_names[decal][sizeof( decal_names[0] ) - 1] = 0;
+    Q_strncpy(decal_names[decal], name, sizeof(decal_names[0]) - 1);
+    decal_names[decal][sizeof(decal_names[0]) - 1] = 0;
 }
 
 int Draw_DecalIndex( int id )
@@ -1542,13 +1542,13 @@ void Draw_DecalShutdown()
 	decal_wad = NULL;
 }
 
-void Draw_DecalSetName( int decal, char* name )
-{
-	if ( decal >= MAX_BASE_DECALS )
-		return;
+void Draw_DecalSetName(int decal, char* name) {
+    if (decal < 0 || static_cast<std::size_t>(decal) >= ARRAYSIZE(decal_names)) {
+        return;
+    }
 
-	Q_strncpy( decal_names[decal], name, sizeof( decal_names[0] ) - 1 );
-	decal_names[decal][sizeof( decal_names[0] ) - 1] = 0;
+    Q_strncpy(decal_names[decal], name, sizeof(decal_names[0]) - 1);
+    decal_names[decal][sizeof(decal_names[0]) - 1] = 0;
 }
 
 int Draw_DecalIndex( int id )

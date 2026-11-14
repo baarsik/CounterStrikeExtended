@@ -441,6 +441,15 @@ void CL_ReallocateDynamicData( int maxClients )
 	Q_memset( cl.frames, 0, sizeof( frame_t ) * CL_UPDATE_BACKUP );
 }
 
+static qboolean CL_IsResourceIndexValid(const resource_t* resource, std::size_t capacity) {
+    if (resource->nIndex >= 0 && static_cast<std::size_t>(resource->nIndex) < capacity) {
+        return TRUE;
+    }
+
+    Con_DPrintf("Resource %s has invalid precache index %i\n", resource->szFileName, resource->nIndex);
+    return FALSE;
+}
+
 qboolean CL_PrecacheResources( void )
 {
 	resource_t *p, *n;
@@ -461,6 +470,10 @@ qboolean CL_PrecacheResources( void )
 		switch ( p->type )
 		{
 		case t_sound:
+            if (!CL_IsResourceIndexValid(p, ARRAYSIZE(cl.sound_precache))) {
+                break;
+            }
+
 			if ( p->ucFlags & RES_WASMISSING )
 			{
 				cl.sound_precache[p->nIndex] = NULL;
@@ -485,6 +498,10 @@ qboolean CL_PrecacheResources( void )
 
 		case t_model:
 		{
+            if (!CL_IsResourceIndexValid(p, ARRAYSIZE(cl.model_precache))) {
+                break;
+            }
+
 			int modelIndex = p->nIndex;
 			if ( modelIndex >= cl.model_precache_count )
 			{
@@ -527,6 +544,10 @@ qboolean CL_PrecacheResources( void )
 			break;
 
 		case t_eventscript:
+            if (!CL_IsResourceIndexValid(p, ARRAYSIZE(cl.event_precache))) {
+                break;
+            }
+
 			cl.event_precache[p->nIndex].filename = Mem_Strdup( p->szFileName );
 			cl.event_precache[p->nIndex].pszScript = (const char*)COM_LoadFile( p->szFileName, 5, NULL );
 
@@ -572,6 +593,10 @@ void CL_PrecacheBSPModels( const char* mapName )
 
 		if ( p->type != t_model || p->szFileName[0] != '*' )
 			continue;
+
+        if (!CL_IsResourceIndexValid(p, ARRAYSIZE(cl.model_precache))) {
+            continue;
+        }
 
 		cl.model_precache[p->nIndex] = Mod_ForName( p->szFileName, FALSE, FALSE );
 		if ( cl.model_precache[p->nIndex] )

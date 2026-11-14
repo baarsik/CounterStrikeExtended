@@ -62,6 +62,7 @@ window and network probes are separate authorized actions, not implied by a buil
 | Input and bounded repairs | [gameplay shortcuts](gameplay_shortcuts/README.md), [system capture](system_capture/README.md), [timer](hud_timer/README.md), [notify](console_notify/README.md), [multisource](multisource/README.md), [network](network_platform/README.md) |
 | Native A3D contract | [buffers](a3d_buffers/README.md), [events/notifications](a3d_notifications/README.md), [resources](a3d_resources/README.md), [device](a3d_device/README.md), [spatial](a3d_spatial/README.md) |
 | Renderer | [state/texture/ordered frames](render_state/README.md), [offline GPU shaders and adapters](render_gpu/README.md) |
+| Resource admission | [precache and decal index bounds](resource_precache/README.md) |
 
 To qualify a changed implementation, compare it with a pinned reference under
 the same inputs and per-file policy. Preserve exact byte/count/state oracles and
