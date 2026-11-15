@@ -44,6 +44,7 @@ target_sources(hw_engine PRIVATE
   "${CSE_SDK_DIR}/engine/filesystem_internal.cpp"
   "${CSE_SDK_DIR}/engine/glHud.cpp"
   "${CSE_SDK_DIR}/engine/gl_draw.cpp"
+  "${CSE_SDK_DIR}/engine/texture_upload.h"
   "${CSE_SDK_DIR}/engine/gl_mesh.cpp"
   "${CSE_SDK_DIR}/engine/gl_model.cpp"
   "${CSE_SDK_DIR}/engine/gl_refrag.cpp"

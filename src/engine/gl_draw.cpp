@@ -19,10 +19,13 @@
 #include "protocol.h"
 #include "vgui_intwrap2.h"
 #include "../common/const.h"
+#include "texture_upload.h"
 
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <vector>
 
 #define MAX_GLTEXTURES 10000
 
@@ -155,65 +158,60 @@ void GL_Bind( int texnum )
 		GL_PaletteSelect( paletteIndex );
 }
 
-void ComputeScaledSize( int* wscale, int* hscale, int width, int height )
-{
-	int scaled_width, scaled_height;
-	int rounddown, picmip, maxsize;
-
-	maxsize = (int)fmaxf( gl_max_size.value, 128.0f );
-
-	for ( scaled_width = 1; scaled_width < width; scaled_width <<= 1 )
-		;
-	for ( scaled_height = 1; scaled_height < height; scaled_height <<= 1 )
-		;
-
-	rounddown = (int)gl_round_down.value;
-	if ( rounddown > 0 && rounddown < 32 )
-	{
-		if ( scaled_width > width && ( rounddown == 1 || scaled_width - width > ( scaled_width >> rounddown ) ) )
-			scaled_width >>= 1;
-		if ( scaled_height > height && ( rounddown == 1 || scaled_height - height > ( scaled_height >> rounddown ) ) )
-			scaled_height >>= 1;
-	}
-
-	picmip = (int)gl_picmip.value;
-	if ( picmip > 0 && picmip < 32 )
-	{
-		scaled_width >>= picmip;
-		scaled_height >>= picmip;
-	}
-
-	*wscale = scaled_width <= maxsize ? scaled_width : maxsize;
-	*hscale = scaled_height <= maxsize ? scaled_height : maxsize;
+void ComputeScaledSize(int* wscale, int* hscale, int width, int height) {
+    texture_upload::ScaledSize(width, height, gl_max_size.value, gl_round_down.value, gl_picmip.value,
+        *wscale, *hscale);
 }
 
-void GL_ResampleTexturePoint( byte* in, int inwidth, int inheight, byte* out, int outwidth, int outheight )
-{
-	int i, j;
-	unsigned int ufrac, vfrac;
-	unsigned int ufracstep, vfracstep;
-	byte* src;
+static bool GL_TextureDimensions(int width, int height, int type, int& scaledWidth, int& scaledHeight) {
+    if (type != TEX_TYPE_NONE && type != TEX_TYPE_ALPHA && type != TEX_TYPE_ALPHA_GRADIENT &&
+        type != TEX_TYPE_RGBA && type != TEX_TYPE_LUM) {
+        return false;
+    }
+    const std::size_t channels = type == TEX_TYPE_LUM ? texture_upload::kLuminanceChannels :
+        texture_upload::kRgbaChannels;
+    std::size_t bytes;
+    if (!texture_upload::ByteCount(width, height, channels, bytes)) {
+        return false;
+    }
 
-	src = in;
-	ufracstep = ( inwidth << 16 ) / outwidth;
-	vfracstep = ( inheight << 16 ) / outheight;
+    scaledWidth = width;
+    scaledHeight = height;
+    if (!g_bSupportsNPOTTextures) {
+        ComputeScaledSize(&scaledWidth, &scaledHeight, width, height);
+    }
+    return texture_upload::ByteCount(scaledWidth, scaledHeight, channels, bytes) &&
+        bytes / channels <= texture_upload::kMaxScaledPixels;
+}
 
-	vfrac = vfracstep >> 2;
+class TextureUnpackState {
+public:
+    TextureUnpackState() {
+        qglGetIntegerv(GL_UNPACK_ALIGNMENT, &alignment);
+        qglGetIntegerv(GL_UNPACK_ROW_LENGTH, &rowLength);
+        qglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        qglPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    }
 
-	for ( i = 0; i < outheight; i++ )
-	{
-		ufrac = ufracstep >> 2;
+    ~TextureUnpackState() {
+        qglPixelStorei(GL_UNPACK_ALIGNMENT, alignment);
+        qglPixelStorei(GL_UNPACK_ROW_LENGTH, rowLength);
+    }
 
-		for ( j = 0; j < outwidth; j++ )
-		{
-			*out++ = src[ufrac >> 16];
-			ufrac += ufracstep;
-		}
+private:
+    static constexpr GLint kDefaultUnpackAlignment = 4;
+    GLint alignment = kDefaultUnpackAlignment;
+    GLint rowLength = 0;
+};
 
-		vfrac += vfracstep;
-		src += inwidth * ( vfrac >> 16 );
-		vfrac &= 0xFFFF;
-	}
+void GL_ResampleTexturePoint(byte* in, int inwidth, int inheight, byte* out, int outwidth, int outheight) {
+    std::size_t sourceBytes;
+    std::size_t destinationBytes;
+    if (texture_upload::ByteCount(inwidth, inheight, texture_upload::kLuminanceChannels, sourceBytes) &&
+        texture_upload::ByteCount(outwidth, outheight, texture_upload::kLuminanceChannels, destinationBytes)) {
+        texture_upload::Resample(in, sourceBytes, inwidth, inheight, out, destinationBytes, outwidth, outheight,
+            texture_upload::kLuminanceChannels, true);
+    }
 }
 
 int GL_PaletteTag( byte* pal )
@@ -295,131 +293,113 @@ short GL_PaletteAdd( byte* pal, qboolean isSky )
 #ifdef _MSC_VER
 #pragma warning( suppress: 6262 )
 #endif
-int GL_LoadTexture2( char* identifier, GL_TEXTURETYPE textureType, int width, int height, byte* data, qboolean mipmap,
-	int type, byte* pal, int filter )
-{
-	int i;
-	int scaled_width, scaled_height;
-	gltexture_t *glt, *slot;
-	byte scaled[128 * 128];
-	byte* texture;
+int GL_LoadTexture2(char* identifier, GL_TEXTURETYPE textureType, int width, int height, byte* data, qboolean mipmap,
+    int type, byte* pal, int filter) {
+    int scaledWidth;
+    int scaledHeight;
+    if (!identifier || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+        Con_Printf("GL_LoadTexture2: invalid or oversized texture (%dx%d)\n", width, height);
+        return 0;
+    }
 
-	glt = NULL;
-
-	V_CheckGamma();
+    gltexture_t* glt = nullptr;
+    V_CheckGamma();
 
 tryagain:
-	// see if the texture is allready present
-	if ( identifier[0] )
-	{
-		for ( i = 0; i < numgltextures; i++ )
-		{
-			slot = &gltextures[i];
-			if ( slot->servercount < 0 )
-			{
-				if ( !glt )
-					glt = slot;
-				continue;
-			}
+    // Reuse existing textures without requiring the caller to supply their pixels again.
+    if (identifier[0]) {
+        for (int i = 0; i < numgltextures; ++i) {
+            gltexture_t* slot = &gltextures[i];
+            if (slot->servercount < 0) {
+                if (!glt) {
+                    glt = slot;
+                }
+                continue;
+            }
+            if (Q_strcmp(identifier, slot->identifier)) {
+                continue;
+            }
+            if (slot->width == width && slot->height == height) {
+                if (slot->servercount > 0) {
+                    slot->servercount = static_cast<short>(gHostSpawnCount);
+                }
+                if (slot->paletteIndex >= 0) {
+                    return slot->texnum | ((slot->paletteIndex + 1) << 16);
+                }
+                return slot->texnum;
+            }
+            identifier[3]++;
+            goto tryagain;
+        }
+    } else {
+        Con_DPrintf("NULL Texture\n");
+    }
 
-			if ( Q_strcmp( identifier, slot->identifier ) )
-				continue;
+    const bool rgba = textureType == GLT_SPRITE && type == TEX_TYPE_RGBA;
+    const std::size_t sourcePixels = static_cast<std::size_t>(width) * height;
+    if (!data || (!rgba && type != TEX_TYPE_LUM && !pal) ||
+        (!rgba && sourcePixels > texture_upload::kMaxIndexedPixels)) {
+        Con_Printf("GL_LoadTexture2: missing pixels/palette or oversized indexed texture (%dx%d)\n", width, height);
+        return 0;
+    }
 
-			if ( slot->width == width && slot->height == height )
-			{
-				if ( slot->servercount > 0 )
-					slot->servercount = (short)gHostSpawnCount;
+    if (!glt) {
+        if (numgltextures >= MAX_GLTEXTURES) {
+            Sys_Error("Texture Overflow: MAX_GLTEXTURES");
+        }
+        glt = &gltextures[numgltextures++];
+    }
+    if (!glt->texnum) {
+        glt->texnum = GL_GenTexture();
+    }
+    Q_strncpy(glt->identifier, identifier, sizeof(glt->identifier) - 1);
+    glt->identifier[sizeof(glt->identifier) - 1] = 0;
+    glt->width = width;
+    glt->height = height;
+    glt->mipmap = mipmap;
+    glt->servercount = textureType == GLT_WORLD ? static_cast<short>(gHostSpawnCount) : 0;
+    glt->paletteIndex = -1;
+    GL_Bind(glt->texnum);
+    currenttexture = -1;
 
-				if ( slot->paletteIndex >= 0 )
-					return slot->texnum | ( ( slot->paletteIndex + 1 ) << 16 );
-				return slot->texnum;
-			}
+    constexpr int kPointTextureLimit = 128;
+    byte scaled[kPointTextureLimit * kPointTextureLimit];
+    byte* texture = nullptr;
+    if (!mipmap && qglColorTableEXT && gl_palette_tex.value && type == TEX_TYPE_NONE) {
+        if (scaledWidth == width && scaledHeight == height) {
+            texture = data;
+        } else if (scaledWidth <= kPointTextureLimit && scaledHeight <= kPointTextureLimit) {
+            if (fs_perf_warnings.value) {
+                Con_DPrintf("fs_perf_warnings: resampling non-power-of-2 texture %s (%dx%d)\n",
+                    identifier, width, height);
+            }
+            GL_ResampleTexturePoint(data, width, height, scaled, scaledWidth, scaledHeight);
+            texture = scaled;
+        }
+    }
 
-			identifier[3]++;
-			goto tryagain;
-		}
-	}
-	else
-	{
-		Con_DPrintf( "NULL Texture\n" );
-	}
+    if (texture) {
+        glt->paletteIndex = GL_PaletteAdd(pal, FALSE);
+        if (glt->paletteIndex >= 0) {
+            TextureUnpackState unpack;
+            qglTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, scaledWidth, scaledHeight, 0, GL_COLOR_INDEX,
+                GL_UNSIGNED_BYTE, texture);
+            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(filter));
+            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(filter));
+            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
+            return glt->texnum | ((glt->paletteIndex + 1) << 16);
+        }
+    }
 
-	if ( !glt )
-	{
-		glt = &gltextures[numgltextures];
-		numgltextures++;
-
-		if ( numgltextures >= MAX_GLTEXTURES )
-			Sys_Error( "Texture Overflow: MAX_GLTEXTURES" );
-	}
-
-	if ( !glt->texnum )
-		glt->texnum = GL_GenTexture();
-
-	Q_strncpy( glt->identifier, identifier, sizeof( glt->identifier ) - 1 );
-	glt->identifier[sizeof( glt->identifier ) - 1] = 0;
-	glt->width = width;
-	glt->height = height;
-	glt->mipmap = mipmap;
-
-	if ( textureType == GLT_WORLD )
-		glt->servercount = (short)gHostSpawnCount;
-	else
-		glt->servercount = 0;
-
-	glt->paletteIndex = -1;
-
-	GL_Bind( glt->texnum );
-	currenttexture = -1;
-
-	scaled_width = width;
-	scaled_height = height;
-	if ( !g_bSupportsNPOTTextures )
-		ComputeScaledSize( &scaled_width, &scaled_height, width, height );
-
-	texture = NULL;
-	if ( !mipmap )
-	{
-		if ( scaled_width == width && scaled_height == height )
-		{
-			texture = data;
-		}
-		else if ( scaled_width <= 128 && scaled_height <= 128 )
-		{
-			if ( fs_perf_warnings.value )
-				Con_DPrintf(
-					"fs_perf_warnings: resampling non-power-of-2 texture %s (%dx%d)\n", identifier, width, height );
-
-			GL_ResampleTexturePoint( data, width, height, scaled, scaled_width, scaled_height );
-			texture = scaled;
-		}
-	}
-
-	if ( texture && qglColorTableEXT && gl_palette_tex.value && type == TEX_TYPE_NONE )
-	{
-		glt->paletteIndex = GL_PaletteAdd( pal, FALSE );
-		if ( glt->paletteIndex >= 0 )
-		{
-			qglTexImage2D( GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, scaled_width, scaled_height, 0, GL_COLOR_INDEX,
-				GL_UNSIGNED_BYTE, texture );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)filter );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)filter );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
-			return glt->texnum | ( ( glt->paletteIndex + 1 ) << 16 );
-		}
-	}
-
-	if ( g_modfuncs.m_pfnTextureLoad )
-		g_modfuncs.m_pfnTextureLoad( identifier, width, height, (char*)data );
-
-	if ( textureType == GLT_SPRITE && type == TEX_TYPE_RGBA )
-		GL_Upload32( (unsigned int*)data, width, height, mipmap, type, filter );
-	else
-		GL_Upload16( data, width, height, mipmap, type, pal, filter );
-
-	if ( glt->paletteIndex >= 0 )
-		return glt->texnum | ( ( glt->paletteIndex + 1 ) << 16 );
-	return glt->texnum;
+    if (g_modfuncs.m_pfnTextureLoad) {
+        g_modfuncs.m_pfnTextureLoad(identifier, width, height, reinterpret_cast<char*>(data));
+    }
+    if (rgba) {
+        GL_Upload32(reinterpret_cast<unsigned int*>(data), width, height, mipmap, type, filter);
+    } else {
+        GL_Upload16(data, width, height, mipmap, type, pal, filter);
+    }
+    return glt->texnum;
 }
 
 /*
@@ -438,94 +418,68 @@ int giTotalTexBytes;
 int gl_filter_min = GL_LINEAR_MIPMAP_LINEAR;
 int texels;
 
-static unsigned int PaletteRGB( const byte* pal, int index )
-{
-	const byte* color = pal + index * 3;
-	return color[0] | ( color[1] << 8 ) | ( color[2] << 16 );
+static unsigned int PaletteRGB(const byte* pal, int index) {
+    constexpr int kPaletteChannels = 3;
+    const byte* color = pal + index * kPaletteChannels;
+    return color[0] | (color[1] << 8) | (color[2] << 16);
 }
 
-void GL_Upload16( byte* data, int width, int height, qboolean mipmap, int type, byte* pal, int filter )
-{
-	static unsigned int trans[640 * 480]; // FIXME, temporary
-	int i, j, s, p;
-	qboolean noalpha;
-	byte* color;
+void GL_Upload16(byte* data, int width, int height, qboolean mipmap, int type, byte* pal, int filter) {
+    static std::vector<unsigned int> trans;
+    int scaledWidth;
+    int scaledHeight;
+    std::size_t pixels;
+    if (!data || !texture_upload::ByteCount(width, height, texture_upload::kLuminanceChannels, pixels) ||
+        pixels > texture_upload::kMaxIndexedPixels ||
+        !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+        Con_Printf("GL_Upload16: invalid or oversized texture (%dx%d)\n", width, height);
+        return;
+    }
 
-	s = width * height;
+    if (type == TEX_TYPE_LUM) {
+        GL_Upload32(reinterpret_cast<unsigned int*>(data), width, height, mipmap, type, filter);
+        return;
+    }
+    if (!pal) {
+        return;
+    }
+    trans.resize(pixels);
+    constexpr int kPaletteChannels = 3;
+    constexpr int kPaletteColors = 256;
+    constexpr int kTransparentIndex = kPaletteColors - 1;
+    constexpr unsigned int kOpaqueAlpha = 0xFF000000u;
+    constexpr unsigned int kAlphaShift = 24;
+    constexpr unsigned int kDitherShift = 6;
+    for (int i = 0; i < kPaletteColors * kPaletteChannels; ++i) {
+        pal[i] = texgammatable[pal[i]];
+    }
 
-	if ( (unsigned int)s > sizeof( trans ) )
-	{
-		Con_Printf( "Can't upload (%ix%i) texture, it's > 640*480 bytes\n", width, height );
-		return;
-	}
-
-	if ( type == TEX_TYPE_LUM )
-	{
-		Q_memcpy( trans, data, s );
-	}
-	else
-	{
-		if ( !pal )
-			return;
-
-		for ( i = 0; i < 768; i++ )
-			pal[i] = texgammatable[pal[i]];
-
-		if ( type == TEX_TYPE_ALPHA || type == TEX_TYPE_ALPHA_GRADIENT || type == TEX_TYPE_RGBA )
-		{
-			noalpha = TRUE;
-
-			for ( i = 0; i < s; i++ )
-			{
-				p = data[i];
-				if ( type == TEX_TYPE_ALPHA_GRADIENT )
-				{
-					trans[i] = PaletteRGB( pal, 255 ) | ( (unsigned int)p << 24 );
-					noalpha = FALSE;
-				}
-				else if ( type == TEX_TYPE_RGBA )
-				{
-					trans[i] = PaletteRGB( pal, p ) | ( (unsigned int)p << 24 );
-					noalpha = FALSE;
-				}
-				else if ( p == 255 )
-				{
-					trans[i] = 0;
-					noalpha = FALSE;
-				}
-				else
-				{
-					trans[i] = PaletteRGB( pal, p ) | 0xFF000000;
-				}
-			}
-
-			if ( noalpha )
-				type = TEX_TYPE_NONE;
-		}
-		else if ( type == TEX_TYPE_NONE )
-		{
-			if ( s & 3 )
-				Sys_Error( "GL_Upload16: s&3" );
-
-			for ( i = 0; i < s; i++ )
-			{
-				p = data[i];
-				if ( gl_dither.value )
-				{
-					color = &pal[p * 3];
-					for ( j = 0; j < 3; j++ )
-						color[j] |= color[j] >> 6;
-				}
-				trans[i] = PaletteRGB( pal, p ) | 0xFF000000;
-			}
-		}
-		else
-		{
-			Con_Printf( "Upload16:Bogus texture type!/n" );
-		}
-	}
-
-	GL_Upload32( trans, width, height, mipmap, type, filter );
+    bool noalpha = true;
+    for (std::size_t i = 0; i < pixels; ++i) {
+        const unsigned int index = data[i];
+        if (type == TEX_TYPE_ALPHA_GRADIENT) {
+            trans[i] = PaletteRGB(pal, kTransparentIndex) | (index << kAlphaShift);
+            noalpha = false;
+        } else if (type == TEX_TYPE_RGBA) {
+            trans[i] = PaletteRGB(pal, index) | (index << kAlphaShift);
+            noalpha = false;
+        } else if (type == TEX_TYPE_ALPHA && index == kTransparentIndex) {
+            trans[i] = 0;
+            noalpha = false;
+        } else {
+            if (type == TEX_TYPE_NONE && gl_dither.value) {
+                byte* color = pal + index * kPaletteChannels;
+                for (int channel = 0; channel < kPaletteChannels; ++channel) {
+                    color[channel] |= color[channel] >> kDitherShift;
+                }
+            }
+            trans[i] = PaletteRGB(pal, index) | kOpaqueAlpha;
+        }
+    }
+    if (noalpha) {
+        type = TEX_TYPE_NONE;
+    }
+    GL_Upload32(trans.data(), width, height, mipmap, type, filter);
 }
 
 /*
@@ -535,147 +489,105 @@ GL_MipMap
 Operates in place, quartering the size of the texture
 ================
 */
-void GL_MipMap( byte* in, int width, int height )
-{
-	int i, j;
-	byte* out;
-
-	width <<= 2;
-	height >>= 1;
-	out = in;
-	for ( i = 0; i < height; i++, in += width )
-	{
-		for ( j = 0; j < width; j += 8, out += 4, in += 8 )
-		{
-			out[0] = ( in[0] + in[4] + in[width + 0] + in[width + 4] ) >> 2;
-			out[1] = ( in[1] + in[5] + in[width + 1] + in[width + 5] ) >> 2;
-			out[2] = ( in[2] + in[6] + in[width + 2] + in[width + 6] ) >> 2;
-			out[3] = ( in[3] + in[7] + in[width + 3] + in[width + 7] ) >> 2;
-		}
-	}
+void GL_MipMap(byte* in, int width, int height) {
+    std::size_t bytes;
+    if (texture_upload::ByteCount(width, height, texture_upload::kRgbaChannels, bytes)) {
+        texture_upload::MipMap(in, bytes, width, height, texture_upload::kRgbaChannels);
+    }
 }
-
-#pragma warning( push )
-#pragma warning( disable : 4701 )
 
 /*
 ===============
 GL_Upload32
 ===============
 */
-void GL_Upload32( unsigned int* data, int width, int height, qboolean mipmap, int type, int filter )
-{
-	static unsigned int scaled[1024 * 512]; // [512*256];
-	int i, s;
-	int scaled_width, scaled_height;
-	int vidwidth, vidheight, bpp;
-	int miplevel;
-	GLint internalformat;
-	GLenum format;
+void GL_Upload32(unsigned int* data, int width, int height, qboolean mipmap, int type, int filter) {
+    static std::vector<unsigned int> scaled;
+    int scaledWidth;
+    int scaledHeight;
+    if (!data || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+        Con_Printf("GL_Upload32: invalid or oversized texture (%dx%d)\n", width, height);
+        return;
+    }
 
-	VideoMode_GetCurrentVideoMode( &vidwidth, &vidheight, &bpp );
+    const std::size_t channels = type == TEX_TYPE_LUM ? texture_upload::kLuminanceChannels :
+        texture_upload::kRgbaChannels;
+    std::size_t sourceBytes;
+    texture_upload::ByteCount(width, height, channels, sourceBytes);
+    const std::size_t sourcePixels = sourceBytes / channels;
+    const std::size_t scaledPixels = static_cast<std::size_t>(scaledWidth) * scaledHeight;
+    int vidwidth;
+    int vidheight;
+    int bpp;
+    VideoMode_GetCurrentVideoMode(&vidwidth, &vidheight, &bpp);
 
-	s = width * height;
+    // These legacy diagnostics are signed ints; saturate rather than overflowing over a long session.
+    constexpr std::size_t kRgbChannels = 3;
+    texture_upload::AddToCounter(giTotalTexBytes, sourcePixels * (type == TEX_TYPE_LUM ? 1 : kRgbChannels));
+    texture_upload::AddToCounter(giTotalTextures, 1);
 
-	giTotalTexBytes += s;
-	if ( type != TEX_TYPE_LUM )
-		giTotalTexBytes += s * 2;
+    byte* pixels = reinterpret_cast<byte*>(data);
+    if (gl_spriteblend.value && (type == TEX_TYPE_ALPHA || type == TEX_TYPE_ALPHA_GRADIENT || type == TEX_TYPE_RGBA)) {
+        for (std::size_t i = 0; i < sourcePixels; ++i) {
+            byte* pixel = pixels + i * channels;
+            if (!pixel[0] && !pixel[1] && !pixel[2] && !pixel[3]) {
+                BoxFilter3x3(pixel, pixels, width, height, static_cast<int>(i % width), static_cast<int>(i / width));
+            }
+        }
+    }
 
-	giTotalTextures++;
+    constexpr int kLowColorDepth = 16;
+    GLint internalformat = GL_RGBA8;
+    GLenum format = GL_RGBA;
+    switch (type) {
+        case TEX_TYPE_NONE:
+            internalformat = bpp == kLowColorDepth ? GL_RGB8 : GL_RGBA8;
+            break;
+        case TEX_TYPE_ALPHA:
+        case TEX_TYPE_ALPHA_GRADIENT:
+            internalformat = bpp == kLowColorDepth ? GL_RGBA4 : GL_RGBA8;
+            break;
+        case TEX_TYPE_LUM:
+            internalformat = GL_LUMINANCE8;
+            format = GL_LUMINANCE;
+            break;
+        case TEX_TYPE_RGBA:
+            internalformat = bpp == kLowColorDepth ? GL_RGB5_A1 : GL_RGBA8;
+            break;
+    }
 
-	if ( gl_spriteblend.value && ( type == TEX_TYPE_ALPHA || type == TEX_TYPE_ALPHA_GRADIENT || type == TEX_TYPE_RGBA ) )
-	{
-		for ( i = 0; i < s; i++ )
-		{
-			if ( !data[i] )
-				BoxFilter3x3( (byte*)&data[i], (byte*)data, width, height, i % width, i / width );
-		}
-	}
+    if (scaledWidth != width || scaledHeight != height || mipmap) {
+        scaled.resize(scaledPixels);
+        const std::size_t scaledBytes = scaledPixels * channels;
+        byte* destination = reinterpret_cast<byte*>(scaled.data());
+        if (scaledWidth == width && scaledHeight == height) {
+            std::memcpy(destination, pixels, sourceBytes);
+        } else {
+            texture_upload::Resample(pixels, sourceBytes, width, height, destination, scaledBytes,
+                scaledWidth, scaledHeight, channels);
+        }
+        pixels = destination;
+        texture_upload::AddToCounter(texels, scaledPixels);
+    }
 
-	scaled_width = width;
-	scaled_height = height;
-	if ( !g_bSupportsNPOTTextures )
-		ComputeScaledSize( &scaled_width, &scaled_height, width, height );
+    TextureUnpackState unpack;
+    qglTexImage2D(GL_TEXTURE_2D, 0, internalformat, scaledWidth, scaledHeight, 0, format, GL_UNSIGNED_BYTE, pixels);
+    int miplevel = 0;
+    while (mipmap && (scaledWidth > 1 || scaledHeight > 1)) {
+        texture_upload::MipMap(pixels, scaledPixels * channels, scaledWidth, scaledHeight, channels);
+        constexpr int kMipScale = 2;
+        scaledWidth = std::max(1, scaledWidth / kMipScale);
+        scaledHeight = std::max(1, scaledHeight / kMipScale);
+        ++miplevel;
+        texture_upload::AddToCounter(texels, static_cast<std::size_t>(scaledWidth) * scaledHeight);
+        qglTexImage2D(GL_TEXTURE_2D, miplevel, internalformat, scaledWidth, scaledHeight, 0, format,
+            GL_UNSIGNED_BYTE, pixels);
+    }
 
-	if ( (unsigned int)( scaled_width * scaled_height ) > sizeof( scaled ) / 4 )
-		Sys_Error( "GL_LoadTexture: too big" );
-
-	format = GL_RGBA;
-	switch ( type )
-	{
-	case TEX_TYPE_NONE:
-		internalformat = bpp == 16 ? GL_RGB8 : GL_RGBA8;
-		format = GL_RGBA;
-		break;
-	case TEX_TYPE_ALPHA:
-	case TEX_TYPE_ALPHA_GRADIENT:
-		internalformat = bpp == 16 ? GL_RGBA4 : GL_RGBA8;
-		format = GL_RGBA;
-		break;
-	case TEX_TYPE_LUM:
-		internalformat = GL_LUMINANCE8;
-		format = GL_LUMINANCE;
-		break;
-	case TEX_TYPE_RGBA:
-		internalformat = bpp == 16 ? GL_RGB5_A1 : GL_RGBA8;
-		format = GL_RGBA;
-		break;
-	}
-
-	if ( scaled_width == width && scaled_height == height )
-	{
-		if ( !mipmap )
-		{
-			qglTexImage2D(
-				GL_TEXTURE_2D, 0, internalformat, scaled_width, scaled_height, 0, format, GL_UNSIGNED_BYTE, data );
-			goto done;
-		}
-
-		if ( type == TEX_TYPE_LUM )
-			Q_memcpy( scaled, data, s );
-		else
-			Q_memcpy( scaled, data, s * 4 );
-	}
-	else
-	{
-		if ( type == TEX_TYPE_LUM )
-			GL_ResampleAlphaTexture( (byte*)data, width, height, (byte*)scaled, scaled_width, scaled_height );
-		else
-			GL_ResampleTexture( data, width, height, scaled, scaled_width, scaled_height );
-	}
-
-	texels += scaled_width * scaled_height;
-
-	qglTexImage2D( GL_TEXTURE_2D, 0, internalformat, scaled_width, scaled_height, 0, format, GL_UNSIGNED_BYTE, scaled );
-
-	if ( mipmap )
-	{
-		miplevel = 0;
-		while ( scaled_width > 1 || scaled_height > 1 )
-		{
-			GL_MipMap( (byte*)scaled, scaled_width, scaled_height );
-			scaled_width >>= 1;
-			scaled_height >>= 1;
-			if ( scaled_width < 1 )
-				scaled_width = 1;
-			if ( scaled_height < 1 )
-				scaled_height = 1;
-
-			miplevel++;
-			texels += scaled_width * scaled_height;
-
-			qglTexImage2D( GL_TEXTURE_2D, miplevel, internalformat, scaled_width, scaled_height, 0, format,
-				GL_UNSIGNED_BYTE, scaled );
-		}
-	}
-
-done:
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)( mipmap ? gl_filter_min : filter ) );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)( mipmap ? gl_filter_max : filter ) );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(mipmap ? gl_filter_min : filter));
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(mipmap ? gl_filter_max : filter));
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
 }
-
-#pragma warning( pop )
 
 void BoxFilter3x3( byte* out, byte* in, int w, int h, int x, int y )
 {
@@ -721,88 +633,24 @@ void BoxFilter3x3( byte* out, byte* in, int w, int h, int x, int y )
 GL_ResampleTexture
 ================
 */
-void GL_ResampleTexture( unsigned int* in, int inwidth, int inheight, unsigned int* out, int outwidth, int outheight )
-{
-	int i, j;
-	unsigned int *inrow, *inrow2;
-	unsigned int frac, fracstep;
-	unsigned int p1[1024], p2[1024];
-	byte *pix1, *pix2, *pix3, *pix4;
-
-	fracstep = ( inwidth << 16 ) / outwidth;
-
-	frac = fracstep >> 2;
-	for ( i = 0; i < outwidth; i++ )
-	{
-		p1[i] = 4 * ( frac >> 16 );
-		frac += fracstep;
-	}
-	frac = 3 * ( fracstep >> 2 );
-	for ( i = 0; i < outwidth; i++ )
-	{
-		p2[i] = 4 * ( frac >> 16 );
-		frac += fracstep;
-	}
-
-	for ( i = 0; i < outheight; i++, out += outwidth )
-	{
-		inrow = in + inwidth * (int)( ( i + 0.25 ) * inheight / outheight );
-		inrow2 = in + inwidth * (int)( ( i + 0.75 ) * inheight / outheight );
-
-		for ( j = 0; j < outwidth; j++ )
-		{
-			pix1 = (byte*)inrow + p1[j];
-			pix2 = (byte*)inrow + p2[j];
-			pix3 = (byte*)inrow2 + p1[j];
-			pix4 = (byte*)inrow2 + p2[j];
-			( (byte*)( out + j ) )[0] = ( pix1[0] + pix2[0] + pix3[0] + pix4[0] ) >> 2;
-			( (byte*)( out + j ) )[1] = ( pix1[1] + pix2[1] + pix3[1] + pix4[1] ) >> 2;
-			( (byte*)( out + j ) )[2] = ( pix1[2] + pix2[2] + pix3[2] + pix4[2] ) >> 2;
-			( (byte*)( out + j ) )[3] = ( pix1[3] + pix2[3] + pix3[3] + pix4[3] ) >> 2;
-		}
-	}
+void GL_ResampleTexture(unsigned int* in, int inwidth, int inheight, unsigned int* out, int outwidth, int outheight) {
+    std::size_t sourceBytes;
+    std::size_t destinationBytes;
+    if (texture_upload::ByteCount(inwidth, inheight, texture_upload::kRgbaChannels, sourceBytes) &&
+        texture_upload::ByteCount(outwidth, outheight, texture_upload::kRgbaChannels, destinationBytes)) {
+        texture_upload::Resample(reinterpret_cast<byte*>(in), sourceBytes, inwidth, inheight,
+            reinterpret_cast<byte*>(out), destinationBytes, outwidth, outheight, texture_upload::kRgbaChannels);
+    }
 }
 
-void GL_ResampleAlphaTexture( byte* in, int inwidth, int inheight, byte* out, int outwidth, int outheight )
-{
-	int i, j;
-	byte *inrow, *inrow2;
-	unsigned int frac, fracstep;
-	byte p1[1024], p2[1024];
-	byte *pix1, *pix2, *pix3, *pix4;
-
-	fracstep = ( inwidth << 16 ) / outwidth;
-
-	frac = fracstep >> 2;
-	for ( i = 0; i < outwidth; i++ )
-	{
-		p1[i] = (byte)( frac >> 16 );
-		frac += fracstep;
-	}
-	frac = 3 * ( fracstep >> 2 );
-	for ( i = 0; i < outwidth; i++ )
-	{
-		p2[i] = (byte)( frac >> 16 );
-		frac += fracstep;
-	}
-
-	for ( i = 0; i < outheight; i++, out += outwidth )
-	{
-		inrow = in + inwidth * (int)( ( i + 0.25 ) * inheight / outheight );
-		inrow2 = in + inwidth * (int)( ( i + 0.75 ) * inheight / outheight );
-
-		for ( j = 0; j < outwidth; j++ )
-		{
-			pix1 = inrow + p1[j];
-			pix2 = inrow + p2[j];
-			pix3 = inrow2 + p1[j];
-			pix4 = inrow2 + p2[j];
-			out[j + 0] = ( pix1[0] + pix2[0] + pix3[0] + pix4[0] ) >> 2;
-			out[j + 1] = ( pix1[1] + pix2[1] + pix3[1] + pix4[1] ) >> 2;
-			out[j + 2] = ( pix1[2] + pix2[2] + pix3[2] + pix4[2] ) >> 2;
-			out[j + 3] = ( pix1[3] + pix2[3] + pix3[3] + pix4[3] ) >> 2;
-		}
-	}
+void GL_ResampleAlphaTexture(byte* in, int inwidth, int inheight, byte* out, int outwidth, int outheight) {
+    std::size_t sourceBytes;
+    std::size_t destinationBytes;
+    if (texture_upload::ByteCount(inwidth, inheight, texture_upload::kLuminanceChannels, sourceBytes) &&
+        texture_upload::ByteCount(outwidth, outheight, texture_upload::kLuminanceChannels, destinationBytes)) {
+        texture_upload::Resample(in, sourceBytes, inwidth, inheight, out, destinationBytes, outwidth, outheight,
+            texture_upload::kLuminanceChannels);
+    }
 }
 
 void gl_texturemode_hook_callback( cvar_t* var )
