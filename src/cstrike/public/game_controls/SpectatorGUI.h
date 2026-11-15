@@ -80,6 +80,8 @@ protected:
 	void PerformLayout() override;
 
 private:
+    void UpdatePlayerLabel(int player);
+
 	vgui2::Panel*		m_pTopBar;
 	CBottomBar*			m_pBottomBar;
 	vgui2::Panel*		m_pBottomBarBlank;

@@ -37,3 +37,9 @@ also switches Russian ↔ Polish without loading a map.
 It checks unchanged-mode map/count/player captions, owned inputs after their
 original buffers are overwritten, cold/post-disconnect replay, literal balance
 overrides, quiet combo updates, row identity/selection and destructor cleanup.
+
+The same fixture executes the actual spectator activation and visible think methods.
+It covers a caption cleared when the panel opens, player info arriving afterward,
+health changes without a camera change, the highest valid player slot and quiet
+caption updates that retain open menu rows/selection. Hidden panels must not query
+disconnected client state.

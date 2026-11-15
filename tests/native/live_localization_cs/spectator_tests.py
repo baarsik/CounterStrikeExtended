@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute the production spectator formatter and replay with disconnected client inputs."""
+"""Exercise real spectator caption startup, late player info and disconnected language replay."""
 from pathlib import Path
 import os
 import subprocess
@@ -82,7 +82,40 @@ struct KeyValues {
     KeyValues(const char*, const char*, const char* text) : player(text) {}
     const char* GetString(const char*, const char*) { return player.c_str(); }
 };
-struct Panel { virtual ~Panel() = default; };
+struct Panel {
+    bool visible = false;
+    int width = 0;
+    int height = 0;
+    virtual ~Panel() = default;
+    void SetVisible(bool value) {
+        visible = value;
+    }
+    bool IsVisible() const {
+        return visible;
+    }
+    void MoveToFront() {}
+    void SetSize(int wide, int tall) {
+        width = wide;
+        height = tall;
+    }
+    void SetPos(int, int) {}
+};
+struct Frame : Panel {
+    void Activate() {
+        SetVisible(true);
+    }
+};
+struct Surface {
+    void GetScreenSize(int& wide, int& tall) {
+        constexpr int ScreenWidth = 1280;
+        constexpr int ScreenHeight = 720;
+        wide = ScreenWidth;
+        tall = ScreenHeight;
+    }
+} testSurface;
+Surface* surface() {
+    return &testSurface;
+}
 struct Label : Panel {
     std::wstring text;
     void SetText(const wchar_t* value) { text = value ? value : L""; }
@@ -127,6 +160,11 @@ struct CBottomBar {
     ComboBox* m_pConfigSettings = &configs;
     bool visible = true;
     bool IsVisible() { return visible; }
+    void SetVisible(bool value) {
+        visible = value;
+    }
+    void SetSize(int, int) {}
+    void SetPos(int, int) {}
     void SetPlayerText(const wchar_t* value) { players.SetText(value); }
 };
 template<class T> struct CUtlVector {
@@ -144,11 +182,32 @@ struct VGuiLibraryPlayer_t {
 };
 struct Client {
     bool offline = false;
-    int calls = 0;
+    mutable int calls = 0;
     VGuiLibraryPlayer_t info;
-    void Query() { ++calls; if (offline) { std::abort(); } }
+    int mode = 4;
+    int target = 1;
+    void Query() const {
+        ++calls;
+        if (offline) {
+            std::abort();
+        }
+    }
     int TeamNumber() { Query(); return 2; }
-    int GetMaxPlayers() { Query(); return 2; }
+    int GetMaxPlayers() const {
+        Query();
+        return 2;
+    }
+    int SpectatorMode() const {
+        Query();
+        return mode;
+    }
+    int SpectatorTarget() const {
+        Query();
+        return target;
+    }
+    int PipInsetOff() {
+        return 1;
+    }
     VGuiLibraryPlayer_t CallEnghudGetPlayerInfo(int) { Query(); return info; }
 } client;
 struct Viewport {
@@ -162,16 +221,29 @@ void RefreshCommandMenuText(Menu*, Menu*) {}
 int ducks = 0;
 void DuckMessage(const char*) { ++ducks; }
 const char* GetSpectatorLabel(int) { return "#OBS_IN_EYE"; }
-struct CSpectatorGUI {
+struct CSpectatorGUI : Frame {
     CBottomBar bottom;
     CBottomBar* m_pBottomBar = &bottom;
     Label player, extra, timer;
     Label* m_pPlayerLabel = &player;
     Label* m_pExtraInfoLabel = &extra;
+    Panel topBar;
+    Panel bottomBarBlank;
+    Panel banner;
+    Panel* m_pTopBar = &topBar;
+    Panel* m_pBottomBarBlank = &bottomBarBlank;
+    Panel* m_pBannerImage = &banner;
     bool m_bHelpShown = true;
     bool m_bInsetVisible = true;
     int invalidations = 0;
     ~CSpectatorGUI();
+    void Activate();
+    void OnThink();
+    void UpdatePlayerLabel(int player);
+    void EnableInsetView(int) {}
+    int GetProportionalScaledValue(int value) {
+        return value;
+    }
     Panel* FindChildByName(const char* name, bool) { return std::strcmp(name, "extrainfo") == 0 ? &extra : &timer; }
     bool CanSpectateTeam(int) { return true; }
     void GetPlayerLabelColor(int, Color&) { client.Query(); }
@@ -186,6 +258,8 @@ struct CSpectatorGUI {
 '''
 harness += helpers
 for signature in ['CSpectatorGUI::~CSpectatorGUI()',
+                  'void CSpectatorGUI::Activate()',
+                  'void CSpectatorGUI::OnThink()',
                   'void CSpectatorGUI::SetLabelText( const char* name, const char* text )',
                   'void CSpectatorGUI::SetLabelText( const char* name, wchar_t* text )',
                   'void CSpectatorGUI::GetPlayerLabelText(',
@@ -193,10 +267,65 @@ for signature in ['CSpectatorGUI::~CSpectatorGUI()',
                   'void CSpectatorGUI::Update( const char*,',
                   'void CSpectatorGUI::RefreshLanguage()']:
     harness += '\n' + function(signature) + '\n'
+if 'void CSpectatorGUI::UpdatePlayerLabel(' in source:
+    harness += '\n' + function('void CSpectatorGUI::UpdatePlayerLabel(') + '\n'
 harness += r'''
 #ifndef RED_CASE
 #define RED_CASE 0
 #endif
+
+void CheckJoinLifecycle() {
+    client.offline = false;
+    localization.language = 0;
+    for (bool lateInfo : {false, true}) {
+        CSpectatorGUI gui;
+        client.info.name = lateInfo ? nullptr : "Joined player";
+        client.info.health = lateInfo ? 0 : 73;
+        gui.Update("server", 1, 4, false, 0, "de_dust2");
+        gui.Activate();
+        assert(gui.IsVisible() && gui.player.IsVisible());
+        assert(gui.player.text.empty());
+        if (lateInfo) {
+            gui.OnThink();
+            client.info.name = "Joined player";
+            client.info.health = 73;
+        }
+        gui.OnThink();
+        assert(gui.player.text == L"RU Joined player (73)");
+
+        gui.bottom.SetVisible(true);
+        gui.UpdateSpectatorPlayerList();
+        const int deletes = gui.bottom.players.deletes;
+        auto* rowData = gui.bottom.players.rows.at(0).data;
+        const int help = ducks;
+        client.info.health = 61;
+        gui.OnThink();
+        assert(gui.player.text == L"RU Joined player (61)");
+        assert(gui.bottom.players.text == L"RU Joined player (61)");
+        assert(gui.bottom.players.deletes == deletes);
+        assert(gui.bottom.players.rows.at(0).data == rowData);
+        assert(gui.bottom.players.selected == 1 && gui.bottom.players.popup);
+        assert(ducks == help);
+
+        client.target = 2;
+        client.info.name = "#literal";
+        client.info.health = 42;
+        gui.OnThink();
+        assert(gui.player.text == L"RU #literal (42)");
+        assert(gui.bottom.players.text == gui.player.text);
+        assert(gui.bottom.players.deletes == deletes);
+        client.target = 1;
+
+        gui.SetVisible(false);
+        client.offline = true;
+        const int queries = client.calls;
+        gui.OnThink();
+        assert(client.calls == queries);
+        client.offline = false;
+    }
+    client.info = VGuiLibraryPlayer_t{};
+}
+
 int main() {
     if (RED_CASE == 0) {
         CSpectatorGUI cold;
@@ -282,6 +411,7 @@ int main() {
     assert(reused->player.text.empty() && reused->extra.text.empty());
     assert(reused->bottom.views.text == L"Kamera RU" && reused->bottom.configs.text == L"Opcje RU");
     reused->~CSpectatorGUI();
+    CheckJoinLifecycle();
 }
 '''
 (out / 'spectator.cpp').write_text(harness)
@@ -289,4 +419,4 @@ subprocess.run(['c++', '-DRED_CASE=' + os.environ.get('CSE_SPECTATOR_RED_CASE', 
                 str(out / 'spectator.cpp'), '-o', str(out / 'spectator')], check=True)
 subprocess.run([str(out / 'spectator')], check=True,
                env=dict(os.environ, UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'))
-print('PASS: actual spectator formatter replays owned inputs without client queries or gameplay effects')
+print('PASS: spectator captions recover after activation/late player info; localization replay stays disconnected-safe')

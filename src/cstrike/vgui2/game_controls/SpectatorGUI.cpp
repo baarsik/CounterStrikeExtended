@@ -643,6 +643,16 @@ void CSpectatorGUI::OnThink()
 		m_pBottomBarBlank->SetPos( 0, tall - barHeight );
 		InvalidateLayout( false, false );
 	}
+
+    // Activation clears the caption, and player info may arrive after the observer target.
+    // Refresh only the caption so an open player menu keeps its rows and selection.
+    const auto* client = gViewPortInterface->GetClientDllInterface();
+    const int mode = client->SpectatorMode();
+    const int player = client->SpectatorTarget();
+    constexpr int RoamingMode = 3;
+    if (mode > 0 && mode != RoamingMode && player > 0 && player <= client->GetMaxPlayers()) {
+        UpdatePlayerLabel(player);
+    }
 }
 
 void CSpectatorGUI::DeactivateGUI()
@@ -821,6 +831,27 @@ void CSpectatorGUI::UpdateSpectatorPlayerList()
 	}
 }
 
+void CSpectatorGUI::UpdatePlayerLabel(int player) {
+    SpectatorPresentation& presentation = SpectatorPresentations()[this];
+    presentation.target = SpectatorPlayerText{};
+    presentation.captureTarget = true;
+    Color color(0, 0, 0, 0);
+    GetPlayerLabelColor(player, color);
+    m_pBottomBar->m_pPlayerList->SetFgColor(color);
+    m_pPlayerLabel->SetFgColor(color);
+    constexpr int PlayerTextCharacters = 80;
+    wchar_t playerText[PlayerTextCharacters] = {};
+    GetPlayerLabelText(player, playerText, sizeof(playerText));
+    presentation.captureTarget = false;
+    // An overriding formatter may own another presentation; retain that result literally.
+    if (presentation.target.fallback != playerText) {
+        presentation.target.formatted = false;
+    }
+    presentation.target.fallback = playerText;
+    m_pBottomBar->m_pPlayerList->TextEntry::SetText(playerText);
+    m_pPlayerLabel->SetText(playerText);
+}
+
 void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly,
 	int spectatorCount, const char* mapName )
 {
@@ -831,28 +862,13 @@ void CSpectatorGUI::Update( const char*, int player, int mode, bool spectateOnly
     presentation.spectatorCount = spectatorCount;
     presentation.mapName = mapName ? mapName : "";
     presentation.modeToken = GetSpectatorLabel(mode);
-    presentation.target = SpectatorPlayerText{};
-    presentation.captureTarget = true;
 	m_pBottomBar->m_pViewOptions->SetText( GetSpectatorLabel( mode ) );
 	if ( !m_bHelpShown && !m_pBottomBar->IsVisible() && mode )
 	{
 		m_bHelpShown = true;
 		DuckMessage( "#Spec_Duck" );
 	}
-	Color color( 0, 0, 0, 0 );
-	GetPlayerLabelColor( player, color );
-	m_pBottomBar->m_pPlayerList->SetFgColor( color );
-	m_pPlayerLabel->SetFgColor( color );
-	wchar_t playerText[80];
-	GetPlayerLabelText( player, playerText, sizeof(playerText) );
-    presentation.captureTarget = false;
-    // An overriding formatter may own another presentation; retain that result literally.
-    if (presentation.target.fallback != playerText) {
-        presentation.target.formatted = false;
-    }
-    presentation.target.fallback = playerText;
-	m_pBottomBar->SetPlayerText( playerText );
-	m_pPlayerLabel->SetText( playerText );
+    UpdatePlayerLabel(player);
 	wchar_t text[1024], wideName[64];
 	if ( spectateOnly )
 	{
