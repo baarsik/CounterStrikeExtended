@@ -172,6 +172,19 @@
       "snapshot survives cancellation callback",
       "independent fresh child ping precedes captured numeric connect"
     ],
+    "browser-cog-tooltip": [
+      "configuration cog has no tooltip"
+    ],
+    "browser-cog-inactive": [
+      "Original cog geometry uses inactive title foreground after sibling window takes focus",
+      "inactive title background and border",
+      "active appearance returns with focus"
+    ],
+    "browser-padding": [
+      "Smoked reclaims title-decoration spacing at 640 and HD sizes",
+      "Original and Smoked style round trips preserve resource geometry",
+      "list, expanded filters, footer and query-status anchors survive resize"
+    ],
     "masterserver-settings": [
       "cogwheel beside close",
       "protected Steam and Varq entries",

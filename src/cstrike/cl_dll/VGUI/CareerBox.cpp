@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "CareerBox.h"
 #include "hud.h"
 #include "GameUI_Interfaces.h"
@@ -164,6 +165,8 @@ void CCareerBaseBox::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_pBottomLeftBorderPanel->m_bgColor = m_borderColor;
 	m_pBottomRightBorderPanel->m_bgColor = m_borderColor;
 	SetBorder( NULL );
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel,
+        m_pBottomLeftPanel, m_pBottomRightPanel, m_pTopLeftBorderPanel, m_pTopRightBorderPanel, m_pBottomLeftBorderPanel, m_pBottomRightBorderPanel});
 }
 
 void CCareerBaseBox::PerformLayout()
@@ -200,6 +203,10 @@ void CCareerBaseBox::PerformLayout()
 
 void CCareerBaseBox::PaintBackground()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
 	vgui2::surface()->DrawSetColor( m_bgColor );
 	int x1, y1, x2, y2;
 	if ( m_pGapPanel->GetTall() > m_pGapPanel->GetWide() )
@@ -252,6 +259,9 @@ void CCareerBaseBox::PaintBackground()
 void CCareerBaseBox::Paint()
 {
 	vgui2::Frame::Paint();
+    if (cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
 	vgui2::surface()->DrawSetColor( m_borderColor );
 	vgui2::surface()->DrawSetTextColor( m_borderColor );
 	int x1, y1, x2, y2;

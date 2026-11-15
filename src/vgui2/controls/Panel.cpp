@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -287,6 +288,9 @@ void Panel::GetSize( int& width, int& height )
 
 void Panel::PaintBackground()
 {
+    if (smoked::Background(this, GetMessageMap())) {
+        return;
+    }
 	int width;
 	int height;
 	GetSize( width, height );
@@ -300,6 +304,9 @@ void Panel::PaintBackground()
 //-----------------------------------------------------------------------------
 void Panel::PaintBorder()
 {
+    if (smoked::Border(this, GetMessageMap())) {
+        return;
+    }
 	_border->Paint( GetVPanel() );
 }
 
@@ -340,6 +347,11 @@ Panel* PHandle::Set( Panel* panel )
 
 void Panel::InvalidateLayout( bool layoutNow, bool reloadScheme )
 {
+    if (reloadScheme && cse::ui::ControlsStyleChanged(this)) {
+        // Restore parent resource geometry before its descendants reload their layouts.
+        smoked::RefreshResourceBounds(this);
+    }
+
 	_needsLayout = true;
 	if ( reloadScheme )
 	{
@@ -351,7 +363,11 @@ void Panel::InvalidateLayout( bool layoutNow, bool reloadScheme )
 			VPANEL handle = GetVPanel();
 			if ( index >= panel->GetChildCount( handle ) )
 				break;
-			GetChild( index )->InvalidateLayout( layoutNow, true );
+            // Foreign-module children refresh their own controls when they traverse.
+            Panel* child = GetChild(index);
+            if (child) {
+                child->InvalidateLayout(layoutNow, true);
+            }
 		}
 		PerformApplySchemeSettings();
 	}
@@ -386,6 +402,10 @@ void Panel::ApplySchemeSettings( IScheme* scheme )
 	// get colors
 	SetFgColor( GetSchemeColor( "FgColor", scheme ) );
 	SetBgColor( GetSchemeColor( "BgColor", scheme ) );
+    if (cse::ui::ControlsSmokedGlass() &&
+        smoked::Role(GetMessageMap()) == cse::ui::MaterialRole::Container) {
+        SetBgColor(Color(0, 0, 0, 0));
+    }
 	_needsSchemeUpdate = false;
 	if ( IsBuildGroupEnabled() )
 		_buildGroup->ApplySchemeSettings( scheme );
@@ -656,7 +676,7 @@ void Panel::SetBorder( IBorder* border )
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor( const char* name, IScheme* scheme )
 {
-	return scheme->GetColor( name, Color( 255, 255, 255, 255 ) );
+	return smoked::SchemeColor(name, scheme->GetColor(name, Color(255, 255, 255, 255)));
 }
 
 //-----------------------------------------------------------------------------
@@ -664,7 +684,7 @@ Color Panel::GetSchemeColor( const char* name, IScheme* scheme )
 //-----------------------------------------------------------------------------
 Color Panel::GetSchemeColor( const char* name, Color defaultColor, IScheme* scheme )
 {
-	return scheme->GetColor( name, defaultColor );
+	return smoked::SchemeColor(name, scheme->GetColor(name, defaultColor));
 }
 
 int Panel::GetChildCount()
@@ -1239,6 +1259,11 @@ bool Panel::IsBuildModeActive()
 
 int Panel::GetProportionalScaledValue( int value )
 {
+    if (cse::ui::ControlsSmokedGlass() && IsProportional()) {
+        // Resource geometry and themed text must use the same bounded UI scale.
+        return smoked::ResourcePixels(value);
+    }
+
 #ifndef BSHIFT_CLIENT
 	Panel* panel = this;
 	while ( panel != nullptr )
@@ -1299,6 +1324,7 @@ Panel::Panel( Panel* parent, const char* name )
 
 Panel::~Panel()
 {
+    cse::ui::ForgetControlStyle(this);
 	_autoDelete = false;
 	_markedForDeletion = true;
 	Panel::SetParent( static_cast<VPANEL>( 0 ) );
@@ -1384,10 +1410,13 @@ void Panel::PerformApplySchemeSettings()
 		IScheme* pScheme = manager->GetIScheme( handle );
 #ifdef _WIN32
 		ASSERT_AT( pScheme, 1868 );
-		ApplySchemeSettings( pScheme );
+        ApplySchemeSettings(pScheme);
+        cse::ui::RememberControlStyle(this);
 #else
-		if ( pScheme ) // this should NEVER be null, but if it is bad things would happen in ApplySchemeSettings...
-			ApplySchemeSettings( pScheme );
+        if (pScheme) {
+            ApplySchemeSettings(pScheme);
+            cse::ui::RememberControlStyle(this);
+        }
 #endif
 	}
 }
@@ -1736,8 +1765,16 @@ void Panel::OnMessage( const KeyValues* message, VPANEL sender )
 
 void Panel::PaintTraverse( bool forceRepaint, bool allowForce )
 {
-	if ( !IsVisible() )
-		return;
+    if (!IsVisible()) {
+        return;
+    }
+    if (cse::ui::ControlsStyleChanged(this)) {
+        // Parents can own child colors/images, so reuse the normal children-first scheme reload.
+        InvalidateLayout(false, true);
+        // Finish applying the complete subtree before any owner lays out its children.
+        InvalidateLayout(true, false);
+        forceRepaint = true;
+    }
 
 	if ( _needsRepaint && allowForce )
 		forceRepaint = true;
@@ -2125,6 +2162,7 @@ bool Panel::IsBuildModeEditable()
 
 void Panel::SetVisible( bool state )
 {
+    state = cse::ui::MenuVisibleRequest(this, state);
 	ipanel()->SetVisible( GetVPanel(), state );
 #if UINTPTR_MAX == UINT32_MAX
 	for ( int index = 0;; ++index )
@@ -2245,6 +2283,10 @@ void Panel::GetProportionalBase( int& width, int& height )
 
 int Panel::GetProportionalNormalizedValue( int value )
 {
+    if (cse::ui::ControlsSmokedGlass() && IsProportional()) {
+        return smoked::NormalizedPixels(value);
+    }
+
 #ifndef BSHIFT_CLIENT
 	Panel* panel = this;
 	if ( panel->m_eIsHDProportional == HD_PROPORTIONAL_ENABLED )
@@ -2425,6 +2467,24 @@ void Panel::OnOldMessage( KeyValues* message, VPANEL )
 
 void Panel::ApplySettings( KeyValues* settings )
 {
+    if (IsProportional()) {
+        auto& source = cse::ui::ControlsResourceGeometry()[this];
+        if (settings->FindKey("xpos", false)) {
+            source.x = settings->GetString("xpos", "");
+        }
+        if (settings->FindKey("ypos", false)) {
+            source.y = settings->GetString("ypos", "");
+        }
+        if (settings->FindKey("wide", false)) {
+            source.width = settings->GetInt("wide", 0);
+            source.hasWidth = true;
+        }
+        if (settings->FindKey("tall", false)) {
+            source.height = settings->GetInt("tall", 0);
+            source.hasHeight = true;
+        }
+    }
+
 	constexpr unsigned char saveXposRight = 4;
 	constexpr unsigned char saveXposCenter = 8;
 	constexpr unsigned char saveYposRight = 0x10;

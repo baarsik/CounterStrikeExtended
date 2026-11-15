@@ -6,6 +6,9 @@
 #include "ComboBox.h"
 #include "Label.h"
 #include "TextImage.h"
+#include "RadioButton.h"
+#include "Menu.h"
+#include "../vgui2/controls/SmokedGlass.h"
 #include "interface_language.h"
 #include "interface_language_preference.h"
 #include "localization_controls.h"
@@ -31,6 +34,30 @@ constexpr int LanguageComboHeight = 24;
 constexpr int ControlGap = 8;
 constexpr int NoticeGap = 12;
 constexpr int MinimumNoticeHeight = 20;
+
+class InterfaceStyleChoice : public vgui2::RadioButton {
+public:
+    InterfaceStyleChoice(vgui2::Panel* parent, const char* name, const char* text,
+        vgui2::ComboBox* choices, int index) : RadioButton(parent, name, text), m_choices(choices), m_index(index) {
+        KeyValues* settings = new KeyValues("InterfaceStyleChoice");
+        settings->SetInt("tabPosition", UIStyleTabPosition);
+        settings->SetInt("SubTabPosition", index);
+        ApplySettings(settings);
+        settings->deleteThis();
+        SetVisible(false);
+    }
+
+    void SetSelected(bool selected) override {
+        RadioButton::SetSelected(selected);
+        if (selected) {
+            m_choices->ActivateItem(m_choices->GetMenu()->GetMenuID(m_index));
+        }
+    }
+
+private:
+    vgui2::ComboBox* m_choices;
+    int m_index;
+};
 
 class InterfaceNotice : public vgui2::Label {
 public:
@@ -90,9 +117,13 @@ COptionsSubInterface::COptionsSubInterface(vgui2::Panel* parent)
     KeyValues* original = new KeyValues("UIStyle", UIStyleItemKey, cse::ui::OriginalVGuiStyle);
     m_uiStyleItemIds.push_back(m_uiStyleCombo->AddItem("#CSEInterface_StyleOriginal", original));
     original->deleteThis();
-    KeyValues* extended = new KeyValues("UIStyle", UIStyleItemKey, cse::ui::ExtendedVGuiStyle);
-    m_uiStyleItemIds.push_back(m_uiStyleCombo->AddItem("#CSEInterface_StyleExtended", extended));
-    extended->deleteThis();
+    KeyValues* smoked = new KeyValues("UIStyle", UIStyleItemKey, cse::ui::SmokedTacticalGlassVGuiStyle);
+    m_uiStyleItemIds.push_back(m_uiStyleCombo->AddItem("#CSEInterface_StyleSmokedTacticalGlass", smoked));
+    smoked->deleteThis();
+    m_originalStyle = new InterfaceStyleChoice(this, "OriginalStyle", "#CSEInterface_StyleOriginal",
+        m_uiStyleCombo, cse::ui::OriginalVGuiStyle);
+    m_smokedStyle = new InterfaceStyleChoice(this, "SmokedStyle", "#CSEInterface_StyleSmokedTacticalGlass",
+        m_uiStyleCombo, cse::ui::SmokedTacticalGlassVGuiStyle);
     m_saveFailed->SetVisible(false);
     OnResetData();
 }
@@ -104,8 +135,8 @@ std::string COptionsSubInterface::GetSelectedLanguage() const {
 
 int COptionsSubInterface::GetSelectedUIStyle() const {
     KeyValues* item = m_uiStyleCombo->GetActiveItemUserData();
-    return item ? item->GetInt(UIStyleItemKey, cse::ui::ExtendedVGuiStyle)
-        : cse::ui::ExtendedVGuiStyle;
+    return item ? item->GetInt(UIStyleItemKey, cse::ui::SmokedTacticalGlassVGuiStyle)
+        : cse::ui::SmokedTacticalGlassVGuiStyle;
 }
 
 void COptionsSubInterface::OnApplyChanges() {
@@ -122,7 +153,7 @@ void COptionsSubInterface::OnResetData() {
     m_languageRequest = cse::localization::InvalidRequest;
     vgui2::ISystem* system = vgui2::system();
     m_originalUIStyle = engine->pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f
-        ? cse::ui::ExtendedVGuiStyle : cse::ui::OriginalVGuiStyle;
+        ? cse::ui::SmokedTacticalGlassVGuiStyle : cse::ui::OriginalVGuiStyle;
     for (const int itemId : m_uiStyleItemIds) {
         KeyValues* item = m_uiStyleCombo->GetItemUserData(itemId);
         if (item && item->GetInt(UIStyleItemKey) == m_originalUIStyle) {
@@ -198,6 +229,58 @@ bool COptionsSubInterface::CompleteLanguageRequest(bool& applied) {
 
 void COptionsSubInterface::PerformLayout() {
     BaseClass::PerformLayout();
+    const bool smoked = cse::ui::ControlsSmokedGlass();
+    m_uiStyleCombo->SetVisible(!smoked);
+    m_originalStyle->SetVisible(smoked);
+    m_smokedStyle->SetVisible(smoked);
+    if (smoked) {
+        using vgui2::smoked::Pixels;
+        const int inset = Pixels(12);
+        const int gap = Pixels(12);
+        const int width = std::max(0, GetWide() - inset - inset);
+        const int rowHeight = Pixels(32);
+        int contentWidth = 0;
+        int contentHeight = 0;
+        m_uiStyleLabel->GetContentSize(contentWidth, contentHeight);
+        const int labelWidth = std::min(width * 2 / 5, std::max(width / 3, contentWidth + gap));
+        const int fieldX = inset + labelWidth + gap;
+        const int fieldWidth = std::max(0, width - labelWidth - gap);
+        int top = inset;
+        m_languageLabel->SetBounds(inset, top, labelWidth, rowHeight);
+        m_languageCombo->SetBounds(fieldX, top, fieldWidth, rowHeight);
+        top += rowHeight + gap;
+        for (vgui2::Label* notice : {m_launchOverride, m_saveFailed}) {
+            if (notice->IsVisible()) {
+                notice->SetFgColor(vgui2::smoked::ColorOf(cse::ui::SecondaryText));
+                top += LayoutNotice(notice, inset, top, width, Pixels(24)) + gap;
+            }
+        }
+        m_uiStyleLabel->SetBounds(inset, top, labelWidth, rowHeight);
+        // The hidden combo remains the single selection owner for both presentations.
+        m_originalStyle->Button::SetSelected(GetSelectedUIStyle() == cse::ui::OriginalVGuiStyle);
+        m_smokedStyle->Button::SetSelected(GetSelectedUIStyle() == cse::ui::SmokedTacticalGlassVGuiStyle);
+        m_originalStyle->GetContentSize(contentWidth, contentHeight);
+        m_originalStyle->SetFont(vgui2::smoked::TextFont(m_originalStyle,
+            vgui2::scheme()->GetIScheme(GetScheme()), m_originalStyle->GetFont()));
+        wchar_t originalText[256]{};
+        m_originalStyle->GetText(originalText, 256);
+        vgui2::surface()->GetTextSize(m_originalStyle->GetFont(), originalText, contentWidth, contentHeight);
+        contentWidth += Pixels(cse::ui::RadioDiameter + cse::ui::RadioTextGap);
+        const int originalWidth = std::min(fieldWidth, contentWidth + gap);
+        m_originalStyle->SetBounds(fieldX, top, originalWidth, rowHeight);
+        m_smokedStyle->GetContentSize(contentWidth, contentHeight);
+        m_smokedStyle->SetFont(vgui2::smoked::TextFont(m_smokedStyle,
+            vgui2::scheme()->GetIScheme(GetScheme()), m_smokedStyle->GetFont()));
+        wchar_t smokedText[256]{};
+        m_smokedStyle->GetText(smokedText, 256);
+        vgui2::surface()->GetTextSize(m_smokedStyle->GetFont(), smokedText, contentWidth, contentHeight);
+        contentWidth += Pixels(cse::ui::RadioDiameter + cse::ui::RadioTextGap);
+        const bool stacked = originalWidth + gap + contentWidth > fieldWidth;
+        m_smokedStyle->SetBounds(stacked ? fieldX : fieldX + originalWidth + gap,
+            stacked ? top + rowHeight : top,
+            stacked ? fieldWidth : std::max(0, fieldWidth - originalWidth - gap), rowHeight);
+        return;
+    }
     const int inset = GetProportionalScaledValue(ContentInset);
     const int width = std::max(0, GetWide() - inset - inset);
     const int labelHeight = GetProportionalScaledValue(LanguageLabelHeight);

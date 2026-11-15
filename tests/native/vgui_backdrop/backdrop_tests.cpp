@@ -260,6 +260,28 @@ void ExerciseCallerState() {
     activeTexture(GL_TEXTURE0);
     glMatrixMode(GL_MODELVIEW);
 }
+
+void ExerciseRoundedSurface() {
+    Scene();
+    cse::ui::BackgroundBlur blur;
+    const cse::ui::BackdropRect screen{0, 0, Width, Height};
+    const cse::ui::BackdropRect panel{20, 12, 80, 60};
+    blur.Draw(panel, screen, Width, Height, {1, 1, 0.76f}, 8.0f);
+    blur.BeginFrame();
+    Require(blur.Capture(0, 0, Width, Height), "Rounded surface must request the shared scene");
+    const auto before = Pixels();
+    Require(blur.Draw(panel, screen, Width, Height, {1, 1, 0.76f}, 8.0f), "Rounded surface must composite");
+    const auto result = Pixels();
+    Require(Red(result, 21, 13) == Red(before, 21, 13), "Rounded corners must preserve outside scene pixels");
+    Require(Red(result, 59, 40) < 80, "Rounded interior must blur and darken");
+    Scene();
+    Require(blur.Draw(panel, {40, 0, 30, Height}, Width, Height, {1, 1, 0.76f}, 8.0f),
+        "Clipped rounded surface must composite");
+    const auto clipped = Pixels();
+    Require(Red(clipped, 39, 40) == 255, "Rounded draw must respect the parent clip");
+    Require(Red(clipped, 41, 13) == Red(result, 41, 13), "Clipping must not move the rounded silhouette");
+    blur.Shutdown();
+}
 } // namespace
 
 int main() {
@@ -274,6 +296,7 @@ int main() {
         Exercise();
         ExerciseSceneAlpha();
         ExerciseCallerState();
+        ExerciseRoundedSurface();
         ExerciseFramebuffer(false);
         ExerciseFramebuffer(true);
         SDL_GL_DestroyContext(context);

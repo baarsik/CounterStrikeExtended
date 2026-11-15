@@ -29,6 +29,7 @@ class ComboBoxButton : public Button
 public:
 	ComboBoxButton( ComboBox* parent, const char* panelName, const char* text );
 	~ComboBoxButton() override;
+    void Paint() override;
 
 	void ApplySchemeSettings( IScheme* pScheme ) override;
 	void OnCursorExited() override;
@@ -53,6 +54,9 @@ public:
 	ComboBox( Panel* parent, const char* panelName, int numLines, bool allowEdit );
 	~ComboBox() override;
     void RefreshLanguageText();
+    void Paint() override;
+    void PaintBackground() override;
+    bool GetSelectedRange(int& start, int& end) override;
     void OnThink() override;
 
 	void ApplySchemeSettings( IScheme* pScheme ) override;

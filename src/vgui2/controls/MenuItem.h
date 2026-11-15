@@ -32,6 +32,9 @@ public:
 	MenuItem( Menu* parent, const char* name, const char* text, Menu* cascadeMenu, bool checkable );
 	MenuItem( Menu* parent, const char* name, const wchar_t* text, Menu* cascadeMenu, bool checkable );
 	~MenuItem() override;
+    void Paint() override;
+    void PaintBackground() override;
+    void PaintBorder() override;
 
 	// Activate the menu item as if it had been selected by the user
 	void FireActionSignal() override;

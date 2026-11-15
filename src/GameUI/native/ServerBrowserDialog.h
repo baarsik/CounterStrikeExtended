@@ -160,6 +160,7 @@ private:
     bool transitioning_ = false;
     bool restoreSelection_ = false;
     bool restoringFilters_ = false;
+    int tabsTopAdjustment_ = 0;
     std::string actionStatus_;
     std::string shownStatus_;
 };

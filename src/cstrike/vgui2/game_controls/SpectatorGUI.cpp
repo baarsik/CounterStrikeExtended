@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2002, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -29,6 +30,7 @@
 #include <string.h>
 #include <climits>
 #include <map>
+#include <iterator>
 #include <string>
 #include <wchar.h>
 #if defined(_WIN32)
@@ -52,6 +54,7 @@ struct SpectatorPlayerText {
     std::wstring fallback;
     bool withDetail = false;
     bool formatted = false;
+    int teamNumber = 0;
 };
 
 struct SpectatorPresentation {
@@ -141,6 +144,14 @@ class CLeftButton : public Button
 {
 public:
 	CLeftButton( Panel* parent, const char* name, const char* text ) : Button( parent, name, text ) {}
+    void Paint() override {
+        if (cse::ui::ControlsSmokedGlass()) {
+            smoked::Chevron(GetWide(), GetTall(), -1, smoked::ColorOf(cse::ui::Text));
+            return;
+        }
+        Button::Paint();
+    }
+
 	void ApplySchemeSettings( IScheme* pScheme ) override
 	{
 		Button::ApplySchemeSettings( pScheme );
@@ -153,6 +164,14 @@ class CRightButton : public Button
 {
 public:
 	CRightButton( Panel* parent, const char* name, const char* text ) : Button( parent, name, text ) {}
+    void Paint() override {
+        if (cse::ui::ControlsSmokedGlass()) {
+            smoked::Chevron(GetWide(), GetTall(), 1, smoked::ColorOf(cse::ui::Text));
+            return;
+        }
+        Button::Paint();
+    }
+
 	void ApplySchemeSettings( IScheme* pScheme ) override
 	{
 		Button::ApplySchemeSettings( pScheme );
@@ -201,20 +220,50 @@ private:
 	Panel* m_pBottomPanel;
 };
 
+// Spectator controls share one rail material; their individual fields remain transparent.
+class CSpectatorComboBox : public ComboBox {
+public:
+    CSpectatorComboBox(Panel* parent, const char* name, int rows = 10, bool editable = false)
+        : ComboBox(parent, name, rows, editable) {}
+
+    void PaintBackground() override {
+        if (!cse::ui::ControlsSmokedGlass()) {
+            ComboBox::PaintBackground();
+            return;
+        }
+        const Color background = GetBgColor();
+        SetBgColor(Color(0, 0, 0, 0));
+        ComboBox::PaintBackground();
+        SetBgColor(background);
+    }
+
+    void PaintBorder() override {
+        if (!cse::ui::ControlsSmokedGlass()) {
+            ComboBox::PaintBorder();
+        } else if (HasFocus()) {
+            smoked::Outline(GetWide(), GetTall(), smoked::Radius(this, cse::ui::MaterialRole::Control),
+                smoked::ColorOf(cse::ui::Edge));
+        }
+    }
+};
+
 class CBottomBar : public Frame
 {
 	DECLARE_CLASS_SIMPLE_NAMED( CBottomBar, Frame, "vgui::Frame" );
 public:
-	class CommandComboBox : public ComboBox
+	class CommandComboBox : public CSpectatorComboBox
 	{
 	public:
-		CommandComboBox( Panel* parent, const char* name ) : ComboBox( parent, name, 10, false ) {}
+		CommandComboBox( Panel* parent, const char* name ) : CSpectatorComboBox( parent, name, 10, false ) {}
 		void OnCommand( const char* command ) override;
 		void OnShowMenu( Menu* menu ) override { SetMenuCvarChecks( menu ); }
 		void SetMenuCvarChecks( Menu* menu );
 	};
 
 	CBottomBar( Panel* parent, const char* name );
+    void PerformLayout() override;
+    void PaintBackground() override;
+    void SetTarget(const SpectatorPlayerText& target, const wchar_t* fallback);
 	void ApplySchemeSettings( IScheme* pScheme ) override;
 	void SetVisible( bool state ) override;
 	void OnKeyCodePressed( KeyCode code ) override;
@@ -232,6 +281,10 @@ public:
 	CRightButton*	m_pRightButton;
 	bool			m_bChooseTeamCommand;
 	KeyCode			m_iChooseTeamKey;
+    Label* m_pHealthLabel = nullptr;
+    cse::ui::BackdropRect m_originalControlBounds[5]{};
+    bool m_layoutReady = false;
+    int m_teamNumber = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -247,7 +300,7 @@ CBottomBar::CBottomBar( Panel* parent, const char* name ) : Frame( parent, name,
 	SetMoveable( false );
 	SetSizeable( false );
 	SetScheme( "ClientScheme" );
-	m_pPlayerList = new ComboBox( this, "playercombo", 10, false );
+	m_pPlayerList = new CSpectatorComboBox(this, "playercombo", 10, false);
 	HFont fallback = scheme()->GetIScheme( GetScheme() )->GetFont( "DefaultVerySmallFallBack", false );
 	if ( fallback )
 		m_pPlayerList->SetUseFallbackFont( true, fallback );
@@ -277,6 +330,89 @@ CBottomBar::CBottomBar( Panel* parent, const char* name ) : Frame( parent, name,
 	surface()->GetScreenSize( wide, tall );
 	SetSize( wide, GetTall() );
 	LoadControlSettings( "Resource/UI/BottomSpectator.res", NULL );
+    Panel* controls[]{m_pConfigSettings, m_pLeftButton, m_pPlayerList, m_pRightButton, m_pViewOptions};
+    for (std::size_t index = 0; index < std::size(controls); ++index) {
+        auto& bounds = m_originalControlBounds[index];
+        controls[index]->GetBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+    }
+    m_pHealthLabel = new Label(this, "playerhealth", "");
+    m_pHealthLabel->SetContentAlignment(Label::a_center);
+    m_pHealthLabel->SetVisible(false);
+    m_layoutReady = true;
+    InvalidateLayout(false, false);
+}
+
+void CBottomBar::PerformLayout() {
+    Frame::PerformLayout();
+    if (!m_layoutReady) {
+        return;
+    }
+    Panel* controls[]{m_pConfigSettings, m_pLeftButton, m_pPlayerList, m_pRightButton, m_pViewOptions};
+    if (!cse::ui::ControlsSmokedGlass()) {
+        for (std::size_t index = 0; index < std::size(controls); ++index) {
+            const auto& bounds = m_originalControlBounds[index];
+            controls[index]->SetBounds(bounds.x, bounds.y, bounds.width, bounds.height);
+        }
+        m_pHealthLabel->SetVisible(false);
+        return;
+    }
+    const HFont font = m_pHealthLabel->GetFont();
+    const int fontTall = surface()->GetFontTall(font);
+    const auto rail = cse::ui::SpectatorRail(GetWide(), GetTall(), fontTall);
+    const cse::ui::BackdropRect bounds[]{rail.settings, rail.previous, rail.player, rail.next, rail.camera};
+    for (std::size_t index = 0; index < std::size(controls); ++index) {
+        controls[index]->SetBounds(bounds[index].x, bounds[index].y, bounds[index].width, bounds[index].height);
+    }
+    m_pHealthLabel->SetBounds(rail.health.x, rail.health.y, rail.health.width, rail.health.height);
+    // Resource controls start shorter than the shared rail. Measure fonts after their final bounds are known.
+    IScheme* currentScheme = scheme()->GetIScheme(GetScheme());
+    ComboBox* combos[]{m_pConfigSettings, m_pPlayerList, m_pViewOptions};
+    for (ComboBox* combo : combos) {
+        combo->SetFont(smoked::TextFont(combo, currentScheme, combo->GetFont()));
+    }
+    m_pHealthLabel->SetFont(smoked::TextFont(m_pHealthLabel, currentScheme, m_pHealthLabel->GetFont()));
+}
+
+void CBottomBar::PaintBackground() {
+    if (!m_layoutReady || !cse::ui::ControlsSmokedGlass()) {
+        Frame::PaintBackground();
+        return;
+    }
+    const HFont font = m_pHealthLabel->GetFont();
+    const auto rail = cse::ui::SpectatorRail(GetWide(), GetTall(), surface()->GetFontTall(font));
+    smoked::Surface(this, rail.surface);
+    const int dividerTop = rail.settings.y + rail.settings.height / 4;
+    const int dividerHeight = rail.settings.height / 2;
+    const int inset = smoked::Pixels(22);
+    const int dividers[]{rail.settings.x + rail.settings.width + inset,
+        rail.health.x - smoked::Pixels(10), rail.camera.x - inset};
+    for (const int divider : dividers) {
+        smoked::Fill(divider, dividerTop, 1, dividerHeight, 0, smoked::ColorOf(cse::ui::Edge));
+    }
+    if (m_teamNumber > 0) {
+        constexpr cse::ui::Rgba Terrorist{191, 67, 57, 255};
+        constexpr cse::ui::Rgba CounterTerrorist{113, 166, 218, 255};
+        const int side = (std::max)(4, rail.player.height / 4);
+        smoked::Fill(rail.player.x - side - 4, rail.player.y + (rail.player.height - side) / 2,
+            side, side, 0, smoked::ColorOf(m_teamNumber == 1 ? Terrorist : CounterTerrorist));
+    }
+
+}
+
+void CBottomBar::SetTarget(const SpectatorPlayerText& target, const wchar_t* fallback) {
+    if (cse::ui::ControlsSmokedGlass() && target.formatted) {
+        m_pPlayerList->TextEntry::SetText(target.name.c_str());
+        m_teamNumber = target.teamNumber;
+        const wchar_t* healthWord = localize()->Find("#Cstrike_TitlesTXT_Health");
+        const std::wstring health = target.withDetail
+            ? std::wstring(healthWord ? healthWord : L"Health") + L" " + target.detail : L"";
+        m_pHealthLabel->SetText(health.c_str());
+        m_pHealthLabel->SetVisible(target.withDetail);
+    } else {
+        m_teamNumber = 0;
+        m_pPlayerList->TextEntry::SetText(fallback);
+        m_pHealthLabel->SetVisible(false);
+    }
 }
 
 void CBottomBar::CommandComboBox::OnCommand( const char* command )
@@ -339,6 +475,12 @@ void CBottomBar::ApplySchemeSettings( IScheme* pScheme )
 	m_pConfigSettings->GetMenu()->SetBgColor( Color( 0, 0, 0, 196 ) );
 	m_pViewOptions->GetMenu()->SetBgColor( Color( 0, 0, 0, 196 ) );
 	m_pPlayerList->GetMenu()->SetBgColor( Color( 0, 0, 0, 196 ) );
+    if (m_pHealthLabel && cse::ui::ControlsSmokedGlass()) {
+        // Normal scheme traversal skips this initially hidden label; layout still needs its font metrics.
+        m_pHealthLabel->MakeReadyForUse();
+        m_pHealthLabel->SetFgColor(smoked::ColorOf(cse::ui::SecondaryText));
+    }
+
 }
 
 void CBottomBar::SetVisible( bool state )
@@ -387,6 +529,8 @@ int CBottomBar::PlayerAddItem( int itemID, wchar_t* text, KeyValues* data )
 
 void CBottomBar::SetPlayerText( const wchar_t* text )
 {
+    m_pHealthLabel->SetVisible(false);
+    m_teamNumber = 0;
 	int length = (int)wcslen( text ) + 1;
 	CUtlVector<char> ansiText;
 	ansiText.AddMultipleToTail( length );
@@ -751,6 +895,7 @@ void CSpectatorGUI::GetPlayerLabelText( int player, wchar_t* text, int textLengt
     SpectatorPresentation& presentation = SpectatorPresentations()[this];
     if (presentation.captureTarget) {
         presentation.target.name = playerName;
+        presentation.target.teamNumber = info.teamnumber;
         presentation.target.withDetail = info.health > 0;
         presentation.target.detail = std::to_wstring(info.health);
         presentation.target.fallback = text;
@@ -848,7 +993,7 @@ void CSpectatorGUI::UpdatePlayerLabel(int player) {
         presentation.target.formatted = false;
     }
     presentation.target.fallback = playerText;
-    m_pBottomBar->m_pPlayerList->TextEntry::SetText(playerText);
+    m_pBottomBar->SetTarget(presentation.target, playerText);
     m_pPlayerLabel->SetText(playerText);
 }
 
@@ -915,7 +1060,7 @@ void CSpectatorGUI::RefreshLanguage() {
             m_pBottomBar->m_pViewOptions->TextEntry::SetText(mode);
         }
         const std::wstring playerText = FormatSpectatorPlayer(presentation.target);
-        m_pBottomBar->m_pPlayerList->TextEntry::SetText(playerText.c_str());
+        m_pBottomBar->SetTarget(presentation.target, playerText.c_str());
         m_pPlayerLabel->SetText(playerText.c_str());
         if (m_pExtraInfoLabel && !presentation.extraOverridden) {
             const std::wstring extra = FormatSpectatorExtra(presentation);

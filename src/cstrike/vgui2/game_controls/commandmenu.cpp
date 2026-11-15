@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -72,7 +73,13 @@ void CCommandMenu::PositionCommandMenu()
 	int y = ( screenTall - tall ) / 2;
 	if ( y < 0 )
 		y = 0;
-	m_pMenu->SetPos( 0, y );
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int inset = vgui2::smoked::Pixels(64);
+        y = (std::min)((std::max)(0, screenTall - tall - inset), screenTall / 8);
+        m_pMenu->SetPos(inset, (std::max)(0, y));
+    } else {
+        m_pMenu->SetPos(0, y);
+    }
 }
 
 void CCommandMenu::UpdateCommandMenu()

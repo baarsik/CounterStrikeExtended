@@ -60,6 +60,37 @@ for name in new:
     selected.append(dict(owner, file=str(repo / 'src/GameUI/native' / (name + '.cpp'))))
 if args.driver == 'interface_options':
     selected.append(dict(owner, file=str(repo / 'src/GameUI/OptionsSubInterface.cpp')))
+    selected.append(dict(owner, file=str(repo / 'src/GameUI/CvarToggleCheckButton.cpp')))
+    keyboard_path = repo / 'src/GameUI/OptionsSubKeyboard.cpp'
+    keyboard_source = keyboard_path.read_text(encoding='cp1252')
+    keyboard_start = keyboard_source.index('void COptionsSubKeyboard::OnKeyCodePressed(')
+    keyboard_brace = keyboard_source.index('{', keyboard_start)
+    keyboard_depth = 1
+    keyboard_end = keyboard_brace + 1
+    while keyboard_depth:
+        keyboard_depth += (keyboard_source[keyboard_end] == '{') - (keyboard_source[keyboard_end] == '}')
+        keyboard_end += 1
+    (packet / 'extracted/keyboard_pressed_owner.inc').write_text(keyboard_source[keyboard_start:keyboard_end] + '\n')
+    (packet / 'extracted/keyboard-receipt.json').write_text(json.dumps({
+        'source': str(keyboard_path.relative_to(repo)),
+        'sourceSha256': hashlib.sha256(keyboard_path.read_bytes()).hexdigest()}, indent=2) + '\n')
+    reset_receipt = {}
+    reset_bodies = []
+    for page in ('Video', 'Advanced'):
+        reset_path = repo / f'src/GameUI/OptionsSub{page}.cpp'
+        reset_source = reset_path.read_text(encoding='cp1252')
+        reset_receipt[str(reset_path.relative_to(repo))] = hashlib.sha256(reset_path.read_bytes()).hexdigest()
+        for method in ('OnDataChanged()', 'OnButtonChecked('):
+            start = reset_source.index(f'void COptionsSub{page}::{method}')
+            brace = reset_source.index('{', start)
+            depth = 1
+            end = brace + 1
+            while depth:
+                depth += (reset_source[end] == '{') - (reset_source[end] == '}')
+                end += 1
+            reset_bodies.append(reset_source[start:end])
+    (packet / 'extracted/options_button_reset_owner.inc').write_text('\n\n'.join(reset_bodies) + '\n')
+    (packet / 'extracted/options-reset-receipt.json').write_text(json.dumps(reset_receipt, indent=2) + '\n')
     # Keep every real OptionsDialog method unchanged. Unrelated pages, ModInfo and
     # taskbar are controlled doubles in this fixture; language page/controls are real.
     source = (repo / 'src/GameUI/OptionsDialog.cpp').read_text(encoding='cp1252')
@@ -95,7 +126,9 @@ def options_inputs():
     paths.update(repo / relative for relative in (
         'src/engine/localization_state.h', 'src/common/interface_language.h',
         'src/common/interface_language_preference.h', 'src/gameui/OptionsDialog.cpp',
-        'src/gameui/OptionsDialog.h', 'src/gameui/OptionsSubInterface.h'))
+        'src/gameui/OptionsDialog.h', 'src/gameui/OptionsSubInterface.h',
+        'src/gameui/OptionsSubVideo.cpp', 'src/gameui/OptionsSubAdvanced.cpp',
+        'src/gameui/OptionsSubKeyboard.cpp'))
     return {str(path.relative_to(repo)): hashlib.sha256(path.read_bytes()).hexdigest()
             for path in sorted(paths) if path.is_file()}
 
@@ -126,7 +159,8 @@ with ThreadPoolExecutor(max_workers=2) as workers:
 if options_snapshot is not None:
     after = options_inputs()
     (packet / 'options-inputs-after.json').write_text(json.dumps(after, indent=2) + '\n')
-    dependencies = {'src/gameui/optionsdialog.cpp'}
+    dependencies = {'src/gameui/optionsdialog.cpp', 'src/gameui/optionssubvideo.cpp',
+                    'src/gameui/optionssubadvanced.cpp', 'src/gameui/optionssubkeyboard.cpp'}
     for result in results:
         dependency_file = Path(result['object']).with_suffix('.d')
         if dependency_file.is_file():

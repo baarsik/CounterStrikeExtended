@@ -32,9 +32,29 @@ for method in methods:
     if name == 'GetEmbeddedPanel':
         lines.append(signature + ' { return _embeddedPanel; }')
     elif name in {'DrawUnicodeChar', 'DrawUnicodeCharAdd'}:
-        lines.append(signature + ' { if (observeText) { paintedText += ch; } real_->' + name + '(ch); }')
+        lines.append(signature + ' { if (observeText) { paintedText += ch; } '
+                     'if (observeTextColors) { paintedTextColors.push_back(paintTextColor); } '
+                     'real_->' + name + '(ch); }')
     elif name == 'DrawPrintText':
-        lines.append(signature + ' { if (observeText) { paintedText.append(text, length); } real_->DrawPrintText(text, length); }')
+        lines.append(signature + ' { if (observeText) { paintedText.append(text, length); } '
+                     'if (observeTextColors && length > 0) { '
+                     'paintedTextColors.insert(paintedTextColors.end(), length, paintTextColor); } '
+                     'real_->DrawPrintText(text, length); }')
+    elif name in {'DrawSetColor', 'DrawSetTextColor'}:
+        arguments = ', '.join(names)
+        color = 'paintColor' if name == 'DrawSetColor' else 'paintTextColor'
+        lines.append(signature + ' { ' + color + ' = Color(' + arguments + '); '
+                     'real_->' + name + '(' + arguments + '); }')
+    elif name == 'DrawPolyLine':
+        lines.append(signature + ' { if (observePolyLines) { paintedPolyLineColors.push_back(paintColor); } '
+                     'real_->DrawPolyLine(x, y, count); }')
+    elif name == 'DrawLine':
+        lines.append(signature + ' { if (observeLines) { paintedLineColors.push_back(paintColor); } '
+                     'real_->DrawLine(' + ', '.join(names) + '); }')
+    elif name == 'DrawFilledRect':
+        lines.append(signature + ' { if (observeFilledRects) { paintedFilledRectColors.push_back(paintColor); '
+                     'paintedFilledRects.push_back({x0, y0, x1, y1}); } '
+                     'real_->DrawFilledRect(' + ', '.join(names) + '); }')
     elif name == 'HasFocus':
         lines.append(signature + ' { return forceWindowFocus || real_->HasFocus(); }')
     elif name == 'GetPopupCount':

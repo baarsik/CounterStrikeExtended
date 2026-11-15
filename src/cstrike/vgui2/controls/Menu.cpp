@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -46,6 +47,10 @@ void Menu::OnMouseWheeled( int delta )
 //-----------------------------------------------------------------------------
 void Menu::MakeItemsVisibleInScrollRange()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        smoked::ScrollMenuRows(this, m_pScroller->GetValue(), m_iNumVisibleLines);
+        return;
+    }
 	int visibleCount = 0;
 	int start = m_pScroller->GetValue();
 	do
@@ -159,6 +164,7 @@ void Menu::SetMenuItemBlurOffset( int offset )
 void Menu::SetNumberOfVisibleItems( int count )
 {
 	m_iNumVisibleLines = count;
+    cse::ui::ControlsMenuLimits().erase(this);
 	InvalidateLayout( false, false );
 }
 
@@ -295,6 +301,7 @@ void Menu::CalculateWidth()
 			int width;
 			int height;
 			m_MenuItems[itemID]->GetContentSize( width, height );
+            width = smoked::MenuWidth(m_MenuItems[itemID], width);
 			int minimumContentWidth = (int)( (unsigned int)_menuWide - 7 );
 			if ( minimumContentWidth <= width )
 			{
@@ -817,6 +824,27 @@ void Menu::LayoutScrollBar()
 
 void Menu::PositionCascadingMenu()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        int parentX = 0;
+        int parentY = 0;
+        int parentWide = 0;
+        int parentTall = 0;
+        ipanel()->GetAbsPos(GetVParent(), parentX, parentY);
+        ipanel()->GetSize(GetVParent(), parentWide, parentTall);
+        int screenWide = 0;
+        int screenTall = 0;
+        surface()->GetScreenSize(screenWide, screenTall);
+        const int gap = smoked::Pixels(6);
+        int x = parentX + parentWide + gap + gap;
+        if (x + GetWide() > screenWide - gap) {
+            x = parentX - GetWide() - gap - gap;
+        }
+        const int y = (std::clamp)(parentY - gap, gap, (std::max)(gap, screenTall - GetTall() - gap));
+        SetPos((std::max)(gap, x), y);
+        MoveToFront();
+        return;
+    }
+
 	ASSERT_AT( GetVParent(), 673 );
 	int parentWide;
 	int parentTall;
@@ -850,6 +878,50 @@ void Menu::PositionCascadingMenu()
 
 void Menu::PerformLayout()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        smoked::RestoreMenuRows(this);
+        for (int row = 0; row < m_SortedItems.Count(); ++row) {
+            MenuItem* item = m_MenuItems[m_SortedItems[row]];
+            if (item && m_hItemFont) {
+                item->SetFont(smoked::TextFont(item, scheme()->GetIScheme(GetScheme()), m_hItemFont));
+            }
+        }
+        m_iNumVisibleLines = smoked::MenuVisibleLimit(this, m_iNumVisibleLines);
+        int visibleCount = 0;
+        for (int row = 0; row < m_SortedItems.Count(); ++row) {
+            MenuItem* item = m_MenuItems[m_SortedItems[row]];
+            if (item && item->IsVisible()) {
+                ++visibleCount;
+            }
+        }
+        if (visibleCount <= m_iNumVisibleLines) {
+            RemoveScrollBar();
+        } else {
+            AddScrollBar();
+            m_pScroller->SetRangeWindow(m_iNumVisibleLines);
+            m_pScroller->SetRange(0, m_SortedItems.Count());
+            MakeItemsVisibleInScrollRange();
+        }
+        const int scrollWidth = _sizedForScrollBar ? smoked::Pixels(14) : 0;
+        smoked::LayoutMenu(this, m_iFixedWidth, m_iMinimumWidth, scrollWidth);
+        _menuWide = GetWide() - scrollWidth;
+        _recalculateWidth = false;
+        if (GetParent() && dynamic_cast<MenuItem*>(GetParent())) {
+            PositionCascadingMenu();
+        }
+        if (m_pScroller->IsVisible()) {
+            const int padding = smoked::Pixels(6);
+            m_pScroller->SetRangeWindow(m_iNumVisibleLines);
+            m_pScroller->SetRange(0, m_MenuItems.Count());
+            m_pScroller->SetBounds(GetWide() - padding - scrollWidth, padding, scrollWidth,
+                (std::max)(0, GetTall() - padding - padding));
+        }
+        Repaint();
+        return;
+    }
+    smoked::RestoreMenuRows(this);
+    m_iNumVisibleLines = smoked::MenuVisibleLimit(this, m_iNumVisibleLines);
+
 	if ( m_iNumVisibleLines >= m_SortedItems.Count() )
 		RemoveScrollBar();
 	else
@@ -872,6 +944,7 @@ void Menu::PerformLayout()
 	int itemHeight = m_iMenuItemHeight;
 	if ( IsProportional() )
 		itemHeight = GetProportionalScaledValue( m_iMenuItemHeight );
+    itemHeight = smoked::MenuHeight(this, itemHeight);
 
 	int contentTall = 0;
 	for ( int row = 0; row < m_SortedItems.Count(); ++row )
@@ -894,6 +967,9 @@ void Menu::PerformLayout()
 		{
 			item->SetTextInset( m_iCheckImageWidth, 0 );
 		}
+        if (cse::ui::ControlsSmokedGlass()) {
+            item->SetTextInset(smoked::Pixels(item->IsCheckable() ? 40 : 22), 0);
+        }
 	}
 
 	if ( m_iFixedWidth != 0 )
@@ -911,6 +987,7 @@ void Menu::PerformLayout()
 			int contentWide;
 			int contentHeight;
 			m_MenuItems[itemID]->GetContentSize( contentWide, contentHeight );
+            contentWide = smoked::MenuWidth(m_MenuItems[itemID], contentWide);
 			if ( _menuWide - 7 <= contentWide )
 				_menuWide = contentWide + 8;
 		}
@@ -926,7 +1003,7 @@ void Menu::PerformLayout()
 	GetInset( insetLeft, insetTop, insetRight, insetBottom );
 	( void )insetRight;
 	( void )insetBottom;
-	int scaledHeight = GetProportionalScaledValue( m_iMenuItemHeight );
+	int scaledHeight = smoked::MenuHeight(this, GetProportionalScaledValue(m_iMenuItemHeight));
 	int blur = GetProportionalScaledValue( m_iMenuItemBlurOffset );
 	int itemWide = blur + _menuWide - insetLeft - insetTop;
 	for ( int itemID = m_MenuItems.Head(); itemID != m_MenuItems.InvalidIndex(); itemID = m_MenuItems.Next( itemID ) )
@@ -956,6 +1033,10 @@ void Menu::PerformLayout()
 
 void Menu::SizeMenuItems()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        PerformLayout();
+        return;
+    }
 	int left;
 	int top;
 	int right;
@@ -963,7 +1044,7 @@ void Menu::SizeMenuItems()
 	GetInset( left, top, right, bottom );
 	( void )right;
 	( void )bottom;
-	int itemTall = GetProportionalScaledValue( m_iMenuItemHeight );
+	int itemTall = smoked::MenuHeight(this, GetProportionalScaledValue(m_iMenuItemHeight));
 	int blur = GetProportionalScaledValue( m_iMenuItemBlurOffset );
 	int itemWide = blur + _menuWide - left - top;
 	for ( int itemID = m_MenuItems.Head(); itemID != m_MenuItems.InvalidIndex(); itemID = m_MenuItems.Next( itemID ) )
@@ -1170,6 +1251,9 @@ void Menu::MoveAlongMenuItemList( int direction, int loopCount )
 			m_pScroller->SetValue( position );
 	}
 
+    if (cse::ui::ControlsSmokedGlass() && m_pScroller->IsVisible()) {
+        MakeItemsVisibleInScrollRange();
+    }
 	// switch it back to an itemID from row
 	SetCurrentlySelectedItem( m_SortedItems[selectedRow] );
 
@@ -1337,6 +1421,7 @@ void Menu::ApplySchemeSettings( IScheme* scheme )
 			int wide;
 			int tall;
 			m_MenuItems[itemID]->GetContentSize( wide, tall );
+            wide = smoked::MenuWidth(m_MenuItems[itemID], wide);
 			if ( measured - 7 <= wide )
 			{
 				measured = wide + 8;

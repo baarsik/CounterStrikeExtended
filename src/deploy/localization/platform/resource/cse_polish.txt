@@ -32,7 +32,7 @@
         "CSEInterface_LaunchOverride" "Opcja uruchamiania -language ma pierwszeństwo przed tym ustawieniem."
         "CSEInterface_Style" "Styl interfejsu"
         "CSEInterface_StyleOriginal" "Oryginalny"
-        "CSEInterface_StyleExtended" "Rozszerzony"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "Konfiguracja przeglądarki serwerów"
         "CSEServerBrowser_Masterservers" "Masterserwery"

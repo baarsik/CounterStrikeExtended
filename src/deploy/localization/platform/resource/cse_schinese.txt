@@ -32,7 +32,7 @@
         "CSEInterface_LaunchOverride" "启动选项 -language 会覆盖此设置。"
         "CSEInterface_Style" "界面样式"
         "CSEInterface_StyleOriginal" "原版"
-        "CSEInterface_StyleExtended" "增强"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "服务器浏览器配置"
         "CSEServerBrowser_Masterservers" "主服务器"

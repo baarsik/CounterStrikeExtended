@@ -201,21 +201,24 @@ void COptionsSubVideo::OnDataChanged()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void COptionsSubVideo::OnButtonChecked( KeyValues* data )
-{
-	int state = data->GetInt( "state", 0 );
-	vgui2::Panel* panel = (vgui2::Panel*)data->GetPtr( "panel", NULL );
-	if ( panel == m_pWindowed )
-	{
-		if ( state != m_CurrentSettings.windowed )
-			OnDataChanged();
-	}
-	else if ( panel == m_pVsync )
-	{
-		OnDataChanged();
-	}
+void COptionsSubVideo::OnButtonChecked(KeyValues* data) {
+    const int state = data->GetInt("state", 0);
+    auto* panel = static_cast<vgui2::Panel*>(data->GetPtr("panel", nullptr));
+    if (panel == m_pWindowed) {
+        if (state != m_CurrentSettings.windowed) {
+            OnDataChanged();
+        }
+    } else if (panel == m_pVsync) {
+        // Reset notifications describe the saved value, not an edit.
+        if (m_pVsync->HasBeenModified()) {
+            OnDataChanged();
+        }
+    }
 }
 
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
 void COptionsSubVideo::OnTextChanged( vgui2::Panel* panel, const char* text )
 {
 	if ( panel == m_pMode )

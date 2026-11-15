@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_TextEntry.h"
 #include "VGUI_App.h"
 #include "VGUI_Font.h"
@@ -187,6 +188,37 @@ void TextEntry::keyTyped( KeyCode code, Panel* )
 
 void TextEntry::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        Font* font = _font ? _font : getApp()->getScheme()->getFont(Scheme::sf_primary1);
+        const int fontTall = font->getTall();
+        const auto field = cse::ui::Field;
+        drawSetColor(field.r, field.g, field.b, cse::ui::LegacyAlpha(field.a));
+        drawFilledRect(0, 0, _size[0], _size[1]);
+        int selectionStart = 0;
+        int selectionEnd = 0;
+        if (getSelectedPixelRange(selectionStart, selectionEnd)) {
+            const auto selection = cse::ui::Selection;
+            drawSetColor(selection.r, selection.g, selection.b, cse::ui::LegacyAlpha(selection.a));
+            drawFilledRect(selectionStart, 0, selectionEnd, fontTall + 1);
+        }
+        drawSetTextFont(font);
+        const auto foreground = cse::ui::Text;
+        drawSetTextColor(foreground.r, foreground.g, foreground.b, cse::ui::LegacyAlpha(foreground.a));
+        drawSetTextPos(TEXTENTRY_TEXT_INSET, 0);
+        for (int index = 0; index < _lineDar.getCount(); ++index) {
+            drawPrintChar(_hideText ? '*' : _lineDar[index]);
+        }
+        if (hasFocus()) {
+            const auto accent = cse::ui::Accent;
+            drawSetColor(accent.r, accent.g, accent.b, cse::ui::LegacyAlpha(accent.a));
+            drawOutlinedRect(0, 0, _size[0], _size[1]);
+            if (!_cursorBlink) {
+                const int cursorX = cursorToPixelSpace(_cursorPos) + TEXTENTRY_TEXT_INSET;
+                drawFilledRect(cursorX, 2, cursorX + 1, fontTall - 1);
+            }
+        }
+        return;
+    }
 	Font* font = _font;
 	if ( font == NULL )
 	{

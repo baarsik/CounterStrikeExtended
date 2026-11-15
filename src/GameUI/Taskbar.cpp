@@ -1,3 +1,4 @@
+#include "../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -399,11 +400,23 @@ void CGameMenuItem::SetRightAlignedText( bool state )
 
 void CGameMenuItem::OnDisarmed()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        m_pHighlight->SetVisible(false);
+        vgui2::MenuItem::OnDisarmed();
+        return;
+    }
+
 	m_pHighlight->FadeOut();
 }
 
 void CGameMenuItem::OnArmed()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        m_pHighlight->SetVisible(false);
+        vgui2::MenuItem::OnArmed();
+        return;
+    }
+
 	int wide, tall, x, y;
 	GetSize( wide, tall );
 	GetPos( x, y );
@@ -459,6 +472,13 @@ void CGameMenuItem::ApplySchemeSettings( vgui2::IScheme* scheme )
 	SetButtonActivationType( vgui2::Button::ACTIVATE_ONPRESSED );
 	if ( m_bRightAligned )
 		SetContentAlignment( vgui2::Label::a_east );
+    if (cse::ui::ControlsSmokedGlass()) {
+        SetFont(vgui2::smoked::TextFont(this, scheme,
+            scheme->GetFontEx("Default", IsProportional(), IsHDProportional())));
+        SetTextInset(vgui2::smoked::Pixels(22), 0);
+        m_pHighlight->SetVisible(false);
+    }
+
 }
 
 #ifdef _MSC_VER

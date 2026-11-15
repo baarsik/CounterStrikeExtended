@@ -5,7 +5,7 @@ import os
 import subprocess
 
 root = Path(__file__).resolve().parents[3]
-out = root / 'build/live-localization-menu-crash/spectator-owner'
+out = Path(os.environ.get('CSE_SPECTATOR_EVIDENCE', root / 'build/live-localization-menu-crash/spectator-owner'))
 out.mkdir(parents=True, exist_ok=True)
 source_path = Path(os.environ.get('CSE_SPECTATOR_SOURCE', root / 'src/cstrike/vgui2/game_controls/SpectatorGUI.cpp'))
 source = source_path.read_text(encoding='cp1252')
@@ -34,6 +34,7 @@ harness = r'''
 #include <new>
 #include <string>
 #include <vector>
+#include "vgui_smoked_glass.h"
 #define _snprintf snprintf
 #define _snwprintf swprintf
 struct CSpectatorGUI;
@@ -76,6 +77,16 @@ struct Localize {
     }
 } localization;
 Localize* localize() { return &localization; }
+using HFont = int;
+constexpr HFont OriginalFont = 1;
+constexpr HFont ThemedFont = 2;
+constexpr int OriginalFontTall = 14;
+constexpr int ThemedFontTall = 20;
+struct IScheme {} testScheme;
+struct SchemeManager {
+    IScheme* GetIScheme(int) { return &testScheme; }
+} testSchemeManager;
+SchemeManager* scheme() { return &testSchemeManager; }
 struct Color { Color(int, int, int, int) {} };
 struct KeyValues {
     std::string player;
@@ -86,6 +97,8 @@ struct Panel {
     bool visible = false;
     int width = 0;
     int height = 0;
+    int x = 0;
+    int y = 0;
     virtual ~Panel() = default;
     void SetVisible(bool value) {
         visible = value;
@@ -99,13 +112,26 @@ struct Panel {
         height = tall;
     }
     void SetPos(int, int) {}
+    void SetBounds(int left, int top, int wide, int tall) {
+        x = left;
+        y = top;
+        SetSize(wide, tall);
+    }
+    int GetWide() { return width; }
+    int GetTall() { return height; }
+    int GetScheme() { return 1; }
 };
 struct Frame : Panel {
+    void PerformLayout() {}
+    void ApplySchemeSettings(IScheme*) {}
     void Activate() {
         SetVisible(true);
     }
 };
 struct Surface {
+    int GetFontTall(HFont font) {
+        return font ? (font == OriginalFont ? OriginalFontTall : ThemedFontTall) : 0;
+    }
     void GetScreenSize(int& wide, int& tall) {
         constexpr int ScreenWidth = 1280;
         constexpr int ScreenHeight = 720;
@@ -118,6 +144,12 @@ Surface* surface() {
 }
 struct Label : Panel {
     std::wstring text;
+    HFont font = 0;
+    bool needsScheme = true;
+    HFont GetFont() { return font; }
+    void SetFont(HFont value) { font = value; }
+    // Like forced SolveTraverse, this applies a pending scheme even while hidden.
+    void MakeReadyForUse();
     void SetText(const wchar_t* value) { text = value ? value : L""; }
     void SetText(const char* value) {
         const wchar_t* translated = value && *value == '#' ? localize()->Find(value) : nullptr;
@@ -127,7 +159,11 @@ struct Label : Panel {
     void SetFgColor(Color) {}
 };
 struct TextEntry : Label { using Label::SetText; };
-struct Menu { int GetMenuID(int row) { return row; } };
+struct Menu {
+    int GetMenuID(int row) { return row; }
+    void MakeReadyForUse() {}
+    void SetBgColor(Color) {}
+};
 struct ComboBox : TextEntry {
     struct Row { std::wstring text; KeyValues* data; };
     std::map<int, Row> rows;
@@ -152,9 +188,35 @@ struct ComboBox : TextEntry {
     void RefreshLanguageText() { ++revisions; text = L"stale selected menu item"; }
 };
 namespace vgui2 { using ::ComboBox; using ::TextEntry; }
-struct CBottomBar {
+namespace { struct SpectatorPlayerText; }
+namespace cse { namespace ui { bool glass = false; bool ControlsSmokedGlass() { return glass; } } }
+void Label::MakeReadyForUse() {
+    if (needsScheme) {
+        font = cse::ui::glass ? ThemedFont : OriginalFont;
+        needsScheme = false;
+    }
+}
+namespace smoked {
+    HFont TextFont(Panel*, IScheme*, HFont font) {
+        return font ? (cse::ui::glass ? ThemedFont : OriginalFont) : 0;
+    }
+    Color ColorOf(cse::ui::Rgba value) { return Color(value.r, value.g, value.b, value.a); }
+}
+struct CBottomBar : Frame {
     using CommandComboBox = ComboBox;
     ComboBox players, views, configs;
+    Label health;
+    Panel previous;
+    Panel next;
+    Panel* m_pLeftButton = &previous;
+    Panel* m_pRightButton = &next;
+    cse::ui::BackdropRect m_originalControlBounds[5]{};
+    bool m_layoutReady = true;
+    void PerformLayout();
+    void ApplySchemeSettings(IScheme*);
+    int m_teamNumber = 0;
+    Label* m_pHealthLabel = &health;
+    void SetTarget(const SpectatorPlayerText&, const wchar_t*);
     ComboBox* m_pPlayerList = &players;
     ComboBox* m_pViewOptions = &views;
     ComboBox* m_pConfigSettings = &configs;
@@ -257,6 +319,11 @@ struct CSpectatorGUI : Frame {
 };
 '''
 harness += helpers
+if "void CBottomBar::SetTarget(" in source:
+    harness += "\n" + function("void CBottomBar::SetTarget(") + "\n"
+for signature in ['void CBottomBar::PerformLayout()', 'void CBottomBar::ApplySchemeSettings(']:
+    harness += '\n' + function(signature) + '\n'
+
 for signature in ['CSpectatorGUI::~CSpectatorGUI()',
                   'void CSpectatorGUI::Activate()',
                   'void CSpectatorGUI::OnThink()',
@@ -273,6 +340,75 @@ harness += r'''
 #ifndef RED_CASE
 #define RED_CASE 0
 #endif
+
+// Removing hidden-label readiness from the production owner's scheme pass must fail this test.
+void CheckFirstOrdinaryRailLayout() {
+    constexpr int MinimumCaptionWidth = 100;
+    constexpr int CompactPlayerWidth = 80;
+    constexpr int MinimumNavigationWidth = 24;
+    CBottomBar bottom;
+    const cse::ui::BackdropRect resourceBounds[]{
+        {5, 30, 135, 22}, {465, 30, 20, 22}, {490, 30, 300, 22}, {795, 30, 20, 22}, {1140, 30, 135, 22}};
+    for (std::size_t index = 0; index < std::size(resourceBounds); ++index) {
+        bottom.m_originalControlBounds[index] = resourceBounds[index];
+    }
+    bottom.Frame::SetSize(1280, 144);
+    bottom.health.SetVisible(false);
+    cse::ui::glass = true;
+    // Ordinary SurfaceSDL scheme traversal visits visible children before their parent.
+    // The new hidden health label consequently still has its constructor's zero font.
+    for (Label* child : {static_cast<Label*>(&bottom.players), static_cast<Label*>(&bottom.views),
+             static_cast<Label*>(&bottom.configs), &bottom.health}) {
+        if (child != &bottom.health) {
+            child->SetVisible(true);
+        }
+        if (child->IsVisible()) {
+            child->MakeReadyForUse();
+        }
+    }
+    bottom.ApplySchemeSettings(&testScheme);
+    bottom.PerformLayout();
+    std::fprintf(stderr, "ordinary spectator layout: health font=%d, settings=%d, player=%d, previous=%d\n",
+        bottom.health.GetFont(), bottom.configs.GetWide(), bottom.players.GetWide(), bottom.previous.GetWide());
+    assert(bottom.configs.GetWide() >= MinimumCaptionWidth);
+    assert(bottom.players.GetWide() >= MinimumCaptionWidth);
+    assert(bottom.previous.GetWide() >= MinimumNavigationWidth && bottom.next.GetWide() >= MinimumNavigationWidth);
+    assert(!bottom.health.IsVisible());
+    const int initialPlayerWidth = bottom.players.GetWide();
+    SpectatorPlayerText target;
+    target.formatted = true;
+    target.withDetail = true;
+    target.name = L"Late player";
+    target.detail = L"73";
+    bottom.SetTarget(target, L"Late player (73)");
+    // Health first appears after parent layout, without invalidating the parent's geometry.
+    bottom.health.MakeReadyForUse();
+    assert(bottom.players.GetWide() == initialPlayerWidth);
+    assert(bottom.health.GetWide() >= MinimumCaptionWidth && bottom.health.text == L"Health 73");
+
+    // Scheme/style replay must also initialize the health label while hidden.
+    bottom.health.SetVisible(false);
+    bottom.health.needsScheme = true;
+    cse::ui::glass = false;
+    bottom.ApplySchemeSettings(&testScheme);
+    bottom.PerformLayout();
+    Panel* controls[]{&bottom.configs, &bottom.previous, &bottom.players, &bottom.next, &bottom.views};
+    for (std::size_t index = 0; index < std::size(controls); ++index) {
+        const auto& expected = resourceBounds[index];
+        assert(controls[index]->x == expected.x && controls[index]->y == expected.y);
+        assert(controls[index]->GetWide() == expected.width && controls[index]->GetTall() == expected.height);
+    }
+    assert(!bottom.health.IsVisible());
+    bottom.health.needsScheme = true;
+    cse::ui::glass = true;
+    bottom.ApplySchemeSettings(&testScheme);
+    bottom.Frame::SetSize(640, 96);
+    bottom.PerformLayout();
+    assert(bottom.configs.GetWide() >= MinimumCaptionWidth && bottom.players.GetWide() >= CompactPlayerWidth);
+    assert(bottom.previous.GetWide() >= MinimumNavigationWidth && bottom.next.GetWide() >= MinimumNavigationWidth);
+    assert(!bottom.health.IsVisible());
+    cse::ui::glass = false;
+}
 
 void CheckJoinLifecycle() {
     client.offline = false;
@@ -326,7 +462,30 @@ void CheckJoinLifecycle() {
     client.info = VGuiLibraryPlayer_t{};
 }
 
+
+void CheckSmokedTarget() {
+    CSpectatorGUI gui;
+    client.offline = false;
+    client.info.name = "#literal";
+    client.info.health = 73;
+    cse::ui::glass = true;
+    gui.Update("server", 1, 4, false, 0, "de_dust2");
+    gui.OnThink();
+    assert(gui.bottom.players.text == L"#literal");
+    assert(gui.bottom.health.text == L"Health 73" && gui.bottom.health.IsVisible());
+    client.offline = true;
+    gui.RefreshLanguage();
+    assert(gui.bottom.players.text == L"#literal" && gui.bottom.health.text == L"Health 73");
+    cse::ui::glass = false;
+    gui.RefreshLanguage();
+    assert(gui.bottom.players.text.find(L"#literal") != std::wstring::npos);
+    assert(gui.bottom.players.text.find(L"73") != std::wstring::npos && !gui.bottom.health.IsVisible());
+    client.offline = false;
+}
+
 int main() {
+    CheckFirstOrdinaryRailLayout();
+    CheckSmokedTarget();
     if (RED_CASE == 0) {
         CSpectatorGUI cold;
         cold.bottom.views.SetText("#CAM_OPTIONS");
@@ -416,7 +575,8 @@ int main() {
 '''
 (out / 'spectator.cpp').write_text(harness)
 subprocess.run(['c++', '-DRED_CASE=' + os.environ.get('CSE_SPECTATOR_RED_CASE', '0'), '-std=c++17', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
+                '-I', str(root / 'src/public'),
                 str(out / 'spectator.cpp'), '-o', str(out / 'spectator')], check=True)
 subprocess.run([str(out / 'spectator')], check=True,
                env=dict(os.environ, UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'))
-print('PASS: spectator captions recover after activation/late player info; localization replay stays disconnected-safe')
+print('PASS: spectator startup/refresh layout stays readable; captions and disconnected language replay are preserved')

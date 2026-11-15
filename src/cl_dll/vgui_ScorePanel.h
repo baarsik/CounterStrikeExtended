@@ -285,6 +285,7 @@ public:
 public:
 
 	ScorePanel(int x,int y,int wide,int tall);
+    void paintBackground() override;
 
 	void Update( void );
 

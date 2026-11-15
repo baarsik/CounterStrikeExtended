@@ -9,6 +9,7 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "cstrikeclientscoreboard.h"
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "GameUI_Interfaces.h"
 #include "GameUI/ICareerUI.h"
 #include "game_controls/vgui_avatarimage.h"
@@ -561,6 +562,9 @@ void CCSClientScoreBoardDialog::Update( const char* servername, bool teamplay, b
 	m_pTopRightPanel->SetVisible( hardware );
 	m_pBottomLeftPanel->SetVisible( hardware );
 	m_pBottomRightPanel->SetVisible( hardware );
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel, m_pBottomLeftPanel,
+        m_pBottomRightPanel, m_pTopLeftBorderPanel, m_pTopRightBorderPanel, m_pBottomLeftBorderPanel,
+        m_pBottomRightBorderPanel});
 	int wide = GetWide();
 	int tall = GetTall();
 	m_pTopLeftPanel->SetBounds( 0, 0, cornerSize, cornerSize );
@@ -636,6 +640,10 @@ void CCSClientScoreBoardDialog::Update( const char* servername, bool teamplay, b
 
 void CCSClientScoreBoardDialog::PaintBackground()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
 	int x1, y1, x2, y2;
 	vgui2::surface()->DrawSetColor( m_careerBgColor );
 	if ( IEngineStudio.IsHardware() == 1 )
@@ -697,6 +705,9 @@ void CCSClientScoreBoardDialog::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_borderColor = scheme->GetColor( "BorderBright", Color( 0, 0, 0, 0 ) );
 	m_pPlayerList->SetBgColor( Color( 0, 0, 0, 0 ) );
 	m_pPlayerList->SetBorder( NULL );
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel, m_pBottomLeftPanel,
+        m_pBottomRightPanel, m_pTopLeftBorderPanel, m_pTopRightBorderPanel, m_pBottomLeftBorderPanel,
+        m_pBottomRightBorderPanel});
 	Color cornerColor( 255, 255, 255, m_careerBgColor[3] );
 	m_pTopLeftPanel->m_bgColor = cornerColor;
 	m_pTopRightPanel->m_bgColor = cornerColor;

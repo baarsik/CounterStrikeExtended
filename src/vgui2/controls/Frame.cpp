@@ -1,3 +1,5 @@
+#include "SmokedGlass.h"
+#include "../../public/vgui_background_controls.h"
 #include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -264,6 +266,34 @@ public:
 	};
 	FrameButton( Panel* parent, const char* name, const char* imageName );
 	~FrameButton() override;
+    void Paint() override {
+        if (!cse::ui::ControlsSmokedGlass() || !m_pImage) {
+            Button::Paint();
+            return;
+        }
+        if (m_pImage == scheme()->GetImage("resource/icon_close", true)) {
+            const int inset = (std::max)(3, GetWide() / 4);
+            surface()->DrawSetColor(smoked::ColorOf(IsEnabled() ? cse::ui::Text : cse::ui::DisabledText));
+            surface()->DrawLine(inset, inset, GetWide() - inset, GetTall() - inset);
+            surface()->DrawLine(GetWide() - inset, inset, inset, GetTall() - inset);
+            return;
+        }
+        int sourceWidth = 0;
+        int sourceHeight = 0;
+        m_pImage->GetSize(sourceWidth, sourceHeight);
+        if (sourceWidth > 0 && sourceHeight > 0) {
+            constexpr int IconPadding = 4;
+            const int inset = smoked::Pixels(IconPadding);
+            const float scale = (std::min)(static_cast<float>(GetWide() - inset - inset) / sourceWidth,
+                static_cast<float>(GetTall() - inset - inset) / sourceHeight);
+            const int width = (std::max)(1, static_cast<int>(std::lround(sourceWidth * scale)));
+            const int height = (std::max)(1, static_cast<int>(std::lround(sourceHeight * scale)));
+            m_pImage->SetSize(width, height);
+            m_pImage->SetPos((GetWide() - width) / 2, (GetTall() - height) / 2);
+            m_pImage->Paint();
+            m_pImage->SetSize(sourceWidth, sourceHeight);
+        }
+    }
 
 protected:
 	void ApplySchemeSettings( IScheme* scheme ) override;
@@ -295,6 +325,19 @@ class FrameSystemButton : public MenuButton
 public:
 	FrameSystemButton( Panel* parent, const char* name );
 	~FrameSystemButton() override;
+    void Paint() override {
+        if (!cse::ui::ControlsSmokedGlass()) {
+            MenuButton::Paint();
+            return;
+        }
+        const int inset = (std::max)(2, GetWide() / 4);
+        const int center = GetTall() / 2;
+        const int gap = (std::max)(2, GetTall() / 5);
+        surface()->DrawSetColor(smoked::ColorOf(IsEnabled() ? cse::ui::SecondaryText : cse::ui::DisabledText));
+        for (int row = -1; row <= 1; ++row) {
+            surface()->DrawLine(inset, center + row * gap, GetWide() - inset, center + row * gap);
+        }
+    }
 
 protected:
 	void ApplySchemeSettings( IScheme* scheme ) override;
@@ -489,6 +532,15 @@ void Frame::InternalFlashWindow()
 
 void Frame::GetClientArea( int& x, int& y, int& width, int& height )
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int inset = smoked::Pixels(cse::ui::WindowInset);
+        x = inset;
+        y = (_drawTitleBar || smoked::DocumentLayout(this)) ? smoked::Pixels(cse::ui::WindowHeaderHeight) : inset;
+        width = (std::max)(0, GetWide() - inset - inset);
+        height = (std::max)(0, GetTall() - y - inset);
+        return;
+    }
+
 	constexpr int borderInset = 5;
 	constexpr int titlePadding = 8;
 	x = GetProportionalScaledValue( borderInset );
@@ -496,7 +548,7 @@ void Frame::GetClientArea( int& x, int& y, int& width, int& height )
 	if ( _drawTitleBar )
 	{
 		ISurface* titleSurface = surface();
-		HFont font = _title->GetFont();
+        HFont font = smoked::LayoutFont(this, _title->GetFont());
 		int fontHeight = titleSurface->GetFontTall( font );
 		int padding = GetProportionalScaledValue( titlePadding );
 		int titleHeight =
@@ -1349,7 +1401,28 @@ void Frame::LayoutProportional( FrameButton* button )
 //-----------------------------------------------------------------------------
 void Frame::PerformLayout()
 {
-	Panel::PerformLayout();
+    const bool document = smoked::DocumentLayout(this);
+    if (document) {
+        for (int index = 0; index < GetChildCount(); ++index) {
+            Panel* child = GetChild(index);
+            if (child && !std::strcmp(child->GetClassName(), "ImagePanel")) {
+                smoked::Decorations({child});
+            }
+        }
+        if (cse::ui::ControlsSmokedGlass()) {
+            constexpr int DocumentWidth = 760;
+            constexpr int DocumentHeight = 540;
+            int screenWidth = 0;
+            int screenHeight = 0;
+            surface()->GetScreenSize(screenWidth, screenHeight);
+            const int margin = smoked::Pixels(cse::ui::WindowInset);
+            SetSize((std::min)(smoked::Pixels(DocumentWidth), screenWidth - margin - margin),
+                (std::min)(smoked::Pixels(DocumentHeight), screenHeight - margin - margin));
+            MoveToCenterOfScreen();
+        }
+    }
+
+    Panel::PerformLayout();
 	int wide;
 	int tall;
 	GetSize( wide, tall );
@@ -1366,7 +1439,7 @@ void Frame::PerformLayout()
 	_bottomRightGrip->SetBounds( wide - cornerSize, tall - cornerSize, cornerSize, cornerSize );
 	int captionTall = GetProportionalScaledValue( 23 );
 	int captionInset = GetProportionalScaledValue( 10 );
-	_captionGrip->SetSize( wide - captionInset, captionTall );
+    _captionGrip->SetBounds(0, 0, wide - captionInset, captionTall);
 	_topGrip->MoveToFront();
 	_bottomGrip->MoveToFront();
 	_leftGrip->MoveToFront();
@@ -1379,6 +1452,50 @@ void Frame::PerformLayout()
 	_menuButton->MoveToFront();
 	_minimizeButton->MoveToFront();
 	_minimizeToSysTrayButton->MoveToFront();
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int inset = smoked::Pixels(cse::ui::WindowInset);
+        const int header = smoked::Pixels(cse::ui::WindowHeaderHeight);
+        const int side = smoked::Pixels(cse::ui::TitleButtonSize);
+        const int gap = smoked::Pixels(cse::ui::TitleButtonGap);
+        const int top = (header - side) / 2;
+        if (document) {
+            int contentX = 0;
+            int contentY = 0;
+            int contentWidth = 0;
+            int contentHeight = 0;
+            GetClientArea(contentX, contentY, contentWidth, contentHeight);
+            const int controlHeight = smoked::Pixels(cse::ui::ControlHeight);
+            const int gap = smoked::Pixels(12);
+            if (Panel* message = FindChildByName("Message", false)) {
+                message->SetBounds(contentX, contentY, contentWidth,
+                    (std::max)(0, contentHeight - controlHeight - gap));
+            }
+            for (int index = 0; index < GetChildCount(); ++index) {
+                auto* action = dynamic_cast<Button*>(GetChild(index));
+                if (!action || !action->IsVisible()) {
+                    continue;
+                }
+                wchar_t caption[2]{};
+                action->GetText(caption, 2);
+                if (caption[0]) {
+                    const int actionWidth = smoked::Pixels(88);
+                    action->SetBounds(contentX + contentWidth - actionWidth,
+                        contentY + contentHeight - controlHeight, actionWidth, controlHeight);
+                }
+            }
+        }
+        _captionGrip->SetBounds(inset, 0, (std::max)(0, wide - inset - inset), header);
+        _menuButton->SetBounds(inset, top, side, side);
+        int right = wide - inset;
+        for (FrameButton* button : {_closeButton, _minimizeToSysTrayButton, _maximizeButton, _minimizeButton}) {
+            if (button->IsVisible()) {
+                button->SetBounds(right - side, top, side, side);
+                button->SetTextInset(0, 0);
+                right -= side + gap;
+            }
+        }
+        return;
+    }
 	int menuTall = GetProportionalScaledValue( 18 );
 	int menuWide = menuTall;
 #if defined( _WIN32 )
@@ -1431,6 +1548,8 @@ void Frame::PerformLayout()
 		_minimizeButton->SetPos( wide - margin - used, buttonY );
 		LayoutProportional( _minimizeButton );
 	}
+
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1445,6 +1564,7 @@ void Frame::ApplySchemeSettings( IScheme* scheme )
 	_titleBarDisabledFgColor = GetSchemeColor( "TitleBarDisabledFgColor", scheme );
 	_titleBarDisabledBgColor = GetSchemeColor( "TitleBarDisabledBgColor", scheme );
 	HFont font = scheme->GetFontEx( "Default", IsProportional(), IsHDProportional() );
+    font = smoked::TextFont(this, scheme, font, true);
 	_title->SetFont( font );
 	_title->ResizeImageToContent();
 }
@@ -1535,7 +1655,11 @@ void Frame::PaintBackground()
 	int wide = GetWide();
 	int textTall = surface()->GetFontTall( _title->GetFont() );
 	Color titleBarColor = _titleBarDisabledBgColor;
-	EditablePanel::PaintBackground();
+    if (cse::ui::ControlsSmokedGlass() && smoked::DocumentLayout(this)) {
+        smoked::Surface(this);
+    } else {
+        EditablePanel::PaintBackground();
+    }
 
 	bool focused = false;
 	//take the panel with focus and check up tree for this panel
@@ -1566,10 +1690,42 @@ void Frame::PaintBackground()
 
 	IScheme* currentScheme = scheme()->GetIScheme( GetScheme() );
 	IBorder* border = currentScheme->GetBorder( "FrameBorder" );
-	if ( border != nullptr )
-		border->Paint( GetVPanel() );
-	if ( !_drawTitleBar )
-		return;
+    if (border != nullptr && !cse::ui::ControlsSmokedGlass()) {
+        border->Paint(GetVPanel());
+    }
+    if (!_drawTitleBar && !(cse::ui::ControlsSmokedGlass() && smoked::DocumentLayout(this))) {
+        return;
+    }
+
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int inset = smoked::Pixels(20);
+        if (_title) {
+            _title->SetColor(smoked::ColorOf(cse::ui::Text));
+            int clientX = 0;
+            int clientY = 0;
+            int clientWide = 0;
+            int clientTall = 0;
+            GetClientArea(clientX, clientY, clientWide, clientTall);
+            int titleX = smoked::Pixels(16);
+            if (_menuButton->IsVisible()) {
+                int buttonX = 0;
+                int buttonY = 0;
+                _menuButton->GetPos(buttonX, buttonY);
+                titleX = (std::max)(titleX, buttonX + _menuButton->GetWide() + smoked::Pixels(8));
+            }
+            _title->SetPos(titleX, (std::max)(0, (clientY - textTall) / 2));
+            _title->SetSize((std::max)(0, wide - smoked::Pixels(90)), textTall);
+            _title->Paint();
+        }
+        int clientX = 0;
+        int clientY = 0;
+        int clientWide = 0;
+        int clientTall = 0;
+        GetClientArea(clientX, clientY, clientWide, clientTall);
+        smoked::Fill(inset, clientY - 1, (std::max)(0, wide - inset - inset), 1,
+            0, smoked::ColorOf(cse::ui::Edge));
+        return;
+    }
 
 	float scale = 1.0f;
 	if ( IsProportional() )

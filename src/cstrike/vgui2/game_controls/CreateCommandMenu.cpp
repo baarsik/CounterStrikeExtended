@@ -1,3 +1,4 @@
+#include "vgui/KeyValues.h"
 #include "CreateCommandMenu.h"
 #include "../../../common/resource_text.h"
 #include "iviewport.h"
@@ -217,6 +218,7 @@ Menu* CCreateCommandComboMenu::CreateCommandMenu( char* menuFile, int playerTeam
 			{
 				currentMenu->AddMenuItem( text, command, parent, NULL );
 			}
+
 
 			data = gViewPortInterface->GetClientDllInterface()->COM_ParseFile( data, token );
 		}

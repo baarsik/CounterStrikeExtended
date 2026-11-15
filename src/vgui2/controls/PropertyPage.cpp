@@ -1,3 +1,4 @@
+#include "../../public/vgui_background_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -72,6 +73,10 @@ void PropertyPage::SetPaintBorder( bool state )
 //-----------------------------------------------------------------------------
 void PropertyPage::PaintBorder()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        Panel::PaintBorder();
+        return;
+    }
 	IBorder* border = GetBorder();
 	if ( !_paintRaised || !border || !_pageTab.Get() )
 	{

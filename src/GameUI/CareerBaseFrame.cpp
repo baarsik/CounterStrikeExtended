@@ -1,4 +1,5 @@
 #include "CareerBaseFrame.h"
+#include "../vgui2/controls/SmokedGlass.h"
 #include "CareerDefinitions.h"
 #include "CareerGame.h"
 #include "GameUI_Interface.h"
@@ -360,6 +361,9 @@ void CCareerBaseFrame::PaintBackground()
 	}
 
 	vgui2::Frame::PaintBackground();
+    if (cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
 	int x, y, wide, tall;
 	GetBounds( x, y, wide, tall );
 	m_bgFade.DrawFade( x, y, wide, tall );

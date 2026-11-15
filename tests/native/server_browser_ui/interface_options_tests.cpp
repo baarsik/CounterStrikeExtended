@@ -7,12 +7,15 @@
 #include "../../../src/common/interface_language.h"
 #include "PropertyPage.h"
 #include "PropertySheet.h"
+#include "SectionedListPanel.h"
 #include "ComboBox.h"
 #include "Menu.h"
 #include "MenuItem.h"
 #include "Button.h"
+#include "RadioButton.h"
 #include "Label.h"
 #include "TextImage.h"
+#include "TextEntry.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
 #include "vgui/IScheme.h"
@@ -23,9 +26,17 @@
 #include "system_fixture.h"
 #include "../../../src/engine/localization_state.h"
 #include "../../../src/public/localization_controls.h"
+#include "../../../src/public/vgui_background_controls.h"
+#include "../../../src/public/vgui_smoked_glass.h"
+#include "../../../src/vgui2/controls/SmokedGlass.h"
 #include "geometry_fixture.h"
+#include "control_state_fixture.h"
+#include "options_reset_fixture.h"
+#include "keyboard_cell_fixture.h"
+#include "smoked_metrics_fixture.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <array>
 #include <cwchar>
 #include <dlfcn.h>
 #include <filesystem>
@@ -71,6 +82,22 @@ int RecordClientCommand(char*) {
 
 namespace engine_fixture {
 using namespace cse::localization;
+float uiStyle = 0;
+int materialDraws = 0;
+float GetCvar(char* name) {
+    return std::strcmp(name, cse::ui::VGuiStyleCvar) == 0 ? uiStyle : 0.0f;
+}
+void SetCvar(char* name, float value) {
+    Require(std::strcmp(name, cse::ui::VGuiStyleCvar) == 0, "only the selected UI style is changed");
+    uiStyle = value;
+}
+int CSE_ABI_CALL CurrentStyle() { return uiStyle > 0.0f ? 1 : 0; }
+bool CSE_ABI_CALL Material(const cse::ui::BackdropRect*, const cse::ui::BackdropRect*,
+    const cse::ui::BackdropStyle*, float) {
+    ++materialDraws;
+    return false; // Exercise the real rounded no-GL fallback on the native SDL surface.
+}
+cse::ui::StyleApi styleApi{sizeof(styleApi), cse::ui::StyleApiVersion, CurrentStyle, Material};
 
 class Backend final : public StateBackend {
 public:
@@ -155,6 +182,9 @@ bool CSE_ABI_CALL Center(const char*, const char*) {
 EngineApi api{sizeof(EngineApi), InterfaceVersion, Language, Preference, Revision, RequestLanguage,
     Result, Error, Catalogue, Center};
 void* Factory(const char* name, int*) {
+    if (std::strcmp(name, cse::ui::StyleInterface) == 0) {
+        return &styleApi;
+    }
     return expose && std::strcmp(name, EngineInterface) == 0 ? &api : nullptr;
 }
 void Advance() {
@@ -206,8 +236,8 @@ public:
 };
 
 namespace {
-constexpr int ScreenWidth = 640;
-constexpr int ScreenHeight = 480;
+int ScreenWidth = 640;
+int ScreenHeight = 480;
 constexpr int SettleFrames = 6;
 void Settle(vgui2::Panel& root) {
     for (int index = 0; index < SettleFrames; ++index) {
@@ -230,6 +260,21 @@ void Capture(vgui2::Panel& root, const std::filesystem::path& path) {
     vgui2::surface()->SolveTraverse(root.GetVPanel(), true);
     root.Repaint();
     vgui2::surface()->PaintTraverse(root.GetVPanel());
+    std::ofstream state(path.string() + ".state");
+    const auto dump = [&](auto&& visit, vgui2::Panel& panel, int depth) -> void {
+        int x = 0;
+        int y = 0;
+        panel.GetPos(x, y);
+        const char* name = panel.GetName();
+        state << std::string(depth, ' ') << (name ? name : "<null>") << " " << x << " " << y
+            << " " << panel.GetWide() << " " << panel.GetTall() << " " << panel.IsVisible();
+        if (auto* label = dynamic_cast<vgui2::Label*>(&panel)) state << " font=" << label->GetFont();
+        state << "\n";
+        for (int i = 0; i < panel.GetChildCount(); ++i) {
+            if (auto* child = panel.GetChild(i)) visit(visit, *child, depth + 1);
+        }
+    };
+    dump(dump, root, 0);
     int count = 0;
     SDL_Window** windows = SDL_GetWindows(&count);
     SDL_Renderer* renderer = nullptr;
@@ -270,8 +315,54 @@ void Fit(vgui2::Panel& panel, std::ofstream& report) {
 }
 }
 
+class ParentOwnedPresentation : public vgui2::Frame {
+public:
+    vgui2::Button* playback;
+    vgui2::TextEntry* hidden;
+    vgui2::TextImage icon{"*"};
+    int iconIndex = -1;
+
+    explicit ParentOwnedPresentation(vgui2::Panel* parent) : Frame(parent, "ThemeOwnership", true, false) {
+        SetBounds(0, 0, 360, 240);
+        SetTitle("Shared style ownership", true);
+        playback = new vgui2::Button(this, "Playback", "Play");
+        playback->SetBounds(20, 40, 200, 24);
+        hidden = new vgui2::TextEntry(this, "NeverPainted");
+        hidden->SetBounds(20, 80, 200, 24);
+        hidden->SetText("retained input");
+        hidden->SetVisible(false);
+    }
+
+    void ApplySchemeSettings(vgui2::IScheme* scheme) override {
+        Frame::ApplySchemeSettings(scheme);
+        iconIndex = playback->AddImage(&icon, 0);
+        playback->SetBgColor(Color(7, 19, 31, 0));
+    }
+
+    bool HasPlaybackIcon() {
+        return iconIndex >= 0 && playback->GetImageAtIndex(iconIndex) == &icon;
+    }
+};
+
+class GlyphProbeCombo : public vgui2::ComboBox {
+public:
+    using ComboBox::ComboBox;
+    int glyphs = 0;
+
+    int DrawChar(wchar_t character, vgui2::HFont font, int index, int x, int y) override {
+        ++glyphs;
+        return ComboBox::DrawChar(character, font, index, x, y);
+    }
+};
+
 int main(int argc, char** argv) {
     Require(argc == 7, "usage: interface_options_tests vgui fs resources output language platform");
+    if (const char* width = std::getenv("CSE_UI_TEST_WIDTH")) {
+        ScreenWidth = std::max(640, std::atoi(width));
+    }
+    if (const char* height = std::getenv("CSE_UI_TEST_HEIGHT")) {
+        ScreenHeight = std::max(480, std::atoi(height));
+    }
     return RunCase([&] {
         const std::filesystem::path output = argv[4];
         std::filesystem::create_directories(output);
@@ -291,6 +382,8 @@ int main(int argc, char** argv) {
         geometry_fixture::BaseUISurface geometry(
             static_cast<vgui2::ISurface*>(guiFactory("VGUI_Surface026", nullptr)));
         geometry_fixture::surface = &geometry;
+        // Window activation is an external input; keep keyboard checks independent of other macOS windows.
+        geometry.forceWindowFocus = true;
         geometry.Resize(ScreenWidth, ScreenHeight);
         CreateInterfaceFn factories[] = {engine_fixture::Factory, system_fixture::Factory,
             geometry_fixture::Factory, guiFactory, fsFactory};
@@ -313,6 +406,66 @@ int main(int argc, char** argv) {
             dlsym(image, "_ZN12CFontManager14GetFontForCharEjw"));
         Require(manager && fontForChar, "actual native font coverage probes");
         gEngfuncs.pfnClientCmd = RecordClientCommand;
+        gEngfuncs.pfnGetCvarFloat = engine_fixture::GetCvar;
+        gEngfuncs.Cvar_SetValue = engine_fixture::SetCvar;
+        keyboard_cell_fixture::Run(root, tracker, engine_fixture::uiStyle);
+        smoked_metrics_fixture::Run(root, tracker, geometry, engine_fixture::uiStyle);
+        options_reset_fixture::Run(root);
+        control_state_fixture::Run(root, tracker, geometry, engine_fixture::uiStyle);
+        testMod.kind = 0;
+        engine_fixture::Initialize("");
+        engine_fixture::uiStyle = 1.0f;
+        auto* coldDialog = new TestOptions(root);
+        coldDialog->SetScheme(tracker);
+        coldDialog->Run();
+        Require(coldDialog->GetPropertySheet()->GetActivePage() != nullptr,
+            "activation initializes settings before showing or requesting keyboard focus");
+        Settle(*root);
+        auto* coldSheet = coldDialog->GetPropertySheet();
+        Require(coldSheet->GetActivePage() == coldSheet->GetPage(0) && coldSheet->GetPage(0)->IsVisible(),
+            "cold Smoked settings show their first page before any tab selection");
+        Require(!coldDialog->IsApplyButtonEnabled(), "opening settings does not create pending changes");
+        const int coldWidth = coldDialog->GetWide();
+        const int coldHeight = coldDialog->GetTall();
+        for (int idle = 0; idle < 12; ++idle) {
+            Settle(*root);
+        }
+        Require(coldDialog->GetWide() == coldWidth && coldDialog->GetTall() == coldHeight,
+            "cold settings keep stable geometry during idle without user changes");
+        coldDialog->EnableApplyButton(true);
+        Settle(*root);
+        Require(coldDialog->GetWide() == coldWidth && coldDialog->GetTall() == coldHeight,
+            "changing Apply state does not resize a settled settings window");
+        coldDialog->EnableApplyButton(false);
+        Settle(*root);
+        for (int index = 0; index < coldSheet->GetNumPages(); ++index) {
+            coldSheet->SetActivePage(coldSheet->GetPage(index));
+            Settle(*root);
+            Require(coldDialog->GetWide() == coldWidth && coldDialog->GetTall() == coldHeight,
+                "switching any settings tab keeps the same window dimensions");
+        }
+        coldSheet->SetActivePage(coldSheet->GetPage(0));
+        Settle(*root);
+        auto* firstTab = coldSheet->GetActiveTab();
+        Require(firstTab != nullptr, "cold settings have a visible active tab");
+        coldSheet->RequestFocus(1);
+        Settle(*root);
+        Require(firstTab->HasFocus(), "active tab receives real keyboard focus");
+        geometry.paintedFilledRectColors.clear();
+        geometry.observeFilledRects = true;
+        firstTab->Paint();
+        geometry.observeFilledRects = false;
+        Require(geometry.paintedFilledRectColors.empty(),
+            "keyboard focus does not add a rounded highlight to the flat active tab");
+        coldSheet->RequestFocusPrev(0);
+        coldSheet->RequestFocusNext(0);
+        vgui2::ivgui()->PostMessage(coldSheet->GetVPanel(),
+            new KeyValues("KeyCodeTyped", "code", vgui2::KEY_LSHIFT), 0, 0);
+        Settle(*root);
+        Require(coldSheet->GetActivePage() == coldSheet->GetPage(0),
+            "Shift and focus traversal retain the initialized settings page");
+        delete coldDialog;
+        engine_fixture::uiStyle = 0.0f;
         std::ofstream report(output / "fit.tsv");
         for (int kind = 0; kind < 3; ++kind) {
             testMod.kind = kind;
@@ -568,6 +721,90 @@ int main(int argc, char** argv) {
                 Require(menuY + combo->GetMenu()->GetTall() <= ScreenHeight, "dropdown within screen");
                 Capture(*combo->GetMenu(), output / "languages.bmp");
                 combo->HideMenu();
+                auto* styles = dynamic_cast<vgui2::ComboBox*>(page->FindChildByName("UIStyle", false));
+                Require(styles && styles->GetItemCount() == 2, "Original and Smoked Tactical Glass stay available");
+                const Color originalBackground = combo->GetBgColor();
+                auto* languageLabel = dynamic_cast<vgui2::Label*>(page->FindChildByName("LanguageLabel", false));
+                const vgui2::HFont originalLabelFont = languageLabel->GetFont();
+                int originalComboX = 0;
+                int originalComboY = 0;
+                combo->GetPos(originalComboX, originalComboY);
+                const std::string selectedLanguage = combo->GetActiveItemUserData()->GetString("language");
+                styles->ActivateItem(styles->GetMenu()->GetMenuID(1));
+                static_cast<vgui2::PropertyPage*>(page)->OnApplyChanges();
+                Settle(*root);
+                Capture(*dialog, output / "smoked-options.bmp");
+                Require(engine_fixture::uiStyle == 1.0f && engine_fixture::materialDraws > 0,
+                    "selected style reaches shared window background painting");
+                Require(page->GetBgColor().a() == 0 && sheet->GetBgColor().a() == 0,
+                    "structural settings containers expose the shared glass instead of covering it");
+                std::fprintf(stderr, "Font evidence: Original %lu/%d; Smoked %lu/%d\n",
+                    static_cast<unsigned long>(originalLabelFont), vgui2::surface()->GetFontTall(originalLabelFont),
+                    static_cast<unsigned long>(languageLabel->GetFont()), vgui2::surface()->GetFontTall(languageLabel->GetFont()));
+                Require(languageLabel->GetFont() != originalLabelFont &&
+                    vgui2::surface()->GetFontTall(languageLabel->GetFont()) <= languageLabel->GetTall(),
+                    "Smoked text uses scalable typography that fits its allocated row");
+                int labelX = 0;
+                int labelY = 0;
+                int fieldX = 0;
+                int fieldY = 0;
+                languageLabel->GetPos(labelX, labelY);
+                combo->GetPos(fieldX, fieldY);
+                Require(fieldX >= labelX + languageLabel->GetWide() && fieldY == labelY,
+                    "Smoked settings use aligned label and field columns");
+                Fit(*dialog, report);
+                sheet->SetActivePage(sheet->GetPage(0));
+                Settle(*root);
+                const int stableWidth = dialog->GetWide();
+                const int stableHeight = dialog->GetTall();
+                sheet->SetActivePage(page);
+                Settle(*root);
+                Require(dialog->GetWide() == stableWidth && dialog->GetTall() == stableHeight,
+                    "Interface shares the same owner dimensions as all other settings pages");
+                auto* originalRadio = dynamic_cast<vgui2::RadioButton*>(page->FindChildByName("OriginalStyle", false));
+                auto* smokedRadio = dynamic_cast<vgui2::RadioButton*>(page->FindChildByName("SmokedStyle", false));
+                Require(originalRadio && smokedRadio && originalRadio->GetRadioTabPosition() > 0 &&
+                    originalRadio->GetRadioTabPosition() == smokedRadio->GetRadioTabPosition(),
+                    "style radios retain their actual keyboard group");
+                for (vgui2::RadioButton* radio : {originalRadio, smokedRadio}) {
+                    wchar_t text[256]{};
+                    radio->GetText(text, 256);
+                    int textWide = 0;
+                    int textTall = 0;
+                    vgui2::surface()->GetTextSize(radio->GetFont(), text, textWide, textTall);
+                    Require(text[0] && textWide > 0 && textWide +
+                        vgui2::smoked::Pixels(cse::ui::RadioDiameter + cse::ui::RadioTextGap) <= radio->GetWide(),
+                        "both style choices have complete visible captions on first opening");
+                }
+                smokedRadio->OnKeyCodeTyped(vgui2::KEY_LEFT);
+                Settle(*root);
+                Require(styles->GetActiveItemUserData()->GetInt("style") == cse::ui::OriginalVGuiStyle &&
+                    dialog->IsApplyButtonEnabled(), "arrow-key radio choice updates the applied style owner");
+                originalRadio->OnKeyCodeTyped(vgui2::KEY_RIGHT);
+                Settle(*root);
+                Require(styles->GetActiveItemUserData()->GetInt("style") == cse::ui::SmokedTacticalGlassVGuiStyle,
+                    "keyboard radio navigation selects Smoked again");
+                const Color styledText = combo->GetFgColor();
+                Require(styledText.r() == cse::ui::Text.r && styledText.g() == cse::ui::Text.g &&
+                    styledText.b() == cse::ui::Text.b, "shared input uses the smoked foreground palette");
+                wchar_t styleName[128]{};
+                styles->GetText(styleName, 128);
+                Require(std::wcscmp(styleName, L"Smoked Tactical Glass") == 0, "new style name is localized");
+                styles->ActivateItem(styles->GetMenu()->GetMenuID(0));
+                static_cast<vgui2::PropertyPage*>(page)->OnApplyChanges();
+                Settle(*root);
+                const int drawsBeforeOriginal = engine_fixture::materialDraws;
+                Capture(*dialog, output / "original-options-restored.bmp");
+                Require(combo->GetBgColor() == originalBackground &&
+                    engine_fixture::materialDraws == drawsBeforeOriginal,
+                    "Original restores scheme colors and stops all material requests immediately");
+                int restoredX = 0;
+                int restoredY = 0;
+                combo->GetPos(restoredX, restoredY);
+                Require(languageLabel->GetFont() == originalLabelFont && restoredX == originalComboX &&
+                    restoredY == originalComboY, "Original restores exact fonts and form geometry");
+                Require(selectedLanguage == combo->GetActiveItemUserData()->GetString("language") &&
+                    sheet->GetActivePage() == page, "style switching keeps open page and selection");
             }
             Select(*combo, "polish");
             Settle(*root);
@@ -612,6 +849,246 @@ int main(int argc, char** argv) {
             Require(clientCommands == 0, "no Apply OK failure Cancel or completion issues any client/restart command");
             Settle(*root);
         }
+        // Shared Smoked chrome is independent of old resource metrics; Original restores those metrics exactly.
+        class FixedResourceWindow : public vgui2::Frame {
+        public:
+            using Frame::Frame;
+            using Frame::GetClientArea;
+        };
+        auto* fixedWindow = new FixedResourceWindow(root, "FixedResourceWindow", true, false);
+        fixedWindow->SetScheme(tracker);
+        fixedWindow->SetBounds(0, 0, 640, 390);
+        fixedWindow->MakeReadyForUse();
+        int originalClientX = 0;
+        int originalClientY = 0;
+        int originalClientWide = 0;
+        int originalClientTall = 0;
+        fixedWindow->GetClientArea(originalClientX, originalClientY, originalClientWide, originalClientTall);
+        engine_fixture::uiStyle = 1.0f;
+        fixedWindow->InvalidateLayout(true, true);
+        int clientX = 0;
+        int clientY = 0;
+        int clientWide = 0;
+        int clientTall = 0;
+        fixedWindow->GetClientArea(clientX, clientY, clientWide, clientTall);
+        Require(clientX == vgui2::smoked::Pixels(16) && clientY == vgui2::smoked::Pixels(48) &&
+            clientWide == fixedWindow->GetWide() - clientX * 2 &&
+            clientTall == fixedWindow->GetTall() - clientY - clientX,
+            "fixed windows use the shared Smoked header and inset");
+        engine_fixture::uiStyle = 0.0f;
+        fixedWindow->InvalidateLayout(true, true);
+        fixedWindow->GetClientArea(clientX, clientY, clientWide, clientTall);
+        Require(clientX == originalClientX && clientY == originalClientY &&
+            clientWide == originalClientWide && clientTall == originalClientTall,
+            "Original restores the complete fixed-window client geometry");
+        engine_fixture::uiStyle = 1.0f;
+        fixedWindow->InvalidateLayout(true, true);
+        auto* layoutMenu = new vgui2::Menu(root, "LayoutMenu");
+        auto* cascade = new vgui2::Menu(root, "LayoutCascade");
+        auto* parentRow = new vgui2::MenuItem(layoutMenu, "ParentRow", "Parent", cascade, false);
+        layoutMenu->AddMenuItem(parentRow);
+        auto* separator = new vgui2::MenuItem(layoutMenu, "BlankSeparator", "", nullptr, false);
+        layoutMenu->AddMenuItem(separator);
+        auto* childRow = new vgui2::MenuItem(cascade, "ChildRow", "Child", nullptr, false);
+        cascade->AddMenuItem(childRow);
+        layoutMenu->SetPos(40, 40);
+        layoutMenu->SetVisible(true);
+        layoutMenu->MakeReadyForUse();
+        layoutMenu->InvalidateLayout(true, true);
+        layoutMenu->PerformLayout();
+        parentRow->OpenCascadeMenu();
+        Require(separator->GetTall() <= parentRow->GetTall() / 2 && !separator->IsEnabled(),
+            "empty menu rows become compact noninteractive separators");
+        separator->ArmItem();
+        Require(!separator->IsItemArmed(), "empty separators never acquire the selection marker");
+        int parentX = 0;
+        int parentY = 0;
+        int childX = 0;
+        int childY = 0;
+        vgui2::ipanel()->GetAbsPos(parentRow->GetVPanel(), parentX, parentY);
+        vgui2::ipanel()->GetAbsPos(childRow->GetVPanel(), childX, childY);
+        std::fprintf(stderr, "Cascade: parent %d,%d width %d; child %d,%d\n",
+            parentX, parentY, parentRow->GetWide(), childX, childY);
+        Require(parentY == childY && childX >= parentX + parentRow->GetWide() + vgui2::smoked::Pixels(18),
+            "cascades align their first row with the owning row and keep a consistent gap");
+        delete layoutMenu;
+        auto* displayCombo = new GlyphProbeCombo(fixedWindow, "DisplayCombo", 4, false);
+        displayCombo->SetText("Spectator camera");
+        displayCombo->MakeReadyForUse();
+        displayCombo->SetBounds(0, 0, 240, 32);
+        displayCombo->SetText("A&B && Company");
+        displayCombo->PaintBackground();
+        Require(displayCombo->glyphs == 0, "display dropdown backgrounds never draw a second editor text pass");
+        wchar_t literal[32]{};
+        geometry.paintedText.clear();
+        geometry.observeText = true;
+        displayCombo->Paint();
+        geometry.observeText = false;
+        Require(geometry.paintedText == L"A&B && Company", "closed dropdowns render literal ampersands without mnemonic loss");
+        displayCombo->GetText(literal, 32);
+        Require(std::wcscmp(literal, L"A&B && Company") == 0, "dropdown presentation preserves literal ampersands");
+        displayCombo->AddItem("A long translated spectator camera option", nullptr);
+        displayCombo->SetBounds(ScreenWidth - 140, ScreenHeight - 40, 120, 32);
+        displayCombo->ShowMenu();
+        displayCombo->GetMenu()->PerformLayout();
+        int popupX = 0;
+        int popupY = 0;
+        displayCombo->GetMenu()->GetPos(popupX, popupY);
+        Require(displayCombo->GetMenu()->GetWide() > displayCombo->GetWide() &&
+            popupX >= 0 && popupX + displayCombo->GetMenu()->GetWide() <= ScreenWidth &&
+            popupY >= 0 && popupY + displayCombo->GetMenu()->GetTall() <= ScreenHeight,
+            "narrow dropdowns fit complete captions and stay inside the screen");
+        displayCombo->HideMenu();
+        displayCombo->SelectAllText(false);
+        int selectionStart = 0;
+        int selectionEnd = 0;
+        Require(!displayCombo->GetSelectedRange(selectionStart, selectionEnd),
+            "a display dropdown never exposes text-editor selection under glass");
+        auto* editableCombo = new vgui2::ComboBox(fixedWindow, "EditableCombo", 4, true);
+        editableCombo->SetText("editable value");
+        editableCombo->SelectAllText(false);
+        Require(editableCombo->GetSelectedRange(selectionStart, selectionEnd),
+            "editable dropdowns retain actual text selection");
+        engine_fixture::uiStyle = 0.0f;
+        fixedWindow->InvalidateLayout(true, true);
+        Require(displayCombo->GetSelectedRange(selectionStart, selectionEnd),
+            "Original retains the legacy dropdown selection behavior");
+        displayCombo->glyphs = 0;
+        displayCombo->PaintBackground();
+        Require(displayCombo->glyphs > 0, "Original dropdowns retain their editor drawing pass");
+        delete fixedWindow;
+        engine_fixture::uiStyle = 1.0f;
+        auto* longMenu = new vgui2::Menu(root, "OverflowMenu");
+        const int rows = ScreenHeight / vgui2::smoked::Pixels(36) + 5;
+        for (int row = 0; row < rows; ++row) {
+            auto* item = new vgui2::MenuItem(longMenu, "OverflowRow", "Visible command", nullptr, false);
+            longMenu->AddMenuItem(item);
+        }
+        auto* ownerHidden = longMenu->GetMenuItem(longMenu->GetMenuID(1));
+        ownerHidden->SetVisible(false);
+        longMenu->SetNumberOfVisibleItems(99);
+        longMenu->SetVisible(true);
+        longMenu->MakeReadyForUse();
+        longMenu->InvalidateLayout(true, true);
+        longMenu->PerformLayout();
+        Require(longMenu->GetTall() <= ScreenHeight, "overflow menu fits the screen");
+        auto* finalRow = longMenu->GetMenuItem(longMenu->GetMenuID(rows - 1));
+        Require(!finalRow->IsVisible(), "overflow rows start outside the scroll window");
+        for (int row = 0; row <= rows; ++row) {
+            longMenu->OnKeyCodeTyped(vgui2::KEY_DOWN);
+            longMenu->PerformLayout();
+        }
+        int finalX = 0;
+        int finalY = 0;
+        finalRow->GetPos(finalX, finalY);
+        Require(finalRow->IsVisible() && finalY >= 0 && finalY + finalRow->GetTall() <= longMenu->GetTall(),
+            "keyboard navigation scrolls the final command into the menu");
+        Require(!ownerHidden->IsVisible(), "scrolling respects owner-hidden menu items");
+        engine_fixture::uiStyle = 0.0f;
+        longMenu->InvalidateLayout(true, true);
+        longMenu->PerformLayout();
+        Require(finalRow->IsVisible() && !ownerHidden->IsVisible(),
+            "Original restores requested row visibility after a glass scroll window");
+        Require(cse::ui::ControlsMenuLimits().find(longMenu) == cse::ui::ControlsMenuLimits().end(),
+            "Original releases the temporary screen-height row limit");
+        delete longMenu;
+        auto* compactCaption = new vgui2::Button(root, "CompactCaption", "");
+        compactCaption->SetScheme(tracker);
+        compactCaption->SetBounds(0, 0, 104, 24);
+        compactCaption->SetText(L"По умолчанию");
+        compactCaption->MakeReadyForUse();
+        int originalCaptionWide = 0;
+        int originalCaptionTall = 0;
+        compactCaption->GetContentSize(originalCaptionWide, originalCaptionTall);
+        engine_fixture::uiStyle = 1.0f;
+        compactCaption->InvalidateLayout(true, true);
+        int captionWide = 0;
+        int captionTall = 0;
+        compactCaption->GetContentSize(captionWide, captionTall);
+        Require(captionWide <= std::max(compactCaption->GetWide(), originalCaptionWide),
+            "small fixed buttons retain fitting captions without increasing existing overflow");
+        delete compactCaption;
+        engine_fixture::uiStyle = 0.0f;
+        auto* visibleArtwork = new vgui2::Panel(root, "VisibleDecoration");
+        auto* hiddenArtwork = new vgui2::Panel(root, "HiddenDecoration");
+        visibleArtwork->SetVisible(true);
+        hiddenArtwork->SetVisible(false);
+        engine_fixture::uiStyle = 1.0f;
+        vgui2::smoked::Decorations({visibleArtwork, hiddenArtwork});
+        Require(!visibleArtwork->IsVisible() && !hiddenArtwork->IsVisible(), "Smoked hides only shell artwork");
+        engine_fixture::uiStyle = 0.0f;
+        vgui2::smoked::Decorations({visibleArtwork, hiddenArtwork});
+        Require(visibleArtwork->IsVisible() && !hiddenArtwork->IsVisible(),
+            "Original restores the owner's exact decoration visibility");
+        delete visibleArtwork;
+        delete hiddenArtwork;
+        auto* ownership = new ParentOwnedPresentation(root);
+        ownership->SetScheme(tracker);
+        ownership->InvalidateLayout(true, true);
+        ownership->Activate();
+        ownership->hidden->MakeReadyForUse();
+        const Color originalHidden = ownership->hidden->GetBgColor();
+        const vgui2::HFont originalPlaybackFont = ownership->playback->GetFont();
+        Settle(*root);
+        Capture(*ownership, output / "parent-owned-original.bmp");
+        Require(ownership->HasPlaybackIcon(), "parent installs its playback image after child scheme setup");
+        std::map<vgui2::Panel*, std::array<int, 4>> originalChildBounds;
+        for (int i = 0; i < ownership->GetChildCount(); ++i) {
+            auto* child = ownership->GetChild(i);
+            auto& bounds = originalChildBounds[child];
+            child->GetBounds(bounds[0], bounds[1], bounds[2], bounds[3]);
+        }
+        engine_fixture::uiStyle = 1.0f;
+        Capture(*ownership, output / "parent-owned-smoked.bmp");
+        Require(ownership->HasPlaybackIcon() && ownership->playback->GetBgColor() == Color(7, 19, 31, 0),
+            "style refresh preserves parent-owned playback icons and spectator-like child transparency");
+        ownership->hidden->SetVisible(true);
+        Capture(*ownership, output / "previously-hidden-smoked.bmp");
+        Require(ownership->hidden->GetBgColor() == Color(cse::ui::Field.r, cse::ui::Field.g,
+            cse::ui::Field.b, cse::ui::Field.a), "a never-painted control adopts the current style when shown");
+        engine_fixture::uiStyle = 0.0f;
+        Capture(*ownership, output / "parent-owned-restored.bmp");
+        wchar_t input[128]{};
+        ownership->hidden->GetText(input, 128);
+        for (const auto& item : originalChildBounds) {
+            std::array<int, 4> bounds{};
+            item.first->GetBounds(bounds[0], bounds[1], bounds[2], bounds[3]);
+            Require(bounds == item.second, "Original restores child geometry on the very first painted frame");
+        }
+        Require(ownership->playback->GetFont() == originalPlaybackFont,
+            "Original restores a parent-owned button's exact font");
+        Require(ownership->HasPlaybackIcon() && ownership->hidden->GetBgColor() == originalHidden &&
+            std::wcscmp(input, L"retained input") == 0,
+            "Original restores hidden input colors without clearing edits or playback images");
+        delete ownership;
+        auto* bindings = new vgui2::Frame(root, "PopulatedBindings", true, false);
+        bindings->SetBounds(0, 0, 440, 240);
+        bindings->SetScheme(tracker);
+        auto* table = new vgui2::SectionedListPanel(bindings, "Bindings");
+        table->SetBounds(16, 48, 408, 160);
+        table->AddSection(0, "Keyboard bindings");
+        table->AddColumnToSection(0, "action", "Action", 0, 180);
+        table->AddColumnToSection(0, "key", "Key", 0, 100);
+        table->AddColumnToSection(0, "alternate", "Alternate", 0, 100);
+        KeyValues* binding = new KeyValues("Binding", "action", "Jump");
+        binding->SetString("key", "Space");
+        binding->SetString("alternate", "Mouse 3");
+        const int bindingID = table->AddItem(0, binding);
+        binding->deleteThis();
+        bindings->InvalidateLayout(true, true);
+        bindings->Activate();
+        Settle(*root);
+        Capture(*bindings, output / "bindings-original.bmp");
+        engine_fixture::uiStyle = 1.0f;
+        Capture(*bindings, output / "bindings-smoked.bmp");
+        Settle(*root);
+        engine_fixture::uiStyle = 0.0f;
+        Capture(*bindings, output / "bindings-restored.bmp");
+        Settle(*root);
+        Require(table->GetItemCount() == 1 &&
+            std::strcmp(table->GetItemData(bindingID)->GetString("action"), "Jump") == 0,
+            "live style switches preserve populated multi-column binding rows");
+        delete bindings;
         vgui2::surface()->SetEmbeddedPanel(0);
         delete root;
         vgui2::ivgui()->Shutdown();

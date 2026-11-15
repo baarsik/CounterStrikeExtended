@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_TaskBar.h"
 #include "VGUI_ActionSignal.h"
 #include "VGUI_App.h"
@@ -75,7 +76,12 @@ void FooClock::paintBackground()
 
 	Panel::paintBackground();
 	drawSetTextFont( Scheme::SchemeFont::sf_primary1 );
-	drawSetTextColor( Scheme::SchemeColor::sc_black );
+    if (cse_vgui1::smoked::Enabled()) {
+        const auto color = cse::ui::Text;
+        drawSetTextColor(color.r, color.g, color.b, cse::ui::LegacyAlpha(color.a));
+    } else {
+        drawSetTextColor(Scheme::sc_black);
+    }
     // snprintf bounds the clock text to this 50-byte buffer, which fits the int text-count API.
     drawPrintText(0, 0, buf, static_cast<int>(strlen(buf)));
 }

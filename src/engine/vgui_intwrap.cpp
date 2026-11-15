@@ -1,3 +1,4 @@
+#include "../public/vgui1_style.h"
 #if defined(__APPLE__)
 #include "VGui1NativeRuntime.h"
 #include "filesystem.h"
@@ -102,6 +103,7 @@ bool cse::TryShutdownNativeVGuiWrap1() {
 
 	delete staticEngineSurface;
 	staticEngineSurface = NULL;
+    CSE_VGui1BindStyle(nullptr);
     return true;
 }
 
@@ -197,6 +199,7 @@ void VGuiWrap_Startup()
         cse_vgui1_native::InvalidEmbeddedUse("layout/paint before checked root admission");
     }
 #endif
+    CSE_VGui1BindStyle(cse::ui::QueryStyle(Sys_GetFactoryThis()));
 	vgui::App::getInstance()->reset();
 #if defined(__APPLE__)
     cse_vgui1_selection::SchemeReport report{};

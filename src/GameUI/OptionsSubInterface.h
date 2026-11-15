@@ -9,6 +9,7 @@
 namespace vgui2 {
 class ComboBox;
 class Label;
+class RadioButton;
 }
 
 class COptionsSubInterface : public vgui2::PropertyPage {
@@ -38,6 +39,8 @@ private:
     vgui2::Label* m_launchOverride;
     vgui2::ComboBox* m_uiStyleCombo;
     vgui2::Label* m_uiStyleLabel;
+    vgui2::RadioButton* m_originalStyle;
+    vgui2::RadioButton* m_smokedStyle;
     int m_originalUIStyle = 0;
     std::vector<int> m_languageItemIds;
     std::vector<int> m_uiStyleItemIds;

@@ -32,7 +32,7 @@
         "CSEInterface_LaunchOverride" "L’opzione di avvio -language ha la precedenza su questa impostazione."
         "CSEInterface_Style" "Stile dell'interfaccia"
         "CSEInterface_StyleOriginal" "Originale"
-        "CSEInterface_StyleExtended" "Esteso"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "Configurazione del browser dei server"
         "CSEServerBrowser_Masterservers" "Master server"

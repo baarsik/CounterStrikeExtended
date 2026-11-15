@@ -49,11 +49,19 @@ bool CSE_ABI_CALL Draw(std::uintptr_t, const cse::ui::BackdropStyle*) {
     return true;
 }
 cse::ui::BackgroundEffectsApi effects{sizeof(effects), cse::ui::BackgroundEffectsVersion, Draw};
+int selectedStyle = 1;
+int CSE_ABI_CALL CurrentStyle() { return selectedStyle; }
+bool CSE_ABI_CALL DrawSurface(const cse::ui::BackdropRect*, const cse::ui::BackdropRect*,
+    const cse::ui::BackdropStyle*, float) { return true; }
+cse::ui::StyleApi style{sizeof(style), cse::ui::StyleApiVersion, CurrentStyle, DrawSurface};
 
 void* Factory(const char* name, int*) {
     static vgui2::IVGui gui;
     if (std::strcmp(name, cse::ui::BackgroundEffectsInterface) == 0) {
         return &effects;
+    }
+    if (std::strcmp(name, cse::ui::StyleInterface) == 0) {
+        return &style;
     }
     if (std::strcmp(name, "KeyValues003") == 0) {
         return &keys;
@@ -67,6 +75,18 @@ int main() {
         cse::ui::ControlsBackgroundEffects() != &effects) {
         std::fputs("Controls initialization did not bind the optional background service\n", stderr);
         return 1;
+    }
+    if (!cse::ui::ControlsSmokedGlass() || cse::ui::ControlsStyleChanged(&keys)) {
+        return 2;
+    }
+    cse::ui::RememberControlStyle(&keys);
+    selectedStyle = 0;
+    if (cse::ui::ControlsSmokedGlass() || !cse::ui::ControlsStyleChanged(&keys)) {
+        return 3;
+    }
+    cse::ui::RememberControlStyle(&keys);
+    if (cse::ui::ControlsStyleChanged(&keys)) {
+        return 4;
     }
     vgui2::VGuiControls_Shutdown();
     if (cse::ui::ControlsBackgroundEffects() != nullptr) {

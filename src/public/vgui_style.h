@@ -3,10 +3,10 @@
 namespace cse {
 namespace ui {
 
-// Shared style selection for VGUI presentation. Individual controls opt into the extended style.
+// Archived numeric values are shared by VGUI1, VGUI2 and the Interface settings page.
 constexpr char VGuiStyleCvar[] = "vgui_style";
 constexpr int OriginalVGuiStyle = 0;
-constexpr int ExtendedVGuiStyle = 1;
+constexpr int SmokedTacticalGlassVGuiStyle = 1;
 
 } // namespace ui
 } // namespace cse

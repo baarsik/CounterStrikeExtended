@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -935,39 +936,40 @@ int TextEntry::PixelToCursorSpace( int cx, int cy )
 //			x, y - pixel location to draw char at
 // Output:	returns the width of the character drawn
 //-----------------------------------------------------------------------------
-int TextEntry::DrawChar( wchar_t ch, HFont font, int index, int x, int y )
-{
-	// add to the current position
-	int charWide = getCharWidth( font, ch );
-	if ( !iswprint( ch ) )
-		return 0;
+int TextEntry::DrawChar(wchar_t ch, HFont font, int index, int x, int y) {
+    const int charWide = getCharWidth(font, ch);
+    if (!iswprint(ch)) {
+        return 0;
+    }
 
-	int fontTall = surface()->GetFontTall( font );
+    const int fontTall = surface()->GetFontTall(font);
+    const bool smokedGlass = cse::ui::ControlsSmokedGlass();
+    int selectionStart = -1;
+    int selectionEnd = -1;
+    GetSelectedRange(selectionStart, selectionEnd);
+    if (index >= selectionStart && index < selectionEnd) {
+        const VPANEL focus = input()->GetFocus();
+        bool hasFocus = HasFocus();
+        if (!hasFocus && focus) {
+            hasFocus = ipanel()->HasParent(focus, GetVPanel());
+        }
 
-	// draw selection, if any
-	int selection0 = -1;
-	int selection1 = -1;
-	GetSelectedRange( selection0, selection1 );
-	if ( index >= selection0 && index < selection1 )
-	{
-		// draw background selection color
-		VPANEL focus = input()->GetFocus();
-		bool hasFocus = HasFocus();
-		if ( !hasFocus && focus )
-			hasFocus = ipanel()->HasParent( focus, GetVPanel() );
+        if (smokedGlass) {
+            surface()->DrawSetColor(smoked::ColorOf(
+                hasFocus ? cse::ui::TextSelection : cse::ui::TextSelectionInactive));
+        } else {
+            surface()->DrawSetColor(hasFocus ? _selectionColor : _defaultSelectionBG2Color);
+        }
+        surface()->DrawFilledRect(x, y, x + charWide, y + fontTall + 1);
+        surface()->DrawSetTextColor(smokedGlass ? smoked::ColorOf(cse::ui::Text) : _selectionTextColor);
+    } else if (smokedGlass) {
+        // The preceding selected glyph may have changed the surface's text color.
+        surface()->DrawSetTextColor(IsEnabled() ? GetFgColor() : _disabledFgColor);
+    }
 
-		if ( hasFocus )
-			surface()->DrawSetColor( _selectionColor );
-		else
-			surface()->DrawSetColor( _defaultSelectionBG2Color );
-		surface()->DrawFilledRect( x, y, x + charWide, y + fontTall + 1 );
-		// reset text color
-		surface()->DrawSetTextColor( _selectionTextColor );
-	}
-
-	surface()->DrawSetTextPos( x, y );
-	surface()->DrawUnicodeChar( ch );
-	return charWide;
+    surface()->DrawSetTextPos(x, y);
+    surface()->DrawUnicodeChar(ch);
+    return charWide;
 }
 
 //-----------------------------------------------------------------------------
@@ -2458,6 +2460,7 @@ void TextEntry::ApplySchemeSettings( IScheme* scheme )
 	_focusEdgeColor = GetSchemeColor( "BorderSelection", Color( 0, 0, 0, 0 ), scheme );
 	SetBorder( scheme->GetBorder( "ButtonDepressedBorder" ) );
 	HFont font = scheme->GetFontEx( "Default", IsProportional(), IsHDProportional() );
+    font = smoked::TextFont(this, scheme, font);
 	_font = font;
 	SetFont( font );
 }

@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "hud.h"
 #include "counterstrikeviewport.h"
 #include "BitmapImagePanel.h"
@@ -145,6 +146,27 @@ void CounterStrikeViewport::CCSBackGroundPanel::Activate()
 
 void CounterStrikeViewport::CCSBackGroundPanel::PaintBackground()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        // Text windows have their own shared shell; retain this panel's visibility for menu ownership.
+        const vgui2::VPANEL parent = GetVParent();
+        const int siblingCount = parent ? vgui2::ipanel()->GetChildCount(parent) : 0;
+        for (int index = 0; index < siblingCount; ++index) {
+            const vgui2::VPANEL sibling = vgui2::ipanel()->GetChild(parent, index);
+            vgui2::Panel* child = vgui2::ipanel()->GetPanel(sibling, GetModuleName());
+            if (child && child->IsVisible() && vgui2::smoked::DocumentLayout(child)) {
+                return;
+            }
+        }
+        int x = 0;
+        int y = 0;
+        int right = 0;
+        int bottom = 0;
+        m_pTopLeftPanel->GetPos(x, y);
+        m_pBottomRightPanel->GetPos(right, bottom);
+        vgui2::smoked::Surface(this, {x, y, right + m_pBottomRightPanel->GetWide() - x,
+            bottom + m_pBottomRightPanel->GetTall() - y});
+        return;
+    }
 	vgui2::surface()->DrawSetColor( m_bgColor );
 	int x1, y1, x2, y2;
 	if ( IEngineStudio.IsHardware() )
@@ -235,4 +257,9 @@ void CounterStrikeViewport::CCSBackGroundPanel::ApplySchemeSettings( vgui2::ISch
 		m_pBottomLeftPanel->SetVisible( false );
 		m_pBottomRightPanel->SetVisible( false );
 	}
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel,
+        m_pBottomLeftPanel, m_pBottomRightPanel});
+    if (vgui2::Panel* emblem = FindChildByName("ExclamationPanel", false)) {
+        vgui2::smoked::Decorations({emblem});
+    }
 }

@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -214,6 +215,28 @@ void PropertyDialog::PerformLayout()
 	Frame::PerformLayout();
 	int x, y, wide, tall;
 	GetClientArea( x, y, wide, tall );
+    if (cse::ui::ControlsSmokedGlass() && smoked::OptionsLayout(this)) {
+        const int footer = smoked::Pixels(48);
+        const int buttonTall = smoked::Pixels(cse::ui::ControlHeight);
+        const int gap = smoked::Pixels(12);
+        _propertySheet->SetBounds(x, y, wide, (std::max)(0, tall - footer));
+        int right = x + wide;
+        for (Button* button : {_applyButton, _cancelButton, _okButton}) {
+            if (!button->IsVisible()) {
+                continue;
+            }
+            int contentWidth = 0;
+            int contentHeight = 0;
+            button->GetContentSize(contentWidth, contentHeight);
+            const int buttonWide = (std::max)(smoked::Pixels(88), contentWidth + smoked::Pixels(24));
+            button->SetBounds(right - buttonWide, y + tall - buttonTall, buttonWide, buttonTall);
+            right -= buttonWide + gap;
+        }
+        _propertySheet->InvalidateLayout(false, false);
+        Repaint();
+        return;
+    }
+
 	_propertySheet->SetBounds( x, y, wide, tall - GetProportionalScaledValue( 32 ) );
 
 	int buttonX = x + wide - GetProportionalScaledValue( 80 );

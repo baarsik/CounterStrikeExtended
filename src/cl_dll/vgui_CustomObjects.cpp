@@ -1,3 +1,4 @@
+#include "../public/vgui_style.h"
 //=========== (C) Copyright 1999 Valve, L.L.C. All rights reserved. ===========
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -17,6 +18,7 @@
 //=============================================================================
 
 #include "VGUI_Font.h"
+#include <algorithm>
 
 #include "hud.h"
 #include "cl_util.h"
@@ -33,6 +35,7 @@
 #include "vgui_TeamFortressViewport.h"
 #include "vgui_ServerBrowser.h"
 #include "vgui_loadtga.h"
+#include "VGUI_TextImage.h"
 
 // Arrow filenames
 char *sArrowFilenames[] =
@@ -176,6 +179,22 @@ void CommandButton::UpdateSubMenus( int iAdjustment )
 
 void CommandButton::paint()
 {
+    if (getParentMenu() &&
+        gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+        TextImage label(m_sMainText.c_str());
+        label.setFont(Scheme::sf_primary1);
+        label.setColor(Color(Scheme::sc_primary1));
+        int textWidth = 0;
+        int textHeight = 0;
+        label.getTextSize(textWidth, textHeight);
+        constexpr int TextPadding = 12;
+        const int inset = XRES(TextPadding);
+        label.setSize((std::max)(0, _size[0] - inset * 2), _size[1]);
+        label.setPos(inset, (_size[1] - textHeight) / 2);
+        label.doPaint(this);
+        return;
+    }
+
 	// Make the sub label paint the same as the button
 	if ( m_pSubLabel )
 	{
@@ -200,6 +219,22 @@ void CommandButton::paint()
 
 void CommandButton::paintBackground()
 {
+    if (getParentMenu() &&
+        gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+        constexpr int SelectionAlpha = 187; // VGUI1 inverse alpha: 68/255 coverage.
+        constexpr int DividerAlpha = 243;
+        constexpr int SelectionStripe = 3;
+        if (isArmed()) {
+            drawSetColor(220, 176, 88, SelectionAlpha);
+            drawFilledRect(0, 0, _size[0], _size[1]);
+            drawSetColor(220, 176, 88, 0);
+            drawFilledRect(0, 0, XRES(SelectionStripe), _size[1]);
+        }
+        drawSetColor(218, 229, 232, DividerAlpha);
+        const int inset = XRES(12);
+        drawFilledRect(inset, _size[1] - 1, _size[0] - inset, _size[1]);
+        return;
+    }
 	if ( m_bFlat )
 	{
 		if ( isArmed() )
@@ -397,6 +432,14 @@ void CImageLabel::LoadImage(const char * pImageName)
 // Various overloaded paint functions for Custom VGUI objects
 void CCommandMenu::paintBackground()
 {
+    if (gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+        Color original;
+        getBgColor(original);
+        setBgColor(Scheme::sc_secondary3);
+        Panel::paintBackground();
+        setBgColor(original);
+        return;
+    }
 	// Transparent black background
 
 	if ( m_iSpectCmdMenu ) 

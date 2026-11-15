@@ -24,3 +24,15 @@ This catches a module that draws the gradient fallback because it never bound th
 
 These tests do not establish in-game appearance, gameplay performance, interactive settings layout
 or Windows driver compatibility. Owning runtime builds and gameplay checks remain separate.
+
+The style policy fixture pins saved style values, optional API validation, palette ownership, rounded
+geometry and compact spectator rail bounds. Rounded real-GL cases verify that the silhouette stays in
+its original coordinates under parent clipping. The legacy style fixture compiles the actual VGUI1
+background owner, material helper and HL scoreboard hover painter; local-player/team, fading killer and
+mute-hover RGB/inverse-alpha survive styling, while literal foreground colors stay producer-owned.
+
+The native Options fixture in `tests/native/server_browser_ui` also exercises Original ↔ Smoked Tactical
+Glass through the real settings page and shared controls under ASan/UBSan. It checks the renamed option,
+retained open-page/selection/input, absence of Original material requests, restoration of original colors,
+never-painted hidden controls and parent-owned playback icons/child transparency. Its SDL renderer checks
+the no-GL fallback; the separate real-GL fixture checks blurred composition.

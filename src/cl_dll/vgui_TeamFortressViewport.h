@@ -1,3 +1,4 @@
+#include "../public/vgui_style.h"
 
 #ifndef TEAMFORTRESSVIEWPORT_H
 #define TEAMFORTRESSVIEWPORT_H
@@ -252,6 +253,10 @@ public:
 
 	virtual void paintBackground()
 	{
+        if (gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+            Button::paintBackground();
+            return;
+        }
 		int r, g, b, a;
 		Color bgcolor;
 
@@ -343,6 +348,10 @@ public:
 		
 	virtual void paintBackground()
 	{
+        if (gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+            Button::paintBackground();
+            return;
+        }
 		if ( isArmed())
 		{
 			drawSetColor( 143,143, 54, 125 ); 
@@ -1516,6 +1525,14 @@ public:
 
 	virtual void paintBackground()
 	{
+        if (m_iTransparency && gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+            Color original;
+            getBgColor(original);
+            setBgColor(Scheme::sc_secondary3);
+            Panel::paintBackground();
+            setBgColor(original);
+            return;
+        }
 		if (m_iTransparency)
 		{
 			// Transparent black background

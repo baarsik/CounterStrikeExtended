@@ -1,6 +1,6 @@
 #include "ServerBrowserDialog.h"
 #include "ServerBrowserSettingsDialog.h"
-#include "Tooltip.h"
+#include "../../vgui2/controls/SmokedGlass.h"
 #include "localization_controls.h"
 #include "Button.h"
 #include "CheckButton.h"
@@ -84,12 +84,34 @@ std::string Text(vgui2::TextEntry *entry) {
 // Draw the cog as geometry so it works with every installed font and needs no raster asset.
 class BrowserSettingsButton final : public vgui2::Button {
 public:
-    explicit BrowserSettingsButton(vgui2::Panel* parent) : Button(parent, "BrowserSettings", "") {
+    explicit BrowserSettingsButton(vgui2::Panel *parent) : Button(parent, "BrowserSettings", "") {
         SetCommand("BrowserSettings");
         AddActionSignalTarget(parent);
-        GetTooltip()->SetText("#CSEServerBrowser_Configuration");
     }
+
+    Color GetButtonFgColor() override {
+        if (OriginalInactive()) {
+            return GetSchemeColor("TitleButtonDisabledFgColor", vgui2::scheme()->GetIScheme(GetScheme()));
+        }
+        return Button::GetButtonFgColor();
+    }
+
+    Color GetButtonBgColor() override {
+        if (OriginalInactive()) {
+            return GetSchemeColor("TitleButtonDisabledBgColor", vgui2::scheme()->GetIScheme(GetScheme()));
+        }
+        return Button::GetButtonBgColor();
+    }
+
 protected:
+    void PaintBackground() override {
+        // Focus can change without a layout pass; match the frame's title-button state immediately.
+        SetBgColor(GetButtonBgColor());
+        SetBorder(OriginalInactive() ? vgui2::scheme()->GetIScheme(GetScheme())->GetBorder("TitleButtonDisabledBorder") :
+            Button::GetBorder(IsDepressed(), IsArmed(), IsSelected(), HasFocus()));
+        Button::PaintBackground();
+    }
+
     void Paint() override {
         Button::Paint();
         constexpr int CogPoints = 32;
@@ -117,6 +139,13 @@ protected:
             y[point] = static_cast<int>(std::lround(centerY + std::sin(angle) * HoleRadius));
         }
         vgui2::surface()->DrawPolyLine(x.data(), y.data(), static_cast<int>(x.size()));
+    }
+
+private:
+    bool OriginalInactive() {
+        const vgui2::VPANEL focus = vgui2::input()->GetFocus();
+        return !cse::ui::ControlsSmokedGlass() && GetParent() &&
+            !(focus && vgui2::ipanel()->HasParent(focus, GetParent()->GetVPanel()));
     }
 };
 
@@ -1170,12 +1199,34 @@ void ServerBrowserDialog::ReloadPage() {
 void ServerBrowserDialog::PerformLayout() {
     ClampFrame(*this);
     Frame::PerformLayout();
-    constexpr int TitleButtonSize = 18;
-    constexpr int TitleButtonStep = 20;
-    constexpr int TitleButtonMargin = 5;
-    constexpr int TitleButtonTop = 8;
-    settingsButton_->SetBounds(GetWide() - TitleButtonMargin - 2 * TitleButtonStep, TitleButtonTop,
-        TitleButtonSize, TitleButtonSize);
+    const bool smoked = cse::ui::ControlsSmokedGlass();
+    int clientX = 0;
+    int clientY = 0;
+    int clientWidth = 0;
+    int clientHeight = 0;
+    GetClientArea(clientX, clientY, clientWidth, clientHeight);
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    tabs_->GetBounds(x, y, width, height);
+    const int sourceTop = y - tabsTopAdjustment_;
+    const int adjustment = smoked ? clientY - sourceTop : 0;
+    const int shift = adjustment - tabsTopAdjustment_;
+    if (shift != 0) {
+        tabs_->SetBounds(x, y + shift, width, height - shift);
+        tabsTopAdjustment_ = adjustment;
+    }
+    constexpr int OriginalTitleButtonSize = 18;
+    constexpr int OriginalTitleButtonStep = 20;
+    constexpr int OriginalTitleButtonMargin = 5;
+    constexpr int OriginalTitleButtonTop = 8;
+    const int side = smoked ? vgui2::smoked::Pixels(cse::ui::TitleButtonSize) : OriginalTitleButtonSize;
+    const int step = smoked ? side + vgui2::smoked::Pixels(cse::ui::TitleButtonGap) : OriginalTitleButtonStep;
+    const int margin = smoked ? vgui2::smoked::Pixels(cse::ui::WindowInset) : OriginalTitleButtonMargin;
+    const int top = smoked ? (vgui2::smoked::Pixels(cse::ui::WindowHeaderHeight) - side) / 2
+        : OriginalTitleButtonTop;
+    settingsButton_->SetBounds(GetWide() - margin - step - side, top, side, side);
     settingsButton_->MoveToFront();
 }
 

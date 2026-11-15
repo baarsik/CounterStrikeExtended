@@ -14,9 +14,24 @@ if(NOT MSVC)
   target_compile_options(vgui_backdrop_tests PRIVATE -Wall -Wextra -Werror -Wno-deprecated-declarations)
 endif()
 enable_testing()
+add_executable(vgui_style_policy_tests style_policy_tests.cpp)
+target_compile_features(vgui_style_policy_tests PRIVATE cxx_std_17)
+target_include_directories(vgui_style_policy_tests PRIVATE "${CSE_ROOT}/src/public")
+add_test(NAME vgui-style-policy COMMAND vgui_style_policy_tests)
 add_test(NAME vgui-backdrop-real-gl COMMAND vgui_backdrop_tests)
 set_tests_properties(vgui-backdrop-real-gl PROPERTIES TIMEOUT 30)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/Panel.cpp"
+  "${CSE_ROOT}/src/utils/vgui/lib-src/vgui/SmokedGlass.h"
+  "${CSE_ROOT}/src/cl_dll/vgui_ScorePanel.cpp" extract_legacy_style.py)
+execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_legacy_style.py"
+  "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/legacy" COMMAND_ERROR_IS_FATAL ANY)
+add_executable(vgui_legacy_style_tests legacy_style_tests.cpp)
+target_compile_features(vgui_legacy_style_tests PRIVATE cxx_std_17)
+target_include_directories(vgui_legacy_style_tests PRIVATE "${CSE_ROOT}/src/public"
+  "${CMAKE_CURRENT_BINARY_DIR}/legacy")
+add_test(NAME vgui-legacy-semantic-style COMMAND vgui_legacy_style_tests)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   "${CSE_ROOT}/src/vgui2/controls/controls.cpp"
   "${CSE_ROOT}/src/cstrike/vgui2/controls/controls.cpp" extract_bindings.py)

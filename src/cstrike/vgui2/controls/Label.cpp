@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -12,6 +13,7 @@
 //=============================================================================
 
 #include "Label.h"
+#include "Button.h"
 #include "TextImage.h"
 #include "Controls.h"
 #include "vgui/ISurface.h"
@@ -387,7 +389,8 @@ void Label::ComputeAlignment( int& x0, int& y0, int& x1, int& y1 )
 	y0 = 0;
 	int totalWidth = 0;
 	int maxHeight = 0;
-	Alignment horizontalAlignment = _contentAlignment;
+    const Alignment alignment = smoked::CenterCaption<Button>(this) ? a_center : _contentAlignment;
+    Alignment horizontalAlignment = alignment;
 	for ( int index = 0; index < _imageDar.Count(); ++index )
 	{
 		TImageInfo& info = _imageDar[index];
@@ -432,7 +435,7 @@ void Label::ComputeAlignment( int& x0, int& y0, int& x1, int& y1 )
 	}
 
 	// y align text
-	switch ( _contentAlignment )
+	switch ( alignment )
 	{
 	case a_northwest:
 	case a_north:
@@ -697,6 +700,8 @@ void Label::ApplySchemeSettings( IScheme* scheme )
 		SetFont( font );
 	}
 
+    SetFont(smoked::TextFont(this, scheme, GetFont()));
+
 	int wide;
 	int tall;
 	if ( m_bWrap )
@@ -780,6 +785,10 @@ static int LabelPaintSubtract( int value, int offset )
 //-----------------------------------------------------------------------------
 void Label::Paint()
 {
+    const bool centerCaption = smoked::CenterCaption<Button>(this);
+    const int textInsetX = centerCaption ? 0 : _textInset[0];
+    const int textInsetY = centerCaption ? 0 : _textInset[1];
+
 	int left, top, right, bottom;
 	ComputeAlignment( left, top, right, bottom );
 
@@ -794,7 +803,7 @@ void Label::Paint()
 	int labelWidth, labelHeight;
 	Panel::GetSize( labelWidth, labelHeight );
 	int x = left;
-	int imageTop = LabelPaintAdd( top, _textInset[1] );
+	int imageTop = LabelPaintAdd( top, textInsetY );
 	for ( int index = 0; index < _imageDar.Count(); ++index )
 	{
 		TImageInfo& info = _imageDar[index];
@@ -818,12 +827,12 @@ void Label::Paint()
 		}
 		int imageX = LabelPaintAdd( x, info.offset );
 		if ( index == _textImageIndex )
-			imageX = LabelPaintAdd( imageX, _textInset[0] );
+			imageX = LabelPaintAdd( imageX, textInsetX );
 		if ( info.xpos >= 0 )
 			imageX = info.xpos;
 		int imageY = imageTop;
 		image->SetPos( imageX, imageY );
-		if ( ( _contentAlignment == a_west || _contentAlignment == a_center || _contentAlignment == a_east )
+		if ( ( centerCaption || _contentAlignment == a_west || _contentAlignment == a_center || _contentAlignment == a_east )
 			 && imageHeight < LabelPaintSubtract( bottom, top ) )
 		{
 			int unusedHeight = LabelPaintSubtract( LabelPaintSubtract( bottom, imageHeight ), top );

@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_Frame.h"
 #include "VGUI_ActionSignal.h"
 #include "VGUI_App.h"
@@ -550,6 +551,18 @@ void Frame::getTitle( char* buf, int bufLen )
 
 void Frame::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        Panel::paintBackground();
+        if (_title) {
+            constexpr int TitleX = 28;
+            constexpr int TitleY = 7;
+            drawSetTextFont(Scheme::sf_primary1);
+            const auto color = cse::ui::Text;
+            drawSetTextColor(color.r, color.g, color.b, cse::ui::LegacyAlpha(color.a));
+            drawPrintText(TitleX, TitleY, _title, static_cast<int>(strlen(_title)));
+        }
+        return;
+    }
 	Scheme::SchemeColor fill = Scheme::sc_secondary3;
 	Scheme::SchemeColor edge = Scheme::sc_secondary1;
 	Scheme::SchemeColor shade = Scheme::sc_secondary2;

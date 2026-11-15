@@ -32,7 +32,7 @@
         "CSEInterface_LaunchOverride" "The launch option -language overrides this setting."
         "CSEInterface_Style" "UI style"
         "CSEInterface_StyleOriginal" "Original"
-        "CSEInterface_StyleExtended" "Extended"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "Server Browser Configuration"
         "CSEServerBrowser_Masterservers" "Masterservers"

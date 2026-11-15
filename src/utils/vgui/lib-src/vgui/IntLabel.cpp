@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_IntLabel.h"
 
 #include <stdio.h>
@@ -40,7 +41,12 @@ void IntLabel::paintBackground()
 #endif
 	Panel::paintBackground();
 	drawSetTextFont( Scheme::sf_primary1 );
-	drawSetTextColor( Scheme::sc_black );
+    if (cse_vgui1::smoked::Enabled()) {
+        const auto color = cse::ui::Text;
+        drawSetTextColor(color.r, color.g, color.b, cse::ui::LegacyAlpha(color.a));
+    } else {
+        drawSetTextColor(Scheme::sc_black);
+    }
 	drawPrintText( 0, 0, buf, (int)strlen( buf ) );
 }
 

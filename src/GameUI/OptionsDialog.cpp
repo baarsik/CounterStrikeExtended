@@ -1,3 +1,4 @@
+#include "../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2001, Valve LLC, All rights reserved. ============
 //
 // Purpose: 
@@ -44,7 +45,7 @@ COptionsDialog::COptionsDialog(vgui2::Panel* parent)
     SetHDProportional(true);
     constexpr int DefaultHeight = 444;
     constexpr int DefaultWidth = 522;
-    const int tall = GetProportionalScaledValue(DefaultHeight);
+    const int tall = vgui2::scheme()->GetHDProportionalScaledValue(DefaultHeight);
     const int wide = GetProportionalScaledValue(DefaultWidth);
     SetBounds(0, 0, wide, tall);
     SetCloseSound("sound/UI/launch_dnmenu1.wav");
@@ -109,6 +110,16 @@ void COptionsDialog::SetTitle( const char* title, bool surfaceTitle )
 //-----------------------------------------------------------------------------
 void COptionsDialog::Activate()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        // A hidden MakeReadyForUse pass applies schemes but does not run layout.
+        // Select the first page before the window receives its first keyboard focus request.
+        vgui2::PropertySheet* sheet = GetPropertySheet();
+        if (!sheet->GetActivePage() && sheet->GetNumPages() > 0) {
+            sheet->SetActivePage(sheet->GetPage(0));
+        }
+        MakeReadyForUse();
+        PerformLayout();
+    }
 	vgui2::Frame::Activate();
 	EnableApplyButton( false );
 }
@@ -133,7 +144,36 @@ void COptionsDialog::OnClose() {
     MarkForDeletion();
 }
 
+int COptionsDialog::StyledHeight() {
+    int workspaceX = 0;
+    int workspaceY = 0;
+    int workspaceWide = 0;
+    int workspaceTall = 0;
+    vgui2::surface()->GetWorkspaceBounds(workspaceX, workspaceY, workspaceWide, workspaceTall);
+    constexpr int ScreenMargin = 4;
+    constexpr int DefaultStyledHeight = 640;
+    const int desired = vgui2::smoked::Pixels(DefaultStyledHeight);
+    return std::min(desired, workspaceTall - 2 * GetProportionalScaledValue(ScreenMargin));
+}
+
 void COptionsDialog::PerformLayout() {
+    const bool smoked = cse::ui::ControlsSmokedGlass();
+    const bool materialLayout = smoked || m_originalStyleHeight != 0;
+    const int oldWidth = GetWide();
+    const int oldHeight = GetTall();
+    int oldX = 0;
+    int oldY = 0;
+    GetPos(oldX, oldY);
+    if (smoked) {
+        if (!m_originalStyleHeight) {
+            m_originalStyleHeight = GetTall();
+        }
+        const int desiredHeight = StyledHeight();
+        SetTall(desiredHeight);
+    } else if (m_originalStyleHeight) {
+        SetTall(m_originalStyleHeight);
+        m_originalStyleHeight = 0;
+    }
     vgui2::PropertyDialog::PerformLayout();
     vgui2::PropertySheet* sheet = GetPropertySheet();
     int tabsWidth = 0;
@@ -145,19 +185,35 @@ void COptionsDialog::PerformLayout() {
         }
     }
     constexpr int DefaultWidth = 522;
-    constexpr int ScreenMargin = 8;
+    constexpr int OriginalScreenMargin = 8;
+    constexpr int StyledScreenMargin = 4;
     int workspaceX = 0;
     int workspaceY = 0;
     int workspaceWidth = 0;
     int workspaceHeight = 0;
     vgui2::surface()->GetWorkspaceBounds(workspaceX, workspaceY, workspaceWidth, workspaceHeight);
     const int frameInset = GetWide() - sheet->GetWide();
-    const int requiredWidth = std::max(GetProportionalScaledValue(DefaultWidth), tabsWidth + frameInset);
-    const int availableWidth = std::max(1, workspaceWidth - 2 * GetProportionalScaledValue(ScreenMargin));
+    // Wrapped tabs never determine owner geometry, including when the active page changes.
+    constexpr int DefaultStyledWidth = 760;
+    const int requiredWidth = smoked ? vgui2::smoked::Pixels(DefaultStyledWidth)
+        : std::max(GetProportionalScaledValue(DefaultWidth), tabsWidth + frameInset);
+    const int screenMargin = smoked ? vgui2::smoked::Pixels(StyledScreenMargin)
+        : GetProportionalScaledValue(OriginalScreenMargin);
+    const int availableWidth = std::max(1, workspaceWidth - 2 * screenMargin);
     const int width = std::min(requiredWidth, availableWidth);
     if (width != GetWide()) {
         SetWide(width);
         vgui2::PropertyDialog::PerformLayout();
+    }
+
+    constexpr int CenterTolerance = 1;
+    const bool wasCentered = std::abs(oldX + oldWidth / 2 - workspaceX - workspaceWidth / 2) <= CenterTolerance &&
+        std::abs(oldY + oldHeight / 2 - workspaceY - workspaceHeight / 2) <= CenterTolerance;
+    if (materialLayout && wasCentered && (oldWidth != GetWide() || oldHeight != GetTall())) {
+        MoveToCenterOfScreen();
+    }
+    if (smoked) {
+        return;
     }
 
     int clientX = 0;
@@ -213,6 +269,12 @@ void COptionsDialog::OnCommand(const char* command) {
 
 void COptionsDialog::OnThink() {
     vgui2::PropertyDialog::OnThink();
+    if (cse::ui::ControlsSmokedGlass() && m_originalStyleHeight) {
+        const int desiredHeight = StyledHeight();
+        if (GetTall() != desiredHeight) {
+            InvalidateLayout(true, false);
+        }
+    }
     if (!m_languageApplyPending) {
         return;
     }

@@ -86,6 +86,9 @@ public:
 	virtual void Undo();
 	virtual void SaveUndoState();
 	virtual void SetFont( HFont font );
+    HFont GetFont() const {
+        return _font;
+    }
 	virtual void SetTextHidden( bool bHideText );
 	virtual void SetEditable( bool state );
 	virtual bool IsEditable();

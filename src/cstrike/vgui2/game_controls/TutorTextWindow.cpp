@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "TutorTextWindow.h"
 #include "Frame.h"
 #include "Label.h"
@@ -158,10 +159,16 @@ void CTutorMessageBox::ApplySchemeSettings( IScheme* pScheme )
 	m_pBottomLeftPanel->SetVisible( m_hardwareMode != 0 );
 	m_pBottomRightPanel->SetVisible( m_hardwareMode != 0 );
 	SetBorder( NULL );
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel,
+        m_pBottomLeftPanel, m_pBottomRightPanel});
 }
 
 void CTutorMessageBox::PaintBackground()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
 	int x1, y1, x2, y2;
 	surface()->DrawSetColor( m_bgColor );
 	if ( !m_hardwareMode )

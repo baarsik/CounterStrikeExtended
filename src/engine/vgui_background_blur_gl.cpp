@@ -1,4 +1,5 @@
 #include "vgui_background_blur_gl.h"
+#include "../public/vgui_smoked_glass.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
@@ -306,7 +307,7 @@ bool BackgroundBlur::Capture(int x, int y, int width, int height) {
 }
 
 bool BackgroundBlur::Draw(const BackdropRect& panel, const BackdropRect& clip, int screenWidth, int screenHeight,
-    const BackdropStyle& style) {
+    const BackdropStyle& style, float radius) {
     Impl& state = *impl_;
     if (panel.width <= 0 || panel.height <= 0 || clip.width <= 0 || clip.height <= 0 ||
         screenWidth <= 0 || screenHeight <= 0) {
@@ -350,6 +351,33 @@ bool BackgroundBlur::Draw(const BackdropRect& panel, const BackdropRect& clip, i
     const float tint = 1.0f - UnitValue(style.darkness);
     const float s0 = static_cast<float>(left) / screenWidth;
     const float s1 = static_cast<float>(right) / screenWidth;
+    if (std::isfinite(radius) && radius > 0.0f) {
+        glBegin(GL_QUADS);
+        for (Coordinate row = top; row < bottom; ++row) {
+            constexpr float PixelCenter = 0.5f;
+            const float localY = static_cast<float>(row - panel.y) + PixelCenter;
+            const float inset = RoundedInset(static_cast<float>(panel.width), static_cast<float>(panel.height),
+                radius, localY);
+            const float rowLeft = (std::max)(static_cast<float>(left), panel.x + inset);
+            const float rowRight = (std::min)(static_cast<float>(right), panel.x + panel.width - inset);
+            if (rowLeft >= rowRight) {
+                continue;
+            }
+            glColor4f(tint, tint, tint, BackdropOpacity(style, localY / panel.height));
+            const float y0 = static_cast<float>(row);
+            const float y1 = y0 + 1.0f;
+            glTexCoord2f(rowLeft / screenWidth, 1.0f - y0 / screenHeight);
+            glVertex2f(rowLeft, y0);
+            glTexCoord2f(rowRight / screenWidth, 1.0f - y0 / screenHeight);
+            glVertex2f(rowRight, y0);
+            glTexCoord2f(rowRight / screenWidth, 1.0f - y1 / screenHeight);
+            glVertex2f(rowRight, y1);
+            glTexCoord2f(rowLeft / screenWidth, 1.0f - y1 / screenHeight);
+            glVertex2f(rowLeft, y1);
+        }
+        glEnd();
+        return true;
+    }
     glBegin(GL_QUAD_STRIP);
     for (int strip = 0; strip <= GradientStrips; ++strip) {
         const float y = static_cast<float>(top) + static_cast<float>(bottom - top) * strip / GradientStrips;

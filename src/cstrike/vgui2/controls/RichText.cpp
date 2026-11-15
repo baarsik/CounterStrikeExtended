@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -267,8 +268,33 @@ void RichText::OnMouseWheeled( int delta )
 
 void RichText::ApplySchemeSettings( IScheme* scheme )
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        _scrollBarSize = smoked::Pixels(cse::ui::ScrollbarWidth);
+        constexpr int HorizontalTextInset = 8;
+        constexpr int VerticalTextInset = 4;
+        _drawOffsetX = smoked::Pixels(HorizontalTextInset);
+        _drawOffsetY = smoked::Pixels(VerticalTextInset);
+    } else {
+        float scale = 1.0f;
+        if (IsProportional()) {
+            int baseWidth = 0;
+            int baseHeight = 0;
+            int screenWidth = 0;
+            int screenHeight = 0;
+            GetProportionalBase(baseWidth, baseHeight);
+            surface()->GetScreenSize(screenWidth, screenHeight);
+            scale = static_cast<float>(screenWidth) / static_cast<float>(baseWidth);
+        }
+        constexpr float OriginalScrollbarWidth = 18.0f;
+        constexpr float OriginalTextInset = 3.0f;
+        _scrollBarSize = static_cast<int>(OriginalScrollbarWidth * scale);
+        _drawOffsetX = static_cast<int>(OriginalTextInset * scale);
+        _drawOffsetY = static_cast<int>(scale);
+    }
+
 	Panel::ApplySchemeSettings( scheme );
 	_font = scheme->GetFontEx( "Default", IsProportional(), IsHDProportional() );
+    SetFont(smoked::TextFont(this, scheme, _font));
 	SetFgColor( GetSchemeColor( "WindowFgColor", scheme ) );
 	SetBgColor( GetSchemeColor( "WindowBgColor", scheme ) );
 	_disabledFgColor = GetSchemeColor( "WindowDisabledFgColor", scheme );

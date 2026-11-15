@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -250,6 +251,11 @@ void MenuItem::OnKeyModeSet()
 //-----------------------------------------------------------------------------
 void MenuItem::OnCursorEntered()
 {
+    if (cse::ui::ControlsSmokedGlass() && smoked::MenuSeparator(this)) {
+        SetArmed(false);
+        return;
+    }
+
 	// post a message to the parent menu.
 	// forward the message on to the parent of this menu.
 	KeyValues* msg = new KeyValues( "CursorEnteredMenuItem" );
@@ -295,6 +301,11 @@ bool MenuItem::CanBeDefaultButton()
 //-----------------------------------------------------------------------------
 void MenuItem::FireActionSignal()
 {
+    if (cse::ui::ControlsSmokedGlass() && smoked::MenuSeparator(this)) {
+        SetArmed(false);
+        return;
+    }
+
 	if ( m_pCascadeMenu )
 	{
 		if ( GetParentMenu()->GetMenuMode() == Menu::KEYBOARD )
@@ -327,6 +338,80 @@ void MenuItem::OnKillFocus()
 //-----------------------------------------------------------------------------
 // Purpose: Layout the Textimage and the Arrow part of the menuItem
 //-----------------------------------------------------------------------------
+void MenuItem::Paint() {
+    if (!cse::ui::ControlsSmokedGlass()) {
+        Button::Paint();
+        return;
+    }
+    const int inset = smoked::Pixels(16);
+    if (smoked::MenuSeparator(this)) {
+        smoked::Fill(inset, GetTall() / 2, (std::max)(0, GetWide() - inset - inset), 1, 0,
+            smoked::ColorOf(cse::ui::Edge));
+        return;
+    }
+    const Color foreground = IsEnabled() ? GetButtonFgColor() : GetDisabledFgColor2();
+    if (IsArmed() && IsEnabled()) {
+        smoked::Fill(0, smoked::Pixels(4), smoked::Pixels(3), GetTall() - smoked::Pixels(8),
+            0, smoked::ColorOf(cse::ui::Accent));
+    }
+    int textX = smoked::MenuTextInset(GetParentMenu());
+    TextImage* text = GetTextImage();
+    for (int index = 0; index < GetImageCount(); ++index) {
+        IImage* image = GetImageAtIndex(index);
+        if (!image || image == text || image == m_pCascadeArrow || image == m_pCheck) {
+            continue;
+        }
+        int wide = 0;
+        int tall = 0;
+        image->GetSize(wide, tall);
+        image->Paint();
+        textX += wide + smoked::Pixels(4);
+    }
+    int oldX = 0;
+    int oldY = 0;
+    int oldWide = 0;
+    int oldTall = 0;
+    text->GetPos(oldX, oldY);
+    text->GetSize(oldWide, oldTall);
+    const Color oldColor = text->GetColor();
+    const int tall = surface()->GetFontTall(GetFont());
+    text->SetPos(textX, (GetTall() - tall) / 2);
+    text->SetSize((std::max)(0, GetWide() - textX - smoked::Pixels(m_pCascadeMenu ? 30 : 16)), tall);
+    text->SetColor(foreground);
+    text->Paint();
+    text->SetColor(oldColor);
+    text->SetPos(oldX, oldY);
+    text->SetSize(oldWide, oldTall);
+    if (m_pCascadeMenu) {
+        const int gutter = smoked::Pixels(24);
+        smoked::Chevron(gutter, GetTall(), 1, foreground, false, GetWide() - gutter);
+    }
+    if (m_bCheckable && m_bChecked) {
+        const int x = smoked::Pixels(12);
+        const int y = GetTall() / 2;
+        surface()->DrawSetColor(IsEnabled() ? smoked::ColorOf(cse::ui::Accent) : foreground);
+        surface()->DrawLine(x, y, x + smoked::Pixels(3), y + smoked::Pixels(3));
+        surface()->DrawLine(x + smoked::Pixels(3), y + smoked::Pixels(3), x + smoked::Pixels(9),
+            y - smoked::Pixels(4));
+    }
+}
+
+void MenuItem::PaintBackground() {
+    if (!cse::ui::ControlsSmokedGlass()) {
+        Button::PaintBackground();
+        return;
+    }
+    if (!smoked::MenuSeparator(this) && IsEnabled() && IsArmed()) {
+        smoked::Fill(0, 0, GetWide(), GetTall(), smoked::Pixels(4), smoked::ColorOf(cse::ui::Selection));
+    }
+}
+
+void MenuItem::PaintBorder() {
+    if (!cse::ui::ControlsSmokedGlass()) {
+        Button::PaintBorder();
+    }
+}
+
 void MenuItem::PerformLayout()
 {
 	Button::PerformLayout();
@@ -367,6 +452,7 @@ MenuItem::~MenuItem()
 void MenuItem::ApplySchemeSettings( IScheme* pScheme )
 {
 	Button::ApplySchemeSettings( pScheme );
+    smoked::MenuAvailability(this);
 
 	Color bgColor = GetSchemeColor( "Menu/BgColor", GetBgColor(), pScheme );
 	Color fgColor = GetSchemeColor( "Menu/FgColor", GetFgColor(), pScheme );
@@ -381,6 +467,10 @@ void MenuItem::ApplySchemeSettings( IScheme* pScheme )
 	SetDepressedColor( depressedFgColor, depressedBgColor );
 
 	SetTextInset( atoi( pScheme->GetResourceString( "Menu/TextInset" ) ), 0 );
+    if (cse::ui::ControlsSmokedGlass()) {
+        constexpr int TextInset = 8;
+        SetTextInset(GetProportionalScaledValue(TextInset), 0);
+    }
 
 	// reload images since applyschemesettings in label wipes them out.
 	if ( m_pCascadeArrow )
@@ -409,6 +499,11 @@ void MenuItem::ApplySchemeSettings( IScheme* pScheme )
 //-----------------------------------------------------------------------------
 void MenuItem::ArmItem()
 {
+    if (cse::ui::ControlsSmokedGlass() && smoked::MenuSeparator(this)) {
+        SetArmed(false);
+        return;
+    }
+
 	OnArmed();
 
 	// close all other menus 
@@ -462,6 +557,14 @@ void MenuItem::OnKeyCodeReleased( KeyCode code )
 //-----------------------------------------------------------------------------
 void MenuItem::OpenCascadeMenu()
 {
+    if (cse::ui::ControlsSmokedGlass() && m_pCascadeMenu) {
+        m_pCascadeMenu->SetVisible(true);
+        m_pCascadeMenu->MakeReadyForUse();
+        m_pCascadeMenu->PerformLayout();
+        ArmItem();
+        return;
+    }
+
 	if ( !m_pCascadeMenu )
 		return;
 

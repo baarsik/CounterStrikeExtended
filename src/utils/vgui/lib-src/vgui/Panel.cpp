@@ -1,3 +1,7 @@
+#include "VGUI_Frame.h"
+#include "SmokedGlass.h"
+#include "VGUI_Button.h"
+#include "VGUI_TextPanel.h"
 #include "VGUI_Panel.h"
 
 #include "VGUI_App.h"
@@ -720,7 +724,7 @@ void Panel::drawOutlinedRect( int x0, int y0, int x1, int y1 )
 
 void Panel::drawSetTextFont( Scheme::SchemeFont sf )
 {
-	drawSetTextFont( getApp()->getScheme()->getFont( sf ) );
+    drawSetTextFont(cse_vgui1::smoked::TextFont(getApp()->getScheme()->getFont(sf), sf));
 }
 
 void Panel::drawSetTextFont( Font* font )
@@ -734,8 +738,8 @@ void Panel::drawSetTextColor( Scheme::SchemeColor sc )
 	int g;
 	int b;
 	int a;
-	getApp()->getScheme()->getColor( sc, r, g, b, a );
-	drawSetTextColor( r, g, b, a );
+    getApp()->getScheme()->getColor(sc, r, g, b, a);
+    drawSetTextColor(r, g, b, a);
 }
 
 void Panel::drawSetTextColor( int r, int g, int b, int a )
@@ -847,7 +851,7 @@ void Panel::paintTraverse( bool repaint )
 	else if ( repaint && ( _paintBorderEnabled || _paintBackgroundEnabled || _paintEnabled ) )
 	{
 		_surfaceBase->pushMakeCurrent( this, true );
-		if ( _border != NULL && _paintBorderEnabled )
+		if (_border != NULL && _paintBorderEnabled && !cse_vgui1::smoked::Enabled())
 			_border->doPaint( this );
 		if ( _paintBackgroundEnabled )
 			paintBackground();
@@ -875,6 +879,36 @@ void Panel::paintTraverse( bool repaint )
 
 void Panel::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        int red = 0;
+        int green = 0;
+        int blue = 0;
+        int alpha = 0;
+        getBgColor(red, green, blue, alpha);
+        if (alpha == cse::ui::MaximumColor) {
+            return;
+        }
+        Color original;
+        getBgColor(original);
+        Scheme::SchemeColor source = Scheme::sc_user;
+        original.getColor(source);
+        const bool explicitColor = source == Scheme::sc_user && !dynamic_cast<Frame*>(this);
+        auto* button = dynamic_cast<Button*>(this);
+        const bool material = !explicitColor && !button && !dynamic_cast<Label*>(this) &&
+            !dynamic_cast<TextPanel*>(this);
+        cse::ui::Rgba color = explicitColor
+            ? cse::ui::Rgba{red, green, blue, cse::ui::LegacyAlpha(alpha)} : cse::ui::Content;
+        if (button && !explicitColor) {
+            color = button->isSelected() ? cse::ui::Selection :
+                (button->isArmed() ? cse::ui::Hover : cse::ui::Control);
+        }
+        cse_vgui1::smoked::Background(this, material, color,
+            [this](cse::ui::Rgba fill, int x0, int y0, int x1, int y1) {
+                drawSetColor(fill.r, fill.g, fill.b, cse::ui::LegacyAlpha(fill.a));
+                drawFilledRect(x0, y0, x1, y1);
+            });
+        return;
+    }
 	int wide;
 	int tall;
 	getPaintSize( wide, tall );

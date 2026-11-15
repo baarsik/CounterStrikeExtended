@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_Button.h"
 #include "VGUI_ActionSignal.h"
 #include "VGUI_ButtonController.h"
@@ -211,6 +212,10 @@ void Button::setMouseClickEnabled( MouseCode code, bool state )
 
 void Button::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        Panel::paintBackground();
+        return;
+    }
 	int wide;
 	int tall;
 

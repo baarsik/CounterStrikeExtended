@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -48,7 +49,11 @@ public:
 	{
 	}
 
-	Color GetButtonFgColor() override;
+    Color GetButtonFgColor() override;
+    Color GetButtonBgColor() override {
+        return cse::ui::ControlsSmokedGlass() ? Color(0, 0, 0, 0) : Button::GetButtonBgColor();
+    }
+    void PaintBorder() override;
 	virtual void SetActive( bool state );
 	bool CanBeDefaultButton() override;
 
@@ -57,6 +62,7 @@ public:
 
 protected:
 	IBorder* GetBorder( bool depressed, bool armed, bool selected, bool keyFocus ) override;
+    void DrawFocusBorder(int x0, int y0, int x1, int y1) override;
 	void OnMouseReleased( MouseCode code ) override;
 	void OnMousePressed( MouseCode code ) override;
 	void OnKeyCodeTyped( KeyCode code ) override;
@@ -71,7 +77,28 @@ private:
 
 Color PageTab::GetButtonFgColor()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        return smoked::ColorOf(_active ? cse::ui::Accent : cse::ui::SecondaryText);
+    }
 	return _active ? _textColor : _dimTextColor;
+}
+
+void PageTab::PaintBorder() {
+    if (!cse::ui::ControlsSmokedGlass()) {
+        Button::PaintBorder();
+        return;
+    }
+    if (_active) {
+        constexpr int UnderlineHeight = 2;
+        smoked::Fill(0, GetTall() - UnderlineHeight, GetWide(), UnderlineHeight, 0,
+            smoked::ColorOf(cse::ui::Accent));
+    }
+}
+
+void PageTab::DrawFocusBorder(int x0, int y0, int x1, int y1) {
+    if (!cse::ui::ControlsSmokedGlass()) {
+        Button::DrawFocusBorder(x0, y0, x1, y1);
+    }
 }
 
 void PageTab::SetActive( bool state )
@@ -139,7 +166,8 @@ void PageTab::ApplySchemeSettings( IScheme* scheme )
 	GetSize( wide, tall );
 	int contentWide, contentTall;
 	GetContentSize( contentWide, contentTall );
-	wide = contentWide + GetProportionalScaledValue( 10 );
+	wide = contentWide + (cse::ui::ControlsSmokedGlass() ? smoked::Pixels(16)
+        : GetProportionalScaledValue(10));
 	if ( wide < m_bMaxTabWidth )
 		wide = m_bMaxTabWidth;
 
@@ -593,13 +621,41 @@ void PropertySheet::OnKeyCodeTyped( KeyCode code )
 void PropertySheet::PerformLayout()
 {
 	BaseClass::PerformLayout();
-	if ( !_activePage )
-	{
-		// first page becomes the active page
-		ChangeActiveTab( 0 );
-		if ( _activePage )
-			_activePage->RequestFocus( 0 );
-	}
+    if (!_activePage) {
+        ChangeActiveTab(0);
+        if (_activePage) {
+            _activePage->RequestFocus(0);
+        }
+    }
+    if (cse::ui::ControlsSmokedGlass() && GetParent() && smoked::OptionsLayout(GetParent()) && _showTabs) {
+        const int gap = smoked::Pixels(4);
+        const int rowHeight = smoked::Pixels(30);
+        const int width = GetWide();
+        int x = 0;
+        int y = 0;
+        for (int index = 0; index < _pageTabs.GetCount(); ++index) {
+            PageTab* tab = _pageTabs[index];
+            int contentWidth = 0;
+            int contentHeight = 0;
+            tab->GetContentSize(contentWidth, contentHeight);
+            wchar_t text[256]{};
+            tab->GetText(text, 256);
+            surface()->GetTextSize(tab->GetFont(), text, contentWidth, contentHeight);
+            const int tabWidth = (std::min)(width, contentWidth + smoked::Pixels(16));
+            if (x > 0 && x + tabWidth > width) {
+                x = 0;
+                y += rowHeight;
+            }
+            tab->SetBounds(x, y, tabWidth, rowHeight);
+            x += tabWidth + gap;
+        }
+        if (_activePage) {
+            const int top = y + rowHeight + gap;
+            _activePage->SetBounds(0, top, width, (std::max)(0, GetTall() - top));
+        }
+        Repaint();
+        return;
+    }
 
 	int x, y, wide, tall;
 	GetBounds( x, y, wide, tall );

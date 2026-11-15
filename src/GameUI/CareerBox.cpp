@@ -1,3 +1,4 @@
+#include "../vgui2/controls/SmokedGlass.h"
 #include "CareerBox.h"
 #include "CareerBaseFrame.h"
 #include "CareerGame.h"
@@ -77,6 +78,10 @@ void CCareerBaseBox::ShowWindow()
 
 void CCareerBaseBox::PaintBackground()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
 	vgui2::surface()->DrawSetColor( m_bgColor );
 	int x1, y1, x2, y2;
 	m_pTopLeftPanel->GetPos( x1, y1 );
@@ -134,6 +139,8 @@ void CCareerBaseBox::ApplySchemeSettings( vgui2::IScheme* scheme )
 	m_pBottomLeftPanel->m_bgColor = cornerColor;
 	m_pBottomRightPanel->m_bgColor = cornerColor;
 	SetBorder( NULL );
+    vgui2::smoked::Decorations({m_pTopLeftPanel, m_pTopRightPanel,
+        m_pBottomLeftPanel, m_pBottomRightPanel});
 }
 
 void CCareerBaseBox::PerformLayout()

@@ -239,6 +239,18 @@ ScorePanel::ScorePanel(int x,int y,int wide,int tall) : Panel(x,y,wide,tall)
 //-----------------------------------------------------------------------------
 // Purpose: Called each time a new level is started.
 //-----------------------------------------------------------------------------
+void ScorePanel::paintBackground() {
+    if (gEngfuncs.pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f) {
+        Color original;
+        getBgColor(original);
+        setBgColor(Scheme::sc_secondary3);
+        Panel::paintBackground();
+        setBgColor(original);
+        return;
+    }
+    Panel::paintBackground();
+}
+
 void ScorePanel::Initialize( void )
 {
 	// Clear out scoreboard data

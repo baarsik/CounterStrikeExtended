@@ -2,8 +2,10 @@
 #include "vgui/ISurface.h"
 #include "vgui/IPanel.h"
 #include "Panel.h"
+#include <array>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace geometry_fixture {
 using namespace vgui2;
@@ -30,6 +32,17 @@ public:
     // Passive paint observation; every character still reaches the actual surface.
     std::wstring paintedText;
     bool observeText = false;
+    std::vector<Color> paintedPolyLineColors;
+    Color paintColor;
+    bool observePolyLines = false;
+    std::vector<Color> paintedLineColors;
+    bool observeLines = false;
+    std::vector<Color> paintedTextColors;
+    Color paintTextColor;
+    bool observeTextColors = false;
+    std::vector<Color> paintedFilledRectColors;
+    std::vector<std::array<int, 4>> paintedFilledRects;
+    bool observeFilledRects = false;
     bool forceCursorWithin = false;
     bool forceWindowFocus = false;
     void InspectionRoot(VPANEL root) {

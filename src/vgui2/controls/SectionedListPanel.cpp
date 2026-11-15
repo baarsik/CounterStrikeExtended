@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -846,6 +847,23 @@ void SectionedListPanel::ReSortList()
 //-----------------------------------------------------------------------------
 void SectionedListPanel::ApplySchemeSettings( IScheme* scheme )
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        m_iScrollbarSize = smoked::Pixels(cse::ui::ScrollbarWidth);
+    } else {
+        float scale = 1.0f;
+        if (IsProportional()) {
+            int baseWidth = 0;
+            int baseHeight = 0;
+            int screenWidth = 0;
+            int screenHeight = 0;
+            GetProportionalBase(baseWidth, baseHeight);
+            surface()->GetScreenSize(screenWidth, screenHeight);
+            scale = static_cast<float>(screenWidth) / static_cast<float>(baseWidth);
+        }
+        constexpr float OriginalScrollbarWidth = 18.0f;
+        m_iScrollbarSize = static_cast<int>(OriginalScrollbarWidth * scale);
+    }
+
 	Panel::ApplySchemeSettings( scheme );
 	SetBgColor( GetSchemeColor( "BuddyListBgColor", GetBgColor(), scheme ) );
 	SetBorder( scheme->GetBorder( "ButtonDepressedBorder" ) );
@@ -877,11 +895,27 @@ void SectionedListPanel::OnSizeChanged( int wide, int tall )
 
 void CSectionHeader::ApplySchemeSettings( IScheme* scheme )
 {
+    // Label clears auxiliary images during a scheme reload. These columns own and reuse theirs.
+    CUtlVector<IImage*> columns;
+    for (int index = 0; index < GetImageCount(); ++index) {
+        columns.AddToTail(GetImageAtIndex(index));
+    }
+
 	Label::ApplySchemeSettings( scheme );
+
+
 	SetFgColor( GetSchemeColor( "SectionTextColor", scheme ) );
 	m_SectionDividerColor = GetSchemeColor( "SectionDividerColor", scheme );
 	SetBgColor( GetSchemeColor( "BuddyListBgColor", GetBgColor(), scheme ) );
-	SetFont( scheme->GetFontEx( "DefaultVerySmall", IsProportional(), IsHDProportional() ) );
+	SetFont(smoked::TextFont(this, scheme, scheme->GetFontEx("DefaultVerySmall",
+        IsProportional(), IsHDProportional())));
+    for (int index = 0; index < columns.Count(); ++index) {
+        IImage* image = columns[index];
+        SetImageAtIndex(index, image, 0);
+        if (auto* text = dynamic_cast<TextImage*>(image)) {
+            text->SetFont(GetFont());
+        }
+    }
 }
 
 void CSectionHeader::Paint()
@@ -965,7 +999,21 @@ void CSectionHeader::PerformLayout()
 
 void CItemButton::ApplySchemeSettings( IScheme* scheme )
 {
+    // Label clears auxiliary images during a scheme reload. These columns own and reuse theirs.
+    CUtlVector<IImage*> columns;
+    for (int index = 0; index < GetImageCount(); ++index) {
+        columns.AddToTail(GetImageAtIndex(index));
+    }
+
 	Label::ApplySchemeSettings( scheme );
+    for (int index = 0; index < columns.Count(); ++index) {
+        IImage* image = columns[index];
+        SetImageAtIndex(index, image, 0);
+        if (auto* text = dynamic_cast<TextImage*>(image)) {
+            text->SetFont(GetFont());
+        }
+    }
+
 	m_ArmedFgColor1 = GetSchemeColor( "BuddyButton/ArmedFgColor1", scheme );
 	m_ArmedFgColor2 = GetSchemeColor( "BuddyButton/ArmedFgColor2", scheme );
 	m_ArmedBgColor = GetSchemeColor( "BuddyButton/ArmedBgColor", scheme );
@@ -1093,6 +1141,10 @@ void CItemButton::PerformLayout()
 
 void CItemButton::GetCellBounds( int column, int& x, int& wide )
 {
+    // Input can query a newly selected row before its first paint populates the column images.
+    if (IsLayoutInvalid()) {
+        InvalidateLayout(true, false);
+    }
 	x = 0;
 	wide = 0;
 	int count = m_pListPanel->GetColumnCountBySection( m_iSectionID );

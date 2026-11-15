@@ -1,6 +1,8 @@
 #include "model_fixture.inc"
 #include "ServerBrowserDialog.h"
 #include "check.h"
+#include "../../../src/public/vgui_background_controls.h"
+#include <cstdlib>
 #include "detail_provider_fixture.h"
 #include "controls.h"
 #include "../../../src/engine/controls.h"
@@ -9,6 +11,7 @@
 #include "PropertyPage.h"
 #include "TextEntry.h"
 #include "Button.h"
+#include "Tooltip.h"
 #include "Label.h"
 #include "ComboBox.h"
 #include "CheckButton.h"
@@ -24,6 +27,7 @@
 #include "filesystem.h"
 #include "vgui/KeyValues.h"
 #include "geometry_fixture.h"
+#include "SmokedGlass.h"
 #include "system_fixture.h"
 #include "layout_fixture.h"
 #include "input_retirement_fixture.h"
@@ -39,6 +43,10 @@ extern "C" void CseSteamModuleInitialize() {}
 #include "baseui_owner_fixture.h"
 
 namespace {
+int CSE_ABI_CALL TestUIStyle() { return 1; }
+bool CSE_ABI_CALL TestGlass(const cse::ui::BackdropRect*, const cse::ui::BackdropRect*,
+    const cse::ui::BackdropStyle*, float) { return false; }
+cse::ui::StyleApi testStyle{sizeof(testStyle), cse::ui::StyleApiVersion, TestUIStyle, TestGlass};
 constexpr size_t ServerCount = 10000;
 constexpr int MaxFrames = 2000;
 class Engine final : public IConnectionEngine {
@@ -118,8 +126,9 @@ int main(int argc, char **argv) {
         const bool focusLayout = layoutCase == "focus-resize" || layoutCase == "focus-scheme" ||
                                  layoutCase == "focus-tab" || layoutCase == "focus-header";
         const bool positionCase = layoutCase.rfind("position-", 0) == 0;
+        const bool browserShell = layoutCase.rfind("browser-cog-", 0) == 0 || layoutCase == "browser-padding";
         const bool hdLayout = layoutCase == "hd-layout" || layoutCase == "hd-saved" || focusLayout ||
-                              layoutCase == "tab-order" || positionCase;
+                              layoutCase == "tab-order" || positionCase || browserShell;
         const bool playerRefresh = layoutCase == "original-game-info" ||
             layoutCase == "original-game-info-sync-empty" || layoutCase == "original-game-info-generation";
         const bool inputRetirement = std::string(argv[5]) == "input-retirement";
@@ -132,6 +141,9 @@ int main(int argc, char **argv) {
         }
         CreateInterfaceFn factories[]{system_fixture::Factory, geometry_fixture::Factory, guiFactory, filesystemFactory};
         Require(vgui2::VGuiControls_Init("SERVER_BROWSER_TEST", factories, 4), "initialize actual VGUI controls");
+        if (std::getenv("CSE_VGUI_SMOKED")) {
+            cse::ui::ControlsStyle() = &testStyle;
+        }
         Require(vgui2::system() == system_fixture::current, "controls bypassed the private registry fixture");
         auto *gui = vgui2::ivgui();
         gui->SetSleep(false);
@@ -219,7 +231,89 @@ int main(int argc, char **argv) {
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
-        if (name == "masterserver-settings") {
+        if (name == "browser-cog-tooltip") {
+            auto *cog = dynamic_cast<vgui2::Button *>(dialog->FindChildByName("BrowserSettings", false));
+            Require(cog && !*cog->GetTooltip()->GetText(), "browser cog still creates an unnecessary tooltip");
+        } else if (name == "browser-cog-inactive") {
+            auto *cog = dynamic_cast<vgui2::Button *>(dialog->FindChildByName("BrowserSettings", false));
+            Require(cog != nullptr, "browser cog is missing");
+            const auto *currentStyle = cse::ui::ControlsStyle();
+            cse::ui::ControlsStyle() = nullptr;
+            dialog->InvalidateLayout(true, true);
+            cog->RequestFocus(0);
+            Settle(*dialog, session);
+            const Color activeColor = cog->GetButtonFgColor();
+            auto *activeBorder = static_cast<vgui2::Panel *>(cog)->GetBorder();
+            auto *otherWindow = new vgui2::Frame(hdParent, "OtherWindow", false, false);
+            otherWindow->SetBounds(0, 0, 200, 100);
+            otherWindow->Activate();
+            gui->RunFrame();
+            Settle(*dialog, session);
+            Require(vgui2::input()->GetFocus() &&
+                    !vgui2::ipanel()->HasParent(vgui2::input()->GetFocus(), dialog->GetVPanel()),
+                    "fixture did not move focus outside the browser window");
+            geometry.paintedPolyLineColors.clear();
+            geometry.observePolyLines = true;
+            static_cast<vgui2::Panel *>(cog)->Paint();
+            geometry.observePolyLines = false;
+            auto *scheme = vgui2::scheme()->GetIScheme(dialog->GetScheme());
+            const Color inactiveColor = scheme->GetColor("TitleButtonDisabledFgColor", Color());
+            Require(!(activeColor == inactiveColor),
+                    "installed scheme cannot distinguish active and inactive title buttons");
+            Require(geometry.paintedPolyLineColors.size() == 2 &&
+                    geometry.paintedPolyLineColors[0] == inactiveColor &&
+                    geometry.paintedPolyLineColors[1] == inactiveColor,
+                    "Original browser cog does not paint with the inactive title-button color");
+            cog->PaintBackground();
+            Require(cog->GetBgColor() == scheme->GetColor("TitleButtonDisabledBgColor", Color()),
+                    "Original browser cog keeps its active background while the window is inactive");
+            Require(static_cast<vgui2::Panel *>(cog)->GetBorder() == scheme->GetBorder("TitleButtonDisabledBorder"),
+                    "Original browser cog keeps its active border while the window is inactive");
+            delete otherWindow;
+            cog->RequestFocus(0);
+            gui->RunFrame();
+            Settle(*dialog, session);
+            cog->PaintBackground();
+            Require(cog->GetButtonFgColor() == activeColor, "browser cog does not restore its active color");
+            Require(static_cast<vgui2::Panel *>(cog)->GetBorder() == activeBorder,
+                    "browser cog does not restore its active border");
+            cse::ui::ControlsStyle() = currentStyle;
+        } else if (name == "browser-padding") {
+            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
+            auto *status = layout_fixture::Child(*dialog, "StatusLabel");
+            const auto *currentStyle = cse::ui::ControlsStyle();
+            constexpr std::array<std::array<int, 2>, 4> sizes{{{640, 384}, {1280, 720}, {1600, 1200}, {640, 384}}};
+            for (const auto &size : sizes) {
+                geometry.Resize(size[0], size[1]);
+                dialog->SetSize(size[0], size[1]);
+                for (const bool smoked : {true, false, true}) {
+                    cse::ui::ControlsStyle() = smoked ? &testStyle : nullptr;
+                    dialog->InvalidateLayout(true, true);
+                    Settle(*dialog, session);
+                    int x = 0;
+                    int y = 0;
+                    tabs->GetPos(x, y);
+                    const int header = vgui2::smoked::Pixels(cse::ui::WindowHeaderHeight);
+                    Require(x == 8 && y == (smoked ? header : 44),
+                            "browser tabs do not follow shared Smoked chrome or change Original geometry");
+                    Require(tabs->GetTall() + y == dialog->GetTall() - 34,
+                            "browser sheet no longer reserves the original status strip");
+                    status->GetPos(x, y);
+                    Require(x == 11 && y == dialog->GetTall() - 28 && status->GetTall() == 24,
+                            "browser status strip moved or lost its query-status height");
+                    layout_fixture::Check(*dialog, size[0], size[1]);
+                    auto *toggle = static_cast<vgui2::ToggleButton *>(
+                        layout_fixture::Child(*tabs->GetActivePage(), "Filter"));
+                    for (int pass = 0; pass < 2; ++pass) {
+                        toggle->DoClick();
+                        gui->RunFrame();
+                        Settle(*dialog, session);
+                        layout_fixture::Check(*dialog, size[0], size[1]);
+                    }
+                }
+            }
+            cse::ui::ControlsStyle() = currentStyle;
+        } else if (name == "masterserver-settings") {
             Require(dialog->FindChildByName("BrowserSettings", false) != nullptr, "cogwheel button missing");
             Send(*dialog, "BrowserSettings");
             auto* settings = dialog->FindChildByName("BrowserConfiguration", false);
@@ -293,7 +387,7 @@ int main(int argc, char **argv) {
             Require(session.settings.masterservers.selected == "varq", "closing settings committed a selection");
         }
 
-        if (name == "masterserver-settings") {
+        if (name == "masterserver-settings" || browserShell) {
             // Validated above; the remaining cases retain their existing branches.
         } else if (positionCase) {
             int x = 0;

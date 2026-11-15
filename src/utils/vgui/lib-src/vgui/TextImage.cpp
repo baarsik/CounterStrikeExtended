@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_TextImage.h"
 
 #include "VGUI_App.h"
@@ -29,7 +30,7 @@ Font* TextImage::getFont()
 	if ( _font != NULL )
 		return _font;
 
-	return App::getInstance()->getScheme()->getFont( _schemeFont );
+    return cse_vgui1::smoked::TextFont(App::getInstance()->getScheme()->getFont(_schemeFont), _schemeFont);
 }
 
 void TextImage::getTextSize( int& wide, int& tall )
@@ -142,7 +143,11 @@ void TextImage::paint(Panel*) {
     int green = 0;
     int blue = 0;
     int alpha = 0;
-    color.getColor(red, green, blue, alpha);
+    const auto foreground = cse_vgui1::smoked::TextColor(color);
+    red = foreground.r;
+    green = foreground.g;
+    blue = foreground.b;
+    alpha = foreground.a;
     drawSetTextColor(red, green, blue, alpha);
     Font* font = getFont();
     drawSetTextFont(font);

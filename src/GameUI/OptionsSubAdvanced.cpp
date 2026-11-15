@@ -137,31 +137,33 @@ void COptionsSubAdvanced::OnApplyChanges()
 		engine->pfnClientCmd( "_restart\n" );
 }
 
-void COptionsSubAdvanced::OnButtonChecked( KeyValues* data )
-{
-	int state = data->GetInt( "state", 0 );
-	vgui2::Panel* panel = (vgui2::Panel*)data->GetPtr( "panel", NULL );
-	char renderer[128];
-	int windowed, hdModels, addons;
-	gameuifuncs->GetCurrentRenderer( renderer, sizeof( renderer ), &windowed, &hdModels, &addons );
-	if ( panel == m_pOriginalModels )
-	{
-		if ( state != (int)!hdModels )
-			OnDataChanged();
-	}
-	else if ( panel == m_pAddonsFolder )
-	{
-		if ( state != addons )
-			OnDataChanged();
-	}
-	else if ( panel == m_pDetailTextures )
-	{
-		OnDataChanged();
-	}
+void COptionsSubAdvanced::OnButtonChecked(KeyValues* data) {
+    const int state = data->GetInt("state", 0);
+    auto* panel = static_cast<vgui2::Panel*>(data->GetPtr("panel", nullptr));
+    constexpr int RendererNameCapacity = 128;
+    char renderer[RendererNameCapacity]{};
+    int windowed = 0;
+    int hdModels = 0;
+    int addons = 0;
+    gameuifuncs->GetCurrentRenderer(renderer, sizeof(renderer), &windowed, &hdModels, &addons);
+    if (panel == m_pOriginalModels) {
+        if (state != static_cast<int>(!hdModels)) {
+            OnDataChanged();
+        }
+    } else if (panel == m_pAddonsFolder) {
+        if (state != addons) {
+            OnDataChanged();
+        }
+    } else if (panel == m_pDetailTextures) {
+        // Reset notifications describe the saved value, not an edit.
+        if (m_pDetailTextures->HasBeenModified()) {
+            OnDataChanged();
+        }
+    }
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
+// Purpose:
 //-----------------------------------------------------------------------------
 void COptionsSubAdvanced::OnContentControlClose()
 {

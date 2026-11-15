@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "../../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -14,6 +15,7 @@
 #include "vgui_controls/ComboBox.h"
 #include "Menu.h"
 #include "MenuItem.h"
+#include "TextImage.h"
 #include "Controls.h"
 
 #include "vgui/Cursor.h"
@@ -37,6 +39,15 @@ ComboBoxButton::ComboBoxButton( ComboBox* parent, const char* panelName, const c
 	m_DisabledBgColor = Color( 0, 0, 0, 0 );
 	SetButtonActivationType( ACTIVATE_ONPRESSED );
 	m_pImage = scheme()->GetImage( text, false );
+}
+
+void ComboBoxButton::Paint() {
+    if (cse::ui::ControlsSmokedGlass()) {
+        smoked::Chevron(GetWide(), GetTall(), 1, smoked::ColorOf(
+            IsEnabled() ? cse::ui::Text : cse::ui::DisabledText), true);
+        return;
+    }
+    Button::Paint();
 }
 
 ComboBoxButton::~ComboBoxButton()
@@ -350,6 +361,36 @@ void ComboBox::OnSetText( const wchar_t* text )
 
 void ComboBox::DoMenuLayout()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        // A narrow field must not force long command or translated captions into ellipses.
+        m_pDropDown->SetFixedWidth(0);
+        m_pDropDown->SetMinimumWidth(GetWide());
+        m_pDropDown->MakeReadyForUse();
+        m_pDropDown->PerformLayout();
+        int x = 0;
+        int y = GetTall();
+        if (m_iDirection == CURSOR) {
+            input()->GetCursorPos(x, y);
+        } else if (m_iDirection == ALIGN_WITH_PARENT && GetVParent()) {
+            ParentLocalToScreen(x, y);
+            y += m_iOpenOffsetY;
+        } else {
+            LocalToScreen(x, y);
+        }
+        const int gap = smoked::Pixels(4);
+        if (m_iDirection == UP) {
+            y -= GetTall() + m_pDropDown->GetTall() + gap;
+        } else {
+            y += gap;
+        }
+        int screenWide = 0;
+        int screenTall = 0;
+        surface()->GetScreenSize(screenWide, screenTall);
+        x = (std::clamp)(x, gap, (std::max)(gap, screenWide - m_pDropDown->GetWide() - gap));
+        y = (std::clamp)(y, gap, (std::max)(gap, screenTall - m_pDropDown->GetTall() - gap));
+        m_pDropDown->SetPos(x, y);
+        return;
+    }
 	// move the menu to the correct place below the button
 	int x, y, wide, tall;
 	GetSize( wide, tall );
@@ -483,6 +524,50 @@ void ComboBox::MoveAlongMenuItemList( int direction )
 	m_pDropDown->ActivateItem( row );
 }
 
+bool ComboBox::GetSelectedRange(int& start, int& end) {
+    if (cse::ui::ControlsSmokedGlass() && !IsEditable()) {
+        start = -1;
+        end = -1;
+        return false;
+    }
+    return TextEntry::GetSelectedRange(start, end);
+}
+
+void ComboBox::PaintBackground() {
+    if (cse::ui::ControlsSmokedGlass() && !IsEditable()) {
+        Panel::PaintBackground();
+    } else {
+        TextEntry::PaintBackground();
+    }
+}
+
+void ComboBox::Paint() {
+    if (!cse::ui::ControlsSmokedGlass() || IsEditable()) {
+        TextEntry::Paint();
+        return;
+    }
+    CUtlVector<wchar_t> value;
+    value.AddMultipleToTail(GetTextLength() + 1);
+    GetText(value.Base(), value.Count());
+    CUtlVector<wchar_t> display;
+    for (int index = 0; index < value.Count() - 1; ++index) {
+        if (value[index] == L'&') {
+            display.AddToTail(L'&');
+        }
+        display.AddToTail(value[index]);
+    }
+    display.AddToTail(L'\0');
+    TextImage label(display.Base());
+    label.SetFont(GetFont());
+    label.SetColor(IsEnabled() ? GetFgColor() : smoked::ColorOf(cse::ui::DisabledText));
+    const int inset = smoked::Pixels(12);
+    const int arrow = m_pButton->IsVisible() ? smoked::Pixels(32) : inset;
+    const int tall = surface()->GetFontTall(GetFont());
+    label.SetPos(inset, (GetTall() - tall) / 2);
+    label.SetSize((std::max)(0, GetWide() - inset - arrow), tall);
+    label.Paint();
+}
+
 void ComboBox::PerformLayout()
 {
 	int wide, tall;
@@ -495,6 +580,11 @@ void ComboBox::PerformLayout()
 	m_pButton->SetBounds( buttonX, buttonY, buttonWide, buttonTall );
 	SetCursor( IsEditable() ? dc_ibeam : dc_arrow );
 	m_pButton->SetEnabled( IsEnabled() );
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int inset = smoked::Pixels(4);
+        const int side = smoked::Pixels(24);
+        m_pButton->SetBounds(GetWide() - side - inset, inset, side, (std::max)(0, GetTall() - inset - inset));
+    }
 	DoMenuLayout();
 }
 

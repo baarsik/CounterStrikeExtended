@@ -245,25 +245,44 @@ Their model-topology microbenchmarks do not measure gameplay FPS.
 
 ## VGUI styles and reusable background blur
 
-**Options → Interface → UI style** selects **Original** or **Extended** (the default). Apply/OK changes the
-style immediately; the archived `vgui_style` setting uses `0` for Original and `1` for Extended.
-`src/public/vgui_style.h` provides the shared selection constants for VGUI controls as they adopt the styles.
+**Options → Interface → UI style** selects **Original** or **Smoked Tactical Glass** (the default).
+Apply/OK changes the style without restarting. The archived `vgui_style` values remain `0` for Original
+and `1` for Smoked Tactical Glass, so existing configurations retain their selection.
 
-Currently, this selection controls Counter-Strike spectator backgrounds: Original uses the existing
-translucent black bars; Extended uses frosted backgrounds with darkness and blur fading together toward
-the center of the screen. Spectator labels, controls and inset views retain their normal painting.
+Smoked Tactical Glass is shared by both VGUI2 control implementations and embedded VGUI1. Outer windows
+and popup menus use rounded charcoal frost; inner forms/lists use denser surfaces, off-white text and
+amber selection/focus. Controls and artwork paint afterward and remain sharp. Counter-Strike spectator
+controls share a compact rail, primitive chevrons and a separate health readout; the passive bars retain
+matching darkness/blur fades. Custom CS viewport, scoreboard, tutorial and career dialog shells opt
+into the same material; the legacy HL scoreboard does too. Original uses the retained scheme, layout
+and drawing paths.
 
-VGUI code can reuse `vgui2::BackdropPanel` from `src/vgui2/controls/BackdropPanel.h`, or call the optional
-`CSEVGuiBackgroundEffects001` service through `src/public/vgui_background_controls.h` in `PaintBackground`.
-`BackdropStyle` specifies top/bottom opacity and darkness in the range 0–1. The service uses absolute panel
-bounds and the parent's clip rectangle; it preserves driver state and existing surface texture caches.
-Legacy VGUI virtual tables are unchanged. Modules without the service use the same darkness gradient.
+Smoked uses capped text and spacing metrics, flat tabs and aligned Interface fields with keyboard-accessible
+radio choices backed by the same archived style value. Options keeps one window size across all tabs,
+bounded by the workspace. Resource geometry uses the shared control density and restores its Original
+scale on a style change; window chrome shares consistent insets and icon sizes. Fixed captions use fitting fonts. Menus share padded text,
+check and cascade columns; empty rows become noninteractive block separators. Long menus scroll within
+the screen. Display-only dropdowns paint a padded label without editor selection; editable dropdowns keep
+normal text editing. Symbol fonts, fixed-width legacy text, semantic team/status colors and content artwork
+retain their owners.
 
-The hardware engine captures the scene before HUD drawing, resolves MSAA, downsamples to quarter dimensions
-and applies a separable Gaussian filter. Panels share this GPU image for the frame. Capture is demand-driven:
-a newly visible panel uses the darkness gradient for its first frame, then blur on the next rendered scene.
-Original and frames without requests perform no blur filtering. Resize recreates the targets; context
-shutdown releases them. Unsupported framebuffer capabilities and native capture fixtures use the gradient.
+`src/public/vgui_smoked_glass.h` owns the palette, material roles and rounded geometry. VGUI2 controls
+bind the optional `CSEVGuiStyle001` service from `src/public/vgui_style_service.h`; its draw operation uses
+absolute screen bounds/parent clipping rather than a VGUI2 handle. Embedded VGUI1 binds the same service
+through the additive `CSE_VGui1BindStyle` entry point and converts its inverse-alpha convention. Existing
+VGUI interfaces, class layouts and virtual slots are unchanged. Standalone tools without the engine
+service retain their existing presentation. Missing blur uses rounded dark fills.
+
+Live style changes reload schemes children-before-parent, including hidden descendants, preserving
+parent-owned icons and child transparency without replacing panels or clearing input. Explicit VGUI1
+RGB colors retain player/team, killer and mute-hover meaning. Other semantic colors remain producer-owned.
+
+The existing `CSEVGuiBackgroundEffects001` API and `vgui2::BackdropPanel` remain available for independent
+gradient backgrounds. The hardware engine captures the world before HUD drawing, resolves MSAA,
+downsamples to quarter dimensions and applies a separable Gaussian filter. All panels share this GPU image;
+they do not capture or reblur foreground UI. Capture is demand-driven: a newly visible panel uses its
+fallback on the first frame. Original and frames without requests perform no blur filtering. Resize
+recreates the targets and context shutdown releases them.
 
 The standalone real-OpenGL fixture covers pixels, clipping, matching gradients, foreground ordering,
 read/draw framebuffer restoration, MSAA, demand and resize:

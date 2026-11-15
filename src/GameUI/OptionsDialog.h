@@ -32,7 +32,9 @@ protected:
 	void OnClose() override;
 
 private:
+    int StyledHeight();
     COptionsSubInterface* m_interfacePage = nullptr;
     bool m_languageApplyPending = false;
     bool m_closeAfterLanguageApply = false;
+    int m_originalStyleHeight = 0;
 };

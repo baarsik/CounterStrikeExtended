@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "../../public/localization_controls.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
@@ -1287,8 +1288,10 @@ void ListPanel::ApplySchemeSettings( IScheme* scheme )
 	m_LabelFgColor = GetSchemeColor( "WindowFgColor", scheme );
 	m_SelectionFgColor = GetSchemeColor( "ListSelectionFgColor", m_LabelFgColor, scheme );
 	m_pEmptyListText->SetColor( GetSchemeColor( "LabelDimText", scheme ) );
-	SetFont( scheme->GetFontEx( "Default", IsProportional(), IsHDProportional() ) );
-	m_pEmptyListText->SetFont( scheme->GetFontEx( "Default", IsProportional(), IsHDProportional() ) );
+	SetFont(smoked::TextFont(this, scheme, scheme->GetFontEx("Default",
+        IsProportional(), IsHDProportional())));
+	m_pEmptyListText->SetFont(smoked::TextFont(this, scheme, scheme->GetFontEx("Default",
+        IsProportional(), IsHDProportional())));
 }
 
 //-----------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_EditPanel.h"
 #include "VGUI_InputSignal.h"
 #include "VGUI_Font.h"
@@ -13,6 +14,10 @@
 
 void vgui::EditPanel::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        Panel::paintBackground();
+        return;
+    }
 	int wide, tall;
 	getPaintSize( wide, tall );
 	drawSetColor( Scheme::sc_white );
@@ -27,7 +32,12 @@ void vgui::EditPanel::paint()
 		font = getApp()->getScheme()->getFont( Scheme::sf_primary1 );
 	}
 	drawSetTextFont( font );
-	drawSetTextColor( Scheme::sc_black );
+    if (cse_vgui1::smoked::Enabled()) {
+        const auto color = cse::ui::Text;
+        drawSetTextColor(color.r, color.g, color.b, cse::ui::LegacyAlpha(color.a));
+    } else {
+        drawSetTextColor(Scheme::sc_black);
+    }
 	int y = 0;
 	for ( int row = 0; row < _lineDarDar.getCount(); ++row )
 	{

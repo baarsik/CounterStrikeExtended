@@ -31,7 +31,7 @@
         "CSEInterface_LaunchOverride" "Параметр запуска -language имеет приоритет над этой настройкой."
         "CSEInterface_Style" "Стиль интерфейса"
         "CSEInterface_StyleOriginal" "Оригинальный"
-        "CSEInterface_StyleExtended" "Расширенный"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "Настройки браузера серверов"
         "CSEServerBrowser_Masterservers" "Мастер-серверы"

@@ -99,7 +99,7 @@ void CTeamMenu::OnTeamButton( int team )
 void CTeamMenu::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
 	vgui2::Frame::ApplySchemeSettings( scheme );
-	m_pMapInfo->SetFgColor( scheme->GetColor( "MapDescriptionText", Color( 255, 255, 255, 0 ) ) );
+	m_pMapInfo->SetFgColor( GetSchemeColor("MapDescriptionText", Color(255, 255, 255, 0), scheme) );
 }
 
 void CTeamMenu::Activate() {
@@ -208,13 +208,13 @@ void CTeamMenu::MakeTeamButtons( const char** names, int numTeams )
 		button->SetText( text );
 		button->SetCommand( new KeyValues( "TeamButton", "team", i ) );
 		vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme( GetScheme() );
-		Color background = scheme->GetColor( "SelectionBG", Color( 255, 255, 255, 0 ) );
+		Color background = GetSchemeColor("SelectionBG", Color(255, 255, 255, 0), scheme);
 		Color foreground = scheme->GetColor( GetStringTeamColor( i ), Color( 255, 255, 255, 255 ) );
 		button->SetArmedColor( foreground, background );
-		background = scheme->GetColor( "ButtonArmedBgColor", Color( 255, 255, 255, 0 ) );
+		background = GetSchemeColor("ButtonArmedBgColor", Color(255, 255, 255, 0), scheme);
 		foreground = scheme->GetColor( GetStringTeamColor( i ), Color( 255, 255, 255, 255 ) );
 		button->SetDepressedColor( foreground, background );
-		background = scheme->GetColor( "ButtonDepressedBgColor", Color( 255, 255, 255, 0 ) );
+		background = GetSchemeColor("ButtonDepressedBgColor", Color(255, 255, 255, 0), scheme);
 		foreground = scheme->GetColor( GetStringTeamColor( i ), Color( 255, 255, 255, 255 ) );
 		button->SetDefaultColor( foreground, background );
 		button->SetVisible( true );

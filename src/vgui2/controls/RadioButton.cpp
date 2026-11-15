@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -82,6 +83,11 @@ void RadioImage::UpdateSize() {
             height = std::max(height, imageHeight);
         }
     }
+    if (cse::ui::ControlsSmokedGlass()) {
+        const int side = vgui2::smoked::Pixels(cse::ui::RadioDiameter);
+        SetSize(side + vgui2::smoked::Pixels(cse::ui::RadioTextGap), side);
+        return;
+    }
     width += IconTextGap;
     if (_radioButton) {
         width = _radioButton->GetProportionalScaledValue(width);
@@ -92,6 +98,23 @@ void RadioImage::UpdateSize() {
 
 void RadioImage::Paint() {
     if (!_radioButton) {
+        return;
+    }
+    if (cse::ui::ControlsSmokedGlass()) {
+        int x = 0;
+        int y = 0;
+        GetPos(x, y);
+        const int side = vgui2::smoked::Pixels(cse::ui::RadioDiameter);
+        const auto color = !_radioButton->IsEnabled() ? cse::ui::DisabledText :
+            (_radioButton->IsSelected() ? cse::ui::Accent : cse::ui::SecondaryText);
+        constexpr float RingStroke = 1.5f;
+        vgui2::smoked::Circle(x, y, side, vgui2::smoked::ColorOf(color),
+            RingStroke * vgui2::smoked::PixelScale());
+        if (_radioButton->IsSelected()) {
+            const int dot = vgui2::smoked::Pixels(cse::ui::RadioDotDiameter);
+            const int inset = (side - dot) / 2;
+            vgui2::smoked::Circle(x + inset, y + inset, dot, vgui2::smoked::ColorOf(color));
+        }
         return;
     }
     vgui2::IImage* image = _radioButton->IsSelected() ? m_pSelected : m_pDefault;

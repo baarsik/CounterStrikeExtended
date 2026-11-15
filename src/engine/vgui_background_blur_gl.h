@@ -18,7 +18,7 @@ public:
     void BeginFrame();
     bool Capture(int x, int y, int width, int height);
     bool Draw(const BackdropRect& panel, const BackdropRect& clip, int screenWidth, int screenHeight,
-        const BackdropStyle& style);
+        const BackdropStyle& style, float radius = 0.0f);
     void Shutdown(); // Must run while the owning context is current.
 
 private:

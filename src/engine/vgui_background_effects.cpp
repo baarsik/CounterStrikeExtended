@@ -1,6 +1,9 @@
 #include "vgui_background_effects.h"
 #include "vgui_background_blur_gl.h"
 #include "../public/vgui_background_effects.h"
+#include "../public/vgui_style_service.h"
+#include "../public/vgui_style.h"
+#include "cvar.h"
 #include "vgui2/BaseUISurface.h"
 #include "../vgui2/controls/controls.h"
 #include "vgui/IPanel.h"
@@ -40,6 +43,29 @@ void* CreateBackgroundEffects() {
     return &api;
 }
 EXPOSE_INTERFACE_FN(CreateBackgroundEffects, BackgroundEffectsApi, BackgroundEffectsInterface);
+
+int CSE_ABI_CALL CurrentStyle() {
+    return Cvar_VariableValue(VGuiStyleCvar) > 0.0f ? SmokedTacticalGlassVGuiStyle : OriginalVGuiStyle;
+}
+
+bool CSE_ABI_CALL DrawSurface(const BackdropRect* bounds, const BackdropRect* clip,
+    const BackdropStyle* style, float radius) {
+    if (!bounds || !clip || !style || !render::LegacyIndexedDrawingAllowed()) {
+        return false;
+    }
+    int width = 0;
+    int height = 0;
+    g_BaseUISurface.GetScreenSize(width, height);
+    g_BaseUISurface.DrawFlushText();
+    return backgroundBlur.Draw(*bounds, *clip, width, height, *style, radius);
+}
+
+StyleApi styleApi{sizeof(StyleApi), StyleApiVersion, CurrentStyle, DrawSurface};
+
+void* CreateStyle() {
+    return &styleApi;
+}
+EXPOSE_INTERFACE_FN(CreateStyle, StyleApi, StyleInterface);
 } // namespace
 
 void BeginBackgroundEffectsFrame() {

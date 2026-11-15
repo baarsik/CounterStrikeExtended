@@ -32,7 +32,7 @@
         "CSEInterface_LaunchOverride" "시작 옵션 -language가 이 설정보다 우선합니다."
         "CSEInterface_Style" "인터페이스 스타일"
         "CSEInterface_StyleOriginal" "기본"
-        "CSEInterface_StyleExtended" "확장"
+        "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
         "CSEServerBrowser_Configuration" "서버 브라우저 설정"
         "CSEServerBrowser_Masterservers" "마스터 서버"

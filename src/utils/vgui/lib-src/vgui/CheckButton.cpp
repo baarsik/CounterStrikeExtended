@@ -1,3 +1,4 @@
+#include "SmokedGlass.h"
 #include "VGUI_CheckButton.h"
 #include "VGUI_Image.h"
 
@@ -23,6 +24,21 @@ protected:
 
 void FooCheckImage::paint( Panel* )
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        drawSetTextFont(Scheme::sf_secondary1);
+        const auto field = cse::ui::Field;
+        drawSetTextColor(field.r, field.g, field.b, cse::ui::LegacyAlpha(field.a));
+        drawPrintChar(0, 0, 'g');
+        const auto edge = cse::ui::Edge;
+        drawSetTextColor(edge.r, edge.g, edge.b, cse::ui::LegacyAlpha(edge.a));
+        drawPrintChar(0, 0, 'c');
+        if (_checkButton->isSelected()) {
+            const auto accent = cse::ui::Accent;
+            drawSetTextColor(accent.r, accent.g, accent.b, cse::ui::LegacyAlpha(accent.a));
+            drawPrintChar(0, 0, 'a');
+        }
+        return;
+    }
 	drawSetTextFont( Scheme::sf_secondary1 );
 	drawSetTextColor( Scheme::sc_white );
 	drawPrintChar( 0, 0, 'g' );
@@ -68,6 +84,10 @@ CheckButton::CheckButton( const char* text, int x, int y ) : ToggleButton( text,
 
 void CheckButton::paintBackground()
 {
+    if (cse_vgui1::smoked::Enabled()) {
+        Panel::paintBackground();
+        return;
+    }
 	int wide;
 	int tall;
 

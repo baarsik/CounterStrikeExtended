@@ -1,3 +1,4 @@
+#include "../../../vgui2/controls/SmokedGlass.h"
 //========= Copyright © 1996-2003, Valve LLC, All rights reserved. ============
 //
 // The copyright to the contents herein is the property of Valve, L.L.C.
@@ -151,22 +152,24 @@ void Button::SetDepressedColor( Color foreground, Color background )
 	}
 }
 
-Color Button::GetButtonFgColor()
-{
-	if ( _depressed )
-		return _depressedFgColor;
-	if ( _armed )
-		return _armedFgColor;
-	return _defaultFgColor;
+Color Button::GetButtonFgColor() {
+    if (_depressed) {
+        return _depressedFgColor;
+    }
+    if (_armed) {
+        return _armedFgColor;
+    }
+    return _defaultFgColor;
 }
 
-Color Button::GetButtonBgColor()
-{
-	if ( _depressed )
-		return _depressedBgColor;
-	if ( _armed )
-		return _armedBgColor;
-	return _defaultBgColor;
+Color Button::GetButtonBgColor() {
+    if (_depressed) {
+        return _depressedBgColor;
+    }
+    if (_armed) {
+        return _armedBgColor;
+    }
+    return _defaultBgColor;
 }
 
 //-----------------------------------------------------------------------------
@@ -599,6 +602,7 @@ void Button::OnKeyCodeReleased( KeyCode code )
 void Button::ApplySchemeSettings( IScheme* scheme )
 {
 	Label::ApplySchemeSettings( scheme );
+    smoked::FitCaption(this);
 
 	_defaultBorder = scheme->GetBorder( "ButtonBorder" );
 	_depressedBorder = scheme->GetBorder( "ButtonDepressedBorder" );
@@ -629,6 +633,11 @@ void Button::Paint()
 
 void Button::DrawFocusBorder( int x0, int y0, int x1, int y1 )
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        smoked::Outline(GetWide(), GetTall(), smoked::Radius(this, cse::ui::MaterialRole::Control),
+            smoked::ColorOf(cse::ui::Accent));
+        return;
+    }
 	surface()->DrawSetColor( _keyboardFocusColor );
 
 	int dash = GetProportionalScaledValue( 1 );
