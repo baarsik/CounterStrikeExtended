@@ -575,10 +575,11 @@ void Mod_LoadSpriteModel(model_t* mod, void* buffer, int fileBytes) {
     const int size = static_cast<int>(sizeof(msprite_t) + (count - 1) * sizeof(mspriteframedesc_t));
     const byte* palette = static_cast<byte*>(buffer) + sizeof(input);
     const unsigned short entries = ModelLoading::Read<unsigned short>(palette);
-    const int paletteBytes = static_cast<int>(entries * ModelLoading::PaletteChannels + sizeof(entries));
+    const int paletteBytes = static_cast<int>(ModelLoading::SpritePaletteStorageBytes(entries));
     msprite_t* output = static_cast<msprite_t*>(Hunk_AllocName(size + paletteBytes, loadname));
     pspritepal = reinterpret_cast<byte*>(output) + size;
     // Preserve the RGB palette at the historical hardware offset; the two spare bytes are not input RGB.
+    std::memset(pspritepal, 0, ModelLoading::PaletteBytes);
     std::memcpy(pspritepal, palette + sizeof(entries), entries * ModelLoading::PaletteChannels);
     output->paloffset = size + sizeof(entries);
     gSpriteTextureFormat = static_cast<short>(LittleLong(input.texFormat));

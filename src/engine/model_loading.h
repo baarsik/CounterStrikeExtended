@@ -161,6 +161,16 @@ private:
     std::size_t offset_ = 0;
 };
 
+constexpr std::size_t SpritePaletteStorageBytes(unsigned short entries) {
+#if defined(SW_RENDERER)
+    return sizeof(entries) + static_cast<std::size_t>(entries) * sizeof(PackedColorVec);
+#else
+    // Hardware uploads always read 256 RGB entries, including padding for short disk palettes.
+    const std::size_t storageEntries = entries < PaletteEntries ? PaletteEntries : entries;
+    return sizeof(entries) + storageEntries * PaletteChannels;
+#endif
+}
+
 inline bool Sprite(const void* buffer, int fileBytes) {
     if (!buffer || fileBytes < static_cast<int>(sizeof(dsprite_t))) {
         return false;
@@ -176,14 +186,7 @@ inline bool Sprite(const void* buffer, int fileBytes) {
     }
     // Sprite palettes have a little-endian 16-bit count. Supported targets are little-endian.
     const int entries = diskEntries;
-#if defined(SW_RENDERER)
     constexpr int MinimumPaletteEntries = 1;
-    constexpr std::size_t NativePaletteEntryBytes = sizeof(PackedColorVec);
-#else
-    // Hardware always reads a full 256-color upload palette.
-    constexpr int MinimumPaletteEntries = PaletteEntries;
-    constexpr std::size_t NativePaletteEntryBytes = PaletteChannels;
-#endif
     if (entries < MinimumPaletteEntries || entries > SHRT_MAX ||
         !cursor.Skip(static_cast<std::size_t>(entries) * PaletteChannels)) {
         return false;
@@ -193,7 +196,7 @@ inline bool Sprite(const void* buffer, int fileBytes) {
         return false;
     }
     const int count = LittleLong(header.numframes);
-    const std::size_t paletteBytes = sizeof(diskEntries) + entries * NativePaletteEntryBytes;
+    const std::size_t paletteBytes = SpritePaletteStorageBytes(diskEntries);
     if (!NativeAllocation(sizeof(msprite_t) + paletteBytes, count - 1, sizeof(mspriteframedesc_t))) {
         return false;
     }
