@@ -113,7 +113,23 @@ if args.case in ('center', 'all'):
     parts.append(extract.extract(read('src/cl_dll/localization_client.cpp'), 'HudTextSource::Capture') if not args.baseline else 'bool HudTextSource::Capture(const std::string*, const char* const*) { return false; }')
     parts.append(extract.extract(source, 'CHudTextMessage::RefreshLanguage')
                  if 'CHudTextMessage::RefreshLanguage' in source else 'void CHudTextMessage::RefreshLanguage() {}')
+    parts.append(body(read('src/cl_dll/localization_client.cpp'), 'HudTextSource::Render'))
+    if 'CHudTextMessage::PrintLocalVoiceStatus' in source:
+        parts.append(body(source, 'CHudTextMessage::PrintLocalVoiceStatus'))
     (out / 'center.inc').write_text('\n'.join(parts))
+    producers = []
+    for path, method, start, declaration, name in (
+        ('vgui_SpectatorPanel.cpp', 'SpectatorPanel::ShowMenu', r'char string\[', '', 'LocalDuckOnHide'),
+        ('vgui_TeamFortressViewport.cpp', 'TeamFortressViewport::UpdateSpectatorPanel',
+         r'_?snprintf\(\s*tempString,', 'char tempString[128];', 'LocalDuckOnJoin'),
+        ('hud_spectator.cpp', 'CHudSpectator::SetModes', r'char string\[', '', 'LocalSpectatorMode'),
+    ):
+        owner = body(read('src/cl_dll/' + path), method)
+        begin = re.search(start, owner).start()
+        end = owner.index(';', owner.index('gHUD.m_TextMessage.MsgFunc_TextMsg', begin)) + 1
+        producers.append('void ' + name + '() {\n' + declaration + '\n' + owner[begin:end] + '\n}')
+    producers.append(body(read('src/cl_dll/vgui_ScorePanel.cpp'), 'ScorePanel::mousePressed'))
+    (out / 'local-notifications.inc').write_text('\n'.join(producers))
     run('center')
 
 if args.case in ('chat', 'all'):

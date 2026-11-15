@@ -451,6 +451,7 @@ public:
 	static char *BufferedLocaliseTextString( const char *msg );
 	char *LookupString( const char *msg_name, int *msg_dest = NULL );
 	int MsgFunc_TextMsg(const char *pszName, int iSize, void *pbuf);
+    void PrintLocalVoiceStatus(const char* playerName, bool blocked);
 private:
     std::string m_centerSources[5];
     bool m_centerTokens[5]{};

@@ -86,5 +86,23 @@ int main() {
     hud.RefreshLanguage();
     assert(g_szLineBuffer[0][0] == 0); // Discarded logical messages never reappear.
     assert(flScrollTime == 99.0f && hud.m_iFlags == 3);
+    for (int row = 0; row <= MAX_LINES; ++row) {
+        g_szLineBuffer[row][0] = 0;
+        g_lineSources[row].reset();
+    }
+    auto voice = std::make_shared<HudTextSource>();
+    voice->presentation = HudTextSource::Presentation::VoiceStatus;
+    titles["Unmuted"] = "U %s.\r";
+    titles["M"] = "must stay literal";
+    const std::string voiceRaw[5]{"#Unmuted", "", "", "", ""};
+    const char* voiceResolved[]{"U %s.\r", "#M", "", "", ""};
+    assert(voice->Capture(voiceRaw, voiceResolved));
+    strcpy(g_szLineBuffer[0], voice->Render().c_str());
+    g_lineSources[0] = voice;
+    titles["Unmuted"] = "P %s.\r";
+    const int priorConsolePrints = consolePrints;
+    hud.RefreshLanguage();
+    assert(strcmp(g_szLineBuffer[0], "** P #M.\n\n") == 0);
+    assert(flScrollTime == 99.0f && hud.m_iFlags == 3 && consolePrints == priorConsolePrints);
     puts("PASS actual HL talk owner: typed reflow, literal chat/name metadata, scroll time and no event replay");
 }

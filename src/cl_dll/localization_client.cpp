@@ -65,6 +65,7 @@ bool HudTextSource::Capture(const std::string* raw, const char* const* resolved)
 }
 
 std::string HudTextSource::Render() const {
+    constexpr int VoiceExplanationIndex = 2;
     std::string expanded[5];
     for (int index = 0; index < 5; ++index) {
         expanded[index] = values[index];
@@ -75,15 +76,26 @@ std::string HudTextSource::Render() const {
             }
             expanded[index] = message->pMessage;
         }
-        if (index > 0 && tokens[index] && !expanded[index].empty()
+        const bool completeVoiceTitle = presentation == Presentation::VoiceStatus && index == VoiceExplanationIndex;
+        if (index > 0 && tokens[index] && !completeVoiceTitle && !expanded[index].empty()
             && (expanded[index].back() == '\n' || expanded[index].back() == '\r')) {
             expanded[index].pop_back();
         }
     }
     constexpr int TextMessageBytes = 128;
     char text[TextMessageBytes];
-    safe_sprintf(text, sizeof(text), expanded[0].c_str(), expanded[1].c_str(), expanded[2].c_str(),
-        expanded[3].c_str(), expanded[4].c_str());
+    if (presentation == Presentation::VoiceStatus) {
+        char status[TextMessageBytes];
+        safe_sprintf(status, sizeof(status), expanded[0].c_str(), expanded[1].c_str());
+        if (expanded[VoiceExplanationIndex].empty()) {
+            safe_sprintf(text, sizeof(text), "** %s\n", status);
+        } else {
+            safe_sprintf(text, sizeof(text), "** %s %s\n", status, expanded[VoiceExplanationIndex].c_str());
+        }
+    } else {
+        safe_sprintf(text, sizeof(text), expanded[0].c_str(), expanded[1].c_str(), expanded[2].c_str(),
+            expanded[3].c_str(), expanded[4].c_str());
+    }
     const char* sources[]{expanded[0].c_str(), expanded[1].c_str(), expanded[2].c_str(),
         expanded[3].c_str(), expanded[4].c_str()};
     FinishHudText(text, sources);

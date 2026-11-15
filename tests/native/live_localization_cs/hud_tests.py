@@ -11,6 +11,7 @@ def function(s, signature):
 s=(root/'src/cstrike/cl_dll/message.cpp').read_text(encoding='latin1')
 methods='\n'.join(function(s,x) for x in (
     'int CHudMessage::MessageAdd( const char*', 'void CHudMessage::MessageAdd( client_textmessage_t*',
+    'void CHudMessage::MessageAddLocal(', 'void CHudMessage::QueueMessage(',
     'float CHudMessage::MessageEndTime(', 'void CHudMessage::RefreshLanguage('))
 h=r'''
 #include "localization_message_snapshot.h"
@@ -53,7 +54,9 @@ struct CHudMessage {
  int m_iFlags=0;
  int MessageAdd(const char*,float,int,unsigned int);
  void MessageAdd(client_textmessage_t*);
- float MessageEndTime(int) const;
+ void MessageAddLocal(client_textmessage_t*);
+ void QueueMessage(const client_textmessage_t*,const client_textmessage_t*);
+ float MessageEndTime(int index, const client_textmessage_t* presentation = nullptr) const;
  void RefreshLanguage();
 };
 '''+methods+r'''

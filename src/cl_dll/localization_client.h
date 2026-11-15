@@ -5,9 +5,12 @@
 #include <string>
 
 struct HudTextSource {
+    enum class Presentation { TextMessage, VoiceStatus };
+
     std::string values[5];
     bool tokens[5]{};
     int discardedLines = 0;
+    Presentation presentation = Presentation::TextMessage;
     bool Capture(const std::string* raw, const char* const* resolved);
     std::string Render() const;
 };

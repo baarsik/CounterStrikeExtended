@@ -900,58 +900,26 @@ void ScorePanel::Open( void )
 }
 
 
-void ScorePanel::mousePressed(MouseCode code, Panel* panel)
-{
-	if(gHUD.m_iIntermission)
-		return;
-
-	if (!GetClientVoiceMgr()->IsInSquelchMode())
-	{
-		GetClientVoiceMgr()->StartSquelchMode();
-		m_HitTestPanel.setVisible(false);
-	}
-	else if (m_iHighlightRow >= 0)
-	{
-		// mouse has been pressed, toggle mute state
-		int iPlayer = m_iSortedRows[m_iHighlightRow];
-		if (iPlayer > 0)
-		{
-			// print text message
-			hud_player_info_t *pl_info = &g_PlayerInfoList[iPlayer];
-
-			if (pl_info && pl_info->name && pl_info->name[0])
-			{
-				char string[256];
-				if (GetClientVoiceMgr()->IsPlayerBlocked(iPlayer))
-				{
-					char string1[1024];
-
-					// remove mute
-					GetClientVoiceMgr()->SetPlayerBlockedState(iPlayer, false);
-
-					sprintf( string1, CHudTextMessage::BufferedLocaliseTextString( "#Unmuted" ), pl_info->name );
-					sprintf( string, "%c** %s\n", HUD_PRINTTALK, string1 );
-
-                    gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(string) + 1), string);
-				}
-				else
-				{
-					char string1[1024];
-					char string2[1024];
-
-					// mute the player
-					GetClientVoiceMgr()->SetPlayerBlockedState(iPlayer, true);
-
-					sprintf( string1, CHudTextMessage::BufferedLocaliseTextString( "#Muted" ), pl_info->name );
-					sprintf( string2, CHudTextMessage::BufferedLocaliseTextString( "#No_longer_hear_that_player" ) );
-					sprintf( string, "%c** %s %s\n", HUD_PRINTTALK, string1, string2 );
-
-                    gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(string) + 1), string);
-				}
-			}
-		}
-	}
+void ScorePanel::mousePressed(MouseCode code, Panel* panel) {
+    if (gHUD.m_iIntermission) {
+        return;
+    }
+    if (!GetClientVoiceMgr()->IsInSquelchMode()) {
+        GetClientVoiceMgr()->StartSquelchMode();
+        m_HitTestPanel.setVisible(false);
+    } else if (m_iHighlightRow >= 0) {
+        const int player = m_iSortedRows[m_iHighlightRow];
+        if (player > 0) {
+            const hud_player_info_t* info = &g_PlayerInfoList[player];
+            if (info->name && info->name[0]) {
+                const bool blocked = !GetClientVoiceMgr()->IsPlayerBlocked(player);
+                GetClientVoiceMgr()->SetPlayerBlockedState(player, blocked);
+                gHUD.m_TextMessage.PrintLocalVoiceStatus(info->name, blocked);
+            }
+        }
+    }
 }
+
 
 void ScorePanel::cursorMoved(int x, int y, Panel *panel)
 {

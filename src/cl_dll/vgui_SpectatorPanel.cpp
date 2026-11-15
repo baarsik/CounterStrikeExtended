@@ -279,12 +279,9 @@ void SpectatorPanel::ShowMenu(bool isVisible)
 		// if switching from visible menu to invisible menu, show help text
 		if ( m_menuVisible && this->isVisible() )
 		{
-			char string[ 64 ];
-
-			_snprintf( string, sizeof( string ) - 1, "%c%s", HUD_PRINTCENTER, CHudTextMessage::BufferedLocaliseTextString( "#Spec_Duck" ) );
-			string[ sizeof( string ) - 1 ] = '\0';
-
-            gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(string) + 1), string);
+            char string[sizeof("#Spec_Duck") + 1];
+            snprintf(string, sizeof(string), "%c%s", HUD_PRINTCENTER, "#Spec_Duck");
+            gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(sizeof(string)), string);
 		}
 	}
 

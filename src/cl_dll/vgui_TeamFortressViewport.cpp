@@ -1588,8 +1588,7 @@ void TeamFortressViewport::UpdateSpectatorPanel()
 			m_pSpectatorPanel->setVisible( true );	// show spectator panel, but
 			m_pSpectatorPanel->ShowMenu( false );	// dsiable all menus/buttons
 			
-			_snprintf( tempString, sizeof( tempString ) - 1, "%c%s", HUD_PRINTCENTER, CHudTextMessage::BufferedLocaliseTextString( "#Spec_Duck" ) );
-			tempString[ sizeof( tempString ) - 1 ] = '\0';
+            snprintf(tempString, sizeof(tempString), "%c%s", HUD_PRINTCENTER, "#Spec_Duck");
 
             gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, static_cast<int>(strlen(tempString) + 1), tempString);
 		}

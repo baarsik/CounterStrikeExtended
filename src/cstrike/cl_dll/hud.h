@@ -458,6 +458,7 @@ public:
 	int XPosition( float x, int width, int totalWidth );
 	int YPosition( float y, int height );
 	void MessageAdd( client_textmessage_t* message );
+    void MessageAddLocal(client_textmessage_t* message);
 	void Reset() override;
 	int MessageAdd( const char* message, float time, int hintMessage = 0, unsigned int font = 0 );
 
@@ -475,6 +476,7 @@ private:
 		wchar_t args[MAX_MESSAGE_ARGS][MESSAGE_ARG_LEN];
 		int numArgs;
 	} client_message_t;
+    void QueueMessage(const client_textmessage_t* message, const client_textmessage_t* title);
 	void MessageDrawScan( client_message_t* message, float time, unsigned int font );
 	void MessageScanStart();
 	void MessageScanNextChar( unsigned int font );
@@ -482,7 +484,7 @@ private:
     cse::localization::MessageSnapshot<client_textmessage_t> m_messageSnapshots[MESSAGE_SLOT_COUNT];
     cse::localization::MessageSnapshot<client_textmessage_t> m_gameTitleSnapshot;
     float m_messageEndTimes[MESSAGE_SLOT_COUNT]{};
-    float MessageEndTime(int index) const;
+    float MessageEndTime(int index, const client_textmessage_t* presentation = nullptr) const;
 	float m_startTime[16];
 	message_parms_t m_parms;
 	float m_gameTitleTime;

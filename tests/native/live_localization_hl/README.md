@@ -26,6 +26,9 @@ revision presentation and cache mutation code is production code.
   literal parameter merely because it later matches a token, rejects stale center
   provenance, and uses replacement without replaying CenterPrint. UTF8 clipping
   retains complete characters while CP1252 byte semantics are preserved.
+  The actual local spectator hint/mode packet builders retain their title keys.
+  Scoreboard mute/unmute notifications retain translated titles, literal player
+  names and decoration through language changes.
 - HUD talk refresh reflows only typed TextMsg notifications and preserves literal
   chat, color/name metadata, scroll time and flags without sound/console replay.
   Discarded logical messages do not reappear.

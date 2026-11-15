@@ -7,11 +7,12 @@ python3 tests/native/live_localization_cs/run.py
 python3 tests/native/live_localization_cs/compile_production.py
 ```
 
-`run.py` compiles eleven ASan/UBSan binaries. The shared snapshot test includes the real header; the remaining fixtures extract the actual production owning methods without rewriting their bodies, providing controlled catalogue/font/UI dependencies. They check:
+`run.py` compiles ASan/UBSan binaries. The shared snapshot test includes the real header; the remaining fixtures extract the actual production owning methods without rewriting their bodies, providing controlled catalogue/font/UI dependencies. They check:
 
 - borrowed text lifetime, explicit catalogue/literal provenance, copy/move and style/timing preservation;
 - active HUD hint ownership, preserved deadline/style and literal network `#` payload;
-- center text translation without renewed expiry/position or translated player names;
+- center text translation without renewed expiry/position or translated player names,
+  including every item-title argument used by `Alias_Not_Avail` buy errors;
 - visible structured chat/radio templates with original names/body, unchanged scroll timer/flags, and preserved plain history;
 - completed legacy menus versus incomplete packet assembly, unchanged valid slots/deadline;
 - status text translation without changing pointed player, health or health-display expiry;
@@ -43,3 +44,10 @@ It covers a caption cleared when the panel opens, player info arriving afterward
 health changes without a camera change, the highest valid player slot and quiet
 caption updates that retain open menu rows/selection. Hidden panels must not query
 disconnected client state.
+
+`local_hint_tests.py` runs the actual VGUI `DuckMessage` producer, client interface bridge,
+HUD message queue and glyph-rendering methods. Local hints must resolve their title and
+translate during drawing and live language changes, preserving their colors, placement,
+duration and existing team-suppression rules. Named server hints keep their normal title
+lookup; unknown local keys and director/demo-style messages retain literal text, even
+when their names or bodies resemble known catalogue entries.

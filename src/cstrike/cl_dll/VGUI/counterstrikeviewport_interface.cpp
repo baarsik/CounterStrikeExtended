@@ -100,7 +100,8 @@ float HudTime()
 
 void MessageAdd( void* message )
 {
-	gHUD.m_Message.MessageAdd( (client_textmessage_t*)message );
+    // This bridge receives client-owned VGUI hints; director/network messages use MessageAdd directly.
+    gHUD.m_Message.MessageAddLocal(static_cast<client_textmessage_t*>(message));
 }
 
 void MessageHud( const char* name, int size, void* buffer )

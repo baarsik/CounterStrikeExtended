@@ -305,12 +305,16 @@ void CHudVGUI2Print::GetStringSize(const wchar_t* text, int* width, int* height)
 }
 
 void CHudVGUI2Print::CaptureTextMessageSources(const char* text, const std::string (&arguments)[4]) {
+    const client_textmessage_t* format = text && text[0] == '#' ? TextMessageGet(text + 1) : nullptr;
+    // This buy-error template takes an item title; other first arguments can be literal player names.
+    const bool firstArgumentIsTitle = CS_IsCatalogueMessage(format) && format->pName &&
+        !stricmp(format->pName, "Alias_Not_Avail");
     for (int index = 0; index < 5; ++index) {
         const char* source = index == 0 ? text : arguments[index - 1].c_str();
-        client_textmessage_t* message = index != 1 && source && source[0] == '#'
+        client_textmessage_t* message = (index != 1 || firstArgumentIsTitle) && source && source[0] == '#'
             ? TextMessageGet(source + 1) : nullptr;
         m_centerSnapshots[index].Assign(message, CS_IsCatalogueMessage(message));
-        if (index == 1) {
+        if (index == 1 && !m_centerSnapshots[index].HasCatalogueSource()) {
             m_centerArgs[0] = arguments[0];
         }
     }

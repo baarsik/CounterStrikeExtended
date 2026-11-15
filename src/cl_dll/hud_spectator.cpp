@@ -1227,9 +1227,7 @@ void CHudSpectator::SetModes(int iNewMainMode, int iNewInsetMode)
 		gViewPort->MsgFunc_ResetFade( NULL, 0, NULL );
 
 		char string[128];
-        snprintf(string, sizeof(string), "#Spec_Mode%d", g_iUser1);
-        snprintf(string, sizeof(string), "%c%s", HUD_PRINTCENTER,
-            CHudTextMessage::BufferedLocaliseTextString(string));
+        snprintf(string, sizeof(string), "%c#Spec_Mode%d", HUD_PRINTCENTER, g_iUser1);
         const int messageBytes = static_cast<int>(strlen(string) + 1);
         gHUD.m_TextMessage.MsgFunc_TextMsg(NULL, messageBytes, string);
 	}

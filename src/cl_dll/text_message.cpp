@@ -267,6 +267,23 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 	return 1;
 }
 
+void CHudTextMessage::PrintLocalVoiceStatus(const char* playerName, bool blocked) {
+    if (gViewPort && !gViewPort->AllowedToPrintText()) {
+        return;
+    }
+    auto source = std::make_shared<HudTextSource>();
+    source->presentation = HudTextSource::Presentation::VoiceStatus;
+    // Only these local title keys are translatable; a player name is always literal.
+    const std::string raw[5]{blocked ? "#Muted" : "#Unmuted", "",
+        blocked ? "#No_longer_hear_that_player" : "", "", ""};
+    const char* resolved[]{LookupString(raw[0].c_str()), playerName ? playerName : "",
+        LookupString(raw[2].c_str()), "", ""};
+    const bool hasSource = source->Capture(raw, resolved);
+    const std::string rendered = source->Render();
+    gHUD.m_SayText.SayTextPrint(rendered.c_str(), static_cast<int>(rendered.size() + 1), -1,
+        hasSource ? source : nullptr);
+}
+
 void CHudTextMessage::RefreshLanguage() {
     const auto* engine = GetLocalizationEngine();
     if (!engine || !m_hasCenterSource) {

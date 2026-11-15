@@ -183,24 +183,48 @@ int CHudMessage::MessageAdd( const char* name, float time, int hintMessage, unsi
 
 void CHudMessage::MessageAdd( client_textmessage_t* message )
 {
-	if ( !gEngfuncs.IsSpectateOnly() && (unsigned int)( g_iTeamNumber - 1 ) <= 1
-		&& !strcmp( message->pMessage, "#Spec_Duck" ) )
-		return;
-	m_parms.time = gHUD.m_flTime;
-	m_iFlags |= HUD_ACTIVE;
-	for ( int i = 0; i < 16; i++ )
-	{
-		if ( !m_pMessages[i].pMessage )
-		{
-			m_messageSnapshots[i].Assign(message, CS_IsCatalogueMessage(message));
-            m_pMessages[i].pMessage = m_messageSnapshots[i].Get();
-			m_pMessages[i].font = _Newfont;
-			m_startTime[i] = gHUD.m_flTime;
-            m_pMessages[i].numArgs = 0;
-            m_messageEndTimes[i] = MessageEndTime(i);
-			return;
-		}
-	}
+    QueueMessage(message, nullptr);
+}
+
+void CHudMessage::MessageAddLocal(client_textmessage_t* message) {
+    const client_textmessage_t* title = nullptr;
+    if (message && message->pMessage && message->pMessage[0] == '#') {
+        title = TextMessageGet(message->pMessage + 1);
+    }
+    QueueMessage(message, title);
+}
+
+void CHudMessage::QueueMessage(const client_textmessage_t* message, const client_textmessage_t* title) {
+    if (!message || !message->pMessage) {
+        return;
+    }
+    constexpr int FirstPlayingTeam = 1;
+    constexpr int LastPlayingTeam = 2;
+    if (!gEngfuncs.IsSpectateOnly() && g_iTeamNumber >= FirstPlayingTeam && g_iTeamNumber <= LastPlayingTeam &&
+        !strcmp(message->pMessage, "#Spec_Duck")) {
+        return;
+    }
+    client_textmessage_t rendered = *message;
+    const client_textmessage_t* source = message;
+    if (title && title->pMessage) {
+        // Keep the local presentation, but retain the verified title identity for language replay.
+        rendered.pName = title->pName;
+        rendered.pMessage = title->pMessage;
+        source = title;
+    }
+    m_parms.time = gHUD.m_flTime;
+    m_iFlags |= HUD_ACTIVE;
+    for (int index = 0; index < MESSAGE_SLOT_COUNT; ++index) {
+        if (!m_pMessages[index].pMessage) {
+            m_messageSnapshots[index].Assign(&rendered, CS_IsCatalogueMessage(source));
+            m_pMessages[index].pMessage = m_messageSnapshots[index].Get();
+            m_pMessages[index].font = _Newfont;
+            m_startTime[index] = gHUD.m_flTime;
+            m_pMessages[index].numArgs = 0;
+            m_messageEndTimes[index] = MessageEndTime(index, message);
+            return;
+        }
+    }
 }
 
 int CHudMessage::MsgFunc_HudText( const char*, int size, void* buffer )
@@ -508,8 +532,8 @@ int CHudMessage::Draw( float time )
 	return 1;
 }
 
-float CHudMessage::MessageEndTime(int index) const {
-    const client_textmessage_t* message = m_pMessages[index].pMessage;
+float CHudMessage::MessageEndTime(int index, const client_textmessage_t* presentation) const {
+    const client_textmessage_t* message = presentation ? presentation : m_pMessages[index].pMessage;
     if (!message) {
         return 0;
     }
