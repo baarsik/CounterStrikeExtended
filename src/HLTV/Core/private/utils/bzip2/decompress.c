@@ -3,6 +3,7 @@
 /*--- Decompression machinery                               ---*/
 /*---                                          decompress.c ---*/
 /*-------------------------------------------------------------*/
+/* CSE modification: selector-count bound from ReHLDS ad4f2f53 (CVE-2019-12900). */
 
 /*--
   This file is a part of bzip2 and/or libbzip2, a program and
@@ -327,7 +328,7 @@ Int32 BZ2_decompress ( DState* s )
       GET_BITS(BZ_X_SELECTOR_1, nGroups, 3);
       if (nGroups < 2 || nGroups > 6) RETURN(BZ_DATA_ERROR);
       GET_BITS(BZ_X_SELECTOR_2, nSelectors, 15);
-      if (nSelectors < 1) RETURN(BZ_DATA_ERROR);
+      if (nSelectors < 1 || nSelectors > BZ_MAX_SELECTORS) RETURN(BZ_DATA_ERROR);
       for (i = 0; i < nSelectors; i++) {
          j = 0;
          while (True) {

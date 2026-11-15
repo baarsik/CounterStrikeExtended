@@ -53,6 +53,7 @@ window and network probes are separate authorized actions, not implied by a buil
 | CPU, counts and floating point | [CPU](cpu/), [numerics](numerics/), [surface lighting](surface_lighting/), [A3D FP state](a3d_float_state/README.md) |
 | ABI and module lifetime | [module loading](module_loading/), [game ABI](abi/), [launcher](launcher_bootstrap/README.md) |
 | Save/demo/navigation/archive data | [save callbacks](callbacks/), [canonical archive](save_archive/), [demo](demo/), [navigation](navigation/), [HPAK](hpak_records/README.md) |
+| Bundled decompression | [bzip2 selector bounds and round trips](bzip2_decoder/README.md) |
 | Audio and voice | [sound](sound/), [WAV loading](wav_loading/README.md), [A3D module/device ABI](a3d_module/README.md), [selected output/coexistence](a3d_live/README.md), [capture](voice_capture/README.md), [mixer](voice_mixer/README.md), [caller wiring](voice_capture_wiring/README.md) |
 | Steam and browser | [Steam](steam/), [service lifetime](steam_service/), [server](steam_server/README.md), [CEF](cef_host/README.md) |
 | Text and UI | [text encoding](text_encoding/README.md), [localized resources](localization_text/README.md), [UI lengths](ui_lengths/README.md), [death notices](death_notice/README.md), [VGUI1 Debug](vgui1_debug/README.md) |
