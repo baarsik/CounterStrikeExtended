@@ -187,7 +187,7 @@ static std::vector<byte> Studio(bool texture) {
     }
     return bytes;
 }
-static std::vector<byte> Sprite(bool group, unsigned short entries = PaletteEntries) {
+static std::vector<byte> Sprite(bool group, unsigned short entries = PaletteEntries, byte pixel = FixturePixel) {
     dsprite_t header {
     };
     header.ident = IDSPRITEHEADER;
@@ -213,7 +213,7 @@ static std::vector<byte> Sprite(bool group, unsigned short entries = PaletteEntr
     frame.height = 1;
     for (int i = 0; i < (group ? 2 : 1); ++i) {
         Append(bytes, frame);
-        bytes.push_back(FixturePixel);
+        bytes.push_back(pixel);
     }
     return bytes;
 }
@@ -248,7 +248,7 @@ static void Reject(bool studio, std::vector<byte> bytes) {
     assert(rejected);
     assert(allocations == 0 && uploads == 0);
 }
-static void Valid(bool studio, std::vector<byte> bytes) {
+static void Valid(bool studio, std::vector<byte> bytes, byte expectedPixel = FixturePixel) {
     const bool fallback = studio && Read<int>(bytes, offsetof(studiohdr_t, version)) != STUDIO_VERSION;
     Reset();
     model_t model {
@@ -288,17 +288,38 @@ static void Valid(bool studio, std::vector<byte> bytes) {
         }
         assert(frame->width == 1 && frame->height == 1);
 #if defined(SW_RENDERER)
-        assert(frame->pixels[0] == FixturePixel);
+        assert(frame->pixels[0] == expectedPixel);
         const byte* palette = static_cast<byte*>(model.cache.data) + sprite->paloffset;
         PackedColorVec color;
         std::memcpy(&color, palette, sizeof(color));
         assert(color.r == 0 && color.g == 1 && color.b == 2 && color.a == 0);
 #else
-        assert(uploadedPixels == std::vector<byte>{FixturePixel});
-        assert(uploadedPalette[0] == 0 && uploadedPalette[RgbPaletteBytes - 1] == 255);
+        assert(uploadedPixels == std::vector<byte>{expectedPixel});
+        assert(uploadedPalette.size() == RgbPaletteBytes);
+        const unsigned short entries = Read<unsigned short>(bytes, sizeof(dsprite_t));
+        for (int i = 0; i < RgbPaletteBytes; ++i) {
+            const byte expectedColor = i < entries * PaletteChannels ? static_cast<byte>(i) : 0;
+            assert(uploadedPalette[i] == expectedColor);
+        }
 #endif
     }
 }
+
+static void ShortSpritePalettes() {
+    // Cover the minimum, a small palette, the reported 254-color asset and the 256-color boundary.
+    constexpr unsigned short ShortPaletteSizes[] = {1, 8, 254, 255};
+    for (unsigned short entries : ShortPaletteSizes) {
+        for (bool group : {false, true}) {
+            const auto bytes = Sprite(group, entries, 0);
+            Valid(false, bytes, 0);
+            for (std::size_t size = 0; size < bytes.size(); ++size) {
+                Reject(false, std::vector<byte>(bytes.begin(), bytes.begin() + size));
+            }
+        }
+    }
+    std::puts("PASS short sprite palettes and truncated prefixes");
+}
+
 #if !defined(SW_RENDERER)
 static std::vector<byte> TwoTextureStudio(bool overlappingPalette) {
     constexpr int TextureCount = 2;
@@ -400,6 +421,10 @@ int main(int argc, char** argv) {
         Valid(false, Sprite(false));
         return 0;
     }
+    if (selected == "sprite-short-palette") {
+        ShortSpritePalettes();
+        return 0;
+    }
 #if !defined(SW_RENDERER)
     if (selected == "studio-palette-overlap") {
         StudioUploadInteractions(true, UploadCacheAction::None);
@@ -424,14 +449,11 @@ int main(int argc, char** argv) {
     Valid(false, Sprite(true));
     Valid(false, Sprite(false, PaletteEntries + 1));
     Valid(false, Sprite(true, SHRT_MAX));
+    ShortSpritePalettes();
 #if defined(SW_RENDERER)
-    constexpr unsigned short SmallSoftwarePaletteEntries = 8;
-    Valid(false, Sprite(false, SmallSoftwarePaletteEntries));
     auto softwareSequentialTexture = Studio(true);
     Put(softwareSequentialTexture, sizeof(studiohdr_t) + offsetof(mstudiotexture_t, index), 0);
     Valid(true, softwareSequentialTexture);
-#else
-    Reject(false, Sprite(false, PaletteEntries - 1));
 #endif
     for (bool studio : {false, true}) {
         auto valid = studio ? Studio(true) : Sprite(true);
