@@ -18,6 +18,7 @@
 #include "zone.h"
 #include "gl_model.h"
 #include "cmodel.h"
+#include "model_visibility.h"
 #include "cmd.h"
 #include "delta.h"
 #include "sys.h"
@@ -313,12 +314,16 @@ Calculates a PVS that is the inclusive or of all leafs within 8 pixels of the
 given point.
 =============
 */
-byte* SV_FatPVS( vec_t* org )
-{
-	fatbytes = ( sv.worldmodel->numleafs + 31 ) >> 3;
-	Q_memset( fatpvs, 0, fatbytes );
-	SV_AddToFatPVS( org, sv.worldmodel->nodes );
-	return fatpvs;
+byte* SV_FatPVS(vec_t* org) {
+    std::size_t bytes = 0;
+    if (!sv.worldmodel || !ModelVisibility::RowBytes(sv.worldmodel->numleafs, bytes) || bytes > sizeof(fatpvs)) {
+        Sys_Error("SV_FatPVS: invalid world leaf count");
+        return fatpvs;
+    }
+    fatbytes = static_cast<int>(bytes);
+    Q_memset(fatpvs, 0, fatbytes);
+    SV_AddToFatPVS(org, sv.worldmodel->nodes);
+    return fatpvs;
 }
 
 void SV_AddToFatPAS( vec_t* org, mnode_t* node )
@@ -356,12 +361,16 @@ void SV_AddToFatPAS( vec_t* org, mnode_t* node )
 	}
 }
 
-byte* SV_FatPAS( vec_t* org )
-{
-	fatpasbytes = ( sv.worldmodel->numleafs + 31 ) >> 3;
-	Q_memset( fatpas, 0, fatpasbytes );
-	SV_AddToFatPAS( org, sv.worldmodel->nodes );
-	return fatpas;
+byte* SV_FatPAS(vec_t* org) {
+    std::size_t bytes = 0;
+    if (!sv.worldmodel || !ModelVisibility::RowBytes(sv.worldmodel->numleafs, bytes) || bytes > sizeof(fatpas)) {
+        Sys_Error("SV_FatPAS: invalid world leaf count");
+        return fatpas;
+    }
+    fatpasbytes = static_cast<int>(bytes);
+    Q_memset(fatpas, 0, fatpasbytes);
+    SV_AddToFatPAS(org, sv.worldmodel->nodes);
+    return fatpas;
 }
 
 int SV_CheckVisibility( const edict_t* entity, byte* pset )

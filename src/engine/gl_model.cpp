@@ -17,6 +17,7 @@
 #include "engine_studio.h"
 #include "model_loading.h"
 #include "model_visibility.h"
+#include "brush_model_loading.h"
 #include "cmodel.h"
 
 #include <cmath>
@@ -994,37 +995,35 @@ static int Mod_LumpCount( const lump_t* l, unsigned int size )
 	return (int)( (unsigned int)l->filelen / size );
 }
 
-void Mod_LoadEntities( lump_t* l )
-{
-	const char* pszInputStream;
+void Mod_LoadEntities(lump_t* l) {
+    const char* pszInputStream;
 
-	if ( !l->filelen )
-	{
-		loadmodel->entities = NULL;
-		return;
-	}
+    if (!l->filelen) {
+        loadmodel->entities = NULL;
+        return;
+    }
 
-	loadmodel->entities = (char*)Hunk_AllocName( l->filelen, loadname );
-	Q_memcpy( loadmodel->entities, mod_base + l->fileofs, l->filelen );
+    loadmodel->entities = (char*)Hunk_AllocName(l->filelen, loadname);
+    Q_memcpy(loadmodel->entities, mod_base + l->fileofs, l->filelen);
 
-	if ( !loadmodel->entities )
-		return;
+    if (!loadmodel->entities) {
+        return;
+    }
 
-	pszInputStream = COM_Parse( loadmodel->entities );
-	while ( *pszInputStream && com_token[0] != '}' )
-	{
-		if ( !Q_strcmp( com_token, "wad" ) )
-		{
-			COM_Parse( pszInputStream );
+    pszInputStream = COM_Parse(loadmodel->entities);
+    while (pszInputStream && *pszInputStream && com_token[0] != '}') {
+        if (!Q_strcmp(com_token, "wad")) {
+            COM_Parse(pszInputStream);
 
-			if ( wadpath )
-				Mem_Free( wadpath );
-			wadpath = Mem_Strdup( com_token );
-			return;
-		}
+            if (wadpath) {
+                Mem_Free(wadpath);
+            }
+            wadpath = Mem_Strdup(com_token);
+            return;
+        }
 
-		pszInputStream = COM_Parse( pszInputStream );
-	}
+        pszInputStream = COM_Parse(pszInputStream);
+    }
 }
 
 /*
@@ -1032,35 +1031,35 @@ void Mod_LoadEntities( lump_t* l )
 Mod_LoadPlanes
 =================
 */
-void Mod_LoadPlanes( lump_t* l )
-{
-	int i, j;
-	mplane_t* out;
-	dplane_t* in;
-	int count;
-	int bits;
+void Mod_LoadPlanes(lump_t* l) {
+    int i;
+    int j;
+    mplane_t* out;
 
-	in = (dplane_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (mplane_t*)Hunk_AllocName( count * sizeof( *out ) * 2, loadname );
+    int count;
+    int bits;
 
-	loadmodel->planes = out;
-	loadmodel->numplanes = count;
+    count = Mod_LumpCount(l, sizeof(dplane_t));
+    out = (mplane_t*)Hunk_AllocName(count * sizeof(*out) * 2, loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		bits = 0;
-		for ( j = 0; j < 3; j++ )
-		{
-			out->normal[j] = LittleFloat( in->normal[j] );
-			if ( out->normal[j] < 0 )
-				bits |= 1 << j;
-		}
+    loadmodel->planes = out;
+    loadmodel->numplanes = count;
 
-		out->dist = LittleFloat( in->dist );
-		out->type = (byte)LittleLong( in->type );
-		out->signbits = (byte)bits;
-	}
+    for (i = 0; i < count; i++, out++) {
+        const dplane_t input = BrushModelLoading::Record<dplane_t>(mod_base, *l, i);
+
+        bits = 0;
+        for (j = 0; j < 3; j++) {
+            out->normal[j] = LittleFloat(input.normal[j]);
+            if (out->normal[j] < 0) {
+                bits |= 1 << j;
+            }
+        }
+
+        out->dist = LittleFloat(input.dist);
+        out->type = (byte)LittleLong(input.type);
+        out->signbits = (byte)bits;
+    }
 }
 
 /*
@@ -1068,13 +1067,21 @@ void Mod_LoadPlanes( lump_t* l )
 Mod_SetParent
 =================
 */
-void Mod_SetParent( mnode_t* node, mnode_t* parent )
-{
-	node->parent = parent;
-	if ( node->contents < 0 )
-		return;
-	Mod_SetParent( node->children[0], node );
-	Mod_SetParent( node->children[1], node );
+void Mod_SetParent(mnode_t* node, mnode_t* parent) {
+    struct Entry {
+        mnode_t* node;
+        mnode_t* parent;
+    };
+    std::vector<Entry> pending{{node, parent}};
+    while (!pending.empty()) {
+        const Entry current = pending.back();
+        pending.pop_back();
+        current.node->parent = current.parent;
+        if (current.node->contents >= 0) {
+            pending.push_back({current.node->children[1], current.node});
+            pending.push_back({current.node->children[0], current.node});
+        }
+    }
 }
 
 /*
@@ -1082,44 +1089,45 @@ void Mod_SetParent( mnode_t* node, mnode_t* parent )
 Mod_LoadNodes
 =================
 */
-void Mod_LoadNodes( lump_t* l )
-{
-	int i, j, count, p;
-	dnode_t* in;
-	mnode_t* out;
+void Mod_LoadNodes(lump_t* l) {
+    int i;
+    int j;
+    int count;
+    int p;
 
-	in = (dnode_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (mnode_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    mnode_t* out;
 
-	loadmodel->nodes = out;
-	loadmodel->numnodes = count;
+    count = Mod_LumpCount(l, sizeof(dnode_t));
+    out = (mnode_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
-			out->minmaxs[j] = LittleShort( in->mins[j] );
-			out->minmaxs[3 + j] = LittleShort( in->maxs[j] );
-		}
+    loadmodel->nodes = out;
+    loadmodel->numnodes = count;
 
-		p = LittleLong( in->planenum );
-		out->plane = loadmodel->planes + p;
+    for (i = 0; i < count; i++, out++) {
+        const dnode_t input = BrushModelLoading::Record<dnode_t>(mod_base, *l, i);
 
-		out->firstsurface = (unsigned short)LittleShort( in->firstface );
-		out->numsurfaces = (unsigned short)LittleShort( in->numfaces );
+        for (j = 0; j < 3; j++) {
+            out->minmaxs[j] = LittleShort(input.mins[j]);
+            out->minmaxs[3 + j] = LittleShort(input.maxs[j]);
+        }
 
-		for ( j = 0; j < 2; j++ )
-		{
-			p = LittleShort( in->children[j] );
-			if ( p >= 0 )
-				out->children[j] = loadmodel->nodes + p;
-			else
-				out->children[j] = (mnode_t*)( loadmodel->leafs + ( -1 - p ) );
-		}
-	}
+        p = LittleLong(input.planenum);
+        out->plane = loadmodel->planes + p;
 
-	Mod_SetParent( loadmodel->nodes, NULL ); // sets nodes and leafs
+        out->firstsurface = (unsigned short)LittleShort(input.firstface);
+        out->numsurfaces = (unsigned short)LittleShort(input.numfaces);
+
+        for (j = 0; j < 2; j++) {
+            p = LittleShort(input.children[j]);
+            if (p >= 0) {
+                out->children[j] = loadmodel->nodes + p;
+            } else {
+                out->children[j] = (mnode_t*)(loadmodel->leafs + (-1 - p));
+            }
+        }
+    }
+
+    Mod_SetParent(loadmodel->nodes, NULL); // sets nodes and leafs
 }
 
 /*
@@ -1129,51 +1137,54 @@ CalcSurfaceExtents
 Fills in s->texturemins[] and s->extents[]
 ================
 */
-void CalcSurfaceExtents( msurface_t* s )
-{
-	float mins[2], maxs[2], val;
-	int i, j, e;
-	mvertex_t* v;
-	mtexinfo_t* tex;
-	int bmins[2], bmaxs[2];
+void CalcSurfaceExtents(msurface_t* s) {
+    float mins[2];
+    float maxs[2];
+    float val;
+    int i;
+    int j;
+    int e;
+    mvertex_t* v;
+    mtexinfo_t* tex;
 
-	mins[0] = mins[1] = 999999;
-	maxs[0] = maxs[1] = -99999;
+    mins[0] = mins[1] = 999999;
+    maxs[0] = maxs[1] = -99999;
 
-	tex = s->texinfo;
+    tex = s->texinfo;
 
-	v = (mvertex_t*)s;
+    v = (mvertex_t*)s;
 
-	for ( i = 0; i < s->numedges; i++ )
-	{
-		e = loadmodel->surfedges[s->firstedge + i];
-		if ( e >= 0 )
-			v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
-		else
-			v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
+    for (i = 0; i < s->numedges; i++) {
+        e = loadmodel->surfedges[s->firstedge + i];
+        if (e >= 0) {
+            v = &loadmodel->vertexes[loadmodel->edges[e].v[0]];
+        } else {
+            v = &loadmodel->vertexes[loadmodel->edges[-e].v[1]];
+        }
 
-		for ( j = 0; j < 2; j++ )
-		{
-			val = (float)( v->position[0] * (double)tex->vecs[j][0] + v->position[1] * (double)tex->vecs[j][1]
-						   + v->position[2] * (double)tex->vecs[j][2] + (double)tex->vecs[j][3] );
-			if ( val < mins[j] )
-				mins[j] = val;
-			if ( val > maxs[j] )
-				maxs[j] = val;
-		}
-	}
+        for (j = 0; j < 2; j++) {
+            val = (float)(v->position[0] * (double)tex->vecs[j][0] + v->position[1] * (double)tex->vecs[j][1] +
+                          v->position[2] * (double)tex->vecs[j][2] + (double)tex->vecs[j][3]);
+            if (val < mins[j]) {
+                mins[j] = val;
+            }
+            if (val > maxs[j]) {
+                maxs[j] = val;
+            }
+        }
+    }
 
-	for ( i = 0; i < 2; i++ )
-	{
-		bmins[i] = (int)floor( (double)( mins[i] / 16 ) );
-		bmaxs[i] = (int)ceil( (double)( maxs[i] / 16 ) );
-
-		s->texturemins[i] = (short)( bmins[i] * 16 );
-		s->extents[i] = (short)( ( bmaxs[i] - bmins[i] ) * 16 );
-		if ( !( tex->flags & TEX_SPECIAL ) && s->extents[i] > 512 )
-			Sys_Error( "Bad surface extents %d/%d at position (%d,%d,%d)", s->extents[0], s->extents[1],
-				(int)v->position[0], (int)v->position[1], (int)v->position[2] );
-	}
+    if (!BrushModelLoading::Extents(mins, maxs, s->texturemins, s->extents)) {
+        Sys_Error("CalcSurfaceExtents: invalid projection in %s", loadmodel->name);
+        return;
+    }
+    constexpr int MaximumSurfaceExtent = 512;
+    for (int i = 0; i < BrushModelLoading::TextureAxes; ++i) {
+        if (!(tex->flags & TEX_SPECIAL) && s->extents[i] > MaximumSurfaceExtent) {
+            Sys_Error("Bad surface extents %d/%d at position (%d,%d,%d)", s->extents[0], s->extents[1],
+                      (int)v->position[0], (int)v->position[1], (int)v->position[2]);
+        }
+    }
 }
 
 /*
@@ -1181,70 +1192,68 @@ void CalcSurfaceExtents( msurface_t* s )
 Mod_LoadFaces
 =================
 */
-void Mod_LoadFaces( lump_t* l )
-{
-	dface_t* in;
-	msurface_t* out;
-	int i, count, surfnum;
-	int planenum, side;
-	char* name;
+void Mod_LoadFaces(lump_t* l) {
 
-	in = (dface_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (msurface_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    msurface_t* out;
+    int i;
+    int count;
+    int surfnum;
+    int planenum;
+    int side;
+    char* name;
 
-	loadmodel->surfaces = out;
-	loadmodel->numsurfaces = count;
+    count = Mod_LumpCount(l, sizeof(dface_t));
+    out = (msurface_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( surfnum = 0; surfnum < count; surfnum++, in++, out++ )
-	{
-		out->firstedge = LittleLong( in->firstedge );
-		out->numedges = LittleShort( in->numedges );
-		out->flags = 0;
-		out->pdecals = NULL;
-		out->displaylist = { 0, 0, 0.0f, 0 };
+    loadmodel->surfaces = out;
+    loadmodel->numsurfaces = count;
 
-		planenum = LittleShort( in->planenum );
-		side = LittleShort( in->side );
-		if ( side )
-			out->flags |= SURF_PLANEBACK;
+    for (surfnum = 0; surfnum < count; surfnum++, out++) {
+        const dface_t input = BrushModelLoading::Record<dface_t>(mod_base, *l, surfnum);
 
-		out->plane = loadmodel->planes + planenum;
+        out->firstedge = LittleLong(input.firstedge);
+        out->numedges = LittleShort(input.numedges);
+        out->flags = 0;
+        out->pdecals = NULL;
+        out->displaylist = {0, 0, 0.0f, 0};
 
-		out->texinfo = loadmodel->texinfo + LittleShort( in->texinfo );
+        planenum = LittleShort(input.planenum);
+        side = LittleShort(input.side);
+        if (side) {
+            out->flags |= SURF_PLANEBACK;
+        }
 
-		CalcSurfaceExtents( out );
+        out->plane = loadmodel->planes + planenum;
 
-		// lighting info
-		for ( i = 0; i < MAXLIGHTMAPS; i++ )
-			out->styles[i] = in->styles[i];
+        out->texinfo = loadmodel->texinfo + LittleShort(input.texinfo);
 
-		i = LittleLong( in->lightofs );
-		if ( i == -1 )
-			out->samples = NULL;
-		else
-			out->samples = (color24*)( (byte*)loadmodel->lightdata + i );
+        CalcSurfaceExtents(out);
 
-		// set the drawing flags flag
-		name = out->texinfo->texture->name;
-		if ( !Q_strncmp( name, "sky", 3 ) ) // sky
-		{
-			out->flags |= SURF_DRAWSKY | SURF_DRAWTILED;
-		}
-		else if ( !Q_strncmp( name, "scroll", 6 ) )
-		{
-			out->flags |= SURF_DRAWTILED;
-		}
-		else if ( name[0] == '!' || !_strnicmp( name, "laser", 5 ) || !_strnicmp( name, "water", 5 ) ) // turbulent
-		{
-			out->flags |= SURF_DRAWTURB;
-			GL_SubdivideSurface( out ); // cut up polygon for warps
-		}
-		else if ( out->texinfo->flags & TEX_SPECIAL )
-		{
-			out->flags |= SURF_DRAWTILED;
-		}
-	}
+        // lighting info
+        for (i = 0; i < MAXLIGHTMAPS; i++) {
+            out->styles[i] = input.styles[i];
+        }
+
+        i = LittleLong(input.lightofs);
+        if (i == -1) {
+            out->samples = NULL;
+        } else {
+            out->samples = (color24*)((byte*)loadmodel->lightdata + i);
+        }
+
+        // set the drawing flags flag
+        name = out->texinfo->texture->name;
+        if (!Q_strncmp(name, "sky", 3)) { // sky
+            out->flags |= SURF_DRAWSKY | SURF_DRAWTILED;
+        } else if (!Q_strncmp(name, "scroll", 6)) {
+            out->flags |= SURF_DRAWTILED;
+        } else if (name[0] == '!' || !_strnicmp(name, "laser", 5) || !_strnicmp(name, "water", 5)) {
+            out->flags |= SURF_DRAWTURB;
+            GL_SubdivideSurface(out); // cut up polygon for warps
+        } else if (out->texinfo->flags & TEX_SPECIAL) {
+            out->flags |= SURF_DRAWTILED;
+        }
+    }
 }
 
 /*
@@ -1252,25 +1261,25 @@ void Mod_LoadFaces( lump_t* l )
 Mod_LoadVertexes
 =================
 */
-static void Mod_LoadVertexes( lump_t* l )
-{
-	dvertex_t* in;
-	mvertex_t* out;
-	int i, count;
+static void Mod_LoadVertexes(lump_t* l) {
 
-	in = (dvertex_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (mvertex_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    mvertex_t* out;
+    int i;
+    int count;
 
-	loadmodel->vertexes = out;
-	loadmodel->numvertexes = count;
+    count = Mod_LumpCount(l, sizeof(dvertex_t));
+    out = (mvertex_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		out->position[0] = LittleFloat( in->point[0] );
-		out->position[1] = LittleFloat( in->point[1] );
-		out->position[2] = LittleFloat( in->point[2] );
-	}
+    loadmodel->vertexes = out;
+    loadmodel->numvertexes = count;
+
+    for (i = 0; i < count; i++, out++) {
+        const dvertex_t input = BrushModelLoading::Record<dvertex_t>(mod_base, *l, i);
+
+        out->position[0] = LittleFloat(input.point[0]);
+        out->position[1] = LittleFloat(input.point[1]);
+        out->position[2] = LittleFloat(input.point[2]);
+    }
 }
 
 /*
@@ -1278,24 +1287,24 @@ static void Mod_LoadVertexes( lump_t* l )
 Mod_LoadEdges
 =================
 */
-static void Mod_LoadEdges( lump_t* l )
-{
-	dedge_t* in;
-	medge_t* out;
-	int i, count;
+static void Mod_LoadEdges(lump_t* l) {
 
-	in = (dedge_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (medge_t*)Hunk_AllocName( ( count + 1 ) * sizeof( *out ), loadname );
+    medge_t* out;
+    int i;
+    int count;
 
-	loadmodel->edges = out;
-	loadmodel->numedges = count;
+    count = Mod_LumpCount(l, sizeof(dedge_t));
+    out = (medge_t*)Hunk_AllocName((count + 1) * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		out->v[0] = (unsigned short)LittleShort( in->v[0] );
-		out->v[1] = (unsigned short)LittleShort( in->v[1] );
-	}
+    loadmodel->edges = out;
+    loadmodel->numedges = count;
+
+    for (i = 0; i < count; i++, out++) {
+        const dedge_t input = BrushModelLoading::Record<dedge_t>(mod_base, *l, i);
+
+        out->v[0] = (unsigned short)LittleShort(input.v[0]);
+        out->v[1] = (unsigned short)LittleShort(input.v[1]);
+    }
 }
 
 /*
@@ -1303,20 +1312,14 @@ static void Mod_LoadEdges( lump_t* l )
 Mod_LoadSurfedges
 =================
 */
-static void Mod_LoadSurfedges( lump_t* l )
-{
-	int i, count;
-	int *in, *out;
-
-	in = (int*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (int*)Hunk_AllocName( count * sizeof( *out ), loadname );
-
-	loadmodel->surfedges = out;
-	loadmodel->numsurfedges = count;
-
-	for ( i = 0; i < count; i++ )
-		out[i] = LittleLong( in[i] );
+void Mod_LoadSurfedges(lump_t* lump) {
+    const int count = lump->filelen / static_cast<int>(sizeof(int));
+    int* output = static_cast<int*>(Hunk_AllocName(static_cast<int>(count * sizeof(int)), loadname));
+    loadmodel->surfedges = output;
+    loadmodel->numsurfedges = count;
+    for (int index = 0; index < count; ++index) {
+        output[index] = LittleLong(BrushModelLoading::Record<int>(mod_base, *lump, index));
+    }
 }
 
 /*
@@ -1359,62 +1362,63 @@ static void Mod_LoadVisibility( lump_t* l )
 Mod_LoadTexinfo
 =================
 */
-static void Mod_LoadTexinfo( lump_t* l )
-{
-	texinfo_t* in;
-	mtexinfo_t* out;
-	int i, j, k, count;
-	int miptex;
-	float len1, len2;
+static void Mod_LoadTexinfo(lump_t* l) {
 
-	in = (texinfo_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (mtexinfo_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    mtexinfo_t* out;
+    int i;
+    int j;
+    int k;
+    int count;
+    int miptex;
+    float len1;
+    float len2;
 
-	loadmodel->texinfo = out;
-	loadmodel->numtexinfo = count;
+    count = Mod_LumpCount(l, sizeof(texinfo_t));
+    out = (mtexinfo_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		for ( j = 0; j < 2; j++ )
-		{
-			for ( k = 0; k < 4; k++ )
-				out->vecs[j][k] = LittleFloat( in->vecs[j][k] );
-		}
+    loadmodel->texinfo = out;
+    loadmodel->numtexinfo = count;
 
-		len1 = Length( out->vecs[0] );
-		len2 = Length( out->vecs[1] );
-		len1 = ( len1 + len2 ) / 2;
-		if ( len1 >= 0.99 )
-			out->mipadjust = 1;
-		else if ( len1 >= 0.49 )
-			out->mipadjust = 2;
-		else if ( len1 >= 0.32 )
-			out->mipadjust = 3;
-		else
-			out->mipadjust = 4;
+    for (i = 0; i < count; i++, out++) {
+        const texinfo_t input = BrushModelLoading::Record<texinfo_t>(mod_base, *l, i);
 
-		miptex = LittleLong( in->miptex );
-		out->flags = LittleLong( in->flags );
+        for (j = 0; j < 2; j++) {
+            for (k = 0; k < 4; k++) {
+                out->vecs[j][k] = LittleFloat(input.vecs[j][k]);
+            }
+        }
 
-		if ( !loadmodel->textures )
-		{
-			out->texture = r_notexture_mip; // checkerboard texture
-			out->flags = 0;
-		}
-		else
-		{
-			if ( miptex >= loadmodel->numtextures )
-				Sys_Error( "miptex >= loadmodel->numtextures" );
+        len1 = Length(out->vecs[0]);
+        len2 = Length(out->vecs[1]);
+        len1 = (len1 + len2) / 2;
+        if (len1 >= 0.99) {
+            out->mipadjust = 1;
+        } else if (len1 >= 0.49) {
+            out->mipadjust = 2;
+        } else if (len1 >= 0.32) {
+            out->mipadjust = 3;
+        } else {
+            out->mipadjust = 4;
+        }
 
-			out->texture = loadmodel->textures[miptex];
-			if ( !out->texture )
-			{
-				out->texture = r_notexture_mip; // texture not found
-				out->flags = 0;
-			}
-		}
-	}
+        miptex = LittleLong(input.miptex);
+        out->flags = LittleLong(input.flags);
+
+        if (!loadmodel->textures) {
+            out->texture = r_notexture_mip; // checkerboard texture
+            out->flags = 0;
+        } else {
+            if (miptex >= loadmodel->numtextures) {
+                Sys_Error("miptex >= loadmodel->numtextures");
+            }
+
+            out->texture = loadmodel->textures[miptex];
+            if (!out->texture) {
+                out->texture = r_notexture_mip; // texture not found
+                out->flags = 0;
+            }
+        }
+    }
 }
 
 /*
@@ -1422,26 +1426,28 @@ static void Mod_LoadTexinfo( lump_t* l )
 Mod_LoadMarksurfaces
 =================
 */
-static void Mod_LoadMarksurfaces( lump_t* l )
-{
-	int i, j, count;
-	unsigned short* in;
-	msurface_t** out;
+static void Mod_LoadMarksurfaces(lump_t* l) {
+    int i;
+    int j;
+    int count;
 
-	in = (unsigned short*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (msurface_t**)Hunk_AllocName( count * sizeof( *out ), loadname );
+    msurface_t** out;
 
-	loadmodel->marksurfaces = out;
-	loadmodel->nummarksurfaces = count;
+    count = Mod_LumpCount(l, sizeof(unsigned short));
+    out = (msurface_t**)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++ )
-	{
-		j = LittleShort( in[i] );
-		if ( j >= loadmodel->numsurfaces )
-			Sys_Error( "Mod_ParseMarksurfaces: bad surface number" );
-		out[i] = loadmodel->surfaces + j;
-	}
+    loadmodel->marksurfaces = out;
+    loadmodel->nummarksurfaces = count;
+
+    for (i = 0; i < count; i++) {
+        const unsigned short input = BrushModelLoading::Record<unsigned short>(mod_base, *l, i);
+
+        j = static_cast<unsigned short>(LittleShort(input));
+        if (j >= loadmodel->numsurfaces) {
+            Sys_Error("Mod_ParseMarksurfaces: bad surface number");
+        }
+        out[i] = loadmodel->surfaces + j;
+    }
 }
 
 /*
@@ -1473,8 +1479,9 @@ static void Mod_LoadLeafs(lump_t* lump) {
             output.minmaxs[BoundsDimensions + axis] = LittleShort(input.maxs[axis]);
         }
         output.contents = LittleLong(input.contents);
-        output.firstmarksurface = loadmodel->marksurfaces + input.firstmarksurface;
-        output.nummarksurfaces = LittleShort(input.nummarksurfaces);
+        output.firstmarksurface =
+            loadmodel->marksurfaces + static_cast<unsigned short>(LittleShort(input.firstmarksurface));
+        output.nummarksurfaces = static_cast<unsigned short>(LittleShort(input.nummarksurfaces));
 
         const int offset = LittleLong(input.visofs);
         if (offset == ModelVisibility::NoVisibilityOffset) {
@@ -1497,38 +1504,37 @@ static void Mod_LoadLeafs(lump_t* lump) {
 Mod_LoadClipnodes
 =================
 */
-static void Mod_LoadClipnodes( lump_t* l )
-{
-	static const vec3_t hull_mins[] = { { -16, -16, -36 }, { -32, -32, -32 }, { -16, -16, -18 } };
-	static const vec3_t hull_maxs[] = { { 16, 16, 36 }, { 32, 32, 32 }, { 16, 16, 18 } };
-	dclipnode_t *in, *out;
-	int i, count;
-	hull_t* hull;
+static void Mod_LoadClipnodes(lump_t* l) {
+    static const vec3_t hull_mins[] = {{-16, -16, -36}, {-32, -32, -32}, {-16, -16, -18}};
+    static const vec3_t hull_maxs[] = {{16, 16, 36}, {32, 32, 32}, {16, 16, 18}};
+    dclipnode_t* out;
+    int i;
+    int count;
+    hull_t* hull;
 
-	in = (dclipnode_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (dclipnode_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    count = Mod_LumpCount(l, sizeof(dclipnode_t));
+    out = (dclipnode_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	loadmodel->clipnodes = out;
-	loadmodel->numclipnodes = count;
+    loadmodel->clipnodes = out;
+    loadmodel->numclipnodes = count;
 
-	for ( i = 1; i < MAX_MAP_HULLS; i++ )
-	{
-		hull = &loadmodel->hulls[i];
-		hull->clipnodes = out;
-		hull->firstclipnode = 0;
-		hull->lastclipnode = count - 1;
-		hull->planes = loadmodel->planes;
-		VectorCopy( hull_mins[i - 1], hull->clip_mins );
-		VectorCopy( hull_maxs[i - 1], hull->clip_maxs );
-	}
+    for (i = 1; i < MAX_MAP_HULLS; i++) {
+        hull = &loadmodel->hulls[i];
+        hull->clipnodes = out;
+        hull->firstclipnode = 0;
+        hull->lastclipnode = count - 1;
+        hull->planes = loadmodel->planes;
+        VectorCopy(hull_mins[i - 1], hull->clip_mins);
+        VectorCopy(hull_maxs[i - 1], hull->clip_maxs);
+    }
 
-	for ( i = 0; i < count; i++, out++, in++ )
-	{
-		out->planenum = LittleLong( in->planenum );
-		out->children[0] = LittleShort( in->children[0] );
-		out->children[1] = LittleShort( in->children[1] );
-	}
+    for (i = 0; i < count; i++, out++) {
+        const dclipnode_t input = BrushModelLoading::Record<dclipnode_t>(mod_base, *l, i);
+
+        out->planenum = LittleLong(input.planenum);
+        out->children[0] = LittleShort(input.children[0]);
+        out->children[1] = LittleShort(input.children[1]);
+    }
 }
 
 /*
@@ -1536,36 +1542,37 @@ static void Mod_LoadClipnodes( lump_t* l )
 Mod_LoadSubmodels
 =================
 */
-static void Mod_LoadSubmodels( lump_t* l )
-{
-	dmodel_t* in;
-	dmodel_t* out;
-	int i, j, count;
+static void Mod_LoadSubmodels(lump_t* l) {
 
-	in = (dmodel_t*)( mod_base + l->fileofs );
-	count = Mod_LumpCount( l, sizeof( *in ) );
-	out = (dmodel_t*)Hunk_AllocName( count * sizeof( *out ), loadname );
+    dmodel_t* out;
+    int i;
+    int j;
+    int count;
 
-	loadmodel->submodels = out;
-	loadmodel->numsubmodels = count;
+    count = Mod_LumpCount(l, sizeof(dmodel_t));
+    out = (dmodel_t*)Hunk_AllocName(count * sizeof(*out), loadname);
 
-	for ( i = 0; i < count; i++, in++, out++ )
-	{
-		for ( j = 0; j < 3; j++ )
-		{
-			// spread the mins / maxs by a pixel
-			out->mins[j] = LittleFloat( in->mins[j] ) - 1;
-			out->maxs[j] = LittleFloat( in->maxs[j] ) + 1;
-			out->origin[j] = LittleFloat( in->origin[j] );
-		}
+    loadmodel->submodels = out;
+    loadmodel->numsubmodels = count;
 
-		for ( j = 0; j < MAX_MAP_HULLS; j++ )
-			out->headnode[j] = LittleLong( in->headnode[j] );
+    for (i = 0; i < count; i++, out++) {
+        const dmodel_t input = BrushModelLoading::Record<dmodel_t>(mod_base, *l, i);
 
-		out->visleafs = LittleLong( in->visleafs );
-		out->firstface = LittleLong( in->firstface );
-		out->numfaces = LittleLong( in->numfaces );
-	}
+        for (j = 0; j < 3; j++) {
+            // spread the mins / maxs by a pixel
+            out->mins[j] = LittleFloat(input.mins[j]) - 1;
+            out->maxs[j] = LittleFloat(input.maxs[j]) + 1;
+            out->origin[j] = LittleFloat(input.origin[j]);
+        }
+
+        for (j = 0; j < MAX_MAP_HULLS; j++) {
+            out->headnode[j] = LittleLong(input.headnode[j]);
+        }
+
+        out->visleafs = LittleLong(input.visleafs);
+        out->firstface = LittleLong(input.firstface);
+        out->numfaces = LittleLong(input.numfaces);
+    }
 }
 
 /*
@@ -1611,191 +1618,205 @@ static void Mod_MakeHull0()
 Mod_LoadTextures
 =================
 */
-void Mod_LoadTextures( lump_t* l )
-{
-	int i, j, num, max, altmax;
-	unsigned int pixels;
-	int palette;
-	miptex_t* mt;
-	texture_t *tx, *tx2;
-	texture_t* anims[10];
-	texture_t* altanims[10];
-	dmiptexlump_t* m;
-	byte wadtexdata[TEXTUREDATA_SIZE];
-	byte* pPal;
-	qboolean wads_parsed;
-	double starttime;
-	byte* rawtex;
+void Mod_LoadTextures(lump_t* l) {
+    int i;
+    int j;
+    int num;
+    int max;
+    int altmax;
+    unsigned int pixels;
+    int palette;
+    miptex_t* mt;
+    texture_t *tx, *tx2;
+    texture_t* anims[10];
+    texture_t* altanims[10];
+    byte* textureLump;
+    int textureCount;
+    byte wadtexdata[TEXTUREDATA_SIZE];
+    byte* pPal;
+    qboolean wads_parsed;
+    double starttime;
+    byte* rawtex;
 
-	starttime = Sys_FloatTime();
+    starttime = Sys_FloatTime();
 
-	if ( !tested )
-		Mod_AdInit();
+    if (!tested) {
+        Mod_AdInit();
+    }
 
-	if ( !l->filelen )
-	{
-		loadmodel->textures = NULL;
-		return;
-	}
+    if (!l->filelen) {
+        loadmodel->textures = NULL;
+        return;
+    }
 
-	m = (dmiptexlump_t*)( mod_base + l->fileofs );
+    textureLump = mod_base + l->fileofs;
+    textureCount = LittleLong(ModelLoading::Read<int>(textureLump));
+    loadmodel->numtextures = textureCount;
+    loadmodel->textures =
+        static_cast<texture_t**>(Hunk_AllocName(static_cast<int>(textureCount * sizeof(texture_t*)), loadname));
 
-	m->nummiptex = LittleLong( m->nummiptex );
+    wads_parsed = FALSE;
 
-	loadmodel->numtextures = m->nummiptex;
-	loadmodel->textures = (texture_t**)Hunk_AllocName( m->nummiptex * sizeof( *loadmodel->textures ), loadname );
+    for (i = 0; i < textureCount; i++) {
+        const int offset = LittleLong(ModelLoading::Read<int>(textureLump + sizeof(int) + i * sizeof(int)));
+        if (offset == BrushModelLoading::NoOffset) {
+            continue;
+        }
+        byte* textureData = textureLump + offset;
+        miptex_t input = ModelLoading::Read<miptex_t>(textureData);
+        mt = &input;
 
-	wads_parsed = FALSE;
+        if (r_wadtextures.value || !LittleLong(mt->offsets[0])) {
+            if (!wads_parsed) {
+                TEX_InitFromWad(wadpath);
+                TEX_AddAnimatingTextures();
+                wads_parsed = TRUE;
+            }
 
-	for ( i = 0; i < m->nummiptex; i++ )
-	{
-		m->dataofs[i] = LittleLong( m->dataofs[i] );
-		if ( m->dataofs[i] == -1 )
-			continue;
+            const int wadBytes = TEX_LoadLump(mt->name, wadtexdata, sizeof(wadtexdata));
+            if (!wadBytes) {
+                continue;
+            }
 
-		mt = (miptex_t*)( (byte*)m + m->dataofs[i] );
+            if (wadBytes < 0 || !BrushModelLoading::Miptex(wadtexdata, static_cast<std::size_t>(wadBytes)) ||
+                !ModelLoading::Read<miptex_t>(wadtexdata).offsets[0]) {
+                Sys_Error("Mod_LoadTextures: invalid WAD texture in %s", loadmodel->name);
+                return;
+            }
+            textureData = wadtexdata;
+            input = ModelLoading::Read<miptex_t>(textureData);
+        }
 
-		if ( r_wadtextures.value || !LittleLong( mt->offsets[0] ) )
-		{
-			if ( !wads_parsed )
-			{
-				TEX_InitFromWad( wadpath );
-				TEX_AddAnimatingTextures();
-				wads_parsed = TRUE;
-			}
+        mt->width = LittleLong(mt->width);
+        mt->height = LittleLong(mt->height);
+        for (j = 0; j < MIPLEVELS; j++) {
+            mt->offsets[j] = LittleLong(mt->offsets[j]);
+        }
 
-			if ( !TEX_LoadLump( mt->name, wadtexdata, sizeof( wadtexdata ) ) )
-			{
-				m->dataofs[i] = -1;
-				continue;
-			}
+        if ((mt->width & 15) || (mt->height & 15)) {
+            Sys_Error("Texture %s is not 16 aligned", mt->name);
+        }
 
-			mt = (miptex_t*)wadtexdata;
-		}
+        pixels = mt->width * mt->height / 64 * MIPSCALE;
+        palette = static_cast<unsigned short>(
+                      LittleShort(ModelLoading::Read<unsigned short>(textureData + sizeof(miptex_t) + pixels))) *
+                  ModelLoading::PaletteChannels;
 
-		mt->width = LittleLong( mt->width );
-		mt->height = LittleLong( mt->height );
-		for ( j = 0; j < MIPLEVELS; j++ )
-			mt->offsets[j] = LittleLong( mt->offsets[j] );
+        tx = (texture_t*)Hunk_AllocName(sizeof(texture_t) + palette, loadname);
 
-		if ( ( mt->width & 15 ) || ( mt->height & 15 ) )
-			Sys_Error( "Texture %s is not 16 aligned", mt->name );
+        loadmodel->textures[i] = tx;
 
-		pixels = mt->width * mt->height / 64 * MIPSCALE;
-		palette = *(unsigned short*)( (byte*)( mt + 1 ) + pixels ) * 3;
+        Q_memcpy(tx->name, mt->name, sizeof(tx->name));
+        tx->width = mt->width;
+        tx->height = mt->height;
 
-		tx = (texture_t*)Hunk_AllocName( sizeof( texture_t ) + palette, loadname );
+        pPal = (textureData + sizeof(miptex_t)) + pixels + sizeof(unsigned short);
+        tx->pPal = (byte*)(tx + 1);
 
-		loadmodel->textures[i] = tx;
+        Q_memcpy(tx->pPal, pPal, palette);
 
-		Q_memcpy( tx->name, mt->name, sizeof( tx->name ) );
-		tx->width = mt->width;
-		tx->height = mt->height;
+        rawtex = (textureData + sizeof(miptex_t));
 
-		pPal = (byte*)( mt + 1 ) + pixels + sizeof( unsigned short );
-		tx->pPal = (byte*)( tx + 1 );
+        if (ad_enabled && !Q_strcasecmp(tx->name, "DEFAULT")) {
+            Mod_AdSwap(tx, (int)pixels, &rawtex, &pPal, palette);
+        }
 
-		Q_memcpy( tx->pPal, pPal, palette );
+        if (!Q_strncmp(mt->name, "sky", 3)) {
+            R_InitSky();
+        } else {
+            gl_filter_min = GL_LINEAR_MIPMAP_NEAREST; //_LINEAR;
+            tx->gl_texturenum = GL_LoadTexture(mt->name, GLT_WORLD, tx->width, tx->height, rawtex, TRUE,
+                                               mt->name[0] == '{' ? TEX_TYPE_ALPHA : TEX_TYPE_NONE, pPal);
+            gl_filter_min = GL_LINEAR;
+        }
 
-		rawtex = (byte*)( mt + 1 );
+        DT_LoadDetailTexture(mt->name, tx->gl_texturenum);
+    }
 
-		if ( ad_enabled && !Q_strcasecmp( tx->name, "DEFAULT" ) )
-			Mod_AdSwap( tx, (int)pixels, &rawtex, &pPal, palette );
+    if (wads_parsed) {
+        TEX_CleanupWadInfo();
+    }
 
-		if ( !Q_strncmp( mt->name, "sky", 3 ) )
-		{
-			R_InitSky();
-		}
-		else
-		{
-			gl_filter_min = GL_LINEAR_MIPMAP_NEAREST; //_LINEAR;
-			tx->gl_texturenum = GL_LoadTexture( mt->name, GLT_WORLD, tx->width, tx->height, rawtex, TRUE,
-				mt->name[0] == '{' ? TEX_TYPE_ALPHA : TEX_TYPE_NONE, pPal );
-			gl_filter_min = GL_LINEAR;
-		}
+    //
+    // sequence the animations
+    //
+    for (i = 0; i < textureCount; i++) {
+        tx = loadmodel->textures[i];
+        if (!tx || (tx->name[0] != '+' && tx->name[0] != '-')) {
+            continue;
+        }
+        if (tx->anim_next) {
+            continue; // allready sequenced
+        }
 
-		DT_LoadDetailTexture( mt->name, tx->gl_texturenum );
-	}
+        // find the number of frames in the animation
+        Q_memset(anims, 0, sizeof(anims));
+        Q_memset(altanims, 0, sizeof(altanims));
 
-	if ( wads_parsed )
-		TEX_CleanupWadInfo();
+        max = 0;
+        altmax = 0;
 
-	//
-	// sequence the animations
-	//
-	for ( i = 0; i < m->nummiptex; i++ )
-	{
-		tx = loadmodel->textures[i];
-		if ( !tx || ( tx->name[0] != '+' && tx->name[0] != '-' ) )
-			continue;
-		if ( tx->anim_next )
-			continue; // allready sequenced
+        for (j = i; j < textureCount; j++) {
+            tx2 = loadmodel->textures[j];
+            if (!tx2 || (tx2->name[0] != '+' && tx2->name[0] != '-')) {
+                continue;
+            }
+            if (Q_strcmp(tx2->name + 2, tx->name + 2)) {
+                continue;
+            }
 
-		// find the number of frames in the animation
-		Q_memset( anims, 0, sizeof( anims ) );
-		Q_memset( altanims, 0, sizeof( altanims ) );
+            num = tx2->name[1];
+            if (num >= 'a' && num <= 'z') {
+                num -= 'a' - 'A';
+            }
+            if (num >= '0' && num <= '9') {
+                num -= '0';
+                anims[num] = tx2;
+                if (num + 1 > max) {
+                    max = num + 1;
+                }
+            } else if (num >= 'A' && num <= 'J') {
+                num = num - 'A';
+                altanims[num] = tx2;
+                if (num + 1 > altmax) {
+                    altmax = num + 1;
+                }
+            } else {
+                Sys_Error("Bad animating texture %s", tx->name);
+            }
+        }
 
-		max = 0;
-		altmax = 0;
+        // link them all together
+        for (j = 0; j < max; j++) {
+            tx2 = anims[j];
+            if (!tx2) {
+                Sys_Error("Missing frame %i of %s", j, tx->name);
+            }
+            tx2->anim_total = max;
+            tx2->anim_min = j;
+            tx2->anim_max = j + 1;
+            tx2->anim_next = anims[(j + 1) % max];
+            if (altmax) {
+                tx2->alternate_anims = altanims[0];
+            }
+        }
 
-		for ( j = i; j < m->nummiptex; j++ )
-		{
-			tx2 = loadmodel->textures[j];
-			if ( !tx2 || ( tx2->name[0] != '+' && tx2->name[0] != '-' ) )
-				continue;
-			if ( Q_strcmp( tx2->name + 2, tx->name + 2 ) )
-				continue;
+        for (j = 0; j < altmax; j++) {
+            tx2 = altanims[j];
+            if (!tx2) {
+                Sys_Error("Missing frame %i of %s", j, tx->name);
+            }
+            tx2->anim_total = altmax;
+            tx2->anim_min = j;
+            tx2->anim_max = j + 1;
+            tx2->anim_next = altanims[(j + 1) % altmax];
+            if (max) {
+                tx2->alternate_anims = anims[0];
+            }
+        }
+    }
 
-			num = tx2->name[1];
-			if ( num >= 'a' && num <= 'z' )
-				num -= 'a' - 'A';
-			if ( num >= '0' && num <= '9' )
-			{
-				num -= '0';
-				anims[num] = tx2;
-				if ( num + 1 > max )
-					max = num + 1;
-			}
-			else if ( num >= 'A' && num <= 'J' )
-			{
-				num = num - 'A';
-				altanims[num] = tx2;
-				if ( num + 1 > altmax )
-					altmax = num + 1;
-			}
-			else
-				Sys_Error( "Bad animating texture %s", tx->name );
-		}
-
-		// link them all together
-		for ( j = 0; j < max; j++ )
-		{
-			tx2 = anims[j];
-			if ( !tx2 )
-				Sys_Error( "Missing frame %i of %s", j, tx->name );
-			tx2->anim_total = max;
-			tx2->anim_min = j;
-			tx2->anim_max = j + 1;
-			tx2->anim_next = anims[( j + 1 ) % max];
-			if ( altmax )
-				tx2->alternate_anims = altanims[0];
-		}
-
-		for ( j = 0; j < altmax; j++ )
-		{
-			tx2 = altanims[j];
-			if ( !tx2 )
-				Sys_Error( "Missing frame %i of %s", j, tx->name );
-			tx2->anim_total = altmax;
-			tx2->anim_min = j;
-			tx2->anim_max = j + 1;
-			tx2->anim_next = altanims[( j + 1 ) % altmax];
-			if ( max )
-				tx2->alternate_anims = anims[0];
-		}
-	}
-
-	Con_DPrintf( "Texture load: %6.1fms\n", ( Sys_FloatTime() - starttime ) * 1000.0 );
+    Con_DPrintf("Texture load: %6.1fms\n", (Sys_FloatTime() - starttime) * 1000.0);
 }
 
 /*
@@ -1803,137 +1824,132 @@ void Mod_LoadTextures( lump_t* l )
 Mod_LoadBrushModel
 =================
 */
-void Mod_LoadBrushModel( model_t* mod, void* buffer, int fileBytes )
-{
+void Mod_LoadBrushModel(model_t* mod, void* buffer, int fileBytes) {
     CM_InvalidatePAS(mod);
     mod_known_info[mod - mod_known].visibility = {};
-    if (!ModelVisibility::BrushLumps(buffer, fileBytes)) {
-        Sys_Error("Mod_LoadBrushModel: invalid visibility or leaf lump in %s", mod->name);
+    const bool blueShift = Q_strcasecmp(com_gamedir, "bshift") == 0;
+    if (const char* error = BrushModelLoading::Check(buffer, fileBytes, blueShift)) {
+        Sys_Error("Mod_LoadBrushModel: %s in %s", error, mod->name);
         return;
     }
-	int i, j;
-	dheader_t* header;
-	dmodel_t* bm;
-	qboolean bshift;
-	char name[10];
+    int i;
+    int j;
+    dheader_t* header;
+    dmodel_t* bm;
+    qboolean bshift;
+    char name[10];
 
-	loadmodel->type = mod_brush;
+    loadmodel->type = mod_brush;
 
-	header = (dheader_t*)buffer;
+    dheader_t diskHeader = ModelLoading::Read<dheader_t>(buffer);
+    header = &diskHeader;
 
-	i = LittleLong( header->version );
-	if ( i != Q1BSP_VERSION && i != BSPVERSION )
-	{
-		if ( cls.state != ca_dedicated )
-		{
-			COM_ExplainDisconnection( TRUE, "Mod_LoadBrushModel: %s has wrong version number (%i should be %i)\n",
-				mod->name, i, BSPVERSION );
-			CL_Disconnect();
-		}
-		return;
-	}
+    i = LittleLong(header->version);
+    if (i != Q1BSP_VERSION && i != BSPVERSION) {
+        if (cls.state != ca_dedicated) {
+            COM_ExplainDisconnection(TRUE, "Mod_LoadBrushModel: %s has wrong version number (%i should be %i)\n",
+                                     mod->name, i, BSPVERSION);
+            CL_Disconnect();
+        }
+        return;
+    }
 
-	// swap all the lumps
-	mod_base = (byte*)header;
+    // swap all the lumps
+    mod_base = static_cast<byte*>(buffer);
 
-	header->version = LittleLong( header->version );
-	for ( i = 0; i < HEADER_LUMPS; i++ )
-	{
-		header->lumps[i].fileofs = LittleLong( header->lumps[i].fileofs );
-		header->lumps[i].filelen = LittleLong( header->lumps[i].filelen );
-	}
+    header->version = LittleLong(header->version);
+    for (i = 0; i < HEADER_LUMPS; i++) {
+        header->lumps[i].fileofs = LittleLong(header->lumps[i].fileofs);
+        header->lumps[i].filelen = LittleLong(header->lumps[i].filelen);
+    }
 
-	// load into heap
-	Mod_LoadVertexes( &header->lumps[LUMP_VERTEXES] );
-	Mod_LoadEdges( &header->lumps[LUMP_EDGES] );
-	Mod_LoadSurfedges( &header->lumps[LUMP_SURFEDGES] );
+    // load into heap
+    Mod_LoadVertexes(&header->lumps[LUMP_VERTEXES]);
+    Mod_LoadEdges(&header->lumps[LUMP_EDGES]);
+    Mod_LoadSurfedges(&header->lumps[LUMP_SURFEDGES]);
 
-	bshift = !_stricmp( com_gamedir, "bshift" );
+    bshift = !_stricmp(com_gamedir, "bshift");
 
-	Mod_LoadEntities( &header->lumps[bshift ? LUMP_PLANES : LUMP_ENTITIES] );
-	Mod_LoadTextures( &header->lumps[LUMP_TEXTURES] );
-	Mod_LoadLighting( &header->lumps[LUMP_LIGHTING] );
-	Mod_LoadPlanes( &header->lumps[bshift ? LUMP_ENTITIES : LUMP_PLANES] );
-	Mod_LoadTexinfo( &header->lumps[LUMP_TEXINFO] );
-	Mod_LoadFaces( &header->lumps[LUMP_FACES] );
-	Mod_LoadMarksurfaces( &header->lumps[LUMP_MARKSURFACES] );
-	Mod_LoadVisibility( &header->lumps[LUMP_VISIBILITY] );
-	Mod_LoadLeafs( &header->lumps[LUMP_LEAFS] );
-	Mod_LoadNodes( &header->lumps[LUMP_NODES] );
-	Mod_LoadClipnodes( &header->lumps[LUMP_CLIPNODES] );
-	Mod_LoadSubmodels( &header->lumps[LUMP_MODELS] );
+    Mod_LoadEntities(&header->lumps[bshift ? LUMP_PLANES : LUMP_ENTITIES]);
+    Mod_LoadTextures(&header->lumps[LUMP_TEXTURES]);
+    Mod_LoadLighting(&header->lumps[LUMP_LIGHTING]);
+    Mod_LoadPlanes(&header->lumps[bshift ? LUMP_ENTITIES : LUMP_PLANES]);
+    Mod_LoadTexinfo(&header->lumps[LUMP_TEXINFO]);
+    Mod_LoadFaces(&header->lumps[LUMP_FACES]);
+    Mod_LoadMarksurfaces(&header->lumps[LUMP_MARKSURFACES]);
+    Mod_LoadVisibility(&header->lumps[LUMP_VISIBILITY]);
+    Mod_LoadLeafs(&header->lumps[LUMP_LEAFS]);
+    Mod_LoadNodes(&header->lumps[LUMP_NODES]);
+    Mod_LoadClipnodes(&header->lumps[LUMP_CLIPNODES]);
+    Mod_LoadSubmodels(&header->lumps[LUMP_MODELS]);
 
-	for ( i = 0; i < mod->numsurfaces; i++ )
-	{
-		if ( mod->surfaces[i].firstedge + mod->surfaces[i].numedges > mod->numsurfedges )
-			Sys_Error( "MOD_LoadBrushModel: more surfedges referenced than loaded in %s", mod->name );
-	}
+    for (i = 0; i < mod->numsurfaces; i++) {
+        if (mod->surfaces[i].firstedge + mod->surfaces[i].numedges > mod->numsurfedges) {
+            Sys_Error("MOD_LoadBrushModel: more surfedges referenced than loaded in %s", mod->name);
+        }
+    }
 
-	for ( i = 0; i < mod->numleafs; i++ )
-	{
-		if ( mod->leafs[i].nummarksurfaces + ( mod->leafs[i].firstmarksurface - mod->marksurfaces )
-			 > mod->nummarksurfaces )
-			Sys_Error( "MOD_LoadBrushModel: more marksurfaces referenced than loaded in %s", mod->name );
-	}
+    for (i = 0; i < mod->numleafs; i++) {
+        if (mod->leafs[i].nummarksurfaces + (mod->leafs[i].firstmarksurface - mod->marksurfaces) >
+            mod->nummarksurfaces) {
+            Sys_Error("MOD_LoadBrushModel: more marksurfaces referenced than loaded in %s", mod->name);
+        }
+    }
 
-	for ( i = 0; i < mod->numnodes; i++ )
-	{
-		if ( mod->nodes[i].firstsurface + mod->nodes[i].numsurfaces > mod->numsurfaces )
-			Sys_Error( "MOD_LoadBrushModel: more surfaces referenced than loaded in %s", mod->name );
-	}
+    for (i = 0; i < mod->numnodes; i++) {
+        if (mod->nodes[i].firstsurface + mod->nodes[i].numsurfaces > mod->numsurfaces) {
+            Sys_Error("MOD_LoadBrushModel: more surfaces referenced than loaded in %s", mod->name);
+        }
+    }
 
-	for ( i = 0; i < mod->numsubmodels; i++ )
-	{
-		if ( mod->submodels[i].firstface + mod->submodels[i].numfaces > mod->numsurfaces )
-			Sys_Error( "MOD_LoadBrushModel: more faces referenced than loaded in %s", mod->name );
-	}
+    for (i = 0; i < mod->numsubmodels; i++) {
+        if (mod->submodels[i].firstface + mod->submodels[i].numfaces > mod->numsurfaces) {
+            Sys_Error("MOD_LoadBrushModel: more faces referenced than loaded in %s", mod->name);
+        }
+    }
 
-	Mod_MakeHull0();
+    Mod_MakeHull0();
 
-	mod->numframes = 2; // regular and alternate animation
-	mod->flags = 0;
+    mod->numframes = 2; // regular and alternate animation
+    mod->flags = 0;
 
-	//
-	// set up the submodels (FIXME: this is confusing)
-	//
-	for ( i = 0; i < mod->numsubmodels; i++ )
-	{
-		bm = &mod->submodels[i];
+    //
+    // set up the submodels (FIXME: this is confusing)
+    //
+    for (i = 0; i < mod->numsubmodels; i++) {
+        bm = &mod->submodels[i];
 
-		mod->hulls[0].firstclipnode = bm->headnode[0];
-		for ( j = 1; j < MAX_MAP_HULLS; j++ )
-		{
-			mod->hulls[j].firstclipnode = bm->headnode[j];
-			mod->hulls[j].lastclipnode = mod->numclipnodes - 1;
-		}
+        mod->hulls[0].firstclipnode = bm->headnode[0];
+        for (j = 1; j < MAX_MAP_HULLS; j++) {
+            mod->hulls[j].firstclipnode = bm->headnode[j];
+            mod->hulls[j].lastclipnode = mod->numclipnodes - 1;
+        }
 
-		mod->firstmodelsurface = bm->firstface;
-		mod->nummodelsurfaces = bm->numfaces;
+        mod->firstmodelsurface = bm->firstface;
+        mod->nummodelsurfaces = bm->numfaces;
 
-		VectorCopy( bm->maxs, mod->maxs );
-		VectorCopy( bm->mins, mod->mins );
+        VectorCopy(bm->maxs, mod->maxs);
+        VectorCopy(bm->mins, mod->mins);
 
-		mod->radius = RadiusFromBounds( mod->mins, mod->maxs );
+        mod->radius = RadiusFromBounds(mod->mins, mod->maxs);
 
-        if (bm->visleafs < 0 || bm->visleafs >=
-            mod_known_info[mod - mod_known].visibility.leafCount) {
+        if (bm->visleafs < 0 || bm->visleafs >= mod_known_info[mod - mod_known].visibility.leafCount) {
             Sys_Error("Mod_LoadBrushModel: invalid visible leaf count in %s", mod->name);
             return;
         }
-		mod->numleafs = bm->visleafs;
+        mod->numleafs = bm->visleafs;
 
-		if ( i < mod->numsubmodels - 1 )
-		{
-			// duplicate the basic information
-			snprintf( name, sizeof( name ), "*%i", i + 1 );
-			loadmodel = Mod_FindName( FALSE, name );
-			*loadmodel = *mod;
+        if (i < mod->numsubmodels - 1) {
+            // duplicate the basic information
+            snprintf(name, sizeof(name), "*%i", i + 1);
+            loadmodel = Mod_FindName(FALSE, name);
+            *loadmodel = *mod;
             mod_known_info[loadmodel - mod_known].visibility = mod_known_info[mod - mod_known].visibility;
-			Q_strncpy( loadmodel->name, name, sizeof( loadmodel->name ) - 1 );
-			loadmodel->name[sizeof( loadmodel->name ) - 1] = 0;
-			mod = loadmodel;
-		}
-	}
+            Q_strncpy(loadmodel->name, name, sizeof(loadmodel->name) - 1);
+            loadmodel->name[sizeof(loadmodel->name) - 1] = 0;
+            mod = loadmodel;
+        }
+    }
 }
 
 void Mod_FillInCRCInfo( qboolean trackCRC, int modelNumber )
