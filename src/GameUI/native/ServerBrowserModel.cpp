@@ -299,8 +299,9 @@ struct ServerBrowserModel::State {
                     result = original;
                     result->failed = true;
                 }
-                complete = true;
             }
+            // Terminal callbacks retire the provider handle even after this generation stops accepting data.
+            complete = true;
             --owner.callbackDepth;
         }
         void ServerFailedToRespond() override {
@@ -309,8 +310,9 @@ struct ServerBrowserModel::State {
             if (accepting && !owner.closing && !complete) {
                 result = original;
                 result->failed = true;
-                complete = true;
             }
+            // Terminal callbacks retire the provider handle even after this generation stops accepting data.
+            complete = true;
             --owner.callbackDepth;
         }
     };
@@ -441,9 +443,11 @@ struct ServerBrowserModel::State {
         for (auto& entry : pings) {
             auto& ping = *entry.second;
             ping.accepting = false;
-            if (ping.handle != HSERVERQUERY_INVALID) {
+            const auto handle = ping.handle;
+            ping.handle = HSERVERQUERY_INVALID;
+            if (!ping.complete && handle != HSERVERQUERY_INVALID) {
                 Provider([&] {
-                    services.servers->CancelServerQuery(ping.handle);
+                    services.servers->CancelServerQuery(handle);
                 });
             }
         }
@@ -636,11 +640,7 @@ struct ServerBrowserModel::State {
                 Apply(std::move(*ping.result));
             }
             ping.accepting = false;
-            if (ping.handle != HSERVERQUERY_INVALID) {
-                Provider([&] {
-                    services.servers->CancelServerQuery(ping.handle);
-                });
-            }
+            ping.handle = HSERVERQUERY_INVALID;
             entry = pings.erase(entry);
             ++work;
         }

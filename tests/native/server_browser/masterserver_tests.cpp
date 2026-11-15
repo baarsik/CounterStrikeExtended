@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <set>
+#include <map>
 #include <thread>
 #define CHECK(value) do { if (!(value)) { throw std::runtime_error(#value); } } while (false)
 struct MetadataProvider final : Provider {
@@ -12,10 +13,21 @@ struct MetadataProvider final : Provider {
     std::set<HServerQuery> canceledQueries;
     std::function<void()> duringPing;
     std::function<void()> duringCancel;
+    static constexpr HServerQuery FirstQuery = 42;
     bool validQueries = false;
-    int nextQuery = 42;
+    bool deferPings = false;
+    struct PendingPing {
+        uint32 ip;
+        uint16 port;
+        ISteamMatchmakingPingResponse* response;
+    };
+    std::map<HServerQuery, PendingPing> pendingPings;
+    int nextQuery = FirstQuery;
     HServerQuery PingServer(uint32 ip, uint16 port, ISteamMatchmakingPingResponse* response) override {
-        if (failPing) {
+        const HServerQuery query = validQueries ? nextQuery++ : HSERVERQUERY_INVALID;
+        if (deferPings) {
+            pendingPings.emplace(query, PendingPing{ip, port, response});
+        } else if (failPing) {
             response->ServerFailedToRespond();
         } else {
             gameserveritem_t server;
@@ -27,15 +39,28 @@ struct MetadataProvider final : Provider {
         if (duringPing) {
             auto callback = std::move(duringPing);
             callback();
-            return 42;
         }
-        return validQueries ? nextQuery++ : HSERVERQUERY_INVALID;
+        return query;
+    }
+    void CompletePings() {
+        auto completed = std::move(pendingPings);
+        pendingPings.clear();
+        for (const auto& entry : completed) {
+            const auto& ping = entry.second;
+            if (failPing) {
+                ping.response->ServerFailedToRespond();
+            } else {
+                gameserveritem_t server;
+                server.m_NetAdr.Init(ping.ip, ping.port, ping.port);
+                server.m_nAppID = 10;
+                ping.response->ServerResponded(server);
+            }
+        }
     }
     void CancelServerQuery(HServerQuery query) override {
-        if (query >= 42) {
-            ++canceledPings;
-            CHECK(canceledQueries.insert(query).second);
-        }
+        CHECK(pendingPings.erase(query) == 1);
+        ++canceledPings;
+        CHECK(canceledQueries.insert(query).second);
         if (duringCancel) {
             auto callback = std::move(duringCancel);
             callback();
@@ -109,6 +134,43 @@ void FailedEmptyRefresh(const char* directory, const char* unavailable) {
     CHECK(provider.BeginClose());
 }
 
+void CompletedPings(const char* directory, bool cancelBeforePump, bool inlineCompletion, bool failed) {
+    MetadataProvider steam;
+    steam.validQueries = true;
+    steam.deferPings = !inlineCompletion;
+    steam.failPing = failed;
+    MasterserverQueryProvider provider(&steam);
+    provider.Select({"loopback", "Loopback", {directory}});
+    Responses responses;
+    constexpr AppId_t CounterStrikeApp = 10;
+    auto request = provider.RequestInternetServerList(CounterStrikeApp, nullptr, 0, &responses);
+    constexpr auto DirectoryWait = std::chrono::seconds(8);
+    constexpr int DirectoryServerCount = 2; // The loopback directory fixture publishes two endpoints.
+    constexpr int ExpectedNextQuery = MetadataProvider::FirstQuery + DirectoryServerCount;
+    const auto deadline = std::chrono::steady_clock::now() + DirectoryWait;
+    while (std::chrono::steady_clock::now() < deadline && steam.nextQuery < ExpectedNextQuery) {
+        provider.Pump();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    CHECK(steam.nextQuery == ExpectedNextQuery);
+    steam.CompletePings();
+    if (!cancelBeforePump) {
+        while (std::chrono::steady_clock::now() < deadline && !responses.complete) {
+            provider.Pump();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        CHECK(responses.complete && responses.responses == DirectoryServerCount);
+        CHECK(responses.failed == (failed ? DirectoryServerCount : 0));
+    }
+    provider.CancelQuery(request);
+    provider.ReleaseRequest(request);
+    while (std::chrono::steady_clock::now() < deadline && !provider.BeginClose()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    CHECK(provider.BeginClose());
+    CHECK(steam.canceledPings == 0);
+}
+
 int main(int argc, char** argv) {
     try {
         CHECK(argc >= 3);
@@ -119,6 +181,42 @@ int main(int argc, char** argv) {
             return 0;
         }
         CHECK(argc == 3);
+        const std::string test = argv[2];
+        if (test == "cancel-completes-other") {
+            MetadataProvider steam;
+            steam.validQueries = true;
+            steam.deferPings = true;
+            MasterserverQueryProvider provider(&steam);
+            provider.Select({"loopback", "Loopback", {argv[1]}});
+            Responses responses;
+            constexpr AppId_t CounterStrikeApp = 10;
+            auto request = provider.RequestInternetServerList(CounterStrikeApp, nullptr, 0, &responses);
+            constexpr size_t DirectoryServerCount = 2;
+            constexpr auto DirectoryWait = std::chrono::seconds(8);
+            const auto deadline = std::chrono::steady_clock::now() + DirectoryWait;
+            while (std::chrono::steady_clock::now() < deadline && steam.pendingPings.size() < DirectoryServerCount) {
+                provider.Pump();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            CHECK(steam.pendingPings.size() == DirectoryServerCount);
+            steam.duringCancel = [&] {
+                steam.CompletePings();
+            };
+            provider.CancelQuery(request);
+            provider.ReleaseRequest(request);
+            while (std::chrono::steady_clock::now() < deadline && !provider.BeginClose()) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            CHECK(provider.BeginClose() && steam.canceledPings == 1 && !responses.complete);
+            return 0;
+        }
+        if (test == "completed-pump" || test == "completed-cancel" || test == "completed-inline" ||
+            test == "failed-ping-cancel") {
+            CompletedPings(argv[1], test == "completed-cancel" || test == "failed-ping-cancel",
+                test == "completed-inline", test == "failed-ping-cancel");
+            std::cout << "completed ping lifetime passed\n";
+            return 0;
+        }
         MetadataProvider steam;
         MasterserverQueryProvider provider(&steam);
         MasterserverSettings settings;
@@ -133,6 +231,8 @@ int main(int argc, char** argv) {
         const bool reentry = std::string(argv[2]) == "reentry" || cancelReentry;
         bool retired = false;
         if (reentry) {
+            steam.validQueries = true;
+            steam.deferPings = true;
             const auto release = [&] {
                 provider.ReleaseRequest(request);
                 retired = true;
@@ -153,12 +253,15 @@ int main(int argc, char** argv) {
         while (std::chrono::steady_clock::now() < deadline &&
             (reentry ? (!retired || !provider.BeginClose()) : cancel ? !provider.BeginClose() : !responses.complete)) {
             provider.Pump();
+            if (cancelReentry && !retired && !steam.pendingPings.empty()) {
+                provider.CancelQuery(request);
+            }
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         if (cancel || reentry) {
             CHECK(!responses.complete && responses.responses == 0);
             CHECK(!reentry || (retired && steam.canceledPings >= 1));
-            CHECK(!cancelReentry || steam.canceledPings == steam.nextQuery - 42);
+            CHECK(!cancelReentry || steam.canceledPings == steam.nextQuery - MetadataProvider::FirstQuery);
         } else {
             CHECK(responses.complete && responses.result == eServerResponded);
             CHECK(provider.GetServerCount(request) == 2);

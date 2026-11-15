@@ -228,7 +228,11 @@ struct MasterserverQueryProvider::State {
             item.m_nAppID = app;
         }
         void ServerResponded(gameserveritem_t& response) override {
-            if (accepting && !complete) {
+            if (complete) {
+                return;
+            }
+            complete = true;
+            if (accepting) {
                 const auto ip = item.m_NetAdr.GetIP();
                 const auto port = item.m_NetAdr.GetQueryPort();
                 if (response.m_NetAdr.GetIP() == ip && response.m_NetAdr.GetQueryPort() == port &&
@@ -237,13 +241,10 @@ struct MasterserverQueryProvider::State {
                     item.m_NetAdr.Init(ip, port, response.m_NetAdr.GetConnectionPort());
                     item.m_bHadSuccessfulResponse = true;
                 }
-                complete = true;
             }
         }
         void ServerFailedToRespond() override {
-            if (accepting) {
-                complete = true;
-            }
+            complete = true;
         }
     };
     struct Request {
@@ -279,21 +280,22 @@ struct MasterserverQueryProvider::State {
         } scope{cancelDepth};
         request.refreshing = false;
         request.directory.stop = true;
-        // Detach every callback handle before crossing the provider boundary, which may reenter release.
-        std::vector<HServerQuery> queries;
+        // Revoke presentation callbacks first; detach each handle before its cancellation can reenter release.
         auto active = std::move(request.active);
         request.active.clear();
         request.queued.clear();
         for (const int index : active) {
             auto& row = *request.rows[static_cast<size_t>(index)];
             row.accepting = false;
-            if (row.query != HSERVERQUERY_INVALID) {
-                queries.push_back(row.query);
-                row.query = HSERVERQUERY_INVALID;
-            }
         }
-        for (const auto query : queries) {
-            steam->CancelServerQuery(query);
+        for (const int index : active) {
+            auto& row = *request.rows[static_cast<size_t>(index)];
+            const auto query = row.query;
+            row.query = HSERVERQUERY_INVALID;
+            // Cancelling one query may synchronously finish another. Check liveness at each boundary.
+            if (!row.complete && query != HSERVERQUERY_INVALID) {
+                steam->CancelServerQuery(query);
+            }
         }
     }
 };
@@ -400,12 +402,9 @@ void MasterserverQueryProvider::Pump(size_t budget) {
                 continue;
             }
             row.accepting = false;
-            const auto query = row.query;
+            // A terminal callback has already retired this individual query in the provider.
             row.query = HSERVERQUERY_INVALID;
             request->active.erase(request->active.begin() + static_cast<ptrdiff_t>(slot));
-            if (query != HSERVERQUERY_INVALID) {
-                state.steam->CancelServerQuery(query);
-            }
             if (!request->refreshing || request->released) {
                 break;
             }
@@ -430,7 +429,7 @@ void MasterserverQueryProvider::Pump(size_t budget) {
                 row.accepting = false;
                 const auto query = row.query;
                 row.query = HSERVERQUERY_INVALID;
-                if (query != HSERVERQUERY_INVALID) {
+                if (!row.complete && query != HSERVERQUERY_INVALID) {
                     state.steam->CancelServerQuery(query);
                 }
             } else if (row.query == HSERVERQUERY_INVALID) {
