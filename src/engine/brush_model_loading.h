@@ -311,7 +311,8 @@ inline const char* Check(const void* data, int fileBytes, bool blueShift) {
             }
             const std::size_t samples = (extents[0] / LightmapSpacing + 1) * (extents[1] / LightmapSpacing + 1) *
                                         ModelLoading::PaletteChannels * styles;
-            if (!Range(lumps[LUMP_LIGHTING].filelen, face.lightofs, (std::max)(samples, std::size_t{1}))) {
+            // Unstyled faces can have an empty span at the end of the lighting lump.
+            if (!Range(lumps[LUMP_LIGHTING].filelen, face.lightofs, samples)) {
                 return "light samples outside lump";
             }
         }
