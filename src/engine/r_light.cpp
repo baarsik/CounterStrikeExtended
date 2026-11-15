@@ -130,7 +130,11 @@ colorVec RecursiveLightPoint( mnode_t* node, vec_t* start, vec_t* end )
 
 		int width = ( surf->extents[0] >> 4 ) + 1;
 		int size = width * ( ( surf->extents[1] >> 4 ) + 1 );
-		color24* lightmap = surf->samples + ( ds >> 4 ) + ( dt >> 4 ) * width;
+        color24* lightmap = surf->samples;
+        constexpr byte LightStyleTerminator = 255;
+        if (surf->styles[0] != LightStyleTerminator) {
+            lightmap += (ds >> 4) + (dt >> 4) * width;
+        }
 		for ( int maps = 0; maps < MAXLIGHTMAPS && surf->styles[maps] != 255; maps++, lightmap += size )
 		{
 			unsigned int scale = d_lightstylevalue[surf->styles[maps]];

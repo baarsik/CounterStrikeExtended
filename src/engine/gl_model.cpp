@@ -1235,7 +1235,7 @@ void Mod_LoadFaces(lump_t* l) {
         }
 
         i = LittleLong(input.lightofs);
-        if (i == -1) {
+        if (i == BrushModelLoading::NoOffset || !loadmodel->lightdata) {
             out->samples = NULL;
         } else {
             out->samples = (color24*)((byte*)loadmodel->lightdata + i);

@@ -9,6 +9,7 @@
 #include "brush_model_loading.h"
 #include "loader_fixture.h"
 #include "fat_fixture.h"
+#include "light_trace_fixture.h"
 #endif
 
 #include <cassert>
@@ -342,11 +343,109 @@ static void Compatibility() {
 #endif
 }
 
+static void UnstyledLightSpans() {
+    constexpr byte NoLightStyles = 255;
+    constexpr int NoLightOffset = -1;
+    Fixture fixture = Triangle();
+    auto face = fixture.Get<dface_t>(LUMP_FACES);
+    std::memset(face.styles, NoLightStyles, sizeof(face.styles));
+    // An unstyled face can start at the end of the lighting lump without consuming samples.
+    face.lightofs = fixture.header.lumps[LUMP_LIGHTING].filelen;
+    fixture.Set(LUMP_FACES, face);
+    assert(Accepted(fixture));
+
+    ++face.lightofs;
+    fixture.Set(LUMP_FACES, face);
+    assert(!Accepted(fixture));
+    face.lightofs = NoLightOffset - 1;
+    fixture.Set(LUMP_FACES, face);
+    assert(!Accepted(fixture));
+
+    face.lightofs = 0;
+    fixture.Set(LUMP_FACES, face);
+    assert(Accepted(fixture));
+
+    fixture.Lump<byte>(LUMP_LIGHTING, {});
+    assert(Accepted(fixture));
+#if !defined(BSP_LOADING_BASELINE)
+    assert(loadmodel->lightdata == nullptr);
+    assert(loadmodel->surfaces[0].samples == nullptr);
+#endif
+
+    face.styles[0] = 0;
+    fixture.Set(LUMP_FACES, face);
+    assert(!Accepted(fixture));
+    face.lightofs = NoLightOffset;
+    fixture.Set(LUMP_FACES, face);
+    assert(Accepted(fixture));
+#if !defined(BSP_LOADING_BASELINE)
+    assert(loadmodel->surfaces[0].samples == nullptr);
+#endif
+}
+
+#if !defined(BSP_LOADING_BASELINE)
+static void UnstyledFaceBlocksLightTrace() {
+    constexpr byte NoLightStyles = 255;
+    constexpr int NormalLightScale = 256;
+    constexpr unsigned int DarkHitRed = 1;
+    constexpr unsigned int LitSample = 63;
+    constexpr int SplitNode = 0;
+    constexpr int UnstyledNode = 1;
+    constexpr int LitNode = 2;
+    Fixture fixture = Triangle();
+    auto face = fixture.Get<dface_t>(LUMP_FACES);
+    std::memset(face.styles, NoLightStyles, sizeof(face.styles));
+    face.lightofs = fixture.header.lumps[LUMP_LIGHTING].filelen;
+    fixture.Set(LUMP_FACES, face);
+    assert(Accepted(fixture));
+
+    msurface_t* originalSurfaces = loadmodel->surfaces;
+    std::array<msurface_t, 2> surfaces{originalSurfaces[0], originalSurfaces[0]};
+    surfaces[1].samples = loadmodel->lightdata;
+    surfaces[1].styles[0] = 0;
+    loadmodel->lightdata[1] = {LitSample, LitSample, LitSample};
+    loadmodel->surfaces = surfaces.data();
+    cl.worldmodel = loadmodel;
+    d_lightstylevalue[0] = NormalLightScale;
+
+    // Trace through a split: an unstyled face above must block the lit face below it.
+    constexpr std::array<float, 3> PlaneHeights{16.0f, 24.0f, 8.0f};
+    std::array<mplane_t, PlaneHeights.size()> planes{};
+    std::array<mnode_t, PlaneHeights.size()> nodes{};
+    mnode_t leaf{};
+    leaf.contents = CONTENTS_EMPTY;
+    for (std::size_t index = 0; index < nodes.size(); ++index) {
+        planes[index].normal[2] = 1;
+        planes[index].dist = PlaneHeights[index];
+        nodes[index].plane = &planes[index];
+        nodes[index].children[0] = &leaf;
+        nodes[index].children[1] = &leaf;
+    }
+    nodes[SplitNode].children[0] = &nodes[UnstyledNode];
+    nodes[SplitNode].children[1] = &nodes[LitNode];
+    nodes[UnstyledNode].numsurfaces = 1;
+    nodes[LitNode].firstsurface = 1;
+    nodes[LitNode].numsurfaces = 1;
+    vec3_t start{16.0f, 0.0f, 32.0f};
+    vec3_t end{16.0f, 0.0f, -16.0f};
+    colorVec color = RecursiveLightPoint(&nodes[SplitNode], start, end);
+    assert(color.r == DarkHitRed && color.g == 0 && color.b == 0);
+
+    surfaces[0].flags |= SURF_DRAWTILED;
+    color = RecursiveLightPoint(&nodes[SplitNode], start, end);
+    assert(color.r == LitSample && color.g == LitSample && color.b == LitSample);
+    loadmodel->surfaces = originalSurfaces;
+    cl.worldmodel = nullptr;
+}
+#endif
+
 int main(int argc, char** argv) {
     Compatibility();
     Rejections();
     ReviewRegressions();
+    UnstyledLightSpans();
 #if !defined(BSP_LOADING_BASELINE)
+    UnstyledFaceBlocksLightTrace();
     model_t model{};
     sv.worldmodel = &model;
     vec3_t origin{};

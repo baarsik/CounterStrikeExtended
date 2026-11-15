@@ -18,7 +18,7 @@ entries = json.loads((options.build / 'compile_commands.json').read_text())
 
 
 def function(text, name):
-    match = re.search(r'(?m)^(?:static )?(?:void|int|byte\*) ' + name + r'\([^)]*\)\s*\{', text)
+    match = re.search(r'(?m)^(?:static )?(?:void|int|byte\*|colorVec) ' + name + r'\([^)]*\)\s*\{', text)
     masked = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',
                     lambda item: ' ' * len(item.group()), text)
     end = masked.index('{', match.start()) + 1
@@ -39,6 +39,9 @@ for mode, source in [('hardware', 'gl_model.cpp'), ('dedicated', 'model.cpp')]:
     if mode == 'hardware':
         names.insert(0, 'Mod_LumpCount')
     (output / 'brush_loader.inc').write_text('\n\n'.join(function(owner, name) for name in names))
+    light_source = 'gl_rlight.cpp' if mode == 'hardware' else 'r_light.cpp'
+    light_owner = (root / 'src/engine' / light_source).read_text()
+    (output / 'light_trace.inc').write_text(function(light_owner, 'RecursiveLightPoint'))
     server = (root / 'src/engine/sv_main.cpp').read_text()
     fat_functions = ['SV_FatPVS', 'SV_FatPAS']
     (output / 'fat_visibility.inc').write_text('\n\n'.join(function(server, name) for name in fat_functions))

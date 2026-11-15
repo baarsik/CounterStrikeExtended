@@ -1084,7 +1084,11 @@ void Mod_LoadFaces(lump_t* l) {
             s->styles[j] = input.styles[j];
         }
         int light = LittleLong(input.lightofs);
-        s->samples = light == -1 ? NULL : (color24*)((byte*)loadmodel->lightdata + light);
+        if (light == BrushModelLoading::NoOffset || !loadmodel->lightdata) {
+            s->samples = NULL;
+        } else {
+            s->samples = (color24*)((byte*)loadmodel->lightdata + light);
+        }
 
         char* name = s->texinfo->texture->name;
         if (!Q_strncmp(name, "sky", 3)) {
