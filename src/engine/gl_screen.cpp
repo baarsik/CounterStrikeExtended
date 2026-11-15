@@ -1,4 +1,5 @@
 #include "screenshot.h"
+#include "vgui_background_effects.h"
 #include "localization_center_text.h"
 #include "client.h"
 #include "common.h"
@@ -334,6 +335,7 @@ void SCR_UpdateScreen()
 		g_modfuncs.m_pfnFrameRender1();
 	V_UpdatePalette();
 	GL_BeginRendering( &glx, &gly, &glwidth, &glheight );
+    cse::ui::BeginBackgroundEffectsFrame();
 	if ( vid.recalc_refdef )
 		SCR_CalcRefdef();
 	Con_CheckResize();

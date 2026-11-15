@@ -1,4 +1,7 @@
 #include "OptionsSubInterface.h"
+#include "GameUI_Interface.h"
+#include "wrect.h"
+#include "cl_dll.h"
 
 #include "ComboBox.h"
 #include "Label.h"
@@ -6,6 +9,7 @@
 #include "interface_language.h"
 #include "interface_language_preference.h"
 #include "localization_controls.h"
+#include "../public/vgui_style.h"
 #include "vgui/ISystem.h"
 #include "vgui/KeyValues.h"
 #include "vgui_controls/Controls.h"
@@ -15,6 +19,9 @@
 namespace {
 
 constexpr char LanguageItemKey[] = "language";
+constexpr char UIStyleItemKey[] = "style";
+constexpr int UIStyleRows = 2;
+constexpr int UIStyleTabPosition = 2;
 constexpr int VisibleLanguageRows = static_cast<int>(
     sizeof(cse::interface_language::BundledLanguages) / sizeof(cse::interface_language::BundledLanguages[0])) + 1;
 constexpr int LanguageTabPosition = 1;
@@ -74,6 +81,18 @@ COptionsSubInterface::COptionsSubInterface(vgui2::Panel* parent)
 
     m_saveFailed = new InterfaceNotice(this, "SaveFailed", "#CSEInterface_SaveFailed");
     m_launchOverride = new InterfaceNotice(this, "LaunchOverride", "#CSEInterface_LaunchOverride");
+    m_uiStyleLabel = new vgui2::Label(this, "UIStyleLabel", "#CSEInterface_Style");
+    m_uiStyleLabel->SetTabPosition(0);
+    m_uiStyleCombo = new vgui2::ComboBox(this, "UIStyle", UIStyleRows, false);
+    m_uiStyleCombo->SetTabPosition(UIStyleTabPosition);
+    m_uiStyleCombo->AddActionSignalTarget(this);
+    m_uiStyleLabel->SetAssociatedControl(m_uiStyleCombo);
+    KeyValues* original = new KeyValues("UIStyle", UIStyleItemKey, cse::ui::OriginalVGuiStyle);
+    m_uiStyleItemIds.push_back(m_uiStyleCombo->AddItem("#CSEInterface_StyleOriginal", original));
+    original->deleteThis();
+    KeyValues* extended = new KeyValues("UIStyle", UIStyleItemKey, cse::ui::ExtendedVGuiStyle);
+    m_uiStyleItemIds.push_back(m_uiStyleCombo->AddItem("#CSEInterface_StyleExtended", extended));
+    extended->deleteThis();
     m_saveFailed->SetVisible(false);
     OnResetData();
 }
@@ -83,11 +102,34 @@ std::string COptionsSubInterface::GetSelectedLanguage() const {
     return item ? item->GetString(LanguageItemKey, "") : "";
 }
 
+int COptionsSubInterface::GetSelectedUIStyle() const {
+    KeyValues* item = m_uiStyleCombo->GetActiveItemUserData();
+    return item ? item->GetInt(UIStyleItemKey, cse::ui::ExtendedVGuiStyle)
+        : cse::ui::ExtendedVGuiStyle;
+}
+
+void COptionsSubInterface::OnApplyChanges() {
+    const int selected = GetSelectedUIStyle();
+    if (selected != m_originalUIStyle) {
+        engine->Cvar_SetValue(const_cast<char*>(cse::ui::VGuiStyleCvar), static_cast<float>(selected));
+        m_originalUIStyle = selected;
+    }
+}
+
 void COptionsSubInterface::OnResetData() {
     const auto* localization = cse::localization::ControlsEngine();
     m_originalLanguage = localization ? localization->Preference() : cse::interface_language::ReadSavedPreference();
     m_languageRequest = cse::localization::InvalidRequest;
     vgui2::ISystem* system = vgui2::system();
+    m_originalUIStyle = engine->pfnGetCvarFloat(const_cast<char*>(cse::ui::VGuiStyleCvar)) > 0.0f
+        ? cse::ui::ExtendedVGuiStyle : cse::ui::OriginalVGuiStyle;
+    for (const int itemId : m_uiStyleItemIds) {
+        KeyValues* item = m_uiStyleCombo->GetItemUserData(itemId);
+        if (item && item->GetInt(UIStyleItemKey) == m_originalUIStyle) {
+            m_uiStyleCombo->ActivateItem(itemId);
+            break;
+        }
+    }
 
     for (const int itemId : m_languageItemIds) {
         KeyValues* item = m_languageCombo->GetItemUserData(itemId);
@@ -104,7 +146,7 @@ void COptionsSubInterface::OnResetData() {
 void COptionsSubInterface::OnTextChanged() {
     m_saveFailed->SetVisible(false);
     // ComboBox reset notifications are queued, so compare stable item data at delivery time.
-    if (GetSelectedLanguage() != m_originalLanguage) {
+    if (GetSelectedLanguage() != m_originalLanguage || GetSelectedUIStyle() != m_originalUIStyle) {
         PostActionSignal(new KeyValues("ApplyButtonEnable"));
     }
 }
@@ -171,6 +213,9 @@ void COptionsSubInterface::PerformLayout() {
         top += LayoutNotice(m_launchOverride, inset, top, width, minimumNoticeHeight) + noticeGap;
     }
     if (m_saveFailed->IsVisible()) {
-        LayoutNotice(m_saveFailed, inset, top, width, minimumNoticeHeight);
+        top += LayoutNotice(m_saveFailed, inset, top, width, minimumNoticeHeight) + noticeGap;
     }
+    m_uiStyleLabel->SetBounds(inset, top, width, labelHeight);
+    top += labelHeight + controlGap;
+    m_uiStyleCombo->SetBounds(inset, top, width, comboHeight);
 }

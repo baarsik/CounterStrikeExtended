@@ -6,6 +6,8 @@
 //=============================================================================
 
 #include "SpectatorGUI.h"
+#include "../../../vgui2/controls/BackdropPanel.h"
+#include "../../../public/vgui_style.h"
 #include "iviewport.h"
 #include "CreateCommandMenu.h"
 #include "../../../engine/igameuifuncs.h"
@@ -112,6 +114,28 @@ std::wstring FormatSpectatorExtra(const SpectatorPresentation& source) {
     return text;
 }
 } // namespace
+
+class CSpectatorBar : public BackdropPanel {
+public:
+    CSpectatorBar(Panel* parent, const char* name, bool top)
+        : BackdropPanel(parent, name, Style(top)) {}
+
+protected:
+    void PaintBackground() override {
+        if (gViewPortInterface->GetClientDllInterface()->CvarGetFloat(cse::ui::VGuiStyleCvar) <= 0.0f) {
+            Panel::PaintBackground();
+            return;
+        }
+        BackdropPanel::PaintBackground();
+    }
+
+private:
+    static cse::ui::BackdropStyle Style(bool top) {
+        constexpr float EdgeOpacity = 1.0f;
+        constexpr float EdgeDarkness = 0.60f;
+        return {top ? EdgeOpacity : 0.0f, top ? 0.0f : EdgeOpacity, EdgeDarkness};
+    }
+};
 
 class CLeftButton : public Button
 {
@@ -388,9 +412,9 @@ CSpectatorGUI::CSpectatorGUI( Panel* parent ) : Frame( parent, "SpectatorGUI", t
 
 	// hide the system buttons
 	SetTitleBarVisible( false );
-	m_pTopBar = new Panel( this, "topbar" );
+    m_pTopBar = new CSpectatorBar(this, "topbar", true);
 	m_pBottomBar = new CBottomBar( this, "bottombar" );
-	m_pBottomBarBlank = new Panel( this, "bottombarblank" );
+    m_pBottomBarBlank = new CSpectatorBar(this, "bottombarblank", false);
 	m_pBannerImage = new ImagePanel( m_pTopBar, "banner" );
 	m_pInsetBox = new InsetBox( this, "insetBox", this );
 

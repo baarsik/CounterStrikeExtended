@@ -30,6 +30,9 @@
         "CSEInterface_Automatic" "Utiliser la langue de Steam"
         "CSEInterface_SaveFailed" "Impossible de changer la langue. Réessayez."
         "CSEInterface_LaunchOverride" "L’option de lancement -language remplace ce réglage."
+        "CSEInterface_Style" "Style de l'interface"
+        "CSEInterface_StyleOriginal" "Original"
+        "CSEInterface_StyleExtended" "Étendu"
 
         "CSEServerBrowser_Configuration" "Configuration du navigateur de serveurs"
         "CSEServerBrowser_Masterservers" "Serveurs maîtres"

@@ -132,6 +132,8 @@ target_sources(hw_engine PRIVATE
   "${CSE_SDK_DIR}/engine/vgui2/text_draw.cpp"
   "${CSE_SDK_DIR}/engine/vgui_EngineSurface.cpp"
   "${CSE_SDK_DIR}/engine/vgui_EngineSurfaceHW.cpp"
+  "${CSE_SDK_DIR}/engine/vgui_background_blur_gl.cpp"
+  "${CSE_SDK_DIR}/engine/vgui_background_effects.cpp"
   "${CSE_SDK_DIR}/engine/vgui_int.cpp"
   "${CSE_SDK_DIR}/engine/vgui_intwrap.cpp"
   "${CSE_SDK_DIR}/engine/vgui_intwrap2.cpp"

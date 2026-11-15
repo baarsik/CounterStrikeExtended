@@ -1,4 +1,5 @@
 #include "screenshot.h"
+#include "vgui_background_effects.h"
 #include "../common/sdl3_policy.h"
 // gl_vidnt.c -- NT GL vid component
 #include "video_platform.h"
@@ -753,6 +754,7 @@ static void ReleaseFBOContainer( FBO_Container_t* container )
 
 void FreeFBOObjects()
 {
+    cse::ui::ShutdownBackgroundEffects();
 	ReleaseFBOContainer( &s_MSAAFBO );
 	ReleaseFBOContainer( &s_BackBufferFBO );
 }

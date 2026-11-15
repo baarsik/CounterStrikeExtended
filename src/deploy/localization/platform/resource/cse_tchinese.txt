@@ -30,6 +30,9 @@
         "CSEInterface_Automatic" "使用 Steam 語言"
         "CSEInterface_SaveFailed" "無法變更語言。請重試。"
         "CSEInterface_LaunchOverride" "啟動選項 -language 會覆寫此設定。"
+        "CSEInterface_Style" "介面樣式"
+        "CSEInterface_StyleOriginal" "原版"
+        "CSEInterface_StyleExtended" "增強"
 
         "CSEServerBrowser_Configuration" "伺服器瀏覽器設定"
         "CSEServerBrowser_Masterservers" "主伺服器"

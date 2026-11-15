@@ -5,6 +5,7 @@ extern int cnttextures[2];
 #endif
 #include "engine_apiproxy.h"
 #include "vgui_EngineSurface.h"
+#include "vgui_background_effects.h"
 #include "engine_image.h"
 #include "glquake.h"
 #include "gl_model.h"
@@ -70,6 +71,7 @@ void VGui_ViewportPaintBackground(int *extents) {
     glheight = extents[3] - extents[1];
     SCR_CalcRefdef();
     V_RenderView();
+    cse::ui::CaptureBackgroundEffects(glx, gly, glwidth, glheight);
     GLBeginHud();
     if (cls.state == ca_active && cls.signon == 2) {
         AllowFog(0);

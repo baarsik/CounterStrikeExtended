@@ -21,7 +21,8 @@ def function(signature):
 helpers = ''
 if '// Owned spectator presentation inputs' in source:
     start = source.index('// Owned spectator presentation inputs')
-    helpers = source[start:source.index('class CLeftButton', start)]
+    end = source.index('} // namespace', start) + len('} // namespace')
+    helpers = source[start:end]
 harness = r'''
 #include <cassert>
 #include <cstdarg>

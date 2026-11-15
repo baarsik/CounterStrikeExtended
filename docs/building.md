@@ -243,6 +243,38 @@ The [studio batching fixtures](../tests/native/studio_batch/README.md) cover top
 engine attribute integration, client state and optional real OpenGL pixel comparisons.
 Their model-topology microbenchmarks do not measure gameplay FPS.
 
+## VGUI styles and reusable background blur
+
+**Options → Interface → UI style** selects **Original** or **Extended** (the default). Apply/OK changes the
+style immediately; the archived `vgui_style` setting uses `0` for Original and `1` for Extended.
+`src/public/vgui_style.h` provides the shared selection constants for VGUI controls as they adopt the styles.
+
+Currently, this selection controls Counter-Strike spectator backgrounds: Original uses the existing
+translucent black bars; Extended uses frosted backgrounds with darkness and blur fading together toward
+the center of the screen. Spectator labels, controls and inset views retain their normal painting.
+
+VGUI code can reuse `vgui2::BackdropPanel` from `src/vgui2/controls/BackdropPanel.h`, or call the optional
+`CSEVGuiBackgroundEffects001` service through `src/public/vgui_background_controls.h` in `PaintBackground`.
+`BackdropStyle` specifies top/bottom opacity and darkness in the range 0–1. The service uses absolute panel
+bounds and the parent's clip rectangle; it preserves driver state and existing surface texture caches.
+Legacy VGUI virtual tables are unchanged. Modules without the service use the same darkness gradient.
+
+The hardware engine captures the scene before HUD drawing, resolves MSAA, downsamples to quarter dimensions
+and applies a separable Gaussian filter. Panels share this GPU image for the frame. Capture is demand-driven:
+a newly visible panel uses the darkness gradient for its first frame, then blur on the next rendered scene.
+Original and frames without requests perform no blur filtering. Resize recreates the targets; context
+shutdown releases them. Unsupported framebuffer capabilities and native capture fixtures use the gradient.
+
+The standalone real-OpenGL fixture covers pixels, clipping, matching gradients, foreground ordering,
+read/draw framebuffer restoration, MSAA, demand and resize:
+
+```sh
+cmake -S tests/native/vgui_backdrop -B build/vgui-backdrop -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+  -DCSE_BACKDROP_SDL_LIBRARY=/absolute/path/to/the/native/SDL3/shared-library
+cmake --build build/vgui-backdrop --parallel
+ctest --test-dir build/vgui-backdrop --output-on-failure
+```
+
 ## Image formats
 
 Native image paths accept static lossy or lossless WebP, including transparency.

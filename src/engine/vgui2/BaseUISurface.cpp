@@ -25,6 +25,7 @@
 #include <SDL3/SDL.h>
 #include "../filesystem.h"
 #include "../../common/interface_language.h"
+#include "../../public/vgui_style.h"
 #include "../ivideomode.h"
 #include "../vid.h"
 #include "../../vgui2/controls/controls.h"
@@ -78,6 +79,9 @@ static bool s_bUsedNativeCaptureLast;
 
 cvar_t sdl_double_click_size = { "sdl_double_click_size", "2" };
 cvar_t sdl_double_click_time = { "sdl_double_click_time", "400" };
+cvar_t vgui_style = {
+    const_cast<char*>(cse::ui::VGuiStyleCvar), const_cast<char*>("1"), FCVAR_ARCHIVE
+};
 
 static vgui2::Dar<vgui2::VPANEL> staticPopupList;
 
@@ -393,6 +397,7 @@ void BaseUISurface::Init( VPANEL embeddedPanel, IEngineSurface* engineSurface, I
 	m_pEmulatedMouseImage = vgui2::scheme()->GetImage( "gfx/vgui/mouse", false );
 	Cvar_RegisterVariable( &sdl_double_click_size );
 	Cvar_RegisterVariable( &sdl_double_click_time );
+    Cvar_RegisterVariable(&vgui_style);
 
 	m_pChromeController = chromeController;
 	if ( m_pChromeController )
