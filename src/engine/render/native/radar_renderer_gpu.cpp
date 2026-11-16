@@ -290,17 +290,18 @@ CseRadarTexture RadarRendererGpu::RegisterTexture(std::uint32_t identity, Textur
     if (!object || !identity) {
         return {};
     }
+    impl_->RetireBorrowedTextures();
     for (auto& pair : impl_->textures) {
         auto& texture = pair.second;
         if (texture.identity == identity && texture.role == role) {
-            if (texture.object->generation != object->generation) {
+            if (texture.generation != object->generation) {
                 impl_->Release(texture);
                 impl_->textures.erase(pair.first);
                 break; // A new engine object receives a fresh service serial.
             }
             const bool samePalette = texture.palette == palette ||
                 (texture.palette && palette && *texture.palette == *palette);
-            if (texture.object != object || !samePalette) {
+            if (texture.object.lock() != object || !samePalette) {
                 impl_->Release(texture);
                 texture.object = std::move(object);
                 texture.palette = std::move(palette);
@@ -311,6 +312,7 @@ CseRadarTexture RadarRendererGpu::RegisterTexture(std::uint32_t identity, Textur
     Impl::Texture texture;
     texture.identity = identity;
     texture.role = role;
+    texture.generation = object->generation;
     texture.object = std::move(object);
     texture.palette = std::move(palette);
     const auto serial = impl_->nextTexture++;

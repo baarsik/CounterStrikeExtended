@@ -127,6 +127,7 @@ CseRadarResult RadarRendererGpu::DrawRadarBackdrop(const CseRadarBackdropDraw& d
 }
 
 void RadarRendererGpu::BeginSmokedFrame() {
+    impl_->RetireBorrowedTextures();
     impl_->smokedCaptured = false;
 }
 

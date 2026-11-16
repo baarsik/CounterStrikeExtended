@@ -1558,7 +1558,7 @@ bool CGame::CreateGameWindow() {
         const unsigned samples = COM_CheckParm("-nomsaa") ? cse::render::kSingleSceneSample :
             cse::render::kDefaultSceneSamples;
         if (!cse::render::InitializeBackend(m_hSDLWindow, backendError, samples)) {
-            Sys_Error("Metal initialization: %s", backendError.c_str());
+            Sys_Error("Metal initialization: %s. Restart with -gl and remove any -metal flag.", backendError.c_str());
         }
     } else {
         m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);

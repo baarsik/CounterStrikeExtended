@@ -41,6 +41,7 @@ unpack = re.search(r'class TextureUnpackState \{[\s\S]*?\n\};', source)
 prefix = unpack.group() + '\n\n' if unpack else ''
 (output / 'texture_functions.inc').write_text(prefix + '\n\n'.join(function(name) for name in names))
 (output / 'texture_cache.inc').write_text(function('GL_LoadTexture2'))
+(output / 'texture_bind.inc').write_text(function('GL_SelectTexture') + '\n' + function('GL_Bind'))
 entries = json.loads((options.build / 'compile_commands.json').read_text())
 entry = next(e for e in entries if e['file'].endswith('/gl_draw.cpp'))
 command = shlex.split(entry['command'])

@@ -115,7 +115,8 @@ struct RadarRendererGpu::Impl {
         bool owned = false;
         std::uint32_t identity = 0;
         TextureRole role = TextureRole::World;
-        std::shared_ptr<const TextureObject> object;
+        std::weak_ptr<const TextureObject> object;
+        std::uint64_t generation = 0;
         std::shared_ptr<const SharedPalette> palette;
         SDL_GPUTexture* gpu = nullptr;
         SDL_GPUSampler* sampler = nullptr;
@@ -153,6 +154,8 @@ struct RadarRendererGpu::Impl {
     ~Impl();
 
     void Release(Texture& texture);
+
+    void RetireBorrowedTextures();
 
     bool Upload(Texture& texture);
 

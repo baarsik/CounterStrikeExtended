@@ -55,21 +55,25 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     if (texture.gpu) {
         return true;
     }
-    if (!texture.object) {
+    auto object = texture.object.lock();
+    if (!object) {
+        if (texture.identity) {
+            return false;
+        }
         auto image = std::make_shared<TextureImage>();
         image->width = 1;
         image->height = 1;
         image->defined = true;
         image->pixels = {255, 255, 255, 255};
-        auto object = std::make_shared<TextureObject>();
-        object->levels[0] = image;
-        object->sampler.minification = Filter::Linear;
-        object->sampler.magnification = Filter::Linear;
-        texture.object = object;
+        auto fallback = std::make_shared<TextureObject>();
+        fallback->levels[0] = image;
+        fallback->sampler.minification = Filter::Linear;
+        fallback->sampler.magnification = Filter::Linear;
+        object = std::move(fallback);
     }
     MetalTextureData data;
     std::string error;
-    if (!PrepareMetalTexture(*texture.object, texture.palette, data, error) || data.levels.empty()) {
+    if (!PrepareMetalTexture(*object, texture.palette, data, error) || data.levels.empty()) {
         return false;
     }
     const auto& base = data.levels.front();
@@ -84,7 +88,7 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     info.sample_count = SDL_GPU_SAMPLECOUNT_1;
     texture.gpu = SDL_CreateGPUTexture(device, &info);
     SDL_GPUSamplerCreateInfo sampling{};
-    const auto& settings = texture.object->sampler;
+    const auto& settings = object->sampler;
     sampling.min_filter = settings.minification == Filter::Linear ||
         settings.minification == Filter::LinearMipmapLinear || settings.minification == Filter::LinearMipmapNearest ?
         SDL_GPU_FILTER_LINEAR : SDL_GPU_FILTER_NEAREST;
@@ -178,11 +182,8 @@ CseRadarResult RadarRendererGpu::Impl::Resolve(CseRadarTexture handle, Texture*&
     }
     auto& resource = found->second;
     if (!resource.owned && textureSource && sourceState) {
-        auto state = *sourceState;
-        state.textures[state.ActiveTexture()].texture2D = resource.identity & 0xffffu;
-        auto current = textureSource->IsTexture(resource.identity & 0xffffu) ?
-            textureSource->Bound(state, TextureTarget::Texture2D) : nullptr;
-        if (!current || current->generation != resource.object->generation) {
+        auto current = textureSource->Find(resource.identity & kMaximumGeneratedTextureName);
+        if (!current || current->generation != resource.generation) {
             Release(resource);
             textures.erase(found);
             return CSE_RADAR_INVALID_TEXTURE;
@@ -194,14 +195,37 @@ CseRadarResult RadarRendererGpu::Impl::Resolve(CseRadarTexture handle, Texture*&
         }
         const bool samePalette = palette == resource.palette ||
             (palette && resource.palette && *palette == *resource.palette);
-        if (current != resource.object || !samePalette) {
+        if (current != resource.object.lock() || !samePalette) {
             Release(resource);
             resource.object = std::move(current);
             resource.palette = std::move(palette);
         }
     }
+    if (!resource.owned && resource.object.expired()) {
+        Release(resource);
+        textures.erase(found);
+        return CSE_RADAR_INVALID_TEXTURE;
+    }
     texture = &resource;
     return CSE_RADAR_OK;
+}
+
+void RadarRendererGpu::Impl::RetireBorrowedTextures() {
+    // Never require a successful upload or a query of an abandoned client handle to reclaim map resources.
+    // Owned map images have an explicit ReleaseImage lifetime and are excluded from this sweep.
+    for (auto iterator = textures.begin(); iterator != textures.end();) {
+        const auto current = iterator++;
+        auto& resource = current->second;
+        if (resource.owned) {
+            continue;
+        }
+        const auto object = textureSource ? textureSource->Find(resource.identity & kMaximumGeneratedTextureName) :
+            resource.object.lock();
+        if (!object || object->generation != resource.generation) {
+            Release(resource);
+            textures.erase(current);
+        }
+    }
 }
 
 SDL_GPUTexture* RadarRendererGpu::Impl::Target(unsigned width, unsigned height, bool depth) {

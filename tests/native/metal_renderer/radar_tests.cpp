@@ -148,6 +148,7 @@ int main() {
     build.passes = &meshPass;
     CseRadarTexture generated{};
     CHECK(effects.BuildMapImage(build, generated) == CSE_RADAR_OK);
+    effects.BeginSmokedFrame(); // Owned images survive borrowed-resource retirement.
     tile.texture = generated;
     tile.mode = CSE_RADAR_MAP_PREMULTIPLIED_IMAGE;
     tile.mask.shape = CSE_RADAR_SHAPE_SQUARE;
@@ -248,6 +249,7 @@ int main() {
     build.passCount = 2;
     build.tone = CSE_RADAR_TONE_TEXTURED;
     CHECK(effects.BuildMapImage(build, generated) == CSE_RADAR_OK);
+    effects.BeginSmokedFrame(); // Owned images survive borrowed-resource retirement.
     tile.texture = generated;
     tile.mode = CSE_RADAR_MAP_PREMULTIPLIED_IMAGE;
     tile.alphaAa = 1;
@@ -264,6 +266,7 @@ int main() {
     build.drawCount = 1;
     meshPass.depthOrder = CSE_RADAR_DEPTH_BOTTOMMOST;
     CHECK(effects.BuildMapImage(build, generated) == CSE_RADAR_OK);
+    effects.BeginSmokedFrame(); // Owned images survive borrowed-resource retirement.
     tile.texture = generated;
     CHECK(session.Render(frame, error));
     CHECK(effects.DrawMapTexture(tile, raster) == CSE_RADAR_OK);

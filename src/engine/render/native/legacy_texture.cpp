@@ -150,25 +150,37 @@ std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
 }
 
 Status TextureStore::Generate(std::size_t count, std::vector<std::uint32_t>& names) {
-    if (count > namesLimit_ - objects_.size()) {
+    if (count > namesLimit_ - objects_.size() || count > kMaximumGeneratedTextureName) {
         return Status::LimitExceeded;
     }
     std::vector<std::uint32_t> generated;
     generated.reserve(count);
-    for (std::size_t index = 0; index < count; ++index) {
-        while (nextName_ == 0 || objects_.count(nextName_) != 0) {
-            ++nextName_;
+    auto candidate = nextName_;
+    // Search each legal name at most once. Domain exhaustion leaves both the store and output unchanged.
+    for (std::uint32_t visited = 0; generated.size() < count && visited < kMaximumGeneratedTextureName; ++visited) {
+        if (objects_.count(candidate) == 0) {
+            generated.push_back(candidate);
         }
-        objects_.emplace(nextName_, nullptr);
-        generated.push_back(nextName_++);
+        candidate = candidate == kMaximumGeneratedTextureName ? 1 : candidate + 1;
     }
+    if (generated.size() != count) {
+        return Status::LimitExceeded;
+    }
+    for (auto name : generated) {
+        objects_.emplace(name, nullptr);
+    }
+    nextName_ = candidate;
     names = std::move(generated);
     return Status::Ok;
 }
 
 bool TextureStore::IsTexture(std::uint32_t name) const {
+    return Find(name) != nullptr;
+}
+
+std::shared_ptr<const TextureObject> TextureStore::Find(std::uint32_t name) const {
     const auto found = objects_.find(name);
-    return name != 0 && found != objects_.end() && found->second != nullptr;
+    return name != 0 && found != objects_.end() ? found->second : nullptr;
 }
 
 Status TextureStore::Bind(LegacyState& state, TextureTarget target, std::uint32_t name) {

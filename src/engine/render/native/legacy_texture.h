@@ -13,6 +13,8 @@ constexpr std::size_t kPaletteBytes = kPaletteEntries * 3;
 constexpr std::size_t kTextureStorageBytes = 256 * 1024 * 1024;
 constexpr std::size_t kTextureUploadBytes = 128 * 1024 * 1024;
 constexpr std::size_t kTextureNames = 65536;
+// Engine handles encode palette metadata above the low 16-bit nonzero texture name.
+constexpr std::uint32_t kMaximumGeneratedTextureName = 0xffffu;
 constexpr int kTextureDimension = 16384;
 constexpr int kTextureLevels = 32;
 // GL's initial TEXTURE_MAX_LEVEL; independent of this CPU capture's explicit image-count bound.
@@ -85,6 +87,7 @@ public:
     explicit TextureStore(std::size_t storageLimit = kTextureStorageBytes, std::size_t namesLimit = kTextureNames);
     Status Generate(std::size_t count, std::vector<std::uint32_t>& names);
     bool IsTexture(std::uint32_t name) const;
+    std::shared_ptr<const TextureObject> Find(std::uint32_t name) const;
     Status Bind(LegacyState& state, TextureTarget target, std::uint32_t name);
     void Delete(LegacyState& state, const std::vector<std::uint32_t>& names);
     Status PixelStore(PixelStoreParameter parameter, int value);

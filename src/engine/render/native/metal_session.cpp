@@ -119,8 +119,8 @@ struct MetalSession::Impl {
         std::size_t capacity = 0;
     };
     struct Texture {
-        std::shared_ptr<const TextureObject> object;
-        std::shared_ptr<const SharedPalette> palette;
+        std::weak_ptr<const TextureObject> object;
+        std::weak_ptr<const SharedPalette> palette;
         MetalTextureData data;
         SDL_GPUTexture* texture = nullptr;
         std::size_t bytes = 0;
@@ -312,13 +312,19 @@ struct MetalSession::Impl {
         const TextureKey key{object.get(), palette.get()};
         auto found = textures.find(key);
         if (found != textures.end()) {
-            found->second.lastUse = serial;
-            return &found->second;
+            // Raw addresses are only an index: expired owners may have been allocated at these addresses again.
+            if (found->second.object.lock() == object && found->second.palette.lock() == palette) {
+                found->second.lastUse = serial;
+                return &found->second;
+            }
+            textureBytes -= found->second.bytes;
+            SDL_ReleaseGPUTexture(device, found->second.texture);
+            textures.erase(found);
         }
         Texture entry;
-        entry.object = std::move(object);
-        entry.palette = std::move(palette);
-        if (!PrepareMetalTexture(*entry.object, entry.palette, entry.data, error)) {
+        entry.object = object;
+        entry.palette = palette;
+        if (!PrepareMetalTexture(*object, palette, entry.data, error)) {
             return nullptr;
         }
         for (const auto& image : entry.data.levels) {
@@ -591,6 +597,17 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         }
     }
     ++state.serial;
+    // Captured packets own source versions until submission; the persistent GPU cache only borrows them.
+    // Expired entries can be released without waiting because SDL retains submitted GPU references.
+    for (auto iterator = state.textures.begin(); iterator != state.textures.end();) {
+        if (iterator->second.object.expired()) {
+            state.textureBytes -= iterator->second.bytes;
+            SDL_ReleaseGPUTexture(state.device, iterator->second.texture);
+            iterator = state.textures.erase(iterator);
+        } else {
+            ++iterator;
+        }
+    }
     // Never evict a pipeline/sampler after this frame has retained its pointer and before submission.
     // SDL keeps prior submitted command references alive when the owning cache releases its reference.
     if (state.pipelines.size() >= kMaximumCachedPipelines / 2) {

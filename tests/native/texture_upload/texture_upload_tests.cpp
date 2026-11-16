@@ -57,6 +57,17 @@ static std::vector<Upload> uploads;
 static std::vector<GLfloat> parameters;
 static GLint unpackAlignment = 4;
 static GLint unpackRowLength = 17;
+static std::array<GLint, 2> boundTextures{};
+static std::size_t activeTexture = 0;
+static unsigned bindingQueries = 0;
+namespace cse {
+namespace render {
+bool nativeBinding = false;
+bool UsingMetal() {
+    return nativeBinding;
+}
+}
+}
 
 static void APIENTRY Capture(GLenum, GLint level, GLint, GLsizei width, GLsizei height, GLint,
     GLenum format, GLenum, const GLvoid* data) {
@@ -78,7 +89,12 @@ decltype(qglTexImage2D) qglTexImage2D = Capture;
 decltype(qglTexParameterf) qglTexParameterf = Parameter;
 
 static void APIENTRY GetInteger(GLenum name, GLint* value) {
-    *value = name == GL_UNPACK_ALIGNMENT ? unpackAlignment : unpackRowLength;
+    if (name == GL_TEXTURE_BINDING_2D) {
+        ++bindingQueries;
+        *value = boundTextures[activeTexture];
+    } else {
+        *value = name == GL_UNPACK_ALIGNMENT ? unpackAlignment : unpackRowLength;
+    }
 }
 
 static void APIENTRY PixelStore(GLenum name, GLint value) {
@@ -138,7 +154,58 @@ GLuint GL_GenTexture() {
     return ++generatedTextures;
 }
 
-void GL_Bind(int) {}
+static void APIENTRY BindTexture(GLenum, GLuint name) {
+    boundTextures[activeTexture] = static_cast<GLint>(name);
+}
+
+static void APIENTRY SelectTexture(GLenum target) {
+    activeTexture = static_cast<std::size_t>(target - GL_TEXTURE0_SGIS);
+}
+
+decltype(qglBindTexture) qglBindTexture = BindTexture;
+decltype(qglSelectTextureSGIS) qglSelectTextureSGIS = SelectTexture;
+int gl_mtexable = 1;
+int cnttextures[2] = {-1, -1};
+int TEXTURE0_SGIS = GL_TEXTURE0_SGIS;
+GLenum oldtarget = GL_TEXTURE0_SGIS;
+static int selectedPalette = -1;
+
+void GL_PaletteSelect(int palette) {
+    selectedPalette = palette;
+}
+#include "texture_bind.inc"
+
+static void RecycledBinding() {
+    constexpr int kReusedName = 17;
+    constexpr int kPaletteIndex = 2;
+    constexpr int kEncodedTexture = ((kPaletteIndex + 1) << 16) | kReusedName;
+    cse::render::nativeBinding = true;
+    currenttexture = -1;
+    GL_Bind(kEncodedTexture);
+    assert(boundTextures[0] == kReusedName && selectedPalette == kPaletteIndex);
+    // Native deletion unbinds the object; the historical software cache still names it.
+    boundTextures[0] = 0;
+    selectedPalette = -1;
+    GL_Bind(kEncodedTexture);
+    assert(boundTextures[0] == kReusedName && selectedPalette == kPaletteIndex);
+    GL_SelectTexture(GL_TEXTURE1_SGIS);
+    GL_Bind(kEncodedTexture);
+    boundTextures[1] = 0;
+    GL_SelectTexture(GL_TEXTURE0_SGIS);
+    GL_SelectTexture(GL_TEXTURE1_SGIS);
+    GL_Bind(kEncodedTexture);
+    assert(boundTextures[1] == kReusedName);
+    // Raw native binding changes do not update the engine cache either.
+    boundTextures[1] = 9;
+    GL_Bind(kEncodedTexture);
+    assert(boundTextures[1] == kReusedName);
+    cse::render::nativeBinding = false;
+    boundTextures[1] = 0;
+    const auto queries = bindingQueries;
+    GL_Bind(kEncodedTexture);
+    assert(boundTextures[1] == 0 && bindingQueries == queries); // Existing GL cache hits stay query-free.
+    GL_SelectTexture(GL_TEXTURE0_SGIS);
+}
 
 short GL_PaletteAdd(byte*, qboolean) {
     return 0;
@@ -410,7 +477,7 @@ int main(int argc, char** argv) {
     for (const auto& test : {std::pair{"ordinary", Ordinary}, {"large-indexed", LargeIndexed},
         {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide}, {"invalid", Invalid}, {"cache", Cache},
         {"sampling", Sampling}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
-        {"bounded-views", BoundedViews}}) {
+        {"bounded-views", BoundedViews}, {"recycled-binding", RecycledBinding}}) {
         if (selected == "all" || selected == test.first) {
             Reset();
             test.second();
