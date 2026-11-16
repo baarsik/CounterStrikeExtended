@@ -5,9 +5,11 @@
 // $NoKeywords: $
 //=============================================================================
 
+#include "smoked_game_layout.h"
 #include "hud.h" // for gEngfuncs
 #include "buy_presets.h"
 #include "cstriketeammenu.h"
+#include "counterstrikeviewport.h"
 #include "game_controls/iviewport.h"
 #include "Button.h"
 #include "cl_entity.h"
@@ -88,4 +90,64 @@ void CCSTeamMenu::OnCommand( const char* command )
 	}
 	OnClose();
 	vgui2::Frame::OnCommand( command );
+}
+
+void CCSTeamMenu::ApplySchemeSettings(vgui2::IScheme* scheme) {
+    const bool restorePosition = cse::ui::ControlsStyleChanged(this) && !cse::ui::ControlsSmokedGlass();
+    CTeamMenu::ApplySchemeSettings(scheme);
+    auto* viewport = dynamic_cast<CounterStrikeViewport*>(gViewPortInterface);
+    if (restorePosition && viewport && viewport->HasCenteredPersistentWindows()) {
+        // CenterWindow adds the legacy viewport's letterbox offset only on first activation.
+        // Resource restoration removes it, so restore the same offset on a live style switch.
+        constexpr int LegacyViewportWidth = 640;
+        constexpr int LegacyViewportHeight = 480;
+        constexpr float VerticalOffsetScale = 0.67f;
+        int screenWidth = 0;
+        int screenHeight = 0;
+        vgui2::surface()->GetScreenSize(screenWidth, screenHeight);
+        int x = 0;
+        int y = 0;
+        GetPos(x, y);
+        const int offsetX = (screenWidth - GetAlternateProportionalValueFromNormal(LegacyViewportWidth)) / 2;
+        const int offsetY = (screenHeight - GetAlternateProportionalValueFromNormal(LegacyViewportHeight)) / 2;
+        SetPos(x + offsetX, y + static_cast<int>(offsetY * VerticalOffsetScale));
+    }
+}
+
+void CCSTeamMenu::PerformLayout() {
+    CTeamMenu::PerformLayout();
+    if (!cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
+    constexpr int MenuWidth = 920;
+    constexpr int MenuHeight = 472;
+    cse::gameui::Center(this, MenuWidth, MenuHeight);
+    const int inset = vgui2::smoked::Pixels(cse::ui::WindowInset);
+    const int contentTop = vgui2::smoked::Pixels(cse::ui::WindowHeaderHeight + cse::ui::WindowInset);
+    const int gap = vgui2::smoked::Pixels(cse::gameui::ControlGap);
+    const int columnWidth = (std::min)(vgui2::smoked::Pixels(cse::gameui::ActionColumnWidth),
+        static_cast<int>(GetWide() * cse::gameui::MaximumActionWidthFraction));
+    const int rowHeight = vgui2::smoked::Pixels(cse::ui::ControlHeight);
+    cse::gameui::Title(FindChildByName("joinTeam", false), GetWide());
+    int y = contentTop;
+    constexpr const char* Actions[]{"terbutton", "ctbutton", "vipbutton", "autobutton", "specbutton",
+        "CancelButton"};
+    for (const char* name : Actions) {
+        auto* button = FindChildByName(name, false);
+        if (button && button->IsVisible()) {
+            button->SetBounds(inset, y, columnWidth, rowHeight);
+            y += rowHeight + gap;
+        }
+    }
+    const int documentX = inset + columnWidth + gap;
+    cse::gameui::Bounds(this, "MapInfo", documentX, contentTop, GetWide() - documentX - inset,
+        GetTall() - contentTop - inset);
+}
+
+void CCSTeamMenu::PaintBackground() {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
+    CTeamMenu::PaintBackground();
 }

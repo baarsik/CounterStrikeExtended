@@ -9,6 +9,7 @@
 #include <vector>
 #include "vgui_controls/HTML.h"
 #include "../../../vgui2/controls/Label.h"
+#include "../../../vgui2/controls/SmokedGlass.h"
 #include "vgui_controls/Controls.h"
 #include "../../../public/FileSystem.h"
 #include "iviewport.h"
@@ -32,24 +33,29 @@ public:
 	}
 };
 
-CClientMOTD::CClientMOTD( vgui2::Panel* parent ) : vgui2::Frame( parent, "ClientMOTD", true, false )
-{
-	strcpy( m_szTempFileName, "motd_temp.html" );
-	m_bFileWritten = false;
-	m_iScoreBoardKey = 0;
+CClientMOTD::CClientMOTD(vgui2::Panel* parent) : vgui2::Frame(parent, "ClientMOTD", true, false) {
+    strcpy(m_szTempFileName, "motd_temp.html");
+    m_bFileWritten = false;
+    m_iScoreBoardKey = 0;
 
-	// initialize dialog
-	SetTitle( "", true );
+    // initialize dialog
+    SetTitle("", true);
 
-	// load the new scheme early!!
-	SetScheme( "ClientScheme" );
-	SetMoveable( false );
-	SetSizeable( false );
-	SetProportional( true );
-	m_pMessage = new ClientMOTDHTML( this, "Message" );
-	LoadControlSettings( "Resource/UI/MOTD.res", NULL );
-	InvalidateLayout( false, false );
-	m_pServerName = new vgui2::Label( this, "serverName", "" );
+    // load the new scheme early!!
+    SetScheme("ClientScheme");
+    SetMoveable(false);
+    SetSizeable(false);
+    SetProportional(true);
+    m_pMessage = new ClientMOTDHTML(this, "Message");
+    m_pServerName = new vgui2::Label(this, "serverName", "");
+    LoadControlSettings("Resource/UI/MOTD.res", NULL);
+    InvalidateLayout(false, false);
+}
+
+void CClientMOTD::PerformLayout() {
+    vgui2::Frame::PerformLayout();
+    // The Smoked document header already displays the server title.
+    vgui2::smoked::Decorations({m_pServerName});
 }
 
 //-----------------------------------------------------------------------------

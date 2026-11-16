@@ -20,6 +20,11 @@ public:
 	~CCSTeamMenu() override;
 	void Update( const char* mapName, bool allowSpectators, const char** teamNames, int numTeams );
 
+protected:
+    void ApplySchemeSettings(vgui2::IScheme* scheme) override;
+    void PerformLayout() override;
+    void PaintBackground() override;
+
 private:
 	void OnCommand( const char* command ) override;
 	void SetVisibleButton( const char* name, bool state );

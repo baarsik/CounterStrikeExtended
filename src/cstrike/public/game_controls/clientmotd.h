@@ -34,6 +34,9 @@ public:
 	// helper functions
 	void SetLabelText( const char* textEntryName, const wchar_t* text );
 
+protected:
+    void PerformLayout() override;
+
 private:
 	vgui2::HTML*	m_pMessage;
 	vgui2::Label*	m_pServerName;

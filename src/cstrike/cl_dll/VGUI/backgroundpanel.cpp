@@ -1,4 +1,5 @@
 #include "../../../vgui2/controls/SmokedGlass.h"
+#include "smoked_game_layout.h"
 #include "hud.h"
 #include "counterstrikeviewport.h"
 #include "BitmapImagePanel.h"
@@ -77,14 +78,31 @@ void CounterStrikeViewport::CCSBackGroundPanel::Activate()
 {
 	SetPos( 0, 0 );
 	vgui2::Frame::Activate();
+    LayoutBackground(false);
+}
+
+void CounterStrikeViewport::CCSBackGroundPanel::LayoutBackground(bool restoreResources) {
 	if ( !IsProportional() )
 	{
 		return;
 	}
+    const auto resourcePanel = [this, restoreResources](vgui2::Panel* panel) {
+        if (!restoreResources) {
+            return true;
+        }
+        // Runtime menus are reparented here after the background resources load. Their own
+        // layout owners restore them; replaying this build group must only move decorations.
+        for (auto* owner = panel; owner && owner != this; owner = owner->GetParent()) {
+            if (dynamic_cast<vgui2::EditablePanel*>(owner)) {
+                return false;
+            }
+        }
+        return true;
+    };
 	int screenWide, screenTall, wide, tall;
 	vgui2::surface()->GetScreenSize( screenWide, screenTall );
 	GetSize( wide, tall );
-	if ( wide == screenWide && tall == screenTall )
+	if (wide == screenWide && tall == screenTall && !restoreResources)
 	{
 		return;
 	}
@@ -110,11 +128,15 @@ void CounterStrikeViewport::CCSBackGroundPanel::Activate()
 					found = true;
 			}
 
-			if ( panel && !found )
+			if (panel && !found && resourcePanel(panel))
 			{
 				resizedPanels.AddToTail( panel );
-				if ( panel != this )
-					RepositionControl( panel );
+                if (panel != this) {
+                    if (restoreResources) {
+                        vgui2::smoked::RefreshResourceBounds(panel);
+                    }
+                    RepositionControl(panel);
+                }
 			}
 		}
 
@@ -130,7 +152,7 @@ void CounterStrikeViewport::CCSBackGroundPanel::Activate()
 					found = true;
 			}
 
-			if ( panel && !found )
+			if (panel && !found && resourcePanel(panel))
 			{
 				movedPanels.AddToTail( panel );
 				if ( panel != this )
@@ -153,7 +175,13 @@ void CounterStrikeViewport::CCSBackGroundPanel::PaintBackground()
         for (int index = 0; index < siblingCount; ++index) {
             const vgui2::VPANEL sibling = vgui2::ipanel()->GetChild(parent, index);
             vgui2::Panel* child = vgui2::ipanel()->GetPanel(sibling, GetModuleName());
-            if (child && child->IsVisible() && vgui2::smoked::DocumentLayout(child)) {
+            if (child && child->IsVisible() && cse::gameui::OwnsShell(child)) {
+                return;
+            }
+        }
+        for (int index = 0; index < GetChildCount(); ++index) {
+            auto* child = GetChild(index);
+            if (child && child->IsVisible() && cse::gameui::OwnsShell(child)) {
                 return;
             }
         }
@@ -239,6 +267,7 @@ void CounterStrikeViewport::CCSBackGroundPanel::PaintBackground()
 
 void CounterStrikeViewport::CCSBackGroundPanel::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
+    const bool restoreLayout = cse::ui::ControlsStyleChanged(this) && !cse::ui::ControlsSmokedGlass();
 	vgui2::Frame::ApplySchemeSettings( scheme );
 	SetBgColor( scheme->GetColor( "ViewportBG", Color( 0, 0, 0, 0 ) ) );
 	m_titleColor = scheme->GetColor( "TitleIcon", Color( 0, 0, 0, 200 ) );
@@ -261,5 +290,8 @@ void CounterStrikeViewport::CCSBackGroundPanel::ApplySchemeSettings( vgui2::ISch
         m_pBottomLeftPanel, m_pBottomRightPanel});
     if (vgui2::Panel* emblem = FindChildByName("ExclamationPanel", false)) {
         vgui2::smoked::Decorations({emblem});
+    }
+    if (restoreLayout) {
+        LayoutBackground(true);
     }
 }

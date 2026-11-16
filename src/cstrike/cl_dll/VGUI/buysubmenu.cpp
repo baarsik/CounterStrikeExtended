@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================
 
+#include "smoked_game_layout.h"
 #include "hud.h"
 #include "buysubmenu.h"
 #include "buymenu.h"
@@ -14,6 +15,7 @@
 #include "vgui_controls/Controls.h"
 #include "vgui/KeyValues.h"
 #include "FileSystem.h"
+#include <vector>
 #include <stdio.h>
 #include <string.h>
 
@@ -147,7 +149,7 @@ void CBuySubMenu::OnCommand( const char* command )
 			memset( &newEntry, 0, sizeof( newEntry ) );
 
 			CBuySubMenu* newMenu = new CBuySubMenu( this, "BuySubMenu" );
-			newMenu->LoadControlSettings( fileName, NULL );
+			newMenu->LoadControlSettings(fileName, nullptr);
 			_nextPanel = newMenu;
 
 			strncpy( newEntry.filename, fileName, sizeof( newEntry.filename ) );
@@ -226,6 +228,9 @@ void CBuySubMenu::ClassHelperPanel::ApplySchemeSettings( vgui2::IScheme* scheme 
 	}
 	LoadControlSettings( GetClassPage( name ), NULL );
 	vgui2::Panel::ApplySchemeSettings( scheme );
+    if (auto* background = FindChildByName("imageBG", false)) {
+        vgui2::smoked::Decorations({background});
+    }
 }
 
 BuyMouseOverPanelButton::BuyMouseOverPanelButton( vgui2::Panel* parent, const char* name,
@@ -283,4 +288,130 @@ void BuyMouseOverPanelButton::ApplySettings( KeyValues* settings )
 	}
 	SetPriceState();
 	SetMapTypeState();
+}
+
+void CBuySubMenu::RestoreOriginalLayout() {
+    // Panel::Init starts a new wizard page at 64x24. Its resource contains a named canvas
+    // child rather than bounds for the owner. Recreate that resize origin before applying
+    // the Original bottom/right pinning and letterbox transform, retaining all live controls.
+    constexpr int InitialPageWidth = 64;
+    constexpr int InitialPageHeight = 24;
+    SetBounds(0, 0, InitialPageWidth, InitialPageHeight);
+    const auto restore = [](auto&& self, vgui2::Panel* panel) -> void {
+        for (int index = 0; index < panel->GetChildCount(); ++index) {
+            auto* child = panel->GetChild(index);
+            vgui2::smoked::RefreshResourceBounds(child);
+            self(self, child);
+        }
+    };
+    restore(restore, this);
+    for (int index = 0; index < GetChildCount(); ++index) {
+        if (auto* detail = dynamic_cast<ClassHelperPanel*>(GetChild(index))) {
+            int x = 0;
+            int y = 0;
+            m_pPanel->GetPos(x, y);
+            detail->SetBounds(x, y, m_pPanel->GetWide(), m_pPanel->GetTall());
+        }
+    }
+    FitToFullScreen(this);
+}
+
+void CBuySubMenu::ApplySchemeSettings(vgui2::IScheme* scheme) {
+    vgui2::WizardSubPanel::ApplySchemeSettings(scheme);
+    if (cse::ui::ControlsStyleChanged(this) && !cse::ui::ControlsSmokedGlass()) {
+        RestoreOriginalLayout();
+    }
+}
+
+void CBuySubMenu::PerformLayout() {
+    vgui2::WizardSubPanel::PerformLayout();
+    if (!cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
+    const int inset = vgui2::smoked::Pixels(cse::ui::WindowInset);
+    const int gap = vgui2::smoked::Pixels(cse::gameui::ControlGap);
+    const int rowHeight = vgui2::smoked::Pixels(cse::ui::ControlHeight);
+    const int columnWidth = (std::min)(vgui2::smoked::Pixels(cse::gameui::ActionColumnWidth),
+        static_cast<int>(GetWide() * cse::gameui::MaximumActionWidthFraction));
+    constexpr int SectionLabelGap = 8;
+    const int sectionTop = vgui2::smoked::Pixels(cse::ui::WindowHeaderHeight + SectionLabelGap);
+    const int contentTop = sectionTop + rowHeight;
+    cse::gameui::Title(FindChildByName("Title", false), GetWide());
+    cse::gameui::Bounds(this, "selectCategory", inset, sectionTop, columnWidth, rowHeight);
+    // Resources determine ordering and shortcuts. Layout only the direct action controls;
+    // the item pages and nested wizard panels have their own local coordinates.
+    std::vector<vgui2::Panel*> actions;
+    for (int index = 0; index < GetChildCount(); ++index) {
+        auto* child = GetChild(index);
+        if (dynamic_cast<vgui2::Button*>(child)) {
+            actions.push_back(child);
+        }
+    }
+    const auto resourcePosition = [](vgui2::Panel* panel) {
+        const auto found = cse::ui::ControlsResourceGeometry().find(panel);
+        return found == cse::ui::ControlsResourceGeometry().end() ? 0 : std::atoi(found->second.y.c_str());
+    };
+    std::stable_sort(actions.begin(), actions.end(), [&](auto* left, auto* right) {
+        return resourcePosition(left) < resourcePosition(right);
+    });
+    int actionY = contentTop;
+    int auxiliaryY = contentTop;
+    const int detailX = inset + columnWidth + gap;
+    const int detailWidth = GetWide() - detailX - inset;
+    m_pPanel->SetBounds(detailX, contentTop, detailWidth, GetTall() - contentTop - inset);
+    for (auto* action : actions) {
+        const char* name = action->GetName();
+        const bool auxiliary = !stricmp(name, "AutobuyButton") || !stricmp(name, "RebuyButton") ||
+            !strnicmp(name, "BuyPresetButton", strlen("BuyPresetButton"));
+        if (!action->IsVisible()) {
+            continue;
+        }
+        const int y = !stricmp(name, "CancelButton") ? GetTall() - inset - rowHeight :
+            (auxiliary ? auxiliaryY : actionY);
+        action->SetBounds(auxiliary ? detailX : inset, y, auxiliary ? detailWidth : columnWidth, rowHeight);
+        (auxiliary ? auxiliaryY : actionY) += rowHeight + gap;
+    }
+    const bool mainPage = !stricmp(GetName(), "mainmenu");
+    for (int index = 0; index < GetChildCount(); ++index) {
+        if (auto* detail = dynamic_cast<ClassHelperPanel*>(GetChild(index))) {
+            detail->SetBounds(detailX, contentTop, detailWidth, GetTall() - contentTop - inset);
+            if (mainPage) {
+                detail->SetVisible(false);
+            }
+        }
+    }
+    cse::gameui::Bounds(this, "money", detailX, GetTall() - inset - rowHeight, detailWidth, rowHeight);
+    for (const char* name : {"Divider1", "mainBackground"}) {
+        if (auto* decoration = FindChildByName(name, false)) {
+            vgui2::smoked::Decorations({decoration});
+        }
+    }
+}
+
+void CBuySubMenu::ClassHelperPanel::PerformLayout() {
+    vgui2::EditablePanel::PerformLayout();
+    if (!cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
+    // Stock item pages use a 300-unit canvas, with the preview above paired fact columns.
+    // Rebuild from saved resource coordinates, never from already transformed bounds.
+    constexpr float ItemCanvasWidth = 300.0f;
+    constexpr int DetailFontHeight = 14;
+    constexpr float MaximumItemScale = 1.5f;
+    const float scale = (std::min)(GetWide() / ItemCanvasWidth, MaximumItemScale);
+    for (int index = 0; index < GetChildCount(); ++index) {
+        auto* child = GetChild(index);
+        const auto found = cse::ui::ControlsResourceGeometry().find(child);
+        if (found == cse::ui::ControlsResourceGeometry().end()) {
+            continue;
+        }
+        const auto& source = found->second;
+        const auto pixels = [scale](int value) { return static_cast<int>(std::lround(value * scale)); };
+        child->SetBounds(pixels(std::atoi(source.x.c_str())), pixels(std::atoi(source.y.c_str())),
+            pixels(source.width), pixels(source.height));
+        if (auto* label = dynamic_cast<vgui2::Label*>(child)) {
+            label->SetFont(vgui2::smoked::TextFont(label, vgui2::scheme()->GetIScheme(label->GetScheme()),
+                label->GetFont(), true, vgui2::smoked::Pixels(DetailFontHeight)));
+        }
+    }
 }

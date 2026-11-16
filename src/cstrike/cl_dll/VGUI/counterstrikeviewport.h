@@ -65,6 +65,9 @@ public:
 	void OnTick() override;
 	void CenterWindow( vgui2::Frame* window );
     void RefreshLanguage();
+    bool HasCenteredPersistentWindows() const {
+        return m_bCenteredPersistentWindows;
+    }
 
 private:
 	class CCSBackGroundPanel : public TeamFortressViewport::CBackGroundPanel
@@ -78,6 +81,9 @@ private:
 		void PerformLayout() override;
 		virtual void SetTitleText( const char* text );
 		void GetOffset( int& x, int& y ) { x = m_offsetX; y = m_offsetY; }
+
+    private:
+        void LayoutBackground(bool restoreResources);
 
 	protected:
 		vgui2::CBitmapImagePanel*	m_pTopLeftPanel;

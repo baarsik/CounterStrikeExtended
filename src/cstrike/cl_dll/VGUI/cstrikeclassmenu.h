@@ -22,6 +22,11 @@ public:
 	void Update( int* validClasses, int numClasses ) override;
 	vgui2::Panel* CreateControlByName( const char* controlName ) override;
 
+protected:
+    void ApplySchemeSettings(vgui2::IScheme* scheme) override;
+    void PerformLayout() override;
+    void PaintBackground() override;
+
 private:
 	// helper functions
 
@@ -33,6 +38,7 @@ private:
 		virtual vgui2::Panel* GetAssociatedButton();
 
 	private:
+        void PerformLayout() override;
 		void ApplySchemeSettings( vgui2::IScheme* scheme ) override;
 		const char* GetClassPage( const char* className );
 		vgui2::Panel* m_pAssociatedButton;

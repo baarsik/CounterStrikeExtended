@@ -99,6 +99,7 @@ struct Panel {
     int height = 0;
     int x = 0;
     int y = 0;
+    int minimumHeight = 0;
     virtual ~Panel() = default;
     void SetVisible(bool value) {
         visible = value;
@@ -109,9 +110,12 @@ struct Panel {
     void MoveToFront() {}
     void SetSize(int wide, int tall) {
         width = wide;
-        height = tall;
+        height = tall < minimumHeight ? minimumHeight : tall;
     }
-    void SetPos(int, int) {}
+    void SetPos(int left, int top) {
+        x = left;
+        y = top;
+    }
     void SetBounds(int left, int top, int wide, int tall) {
         x = left;
         y = top;
@@ -132,11 +136,11 @@ struct Surface {
     int GetFontTall(HFont font) {
         return font ? (font == OriginalFont ? OriginalFontTall : ThemedFontTall) : 0;
     }
+    int width = 1280;
+    int height = 720;
     void GetScreenSize(int& wide, int& tall) {
-        constexpr int ScreenWidth = 1280;
-        constexpr int ScreenHeight = 720;
-        wide = ScreenWidth;
-        tall = ScreenHeight;
+        wide = width;
+        tall = height;
     }
 } testSurface;
 Surface* surface() {
@@ -204,6 +208,10 @@ namespace smoked {
 }
 struct CBottomBar : Frame {
     using CommandComboBox = ComboBox;
+    CBottomBar() {
+        // Frame's constructor imposes a minimum height before spectator layout runs.
+        minimumHeight = 66;
+    }
     ComboBox players, views, configs;
     Label health;
     Panel previous;
@@ -225,8 +233,8 @@ struct CBottomBar : Frame {
     void SetVisible(bool value) {
         visible = value;
     }
-    void SetSize(int, int) {}
-    void SetPos(int, int) {}
+    using Panel::SetSize;
+    using Panel::SetPos;
     void SetPlayerText(const wchar_t* value) { players.SetText(value); }
 };
 template<class T> struct CUtlVector {
@@ -298,13 +306,15 @@ struct CSpectatorGUI : Frame {
     bool m_bHelpShown = true;
     bool m_bInsetVisible = true;
     int invalidations = 0;
+    int controlScale = 1;
     ~CSpectatorGUI();
     void Activate();
+    void PerformLayout();
     void OnThink();
     void UpdatePlayerLabel(int player);
     void EnableInsetView(int) {}
     int GetProportionalScaledValue(int value) {
-        return value;
+        return value * controlScale;
     }
     Panel* FindChildByName(const char* name, bool) { return std::strcmp(name, "extrainfo") == 0 ? &extra : &timer; }
     bool CanSpectateTeam(int) { return true; }
@@ -326,6 +336,7 @@ for signature in ['void CBottomBar::PerformLayout()', 'void CBottomBar::ApplySch
 
 for signature in ['CSpectatorGUI::~CSpectatorGUI()',
                   'void CSpectatorGUI::Activate()',
+                  'void CSpectatorGUI::PerformLayout()',
                   'void CSpectatorGUI::OnThink()',
                   'void CSpectatorGUI::SetLabelText( const char* name, const char* text )',
                   'void CSpectatorGUI::SetLabelText( const char* name, wchar_t* text )',
@@ -483,7 +494,65 @@ void CheckSmokedTarget() {
     client.offline = false;
 }
 
+// Resource/control density must not determine the collapsed caption's screen-space Y.
+void CheckCollapsedCaptionAnchor() {
+    CSpectatorGUI gui;
+    cse::ui::glass = true;
+    gui.player.SetBounds(407, 588, 467, 35);
+    gui.topBar.SetBounds(220, 0, 1060, 64);
+    testSurface.width = 1280;
+    testSurface.height = 720;
+    gui.PerformLayout();
+    assert(gui.player.x == 0 && gui.player.y == 656);
+    assert(gui.player.GetWide() == 1280 && gui.player.GetTall() == 64);
+    // An active inset moves the top bar to its right; bottom caption layout must leave that anchor alone.
+    assert(gui.topBar.x == 220 && gui.topBar.y == 0);
+    assert(gui.topBar.GetWide() == 1060 && gui.topBar.GetTall() == 64);
+    assert(gui.bottomBarBlank.x == 0 && gui.bottomBarBlank.y == 656);
+    assert(gui.bottomBarBlank.GetWide() == 1280 && gui.bottomBarBlank.GetTall() == 64);
+    assert(gui.bottom.x == 0 && gui.bottom.y == 654);
+    assert(gui.bottom.GetWide() == 1280 && gui.bottom.GetTall() == 66);
+    assert(gui.bottom.y + gui.bottom.GetTall() == 720);
+    testSurface.width = 2560;
+    testSurface.height = 1440;
+    // Resolution changes first shrink the root to a bar in OnThink, then request layout.
+    gui.SetVisible(true);
+    client.offline = false;
+    gui.OnThink();
+    assert(gui.GetTall() == 64);
+    gui.PerformLayout();
+    assert(gui.GetWide() == 2560 && gui.GetTall() == 1440);
+    assert(gui.topBar.x == 220);
+    assert(gui.player.y == 1376 && gui.player.GetWide() == 2560);
+    assert(gui.bottomBarBlank.y == 1376 && gui.bottomBarBlank.GetWide() == 2560);
+    assert(gui.bottom.y == 1374 && gui.bottom.GetWide() == 2560);
+    assert(gui.bottom.y + gui.bottom.GetTall() == 1440);
+    // Density changes at one resolution must resize the bar while keeping its bottom edge fixed.
+    gui.controlScale = 2;
+    gui.bottom.minimumHeight = 132;
+    gui.PerformLayout();
+    assert(gui.player.y == 1312 && gui.player.GetTall() == 128);
+    assert(gui.bottomBarBlank.y == 1312 && gui.bottomBarBlank.GetTall() == 128);
+    assert(gui.bottom.y == 1308 && gui.bottom.GetTall() == 132);
+    assert(gui.bottom.y + gui.bottom.GetTall() == 1440);
+    cse::ui::glass = false;
+    gui.player.SetBounds(548, 1323, 1050, 78);
+    gui.bottomBarBlank.SetBounds(0, 1287, 2560, 156);
+    gui.PerformLayout();
+    assert(gui.player.x == 548 && gui.player.y == 1323 && gui.player.GetTall() == 78);
+    assert(gui.bottomBarBlank.y == 1287 && gui.bottomBarBlank.GetTall() == 156);
+    cse::ui::glass = true;
+    gui.controlScale = 1;
+    gui.bottom.minimumHeight = 66;
+    gui.PerformLayout();
+    assert(gui.player.x == 0 && gui.player.y == 1376 && gui.player.GetTall() == 64);
+    cse::ui::glass = false;
+    testSurface.width = 1280;
+    testSurface.height = 720;
+}
+
 int main() {
+    CheckCollapsedCaptionAnchor();
     CheckFirstOrdinaryRailLayout();
     CheckSmokedTarget();
     if (RED_CASE == 0) {

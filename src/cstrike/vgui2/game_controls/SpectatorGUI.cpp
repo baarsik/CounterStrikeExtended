@@ -648,11 +648,24 @@ bool CSpectatorGUI::CanSpectateTeam( int )
 //-----------------------------------------------------------------------------
 // Purpose: makes the GUI fill the screen
 //-----------------------------------------------------------------------------
-void CSpectatorGUI::PerformLayout()
-{
-	int wide, tall;
-	surface()->GetScreenSize( wide, tall );
-	SetBounds( 0, 0, wide, tall );
+void CSpectatorGUI::PerformLayout() {
+    int wide = 0;
+    int tall = 0;
+    surface()->GetScreenSize(wide, tall);
+    SetBounds(0, 0, wide, tall);
+    if (!cse::ui::ControlsSmokedGlass()) {
+        return;
+    }
+
+    // Control density scales the rail's height; its position must follow the screen's bottom edge.
+    constexpr int SpectatorBarResourceHeight = 64;
+    const int barHeight = GetProportionalScaledValue(SpectatorBarResourceHeight);
+    const int barTop = tall - barHeight;
+    m_pBottomBar->SetBounds(0, barTop, wide, barHeight);
+    // Frame minimum sizes can make the expanded rail taller than the collapsed caption band.
+    m_pBottomBar->SetPos(0, tall - m_pBottomBar->GetTall());
+    m_pBottomBarBlank->SetBounds(0, barTop, wide, barHeight);
+    m_pPlayerLabel->SetBounds(0, barTop, wide, barHeight);
 }
 
 //-----------------------------------------------------------------------------

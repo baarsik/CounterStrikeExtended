@@ -6,6 +6,7 @@
 //=============================================================================
 
 #include "extended_stats.h"
+#include "smoked_game_layout.h"
 #include "hud.h"
 #include "cl_util.h"
 #include "cstrikeclientscoreboard.h"
@@ -33,6 +34,10 @@
 #include <wchar.h>
 #include <wctype.h>
 #include <math.h>
+
+namespace {
+constexpr int ScoreboardFontHeight = 16;
+}
 
 extern engine_studio_api_t IEngineStudio;
 
@@ -128,13 +133,49 @@ int CCSClientScoreBoardDialog::GetHeaderWidthNoScale( int maximum, int minimum )
 	return maximum < minimum ? minimum : maximum;
 }
 
+int CCSClientScoreBoardDialog::ScaleColumnWidth(int width) {
+    return cse::ui::ControlsSmokedGlass() ? vgui2::smoked::Pixels(width) :
+        vgui2::scheme()->GetProportionalScaledValue(width);
+}
+
 int CCSClientScoreBoardDialog::GetHeaderWidth( int maximum, int minimum )
 {
-	return vgui2::scheme()->GetProportionalScaledValue( GetHeaderWidthNoScale( maximum, minimum ) );
+	if (cse::ui::ControlsSmokedGlass()) {
+        // Leave room for localized headers at the shared body font size.
+        constexpr float HeaderWidthScale = 1.25f;
+        const wchar_t* header = maximum == CSTRIKE_SCORE_WIDTH ? GetScoreHeader() :
+            maximum == CSTRIKE_DEATH_WIDTH ? GetDeathHeader() : maximum == CSTRIKE_PING_WIDTH ? GetPingHeader() :
+            maximum == CSTRIKE_HEALTH_WIDTH ? GetHealthHeader() : GetMoneyHeader();
+        vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme(GetScheme());
+        const vgui2::HFont font = vgui2::smoked::TextFont(this, scheme,
+            scheme->GetFont("DefaultVerySmallFallBack", false), true, vgui2::smoked::Pixels(ScoreboardFontHeight));
+        int textWidth = 0;
+        int textHeight = 0;
+        if (header) {
+            vgui2::surface()->GetTextSize(font, header, textWidth, textHeight);
+        }
+        constexpr int HeaderPadding = 16;
+        return (std::max)(vgui2::smoked::Pixels(GetHeaderWidthNoScale(maximum, minimum) * HeaderWidthScale),
+            textWidth + vgui2::smoked::Pixels(HeaderPadding));
+    }
+    return vgui2::scheme()->GetProportionalScaledValue( GetHeaderWidthNoScale( maximum, minimum ) );
 }
 
 int CCSClientScoreBoardDialog::GetNameHeaderWidth()
 {
+    if (cse::ui::ControlsSmokedGlass()) {
+        constexpr int TableGutter = 24; // Item origin, trailing inset and a visible scrollbar.
+        int occupied = m_nAvatarColumnWidth + CSTRIKE_SPACER1_WIDTH +
+            vgui2::smoked::Pixels(CSTRIKE_CLASS_WIDTH) + GetHeaderWidth(CSTRIKE_SCORE_WIDTH, 0) +
+            GetHeaderWidth(CSTRIKE_DEATH_WIDTH, 0) + GetHeaderWidth(CSTRIKE_PING_WIDTH, 0);
+        if (m_bHealthColumnEnabled) {
+            occupied += GetHeaderWidth(CSTRIKE_HEALTH_WIDTH, 0);
+        }
+        if (m_bMoneyColumnEnabled) {
+            occupied += GetHeaderWidth(CSTRIKE_ACCOUNT_WIDTH, CSTRIKE_ACCOUNT_WIDTH);
+        }
+        return (std::max)(0, m_pPlayerList->GetWide() - occupied - TableGutter);
+    }
 	int width = m_bShortHeaders ? 239 : CSTRIKE_NAME_WIDTH;
 	if ( !m_bHealthColumnEnabled )
 		width = m_bShortHeaders ? 274 : 250;
@@ -151,6 +192,10 @@ int CCSClientScoreBoardDialog::GetAvatarHeightForScreenHeight( int height )
 		vgui2::surface()->GetScreenSize( width, height );
 	}
 
+    if (cse::ui::ControlsSmokedGlass()) {
+        constexpr int AvatarHeight = 22;
+        return vgui2::smoked::Pixels(AvatarHeight);
+    }
 	int avatarHeight = CSTRIKE_AVATAR_HEIGHT;
 	if ( height < 600 )
 		avatarHeight = 21;
@@ -223,11 +268,13 @@ void CCSClientScoreBoardDialog::AddHeader()
 {
 	m_pPlayerList->AddSection( 0, "", NULL );
 	m_pPlayerList->SetSectionAlwaysVisible( 0, true );
-	vgui2::HFont font = vgui2::scheme()->GetIScheme( GetScheme() )->GetFont( "DefaultVerySmallFallBack", false );
+    vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme(GetScheme());
+    vgui2::HFont font = vgui2::smoked::TextFont(this, scheme,
+        scheme->GetFont("DefaultVerySmallFallBack", false), true, vgui2::smoked::Pixels(ScoreboardFontHeight));
 	m_pPlayerList->AddColumnToSection( 0, "avatar", "", 0, m_nAvatarColumnWidth );
 	m_pPlayerList->AddColumnToSection( 0, "name", "", 0, GetNameHeaderWidth(), font );
 	m_pPlayerList->AddColumnToSection( 0, "spacer1", "", 0, CSTRIKE_SPACER1_WIDTH );
-	m_pPlayerList->AddColumnToSection( 0, "class", "", 0, vgui2::scheme()->GetProportionalScaledValue( CSTRIKE_CLASS_WIDTH ) );
+    m_pPlayerList->AddColumnToSection(0, "class", "", 0, ScaleColumnWidth(CSTRIKE_CLASS_WIDTH));
 	m_pPlayerList->AddColumnToSection( 0, "health", "", vgui2::SectionedListPanel::COLUMN_RIGHT, 0 );
 	m_pPlayerList->AddColumnToSection( 0, "account", "", vgui2::SectionedListPanel::COLUMN_RIGHT, 0 );
 	m_pPlayerList->AddColumnToSection( 0, "frags", GetScoreHeader(), vgui2::SectionedListPanel::COLUMN_RIGHT, GetHeaderWidth( CSTRIKE_SCORE_WIDTH, 0 ) );
@@ -239,7 +286,9 @@ void CCSClientScoreBoardDialog::AddHeader()
 
 void CCSClientScoreBoardDialog::AddSection( int teamType, int teamNumber )
 {
-	vgui2::HFont font = vgui2::scheme()->GetIScheme( GetScheme() )->GetFont( "DefaultVerySmallFallBack", false );
+    vgui2::IScheme* scheme = vgui2::scheme()->GetIScheme(GetScheme());
+    vgui2::HFont font = vgui2::smoked::TextFont(this, scheme,
+        scheme->GetFont("DefaultVerySmallFallBack", false), true, vgui2::smoked::Pixels(ScoreboardFontHeight));
 	int nameWidth = GetNameHeaderWidth();
 	switch ( teamType )
 	{
@@ -250,7 +299,7 @@ void CCSClientScoreBoardDialog::AddSection( int teamType, int teamNumber )
 			m_pPlayerList->AddColumnToSection( section, "avatar", "", vgui2::SectionedListPanel::COLUMN_IMAGE, m_nAvatarColumnWidth );
 			m_pPlayerList->AddColumnToSection( section, "name", "", 0, nameWidth, font );
 			m_pPlayerList->AddColumnToSection( section, "spacer1", "", 0, CSTRIKE_SPACER1_WIDTH );
-			m_pPlayerList->AddColumnToSection( section, "class", "", 0, vgui2::scheme()->GetProportionalScaledValue( CSTRIKE_CLASS_WIDTH ) );
+            m_pPlayerList->AddColumnToSection(section, "class", "", 0, ScaleColumnWidth(CSTRIKE_CLASS_WIDTH));
 			m_pPlayerList->AddColumnToSection( section, "health", "", vgui2::SectionedListPanel::COLUMN_RIGHT, 0 );
 			m_pPlayerList->AddColumnToSection( section, "account", "", vgui2::SectionedListPanel::COLUMN_RIGHT, 0 );
 			m_pPlayerList->AddColumnToSection( section, "frags", "", vgui2::SectionedListPanel::COLUMN_RIGHT, GetHeaderWidth( CSTRIKE_SCORE_WIDTH, 0 ) );
@@ -271,13 +320,17 @@ void CCSClientScoreBoardDialog::AddSection( int teamType, int teamNumber )
 		if ( teamNumber == 4 )
 		{
 			m_pPlayerList->AddSection( 4, "", NULL );
-			m_pPlayerList->AddColumnToSection( 4, "score", "", 0, vgui2::scheme()->GetProportionalScaledValue( 400 ) );
+            constexpr int CareerScoreWidth = 400;
+            m_pPlayerList->AddColumnToSection(4, "score", "", 0, ScaleColumnWidth(CareerScoreWidth));
 		}
 		else
 		{
 			m_pPlayerList->AddSection( 5, "", NULL );
-			m_pPlayerList->AddColumnToSection( 5, "name", "#Career_TasksColon", 0, vgui2::scheme()->GetProportionalScaledValue( 336 ) );
-			m_pPlayerList->AddColumnToSection( 5, "status", "#Career_Task_PartialTitle", 0, vgui2::scheme()->GetProportionalScaledValue( 72 ) );
+            constexpr int CareerTaskWidth = 336;
+            constexpr int CareerStatusWidth = 72;
+            m_pPlayerList->AddColumnToSection(5, "name", "#Career_TasksColon", 0, ScaleColumnWidth(CareerTaskWidth));
+            m_pPlayerList->AddColumnToSection(5, "status", "#Career_Task_PartialTitle", 0,
+                ScaleColumnWidth(CareerStatusWidth));
 		}
 		break;
 	}
@@ -557,6 +610,9 @@ void CCSClientScoreBoardDialog::Update( const char* servername, bool teamplay, b
 		cornerSize = 0;
 		CClientScoreBoardDialog::Update( servername, teamplay, spectator );
 	}
+    if (cse::ui::ControlsSmokedGlass()) {
+        PerformLayout();
+    }
 	bool hardware = IEngineStudio.IsHardware && IEngineStudio.IsHardware() != 0;
 	m_pTopLeftPanel->SetVisible( hardware );
 	m_pTopRightPanel->SetVisible( hardware );
@@ -700,7 +756,20 @@ void CCSClientScoreBoardDialog::PaintBackground()
 
 void CCSClientScoreBoardDialog::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
+    const bool restoreColumns = cse::ui::ControlsStyleChanged(this) && !cse::ui::ControlsSmokedGlass();
 	CClientScoreBoardDialog::ApplySchemeSettings( scheme );
+    if (restoreColumns && m_pShortHeaders) {
+        const auto geometry = cse::ui::ControlsResourceGeometry().find(this);
+        if (geometry != cse::ui::ControlsResourceGeometry().end() && geometry->second.hasHeight) {
+            m_iDesiredHeight = GetProportionalScaledValue(geometry->second.height);
+        }
+        SetMouseInputEnabled(gViewPortInterface->IsSpectatorGUIVisible());
+        cse::gameui::MouseInput(m_pPlayerList, false);
+        UpdateHeaders(true);
+        UpdateColumnInAllSections("class", nullptr,
+            vgui2::scheme()->GetProportionalScaledValue(CSTRIKE_CLASS_WIDTH), false);
+        UpdateColumnInAllSections("name", nullptr, GetNameHeaderWidth(), true);
+    }
 	m_careerBgColor = GetSchemeColor( "BuddyListBgColor", GetBgColor(), scheme );
 	m_borderColor = scheme->GetColor( "BorderBright", Color( 0, 0, 0, 0 ) );
 	m_pPlayerList->SetBgColor( Color( 0, 0, 0, 0 ) );
@@ -738,7 +807,12 @@ void CCSClientScoreBoardDialog::UpdatePlayerInfo()
 			++playersToShow;
 	}
 	m_iPlayersToShow = playersToShow;
-	m_pPlayerList->OverrideLineSpacing( playersToShow > 23 ? 11 : playersToShow <= 17 ? 21 : 15 );
+	if (cse::ui::ControlsSmokedGlass()) {
+        constexpr int ReadableRowHeight = 26;
+        m_pPlayerList->OverrideLineSpacing(vgui2::smoked::Pixels(ReadableRowHeight));
+    } else {
+        m_pPlayerList->OverrideLineSpacing(playersToShow > 23 ? 11 : playersToShow <= 17 ? 21 : 15);
+    }
 	UpdateOptionalColumns();
 	UpdateHeaders();
 	int selectedItem = -1;
@@ -775,6 +849,11 @@ void CCSClientScoreBoardDialog::UpdatePlayerInfo()
 				m_pPlayerList->RemoveItem( item );
 		}
 	}
+    if (cse::ui::ControlsSmokedGlass()) {
+        // Population can discover the first health/money stats. Allocate their columns before painting those rows.
+        UpdateOptionalColumns();
+    }
+
 	if ( selectedItem != -1 )
 		m_pPlayerList->SetSelectedItem( selectedItem );
 	if ( !g_pCareerUI || !g_pCareerUI->IsPlayingMatch() )
@@ -930,4 +1009,50 @@ void CCSClientScoreBoardDialog::RefreshLanguage() {
     UpdateTeamInfo();
     UpdatePlayerInfo();
     InvalidateLayout(false, false);
+}
+
+void CCSClientScoreBoardDialog::OnSizeChanged(int width, int height) {
+    if (cse::ui::ControlsSmokedGlass()) {
+        // This owner sizes the table. Legacy pinning would resize it through intermediate
+        // heights in the base Update and reset its scroll position on every score update.
+        vgui2::Panel::OnSizeChanged(width, height);
+        return;
+    }
+    CClientScoreBoardDialog::OnSizeChanged(width, height);
+}
+
+void CCSClientScoreBoardDialog::PerformLayout() {
+    CClientScoreBoardDialog::PerformLayout();
+    if (!cse::ui::ControlsSmokedGlass()) {
+        m_pPlayerList->SetVerticalScrollbar(false);
+        return;
+    }
+    constexpr int ScoreboardWidth = 1024;
+    constexpr int MinimumHeight = 400;
+    const int inset = vgui2::smoked::Pixels(cse::ui::WindowInset);
+    const int header = vgui2::smoked::Pixels(cse::ui::WindowHeaderHeight);
+    int contentWidth = 0;
+    int contentHeight = 0;
+    m_pPlayerList->GetContentSize(contentWidth, contentHeight);
+    int screenWidth = 0;
+    int screenHeight = 0;
+    vgui2::surface()->GetScreenSize(screenWidth, screenHeight);
+    const int width = (std::min)(vgui2::smoked::Pixels(ScoreboardWidth), screenWidth - inset * 2);
+    const int height = (std::min)(screenHeight - inset * 2,
+        (std::max)(vgui2::smoked::Pixels(MinimumHeight), contentHeight + header + inset));
+    SetBounds((screenWidth - width) / 2, (screenHeight - height) / 2, width, height);
+    m_pPlayerList->SetBounds(inset, header, GetWide() - inset * 2, height - header - inset);
+    m_pPlayerList->SetVerticalScrollbar(true);
+    cse::gameui::Title(FindChildByName("ServerName", false), GetWide());
+    // VGUI can lay out this frame during signon, before Reset registers the scoreboard cvars.
+    if (!m_pShortHeaders) {
+        return;
+    }
+    UpdateHeaders(true);
+    const bool mouseInput = IsVisible() && (gViewPortInterface->IsSpectatorGUIVisible() ||
+        contentHeight > m_pPlayerList->GetTall());
+    SetMouseInputEnabled(mouseInput);
+    cse::gameui::MouseInput(m_pPlayerList, mouseInput);
+    UpdateColumnInAllSections("class", nullptr, vgui2::smoked::Pixels(CSTRIKE_CLASS_WIDTH), false);
+    UpdateColumnInAllSections("name", nullptr, GetNameHeaderWidth(), true);
 }

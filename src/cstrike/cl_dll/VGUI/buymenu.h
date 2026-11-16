@@ -35,6 +35,11 @@ public:
 	bool IsFormattedForCareer() { return m_isCareer; }
 	void Activate() override;
 
+protected:
+    void GetClientArea(int& x, int& y, int& width, int& height) override;
+    void PerformLayout() override;
+    void PaintBackground() override;
+
 private:
 	bool m_isCareer;
 	CBuySubMenu* _mainMenu;
@@ -45,6 +50,7 @@ private:
 	int m_lastMoney;
 };
 
-void FitToFullScreen( vgui2::EditablePanel* panel );
+void FitToFullScreen(vgui2::EditablePanel* panel);
+void FitToFullScreen(vgui2::EditablePanel* panel, bool restoreResources);
 
 #endif

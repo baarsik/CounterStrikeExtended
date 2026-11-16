@@ -25,6 +25,8 @@ public:
 	~CCSClientScoreBoardDialog() override;
 
 protected:
+    void OnSizeChanged(int width, int height) override;
+    void PerformLayout() override;
 	void InitScoreboardSections() override;
 	void DeathMsg( int killer, int victim ) override;
 	void UpdateTeamInfo() override;
@@ -48,6 +50,7 @@ private:
 	const wchar_t* GetScoreHeader();
 	const wchar_t* GetDeathHeader();
 	const wchar_t* GetPingHeader();
+    int ScaleColumnWidth(int width);
 	int GetHeaderWidth( int maximum, int minimum );
 	int GetHeaderWidthNoScale( int maximum, int minimum );
 	int GetNameHeaderWidth();

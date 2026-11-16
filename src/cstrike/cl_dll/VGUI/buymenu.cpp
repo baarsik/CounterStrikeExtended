@@ -5,6 +5,7 @@
 // $NoKeywords: $
 //=============================================================================
 
+#include "smoked_game_layout.h"
 #include "hud.h"
 #include "buy_presets.h"
 #include "buymenu.h"
@@ -71,13 +72,13 @@ CBuyMenu::CBuyMenu( vgui2::Panel* parent ) : vgui2::WizardPanel( parent, "BuyMen
 		m_pMainBackground = NULL;
 	}
 	m_lastMoney = -1;
-	_mainMenu->LoadControlSettings( "Resource/UI/MainBuyMenu.res", NULL );
+	_mainMenu->LoadControlSettings("Resource/UI/MainBuyMenu.res", nullptr);
 	_mainMenu->SetVisible( false );
 	_equipMenu = new CBuySubMenu( this, "equipmenu" );
 	if ( g_iTeamNumber == 1 )
-		_equipMenu->LoadControlSettings( "Resource/UI/BuyEquipment_TER.res", NULL );
+		_equipMenu->LoadControlSettings("Resource/UI/BuyEquipment_TER.res", nullptr);
 	else
-		_equipMenu->LoadControlSettings( "Resource/UI/BuyEquipment_CT.res", NULL );
+		_equipMenu->LoadControlSettings("Resource/UI/BuyEquipment_CT.res", nullptr);
 	_equipMenu->SetVisible( false );
 	LoadControlSettings( "Resource/UI/BuyMenu.res", NULL );
 	ShowButtons( false );
@@ -182,7 +183,16 @@ void CBuyMenu::OnClose()
 
 void CBuyMenu::ApplySchemeSettings( vgui2::IScheme* scheme )
 {
-	vgui2::WizardPanel::ApplySchemeSettings( scheme );
+    const bool restoreFullscreen = cse::ui::ControlsStyleChanged(this) && !cse::ui::ControlsSmokedGlass();
+    vgui2::WizardPanel::ApplySchemeSettings(scheme);
+    if (restoreFullscreen) {
+        FitToFullScreen(this, true);
+        for (int index = 0; index < GetChildCount(); ++index) {
+            if (auto* page = dynamic_cast<CBuySubMenu*>(GetChild(index))) {
+                page->RestoreOriginalLayout();
+            }
+        }
+    }
 	if ( m_pMainBackground )
 	{
 		m_pMainBackground->SetBorder( scheme->GetBorder( "ButtonDepressedBorder" ) );
@@ -213,9 +223,13 @@ void CBuyMenu::Activate()
 	FitToFullScreen( this );
 }
 
-void FitToFullScreen( vgui2::EditablePanel* panel )
+void FitToFullScreen(vgui2::EditablePanel* panel) {
+    FitToFullScreen(panel, false);
+}
+
+void FitToFullScreen(vgui2::EditablePanel* panel, bool restoreResources)
 {
-	if ( !panel || !panel->IsProportional() )
+	if ( !panel || !panel->IsProportional() || cse::ui::ControlsSmokedGlass() )
 	{
 		return;
 	}
@@ -223,11 +237,15 @@ void FitToFullScreen( vgui2::EditablePanel* panel )
 	int screenWide, screenTall, wide, tall;
 	vgui2::surface()->GetScreenSize( screenWide, screenTall );
 	panel->GetSize( wide, tall );
-	if ( wide == screenWide && tall == screenTall )
+	if (wide == screenWide && tall == screenTall && !restoreResources)
 	{
 		return;
 	}
 	panel->SetSize( screenWide, screenTall );
+    if (restoreResources) {
+        // Flush bottom/right pin deltas from the glass size before restoring resource coordinates.
+        panel->InvalidateLayout(true, false);
+    }
 	wide = GetAlternateProportionalValueFromScaled( vgui2::scheme()->GetProportionalScaledValue( 640 ) );
 	tall = GetAlternateProportionalValueFromScaled( vgui2::scheme()->GetProportionalScaledValue( 480 ) );
 	int offsetX = ( screenWide - wide ) / 2;
@@ -267,6 +285,9 @@ void FitToFullScreen( vgui2::EditablePanel* panel )
 				resizedPanels.AddToTail( child );
 				if ( child != panel )
 				{
+                    if (restoreResources) {
+                        vgui2::smoked::RefreshResourceBounds(child);
+                    }
 					RepositionControl( child );
 				}
 			}
@@ -302,4 +323,34 @@ void CBuyMenu::RefreshLanguage() {
     UpdateBuyPresets(true);
     InvalidateLayout(false, false);
     Repaint();
+}
+
+void CBuyMenu::GetClientArea(int& x, int& y, int& width, int& height) {
+    // The legacy Frame implementation leaves y untouched when its title bar is hidden.
+    // WizardPanel uses that value to position the page, so provide the intended zero origin.
+    y = 0;
+    vgui2::WizardPanel::GetClientArea(x, y, width, height);
+}
+
+void CBuyMenu::PerformLayout() {
+    if (cse::ui::ControlsSmokedGlass()) {
+        constexpr int MenuWidth = 960;
+        constexpr int MenuHeight = 568;
+        cse::gameui::Center(this, MenuWidth, MenuHeight);
+    }
+    vgui2::WizardPanel::PerformLayout();
+    if (cse::ui::ControlsSmokedGlass()) {
+        if (auto* page = GetCurrentSubPanel()) {
+            page->SetBounds(0, 0, GetWide(), GetTall());
+            page->InvalidateLayout(false, false);
+        }
+    }
+}
+
+void CBuyMenu::PaintBackground() {
+    if (cse::ui::ControlsSmokedGlass()) {
+        vgui2::smoked::Surface(this);
+        return;
+    }
+    vgui2::WizardPanel::PaintBackground();
 }
