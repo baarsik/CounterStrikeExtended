@@ -114,7 +114,7 @@ CseRadarResult RadarRendererGpu::BuildMapImage(const CseRadarMapImageBuild& buil
     if (build.size < sizeof(build) || build.tone > CSE_RADAR_TONE_TEXTURED || !build.passCount || !build.passes ||
         (build.vertexCount && !build.vertices) || (build.indexCount && !build.indices) ||
         (build.drawCount && !build.draws) || build.vertexCount > kMaximumVertexBytes / sizeof(CseRadarMapVertex) ||
-        build.indexCount > kMaximumVertexBytes / sizeof(CseRadarPrimitiveVertex) ||
+        build.indexCount > kMaximumVertexBytes / sizeof(*build.indices) ||
         build.drawCount > kMaximumVertexBytes / sizeof(CseRadarMapDraw) ||
         build.passCount > kMaximumVertexBytes / sizeof(CseRadarMapPass)) {
         return CSE_RADAR_INVALID_ARGUMENT;
@@ -137,7 +137,9 @@ CseRadarResult RadarRendererGpu::BuildMapImage(const CseRadarMapImageBuild& buil
     std::vector<std::array<Impl::Texture*, 2>> materials;
     for (unsigned index = 0; index < build.drawCount; ++index) {
         const auto& draw = build.draws[index];
-        if (draw.reserved || draw.textureFlags > 3 || draw.textureFlags == CSE_RADAR_MAP_USE_LIGHTMAP ||
+        // Expansion is scoped to this draw, not to the aggregate uint32 index input for all map passes.
+        if (draw.indexCount > kMaximumVertexBytes / sizeof(CseRadarPrimitiveVertex) ||
+            draw.reserved || draw.textureFlags > 3 || draw.textureFlags == CSE_RADAR_MAP_USE_LIGHTMAP ||
             draw.indexCount % 3 || draw.firstIndex > build.indexCount || draw.indexCount > build.indexCount - draw.firstIndex) {
             return CSE_RADAR_INVALID_ARGUMENT;
         }

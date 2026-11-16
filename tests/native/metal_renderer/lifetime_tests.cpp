@@ -110,6 +110,44 @@ void Clear(MetalSession& session) {
     Check(session.Render(frame, error), "initialize effect target");
 }
 
+template<typename T> struct CountingAllocator {
+    using value_type = T;
+    std::size_t* liveBlocks;
+
+    explicit CountingAllocator(std::size_t& count) : liveBlocks(&count) {}
+
+    template<typename U> CountingAllocator(const CountingAllocator<U>& other) : liveBlocks(other.liveBlocks) {}
+
+    T* allocate(std::size_t count) {
+        auto* block = std::allocator<T>{}.allocate(count);
+        ++*liveBlocks;
+        return block;
+    }
+
+    void deallocate(T* block, std::size_t count) {
+        --*liveBlocks;
+        std::allocator<T>{}.deallocate(block, count);
+    }
+};
+
+void RadarRecords() {
+    // allocate_shared's counted block survives object destruction while any registry weak reference remains.
+    // This measures stale registry metadata without adding a test-only production accessor.
+    std::size_t liveBlocks = 0;
+    MetalSession session;
+    RadarRendererGpu effects(session, 1);
+    for (unsigned cycle = 0; cycle < 96; ++cycle) {
+        auto object = std::allocate_shared<TextureObject>(CountingAllocator<TextureObject>(liveBlocks));
+        object->generation = cycle + 1;
+        const auto handle = effects.RegisterTexture(cycle + 1, RadarRendererGpu::TextureRole::World, object, nullptr);
+        Check(handle.serial != 0 && liveBlocks == 1, "one live borrowed registry control block");
+        object.reset();
+        effects.BeginSmokedFrame();
+        Check(liveBlocks == 0, "frame sweep erases stale registry metadata without querying abandoned handles");
+    }
+    std::cout << "radar records: 96 abandoned borrowed identities; weak control blocks=0 after every sweep\n";
+}
+
 void Names() {
     TextureStore store;
     LegacyState state;
@@ -130,13 +168,15 @@ void Names() {
         "simultaneous exhaustion explicit and output preserved");
     store.Delete(state, {names[100]});
     Check(store.Generate(1, sentinel) == Status::Ok && sentinel[0] == names[100], "single released name reusable");
-    std::cout << "names: " << kTurnovers << " turnovers; " << names.size() << " simultaneous names; explicit exhaustion\n";
+    std::cout << "names: " << kTurnovers << " turnovers; " << names.size()
+        << " simultaneous names; explicit exhaustion\n";
 }
 
 void Session() {
     Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL");
     MetalSession session;
-    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error), "Metal session");
+    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session");
     // Three NPOT source versions fit; an accumulating cache fails before its unrelated GPU byte limit.
     constexpr int kWidth = 13;
     constexpr int kHeight = 7;
@@ -171,7 +211,8 @@ void Session() {
 void QueuedReuse() {
     Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL");
     MetalSession session;
-    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error), "Metal session");
+    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session");
     {
         TextureStore store(64);
         LegacyState state;
@@ -219,7 +260,8 @@ void QueuedReuse() {
         Check(store.StorageBytes() == 0, "both caches release sources once queued packets retire");
         effects.BeginSmokedFrame();
         Clear(session);
-        std::cout << "queued reuse: same name, distinct generations/handles, red old pixels and green new pixels; source=0\n";
+        std::cout << "queued reuse: same name, distinct generations/handles, red old pixels and green new pixels; "
+            << "source=0\n";
     }
     session.Shutdown();
     Check(liveGpuTextures == 0, "queued reuse releases all GPU owners");
@@ -229,7 +271,8 @@ void QueuedReuse() {
 void Radar() {
     Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL");
     MetalSession session;
-    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error), "Metal session");
+    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session");
     {
         TextureStore store(64);
         LegacyState state;
@@ -298,6 +341,8 @@ int main(int argc, char** argv) {
         Radar();
     } else if (mode == "queued-reuse") {
         QueuedReuse();
+    } else if (mode == "radar-records") {
+        RadarRecords();
     } else {
         Check(false, "known lifetime fixture");
     }

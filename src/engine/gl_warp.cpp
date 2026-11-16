@@ -14,6 +14,7 @@
 #include "zone.h"
 #include "ivideomode.h"
 #include "engine_image.h"
+#include "render/backend.h"
 
 #include <climits>
 #include <cmath>
@@ -451,6 +452,14 @@ R_LoadSkys
 static const char* suf[6] = { "rt", "bk", "lf", "ft", "up", "dn" };
 
 int gSkyTexNumber[6];
+#if defined(CSE_ENABLE_METAL)
+constexpr int kNoSkyPalette = -1;
+static int skyPaletteIndices[sizeof(gSkyTexNumber) / sizeof(gSkyTexNumber[0])] = {
+    kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette
+};
+extern int g_currentpalette;
+void GL_PaletteSelect(int paletteIndex);
+#endif
 
 void R_LoadSkys() {
     constexpr int SkyFaceDimension = 256;
@@ -473,13 +482,23 @@ void R_LoadSkys() {
 				qglDeleteTextures( 1, (const GLuint*)&gSkyTexNumber[i] );
 				gSkyTexNumber[i] = 0;
 			}
+#if defined(CSE_ENABLE_METAL)
+            skyPaletteIndices[i] = kNoSkyPalette;
+#endif
 		}
 		return;
 	}
 
 	skipBMP = !qglColorTableEXT || !gl_palette_tex.value;
-	if ( !skipBMP )
-		GL_PaletteClearSky();
+    if (!skipBMP) {
+        GL_PaletteClearSky();
+#if defined(CSE_ENABLE_METAL)
+        // Reused sky palette slots contain new colors; their numeric index is not a cache identity.
+        if (cse::render::UsingMetal()) {
+            g_currentpalette = kNoSkyPalette;
+        }
+#endif
+    }
 
 	printed = FALSE;
 	buffer = (byte*)Mem_Malloc( SkyFaceBytes );
@@ -487,6 +506,9 @@ void R_LoadSkys() {
 	for ( i = 0; i < 6; i++ )
 	{
         paletted = FALSE;
+#if defined(CSE_ENABLE_METAL)
+        skyPaletteIndices[i] = kNoSkyPalette;
+#endif
         snprintf(name, sizeof(name), "gfx/env/%s%s.webp", movevars.skyName, suf[i]);
         const qboolean webpLoaded = LoadTGA2(name, buffer, SkyFaceBytes, &width, &height, FALSE)
             && width == SkyFaceDimension && height == SkyFaceDimension;
@@ -499,15 +521,19 @@ void R_LoadSkys() {
 				LoadBMP8( file, &palette, &paletteCount, &image, &width, &height );
 				if ( width * height > 0 )
 				{
-					if ( GL_PaletteAdd( palette, TRUE ) >= 0 )
-					{
-						if ( !gSkyTexNumber[i] )
-							gSkyTexNumber[i] = GL_GenTexture();
-						GL_Bind( gSkyTexNumber[i] );
-						qglTexImage2D( GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, 256, 256, 0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE,
-							image );
-						paletted = TRUE;
-					}
+                    const short paletteIndex = GL_PaletteAdd(palette, TRUE);
+                    if (paletteIndex >= 0) {
+                        if (!gSkyTexNumber[i]) {
+                            gSkyTexNumber[i] = GL_GenTexture();
+                        }
+                        GL_Bind(gSkyTexNumber[i]);
+                        qglTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, SkyFaceDimension, SkyFaceDimension,
+                            0, GL_COLOR_INDEX, GL_UNSIGNED_BYTE, image);
+                        paletted = TRUE;
+#if defined(CSE_ENABLE_METAL)
+                        skyPaletteIndices[i] = paletteIndex;
+#endif
+                    }
 
 					Mem_Free( image );
 					Mem_Free( palette );
@@ -821,7 +847,14 @@ void R_DrawSkyBox()
 		if ( DotProduct( normal, vpn ) < MIN_FACE_VIEW_DOT )
 			continue;
 
-		GL_Bind( gSkyTexNumber[skytexorder[i]] );
+        const int face = skytexorder[i];
+        GL_Bind(gSkyTexNumber[face]);
+#if defined(CSE_ENABLE_METAL)
+        // Raw sky names remain valid for upload/deletion; the palette belongs to this BMP face.
+        if (cse::render::UsingMetal() && skyPaletteIndices[face] != kNoSkyPalette) {
+            GL_PaletteSelect(skyPaletteIndices[face]);
+        }
+#endif
 
 		qglColor3f( r, g, b );
 

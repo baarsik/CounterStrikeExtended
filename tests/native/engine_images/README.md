@@ -35,3 +35,9 @@ fixed-size filtering read under AddressSanitizer.
 Software color checks exercise every 16-bit packed value in both RGB555 and
 RGB565 modes, including red/high-bit pixels through actual WebP sky filtering.
 Run with `UBSAN_OPTIONS=halt_on_error=1` to make sanitizer reports fail immediately.
+
+The runner also compiles a Metal-enabled hardware fixture. It executes the actual
+`R_LoadSkys` and `R_DrawSkyBox` owners with controlled BMP palettes to cover first-map
+palette selection, per-face colors, reused palette slots after reload, RGBA replacement,
+and palette-allocation failure. The ordinary hardware/OpenGL and software fixtures
+remain separate. All three variants run under ASan/UBSan.

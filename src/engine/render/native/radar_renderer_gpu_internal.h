@@ -115,7 +115,9 @@ struct RadarRendererGpu::Impl {
         bool owned = false;
         std::uint32_t identity = 0;
         TextureRole role = TextureRole::World;
+        // Engine-owned snapshots must not remain charged to TextureStore after map retirement.
         std::weak_ptr<const TextureObject> object;
+        // Logical identity outlives an individual immutable source version.
         std::uint64_t generation = 0;
         std::shared_ptr<const SharedPalette> palette;
         SDL_GPUTexture* gpu = nullptr;

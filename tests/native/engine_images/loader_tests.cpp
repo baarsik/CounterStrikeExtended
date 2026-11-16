@@ -177,9 +177,32 @@ static std::vector<byte> mapPixels;
 void* Mem_Malloc(int size) { return std::malloc(size); }
 void Mem_Free(void* pointer) { std::free(pointer); }
 void qglDeleteTextures(int, const GLuint*) {}
-void GL_PaletteClearSky() {}
-short GL_PaletteAdd(byte*, qboolean) {
-    return skyPaletteAddResult;
+namespace cse {
+namespace render {
+static bool nativeSky = false;
+bool UsingMetal() {
+    return nativeSky;
+}
+}
+}
+static int g_currentpalette = -1;
+static std::vector<byte> skyPaletteColors;
+static int selectedSkyColor = -1;
+void GL_PaletteClearSky() {
+    skyPaletteColors.clear();
+}
+short GL_PaletteAdd(byte* palette, qboolean) {
+    if (skyPaletteAddResult < 0) {
+        return skyPaletteAddResult;
+    }
+    skyPaletteColors.push_back(palette[0]);
+    return static_cast<short>(skyPaletteColors.size() - 1);
+}
+void GL_PaletteSelect(int palette) {
+    if (palette != g_currentpalette) {
+        g_currentpalette = palette;
+        selectedSkyColor = skyPaletteColors.at(static_cast<std::size_t>(palette));
+    }
 }
 int GL_GenTexture() { return 1; }
 void GL_Bind(int) {}
@@ -197,6 +220,7 @@ void LoadBMP8(FileHandle_t file, byte** palette, int* count, byte** indexed, int
     constexpr int PaletteBytes = 256 * 3;
     ++skyBmpLoadCount;
     *palette = static_cast<byte*>(std::calloc(PaletteBytes, 1));
+    (*palette)[0] = file->front();
     *indexed = static_cast<byte*>(std::malloc(TestSkyFacePixels));
     std::memset(*indexed, file->front(), TestSkyFacePixels);
     *count = 1;
@@ -217,6 +241,36 @@ static void Q_strlwr(char* path) {
     }
 }
 #include "sky.inc"
+#define GL_FOG 11
+#define GL_TRUE 1
+#define GL_QUADS 12
+using vec3_t = float[3];
+static int filterMode = 0;
+static float filterColorRed = 1;
+static float filterColorGreen = 1;
+static float filterColorBlue = 1;
+static float filterBrightness = 1;
+static bool g_bFogSkybox = true;
+static float skymins[2][6]{};
+static float skymaxs[2][6]{};
+static vec3_t vpn{};
+static int skytexorder[6] = {0, 2, 1, 3, 4, 5};
+static std::vector<int> drawnSkyColors;
+void GL_DisableMultitexture() {}
+int qglIsEnabled(int) {
+    return 0;
+}
+void R_SetFogEnabled(int) {}
+float DotProduct(const float* a, const float* b) {
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+void qglColor3f(float, float, float) {}
+void qglBegin(int) {}
+void MakeSkyVec(float, float, int) {}
+void qglEnd() {
+    drawnSkyColors.push_back(selectedSkyColor);
+}
+#include "sky_draw.inc"
 struct model_t { bool needload; };
 static model_t mapModel;
 model_t* Mod_FindName(bool, const char*) { return &mapModel; }
@@ -769,6 +823,48 @@ int main() {
               (std::string(test.label) + ": loads the other five BMP faces (got "
                + std::to_string(skyBmpLoadCount) + ")").c_str());
     }
+#if defined(CSE_ENABLE_METAL)
+    resetHardwareSky();
+    cse::render::nativeSky = true;
+    g_currentpalette = -1;
+    selectedSkyColor = -1;
+    for (std::size_t face = 0; face < SkyFaceCount; ++face) {
+        files[std::string("gfx/env/test") + faces[face] + ".bmp"] = {bmpFaceIndices[face]};
+        skymaxs[0][face] = skymaxs[1][face] = 1;
+    }
+    R_LoadSkys();
+    drawnSkyColors.clear();
+    R_DrawSkyBox();
+    Check(drawnSkyColors == std::vector<int>({11, 53, 29, 97, 151, 233}),
+          "first native sky selects each face palette without a prior shared palette");
+    for (std::size_t face = 0; face < SkyFaceCount; ++face) {
+        files[std::string("gfx/env/test") + faces[face] + ".bmp"] = {byte(100 + face)};
+        skymaxs[0][face] = face == SkyFaceCount - 1 ? 1 : 0;
+    }
+    gLoadSky = TRUE;
+    R_LoadSkys();
+    drawnSkyColors.clear();
+    R_DrawSkyBox();
+    Check(drawnSkyColors == std::vector<int>({105}),
+          "reloaded native sky refreshes reused palette slot even when the same face remains bound");
+    files["gfx/env/testdn.webp"] = skyWebP;
+    gLoadSky = TRUE;
+    R_LoadSkys();
+    selectedSkyColor = -1;
+    drawnSkyColors.clear();
+    R_DrawSkyBox();
+    Check(drawnSkyColors == std::vector<int>({-1}), "RGBA replacement does not select a stale BMP palette");
+    cse::render::nativeSky = false;
+    resetHardwareSky();
+    for (const char* face : faces) {
+        files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+    }
+    R_LoadSkys();
+    selectedSkyColor = -1;
+    drawnSkyColors.clear();
+    R_DrawSkyBox();
+    Check(drawnSkyColors == std::vector<int>({-1}), "OpenGL sky binding behavior remains unchanged");
+#endif
     const int disabledPaletteCapabilities[][2] = {{0, 1}, {1, 0}};
     for (const auto& capability : disabledPaletteCapabilities) {
         resetHardwareSky();
@@ -794,10 +890,20 @@ int main() {
     }
     constexpr short InvalidPaletteIndex = -1;
     skyPaletteAddResult = InvalidPaletteIndex;
+#if defined(CSE_ENABLE_METAL)
+    cse::render::nativeSky = true;
+#endif
     R_LoadSkys();
     checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
                      "failed BMP palette keeps TGA fallback for remaining sky faces");
     Check(skyBmpLoadCount == 1, "failed BMP palette disables later BMP sky loads");
+#if defined(CSE_ENABLE_METAL)
+    selectedSkyColor = -1;
+    drawnSkyColors.clear();
+    R_DrawSkyBox();
+    Check(drawnSkyColors == std::vector<int>({-1}), "failed native BMP palette leaves no stale face binding");
+    cse::render::nativeSky = false;
+#endif
     resetHardwareSky();
     for (const char* face : faces) {
         files[std::string("gfx/env/test") + face + ".bmp"] = {1};

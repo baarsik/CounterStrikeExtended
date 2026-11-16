@@ -26,7 +26,12 @@ Metal-only no-GL requirement is verified separately in actual-game audits.
 | `renderer-backend-lifecycle` | Startup upload, flush/reopen, retained presentation capture across pending window resizes, absent-presentation handling, real-window resize/minimize/restore, teardown and sticky errors |
 | `renderer-selection` | Default/override/conflict policy, Metal-disabled and non-Apple behavior |
 | `radar-public-release` | Actual engine interface factory/table callback: null, half-null, stale and current-unavailable handles |
-| `metal-radar-effects` | Layer depth/order, independent base/lightmap modulation, tone, texture lifetime, generated-image retirement, glyph shadow, pre-HUD blur and odd resize |
+| `metal-radar-effects` | Layer depth/order, independent base/lightmap modulation, tone, texture lifetime, generated-image retirement, aggregate map-index/per-draw expansion bounds, glyph shadow, pre-HUD blur and odd resize |
+| `metal-lifetime-names` | 131,072 generations with one live reservation, all 65,535 simultaneous names, explicit exhaustion and reuse |
+| `metal-lifetime-session` | 96 completed NPOT updates under a three-image source budget, exact retained bytes and persistent live-cache reuse |
+| `metal-lifetime-radar` | 96 register/upload/delete cycles without querying stale handles, exact source reclamation and balanced actual SDL GPU ownership |
+| `metal-lifetime-radar-records` | 96 abandoned identities with counted weak control blocks, proving stale registry records are erased at frame sweeps |
+| `metal-lifetime-queued-reuse` | Deleted/reused numeric name, distinct generations/service handles, independent old/new queued pixels and final source retirement |
 | `radar-gl-metal-parity` | 94 actual GL/Metal full-image comparisons: all eleven primitives, player direction/offscreen transitions, clipping/fade, mask/ring alpha comparisons, gamma, generated premultiplied AA edges/color ties and both tone modes |
 | `metal-blur-oracle` | Actual 33-tap radar and five-tap Smoked filters versus independent double-precision separable convolution with RGBA8 intermediate quantization |
 | `legacy-gl-metal-parity` | 303 actual GL/Metal cases: fog, alpha comparisons, blend factors, flat provoking colors, overlapping viewports, incomplete images, texture formats/environments/wrap and all six min filters over twelve scales |

@@ -39,6 +39,7 @@ hardware = (root / 'src/engine/gl_warp.cpp').read_text()
 start = hardware.index('typedef struct _TargaHeader')
 end = hardware.index('static const char* suf[6]' if 'static const char* suf[6]' in hardware else 'static char* suf[6]', start)
 (out / 'hardware.inc').write_text(hardware[start:end])
+(out / 'sky_draw.inc').write_text(function(hardware, 'void R_DrawSkyBox('))
 (out / 'sky.inc').write_text(hardware[end:hardware.index('void R_LoadSkys()', end)] + function(hardware, 'void R_LoadSkys('))
 policy = (root / 'src/engine/image_consistency.cpp').read_text()
 (out / 'image_policy.inc').write_text(policy[policy.index('namespace cse {'):])
@@ -72,11 +73,13 @@ else:
     flags = shlex.split(subprocess.check_output(['pkg-config', '--cflags', '--libs', 'libwebp'], text=True))
 codec = root / 'src/common/image_codec.cpp'
 failures = 0
-for renderer in ('hardware', 'software'):
+for renderer in ('hardware', 'software', 'metal'):
     command = ['c++', '-std=c++14', '-g', '-O1', '-Wall', '-Wextra', '-Werror',
                '-fsanitize=address,undefined', '-fno-omit-frame-pointer',
-               '-DTEST_' + renderer.upper(), '-I', str(out), '-I', str(root / 'src/common'),
+               '-DTEST_' + ('HARDWARE' if renderer == 'metal' else renderer.upper()), '-I', str(out), '-I', str(root / 'src/common'),
                '-I', str(root / 'src/engine'), str(root / 'tests/native/engine_images/loader_tests.cpp')]
+    if renderer == 'metal':
+        command.append('-DCSE_ENABLE_METAL=1')
     if codec.exists():
         command.append(str(codec))
     command += flags + ['-o', str(out / (renderer + '_tests'))]

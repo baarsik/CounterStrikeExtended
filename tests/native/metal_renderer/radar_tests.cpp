@@ -382,6 +382,51 @@ int main() {
     CHECK(effects.DrawMapTexture(tile, raster) == CSE_RADAR_INVALID_TEXTURE);
     effects.SetTextureSource(nullptr, nullptr, nullptr);
 
+    // A real layered map carries 204,801 uint32 indices, but expands only each draw at submission.
+    // Its aggregate input fits the map budget even though all expanded vertices would exceed 16 MiB.
+    {
+        constexpr std::uint32_t kMapIndices = 204801;
+        constexpr std::uint32_t kFirstDrawIndices = 102399;
+        constexpr std::uint32_t kOversizedDrawIndices = 190653;
+        std::array<CseRadarMapVertex, 3> triangle{};
+        triangle[0].position[0] = 0;
+        triangle[1].position[0] = 1;
+        triangle[2].position[1] = 1;
+        for (auto& vertex : triangle) {
+            vertex.position[2] = 1;
+            vertex.color[0] = 1;
+            vertex.color[3] = 1;
+        }
+        std::vector<std::uint32_t> manyIndices(kMapIndices);
+        for (std::size_t index = 0; index < manyIndices.size(); ++index) {
+            manyIndices[index] = static_cast<std::uint32_t>(index % triangle.size());
+        }
+        std::array<CseRadarMapDraw, 2> manyDraws{};
+        manyDraws[0].indexCount = kFirstDrawIndices;
+        manyDraws[1].firstIndex = kFirstDrawIndices;
+        manyDraws[1].indexCount = kMapIndices - kFirstDrawIndices;
+        CseRadarMapPass pass{0, 0, 1, 1, 0, 2, 0, 2, CSE_RADAR_DEPTH_TOPMOST, 1};
+        CseRadarMapImageBuild large{};
+        large.size = sizeof(large);
+        large.rendererEpoch = 7;
+        large.vertexCount = static_cast<std::uint32_t>(triangle.size());
+        large.vertices = triangle.data();
+        large.indexCount = kMapIndices;
+        large.indices = manyIndices.data();
+        large.drawCount = static_cast<std::uint32_t>(manyDraws.size());
+        large.draws = manyDraws.data();
+        large.passCount = 1;
+        large.passes = &pass;
+        CseRadarTexture largeImage{};
+        CHECK(effects.BuildMapImage(large, largeImage) == CSE_RADAR_OK);
+        CHECK(effects.ReleaseImage(largeImage) == CSE_RADAR_OK);
+        manyDraws[0].indexCount = kOversizedDrawIndices;
+        manyDraws[1].firstIndex = kOversizedDrawIndices;
+        manyDraws[1].indexCount = kMapIndices - kOversizedDrawIndices;
+        CHECK(effects.BuildMapImage(large, largeImage) == CSE_RADAR_INVALID_ARGUMENT);
+        CHECK(largeImage.rendererEpoch == 0 && largeImage.serial == 0);
+    }
+
     // Resize invalidates the pre-HUD cache; the next request/capture restores it at odd dimensions.
     CHECK(session.Resize(65, 63, 4, error));
     CHECK(!effects.DrawSmoked(panel, panel, 64, 64, glass, 8, raster));
