@@ -47,3 +47,9 @@ option(CSE_RADAR_GL_TESTS "Build real SDL3/OpenGL radar rendering tests" OFF)
 if(CSE_RADAR_GL_TESTS)
     add_subdirectory(render)
 endif()
+
+if(NOT MSVC)
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME radar-scoreboard-retired-root COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/scoreboard_lifecycle.py" "${CSE_ROOT}" "${CMAKE_CXX_COMPILER}")
+endif()

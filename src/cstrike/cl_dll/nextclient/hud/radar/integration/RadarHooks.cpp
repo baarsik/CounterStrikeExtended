@@ -98,6 +98,9 @@ bool FindScoreboard(ScoreboardUi& ui, std::uintptr_t tracked_panel = 0) {
         return false;
     }
     ui.root = ui.surface->GetEmbeddedPanel();
+    if (!ui.root) {
+        return false;
+    }
     if (tracked_panel != 0) {
         ui.panel = ui.vgui->HandleToPanel(static_cast<vgui2::HPanel>(tracked_panel));
         if (ui.panel) {
