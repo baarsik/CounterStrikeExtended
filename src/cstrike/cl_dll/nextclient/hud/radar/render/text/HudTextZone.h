@@ -16,7 +16,8 @@ void HudTextZone_SetZone(float x, float y, float size);
 void HudTextZone_ClearZone();
 
 // Suppresses the shift while NextClient draws its own HUD text.
-void HudTextZone_SetPassthrough(bool on);
+// Returns the previous state so nested drawing scopes can restore it.
+bool HudTextZone_SetPassthrough(bool on);
 
 // Once per frame, before the stock HUD is drawn.
 void HudTextZone_BeginFrame(int screen_width, int screen_height);

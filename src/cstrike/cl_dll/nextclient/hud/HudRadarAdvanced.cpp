@@ -588,13 +588,13 @@ void HudRadarAdvanced::UpdateLayerContext(bool spectating, float time) {
 
         if (entity && entity->player && local &&
             (entity == local || entity->curstate.messagenum == NativeRadar_MessageNumber())) {
-            int hull = entity == local && !spectating && pmove ? pmove->usehull : entity->curstate.usehull;
+            bool predicted = entity == local && !spectating;
+            int hull = RadarLayerContext_PlayerHull(entity->curstate.usehull, predicted ? pmove : nullptr);
 
             if (hull >= 0 && hull < kPlayerHullCount) {
                 ncl_math::Aabb3 bounds{};
                 gEngfuncs.pEventAPI->EV_LocalPlayerBounds(hull, bounds.min.data(), bounds.max.data());
 
-                bool predicted = entity == local && !spectating;
                 ncl_math::Vector3 origin = predicted ? ncl_math::Vector3::Ref(gHUD.m_vecOrigin)
                                                      : ncl_math::Vector3::Ref(entity->curstate.origin);
 

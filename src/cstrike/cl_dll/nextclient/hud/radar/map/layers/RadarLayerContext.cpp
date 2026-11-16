@@ -69,6 +69,17 @@ ncl_math::Vector3 RadarLayerContext_Feet(ncl_math::Vector3 origin, ncl_math::Vec
     return origin;
 }
 
+int RadarLayerContext_PlayerHull(int entity_hull, const playermove_t* prediction) {
+    if (!prediction) {
+        return entity_hull;
+    }
+
+    constexpr int kStandingPlayerHull = 0;
+    constexpr int kCrouchingPlayerHull = 1;
+    // Rendering traces overwrite usehull; FL_DUCKING changes when the collision hull changes.
+    return (prediction->flags & FL_DUCKING) != 0 ? kCrouchingPlayerHull : kStandingPlayerHull;
+}
+
 std::optional<RadarLayerContact> RadarLayerContext_TraceSupport(event_api_s& events, playermove_t& movement,
                                                                 ncl_math::Vector3 feet,
                                                                 const ncl_math::Aabb3& player_bounds) {

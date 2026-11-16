@@ -13,6 +13,8 @@ original four-ULP tolerance. Scoped traces are included in failure messages.
 Native worker cases additionally cover owner-thread publication, canceled results,
 coalescing superseded requests, reset/reuse and destruction without frame pumping.
 The target compiles the actual radar production bodies rather than algorithm copies.
+Layer-context cases also verify that standing/crouching feet use the collision state
+when rendering traces have overwritten the temporary trace hull.
 
 Run from the repository root:
 
@@ -39,4 +41,8 @@ ctest --test-dir /tmp/cse-radar-gl-tests --output-on-failure
 
 The optional target creates hidden SDL3 OpenGL 2.1 windows and offscreen framebuffer
 images; it does not launch the game. It uses actual production renderer/GL-loader
-bodies and generated shader strings. Its only engine service is a shader-error logger.
+bodies and generated shader strings. BSP fixtures verify that fallback maps ignore
+brush submodel geometry, sky caps and height ranges. Label cases run the production
+HUD text buffer and exclusion zone, checking fallback positions and passthrough restoration.
+Engine services are limited to shader-error logging, a console-text capture sink and
+an unavailable lightmap atlas for the flat BSP fixtures.

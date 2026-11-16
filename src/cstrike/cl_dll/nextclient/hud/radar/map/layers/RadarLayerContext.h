@@ -25,6 +25,7 @@ bool RadarLayerContext_IsLayeredMode(RadarMapMode mode);
 RadarMapMode RadarLayerContext_TopMode(RadarMapMode mode);
 
 ncl_math::Vector3 RadarLayerContext_Feet(ncl_math::Vector3 origin, ncl_math::Vector3 hull_min);
+int RadarLayerContext_PlayerHull(int entity_hull, const playermove_t* prediction);
 
 struct RadarLayerContact {
     ncl_math::Vector3 support{};

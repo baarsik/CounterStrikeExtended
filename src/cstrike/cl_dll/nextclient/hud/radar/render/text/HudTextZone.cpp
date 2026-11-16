@@ -25,8 +25,10 @@ void HudTextZone_ClearZone() {
     g_ZoneActive = false;
 }
 
-void HudTextZone_SetPassthrough(bool on) {
+bool HudTextZone_SetPassthrough(bool on) {
+    bool previous = g_Passthrough;
     g_Passthrough = on;
+    return previous;
 }
 
 void HudTextZone_BeginFrame(int screen_width, int screen_height) {

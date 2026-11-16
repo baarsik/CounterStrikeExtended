@@ -27,6 +27,8 @@ struct RadarDrawPlayerMarker {
 
 class RadarDrawContext {
   private:
+    static constexpr float kUnboundedClipRadius = 1.0e9f;
+
     enum {
         kAttrPos,
         kAttrShape,
@@ -51,7 +53,7 @@ class RadarDrawContext {
         bool open;
         GLenum src, dst;
         ncl_math::Vector2 clip_center;
-        float clip_radius = 1.0e9f;
+        float clip_radius = kUnboundedClipRadius;
         float clip_square;
         GLuint tex; // glyph atlas, 0 when the run draws no glyphs
     };
@@ -79,7 +81,7 @@ class RadarDrawContext {
     ncl_math::ColorF fade_color_{};
     float fade_amt_{};
     ncl_math::Vector2 clip_center_{};
-    float clip_r_ = 1.0e9f;
+    float clip_r_ = kUnboundedClipRadius;
     bool clip_square_{};
     GLuint current_program_{};
     GLenum blend_src_{};

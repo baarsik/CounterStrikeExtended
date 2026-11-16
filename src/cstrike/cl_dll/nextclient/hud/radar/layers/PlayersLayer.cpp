@@ -5,6 +5,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 
 #include "main.h"
 
@@ -29,8 +30,14 @@
 #include "view.h"
 
 namespace {
-// Fractions of box.marker_px.
+// Marker geometry and appearance, retaining NextClient's tuning.
 constexpr float kPlayerDotScale = 0.026f;
+constexpr int kPlayerDotMinPixels = 2;
+constexpr float kLayeredMarkerExtentScale = 2.4f;
+constexpr float kHighlightConeLengthScale = 6.5f;
+constexpr float kHighlightConeOpacityScale = 0.65f;
+constexpr int kOpaqueAlpha = 255;
+constexpr float kColorByteScale = 255.0f;
 constexpr float kCarrierRingWidthScale = 0.15f;
 constexpr float kMemoryMarkScale = 0.025f;
 constexpr float kMemoryMarkMinSize = 2.5f;
@@ -145,7 +152,7 @@ void PlayersLayer::DrawObserver(const RadarFrame& frame) {
         drawn_[marker.player] = true;
     }
 
-    int dot = std::max(2, (int)(frame.box.marker_px * kPlayerDotScale));
+    int dot = std::max(kPlayerDotMinPixels, (int)(frame.box.marker_px * kPlayerDotScale));
     RadarLayerStyle style = RadarLayerMarker_ComputeStyle(frame.layer_view, marker.pos);
     int extent = frame.layer_view.enabled ? dot * 2 : dot;
     ncl_math::Vector2 raw = frame.t.WorldToScreen({marker.pos.x, marker.pos.y});
@@ -154,14 +161,15 @@ void PlayersLayer::DrawObserver(const RadarFrame& frame) {
 
     const RadarLayerPlacement& placement = player_placement.placement;
     ncl_math::Vector2 pos = placement.marker;
-    ncl_math::Color color = RadarPalette::kHighlight.WithAlpha((int)(255 * style.opacity));
+    ncl_math::Color color = RadarPalette::kHighlight.WithAlpha((int)(kOpaqueAlpha * style.opacity));
 
     draw_.BeginPrims();
 
     if (placement.offscreen) {
         DrawEdgeArrow(pos, player_placement.out_dir, dot, color);
     } else {
-        draw_.DrawCone(pos, dir, dot * 6.5f, ComputeHighlightConeSpread(frame), color, 0.65f * style.opacity);
+        draw_.DrawCone(pos, dir, dot * kHighlightConeLengthScale, ComputeHighlightConeSpread(frame), color,
+                       kHighlightConeOpacityScale * style.opacity);
         DrawMarker(pos, dir, dot, color);
     }
 
@@ -257,6 +265,8 @@ void PlayersLayer::OnVidInit() {
 }
 
 void PlayersLayer::DrawMarker(ncl_math::Vector2 pos, ncl_math::Vector2 dir, int size, ncl_math::Color color) {
+    constexpr float kMarkerHeadHalfAngleRadians = 0.62f;
+    constexpr float kMarkerHeadLengthScale = 1.0f;
     // A zero dir draws the dot alone.
     ncl_math::Vector2 fwd{};
     bool is_dir = ncl_math::TryNormalize(dir, &fwd);
@@ -264,8 +274,8 @@ void PlayersLayer::DrawMarker(ncl_math::Vector2 pos, ncl_math::Vector2 dir, int 
     if (is_dir) {
         // Both base corners sit on the dot's rim, so the head never juts out its side or back.
         float cut = (float)size;
-        float spread = 0.62f; // base half-angle, radians
-        float tip_d = cut + size * 1.0f;
+        float spread = kMarkerHeadHalfAngleRadians;
+        float tip_d = cut + size * kMarkerHeadLengthScale;
         ncl_math::Vector2 tip = pos + fwd * tip_d;
         ncl_math::Vector2 base_l = pos + fwd.Rotated(spread) * cut;
         ncl_math::Vector2 base_r = pos + fwd.Rotated(-spread) * cut;
@@ -357,30 +367,46 @@ int PlayersLayer::ComputePlayerNameWidth(int player, const char* name) {
 }
 
 void PlayersLayer::DrawHealthBar(ncl_math::Vector2 pos, int dot, int sb_health, float opacity) {
+    constexpr int kFullHealth = 100;
+    constexpr int kHealthyThreshold = 60;
+    constexpr int kInjuredThreshold = 30;
+    constexpr int kMinimumBarWidthPixels = 2;
+    constexpr int kMinimumBarHeightPixels = 1;
+    constexpr int kBarWidthScale = 3;
+    constexpr int kBarHeightScale = 2;
+    constexpr int kBorderPixels = 1;
+    constexpr int kMarkerGapPixels = 1;
+    constexpr ncl_math::Color kHealthyColor{0, 200, 0};
+    constexpr ncl_math::Color kInjuredColor{230, 200, 0};
+    constexpr ncl_math::Color kCriticalColor{230, 40, 40};
+    constexpr ncl_math::Color kBorderColor{0, 0, 0, 150};
+    constexpr ncl_math::Color kBackgroundColor{30, 30, 30, 200};
     float sx = pos.x;
     float sy = pos.y;
-    int hp = std::clamp(sb_health, 0, 100);
+    int hp = std::clamp(sb_health, 0, kFullHealth);
     float hsz = std::clamp(g_RadarCfg.health_size->value, kHealthSizeCvar.min_value, kHealthSizeCvar.max_value);
-    int bw = std::max(2, (int)(dot * 3 * hsz));
-    int bh = std::max(1, (int)(2 * hsz));
+    int bw = std::max(kMinimumBarWidthPixels, (int)(dot * kBarWidthScale * hsz));
+    int bh = std::max(kMinimumBarHeightPixels, (int)(kBarHeightScale * hsz));
     int bx = (int)sx - bw / 2;
-    int by = (int)sy - dot - bh - 1;
+    int by = (int)sy - dot - bh - kMarkerGapPixels;
     ncl_math::Color hp_col;
 
-    if (hp > 60) {
-        hp_col = {0, 200, 0};
-    } else if (hp > 30) {
-        hp_col = {230, 200, 0};
+    if (hp > kHealthyThreshold) {
+        hp_col = kHealthyColor;
+    } else if (hp > kInjuredThreshold) {
+        hp_col = kInjuredColor;
     } else {
-        hp_col = {230, 40, 40};
+        hp_col = kCriticalColor;
     }
 
     // The shader applies the flashbang wash, so the colors are passed through unfaded.
-    draw_.DrawRect({(float)(bx - 1), (float)(by - 1)}, {(float)(bx + bw + 1), (float)(by + bh + 1)},
-                   {0, 0, 0, (int)(150 * opacity)});
-    draw_.DrawRect({(float)bx, (float)by}, {(float)(bx + bw), (float)(by + bh)}, {30, 30, 30, (int)(200 * opacity)});
-    draw_.DrawRect({(float)bx, (float)by}, {(float)(bx + bw * hp / 100), (float)(by + bh)},
-                   hp_col.WithAlpha((int)(255 * opacity)));
+    draw_.DrawRect({(float)(bx - kBorderPixels), (float)(by - kBorderPixels)},
+                   {(float)(bx + bw + kBorderPixels), (float)(by + bh + kBorderPixels)},
+                   kBorderColor.WithAlpha((int)(kBorderColor.a * opacity)));
+    draw_.DrawRect({(float)bx, (float)by}, {(float)(bx + bw), (float)(by + bh)},
+                   kBackgroundColor.WithAlpha((int)(kBackgroundColor.a * opacity)));
+    draw_.DrawRect({(float)bx, (float)by}, {(float)(bx + bw * hp / kFullHealth), (float)(by + bh)},
+                   hp_col.WithAlpha((int)(kOpaqueAlpha * opacity)));
 }
 
 void PlayersLayer::DrawPlayers(const RadarFrame& frame) {
@@ -388,7 +414,7 @@ void PlayersLayer::DrawPlayers(const RadarFrame& frame) {
         return;
     }
 
-    int dot = std::max(2, (int)(frame.box.marker_px * kPlayerDotScale));
+    int dot = std::max(kPlayerDotMinPixels, (int)(frame.box.marker_px * kPlayerDotScale));
     std::array<PlayerJob, kRadarMaxPlayers * 2> jobs;
     bool record_diagnostics = RadarDebug_IsEnabled();
     RadarDrawStats before{};
@@ -434,21 +460,27 @@ void PlayersLayer::DrawPlayers(const RadarFrame& frame) {
 }
 
 float PlayersLayer::ComputeHighlightConeSpread(const RadarFrame& frame) {
-    float fov = 90.0f;
+    constexpr float kDefaultFovDegrees = 90.0f;
+    constexpr float kMinimumFovDegrees = 10.0f;
+    constexpr float kMaximumFovDegrees = 130.0f;
+    constexpr int kUnsetFovThreshold = 1;
+    constexpr float kFovToHalfAngleScale = 0.5f;
+    float fov = kDefaultFovDegrees;
 
-    if (gHUD.m_iFOV > 1) {
+    if (gHUD.m_iFOV > kUnsetFovThreshold) {
         fov = (float)gHUD.m_iFOV;
     }
 
-    if (frame.ctx.spectating && !frame.ctx.free_camera && frame.ctx.observed_idx >= 1 && frame.ctx.observed_idx < 64) {
+    if (frame.ctx.spectating && !frame.ctx.free_camera && frame.ctx.observed_idx >= 1 &&
+        frame.ctx.observed_idx < static_cast<int>(std::size(gHUD.m_PlayerFOV))) {
         int pf = gHUD.m_PlayerFOV[frame.ctx.observed_idx];
 
-        if (pf > 1) {
+        if (pf > kUnsetFovThreshold) {
             fov = (float)pf;
         }
     }
 
-    return std::clamp(fov, 10.0f, 130.0f) * 0.5f * ncl_math::kDeg2Rad;
+    return std::clamp(fov, kMinimumFovDegrees, kMaximumFovDegrees) * kFovToHalfAngleScale * ncl_math::kDeg2Rad;
 }
 
 bool PlayersLayer::ResolvePlayerSpot(const RadarFrame& frame, int i, bool is_self, cl_entity_t* ent, PlayerSpot& out) {
@@ -512,11 +544,13 @@ bool PlayersLayer::ResolvePlayerSpot(const RadarFrame& frame, int i, bool is_sel
 }
 
 bool PlayersLayer::IsTeleported(int player, ncl_math::Vector3 pos, float run_speed, float dt) const {
+    constexpr float kMinimumSampleInterval = 0.005f;
+    constexpr float kMaximumSampleInterval = 0.1f;
     if (!prev_alive_[player]) {
         return false;
     }
 
-    float frame_move = run_speed * std::clamp(dt, 0.005f, 0.1f) + kTeleportPad;
+    float frame_move = run_speed * std::clamp(dt, kMinimumSampleInterval, kMaximumSampleInterval) + kTeleportPad;
 
     return (pos - prev_snapshot_pos_[player]).LengthSqr() > frame_move * frame_move;
 }
@@ -565,7 +599,7 @@ void PlayersLayer::FillPlayerJob(const RadarFrame& frame, int player, bool is_se
 
     RadarLayerStyle style = RadarLayerMarker_ComputeStyle(frame.layer_view, spot.pos);
     ncl_math::Vector2 marker_raw = frame.t.WorldToScreen({spot.pos.x, spot.pos.y});
-    int extent = frame.layer_view.enabled ? (int)std::ceil(dot * 2.4f) : dot;
+    int extent = frame.layer_view.enabled ? (int)std::ceil(dot * kLayeredMarkerExtentScale) : dot;
     ncl_math::Vector2 dir = spot.has_dir ? frame.t.MarkerDirection(spot.yaw) : ncl_math::Vector2{};
 
     RadarPlayerPlacement player_placement =
@@ -581,7 +615,7 @@ void PlayersLayer::FillPlayerJob(const RadarFrame& frame, int player, bool is_se
     job.dir = dir;
     job.out_dir = player_placement.out_dir;
     job.col = col;
-    job.alpha = (int)(255 * style.opacity);
+    job.alpha = (int)(kOpaqueAlpha * style.opacity);
     job.base_alpha = job.alpha;
     job.fade_weight = 1.0f;
     job.cone = (player == frame.ctx.highlight_idx);
@@ -600,10 +634,13 @@ void PlayersLayer::FillPlayerJob(const RadarFrame& frame, int player, bool is_se
 
 std::span<const PlayersLayer::PlayerJob>
 PlayersLayer::CollectPlayerJobs(const RadarFrame& frame, int dot, std::span<PlayerJob> jobs, bool record_diagnostics) {
+    constexpr float kMovementToleranceDotScale = 2.0f;
+    constexpr float kOverlapDistanceSquaredScale = 4.0f;
     int job_count = 0;
     PlayerLastSeen::Observation visible[kRadarMaxPlayers];
     int visible_count = 0;
-    float move_tolerance = dot * 2.0f / frame.t.projection.ApplyVector({frame.t.k, 0.0f}).Length();
+    float move_tolerance =
+        dot * kMovementToleranceDotScale / frame.t.projection.ApplyVector({frame.t.k, 0.0f}).Length();
 
     int max_clients = std::min<int>(kRadarMaxPlayers, gEngfuncs.GetMaxClients());
 
@@ -730,7 +767,8 @@ PlayersLayer::CollectPlayerJobs(const RadarFrame& frame, int dot, std::span<Play
             previous_job.alpha = (int)(previous_job.alpha * marker.previous_alpha);
             previous_job.fade_weight = marker.previous_alpha;
 
-            if (record_diagnostics && (job.pos - previous_job.pos).LengthSqr() < dot * dot * 4.0f) {
+            if (record_diagnostics &&
+                (job.pos - previous_job.pos).LengthSqr() < dot * dot * kOverlapDistanceSquaredScale) {
                 overlapping_players_ |= bit;
             }
         }
@@ -743,6 +781,7 @@ PlayersLayer::CollectPlayerJobs(const RadarFrame& frame, int dot, std::span<Play
 
 void PlayersLayer::DrawPlayerLayers(const RadarFrame& frame, std::span<const PlayerJob> jobs, int dot,
                                     float cone_spread) {
+    constexpr float kConeWhiteBlend = 2.0f / 3.0f;
     draw_.BeginPrims();
     for (const PlayerJob& job : jobs) {
         if (!job.cone || job.offscreen) {
@@ -756,8 +795,9 @@ void PlayersLayer::DrawPlayerLayers(const RadarFrame& frame, std::span<const Pla
         }
 
         ncl_math::Color light =
-            ncl_math::Lerp(job.col.WithAlpha(job.alpha), ncl_math::Color{255, 255, 255}, 2.0f / 3.0f);
-        draw_.DrawCone(job.pos, fwd, dot * 6.5f, cone_spread, light, 0.65f * (job.alpha / 255.0f));
+            ncl_math::Lerp(job.col.WithAlpha(job.alpha), ncl_math::Color{255, 255, 255}, kConeWhiteBlend);
+        draw_.DrawCone(job.pos, fwd, dot * kHighlightConeLengthScale, cone_spread, light,
+                       kHighlightConeOpacityScale * (job.alpha / kColorByteScale));
     }
     draw_.EndPrims();
 
@@ -770,12 +810,12 @@ void PlayersLayer::DrawPlayerLayers(const RadarFrame& frame, std::span<const Pla
             const PlayerJob& previous = jobs[++index];
 
             RadarDrawPlayerMarker current_marker{job.pos, job.offscreen ? job.out_dir : job.dir,
-                                                 job.base_alpha / 255.0f, job.fade_weight, job.offscreen};
+                                                 job.base_alpha / kColorByteScale, job.fade_weight, job.offscreen};
 
             RadarDrawPlayerMarker previous_marker{
                 previous.pos,
                 previous.offscreen ? previous.out_dir : previous.dir,
-                previous.base_alpha / 255.0f,
+                previous.base_alpha / kColorByteScale,
                 previous.fade_weight,
                 previous.offscreen,
             };
@@ -802,7 +842,7 @@ void PlayersLayer::DrawPlayerLayers(const RadarFrame& frame, std::span<const Pla
 
     for (const PlayerJob& job : jobs) {
         if (job.health) {
-            DrawHealthBar(job.vertical > 0 ? job.indicator : job.pos, dot, job.sb_health, job.alpha / 255.0f);
+            DrawHealthBar(job.vertical > 0 ? job.indicator : job.pos, dot, job.sb_health, job.alpha / kColorByteScale);
         }
     }
     draw_.EndPrims();
@@ -889,8 +929,8 @@ void PlayersLayer::DrawLastSeen(const RadarFrame& frame) {
     float sz = std::max(kMemoryMarkMinSize, frame.box.marker_px * kMemoryMarkScale);
     float hw = std::max(kMemoryMarkMinHalfWidth, sz * kMemoryMarkWidthScale) * kQuestionMarkWidthFactor;
     int question_inset = (int)std::ceil(sz + hw);
-    int dot = std::max(2, (int)(frame.box.marker_px * kPlayerDotScale));
-    int marker_inset = frame.layer_view.enabled ? (int)std::ceil(dot * 2.4f) : dot;
+    int dot = std::max(kPlayerDotMinPixels, (int)(frame.box.marker_px * kPlayerDotScale));
+    int marker_inset = frame.layer_view.enabled ? (int)std::ceil(dot * kLayeredMarkerExtentScale) : dot;
 
     draw_.BeginPrims();
 

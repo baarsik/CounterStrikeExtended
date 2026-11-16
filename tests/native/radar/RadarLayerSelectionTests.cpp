@@ -429,6 +429,39 @@ RADAR_TEST(RadarLayerSelection, CrouchingUsesNormalizedFeet) {
     CHECK_EQ(selection.get_reason(), RadarLayerReason::Unchanged);
 }
 
+RADAR_TEST(RadarLayerContext, StandingFeetIgnorePointTraceHullDuringDuckTransition) {
+    playermove_t movement{};
+    movement.usehull = 2;
+    movement.bInDuck = true;
+    movement.player_mins[0][2] = -36.0f;
+    movement.player_mins[1][2] = -18.0f;
+
+    int hull = RadarLayerContext_PlayerHull(1, &movement);
+    CHECK_EQ(hull, 0);
+    CHECK_EQ(RadarLayerContext_Feet({64.0f, 64.0f, 36.0f},
+                                  ncl_math::Vector3::Ref(movement.player_mins[hull])),
+             (ncl_math::Vector3{64.0f, 64.0f, 0.0f}));
+}
+
+RADAR_TEST(RadarLayerContext, CrouchedFeetIgnorePointTraceHull) {
+    playermove_t movement{};
+    movement.flags = FL_DUCKING;
+    movement.usehull = 2;
+    movement.player_mins[0][2] = -36.0f;
+    movement.player_mins[1][2] = -18.0f;
+
+    int hull = RadarLayerContext_PlayerHull(0, &movement);
+    CHECK_EQ(hull, 1);
+    CHECK_EQ(RadarLayerContext_Feet({64.0f, 64.0f, 18.0f},
+                                  ncl_math::Vector3::Ref(movement.player_mins[hull])),
+             (ncl_math::Vector3{64.0f, 64.0f, 0.0f}));
+}
+
+RADAR_TEST(RadarLayerContext, ObservedPlayerUsesNetworkCollisionHull) {
+    CHECK_EQ(RadarLayerContext_PlayerHull(0, nullptr), 0);
+    CHECK_EQ(RadarLayerContext_PlayerHull(1, nullptr), 1);
+}
+
 RADAR_TEST(RadarLayerSelection, ResetClearsPendingStateAndInitializesImmediately) {
     RadarMapLayers map = StackedMap();
     RadarLayerSelection selection;

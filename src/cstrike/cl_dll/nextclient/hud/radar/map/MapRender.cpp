@@ -17,6 +17,10 @@
 namespace {
 constexpr int kMaxSky = 1024;
 constexpr float kSkyGap = 64.0f;
+constexpr float kMinimumSkyNormalZ = 0.5f;
+constexpr float kSkyCapHeightTolerance = 2.0f;
+constexpr float kInitialHeightLimit = 1.0e9f;
+constexpr float kMinimumHeightSpan = 1.0f;
 
 bool EnsureGlad() {
     return ncl_gl::EnsureLoaded();
@@ -50,14 +54,15 @@ struct SkyFace {
 int CollectSkyFaces(model_t* world, std::span<SkyFace> out) {
     int nsky = 0;
 
-    for (int i = 0; i < world->numsurfaces && nsky < (int)out.size(); i++) {
+    for (int i = world->firstmodelsurface;
+         i < world->firstmodelsurface + world->nummodelsurfaces && nsky < (int)out.size(); i++) {
         msurface_t* s = &world->surfaces[i];
 
         if (!(s->flags & SURF_DRAWSKY) || !s->plane) {
             continue;
         }
 
-        if (std::fabs(s->plane->normal[2]) < 0.5f) {
+        if (std::fabs(s->plane->normal[2]) < kMinimumSkyNormalZ) {
             continue;
         }
 
@@ -83,7 +88,7 @@ int CollectSkyFaces(model_t* world, std::span<SkyFace> out) {
 bool IsSkyCapped(std::span<const SkyFace> skies, float cx, float cy, float topz) {
     for (const SkyFace& f : skies) {
 
-        if (f.box.Contains({cx, cy}) && f.z >= topz - 2.0f && f.z <= topz + kSkyGap) {
+        if (f.box.Contains({cx, cy}) && f.z >= topz - kSkyCapHeightTolerance && f.z <= topz + kSkyGap) {
             return true;
         }
     }
@@ -93,10 +98,10 @@ bool IsSkyCapped(std::span<const SkyFace> skies, float cx, float cy, float topz)
 
 // Not the world Z bounds: sky and pits squash every floor into a flat band and wash out the shading.
 void ComputeFloorZRange(model_t* world, std::span<const int> excluded, float& out_min, float& out_max) {
-    float fzmin = 1.0e9f;
-    float fzmax = -1.0e9f;
+    float fzmin = kInitialHeightLimit;
+    float fzmax = -kInitialHeightLimit;
 
-    for (int i = 0; i < world->numsurfaces; i++) {
+    for (int i = world->firstmodelsurface; i < world->firstmodelsurface + world->nummodelsurfaces; i++) {
         msurface_t* s = &world->surfaces[i];
 
         if (std::binary_search(excluded.begin(), excluded.end(), i) || (s->flags & (SURF_DRAWSKY | SURF_DRAWTILED)) ||
@@ -121,7 +126,10 @@ void ComputeFloorZRange(model_t* world, std::span<const int> excluded, float& ou
 
 void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[64], std::span<const SkyFace> skies,
                   float fzmin, float zrange, std::span<const int> excluded) {
-    for (int i = 0; i < world->numsurfaces; i++) {
+    constexpr float kTexturedFloorMinBrightness = 0.55f;
+    constexpr float kTexturedFloorMaxBrightness = 1.0f;
+    constexpr float kFlatRedBlueScale = 0.82f;
+    for (int i = world->firstmodelsurface; i < world->firstmodelsurface + world->nummodelsurfaces; i++) {
         msurface_t* s = &world->surfaces[i];
 
         if (std::binary_search(excluded.begin(), excluded.end(), i) || (s->flags & (SURF_DRAWSKY | SURF_DRAWTILED))) {
@@ -143,7 +151,7 @@ void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[
         {
             float cx = 0.0f;
             float cy = 0.0f;
-            float topz = -1.0e9f;
+            float topz = -kInitialHeightLimit;
             int nv = 0;
 
             for (int e = 0; e < s->numedges; e++) {
@@ -185,7 +193,7 @@ void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[
                 for (int k = 0; k < poly->numverts; k++) {
                     float* vt = poly->verts[k];
                     float shade = ncl_math::Saturate((vt[2] - fzmin) / zrange);
-                    float c = ncl_math::Lerp(0.55f, 1.0f, shade);
+                    float c = ncl_math::Lerp(kTexturedFloorMinBrightness, kTexturedFloorMaxBrightness, shade);
                     glColor4f(c, c, c, 1.0f);
                     glMultiTexCoord2f(GL_TEXTURE0, vt[3], vt[4]);
                     glMultiTexCoord2f(GL_TEXTURE1, vt[5], vt[6]);
@@ -201,7 +209,7 @@ void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[
                 const float* p = GetSurfVertex(world, s, e);
                 float shade = ncl_math::Saturate((p[2] - fzmin) / zrange);
                 float c = ncl_math::Lerp(kMapFlatMinBrightness, kMapFlatMaxBrightness, shade);
-                glColor4f(c * 0.82f, c, c * 0.82f, 1.0f);
+                glColor4f(c * kFlatRedBlueScale, c, c * kFlatRedBlueScale, 1.0f);
                 glVertex3f(p[0], p[1], p[2]);
             }
 
@@ -223,7 +231,7 @@ bool IsLightmapAtlasReady(model_t* world, const int (*lightmap_textures)[64]) {
         return false;
     }
 
-    for (int i = 0; i < world->numsurfaces; i++) {
+    for (int i = world->firstmodelsurface; i < world->firstmodelsurface + world->nummodelsurfaces; i++) {
         msurface_t* s = &world->surfaces[i];
 
         if ((s->flags & (SURF_DRAWSKY | SURF_DRAWTILED)) || !s->plane || s->lightmaptexturenum < 0) {
@@ -239,22 +247,25 @@ bool IsLightmapAtlasReady(model_t* world, const int (*lightmap_textures)[64]) {
 }
 
 bool ComputeMapExtent(model_t* world, ncl_math::Aabb3& out) {
+    constexpr float kFullSpanToHalfSpan = 0.5f;
+    constexpr float kMapExtentPaddingScale = 1.04f;
+    constexpr float kMinimumHalfSpan = 1.0f;
     ncl_math::Aabb3 bounds{{world->mins[0], world->mins[1], world->mins[2]},
                            {world->maxs[0], world->maxs[1], world->maxs[2]}};
     ncl_math::Vector3 center = bounds.Center();
     ncl_math::Vector3 size = bounds.Size();
 
-    float half_span = std::max(size.x, size.y) * 0.5f * 1.04f;
+    float half_span = std::max(size.x, size.y) * kFullSpanToHalfSpan * kMapExtentPaddingScale;
 
-    if (half_span < 1.0f) {
+    if (half_span < kMinimumHalfSpan) {
         return false;
     }
 
     out = {{center.x - half_span, center.y - half_span, bounds.min.z},
            {center.x + half_span, center.y + half_span, bounds.max.z}};
 
-    if (out.max.z - out.min.z < 1.0f) {
-        out.max.z = out.min.z + 1.0f;
+    if (out.max.z - out.min.z < kMinimumHeightSpan) {
+        out.max.z = out.min.z + kMinimumHeightSpan;
     }
 
     return true;
@@ -350,7 +361,8 @@ RuntimeMap MapRender_Generate(model_t* world, bool textured, bool slice, RadarMa
         *status = RadarMapStatus::Waiting;
     }
 
-    if (!world || world->numsurfaces <= 0 || !world->surfaces) {
+    if (!world || world->numsurfaces <= 0 || !world->surfaces || world->firstmodelsurface < 0 ||
+        world->nummodelsurfaces <= 0 || world->firstmodelsurface > world->numsurfaces - world->nummodelsurfaces) {
         return rm;
     }
 
@@ -400,7 +412,7 @@ RuntimeMap MapRender_Generate(model_t* world, bool textured, bool slice, RadarMa
     float fzmax;
     ComputeFloorZRange(world, excluded_surfaces, fzmin, fzmax);
 
-    if (fzmax - fzmin < 1.0f) {
+    if (fzmax - fzmin < kMinimumHeightSpan) {
         fzmin = extent.min.z;
         fzmax = extent.max.z;
     }

@@ -12,8 +12,9 @@ foreach(shader IN LISTS shader_names)
 endforeach()
 configure_file("${RADAR_ROOT}/RadarShaders.h.in" "${CMAKE_CURRENT_BINARY_DIR}/RadarShaders.h" @ONLY)
 add_executable(radar_gl_tests
-    ../main.cpp ../RadarMapLayerFixtures.cpp renderer_tests.cpp
+    ../main.cpp ../RadarMapLayerFixtures.cpp renderer_tests.cpp label_tests.cpp
     "${RADAR_ROOT}/hud/radar/map/MapLayerRenderer.cpp"
+    "${RADAR_ROOT}/hud/radar/map/MapRender.cpp"
     "${RADAR_ROOT}/hud/radar/map/MapRenderState.cpp"
     "${RADAR_ROOT}/hud/radar/map/MapImageTone.cpp"
     "${RADAR_ROOT}/hud/radar/map/MapGeometry.cpp"
@@ -23,6 +24,9 @@ add_executable(radar_gl_tests
     "${RADAR_ROOT}/hud/radar/map/layers/MapLayerCache.cpp"
     "${RADAR_ROOT}/hud/radar/render/RadarDraw.cpp"
     "${RADAR_ROOT}/hud/radar/render/RadarDrawEffects.cpp"
+    "${RADAR_ROOT}/hud/radar/render/text/HudTextBuffer.cpp"
+    "${RADAR_ROOT}/hud/radar/render/text/HudTextZone.cpp"
+    "${RADAR_ROOT}/hud/radar/render/text/RadarLabel.cpp"
     "${RADAR_ROOT}/hud/radar/integration/Performance.cpp"
     "${RADAR_ROOT}/ncl_gl/program.cpp"
     "${RADAR_ROOT}/ncl_gl/context.cpp"

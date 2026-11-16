@@ -17,6 +17,9 @@
 namespace {
 // Multisample resolve must be 1:1; filtering runs on separate half-resolution targets.
 constexpr int kBlurDownscale = 2;
+constexpr int kMinimumBlurCapturePixels = 4;
+constexpr float kCapturePixelRoundingBias = 0.5f;
+constexpr float kMapEdgeFeatherPixels = 1.5f;
 
 struct BlurPass {
     GLuint target;
@@ -107,7 +110,7 @@ bool RadarDrawContext::DrawBlurBackground(float box_x, float box_y, float box_si
     performance::PerformanceMonitorInterface* monitor = performance_.get_monitor();
     int isize = (int)box_size;
 
-    if (isize < 4) {
+    if (isize < kMinimumBlurCapturePixels) {
         return false;
     }
 
@@ -128,14 +131,14 @@ bool RadarDrawContext::DrawBlurBackground(float box_x, float box_y, float box_si
     float sx = (float)vp[2] / hud_w;
     float sy = (float)vp[3] / hud_h;
 
-    int cap_x = vp[0] + (int)(box_x * sx + 0.5f);
-    int cap_y = vp[1] + vp[3] - (int)((box_y + box_size) * sy + 0.5f);
-    int cap_w = (int)(box_size * sx + 0.5f);
-    int cap_h = (int)(box_size * sy + 0.5f);
+    int cap_x = vp[0] + (int)(box_x * sx + kCapturePixelRoundingBias);
+    int cap_y = vp[1] + vp[3] - (int)((box_y + box_size) * sy + kCapturePixelRoundingBias);
+    int cap_w = (int)(box_size * sx + kCapturePixelRoundingBias);
+    int cap_h = (int)(box_size * sy + kCapturePixelRoundingBias);
     cap_x = std::max(cap_x, vp[0]);
     cap_y = std::max(cap_y, vp[1]);
-    cap_w = std::max(cap_w, 4);
-    cap_h = std::max(cap_h, 4);
+    cap_w = std::max(cap_w, kMinimumBlurCapturePixels);
+    cap_h = std::max(cap_h, kMinimumBlurCapturePixels);
     cap_w = std::min(cap_w, vp[0] + vp[2] - cap_x);
     cap_h = std::min(cap_h, vp[1] + vp[3] - cap_y);
 
@@ -274,7 +277,7 @@ bool RadarDrawContext::DrawBlurBackground(float box_x, float box_y, float box_si
 
     glUniform2f(blur.loc[RadarDrawUniform::kBlurCenter], box_x + box_size * 0.5f, box_y + box_size * 0.5f);
     glUniform1f(blur.loc[RadarDrawUniform::kBlurRadius], box_size * 0.5f);
-    glUniform1f(blur.loc[RadarDrawUniform::kBlurFeather], 1.5f);
+    glUniform1f(blur.loc[RadarDrawUniform::kBlurFeather], kMapEdgeFeatherPixels);
     glUniform1f(blur.loc[RadarDrawUniform::kBlurSquare], square ? 1.0f : 0.0f);
     glUniform1f(blur.loc[RadarDrawUniform::kBlurDarken], darken);
     glUniform1f(blur.loc[RadarDrawUniform::kBlurAlpha], alpha);
@@ -351,7 +354,7 @@ void RadarDrawContext::EndMask() {
 void RadarDrawContext::DrawMapTexture(unsigned int tex, std::span<const float, 8> xy, std::span<const float, 8> uv,
                                       ncl_math::ColorF color, ncl_math::Vector2 center, float radius, bool square,
                                       bool smoothing) {
-    if (!BeginMask(center, radius, 1.5f, 0.0f, square)) {
+    if (!BeginMask(center, radius, kMapEdgeFeatherPixels, 0.0f, square)) {
         return;
     }
 

@@ -16,9 +16,83 @@
 
 cl_enginefunc_t gEngfuncs{};
 
+const int (*NativeRadar_Lightmaps())[64] {
+    return nullptr;
+}
+
 namespace {
 constexpr int kImageSize = 128;
 constexpr int kPixelComponents = 4;
+
+struct BspMapFixture {
+    static constexpr int kSurfaceCount = 4;
+    static constexpr int kVerticesPerSurface = 4;
+    std::unique_ptr<model_t> world = std::make_unique<model_t>();
+    std::array<msurface_t, kSurfaceCount> surfaces{};
+    std::array<mplane_t, kSurfaceCount> planes{};
+    std::array<mvertex_t, kSurfaceCount * kVerticesPerSurface> vertices{};
+    std::array<medge_t, kSurfaceCount * kVerticesPerSurface + 1> edges{};
+    std::array<int, kSurfaceCount * kVerticesPerSurface> surfedges{};
+
+    BspMapFixture() {
+        world->type = mod_brush;
+        world->surfaces = surfaces.data();
+        world->numsurfaces = static_cast<int>(surfaces.size());
+        world->firstmodelsurface = 1;
+        world->nummodelsurfaces = 2;
+        world->vertexes = vertices.data();
+        world->numvertexes = static_cast<int>(vertices.size());
+        world->edges = edges.data();
+        world->numedges = static_cast<int>(edges.size());
+        world->surfedges = surfedges.data();
+        world->numsurfedges = static_cast<int>(surfedges.size());
+        world->mins[2] = -128.0f;
+        world->maxs[0] = 256.0f;
+        world->maxs[1] = 256.0f;
+        world->maxs[2] = 256.0f;
+        SetSurface(1, 0.0f, 0.0f, 128.0f);
+        SetSurface(2, 64.0f, 128.0f, 256.0f);
+    }
+
+    void SetSurface(int index, float height, float left, float right, int flags = 0) {
+        msurface_t& surface = surfaces[index];
+        surface.plane = &planes[index];
+        surface.plane->normal[2] = 1.0f;
+        surface.plane->dist = height;
+        surface.flags = flags;
+        surface.firstedge = index * kVerticesPerSurface;
+        surface.numedges = kVerticesPerSurface;
+        const ncl_math::Vector3 points[] = {
+            {left, 0.0f, height}, {right, 0.0f, height}, {right, 256.0f, height}, {left, 256.0f, height}};
+
+        for (int corner = 0; corner < kVerticesPerSurface; corner++) {
+            int vertex = surface.firstedge + corner;
+            std::copy_n(points[corner].data(), 3, vertices[vertex].position);
+            int edge = vertex + 1;
+            edges[edge].v[0] = static_cast<unsigned short>(vertex);
+            edges[edge].v[1] = static_cast<unsigned short>(surface.firstedge + (corner + 1) % kVerticesPerSurface);
+            surfedges[vertex] = edge;
+        }
+    }
+};
+
+std::vector<unsigned char> GenerateFallbackPixels(model_t* world) {
+    RadarMapStatus status{};
+    RuntimeMap map = MapRender_Generate(world, false, false, &status);
+    struct ReleaseMap {
+        RuntimeMap& map;
+        ~ReleaseMap() {
+            MapRender_Free(map);
+        }
+    } release{map};
+    CHECK_EQ(status, RadarMapStatus::Ready);
+    CHECK_TRUE(map.valid);
+    glBindTexture(GL_TEXTURE_2D, map.texture);
+    std::vector<unsigned char> pixels(kMapImageSize * kMapImageSize * kPixelComponents);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    CHECK_EQ(glGetError(), GL_NO_ERROR);
+    return pixels;
+}
 
 void ShaderFailure(char* format, ...) {
     va_list arguments;
@@ -369,6 +443,36 @@ RADAR_TEST_F(RadarGpuTest, GeneratedTexturedAndFlatFloorLayersRenderActualPixels
         CHECK_EQ(glGetError(), GL_NO_ERROR);
     }
     glDeleteTextures(static_cast<GLsizei>(textures.size()), textures.data());
+}
+
+RADAR_TEST_F(RadarGpuTest, FallbackMapIgnoresSubmodelGeometryAndHeightRange) {
+    BspMapFixture fixture;
+    fixture.SetSurface(0, -1024.0f, 0.0f, 256.0f);
+    fixture.SetSurface(3, 96.0f, 0.0f, 256.0f);
+    model_t baseline = *fixture.world;
+    baseline.surfaces = fixture.surfaces.data() + 1;
+    baseline.numsurfaces = 2;
+    baseline.firstmodelsurface = 0;
+
+    std::vector<unsigned char> expected = GenerateFallbackPixels(&baseline);
+    CHECK_EQ(expected[(512 * kMapImageSize + 256) * kPixelComponents + 3], 255);
+    CHECK_EQ(expected[(512 * kMapImageSize + 768) * kPixelComponents + 3], 255);
+    CHECK_TRUE(GenerateFallbackPixels(fixture.world.get()) == expected);
+}
+
+RADAR_TEST_F(RadarGpuTest, FallbackMapIgnoresSubmodelSkyCaps) {
+    BspMapFixture fixture;
+    fixture.SetSurface(0, 16.0f, 0.0f, 128.0f, SURF_DRAWSKY);
+    fixture.SetSurface(3, 80.0f, 128.0f, 256.0f, SURF_DRAWSKY);
+    model_t baseline = *fixture.world;
+    baseline.surfaces = fixture.surfaces.data() + 1;
+    baseline.numsurfaces = 2;
+    baseline.firstmodelsurface = 0;
+
+    std::vector<unsigned char> expected = GenerateFallbackPixels(&baseline);
+    CHECK_EQ(expected[(512 * kMapImageSize + 256) * kPixelComponents + 3], 255);
+    CHECK_EQ(expected[(512 * kMapImageSize + 768) * kPixelComponents + 3], 255);
+    CHECK_TRUE(GenerateFallbackPixels(fixture.world.get()) == expected);
 }
 
 RADAR_TEST_F(RadarGpuTest, ContextReplacementDiscardsOldNamesAndRebuildsPrograms) {

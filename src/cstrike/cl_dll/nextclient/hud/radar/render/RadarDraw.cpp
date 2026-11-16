@@ -24,6 +24,11 @@
 
 namespace {
 
+constexpr float kColorByteScale = 255.0f;
+constexpr float kPrimitivePaddingPixels = 2.0f;
+constexpr float kDiscFeatherPixels = 1.2f;
+constexpr float kShapeFeatherPixels = 1.1f;
+
 constexpr const char* kMaskUniforms[RadarDrawUniform::kMaskCount] = {
     "uMode",          "uCenter",  "uRadius",    "uFeather",   "uGamma",     "uSquare",
     "uPremultiplied", "uAlphaAa", "uRingInner", "uRingColor", "uFadeColor", "uFadeAmt",
@@ -103,7 +108,7 @@ void RadarDrawContext::ResetGl(bool release) {
     owning_window_ = nullptr;
     prim_region_ = 0;
     clip_center_ = {};
-    clip_r_ = 1.0e9f;
+    clip_r_ = kUnboundedClipRadius;
     clip_square_ = false;
     fade_color_ = {};
     fade_amt_ = 0.0f;
@@ -132,7 +137,7 @@ void RadarDrawContext::SetPrimClip(ncl_math::Vector2 center, float radius, bool 
 
 void RadarDrawContext::ClearPrimClip() {
     clip_center_ = {};
-    clip_r_ = 1.0e9f;
+    clip_r_ = kUnboundedClipRadius;
     clip_square_ = false;
 }
 
@@ -157,8 +162,8 @@ void RadarDrawContext::SetFade(ncl_math::Color color) {
     // The fade applies per batch at flush time; queued primitives must be committed first
     // or the change recolors them retroactively.
     FlushPrims();
-    fade_color_ = ncl_math::ColorF{color.r / 255.0f, color.g / 255.0f, color.b / 255.0f};
-    fade_amt_ = std::clamp(color.a / 255.0f, 0.0f, 1.0f);
+    fade_color_ = ncl_math::ColorF{color.r / kColorByteScale, color.g / kColorByteScale, color.b / kColorByteScale};
+    fade_amt_ = std::clamp(color.a / kColorByteScale, 0.0f, 1.0f);
 }
 
 void RadarDrawContext::ClearFade() {
@@ -204,39 +209,46 @@ void RadarDrawContext::DrawPolyline(std::span<const ncl_math::Vector2> points, s
             corners[corner].pos[0] = positions[corner].x;
             corners[corner].pos[1] = positions[corner].y;
         }
-        corners[0].color[3] = alpha[i] / 255.0f;
-        corners[1].color[3] = alpha[i] / 255.0f;
-        corners[2].color[3] = alpha[i + 1] / 255.0f;
-        corners[3].color[3] = alpha[i + 1] / 255.0f;
+        corners[0].color[3] = alpha[i] / kColorByteScale;
+        corners[1].color[3] = alpha[i] / kColorByteScale;
+        corners[2].color[3] = alpha[i + 1] / kColorByteScale;
+        corners[3].color[3] = alpha[i + 1] / kColorByteScale;
         AddQuad(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, corners);
     });
 }
 
 void RadarDrawContext::DrawDisc(ncl_math::Vector2 center, float radius, ncl_math::Color color) {
-    float e = radius + 2.0f;
+    float e = radius + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeDisc,
-                  .feather = 1.2f,
+                  .feather = kDiscFeatherPixels,
                   .center = center,
                   .radius = radius,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, {{center.x - e, center.y - e}, {center.x + e, center.y + e}});
 }
 
 void RadarDrawContext::DrawPlayerMarkerFade(const RadarDrawPlayerMarker& current, const RadarDrawPlayerMarker& previous,
                                             float radius, ncl_math::Color color) {
-    ncl_math::Vector2 current_dir{}, previous_dir{};
+    constexpr float kMarkerExtentScale = 2.0f;
+    constexpr float kMarkerFeatherPixels = 1.2f;
+    // Must match the offscreen flag decoding in radar_prim.frag.
+    constexpr float kCurrentOffscreenFlag = 1.0f;
+    constexpr float kPreviousOffscreenFlag = 2.0f;
+    ncl_math::Vector2 current_dir{};
+    ncl_math::Vector2 previous_dir{};
     ncl_math::TryNormalize(current.direction, &current_dir);
     ncl_math::TryNormalize(previous.direction, &previous_dir);
-    float flags = (current.offscreen ? 1.0f : 0.0f) + (previous.offscreen ? 2.0f : 0.0f);
+    float flags = (current.offscreen ? kCurrentOffscreenFlag : 0.0f) +
+                  (previous.offscreen ? kPreviousOffscreenFlag : 0.0f);
     ncl_math::Aabb2 bounds = ncl_math::Aabb2::Empty();
     bounds.Include(current.pos);
     bounds.Include(previous.pos);
-    bounds = bounds.Expanded(radius * 2.0f + 2.0f);
+    bounds = bounds.Expanded(radius * kMarkerExtentScale + kPrimitivePaddingPixels);
     AddShapeQuad(
         {
             .shape = kShapePlayerMarkerFade,
-            .feather = 1.2f,
+            .feather = kMarkerFeatherPixels,
             .center = current.pos,
             .radius = radius,
             .len = previous.opacity,
@@ -257,11 +269,11 @@ void RadarDrawContext::DrawTriangle(ncl_math::Vector2 p0, ncl_math::Vector2 p1, 
     bb.Include(p0);
     bb.Include(p1);
     bb.Include(p2);
-    bb = bb.Expanded(2.0f);
+    bb = bb.Expanded(kPrimitivePaddingPixels);
     AddShapeQuad({.shape = kShapeTriangle,
-                  .feather = 1.1f,
+                  .feather = kShapeFeatherPixels,
                   .color = color,
-                  .alpha = color.a / 255.0f,
+                  .alpha = color.a / kColorByteScale,
                   .t0 = p0,
                   .t1 = p1,
                   .t2 = p2},
@@ -276,7 +288,7 @@ void RadarDrawContext::DrawRect(ncl_math::Vector2 min, ncl_math::Vector2 max, nc
     v.color[0] = cf.r;
     v.color[1] = cf.g;
     v.color[2] = cf.b;
-    v.color[3] = color.a / 255.0f;
+    v.color[3] = color.a / kColorByteScale;
 
     PrimVertex corners[4] = {v, v, v, v};
     const ncl_math::Vector2 pos[4] = {{min.x, min.y}, {max.x, min.y}, {max.x, max.y}, {min.x, max.y}};
@@ -293,10 +305,10 @@ void RadarDrawContext::DrawGlyph(unsigned int atlas, const ncl_math::Aabb2& rect
                                  ncl_math::Color fill) {
     PrimVertex v{};
     v.shape[0] = kShapeGlyph;
-    v.color[0] = fill.r / 255.0f;
-    v.color[1] = fill.g / 255.0f;
-    v.color[2] = fill.b / 255.0f;
-    v.color[3] = fill.a / 255.0f;
+    v.color[0] = fill.r / kColorByteScale;
+    v.color[1] = fill.g / kColorByteScale;
+    v.color[2] = fill.b / kColorByteScale;
+    v.color[3] = fill.a / kColorByteScale;
 
     PrimVertex corners[4] = {v, v, v, v};
     const ncl_math::Vector2 pos[4] = {
@@ -315,73 +327,77 @@ void RadarDrawContext::DrawGlyph(unsigned int atlas, const ncl_math::Aabb2& rect
 }
 
 void RadarDrawContext::DrawBomb(ncl_math::Vector2 center, float half_extent, ncl_math::Color color) {
-    float margin = half_extent + 2.0f;
+    float margin = half_extent + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeBomb,
-                  .feather = 1.1f,
+                  .feather = kShapeFeatherPixels,
                   .center = center,
                   .radius = half_extent,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
                  {{center.x - margin, center.y - margin}, {center.x + margin, center.y + margin}});
 }
 
 void RadarDrawContext::DrawDisconnectedSignal(ncl_math::Vector2 center, float half_extent, float half_width,
                                               ncl_math::Color color) {
-    float margin = half_extent + half_width + 2.0f;
+    constexpr float kSignalFeatherPixels = 0.75f;
+    float margin = half_extent + half_width + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeDisconnectedSignal,
-                  .feather = 0.75f,
+                  .feather = kSignalFeatherPixels,
                   .center = center,
                   .radius = half_extent,
                   .len = half_width,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
                  {{center.x - margin, center.y - margin}, {center.x + margin, center.y + margin}});
 }
 
 void RadarDrawContext::DrawCross(ncl_math::Vector2 center, float half_extent, float half_width, ncl_math::Color color) {
-    float m = half_extent + half_width + 2.0f;
+    float m = half_extent + half_width + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeCross,
-                  .feather = 1.1f,
+                  .feather = kShapeFeatherPixels,
                   .center = center,
                   .radius = half_extent,
                   .len = half_width,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, {{center.x - m, center.y - m}, {center.x + m, center.y + m}});
 }
 
 void RadarDrawContext::DrawQuestionMark(ncl_math::Vector2 center, float half_extent, float half_width,
                                         ncl_math::Color color) {
-    float m = half_extent + half_width + 2.0f;
+    float m = half_extent + half_width + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeQuestionMark,
-                  .feather = 1.1f,
+                  .feather = kShapeFeatherPixels,
                   .center = center,
                   .radius = half_extent,
                   .len = half_width,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, {{center.x - m, center.y - m}, {center.x + m, center.y + m}});
 }
 
 void RadarDrawContext::DrawRing(ncl_math::Vector2 center, float outer, float inner, ncl_math::Color color) {
-    float m = outer + 2.0f;
+    float m = outer + kPrimitivePaddingPixels;
     AddShapeQuad({.shape = kShapeRing,
-                  .feather = 1.1f,
+                  .feather = kShapeFeatherPixels,
                   .center = center,
                   .radius = outer,
                   .len = inner,
                   .color = color,
-                  .alpha = color.a / 255.0f},
+                  .alpha = color.a / kColorByteScale},
                  GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, {{center.x - m, center.y - m}, {center.x + m, center.y + m}});
 }
 
 void RadarDrawContext::DrawBorderRing(ncl_math::Vector2 center, float outer, float inner, float feather,
                                       ncl_math::Color color) {
+    // sin(pi / 4), retaining the upstream precision for the eighth-circle rasterizer.
+    constexpr float kOctantRadiusScale = 0.70710678f;
+    constexpr float kPixelRoundingBias = 0.5f;
     if (BeginMaskRing(center, outer, inner, feather, color.ToFloat(), false)) {
         SetBlend(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        float m = outer + 2.0f;
+        float m = outer + kPrimitivePaddingPixels;
         glBegin(GL_QUADS);
         glVertex2f(center.x - m, center.y - m);
         glVertex2f(center.x + m, center.y - m);
@@ -422,10 +438,10 @@ void RadarDrawContext::DrawBorderRing(ncl_math::Vector2 center, float outer, flo
             break;
         }
 
-        int count = (int)(0.70710678f * rr + 0.5f);
+        int count = (int)(kOctantRadiusScale * rr + kPixelRoundingBias);
 
         for (int i = 0; i <= count; i++) {
-            int s = (int)(std::sqrt((float)(rr * rr - i * i)) + 0.5f);
+            int s = (int)(std::sqrt((float)(rr * rr - i * i)) + kPixelRoundingBias);
             px(icx + i, icy + s);
             px(icx + i, icy - s);
             px(icx - i, icy + s);
@@ -444,6 +460,7 @@ void RadarDrawContext::DrawBorderRing(ncl_math::Vector2 center, float outer, flo
 
 void RadarDrawContext::DrawCone(ncl_math::Vector2 apex, ncl_math::Vector2 dir, float length, float spread,
                                 ncl_math::Color color, float peak_alpha) {
+    constexpr float kConeFeatherPixels = 1.5f;
     ncl_math::Vector2 perp = dir.Perp();
     float hw = length * tanf(spread);
     ncl_math::Vector2 tip = apex + dir * length;
@@ -451,9 +468,9 @@ void RadarDrawContext::DrawCone(ncl_math::Vector2 apex, ncl_math::Vector2 dir, f
     bb.Include(apex);
     bb.Include(tip + perp * hw);
     bb.Include(tip - perp * hw);
-    bb = bb.Expanded(2.0f);
+    bb = bb.Expanded(kPrimitivePaddingPixels);
     AddShapeQuad({.shape = kShapeCone,
-                  .feather = 1.5f,
+                  .feather = kConeFeatherPixels,
                   .center = apex,
                   .len = length,
                   .dir = dir,
@@ -478,16 +495,20 @@ ncl_gl::Program& RadarDrawContext::GetBlurProgram() {
 }
 
 void RadarDrawContext::DrawLayerIndicator(ncl_math::Vector2 screen, int vertical, int size, ncl_math::Color color) {
+    constexpr float kIndicatorHalfSpanScale = 0.6f;
+    constexpr float kIndicatorWidthScale = 0.3f;
+    constexpr float kIndicatorMinimumWidthPixels = 1.0f;
+    constexpr float kIndicatorHeightScale = 0.5f;
     if (vertical == 0) {
         return;
     }
 
-    float half = size * 0.6f;
-    float width = std::max(1.0f, size * 0.3f);
+    float half = size * kIndicatorHalfSpanScale;
+    float width = std::max(kIndicatorMinimumWidthPixels, size * kIndicatorWidthScale);
     ncl_math::Vector2 points[] = {
-        screen + ncl_math::Vector2{-half, vertical * half * 0.5f},
-        screen + ncl_math::Vector2{0.0f, -vertical * half * 0.5f},
-        screen + ncl_math::Vector2{half, vertical * half * 0.5f},
+        screen + ncl_math::Vector2{-half, vertical * half * kIndicatorHeightScale},
+        screen + ncl_math::Vector2{0.0f, -vertical * half * kIndicatorHeightScale},
+        screen + ncl_math::Vector2{half, vertical * half * kIndicatorHeightScale},
     };
     uint8_t alpha[] = {color.a, color.a, color.a};
     DrawPolyline(points, alpha, color, width);
