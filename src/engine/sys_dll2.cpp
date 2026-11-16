@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #if defined(__APPLE__)
 #include "native_socket_lifetime.h"
 #endif
@@ -1719,6 +1720,12 @@ CDedicatedServerAPI::~CDedicatedServerAPI()
 
 void Sys_VID_FlipScreen()
 {
+#if !defined(SW_RENDERER)
+    if (cse::render::UsingMetal()) {
+        cse::render::PresentBackendFrame(Cvar_VariableValue("gl_vsync") > 0, COM_CheckParm("-stretchaspect") == 0);
+        return;
+    }
+#endif
 	if ( pmainwindow != nullptr )
 		SDL_GL_SwapWindow( *pmainwindow );
 }

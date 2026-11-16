@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #include "screenshot.h"
 #include "vgui_background_effects.h"
 #include "../common/sdl3_policy.h"
@@ -153,6 +154,9 @@ extern "C" int VID_Init( unsigned short* )
 
 void GL_Config()
 {
+    if (cse::render::UsingMetal()) {
+        return;
+    }
 	char renderer[256];
 
 	Cbuf_InsertText( "exec hw/opengl.cfg\n" );
@@ -330,48 +334,72 @@ GL_Init
 void GL_Init() {
     int red, green, blue, alpha, depth;
 
-    gl_vendor = (const char *)qglGetString(GL_VENDOR);
-    if (!gl_vendor) {
-        Sys_Error("Failed to query gl vendor string");
-    }
-    Con_DPrintf("GL_VENDOR: %s\n", gl_vendor);
-    gl_renderer = (const char *)qglGetString(GL_RENDERER);
-    Con_DPrintf("GL_RENDERER: %s\n", gl_renderer);
-    gl_version = (const char *)qglGetString(GL_VERSION);
-    Con_DPrintf("GL_VERSION: %s\n", gl_version);
-    gl_extensions = (const char *)qglGetString(GL_EXTENSIONS);
-    g_bSupportsNPOTTextures = FALSE;
-    if (COM_CheckParm("-glext")) {
-        Con_DPrintf("GL_EXTENSIONS: %s\n", gl_extensions);
-    }
-
-    if (!SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &red)) {
-        red = 0;
-        Con_DPrintf("Failed to get GL RED size (%s)\n", SDL_GetError());
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &green)) {
-        green = 0;
-        Con_DPrintf("Failed to get GL GREEN size (%s)\n", SDL_GetError());
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &blue)) {
-        blue = 0;
-        Con_DPrintf("Failed to get GL BLUE size (%s)\n", SDL_GetError());
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &alpha)) {
-        alpha = 0;
-        Con_DPrintf("Failed to get GL ALPHA size (%s)\n", SDL_GetError());
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth)) {
-        depth = 0;
-        Con_DPrintf("Failed to get GL DEPTH size (%s)\n", SDL_GetError());
-    }
-    Con_DPrintf("GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", red, green, blue, alpha, depth);
-
-    CheckTextureExtensions();
-    CheckMultiTextureExtensions();
-    atismoothing = FALSE;
-    if (gl_extensions && Q_strstr(gl_extensions, "GL_ARB_texture_non_power_of_two")) {
+    if (cse::render::UsingMetal()) {
+        gl_vendor = "Apple";
+        gl_renderer = "Metal (SDL_GPU)";
+        gl_version = "native fixed-function renderer";
+        gl_extensions = "";
         g_bSupportsNPOTTextures = TRUE;
+        atismoothing = FALSE;
+        qglColorTableEXT = reinterpret_cast<decltype(qglColorTableEXT)>(
+            cse::render::RouteLegacyExtension("glColorTableEXT", nullptr));
+        qglMTexCoord2fSGIS = reinterpret_cast<decltype(qglMTexCoord2fSGIS)>(
+            cse::render::RouteLegacyExtension("glMultiTexCoord2fARB", nullptr));
+        qglSelectTextureSGIS = reinterpret_cast<decltype(qglSelectTextureSGIS)>(
+            cse::render::RouteLegacyExtension("glActiveTextureARB", nullptr));
+        TEXTURE0_SGIS = GL_TEXTURE0_ARB;
+        TEXTURE1_SGIS = GL_TEXTURE1_ARB;
+        TEXTURE2_SGIS = GL_TEXTURE2_ARB;
+        oldtarget = GL_TEXTURE0_ARB;
+        gl_mtexable = static_cast<int>(cse::render::kTextureUnits);
+        GL_SelectTexture(TEXTURE0_SGIS);
+        DT_Initialize();
+        Con_Printf("Renderer: %s\n", gl_renderer);
+    } else {
+        gl_vendor = (const char *)qglGetString(GL_VENDOR);
+        if (!gl_vendor) {
+            Sys_Error("Failed to query gl vendor string");
+        }
+        Con_DPrintf("GL_VENDOR: %s\n", gl_vendor);
+        gl_renderer = (const char *)qglGetString(GL_RENDERER);
+        Con_DPrintf("GL_RENDERER: %s\n", gl_renderer);
+        gl_version = (const char *)qglGetString(GL_VERSION);
+        Con_DPrintf("GL_VERSION: %s\n", gl_version);
+        gl_extensions = (const char *)qglGetString(GL_EXTENSIONS);
+        g_bSupportsNPOTTextures = FALSE;
+        if (COM_CheckParm("-glext")) {
+            Con_DPrintf("GL_EXTENSIONS: %s\n", gl_extensions);
+        }
+
+        if (!SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &red)) {
+            red = 0;
+            Con_DPrintf("Failed to get GL RED size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &green)) {
+            green = 0;
+            Con_DPrintf("Failed to get GL GREEN size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &blue)) {
+            blue = 0;
+            Con_DPrintf("Failed to get GL BLUE size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &alpha)) {
+            alpha = 0;
+            Con_DPrintf("Failed to get GL ALPHA size (%s)\n", SDL_GetError());
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth)) {
+            depth = 0;
+            Con_DPrintf("Failed to get GL DEPTH size (%s)\n", SDL_GetError());
+        }
+        Con_DPrintf("GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", red, green, blue, alpha, depth);
+
+        CheckTextureExtensions();
+        CheckMultiTextureExtensions();
+        atismoothing = FALSE;
+        if (gl_extensions && Q_strstr(gl_extensions, "GL_ARB_texture_non_power_of_two")) {
+            g_bSupportsNPOTTextures = TRUE;
+        }
+
     }
 
     qglClearColor(1.0f, 0.0f, 0.0f, 0.0f);
@@ -388,7 +416,10 @@ void GL_Init() {
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat)GL_NEAREST);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (GLfloat)GL_REPEAT);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (GLfloat)GL_REPEAT);
-    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
+    // Draw_Init registers gl_ansio later; its numeric value is still zero here.
+    constexpr float kDefaultAnisotropy = 1.0f;
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
+        cse::render::UsingMetal() ? kDefaultAnisotropy : gl_ansio.value);
 
     qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     qglTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, (GLfloat)GL_REPLACE);
@@ -478,7 +509,10 @@ void GL_BeginRendering( int* x, int* y, int* width, int* height )
 	vid.width = vid.conwidth = *width;
 	vid.height = vid.conheight = *height;
 
-	if ( gl_vsync.value != (float)vsync )
+    if (cse::render::UsingMetal()) {
+        cse::render::BeginBackendFrame(*width, *height);
+    }
+    if (!cse::render::UsingMetal() && gl_vsync.value != (float)vsync)
 	{
 		SDL_GL_SetSwapInterval( gl_vsync.value > 0.0 ? 1 : 0 );
 		vsync = (int)gl_vsync.value;
@@ -508,7 +542,7 @@ void GL_BeginRendering( int* x, int* y, int* width, int* height )
 	qglClear( clearMask );
 #endif
 
-	if ( VideoMode_IsWindowed() && bDoMSAAFBO )
+	if (!cse::render::UsingMetal() && VideoMode_IsWindowed() && bDoMSAAFBO)
 		glEnable( GL_MULTISAMPLE );
 
 	GLimp_LogNewFrame();
@@ -665,7 +699,25 @@ void GL_EndRendering()
 	else
 		frameTime = preFlipMs - gGLLowLatencyPrevPostFlipTimeMs;
 
-	VID_FlipScreen();
+    if (cse::render::UsingMetal()) {
+        int drawableWidth = 0;
+        int drawableHeight = 0;
+        cse::render::BackendDrawableSize(drawableWidth, drawableHeight);
+        s_fXMouseAspectAdjustment = 1.0f;
+        s_fYMouseAspectAdjustment = 1.0f;
+        if (s_bEnforceAspect && drawableWidth > 0 && drawableHeight > 0 && vid.width > 0 && vid.height > 0) {
+            const double sourceAspect = static_cast<double>(vid.width) / vid.height;
+            const double windowAspect = static_cast<double>(drawableWidth) / drawableHeight;
+            if (windowAspect > sourceAspect) {
+                s_fXMouseAspectAdjustment = static_cast<float>(windowAspect / sourceAspect);
+            } else {
+                s_fYMouseAspectAdjustment = static_cast<float>(sourceAspect / windowAspect);
+            }
+        }
+        cse::render::PresentBackendFrame(gl_vsync.value > 0, s_bEnforceAspect != 0);
+    } else {
+        VID_FlipScreen();
+    }
 
 	postFlipMs = Sys_FloatTime() * 1000.0;
 
@@ -673,7 +725,7 @@ void GL_EndRendering()
 	{
 		double interval, flipCost, budget, slop, throttle, limit;
 
-		glFinish();
+        qglFinish();
 
 #if defined( _WIN32 )
 		interval = 1.0 / (double)GetRefreshRate() * 1000.0;
@@ -847,6 +899,10 @@ int GL_SetMode(CseGameWindowHandle mainwindow, CseVideoDC *pmaindc, CseVideoCont
 
 #endif
 
+    if (cse::render::UsingMetal()) {
+        bDoMSAAFBO = 0;
+        return 1;
+    }
     QGL_Init(pszDriver, pszCmdLine);
 
     extensions = (const char *)qglGetString(GL_EXTENSIONS);
@@ -989,17 +1045,27 @@ int GL_SetMode(CseGameWindowHandle mainwindow, CseVideoDC *pmaindc, CseVideoCont
 
 void GL_Shutdown( CseGameWindowHandle, CseVideoDC, CseVideoContext )
 {
-	FreeFBOObjects();
+    if (cse::render::UsingMetal()) {
+        cse::render::FlushBackend();
+        return;
+    }
+    FreeFBOObjects();
 }
 
-static bool CaptureSnapshot(const char* filename, int x, int y, int width, int height) {
+static bool CaptureSnapshot(const char* filename, int x, int y, int width, int height, bool presented) {
     std::vector<unsigned char> pixels;
     std::vector<unsigned char> encoded;
     if (!cse::capture::AllocateRGB(width, height, pixels)) {
         return false;
     }
     qglPixelStorei(GL_PACK_ALIGNMENT, 1);
-    qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    if (cse::render::UsingMetal()) {
+        if (!cse::render::BackendReadPixels(presented, x, y, width, height, 3, 1, pixels.data())) {
+            return false;
+        }
+    } else {
+        qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    }
     return cse::image::EncodeWebPLossless(pixels.data(), width, height, width * cse::image::RgbChannels,
         cse::image::RgbChannels, true, encoded) && cse::capture::WriteWebP(filename, encoded);
 }
@@ -1014,13 +1080,16 @@ void VID_TakeSnapshot(const char* filename) {
         width = static_cast<int>(vid.width);
         height = static_cast<int>(vid.height);
     }
-    if (!CaptureSnapshot(filename, 0, 0, width, height)) {
+    if (cse::render::UsingMetal()) {
+        cse::render::BackendDrawableSize(width, height);
+    }
+    if (!CaptureSnapshot(filename, 0, 0, width, height, true)) {
         Con_Printf("Couldn't write WebP snapshot %s\n", filename);
     }
 }
 
 void VID_TakeSnapshotRect(char* filename, int x, int y, int width, int height) {
-    if (!CaptureSnapshot(filename, x, y, width, height)) {
+    if (!CaptureSnapshot(filename, x, y, width, height, false)) {
         Con_Printf("Couldn't write WebP snapshot %s\n", filename);
     }
 }

@@ -1,3 +1,13 @@
+# The hardware engine alone owns Metal. Dedicated/HLTV and OFF builds require no Metal tooling.
+if(APPLE)
+  option(CSE_ENABLE_METAL "Build the native macOS Metal renderer (default backend)" ON)
+else()
+  option(CSE_ENABLE_METAL "Build the native macOS Metal renderer (default backend)" OFF)
+  if(CSE_ENABLE_METAL)
+    message(FATAL_ERROR "CSE_ENABLE_METAL requires macOS")
+  endif()
+endif()
+
 # Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(hw_engine SHARED "hw")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
@@ -1527,4 +1537,17 @@ if(MSVC)
   set_property(SOURCE "${CSE_SDK_DIR}/engine/gl_vidnt.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
 else()
   set_property(SOURCE "${CSE_SDK_DIR}/engine/gl_vidnt.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+endif()
+
+if(CSE_ENABLE_METAL)
+  target_compile_definitions(hw_engine PRIVATE CSE_ENABLE_METAL=1)
+  include("${CMAKE_CURRENT_LIST_DIR}/MetalShaders.cmake")
+  cse_add_metal_shaders(hw_engine)
+endif()
+if(NOT MSVC)
+  set_property(SOURCE "${CSE_SDK_DIR}/engine/render/backend.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+  if(CSE_ENABLE_METAL)
+    set_property(SOURCE "${CSE_SDK_DIR}/engine/render/native/metal_draw.cpp"
+      "${CSE_SDK_DIR}/engine/render/native/metal_session.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+  endif()
 endif()

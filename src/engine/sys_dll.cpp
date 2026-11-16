@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #include "common.h"
 #include "filesystem.h"
 #include "server.h"
@@ -1215,7 +1216,9 @@ void ForceReloadProfile()
 	Key_SetBinding( '`', const_cast<char*>( "toggleconsole" ) );
 	Key_SetBinding( K_ESCAPE, const_cast<char*>( "cancelselect" ) );
 
-	SDL_GL_SetSwapInterval( ( gl_vsync.value <= 0.0f ) - 1 );
+    if (!cse::render::UsingMetal()) {
+        SDL_GL_SetSwapInterval((gl_vsync.value <= 0.0f) - 1);
+    }
 
 	if ( cls.state != ca_dedicated )
 	{

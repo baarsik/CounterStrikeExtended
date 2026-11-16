@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #if defined(__APPLE__)
 #include "VGui1NativeAtlas.h"
 // Existing two-unit GL_SelectTexture cache from gl_rmain/gl_draw.
@@ -828,6 +829,10 @@ void EngineSurface::resetViewPort()
 #if defined(__APPLE__)
 namespace cse_vgui1_native {
 bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
+    if (cse::render::UsingMetal()) {
+        return surface && id > 0 && pixels && bytes == AtlasPageBytes &&
+            UploadOwnedInterface(surface, id, pixels, AtlasSide) && cse::render::BackendUploadSucceeded();
+    }
     const auto getError = reinterpret_cast<decltype(&glGetError)>(SDL_GL_GetProcAddress("glGetError"));
     if (!surface || id <= 0 || !pixels || bytes != AtlasPageBytes || !getError) {
         return false;

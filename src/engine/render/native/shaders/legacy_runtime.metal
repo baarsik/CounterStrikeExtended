@@ -59,8 +59,9 @@ float4 Environment(float4 previous, float4 sampleValue, float4 unit, float4 comp
             result = float4(components.x != 0.0f ? sampleValue.rgb : previous.rgb,
                 components.y != 0.0f ? sampleValue.a : previous.a);
         } else {
-            // Missing RGB/alpha components expand to one for modulation, including filtered border samples.
-            float4 modulation = float4(components.x != 0.0f ? sampleValue.rgb : float3(1),
+            // ALPHA contributes RGB zero to COMBINE (ARB_texture_env_combine Table 3.23).
+            // Plain MODULATE preserves the incoming RGB when that component is absent.
+            float4 modulation = float4(components.x != 0.0f ? sampleValue.rgb : float3(unit.y == 2.0f ? 0 : 1),
                 components.y != 0.0f ? sampleValue.a : 1.0f);
             result = previous * modulation;
             if (unit.y == 2.0f) {

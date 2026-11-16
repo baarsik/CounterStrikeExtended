@@ -1,3 +1,5 @@
+#include "render/backend.h"
+#include "conprint.h"
 #include "video_platform.h"
 #include "filesystem.h"
 #include "const.h"
@@ -2819,6 +2821,9 @@ static void APIENTRY logViewport( GLint x, GLint y, GLsizei width, GLsizei heigh
 
 extern "C" void QGL_Shutdown()
 {
+    if (cse::render::UsingMetal()) {
+        return;
+    }
     R_ResetStudioMeshBatch();
     cse::render::RemoveLegacyDispatch();
 	glw_state.hinstOpenGL = NULL;
@@ -3183,6 +3188,9 @@ extern "C" void QGL_Shutdown()
 
 extern "C" CseGLModule QGL_Init( const char*, const char* )
 {
+    if (cse::render::UsingMetal()) {
+        return nullptr;
+    }
     R_ResetStudioMeshBatch();
     cse::render::RemoveLegacyDispatch();
     // The retained return value marks a populated GL function table, not an OS module lease.
@@ -3603,6 +3611,10 @@ extern "C" CseGLModule QGL_Init( const char*, const char* )
 
 extern "C" void GLimp_EnableLogging()
 {
+    if (cse::render::UsingMetal()) {
+        Con_Printf("GL call logging is unavailable with the Metal renderer\n");
+        return;
+    }
 	if ( !glw_state.log_fp )
 	{
 		time_t aclock;

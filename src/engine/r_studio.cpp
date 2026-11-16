@@ -1,3 +1,4 @@
+#include "render/backend.h"
 // r_studio.c: routines for setting up to draw 3DStudio models 
 #if defined( SW_RENDERER )
 
@@ -5592,6 +5593,7 @@ static void R_LightStrength( int bone, float* vert, float light[3][4] )
 namespace {
     cse::studio::MeshCache studioMeshCache;
     std::vector<cse::studio::DrawVertex> studioDrawVertices;
+    std::vector<cse::render::Vertex> studioNativeVertices;
     cse::studio::GLFunctions studioBatchGL;
     bool studioBatchContextInitialized = false;
 
@@ -5676,6 +5678,9 @@ namespace {
         }
         try {
             studioDrawVertices.resize(topology->vertices.size());
+            if (cse::render::UsingMetal()) {
+                studioNativeVertices.resize(topology->vertices.size());
+            }
         } catch (const std::bad_alloc&) {
             return false;
         } catch (const std::length_error&) {
@@ -5707,6 +5712,17 @@ namespace {
                 vertex.color[3] = r_blend;
             }
         }
+        if (cse::render::UsingMetal()) {
+            for (std::size_t index = 0; index < studioNativeVertices.size(); ++index) {
+                const auto& source = studioDrawVertices[index];
+                auto& vertex = studioNativeVertices[index];
+                vertex.position = {{source.position[0], source.position[1], source.position[2], 1}};
+                vertex.texcoords[0] = {{source.texcoord[0], source.texcoord[1], 0, 1}};
+                std::copy(source.color, source.color + 4, vertex.color.begin());
+            }
+            return cse::render::SubmitNativeIndexed(studioNativeVertices, topology->indices,
+                studioNativeVertices.empty() ? 0 : studioNativeVertices.size() - 1, !forcedChrome) == cse::render::Status::Ok;
+        }
         return cse::studio::SubmitIndexed(gl, *topology, studioDrawVertices.data(), !forcedChrome);
     }
 }
@@ -5714,6 +5730,7 @@ namespace {
 void R_ResetStudioMeshBatch() {
     studioMeshCache.Clear();
     std::vector<cse::studio::DrawVertex>().swap(studioDrawVertices);
+    std::vector<cse::render::Vertex>().swap(studioNativeVertices);
     studioBatchGL = {};
     studioBatchContextInitialized = false;
 }
@@ -5745,8 +5762,9 @@ void R_GLStudioDrawPoints() {
     mstudiotexture_t* ptexture;
     mstudiomesh_t* pmesh;
 
-    const bool indexedAllowed = r_studio_batch.value != 0.0f && cse::render::LegacyIndexedDrawingAllowed();
-    const auto batchGL = indexedAllowed ? StudioBatchFunctions() : cse::studio::GLFunctions{};
+    const bool indexedAllowed = r_studio_batch.value != 0.0f &&
+        (cse::render::UsingMetal() || cse::render::LegacyIndexedDrawingAllowed());
+    const auto batchGL = indexedAllowed && !cse::render::UsingMetal() ? StudioBatchFunctions() : cse::studio::GLFunctions{};
 
     pvertbone = (byte*)pstudiohdr + psubmodel->vertinfoindex;
     pnormbone = (byte*)pstudiohdr + psubmodel->norminfoindex;

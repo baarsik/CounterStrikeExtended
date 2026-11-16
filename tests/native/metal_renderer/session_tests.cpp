@@ -264,11 +264,86 @@ int main() {
             CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
             if (format == InternalFormat::RGB) {
                 CHECK(rgba[0] == 102 && rgba[1] == 38 && rgba[2] == 13 && rgba[3] == 128);
+            } else if (mode == EnvironmentMode::Combine) {
+                CHECK(rgba[0] == 0 && rgba[1] == 0 && rgba[2] == 0 && rgba[3] == 32);
             } else {
                 CHECK(rgba[0] == 204 && rgba[1] == 153 && rgba[2] == 102 && rgba[3] == 32);
             }
         }
     }
+    // A single physical level still uses MIN_NEAREST when its derivatives minify.
+    auto singleImage = std::make_shared<TextureImage>();
+    singleImage->defined = true;
+    singleImage->width = 2;
+    singleImage->height = 1;
+    singleImage->internal = InternalFormat::RGBA;
+    singleImage->pixels = {255, 0, 0, 255, 0, 255, 0, 255};
+    auto singleTexture = std::make_shared<TextureObject>();
+    singleTexture->levels[0] = singleImage;
+    singleTexture->sampler.minification = Filter::Nearest;
+    singleTexture->sampler.magnification = Filter::Linear;
+    for (auto wrap : {Wrap::Repeat, Wrap::ClampToEdge, Wrap::Clamp}) {
+        singleTexture->sampler.wrapS = wrap;
+        singleTexture->sampler.wrapT = wrap;
+        frame.draws[0] = textured;
+        // Cross 32 texels in 16 pixels, centered on u=.4 at pixel (8,8).
+        frame.draws[0].resources[0].texture2D = std::make_shared<TextureObject>(*singleTexture);
+        for (auto& vertex : frame.draws[0].vertices) {
+            vertex.texcoords[0] = {{vertex.position[0] * 8.0f - 0.1f, 0.5f, 0, 1}};
+        }
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+        CHECK(rgba[0] == 255 && rgba[1] == 0);
+    }
+    // R_SetupGL can extend the viewport one pixel below the scene during view-rectangle rounding.
+    // Cropping must preserve the original projection/UV mapping, not stretch the visible portion.
+    auto viewportImage = std::make_shared<TextureImage>();
+    viewportImage->defined = true;
+    viewportImage->width = 2;
+    viewportImage->height = 2;
+    viewportImage->internal = InternalFormat::RGBA;
+    viewportImage->pixels = {255, 0, 0, 255, 255, 0, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255};
+    auto viewportTexture = std::make_shared<TextureObject>();
+    viewportTexture->levels[0] = viewportImage;
+    viewportTexture->sampler.minification = Filter::Nearest;
+    viewportTexture->sampler.magnification = Filter::Nearest;
+    viewportTexture->sampler.wrapS = Wrap::ClampToEdge;
+    viewportTexture->sampler.wrapT = Wrap::ClampToEdge;
+    frame.draws[0] = textured;
+    frame.draws[0].resources[0].texture2D = viewportTexture;
+    frame.draws[0].raster.viewport = {{0, -2, 16, 18}};
+    for (auto& vertex : frame.draws[0].vertices) {
+        vertex.texcoords[0] = {{0.5f, vertex.position[1] * 0.5f + 0.5f, 0, 1}};
+    }
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(8, 7, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] == 255);
+    // Smooth color interpolation also detects stretching at the exact one-pixel rounding margin.
+    frame.draws[0] = Solid(0, 0, 0);
+    frame.draws[0].shade = Shade::Smooth;
+    frame.draws[0].raster.shade = Shade::Smooth;
+    frame.draws[0].raster.viewport = {{0, -1, 16, 17}};
+    for (auto& vertex : frame.draws[0].vertices) {
+        vertex.color[1] = vertex.position[1] * 0.5f + 0.5f;
+    }
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(8, 7, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] >= 127 && rgba[1] <= 128);
+    frame.draws[0] = textured;
+    frame.draws[0].resources[0].texture2D = viewportTexture;
+    // Horizontal overflow also retains the source texture scale.
+    frame.draws[0].raster.viewport = {{4, 0, 16, 16}};
+    for (auto& vertex : frame.draws[0].vertices) {
+        vertex.texcoords[0] = {{0.5f, vertex.position[0] * 0.5f + 0.5f, 0, 1}};
+    }
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(10, 8, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
+    frame.draws[0] = Solid(0, 1, 0);
+    frame.draws[0].raster.viewport = {{16, 0, 16, 16}};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(10, 8, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
     // Reject events with no result destination rather than accepting lost readback bytes.
     FrameEvent readback;
     readback.kind = FrameEventKind::Readback;
@@ -324,6 +399,8 @@ int main() {
     frame.draws[0] = textured;
     frame.draws[0].resources[0].texture2D = indexed;
     frame.draws[0].palette = paletteRed;
+    CHECK(!session.Render(frame, error));
+    frame.draws[0].sharedTexturePalette = true;
     CHECK(session.Render(frame, error));
     frame.draws[0].palette = paletteGreen;
     CHECK(session.Render(frame, error));

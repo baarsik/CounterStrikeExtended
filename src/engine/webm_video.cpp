@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #if defined(__APPLE__)
 #include "native_mouse_window.h"
 #endif
@@ -12,6 +13,7 @@
 #include <SDL3/SDL.h>
 #ifndef SW_RENDERER
 #include <SDL3/SDL_opengl.h>
+#include "glquake.h"
 #endif
 
 #include <webm/mkvparser/mkvparser.h>
@@ -1489,28 +1491,33 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
                                              demuxer.GetWidth(), demuxer.GetHeight());
 #else
+    if (cse::render::UsingMetal()) {
+        cse::render::BeginBackendFrame(nWindowW, nWindowH);
+    }
     GLuint texture = 0;
-    glGenTextures(1, &texture);
-    glEnable(GL_TEXTURE_RECTANGLE);
-    glBindTexture(GL_TEXTURE_RECTANGLE, texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glDisable(GL_BLEND);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_CULL_FACE);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0.0, static_cast<double>(nWindowW), static_cast<double>(nWindowH), 0.0, -1.0, 1.0);
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-    glViewport(0, 0, nWindowW, nWindowH);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    qglGenTextures(1, &texture);
+    qglEnable(GL_TEXTURE_RECTANGLE);
+    qglBindTexture(GL_TEXTURE_RECTANGLE, texture);
+    qglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    qglTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    qglTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    qglTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    qglTexParameteri(GL_TEXTURE_RECTANGLE, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    qglDisable(GL_BLEND);
+    if (!cse::render::UsingMetal()) {
+        qglDisable(GL_LIGHTING);
+    }
+    qglDisable(GL_DEPTH_TEST);
+    qglDisable(GL_ALPHA_TEST);
+    qglDisable(GL_CULL_FACE);
+    qglMatrixMode(GL_PROJECTION);
+    qglLoadIdentity();
+    qglOrtho(0.0, static_cast<double>(nWindowW), static_cast<double>(nWindowH), 0.0, -1.0, 1.0);
+    qglMatrixMode(GL_MODELVIEW);
+    qglPushMatrix();
+    qglLoadIdentity();
+    qglViewport(0, 0, nWindowW, nWindowH);
+    qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 #endif
 
     const int sourceWidth = demuxer.GetWidth();
@@ -1658,29 +1665,33 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
                         SDL_RenderPresent(renderer);
 #else
                         if (bFirstFrame) {
-                            glTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, imageW, imageH, 0, GL_RGBA, GL_UNSIGNED_BYTE,
+                            qglTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, imageW, imageH, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                                          pOutFrame);
                         } else {
-                            glTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, imageW, imageH, GL_RGBA, GL_UNSIGNED_BYTE,
+                            qglTexSubImage2D(GL_TEXTURE_RECTANGLE, 0, 0, 0, imageW, imageH, GL_RGBA, GL_UNSIGNED_BYTE,
                                             pOutFrame);
                         }
-                        glClear(GL_COLOR_BUFFER_BIT);
-                        glBegin(GL_QUADS);
+                        qglClear(GL_COLOR_BUFFER_BIT);
+                        qglBegin(GL_QUADS);
                         const float left = static_cast<float>(dstX);
                         const float top = static_cast<float>(dstY);
                         const float right = static_cast<float>(dstX + nVideoW);
                         const float bottom = static_cast<float>(dstY + nVideoH);
-                        glTexCoord2i(0, 0);
-                        glVertex3f(left, top, 0.0f);
-                        glTexCoord2i(imageW, 0);
-                        glVertex3f(right, top, 0.0f);
-                        glTexCoord2i(imageW, imageH);
-                        glVertex3f(right, bottom, 0.0f);
-                        glTexCoord2i(0, imageH);
-                        glVertex3f(left, bottom, 0.0f);
-                        glEnd();
+                        qglTexCoord2f(0, 0);
+                        qglVertex3f(left, top, 0.0f);
+                        qglTexCoord2f(static_cast<float>(imageW), 0);
+                        qglVertex3f(right, top, 0.0f);
+                        qglTexCoord2f(static_cast<float>(imageW), static_cast<float>(imageH));
+                        qglVertex3f(right, bottom, 0.0f);
+                        qglTexCoord2f(0, static_cast<float>(imageH));
+                        qglVertex3f(left, bottom, 0.0f);
+                        qglEnd();
                         bFirstFrame = false;
-                        SDL_GL_SwapWindow(pSDLWindow);
+                        if (cse::render::UsingMetal()) {
+                            cse::render::PresentBackendFrame(false, true);
+                        } else {
+                            SDL_GL_SwapWindow(pSDLWindow);
+                        }
 #endif
                     }
                 }
@@ -1739,9 +1750,9 @@ playback_done:
         SDL_DestroyRenderer(renderer);
     }
 #else
-    glBindTexture(GL_TEXTURE_RECTANGLE, 0);
-    glDisable(GL_TEXTURE_RECTANGLE);
-    glDeleteTextures(1, &texture);
+    qglBindTexture(GL_TEXTURE_RECTANGLE, 0);
+    qglDisable(GL_TEXTURE_RECTANGLE);
+    qglDeleteTextures(1, &texture);
 #endif
     ::operator delete[](pOutFrame);
     ::operator delete[](pcm);

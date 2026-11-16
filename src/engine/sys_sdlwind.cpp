@@ -1,3 +1,7 @@
+#include "render/backend.h"
+#if !defined(SW_RENDERER)
+#include "glquake.h"
+#endif
 #include "../public/radar_engine_api.h"
 #if defined(__APPLE__)
 #include "VGui1NativeRuntime.h"
@@ -1304,6 +1308,10 @@ bool CGame::Shutdown() {
     if (m_hSDLRenderer && m_bCreatedRenderer) {
         SDL_DestroyRenderer(m_hSDLRenderer);
     }
+    if (cse::render::UsingMetal()) {
+        cse::radar::AdvanceGraphicsGeneration();
+        cse::render::ShutdownBackend();
+    }
     if (m_hSDLGLContext) {
 #if !defined(SW_RENDERER)
         cse::radar::AdvanceGraphicsGeneration();
@@ -1479,25 +1487,35 @@ bool CGame::CreateGameWindow() {
     if (!SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
         Sys_Error("SDL initialization failed: %s", SDL_GetError());
     }
-    SDL_SetAttributes(true);
+    std::string backendError;
+    if (!cse::render::ConfigureBackend(COM_CheckParm("-gl") != 0, COM_CheckParm("-metal") != 0, backendError)) {
+        Sys_Error("Renderer selection: %s", backendError.c_str());
+    }
+    if (!cse::render::UsingMetal()) {
+        SDL_SetAttributes(true);
+    }
 
     char gameWindowName[512];
     Q_strcpy(gameWindowName, "Half-Life");
     GetWindowNameFromGameDir(gameWindowName, sizeof(gameWindowName));
 
-    const SDL_WindowFlags windowFlags = COM_CheckParm("-noborder") == 0
-                                            ? SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN
-                                            : SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN | SDL_WINDOW_BORDERLESS;
+    SDL_WindowFlags windowFlags = SDL_WINDOW_HIDDEN;
+    if (!cse::render::UsingMetal()) {
+        windowFlags |= SDL_WINDOW_OPENGL;
+    }
+    if (COM_CheckParm("-noborder")) {
+        windowFlags |= SDL_WINDOW_BORDERLESS;
+    }
     m_hSDLWindow = SDL_CreateWindow(gameWindowName, 640, 480, windowFlags);
-    if (!m_hSDLWindow) {
+    if (!m_hSDLWindow && !cse::render::UsingMetal()) {
         SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
         SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 3);
         SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 3);
         SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 3);
         m_hSDLWindow = SDL_CreateWindow(gameWindowName, 640, 480, windowFlags);
-        if (!m_hSDLWindow) {
-            Sys_Error("Failed to create SDL Window");
-        }
+    }
+    if (!m_hSDLWindow) {
+        Sys_Error("Failed to create SDL window: %s", SDL_GetError());
     }
 
 #if INTPTR_MAX > INT32_MAX
@@ -1535,16 +1553,25 @@ bool CGame::CreateGameWindow() {
     m_bCreatedRenderer = false;
 
     cse::radar::AdvanceGraphicsGeneration();
-    m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);
-    if (!m_hSDLGLContext) {
-        SDL_SetAttributes(false);
+    if (cse::render::UsingMetal()) {
         m_bLegacyRender = true;
-        cse::radar::AdvanceGraphicsGeneration();
+        const unsigned samples = COM_CheckParm("-nomsaa") ? cse::render::kSingleSceneSample :
+            cse::render::kDefaultSceneSamples;
+        if (!cse::render::InitializeBackend(m_hSDLWindow, backendError, samples)) {
+            Sys_Error("Metal initialization: %s", backendError.c_str());
+        }
+    } else {
         m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);
-    }
+        if (!m_hSDLGLContext) {
+            SDL_SetAttributes(false);
+            m_bLegacyRender = true;
+            cse::radar::AdvanceGraphicsGeneration();
+            m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);
+        }
 
-    if (!m_hSDLWindow || !m_hSDLGLContext) {
-        Sys_Error("Failed to create SDL Window");
+        if (!m_hSDLWindow || !m_hSDLGLContext) {
+            Sys_Error("Failed to create SDL Window");
+        }
     }
 
 #if defined(__APPLE__)
@@ -1553,43 +1580,46 @@ bool CGame::CreateGameWindow() {
         return false;
     }
 #endif
-    int r = 0;
-    int g = 0;
-    int b = 0;
-    int a = 0;
-    int depth = 0;
+    if (!cse::render::UsingMetal()) {
+        int r = 0;
+        int g = 0;
+        int b = 0;
+        int a = 0;
+        int depth = 0;
 
-    if (!SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &r)) {
-        const char *error = SDL_GetError();
-        r = 0;
-        Con_Printf("Failed to get GL RED size (%s)\n", error);
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &g)) {
-        const char *error = SDL_GetError();
-        g = 0;
-        Con_Printf("Failed to get GL GREEN size (%s)\n", error);
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &b)) {
-        const char *error = SDL_GetError();
-        b = 0;
-        Con_Printf("Failed to get GL BLUE size (%s)\n", error);
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &a)) {
-        const char *error = SDL_GetError();
-        a = 0;
-        Con_Printf("Failed to get GL ALPHA size (%s)\n", error);
-    }
-    if (!SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth)) {
-        const char *error = SDL_GetError();
-        depth = 0;
-        Con_Printf("Failed to get GL DEPTH size (%s)\n", error);
-    }
+        if (!SDL_GL_GetAttribute(SDL_GL_RED_SIZE, &r)) {
+            const char *error = SDL_GetError();
+            r = 0;
+            Con_Printf("Failed to get GL RED size (%s)\n", error);
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_GREEN_SIZE, &g)) {
+            const char *error = SDL_GetError();
+            g = 0;
+            Con_Printf("Failed to get GL GREEN size (%s)\n", error);
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_BLUE_SIZE, &b)) {
+            const char *error = SDL_GetError();
+            b = 0;
+            Con_Printf("Failed to get GL BLUE size (%s)\n", error);
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_ALPHA_SIZE, &a)) {
+            const char *error = SDL_GetError();
+            a = 0;
+            Con_Printf("Failed to get GL ALPHA size (%s)\n", error);
+        }
+        if (!SDL_GL_GetAttribute(SDL_GL_DEPTH_SIZE, &depth)) {
+            const char *error = SDL_GetError();
+            depth = 0;
+            Con_Printf("Failed to get GL DEPTH size (%s)\n", error);
+        }
 
-    Con_Printf("GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", r, g, b, a, depth);
+        Con_Printf("GL_SIZES:  r:%d g:%d b:%d a:%d depth:%d\n", r, g, b, a, depth);
 
-    if (r <= 2 || g <= 2 || b <= 2 || depth <= 15 || (gl_renderer && Q_strstr(gl_renderer, "GDI Generic"))) {
-        Sys_Error("Failed to create SDL Window, unsupported video mode. A 16-bit color depth desktop is required and a"
-                  " supported GL driver.\n");
+        if (r <= 2 || g <= 2 || b <= 2 || depth <= 15 || (gl_renderer && Q_strstr(gl_renderer, "GDI Generic"))) {
+            Sys_Error("Failed to create SDL Window, unsupported video mode. A 16-bit color depth desktop is required and a"
+                      " supported GL driver.\n");
+        }
+
     }
 
     ClearScreen();
@@ -1605,11 +1635,20 @@ void CGame::SetActiveApp( bool active )
 	m_bActiveApp = active;
 }
 
-void CGame::ClearScreen()
-{
-	glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-	glClear( GL_COLOR_BUFFER_BIT );
-	SDL_GL_SwapWindow( m_hSDLWindow );
+void CGame::ClearScreen() {
+    if (cse::render::UsingMetal()) {
+        int width = 0;
+        int height = 0;
+        cse::render::BackendDrawableSize(width, height);
+        cse::render::BeginBackendFrame(width, height);
+        qglClearColor(0, 0, 0, 0);
+        qglClear(GL_COLOR_BUFFER_BIT);
+        cse::render::PresentBackendFrame(false, true);
+    } else {
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+        SDL_GL_SwapWindow(m_hSDLWindow);
+    }
 }
 
 void CGame::AppActivate( bool fActive )

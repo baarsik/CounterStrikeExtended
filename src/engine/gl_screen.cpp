@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #include "screenshot.h"
 #include "vgui_background_effects.h"
 #include "localization_center_text.h"
@@ -424,6 +425,9 @@ void SCR_ScreenShot_f() {
         height = static_cast<int>(vid.height);
     }
 
+    if (cse::render::UsingMetal()) {
+        cse::render::BackendDrawableSize(width, height);
+    }
     char filename[ScreenshotNameLength];
     Q_strcpy(filename, "HalfLife__.webp");
     int shot = 0;
@@ -446,7 +450,14 @@ void SCR_ScreenShot_f() {
         return;
     }
     qglPixelStorei(GL_PACK_ALIGNMENT, 1);
-    qglReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    if (cse::render::UsingMetal()) {
+        if (!cse::render::BackendReadPixels(true, 0, 0, width, height, 3, 1, pixels.data())) {
+            Con_Printf("SCR_ScreenShot_f: Metal readback failed\n");
+            return;
+        }
+    } else {
+        qglReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+    }
     if (!cse::image::EncodeWebPLossless(pixels.data(), width, height, width * cse::image::RgbChannels,
         cse::image::RgbChannels, true, encoded) || !cse::capture::WriteWebP(filename, encoded)) {
         Con_Printf("SCR_ScreenShot_f: Couldn't write WebP screenshot %s\n", filename);

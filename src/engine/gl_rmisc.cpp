@@ -1,3 +1,4 @@
+#include "render/backend.h"
 #include "gl_rmisc.h"
 
 #include "client.h"
@@ -404,8 +405,10 @@ void R_Envmap_f()
 	else
 		Q_strcpy( base, "Env" );
 
-	qglDrawBuffer( GL_FRONT );
-	qglReadBuffer( GL_FRONT );
+    if (!cse::render::UsingMetal()) {
+        qglDrawBuffer(GL_FRONT);
+    }
+    qglReadBuffer(cse::render::UsingMetal() ? GL_BACK : GL_FRONT);
 	envmap = TRUE;
 
 	saveVrect = r_refdef.vrect;
@@ -470,15 +473,20 @@ void R_TimeRefresh_f()
 		return;
 	}
 
-	qglDrawBuffer( GL_FRONT );
+    if (!cse::render::UsingMetal()) {
+        qglDrawBuffer(GL_FRONT);
+    }
 	qglFinish();
 
 	start = (float)Sys_FloatTime();
 	for ( i = 0; i < 128; i++ )
 	{
 		r_refdef.viewangles[YAW] = (float)( i / 128.0 * 360.0 );
-		R_RenderView();
-	}
+        R_RenderView();
+        if (cse::render::UsingMetal()) {
+            cse::render::FlushBackend();
+        }
+    }
 
 	qglFinish();
 	stop = (float)Sys_FloatTime();

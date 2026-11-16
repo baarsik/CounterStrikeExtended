@@ -20,7 +20,24 @@ target_include_directories(metal_session PUBLIC "${native}" "${CSE_ROOT}/src/ext
 target_link_libraries(metal_session PUBLIC metal_preparation "${CSE_METAL_SDL_LIBRARY}")
 add_executable(metal_session_tests session_tests.cpp)
 target_link_libraries(metal_session_tests PRIVATE metal_session)
-foreach(target metal_preparation metal_draw_tests metal_session metal_session_tests)
+
+enable_testing()
+add_test(NAME metal-draw-preparation COMMAND metal_draw_tests)
+add_test(NAME metal-session-device COMMAND metal_session_tests)
+add_executable(renderer_backend_tests ../renderer_selection/backend_tests.cpp
+    "${native}/../backend.cpp" "${native}/legacy_dispatch.cpp" "${native}/legacy_commands.cpp"
+    "${native}/frame_stream.cpp")
+target_include_directories(renderer_backend_tests PRIVATE "${native}/..")
+target_compile_definitions(renderer_backend_tests PRIVATE CSE_ENABLE_METAL=1)
+target_link_libraries(renderer_backend_tests PRIVATE metal_session)
+set_target_properties(renderer_backend_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+add_test(NAME renderer-backend-lifecycle COMMAND renderer_backend_tests)
+add_executable(renderer_selection_tests ../renderer_selection/selection_tests.cpp)
+target_include_directories(renderer_selection_tests PRIVATE "${native}/..")
+set_target_properties(renderer_selection_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES)
+add_test(NAME renderer-selection COMMAND renderer_selection_tests)
+
+foreach(target metal_preparation metal_draw_tests metal_session metal_session_tests renderer_backend_tests renderer_selection_tests)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
   target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
   if(CSE_METAL_SANITIZERS)
@@ -28,6 +45,4 @@ foreach(target metal_preparation metal_draw_tests metal_session metal_session_te
     target_link_options(${target} PRIVATE -fsanitize=address,undefined)
   endif()
 endforeach()
-enable_testing()
-add_test(NAME metal-draw-preparation COMMAND metal_draw_tests)
-add_test(NAME metal-session-device COMMAND metal_session_tests)
+set_target_properties(renderer_backend_tests PROPERTIES CXX_STANDARD 17)

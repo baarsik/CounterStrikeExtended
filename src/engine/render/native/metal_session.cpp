@@ -285,7 +285,11 @@ struct MetalSession::Impl {
         info.address_mode_v = state.wrapT == Wrap::Repeat ? SDL_GPU_SAMPLERADDRESSMODE_REPEAT :
             SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
         info.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-        info.max_lod = state.minification > Filter::Linear && !rectangle ? static_cast<float>(levels - 1) : 0;
+        // A max LOD of zero forces Metal's magnification filter even when derivatives minify.
+        // The physical texture contains only admitted levels, so its last level still bounds sampling.
+        constexpr float kMinimumSamplerLodRange = 1.0f;
+        info.max_lod = std::max(kMinimumSamplerLodRange,
+            state.minification > Filter::Linear && !rectangle ? static_cast<float>(levels - 1) : 0.0f);
         info.enable_anisotropy = state.requestedAnisotropy > 1;
         info.max_anisotropy = state.requestedAnisotropy;
         if (samplers.size() >= kMaximumCachedPipelines * 2) {
@@ -362,6 +366,10 @@ struct MetalSession::Impl {
             const auto base = object->levels.find(0);
             const bool indexed = base != object->levels.end() && base->second &&
                 base->second->internal == InternalFormat::ColorIndex8;
+            if (enabled && indexed && !packet.sharedTexturePalette) {
+                error = "Indexed texture requires enabled shared texture palette; per-texture palettes are unsupported";
+                return false;
+            }
             auto* texture = GetTexture(object, enabled && indexed ? packet.palette : nullptr, error);
             if (!texture) {
                 return false;
@@ -703,9 +711,32 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             }
             std::swap(nearDepth, farDepth);
         }
-        SDL_GPUViewport gpuViewport{static_cast<float>(viewport[0]),
-            static_cast<float>(static_cast<std::int64_t>(state.height) - viewport[1] - viewport[3]),
-            static_cast<float>(viewport[2]), static_cast<float>(viewport[3]), nearDepth, farDepth};
+        // GL permits viewports extending beyond the drawable (including R_SetupGL's rounding margin).
+        // SDL_GPU requires a contained viewport. Crop it and remap clip X/Y so screen coordinates,
+        // interpolation and texture derivatives remain those of the original GL viewport.
+        const auto left = std::max<std::int64_t>(0, viewport[0]);
+        const auto bottom = std::max<std::int64_t>(0, viewport[1]);
+        const auto right = std::min<std::int64_t>(state.width,
+            static_cast<std::int64_t>(viewport[0]) + viewport[2]);
+        const auto top = std::min<std::int64_t>(state.height,
+            static_cast<std::int64_t>(viewport[1]) + viewport[3]);
+        if (right <= left || top <= bottom) {
+            continue;
+        }
+        const auto width = static_cast<float>(right - left);
+        const auto height = static_cast<float>(top - bottom);
+        constexpr float kNdcExtent = 2.0f;
+        const float scaleX = viewport[2] / width;
+        const float scaleY = viewport[3] / height;
+        const float offsetX = (kNdcExtent * (viewport[0] - left) + viewport[2] - width) / width;
+        const float offsetY = (kNdcExtent * (viewport[1] - bottom) + viewport[3] - height) / height;
+        for (std::size_t column = 0; column < 4; ++column) {
+            auto* row = constants.projection.values.data() + column * 4;
+            row[0] = scaleX * row[0] + offsetX * row[3];
+            row[1] = scaleY * row[1] + offsetY * row[3];
+        }
+        SDL_GPUViewport gpuViewport{static_cast<float>(left), static_cast<float>(state.height - top),
+            width, height, nearDepth, farDepth};
         SDL_BindGPUGraphicsPipeline(pass, draw.pipeline);
         SDL_SetGPUViewport(pass, &gpuViewport);
         SDL_SetGPUScissor(pass, &scissor);

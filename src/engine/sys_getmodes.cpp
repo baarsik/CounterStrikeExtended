@@ -1,3 +1,7 @@
+#include "render/backend.h"
+#if !defined(SW_RENDERER)
+#include "glquake.h"
+#endif
 #include "../common/sdl3_keyboard.h"
 
 #if defined(SW_RENDERER) && defined(_WIN32)
@@ -2399,13 +2403,16 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
 
     SDL_GetWindowSizeInPixels((SDL_Window *)window, &width, &height);
 
-    glViewport(0, 0, width, height);
-    glDisable(GL_DEPTH_TEST);
-    glEnable(GL_TEXTURE_2D);
-    glMatrixMode(GL_PROJECTION);
-    glOrtho(0.0, width, height, 0.0, -1.0, 1.0);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    if (cse::render::UsingMetal()) {
+        cse::render::BeginBackendFrame(width, height);
+    }
+    qglViewport(0, 0, width, height);
+    qglDisable(GL_DEPTH_TEST);
+    qglEnable(GL_TEXTURE_2D);
+    qglMatrixMode(GL_PROJECTION);
+    qglOrtho(0.0, width, height, 0.0, -1.0, 1.0);
+    qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    qglClear(GL_COLOR_BUFFER_BIT);
 
     xScale = (float)width / (float)m_iBaseResX;
     yScale = (float)height / (float)m_iBaseResY;
@@ -2448,13 +2455,13 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
         }
 
         tex = vecGLTex.AddToTail();
-        glGenTextures(1, &vecGLTex[tex]);
-        glBindTexture(GL_TEXTURE_2D, vecGLTex[tex]);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        qglGenTextures(1, &vecGLTex[tex]);
+        qglBindTexture(GL_TEXTURE_2D, vecGLTex[tex]);
+        qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        qglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         wide2 = tall2 = 1;
         for (bit = 0; bit < 32; bit++) {
@@ -2487,7 +2494,7 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
             pToUse = pExpanded;
         }
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wide2, tall2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pToUse);
+        qglTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, wide2, tall2, 0, GL_RGBA, GL_UNSIGNED_BYTE, pToUse);
 
         topu = topv = 1.0f;
         if (pExpanded) {
@@ -2496,22 +2503,26 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
             delete[] pExpanded;
         }
 
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, topv);
-        glVertex3i(x, bottom, 0);
-        glTexCoord2f(topu, topv);
-        glVertex3i(right, bottom, 0);
-        glTexCoord2f(topu, 0.0f);
-        glVertex3i(right, y, 0);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex3i(x, y, 0);
-        glEnd();
+        qglBegin(GL_QUADS);
+        qglTexCoord2f(0.0f, topv);
+        qglVertex3f(static_cast<float>(x), static_cast<float>(bottom), 0);
+        qglTexCoord2f(topu, topv);
+        qglVertex3f(static_cast<float>(right), static_cast<float>(bottom), 0);
+        qglTexCoord2f(topu, 0.0f);
+        qglVertex3f(static_cast<float>(right), static_cast<float>(y), 0);
+        qglTexCoord2f(0.0f, 0.0f);
+        qglVertex3f(static_cast<float>(x), static_cast<float>(y), 0);
+        qglEnd();
     }
 
-    SDL_GL_SwapWindow((SDL_Window *)window);
+    if (cse::render::UsingMetal()) {
+        cse::render::PresentBackendFrame(false, true);
+    } else {
+        SDL_GL_SwapWindow((SDL_Window*)window);
+    }
 
     for (i = 0; i < vecGLTex.Count(); i++) {
-        glDeleteTextures(1, &vecGLTex[i]);
+        qglDeleteTextures(1, &vecGLTex[i]);
     }
     vecGLTex.Purge();
 

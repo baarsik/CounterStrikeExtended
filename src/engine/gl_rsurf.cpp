@@ -1,3 +1,4 @@
+#include "render/backend.h"
 // gl_rsurf.cpp: surface-related refresh code
 #include "client.h"
 #include "sound.h"
@@ -193,7 +194,7 @@ void R_LoadShaders()
 	int i;
 	char prefix[128];
 
-	if ( R_UseLegacyRender() )
+	if (cse::render::UsingMetal() || R_UseLegacyRender())
 		return;
 
 	if ( !qglCreateShader || !qglDeleteShader || !qglShaderSource || !qglGetProgramiv || !qglGetProgramInfoLog
@@ -225,6 +226,9 @@ void R_LoadShaders()
 
 qboolean R_UsingShaders()
 {
+    if (cse::render::UsingMetal()) {
+        return FALSE;
+    }
 	if ( !g_bHasShaderFunctions || !gl_use_shaders.value || !sv_allow_shaders.value )
 		return FALSE;
 	return TRUE;
