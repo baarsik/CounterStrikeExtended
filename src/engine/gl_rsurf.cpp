@@ -766,7 +766,6 @@ void R_SetRenderMode( cl_entity_t* pEntity )
 		break;
 	case kRenderTransColor:
 		qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA );
 		qglEnable( GL_BLEND );
 		break;
 	case kRenderTransAdd:

@@ -110,3 +110,11 @@ still requires actual high addresses and allocation-failure case still requires 
 The standalone state fixture must explicitly set CSE_RENDER_GL_ORACLE=OFF. No Mac/compiler/native/GL release
 is implied by source/data checks. The bounded source audit now expects zero errors; its injected raw-call
 negative remains source DATA only.
+
+## TransColor engine consumers
+
+The `native-transcolor-brush`, `native-transcolor-studio`, and `native-transcolor-sprite`
+cases compile the production render-mode setup bodies extracted by `extract_render_modes.py`.
+They exercise native dispatch and frame submission, checking that TransColor preserves the
+incoming texture environment and uses source-alpha blending. Python 3 is required to generate
+these fixture inputs; the main engine build does not use the extractor.

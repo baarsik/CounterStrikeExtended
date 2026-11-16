@@ -1292,7 +1292,6 @@ void R_DrawSpriteModel( cl_entity_t* e )
 		{
 		case kRenderTransColor:
 			qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-			qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA );
 			qglColor4ub( (GLubyte)color.r, (GLubyte)color.g, (GLubyte)color.b, (GLubyte)(int)( r_blend * 255.0f ) );
 			break;
 		case kRenderTransAdd:

@@ -6964,7 +6964,6 @@ void studioapi_GL_SetRenderMode( int rendermode )
 	if ( rendermode == kRenderTransColor )
 	{
 		qglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		qglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ALPHA );
 	}
 	else
 	{

@@ -60,6 +60,62 @@ struct NativeFixture {
     }
 };
 
+namespace RenderModeOwners {
+// Only the data read by the extracted production mode-setting bodies is needed.
+struct cl_entity_t {
+    struct {
+        int rendermode = 0;
+    } curstate;
+};
+struct FixtureColor {
+    unsigned r;
+    unsigned g;
+    unsigned b;
+};
+struct FixtureCvar {
+    float value;
+};
+constexpr float r_blend = 0.5f;
+constexpr FixtureCvar gl_alphamin{0.25f};
+constexpr FixtureCvar gl_spriteblend{1};
+#include "engine_render_modes.inc"
+}
+
+void NativeTransColor(const std::string& owner) {
+    ResetDriver();
+    NativeFixture native;
+    native.Install();
+    qglTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    RenderModeOwners::cl_entity_t entity;
+    entity.curstate.rendermode = RenderModeOwners::kRenderTransColor;
+    if (owner == "brush") {
+        RenderModeOwners::R_SetRenderMode(&entity);
+    } else if (owner == "studio") {
+        RenderModeOwners::studioapi_GL_SetRenderMode(entity.curstate.rendermode);
+    } else {
+        Check(owner == "sprite", "unknown TransColor owner");
+        RenderModeOwners::SpriteRenderMode(&entity, {255, 128, 64});
+    }
+    Check(LegacyDispatchStatus() == Status::Ok, "TransColor mode setup poisoned native recording");
+    qglBegin(GL_TRIANGLES);
+    qglVertex3f(0, 0, 0);
+    qglVertex3f(1, 0, 0);
+    qglVertex3f(0, 1, 0);
+    qglEnd();
+    qglFinish();
+    Check(LegacyDispatchStatus() == Status::Ok && native.submitted.size() == 1,
+        "TransColor frame could not be submitted");
+    const auto& snapshot = native.submitted.front();
+    Check(snapshot.draws.size() == 1, "TransColor draw missing");
+    const auto& draw = snapshot.draws.front();
+    Check(draw.textures[0].environment == EnvironmentMode::Replace,
+        "TransColor changed the incoming texture environment");
+    Check(draw.raster.enabled[static_cast<std::size_t>(Capability::Blend)] &&
+        draw.raster.blendSource == BlendFactor::SourceAlpha &&
+        draw.raster.blendDestination == BlendFactor::InverseSourceAlpha,
+        "TransColor alpha blending changed");
+}
+
 void NativeInstallRed() {
     ResetDriver();
     RemoveLegacyDispatch();

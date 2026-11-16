@@ -15,6 +15,17 @@ endif()
 target_include_directories(render_dispatch PUBLIC "${native}" "${CSE_ROOT}/src/external/SDL3/include")
 add_executable(render_dispatch_tests dispatch_tests.cpp)
 target_link_libraries(render_dispatch_tests PRIVATE render_dispatch)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+set(render_modes "${CMAKE_CURRENT_BINARY_DIR}/engine_render_modes.inc")
+add_custom_command(OUTPUT "${render_modes}"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_render_modes.py"
+        "${CSE_ROOT}" "${render_modes}"
+    DEPENDS extract_render_modes.py "${CSE_ROOT}/src/common/const.h"
+        "${CSE_ROOT}/src/engine/gl_rsurf.cpp" "${CSE_ROOT}/src/engine/r_studio.cpp"
+        "${CSE_ROOT}/src/engine/gl_rmain.cpp"
+    VERBATIM)
+target_sources(render_dispatch_tests PRIVATE "${render_modes}")
+target_include_directories(render_dispatch_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 option(CSE_RENDER_GL_ORACLE "Reserved for separately admitted actual GL comparison" OFF)
 if(CSE_RENDER_GL_ORACLE)
     message(FATAL_ERROR "Use the Root-owned real-gl-run-packet.md; this fixture must remain CPU-only")
@@ -53,6 +64,7 @@ foreach(case t2b-slot-lifecycle t2b-mixed-texture t2b-texture-mapping t2b-unpack
 endforeach()
 
 foreach(case native-noop-primitive-refusal native-palette-snapshot native-startup-arrays native-list-namespace native-callback-failure native-ensure-failure
+    native-transcolor-brush native-transcolor-studio native-transcolor-sprite
     native-front-draw-refusal native-install native-list-clear-refusal native-alias-ownership native-commands native-zero-clear-frame native-zero-clear-list native-zero-clear-primitive native-indexed native-indexed-index native-indexed-nontriangle native-indexed-quota native-indexed-list native-readback native-failure)
     add_test(NAME render-dispatch-${case} COMMAND render_dispatch_tests ${case})
 endforeach()

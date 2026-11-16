@@ -662,6 +662,8 @@ int main(int argc, char** argv) {
         NativeAliasOwnership();
     } else if (name == "native-commands") {
         NativeCommands();
+    } else if (name.find("native-transcolor-") == 0) {
+        NativeTransColor(name.substr(std::strlen("native-transcolor-")));
     } else if (name.find("native-zero-clear-") == 0) {
         NativeZeroClear(name.substr(std::strlen("native-zero-clear-")));
     } else if (name.find("native-indexed-") == 0) {
