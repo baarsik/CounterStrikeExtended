@@ -94,6 +94,8 @@ int main() {
     texture->levels[0] = image;
     texture->sampler.minification = Filter::Nearest;
     texture->sampler.magnification = Filter::Nearest;
+    // Imported engine textures can carry requests above Metal's sampler limit.
+    texture->sampler.requestedAnisotropy = 32;
     const auto sprite = effects.RegisterTexture(1, RadarRendererGpu::TextureRole::Sprite, texture, nullptr);
     CseRadarMapTextureDraw tile{};
     tile.size = sizeof(tile);

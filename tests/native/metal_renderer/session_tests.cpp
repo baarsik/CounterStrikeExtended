@@ -193,6 +193,25 @@ int main() {
         CHECK(rgba[0] == (anisotropy == 1 ? 0 : 128));
         CHECK(rgba[2] == (anisotropy == 1 ? 255 : 128));
     }
+    // Oversized requests must sample the same pixels as the supported maximum in
+    // both the device sampler and the explicit border-sampling shader path.
+    for (Wrap wrap : {Wrap::ClampToEdge, Wrap::Clamp}) {
+        std::vector<unsigned char> maximumPixels;
+        for (float requested : {16.0f, 32.0f}) {
+            auto anisotropic = std::make_shared<TextureObject>(*frame.draws[0].resources[0].texture2D);
+            anisotropic->sampler.wrapS = wrap;
+            anisotropic->sampler.wrapT = wrap;
+            anisotropic->sampler.requestedAnisotropy = requested;
+            frame.draws[0].resources[0].texture2D = anisotropic;
+            CHECK(session.Render(frame, error));
+            CHECK(session.ReadPixels(0, 0, 16, 16, 4, 4, rgba.data(), error));
+            if (requested == 16) {
+                maximumPixels = rgba;
+            } else {
+                CHECK(rgba == maximumPixels);
+            }
+        }
+    }
     // Owned versions remain immutable while successive command buffers are pending.
     auto image = std::make_shared<TextureImage>();
     image->defined = true;

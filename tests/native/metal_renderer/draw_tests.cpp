@@ -68,6 +68,26 @@ int main() {
     MetalTextureData texture;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
     CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({132, 66, 247, 0}));
+    // Legal GL requests above the device maximum must still prepare a drawable texture.
+    const std::array<std::array<float, 2>, 5> anisotropyCases{{
+        {{1, 1}}, {{4, 4}}, {{16, 16}}, {{32, 16}}, {{std::numeric_limits<float>::max(), 16}}
+    }};
+    auto texturedDraw = Quad();
+    texturedDraw.textures[0].enabled2D = true;
+    texturedDraw.resources[0].texture2D = object;
+    for (const auto& anisotropy : anisotropyCases) {
+        object->sampler.requestedAnisotropy = anisotropy[0];
+        CHECK(PrepareMetalTexture(*object, {}, texture, error));
+        CHECK(PrepareMetalDraw(texturedDraw, prepared, error));
+        CHECK(prepared.fragment.texture[0][3] == anisotropy[1]);
+        CHECK(object->sampler.requestedAnisotropy == anisotropy[0]);
+    }
+    for (float invalid : {0.0f, 0.5f, std::numeric_limits<float>::infinity(),
+            std::numeric_limits<float>::quiet_NaN()}) {
+        object->sampler.requestedAnisotropy = invalid;
+        CHECK(!PrepareMetalTexture(*object, {}, texture, error));
+    }
+    object->sampler.requestedAnisotropy = 1;
     image->internal = InternalFormat::RGBA4;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
     CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({136, 68, 255, 119}));

@@ -270,9 +270,10 @@ struct MetalSession::Impl {
     }
 
     SDL_GPUSampler* Sampler(const SamplerState& state, unsigned levels, bool rectangle) {
+        const float anisotropy = EffectiveMetalAnisotropy(state.requestedAnisotropy);
         const std::vector<std::uint32_t> key{static_cast<unsigned>(state.minification),
             static_cast<unsigned>(state.magnification), static_cast<unsigned>(state.wrapS),
-            static_cast<unsigned>(state.wrapT), Bits(state.requestedAnisotropy), levels, rectangle};
+            static_cast<unsigned>(state.wrapT), Bits(anisotropy), levels, rectangle};
         const auto found = samplers.find(key);
         if (found != samplers.end()) {
             return found->second;
@@ -294,8 +295,8 @@ struct MetalSession::Impl {
         constexpr float kMinimumSamplerLodRange = 1.0f;
         info.max_lod = std::max(kMinimumSamplerLodRange,
             state.minification > Filter::Linear && !rectangle ? static_cast<float>(levels - 1) : 0.0f);
-        info.enable_anisotropy = state.requestedAnisotropy > 1;
-        info.max_anisotropy = state.requestedAnisotropy;
+        info.enable_anisotropy = anisotropy > 1;
+        info.max_anisotropy = anisotropy;
         if (samplers.size() >= kMaximumCachedPipelines * 2) {
             SDL_SetError("Frame exceeds cached Metal sampler budget");
             return nullptr;

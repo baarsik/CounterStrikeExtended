@@ -102,8 +102,9 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
         SDL_GPU_SAMPLERADDRESSMODE_REPEAT : SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampling.address_mode_w = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
     sampling.max_lod = std::max(1.0f, settings.minification > Filter::Linear ? float(data.levels.size() - 1) : 0.0f);
-    sampling.enable_anisotropy = settings.requestedAnisotropy > 1;
-    sampling.max_anisotropy = settings.requestedAnisotropy;
+    const float anisotropy = EffectiveMetalAnisotropy(settings.requestedAnisotropy);
+    sampling.enable_anisotropy = anisotropy > 1;
+    sampling.max_anisotropy = anisotropy;
     texture.sampler = SDL_CreateGPUSampler(device, &sampling);
     if (!texture.gpu || !texture.sampler) {
         Release(texture);

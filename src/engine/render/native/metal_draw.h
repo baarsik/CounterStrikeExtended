@@ -29,6 +29,9 @@ struct MetalDrawData {
     RasterState raster;
 };
 
+// Clamp a valid GL request without changing the retained sampler state.
+float EffectiveMetalAnisotropy(float requested);
+
 // Preparation is transactional: output is unchanged on validation failure.
 bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<const SharedPalette>& palette,
     MetalTextureData& output, std::string& error);

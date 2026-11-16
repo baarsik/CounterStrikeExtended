@@ -120,14 +120,19 @@ void Incomplete(MetalTextureData& output) {
 }
 }
 
+float EffectiveMetalAnisotropy(float requested) {
+    // Metal samplers support at most 16 taps; GL permits larger requested values.
+    constexpr float kMaximumMetalAnisotropy = 16.0f;
+    return std::min(requested, kMaximumMetalAnisotropy);
+}
+
 bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<const SharedPalette>& palette,
     MetalTextureData& output, std::string& error) {
     const auto& sampler = object.sampler;
     if (object.target > TextureTarget::Rectangle || sampler.minification > Filter::LinearMipmapLinear ||
         sampler.magnification > Filter::Linear || sampler.wrapS > Wrap::ClampToEdge ||
         sampler.wrapT > Wrap::ClampToEdge || sampler.maximumLevel < 0 ||
-        !std::isfinite(sampler.requestedAnisotropy) || sampler.requestedAnisotropy < 1 ||
-        sampler.requestedAnisotropy > 16) {
+        !std::isfinite(sampler.requestedAnisotropy) || sampler.requestedAnisotropy < 1) {
         return Fail(error, "Invalid Metal texture/sampler state");
     }
     MetalTextureData prepared;
@@ -353,7 +358,7 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
                 const auto& image = *found->second;
                 prepared.fragment.texture[unit] = {{static_cast<float>(image.width),
                     static_cast<float>(image.height), state.enabledRectangle ? 1.0f : 0.0f,
-                    sampler.requestedAnisotropy}};
+                    EffectiveMetalAnisotropy(sampler.requestedAnisotropy)}};
                 legacy.components[unit] = {{HasColor(image.internal) ? 1.0f : 0.0f,
                     HasAlpha(image.internal) ? 1.0f : 0.0f, 0, 0}};
             }
