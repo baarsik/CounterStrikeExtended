@@ -194,7 +194,7 @@ RadarMapStatus RadarOverview::EnsureLayerImage(const RadarMapLayers& layers, int
     data_.origin[0] = center.x;
     data_.origin[1] = center.y;
 
-    if (!ncl_gl::EnsureLoaded()) {
+    if (!NativeRadar_Renderer() && !ncl_gl::EnsureLoaded()) {
         layer_gl_failed_ = true;
 
         return RadarMapStatus::Failed;
@@ -221,6 +221,18 @@ RadarMapStatus RadarOverview::EnsureLayerImage(const RadarMapLayers& layers, int
         for (int i = 0; i < world->numsurfaces; i++) {
             const msurface_t& surface = world->surfaces[i];
             MapLayerMaterial& material = layer_materials_[i];
+            if (const auto* service = NativeRadar_Renderer()) {
+                CseRadarWorldMaterial resolved{};
+                const auto result = service->ResolveWorldMaterial(NativeRadar_RendererState().rendererEpoch,
+                    i, &resolved, sizeof(resolved));
+                if (result != CSE_RADAR_OK && result != CSE_RADAR_WAITING) {
+                    NativeRadar_ReportRenderResult("world material", result);
+                }
+                material.service_base = resolved.base;
+                material.service_lightmap = resolved.lightmap;
+                material.needs_lightmap = (resolved.flags & CSE_RADAR_WORLD_NEEDS_LIGHTMAP) != 0;
+                continue;
+            }
 
             if (surface.texinfo && surface.texinfo->texture) {
                 material.base_texture = surface.texinfo->texture->gl_texturenum;

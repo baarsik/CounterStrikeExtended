@@ -289,6 +289,7 @@ target_sources(cs_client PRIVATE
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/MapObjectives.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/MapReachability.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/MapRender.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/MapImageService.h"
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/MapRenderState.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/Overview.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/hud/radar/map/layers/MapLayerCache.cpp"

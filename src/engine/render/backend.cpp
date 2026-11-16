@@ -15,6 +15,7 @@ namespace render {
 namespace {
 Backend selected = Backend::OpenGL;
 SDL_Window* backendWindow = nullptr;
+bool sceneActive = false;
 #if defined(CSE_ENABLE_METAL)
 std::unique_ptr<FrameRecorder> recorder;
 std::unique_ptr<MetalSession> session;
@@ -99,8 +100,13 @@ bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error) {
     return true;
 }
 
+bool BackendSceneActive() {
+    return UsingMetal() && sceneActive;
+}
+
 bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples) {
     backendWindow = window;
+    sceneActive = false;
 #if defined(CSE_ENABLE_METAL)
     if (UsingMetal()) {
         recorder = std::make_unique<FrameRecorder>();
@@ -153,6 +159,7 @@ void BeginBackendFrame(int width, int height) {
             info.height = static_cast<unsigned>(height);
         }
         Require(EnsureRecording(nullptr));
+        sceneActive = true;
     }
 #else
     (void)width;
@@ -173,6 +180,7 @@ void PresentBackendFrame(bool vsync, bool preserveAspect) {
     if (UsingMetal()) {
         Require(Submit());
         Require(session->Present(vsync, preserveAspect, failure));
+        sceneActive = false;
     }
 #else
     (void)vsync;
@@ -251,6 +259,7 @@ void ShutdownBackend() {
     }
 #endif
     backendWindow = nullptr;
+    sceneActive = false;
 }
 }
 }

@@ -4,6 +4,7 @@
 #include <array>
 
 #include "main.h"
+#include "NativeSdk.h"
 
 #include "hud/radar/integration/Performance.h"
 
@@ -83,6 +84,9 @@ void RadarDrawContext::ResetEffectsGl(bool release) {
 }
 
 bool RadarDrawContext::CheckMaskAvailable() {
+    if (NativeRadar_Renderer()) {
+        return (NativeRadar_RendererState().capabilities & CSE_RADAR_CAP_MAP_TEXTURE) != 0;
+    }
     EnsurePrograms();
 
     return GetMaskProgram().ok;
@@ -99,6 +103,24 @@ void RadarDrawContext::ClampBoundTexture() {
 
 bool RadarDrawContext::DrawBlurBackground(float box_x, float box_y, float box_size, bool square, float darken,
                                           float alpha, float hud_w, float hud_h) {
+    if (const auto* service = NativeRadar_Renderer()) {
+        FlushPrims();
+        CseRadarBackdropDraw draw{};
+        draw.size = sizeof(draw);
+        draw.rendererEpoch = NativeRadar_RendererState().rendererEpoch;
+        draw.hud = {hud_w, hud_h};
+        draw.x = box_x;
+        draw.y = box_y;
+        draw.extent = box_size;
+        draw.shape = square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE;
+        draw.darken = darken;
+        draw.opacity = alpha;
+        draw.fade = {{fade_color_.r, fade_color_.g, fade_color_.b}, fade_amt_};
+        const auto result = service->DrawRadarBackdrop(&draw);
+        NativeRadar_ReportRenderResult("backdrop", result);
+        return result == CSE_RADAR_OK;
+    }
+
     EnsurePrograms();
 
     ncl_gl::Program& blur = GetBlurProgram();
@@ -385,4 +407,39 @@ void RadarDrawContext::DrawMapTexture(unsigned int tex, std::span<const float, 8
     glBindTexture(GL_TEXTURE_2D, (GLuint)prev_tex);
     glActiveTexture((GLenum)prev_unit);
     glColor4ub(255, 255, 255, 255);
+}
+
+void RadarDrawContext::DrawOverviewTexture(CseRadarMapTextureDraw draw) {
+    const auto* service = NativeRadar_Renderer();
+    if (!service) {
+        return;
+    }
+    FlushPrims();
+    draw.size = sizeof(draw);
+    draw.rendererEpoch = NativeRadar_RendererState().rendererEpoch;
+    draw.hud = NativeRadar_HudSpace();
+    if (draw.mode != CSE_RADAR_MAP_PLAIN_OVERVIEW) {
+        draw.fade = {{fade_color_.r, fade_color_.g, fade_color_.b}, fade_amt_};
+    }
+    NativeRadar_ReportRenderResult("map texture", service->DrawMapTexture(&draw));
+}
+
+void RadarDrawContext::DrawMapTexture(CseRadarTexture texture, std::span<const float, 8> xy,
+    std::span<const float, 8> uv, ncl_math::ColorF color, ncl_math::Vector2 center, float radius, bool square,
+    bool smoothing) {
+    CseRadarMapTextureDraw draw{};
+    draw.mode = CSE_RADAR_MAP_PREMULTIPLIED_IMAGE;
+    draw.texture = texture;
+    draw.modulation[0] = color.r;
+    draw.modulation[1] = color.g;
+    draw.modulation[2] = color.b;
+    draw.modulation[3] = color.a;
+    draw.mask = {{center.x, center.y}, radius, kMapEdgeFeatherPixels,
+        square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE, 0};
+    draw.alphaAa = smoothing ? 1 : 0;
+    draw.vertexCount = 4;
+    for (unsigned index = 0; index < draw.vertexCount; ++index) {
+        draw.vertices[index] = {{xy[index * 2], xy[index * 2 + 1]}, {uv[index * 2], uv[index * 2 + 1]}};
+    }
+    DrawOverviewTexture(draw);
 }

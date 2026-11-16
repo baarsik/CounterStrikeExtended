@@ -83,6 +83,19 @@ int numgltextures;
 GL_PALETTE gGLPalette[MAX_GLPALETTES];
 int g_currentpalette = -1;
 
+#if defined(CSE_ENABLE_METAL)
+// Typed radar resolution captures the encoded texture's palette without changing binding caches.
+bool ReadRadarTexturePalette(unsigned int encoded, unsigned char* output) {
+    const unsigned int slot = encoded >> 16;
+    if (!output || slot == 0 || slot > MAX_GLPALETTES) {
+        return false;
+    }
+    std::memcpy(output, gGLPalette[slot - 1].colors, sizeof(gGLPalette[slot - 1].colors));
+    return true;
+}
+#endif
+
+
 int gl_filter_max = GL_LINEAR;
 
 cvar_t gl_max_size = { "gl_max_size", "256", FCVAR_ARCHIVE };

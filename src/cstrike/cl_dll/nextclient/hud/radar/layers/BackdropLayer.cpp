@@ -1,6 +1,7 @@
 #include "BackdropLayer.h"
 
 #include <algorithm>
+#include <cmath>
 #include <span>
 
 #include "main.h"
@@ -125,6 +126,12 @@ void BackdropLayer::DrawRuntimeMap(const RadarFrame& frame) {
 
     float opacity = ComputeOpacityFraction();
 
+    if (NativeRadar_Renderer()) {
+        draw_.DrawMapTexture(runtime_map.service_texture, xy, uv, {1.0f, 1.0f, 1.0f, opacity}, frame.shape.center,
+            frame.shape.radius, !frame.shape.round, g_RadarCfg.map_smoothing->value != 0.0f);
+        return;
+    }
+
     draw_.DrawMapTexture(runtime_map.texture, xy, uv, {1.0f, 1.0f, 1.0f, opacity}, frame.shape.center,
                          frame.shape.radius, !frame.shape.round, g_RadarCfg.map_smoothing->value != 0.0f);
 }
@@ -202,10 +209,14 @@ void BackdropLayer::DrawOverviewTiles(const RadarFrame& frame) {
     tri->CullFace(TRI_NONE);
     tri->Color4f(1.0f, 1.0f, 1.0f, opacity);
 
-    EnsureSpriteClamped(map, transform.total_frames);
+    const auto* service = NativeRadar_Renderer();
+    if (!service) {
+        EnsureSpriteClamped(map, transform.total_frames);
+    }
 
     bool masked = g_RadarCfg.map_mask->value != 0.0f &&
-                  draw_.BeginMask(frame.shape.center, frame.shape.radius, 1.5f, 0.0f, !frame.shape.round);
+                  (service ? draw_.CheckMaskAvailable() :
+                    draw_.BeginMask(frame.shape.center, frame.shape.radius, 1.5f, 0.0f, !frame.shape.round));
 
     ncl_math::Aabb2 box_rect = {{box.x, box.y}, {box.x + box.size, box.y + box.size}};
     ncl_math::Vector2 row = transform.tile_origin;
@@ -232,8 +243,41 @@ void BackdropLayer::DrawOverviewTiles(const RadarFrame& frame) {
             tile.Include(corners.far_corner);
 
             if (tile.Overlaps(box_rect)) {
-                tri->SpriteTexture(map, sprite_frame);
-                DrawOverviewTile(box, corners, masked);
+                if (service) {
+                    CseRadarMapTextureDraw draw{};
+                    const auto result = service->ResolveSpriteTexture(NativeRadar_RendererState().rendererEpoch,
+                        map, sprite_frame, &draw.texture);
+                    if (result == CSE_RADAR_OK) {
+                        draw.mode = masked ? CSE_RADAR_MAP_MASKED_OVERVIEW : CSE_RADAR_MAP_PLAIN_OVERVIEW;
+                        draw.modulation[0] = 1;
+                        draw.modulation[1] = 1;
+                        draw.modulation[2] = 1;
+                        constexpr float kAlphaByteScale = 255;
+                        draw.modulation[3] = std::floor(opacity * kAlphaByteScale) / kAlphaByteScale;
+                        const ncl_math::UvVertex quad[4] = {{corners.base, {0, 0}}, {corners.right, {0, 1}},
+                            {corners.far_corner, {1, 1}}, {corners.up, {1, 0}}};
+                        ncl_math::UvVertex clipped[CSE_RADAR_TEXTURED_POLYGON_CAPACITY];
+                        const auto count = masked ? 4 : ClipTileToBox(quad, box, clipped);
+                        const auto* vertices = masked ? quad : clipped;
+                        draw.vertexCount = static_cast<std::uint32_t>(count);
+                        if (masked) {
+                            draw.mask = {{frame.shape.center.x, frame.shape.center.y}, frame.shape.radius, 1.5f,
+                                frame.shape.round ? CSE_RADAR_SHAPE_CIRCLE : CSE_RADAR_SHAPE_SQUARE, 0};
+                        }
+                        for (int index = 0; index < count; ++index) {
+                            draw.vertices[index] = {{vertices[index].pos.x, vertices[index].pos.y},
+                                {vertices[index].uv.x, vertices[index].uv.y}};
+                        }
+                        if (count >= 3) {
+                            draw_.DrawOverviewTexture(draw);
+                        }
+                    } else {
+                        NativeRadar_ReportRenderResult("sprite", result);
+                    }
+                } else {
+                    tri->SpriteTexture(map, sprite_frame);
+                    DrawOverviewTile(box, corners, masked);
+                }
             }
 
             sprite_frame++;
@@ -243,7 +287,7 @@ void BackdropLayer::DrawOverviewTiles(const RadarFrame& frame) {
         row = row + transform.right;
     }
 
-    if (masked) {
+    if (masked && !service) {
         draw_.EndMask();
     }
 

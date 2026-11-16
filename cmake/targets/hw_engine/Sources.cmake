@@ -1589,11 +1589,16 @@ if(APPLE)
   target_link_libraries(hw_engine PRIVATE "-framework CoreFoundation")
 endif()
 
-# Read-only native radar renderer service.
-target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/engine/radar_engine_api.cpp")
+# Optional native radar renderer service.
+target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/engine/radar_engine_api.cpp"
+  "${CSE_SDK_DIR}/engine/radar_renderer_api.cpp")
 
 target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/engine/render/backend.cpp")
 if(CSE_ENABLE_METAL)
   target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/engine/render/native/metal_draw.cpp"
-    "${CSE_SDK_DIR}/engine/render/native/metal_session.cpp")
+    "${CSE_SDK_DIR}/engine/render/native/metal_session.cpp"
+    "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu.cpp"
+    "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu_resources.cpp"
+    "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu_blur.cpp"
+    "${CSE_SDK_DIR}/engine/vgui_background_blur_metal.cpp")
 endif()

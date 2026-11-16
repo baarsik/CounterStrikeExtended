@@ -54,6 +54,7 @@ int main() {
     CHECK(ConfigureBackend(false, false, error));
     CHECK(UsingMetal());
     CHECK(InitializeBackend(window, error));
+    CHECK(!BackendSceneActive());
     CHECK(!SDL_GL_GetCurrentContext());
     // Startup uploads/state happen before the first ordinary frame.
     GLuint texture = 0;
@@ -64,13 +65,16 @@ int main() {
     CseRenderTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texel.data());
     CHECK(BackendUploadSucceeded());
     BeginBackendFrame(32, 32);
+    CHECK(BackendSceneActive());
     CseRenderClearColor(1, 0, 0, 1);
     CseRenderClear(GL_COLOR_BUFFER_BIT);
     FlushBackend();
+    CHECK(BackendSceneActive());
     // Flush leaves the session reusable without discarding current state.
     CseRenderClearColor(0, 1, 0, 1);
     CseRenderClear(GL_COLOR_BUFFER_BIT);
     PresentBackendFrame(false, true);
+    CHECK(!BackendSceneActive());
     std::array<unsigned char, 4> pixel{};
     CHECK(BackendReadPixels(true, 8, 8, 1, 1, 4, 1, pixel.data()));
     CHECK(pixel[0] == 0 && pixel[1] == 255 && pixel[3] == 255);

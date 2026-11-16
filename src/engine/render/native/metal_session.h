@@ -9,6 +9,9 @@ struct SDL_Window;
 namespace cse {
 namespace render {
 
+struct MetalEffectAccess;
+class RadarRendererGpu;
+
 class MetalSession {
 public:
     MetalSession();
@@ -25,6 +28,8 @@ public:
     bool ReadPresentedPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);
     bool Finish(std::string& error);
+    MetalEffectAccess EffectAccess() const;
+    RadarRendererGpu& RadarEffects(std::uint64_t epoch);
     void Shutdown();
 
 private:

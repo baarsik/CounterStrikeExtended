@@ -22,6 +22,7 @@ struct RuntimeMap {
     unsigned int texture{};
     ncl_math::Aabb2 bounds; // world XY covered by the texture
     bool valid{};
+    CseRadarTexture service_texture{};
 };
 
 RuntimeMap MapRender_Generate(model_t* world, bool textured, bool slice, RadarMapStatus* status = nullptr,
@@ -32,6 +33,8 @@ struct MapLayerMaterial {
     unsigned int base_texture{};
     unsigned int lightmap_texture{};
     bool needs_lightmap{};
+    CseRadarTexture service_base{};
+    CseRadarTexture service_lightmap{};
 };
 
 class MapLayerRenderer {

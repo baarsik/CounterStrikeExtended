@@ -1,4 +1,6 @@
 #include "MapRender.h"
+#include "MapImageService.h"
+#include <optional>
 
 #include <algorithm>
 #include <cassert>
@@ -46,10 +48,12 @@ bool AreMaterialsReady(std::span<const RadarMapSurface> surfaces, std::span<cons
         }
 
         const MapLayerMaterial& material = materials[surface.surface_id];
-        bool base_valid = glIsTexture(material.base_texture) != GL_FALSE;
+        bool base_valid = NativeRadar_Renderer() ? material.service_base.serial != 0 :
+            glIsTexture(material.base_texture) != GL_FALSE;
         bool lightmap_checked = base_valid && material.needs_lightmap;
         bool lightmap_valid =
-            !material.needs_lightmap || (lightmap_checked && glIsTexture(material.lightmap_texture) != GL_FALSE);
+            !material.needs_lightmap || (lightmap_checked && (NativeRadar_Renderer() ? material.service_lightmap.serial != 0 :
+                glIsTexture(material.lightmap_texture) != GL_FALSE));
 
         if (!base_valid || !lightmap_valid) {
             if (reason) {
@@ -110,8 +114,40 @@ void BeginPass(const ncl_math::Aabb2& bounds, float min_z, float max_z, bool cle
 }
 
 void DrawMesh(std::span<const RadarMapSurface> surfaces, std::span<const MapLayerMaterial> materials, bool textured,
-              float min_z, float span_z, float brightness) {
+              float min_z, float span_z, float brightness, MapImageService* serviceImage = nullptr) {
     for (const RadarMapSurface& surface : surfaces) {
+        if (serviceImage) {
+            std::vector<CseRadarMapVertex> polygon;
+            for (const RadarMapVertex& input : surface.vertices) {
+                CseRadarMapVertex vertex{};
+                vertex.position[0] = input.pos.x;
+                vertex.position[1] = input.pos.y;
+                vertex.position[2] = input.pos.z;
+                const float shade = ncl_math::Saturate((input.pos.z - min_z) / span_z);
+                constexpr float kTexturedMinimum = 0.55f;
+                constexpr float kTexturedMaximum = 1.0f;
+                constexpr float kFlatRedBlueScale = 0.82f;
+                const float color = (textured ? ncl_math::Lerp(kTexturedMinimum, kTexturedMaximum, shade) :
+                    ncl_math::Lerp(kMapFlatMinBrightness, kMapFlatMaxBrightness, shade)) * brightness;
+                vertex.color[0] = textured ? color : color * kFlatRedBlueScale;
+                vertex.color[1] = color;
+                vertex.color[2] = vertex.color[0];
+                vertex.color[3] = 1;
+                vertex.baseUv[0] = input.uv.x;
+                vertex.baseUv[1] = input.uv.y;
+                vertex.lightmapUv[0] = input.lightmap_uv.x;
+                vertex.lightmapUv[1] = input.lightmap_uv.y;
+                polygon.push_back(vertex);
+            }
+            if (textured) {
+                const auto& material = materials[surface.surface_id];
+                serviceImage->Polygon(polygon, material.service_base,
+                    material.needs_lightmap ? material.service_lightmap : CseRadarTexture{});
+            } else {
+                serviceImage->Polygon(polygon);
+            }
+            continue;
+        }
         glActiveTexture(GL_TEXTURE1);
 
         if (textured && materials[surface.surface_id].needs_lightmap) {
@@ -193,19 +229,19 @@ RadarMapStatus MapLayerRenderer::Ensure(const RadarMapLayers& layers, std::span<
         return Wait(waiting_reason, "stage=layer_mesh layer=" + std::to_string(layer) + " surfaces=0");
     }
 
-    if (!glGenFramebuffers) {
+    if (!NativeRadar_Renderer() && !glGenFramebuffers) {
         return Fail(layers, textured, "glGenFramebuffers unavailable");
     }
 
-    if (!glBindFramebuffer) {
+    if (!NativeRadar_Renderer() && !glBindFramebuffer) {
         return Fail(layers, textured, "glBindFramebuffer unavailable");
     }
 
-    if (!glGenRenderbuffers) {
+    if (!NativeRadar_Renderer() && !glGenRenderbuffers) {
         return Fail(layers, textured, "glGenRenderbuffers unavailable");
     }
 
-    if (!glCheckFramebufferStatus) {
+    if (!NativeRadar_Renderer() && !glCheckFramebufferStatus) {
         return Fail(layers, textured, "glCheckFramebufferStatus unavailable");
     }
 
@@ -229,70 +265,72 @@ RadarMapStatus MapLayerRenderer::Ensure(const RadarMapLayers& layers, std::span<
     }
 
     performance::PerformanceGpuScope gpu(monitor, performance::PerfStage::RadarLayer);
-    MapRenderState saved;
+    const bool service = NativeRadar_Renderer() != nullptr;
+    std::optional<MapRenderState> saved;
     RuntimeMap& image = maps_[request.slot];
+    MapRender_Free(image);
+    GLenum error = GL_NO_ERROR;
+    MapImageService serviceImage;
+    if (!service) {
+        saved.emplace();
+        glActiveTexture(GL_TEXTURE0);
+        glGenTextures(1, &image.texture);
+        glBindTexture(GL_TEXTURE_2D, image.texture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kMapImageSize, kMapImageSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    if (image.texture) {
-        glDeleteTextures(1, &image.texture);
-        image = {};
-    }
-
-    glActiveTexture(GL_TEXTURE0);
-    glGenTextures(1, &image.texture);
-    glBindTexture(GL_TEXTURE_2D, image.texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, kMapImageSize, kMapImageSize, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    if (!image.texture) {
-        return Fail(layers, textured, "texture allocation returned zero");
-    }
-
-    GLenum error = glGetError();
-
-    if (error != GL_NO_ERROR) {
-        return Fail(layers, textured, GlFailure("texture storage failed", "GL error", error));
-    }
-
-    if (!depth_buffer_) {
-        glGenRenderbuffers(1, &depth_buffer_);
-        glBindRenderbuffer(GL_RENDERBUFFER, depth_buffer_);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, kMapImageSize, kMapImageSize);
-
-        if (!depth_buffer_) {
-            return Fail(layers, textured, "depth buffer allocation returned zero");
+        if (!image.texture) {
+            return Fail(layers, textured, "texture allocation returned zero");
         }
 
         error = glGetError();
 
         if (error != GL_NO_ERROR) {
-            return Fail(layers, textured, GlFailure("depth buffer storage failed", "GL error", error));
+            return Fail(layers, textured, GlFailure("texture storage failed", "GL error", error));
         }
-    }
 
-    if (!framebuffer_) {
-        glGenFramebuffers(1, &framebuffer_);
+        if (!depth_buffer_) {
+            glGenRenderbuffers(1, &depth_buffer_);
+            glBindRenderbuffer(GL_RENDERBUFFER, depth_buffer_);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, kMapImageSize, kMapImageSize);
+
+            if (!depth_buffer_) {
+                return Fail(layers, textured, "depth buffer allocation returned zero");
+            }
+
+            error = glGetError();
+
+            if (error != GL_NO_ERROR) {
+                return Fail(layers, textured, GlFailure("depth buffer storage failed", "GL error", error));
+            }
+        }
 
         if (!framebuffer_) {
-            return Fail(layers, textured, "framebuffer allocation returned zero");
+            glGenFramebuffers(1, &framebuffer_);
+
+            if (!framebuffer_) {
+                return Fail(layers, textured, "framebuffer allocation returned zero");
+            }
         }
-    }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image.texture, 0);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_buffer_);
-    GLenum framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image.texture, 0);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_buffer_);
+        GLenum framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-    if (framebuffer_status != GL_FRAMEBUFFER_COMPLETE) {
-        return Fail(layers, textured, GlFailure("framebuffer incomplete", "status", framebuffer_status));
-    }
+        if (framebuffer_status != GL_FRAMEBUFFER_COMPLETE) {
+            return Fail(layers, textured, GlFailure("framebuffer incomplete", "status", framebuffer_status));
+        }
 
-    error = glGetError();
+        error = glGetError();
 
-    if (error != GL_NO_ERROR) {
-        return Fail(layers, textured, GlFailure("framebuffer attachment failed", "GL error", error));
+        if (error != GL_NO_ERROR) {
+            return Fail(layers, textured, GlFailure("framebuffer attachment failed", "GL error", error));
+        }
+
     }
 
     std::vector<RadarLayerInfo> draw_layers(layers.get_layers().begin(), layers.get_layers().end());
@@ -329,26 +367,39 @@ RadarMapStatus MapLayerRenderer::Ensure(const RadarMapLayers& layers, std::span<
             }
         }
         max_z = std::max(max_z, min_z + kMinimumHeightSpan);
-        BeginPass(layers.get_bounds(), min_z, max_z, clear_color);
+        if (service) {
+            serviceImage.BeginPass(layers.get_bounds(), min_z, max_z);
+        } else {
+            BeginPass(layers.get_bounds(), min_z, max_z, clear_color);
+        }
         clear_color = false;
         auto group = std::find_if(analysis.layers.begin(), analysis.layers.end(),
                                   [&info](const RadarLayerGroupAnalysis& value) { return value.layer == info.id; });
         assert(group != analysis.layers.end());
         float shade_span = std::max(kMinimumHeightSpan, group->max_height - group->min_height);
         float brightness = info.height < active_height ? kLowerLayerBrightness : 1.0f;
-        DrawMesh(mesh, materials, textured, group->min_height, shade_span, brightness);
+        DrawMesh(mesh, materials, textured, group->min_height, shade_span, brightness, service ? &serviceImage : nullptr);
     }
 
-    MapImageTone_PremultiplyAlpha();
+    if (service) {
+        const auto result = serviceImage.Build(textured, image.service_texture);
+        if (result != CSE_RADAR_OK) {
+            NativeRadar_ReportRenderResult("layer image", result);
+            return Fail(layers, textured, "Metal layer image failed: " + std::to_string(result));
+        }
+    } else {
+        MapImageTone_PremultiplyAlpha();
 
-    if (textured) {
-        MapImageTone_BrightenTextured();
-    }
+        if (textured) {
+            MapImageTone_BrightenTextured();
+        }
 
-    error = glGetError();
+        error = glGetError();
 
-    if (error != GL_NO_ERROR) {
-        return Fail(layers, textured, GlFailure("layer mesh rendering failed", "GL error", error));
+        if (error != GL_NO_ERROR) {
+            return Fail(layers, textured, GlFailure("layer mesh rendering failed", "GL error", error));
+        }
+
     }
 
     image.bounds = layers.get_bounds();
@@ -395,8 +446,8 @@ const MapLayerCache& MapLayerRenderer::get_cache() const {
 
 void MapLayerRenderer::Reset(bool release) {
     for (RuntimeMap& map : maps_) {
-        if (release && map.texture) {
-            glDeleteTextures(1, &map.texture);
+        if (release) {
+            MapRender_Free(map);
         }
 
         map = {};

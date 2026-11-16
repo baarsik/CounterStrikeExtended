@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "radar_renderer_api.h"
 #include <span>
 #include <vector>
 
@@ -55,6 +56,7 @@ class RadarDrawContext {
         ncl_math::Vector2 clip_center;
         float clip_radius = kUnboundedClipRadius;
         float clip_square;
+        CseRadarTexture service_atlas{};
         GLuint tex; // glyph atlas, 0 when the run draws no glyphs
     };
 
@@ -125,9 +127,7 @@ class RadarDrawContext {
         owning_window_ = window;
     }
 
-    bool are_prims_ready() const {
-        return prim_.ok;
-    }
+    bool are_prims_ready() const;
     bool CheckMaskAvailable();
 
     // First call triggers the one-time GL/shader init; the marker shapes have no fixed-function fallback.
@@ -150,6 +150,10 @@ class RadarDrawContext {
                         ncl_math::ColorF color, ncl_math::Vector2 center, float radius, bool square, bool smoothing);
 
     // points and alpha are one per vertex and the same length.
+    void DrawMapTexture(CseRadarTexture texture, std::span<const float, 8> xy, std::span<const float, 8> uv,
+        ncl_math::ColorF color, ncl_math::Vector2 center, float radius, bool square, bool smoothing);
+    void DrawOverviewTexture(CseRadarMapTextureDraw draw);
+
     void DrawPolyline(std::span<const ncl_math::Vector2> points, std::span<const uint8_t> alpha, ncl_math::Color color,
                       float width);
 
@@ -161,6 +165,8 @@ class RadarDrawContext {
     // LUMINANCE_ALPHA atlas cell: alpha = coverage, luminance = fill modulated by the color, so a baked
     // drop shadow (luminance 0) stays black. One atlas per batch; a different one flushes.
     void DrawGlyph(unsigned int atlas, const ncl_math::Aabb2& rect, const ncl_math::Aabb2& uv, ncl_math::Color fill);
+
+    void DrawGlyph(CseRadarTexture atlas, const ncl_math::Aabb2& rect, const ncl_math::Aabb2& uv, ncl_math::Color fill);
 
     void DrawBomb(ncl_math::Vector2 center, float half_extent, ncl_math::Color color);
 
@@ -226,7 +232,10 @@ class RadarDrawContext {
     void FlushBatch();
     void UseProgram(GLuint p);
     void ApplyFade(GLint color_loc, GLint amt_loc);
-    void AddQuad(GLenum blend_src, GLenum blend_dst, const PrimVertex (&corners)[4], GLuint tex = 0);
+    void AddQuad(GLenum blend_src, GLenum blend_dst, const PrimVertex (&corners)[4], GLuint tex = 0,
+        CseRadarTexture atlas = {});
+    void DrawGlyphImpl(unsigned int atlas, CseRadarTexture service_atlas, const ncl_math::Aabb2& rect,
+        const ncl_math::Aabb2& uv, ncl_math::Color fill);
     void AddShapeQuad(const ShapeParams& p, GLenum blend_src, GLenum blend_dst, ncl_math::Aabb2 quad);
     void EnsurePrograms();
     ncl_gl::Program& GetMaskProgram();

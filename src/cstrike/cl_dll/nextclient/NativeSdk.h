@@ -57,3 +57,10 @@ namespace cse::radar {
 struct Glyph;
 }
 bool NativeRadar_GetGlyph(std::uint32_t font, std::uint32_t character, cse::radar::Glyph& out);
+
+#include "../../../public/radar_renderer_api.h"
+const CseRadarRendererApi* NativeRadar_Renderer();
+CseRadarState NativeRadar_RendererState();
+void NativeRadar_ReportRenderResult(const char* operation, CseRadarResult result);
+
+CseRadarHudSpace NativeRadar_HudSpace();

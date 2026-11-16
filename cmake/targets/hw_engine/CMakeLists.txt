@@ -1545,9 +1545,13 @@ if(CSE_ENABLE_METAL)
   cse_add_metal_shaders(hw_engine)
 endif()
 if(NOT MSVC)
-  set_property(SOURCE "${CSE_SDK_DIR}/engine/render/backend.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+  set_property(SOURCE "${CSE_SDK_DIR}/engine/render/backend.cpp"
+    "${CSE_SDK_DIR}/engine/radar_renderer_api.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
   if(CSE_ENABLE_METAL)
     set_property(SOURCE "${CSE_SDK_DIR}/engine/render/native/metal_draw.cpp"
-      "${CSE_SDK_DIR}/engine/render/native/metal_session.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+      "${CSE_SDK_DIR}/engine/render/native/metal_session.cpp"
+      "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu.cpp"
+      "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu_resources.cpp"
+      "${CSE_SDK_DIR}/engine/render/native/radar_renderer_gpu_blur.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
   endif()
 endif()

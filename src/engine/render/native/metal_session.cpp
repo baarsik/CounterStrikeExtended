@@ -1,4 +1,6 @@
 #include "metal_session.h"
+#include "metal_effect_access.h"
+#include "radar_renderer_gpu.h"
 #include "metal_draw.h"
 #include "legacy_runtime_embedded.h"
 #include <SDL3/SDL.h>
@@ -132,6 +134,8 @@ struct MetalSession::Impl {
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
     };
+    std::unique_ptr<RadarRendererGpu> effects;
+    std::uint64_t effectsEpoch = 0;
     SDL_GPUDevice* device = nullptr;
     SDL_Window* window = nullptr;
     SDL_GPUShader* vertex = nullptr;
@@ -423,6 +427,20 @@ struct MetalSession::Impl {
         return true;
     }
 };
+
+RadarRendererGpu& MetalSession::RadarEffects(std::uint64_t epoch) {
+    auto& state = *impl_;
+    if (!state.effects || state.effectsEpoch != epoch) {
+        state.effects.reset(new RadarRendererGpu(*this, epoch));
+        state.effectsEpoch = epoch;
+    }
+    return *state.effects;
+}
+
+MetalEffectAccess MetalSession::EffectAccess() const {
+    const auto& state = *impl_;
+    return {state.device, state.color, state.multisample, state.width, state.height, state.samples};
+}
 
 MetalSession::MetalSession() : impl_(new Impl) {
 }
@@ -1005,6 +1023,7 @@ void MetalSession::Shutdown() {
         return;
     }
     SDL_WaitForGPUIdle(state.device);
+    state.effects.reset();
     for (auto& stream : state.streams) {
         if (stream.fence) {
             SDL_ReleaseGPUFence(state.device, stream.fence);

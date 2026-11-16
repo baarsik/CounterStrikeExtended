@@ -1,4 +1,5 @@
 #include "MapRender.h"
+#include "MapImageService.h"
 
 #include <algorithm>
 #include <span>
@@ -125,7 +126,7 @@ void ComputeFloorZRange(model_t* world, std::span<const int> excluded, float& ou
 }
 
 void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[64], std::span<const SkyFace> skies,
-                  float fzmin, float zrange, std::span<const int> excluded) {
+                  float fzmin, float zrange, std::span<const int> excluded, MapImageService* serviceImage = nullptr) {
     constexpr float kTexturedFloorMinBrightness = 0.55f;
     constexpr float kTexturedFloorMaxBrightness = 1.0f;
     constexpr float kFlatRedBlueScale = 0.82f;
@@ -170,6 +171,50 @@ void DrawSurfaces(model_t* world, bool textured, const int (*lightmap_textures)[
                     continue;
                 }
             }
+        }
+
+        if (serviceImage) {
+            CseRadarWorldMaterial material{};
+            if (textured) {
+                const auto result = NativeRadar_Renderer()->ResolveWorldMaterial(
+                    NativeRadar_RendererState().rendererEpoch, i, &material, sizeof(material));
+                if ((result != CSE_RADAR_OK && result != CSE_RADAR_WAITING) || !material.base.serial) {
+                    serviceImage->status = result == CSE_RADAR_OK ? CSE_RADAR_WAITING : result;
+                    return;
+                }
+            }
+            auto makeVertex = [&](const float* position, const float* uv) {
+                CseRadarMapVertex vertex{};
+                std::copy(position, position + 3, vertex.position);
+                const float shade = ncl_math::Saturate((position[2] - fzmin) / zrange);
+                const float brightness = textured ? ncl_math::Lerp(kTexturedFloorMinBrightness,
+                    kTexturedFloorMaxBrightness, shade) : ncl_math::Lerp(kMapFlatMinBrightness, kMapFlatMaxBrightness, shade);
+                vertex.color[0] = textured ? brightness : brightness * kFlatRedBlueScale;
+                vertex.color[1] = brightness;
+                vertex.color[2] = vertex.color[0];
+                vertex.color[3] = 1;
+                if (uv) {
+                    std::copy(uv, uv + 2, vertex.baseUv);
+                    std::copy(uv + 2, uv + 4, vertex.lightmapUv);
+                }
+                return vertex;
+            };
+            std::vector<CseRadarMapVertex> polygon;
+            if (textured) {
+                for (glpoly_t* poly = s->polys; poly; poly = poly->next) {
+                    polygon.clear();
+                    for (int vertex = 0; vertex < poly->numverts; ++vertex) {
+                        polygon.push_back(makeVertex(poly->verts[vertex], poly->verts[vertex] + 3));
+                    }
+                    serviceImage->Polygon(polygon, material.base, material.lightmap);
+                }
+            } else {
+                for (int edge = 0; edge < s->numedges; ++edge) {
+                    polygon.push_back(makeVertex(GetSurfVertex(world, s, edge), nullptr));
+                }
+                serviceImage->Polygon(polygon);
+            }
+            continue;
         }
 
         if (textured) {
@@ -366,6 +411,53 @@ RuntimeMap MapRender_Generate(model_t* world, bool textured, bool slice, RadarMa
         return rm;
     }
 
+    if (const auto* service = NativeRadar_Renderer()) {
+        if (textured) {
+            bool lightmapReady = false;
+            for (int index = world->firstmodelsurface; index < world->firstmodelsurface + world->nummodelsurfaces; ++index) {
+                const auto& surface = world->surfaces[index];
+                if ((surface.flags & (SURF_DRAWSKY | SURF_DRAWTILED)) || !surface.plane || surface.lightmaptexturenum < 0) {
+                    continue;
+                }
+                CseRadarWorldMaterial material{};
+                service->ResolveWorldMaterial(NativeRadar_RendererState().rendererEpoch, index, &material, sizeof(material));
+                lightmapReady = lightmapReady || (material.flags & CSE_RADAR_WORLD_LIGHTMAP_READY) != 0;
+            }
+            if (!lightmapReady) {
+                return rm;
+            }
+        }
+        ncl_math::Aabb3 extent;
+        if (!ComputeMapExtent(world, extent)) {
+            if (status) {
+                *status = RadarMapStatus::Failed;
+            }
+            return rm;
+        }
+        float fzmin;
+        float fzmax;
+        ComputeFloorZRange(world, excluded_surfaces, fzmin, fzmax);
+        if (fzmax - fzmin < kMinimumHeightSpan) {
+            fzmin = extent.min.z;
+            fzmax = extent.max.z;
+        }
+        SkyFace skies[kMaxSky];
+        const int skyCount = CollectSkyFaces(world, skies);
+        MapImageService image;
+        image.BeginPass({{extent.min.x, extent.min.y}, {extent.max.x, extent.max.y}}, extent.min.z, extent.max.z, slice);
+        DrawSurfaces(world, textured, nullptr, {skies, static_cast<std::size_t>(skyCount)},
+            fzmin, fzmax - fzmin, excluded_surfaces, &image);
+        const auto result = image.Build(textured, rm.service_texture);
+        NativeRadar_ReportRenderResult("top map", result);
+        if (status) {
+            *status = result == CSE_RADAR_OK ? RadarMapStatus::Ready :
+                (result == CSE_RADAR_WAITING ? RadarMapStatus::Waiting : RadarMapStatus::Failed);
+        }
+        rm.valid = result == CSE_RADAR_OK;
+        rm.bounds = {{extent.min.x, extent.min.y}, {extent.max.x, extent.max.y}};
+        return rm;
+    }
+
     if (!EnsureGlad() || !glGenFramebuffers || !glBindFramebuffer) {
         if (status) {
             *status = RadarMapStatus::Failed;
@@ -452,6 +544,13 @@ RuntimeMap MapRender_Generate(model_t* world, bool textured, bool slice, RadarMa
 }
 
 void MapRender_Free(RuntimeMap& map) {
+    if (map.service_texture.serial) {
+        if (const auto* service = NativeRadar_Renderer()) {
+            service->ReleaseImage(&map.service_texture);
+        }
+        map = {};
+        return;
+    }
     if (map.texture && EnsureGlad()) {
         glDeleteTextures(1, reinterpret_cast<GLuint*>(&map.texture));
     }

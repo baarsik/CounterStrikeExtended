@@ -10,6 +10,11 @@ extern int currenttexture;
 
 extern int lightmap_textures[cse::radar::LightmapCount];
 
+namespace cse::radar {
+std::uint64_t GraphicsGeneration();
+bool GetEngineGlyph(std::uint32_t font, std::uint32_t character, Glyph* glyph);
+}
+
 namespace {
 std::uint64_t graphicsGeneration = 1;
 const int* CSE_ABI_CALL RadarLightmaps() {
@@ -67,4 +72,12 @@ void cse::radar::AdvanceGraphicsGeneration() {
     if (graphicsGeneration == 0) {
         ++graphicsGeneration;
     }
+}
+
+std::uint64_t cse::radar::GraphicsGeneration() {
+    return graphicsGeneration;
+}
+
+bool cse::radar::GetEngineGlyph(std::uint32_t font, std::uint32_t character, Glyph* glyph) {
+    return RadarGlyph(font, character, glyph);
 }

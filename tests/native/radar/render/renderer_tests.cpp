@@ -16,6 +16,22 @@
 
 cl_enginefunc_t gEngfuncs{};
 
+const CseRadarRendererApi* serviceFixture = nullptr;
+const CseRadarRendererApi* NativeRadar_Renderer() {
+    return serviceFixture;
+}
+CseRadarState NativeRadar_RendererState() {
+    CseRadarState state{};
+    state.rendererEpoch = 7;
+    state.capabilities = CSE_RADAR_CAP_ALL;
+    return state;
+}
+CseRadarHudSpace NativeRadar_HudSpace() {
+    return {128, 128};
+}
+void NativeRadar_ReportRenderResult(const char*, CseRadarResult) {}
+
+
 const int (*NativeRadar_Lightmaps())[64] {
     return nullptr;
 }
@@ -505,4 +521,25 @@ RADAR_TEST_F(RadarGpuTest, ContextReplacementDiscardsOldNamesAndRebuildsPrograms
     draw_.DrawDisc({64, 64}, 5, {255, 0, 0, 255});
     draw_.EndPrims();
     CHECK_EQ(Pixel(64, 64)[0], 255);
+}
+
+namespace {
+CseRadarTexture observedAtlas{};
+CseRadarResult CSE_ABI_CALL CaptureGlyphBatch(const CseRadarPrimitiveBatch* batch) {
+    observedAtlas = batch->atlas;
+    return CSE_RADAR_OK;
+}
+}
+
+RADAR_TEST_F(RadarGpuTest, ServiceGlyphBatchPreservesTypedAtlasIdentity) {
+    CseRadarRendererApi service{};
+    service.DrawPrimitiveQuads = CaptureGlyphBatch;
+    struct ResetService {
+        ~ResetService() { serviceFixture = nullptr; }
+    } reset;
+    serviceFixture = &service;
+    draw_.DrawGlyph(CseRadarTexture{7, 1234}, {{2, 2}, {10, 10}}, {{0, 0}, {1, 1}}, {255, 255, 255, 255});
+    draw_.FlushPrims();
+    CHECK_EQ(observedAtlas.rendererEpoch, 7u);
+    CHECK_EQ(observedAtlas.serial, 1234u);
 }

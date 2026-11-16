@@ -13,7 +13,7 @@ add_library(metal_preparation STATIC "${native}/metal_draw.cpp" "${native}/legac
 target_include_directories(metal_preparation PUBLIC "${native}")
 add_executable(metal_draw_tests draw_tests.cpp)
 target_link_libraries(metal_draw_tests PRIVATE metal_preparation)
-add_library(metal_session STATIC "${native}/metal_session.cpp")
+add_library(metal_session STATIC "${native}/metal_session.cpp" "${native}/radar_renderer_gpu.cpp" "${native}/radar_renderer_gpu_resources.cpp" "${native}/radar_renderer_gpu_blur.cpp")
 include("${CSE_ROOT}/cmake/targets/hw_engine/MetalShaders.cmake")
 cse_add_metal_shaders(metal_session)
 target_include_directories(metal_session PUBLIC "${native}" "${CSE_ROOT}/src/external/SDL3/include")
@@ -21,7 +21,11 @@ target_link_libraries(metal_session PUBLIC metal_preparation "${CSE_METAL_SDL_LI
 add_executable(metal_session_tests session_tests.cpp)
 target_link_libraries(metal_session_tests PRIVATE metal_session)
 
+add_executable(metal_radar_tests radar_tests.cpp)
+target_link_libraries(metal_radar_tests PRIVATE metal_session)
+
 enable_testing()
+add_test(NAME metal-radar-effects COMMAND metal_radar_tests)
 add_test(NAME metal-draw-preparation COMMAND metal_draw_tests)
 add_test(NAME metal-session-device COMMAND metal_session_tests)
 add_executable(renderer_backend_tests ../renderer_selection/backend_tests.cpp
@@ -37,7 +41,7 @@ target_include_directories(renderer_selection_tests PRIVATE "${native}/..")
 set_target_properties(renderer_selection_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES)
 add_test(NAME renderer-selection COMMAND renderer_selection_tests)
 
-foreach(target metal_preparation metal_draw_tests metal_session metal_session_tests renderer_backend_tests renderer_selection_tests)
+foreach(target metal_radar_tests metal_preparation metal_draw_tests metal_session metal_session_tests renderer_backend_tests renderer_selection_tests)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
   target_compile_options(${target} PRIVATE -Wall -Wextra -Werror -ffp-contract=off)
   if(CSE_METAL_SANITIZERS)
@@ -46,3 +50,5 @@ foreach(target metal_preparation metal_draw_tests metal_session metal_session_te
   endif()
 endforeach()
 set_target_properties(renderer_backend_tests PROPERTIES CXX_STANDARD 17)
+
+set_target_properties(metal_session metal_radar_tests PROPERTIES CXX_STANDARD 17)

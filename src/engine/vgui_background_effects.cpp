@@ -8,6 +8,10 @@
 #include "../vgui2/controls/controls.h"
 #include "vgui/IPanel.h"
 #include "render/native/legacy_dispatch.h"
+#include "render/backend.h"
+#if defined(CSE_ENABLE_METAL)
+#include "vgui_background_blur_metal.h"
+#endif
 
 extern BaseUISurface g_BaseUISurface;
 
@@ -17,7 +21,7 @@ namespace {
 BackgroundBlur backgroundBlur;
 
 bool CSE_ABI_CALL DrawBackground(std::uintptr_t handle, const BackdropStyle* style) {
-    if (!handle || !style || !vgui2::ipanel() || !render::LegacyIndexedDrawingAllowed()) {
+    if (!handle || !style || !vgui2::ipanel() || (!render::UsingMetal() && !render::LegacyIndexedDrawingAllowed())) {
         return false;
     }
     const auto panel = static_cast<vgui2::VPANEL>(handle);
@@ -34,6 +38,11 @@ bool CSE_ABI_CALL DrawBackground(std::uintptr_t handle, const BackdropStyle* sty
     int screenHeight = 0;
     g_BaseUISurface.GetScreenSize(screenWidth, screenHeight);
     g_BaseUISurface.DrawFlushText();
+#if defined(CSE_ENABLE_METAL)
+    if (render::UsingMetal()) {
+        return DrawMetalBackground(bounds, clip, screenWidth, screenHeight, *style);
+    }
+#endif
     return backgroundBlur.Draw(bounds, clip, screenWidth, screenHeight, *style);
 }
 
@@ -50,13 +59,18 @@ int CSE_ABI_CALL CurrentStyle() {
 
 bool CSE_ABI_CALL DrawSurface(const BackdropRect* bounds, const BackdropRect* clip,
     const BackdropStyle* style, float radius) {
-    if (!bounds || !clip || !style || !render::LegacyIndexedDrawingAllowed()) {
+    if (!bounds || !clip || !style || (!render::UsingMetal() && !render::LegacyIndexedDrawingAllowed())) {
         return false;
     }
     int width = 0;
     int height = 0;
     g_BaseUISurface.GetScreenSize(width, height);
     g_BaseUISurface.DrawFlushText();
+#if defined(CSE_ENABLE_METAL)
+    if (render::UsingMetal()) {
+        return DrawMetalBackground(*bounds, *clip, width, height, *style, radius);
+    }
+#endif
     return backgroundBlur.Draw(*bounds, *clip, width, height, *style, radius);
 }
 
@@ -69,17 +83,31 @@ EXPOSE_INTERFACE_FN(CreateStyle, StyleApi, StyleInterface);
 } // namespace
 
 void BeginBackgroundEffectsFrame() {
+#if defined(CSE_ENABLE_METAL)
+    if (render::UsingMetal()) {
+        BeginMetalBackgroundFrame();
+        return;
+    }
+#endif
     backgroundBlur.BeginFrame();
 }
 
 void CaptureBackgroundEffects(int x, int y, int width, int height) {
+#if defined(CSE_ENABLE_METAL)
+    if (render::UsingMetal()) {
+        CaptureMetalBackground(x, y, width, height);
+        return;
+    }
+#endif
     if (render::LegacyIndexedDrawingAllowed()) {
         backgroundBlur.Capture(x, y, width, height);
     }
 }
 
 void ShutdownBackgroundEffects() {
-    backgroundBlur.Shutdown();
+    if (!render::UsingMetal()) {
+        backgroundBlur.Shutdown();
+    } // Metal effects retire with their owning session, before its device.
 }
 
 } // namespace ui

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -81,7 +82,14 @@ constexpr float kShapePlayerMarkerFade = 10.0f;
 
 } // namespace
 
+bool RadarDrawContext::are_prims_ready() const {
+    return NativeRadar_Renderer() ? (NativeRadar_RendererState().capabilities & CSE_RADAR_CAP_PRIMITIVES) != 0 : prim_.ok;
+}
+
 bool RadarDrawContext::CheckPrimsAvailable() {
+    if (NativeRadar_Renderer()) {
+        return are_prims_ready();
+    }
     EnsurePrograms();
 
     return prim_.ok;
@@ -302,7 +310,17 @@ void RadarDrawContext::DrawRect(ncl_math::Vector2 min, ncl_math::Vector2 max, nc
 }
 
 void RadarDrawContext::DrawGlyph(unsigned int atlas, const ncl_math::Aabb2& rect, const ncl_math::Aabb2& uv,
-                                 ncl_math::Color fill) {
+    ncl_math::Color fill) {
+    DrawGlyphImpl(atlas, {}, rect, uv, fill);
+}
+
+void RadarDrawContext::DrawGlyph(CseRadarTexture atlas, const ncl_math::Aabb2& rect, const ncl_math::Aabb2& uv,
+    ncl_math::Color fill) {
+    DrawGlyphImpl(0, atlas, rect, uv, fill);
+}
+
+void RadarDrawContext::DrawGlyphImpl(unsigned int atlas, CseRadarTexture service_atlas, const ncl_math::Aabb2& rect,
+    const ncl_math::Aabb2& uv, ncl_math::Color fill) {
     PrimVertex v{};
     v.shape[0] = kShapeGlyph;
     v.color[0] = fill.r / kColorByteScale;
@@ -323,7 +341,7 @@ void RadarDrawContext::DrawGlyph(unsigned int atlas, const ncl_math::Aabb2& rect
         corners[c].tri[1] = tex[c].y;
     }
 
-    AddQuad(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, corners, (GLuint)atlas);
+    AddQuad(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, corners, static_cast<GLuint>(atlas), service_atlas);
 }
 
 void RadarDrawContext::DrawBomb(ncl_math::Vector2 center, float half_extent, ncl_math::Color color) {
@@ -392,6 +410,24 @@ void RadarDrawContext::DrawRing(ncl_math::Vector2 center, float outer, float inn
 
 void RadarDrawContext::DrawBorderRing(ncl_math::Vector2 center, float outer, float inner, float feather,
                                       ncl_math::Color color) {
+    if (const auto* service = NativeRadar_Renderer()) {
+        FlushPrims();
+        CseRadarMaskRingDraw draw{};
+        draw.size = sizeof(draw);
+        draw.rendererEpoch = NativeRadar_RendererState().rendererEpoch;
+        draw.hud = NativeRadar_HudSpace();
+        draw.outer = {{center.x, center.y}, outer, feather, CSE_RADAR_SHAPE_CIRCLE, 0};
+        draw.innerRadius = inner;
+        const auto rgba = color.ToFloat();
+        draw.color[0] = rgba.r;
+        draw.color[1] = rgba.g;
+        draw.color[2] = rgba.b;
+        draw.color[3] = rgba.a;
+        draw.fade = {{fade_color_.r, fade_color_.g, fade_color_.b}, fade_amt_};
+        NativeRadar_ReportRenderResult("ring", service->DrawMaskRing(&draw));
+        return;
+    }
+
     // sin(pi / 4), retaining the upstream precision for the eighth-circle rasterizer.
     constexpr float kOctantRadiusScale = 0.70710678f;
     constexpr float kPixelRoundingBias = 0.5f;
@@ -597,6 +633,31 @@ void RadarDrawContext::FlushBatch() {
         return;
     }
 
+    if (const auto* service = NativeRadar_Renderer()) {
+        static_assert(sizeof(PrimVertex) == sizeof(CseRadarPrimitiveVertex));
+        std::vector<CseRadarPrimitiveVertex> vertices(batch_.verts.size());
+        std::memcpy(vertices.data(), batch_.verts.data(), vertices.size() * sizeof(vertices[0]));
+        CseRadarPrimitiveBatch draw{};
+        draw.size = sizeof(draw);
+        draw.rendererEpoch = NativeRadar_RendererState().rendererEpoch;
+        draw.hud = NativeRadar_HudSpace();
+        draw.blend = batch_.dst == GL_ONE ? CSE_RADAR_BLEND_ADDITIVE_ALPHA : CSE_RADAR_BLEND_STRAIGHT;
+        draw.clip = {{batch_.clip_center.x, batch_.clip_center.y}, batch_.clip_radius,
+            batch_.clip_radius == kUnboundedClipRadius ? CSE_RADAR_SHAPE_NONE :
+                (batch_.clip_square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE)};
+        draw.fade = {{fade_color_.r, fade_color_.g, fade_color_.b}, fade_amt_};
+        draw.atlas = batch_.service_atlas;
+        draw.quadCount = static_cast<std::uint32_t>(vertices.size() / 4);
+        draw.vertices = vertices.data();
+        NativeRadar_ReportRenderResult("primitives", service->DrawPrimitiveQuads(&draw));
+        ++stats_.batches;
+        stats_.quads += static_cast<int>(draw.quadCount);
+        batch_.verts.clear();
+        batch_.open = false;
+        batch_.service_atlas = {};
+        return;
+    }
+
     if (current_program_ != prim_.prog) {
         glUseProgram(prim_.prog);
         current_program_ = prim_.prog;
@@ -682,6 +743,12 @@ void RadarDrawContext::FlushBatch() {
 }
 
 void RadarDrawContext::UseProgram(GLuint p) {
+    if (NativeRadar_Renderer()) {
+        if (batch_.open) {
+            FlushBatch();
+        }
+        return;
+    }
     // Hand-off must draw the queued primitives first, so they land in call order.
     if (p != prim_.prog && batch_.open) {
         FlushBatch();
@@ -702,12 +769,14 @@ void RadarDrawContext::ApplyFade(GLint color_loc, GLint amt_loc) {
     glUniform1f(amt_loc, fade_amt_);
 }
 
-void RadarDrawContext::AddQuad(GLenum blend_src, GLenum blend_dst, const PrimVertex (&corners)[4], GLuint tex) {
+void RadarDrawContext::AddQuad(GLenum blend_src, GLenum blend_dst, const PrimVertex (&corners)[4], GLuint tex, CseRadarTexture atlas) {
     float clip_sq = clip_square_ ? 1.0f : 0.0f;
 
     if (batch_.open && (batch_.src != blend_src || batch_.dst != blend_dst || batch_.clip_center != clip_center_ ||
                         batch_.clip_radius != clip_r_ || batch_.clip_square != clip_sq ||
-                        (tex != 0 && batch_.tex != 0 && batch_.tex != tex))) {
+                        (tex != 0 && batch_.tex != 0 && batch_.tex != tex) ||
+                        (atlas.serial && batch_.service_atlas.serial && (atlas.serial != batch_.service_atlas.serial ||
+                            atlas.rendererEpoch != batch_.service_atlas.rendererEpoch)))) {
         FlushBatch();
     }
 
@@ -718,6 +787,9 @@ void RadarDrawContext::AddQuad(GLenum blend_src, GLenum blend_dst, const PrimVer
     batch_.clip_radius = clip_r_;
     batch_.clip_square = clip_sq;
 
+    if (atlas.serial) {
+        batch_.service_atlas = atlas;
+    }
     if (tex != 0) {
         batch_.tex = tex;
     }

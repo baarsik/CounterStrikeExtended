@@ -123,6 +123,14 @@ void* HudRadarAdvanced::CurrentWindow() const {
 }
 
 void HudRadarAdvanced::ResetGraphics(bool release_owned) {
+    if (NativeRadar_Renderer()) {
+        backdrop_.OnVidInit(release_owned);
+        draw_.ResetGl(false);
+        text_.ResetGl();
+        RadarHooks_InvalidateGlyphMetrics();
+        graphics_generation_ = 0;
+        return;
+    }
     bool release =
         release_owned && radar::integration::CanReleaseGraphics(graphics_generation_, NativeRadar_GraphicsGeneration(),
                                                                 draw_.is_context(CurrentContext(), CurrentWindow()));
@@ -134,6 +142,20 @@ void HudRadarAdvanced::ResetGraphics(bool release_owned) {
 }
 
 bool HudRadarAdvanced::PrepareGraphics() {
+    if (NativeRadar_Renderer()) {
+        const auto state = NativeRadar_RendererState();
+        if (!(state.flags & CSE_RADAR_STATE_READY) || state.capabilities != CSE_RADAR_CAP_ALL) {
+            return false;
+        }
+        if (graphics_generation_ != state.rendererEpoch) {
+            backdrop_.OnVidInit(true);
+            draw_.ResetGl(false);
+            text_.ResetGl();
+            RadarHooks_InvalidateGlyphMetrics();
+            graphics_generation_ = state.rendererEpoch;
+        }
+        return true;
+    }
     void* context = CurrentContext();
     void* window = CurrentWindow();
     if (!context) {

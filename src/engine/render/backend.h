@@ -30,6 +30,7 @@ void BackendDrawableSize(int& width, int& height);
 // Private engine services; callers must flush captured work before executing session operations.
 FrameRecorder* BackendRecorder();
 MetalSession* BackendMetalSession();
+bool BackendSceneActive();
 #endif
 }
 }

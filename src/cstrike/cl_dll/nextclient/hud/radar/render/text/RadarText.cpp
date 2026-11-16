@@ -59,6 +59,8 @@ void RadarText::DrawCentered(int, const char* utf8, ncl_math::Vector2 pos, int d
     std::array<wchar_t, kLabelCells> text{};
     cse::legacy_text::Utf8ToWideCells(utf8, text.data(), static_cast<int>(sizeof(text)));
     std::array<cse::radar::Glyph, kMaxChars> glyphs{};
+    std::array<CseRadarTexture, kMaxChars> atlases{};
+    const auto* renderer = NativeRadar_Renderer();
     int count = 0;
     int width = 0;
     // Atlas baking can bind a texture. Finish queued primitives before querying
@@ -69,7 +71,21 @@ void RadarText::DrawCentered(int, const char* utf8, ncl_math::Vector2 pos, int d
             break;
         }
         cse::radar::Glyph& glyph = glyphs[count];
-        if (!NativeRadar_GetGlyph(static_cast<std::uint32_t>(font), static_cast<std::uint32_t>(character), glyph)) {
+        if (renderer) {
+            CseRadarGlyph resolved{};
+            const auto result = renderer->ResolveGlyph(NativeRadar_RendererState().rendererEpoch,
+                static_cast<std::uint32_t>(font), static_cast<std::uint32_t>(character), &resolved, sizeof(resolved));
+            if (result != CSE_RADAR_OK) {
+                NativeRadar_ReportRenderResult("glyph", result);
+                continue;
+            }
+            atlases[count] = resolved.atlas;
+            glyph.bearing_x = resolved.bearingX;
+            glyph.wide = resolved.width;
+            glyph.tall = resolved.height;
+            glyph.advance = resolved.advance;
+            std::copy(resolved.uv, resolved.uv + 4, glyph.uv);
+        } else if (!NativeRadar_GetGlyph(static_cast<std::uint32_t>(font), static_cast<std::uint32_t>(character), glyph)) {
             continue;
         }
         width += glyph.advance;
@@ -81,7 +97,9 @@ void RadarText::DrawCentered(int, const char* utf8, ncl_math::Vector2 pos, int d
         const float left = pen + glyph.bearing_x;
         const ncl_math::Aabb2 rectangle{{left, pos.y}, {left + glyph.wide, pos.y + glyph.tall}};
         const ncl_math::Aabb2 uv{{glyph.uv[0], glyph.uv[1]}, {glyph.uv[2], glyph.uv[3]}};
-        if (glyph.wide > 0 && glyph.texture != 0) {
+        if (glyph.wide > 0 && renderer && atlases[i].serial) {
+            draw_.DrawGlyph(atlases[i], rectangle, uv, color);
+        } else if (glyph.wide > 0 && glyph.texture != 0) {
             draw_.DrawGlyph(glyph.texture, rectangle, uv, color);
         }
         pen += glyph.advance;
