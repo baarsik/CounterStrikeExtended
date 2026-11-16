@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdlib>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -46,6 +47,39 @@ NATIVE_SLOTS(NATIVE_CHECK_SIGNATURE)
 #undef NATIVE_CHECK_SIGNATURE
 [[noreturn]] void Sys_Error(const char*, ...) {
     throw std::runtime_error("backend failed");
+}
+
+namespace {
+constexpr int kBaselineSystemRamMiB = 8 * 1024;
+int systemRamMiB = kBaselineSystemRamMiB;
+}
+
+// Supply installed RAM independently of the host so both runtime budgets are exercised.
+extern "C" int SDLCALL SDL_GetSystemRAM(void) {
+    return systemRamMiB;
+}
+
+void RuntimeTextureBudgets(SDL_Window* window) {
+    using namespace cse::render;
+    constexpr std::size_t kGiB = std::size_t{1024} * 1024 * 1024;
+    struct Case {
+        int ramMiB;
+        std::size_t textureBytes;
+    };
+    // Catch an inclusive threshold, a 16 GiB cutoff, incorrect RAM units and unknown-RAM handling.
+    const std::array<Case, 9> cases{{
+        {-1, kGiB}, {0, kGiB}, {4096, kGiB}, {8191, kGiB}, {8192, kGiB},
+        {8193, 2 * kGiB}, {12288, 2 * kGiB}, {16384, 2 * kGiB},
+        {std::numeric_limits<int>::max(), 2 * kGiB}
+    }};
+    for (const auto& test : cases) {
+        systemRamMiB = test.ramMiB;
+        std::string error;
+        CHECK(InitializeBackend(window, error));
+        CHECK(BackendRecorder());
+        CHECK(BackendRecorder()->Limits().capture.textureStorageBytes == test.textureBytes);
+        ShutdownBackend();
+    }
 }
 
 void LargeTexturePrecache() {
@@ -106,6 +140,13 @@ int main(int argc, char** argv) {
     CHECK(window);
     CHECK(ConfigureBackend(false, false, error));
     CHECK(UsingMetal());
+    if (argc == 2 && std::string(argv[1]) == "ram-budget") {
+        RuntimeTextureBudgets(window);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        std::cout << "runtime texture budgets at the installed-RAM threshold passed\n";
+        return 0;
+    }
     CHECK(InitializeBackend(window, error));
     CHECK(!BackendSceneActive());
     int absentWidth = 1;
