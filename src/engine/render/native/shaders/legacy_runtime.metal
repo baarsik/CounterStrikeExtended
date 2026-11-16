@@ -1,0 +1,183 @@
+// Production legacy renderer. Offline compiled; no runtime source compiler.
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexConstants {
+    float4x4 ModelView;
+    float4x4 Projection;
+    float4x4 TextureMatrix[3];
+};
+
+struct FragmentConstants {
+    float4 Unit[3];
+    float4 Components[3];
+    float4 FogColor;
+    float4 Fog;
+    float4 FogAlpha;
+    float4 Texture[3];
+    float4 Sampling[3];
+};
+
+struct Input {
+    float4 position [[attribute(0)]];
+    float4 color [[attribute(1)]];
+    float4 uv0 [[attribute(2)]];
+    float4 uv1 [[attribute(3)]];
+    float4 uv2 [[attribute(4)]];
+};
+
+struct Varying {
+    float4 position [[position]];
+    float4 color;
+    float4 uv0;
+    float4 uv1;
+    float4 uv2;
+    float eyeDepth;
+};
+
+static_assert(sizeof(VertexConstants) == 320, "Captured vertex uniform layout");
+static_assert(sizeof(FragmentConstants) == 240, "Captured fragment uniform layout");
+
+vertex Varying LegacyVertex(Input input [[stage_in]], constant VertexConstants& constants [[buffer(0)]]) {
+    Varying output;
+    float4 eye = constants.ModelView * input.position;
+    output.position = constants.Projection * eye;
+    // GL clip depth [-w,w] becomes SDL GPU [0,w], as in the HLSL counterpart.
+    output.position.z = (output.position.z + output.position.w) * 0.5f;
+    output.color = input.color;
+    output.uv0 = constants.TextureMatrix[0] * input.uv0;
+    output.uv1 = constants.TextureMatrix[1] * input.uv1;
+    output.uv2 = constants.TextureMatrix[2] * input.uv2;
+    output.eyeDepth = abs(eye.z / eye.w);
+    return output;
+}
+
+float4 Environment(float4 previous, float4 sampleValue, float4 unit, float4 components) {
+    float4 result = previous;
+    if (unit.x != 0.0f) {
+        if (unit.y == 1.0f) {
+            result = float4(components.x != 0.0f ? sampleValue.rgb : previous.rgb,
+                components.y != 0.0f ? sampleValue.a : previous.a);
+        } else {
+            result = previous * sampleValue;
+            if (unit.y == 2.0f) {
+                result.rgb *= unit.z;
+            }
+            result = saturate(result);
+        }
+    }
+    return result;
+}
+
+bool AlphaPass(float alpha, uint comparison, float reference) {
+    switch (comparison) {
+    case 0: return false;
+    case 1: return alpha < reference;
+    case 2: return alpha == reference;
+    case 3: return alpha <= reference;
+    case 4: return alpha > reference;
+    case 5: return alpha != reference;
+    case 6: return alpha >= reference;
+    default: return true;
+    }
+}
+
+// SDL_GPU exposes edge clamp only. GL_CLAMP needs transparent-black border taps.
+// Fetch the selected mip levels explicitly on that path, retaining edge/repeat per axis.
+int Wrapped(int value, int size, uint wrap, thread bool& border) {
+    if (wrap == 0) {
+        return (value % size + size) % size;
+    }
+    if (wrap == 1 && (value < 0 || value >= size)) {
+        border = true;
+    }
+    return clamp(value, 0, size - 1);
+}
+float4 Tap(texture2d<float> image, int2 pixel, uint level, uint2 wrap) {
+    bool border = false;
+    pixel.x = Wrapped(pixel.x, int(image.get_width(level)), wrap.x, border);
+    pixel.y = Wrapped(pixel.y, int(image.get_height(level)), wrap.y, border);
+    return border ? float4(0) : image.read(uint2(pixel), level);
+}
+float4 BorderLevel(texture2d<float> image, float2 uv, uint level, uint2 wrap, bool linear) {
+    float2 size = float2(image.get_width(level), image.get_height(level));
+    if (!linear) {
+        return Tap(image, int2(floor(uv * size)), level, wrap);
+    }
+    float2 pixel = uv * size - 0.5f;
+    int2 base = int2(floor(pixel));
+    float2 weight = fract(pixel);
+    return mix(mix(Tap(image, base, level, wrap), Tap(image, base + int2(1, 0), level, wrap), weight.x),
+        mix(Tap(image, base + int2(0, 1), level, wrap), Tap(image, base + int2(1), level, wrap), weight.x), weight.y);
+}
+float4 BorderSample(texture2d<float> image, float2 uv, float lod, float4 dimensions, float4 sampling) {
+    uint2 wrap = uint2(sampling.xy);
+    if (wrap.x == 1) { uv.x = clamp(uv.x, 0.0f, 1.0f); }
+    if (wrap.y == 1) { uv.y = clamp(uv.y, 0.0f, 1.0f); }
+    uint filter = uint(sampling.z);
+    bool linear = lod <= 0 ? sampling.w == 1 : (filter == 1 || filter == 3 || filter == 5);
+    if (filter < 2 || dimensions.z != 0) { lod = 0; }
+    lod = clamp(lod, 0.0f, float(image.get_num_mip_levels() - 1));
+    if (filter == 4 || filter == 5) {
+        uint low = uint(floor(lod));
+        uint high = min(low + 1, image.get_num_mip_levels() - 1);
+        return mix(BorderLevel(image, uv, low, wrap, linear), BorderLevel(image, uv, high, wrap, linear), fract(lod));
+    }
+    return BorderLevel(image, uv, uint(floor(lod + 0.5f)), wrap, linear);
+}
+
+float4 Sample(texture2d<float> image, sampler state, float4 coordinate, float4 dimensions, float4 sampling) {
+    float2 uv = coordinate.xy / coordinate.w;
+    if (dimensions.z != 0) {
+        uv /= max(dimensions.xy, float2(1));
+    }
+    if (sampling.x != 1 && sampling.y != 1) {
+        return image.sample(state, uv);
+    }
+    float2 size = float2(image.get_width(), image.get_height());
+    float2 dx = dfdx(uv);
+    float2 dy = dfdy(uv);
+    float xLength = length(dx * size);
+    float yLength = length(dy * size);
+    float major = max(xLength, yLength);
+    float minor = max(min(xLength, yLength), 0.000001f);
+    // Bounded anisotropic reconstruction for the border path. Ordinary repeat/edge uses hardware anisotropy.
+    uint taps = uint(ceil(clamp(major / minor, 1.0f, max(1.0f, dimensions.w))));
+    float lod = log2(max(major / float(taps), 0.000001f));
+    float2 axis = xLength > yLength ? dx : dy;
+    float4 result = float4(0);
+    for (uint tap = 0; tap < taps; ++tap) {
+        float offset = (float(tap) + 0.5f) / float(taps) - 0.5f;
+        result += BorderSample(image, uv + axis * offset, lod, dimensions, sampling);
+    }
+    return result / float(taps);
+}
+
+fragment float4 LegacyFragment(Varying input [[stage_in]],
+    constant FragmentConstants& constants [[buffer(0)]],
+    texture2d<float> Texture0 [[texture(0)]], texture2d<float> Texture1 [[texture(1)]],
+    texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
+    sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
+    float4 result = Environment(input.color, Sample(Texture0, Sampler0, input.uv0, constants.Texture[0], constants.Sampling[0]),
+        constants.Unit[0], constants.Components[0]);
+    result = Environment(result, Sample(Texture1, Sampler1, input.uv1, constants.Texture[1], constants.Sampling[1]), constants.Unit[1], constants.Components[1]);
+    result = Environment(result, Sample(Texture2, Sampler2, input.uv2, constants.Texture[2], constants.Sampling[2]), constants.Unit[2], constants.Components[2]);
+    if (constants.Fog.x != 0.0f) {
+        float distance = input.eyeDepth;
+        float factor;
+        if (constants.Fog.y == 2.0f) {
+            factor = (constants.FogAlpha.x - distance) / (constants.FogAlpha.x - constants.Fog.w);
+        } else if (constants.Fog.y == 1.0f) {
+            float densityDistance = constants.Fog.z * distance;
+            factor = exp(-densityDistance * densityDistance);
+        } else {
+            factor = exp(-constants.Fog.z * distance);
+        }
+        result.rgb = mix(constants.FogColor.rgb, result.rgb, saturate(factor));
+    }
+    if (constants.FogAlpha.y != 0.0f &&
+        !AlphaPass(result.a, uint(constants.FogAlpha.z), constants.FogAlpha.w)) {
+        discard_fragment();
+    }
+    return result;
+}

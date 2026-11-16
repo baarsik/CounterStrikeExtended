@@ -47,6 +47,7 @@ struct Vertex {
 struct RasterState {
     std::array<bool, 7> enabled{};
     bool depthWrite = true;
+    std::array<bool, 4> colorWrite{{true, true, true, true}};
     Compare depthFunction = Compare::Less;
     Compare alphaFunction = Compare::Always;
     float alphaReference = 0;
