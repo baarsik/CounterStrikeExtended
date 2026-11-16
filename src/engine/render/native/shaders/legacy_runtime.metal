@@ -59,7 +59,10 @@ float4 Environment(float4 previous, float4 sampleValue, float4 unit, float4 comp
             result = float4(components.x != 0.0f ? sampleValue.rgb : previous.rgb,
                 components.y != 0.0f ? sampleValue.a : previous.a);
         } else {
-            result = previous * sampleValue;
+            // Missing RGB/alpha components expand to one for modulation, including filtered border samples.
+            float4 modulation = float4(components.x != 0.0f ? sampleValue.rgb : float3(1),
+                components.y != 0.0f ? sampleValue.a : 1.0f);
+            result = previous * modulation;
             if (unit.y == 2.0f) {
                 result.rgb *= unit.z;
             }
@@ -102,7 +105,15 @@ float4 Tap(texture2d<float> image, int2 pixel, uint level, uint2 wrap) {
 float4 BorderLevel(texture2d<float> image, float2 uv, uint level, uint2 wrap, bool linear) {
     float2 size = float2(image.get_width(level), image.get_height(level));
     if (!linear) {
-        return Tap(image, int2(floor(uv * size)), level, wrap);
+        int2 pixel = int2(floor(uv * size));
+        // GL nearest clamp never selects border texels, including the normalized upper endpoint.
+        if (wrap.x == 1) {
+            pixel.x = clamp(pixel.x, 0, int(size.x) - 1);
+        }
+        if (wrap.y == 1) {
+            pixel.y = clamp(pixel.y, 0, int(size.y) - 1);
+        }
+        return Tap(image, pixel, level, wrap);
     }
     float2 pixel = uv * size - 0.5f;
     int2 base = int2(floor(pixel));

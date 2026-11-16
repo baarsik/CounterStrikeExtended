@@ -1,6 +1,7 @@
 #include "metal_session.h"
 #include <SDL3/SDL.h>
 #include <cstdlib>
+#include <dlfcn.h>
 #include <iostream>
 #include <vector>
 using namespace cse::render;
@@ -11,6 +12,63 @@ using namespace cse::render;
         std::exit(1); \
     } \
 } while (false)
+
+namespace {
+// Narrow link seam around presentation allocation and command retirement. All successful calls use real SDL.
+struct PresentationProbe {
+    bool active = false;
+    bool mismatch = false;
+    unsigned allocationsUntilFailure = 0;
+    unsigned acquisitions = 0;
+    unsigned cancellations = 0;
+    unsigned submissions = 0;
+} presentationProbe;
+
+template<typename Function> Function Original(const char* name) {
+    auto function = reinterpret_cast<Function>(dlsym(RTLD_NEXT, name));
+    if (!function) {
+        std::cerr << "Cannot resolve real SDL function " << name << "\n";
+        std::exit(1);
+    }
+    return function;
+}
+}
+
+extern "C" SDL_GPUTexture* SDL_CreateGPUTexture(SDL_GPUDevice* device, const SDL_GPUTextureCreateInfo* info) {
+    if (presentationProbe.active && presentationProbe.allocationsUntilFailure > 0 &&
+        --presentationProbe.allocationsUntilFailure == 0) {
+        SDL_SetError("fixture final-color allocation failure");
+        return nullptr;
+    }
+    return Original<decltype(&SDL_CreateGPUTexture)>("SDL_CreateGPUTexture")(device, info);
+}
+
+extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* command, SDL_Window* window,
+    SDL_GPUTexture** texture, Uint32* width, Uint32* height) {
+    const bool result = Original<decltype(&SDL_WaitAndAcquireGPUSwapchainTexture)>(
+        "SDL_WaitAndAcquireGPUSwapchainTexture")(command, window, texture, width, height);
+    if (result && *texture && presentationProbe.active) {
+        ++presentationProbe.acquisitions;
+        if (presentationProbe.mismatch) {
+            ++*width; // Model a drawable-size change between preflight and acquisition; no blit may follow failure.
+        }
+    }
+    return result;
+}
+
+extern "C" bool SDL_CancelGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
+    if (presentationProbe.active) {
+        ++presentationProbe.cancellations;
+    }
+    return Original<decltype(&SDL_CancelGPUCommandBuffer)>("SDL_CancelGPUCommandBuffer")(command);
+}
+
+extern "C" bool SDL_SubmitGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
+    if (presentationProbe.active) {
+        ++presentationProbe.submissions;
+    }
+    return Original<decltype(&SDL_SubmitGPUCommandBuffer)>("SDL_SubmitGPUCommandBuffer")(command);
+}
 
 DrawPacket Solid(float red, float green, float blue) {
     DrawPacket draw;
@@ -33,6 +91,10 @@ DrawPacket Solid(float red, float green, float blue) {
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
+    SDL_SetAssertionHandler([](const SDL_AssertData* assertion, void*) {
+        std::cerr << "SDL assertion: " << assertion->condition << "\n";
+        return SDL_ASSERTION_ABORT;
+    }, nullptr);
     MetalSession session;
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
@@ -148,6 +210,65 @@ int main() {
     CHECK(session.Render(frame, error));
     CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] >= 127 && rgba[0] <= 128 && rgba[1] == 0 && rgba[3] >= 127 && rgba[3] <= 128);
+    // Nearest GL_CLAMP selects the final texel at and beyond the upper endpoint.
+    auto nearestClamp = std::make_shared<TextureObject>(*texture);
+    nearestClamp->sampler.wrapS = Wrap::Clamp;
+    nearestClamp->sampler.wrapT = Wrap::Clamp;
+    frame.draws[0] = textured;
+    frame.draws[0].resources[0].texture2D = nearestClamp;
+    for (float endpoint : {1.0f, 2.0f}) {
+        for (auto& vertex : frame.draws[0].vertices) {
+            vertex.texcoords[0] = {{endpoint, endpoint, 0, 1}};
+        }
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+        CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[3] == 255);
+    }
+    auto nearestRectangle = std::make_shared<TextureObject>(*nearestClamp);
+    nearestRectangle->target = TextureTarget::Rectangle;
+    frame.draws[0].textures[0].enabled2D = false;
+    frame.draws[0].textures[0].enabledRectangle = true;
+    frame.draws[0].resources[0].rectangle = nearestRectangle;
+    for (float endpoint : {2.0f, 4.0f}) {
+        for (auto& vertex : frame.draws[0].vertices) {
+            vertex.texcoords[0] = {{endpoint, endpoint, 0, 1}};
+        }
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+        CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[3] == 255);
+    }
+    // Linear border filtering cannot introduce components absent from the legacy internal format.
+    for (auto mode : {EnvironmentMode::Modulate, EnvironmentMode::Combine}) {
+        for (auto format : {InternalFormat::RGB, InternalFormat::Alpha}) {
+            auto componentImage = std::make_shared<TextureImage>();
+            componentImage->defined = true;
+            componentImage->width = 1;
+            componentImage->height = 1;
+            componentImage->internal = format;
+            componentImage->pixels = format == InternalFormat::RGB ?
+                std::vector<std::uint8_t>{255, 128, 64, 255} : std::vector<std::uint8_t>{255, 255, 255, 128};
+            auto componentTexture = std::make_shared<TextureObject>();
+            componentTexture->levels[0] = componentImage;
+            componentTexture->sampler.minification = Filter::Linear;
+            componentTexture->sampler.magnification = Filter::Linear;
+            componentTexture->sampler.wrapS = Wrap::Clamp;
+            componentTexture->sampler.wrapT = Wrap::ClampToEdge;
+            frame.draws[0] = textured;
+            frame.draws[0].textures[0].environment = mode;
+            frame.draws[0].resources[0].texture2D = componentTexture;
+            for (auto& vertex : frame.draws[0].vertices) {
+                vertex.color = {{0.8f, 0.6f, 0.4f, 0.5f}};
+                vertex.texcoords[0] = {{0, 0.5f, 0, 1}};
+            }
+            CHECK(session.Render(frame, error));
+            CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+            if (format == InternalFormat::RGB) {
+                CHECK(rgba[0] == 102 && rgba[1] == 38 && rgba[2] == 13 && rgba[3] == 128);
+            } else {
+                CHECK(rgba[0] == 204 && rgba[1] == 153 && rgba[2] == 102 && rgba[3] == 32);
+            }
+        }
+    }
     // Reject events with no result destination rather than accepting lost readback bytes.
     FrameEvent readback;
     readback.kind = FrameEventKind::Readback;
@@ -289,6 +410,31 @@ int main() {
     CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
     CHECK(presented[0] == 0 && presented[3] == 255);
     CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
+    CHECK(SDL_ShowWindow(window));
+    CHECK(SDL_SetWindowSize(window, 40, 16));
+    CHECK(SDL_SyncWindow(window));
+    SDL_PumpEvents();
+    // Feasible allocation failures happen before acquiring a swapchain image.
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.allocationsUntilFailure = 1;
+    CHECK(!session.Present(true, true, error));
+    CHECK(error.find("fixture final-color allocation failure") != std::string::npos);
+    CHECK(presentationProbe.cancellations == 0 && presentationProbe.acquisitions == 0);
+    presentationProbe.active = false;
+    CHECK(session.Present(true, true, error));
+    // A post-acquisition drawable change must retire by submission, preserving the allocation diagnostic.
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.mismatch = true;
+    presentationProbe.allocationsUntilFailure = 1;
+    CHECK(!session.Present(true, true, error));
+    CHECK(error.find("fixture final-color allocation failure") != std::string::npos);
+    CHECK(presentationProbe.acquisitions == 1);
+    CHECK(presentationProbe.cancellations == 0 && presentationProbe.submissions == 1);
+    presentationProbe.active = false;
+    CHECK(session.Present(true, true, error));
+    CHECK(session.Finish(error));
     session.Shutdown();
     session.Shutdown();
     SDL_DestroyWindow(window);

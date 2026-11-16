@@ -747,47 +747,66 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         }
         state.vsync = vsync;
     }
+    int drawableWidth = 0;
+    int drawableHeight = 0;
+    if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight) ||
+        drawableWidth <= 0 || drawableHeight <= 0) {
+        return DeviceFailure(error, "Query Metal drawable size");
+    }
+    const auto ensureFinalColor = [&state, &error](Uint32 width, Uint32 height) {
+        if (width > kTextureDimension || height > kTextureDimension ||
+            static_cast<std::uint64_t>(width) * height * kRgbaComponents > kMaximumStreamingBytes) {
+            return Fail(error, "Metal drawable exceeds retained final-color budget");
+        }
+        if (!state.presented || state.presentedWidth != width || state.presentedHeight != height) {
+            auto* presented = CreateTexture(state.device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+                SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
+            if (!presented) {
+                return DeviceFailure(error, "Create retained Metal final-color target");
+            }
+            if (state.presented) {
+                SDL_ReleaseGPUTexture(state.device, state.presented);
+            }
+            state.presented = presented;
+            state.presentedWidth = width;
+            state.presentedHeight = height;
+            state.presentedValid = false;
+        }
+        return true;
+    };
+    // Validate and allocate the expected drawable before acquiring a swapchain command.
+    if (!ensureFinalColor(static_cast<Uint32>(drawableWidth), static_cast<Uint32>(drawableHeight))) {
+        return false;
+    }
     auto* command = SDL_AcquireGPUCommandBuffer(state.device);
     if (!command) {
         return DeviceFailure(error, "Acquire Metal presentation command");
     }
     SDL_GPUTexture* swapchain = nullptr;
+    const auto retireFailure = [command, &swapchain, &error]() {
+        const auto diagnostic = error;
+        // SDL forbids cancellation after a non-null acquisition, even if no drawing was encoded.
+        if (swapchain) {
+            SDL_SubmitGPUCommandBuffer(command);
+        } else {
+            SDL_CancelGPUCommandBuffer(command);
+        }
+        error = diagnostic;
+        return false;
+    };
     Uint32 width = 0;
     Uint32 height = 0;
     if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
-        SDL_CancelGPUCommandBuffer(command);
-        return DeviceFailure(error, "Acquire Metal swapchain image");
+        DeviceFailure(error, "Acquire Metal swapchain image");
+        return retireFailure();
     }
     if (!width || !height) {
-        int drawableWidth = 0;
-        int drawableHeight = 0;
-        if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight) ||
-            drawableWidth <= 0 || drawableHeight <= 0) {
-            SDL_CancelGPUCommandBuffer(command);
-            return DeviceFailure(error, "Query Metal drawable size");
-        }
         width = static_cast<Uint32>(drawableWidth);
         height = static_cast<Uint32>(drawableHeight);
     }
-    if (width > kTextureDimension || height > kTextureDimension ||
-        static_cast<std::uint64_t>(width) * height * kRgbaComponents > kMaximumStreamingBytes) {
-        SDL_CancelGPUCommandBuffer(command);
-        return Fail(error, "Metal drawable exceeds retained final-color budget");
-    }
-    if (!state.presented || state.presentedWidth != width || state.presentedHeight != height) {
-        auto* presented = CreateTexture(state.device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-            SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
-        if (!presented) {
-            SDL_CancelGPUCommandBuffer(command);
-            return DeviceFailure(error, "Create retained Metal final-color target");
-        }
-        if (state.presented) {
-            SDL_ReleaseGPUTexture(state.device, state.presented);
-        }
-        state.presented = presented;
-        state.presentedWidth = width;
-        state.presentedHeight = height;
-        state.presentedValid = false;
+    // A resize may race preflight. A failed reallocation must still retire an acquired swapchain by submission.
+    if (!ensureFinalColor(width, height)) {
+        return retireFailure();
     }
     unsigned destinationWidth = width;
     unsigned destinationHeight = height;
