@@ -248,6 +248,9 @@ CseRadarResult CSE_ABI_CALL ReleaseImage(const CseRadarTexture* image) {
     if (!image->rendererEpoch && !image->serial) {
         return CSE_RADAR_OK;
     }
+    if (!image->rendererEpoch || !image->serial) {
+        return CSE_RADAR_INVALID_TEXTURE;
+    }
     const auto status = Epoch(image->rendererEpoch);
     if (status != CSE_RADAR_OK) {
         return status;

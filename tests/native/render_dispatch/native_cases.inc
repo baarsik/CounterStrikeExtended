@@ -383,3 +383,58 @@ void NativeNoopPrimitiveRefusal() {
     Check(LegacyDispatchStatus() == Status::InvalidOperation,
         "native default no-op capability ignored illegal Begin/End state");
 }
+
+void NativeZeroClear(const std::string& boundary) {
+    ResetDriver();
+    NativeFixture native;
+    native.Install();
+    if (boundary == "primitive") {
+        qglBegin(GL_TRIANGLES);
+    } else if (boundary == "list") {
+        qglNewList(qglGenLists(1), GL_COMPILE);
+    }
+    qglClear(0);
+    Check(LegacyDispatchStatus() == (boundary == "frame" ? Status::Ok : Status::InvalidOperation),
+        "zero-mask clear must enforce primitive/list boundaries");
+    if (boundary == "frame") {
+        qglFinish();
+        Check(native.submitted[0].events.empty(), "zero-mask clear emitted an event");
+    }
+}
+
+void NativeIndexedBounds(const std::string& kind) {
+    ResetDriver();
+    FrameLimits limits;
+    limits.capture.verticesPerDraw = kind == "quota" ? 2 : 16;
+    NativeFixture native;
+    native.frame = FrameRecorder(limits);
+    native.Install();
+    std::vector<Vertex> vertices(3);
+    vertices[1].position[0] = 12;
+    std::vector<std::uint32_t> indices{2, 1, 0};
+    if (kind == "index") {
+        indices[0] = 3;
+    } else if (kind == "nontriangle") {
+        indices.pop_back();
+    }
+    if (kind == "list") {
+        const auto list = qglGenLists(1);
+        qglNewList(list, GL_COMPILE);
+        Check(SubmitNativeIndexed(vertices, indices, 2, true) == Status::Ok, "indexed list compile failed");
+        qglEndList();
+        vertices[1].position[0] = 99;
+        indices[1] = 0;
+        qglCallList(list);
+        qglFinish();
+        Check(LegacyDispatchStatus() == Status::Ok && native.submitted[0].draws.size() == 1 &&
+            native.submitted[0].draws[0].vertices[1].position[0] == 12,
+            "indexed list lost owned geometry or replayed during compile");
+    } else {
+        const auto expected = kind == "quota" ? Status::LimitExceeded :
+            kind == "index" ? Status::InvalidValue : Status::InvalidOperation;
+        Check(SubmitNativeIndexed(vertices, indices, 2, true) == expected, "invalid indexed geometry accepted");
+        FrameSnapshot snapshot;
+        Check(native.frame.Seal(snapshot) != Status::Ok, "invalid indexed geometry allowed a partial frame");
+    }
+    Check(events.empty(), "indexed path forwarded to GL");
+}

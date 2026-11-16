@@ -187,10 +187,13 @@ const char* SelectEngineDll()
 	{
 		selected = kSoftwareEngine;
 	}
-	else if ( cmdline->CheckParm( "-gl", NULL ) != NULL || cmdline->CheckParm( "-d3d", NULL ) != NULL )
-	{
-		selected = kHardwareEngine;
-	}
+    else if (cmdline->CheckParm("-gl", nullptr) != nullptr || cmdline->CheckParm("-d3d", nullptr) != nullptr
+#if defined(__APPLE__)
+        || cmdline->CheckParm("-metal", nullptr) != nullptr
+#endif
+    ) {
+        selected = kHardwareEngine;
+    }
 
 	registry->WriteString( "EngineDLL", selected );
 	return selected;
@@ -201,7 +204,7 @@ const char* SelectEngineDll()
 // both the canonical line and native argv for every other requested mode.
 bool ReplacesNativeMode(const char* parameter, const std::vector<std::string>& generated) {
     static const std::vector<std::vector<std::string>> groups{
-        {"-soft", "-software", "-gl", "-d3d"},
+        {"-soft", "-software", "-gl", "-d3d", "-metal"},
         {"-sw", "-startwindowed", "-windowed", "-window", "-full", "-fullscreen"},
         {"-w", "-width"},
         {"-h", "-height"}
@@ -238,6 +241,9 @@ void StripLaunchParameters( const char* newCommand )
 		"-software",
 		"-gl",
 		"-d3d",
+#if defined(__APPLE__)
+        "-metal",
+#endif
 		"-w",
 		"-width",
 		"-h",

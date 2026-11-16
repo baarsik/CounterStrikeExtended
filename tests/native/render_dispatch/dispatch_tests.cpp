@@ -662,6 +662,10 @@ int main(int argc, char** argv) {
         NativeAliasOwnership();
     } else if (name == "native-commands") {
         NativeCommands();
+    } else if (name.find("native-zero-clear-") == 0) {
+        NativeZeroClear(name.substr(std::strlen("native-zero-clear-")));
+    } else if (name.find("native-indexed-") == 0) {
+        NativeIndexedBounds(name.substr(std::strlen("native-indexed-")));
     } else if (name == "native-indexed") {
         NativeIndexed();
     } else if (name == "native-readback") {

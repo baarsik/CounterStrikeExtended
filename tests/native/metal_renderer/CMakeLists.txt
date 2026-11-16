@@ -52,3 +52,16 @@ endforeach()
 set_target_properties(renderer_backend_tests PROPERTIES CXX_STANDARD 17)
 
 set_target_properties(metal_session metal_radar_tests PROPERTIES CXX_STANDARD 17)
+
+# Exercise the actual public table even without a live GPU backend.
+add_executable(radar_api_tests api_tests.cpp "${CSE_ROOT}/src/engine/radar_renderer_api.cpp"
+    "${CSE_ROOT}/src/engine/interface.cpp")
+set_target_properties(radar_api_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
+target_compile_definitions(radar_api_tests PRIVATE POSIX OSX)
+target_include_directories(radar_api_tests PRIVATE "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/public"
+    "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/cl_dll" "${CSE_ROOT}/src/pm_shared" "${CSE_ROOT}/src/external/SDL3/include")
+add_test(NAME radar-public-release COMMAND radar_api_tests)
+if(CSE_METAL_SANITIZERS)
+  target_compile_options(radar_api_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
+  target_link_options(radar_api_tests PRIVATE -fsanitize=address,undefined)
+endif()

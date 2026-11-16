@@ -105,7 +105,7 @@ add_test(NAME launcher-retained-win32-menu-intent COMMAND menu_restart_win32_che
 add_test(NAME launcher-bootstrap-entry-limits COMMAND "${Python3_EXECUTABLE}"
   "${CSE_ROOT}/tests/native/launcher_entry/entry_tests.py" "$<TARGET_FILE:bootstrap_launcher>")
 foreach(case normal explicit-game alias relative-argv long-path software restart borrowed retained mismatch null-interface
-    restart-options restart-software restart-to-software restart-to-hardware restart-exec-failure
+    metal-cached-software restart-metal-to-gl restart-gl-to-metal restart-options restart-software restart-to-software restart-to-hardware restart-exec-failure
     menu-software menu-to-software menu-to-hardware command-size-only command-renderer-only)
   add_test(NAME launcher-bootstrap-${case} COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/bootstrap_tests.py" --launcher "$<TARGET_FILE:bootstrap_launcher>"

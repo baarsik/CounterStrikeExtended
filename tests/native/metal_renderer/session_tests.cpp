@@ -136,6 +136,29 @@ int main() {
     CHECK(session.ReadPixels(0, 0, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[2] == 255);
     CHECK(session.Resize(16, 16, 1, error));
+    // Incomplete fixed-function units are disabled, including REPLACE (white is not a substitute).
+    for (unsigned kind = 0; kind < 3; ++kind) {
+        auto incomplete = std::make_shared<TextureObject>();
+        if (kind == 2) {
+            auto base = std::make_shared<TextureImage>();
+            base->defined = true;
+            base->width = 2;
+            base->height = 2;
+            base->internal = InternalFormat::RGBA;
+            base->pixels.assign(16, 255);
+            incomplete->levels[0] = base;
+            incomplete->sampler.minification = Filter::NearestMipmapNearest;
+        }
+        frame.draws[0] = Solid(1, 0, 1);
+        frame.draws[0].textures[0].enabled2D = true;
+        frame.draws[0].textures[0].environment = EnvironmentMode::Replace;
+        if (kind != 0) {
+            frame.draws[0].resources[0].texture2D = incomplete;
+        }
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(0, 0, 1, 1, 4, 1, rgba.data(), error));
+        CHECK(rgba[0] == 255 && rgba[1] == 0 && rgba[2] == 255 && rgba[3] == 255);
+    }
     // Owned versions remain immutable while successive command buffers are pending.
     auto image = std::make_shared<TextureImage>();
     image->defined = true;

@@ -12,6 +12,11 @@
 #include <string>
 #include <vector>
 
+namespace cse { namespace render {
+bool fixtureMetal = false;
+bool UsingMetal() { return fixtureMetal; }
+}}
+
 // Only unrelated GUI/server operations are substituted. Menu command generation,
 // command handlers, native video setters and disk registry are extracted verbatim.
 namespace menu_fixture {
@@ -93,6 +98,9 @@ struct Control {
     void GetText(char* output, std::size_t capacity) {
         std::snprintf(output, capacity, "%s", text);
     }
+    int GetActiveItem() {
+        return std::strcmp(text, "OpenGL") == 0 ? 1 : 0;
+    }
     bool IsSelected() {
         return selected;
     }
@@ -169,6 +177,12 @@ int main() {
     output[0] = '\0';
     Host_Quit_Restart_f();
     assert(output[0] == '\0');
+    cse::render::fixtureMetal = true;
+    ClientCommand(const_cast<char*>("_setrenderer gl fullscreen"));
+    Host_Quit_Restart_f();
+    assert(std::strcmp(output, " -metal -fullscreen") == 0);
+    output[0] = '\0';
+    cse::render::fixtureMetal = false;
     // Both actual Host_Init and Host_Shutdown invoke this exact reset body;
     // extraction also checks placement before their session-specific operations.
     nativeVideoRestart.SetRenderer(0, false);

@@ -4,6 +4,7 @@
 #include "host_cmd.h"
 #if defined(__APPLE__)
 #include "native_video_restart.h"
+#include "render/backend.h"
 #endif
 #include "world.h"
 #include "registry.h"
@@ -3270,7 +3271,7 @@ void Host_SetRenderer_f()
 
 	VideoMode_SwitchMode( hardware, windowed );
 #if defined(__APPLE__)
-    nativeVideoRestart.SetRenderer(hardware, windowed != 0);
+    nativeVideoRestart.SetRenderer(hardware, windowed != 0, cse::render::UsingMetal());
 #endif
 }
 

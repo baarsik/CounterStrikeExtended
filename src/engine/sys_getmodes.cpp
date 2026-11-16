@@ -1,7 +1,4 @@
 #include "render/backend.h"
-#if !defined(SW_RENDERER)
-#include "glquake.h"
-#endif
 #include "../common/sdl3_keyboard.h"
 
 #if defined(SW_RENDERER) && defined(_WIN32)
@@ -1743,6 +1740,7 @@ void CVideoMode_NativeSoftware::Shutdown() {
 #endif
 #include "gl_model.h"
 #include <SDL3/SDL_opengl.h>
+#include "glquake.h"
 
 #define MAX_VIDEO_MODES 32
 

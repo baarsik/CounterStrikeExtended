@@ -53,6 +53,6 @@ foreach(case t2b-slot-lifecycle t2b-mixed-texture t2b-texture-mapping t2b-unpack
 endforeach()
 
 foreach(case native-noop-primitive-refusal native-palette-snapshot native-startup-arrays native-list-namespace native-callback-failure native-ensure-failure
-    native-front-draw-refusal native-install native-list-clear-refusal native-alias-ownership native-commands native-indexed native-readback native-failure)
+    native-front-draw-refusal native-install native-list-clear-refusal native-alias-ownership native-commands native-zero-clear-frame native-zero-clear-list native-zero-clear-primitive native-indexed native-indexed-index native-indexed-nontriangle native-indexed-quota native-indexed-list native-readback native-failure)
     add_test(NAME render-dispatch-${case} COMMAND render_dispatch_tests ${case})
 endforeach()

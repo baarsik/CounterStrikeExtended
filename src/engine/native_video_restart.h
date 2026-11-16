@@ -7,10 +7,11 @@ namespace cse_restart {
 // current launch arguments, while a menu change replaces the requested groups.
 class VideoSettings {
 public:
-    void SetRenderer(int hardware, bool windowed) {
+    void SetRenderer(int hardware, bool windowed, bool metal = false) {
         rendererChanged = true;
         selectedHardware = hardware;
         selectedWindowed = windowed;
+        selectedMetal = metal;
     }
 
     void SetSize(int width, int height) {
@@ -38,7 +39,7 @@ public:
         if (rendererChanged) {
             constexpr int Direct3DRenderer = 2;
             generated += selectedHardware == 0 ? " -soft" :
-                selectedHardware == Direct3DRenderer ? " -d3d" : " -gl";
+                selectedHardware == Direct3DRenderer ? " -d3d" : selectedMetal ? " -metal" : " -gl";
             generated += selectedWindowed ? " -windowed" : " -fullscreen";
         }
         if (sizeChanged) {
@@ -59,6 +60,7 @@ private:
     bool sizeChanged = false;
     int selectedHardware = 0;
     bool selectedWindowed = false;
+    bool selectedMetal = false;
     int selectedWidth = 0;
     int selectedHeight = 0;
 };

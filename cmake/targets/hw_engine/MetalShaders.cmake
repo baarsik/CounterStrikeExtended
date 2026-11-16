@@ -4,7 +4,8 @@ set(CSE_METAL_COMPILER "" CACHE FILEPATH "Offline Metal compiler (xcrun --toolch
 set(CSE_METAL_LINKER "" CACHE FILEPATH "Offline metallib linker")
 function(cse_add_metal_shaders target)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    if(NOT EXISTS "${CSE_METAL_COMPILER}" OR NOT EXISTS "${CSE_METAL_LINKER}")
+    if(NOT CSE_BUILD_INVENTORY AND
+        (NOT EXISTS "${CSE_METAL_COMPILER}" OR NOT EXISTS "${CSE_METAL_LINKER}"))
         message(FATAL_ERROR "Set CSE_METAL_COMPILER and CSE_METAL_LINKER to the offline Metal toolchain")
     endif()
     foreach(shader legacy_runtime radar)

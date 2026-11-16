@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 # selections. External providers are symbolic; this project is never built.
 set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_CURRENT_LIST_DIR}/../MSVCDefaults.cmake")
 project(CseBuildInventory LANGUAGES C CXX)
+set(CSE_BUILD_INVENTORY TRUE)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 set(CSE_SDK_DIR "${CSE_ROOT}/src")

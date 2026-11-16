@@ -194,8 +194,9 @@ void R_LoadShaders()
 	int i;
 	char prefix[128];
 
-	if (cse::render::UsingMetal() || R_UseLegacyRender())
-		return;
+    if (cse::render::UsingMetal() || R_UseLegacyRender()) {
+        return;
+    }
 
 	if ( !qglCreateShader || !qglDeleteShader || !qglShaderSource || !qglGetProgramiv || !qglGetProgramInfoLog
 		 || !qglAttachShader || !qglLinkProgram || !qglCreateProgram || !qglDeleteProgram || !qglUseProgram

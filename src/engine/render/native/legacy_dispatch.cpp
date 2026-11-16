@@ -1092,7 +1092,7 @@ void APIENTRY CseRenderClear(GLbitfield mask) {
                 Refuse(Status::InvalidValue);
                 return;
             }
-            if (!mask) {
+            if (!CanMutateNativeState() || !mask) {
                 return;
             }
             auto clear = nativeClear;

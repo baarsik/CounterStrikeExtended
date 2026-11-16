@@ -364,7 +364,8 @@ struct MetalSession::Impl {
             auto object = enabled ? (state.enabledRectangle ? packet.resources[unit].rectangle :
                 packet.resources[unit].texture2D) : white;
             if (!object) {
-                object = black;
+                object = white;
+                draw.data.fragment.legacy.unit[unit][0] = 0;
             }
             const auto& sampler = object->sampler;
             const auto base = object->levels.find(0);
@@ -377,6 +378,10 @@ struct MetalSession::Impl {
             auto* texture = GetTexture(object, enabled && indexed ? packet.palette : nullptr, error);
             if (!texture) {
                 return false;
+            }
+            // Fixed-function GL disables incomplete units; sampling black would still alter REPLACE/COMBINE.
+            if (texture->data.incomplete) {
+                draw.data.fragment.legacy.unit[unit][0] = 0;
             }
             draw.textures[unit] = texture;
             draw.samplers[unit] = Sampler(sampler, static_cast<unsigned>(texture->data.levels.size()),
