@@ -1,3 +1,4 @@
+#include "../public/radar_engine_api.h"
 #if defined(__APPLE__)
 #include "VGui1NativeRuntime.h"
 #endif
@@ -157,6 +158,9 @@ bool CGame::Shutdown() {
         SDL_DestroyRenderer(m_hSDLRenderer);
     }
     if (m_hSDLGLContext) {
+#if !defined(SW_RENDERER)
+        cse::radar::AdvanceGraphicsGeneration();
+#endif
         SDL_GL_DestroyContext(m_hSDLGLContext);
         m_hSDLGLContext = nullptr;
     }
@@ -1301,6 +1305,9 @@ bool CGame::Shutdown() {
         SDL_DestroyRenderer(m_hSDLRenderer);
     }
     if (m_hSDLGLContext) {
+#if !defined(SW_RENDERER)
+        cse::radar::AdvanceGraphicsGeneration();
+#endif
         SDL_GL_DestroyContext(m_hSDLGLContext);
         m_hSDLGLContext = nullptr;
     }
@@ -1527,10 +1534,12 @@ bool CGame::CreateGameWindow() {
     m_hSDLRenderer = nullptr;
     m_bCreatedRenderer = false;
 
+    cse::radar::AdvanceGraphicsGeneration();
     m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);
     if (!m_hSDLGLContext) {
         SDL_SetAttributes(false);
         m_bLegacyRender = true;
+        cse::radar::AdvanceGraphicsGeneration();
         m_hSDLGLContext = SDL_GL_CreateContext(m_hSDLWindow);
     }
 

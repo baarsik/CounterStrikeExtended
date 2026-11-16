@@ -1,0 +1,23 @@
+#pragma once
+
+#include <cstring>
+#include <string>
+
+inline std::string NativeRadar_Shader(const char* name) {
+    if (std::strcmp(name, "radar.vert") == 0) {
+        return R"CSESHADER(@CSE_RADAR_SHADER_0@)CSESHADER";
+    }
+    if (std::strcmp(name, "radar_backdrop.frag") == 0) {
+        return R"CSESHADER(@CSE_RADAR_SHADER_1@)CSESHADER";
+    }
+    if (std::strcmp(name, "radar_mask.frag") == 0) {
+        return R"CSESHADER(@CSE_RADAR_SHADER_2@)CSESHADER";
+    }
+    if (std::strcmp(name, "radar_prim.frag") == 0) {
+        return R"CSESHADER(@CSE_RADAR_SHADER_3@)CSESHADER";
+    }
+    if (std::strcmp(name, "radar_prim.vert") == 0) {
+        return R"CSESHADER(@CSE_RADAR_SHADER_4@)CSESHADER";
+    }
+    return {};
+}

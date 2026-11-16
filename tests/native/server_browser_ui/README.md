@@ -115,6 +115,12 @@ client or restart command is issued.
 Empty image-only frame decorations are outside translated-text measurement.
 This component test does not launch a full game or instantiate other Options pages.
 
+The same component now compiles the production HUD radar dialog. It checks the
+Interface button's CS-only availability, modal ownership, staged edits, defaults,
+Apply, Cancel after Apply, and OK in Original and Smoked styles. Radar captures
+(`radar-original.bmp`, `radar-smoked.bmp`) and `radar-fit.tsv` record the controls
+and translated-text fit at the requested fixture screen size.
+
 ## Masterserver configuration
 
 `masterserver-settings` exercises the actual cogwheel/settings controls, protected

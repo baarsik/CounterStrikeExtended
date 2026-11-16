@@ -21,6 +21,8 @@
 #include <algorithm>
 #include "extended_stats.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
+#include "nextclient/hud/radar/integration/RadarHooks.h"
 #include "cl_util.h"
 #include "parsemsg.h"
 #include "ev_hldm.h"
@@ -44,6 +46,7 @@ extern cvar_t* cl_fog_b;
 void CHud::MsgFunc_InitHUD( const char*, int, void* )
 {
     CSE_ResetExtendedStats(true);
+    NativeRadar_InitHud();
 	if ( gViewPortInterface )
 		gViewPortInterface->OnLevelChange();
 	for ( HUDLIST* item = m_pHudList; item; item = item->pNext )
@@ -100,6 +103,7 @@ void CHud::MsgFunc_Fog( const char*, int size, void* buffer )
 int CHud::MsgFunc_ResetHUD( const char*, int, void* )
 {
     CSE_ResetExtendedStats(false);
+    NativeRadar_Reset();
 	for ( HUDLIST* item = m_pHudList; item; item = item->pNext )
 	{
 		if ( item->p )
@@ -132,6 +136,7 @@ void CHud::MsgFunc_BombDrop( const char*, int size, void* buffer )
 	bomb.origin.y = READ_COORD();
 	bomb.origin.z = READ_COORD();
 	bomb.playerclass = READ_BYTE();
+    RadarHooks_OnBombDrop(bomb.origin, bomb.playerclass != 0);
 	if ( bomb.playerclass == 1 )
 		m_bShowTimer = false;
 	bomb.radarflashon = 1;
@@ -143,6 +148,7 @@ void CHud::MsgFunc_BombDrop( const char*, int size, void* buffer )
 
 void CHud::MsgFunc_BombPickup( const char*, int, void* )
 {
+    RadarHooks_OnBombPickup();
 	g_PlayerExtraInfo[33].radarflash = -1;
 	g_PlayerExtraInfo[33].radarflashon = 0;
 	g_PlayerExtraInfo[33].radarflashes = 0;
@@ -169,6 +175,7 @@ void CHud::MsgFunc_HostagePos( const char*, int size, void* buffer )
 		hostage.origin.x = READ_COORD();
 		hostage.origin.y = READ_COORD();
 		hostage.origin.z = READ_COORD();
+        RadarHooks_OnHostage(index, hostage.origin);
 		if ( flash == 1 )
 		{
 			hostage.radarflashon = 1;
@@ -189,6 +196,7 @@ void CHud::MsgFunc_HostageK( const char*, int size, void* buffer )
 		g_HostageInfo[index].radarflash = gHUD.m_flTime;
 		g_HostageInfo[index].radarflashes = 15;
 		g_HostageInfo[index].dead = true;
+        RadarHooks_OnHostageKilled(index);
 	}
 }
 

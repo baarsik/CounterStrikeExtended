@@ -2,6 +2,7 @@
 
 #include "extended_stats.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
 #include "cvardef.h"
 #include "usercmd.h"
@@ -1536,6 +1537,7 @@ void V_CalcSpectatorRefdef ( struct ref_params_s * pparams )
 
 void CL_DLLEXPORT V_CalcRefdef( struct ref_params_s *pparams )
 {
+    const bool main_view = pparams->nextView == 0;
 //	RecClCalcRefdef(pparams);
 
 	// intermission / finale rendering
@@ -1552,7 +1554,9 @@ void CL_DLLEXPORT V_CalcRefdef( struct ref_params_s *pparams )
 		V_CalcNormalRefdef ( pparams );
 	}
 
-
+    if (main_view) {
+        NativeRadar_SetView(pparams->vieworg, pparams->viewangles);
+    }
 }
 
 /*

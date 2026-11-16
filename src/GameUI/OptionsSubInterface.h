@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace vgui2 {
+class Button;
 class ComboBox;
 class Label;
 class RadioButton;
@@ -28,11 +29,13 @@ protected:
     void OnApplyChanges() override;
     void PerformLayout() override;
     MESSAGE_FUNC(OnTextChanged, "TextChanged");
+    void OnCommand(const char* command) override;
 
 private:
     std::string GetSelectedLanguage() const;
     int GetSelectedUIStyle() const;
 
+    vgui2::Button* m_radarSettings;
     vgui2::ComboBox* m_languageCombo;
     vgui2::Label* m_languageLabel;
     vgui2::Label* m_saveFailed;

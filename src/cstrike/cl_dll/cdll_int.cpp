@@ -22,6 +22,7 @@
 #include "../../public/interface.h"
 #include "../../public/runtime_module_names.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
 #include "../../cl_dll/Exports.h"
 #include "../../common/client_module_entry.h"
@@ -292,6 +293,7 @@ extern "C" void EXPORT HUD_Init()
 
 extern "C" void EXPORT HUD_Shutdown()
 {
+    NativeRadar_Shutdown();
 	CS_ForgetLanguageService();
     ShutdownInput();
 	CL_UnloadParticleMan();

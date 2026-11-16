@@ -1588,3 +1588,6 @@ if(APPLE)
   target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/common/mac_settings_store.cpp")
   target_link_libraries(hw_engine PRIVATE "-framework CoreFoundation")
 endif()
+
+# Read-only native radar renderer service.
+target_sources(hw_engine PRIVATE "${CSE_SDK_DIR}/engine/radar_engine_api.cpp")

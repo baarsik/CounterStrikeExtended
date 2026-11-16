@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.25)
+
+if(NOT IS_DIRECTORY "${CSE_RADAR_SOURCE}/cstrike" OR NOT CSE_RADAR_OUTPUT)
+  message(FATAL_ERROR "Radar staging requires a resource source and runtime output directory")
+endif()
+file(GLOB_RECURSE resources RELATIVE "${CSE_RADAR_SOURCE}" "${CSE_RADAR_SOURCE}/cstrike/*")
+foreach(resource IN LISTS resources)
+  get_filename_component(directory "${CSE_RADAR_OUTPUT}/${resource}" DIRECTORY)
+  file(MAKE_DIRECTORY "${directory}")
+  file(COPY_FILE "${CSE_RADAR_SOURCE}/${resource}" "${CSE_RADAR_OUTPUT}/${resource}" ONLY_IF_DIFFERENT)
+endforeach()

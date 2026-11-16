@@ -3,6 +3,7 @@ target_sources(gameui PRIVATE
   "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/common/interface_language_preference.cpp"
   "${CSE_SDK_DIR}/GameUI/OptionsSubInterface.cpp"
+  "${CSE_SDK_DIR}/GameUI/HudRadarDialog.cpp"
   "${CSE_SDK_DIR}/common/steam_service.cpp"
   "${CSE_SDK_DIR}/GameUI/BackgroundMenuButton.cpp"
   "${CSE_SDK_DIR}/GameUI/BasePanel.cpp"

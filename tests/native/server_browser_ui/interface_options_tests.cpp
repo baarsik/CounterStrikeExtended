@@ -4,6 +4,14 @@
 #include "cl_dll.h"
 #include "../../../src/GameUI/OptionsDialog.h"
 #include "../../../src/GameUI/OptionsSubInterface.h"
+#include "../../../src/GameUI/HudRadarDialog.h"
+#include "../../../src/cstrike/cl_dll/nextclient/radar_cvars.h"
+#include "cvardef.h"
+#include "CheckButton.h"
+#include "Slider.h"
+#include "vgui/IInput.h"
+#include <map>
+#include <cmath>
 #include "../../../src/common/interface_language.h"
 #include "PropertyPage.h"
 #include "PropertySheet.h"
@@ -84,12 +92,26 @@ namespace engine_fixture {
 using namespace cse::localization;
 float uiStyle = 0;
 int materialDraws = 0;
+bool radarAvailable = false;
+std::map<std::string, float> radarValues;
 float GetCvar(char* name) {
-    return std::strcmp(name, cse::ui::VGuiStyleCvar) == 0 ? uiStyle : 0.0f;
+    if (std::strcmp(name, cse::ui::VGuiStyleCvar) == 0) {
+        return uiStyle;
+    }
+    const auto found = radarValues.find(name);
+    return found != radarValues.end() ? found->second : 0.0f;
+}
+cvar_t* GetCvarPointer(const char* name) {
+    static cvar_t available{};
+    return radarAvailable && radarValues.count(name) != 0 ? &available : nullptr;
 }
 void SetCvar(char* name, float value) {
-    Require(std::strcmp(name, cse::ui::VGuiStyleCvar) == 0, "only the selected UI style is changed");
-    uiStyle = value;
+    if (std::strcmp(name, cse::ui::VGuiStyleCvar) == 0) {
+        uiStyle = value;
+        return;
+    }
+    Require(radarAvailable && radarValues.count(name) != 0, "only registered radar settings are changed");
+    radarValues[name] = value;
 }
 int CSE_ABI_CALL CurrentStyle() { return uiStyle > 0.0f ? 1 : 0; }
 bool CSE_ABI_CALL Material(const cse::ui::BackdropRect*, const cse::ui::BackdropRect*,
@@ -355,6 +377,86 @@ public:
     }
 };
 
+void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::filesystem::path& output) {
+    using namespace engine_fixture;
+    for (const auto& definition : radar::kCvarDefinitions) {
+        radarValues[definition.name] = static_cast<float>(std::atof(definition.default_value));
+    }
+    radarAvailable = false;
+    auto* halfLifePage = new COptionsSubInterface(root);
+    auto* halfLifeButton = dynamic_cast<vgui2::Button*>(halfLifePage->FindChildByName("RadarSettings", false));
+    Require(halfLifeButton && !halfLifeButton->IsEnabled(), "Half-Life cannot configure the CS-only radar");
+    delete halfLifePage;
+    radarAvailable = true;
+    auto* csPage = new COptionsSubInterface(root);
+    auto* radarButton = dynamic_cast<vgui2::Button*>(csPage->FindChildByName("RadarSettings", false));
+    Require(radarButton && radarButton->IsEnabled(), "radar configuration belongs to the Interface page");
+    delete csPage;
+    std::ofstream fit(output / "radar-fit.tsv");
+    for (int style : {0, 1}) {
+        uiStyle = static_cast<float>(style);
+        radarValues["hud_radar_scale"] = 1.7f;
+        auto* dialog = new CHudRadarDialog(root);
+        dialog->SetScheme(scheme);
+        dialog->DoModal();
+        Settle(*root);
+        Require(vgui2::input()->GetAppModalSurface() == dialog->GetVPanel(), "radar child is modal");
+        auto* slider = dynamic_cast<vgui2::Slider*>(dialog->FindChildByName("hud_radar_scale", false));
+        auto* names = dynamic_cast<vgui2::CheckButton*>(dialog->FindChildByName("hud_radar_names", false));
+        auto* apply = dynamic_cast<vgui2::Button*>(dialog->FindChildByName("Apply", false));
+        Require(slider && names && apply && !apply->IsEnabled(), "opening radar settings has no pending edits");
+        slider->SetValue(200);
+        names->SetSelected(true);
+        Settle(*root);
+        Require(apply->IsEnabled() && radarValues["hud_radar_scale"] == 1.7f
+            && radarValues["hud_radar_names"] == 0.0f, "radar edits are staged until Apply or OK");
+        Fit(*dialog, fit);
+        Capture(*dialog, output / (style ? "radar-smoked.bmp" : "radar-original.bmp"));
+        vgui2::PHandle owner;
+        owner.Set(dialog);
+        dialog->OnCommand("Close");
+        Settle(*root);
+        Require(!owner.Get() && radarValues["hud_radar_scale"] == 1.7f,
+            "Cancel deletes radar child and leaves unapplied settings unchanged");
+
+        dialog = new CHudRadarDialog(root);
+        dialog->SetScheme(scheme);
+        dialog->DoModal();
+        Settle(*root);
+        apply = dynamic_cast<vgui2::Button*>(dialog->FindChildByName("Apply", false));
+        dialog->OnCommand("Defaults");
+        Settle(*root);
+        Require(apply->IsEnabled() && radarValues["hud_radar_scale"] == 1.7f,
+            "restoring radar defaults stages the shared defaults");
+        dialog->OnCommand("Apply");
+        Settle(*root);
+        Require(std::abs(radarValues["hud_radar_scale"] - 1.15f) < 0.001f && !apply->IsEnabled(),
+            "Apply commits radar defaults and establishes a new baseline");
+        names = dynamic_cast<vgui2::CheckButton*>(dialog->FindChildByName("hud_radar_names", false));
+        names->SetSelected(true);
+        Settle(*root);
+        dialog->OnCommand("Close");
+        Settle(*root);
+        Require(radarValues["hud_radar_names"] == 0.0f
+            && std::abs(radarValues["hud_radar_scale"] - 1.15f) < 0.001f,
+            "Cancel after Apply preserves committed settings and discards later edits");
+
+        dialog = new CHudRadarDialog(root);
+        dialog->SetScheme(scheme);
+        dialog->DoModal();
+        Settle(*root);
+        names = dynamic_cast<vgui2::CheckButton*>(dialog->FindChildByName("hud_radar_names", false));
+        names->SetSelected(true);
+        owner.Set(dialog);
+        dialog->OnCommand("OK");
+        Settle(*root);
+        Require(!owner.Get() && radarValues["hud_radar_names"] == 1.0f, "OK commits and closes radar settings");
+        radarValues["hud_radar_names"] = 0.0f;
+    }
+    radarAvailable = false;
+    uiStyle = 0.0f;
+}
+
 int main(int argc, char** argv) {
     Require(argc == 7, "usage: interface_options_tests vgui fs resources output language platform");
     if (const char* width = std::getenv("CSE_UI_TEST_WIDTH")) {
@@ -408,6 +510,8 @@ int main(int argc, char** argv) {
         gEngfuncs.pfnClientCmd = RecordClientCommand;
         gEngfuncs.pfnGetCvarFloat = engine_fixture::GetCvar;
         gEngfuncs.Cvar_SetValue = engine_fixture::SetCvar;
+        gEngfuncs.pfnGetCvarPointer = engine_fixture::GetCvarPointer;
+        RunRadarSettings(root, tracker, output);
         keyboard_cell_fixture::Run(root, tracker, engine_fixture::uiStyle);
         smoked_metrics_fixture::Run(root, tracker, geometry, engine_fixture::uiStyle);
         options_reset_fixture::Run(root);

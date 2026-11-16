@@ -16,6 +16,15 @@
 #include "../hud.h"
 #include "../cl_util.h"
 #include "../ev_hldm.h"
+#include "event_args.h"
+#include "../nextclient/hud/radar/integration/RadarHooks.h"
+
+namespace {
+    void CreateRadarSmoke(event_args_t* args) {
+        RadarHooks_OnSmoke(args->origin, args->angles, args->iparam2);
+        EV_CreateSmoke(args);
+    }
+}
 
 void Game_HookEvents()
 {
@@ -58,6 +67,6 @@ void Game_HookEvents()
 	gEngfuncs.pfnHookEvent( "events/decal_reset.sc", EV_RemoveAllDecals );
 	char smokeEvent[22];
 	strcpy( smokeEvent, "events/createsmoke.sc" );
-	gEngfuncs.pfnHookEvent( smokeEvent, EV_CreateSmoke );
+    gEngfuncs.pfnHookEvent(smokeEvent, CreateRadarSmoke);
 	gEngfuncs.pfnHookEvent( "events/createexplo.sc", EV_CreateSmoke );
 }

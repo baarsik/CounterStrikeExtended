@@ -60,6 +60,7 @@ for name in new:
     selected.append(dict(owner, file=str(repo / 'src/GameUI/native' / (name + '.cpp'))))
 if args.driver == 'interface_options':
     selected.append(dict(owner, file=str(repo / 'src/GameUI/OptionsSubInterface.cpp')))
+    selected.append(dict(owner, file=str(repo / 'src/GameUI/HudRadarDialog.cpp')))
     selected.append(dict(owner, file=str(repo / 'src/GameUI/CvarToggleCheckButton.cpp')))
     keyboard_path = repo / 'src/GameUI/OptionsSubKeyboard.cpp'
     keyboard_source = keyboard_path.read_text(encoding='cp1252')

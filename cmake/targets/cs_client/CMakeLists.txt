@@ -684,3 +684,52 @@ if(MSVC)
 else()
   set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
 endif()
+
+# The native radar uses std::span, ranges and the same SDL3 provider as the client.
+get_target_property(cse_cs_sources cs_client SOURCES)
+foreach(cse_cs_source IN LISTS cse_cs_sources)
+  if(cse_cs_source MATCHES "/nextclient/.*[.]cpp$")
+    if(MSVC)
+      set_property(SOURCE "${cse_cs_source}" APPEND PROPERTY COMPILE_OPTIONS /std:c++20 /EHsc)
+    else()
+      set_property(SOURCE "${cse_cs_source}" APPEND PROPERTY COMPILE_OPTIONS -std=c++20 -fexceptions)
+    endif()
+  endif()
+endforeach()
+target_include_directories(cs_client PRIVATE
+  "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient/include")
+
+set(cse_radar_root "${CSE_SDK_DIR}/cstrike/cl_dll/nextclient")
+file(READ "${cse_radar_root}/shaders/radar.vert" CSE_RADAR_SHADER_0)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${cse_radar_root}/shaders/radar.vert")
+file(READ "${cse_radar_root}/shaders/radar_backdrop.frag" CSE_RADAR_SHADER_1)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${cse_radar_root}/shaders/radar_backdrop.frag")
+file(READ "${cse_radar_root}/shaders/radar_mask.frag" CSE_RADAR_SHADER_2)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${cse_radar_root}/shaders/radar_mask.frag")
+file(READ "${cse_radar_root}/shaders/radar_prim.frag" CSE_RADAR_SHADER_3)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${cse_radar_root}/shaders/radar_prim.frag")
+file(READ "${cse_radar_root}/shaders/radar_prim.vert" CSE_RADAR_SHADER_4)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${cse_radar_root}/shaders/radar_prim.vert")
+configure_file("${cse_radar_root}/RadarShaders.h.in" "${CMAKE_CURRENT_BINARY_DIR}/radar-generated/RadarShaders.h" @ONLY)
+target_include_directories(cs_client PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/radar-generated")
+
+# Keep the map corrections alongside the runtime, including custom output roots.
+set(cse_radar_resource_root "${CSE_SDK_DIR}/deploy/radar")
+set(cse_radar_resources
+  cstrike/overviews/radar_ab.txt
+  cstrike/overviews/awp_assault_layers.txt
+  cstrike/overviews/cs_747_layers.txt
+  cstrike/overviews/cs_assault_layers.txt)
+foreach(resource IN LISTS cse_radar_resources)
+  set_property(TARGET cs_client APPEND PROPERTY CSE_QUERY_RESOURCE_SOURCES "${cse_radar_resource_root}/${resource}")
+  set_property(TARGET cs_client APPEND PROPERTY CSE_QUERY_RESOURCE_DESTINATIONS "${resource}")
+endforeach()
+if(NOT DEFINED CSE_QUERY_OS)
+  add_custom_target(cse_radar_runtime_assets
+    COMMAND "${CMAKE_COMMAND}" "-DCSE_RADAR_SOURCE=${cse_radar_resource_root}"
+      "-DCSE_RADAR_OUTPUT=${CSE_OUTPUT_DIRECTORY}"
+      -P "${CMAKE_CURRENT_LIST_DIR}/../../StageRadarResources.cmake"
+    COMMENT "Staging advanced radar map corrections" VERBATIM)
+  add_dependencies(cs_client cse_radar_runtime_assets)
+endif()

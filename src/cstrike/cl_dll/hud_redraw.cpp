@@ -20,6 +20,7 @@
 #include <math.h>
 #include "extended_stats.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
 #include "pm_shared.h"
 #include "../public/game_controls/iviewport.h"
@@ -147,6 +148,10 @@ int CHud::Redraw( float time, int intermission )
 	// if no redrawing is necessary
 	// return 0;
 
+    bool radar_hud_visible = m_pCvarDraw->value != 0 && !intermission &&
+        !(m_iHideHUDDisplay & HIDEHUD_ALL);
+    NativeRadar_Draw(time, radar_hud_visible);
+
 	// draw all registered HUD elements
 	if ( m_pCvarDraw->value )
 	{
@@ -171,6 +176,8 @@ int CHud::Redraw( float time, int intermission )
 		if ( ( m_sniperScope.m_iFlags & HUD_ACTIVE ) && !( m_iHideHUDDisplay & HIDEHUD_ALL ) )
 			m_sniperScope.Draw( time );
 	}
+
+    NativeRadar_FlushHudText();
 
 	// are we in demo mode? do we need to draw the logo in the top corner?
 	if ( m_iLogo )

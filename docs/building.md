@@ -323,3 +323,21 @@ cmake -S tests/native/webp_codec -B build/webp-codec -G Ninja -DCMAKE_BUILD_TYPE
 cmake --build build/webp-codec --parallel
 ctest --test-dir build/webp-codec --output-on-failure
 ```
+
+## Counter-Strike radar
+
+The native client includes the NextClient advanced radar, enabled by default.
+Choose **Options → Interface → HUD Radar…** for mode, map source, scale,
+opacity, rotation, player labels/health/trails and full-map scoreboard settings.
+The dialog stages edits until Apply or OK; Cancel discards pending edits.
+`hud_radar_mode 0` selects the classic radar. The classic radar also takes over
+while an advanced map source is unavailable.
+
+Generated textured and flat maps select floors automatically; overview mode
+uses the map's supplied overview. Map corrections are staged with the CS client
+under `cstrike/overviews/`. The port is Counter-Strike-specific; Half-Life's
+shared Interface tab disables this settings entry.
+
+Radar shader sources live under `src/cstrike/cl_dll/nextclient/shaders/` and are
+embedded by CMake in the selected build directory. See the
+[port provenance](../src/cstrike/cl_dll/nextclient/UPSTREAM.md).

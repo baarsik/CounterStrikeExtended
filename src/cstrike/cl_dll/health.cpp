@@ -24,6 +24,8 @@
 
 #include "extended_stats.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
+#include "nextclient/hud/radar/integration/RadarHooks.h"
 #include "cl_util.h"
 #include "parsemsg.h"
 #include <string.h>
@@ -235,8 +237,9 @@ int CHudHealth::Draw(float flTime)
 
 	if ( (gHUD.m_iHideHUDDisplay & HIDEHUD_HEALTH) || g_iUser1 )
 		return 1;
-	if (!gHUD.m_fPlayerDead && m_bDrawRadar)
-		DrawRadar(flTime);
+    if (!gHUD.m_fPlayerDead && m_bDrawRadar && NativeRadar_IsClassicRequired()) {
+        DrawRadar(flTime);
+    }
 
 	if ( !m_hSprite )
 		m_hSprite = LoadSprite(PAIN_NAME);
@@ -540,6 +543,7 @@ int CHudHealth::MsgFunc_Radar(const char *, int size, void *buffer)
 	g_PlayerExtraInfo[player].origin.x = x;
 	g_PlayerExtraInfo[player].origin.y = y;
 	g_PlayerExtraInfo[player].origin.z = z;
+    RadarHooks_OnPlayer(player, g_PlayerExtraInfo[player].origin);
 	return 1;
 }
 

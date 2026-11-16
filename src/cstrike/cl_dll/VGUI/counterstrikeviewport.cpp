@@ -18,6 +18,7 @@
 
 // client dll/engine defines
 #include "hud.h"
+#include "../nextclient/hud/NativeRadar.h"
 #include "../../../public/localization_service.h"
 #include "../../../cl_dll/Exports.h"
 #include "counterstrikeviewport.h"
@@ -123,6 +124,7 @@ CounterStrikeViewport::~CounterStrikeViewport()
 
 void CounterStrikeViewport::Initialize( CreateInterfaceFn* factories, int count )
 {
+    NativeRadar_SetEngineFactory(count > 0 ? factories[0] : nullptr);
 	g_languageService = count > 0 ? cse::localization::QueryEngine(factories[0]) : nullptr;
     g_languageRevision = g_languageService ? g_languageService->Revision() : 0;
     TeamFortressViewport::Initialize( factories, count );

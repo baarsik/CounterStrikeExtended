@@ -22,6 +22,7 @@
 #include <string.h>
 #include "extended_stats.h"
 #include "hud.h"
+#include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
 #include "demo.h"
 #include "demo_api.h"
@@ -565,6 +566,7 @@ void CHud::Init()
 	m_sniperScope.Init();
 	m_Ammo.Init();
 	m_Health.Init();
+    NativeRadar_Init();
 	m_SayText.Init();
 	m_Spectator.Init();
 	m_Geiger.Init();
@@ -594,6 +596,7 @@ void CHud::Init()
 
 void CHud::VidInit()
 {
+    NativeRadar_VidInit();
 	m_scrinfo.iSize = sizeof( m_scrinfo );
 	gEngfuncs.pfnGetScreenInfo( &m_scrinfo );
 	if ( g_pParticleMan )

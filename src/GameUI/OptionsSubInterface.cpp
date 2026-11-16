@@ -1,4 +1,6 @@
 #include "OptionsSubInterface.h"
+#include "HudRadarDialog.h"
+#include "Button.h"
 #include "GameUI_Interface.h"
 #include "wrect.h"
 #include "cl_dll.h"
@@ -124,6 +126,13 @@ COptionsSubInterface::COptionsSubInterface(vgui2::Panel* parent)
         m_uiStyleCombo, cse::ui::OriginalVGuiStyle);
     m_smokedStyle = new InterfaceStyleChoice(this, "SmokedStyle", "#CSEInterface_StyleSmokedTacticalGlass",
         m_uiStyleCombo, cse::ui::SmokedTacticalGlassVGuiStyle);
+    m_radarSettings = new vgui2::Button(this, "RadarSettings", "#GameUI_HudRadarSettings");
+    m_radarSettings->SetCommand("RadarSettings");
+    m_radarSettings->AddActionSignalTarget(this);
+    m_radarSettings->SetTabPosition(UIStyleTabPosition + 1);
+    // The shared GameUI is also loaded by Half-Life, which has no advanced radar.
+    m_radarSettings->SetEnabled(engine->pfnGetCvarPointer
+        && engine->pfnGetCvarPointer(const_cast<char*>("hud_radar_mode")) != nullptr);
     m_saveFailed->SetVisible(false);
     OnResetData();
 }
@@ -227,6 +236,17 @@ bool COptionsSubInterface::CompleteLanguageRequest(bool& applied) {
     return true;
 }
 
+void COptionsSubInterface::OnCommand(const char* command) {
+    if (std::string(command) == "RadarSettings") {
+        if (m_radarSettings->IsEnabled()) {
+            auto* dialog = new CHudRadarDialog(this);
+            dialog->DoModal();
+        }
+        return;
+    }
+    BaseClass::OnCommand(command);
+}
+
 void COptionsSubInterface::PerformLayout() {
     BaseClass::PerformLayout();
     const bool smoked = cse::ui::ControlsSmokedGlass();
@@ -279,6 +299,8 @@ void COptionsSubInterface::PerformLayout() {
         m_smokedStyle->SetBounds(stacked ? fieldX : fieldX + originalWidth + gap,
             stacked ? top + rowHeight : top,
             stacked ? fieldWidth : std::max(0, fieldWidth - originalWidth - gap), rowHeight);
+        const int radarTop = top + (stacked ? rowHeight * 2 : rowHeight) + gap;
+        m_radarSettings->SetBounds(fieldX, radarTop, fieldWidth, rowHeight);
         return;
     }
     const int inset = GetProportionalScaledValue(ContentInset);
@@ -301,4 +323,6 @@ void COptionsSubInterface::PerformLayout() {
     m_uiStyleLabel->SetBounds(inset, top, width, labelHeight);
     top += labelHeight + controlGap;
     m_uiStyleCombo->SetBounds(inset, top, width, comboHeight);
+    top += comboHeight + noticeGap;
+    m_radarSettings->SetBounds(inset, top, width, comboHeight);
 }
