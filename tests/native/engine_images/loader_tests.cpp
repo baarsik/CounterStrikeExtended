@@ -868,6 +868,9 @@ int main() {
     const int disabledPaletteCapabilities[][2] = {{0, 1}, {1, 0}};
     for (const auto& capability : disabledPaletteCapabilities) {
         resetHardwareSky();
+#if defined(CSE_ENABLE_METAL)
+        cse::render::nativeSky = true;
+#endif
         qglColorTableEXT = capability[0];
         gl_palette_tex.value = static_cast<float>(capability[1]);
         std::vector<std::vector<byte>> expectedSky(SkyFaceCount, targaSkyPixels);
@@ -881,6 +884,13 @@ int main() {
         R_LoadSkys();
         checkHardwareSky(rgbaFormats, expectedSky, "disabled palette capability retains WebP/TGA selection");
         Check(skyBmpLoadCount == 0, "disabled palette capability never loads a BMP sky face");
+#if defined(CSE_ENABLE_METAL)
+        selectedSkyColor = -1;
+        drawnSkyColors.clear();
+        R_DrawSkyBox();
+        Check(drawnSkyColors == std::vector<int>({-1}), "skipBMP native reload clears all stale face palettes");
+        cse::render::nativeSky = false;
+#endif
     }
     resetHardwareSky();
     for (const char* face : faces) {

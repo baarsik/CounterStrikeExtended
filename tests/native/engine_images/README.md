@@ -39,5 +39,5 @@ Run with `UBSAN_OPTIONS=halt_on_error=1` to make sanitizer reports fail immediat
 The runner also compiles a Metal-enabled hardware fixture. It executes the actual
 `R_LoadSkys` and `R_DrawSkyBox` owners with controlled BMP palettes to cover first-map
 palette selection, per-face colors, reused palette slots after reload, RGBA replacement,
-and palette-allocation failure. The ordinary hardware/OpenGL and software fixtures
+disabled palette capabilities, and palette-allocation failure. The ordinary hardware/OpenGL and software fixtures
 remain separate. All three variants run under ASan/UBSan.
