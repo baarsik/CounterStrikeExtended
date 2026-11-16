@@ -66,6 +66,9 @@ public:
     Status Refuse(Status reason);
     Status CaptureStatus() const;
     bool InPrimitive() const;
+    bool AtFrameBoundary() const {
+        return recorder_.AtFrameBoundary();
+    }
     Status Clear(const ClearEvent& clear);
     Status Readback(const ReadbackEvent& readback);
     Status Seal(FrameSnapshot& output);
@@ -78,6 +81,7 @@ public:
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
     Status DeleteList(std::uint32_t id);
+    Status GenerateLists(std::size_t count, std::uint32_t& first);
     Status GenerateTextures(std::size_t count, std::vector<std::uint32_t>& names);
 
 private:

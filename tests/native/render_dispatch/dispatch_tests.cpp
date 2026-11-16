@@ -31,6 +31,15 @@ void (APIENTRY* qglSelectTextureSGIS)(GLenum) = nullptr;
 void (APIENTRY* qglMTexCoord2fSGIS)(GLenum, GLfloat, GLfloat) = nullptr;
 
 #include "t2b_slots.inc"
+#define NATIVE_SLOTS(X) X(ReadPixels) X(ReadBuffer) X(DrawBuffer) X(PolygonMode) X(FrontFace) \
+    X(ClearDepth) X(ClearStencil) X(ColorMask) X(LoadMatrixf) X(MultMatrixf)
+#define NATIVE_DEFINE_SLOT(name) decltype(&gl##name) qgl##name = nullptr;
+NATIVE_SLOTS(NATIVE_DEFINE_SLOT)
+#undef NATIVE_DEFINE_SLOT
+#define NATIVE_CHECK_SIGNATURE(name) \
+    static_assert(std::is_same<decltype(&CseRender##name), decltype(&gl##name)>::value, "Native GL ABI: " #name);
+NATIVE_SLOTS(NATIVE_CHECK_SIGNATURE)
+#undef NATIVE_CHECK_SIGNATURE
 
 namespace {
 using namespace cse::render;
@@ -593,6 +602,7 @@ void HudTrace() {
     Check(snapshot.draws[0].vertices.size() == 3, "HUD triangle vertices missing");
 }
 #include "t2b_cases.inc"
+#include "native_cases.inc"
 }
 
 int main(int argc, char** argv) {
@@ -630,6 +640,34 @@ int main(int argc, char** argv) {
         GetFloatvBeginEnd();
     } else if (name == "isenabled-begin-end") {
         IsEnabledBeginEnd();
+    } else if (name == "native-install") {
+        NativeInstallRed();
+    } else if (name == "native-noop-primitive-refusal") {
+        NativeNoopPrimitiveRefusal();
+    } else if (name == "native-palette-snapshot") {
+        NativePaletteSnapshot();
+    } else if (name == "native-startup-arrays") {
+        NativeStartupArrays();
+    } else if (name == "native-list-namespace") {
+        NativeListNamespace();
+    } else if (name == "native-callback-failure") {
+        NativeCallbackFailure();
+    } else if (name == "native-ensure-failure") {
+        NativeEnsureFailure();
+    } else if (name == "native-front-draw-refusal") {
+        NativeFrontDrawRefusal();
+    } else if (name == "native-list-clear-refusal") {
+        NativeListClearRefusal();
+    } else if (name == "native-alias-ownership") {
+        NativeAliasOwnership();
+    } else if (name == "native-commands") {
+        NativeCommands();
+    } else if (name == "native-indexed") {
+        NativeIndexed();
+    } else if (name == "native-readback") {
+        NativeReadback();
+    } else if (name == "native-failure") {
+        NativeFailure();
     } else if (RunT2bCase(name)) {
         // Additive T2b cases; existing bodies and assertions above remain unchanged.
     } else {

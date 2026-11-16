@@ -35,13 +35,14 @@ enum class Op { MatrixMode, ActiveTexture, Identity, Push, Pop, Translate, Scale
     Color, TexCoord, ShadeModel, Enable, DepthWrite, DepthFunction, AlphaFunction, BlendFunction, CullFace,
     Viewport, Scissor, DepthRange, Begin, Vertex, End, DrawArrays, CallList, BindTexture, DeleteTextures,
     TextureImage, TextureSubImage, TextureParameter, TextureEnvironment, PixelStore, SharedPalette,
-    FogMode, FogColor, FogDensity, FogStart, FogEnd, FrontFace, PolygonMode, PolygonOffset, FogHint, PerspectiveHint };
+    FogMode, FogColor, FogDensity, FogStart, FogEnd, FrontFace, PolygonMode, PolygonOffset, FogHint, PerspectiveHint, LoadMatrix, MultiplyMatrix, ColorWrite, DrawNative };
 
 struct Command {
     Op op = Op::Identity;
     std::uint32_t argument = 0;
     std::uint32_t second = 0;
     std::array<double, 6> values{};
+    Matrix4 matrix;
     // A DrawArrays command owns its resolved position/UV data. Current color is
     // applied at execution (the engine enables only position and UV arrays).
     std::vector<Vertex> vertices;
@@ -62,6 +63,7 @@ struct DrawPacket {
     std::vector<Vertex> vertices;
     std::array<TextureResources, kTextureUnits> resources;
     std::shared_ptr<const SharedPalette> palette;
+    bool sharedTexturePalette = false;
 };
 
 // Retains original packets for unqualified quad/polygon lowering. Does not rasterize.
@@ -78,6 +80,7 @@ public:
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
     Status DeleteList(std::uint32_t id);
+    Status GenerateLists(std::size_t count, std::uint32_t& first);
     Status GenerateTextures(std::size_t count, std::vector<std::uint32_t>& names) {
         return begin_ || compileBegin_ ? Status::InvalidOperation : textures_.Generate(count, names);
     }

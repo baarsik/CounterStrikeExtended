@@ -18,7 +18,7 @@ enum class Status { Ok, InvalidValue, InvalidOperation, StackOverflow, StackUnde
 enum class MatrixMode : std::uint32_t { ModelView, Projection, Texture };
 enum class Shade : std::uint32_t { Flat, Smooth };
 enum class Capability : std::uint32_t { Blend, DepthTest, AlphaTest, CullFace, ScissorTest, Fog,
-    Texture2D, TextureRectangle, PolygonOffsetFill };
+    Texture2D, TextureRectangle, PolygonOffsetFill, SharedTexturePalette };
 enum class Compare : std::uint32_t { Never, Less, Equal, LessEqual, Greater, NotEqual, GreaterEqual, Always };
 enum class BlendFactor : std::uint32_t { Zero, One, SourceColor, InverseSourceColor, SourceAlpha,
     InverseSourceAlpha, DestinationAlpha, InverseDestinationAlpha, DestinationColor, InverseDestinationColor };
@@ -88,6 +88,8 @@ public:
     Status Push();
     Status Pop();
     void LoadIdentity();
+    void LoadMatrix(const Matrix4& matrix);
+    void MultiplyMatrix(const Matrix4& matrix);
     void Translate(float x, float y, float z);
     void Scale(float x, float y, float z);
     void Rotate(float degrees, float x, float y, float z);
@@ -107,6 +109,7 @@ public:
         return current_;
     }
     Status Enable(Capability capability, bool enabled);
+    bool sharedTexturePalette = false;
     RasterState raster;
     std::array<TextureUnitState, kTextureUnits> textures{};
 

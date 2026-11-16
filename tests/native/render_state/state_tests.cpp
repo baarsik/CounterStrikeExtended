@@ -210,6 +210,32 @@ void Vgui() {
     Check(recorder.State().Matrix(MatrixMode::Projection).values == projection, "inherited projection stays rewritten");
 }
 
+void GeneratedLists() {
+    CaptureLimits limits;
+    constexpr std::size_t kListQuota = 3;
+    limits.lists = kListQuota;
+    Recorder recorder(limits);
+    std::uint32_t first = 0;
+    Check(recorder.GenerateLists(2, first) == Status::Ok && first == 1, "contiguous list names reserved");
+    constexpr std::uint32_t kOutputSentinel = 99;
+    first = kOutputSentinel;
+    Check(recorder.GenerateLists(2, first) == Status::LimitExceeded && first == kOutputSentinel,
+        "list name quota checked without changing output");
+    Check(recorder.BeginList(3, false) == Status::Ok && recorder.EndList() == Status::Ok,
+        "failed range reservation did not consume namespace quota");
+    Check(recorder.DeleteList(2) == Status::Ok, "reserved list deletion");
+    Check(recorder.GenerateLists(1, first) == Status::Ok && first == 2, "deleted list name available for reservation");
+    Check(recorder.DeleteList(1) == Status::Ok && recorder.DeleteList(2) == Status::Ok &&
+        recorder.DeleteList(3) == Status::Ok, "all reserved and defined lists released");
+    Send(recorder, Make(Op::Begin, {}, static_cast<std::uint32_t>(Primitive::Triangles)));
+    first = kOutputSentinel;
+    Check(recorder.GenerateLists(1, first) == Status::InvalidOperation && first == kOutputSentinel,
+        "list names cannot be generated inside a primitive");
+    Send(recorder, Make(Op::End));
+    Check(recorder.GenerateLists(kListQuota, first) == Status::Ok && first == 1,
+        "namespace recovers after rejected primitive-time generation");
+}
+
 int main(int argc, char** argv) {
     Check(argc == 2, "one case required");
     const std::string name = argv[1];
@@ -225,6 +251,8 @@ int main(int argc, char** argv) {
         Bounds();
     } else if (name == "topology") {
         Topology();
+    } else if (name == "generated-lists") {
+        GeneratedLists();
     } else if (name == "vgui") {
         Vgui();
     } else {

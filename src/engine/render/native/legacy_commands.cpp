@@ -36,6 +36,7 @@ Status ValidateArguments(const Command& command) {
         break;
     case Op::Begin:
     case Op::DrawArrays:
+    case Op::DrawNative:
         return ValidPrimitive(command.argument) ? Status::Ok : Status::InvalidValue;
     case Op::Translate:
     case Op::Scale:
@@ -49,7 +50,7 @@ Status ValidateArguments(const Command& command) {
     case Op::ShadeModel:
         return command.argument <= static_cast<std::uint32_t>(Shade::Smooth) ? Status::Ok : Status::InvalidValue;
     case Op::Enable:
-        return command.argument <= static_cast<std::uint32_t>(Capability::PolygonOffsetFill)
+        return command.argument <= static_cast<std::uint32_t>(Capability::SharedTexturePalette)
             ? Status::Ok : Status::InvalidValue;
     case Op::DepthFunction:
     case Op::AlphaFunction:
@@ -143,6 +144,15 @@ Status ValidateArguments(const Command& command) {
             return Status::InvalidValue;
         }
         break;
+    case Op::LoadMatrix:
+    case Op::MultiplyMatrix:
+        for (const auto value : command.matrix.values) {
+            if (!std::isfinite(value)) {
+                return Status::InvalidValue;
+            }
+        }
+        break;
+    case Op::ColorWrite:
     case Op::Identity:
     case Op::Push:
     case Op::Pop:
@@ -213,7 +223,48 @@ DrawPacket Recorder::Snapshot(Primitive primitive) const {
     draw.textures = state_.textures;
     draw.resources = textures_.Capture(state_);
     draw.palette = textures_.PaletteSnapshot();
+    draw.sharedTexturePalette = state_.sharedTexturePalette;
     return draw;
+}
+
+Status Recorder::GenerateLists(std::size_t count, std::uint32_t& first) {
+    if (!AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    if (!count) {
+        first = 0;
+        return Status::Ok;
+    }
+    if (count > limits_.lists - lists_.size()) {
+        return Status::LimitExceeded;
+    }
+    std::uint32_t candidate = 1;
+    for (const auto& list : lists_) {
+        if (list.first >= candidate && static_cast<std::uint64_t>(list.first) - candidate < count) {
+            if (list.first == std::numeric_limits<std::uint32_t>::max()) {
+                return Status::LimitExceeded;
+            }
+            candidate = list.first + 1;
+        }
+    }
+    if (count - 1 > std::numeric_limits<std::uint32_t>::max() - candidate) {
+        return Status::LimitExceeded;
+    }
+    // Reserve empty list definitions in the same namespace as explicit NewList identifiers.
+    // Allocation failure is handled by the frame owner; remove only this transaction's additions.
+    std::size_t reserved = 0;
+    try {
+        for (; reserved < count; ++reserved) {
+            lists_.emplace(candidate + static_cast<std::uint32_t>(reserved), std::vector<Command>{});
+        }
+    } catch (...) {
+        for (std::size_t index = 0; index < reserved; ++index) {
+            lists_.erase(candidate + static_cast<std::uint32_t>(index));
+        }
+        throw;
+    }
+    first = candidate;
+    return Status::Ok;
 }
 
 Status Recorder::BeginList(std::uint32_t id, bool execute) {
@@ -391,6 +442,17 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         return state_.SelectMatrix(static_cast<MatrixMode>(command.argument));
     case Op::ActiveTexture:
         return state_.SelectTexture(command.argument);
+    case Op::LoadMatrix:
+        state_.LoadMatrix(command.matrix);
+        break;
+    case Op::MultiplyMatrix:
+        state_.MultiplyMatrix(command.matrix);
+        break;
+    case Op::ColorWrite:
+        for (std::size_t channel = 0; channel < state_.raster.colorWrite.size(); ++channel) {
+            state_.raster.colorWrite[channel] = v[channel] != 0;
+        }
+        break;
     case Op::Identity:
         state_.LoadIdentity();
         break;
@@ -570,7 +632,8 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         }
         begin_ = false;
         break;
-    case Op::DrawArrays: {
+    case Op::DrawArrays:
+    case Op::DrawNative: {
         if (!ValidPrimitive(command.argument)) {
             return Status::InvalidValue;
         }
@@ -583,7 +646,9 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         }
         draw.vertices = command.vertices;
         for (auto& vertex : draw.vertices) {
-            vertex.color = state_.Current().color;
+            if (command.op != Op::DrawNative || !command.second) {
+                vertex.color = state_.Current().color;
+            }
             for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
                 vertex.texcoords[unit] = state_.Current().texcoords[unit];
             }

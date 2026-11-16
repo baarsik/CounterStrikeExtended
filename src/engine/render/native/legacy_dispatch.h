@@ -7,18 +7,35 @@
 namespace cse {
 namespace render {
 
-// Private GL dispatch; CaptureOnly remains a CPU fixture mode until backend admission.
-enum class DispatchMode { ReferenceGL, ShadowCapture, CaptureOnly };
+// Private legacy dispatch; Native owns CPU capture without an OpenGL reference.
+enum class DispatchMode { ReferenceGL, ShadowCapture, CaptureOnly, Native };
 using LegacyProcedure = void (APIENTRY*)();
-class Session; // T3 owns the synchronous backend lifecycle; no backend is selected here.
-
-// Borrowed typed bridge contract for T3. T2a does not bind a backend or implement a barrier.
-// The Session and callback must outlive a future binding; no borrowed pixel output is retained.
-struct LegacySessionBridge {
-    Session* session = nullptr;
-    Status (*finishSync)(Session&) = nullptr;
+// Private production bridge; callbacks and user storage outlive the binding. No callback invokes GL.
+// ensureRecording must open a frame if needed and preserve a failed recorder (never Abort to mask failure).
+// finish/readPixels submit any partial frame synchronously; the next ensureRecording reopens recording.
+struct LegacyNativeBridge {
+    void* user = nullptr;
+    bool (*ensureRecording)(void*) = nullptr;
+    bool (*finish)(void*) = nullptr;
+    // Bottom-first RGB/RGBA U8 output. Arguments after extent are components and pack alignment.
+    bool (*readPixels)(void*, int, int, int, int, unsigned, unsigned, void*) = nullptr;
+    // Explicit native metadata, independent of driver extension/version strings.
+    unsigned textureUnits = static_cast<unsigned>(kTextureUnits);
+    unsigned maximumTextureSize = static_cast<unsigned>(kTextureDimension);
+    // Production session uses RGBA8 color and D32 depth, with no stencil attachment.
+    unsigned colorBits = 32;
+    unsigned depthBits = 32;
+    unsigned stencilBits = 0;
 };
 
+bool InstallNativeDispatch(FrameRecorder* recorder, const LegacyNativeBridge& bridge, std::string& error);
+ReadbackStage LegacyNativeReadTarget();
+ReadbackStage LegacyNativeDrawTarget();
+std::string LegacyDispatchDiagnostic();
+// Owned positions/color/UVs plus uint32 triangle indices. lastVertex is the last source vertex,
+// including sources which produced no triangle. Unit-zero UV and optional color become current.
+Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+    std::size_t lastVertex, bool perVertexColor);
 bool InstallLegacyDispatch(DispatchMode mode, FrameRecorder* recorder, std::string& error);
 void RemoveLegacyDispatch();
 // Rebind after qgl logging changes without resetting the current frame or capture failure.
@@ -102,3 +119,16 @@ void APIENTRY CseRenderVertexPointer(GLint size, GLenum type, GLsizei stride, co
 void APIENTRY CseRenderDrawArrays(GLenum mode, GLint first, GLsizei count);
 void APIENTRY CseRenderScissor(GLint x, GLint y, GLsizei width, GLsizei height);
 void APIENTRY CseRenderPolygonOffset(GLfloat factor, GLfloat units);
+
+// Production fixed-function operations used by the audited engine owners.
+void APIENTRY CseRenderReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
+    GLenum type, GLvoid* pixels);
+void APIENTRY CseRenderReadBuffer(GLenum buffer);
+void APIENTRY CseRenderDrawBuffer(GLenum buffer);
+void APIENTRY CseRenderPolygonMode(GLenum face, GLenum mode);
+void APIENTRY CseRenderFrontFace(GLenum mode);
+void APIENTRY CseRenderClearDepth(GLclampd depth);
+void APIENTRY CseRenderClearStencil(GLint stencil);
+void APIENTRY CseRenderColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
+void APIENTRY CseRenderLoadMatrixf(const GLfloat* matrix);
+void APIENTRY CseRenderMultMatrixf(const GLfloat* matrix);

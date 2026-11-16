@@ -73,6 +73,17 @@ extern decltype(&CseRenderDrawArrays) qglDrawArrays;
 extern decltype(&CseRenderScissor) qglScissor;
 extern decltype(&CseRenderPolygonOffset) qglPolygonOffset;
 
+extern decltype(&CseRenderReadPixels) qglReadPixels;
+extern decltype(&CseRenderReadBuffer) qglReadBuffer;
+extern decltype(&CseRenderDrawBuffer) qglDrawBuffer;
+extern decltype(&CseRenderPolygonMode) qglPolygonMode;
+extern decltype(&CseRenderFrontFace) qglFrontFace;
+extern decltype(&CseRenderClearDepth) qglClearDepth;
+extern decltype(&CseRenderClearStencil) qglClearStencil;
+extern decltype(&CseRenderColorMask) qglColorMask;
+extern decltype(&CseRenderLoadMatrixf) qglLoadMatrixf;
+extern decltype(&CseRenderMultMatrixf) qglMultMatrixf;
+
 namespace {
 using cse::render::DispatchMode;
 using cse::render::FrameRecorder;
@@ -86,8 +97,20 @@ constexpr std::uint32_t kInvalidArgument = std::numeric_limits<std::uint32_t>::m
 constexpr GLfloat kByteColorMaximum = 255.0f;
 // SGIS uses a different enum range from ARB; the actual driver keeps its original enum.
 constexpr GLenum kTexture0Sgis = 0x835E;
+constexpr GLenum kSharedTexturePalette = 0x81fb;
 
 struct ReferenceTable {
+    decltype(&CseRenderReadPixels) ReadPixels = nullptr;
+    decltype(&CseRenderReadBuffer) ReadBuffer = nullptr;
+    decltype(&CseRenderDrawBuffer) DrawBuffer = nullptr;
+    decltype(&CseRenderPolygonMode) PolygonMode = nullptr;
+    decltype(&CseRenderFrontFace) FrontFace = nullptr;
+    decltype(&CseRenderClearDepth) ClearDepth = nullptr;
+    decltype(&CseRenderClearStencil) ClearStencil = nullptr;
+    decltype(&CseRenderColorMask) ColorMask = nullptr;
+    decltype(&CseRenderLoadMatrixf) LoadMatrixf = nullptr;
+    decltype(&CseRenderMultMatrixf) MultMatrixf = nullptr;
+
     decltype(&CseRenderBindTexture) BindTexture = nullptr;
     decltype(&CseRenderDeleteTextures) DeleteTextures = nullptr;
     decltype(&CseRenderGenTextures) GenTextures = nullptr;
@@ -161,6 +184,16 @@ DispatchMode currentDispatchMode = DispatchMode::ReferenceGL;
 Status failure = Status::InvalidOperation;
 bool installed = false;
 bool referencesCaptured = false;
+cse::render::LegacyNativeBridge nativeBridge;
+cse::render::ClearEvent nativeClear;
+cse::render::ReadbackStage readTarget = cse::render::ReadbackStage::SceneColor;
+const char* operationContext = "Native dispatch";
+const char* failedOperation = nullptr;
+bool nativeDither = true;
+
+bool Native() {
+    return installed && currentDispatchMode == DispatchMode::Native;
+}
 
 GLenum selectTextureBase = kTexture0Sgis;
 GLenum textureCoordinateBase = kTexture0Sgis;
@@ -168,6 +201,7 @@ GLenum textureCoordinateBase = kTexture0Sgis;
 void Refuse(Status reason = Status::InvalidOperation) {
     if (failure == Status::Ok) {
         failure = reason;
+        failedOperation = operationContext;
     }
     if (recorder) {
         const auto recorded = recorder->Refuse(failure);
@@ -177,12 +211,23 @@ void Refuse(Status reason = Status::InvalidOperation) {
     }
 }
 
+bool EnsureNativeRecording() {
+    if (!Native() || failure != Status::Ok) {
+        return failure == Status::Ok;
+    }
+    if (!nativeBridge.ensureRecording(nativeBridge.user)) {
+        Refuse();
+        return false;
+    }
+    return true;
+}
+
 bool Capturing() {
     return installed && currentDispatchMode != DispatchMode::ReferenceGL;
 }
 
 bool CanForward(bool available) {
-    if (currentDispatchMode == DispatchMode::CaptureOnly) {
+    if (currentDispatchMode == DispatchMode::CaptureOnly || Native()) {
         return false;
     }
     if (!installed || !available) {
@@ -195,6 +240,9 @@ bool CanForward(bool available) {
 
 void Capture(const Command& command) {
     if (!Capturing() || failure != Status::Ok) {
+        return;
+    }
+    if (!EnsureNativeRecording()) {
         return;
     }
     const auto status = recorder->Submit(command);
@@ -268,6 +316,9 @@ GLenum EnumValue(double value) {
 template<typename Operation>
 void CaptureOwned(Operation operation) {
     if (!Capturing() || failure != Status::Ok) {
+        return;
+    }
+    if (!EnsureNativeRecording()) {
         return;
     }
     const auto status = recorder->CaptureStatus();
@@ -544,6 +595,9 @@ void CaptureEnvironment(GLenum target, GLenum name, double value) {
 }
 
 bool CanQuery() {
+    if (!EnsureNativeRecording()) {
+        return false;
+    }
     if (!installed || !recorder || failure != Status::Ok) {
         Refuse();
         return false;
@@ -555,6 +609,18 @@ bool CanQuery() {
     }
     if (recorder->InPrimitive()) {
         Refuse(Status::InvalidOperation);
+        return false;
+    }
+    return true;
+}
+
+bool CanMutateNativeState() {
+    if (!CanQuery()) {
+        return false;
+    }
+    // These bridge-owned values are intentionally outside display-list compilation.
+    if (!recorder->AtFrameBoundary()) {
+        Refuse();
         return false;
     }
     return true;
@@ -609,6 +675,12 @@ GLboolean QueryEnabled(GLenum capability) {
     if (!CanQuery()) {
         return GL_FALSE;
     }
+    if (Native() && capability == GL_DITHER) {
+        return nativeDither ? GL_TRUE : GL_FALSE;
+    }
+    if (Native() && capability == kSharedTexturePalette) {
+        return recorder->State().sharedTexturePalette ? GL_TRUE : GL_FALSE;
+    }
     const auto argument = Argument(capability, kCapabilities);
     if (argument == kInvalidArgument) {
         Refuse(Status::InvalidValue);
@@ -630,11 +702,11 @@ GLboolean QueryEnabled(GLenum capability) {
 
 template<typename Procedure>
 void OwnSlot(Procedure& slot, Procedure wrapper, Procedure& saved) {
-    if (slot != wrapper && (!referencesCaptured || saved)) {
+    if (slot != wrapper && (Native() || !referencesCaptured || saved)) {
         saved = slot;
     }
-    // Preserve absence: installing dispatch must not advertise an unavailable GL procedure.
-    slot = saved ? wrapper : nullptr;
+    // GL modes preserve loader absence; Native advertises only this owned CPU surface.
+    slot = (Native() || saved) ? wrapper : nullptr;
 }
 }
 
@@ -645,6 +717,16 @@ void RefreshLegacyDispatchReferences() {
     if (!installed) {
         return;
     }
+    OwnSlot(qglReadPixels, &CseRenderReadPixels, driverReferences.ReadPixels);
+    OwnSlot(qglReadBuffer, &CseRenderReadBuffer, driverReferences.ReadBuffer);
+    OwnSlot(qglDrawBuffer, &CseRenderDrawBuffer, driverReferences.DrawBuffer);
+    OwnSlot(qglPolygonMode, &CseRenderPolygonMode, driverReferences.PolygonMode);
+    OwnSlot(qglFrontFace, &CseRenderFrontFace, driverReferences.FrontFace);
+    OwnSlot(qglClearDepth, &CseRenderClearDepth, driverReferences.ClearDepth);
+    OwnSlot(qglClearStencil, &CseRenderClearStencil, driverReferences.ClearStencil);
+    OwnSlot(qglColorMask, &CseRenderColorMask, driverReferences.ColorMask);
+    OwnSlot(qglLoadMatrixf, &CseRenderLoadMatrixf, driverReferences.LoadMatrixf);
+    OwnSlot(qglMultMatrixf, &CseRenderMultMatrixf, driverReferences.MultMatrixf);
     OwnSlot(qglAlphaFunc, &CseRenderAlphaFunc, driverReferences.AlphaFunc);
     OwnSlot(qglBegin, &CseRenderBegin, driverReferences.Begin);
     OwnSlot(qglBlendFunc, &CseRenderBlendFunc, driverReferences.BlendFunc);
@@ -725,6 +807,7 @@ bool InstallLegacyDispatch(DispatchMode selectedMode, FrameRecorder* selectedRec
     currentDispatchMode = selectedMode;
     recorder = selectedRecorder;
     failure = Status::Ok;
+    failedOperation = nullptr;
     installed = true;
     RefreshLegacyDispatchReferences();
     error.clear();
@@ -733,6 +816,16 @@ bool InstallLegacyDispatch(DispatchMode selectedMode, FrameRecorder* selectedRec
 
 void RemoveLegacyDispatch() {
     if (installed) {
+        qglReadPixels = driverReferences.ReadPixels;
+        qglReadBuffer = driverReferences.ReadBuffer;
+        qglDrawBuffer = driverReferences.DrawBuffer;
+        qglPolygonMode = driverReferences.PolygonMode;
+        qglFrontFace = driverReferences.FrontFace;
+        qglClearDepth = driverReferences.ClearDepth;
+        qglClearStencil = driverReferences.ClearStencil;
+        qglColorMask = driverReferences.ColorMask;
+        qglLoadMatrixf = driverReferences.LoadMatrixf;
+        qglMultMatrixf = driverReferences.MultMatrixf;
         qglBindTexture = driverReferences.BindTexture;
         qglDeleteTextures = driverReferences.DeleteTextures;
         qglGenTextures = driverReferences.GenTextures;
@@ -798,6 +891,10 @@ void RemoveLegacyDispatch() {
         qglSelectTextureSGIS = driverReferences.SelectTextureSGIS;
         qglMTexCoord2fSGIS = driverReferences.MTexCoord2fSGIS;
     }
+    nativeBridge = LegacyNativeBridge{};
+    nativeClear = ClearEvent{};
+    readTarget = ReadbackStage::SceneColor;
+    nativeDither = true;
     driverReferences = ReferenceTable{};
     recorder = nullptr;
     currentDispatchMode = DispatchMode::ReferenceGL;
@@ -810,6 +907,88 @@ void RemoveLegacyDispatch() {
     textureCoordinateBase = kTexture0Sgis;
 }
 
+bool InstallNativeDispatch(FrameRecorder* selectedRecorder, const LegacyNativeBridge& bridge, std::string& error) {
+    if (!selectedRecorder || !bridge.ensureRecording || !bridge.finish || !bridge.readPixels ||
+        !bridge.textureUnits || bridge.textureUnits > kTextureUnits || !bridge.maximumTextureSize ||
+        bridge.maximumTextureSize > static_cast<unsigned>(kTextureDimension)) {
+        error = "Native dispatch requires a recorder, synchronous bridge, and bounded native capabilities";
+        return false;
+    }
+    if (installed) {
+        RemoveLegacyDispatch();
+    }
+    currentDispatchMode = DispatchMode::Native;
+    recorder = selectedRecorder;
+    nativeBridge = bridge;
+    failure = Status::Ok;
+    failedOperation = nullptr;
+    installed = true;
+    RefreshLegacyDispatchReferences();
+    error.clear();
+    return true;
+}
+
+ReadbackStage LegacyNativeReadTarget() {
+    return readTarget;
+}
+
+ReadbackStage LegacyNativeDrawTarget() {
+    // FRONT drawing requires explicit owner routing, never an ignored framebuffer selector.
+    return ReadbackStage::SceneColor;
+}
+
+std::string LegacyDispatchDiagnostic() {
+    return failedOperation ? std::string(failedOperation) + ": legacy capture operation failed (status " +
+        std::to_string(static_cast<unsigned>(failure)) + ")" : std::string{};
+}
+
+Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+    std::size_t lastVertex, bool perVertexColor) {
+    operationContext = "SubmitNativeIndexed";
+    if (!Native()) {
+        return Status::InvalidOperation;
+    }
+    CaptureOwned([&] {
+        if (vertices.empty()) {
+            if (!indices.empty()) {
+                Refuse(Status::InvalidValue);
+            }
+            return;
+        }
+        const auto& limits = recorder->Limits().capture;
+        constexpr std::size_t kVerticesPerTriangle = 3;
+        if (recorder->InPrimitive() || lastVertex >= vertices.size() || indices.size() % kVerticesPerTriangle != 0) {
+            Refuse(Status::InvalidOperation);
+            return;
+        }
+        if (indices.size() > limits.verticesPerDraw || vertices.size() > limits.verticesPerDraw) {
+            Refuse(Status::LimitExceeded);
+            return;
+        }
+        for (const auto index : indices) {
+            if (index >= vertices.size()) {
+                Refuse(Status::InvalidValue);
+                return;
+            }
+        }
+        Command command;
+        command.op = Op::DrawNative;
+        command.argument = static_cast<std::uint32_t>(Primitive::Triangles);
+        command.second = perVertexColor ? 1 : 0;
+        command.vertices.reserve(indices.size());
+        for (const auto index : indices) {
+            command.vertices.push_back(vertices[index]);
+        }
+        Capture(command);
+        const auto& last = vertices[lastVertex];
+        CaptureValues(Op::TexCoord, {{last.texcoords[0][0], last.texcoords[0][1]}}, 0);
+        if (perVertexColor) {
+            CaptureValues(Op::Color, {{last.color[0], last.color[1], last.color[2], last.color[3]}});
+        }
+    });
+    return failure;
+}
+
 Status LegacyDispatchStatus() {
     return failure;
 }
@@ -820,6 +999,24 @@ bool LegacyIndexedDrawingAllowed() {
 
 LegacyProcedure RouteLegacyExtension(const char* name, LegacyProcedure procedure) {
     if (!name || !installed) {
+        return nullptr;
+    }
+    if (Native()) {
+        // Native aliases route semantic entry points without replacing the saved GL ownership snapshot.
+        if (std::strcmp(name, "glBindTextureEXT") == 0) {
+            return reinterpret_cast<LegacyProcedure>(&CseRenderBindTexture);
+        }
+        if (std::strcmp(name, "glColorTableEXT") == 0) {
+            return reinterpret_cast<LegacyProcedure>(&CseRenderColorTableEXT);
+        }
+        if (std::strcmp(name, "glActiveTextureARB") == 0 || std::strcmp(name, "glSelectTextureSGIS") == 0) {
+            selectTextureBase = std::strcmp(name, "glActiveTextureARB") == 0 ? GL_TEXTURE0_ARB : kTexture0Sgis;
+            return reinterpret_cast<LegacyProcedure>(&CseRenderSelectTextureSGIS);
+        }
+        if (std::strcmp(name, "glMultiTexCoord2fARB") == 0 || std::strcmp(name, "glMTexCoord2fSGIS") == 0) {
+            textureCoordinateBase = std::strcmp(name, "glMultiTexCoord2fARB") == 0 ? GL_TEXTURE0_ARB : kTexture0Sgis;
+            return reinterpret_cast<LegacyProcedure>(&CseRenderMTexCoord2fSGIS);
+        }
         return nullptr;
     }
     if (std::strcmp(name, "glBindTextureEXT") == 0) {
@@ -863,6 +1060,7 @@ LegacyProcedure RouteLegacyExtension(const char* name, LegacyProcedure procedure
 }
 
 void APIENTRY CseRenderAlphaFunc(GLenum function, GLclampf reference) {
+    operationContext = __func__;
     CaptureValues(Op::AlphaFunction, {{reference}}, Argument(function, kComparisons));
     if (CanForward(driverReferences.AlphaFunc != nullptr)) {
         driverReferences.AlphaFunc(function, reference);
@@ -870,6 +1068,7 @@ void APIENTRY CseRenderAlphaFunc(GLenum function, GLclampf reference) {
 }
 
 void APIENTRY CseRenderBegin(GLenum mode) {
+    operationContext = __func__;
     CaptureValues(Op::Begin, {}, Argument(mode, kPrimitives));
     if (CanForward(driverReferences.Begin != nullptr)) {
         driverReferences.Begin(mode);
@@ -877,6 +1076,7 @@ void APIENTRY CseRenderBegin(GLenum mode) {
 }
 
 void APIENTRY CseRenderBlendFunc(GLenum source, GLenum destination) {
+    operationContext = __func__;
     CaptureValues(Op::BlendFunction, {}, Argument(source, kBlendFactors), Argument(destination, kBlendFactors));
     if (CanForward(driverReferences.BlendFunc != nullptr)) {
         driverReferences.BlendFunc(source, destination);
@@ -884,7 +1084,33 @@ void APIENTRY CseRenderBlendFunc(GLenum source, GLenum destination) {
 }
 
 void APIENTRY CseRenderClear(GLbitfield mask) {
-    // Clear masks/depth/stencil and framebuffer selectors join the owner in T2d.
+    operationContext = __func__;
+    if (Native()) {
+        CaptureOwned([&] {
+            constexpr GLbitfield kSupportedMask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+            if ((mask & ~kSupportedMask) != 0) {
+                Refuse(Status::InvalidValue);
+                return;
+            }
+            if (!mask) {
+                return;
+            }
+            auto clear = nativeClear;
+            clear.mask = ((mask & GL_COLOR_BUFFER_BIT) ? cse::render::kClearColor : 0) |
+                ((mask & GL_DEPTH_BUFFER_BIT) ? cse::render::kClearDepth : 0) |
+                ((mask & GL_STENCIL_BUFFER_BIT) ? cse::render::kClearStencil : 0);
+            const auto& raster = recorder->State().raster;
+            clear.scissor = raster.scissor;
+            clear.scissorEnabled = raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)];
+            clear.colorWrite = raster.colorWrite;
+            clear.depthWrite = raster.depthWrite;
+            const auto status = recorder->Clear(clear);
+            if (status != Status::Ok) {
+                Refuse(status);
+            }
+        });
+        return;
+    }
     CaptureUnsupported();
     if (CanForward(driverReferences.Clear != nullptr)) {
         driverReferences.Clear(mask);
@@ -892,7 +1118,22 @@ void APIENTRY CseRenderClear(GLbitfield mask) {
 }
 
 void APIENTRY CseRenderClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) {
-    // No partial clear events before all clear state is owned.
+    operationContext = __func__;
+    if (Native()) {
+        if (CanMutateNativeState()) {
+            const std::array<float, 4> color{{red, green, blue, alpha}};
+            for (const auto component : color) {
+                if (!std::isfinite(component)) {
+                    Refuse(Status::InvalidValue);
+                    return;
+                }
+            }
+            for (std::size_t channel = 0; channel < color.size(); ++channel) {
+                nativeClear.color[channel] = std::max(0.0f, std::min(color[channel], 1.0f));
+            }
+        }
+        return;
+    }
     CaptureUnsupported();
     if (CanForward(driverReferences.ClearColor != nullptr)) {
         driverReferences.ClearColor(red, green, blue, alpha);
@@ -900,6 +1141,7 @@ void APIENTRY CseRenderClearColor(GLclampf red, GLclampf green, GLclampf blue, G
 }
 
 void APIENTRY CseRenderColor3f(GLfloat red, GLfloat green, GLfloat blue) {
+    operationContext = __func__;
     CaptureValues(Op::Color, {{red, green, blue, 1}});
     if (CanForward(driverReferences.Color3f != nullptr)) {
         driverReferences.Color3f(red, green, blue);
@@ -907,6 +1149,7 @@ void APIENTRY CseRenderColor3f(GLfloat red, GLfloat green, GLfloat blue) {
 }
 
 void APIENTRY CseRenderColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
+    operationContext = __func__;
     CaptureValues(Op::Color, {{red, green, blue, alpha}});
     if (CanForward(driverReferences.Color4f != nullptr)) {
         driverReferences.Color4f(red, green, blue, alpha);
@@ -914,6 +1157,7 @@ void APIENTRY CseRenderColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat
 }
 
 void APIENTRY CseRenderColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha) {
+    operationContext = __func__;
     CaptureValues(Op::Color, {{red / kByteColorMaximum, green / kByteColorMaximum,
         blue / kByteColorMaximum, alpha / kByteColorMaximum}});
     if (CanForward(driverReferences.Color4ub != nullptr)) {
@@ -922,6 +1166,7 @@ void APIENTRY CseRenderColor4ub(GLubyte red, GLubyte green, GLubyte blue, GLubyt
 }
 
 void APIENTRY CseRenderColor4ubv(const GLubyte* color) {
+    operationContext = __func__;
     if (Capturing()) {
         if (color) {
             CaptureValues(Op::Color, {{color[0] / kByteColorMaximum, color[1] / kByteColorMaximum,
@@ -936,6 +1181,7 @@ void APIENTRY CseRenderColor4ubv(const GLubyte* color) {
 }
 
 void APIENTRY CseRenderCullFace(GLenum mode) {
+    operationContext = __func__;
     CaptureValues(Op::CullFace, {}, Argument(mode, kCullModes));
     if (CanForward(driverReferences.CullFace != nullptr)) {
         driverReferences.CullFace(mode);
@@ -943,6 +1189,7 @@ void APIENTRY CseRenderCullFace(GLenum mode) {
 }
 
 void APIENTRY CseRenderDepthFunc(GLenum function) {
+    operationContext = __func__;
     CaptureValues(Op::DepthFunction, {}, Argument(function, kComparisons));
     if (CanForward(driverReferences.DepthFunc != nullptr)) {
         driverReferences.DepthFunc(function);
@@ -950,6 +1197,7 @@ void APIENTRY CseRenderDepthFunc(GLenum function) {
 }
 
 void APIENTRY CseRenderDepthMask(GLboolean enabled) {
+    operationContext = __func__;
     CaptureValues(Op::DepthWrite, {{enabled != GL_FALSE ? 1.0 : 0.0}});
     if (CanForward(driverReferences.DepthMask != nullptr)) {
         driverReferences.DepthMask(enabled);
@@ -957,6 +1205,7 @@ void APIENTRY CseRenderDepthMask(GLboolean enabled) {
 }
 
 void APIENTRY CseRenderDepthRange(GLclampd nearDepth, GLclampd farDepth) {
+    operationContext = __func__;
     CaptureValues(Op::DepthRange, {{nearDepth, farDepth}});
     if (CanForward(driverReferences.DepthRange != nullptr)) {
         driverReferences.DepthRange(nearDepth, farDepth);
@@ -964,6 +1213,20 @@ void APIENTRY CseRenderDepthRange(GLclampd nearDepth, GLclampd farDepth) {
 }
 
 void APIENTRY CseRenderDisable(GLenum capability) {
+    operationContext = __func__;
+    if (Native() && (capability == GL_DITHER || capability == GL_LIGHTING || capability == GL_COLOR_MATERIAL ||
+        capability == GL_NORMALIZE || capability == kSharedTexturePalette)) {
+        if (capability == GL_DITHER) {
+            if (CanMutateNativeState()) {
+                nativeDither = false;
+            }
+        } else if (capability == kSharedTexturePalette) {
+            CaptureValues(Op::Enable, {{0}}, static_cast<std::uint32_t>(Capability::SharedTexturePalette));
+        } else {
+            CanMutateNativeState();
+        }
+        return;
+    }
     CaptureValues(Op::Enable, {{0}}, Argument(capability, kCapabilities));
     if (CanForward(driverReferences.Disable != nullptr)) {
         driverReferences.Disable(capability);
@@ -971,6 +1234,17 @@ void APIENTRY CseRenderDisable(GLenum capability) {
 }
 
 void APIENTRY CseRenderEnable(GLenum capability) {
+    operationContext = __func__;
+    if (Native() && (capability == GL_DITHER || capability == kSharedTexturePalette)) {
+        if (capability == GL_DITHER) {
+            if (CanMutateNativeState()) {
+                nativeDither = true;
+            }
+        } else {
+            CaptureValues(Op::Enable, {{1}}, static_cast<std::uint32_t>(Capability::SharedTexturePalette));
+        }
+        return;
+    }
     CaptureValues(Op::Enable, {{1}}, Argument(capability, kCapabilities));
     if (CanForward(driverReferences.Enable != nullptr)) {
         driverReferences.Enable(capability);
@@ -978,6 +1252,7 @@ void APIENTRY CseRenderEnable(GLenum capability) {
 }
 
 void APIENTRY CseRenderEnd() {
+    operationContext = __func__;
     CaptureValues(Op::End);
     if (CanForward(driverReferences.End != nullptr)) {
         driverReferences.End();
@@ -985,6 +1260,13 @@ void APIENTRY CseRenderEnd() {
 }
 
 void APIENTRY CseRenderFinish() {
+    operationContext = __func__;
+    if (Native()) {
+        if (CanQuery() && !nativeBridge.finish(nativeBridge.user)) {
+            Refuse();
+        }
+        return;
+    }
     // T3 supplies the synchronous Session barrier; never pretend that Seal is a Finish.
     if (currentDispatchMode == DispatchMode::CaptureOnly) {
         CaptureUnsupported();
@@ -995,6 +1277,7 @@ void APIENTRY CseRenderFinish() {
 }
 
 void APIENTRY CseRenderFogf(GLenum name, GLfloat value) {
+    operationContext = __func__;
     CaptureFog(name, value);
     if (CanForward(driverReferences.Fogf != nullptr)) {
         driverReferences.Fogf(name, value);
@@ -1002,6 +1285,7 @@ void APIENTRY CseRenderFogf(GLenum name, GLfloat value) {
 }
 
 void APIENTRY CseRenderFogfv(GLenum name, const GLfloat* values) {
+    operationContext = __func__;
     if (Capturing()) {
         if (!values) {
             Refuse(Status::InvalidValue);
@@ -1017,6 +1301,7 @@ void APIENTRY CseRenderFogfv(GLenum name, const GLfloat* values) {
 }
 
 void APIENTRY CseRenderFogi(GLenum name, GLint value) {
+    operationContext = __func__;
     CaptureFog(name, value);
     if (CanForward(driverReferences.Fogi != nullptr)) {
         driverReferences.Fogi(name, value);
@@ -1025,6 +1310,7 @@ void APIENTRY CseRenderFogi(GLenum name, GLint value) {
 
 void APIENTRY CseRenderFrustum(
     GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble nearDepth, GLdouble farDepth) {
+    operationContext = __func__;
     CaptureValues(Op::Frustum, {{left, right, bottom, top, nearDepth, farDepth}});
     if (CanForward(driverReferences.Frustum != nullptr)) {
         driverReferences.Frustum(left, right, bottom, top, nearDepth, farDepth);
@@ -1032,7 +1318,8 @@ void APIENTRY CseRenderFrustum(
 }
 
 void APIENTRY CseRenderGetFloatv(GLenum name, GLfloat* values) {
-    if (currentDispatchMode == DispatchMode::CaptureOnly) {
+    operationContext = __func__;
+    if (currentDispatchMode == DispatchMode::CaptureOnly || Native()) {
         QueryFloats(name, values);
         return;
     }
@@ -1042,6 +1329,66 @@ void APIENTRY CseRenderGetFloatv(GLenum name, GLfloat* values) {
 }
 
 void APIENTRY CseRenderGetIntegerv(GLenum name, GLint* value) {
+    operationContext = __func__;
+    if (Native()) {
+        if (!CanQuery()) {
+            return;
+        }
+        if (!value) {
+            Refuse(Status::InvalidValue);
+            return;
+        }
+        const auto& state = recorder->State();
+        const auto& pixelStore = recorder->Textures().Unpack();
+        switch (name) {
+        case GL_UNPACK_ALIGNMENT:
+            *value = pixelStore.unpackAlignment;
+            break;
+        case GL_UNPACK_ROW_LENGTH:
+            *value = pixelStore.unpackRowLength;
+            break;
+        case GL_PACK_ALIGNMENT:
+            *value = pixelStore.packAlignment;
+            break;
+        case GL_TEXTURE_BINDING_2D:
+            *value = static_cast<GLint>(state.textures[state.ActiveTexture()].texture2D);
+            break;
+        case GL_MAX_TEXTURE_UNITS_ARB:
+            *value = static_cast<GLint>(nativeBridge.textureUnits);
+            break;
+        case GL_MAX_TEXTURE_SIZE:
+            *value = static_cast<GLint>(nativeBridge.maximumTextureSize);
+            break;
+        case GL_RED_BITS:
+        case GL_GREEN_BITS:
+        case GL_BLUE_BITS:
+        case GL_ALPHA_BITS:
+            *value = static_cast<GLint>(nativeBridge.colorBits / nativeClear.color.size());
+            break;
+        case GL_DEPTH_BITS:
+            *value = static_cast<GLint>(nativeBridge.depthBits);
+            break;
+        case GL_STENCIL_BITS:
+            *value = static_cast<GLint>(nativeBridge.stencilBits);
+            break;
+        case GL_READ_BUFFER:
+            *value = readTarget == cse::render::ReadbackStage::SceneColor ? GL_BACK : GL_FRONT;
+            break;
+        case GL_DRAW_BUFFER:
+            *value = GL_BACK;
+            break;
+        case GL_MATRIX_MODE:
+            *value = static_cast<GLint>(kMatrices[static_cast<std::size_t>(state.Mode())]);
+            break;
+        case GL_VIEWPORT:
+            std::copy(state.raster.viewport.begin(), state.raster.viewport.end(), value);
+            break;
+        default:
+            Refuse();
+            break;
+        }
+        return;
+    }
     // Backend limits/configuration are not inferred from the small semantic state owner.
     if (currentDispatchMode == DispatchMode::CaptureOnly) {
         CaptureUnsupported();
@@ -1053,6 +1400,11 @@ void APIENTRY CseRenderGetIntegerv(GLenum name, GLint* value) {
 }
 
 const GLubyte* APIENTRY CseRenderGetString(GLenum name) {
+    operationContext = __func__;
+    if (Native()) {
+        Refuse();
+        return nullptr;
+    }
     // No fabricated version or extension string may advertise a general GL implementation.
     if (currentDispatchMode == DispatchMode::CaptureOnly) {
         CaptureUnsupported();
@@ -1065,6 +1417,7 @@ const GLubyte* APIENTRY CseRenderGetString(GLenum name) {
 }
 
 void APIENTRY CseRenderHint(GLenum target, GLenum mode) {
+    operationContext = __func__;
     if (Capturing()) {
         if (target == GL_FOG_HINT || target == GL_PERSPECTIVE_CORRECTION_HINT) {
             CaptureValues(target == GL_FOG_HINT ? Op::FogHint : Op::PerspectiveHint, {}, Argument(mode, kHints));
@@ -1078,7 +1431,8 @@ void APIENTRY CseRenderHint(GLenum target, GLenum mode) {
 }
 
 GLboolean APIENTRY CseRenderIsEnabled(GLenum capability) {
-    if (currentDispatchMode == DispatchMode::CaptureOnly) {
+    operationContext = __func__;
+    if (currentDispatchMode == DispatchMode::CaptureOnly || Native()) {
         return QueryEnabled(capability);
     }
     if (!CanForward(driverReferences.IsEnabled != nullptr)) {
@@ -1088,6 +1442,7 @@ GLboolean APIENTRY CseRenderIsEnabled(GLenum capability) {
 }
 
 void APIENTRY CseRenderLoadIdentity() {
+    operationContext = __func__;
     CaptureValues(Op::Identity);
     if (CanForward(driverReferences.LoadIdentity != nullptr)) {
         driverReferences.LoadIdentity();
@@ -1095,6 +1450,7 @@ void APIENTRY CseRenderLoadIdentity() {
 }
 
 void APIENTRY CseRenderMatrixMode(GLenum mode) {
+    operationContext = __func__;
     CaptureValues(Op::MatrixMode, {}, Argument(mode, kMatrices));
     if (CanForward(driverReferences.MatrixMode != nullptr)) {
         driverReferences.MatrixMode(mode);
@@ -1103,6 +1459,7 @@ void APIENTRY CseRenderMatrixMode(GLenum mode) {
 
 void APIENTRY CseRenderOrtho(
     GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble nearDepth, GLdouble farDepth) {
+    operationContext = __func__;
     CaptureValues(Op::Ortho, {{left, right, bottom, top, nearDepth, farDepth}});
     if (CanForward(driverReferences.Ortho != nullptr)) {
         driverReferences.Ortho(left, right, bottom, top, nearDepth, farDepth);
@@ -1110,6 +1467,7 @@ void APIENTRY CseRenderOrtho(
 }
 
 void APIENTRY CseRenderPopMatrix() {
+    operationContext = __func__;
     CaptureValues(Op::Pop);
     if (CanForward(driverReferences.PopMatrix != nullptr)) {
         driverReferences.PopMatrix();
@@ -1117,6 +1475,7 @@ void APIENTRY CseRenderPopMatrix() {
 }
 
 void APIENTRY CseRenderPushMatrix() {
+    operationContext = __func__;
     CaptureValues(Op::Push);
     if (CanForward(driverReferences.PushMatrix != nullptr)) {
         driverReferences.PushMatrix();
@@ -1124,6 +1483,7 @@ void APIENTRY CseRenderPushMatrix() {
 }
 
 void APIENTRY CseRenderRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
+    operationContext = __func__;
     CaptureValues(Op::Rotate, {{angle, x, y, z}});
     if (CanForward(driverReferences.Rotatef != nullptr)) {
         driverReferences.Rotatef(angle, x, y, z);
@@ -1131,6 +1491,7 @@ void APIENTRY CseRenderRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
 }
 
 void APIENTRY CseRenderScalef(GLfloat x, GLfloat y, GLfloat z) {
+    operationContext = __func__;
     CaptureValues(Op::Scale, {{x, y, z}});
     if (CanForward(driverReferences.Scalef != nullptr)) {
         driverReferences.Scalef(x, y, z);
@@ -1138,6 +1499,7 @@ void APIENTRY CseRenderScalef(GLfloat x, GLfloat y, GLfloat z) {
 }
 
 void APIENTRY CseRenderShadeModel(GLenum mode) {
+    operationContext = __func__;
     CaptureValues(Op::ShadeModel, {}, Argument(mode, kShades));
     if (CanForward(driverReferences.ShadeModel != nullptr)) {
         driverReferences.ShadeModel(mode);
@@ -1145,6 +1507,7 @@ void APIENTRY CseRenderShadeModel(GLenum mode) {
 }
 
 void APIENTRY CseRenderTexCoord2f(GLfloat s, GLfloat t) {
+    operationContext = __func__;
     CaptureValues(Op::TexCoord, {{s, t}}, 0);
     if (CanForward(driverReferences.TexCoord2f != nullptr)) {
         driverReferences.TexCoord2f(s, t);
@@ -1152,6 +1515,7 @@ void APIENTRY CseRenderTexCoord2f(GLfloat s, GLfloat t) {
 }
 
 void APIENTRY CseRenderTexEnvf(GLenum target, GLenum name, GLfloat value) {
+    operationContext = __func__;
     CaptureEnvironment(target, name, value);
     if (CanForward(driverReferences.TexEnvf != nullptr)) {
         driverReferences.TexEnvf(target, name, value);
@@ -1159,6 +1523,7 @@ void APIENTRY CseRenderTexEnvf(GLenum target, GLenum name, GLfloat value) {
 }
 
 void APIENTRY CseRenderTexEnvi(GLenum target, GLenum name, GLint value) {
+    operationContext = __func__;
     CaptureEnvironment(target, name, value);
     if (CanForward(driverReferences.TexEnvi != nullptr)) {
         driverReferences.TexEnvi(target, name, value);
@@ -1166,6 +1531,7 @@ void APIENTRY CseRenderTexEnvi(GLenum target, GLenum name, GLint value) {
 }
 
 void APIENTRY CseRenderTexParameterf(GLenum target, GLenum name, GLfloat value) {
+    operationContext = __func__;
     CaptureTextureParameter(target, name, value);
     if (CanForward(driverReferences.TexParameterf != nullptr)) {
         driverReferences.TexParameterf(target, name, value);
@@ -1173,6 +1539,7 @@ void APIENTRY CseRenderTexParameterf(GLenum target, GLenum name, GLfloat value) 
 }
 
 void APIENTRY CseRenderTranslatef(GLfloat x, GLfloat y, GLfloat z) {
+    operationContext = __func__;
     CaptureValues(Op::Translate, {{x, y, z}});
     if (CanForward(driverReferences.Translatef != nullptr)) {
         driverReferences.Translatef(x, y, z);
@@ -1180,6 +1547,7 @@ void APIENTRY CseRenderTranslatef(GLfloat x, GLfloat y, GLfloat z) {
 }
 
 void APIENTRY CseRenderVertex2f(GLfloat x, GLfloat y) {
+    operationContext = __func__;
     CaptureValues(Op::Vertex, {{x, y, 0}});
     if (CanForward(driverReferences.Vertex2f != nullptr)) {
         driverReferences.Vertex2f(x, y);
@@ -1187,6 +1555,7 @@ void APIENTRY CseRenderVertex2f(GLfloat x, GLfloat y) {
 }
 
 void APIENTRY CseRenderVertex3f(GLfloat x, GLfloat y, GLfloat z) {
+    operationContext = __func__;
     CaptureValues(Op::Vertex, {{x, y, z}});
     if (CanForward(driverReferences.Vertex3f != nullptr)) {
         driverReferences.Vertex3f(x, y, z);
@@ -1194,6 +1563,7 @@ void APIENTRY CseRenderVertex3f(GLfloat x, GLfloat y, GLfloat z) {
 }
 
 void APIENTRY CseRenderVertex3fv(const GLfloat* vertex) {
+    operationContext = __func__;
     if (Capturing()) {
         if (vertex) {
             CaptureValues(Op::Vertex, {{vertex[0], vertex[1], vertex[2]}});
@@ -1207,6 +1577,7 @@ void APIENTRY CseRenderVertex3fv(const GLfloat* vertex) {
 }
 
 void APIENTRY CseRenderViewport(GLint x, GLint y, GLsizei width, GLsizei height) {
+    operationContext = __func__;
     CaptureValues(Op::Viewport, {{static_cast<double>(x), static_cast<double>(y),
         static_cast<double>(width), static_cast<double>(height)}});
     if (CanForward(driverReferences.Viewport != nullptr)) {
@@ -1215,6 +1586,7 @@ void APIENTRY CseRenderViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 }
 
 void APIENTRY CseRenderSelectTextureSGIS(GLenum texture) {
+    operationContext = __func__;
     CaptureValues(Op::ActiveTexture, {}, TextureUnit(texture, selectTextureBase));
     if (CanForward(driverReferences.SelectTextureSGIS != nullptr)) {
         driverReferences.SelectTextureSGIS(texture);
@@ -1222,6 +1594,7 @@ void APIENTRY CseRenderSelectTextureSGIS(GLenum texture) {
 }
 
 void APIENTRY CseRenderMTexCoord2fSGIS(GLenum target, GLfloat s, GLfloat t) {
+    operationContext = __func__;
     CaptureValues(Op::TexCoord, {{s, t}}, TextureUnit(target, textureCoordinateBase));
     if (CanForward(driverReferences.MTexCoord2fSGIS != nullptr)) {
         driverReferences.MTexCoord2fSGIS(target, s, t);
@@ -1231,6 +1604,7 @@ void APIENTRY CseRenderMTexCoord2fSGIS(GLenum target, GLfloat s, GLfloat t) {
 // T2b capture owns command data; original driver calls remain outside the allocation/refusal boundary.
 
 void APIENTRY CseRenderBindTexture(GLenum target, GLuint texture) {
+    operationContext = __func__;
     CaptureOwned([&] {
         CaptureValues(Op::BindTexture, {}, Argument(target, kTextureTargets), texture);
     });
@@ -1240,6 +1614,7 @@ void APIENTRY CseRenderBindTexture(GLenum target, GLuint texture) {
 }
 
 void APIENTRY CseRenderDeleteTextures(GLsizei count, const GLuint* textures) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (recorder->InPrimitive()) {
             Refuse(Status::InvalidOperation);
@@ -1271,7 +1646,31 @@ void APIENTRY CseRenderDeleteTextures(GLsizei count, const GLuint* textures) {
 }
 
 void APIENTRY CseRenderGenTextures(GLsizei count, GLuint* textures) {
-    // R2/R3: driver-owned names remain unchanged; capture has no namespace reservation API.
+    operationContext = __func__;
+    if (Native()) {
+        CaptureOwned([&] {
+            if (count < 0) {
+                Refuse(Status::InvalidValue);
+                return;
+            }
+            if (static_cast<std::size_t>(count) > recorder->Limits().capture.textureNames) {
+                Refuse(Status::LimitExceeded);
+                return;
+            }
+            if (!PointerExtent(textures, static_cast<std::size_t>(count) * sizeof(GLuint))) {
+                Refuse(Status::InvalidValue);
+                return;
+            }
+            std::vector<std::uint32_t> names;
+            const auto status = recorder->GenerateTextures(static_cast<std::size_t>(count), names);
+            if (status != Status::Ok) {
+                Refuse(status);
+                return;
+            }
+            std::copy(names.begin(), names.end(), textures);
+        });
+        return;
+    }
     CaptureUnsupported();
     if (CanForward(driverReferences.GenTextures != nullptr)) {
         driverReferences.GenTextures(count, textures);
@@ -1279,6 +1678,7 @@ void APIENTRY CseRenderGenTextures(GLsizei count, GLuint* textures) {
 }
 
 void APIENTRY CseRenderPixelStorei(GLenum name, GLint value) {
+    operationContext = __func__;
     CaptureOwned([&] {
         CaptureValues(Op::PixelStore, {{static_cast<double>(value)}}, Argument(name, kPixelStores));
     });
@@ -1289,6 +1689,7 @@ void APIENTRY CseRenderPixelStorei(GLenum name, GLint value) {
 
 void APIENTRY CseRenderTexImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height,
     GLint border, GLenum format, GLenum type, const GLvoid* pixels) {
+    operationContext = __func__;
     CaptureUpload(target, level, internalFormat, 0, 0, width, height, border, format, type, pixels, false);
     if (CanForward(driverReferences.TexImage2D != nullptr)) {
         driverReferences.TexImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
@@ -1297,6 +1698,7 @@ void APIENTRY CseRenderTexImage2D(GLenum target, GLint level, GLint internalForm
 
 void APIENTRY CseRenderTexSubImage2D(GLenum target, GLint level, GLint x, GLint y, GLsizei width, GLsizei height,
     GLenum format, GLenum type, const GLvoid* pixels) {
+    operationContext = __func__;
     CaptureUpload(target, level, GL_RGBA8, x, y, width, height, 0, format, type, pixels, true);
     if (CanForward(driverReferences.TexSubImage2D != nullptr)) {
         driverReferences.TexSubImage2D(target, level, x, y, width, height, format, type, pixels);
@@ -1304,6 +1706,7 @@ void APIENTRY CseRenderTexSubImage2D(GLenum target, GLint level, GLint x, GLint 
 }
 
 void APIENTRY CseRenderTexParameteri(GLenum target, GLenum name, GLint value) {
+    operationContext = __func__;
     CaptureTextureParameter(target, name, static_cast<double>(value));
     if (CanForward(driverReferences.TexParameteri != nullptr)) {
         driverReferences.TexParameteri(target, name, value);
@@ -1312,12 +1715,12 @@ void APIENTRY CseRenderTexParameteri(GLenum target, GLenum name, GLint value) {
 
 void APIENTRY CseRenderColorTableEXT(GLenum target, GLenum internalFormat, GLsizei width, GLenum format,
     GLenum type, const void* table) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (recorder->InPrimitive()) {
             Refuse(Status::InvalidOperation);
             return;
         }
-        constexpr GLenum kSharedTexturePalette = 0x81fb;
         if (target != kSharedTexturePalette || internalFormat != GL_RGB || format != GL_RGB ||
             type != GL_UNSIGNED_BYTE || width != static_cast<GLsizei>(cse::render::kPaletteEntries)) {
             Refuse(Status::InvalidOperation);
@@ -1339,7 +1742,21 @@ void APIENTRY CseRenderColorTableEXT(GLenum target, GLenum internalFormat, GLsiz
 }
 
 GLuint APIENTRY CseRenderGenLists(GLsizei range) {
-    // R2/R3: driver-owned names remain unchanged; capture has no namespace reservation API.
+    operationContext = __func__;
+    if (Native()) {
+        std::uint32_t first = 0;
+        CaptureOwned([&] {
+            if (range < 0) {
+                Refuse(Status::InvalidValue);
+                return;
+            }
+            const auto status = recorder->GenerateLists(static_cast<std::size_t>(range), first);
+            if (status != Status::Ok) {
+                Refuse(status);
+            }
+        });
+        return first;
+    }
     CaptureUnsupported();
     if (CanForward(driverReferences.GenLists != nullptr)) {
         return driverReferences.GenLists(range);
@@ -1348,6 +1765,7 @@ GLuint APIENTRY CseRenderGenLists(GLsizei range) {
 }
 
 void APIENTRY CseRenderNewList(GLuint list, GLenum mode) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (mode != GL_COMPILE && mode != GL_COMPILE_AND_EXECUTE) {
             Refuse(Status::InvalidValue);
@@ -1364,6 +1782,7 @@ void APIENTRY CseRenderNewList(GLuint list, GLenum mode) {
 }
 
 void APIENTRY CseRenderEndList() {
+    operationContext = __func__;
     CaptureOwned([&] {
         const auto status = recorder->EndList();
         if (status != Status::Ok) {
@@ -1376,6 +1795,7 @@ void APIENTRY CseRenderEndList() {
 }
 
 void APIENTRY CseRenderCallList(GLuint list) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (!list) {
             Refuse(Status::InvalidValue);
@@ -1389,6 +1809,7 @@ void APIENTRY CseRenderCallList(GLuint list) {
 }
 
 void APIENTRY CseRenderDeleteLists(GLuint list, GLsizei range) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (recorder->InPrimitive()) {
             Refuse(Status::InvalidOperation);
@@ -1396,6 +1817,20 @@ void APIENTRY CseRenderDeleteLists(GLuint list, GLsizei range) {
         }
         if (range < 0) {
             Refuse(Status::InvalidValue);
+        } else if (Native()) {
+            const auto count = static_cast<std::uint32_t>(range);
+            if (count > recorder->Limits().capture.lists ||
+                (count && count - 1 > std::numeric_limits<std::uint32_t>::max() - list)) {
+                Refuse(Status::LimitExceeded);
+                return;
+            }
+            for (std::uint32_t offset = 0; offset < count; ++offset) {
+                const auto status = recorder->DeleteList(list + offset);
+                if (status != Status::Ok) {
+                    Refuse(status);
+                    return;
+                }
+            }
         } else if (range > 1) {
             // R3: only source range one is captured; no unchecked namespace iteration.
             Refuse(Status::InvalidOperation);
@@ -1412,6 +1847,7 @@ void APIENTRY CseRenderDeleteLists(GLuint list, GLsizei range) {
 }
 
 void APIENTRY CseRenderEnableClientState(GLenum array) {
+    operationContext = __func__;
     CaptureOwned([&] {
         if (recorder->InPrimitive()) {
             Refuse(Status::InvalidOperation);
@@ -1429,6 +1865,7 @@ void APIENTRY CseRenderEnableClientState(GLenum array) {
 }
 
 void APIENTRY CseRenderTexCoordPointer(GLint size, GLenum type, GLsizei stride, const GLvoid* pointer) {
+    operationContext = __func__;
     CaptureArrayPointer(textureCoordinateArray, size, type, stride, pointer);
     if (CanForward(driverReferences.TexCoordPointer != nullptr)) {
         driverReferences.TexCoordPointer(size, type, stride, pointer);
@@ -1436,6 +1873,7 @@ void APIENTRY CseRenderTexCoordPointer(GLint size, GLenum type, GLsizei stride, 
 }
 
 void APIENTRY CseRenderVertexPointer(GLint size, GLenum type, GLsizei stride, const GLvoid* pointer) {
+    operationContext = __func__;
     CaptureArrayPointer(vertexArray, size, type, stride, pointer);
     if (CanForward(driverReferences.VertexPointer != nullptr)) {
         driverReferences.VertexPointer(size, type, stride, pointer);
@@ -1443,6 +1881,7 @@ void APIENTRY CseRenderVertexPointer(GLint size, GLenum type, GLsizei stride, co
 }
 
 void APIENTRY CseRenderDrawArrays(GLenum mode, GLint first, GLsizei count) {
+    operationContext = __func__;
     CaptureArrays(mode, first, count);
     if (CanForward(driverReferences.DrawArrays != nullptr)) {
         driverReferences.DrawArrays(mode, first, count);
@@ -1450,6 +1889,7 @@ void APIENTRY CseRenderDrawArrays(GLenum mode, GLint first, GLsizei count) {
 }
 
 void APIENTRY CseRenderScissor(GLint x, GLint y, GLsizei width, GLsizei height) {
+    operationContext = __func__;
     CaptureOwned([&] {
         CaptureValues(Op::Scissor, {{static_cast<double>(x), static_cast<double>(y),
             static_cast<double>(width), static_cast<double>(height)}});
@@ -1460,10 +1900,178 @@ void APIENTRY CseRenderScissor(GLint x, GLint y, GLsizei width, GLsizei height) 
 }
 
 void APIENTRY CseRenderPolygonOffset(GLfloat factor, GLfloat units) {
+    operationContext = __func__;
     CaptureOwned([&] {
         CaptureValues(Op::PolygonOffset, {{factor, units}});
     });
     if (CanForward(driverReferences.PolygonOffset != nullptr)) {
         driverReferences.PolygonOffset(factor, units);
+    }
+}
+
+void APIENTRY CseRenderReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
+    GLenum type, GLvoid* pixels) {
+    operationContext = __func__;
+    if (Native()) {
+        if (!CanQuery()) {
+            return;
+        }
+        if (x < 0 || y < 0 || width < 0 || height < 0 ||
+            (format != GL_RGB && format != GL_RGBA) || type != GL_UNSIGNED_BYTE) {
+            Refuse(Status::InvalidValue);
+            return;
+        }
+        if (!width || !height) {
+            return;
+        }
+        constexpr std::size_t kRgbComponents = 3;
+        constexpr std::size_t kRgbaComponents = 4;
+        const auto components = format == GL_RGB ? kRgbComponents : kRgbaComponents;
+        const auto alignment = static_cast<std::size_t>(recorder->Textures().Unpack().packAlignment);
+        if (static_cast<std::size_t>(width) >
+            (std::numeric_limits<std::size_t>::max() - (alignment - 1)) / components) {
+            Refuse(Status::InvalidValue);
+            return;
+        }
+        const auto rowBytes = static_cast<std::size_t>(width) * components;
+        const auto stride = (rowBytes + alignment - 1) / alignment * alignment;
+        const auto rowsBeforeLast = static_cast<std::size_t>(height - 1);
+        if (rowsBeforeLast > (std::numeric_limits<std::size_t>::max() - rowBytes) / stride ||
+            !PointerExtent(pixels, rowsBeforeLast * stride + rowBytes)) {
+            Refuse(Status::InvalidValue);
+            return;
+        }
+        if (!nativeBridge.readPixels(nativeBridge.user, x, y, width, height, static_cast<unsigned>(components),
+            static_cast<unsigned>(alignment), pixels)) {
+            Refuse();
+        }
+        return;
+    }
+    CaptureUnsupported();
+    if (CanForward(driverReferences.ReadPixels != nullptr)) {
+        driverReferences.ReadPixels(x, y, width, height, format, type, pixels);
+    }
+}
+
+void APIENTRY CseRenderReadBuffer(GLenum buffer) {
+    operationContext = __func__;
+    if (Native()) {
+        if (CanMutateNativeState()) {
+            if (buffer == GL_BACK || buffer == GL_FRONT) {
+                readTarget = buffer == GL_BACK ? cse::render::ReadbackStage::SceneColor :
+                    cse::render::ReadbackStage::PresentedColor;
+            } else {
+                Refuse(Status::InvalidValue);
+            }
+        }
+        return;
+    }
+    CaptureUnsupported();
+    if (CanForward(driverReferences.ReadBuffer != nullptr)) {
+        driverReferences.ReadBuffer(buffer);
+    }
+}
+
+void APIENTRY CseRenderDrawBuffer(GLenum buffer) {
+    operationContext = __func__;
+    if (Native()) {
+        if (CanMutateNativeState() && buffer != GL_BACK) {
+            // Environment-map/time-refresh owners route native FRONT work explicitly.
+            Refuse(Status::InvalidOperation);
+        }
+        return;
+    }
+    CaptureUnsupported();
+    if (CanForward(driverReferences.DrawBuffer != nullptr)) {
+        driverReferences.DrawBuffer(buffer);
+    }
+}
+
+void APIENTRY CseRenderPolygonMode(GLenum face, GLenum mode) {
+    operationContext = __func__;
+    constexpr GLenum kPolygonModes[] = {GL_POINT, GL_LINE, GL_FILL};
+    CaptureValues(Op::PolygonMode, {}, Argument(face, kCullModes), Argument(mode, kPolygonModes));
+    if (CanForward(driverReferences.PolygonMode != nullptr)) {
+        driverReferences.PolygonMode(face, mode);
+    }
+}
+
+void APIENTRY CseRenderFrontFace(GLenum mode) {
+    operationContext = __func__;
+    CaptureValues(Op::FrontFace, {}, mode == GL_CCW ? 1 : mode == GL_CW ? 0 : kInvalidArgument);
+    if (CanForward(driverReferences.FrontFace != nullptr)) {
+        driverReferences.FrontFace(mode);
+    }
+}
+
+void APIENTRY CseRenderClearDepth(GLclampd depth) {
+    operationContext = __func__;
+    if (Native()) {
+        if (CanMutateNativeState()) {
+            if (!std::isfinite(depth)) {
+                Refuse(Status::InvalidValue);
+            } else {
+                nativeClear.depth = std::max(0.0, std::min(depth, 1.0));
+            }
+        }
+        return;
+    }
+    CaptureUnsupported();
+    if (CanForward(driverReferences.ClearDepth != nullptr)) {
+        driverReferences.ClearDepth(depth);
+    }
+}
+
+void APIENTRY CseRenderClearStencil(GLint stencil) {
+    operationContext = __func__;
+    if (Native()) {
+        if (CanMutateNativeState()) {
+            nativeClear.stencil = static_cast<std::uint32_t>(stencil);
+        }
+        return;
+    }
+    CaptureUnsupported();
+    if (CanForward(driverReferences.ClearStencil != nullptr)) {
+        driverReferences.ClearStencil(stencil);
+    }
+}
+
+void APIENTRY CseRenderColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
+    operationContext = __func__;
+    CaptureValues(Op::ColorWrite, {{red != GL_FALSE ? 1.0 : 0.0, green != GL_FALSE ? 1.0 : 0.0,
+        blue != GL_FALSE ? 1.0 : 0.0, alpha != GL_FALSE ? 1.0 : 0.0}});
+    if (CanForward(driverReferences.ColorMask != nullptr)) {
+        driverReferences.ColorMask(red, green, blue, alpha);
+    }
+}
+
+namespace {
+void CaptureMatrix(const GLfloat* matrix, Op operation) {
+    CaptureOwned([&] {
+        Command command;
+        command.op = operation;
+        if (!PointerExtent(matrix, sizeof(command.matrix.values))) {
+            Refuse(Status::InvalidValue);
+            return;
+        }
+        std::copy(matrix, matrix + command.matrix.values.size(), command.matrix.values.begin());
+        Capture(command);
+    });
+}
+}
+
+void APIENTRY CseRenderLoadMatrixf(const GLfloat* matrix) {
+    operationContext = __func__;
+    CaptureMatrix(matrix, Op::LoadMatrix);
+    if (CanForward(driverReferences.LoadMatrixf != nullptr)) {
+        driverReferences.LoadMatrixf(matrix);
+    }
+}
+
+void APIENTRY CseRenderMultMatrixf(const GLfloat* matrix) {
+    operationContext = __func__;
+    CaptureMatrix(matrix, Op::MultiplyMatrix);
+    if (CanForward(driverReferences.MultMatrixf != nullptr)) {
+        driverReferences.MultMatrixf(matrix);
     }
 }

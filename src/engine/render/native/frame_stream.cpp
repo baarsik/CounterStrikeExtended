@@ -226,6 +226,18 @@ Status FrameRecorder::DeleteList(std::uint32_t id) {
     return Fail(recorder_.DeleteList(id));
 }
 
+Status FrameRecorder::GenerateLists(std::size_t count, std::uint32_t& first) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        return Fail(recorder_.GenerateLists(count, first));
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
 Status FrameRecorder::GenerateTextures(std::size_t count, std::vector<std::uint32_t>& names) {
     const auto status = Gate();
     if (status != Status::Ok) {

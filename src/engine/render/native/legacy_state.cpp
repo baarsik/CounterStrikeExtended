@@ -144,6 +144,15 @@ void LegacyState::LoadIdentity() {
     stack.entries[stack.depth - 1] = Matrix4::Identity();
 }
 
+void LegacyState::LoadMatrix(const Matrix4& matrix) {
+    auto& stack = SelectedStack();
+    stack.entries[stack.depth - 1] = matrix;
+}
+
+void LegacyState::MultiplyMatrix(const Matrix4& matrix) {
+    Apply(matrix);
+}
+
 void LegacyState::Apply(const Matrix4& matrix) {
     auto& stack = SelectedStack();
     stack.entries[stack.depth - 1] = Multiply(stack.entries[stack.depth - 1], matrix);
@@ -244,7 +253,9 @@ Status LegacyState::TexCoord(std::uint32_t unit, float s, float t) {
 }
 
 Status LegacyState::Enable(Capability capability, bool enabled) {
-    if (capability == Capability::Texture2D) {
+    if (capability == Capability::SharedTexturePalette) {
+        sharedTexturePalette = enabled;
+    } else if (capability == Capability::Texture2D) {
         textures[activeTexture_].enabled2D = enabled;
     } else if (capability == Capability::TextureRectangle) {
         textures[activeTexture_].enabledRectangle = enabled;
