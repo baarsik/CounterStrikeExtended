@@ -80,7 +80,7 @@ bool UsingMetal() {
     return selected == Backend::Metal;
 }
 
-bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error) {
+bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error, bool preferOpenGL) {
 #if defined(__APPLE__)
     constexpr bool kMacOS = true;
 #else
@@ -91,7 +91,7 @@ bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error) {
 #else
     constexpr bool kMetalCompiled = false;
 #endif
-    const auto selection = SelectBackend(kMacOS, kMetalCompiled, glFlag, metalFlag);
+    const auto selection = SelectBackend(kMacOS, kMetalCompiled, glFlag, metalFlag, preferOpenGL);
     if (selection.error) {
         error = selection.error;
         return false;

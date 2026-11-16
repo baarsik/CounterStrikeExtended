@@ -3251,27 +3251,34 @@ void Host_SetGameDir_f()
 	strcat( g_pPostRestartCmdLineArgs, pszGameDir );
 }
 
-void Host_SetRenderer_f()
-{
-	int hardware;
-	int windowed = 0;
+void Host_SetRenderer_f() {
+    if (cls.state == ca_dedicated || (Cmd_Argc() != 2 && Cmd_Argc() != 3)) {
+        return;
+    }
 
-	if ( cls.state == ca_dedicated || ( Cmd_Argc() != 2 && Cmd_Argc() != 3 ) )
-		return;
-
-	if ( !Q_strcasecmp( Cmd_Argv( 1 ), "software" ) )
-		hardware = 0;
-	else if ( !Q_strcasecmp( Cmd_Argv( 1 ), "gl" ) || Q_strcasecmp( Cmd_Argv( 1 ), "d3d" ) )
-		hardware = 1;
-	else
-		hardware = 2;
-
-	if ( Cmd_Argc() == 3 )
-		windowed = !Q_strcasecmp( Cmd_Argv( 2 ), "windowed" );
-
-	VideoMode_SwitchMode( hardware, windowed );
+    const bool metal = !Q_strcasecmp(Cmd_Argv(1), "metal");
+#if !defined(__APPLE__) || !defined(CSE_ENABLE_METAL)
+    if (metal) {
+        Con_Printf("Metal rendering is unavailable in this build.\n");
+        return;
+    }
+#endif
+    constexpr int kSoftwareRenderer = 0;
+    constexpr int kHardwareRenderer = 1;
+    constexpr int kDirect3DRenderer = 2;
+    int hardware = kHardwareRenderer;
+    if (!Q_strcasecmp(Cmd_Argv(1), "software")) {
+        hardware = kSoftwareRenderer;
+    } else if (!Q_strcasecmp(Cmd_Argv(1), "d3d")) {
+        hardware = kDirect3DRenderer;
+    }
+    const bool windowed = Cmd_Argc() == 3 && !Q_strcasecmp(Cmd_Argv(2), "windowed");
+    VideoMode_SwitchMode(hardware, windowed);
 #if defined(__APPLE__)
-    nativeVideoRestart.SetRenderer(hardware, windowed != 0, cse::render::UsingMetal());
+    if (hardware == kHardwareRenderer) {
+        registry->WriteString("MacVideoRenderer", metal ? "metal" : "gl");
+    }
+    nativeVideoRestart.SetRenderer(hardware, windowed, metal);
 #endif
 }
 

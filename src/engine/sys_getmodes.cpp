@@ -2148,16 +2148,25 @@ void CVideoMode_Common::LoadStartupGraphic()
 	}
 }
 
-void VideoMode_GetCurrentRenderer( char* name, int nameLength, int* windowed, int* hdModels, int* addons )
-{
-	if ( name && nameLength > 0 )
-		strncpy( name, videomode->GetName(), nameLength );
-	if ( windowed )
-		*windowed = videomode->IsWindowedMode();
-	if ( hdModels )
-		*hdModels = registry->ReadInt( "hdmodels", 0 ) > 0;
-	if ( addons )
-		*addons = registry->ReadInt( "addons_folder", 0 ) > 0;
+void VideoMode_GetCurrentRenderer(char* name, int nameLength, int* windowed, int* hdModels, int* addons) {
+    if (name && nameLength > 0) {
+        const char* renderer = videomode->GetName();
+#if defined(__APPLE__) && defined(CSE_ENABLE_METAL)
+        if (cse::render::UsingMetal()) {
+            renderer = "metal";
+        }
+#endif
+        snprintf(name, static_cast<std::size_t>(nameLength), "%s", renderer);
+    }
+    if (windowed) {
+        *windowed = videomode->IsWindowedMode();
+    }
+    if (hdModels) {
+        *hdModels = registry->ReadInt("hdmodels", 0) > 0;
+    }
+    if (addons) {
+        *addons = registry->ReadInt("addons_folder", 0) > 0;
+    }
 }
 
 void VideoMode_GetVideoModes( vmode_s** modes, int* count )

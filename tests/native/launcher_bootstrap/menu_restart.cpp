@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <cstdarg>
+#include <unistd.h>
 
 namespace cse { namespace render {
 bool fixtureMetal = false;
@@ -68,6 +70,21 @@ void Cache_Force_Flush() {}
 void Sys_Error(const char*, ...) {
     throw std::runtime_error("restart buffer overflow");
 }
+std::string diagnostic;
+void Con_Printf(const char* format, ...) {
+    char buffer[256];
+    va_list arguments;
+    va_start(arguments, format);
+    std::vsnprintf(buffer, sizeof(buffer), format, arguments);
+    va_end(arguments);
+    diagnostic = buffer;
+}
+struct VideoMode {
+    const char* GetName() { return "gl"; }
+    bool IsWindowedMode() { return true; }
+} videoMode;
+VideoMode* videomode = &videoMode;
+#include "menu_renderer_report.inc"
 #if defined(CSE_MENU_WIN32_BEHAVIOR)
 #undef __APPLE__
 #endif
@@ -95,12 +112,17 @@ EngineFunctions* engine = &engineFunctions;
 struct Control {
     const char* text = "";
     bool selected = false;
+    int activeItem = -1;
     void GetText(char* output, std::size_t capacity) {
         std::snprintf(output, capacity, "%s", text);
     }
     int GetActiveItem() {
-        return std::strcmp(text, "OpenGL") == 0 ? 1 : 0;
+        if (activeItem >= 0) {
+            return activeItem;
+        }
+        return std::strcmp(text, "Metal") == 0 ? 2 : std::strcmp(text, "OpenGL") == 0 ? 1 : 0;
     }
+    void ActivateItemByRow(int row) { activeItem = row; }
     bool IsSelected() {
         return selected;
     }
@@ -112,7 +134,7 @@ public:
         int w = 800;
         int h = 600;
         int bpp = 16;
-        bool windowed = true;
+        int windowed = 1;
         char renderer[16] = "software";
     };
     Settings m_CurrentSettings;
@@ -121,8 +143,12 @@ public:
     Control* m_pRenderer = nullptr;
     Control* m_pWindowed = nullptr;
     Control* m_pVsync = nullptr;
-    const char* m_pszRenderNames[2] = {"Software", "OpenGL"};
+    static constexpr int kSoftwareRendererRow = 0;
+    static constexpr int kOpenGLRendererRow = 1;
+    static constexpr int kMetalRendererRow = 2;
+    int m_iStartRenderer = -1;
     void ApplyVidSettings(bool forceRefresh);
+    void SetCurrentRendererComboItem();
 };
 #define stricmp strcasecmp
 #include "menu_gameui.inc"
@@ -138,6 +164,11 @@ void FixtureApplyVideoSettings(char* restart, const char* renderer) {
     Control selectedRenderer{renderer, false};
     Control window{"", false};
     COptionsSubVideo menu;
+    if (const char* activeMetal = std::getenv("CSE_BOOTSTRAP_ACTIVE_METAL")) {
+        cse::render::fixtureMetal = std::strcmp(activeMetal, "1") == 0;
+        std::strcpy(menu.m_OrigSettings.renderer, cse::render::fixtureMetal ? "metal" : "gl");
+        menu.m_CurrentSettings = menu.m_OrigSettings;
+    }
     menu.m_pMode = &mode;
     menu.m_pRenderer = &selectedRenderer;
     menu.m_pWindowed = &window;
@@ -158,11 +189,62 @@ void FixtureApplyVideoSettings(char* restart, const char* renderer) {
     menu_fixture::registry->Shutdown();
 }
 
+std::string FixtureSavedRenderer() {
+    menu_fixture::registry->Init();
+    const std::string result = menu_fixture::registry->ReadString("MacVideoRenderer", "");
+    menu_fixture::registry->Shutdown();
+    return result;
+}
+
 #if defined(CSE_MENU_CHECKS)
 int main() {
     using namespace menu_fixture;
     char output[cse_restart::GeneratedCommandCapacity]{};
     g_pPostRestartCmdLineArgs = output;
+    char directory[] = "/tmp/cse-video-menu-XXXXXX";
+    char* originalDirectory = getcwd(nullptr, 0);
+    assert(originalDirectory && mkdtemp(directory) && chdir(directory) == 0);
+    menu_fixture::registry->Init();
+    // Report the live backend, not the legacy hardware-class name or saved preference.
+    cse::render::fixtureMetal = true;
+    char rendererName[16]{};
+    VideoMode_GetCurrentRenderer(rendererName, sizeof(rendererName), nullptr, nullptr, nullptr);
+#if defined(CSE_ENABLE_METAL)
+    assert(std::strcmp(rendererName, "metal") == 0);
+    char shortName[2] = {'x', 'x'};
+    VideoMode_GetCurrentRenderer(shortName, sizeof(shortName), nullptr, nullptr, nullptr);
+    assert(shortName[0] == 'm' && shortName[1] == '\0');
+    Control rendererControl{"Metal", false};
+    COptionsSubVideo currentMenu{};
+    currentMenu.m_pRenderer = &rendererControl;
+    std::strcpy(currentMenu.m_CurrentSettings.renderer, "metal");
+    std::strcpy(currentMenu.m_OrigSettings.renderer, "metal");
+    currentMenu.SetCurrentRendererComboItem();
+    assert(rendererControl.GetActiveItem() == 2);
+    currentMenu.ApplyVidSettings(false);
+    assert(output[0] == '\0');
+    assert(std::strcmp(menu_fixture::registry->ReadString("MacVideoRenderer", "unset"), "unset") == 0);
+    // Explicit menu choices must override either active backend and save the requested preference.
+    rendererControl.activeItem = 1;
+    currentMenu.ApplyVidSettings(false);
+    assert(std::strcmp(output, " -gl -windowed -w 800 -h 600") == 0);
+    assert(std::strcmp(menu_fixture::registry->ReadString("MacVideoRenderer", ""), "gl") == 0);
+    output[0] = '\0';
+    currentMenu.m_OrigSettings = currentMenu.m_CurrentSettings;
+    rendererControl.activeItem = 2;
+    cse::render::fixtureMetal = false;
+    currentMenu.ApplyVidSettings(false);
+    assert(std::strcmp(output, " -metal -windowed -w 800 -h 600") == 0);
+    assert(std::strcmp(menu_fixture::registry->ReadString("MacVideoRenderer", ""), "metal") == 0);
+    output[0] = '\0';
+#else
+    assert(std::strcmp(rendererName, "gl") == 0);
+    ClientCommand(const_cast<char*>("_setrenderer metal windowed"));
+    Host_Quit_Restart_f();
+    assert(output[0] == '\0');
+    assert(!diagnostic.empty());
+#endif
+    cse::render::fixtureMetal = false;
     // Repeated updates retain the final requested value, then drain exactly once.
     nativeVideoRestart.SetRenderer(0, true);
     nativeVideoRestart.SetRenderer(1, false);
@@ -180,7 +262,7 @@ int main() {
     cse::render::fixtureMetal = true;
     ClientCommand(const_cast<char*>("_setrenderer gl fullscreen"));
     Host_Quit_Restart_f();
-    assert(std::strcmp(output, " -metal -fullscreen") == 0);
+    assert(std::strcmp(output, " -gl -fullscreen") == 0);
     output[0] = '\0';
     cse::render::fixtureMetal = false;
     // Both actual Host_Init and Host_Shutdown invoke this exact reset body;
@@ -241,6 +323,11 @@ int main() {
     Host_ResetNativeVideoRestart();
     std::puts("native host restart: replacement, drain, lifecycle reset, independent groups, exact bounds passed");
 #endif
+    menu_fixture::registry->Shutdown();
+    unlink("hl.conf");
+    assert(chdir(originalDirectory) == 0);
+    std::free(originalDirectory);
+    rmdir(directory);
     return 0;
 }
 #endif

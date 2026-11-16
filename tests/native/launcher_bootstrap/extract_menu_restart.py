@@ -38,10 +38,14 @@ for name in ['Host_SetRenderer_f', 'Host_SetVideoMode_f', 'Host_Quit_Restart_f']
     parts.append(body(host, 'void ' + name + '()'))
 (out / 'menu_host.inc').write_text('\n\n'.join(parts) + '\n')
 menu = read('gameui/OptionsSubVideo.cpp')
-(out / 'menu_gameui.inc').write_text(body(menu, 'void COptionsSubVideo::ApplyVidSettings( bool forceRefresh )') + '\n')
+(out / 'menu_gameui.inc').write_text('\n\n'.join(body(menu, signature) for signature in [
+    'void COptionsSubVideo::ApplyVidSettings( bool forceRefresh )',
+    'void COptionsSubVideo::SetCurrentRendererComboItem()']) + '\n')
 video = read('engine/sys_getmodes.cpp')
 (out / 'menu_video.inc').write_text('\n\n'.join(body(video, 'extern "C" void ' + name + '(' + args)
     for name, args in [('VideoMode_SetVideoMode', 'int width'), ('VideoMode_SwitchMode', 'int hardware')]) + '\n')
+hardware_report = video[video.rindex('void VideoMode_GetCurrentRenderer('):]
+(out / 'menu_renderer_report.inc').write_text(body(hardware_report, 'void VideoMode_GetCurrentRenderer(') + '\n')
 registry = read('engine/registry.cpp')
 start = registry.index('class CRegistry', registry.index('\n#else\n'))
 end = registry.index('\n#endif // POSIX', start)

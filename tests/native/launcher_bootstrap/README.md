@@ -71,3 +71,12 @@ images fail closed; the latter is rejected before a missing provider could be
 loaded by an engine constructor. This pre-Run fixture does not qualify a real
 LaunchServices menu, live Steam authentication, normal game shutdown or per-user
 writable-data separation; those remain controller acceptance work.
+
+The video-menu fixtures execute the owning GameUI selection/apply bodies, hardware
+renderer report, host commands, video setters, and disk registry. They verify actual
+Metal reporting, unchanged Apply, both Metal/OpenGL menu switches, persisted macOS
+choices, and rejection of Metal by unavailable/Windows command paths. The launcher
+then exercises both menu switches through real process re-exec, removing the previous
+renderer flag and preserving window/size settings. A fresh process checks the saved
+choice. The pure backend-selection fixture separately covers saved-choice versus
+explicit-flag precedence; actual-game tests qualify its startup integration.

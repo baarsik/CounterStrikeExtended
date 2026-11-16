@@ -36,10 +36,13 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 add_library(bootstrap_engine SHARED dummy_engine.cpp menu_restart.cpp)
 add_executable(commandline_checks commandline_checks.cpp "${CSE_ROOT}/src/launcher/common/commandline.cpp")
 add_executable(menu_restart_checks menu_restart.cpp)
+add_executable(menu_restart_glonly_checks menu_restart.cpp)
 add_executable(menu_restart_win32_checks menu_restart.cpp)
-target_compile_definitions(menu_restart_checks PRIVATE CSE_MENU_CHECKS=1)
+target_compile_definitions(bootstrap_engine PRIVATE CSE_ENABLE_METAL=1)
+target_compile_definitions(menu_restart_checks PRIVATE CSE_MENU_CHECKS=1 CSE_ENABLE_METAL=1)
+target_compile_definitions(menu_restart_glonly_checks PRIVATE CSE_MENU_CHECKS=1)
 target_compile_definitions(menu_restart_win32_checks PRIVATE CSE_MENU_CHECKS=1 CSE_MENU_WIN32_BEHAVIOR=1)
-foreach(target bootstrap_engine menu_restart_checks menu_restart_win32_checks commandline_checks)
+foreach(target bootstrap_engine menu_restart_checks menu_restart_glonly_checks menu_restart_win32_checks commandline_checks)
   target_compile_options(${target} PRIVATE -UNDEBUG)
   target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 endforeach()
@@ -78,7 +81,7 @@ add_library(bootstrap_mismatch SHARED mismatch_filesystem.cpp)
 add_library(bootstrap_nullfs SHARED mismatch_filesystem.cpp)
 target_compile_definitions(bootstrap_nullfs PRIVATE CSE_BOOTSTRAP_NULL_FACTORY=1)
 set(targets bootstrap_launcher bootstrap_probe bootstrap_engine bootstrap_mismatch bootstrap_nullfs
-  menu_restart_checks menu_restart_win32_checks commandline_checks)
+  menu_restart_checks menu_restart_glonly_checks menu_restart_win32_checks commandline_checks)
 foreach(target IN LISTS targets)
   set_target_properties(${target} PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES CXX_EXTENSIONS NO)
   target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/launcher"
@@ -94,19 +97,20 @@ if(CSE_BOOTSTRAP_HIDE_INLINES)
   endforeach()
 endif()
 if(CSE_BOOTSTRAP_SANITIZERS)
-  foreach(target bootstrap_launcher bootstrap_probe bootstrap_engine menu_restart_checks menu_restart_win32_checks commandline_checks)
+  foreach(target bootstrap_launcher bootstrap_probe bootstrap_engine menu_restart_checks menu_restart_glonly_checks menu_restart_win32_checks commandline_checks)
     target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(${target} PRIVATE -fsanitize=address,undefined)
   endforeach()
 endif()
 add_test(NAME launcher-canonical-exact-parameters COMMAND commandline_checks)
 add_test(NAME launcher-native-menu-intent COMMAND menu_restart_checks)
+add_test(NAME launcher-glonly-menu-intent COMMAND menu_restart_glonly_checks)
 add_test(NAME launcher-retained-win32-menu-intent COMMAND menu_restart_win32_checks)
 add_test(NAME launcher-bootstrap-entry-limits COMMAND "${Python3_EXECUTABLE}"
   "${CSE_ROOT}/tests/native/launcher_entry/entry_tests.py" "$<TARGET_FILE:bootstrap_launcher>")
 foreach(case normal explicit-game alias relative-argv long-path software restart borrowed retained mismatch null-interface
     metal-cached-software restart-metal-to-gl restart-gl-to-metal restart-options restart-software restart-to-software restart-to-hardware restart-exec-failure
-    menu-software menu-to-software menu-to-hardware command-size-only command-renderer-only)
+    menu-software menu-to-software menu-to-hardware menu-metal-to-gl menu-gl-to-metal command-size-only command-renderer-only)
   add_test(NAME launcher-bootstrap-${case} COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/bootstrap_tests.py" --launcher "$<TARGET_FILE:bootstrap_launcher>"
     --probe "$<TARGET_FILE:bootstrap_probe>" --engine "$<TARGET_FILE:bootstrap_engine>"

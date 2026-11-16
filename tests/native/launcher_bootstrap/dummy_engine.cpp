@@ -5,11 +5,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <dlfcn.h>
 #include <unistd.h>
 #include <crt_externs.h>
 
 void FixtureApplyVideoSettings(char* restart, const char* renderer);
+std::string FixtureSavedRenderer();
 
 namespace {
 void Event(const char* name, const char* value = "") {
@@ -38,9 +40,10 @@ public:
         Event("run");
         Event("base", base);
         Event("command", command);
+        Event("saved_renderer", FixtureSavedRenderer().c_str());
         const auto native = cse_restart::ProcessArguments(*_NSGetArgc(), *_NSGetArgv());
         for (const auto& argument : native) {
-            if (argument == "-soft" || argument == "-gl") {
+            if (argument == "-soft" || argument == "-gl" || argument == "-metal") {
                 Event("native_mode", argument.c_str());
             }
         }

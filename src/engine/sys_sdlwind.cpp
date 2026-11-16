@@ -1,4 +1,7 @@
 #include "render/backend.h"
+#if defined(__APPLE__)
+#include "registry.h"
+#endif
 #if !defined(SW_RENDERER)
 #include "glquake.h"
 #endif
@@ -1488,7 +1491,12 @@ bool CGame::CreateGameWindow() {
         Sys_Error("SDL initialization failed: %s", SDL_GetError());
     }
     std::string backendError;
-    if (!cse::render::ConfigureBackend(COM_CheckParm("-gl") != 0, COM_CheckParm("-metal") != 0, backendError)) {
+    bool preferOpenGL = false;
+#if defined(__APPLE__)
+    preferOpenGL = !Q_strcasecmp(registry->ReadString("MacVideoRenderer", ""), "gl");
+#endif
+    if (!cse::render::ConfigureBackend(COM_CheckParm("-gl") != 0, COM_CheckParm("-metal") != 0,
+            backendError, preferOpenGL)) {
         Sys_Error("Renderer selection: %s", backendError.c_str());
     }
     if (!cse::render::UsingMetal()) {

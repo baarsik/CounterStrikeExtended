@@ -36,9 +36,13 @@ settings still offer it. The dedicated engine (`swds.dll`) is separate.
 
 ## macOS graphics backend
 
-The macOS ARM64 hardware engine uses Metal by default. `-metal` selects it explicitly;
-`-gl` selects the retained OpenGL renderer. Supplying both flags is an error. Ordinary
-video-setting changes preserve the active backend across the native process restart.
+The macOS ARM64 hardware engine uses Metal by default. **Options → Video → Renderer**
+shows the active backend and lets you choose **Metal** or **OpenGL**. Apply restarts the
+game using the selected renderer and saves that choice for later launches. Other video
+changes preserve the active backend. Metal is listed only in macOS builds that include it.
+
+`-metal` selects Metal explicitly; `-gl` selects OpenGL. These launch flags override the
+saved menu choice. Supplying both flags is an error.
 Metal initialization requires SDL_GPU's `metal` driver; failure is reported rather than
 silently creating an OpenGL context. Windows x86/x64 continue to use their existing renderer.
 

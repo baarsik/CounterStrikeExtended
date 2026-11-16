@@ -15,7 +15,7 @@ inline bool UsingMetal() {
 #else
 bool UsingMetal();
 // Resolve platform/build/command-line policy before creating any graphics window.
-bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error);
+bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error, bool preferOpenGL = false);
 constexpr unsigned kDefaultSceneSamples = 4;
 constexpr unsigned kSingleSceneSample = 1;
 bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples = kDefaultSceneSamples);

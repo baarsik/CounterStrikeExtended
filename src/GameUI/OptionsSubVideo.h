@@ -29,6 +29,10 @@ public:
 	void OnApplyChanges() override;
 
 private:
+    static constexpr int kSoftwareRendererRow = 0;
+    static constexpr int kOpenGLRendererRow = 1;
+    static constexpr int kMetalRendererRow = 2;
+
 	struct CVidSettings
 	{
 		int		w;

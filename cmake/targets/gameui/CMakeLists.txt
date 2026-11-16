@@ -1,5 +1,8 @@
 # Authoritative CMake build definition; edit this file directly.
 cse_add_runtime(gameui SHARED "GameUI")
+if(APPLE AND CSE_ENABLE_METAL)
+    target_compile_definitions(gameui PRIVATE CSE_ENABLE_METAL=1)
+endif()
 target_compile_definitions(gameui PRIVATE CSE_ENABLE_ZBOT=$<BOOL:${CSE_ENABLE_ZBOT}>)
 cse_zbot_assets(gameui)
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")

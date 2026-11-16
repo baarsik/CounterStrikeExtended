@@ -42,10 +42,18 @@ COptionsSubVideo::COptionsSubVideo( vgui2::Panel* parent ) : BaseClass( parent, 
 	m_bStartWidescreen = 3 * m_CurrentSettings.w != 4 * m_CurrentSettings.h;
 	m_pAspectRatio->ActivateItem( m_bStartWidescreen ? widescreen : normal );
 
-	m_pRenderer = new vgui2::ComboBox( this, "Renderer", 2, false );
-    m_pRenderer->AddItem("#GameUI_Software", NULL);
-    m_pRenderer->AddItem("#GameUI_OpenGL", NULL);
-	SetCurrentRendererComboItem();
+#if defined(__APPLE__) && defined(CSE_ENABLE_METAL)
+    constexpr int kRendererRows = 3;
+#else
+    constexpr int kRendererRows = 2;
+#endif
+    m_pRenderer = new vgui2::ComboBox(this, "Renderer", kRendererRows, false);
+    m_pRenderer->AddItem("#GameUI_Software", nullptr);
+    m_pRenderer->AddItem("#GameUI_OpenGL", nullptr);
+#if defined(__APPLE__) && defined(CSE_ENABLE_METAL)
+    m_pRenderer->AddItem("Metal", nullptr);
+#endif
+    SetCurrentRendererComboItem();
 
 	m_pWindowed = new vgui2::CheckButton( this, "Windowed", "#GameUI_Windowed" );
 	m_pWindowed->SetSelected( m_CurrentSettings.windowed != 0 );
@@ -87,22 +95,17 @@ void COptionsSubVideo::OnResetData()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void COptionsSubVideo::SetCurrentRendererComboItem()
-{
-	if ( !stricmp( m_CurrentSettings.renderer, "software" ) )
-	{
-		m_iStartRenderer = 0;
-	}
-	else if ( !stricmp( m_CurrentSettings.renderer, "gl" ) )
-	{
-		m_iStartRenderer = 1;
-	}
-	else
-	{
-		// opengl by default
-		m_iStartRenderer = 1;
-	}
-	m_pRenderer->ActivateItemByRow( m_iStartRenderer );
+void COptionsSubVideo::SetCurrentRendererComboItem() {
+    m_iStartRenderer = kOpenGLRendererRow;
+    if (!stricmp(m_CurrentSettings.renderer, "software")) {
+        m_iStartRenderer = kSoftwareRendererRow;
+    }
+#if defined(__APPLE__) && defined(CSE_ENABLE_METAL)
+    else if (!stricmp(m_CurrentSettings.renderer, "metal")) {
+        m_iStartRenderer = kMetalRendererRow;
+    }
+#endif
+    m_pRenderer->ActivateItemByRow(m_iStartRenderer);
 }
 
 //-----------------------------------------------------------------------------
@@ -284,10 +287,17 @@ void COptionsSubVideo::ApplyVidSettings( bool forceRefresh )
 	if ( m_pRenderer )
 	{
 		m_pRenderer->GetText( text, sizeof( text ) );
-		if (m_pRenderer->GetActiveItem() == 0)
-			strcpy( m_CurrentSettings.renderer, "software" );
-		else if (m_pRenderer->GetActiveItem() == 1)
-			strcpy( m_CurrentSettings.renderer, "gl" );
+        const int rendererRow = m_pRenderer->GetActiveItem();
+        if (rendererRow == kSoftwareRendererRow) {
+            strcpy(m_CurrentSettings.renderer, "software");
+        } else if (rendererRow == kOpenGLRendererRow) {
+            strcpy(m_CurrentSettings.renderer, "gl");
+        }
+#if defined(__APPLE__) && defined(CSE_ENABLE_METAL)
+        else if (rendererRow == kMetalRendererRow) {
+            strcpy(m_CurrentSettings.renderer, "metal");
+        }
+#endif
 
 		if ( stricmp( m_CurrentSettings.renderer, m_OrigSettings.renderer ) == 0 && m_OrigSettings.bpp == 16 )
 			m_CurrentSettings.bpp = 16;
