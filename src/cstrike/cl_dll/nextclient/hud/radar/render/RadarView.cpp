@@ -78,11 +78,10 @@ bool RadarView_ShouldHighlightPlayer(int observer_mode) {
     return observer_mode == OBS_NONE || observer_mode == OBS_IN_EYE;
 }
 
-RadarBox RadarView_ComputeBox(float screen_w, float screen_h, float scale, bool spectating, bool fullmap) {
-    // The spectator letterbox height is a stock resource value (resource/UI/Spectator.res,
-    // and czero ships a different one), so reading it belongs to the caller; this module
-    // stays engine-free.
-    float margin_y = spectating ? screen_h * kSpectatorMarginFrac : screen_h * kRadarMarginFrac;
+RadarBox RadarView_ComputeBox(float screen_w, float screen_h, float scale, bool spectating, bool fullmap,
+                              bool smoked_glass) {
+    // Smoked Glass keeps its normal corner inset in every observer state.
+    const float margin_y = screen_h * (spectating && !smoked_glass ? kSpectatorMarginFrac : kRadarMarginFrac);
 
     float fullmap_scale = screen_w <= screen_h * kFullmapNarrowAspect ? kFullmapNarrowSizeScale : kFullmapSizeScale;
     float box_scale = scale * (fullmap ? fullmap_scale : 1.0f);

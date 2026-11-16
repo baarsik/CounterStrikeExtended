@@ -16,6 +16,7 @@
 #include "main.h"
 #include "NativeSdk.h"
 #include "pm_movevars.h"
+#include "vgui_background_controls.h"
 
 #include "hud/radar/integration/Performance.h"
 #include "NativeRadar.h"
@@ -208,7 +209,8 @@ RadarBox HudRadarAdvanced::ComputeBox(bool spectating) {
     float scale = std::clamp(g_RadarCfg.scale->value, kScaleCvar.min_value, kScaleCvar.max_value);
     bool fullmap = g_RadarCfg.fullmap->value != 0.0f && RadarHooks_IsScoreboardVisible();
 
-    return RadarView_ComputeBox(static_cast<float>(screen_w), static_cast<float>(screen_h), scale, spectating, fullmap);
+    return RadarView_ComputeBox(static_cast<float>(screen_w), static_cast<float>(screen_h), scale, spectating, fullmap,
+                                cse::ui::ControlsSmokedGlass());
 }
 
 RadarTransform HudRadarAdvanced::ComputeTransform(const RadarBox& box, const RadarShape& shape, bool scoreboard) {

@@ -93,6 +93,32 @@ RADAR_TEST(RadarViewComputeBox, SpectatorMarginAndHiResDamping) {
     CHECK_FLOAT_EQ(fullmap.y, 345.6f);
 }
 
+RADAR_TEST(RadarViewComputeBox, SmokedSpectatorsKeepTheLivingCornerMargin) {
+    for (const ncl_math::Vector2 screen : {ncl_math::Vector2{640.0f, 480.0f},
+                                         ncl_math::Vector2{1920.0f, 1080.0f}}) {
+        for (const bool fullmap : {false, true}) {
+            const RadarBox alive = RadarView_ComputeBox(screen.x, screen.y, 1.15f, false, fullmap, true);
+            const RadarBox spectating = RadarView_ComputeBox(screen.x, screen.y, 1.15f, true, fullmap, true);
+            CHECK_FLOAT_EQ(spectating.y, screen.y * 0.02f);
+            CHECK_FLOAT_EQ(spectating.x, alive.x);
+            CHECK_FLOAT_EQ(spectating.y, alive.y);
+            CHECK_FLOAT_EQ(spectating.size, alive.size);
+            CHECK_FLOAT_EQ(spectating.marker_px, alive.marker_px);
+        }
+    }
+}
+
+RADAR_TEST(RadarViewComputeBox, OriginalSpectatorsRetainHeaderClearance) {
+    for (const bool fullmap : {false, true}) {
+        const RadarBox alive = RadarView_ComputeBox(1920.0f, 1080.0f, 1.15f, false, fullmap, false);
+        const RadarBox spectating = RadarView_ComputeBox(1920.0f, 1080.0f, 1.15f, true, fullmap, false);
+        CHECK_FLOAT_EQ(alive.y, 21.6f);
+        CHECK_FLOAT_EQ(spectating.y, 172.8f);
+        CHECK_FLOAT_EQ(spectating.x, alive.x);
+        CHECK_FLOAT_EQ(spectating.size, alive.size);
+    }
+}
+
 RADAR_TEST(RadarViewComputeTransform, ViewOriginMapsToBoxCenter) {
     RadarBox box = RadarView_ComputeBox(1920.0f, 1080.0f, 1.0f, false);
     RadarViewParams p = BaseParams();
