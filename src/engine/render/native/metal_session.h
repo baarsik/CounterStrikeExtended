@@ -25,6 +25,7 @@ public:
     bool ReadPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);
     // Last drawable-sized final color, including aspect bars; independent of swapchain image lifetime.
+    bool PresentedSize(int& width, int& height) const;
     bool ReadPresentedPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);
     bool Finish(std::string& error);

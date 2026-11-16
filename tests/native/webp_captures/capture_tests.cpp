@@ -106,6 +106,31 @@ void qglReadPixels(int x, int y, int width, int height, int, int, void* output) 
     }
     std::memcpy(output, fixture, bytes);
 }
+// Controlled renderer seam for the actual extracted capture entry points.
+// GPU target-size/readback behavior is exercised by renderer-backend-lifecycle.
+namespace cse {
+namespace render {
+bool metal = false;
+bool presented = true;
+bool UsingMetal() {
+    return metal;
+}
+bool BackendPresentedSize(int& width, int& height) {
+    width = presented ? 3 : 0;
+    height = presented ? 2 : 0;
+    return presented;
+}
+bool BackendReadPixels(bool finalColor, int x, int y, int width, int height, unsigned components,
+    unsigned alignment, void* output) {
+    if (!finalColor || components != 3 || alignment != 1) {
+        throw std::runtime_error("unexpected Metal capture target or packing");
+    }
+    qglReadPixels(x, y, width, height, GL_RGB, GL_UNSIGNED_BYTE, output);
+    return true;
+}
+}
+}
+
 struct Model { char name[64] = "maps/de_capture.bsp"; } model;
 struct Entity { Model* model = &::model; } entity;
 struct Client { int num_entities = 1; } cl;
@@ -158,6 +183,22 @@ int main(int argc, char** argv) {
             hardware::SCR_ScreenShot_f();
             CheckImage("HalfLife01.webp", glExpected);
             Require(files["HalfLife00.webp"] == std::vector<byte>{42}, "screenshot overwrote an earlier image");
+        } else if (scenario == "metal-retained-size") {
+            cse::render::metal = true;
+            window_rect.right = 100;
+            window_rect.bottom = 100;
+            hardware::SCR_ScreenShot_f();
+            hardware::VID_TakeSnapshot("retained.webp");
+            CheckImage("HalfLife00.webp", glExpected);
+            CheckImage("retained.webp", glExpected);
+            Require(readCount == 2, "both capture paths must read the retained presentation");
+        } else if (scenario == "metal-no-presentation") {
+            cse::render::metal = true;
+            cse::render::presented = false;
+            hardware::SCR_ScreenShot_f();
+            hardware::VID_TakeSnapshot("absent.webp");
+            Require(files.empty() && readCount == 0, "absent presentation reached readback or created a file");
+            Require(messages.size() == 2, "absent presentation was not reported");
         } else if (scenario == "hardware-snapshot") {
             hardware::VID_TakeSnapshot("snapshot.webp");
             CheckImage("snapshot.webp", glExpected);

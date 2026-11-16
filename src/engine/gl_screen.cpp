@@ -426,7 +426,10 @@ void SCR_ScreenShot_f() {
     }
 
     if (cse::render::UsingMetal()) {
-        cse::render::BackendDrawableSize(width, height);
+        if (!cse::render::BackendPresentedSize(width, height)) {
+            Con_Printf("SCR_ScreenShot_f: No Metal frame has been presented\n");
+            return;
+        }
     }
     char filename[ScreenshotNameLength];
     Q_strcpy(filename, "HalfLife__.webp");

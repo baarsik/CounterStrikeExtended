@@ -43,7 +43,7 @@ foreach(test_target IN ITEMS webp_capture_tests webp_resource_tests)
   endif()
 endforeach()
 enable_testing()
-foreach(scenario IN ITEMS hardware-screenshot hardware-snapshot hardware-rect hardware-fullscreen hardware-movie
+foreach(scenario IN ITEMS metal-retained-size metal-no-presentation hardware-screenshot hardware-snapshot hardware-rect hardware-fullscreen hardware-movie
     software-movie software-screenshot software-565 software-555 client-numbering failed-write failed-flush failed-open
     software-invalid-stride numbering-exhausted invalid-dimensions client-long-name movie-long-name)
   add_test(NAME webp-capture-${scenario} COMMAND webp_capture_tests ${scenario})

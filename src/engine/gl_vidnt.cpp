@@ -1081,7 +1081,10 @@ void VID_TakeSnapshot(const char* filename) {
         height = static_cast<int>(vid.height);
     }
     if (cse::render::UsingMetal()) {
-        cse::render::BackendDrawableSize(width, height);
+        if (!cse::render::BackendPresentedSize(width, height)) {
+            Con_Printf("Couldn't take snapshot: No Metal frame has been presented\n");
+            return;
+        }
     }
     if (!CaptureSnapshot(filename, 0, 0, width, height, true)) {
         Con_Printf("Couldn't write WebP snapshot %s\n", filename);

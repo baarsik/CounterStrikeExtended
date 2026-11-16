@@ -995,6 +995,13 @@ bool MetalSession::ReadPixels(int x, int y, int width, int height, unsigned comp
         x, y, width, height, components, alignment, output, error);
 }
 
+bool MetalSession::PresentedSize(int& width, int& height) const {
+    const auto& state = *impl_;
+    width = state.presentedValid ? static_cast<int>(state.presentedWidth) : 0;
+    height = state.presentedValid ? static_cast<int>(state.presentedHeight) : 0;
+    return state.presentedValid;
+}
+
 bool MetalSession::ReadPresentedPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
     void* output, std::string& error) {
     auto& state = *impl_;

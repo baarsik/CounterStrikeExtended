@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <type_traits>
+#include <vector>
 
 #define CHECK(condition) do { \
     if (!(condition)) { \
@@ -55,6 +56,10 @@ int main() {
     CHECK(UsingMetal());
     CHECK(InitializeBackend(window, error));
     CHECK(!BackendSceneActive());
+    int absentWidth = 1;
+    int absentHeight = 1;
+    CHECK(!BackendPresentedSize(absentWidth, absentHeight));
+    CHECK(absentWidth == 0 && absentHeight == 0);
     CHECK(!SDL_GL_GetCurrentContext());
     // Startup uploads/state happen before the first ordinary frame.
     GLuint texture = 0;
@@ -91,7 +96,19 @@ int main() {
     CHECK(SDL_SetWindowSize(window, 48, 32));
     CHECK(SDL_SyncWindow(window));
     SDL_PumpEvents();
+    // A window event can precede the next frame. Screenshot reads the retained prior presentation.
+    int captureWidth = 0;
+    int captureHeight = 0;
+    CHECK(BackendPresentedSize(captureWidth, captureHeight));
+    std::vector<unsigned char> capture(captureWidth * captureHeight * 4);
+    CHECK(BackendReadPixels(true, 0, 0, captureWidth, captureHeight, 4, 1, capture.data()));
+    CHECK(captureWidth == 32 && captureHeight == 32);
+    CHECK(capture[0] == 0 && capture[1] == 255 && capture[3] == 255);
+    BeginBackendFrame(16, 16);
+    CHECK(BackendUploadSucceeded());
     PresentBackendFrame(false, false);
+    CHECK(BackendPresentedSize(captureWidth, captureHeight));
+    CHECK(captureWidth == 48 && captureHeight == 32);
     CHECK(BackendReadPixels(true, 47, 31, 1, 1, 4, 1, pixel.data()));
     CHECK(pixel[2] == 255);
     CHECK(SDL_MinimizeWindow(window));
@@ -102,6 +119,8 @@ int main() {
     CHECK(SDL_SyncWindow(window));
     SDL_PumpEvents();
     PresentBackendFrame(false, false);
+    CHECK(BackendPresentedSize(captureWidth, captureHeight));
+    CHECK(captureWidth == 48 && captureHeight == 32);
     CHECK(BackendReadPixels(true, 47, 31, 1, 1, 4, 1, pixel.data()));
     CHECK(pixel[2] == 255);
     CseRenderDeleteTextures(1, &texture);

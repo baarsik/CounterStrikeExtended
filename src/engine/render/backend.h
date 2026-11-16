@@ -27,6 +27,8 @@ bool BackendReadPixels(bool presented, int x, int y, int width, int height, unsi
     unsigned alignment, void* pixels);
 bool BackendUploadSucceeded();
 void BackendDrawableSize(int& width, int& height);
+// Captures use the retained presentation, which can predate a pending window resize.
+bool BackendPresentedSize(int& width, int& height);
 // Private engine services; callers must flush captured work before executing session operations.
 FrameRecorder* BackendRecorder();
 MetalSession* BackendMetalSession();

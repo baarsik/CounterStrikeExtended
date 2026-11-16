@@ -231,6 +231,16 @@ void BackendDrawableSize(int& width, int& height) {
     }
 }
 
+bool BackendPresentedSize(int& width, int& height) {
+    width = 0;
+    height = 0;
+#if defined(CSE_ENABLE_METAL)
+    return UsingMetal() && session && session->PresentedSize(width, height);
+#else
+    return false;
+#endif
+}
+
 FrameRecorder* BackendRecorder() {
 #if defined(CSE_ENABLE_METAL)
     return recorder.get();
