@@ -435,7 +435,7 @@ void RadarDrawContext::DrawMapTexture(CseRadarTexture texture, std::span<const f
     draw.modulation[2] = color.b;
     draw.modulation[3] = color.a;
     draw.mask = {{center.x, center.y}, radius, kMapEdgeFeatherPixels,
-        square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE, 0};
+        static_cast<std::uint32_t>(square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE), 0};
     draw.alphaAa = smoothing ? 1 : 0;
     draw.vertexCount = 4;
     for (unsigned index = 0; index < draw.vertexCount; ++index) {

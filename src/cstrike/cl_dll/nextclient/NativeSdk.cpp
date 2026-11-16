@@ -60,7 +60,8 @@ const CseRadarRendererApi* NativeRadar_Renderer() {
 
 void NativeRadar_ReportRenderResult(const char* operation, CseRadarResult result) {
     if (result != CSE_RADAR_OK) {
-        gEngfuncs.Con_DPrintf("radar renderer %s failed: %d\n", operation, result);
+        char format[] = "radar renderer %s failed: %d\n";
+        gEngfuncs.Con_DPrintf(format, operation, result);
     }
 }
 

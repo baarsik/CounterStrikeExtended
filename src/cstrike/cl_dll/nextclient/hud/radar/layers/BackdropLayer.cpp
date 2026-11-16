@@ -262,7 +262,8 @@ void BackdropLayer::DrawOverviewTiles(const RadarFrame& frame) {
                         draw.vertexCount = static_cast<std::uint32_t>(count);
                         if (masked) {
                             draw.mask = {{frame.shape.center.x, frame.shape.center.y}, frame.shape.radius, 1.5f,
-                                frame.shape.round ? CSE_RADAR_SHAPE_CIRCLE : CSE_RADAR_SHAPE_SQUARE, 0};
+                                static_cast<std::uint32_t>(frame.shape.round ?
+                                    CSE_RADAR_SHAPE_CIRCLE : CSE_RADAR_SHAPE_SQUARE), 0};
                         }
                         for (int index = 0; index < count; ++index) {
                             draw.vertices[index] = {{vertices[index].pos.x, vertices[index].pos.y},

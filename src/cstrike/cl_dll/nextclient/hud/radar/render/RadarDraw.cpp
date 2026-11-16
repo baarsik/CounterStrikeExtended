@@ -643,8 +643,8 @@ void RadarDrawContext::FlushBatch() {
         draw.hud = NativeRadar_HudSpace();
         draw.blend = batch_.dst == GL_ONE ? CSE_RADAR_BLEND_ADDITIVE_ALPHA : CSE_RADAR_BLEND_STRAIGHT;
         draw.clip = {{batch_.clip_center.x, batch_.clip_center.y}, batch_.clip_radius,
-            batch_.clip_radius == kUnboundedClipRadius ? CSE_RADAR_SHAPE_NONE :
-                (batch_.clip_square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE)};
+            static_cast<std::uint32_t>(batch_.clip_radius == kUnboundedClipRadius ? CSE_RADAR_SHAPE_NONE :
+                (batch_.clip_square ? CSE_RADAR_SHAPE_SQUARE : CSE_RADAR_SHAPE_CIRCLE))};
         draw.fade = {{fade_color_.r, fade_color_.g, fade_color_.b}, fade_amt_};
         draw.atlas = batch_.service_atlas;
         draw.quadCount = static_cast<std::uint32_t>(vertices.size() / 4);
