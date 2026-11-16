@@ -121,6 +121,12 @@ Apply, Cancel after Apply, and OK in Original and Smoked styles. Radar captures
 (`radar-original.bmp`, `radar-smoked.bmp`) and `radar-fit.tsv` record the controls
 and translated-text fit at the requested fixture screen size.
 
+Reopen checks use the production Options → Interface → radar button hierarchy in
+both styles, closing and recreating all dialogs with hidden and visible tooltips.
+They also cover shared-tooltip handoff, inactive-owner deletion, final-owner popup
+destruction, and the slider's single-value range during control initialization.
+Use `--sanitizers` to detect stale tooltip access and invalid slider arithmetic.
+
 ## Masterserver configuration
 
 `masterserver-settings` exercises the actual cogwheel/settings controls, protected

@@ -22,7 +22,8 @@
 
 namespace vgui2
 {
-static TextEntry* s_pTooltipWindow = NULL;
+static TextEntry* s_pTooltipWindow = nullptr;
+static Tooltip* s_pActiveTooltip = nullptr;
 static int s_iTooltipWindowCount = 0;
 
 //-----------------------------------------------------------------------------
@@ -43,8 +44,12 @@ void Tooltip::InvalidateLayout()
 //-----------------------------------------------------------------------------
 Tooltip::Tooltip( Panel*, const char* text )
 {
-	if ( !s_pTooltipWindow )
-		s_pTooltipWindow = new TextEntry( NULL, "tooltip" );
+    if (!s_pTooltipWindow) {
+        s_pTooltipWindow = new TextEntry(nullptr, "tooltip");
+        // Tooltip instances own this shared popup. Its temporary hover parent
+        // must not delete it along with the hovered control.
+        s_pTooltipWindow->SetAutoDelete(false);
+    }
 	s_iTooltipWindowCount++;
 
 	// this line prevents the main window from losing focus
@@ -67,15 +72,14 @@ Tooltip::Tooltip( Panel*, const char* text )
 //-----------------------------------------------------------------------------
 // Purpose: Destructor
 //-----------------------------------------------------------------------------
-Tooltip::~Tooltip()
-{
-	s_iTooltipWindowCount--;
-	if ( s_iTooltipWindowCount <= 0 )
-	{
-		if ( s_pTooltipWindow )
-			delete s_pTooltipWindow;
-		s_pTooltipWindow = NULL;
-	}
+Tooltip::~Tooltip() {
+    HideTooltip();
+    --s_iTooltipWindowCount;
+    if (s_iTooltipWindowCount == 0) {
+        TextEntry* window = s_pTooltipWindow;
+        s_pTooltipWindow = nullptr;
+        delete window;
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -176,10 +180,10 @@ void Tooltip::SizeTextWindow()
 //-----------------------------------------------------------------------------
 // Purpose: Display the tooltip
 //-----------------------------------------------------------------------------
-void Tooltip::PerformLayout()
-{
-	if ( !m_bInvalidLayout || !_makeVisible )
-		return;
+void Tooltip::PerformLayout() {
+    if (s_pActiveTooltip != this || !m_bInvalidLayout || !_makeVisible) {
+        return;
+    }
 
 	if ( _delay > system()->GetTimeMillis() )
 		return;
@@ -236,15 +240,12 @@ void Tooltip::PerformLayout()
 //-----------------------------------------------------------------------------
 // Purpose: Display the tooltip
 //-----------------------------------------------------------------------------
-void Tooltip::ShowTooltip( Panel* currentPanel )
-{
-	s_pTooltipWindow->SetText( m_Text.Base() );
-//	s_pTooltipWindow->SetVisible(true);
-
-	s_pTooltipWindow->SetParent( currentPanel );
-	_makeVisible = true;
-
-	PerformLayout();
+void Tooltip::ShowTooltip(Panel* currentPanel) {
+    s_pActiveTooltip = this;
+    s_pTooltipWindow->SetText(m_Text.Base());
+    s_pTooltipWindow->SetParent(currentPanel);
+    _makeVisible = true;
+    PerformLayout();
 }
 
 void Tooltip::SetTooltipFormatToSingleLine()
@@ -260,10 +261,13 @@ void Tooltip::SetTooltipFormatToMultiLine()
 //-----------------------------------------------------------------------------
 // Purpose: Display the tooltip
 //-----------------------------------------------------------------------------
-void Tooltip::HideTooltip()
-{
-	s_pTooltipWindow->SetVisible( false );
-	_makeVisible = false;
+void Tooltip::HideTooltip() {
+    _makeVisible = false;
+    if (s_pActiveTooltip == this) {
+        s_pActiveTooltip = nullptr;
+        s_pTooltipWindow->SetVisible(false);
+        s_pTooltipWindow->SetParent(static_cast<VPANEL>(0));
+    }
 }
 
 void Tooltip::ApplySchemeSettings( IScheme* scheme )

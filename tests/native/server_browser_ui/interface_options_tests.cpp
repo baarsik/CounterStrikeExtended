@@ -24,6 +24,7 @@
 #include "Label.h"
 #include "TextImage.h"
 #include "TextEntry.h"
+#include "Tooltip.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
 #include "vgui/IScheme.h"
@@ -379,6 +380,41 @@ public:
 
 void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::filesystem::path& output) {
     using namespace engine_fixture;
+    {
+        vgui2::Slider singleValue(root, "SingleValueSlider");
+        singleValue.SetSize(128, 24);
+        singleValue.SetRange(42, 42);
+        singleValue.SetValue(42, false);
+        int knobStart = 0;
+        int knobEnd = 0;
+        singleValue.GetNobPos(knobStart, knobEnd);
+        Require(singleValue.GetValue() == 42 && knobStart == 0 && knobEnd > knobStart && knobEnd <= 128,
+            "a collapsed slider range keeps a valid knob while radar controls initialize");
+    }
+    {
+        auto* first = new vgui2::Panel(root, "FirstTooltipOwner");
+        auto* second = new vgui2::Panel(root, "SecondTooltipOwner");
+        auto* firstTooltip = first->GetTooltip();
+        firstTooltip->SetText("First tooltip");
+        firstTooltip->SetTooltipDelay(0);
+        firstTooltip->ResetDelay();
+        firstTooltip->ShowTooltip(first);
+        vgui2::PHandle popupOwner;
+        popupOwner.Set(first->FindChildByName("tooltip", false));
+        Require(popupOwner.Get(), "the first tooltip creates a shared popup");
+        auto* secondTooltip = second->GetTooltip();
+        secondTooltip->SetText("Second tooltip");
+        secondTooltip->SetTooltipDelay(0);
+        secondTooltip->ResetDelay();
+        secondTooltip->ShowTooltip(second);
+        firstTooltip->HideTooltip();
+        delete first;
+        auto* popup = popupOwner.Get();
+        Require(popup && popup->IsVisible() && popup->GetParent() == second,
+            "hiding and deleting an inactive tooltip owner preserves the active owner's popup");
+        delete second;
+        Require(!popupOwner.Get(), "the final tooltip owner releases the shared popup");
+    }
     for (const auto& definition : radar::kCvarDefinitions) {
         radarValues[definition.name] = static_cast<float>(std::atof(definition.default_value));
     }
@@ -452,6 +488,58 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
         Settle(*root);
         Require(!owner.Get() && radarValues["hud_radar_names"] == 1.0f, "OK commits and closes radar settings");
         radarValues["hud_radar_names"] = 0.0f;
+    }
+
+    for (const int style : {0, 1}) {
+        uiStyle = static_cast<float>(style);
+        for (const bool hoverTooltip : {false, true}) {
+            constexpr int ReopenCount = 3;
+            for (int reopen = 0; reopen < ReopenCount; ++reopen) {
+                auto* options = new TestOptions(root);
+                options->SetScheme(scheme);
+                options->Activate();
+                auto* page = dynamic_cast<COptionsSubInterface*>(options->FindChildByName("Interface", true));
+                Require(page, "reopened Options owns its Interface page");
+                options->GetPropertySheet()->SetActivePage(page);
+                Settle(*root);
+                auto* button = dynamic_cast<vgui2::Button*>(page->FindChildByName("RadarSettings", false));
+                Require(button && button->IsEnabled(), "reopened Interface enables the radar settings button");
+                button->DoClick();
+                Settle(*root);
+                auto* radar = dynamic_cast<CHudRadarDialog*>(page->FindChildByName("HudRadarDialog", false));
+                Require(radar && radar->IsVisible(), "Interface opens a live radar dialog on every visit");
+                vgui2::PHandle tooltipPopup;
+                if (hoverTooltip) {
+                    auto* shift = radar->FindChildByName("hud_radar_map_shift", false);
+                    Require(shift, "radar owns the map-shift tooltip control");
+                    auto* tooltip = shift->GetTooltip();
+                    tooltip->SetTooltipDelay(0);
+                    tooltip->ResetDelay();
+                    tooltip->ShowTooltip(shift);
+                    auto* popup = shift->FindChildByName("tooltip", false);
+                    Require(popup && popup->IsVisible(), "hover displays the real shared tooltip popup");
+                    tooltipPopup.Set(popup);
+                    if (reopen % 2 == 0) {
+                        tooltip->HideTooltip();
+                    }
+                }
+                vgui2::PHandle radarOwner;
+                radarOwner.Set(radar);
+                radar->OnCommand("Close");
+                Settle(*root);
+                Require(!radarOwner.Get(), "closing radar settings deletes the dialog before reopening");
+                if (auto* popup = tooltipPopup.Get()) {
+                    Require(!popup->IsVisible() && !popup->GetParent(),
+                        "closing a tooltip owner hides and detaches the shared popup");
+                }
+                vgui2::PHandle optionsOwner;
+                optionsOwner.Set(options);
+                options->OnClose();
+                Settle(*root);
+                Require(!optionsOwner.Get(), "closing all settings deletes the Options dialog");
+                Require(vgui2::input()->GetAppModalSurface() == 0, "closed radar settings leave no modal owner");
+            }
+        }
     }
     radarAvailable = false;
     uiStyle = 0.0f;

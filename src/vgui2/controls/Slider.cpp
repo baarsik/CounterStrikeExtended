@@ -59,17 +59,20 @@ int Slider::GetValue()
 //-----------------------------------------------------------------------------
 // Purpose: Move the nob on the slider in response to changing its value.
 //-----------------------------------------------------------------------------
-void Slider::RecomputeNobPosFromValue()
-{
-	int wide, tall;
-	GetPaintSize( wide, tall );
+void Slider::RecomputeNobPosFromValue() {
+    int wide = 0;
+    int tall = 0;
+    GetPaintSize(wide, tall);
+    // Sliders start with a single-value range before their caller configures it.
+    const bool collapsed = _range[0] == _range[1];
 #ifdef _WIN32
-	float firstPixel = (float)( _value - _range[0] ) / (float)( _range[1] - _range[0] )
-		* ( (float)wide - _nobSize ) + 0.0f;
+    float firstPixel = collapsed ? 0.0f
+        : (float)(_value - _range[0]) / (float)(_range[1] - _range[0]) * ((float)wide - _nobSize) + 0.0f;
 	float lastPixel = firstPixel + _nobSize;
 #else
-	long double position = (long double)( _value - _range[0] ) / (long double)( _range[1] - _range[0] )
-		* ( (long double)wide - _nobSize ) + 0.0;
+    long double position = collapsed ? 0.0L
+        : (long double)(_value - _range[0]) / (long double)(_range[1] - _range[0])
+            * ((long double)wide - _nobSize) + 0.0;
 	float firstPixel = (float)position;
 	float lastPixel = (float)( position + _nobSize );
 #endif

@@ -1322,11 +1322,12 @@ Panel::Panel( Panel* parent, const char* name )
 	_buildModeFlags |= BuildModeEditableMask;
 }
 
-Panel::~Panel()
-{
+Panel::~Panel() {
     cse::ui::ForgetControlStyle(this);
 	_autoDelete = false;
 	_markedForDeletion = true;
+    delete m_pTooltips;
+    m_pTooltips = nullptr;
 	Panel::SetParent( static_cast<VPANEL>( 0 ) );
 
 	while ( ipanel()->GetChildCount( _vpanel ) != 0 )
