@@ -24,6 +24,7 @@ Metal-only no-GL requirement is verified separately in actual-game audits.
 | `metal-draw-preparation` | Matrices, topology, provoking vertices, texture conversion and uniforms |
 | `metal-session-device` | Actual render/readback, texture versions, palette enable, incomplete textures, sampler min/mag, explicit four-tap border anisotropy, clears, viewport mapping and failure retirement |
 | `renderer-backend-lifecycle` | Startup upload, flush/reopen, retained presentation capture across pending window resizes, absent-presentation handling, real-window resize/minimize/restore, teardown and sticky errors |
+| `renderer-backend-large-precache` | 768 MiB of retained source textures through the production backend, followed by first-use rendering of early and late uploads |
 | `renderer-selection` | Default/override/conflict policy, Metal-disabled and non-Apple behavior |
 | `radar-public-release` | Actual engine interface factory/table callback: null, half-null, stale and current-unavailable handles |
 | `metal-radar-effects` | Layer depth/order, independent base/lightmap modulation, tone, texture lifetime, generated-image retirement, aggregate map-index/per-draw expansion bounds, glyph shadow, pre-HUD blur and odd resize |
@@ -42,6 +43,11 @@ These limits apply to deterministic fixtures, not to unsynchronized screenshots 
 animated gameplay. The blur oracle excludes only the outer two-pixel analytic mask;
 it compares the full interior horizontal and vertical transitions. Assertions remain
 enabled in Release.
+
+The runtime recorder allows up to 1 GiB of retained CPU texture images, allocated on
+demand. Custom server model precaches can exceed 650 MiB before world rendering begins.
+This limit is separate from the 256 MiB evictable GPU texture cache; per-upload bounds
+and the recorder's accounting for queued image versions remain unchanged.
 
 ## Mip boundary behavior
 
