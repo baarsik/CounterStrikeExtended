@@ -34,6 +34,37 @@ On macOS, an initial microphone permission prompt can delay startup until answer
 The software client renderer (`sw.dll`) is unavailable, although inherited video
 settings still offer it. The dedicated engine (`swds.dll`) is separate.
 
+## macOS graphics backend
+
+The macOS ARM64 hardware engine uses Metal by default. `-metal` selects it explicitly;
+`-gl` selects the retained OpenGL renderer. Supplying both flags is an error. Ordinary
+video-setting changes preserve the active backend across the native process restart.
+Metal initialization requires SDL_GPU's `metal` driver; failure is reported rather than
+silently creating an OpenGL context. Windows x86/x64 continue to use their existing renderer.
+
+`CSE_ENABLE_METAL` defaults to `ON` on macOS and `OFF` elsewhere. Metal builds compile
+and embed shaders offline; install Apple's Metal toolchain and pass its compiler and linker
+when configuring, together with the existing provider arguments:
+
+```sh
+cmake --preset runtime-macos-arm64-release \
+  -DCSE_METAL_COMPILER="$(xcrun --toolchain Metal --find metal)" \
+  -DCSE_METAL_LINKER="$(xcrun --toolchain Metal --find metallib)"
+cmake --build --preset runtime-macos-arm64-release --target cse_client --parallel
+```
+
+The same arguments apply to the Debug preset. Missing offline tools are a configuration
+error for an enabled build. `-DCSE_ENABLE_METAL=OFF` produces an OpenGL-only client without
+requiring Metal tools; an explicit `-metal` request is rejected by that build. GPU sources
+and shader tools belong to the hardware engine, not dedicated-server or HLTV targets.
+Metadata-only CMake inventory queries do not require the shader toolchain.
+
+The native path includes fixed-function world/studio drawing, palettes, screenshots,
+startup video, advanced radar and Original/Smoked UI. Default scene sampling is 4x MSAA;
+`-nomsaa` selects one sample. See the [Metal renderer qualification fixtures](../tests/native/metal_renderer/README.md)
+for reproducible checks, pixel tolerances and measured limits. These checks do not establish
+an FPS improvement across games or machines.
+
 ## Presets and outputs
 
 | Release preset | Debug preset | Release build directory | Release runtime output |
@@ -236,8 +267,8 @@ An alias must not replace an unrelated file.
 The hardware renderer batches each studio mesh into one indexed triangle draw by
 default. `r_studio_batch 0` selects the retained immediate renderer for A/B checks;
 `r_studio_batch 1` enables batching again. Animation, lighting and material settings
-keep their existing behavior. Native capture modes and unsupported client GL state
-use the immediate path automatically.
+keep their existing behavior. Metal submits the indexed geometry through its typed native
+recorder. Diagnostic capture modes and unsupported client GL state use the immediate path automatically.
 
 The [studio batching fixtures](../tests/native/studio_batch/README.md) cover topology,
 engine attribute integration, client state and optional real OpenGL pixel comparisons.

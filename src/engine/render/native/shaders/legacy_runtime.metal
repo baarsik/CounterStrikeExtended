@@ -122,13 +122,13 @@ float4 BorderLevel(texture2d<float> image, float2 uv, uint level, uint2 wrap, bo
     return mix(mix(Tap(image, base, level, wrap), Tap(image, base + int2(1, 0), level, wrap), weight.x),
         mix(Tap(image, base + int2(0, 1), level, wrap), Tap(image, base + int2(1), level, wrap), weight.x), weight.y);
 }
-float4 BorderSample(texture2d<float> image, float2 uv, float lod, float4 dimensions, float4 sampling) {
+float4 BorderSample(texture2d<float> image, float2 uv, float lod, float mipLod, float4 dimensions, float4 sampling) {
     uint2 wrap = uint2(sampling.xy);
     if (wrap.x == 1) { uv.x = clamp(uv.x, 0.0f, 1.0f); }
     if (wrap.y == 1) { uv.y = clamp(uv.y, 0.0f, 1.0f); }
     uint filter = uint(sampling.z);
     bool linear = lod <= 0 ? sampling.w == 1 : (filter == 1 || filter == 3 || filter == 5);
-    if (filter < 2 || dimensions.z != 0) { lod = 0; }
+    lod = filter < 2 || dimensions.z != 0 ? 0 : mipLod;
     lod = clamp(lod, 0.0f, float(image.get_num_mip_levels() - 1));
     if (filter == 4 || filter == 5) {
         uint low = uint(floor(lod));
@@ -155,12 +155,17 @@ float4 Sample(texture2d<float> image, sampler state, float4 coordinate, float4 d
     float minor = max(min(xLength, yLength), 0.000001f);
     // Bounded anisotropic reconstruction for the border path. Ordinary repeat/edge uses hardware anisotropy.
     uint taps = uint(ceil(clamp(major / minor, 1.0f, max(1.0f, dimensions.w))));
-    float lod = log2(max(major / float(taps), 0.000001f));
+    // Unclamped LOD selects min/mag; clamped LOD also applies the device's nearest-mip selection.
+    // An analytic log2 plus rounding disagrees with hardware near half-level boundaries.
+    // The explicit multi-tap path still reconstructs its own reduced anisotropic footprint.
+    float lod = taps == 1 ? image.calculate_unclamped_lod(state, uv) :
+        log2(max(major / float(taps), 0.000001f));
+    float mipLod = taps == 1 ? image.calculate_clamped_lod(state, uv) : lod;
     float2 axis = xLength > yLength ? dx : dy;
     float4 result = float4(0);
     for (uint tap = 0; tap < taps; ++tap) {
         float offset = (float(tap) + 0.5f) / float(taps) - 0.5f;
-        result += BorderSample(image, uv + axis * offset, lod, dimensions, sampling);
+        result += BorderSample(image, uv + axis * offset, lod, mipLod, dimensions, sampling);
     }
     return result / float(taps);
 }

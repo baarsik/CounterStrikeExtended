@@ -159,6 +159,40 @@ int main() {
         CHECK(session.ReadPixels(0, 0, 1, 1, 4, 1, rgba.data(), error));
         CHECK(rgba[0] == 255 && rgba[1] == 0 && rgba[2] == 255 && rgba[3] == 255);
     }
+    // Explicit border anisotropy integrates four distinct nearest taps at source columns18/22/26/30.
+    // The center-only sample at column24 is blue, whereas two of the four taps are red.
+    for (unsigned anisotropy : {1u, 4u}) {
+        auto source = std::make_shared<TextureImage>();
+        source->defined = true;
+        source->width = 64;
+        source->height = 64;
+        source->internal = InternalFormat::RGBA;
+        for (int y = 0; y < source->height; ++y) {
+            for (int x = 0; x < source->width; ++x) {
+                const bool red = x == 18 || x == 22;
+                source->pixels.insert(source->pixels.end(), {static_cast<unsigned char>(red ? 255 : 0), 0,
+                    static_cast<unsigned char>(red ? 0 : 255), 255});
+            }
+        }
+        auto anisotropic = std::make_shared<TextureObject>();
+        anisotropic->levels[0] = source;
+        anisotropic->sampler.minification = Filter::Nearest;
+        anisotropic->sampler.magnification = Filter::Nearest;
+        anisotropic->sampler.wrapS = Wrap::Clamp;
+        anisotropic->sampler.wrapT = Wrap::Clamp;
+        anisotropic->sampler.requestedAnisotropy = float(anisotropy);
+        frame.draws[0] = Solid(1, 1, 1);
+        auto& packet = frame.draws[0];
+        packet.textures[0].enabled2D = true;
+        packet.resources[0].texture2D = anisotropic;
+        for (auto& vertex : packet.vertices) {
+            vertex.texcoords[0] = {{(vertex.position[0] + 1) * 2, (vertex.position[1] + 1) * 0.5f, 0, 1}};
+        }
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(1, 8, 1, 1, 4, 1, rgba.data(), error));
+        CHECK(rgba[0] == (anisotropy == 1 ? 0 : 128));
+        CHECK(rgba[2] == (anisotropy == 1 ? 255 : 128));
+    }
     // Owned versions remain immutable while successive command buffers are pending.
     auto image = std::make_shared<TextureImage>();
     image->defined = true;

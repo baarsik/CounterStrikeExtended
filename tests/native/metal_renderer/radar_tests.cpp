@@ -264,7 +264,45 @@ int main() {
     build.drawCount = 1;
     meshPass.depthOrder = CSE_RADAR_DEPTH_BOTTOMMOST;
     CHECK(effects.BuildMapImage(build, generated) == CSE_RADAR_OK);
+    tile.texture = generated;
+    CHECK(session.Render(frame, error));
+    CHECK(effects.DrawMapTexture(tile, raster) == CSE_RADAR_OK);
+    CHECK(session.ReadPixels(0, 0, 64, 64, 4, 4, pixels.data(), error));
+    CHECK(pixels[(47 * 64 + 16) * 4] > 95);
+    CHECK(pixels[(47 * 64 + 16) * 4 + 1] < 30); // bottommost red wins even when higher green is submitted last
     CHECK(effects.ReleaseImage(generated) == CSE_RADAR_OK);
+
+    // Independent base/lightmap modulation: white vertex * red base * blue lightmap = black.
+    auto baseImage = std::make_shared<TextureImage>(*image);
+    baseImage->pixels = {255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255};
+    auto lightImage = std::make_shared<TextureImage>(*image);
+    lightImage->pixels = {0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255};
+    auto baseTexture = std::make_shared<TextureObject>(*texture);
+    auto lightTexture = std::make_shared<TextureObject>(*texture);
+    baseTexture->levels[0] = baseImage;
+    lightTexture->levels[0] = lightImage;
+    const auto baseHandle = effects.RegisterTexture(201, RadarRendererGpu::TextureRole::World, baseTexture, nullptr);
+    const auto lightHandle = effects.RegisterTexture(202, RadarRendererGpu::TextureRole::World, lightTexture, nullptr);
+    for (auto& vertex : mesh) {
+        std::fill(vertex.color, vertex.color + 4, 1);
+    }
+    build.tone = CSE_RADAR_TONE_FLAT;
+    meshDraw.base = baseHandle;
+    meshDraw.textureFlags = CSE_RADAR_MAP_USE_BASE;
+    for (unsigned light = 0; light < 2; ++light) {
+        if (light) {
+            meshDraw.lightmap = lightHandle;
+            meshDraw.textureFlags |= CSE_RADAR_MAP_USE_LIGHTMAP;
+        }
+        CHECK(effects.BuildMapImage(build, generated) == CSE_RADAR_OK);
+        tile.texture = generated;
+        CHECK(session.Render(frame, error));
+        CHECK(effects.DrawMapTexture(tile, raster) == CSE_RADAR_OK);
+        CHECK(session.ReadPixels(0, 0, 64, 64, 4, 4, pixels.data(), error));
+        CHECK(light ? pixels[(47 * 64 + 16) * 4] == 0 : pixels[(47 * 64 + 16) * 4] > 190);
+        CHECK(pixels[(47 * 64 + 16) * 4 + 1] == 0 && pixels[(47 * 64 + 16) * 4 + 2] == 0);
+        CHECK(effects.ReleaseImage(generated) == CSE_RADAR_OK);
+    }
 
     // Shape 10 combines overlapping marker images before one straight-alpha composite.
     batch.atlas = {};
