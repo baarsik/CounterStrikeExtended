@@ -1154,6 +1154,12 @@ void R_FunnelSprite( float* org, int modelIndex, int reverse )
 
 void R_MuzzleFlash( float* pos1, int type )
 {
+    // Custom studio attachments can contain nonfinite coordinates. Such a flash cannot rasterize;
+    // reject it before allocating a temporary sprite or passing invalid geometry to a renderer.
+    if (!std::isfinite(pos1[0]) || !std::isfinite(pos1[1]) || !std::isfinite(pos1[2])) {
+        return;
+    }
+
 	TEMPENTITY* pTemp;
 	int index, frameCount;
 	float scale;
