@@ -127,10 +127,10 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
         int height = 0;
         SDL_GetWindowSizeInPixels(window, &width, &height);
         info = {0, 1, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)};
-#if defined(NDEBUG)
-        constexpr bool kDebugDevice = false;
-#else
+#if CSE_METAL_DEBUG_DEVICE
         constexpr bool kDebugDevice = true;
+#else
+        constexpr bool kDebugDevice = false;
 #endif
         if (!session->Initialize(window, kDebugDevice, error) ||
             !session->Resize(info.width, info.height, sampleCount, error)) {

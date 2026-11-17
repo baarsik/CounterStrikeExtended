@@ -274,9 +274,8 @@ Status TextureStore::Parameter(const LegacyState& state, TextureTarget target, T
     if (!TargetValid(target) || !std::isfinite(value) || value < 0 || value > std::numeric_limits<int>::max()) {
         return Status::InvalidValue;
     }
-    BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
-    auto object = std::make_shared<TextureObject>(*Bound(state, target));
-    auto& sampler = object->sampler;
+    const auto prior = Bound(state, target);
+    auto sampler = prior->sampler;
     if (parameter == TextureParameter::Anisotropy) {
         if (value < 1) {
             return Status::InvalidValue;
@@ -303,6 +302,16 @@ Status TextureStore::Parameter(const LegacyState& state, TextureTarget target, T
     } else {
         return Status::InvalidValue;
     }
+    const auto& current = prior->sampler;
+    // Legacy drawing often repeats these calls. Keep the immutable identity so the GPU cache can reuse its image.
+    if (sampler.minification == current.minification && sampler.magnification == current.magnification &&
+        sampler.wrapS == current.wrapS && sampler.wrapT == current.wrapT &&
+        sampler.maximumLevel == current.maximumLevel && sampler.requestedAnisotropy == current.requestedAnisotropy) {
+        return Status::Ok;
+    }
+    BeforeCaptureAllocation(CaptureAllocationSite::TextureObjectVersion);
+    auto object = std::make_shared<TextureObject>(*prior);
+    object->sampler = sampler;
     Commit(state, target, std::move(object));
     return Status::Ok;
 }

@@ -194,6 +194,25 @@ void Session() {
             Check(session.Render(frame, error) && session.Finish(error), "complete NPOT submission");
             Pixel(session, static_cast<std::uint8_t>(cycle), 0);
             const auto allocations = createdGpuTextures;
+            if (cycle == 0) {
+                const auto sampler = store.Bound(state, TextureTarget::Rectangle)->sampler;
+                const std::array<std::pair<TextureParameter, double>, 6> repeated{{
+                    {TextureParameter::MinFilter, static_cast<int>(sampler.minification)},
+                    {TextureParameter::MagFilter, static_cast<int>(sampler.magnification)},
+                    {TextureParameter::WrapS, static_cast<int>(sampler.wrapS)},
+                    {TextureParameter::WrapT, static_cast<int>(sampler.wrapT)},
+                    {TextureParameter::MaximumLevel, sampler.maximumLevel},
+                    {TextureParameter::Anisotropy, sampler.requestedAnisotropy}
+                }};
+                for (const auto& parameter : repeated) {
+                    Check(store.Parameter(state, TextureTarget::Rectangle, parameter.first, parameter.second) ==
+                        Status::Ok, "repeat unchanged texture sampling state");
+                }
+                auto repeatedFrame = Frame(store.Bound(state, TextureTarget::Rectangle));
+                Check(session.Render(repeatedFrame, error), "draw after redundant texture parameters");
+                Pixel(session, static_cast<std::uint8_t>(cycle), 0);
+                Check(createdGpuTextures == allocations, "redundant parameters preserve the uploaded GPU image");
+            }
             Check(session.Render(frame, error), "repeat unchanged live texture");
             Check(createdGpuTextures == allocations, "persistent session cache reuses live immutable identity");
         }

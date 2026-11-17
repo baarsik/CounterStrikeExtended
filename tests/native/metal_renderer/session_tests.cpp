@@ -14,6 +14,8 @@ using namespace cse::render;
 } while (false)
 
 namespace {
+constexpr int kTargetSize = 16;
+unsigned sceneDrawCalls = 0;
 // Narrow link seam around presentation allocation and command retirement. All successful calls use real SDL.
 struct PresentationProbe {
     bool active = false;
@@ -32,6 +34,13 @@ template<typename Function> Function Original(const char* name) {
     }
     return function;
 }
+}
+
+extern "C" void SDL_DrawGPUPrimitives(SDL_GPURenderPass* pass, Uint32 vertices, Uint32 instances,
+    Uint32 firstVertex, Uint32 firstInstance) {
+    ++sceneDrawCalls;
+    Original<decltype(&SDL_DrawGPUPrimitives)>("SDL_DrawGPUPrimitives")(
+        pass, vertices, instances, firstVertex, firstInstance);
 }
 
 extern "C" SDL_GPUTexture* SDL_CreateGPUTexture(SDL_GPUDevice* device, const SDL_GPUTextureCreateInfo* info) {
@@ -73,7 +82,7 @@ extern "C" bool SDL_SubmitGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
 DrawPacket Solid(float red, float green, float blue) {
     DrawPacket draw;
     draw.primitive = Primitive::Quads;
-    draw.raster.viewport = {{0, 0, 16, 16}};
+    draw.raster.viewport = {{0, 0, kTargetSize, kTargetSize}};
     draw.vertices.resize(4);
     draw.vertices[0].position = {{-1, -1, 0, 1}};
     draw.vertices[1].position = {{1, -1, 0, 1}};
@@ -88,6 +97,109 @@ DrawPacket Solid(float red, float green, float blue) {
     return draw;
 }
 
+void ConsecutiveDraws(MetalSession& session, std::string& error) {
+    constexpr int kHalfSize = kTargetSize / 2;
+    constexpr int kLeftSample = kTargetSize / 4;
+    constexpr int kRightSample = kTargetSize - kLeftSample;
+    constexpr unsigned char kOpaqueChannel = 255;
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
+    FrameEvent first;
+    FrameEvent second;
+    second.drawIndex = 1;
+    frame.events = {first, second};
+    for (auto& vertex : frame.draws[0].vertices) {
+        vertex.position[0] = (vertex.position[0] - 1) * 0.5f;
+    }
+    for (auto& vertex : frame.draws[1].vertices) {
+        vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
+    }
+    sceneDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 1);
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
+    // Uniform changes must break a batch even when the graphics pipeline is identical.
+    frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
+    frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
+    frame.draws[1].raster.alphaFunction = Compare::Greater;
+    frame.draws[1].raster.alphaReference = 0.5f;
+    for (auto& vertex : frame.draws[1].vertices) {
+        vertex.color[3] = 0.25f;
+    }
+    sceneDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 2);
+    CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    // Projection and dynamic scissor state are independent of the pipeline cache key too.
+    for (bool scissor : {false, true}) {
+        frame.draws[1] = Solid(0, 1, 0);
+        if (scissor) {
+            frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = true;
+            frame.draws[1].raster.scissor = {{kHalfSize, 0, kHalfSize, kTargetSize}};
+        } else {
+            frame.draws[1].projection.values[12] = 1;
+        }
+        sceneDrawCalls = 0;
+        CHECK(session.Render(frame, error));
+        CHECK(sceneDrawCalls == 2);
+        CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+        CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
+    }
+    // Equal uniforms do not permit merging distinct texture bindings.
+    for (std::size_t index = 0; index < frame.draws.size(); ++index) {
+        auto image = std::make_shared<TextureImage>();
+        image->width = 1;
+        image->height = 1;
+        image->defined = true;
+        image->pixels.assign(pixel.size(), 0);
+        image->pixels[index] = kOpaqueChannel;
+        image->pixels.back() = kOpaqueChannel;
+        auto object = std::make_shared<TextureObject>();
+        object->levels[0] = image;
+        frame.draws[index] = Solid(1, 1, 1);
+        frame.draws[index].textures[0].enabled2D = true;
+        frame.draws[index].resources[0].texture2D = object;
+    }
+    sceneDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 2);
+    CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
+    // Merging translucent primitives must retain their original compositing order.
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 1, 1}};
+    frame.events = {clear, first, second};
+    frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
+    for (auto& draw : frame.draws) {
+        draw.raster.enabled[static_cast<std::size_t>(Capability::Blend)] = true;
+        draw.raster.blendSource = BlendFactor::SourceAlpha;
+        draw.raster.blendDestination = BlendFactor::InverseSourceAlpha;
+        for (auto& vertex : draw.vertices) {
+            vertex.color[3] = 0.5f;
+        }
+    }
+    sceneDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 2);
+    CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    constexpr int kQuarterChannel = 64;
+    constexpr int kHalfChannel = 128;
+    CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
+    CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
+    CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+}
+
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -98,6 +210,7 @@ int main() {
     MetalSession session;
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
+    ConsecutiveDraws(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;

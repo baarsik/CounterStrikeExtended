@@ -134,6 +134,19 @@ struct MetalSession::Impl {
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
     };
+
+    static bool SameDrawState(const Draw& first, const Draw& second) {
+        const auto& left = first.data;
+        const auto& right = second.data;
+        return first.pipeline == second.pipeline && first.textures == second.textures &&
+            first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
+            left.raster.depthRange == right.raster.depthRange && left.raster.scissor == right.raster.scissor &&
+            left.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] ==
+                right.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] &&
+            std::memcmp(&left.vertex, &right.vertex, sizeof(left.vertex)) == 0 &&
+            std::memcmp(&left.fragment, &right.fragment, sizeof(left.fragment)) == 0;
+    }
+
     std::unique_ptr<RadarRendererGpu> effects;
     std::uint64_t effectsEpoch = 0;
     SDL_GPUDevice* device = nullptr;
@@ -735,8 +748,21 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         SDL_CancelGPUCommandBuffer(command);
         return DeviceFailure(error, "Begin Metal scene pass");
     }
-    for (const auto& draw : draws) {
+    for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
+        const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
+        auto vertexCount = data.vertices.size();
+        // Adjacent triangle/line lists retain their order and already occupy contiguous stream ranges.
+        // Combine only identical GPU state, without copying geometry or crossing uniform/scissor changes.
+        while (drawIndex + 1 < draws.size()) {
+            const auto& next = draws[drawIndex + 1];
+            if (!Impl::SameDrawState(draw, next) ||
+                next.vertexOffset != draw.vertexOffset + vertexCount * sizeof(Vertex)) {
+                break;
+            }
+            vertexCount += next.data.vertices.size();
+            ++drawIndex;
+        }
         const auto& viewport = data.raster.viewport;
         const auto scissor = Scissor(data.raster, state.width, state.height);
         if (scissor.w == 0 || scissor.h == 0) {
@@ -790,7 +816,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
         SDL_PushGPUVertexUniformData(command, 0, &constants, sizeof(constants));
         SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
-        SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(data.vertices.size()), 1, 0, 0);
+        SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
     }
     SDL_EndGPURenderPass(pass);
     stream.fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command);

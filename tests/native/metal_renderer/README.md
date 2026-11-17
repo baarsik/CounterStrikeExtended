@@ -22,15 +22,16 @@ Metal-only no-GL requirement is verified separately in actual-game audits.
 | Fixture | Evidence |
 | --- | --- |
 | `metal-draw-preparation` | Matrices, topology, provoking vertices, texture conversion and uniforms |
-| `metal-session-device` | Actual render/readback, texture versions, palette enable, incomplete textures, sampler min/mag, explicit four-tap border anisotropy, clears, viewport mapping and failure retirement |
+| `metal-session-device` | Actual render/readback, adjacent draw coalescing with uniform/texture/scissor barriers and transparent order, texture versions, palette enable, incomplete textures, sampler min/mag, explicit four-tap border anisotropy, clears, viewport mapping and failure retirement |
 | `renderer-backend-lifecycle` | Startup upload, flush/reopen, retained presentation capture across pending window resizes, absent-presentation handling, real-window resize/minimize/restore, teardown and sticky errors |
 | `renderer-backend-large-precache` | 768 MiB of retained source textures through the production backend, followed by first-use rendering of early and late uploads |
 | `renderer-backend-ram-budget` | Runtime budget selection below, at and above 8 GiB of installed RAM, including unavailable RAM information |
+| `renderer-backend-device-mode` | Actual SDL_GPU device creation enables validation only in Debug, independently of NDEBUG |
 | `renderer-selection` | Default/override/conflict policy, Metal-disabled and non-Apple behavior |
 | `radar-public-release` | Actual engine interface factory/table callback: null, half-null, stale and current-unavailable handles |
 | `metal-radar-effects` | Layer depth/order, independent base/lightmap modulation, tone, texture lifetime, generated-image retirement, aggregate map-index/per-draw expansion bounds, glyph shadow, pre-HUD blur and odd resize |
 | `metal-lifetime-names` | 131,072 generations with one live reservation, all 65,535 simultaneous names, explicit exhaustion and reuse |
-| `metal-lifetime-session` | 96 completed NPOT updates under a three-image source budget, exact retained bytes and persistent live-cache reuse |
+| `metal-lifetime-session` | 96 completed NPOT updates under a three-image source budget, exact retained bytes, persistent live-cache reuse and no image reupload after redundant sampler parameters |
 | `metal-lifetime-radar` | 96 register/upload/delete cycles without querying stale handles, exact source reclamation and balanced actual SDL GPU ownership |
 | `metal-lifetime-radar-records` | 96 abandoned identities with counted weak control blocks, proving stale registry records are erased at frame sweeps |
 | `metal-lifetime-queued-reuse` | Deleted/reused numeric name, distinct generations/service handles, independent old/new queued pixels and final source retirement |
@@ -111,3 +112,25 @@ establish higher achievable FPS or GPU execution speed. Whole-process peak RSS w
 474 MiB for both Metal replays and 523–524 MiB for OpenGL. A separate live Metal map
 cycle peaked at 647 MiB and exited normally. RSS was sampled every 0.5 seconds and
 excludes separate helper processes; it is not GPU residency or a long-duration leak test.
+
+## Uncapped performance regression check
+
+The November 17, 2026 follow-up used a recorded multiplayer demo on the same M5 Max
+at 2560×1440, default MSAA, VSync disabled and `-nosound`. Timedemo bypassed the FPS
+cap. Each row measures connected frames 500–2499 of the same 3,000-frame replay;
+all 2,000 selected frames were focused. These frame intervals include CPU and GPU
+waiting; they are not isolated GPU timings.
+
+| Warm replay | Frame interval p50 / p95 (ms) |
+| --- | ---: |
+| Original Metal Release | 3.674 / 5.340 |
+| Updated Metal Release A | 3.085 / 5.578 |
+| Updated Metal Release B | 3.154 / 5.256 |
+| OpenGL | 1.503 / 3.438 |
+
+The update selects GPU validation explicitly from the CMake configuration, copies
+filled smooth triangle lists directly, coalesces adjacent draws with identical GPU
+state, and preserves uploaded image identities across redundant sampler updates.
+Median Metal frame time fell by 14–16% in these warm repeats. Tail latency did not
+consistently improve, and OpenGL remained faster. This bounded replay does not
+establish performance parity or predict the improvement on an M1 or another server.

@@ -280,6 +280,17 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     };
     switch (draw.primitive) {
     case Primitive::Triangles:
+        // Filled smooth triangles already have the GPU's topology and per-vertex colors.
+        // Copy them in one block instead of expanding every triangle through the generic emitter.
+        if (!wireframe && draw.shade == Shade::Smooth) {
+            prepared.vertices.assign(draw.vertices.begin(), draw.vertices.begin() + loweredCount);
+            for (auto& vertex : prepared.vertices) {
+                for (auto& component : vertex.color) {
+                    component = std::max(0.0f, std::min(1.0f, component));
+                }
+            }
+            break;
+        }
         for (std::size_t index = 0; index + 2 < count; index += 3) {
             emit({index, index + 1, index + 2}, index + 2);
         }

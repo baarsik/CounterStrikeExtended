@@ -33,11 +33,17 @@ add_executable(renderer_backend_tests ../renderer_selection/backend_tests.cpp
     "${native}/frame_stream.cpp")
 target_include_directories(renderer_backend_tests PRIVATE "${native}/..")
 target_compile_definitions(renderer_backend_tests PRIVATE CSE_ENABLE_METAL=1)
+target_compile_definitions(renderer_backend_tests PRIVATE
+    "CSE_METAL_DEBUG_DEVICE=$<IF:$<CONFIG:Debug>,1,0>"
+    "CSE_EXPECT_METAL_DEBUG_DEVICE=$<IF:$<CONFIG:Debug>,1,0>")
+# Match the engine's owned configuration policy, which does not define NDEBUG in Release.
+set_property(SOURCE "${native}/../backend.cpp" APPEND PROPERTY COMPILE_OPTIONS -UNDEBUG)
 target_link_libraries(renderer_backend_tests PRIVATE metal_session)
 set_target_properties(renderer_backend_tests PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED YES)
 add_test(NAME renderer-backend-lifecycle COMMAND renderer_backend_tests)
 add_test(NAME renderer-backend-large-precache COMMAND renderer_backend_tests large-precache)
 add_test(NAME renderer-backend-ram-budget COMMAND renderer_backend_tests ram-budget)
+add_test(NAME renderer-backend-device-mode COMMAND renderer_backend_tests device-mode)
 add_executable(renderer_selection_tests ../renderer_selection/selection_tests.cpp)
 target_include_directories(renderer_selection_tests PRIVATE "${native}/..")
 set_target_properties(renderer_selection_tests PROPERTIES CXX_STANDARD 14 CXX_STANDARD_REQUIRED YES)

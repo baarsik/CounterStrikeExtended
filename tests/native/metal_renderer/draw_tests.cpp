@@ -53,6 +53,18 @@ int main() {
     CHECK(PrepareMetalDraw(draw, prepared, error));
     CHECK(prepared.topology == Primitive::Lines && prepared.vertices.size() == 8);
     draw = Quad();
+    draw.primitive = Primitive::Triangles;
+    draw.shade = Shade::Smooth;
+    draw.vertices[0].color = {{-0.5f, 0.25f, 1.5f, 0.75f}};
+    CHECK(PrepareMetalDraw(draw, prepared, error));
+    CHECK(prepared.vertices.size() == 3);
+    CHECK(prepared.vertices[0].color == (std::array<float, 4>{{0, 0.25f, 1, 0.75f}}));
+    CHECK(prepared.vertices[2].position == draw.vertices[2].position);
+    // Even unused trailing vertices must pass validation, and failure must preserve the prior output.
+    draw.vertices[3].position[0] = std::numeric_limits<float>::infinity();
+    CHECK(!PrepareMetalDraw(draw, prepared, error));
+    CHECK(prepared.vertices.size() == 3);
+    draw = Quad();
     draw.raster.polygonMode = {{PolygonMode::Line, PolygonMode::Line}};
     CHECK(PrepareMetalDraw(draw, prepared, error));
     CHECK(prepared.topology == Primitive::Lines && prepared.vertices.size() == 8);
