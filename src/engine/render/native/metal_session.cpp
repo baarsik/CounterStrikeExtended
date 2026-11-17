@@ -276,7 +276,7 @@ struct MetalSession::Impl {
 
     SDL_GPUCommandBuffer* UploadCommands(std::size_t bytes, std::string& error) {
         // An exceptional oversized frame can retire a prefix without dropping geometry or growing
-        // unbounded storage. Ordinary frames use one submission and one fence for all effects.
+        // unbounded storage. Ordinary scenes use one submission and one fence for all effects.
         if (bytes > kMaximumStreamingBytes) {
             Fail(error, "Metal upload exceeds pending-command budget");
             return nullptr;
@@ -1458,14 +1458,26 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         return false;
     }
     const auto presentStart = state.diagnosticsEnabled ? Impl::Clock::now() : Impl::Clock::time_point{};
-    auto* command = state.Commands(error);
-    if (!command) {
+    // Let the GPU execute the scene while drawable acquisition waits on the compositor.
+    // Presentation has no streaming buffers, so it does not consume another frame-stream slot.
+    if (!state.Submit(error)) {
         return false;
     }
+    auto* command = SDL_AcquireGPUCommandBuffer(state.device);
+    if (!command) {
+        return DeviceFailure(error, "Acquire Metal presentation commands");
+    }
     SDL_GPUTexture* swapchain = nullptr;
-    const auto retireFailure = [&state, &error]() {
+    const auto retireFailure = [&state, &error, command, &swapchain]() {
         const auto diagnostic = error;
-        state.Submit(error); // An acquired drawable must be submitted; earlier scene work is retained too.
+        if (swapchain) {
+            // An acquired drawable cannot be cancelled, even when later allocation fails.
+            if (SDL_SubmitGPUCommandBuffer(command) && state.diagnosticsEnabled) {
+                ++state.counters.commandBuffers;
+            }
+        } else {
+            SDL_CancelGPUCommandBuffer(command);
+        }
         error = diagnostic;
         return false;
     };
@@ -1517,10 +1529,11 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         SDL_BlitGPUTexture(command, &info);
         CountRenderPass();
     }
-    if (!state.Submit(error)) {
-        return false;
+    if (!SDL_SubmitGPUCommandBuffer(command)) {
+        return DeviceFailure(error, "Submit Metal presentation");
     }
     if (state.diagnosticsEnabled) {
+        ++state.counters.commandBuffers;
         state.counters.presentMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - presentStart).count();
     }
     if (state.diagnosticsFile) {

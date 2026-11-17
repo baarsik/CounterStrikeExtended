@@ -29,6 +29,7 @@ struct PresentationProbe {
     unsigned acquisitions = 0;
     unsigned cancellations = 0;
     unsigned submissions = 0;
+    unsigned submissionsBeforeAcquire = 0;
 } presentationProbe;
 
 template<typename Function> Function Original(const char* name) {
@@ -79,6 +80,9 @@ extern "C" SDL_GPUBuffer* SDL_CreateGPUBuffer(SDL_GPUDevice* device, const SDL_G
 
 extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* command, SDL_Window* window,
     SDL_GPUTexture** texture, Uint32* width, Uint32* height) {
+    if (presentationProbe.active) {
+        presentationProbe.submissionsBeforeAcquire = presentationProbe.submissions;
+    }
     const bool result = Original<decltype(&SDL_WaitAndAcquireGPUSwapchainTexture)>(
         "SDL_WaitAndAcquireGPUSwapchainTexture")(command, window, texture, width, height);
     if (result && *texture && presentationProbe.active) {
@@ -1127,8 +1131,14 @@ int main() {
     CHECK(session.Resize(16, 16, 1, error));
     frame.events = {draw};
     frame.draws[0] = Solid(1, 0, 0);
+    presentationProbe = {};
+    presentationProbe.active = true;
     CHECK(session.Render(frame, error));
+    CHECK(presentationProbe.submissions == 0);
     CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.submissionsBeforeAcquire == 1);
+    CHECK(presentationProbe.submissions == 2);
+    presentationProbe.active = false;
     std::vector<unsigned char> presented(32 * 16 * 4);
     CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
     CHECK(presented[0] == 0 && presented[3] == 255);

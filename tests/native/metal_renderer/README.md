@@ -14,7 +14,9 @@ Shared effect input, simulation and pool-reuse checks live in [effects_safety](.
 
 The session encodes ordered scene, HUD, radar and backdrop work into one pending SDL_GPU
 command buffer. Presentation, synchronous readback/finish, resize, and an exceptional
-128 MiB upload-pressure boundary submit it. Streaming storage retires by submission fence,
+128 MiB upload-pressure boundary submit it. Presentation submits scene work before waiting
+for a drawable, then submits its small blit command separately so GPU execution can overlap
+the compositor wait. Streaming storage retires by the scene submission fence,
 with a 128 MiB retained vertex/index/transfer cache (three measured 41 MiB working sets). Direct effect textures and cached panel
 meshes share the upload accounting. MSAA samples are preserved between passes and resolved
 only before a scene consumer; the separately retained presented image remains readable
