@@ -114,9 +114,12 @@ DrawPacket ClearDraw(const ClearEvent& clear, unsigned width, unsigned height) {
 struct MetalSession::Impl {
     struct Stream {
         SDL_GPUBuffer* vertices = nullptr;
+        SDL_GPUBuffer* indices = nullptr;
         SDL_GPUTransferBuffer* upload = nullptr;
         SDL_GPUFence* fence = nullptr;
-        std::size_t capacity = 0;
+        std::size_t vertexCapacity = 0;
+        std::size_t indexCapacity = 0;
+        std::size_t uploadCapacity = 0;
     };
     struct Texture {
         std::weak_ptr<const TextureObject> object;
@@ -133,12 +136,14 @@ struct MetalSession::Impl {
         std::array<SDL_GPUSampler*, kTextureUnits> samplers{};
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
+        Uint32 indexOffset = 0;
     };
 
     static bool SameDrawState(const Draw& first, const Draw& second) {
         const auto& left = first.data;
         const auto& right = second.data;
-        return first.pipeline == second.pipeline && first.textures == second.textures &&
+        return left.indices.empty() && right.indices.empty() &&
+            first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
             left.raster.depthRange == right.raster.depthRange && left.raster.scissor == right.raster.scissor &&
             left.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] ==
@@ -415,40 +420,59 @@ struct MetalSession::Impl {
         return draw.pipeline || DeviceFailure(error, "Create cached Metal pipeline");
     }
 
-    bool EnsureStream(Stream& stream, std::size_t size, std::string& error) {
-        if (!Wait(stream, error)) {
-            return false;
+    static std::size_t StreamCapacity(std::size_t size) {
+        constexpr std::size_t kInitialStreamingBytes = 4096;
+        std::size_t capacity = kInitialStreamingBytes;
+        while (capacity < size) {
+            capacity *= 2;
         }
-        if (stream.capacity >= size) {
+        return std::min(capacity, kMaximumStreamingBytes);
+    }
+
+    bool EnsureGeometryBuffer(SDL_GPUBuffer*& buffer, std::size_t& capacity, std::size_t bytes,
+        SDL_GPUBufferUsageFlags usage, std::string& error) {
+        if (capacity >= bytes) {
             return true;
         }
-        if (stream.vertices) {
-            SDL_ReleaseGPUBuffer(device, stream.vertices);
+        if (buffer) {
+            SDL_ReleaseGPUBuffer(device, buffer);
+        }
+        buffer = nullptr;
+        capacity = 0;
+        SDL_GPUBufferCreateInfo info{};
+        info.size = static_cast<Uint32>(StreamCapacity(bytes));
+        info.usage = usage;
+        buffer = SDL_CreateGPUBuffer(device, &info);
+        if (!buffer) {
+            return DeviceFailure(error, "Grow persistent Metal geometry buffer");
+        }
+        capacity = info.size;
+        return true;
+    }
+
+    bool EnsureStream(Stream& stream, std::size_t vertexBytes, std::size_t indexBytes, std::size_t uploadBytes,
+        std::string& error) {
+        if (!Wait(stream, error) ||
+            !EnsureGeometryBuffer(stream.vertices, stream.vertexCapacity, vertexBytes, SDL_GPU_BUFFERUSAGE_VERTEX, error) ||
+            !EnsureGeometryBuffer(stream.indices, stream.indexCapacity, indexBytes, SDL_GPU_BUFFERUSAGE_INDEX, error)) {
+            return false;
+        }
+        if (stream.uploadCapacity >= uploadBytes && stream.upload) {
+            return true;
         }
         if (stream.upload) {
             SDL_ReleaseGPUTransferBuffer(device, stream.upload);
         }
-        stream.vertices = nullptr;
         stream.upload = nullptr;
-        stream.capacity = 0;
-        // Geometric growth, capped before allocating; each of the three slots is reused after its fence.
-        std::size_t capacity = 4096;
-        while (capacity < size) {
-            capacity *= 2;
-        }
-        capacity = std::min(capacity, kMaximumStreamingBytes);
-        SDL_GPUBufferCreateInfo buffer{};
-        buffer.size = static_cast<Uint32>(capacity);
-        buffer.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
-        stream.vertices = SDL_CreateGPUBuffer(device, &buffer);
+        stream.uploadCapacity = 0;
         SDL_GPUTransferBufferCreateInfo transfer{};
-        transfer.size = static_cast<Uint32>(capacity);
+        transfer.size = static_cast<Uint32>(StreamCapacity(uploadBytes));
         transfer.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
         stream.upload = SDL_CreateGPUTransferBuffer(device, &transfer);
-        if (!stream.vertices || !stream.upload) {
-            return DeviceFailure(error, "Grow persistent Metal streaming buffers");
+        if (!stream.upload) {
+            return DeviceFailure(error, "Grow persistent Metal upload buffer");
         }
-        stream.capacity = capacity;
+        stream.uploadCapacity = transfer.size;
         return true;
     }
 };
@@ -637,7 +661,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         state.samplers.clear();
     }
     std::vector<Impl::Draw> draws;
+    std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
+    std::size_t indexBytes = 0;
     for (const auto& event : frame.events) {
         Impl::Draw draw;
         if (event.kind == FrameEventKind::Clear) {
@@ -653,12 +679,17 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
                 draw.data.raster.cull == Cull::FrontAndBack)) {
             continue;
         }
-        const auto bytes = draw.data.vertices.size() * sizeof(Vertex);
-        if (bytes > kMaximumStreamingBytes - vertexBytes) {
+        const auto drawVertexBytes = draw.data.vertices.size() * sizeof(Vertex);
+        const auto drawIndexBytes = draw.data.indices.size() * sizeof(std::uint32_t);
+        const auto bytes = drawVertexBytes + drawIndexBytes;
+        if (bytes > kMaximumStreamingBytes - geometryBytes) {
             return Fail(error, "Frame geometry exceeds Metal streaming budget");
         }
         draw.vertexOffset = static_cast<Uint32>(vertexBytes);
-        vertexBytes += bytes;
+        draw.indexOffset = static_cast<Uint32>(indexBytes);
+        vertexBytes += drawVertexBytes;
+        indexBytes += drawIndexBytes;
+        geometryBytes += bytes;
         draws.push_back(std::move(draw));
     }
     struct Upload {
@@ -667,7 +698,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         Uint32 offset;
     };
     std::vector<Upload> uploads;
-    auto uploadBytes = vertexBytes;
+    auto uploadBytes = geometryBytes;
     for (auto& pair : state.textures) {
         auto& texture = pair.second;
         if (texture.uploaded || texture.lastUse != state.serial) {
@@ -684,7 +715,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         }
     }
     auto& stream = state.streams[state.streamIndex];
-    if (!state.EnsureStream(stream, std::max<std::size_t>(1, uploadBytes), error)) {
+    if (!state.EnsureStream(stream, vertexBytes, indexBytes, uploadBytes, error)) {
         return false;
     }
     auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream.upload, false));
@@ -693,6 +724,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     }
     for (const auto& draw : draws) {
         std::memcpy(mapped + draw.vertexOffset, draw.data.vertices.data(), draw.data.vertices.size() * sizeof(Vertex));
+        if (!draw.data.indices.empty()) {
+            std::memcpy(mapped + vertexBytes + draw.indexOffset, draw.data.indices.data(),
+                draw.data.indices.size() * sizeof(std::uint32_t));
+        }
     }
     for (const auto& upload : uploads) {
         const auto& image = upload.texture->data.levels[upload.level];
@@ -711,6 +746,11 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     if (vertexBytes) {
         SDL_GPUTransferBufferLocation source{stream.upload, 0};
         SDL_GPUBufferRegion destination{stream.vertices, 0, static_cast<Uint32>(vertexBytes)};
+        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+    }
+    if (indexBytes) {
+        SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(vertexBytes)};
+        SDL_GPUBufferRegion destination{stream.indices, 0, static_cast<Uint32>(indexBytes)};
         SDL_UploadToGPUBuffer(copy, &source, &destination, false);
     }
     for (const auto& upload : uploads) {
@@ -816,7 +856,13 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
         SDL_PushGPUVertexUniformData(command, 0, &constants, sizeof(constants));
         SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
-        SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
+        if (data.indices.empty()) {
+            SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
+        } else {
+            SDL_GPUBufferBinding indices{stream.indices, draw.indexOffset};
+            SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+            SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(data.indices.size()), 1, 0, 0, 0);
+        }
     }
     SDL_EndGPURenderPass(pass);
     stream.fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command);
@@ -1086,6 +1132,9 @@ void MetalSession::Shutdown() {
         }
         if (stream.vertices) {
             SDL_ReleaseGPUBuffer(state.device, stream.vertices);
+        }
+        if (stream.indices) {
+            SDL_ReleaseGPUBuffer(state.device, stream.indices);
         }
         if (stream.upload) {
             SDL_ReleaseGPUTransferBuffer(state.device, stream.upload);

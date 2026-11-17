@@ -971,15 +971,15 @@ Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vecto
                 return;
             }
         }
-        Command command;
-        command.op = Op::DrawNative;
-        command.argument = static_cast<std::uint32_t>(Primitive::Triangles);
-        command.second = perVertexColor ? 1 : 0;
-        command.vertices.reserve(indices.size());
-        for (const auto index : indices) {
-            command.vertices.push_back(vertices[index]);
+        if (!indices.empty()) {
+            Command command;
+            command.op = Op::DrawNative;
+            command.argument = static_cast<std::uint32_t>(Primitive::Triangles);
+            command.second = perVertexColor ? 1 : 0;
+            command.vertices = vertices;
+            command.indices = indices;
+            Capture(command);
         }
-        Capture(command);
         const auto& last = vertices[lastVertex];
         CaptureValues(Op::TexCoord, {{last.texcoords[0][0], last.texcoords[0][1]}}, 0);
         if (perVertexColor) {

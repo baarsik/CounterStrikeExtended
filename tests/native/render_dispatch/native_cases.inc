@@ -231,7 +231,7 @@ void NativeIndexed() {
     vertices[2].color = {{0.25f, 0.5f, 0.75f, 1}};
     vertices[3].texcoords[0] = {{0.3f, 0.7f, 0, 1}};
     vertices[3].color = {{1, 0, 0, 1}};
-    const std::vector<std::uint32_t> indices{2, 1, 0};
+    const std::vector<std::uint32_t> indices{2, 1, 0, 0, 1, 2};
     qglColor4f(0, 1, 0, 1);
     Check(SubmitNativeIndexed(vertices, indices, 3, false) == Status::Ok, "native indexed submit refused");
     Check(native.frame.State().Current().texcoords[0][0] == 0.3f &&
@@ -241,8 +241,11 @@ void NativeIndexed() {
         "last source indexed color missing");
     qglFinish();
     const auto& draws = native.submitted[0].draws;
+    Check(draws.size() == 2 && draws[0].vertices.size() == vertices.size() &&
+        draws[1].vertices.size() == vertices.size(), "native indexed geometry expanded shared vertices");
+    Check(draws[0].indices == indices && draws[1].indices == indices, "native triangle indices lost");
     Check(draws.size() == 2 && draws[0].vertices[1].position[0] == 12 &&
-        draws[0].vertices[0].color[1] == 1 && draws[1].vertices[0].color[0] == 0.25f,
+        draws[0].vertices[0].color[1] == 1 && draws[1].vertices[2].color[0] == 0.25f,
         "indexed order or per-vertex color changed");
     Check(events.empty(), "native indexed forwarded");
 }
@@ -483,7 +486,8 @@ void NativeIndexedBounds(const std::string& kind) {
         qglCallList(list);
         qglFinish();
         Check(LegacyDispatchStatus() == Status::Ok && native.submitted[0].draws.size() == 1 &&
-            native.submitted[0].draws[0].vertices[1].position[0] == 12,
+            native.submitted[0].draws[0].vertices[1].position[0] == 12 &&
+            native.submitted[0].draws[0].indices == std::vector<std::uint32_t>({2, 1, 0}),
             "indexed list lost owned geometry or replayed during compile");
     } else {
         const auto expected = kind == "quota" ? Status::LimitExceeded :

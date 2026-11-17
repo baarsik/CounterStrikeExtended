@@ -9,7 +9,7 @@ if(NOT EXISTS "${CSE_METAL_SDL_LIBRARY}")
 endif()
 set(native "${CSE_ROOT}/src/engine/render/native")
 add_library(metal_preparation STATIC "${native}/metal_draw.cpp" "${native}/legacy_state.cpp"
-  "${native}/legacy_texture.cpp")
+  "${native}/legacy_texture.cpp" "${native}/legacy_commands.cpp")
 target_include_directories(metal_preparation PUBLIC "${native}")
 add_executable(metal_draw_tests draw_tests.cpp)
 target_link_libraries(metal_draw_tests PRIVATE metal_preparation)
@@ -29,7 +29,7 @@ add_test(NAME metal-radar-effects COMMAND metal_radar_tests)
 add_test(NAME metal-draw-preparation COMMAND metal_draw_tests)
 add_test(NAME metal-session-device COMMAND metal_session_tests)
 add_executable(renderer_backend_tests ../renderer_selection/backend_tests.cpp
-    "${native}/../backend.cpp" "${native}/legacy_dispatch.cpp" "${native}/legacy_commands.cpp"
+    "${native}/../backend.cpp" "${native}/legacy_dispatch.cpp"
     "${native}/frame_stream.cpp")
 target_include_directories(renderer_backend_tests PRIVATE "${native}/..")
 target_compile_definitions(renderer_backend_tests PRIVATE CSE_ENABLE_METAL=1)

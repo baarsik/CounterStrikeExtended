@@ -12,6 +12,10 @@ bool ValidPrimitive(std::uint32_t value) {
     return value <= static_cast<std::uint32_t>(Primitive::LineLoop);
 }
 
+std::size_t GeometryCost(const Command& command) {
+    return std::max(command.vertices.size(), command.indices.size());
+}
+
 bool Integral(double value, int& result) {
     if (!std::isfinite(value) || value < std::numeric_limits<int>::min()
         || value > std::numeric_limits<int>::max() || value != std::floor(value)) {
@@ -296,7 +300,7 @@ Status Recorder::EndList() {
     const std::size_t oldCommands = old == lists_.end() ? 0 : old->second.size();
     if (old != lists_.end()) {
         for (const auto& command : old->second) {
-            oldVertices += command.vertices.size();
+            oldVertices += GeometryCost(command);
             oldVertices += command.op == Op::Vertex ? 1 : 0;
             oldBytes += command.upload.bytes.size();
         }
@@ -325,7 +329,7 @@ Status Recorder::DeleteList(std::uint32_t id) {
     const auto old = lists_.find(id);
     if (old != lists_.end()) {
         for (const auto& command : old->second) {
-            storedVertices_ -= command.vertices.size();
+            storedVertices_ -= GeometryCost(command);
             storedVertices_ -= command.op == Op::Vertex ? 1 : 0;
             storedUploadBytes_ -= command.upload.bytes.size();
         }
@@ -339,6 +343,21 @@ Status Recorder::Submit(const Command& input) {
     if (input.upload.bytes.size() > kTextureUploadBytes || input.names.size() > kTextureNames ||
         (compiling_ && input.upload.bytes.size() > limits_.listUploadBytes - pendingUploadBytes_)) {
         return Status::LimitExceeded;
+    }
+    if (!input.indices.empty()) {
+        constexpr std::size_t kIndicesPerTriangle = 3;
+        if (input.op != Op::DrawNative || input.argument != static_cast<std::uint32_t>(Primitive::Triangles) ||
+            input.indices.size() % kIndicesPerTriangle != 0) {
+            return Status::InvalidOperation;
+        }
+        if (input.indices.size() > limits_.verticesPerDraw) {
+            return Status::LimitExceeded;
+        }
+        for (const auto index : input.indices) {
+            if (index >= input.vertices.size()) {
+                return Status::InvalidValue;
+            }
+        }
     }
     Command captured;
     const bool upload = input.op == Op::TextureImage || input.op == Op::TextureSubImage;
@@ -375,7 +394,7 @@ Status Recorder::Submit(const Command& input) {
         if (command.op == Op::Begin && !ValidPrimitive(command.argument)) {
             return Status::InvalidValue;
         }
-        const auto addition = command.vertices.size() + (command.op == Op::Vertex ? 1 : 0);
+        const auto addition = GeometryCost(command) + (command.op == Op::Vertex ? 1 : 0);
         if (command.vertices.size() > limits_.verticesPerDraw
             || addition > limits_.storedVertices - pendingVertices_) {
             return Status::LimitExceeded;
@@ -406,7 +425,7 @@ Status Recorder::Submit(const Command& input) {
             BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
         }
         pendingList_.push_back(command);
-        pendingVertices_ += command.vertices.size() + (command.op == Op::Vertex ? 1 : 0);
+        pendingVertices_ += GeometryCost(command) + (command.op == Op::Vertex ? 1 : 0);
         pendingUploadBytes_ += command.upload.bytes.size();
         if (command.op == Op::Begin || command.op == Op::End) {
             compileBegin_ = command.op == Op::Begin;
@@ -416,10 +435,10 @@ Status Recorder::Submit(const Command& input) {
 }
 
 Status Recorder::AppendDraw(DrawPacket& draw) {
-    if (draws_.size() >= limits_.drawPackets || draw.vertices.size() > limits_.frameVertices - frameVertices_) {
+    const auto vertices = std::max(draw.vertices.size(), draw.indices.size());
+    if (draws_.size() >= limits_.drawPackets || vertices > limits_.frameVertices - frameVertices_) {
         return Status::LimitExceeded;
     }
-    const auto vertices = draw.vertices.size();
     draws_.push_back(std::move(draw));
     frameVertices_ += vertices;
     return Status::Ok;
@@ -645,6 +664,10 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
             BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
         }
         draw.vertices = command.vertices;
+        if (!command.indices.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+            draw.indices = command.indices;
+        }
         for (auto& vertex : draw.vertices) {
             if (command.op != Op::DrawNative || !command.second) {
                 vertex.color = state_.Current().color;
@@ -687,6 +710,35 @@ Status ExpandTopology(const DrawPacket& draw, std::vector<Vertex>& output, Primi
     }
     if (draw.vertices.size() > kMaximumVertices) {
         return Status::LimitExceeded;
+    }
+    if (!draw.indices.empty()) {
+        constexpr std::size_t kIndicesPerTriangle = 3;
+        if (draw.primitive != Primitive::Triangles || draw.indices.size() % kIndicesPerTriangle != 0) {
+            return Status::InvalidValue;
+        }
+        if (draw.indices.size() > kMaximumVertices) {
+            return Status::LimitExceeded;
+        }
+        for (const auto index : draw.indices) {
+            if (index >= draw.vertices.size()) {
+                return Status::InvalidValue;
+            }
+        }
+        std::vector<Vertex> expanded;
+        expanded.reserve(draw.indices.size());
+        for (std::size_t first = 0; first < draw.indices.size(); first += kIndicesPerTriangle) {
+            const auto provoking = draw.indices[first + kIndicesPerTriangle - 1];
+            for (std::size_t corner = 0; corner < kIndicesPerTriangle; ++corner) {
+                auto vertex = draw.vertices[draw.indices[first + corner]];
+                if (draw.shade == Shade::Flat) {
+                    vertex.color = draw.vertices[provoking].color;
+                }
+                expanded.push_back(vertex);
+            }
+        }
+        output = std::move(expanded);
+        topology = Primitive::Triangles;
+        return Status::Ok;
     }
     std::vector<Vertex> result;
     const auto emit = [&draw, &result](std::initializer_list<std::size_t> indices, std::size_t provoking) {

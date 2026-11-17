@@ -197,12 +197,32 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         raster.polygonMode[0] > PolygonMode::Fill) {
         return Fail(error, "Metal requires matching fill/line polygon modes; polygon points are unsupported");
     }
+    if (!draw.indices.empty()) {
+        constexpr std::size_t kIndicesPerTriangle = 3;
+        if (draw.primitive != Primitive::Triangles || draw.indices.size() % kIndicesPerTriangle != 0 ||
+            draw.indices.size() > kMaximumVertices) {
+            return Fail(error, "Invalid or oversized native triangle indices");
+        }
+        for (const auto index : draw.indices) {
+            if (index >= draw.vertices.size()) {
+                return Fail(error, "Native triangle index is outside the vertex buffer");
+            }
+        }
+        if (draw.shade != Shade::Smooth || raster.polygonMode[0] != PolygonMode::Fill) {
+            auto expanded = draw;
+            if (ExpandTopology(draw, expanded.vertices, expanded.primitive) != Status::Ok) {
+                return Fail(error, "Cannot lower native triangle shading or wireframe");
+            }
+            expanded.indices.clear();
+            return PrepareMetalDraw(expanded, output, error);
+        }
+    }
     const auto count = draw.vertices.size();
     const bool lines = draw.primitive == Primitive::Lines || draw.primitive == Primitive::LineLoop;
     const bool wire = !lines && raster.polygonMode[0] == PolygonMode::Line;
     std::size_t loweredCount = 0;
     switch (draw.primitive) {
-    case Primitive::Triangles: loweredCount = count / 3 * (wire ? 6 : 3); break;
+    case Primitive::Triangles: loweredCount = draw.indices.empty() ? count / 3 * (wire ? 6 : 3) : count; break;
     case Primitive::TriangleFan:
     case Primitive::TriangleStrip: loweredCount = count > 2 ? (count - 2) * (wire ? 6 : 3) : 0; break;
     case Primitive::Quads: loweredCount = count / 4 * (wire ? 8 : 6); break;
@@ -218,6 +238,7 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     prepared.vertex = {draw.modelView, draw.projection, draw.textureMatrices};
     prepared.raster = raster;
     prepared.vertices.reserve(loweredCount);
+    prepared.indices = draw.indices;
     prepared.topology = draw.primitive == Primitive::Lines || draw.primitive == Primitive::LineLoop ?
         Primitive::Lines : Primitive::Triangles;
     for (const auto& vertex : draw.vertices) {

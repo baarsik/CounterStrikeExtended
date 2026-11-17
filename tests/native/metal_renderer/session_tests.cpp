@@ -16,6 +16,8 @@ using namespace cse::render;
 namespace {
 constexpr int kTargetSize = 16;
 unsigned sceneDrawCalls = 0;
+unsigned sceneIndexedDrawCalls = 0;
+bool mixedGeometryBufferUsage = false;
 // Narrow link seam around presentation allocation and command retirement. All successful calls use real SDL.
 struct PresentationProbe {
     bool active = false;
@@ -43,6 +45,13 @@ extern "C" void SDL_DrawGPUPrimitives(SDL_GPURenderPass* pass, Uint32 vertices, 
         pass, vertices, instances, firstVertex, firstInstance);
 }
 
+extern "C" void SDL_DrawGPUIndexedPrimitives(SDL_GPURenderPass* pass, Uint32 indices, Uint32 instances,
+    Uint32 firstIndex, Sint32 vertexOffset, Uint32 firstInstance) {
+    ++sceneIndexedDrawCalls;
+    Original<decltype(&SDL_DrawGPUIndexedPrimitives)>("SDL_DrawGPUIndexedPrimitives")(
+        pass, indices, instances, firstIndex, vertexOffset, firstInstance);
+}
+
 extern "C" SDL_GPUTexture* SDL_CreateGPUTexture(SDL_GPUDevice* device, const SDL_GPUTextureCreateInfo* info) {
     if (presentationProbe.active && presentationProbe.allocationsUntilFailure > 0 &&
         --presentationProbe.allocationsUntilFailure == 0) {
@@ -50,6 +59,13 @@ extern "C" SDL_GPUTexture* SDL_CreateGPUTexture(SDL_GPUDevice* device, const SDL
         return nullptr;
     }
     return Original<decltype(&SDL_CreateGPUTexture)>("SDL_CreateGPUTexture")(device, info);
+}
+
+extern "C" SDL_GPUBuffer* SDL_CreateGPUBuffer(SDL_GPUDevice* device, const SDL_GPUBufferCreateInfo* info) {
+    if ((info->usage & SDL_GPU_BUFFERUSAGE_VERTEX) && (info->usage & SDL_GPU_BUFFERUSAGE_INDEX)) {
+        mixedGeometryBufferUsage = true;
+    }
+    return Original<decltype(&SDL_CreateGPUBuffer)>("SDL_CreateGPUBuffer")(device, info);
 }
 
 extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* command, SDL_Window* window,
@@ -200,6 +216,117 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
 }
 
+void IndexedDraws(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    frame.draws = {Solid(1, 0, 0)};
+    frame.draws[0].primitive = Primitive::Triangles;
+    frame.draws[0].indices = {0, 1, 2, 0, 2, 3};
+    frame.events.resize(1);
+    sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 0 && sceneIndexedDrawCalls == 1);
+    CHECK(!mixedGeometryBufferUsage);
+    std::array<unsigned char, 4> pixel{};
+    constexpr int kLeftSample = kTargetSize / 4;
+    constexpr int kRightSample = kTargetSize - kLeftSample;
+    constexpr int kMiddle = kTargetSize / 2;
+    constexpr unsigned char kOpaqueChannel = 255;
+    CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    // Mixed draws give the indexed mesh nonzero vertex/index offsets and exercise all streaming slots.
+    constexpr unsigned kStreamReuseDraws = 9;
+    for (unsigned cycle = 0; cycle < kStreamReuseDraws; ++cycle) {
+        frame.draws = {Solid(1, 0, 0), Solid(0, cycle % 2 == 0 ? 1 : 0, cycle % 2 == 0 ? 0 : 1), Solid(0, 0, 1)};
+        for (auto& vertex : frame.draws[0].vertices) {
+            vertex.position[0] = (vertex.position[0] - 1) * 0.5f;
+        }
+        for (auto& vertex : frame.draws[1].vertices) {
+            vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
+        }
+        frame.draws[1].primitive = Primitive::Triangles;
+        frame.draws[1].indices = {0, 1, 2, 0, 2, 3};
+        FrameEvent second;
+        second.drawIndex = 1;
+        FrameEvent third;
+        third.drawIndex = 2;
+        frame.draws[2].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = true;
+        frame.draws[2].raster.scissor = {{0, 0, 1, 1}};
+        frame.events = {FrameEvent{}, second, third};
+        sceneDrawCalls = 0;
+        sceneIndexedDrawCalls = 0;
+        CHECK(session.Render(frame, error));
+        CHECK(sceneDrawCalls == 2 && sceneIndexedDrawCalls == 1);
+        CHECK(session.ReadPixels(kLeftSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+        CHECK(session.ReadPixels(kRightSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[cycle % 2 == 0 ? 1 : 2] == kOpaqueChannel);
+        CHECK(session.ReadPixels(0, 0, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[1] == 0 && pixel[2] == kOpaqueChannel);
+    }
+    // Two indexed ranges share each stream but must retain separate offsets and compositing order.
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 1, 1}};
+    FrameEvent second;
+    second.drawIndex = 1;
+    frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
+    frame.events = {clear, FrameEvent{}, second};
+    for (auto& draw : frame.draws) {
+        draw.primitive = Primitive::Triangles;
+        draw.indices = {0, 1, 2, 0, 2, 3};
+        draw.raster.enabled[static_cast<std::size_t>(Capability::Blend)] = true;
+        draw.raster.blendSource = BlendFactor::SourceAlpha;
+        draw.raster.blendDestination = BlendFactor::InverseSourceAlpha;
+        for (auto& vertex : draw.vertices) {
+            vertex.color[3] = 0.5f;
+        }
+    }
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(sceneIndexedDrawCalls == 2);
+    CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    constexpr int kQuarterChannel = 64;
+    constexpr int kHalfChannel = 128;
+    CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
+    CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
+    CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+    // Indexed flat and wireframe fallback must match the exact expanded triangle image.
+    frame.draws = {Solid(1, 0, 0)};
+    frame.draws[0].primitive = Primitive::Triangles;
+    frame.draws[0].indices = {0, 1, 2, 0, 2, 3};
+    frame.draws[0].vertices[2].color = {{0, 1, 0, 1}};
+    frame.draws[0].vertices[3].color = {{0, 0, 1, 1}};
+    frame.events = {clear, FrameEvent{}};
+    constexpr std::size_t kImageBytes = kTargetSize * kTargetSize * 4;
+    const auto source = frame.draws[0];
+    for (bool wire : {false, true}) {
+        auto indexed = source;
+        indexed.shade = Shade::Flat;
+        indexed.raster.shade = Shade::Flat;
+        indexed.raster.polygonMode = wire ? std::array<PolygonMode, 2>{{PolygonMode::Line, PolygonMode::Line}} :
+            std::array<PolygonMode, 2>{{PolygonMode::Fill, PolygonMode::Fill}};
+        frame.draws[0] = indexed;
+        CHECK(session.Render(frame, error));
+        std::array<unsigned char, kImageBytes> actual{};
+        std::array<unsigned char, kImageBytes> expected{};
+        CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, actual.data(), error));
+        auto expanded = indexed;
+        expanded.vertices.clear();
+        expanded.indices.clear();
+        for (auto index : indexed.indices) {
+            expanded.vertices.push_back(indexed.vertices[index]);
+        }
+        frame.draws[0] = expanded;
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, expected.data(), error));
+        CHECK(actual == expected);
+    }
+}
+
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -211,6 +338,7 @@ int main() {
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
     ConsecutiveDraws(session, error);
+    IndexedDraws(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;

@@ -25,6 +25,7 @@ struct MetalDrawData {
     GpuVertexConstants vertex;
     MetalFragmentConstants fragment;
     std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
     Primitive topology = Primitive::Triangles;
     RasterState raster;
 };

@@ -46,6 +46,7 @@ struct Command {
     // A DrawArrays command owns its resolved position/UV data. Current color is
     // applied at execution (the engine enables only position and UV arrays).
     std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
     std::vector<std::uint32_t> names;
     TextureUpload upload;
     // Recorder overwrites this at submission: lists retain capture-time unpack state.
@@ -61,6 +62,7 @@ struct DrawPacket {
     RasterState raster;
     std::array<TextureUnitState, kTextureUnits> textures{};
     std::vector<Vertex> vertices;
+    std::vector<std::uint32_t> indices;
     std::array<TextureResources, kTextureUnits> resources;
     std::shared_ptr<const SharedPalette> palette;
     bool sharedTexturePalette = false;

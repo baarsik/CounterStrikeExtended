@@ -184,6 +184,15 @@ void Topology() {
     Check(output[3].position[0] == 2 && output[4].position[0] == 1 && output[5].position[0] == 3,
         "odd strip winding preserved");
     Check(output[3].color[0] == 0.75f && output[4].color[0] == 0.75f, "provoking color retained");
+    draw.primitive = Primitive::Triangles;
+    draw.indices = {0, 1, 2, 0, 2, 3};
+    Check(ExpandTopology(draw, output, result) == Status::Ok && output.size() == draw.indices.size(),
+        "indexed topology expands for compatibility consumers");
+    Check(output[0].color[0] == 0.5f && output[3].color[0] == 0.75f,
+        "indexed provoking colors retained");
+    draw.indices[0] = static_cast<std::uint32_t>(draw.vertices.size());
+    Check(ExpandTopology(draw, output, result) == Status::InvalidValue && output.size() == 6,
+        "invalid indexed topology read beyond vertices or replaced output");
     draw.primitive = Primitive::Quads;
     Check(ExpandTopology(draw, output, result) == Status::UnsupportedTopology, "unqualified quad lowering explicit");
 }
