@@ -1,8 +1,8 @@
 # WAV loading and resampling
 
 This component compiles the complete production `snd_mem.cpp` against actual
-SDK declarations. It also compiles the production `COM_LoadFileLimit` and
-`Wavstream_Close` bodies with controlled filesystem, cache and temporary-memory
+SDK declarations. It also compiles the production limited file loader, mixer,
+stream cleanup and VOX paths with controlled filesystem, cache and temporary-memory
 services. It opens no audio device, game or external provider.
 
 Cases cover complete 8/16-bit PCM, every truncated prefix of an authored WAV,
@@ -10,9 +10,11 @@ invalid format fields and chunk lengths, RIFF containment, cue/loop bounds,
 partial streamed data, padded and legacy unpadded Cool Edit loops, exact PCM
 conversion, fixed-point overflow, complete output clearing, and file/read-buffer
 ownership through successful loads, rejected files, allocation failure and
-stream refill failure. Every bundled bot WAV is also parsed as a compatibility
-corpus. Assertions use authored metadata and PCM bytes rather than the parser's
-own calculations.
+stream refill failure. Cache movement and eviction are forced inside the temporary
+allocation. The mixer checks inspect both channels' PCM output and verify that the
+next channel plays when a load or refill fails. VOX cases cover empty and
+parameter-only sentences as well as a valid word. Every bundled bot WAV is parsed
+as a compatibility corpus.
 
 ```sh
 cmake -S tests/native/wav_loading -B build/wav-loading-sanitized -G Ninja \

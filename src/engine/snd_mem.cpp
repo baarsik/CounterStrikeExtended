@@ -7,6 +7,7 @@
 #include "sys.h"
 #include "zone.h"
 
+#include <algorithm>
 #include <climits>
 #include <cstdint>
 #include <cstring>
@@ -121,101 +122,96 @@ void FindChunk( char* name )
 }
 
 sfxcache_t *S_LoadStreamSound(sfx_t *s, channel_t *ch) {
-    char namebuffer[256];
-    char wavname[SOUND_NAME_BYTES];
-    byte *data;
-    wavinfo_t info;
-    sfxcache_t *sc;
-    wavstream_t *stream;
-    qboolean ffirstload;
-    int cbread;
-
-    if (cl.fPrecaching) {
-        return NULL;
+    if (!ch || cl.fPrecaching) {
+        return nullptr;
     }
 
-    Q_strncpy(wavname, s->name + 1, sizeof(wavname) - 1);
-    wavname[sizeof(wavname) - 1] = 0;
-
-    // see if still in memory
-    sc = (sfxcache_t *)Cache_Check(&s->cache);
-    stream = &wavstreams[ch - channels];
-    if (sc && stream->hFile) {
-        return sc;
+    const int channelIndex = static_cast<int>(ch - channels);
+    wavstream_t *stream = &wavstreams[channelIndex];
+    const bool firstLoad = !stream->hFile;
+    if (!firstLoad) {
+        if (auto *cache = static_cast<sfxcache_t *>(Cache_Check(&s->cache))) {
+            return cache;
+        }
     }
-    const auto closeStream = [ch](wavstream_t *) {
-        Wavstream_Close(static_cast<int>(ch - channels));
+
+    const auto closeStream = [s, channelIndex](wavstream_t *) {
+        Wavstream_Close(channelIndex);
+        if (s->cache.data) {
+            Cache_Free(&s->cache);
+        }
     };
     std::unique_ptr<wavstream_t, decltype(closeStream)> streamCleanup(stream, closeStream);
 
-    // load it in
+    char wavname[SOUND_NAME_BYTES];
+    Q_strncpy(wavname, s->name + 1, sizeof(wavname) - 1);
+    wavname[sizeof(wavname) - 1] = 0;
+    char namebuffer[256];
     Q_strcpy(namebuffer, "sound");
     if (wavname[0] != '/') {
         strncat(namebuffer, "/", sizeof(namebuffer) - strlen(namebuffer) - 1);
     }
     strncat(namebuffer, wavname, sizeof(namebuffer) - strlen(namebuffer) - 1);
 
-    ffirstload = stream->hFile == NULL;
-
-    data = COM_LoadFileLimit(namebuffer, stream->lastposloaded, 0x8000, &cbread, &stream->hFile);
-    if (!data) {
+    // An evicted live cache must be rebuilt from the same chunk, including its already played samples.
+    const int readOffset = firstLoad ? 0 : stream->lastposloaded;
+    const int readLimit = firstLoad ? WAV_STREAM_CHUNK_BYTES : stream->csamplesinmem;
+    int bytesRead;
+    byte *data = COM_LoadFileLimit(namebuffer, readOffset, readLimit, &bytesRead, &stream->hFile);
+    if (!data || (!firstLoad && bytesRead != readLimit)) {
         Con_DPrintf("S_LoadStreamSound: Couldn't load %s\n", namebuffer);
-        return NULL;
+        return nullptr;
     }
 
-    if (ffirstload) {
-        if (!GetWavinfo(s->name, data, cbread, &info)) {
+    wavinfo_t info = stream->info;
+    if (firstLoad) {
+        if (!GetWavinfo(s->name, data, bytesRead, &info)) {
             Con_DPrintf("Failed loading %s\n", wavname);
-            return NULL;
+            return nullptr;
         }
 
         if (info.channels != 1) {
             Con_DPrintf("%s is a stereo sample\n", wavname);
-            return NULL;
+            return nullptr;
         }
 
         if (info.width != 1) {
             Con_DPrintf("%s is a 16 bit sample\n", wavname);
-            return NULL;
+            return nullptr;
         }
 
         if (shm && info.rate != shm->speed) {
             Con_DPrintf("%s ignored, not stored at playback sample rate!\n", wavname);
-            return NULL;
+            return nullptr;
         }
 
-        stream->csamplesinmem = cbread - info.dataofs;
-    } else {
-        info = stream->info;
-        stream->csamplesinmem = cbread;
+        stream->lastposloaded = info.dataofs;
+        stream->info = info;
     }
 
-    if (stream->csamplesinmem > info.samples - stream->csamplesplayed) {
-        stream->csamplesinmem = info.samples - stream->csamplesplayed;
-    }
-    stream->info = info;
-
-    if (!sc) {
-        sc = (sfxcache_t *)Cache_Alloc(&s->cache, (cbread < 0x8000 ? cbread : 0x8000) + sizeof(sfxcache_t), wavname);
-        if (!sc) {
-            return NULL;
+    // The temporary read buffer can move or evict the cache.
+    auto *cache = static_cast<sfxcache_t *>(Cache_Check(&s->cache));
+    if (!cache) {
+        // Size for the largest chunk, including when the first read is mostly header bytes.
+        const int cacheBytes = static_cast<int>(sizeof(sfxcache_t)) + std::min(info.samples, WAV_STREAM_CHUNK_BYTES);
+        cache = static_cast<sfxcache_t *>(Cache_Alloc(&s->cache, cacheBytes, wavname));
+        if (!cache) {
+            return nullptr;
         }
     }
 
-    sc->length = stream->csamplesinmem;
-    sc->loopstart = info.loopstart;
-    sc->speed = info.rate;
-    sc->width = info.width;
-    sc->stereo = info.channels;
-
-    if (ffirstload) {
-        ResampleSfx(s, info.rate, info.width, data + info.dataofs, cbread - info.dataofs);
-    } else {
-        ResampleSfx(s, info.rate, info.width, data, cbread);
-    }
+    const int pcmOffset = firstLoad ? info.dataofs : 0;
+    const int pcmBytes = bytesRead - pcmOffset;
+    stream->csamplesinmem = std::min(pcmBytes, info.samples);
+    cache->length = stream->csamplesinmem;
+    cache->loopstart = info.loopstart;
+    cache->speed = info.rate;
+    cache->width = info.width;
+    cache->stereo = info.channels;
+    ResampleSfx(s, info.rate, info.width, data + pcmOffset, pcmBytes);
 
     (void)streamCleanup.release();
-    return sc;
+    return cache;
 }
 
 #if defined( _MSC_VER )
@@ -273,11 +269,18 @@ sfxcache_t *S_LoadSound(sfx_t *s, channel_t *ch) {
     if (hFile) {
         data = (byte *)FS_GetReadBuffer(hFile, &len);
         if (!data) {
-            len = FS_Size(hFile);
-            data = (byte *)Hunk_TempAlloc(len + 1);
-            FS_Read(data, len, 1, hFile);
+            const unsigned int fileBytes = FS_Size(hFile);
+            if (fileBytes < cse::memory::MaximumHunkPayloadBytes) {
+                len = static_cast<int>(fileBytes);
+                data = static_cast<byte *>(Hunk_TempAlloc(len + 1));
+            }
+            const bool loaded = data && FS_Read(data, len, 1, hFile) == len;
             FS_Close(hFile);
-            hFile = NULL;
+            hFile = nullptr;
+            if (!loaded) {
+                Con_DPrintf("S_LoadSound: Couldn't read %s\n", namebuffer);
+                return nullptr;
+            }
         }
     }
 

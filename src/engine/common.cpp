@@ -2049,37 +2049,36 @@ char* Q_strlwr( char* text )
 	return text;
 }
 
-byte* COM_LoadFileLimit( char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile )
-{
-	FileHandle_t file = *phFile;
-	if ( !file )
-	{
-		file = FS_Open( path, "rb" );
-		if ( !file )
-			return nullptr;
-	}
+byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile) {
+    *pcbread = 0;
+    FileHandle_t file = *phFile;
+    *phFile = nullptr;
+    if (!file && path) {
+        file = FS_Open(path, "rb");
+    }
+    if (!file) {
+        return nullptr;
+    }
 
-	int size = static_cast<int>( FS_Size( file ) );
-	if ( pos > size )
-		Sys_Error( "COM_LoadFileLimit: invalid seek position for %s", path );
-	FS_Seek( file, pos, FILESYSTEM_SEEK_HEAD );
+    const unsigned int fileBytes = FS_Size(file);
+    if (pos < 0 || static_cast<unsigned int>(pos) >= fileBytes || cbmax <= 0) {
+        FS_Close(file);
+        return nullptr;
+    }
 
-	if ( size > cbmax )
-		size = cbmax;
-	*pcbread = size;
-	byte* buffer = static_cast<byte*>( Hunk_TempAlloc( size + 1 ) );
-	if ( !buffer )
-	{
-		if ( path )
-			Sys_Error( "COM_LoadFileLimit: not enough space for %s", path );
-		FS_Close( file );
-		return nullptr;
-	}
+    const unsigned int remaining = fileBytes - static_cast<unsigned int>(pos);
+    const int bytesToRead = remaining < static_cast<unsigned int>(cbmax) ? static_cast<int>(remaining) : cbmax;
+    FS_Seek(file, pos, FILESYSTEM_SEEK_HEAD);
+    byte* buffer = static_cast<byte*>(Hunk_TempAlloc(bytesToRead + 1));
+    if (!buffer || FS_Read(buffer, bytesToRead, 1, file) != bytesToRead) {
+        FS_Close(file);
+        return nullptr;
+    }
 
-	buffer[size] = '\0';
-	FS_Read( buffer, size, 1, file );
-	*phFile = file;
-	return buffer;
+    buffer[bytesToRead] = '\0';
+    *pcbread = bytesToRead;
+    *phFile = file;
+    return buffer;
 }
 
 int COM_CompareFileTime( char* filename1, char* filename2, int* iCompare )

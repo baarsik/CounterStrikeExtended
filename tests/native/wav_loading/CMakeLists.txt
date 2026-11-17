@@ -9,6 +9,7 @@ option(CSE_WAV_SANITIZERS "Instrument WAV parsing, resampling and ownership" OFF
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_helpers.py"
     "${CSE_ROOT}/src/engine" "${CMAKE_CURRENT_BINARY_DIR}/owned_helpers.inc" COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_LIST_DIR}/extract_helpers.py"
     "${CSE_ROOT}/src/engine/common.cpp" "${CSE_ROOT}/src/engine/snd_mix.cpp")
 add_executable(wav_loading_tests wav_tests.cpp "${CSE_WAV_SOURCE}")
 target_compile_features(wav_loading_tests PRIVATE cxx_std_17)
@@ -32,9 +33,11 @@ enable_testing()
 foreach(case pcm truncated metadata invalid-arguments chunk-bounds loops loop-overflow loop-length
         stream-prefix odd-padding resample-valid
         resample-short resample-clear resample-product resample-fraction
-        load-invalid load-stereo load-cache-failure load-success load-fallback
+        load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure
         stream-invalid stream-stereo stream-width stream-rate stream-cache-failure
-        stream-success stream-refill-failure)
+        stream-success stream-refill-failure stream-temp-failure stream-reopen-move stream-reopen-evict
+        stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-temp-failure
+        mix-stream-reload-failure mix-stream-eof vox-empty-text vox-empty-words)
     add_test(NAME wav-${case} COMMAND wav_loading_tests ${case})
 endforeach()
 add_test(NAME wav-shipped-bot-sounds COMMAND wav_loading_tests corpus "${CSE_ROOT}/src/deploy/zbot/cstrike/sound")

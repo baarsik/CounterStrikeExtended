@@ -2,11 +2,14 @@
 #include "client.h"
 #include "common.h"
 #include "conprint.h"
+#include "sound_callback.h"
 #include "sys.h"
+#include "vox_word.h"
 #include "zone.h"
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <climits>
 #include <cstdint>
 #include <cstdio>
@@ -22,6 +25,12 @@
 qboolean GetWavinfo(char *name, byte *wav, int length, wavinfo_t *info);
 void ResampleSfx(sfx_t *sound, int inputRate, int inputWidth, byte *data, int dataBytes);
 extern "C" void Wavstream_Close(int index);
+extern "C" void S_FreeChannel(channel_t *channel);
+extern "C" char *VOX_GetDirectory(char *path, char *sentence, int size);
+extern "C" int VOX_ParseWordParams(char *word, voxword_t *parameters, int first);
+extern "C" sfxcache_t *VOX_LoadSound(channel_t *channel, char *name);
+void SND_InitScaletable();
+void S_MixChannelsToPaintbuffer(int end, int hires, int voiceOnly);
 
 client_state_t cl{};
 channel_t channels[MAX_CHANNELS]{};
@@ -30,6 +39,9 @@ volatile dma_t *shm = nullptr;
 cvar_t hisound{};
 cvar_t loadas8bit{};
 cvar_t fs_precache_timings{};
+int total_channels = 0;
+int paintedtime = 0;
+float g_SND_VoiceOverdrive = 1.0f;
 
 namespace {
 constexpr int PlaybackRate = 22050;
@@ -41,6 +53,24 @@ constexpr int FormatRateOffset = 24;
 constexpr int FormatBitsOffset = 34;
 constexpr int PcmDataOffset = 44;
 constexpr int StreamPrefixBytes = 0x8000;
+constexpr int FirstChunkSamples = StreamPrefixBytes - PcmDataOffset;
+constexpr int TailSamples = 4;
+constexpr int MixVolume = 8;
+constexpr int SOUND_VOLUME_LEVELS = 32;
+constexpr int SOUND_SAMPLE_VALUES = 256;
+constexpr int SOUND_VOLUME_SCALE = 8;
+constexpr int MAX_VOX_SENTENCES = 16;
+constexpr int MAX_VOX_WORDS = 32;
+
+int snd_scaletable[SOUND_VOLUME_LEVELS][SOUND_SAMPLE_VALUES]{};
+portable_samplepair_t paintbuffer[8]{};
+voxword_t rgrgvoxword[MAX_VOX_SENTENCES][MAX_VOX_WORDS]{};
+char *rgpparseword[MAX_VOX_WORDS]{};
+char voxcomma[] = "_comma";
+char voxperiod[] = "_period";
+char *sentenceText = nullptr;
+sfx_t sentenceSound{};
+int sentenceLookups = 0;
 dma_t playback{};
 std::vector<std::unique_ptr<byte[]>> temporaryBuffers;
 std::unique_ptr<byte[]> fileBytes;
@@ -58,6 +88,11 @@ struct FileState {
 bool mappedReads = true;
 bool failOpen = false;
 bool failCache = false;
+bool failTemp = false;
+enum class CacheChange { None, Move, Evict };
+CacheChange changeOnTempAlloc = CacheChange::None;
+sfx_t *cacheUnderPressure = nullptr;
+int trackedCacheBytes = 0;
 
 void Require(bool condition, const char *message) {
     if (!condition) {
@@ -308,6 +343,12 @@ void SetFile(const std::vector<byte> &bytes) {
     std::copy(bytes.begin(), bytes.end(), fileBytes.get());
 }
 
+void RequireClosedStream() {
+    const std::array<byte, sizeof(wavstream_t)> empty{};
+    Require(!file.open && file.closes == file.opens, "stream handle is closed exactly once per open");
+    Require(std::memcmp(&wavstreams[0], empty.data(), empty.size()) == 0, "closed stream state is reset");
+}
+
 void Loader(const std::string &mode) {
     playback.speed = PlaybackRate;
     shm = &playback;
@@ -325,7 +366,11 @@ void Loader(const std::string &mode) {
         SetDword(bytes, FormatRateOffset, PlaybackRate / 2);
     }
     failCache = mode == "load-cache-failure" || mode == "stream-cache-failure";
-    mappedReads = mode != "load-fallback";
+    failTemp = mode == "load-temp-failure" || mode == "stream-temp-failure";
+    mappedReads = mode != "load-fallback" && mode != "load-temp-failure";
+    if (stream) {
+        cacheUnderPressure = &sound;
+    }
     SetFile(bytes);
     auto *cache = S_LoadSound(&sound, &channels[0]);
     const bool success = mode == "load-success" || mode == "load-fallback" || mode == "stream-success" ||
@@ -340,14 +385,15 @@ void Loader(const std::string &mode) {
                 failCache = true;
                 Require(S_LoadSound(&sound, &channels[0]) == nullptr, "failed refill reports failure");
             } else {
+                const int pcmBytes = static_cast<int>(bytes.size()) - PcmDataOffset;
+                Require(trackedCacheBytes == static_cast<int>(sizeof(sfxcache_t)) + pcmBytes,
+                        "a short stream only caches its PCM payload");
                 Require(S_LoadSound(&sound, &channels[0]) == cache && file.opens == 1,
                         "cached stream reuse neither reopens nor closes the handle");
                 Wavstream_Close(0);
             }
         }
-        const std::array<byte, sizeof(wavstream_t)> empty{};
-        Require(!file.open && file.closes == 1, "stream handle is closed exactly once");
-        Require(std::memcmp(&wavstreams[0], empty.data(), empty.size()) == 0, "closed stream state is reset");
+        RequireClosedStream();
         Require(file.releases == 0, "stream temporary buffers are not filesystem read-buffer leases");
     } else {
         Require(!file.open && !file.borrowed && file.closes == 1, "ordinary load always closes its file once");
@@ -358,8 +404,165 @@ void Loader(const std::string &mode) {
                     "cached ordinary sound needs no second file lease");
         }
     }
-    Cache_Free(&sound.cache);
+    if (sound.cache.data) {
+        Cache_Free(&sound.cache);
+    }
     shm = nullptr;
+}
+
+void StartFixtureChannel(channel_t &channel, sfx_t &sound, int end, int type) {
+    channel.sfx = &sound;
+    channel.leftvol = MixVolume;
+    channel.rightvol = MixVolume;
+    channel.pitch = PITCH_NORM;
+    channel.isentence = -1;
+    channel.entchannel = type;
+    channel.end = end;
+}
+
+void StreamCache(const std::string &mode) {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    sfx_t sound{};
+    std::strcpy(sound.name, "*fixture.wav");
+    auto bytes = Wave(1, FirstChunkSamples + TailSamples);
+    constexpr byte FirstPcmSample = 7;
+    bytes[PcmDataOffset] += FirstPcmSample;
+    SetFile(bytes);
+    cacheUnderPressure = &sound;
+    auto *initial = S_LoadSound(&sound, &channels[0]);
+    Require(initial && initial->length == FirstChunkSamples, "initial stream caches only the first PCM chunk");
+    if (mode == "stream-reload-pcm") {
+        wavstreams[0].csamplesplayed = 1;
+        Cache_Free(&sound.cache);
+    } else {
+        Wavstream_Close(0);
+        changeOnTempAlloc = mode == "stream-reopen-move" ? CacheChange::Move : CacheChange::Evict;
+    }
+    auto *cache = S_LoadSound(&sound, &channels[0]);
+    Require(cache && cache == sound.cache.data && changeOnTempAlloc == CacheChange::None,
+            "stream load returns the current cache after reading the WAV");
+    Require(cache->length == FirstChunkSamples && cache->data[0] == FirstPcmSample,
+            "restored cache retains the original chunk boundaries and PCM bytes");
+    Wavstream_Close(0);
+    RequireClosedStream();
+    Cache_Free(&sound.cache);
+}
+
+void Mixer(const std::string &mode) {
+    constexpr int PaintSamples = 3;
+    constexpr int HealthyPcmSample = 2;
+    constexpr int TailPcmSample = 4;
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    total_channels = 2;
+    SND_InitScaletable();
+
+    sfx_t healthy{};
+    std::strcpy(healthy.name, "cached.wav");
+    auto *healthyCache = AllocateOutput(healthy, PaintSamples + 1, 1);
+    std::memset(healthyCache->data, HealthyPcmSample, healthyCache->length);
+    StartFixtureChannel(channels[1], healthy, healthyCache->length, CHAN_AUTO);
+
+    sfx_t sound{};
+    const bool stream = mode != "mix-reload-failure";
+    std::strcpy(sound.name, stream ? "*fixture.wav" : "fixture.wav");
+    if (stream) {
+        auto bytes = Wave(1, FirstChunkSamples + TailSamples);
+        std::fill(bytes.begin() + StreamPrefixBytes, bytes.end(), 128 + TailPcmSample);
+        if (mode == "mix-stream-eof") {
+            bytes.resize(StreamPrefixBytes);
+        }
+        SetFile(bytes);
+        cacheUnderPressure = &sound;
+        auto *cache = S_LoadSound(&sound, &channels[0]);
+        Require(cache && cache->length == FirstChunkSamples, "the mixer begins with a valid stream chunk");
+        StartFixtureChannel(channels[0], sound, 1, CHAN_STREAM);
+        channels[0].pos = FirstChunkSamples - 1;
+        wavstreams[0].csamplesplayed = channels[0].pos;
+        if (mode == "mix-stream-move") {
+            changeOnTempAlloc = CacheChange::Move;
+        } else if (mode == "mix-stream-evict") {
+            changeOnTempAlloc = CacheChange::Evict;
+        } else if (mode == "mix-stream-reload-failure") {
+            Cache_Free(&sound.cache);
+            failTemp = true;
+        } else {
+            failTemp = mode == "mix-stream-temp-failure";
+        }
+    } else {
+        StartFixtureChannel(channels[0], sound, PaintSamples + 1, CHAN_AUTO);
+        failOpen = true;
+    }
+
+    S_MixChannelsToPaintbuffer(PaintSamples, 0, 0);
+    Require(channels[1].pos == PaintSamples, "the next channel advances through the same paint pass");
+    const bool moved = mode == "mix-stream-move";
+    for (int sample = 0; sample < PaintSamples; ++sample) {
+        const int expected = MixVolume * (HealthyPcmSample + (moved && sample > 0 ? TailPcmSample : 0));
+        Require(paintbuffer[sample].left == expected && paintbuffer[sample].right == expected,
+                "the paint buffer contains the healthy channel and any successfully refilled PCM");
+    }
+    if (moved) {
+        auto *cache = static_cast<sfxcache_t *>(sound.cache.data);
+        Require(changeOnTempAlloc == CacheChange::None && cache && cache->length == TailSamples,
+                "the moved cache holds the final partial chunk");
+        Require(channels[0].pos == PaintSamples - 1 && channels[0].end == TailSamples + 1,
+                "refill continues from the start of the new chunk");
+        S_FreeChannel(&channels[0]);
+        RequireClosedStream();
+    } else if (stream) {
+        Require(channels[0].sfx == nullptr && sound.cache.data == nullptr,
+                "failed refill retires the channel and releases any remaining cache");
+        RequireClosedStream();
+    } else {
+        Require(channels[0].sfx == &sound && channels[0].pos == 0, "failed ordinary load may be retried");
+        auto bytes = Wave();
+        bytes[PcmDataOffset] += TailPcmSample;
+        SetFile(bytes);
+        failOpen = false;
+        channels[1].pos = 0;
+        std::fill(std::begin(paintbuffer), std::end(paintbuffer), portable_samplepair_t{});
+        S_MixChannelsToPaintbuffer(PaintSamples, 0, 0);
+        Require(channels[0].pos == PaintSamples && paintbuffer[0].left == MixVolume * (HealthyPcmSample + TailPcmSample),
+                "the skipped channel contributes PCM after a successful retry");
+        Cache_Free(&sound.cache);
+    }
+    Cache_Free(&healthy.cache);
+}
+
+void Vox(const std::string &mode) {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    if (mode == "vox-empty-text") {
+        char path[SOUND_NAME_BYTES]{};
+        char empty[]{""};
+        voxword_t parameters{};
+        Require(VOX_GetDirectory(path, empty, sizeof(path)) == nullptr, "empty VOX text has no directory");
+        Require(!VOX_ParseWordParams(empty, &parameters, true), "empty VOX token is skipped");
+    }
+
+    char name[] = "fixture";
+    channel_t channel{};
+    channel.isentence = -1;
+    char empty[] = "";
+    char directoryOnly[] = "vox/";
+    char parametersOnly[] = "(p120) (v50)";
+    char delimitersOnly[] = "   ";
+    for (char *text : {parametersOnly, directoryOnly, delimitersOnly, empty}) {
+        sentenceText = text;
+        Require(VOX_LoadSound(&channel, name) == nullptr && channel.isentence == -1 && channel.sfx == nullptr,
+                "VOX with no words leaves the channel untouched");
+        Require(sentenceLookups == 0 && file.opens == 0, "empty VOX does not resolve or open a WAV");
+    }
+
+    char playable[] = "vox/ (p120) clik";
+    sentenceText = playable;
+    SetFile(Wave());
+    Require(VOX_LoadSound(&channel, name) != nullptr && channel.sfx == &sentenceSound && sentenceLookups == 1,
+            "leading separators and parameter-only tokens can precede a playable word");
+    S_FreeChannel(&channel);
+    Cache_Free(&sentenceSound.cache);
 }
 
 short NativeLittleShort(short value) {
@@ -379,10 +582,14 @@ void *Cache_Alloc(cache_user_t *user, int size, const char *) {
         return nullptr;
     }
     user->data = std::calloc(1, static_cast<std::size_t>(size));
+    if (cacheUnderPressure && user == &cacheUnderPressure->cache) {
+        trackedCacheBytes = size;
+    }
     return user->data;
 }
 
 void Cache_Free(cache_user_t *user) {
+    Require(user->data != nullptr, "only live cache blocks can be freed");
     std::free(user->data);
     user->data = nullptr;
 }
@@ -433,7 +640,8 @@ void FS_Seek(FileHandle_t handle, int position, FileSystemSeek_t origin) {
 }
 
 int FS_Read(void *output, int size, int count, FileHandle_t handle) {
-    Require(handle == &file && file.open && count == 1 && size >= 0, "read uses the live file");
+    Require(output && handle == &file && file.open && count == 1 && size >= 0,
+            "read requires a buffer and a live file");
     const int copied = std::min(size, file.length - file.position);
     std::memcpy(output, fileBytes.get() + file.position, static_cast<std::size_t>(copied));
     file.position += copied;
@@ -442,11 +650,30 @@ int FS_Read(void *output, int size, int count, FileHandle_t handle) {
 
 void *Hunk_TempAlloc(int size) {
     Require(size > 0, "temporary allocation is positive");
+    if (failTemp) {
+        return nullptr;
+    }
+    if (changeOnTempAlloc != CacheChange::None) {
+        auto *owner = &cacheUnderPressure->cache;
+        Require(owner->data != nullptr && trackedCacheBytes > 0, "cache pressure targets a live allocation");
+        void *replacement = nullptr;
+        if (changeOnTempAlloc == CacheChange::Move) {
+            replacement = std::malloc(trackedCacheBytes);
+            Require(replacement != nullptr, "fixture moves the cached bytes to a new allocation");
+            std::memcpy(replacement, owner->data, trackedCacheBytes);
+        }
+        Cache_Free(owner);
+        owner->data = replacement;
+        changeOnTempAlloc = CacheChange::None;
+    }
     temporaryBuffers.push_back(std::make_unique<byte[]>(size));
     return temporaryBuffers.back().get();
 }
 
 byte *COM_LoadStackFile(char *, void *, int, int *length) {
+    if (failOpen) {
+        return nullptr;
+    }
     *length = file.length;
     return fileBytes.get();
 }
@@ -474,6 +701,50 @@ void Q_strncpy(char *destination, const char *source, int count) {
 
 int Q_strncmp(const char *first, const char *second, int count) {
     return std::strncmp(first, second, static_cast<std::size_t>(count));
+}
+
+int Q_strlen(const char *text) {
+    return static_cast<int>(std::strlen(text));
+}
+
+int Q_atoi(const char *text) {
+    return std::atoi(text);
+}
+
+extern "C" char *VOX_LookupString(char *, int *) {
+    return sentenceText;
+}
+
+sfx_t *S_FindName(char *path, int *inCache) {
+    ++sentenceLookups;
+    Require(std::strcmp(path, "vox/clik.wav") == 0, "VOX resolves the playable word");
+    std::strcpy(sentenceSound.name, path);
+    *inCache = 0;
+    return &sentenceSound;
+}
+
+extern "C" void SND_CloseMouth(channel_t *) {}
+
+extern "C" void VoiceSE_NotifyFreeChannel(int) {
+    Require(false, "WAV cases do not free network voice channels");
+}
+
+void SND_MoveMouth(channel_t *, sfxcache_t *, int) {
+    Require(false, "the mixer fixture has no mouth animation entity");
+}
+
+extern "C" void VOX_TrimStartEndTimes(channel_t *, sfxcache_t *) {
+    Require(false, "the mixer fixture does not advance VOX words");
+}
+
+int VOX_FPaintPitchChannelFrom8Offs(portable_samplepair_t *, channel_t *, sfxcache_t *, int, int, int, int) {
+    Require(false, "the mixer fixture uses normal pitch");
+    return 0;
+}
+
+int VoiceSE_GetSoundDataCallback(sfxcache_t *, char *, int, int, int) {
+    Require(false, "WAV cases do not use voice callbacks");
+    return 0;
 }
 
 void Con_Printf(const char *, ...) {}
@@ -511,6 +782,12 @@ int main(int argc, char **argv) {
         }
         Require(files > 0, "shipped corpus is nonempty");
         std::printf("Accepted %zu shipped WAV files\n", files);
+    } else if (mode.rfind("mix-", 0) == 0) {
+        Mixer(mode);
+    } else if (mode.rfind("vox-", 0) == 0) {
+        Vox(mode);
+    } else if (mode.rfind("stream-reopen-", 0) == 0 || mode == "stream-reload-pcm") {
+        StreamCache(mode);
     } else if (mode.rfind("resample-", 0) == 0) {
         Resampler(mode);
     } else if (mode.rfind("load-", 0) == 0 || (mode.rfind("stream-", 0) == 0 && mode != "stream-prefix")) {

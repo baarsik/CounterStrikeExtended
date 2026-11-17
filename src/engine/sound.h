@@ -15,6 +15,8 @@
 #define MAX_RAW_SAMPLES 8192
 #define SOUND_CALLBACK_CACHE_LENGTH ( 1 << 30 )
 
+constexpr int WAV_STREAM_CHUNK_BYTES = 32 * 1024;
+
 #define CHAR_SENTENCE '!' // as one of 1st 2 chars in name, indicates sentence wav
 
 #ifndef CHAN_NETWORKVOICE_BASE
@@ -99,7 +101,7 @@ typedef struct wavstream_s
 	int csamplesinmem;
 	FileHandle_t hFile;
 	wavinfo_t info;
-	int lastposloaded;
+	int lastposloaded; // file offset of the current chunk's first PCM byte
 } wavstream_t;
 
 extern volatile dma_t* shm;

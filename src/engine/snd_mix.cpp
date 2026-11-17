@@ -280,20 +280,21 @@ extern "C" void SND_CloseMouth( channel_t* channel )
 		cl_entities[channel->entnum].mouth.mouthopen = 0;
 }
 
-extern "C" void S_FreeChannel( channel_t* channel )
-{
-	if ( channel->entchannel == CHAN_STREAM )
-	{
-		Wavstream_Close( static_cast<int>( channel - channels ) );
-		Cache_Free( &channel->sfx->cache );
-	}
-	else if ( channel->entchannel >= CHAN_NETWORKVOICE_BASE && channel->entchannel <= CHAN_NETWORKVOICE_END )
-		VoiceSE_NotifyFreeChannel( channel->entchannel );
-	if ( channel->isentence >= 0 )
-		rgrgvoxword[channel->isentence][0].sfx = nullptr;
-	channel->isentence = -1;
-	channel->sfx = nullptr;
-	SND_CloseMouth( channel );
+extern "C" void S_FreeChannel(channel_t *channel) {
+    if (channel->entchannel == CHAN_STREAM) {
+        Wavstream_Close(static_cast<int>(channel - channels));
+        if (channel->sfx && channel->sfx->cache.data) {
+            Cache_Free(&channel->sfx->cache);
+        }
+    } else if (channel->entchannel >= CHAN_NETWORKVOICE_BASE && channel->entchannel <= CHAN_NETWORKVOICE_END) {
+        VoiceSE_NotifyFreeChannel(channel->entchannel);
+    }
+    if (channel->isentence >= 0) {
+        rgrgvoxword[channel->isentence][0].sfx = nullptr;
+    }
+    channel->isentence = -1;
+    channel->sfx = nullptr;
+    SND_CloseMouth(channel);
 }
 extern "C" void VOX_ReadSentenceFile();
 
@@ -387,6 +388,10 @@ extern "C" char* VOX_LookupString( char* pszin, int* psentencenum )
 
 extern "C" char* VOX_GetDirectory( char* path, char* sentence, int size )
 {
+    if (!sentence || !*sentence) {
+        return nullptr;
+    }
+
 	int skipped = 0;
 	char* slash = sentence + Q_strlen( sentence ) - 1;
 	while ( *slash != '/' && slash > sentence )
@@ -413,8 +418,9 @@ extern "C" char* VOX_GetDirectory( char* path, char* sentence, int size )
 extern "C" void VOX_ParseString( char* sentence )
 {
 	Q_memset( rgpparseword, 0, sizeof( rgpparseword ) );
-	if ( !sentence )
-		return;
+    if (!sentence || !*sentence) {
+        return;
+    }
 	rgpparseword[0] = sentence;
 	int count = 1;
 	char* cursor = sentence;
@@ -474,6 +480,9 @@ extern "C" int VOX_ParseWordParams( char* word, voxword_t* parameters, int first
 		defaults.timecompress = 0;
 	}
 	*parameters = defaults;
+    if (!word || !*word) {
+        return 0;
+    }
 	if ( word[Q_strlen( word ) - 1] != ')' )
 		return 1;
 	char* cursor = word;
@@ -535,71 +544,64 @@ extern "C" int VOX_IFindEmptySentence()
 	return -1;
 }
 
-extern "C" sfxcache_t* VOX_LoadSound( channel_t* channel, char* name )
-{
-	constexpr int SENTENCE_DIRECTORY_BYTES = 32;
-	constexpr int SENTENCE_BUFFER_BYTES = 512;
-	if ( !name )
-		return nullptr;
-	voxword_t words[MAX_VOX_WORDS];
-	char buffer[SENTENCE_BUFFER_BYTES];
-	Q_memset( words, 0, sizeof( words ) );
-	Q_memset( buffer, 0, sizeof( buffer ) );
-	char* sentence = VOX_LookupString( name, nullptr );
-	if ( !sentence )
-	{
-		Con_DPrintf( "VOX_LoadSound: no sentence named %s\n", name );
-		return nullptr;
-	}
-	char directory[SENTENCE_DIRECTORY_BYTES];
-	sentence = VOX_GetDirectory( directory, sentence, sizeof( directory ) );
-	if ( !sentence )
-	{
-		Con_DPrintf( "VOX_LoadSound: failed getting directory for %s\n", name );
-		return nullptr;
-	}
-	if ( static_cast<unsigned int>( Q_strlen( sentence ) ) > sizeof( buffer ) - 1 )
-	{
-		Con_DPrintf( "VOX_LoadSound: sentence is too long %s\n", sentence );
-		return nullptr;
-	}
-	Q_strncpy( buffer, sentence, sizeof( buffer ) - 1 );
-	buffer[sizeof( buffer ) - 1] = 0;
-	VOX_ParseString( buffer );
-	int count = 0;
-	int index = 0;
-	while ( rgpparseword[index] )
-	{
-		if ( VOX_ParseWordParams( rgpparseword[index], &words[count], index == 0 ) )
-		{
-			char path[SOUND_NAME_BYTES];
-			_snprintf( path, sizeof( path ), "%s%s.wav", directory, rgpparseword[index] );
-			path[sizeof( path ) - 1] = 0;
-			if ( Q_strlen( path ) >= sizeof( path ) )
-				continue;
-			words[count].sfx = S_FindName( path, &words[count].fKeepCached );
-			++count;
-		}
-		++index;
-	}
-	int slot = VOX_IFindEmptySentence();
-	if ( slot < 0 )
-		return nullptr;
-	sfx_t* sound = words[0].sfx;
-	count = 0;
-	while ( words[count].sfx )
-	{
-		rgrgvoxword[slot][count] = words[count];
-		++count;
-	}
-	rgrgvoxword[slot][count].sfx = nullptr;
-	channel->isentence = slot;
-	channel->iword = 0;
-	channel->sfx = rgrgvoxword[slot][0].sfx;
-	sfxcache_t* cache = S_LoadSound( sound, nullptr );
-	if ( !cache )
-		S_FreeChannel( channel );
-	return cache;
+extern "C" sfxcache_t* VOX_LoadSound(channel_t *channel, char *name) {
+    constexpr int SENTENCE_DIRECTORY_BYTES = 32;
+    constexpr int SENTENCE_BUFFER_BYTES = 512;
+    if (!name) {
+        return nullptr;
+    }
+
+    char *sentence = VOX_LookupString(name, nullptr);
+    if (!sentence) {
+        Con_DPrintf("VOX_LoadSound: no sentence named %s\n", name);
+        return nullptr;
+    }
+    char directory[SENTENCE_DIRECTORY_BYTES];
+    sentence = VOX_GetDirectory(directory, sentence, sizeof(directory));
+    if (!sentence) {
+        Con_DPrintf("VOX_LoadSound: failed getting directory for %s\n", name);
+        return nullptr;
+    }
+
+    char buffer[SENTENCE_BUFFER_BYTES]{};
+    if (static_cast<unsigned int>(Q_strlen(sentence)) > sizeof(buffer) - 1) {
+        Con_DPrintf("VOX_LoadSound: sentence is too long %s\n", sentence);
+        return nullptr;
+    }
+    Q_strncpy(buffer, sentence, sizeof(buffer) - 1);
+    VOX_ParseString(buffer);
+
+    voxword_t words[MAX_VOX_WORDS]{};
+    int count = 0;
+    // The sentence slot needs one entry for the terminator.
+    for (int index = 0; index < MAX_VOX_WORDS && count < MAX_VOX_WORDS - 1 && rgpparseword[index]; ++index) {
+        if (VOX_ParseWordParams(rgpparseword[index], &words[count], index == 0)) {
+            char path[SOUND_NAME_BYTES];
+            _snprintf(path, sizeof(path), "%s%s.wav", directory, rgpparseword[index]);
+            path[sizeof(path) - 1] = 0;
+            words[count].sfx = S_FindName(path, &words[count].fKeepCached);
+            ++count;
+        }
+    }
+    if (!words[0].sfx) {
+        Con_DPrintf("VOX_LoadSound: no words in sentence %s\n", name);
+        return nullptr;
+    }
+
+    const int slot = VOX_IFindEmptySentence();
+    if (slot < 0) {
+        return nullptr;
+    }
+    std::copy_n(words, count, rgrgvoxword[slot]);
+    rgrgvoxword[slot][count].sfx = nullptr;
+    channel->isentence = slot;
+    channel->iword = 0;
+    channel->sfx = rgrgvoxword[slot][0].sfx;
+    sfxcache_t *cache = S_LoadSound(channel->sfx, nullptr);
+    if (!cache) {
+        S_FreeChannel(channel);
+    }
+    return cache;
 }
 
 extern "C" qboolean Wavstream_Init()
@@ -1226,68 +1228,73 @@ void SX_Free()
 
 void ResampleSfx( sfx_t* sound, int inputRate, int inputWidth, byte* data, int dataBytes );
 
-void Wavstream_GetNextChunk( channel_t* channel, sfx_t* sound )
-{
-	constexpr int STREAM_BUFFER_BYTES = 32768;
-	wavstream_t& stream = wavstreams[channel - channels];
-	sfxcache_t* cache = static_cast<sfxcache_t*>( Cache_Check( &sound->cache ) );
-	stream.lastposloaded = stream.info.dataofs + stream.csamplesplayed;
-	int bytesRead;
-	byte* data = COM_LoadFileLimit( nullptr, stream.lastposloaded, STREAM_BUFFER_BYTES, &bytesRead, &stream.hFile );
-	stream.csamplesinmem = bytesRead;
-	int samplesLeft = stream.info.samples - stream.csamplesplayed;
-	if ( stream.csamplesinmem > samplesLeft )
-		stream.csamplesinmem = samplesLeft;
-	cache->length = stream.csamplesinmem;
-	ResampleSfx( sound, cache->speed, cache->width, data, bytesRead );
+static sfxcache_t *Wavstream_GetNextChunk(channel_t *channel, wavstream_t &stream) {
+    const int offset = stream.info.dataofs + stream.csamplesplayed;
+    const int samplesLeft = stream.info.samples - stream.csamplesplayed;
+    const int readLimit = std::min(samplesLeft, WAV_STREAM_CHUNK_BYTES);
+    int bytesRead;
+    byte *data = COM_LoadFileLimit(nullptr, offset, readLimit, &bytesRead, &stream.hFile);
+    if (!data) {
+        return nullptr;
+    }
+
+    // The temporary read buffer can move or evict the cache the mixer was using.
+    auto *cache = static_cast<sfxcache_t *>(Cache_Check(&channel->sfx->cache));
+    if (!cache) {
+        return nullptr;
+    }
+
+    stream.lastposloaded = offset;
+    stream.csamplesinmem = bytesRead;
+    cache->length = bytesRead;
+    ResampleSfx(channel->sfx, cache->speed, cache->width, data, bytesRead);
+    return cache;
 }
 
-qboolean S_CheckWavEnd( channel_t* channel, sfxcache_t** soundCache, int time, int channelIndex )
-{
-	sfxcache_t* cache = *soundCache;
-	if ( cache->length == SOUND_CALLBACK_CACHE_LENGTH )
-		return 0;
-	if ( cache->loopstart >= 0 )
-	{
-		channel->pos = cache->loopstart;
-		channel->end = cache->length - channel->pos + time;
-		if ( channel->isentence >= 0 )
-			rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
-		return 0;
-	}
-	if ( channel->entchannel == CHAN_STREAM )
-	{
-		wavstream_t& stream = wavstreams[channelIndex];
-		if ( stream.csamplesplayed < stream.info.samples )
-		{
-			Wavstream_GetNextChunk( channel, channel->sfx );
-			channel->pos = 0;
-			channel->end = cache->length + time;
-			return 0;
-		}
-	}
-	else if ( channel->isentence >= 0 )
-	{
-		voxword_t* word = &rgrgvoxword[channel->isentence][channel->iword];
-		if ( word->sfx && !word->fKeepCached )
-			Cache_Free( &word->sfx->cache );
-		channel->sfx = rgrgvoxword[channel->isentence][channel->iword + 1].sfx;
-		if ( channel->sfx )
-		{
-			cache = S_LoadSound( channel->sfx, channel );
-			*soundCache = cache;
-			if ( cache )
-			{
-				channel->pos = 0;
-				channel->end = cache->length + time;
-				++channel->iword;
-				VOX_TrimStartEndTimes( channel, cache );
-				return 0;
-			}
-		}
-	}
-	S_FreeChannel( channel );
-	return 1;
+qboolean S_CheckWavEnd(channel_t *channel, sfxcache_t **soundCache, int time, int channelIndex) {
+    sfxcache_t *cache = *soundCache;
+    if (cache->length == SOUND_CALLBACK_CACHE_LENGTH) {
+        return FALSE;
+    }
+    if (cache->loopstart >= 0) {
+        channel->pos = cache->loopstart;
+        channel->end = cache->length - channel->pos + time;
+        if (channel->isentence >= 0) {
+            rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
+        }
+        return FALSE;
+    }
+    if (channel->entchannel == CHAN_STREAM) {
+        wavstream_t &stream = wavstreams[channelIndex];
+        if (stream.csamplesplayed < stream.info.samples) {
+            cache = Wavstream_GetNextChunk(channel, stream);
+            *soundCache = cache;
+            if (cache) {
+                channel->pos = 0;
+                channel->end = cache->length + time;
+                return FALSE;
+            }
+        }
+    } else if (channel->isentence >= 0) {
+        voxword_t *word = &rgrgvoxword[channel->isentence][channel->iword];
+        if (word->sfx && !word->fKeepCached) {
+            Cache_Free(&word->sfx->cache);
+        }
+        channel->sfx = rgrgvoxword[channel->isentence][channel->iword + 1].sfx;
+        if (channel->sfx) {
+            cache = S_LoadSound(channel->sfx, channel);
+            *soundCache = cache;
+            if (cache) {
+                channel->pos = 0;
+                channel->end = cache->length + time;
+                ++channel->iword;
+                VOX_TrimStartEndTimes(channel, cache);
+                return FALSE;
+            }
+        }
+    }
+    S_FreeChannel(channel);
+    return TRUE;
 }
 
 int VOX_FPaintPitchChannelFrom8Offs( portable_samplepair_t* output, channel_t* channel, sfxcache_t* cache, int count,
@@ -1502,6 +1509,12 @@ void S_MixChannelsToPaintbuffer( int end, int fPaintHiresSounds, int voiceOnly )
 		if ( !channel->sfx )
 			continue;
 		sfxcache_t* cache = S_LoadSound( channel->sfx, channel );
+        if (!cache) {
+            if (channel->entchannel == CHAN_STREAM && !cl.fPrecaching) {
+                S_FreeChannel(channel);
+            }
+            continue;
+        }
 		int soundLength = cache->length;
 		bool callbackSound = soundLength == SOUND_CALLBACK_CACHE_LENGTH;
 		if ( callbackSound ? !voiceOnly : voiceOnly != 0 )
