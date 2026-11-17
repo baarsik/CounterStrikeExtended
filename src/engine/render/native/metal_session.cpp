@@ -227,6 +227,7 @@ struct MetalSession::Impl {
     SDL_GPUShader* vertex = nullptr;
     SDL_GPUShader* fragment = nullptr;
     SDL_GPUTexture* color = nullptr;
+    SDL_GPUTexture* spareResolve = nullptr;
     SDL_GPUTexture* multisample = nullptr;
     SDL_GPUTexture* depth = nullptr;
     SDL_GPUTexture* presented = nullptr;
@@ -254,6 +255,19 @@ struct MetalSession::Impl {
     std::shared_ptr<MeshPage> activeMeshPage;
     std::shared_ptr<const TextureObject> white;
     std::shared_ptr<const TextureObject> black;
+
+    bool PresentedUsesResolve() const {
+        return presented && (presented == color || presented == spareResolve);
+    }
+
+    bool CanPresentResolve(unsigned drawableWidth, unsigned drawableHeight) const {
+        return multisample && drawableWidth == width && drawableHeight == height;
+    }
+
+    SDL_GPUTexture* CreateResolvedColor(unsigned width, unsigned height) {
+        return CreateTexture(device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
+            SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
+    }
 
     bool Wait(FrameStream& stream, std::string& error) {
         Timer timer(diagnosticsEnabled ? &counters.waitMs : nullptr);
@@ -890,6 +904,17 @@ bool MetalSession::ResolveScene(std::string& error) {
     if (!command) {
         return false;
     }
+    if (state.color == state.presented) {
+        // Keep the screenshot source until the next presentation. The multisample
+        // image holds the scene, so resolving it to another texture needs no copy.
+        if (!state.spareResolve) {
+            state.spareResolve = state.CreateResolvedColor(state.width, state.height);
+            if (!state.spareResolve) {
+                return DeviceFailure(error, "Create Metal resolve target for next scene");
+            }
+        }
+        std::swap(state.color, state.spareResolve);
+    }
     // Preserve multisample storage between draws; resolve only when a consumer samples the scene.
     // A load/resolve pass keeps the exact same MSAA samples and resolve operation as the draw passes.
     SDL_GPUColorTargetInfo target{};
@@ -1018,8 +1043,7 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
         error.clear();
         return true;
     }
-    auto* color = CreateTexture(state.device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-        SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
+    auto* color = state.CreateResolvedColor(width, height);
     auto* depth = CreateTexture(state.device, width, height, SDL_GPU_TEXTUREFORMAT_D32_FLOAT,
         SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET, count);
     auto* multisample = count == SDL_GPU_SAMPLECOUNT_1 ? nullptr :
@@ -1046,9 +1070,15 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
         }
         return false;
     }
-    if (state.color) {
+    // If the retained presentation uses one of the old resolves, transfer
+    // ownership to the presented slot instead of discarding that screenshot.
+    if (state.color && state.color != state.presented) {
         SDL_ReleaseGPUTexture(state.device, state.color);
     }
+    if (state.spareResolve && state.spareResolve != state.presented) {
+        SDL_ReleaseGPUTexture(state.device, state.spareResolve);
+    }
+    state.spareResolve = nullptr;
     if (state.depth) {
         SDL_ReleaseGPUTexture(state.device, state.depth);
     }
@@ -1479,13 +1509,16 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<std::uint64_t>(width) * height * kRgbaComponents > kMaximumStreamingBytes) {
             return Fail(error, "Metal drawable exceeds retained final-color budget");
         }
-        if (!state.presented || state.presentedWidth != width || state.presentedHeight != height) {
-            auto* presented = CreateTexture(state.device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-                SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
+        if (state.CanPresentResolve(width, height)) {
+            return true;
+        }
+        if (!state.presented || state.PresentedUsesResolve() ||
+            state.presentedWidth != width || state.presentedHeight != height) {
+            auto* presented = state.CreateResolvedColor(width, height);
             if (!presented) {
                 return DeviceFailure(error, "Create retained Metal final-color target");
             }
-            if (state.presented) {
+            if (state.presented && !state.PresentedUsesResolve()) {
                 SDL_ReleaseGPUTexture(state.device, state.presented);
             }
             state.presented = presented;
@@ -1545,10 +1578,16 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     info.load_op = SDL_GPU_LOADOP_CLEAR;
     info.clear_color = {0, 0, 0, 1};
     info.filter = SDL_GPU_FILTER_LINEAR;
-    SDL_BlitGPUTexture(command, &info);
-    CountRenderPass();
+    // At 1:1 the resolve is already the final image. Keep it for readback and
+    // copy straight to the drawable. Scaling and single-sample scenes keep a
+    // separate retained image, since the next scene may load their color.
+    const bool presentResolve = state.CanPresentResolve(width, height);
+    if (!presentResolve) {
+        SDL_BlitGPUTexture(command, &info);
+        CountRenderPass();
+    }
     if (swapchain) {
-        info.source.texture = state.presented;
+        info.source.texture = presentResolve ? state.color : state.presented;
         info.source.w = width;
         info.source.h = height;
         info.destination.texture = swapchain;
@@ -1577,6 +1616,18 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.streamEvictions), static_cast<unsigned long long>(c.streamCacheBytes),
             static_cast<unsigned long long>(c.streamWorkingBytes), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs);
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
+    }
+    if (presentResolve) {
+        if (state.presented && !state.PresentedUsesResolve()) {
+            SDL_ReleaseGPUTexture(state.device, state.presented);
+        }
+        state.presented = state.color;
+        state.presentedWidth = width;
+        state.presentedHeight = height;
+    } else if (state.spareResolve) {
+        // A separate scaled presentation owns the retained pixels now.
+        SDL_ReleaseGPUTexture(state.device, state.spareResolve);
+        state.spareResolve = nullptr;
     }
     state.presentedValid = true;
     error.clear();
@@ -1771,11 +1822,14 @@ void MetalSession::Shutdown() {
     for (const auto& pair : state.textures) {
         SDL_ReleaseGPUTexture(state.device, pair.second.texture);
     }
+    if (state.presented && !state.PresentedUsesResolve()) {
+        SDL_ReleaseGPUTexture(state.device, state.presented);
+    }
+    if (state.spareResolve) {
+        SDL_ReleaseGPUTexture(state.device, state.spareResolve);
+    }
     if (state.color) {
         SDL_ReleaseGPUTexture(state.device, state.color);
-    }
-    if (state.presented) {
-        SDL_ReleaseGPUTexture(state.device, state.presented);
     }
     if (state.depth) {
         SDL_ReleaseGPUTexture(state.device, state.depth);

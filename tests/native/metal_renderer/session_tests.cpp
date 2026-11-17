@@ -1,4 +1,5 @@
 #include "metal_session.h"
+#include "radar_renderer_gpu.h"
 #include "surface_mesh.h"
 #include <SDL3/SDL.h>
 #include <cstdlib>
@@ -35,6 +36,7 @@ struct PresentationProbe {
     unsigned acquisitions = 0;
     unsigned cancellations = 0;
     unsigned submissions = 0;
+    unsigned blits = 0;
 } presentationProbe;
 
 template<typename Function> Function Original(const char* name) {
@@ -124,6 +126,13 @@ extern "C" bool SDL_CancelGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
         ++presentationProbe.cancellations;
     }
     return Original<decltype(&SDL_CancelGPUCommandBuffer)>("SDL_CancelGPUCommandBuffer")(command);
+}
+
+extern "C" void SDL_BlitGPUTexture(SDL_GPUCommandBuffer* command, const SDL_GPUBlitInfo* info) {
+    if (presentationProbe.active) {
+        ++presentationProbe.blits;
+    }
+    Original<decltype(&SDL_BlitGPUTexture)>("SDL_BlitGPUTexture")(command, info);
 }
 
 extern "C" bool SDL_SubmitGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
@@ -1193,6 +1202,47 @@ int main() {
     presentationProbe.active = false;
     CHECK(session.Present(true, true, error));
     CHECK(session.Finish(error));
+    session.Shutdown();
+    CHECK(SDL_SetWindowSize(window, kTargetSize, kTargetSize));
+    CHECK(SDL_SyncWindow(window));
+    SDL_PumpEvents();
+    CHECK(session.Initialize(window, true, error));
+    CHECK(session.Resize(kTargetSize, kTargetSize, 4, error));
+    const auto center = kTargetSize / 2;
+    frame.draws[0] = Solid(1, 0, 0);
+    CHECK(session.Render(frame, error));
+    presentationProbe = {};
+    presentationProbe.active = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.acquisitions == 1 && presentationProbe.blits == 1);
+    presentationProbe.active = false;
+    // Reading the next resolved scene must preserve the last presented pixels.
+    frame.draws[0] = Solid(0, 1, 0);
+    CHECK(session.Render(frame, error));
+    // The backdrop must sample the new resolve, even when it requests the resolve itself.
+    constexpr std::uint64_t kBackdropEpoch = 1;
+    CseRadarBackdropDraw backdrop{};
+    backdrop.size = sizeof(backdrop);
+    backdrop.rendererEpoch = kBackdropEpoch;
+    backdrop.hud = {kTargetSize, kTargetSize};
+    backdrop.extent = kTargetSize;
+    backdrop.shape = CSE_RADAR_SHAPE_SQUARE;
+    backdrop.darken = 1;
+    backdrop.opacity = 1;
+    CHECK(session.RadarEffects(kBackdropEpoch).DrawRadarBackdrop(backdrop, frame.draws[0].raster) == CSE_RADAR_OK);
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] == 255);
+    CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
+    CHECK(session.Present(true, true, error));
+    // Reusing the original resolve target must preserve the most recent presentation.
+    frame.draws[0] = Solid(0, 0, 1);
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[1] == 0 && rgba[2] == 255);
+    CHECK(session.Resize(kTargetSize * 2, kTargetSize, 4, error));
+    CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[2] == 0);
     session.Shutdown();
     session.Shutdown();
     SDL_DestroyWindow(window);

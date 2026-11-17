@@ -40,7 +40,8 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
         return false;
     }
     SDL_GPUBlitInfo capture{};
-    capture.source.texture = scene.color; // Render/effect passes resolve at identical scene dimensions.
+    // ResolveScene may select a different texture to preserve the previous presentation.
+    capture.source.texture = session.EffectAccess().color;
     capture.source.x = static_cast<Uint32>(x);
     capture.source.y = scene.height - static_cast<Uint32>(y) - height;
     capture.source.w = width;
