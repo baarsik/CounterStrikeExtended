@@ -63,6 +63,7 @@ public:
     explicit FrameRecorder(FrameLimits limits = {});
     Status BeginFrame(const FrameInfo& info);
     Status Submit(const Command& command);
+    Status SubmitScalar(const ScalarCommand& command);
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status Refuse(Status reason);
@@ -90,6 +91,7 @@ private:
     Status Gate() const;
     Status Fail(Status status);
     Status AppendEvent(const FrameEvent& event);
+    Status AppendDrawEvents(std::size_t firstDraw, Status result);
     FrameLimits limits_;
     Recorder recorder_;
     FrameInfo info_;

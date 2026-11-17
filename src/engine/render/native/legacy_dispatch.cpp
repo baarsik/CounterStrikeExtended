@@ -89,6 +89,7 @@ using cse::render::DispatchMode;
 using cse::render::FrameRecorder;
 using cse::render::Status;
 using cse::render::Command;
+using cse::render::ScalarCommand;
 using cse::render::Op;
 using cse::render::MatrixMode;
 using cse::render::Capability;
@@ -259,15 +260,14 @@ void CaptureUnsupported() {
 
 void CaptureValues(Op operation, std::array<double, 6> values = {}, std::uint32_t argument = 0,
     std::uint32_t second = 0) {
-    if (!Capturing()) {
+    if (!Capturing() || failure != Status::Ok || !EnsureNativeRecording()) {
         return;
     }
-    Command command;
-    command.op = operation;
-    command.values = values;
-    command.argument = argument;
-    command.second = second;
-    Capture(command);
+    const ScalarCommand command{operation, argument, second, values};
+    const auto status = recorder->SubmitScalar(command);
+    if (status != Status::Ok) {
+        Refuse(status);
+    }
 }
 
 // Explicit lookup order matches the private semantic enums, never numeric GL ordinal assumptions.

@@ -58,27 +58,43 @@ Status FrameRecorder::Submit(const Command& command) {
     }
     try {
         const auto firstDraw = recorder_.Draws().size();
-        const auto result = recorder_.Submit(command);
-        if (result != Status::Ok) {
-            return Fail(result);
-        }
-        const auto drawCount = recorder_.Draws().size();
-        if (drawCount - firstDraw > limits_.events - events_.size()) {
-            return Fail(Status::LimitExceeded);
-        }
-        for (std::size_t index = firstDraw; index < drawCount; ++index) {
-            FrameEvent event;
-            event.kind = FrameEventKind::Draw;
-            event.drawIndex = index;
-            const auto appended = AppendEvent(event);
-            if (appended != Status::Ok) {
-                return appended;
-            }
-        }
-        return Status::Ok;
+        return AppendDrawEvents(firstDraw, recorder_.Submit(command));
     } catch (const std::bad_alloc&) {
         return Fail(Status::LimitExceeded);
     }
+}
+
+Status FrameRecorder::SubmitScalar(const ScalarCommand& command) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto firstDraw = recorder_.Draws().size();
+        return AppendDrawEvents(firstDraw, recorder_.SubmitScalar(command));
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
+Status FrameRecorder::AppendDrawEvents(std::size_t firstDraw, Status result) {
+    if (result != Status::Ok) {
+        return Fail(result);
+    }
+    const auto drawCount = recorder_.Draws().size();
+    if (drawCount - firstDraw > limits_.events - events_.size()) {
+        return Fail(Status::LimitExceeded);
+    }
+    for (std::size_t index = firstDraw; index < drawCount; ++index) {
+        FrameEvent event;
+        event.kind = FrameEventKind::Draw;
+        event.drawIndex = index;
+        const auto appended = AppendEvent(event);
+        if (appended != Status::Ok) {
+            return appended;
+        }
+    }
+    return Status::Ok;
 }
 
 Status FrameRecorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {

@@ -1,6 +1,9 @@
 #include "legacy_commands.h"
 #include "surface_mesh_cache.h"
+#include <algorithm>
 #include <cstdio>
+#include <cmath>
+#include <limits>
 #include <cstdlib>
 #include <cstring>
 #include <initializer_list>
@@ -326,10 +329,104 @@ void GeneratedLists() {
         "namespace recovers after rejected primitive-time generation");
 }
 
+
+ScalarCommand Scalar(Op op, std::initializer_list<double> values = {}, std::uint32_t argument = 0,
+    std::uint32_t second = 0) {
+    ScalarCommand command;
+    command.op = op;
+    command.argument = argument;
+    command.second = second;
+    std::copy(values.begin(), values.end(), command.values.begin());
+    return command;
+}
+
+void ScalarCommands() {
+    Recorder recorder;
+    const auto send = [&recorder](const ScalarCommand& command) {
+        Check(recorder.SubmitScalar(command) == Status::Ok, "scalar command accepted");
+    };
+    send(Scalar(Op::Translate, {2, 3, 4}));
+    send(Scalar(Op::Scale, {5, 6, 7}));
+    Check(Transform(recorder.State().Matrix(MatrixMode::ModelView), {{1, 1, 1, 1}}) ==
+        std::array<float, 4>{{7, 9, 11, 1}}, "scalar matrices preserve postmultiplication");
+    send(Scalar(Op::Push));
+    send(Scalar(Op::Identity));
+    send(Scalar(Op::Pop));
+    send(Scalar(Op::Color, {1, 0, 0, 1}));
+    constexpr std::uint32_t kList = 9;
+    Check(recorder.BeginList(kList, false) == Status::Ok, "compile scalar list");
+    send(Scalar(Op::Color, {0.25, 0.5, 0.75, 1}));
+    send(Scalar(Op::TexCoord, {0.75, 0.5}, 2));
+    send(Scalar(Op::PixelStore, {8}, static_cast<std::uint32_t>(PixelStoreParameter::UnpackAlignment)));
+    send(Scalar(Op::Begin, {}, static_cast<std::uint32_t>(Primitive::Triangles)));
+    send(Scalar(Op::Vertex, {0, 0, 0}));
+    send(Scalar(Op::Vertex, {1, 0, 0}));
+    send(Scalar(Op::Vertex, {0, 1, 0}));
+    send(Scalar(Op::End));
+    Check(recorder.EndList() == Status::Ok && recorder.Draws().empty(), "compile-only scalar list does not draw");
+    Check(recorder.State().Current().color == std::array<float, 4>{{1, 0, 0, 1}} &&
+        recorder.Textures().Unpack().unpackAlignment == 8, "only non-listable pixel-store executes at compile time");
+    send(Scalar(Op::PixelStore, {4}, static_cast<std::uint32_t>(PixelStoreParameter::UnpackAlignment)));
+    send(Scalar(Op::CallList, {}, kList));
+    const auto& draw = recorder.Draws().front();
+    Check(draw.vertices.size() == 3 && draw.vertices[1].position == std::array<float, 4>{{1, 0, 0, 1}},
+        "scalar replay owns geometry");
+    Check(draw.vertices[1].color == std::array<float, 4>{{0.25f, 0.5f, 0.75f, 1}} &&
+        draw.vertices[1].texcoords[2] == std::array<float, 4>{{0.75f, 0.5f, 0, 1}},
+        "scalar replay latches color and secondary UV");
+    Check(draw.modelView.values[12] == 2 && draw.modelView.values[0] == 5 &&
+        recorder.Textures().Unpack().unpackAlignment == 4, "replay inherits matrices without replaying pixel-store");
+    Check(recorder.BeginList(10, true) == Status::Ok, "compile-and-execute scalar list");
+    send(Scalar(Op::CallList, {}, kList));
+    Check(recorder.EndList() == Status::Ok && recorder.Draws().size() == 2, "scalar compile executes once");
+    Send(recorder, Make(Op::CallList, {}, 10));
+    Check(recorder.Draws().size() == 3, "full command replays a nested scalar list");
+
+    Check(recorder.SubmitScalar(Scalar(Op::TexCoord, {0, 0}, kTextureUnits)) == Status::InvalidValue,
+        "scalar invalid texture unit rejected");
+    Check(recorder.SubmitScalar(Scalar(Op::Vertex, {0, 0, 0})) == Status::InvalidOperation,
+        "scalar vertex outside primitive rejected");
+    Check(recorder.SubmitScalar(Scalar(Op::Color, {std::numeric_limits<double>::max(), 0, 0, 1})) ==
+        Status::InvalidValue, "finite double outside float range rejected");
+    Check(recorder.SubmitScalar(Scalar(Op::Viewport, {0.5, 0, 64, 64})) == Status::InvalidValue,
+        "scalar fractional viewport rejected");
+    Check(recorder.SubmitScalar(Scalar(Op::TextureImage)) == Status::InvalidValue,
+        "owning payload cannot be represented as a scalar command");
+    send(Scalar(Op::Begin, {}, static_cast<std::uint32_t>(Primitive::Triangles)));
+    Check(recorder.SubmitScalar(Scalar(Op::Translate, {1, 2, 3})) == Status::InvalidOperation,
+        "scalar matrix mutation inside primitive rejected");
+    send(Scalar(Op::Vertex, {std::numeric_limits<double>::quiet_NaN(), 0, 0}));
+    send(Scalar(Op::End));
+    Check(std::isnan(recorder.Draws().back().vertices[0].position[0]),
+        "nonfinite vertex reaches primitive-local renderer filtering");
+    send(Scalar(Op::Color, {std::numeric_limits<double>::infinity(), 0, 0, 1}));
+    Check(std::isinf(recorder.State().Current().color[0]), "nonfinite current color is not silently ignored");
+    send(Scalar(Op::Color, {1, 1, 1, 1}));
+    Triangle(recorder);
+    Check(recorder.Draws().back().vertices[1].position[0] == 1 &&
+        recorder.Draws().back().vertices[1].color[0] == 1, "valid geometry recovers after invalid attributes");
+
+    CaptureLimits limits;
+    limits.replayCommands = 1;
+    Recorder bounded(limits);
+    Check(bounded.BeginList(kList, false) == Status::Ok &&
+        bounded.SubmitScalar(Scalar(Op::Color, {0, 1, 0, 1})) == Status::Ok &&
+        bounded.EndList() == Status::Ok, "store bounded scalar list");
+    Check(bounded.SubmitScalar(Scalar(Op::CallList, {}, kList)) == Status::LimitExceeded,
+        "call and list body both consume replay budget");
+    limits.replayCommands = 0;
+    Recorder disabled(limits);
+    Check(disabled.SubmitScalar(Scalar(Op::Color, {0, 1, 0, 1})) == Status::LimitExceeded &&
+        disabled.State().Current().color == std::array<float, 4>{{1, 1, 1, 1}},
+        "zero replay budget preserves state");
+}
+
 int main(int argc, char** argv) {
     Check(argc == 2, "one case required");
     const std::string name = argv[1];
-    if (name == "matrices") {
+    if (name == "scalar-commands") {
+        ScalarCommands();
+    } else if (name == "matrices") {
         Matrices();
     } else if (name == "attributes") {
         Attributes();

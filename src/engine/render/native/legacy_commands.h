@@ -39,11 +39,15 @@ enum class Op { MatrixMode, ActiveTexture, Identity, Push, Pop, Translate, Scale
     TextureImage, TextureSubImage, TextureParameter, TextureEnvironment, PixelStore, SharedPalette,
     FogMode, FogColor, FogDensity, FogStart, FogEnd, FrontFace, PolygonMode, PolygonOffset, FogHint, PerspectiveHint, LoadMatrix, MultiplyMatrix, ColorWrite, DrawNative };
 
-struct Command {
+// Scalar capture does not initialize owning geometry, image or matrix payloads.
+struct ScalarCommand {
     Op op = Op::Identity;
     std::uint32_t argument = 0;
     std::uint32_t second = 0;
     std::array<double, 6> values{};
+};
+
+struct Command : ScalarCommand {
     Matrix4 matrix;
     // A DrawArrays command owns its resolved position/UV data. Current color is
     // applied at execution (the engine enables only position and UV arrays).
@@ -84,6 +88,7 @@ public:
     Recorder(const Recorder&) = default;
     Recorder& operator=(const Recorder&) = default;
     Status Submit(const Command& command);
+    Status SubmitScalar(const ScalarCommand& command);
     void EndQuadBatch() {
         quadBatchOpen_ = false;
     }
@@ -119,6 +124,7 @@ public:
 
 private:
     Status Execute(const Command& command, std::size_t depth, std::size_t& budget);
+    Status ExecuteScalar(const ScalarCommand& command, std::size_t depth, std::size_t& budget);
     bool MatchesQuadState(const DrawPacket& draw) const;
     DrawPacket Snapshot(Primitive primitive) const;
     Status AppendDraw(DrawPacket& draw);

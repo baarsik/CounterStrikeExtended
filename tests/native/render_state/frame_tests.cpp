@@ -740,10 +740,66 @@ void QuadBatches() {
 
 }
 
+
+void ScalarFrames() {
+    const auto scalar = [](Op op, std::array<double, 6> values = {}, std::uint32_t argument = 0) {
+        ScalarCommand command;
+        command.op = op;
+        command.values = values;
+        command.argument = argument;
+        return command;
+    };
+    const auto triangle = [&scalar](FrameRecorder& recorder) {
+        Check(recorder.SubmitScalar(scalar(Op::Begin)) == Status::Ok, "scalar begin");
+        Check(recorder.SubmitScalar(scalar(Op::Vertex, {{0, 0, 0}})) == Status::Ok, "scalar vertex zero");
+        Check(recorder.SubmitScalar(scalar(Op::Vertex, {{1, 0, 0}})) == Status::Ok, "scalar vertex one");
+        Check(recorder.SubmitScalar(scalar(Op::Vertex, {{0, 1, 0}})) == Status::Ok, "scalar vertex two");
+        Check(recorder.SubmitScalar(scalar(Op::End)) == Status::Ok, "scalar end");
+    };
+    FrameRecorder recorder;
+    Begin(recorder);
+    triangle(recorder);
+    Check(recorder.Readback(Read()) == Status::Ok && recorder.Clear(DepthClear()) == Status::Ok,
+        "scalar draws retain readback/clear boundaries");
+    Check(recorder.BeginList(kPendingList, false) == Status::Ok, "scalar frame compile-only list");
+    triangle(recorder);
+    Check(recorder.EndList() == Status::Ok, "finish scalar frame list");
+    Check(recorder.SubmitScalar(scalar(Op::CallList, {}, kPendingList)) == Status::Ok, "scalar list draw event");
+    FrameSnapshot frame;
+    Check(recorder.Seal(frame) == Status::Ok && frame.draws.size() == 2 && frame.events.size() == 4,
+        "scalar End and CallList emit ordered draw events");
+    Check(frame.events[0].kind == FrameEventKind::Draw && frame.events[0].drawIndex == 0 &&
+        frame.events[1].kind == FrameEventKind::Readback && frame.events[2].kind == FrameEventKind::Clear &&
+        frame.events[3].kind == FrameEventKind::Draw && frame.events[3].drawIndex == 1,
+        "scalar frame event ordering matches consumers");
+    Check(frame.draws[1].vertices[1].position == std::array<float, 4>{{1, 0, 0, 1}},
+        "scalar frame owns list geometry after sealing");
+    Begin(recorder, 2);
+    Check(recorder.SubmitScalar(scalar(Op::TexCoord, {}, kTextureUnits)) == Status::InvalidValue,
+        "invalid scalar poisons frame");
+    Check(recorder.SubmitScalar(scalar(Op::Color, {{0, 1, 0, 1}})) == Status::InvalidValue &&
+        recorder.State().Current().color == std::array<float, 4>{{1, 1, 1, 1}},
+        "later scalar command preserves first error and state");
+    CheckFailedSeal(recorder, Status::InvalidValue);
+    recorder.Abort();
+    Begin(recorder, 3);
+    {
+        ScopedFault fault(CaptureAllocationSite::EventGrowthAfterDraw);
+        Check(recorder.SubmitScalar(scalar(Op::Begin)) == Status::Ok &&
+            recorder.SubmitScalar(scalar(Op::Vertex)) == Status::Ok, "scalar allocation failure setup");
+        Check(recorder.SubmitScalar(scalar(Op::End)) == Status::LimitExceeded && fault.Hits() == 1,
+            "scalar event allocation failure is converted to sticky limit error");
+    }
+    CheckFailedSeal(recorder, Status::LimitExceeded);
+    recorder.Abort();
+}
+
 int main(int argc, char** argv) {
     Check(argc == 2, "one frame case required");
     const std::string name = argv[1];
-    if (name == "quad-batches") {
+    if (name == "scalar-commands") {
+        ScalarFrames();
+    } else if (name == "quad-batches") {
         QuadBatches();
         QuadTextureVersions();
         QuadExactState();

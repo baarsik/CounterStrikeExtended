@@ -28,7 +28,7 @@ bool Integral(double value, int& result) {
     return true;
 }
 
-bool NonfiniteProjection(const Command& command) {
+bool NonfiniteProjection(const ScalarCommand& command) {
     return (command.op == Op::Ortho || command.op == Op::Frustum) &&
         std::any_of(command.values.begin(), command.values.end(),
             [](double value) {
@@ -36,7 +36,7 @@ bool NonfiniteProjection(const Command& command) {
             });
 }
 
-Status ValidateArguments(const Command& command) {
+Status ValidateScalarArguments(const ScalarCommand& command) {
     std::size_t floats = 0;
     switch (command.op) {
     case Op::MatrixMode:
@@ -50,8 +50,6 @@ Status ValidateArguments(const Command& command) {
         floats = command.op == Op::TexCoord ? 2 : 0;
         break;
     case Op::Begin:
-    case Op::DrawArrays:
-    case Op::DrawNative:
         return ValidPrimitive(command.argument) ? Status::Ok : Status::InvalidValue;
     case Op::Translate:
     case Op::Scale:
@@ -83,12 +81,6 @@ Status ValidateArguments(const Command& command) {
     case Op::BindTexture:
         return command.argument <= static_cast<std::uint32_t>(TextureTarget::Rectangle) ?
             Status::Ok : Status::InvalidValue;
-    case Op::TextureImage:
-    case Op::TextureSubImage:
-        if (command.argument > static_cast<std::uint32_t>(TextureTarget::Rectangle)) {
-            return Status::InvalidValue;
-        }
-        return TextureStore::ValidateUpload(command.upload, command.unpack, command.op == Op::TextureSubImage);
     case Op::TextureParameter:
         if (command.argument > static_cast<std::uint32_t>(TextureTarget::Rectangle) ||
             command.second > static_cast<std::uint32_t>(TextureParameter::Anisotropy)) {
@@ -104,8 +96,6 @@ Status ValidateArguments(const Command& command) {
             return Status::Ok;
         }
         return Status::InvalidValue;
-    case Op::SharedPalette:
-        return command.upload.bytes.size() == kPaletteBytes ? Status::Ok : Status::InvalidValue;
     case Op::PixelStore: {
         int value = 0;
         if (command.argument > static_cast<std::uint32_t>(PixelStoreParameter::PackAlignment) ||
@@ -135,11 +125,6 @@ Status ValidateArguments(const Command& command) {
     case Op::PolygonOffset:
         floats = 2;
         break;
-    case Op::DeleteTextures:
-        if (command.names.size() > kTextureNames) {
-            return Status::LimitExceeded;
-        }
-        break;
     case Op::Viewport:
     case Op::Scissor:
         for (std::size_t index = 0; index < 4; ++index) {
@@ -162,11 +147,6 @@ Status ValidateArguments(const Command& command) {
             return Status::InvalidValue;
         }
         break;
-    case Op::LoadMatrix:
-    case Op::MultiplyMatrix:
-        // Retain nonfinite transforms until draw preparation. Ignoring them would draw affected
-        // geometry under the previous transform; refusing them would terminate an otherwise valid frame.
-        break;
     case Op::ColorWrite:
     case Op::Identity:
     case Op::Push:
@@ -186,6 +166,30 @@ Status ValidateArguments(const Command& command) {
         }
     }
     return Status::Ok;
+}
+
+Status ValidateArguments(const Command& command) {
+    switch (command.op) {
+    case Op::TextureImage:
+    case Op::TextureSubImage:
+        if (command.argument > static_cast<std::uint32_t>(TextureTarget::Rectangle)) {
+            return Status::InvalidValue;
+        }
+        return TextureStore::ValidateUpload(command.upload, command.unpack, command.op == Op::TextureSubImage);
+    case Op::SharedPalette:
+        return command.upload.bytes.size() == kPaletteBytes ? Status::Ok : Status::InvalidValue;
+    case Op::DeleteTextures:
+        return command.names.size() <= kTextureNames ? Status::Ok : Status::LimitExceeded;
+    case Op::DrawArrays:
+    case Op::DrawNative:
+        return ValidPrimitive(command.argument) ? Status::Ok : Status::InvalidValue;
+    case Op::LoadMatrix:
+    case Op::MultiplyMatrix:
+        // Retain nonfinite transforms for primitive-local filtering during draw preparation.
+        return Status::Ok;
+    default:
+        return ValidateScalarArguments(command);
+    }
 }
 
 bool AttributeOperation(Op operation) {
@@ -489,6 +493,21 @@ Status Recorder::Submit(const Command& input) {
     return result;
 }
 
+Status Recorder::SubmitScalar(const ScalarCommand& command) {
+    const auto validation = ValidateScalarArguments(command);
+    if (validation != Status::Ok) {
+        return validation;
+    }
+    if (compiling_) {
+        // Lists own complete commands and keep the same compile-only/immediate-operation rules.
+        Command stored;
+        static_cast<ScalarCommand&>(stored) = command;
+        return Submit(stored);
+    }
+    std::size_t budget = limits_.replayCommands;
+    return ExecuteScalar(command, 0, budget);
+}
+
 Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     if (!AtFrameBoundary()) {
         return Status::InvalidOperation;
@@ -569,6 +588,79 @@ Status Recorder::AppendDraw(DrawPacket& draw) {
 }
 
 Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t& budget) {
+    switch (command.op) {
+    case Op::LoadMatrix:
+    case Op::MultiplyMatrix:
+    case Op::DeleteTextures:
+    case Op::TextureImage:
+    case Op::TextureSubImage:
+    case Op::SharedPalette:
+    case Op::DrawArrays:
+    case Op::DrawNative:
+        break;
+    default:
+        return ExecuteScalar(command, depth, budget);
+    }
+    if (!budget || depth > limits_.replayDepth) {
+        return Status::LimitExceeded;
+    }
+    --budget;
+    if (begin_) {
+        return Status::InvalidOperation;
+    }
+    switch (command.op) {
+    case Op::LoadMatrix:
+        state_.LoadMatrix(command.matrix);
+        break;
+    case Op::MultiplyMatrix:
+        state_.MultiplyMatrix(command.matrix);
+        break;
+    case Op::DeleteTextures:
+        textures_.Delete(state_, command.names);
+        break;
+    case Op::TextureImage:
+    case Op::TextureSubImage:
+        return textures_.Upload(state_, static_cast<TextureTarget>(command.argument), command.upload,
+            command.unpack, command.op == Op::TextureSubImage);
+    case Op::SharedPalette:
+        return textures_.Palette(command.upload.bytes);
+    case Op::DrawArrays:
+    case Op::DrawNative: {
+        if (!ValidPrimitive(command.argument)) {
+            return Status::InvalidValue;
+        }
+        if (command.vertices.size() > limits_.verticesPerDraw) {
+            return Status::LimitExceeded;
+        }
+        auto draw = Snapshot(static_cast<Primitive>(command.argument));
+        if (!command.vertices.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+        }
+        draw.vertices = command.vertices;
+        if (!command.indices.empty()) {
+            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+            draw.indices = command.indices;
+        }
+        for (auto& vertex : draw.vertices) {
+            if (command.op != Op::DrawNative || !command.second) {
+                vertex.color = state_.Current().color;
+            }
+            for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
+                vertex.texcoords[unit] = state_.Current().texcoords[unit];
+            }
+        }
+        if (!draw.vertices.empty()) {
+            return AppendDraw(draw);
+        }
+        break;
+    }
+    default:
+        return Status::InvalidValue;
+    }
+    return Status::Ok;
+}
+
+Status Recorder::ExecuteScalar(const ScalarCommand& command, std::size_t depth, std::size_t& budget) {
     if (!budget || depth > limits_.replayDepth) {
         return Status::LimitExceeded;
     }
@@ -585,12 +677,6 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         return state_.SelectMatrix(static_cast<MatrixMode>(command.argument));
     case Op::ActiveTexture:
         return state_.SelectTexture(command.argument);
-    case Op::LoadMatrix:
-        state_.LoadMatrix(command.matrix);
-        break;
-    case Op::MultiplyMatrix:
-        state_.MultiplyMatrix(command.matrix);
-        break;
     case Op::ColorWrite:
         for (std::size_t channel = 0; channel < state_.raster.colorWrite.size(); ++channel) {
             state_.raster.colorWrite[channel] = v[channel] != 0;
@@ -687,20 +773,11 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         break;
     case Op::BindTexture:
         return textures_.Bind(state_, static_cast<TextureTarget>(command.argument), command.second);
-    case Op::DeleteTextures:
-        textures_.Delete(state_, command.names);
-        break;
     case Op::PixelStore:
         return textures_.PixelStore(static_cast<PixelStoreParameter>(command.argument), static_cast<int>(v[0]));
     case Op::TextureParameter:
         return textures_.Parameter(state_, static_cast<TextureTarget>(command.argument),
             static_cast<TextureParameter>(command.second), v[0]);
-    case Op::TextureImage:
-    case Op::TextureSubImage:
-        return textures_.Upload(state_, static_cast<TextureTarget>(command.argument), command.upload,
-            command.unpack, command.op == Op::TextureSubImage);
-    case Op::SharedPalette:
-        return textures_.Palette(command.upload.bytes);
     case Op::TextureEnvironment: {
         auto& texture = state_.textures[state_.ActiveTexture()];
         if (command.argument == static_cast<std::uint32_t>(EnvironmentParameter::Mode)) {
@@ -781,36 +858,6 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         }
         begin_ = false;
         break;
-    case Op::DrawArrays:
-    case Op::DrawNative: {
-        if (!ValidPrimitive(command.argument)) {
-            return Status::InvalidValue;
-        }
-        if (command.vertices.size() > limits_.verticesPerDraw) {
-            return Status::LimitExceeded;
-        }
-        auto draw = Snapshot(static_cast<Primitive>(command.argument));
-        if (!command.vertices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-        }
-        draw.vertices = command.vertices;
-        if (!command.indices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-            draw.indices = command.indices;
-        }
-        for (auto& vertex : draw.vertices) {
-            if (command.op != Op::DrawNative || !command.second) {
-                vertex.color = state_.Current().color;
-            }
-            for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
-                vertex.texcoords[unit] = state_.Current().texcoords[unit];
-            }
-        }
-        if (!draw.vertices.empty()) {
-            return AppendDraw(draw);
-        }
-        break;
-    }
     case Op::CallList: {
         const auto list = lists_.find(command.argument);
         if (list == lists_.end()) {
