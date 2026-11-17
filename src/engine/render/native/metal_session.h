@@ -35,6 +35,17 @@ struct RenderFrameCounters {
     double encodeMs = 0;
     double waitMs = 0;
     double presentMs = 0;
+    std::uint64_t textureLookups = 0;
+    std::uint64_t samplerLookups = 0;
+    std::uint64_t pipelineLookups = 0;
+    std::uint64_t disconnectedMeshRanges = 0;
+    std::uint64_t emptyUploadSegments = 0;
+    std::uint64_t meshOwnerChecks = 0;
+    std::uint64_t unusedTextureUnits = 0;
+    std::uint64_t alphaDiscardDraws = 0;
+    std::uint64_t borderSamplingDraws = 0;
+    std::uint64_t leadingUnscissoredClears = 0;
+    double drawableWaitMs = 0;
 };
 
 class MetalSession {

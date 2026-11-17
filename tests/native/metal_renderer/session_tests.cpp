@@ -180,8 +180,12 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
     }
     sceneDrawCalls = 0;
+    session.EnableDiagnostics(true);
     CHECK(session.Render(frame, error));
     CHECK(sceneDrawCalls == 1);
+    const auto& counters = session.Diagnostics();
+    CHECK(counters.textureLookups == 1 && counters.samplerLookups == 1 && counters.pipelineLookups == 1);
+    session.EnableDiagnostics(false);
     std::array<unsigned char, 4> pixel{};
     CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
@@ -1113,6 +1117,21 @@ int main() {
     CHECK(session.Render(frame, error));
     CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 255 && rgba[1] == 0);
+    // Captured indexed draws can use the same image and different palettes in one render segment.
+    auto secondPaletteDraw = frame.draws[0];
+    secondPaletteDraw.palette = paletteGreen;
+    frame.draws.push_back(std::move(secondPaletteDraw));
+    FrameEvent secondPaletteEvent;
+    secondPaletteEvent.drawIndex = 1;
+    frame.events.push_back(secondPaletteEvent);
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] == 255);
+    frame.draws[1].sharedTexturePalette = false;
+    CHECK(!session.Render(frame, error));
+    CHECK(error.find("enabled shared texture palette") != std::string::npos);
+    frame.events.pop_back();
+    frame.draws.pop_back();
     // Reversed depth range is exercised by the engine's z-trick owner.
     frame.draws[0] = Solid(1, 0, 0);
     frame.draws[0].raster.enabled[static_cast<unsigned>(Capability::DepthTest)] = true;
