@@ -9,6 +9,7 @@
 #include <cmath>
 #include <cstring>
 #include <map>
+#include <unordered_map>
 #include <utility>
 #include <chrono>
 #include <cstdio>
@@ -74,6 +75,11 @@ std::uint32_t Bits(float value) {
     std::uint32_t result;
     std::memcpy(&result, &value, sizeof(result));
     return result;
+}
+
+template<typename T>
+bool SameBits(const T& left, const T& right) {
+    return std::memcmp(&left, &right, sizeof(T)) == 0;
 }
 
 SDL_Rect Scissor(const RasterState& state, unsigned width, unsigned height) {
@@ -194,6 +200,10 @@ struct MetalSession::Impl {
         Uint32 vertexOffset = 0;
         Uint32 indexOffset = 0;
     };
+    struct PendingUploads {
+        std::vector<Texture*> textures;
+        std::vector<Mesh*> meshes;
+    };
 
     static bool SameDrawState(const Draw& first, const Draw& second) {
         const auto& left = first.data;
@@ -237,7 +247,9 @@ struct MetalSession::Impl {
     std::map<TextureKey, Texture> textures;
     std::map<std::array<std::uint32_t, 7>, SDL_GPUSampler*> samplers;
     std::map<std::array<std::uint32_t, 19>, SDL_GPUGraphicsPipeline*> pipelines;
-    std::map<const SurfaceMesh*, Mesh> meshes;
+    // Find world surfaces by immutable identity. Rehashing preserves the mesh
+    // pointers held by prepared draws and the current upload list.
+    std::unordered_map<const SurfaceMesh*, Mesh> meshes;
     std::vector<std::weak_ptr<MeshPage>> meshPages;
     std::shared_ptr<MeshPage> activeMeshPage;
     std::shared_ptr<const TextureObject> white;
@@ -510,12 +522,15 @@ struct MetalSession::Impl {
     }
 
     Texture* GetTexture(std::shared_ptr<const TextureObject> object,
-        std::shared_ptr<const SharedPalette> palette, std::string& error) {
+        std::shared_ptr<const SharedPalette> palette, PendingUploads& pending, std::string& error) {
         const TextureKey key{object.get(), palette.get()};
         auto found = textures.find(key);
         if (found != textures.end()) {
             // Raw addresses are only an index: expired owners may have been allocated at these addresses again.
             if (found->second.object.lock() == object && found->second.palette.lock() == palette) {
+                if (!found->second.uploaded && found->second.lastUse != serial) {
+                    pending.textures.push_back(&found->second);
+                }
                 found->second.lastUse = serial;
                 return &found->second;
             }
@@ -559,13 +574,18 @@ struct MetalSession::Impl {
         }
         entry.lastUse = serial;
         textureBytes += entry.bytes;
-        return &textures.emplace(key, std::move(entry)).first->second;
+        auto* texture = &textures.emplace(key, std::move(entry)).first->second;
+        pending.textures.push_back(texture);
+        return texture;
     }
 
-    Mesh* GetMesh(const std::shared_ptr<const SurfaceMesh>& object, std::string& error) {
+    Mesh* GetMesh(const std::shared_ptr<const SurfaceMesh>& object, PendingUploads& pending, std::string& error) {
         auto found = meshes.find(object.get());
         if (found != meshes.end()) {
             if (found->second.object.lock() == object) {
+                if (!found->second.uploaded && found->second.lastUse != serial) {
+                    pending.meshes.push_back(&found->second);
+                }
                 found->second.lastUse = serial;
                 return &found->second;
             }
@@ -617,10 +637,12 @@ struct MetalSession::Impl {
         mesh.lastUse = serial;
         activeMeshPage->vertexUsed += vertexBytes;
         activeMeshPage->indexUsed += indexBytes;
-        return &meshes.emplace(object.get(), std::move(mesh)).first->second;
+        auto* inserted = &meshes.emplace(object.get(), std::move(mesh)).first->second;
+        pending.meshes.push_back(inserted);
+        return inserted;
     }
 
-    bool Prepare(const DrawPacket& packet, Draw& draw, std::string& error) {
+    bool Prepare(const DrawPacket& packet, Draw& draw, PendingUploads& pending, std::string& error) {
         if (!PrepareMetalDraw(packet, draw.data, error)) {
             return false;
         }
@@ -633,7 +655,7 @@ struct MetalSession::Impl {
             return true;
         }
         if (draw.data.mesh) {
-            draw.mesh = GetMesh(draw.data.mesh, error);
+            draw.mesh = GetMesh(draw.data.mesh, pending, error);
             if (!draw.mesh) {
                 if (!error.empty()) {
                     return false;
@@ -660,7 +682,7 @@ struct MetalSession::Impl {
                 error = "Indexed texture requires enabled shared texture palette; per-texture palettes are unsupported";
                 return false;
             }
-            auto* texture = GetTexture(object, enabled && indexed ? packet.palette : nullptr, error);
+            auto* texture = GetTexture(object, enabled && indexed ? packet.palette : nullptr, pending, error);
             if (!texture) {
                 return false;
             }
@@ -1122,16 +1144,17 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         ++state.counters.preparationAllocations;
     }
     draws.reserve(frame.events.size());
+    Impl::PendingUploads pending;
     std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
     for (const auto& event : frame.events) {
         Impl::Draw draw;
         if (event.kind == FrameEventKind::Clear) {
-            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, error)) {
+            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error)) {
                 return false;
             }
-        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, error)) {
+        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error)) {
             return false;
         }
         if ((!draw.mesh && draw.data.vertices.empty()) || draw.data.raster.viewport[2] == 0 || draw.data.raster.viewport[3] == 0 ||
@@ -1167,33 +1190,27 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         Uint32 indexOffset;
     };
     std::vector<MeshUpload> meshUploads;
-    for (auto& pair : state.meshes) {
-        auto& mesh = pair.second;
-        if (mesh.uploaded || mesh.lastUse != state.serial) {
-            continue;
-        }
-        const auto object = mesh.object.lock();
+    // Record first use while preparing draws. Existing residents need no upload planning,
+    // and resources touched by this segment are protected from eviction until it ends.
+    for (auto* mesh : pending.meshes) {
+        const auto object = mesh->object.lock();
         const auto vertexBytes = object->Vertices().size() * sizeof(Vertex);
         const auto indexBytes = object->Indices().size() * sizeof(std::uint32_t);
         if (vertexBytes + indexBytes > kMaximumStreamingBytes - uploadBytes) {
             return Fail(error, "Frame meshes exceed Metal upload budget");
         }
-        meshUploads.push_back({&mesh, object, static_cast<Uint32>(uploadBytes),
+        meshUploads.push_back({mesh, object, static_cast<Uint32>(uploadBytes),
             static_cast<Uint32>(uploadBytes + vertexBytes)});
         uploadBytes += vertexBytes + indexBytes;
     }
-    for (auto& pair : state.textures) {
-        auto& texture = pair.second;
-        if (texture.uploaded || texture.lastUse != state.serial) {
-            continue;
-        }
-        for (std::size_t level = 0; level < texture.data.levels.size(); ++level) {
+    for (auto* texture : pending.textures) {
+        for (std::size_t level = 0; level < texture->data.levels.size(); ++level) {
             uploadBytes = Align(uploadBytes, kTransferAlignment);
-            const auto bytes = texture.data.levels[level].pixels.size();
+            const auto bytes = texture->data.levels[level].pixels.size();
             if (uploadBytes > kMaximumStreamingBytes || bytes > kMaximumStreamingBytes - uploadBytes) {
                 return Fail(error, "Frame textures exceed Metal streaming budget");
             }
-            uploads.push_back({&texture, static_cast<unsigned>(level), static_cast<Uint32>(uploadBytes)});
+            uploads.push_back({texture, static_cast<unsigned>(level), static_cast<Uint32>(uploadBytes)});
             uploadBytes += bytes;
         }
     }
@@ -1305,6 +1322,11 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         SDL_PopGPUDebugGroup(command);
         return DeviceFailure(error, "Begin Metal scene pass");
     }
+    // Each pass starts with fresh bindings. Within the pass all legacy pipelines use
+    // the same shader layout, so unchanged resources and uniforms remain valid.
+    const Impl::Draw* previous = nullptr;
+    SDL_Rect previousScissor{};
+    SDL_GPUBufferBinding previousVertexBinding{};
     for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
         const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
@@ -1335,16 +1357,6 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         if (scissor.w == 0 || scissor.h == 0) {
             continue;
         }
-        auto constants = data.vertex;
-        auto nearDepth = static_cast<float>(data.raster.depthRange[0]);
-        auto farDepth = static_cast<float>(data.raster.depthRange[1]);
-        if (nearDepth > farDepth) {
-            // Reverse clip Z and swap viewport endpoints for GL's reversed depth range.
-            for (std::size_t column = 0; column < 4; ++column) {
-                constants.projection.values[column * 4 + 2] *= -1;
-            }
-            std::swap(nearDepth, farDepth);
-        }
         // GL permits viewports extending beyond the drawable (including R_SetupGL's rounding margin).
         // SDL_GPU requires a contained viewport. Crop it and remap clip X/Y so screen coordinates,
         // interpolation and texture derivatives remain those of the original GL viewport.
@@ -1357,33 +1369,63 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         if (right <= left || top <= bottom) {
             continue;
         }
-        const auto width = static_cast<float>(right - left);
-        const auto height = static_cast<float>(top - bottom);
-        constexpr float kNdcExtent = 2.0f;
-        const float scaleX = viewport[2] / width;
-        const float scaleY = viewport[3] / height;
-        const float offsetX = (kNdcExtent * (viewport[0] - left) + viewport[2] - width) / width;
-        const float offsetY = (kNdcExtent * (viewport[1] - bottom) + viewport[3] - height) / height;
-        for (std::size_t column = 0; column < 4; ++column) {
-            auto* row = constants.projection.values.data() + column * 4;
-            row[0] = scaleX * row[0] + offsetX * row[3];
-            row[1] = scaleY * row[1] + offsetY * row[3];
+        if (!previous || previous->pipeline != draw.pipeline) {
+            SDL_BindGPUGraphicsPipeline(pass, draw.pipeline);
         }
-        SDL_GPUViewport gpuViewport{static_cast<float>(left), static_cast<float>(state.height - top),
-            width, height, nearDepth, farDepth};
-        SDL_BindGPUGraphicsPipeline(pass, draw.pipeline);
-        SDL_SetGPUViewport(pass, &gpuViewport);
-        SDL_SetGPUScissor(pass, &scissor);
+        const bool newViewport = !previous || previous->data.raster.viewport != viewport ||
+            !SameBits(previous->data.raster.depthRange, data.raster.depthRange);
+        if (newViewport || !SameBits(previous->data.vertex, data.vertex)) {
+            auto nearDepth = static_cast<float>(data.raster.depthRange[0]);
+            auto farDepth = static_cast<float>(data.raster.depthRange[1]);
+            const bool reverseDepth = nearDepth > farDepth;
+            if (reverseDepth) {
+                std::swap(nearDepth, farDepth);
+            }
+            const auto width = static_cast<float>(right - left);
+            const auto height = static_cast<float>(top - bottom);
+            if (newViewport) {
+                const SDL_GPUViewport gpuViewport{static_cast<float>(left), static_cast<float>(state.height - top),
+                    width, height, nearDepth, farDepth};
+                SDL_SetGPUViewport(pass, &gpuViewport);
+            }
+            auto constants = data.vertex;
+            constexpr float kNdcExtent = 2.0f;
+            const float scaleX = viewport[2] / width;
+            const float scaleY = viewport[3] / height;
+            const float offsetX = (kNdcExtent * (viewport[0] - left) + viewport[2] - width) / width;
+            const float offsetY = (kNdcExtent * (viewport[1] - bottom) + viewport[3] - height) / height;
+            for (std::size_t column = 0; column < 4; ++column) {
+                auto* row = constants.projection.values.data() + column * 4;
+                row[0] = scaleX * row[0] + offsetX * row[3];
+                row[1] = scaleY * row[1] + offsetY * row[3];
+                if (reverseDepth) {
+                    row[2] *= -1;
+                }
+            }
+            SDL_PushGPUVertexUniformData(command, 0, &constants, sizeof(constants));
+        }
+        if (!previous || previousScissor.x != scissor.x || previousScissor.y != scissor.y ||
+            previousScissor.w != scissor.w || previousScissor.h != scissor.h) {
+            SDL_SetGPUScissor(pass, &scissor);
+            previousScissor = scissor;
+        }
         SDL_GPUBufferBinding binding{draw.mesh ? draw.mesh->page->vertices : stream.vertices,
             draw.mesh ? 0 : draw.vertexOffset};
-        SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
-        std::array<SDL_GPUTextureSamplerBinding, kTextureUnits> textures{};
-        for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
-            textures[unit] = {draw.textures[unit]->texture, draw.samplers[unit]};
+        if (previousVertexBinding.buffer != binding.buffer || previousVertexBinding.offset != binding.offset) {
+            SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
+            previousVertexBinding = binding;
         }
-        SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
-        SDL_PushGPUVertexUniformData(command, 0, &constants, sizeof(constants));
-        SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
+        if (!previous || previous->textures != draw.textures || previous->samplers != draw.samplers) {
+            std::array<SDL_GPUTextureSamplerBinding, kTextureUnits> textures{};
+            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                textures[unit] = {draw.textures[unit]->texture, draw.samplers[unit]};
+            }
+            SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
+        }
+        if (!previous || !SameBits(previous->data.fragment, data.fragment)) {
+            SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
+        }
+        previous = &draw;
         if (state.diagnosticsEnabled) {
             ++state.counters.gpuDraws;
         }

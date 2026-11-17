@@ -21,6 +21,12 @@ unsigned sceneDrawCalls = 0;
 unsigned sceneIndexedDrawCalls = 0;
 unsigned geometryUploads = 0;
 bool mixedGeometryBufferUsage = false;
+struct SceneBindings {
+    unsigned pipelines = 0;
+    unsigned samplers = 0;
+    unsigned vertexUniforms = 0;
+    unsigned fragmentUniforms = 0;
+} sceneBindings;
 // Narrow link seam around presentation allocation and command retirement. All successful calls use real SDL.
 struct PresentationProbe {
     bool active = false;
@@ -39,6 +45,29 @@ template<typename Function> Function Original(const char* name) {
     }
     return function;
 }
+}
+
+extern "C" void SDL_BindGPUGraphicsPipeline(SDL_GPURenderPass* pass, SDL_GPUGraphicsPipeline* pipeline) {
+    ++sceneBindings.pipelines;
+    Original<decltype(&SDL_BindGPUGraphicsPipeline)>("SDL_BindGPUGraphicsPipeline")(pass, pipeline);
+}
+
+extern "C" void SDL_BindGPUFragmentSamplers(SDL_GPURenderPass* pass, Uint32 slot,
+    const SDL_GPUTextureSamplerBinding* bindings, Uint32 count) {
+    ++sceneBindings.samplers;
+    Original<decltype(&SDL_BindGPUFragmentSamplers)>("SDL_BindGPUFragmentSamplers")(pass, slot, bindings, count);
+}
+
+extern "C" void SDL_PushGPUVertexUniformData(SDL_GPUCommandBuffer* command, Uint32 slot,
+    const void* data, Uint32 bytes) {
+    ++sceneBindings.vertexUniforms;
+    Original<decltype(&SDL_PushGPUVertexUniformData)>("SDL_PushGPUVertexUniformData")(command, slot, data, bytes);
+}
+
+extern "C" void SDL_PushGPUFragmentUniformData(SDL_GPUCommandBuffer* command, Uint32 slot,
+    const void* data, Uint32 bytes) {
+    ++sceneBindings.fragmentUniforms;
+    Original<decltype(&SDL_PushGPUFragmentUniformData)>("SDL_PushGPUFragmentUniformData")(command, slot, data, bytes);
 }
 
 extern "C" void SDL_DrawGPUPrimitives(SDL_GPURenderPass* pass, Uint32 vertices, Uint32 instances,
@@ -158,8 +187,11 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         vertex.color[3] = 0.25f;
     }
     sceneDrawCalls = 0;
+    sceneBindings = {};
     CHECK(session.Render(frame, error));
     CHECK(sceneDrawCalls == 2);
+    CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 1);
+    CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
     // Projection and dynamic scissor state are independent of the pipeline cache key too.
@@ -195,8 +227,11 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         frame.draws[index].resources[0].texture2D = object;
     }
     sceneDrawCalls = 0;
+    sceneBindings = {};
     CHECK(session.Render(frame, error));
     CHECK(sceneDrawCalls == 2);
+    CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 2);
+    CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 1);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
     // Merging translucent primitives must retain their original compositing order.
