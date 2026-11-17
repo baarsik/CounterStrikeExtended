@@ -23,6 +23,8 @@ constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextures = 512;
 constexpr std::size_t kMaximumCachedPipelines = 512;
+// Each raster state can use a shader with or without alpha discard.
+constexpr std::size_t kMaximumCachedVariantPipelines = 2 * kMaximumCachedPipelines;
 constexpr std::size_t kMaximumCachedMeshBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMeshVertexPageBytes = 4 * 1024 * 1024;
 constexpr std::size_t kMeshIndexPageBytes = 1024 * 1024;
@@ -226,6 +228,7 @@ struct MetalSession::Impl {
     SDL_Window* window = nullptr;
     SDL_GPUShader* vertex = nullptr;
     SDL_GPUShader* fragment = nullptr;
+    SDL_GPUShader* alphaTestFragment = nullptr;
     SDL_GPUTexture* color = nullptr;
     SDL_GPUTexture* spareResolve = nullptr;
     SDL_GPUTexture* multisample = nullptr;
@@ -247,7 +250,7 @@ struct MetalSession::Impl {
     using TextureKey = std::pair<const TextureObject*, const SharedPalette*>;
     std::map<TextureKey, Texture> textures;
     std::map<std::array<std::uint32_t, 7>, SDL_GPUSampler*> samplers;
-    std::map<std::array<std::uint32_t, 19>, SDL_GPUGraphicsPipeline*> pipelines;
+    std::map<std::array<std::uint32_t, 20>, SDL_GPUGraphicsPipeline*> pipelines;
     // Find world surfaces by immutable identity. Rehashing preserves the mesh
     // pointers held by prepared draws and the current upload list.
     std::unordered_map<const SurfaceMesh*, Mesh> meshes;
@@ -404,14 +407,14 @@ struct MetalSession::Impl {
         return true;
     }
 
-    SDL_GPUShader* Shader(bool isVertex) {
+    SDL_GPUShader* Shader(const char* entrypoint, SDL_GPUShaderStage stage) {
         SDL_GPUShaderCreateInfo info{};
         info.code = kLegacyRuntimeMetal;
         info.code_size = sizeof(kLegacyRuntimeMetal);
-        info.entrypoint = isVertex ? "LegacyVertex" : "LegacyFragment";
+        info.entrypoint = entrypoint;
         info.format = SDL_GPU_SHADERFORMAT_METALLIB;
-        info.stage = isVertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-        info.num_samplers = isVertex ? 0 : static_cast<Uint32>(kTextureUnits);
+        info.stage = stage;
+        info.num_samplers = stage == SDL_GPU_SHADERSTAGE_FRAGMENT ? static_cast<Uint32>(kTextureUnits) : 0;
         info.num_uniform_buffers = 1;
         return SDL_CreateGPUShader(device, &info);
     }
@@ -421,14 +424,16 @@ struct MetalSession::Impl {
         const bool blend = state.enabled[static_cast<std::size_t>(Capability::Blend)];
         const bool depthTest = state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
         const bool cull = state.enabled[static_cast<std::size_t>(Capability::CullFace)];
+        const bool alphaTest = state.enabled[static_cast<std::size_t>(Capability::AlphaTest)] &&
+            state.alphaFunction != Compare::Always;
         const bool bias = state.enabled.back() && draw.topology == Primitive::Triangles &&
             state.polygonMode[0] == PolygonMode::Fill;
-        std::array<std::uint32_t, 19> key{{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
+        std::array<std::uint32_t, 20> key{{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
             static_cast<unsigned>(state.blendSource), static_cast<unsigned>(state.blendDestination), depthTest,
             state.depthWrite, static_cast<unsigned>(state.depthFunction), cull, static_cast<unsigned>(state.cull),
             state.frontCounterClockwise, static_cast<unsigned>(state.polygonMode[0]), bias,
             Bits(state.polygonOffset[0]), Bits(state.polygonOffset[1]), state.colorWrite[0], state.colorWrite[1],
-            state.colorWrite[2], state.colorWrite[3]}};
+            state.colorWrite[2], state.colorWrite[3], alphaTest}};
         const auto found = pipelines.find(key);
         if (found != pipelines.end()) {
             return found->second;
@@ -459,7 +464,7 @@ struct MetalSession::Impl {
         }
         SDL_GPUGraphicsPipelineCreateInfo info{};
         info.vertex_shader = vertex;
-        info.fragment_shader = fragment;
+        info.fragment_shader = alphaTest ? alphaTestFragment : fragment;
         info.vertex_input_state.vertex_buffer_descriptions = &buffer;
         info.vertex_input_state.num_vertex_buffers = 1;
         info.vertex_input_state.vertex_attributes = attributes.data();
@@ -485,7 +490,7 @@ struct MetalSession::Impl {
         info.target_info.color_target_descriptions = &target;
         info.target_info.has_depth_stencil_target = true;
         info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-        if (pipelines.size() >= kMaximumCachedPipelines) {
+        if (pipelines.size() >= kMaximumCachedVariantPipelines) {
             SDL_SetError("Frame exceeds cached Metal pipeline budget");
             return nullptr;
         }
@@ -978,9 +983,10 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
         }
         state.window = window;
     }
-    state.vertex = state.Shader(true);
-    state.fragment = state.Shader(false);
-    if (!state.vertex || !state.fragment) {
+    state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    state.fragment = state.Shader("LegacyFragment", SDL_GPU_SHADERSTAGE_FRAGMENT);
+    state.alphaTestFragment = state.Shader("LegacyFragmentAlphaTest", SDL_GPU_SHADERSTAGE_FRAGMENT);
+    if (!state.vertex || !state.fragment || !state.alphaTestFragment) {
         Shutdown();
         return DeviceFailure(error, "Load embedded offline Metal shaders");
     }
@@ -1145,7 +1151,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     }
     // Never evict a pipeline/sampler after this frame has retained its pointer and before submission.
     // SDL keeps prior submitted command references alive when the owning cache releases its reference.
-    if (state.pipelines.size() >= kMaximumCachedPipelines / 2) {
+    if (state.pipelines.size() >= kMaximumCachedVariantPipelines / 2) {
         for (const auto& pair : state.pipelines) {
             SDL_ReleaseGPUGraphicsPipeline(state.device, pair.second);
         }
@@ -1842,6 +1848,9 @@ void MetalSession::Shutdown() {
     }
     if (state.fragment) {
         SDL_ReleaseGPUShader(state.device, state.fragment);
+    }
+    if (state.alphaTestFragment) {
+        SDL_ReleaseGPUShader(state.device, state.alphaTestFragment);
     }
     if (state.window) {
         SDL_ReleaseWindowFromGPUDevice(state.device, state.window);

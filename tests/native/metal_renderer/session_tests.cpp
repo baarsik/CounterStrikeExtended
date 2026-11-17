@@ -187,7 +187,7 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
     CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
-    // Uniform changes must break a batch even when the graphics pipeline is identical.
+    // The discard-capable shader needs a distinct pipeline, with the same sampler and vertex bindings.
     frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
     frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
     frame.draws[1].raster.alphaFunction = Compare::Greater;
@@ -199,10 +199,23 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     sceneBindings = {};
     CHECK(session.Render(frame, error));
     CHECK(sceneDrawCalls == 2);
+    CHECK(sceneBindings.pipelines == 2 && sceneBindings.samplers == 1);
+    CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
+    CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    // Alpha functions and references remain uniforms on the same alpha-tested pipeline.
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
+    frame.draws[0].raster.alphaFunction = Compare::Greater;
+    frame.draws[0].raster.alphaReference = 0.25f;
+    sceneDrawCalls = 0;
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 1);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = false;
     // Projection and dynamic scissor state are independent of the pipeline cache key too.
     for (bool scissor : {false, true}) {
         frame.draws[1] = Solid(0, 1, 0);
