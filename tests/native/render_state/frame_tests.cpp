@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
 
 using namespace cse::render;
 
@@ -653,6 +654,26 @@ void AllocationFailure() {
     Check(fresh.Seal(next) == Status::Ok, "construction fault leaves next owner usable");
 }
 
+void QuadExactState() {
+    Recorder recorder;
+    std::array<Vertex, 4> quad{};
+    Check(recorder.SubmitQuad(quad) == Status::Ok, "quad with positive matrix zero");
+    auto matrix = Make(Op::LoadMatrix);
+    matrix.matrix = Matrix4::Identity();
+    matrix.matrix.values[1] = -0.0f;
+    Check(recorder.Submit(matrix) == Status::Ok, "signed-zero matrix change");
+    Check(recorder.SubmitQuad(quad) == Status::Ok, "quad with negative matrix zero");
+    Check(recorder.Draws().size() == 2, "bit-distinct transforms must not merge");
+    Check(std::signbit(recorder.Draws()[1].modelView.values[1]), "negative matrix zero retained");
+    recorder.ClearDraws();
+    auto fog = Make(Op::FogEnd);
+    Check(recorder.Submit(fog) == Status::Ok && recorder.SubmitQuad(quad) == Status::Ok, "positive fog zero");
+    fog.values[0] = -0.0;
+    Check(recorder.Submit(fog) == Status::Ok && recorder.SubmitQuad(quad) == Status::Ok, "negative fog zero");
+    Check(recorder.Draws().size() == 2, "bit-distinct floating raster state must not merge");
+    Check(std::signbit(recorder.Draws()[1].raster.fogEnd), "negative raster zero retained");
+}
+
 void QuadTextureVersions() {
     FrameRecorder frame;
     Begin(frame);
@@ -725,6 +746,7 @@ int main(int argc, char** argv) {
     if (name == "quad-batches") {
         QuadBatches();
         QuadTextureVersions();
+        QuadExactState();
     } else if (name == "order") {
         Order();
     } else if (name == "owned") {

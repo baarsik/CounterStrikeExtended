@@ -5,6 +5,7 @@
 #include <cmath>
 #include <limits>
 #include <tuple>
+#include <cstring>
 
 namespace cse {
 namespace render {
@@ -227,16 +228,28 @@ void Recorder::AbortPendingFrame() {
 }
 
 bool Recorder::MatchesQuadState(const DrawPacket& draw) const {
+    // Compare floating representations, including signed zero. Do not compare structure padding.
+    const auto sameScalarBits = [](const auto& first, const auto& second) {
+        return std::memcmp(&first, &second, sizeof(first)) == 0;
+    };
+    const auto sameArrayBits = [](const auto& first, const auto& second) {
+        return std::memcmp(first.data(), second.data(), first.size() * sizeof(first.front())) == 0;
+    };
     const auto rasterKey = [](const RasterState& raster) {
         return std::tie(raster.enabled, raster.depthWrite, raster.colorWrite, raster.depthFunction,
-            raster.alphaFunction, raster.alphaReference, raster.blendSource, raster.blendDestination,
-            raster.cull, raster.shade, raster.viewport, raster.scissor, raster.depthRange, raster.fogMode,
-            raster.fogColor, raster.fogDensity, raster.fogStart, raster.fogEnd, raster.frontCounterClockwise,
-            raster.polygonMode, raster.polygonOffset, raster.fogHint, raster.perspectiveHint);
+            raster.alphaFunction, raster.blendSource, raster.blendDestination, raster.cull, raster.shade,
+            raster.viewport, raster.scissor, raster.fogMode, raster.frontCounterClockwise, raster.polygonMode,
+            raster.fogHint, raster.perspectiveHint);
     };
-    if (rasterKey(draw.raster) != rasterKey(state_.raster) ||
-        draw.modelView.values != state_.Matrix(MatrixMode::ModelView).values ||
-        draw.projection.values != state_.Matrix(MatrixMode::Projection).values ||
+    const auto& raster = draw.raster;
+    const auto& current = state_.raster;
+    const bool sameFloatingRaster = sameScalarBits(raster.alphaReference, current.alphaReference) &&
+        sameArrayBits(raster.depthRange, current.depthRange) && sameArrayBits(raster.fogColor, current.fogColor) &&
+        sameScalarBits(raster.fogDensity, current.fogDensity) && sameScalarBits(raster.fogStart, current.fogStart) &&
+        sameScalarBits(raster.fogEnd, current.fogEnd) && sameArrayBits(raster.polygonOffset, current.polygonOffset);
+    if (!sameFloatingRaster || rasterKey(draw.raster) != rasterKey(state_.raster) ||
+        !sameArrayBits(draw.modelView.values, state_.Matrix(MatrixMode::ModelView).values) ||
+        !sameArrayBits(draw.projection.values, state_.Matrix(MatrixMode::Projection).values) ||
         draw.sharedTexturePalette != state_.sharedTexturePalette || draw.palette != textures_.PaletteSnapshot()) {
         return false;
     }
@@ -247,7 +260,7 @@ bool Recorder::MatchesQuadState(const DrawPacket& draw) const {
                 texture.textureRectangle, texture.environment, texture.rgbScale);
         };
         if (textureKey(draw.textures[unit]) != textureKey(state_.textures[unit]) ||
-            draw.textureMatrices[unit].values != state_.Matrix(MatrixMode::Texture, unit).values ||
+            !sameArrayBits(draw.textureMatrices[unit].values, state_.Matrix(MatrixMode::Texture, unit).values) ||
             draw.resources[unit].texture2D != resources[unit].texture2D ||
             draw.resources[unit].rectangle != resources[unit].rectangle) {
             return false;
