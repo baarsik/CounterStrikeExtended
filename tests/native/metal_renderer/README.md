@@ -12,6 +12,29 @@ logged once per Metal session.
 compares full images of clean and mixed-invalid draws for indexed and nonindexed GPU submissions.
 Shared effect input, simulation and pool-reuse checks live in [effects_safety](../effects_safety/README.md).
 
+The session encodes ordered scene, HUD, radar and backdrop work into one pending SDL_GPU
+command buffer. Presentation, synchronous readback/finish, resize, and an exceptional
+128 MiB upload-pressure boundary submit it. Streaming storage retires by submission fence,
+with a 32 MiB retained vertex/index/transfer cache. Direct effect textures and cached panel
+meshes share the upload accounting. MSAA samples are preserved between passes and resolved
+only before a scene consumer; the separately retained presented image remains readable
+while the next scene is in progress.
+
+Set `CSE_METAL_FRAME_STATS=/absolute/path/counters.csv` to collect opt-in cumulative
+per-presentation counters and CPU timings. Difference consecutive rows for frame costs;
+`frame` identifies the latest recorder segment, since effects can split capture segments.
+Counts include scene/effect draws, submissions, render/copy passes, scene resolves, uploaded
+bytes and blocking fence waits. Timings measure CPU preparation, encoding, waiting and
+presentation, not GPU execution. Leave this variable unset for performance measurements.
+Debug groups identify legacy scene/HUD and radar/backdrop encoding. Diagnostics introduce
+no extra GPU synchronization.
+
+`metal-session-device` additionally compares separate and batched UI pixels exactly at
+1x/4x MSAA with translucent overlap, flat/smooth shading, wire/fill and invalid neighboring
+quads. `metal-radar-effects` checks more than 64 effects in one pending frame, retained panel
+geometry without repeated uploads, and pressure submissions for changing textures/panels.
+`metal-mesh-pages` counts both GPU and transfer-buffer ownership/capacity.
+
 These fixtures exercise the production CPU preparation, recorder/backend and actual
 SDL_GPU `metal` device. They do not replace the historical bounded prototype tests.
 Run from the repository root on macOS 14+ ARM64 with the repository's pinned, source-built SDL3:

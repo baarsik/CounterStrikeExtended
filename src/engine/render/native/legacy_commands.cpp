@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <tuple>
 
 namespace cse {
 namespace render {
@@ -202,6 +203,7 @@ bool Recorder::AtFrameBoundary() const {
 }
 
 Status Recorder::TakeFrameDraws(std::vector<DrawPacket>& output) {
+    EndQuadBatch();
     if (!output.empty() || !AtFrameBoundary()) {
         return Status::InvalidOperation;
     }
@@ -211,6 +213,7 @@ Status Recorder::TakeFrameDraws(std::vector<DrawPacket>& output) {
 }
 
 void Recorder::AbortPendingFrame() {
+    EndQuadBatch();
     ClearDraws();
     // Destroy pending ownership without constructing a new recorder or allocating.
     std::vector<Command>().swap(pendingList_);
@@ -221,6 +224,36 @@ void Recorder::AbortPendingFrame() {
     executeList_ = false;
     compileBegin_ = false;
     begin_ = false;
+}
+
+bool Recorder::MatchesQuadState(const DrawPacket& draw) const {
+    const auto rasterKey = [](const RasterState& raster) {
+        return std::tie(raster.enabled, raster.depthWrite, raster.colorWrite, raster.depthFunction,
+            raster.alphaFunction, raster.alphaReference, raster.blendSource, raster.blendDestination,
+            raster.cull, raster.shade, raster.viewport, raster.scissor, raster.depthRange, raster.fogMode,
+            raster.fogColor, raster.fogDensity, raster.fogStart, raster.fogEnd, raster.frontCounterClockwise,
+            raster.polygonMode, raster.polygonOffset, raster.fogHint, raster.perspectiveHint);
+    };
+    if (rasterKey(draw.raster) != rasterKey(state_.raster) ||
+        draw.modelView.values != state_.Matrix(MatrixMode::ModelView).values ||
+        draw.projection.values != state_.Matrix(MatrixMode::Projection).values ||
+        draw.sharedTexturePalette != state_.sharedTexturePalette || draw.palette != textures_.PaletteSnapshot()) {
+        return false;
+    }
+    const auto resources = textures_.Capture(state_);
+    for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+        const auto textureKey = [](const TextureUnitState& texture) {
+            return std::tie(texture.enabled2D, texture.enabledRectangle, texture.texture2D,
+                texture.textureRectangle, texture.environment, texture.rgbScale);
+        };
+        if (textureKey(draw.textures[unit]) != textureKey(state_.textures[unit]) ||
+            draw.textureMatrices[unit].values != state_.Matrix(MatrixMode::Texture, unit).values ||
+            draw.resources[unit].texture2D != resources[unit].texture2D ||
+            draw.resources[unit].rectangle != resources[unit].rectangle) {
+            return false;
+        }
+    }
+    return true;
 }
 
 DrawPacket Recorder::Snapshot(Primitive primitive) const {
@@ -450,16 +483,33 @@ Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     if (vertices.size() > limits_.verticesPerDraw) {
         return Status::LimitExceeded;
     }
-    auto draw = Snapshot(Primitive::Quads);
-    draw.vertices.assign(vertices.begin(), vertices.end());
-    for (auto& vertex : draw.vertices) {
+    if (vertices.size() > limits_.frameVertices - frameVertices_) {
+        return Status::LimitExceeded;
+    }
+    // Compare the current state before allocating/copying a full packet. Colors and current UVs
+    // belong to individual vertices, so text with changing colors remains one ordered quad batch.
+    const bool append = quadBatchOpen_ && !draws_.empty() &&
+        draws_.back().vertices.size() <= limits_.verticesPerDraw - vertices.size() &&
+        MatchesQuadState(draws_.back());
+    std::array<Vertex, 4> captured = vertices;
+    for (auto& vertex : captured) {
         vertex.color = state_.Current().color;
         for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
             vertex.texcoords[unit] = state_.Current().texcoords[unit];
         }
     }
-    const auto result = AppendDraw(draw);
+    auto result = Status::Ok;
+    if (append) {
+        auto& target = draws_.back().vertices;
+        target.insert(target.end(), captured.begin(), captured.end());
+        frameVertices_ += captured.size();
+    } else {
+        auto draw = Snapshot(Primitive::Quads);
+        draw.vertices.assign(captured.begin(), captured.end());
+        result = AppendDraw(draw);
+    }
     if (result == Status::Ok) {
+        quadBatchOpen_ = true;
         state_.TexCoord(0, vertices.back().texcoords[0][0], vertices.back().texcoords[0][1]);
     }
     return result;
@@ -494,6 +544,7 @@ Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, f
 }
 
 Status Recorder::AppendDraw(DrawPacket& draw) {
+    EndQuadBatch();
     const auto vertices = draw.mesh ? std::max(draw.mesh->Vertices().size(), draw.mesh->Indices().size()) :
         std::max(draw.vertices.size(), draw.indices.size());
     if (draws_.size() >= limits_.drawPackets || vertices > limits_.frameVertices - frameVertices_) {

@@ -84,6 +84,9 @@ public:
     Recorder(const Recorder&) = default;
     Recorder& operator=(const Recorder&) = default;
     Status Submit(const Command& command);
+    void EndQuadBatch() {
+        quadBatchOpen_ = false;
+    }
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status BeginList(std::uint32_t id, bool execute);
@@ -109,14 +112,17 @@ public:
     Status TakeFrameDraws(std::vector<DrawPacket>& output);
     void AbortPendingFrame();
     void ClearDraws() {
+        EndQuadBatch();
         draws_.clear();
         frameVertices_ = 0;
     }
 
 private:
     Status Execute(const Command& command, std::size_t depth, std::size_t& budget);
+    bool MatchesQuadState(const DrawPacket& draw) const;
     DrawPacket Snapshot(Primitive primitive) const;
     Status AppendDraw(DrawPacket& draw);
+    bool quadBatchOpen_ = false;
     CaptureLimits limits_;
     std::size_t frameVertices_ = 0;
     std::size_t storedVertices_ = 0;

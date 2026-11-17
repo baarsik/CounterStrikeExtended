@@ -203,7 +203,8 @@ CseRadarResult RadarRendererGpu::BuildMapImage(const CseRadarMapImageBuild& buil
     for (unsigned index = 0; index < build.passCount && status == CSE_RADAR_OK; ++index) {
         const auto& pass = build.passes[index];
         const bool bottom = pass.depthOrder == CSE_RADAR_DEPTH_BOTTOMMOST;
-        auto* command = SDL_AcquireGPUCommandBuffer(impl_->device);
+        std::string error;
+        auto* command = impl_->session.Commands(error);
         if (!command) {
             status = CSE_RADAR_DEVICE_LOST;
             break;
@@ -220,11 +221,12 @@ CseRadarResult RadarRendererGpu::BuildMapImage(const CseRadarMapImageBuild& buil
         depthInfo.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
         depthInfo.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
         auto* clear = SDL_BeginGPURenderPass(command, &color, 1, &depthInfo);
-        SDL_EndGPURenderPass(clear);
-        if (!SDL_SubmitGPUCommandBuffer(command)) {
+        if (!clear) {
             status = CSE_RADAR_DEVICE_LOST;
             break;
         }
+        SDL_EndGPURenderPass(clear);
+        impl_->session.CountRenderPass();
         Uniforms uniforms;
         // Generated UV (0,0) maps to minX,minY: physical top row stores world minY.
         uniforms.transform = {{2 / (pass.maxX - pass.minX), -2 / (pass.maxY - pass.minY),

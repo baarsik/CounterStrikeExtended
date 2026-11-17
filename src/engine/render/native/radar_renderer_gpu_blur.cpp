@@ -31,7 +31,11 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
     }
     blur.originX = x;
     blur.originY = y;
-    auto* command = SDL_AcquireGPUCommandBuffer(device);
+    std::string error;
+    if (!session.ResolveScene(error)) {
+        return false;
+    }
+    auto* command = session.Commands(error);
     if (!command) {
         return false;
     }
@@ -47,6 +51,7 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
     capture.load_op = SDL_GPU_LOADOP_DONT_CARE;
     capture.filter = SDL_GPU_FILTER_NEAREST;
     SDL_BlitGPUTexture(command, &capture);
+    session.CountRenderPass();
     SDL_GPUBlitInfo downsampleInfo{};
     downsampleInfo.source.texture = blur.scene.gpu;
     downsampleInfo.source.w = width;
@@ -57,9 +62,7 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
     downsampleInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
     downsampleInfo.filter = SDL_GPU_FILTER_LINEAR;
     SDL_BlitGPUTexture(command, &downsampleInfo);
-    if (!SDL_SubmitGPUCommandBuffer(command)) {
-        return false;
-    }
+    session.CountRenderPass();
     MetalEffectAccess target{device, blur.scratch.gpu, nullptr, smallWidth, smallHeight, SDL_GPU_SAMPLECOUNT_1};
     RasterState raster;
     raster.viewport = {{0, 0, static_cast<int>(smallWidth), static_cast<int>(smallHeight)}};
@@ -131,6 +134,10 @@ void RadarRendererGpu::BeginSmokedFrame() {
     impl_->smokedCaptured = false;
 }
 
+bool RadarRendererGpu::SmokedCaptureRequested() const {
+    return impl_->smokedRequested;
+}
+
 bool RadarRendererGpu::CaptureSmoked(int x, int y, int width, int height) {
     const bool requested = impl_->smokedRequested;
     impl_->smokedRequested = false;
@@ -162,42 +169,81 @@ bool RadarRendererGpu::DrawSmoked(const ui::BackdropRect& panel, const ui::Backd
     if (left >= right || top >= bottom) {
         return true;
     }
-    const float tint = 1.0f - ui::UnitValue(style.darkness);
-    std::vector<CseRadarPrimitiveVertex> vertices;
-    auto append = [&](float x0, float y0, float x1, float y1, float alpha0, float alpha1) {
-        auto quad = Quad(x0, y0, x1 - x0, y1 - y0);
-        for (auto& vertex : quad) {
-            const float alpha = vertex.position[1] == y0 ? alpha0 : alpha1;
-            vertex.color[0] = tint;
-            vertex.color[1] = tint;
-            vertex.color[2] = tint;
-            vertex.color[3] = alpha;
-            vertex.triangle[0] = vertex.position[0] / width;
-            vertex.triangle[1] = vertex.position[1] / height;
-            vertices.push_back(vertex);
-        }
+    const auto floatBits = [](float value) {
+        std::uint32_t bits;
+        std::memcpy(&bits, &value, sizeof(bits));
+        return bits;
     };
-    if (std::isfinite(radius) && radius > 0) {
-        for (auto row = top; row < bottom; ++row) {
-            const float localY = static_cast<float>(row - panel.y) + 0.5f;
-            const float inset = ui::RoundedInset(float(panel.width), float(panel.height), radius, localY);
-            const float x0 = std::max(float(left), panel.x + inset);
-            const float x1 = std::min(float(right), panel.x + panel.width - inset);
-            if (x0 < x1) {
-                const float alpha = ui::BackdropOpacity(style, localY / panel.height);
-                append(x0, float(row), x1, float(row + 1), alpha, alpha);
+    const std::array<std::uint32_t, 14> key{{static_cast<std::uint32_t>(panel.x),
+        static_cast<std::uint32_t>(panel.y), static_cast<std::uint32_t>(panel.width),
+        static_cast<std::uint32_t>(panel.height), static_cast<std::uint32_t>(clip.x),
+        static_cast<std::uint32_t>(clip.y), static_cast<std::uint32_t>(clip.width),
+        static_cast<std::uint32_t>(clip.height), static_cast<std::uint32_t>(width),
+        static_cast<std::uint32_t>(height), floatBits(ui::UnitValue(style.opacityTop)),
+        floatBits(ui::UnitValue(style.opacityBottom)), floatBits(ui::UnitValue(style.darkness)),
+        floatBits(std::isfinite(radius) && radius > 0 ? radius : 0)}};
+    auto found = impl_->panels.find(key);
+    if (found == impl_->panels.end()) {
+        constexpr std::size_t kMaximumPanelCacheBytes = 8 * 1024 * 1024;
+        constexpr std::size_t kMaximumCachedPanels = 64;
+        if (impl_->panelBytes >= kMaximumPanelCacheBytes || impl_->panels.size() >= kMaximumCachedPanels) {
+            impl_->ClearPanels();
+        }
+        Impl::PanelMesh cached;
+        const float tint = 1.0f - ui::UnitValue(style.darkness);
+        auto& vertices = cached.vertices;
+        auto append = [&](float x0, float y0, float x1, float y1, float alpha0, float alpha1) {
+            std::array<CseRadarPrimitiveVertex, 4> corners{};
+            constexpr float kCoordinates[4][2] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+            for (std::size_t index = 0; index < corners.size(); ++index) {
+                auto& vertex = corners[index];
+                vertex.position[0] = x0 + kCoordinates[index][0] * (x1 - x0);
+                vertex.position[1] = y0 + kCoordinates[index][1] * (y1 - y0);
+                const float alpha = vertex.position[1] == y0 ? alpha0 : alpha1;
+                vertex.color[0] = tint;
+                vertex.color[1] = tint;
+                vertex.color[2] = tint;
+                vertex.color[3] = alpha;
+                vertex.triangle[0] = vertex.position[0] / width;
+                vertex.triangle[1] = vertex.position[1] / height;
+            }
+            for (auto index : kQuadTriangles) {
+                vertices.push_back(corners[index]);
+            }
+        };
+        if (std::isfinite(radius) && radius > 0) {
+            for (auto row = top; row < bottom; ++row) {
+                const float localY = static_cast<float>(row - panel.y) + 0.5f;
+                const float inset = ui::RoundedInset(float(panel.width), float(panel.height), radius, localY);
+                const float x0 = std::max(float(left), panel.x + inset);
+                const float x1 = std::min(float(right), panel.x + panel.width - inset);
+                if (x0 < x1) {
+                    const float alpha = ui::BackdropOpacity(style, localY / panel.height);
+                    append(x0, float(row), x1, float(row + 1), alpha, alpha);
+                }
+            }
+        } else {
+            constexpr int kGradientStrips = 32;
+            for (int strip = 0; strip < kGradientStrips; ++strip) {
+                const float y0 = float(top) + float(bottom - top) * strip / kGradientStrips;
+                const float y1 = float(top) + float(bottom - top) * (strip + 1) / kGradientStrips;
+                append(float(left), y0, float(right), y1, ui::BackdropOpacity(style, (y0 - panel.y) / panel.height),
+                    ui::BackdropOpacity(style, (y1 - panel.y) / panel.height));
             }
         }
-    } else {
-        constexpr int kGradientStrips = 32;
-        for (int strip = 0; strip < kGradientStrips; ++strip) {
-            const float y0 = float(top) + float(bottom - top) * strip / kGradientStrips;
-            const float y1 = float(top) + float(bottom - top) * (strip + 1) / kGradientStrips;
-            append(float(left), y0, float(right), y1, ui::BackdropOpacity(style, (y0 - panel.y) / panel.height),
-                ui::BackdropOpacity(style, (y1 - panel.y) / panel.height));
+        if (!cached.vertices.empty()) {
+            std::string error;
+            cached.gpu = impl_->session.CreateEffectMesh(cached.vertices.data(),
+                cached.vertices.size() * sizeof(cached.vertices[0]), error);
+            if (!cached.gpu) {
+                return false;
+            }
         }
+        impl_->panelBytes += cached.vertices.size() * sizeof(cached.vertices[0]);
+        found = impl_->panels.emplace(key, std::move(cached)).first;
     }
-    if (vertices.empty()) {
+    const auto& cached = found->second;
+    if (cached.vertices.empty()) {
         return true;
     }
     Uniforms uniforms;
@@ -205,7 +251,8 @@ bool RadarRendererGpu::DrawSmoked(const ui::BackdropRect& panel, const ui::Backd
     auto mapping = raster;
     mapping.viewport = {{impl_->smokedBlur.originX, impl_->smokedBlur.originY,
         static_cast<int>(impl_->smokedBlur.width), static_cast<int>(impl_->smokedBlur.height)}};
-    return impl_->Draw(vertices, {float(width), float(height)}, uniforms, 0, mapping, &impl_->smokedBlur.filtered, 5) ==
+    return impl_->Draw(cached.vertices, {float(width), float(height)}, uniforms, 0, mapping,
+        &impl_->smokedBlur.filtered, 5, nullptr, nullptr, nullptr, false, false, false, cached.gpu) ==
         CSE_RADAR_OK;
 }
 

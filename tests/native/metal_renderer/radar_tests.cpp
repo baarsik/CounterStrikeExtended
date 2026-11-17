@@ -23,6 +23,7 @@ int main() {
     MetalSession session;
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(64, 64, 4, error));
+    session.EnableDiagnostics(true);
     FrameSnapshot frame;
     frame.info.width = 64;
     frame.info.height = 64;
@@ -446,5 +447,61 @@ int main() {
     CHECK(session.ReadPixels(0, 0, 65, 63, 4, 4, pixels.data(), error));
     CHECK(pixels[(31 * 65 + 32) * 4 + 2] == 255); // captured alpha ignored
     CHECK(pixels[1] == 255); // explicit clip preserved
+    // Effects and legacy packets retain order inside one pending command, even beyond the old
+    // 64-effect streaming ring. Readback is the explicit submission boundary.
+    CHECK(session.Finish(error));
+    session.EnableDiagnostics(true);
+    frame.events[0].clear.color = {{0, 0, 0, 1}};
+    CHECK(session.Render(frame, error));
+    const auto previousUploadBytes = session.Diagnostics().uploadBytes;
+    for (unsigned index = 0; index < 130; ++index) {
+        CHECK(effects.DrawSmoked(panel, clippedPanel, 65, 63, glass, 8, raster));
+    }
+    CHECK(session.Diagnostics().commandBuffers == 0);
+    CHECK(session.Diagnostics().sceneResolves == 0);
+    CHECK(session.Diagnostics().effectDraws == 130);
+    CHECK(session.Diagnostics().uploadBytes == previousUploadBytes);
+    CHECK(session.ReadPixels(0, 0, 65, 63, 4, 4, pixels.data(), error));
+    CHECK(session.Diagnostics().sceneResolves == 1);
+    CHECK(session.Diagnostics().commandBuffers == 2); // frame + synchronous download
+    CHECK(pixels[(31 * 65 + 32) * 4 + 2] == 255);
+    // Texture-version uploads must force bounded prefix submissions even when effect geometry
+    // is tiny. Earlier versions remain ordered while logical handles are replaced and reused.
+    CHECK(session.Finish(error));
+    session.EnableDiagnostics(true);
+    constexpr unsigned kPressureTextureSide = 2048;
+    constexpr unsigned kPressureTextureVersions = 10;
+    for (unsigned version = 0; version < kPressureTextureVersions; ++version) {
+        auto pressureImage = std::make_shared<TextureImage>();
+        pressureImage->width = kPressureTextureSide;
+        pressureImage->height = kPressureTextureSide;
+        pressureImage->defined = true;
+        pressureImage->pixels.resize(kPressureTextureSide * kPressureTextureSide * 4, 255);
+        auto pressureObject = std::make_shared<TextureObject>();
+        pressureObject->levels[0] = pressureImage;
+        pressureObject->sampler.minification = Filter::Linear;
+        auto pressureTile = tile;
+        pressureTile.texture = effects.RegisterTexture(42, RadarRendererGpu::TextureRole::Sprite,
+            pressureObject, nullptr);
+        CHECK(effects.DrawMapTexture(pressureTile, raster) == CSE_RADAR_OK);
+    }
+    CHECK(session.Diagnostics().commandBuffers >= 1);
+    CHECK(session.ReadPixels(32, 31, 1, 1, 4, 4, pixels.data(), error));
+    CHECK(pixels[0] == 255 && pixels[1] == 255 && pixels[2] == 255);
+    CHECK(session.Finish(error));
+    session.EnableDiagnostics(true);
+    frame.events[0].clear.color = {{0, 0, 1, 1}};
+    CHECK(session.Render(frame, error));
+    // Exact rounded tessellation remains cached, but cache turnover cannot bypass upload pressure.
+    constexpr int kPressurePanelHeight = 16384;
+    const cse::ui::BackdropRect pressurePanel{0, 0, 64, kPressurePanelHeight};
+    for (unsigned version = 0; version < 20; ++version) {
+        const cse::ui::BackdropStyle pressureStyle{0.8f + version * 0.001f, 1, 0};
+        CHECK(effects.DrawSmoked(pressurePanel, pressurePanel, 64, kPressurePanelHeight,
+            pressureStyle, 8, raster));
+    }
+    CHECK(session.Diagnostics().commandBuffers >= 1);
+    CHECK(session.ReadPixels(32, 31, 1, 1, 4, 4, pixels.data(), error));
+    CHECK(pixels[0] == 0 && pixels[1] == 0 && pixels[2] == 255);
     std::cout << "Metal radar primitives, map layers, texture lifetime and blur pixels passed\n";
 }

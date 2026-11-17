@@ -12,7 +12,6 @@ namespace cse {
 namespace render {
 namespace radar_gpu {
 
-constexpr std::size_t kStreamingSlots = 64;
 constexpr std::size_t kMaximumVertexBytes = 16 * 1024 * 1024;
 constexpr std::size_t kInitialStreamBytes = 4096;
 constexpr std::size_t kVerticesPerQuad = 4;
@@ -105,12 +104,6 @@ inline std::vector<CseRadarPrimitiveVertex> Quad(float x, float y, float width, 
 }
 using namespace radar_gpu;
 struct RadarRendererGpu::Impl {
-    struct Stream {
-        SDL_GPUBuffer* vertices = nullptr;
-        SDL_GPUTransferBuffer* upload = nullptr;
-        SDL_GPUFence* fence = nullptr;
-        std::size_t capacity = 0;
-    };
     struct Texture {
         bool owned = false;
         std::uint32_t identity = 0;
@@ -138,6 +131,13 @@ struct RadarRendererGpu::Impl {
         int originX = 0;
         int originY = 0;
     } radarBlur, smokedBlur;
+    struct PanelMesh {
+        std::vector<CseRadarPrimitiveVertex> vertices;
+        SDL_GPUBuffer* gpu = nullptr;
+    };
+    std::map<std::array<std::uint32_t, 14>, PanelMesh> panels;
+    std::size_t panelBytes = 0;
+    void ClearPanels();
     bool smokedRequested = false;
     bool smokedCaptured = false;
     unsigned capturedSceneWidth = 0;
@@ -148,8 +148,6 @@ struct RadarRendererGpu::Impl {
     SDL_GPUShader* vertex = nullptr;
     std::array<SDL_GPUShader*, 6> fragments{};
     std::map<unsigned, SDL_GPUGraphicsPipeline*> pipelines;
-    std::array<Stream, kStreamingSlots> streams{};
-    std::size_t streamIndex = 0;
 
     Impl(MetalSession& owner, std::uint64_t generation);
 
@@ -176,7 +174,7 @@ struct RadarRendererGpu::Impl {
     CseRadarResult Draw(const std::vector<CseRadarPrimitiveVertex>& vertices, CseRadarHudSpace hud,
         const Uniforms& parameters, unsigned blend, const RasterState& raster, Texture* texture,
         unsigned effect = 0, const MetalEffectAccess* privateTarget = nullptr, Texture* lightmap = nullptr,
-        SDL_GPUTexture* depthTarget = nullptr, bool clearColor = false, bool clearDepth = false, bool bottom = false);
+        SDL_GPUTexture* depthTarget = nullptr, bool clearColor = false, bool clearDepth = false, bool bottom = false, SDL_GPUBuffer* retainedVertices = nullptr);
 };
 }
 }

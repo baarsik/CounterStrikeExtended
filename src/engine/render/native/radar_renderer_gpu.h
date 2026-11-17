@@ -23,6 +23,7 @@ public:
         std::shared_ptr<const TextureObject> object, std::shared_ptr<const SharedPalette> palette);
     CseRadarResult DrawRadarBackdrop(const CseRadarBackdropDraw& draw, const RasterState& raster);
     void BeginSmokedFrame();
+    bool SmokedCaptureRequested() const;
     bool CaptureSmoked(int x, int y, int width, int height);
     bool DrawSmoked(const ui::BackdropRect& panel, const ui::BackdropRect& clip, int width, int height,
         const ui::BackdropStyle& style, float radius, const RasterState& raster);

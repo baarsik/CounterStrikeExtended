@@ -653,12 +653,79 @@ void AllocationFailure() {
     Check(fresh.Seal(next) == Status::Ok, "construction fault leaves next owner usable");
 }
 
+void QuadTextureVersions() {
+    FrameRecorder frame;
+    Begin(frame);
+    Send(frame, Binding());
+    Send(frame, Image());
+    std::array<Vertex, 4> quad{};
+    Check(frame.SubmitQuad(quad) == Status::Ok, "texture version quad");
+    auto image = Image();
+    image.upload.bytes[0] = 7;
+    Send(frame, image);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "updated texture version quad");
+    ReadbackEvent readback;
+    readback.requestId = 1;
+    readback.rectangle = {{0, 0, 1, 1}};
+    Check(frame.Readback(readback) == Status::Ok, "readback closes quad batch");
+    Check(frame.SubmitQuad(quad) == Status::Ok, "quad after readback");
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal versioned quad frame");
+    Check(snapshot.draws.size() == 3 && snapshot.events.size() == 4, "texture versions and readback separate packets");
+    const auto first = snapshot.draws[0].resources[0].texture2D;
+    const auto second = snapshot.draws[1].resources[0].texture2D;
+    Check(first != second && first->levels.at(0)->pixels[0] == 255 && second->levels.at(0)->pixels[0] == 7,
+        "queued quads retain immutable texture contents");
+    Check(snapshot.events[2].kind == FrameEventKind::Readback, "readback remains between texture-identical quads");
+}
+
+void QuadBatches() {
+    FrameRecorder frame;
+    Begin(frame);
+    std::array<Vertex, 4> quad{};
+    quad.back().texcoords[0] = {{0.25f, 0.75f, 0, 1}};
+    Check(frame.SubmitQuad(quad) == Status::Ok, "first quad");
+    auto color = Make(Op::Color);
+    color.values = {{0.25, 0.5, 0.75, 0.5, 0, 0}};
+    Send(frame, color);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "second quad");
+    Check(frame.State().Current().texcoords[0] == quad.back().texcoords[0], "batched quad current UV");
+    Check(frame.Clear(DepthClear()) == Status::Ok, "clear breaks quad batch");
+    Check(frame.SubmitQuad(quad) == Status::Ok, "quad after clear");
+    auto scissor = Make(Op::Scissor);
+    scissor.values = {{1, 2, 30, 40, 0, 0}};
+    Send(frame, scissor);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "scissor breaks quad batch");
+    quad[0].position[0] = std::numeric_limits<float>::infinity();
+    Check(frame.SubmitQuad(quad) == Status::Ok, "invalid quad retains independent primitive boundary");
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal quads");
+    Check(snapshot.draws.size() == 3 && snapshot.events.size() == 4, "adjacent compatible quads share one packet");
+    Check(snapshot.draws[0].vertices.size() == 8 && snapshot.draws[2].vertices.size() == 8,
+        "quad boundaries retained inside batches");
+    Check(snapshot.draws[0].vertices[0].color[0] == 1 && snapshot.draws[0].vertices[4].color[0] == 0.25f,
+        "current colors baked per quad without breaking order");
+    Check(snapshot.events[1].kind == FrameEventKind::Clear && snapshot.events[2].drawIndex == 1 &&
+        snapshot.events[3].drawIndex == 2, "clear and scissor preserve event ordering");
+    FrameLimits limits;
+    limits.capture.verticesPerDraw = 4;
+    limits.capture.frameVertices = 8;
+    FrameRecorder bounded(limits);
+    Begin(bounded);
+    Check(bounded.SubmitQuad(quad) == Status::Ok && bounded.SubmitQuad(quad) == Status::Ok,
+        "full batch starts another packet within quotas");
+    Check(bounded.SubmitQuad(quad) == Status::LimitExceeded, "batched vertices retain frame quota");
+}
+
 }
 
 int main(int argc, char** argv) {
     Check(argc == 2, "one frame case required");
     const std::string name = argv[1];
-    if (name == "order") {
+    if (name == "quad-batches") {
+        QuadBatches();
+        QuadTextureVersions();
+    } else if (name == "order") {
         Order();
     } else if (name == "owned") {
         Owned();

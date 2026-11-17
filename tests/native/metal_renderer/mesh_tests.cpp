@@ -12,6 +12,7 @@ using namespace cse::render;
 namespace {
 std::string error;
 std::map<SDL_GPUBuffer*, std::size_t> buffers;
+std::map<SDL_GPUTransferBuffer*, std::size_t> transfers;
 unsigned uploads = 0;
 constexpr unsigned kTargetSize = 16;
 constexpr std::size_t kRgbaComponents = 4;
@@ -78,6 +79,20 @@ extern "C" void SDL_ReleaseGPUBuffer(SDL_GPUDevice* device, SDL_GPUBuffer* buffe
     Original<decltype(&SDL_ReleaseGPUBuffer)>("SDL_ReleaseGPUBuffer")(device, buffer);
 }
 
+extern "C" SDL_GPUTransferBuffer* SDL_CreateGPUTransferBuffer(SDL_GPUDevice* device,
+    const SDL_GPUTransferBufferCreateInfo* info) {
+    auto* buffer = Original<decltype(&SDL_CreateGPUTransferBuffer)>("SDL_CreateGPUTransferBuffer")(device, info);
+    if (buffer) {
+        transfers.emplace(buffer, info->size);
+    }
+    return buffer;
+}
+
+extern "C" void SDL_ReleaseGPUTransferBuffer(SDL_GPUDevice* device, SDL_GPUTransferBuffer* buffer) {
+    Check(transfers.erase(buffer) == 1, "Release an owned transfer exactly once");
+    Original<decltype(&SDL_ReleaseGPUTransferBuffer)>("SDL_ReleaseGPUTransferBuffer")(device, buffer);
+}
+
 extern "C" void SDL_UploadToGPUBuffer(SDL_GPUCopyPass* pass, const SDL_GPUTransferBufferLocation* source,
     const SDL_GPUBufferRegion* destination, bool cycle) {
     ++uploads;
@@ -129,9 +144,17 @@ int main() {
     owners.clear();
     frame.draws.clear();
     Check(session.Render(empty, error), "Retire every pressure page while retaining stream fences");
-    Check(buffers.size() <= 6, "Only the three reusable vertex/index streaming pairs remain");
+    bytes = 0;
+    for (const auto& buffer : buffers) {
+        bytes += buffer.second;
+    }
+    for (const auto& transfer : transfers) {
+        bytes += transfer.second;
+    }
+    constexpr std::size_t kStreamingBudget = 32 * 1024 * 1024;
+    Check(bytes <= kStreamingBudget, "Only bounded reusable frame streaming storage remains");
     session.Shutdown();
-    Check(buffers.empty(), "Shutdown releases all mesh and streaming buffers");
+    Check(buffers.empty() && transfers.empty(), "Shutdown releases all mesh and streaming buffers");
     SDL_Quit();
     std::cout << "PASS mesh page rollover, budget fallback and queued retirement\n";
 }

@@ -278,6 +278,77 @@ void NonfiniteGeometry(MetalSession& session, std::string& error) {
     CHECK(actual == expected);
 }
 
+void BatchedUiPixels(MetalSession& session, std::string& error) {
+    for (unsigned samples : {1u, 4u}) {
+        CHECK(session.Resize(kTargetSize, kTargetSize, samples, error));
+        for (auto shade : {Shade::Flat, Shade::Smooth}) {
+            for (auto polygon : {PolygonMode::Fill, PolygonMode::Line}) {
+                std::vector<unsigned char> expected(kTargetSize * kTargetSize * 4);
+                std::vector<unsigned char> actual(expected.size());
+                for (bool batch : {false, true}) {
+                    Recorder recorder;
+                    const auto send = [&recorder, &error](Op operation, std::uint32_t argument,
+                        std::array<double, 6> values) {
+                        Command command;
+                        command.op = operation;
+                        command.argument = argument;
+                        command.values = values;
+                        CHECK(recorder.Submit(command) == Status::Ok);
+                    };
+                    send(Op::Viewport, 0, {{0, 0, kTargetSize, kTargetSize, 0, 0}});
+                    send(Op::ShadeModel, static_cast<unsigned>(shade), {});
+                    Command mode;
+                    mode.op = Op::PolygonMode;
+                    mode.argument = static_cast<unsigned>(Cull::FrontAndBack);
+                    mode.second = static_cast<unsigned>(polygon);
+                    CHECK(recorder.Submit(mode) == Status::Ok);
+                    send(Op::Enable, static_cast<unsigned>(Capability::Blend), {{1, 0, 0, 0, 0, 0}});
+                    Command blend;
+                    blend.op = Op::BlendFunction;
+                    blend.argument = static_cast<unsigned>(BlendFactor::SourceAlpha);
+                    blend.second = static_cast<unsigned>(BlendFactor::InverseSourceAlpha);
+                    CHECK(recorder.Submit(blend) == Status::Ok);
+                    for (unsigned index = 0; index < 3; ++index) {
+                        const auto source = Solid(1, 1, 1);
+                        std::array<Vertex, 4> quad;
+                        std::copy(source.vertices.begin(), source.vertices.end(), quad.begin());
+                        for (auto& vertex : quad) {
+                            vertex.position[0] = vertex.position[0] * 0.75f + (index == 0 ? -0.25f : 0.25f);
+                        }
+                        if (index == 1) {
+                            quad[0].position[0] = std::numeric_limits<float>::infinity();
+                        }
+                        send(Op::Color, 0, {{index == 0 ? 1.0 : 0.0, 0, index == 2 ? 1.0 : 0.0, 0.5, 0, 0}});
+                        CHECK(recorder.SubmitQuad(quad) == Status::Ok);
+                        if (!batch) {
+                            recorder.EndQuadBatch();
+                        }
+                    }
+                    FrameSnapshot frame;
+                    frame.info.width = kTargetSize;
+                    frame.info.height = kTargetSize;
+                    CHECK(recorder.TakeFrameDraws(frame.draws) == Status::Ok);
+                    CHECK(frame.draws.size() == (batch ? 1u : 3u));
+                    FrameEvent clear;
+                    clear.kind = FrameEventKind::Clear;
+                    clear.clear.mask = kClearColor | kClearDepth;
+                    frame.events.push_back(clear);
+                    for (std::size_t index = 0; index < frame.draws.size(); ++index) {
+                        FrameEvent event;
+                        event.drawIndex = index;
+                        frame.events.push_back(event);
+                    }
+                    CHECK(session.Render(frame, error));
+                    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1,
+                        batch ? actual.data() : expected.data(), error));
+                }
+                CHECK(actual == expected);
+            }
+        }
+    }
+    CHECK(session.Resize(kTargetSize, kTargetSize, 1, error));
+}
+
 void PersistentMesh(MetalSession& session, std::string& error) {
     auto source = Solid(1, 1, 1);
     auto mesh = SurfaceMesh::Create(source.vertices, error);
@@ -556,6 +627,14 @@ void IndexedDraws(MetalSession& session, std::string& error) {
     }
 }
 
+extern "C" SDL_GPUFence* SDL_SubmitGPUCommandBufferAndAcquireFence(SDL_GPUCommandBuffer* command) {
+    if (presentationProbe.active) {
+        ++presentationProbe.submissions;
+    }
+    return Original<decltype(&SDL_SubmitGPUCommandBufferAndAcquireFence)>(
+        "SDL_SubmitGPUCommandBufferAndAcquireFence")(command);
+}
+
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -569,6 +648,7 @@ int main() {
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
     NonfiniteGeometry(session, error);
+    BatchedUiPixels(session, error);
     PersistentMesh(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;

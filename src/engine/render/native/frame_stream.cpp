@@ -92,6 +92,9 @@ Status FrameRecorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
         if (result != Status::Ok) {
             return Fail(result);
         }
+        if (recorder_.Draws().size() == firstDraw) {
+            return Status::Ok;
+        }
         FrameEvent event;
         event.drawIndex = firstDraw;
         return AppendEvent(event);
@@ -120,6 +123,9 @@ Status FrameRecorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& me
 }
 
 Status FrameRecorder::AppendEvent(const FrameEvent& event) {
+    if (event.kind != FrameEventKind::Draw) {
+        recorder_.EndQuadBatch();
+    }
     if (events_.size() >= limits_.events) {
         return Fail(Status::LimitExceeded);
     }

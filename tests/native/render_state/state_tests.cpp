@@ -135,7 +135,7 @@ void NativeSurfaces() {
     const float invalid = std::numeric_limits<float>::infinity();
     quad[0].position[0] = invalid;
     Check(recorder.SubmitQuad(quad) == Status::Ok &&
-        recorder.Draws().back().vertices[0].position[0] == invalid,
+        recorder.Draws().back().vertices[recorder.Draws().back().vertices.size() - quad.size()].position[0] == invalid,
         "direct quads reach primitive filtering without poisoning capture");
     Check(recorder.SubmitSurface(mesh, invalid, false) == Status::Ok,
         "invalid surface offsets reach draw filtering");

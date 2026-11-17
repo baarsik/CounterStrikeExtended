@@ -10,11 +10,14 @@
 #include <cstring>
 #include <map>
 #include <utility>
+#include <chrono>
+#include <cstdio>
 
 namespace cse {
 namespace render {
 namespace {
 constexpr std::size_t kMaximumStreamingBytes = 128 * 1024 * 1024;
+constexpr std::size_t kMaximumCachedStreamingBytes = 32 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextures = 512;
 constexpr std::size_t kMaximumCachedPipelines = 512;
@@ -117,15 +120,36 @@ DrawPacket ClearDraw(const ClearEvent& clear, unsigned width, unsigned height) {
 
 struct MetalSession::Impl {
     bool reportedNonfinite = false;
+    bool diagnosticsEnabled = false;
+    RenderFrameCounters counters;
+    FILE* diagnosticsFile = nullptr;
+    using Clock = std::chrono::steady_clock;
+    struct Timer {
+        double* elapsed;
+        Clock::time_point start;
+        explicit Timer(double* target) : elapsed(target), start(target ? Clock::now() : Clock::time_point{}) {}
+        ~Timer() {
+            if (elapsed) {
+                *elapsed += std::chrono::duration<double, std::milli>(Clock::now() - start).count();
+            }
+        }
+    };
     struct Stream {
         SDL_GPUBuffer* vertices = nullptr;
         SDL_GPUBuffer* indices = nullptr;
         SDL_GPUTransferBuffer* upload = nullptr;
-        SDL_GPUFence* fence = nullptr;
         std::size_t vertexCapacity = 0;
         std::size_t indexCapacity = 0;
         std::size_t uploadCapacity = 0;
     };
+    struct FrameStream {
+        std::vector<Stream> chunks;
+        std::size_t cursor = 0;
+        SDL_GPUFence* fence = nullptr;
+    };
+    SDL_GPUCommandBuffer* command = nullptr;
+    std::size_t pendingUploadBytes = 0;
+
     struct Texture {
         std::weak_ptr<const TextureObject> object;
         std::weak_ptr<const SharedPalette> palette;
@@ -201,30 +225,120 @@ struct MetalSession::Impl {
     unsigned height = 0;
     SDL_GPUSampleCount samples = SDL_GPU_SAMPLECOUNT_1;
     bool initializedTarget = false;
+    bool sceneDirty = false;
     bool vsync = true;
     std::uint64_t serial = 0;
     std::size_t streamIndex = 0;
     std::size_t textureBytes = 0;
-    std::array<Stream, kFramesInFlight> streams{};
+    std::array<FrameStream, kFramesInFlight> streams{};
     using TextureKey = std::pair<const TextureObject*, const SharedPalette*>;
     std::map<TextureKey, Texture> textures;
-    std::map<std::vector<std::uint32_t>, SDL_GPUSampler*> samplers;
-    std::map<std::vector<std::uint32_t>, SDL_GPUGraphicsPipeline*> pipelines;
+    std::map<std::array<std::uint32_t, 7>, SDL_GPUSampler*> samplers;
+    std::map<std::array<std::uint32_t, 19>, SDL_GPUGraphicsPipeline*> pipelines;
     std::map<const SurfaceMesh*, Mesh> meshes;
     std::vector<std::weak_ptr<MeshPage>> meshPages;
     std::shared_ptr<MeshPage> activeMeshPage;
     std::shared_ptr<const TextureObject> white;
     std::shared_ptr<const TextureObject> black;
 
-    bool Wait(Stream& stream, std::string& error) {
+    bool Wait(FrameStream& stream, std::string& error) {
+        Timer timer(diagnosticsEnabled ? &counters.waitMs : nullptr);
         if (stream.fence) {
-            if (!SDL_QueryGPUFence(device, stream.fence) &&
-                !SDL_WaitForGPUFences(device, true, &stream.fence, 1)) {
-                return DeviceFailure(error, "Retire Metal streaming frame");
+            if (!SDL_QueryGPUFence(device, stream.fence)) {
+                if (diagnosticsEnabled) {
+                    ++counters.fenceWaits;
+                }
+                if (!SDL_WaitForGPUFences(device, true, &stream.fence, 1)) {
+                    return DeviceFailure(error, "Retire Metal streaming frame");
+                }
             }
             SDL_ReleaseGPUFence(device, stream.fence);
             stream.fence = nullptr;
         }
+        return true;
+    }
+
+    SDL_GPUCommandBuffer* Commands(std::string& error) {
+        if (!command) {
+            if (!Wait(streams[streamIndex], error)) {
+                return nullptr;
+            }
+            streams[streamIndex].cursor = 0;
+            command = SDL_AcquireGPUCommandBuffer(device);
+            if (!command) {
+                DeviceFailure(error, "Acquire Metal frame commands");
+            }
+        }
+        return command;
+    }
+
+    SDL_GPUCommandBuffer* UploadCommands(std::size_t bytes, std::string& error) {
+        // An exceptional oversized frame can retire a prefix without dropping geometry or growing
+        // unbounded storage. Ordinary frames use one submission and one fence for all effects.
+        if (bytes > kMaximumStreamingBytes) {
+            Fail(error, "Metal upload exceeds pending-command budget");
+            return nullptr;
+        }
+        if (bytes > kMaximumStreamingBytes - pendingUploadBytes && !Submit(error)) {
+            return nullptr;
+        }
+        if (!Commands(error)) {
+            return nullptr;
+        }
+        pendingUploadBytes += bytes;
+        return command;
+    }
+
+    Stream* NextStream(std::string& error, std::size_t bytes) {
+        if (!UploadCommands(bytes, error)) {
+            return nullptr;
+        }
+        auto& frame = streams[streamIndex];
+        if (frame.cursor == frame.chunks.size()) {
+            frame.chunks.emplace_back();
+        }
+        return &frame.chunks[frame.cursor++];
+    }
+
+    bool Submit(std::string& error) {
+        if (!command) {
+            return true;
+        }
+        auto* pending = command;
+        command = nullptr;
+        auto& frame = streams[streamIndex];
+        frame.fence = SDL_SubmitGPUCommandBufferAndAcquireFence(pending);
+        if (!frame.fence) {
+            return DeviceFailure(error, "Submit Metal frame");
+        }
+        if (diagnosticsEnabled) {
+            ++counters.commandBuffers;
+        }
+        // Bound retained stream capacity independently of the number of encode boundaries.
+        // SDL owns the references already encoded in this submission, including released buffers.
+        std::size_t cachedBytes = 0;
+        for (const auto& slot : streams) {
+            for (const auto& chunk : slot.chunks) {
+                cachedBytes += chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
+            }
+        }
+        for (auto iterator = frame.chunks.rbegin(); iterator != frame.chunks.rend() &&
+            cachedBytes > kMaximumCachedStreamingBytes; ++iterator) {
+            auto& chunk = *iterator;
+            cachedBytes -= chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
+            if (chunk.vertices) {
+                SDL_ReleaseGPUBuffer(device, chunk.vertices);
+            }
+            if (chunk.indices) {
+                SDL_ReleaseGPUBuffer(device, chunk.indices);
+            }
+            if (chunk.upload) {
+                SDL_ReleaseGPUTransferBuffer(device, chunk.upload);
+            }
+            chunk = {};
+        }
+        pendingUploadBytes = 0;
+        streamIndex = (streamIndex + 1) % streams.size();
         return true;
     }
 
@@ -247,14 +361,12 @@ struct MetalSession::Impl {
         const bool cull = state.enabled[static_cast<std::size_t>(Capability::CullFace)];
         const bool bias = state.enabled.back() && draw.topology == Primitive::Triangles &&
             state.polygonMode[0] == PolygonMode::Fill;
-        std::vector<std::uint32_t> key{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
+        std::array<std::uint32_t, 19> key{{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
             static_cast<unsigned>(state.blendSource), static_cast<unsigned>(state.blendDestination), depthTest,
             state.depthWrite, static_cast<unsigned>(state.depthFunction), cull, static_cast<unsigned>(state.cull),
             state.frontCounterClockwise, static_cast<unsigned>(state.polygonMode[0]), bias,
-            Bits(state.polygonOffset[0]), Bits(state.polygonOffset[1])};
-        for (auto write : state.colorWrite) {
-            key.push_back(write);
-        }
+            Bits(state.polygonOffset[0]), Bits(state.polygonOffset[1]), state.colorWrite[0], state.colorWrite[1],
+            state.colorWrite[2], state.colorWrite[3]}};
         const auto found = pipelines.find(key);
         if (found != pipelines.end()) {
             return found->second;
@@ -324,9 +436,9 @@ struct MetalSession::Impl {
 
     SDL_GPUSampler* Sampler(const SamplerState& state, unsigned levels, bool rectangle) {
         const float anisotropy = EffectiveMetalAnisotropy(state.requestedAnisotropy);
-        const std::vector<std::uint32_t> key{static_cast<unsigned>(state.minification),
+        const std::array<std::uint32_t, 7> key{{static_cast<unsigned>(state.minification),
             static_cast<unsigned>(state.magnification), static_cast<unsigned>(state.wrapS),
-            static_cast<unsigned>(state.wrapT), Bits(anisotropy), levels, rectangle};
+            static_cast<unsigned>(state.wrapT), Bits(anisotropy), levels, rectangle}};
         const auto found = samplers.find(key);
         if (found != samplers.end()) {
             return found->second;
@@ -564,8 +676,7 @@ struct MetalSession::Impl {
 
     bool EnsureStream(Stream& stream, std::size_t vertexBytes, std::size_t indexBytes, std::size_t uploadBytes,
         std::string& error) {
-        if (!Wait(stream, error) ||
-            !EnsureGeometryBuffer(stream.vertices, stream.vertexCapacity, vertexBytes, SDL_GPU_BUFFERUSAGE_VERTEX, error) ||
+        if (!EnsureGeometryBuffer(stream.vertices, stream.vertexCapacity, vertexBytes, SDL_GPU_BUFFERUSAGE_VERTEX, error) ||
             !EnsureGeometryBuffer(stream.indices, stream.indexCapacity, indexBytes, SDL_GPU_BUFFERUSAGE_INDEX, error)) {
             return false;
         }
@@ -596,6 +707,156 @@ RadarRendererGpu& MetalSession::RadarEffects(std::uint64_t epoch) {
         state.effectsEpoch = epoch;
     }
     return *state.effects;
+}
+
+SDL_GPUCommandBuffer* MetalSession::Commands(std::string& error) {
+    return impl_->Commands(error);
+}
+
+SDL_GPUCommandBuffer* MetalSession::UploadCommands(std::size_t bytes, std::string& error) {
+    return impl_->UploadCommands(bytes, error);
+}
+
+bool MetalSession::UploadEffectVertices(const void* vertices, std::size_t bytes, SDL_GPUBufferBinding& binding,
+    std::string& error) {
+    auto& state = *impl_;
+    if (!vertices || !bytes || bytes > kMaximumStreamingBytes) {
+        return Fail(error, "Invalid Metal effect vertex upload");
+    }
+    auto* stream = state.NextStream(error, bytes);
+    if (!stream || !state.EnsureStream(*stream, bytes, 0, bytes, error)) {
+        return false;
+    }
+    auto* mapped = SDL_MapGPUTransferBuffer(state.device, stream->upload, false);
+    if (!mapped) {
+        return DeviceFailure(error, "Map Metal effect vertices");
+    }
+    std::memcpy(mapped, vertices, bytes);
+    SDL_UnmapGPUTransferBuffer(state.device, stream->upload);
+    auto* copy = SDL_BeginGPUCopyPass(state.command);
+    if (!copy) {
+        return DeviceFailure(error, "Begin Metal effect upload");
+    }
+    SDL_GPUTransferBufferLocation source{stream->upload, 0};
+    SDL_GPUBufferRegion target{stream->vertices, 0, static_cast<Uint32>(bytes)};
+    SDL_UploadToGPUBuffer(copy, &source, &target, false);
+    SDL_EndGPUCopyPass(copy);
+    binding = {stream->vertices, 0};
+    CountCopyPass(bytes);
+    return true;
+}
+
+SDL_GPUBuffer* MetalSession::CreateEffectMesh(const void* vertices, std::size_t bytes, std::string& error) {
+    auto& state = *impl_;
+    if (!vertices || !bytes || !state.UploadCommands(bytes, error)) {
+        return nullptr;
+    }
+    SDL_GPUBufferCreateInfo bufferInfo{};
+    bufferInfo.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
+    bufferInfo.size = static_cast<Uint32>(bytes);
+    auto* buffer = SDL_CreateGPUBuffer(state.device, &bufferInfo);
+    SDL_GPUTransferBufferCreateInfo uploadInfo{};
+    uploadInfo.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    uploadInfo.size = bufferInfo.size;
+    auto* upload = SDL_CreateGPUTransferBuffer(state.device, &uploadInfo);
+    auto* mapped = upload ? SDL_MapGPUTransferBuffer(state.device, upload, false) : nullptr;
+    if (!buffer || !mapped) {
+        if (mapped) {
+            SDL_UnmapGPUTransferBuffer(state.device, upload);
+        }
+        if (upload) {
+            SDL_ReleaseGPUTransferBuffer(state.device, upload);
+        }
+        if (buffer) {
+            SDL_ReleaseGPUBuffer(state.device, buffer);
+        }
+        DeviceFailure(error, "Allocate retained Metal effect geometry");
+        return nullptr;
+    }
+    std::memcpy(mapped, vertices, bytes);
+    SDL_UnmapGPUTransferBuffer(state.device, upload);
+    auto* copy = SDL_BeginGPUCopyPass(state.command);
+    if (!copy) {
+        SDL_ReleaseGPUTransferBuffer(state.device, upload);
+        SDL_ReleaseGPUBuffer(state.device, buffer);
+        DeviceFailure(error, "Upload retained Metal effect geometry");
+        return nullptr;
+    }
+    SDL_GPUTransferBufferLocation source{upload, 0};
+    SDL_GPUBufferRegion target{buffer, 0, bufferInfo.size};
+    SDL_UploadToGPUBuffer(copy, &source, &target, false);
+    SDL_EndGPUCopyPass(copy);
+    SDL_ReleaseGPUTransferBuffer(state.device, upload);
+    CountCopyPass(bytes);
+    return buffer;
+}
+
+void MetalSession::EnableDiagnostics(bool enabled) {
+    impl_->diagnosticsEnabled = enabled;
+    impl_->counters = {};
+}
+
+const RenderFrameCounters& MetalSession::Diagnostics() const {
+    return impl_->counters;
+}
+
+std::uint64_t MetalSession::EffectClock() const {
+    return impl_->diagnosticsEnabled ? SDL_GetTicksNS() : 0;
+}
+
+void MetalSession::CountEffectDraw(std::uint64_t start, bool scene) {
+    impl_->sceneDirty = impl_->sceneDirty || scene;
+    if (impl_->diagnosticsEnabled) {
+        if (start) {
+            constexpr double kNanosecondsPerMillisecond = 1000000;
+            impl_->counters.encodeMs += (SDL_GetTicksNS() - start) / kNanosecondsPerMillisecond;
+        }
+        ++impl_->counters.effectDraws;
+        ++impl_->counters.gpuDraws;
+        ++impl_->counters.renderPasses;
+    }
+}
+
+bool MetalSession::ResolveScene(std::string& error) {
+    auto& state = *impl_;
+    if (!state.sceneDirty || !state.multisample) {
+        return true;
+    }
+    auto* command = state.Commands(error);
+    if (!command) {
+        return false;
+    }
+    // Preserve multisample storage between draws; resolve only when a consumer samples the scene.
+    // A load/resolve pass keeps the exact same MSAA samples and resolve operation as the draw passes.
+    SDL_GPUColorTargetInfo target{};
+    target.texture = state.multisample;
+    target.resolve_texture = state.color;
+    target.load_op = SDL_GPU_LOADOP_LOAD;
+    target.store_op = SDL_GPU_STOREOP_RESOLVE_AND_STORE;
+    auto* pass = SDL_BeginGPURenderPass(command, &target, 1, nullptr);
+    if (!pass) {
+        return DeviceFailure(error, "Resolve Metal scene");
+    }
+    SDL_EndGPURenderPass(pass);
+    state.sceneDirty = false;
+    if (state.diagnosticsEnabled) {
+        ++state.counters.sceneResolves;
+        ++state.counters.renderPasses;
+    }
+    return true;
+}
+
+void MetalSession::CountRenderPass() {
+    if (impl_->diagnosticsEnabled) {
+        ++impl_->counters.renderPasses;
+    }
+}
+
+void MetalSession::CountCopyPass(std::size_t bytes) {
+    if (impl_->diagnosticsEnabled) {
+        ++impl_->counters.copyPasses;
+        impl_->counters.uploadBytes += bytes;
+    }
 }
 
 MetalEffectAccess MetalSession::EffectAccess() const {
@@ -633,6 +894,13 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     if (!state.vertex || !state.fragment) {
         Shutdown();
         return DeviceFailure(error, "Load embedded offline Metal shaders");
+    }
+    if (const char* path = SDL_getenv("CSE_METAL_FRAME_STATS")) {
+        state.diagnosticsFile = std::fopen(path, "w");
+        state.diagnosticsEnabled = state.diagnosticsFile != nullptr;
+        if (state.diagnosticsFile) {
+            std::fprintf(state.diagnosticsFile, "frame,packets,draws,effects,submissions,render_passes,scene_resolves,copy_passes,upload_bytes,fence_waits,prepare_ms,encode_ms,wait_ms,present_ms\n");
+        }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
         auto image = std::make_shared<TextureImage>();
@@ -702,7 +970,15 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
         }
         return DeviceFailure(error, "Create Metal color/depth targets");
     }
-    // SDL resources retain in-flight references, so resizing needs no global device stall.
+    // Retire the old target's ordered commands before replacing it; SDL owns in-flight references.
+    if (!state.Submit(error)) {
+        SDL_ReleaseGPUTexture(state.device, color);
+        SDL_ReleaseGPUTexture(state.device, depth);
+        if (multisample) {
+            SDL_ReleaseGPUTexture(state.device, multisample);
+        }
+        return false;
+    }
     if (state.color) {
         SDL_ReleaseGPUTexture(state.device, state.color);
     }
@@ -719,6 +995,7 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
     state.height = height;
     state.samples = count;
     state.initializedTarget = false;
+    state.sceneDirty = false;
     error.clear();
     return true;
 }
@@ -782,6 +1059,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             SDL_ReleaseGPUSampler(state.device, pair.second);
         }
         state.samplers.clear();
+    }
+    const auto prepareStart = state.diagnosticsEnabled ? Impl::Clock::now() : Impl::Clock::time_point{};
+    if (state.diagnosticsEnabled) {
+        state.counters.drawPackets += frame.draws.size();
     }
     std::vector<Impl::Draw> draws;
     std::size_t geometryBytes = 0;
@@ -859,7 +1140,11 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             uploadBytes += bytes;
         }
     }
-    auto& stream = state.streams[state.streamIndex];
+    auto* chunk = state.NextStream(error, uploadBytes);
+    if (!chunk) {
+        return false;
+    }
+    auto& stream = *chunk;
     if (!state.EnsureStream(stream, vertexBytes, indexBytes, uploadBytes, error)) {
         return false;
     }
@@ -893,13 +1178,18 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
     }
     SDL_UnmapGPUTransferBuffer(state.device, stream.upload);
-    auto* command = SDL_AcquireGPUCommandBuffer(state.device);
-    if (!command) {
-        return DeviceFailure(error, "Acquire Metal render command buffer");
+    if (state.diagnosticsEnabled) {
+        state.counters.prepareMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - prepareStart).count();
+        state.counters.uploadBytes += uploadBytes;
+        ++state.counters.copyPasses;
+        ++state.counters.renderPasses;
     }
+    Impl::Timer encodeTimer(state.diagnosticsEnabled ? &state.counters.encodeMs : nullptr);
+    auto* command = state.command;
+    SDL_PushGPUDebugGroup(command, "Legacy scene / HUD");
     auto* copy = SDL_BeginGPUCopyPass(command);
     if (!copy) {
-        SDL_CancelGPUCommandBuffer(command);
+        SDL_PopGPUDebugGroup(command);
         return DeviceFailure(error, "Begin Metal upload pass");
     }
     if (vertexBytes) {
@@ -942,10 +1232,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     SDL_EndGPUCopyPass(copy);
     SDL_GPUColorTargetInfo color{};
     color.texture = state.multisample ? state.multisample : state.color;
-    color.resolve_texture = state.multisample ? state.color : nullptr;
+    color.resolve_texture = nullptr;
     color.clear_color = {0, 0, 0, 0};
     color.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
-    color.store_op = state.multisample ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_STORE;
+    color.store_op = SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth{};
     depth.texture = state.depth;
     depth.clear_depth = 1;
@@ -955,7 +1245,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
     auto* pass = SDL_BeginGPURenderPass(command, &color, 1, &depth);
     if (!pass) {
-        SDL_CancelGPUCommandBuffer(command);
+        SDL_PopGPUDebugGroup(command);
         return DeviceFailure(error, "Begin Metal scene pass");
     }
     for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
@@ -1037,6 +1327,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
         SDL_PushGPUVertexUniformData(command, 0, &constants, sizeof(constants));
         SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
+        if (state.diagnosticsEnabled) {
+            ++state.counters.gpuDraws;
+        }
         if (!draw.mesh && data.indices.empty()) {
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
@@ -1047,10 +1340,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         }
     }
     SDL_EndGPURenderPass(pass);
-    stream.fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command);
-    if (!stream.fence) {
-        return DeviceFailure(error, "Submit Metal scene");
-    }
+    SDL_PopGPUDebugGroup(command);
     for (const auto& upload : meshUploads) {
         upload.mesh->uploaded = true;
     }
@@ -1059,7 +1349,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         // Converted CPU bytes are retained for cache accounting, while immutable capture owns source lifetime.
     }
     state.initializedTarget = true;
-    state.streamIndex = (state.streamIndex + 1) % kFramesInFlight;
+    state.sceneDirty = true;
     error.clear();
     return true;
 }
@@ -1068,6 +1358,9 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     auto& state = *impl_;
     if (!state.device || !state.window || !state.color || !state.initializedTarget) {
         return Fail(error, "Metal presentation needs a window and rendered scene");
+    }
+    if (!ResolveScene(error)) {
+        return false;
     }
     if (state.vsync != vsync) {
         const auto mode = vsync ? SDL_GPU_PRESENTMODE_VSYNC : SDL_GPU_PRESENTMODE_IMMEDIATE;
@@ -1107,19 +1400,15 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     if (!ensureFinalColor(static_cast<Uint32>(drawableWidth), static_cast<Uint32>(drawableHeight))) {
         return false;
     }
-    auto* command = SDL_AcquireGPUCommandBuffer(state.device);
+    const auto presentStart = state.diagnosticsEnabled ? Impl::Clock::now() : Impl::Clock::time_point{};
+    auto* command = state.Commands(error);
     if (!command) {
-        return DeviceFailure(error, "Acquire Metal presentation command");
+        return false;
     }
     SDL_GPUTexture* swapchain = nullptr;
-    const auto retireFailure = [command, &swapchain, &error]() {
+    const auto retireFailure = [&state, &error]() {
         const auto diagnostic = error;
-        // SDL forbids cancellation after a non-null acquisition, even if no drawing was encoded.
-        if (swapchain) {
-            SDL_SubmitGPUCommandBuffer(command);
-        } else {
-            SDL_CancelGPUCommandBuffer(command);
-        }
+        state.Submit(error); // An acquired drawable must be submitted; earlier scene work is retained too.
         error = diagnostic;
         return false;
     };
@@ -1158,6 +1447,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     info.clear_color = {0, 0, 0, 1};
     info.filter = SDL_GPU_FILTER_LINEAR;
     SDL_BlitGPUTexture(command, &info);
+    CountRenderPass();
     if (swapchain) {
         info.source.texture = state.presented;
         info.source.w = width;
@@ -1168,9 +1458,23 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         info.destination.w = width;
         info.destination.h = height;
         SDL_BlitGPUTexture(command, &info);
+        CountRenderPass();
     }
-    if (!SDL_SubmitGPUCommandBuffer(command)) {
-        return DeviceFailure(error, "Submit Metal presentation");
+    if (!state.Submit(error)) {
+        return false;
+    }
+    if (state.diagnosticsEnabled) {
+        state.counters.presentMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - presentStart).count();
+    }
+    if (state.diagnosticsFile) {
+        const auto& c = state.counters;
+        std::fprintf(state.diagnosticsFile, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.6f,%.6f,%.6f\n",
+            static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
+            static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
+            static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
+            static_cast<unsigned long long>(c.sceneResolves), static_cast<unsigned long long>(c.copyPasses), static_cast<unsigned long long>(c.uploadBytes),
+            static_cast<unsigned long long>(c.fenceWaits), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs);
+        // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     state.presentedValid = true;
     error.clear();
@@ -1266,6 +1570,16 @@ bool MetalSession::ReadPixels(int x, int y, int width, int height, unsigned comp
     if (!state.initializedTarget) {
         return Fail(error, "Metal scene has not been rendered");
     }
+    if (!ResolveScene(error)) {
+        return false;
+    }
+    if (!state.Submit(error)) {
+        return false;
+    }
+    if (state.diagnosticsEnabled && width && height) {
+        ++state.counters.commandBuffers;
+        ++state.counters.copyPasses;
+    }
     return ReadTarget(state.device, state.color, state.width, state.height,
         x, y, width, height, components, alignment, output, error);
 }
@@ -1283,6 +1597,13 @@ bool MetalSession::ReadPresentedPixels(int x, int y, int width, int height, unsi
     if (!state.presentedValid) {
         return Fail(error, "Metal final color has not been presented");
     }
+    if (!state.Submit(error)) {
+        return false;
+    }
+    if (state.diagnosticsEnabled && width && height) {
+        ++state.counters.commandBuffers;
+        ++state.counters.copyPasses;
+    }
     return ReadTarget(state.device, state.presented, state.presentedWidth, state.presentedHeight,
         x, y, width, height, components, alignment, output, error);
 }
@@ -1291,6 +1612,9 @@ bool MetalSession::Finish(std::string& error) {
     auto& state = *impl_;
     if (!state.device) {
         return Fail(error, "Metal session is not initialized");
+    }
+    if (!state.Submit(error)) {
+        return false;
     }
     for (auto& stream : state.streams) {
         if (!state.Wait(stream, error)) {
@@ -1309,23 +1633,31 @@ void MetalSession::Shutdown() {
     if (!state.device) {
         return;
     }
+    std::string error;
+    state.Submit(error);
     SDL_WaitForGPUIdle(state.device);
+    if (state.diagnosticsFile) {
+        std::fclose(state.diagnosticsFile);
+        state.diagnosticsFile = nullptr;
+    }
     state.effects.reset();
     state.meshes.clear();
     state.activeMeshPage.reset();
     state.meshPages.clear();
-    for (auto& stream : state.streams) {
-        if (stream.fence) {
-            SDL_ReleaseGPUFence(state.device, stream.fence);
+    for (auto& frame : state.streams) {
+        if (frame.fence) {
+            SDL_ReleaseGPUFence(state.device, frame.fence);
         }
-        if (stream.vertices) {
-            SDL_ReleaseGPUBuffer(state.device, stream.vertices);
-        }
-        if (stream.indices) {
-            SDL_ReleaseGPUBuffer(state.device, stream.indices);
-        }
-        if (stream.upload) {
-            SDL_ReleaseGPUTransferBuffer(state.device, stream.upload);
+        for (auto& stream : frame.chunks) {
+            if (stream.vertices) {
+                SDL_ReleaseGPUBuffer(state.device, stream.vertices);
+            }
+            if (stream.indices) {
+                SDL_ReleaseGPUBuffer(state.device, stream.indices);
+            }
+            if (stream.upload) {
+                SDL_ReleaseGPUTransferBuffer(state.device, stream.upload);
+            }
         }
     }
     for (const auto& pair : state.pipelines) {

@@ -14,8 +14,11 @@ void BeginMetalBackgroundFrame() {
 }
 void CaptureMetalBackground(int x, int y, int width, int height) {
     if (auto* session = render::BackendMetalSession()) {
-        render::FlushBackend();
-        session->RadarEffects(radar::GraphicsGeneration()).CaptureSmoked(x, y, width, height);
+        auto& effects = session->RadarEffects(radar::GraphicsGeneration());
+        if (effects.SmokedCaptureRequested() && width > 0 && height > 0) {
+            render::FlushBackend();
+        }
+        effects.CaptureSmoked(x, y, width, height);
     }
 }
 bool DrawMetalBackground(const BackdropRect& panel, const BackdropRect& clip, int width, int height,
