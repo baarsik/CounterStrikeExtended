@@ -284,6 +284,32 @@ struct MetalSession::Impl {
             SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
     }
 
+    SDL_GPUTexture* WritableResolve(std::string& error) {
+        if (color != presented) {
+            return color;
+        }
+        // A screenshot may still read the previous presentation.
+        if (!spareResolve) {
+            spareResolve = CreateResolvedColor(width, height);
+            if (!spareResolve) {
+                DeviceFailure(error, "Create Metal resolve target for next scene");
+                return nullptr;
+            }
+        }
+        return spareResolve;
+    }
+
+    void CommitResolve(SDL_GPUTexture* target) {
+        // Change the readable scene only after successful resolve encoding.
+        if (target != color) {
+            std::swap(color, spareResolve);
+        }
+        sceneDirty = false;
+        if (diagnosticsEnabled) {
+            ++counters.sceneResolves;
+        }
+    }
+
     bool Wait(FrameStream& stream, std::string& error) {
         Timer timer(diagnosticsEnabled ? &counters.waitMs : nullptr);
         if (stream.fence) {
@@ -943,22 +969,15 @@ bool MetalSession::ResolveScene(std::string& error) {
     if (!command) {
         return false;
     }
-    if (state.color == state.presented) {
-        // Keep the screenshot source until the next presentation. The multisample
-        // image holds the scene, so resolving it to another texture needs no copy.
-        if (!state.spareResolve) {
-            state.spareResolve = state.CreateResolvedColor(state.width, state.height);
-            if (!state.spareResolve) {
-                return DeviceFailure(error, "Create Metal resolve target for next scene");
-            }
-        }
-        std::swap(state.color, state.spareResolve);
+    auto* destination = state.WritableResolve(error);
+    if (!destination) {
+        return false;
     }
     // Preserve multisample storage between draws; resolve only when a consumer samples the scene.
     // A load/resolve pass keeps the exact same MSAA samples and resolve operation as the draw passes.
     SDL_GPUColorTargetInfo target{};
     target.texture = state.multisample;
-    target.resolve_texture = state.color;
+    target.resolve_texture = destination;
     target.load_op = SDL_GPU_LOADOP_LOAD;
     target.store_op = SDL_GPU_STOREOP_RESOLVE_AND_STORE;
     auto* pass = SDL_BeginGPURenderPass(command, &target, 1, nullptr);
@@ -966,11 +985,8 @@ bool MetalSession::ResolveScene(std::string& error) {
         return DeviceFailure(error, "Resolve Metal scene");
     }
     SDL_EndGPURenderPass(pass);
-    state.sceneDirty = false;
-    if (state.diagnosticsEnabled) {
-        ++state.counters.sceneResolves;
-        ++state.counters.renderPasses;
-    }
+    state.CommitResolve(destination);
+    CountRenderPass();
     return true;
 }
 
@@ -1139,7 +1155,7 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
     return true;
 }
 
-bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
+bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneOutput output) {
     auto& state = *impl_;
     if (!state.device || !state.color || frame.info.width != state.width || frame.info.height != state.height ||
         frame.events.size() > kMaximumDrawPackets * 2 || frame.draws.size() > kMaximumDrawPackets) {
@@ -1293,6 +1309,13 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             uploadBytes += bytes;
         }
     }
+    SDL_GPUTexture* resolve = nullptr;
+    if (state.multisample && output == SceneOutput::Resolved) {
+        resolve = state.WritableResolve(error);
+        if (!resolve) {
+            return false;
+        }
+    }
     auto* chunk = state.NextStream(error, uploadBytes);
     if (!chunk) {
         return false;
@@ -1388,10 +1411,11 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     SDL_EndGPUCopyPass(copy);
     SDL_GPUColorTargetInfo color{};
     color.texture = state.multisample ? state.multisample : state.color;
-    color.resolve_texture = nullptr;
+    color.resolve_texture = resolve;
     color.clear_color = {0, 0, 0, 0};
     color.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
-    color.store_op = SDL_GPU_STOREOP_STORE;
+    // Keep the samples for later HUD/effect segments while delivering the resolved image.
+    color.store_op = resolve ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth{};
     depth.texture = state.depth;
     depth.clear_depth = 1;
@@ -1547,6 +1571,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     }
     state.initializedTarget = true;
     state.sceneDirty = true;
+    if (resolve) {
+        state.CommitResolve(resolve);
+    }
     error.clear();
     return true;
 }

@@ -48,6 +48,8 @@ struct RenderFrameCounters {
     double drawableWaitMs = 0;
 };
 
+enum class SceneOutput { Deferred, Resolved };
+
 class MetalSession {
 public:
     MetalSession();
@@ -56,7 +58,8 @@ public:
     MetalSession& operator=(const MetalSession&) = delete;
     bool Initialize(SDL_Window* window, bool debug, std::string& error);
     bool Resize(std::uint32_t width, std::uint32_t height, std::uint32_t samples, std::string& error);
-    bool Render(const FrameSnapshot& frame, std::string& error);
+    bool Render(const FrameSnapshot& frame, std::string& error,
+        SceneOutput output = SceneOutput::Deferred);
     bool Present(bool vsync, bool preserveAspect, std::string& error);
     bool ReadPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);

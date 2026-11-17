@@ -42,7 +42,7 @@ bool EnsureRecording(void*) {
     return true;
 }
 
-bool Submit() {
+bool Submit(SceneOutput output = SceneOutput::Deferred) {
     if (!failure.empty()) {
         return false;
     }
@@ -58,7 +58,7 @@ bool Submit() {
         return false;
     }
     recording = false;
-    return session->Render(frame, failure);
+    return session->Render(frame, failure, output);
 }
 
 bool Finish(void*) {
@@ -253,7 +253,7 @@ void FlushBackend() {
 void PresentBackendFrame(bool vsync, bool preserveAspect) {
 #if defined(CSE_ENABLE_METAL)
     if (UsingMetal()) {
-        Require(Submit());
+        Require(Submit(SceneOutput::Resolved));
         Require(session->Present(vsync, preserveAspect, failure));
         sceneActive = false;
     }

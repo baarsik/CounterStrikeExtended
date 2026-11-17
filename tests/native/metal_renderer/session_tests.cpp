@@ -1250,6 +1250,16 @@ int main() {
     presentationProbe.active = false;
     // Reading the next resolved scene must preserve the last presented pixels.
     frame.draws[0] = Solid(0, 1, 0);
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.allocationsUntilFailure = 1;
+    CHECK(!session.Render(frame, error, SceneOutput::Resolved));
+    CHECK(error.find("fixture final-color allocation failure") != std::string::npos);
+    presentationProbe.active = false;
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
+    CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
     CHECK(session.Render(frame, error));
     // The backdrop must sample the new resolve, even when it requests the resolve itself.
     constexpr std::uint64_t kBackdropEpoch = 1;
@@ -1267,11 +1277,14 @@ int main() {
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 255 && rgba[1] == 0);
     CHECK(session.Present(true, true, error));
-    // Reusing the original resolve target must preserve the most recent presentation.
+    // Resolve in the draw pass. Reusing the original resolve target must
+    // preserve the most recent presentation and the new scene's exact pixels.
+    session.EnableDiagnostics(true);
     frame.draws[0] = Solid(0, 0, 1);
-    CHECK(session.Render(frame, error));
+    CHECK(session.Render(frame, error, SceneOutput::Resolved));
     CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
-    CHECK(rgba[1] == 0 && rgba[2] == 255);
+    CHECK(rgba[0] == 0 && rgba[1] == 0 && rgba[2] == 255 && rgba[3] == 255);
+    CHECK(session.Diagnostics().renderPasses == 1 && session.Diagnostics().sceneResolves == 1);
     CHECK(session.Resize(kTargetSize * 2, kTargetSize, 4, error));
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[2] == 0);
