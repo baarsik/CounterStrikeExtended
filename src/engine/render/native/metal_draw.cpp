@@ -16,12 +16,13 @@ bool Fail(std::string& error, const char* message) {
 }
 
 template<typename Range> bool Finite(const Range& values) {
+    // A non-short-circuit reduction lets the compiler check array lanes together. Every
+    // component is still classified with isfinite; exceptional primitives use the same filter.
+    bool finite = true;
     for (auto value : values) {
-        if (!std::isfinite(value)) {
-            return false;
-        }
+        finite &= std::isfinite(value);
     }
-    return true;
+    return finite;
 }
 
 bool HasColor(InternalFormat format) {

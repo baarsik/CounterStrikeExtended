@@ -131,6 +131,42 @@ void Transforms() {
     draw.textures[1].enabled2D = true;
     Expect(Prepare(draw), {});
 }
+void EveryNumericLane() {
+    for (const float invalid : {std::numeric_limits<float>::infinity(),
+        -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()}) {
+        for (std::size_t lane = 0; lane < 4; ++lane) {
+            auto draw = Draw(Primitive::Triangles, 6);
+            draw.vertices[1].position[lane] = invalid;
+            Expect(Prepare(draw), {3, 4, 5});
+            draw = Draw(Primitive::Triangles, 6);
+            draw.vertices[1].color[lane] = invalid;
+            Expect(Prepare(draw), {3, 4, 5});
+            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                draw = Draw(Primitive::Triangles, 6);
+                draw.vertices[1].texcoords[unit][lane] = invalid;
+                Expect(Prepare(draw), {0, 1, 2, 3, 4, 5});
+                draw.textures[unit].enabled2D = true;
+                Expect(Prepare(draw), {3, 4, 5});
+            }
+        }
+        for (std::size_t lane = 0; lane < Matrix4::Identity().values.size(); ++lane) {
+            auto draw = Draw(Primitive::Triangles, 6);
+            draw.modelView.values[lane] = invalid;
+            Expect(Prepare(draw), {});
+            draw = Draw(Primitive::Triangles, 6);
+            draw.projection.values[lane] = invalid;
+            Expect(Prepare(draw), {});
+            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                draw = Draw(Primitive::Triangles, 6);
+                draw.textureMatrices[unit].values[lane] = invalid;
+                Expect(Prepare(draw), {0, 1, 2, 3, 4, 5});
+                draw.textures[unit].enabled2D = true;
+                Expect(Prepare(draw), {});
+            }
+        }
+    }
+}
+
 }
 
 int main() {
@@ -138,6 +174,7 @@ int main() {
         -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::quiet_NaN()}) {
         Topologies(invalid);
     }
+    EveryNumericLane();
     Indexed();
     Attributes();
     Transforms();
