@@ -177,10 +177,11 @@ int main(int argc, char **argv) {
         Engine engine;
         const std::string name = argv[5];
         constexpr size_t KeyboardFixtureRows = 64;
+        constexpr size_t CacheFixtureRows = 64;
         const bool largeFixture = name == "bounded" || name == "navigation-sort" || name == "navigation-update" ||
             name == "rapid-tabs" || name == "tab-selection-supersession" || name == "hd-layout";
         const size_t fixtureRows = name == "original-keyboard-range" ? KeyboardFixtureRows :
-            (largeFixture ? ServerCount : 3);
+            (largeFixture ? ServerCount : (name == "internet-cache" ? CacheFixtureRows : 3));
         for (size_t index = 0; index < fixtureRows; ++index) {
             auto row = Server(0x7f000001U + static_cast<uint32_t>(index), ("Server " + std::to_string(index)).c_str());
             row.m_nPing = static_cast<int>(index % 200);
@@ -227,6 +228,13 @@ int main(int argc, char **argv) {
         handle = dialog;
         if (hdParent) {
             dialog->SetParent(hdParent);
+        }
+        const auto advancePastInternetCacheAge = [] {
+            constexpr int InternetCacheTestAdvanceMilliseconds = 61000;
+            *system_fixture::current->timeMillisOverride += InternetCacheTestAdvanceMilliseconds;
+        };
+        if (name == "internet-cache" || name == "rapid-tabs" || name == "tab-selection-supersession") {
+            system_fixture::current->timeMillisOverride = 0;
         }
         dialog->Activate();
         StartList(*dialog, session, provider);
@@ -714,6 +722,7 @@ int main(int argc, char **argv) {
                 Settle(*dialog, session);
             };
             std::optional<RowKey> expected = original;
+            advancePastInternetCacheAge();
             if (name == "tab-selection-supersession") {
                 auto &rows = provider.lists.nextRows;
                 const auto originalRow = std::find_if(rows.begin(), rows.end(), [&](const gameserveritem_t &row) {
@@ -731,6 +740,7 @@ int main(int argc, char **argv) {
                 expected = session.model.Selection();
                 Require(expected && !(expected == original), "explicit replacement selection was not established");
                 rows.push_back(omitted);
+                advancePastInternetCacheAge();
                 switchOnce(ListKind::Favorites);
                 Settle(*dialog, session);
                 switchOnce(ListKind::Internet);
@@ -740,17 +750,19 @@ int main(int argc, char **argv) {
             } else {
                 switchOnce(ListKind::Favorites);
                 switchOnce(ListKind::Internet);
-                Require(session.model.GetStatus().viewUpdating && !session.model.Selection() &&
-                            !session.model.Find(*original),
-                        "large-list return did not enter the pending-restoration window");
+                Require(session.model.GetStatus().viewUpdating && session.model.Selection() == original &&
+                            session.model.Find(*original),
+                        "background refresh dropped the cached row or selection");
                 switchOnce(ListKind::History);
                 switchOnce(ListKind::Internet);
                 completeInternet();
                 Require(session.model.Selection() == original,
                         "rapid tab intentions overwrote the pending saved RowKey with live null");
             }
+            provider.pingSynchronous = true;
             gui->PostMessage(List(*dialog)->GetVPanel(), new KeyValues("KeyCodeTyped", "code", vgui2::KEY_ENTER), 0, 0);
             gui->RunFrame();
+            dialog->Pump();
             Require(engine.commands.size() == 1 &&
                         engine.commands.back() == "connect " + ConnectionAddress(*expected) + "\n",
                     "restored tab selection connected an unexpected numeric endpoint");
@@ -771,6 +783,109 @@ int main(int argc, char **argv) {
             tabs->SetActivePage(tabs->GetPage(0));
             Settle(*dialog, session);
             Require(session.settings.filters.map == "DE_", "returning to Internet lost per-page filters");
+        } else if (name == "idle-viewport") {
+            auto *list = List(*dialog);
+            const int item = list->GetItemIDFromRow(0);
+            list->GetItem(item)->SetString("Name", "Idle frame sentinel");
+            dialog->Pump();
+            Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Idle frame sentinel") == 0,
+                    "idle frame rewrote the visible row");
+            provider.lists.requests.at(provider.lists.current).rows.front().SetName("Refreshed name");
+            provider.lists.RefreshServer(provider.lists.current, 0);
+            auto *input = static_cast<vgui2::IInputInternal *>(guiFactory("VGUI_InputInternal001", nullptr));
+            Require(input != nullptr, "real VGUI input interface is missing");
+            input->InternalMousePressed(vgui2::MOUSE_LEFT);
+            input->InternalMouseReleased(vgui2::MOUSE_LEFT);
+            dialog->Pump();
+            Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Idle frame sentinel") == 0,
+                    "a queued click did not defer the viewport update");
+            gui->RunFrame();
+            Settle(*dialog, session);
+            Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Refreshed name") == 0,
+                    "a changed row did not invalidate the viewport");
+        } else if (name == "internet-cache") {
+            auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
+            constexpr size_t ScrollRank = 20;
+            dialog->Seek(ScrollRank);
+            dialog->SelectVisibleItems({0, 1});
+            const auto selection = session.model.Selection();
+            auto *internetList = List(*dialog);
+            tabs->SetActivePage(tabs->GetPage(1));
+            Settle(*dialog, session);
+            auto *inactiveScroll = static_cast<vgui2::ScrollBar *>(List(*dialog)->FindChildByName("LogicalScroll", false));
+            Require(inactiveScroll != nullptr, "Favorites page scrollbar is missing");
+            const auto lastRequest = provider.lists.serial;
+            tabs->SetActivePage(tabs->GetPage(0));
+            dialog->Pump();
+            Require(provider.lists.serial == lastRequest, "returning to a fresh Internet list started a request");
+            Require(List(*dialog) == internetList && List(*dialog)->GetItemCount() > 0 &&
+                        session.presentation.VisibleCount() == CacheFixtureRows, "returning to Internet hid its cached rows");
+            dialog->Seek(0, inactiveScroll);
+            Require(session.presentation.FirstVisibleRank() == ScrollRank,
+                    "an inactive scrollbar reset the cached Internet scroll position");
+            Require(session.model.Selection() == selection && List(*dialog)->GetSelectedItemsCount() == 2,
+                    "returning to Internet lost its cached multi-selection");
+
+            tabs->SetActivePage(tabs->GetPage(1));
+            Settle(*dialog, session);
+            const auto beforeStaleReturn = provider.lists.serial;
+            provider.lists.nextRows.pop_back();
+            advancePastInternetCacheAge();
+            tabs->SetActivePage(tabs->GetPage(0));
+            Settle(*dialog, session);
+            Require(provider.lists.serial == beforeStaleReturn + 1, "stale Internet list did not start a refresh");
+            Require(session.presentation.VisibleCount() == CacheFixtureRows, "stale refresh hid the cached rows");
+            provider.lists.Complete();
+            Settle(*dialog, session);
+            Require(session.presentation.VisibleCount() == CacheFixtureRows - 1,
+                    "stale refresh did not reconcile the cached rows");
+        } else if (name == "empty-states") {
+            auto *status = static_cast<vgui2::Label *>(dialog->FindChildByName("StatusLabel", false));
+            const auto expect = [&](const char *token) {
+                std::array<wchar_t, 512> text{};
+                status->GetText(text.data(), static_cast<int>(text.size()));
+                const auto *localized = vgui2::localize()->Find(token);
+                Require(localized != nullptr, (std::string("missing localization token ") + token).c_str());
+                std::array<char, 512> displayed{};
+                status->GetText(displayed.data(), static_cast<int>(displayed.size()));
+                Require(std::wstring(text.data()) == localized,
+                        (std::string(token) + " displayed: " + displayed.data()).c_str());
+            };
+            const auto refresh = [&](EMatchMakingServerResponse result, bool failedServers = false) {
+                Send(*dialog, "GetNewList");
+                Settle(*dialog, session);
+                if (failedServers) {
+                    const auto request = provider.lists.current;
+                    const auto &active = provider.lists.requests.at(request);
+                    for (size_t index = 0; index < active.rows.size(); ++index) {
+                        active.callback->ServerFailedToRespond(request, static_cast<int>(index));
+                    }
+                }
+                provider.lists.Complete(result);
+                Settle(*dialog, session);
+            };
+            auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
+            auto *map = static_cast<vgui2::TextEntry *>(tabs->GetActivePage()->FindChildByName("MapFilter", false));
+            map->SetText("no_matching_map");
+            map->PostActionSignal(new KeyValues("TextChanged"));
+            gui->RunFrame();
+            Settle(*dialog, session);
+            expect("ServerBrowser_NoInternetGames");
+            for (auto &row : provider.lists.nextRows) {
+                row.m_bHadSuccessfulResponse = false;
+            }
+            refresh(eServerResponded, true);
+            expect("ServerBrowser_NoInternetGamesResponded");
+            provider.lists.nextRows.clear();
+            refresh(eNoServersListedOnMasterServer);
+            expect("ServerBrowser_MasterServerHasNoServersListed");
+            refresh(eServerFailedToRespond);
+            expect("ServerBrowser_MasterServerNotResponsive");
+            tabs->SetActivePage(tabs->GetPage(4));
+            Settle(*dialog, session);
+            provider.lists.Complete(eNoServersListedOnMasterServer);
+            Settle(*dialog, session);
+            expect("ServerBrowser_NoLanServers");
         } else if (name == "status-fields") {
             auto *status = static_cast<vgui2::Label *>(dialog->FindChildByName("StatusLabel", false));
             Require(status && !dialog->FindChildByName("ActionStatusLabel", true), "original status parentage changed");
@@ -826,7 +941,11 @@ int main(int argc, char **argv) {
             Require(session.config.Status().error.empty() && displayed().empty(),
                     "successful config recovery did not restore the completed query's empty status");
         } else if (name == "navigation-sort" || name == "navigation-update") {
-            dialog->SelectVisible(1);
+            if (name == "navigation-update") {
+                dialog->ChooseSort(4);
+                Settle(*dialog, session);
+            }
+            dialog->SelectVisible(name == "navigation-sort" ? 2 : 1);
             const auto selected = session.model.Selection();
             Require(selected.has_value(), "navigation fixture selection absent");
             if (name == "navigation-sort") {
@@ -871,8 +990,10 @@ int main(int argc, char **argv) {
             navigate(vgui2::KEY_PAGEUP, session.presentation.FirstVisibleRank());
             navigate(vgui2::KEY_PAGEDOWN, std::min(
                 session.presentation.FirstVisibleRank() + dialog->WindowSize() - 1, keys.size() - 1));
+            provider.pingSynchronous = true;
             gui->PostMessage(list->GetVPanel(), new KeyValues("KeyCodeTyped", "code", vgui2::KEY_ENTER), 0, 0);
             gui->RunFrame();
+            dialog->Pump();
             Require(engine.commands.size() == 1 &&
                         engine.commands.back() == "connect " + ConnectionAddress(keys[rank]) + "\n",
                     "post-navigation Enter connected an unexpected endpoint");

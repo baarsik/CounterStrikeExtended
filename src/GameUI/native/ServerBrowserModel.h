@@ -53,7 +53,7 @@ struct Sort {
     Column column = Column::Name;
     bool ascending = true;
     // Changing primary columns retains the previous comparator for this session only.
-    std::optional<Column> secondaryColumn;
+    std::optional<Column> secondaryColumn = std::nullopt;
     bool secondaryAscending = true;
     bool operator==(const Sort& other) const {
         return std::tie(column, ascending, secondaryColumn, secondaryAscending) ==
@@ -94,8 +94,9 @@ struct Status {
     ListKind kind = ListKind::Internet;
     // Ordinary Stop also retires request storage; copied rows may remain usable.
     bool requestRetired = true;
-    EMatchMakingServerResponse completion = eNoServersListedOnMasterServer;
+    std::optional<EMatchMakingServerResponse> completion;
     size_t rows = 0;
+    size_t responding = 0;
     size_t failed = 0;
     size_t pending = 0;
     bool viewUpdating = false;
@@ -156,6 +157,8 @@ public:
     bool QuickRefresh();
     bool QuickRefresh(const RowKey& key);
     void Stop();
+    void ClearResults();
+    void SwapState(ServerBrowserModel& other);
     void SetFilters(const Filters& filters);
     void SetSort(Sort sort);
     void Select(std::optional<RowKey> key);

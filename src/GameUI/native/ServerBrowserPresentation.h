@@ -12,9 +12,11 @@ public:
     ServerBrowserPresentation(const ServerBrowserPresentation &) = delete;
     ServerBrowserPresentation &operator=(const ServerBrowserPresentation &) = delete;
     void Apply(const RowUpdate &update);
+    void SwapState(ServerBrowserPresentation &other);
     void RequestSort(Sort sort);
     size_t Pump(size_t workBudget);
     size_t VisibleCount() const;
+    size_t ViewportRevision() const;
     // Explicit user action only; may traverse O(n). Never call from ordinary frame/range updates.
     void SeekForUserAction(size_t firstVisibleRank);
     std::optional<size_t> RankForUserAction(const RowKey &key) const;

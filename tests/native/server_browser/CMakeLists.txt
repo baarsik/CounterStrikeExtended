@@ -72,7 +72,7 @@ add_test(NAME server_browser_config_macro_contract
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 foreach(case pagination backup cancel reentry cancel-reentry failed-empty-refresh
-        completed-pump completed-cancel completed-inline failed-ping-cancel cancel-completes-other)
+        completed-pump completed-cancel completed-inline failed-ping-cancel cancel-completes-other large-quick-refresh)
     add_test(NAME server_browser_master_${case} COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_LIST_DIR}/masterserver_fixture.py" "$<TARGET_FILE:masterserver_tests>" ${case})
 endforeach()

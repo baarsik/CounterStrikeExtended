@@ -223,6 +223,7 @@ struct MasterserverQueryProvider::State {
         HServerQuery query = HSERVERQUERY_INVALID;
         bool complete = false;
         bool accepting = true;
+        bool scheduled = false; // Queued or active in the current refresh.
         explicit Entry(Address address, AppId_t app) {
             item.m_NetAdr.Init(address.ip, address.queryPort, address.connectionPort);
             item.m_nAppID = app;
@@ -256,6 +257,15 @@ struct MasterserverQueryProvider::State {
         std::vector<int> active;
         bool refreshing = true;
         bool released = false;
+
+        void Queue(int index) {
+            auto& row = *rows[static_cast<size_t>(index)];
+            if (!row.scheduled) {
+                queued.push_back(index);
+                row.scheduled = true;
+                refreshing = true;
+            }
+        }
     };
     ISteamMatchmakingServers* steam;
     Masterserver selected = MasterserverSettings{}.Selected();
@@ -283,10 +293,14 @@ struct MasterserverQueryProvider::State {
         // Revoke presentation callbacks first; detach each handle before its cancellation can reenter release.
         auto active = std::move(request.active);
         request.active.clear();
+        for (const int index : request.queued) {
+            request.rows[static_cast<size_t>(index)]->scheduled = false;
+        }
         request.queued.clear();
         for (const int index : active) {
             auto& row = *request.rows[static_cast<size_t>(index)];
             row.accepting = false;
+            row.scheduled = false;
         }
         for (const int index : active) {
             auto& row = *request.rows[static_cast<size_t>(index)];
@@ -390,8 +404,9 @@ void MasterserverQueryProvider::Pump(size_t budget) {
                 ++work;
                 const auto address = request->directory.pending.front();
                 request->directory.pending.pop_front();
-                request->queued.push_back(static_cast<int>(request->rows.size()));
+                const auto index = static_cast<int>(request->rows.size());
                 request->rows.push_back(std::make_unique<State::Entry>(address, request->app));
+                request->Queue(index);
             }
         }
         for (size_t slot = 0; slot < request->active.size() && request->refreshing;) {
@@ -402,6 +417,7 @@ void MasterserverQueryProvider::Pump(size_t budget) {
                 continue;
             }
             row.accepting = false;
+            row.scheduled = false;
             // A terminal callback has already retired this individual query in the provider.
             row.query = HSERVERQUERY_INVALID;
             request->active.erase(request->active.begin() + static_cast<ptrdiff_t>(slot));
@@ -505,13 +521,9 @@ void MasterserverQueryProvider::RefreshServer(HServerListRequest handle, int ind
         return;
     }
     auto& request = *found->second;
-    if (index < 0 || static_cast<size_t>(index) >= request.rows.size() || request.released ||
-        std::find(request.active.begin(), request.active.end(), index) != request.active.end() ||
-        std::find(request.queued.begin(), request.queued.end(), index) != request.queued.end()) {
-        return;
+    if (!request.released && index >= 0 && static_cast<size_t>(index) < request.rows.size()) {
+        request.Queue(index);
     }
-    request.queued.push_back(index);
-    request.refreshing = true;
 }
 void MasterserverQueryProvider::RefreshQuery(HServerListRequest handle) {
     const auto found = state_->requests.find(handle);
@@ -522,10 +534,10 @@ void MasterserverQueryProvider::RefreshQuery(HServerListRequest handle) {
         return;
     }
     // An empty request still needs a completion callback on the next pump.
-    found->second->refreshing = true;
-    const auto count = found->second->rows.size();
-    for (size_t index = 0; index < count; ++index) {
-        RefreshServer(handle, static_cast<int>(index));
+    auto& request = *found->second;
+    request.refreshing = true;
+    for (size_t index = 0; index < request.rows.size(); ++index) {
+        request.Queue(static_cast<int>(index));
     }
 }
 HServerListRequest MasterserverQueryProvider::RequestInternetServerList(AppId_t app, MatchMakingKeyValuePair_t** pairs,

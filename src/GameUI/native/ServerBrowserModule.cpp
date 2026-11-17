@@ -58,6 +58,9 @@ public:
         dialog_ = new ServerBrowserDialog(*session_);
         retiring_ = false;
         initialized_ = true;
+        if (servers && favorites) {
+            favoritesChanged_.emplace(this, &ServerBrowserModule::OnFavoritesChanged);
+        }
         return true;
     }
     bool PostInitialize(CreateInterfaceFn *, int) override {
@@ -117,17 +120,23 @@ public:
             retiring_ = true;
             initialized_ = false;
             session_->closing = true;
+            favoritesChanged_.reset();
             session_->connection.Disconnected();
             if (dialog_.Get()) {
                 dialog_->SaveSettings();
             }
         }
         const bool modelClosed = session_->model.CloseStep(BrowserFrameBudget);
+        const bool parkedModelClosed = modelClosed && session_->parkedModel.CloseStep(BrowserFrameBudget);
         const bool masterserversClosed = session_->masterserverProvider.BeginClose();
         const bool viewClosed = session_->presentation.BeginClose();
         session_->presentation.Pump(BrowserFrameBudget);
+        const bool parkedViewClosed = viewClosed && session_->parkedPresentation.BeginClose();
+        if (viewClosed && !parkedViewClosed) {
+            session_->parkedPresentation.Pump(BrowserFrameBudget);
+        }
         const bool childrenClosed = !dialog_.Get() || dialog_->BeginClose();
-        if (!modelClosed || !masterserversClosed || !viewClosed || !childrenClosed) {
+        if (!parkedModelClosed || !masterserversClosed || !parkedViewClosed || !childrenClosed) {
             return false;
         }
         if (dialog_.Get()) {
@@ -168,9 +177,23 @@ public:
     }
 
 private:
+    void OnFavoritesChanged(FavoritesListChanged_t *change) {
+        if (!session_ || retiring_ || !host->IsMainThread() || !change) {
+            return;
+        }
+        constexpr uint32_t SavedListFlags = k_unFavoriteFlagFavorite | k_unFavoriteFlagHistory;
+        if (!change->m_nIP) {
+            session_->dirtySavedLists |= SavedListFlags;
+        } else if (!change->m_nAppID || change->m_nAppID == session_->settings.filters.app) {
+            const uint32_t changed = change->m_nFlags & SavedListFlags;
+            session_->dirtySavedLists |= changed ? changed : SavedListFlags;
+        }
+    }
+
     // Inert until Initialize: no model, preferences, Steam interface or VGUI panel in static construction.
     ConnectionEngine connectionEngine_;
     std::unique_ptr<BrowserSession> session_;
+    std::optional<CCallback<ServerBrowserModule, FavoritesListChanged_t>> favoritesChanged_;
     vgui2::DHANDLE<ServerBrowserDialog> dialog_;
     bool accepted_ = false;
     std::string acceptedGame_;

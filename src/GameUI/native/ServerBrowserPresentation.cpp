@@ -29,6 +29,7 @@ struct ServerBrowserPresentation::State {
     std::optional<Row> buildingAnchor;
     std::optional<Sort> requestedSort;
     size_t rank = 0;
+    size_t viewportRevision = 0;
     size_t buildingRank = 0;
     bool resetPending = false;
     bool closing = false;
@@ -49,6 +50,9 @@ struct ServerBrowserPresentation::State {
     }
     void Update(const RowUpdate &update) {
         const auto old = rows.find(update.row.key);
+        if (old != rows.end() || update.visible) {
+            ++viewportRevision;
+        }
         if (old != rows.end()) {
             Erase(*active, old->second, rank, anchor);
             if (building) {
@@ -68,6 +72,10 @@ struct ServerBrowserPresentation::State {
 
 ServerBrowserPresentation::ServerBrowserPresentation() : state_(new State) {}
 ServerBrowserPresentation::~ServerBrowserPresentation() = default;
+
+void ServerBrowserPresentation::SwapState(ServerBrowserPresentation &other) {
+    state_.swap(other.state_);
+}
 
 void ServerBrowserPresentation::Apply(const RowUpdate &update) {
     auto &state = *state_;
@@ -118,6 +126,7 @@ size_t ServerBrowserPresentation::Pump(size_t workBudget) {
                 state.rank = 0;
                 state.buildingRank = 0;
                 state.resetPending = false;
+                ++state.viewportRevision;
             }
         } else if (!state.deferred.empty()) {
             const auto entry = state.deferred.begin();
@@ -135,6 +144,7 @@ size_t ServerBrowserPresentation::Pump(size_t workBudget) {
             } else {
                 state.retired = std::move(state.active);
                 state.active = std::move(state.building);
+                ++state.viewportRevision;
                 state.rank = state.buildingRank;
                 state.anchor = std::move(state.buildingAnchor);
                 state.buildingAnchor.reset();
@@ -160,6 +170,10 @@ size_t ServerBrowserPresentation::VisibleCount() const {
     return state_->active->size();
 }
 
+size_t ServerBrowserPresentation::ViewportRevision() const {
+    return state_->viewportRevision;
+}
+
 std::optional<size_t> ServerBrowserPresentation::RankForUserAction(const RowKey &key) const {
     size_t rank = 0;
     for (const auto &row : *state_->active) {
@@ -182,6 +196,7 @@ std::optional<RowKey> ServerBrowserPresentation::KeyForUserAction(size_t rank) c
 
 void ServerBrowserPresentation::SeekForUserAction(size_t firstVisibleRank) {
     auto &state = *state_;
+    ++state.viewportRevision;
     if (state.active->empty() || firstVisibleRank == 0) {
         state.anchor.reset();
         state.rank = 0;

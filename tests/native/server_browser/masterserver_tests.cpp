@@ -1,6 +1,7 @@
 #include "ServerBrowserMasterserverQuery.h"
 #include "provider_fixture.h"
 #include <chrono>
+#include <ctime>
 #include <iostream>
 #include <stdexcept>
 #include <set>
@@ -134,6 +135,49 @@ void FailedEmptyRefresh(const char* directory, const char* unavailable) {
     CHECK(provider.BeginClose());
 }
 
+void LargeQuickRefresh(const char* directory) {
+    MetadataProvider steam;
+    MasterserverQueryProvider provider(&steam);
+    provider.Select({"loopback", "Loopback", {directory}});
+    Responses responses;
+    constexpr AppId_t CounterStrikeApp = 10;
+    constexpr int ServerCount = 49152;
+    const auto request = provider.RequestInternetServerList(CounterStrikeApp, nullptr, 0, &responses);
+    CHECK(request);
+
+    const auto pumpUntilComplete = [&] {
+        constexpr auto DiscoveryTimeout = std::chrono::seconds(10);
+        const auto deadline = std::chrono::steady_clock::now() + DiscoveryTimeout;
+        while (!responses.complete && std::chrono::steady_clock::now() < deadline) {
+            constexpr size_t FrameBudget = 128;
+            provider.Pump(FrameBudget);
+            std::this_thread::yield();
+        }
+        CHECK(responses.complete);
+    };
+    pumpUntilComplete();
+    CHECK(responses.responses == ServerCount);
+
+    responses = Responses{};
+    const auto started = std::clock();
+    constexpr int RepeatedRefreshes = 12;
+    for (int refresh = 0; refresh < RepeatedRefreshes; ++refresh) {
+        provider.RefreshQuery(request);
+    }
+    constexpr std::clock_t SchedulingBudget = 2 * CLOCKS_PER_SEC;
+    const bool withinBudget = std::clock() - started < SchedulingBudget;
+    CHECK(responses.responses == 0);
+    provider.Pump(); // Some rows are now active and the rest are queued.
+    provider.RefreshServer(request, 0);
+    provider.RefreshServer(request, ServerCount - 1);
+    pumpUntilComplete();
+    CHECK(responses.responses == ServerCount);
+    provider.ReleaseRequest(request);
+    while (!provider.BeginClose()) {
+    }
+    CHECK(withinBudget);
+}
+
 void CompletedPings(const char* directory, bool cancelBeforePump, bool inlineCompletion, bool failed) {
     MetadataProvider steam;
     steam.validQueries = true;
@@ -215,6 +259,10 @@ int main(int argc, char** argv) {
             CompletedPings(argv[1], test == "completed-cancel" || test == "failed-ping-cancel",
                 test == "completed-inline", test == "failed-ping-cancel");
             std::cout << "completed ping lifetime passed\n";
+            return 0;
+        }
+        if (std::string_view(argv[2]) == "large-quick-refresh") {
+            LargeQuickRefresh(argv[1]);
             return 0;
         }
         MetadataProvider steam;

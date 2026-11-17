@@ -3,6 +3,7 @@
 #include "matchmaking_fixture.inc"
 #include "detail_provider_fixture.h"
 #include "TextEntry.h"
+#include "PropertySheet.h"
 #include "ServerBrowserDialog.h"
 #include "ServerBrowserModule.h"
 #include "../../../src/GameUI/common/IVGuiModule.h"
@@ -24,9 +25,23 @@
 #include "layout_fixture.h"
 #include <dlfcn.h>
 #include <filesystem>
+#include <fstream>
 #include <exception>
 
+class CCallbackMgr {
+public:
+    static void Register(CCallbackBase &callback, int identifier) {
+        callback.m_nCallbackFlags |= CCallbackBase::k_ECallbackFlagsRegistered;
+        callback.m_iCallback = identifier;
+    }
+
+    static void Unregister(CCallbackBase &callback) {
+        callback.m_nCallbackFlags &= ~CCallbackBase::k_ECallbackFlagsRegistered;
+    }
+};
+
 namespace {
+CCallbackBase *favoritesCallback = nullptr;
 constexpr size_t LargeListRows = 10000;
 constexpr int MaximumTurns = 2000;
 std::string preferenceRoot;
@@ -75,6 +90,17 @@ extern "C" void *SteamInternal_FindOrCreateUserInterface(HSteamUser, const char 
         return provider;
     }
     return std::strcmp(version, STEAMMATCHMAKING_INTERFACE_VERSION) == 0 ? &matchmaking : nullptr;
+}
+extern "C" void S_CALLTYPE SteamAPI_RegisterCallback(CCallbackBase *callback, int identifier) {
+    Require(!favoritesCallback && identifier == FavoritesListChanged_t::k_iCallback,
+            "unexpected or duplicate Steam callback registration");
+    CCallbackMgr::Register(*callback, identifier);
+    favoritesCallback = callback;
+}
+extern "C" void S_CALLTYPE SteamAPI_UnregisterCallback(CCallbackBase *callback) {
+    Require(callback == favoritesCallback, "unregistered an unknown Steam callback");
+    CCallbackMgr::Unregister(*callback);
+    favoritesCallback = nullptr;
 }
 extern "C" char *SDLCALL SDL_GetPrefPath(const char *, const char *) {
     Require(!preferenceRoot.empty(), "module attempted preferences before fixture scope admission");
@@ -144,6 +170,13 @@ int main(int argc, char **argv) {
             Require(!module->Initialize(factories, 4) && preferenceCalls == 0,
                     "unsupported current game acquired a Half-Life browser session");
         } else {
+            if (testCase == "steam-list-changes") {
+                const auto settingsPath = std::filesystem::path(preferenceRoot) / "server-browser/settings.cfg";
+                std::filesystem::create_directories(settingsPath.parent_path());
+                std::ofstream settings(settingsPath);
+                settings << "master.selected=steam\n";
+                Require(settings.good(), "could not configure the controlled Steam directory");
+            }
             for (const char *game : {"cstrike", "valve"}) {
                 currentGame = game;
                 matchmaking.records.clear();
@@ -204,6 +237,56 @@ int main(int argc, char **argv) {
                     module->RunFrame();
                     gui->RunFrame();
                     vgui2::surface()->SolveTraverse(module->GetPanel(), false);
+                }
+                if (testCase == "steam-list-changes") {
+                    Require(favoritesCallback && favoritesCallback->GetCallbackSizeBytes() == sizeof(FavoritesListChanged_t),
+                            "Steam did not receive a typed FavoritesListChanged callback");
+                    auto *dialog = dynamic_cast<ServerBrowserDialog *>(
+                        vgui2::ipanel()->GetPanel(module->GetPanel(), "MODULE_BROWSER_TEST"));
+                    auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
+                    const auto selectTab = [&](int index) {
+                        tabs->SetActivePage(tabs->GetPage(index));
+                        for (int turn = 0; turn < PopulationTurns; ++turn) {
+                            module->RunFrame();
+                            gui->RunFrame();
+                        }
+                        typedProvider.Complete();
+                    };
+                    constexpr int FavoritesTab = 1;
+                    constexpr int HistoryTab = 2;
+                    const AppId_t app = typedProvider.lastApp;
+                    selectTab(FavoritesTab);
+                    FavoritesListChanged_t event{};
+                    event.m_nIP = 0x7f000001U;
+                    event.m_nAppID = app;
+                    event.m_nFlags = k_unFavoriteFlagFavorite;
+                    const auto lastFavoritesRequest = typedProvider.serial;
+                    favoritesCallback->Run(&event);
+                    favoritesCallback->Run(&event);
+                    Require(typedProvider.serial == lastFavoritesRequest, "Steam callback began a request reentrantly");
+                    module->RunFrame();
+                    for (int turn = 0; turn < PopulationTurns; ++turn) {
+                        module->RunFrame();
+                    }
+                    Require(typedProvider.serial == lastFavoritesRequest + 1 &&
+                                typedProvider.lastKind == ListKind::Favorites,
+                            "Favorites changes did not coalesce into one refresh");
+                    typedProvider.Complete();
+                    selectTab(HistoryTab);
+                    const auto lastHistoryRequest = typedProvider.serial;
+                    event.m_nAppID = app + 1;
+                    event.m_nFlags = k_unFavoriteFlagHistory;
+                    favoritesCallback->Run(&event);
+                    module->RunFrame();
+                    Require(typedProvider.serial == lastHistoryRequest, "other app's History change caused a refresh");
+                    event.m_nIP = 0;
+                    event.m_nAppID = 0;
+                    favoritesCallback->Run(&event);
+                    for (int turn = 0; turn < PopulationTurns; ++turn) {
+                        module->RunFrame();
+                    }
+                    Require(typedProvider.serial == lastHistoryRequest + 1 && typedProvider.lastKind == ListKind::History,
+                            "Steam's full-list notification did not update History");
                 }
                 if (hdLayout) {
                     auto *dialog = dynamic_cast<ServerBrowserDialog *>(
@@ -273,7 +356,7 @@ int main(int argc, char **argv) {
                     hook.DisconnectFromServer();
                     commands.clear();
                 }
-                if (provider && testCase != "deactivate") {
+                if (provider && testCase != "deactivate" && testCase != "steam-list-changes") {
                     auto *dialog = dynamic_cast<ServerBrowserDialog *>(
                         vgui2::ipanel()->GetPanel(module->GetPanel(), "MODULE_BROWSER_TEST"));
                     Require(dialog != nullptr, "actual module browser panel absent");
@@ -302,6 +385,7 @@ int main(int argc, char **argv) {
                     gui->RunFrame();
                 }
                 Require(retirement->IsRetired() && !module->GetPanel(), "actual module failed complete retirement");
+                Require(!favoritesCallback, "module retirement left a registered Steam callback");
                 if (provider) {
                     Require(turns > static_cast<int>(LargeListRows / BrowserFrameBudget),
                             "module destroyed populated model without bounded storage retirement");

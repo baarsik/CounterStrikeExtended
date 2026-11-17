@@ -4,6 +4,7 @@
 #include <cstring>
 #include <dlfcn.h>
 #include <map>
+#include <optional>
 #include <string>
 
 namespace system_fixture {
@@ -14,6 +15,7 @@ public:
     bool failStringWrites = false;
     int stringWrites = 0;
     std::string languageOverride;
+    std::optional<std::int32_t> timeMillisOverride;
     void Shutdown() override {
         return real_->Shutdown();
     }
@@ -30,7 +32,7 @@ public:
         return real_->GetCurrentTime();
     }
     std::int32_t GetTimeMillis() override {
-        return real_->GetTimeMillis();
+        return timeMillisOverride ? *timeMillisOverride : real_->GetTimeMillis();
     }
     int GetClipboardTextCount() override {
         return real_->GetClipboardTextCount();

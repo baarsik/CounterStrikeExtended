@@ -1,4 +1,5 @@
 import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -19,7 +20,15 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
             requests.append(packet)
             assert packet[:2] == b'1\xff'
             cursor = packet[2:].split(b'\0')[0]
-            if cursor == b'0.0.0.0:0':
+            if sys.argv[2] == 'large-quick-refresh':
+                page_size = 1024
+                server_count = 48 * page_size
+                start = 0 if cursor == b'0.0.0.0:0' else int(cursor.split(b':')[1]) - 1023
+                payload = b''.join(struct.pack('!IH', 0x7f000001, index + 1024)
+                                   for index in range(start, min(start + page_size, server_count)))
+                if not payload:
+                    payload = bytes(6)
+            elif cursor == b'0.0.0.0:0':
                 # Invalid reply must be ignored, then accept the actual page.
                 server.sendto(b'bad header', client)
                 payload = bytes([127, 0, 0, 1, 0x69, 0x87])
@@ -40,7 +49,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
         command = [sys.argv[1], address, sys.argv[2]]
         if sys.argv[2] == 'failed-empty-refresh':
             command.append(f'127.0.0.1:{unavailable.getsockname()[1]}')
-        subprocess.run(command, check=True, timeout=15)
+        subprocess.run(command, check=True, timeout=45 if sys.argv[2] == 'large-quick-refresh' else 15)
         if sys.argv[2] != 'cancel':
             assert len(requests) >= 2
     finally:

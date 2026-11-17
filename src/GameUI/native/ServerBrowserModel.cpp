@@ -494,6 +494,7 @@ struct ServerBrowserModel::State {
         selection.reset();
         resetUpdate = true;
         status.failed = 0;
+        status.responding = 0;
     }
     void Rebuild() {
         rebuildPending = true;
@@ -602,6 +603,9 @@ struct ServerBrowserModel::State {
             if (old->second.failed) {
                 --status.failed;
             }
+            if (old->second.responded && !old->second.failed) {
+                --status.responding;
+            }
             if (!row.responded && old->second.responded) {
                 const bool failed = row.failed;
                 row = old->second;
@@ -615,6 +619,8 @@ struct ServerBrowserModel::State {
         }
         if (row.failed) {
             ++status.failed;
+        } else if (row.responded) {
+            ++status.responding;
         }
         if (Matches(row, filters, kind)) {
             ordered->insert(row);
@@ -824,6 +830,7 @@ bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters, bool cle
     state.filters = filters;
     state.Rebuild();
     state.status.phase = Phase::Refreshing;
+    state.status.completion.reset();
     state.status.error.clear();
     state.refreshPending = true;
     state.NormalizeEmptyRoots();
@@ -916,6 +923,18 @@ void ServerBrowserModel::Stop() {
         state.refreshPending = false;
         state.Invalidate();
     }
+}
+void ServerBrowserModel::ClearResults() {
+    Stop();
+    state_->status.completion.reset();
+    state_->status.error.clear();
+    state_->ResetRows();
+}
+void ServerBrowserModel::SwapState(ServerBrowserModel& other) {
+    state_->Check();
+    other.state_->Check();
+    // The callback objects retain their State references as ownership changes.
+    state_.swap(other.state_);
 }
 void ServerBrowserModel::SetFilters(const Filters& filters) {
     auto& state = *state_;
@@ -1026,6 +1045,8 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                     }
                     if (entry->second.failed) {
                         --state.status.failed;
+                    } else if (entry->second.responded) {
+                        --state.status.responding;
                     }
                     state.indexes.erase(entry->first);
                     state.rows.erase(entry);

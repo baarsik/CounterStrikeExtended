@@ -32,6 +32,8 @@ struct BrowserSession {
     SteamFavoriteStore favorites;
     ServerBrowserModel model;
     ServerBrowserPresentation presentation;
+    ServerBrowserModel parkedModel;
+    ServerBrowserPresentation parkedPresentation;
     NativeConfigStorage storage;
     ServerBrowserConfig config;
     ServerBrowserConnection connection;
@@ -41,7 +43,7 @@ struct BrowserSession {
     size_t useDepth = 0;
     bool closing = false;
     bool active = false;
-    bool favoritesDirty = false;
+    uint32_t dirtySavedLists = k_unFavoriteFlagNone;
     bool AddFavorite(AppId_t app, Address address);
     BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamMatchmaking *favoriteProvider,
                    IFileSystem *filesystem, IConnectionEngine &engine, AppId_t app, const char *game,
@@ -79,7 +81,7 @@ public:
     bool BeginClose();
     void SaveSettings();
     void ChooseSort(int column);
-    void Seek(size_t position);
+    void Seek(size_t position, const vgui2::ScrollBar *source = nullptr);
     void SelectVisible(size_t slot);
     void SelectVisibleItems(const std::vector<size_t> &slots);
     void ConnectSelection();
@@ -105,6 +107,7 @@ private:
     void UpdateActions();
     void UpdateFilterSummary();
     bool ChangeTab(int tab);
+    bool RefreshPage(ListKind kind, const Filters &filters, bool clearResults = false);
     void RestoreFilters();
     bool RetireChildren();
     void UpdateRows();
@@ -152,12 +155,21 @@ private:
     };
     static constexpr size_t TabCount = static_cast<size_t>(ListKind::Spectate) + 1;
     std::array<TabState, TabCount> tabStates_;
+    std::vector<RowKey> internetSelectedKeys_;
+    std::optional<RowKey> internetKeyboardCursor_;
+    std::optional<RowKey> internetRangeAnchor_;
     int activeTab_ = -1;
     bool deactivating_ = false;
     bool inactiveDispatchObserved_ = false;
     bool reopenRequested_ = false;
     bool refreshOnOpen_ = false;
+    bool internetRefreshPending_ = false;
+    std::optional<uint32_t> internetRefreshedAt_;
     bool transitioning_ = false;
+    bool viewportDirty_ = true;
+    bool displayedVACBan_ = false;
+    size_t displayedCapacity_ = 0;
+    size_t displayedViewportRevision_ = 0;
     bool restoreSelection_ = false;
     bool restoringFilters_ = false;
     int tabsTopAdjustment_ = 0;

@@ -58,6 +58,44 @@ constexpr int ReferencePageWidth = 624;
 constexpr int ReferencePageHeight = 278;
 constexpr int OriginalMinimumWidth = 640;
 constexpr int OriginalMinimumHeight = 384;
+constexpr uint32_t InternetCacheMaxAgeMilliseconds = 60000;
+bool UsesMasterserver(ListKind kind) {
+    return kind == ListKind::Internet || kind == ListKind::Spectate;
+}
+
+uint32_t SavedListFlag(ListKind kind) {
+    if (kind == ListKind::Favorites) {
+        return k_unFavoriteFlagFavorite;
+    }
+    if (kind == ListKind::History) {
+        return k_unFavoriteFlagHistory;
+    }
+    return k_unFavoriteFlagNone;
+}
+
+const char *EmptyListText(const Status &state) {
+    switch (state.kind) {
+    case ListKind::Favorites:
+        return "#ServerBrowser_NoFavoriteServers";
+    case ListKind::History:
+        return "#ServerBrowser_NoServersPlayed";
+    case ListKind::LAN:
+        return "#ServerBrowser_NoLanServers";
+    case ListKind::Friends:
+        return "#ServerBrowser_NoFriendsServers";
+    case ListKind::Internet:
+    case ListKind::Spectate:
+        if (state.completion == eNoServersListedOnMasterServer) {
+            return "#ServerBrowser_MasterServerHasNoServersListed";
+        }
+        if (state.completion == eServerResponded && state.responding == 0) {
+            return "#ServerBrowser_NoInternetGamesResponded";
+        }
+        return "#ServerBrowser_NoInternetGames";
+    }
+    return "";
+}
+
 int SlotOrder(vgui2::ListPanel *, const vgui2::ListPanelItem &left, const vgui2::ListPanelItem &right) {
     const int a = left.kv->GetInt("slot");
     const int b = right.kv->GetInt("slot");
@@ -151,7 +189,7 @@ private:
 
 class LogicalScroll final : public vgui2::ScrollBar {
 public:
-    LogicalScroll(vgui2::Panel *parent, std::function<void(size_t)> seek)
+    LogicalScroll(vgui2::Panel *parent, std::function<void(const LogicalScroll *, size_t)> seek)
         : ScrollBar(parent, "LogicalScroll", true), seek_(std::move(seek)) {}
     void Synchronize(size_t count, size_t window, size_t first) {
         updating_ = true;
@@ -169,12 +207,12 @@ protected:
     void SendSliderMoveMessage(int position) override {
         // Slider action signals are queued: an older value may arrive after synchronization.
         if (!updating_ && position == GetValue()) {
-            seek_(static_cast<size_t>(std::max(position, 0)));
+            seek_(this, static_cast<size_t>(std::max(position, 0)));
         }
     }
 
 private:
-    std::function<void(size_t)> seek_;
+    std::function<void(const LogicalScroll *, size_t)> seek_;
     bool updating_ = false;
 };
 void ClampFrame(vgui2::Frame &frame, int left, int top) {
@@ -234,6 +272,7 @@ BrowserSession::BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamM
                                std::string preferenceRoot, IFavoriteStore *injectedFavorites)
     : masterserverProvider(serverProvider), favorites(favoriteProvider),
       model({serverProvider ? &masterserverProvider : nullptr, injectedFavorites ? injectedFavorites : &favorites}),
+      parkedModel({serverProvider ? &masterserverProvider : nullptr, injectedFavorites ? injectedFavorites : &favorites}),
       storage(filesystem, std::move(preferenceRoot)), config(storage), connection(engine, model, app, game),
       servers(serverProvider ? &masterserverProvider : nullptr) {
     config.Load();
@@ -248,7 +287,9 @@ BrowserSession::BrowserSession(ISteamMatchmakingServers *serverProvider, ISteamM
 
 bool BrowserSession::AddFavorite(AppId_t app, Address address) {
     const bool added = model.AddFavorite(app, address);
-    favoritesDirty = favoritesDirty || added;
+    if (added) {
+        dirtySavedLists |= k_unFavoriteFlagFavorite;
+    }
     return added;
 }
 
@@ -1008,7 +1049,9 @@ public:
         : PropertyPage(parent, name, true) {
         SetSize(ReferencePageWidth, ReferencePageHeight);
         list = new BrowserViewport(this, owner, kind == ListKind::History);
-        scroll = new LogicalScroll(list, [&owner](size_t position) { owner.Seek(position); });
+        scroll = new LogicalScroll(list, [&owner](const LogicalScroll *source, size_t position) {
+            owner.Seek(position, source);
+        });
         auto button = [&](const char *controlName) {
             auto *control = new vgui2::Button(this, controlName, "");
             control->AddActionSignalTarget(&owner);
@@ -1259,6 +1302,7 @@ void ServerBrowserDialog::Deactivate() {
     SaveSettings();
     Frame::OnClose();
     session_.model.Stop();
+    internetRefreshPending_ = false;
     RetireChildren();
 }
 
@@ -1343,7 +1387,7 @@ void ServerBrowserDialog::UpdateFilterSummary() {
 }
 
 void ServerBrowserDialog::UpdateActions() {
-    const bool internet = session_.settings.kind == ListKind::Internet || session_.settings.kind == ListKind::Spectate;
+    const bool internet = UsesMasterserver(session_.settings.kind);
     const bool favorites = session_.settings.kind == ListKind::Favorites;
     const bool refreshing = session_.model.GetStatus().phase == Phase::Refreshing;
     refresh_->SetText(refreshing ? "#ServerBrowser_StopRefreshingList" :
@@ -1368,27 +1412,53 @@ bool ServerBrowserDialog::ChangeTab(int tab) {
         // A bounded reset clears the live selection before its saved RowKey can be restored.
         if (!restoreSelection_) {
             outgoing.selection = session_.model.Selection();
+            if (session_.settings.kind == ListKind::Internet) {
+                internetSelectedKeys_ = selectedKeys_;
+                internetKeyboardCursor_ = keyboardCursor_;
+                internetRangeAnchor_ = rangeAnchor_;
+            }
         }
     }
     const auto kind = BrowserTabKinds[static_cast<size_t>(tab)];
+    const auto previousKind = activeTab_ < 0 ? ListKind::Internet : session_.settings.kind;
+    const bool swapLists = (kind == ListKind::Internet) != (previousKind == ListKind::Internet);
     auto &destination = tabStates_[static_cast<size_t>(tab)];
     if (kind != ListKind::Internet && kind != ListKind::Spectate) {
         destination.filters.region = Filters{}.region;
     }
-    if (session_.servers) {
-        session_.model.Stop();
+    if (swapLists) {
+        // Only the Internet list is cached. Its provider request can be retired
+        // independently of the copied rows, ordering, and scroll position.
+        if (previousKind == ListKind::Internet) {
+            session_.model.Stop();
+            internetRefreshPending_ = false;
+        } else {
+            session_.model.ClearResults();
+            session_.presentation.Apply({{}, false, true, 0});
+        }
+        session_.model.SwapState(session_.parkedModel);
+        session_.presentation.SwapState(session_.parkedPresentation);
     }
-    const bool accepted = session_.model.Refresh(kind, destination.filters);
+    const auto now = static_cast<uint32_t>(vgui2::system()->GetTimeMillis());
+    const bool internetFresh = kind == ListKind::Internet && internetRefreshedAt_ &&
+        now - *internetRefreshedAt_ < InternetCacheMaxAgeMilliseconds;
+    const bool hasInternetRows = kind == ListKind::Internet && session_.presentation.CanAcceptUpdates() &&
+        session_.presentation.VisibleCount() > 0;
+    const bool accepted = internetFresh || RefreshPage(kind, destination.filters);
     const auto state = session_.model.GetStatus();
     // A provider start failure has already installed this query identity; an early refusal has not.
-    if (!accepted && state.kind != kind) {
+    if (session_.servers && !accepted && state.kind != kind) {
+        if (swapLists) {
+            session_.model.SwapState(session_.parkedModel);
+            session_.presentation.SwapState(session_.parkedPresentation);
+        }
         if (activeTab_ >= 0) {
             tabs_->SetActivePage(tabs_->GetPage(activeTab_));
         }
         RestoreFilters();
         return false;
     }
-    transitioning_ = activeTab_ >= 0 && activeTab_ != tab;
+    transitioning_ = activeTab_ >= 0 && activeTab_ != tab && !hasInternetRows;
     selectedKeys_.clear();
     keyboardCursor_.reset();
     rangeAnchor_.reset();
@@ -1400,13 +1470,35 @@ bool ServerBrowserDialog::ChangeTab(int tab) {
     session_.model.SetSort(destination.sort);
     session_.presentation.RequestSort(destination.sort);
     restoreSelection_ = destination.selection.has_value();
+    if (hasInternetRows) {
+        selectedKeys_ = internetSelectedKeys_;
+        keyboardCursor_ = internetKeyboardCursor_;
+        rangeAnchor_ = internetRangeAnchor_;
+        ReconcileSelection();
+        restoreSelection_ = restoreSelection_ && !session_.model.Selection();
+    }
     list_->RemoveAll();
     slots_.clear();
+    visible_.clear();
+    viewportDirty_ = true;
     BindPage();
     ReloadPage();
     RestoreFilters();
     InvalidateLayout(false, false);
     return true;
+}
+
+bool ServerBrowserDialog::RefreshPage(ListKind kind, const Filters &filters, bool clearResults) {
+    // A notification received inside the provider call belongs to a later refresh.
+    session_.dirtySavedLists &= ~SavedListFlag(kind);
+    const bool accepted = session_.model.Refresh(kind, filters, clearResults);
+    if (kind == ListKind::Internet) {
+        internetRefreshPending_ = accepted;
+        if (!accepted) {
+            internetRefreshedAt_.reset();
+        }
+    }
+    return accepted;
 }
 
 void ServerBrowserDialog::Pump() {
@@ -1421,11 +1513,19 @@ void ServerBrowserDialog::Pump() {
             ChangeTab(tab);
         }
     }
-    if (session_.active && session_.settings.kind == ListKind::Favorites && session_.favoritesDirty) {
-        session_.favoritesDirty = false;
-        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+    const auto kind = session_.settings.kind;
+    if (session_.active && (session_.dirtySavedLists & SavedListFlag(kind)) &&
+        session_.model.GetStatus().phase != Phase::Refreshing) {
+        RefreshPage(kind, session_.settings.filters);
     }
     session_.masterserverProvider.Pump(BrowserFrameBudget);
+    session_.parkedModel.Pump(BrowserFrameBudget);
+    session_.parkedPresentation.Pump(BrowserFrameBudget);
+    if (session_.parkedPresentation.CanAcceptUpdates()) {
+        for (const auto &update : session_.parkedModel.TakeUpdates(BrowserFrameBudget)) {
+            session_.parkedPresentation.Apply(update);
+        }
+    }
     session_.model.Pump(BrowserFrameBudget);
     session_.presentation.Pump(BrowserFrameBudget);
     if (session_.presentation.CanAcceptUpdates()) {
@@ -1449,6 +1549,17 @@ void ServerBrowserDialog::Pump() {
         }
     }
     const auto state = session_.model.GetStatus();
+    if (internetRefreshPending_ && state.phase != Phase::Refreshing) {
+        if (state.phase == Phase::Complete && !state.pending && !state.viewUpdating) {
+            internetRefreshedAt_ = static_cast<uint32_t>(vgui2::system()->GetTimeMillis());
+            internetRefreshPending_ = false;
+        } else if (state.phase != Phase::Complete) {
+            if (state.phase == Phase::Failed) {
+                internetRefreshedAt_.reset();
+            }
+            internetRefreshPending_ = false;
+        }
+    }
     if (!session_.active) {
         if (deactivating_) {
             const bool childrenRetired = RetireChildren();
@@ -1464,6 +1575,7 @@ void ServerBrowserDialog::Pump() {
     }
     if (transitioning_ && !state.viewUpdating && !state.pending && !session_.presentation.IsUpdating()) {
         transitioning_ = false;
+        viewportDirty_ = true;
     }
     if (restoreSelection_) {
         const auto selection = tabStates_[static_cast<size_t>(activeTab_)].selection;
@@ -1473,9 +1585,17 @@ void ServerBrowserDialog::Pump() {
             keyboardCursor_ = selection;
             rangeAnchor_ = selection;
             restoreSelection_ = false;
+            viewportDirty_ = true;
         }
     }
-    UpdateRows();
+    // VGUI dispatches queued clicks after the GameUI pump, including a press and release in one frame.
+    const auto selectionGesture = [](vgui2::MouseCode button) {
+        auto *input = vgui2::input();
+        return input->IsMouseDown(button) || input->WasMousePressed(button) || input->WasMouseDoublePressed(button);
+    };
+    if (!selectionGesture(vgui2::MOUSE_LEFT) && !selectionGesture(vgui2::MOUSE_RIGHT)) {
+        UpdateRows();
+    }
     UpdateActions();
     auto liveDialogs = detailsDialogs_;
     for (auto &dialog : liveDialogs) {
@@ -1489,7 +1609,9 @@ void ServerBrowserDialog::Pump() {
         addServerDialog_->Pump();
     }
     const char *text = "";
-    if (!state.error.empty()) {
+    if (UsesMasterserver(state.kind) && state.completion == eServerFailedToRespond && !state.error.empty()) {
+        text = "#ServerBrowser_MasterServerNotResponsive";
+    } else if (!state.error.empty()) {
         text = state.error.c_str();
     } else if (!session_.servers || state.phase == Phase::Unavailable) {
         text = "#CSEServerBrowser_Unavailable";
@@ -1500,7 +1622,7 @@ void ServerBrowserDialog::Pump() {
     } else if (state.phase == Phase::Refreshing) {
         text = "#ServerBrowser_RefreshingServerList";
     } else if (!session_.presentation.VisibleCount()) {
-        text = "#ServerBrowser_NoInternetGames";
+        text = EmptyListText(state);
     }
     // Resolve the one visible label before comparing its cache. An unchanged failure
     // must retain priority while the underlying query enters or leaves refresh/sort states.
@@ -1519,8 +1641,19 @@ void ServerBrowserDialog::Pump() {
 }
 
 void ServerBrowserDialog::UpdateRows() {
-    visible_ = transitioning_ ? std::vector<Row>{} : session_.presentation.ReadViewport(list_->Capacity());
-    ResizeSlots(*list_, slots_, list_->Capacity());
+    const size_t capacity = list_->Capacity();
+    const size_t revision = session_.presentation.ViewportRevision();
+    const bool vacBanned = session_.apps && session_.apps->BIsVACBanned();
+    if (!viewportDirty_ && capacity == displayedCapacity_ && revision == displayedViewportRevision_ &&
+        vacBanned == displayedVACBan_) {
+        return;
+    }
+    displayedCapacity_ = capacity;
+    displayedViewportRevision_ = revision;
+    displayedVACBan_ = vacBanned;
+    viewportDirty_ = false;
+    visible_ = transitioning_ ? std::vector<Row>{} : session_.presentation.ReadViewport(capacity);
+    ResizeSlots(*list_, slots_, capacity);
     list_->ClearSelectedItems();
     const auto selection = session_.model.Selection();
     const Row *selectedRow = selection && session_.model.IsVisible(*selection)
@@ -1549,7 +1682,7 @@ void ServerBrowserDialog::UpdateRows() {
         item->SetInt("Password", row.responded && row.password ? PasswordImage : 0);
         constexpr int SecureDeniedImage = 4;
         item->SetInt("Secure", row.responded && row.secure ?
-            (session_.apps && session_.apps->BIsVACBanned() ? SecureDeniedImage : SecureImage) : 0);
+            (vacBanned ? SecureDeniedImage : SecureImage) : 0);
         item->SetString("Bots", row.responded && row.bots > 0 ? std::to_string(row.bots).c_str() : "");
         const auto humans = std::max<int64_t>(static_cast<int64_t>(row.players) - row.bots, 0);
         item->SetString("Players", row.responded
@@ -1576,7 +1709,7 @@ void ServerBrowserDialog::UpdateRows() {
     }
     list_->SortList();
     connect_->SetEnabled(canConnect);
-    static_cast<LogicalScroll *>(scroll_)->Synchronize(session_.presentation.VisibleCount(), list_->Capacity(),
+    static_cast<LogicalScroll *>(scroll_)->Synchronize(session_.presentation.VisibleCount(), capacity,
                                                        session_.presentation.FirstVisibleRank());
 }
 
@@ -1606,8 +1739,11 @@ void ServerBrowserDialog::ChooseSort(int column) {
     session_.presentation.RequestSort(sort);
     SaveSettings();
 }
-void ServerBrowserDialog::Seek(size_t position) {
+void ServerBrowserDialog::Seek(size_t position, const vgui2::ScrollBar *source) {
     BrowserUse use(session_);
+    if (source && (source != scroll_ || tabs_->GetActivePage() != page_)) {
+        return;
+    }
     if (!session_.closing && session_.active) {
         // Synchronization also queues slider signals after streaming updates adjust the anchor's rank.
         if (position != session_.presentation.FirstVisibleRank()) {
@@ -1622,6 +1758,7 @@ void ServerBrowserDialog::SelectVisible(size_t slot) {
         session_.model.IsVisible(visible_[slot].key)) {
         restoreSelection_ = false;
         selectedKeys_ = {visible_[slot].key};
+        viewportDirty_ = true;
         keyboardCursor_ = visible_[slot].key;
         rangeAnchor_ = visible_[slot].key;
         session_.model.Select(visible_[slot].key);
@@ -1633,6 +1770,7 @@ void ServerBrowserDialog::SelectVisibleItems(const std::vector<size_t> &slots) {
     if (session_.closing || !session_.active || transitioning_) {
         return;
     }
+    viewportDirty_ = true;
     const bool extend = vgui2::input()->IsKeyDown(vgui2::KEY_LCONTROL) ||
         vgui2::input()->IsKeyDown(vgui2::KEY_RCONTROL) || vgui2::input()->IsKeyDown(vgui2::KEY_LSHIFT) ||
         vgui2::input()->IsKeyDown(vgui2::KEY_RSHIFT);
@@ -1719,6 +1857,7 @@ void ServerBrowserDialog::MoveSelection(int delta, bool endpoint, bool page) {
             session_.model.Select(targetKey);
         }
         keyboardCursor_ = targetKey;
+        viewportDirty_ = true;
         size_t first = firstVisible;
         if (targetRank < first) {
             first = targetRank;
@@ -1790,6 +1929,7 @@ BrowserDetailsDialog *ServerBrowserDialog::OpenDetails() {
     }
     const Row captured = *row;
     session_.model.Stop();
+    internetRefreshPending_ = false;
     if (session_.closing || !session_.active) {
         return nullptr;
     }
@@ -1864,6 +2004,12 @@ void ServerBrowserDialog::ApplyFilters() {
         std::tie(old.map, old.maxPing, old.password, old.secure, old.nonempty, old.notFull, old.validSteamAccount)) {
         return;
     }
+    if (session_.settings.kind == ListKind::Internet &&
+        (filters.nonempty != old.nonempty || filters.notFull != old.notFull ||
+         (filters.secure == Requirement::Yes) != (old.secure == Requirement::Yes) || filters.region != old.region)) {
+        internetRefreshedAt_.reset();
+        internetRefreshPending_ = false;
+    }
     session_.settings.filters = filters;
     session_.model.SetFilters(filters);
     ReconcileSelection();
@@ -1872,6 +2018,7 @@ void ServerBrowserDialog::ApplyFilters() {
 }
 
 void ServerBrowserDialog::ReconcileSelection() {
+    viewportDirty_ = true;
     selectedKeys_.erase(std::remove_if(selectedKeys_.begin(), selectedKeys_.end(), [this](const RowKey &key) {
         return !session_.model.IsVisible(key);
     }), selectedKeys_.end());
@@ -1914,9 +2061,10 @@ void ServerBrowserDialog::OnCommand(const char *command) {
         }
         settingsDialog_->DoModal();
     } else if (std::strcmp(command, "GetNewList") == 0) {
-        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+        RefreshPage(session_.settings.kind, session_.settings.filters);
     } else if (std::strcmp(command, "stoprefresh") == 0) {
         session_.model.Stop();
+        internetRefreshPending_ = false;
     } else if (std::strcmp(command, "refresh") == 0) {
         session_.model.QuickRefresh();
     } else if (std::strcmp(command, "QuickSelected") == 0 || std::strcmp(command, "RefreshServer") == 0) {
@@ -1936,12 +2084,12 @@ void ServerBrowserDialog::OnCommand(const char *command) {
         for (const auto &row : selectedRows) {
             session_.model.RemoveFavorite(row.app, row.key);
         }
-        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+        RefreshPage(session_.settings.kind, session_.settings.filters);
     } else if (std::strcmp(command, "RemoveFromHistory") == 0) {
         for (auto row = selectedRows.rbegin(); row != selectedRows.rend(); ++row) {
             session_.model.RemoveHistory(row->app, row->key);
         }
-        session_.model.Refresh(session_.settings.kind, session_.settings.filters);
+        RefreshPage(session_.settings.kind, session_.settings.filters);
     } else if (std::strcmp(command, "AddServerByName") == 0) {
         if (!addServerDialog_.Get()) {
             addServerDialog_ = new BrowserAddServerDialog(*this, session_);
@@ -1963,6 +2111,14 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     }
     session_.settings.masterservers = settings;
     session_.masterserverProvider.Select(settings.Selected());
+    internetRefreshedAt_.reset();
+    internetSelectedKeys_.clear();
+    internetKeyboardCursor_.reset();
+    internetRangeAnchor_.reset();
+    if (session_.settings.kind != ListKind::Internet) {
+        session_.parkedModel.ClearResults();
+        session_.parkedPresentation.Apply({{}, false, true, 0});
+    }
     for (auto& tab : tabStates_) {
         tab.selection.reset();
     }
@@ -1974,8 +2130,9 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     transitioning_ = true;
     list_->RemoveAll();
     slots_.clear();
+    viewportDirty_ = true;
     visible_.clear();
-    session_.model.Refresh(session_.settings.kind, session_.settings.filters, true);
+    RefreshPage(session_.settings.kind, session_.settings.filters, true);
     SaveSettings();
 }
 
@@ -2053,6 +2210,8 @@ namespace cse::server_browser {
 void ServerBrowserDialog::RefreshLanguagePresentation() {
     // Reformat presentation from retained settings only. Do not touch queries,
     // selected row keys, logical viewport, pending connection or typed filters.
+    shownStatus_.clear();
+    viewportDirty_ = true;
     UpdateFilterSummary();
     for (auto& handle : detailsDialogs_) {
         if (auto* details = handle.Get()) {

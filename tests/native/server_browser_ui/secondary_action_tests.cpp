@@ -77,6 +77,8 @@ public:
     std::vector<vgui2::DHANDLE<BrowserDetailsDialog>> detailsDialogs_;
     bool restoreSelection_ = false;
     bool transitioning_ = false;
+    bool viewportDirty_ = true;
+    bool internetRefreshPending_ = false;
     std::string actionStatus_;
 };
 // Only the VGUI shell is substituted. The child metadata request and source model are real owners.
@@ -234,7 +236,9 @@ int main(int argc, char **argv) {
                 Require(provider.pings == before + (all ? static_cast<int>(keys.size()) : 1),
                     "fallback queried the wrong number of endpoints");
                 Require(provider.pingPorts.back() == keys[0].queryPort, "fallback confused query and connection port");
-                auto callbacks = provider.pingCallbacks;
+                const int cancellations = provider.canceled;
+                auto callbacks = std::move(provider.pingCallbacks);
+                provider.pingCallbacks.clear(); // The provider retires its handles on terminal response.
                 for (const auto &entry : callbacks) {
                     auto item = Server(name == "fallback-wrong-endpoint" ? 0x01020304U :
                         (all ? keys[static_cast<size_t>(entry.first - callbacks.begin()->first)].ip : keys[0].ip),
@@ -242,8 +246,9 @@ int main(int argc, char **argv) {
                     entry.second->ServerResponded(item);
                 }
                 session.model.Pump(128);
-                Require(session.model.GetStatus().phase == Phase::Complete && provider.pingCallbacks.empty(),
-                    "completed fallback did not retire its callback owners");
+                const auto status = session.model.GetStatus();
+                Require(status.phase == Phase::Complete && status.requestRetired && provider.canceled == cancellations,
+                    "completed fallback did not retire its owners without cancelling completed handles");
                 Require(session.model.Find(keys[0])->key == keys[0], "fallback retargeted selected endpoint");
                 if (name == "fallback-wrong-endpoint") {
                     Require(session.model.Find(keys[0])->name == "Server 0" && session.model.Find(keys[0])->failed,
