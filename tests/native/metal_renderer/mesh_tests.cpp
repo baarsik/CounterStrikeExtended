@@ -151,8 +151,58 @@ int main() {
     for (const auto& transfer : transfers) {
         bytes += transfer.second;
     }
-    constexpr std::size_t kStreamingBudget = 32 * 1024 * 1024;
+    constexpr std::size_t kStreamingBudget = 128 * 1024 * 1024;
     Check(bytes <= kStreamingBudget, "Only bounded reusable frame streaming storage remains");
+    // This recording's ordinary scene/HUD segments need more than 32 MiB across three
+    // in-flight slots. Once warm, stable geometry must reuse its buffers without allocation churn.
+    frame = Frame(nullptr);
+    constexpr std::size_t kReuseVertices = 48 * 1024;
+    frame.draws[0].vertices = Polygon(kReuseVertices);
+    session.EnableDiagnostics(true);
+    std::uint64_t warmedAllocations = 0;
+    for (unsigned iteration = 0; iteration < 8; ++iteration) {
+        Check(session.Render(frame, error) && session.Render(frame, error), "Encode stable scene and HUD segments");
+        Check(session.Finish(error), "Retire one complete frame");
+        if (iteration == 3) {
+            warmedAllocations = session.Diagnostics().streamAllocations;
+        }
+    }
+    Check(session.Diagnostics().streamAllocations == warmedAllocations,
+        "Steady three-frame scene/HUD storage must not allocate each frame");
+    // Large changing images have tiny geometry but large transfer capacity. Their retained
+    // transfers must count toward the same cache bound, including upload-pressure submissions.
+    frame = Frame(nullptr);
+    frame.draws[0].vertices = Polygon(3);
+    for (auto& vertex : frame.draws[0].vertices) {
+        vertex.color = {{1, 0, 0, 1}};
+    }
+    frame.draws[0].textures[0].enabled2D = true;
+    constexpr int kPressureTextureSide = 2048;
+    constexpr unsigned kPressureTextureVersions = 13;
+    for (unsigned version = 0; version < kPressureTextureVersions; ++version) {
+        auto image = std::make_shared<TextureImage>();
+        image->width = kPressureTextureSide;
+        image->height = kPressureTextureSide;
+        image->defined = true;
+        image->pixels.resize(kPressureTextureSide * kPressureTextureSide * 4, 255);
+        auto texture = std::make_shared<TextureObject>();
+        texture->levels[0] = image;
+        texture->sampler.minification = Filter::Linear;
+        frame.draws[0].resources[0].texture2D = texture;
+        Check(session.Render(frame, error), "Queue changing image with small geometry");
+    }
+    Check(session.Finish(error), "Submit all changing images");
+    frame.draws.clear();
+    Check(session.Render(empty, error) && session.Finish(error), "Retire pressure texture owners");
+    Pixel(session);
+    bytes = 0;
+    for (const auto& buffer : buffers) {
+        bytes += buffer.second;
+    }
+    for (const auto& transfer : transfers) {
+        bytes += transfer.second;
+    }
+    Check(bytes <= kStreamingBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
     session.Shutdown();
     Check(buffers.empty() && transfers.empty(), "Shutdown releases all mesh and streaming buffers");
     SDL_Quit();

@@ -17,7 +17,8 @@ namespace cse {
 namespace render {
 namespace {
 constexpr std::size_t kMaximumStreamingBytes = 128 * 1024 * 1024;
-constexpr std::size_t kMaximumCachedStreamingBytes = 32 * 1024 * 1024;
+// The measured scene/HUD working set reaches 41 MiB; three in-flight frames need up to 123 MiB.
+constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextures = 512;
 constexpr std::size_t kMaximumCachedPipelines = 512;
@@ -208,6 +209,7 @@ struct MetalSession::Impl {
             std::memcmp(&left.fragment, &right.fragment, sizeof(left.fragment)) == 0;
     }
 
+    std::vector<Draw> preparedDraws;
     std::unique_ptr<RadarRendererGpu> effects;
     std::uint64_t effectsEpoch = 0;
     SDL_GPUDevice* device = nullptr;
@@ -322,10 +324,20 @@ struct MetalSession::Impl {
                 cachedBytes += chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
             }
         }
-        for (auto iterator = frame.chunks.rbegin(); iterator != frame.chunks.rend() &&
-            cachedBytes > kMaximumCachedStreamingBytes; ++iterator) {
-            auto& chunk = *iterator;
-            cachedBytes -= chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
+        if (diagnosticsEnabled) {
+            counters.streamCacheBytes = cachedBytes;
+            counters.streamWorkingBytes = 0;
+            for (std::size_t index = 0; index < frame.cursor; ++index) {
+                const auto& chunk = frame.chunks[index];
+                counters.streamWorkingBytes += chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
+            }
+        }
+        const auto release = [this, &cachedBytes](Stream& chunk) {
+            const auto bytes = chunk.vertexCapacity + chunk.indexCapacity + chunk.uploadCapacity;
+            if (!bytes) {
+                return;
+            }
+            cachedBytes -= bytes;
             if (chunk.vertices) {
                 SDL_ReleaseGPUBuffer(device, chunk.vertices);
             }
@@ -336,6 +348,30 @@ struct MetalSession::Impl {
                 SDL_ReleaseGPUTransferBuffer(device, chunk.upload);
             }
             chunk = {};
+            if (diagnosticsEnabled) {
+                ++counters.streamEvictions;
+            }
+        };
+        // A one-off map build can leave thousands of cold chunks behind the normal scene/HUD
+        // prefix. Retire unused tails before evicting buffers that an ordinary frame just used.
+        for (auto& slot : streams) {
+            for (std::size_t index = slot.chunks.size(); index > slot.cursor &&
+                cachedBytes > kMaximumCachedStreamingBytes; --index) {
+                release(slot.chunks[index - 1]);
+            }
+            while (slot.chunks.size() > slot.cursor && !slot.chunks.back().uploadCapacity &&
+                !slot.chunks.back().vertexCapacity && !slot.chunks.back().indexCapacity) {
+                slot.chunks.pop_back();
+            }
+        }
+        // Under actual working-set pressure, evict the least recently submitted slot first.
+        for (std::size_t age = 1; age <= streams.size() && cachedBytes > kMaximumCachedStreamingBytes;
+            ++age) {
+            auto& slot = streams[(streamIndex + age) % streams.size()];
+            for (auto iterator = slot.chunks.rbegin(); iterator != slot.chunks.rend() &&
+                cachedBytes > kMaximumCachedStreamingBytes; ++iterator) {
+                release(*iterator);
+            }
         }
         pendingUploadBytes = 0;
         streamIndex = (streamIndex + 1) % streams.size();
@@ -671,6 +707,9 @@ struct MetalSession::Impl {
             return DeviceFailure(error, "Grow persistent Metal geometry buffer");
         }
         capacity = info.size;
+        if (diagnosticsEnabled) {
+            ++counters.streamAllocations;
+        }
         return true;
     }
 
@@ -696,6 +735,9 @@ struct MetalSession::Impl {
             return DeviceFailure(error, "Grow persistent Metal upload buffer");
         }
         stream.uploadCapacity = transfer.size;
+        if (diagnosticsEnabled) {
+            ++counters.streamAllocations;
+        }
         return true;
     }
 };
@@ -899,7 +941,10 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
         state.diagnosticsFile = std::fopen(path, "w");
         state.diagnosticsEnabled = state.diagnosticsFile != nullptr;
         if (state.diagnosticsFile) {
-            std::fprintf(state.diagnosticsFile, "frame,packets,draws,effects,submissions,render_passes,scene_resolves,copy_passes,upload_bytes,fence_waits,prepare_ms,encode_ms,wait_ms,present_ms\n");
+            std::fprintf(state.diagnosticsFile,
+                "frame,packets,draws,effects,submissions,render_passes,scene_resolves,copy_passes,upload_bytes,"
+                "fence_waits,preparation_allocations,stream_allocations,stream_evictions,cache_bytes,working_bytes,"
+                "prepare_ms,encode_ms,wait_ms,present_ms\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1064,7 +1109,19 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     if (state.diagnosticsEnabled) {
         state.counters.drawPackets += frame.draws.size();
     }
-    std::vector<Impl::Draw> draws;
+    auto& draws = state.preparedDraws;
+    // Keep only allocation capacity between segments. Source mesh ownership and cache pointers
+    // must end on every return, including preparation/encoding failure and map retirement.
+    struct PreparedScope {
+        std::vector<Impl::Draw>& draws;
+        ~PreparedScope() {
+            draws.clear();
+        }
+    } preparedScope{draws};
+    if (state.diagnosticsEnabled && frame.events.size() > draws.capacity()) {
+        ++state.counters.preparationAllocations;
+    }
+    draws.reserve(frame.events.size());
     std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
@@ -1468,12 +1525,15 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     }
     if (state.diagnosticsFile) {
         const auto& c = state.counters;
-        std::fprintf(state.diagnosticsFile, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.6f,%.6f,%.6f\n",
+        std::fprintf(state.diagnosticsFile, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.6f,%.6f,%.6f\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
             static_cast<unsigned long long>(c.sceneResolves), static_cast<unsigned long long>(c.copyPasses), static_cast<unsigned long long>(c.uploadBytes),
-            static_cast<unsigned long long>(c.fenceWaits), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs);
+            static_cast<unsigned long long>(c.fenceWaits), static_cast<unsigned long long>(c.preparationAllocations),
+            static_cast<unsigned long long>(c.streamAllocations),
+            static_cast<unsigned long long>(c.streamEvictions), static_cast<unsigned long long>(c.streamCacheBytes),
+            static_cast<unsigned long long>(c.streamWorkingBytes), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs);
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     state.presentedValid = true;

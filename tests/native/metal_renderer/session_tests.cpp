@@ -278,6 +278,23 @@ void NonfiniteGeometry(MetalSession& session, std::string& error) {
     CHECK(actual == expected);
 }
 
+void PreparationReuse(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    frame.draws = {Solid(1, 0, 0)};
+    frame.events.resize(1);
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    const auto allocations = session.Diagnostics().preparationAllocations;
+    for (unsigned index = 0; index < 8; ++index) {
+        CHECK(session.Render(frame, error));
+    }
+    CHECK(session.Diagnostics().preparationAllocations == allocations);
+    CHECK(session.Finish(error));
+    session.EnableDiagnostics(false);
+}
+
 void BatchedUiPixels(MetalSession& session, std::string& error) {
     for (unsigned samples : {1u, 4u}) {
         CHECK(session.Resize(kTargetSize, kTargetSize, samples, error));
@@ -645,6 +662,7 @@ int main() {
     MetalSession session;
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
+    PreparationReuse(session, error);
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
     NonfiniteGeometry(session, error);

@@ -26,6 +26,11 @@ struct RenderFrameCounters {
     std::uint64_t copyPasses = 0;
     std::uint64_t uploadBytes = 0;
     std::uint64_t fenceWaits = 0;
+    std::uint64_t preparationAllocations = 0;
+    std::uint64_t streamAllocations = 0;
+    std::uint64_t streamEvictions = 0;
+    std::uint64_t streamCacheBytes = 0;
+    std::uint64_t streamWorkingBytes = 0;
     double prepareMs = 0;
     double encodeMs = 0;
     double waitMs = 0;
