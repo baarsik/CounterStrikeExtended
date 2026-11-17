@@ -438,11 +438,12 @@ Status TextureStore::Palette(const std::vector<std::uint8_t>& bytes) {
 
 std::array<TextureResources, kTextureUnits> TextureStore::Capture(const LegacyState& state) const {
     std::array<TextureResources, kTextureUnits> resources;
-    auto selected = state;
     for (std::size_t unit = 0; unit < resources.size(); ++unit) {
-        selected.SelectTexture(static_cast<std::uint32_t>(unit));
-        resources[unit].texture2D = Bound(selected, TextureTarget::Texture2D);
-        resources[unit].rectangle = Bound(selected, TextureTarget::Rectangle);
+        const auto& binding = state.textures[unit];
+        resources[unit].texture2D = binding.texture2D ? objects_.at(binding.texture2D) :
+            defaults_[static_cast<std::size_t>(TextureTarget::Texture2D)];
+        resources[unit].rectangle = binding.textureRectangle ? objects_.at(binding.textureRectangle) :
+            defaults_[static_cast<std::size_t>(TextureTarget::Rectangle)];
     }
     return resources;
 }

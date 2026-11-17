@@ -78,6 +78,57 @@ void Names() {
     Check(recorder.State().textures[0].texture2D == 0xf1234567, "raw GL name keeps all 32 bits");
 }
 
+void CaptureUnits() {
+    LegacyState state;
+    TextureStore store;
+    const auto default2D = store.Bound(state, TextureTarget::Texture2D);
+    const auto defaultRectangle = store.Bound(state, TextureTarget::Rectangle);
+    constexpr std::array<std::uint32_t, kTextureUnits> kNames2D{{11, 22, 33}};
+    constexpr std::array<std::uint32_t, kTextureUnits> kNamesRectangle{{44, 55, 66}};
+    for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+        Check(state.SelectTexture(static_cast<std::uint32_t>(unit)) == Status::Ok, "select capture unit");
+        Check(store.Bind(state, TextureTarget::Texture2D, kNames2D[unit]) == Status::Ok, "bind unit 2D");
+        Check(store.Bind(state, TextureTarget::Rectangle, kNamesRectangle[unit]) == Status::Ok,
+            "bind unit rectangle");
+    }
+    Check(state.SelectMatrix(MatrixMode::Texture) == Status::Ok, "select independent texture stack");
+    Check(state.Push() == Status::Ok, "push selected texture matrix");
+    state.Translate(2, 3, 4);
+    const auto captured = store.Capture(state);
+    for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+        Check(captured[unit].texture2D == store.Find(kNames2D[unit]), "capture each unit's 2D object");
+        Check(captured[unit].rectangle == store.Find(kNamesRectangle[unit]), "capture each unit's rectangle");
+    }
+    Check(state.ActiveTexture() == 2 && state.Mode() == MatrixMode::Texture &&
+        state.Depth(MatrixMode::Texture, 2) == 2 && state.Matrix(MatrixMode::Texture, 2).values[12] == 2 &&
+        state.Matrix(MatrixMode::Texture, 0).values[12] == 0, "capture preserves selection and matrix stacks");
+
+    Check(state.SelectTexture(1) == Status::Ok, "select unit for default binding");
+    Check(store.Bind(state, TextureTarget::Texture2D, 0) == Status::Ok, "bind shared default 2D");
+    Check(store.Bind(state, TextureTarget::Rectangle, 0) == Status::Ok, "bind shared default rectangle");
+    const auto defaults = store.Capture(state);
+    Check(defaults[1].texture2D == default2D && defaults[1].rectangle == defaultRectangle &&
+        defaults[1].texture2D != defaults[1].rectangle, "zero names retain distinct target defaults");
+    Check(defaults[0].texture2D == captured[0].texture2D && defaults[2].rectangle == captured[2].rectangle,
+        "default binding cannot affect another unit");
+
+    Check(state.SelectTexture(2) == Status::Ok, "select sampler mutation unit");
+    Check(store.Parameter(state, TextureTarget::Rectangle, TextureParameter::MagFilter,
+        static_cast<double>(Filter::Nearest)) == Status::Ok, "change rectangle sampler version");
+    const auto changed = store.Capture(state);
+    Check(changed[2].rectangle != captured[2].rectangle &&
+        captured[2].rectangle->sampler.magnification == Filter::Linear &&
+        changed[2].rectangle->sampler.magnification == Filter::Nearest, "capture retains immutable old version");
+    store.Delete(state, {kNames2D[0], kNamesRectangle[2]});
+    const auto deleted = store.Capture(state);
+    Check(deleted[0].texture2D == default2D && deleted[2].rectangle == defaultRectangle,
+        "deleted bindings resolve to target defaults");
+    Check(captured[0].texture2D && captured[2].rectangle, "captured objects survive deletion");
+    Check(store.Bind(state, TextureTarget::Rectangle, kNamesRectangle[2]) == Status::Ok, "reuse deleted name");
+    Check(store.Capture(state)[2].rectangle->generation != captured[2].rectangle->generation,
+        "reused name captures the new generation");
+}
+
 void Uploads() {
     Recorder recorder;
     Send(recorder, Bind(7));
@@ -339,6 +390,8 @@ int main(int argc, char** argv) {
     const std::string test = argv[1];
     if (test == "names") {
         Names();
+    } else if (test == "capture-units") {
+        CaptureUnits();
     } else if (test == "uploads") {
         Uploads();
     } else if (test == "palettes") {
