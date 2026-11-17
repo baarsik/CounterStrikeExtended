@@ -1,4 +1,5 @@
 #include "metal_session.h"
+#include "surface_mesh.h"
 #include <SDL3/SDL.h>
 #include <cstdlib>
 #include <dlfcn.h>
@@ -17,6 +18,7 @@ namespace {
 constexpr int kTargetSize = 16;
 unsigned sceneDrawCalls = 0;
 unsigned sceneIndexedDrawCalls = 0;
+unsigned geometryUploads = 0;
 bool mixedGeometryBufferUsage = false;
 // Narrow link seam around presentation allocation and command retirement. All successful calls use real SDL.
 struct PresentationProbe {
@@ -50,6 +52,12 @@ extern "C" void SDL_DrawGPUIndexedPrimitives(SDL_GPURenderPass* pass, Uint32 ind
     ++sceneIndexedDrawCalls;
     Original<decltype(&SDL_DrawGPUIndexedPrimitives)>("SDL_DrawGPUIndexedPrimitives")(
         pass, indices, instances, firstIndex, vertexOffset, firstInstance);
+}
+
+extern "C" void SDL_UploadToGPUBuffer(SDL_GPUCopyPass* pass, const SDL_GPUTransferBufferLocation* source,
+    const SDL_GPUBufferRegion* destination, bool cycle) {
+    ++geometryUploads;
+    Original<decltype(&SDL_UploadToGPUBuffer)>("SDL_UploadToGPUBuffer")(pass, source, destination, cycle);
 }
 
 extern "C" SDL_GPUTexture* SDL_CreateGPUTexture(SDL_GPUDevice* device, const SDL_GPUTextureCreateInfo* info) {
@@ -216,6 +224,173 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
 }
 
+void PersistentMesh(MetalSession& session, std::string& error) {
+    auto source = Solid(1, 1, 1);
+    auto mesh = SurfaceMesh::Create(source.vertices, error);
+    CHECK(mesh && mesh->Indices().size() == 6);
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    frame.draws = {source};
+    frame.draws[0].vertices.clear();
+    frame.draws[0].mesh = mesh;
+    frame.draws[0].meshColor = {{0, 1, 0, 1}};
+    frame.events.resize(1);
+    std::array<unsigned char, 4> pixel{};
+    for (unsigned repeat = 0; repeat < 4; ++repeat) {
+        geometryUploads = 0;
+        CHECK(session.Render(frame, error));
+        CHECK(geometryUploads == (repeat == 0 ? 2u : 0u));
+        CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0);
+    }
+    // Adjacent resident surfaces with identical state retain batching, including nonzero page offsets.
+    FrameSnapshot batched = frame;
+    batched.draws.resize(2, batched.draws[0]);
+    for (std::size_t side = 0; side < batched.draws.size(); ++side) {
+        auto vertices = source.vertices;
+        for (auto& vertex : vertices) {
+            vertex.position[0] = (vertex.position[0] + (side == 0 ? -1 : 1)) * 0.5f;
+        }
+        batched.draws[side].mesh = SurfaceMesh::Create(std::move(vertices), error);
+    }
+    FrameEvent second;
+    second.drawIndex = 1;
+    batched.events.push_back(second);
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(batched, error));
+    CHECK(sceneIndexedDrawCalls == 1);
+    CHECK(session.ReadPixels(2, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 0 && pixel[1] == 255);
+    CHECK(session.ReadPixels(14, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 0 && pixel[1] == 255);
+    batched.draws[1].meshColor = {{1, 0, 0, 1}};
+    sceneIndexedDrawCalls = 0;
+    geometryUploads = 0;
+    CHECK(session.Render(batched, error));
+    CHECK(sceneIndexedDrawCalls == 2 && geometryUploads == 0);
+    CHECK(session.ReadPixels(14, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 255 && pixel[1] == 0);
+    // Combining overlapping translucent surfaces must retain their compositing order.
+    auto orderImage = std::make_shared<TextureImage>();
+    orderImage->width = 2;
+    orderImage->height = 1;
+    orderImage->defined = true;
+    orderImage->pixels = {255, 0, 0, 255, 0, 255, 0, 255};
+    auto orderTexture = std::make_shared<TextureObject>();
+    orderTexture->levels[0] = orderImage;
+    orderTexture->sampler.minification = Filter::Nearest;
+    orderTexture->sampler.magnification = Filter::Nearest;
+    for (std::size_t index = 0; index < batched.draws.size(); ++index) {
+        auto& draw = batched.draws[index];
+        auto vertices = source.vertices;
+        for (auto& vertex : vertices) {
+            vertex.texcoords[0] = {{index == 0 ? 0.25f : 0.75f, 0.5f, 0, 1}};
+        }
+        draw.mesh = SurfaceMesh::Create(std::move(vertices), error);
+        draw.meshColor = {{1, 1, 1, 0.5f}};
+        draw.textures[0].enabled2D = true;
+        draw.resources[0].texture2D = orderTexture;
+        draw.raster.enabled[static_cast<std::size_t>(Capability::Blend)] = true;
+        draw.raster.blendSource = BlendFactor::SourceAlpha;
+        draw.raster.blendDestination = BlendFactor::InverseSourceAlpha;
+    }
+    FrameEvent blueClear;
+    blueClear.kind = FrameEventKind::Clear;
+    blueClear.clear.mask = kClearColor;
+    blueClear.clear.color = {{0, 0, 1, 1}};
+    batched.events.insert(batched.events.begin(), blueClear);
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(batched, error));
+    CHECK(sceneIndexedDrawCalls == 1); // Clear geometry uses the separate non-indexed path.
+    CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
+    constexpr int kHalfChannel = 128;
+    constexpr int kQuarterChannel = 64;
+    CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
+    CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
+    CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+    // Compare static meshes with the same immediate polygon, including scrolling, detail matrices,
+    // entity color, fog, blend and polygon boundary wireframe. No pixel tolerance is relaxed.
+    auto textured = Solid(1, 1, 1);
+    for (auto& vertex : textured.vertices) {
+        vertex.texcoords[0] = {{(vertex.position[0] + 1) * 0.5f, (vertex.position[1] + 1) * 0.5f, 0, 1}};
+        vertex.texcoords[1] = vertex.texcoords[0];
+        vertex.texcoords[2] = vertex.texcoords[0];
+    }
+    for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+        auto image = std::make_shared<TextureImage>();
+        image->width = 2;
+        image->height = 2;
+        image->defined = true;
+        image->pixels = {255, 128, 64, 255, 128, 255, 128, 255, 64, 128, 255, 255, 255, 255, 255, 255};
+        auto object = std::make_shared<TextureObject>();
+        object->levels[0] = image;
+        object->sampler.minification = Filter::Linear;
+        object->sampler.magnification = Filter::Linear;
+        textured.textures[unit].enabled2D = true;
+        textured.resources[unit].texture2D = object;
+    }
+    textured.textureMatrices[2].values[0] = 2;
+    textured.textureMatrices[2].values[5] = 2;
+    textured.raster.enabled[static_cast<std::size_t>(Capability::Fog)] = true;
+    textured.raster.fogColor = {{0.5f, 0.25f, 0.75f, 1}};
+    textured.raster.fogDensity = 0.25f;
+    textured.modelView.values[14] = -0.25f;
+    textured.raster.enabled[static_cast<std::size_t>(Capability::Blend)] = true;
+    textured.raster.blendSource = BlendFactor::SourceAlpha;
+    textured.raster.blendDestination = BlendFactor::InverseSourceAlpha;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 1, 1}};
+    FrameSnapshot comparison;
+    comparison.info = frame.info;
+    comparison.events = {clear, FrameEvent{}};
+    const auto textureMesh = SurfaceMesh::Create(textured.vertices, error);
+    constexpr std::size_t kImageBytes = kTargetSize * kTargetSize * 4;
+    for (bool wire : {false, true}) {
+        auto direct = textured;
+        direct.vertices.clear();
+        direct.mesh = textureMesh;
+        direct.meshColor = {{0.25f, 0.5f, 0.75f, 0.5f}};
+        direct.meshUvOffset[0][0] = 0.125f;
+        direct.meshUvOffset[2][0] = 0.125f;
+        direct.shade = Shade::Flat;
+        direct.raster.shade = Shade::Flat;
+        if (wire) {
+            direct.raster.polygonMode = {{PolygonMode::Line, PolygonMode::Line}};
+        }
+        comparison.draws = {direct};
+        CHECK(session.Render(comparison, error));
+        std::array<unsigned char, kImageBytes> actual{};
+        std::array<unsigned char, kImageBytes> expected{};
+        CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, actual.data(), error));
+        auto immediate = direct;
+        immediate.mesh.reset();
+        immediate.vertices = textured.vertices;
+        for (auto& vertex : immediate.vertices) {
+            vertex.color = direct.meshColor;
+            vertex.texcoords[0][0] += direct.meshUvOffset[0][0];
+            vertex.texcoords[2][0] += direct.meshUvOffset[2][0];
+        }
+        comparison.draws = {immediate};
+        CHECK(session.Render(comparison, error));
+        CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, expected.data(), error));
+        CHECK(actual == expected);
+    }
+    // An owned frame keeps its geometry alive after the map owner retires it.
+    mesh.reset();
+    CHECK(session.Render(frame, error));
+    frame.draws[0].mesh.reset();
+    source.vertices[1].position[0] = 0;
+    source.vertices[2].position[0] = 0;
+    frame.draws[0].mesh = SurfaceMesh::Create(source.vertices, error);
+    frame.draws[0].meshColor = {{1, 0, 0, 1}};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(2, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == 255 && pixel[1] == 0);
+}
+
 void IndexedDraws(MetalSession& session, std::string& error) {
     FrameSnapshot frame;
     frame.info.width = kTargetSize;
@@ -339,6 +514,7 @@ int main() {
     CHECK(session.Resize(16, 16, 1, error));
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
+    PersistentMesh(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;

@@ -1,4 +1,5 @@
 #include "legacy_commands.h"
+#include "surface_mesh_cache.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -87,7 +88,54 @@ void Lists() {
     Check(recorder.Draws().size() == 2, "undefined list ignored, old draws remain owned");
 }
 
+void NativeSurfaces() {
+    constexpr std::size_t kStride = 7;
+    const std::array<float, 28> polygon{{-1, -1, 0, 0, 0, 0.25f, 0.5f,
+        1, -1, 0, 1, 0, 0.75f, 0.5f, 1, 1, 0, 1, 1, 0.75f, 1, -1, 1, 0, 0, 1, 0.25f, 1}};
+    SurfaceMeshCache cache;
+    std::string error;
+    auto mesh = cache.Get(polygon.data(), polygon.data(), 4, kStride, error);
+    Check(mesh && mesh->Vertices().size() == 4 && mesh->Indices().size() == 6, "native polygon fan ownership");
+    Check(mesh->Vertices()[2].texcoords[0] == std::array<float, 4>{{1, 1, 0, 1}}, "base UV preserved");
+    Check(mesh->Vertices()[2].texcoords[1] == std::array<float, 4>{{0.75f, 1, 0, 1}}, "lightmap UV preserved");
+    Check(mesh->Vertices()[2].texcoords[2] == mesh->Vertices()[2].texcoords[0], "detail UV precedes texture matrix");
+    Check(cache.Get(polygon.data(), polygon.data(), 4, kStride, error) == mesh, "native mesh reused");
+    Recorder recorder;
+    Send(recorder, Make(Op::Color, {0.25, 0.5, 0.75, 0.5}));
+    Check(recorder.SubmitSurface(mesh, 0.25f, true) == Status::Ok, "direct native surface capture");
+    Check(recorder.Draws()[0].vertices.empty() && recorder.Draws()[0].mesh == mesh, "capture retains immutable mesh");
+    Check(recorder.Draws()[0].meshColor == recorder.State().Current().color, "entity color captured per draw");
+    Check(recorder.Draws()[0].meshUvOffset[0][0] == 0.25f &&
+        recorder.Draws()[0].meshUvOffset[2][0] == 0.25f, "scroll applies to diffuse and detail only");
+    Check(recorder.State().Current().texcoords[0][0] == 0.25f &&
+        recorder.State().Current().texcoords[1][0] == 0.25f &&
+        recorder.State().Current().texcoords[2][0] == 0.25f, "surface leaves final GL texture attributes current");
+    std::array<Vertex, 4> quad{};
+    for (std::size_t index = 0; index < quad.size(); ++index) {
+        quad[index].position = mesh->Vertices()[index].position;
+        quad[index].texcoords[0] = mesh->Vertices()[index].texcoords[0];
+    }
+    Check(recorder.SubmitQuad(quad) == Status::Ok, "direct native UI quad capture");
+    Check(recorder.Draws().back().primitive == Primitive::Quads && recorder.Draws().back().vertices.size() == 4,
+        "UI quad retains boundary topology for flat and wire modes");
+    Check(recorder.Draws().back().vertices[0].color == recorder.State().Current().color &&
+        recorder.Draws().back().vertices[0].texcoords[1] == recorder.State().Current().texcoords[1],
+        "UI quad inherits current color and secondary coordinates");
+    Check(recorder.State().Current().texcoords[0] == quad.back().texcoords[0],
+        "UI quad leaves final unit-zero coordinate current");
+    cache.Clear();
+    auto replacement = cache.Get(polygon.data(), polygon.data(), 4, kStride, error);
+    Check(replacement && replacement != mesh && recorder.Draws()[0].mesh == mesh,
+        "map reset retires identities while queued frames retain geometry");
+    CaptureLimits limits;
+    limits.frameVertices = 5;
+    Recorder bounded(limits);
+    Check(bounded.SubmitSurface(mesh, 0, false) == Status::LimitExceeded && bounded.Draws().empty(),
+        "direct meshes preserve expanded index capture quota");
+}
+
 void Ownership() {
+    NativeSurfaces();
     Recorder copy;
     {
         Recorder source;

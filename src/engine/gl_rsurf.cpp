@@ -1174,47 +1174,44 @@ void R_DrawSequentialPoly( msurface_t* s, int face, qboolean cleanUpShaderState 
 
 		R_UseProgram( g_fsWorldProgram[textureMask] );
 
-		displaylist = &s->displaylist;
-		if ( displaylist->gl_displaylist
-			 && ( currententity->curstate.rendermode != displaylist->rendermode
-				  || sOffset != displaylist->scrolloffset
-				  || renderDetailTexture != displaylist->renderDetailTexture ) )
-		{
-            CseRenderDeleteLists( displaylist->gl_displaylist, 1 );
-			displaylist->gl_displaylist = 0;
-		}
-
-		if ( gl_display_lists.value && displaylist->gl_displaylist )
-		{
-            CseRenderCallList( displaylist->gl_displaylist );
-		}
-		else
-		{
-			if ( gl_display_lists.value )
-			{
-                displaylist->gl_displaylist = CseRenderGenLists( 1 );
-				displaylist->rendermode = currententity->curstate.rendermode;
-				displaylist->scrolloffset = sOffset;
-				displaylist->renderDetailTexture = renderDetailTexture;
-                CseRenderNewList( displaylist->gl_displaylist, GL_COMPILE_AND_EXECUTE );
-			}
-
-			qglBegin( GL_POLYGON );
-			v = p->verts[0];
-			for ( i = 0; i < p->numverts; i++, v += VERTEXSIZE )
-			{
-				qglMTexCoord2fSGIS( TEXTURE0_SGIS, v[3] + sOffset, v[4] );
-				qglMTexCoord2fSGIS( TEXTURE1_SGIS, v[5], v[6] );
-				if ( renderDetailTexture )
-					DT_SetTextureCoordinates( v[3] + sOffset, v[4] );
-				qglVertex3fv( v );
-			}
-			qglEnd();
-
-            if (gl_display_lists.value) {
-                CseRenderEndList();
+        const bool nativeSurface = cse::render::UsingMetal() &&
+            cse::render::SubmitBackendSurface(p, p->verts[0], static_cast<std::size_t>(p->numverts),
+                VERTEXSIZE, sOffset, renderDetailTexture != 0);
+        if (!nativeSurface) {
+            displaylist = &s->displaylist;
+            if (displaylist->gl_displaylist &&
+                (currententity->curstate.rendermode != displaylist->rendermode ||
+                    sOffset != displaylist->scrolloffset ||
+                    renderDetailTexture != displaylist->renderDetailTexture)) {
+                CseRenderDeleteLists(displaylist->gl_displaylist, 1);
+                displaylist->gl_displaylist = 0;
             }
-		}
+            if (gl_display_lists.value && displaylist->gl_displaylist) {
+                CseRenderCallList(displaylist->gl_displaylist);
+            } else {
+                if (gl_display_lists.value) {
+                    displaylist->gl_displaylist = CseRenderGenLists(1);
+                    displaylist->rendermode = currententity->curstate.rendermode;
+                    displaylist->scrolloffset = sOffset;
+                    displaylist->renderDetailTexture = renderDetailTexture;
+                    CseRenderNewList(displaylist->gl_displaylist, GL_COMPILE_AND_EXECUTE);
+                }
+                qglBegin(GL_POLYGON);
+                v = p->verts[0];
+                for (i = 0; i < p->numverts; i++, v += VERTEXSIZE) {
+                    qglMTexCoord2fSGIS(TEXTURE0_SGIS, v[3] + sOffset, v[4]);
+                    qglMTexCoord2fSGIS(TEXTURE1_SGIS, v[5], v[6]);
+                    if (renderDetailTexture) {
+                        DT_SetTextureCoordinates(v[3] + sOffset, v[4]);
+                    }
+                    qglVertex3fv(v);
+                }
+                qglEnd();
+                if (gl_display_lists.value) {
+                    CseRenderEndList();
+                }
+            }
+        }
 
 		if ( renderDetailTexture )
 		{
@@ -1867,6 +1864,7 @@ with all the surfaces from all brush models
 */
 void GL_BuildLightmaps()
 {
+    cse::render::ClearBackendSurfaceMeshes();
 	int i, j;
 	model_t* m;
 	msurface_t* surface;

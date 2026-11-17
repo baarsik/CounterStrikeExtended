@@ -1,4 +1,5 @@
 #include "legacy_commands.h"
+#include "surface_mesh.h"
 #include "capture_allocation.h"
 #include <algorithm>
 #include <cmath>
@@ -434,8 +435,71 @@ Status Recorder::Submit(const Command& input) {
     return result;
 }
 
+Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
+    if (!AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    if (vertices.size() > limits_.verticesPerDraw) {
+        return Status::LimitExceeded;
+    }
+    for (const auto& vertex : vertices) {
+        for (auto component : vertex.position) {
+            if (!std::isfinite(component)) {
+                return Status::InvalidValue;
+            }
+        }
+        for (auto component : vertex.texcoords[0]) {
+            if (!std::isfinite(component)) {
+                return Status::InvalidValue;
+            }
+        }
+    }
+    auto draw = Snapshot(Primitive::Quads);
+    draw.vertices.assign(vertices.begin(), vertices.end());
+    for (auto& vertex : draw.vertices) {
+        vertex.color = state_.Current().color;
+        for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
+            vertex.texcoords[unit] = state_.Current().texcoords[unit];
+        }
+    }
+    const auto result = AppendDraw(draw);
+    if (result == Status::Ok) {
+        state_.TexCoord(0, vertices.back().texcoords[0][0], vertices.back().texcoords[0][1]);
+    }
+    return result;
+}
+
+Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
+    if (!AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    if (!mesh || !std::isfinite(scroll)) {
+        return Status::InvalidValue;
+    }
+    if (std::max(mesh->Vertices().size(), mesh->Indices().size()) > limits_.verticesPerDraw) {
+        return Status::LimitExceeded;
+    }
+    auto draw = Snapshot(Primitive::Polygon);
+    draw.mesh = mesh;
+    draw.meshColor = state_.Current().color;
+    draw.meshUvOffset[0][0] = scroll;
+    draw.meshUvOffset[2][0] = detail ? scroll : 0;
+    const auto result = AppendDraw(draw);
+    if (result != Status::Ok) {
+        return result;
+    }
+    const auto& last = mesh->Vertices().back();
+    state_.TexCoord(0, last.texcoords[0][0] + scroll, last.texcoords[0][1]);
+    state_.TexCoord(1, last.texcoords[1][0], last.texcoords[1][1]);
+    if (detail) {
+        state_.TexCoord(2, last.texcoords[2][0] + scroll, last.texcoords[2][1]);
+    }
+    return Status::Ok;
+}
+
 Status Recorder::AppendDraw(DrawPacket& draw) {
-    const auto vertices = std::max(draw.vertices.size(), draw.indices.size());
+    const auto vertices = draw.mesh ? std::max(draw.mesh->Vertices().size(), draw.mesh->Indices().size()) :
+        std::max(draw.vertices.size(), draw.indices.size());
     if (draws_.size() >= limits_.drawPackets || vertices > limits_.frameVertices - frameVertices_) {
         return Status::LimitExceeded;
     }

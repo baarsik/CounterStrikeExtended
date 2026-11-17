@@ -63,6 +63,8 @@ public:
     explicit FrameRecorder(FrameLimits limits = {});
     Status BeginFrame(const FrameInfo& info);
     Status Submit(const Command& command);
+    Status SubmitQuad(const std::array<Vertex, 4>& vertices);
+    Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status Refuse(Status reason);
     Status CaptureStatus() const;
     bool InPrimitive() const;

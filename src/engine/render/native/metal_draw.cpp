@@ -1,4 +1,5 @@
 #include "metal_draw.h"
+#include "surface_mesh.h"
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -197,6 +198,31 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         raster.polygonMode[0] > PolygonMode::Fill) {
         return Fail(error, "Metal requires matching fill/line polygon modes; polygon points are unsupported");
     }
+    if (draw.mesh) {
+        if (!draw.vertices.empty() || !draw.indices.empty() || !Finite(draw.meshColor)) {
+            return Fail(error, "Native surface mixes immutable and streamed geometry");
+        }
+        for (const auto& offset : draw.meshUvOffset) {
+            if (!Finite(offset)) {
+                return Fail(error, "Nonfinite native surface texture offset");
+            }
+        }
+        if (raster.polygonMode[0] != PolygonMode::Fill) {
+            auto expanded = draw;
+            expanded.mesh.reset();
+            expanded.primitive = Primitive::Polygon;
+            expanded.vertices = draw.mesh->Vertices();
+            for (auto& vertex : expanded.vertices) {
+                vertex.color = draw.meshColor;
+                for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                    for (std::size_t component = 0; component < 4; ++component) {
+                        vertex.texcoords[unit][component] += draw.meshUvOffset[unit][component];
+                    }
+                }
+            }
+            return PrepareMetalDraw(expanded, output, error);
+        }
+    }
     if (!draw.indices.empty()) {
         constexpr std::size_t kIndicesPerTriangle = 3;
         if (draw.primitive != Primitive::Triangles || draw.indices.size() % kIndicesPerTriangle != 0 ||
@@ -235,7 +261,17 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         return Fail(error, "Lowered Metal geometry exceeds streaming budget");
     }
     MetalDrawData prepared;
-    prepared.vertex = {draw.modelView, draw.projection, draw.textureMatrices};
+    prepared.vertex.modelView = draw.modelView;
+    prepared.vertex.projection = draw.projection;
+    prepared.vertex.textureMatrix = draw.textureMatrices;
+    prepared.mesh = draw.mesh;
+    if (draw.mesh) {
+        prepared.vertex.color = draw.meshColor;
+        for (auto& component : prepared.vertex.color) {
+            component = std::max(0.0f, std::min(1.0f, component));
+        }
+        prepared.vertex.uvOffset = draw.meshUvOffset;
+    }
     prepared.raster = raster;
     prepared.vertices.reserve(loweredCount);
     prepared.indices = draw.indices;

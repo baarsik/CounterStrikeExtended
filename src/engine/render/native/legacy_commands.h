@@ -8,6 +8,8 @@
 namespace cse {
 namespace render {
 
+class SurfaceMesh;
+
 constexpr std::size_t kMaximumVertices = 1024 * 1024;
 constexpr std::size_t kMaximumListCommands = 1024 * 1024;
 constexpr std::size_t kMaximumReplayDepth = 64;
@@ -54,6 +56,9 @@ struct Command {
 };
 
 struct DrawPacket {
+    std::shared_ptr<const SurfaceMesh> mesh;
+    std::array<float, 4> meshColor{{1, 1, 1, 1}};
+    std::array<std::array<float, 4>, kTextureUnits> meshUvOffset{};
     Primitive primitive = Primitive::Triangles;
     Shade shade = Shade::Smooth;
     Matrix4 modelView = Matrix4::Identity();
@@ -79,6 +84,8 @@ public:
     Recorder(const Recorder&) = default;
     Recorder& operator=(const Recorder&) = default;
     Status Submit(const Command& command);
+    Status SubmitQuad(const std::array<Vertex, 4>& vertices);
+    Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
     Status DeleteList(std::uint32_t id);

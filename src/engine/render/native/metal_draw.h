@@ -21,8 +21,18 @@ struct alignas(16) MetalFragmentConstants {
 };
 static_assert(sizeof(MetalFragmentConstants) == 240, "Offline production Metal fragment layout");
 
+struct alignas(16) MetalVertexConstants {
+    Matrix4 modelView;
+    Matrix4 projection;
+    std::array<Matrix4, kTextureUnits> textureMatrix;
+    std::array<float, 4> color{{1, 1, 1, 1}};
+    std::array<std::array<float, 4>, kTextureUnits> uvOffset{};
+};
+static_assert(sizeof(MetalVertexConstants) == 384, "Offline production Metal vertex layout");
+
 struct MetalDrawData {
-    GpuVertexConstants vertex;
+    MetalVertexConstants vertex;
+    std::shared_ptr<const SurfaceMesh> mesh;
     MetalFragmentConstants fragment;
     std::vector<Vertex> vertices;
     std::vector<std::uint32_t> indices;

@@ -81,6 +81,44 @@ Status FrameRecorder::Submit(const Command& command) {
     }
 }
 
+Status FrameRecorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto firstDraw = recorder_.Draws().size();
+        const auto result = recorder_.SubmitQuad(vertices);
+        if (result != Status::Ok) {
+            return Fail(result);
+        }
+        FrameEvent event;
+        event.drawIndex = firstDraw;
+        return AppendEvent(event);
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
+Status FrameRecorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto firstDraw = recorder_.Draws().size();
+        const auto result = recorder_.SubmitSurface(mesh, scroll, detail);
+        if (result != Status::Ok) {
+            return Fail(result);
+        }
+        FrameEvent event;
+        event.drawIndex = firstDraw;
+        return AppendEvent(event);
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
 Status FrameRecorder::AppendEvent(const FrameEvent& event) {
     if (events_.size() >= limits_.events) {
         return Fail(Status::LimitExceeded);

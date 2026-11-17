@@ -6,6 +6,7 @@
 #include <memory>
 #if defined(CSE_ENABLE_METAL)
 #include "native/metal_session.h"
+#include "native/surface_mesh_cache.h"
 #endif
 
 [[noreturn]] void Sys_Error(const char* format, ...);
@@ -17,6 +18,7 @@ Backend selected = Backend::OpenGL;
 SDL_Window* backendWindow = nullptr;
 bool sceneActive = false;
 #if defined(CSE_ENABLE_METAL)
+SurfaceMeshCache surfaceMeshes;
 std::unique_ptr<FrameRecorder> recorder;
 std::unique_ptr<MetalSession> session;
 FrameInfo info;
@@ -74,6 +76,70 @@ void Require(bool success) {
     }
 }
 #endif
+}
+
+void ClearBackendSurfaceMeshes() {
+#if defined(CSE_ENABLE_METAL)
+    surfaceMeshes.Clear();
+#endif
+}
+
+bool SubmitBackendQuad(const std::array<float, 4>& bounds, const std::array<float, 4>& uv) {
+#if defined(CSE_ENABLE_METAL)
+    // Display-list compilation keeps the compatible command path and its current-attribute semantics.
+    if (UsingMetal() && recorder && recorder->AtFrameBoundary()) {
+        std::array<Vertex, 4> vertices{};
+        vertices[0].position = {{bounds[0], bounds[1], 0, 1}};
+        vertices[1].position = {{bounds[2], bounds[1], 0, 1}};
+        vertices[2].position = {{bounds[2], bounds[3], 0, 1}};
+        vertices[3].position = {{bounds[0], bounds[3], 0, 1}};
+        vertices[0].texcoords[0] = {{uv[0], uv[1], 0, 1}};
+        vertices[1].texcoords[0] = {{uv[2], uv[1], 0, 1}};
+        vertices[2].texcoords[0] = {{uv[2], uv[3], 0, 1}};
+        vertices[3].texcoords[0] = {{uv[0], uv[3], 0, 1}};
+        const auto status = SubmitNativeQuad(vertices);
+        if (status != Status::Ok) {
+            Sys_Error("Metal quad submission failed (status %u)", static_cast<unsigned>(status));
+        }
+        return true;
+    }
+#else
+    (void)bounds;
+    (void)uv;
+#endif
+    return false;
+}
+
+bool SubmitBackendSurface(const void* identity, const float* vertices, std::size_t count, std::size_t stride,
+    float scroll, bool detail) {
+#if defined(CSE_ENABLE_METAL)
+    if (UsingMetal()) {
+        try {
+            auto mesh = surfaceMeshes.Get(identity, vertices, count, stride, failure);
+            if (!mesh) {
+                if (!failure.empty()) {
+                    Sys_Error("Metal surface: %s", failure.c_str());
+                }
+                return false;
+            }
+            const auto status = SubmitNativeSurface(mesh, scroll, detail);
+            if (status != Status::Ok) {
+                Sys_Error("Metal surface submission failed (status %u)", static_cast<unsigned>(status));
+            }
+            return true;
+        } catch (const std::bad_alloc&) {
+            Sys_Error("Metal surface storage allocation failed");
+        }
+    }
+#else
+    (void)identity;
+    (void)vertices;
+    (void)count;
+    (void)stride;
+    (void)scroll;
+    (void)detail;
+#endif
+    return false;
 }
 
 bool UsingMetal() {
@@ -267,6 +333,7 @@ MetalSession* BackendMetalSession() {
 }
 
 void ShutdownBackend() {
+    ClearBackendSurfaceMeshes();
 #if defined(CSE_ENABLE_METAL)
     if (session) {
         // VGUI font retirement has already completed while dispatch/device were still alive.

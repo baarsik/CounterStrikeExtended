@@ -989,6 +989,34 @@ Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vecto
     return failure;
 }
 
+Status SubmitNativeQuad(const std::array<Vertex, 4>& vertices) {
+    operationContext = "SubmitNativeQuad";
+    if (!Native()) {
+        return Status::InvalidOperation;
+    }
+    CaptureOwned([&] {
+        const auto result = recorder->SubmitQuad(vertices);
+        if (result != Status::Ok) {
+            Refuse(result);
+        }
+    });
+    return failure;
+}
+
+Status SubmitNativeSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
+    operationContext = "SubmitNativeSurface";
+    if (!Native()) {
+        return Status::InvalidOperation;
+    }
+    CaptureOwned([&] {
+        const auto result = recorder->SubmitSurface(mesh, scroll, detail);
+        if (result != Status::Ok) {
+            Refuse(result);
+        }
+    });
+    return failure;
+}
+
 Status LegacyDispatchStatus() {
     return failure;
 }

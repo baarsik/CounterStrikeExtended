@@ -36,6 +36,8 @@ std::string LegacyDispatchDiagnostic();
 // including sources which produced no triangle. Unit-zero UV and optional color become current.
 Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
     std::size_t lastVertex, bool perVertexColor);
+Status SubmitNativeQuad(const std::array<Vertex, 4>& vertices);
+Status SubmitNativeSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
 bool InstallLegacyDispatch(DispatchMode mode, FrameRecorder* recorder, std::string& error);
 void RemoveLegacyDispatch();
 // Rebind after qgl logging changes without resetting the current frame or capture failure.

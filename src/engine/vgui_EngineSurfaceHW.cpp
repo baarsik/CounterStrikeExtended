@@ -355,6 +355,12 @@ extern int currenttexture;
 
 static void DrawTexturedQuad( const RECT& rectangle, const TCoordRect& coordinates )
 {
+    if (cse::render::SubmitBackendQuad({{static_cast<float>(rectangle.left), static_cast<float>(rectangle.top),
+        static_cast<float>(rectangle.right), static_cast<float>(rectangle.bottom)}},
+        {{coordinates.s0, coordinates.t0, coordinates.s1, coordinates.t1}})) {
+        return;
+    }
+
 	qglBegin( GL_QUADS );
 	qglTexCoord2f( coordinates.s0, coordinates.t0 );
 	qglVertex2f( static_cast<float>( rectangle.left ), static_cast<float>( rectangle.top ) );

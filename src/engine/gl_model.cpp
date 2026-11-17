@@ -1,3 +1,4 @@
+#include "render/backend.h"
 // gl_model.cpp -- model loading and caching
 
 // models are the only shared resource between a client and server running
@@ -124,6 +125,7 @@ Mod_ClearAll
 */
 void Mod_ClearAll()
 {
+    cse::render::ClearBackendSurfaceMeshes();
     CM_FreePAS();
 
 	int i, j;

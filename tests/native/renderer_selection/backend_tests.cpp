@@ -189,6 +189,13 @@ int main(int argc, char** argv) {
     CHECK(BackendUploadSucceeded());
     BeginBackendFrame(32, 32);
     CHECK(BackendSceneActive());
+    CseRenderViewport(0, 0, 32, 32);
+    CseRenderColor4ub(128, 64, 255, 192);
+    CHECK(SubmitBackendQuad({{-1, -1, 1, 1}}, {{0, 0, 1, 1}}));
+    std::array<unsigned char, 4> quadPixel{};
+    CHECK(BackendReadPixels(false, 8, 8, 1, 1, 4, 1, quadPixel.data()));
+    CHECK((quadPixel == std::array<unsigned char, 4>{{128, 64, 255, 192}}));
+    CseRenderColor4f(1, 1, 1, 1);
     CseRenderClearColor(1, 0, 0, 1);
     CseRenderClear(GL_COLOR_BUFFER_BIT);
     FlushBackend();

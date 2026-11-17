@@ -6,6 +6,8 @@ struct VertexConstants {
     float4x4 ModelView;
     float4x4 Projection;
     float4x4 TextureMatrix[3];
+    float4 Color;
+    float4 UvOffset[3];
 };
 
 struct FragmentConstants {
@@ -35,7 +37,7 @@ struct Varying {
     float eyeDepth;
 };
 
-static_assert(sizeof(VertexConstants) == 320, "Captured vertex uniform layout");
+static_assert(sizeof(VertexConstants) == 384, "Captured vertex uniform layout");
 static_assert(sizeof(FragmentConstants) == 240, "Captured fragment uniform layout");
 
 vertex Varying LegacyVertex(Input input [[stage_in]], constant VertexConstants& constants [[buffer(0)]]) {
@@ -44,10 +46,10 @@ vertex Varying LegacyVertex(Input input [[stage_in]], constant VertexConstants& 
     output.position = constants.Projection * eye;
     // GL clip depth [-w,w] becomes SDL GPU [0,w], as in the HLSL counterpart.
     output.position.z = (output.position.z + output.position.w) * 0.5f;
-    output.color = input.color;
-    output.uv0 = constants.TextureMatrix[0] * input.uv0;
-    output.uv1 = constants.TextureMatrix[1] * input.uv1;
-    output.uv2 = constants.TextureMatrix[2] * input.uv2;
+    output.color = input.color * constants.Color;
+    output.uv0 = constants.TextureMatrix[0] * (input.uv0 + constants.UvOffset[0]);
+    output.uv1 = constants.TextureMatrix[1] * (input.uv1 + constants.UvOffset[1]);
+    output.uv2 = constants.TextureMatrix[2] * (input.uv2 + constants.UvOffset[2]);
     output.eyeDepth = abs(eye.z / eye.w);
     return output;
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cstddef>
 #include <string>
 
 struct SDL_Window;
@@ -9,11 +11,17 @@ class FrameRecorder;
 class MetalSession;
 
 #if defined(SW_RENDERER)
+inline void ClearBackendSurfaceMeshes() {
+}
 inline bool UsingMetal() {
     return false;
 }
 #else
 bool UsingMetal();
+void ClearBackendSurfaceMeshes();
+bool SubmitBackendQuad(const std::array<float, 4>& bounds, const std::array<float, 4>& uv);
+bool SubmitBackendSurface(const void* identity, const float* vertices, std::size_t count, std::size_t stride,
+    float scroll, bool detail);
 // Resolve platform/build/command-line policy before creating any graphics window.
 bool ConfigureBackend(bool glFlag, bool metalFlag, std::string& error, bool preferOpenGL = false);
 constexpr unsigned kDefaultSceneSamples = 4;
