@@ -9,14 +9,18 @@ namespace render {
 
 namespace {
 
-bool ProjectionMatrix(const std::array<double, 16>& values, Matrix4& matrix) {
+Matrix4 ProjectionMatrix(const std::array<double, 16>& values) {
+    Matrix4 matrix;
     for (std::size_t index = 0; index < values.size(); ++index) {
         if (!std::isfinite(values[index]) || std::fabs(values[index]) > std::numeric_limits<float>::max()) {
-            return false;
+            // Preserve invalid numeric state until primitive preparation, without an overflowing cast
+            // or a fatal frame error. Push/pop or a new projection restores normal drawing.
+            matrix.values.fill(std::numeric_limits<float>::quiet_NaN());
+            return matrix;
         }
         matrix.values[index] = static_cast<float>(values[index]);
     }
-    return true;
+    return matrix;
 }
 
 }
@@ -212,11 +216,7 @@ Status LegacyState::Ortho(double left, double right, double bottom, double top, 
     values[12] = -(right + left) / (right - left);
     values[13] = -(top + bottom) / (top - bottom);
     values[14] = -(farDepth + nearDepth) / (farDepth - nearDepth);
-    Matrix4 matrix;
-    if (!ProjectionMatrix(values, matrix)) {
-        return Status::InvalidValue;
-    }
-    Apply(matrix);
+    Apply(ProjectionMatrix(values));
     return Status::Ok;
 }
 
@@ -232,11 +232,7 @@ Status LegacyState::Frustum(double left, double right, double bottom, double top
     values[10] = -(farDepth + nearDepth) / (farDepth - nearDepth);
     values[11] = -1;
     values[14] = -2 * farDepth * nearDepth / (farDepth - nearDepth);
-    Matrix4 matrix;
-    if (!ProjectionMatrix(values, matrix)) {
-        return Status::InvalidValue;
-    }
-    Apply(matrix);
+    Apply(ProjectionMatrix(values));
     return Status::Ok;
 }
 

@@ -38,6 +38,7 @@ struct MetalDrawData {
     std::vector<std::uint32_t> indices;
     Primitive topology = Primitive::Triangles;
     RasterState raster;
+    bool discardedNonfinite = false;
 };
 
 // Clamp a valid GL request without changing the retained sampler state.

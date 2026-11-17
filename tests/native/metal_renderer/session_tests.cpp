@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>
+#include <limits>
 #include <vector>
 using namespace cse::render;
 
@@ -222,6 +223,59 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
     CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
     CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+}
+
+void NonfiniteGeometry(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 0, 1}};
+    frame.events = {clear, FrameEvent{}};
+    auto left = Solid(1, 0, 0);
+    auto right = Solid(0, 1, 0);
+    for (auto& vertex : left.vertices) {
+        vertex.position[0] = (vertex.position[0] - 1) * 0.5f;
+    }
+    for (auto& vertex : right.vertices) {
+        vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
+    }
+    auto clean = left;
+    clean.vertices.insert(clean.vertices.end(), right.vertices.begin(), right.vertices.end());
+    frame.draws = {clean};
+    constexpr std::size_t kImageBytes = kTargetSize * kTargetSize * 4;
+    std::array<unsigned char, kImageBytes> expected{};
+    std::array<unsigned char, kImageBytes> actual{};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, expected.data(), error));
+    for (const bool indexed : {false, true}) {
+        auto mixed = left;
+        auto bad = Solid(0, 0, 1);
+        bad.vertices[1].position[0] = std::numeric_limits<float>::infinity();
+        mixed.vertices.insert(mixed.vertices.end(), bad.vertices.begin(), bad.vertices.end());
+        mixed.vertices.insert(mixed.vertices.end(), right.vertices.begin(), right.vertices.end());
+        if (indexed) {
+            mixed.primitive = Primitive::Triangles;
+            // Both bad triangles use the invalid vertex. The unrelated left/right quads survive.
+            mixed.indices = {0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 7, 5, 8, 9, 10, 8, 10, 11};
+        }
+        frame.draws = {mixed};
+        CHECK(session.Render(frame, error));
+        CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, actual.data(), error));
+        CHECK(actual == expected);
+    }
+    // Invalid transforms affect their packet; a later valid packet must still render normally.
+    auto badTransform = Solid(0, 0, 1);
+    badTransform.modelView.values[12] = std::numeric_limits<float>::quiet_NaN();
+    frame.draws = {badTransform, clean};
+    FrameEvent second;
+    second.drawIndex = 1;
+    frame.events = {clear, FrameEvent{}, second};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, actual.data(), error));
+    CHECK(actual == expected);
 }
 
 void PersistentMesh(MetalSession& session, std::string& error) {
@@ -514,6 +568,7 @@ int main() {
     CHECK(session.Resize(16, 16, 1, error));
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
+    NonfiniteGeometry(session, error);
     PersistentMesh(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;

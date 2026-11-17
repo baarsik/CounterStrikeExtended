@@ -183,7 +183,7 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
 bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error) {
     const auto& raster = draw.raster;
     if (draw.primitive > Primitive::LineLoop || draw.shade > Shade::Smooth || raster.shade > Shade::Smooth ||
-        draw.vertices.size() > kMaximumVertices || !Finite(draw.modelView.values) || !Finite(draw.projection.values) ||
+        draw.vertices.size() > kMaximumVertices ||
         raster.depthFunction > Compare::Always || raster.alphaFunction > Compare::Always ||
         raster.blendSource > BlendFactor::InverseDestinationColor ||
         raster.blendDestination > BlendFactor::InverseDestinationColor || raster.cull > Cull::FrontAndBack ||
@@ -199,13 +199,8 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         return Fail(error, "Metal requires matching fill/line polygon modes; polygon points are unsupported");
     }
     if (draw.mesh) {
-        if (!draw.vertices.empty() || !draw.indices.empty() || !Finite(draw.meshColor)) {
+        if (!draw.vertices.empty() || !draw.indices.empty()) {
             return Fail(error, "Native surface mixes immutable and streamed geometry");
-        }
-        for (const auto& offset : draw.meshUvOffset) {
-            if (!Finite(offset)) {
-                return Fail(error, "Nonfinite native surface texture offset");
-            }
         }
         if (raster.polygonMode[0] != PolygonMode::Fill) {
             auto expanded = draw;
@@ -261,6 +256,23 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         return Fail(error, "Lowered Metal geometry exceeds streaming budget");
     }
     MetalDrawData prepared;
+    // A nonfinite transform affects every primitive in this packet, but must not poison later draws.
+    bool finiteTransform = Finite(draw.modelView.values) && Finite(draw.projection.values);
+    if (draw.mesh) {
+        finiteTransform = finiteTransform && Finite(draw.meshColor);
+    }
+    for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+        if (draw.textures[unit].enabled2D || draw.textures[unit].enabledRectangle) {
+            finiteTransform = finiteTransform && Finite(draw.textureMatrices[unit].values) &&
+                (!draw.mesh || Finite(draw.meshUvOffset[unit]));
+        }
+    }
+    if (!finiteTransform) {
+        prepared.discardedNonfinite = true;
+        output = std::move(prepared);
+        error.clear();
+        return true;
+    }
     prepared.vertex.modelView = draw.modelView;
     prepared.vertex.projection = draw.projection;
     prepared.vertex.textureMatrix = draw.textureMatrices;
@@ -277,16 +289,45 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     prepared.indices = draw.indices;
     prepared.topology = draw.primitive == Primitive::Lines || draw.primitive == Primitive::LineLoop ?
         Primitive::Lines : Primitive::Triangles;
+    bool allFinite = true;
     for (const auto& vertex : draw.vertices) {
-        if (!Finite(vertex.position) || !Finite(vertex.color)) {
-            return Fail(error, "Nonfinite owned Metal vertex");
-        }
+        allFinite = allFinite && Finite(vertex.position) && Finite(vertex.color);
         for (const auto& uv : vertex.texcoords) {
-            if (!Finite(uv)) {
-                return Fail(error, "Nonfinite owned Metal texture coordinate");
-            }
+            allFinite = allFinite && Finite(uv);
         }
     }
+    const auto valid = [&draw](std::size_t index, std::size_t provoking) {
+        const auto& vertex = draw.vertices[index];
+        if (!Finite(vertex.position) ||
+            !Finite(draw.shade == Shade::Flat ? draw.vertices[provoking].color : vertex.color)) {
+            return false;
+        }
+        for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+            if ((draw.textures[unit].enabled2D || draw.textures[unit].enabledRectangle) &&
+                !Finite(vertex.texcoords[unit])) {
+                return false;
+            }
+        }
+        return true;
+    };
+    const auto normalized = [&draw, allFinite](std::size_t index, std::size_t provoking) {
+        auto vertex = draw.vertices[index];
+        if (draw.shade == Shade::Flat) {
+            vertex.color = draw.vertices[provoking].color;
+        }
+        for (auto& component : vertex.color) {
+            component = std::max(0.0f, std::min(1.0f, component));
+        }
+        if (!allFinite) {
+            for (auto& uv : vertex.texcoords) {
+                if (!Finite(uv)) {
+                    // Only disabled units can reach here: do not upload their unused NaN/Inf attributes.
+                    uv = {{0, 0, 0, 1}};
+                }
+            }
+        }
+        return vertex;
+    };
     const bool wireframe = raster.polygonMode[0] == PolygonMode::Line &&
         prepared.topology == Primitive::Triangles;
     const auto culled = [&draw, &raster](std::size_t first, std::size_t second, std::size_t third) {
@@ -303,8 +344,16 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         return raster.cull == Cull::FrontAndBack || (front && raster.cull == Cull::Front) ||
             (!front && raster.cull == Cull::Back);
     };
-    const auto emit = [&draw, &prepared, wireframe, &culled](
+    const auto emit = [&prepared, wireframe, &culled, &valid, &normalized, allFinite](
         std::initializer_list<std::size_t> indices, std::size_t provoking) {
+        if (!allFinite) {
+            for (const auto index : indices) {
+                if (!valid(index, provoking)) {
+                    prepared.discardedNonfinite = true;
+                    return;
+                }
+            }
+        }
         std::array<std::size_t, 8> lowered{};
         std::copy(indices.begin(), indices.end(), lowered.begin());
         auto emitted = indices.size();
@@ -325,14 +374,7 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         }
         for (std::size_t entry = 0; entry < emitted; ++entry) {
             const auto index = lowered[entry];
-            auto vertex = draw.vertices[index];
-            if (draw.shade == Shade::Flat) {
-                vertex.color = draw.vertices[provoking].color;
-            }
-            for (auto& component : vertex.color) {
-                component = std::max(0.0f, std::min(1.0f, component));
-            }
-            prepared.vertices.push_back(vertex);
+            prepared.vertices.push_back(normalized(index, provoking));
         }
     };
     switch (draw.primitive) {
@@ -340,19 +382,53 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         // Filled smooth triangles already have the GPU's topology and per-vertex colors.
         // Copy them in one block instead of expanding every triangle through the generic emitter.
         if (!wireframe && draw.shade == Shade::Smooth) {
-            prepared.vertices.assign(draw.vertices.begin(), draw.vertices.begin() + loweredCount);
-            for (auto& vertex : prepared.vertices) {
-                for (auto& component : vertex.color) {
-                    component = std::max(0.0f, std::min(1.0f, component));
+            if (allFinite) {
+                prepared.vertices.assign(draw.vertices.begin(), draw.vertices.begin() + loweredCount);
+                for (auto& vertex : prepared.vertices) {
+                    for (auto& component : vertex.color) {
+                        component = std::max(0.0f, std::min(1.0f, component));
+                    }
                 }
+                break;
             }
-            break;
+            if (!draw.indices.empty()) {
+                // Keep indexed submission, compacting only this exceptional packet. Never delete a vertex
+                // from a strip/fan or reconnect indices across a rejected triangle.
+                constexpr auto kUnmapped = std::numeric_limits<std::uint32_t>::max();
+                std::vector<std::uint32_t> remap(count, kUnmapped);
+                prepared.indices.clear();
+                for (std::size_t first = 0; first < draw.indices.size(); first += 3) {
+                    const auto a = draw.indices[first];
+                    const auto b = draw.indices[first + 1];
+                    const auto c = draw.indices[first + 2];
+                    if (!valid(a, c) || !valid(b, c) || !valid(c, c)) {
+                        prepared.discardedNonfinite = true;
+                        continue;
+                    }
+                    for (const auto index : {a, b, c}) {
+                        if (remap[index] == kUnmapped) {
+                            remap[index] = static_cast<std::uint32_t>(prepared.vertices.size());
+                            prepared.vertices.push_back(normalized(index, c));
+                        }
+                        prepared.indices.push_back(remap[index]);
+                    }
+                }
+                break;
+            }
         }
         for (std::size_t index = 0; index + 2 < count; index += 3) {
             emit({index, index + 1, index + 2}, index + 2);
         }
         break;
     case Primitive::Polygon:
+        // GL_POLYGON is one primitive; filtering its vertices would invent a different boundary.
+        if (!allFinite && std::any_of(draw.vertices.begin(), draw.vertices.end(),
+            [&draw, &valid](const Vertex& vertex) {
+                return !valid(&vertex - draw.vertices.data(), 0);
+            })) {
+            prepared.discardedNonfinite = true;
+            break;
+        }
         if (wireframe) {
             if (count >= 3 && !culled(0, 1, 2)) {
                 for (std::size_t index = 0; index < count; ++index) {
@@ -406,12 +482,16 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     }
     for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
         const auto& state = draw.textures[unit];
-        if (!Finite(draw.textureMatrices[unit].values) || state.environment > EnvironmentMode::Combine ||
+        if (state.environment > EnvironmentMode::Combine ||
             (state.rgbScale != 1 && state.rgbScale != 2 && state.rgbScale != 4)) {
             return Fail(error, "Invalid owned Metal texture unit state");
         }
         auto& legacy = prepared.fragment.legacy;
         const bool enabled = state.enabled2D || state.enabledRectangle;
+        if (!enabled) {
+            prepared.vertex.textureMatrix[unit] = Matrix4::Identity();
+            prepared.vertex.uvOffset[unit] = {{0, 0, 0, 0}};
+        }
         legacy.unit[unit] = {{enabled ? 1.0f : 0.0f, static_cast<float>(state.environment),
             static_cast<float>(state.rgbScale), 0}};
         legacy.components[unit] = {{1, 1, 0, 0}};

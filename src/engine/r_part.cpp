@@ -1,3 +1,5 @@
+#include "effect_safety.h"
+
 #if defined( SW_RENDERER )
 
 #include "r_local.h"
@@ -116,15 +118,15 @@ void R_FreeDeadParticles( particle_t** ppparticles )
 	while ( *ppparticles )
 	{
 		p = *ppparticles;
-		if ( !( cl.time > p->die ) )
-		{
-			ppparticles = &p->next;
-			continue;
-		}
+        if (!(cl.time > p->die) && cse::effects::FiniteParticle(p)) {
+            ppparticles = &p->next;
+            continue;
+        }
 
 		if ( p->deathfunc )
 			p->deathfunc( p );
 		p->deathfunc = NULL;
+        cse::effects::SanitizeRetiredParticle(p);
 
 		*ppparticles = p->next;
 		p->next = free_particles;
@@ -892,10 +894,8 @@ void R_BeamSetup( BEAM* pbeam, vec_t* start, vec_t* end, int modelIndex, float l
 	pbeam->width = width;
 	pbeam->brightness = brightness;
 
-	if ( amplitude < 0.5 )
-		pbeam->segments = (int)( Length( pbeam->delta ) * 0.075 + 3 ); // one per 16 pixels
-	else
-		pbeam->segments = (int)( Length( pbeam->delta ) * 0.25 + 3 ); // one per 4 pixels
+    pbeam->segments = cse::effects::BeamSegments(Length(pbeam->delta), pbeam->delta, amplitude,
+        NOISE_DIVISIONS * 8);
 
 	pbeam->flags = 0;
 	pbeam->pFollowModel = NULL;
@@ -927,7 +927,14 @@ void R_BeamDraw( BEAM* pbeam, float frametime )
 	else
 		tri.RenderMode( kRenderTransAdd );
 
+    if (!cse::effects::FiniteBeamParameters(*pbeam) || !std::isfinite(frametime)) {
+        return;
+    }
+
 	pbeam->freq += frametime;
+    if (!std::isfinite(pbeam->freq)) {
+        return;
+    }
 
 	// OPTIMIZE: Do this every frame?
 	// UNDONE: Do this differentially somehow?
@@ -991,21 +998,36 @@ void R_BeamDraw( BEAM* pbeam, float frametime )
 		if ( ( pbeam->flags & FBEAM_STARTENTITY ) && !( pbeam->flags & FBEAM_STARTVISIBLE ) )
 			return;
 
+        // Attachments can change after creation, independently of the checked effects API.
+        if (!cse::effects::FiniteVector(pbeam->source) || !cse::effects::FiniteVector(pbeam->target)) {
+            return;
+        }
+
 		// Compute segments from the new endpoints
 		VectorSubtract( pbeam->target, pbeam->source, difference );
+        if (!cse::effects::FiniteVector(difference)) {
+            return;
+        }
 		if ( Length( difference ) > 0.0000001 )
 			VectorCopy( difference, pbeam->delta );
 
-		if ( pbeam->amplitude < 0.5 )
-			pbeam->segments = (int)( Length( pbeam->delta ) * 0.075 + 3 ); // one per 16 pixels
-		else
-			pbeam->segments = (int)( Length( pbeam->delta ) * 0.25 + 3 ); // one per 4 pixels
+        pbeam->segments = cse::effects::BeamSegments(Length(pbeam->delta), pbeam->delta, pbeam->amplitude,
+            NOISE_DIVISIONS * 8);
 	}
+
+    if (!cse::effects::FiniteVector(pbeam->source) || !cse::effects::FiniteVector(pbeam->target) ||
+        !cse::effects::FiniteVector(pbeam->delta)) {
+        return;
+    }
 
 	if ( pbeam->type == TE_BEAMPOINTS && !R_BeamCull( pbeam->source, pbeam->target, FALSE ) )
 		return;
 
-	frame = (int)( pbeam->frameRate * cl.time + pbeam->frame ) % pbeam->frameCount;
+    const double animationFrame = pbeam->frameRate * cl.time + pbeam->frame;
+    if (!std::isfinite(animationFrame)) {
+        return;
+    }
+    frame = static_cast<int>(std::fmod(animationFrame, pbeam->frameCount));
 	if ( !tri.SpriteTexture( sprite, frame ) )
 		return;
 
@@ -3089,15 +3111,15 @@ void R_FreeDeadParticles( particle_t** ppparticles )
 	while ( *ppparticles )
 	{
 		p = *ppparticles;
-		if ( !( cl.time > p->die ) )
-		{
-			ppparticles = &p->next;
-			continue;
-		}
+        if (!(cl.time > p->die) && cse::effects::FiniteParticle(p)) {
+            ppparticles = &p->next;
+            continue;
+        }
 
 		if ( p->deathfunc )
 			p->deathfunc( p );
 		p->deathfunc = NULL;
+        cse::effects::SanitizeRetiredParticle(p);
 
 		*ppparticles = p->next;
 		p->next = free_particles;
@@ -3936,10 +3958,8 @@ void R_BeamSetup( BEAM* pbeam, vec_t* start, vec_t* end, int modelIndex, float l
 	pbeam->width = width;
 	pbeam->brightness = brightness;
 
-	if ( amplitude < 0.5 )
-		pbeam->segments = (int)( Length( pbeam->delta ) * 0.075 + 3 ); // one per 16 pixels
-	else
-		pbeam->segments = (int)( Length( pbeam->delta ) * 0.25 + 3 ); // one per 4 pixels
+    pbeam->segments = cse::effects::BeamSegments(Length(pbeam->delta), pbeam->delta, amplitude,
+        NOISE_DIVISIONS * 8);
 
 	pbeam->flags = 0;
 	pbeam->pFollowModel = NULL;
@@ -3971,7 +3991,14 @@ void R_BeamDraw( BEAM* pbeam, float frametime )
 	else
 		tri.RenderMode( kRenderTransAdd );
 
+    if (!cse::effects::FiniteBeamParameters(*pbeam) || !std::isfinite(frametime)) {
+        return;
+    }
+
 	pbeam->freq += frametime;
+    if (!std::isfinite(pbeam->freq)) {
+        return;
+    }
 
 	// OPTIMIZE: Do this every frame?
 	// UNDONE: Do this differentially somehow?
@@ -4035,21 +4062,36 @@ void R_BeamDraw( BEAM* pbeam, float frametime )
 		if ( ( pbeam->flags & FBEAM_STARTENTITY ) && !( pbeam->flags & FBEAM_STARTVISIBLE ) )
 			return;
 
+        // Attachments can change after creation, independently of the checked effects API.
+        if (!cse::effects::FiniteVector(pbeam->source) || !cse::effects::FiniteVector(pbeam->target)) {
+            return;
+        }
+
 		// Compute segments from the new endpoints
 		VectorSubtract( pbeam->target, pbeam->source, difference );
+        if (!cse::effects::FiniteVector(difference)) {
+            return;
+        }
 		if ( Length( difference ) > 0.0000001 )
 			VectorCopy( difference, pbeam->delta );
 
-		if ( pbeam->amplitude < 0.5 )
-			pbeam->segments = (int)( Length( pbeam->delta ) * 0.075 + 3 ); // one per 16 pixels
-		else
-			pbeam->segments = (int)( Length( pbeam->delta ) * 0.25 + 3 ); // one per 4 pixels
+        pbeam->segments = cse::effects::BeamSegments(Length(pbeam->delta), pbeam->delta, pbeam->amplitude,
+            NOISE_DIVISIONS * 8);
 	}
+
+    if (!cse::effects::FiniteVector(pbeam->source) || !cse::effects::FiniteVector(pbeam->target) ||
+        !cse::effects::FiniteVector(pbeam->delta)) {
+        return;
+    }
 
 	if ( pbeam->type == TE_BEAMPOINTS && !R_BeamCull( pbeam->source, pbeam->target, FALSE ) )
 		return;
 
-	frame = (int)( pbeam->frameRate * cl.time + pbeam->frame ) % pbeam->frameCount;
+    const double animationFrame = pbeam->frameRate * cl.time + pbeam->frame;
+    if (!std::isfinite(animationFrame)) {
+        return;
+    }
+    frame = static_cast<int>(std::fmod(animationFrame, pbeam->frameCount));
 	if ( !tri.SpriteTexture( sprite, frame ) )
 		return;
 

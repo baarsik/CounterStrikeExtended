@@ -1,5 +1,17 @@
 # Metal renderer qualification
 
+Nonfinite geometry is filtered at primitive assembly. Triangles and line segments retain their
+original connectivity across gaps in strips, fans and loops; quads and convex polygons are whole
+primitives. Other primitives in the same packet survive, including shared indexed geometry.
+Flat shading uses the original provoking color, and disabled texture coordinates do not invalidate
+visible geometry. Bad transforms discard only packets using them; restoring the matrix resumes drawing.
+Structural errors, invalid indices and storage limits remain errors. The first numeric discard is
+logged once per Metal session.
+
+`metal-nonfinite-geometry` covers the CPU topology and attribute cases. `metal-session-device`
+compares full images of clean and mixed-invalid draws for indexed and nonindexed GPU submissions.
+Shared effect input, simulation and pool-reuse checks live in [effects_safety](../effects_safety/README.md).
+
 These fixtures exercise the production CPU preparation, recorder/backend and actual
 SDL_GPU `metal` device. They do not replace the historical bounded prototype tests.
 Run from the repository root on macOS 14+ ARM64 with the repository's pinned, source-built SDL3:

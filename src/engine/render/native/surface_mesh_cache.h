@@ -31,6 +31,14 @@ public:
         std::vector<Vertex> vertices(count);
         for (std::size_t index = 0; index < count; ++index) {
             const auto* input = source + index * stride;
+            for (std::size_t component = 0; component < kSurfaceComponents; ++component) {
+                if (!std::isfinite(input[component])) {
+                    // Immutable meshes remain finite. Let the immediate path apply the common
+                    // per-primitive policy rather than making an optional cache failure fatal.
+                    error.clear();
+                    return nullptr;
+                }
+            }
             auto& vertex = vertices[index];
             std::copy_n(input, 3, vertex.position.begin());
             vertex.texcoords[0] = {{input[3], input[4], 0, 1}};

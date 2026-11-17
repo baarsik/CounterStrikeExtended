@@ -4,6 +4,7 @@
 #include "../common/sdl3_input.h"
 #include "engine_apiproxy.h"
 #include "client.h"
+#include "effect_safety.h"
 #include "common.h"
 #include "cvar.h"
 #include "gl_model.h"
@@ -719,6 +720,10 @@ int ClientDLL_ConnectionlessPacket(
 
 static int CL_AddVisibleEntity( int type, cl_entity_t* ent )
 {
+    if (!cse::effects::FiniteEntity(ent)) {
+        return 0;
+    }
+
 	if ( type == ET_BEAM )
 	{
 		if ( cl_numbeamentities >= MAX_BEAMENTS )

@@ -26,6 +26,14 @@ bool Integral(double value, int& result) {
     return true;
 }
 
+bool NonfiniteProjection(const Command& command) {
+    return (command.op == Op::Ortho || command.op == Op::Frustum) &&
+        std::any_of(command.values.begin(), command.values.end(),
+            [](double value) {
+                return !std::isfinite(value);
+            });
+}
+
 Status ValidateArguments(const Command& command) {
     std::size_t floats = 0;
     switch (command.op) {
@@ -141,6 +149,9 @@ Status ValidateArguments(const Command& command) {
         break;
     case Op::Ortho:
     case Op::Frustum:
+        if (NonfiniteProjection(command)) {
+            break;
+        }
         if (command.values[0] == command.values[1] || command.values[2] == command.values[3]
             || command.values[4] == command.values[5]) {
             return Status::InvalidValue;
@@ -151,11 +162,8 @@ Status ValidateArguments(const Command& command) {
         break;
     case Op::LoadMatrix:
     case Op::MultiplyMatrix:
-        for (const auto value : command.matrix.values) {
-            if (!std::isfinite(value)) {
-                return Status::InvalidValue;
-            }
-        }
+        // Retain nonfinite transforms until draw preparation. Ignoring them would draw affected
+        // geometry under the previous transform; refusing them would terminate an otherwise valid frame.
         break;
     case Op::ColorWrite:
     case Op::Identity:
@@ -442,18 +450,6 @@ Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     if (vertices.size() > limits_.verticesPerDraw) {
         return Status::LimitExceeded;
     }
-    for (const auto& vertex : vertices) {
-        for (auto component : vertex.position) {
-            if (!std::isfinite(component)) {
-                return Status::InvalidValue;
-            }
-        }
-        for (auto component : vertex.texcoords[0]) {
-            if (!std::isfinite(component)) {
-                return Status::InvalidValue;
-            }
-        }
-    }
     auto draw = Snapshot(Primitive::Quads);
     draw.vertices.assign(vertices.begin(), vertices.end());
     for (auto& vertex : draw.vertices) {
@@ -473,7 +469,7 @@ Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, f
     if (!AtFrameBoundary()) {
         return Status::InvalidOperation;
     }
-    if (!mesh || !std::isfinite(scroll)) {
+    if (!mesh) {
         return Status::InvalidValue;
     }
     if (std::max(mesh->Vertices().size(), mesh->Indices().size()) > limits_.verticesPerDraw) {
@@ -553,9 +549,15 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         state_.Rotate(f(0), f(1), f(2), f(3));
         break;
     case Op::Ortho:
-        return state_.Ortho(v[0], v[1], v[2], v[3], v[4], v[5]);
     case Op::Frustum:
-        return state_.Frustum(v[0], v[1], v[2], v[3], v[4], v[5]);
+        if (NonfiniteProjection(command)) {
+            Matrix4 invalid;
+            invalid.values.fill(std::numeric_limits<float>::quiet_NaN());
+            state_.MultiplyMatrix(invalid);
+            break;
+        }
+        return command.op == Op::Ortho ? state_.Ortho(v[0], v[1], v[2], v[3], v[4], v[5]) :
+            state_.Frustum(v[0], v[1], v[2], v[3], v[4], v[5]);
     case Op::Color:
         state_.Color(f(0), f(1), f(2), f(3));
         break;

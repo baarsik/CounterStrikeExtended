@@ -13,6 +13,7 @@
 #include "decals.h"
 #include "tmessage.h"
 #include "sys.h"
+#include "effect_safety.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -95,6 +96,8 @@ void CL_TempEntUpdate( void )
 	if ( !cl.worldmodel )
 		return;
 
+    cse::effects::RetireInvalidTemporaryEntities(gpTempEntActive, gpTempEntFree);
+
 	ClientDLL_TempEntUpdate( cl.time - cl.oldtime, cl.time, movevars.gravity, &gpTempEntFree, &gpTempEntActive,
 		CL_AddVisibleEntity, CL_TempEntPlaySound );
 }
@@ -131,6 +134,10 @@ sfx_t* cl_sfx_sshell3;
 
 int CL_AddVisibleEntity( cl_entity_t* pEntity )
 {
+    if (!cse::effects::FiniteEntity(pEntity)) {
+        return 0;
+    }
+
 	vec3_t mins, maxs;
 
 	if ( !pEntity->model )
@@ -346,6 +353,10 @@ void CL_TempEntPrepare( TEMPENTITY* pTemp, model_t* model )
 
 TEMPENTITY* CL_TempEntAlloc( vec_t* org, model_t* model )
 {
+    if (!cse::effects::FiniteVector(org)) {
+        return nullptr;
+    }
+
 	TEMPENTITY* pTemp;
 
 	if ( !gpTempEntFree )
@@ -376,6 +387,10 @@ TEMPENTITY* CL_TempEntAlloc( vec_t* org, model_t* model )
 
 TEMPENTITY* CL_TempEntAllocNoModel( vec_t* org )
 {
+    if (!cse::effects::FiniteVector(org)) {
+        return nullptr;
+    }
+
 	TEMPENTITY* pTemp;
 
 	if ( !gpTempEntFree )
@@ -401,6 +416,10 @@ TEMPENTITY* CL_TempEntAllocNoModel( vec_t* org )
 
 TEMPENTITY* CL_TempEntAllocHigh( vec_t* org, model_t* model )
 {
+    if (!cse::effects::FiniteVector(org)) {
+        return nullptr;
+    }
+
 	TEMPENTITY* pTemp;
 
 	if ( !model )

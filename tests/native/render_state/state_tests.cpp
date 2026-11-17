@@ -132,6 +132,35 @@ void NativeSurfaces() {
     Recorder bounded(limits);
     Check(bounded.SubmitSurface(mesh, 0, false) == Status::LimitExceeded && bounded.Draws().empty(),
         "direct meshes preserve expanded index capture quota");
+    const float invalid = std::numeric_limits<float>::infinity();
+    quad[0].position[0] = invalid;
+    Check(recorder.SubmitQuad(quad) == Status::Ok &&
+        recorder.Draws().back().vertices[0].position[0] == invalid,
+        "direct quads reach primitive filtering without poisoning capture");
+    Check(recorder.SubmitSurface(mesh, invalid, false) == Status::Ok,
+        "invalid surface offsets reach draw filtering");
+    auto badPolygon = polygon;
+    badPolygon[0] = invalid;
+    Check(!cache.Get(badPolygon.data(), badPolygon.data(), 4, kStride, error) && error.empty(),
+        "nonfinite cache inputs fall back to filtered immediate geometry");
+    Send(recorder, Make(Op::Push));
+    auto matrix = Make(Op::LoadMatrix);
+    matrix.matrix = Matrix4::Identity();
+    matrix.matrix.values[12] = invalid;
+    Send(recorder, matrix);
+    Check(recorder.SubmitQuad(quad) == Status::Ok, "invalid transform stays local to its draw");
+    Send(recorder, Make(Op::Pop));
+    Check(recorder.State().Matrix(MatrixMode::ModelView).values == Matrix4::Identity().values,
+        "restoring a matrix recovers valid rendering after a bad transform");
+    for (const auto operation : {Op::Ortho, Op::Frustum}) {
+        Send(recorder, Make(Op::Push));
+        Send(recorder, Make(operation, {std::numeric_limits<double>::quiet_NaN(), 1, -1, 1, 1, 10}));
+        Check(!std::isfinite(recorder.State().Matrix(MatrixMode::ModelView).values[0]),
+            "nonfinite projection inputs mark only the active transform invalid");
+        Send(recorder, Make(Op::Pop));
+        Check(recorder.State().Matrix(MatrixMode::ModelView).values == Matrix4::Identity().values,
+            "valid rendering recovers after a bad projection");
+    }
 }
 
 void Ownership() {
@@ -168,9 +197,13 @@ void Bounds() {
     Check(recorder.Submit(Make(Op::Frustum, {-1, 1, -1, 1, 0, 10})) == Status::InvalidValue,
         "invalid near plane rejected");
     Check(recorder.State().Matrix(MatrixMode::ModelView).values == original, "failed matrix operation atomic");
-    Check(recorder.Submit(Make(Op::Frustum, {-1.0e-100, 1.0e-100, -1, 1, 1, 10})) == Status::InvalidValue,
-        "unrepresentable projection coefficient rejected before narrowing");
-    Check(recorder.State().Matrix(MatrixMode::ModelView).values == original, "projection coefficient failure atomic");
+    Send(recorder, Make(Op::Push));
+    Check(recorder.Submit(Make(Op::Frustum, {-1.0e-100, 1.0e-100, -1, 1, 1, 10})) == Status::Ok,
+        "unrepresentable numeric projections reach local draw filtering without narrowing overflow");
+    Check(!std::isfinite(recorder.State().Matrix(MatrixMode::ModelView).values[0]),
+        "unrepresentable projection is marked invalid instead of drawing with stale state");
+    Send(recorder, Make(Op::Pop));
+    Check(recorder.State().Matrix(MatrixMode::ModelView).values == original, "projection restoration is exact");
     for (std::size_t index = 1; index < kModelViewStackDepth; ++index) {
         Send(recorder, Make(Op::Push));
     }

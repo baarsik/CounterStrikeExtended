@@ -116,6 +116,7 @@ DrawPacket ClearDraw(const ClearEvent& clear, unsigned width, unsigned height) {
 }
 
 struct MetalSession::Impl {
+    bool reportedNonfinite = false;
     struct Stream {
         SDL_GPUBuffer* vertices = nullptr;
         SDL_GPUBuffer* indices = nullptr;
@@ -474,6 +475,14 @@ struct MetalSession::Impl {
     bool Prepare(const DrawPacket& packet, Draw& draw, std::string& error) {
         if (!PrepareMetalDraw(packet, draw.data, error)) {
             return false;
+        }
+        if (draw.data.discardedNonfinite && !reportedNonfinite) {
+            SDL_LogWarn(SDL_LOG_CATEGORY_RENDER,
+                "Metal discarded nonfinite geometry; unaffected primitives are preserved (reported once)");
+            reportedNonfinite = true;
+        }
+        if (!draw.data.mesh && draw.data.vertices.empty()) {
+            return true;
         }
         if (draw.data.mesh) {
             draw.mesh = GetMesh(draw.data.mesh, error);
