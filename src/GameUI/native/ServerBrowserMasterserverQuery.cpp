@@ -154,12 +154,12 @@ struct Directory {
                         }
                         Address server{ip, port, port};
                         next = ConnectionAddress(server);
+                        if (seen.size() >= MaximumDirectoryServers && !seen.count(server)) {
+                            return false;
+                        }
                         if (seen.insert(server).second) {
                             std::lock_guard<std::mutex> lock(mutex);
                             pending.push_back(server);
-                        }
-                        if (seen.size() >= MaximumDirectoryServers) {
-                            return false;
                         }
                     }
                     if (terminal) {

@@ -150,13 +150,13 @@ void FailedEmptyRefresh(const char* directory, const char* unavailable) {
     CHECK(provider.BeginClose());
 }
 
-void LargeQuickRefresh(const char* directory) {
+void LargeQuickRefresh(const char* directory, bool exceedsLimit) {
     MetadataProvider steam;
     MasterserverQueryProvider provider(&steam);
     provider.Select({"loopback", "Loopback", {directory}});
     Responses responses;
     constexpr AppId_t CounterStrikeApp = 10;
-    constexpr int ServerCount = 49152;
+    constexpr int ServerCount = 65536;
     const auto request = provider.RequestInternetServerList(CounterStrikeApp, nullptr, 0, &responses);
     CHECK(request);
 
@@ -172,6 +172,7 @@ void LargeQuickRefresh(const char* directory) {
     };
     pumpUntilComplete();
     CHECK(responses.responses == ServerCount);
+    const auto discoveryResult = responses.result;
 
     responses = Responses{};
     const auto started = std::clock();
@@ -191,6 +192,7 @@ void LargeQuickRefresh(const char* directory) {
     while (!provider.BeginClose()) {
     }
     CHECK(withinBudget);
+    CHECK(discoveryResult == (exceedsLimit ? eServerFailedToRespond : eServerResponded));
 }
 
 void CompletedPings(const char* directory, bool cancelBeforePump, bool inlineCompletion, bool failed) {
@@ -276,8 +278,8 @@ int main(int argc, char** argv) {
             std::cout << "completed ping lifetime passed\n";
             return 0;
         }
-        if (std::string_view(argv[2]) == "large-quick-refresh") {
-            LargeQuickRefresh(argv[1]);
+        if (test == "large-quick-refresh" || test == "directory-limit-exceeded") {
+            LargeQuickRefresh(argv[1], test == "directory-limit-exceeded");
             return 0;
         }
         MetadataProvider steam;
