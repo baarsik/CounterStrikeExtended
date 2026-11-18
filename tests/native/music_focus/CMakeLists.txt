@@ -11,6 +11,7 @@ execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/ext
     --source "${CSE_MUSIC_SOURCE_ROOT}" --output "${CMAKE_CURRENT_BINARY_DIR}/actual"
     COMMAND_ERROR_IS_FATAL ANY)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/extract_music.py"
     "${CSE_MUSIC_SOURCE_ROOT}/src/engine/cd.cpp"
     "${CSE_MUSIC_SOURCE_ROOT}/src/engine/sys_sdlwind.cpp")
 option(CSE_MUSIC_SANITIZERS "Instrument actual controller bodies and real CD worker" OFF)
@@ -34,7 +35,7 @@ enable_testing()
 foreach(owner software hardware)
     foreach(case ordinary manual_pause manual_after_loss stopped finished disabled rapid manual_interleave stop_interleave new_play new_play_failure late_loss_after_play overflow_latest_gain
             queue_full failed_pause failed_resume suspend_init_failure suspend_open_failure suspend_start_failure
-            suspend_file_failure suspend_manual_pause suspend_new_play_failure suspend_stop_after_failure suspend_stop_after_frame suspend_stop_after_frame_disabled shutdown shutdown_inflight)
+            suspend_file_failure suspend_manual_pause suspend_new_play_failure suspend_stop_after_failure suspend_stop_after_frame suspend_stop_after_frame_disabled primed_track_zero shutdown shutdown_inflight)
         add_test(NAME ${owner}-${case} COMMAND music_focus_${owner} ${case})
     endforeach()
 endforeach()

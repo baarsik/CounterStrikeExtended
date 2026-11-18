@@ -241,7 +241,18 @@ int main(int argc, char **argv) {
     CGame game;
     const bool suspended = std::strncmp(name, "suspend_", 8) == 0;
     Start(std::strcmp(name, "suspend_file_failure") == 0);
-    if (std::strcmp(name, "ordinary") == 0) {
+    if (std::strcmp(name, "primed_track_zero") == 0) {
+        char filename[] = "primed.mp3";
+        g_pszMP3trackFileMap[TestTrack] = filename;
+        g_CDAudio.PrimeTrack(filename, 1);
+        Drain();
+        const auto prime = musicPlayer.Snapshot();
+        Check(!prime.playing && prime.opens == 2, "priming opens the requested stream but does not start it");
+        g_CDAudio.Play(0, true);
+        Drain();
+        const auto played = musicPlayer.Snapshot();
+        Check(played.playing && played.opens == prime.opens, "Play(0) starts the already primed stream");
+    } else if (std::strcmp(name, "ordinary") == 0) {
         Pause(game);
         Gain(game);
         const auto state = musicPlayer.Snapshot();

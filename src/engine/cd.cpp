@@ -738,6 +738,8 @@ void CCDAudio::PrimeTrack(char *filename, int looping) {
 void CCDAudio::_PrimeFile(const char *filename, int looping) {
     m_dFadeOutTime = 0.0;
     m_bIsPrimed = MP3_InitStream(filename, looping != 0);
+    // Track zero consumes this request. Set it after opening, which can stop the previous track.
+    Q_strncpy(m_szPendingPlayFilename, filename, sizeof(m_szPendingPlayFilename));
     m_bIsInMiddleOfPriming = false;
 }
 
