@@ -173,15 +173,14 @@ const char* SelectEngineDll()
 	{
 		selected = kHardwareEngine;
 	}
-	else if ( CaseCompare( stored, kSoftwareEngine ) == 0
-#if defined(__APPLE__)
+    else if (CaseCompare(stored, kSoftwareEngine) == 0
+#if defined(__APPLE__) || (defined(_WIN32) && INTPTR_MAX > INT32_MAX)
         // The engine's retained video settings persist the Win32 renderer names.
         || CaseCompare(stored, "sw.dll") == 0
 #endif
-    )
-	{
-		selected = kSoftwareEngine;
-	}
+    ) {
+        selected = kSoftwareEngine;
+    }
 
 	if ( cmdline->CheckParm( "-soft", NULL ) != NULL || cmdline->CheckParm( "-software", NULL ) != NULL )
 	{
