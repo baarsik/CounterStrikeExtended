@@ -140,7 +140,9 @@ struct RowLess {
         return sort.secondaryAscending ? comparison < 0 : comparison > 0;
     }
 };
-Row CopyRow(const gameserveritem_t& item, bool failed) {
+enum class RowSource { Enumeration, Response, Failure };
+
+Row CopyRow(const gameserveritem_t& item, RowSource source) {
     Row row;
     row.key = {item.m_NetAdr.GetIP(), item.m_NetAdr.GetConnectionPort(), item.m_NetAdr.GetQueryPort()};
     row.app = item.m_nAppID;
@@ -158,8 +160,8 @@ Row CopyRow(const gameserveritem_t& item, bool failed) {
     row.hasSteamAccount = item.m_steamID.GetAccountID() != 0;
     row.password = item.m_bPassword;
     row.secure = item.m_bSecure;
-    row.responded = item.m_bHadSuccessfulResponse;
-    row.failed = failed;
+    row.responded = source == RowSource::Response || item.m_bHadSuccessfulResponse;
+    row.failed = source == RowSource::Failure;
     return row;
 }
 }
@@ -325,7 +327,7 @@ struct ServerBrowserModel::State {
         std::set<int> quickPending;
         int enumerate = 0;
         int count = 0;
-        std::map<int, bool> dirty;
+        std::map<int, RowSource> dirty;
         std::map<int, RowKey> seen;
         std::set<std::pair<RowKey, int>> membership;
         bool prunePending = true;
@@ -350,11 +352,11 @@ struct ServerBrowserModel::State {
             }
             return incoming && incoming == handle;
         }
-        void Response(HServerListRequest incoming, int index, bool failed) {
+        void Response(HServerListRequest incoming, int index, RowSource source) {
             owner.Check();
             ++owner.callbackDepth;
             if (Accept(incoming) && index >= 0) {
-                dirty[index] = failed;
+                dirty[index] = source;
                 if (quickPending.erase(index) && quickPending.empty()) {
                     completed = true;
                     owner.status.phase = Phase::Complete;
@@ -363,10 +365,10 @@ struct ServerBrowserModel::State {
             --owner.callbackDepth;
         }
         void ServerResponded(HServerListRequest incoming, int index) override {
-            Response(incoming, index, false);
+            Response(incoming, index, RowSource::Response);
         }
         void ServerFailedToRespond(HServerListRequest incoming, int index) override {
-            Response(incoming, index, true);
+            Response(incoming, index, RowSource::Failure);
         }
         void RefreshComplete(HServerListRequest incoming, EMatchMakingServerResponse result) override {
             owner.Check();
@@ -1039,12 +1041,12 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
         if (state.request && (!state.request->dirty.empty() || state.request->enumerate < state.request->count)) {
             auto& request = *state.request;
             int index = 0;
-            bool failed = false;
+            RowSource source = RowSource::Enumeration;
             bool read = true;
             if (!request.dirty.empty()) {
                 const auto item = request.dirty.begin();
                 index = item->first;
-                failed = item->second;
+                source = item->second;
                 request.dirty.erase(item);
             } else {
                 index = request.enumerate++;
@@ -1056,7 +1058,7 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                     return state.services.servers->GetServerDetails(request.handle, index);
                 });
                 if (!state.closing && request.accepting && item) {
-                    state.Apply(CopyRow(*item, failed), index);
+                    state.Apply(CopyRow(*item, source), index);
                 }
             }
         } else if (state.request && state.request->completed && state.request->prunePending) {
@@ -1154,9 +1156,7 @@ Status ServerBrowserModel::GetStatus() const {
     return result;
 }
 Row CopyPingResponse(const gameserveritem_t &item) {
-    Row row = CopyRow(item, false);
-    row.responded = true;
-    return row;
+    return CopyRow(item, RowSource::Response);
 }
 
 bool ServerBrowserModel::RemoveHistory(AppId_t app, RowKey key) {

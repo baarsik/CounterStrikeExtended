@@ -36,6 +36,7 @@ struct Provider final : ISteamMatchmakingServers {
     bool synchronous = false;
     bool cancelCallbacks = false;
     bool failRequest = false;
+    bool failRefresh = false;
     int canceled = 0;
     int released = 0;
     int refreshed = 0;
@@ -114,7 +115,12 @@ struct Provider final : ISteamMatchmakingServers {
     }
     void RefreshServer(HServerListRequest request, int index) override {
         lastIndex = index;
-        requests.at(request).callback->ServerResponded(request, index);
+        auto *callback = requests.at(request).callback;
+        if (failRefresh) {
+            callback->ServerFailedToRespond(request, index);
+        } else {
+            callback->ServerResponded(request, index);
+        }
     }
     HServerQuery PingServer(uint32, uint16, ISteamMatchmakingPingResponse*) override {
         return HSERVERQUERY_INVALID;
@@ -525,6 +531,7 @@ void OfflineSavedRowsWithCurrentGameFilters() {
             CHECK(!model.IsVisible({0x7f000004U, 27015, 27016}));
             model.Select(address);
             CHECK(model.Selection() == address);
+            provider.failRefresh = true;
             CHECK(model.QuickRefresh(address));
             CHECK(provider.lastIndex == 0);
             Drain(model);
@@ -617,8 +624,8 @@ void FailedSavedRowsRetainSuccessfulMetadata() {
         failed.m_szGameDir[0] = '\0';
         failed.m_szMap[0] = '\0';
         failed.m_bSecure = false;
+        provider.failRefresh = true;
         CHECK(model.QuickRefresh(address));
-        provider.requests.at(provider.current).callback->ServerFailedToRespond(provider.current, 0);
         Drain(model);
         CHECK(model.Find(address)->failed && model.Find(address)->responded);
         CHECK(model.Find(address)->gameDirectory == "cstrike");
@@ -648,10 +655,12 @@ void ResolvedConnectionPortReplacesDirectoryAddress() {
         CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
         Drain(model);
         CHECK(model.Find(directoryAddress));
+        CHECK(model.GetStatus().responding == 0);
         model.Select(directoryAddress);
 
         auto& request = provider.requests.at(provider.current);
         request.rows.front() = Server(ServerIP);
+        request.rows.front().m_bHadSuccessfulResponse = false;
         request.callback->ServerResponded(provider.current, 0);
         provider.Complete();
         Drain(model);
