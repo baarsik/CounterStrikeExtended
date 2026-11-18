@@ -28,6 +28,11 @@ RADAR_TEST(RadarUtilExtractMapName, RespectsOutputSize) {
     CHECK_STREQ(out, "abc");
 }
 
+RADAR_TEST(RadarUtilExtractMapName, KeepsDottedMapAndHandlesEnginePathSeparators) {
+    CHECK_EQ(ExtractMapName("maps/de_dust2.v2.bsp"), "de_dust2.v2");
+    CHECK_EQ(ExtractMapName("maps\\custom.v1\\de_dust2.v3.bsp"), "de_dust2.v3");
+}
+
 RADAR_TEST(RadarUtilSiteLetter, UnderscoreSuffix) {
     CHECK_EQ(RadarUtil_DetectSiteLetter("tgt_a"), 'A');
     CHECK_EQ(RadarUtil_DetectSiteLetter("bomb_B"), 'B');

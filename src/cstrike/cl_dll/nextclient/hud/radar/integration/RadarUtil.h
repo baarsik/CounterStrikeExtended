@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <span>
 #include <string>
+#include <string_view>
 
 // Anchors a relative name at game_dir and makes it absolute: the process working
 // directory is not game_dir under Steam or the launcher.
@@ -22,19 +23,18 @@ inline std::filesystem::path RadarUtil_AnchorPath(const char* game_dir, const ch
 
 // "maps/de_dust2.bsp" -> "de_dust2"; writes at most out.size() - 1 characters plus a null.
 inline void RadarUtil_ExtractMapName(const char* level_name, std::span<char> out) {
-    const char* begin = level_name;
-    const char* slash = std::strrchr(level_name, '/');
-
-    if (slash) {
-        begin = slash + 1;
+    if (out.empty()) {
+        return;
     }
 
-    int i = 0;
-    while (begin[i] && begin[i] != '.' && i < (int)out.size() - 1) {
-        out[i] = begin[i];
-        i++;
+    std::string_view filename(level_name);
+    const auto separator = filename.find_last_of("/\\");
+    if (separator != std::string_view::npos) {
+        filename.remove_prefix(separator + 1);
     }
-    out[i] = '\0';
+    const auto basename = filename.substr(0, filename.rfind('.'));
+    const auto copied = basename.copy(out.data(), out.size() - 1);
+    out[copied] = '\0';
 }
 
 inline char RadarUtil_ToSiteLetter(char c) {
