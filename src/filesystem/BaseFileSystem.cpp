@@ -981,12 +981,15 @@ const char* CBaseFileSystem::GetLocalPath( const char* pFileName, char* pLocalPa
 			strcpy( pTmpFileName, m_SearchPaths[i].m_Path.String() );
 			strcat( pTmpFileName, pFileName );
 			FixSlashes( pTmpFileName );
-			if ( FS_stat( pTmpFileName, &buf ) != -1 )
-			{
-				strncpy( pLocalPath, pTmpFileName, localPathBufferSize );
-				pLocalPath[localPathBufferSize - 1] = 0;
-				return pLocalPath;
-			}
+            if (FS_stat(pTmpFileName, &buf) != -1) {
+#ifdef _WIN32
+                strncpy(pLocalPath, pTmpFileName, localPathBufferSize);
+                pLocalPath[localPathBufferSize - 1] = 0;
+#else
+                CopyNativePath(pTmpFileName, pLocalPath, localPathBufferSize);
+#endif
+                return pLocalPath;
+            }
 		}
 	}
 

@@ -12,6 +12,11 @@
 #include <string>
 #include <vector>
 
+#if defined(__APPLE__)
+extern IFileSystem* g_pFileSystem;
+void FS_Rename(const char* originalName, const char* newName);
+#endif
+
 namespace {
 
 void Require(bool condition, const char* message) {
@@ -255,11 +260,29 @@ void TestCase(IFileSystem* filesystem, const std::filesystem::path& root) {
 #endif
     filesystem->AddSearchPath(root.string().c_str(), "GAME");
     Require(Read(filesystem, "MixedDir/Upper.TXT") == "mixed", "exact spelling works");
+    char localPath[4096]{};
+    Require(filesystem->GetLocalPath("mixeddir/upper.txt", localPath, sizeof(localPath)) != nullptr,
+        "resolve the existing loose file using its VFS spelling");
+    std::ifstream localFile(localPath, std::ios::binary);
+    std::string localContents;
+    localFile >> localContents;
+    Require(localContents == "mixed", "native consumers can open the path returned by the VFS");
     Require(Read(filesystem, "mixeddir/upper.txt") == "mixed", "existing POSIX fallback descends directories");
     if (caseSensitive) {
         Require(Read(filesystem, "CaseTwin.txt") == "UPPER-ONLY", "exact upper-case file wins before folding");
         Require(Read(filesystem, "casetwin.txt") == "lower", "exact lower-case file remains distinct");
     }
+#if defined(__APPLE__)
+    WriteFile(root / "save/quick.SAV", "previous slot");
+    WriteFile(root / "custom.hp2", "temporary archive");
+    g_pFileSystem = filesystem;
+    FS_Rename("SAVE/quick.sav", "SAVE/quick01.sav");
+    FS_Rename("custom.hp2", "custom.hpk");
+    g_pFileSystem = nullptr;
+    Require(!std::filesystem::exists(root / "save/quick.SAV"), "rotate the selected save");
+    Require(Read(filesystem, "save/quick01.sav") == "previous slot", "backup uses the actual save directory");
+    Require(Read(filesystem, "custom.hpk") == "temporary archive", "rename a root-level temporary HPAK");
+#endif
     Require(filesystem->Open("missing.txt", "rb", nullptr) == nullptr, "missing file fails safely");
 }
 

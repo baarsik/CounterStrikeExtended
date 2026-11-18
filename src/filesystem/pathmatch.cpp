@@ -505,6 +505,11 @@ namespace
 	};
 }
 
+void CopyNativePath(const char* path, char* output, size_t capacity) {
+    MatchedPath matched(path, false);
+    std::snprintf(output, capacity, "%s", matched.Get());
+}
+
 extern "C" int __xstat( int version, const char* path, struct stat* buffer );
 extern "C" int __lxstat( int version, const char* path, struct stat* buffer );
 extern "C" int __xstat64( int version, const char* path, struct stat* buffer );
