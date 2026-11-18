@@ -41,7 +41,7 @@ def main():
                 ('x86_64-debug', 'x86_64', ['-O0', '-g', '-D_DEBUG'])]
     receipt = {'compiles': [], 'cases': [], 'network': 'all socket/DNS entry points are typed controlled functions; no real endpoints'}
     sources = [('socket', options.source), ('network', ROOT / 'src/HLTV/Core/Network.cpp'),
-               ('base', ROOT / 'src/HLTV/Core/private/common/BaseSystemModule.cpp'),
+               ('base', ROOT / 'src/common/native/BaseSystemModule.cpp'),
                ('buffer', ROOT / 'src/HLTV/common/BitBuffer.cpp'),
                ('address', ROOT / 'src/HLTV/common/NetAddress.cpp'),
                ('byteorder', ROOT / 'src/HLTV/common/byteorder.cpp'),

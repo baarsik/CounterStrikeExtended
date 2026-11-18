@@ -98,6 +98,10 @@ public:
 
     void ShutDown() override {}
 
+    void* QueryInterface(const char*) override {
+        return nullptr;
+    }
+
     double GetTime() override {
         return 0;
     }

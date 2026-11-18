@@ -34,6 +34,11 @@ public:
         return 1;
     }
     void ShutDown() override {}
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* QueryInterface(const char*) override {
+        return nullptr;
+    }
+#endif
     double GetTime() override {
         return 12.5;
     }
@@ -63,7 +68,11 @@ public:
         return false;
     }
 #ifdef _WIN32
+#if CSE_NATIVE_SYSTEM_MODULE
+    void* GetPanel() override {
+#else
     vgui::Panel* GetPanel() override {
+#endif
         return nullptr;
     }
 #endif
