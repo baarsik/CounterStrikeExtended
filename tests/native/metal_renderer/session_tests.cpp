@@ -284,7 +284,7 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     }
     sceneDrawCalls = 0;
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls == 1);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     constexpr int kQuarterChannel = 64;
     constexpr int kHalfChannel = 128;
@@ -447,13 +447,17 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     frame.draws[0].meshColor = {{0, 1, 0, 1}};
     frame.events.resize(1);
     std::array<unsigned char, 4> pixel{};
+    session.EnableDiagnostics(true);
     for (unsigned repeat = 0; repeat < 4; ++repeat) {
         geometryUploads = 0;
+        const auto copyPasses = session.Diagnostics().copyPasses;
         CHECK(session.Render(frame, error));
         CHECK(geometryUploads == (repeat == 0 ? 2u : 0u));
+        CHECK(repeat == 0 || session.Diagnostics().copyPasses == copyPasses);
         CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0);
     }
+    session.EnableDiagnostics(false);
     // Adjacent resident surfaces with identical state retain batching, including nonzero page offsets.
     FrameSnapshot batched = frame;
     batched.draws.resize(2, batched.draws[0]);
@@ -513,7 +517,7 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     batched.events.insert(batched.events.begin(), blueClear);
     sceneIndexedDrawCalls = 0;
     CHECK(session.Render(batched, error));
-    CHECK(sceneIndexedDrawCalls == 1); // Clear geometry uses the separate non-indexed path.
+    CHECK(sceneIndexedDrawCalls == 1);
     CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
     constexpr int kHalfChannel = 128;
     constexpr int kQuarterChannel = 64;
@@ -721,6 +725,40 @@ extern "C" SDL_GPUFence* SDL_SubmitGPUCommandBufferAndAcquireFence(SDL_GPUComman
         "SDL_SubmitGPUCommandBufferAndAcquireFence")(command);
 }
 
+void AttachmentClears(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent color;
+    color.kind = FrameEventKind::Clear;
+    color.clear.mask = kClearColor;
+    color.clear.color = {{0, 1, 0, 1}};
+    FrameEvent depth;
+    depth.kind = FrameEventKind::Clear;
+    depth.clear.mask = kClearDepth;
+    depth.clear.depth = 0;
+    frame.events = {color, depth};
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().gpuDraws == 0);
+    CHECK(session.Diagnostics().copyPasses == 0);
+    CHECK(session.Diagnostics().renderPasses == 1);
+    frame.draws = {Solid(1, 0, 0)};
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::DepthTest)] = true;
+    frame.events = {FrameEvent{}};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    constexpr auto center = kTargetSize / 2;
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    depth.clear.depth = 1;
+    frame.events = {depth, FrameEvent{}};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    session.EnableDiagnostics(false);
+}
+
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -737,6 +775,7 @@ int main() {
     NonfiniteGeometry(session, error);
     BatchedUiPixels(session, error);
     PersistentMesh(session, error);
+    AttachmentClears(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;

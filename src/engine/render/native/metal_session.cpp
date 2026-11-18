@@ -1,4 +1,5 @@
 #include "metal_session.h"
+#include "../../native_frame_timings.h"
 #include "surface_mesh.h"
 #include "metal_effect_access.h"
 #include "radar_renderer_gpu.h"
@@ -1252,10 +1253,46 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     }
     draws.reserve(frame.events.size());
     Impl::Preparation pending;
+    std::size_t firstDraw = 0;
+    SDL_FColor initialColor{0, 0, 0, 0};
+    float initialDepth = 1;
+    bool clearColor = !state.initializedTarget;
+    bool clearDepth = !state.initializedTarget;
+    // Only whole-attachment clears with exact endpoint values can replace the
+    // corresponding load. Masked/scissored and other numeric clears remain draws.
+    for (; firstDraw < frame.events.size(); ++firstDraw) {
+        const auto& event = frame.events[firstDraw];
+        const auto& clear = event.clear;
+        if (event.kind != FrameEventKind::Clear || !clear.mask || clear.scissorEnabled) {
+            break;
+        }
+        const bool clearsColor = (clear.mask & kClearColor) != 0;
+        const bool clearsDepth = (clear.mask & kClearDepth) != 0;
+        if (clearsDepth && (!clear.depthWrite || (clear.depth != 0 && clear.depth != 1))) {
+            break;
+        }
+        const bool validColor = std::all_of(clear.color.begin(), clear.color.end(),
+            [clearsColor](float component) {
+                return clearsColor ? component == 0 || component == 1 : std::isfinite(component);
+            });
+        if (!validColor || (clearsColor && !std::all_of(clear.colorWrite.begin(), clear.colorWrite.end(),
+            [](bool write) { return write; }))) {
+            break;
+        }
+        if (clearsColor) {
+            initialColor = {clear.color[0], clear.color[1], clear.color[2], clear.color[3]};
+            clearColor = true;
+        }
+        if (clearsDepth) {
+            initialDepth = static_cast<float>(clear.depth);
+            clearDepth = true;
+        }
+    }
     std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
-    for (const auto& event : frame.events) {
+    for (std::size_t index = firstDraw; index < frame.events.size(); ++index) {
+        const auto& event = frame.events[index];
         auto& draw = draws.emplace_back();
         if (event.kind == FrameEventKind::Clear) {
             if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error)) {
@@ -1375,133 +1412,140 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     if (meshIndexBytes) {
         uploadBytes = meshIndexUploadOffset + meshIndexBytes;
     }
-    auto* chunk = state.NextStream(error, uploadBytes);
-    if (!chunk) {
+    auto* stream = uploadBytes ? state.NextStream(error, uploadBytes) : nullptr;
+    if (uploadBytes && !stream) {
         return false;
     }
-    auto& stream = *chunk;
-    if (!state.EnsureStream(stream, vertexBytes, indexBytes + meshIndexBytes, uploadBytes, error)) {
+    if (stream) {
+        if (!state.EnsureStream(*stream, vertexBytes, indexBytes + meshIndexBytes, uploadBytes, error)) {
+            return false;
+        }
+        auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream->upload, false));
+        if (!mapped) {
+            return DeviceFailure(error, "Map persistent Metal upload");
+        }
+        for (const auto& draw : draws) {
+            if (!draw.data.vertices.empty()) {
+                std::memcpy(mapped + draw.vertexOffset, draw.data.vertices.data(),
+                    draw.data.vertices.size() * sizeof(Vertex));
+            }
+            if (!draw.data.indices.empty()) {
+                std::memcpy(mapped + vertexBytes + draw.indexOffset, draw.data.indices.data(),
+                    draw.data.indices.size() * sizeof(std::uint32_t));
+            }
+        }
+        for (const auto& upload : meshUploads) {
+            std::memcpy(mapped + upload.vertexOffset, upload.object->Vertices().data(),
+                upload.object->Vertices().size() * sizeof(Vertex));
+            // Page-relative indices let adjacent resident surfaces share one indexed draw without
+            // rewriting their geometry each frame. Every mesh starts at a whole Vertex boundary.
+            auto* indices = reinterpret_cast<std::uint32_t*>(mapped + upload.indexOffset);
+            const auto baseVertex = static_cast<std::uint32_t>(upload.mesh->vertexOffset / sizeof(Vertex));
+            for (std::size_t index = 0; index < upload.object->Indices().size(); ++index) {
+                indices[index] = upload.object->Indices()[index] + baseVertex;
+            }
+        }
+        for (const auto& upload : uploads) {
+            const auto& image = upload.texture->data.levels[upload.level];
+            std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
+        }
+        if (meshIndexBytes) {
+            auto* indices = reinterpret_cast<std::uint32_t*>(mapped + meshIndexUploadOffset);
+            for (std::size_t index = 0; index < draws.size(); ++index) {
+                const auto& draw = draws[index];
+                if (!draw.meshIndicesInStream) {
+                    continue;
+                }
+                for (auto offset = index; offset < index + draw.meshBatchDraws; ++offset) {
+                    const auto& piece = draws[offset];
+                    const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / sizeof(Vertex));
+                    const auto& original = piece.data.mesh->Indices();
+                    indices = std::transform(original.begin(), original.end(), indices,
+                        [base](std::uint32_t value) { return value + base; });
+                }
+                index += draw.meshBatchDraws - 1;
+            }
+        }
+        SDL_UnmapGPUTransferBuffer(state.device, stream->upload);
+    }
+    auto* command = state.Commands(error);
+    if (!command) {
         return false;
     }
-    auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream.upload, false));
-    if (!mapped) {
-        return DeviceFailure(error, "Map persistent Metal upload");
-    }
-    for (const auto& draw : draws) {
-        if (!draw.data.vertices.empty()) {
-            std::memcpy(mapped + draw.vertexOffset, draw.data.vertices.data(),
-                draw.data.vertices.size() * sizeof(Vertex));
-        }
-        if (!draw.data.indices.empty()) {
-            std::memcpy(mapped + vertexBytes + draw.indexOffset, draw.data.indices.data(),
-                draw.data.indices.size() * sizeof(std::uint32_t));
-        }
-    }
-    for (const auto& upload : meshUploads) {
-        std::memcpy(mapped + upload.vertexOffset, upload.object->Vertices().data(),
-            upload.object->Vertices().size() * sizeof(Vertex));
-        // Page-relative indices let adjacent resident surfaces share one indexed draw without
-        // rewriting their geometry each frame. Every mesh starts at a whole Vertex boundary.
-        auto* indices = reinterpret_cast<std::uint32_t*>(mapped + upload.indexOffset);
-        const auto baseVertex = static_cast<std::uint32_t>(upload.mesh->vertexOffset / sizeof(Vertex));
-        for (std::size_t index = 0; index < upload.object->Indices().size(); ++index) {
-            indices[index] = upload.object->Indices()[index] + baseVertex;
-        }
-    }
-    for (const auto& upload : uploads) {
-        const auto& image = upload.texture->data.levels[upload.level];
-        std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
-    }
-    if (meshIndexBytes) {
-        auto* indices = reinterpret_cast<std::uint32_t*>(mapped + meshIndexUploadOffset);
-        for (std::size_t index = 0; index < draws.size(); ++index) {
-            const auto& draw = draws[index];
-            if (!draw.meshIndicesInStream) {
-                continue;
-            }
-            for (auto offset = index; offset < index + draw.meshBatchDraws; ++offset) {
-                const auto& piece = draws[offset];
-                const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / sizeof(Vertex));
-                const auto& original = piece.data.mesh->Indices();
-                indices = std::transform(original.begin(), original.end(), indices,
-                    [base](std::uint32_t value) { return value + base; });
-            }
-            index += draw.meshBatchDraws - 1;
-        }
-    }
-    SDL_UnmapGPUTransferBuffer(state.device, stream.upload);
     if (state.diagnosticsEnabled) {
         state.counters.prepareMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - prepareStart).count();
         state.counters.uploadBytes += uploadBytes;
-        if (!uploadBytes) {
+        if (stream) {
+            ++state.counters.copyPasses;
+        } else {
             ++state.counters.emptyUploadSegments;
         }
-        ++state.counters.copyPasses;
         ++state.counters.renderPasses;
     }
     Impl::Timer encodeTimer(state.diagnosticsEnabled ? &state.counters.encodeMs : nullptr);
-    auto* command = state.command;
     SDL_PushGPUDebugGroup(command, "Legacy scene / HUD");
-    auto* copy = SDL_BeginGPUCopyPass(command);
-    if (!copy) {
-        SDL_PopGPUDebugGroup(command);
-        return DeviceFailure(error, "Begin Metal upload pass");
+    if (stream) {
+        auto* copy = SDL_BeginGPUCopyPass(command);
+        if (!copy) {
+            SDL_PopGPUDebugGroup(command);
+            return DeviceFailure(error, "Begin Metal upload pass");
+        }
+        if (vertexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, 0};
+            SDL_GPUBufferRegion destination{stream->vertices, 0, static_cast<Uint32>(vertexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        if (indexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, static_cast<Uint32>(vertexBytes)};
+            SDL_GPUBufferRegion destination{stream->indices, 0, static_cast<Uint32>(indexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        if (meshIndexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, static_cast<Uint32>(meshIndexUploadOffset)};
+            SDL_GPUBufferRegion destination{stream->indices, static_cast<Uint32>(indexBytes),
+                static_cast<Uint32>(meshIndexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        for (const auto& upload : meshUploads) {
+            SDL_GPUTransferBufferLocation source{stream->upload, upload.vertexOffset};
+            SDL_GPUBufferRegion destination{upload.mesh->page->vertices, upload.mesh->vertexOffset,
+                static_cast<Uint32>(upload.object->Vertices().size() * sizeof(Vertex))};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+            source.offset = upload.indexOffset;
+            destination.buffer = upload.mesh->page->indices;
+            destination.offset = upload.mesh->indexOffset;
+            destination.size = static_cast<Uint32>(upload.object->Indices().size() * sizeof(std::uint32_t));
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        for (const auto& upload : uploads) {
+            const auto& image = upload.texture->data.levels[upload.level];
+            SDL_GPUTextureTransferInfo source{};
+            source.transfer_buffer = stream->upload;
+            source.offset = upload.offset;
+            // Pinned SDL Metal uses destination width; every uploaded mip is deliberately tightly packed.
+            source.pixels_per_row = image.width;
+            source.rows_per_layer = image.height;
+            SDL_GPUTextureRegion destination{};
+            destination.texture = upload.texture->texture;
+            destination.mip_level = upload.level;
+            destination.w = image.width;
+            destination.h = image.height;
+            destination.d = 1;
+            SDL_UploadToGPUTexture(copy, &source, &destination, false);
+        }
+        SDL_EndGPUCopyPass(copy);
     }
-    if (vertexBytes) {
-        SDL_GPUTransferBufferLocation source{stream.upload, 0};
-        SDL_GPUBufferRegion destination{stream.vertices, 0, static_cast<Uint32>(vertexBytes)};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    if (indexBytes) {
-        SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(vertexBytes)};
-        SDL_GPUBufferRegion destination{stream.indices, 0, static_cast<Uint32>(indexBytes)};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    if (meshIndexBytes) {
-        SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(meshIndexUploadOffset)};
-        SDL_GPUBufferRegion destination{stream.indices, static_cast<Uint32>(indexBytes),
-            static_cast<Uint32>(meshIndexBytes)};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    for (const auto& upload : meshUploads) {
-        SDL_GPUTransferBufferLocation source{stream.upload, upload.vertexOffset};
-        SDL_GPUBufferRegion destination{upload.mesh->page->vertices, upload.mesh->vertexOffset,
-            static_cast<Uint32>(upload.object->Vertices().size() * sizeof(Vertex))};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-        source.offset = upload.indexOffset;
-        destination.buffer = upload.mesh->page->indices;
-        destination.offset = upload.mesh->indexOffset;
-        destination.size = static_cast<Uint32>(upload.object->Indices().size() * sizeof(std::uint32_t));
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    for (const auto& upload : uploads) {
-        const auto& image = upload.texture->data.levels[upload.level];
-        SDL_GPUTextureTransferInfo source{};
-        source.transfer_buffer = stream.upload;
-        source.offset = upload.offset;
-        // Pinned SDL Metal uses destination width; every uploaded mip is deliberately tightly packed.
-        source.pixels_per_row = image.width;
-        source.rows_per_layer = image.height;
-        SDL_GPUTextureRegion destination{};
-        destination.texture = upload.texture->texture;
-        destination.mip_level = upload.level;
-        destination.w = image.width;
-        destination.h = image.height;
-        destination.d = 1;
-        SDL_UploadToGPUTexture(copy, &source, &destination, false);
-    }
-    SDL_EndGPUCopyPass(copy);
     SDL_GPUColorTargetInfo color{};
     color.texture = state.multisample ? state.multisample : state.color;
     color.resolve_texture = resolve;
-    color.clear_color = {0, 0, 0, 0};
-    color.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
+    color.clear_color = initialColor;
+    color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
     // Keep the samples for later HUD/effect segments while delivering the resolved image.
     color.store_op = resolve ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth{};
     depth.texture = state.depth;
-    depth.clear_depth = 1;
-    depth.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
+    depth.clear_depth = initialDepth;
+    depth.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
     depth.store_op = SDL_GPU_STOREOP_STORE;
     depth.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
     depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
@@ -1602,7 +1646,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             SDL_SetGPUScissor(pass, &scissor);
             previousScissor = scissor;
         }
-        SDL_GPUBufferBinding binding{draw.mesh ? draw.mesh->page->vertices : stream.vertices,
+        SDL_GPUBufferBinding binding{draw.mesh ? draw.mesh->page->vertices : stream->vertices,
             draw.mesh ? 0 : draw.vertexOffset};
         if (previousVertexBinding.buffer != binding.buffer || previousVertexBinding.offset != binding.offset) {
             SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
@@ -1639,7 +1683,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
             const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;
-            auto* indexBuffer = residentIndices ? draw.mesh->page->indices : stream.indices;
+            auto* indexBuffer = residentIndices ? draw.mesh->page->indices : stream->indices;
             if (indexBuffer != previousIndexBuffer) {
                 const SDL_GPUBufferBinding indices{indexBuffer, 0};
                 SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
@@ -1737,6 +1781,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     };
     Uint32 width = 0;
     Uint32 height = 0;
+    const auto previousDrawableWait = state.counters.drawableWaitMs;
     {
         Impl::Timer drawableTimer(state.diagnosticsEnabled ? &state.counters.drawableWaitMs : nullptr);
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
@@ -1800,6 +1845,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     }
     if (state.diagnosticsFile) {
         const auto& c = state.counters;
+        cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
         std::fprintf(state.diagnosticsFile,
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
             "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d\n",

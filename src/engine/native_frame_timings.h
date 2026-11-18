@@ -88,6 +88,12 @@ public:
         currentSample_ = false;
     }
 
+    void RecordMetalDrawableWait(double milliseconds) {
+        if (currentSample_ && !samples_.empty()) {
+            samples_.back().metalDrawableWait += milliseconds;
+        }
+    }
+
     void Flush() {
         if (path_.empty() || samples_.empty()) {
             return;
@@ -98,7 +104,7 @@ public:
         }
         std::fprintf(file, "# pid=%d\ninterval_ms,connected,menu,focused,host_ms,server_ms,client_ms,"
             "graphics_ms,audio_ms,completed,move_ms,client_dll_ms,packets_ms,prediction_ms,voice_ms,"
-            "entities_ms,resources_ms,steam_ms,camera_ms\n", getpid());
+            "entities_ms,resources_ms,steam_ms,camera_ms,metal_drawable_wait_ms\n", getpid());
         for (const auto& sample : samples_) {
             std::fprintf(file, "%.6f,%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%d", sample.milliseconds,
                 sample.connected, sample.menu, sample.focused, sample.host, sample.server, sample.client,
@@ -106,7 +112,7 @@ public:
             for (double phase : sample.clientPhases) {
                 std::fprintf(file, ",%.6f", phase);
             }
-            std::fputc('\n', file);
+            std::fprintf(file, ",%.6f\n", sample.metalDrawableWait);
         }
         std::fclose(file);
         if (!packetEvents_.empty()) {
@@ -148,6 +154,7 @@ private:
         double audio;
         bool completed;
         std::array<double, static_cast<std::size_t>(ClientPhase::Count)> clientPhases;
+        double metalDrawableWait = 0.0;
     };
     std::string path_;
     std::vector<SampleValue> samples_;
