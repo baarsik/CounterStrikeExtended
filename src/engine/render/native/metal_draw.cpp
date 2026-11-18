@@ -311,8 +311,10 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         }
     }
     const bool borrowVertices = allFinite && colorsClamped;
+    prepared.indexedQuads = ownership == MetalGeometryOwnership::Borrow && draw.primitive == Primitive::Quads &&
+        !wire;
     if (!borrowVertices) {
-        prepared.vertices.reserve(loweredCount);
+        prepared.vertices.reserve(prepared.indexedQuads ? count / kQuadCorners * kQuadCorners : loweredCount);
     }
     if (borrowVertices && !draw.indices.empty()) {
         prepared.borrowedIndices = &draw.indices;
@@ -477,9 +479,26 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         }
         break;
     case Primitive::Quads:
-        // Convex GL quads are split along 0--2; preserve the fourth provoking color on both triangles.
-        for (std::size_t index = 0; index + 3 < count; index += 4) {
-            emit({index, index + 1, index + 2, index, index + 2, index + 3}, index + 3);
+        // The two triangles share the original diagonal and the fourth provoking color.
+        for (std::size_t index = 0; index + kQuadCorners <= count; index += kQuadCorners) {
+            const auto provoking = index + kQuadCorners - 1;
+            if (prepared.indexedQuads) {
+                bool keep = true;
+                if (!allFinite) {
+                    for (std::size_t corner = index; corner <= provoking; ++corner) {
+                        keep &= valid(corner, provoking);
+                    }
+                }
+                if (!keep) {
+                    prepared.discardedNonfinite = true;
+                    continue;
+                }
+                for (std::size_t corner = index; corner <= provoking; ++corner) {
+                    prepared.vertices.push_back(normalized(corner, provoking));
+                }
+            } else {
+                emit({index, index + 1, index + 2, index, index + 2, provoking}, provoking);
+            }
         }
         break;
     case Primitive::QuadStrip:

@@ -167,6 +167,53 @@ DrawPacket Solid(float red, float green, float blue) {
     return draw;
 }
 
+void IndexedQuads(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear, FrameEvent{}};
+    frame.draws = {Solid(1, 1, 1)};
+    auto& draw = frame.draws[0];
+    draw.vertices.clear();
+    draw.shade = Shade::Flat;
+    draw.raster.shade = Shade::Flat;
+    for (float center : {-0.67f, 0.0f, 0.67f}) {
+        auto quad = Solid(1, 1, 1);
+        for (auto& vertex : quad.vertices) {
+            vertex.position[0] = center + 0.28f * vertex.position[0];
+        }
+        quad.vertices.back().color = center < 0 ?
+            std::array<float, 4>{{1, 0, 0, 1}} : std::array<float, 4>{{0, 1, 0, 1}};
+        if (center == 0) {
+            quad.vertices[3].position[0] = std::numeric_limits<float>::quiet_NaN();
+        }
+        draw.vertices.insert(draw.vertices.end(), quad.vertices.begin(), quad.vertices.end());
+    }
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    constexpr std::size_t kValidQuads = 2;
+    constexpr std::size_t kVerticesPerQuad = 4;
+    constexpr std::size_t kIndicesPerQuad = 6;
+    constexpr std::size_t kCompactStride = 48;
+    CHECK(session.Diagnostics().streamedVertexBytes == kValidQuads * kVerticesPerQuad * kCompactStride);
+    CHECK(session.Diagnostics().streamedIndexBytes == kValidQuads * kIndicesPerQuad * sizeof(std::uint32_t));
+    CHECK(session.Diagnostics().gpuDraws == 1);
+    std::array<unsigned char, 4> pixel{};
+    constexpr int middle = kTargetSize / 2;
+    for (int y : {middle / 2, middle + middle / 2}) {
+        CHECK(session.ReadPixels(2, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+        CHECK(session.ReadPixels(middle, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0);
+        CHECK(session.ReadPixels(kTargetSize - 3, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    }
+    session.EnableDiagnostics(false);
+}
+
 void ConsecutiveDraws(MetalSession& session, std::string& error) {
     constexpr int kHalfSize = kTargetSize / 2;
     constexpr int kLeftSample = kTargetSize / 4;
@@ -187,9 +234,10 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     session.EnableDiagnostics(true);
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 1);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 1);
     const auto& counters = session.Diagnostics();
     CHECK(counters.textureLookups == 1 && counters.samplerLookups == 1 && counters.pipelineLookups == 1);
     session.EnableDiagnostics(false);
@@ -207,9 +255,10 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         vertex.color[3] = 0.25f;
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     sceneBindings = {};
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 2 && sceneBindings.samplers == 1);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
@@ -219,9 +268,10 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     frame.draws[0].raster.alphaFunction = Compare::Greater;
     frame.draws[0].raster.alphaReference = 0.25f;
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     sceneBindings = {};
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 1);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
@@ -237,8 +287,9 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
             frame.draws[1].projection.values[12] = 1;
         }
         sceneDrawCalls = 0;
+        sceneIndexedDrawCalls = 0;
         CHECK(session.Render(frame, error));
-        CHECK(sceneDrawCalls == 2);
+        CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
         CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
         CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
@@ -260,9 +311,10 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         frame.draws[index].resources[0].texture2D = object;
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     sceneBindings = {};
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 2);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 1);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
@@ -283,8 +335,9 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         }
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 1);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 1);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     constexpr int kQuarterChannel = 64;
     constexpr int kHalfChannel = 128;
@@ -648,7 +701,7 @@ void IndexedDraws(MetalSession& session, std::string& error) {
         sceneDrawCalls = 0;
         sceneIndexedDrawCalls = 0;
         CHECK(session.Render(frame, error));
-        CHECK(sceneDrawCalls == 2 && sceneIndexedDrawCalls == 1);
+        CHECK(sceneDrawCalls == 0 && sceneIndexedDrawCalls == 2);
         CHECK(session.ReadPixels(kLeftSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
         CHECK(session.ReadPixels(kRightSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
@@ -910,6 +963,7 @@ int main() {
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
     PreparationReuse(session, error);
+    IndexedQuads(session, error);
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
     IndexedTextureLayout(session, error);

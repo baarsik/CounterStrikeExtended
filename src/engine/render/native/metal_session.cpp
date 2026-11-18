@@ -245,7 +245,7 @@ struct MetalSession::Impl {
         const auto& right = second.data;
         const bool compatibleGeometry = first.mesh && second.mesh ? first.mesh->page == second.mesh->page :
             !first.mesh && !second.mesh && first.layout == second.layout &&
-                left.Indices().empty() == right.Indices().empty();
+                (left.IndexCount() == 0) == (right.IndexCount() == 0);
         return compatibleGeometry && first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
             SameBits(left.raster.depthRange, right.raster.depthRange) && left.raster.scissor == right.raster.scissor &&
@@ -834,7 +834,7 @@ struct MetalSession::Impl {
         }
         if (draw.mesh && draw.data.mesh->HasWorldVertexLayout()) {
             draw.layout = VertexLayout::World;
-        } else if (!draw.mesh && !packet.indices.empty() && !draw.data.Indices().empty() &&
+        } else if (!draw.mesh && draw.data.IndexCount() != 0 &&
             draw.data.fragment.legacy.unit[1][0] == 0 && draw.data.fragment.legacy.unit[2][0] == 0) {
             // Higher texture coordinates cannot influence a single-texture draw.
             draw.layout = VertexLayout::SingleTexture;
@@ -1381,7 +1381,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
             kSingleTextureVertexBytes : sizeof(Vertex);
         const auto drawVertexBytes = draw.data.Vertices().size() * vertexStride;
-        const auto drawIndexBytes = draw.data.Indices().size() * sizeof(std::uint32_t);
+        const auto drawIndexBytes = draw.data.IndexCount() * sizeof(std::uint32_t);
         const auto bytes = drawVertexBytes + drawIndexBytes;
         if (bytes > kMaximumStreamingBytes - geometryBytes) {
             return Fail(error, "Frame geometry exceeds Metal streaming budget");
@@ -1498,18 +1498,18 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     // their existing index slices. Keep every primitive in its original order.
     for (std::size_t first = 0; first < draws.size();) {
         auto& draw = draws[first];
-        if (draw.mesh || draw.data.Indices().empty()) {
+        if (draw.mesh || draw.data.IndexCount() == 0) {
             ++first;
             continue;
         }
         const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
             kSingleTextureVertexBytes : sizeof(Vertex);
-        auto count = draw.data.Indices().size();
+        auto count = draw.data.IndexCount();
         auto end = first + 1;
         while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
             auto& next = draws[end];
             next.streamedBaseVertex = static_cast<std::uint32_t>((next.vertexOffset - draw.vertexOffset) / vertexStride);
-            count += next.data.Indices().size();
+            count += next.data.IndexCount();
             ++end;
         }
         if (end > first + 1) {
@@ -1542,7 +1542,15 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                 std::memcpy(mapped + draw.vertexOffset, vertices.data(), vertices.size() * sizeof(Vertex));
             }
             const auto& indices = draw.data.Indices();
-            if (!indices.empty()) {
+            if (draw.data.indexedQuads) {
+                auto* destination = reinterpret_cast<std::uint32_t*>(mapped + vertexBytes + draw.indexOffset);
+                for (std::size_t corner = 0; corner < vertices.size(); corner += kQuadCorners) {
+                    const auto base = draw.streamedBaseVertex + static_cast<std::uint32_t>(corner);
+                    for (auto index : kQuadIndices) {
+                        *destination++ = base + index;
+                    }
+                }
+            } else if (!indices.empty()) {
                 auto* destination = mapped + vertexBytes + draw.indexOffset;
                 if (draw.streamedBaseVertex) {
                     const auto base = draw.streamedBaseVertex;
@@ -1698,14 +1706,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
         auto vertexCount = data.Vertices().size();
-        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.Indices().size();
+        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.IndexCount();
         // Preserve order while combining adjacent stream ranges or resident ranges on the same page.
         // Material, uniforms, transforms, scissor and all dynamic raster state must match exactly.
         if (draw.batchDraws) {
             drawIndex += draw.batchDraws - 1;
             indexCount = draw.batchIndices;
         }
-        while (!draw.batchDraws && (draw.mesh || data.Indices().empty()) && drawIndex + 1 < draws.size()) {
+        while (!draw.batchDraws && (draw.mesh || (data.IndexCount() == 0)) && drawIndex + 1 < draws.size()) {
             const auto& next = draws[drawIndex + 1];
             if (!Impl::SameDrawState(draw, next)) {
                 break;
@@ -1807,7 +1815,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             }
             state.counters.borderSamplingDraws += draw.softwareBorder;
         }
-        if (!draw.mesh && data.Indices().empty()) {
+        if (!draw.mesh && (data.IndexCount() == 0)) {
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
             const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;

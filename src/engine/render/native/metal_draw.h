@@ -30,6 +30,9 @@ struct alignas(16) MetalVertexConstants {
 };
 static_assert(sizeof(MetalVertexConstants) == 384, "Offline production Metal vertex layout");
 
+constexpr std::size_t kQuadCorners = 4;
+constexpr std::array<std::uint32_t, 6> kQuadIndices{{0, 1, 2, 0, 2, 3}};
+
 struct MetalDrawData {
     MetalVertexConstants vertex;
     std::shared_ptr<const SurfaceMesh> mesh;
@@ -39,12 +42,17 @@ struct MetalDrawData {
     Primitive topology = Primitive::Triangles;
     RasterState raster;
     bool discardedNonfinite = false;
+    bool indexedQuads = false;
 
     const std::vector<Vertex>& Vertices() const {
         return borrowedVertices ? *borrowedVertices : vertices;
     }
     const std::vector<std::uint32_t>& Indices() const {
         return borrowedIndices ? *borrowedIndices : indices;
+    }
+
+    std::size_t IndexCount() const {
+        return indexedQuads ? vertices.size() / kQuadCorners * kQuadIndices.size() : Indices().size();
     }
 
     // Borrowed only during synchronous encoding while the frame owns the packet.
