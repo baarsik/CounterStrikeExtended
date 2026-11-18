@@ -94,6 +94,7 @@ public:
 	void DrawRadarDot( int x, int y, float z, int size, int flags, int r, int g, int b, int alpha );
 	void DrawRadar( float time );
 	void DrawPlayerLocation();
+	void DrawPlayerLocation(int player, int centerX, int radarBottom);
 	void GetAllPlayersInfo();
 	void GetPainColor( int& r, int& g, int& b );
 	int DrawPain( float time );

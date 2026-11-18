@@ -8,13 +8,28 @@ void DeathMarks::Reset() {
     }
 }
 
-void DeathMarks::Add(ncl_math::Vector3 world, ncl_math::Color color, float time) {
+void DeathMarks::Add(int player, ncl_math::Vector3 world, ncl_math::Color color, float time) {
     Mark& mark = marks_[head_];
+    mark.player = player;
     mark.pos = world;
     mark.color = color;
     mark.time = time;
     mark.active = true;
     head_ = (head_ + 1) % kMax;
+}
+
+void DeathMarks::Correct(int player, ncl_math::Vector3 world, ncl_math::Color color, float time) {
+    constexpr float kCorrectionWindow = 1.0f; // DeathMsg can arrive after ScoreAttrib.
+    for (int offset = 0; offset < kMax; ++offset) {
+        Mark& mark = marks_[(head_ + kMax - 1 - offset) % kMax];
+        const float age = time - mark.time;
+        if (mark.active && mark.player == player && age >= 0.0f && age <= kCorrectionWindow) {
+            mark.pos = world;
+            mark.color = color;
+            return;
+        }
+    }
+    Add(player, world, color, time);
 }
 
 int DeathMarks::CollectVisible(std::span<Visible> out, float time) {

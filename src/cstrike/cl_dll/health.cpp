@@ -559,12 +559,14 @@ int CHudHealth::MsgFunc_Account(const char *, int size, void *buffer)
 
 int CHudHealth::MsgFunc_HealthInfo(const char *, int size, void *buffer)
 {
-	BEGIN_READ(buffer, size);
-	int player = READ_BYTE();
-	int health = READ_LONG();
-	if ((unsigned int)(player - 1) <= 63)
-		g_PlayerExtraInfo[player].sb_health = health;
-	return 1;
+    BEGIN_READ(buffer, size);
+    int player = READ_BYTE();
+    int health = READ_LONG();
+    if ((unsigned int)(player - 1) <= 63) {
+        g_PlayerExtraInfo[player].sb_health = health;
+        CSE_UpdateScoreboardHealth(player, health);
+    }
+    return 1;
 }
 
 int CHudHealth::MsgFunc_ScoreAttrib(const char *, int size, void *buffer)
@@ -661,17 +663,28 @@ void CHudHealth::UserCmd_ClearPlayers()
 
 void CHudHealth::DrawPlayerLocation()
 {
-	wchar_t *location = vgui2::localize()->Find(g_PlayerExtraInfo[m_iPlayerNum].location);
-	if (!location)
-		return;
-	int width, height;
-	gHUD.m_VGUI2Print.GetStringSize(location, &width, &height);
-	int x = (ScreenWidth >= 640 ? 64 : 32) - width / 2;
-	if (x < 0)
-		x = 0;
-	int y = (ScreenWidth >= 640 ? 128 : 64) + height / 2;
-	gHUD.m_VGUI2Print.DrawVGUI2String(location, x, y,
-		g_LocationColor[0], g_LocationColor[1], g_LocationColor[2]);
+    DrawPlayerLocation(m_iPlayerNum, ScreenWidth >= 640 ? 64 : 32, ScreenWidth >= 640 ? 128 : 64);
+}
+
+void CHudHealth::DrawPlayerLocation(int player, int centerX, int radarBottom)
+{
+    if (player < 1 || player > MAX_PLAYERS) {
+        return;
+    }
+    wchar_t* location = vgui2::localize()->Find(g_PlayerExtraInfo[player].location);
+    if (!location) {
+        return;
+    }
+    int width;
+    int height;
+    gHUD.m_VGUI2Print.GetStringSize(location, &width, &height);
+    int x = centerX - width / 2;
+    if (x < 0) {
+        x = 0;
+    }
+    int y = radarBottom + height / 2;
+    gHUD.m_VGUI2Print.DrawVGUI2String(location, x, y,
+                                     g_LocationColor[0], g_LocationColor[1], g_LocationColor[2]);
 }
 
 void CHudHealth::DrawRadarDot(int x, int y, float z, int size, int flags, int r, int g, int b, int alpha)

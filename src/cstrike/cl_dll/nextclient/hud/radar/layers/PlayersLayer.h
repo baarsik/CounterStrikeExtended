@@ -88,6 +88,7 @@ class PlayersLayer {
 
     DeathMarks deaths_;
     std::array<bool, kRadarMaxPlayers + 1> prev_alive_{};
+    std::array<std::uint32_t, kRadarMaxPlayers + 1> death_seq_{};
     std::array<bool, kRadarMaxPlayers + 1> prev_snapshot_{};
     std::array<ncl_math::Vector3, kRadarMaxPlayers + 1> prev_pos_{};
     std::array<ncl_math::Vector3, kRadarMaxPlayers + 1> prev_snapshot_pos_{};

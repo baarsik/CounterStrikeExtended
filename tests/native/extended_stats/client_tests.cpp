@@ -41,6 +41,19 @@ int main(int, char** argv) {
         state.Apply(Stat::Health, death, 5, 32, player);
         Check(state.Get(Stat::Health, 1).amount == 0, "real extended death accepted");
         Check(!state.Get(Stat::Armor, 2).valid, "foreign stat not invented");
+    } else if (std::strcmp(argv[1], "scoreboard_health_fallback") == 0) {
+        state.Legacy(Stat::Health, 1, 255);
+        Check(state.ScoreboardHealth(1, 500) == 500, "HealthInfo preserves full local health");
+        Check(state.Get(Stat::Health, 1).amount == 500, "HealthInfo outranks legacy Health");
+        state.Apply(Stat::Health, high, 5, 32, player);
+        Check(state.Get(Stat::Health, 1).amount == 99999, "HealthEx outranks HealthInfo");
+        state.Apply(Stat::Health, invalid, 5, 32, player);
+        Check(state.Get(Stat::Health, 1).amount == 500, "HealthInfo resumes after HealthEx invalidation");
+        state.ScoreboardHealth(1, -1);
+        Check(state.Get(Stat::Health, 1).amount == 255, "hidden HealthInfo returns to legacy value");
+        state.ScoreboardHealth(1, 600);
+        state.ResetPlayer(1);
+        Check(!state.Get(Stat::Health, 1).valid, "player reset clears HealthInfo");
     } else {
         state.Apply(Stat::Armor, high, 5, 32, player);
         state.ResetPlayer(1);

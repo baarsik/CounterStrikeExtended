@@ -19,6 +19,7 @@
 //
 
 #include "hud.h"
+#include "money_hud_layout.h"
 #include "cl_util.h"
 #include "parsemsg.h"
 #include "pm_shared.h"
@@ -1454,7 +1455,8 @@ int CHudAccountBalance::Draw(float time)
 	if ((gHUD.m_iHideHUDDisplay & HIDEHUD_MONEY) || g_iUser1)
 		return 1;
 	wrect_t &number = gHUD.GetSpriteRect(gHUD.m_HUD_number_0);
-	int x = ScreenWidth - (4 * (ScreenWidth > 639) + 12) - 5 * (number.right - number.left);
+	int x = ScreenWidth - (4 * (ScreenWidth > 639) + 12) - MoneyHudDigitSlots(m_iAccount) *
+	        (number.right - number.left);
 	int y = ScreenHeight - ((gHUD.m_iWeaponBits & (1U << WEAPON_SUIT)) ? 3 : 5) * gHUD.m_iFontHeight;
 	wrect_t &dollar = gHUD.GetSpriteRect(m_HUD_dollar);
 	SPR_Set(gHUD.GetSprite(m_HUD_dollar), r, g, b);

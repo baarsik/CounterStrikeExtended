@@ -336,17 +336,29 @@ void PlayersLayer::DrawTrack(const RadarFrame& frame, int player, ncl_math::Colo
 }
 
 void PlayersLayer::RecordPlayerDeathIfNew(int player, RadarTeam team, float time) {
-    if (!prev_alive_[player]) {
-        return;
+    const RadarBroadcast::Death& death = broadcast_.get_death(player);
+    const bool new_exact = death.seq != 0 && death.seq != death_seq_[player];
+    if (new_exact) {
+        death_seq_[player] = death.seq;
     }
-
-    prev_alive_[player] = false;
-
-    if (team == RadarTeam::Terrorist || team == RadarTeam::CounterTerrorist) {
-        const ncl_math::Color& dc =
-            (team == RadarTeam::Terrorist) ? RadarPalette::kTerrorist : RadarPalette::kCounterTerrorist;
-        deaths_.Add(prev_pos_[player], dc, time);
-        last_seen_.OnPlayerDeath(player);
+    constexpr float kDeathMessageAge = 1.0f;
+    // DeathMsg is broadcast to everyone; only allied coordinates may be used to place a mark.
+    const bool use_exact = new_exact && team == team_ &&
+                           (team == RadarTeam::Terrorist || team == RadarTeam::CounterTerrorist) &&
+                           time >= death.time && time - death.time <= kDeathMessageAge;
+    if (use_exact || prev_alive_[player]) {
+        const bool new_death = prev_alive_[player];
+        prev_alive_[player] = false;
+        if (team == RadarTeam::Terrorist || team == RadarTeam::CounterTerrorist) {
+            const ncl_math::Color& dc =
+                (team == RadarTeam::Terrorist) ? RadarPalette::kTerrorist : RadarPalette::kCounterTerrorist;
+            if (use_exact && !new_death) {
+                deaths_.Correct(player, death.pos, dc, time);
+            } else {
+                deaths_.Add(player, use_exact ? death.pos : prev_pos_[player], dc, time);
+            }
+            last_seen_.OnPlayerDeath(player);
+        }
     }
 }
 

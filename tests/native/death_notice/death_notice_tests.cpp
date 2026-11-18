@@ -29,7 +29,7 @@ static std::array<float, 3> spriteColor;
 static std::array<float, 3> textColor;
 static bool spectateOnly = false;
 static int g_iUser1 = 0;
-static constexpr int ScreenWidth = 1000;
+static int ScreenWidth = 1000;
 static constexpr int glyphAdvance = 8;
 
 struct Hud {
@@ -175,6 +175,29 @@ static void Run(const std::string& scenario) {
         CheckEvent(0, "killer", 0, 850, 32);
         CheckEvent(1, "", 1, 903, 40);
         CheckEvent(2, "victim", 0, 940, 32);
+        return;
+    } else if (scenario == "assistant-rarity") {
+        std::strcpy(rgDeathNoticeList[0].szAssistant, " + ally");
+        std::strcpy(rgDeathNoticeList[0].szRarity, " [NS]");
+        hud.Draw(10.0f);
+        Require(events.size() == 6, "assistant and rarity draw count");
+        CheckEvent(0, "killer", 0, 737, 32);
+        CheckEvent(1, " + ally", 0, 785, 32);
+        CheckEvent(2, "", 1, 846, 40);
+        CheckEvent(3, "", 2, 883, 40);
+        CheckEvent(4, " [NS]", 0, 900, 32);
+        CheckEvent(5, "victim", 0, 940, 32);
+        return;
+    } else if (scenario == "narrow-optional-text") {
+        ScreenWidth = 320;
+        std::strcpy(rgDeathNoticeList[0].szAssistant, " + exceptionally_long_assistant_name");
+        std::strcpy(rgDeathNoticeList[0].szRarity, " [BLIND] [NS] [WALL] [SMOKE] [FLASH] [REV]");
+        hud.Draw(10.0f);
+        Require(events.size() == 6, "narrow row retains assistant and a rarity badge");
+        Require(events[0].x >= 0, "optional text does not hide killer off-screen");
+        Require(events[1].text.find(" + ") == 0, "assistant identity remains visible");
+        Require(events[4].text == " [BLIND]", "rarity fits by whole badges");
+        CheckEvent(5, "victim", 0, 260, 32);
         return;
     } else if (scenario == "suicide") {
         rgDeathNoticeList[0].iSuicide = 1;

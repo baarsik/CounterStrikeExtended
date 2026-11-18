@@ -236,6 +236,12 @@ void RadarHooks_OnPlayer(int index, const float* position) {
     }
 }
 
+void RadarHooks_OnPlayerDeath(int index, const float* position) {
+    if (g_Sinks.broadcast) {
+        g_Sinks.broadcast->SetDeathPosition(index, ncl_math::Vector3::Ref(position), gEngfuncs.GetClientTime());
+    }
+}
+
 void RadarHooks_OnBombDrop(const float* position, bool planted) {
     if (g_Sinks.broadcast) {
         ncl_math::Vector3 pos = ncl_math::Vector3::Ref(position);

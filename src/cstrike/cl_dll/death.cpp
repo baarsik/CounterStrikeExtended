@@ -19,6 +19,8 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "parsemsg.h"
+#include "death_message_extra.h"
+#include "nextclient/hud/radar/integration/RadarHooks.h"
 #include "../public/game_controls/iviewport.h"
 #include "vgui/IScheme.h"
 #include "../../vgui2/controls/controls.h"
@@ -29,6 +31,8 @@ struct DeathNoticeItem
 {
 	char szKiller[64];
 	char szVictim[64];
+    char szAssistant[64];
+    char szRarity[64];
 	int iId;	// the index number of the associated sprite
 	int iSuicide;
 	int iTeamKill;
@@ -36,6 +40,7 @@ struct DeathNoticeItem
 	float flDisplayTime;
 	float* KillerColor;
 	float* VictimColor;
+    float* AssistantColor;
 	int iHeadShotId;
 };
 
@@ -122,12 +127,57 @@ int CHudDeathNotice::Draw( float time )
             - m_iDeathNoticeGapRight - m_iDeathTextGap;
 		if ( notice.iHeadShotId >= 0 )
 			x -= gHUD.GetSpriteWidth( notice.iHeadShotId ) + m_iDeathTextGap;
+        char visibleAssistant[sizeof(notice.szAssistant)];
+        char visibleRarity[sizeof(notice.szRarity)];
+        strcpy(visibleAssistant, notice.szAssistant);
+        strcpy(visibleRarity, notice.szRarity);
+        const int killerWidth = notice.iSuicide ? 0 : ConsoleStringLen(notice.szKiller) + m_iDeathTextGap;
+        int optionalWidth = x - killerWidth;
+        if (optionalWidth < 0) {
+            optionalWidth = 0;
+        }
+        if (ConsoleStringLen(visibleAssistant) + ConsoleStringLen(visibleRarity) > optionalWidth) {
+            const int rarityBudget = visibleAssistant[0] ? optionalWidth / 2 : optionalWidth;
+            while (visibleRarity[0] && ConsoleStringLen(visibleRarity) > rarityBudget) {
+                char* lastBadge = strrchr(visibleRarity, ' ');
+                if (lastBadge) {
+                    *lastBadge = 0;
+                } else {
+                    visibleRarity[0] = 0;
+                }
+            }
+            const int assistantBudget = optionalWidth - ConsoleStringLen(visibleRarity);
+            constexpr unsigned char kUtf8ContinuationMask = 0xc0;
+            constexpr unsigned char kUtf8ContinuationValue = 0x80;
+            while (visibleAssistant[0] && ConsoleStringLen(visibleAssistant) > assistantBudget) {
+                size_t lastCharacter = strlen(visibleAssistant) - 1;
+                while (lastCharacter > 0 &&
+                       (static_cast<unsigned char>(visibleAssistant[lastCharacter]) & kUtf8ContinuationMask) ==
+                           kUtf8ContinuationValue) {
+                    --lastCharacter;
+                }
+                visibleAssistant[lastCharacter] = 0;
+            }
+            if (strlen(visibleAssistant) <= 3) {
+                visibleAssistant[0] = 0;
+            }
+        }
+        x -= ConsoleStringLen(visibleRarity);
 		if ( !notice.iSuicide )
 		{
 			x -= ConsoleStringLen( notice.szKiller ) + m_iDeathTextGap;
+            x -= ConsoleStringLen(visibleAssistant);
 			if ( notice.KillerColor )
 				gEngfuncs.pfnDrawSetTextColor( notice.KillerColor[0], notice.KillerColor[1], notice.KillerColor[2] );
-			x = DrawConsoleString( x, y, notice.szKiller ) + m_iDeathTextGap;
+            x = DrawConsoleString(x, y, notice.szKiller);
+            if (visibleAssistant[0]) {
+                if (notice.AssistantColor) {
+                    gEngfuncs.pfnDrawSetTextColor(notice.AssistantColor[0], notice.AssistantColor[1],
+                                                  notice.AssistantColor[2]);
+                }
+                x = DrawConsoleString(x, y, visibleAssistant);
+            }
+            x += m_iDeathTextGap;
 		}
 		int r = notice.iTeamKill ? 10 : 255;
 		int g = notice.iTeamKill ? 240 : 80;
@@ -155,6 +205,10 @@ int CHudDeathNotice::Draw( float time )
             SPR_DrawAdditive(0, x, headshotY, &gHUD.GetSpriteRect(notice.iHeadShotId));
 			x += gHUD.GetSpriteWidth( notice.iHeadShotId ) + m_iDeathTextGap;
 		}
+        if (visibleRarity[0]) {
+            gEngfuncs.pfnDrawSetTextColor(1.0f, 0.7f, 0.0f);
+            x = DrawConsoleString(x, y, visibleRarity);
+        }
 		if ( !notice.iNonPlayerKill )
 		{
 			if ( notice.VictimColor )
@@ -175,6 +229,10 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	int headshot = READ_BYTE();
 	strncat( killedwith, READ_STRING(), 30 );
 	killedwith[31] = 0;
+    const DeathMessageExtra extra = ParseDeathMessageExtra(buffer, size > 0 ? static_cast<std::size_t>(size) : 0);
+    if (extra.has_position && victim > 0 && victim <= gEngfuncs.GetMaxClients()) {
+        RadarHooks_OnPlayerDeath(victim, extra.position);
+    }
 	if ( gViewPortInterface )
 		gViewPortInterface->DeathMsg( killer, victim );
 	gHUD.m_Spectator.DeathMessage( victim );
@@ -189,6 +247,22 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	if ( gViewPortInterface )
 		gViewPortInterface->GetAllPlayersInfo();
 	DeathNoticeItem& notice = rgDeathNoticeList[index];
+    // A slot compacted from an older row may still contain optional labels.
+    notice.szAssistant[0] = 0;
+    notice.szRarity[0] = 0;
+    notice.AssistantColor = nullptr;
+    if (extra.present && extra.assistant > 0 && extra.assistant <= gEngfuncs.GetMaxClients() &&
+        extra.assistant <= MAX_PLAYERS) {
+        const char* assistant_name = g_PlayerInfoList[extra.assistant].name;
+        if (assistant_name && assistant_name[0]) {
+            strcpy(notice.szAssistant, " + ");
+            strncat(notice.szAssistant, assistant_name, sizeof(notice.szAssistant) - strlen(notice.szAssistant) - 1);
+            notice.AssistantColor = GetClientColor(extra.assistant);
+        }
+    }
+    if (extra.present) {
+        FormatDeathRarity(extra.rarity, notice.szRarity, sizeof(notice.szRarity));
+    }
 	const char* name = g_PlayerInfoList[killer].name;
 	if ( name )
 	{
@@ -239,6 +313,7 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	else if ( notice.iTeamKill )
 	{
 		ConsolePrint( notice.szKiller );
+		ConsolePrint( notice.szAssistant );
 		ConsolePrint( " killed his teammate " );
 		ConsolePrint( notice.szVictim );
 	}
@@ -247,6 +322,7 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 		if ( headshot )
 			ConsolePrint( "*** " );
 		ConsolePrint( notice.szKiller );
+		ConsolePrint( notice.szAssistant );
 		ConsolePrint( " killed " );
 		ConsolePrint( notice.szVictim );
 	}
@@ -263,6 +339,9 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	}
 	if ( headshot )
 		ConsolePrint( " ***" );
+    if (notice.szRarity[0]) {
+        ConsolePrint(notice.szRarity);
+    }
 	ConsolePrint( "\n" );
 	return 1;
 }

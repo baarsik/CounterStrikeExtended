@@ -49,6 +49,10 @@ target_include_directories(extended_stats_spectator_tests PRIVATE "${CMAKE_CURRE
   "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cstrike/cl_dll")
 add_test(NAME spectator_stats COMMAND extended_stats_spectator_tests spectator)
 add_test(NAME localized_stats COMMAND extended_stats_spectator_tests localized)
+add_executable(money_hud_layout_tests money_hud_layout_tests.cpp)
+target_compile_features(money_hud_layout_tests PRIVATE cxx_std_17)
+target_include_directories(money_hud_layout_tests PRIVATE "${CSE_ROOT}/src/cstrike/cl_dll")
+add_test(NAME money_six_digit_layout COMMAND money_hud_layout_tests)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/bridge_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_bridge.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/bridge_bodies.inc"
@@ -60,6 +64,7 @@ target_compile_features(extended_stats_bridge_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_bridge_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
   "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cstrike/cl_dll")
 add_test(NAME legacy_local_isolation COMMAND extended_stats_bridge_tests legacy)
+add_test(NAME healthinfo_local_fallback COMMAND extended_stats_bridge_tests healthinfo)
 add_test(NAME spectator_refresh COMMAND extended_stats_bridge_tests spectator)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/registration_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_registration.py"
@@ -77,7 +82,8 @@ add_test(NAME legacy_normalization COMMAND extended_stats_legacy_tests)
 add_executable(extended_stats_client_tests client_tests.cpp)
 target_compile_features(extended_stats_client_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_client_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cstrike/cl_dll")
-foreach(scenario IN ITEMS message_validation legacy_precedence invalidation_fallback local_alive_state client_lifecycle)
+foreach(scenario IN ITEMS message_validation legacy_precedence invalidation_fallback local_alive_state
+    scoreboard_health_fallback client_lifecycle)
   add_test(NAME ${scenario} COMMAND extended_stats_client_tests ${scenario})
 endforeach()
 

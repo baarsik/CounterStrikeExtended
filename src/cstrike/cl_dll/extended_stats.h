@@ -28,12 +28,26 @@ class ClientState {
         return Get(stat, player).amount;
     }
 
+    std::int32_t ScoreboardHealth(int player, std::int32_t amount) {
+        if (!Valid(player)) {
+            return 0;
+        }
+        slots_[player][static_cast<int>(Stat::Health)].scoreboard = {amount, amount >= 0};
+        return Get(Stat::Health, player).amount;
+    }
+
     Value Get(Stat stat, int player) const {
         if (!Valid(player)) {
             return {};
         }
         const Slot& slot = slots_[player][static_cast<int>(stat)];
-        return slot.extended.valid ? slot.extended : slot.legacy;
+        if (slot.extended.valid) {
+            return slot.extended;
+        }
+        if (stat == Stat::Health && slot.scoreboard.valid) {
+            return slot.scoreboard;
+        }
+        return slot.legacy;
     }
 
     bool HasExtended(Stat stat, int player) const {
@@ -64,6 +78,7 @@ class ClientState {
   private:
     struct Slot {
         Value extended;
+        Value scoreboard;
         Value legacy;
     };
     static bool Valid(int player) {
@@ -81,6 +96,7 @@ int CSE_LocalPlayerIndex();
 bool CSE_ResolveLocalAlive(bool legacyAlive);
 bool CSE_HandleExtendedStats(cse::extstats::Stat stat, const void* buffer, int size);
 void CSE_UpdateLegacyHealth(int player, int health, bool localHud = false);
+void CSE_UpdateScoreboardHealth(int player, int health);
 void CSE_UpdateLegacyArmor(int armor);
 void CSE_ResetExtendedStats(bool allPlayers);
 void CSE_ThinkExtendedStats();

@@ -41,6 +41,7 @@ struct Engine {
 } gEngfuncs;
 struct Extra {
     int health = 0;
+    int sb_health = 0;
 } g_PlayerExtraInfo[MAX_PLAYERS + 1];
 static const unsigned char* readBuffer = nullptr;
 #define BEGIN_READ(buffer, size) (readBuffer = static_cast<const unsigned char*>(buffer))
@@ -51,8 +52,18 @@ static int ReadShort() {
     return result;
 }
 #define READ_SHORT() ReadShort()
+static int ReadLong() {
+    const unsigned int result = static_cast<unsigned int>(readBuffer[0]) |
+                                (static_cast<unsigned int>(readBuffer[1]) << 8) |
+                                (static_cast<unsigned int>(readBuffer[2]) << 16) |
+                                (static_cast<unsigned int>(readBuffer[3]) << 24);
+    readBuffer += 4;
+    return static_cast<int>(result);
+}
+#define READ_LONG() ReadLong()
 struct CHudHealth {
     int MsgFunc_Health(const char*, int, void*);
+    int MsgFunc_HealthInfo(const char*, int, void*);
     void SetHealth(int);
 };
 struct CHudBattery {
@@ -113,7 +124,41 @@ struct PredictedPlayer {
 } player;
 #include "bridge_bodies.inc"
 int main(int, char** argv) {
-    if (std::strcmp(argv[1], "startup") == 0) {
+    if (std::strcmp(argv[1], "healthinfo") == 0) {
+        CHudHealth hud;
+        unsigned char hidden[] = {1, 255, 255, 255, 255};
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(hidden), hidden);
+        if (gHUD.m_Health.amount != 100) {
+            return 1;
+        }
+        CSE_UpdateLegacyHealth(1, 255, true);
+        unsigned char exact[] = {1, 0xf4, 0x01, 0, 0}; // 500
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(exact), exact);
+        if (gHUD.m_Health.amount != 500 || g_PlayerExtraInfo[1].sb_health != 500) {
+            return 1;
+        }
+        const unsigned char wide[] = {1, 0x9f, 0x86, 1, 0}; // 99999
+        CSE_HandleExtendedStats(cse::extstats::Stat::Health, wide, sizeof(wide));
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(exact), exact);
+        if (gHUD.m_Health.amount != 99999) {
+            return 1;
+        }
+        const unsigned char invalid[] = {1, 255, 255, 255, 255};
+        CSE_HandleExtendedStats(cse::extstats::Stat::Health, invalid, sizeof(invalid));
+        if (gHUD.m_Health.amount != 500) {
+            return 1;
+        }
+        unsigned char foreign[] = {2, 0xbc, 0x02, 0, 0}; // 700
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(foreign), foreign);
+        if (gHUD.m_Health.amount != 500 || g_PlayerExtraInfo[2].sb_health != 700 ||
+            g_PlayerExtraInfo[2].health != 0) {
+            return 1;
+        }
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(hidden), hidden);
+        if (gHUD.m_Health.amount != 255) {
+            return 1;
+        }
+    } else if (std::strcmp(argv[1], "startup") == 0) {
         maxClients = 0;
         CSE_ResetExtendedStats(true);
         CSE_ResetExtendedStats(false);
