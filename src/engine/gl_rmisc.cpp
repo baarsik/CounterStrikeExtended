@@ -89,7 +89,6 @@ extern int mirrortexturenum;
 extern qboolean envmap;
 extern int gl_mtexable;
 extern int glx, gly, glwidth, glheight;
-extern cvar_t gl_ansio;
 
 void GL_LoadFilterTexture( float red, float green, float blue, float brightness );
 void GL_BuildLightmaps();
@@ -228,7 +227,7 @@ void R_InitParticleTexture()
 
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 }
 
 void R_UploadEmptyTex()

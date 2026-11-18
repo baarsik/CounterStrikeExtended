@@ -20,7 +20,7 @@ source = (subprocess.check_output(['git', 'show', options.source_revision + ':' 
 
 
 def function(name):
-    match = re.search(r'(?m)^(?:static )?(?:void|int|bool|unsigned int) ' + name + r'\([^)]*\)\s*\{', source)
+    match = re.search(r'(?m)^(?:static )?(?:void|int|float|bool|unsigned int) ' + name + r'\([^)]*\)\s*\{', source)
     if not match:
         raise ValueError('Missing production function: ' + name)
     masked = re.sub(r'//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'',
@@ -37,6 +37,8 @@ names = ['ComputeScaledSize', 'GL_ResampleTexturePoint', 'PaletteRGB', 'GL_Uploa
          'GL_Upload32', 'BoxFilter3x3', 'GL_ResampleTexture', 'GL_ResampleAlphaTexture']
 if 'static bool GL_TextureDimensions(' in source:
     names.insert(1, 'GL_TextureDimensions')
+if 'float GL_TextureAnisotropy(' in source:
+    names.insert(0, 'GL_TextureAnisotropy')
 unpack = re.search(r'class TextureUnpackState \{[\s\S]*?\n\};', source)
 prefix = unpack.group() + '\n\n' if unpack else ''
 (output / 'texture_functions.inc').write_text(prefix + '\n\n'.join(function(name) for name in names))

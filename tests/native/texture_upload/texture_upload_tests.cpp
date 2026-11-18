@@ -273,6 +273,17 @@ static void Ordinary() {
         10, 20, 30, 255, 0, 0, 0, 0}));
 }
 
+static void Anisotropy() {
+    constexpr float noAnisotropicFiltering = 1.0f;
+    unsigned int pixel = 0;
+    for (float requested : {0.0f, -2.0f, 0.5f, 4.0f}) {
+        Reset();
+        gl_ansio.value = requested;
+        GL_Upload32(&pixel, 1, 1, FALSE, TEX_TYPE_NONE, GL_NEAREST);
+        assert(parameters.back() == std::max(noAnisotropicFiltering, requested));
+    }
+}
+
 static void LargeIndexed() {
     constexpr int width = 1024;
     constexpr int height = 512;
@@ -476,7 +487,7 @@ int main(int argc, char** argv) {
     const std::string selected = argc > 1 ? argv[1] : "all";
     for (const auto& test : {std::pair{"ordinary", Ordinary}, {"large-indexed", LargeIndexed},
         {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide}, {"invalid", Invalid}, {"cache", Cache},
-        {"sampling", Sampling}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
+        {"sampling", Sampling}, {"anisotropy", Anisotropy}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
         {"bounded-views", BoundedViews}, {"recycled-binding", RecycledBinding}}) {
         if (selected == "all" || selected == test.first) {
             Reset();

@@ -58,7 +58,6 @@ int gGLHardwareType;
 extern qboolean atismoothing;
 extern int TEXTURE0_SGIS, TEXTURE1_SGIS, TEXTURE2_SGIS;
 extern GLenum oldtarget;
-extern cvar_t gl_ansio;
 #if defined( _WIN32 )
 extern cvar_t gl_clear;
 #endif
@@ -416,10 +415,7 @@ void GL_Init() {
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat)GL_NEAREST);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (GLfloat)GL_REPEAT);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (GLfloat)GL_REPEAT);
-    // Draw_Init registers gl_ansio later; its numeric value is still zero here.
-    constexpr float kDefaultAnisotropy = 1.0f;
-    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-        cse::render::UsingMetal() ? kDefaultAnisotropy : gl_ansio.value);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
     qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     qglTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, (GLfloat)GL_REPLACE);

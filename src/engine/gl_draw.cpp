@@ -189,6 +189,12 @@ void ComputeScaledSize(int* wscale, int* hscale, int width, int height) {
         *wscale, *hscale);
 }
 
+float GL_TextureAnisotropy() {
+    constexpr float minimumAnisotropy = 1.0f;
+    const float requested = gl_ansio.value;
+    return std::isfinite(requested) && requested >= minimumAnisotropy ? requested : minimumAnisotropy;
+}
+
 static bool GL_TextureDimensions(int width, int height, int type, int& scaledWidth, int& scaledHeight) {
     if (type != TEX_TYPE_NONE && type != TEX_TYPE_ALPHA && type != TEX_TYPE_ALPHA_GRADIENT &&
         type != TEX_TYPE_RGBA && type != TEX_TYPE_LUM) {
@@ -412,7 +418,7 @@ tryagain:
                 GL_UNSIGNED_BYTE, texture);
             qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(filter));
             qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(filter));
-            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
+            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
             return glt->texnum | ((glt->paletteIndex + 1) << 16);
         }
     }
@@ -612,7 +618,7 @@ void GL_Upload32(unsigned int* data, int width, int height, qboolean mipmap, int
 
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(mipmap ? gl_filter_min : filter));
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(mipmap ? gl_filter_max : filter));
-    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 }
 
 void BoxFilter3x3( byte* out, byte* in, int w, int h, int x, int y )
@@ -709,7 +715,7 @@ void gl_texturemode_hook_callback( cvar_t* var )
 			GL_Bind( gltextures[i].texnum );
 			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)gl_filter_min );
 			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)gl_filter_max );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 		}
 	}
 
@@ -967,7 +973,7 @@ void Draw_Init()
 	Cvar_RegisterVariable( &gl_ansio );
 	Cvar_HookVariable( gl_texturemode.name, &gl_texturemode_hook );
 
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
 	GL_PaletteInit();
 
@@ -1529,7 +1535,7 @@ void Draw_TransPicTranslate( int x, int y, qpic_t* pic, byte* )
 	qglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
 	qglColor3f( 1, 1, 1 );
 	qglBegin( GL_QUADS );
@@ -1781,7 +1787,7 @@ void GL_LoadFilterTexture( float r, float g, float b, float brightness )
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 	}
 
 	free( pixels );

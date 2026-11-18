@@ -285,17 +285,17 @@ void TextureStore::Commit(const LegacyState& state, TextureTarget target,
 
 Status TextureStore::Parameter(const LegacyState& state, TextureTarget target, TextureParameter parameter,
     double value) {
-    if (!TargetValid(target) || !std::isfinite(value) || value < 0 || value > std::numeric_limits<int>::max()) {
+    if (!TargetValid(target) || !std::isfinite(value) || value < 0) {
         return Status::InvalidValue;
     }
     const auto prior = Bound(state, target);
     auto sampler = prior->sampler;
     if (parameter == TextureParameter::Anisotropy) {
-        if (value < 1) {
+        if (value < 1 || value > (std::numeric_limits<float>::max)()) {
             return Status::InvalidValue;
         }
         sampler.requestedAnisotropy = static_cast<float>(value);
-    } else if (value != std::floor(value)) {
+    } else if (value > (std::numeric_limits<int>::max)() || value != std::floor(value)) {
         return Status::InvalidValue;
     } else if (parameter == TextureParameter::MinFilter || parameter == TextureParameter::MagFilter) {
         const auto filter = static_cast<Filter>(static_cast<int>(value));

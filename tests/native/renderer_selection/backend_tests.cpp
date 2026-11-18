@@ -184,6 +184,8 @@ int main(int argc, char** argv) {
     CseRenderGenTextures(1, &texture);
     CHECK(texture);
     CseRenderBindTexture(GL_TEXTURE_2D, texture);
+    CseRenderTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::numeric_limits<float>::max());
+    CHECK(BackendUploadSucceeded());
     const std::array<unsigned char, 4> texel{{255, 255, 255, 255}};
     CseRenderTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texel.data());
     CHECK(BackendUploadSucceeded());
