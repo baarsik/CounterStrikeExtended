@@ -2049,7 +2049,8 @@ char* Q_strlwr( char* text )
 	return text;
 }
 
-byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile) {
+byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile,
+                        byte* readBuffer) {
     *pcbread = 0;
     FileHandle_t file = *phFile;
     *phFile = nullptr;
@@ -2069,7 +2070,7 @@ byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle
     const unsigned int remaining = fileBytes - static_cast<unsigned int>(pos);
     const int bytesToRead = remaining < static_cast<unsigned int>(cbmax) ? static_cast<int>(remaining) : cbmax;
     FS_Seek(file, pos, FILESYSTEM_SEEK_HEAD);
-    byte* buffer = static_cast<byte*>(Hunk_TempAlloc(bytesToRead + 1));
+    byte* buffer = readBuffer ? readBuffer : static_cast<byte*>(Hunk_TempAlloc(bytesToRead + 1));
     if (!buffer || FS_Read(buffer, bytesToRead, 1, file) != bytesToRead) {
         FS_Close(file);
         return nullptr;

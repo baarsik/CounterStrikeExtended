@@ -1232,13 +1232,14 @@ static sfxcache_t *Wavstream_GetNextChunk(channel_t *channel, wavstream_t &strea
     const int offset = stream.info.dataofs + stream.csamplesplayed;
     const int samplesLeft = stream.info.samples - stream.csamplesplayed;
     const int readLimit = std::min(samplesLeft, WAV_STREAM_CHUNK_BYTES);
+    // A hunk allocation here could evict the active stream cache.
+    byte readBuffer[WAV_STREAM_CHUNK_BYTES + 1];
     int bytesRead;
-    byte *data = COM_LoadFileLimit(nullptr, offset, readLimit, &bytesRead, &stream.hFile);
+    byte *data = COM_LoadFileLimit(nullptr, offset, readLimit, &bytesRead, &stream.hFile, readBuffer);
     if (!data) {
         return nullptr;
     }
 
-    // The temporary read buffer can move or evict the cache the mixer was using.
     auto *cache = static_cast<sfxcache_t *>(Cache_Check(&channel->sfx->cache));
     if (!cache) {
         return nullptr;

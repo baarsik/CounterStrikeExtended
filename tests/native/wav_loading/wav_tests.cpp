@@ -87,6 +87,7 @@ struct FileState {
 
 bool mappedReads = true;
 bool failOpen = false;
+bool failRead = false;
 bool failCache = false;
 bool failTemp = false;
 enum class CacheChange { None, Move, Evict };
@@ -488,7 +489,7 @@ void Mixer(const std::string &mode) {
             Cache_Free(&sound.cache);
             failTemp = true;
         } else {
-            failTemp = mode == "mix-stream-temp-failure";
+            failRead = mode == "mix-stream-read-failure";
         }
     } else {
         StartFixtureChannel(channels[0], sound, PaintSamples + 1, CHAN_AUTO);
@@ -497,16 +498,15 @@ void Mixer(const std::string &mode) {
 
     S_MixChannelsToPaintbuffer(PaintSamples, 0, 0);
     Require(channels[1].pos == PaintSamples, "the next channel advances through the same paint pass");
-    const bool moved = mode == "mix-stream-move";
+    const bool refilled = mode == "mix-stream-move" || mode == "mix-stream-evict";
     for (int sample = 0; sample < PaintSamples; ++sample) {
-        const int expected = MixVolume * (HealthyPcmSample + (moved && sample > 0 ? TailPcmSample : 0));
+        const int expected = MixVolume * (HealthyPcmSample + (refilled && sample > 0 ? TailPcmSample : 0));
         Require(paintbuffer[sample].left == expected && paintbuffer[sample].right == expected,
                 "the paint buffer contains the healthy channel and any successfully refilled PCM");
     }
-    if (moved) {
+    if (refilled) {
         auto *cache = static_cast<sfxcache_t *>(sound.cache.data);
-        Require(changeOnTempAlloc == CacheChange::None && cache && cache->length == TailSamples,
-                "the moved cache holds the final partial chunk");
+        Require(cache && cache->length == TailSamples, "the stream cache holds the final partial chunk");
         Require(channels[0].pos == PaintSamples - 1 && channels[0].end == TailSamples + 1,
                 "refill continues from the start of the new chunk");
         S_FreeChannel(&channels[0]);
@@ -642,6 +642,9 @@ void FS_Seek(FileHandle_t handle, int position, FileSystemSeek_t origin) {
 int FS_Read(void *output, int size, int count, FileHandle_t handle) {
     Require(output && handle == &file && file.open && count == 1 && size >= 0,
             "read requires a buffer and a live file");
+    if (failRead) {
+        return 0;
+    }
     const int copied = std::min(size, file.length - file.position);
     std::memcpy(output, fileBytes.get() + file.position, static_cast<std::size_t>(copied));
     file.position += copied;

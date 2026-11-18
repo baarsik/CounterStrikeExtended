@@ -36,8 +36,9 @@ foreach(case pcm truncated metadata invalid-arguments chunk-bounds loops loop-ov
         load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure
         stream-invalid stream-stereo stream-width stream-rate stream-cache-failure
         stream-success stream-refill-failure stream-temp-failure stream-reopen-move stream-reopen-evict
-        stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-temp-failure
-        mix-stream-reload-failure mix-stream-eof vox-empty-text vox-empty-words)
+        stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-read-failure
+        mix-stream-reload-failure mix-stream-eof
+        vox-empty-text vox-empty-words)
     add_test(NAME wav-${case} COMMAND wav_loading_tests ${case})
 endforeach()
 add_test(NAME wav-shipped-bot-sounds COMMAND wav_loading_tests corpus "${CSE_ROOT}/src/deploy/zbot/cstrike/sound")
