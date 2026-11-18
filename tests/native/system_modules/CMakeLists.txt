@@ -6,7 +6,8 @@ if(MSVC)
  # Match owning runtime policy for std::min and numeric_limits::max in fixture TUs.
  add_compile_definitions(NOMINMAX)
 endif()
-set(SDK "${CMAKE_CURRENT_LIST_DIR}/../../../src")
+get_filename_component(CSE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+set(SDK "${CSE_ROOT}/src")
 add_executable(interface_contract interface_contract.cpp)
 target_include_directories(interface_contract PRIVATE "${SDK}/engine" "${SDK}/HLTV/Core/private" "${SDK}/HLTV/Core/private/common" "${SDK}" "${SDK}/common" "${SDK}/public" "${SDK}/public/tier1")
 if(MSVC)
@@ -156,6 +157,7 @@ foreach(mode reactivation self-removal removal-frame publication
 endforeach()
 
 if(NOT WIN32)
+ include("${CSE_ROOT}/cmake/WebPDependency.cmake")
  add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/network_ownership.cpp"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_network.py"
    "${SDK}/HLTV/Core/Network.cpp" "${CMAKE_CURRENT_BINARY_DIR}/network_ownership.cpp"
@@ -168,11 +170,13 @@ if(NOT WIN32)
   "${SDK}/HLTV/common" "${SDK}/HLTV/Core/private" "${SDK}/public")
  target_compile_options(fakeclient_cleanup PRIVATE -fno-rtti -Wno-write-strings)
  target_sources(fakeclient_cleanup PRIVATE steam_fixture.cpp filesystem_fixture.cpp "${SDK}/HLTV/Proxy/Proxy.cpp" "${SDK}/HLTV/Proxy/ProxyClient.cpp"
+  "${SDK}/common/image_codec.cpp"
   "${SDK}/HLTV/Proxy/Master.cpp" "${SDK}/HLTV/Proxy/Status.cpp" "${SDK}/HLTV/Proxy/DemoClient.cpp"
   "${SDK}/HLTV/Director/Director.cpp" "${SDK}/HLTV/common/BaseClient.cpp")
  target_include_directories(fakeclient_cleanup BEFORE PRIVATE "${SDK}/HLTV/Core/private")
  target_include_directories(fakeclient_cleanup PRIVATE "${SDK}/HLTV/Director")
  target_link_libraries(fakeclient_cleanup PRIVATE hltv_core)
+ cse_link_webp(fakeclient_cleanup)
  foreach(mode success failure proxy-stop proxy-remove network-remove fake-stop fake-parent)
   add_test(NAME fakeclient_cleanup_${mode} COMMAND fakeclient_cleanup $<TARGET_FILE:hltv_core> ${mode})
  endforeach()
