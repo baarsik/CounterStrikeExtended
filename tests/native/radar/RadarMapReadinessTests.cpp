@@ -23,6 +23,14 @@ struct MapProvider {
 };
 } // namespace
 
+RADAR_TEST(MapMode, BoundsConsoleValuesBeforeConvertingToAnInteger) {
+    CHECK_EQ(RadarMapMode_FromCvar(std::numeric_limits<float>::max()), RadarMapMode::SliceFlat);
+    CHECK_EQ(RadarMapMode_FromCvar(std::numeric_limits<float>::lowest()), RadarMapMode::OverviewTextured);
+    CHECK_EQ(RadarMapMode_FromCvar(std::numeric_limits<float>::infinity()), RadarMapMode::SliceTextured);
+    CHECK_EQ(RadarMapMode_FromCvar(std::numeric_limits<float>::quiet_NaN()), RadarMapMode::SliceTextured);
+    CHECK_EQ(RadarMapMode_FromCvar(4.5f), RadarMapMode::SliceFlat);
+}
+
 RADAR_TEST(MapReadiness, PendingAnalysisUsesClassicUntilTopImageBecomesDrawable) {
     MapProvider map;
     constexpr RadarMapMode mode = RadarMapMode::SliceTextured;

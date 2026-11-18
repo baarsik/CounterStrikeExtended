@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <limits>
 
 #include "include/cvars/CvarDefinition.h"
 
@@ -27,8 +28,13 @@ inline constexpr RadarMapModeDef kRadarMapModeDefs[] = {
 
 // Never returns None.
 constexpr RadarMapMode RadarMapMode_FromCvar(float value) {
-    int mode = (std::clamp)(static_cast<int>(value), static_cast<int>(RadarMapMode::OverviewTextured),
-                            static_cast<int>(RadarMapMode::SliceFlat));
+    if (!(value >= std::numeric_limits<float>::lowest() && value <= (std::numeric_limits<float>::max)())) {
+        return RadarMapMode::SliceTextured;
+    }
+
+    constexpr float MinimumMode = static_cast<float>(RadarMapMode::OverviewTextured);
+    constexpr float MaximumMode = static_cast<float>(RadarMapMode::SliceFlat);
+    const int mode = static_cast<int>((std::clamp)(value, MinimumMode, MaximumMode));
 
     if (mode == static_cast<int>(RadarMapMode::OverviewFlat)) {
         return RadarMapMode::OverviewTextured;
