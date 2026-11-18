@@ -1024,14 +1024,12 @@ WebMDemuxer::VIDEO_CODEC WebMDemuxer::GetVideoCodec() const
 	return m_eVideoCodec;
 }
 
-int WebMDemuxer::GetWidth() const
-{
-	return static_cast<int>( m_pVideoTrack->GetWidth() );
+int WebMDemuxer::GetWidth() const {
+    return m_pVideoTrack ? static_cast<int>(m_pVideoTrack->GetWidth()) : 0;
 }
 
-int WebMDemuxer::GetHeight() const
-{
-	return static_cast<int>( m_pVideoTrack->GetHeight() );
+int WebMDemuxer::GetHeight() const {
+    return m_pVideoTrack ? static_cast<int>(m_pVideoTrack->GetHeight()) : 0;
 }
 
 WebMDemuxer::AUDIO_CODEC WebMDemuxer::GetAudioCodec() const
@@ -1472,7 +1470,9 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     }
 
     WebMDemuxer demuxer(&reader, 0, 0);
-    if (!demuxer.m_bIsOpen || demuxer.GetWidth() <= 0 || demuxer.GetHeight() <= 0) {
+    const int sourceWidth = demuxer.GetWidth();
+    const int sourceHeight = demuxer.GetHeight();
+    if (!demuxer.m_bIsOpen || sourceWidth <= 0 || sourceHeight <= 0) {
         return;
     }
 
@@ -1486,10 +1486,13 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     bool createdRenderer = false;
     if (!renderer) {
         renderer = SDL_CreateRenderer(pSDLWindow, nullptr);
+        if (!renderer) {
+            Con_Printf("Could not create the video playback renderer: %s\n", SDL_GetError());
+            return;
+        }
         createdRenderer = true;
     }
-    SDL_Texture *texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888, SDL_TEXTUREACCESS_STREAMING,
-                                             demuxer.GetWidth(), demuxer.GetHeight());
+    SDL_Texture *texture = nullptr;
 #else
     if (cse::render::UsingMetal()) {
         cse::render::BeginBackendFrame(nWindowW, nWindowH);
@@ -1520,8 +1523,6 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 #endif
 
-    const int sourceWidth = demuxer.GetWidth();
-    const int sourceHeight = demuxer.GetHeight();
     int nVideoW = sourceWidth;
     int nVideoH = sourceHeight;
 #if defined(_WIN32)
@@ -1574,7 +1575,6 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
 #ifdef SW_RENDERER
     SDL_FRect destination = {static_cast<float>(dstX), static_cast<float>(dstY), static_cast<float>(nVideoW),
                              static_cast<float>(nVideoH)};
-    SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
@@ -1595,10 +1595,8 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
 #endif
     }
 
-    const int pixelWidth = demuxer.GetWidth();
-    const int pixelHeight = demuxer.GetHeight();
-    unsigned char *pOutFrame =
-        static_cast<unsigned char *>(::operator new[](static_cast<unsigned int>(pixelWidth * pixelHeight) << 2));
+    unsigned char *pOutFrame = nullptr;
+    std::size_t outputCapacity = 0;
     Con_Printf("Length: %f\n", demuxer.GetLength());
 
     const double flStartTime = Sys_FloatTime();
@@ -1610,9 +1608,8 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
         double elapsed = 0.0;
         double frameDelay = 0.0;
         double flVideoPos = 0.0;
-#ifndef SW_RENDERER
-        bool bFirstFrame = true;
-#endif
+        int textureWidth = 0;
+        int textureHeight = 0;
         for (;;) {
             if (elapsed + frameDelay >= videoFrame.m_flTime) {
                 if (videoDec.m_pCtx != nullptr && videoFrame.m_uBufferSize > 0) {
@@ -1635,9 +1632,34 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
                             break;
                         }
 
+                        // The YUV converters pack row and column counters into signed 16-bit fields.
+                        constexpr unsigned int maxConverterDimension = SHRT_MAX;
+                        constexpr int bytesPerPixel = 4;
+                        if (image->d_w == 0 || image->d_h == 0 || image->d_w > maxConverterDimension ||
+                            image->d_h > maxConverterDimension) {
+                            Con_Printf("Unsupported decoded video dimensions\n");
+                            goto playback_done;
+                        }
+
                         const bool uvFlip = (static_cast<unsigned int>(image->fmt) & VPX_IMG_FMT_UV_FLIP) != 0;
                         const int imageW = static_cast<int>(image->d_w);
                         const int imageH = static_cast<int>(image->d_h);
+                        const int pitch = bytesPerPixel * imageW;
+                        if (static_cast<std::size_t>(imageH) > static_cast<std::size_t>(PTRDIFF_MAX) / pitch) {
+                            Con_Printf("Decoded video frame is too large\n");
+                            goto playback_done;
+                        }
+                        const std::size_t frameBytes = static_cast<std::size_t>(pitch) * imageH;
+                        if (frameBytes > outputCapacity) {
+                            auto *nextFrame = static_cast<unsigned char *>(std::realloc(pOutFrame, frameBytes));
+                            if (!nextFrame) {
+                                Con_Printf("Could not allocate the decoded video frame\n");
+                                goto playback_done;
+                            }
+                            pOutFrame = nextFrame;
+                            outputCapacity = frameBytes;
+                        }
+
                         const int ySpan = image->stride[0];
                         const int uvSpan = uvFlip ? image->stride[2] : image->stride[1];
                         const unsigned char *yPlane = image->planes[0];
@@ -1646,25 +1668,41 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
                         const unsigned int xShift = image->x_chroma_shift;
                         const unsigned int yShift = image->y_chroma_shift;
                         if (xShift == 1 && yShift == 1) {
-                            yuv420_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-                                             4 * imageW, yuv2rgb565_table, 0);
+                            yuv420_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan, pitch,
+                                            yuv2rgb565_table, 0);
                         } else if (xShift == 1 && yShift == 0) {
-                            yuv422_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-                                             4 * imageW, yuv2rgb565_table, 0);
+                            yuv422_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan, pitch,
+                                            yuv2rgb565_table, 0);
                         } else if (xShift == 0 && yShift == 0) {
-                            yuv444_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan,
-                                             4 * imageW, yuv2rgb565_table, 0);
+                            yuv444_2_rgb8888(pOutFrame, yPlane, uPlane, vPlane, imageW, imageH, ySpan, uvSpan, pitch,
+                                            yuv2rgb565_table, 0);
                         } else {
                             continue;
                         }
 
+                        const bool resizeTexture = imageW != textureWidth || imageH != textureHeight;
 #ifdef SW_RENDERER
-                        SDL_UpdateTexture(texture, NULL, pOutFrame, 4 * imageW);
+                        if (resizeTexture) {
+                            if (texture) {
+                                SDL_DestroyTexture(texture);
+                            }
+                            texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_XBGR8888,
+                                                        SDL_TEXTUREACCESS_STREAMING, imageW, imageH);
+                            if (!texture) {
+                                Con_Printf("Could not create the video playback texture: %s\n", SDL_GetError());
+                                goto playback_done;
+                            }
+                            SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_LINEAR);
+                        }
+                        if (!SDL_UpdateTexture(texture, nullptr, pOutFrame, pitch)) {
+                            Con_Printf("Could not update the video playback texture: %s\n", SDL_GetError());
+                            goto playback_done;
+                        }
                         SDL_RenderClear(renderer);
                         SDL_RenderTexture(renderer, texture, NULL, &destination);
                         SDL_RenderPresent(renderer);
 #else
-                        if (bFirstFrame) {
+                        if (resizeTexture) {
                             qglTexImage2D(GL_TEXTURE_RECTANGLE, 0, GL_RGBA, imageW, imageH, 0, GL_RGBA, GL_UNSIGNED_BYTE,
                                          pOutFrame);
                         } else {
@@ -1686,13 +1724,14 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
                         qglTexCoord2f(0, static_cast<float>(imageH));
                         qglVertex3f(left, bottom, 0.0f);
                         qglEnd();
-                        bFirstFrame = false;
                         if (cse::render::UsingMetal()) {
                             cse::render::PresentBackendFrame(false, true);
                         } else {
                             SDL_GL_SwapWindow(pSDLWindow);
                         }
 #endif
+                        textureWidth = imageW;
+                        textureHeight = imageH;
                     }
                 }
 
@@ -1745,7 +1784,9 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
 
 playback_done:
 #ifdef SW_RENDERER
-    SDL_DestroyTexture(texture);
+    if (texture) {
+        SDL_DestroyTexture(texture);
+    }
     if (createdRenderer) {
         SDL_DestroyRenderer(renderer);
     }
@@ -1755,6 +1796,6 @@ playback_done:
     qglDisable(GL_TEXTURE_RECTANGLE);
     qglDeleteTextures(1, &texture);
 #endif
-    ::operator delete[](pOutFrame);
+    std::free(pOutFrame);
     ::operator delete[](pcm);
 }
