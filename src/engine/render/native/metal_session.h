@@ -6,6 +6,7 @@
 
 struct SDL_Window;
 struct SDL_GPUCommandBuffer;
+struct SDL_GPURenderPass;
 struct SDL_GPUBufferBinding;
 struct SDL_GPUBuffer;
 
@@ -83,6 +84,9 @@ public:
         std::string& error);
     SDL_GPUBuffer* CreateEffectMesh(const void* vertices, std::size_t bytes, std::string& error);
     bool ResolveScene(std::string& error);
+    // Consecutive scene effects with resident resources can share a color pass.
+    // Other command encoding or submission ends the pass before touching its attachments.
+    SDL_GPURenderPass* SceneEffectPass(SDL_GPUCommandBuffer*& command, std::string& error);
     std::uint64_t EffectClock() const;
     void CountEffectDraw(std::uint64_t start, bool scene = true);
     void CountRenderPass();

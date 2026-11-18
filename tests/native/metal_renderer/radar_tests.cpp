@@ -490,12 +490,14 @@ int main() {
     frame.events[0].clear.color = {{0, 0, 0, 1}};
     CHECK(session.Render(frame, error));
     const auto previousUploadBytes = session.Diagnostics().uploadBytes;
+    const auto previousPasses = session.Diagnostics().renderPasses;
     for (unsigned index = 0; index < 130; ++index) {
         CHECK(effects.DrawSmoked(panel, clippedPanel, 65, 63, glass, 8, raster));
     }
     CHECK(session.Diagnostics().commandBuffers == 0);
     CHECK(session.Diagnostics().sceneResolves == 0);
     CHECK(session.Diagnostics().effectDraws == 130);
+    CHECK(session.Diagnostics().renderPasses - previousPasses == 1);
     CHECK(session.Diagnostics().uploadBytes == previousUploadBytes);
     CHECK(session.ReadPixels(0, 0, 65, 63, 4, 4, pixels.data(), error));
     CHECK(session.Diagnostics().sceneResolves == 1);

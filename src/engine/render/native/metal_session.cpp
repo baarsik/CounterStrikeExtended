@@ -170,6 +170,7 @@ struct MetalSession::Impl {
         SDL_GPUFence* fence = nullptr;
     };
     SDL_GPUCommandBuffer* command = nullptr;
+    SDL_GPURenderPass* sceneEffectPass = nullptr;
     std::size_t pendingUploadBytes = 0;
 
     struct Texture {
@@ -358,7 +359,16 @@ struct MetalSession::Impl {
         return true;
     }
 
+    void EndSceneEffectPass() {
+        if (sceneEffectPass) {
+            SDL_EndGPURenderPass(sceneEffectPass);
+            SDL_PopGPUDebugGroup(command);
+            sceneEffectPass = nullptr;
+        }
+    }
+
     SDL_GPUCommandBuffer* Commands(std::string& error) {
+        EndSceneEffectPass();
         if (!command) {
             if (!Wait(streams[streamIndex], error)) {
                 return nullptr;
@@ -401,6 +411,7 @@ struct MetalSession::Impl {
     }
 
     bool Submit(std::string& error) {
+        EndSceneEffectPass();
         if (!command) {
             return true;
         }
@@ -1005,6 +1016,31 @@ const RenderFrameCounters& MetalSession::Diagnostics() const {
     return impl_->counters;
 }
 
+SDL_GPURenderPass* MetalSession::SceneEffectPass(SDL_GPUCommandBuffer*& command, std::string& error) {
+    auto& state = *impl_;
+    if (state.sceneEffectPass) {
+        command = state.command;
+        return state.sceneEffectPass;
+    }
+    command = state.Commands(error);
+    if (!command) {
+        return nullptr;
+    }
+    SDL_GPUColorTargetInfo color{};
+    color.texture = state.multisample ? state.multisample : state.color;
+    color.load_op = SDL_GPU_LOADOP_LOAD;
+    color.store_op = SDL_GPU_STOREOP_STORE;
+    SDL_PushGPUDebugGroup(command, "Scene backdrop effects");
+    state.sceneEffectPass = SDL_BeginGPURenderPass(command, &color, 1, nullptr);
+    if (!state.sceneEffectPass) {
+        SDL_PopGPUDebugGroup(command);
+        DeviceFailure(error, "Begin Metal scene effect pass");
+    } else {
+        CountRenderPass();
+    }
+    return state.sceneEffectPass;
+}
+
 std::uint64_t MetalSession::EffectClock() const {
     return impl_->diagnosticsEnabled ? SDL_GetTicksNS() : 0;
 }
@@ -1018,7 +1054,6 @@ void MetalSession::CountEffectDraw(std::uint64_t start, bool scene) {
         }
         ++impl_->counters.effectDraws;
         ++impl_->counters.gpuDraws;
-        ++impl_->counters.renderPasses;
     }
 }
 

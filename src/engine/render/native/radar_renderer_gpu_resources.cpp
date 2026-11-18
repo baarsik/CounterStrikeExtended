@@ -375,27 +375,37 @@ CseRadarResult RadarRendererGpu::Impl::Draw(const std::vector<CseRadarPrimitiveV
         !session.UploadEffectVertices(vertices.data(), vertices.size() * sizeof(vertices[0]), binding, error)) {
         return CSE_RADAR_OUT_OF_MEMORY;
     }
-    auto* command = session.Commands(error);
-    if (!command) {
-        return CSE_RADAR_DEVICE_LOST;
-    }
-    SDL_PushGPUDebugGroup(command, "Radar / backdrop");
-    SDL_GPUColorTargetInfo color{};
-    color.texture = access.multisample ? access.multisample : access.color;
-    color.resolve_texture = nullptr;
-    color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
-    color.store_op = SDL_GPU_STOREOP_STORE;
-    SDL_GPUDepthStencilTargetInfo depthInfo{};
-    depthInfo.texture = depthTarget;
-    depthInfo.clear_depth = bottom ? 0.0f : 1.0f;
-    depthInfo.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
-    depthInfo.store_op = SDL_GPU_STOREOP_STORE;
-    depthInfo.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
-    depthInfo.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
-    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, depthTarget ? &depthInfo : nullptr);
-    if (!pass) {
-        SDL_PopGPUDebugGroup(command);
-        return CSE_RADAR_DEVICE_LOST;
+    const bool useScenePass = !privateTarget && !depthTarget && !clearColor && !clearDepth && retainedVertices;
+    SDL_GPUCommandBuffer* command = nullptr;
+    SDL_GPURenderPass* pass = nullptr;
+    if (useScenePass) {
+        pass = session.SceneEffectPass(command, error);
+        if (!pass) {
+            return CSE_RADAR_DEVICE_LOST;
+        }
+    } else {
+        command = session.Commands(error);
+        if (!command) {
+            return CSE_RADAR_DEVICE_LOST;
+        }
+        SDL_PushGPUDebugGroup(command, "Radar / backdrop");
+        SDL_GPUColorTargetInfo color{};
+        color.texture = access.multisample ? access.multisample : access.color;
+        color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+        color.store_op = SDL_GPU_STOREOP_STORE;
+        SDL_GPUDepthStencilTargetInfo depthInfo{};
+        depthInfo.texture = depthTarget;
+        depthInfo.clear_depth = bottom ? 0.0f : 1.0f;
+        depthInfo.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+        depthInfo.store_op = SDL_GPU_STOREOP_STORE;
+        depthInfo.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+        depthInfo.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+        pass = SDL_BeginGPURenderPass(command, &color, 1, depthTarget ? &depthInfo : nullptr);
+        if (!pass) {
+            SDL_PopGPUDebugGroup(command);
+            return CSE_RADAR_DEVICE_LOST;
+        }
+        session.CountRenderPass();
     }
     SDL_BindGPUGraphicsPipeline(pass, pipeline);
     SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
@@ -418,8 +428,10 @@ CseRadarResult RadarRendererGpu::Impl::Draw(const std::vector<CseRadarPrimitiveV
     SDL_PushGPUVertexUniformData(command, 0, &uniforms, sizeof(uniforms));
     SDL_PushGPUFragmentUniformData(command, 0, &uniforms, sizeof(uniforms));
     SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertices.size()), 1, 0, 0);
-    SDL_EndGPURenderPass(pass);
-    SDL_PopGPUDebugGroup(command);
+    if (!useScenePass) {
+        SDL_EndGPURenderPass(pass);
+        SDL_PopGPUDebugGroup(command);
+    }
     session.CountEffectDraw(encodeStart, !privateTarget);
     return CSE_RADAR_OK;
 }
