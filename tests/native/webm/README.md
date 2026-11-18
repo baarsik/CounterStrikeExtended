@@ -4,8 +4,8 @@ The executable includes the actual entire production `engine/webm_video.cpp` as
 one translation unit. No decoder or demux method body is copied or extracted.
 macOS discards unused player functions at link time. The Windows linker retains
 their external-symbol obligations: the fixture links the real pinned SDL3 import
-library/runtime and unchanged production `engine/yuv2rgb.cpp`. Signature-checked
-fixture bindings for engine logging, timing and sound abort on every call. They
+library/runtime. Signature-checked fixture bindings for engine logging, timing
+and sound abort on every call. They
 compile in a separate fixture translation unit against the actual engine headers;
 the compiler sees the complete production WebM body without inferring that its
 presentation calls always abort. A
@@ -13,8 +13,7 @@ subprocess test proves all seven bindings abort, including actual `PlayVideo`
 entry at its first `Con_Printf`, before media/device/presentation activity. Crash
 dialogs are disabled only in these fixture processes. No SDL presentation,
 OpenGL, engine sound, or audio-device function is exercised. `SW_RENDERER` selects
-the existing software branch during compilation; linking the real RGB converter
-does not qualify its pixel output.
+the software branch during compilation.
 
 The fixture uses the pinned source-built libwebm, libvpx, libvorbis and libogg
 targets selected by `cmake/NativeThirdParty.cmake`. `selected-<config>.txt` records
@@ -47,6 +46,10 @@ GetCodecPrivate(size_t&) to GetAudioExtradata(unsigned int&) route. The public
 unsigned-size signature remains unchanged. The regular original source produces
 native layout/API compile failures; removing just the size guard produces the
 retained oversize-boundary RED.
+
+The fixture also links production `engine/yuv2rgb.cpp`. Synthetic 4:2:2 and 4:4:4
+planes cover one-row frames, odd and even dimensions, distinct chroma on successive
+rows, and untouched output padding.
 
 Thread cases cover requests 0, 1, 8 and UINT_MAX through actual decode results.
 Lifetime cases repeat the complete decoder/demux flow 64 times per codec, including

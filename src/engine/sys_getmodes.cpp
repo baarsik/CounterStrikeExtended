@@ -2425,7 +2425,10 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
     qglViewport(0, 0, width, height);
     qglDisable(GL_DEPTH_TEST);
     qglEnable(GL_TEXTURE_2D);
+    qglMatrixMode(GL_MODELVIEW);
+    qglLoadIdentity();
     qglMatrixMode(GL_PROJECTION);
+    qglLoadIdentity();
     qglOrtho(0.0, width, height, 0.0, -1.0, 1.0);
     qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     qglClear(GL_COLOR_BUFFER_BIT);

@@ -17,6 +17,7 @@ struct MetadataProvider final : Provider {
     static constexpr HServerQuery FirstQuery = 42;
     bool validQueries = false;
     bool deferPings = false;
+    uint16 connectionPortOffset = 0;
     struct PendingPing {
         uint32 ip;
         uint16 port;
@@ -24,6 +25,13 @@ struct MetadataProvider final : Provider {
     };
     std::map<HServerQuery, PendingPing> pendingPings;
     int nextQuery = FirstQuery;
+    void Respond(uint32 ip, uint16 port, ISteamMatchmakingPingResponse* response) {
+        gameserveritem_t server;
+        server.m_NetAdr.Init(ip, port, static_cast<uint16>(port + connectionPortOffset));
+        server.m_nAppID = 10;
+        server.SetName("Loopback server");
+        response->ServerResponded(server);
+    }
     HServerQuery PingServer(uint32 ip, uint16 port, ISteamMatchmakingPingResponse* response) override {
         const HServerQuery query = validQueries ? nextQuery++ : HSERVERQUERY_INVALID;
         if (deferPings) {
@@ -31,11 +39,7 @@ struct MetadataProvider final : Provider {
         } else if (failPing) {
             response->ServerFailedToRespond();
         } else {
-            gameserveritem_t server;
-            server.m_NetAdr.Init(ip, port, port);
-            server.m_nAppID = 10;
-            server.SetName("Loopback server");
-            response->ServerResponded(server);
+            Respond(ip, port, response);
         }
         if (duringPing) {
             auto callback = std::move(duringPing);
@@ -51,10 +55,7 @@ struct MetadataProvider final : Provider {
             if (failPing) {
                 ping.response->ServerFailedToRespond();
             } else {
-                gameserveritem_t server;
-                server.m_NetAdr.Init(ping.ip, ping.port, ping.port);
-                server.m_nAppID = 10;
-                ping.response->ServerResponded(server);
+                Respond(ping.ip, ping.port, ping.response);
             }
         }
     }
@@ -107,6 +108,8 @@ void PumpUntilSettled(MasterserverQueryProvider& provider, ServerBrowserModel& m
 
 void FailedEmptyRefresh(const char* directory, const char* unavailable) {
     MetadataProvider steam;
+    constexpr uint16 ConnectionPortOffset = 10;
+    steam.connectionPortOffset = ConnectionPortOffset;
     MasterserverQueryProvider provider(&steam);
     provider.Select({"loopback", "Loopback", {directory}});
     {
@@ -126,26 +129,24 @@ void FailedEmptyRefresh(const char* directory, const char* unavailable) {
         CHECK(model.GetStatus().phase == Phase::Failed);
         CHECK(model.OrderedKeys().size() == 2);
 
-        CHECK(model.QuickRefresh());
-        constexpr auto EmptyRefreshWait = std::chrono::seconds(1);
-        PumpUntilSettled(provider, model, EmptyRefreshWait);
-        CHECK(model.GetStatus().phase == Phase::Failed);
-        CHECK(model.OrderedKeys().size() == 2);
-
         // The directory is still unavailable, but each retained server has its own query address.
         steam.validQueries = true;
         steam.deferPings = true;
         const auto retained = model.OrderedKeys();
-        for (const auto& key : retained) {
-            CHECK(model.QuickRefresh(key));
-        }
+        CHECK(model.QuickRefresh());
         CHECK(!model.QuickRefresh());
         model.Pump();
         CHECK(steam.pendingPings.size() == retained.size());
+        for (const auto& entry : steam.pendingPings) {
+            const auto& ping = entry.second;
+            CHECK(model.Find({ping.ip, static_cast<uint16>(ping.port + ConnectionPortOffset), ping.port}));
+        }
         steam.CompletePings();
+        constexpr auto EmptyRefreshWait = std::chrono::seconds(1);
         PumpUntilSettled(provider, model, EmptyRefreshWait);
         CHECK(model.GetStatus().phase == Phase::Complete);
         CHECK(model.GetStatus().responding == retained.size());
+        CHECK(model.OrderedKeys() == retained);
     }
     CHECK(provider.BeginClose());
 }
@@ -335,12 +336,14 @@ int main(int argc, char** argv) {
             CHECK(provider.GetServerDetails(request, 0)->m_NetAdr.GetQueryPort() == 27015);
             CHECK(provider.GetServerDetails(request, 1)->m_NetAdr.GetQueryPort() == 27016);
             CHECK(responses.failed == 0);
+            responses.complete = false;
             steam.failPing = true;
             provider.RefreshServer(request, 0);
             for (int turn = 0; turn < 10 && responses.responses < 3; ++turn) {
                 provider.Pump();
             }
             CHECK(responses.responses == 3 && responses.failed == 1);
+            CHECK(!responses.complete);
             provider.ReleaseRequest(request);
         }
         if (!cancel && !reentry) {

@@ -35,7 +35,9 @@ enable_testing()
 foreach(owner software hardware)
     foreach(case ordinary manual_pause manual_after_loss stopped finished disabled rapid manual_interleave stop_interleave new_play new_play_failure late_loss_after_play overflow_latest_gain
             queue_full failed_pause failed_resume suspend_init_failure suspend_open_failure suspend_start_failure
-            suspend_file_failure suspend_manual_pause suspend_new_play_failure suspend_stop_after_failure suspend_stop_after_frame suspend_stop_after_frame_disabled primed_track_zero shutdown shutdown_inflight)
+            suspend_file_failure suspend_manual_pause suspend_new_play_failure suspend_stop_after_failure
+            suspend_stop_after_frame suspend_stop_after_frame_disabled primed_track_zero primed_play_file
+            primed_different_file primed_stop primed_loop_changed primed_failed_file shutdown shutdown_inflight)
         add_test(NAME ${owner}-${case} COMMAND music_focus_${owner} ${case})
     endforeach()
 endforeach()

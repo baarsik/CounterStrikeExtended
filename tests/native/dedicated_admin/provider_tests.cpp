@@ -19,7 +19,14 @@ int numipfilters = 0;
 userfilter_t userfilters[MAX_USERFILTERS]{};
 ipfilter_t ipfilters[MAX_IPFILTERS]{};
 netadr_t net_local_adr{};
-char com_gamedir[GAME_DIRECTORY_BYTES] = "/fixture/valve";
+char com_gamedir[GAME_DIRECTORY_BYTES] = "valve";
+char* GetBaseDirectory() {
+    static char root[] = "/fixture\\game";
+    return root;
+}
+std::string FileSystem_GetInterfaceLanguage() {
+    return "german";
+}
 cvar_t mapcyclefile{const_cast<char*>("mapcyclefile"), const_cast<char*>("mapcycle.txt"), 0, 0, nullptr};
 cvar_t hostname{const_cast<char*>("hostname"), const_cast<char*>("Fixture server"), 0, 0, nullptr};
 AdminProviderStatus Steam_QueryAdminStatus() {
@@ -64,18 +71,30 @@ char* NET_AdrToString(netadr_t) {
     static char address[] = "127.0.0.1:27015";
     return address;
 }
-int mapIndex = 0;
+constexpr const char* mapFiles[] = {
+    "maps/crossfire.bsp", "boot.bsp.v2.BSP", "fallback.bsp", "download.bsp", "localized.bsp"
+};
+std::size_t mapIndex = 0;
 const char* Sys_FindFirst(const char*, char*) {
     mapIndex = 0;
-    return "crossfire.bsp";
+    return mapFiles[mapIndex];
 }
 const char* Sys_FindNext(char*) {
-    return ++mapIndex == 1 ? "boot_camp.bsp" : nullptr;
+    ++mapIndex;
+    return mapIndex < std::size(mapFiles) ? mapFiles[mapIndex] : nullptr;
 }
 void Sys_FindClose() {
 }
 const char* FS_GetLocalPath(const char* name, char* local, int capacity) {
-    const std::string path = std::string(com_gamedir) + "/" + name;
+    const char* dir = "/fixture/game/Valve";
+    if (std::strcmp(name, "maps/fallback.bsp") == 0) {
+        dir = "/fixture/game/valve_other_mod";
+    } else if (std::strcmp(name, "maps/download.bsp") == 0) {
+        dir = "/fixture/game/Valve_Downloads";
+    } else if (std::strcmp(name, "maps/localized.bsp") == 0) {
+        dir = "/fixture/localization/Valve_German";
+    }
+    const std::string path = std::string(dir) + "/" + name;
     std::snprintf(local, capacity, "%s", path.c_str());
     return local;
 }

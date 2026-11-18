@@ -14,7 +14,8 @@
 namespace options_reset_fixture {
 // The renderer is an external dependency of the Content handler. Populate its complete result.
 struct RendererState {
-    vmode_s modes[4]{{640, 480, 32}, {1280, 720, 32}, {1920, 1080, 32}, {3840, 2160, 32}};
+    vmode_s modes[6]{{640, 480, 32}, {1280, 720, 32}, {1920, 1080, 32}, {3840, 2160, 32},
+                     {512, 288, 32}, {576, 324, 32}};
     void GetVideoModes(vmode_s** list, int* count) {
         *list = modes;
         *count = static_cast<int>(std::size(modes));
@@ -37,12 +38,15 @@ public:
     void OnDataChanged();
     void OnButtonChecked(KeyValues* data);
     void PrepareResolutionList(bool disallowBadResolutions);
+    static constexpr int kSoftwareRendererRow = 0;
     struct Settings {
         int windowed = 1;
         int w = 1920;
         int h = 1080;
     };
+    Settings m_OrigSettings;
     Settings m_CurrentSettings;
+    int m_iStartRenderer = kSoftwareRendererRow;
     vgui2::CheckButton* m_pWindowed = nullptr;
     CCvarToggleCheckButton* m_pVsync = nullptr;
     vgui2::ComboBox* m_pMode = nullptr;
@@ -97,6 +101,7 @@ inline void Run(vgui2::Panel* root) {
     video->m_pRenderer = new vgui2::ComboBox(video, "Renderer", 2, false);
     video->m_pAspectRatio = new vgui2::ComboBox(video, "Aspect", 2, false);
     video->m_pRenderer->AddItem("Software", nullptr);
+    const int openGLItem = video->m_pRenderer->AddItem("OpenGL", nullptr);
     video->m_pRenderer->ActivateItemByRow(0);
     vgui2::ivgui()->RunFrame();
     video->PrepareResolutionList(true);
@@ -106,7 +111,24 @@ inline void Run(vgui2::Panel* root) {
 #if defined(__APPLE__)
     Require(std::strcmp(resolution, "1920 x 1080") == 0 && video->m_pMode->GetItemCount() == 2,
         "native software keeps the active 1080p mode and filters modes above its framebuffer limit");
+    constexpr int customWidth = 576;
+    constexpr int customHeight = 324;
+    video->m_OrigSettings.w = customWidth;
+    video->m_OrigSettings.h = customHeight;
+    video->m_CurrentSettings = video->m_OrigSettings;
+    video->PrepareResolutionList(true);
+    vgui2::ivgui()->RunFrame();
+    video->m_pMode->GetText(resolution, sizeof(resolution));
+    Require(std::strcmp(resolution, "576 x 324") == 0 && video->m_pMode->GetItemCount() == 3,
+        "macOS software keeps the active custom size and filters other sub-minimum modes");
+    video->m_pRenderer->ActivateItem(openGLItem);
+    video->PrepareResolutionList(true);
+    vgui2::ivgui()->RunFrame();
+    video->m_pMode->GetText(resolution, sizeof(resolution));
+    Require(std::strcmp(resolution, "1280 x 720") == 0 && video->m_pMode->GetItemCount() == 3,
+        "OpenGL keeps its minimum resolution when selected from native software");
 #else
+    (void)openGLItem;
     Require(std::strcmp(resolution, "1280 x 720") == 0 && video->m_pMode->GetItemCount() == 1,
         "Windows software keeps its legacy resolution limit");
 #endif

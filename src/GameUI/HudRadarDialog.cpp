@@ -200,7 +200,8 @@ void CHudRadarDialog::ApplyValues() {
 }
 
 void CHudRadarDialog::UpdateModified() {
-    bool modified = m_baseline[0] != (m_mode->GetActiveItem() != 0 ? 1.0f : 0.0f) || m_baseline[1] != MapModeValue();
+    bool modified = m_defaultsRequested || m_baseline[0] != (m_mode->GetActiveItem() != 0 ? 1.0f : 0.0f) ||
+        m_baseline[1] != MapModeValue();
     for (int index = 0; index < SliderCount; ++index) {
         modified = modified || m_baseline[2 + index] != SliderValue(index);
     }

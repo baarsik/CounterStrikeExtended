@@ -9,6 +9,8 @@
 #include "conprint.h"
 #include "common.h"
 #include "filesystem.h"
+#include "map_catalog.h"
+#include "../common/map_file_name.h"
 #include "server.h"
 #include "sys.h"
 #include "host.h"
@@ -314,38 +316,31 @@ void CServerRemoteAccess::GetPlayerList( CUtlBuffer& value )
 	value.PutChar( 0 );
 }
 
-void CServerRemoteAccess::GetMapList( CUtlBuffer& value )
-{
-	char mapwild[64];
-	char curDir[4096];
-	char mapName[4096];
-#if defined( _WIN32 )
-	constexpr int localPathBytes = 260;
-#else
-	constexpr int localPathBytes = sizeof( curDir );
-#endif
-	const char* findfn;
-	char* extension;
+void CServerRemoteAccess::GetMapList(CUtlBuffer& value) {
+    constexpr int LocalPathBufferBytes = 4096;
+    const char* baseDirectory = GetBaseDirectory();
+    const std::string language = FileSystem_GetInterfaceLanguage();
+    char localPath[LocalPathBufferBytes];
+    char mapPath[LocalPathBufferBytes];
+    for (const char* found = Sys_FindFirst("maps/*.bsp", nullptr); found; found = Sys_FindNext(nullptr)) {
+        const char* filename = cse::maps::FileName(found);
+        const auto map = cse::maps::BspName(filename);
+        if (map.empty()) {
+            continue;
+        }
 
-	strcpy( mapwild, "maps/*.bsp" );
-	for ( findfn = Sys_FindFirst( mapwild, NULL ); findfn; findfn = Sys_FindNext( NULL ) )
-	{
-		snprintf( curDir, localPathBytes, "maps/%s", findfn );
-		FS_GetLocalPath( curDir, curDir, localPathBytes );
-		if ( !strstr( curDir, com_gamedir ) )
-			continue;
+        const int length = std::snprintf(mapPath, sizeof(mapPath), "maps/%s", filename);
+        if (length < 0 || static_cast<std::size_t>(length) >= sizeof(mapPath) ||
+            !FS_GetLocalPath(mapPath, localPath, sizeof(localPath)) ||
+            !cse::maps::IsGameMapPath(localPath, baseDirectory, com_gamedir, language)) {
+            continue;
+        }
 
-		strcpy( mapName, findfn );
-		extension = strstr( mapName, ".bsp" );
-		if ( extension )
-			*extension = 0;
-
-		value.PutString( mapName );
-		value.PutString( "\n" );
-	}
-	Sys_FindClose();
-
-	value.PutChar( 0 );
+        value.Put(map.data(), static_cast<int>(map.size()));
+        value.PutChar('\n');
+    }
+    Sys_FindClose();
+    value.PutChar(0);
 }
 
 bool CServerRemoteAccess::LookupValue( const char* variable, CUtlBuffer& value )

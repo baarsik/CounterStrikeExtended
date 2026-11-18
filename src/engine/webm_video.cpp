@@ -1497,6 +1497,8 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     if (cse::render::UsingMetal()) {
         cse::render::BeginBackendFrame(nWindowW, nWindowH);
     }
+    GLint previousMatrixMode = GL_MODELVIEW;
+    qglGetIntegerv(GL_MATRIX_MODE, &previousMatrixMode);
     GLuint texture = 0;
     qglGenTextures(1, &texture);
     qglEnable(GL_TEXTURE_RECTANGLE);
@@ -1514,6 +1516,7 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
     qglDisable(GL_ALPHA_TEST);
     qglDisable(GL_CULL_FACE);
     qglMatrixMode(GL_PROJECTION);
+    qglPushMatrix();
     qglLoadIdentity();
     qglOrtho(0.0, static_cast<double>(nWindowW), static_cast<double>(nWindowH), 0.0, -1.0, 1.0);
     qglMatrixMode(GL_MODELVIEW);
@@ -1632,7 +1635,7 @@ void WebMPlayer::PlayVideo(const char *szPath, SDL_Window *pSDLWindow) {
                             break;
                         }
 
-                        // The YUV converters pack row and column counters into signed 16-bit fields.
+                        // The 4:2:0 converter packs row and column counters into signed 16-bit fields.
                         constexpr unsigned int maxConverterDimension = SHRT_MAX;
                         constexpr int bytesPerPixel = 4;
                         if (image->d_w == 0 || image->d_h == 0 || image->d_w > maxConverterDimension ||
@@ -1791,7 +1794,11 @@ playback_done:
         SDL_DestroyRenderer(renderer);
     }
 #else
+    qglMatrixMode(GL_MODELVIEW);
     qglPopMatrix();
+    qglMatrixMode(GL_PROJECTION);
+    qglPopMatrix();
+    qglMatrixMode(static_cast<GLenum>(previousMatrixMode));
     qglBindTexture(GL_TEXTURE_RECTANGLE, 0);
     qglDisable(GL_TEXTURE_RECTANGLE);
     qglDeleteTextures(1, &texture);

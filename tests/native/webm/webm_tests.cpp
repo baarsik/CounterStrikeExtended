@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <array>
 #include <climits>
 #include <cmath>
 #include <filesystem>
@@ -63,6 +64,51 @@ void TestSizeBoundary() {
     Require(!StoreAudioPrivateSize(std::numeric_limits<std::size_t>::max(), size) && size == 0,
         "maximum native codec-private size cannot wrap");
 #endif
+}
+
+void TestFullHeightConversion(bool subsampled) {
+    constexpr int bytesPerPixel = 4;
+    constexpr int chromaTableSize = 256;
+    constexpr unsigned char sentinel = 0xcd;
+    std::array<unsigned int, 3 * chromaTableSize> tables{};
+    for (unsigned int value = 0; value < chromaTableSize; ++value) {
+        tables[value] = value;
+        tables[chromaTableSize + value] = value;
+        tables[2 * chromaTableSize + value] = 2 * value;
+    }
+
+    // The table isolates the sample selection in one output byte. Keep every sum below 256.
+    constexpr unsigned char y[] = {1, 2, 3, 4, 99, 11, 12, 13, 14, 99, 21, 22, 23, 24, 99};
+    constexpr unsigned char u[] = {1, 2, 3, 4, 99, 99, 5, 6, 7, 8, 99, 99, 9, 10, 11, 12, 99, 99};
+    constexpr unsigned char v[] = {1, 3, 5, 7, 99, 99, 2, 4, 6, 8, 99, 99, 3, 5, 7, 9, 99, 99};
+    constexpr unsigned char expected422[] = {4, 5, 11, 12, 20, 21, 27, 28, 36, 37, 43, 44};
+    constexpr unsigned char expected444[] = {4, 10, 16, 22, 20, 26, 32, 38, 36, 42, 48, 54};
+    constexpr int lumaStride = 5;
+    constexpr int chromaStride = 6;
+    constexpr int maxWidth = lumaStride - 1;
+    constexpr int maxHeight = static_cast<int>(std::size(y)) / lumaStride;
+    constexpr int outputStride = (maxWidth + 1) * bytesPerPixel;
+    const auto convert = subsampled ? yuv422_2_rgb8888 : yuv444_2_rgb8888;
+    const auto* expectedColors = subsampled ? expected422 : expected444;
+    for (int width = 1; width <= maxWidth; ++width) {
+        for (int height = 1; height <= maxHeight; ++height) {
+            std::array<unsigned char, outputStride * maxHeight> pixels;
+            pixels.fill(sentinel);
+            auto expected = pixels;
+            for (int row = 0; row < height; ++row) {
+                for (int column = 0; column < width; ++column) {
+                    const int pixel = row * outputStride + column * bytesPerPixel;
+                    expected[pixel] = expectedColors[row * maxWidth + column];
+                    std::fill_n(expected.begin() + pixel + 1, bytesPerPixel - 1, 0);
+                }
+            }
+            convert(pixels.data(), y, u, v, width, height, lumaStride, chromaStride, outputStride, tables.data(), 0);
+            if (pixels != expected) {
+                std::fprintf(stderr, "YUV frame conversion differs for %dx%d\n", width, height);
+            }
+            Require(pixels == expected, "write every pixel from the correct rows and preserve output padding");
+        }
+    }
 }
 
 void AppendImage(VPXDecoder& decoder, std::vector<unsigned char>& pixels, int& images) {
@@ -250,7 +296,11 @@ int main(int argc, char** argv) {
         sizeof(AudioVorbisDecoder), sizeof(void*));
     TestSizeBoundary();
     if (argc == 2) {
-        Decode(argv[1], 1);
+        if (std::strcmp(argv[1], "--yuv422") == 0 || std::strcmp(argv[1], "--yuv444") == 0) {
+            TestFullHeightConversion(std::strcmp(argv[1], "--yuv422") == 0);
+        } else {
+            Decode(argv[1], 1);
+        }
     } else if (argc == 3) {
         if (std::strcmp(argv[2], "invalid") == 0) {
             TestInvalidContainer(argv[1]);

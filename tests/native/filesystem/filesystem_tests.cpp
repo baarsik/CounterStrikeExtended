@@ -1,5 +1,6 @@
 #include "basefilesystem.h"
 #include "../public/native_module.h"
+#include "../../../src/engine/map_catalog.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -273,6 +274,30 @@ void TestCase(IFileSystem* filesystem, const std::filesystem::path& root) {
         Require(Read(filesystem, "casetwin.txt") == "lower", "exact lower-case file remains distinct");
     }
 #if defined(__APPLE__)
+    WriteFile(root / "CStrike/Maps/de_mixed.BSP", "mixed-case map");
+    WritePack(root / "CStrike/pak0.pak", {{"maps/de_packed.bsp", "packed map"}});
+    WriteFile(root / "cstrike_other_mod/maps/de_other.bsp", "other mod map");
+    const auto activeGamePath = (root / "cstrike").string();
+    const auto otherGamePath = (root / "cstrike_other_mod").string();
+    filesystem->AddSearchPath(activeGamePath.c_str(), "GAME");
+    filesystem->AddSearchPathNoWrite(otherGamePath.c_str(), "GAME_FALLBACK");
+    Require(filesystem->GetLocalPath("maps/de_mixed.BSP", localPath, sizeof(localPath)) != nullptr &&
+        cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog accepts the mounted game's correctly resolved mixed-case map");
+    Require(filesystem->GetLocalPath("maps/de_other.bsp", localPath, sizeof(localPath)) != nullptr &&
+        !cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog rejects a fallback game whose directory shares the active name");
+    Require(filesystem->GetLocalPath("maps/de_packed.bsp", localPath, sizeof(localPath)) != nullptr &&
+        cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog accepts the synthesized map path from the active game's pack");
+
+    WriteFile(root / "cstrike/maps/de_exact.bsp", "exact-case map");
+    const auto twinGamePath = (root / "CStrike").string();
+    filesystem->AddSearchPathNoWrite(twinGamePath.c_str(), "GAME_FALLBACK");
+    Require(filesystem->GetLocalPath("maps/de_mixed.BSP", localPath, sizeof(localPath)) != nullptr &&
+        !cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog rejects a distinct case-sensitive sibling of an exact game directory");
+
     WriteFile(root / "save/quick.SAV", "previous slot");
     WriteFile(root / "custom.hp2", "temporary archive");
     g_pFileSystem = filesystem;

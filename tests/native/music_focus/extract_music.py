@@ -48,7 +48,7 @@ body += span(cd, r'^void CDAudio_AppFocusChanged\(', optional=True)
 body += span(cd, r'^void CCDAudio::_ApplyAppFocus\(', optional=True)
 for name in methods:
     pattern = r'^(?:(?:void|bool|int|float) )?CCDAudio::' + re.escape(name) + r'\('
-    count = 2 if name in ['MP3_InitStream', 'MP3_PlayTrack'] else 1
+    count = 2 if name == 'MP3_PlayTrack' else 1
     for occurrence in range(count):
         body += span(cd, pattern, occurrence)
 (args.output / 'actual_audio.inc').write_text(body)

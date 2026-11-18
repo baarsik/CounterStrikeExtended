@@ -730,10 +730,10 @@ void RefreshPartialSelection() {
         CHECK(provider.lastIndex == 0);
         const auto finishIndexed = [&] {
             provider.requests.at(provider.current).callback->ServerResponded(provider.current, provider.lastIndex);
+            provider.Complete(eServerFailedToRespond);
         };
         if (indexedFirst) {
             finishIndexed();
-            provider.Complete(eServerFailedToRespond);
         } else {
             Drain(model);
         }
@@ -744,9 +744,46 @@ void RefreshPartialSelection() {
         }
         Drain(model);
         CHECK(model.GetStatus().phase == Phase::Complete);
+        CHECK(model.GetStatus().completion == eServerFailedToRespond);
+        CHECK(model.GetStatus().error.empty());
         CHECK(model.Find(Retained)->failed);
         CHECK(!model.Find(Indexed)->failed);
     }
+}
+
+void RefreshPartialList() {
+    constexpr RowKey Indexed{0x7f000001U, 27015, 27016};
+    constexpr RowKey Retained{0x7f000002U, 27015, 27016};
+    Provider provider;
+    provider.nextRows = {Server(Indexed.ip), Server(Retained.ip, "Retained")};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+
+    provider.nextRows = {Server(Indexed.ip)};
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    Drain(model);
+    provider.Complete(eServerFailedToRespond);
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Failed);
+
+    CHECK(model.QuickRefresh());
+    CHECK(!model.QuickRefresh());
+    auto& request = provider.requests.at(provider.current);
+    request.rows[0].SetName("Refreshed");
+    request.callback->ServerResponded(provider.current, 0);
+    provider.Complete();
+    CHECK(model.GetStatus().phase == Phase::Refreshing);
+    Drain(model);
+
+    CHECK(model.GetStatus().phase == Phase::Complete);
+    CHECK(model.Find(Indexed)->name == "Refreshed");
+    CHECK(model.Find(Retained)->failed);
+    CHECK(model.Find(Retained)->name == "Retained");
+    CHECK(model.QuickRefresh(Retained));
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Complete);
 }
 
 int main(int argc, char** argv) {
@@ -792,9 +829,10 @@ int main(int argc, char** argv) {
         ReentrantViewChange();
         FavoritePreservation();
         ReplacementAndFailure();
+        RefreshPartialList();
         RefreshPartialSelection();
         EverySortAndFilter();
-        std::cout << "13 model cases passed\n";
+        std::cout << "15 model cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

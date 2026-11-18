@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
         std::ofstream(root / game / "liblist.gam")
             << "game \"" << (std::string(game) == "valve" ? "Half-Life" : "Counter-Strike")
             << "\"\ntype \"multiplayer_only\"\n";
-        std::ofstream(root / game / "maps" / (std::string(game) == "valve" ? "crossfire.bsp" : "de_fixture.bsp"));
+        std::ofstream(root / game / "maps" / (std::string(game) == "valve" ? "crossfire.bsp" : "de.maps.bsp.v2.BSP"));
     }
     void* files = dlopen((runtime + "/filesystem_stdio.dylib").c_str(), RTLD_NOW | RTLD_LOCAL);
     void* gui = dlopen((runtime + "/vgui2.dylib").c_str(), RTLD_NOW | RTLD_LOCAL);
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
         }
     } else if (mode == "bounds") {
         const std::string prefix = "\"fixture name\" -padding " + std::string(450, 'x') + " -another ";
-        const std::string suffix = " -game cstrike -maxplayers 12 +sv_lan 1 +map de_fixture -port 28015";
+        const std::string suffix = " -game cstrike -maxplayers 12 +sv_lan 1 +map de.maps.bsp.v2 -port 28015";
         for (const std::size_t finalBytes : {1023, 1024}) {
             const std::string padding(finalBytes - prefix.size() - suffix.size(), 'y');
             const std::string firstPadding(450, 'x');
@@ -243,7 +243,7 @@ int main(int argc, char** argv) {
         CHECK(!page->IsVisible());
         shutdownResult = 5;
         CHECK(session.Run() == 0);
-        CHECK(capturedCommand == "\"fixture name\" -game cstrike -maxplayers 12 +sv_lan 1 +map de_fixture -port 28015");
+        CHECK(capturedCommand == "\"fixture name\" -game cstrike -maxplayers 12 +sv_lan 1 +map de.maps.bsp.v2 -port 28015");
         CHECK(session.CommandLine().Encoded() == capturedCommand);
         CHECK(session.RestartRequested());
         CHECK(std::filesystem::path(session.Executable()).is_absolute());

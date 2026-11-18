@@ -137,6 +137,8 @@ void COptionsSubVideo::SetCurrentResolutionComboItem()
 
 void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 {
+    constexpr int MinimumWidth = 640;
+    constexpr int MinimumHeight = 480;
 #if defined(_WIN32)
     constexpr int MaximumSoftwareWidth = 1599;
     constexpr int MaximumSoftwareHeight = 1199;
@@ -151,7 +153,7 @@ void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 	m_pMode->DeleteAllItems();
 	char text[256];
 	m_pRenderer->GetText( text, sizeof( text ) );
-	bool software = m_pRenderer->GetActiveItem() == 0;
+    const bool software = m_pRenderer->GetActiveItem() == kSoftwareRendererRow;
 	int selectedItem = -1;
 	int itemsAdded = 0;
 	bool foundWidescreen = false;
@@ -159,14 +161,21 @@ void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 	{
 		vmode_s& mode = modes[i];
 		sprintf( text, "%i x %i", mode.width, mode.height );
-		if ( disallowBadResolutions && count > 1 )
-		{
-			if ( mode.width < 640 || mode.height < 480 )
-				continue;
+        if (disallowBadResolutions && count > 1) {
+            bool belowMinimum = mode.width < MinimumWidth || mode.height < MinimumHeight;
+#if defined(__APPLE__)
+            if (software && m_iStartRenderer == kSoftwareRendererRow &&
+                mode.width == m_OrigSettings.w && mode.height == m_OrigSettings.h) {
+                belowMinimum = false;
+            }
+#endif
+            if (belowMinimum) {
+                continue;
+            }
             if (software && (mode.width > MaximumSoftwareWidth || mode.height > MaximumSoftwareHeight)) {
                 continue;
             }
-		}
+        }
 
 		int item = -1;
 		if ( 3 * mode.width == 4 * mode.height )

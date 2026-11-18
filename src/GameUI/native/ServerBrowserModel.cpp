@@ -323,7 +323,8 @@ struct ServerBrowserModel::State {
         uint64_t generation;
         HServerListRequest handle = nullptr;
         bool accepting = true;
-        bool completed = false;
+        bool listRefreshPending = true;
+        std::optional<EMatchMakingServerResponse> directoryCompletion;
         std::set<int> quickPending;
         int enumerate = 0;
         int count = 0;
@@ -357,11 +358,8 @@ struct ServerBrowserModel::State {
             ++owner.callbackDepth;
             if (Accept(incoming) && index >= 0) {
                 dirty[index] = source;
-                if (quickPending.erase(index) && quickPending.empty()) {
-                    completed = true;
-                    if (!owner.pingRefresh) {
-                        owner.status.phase = Phase::Complete;
-                    }
+                if (quickPending.erase(index)) {
+                    owner.FinishRefresh();
                 }
             }
             --owner.callbackDepth;
@@ -375,16 +373,20 @@ struct ServerBrowserModel::State {
         void RefreshComplete(HServerListRequest incoming, EMatchMakingServerResponse result) override {
             owner.Check();
             ++owner.callbackDepth;
-            if (Accept(incoming)) {
-                completed = true;
-                owner.status.completion = result;
-                owner.status.error.clear();
-                if (!owner.pingRefresh) {
-                    owner.status.phase = result == eServerFailedToRespond ? Phase::Failed : Phase::Complete;
-                    if (result == eServerFailedToRespond) {
-                        owner.status.error = "Server query failed; partial results remain available";
-                    }
+            // The list verdict belongs to discovery or RefreshQuery. RefreshServer
+            // is completed by its row callback, even if the provider sends both.
+            if (Accept(incoming) && listRefreshPending) {
+                listRefreshPending = false;
+                if (!directoryCompletion) {
+                    directoryCompletion = result;
                 }
+                owner.status.completion = result;
+                owner.refreshFailed = result == eServerFailedToRespond;
+                owner.status.error.clear();
+                if (owner.refreshFailed) {
+                    owner.status.error = "Server query failed; partial results remain available";
+                }
+                owner.FinishRefresh();
             }
             --owner.callbackDepth;
         }
@@ -406,6 +408,7 @@ struct ServerBrowserModel::State {
     std::set<RowKey> pingPending;
     std::map<RowKey, std::unique_ptr<Ping>> pings;
     bool pingRefresh = false;
+    bool refreshFailed = false;
     bool refreshPending = false;
     bool resetPending = false;
     bool rebuildPending = false;
@@ -424,6 +427,28 @@ struct ServerBrowserModel::State {
     }
     void Check() const {
         RequireThread(thread);
+    }
+    void BeginRefresh() {
+        status.phase = Phase::Refreshing;
+        status.error.clear();
+        refreshFailed = false;
+    }
+    void FinishRefresh() {
+        if (status.phase == Phase::Refreshing && !pingRefresh &&
+            (!request || (!request->listRefreshPending && request->quickPending.empty()))) {
+            status.phase = refreshFailed ? Phase::Failed : Phase::Complete;
+        }
+    }
+    void QueueUnindexedPings(const Request* indexed) {
+        if (!pingRefresh) {
+            pingPending.clear();
+        }
+        for (const auto& entry : rows) {
+            if ((!indexed || !indexed->IndexFor(entry.first)) && !pings.count(entry.first)) {
+                pingPending.insert(entry.first);
+            }
+        }
+        pingRefresh = !pingPending.empty() || !pings.empty();
     }
     template<class Function> auto Provider(Function function) {
         Check();
@@ -712,9 +737,7 @@ struct ServerBrowserModel::State {
         }
         if (pingRefresh && pingPending.empty() && pings.empty()) {
             pingRefresh = false;
-            if (!request || request->completed) {
-                status.phase = Phase::Complete;
-            }
+            FinishRefresh();
         }
         return work;
     }
@@ -872,9 +895,8 @@ bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters, bool cle
     state.kind = kind;
     state.filters = filters;
     state.Rebuild();
-    state.status.phase = Phase::Refreshing;
+    state.BeginRefresh();
     state.status.completion.reset();
-    state.status.error.clear();
     state.refreshPending = true;
     state.NormalizeEmptyRoots();
     return !state.CanStartRequest() || state.StartRequest();
@@ -891,26 +913,19 @@ bool ServerBrowserModel::QuickRefresh() {
         if (state.rows.empty()) {
             return false;
         }
-        if (!state.pingRefresh) {
-            state.pingPending.clear();
-        }
-        for (const auto& entry : state.rows) {
-            if (!state.pings.count(entry.first)) {
-                state.pingPending.insert(entry.first);
-            }
-        }
-        state.pingRefresh = true;
-        state.status.phase = Phase::Refreshing;
-        state.status.error.clear();
+        state.QueueUnindexedPings(nullptr);
+        state.BeginRefresh();
         return true;
     }
-    if (!state.request->completed || state.pingRefresh) {
+    if (state.request->listRefreshPending || !state.request->quickPending.empty() || state.pingRefresh) {
         return false;
     }
     auto& request = *state.request;
-    request.completed = false;
-    state.status.phase = Phase::Refreshing;
-    state.status.error.clear();
+    if (request.directoryCompletion == eServerFailedToRespond) {
+        state.QueueUnindexedPings(&request);
+    }
+    request.listRefreshPending = true;
+    state.BeginRefresh();
     state.Provider([&] {
         state.services.servers->RefreshQuery(request.handle);
     });
@@ -924,12 +939,13 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
         state.providerDepth || state.callbackDepth || state.retiring) {
         return false;
     }
-    if (state.request && !state.request->completed && state.request->quickPending.empty()) {
+    if (state.request && state.request->listRefreshPending) {
         return false;
     }
     const auto index = state.request ? state.request->IndexFor(key) : std::nullopt;
     // A failed directory retains rows from the previous request without assigning them new indices.
-    if (!state.request || !state.request->handle || (!index && state.status.completion == eServerFailedToRespond)) {
+    if (!state.request || !state.request->handle ||
+        (!index && state.request->directoryCompletion == eServerFailedToRespond)) {
         if (!Find(key)) {
             return false;
         }
@@ -940,8 +956,9 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
             state.pingPending.insert(key);
         }
         state.pingRefresh = true;
-        state.status.phase = Phase::Refreshing;
-        state.status.error.clear();
+        if (state.status.phase != Phase::Refreshing) {
+            state.BeginRefresh();
+        }
         return true;
     }
     if (!index) {
@@ -953,9 +970,9 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
     if (!request.quickPending.insert(*index).second) {
         return true;
     }
-    request.completed = false;
-    state.status.phase = Phase::Refreshing;
-    state.status.error.clear();
+    if (state.status.phase != Phase::Refreshing) {
+        state.BeginRefresh();
+    }
     state.Provider([&] {
         state.services.servers->RefreshServer(request.handle, *index);
     });
@@ -1071,9 +1088,9 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                     state.Apply(CopyRow(*item, source), index);
                 }
             }
-        } else if (state.request && state.request->completed && state.request->prunePending) {
+        } else if (state.request && !state.request->listRefreshPending && state.request->prunePending) {
             auto& request = *state.request;
-            if (state.status.completion == eServerFailedToRespond || request.pruneCursor == state.rows.end()) {
+            if (request.directoryCompletion == eServerFailedToRespond || request.pruneCursor == state.rows.end()) {
                 request.prunePending = false;
             } else {
                 const auto entry = request.pruneCursor++;
@@ -1156,7 +1173,7 @@ Status ServerBrowserModel::GetStatus() const {
     result.lastReclamationWork = state_->lastReclamationWork;
     result.viewUpdating = state_->refreshPending || state_->resetPending || state_->rebuildPending ||
         state_->rebuilding != nullptr ||
-        (state_->request && state_->request->completed && state_->request->prunePending);
+        (state_->request && !state_->request->listRefreshPending && state_->request->prunePending);
     result.pending = state_->updates.size() + (state_->resetUpdate ? 1 : 0);
     result.pending += state_->pingPending.size() + state_->pings.size();
     if (state_->request) {

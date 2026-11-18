@@ -504,6 +504,26 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
     Require(radarValues["hud_radar_map_scale"] == CustomMapScale,
         "changing player names preserves the configured precision of an untouched map scale");
 
+    constexpr float DefaultMapScale = 0.8f;
+    constexpr float RoundedToDefaultMapScale = 0.804f;
+    radarValues["hud_radar_map_scale"] = RoundedToDefaultMapScale;
+    radarValues["hud_radar_names"] = 0.0f;
+    auto* defaultsDialog = new CHudRadarDialog(root);
+    defaultsDialog->SetScheme(scheme);
+    defaultsDialog->DoModal();
+    Settle(*root);
+    auto* defaultsApply = dynamic_cast<vgui2::Button*>(defaultsDialog->FindChildByName("Apply", false));
+    Require(defaultsApply && !defaultsApply->IsEnabled(), "the rounded initial setting has no pending edits");
+    defaultsDialog->OnCommand("Defaults");
+    Settle(*root);
+    Require(defaultsApply->IsEnabled() && radarValues["hud_radar_map_scale"] == RoundedToDefaultMapScale,
+        "Defaults can be applied when the control already displays the rounded default");
+    defaultsDialog->OnCommand("Apply");
+    Require(radarValues["hud_radar_map_scale"] == DefaultMapScale && !defaultsApply->IsEnabled(),
+        "Apply commits the exact default and consumes the reset");
+    defaultsDialog->OnCommand("Close");
+    Settle(*root);
+
     radarValues["hud_radar_mode"] = 0.5f;
     radarValues["hud_radar_names"] = -1.0f;
     auto* modeDialog = new CHudRadarDialog(root);

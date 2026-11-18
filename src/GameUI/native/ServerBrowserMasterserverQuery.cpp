@@ -10,6 +10,7 @@
 #include <mutex>
 #include <set>
 #include <thread>
+#include <utility>
 #include <vector>
 #if defined(_WIN32)
 #include <winsock2.h>
@@ -258,12 +259,14 @@ struct MasterserverQueryProvider::State {
         }
     };
     struct Request {
+        enum class ListRefresh { Directory, Metadata, None };
         Directory directory;
         ISteamMatchmakingServerListResponse* callback = nullptr;
         AppId_t app = 0;
         std::vector<std::unique_ptr<Entry>> rows;
         std::deque<int> queued;
         std::vector<int> active;
+        ListRefresh listRefresh = ListRefresh::Directory;
         bool refreshing = true;
         bool released = false;
 
@@ -298,6 +301,7 @@ struct MasterserverQueryProvider::State {
             }
         } scope{cancelDepth};
         request.refreshing = false;
+        request.listRefresh = Request::ListRefresh::None;
         request.directory.stop = true;
         // Revoke presentation callbacks first; detach each handle before its cancellation can reenter release.
         auto active = std::move(request.active);
@@ -464,9 +468,14 @@ void MasterserverQueryProvider::Pump(size_t budget) {
         if (request->refreshing && request->directory.CompleteAndDrained() &&
             request->queued.empty() && request->active.empty()) {
             request->refreshing = false;
-            request->callback->RefreshComplete(static_cast<HServerListRequest>(request.get()),
-                request->directory.failed ? eServerFailedToRespond :
-                    request->rows.empty() ? eNoServersListedOnMasterServer : eServerResponded);
+            const auto listRefresh = std::exchange(request->listRefresh, State::Request::ListRefresh::None);
+            if (listRefresh != State::Request::ListRefresh::None) {
+                const bool directoryFailed = listRefresh == State::Request::ListRefresh::Directory &&
+                    request->directory.failed;
+                request->callback->RefreshComplete(static_cast<HServerListRequest>(request.get()),
+                    directoryFailed ? eServerFailedToRespond :
+                        request->rows.empty() ? eNoServersListedOnMasterServer : eServerResponded);
+            }
         }
     }
 }
@@ -544,6 +553,9 @@ void MasterserverQueryProvider::RefreshQuery(HServerListRequest handle) {
     }
     // An empty request still needs a completion callback on the next pump.
     auto& request = *found->second;
+    if (request.listRefresh == State::Request::ListRefresh::None) {
+        request.listRefresh = State::Request::ListRefresh::Metadata;
+    }
     request.refreshing = true;
     for (size_t index = 0; index < request.rows.size(); ++index) {
         request.Queue(static_cast<int>(index));
