@@ -217,8 +217,9 @@ struct MetalSession::Impl {
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
         Uint32 indexOffset = 0;
-        std::size_t meshBatchDraws = 0;
-        std::size_t meshBatchIndices = 0;
+        std::uint32_t streamedBaseVertex = 0;
+        std::size_t batchDraws = 0;
+        std::size_t batchIndices = 0;
         bool meshIndicesInStream = false;
         bool softwareBorder = false;
     };
@@ -243,7 +244,8 @@ struct MetalSession::Impl {
         const auto& left = first.data;
         const auto& right = second.data;
         const bool compatibleGeometry = first.mesh && second.mesh ? first.mesh->page == second.mesh->page :
-            !first.mesh && !second.mesh && left.Indices().empty() && right.Indices().empty();
+            !first.mesh && !second.mesh && first.layout == second.layout &&
+                left.Indices().empty() == right.Indices().empty();
         return compatibleGeometry && first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
             SameBits(left.raster.depthRange, right.raster.depthRange) && left.raster.scissor == right.raster.scissor &&
@@ -1474,14 +1476,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             ++end;
         }
         if (!disjoint) {
-            draw.meshBatchDraws = end - first;
-            draw.meshBatchIndices = count;
+            draw.batchDraws = end - first;
+            draw.batchIndices = count;
         } else {
             const auto bytes = count * sizeof(std::uint32_t);
             if (meshIndexUploadOffset <= kMaximumStreamingBytes &&
                 bytes <= kMaximumStreamingBytes - meshIndexUploadOffset - meshIndexBytes) {
-                draw.meshBatchDraws = end - first;
-                draw.meshBatchIndices = count;
+                draw.batchDraws = end - first;
+                draw.batchIndices = count;
                 draw.meshIndicesInStream = true;
                 draw.indexOffset = static_cast<Uint32>(indexBytes + meshIndexBytes);
                 meshIndexBytes += bytes;
@@ -1491,6 +1493,30 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     }
     if (meshIndexBytes) {
         uploadBytes = meshIndexUploadOffset + meshIndexBytes;
+    }
+    // Consecutive streamed indexed draws can address one vertex binding with
+    // their existing index slices. Keep every primitive in its original order.
+    for (std::size_t first = 0; first < draws.size();) {
+        auto& draw = draws[first];
+        if (draw.mesh || draw.data.Indices().empty()) {
+            ++first;
+            continue;
+        }
+        const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
+            kSingleTextureVertexBytes : sizeof(Vertex);
+        auto count = draw.data.Indices().size();
+        auto end = first + 1;
+        while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
+            auto& next = draws[end];
+            next.streamedBaseVertex = static_cast<std::uint32_t>((next.vertexOffset - draw.vertexOffset) / vertexStride);
+            count += next.data.Indices().size();
+            ++end;
+        }
+        if (end > first + 1) {
+            draw.batchDraws = end - first;
+            draw.batchIndices = count;
+        }
+        first = end;
     }
     auto* stream = uploadBytes ? state.NextStream(error, uploadBytes) : nullptr;
     if (uploadBytes && !stream) {
@@ -1517,8 +1543,15 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             }
             const auto& indices = draw.data.Indices();
             if (!indices.empty()) {
-                std::memcpy(mapped + vertexBytes + draw.indexOffset, indices.data(),
-                    indices.size() * sizeof(std::uint32_t));
+                auto* destination = mapped + vertexBytes + draw.indexOffset;
+                if (draw.streamedBaseVertex) {
+                    const auto base = draw.streamedBaseVertex;
+                    auto* rebased = reinterpret_cast<std::uint32_t*>(destination);
+                    std::transform(indices.begin(), indices.end(), rebased,
+                        [base](std::uint32_t value) { return value + base; });
+                } else {
+                    std::memcpy(destination, indices.data(), indices.size() * sizeof(std::uint32_t));
+                }
             }
         }
         for (const auto& upload : meshUploads) {
@@ -1553,14 +1586,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                 if (!draw.meshIndicesInStream) {
                     continue;
                 }
-                for (auto offset = index; offset < index + draw.meshBatchDraws; ++offset) {
+                for (auto offset = index; offset < index + draw.batchDraws; ++offset) {
                     const auto& piece = draws[offset];
                     const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / piece.mesh->page->vertexStride);
                     const auto& original = piece.data.mesh->Indices();
                     indices = std::transform(original.begin(), original.end(), indices,
                         [base](std::uint32_t value) { return value + base; });
                 }
-                index += draw.meshBatchDraws - 1;
+                index += draw.batchDraws - 1;
             }
         }
         SDL_UnmapGPUTransferBuffer(state.device, stream->upload);
@@ -1668,11 +1701,11 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.Indices().size();
         // Preserve order while combining adjacent stream ranges or resident ranges on the same page.
         // Material, uniforms, transforms, scissor and all dynamic raster state must match exactly.
-        if (draw.meshBatchDraws) {
-            drawIndex += draw.meshBatchDraws - 1;
-            indexCount = draw.meshBatchIndices;
+        if (draw.batchDraws) {
+            drawIndex += draw.batchDraws - 1;
+            indexCount = draw.batchIndices;
         }
-        while (!draw.meshBatchDraws && drawIndex + 1 < draws.size()) {
+        while (!draw.batchDraws && (draw.mesh || data.Indices().empty()) && drawIndex + 1 < draws.size()) {
             const auto& next = draws[drawIndex + 1];
             if (!Impl::SameDrawState(draw, next)) {
                 break;

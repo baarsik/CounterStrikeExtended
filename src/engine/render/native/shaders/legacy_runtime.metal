@@ -52,6 +52,7 @@ struct Varying {
 static_assert(sizeof(VertexConstants) == 384, "Captured vertex uniform layout");
 static_assert(sizeof(FragmentConstants) == 240, "Captured fragment uniform layout");
 
+template<bool AdditionalTextureCoordinates = true>
 Varying TransformLegacyVertex(float4 position, float4 color, float4 uv0, float4 uv1, float4 uv2,
     constant VertexConstants& constants) {
     Varying output;
@@ -61,8 +62,13 @@ Varying TransformLegacyVertex(float4 position, float4 color, float4 uv0, float4 
     output.position.z = (output.position.z + output.position.w) * 0.5f;
     output.color = color * constants.Color;
     output.uv0 = constants.TextureMatrix[0] * (uv0 + constants.UvOffset[0]);
-    output.uv1 = constants.TextureMatrix[1] * (uv1 + constants.UvOffset[1]);
-    output.uv2 = constants.TextureMatrix[2] * (uv2 + constants.UvOffset[2]);
+    if (AdditionalTextureCoordinates) {
+        output.uv1 = constants.TextureMatrix[1] * (uv1 + constants.UvOffset[1]);
+        output.uv2 = constants.TextureMatrix[2] * (uv2 + constants.UvOffset[2]);
+    } else {
+        output.uv1 = uv1;
+        output.uv2 = uv2;
+    }
     output.eyeDepth = abs(eye.z / eye.w);
     return output;
 }
@@ -75,7 +81,7 @@ vertex Varying LegacyVertex(Input input [[stage_in]],
 vertex Varying LegacySingleTextureVertex(SingleTextureInput input [[stage_in]],
     constant VertexConstants& constants [[buffer(0)]]) {
     const float4 unusedUv = float4(0, 0, 0, 1);
-    return TransformLegacyVertex(input.position, input.color, input.uv, unusedUv, unusedUv, constants);
+    return TransformLegacyVertex<false>(input.position, input.color, input.uv, unusedUv, unusedUv, constants);
 }
 
 vertex Varying LegacyWorldVertex(WorldInput input [[stage_in]],

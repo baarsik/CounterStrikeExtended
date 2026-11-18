@@ -675,15 +675,25 @@ void IndexedDraws(MetalSession& session, std::string& error) {
             vertex.color[3] = 0.5f;
         }
     }
+    frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = true;
+    frame.draws[1].raster.scissor = {{0, 0, kTargetSize, kTargetSize}};
     sceneIndexedDrawCalls = 0;
     CHECK(session.Render(frame, error));
     CHECK(sceneIndexedDrawCalls == 2);
     CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    const auto orderedPixel = pixel;
     constexpr int kQuarterChannel = 64;
     constexpr int kHalfChannel = 128;
     CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
     CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
     CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+    frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = false;
+    frame.draws[1].raster.scissor = frame.draws[0].raster.scissor;
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel == orderedPixel);
+    CHECK(sceneIndexedDrawCalls == 1);
     // Indexed flat and wireframe fallback must match the exact expanded triangle image.
     frame.draws = {Solid(1, 0, 0)};
     frame.draws[0].primitive = Primitive::Triangles;
