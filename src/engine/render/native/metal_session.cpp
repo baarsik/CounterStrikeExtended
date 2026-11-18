@@ -2153,10 +2153,13 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     unsigned destinationWidth = width;
     unsigned destinationHeight = height;
     if (preserveAspect) {
-        const double scale = std::min(static_cast<double>(width) / state.width,
-            static_cast<double>(height) / state.height);
-        destinationWidth = std::max(1u, static_cast<unsigned>(state.width * scale));
-        destinationHeight = std::max(1u, static_cast<unsigned>(state.height * scale));
+        const auto widthBySceneHeight = static_cast<std::uint64_t>(width) * state.height;
+        const auto heightBySceneWidth = static_cast<std::uint64_t>(height) * state.width;
+        if (widthBySceneHeight > heightBySceneWidth) {
+            destinationWidth = std::max(1u, static_cast<unsigned>(heightBySceneWidth / state.height));
+        } else {
+            destinationHeight = std::max(1u, static_cast<unsigned>(widthBySceneHeight / state.width));
+        }
     }
     SDL_GPUBlitInfo info{};
     info.source.texture = state.color;

@@ -1718,6 +1718,27 @@ int main() {
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[2] == 0);
     session.Shutdown();
+    // Matching aspect ratios must cover every drawable pixel even at a non-integral scale.
+    constexpr int sceneWidth = 800;
+    constexpr int sceneHeight = 600;
+    constexpr int drawableWidth = 228;
+    constexpr int drawableHeight = 171;
+    CHECK(SDL_SetWindowSize(window, drawableWidth, drawableHeight));
+    CHECK(SDL_SyncWindow(window));
+    CHECK(session.Initialize(window, true, error));
+    CHECK(session.Resize(sceneWidth, sceneHeight, 1, error));
+    FrameSnapshot solid;
+    solid.info = {1, 1, sceneWidth, sceneHeight};
+    FrameEvent red;
+    red.kind = FrameEventKind::Clear;
+    red.clear.mask = kClearColor;
+    red.clear.color = {{1, 0, 0, 1}};
+    solid.events.push_back(red);
+    CHECK(session.Render(solid, error));
+    CHECK(session.Present(true, true, error));
+    CHECK(session.ReadPresentedPixels(drawableWidth - 1, 0, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0 && rgba[2] == 0);
+    session.Shutdown();
     session.Shutdown();
     SDL_DestroyWindow(window);
     SDL_Quit();
