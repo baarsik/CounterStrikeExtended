@@ -199,5 +199,24 @@ int main() {
     gViewPort = &viewport;
     gHUD.m_TextMessage.PrintLocalVoiceStatus("hidden", true);
     assert(gHUD.m_SayText.prints == 2);
+    gViewPort = nullptr;
+
+    constexpr std::size_t LastCompleteByteCount = 126;
+    const std::string prefix(LastCompleteByteCount, 'a');
+    for (const char*& field : packet) {
+        field = "";
+    }
+    packet[0] = "#LONG_FORMAT";
+    titles["LONG_FORMAT"] = prefix + "ą";
+    hud.MsgFunc_TextMsg("TextMsg", 0, nullptr);
+    assert(center == prefix);
+    titles["LONG_FORMAT"] = "%s";
+    packet[1] = "#LONG_PARAMETER";
+    titles["LONG_PARAMETER"] = prefix + "ą";
+    hud.MsgFunc_TextMsg("TextMsg", 0, nullptr);
+    assert(center == prefix);
+    titles["LONG_PARAMETER"] = prefix + static_cast<char>(0xe9) + "x";
+    hud.MsgFunc_TextMsg("TextMsg", 0, nullptr);
+    assert(center == prefix + static_cast<char>(0xe9));
     puts("PASS actual HL center owner: typed sources, literal parameters, stale rejection and no event replay");
 }
