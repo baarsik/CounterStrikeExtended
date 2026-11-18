@@ -49,6 +49,7 @@
 #undef PostMessage
 #undef SendMessage
 #undef GetClassName
+#undef GetCurrentTime
 #endif
 
 #ifndef null
