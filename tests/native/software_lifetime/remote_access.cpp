@@ -57,6 +57,7 @@ int main() {
     command.PutInt(1);
     command.PutInt(SERVERDATA_EXECCOMMAND);
     command.PutString("status");
+    command.PutChar(0); // SendCommand writes an empty value after the command.
     remote.SendMessageToAdminUI("queued");
     reenter = true;
     remote.WriteDataRequest(command.Base(), command.TellPut());
