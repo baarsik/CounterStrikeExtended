@@ -222,7 +222,7 @@ private:
 	bool _mouseSelection;
 	bool _mouseDragSelection; // tells weather mouse is outside window and button is down so we select text
 	int _mouseSelectCursorStart; // where mouse button was pressed down in text window
-	int _cursorNextBlinkTime;
+	unsigned int _cursorBlinkStart;
 	int _cursorBlinkRate; // speed of cursor blinking
 	int _select[2]; // select[1] is the offset in the text to where the cursor is currently
 	// select[0] is the offset to where the cursor was dragged to. or -1 if no drag.

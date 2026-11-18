@@ -53,7 +53,7 @@ protected:
 
 private:
 	int m_iCurrentImage;
-	int m_iNextFrameTime;
+	unsigned int m_iNextFrameTime;
 	int m_iFrameTimeMillis;
 	CUtlVector<IImage*> m_Frames;
 	char* m_pImageName;

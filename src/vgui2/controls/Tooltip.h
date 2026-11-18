@@ -45,7 +45,7 @@ private:
 	virtual void ApplySchemeSettings( IScheme* scheme );
 
 	CUtlVector<char>	m_Text;
-	int					_delay; // delay that counts down
+	unsigned int _delay; // delay that counts down
 	int					_tooltipDelay; // delay before tooltip comes up.
 	bool				_makeVisible;
 	bool				_displayOnOneLine;

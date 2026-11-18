@@ -126,6 +126,7 @@ def main():
                          "vgui/IScheme.h", str(args.repo / "src/engine/common.h"),
                          str(args.repo / "src/engine/controls.h"),
                          str(args.repo / "src/common/TextEntryClipboard.h"),
+                         str(args.repo / "src/common/vgui_control_time.h"),
                          "vgui/IVGui.h", "vgui/Cursor.h", "Menu.h", "ScrollBar.h"])
     source_probe = args.out / "declarations.cpp"
     source_probe.write_text(prefix + "\n")

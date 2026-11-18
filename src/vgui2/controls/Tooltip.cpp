@@ -16,6 +16,7 @@
 #include "controls.h"
 #include "vgui/IInput.h"
 #include "vgui/ISystem.h"
+#include "vgui_control_time.h"
 
 #include <cmath>
 #include <cstring>
@@ -26,12 +27,15 @@ static TextEntry* s_pTooltipWindow = nullptr;
 static Tooltip* s_pActiveTooltip = nullptr;
 static int s_iTooltipWindowCount = 0;
 
-//-----------------------------------------------------------------------------
-// Purpose: Reset the tooltip delay timer
-//-----------------------------------------------------------------------------
-void Tooltip::ResetDelay()
-{
-	_delay = system()->GetTimeMillis() + _tooltipDelay;
+// SetTooltipDelay can change the next hover's delay while the current deadline is pending.
+static unsigned int maximumTooltipDelay = 0;
+
+void Tooltip::ResetDelay() {
+    const auto delay = static_cast<unsigned int>(_tooltipDelay > 0 ? _tooltipDelay : 0);
+    if (delay > maximumTooltipDelay) {
+        maximumTooltipDelay = delay;
+    }
+    _delay = cse::vgui_control_time::Milliseconds(*system()) + delay;
 }
 
 void Tooltip::InvalidateLayout()
@@ -66,7 +70,7 @@ Tooltip::Tooltip( Panel*, const char* text )
 	_makeVisible = false;
 	m_bInvalidLayout = true;
 	_tooltipDelay = 500;
-	_delay = 0;
+    _delay = cse::vgui_control_time::Milliseconds(*system());
 }
 
 //-----------------------------------------------------------------------------
@@ -185,8 +189,10 @@ void Tooltip::PerformLayout() {
         return;
     }
 
-	if ( _delay > system()->GetTimeMillis() )
-		return;
+    const auto now = cse::vgui_control_time::Milliseconds(*system());
+    if (cse::vgui_control_time::Waiting(now, _delay, maximumTooltipDelay)) {
+        return;
+    }
 
 	m_bInvalidLayout = false;
 

@@ -25,6 +25,7 @@
 #include "vgui/IPanel.h"
 #include "vgui/IScheme.h"
 #include "vgui/ISystem.h"
+#include "vgui_control_time.h"
 #include "vgui/KeyValues.h"
 
 #include <cassert>
@@ -283,7 +284,7 @@ TextEntry::TextEntry( Panel* parent, const char* panelName ) : Panel( parent, pa
 	_pixelsIndent = 0;
 	_undoCursorPos = 0;
 	_mouseSelectCursorStart = 0;
-	_cursorNextBlinkTime = _cursorBlinkRate + system()->GetTimeMillis();
+    _cursorBlinkStart = cse::vgui_control_time::Milliseconds(*system());
 	SetCursor( dc_ibeam );
 	//position the cursor so it is at the end of the text
 	GotoTextEnd();
@@ -527,25 +528,22 @@ void TextEntry::SetText( const char* text )
 //-----------------------------------------------------------------------------
 // Purpose: Restarts the time of the next cursor blink
 //-----------------------------------------------------------------------------
-void TextEntry::ResetCursorBlink()
-{
-	_cursorBlink = false;
-	_cursorNextBlinkTime = _cursorBlinkRate + system()->GetTimeMillis();
+void TextEntry::ResetCursorBlink() {
+    _cursorBlink = false;
+    _cursorBlinkStart = cse::vgui_control_time::Milliseconds(*system());
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Called every frame the entry has keyboard focus; 
 //          blinks the text cursor
 //-----------------------------------------------------------------------------
-void TextEntry::OnKeyFocusTicked()
-{
-	int now = system()->GetTimeMillis();
-	if ( now > _cursorNextBlinkTime )
-	{
-		_cursorBlink = !_cursorBlink;
-		_cursorNextBlinkTime = _cursorBlinkRate + now;
-		Repaint();
-	}
+void TextEntry::OnKeyFocusTicked() {
+    const auto now = cse::vgui_control_time::Milliseconds(*system());
+    if (now - _cursorBlinkStart > static_cast<unsigned int>(_cursorBlinkRate)) {
+        _cursorBlink = !_cursorBlink;
+        _cursorBlinkStart = now;
+        Repaint();
+    }
 }
 
 //-----------------------------------------------------------------------------

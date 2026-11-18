@@ -15,6 +15,7 @@
 #include "vgui/IImage.h"
 #include "vgui/IScheme.h"
 #include "vgui/ISystem.h"
+#include "vgui_control_time.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
 
@@ -24,12 +25,10 @@
 
 namespace vgui2
 {
-AnimatingImagePanel::AnimatingImagePanel( Panel* parent, const char* name )
-	: Panel( parent, name ), m_iCurrentImage( 0 ), m_iNextFrameTime( 0 ), m_iFrameTimeMillis( 100 ),
-	  m_pImageName( NULL ), m_bFiltered( false )
-{
-	m_bAnimating = false;
-	ivgui()->AddTickSignal( _vpanel, 0 );
+AnimatingImagePanel::AnimatingImagePanel(Panel* parent, const char* name)
+    : Panel(parent, name), m_iCurrentImage(0), m_iNextFrameTime(cse::vgui_control_time::Milliseconds(*system())),
+      m_iFrameTimeMillis(100), m_pImageName(nullptr), m_bAnimating(false), m_bFiltered(false) {
+    ivgui()->AddTickSignal(_vpanel, 0);
 }
 
 AnimatingImagePanel::~AnimatingImagePanel()
@@ -99,21 +98,23 @@ void AnimatingImagePanel::ResetAnimation( int frame )
 	Repaint();
 }
 
-void AnimatingImagePanel::OnTick()
-{
-	if ( !m_bAnimating )
-		return;
+void AnimatingImagePanel::OnTick() {
+    if (!m_bAnimating) {
+        return;
+    }
 
-	if ( system()->GetTimeMillis() < m_iNextFrameTime )
-		return;
+    const auto now = cse::vgui_control_time::Milliseconds(*system());
+    const auto interval = static_cast<unsigned int>(m_iFrameTimeMillis);
+    if (cse::vgui_control_time::Waiting(now, m_iNextFrameTime, interval)) {
+        return;
+    }
+    m_iNextFrameTime = now + interval;
 
-	m_iNextFrameTime = system()->GetTimeMillis() + 100;
-
-	m_iCurrentImage++;
-	if ( m_iCurrentImage < 0 || m_iCurrentImage >= m_Frames.Count() )
-		m_iCurrentImage = 0;
-
-	Repaint();
+    ++m_iCurrentImage;
+    if (m_iCurrentImage < 0 || m_iCurrentImage >= m_Frames.Count()) {
+        m_iCurrentImage = 0;
+    }
+    Repaint();
 }
 
 //-----------------------------------------------------------------------------

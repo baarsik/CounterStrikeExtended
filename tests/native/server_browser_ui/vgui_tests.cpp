@@ -31,6 +31,7 @@
 #include "system_fixture.h"
 #include "layout_fixture.h"
 #include "input_retirement_fixture.h"
+#include "control_timers_fixture.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>
@@ -836,6 +837,8 @@ int main(int argc, char **argv) {
             Settle(*dialog, session);
             Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Refreshed name") == 0,
                     "a changed row did not invalidate the viewport");
+        } else if (name.rfind("control-timer-", 0) == 0) {
+            control_timers_fixture::Run(dialog, name);
         } else if (name == "long-session-events") {
             class TimedPanel final : public vgui2::Panel {
             public:
