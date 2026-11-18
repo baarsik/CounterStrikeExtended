@@ -347,6 +347,9 @@ int main(int argc, char** argv) {
     if (failedRead != 0) {
         Require(system.warnings == 1 && readCalls == failedRead, "read error discards partial input and warns only once");
     }
+    if (std::strcmp(argv[1], "eof") == 0) {
+        Require(console.InputEnded() && !system.warnings, "ordinary EOF leaves the console running without a warning");
+    }
     Require(system.stops == 0 && system.errors == 0, "console/EOF does not stop server or call fatal error");
     console.ShutDown();
     console.ShutDown();

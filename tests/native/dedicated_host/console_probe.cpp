@@ -22,6 +22,10 @@ int main(int argc, char** argv) {
         if (char* line = console.GetLine()) {
             std::fprintf(stderr, "LINE:%s\n", line);
         }
+        if (console.InputFailed()) {
+            std::fprintf(stderr, "INPUT_FAILED\n");
+            return 5;
+        }
         if (console.InputEnded() && ++eofFrames == 5) {
             std::fprintf(stderr, "EOF_FRAMES:5\n");
             if (repeat) {

@@ -235,6 +235,9 @@ def main():
             (directory / (label + ".stdout")).write_bytes(stdout)
             (directory / (label + ".protocol")).write_bytes(protocol)
             receipts.append({"profile": name, "case": label, "passed": True})
+        result = subprocess.run([str(binary), "eof", "0"], stdin=subprocess.DEVNULL, capture_output=True, timeout=3)
+        assert result.returncode == 0, result.stdout + result.stderr
+        receipts.append({"profile": name, "case": "null-input", "passed": True})
         for label, case, chunks, expected in [
                 ("tty-fragmented-escape", "lines", [b"ab\x1b", b"[D", b"X\r\n"], [b"aXb"]),
                 ("tty-history", "lines", [b"first\rsecond\r\x1b[A\n"], [b"first", b"second", b"second"]),
@@ -252,7 +255,7 @@ def main():
             (directory / (label + ".stdout")).write_bytes(stdout)
             (directory / (label + ".protocol")).write_bytes(protocol)
             receipts.append({"profile": name, "case": label, "passed": True})
-        print(name, "19 backend + 5 actual-base history cases passed", flush=True)
+        print(name, "20 backend + 5 actual-base history cases passed", flush=True)
     (output / "receipt.json").write_text(json.dumps({"cases": receipts, "command_inventory_sha256":
         hashlib.sha256(args.commands.read_bytes()).hexdigest()}, indent=2) + "\n")
 
