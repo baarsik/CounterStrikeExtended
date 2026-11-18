@@ -155,5 +155,27 @@ int main(int argc, char** argv) {
     assert(Read(filesystem, "packed.txt") == "polish pack");
     extension->Reset();
     filesystem->RemoveAllSearchPaths();
+    // A repeated server fallback declares the same GAME root again after reconnecting.
+    const std::string fallback = (directory / "fallback").string();
+    Write(directory / "fallback/shared-fallback.txt", "fallback");
+    for (std::uint32_t id : {1U, 2U}) {
+        extension->BeginGroup(id);
+        extension->EndGroup();
+        filesystem->AddSearchPath(base.c_str(), "GAME");
+    }
+    roots[0] = fallback.c_str();
+    const cse::localized_filesystem::Replacement duplicateFallbacks[]{
+        {1, base.c_str(), "GAME", roots, 1, true},
+        {2, base.c_str(), "GAME", roots, 1, true}
+    };
+    view = extension->Prepare(filesystem, duplicateFallbacks, 2);
+    assert(view && Read(view, "shared-fallback.txt") == "fallback");
+    extension->Commit();
+    FileFindHandle_t find{};
+    assert(filesystem->FindFirst("shared-fallback.txt", &find, "GAME"));
+    assert(!filesystem->FindNext(find));
+    filesystem->FindClose(find);
+    extension->Reset();
+    filesystem->RemoveAllSearchPaths();
     filesystem->Unmount();
 }

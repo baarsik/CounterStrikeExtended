@@ -9,6 +9,7 @@
 #include <new>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -123,6 +124,7 @@ IFileSystem* Prepare(IFileSystem* filesystem, const Replacement* replacements, s
         }
     }
     std::set<std::uint32_t> ids;
+    std::set<std::pair<std::string, std::string>> stagedRoots;
     for (std::size_t index = 0; index < count; ++index) {
         const Replacement& replacement = replacements[index];
         if (!replacement.group || !replacement.anchor || !replacement.pathId
@@ -141,6 +143,10 @@ IFileSystem* Prepare(IFileSystem* filesystem, const Replacement* replacements, s
         }
         currentGroup = replacement.group;
         for (std::size_t root = 0; root < replacement.count; ++root) {
+            // Earlier groups were detached, so AddSearchPathInternal cannot see their loose roots or packs.
+            if (!stagedRoots.emplace(NormalizeRoot(owner, replacement.roots[root]), group.pathId).second) {
+                continue;
+            }
             const int first = owner->m_SearchPaths.Count();
             owner->AddSearchPathInternal(replacement.roots[root], replacement.pathId, replacement.writable);
             const int last = owner->m_SearchPaths.Count();
