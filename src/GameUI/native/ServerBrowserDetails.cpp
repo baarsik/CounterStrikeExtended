@@ -171,7 +171,7 @@ struct ServerBrowserPing::State {
                 return;
             }
             complete = true;
-            Row row = CopyServerRow(item);
+            Row row = CopyPingResponse(item);
             if (row.key.ip == expected.ip && (!expected.connectionPort ||
                     row.key.connectionPort == expected.connectionPort)) {
                 // The response's query endpoint is not allowed to retarget this generation.

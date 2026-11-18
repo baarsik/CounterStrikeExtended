@@ -79,7 +79,7 @@ struct Row {
     uint32_t lastPlayed = 0;
     bool hasSteamAccount = false;
 };
-Row CopyServerRow(const gameserveritem_t &item);
+Row CopyPingResponse(const gameserveritem_t &item);
 
 struct RowUpdate {
     Row row;

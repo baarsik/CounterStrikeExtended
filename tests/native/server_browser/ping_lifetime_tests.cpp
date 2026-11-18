@@ -22,6 +22,7 @@ struct PingProvider final : Provider {
             FixtureServer server;
             server.m_NetAdr.Init(ping.ip, ping.port, ping.port);
             server.m_nAppID = 10;
+            server.SetName("Refreshed server name");
             ping.callback->ServerResponded(server);
         }
     }
@@ -88,6 +89,9 @@ int main(int argc, char** argv) {
         if (scenario == "pump" || scenario == "inline") {
             Drain(model);
             Require(model.GetStatus().phase == Phase::Complete, "terminal refresh is processed");
+            const auto *row = model.Find(Address);
+            Require(row && row->responded && row->name == "Refreshed server name",
+                "successful direct ping replaces prior list metadata");
         }
         model.Stop();
         Drain(model);

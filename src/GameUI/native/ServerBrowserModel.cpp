@@ -290,7 +290,7 @@ struct ServerBrowserModel::State {
             owner.Check();
             ++owner.callbackDepth;
             if (accepting && !owner.closing && !complete) {
-                Row row = CopyRow(item, false);
+                Row row = CopyPingResponse(item);
                 if (row.key.ip == original.key.ip && row.key.connectionPort == original.key.connectionPort) {
                     row.key = original.key;
                     row.lastPlayed = original.lastPlayed;
@@ -1153,8 +1153,10 @@ Status ServerBrowserModel::GetStatus() const {
     }
     return result;
 }
-Row CopyServerRow(const gameserveritem_t &item) {
-    return CopyRow(item, false);
+Row CopyPingResponse(const gameserveritem_t &item) {
+    Row row = CopyRow(item, false);
+    row.responded = true;
+    return row;
 }
 
 bool ServerBrowserModel::RemoveHistory(AppId_t app, RowKey key) {
