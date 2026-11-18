@@ -262,6 +262,7 @@ void CBaseFileSystem::AddSearchPathInternal( const char* pPath, const char* path
     sp->m_localizationGroup = cse::localized_filesystem::CurrentGroup();
 	sp->m_Path = pathSymbol;
 	sp->m_PathID = pathIDSymbol;
+    cse::localized_filesystem::RecordFollowingMount(newPath, sp->m_PathID.String());
 
 	// Add pack files for this path next
 	AddPackFiles( newPath );
