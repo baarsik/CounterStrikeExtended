@@ -235,6 +235,13 @@ void TestFind(IFileSystem* filesystem, const std::filesystem::path& root) {
     name = filesystem->FindFirst("folder/*.txt", &handle, "GAME");
     Require(name != nullptr, "begin path-ID limited search");
     filesystem->FindClose(handle);
+
+    WriteFile(first / "save/level.v2.Hl1", "state");
+    WriteFile(first / "save/level.v2.Hl1.bak", "backup");
+    name = filesystem->FindFirst("save/*.HL?", &handle, "GAME");
+    Require(name && std::string(name) == "level.v2.Hl1", "save enumeration includes dotted map basenames");
+    Require(!filesystem->FindNext(handle), "save enumeration excludes backup extensions");
+    filesystem->FindClose(handle);
 }
 
 void TestCase(IFileSystem* filesystem, const std::filesystem::path& root) {
