@@ -1,5 +1,6 @@
 #include "check.h"
 #include "native_gameui_retirement.h"
+#include "vgui_style_service.h"
 #include <cstdio>
 #include <algorithm>
 #include <cstdlib>
@@ -15,6 +16,11 @@ void Event(const char *name) {
 }
 int Count(const char *name) {
     return static_cast<int>(std::count(events.begin(), events.end(), name));
+}
+
+void CSE_ABI_CALL CSE_VGui1BindStyle(const cse::ui::StyleApi* style) {
+    Require(style == nullptr, "VGUI1 retirement must clear its style service");
+    Event("style.unbound");
 }
 } // namespace
 
@@ -188,6 +194,7 @@ struct Allocations {
 };
 
 void RequireRetainedVGui() {
+    Require(Count("style.unbound") == 0, "refused detach cleared the active VGUI1 style service");
     Require(staticPanel != nullptr, "refused detach lost wrapper1 root");
     Require(staticEngineSurface != nullptr, "refused detach lost wrapper1 surface");
     Require(Count("wrapper2.shutdown") == 0, "VGUI2 retired after VGUI1 refusal");
@@ -289,6 +296,7 @@ int main(int argc, char **argv) {
             Require(Count("Voice_Deinit") == 1, "retry repeated voice teardown");
             Require(Count("CDAudio_Shutdown") == 1, "retry repeated CD teardown");
             Require(Count("wrapper1.deleted") == 1, "retry did not retire wrapper1 exactly once");
+            Require(Count("style.unbound") == 1, "retry did not release the VGUI1 style service exactly once");
             Require(Count("ClientDLL_Shutdown") == 1, "retry did not resume later Host cleanup");
         } else if (name == "ready") {
 #if defined(__APPLE__)
