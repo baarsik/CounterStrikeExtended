@@ -275,6 +275,7 @@ struct ServerBrowserDialog {
     std::vector<Weak> detailsDialogs_;
     Weak addServerDialog_;
     std::string shownStatus_ = "#sorting";
+    bool viewportDirty_ = false;
     std::string query = "active generation", input = "#typed map", password = "secret";
     int selected = 17, offset = 400, generation = 9, callbacks = 3, filters = 7;
     int summaries = 0;
@@ -288,6 +289,7 @@ int main() {
     Detail add;
     ServerBrowserDialog dialog{{{&details}, {nullptr}}, {&add}};
     dialog.RefreshLanguagePresentation();
+    assert(dialog.viewportDirty_);
     assert(dialog.summaries == 1 && details.refreshed == 1 && add.refreshed == 1);
     assert(dialog.query == "active generation" && dialog.input == "#typed map" && dialog.password == "secret");
     assert(dialog.selected == 17 && dialog.offset == 400 && dialog.generation == 9);
