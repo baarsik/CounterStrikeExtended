@@ -203,6 +203,63 @@ int main() {
         bytes += transfer.second;
     }
     Check(bytes <= kStreamingBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
+    // These polygons occupy one vertex page with a third index range between them.
+    // Replay only the outside polygons, in reverse order, without uploading their vertices.
+    {
+        const auto positioned = [](float center) {
+            auto polygon = Polygon(4);
+            for (auto& vertex : polygon) {
+                vertex.position[0] = center + vertex.position[0] * 0.3f;
+                vertex.position[1] *= 0.7f;
+            }
+            return SurfaceMesh::Create(std::move(polygon), error);
+        };
+        auto batch = Frame(positioned(-0.67f));
+        batch.draws.push_back(Frame(positioned(0.0f)).draws[0]);
+        batch.draws.push_back(Frame(positioned(0.67f)).draws[0]);
+        batch.events.resize(batch.draws.size());
+        for (std::size_t index = 0; index < batch.events.size(); ++index) {
+            batch.events[index].drawIndex = index;
+        }
+        Check(session.Render(batch, error), "Upload three polygons to the same page");
+        auto clearFrame = empty;
+        FrameEvent clear;
+        clear.kind = FrameEventKind::Clear;
+        clear.clear.mask = kClearColor;
+        clearFrame.events.push_back(clear);
+        Check(session.Render(clearFrame, error), "Clear the full scene before replay");
+        batch.events.resize(2);
+        batch.events[0].drawIndex = 2;
+        batch.events[1].drawIndex = 0;
+        session.EnableDiagnostics(true);
+        uploads = 0;
+        Check(session.Render(batch, error), "Draw noncontiguous resident ranges");
+        std::array<unsigned char, kTargetSize * kRgbaComponents> pixels{};
+        Check(session.ReadPixels(0, kTargetSize / 2, kTargetSize, 1, kRgbaComponents, 1, pixels.data(), error),
+            "Read replayed ranges");
+        Check(pixels[2 * kRgbaComponents] == 255 && pixels[(kTargetSize - 3) * kRgbaComponents] == 255 &&
+            pixels[(kTargetSize / 2) * kRgbaComponents] == 0, "Keep both selected polygons and omit their neighbor");
+        Check(session.Diagnostics().gpuDraws == 1, "Draw both same-state ranges in one indexed call");
+        Check(uploads == 1 && session.Diagnostics().uploadBytes == 12 * sizeof(std::uint32_t),
+            "Upload only selected indices");
+    }
+    // The engine keeps map-owned meshes alive across scene/HUD segments.
+    // Advancing the map epoch releases GPU page ownership even with pending work.
+    {
+        auto map = Frame(SurfaceMesh::Create(Polygon(4), error));
+        map.info.surfaceMeshEpoch = 1;
+        Check(session.Render(map, error), "Upload a map-scoped mesh");
+        session.EnableDiagnostics(true);
+        Check(session.Render(map, error), "Draw another segment of the same map");
+        Check(session.Diagnostics().meshOwnerChecks == 0, "Stable map needs no mesh owner sweep");
+        const auto bufferCount = buffers.size();
+        map.draws.clear();
+        map.events.clear();
+        map.info.surfaceMeshEpoch = 2;
+        Check(session.Render(map, error), "Change map before the previous scene is submitted");
+        Check(buffers.size() + 2 == bufferCount, "Map epoch change retires the cached vertex/index page");
+        Pixel(session);
+    }
     session.Shutdown();
     Check(buffers.empty() && transfers.empty(), "Shutdown releases all mesh and streaming buffers");
     SDL_Quit();

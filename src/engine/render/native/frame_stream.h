@@ -45,6 +45,8 @@ struct FrameInfo {
     std::uint64_t displayEpoch = 0;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
+    // Nonzero when the engine holds every native world mesh until the next map cache reset.
+    std::uint64_t surfaceMeshEpoch = 0;
 };
 
 struct FrameSnapshot {

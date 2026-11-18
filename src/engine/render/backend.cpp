@@ -81,6 +81,7 @@ void Require(bool success) {
 void ClearBackendSurfaceMeshes() {
 #if defined(CSE_ENABLE_METAL)
     surfaceMeshes.Clear();
+    ++info.surfaceMeshEpoch;
 #endif
 }
 
@@ -192,7 +193,7 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
         int width = 0;
         int height = 0;
         SDL_GetWindowSizeInPixels(window, &width, &height);
-        info = {0, 1, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)};
+        info = {0, 1, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1};
 #if CSE_METAL_DEBUG_DEVICE
         constexpr bool kDebugDevice = true;
 #else

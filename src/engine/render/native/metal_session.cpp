@@ -201,6 +201,9 @@ struct MetalSession::Impl {
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
         Uint32 indexOffset = 0;
+        std::size_t meshBatchDraws = 0;
+        std::size_t meshBatchIndices = 0;
+        bool meshIndicesInStream = false;
     };
     using PipelineKey = std::array<std::uint32_t, 20>;
     struct ResolvedMaterial {
@@ -226,7 +229,7 @@ struct MetalSession::Impl {
             !first.mesh && !second.mesh && left.indices.empty() && right.indices.empty();
         return compatibleGeometry && first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
-            left.raster.depthRange == right.raster.depthRange && left.raster.scissor == right.raster.scissor &&
+            SameBits(left.raster.depthRange, right.raster.depthRange) && left.raster.scissor == right.raster.scissor &&
             left.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] ==
                 right.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] &&
             std::memcmp(&left.vertex, &right.vertex, sizeof(left.vertex)) == 0 &&
@@ -266,6 +269,7 @@ struct MetalSession::Impl {
     // Find world surfaces by immutable identity. Rehashing preserves the mesh
     // pointers held by prepared draws and the current upload list.
     std::unordered_map<const SurfaceMesh*, Mesh> meshes;
+    std::uint64_t surfaceMeshEpoch = 0;
     std::vector<std::weak_ptr<MeshPage>> meshPages;
     std::shared_ptr<MeshPage> activeMeshPage;
     std::shared_ptr<const TextureObject> white;
@@ -1190,14 +1194,22 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             ++iterator;
         }
     }
-    if (state.diagnosticsEnabled) {
-        state.counters.meshOwnerChecks += state.meshes.size();
+    if (frame.info.surfaceMeshEpoch != state.surfaceMeshEpoch) {
+        // Pending GPU commands retain the pages already bound by earlier map packets.
+        state.meshes.clear();
+        state.surfaceMeshEpoch = frame.info.surfaceMeshEpoch;
     }
-    for (auto iterator = state.meshes.begin(); iterator != state.meshes.end();) {
-        if (iterator->second.object.expired()) {
-            iterator = state.meshes.erase(iterator);
-        } else {
-            ++iterator;
+    if (!state.surfaceMeshEpoch) {
+        // Standalone callers can retire individual mesh owners between segments.
+        if (state.diagnosticsEnabled) {
+            state.counters.meshOwnerChecks += state.meshes.size();
+        }
+        for (auto iterator = state.meshes.begin(); iterator != state.meshes.end();) {
+            if (iterator->second.object.expired()) {
+                iterator = state.meshes.erase(iterator);
+            } else {
+                ++iterator;
+            }
         }
     }
     if (state.meshes.empty()) {
@@ -1316,12 +1328,59 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             return false;
         }
     }
+    // Existing vertex pages can also share a draw when their original index ranges
+    // are disjoint. Append only the reordered index ranges to the transfer buffer.
+    // Never displace a required vertex, index, or texture upload.
+    const auto meshIndexUploadOffset = Align(uploadBytes, alignof(std::uint32_t));
+    std::size_t meshIndexBytes = 0;
+    for (std::size_t first = 0; first < draws.size();) {
+        auto& draw = draws[first];
+        if (!draw.mesh) {
+            ++first;
+            continue;
+        }
+        auto count = draw.data.mesh->Indices().size();
+        auto nextOffset = draw.mesh->indexOffset + count * sizeof(std::uint32_t);
+        bool disjoint = false;
+        auto end = first + 1;
+        while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
+            const auto& next = draws[end];
+            if (next.mesh->indexOffset != nextOffset) {
+                disjoint = true;
+                if (state.diagnosticsEnabled) {
+                    ++state.counters.disconnectedMeshRanges;
+                }
+            }
+            const auto nextCount = next.data.mesh->Indices().size();
+            count += nextCount;
+            nextOffset = next.mesh->indexOffset + nextCount * sizeof(std::uint32_t);
+            ++end;
+        }
+        if (!disjoint) {
+            draw.meshBatchDraws = end - first;
+            draw.meshBatchIndices = count;
+        } else {
+            const auto bytes = count * sizeof(std::uint32_t);
+            if (meshIndexUploadOffset <= kMaximumStreamingBytes &&
+                bytes <= kMaximumStreamingBytes - meshIndexUploadOffset - meshIndexBytes) {
+                draw.meshBatchDraws = end - first;
+                draw.meshBatchIndices = count;
+                draw.meshIndicesInStream = true;
+                draw.indexOffset = static_cast<Uint32>(indexBytes + meshIndexBytes);
+                meshIndexBytes += bytes;
+            }
+        }
+        first = end;
+    }
+    if (meshIndexBytes) {
+        uploadBytes = meshIndexUploadOffset + meshIndexBytes;
+    }
     auto* chunk = state.NextStream(error, uploadBytes);
     if (!chunk) {
         return false;
     }
     auto& stream = *chunk;
-    if (!state.EnsureStream(stream, vertexBytes, indexBytes, uploadBytes, error)) {
+    if (!state.EnsureStream(stream, vertexBytes, indexBytes + meshIndexBytes, uploadBytes, error)) {
         return false;
     }
     auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream.upload, false));
@@ -1353,6 +1412,23 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto& image = upload.texture->data.levels[upload.level];
         std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
     }
+    if (meshIndexBytes) {
+        auto* indices = reinterpret_cast<std::uint32_t*>(mapped + meshIndexUploadOffset);
+        for (std::size_t index = 0; index < draws.size(); ++index) {
+            const auto& draw = draws[index];
+            if (!draw.meshIndicesInStream) {
+                continue;
+            }
+            for (auto offset = index; offset < index + draw.meshBatchDraws; ++offset) {
+                const auto& piece = draws[offset];
+                const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / sizeof(Vertex));
+                const auto& original = piece.data.mesh->Indices();
+                indices = std::transform(original.begin(), original.end(), indices,
+                    [base](std::uint32_t value) { return value + base; });
+            }
+            index += draw.meshBatchDraws - 1;
+        }
+    }
     SDL_UnmapGPUTransferBuffer(state.device, stream.upload);
     if (state.diagnosticsEnabled) {
         state.counters.prepareMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - prepareStart).count();
@@ -1379,6 +1455,12 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     if (indexBytes) {
         SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(vertexBytes)};
         SDL_GPUBufferRegion destination{stream.indices, 0, static_cast<Uint32>(indexBytes)};
+        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+    }
+    if (meshIndexBytes) {
+        SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(meshIndexUploadOffset)};
+        SDL_GPUBufferRegion destination{stream.indices, static_cast<Uint32>(indexBytes),
+            static_cast<Uint32>(meshIndexBytes)};
         SDL_UploadToGPUBuffer(copy, &source, &destination, false);
     }
     for (const auto& upload : meshUploads) {
@@ -1440,16 +1522,17 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.indices.size();
         // Preserve order while combining adjacent stream ranges or resident ranges on the same page.
         // Material, uniforms, transforms, scissor and all dynamic raster state must match exactly.
-        while (drawIndex + 1 < draws.size()) {
+        if (draw.meshBatchDraws) {
+            drawIndex += draw.meshBatchDraws - 1;
+            indexCount = draw.meshBatchIndices;
+        }
+        while (!draw.meshBatchDraws && drawIndex + 1 < draws.size()) {
             const auto& next = draws[drawIndex + 1];
             if (!Impl::SameDrawState(draw, next)) {
                 break;
             }
             if (draw.mesh) {
                 if (next.mesh->indexOffset != draw.mesh->indexOffset + indexCount * sizeof(std::uint32_t)) {
-                    if (state.diagnosticsEnabled) {
-                        ++state.counters.disconnectedMeshRanges;
-                    }
                     break;
                 }
                 indexCount += next.data.mesh->Indices().size();
@@ -1554,8 +1637,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         if (!draw.mesh && data.indices.empty()) {
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
-            SDL_GPUBufferBinding indices{draw.mesh ? draw.mesh->page->indices : stream.indices,
-                draw.mesh ? draw.mesh->indexOffset : draw.indexOffset};
+            const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;
+            SDL_GPUBufferBinding indices{residentIndices ? draw.mesh->page->indices : stream.indices,
+                residentIndices ? draw.mesh->indexOffset : draw.indexOffset};
             SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
             SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(indexCount), 1, 0, 0, 0);
         }
