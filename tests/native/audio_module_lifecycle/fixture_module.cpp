@@ -38,6 +38,25 @@ void Voice_ReleaseMixerForModuleUnload() {
     ++mixerCleanupCalls;
 }
 
+// Socket and GameUI admission are controlled here so Run reaches the audio boundary.
+namespace cse {
+bool InitializeNativeGameUIHost() {
+    return true;
+}
+
+#if defined(__APPLE__)
+bool FinishNativeListenShutdown() {
+    return true;
+}
+
+namespace socket_lifetime {
+bool Admitted() noexcept {
+    return true;
+}
+}
+#endif
+}
+
 CCDAudio::CCDAudio() {}
 CCDAudio::~CCDAudio() {}
 int CCDAudio::Init() {
@@ -102,9 +121,6 @@ static char* va(char*, ...) {
 static void SteamAPI_UseBreakpadCrashHandler(char*, const char*, const char*, int, void*, void*) {}
 #if defined(_WIN32)
 static void ExceptionHandler(unsigned int, EXCEPTION_POINTERS*) {}
-#else
-static void ExceptionHandler(unsigned int, void*) {}
-static void _set_se_translator(void (*)(unsigned int, void*)) {}
 #endif
 class CEngineAPI {
 public:
@@ -180,8 +196,11 @@ static int RunListenServer(void*, char*, char*, char*, CreateInterfaceFn, Create
         SetWorkerFault(WorkerFault::Join);
         return 0;
     }
-    if (std::strcmp(requestedFailure, "cpp") == 0 || partial || primed || inFlight) {
+    if (std::strcmp(requestedFailure, "cpp") == 0) {
         throw std::runtime_error("controlled Run failure");
+    }
+    if (partial || primed || inFlight) {
+        return 0;
     }
 #if defined(_WIN32)
     if (std::strcmp(requestedFailure, "seh") == 0) {

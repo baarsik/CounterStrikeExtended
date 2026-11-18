@@ -12,6 +12,7 @@ parser.add_argument('--probe', type=Path, required=True)
 parser.add_argument('--module', type=Path, required=True)
 parser.add_argument('--track', type=Path, required=True)
 parser.add_argument('--evidence', type=Path, required=True)
+parser.add_argument('--native-ownership', action='store_true', help='Expect fatal Run exceptions for a 64-bit target')
 args = parser.parse_args()
 args.evidence.mkdir(parents=True, exist_ok=False)
 records = []
@@ -40,7 +41,11 @@ for mode, failure, reference in cases:
         code = None
     (args.evidence / (identity + '.stdout.log')).write_bytes(output)
     (args.evidence / (identity + '.stderr.log')).write_bytes(errors)
-    if failure in ('join-fail', 'controller-init-cpp', 'controller-init-seh', 'controller-close-seh'):
+    if args.native_ownership and failure in ('cpp', 'seh', 'controller-init-cpp', 'controller-init-seh',
+                                              'controller-close-seh'):
+        passed = (not timed_out and code != 0 and b'fixture_after_unload' not in output and
+                  b'Fatal native engine exception; unknown partial ownership' in errors)
+    elif failure in ('join-fail', 'controller-init-cpp', 'controller-init-seh', 'controller-close-seh'):
         fatal_code = WINDOWS_CLEANUP_FATAL_EXIT if os.name == 'nt' else -signal.SIGABRT
         passed = not timed_out and code == fatal_code and (b'fixture_audio_started' in output or failure.startswith('controller-init'))
         passed = passed and b'fixture_after_unload' not in output and b'Fatal: owned audio cleanup failed' in errors
