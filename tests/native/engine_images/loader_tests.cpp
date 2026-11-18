@@ -719,6 +719,19 @@ int main() {
               && fontData.m_BitmapCharHeight == 1 && fontData.m_pBitmap[65] == 1 && fontData.m_pBitmap[64] == 0,
           "engine WebP font atlas preserves glyph coverage extraction");
     EngineSurface surface;
+    constexpr std::size_t TargaHeaderBytes = 18;
+    std::vector<byte> compressedTarga = TargaFixture();
+    compressedTarga.resize(TargaHeaderBytes);
+    compressedTarga[2] = 10;
+    // Bottom-up, four literal BGRA pixels. Preserve the translucent top-right pixel.
+    compressedTarga.insert(compressedTarga.end(), {
+        3, 255, 0, 0, 255, 255, 255, 255, 255, 0, 0, 255, 255, 0, 255, 0, 128
+    });
+    files["surface-rle.tga"] = compressedTarga;
+    surface.drawSetTextureFile(1, "surface-rle", 0, true);
+    Check(surfacePixels == expected, "file-backed surface receives complete RGBA pixels from an RLE TGA");
+    Check(!Load("surface-rle.tga", tooSmall, width, height),
+          "RGBA image callers require four bytes per RLE pixel");
     surface.drawSetTextureFile(1, "legacy.tga", 0, true);
     Check(surfacePixels == expected, "surface accepts a complete legacy .tga path and its WebP replacement");
     surfacePixels.clear();
