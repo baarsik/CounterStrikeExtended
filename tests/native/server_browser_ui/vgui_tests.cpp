@@ -336,6 +336,15 @@ int main(int argc, char **argv) {
             cse::ui::ControlsStyle() = currentStyle;
         } else if (name == "masterserver-settings") {
             Require(dialog->FindChildByName("BrowserSettings", false) != nullptr, "cogwheel button missing");
+            dialog->SelectVisible(1);
+            const auto selected = session.model.Selection();
+            const auto request = provider.lists.current;
+            Send(*dialog, "BrowserSettings");
+            auto *unchanged = layout_fixture::Child(*dialog, "BrowserConfiguration");
+            Send(*unchanged, "OK");
+            Settle(*dialog, session);
+            Require(selected && session.model.Selection() == selected && provider.lists.current == request,
+                    "confirming the current master server discarded the browser selection or reissued discovery");
             Send(*dialog, "BrowserSettings");
             auto* settings = dialog->FindChildByName("BrowserConfiguration", false);
             Require(settings != nullptr, "settings dialog missing");
@@ -827,6 +836,64 @@ int main(int argc, char **argv) {
             Settle(*dialog, session);
             Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Refreshed name") == 0,
                     "a changed row did not invalidate the viewport");
+        } else if (name == "long-session-events") {
+            class TimedPanel final : public vgui2::Panel {
+            public:
+                explicit TimedPanel(vgui2::Panel *parent) : Panel(parent, "TimedPanel") {}
+
+                void OnMessage(const KeyValues *message, vgui2::VPANEL sender) override {
+                    if (std::strcmp(message->GetName(), "ClockControl") == 0) {
+                        ++delayed;
+                    } else if (std::strcmp(message->GetName(), "Tick") == 0) {
+                        ++ticks;
+                    } else {
+                        Panel::OnMessage(message, sender);
+                    }
+                }
+                int delayed = 0;
+                int ticks = 0;
+            };
+            auto &now = system_fixture::current->timeSecondsOverride;
+            constexpr double LongSessionSeconds = 25.0 * 24.0 * 60.0 * 60.0;
+            constexpr float DelaySeconds = 0.25f;
+            constexpr int TickMilliseconds = 250;
+            for (double start : {0.0, LongSessionSeconds}) {
+                now = start;
+                auto *panel = new TimedPanel(dialog);
+                gui->AddTickSignal(panel->GetVPanel(), TickMilliseconds);
+                gui->PostMessage(panel->GetVPanel(), new KeyValues("ClockControl"), 0, DelaySeconds);
+                *now += DelaySeconds / 2.0;
+                gui->RunFrame();
+                gui->RunFrame();
+                Require(!panel->ticks && !panel->delayed, "VGUI events fired before their deadline");
+                *now += DelaySeconds / 2.0;
+                gui->RunFrame();
+                gui->RunFrame();
+                Require(panel->delayed == 1, "VGUI delayed message never reached its panel");
+                Require(panel->ticks == 1, "VGUI tick never reached its panel");
+                gui->RemoveTickSignal(panel->GetVPanel());
+                panel->MarkForDeletion();
+                gui->RunFrame();
+            }
+        } else if (name == "masterserver-favorites") {
+            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
+            tabs->SetActivePage(layout_fixture::Child(*tabs, "FavoriteGames"));
+            gui->RunFrame();
+            StartList(*dialog, session, provider);
+            dialog->SelectVisible(0);
+            const auto favorite = session.model.Selection();
+            const auto favoriteRequest = provider.lists.current;
+            Require(session.parkedPresentation.VisibleCount() > 0, "Internet results were not cached");
+            Send(*dialog, "BrowserSettings");
+            auto *settings = layout_fixture::Child(*dialog, "BrowserConfiguration");
+            auto *masters = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*settings, "Masterservers"));
+            masters->SetSingleSelectedItem(masters->GetItemIDFromRow(1));
+            Send(*settings, "OK");
+            Settle(*dialog, session);
+            Require(session.settings.masterservers.selected == "varq" && favorite &&
+                    session.model.Selection() == favorite && provider.lists.current == favoriteRequest,
+                    "changing the directory provider discarded the independent Favorites view");
+            Require(session.parkedPresentation.VisibleCount() == 0, "old directory results survived the switch");
         } else if (name == "internet-cache") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
             constexpr size_t ScrollRank = 20;

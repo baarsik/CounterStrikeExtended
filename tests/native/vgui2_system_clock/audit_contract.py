@@ -54,18 +54,19 @@ for relative in paths:
         if re.search(r'(?:_scrollDelay|_cursorNextBlinkTime|_delay|m_iNextFrameTime|nexttick)\s*=', line):
             if '+' in line and ('GetTimeMillis' in line or re.search(r'\+\s*(?:now|tick->interval)|time\s*\+', line)):
                 deadlines.append({'path': relative, 'line': number, 'source': line.strip()})
-assert len(deadlines) == 17, deadlines
+assert len(deadlines) == 14, deadlines
+assert not any(call['path'] == 'vgui2/src/VGui.cpp' for call in calls), calls
 report = {'existing_native_interface_bytes': 4, 'selected_owner_uses_long': True, 'mac_long_bytes': 8,
     'existing_native_owner_integration_qualified': False, 'helper_is_not_a_System_override': True,
     'selected_system_sha256': hashlib.sha256(selected.read_bytes()).hexdigest(),
     'headers': {relative: hashlib.sha256((sdk / relative).read_bytes()).hexdigest() for relative in headers},
     'getter_call_sites_in_deadline_owners': calls, 'unchanged_signed32_deadline_additions': deadlines,
-    'delayed_message_float_expression_separate': 'VGui.cpp _arrivalTime = GetTimeMillis() + delaySeconds * 1000.0f',
+    'vgui_event_deadlines': 'Provider ticks and delayed messages use GetCurrentTime seconds',
     'required_later_work': ['Change native selected declaring owner/definition coherently with existing signed32 interface',
         'Own one state per image and serialize actual reader plus Advance under its lifetime guard',
         'Diagnose reader/initialization failures before any legacy time value is fabricated',
-        'Qualify 17 signed32 deadline additions and unchanged signed comparisons/order independently',
+        'Qualify the remaining 14 control signed32 deadline additions and unchanged signed comparisons/order independently',
         'Qualify actual monotonic clock source/frequency/sleep/lifecycle before selection']}
 (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
 (out / 'audit.json').write_text(json.dumps(report, indent=2) + '\n')
-print('PASS 4 actual header signed32 probes; 4 actual long signature RED controls; 17 unmodified deadline additions retained')
+print('PASS 4 actual header signed32 probes; 4 actual long signature RED controls; 14 control deadline additions retained; core scheduler uses wide time')

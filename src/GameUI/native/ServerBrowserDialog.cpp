@@ -2111,8 +2111,14 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     if (!settings.Valid() || session_.closing || !session_.active) {
         return;
     }
+    const auto previous = session_.settings.masterservers.Selected();
+    const auto selected = settings.Selected();
     session_.settings.masterservers = settings;
-    session_.masterserverProvider.Select(settings.Selected());
+    session_.masterserverProvider.Select(selected);
+    SaveSettings();
+    if (previous.id == selected.id && previous.endpoints == selected.endpoints) {
+        return;
+    }
     internetRefreshedAt_.reset();
     internetSelectedKeys_.clear();
     internetKeyboardCursor_.reset();
@@ -2121,8 +2127,13 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
         session_.parkedModel.ClearResults();
         session_.parkedPresentation.Apply({{}, false, true, 0});
     }
-    for (auto& tab : tabStates_) {
-        tab.selection.reset();
+    for (size_t index = 0; index < BrowserTabKinds.size(); ++index) {
+        if (UsesMasterserver(BrowserTabKinds[index])) {
+            tabStates_[index].selection.reset();
+        }
+    }
+    if (!UsesMasterserver(session_.settings.kind)) {
+        return;
     }
     selectedKeys_.clear();
     keyboardCursor_.reset();
@@ -2135,7 +2146,6 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     viewportDirty_ = true;
     visible_.clear();
     RefreshPage(session_.settings.kind, session_.settings.filters, true);
-    SaveSettings();
 }
 
 void ServerBrowserDialog::ShowActionStatus(const char *token) {

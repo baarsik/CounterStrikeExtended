@@ -20,6 +20,10 @@
       "account component nonzero independent of VAC",
       "no custom name/region/password-combo controls"
     ],
+    "long-session-events": [
+      "real VGUI delayed message and periodic tick before and at their deadlines",
+      "ordinary session and day 25"
+    ],
     "input-actions": [
       "queued End/Home/Down/Enter",
       "queued double-click",
@@ -184,6 +188,9 @@
       "Smoked reclaims title-decoration spacing at 640 and HD sizes",
       "Original and Smoked style round trips preserve resource geometry",
       "list, expanded filters, footer and query-status anchors survive resize"
+    ],
+    "masterserver-favorites": [
+      "switching Internet directory preserves the independent Favorites query and selected row"
     ],
     "masterserver-settings": [
       "cogwheel beside close",
