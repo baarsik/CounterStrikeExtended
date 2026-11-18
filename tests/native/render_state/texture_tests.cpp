@@ -175,6 +175,57 @@ void Uploads() {
         "copied context mutations independent");
 }
 
+void PaddedSubimage() {
+    LegacyState state;
+    TextureStore store;
+    TextureUpload image;
+    image.width = 4;
+    image.height = 3;
+    image.format = PixelFormat::RGBA;
+    image.internal = InternalFormat::RGBA8;
+    image.bytes.resize(48);
+    for (std::size_t index = 0; index < image.bytes.size(); ++index) {
+        image.bytes[index] = static_cast<std::uint8_t>(index);
+    }
+    Check(store.Upload(state, TextureTarget::Texture2D, image, {}, false) == Status::Ok, "base image");
+    const auto original = store.Bound(state, TextureTarget::Texture2D);
+    TextureUpload update = image;
+    update.width = 2;
+    update.height = 2;
+    update.x = 1;
+    update.y = 1;
+    update.bytes = {101, 102, 103, 104, 105, 106, 107, 108, 250, 250, 250, 250, 251, 251, 251, 251,
+        111, 112, 113, 114, 115, 116, 117, 118};
+    PixelStoreState packing;
+    packing.unpackRowLength = 3;
+    packing.unpackAlignment = 8;
+    Check(store.Upload(state, TextureTarget::Texture2D, update, packing, true) == Status::Ok,
+        "non-origin subimage with padded source rows");
+    auto expected = image.bytes;
+    for (std::size_t index = 0; index < 8; ++index) {
+        expected[20 + index] = update.bytes[index];
+        expected[36 + index] = update.bytes[16 + index];
+    }
+    Check(store.Bound(state, TextureTarget::Texture2D)->levels.at(0)->pixels == expected,
+        "subimage copies only visible row bytes");
+    Check(original->levels.at(0)->pixels == image.bytes, "subimage preserves queued version");
+
+    const auto updated = store.Bound(state, TextureTarget::Texture2D);
+    const auto charged = store.StorageBytes();
+    update.bytes[8] ^= 255;
+    update.bytes[15] ^= 255;
+    Check(store.Upload(state, TextureTarget::Texture2D, update, packing, true) == Status::Ok,
+        "same logical subimage with changed source padding");
+    Check(store.Bound(state, TextureTarget::Texture2D) == updated && store.StorageBytes() == charged,
+        "unchanged canonical rows retain the same version and storage");
+    update.bytes[16] ^= 255;
+    Check(store.Upload(state, TextureTarget::Texture2D, update, packing, true) == Status::Ok,
+        "change a visible byte in the second row");
+    Check(store.Bound(state, TextureTarget::Texture2D) != updated &&
+        store.Bound(state, TextureTarget::Texture2D)->levels.at(0)->pixels[36] == update.bytes[16] &&
+        updated->levels.at(0)->pixels == expected, "changed row creates an exact immutable version");
+}
+
 void Palettes() {
     Recorder recorder;
     Send(recorder, Bind(3));
@@ -394,6 +445,7 @@ int main(int argc, char** argv) {
         CaptureUnits();
     } else if (test == "uploads") {
         Uploads();
+        PaddedSubimage();
     } else if (test == "palettes") {
         Palettes();
     } else if (test == "lists-bounds") {

@@ -1,6 +1,7 @@
 #include "legacy_texture.h"
 #include "capture_allocation.h"
 #include <algorithm>
+#include <cstring>
 #include <cmath>
 #include <limits>
 
@@ -128,7 +129,7 @@ std::size_t TextureStore::StorageBytes() const {
     return storage_->used;
 }
 
-std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
+std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes, const std::uint8_t* initial) {
     if (bytes > storage_->limit - storage_->used) {
         return nullptr;
     }
@@ -139,7 +140,11 @@ std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
     if (bytes != 0) {
         BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     }
-    image->pixels.resize(bytes);
+    if (initial) {
+        image->pixels.assign(initial, initial + bytes);
+    } else {
+        image->pixels.resize(bytes);
+    }
     // The shared owner needs a control block; inject before charging so an injected failure is uncharged.
     BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     storage_->used += bytes;
@@ -166,8 +171,17 @@ Status TextureStore::Generate(std::size_t count, std::vector<std::uint32_t>& nam
     if (generated.size() != count) {
         return Status::LimitExceeded;
     }
-    for (auto name : generated) {
-        objects_.emplace(name, nullptr);
+    std::size_t reserved = 0;
+    try {
+        for (; reserved < generated.size(); ++reserved) {
+            objects_.emplace(generated[reserved], nullptr);
+        }
+    } catch (...) {
+        // A bucket or entry allocation may fail before the whole set is reserved.
+        while (reserved) {
+            objects_.erase(generated[--reserved]);
+        }
+        throw;
     }
     nextName_ = candidate;
     names = std::move(generated);
@@ -335,6 +349,11 @@ Status TextureStore::UploadByteExtent(const TextureUpload& upload, const PixelSt
 }
 
 Status TextureStore::ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage) {
+    return ValidateUpload(upload, unpack, subimage, upload.bytes.size());
+}
+
+Status TextureStore::ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage,
+    std::size_t bytes) {
     if (upload.level < 0 || upload.level >= kTextureLevels || upload.width < 0 || upload.height < 0 ||
         upload.width > kTextureDimension || upload.height > kTextureDimension || upload.x < 0 || upload.y < 0 ||
         upload.internal > InternalFormat::Intensity || upload.format > PixelFormat::ColorIndex ||
@@ -349,16 +368,21 @@ Status TextureStore::ValidateUpload(const TextureUpload& upload, const PixelStor
     if (!Layout(upload, unpack, stride, extent)) {
         return Status::InvalidValue;
     }
-    if (upload.bytes.size() > kTextureUploadBytes || extent > kTextureUploadBytes) {
+    if (bytes > kTextureUploadBytes || extent > kTextureUploadBytes) {
         return Status::LimitExceeded;
     }
-    return upload.allocateOnly || upload.bytes.size() >= extent ? Status::Ok : Status::InvalidValue;
+    return upload.allocateOnly || bytes >= extent ? Status::Ok : Status::InvalidValue;
 }
 
 Status TextureStore::Upload(const LegacyState& state, TextureTarget target, const TextureUpload& upload,
     const PixelStoreState& unpack, bool subimage) {
-    const auto validation = ValidateUpload(upload, unpack, subimage);
-    if (validation != Status::Ok || !TargetValid(target)) {
+    return Upload(state, target, upload, unpack, subimage, upload.bytes.data(), upload.bytes.size());
+}
+
+Status TextureStore::Upload(const LegacyState& state, TextureTarget target, const TextureUpload& upload,
+    const PixelStoreState& unpack, bool subimage, const std::uint8_t* pixels, std::size_t bytes) {
+    const auto validation = ValidateUpload(upload, unpack, subimage, bytes);
+    if (validation != Status::Ok || !TargetValid(target) || (bytes && !pixels)) {
         return validation == Status::Ok ? Status::InvalidValue : validation;
     }
     if (target == TextureTarget::Rectangle && upload.level != 0) {
@@ -386,7 +410,30 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
         !MultiplySize(size, indexed ? 1 : 4, size)) {
         return Status::LimitExceeded;
     }
-    auto image = NewImage(size);
+    std::size_t stride = 0;
+    std::size_t extent = 0;
+    Layout(upload, unpack, stride, extent);
+    const auto components = Components(upload.format);
+    const auto rowBytes = static_cast<std::size_t>(upload.width) * components;
+    const bool copyRows = indexed || (upload.format == PixelFormat::RGBA &&
+        (internal == InternalFormat::RGBA || internal == InternalFormat::RGBA8));
+    const auto offset = (static_cast<std::size_t>(upload.y) * width + upload.x) * components;
+    const auto destinationStride = static_cast<std::size_t>(width) * components;
+    if (subimage && old->defined && copyRows) {
+        // Pixel-store padding is outside the uploaded rectangle.
+        bool unchanged = true;
+        for (int y = 0; y < upload.height && unchanged; ++y) {
+            unchanged = std::memcmp(pixels + static_cast<std::size_t>(y) * stride,
+                old->pixels.data() + offset + static_cast<std::size_t>(y) * destinationStride, rowBytes) == 0;
+        }
+        if (unchanged) {
+            return Status::Ok;
+        }
+    }
+    const bool directCopy = !upload.allocateOnly && copyRows && size != 0 &&
+        upload.width == width && upload.height == height && stride == rowBytes;
+    const auto* initial = directCopy ? pixels : subimage ? old->pixels.data() : nullptr;
+    auto image = NewImage(size, initial);
     if (!image) {
         return Status::LimitExceeded;
     }
@@ -395,23 +442,21 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
     image->internal = internal;
     image->defined = !upload.allocateOnly && (!subimage || old->defined ||
         (upload.width == width && upload.height == height));
-    if (subimage) {
-        image->pixels = old->pixels;
-    }
-    std::size_t stride = 0;
-    std::size_t extent = 0;
-    Layout(upload, unpack, stride, extent);
-    if (!upload.allocateOnly) {
-        const auto components = Components(upload.format);
-        for (int y = 0; y < upload.height; ++y) {
-            for (int x = 0; x < upload.width; ++x) {
-                const auto* pixel = upload.bytes.data() + static_cast<std::size_t>(y) * stride +
-                    static_cast<std::size_t>(x) * components;
-                const auto destination = static_cast<std::size_t>(y + upload.y) * static_cast<std::size_t>(width) +
-                    static_cast<std::size_t>(x + upload.x);
-                if (indexed) {
-                    image->pixels[destination] = *pixel;
-                } else {
+    if (!directCopy && !upload.allocateOnly && upload.width && upload.height) {
+        if (copyRows) {
+            // Skip source row padding and preserve pixels outside the subimage.
+            for (int y = 0; y < upload.height; ++y) {
+                const auto source = pixels + static_cast<std::size_t>(y) * stride;
+                const auto destination = offset + static_cast<std::size_t>(y) * destinationStride;
+                std::copy_n(source, rowBytes, image->pixels.data() + destination);
+            }
+        } else {
+            for (int y = 0; y < upload.height; ++y) {
+                for (int x = 0; x < upload.width; ++x) {
+                    const auto* pixel = pixels + static_cast<std::size_t>(y) * stride +
+                        static_cast<std::size_t>(x) * components;
+                    const auto destination = static_cast<std::size_t>(y + upload.y) * static_cast<std::size_t>(width) +
+                        static_cast<std::size_t>(x + upload.x);
                     auto value = Decode(pixel, upload.format);
                     StoreComponents(value, internal);
                     std::copy(value.begin(), value.end(), image->pixels.begin() + destination * value.size());
@@ -436,16 +481,42 @@ Status TextureStore::Palette(const std::vector<std::uint8_t>& bytes) {
     return Status::Ok;
 }
 
-std::array<TextureResources, kTextureUnits> TextureStore::Capture(const LegacyState& state) const {
+const std::shared_ptr<const TextureObject>& TextureStore::CaptureBinding(const TextureUnitState& binding,
+    TextureTarget target, TextureCapture capture) const {
+    const bool rectangle = target == TextureTarget::Rectangle;
+    if (capture == TextureCapture::SampledBindings) {
+        // Enabled rectangle texturing takes precedence over 2D on this unit.
+        const bool enabled = rectangle ? binding.enabledRectangle : !binding.enabledRectangle && binding.enabled2D;
+        if (!enabled) {
+            static const std::shared_ptr<const TextureObject> absent;
+            return absent;
+        }
+    }
+    const auto name = rectangle ? binding.textureRectangle : binding.texture2D;
+    return name ? objects_.at(name) : defaults_[static_cast<std::size_t>(target)];
+}
+
+std::array<TextureResources, kTextureUnits> TextureStore::Capture(const LegacyState& state,
+    TextureCapture capture) const {
     std::array<TextureResources, kTextureUnits> resources;
     for (std::size_t unit = 0; unit < resources.size(); ++unit) {
         const auto& binding = state.textures[unit];
-        resources[unit].texture2D = binding.texture2D ? objects_.at(binding.texture2D) :
-            defaults_[static_cast<std::size_t>(TextureTarget::Texture2D)];
-        resources[unit].rectangle = binding.textureRectangle ? objects_.at(binding.textureRectangle) :
-            defaults_[static_cast<std::size_t>(TextureTarget::Rectangle)];
+        resources[unit].texture2D = CaptureBinding(binding, TextureTarget::Texture2D, capture);
+        resources[unit].rectangle = CaptureBinding(binding, TextureTarget::Rectangle, capture);
     }
     return resources;
+}
+
+bool TextureStore::MatchesCapture(const LegacyState& state, TextureCapture capture,
+    const std::array<TextureResources, kTextureUnits>& resources) const {
+    for (std::size_t unit = 0; unit < resources.size(); ++unit) {
+        const auto& binding = state.textures[unit];
+        if (resources[unit].texture2D != CaptureBinding(binding, TextureTarget::Texture2D, capture) ||
+            resources[unit].rectangle != CaptureBinding(binding, TextureTarget::Rectangle, capture)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 EngineTextureCache::EngineTextureCache() {

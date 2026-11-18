@@ -6,6 +6,7 @@
 
 struct SDL_Window;
 struct SDL_GPUCommandBuffer;
+struct SDL_GPURenderPass;
 struct SDL_GPUBufferBinding;
 struct SDL_GPUBuffer;
 
@@ -22,9 +23,17 @@ struct RenderFrameCounters {
     std::uint64_t effectDraws = 0;
     std::uint64_t commandBuffers = 0;
     std::uint64_t renderPasses = 0;
+    std::uint64_t colorOnlyScenePasses = 0;
     std::uint64_t sceneResolves = 0;
     std::uint64_t copyPasses = 0;
     std::uint64_t uploadBytes = 0;
+    std::uint64_t streamedVertexBytes = 0;
+    std::uint64_t streamedIndexBytes = 0;
+    std::uint64_t residentMeshBytes = 0;
+    std::uint64_t legacyTextureBytes = 0;
+    std::uint64_t effectUploadBytes = 0;
+    std::uint64_t quadVertexBytes = 0;
+    std::uint64_t borrowedGeometryBytes = 0;
     std::uint64_t fenceWaits = 0;
     std::uint64_t preparationAllocations = 0;
     std::uint64_t streamAllocations = 0;
@@ -35,7 +44,25 @@ struct RenderFrameCounters {
     double encodeMs = 0;
     double waitMs = 0;
     double presentMs = 0;
+    std::uint64_t textureLookups = 0;
+    std::uint64_t sampledTextureAllocations = 0;
+    std::uint64_t sampledTextureExpirations = 0;
+    std::uint64_t sampledTextureCapacityEvictions = 0;
+    std::uint64_t sampledTextureByteLimitEvictions = 0;
+    std::uint64_t samplerLookups = 0;
+    std::uint64_t pipelineLookups = 0;
+    std::uint64_t disconnectedMeshRanges = 0;
+    std::uint64_t emptyUploadSegments = 0;
+    std::uint64_t meshOwnerChecks = 0;
+    std::uint64_t unusedTextureUnits = 0;
+    std::uint64_t alphaDiscardDraws = 0;
+    std::uint64_t borderSamplingDraws = 0;
+    std::uint64_t leadingUnscissoredClears = 0;
+    double drawableWaitMs = 0;
 };
+
+enum class SceneOutput { Deferred, Resolved, ResolvedIfAvailable };
+constexpr int kBaselineSystemRamMiB = 8 * 1024;
 
 class MetalSession {
 public:
@@ -45,7 +72,8 @@ public:
     MetalSession& operator=(const MetalSession&) = delete;
     bool Initialize(SDL_Window* window, bool debug, std::string& error);
     bool Resize(std::uint32_t width, std::uint32_t height, std::uint32_t samples, std::string& error);
-    bool Render(const FrameSnapshot& frame, std::string& error);
+    bool Render(const FrameSnapshot& frame, std::string& error,
+        SceneOutput output = SceneOutput::Deferred);
     bool Present(bool vsync, bool preserveAspect, std::string& error);
     bool ReadPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);
@@ -62,6 +90,9 @@ public:
         std::string& error);
     SDL_GPUBuffer* CreateEffectMesh(const void* vertices, std::size_t bytes, std::string& error);
     bool ResolveScene(std::string& error);
+    // Consecutive scene effects with resident resources can share a color pass.
+    // Other command encoding or submission ends the pass before touching its attachments.
+    SDL_GPURenderPass* SceneEffectPass(SDL_GPUCommandBuffer*& command, std::string& error);
     std::uint64_t EffectClock() const;
     void CountEffectDraw(std::uint64_t start, bool scene = true);
     void CountRenderPass();
@@ -73,6 +104,8 @@ public:
     void Shutdown();
 
 private:
+    bool RenderBatch(const FrameSnapshot& frame, std::size_t firstEvent, std::size_t endEvent, bool useDepth,
+        SceneOutput output, bool& exceedsBudget, std::string& error);
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

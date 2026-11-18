@@ -42,8 +42,10 @@ std::uint8_t Quantize(std::uint8_t value, unsigned bits) {
     return static_cast<std::uint8_t>((reduced * kByteMaximum + maximum / 2) / maximum);
 }
 
-bool ConvertImage(const TextureImage& source, const std::shared_ptr<const SharedPalette>& palette,
-    TextureImage& output, std::string& error) {
+bool ConvertImage(const std::shared_ptr<const TextureImage>& image,
+    const std::shared_ptr<const SharedPalette>& palette, std::shared_ptr<const TextureImage>& result,
+    std::string& error) {
+    const auto& source = *image;
     if (!source.defined || source.width <= 0 || source.height <= 0 || source.width > kTextureDimension ||
         source.height > kTextureDimension || source.internal > InternalFormat::Intensity) {
         return Fail(error, "Invalid owned texture image dimensions/format");
@@ -57,14 +59,17 @@ bool ConvertImage(const TextureImage& source, const std::shared_ptr<const Shared
     if (indexed && !palette) {
         return Fail(error, "Indexed texture has no owned palette");
     }
+    if (source.internal == InternalFormat::RGBA8 || source.internal == InternalFormat::RGBA) {
+        // These immutable levels already have the exact GPU upload bytes.
+        result = image;
+        return true;
+    }
+    auto converted = std::make_shared<TextureImage>();
+    auto& output = *converted;
     output.width = source.width;
     output.height = source.height;
     output.internal = InternalFormat::RGBA8;
     output.defined = true;
-    if (source.internal == InternalFormat::RGBA8 || source.internal == InternalFormat::RGBA) {
-        output.pixels = source.pixels;
-        return true;
-    }
     output.pixels.resize(pixels * kRgbaComponents);
     for (std::size_t index = 0; index < pixels; ++index) {
         auto* destination = output.pixels.data() + index * kRgbaComponents;
@@ -111,18 +116,22 @@ bool ConvertImage(const TextureImage& source, const std::shared_ptr<const Shared
             break;
         }
     }
+    result = std::move(converted);
     return true;
 }
 
 void Incomplete(MetalTextureData& output) {
     output.incomplete = true;
     output.components = {{1, 1, 0, 0}};
-    TextureImage black;
-    black.defined = true;
-    black.width = 1;
-    black.height = 1;
-    black.pixels = {0, 0, 0, 255};
-    output.levels = {std::move(black)};
+    static const auto black = [] {
+        auto image = std::make_shared<TextureImage>();
+        image->defined = true;
+        image->width = 1;
+        image->height = 1;
+        image->pixels = {0, 0, 0, 255};
+        return image;
+    }();
+    output.levels = {black};
 }
 }
 
@@ -149,8 +158,8 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
         error.clear();
         return true;
     }
-    TextureImage converted;
-    if (!ConvertImage(*base->second, palette, converted, error)) {
+    std::shared_ptr<const TextureImage> converted;
+    if (!ConvertImage(base->second, palette, converted, error)) {
         return false;
     }
     prepared.components = {{HasColor(base->second->internal) ? 1.0f : 0.0f,
@@ -159,7 +168,7 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
     const bool mipmapped = object.target != TextureTarget::Rectangle && sampler.minification > Filter::Linear;
     int width = base->second->width;
     int height = base->second->height;
-    std::size_t totalBytes = prepared.levels[0].pixels.size();
+    std::size_t totalBytes = prepared.levels[0]->pixels.size();
     for (int level = 1; mipmapped && (width > 1 || height > 1) && level <= sampler.maximumLevel; ++level) {
         width = std::max(1, width / 2);
         height = std::max(1, height / 2);
@@ -170,11 +179,11 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
             Incomplete(prepared);
             break;
         }
-        TextureImage mip;
-        if (!ConvertImage(*found->second, palette, mip, error)) {
+        std::shared_ptr<const TextureImage> mip;
+        if (!ConvertImage(found->second, palette, mip, error)) {
             return false;
         }
-        totalBytes += mip.pixels.size();
+        totalBytes += mip->pixels.size();
         if (totalBytes > kTextureUploadBytes) {
             return Fail(error, "Texture mip chain exceeds Metal upload budget");
         }
@@ -185,7 +194,8 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
     return true;
 }
 
-bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error) {
+bool PrepareMetalDrawInto(const DrawPacket& draw, MetalDrawData& prepared, std::string& error,
+    MetalGeometryOwnership ownership) {
     const auto& raster = draw.raster;
     if (draw.primitive > Primitive::LineLoop || draw.shade > Shade::Smooth || raster.shade > Shade::Smooth ||
         draw.vertices.size() > kMaximumVertices ||
@@ -220,7 +230,7 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
                     }
                 }
             }
-            return PrepareMetalDraw(expanded, output, error);
+            return PrepareMetalDrawInto(expanded, prepared, error, MetalGeometryOwnership::Own);
         }
     }
     if (!draw.indices.empty()) {
@@ -229,10 +239,14 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
             draw.indices.size() > kMaximumVertices) {
             return Fail(error, "Invalid or oversized native triangle indices");
         }
+        // The vertex count was bounded above. Check index lanes together on the normal contiguous path.
+        const auto vertexCount = static_cast<std::uint32_t>(draw.vertices.size());
+        bool indicesInRange = true;
         for (const auto index : draw.indices) {
-            if (index >= draw.vertices.size()) {
-                return Fail(error, "Native triangle index is outside the vertex buffer");
-            }
+            indicesInRange &= index < vertexCount;
+        }
+        if (!indicesInRange) {
+            return Fail(error, "Native triangle index is outside the vertex buffer");
         }
         if (draw.shade != Shade::Smooth || raster.polygonMode[0] != PolygonMode::Fill) {
             auto expanded = draw;
@@ -240,7 +254,7 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
                 return Fail(error, "Cannot lower native triangle shading or wireframe");
             }
             expanded.indices.clear();
-            return PrepareMetalDraw(expanded, output, error);
+            return PrepareMetalDrawInto(expanded, prepared, error, MetalGeometryOwnership::Own);
         }
     }
     const auto count = draw.vertices.size();
@@ -260,7 +274,6 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     if (loweredCount > kMaximumLoweredVertices) {
         return Fail(error, "Lowered Metal geometry exceeds streaming budget");
     }
-    MetalDrawData prepared;
     // A nonfinite transform affects every primitive in this packet, but must not poison later draws.
     bool finiteTransform = Finite(draw.modelView.values) && Finite(draw.projection.values);
     if (draw.mesh) {
@@ -274,7 +287,6 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
     }
     if (!finiteTransform) {
         prepared.discardedNonfinite = true;
-        output = std::move(prepared);
         error.clear();
         return true;
     }
@@ -290,16 +302,42 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         prepared.vertex.uvOffset = draw.meshUvOffset;
     }
     prepared.raster = raster;
-    prepared.vertices.reserve(loweredCount);
-    prepared.indices = draw.indices;
     prepared.topology = draw.primitive == Primitive::Lines || draw.primitive == Primitive::LineLoop ?
         Primitive::Lines : Primitive::Triangles;
+    prepared.indexedQuads = ownership == MetalGeometryOwnership::Borrow && draw.primitive == Primitive::Quads &&
+        !wire;
+    const bool completeQuadRange = prepared.indexedQuads && count % kQuadCorners == 0;
+    const bool completeSmoothTriangleRange = draw.primitive == Primitive::Triangles && !wire &&
+        draw.shade == Shade::Smooth && loweredCount == count;
     bool allFinite = true;
-    for (const auto& vertex : draw.vertices) {
+    bool colorsClamped = ownership == MetalGeometryOwnership::Borrow && count != 0 &&
+        (completeSmoothTriangleRange || completeQuadRange);
+    for (std::size_t index = 0; index < count; ++index) {
+        const auto& vertex = draw.vertices[index];
         allFinite = allFinite && Finite(vertex.position) && Finite(vertex.color);
         for (const auto& uv : vertex.texcoords) {
             allFinite = allFinite && Finite(uv);
         }
+        if (colorsClamped) {
+            for (float component : vertex.color) {
+                // The existing clamp canonicalizes -0 to +0.
+                colorsClamped &= component <= 1.0f && !std::signbit(component);
+            }
+            if (completeQuadRange && draw.shade == Shade::Flat) {
+                // An unchanged flat quad already has the same clamped color at every corner.
+                const auto provoking = index / kQuadCorners * kQuadCorners + kQuadCorners - 1;
+                colorsClamped &= vertex.color == draw.vertices[provoking].color;
+            }
+        }
+    }
+    const bool borrowVertices = allFinite && colorsClamped;
+    if (!borrowVertices) {
+        prepared.vertices.reserve(prepared.indexedQuads ? count / kQuadCorners * kQuadCorners : loweredCount);
+    }
+    if (borrowVertices && !draw.indices.empty()) {
+        prepared.borrowedIndices = &draw.indices;
+    } else {
+        prepared.indices = draw.indices;
     }
     const auto valid = [&draw](std::size_t index, std::size_t provoking) {
         const auto& vertex = draw.vertices[index];
@@ -387,6 +425,10 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         // Filled smooth triangles already have the GPU's topology and per-vertex colors.
         // Copy them in one block instead of expanding every triangle through the generic emitter.
         if (!wireframe && draw.shade == Shade::Smooth) {
+            if (borrowVertices) {
+                prepared.borrowedVertices = &draw.vertices;
+                break;
+            }
             if (allFinite) {
                 prepared.vertices.assign(draw.vertices.begin(), draw.vertices.begin() + loweredCount);
                 for (auto& vertex : prepared.vertices) {
@@ -455,9 +497,30 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         }
         break;
     case Primitive::Quads:
-        // Convex GL quads are split along 0--2; preserve the fourth provoking color on both triangles.
-        for (std::size_t index = 0; index + 3 < count; index += 4) {
-            emit({index, index + 1, index + 2, index, index + 2, index + 3}, index + 3);
+        if (borrowVertices) {
+            prepared.borrowedVertices = &draw.vertices;
+            break;
+        }
+        // The two triangles share the original diagonal and the fourth provoking color.
+        for (std::size_t index = 0; index + kQuadCorners <= count; index += kQuadCorners) {
+            const auto provoking = index + kQuadCorners - 1;
+            if (prepared.indexedQuads) {
+                bool keep = true;
+                if (!allFinite) {
+                    for (std::size_t corner = index; corner <= provoking; ++corner) {
+                        keep &= valid(corner, provoking);
+                    }
+                }
+                if (!keep) {
+                    prepared.discardedNonfinite = true;
+                    continue;
+                }
+                for (std::size_t corner = index; corner <= provoking; ++corner) {
+                    prepared.vertices.push_back(normalized(corner, provoking));
+                }
+            } else {
+                emit({index, index + 1, index + 2, index, index + 2, provoking}, provoking);
+            }
         }
         break;
     case Primitive::QuadStrip:
@@ -525,8 +588,17 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         static_cast<float>(raster.fogMode), raster.fogDensity, raster.fogStart}};
     legacy.fogAlpha = {{raster.fogEnd, raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] ? 1.0f : 0.0f,
         static_cast<float>(raster.alphaFunction), raster.alphaReference}};
-    output = std::move(prepared);
     error.clear();
+    return true;
+}
+
+bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error,
+    MetalGeometryOwnership ownership) {
+    MetalDrawData prepared;
+    if (!PrepareMetalDrawInto(draw, prepared, error, ownership)) {
+        return false;
+    }
+    output = std::move(prepared);
     return true;
 }
 }

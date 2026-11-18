@@ -1,13 +1,18 @@
 #include "metal_session.h"
+#include "../../native_frame_timings.h"
 #include "surface_mesh.h"
 #include "metal_effect_access.h"
 #include "radar_renderer_gpu.h"
 #include "metal_draw.h"
+#include "metal_drawable.h"
 #include "legacy_runtime_embedded.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstring>
+#include <dispatch/dispatch.h>
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -18,11 +23,18 @@ namespace cse {
 namespace render {
 namespace {
 constexpr std::size_t kMaximumStreamingBytes = 128 * 1024 * 1024;
-// The measured scene/HUD working set reaches 41 MiB; three in-flight frames need up to 123 MiB.
-constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
-constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
-constexpr std::size_t kMaximumCachedTextures = 512;
+struct CacheBudget {
+    std::size_t textureBytes;
+    std::size_t textureEntries;
+    std::size_t streamBytes;
+};
+constexpr std::size_t kMiB = 1024 * 1024;
+constexpr CacheBudget kBaseCacheBudget{256 * kMiB, 1024, 128 * kMiB};
+// The larger tier accommodates custom assets and leaves headroom above the measured 144 MiB stream peak.
+constexpr CacheBudget kLargerCacheBudget{512 * kMiB, 2048, 160 * kMiB};
 constexpr std::size_t kMaximumCachedPipelines = 512;
+// Three vertex layouts combine with four border/alpha fragment variants.
+constexpr std::size_t kMaximumCachedVariantPipelines = 12 * kMaximumCachedPipelines;
 constexpr std::size_t kMaximumCachedMeshBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMeshVertexPageBytes = 4 * 1024 * 1024;
 constexpr std::size_t kMeshIndexPageBytes = 1024 * 1024;
@@ -30,6 +42,18 @@ constexpr std::size_t kFramesInFlight = 3;
 constexpr std::size_t kTransferAlignment = 512;
 constexpr std::size_t kReadbackRowAlignment = 256;
 constexpr std::size_t kRgbaComponents = 4;
+constexpr int kDoubleBufferedDrawables = 2;
+
+struct WorldMeshVertex {
+    std::array<float, 3> position;
+    std::array<float, 2> uv0;
+    std::array<float, 2> uv1;
+};
+static_assert(sizeof(WorldMeshVertex) == 28, "World mesh vertex layout");
+
+// The single-texture stream keeps position, color, and unit zero's entire homogeneous UV.
+constexpr std::size_t kSingleTextureVertexBytes = 3 * sizeof(std::array<float, 4>);
+static_assert(offsetof(Vertex, texcoords) == 2 * sizeof(std::array<float, 4>), "Legacy vertex attribute layout");
 
 std::size_t Align(std::size_t value, std::size_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
@@ -126,6 +150,13 @@ DrawPacket ClearDraw(const ClearEvent& clear, unsigned width, unsigned height) {
 }
 
 struct MetalSession::Impl {
+    ~Impl() {
+        if (memoryPressureSource) {
+            dispatch_source_cancel(memoryPressureSource);
+            dispatch_release(memoryPressureSource);
+        }
+    }
+
     bool reportedNonfinite = false;
     bool diagnosticsEnabled = false;
     RenderFrameCounters counters;
@@ -155,6 +186,7 @@ struct MetalSession::Impl {
         SDL_GPUFence* fence = nullptr;
     };
     SDL_GPUCommandBuffer* command = nullptr;
+    SDL_GPURenderPass* sceneEffectPass = nullptr;
     std::size_t pendingUploadBytes = 0;
 
     struct Texture {
@@ -162,6 +194,7 @@ struct MetalSession::Impl {
         std::weak_ptr<const SharedPalette> palette;
         MetalTextureData data;
         SDL_GPUTexture* texture = nullptr;
+        unsigned levels = 0;
         std::size_t bytes = 0;
         std::uint64_t lastUse = 0;
         bool uploaded = false;
@@ -172,6 +205,7 @@ struct MetalSession::Impl {
         SDL_GPUBuffer* indices = nullptr;
         std::size_t vertexCapacity = 0;
         std::size_t indexCapacity = 0;
+        std::size_t vertexStride = sizeof(Vertex);
         std::size_t vertexUsed = 0;
         std::size_t indexUsed = 0;
         ~MeshPage() {
@@ -191,30 +225,63 @@ struct MetalSession::Impl {
         std::uint64_t lastUse = 0;
         bool uploaded = false;
     };
+    enum class VertexLayout { Full, World, SingleTexture };
     struct Draw {
         MetalDrawData data;
+        VertexLayout layout = VertexLayout::Full;
         Mesh* mesh = nullptr;
         std::array<Texture*, kTextureUnits> textures{};
         std::array<SDL_GPUSampler*, kTextureUnits> samplers{};
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         Uint32 vertexOffset = 0;
         Uint32 indexOffset = 0;
+        std::uint32_t streamedBaseVertex = 0;
+        std::size_t batchDraws = 0;
+        std::size_t batchIndices = 0;
+        bool meshIndicesInStream = false;
+        bool softwareBorder = false;
+
+        std::size_t StreamedVertexStride() const {
+            return layout == VertexLayout::SingleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
+        }
+
+        std::size_t FragmentSamplerCount() const {
+            return layout == VertexLayout::SingleTexture && !softwareBorder ? 1 : kTextureUnits;
+        }
     };
-    struct PendingUploads {
+    using PipelineKey = std::array<std::uint32_t, 22>;
+    using SamplerKey = std::array<std::uint32_t, 7>;
+    struct ResolvedMaterial {
+        const TextureObject* object = nullptr;
+        const SharedPalette* palette = nullptr;
+        bool sharedPalette = false;
+        Texture* texture = nullptr;
+        SDL_GPUSampler* sampler = nullptr;
+        SamplerKey samplerKey{};
+    };
+    struct Preparation {
         std::vector<Texture*> textures;
         std::vector<Mesh*> meshes;
+        std::array<ResolvedMaterial, kTextureUnits> materials{};
+        ResolvedMaterial fallback;
+        PipelineKey pipelineKey{};
+        SDL_GPUGraphicsPipeline* pipeline = nullptr;
+        bool depthAttachment = true;
+        bool exceedsTextureBudget = false;
     };
 
     static bool SameDrawState(const Draw& first, const Draw& second) {
         const auto& left = first.data;
         const auto& right = second.data;
         const bool compatibleGeometry = first.mesh && second.mesh ? first.mesh->page == second.mesh->page :
-            !first.mesh && !second.mesh && left.indices.empty() && right.indices.empty();
+            !first.mesh && !second.mesh && first.layout == second.layout &&
+                (left.IndexCount() == 0) == (right.IndexCount() == 0);
+        constexpr auto scissor = static_cast<std::size_t>(Capability::ScissorTest);
+        const bool sameScissor = left.raster.enabled[scissor] == right.raster.enabled[scissor] &&
+            (!left.raster.enabled[scissor] || left.raster.scissor == right.raster.scissor);
         return compatibleGeometry && first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
-            left.raster.depthRange == right.raster.depthRange && left.raster.scissor == right.raster.scissor &&
-            left.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] ==
-                right.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] &&
+            SameBits(left.raster.depthRange, right.raster.depthRange) && sameScissor &&
             std::memcmp(&left.vertex, &right.vertex, sizeof(left.vertex)) == 0 &&
             std::memcmp(&left.fragment, &right.fragment, sizeof(left.fragment)) == 0;
     }
@@ -225,7 +292,9 @@ struct MetalSession::Impl {
     SDL_GPUDevice* device = nullptr;
     SDL_Window* window = nullptr;
     SDL_GPUShader* vertex = nullptr;
-    SDL_GPUShader* fragment = nullptr;
+    SDL_GPUShader* worldVertex = nullptr;
+    SDL_GPUShader* singleTextureVertex = nullptr;
+    std::array<SDL_GPUShader*, 6> fragments{};
     SDL_GPUTexture* color = nullptr;
     SDL_GPUTexture* spareResolve = nullptr;
     SDL_GPUTexture* multisample = nullptr;
@@ -240,19 +309,33 @@ struct MetalSession::Impl {
     bool initializedTarget = false;
     bool sceneDirty = false;
     bool vsync = true;
+    int defaultDrawableCount = 0;
+    int drawableCount = 0;
     std::uint64_t serial = 0;
     std::size_t streamIndex = 0;
+    CacheBudget budget = kBaseCacheBudget;
     std::size_t textureBytes = 0;
     std::array<FrameStream, kFramesInFlight> streams{};
     using TextureKey = std::pair<const TextureObject*, const SharedPalette*>;
-    std::map<TextureKey, Texture> textures;
-    std::map<std::array<std::uint32_t, 7>, SDL_GPUSampler*> samplers;
-    std::map<std::array<std::uint32_t, 19>, SDL_GPUGraphicsPipeline*> pipelines;
+    struct TextureKeyHash {
+        std::size_t operator()(const TextureKey& key) const noexcept {
+            const auto object = std::hash<const TextureObject*>{}(key.first);
+            const auto palette = std::hash<const SharedPalette*>{}(key.second);
+            return object ^ (palette << 1);
+        }
+    };
+    std::unordered_map<TextureKey, Texture, TextureKeyHash> textures;
+    using MemoryPressureFlag = std::shared_ptr<std::atomic_bool>;
+    MemoryPressureFlag memoryPressurePending;
+    dispatch_source_t memoryPressureSource = nullptr;
+    std::map<SamplerKey, SDL_GPUSampler*> samplers;
+    std::map<PipelineKey, SDL_GPUGraphicsPipeline*> pipelines;
     // Find world surfaces by immutable identity. Rehashing preserves the mesh
     // pointers held by prepared draws and the current upload list.
     std::unordered_map<const SurfaceMesh*, Mesh> meshes;
+    std::uint64_t surfaceMeshEpoch = 0;
     std::vector<std::weak_ptr<MeshPage>> meshPages;
-    std::shared_ptr<MeshPage> activeMeshPage;
+    std::array<std::shared_ptr<MeshPage>, 2> activeMeshPages;
     std::shared_ptr<const TextureObject> white;
     std::shared_ptr<const TextureObject> black;
 
@@ -267,6 +350,32 @@ struct MetalSession::Impl {
     SDL_GPUTexture* CreateResolvedColor(unsigned width, unsigned height) {
         return CreateTexture(device, width, height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
             SDL_GPU_TEXTUREUSAGE_COLOR_TARGET | SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1);
+    }
+
+    SDL_GPUTexture* WritableResolve(std::string& error) {
+        if (color != presented) {
+            return color;
+        }
+        // A screenshot may still read the previous presentation.
+        if (!spareResolve) {
+            spareResolve = CreateResolvedColor(width, height);
+            if (!spareResolve) {
+                DeviceFailure(error, "Create Metal resolve target for next scene");
+                return nullptr;
+            }
+        }
+        return spareResolve;
+    }
+
+    void CommitResolve(SDL_GPUTexture* target) {
+        // Change the readable scene only after successful resolve encoding.
+        if (target != color) {
+            std::swap(color, spareResolve);
+        }
+        sceneDirty = false;
+        if (diagnosticsEnabled) {
+            ++counters.sceneResolves;
+        }
     }
 
     bool Wait(FrameStream& stream, std::string& error) {
@@ -286,7 +395,16 @@ struct MetalSession::Impl {
         return true;
     }
 
+    void EndSceneEffectPass() {
+        if (sceneEffectPass) {
+            SDL_EndGPURenderPass(sceneEffectPass);
+            SDL_PopGPUDebugGroup(command);
+            sceneEffectPass = nullptr;
+        }
+    }
+
     SDL_GPUCommandBuffer* Commands(std::string& error) {
+        EndSceneEffectPass();
         if (!command) {
             if (!Wait(streams[streamIndex], error)) {
                 return nullptr;
@@ -329,6 +447,7 @@ struct MetalSession::Impl {
     }
 
     bool Submit(std::string& error) {
+        EndSceneEffectPass();
         if (!command) {
             return true;
         }
@@ -382,7 +501,7 @@ struct MetalSession::Impl {
         // prefix. Retire unused tails before evicting buffers that an ordinary frame just used.
         for (auto& slot : streams) {
             for (std::size_t index = slot.chunks.size(); index > slot.cursor &&
-                cachedBytes > kMaximumCachedStreamingBytes; --index) {
+                cachedBytes > budget.streamBytes; --index) {
                 release(slot.chunks[index - 1]);
             }
             while (slot.chunks.size() > slot.cursor && !slot.chunks.back().uploadCapacity &&
@@ -391,11 +510,11 @@ struct MetalSession::Impl {
             }
         }
         // Under actual working-set pressure, evict the least recently submitted slot first.
-        for (std::size_t age = 1; age <= streams.size() && cachedBytes > kMaximumCachedStreamingBytes;
+        for (std::size_t age = 1; age <= streams.size() && cachedBytes > budget.streamBytes;
             ++age) {
             auto& slot = streams[(streamIndex + age) % streams.size()];
             for (auto iterator = slot.chunks.rbegin(); iterator != slot.chunks.rend() &&
-                cachedBytes > kMaximumCachedStreamingBytes; ++iterator) {
+                cachedBytes > budget.streamBytes; ++iterator) {
                 release(*iterator);
             }
         }
@@ -404,33 +523,58 @@ struct MetalSession::Impl {
         return true;
     }
 
-    SDL_GPUShader* Shader(bool isVertex) {
+    SDL_GPUShader* Shader(const char* entrypoint, SDL_GPUShaderStage stage, Uint32 samplers = 0) {
         SDL_GPUShaderCreateInfo info{};
         info.code = kLegacyRuntimeMetal;
         info.code_size = sizeof(kLegacyRuntimeMetal);
-        info.entrypoint = isVertex ? "LegacyVertex" : "LegacyFragment";
+        info.entrypoint = entrypoint;
         info.format = SDL_GPU_SHADERFORMAT_METALLIB;
-        info.stage = isVertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-        info.num_samplers = isVertex ? 0 : static_cast<Uint32>(kTextureUnits);
+        info.stage = stage;
+        info.num_samplers = samplers;
         info.num_uniform_buffers = 1;
         return SDL_CreateGPUShader(device, &info);
     }
 
-    SDL_GPUGraphicsPipeline* Pipeline(const MetalDrawData& draw) {
+    SDL_GPUGraphicsPipeline* Pipeline(const Draw& prepared, Preparation& pending) {
+        const auto& draw = prepared.data;
+        const bool softwareBorder = prepared.softwareBorder;
+        const auto layout = prepared.layout;
+        const bool worldLayout = layout == VertexLayout::World;
+        const bool singleTexture = layout == VertexLayout::SingleTexture;
         const auto& state = draw.raster;
         const bool blend = state.enabled[static_cast<std::size_t>(Capability::Blend)];
-        const bool depthTest = state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
+        const bool depthTest = pending.depthAttachment &&
+            state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
         const bool cull = state.enabled[static_cast<std::size_t>(Capability::CullFace)];
+        const bool alphaTest = state.enabled[static_cast<std::size_t>(Capability::AlphaTest)] &&
+            state.alphaFunction != Compare::Always;
+        // The low bit selects discard support; the next bit selects software GL_CLAMP.
+        const bool singleSampler = prepared.FragmentSamplerCount() == 1;
+        const auto fragmentIndex = static_cast<std::uint32_t>(alphaTest) |
+            (static_cast<std::uint32_t>(softwareBorder) << 1) | (static_cast<std::uint32_t>(singleSampler) << 2);
         const bool bias = state.enabled.back() && draw.topology == Primitive::Triangles &&
             state.polygonMode[0] == PolygonMode::Fill;
-        std::array<std::uint32_t, 19> key{{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
-            static_cast<unsigned>(state.blendSource), static_cast<unsigned>(state.blendDestination), depthTest,
-            state.depthWrite, static_cast<unsigned>(state.depthFunction), cull, static_cast<unsigned>(state.cull),
+        // SDL ignores these parameters when the associated operation is disabled.
+        const PipelineKey key{{static_cast<unsigned>(samples), static_cast<unsigned>(draw.topology), blend,
+            blend ? static_cast<unsigned>(state.blendSource) : 0,
+            blend ? static_cast<unsigned>(state.blendDestination) : 0, depthTest,
+            depthTest && state.depthWrite, depthTest ? static_cast<unsigned>(state.depthFunction) : 0,
+            cull, cull ? static_cast<unsigned>(state.cull) : 0,
             state.frontCounterClockwise, static_cast<unsigned>(state.polygonMode[0]), bias,
-            Bits(state.polygonOffset[0]), Bits(state.polygonOffset[1]), state.colorWrite[0], state.colorWrite[1],
-            state.colorWrite[2], state.colorWrite[3]}};
+            bias ? Bits(state.polygonOffset[0]) : 0, bias ? Bits(state.polygonOffset[1]) : 0,
+            state.colorWrite[0], state.colorWrite[1],
+            state.colorWrite[2], state.colorWrite[3], fragmentIndex, static_cast<std::uint32_t>(layout),
+            pending.depthAttachment}};
+        if (pending.pipeline && pending.pipelineKey == key) {
+            return pending.pipeline;
+        }
+        if (diagnosticsEnabled) {
+            ++counters.pipelineLookups;
+        }
         const auto found = pipelines.find(key);
         if (found != pipelines.end()) {
+            pending.pipelineKey = key;
+            pending.pipeline = found->second;
             return found->second;
         }
         SDL_GPUColorTargetDescription target{};
@@ -449,8 +593,14 @@ struct MetalSession::Impl {
             }
         }
         SDL_GPUVertexBufferDescription buffer{};
-        buffer.pitch = sizeof(Vertex);
+        buffer.pitch = worldLayout ? sizeof(WorldMeshVertex) :
+            singleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
         buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
+        constexpr std::array<SDL_GPUVertexAttribute, 3> worldAttributes{{
+            {0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, offsetof(WorldMeshVertex, position)},
+            {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(WorldMeshVertex, uv0)},
+            {2, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(WorldMeshVertex, uv1)},
+        }};
         std::array<SDL_GPUVertexAttribute, 5> attributes{};
         for (std::size_t index = 0; index < attributes.size(); ++index) {
             attributes[index].location = static_cast<Uint32>(index);
@@ -458,12 +608,13 @@ struct MetalSession::Impl {
             attributes[index].offset = static_cast<Uint32>(index * sizeof(std::array<float, 4>));
         }
         SDL_GPUGraphicsPipelineCreateInfo info{};
-        info.vertex_shader = vertex;
-        info.fragment_shader = fragment;
+        info.vertex_shader = worldLayout ? worldVertex : singleTexture ? singleTextureVertex : vertex;
+        info.fragment_shader = fragments[fragmentIndex];
         info.vertex_input_state.vertex_buffer_descriptions = &buffer;
         info.vertex_input_state.num_vertex_buffers = 1;
-        info.vertex_input_state.vertex_attributes = attributes.data();
-        info.vertex_input_state.num_vertex_attributes = static_cast<Uint32>(attributes.size());
+        info.vertex_input_state.vertex_attributes = worldLayout ? worldAttributes.data() : attributes.data();
+        info.vertex_input_state.num_vertex_attributes = static_cast<Uint32>(
+            worldLayout ? worldAttributes.size() : singleTexture ? 3 : attributes.size());
         info.primitive_type = draw.topology == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST :
             SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
         info.rasterizer_state.fill_mode = state.polygonMode[0] == PolygonMode::Line ?
@@ -483,26 +634,38 @@ struct MetalSession::Impl {
             static_cast<unsigned>(SDL_GPU_COMPAREOP_NEVER) + static_cast<unsigned>(state.depthFunction));
         info.target_info.num_color_targets = 1;
         info.target_info.color_target_descriptions = &target;
-        info.target_info.has_depth_stencil_target = true;
-        info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
-        if (pipelines.size() >= kMaximumCachedPipelines) {
+        info.target_info.has_depth_stencil_target = pending.depthAttachment;
+        if (pending.depthAttachment) {
+            info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        }
+        if (pipelines.size() >= kMaximumCachedVariantPipelines) {
             SDL_SetError("Frame exceeds cached Metal pipeline budget");
             return nullptr;
         }
         auto* pipeline = SDL_CreateGPUGraphicsPipeline(device, &info);
         if (pipeline) {
-            pipelines.emplace(std::move(key), pipeline);
+            pipelines.emplace(key, pipeline);
+            pending.pipelineKey = key;
+            pending.pipeline = pipeline;
         }
         return pipeline;
     }
 
-    SDL_GPUSampler* Sampler(const SamplerState& state, unsigned levels, bool rectangle) {
+    SDL_GPUSampler* Sampler(const SamplerState& state, unsigned levels, bool rectangle,
+        ResolvedMaterial& material) {
         const float anisotropy = EffectiveMetalAnisotropy(state.requestedAnisotropy);
-        const std::array<std::uint32_t, 7> key{{static_cast<unsigned>(state.minification),
+        const SamplerKey key{{static_cast<unsigned>(state.minification),
             static_cast<unsigned>(state.magnification), static_cast<unsigned>(state.wrapS),
             static_cast<unsigned>(state.wrapT), Bits(anisotropy), levels, rectangle}};
+        if (material.sampler && material.samplerKey == key) {
+            return material.sampler;
+        }
+        if (diagnosticsEnabled) {
+            ++counters.samplerLookups;
+        }
         const auto found = samplers.find(key);
         if (found != samplers.end()) {
+            material.samplerKey = key;
             return found->second;
         }
         SDL_GPUSamplerCreateInfo info{};
@@ -531,17 +694,60 @@ struct MetalSession::Impl {
         auto* sampler = SDL_CreateGPUSampler(device, &info);
         if (sampler) {
             samplers.emplace(key, sampler);
+            material.samplerKey = key;
         }
         return sampler;
     }
 
-    Texture* GetTexture(std::shared_ptr<const TextureObject> object,
-        std::shared_ptr<const SharedPalette> palette, PendingUploads& pending, std::string& error) {
+    void WatchMemoryPressure() {
+        memoryPressurePending = std::make_shared<std::atomic_bool>(false);
+        auto context = std::make_unique<MemoryPressureFlag>(memoryPressurePending);
+        memoryPressureSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0,
+            DISPATCH_MEMORYPRESSURE_WARN | DISPATCH_MEMORYPRESSURE_CRITICAL,
+            dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
+        if (!memoryPressureSource) {
+            memoryPressurePending.reset();
+            return;
+        }
+        // The asynchronous source owns its flag reference through cancellation.
+        // GPU retirement stays on the render thread.
+        dispatch_set_context(memoryPressureSource, context.release());
+        dispatch_source_set_event_handler_f(memoryPressureSource, [](void* data) {
+            (*static_cast<MemoryPressureFlag*>(data))->store(true, std::memory_order_relaxed);
+        });
+        dispatch_source_set_cancel_handler_f(memoryPressureSource, [](void* data) {
+            delete static_cast<MemoryPressureFlag*>(data);
+        });
+        dispatch_activate(memoryPressureSource);
+    }
+
+    void TrimSampledTexturesOnPressure() {
+        if (!memoryPressurePending || !memoryPressurePending->load(std::memory_order_relaxed) ||
+            !memoryPressurePending->exchange(false, std::memory_order_relaxed)) {
+            return;
+        }
+        for (auto entry = textures.begin(); entry != textures.end();) {
+            if (entry->second.lastUse != serial) {
+                textureBytes -= entry->second.bytes;
+                SDL_ReleaseGPUTexture(device, entry->second.texture);
+                entry = textures.erase(entry);
+            } else {
+                ++entry;
+            }
+        }
+    }
+
+    Texture* GetTexture(const std::shared_ptr<const TextureObject>& object,
+        const std::shared_ptr<const SharedPalette>& palette, Preparation& pending, std::string& error) {
         const TextureKey key{object.get(), palette.get()};
+        if (diagnosticsEnabled) {
+            ++counters.textureLookups;
+        }
         auto found = textures.find(key);
         if (found != textures.end()) {
-            // Raw addresses are only an index: expired owners may have been allocated at these addresses again.
-            if (found->second.object.lock() == object && found->second.palette.lock() == palette) {
+            // Matching live identities need only an expiration check. The
+            // current frame already owns both sources throughout preparation.
+            if (!found->second.object.expired() && (!palette || !found->second.palette.expired())) {
                 if (!found->second.uploaded && found->second.lastUse != serial) {
                     pending.textures.push_back(&found->second);
                 }
@@ -551,6 +757,9 @@ struct MetalSession::Impl {
             textureBytes -= found->second.bytes;
             SDL_ReleaseGPUTexture(device, found->second.texture);
             textures.erase(found);
+            if (diagnosticsEnabled) {
+                ++counters.sampledTextureExpirations;
+            }
         }
         Texture entry;
         entry.object = object;
@@ -559,10 +768,10 @@ struct MetalSession::Impl {
             return nullptr;
         }
         for (const auto& image : entry.data.levels) {
-            entry.bytes += image.pixels.size();
+            entry.bytes += image->pixels.size();
         }
-        // Evict immutable versions only between frames. SDL retains submitted GPU references after release.
-        while ((textureBytes + entry.bytes > kMaximumCachedTextureBytes || textures.size() >= kMaximumCachedTextures) &&
+        // Keep sources used by this batch until their draws are encoded. SDL then retains GPU references.
+        while ((textureBytes + entry.bytes > budget.textureBytes || textures.size() >= budget.textureEntries) &&
             !textures.empty()) {
             auto oldest = textures.end();
             for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
@@ -572,19 +781,28 @@ struct MetalSession::Impl {
                 }
             }
             if (oldest == textures.end()) {
+                pending.exceedsTextureBudget = true;
                 Fail(error, "Frame sampled image set exceeds Metal cache budget");
                 return nullptr;
+            }
+            if (diagnosticsEnabled) {
+                ++counters.sampledTextureCapacityEvictions;
+                counters.sampledTextureByteLimitEvictions += textureBytes + entry.bytes > budget.textureBytes;
             }
             textureBytes -= oldest->second.bytes;
             SDL_ReleaseGPUTexture(device, oldest->second.texture);
             textures.erase(oldest);
         }
-        const auto& image = entry.data.levels.front();
+        const auto& image = *entry.data.levels.front();
+        entry.levels = static_cast<unsigned>(entry.data.levels.size());
         entry.texture = CreateTexture(device, image.width, image.height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-            SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1, static_cast<unsigned>(entry.data.levels.size()));
+            SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1, entry.levels);
         if (!entry.texture) {
             DeviceFailure(error, "Create immutable Metal sampled texture");
             return nullptr;
+        }
+        if (diagnosticsEnabled) {
+            ++counters.sampledTextureAllocations;
         }
         entry.lastUse = serial;
         textureBytes += entry.bytes;
@@ -593,10 +811,10 @@ struct MetalSession::Impl {
         return texture;
     }
 
-    Mesh* GetMesh(const std::shared_ptr<const SurfaceMesh>& object, PendingUploads& pending, std::string& error) {
+    Mesh* GetMesh(const std::shared_ptr<const SurfaceMesh>& object, Preparation& pending, std::string& error) {
         auto found = meshes.find(object.get());
         if (found != meshes.end()) {
-            if (found->second.object.lock() == object) {
+            if (!found->second.object.expired()) {
                 if (!found->second.uploaded && found->second.lastUse != serial) {
                     pending.meshes.push_back(&found->second);
                 }
@@ -605,8 +823,11 @@ struct MetalSession::Impl {
             }
             meshes.erase(found);
         }
-        const auto vertexBytes = object->Vertices().size() * sizeof(Vertex);
+        const auto worldLayout = object->HasWorldVertexLayout();
+        const auto vertexStride = worldLayout ? sizeof(WorldMeshVertex) : sizeof(Vertex);
+        const auto vertexBytes = object->Vertices().size() * vertexStride;
         const auto indexBytes = object->Indices().size() * sizeof(std::uint32_t);
+        auto& activeMeshPage = activeMeshPages[worldLayout];
         if (!activeMeshPage || vertexBytes > activeMeshPage->vertexCapacity - activeMeshPage->vertexUsed ||
             indexBytes > activeMeshPage->indexCapacity - activeMeshPage->indexUsed) {
             std::size_t retainedBytes = 0;
@@ -628,6 +849,7 @@ struct MetalSession::Impl {
             auto page = std::make_shared<MeshPage>();
             page->device = device;
             page->vertexCapacity = vertexCapacity;
+            page->vertexStride = vertexStride;
             page->indexCapacity = indexCapacity;
             SDL_GPUBufferCreateInfo info{};
             info.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
@@ -656,8 +878,9 @@ struct MetalSession::Impl {
         return inserted;
     }
 
-    bool Prepare(const DrawPacket& packet, Draw& draw, PendingUploads& pending, std::string& error) {
-        if (!PrepareMetalDraw(packet, draw.data, error)) {
+    bool Prepare(const DrawPacket& packet, Draw& draw, Preparation& pending, std::string& error,
+        MetalGeometryOwnership ownership) {
+        if (!PrepareMetalDrawInto(packet, draw.data, error, ownership)) {
             return false;
         }
         if (draw.data.discardedNonfinite && !reportedNonfinite) {
@@ -665,7 +888,7 @@ struct MetalSession::Impl {
                 "Metal discarded nonfinite geometry; unaffected primitives are preserved (reported once)");
             reportedNonfinite = true;
         }
-        if (!draw.data.mesh && draw.data.vertices.empty()) {
+        if (!draw.data.mesh && draw.data.Vertices().empty()) {
             return true;
         }
         if (draw.data.mesh) {
@@ -679,40 +902,58 @@ struct MetalSession::Impl {
                 draw.data.mesh.reset();
             }
         }
+        // The frame owns captured versions, and the cache protects all resources touched
+        // by this segment from eviction. Expiration and shader cache eviction run before preparation.
         for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
             const auto& state = packet.textures[unit];
-            const bool enabled = state.enabled2D || state.enabledRectangle;
-            auto object = enabled ? (state.enabledRectangle ? packet.resources[unit].rectangle :
-                packet.resources[unit].texture2D) : white;
-            if (!object) {
-                object = white;
-                draw.data.fragment.legacy.unit[unit][0] = 0;
-            }
-            const auto& sampler = object->sampler;
-            const auto base = object->levels.find(0);
-            const bool indexed = base != object->levels.end() && base->second &&
-                base->second->internal == InternalFormat::ColorIndex8;
-            if (enabled && indexed && !packet.sharedTexturePalette) {
-                error = "Indexed texture requires enabled shared texture palette; per-texture palettes are unsupported";
-                return false;
-            }
-            auto* texture = GetTexture(object, enabled && indexed ? packet.palette : nullptr, pending, error);
-            if (!texture) {
-                return false;
+            const auto& resource = state.enabledRectangle ? packet.resources[unit].rectangle :
+                packet.resources[unit].texture2D;
+            const bool bound = (state.enabled2D || state.enabledRectangle) && resource;
+            const auto& object = bound ? resource : white;
+            const auto* palette = bound ? packet.palette.get() : nullptr;
+            const bool sharedPalette = bound && packet.sharedTexturePalette;
+            auto& material = bound ? pending.materials[unit] : pending.fallback;
+            if (material.object != object.get() || material.palette != palette || material.sharedPalette != sharedPalette) {
+                const auto base = object->levels.find(0);
+                const bool indexed = base != object->levels.end() && base->second &&
+                    base->second->internal == InternalFormat::ColorIndex8;
+                if (bound && indexed && !sharedPalette) {
+                    error = "Indexed texture requires enabled shared texture palette; per-texture palettes are unsupported";
+                    return false;
+                }
+                const std::shared_ptr<const SharedPalette> noPalette;
+                auto* texture = GetTexture(object, bound && indexed ? packet.palette : noPalette, pending, error);
+                if (!texture) {
+                    return false;
+                }
+                auto* sampler = Sampler(object->sampler, texture->levels,
+                    object->target == TextureTarget::Rectangle, material);
+                if (!sampler) {
+                    return DeviceFailure(error, "Create Metal sampler");
+                }
+                material = {object.get(), palette, sharedPalette, texture, sampler, material.samplerKey};
             }
             // Fixed-function GL disables incomplete units; sampling black would still alter REPLACE/COMBINE.
-            if (texture->data.incomplete) {
+            if (!bound || material.texture->data.incomplete) {
                 draw.data.fragment.legacy.unit[unit][0] = 0;
             }
-            draw.textures[unit] = texture;
-            draw.samplers[unit] = Sampler(sampler, static_cast<unsigned>(texture->data.levels.size()),
-                object->target == TextureTarget::Rectangle);
-            draw.data.fragment.legacy.components[unit] = texture->data.components;
-            if (!draw.samplers[unit]) {
-                return DeviceFailure(error, "Create Metal sampler");
+            draw.textures[unit] = material.texture;
+            draw.samplers[unit] = material.sampler;
+            draw.data.fragment.legacy.components[unit] = material.texture->data.components;
+            if (draw.data.fragment.legacy.unit[unit][0] != 0) {
+                const auto& sampling = draw.data.fragment.sampling[unit];
+                constexpr auto clamp = static_cast<float>(Wrap::Clamp);
+                draw.softwareBorder |= sampling[0] == clamp || sampling[1] == clamp;
             }
         }
-        draw.pipeline = Pipeline(draw.data);
+        if (draw.mesh && draw.data.mesh->HasWorldVertexLayout()) {
+            draw.layout = VertexLayout::World;
+        } else if (!draw.mesh && draw.data.fragment.legacy.unit[1][0] == 0 &&
+            draw.data.fragment.legacy.unit[2][0] == 0) {
+            // Higher texture coordinates cannot influence a single-texture draw.
+            draw.layout = VertexLayout::SingleTexture;
+        }
+        draw.pipeline = Pipeline(draw, pending);
         return draw.pipeline || DeviceFailure(error, "Create cached Metal pipeline");
     }
 
@@ -878,6 +1119,31 @@ const RenderFrameCounters& MetalSession::Diagnostics() const {
     return impl_->counters;
 }
 
+SDL_GPURenderPass* MetalSession::SceneEffectPass(SDL_GPUCommandBuffer*& command, std::string& error) {
+    auto& state = *impl_;
+    if (state.sceneEffectPass) {
+        command = state.command;
+        return state.sceneEffectPass;
+    }
+    command = state.Commands(error);
+    if (!command) {
+        return nullptr;
+    }
+    SDL_GPUColorTargetInfo color{};
+    color.texture = state.multisample ? state.multisample : state.color;
+    color.load_op = SDL_GPU_LOADOP_LOAD;
+    color.store_op = SDL_GPU_STOREOP_STORE;
+    SDL_PushGPUDebugGroup(command, "Scene backdrop effects");
+    state.sceneEffectPass = SDL_BeginGPURenderPass(command, &color, 1, nullptr);
+    if (!state.sceneEffectPass) {
+        SDL_PopGPUDebugGroup(command);
+        DeviceFailure(error, "Begin Metal scene effect pass");
+    } else {
+        CountRenderPass();
+    }
+    return state.sceneEffectPass;
+}
+
 std::uint64_t MetalSession::EffectClock() const {
     return impl_->diagnosticsEnabled ? SDL_GetTicksNS() : 0;
 }
@@ -891,7 +1157,6 @@ void MetalSession::CountEffectDraw(std::uint64_t start, bool scene) {
         }
         ++impl_->counters.effectDraws;
         ++impl_->counters.gpuDraws;
-        ++impl_->counters.renderPasses;
     }
 }
 
@@ -904,22 +1169,15 @@ bool MetalSession::ResolveScene(std::string& error) {
     if (!command) {
         return false;
     }
-    if (state.color == state.presented) {
-        // Keep the screenshot source until the next presentation. The multisample
-        // image holds the scene, so resolving it to another texture needs no copy.
-        if (!state.spareResolve) {
-            state.spareResolve = state.CreateResolvedColor(state.width, state.height);
-            if (!state.spareResolve) {
-                return DeviceFailure(error, "Create Metal resolve target for next scene");
-            }
-        }
-        std::swap(state.color, state.spareResolve);
+    auto* destination = state.WritableResolve(error);
+    if (!destination) {
+        return false;
     }
     // Preserve multisample storage between draws; resolve only when a consumer samples the scene.
     // A load/resolve pass keeps the exact same MSAA samples and resolve operation as the draw passes.
     SDL_GPUColorTargetInfo target{};
     target.texture = state.multisample;
-    target.resolve_texture = state.color;
+    target.resolve_texture = destination;
     target.load_op = SDL_GPU_LOADOP_LOAD;
     target.store_op = SDL_GPU_STOREOP_RESOLVE_AND_STORE;
     auto* pass = SDL_BeginGPURenderPass(command, &target, 1, nullptr);
@@ -927,11 +1185,8 @@ bool MetalSession::ResolveScene(std::string& error) {
         return DeviceFailure(error, "Resolve Metal scene");
     }
     SDL_EndGPURenderPass(pass);
-    state.sceneDirty = false;
-    if (state.diagnosticsEnabled) {
-        ++state.counters.sceneResolves;
-        ++state.counters.renderPasses;
-    }
+    state.CommitResolve(destination);
+    CountRenderPass();
     return true;
 }
 
@@ -945,6 +1200,7 @@ void MetalSession::CountCopyPass(std::size_t bytes) {
     if (impl_->diagnosticsEnabled) {
         ++impl_->counters.copyPasses;
         impl_->counters.uploadBytes += bytes;
+        impl_->counters.effectUploadBytes += bytes;
     }
 }
 
@@ -963,6 +1219,7 @@ MetalSession::~MetalSession() {
 bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error) {
     Shutdown();
     auto& state = *impl_;
+    state.budget = SDL_GetSystemRAM() > kBaselineSystemRamMiB ? kLargerCacheBudget : kBaseCacheBudget;
     state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_METALLIB, debug, "metal");
     if (!state.device) {
         return DeviceFailure(error, "Create persistent SDL Metal device");
@@ -977,10 +1234,23 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
             return DeviceFailure(error, "Claim Metal presentation window");
         }
         state.window = window;
+        state.defaultDrawableCount = MetalDrawableCount(window);
+        state.drawableCount = state.defaultDrawableCount;
     }
-    state.vertex = state.Shader(true);
-    state.fragment = state.Shader(false);
-    if (!state.vertex || !state.fragment) {
+    state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    state.worldVertex = state.Shader("LegacyWorldVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    state.singleTextureVertex = state.Shader("LegacySingleTextureVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    constexpr std::array<const char*, 6> entrypoints{{"LegacyFragmentHardwareSampling",
+        "LegacyFragmentAlphaTestHardwareSampling", "LegacyFragment", "LegacyFragmentAlphaTest",
+        "LegacySingleTextureFragment", "LegacySingleTextureFragmentAlphaTest"}};
+    for (std::size_t index = 0; index < entrypoints.size(); ++index) {
+        const auto samplers = static_cast<Uint32>(index < 4 ? kTextureUnits : 1);
+        state.fragments[index] = state.Shader(entrypoints[index], SDL_GPU_SHADERSTAGE_FRAGMENT, samplers);
+    }
+    if (!state.vertex || !state.worldVertex || !state.singleTextureVertex ||
+        std::any_of(state.fragments.begin(), state.fragments.end(), [](const auto* fragment) {
+            return fragment == nullptr;
+        })) {
         Shutdown();
         return DeviceFailure(error, "Load embedded offline Metal shaders");
     }
@@ -991,7 +1261,14 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
             std::fprintf(state.diagnosticsFile,
                 "frame,packets,draws,effects,submissions,render_passes,scene_resolves,copy_passes,upload_bytes,"
                 "fence_waits,preparation_allocations,stream_allocations,stream_evictions,cache_bytes,working_bytes,"
-                "prepare_ms,encode_ms,wait_ms,present_ms\n");
+                "prepare_ms,encode_ms,wait_ms,present_ms,texture_lookups,sampler_lookups,pipeline_lookups,"
+                "disconnected_mesh_ranges,empty_upload_segments,mesh_owner_checks,unused_texture_units,"
+                "alpha_discard_draws,border_sampling_draws,leading_unscissored_clears,drawable_wait_ms,vsync,"
+                "stream_vertex_bytes,stream_index_bytes,resident_mesh_bytes,legacy_texture_bytes,effect_upload_bytes,"
+                "quad_vertex_bytes,borrowed_geometry_bytes,sampled_texture_allocations,"
+                "sampled_texture_expirations,sampled_texture_capacity_evictions,"
+                "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes,"
+                "color_only_scene_passes\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1008,6 +1285,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     };
     state.white = fallback({{255, 255, 255, 255}});
     state.black = fallback({{0, 0, 0, 255}});
+    state.WatchMemoryPressure();
     error.clear();
     return true;
 }
@@ -1097,13 +1375,15 @@ bool MetalSession::Resize(std::uint32_t width, std::uint32_t height, std::uint32
     return true;
 }
 
-bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
+bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneOutput output) {
     auto& state = *impl_;
     if (!state.device || !state.color || frame.info.width != state.width || frame.info.height != state.height ||
         frame.events.size() > kMaximumDrawPackets * 2 || frame.draws.size() > kMaximumDrawPackets) {
         return Fail(error, "Invalid Metal frame or missing target");
     }
     // Validate all event references before issuing GPU commands. Readback uses incremental Render/ReadPixels.
+    // Pure 2D segments can preserve the previous depth contents without loading or binding the attachment.
+    bool useDepth = !state.initializedTarget;
     for (const auto& event : frame.events) {
         if (event.kind == FrameEventKind::Readback) {
             return Fail(error, "ReadbackEvent has no delivery sink; flush Render then call ReadPixels");
@@ -1116,10 +1396,52 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             !std::isfinite(event.clear.depth) || event.clear.scissor[2] < 0 || event.clear.scissor[3] < 0)) {
             return Fail(error, "Invalid clear or unsupported stencil clear on Metal D32 target");
         }
-        if (event.kind != FrameEventKind::Draw && event.kind != FrameEventKind::Clear) {
+        if (event.kind == FrameEventKind::Draw) {
+            constexpr auto depthTest = static_cast<std::size_t>(Capability::DepthTest);
+            useDepth |= frame.draws[event.drawIndex].raster.enabled[depthTest];
+        } else if (event.kind == FrameEventKind::Clear) {
+            useDepth |= (event.clear.mask & kClearDepth) != 0;
+        } else {
             return Fail(error, "Invalid Metal frame event");
         }
     }
+    if (state.diagnosticsEnabled) {
+        state.counters.drawPackets += frame.draws.size();
+        if (!frame.events.empty() && frame.events.front().kind == FrameEventKind::Clear &&
+            !frame.events.front().clear.scissorEnabled) {
+            ++state.counters.leadingUnscissoredClears;
+        }
+    }
+
+    std::size_t firstEvent = 0;
+    const auto eventCount = frame.events.size();
+    auto endEvent = eventCount;
+    for (;;) {
+        bool exceedsBudget = false;
+        const auto batchOutput = endEvent == eventCount ? output : SceneOutput::Deferred;
+        if (RenderBatch(frame, firstEvent, endEvent, useDepth, batchOutput, exceedsBudget, error)) {
+            if (endEvent == eventCount) {
+                state.TrimSampledTexturesOnPressure();
+                return true;
+            }
+            // Submitting and retiring the prefix bounds the GPU resources kept by earlier batches.
+            if (!Finish(error)) {
+                return false;
+            }
+            firstEvent = endEvent;
+            endEvent = eventCount;
+        } else if (exceedsBudget && endEvent - firstEvent > 1) {
+            // Only preparation reports budget exhaustion. No commands for this range were encoded.
+            endEvent = firstEvent + (endEvent - firstEvent) / 2;
+        } else {
+            return false;
+        }
+    }
+}
+
+bool MetalSession::RenderBatch(const FrameSnapshot& frame, std::size_t firstEvent, std::size_t endEvent, bool useDepth,
+    SceneOutput output, bool& exceedsBudget, std::string& error) {
+    auto& state = *impl_;
     ++state.serial;
     // Captured packets own source versions until submission; the persistent GPU cache only borrows them.
     // Expired entries can be released without waiting because SDL retains submitted GPU references.
@@ -1128,24 +1450,45 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             state.textureBytes -= iterator->second.bytes;
             SDL_ReleaseGPUTexture(state.device, iterator->second.texture);
             iterator = state.textures.erase(iterator);
+            if (state.diagnosticsEnabled) {
+                ++state.counters.sampledTextureExpirations;
+            }
         } else {
             ++iterator;
         }
     }
-    for (auto iterator = state.meshes.begin(); iterator != state.meshes.end();) {
-        if (iterator->second.object.expired()) {
-            iterator = state.meshes.erase(iterator);
-        } else {
-            ++iterator;
+    if (frame.info.surfaceMeshEpoch != state.surfaceMeshEpoch) {
+        // Pending GPU commands retain the pages already bound by earlier map packets.
+        state.meshes.clear();
+        state.surfaceMeshEpoch = frame.info.surfaceMeshEpoch;
+    }
+    if (!state.surfaceMeshEpoch) {
+        // Standalone callers can retire individual mesh owners between segments.
+        if (state.diagnosticsEnabled) {
+            state.counters.meshOwnerChecks += state.meshes.size();
+        }
+        for (auto iterator = state.meshes.begin(); iterator != state.meshes.end();) {
+            if (iterator->second.object.expired()) {
+                iterator = state.meshes.erase(iterator);
+            } else {
+                ++iterator;
+            }
         }
     }
     if (state.meshes.empty()) {
-        state.activeMeshPage.reset();
+        state.activeMeshPages = {};
         state.meshPages.clear();
+    }
+    if (firstEvent == endEvent && state.initializedTarget) {
+        if (output != SceneOutput::Deferred && !ResolveScene(error) && output == SceneOutput::Resolved) {
+            return false;
+        }
+        error.clear();
+        return true;
     }
     // Never evict a pipeline/sampler after this frame has retained its pointer and before submission.
     // SDL keeps prior submitted command references alive when the owning cache releases its reference.
-    if (state.pipelines.size() >= kMaximumCachedPipelines / 2) {
+    if (state.pipelines.size() >= kMaximumCachedPipelines) {
         for (const auto& pair : state.pipelines) {
             SDL_ReleaseGPUGraphicsPipeline(state.device, pair.second);
         }
@@ -1158,9 +1501,6 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         state.samplers.clear();
     }
     const auto prepareStart = state.diagnosticsEnabled ? Impl::Clock::now() : Impl::Clock::time_point{};
-    if (state.diagnosticsEnabled) {
-        state.counters.drawPackets += frame.draws.size();
-    }
     auto& draws = state.preparedDraws;
     // Keep only allocation capacity between segments. Source mesh ownership and cache pointers
     // must end on every return, including preparation/encoding failure and map retirement.
@@ -1170,33 +1510,78 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             draws.clear();
         }
     } preparedScope{draws};
-    if (state.diagnosticsEnabled && frame.events.size() > draws.capacity()) {
+    if (state.diagnosticsEnabled && endEvent - firstEvent > draws.capacity()) {
         ++state.counters.preparationAllocations;
     }
-    draws.reserve(frame.events.size());
-    Impl::PendingUploads pending;
+    draws.reserve(endEvent - firstEvent);
+    Impl::Preparation pending;
+    pending.depthAttachment = useDepth;
+    std::size_t firstDraw = firstEvent;
+    SDL_FColor initialColor{0, 0, 0, 0};
+    float initialDepth = 1;
+    bool clearColor = !state.initializedTarget;
+    bool clearDepth = !state.initializedTarget;
+    // Only whole-attachment clears with exact endpoint values can replace the
+    // corresponding load. Masked/scissored and other numeric clears remain draws.
+    for (; firstDraw < endEvent; ++firstDraw) {
+        const auto& event = frame.events[firstDraw];
+        const auto& clear = event.clear;
+        if (event.kind != FrameEventKind::Clear || !clear.mask || clear.scissorEnabled) {
+            break;
+        }
+        const bool clearsColor = (clear.mask & kClearColor) != 0;
+        const bool clearsDepth = (clear.mask & kClearDepth) != 0;
+        if (clearsDepth && (!clear.depthWrite || (clear.depth != 0 && clear.depth != 1))) {
+            break;
+        }
+        const bool validColor = std::all_of(clear.color.begin(), clear.color.end(),
+            [clearsColor](float component) {
+                return clearsColor ? component == 0 || component == 1 : std::isfinite(component);
+            });
+        if (!validColor || (clearsColor && !std::all_of(clear.colorWrite.begin(), clear.colorWrite.end(),
+            [](bool write) {
+                return write;
+            }))) {
+            break;
+        }
+        if (clearsColor) {
+            initialColor = {clear.color[0], clear.color[1], clear.color[2], clear.color[3]};
+            clearColor = true;
+        }
+        if (clearsDepth) {
+            initialDepth = static_cast<float>(clear.depth);
+            clearDepth = true;
+        }
+    }
     std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
-    for (const auto& event : frame.events) {
-        Impl::Draw draw;
+    for (std::size_t index = firstDraw; index < endEvent; ++index) {
+        const auto& event = frame.events[index];
+        auto& draw = draws.emplace_back();
         if (event.kind == FrameEventKind::Clear) {
-            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error)) {
+            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error,
+                MetalGeometryOwnership::Own)) {
+                exceedsBudget = pending.exceedsTextureBudget;
                 return false;
             }
-        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error)) {
+        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error, MetalGeometryOwnership::Borrow)) {
+            exceedsBudget = pending.exceedsTextureBudget;
             return false;
         }
-        if ((!draw.mesh && draw.data.vertices.empty()) || draw.data.raster.viewport[2] == 0 || draw.data.raster.viewport[3] == 0 ||
+        if ((!draw.mesh && draw.data.Vertices().empty()) ||
+            draw.data.raster.viewport[2] == 0 || draw.data.raster.viewport[3] == 0 ||
             (draw.data.topology == Primitive::Triangles &&
                 draw.data.raster.enabled[static_cast<std::size_t>(Capability::CullFace)] &&
                 draw.data.raster.cull == Cull::FrontAndBack)) {
+            draws.pop_back();
             continue;
         }
-        const auto drawVertexBytes = draw.data.vertices.size() * sizeof(Vertex);
-        const auto drawIndexBytes = draw.data.indices.size() * sizeof(std::uint32_t);
+        const auto drawVertexBytes = draw.data.Vertices().size() * draw.StreamedVertexStride();
+        const auto drawIndexBytes = draw.data.IndexCount() * sizeof(std::uint32_t);
         const auto bytes = drawVertexBytes + drawIndexBytes;
         if (bytes > kMaximumStreamingBytes - geometryBytes) {
+            exceedsBudget = true;
             return Fail(error, "Frame geometry exceeds Metal streaming budget");
         }
         draw.vertexOffset = static_cast<Uint32>(vertexBytes);
@@ -1204,7 +1589,15 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         vertexBytes += drawVertexBytes;
         indexBytes += drawIndexBytes;
         geometryBytes += bytes;
-        draws.push_back(std::move(draw));
+        if (state.diagnosticsEnabled) {
+            if (event.kind == FrameEventKind::Draw && frame.draws[event.drawIndex].primitive == Primitive::Quads) {
+                state.counters.quadVertexBytes += drawVertexBytes;
+            }
+            if (draw.data.borrowedVertices) {
+                state.counters.borrowedGeometryBytes += draw.data.Vertices().size() * sizeof(Vertex) +
+                    (draw.data.borrowedIndices ? drawIndexBytes : 0);
+            }
+        }
     }
     struct Upload {
         Impl::Texture* texture;
@@ -1224,130 +1617,288 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     // and resources touched by this segment are protected from eviction until it ends.
     for (auto* mesh : pending.meshes) {
         const auto object = mesh->object.lock();
-        const auto vertexBytes = object->Vertices().size() * sizeof(Vertex);
+        const auto vertexBytes = object->Vertices().size() * mesh->page->vertexStride;
         const auto indexBytes = object->Indices().size() * sizeof(std::uint32_t);
         if (vertexBytes + indexBytes > kMaximumStreamingBytes - uploadBytes) {
+            exceedsBudget = true;
             return Fail(error, "Frame meshes exceed Metal upload budget");
         }
         meshUploads.push_back({mesh, object, static_cast<Uint32>(uploadBytes),
             static_cast<Uint32>(uploadBytes + vertexBytes)});
         uploadBytes += vertexBytes + indexBytes;
     }
+    const auto meshUploadBytes = uploadBytes - geometryBytes;
     for (auto* texture : pending.textures) {
         for (std::size_t level = 0; level < texture->data.levels.size(); ++level) {
             uploadBytes = Align(uploadBytes, kTransferAlignment);
-            const auto bytes = texture->data.levels[level].pixels.size();
+            const auto bytes = texture->data.levels[level]->pixels.size();
             if (uploadBytes > kMaximumStreamingBytes || bytes > kMaximumStreamingBytes - uploadBytes) {
+                exceedsBudget = true;
                 return Fail(error, "Frame textures exceed Metal streaming budget");
             }
             uploads.push_back({texture, static_cast<unsigned>(level), static_cast<Uint32>(uploadBytes)});
             uploadBytes += bytes;
         }
     }
-    auto* chunk = state.NextStream(error, uploadBytes);
-    if (!chunk) {
+    const auto textureUploadBytes = uploadBytes - geometryBytes - meshUploadBytes;
+    SDL_GPUTexture* resolve = nullptr;
+    if (state.multisample && output != SceneOutput::Deferred) {
+        resolve = state.WritableResolve(error);
+        if (!resolve && output == SceneOutput::Resolved) {
+            return false;
+        }
+        // An optional backdrop may fall back or retry. Always encode its underlying scene.
+    }
+    // Existing vertex pages can also share a draw when their original index ranges
+    // are disjoint. Append only the reordered index ranges to the transfer buffer.
+    // Never displace a required vertex, index, or texture upload.
+    const auto meshIndexUploadOffset = Align(uploadBytes, alignof(std::uint32_t));
+    std::size_t meshIndexBytes = 0;
+    for (std::size_t first = 0; first < draws.size();) {
+        auto& draw = draws[first];
+        if (!draw.mesh) {
+            ++first;
+            continue;
+        }
+        auto count = draw.data.mesh->Indices().size();
+        auto nextOffset = draw.mesh->indexOffset + count * sizeof(std::uint32_t);
+        bool disjoint = false;
+        auto end = first + 1;
+        while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
+            const auto& next = draws[end];
+            if (next.mesh->indexOffset != nextOffset) {
+                disjoint = true;
+                if (state.diagnosticsEnabled) {
+                    ++state.counters.disconnectedMeshRanges;
+                }
+            }
+            const auto nextCount = next.data.mesh->Indices().size();
+            count += nextCount;
+            nextOffset = next.mesh->indexOffset + nextCount * sizeof(std::uint32_t);
+            ++end;
+        }
+        if (!disjoint) {
+            draw.batchDraws = end - first;
+            draw.batchIndices = count;
+        } else {
+            const auto bytes = count * sizeof(std::uint32_t);
+            if (meshIndexUploadOffset <= kMaximumStreamingBytes &&
+                bytes <= kMaximumStreamingBytes - meshIndexUploadOffset - meshIndexBytes) {
+                draw.batchDraws = end - first;
+                draw.batchIndices = count;
+                draw.meshIndicesInStream = true;
+                draw.indexOffset = static_cast<Uint32>(indexBytes + meshIndexBytes);
+                meshIndexBytes += bytes;
+            }
+        }
+        first = end;
+    }
+    if (meshIndexBytes) {
+        uploadBytes = meshIndexUploadOffset + meshIndexBytes;
+    }
+    // Consecutive streamed indexed draws can address one vertex binding with
+    // their existing index slices. Keep every primitive in its original order.
+    for (std::size_t first = 0; first < draws.size();) {
+        auto& draw = draws[first];
+        if (draw.mesh || draw.data.IndexCount() == 0) {
+            ++first;
+            continue;
+        }
+        const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
+            kSingleTextureVertexBytes : sizeof(Vertex);
+        auto count = draw.data.IndexCount();
+        auto end = first + 1;
+        while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
+            auto& next = draws[end];
+            next.streamedBaseVertex = static_cast<std::uint32_t>((next.vertexOffset - draw.vertexOffset) / vertexStride);
+            count += next.data.IndexCount();
+            ++end;
+        }
+        if (end > first + 1) {
+            draw.batchDraws = end - first;
+            draw.batchIndices = count;
+        }
+        first = end;
+    }
+    auto* stream = uploadBytes ? state.NextStream(error, uploadBytes) : nullptr;
+    if (uploadBytes && !stream) {
         return false;
     }
-    auto& stream = *chunk;
-    if (!state.EnsureStream(stream, vertexBytes, indexBytes, uploadBytes, error)) {
+    if (stream) {
+        if (!state.EnsureStream(*stream, vertexBytes, indexBytes + meshIndexBytes, uploadBytes, error)) {
+            return false;
+        }
+        auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream->upload, false));
+        if (!mapped) {
+            return DeviceFailure(error, "Map persistent Metal upload");
+        }
+        for (const auto& draw : draws) {
+            const auto& vertices = draw.data.Vertices();
+            if (draw.layout == Impl::VertexLayout::SingleTexture) {
+                auto* destination = mapped + draw.vertexOffset;
+                for (const auto& vertex : vertices) {
+                    std::memcpy(destination, &vertex, kSingleTextureVertexBytes);
+                    destination += kSingleTextureVertexBytes;
+                }
+            } else if (!vertices.empty()) {
+                std::memcpy(mapped + draw.vertexOffset, vertices.data(), vertices.size() * sizeof(Vertex));
+            }
+            const auto& indices = draw.data.Indices();
+            if (draw.data.indexedQuads) {
+                auto* destination = reinterpret_cast<std::uint32_t*>(mapped + vertexBytes + draw.indexOffset);
+                for (std::size_t corner = 0; corner < vertices.size(); corner += kQuadCorners) {
+                    const auto base = draw.streamedBaseVertex + static_cast<std::uint32_t>(corner);
+                    for (auto index : kQuadIndices) {
+                        *destination++ = base + index;
+                    }
+                }
+            } else if (!indices.empty()) {
+                auto* destination = mapped + vertexBytes + draw.indexOffset;
+                if (draw.streamedBaseVertex) {
+                    const auto base = draw.streamedBaseVertex;
+                    auto* rebased = reinterpret_cast<std::uint32_t*>(destination);
+                    std::transform(indices.begin(), indices.end(), rebased,
+                        [base](std::uint32_t value) {
+                            return value + base;
+                        });
+                } else {
+                    std::memcpy(destination, indices.data(), indices.size() * sizeof(std::uint32_t));
+                }
+            }
+        }
+        for (const auto& upload : meshUploads) {
+            const auto& vertices = upload.object->Vertices();
+            auto* destination = mapped + upload.vertexOffset;
+            if (upload.object->HasWorldVertexLayout()) {
+                for (const auto& vertex : vertices) {
+                    const WorldMeshVertex packed{{{vertex.position[0], vertex.position[1], vertex.position[2]}},
+                        {{vertex.texcoords[0][0], vertex.texcoords[0][1]}},
+                        {{vertex.texcoords[1][0], vertex.texcoords[1][1]}}};
+                    std::memcpy(destination, &packed, sizeof(packed));
+                    destination += sizeof(packed);
+                }
+            } else {
+                std::memcpy(destination, vertices.data(), vertices.size() * sizeof(Vertex));
+            }
+            // Page-relative indices let adjacent surfaces share a draw without rewriting their vertices.
+            auto* indices = reinterpret_cast<std::uint32_t*>(mapped + upload.indexOffset);
+            const auto baseVertex = static_cast<std::uint32_t>(upload.mesh->vertexOffset / upload.mesh->page->vertexStride);
+            for (std::size_t index = 0; index < upload.object->Indices().size(); ++index) {
+                indices[index] = upload.object->Indices()[index] + baseVertex;
+            }
+        }
+        for (const auto& upload : uploads) {
+            const auto& image = *upload.texture->data.levels[upload.level];
+            std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
+        }
+        if (meshIndexBytes) {
+            auto* indices = reinterpret_cast<std::uint32_t*>(mapped + meshIndexUploadOffset);
+            for (std::size_t index = 0; index < draws.size(); ++index) {
+                const auto& draw = draws[index];
+                if (!draw.meshIndicesInStream) {
+                    continue;
+                }
+                for (auto offset = index; offset < index + draw.batchDraws; ++offset) {
+                    const auto& piece = draws[offset];
+                    const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / piece.mesh->page->vertexStride);
+                    const auto& original = piece.data.mesh->Indices();
+                    indices = std::transform(original.begin(), original.end(), indices,
+                        [base](std::uint32_t value) {
+                            return value + base;
+                        });
+                }
+                index += draw.batchDraws - 1;
+            }
+        }
+        SDL_UnmapGPUTransferBuffer(state.device, stream->upload);
+    }
+    auto* command = state.Commands(error);
+    if (!command) {
         return false;
     }
-    auto* mapped = static_cast<std::uint8_t*>(SDL_MapGPUTransferBuffer(state.device, stream.upload, false));
-    if (!mapped) {
-        return DeviceFailure(error, "Map persistent Metal upload");
-    }
-    for (const auto& draw : draws) {
-        if (!draw.data.vertices.empty()) {
-            std::memcpy(mapped + draw.vertexOffset, draw.data.vertices.data(),
-                draw.data.vertices.size() * sizeof(Vertex));
-        }
-        if (!draw.data.indices.empty()) {
-            std::memcpy(mapped + vertexBytes + draw.indexOffset, draw.data.indices.data(),
-                draw.data.indices.size() * sizeof(std::uint32_t));
-        }
-    }
-    for (const auto& upload : meshUploads) {
-        std::memcpy(mapped + upload.vertexOffset, upload.object->Vertices().data(),
-            upload.object->Vertices().size() * sizeof(Vertex));
-        // Page-relative indices let adjacent resident surfaces share one indexed draw without
-        // rewriting their geometry each frame. Every mesh starts at a whole Vertex boundary.
-        auto* indices = reinterpret_cast<std::uint32_t*>(mapped + upload.indexOffset);
-        const auto baseVertex = static_cast<std::uint32_t>(upload.mesh->vertexOffset / sizeof(Vertex));
-        for (std::size_t index = 0; index < upload.object->Indices().size(); ++index) {
-            indices[index] = upload.object->Indices()[index] + baseVertex;
-        }
-    }
-    for (const auto& upload : uploads) {
-        const auto& image = upload.texture->data.levels[upload.level];
-        std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
-    }
-    SDL_UnmapGPUTransferBuffer(state.device, stream.upload);
     if (state.diagnosticsEnabled) {
         state.counters.prepareMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - prepareStart).count();
         state.counters.uploadBytes += uploadBytes;
-        ++state.counters.copyPasses;
+        state.counters.streamedVertexBytes += vertexBytes;
+        state.counters.streamedIndexBytes += indexBytes + meshIndexBytes;
+        state.counters.residentMeshBytes += meshUploadBytes;
+        state.counters.legacyTextureBytes += textureUploadBytes;
+        if (stream) {
+            ++state.counters.copyPasses;
+        } else {
+            ++state.counters.emptyUploadSegments;
+        }
         ++state.counters.renderPasses;
+        state.counters.colorOnlyScenePasses += !useDepth;
     }
     Impl::Timer encodeTimer(state.diagnosticsEnabled ? &state.counters.encodeMs : nullptr);
-    auto* command = state.command;
     SDL_PushGPUDebugGroup(command, "Legacy scene / HUD");
-    auto* copy = SDL_BeginGPUCopyPass(command);
-    if (!copy) {
-        SDL_PopGPUDebugGroup(command);
-        return DeviceFailure(error, "Begin Metal upload pass");
+    if (stream) {
+        auto* copy = SDL_BeginGPUCopyPass(command);
+        if (!copy) {
+            SDL_PopGPUDebugGroup(command);
+            return DeviceFailure(error, "Begin Metal upload pass");
+        }
+        if (vertexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, 0};
+            SDL_GPUBufferRegion destination{stream->vertices, 0, static_cast<Uint32>(vertexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        if (indexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, static_cast<Uint32>(vertexBytes)};
+            SDL_GPUBufferRegion destination{stream->indices, 0, static_cast<Uint32>(indexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        if (meshIndexBytes) {
+            SDL_GPUTransferBufferLocation source{stream->upload, static_cast<Uint32>(meshIndexUploadOffset)};
+            SDL_GPUBufferRegion destination{stream->indices, static_cast<Uint32>(indexBytes),
+                static_cast<Uint32>(meshIndexBytes)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        for (const auto& upload : meshUploads) {
+            SDL_GPUTransferBufferLocation source{stream->upload, upload.vertexOffset};
+            SDL_GPUBufferRegion destination{upload.mesh->page->vertices, upload.mesh->vertexOffset,
+                static_cast<Uint32>(upload.object->Vertices().size() * upload.mesh->page->vertexStride)};
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+            source.offset = upload.indexOffset;
+            destination.buffer = upload.mesh->page->indices;
+            destination.offset = upload.mesh->indexOffset;
+            destination.size = static_cast<Uint32>(upload.object->Indices().size() * sizeof(std::uint32_t));
+            SDL_UploadToGPUBuffer(copy, &source, &destination, false);
+        }
+        for (const auto& upload : uploads) {
+            const auto& image = *upload.texture->data.levels[upload.level];
+            SDL_GPUTextureTransferInfo source{};
+            source.transfer_buffer = stream->upload;
+            source.offset = upload.offset;
+            // Pinned SDL Metal uses destination width; every uploaded mip is deliberately tightly packed.
+            source.pixels_per_row = image.width;
+            source.rows_per_layer = image.height;
+            SDL_GPUTextureRegion destination{};
+            destination.texture = upload.texture->texture;
+            destination.mip_level = upload.level;
+            destination.w = image.width;
+            destination.h = image.height;
+            destination.d = 1;
+            SDL_UploadToGPUTexture(copy, &source, &destination, false);
+        }
+        SDL_EndGPUCopyPass(copy);
     }
-    if (vertexBytes) {
-        SDL_GPUTransferBufferLocation source{stream.upload, 0};
-        SDL_GPUBufferRegion destination{stream.vertices, 0, static_cast<Uint32>(vertexBytes)};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    if (indexBytes) {
-        SDL_GPUTransferBufferLocation source{stream.upload, static_cast<Uint32>(vertexBytes)};
-        SDL_GPUBufferRegion destination{stream.indices, 0, static_cast<Uint32>(indexBytes)};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    for (const auto& upload : meshUploads) {
-        SDL_GPUTransferBufferLocation source{stream.upload, upload.vertexOffset};
-        SDL_GPUBufferRegion destination{upload.mesh->page->vertices, upload.mesh->vertexOffset,
-            static_cast<Uint32>(upload.object->Vertices().size() * sizeof(Vertex))};
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-        source.offset = upload.indexOffset;
-        destination.buffer = upload.mesh->page->indices;
-        destination.offset = upload.mesh->indexOffset;
-        destination.size = static_cast<Uint32>(upload.object->Indices().size() * sizeof(std::uint32_t));
-        SDL_UploadToGPUBuffer(copy, &source, &destination, false);
-    }
-    for (const auto& upload : uploads) {
-        const auto& image = upload.texture->data.levels[upload.level];
-        SDL_GPUTextureTransferInfo source{};
-        source.transfer_buffer = stream.upload;
-        source.offset = upload.offset;
-        // Pinned SDL Metal uses destination width; every uploaded mip is deliberately tightly packed.
-        source.pixels_per_row = image.width;
-        source.rows_per_layer = image.height;
-        SDL_GPUTextureRegion destination{};
-        destination.texture = upload.texture->texture;
-        destination.mip_level = upload.level;
-        destination.w = image.width;
-        destination.h = image.height;
-        destination.d = 1;
-        SDL_UploadToGPUTexture(copy, &source, &destination, false);
-    }
-    SDL_EndGPUCopyPass(copy);
     SDL_GPUColorTargetInfo color{};
     color.texture = state.multisample ? state.multisample : state.color;
-    color.resolve_texture = nullptr;
-    color.clear_color = {0, 0, 0, 0};
-    color.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
-    color.store_op = SDL_GPU_STOREOP_STORE;
+    color.resolve_texture = resolve;
+    color.clear_color = initialColor;
+    color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+    // Keep the samples for later HUD/effect segments while delivering the resolved image.
+    color.store_op = resolve ? SDL_GPU_STOREOP_RESOLVE_AND_STORE : SDL_GPU_STOREOP_STORE;
     SDL_GPUDepthStencilTargetInfo depth{};
     depth.texture = state.depth;
-    depth.clear_depth = 1;
-    depth.load_op = state.initializedTarget ? SDL_GPU_LOADOP_LOAD : SDL_GPU_LOADOP_CLEAR;
+    depth.clear_depth = initialDepth;
+    depth.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
     depth.store_op = SDL_GPU_STOREOP_STORE;
     depth.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
     depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
-    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, &depth);
+    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, useDepth ? &depth : nullptr);
     if (!pass) {
         SDL_PopGPUDebugGroup(command);
         return DeviceFailure(error, "Begin Metal scene pass");
@@ -1357,14 +1908,19 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     const Impl::Draw* previous = nullptr;
     SDL_Rect previousScissor{};
     SDL_GPUBufferBinding previousVertexBinding{};
+    SDL_GPUBuffer* previousIndexBuffer = nullptr;
     for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
         const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
-        auto vertexCount = data.vertices.size();
-        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.indices.size();
+        auto vertexCount = data.Vertices().size();
+        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.IndexCount();
         // Preserve order while combining adjacent stream ranges or resident ranges on the same page.
         // Material, uniforms, transforms, scissor and all dynamic raster state must match exactly.
-        while (drawIndex + 1 < draws.size()) {
+        if (draw.batchDraws) {
+            drawIndex += draw.batchDraws - 1;
+            indexCount = draw.batchIndices;
+        }
+        while (!draw.batchDraws && (draw.mesh || (data.IndexCount() == 0)) && drawIndex + 1 < draws.size()) {
             const auto& next = draws[drawIndex + 1];
             if (!Impl::SameDrawState(draw, next)) {
                 break;
@@ -1375,10 +1931,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
                 }
                 indexCount += next.data.mesh->Indices().size();
             } else {
-                if (next.vertexOffset != draw.vertexOffset + vertexCount * sizeof(Vertex)) {
+                if (next.vertexOffset != draw.vertexOffset + vertexCount * draw.StreamedVertexStride()) {
                     break;
                 }
-                vertexCount += next.data.vertices.size();
+                vertexCount += next.data.Vertices().size();
             }
             ++drawIndex;
         }
@@ -1439,18 +1995,20 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
             SDL_SetGPUScissor(pass, &scissor);
             previousScissor = scissor;
         }
-        SDL_GPUBufferBinding binding{draw.mesh ? draw.mesh->page->vertices : stream.vertices,
+        SDL_GPUBufferBinding binding{draw.mesh ? draw.mesh->page->vertices : stream->vertices,
             draw.mesh ? 0 : draw.vertexOffset};
         if (previousVertexBinding.buffer != binding.buffer || previousVertexBinding.offset != binding.offset) {
             SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
             previousVertexBinding = binding;
         }
-        if (!previous || previous->textures != draw.textures || previous->samplers != draw.samplers) {
+        const auto samplerCount = draw.FragmentSamplerCount();
+        if (!previous || previous->FragmentSamplerCount() != samplerCount ||
+            previous->textures != draw.textures || previous->samplers != draw.samplers) {
             std::array<SDL_GPUTextureSamplerBinding, kTextureUnits> textures{};
-            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+            for (std::size_t unit = 0; unit < samplerCount; ++unit) {
                 textures[unit] = {draw.textures[unit]->texture, draw.samplers[unit]};
             }
-            SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
+            SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(samplerCount));
         }
         if (!previous || !SameBits(previous->data.fragment, data.fragment)) {
             SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
@@ -1458,14 +2016,30 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
         previous = &draw;
         if (state.diagnosticsEnabled) {
             ++state.counters.gpuDraws;
+            if (data.fragment.legacy.fogAlpha[1] != 0 && data.raster.alphaFunction != Compare::Always) {
+                ++state.counters.alphaDiscardDraws;
+            }
+            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                state.counters.unusedTextureUnits += data.fragment.legacy.unit[unit][0] == 0;
+            }
+            state.counters.borderSamplingDraws += draw.softwareBorder;
         }
-        if (!draw.mesh && data.indices.empty()) {
+        if (!draw.mesh && (data.IndexCount() == 0)) {
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
-            SDL_GPUBufferBinding indices{draw.mesh ? draw.mesh->page->indices : stream.indices,
-                draw.mesh ? draw.mesh->indexOffset : draw.indexOffset};
-            SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
-            SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(indexCount), 1, 0, 0, 0);
+            const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;
+            auto* indexBuffer = residentIndices ? draw.mesh->page->indices : stream->indices;
+            if (indexBuffer != previousIndexBuffer) {
+                const SDL_GPUBufferBinding indices{indexBuffer, 0};
+                SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+                previousIndexBuffer = indexBuffer;
+            }
+            // All offsets are byte positions in uint32 index streams. Use firstIndex
+            // for each range so repeated draws do not rebind the same buffer.
+            const auto firstIndex = (residentIndices ? draw.mesh->indexOffset : draw.indexOffset) /
+                sizeof(std::uint32_t);
+            SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(indexCount), 1,
+                static_cast<Uint32>(firstIndex), 0, 0);
         }
     }
     SDL_EndGPURenderPass(pass);
@@ -1473,12 +2047,16 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error) {
     for (const auto& upload : meshUploads) {
         upload.mesh->uploaded = true;
     }
-    for (const auto& upload : uploads) {
-        upload.texture->uploaded = true;
-        // Converted CPU bytes are retained for cache accounting, while immutable capture owns source lifetime.
+    for (auto* texture : pending.textures) {
+        texture->uploaded = true;
+        // Only the GPU upload and immutable capture own their bytes after encoding.
+        texture->data.levels.clear();
     }
     state.initializedTarget = true;
     state.sceneDirty = true;
+    if (resolve) {
+        state.CommitResolve(resolve);
+    }
     error.clear();
     return true;
 }
@@ -1497,6 +2075,16 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             return DeviceFailure(error, "Set Metal presentation mode");
         }
         state.vsync = vsync;
+    }
+    if (state.defaultDrawableCount > kDoubleBufferedDrawables) {
+        constexpr auto untitled = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS;
+        const bool titledImmediate = !vsync && (SDL_GetWindowFlags(state.window) & untitled) == 0;
+        // A two-drawable pool substantially reduces waits on titled immediate-mode Cocoa windows.
+        const int requested = titledImmediate ? kDoubleBufferedDrawables : state.defaultDrawableCount;
+        if (state.drawableCount != requested && SDL_WaitForGPUIdle(state.device) &&
+            SetMetalDrawableCount(state.window, requested)) {
+            state.drawableCount = requested;
+        }
     }
     int drawableWidth = 0;
     int drawableHeight = 0;
@@ -1546,9 +2134,13 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     };
     Uint32 width = 0;
     Uint32 height = 0;
-    if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
-        DeviceFailure(error, "Acquire Metal swapchain image");
-        return retireFailure();
+    const auto previousDrawableWait = state.counters.drawableWaitMs;
+    {
+        Impl::Timer drawableTimer(state.diagnosticsEnabled ? &state.counters.drawableWaitMs : nullptr);
+        if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
+            DeviceFailure(error, "Acquire Metal swapchain image");
+            return retireFailure();
+        }
     }
     if (!width || !height) {
         width = static_cast<Uint32>(drawableWidth);
@@ -1575,7 +2167,8 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     info.destination.y = (height - destinationHeight) / 2;
     info.destination.w = destinationWidth;
     info.destination.h = destinationHeight;
-    info.load_op = SDL_GPU_LOADOP_CLEAR;
+    const bool wholeDrawable = destinationWidth == width && destinationHeight == height;
+    info.load_op = wholeDrawable ? SDL_GPU_LOADOP_DONT_CARE : SDL_GPU_LOADOP_CLEAR;
     info.clear_color = {0, 0, 0, 1};
     info.filter = SDL_GPU_FILTER_LINEAR;
     // At 1:1 the resolve is already the final image. Keep it for readback and
@@ -1595,6 +2188,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         info.destination.y = 0;
         info.destination.w = width;
         info.destination.h = height;
+        info.load_op = SDL_GPU_LOADOP_DONT_CARE;
         SDL_BlitGPUTexture(command, &info);
         CountRenderPass();
     }
@@ -1606,7 +2200,10 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     }
     if (state.diagnosticsFile) {
         const auto& c = state.counters;
-        std::fprintf(state.diagnosticsFile, "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%.6f,%.6f,%.6f\n",
+        cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
+        std::fprintf(state.diagnosticsFile,
+            "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
+            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -1614,7 +2211,29 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.fenceWaits), static_cast<unsigned long long>(c.preparationAllocations),
             static_cast<unsigned long long>(c.streamAllocations),
             static_cast<unsigned long long>(c.streamEvictions), static_cast<unsigned long long>(c.streamCacheBytes),
-            static_cast<unsigned long long>(c.streamWorkingBytes), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs);
+            static_cast<unsigned long long>(c.streamWorkingBytes), c.prepareMs, c.encodeMs, c.waitMs, c.presentMs,
+            static_cast<unsigned long long>(c.textureLookups), static_cast<unsigned long long>(c.samplerLookups),
+            static_cast<unsigned long long>(c.pipelineLookups),
+            static_cast<unsigned long long>(c.disconnectedMeshRanges),
+            static_cast<unsigned long long>(c.emptyUploadSegments),
+            static_cast<unsigned long long>(c.meshOwnerChecks),
+            static_cast<unsigned long long>(c.unusedTextureUnits),
+            static_cast<unsigned long long>(c.alphaDiscardDraws),
+            static_cast<unsigned long long>(c.borderSamplingDraws),
+            static_cast<unsigned long long>(c.leadingUnscissoredClears), c.drawableWaitMs, static_cast<int>(state.vsync),
+            static_cast<unsigned long long>(c.streamedVertexBytes),
+            static_cast<unsigned long long>(c.streamedIndexBytes),
+            static_cast<unsigned long long>(c.residentMeshBytes),
+            static_cast<unsigned long long>(c.legacyTextureBytes),
+            static_cast<unsigned long long>(c.effectUploadBytes),
+            static_cast<unsigned long long>(c.quadVertexBytes),
+            static_cast<unsigned long long>(c.borrowedGeometryBytes),
+            static_cast<unsigned long long>(c.sampledTextureAllocations),
+            static_cast<unsigned long long>(c.sampledTextureExpirations),
+            static_cast<unsigned long long>(c.sampledTextureCapacityEvictions),
+            static_cast<unsigned long long>(c.sampledTextureByteLimitEvictions),
+            state.textures.size(), state.textureBytes,
+            static_cast<unsigned long long>(c.colorOnlyScenePasses));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {
@@ -1795,7 +2414,7 @@ void MetalSession::Shutdown() {
     }
     state.effects.reset();
     state.meshes.clear();
-    state.activeMeshPage.reset();
+    state.activeMeshPages = {};
     state.meshPages.clear();
     for (auto& frame : state.streams) {
         if (frame.fence) {
@@ -1840,8 +2459,16 @@ void MetalSession::Shutdown() {
     if (state.vertex) {
         SDL_ReleaseGPUShader(state.device, state.vertex);
     }
-    if (state.fragment) {
-        SDL_ReleaseGPUShader(state.device, state.fragment);
+    if (state.worldVertex) {
+        SDL_ReleaseGPUShader(state.device, state.worldVertex);
+    }
+    if (state.singleTextureVertex) {
+        SDL_ReleaseGPUShader(state.device, state.singleTextureVertex);
+    }
+    for (auto* fragment : state.fragments) {
+        if (fragment) {
+            SDL_ReleaseGPUShader(state.device, fragment);
+        }
     }
     if (state.window) {
         SDL_ReleaseWindowFromGPUDevice(state.device, state.window);

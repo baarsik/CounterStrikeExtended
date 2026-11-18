@@ -3,6 +3,7 @@
 #include <SDL3/SDL.h>
 #include <algorithm>
 #include <cstdlib>
+#include <dispatch/dispatch.h>
 #include <dlfcn.h>
 #include <iostream>
 #include <string>
@@ -13,6 +14,9 @@ namespace {
 std::string error;
 std::size_t liveGpuTextures = 0;
 std::size_t createdGpuTextures = 0;
+int installedRamMiB = -1;
+dispatch_queue_t pressureTestQueue = nullptr;
+dispatch_source_t pressureTestSource = nullptr;
 constexpr unsigned kTargetSize = 16;
 constexpr std::uint32_t kMaximumEngineName = 65535;
 constexpr std::size_t kRgbaComponents = 4;
@@ -170,6 +174,155 @@ void Names() {
     Check(store.Generate(1, sentinel) == Status::Ok && sentinel[0] == names[100], "single released name reusable");
     std::cout << "names: " << kTurnovers << " turnovers; " << names.size()
         << " simultaneous names; explicit exhaustion\n";
+}
+
+void SmallResidentImages() {
+    Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL for resident image budget");
+    MetalSession session;
+    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session for resident images");
+    constexpr unsigned kImagesPerGroup = 300;
+    const auto group = [](std::uint8_t red, std::uint8_t green) {
+        FrameSnapshot frame;
+        frame.info.width = kTargetSize;
+        frame.info.height = kTargetSize;
+        for (unsigned index = 0; index < kImagesPerGroup; ++index) {
+            auto image = std::make_shared<TextureImage>();
+            image->width = 1;
+            image->height = 1;
+            image->defined = true;
+            image->pixels = {red, green, 0, 255};
+            auto texture = std::make_shared<TextureObject>();
+            texture->levels[0] = std::move(image);
+            auto single = Frame(std::move(texture));
+            auto event = single.events.front();
+            event.drawIndex = frame.draws.size();
+            frame.events.push_back(event);
+            frame.draws.push_back(std::move(single.draws.front()));
+        }
+        return frame;
+    };
+    const auto first = group(255, 0);
+    const auto second = group(0, 255);
+    session.EnableDiagnostics(true);
+    Check(session.Render(first, error), "first sampled working set");
+    Pixel(session, 255, 0);
+    Check(session.Render(second, error), "second sampled working set");
+    Pixel(session, 0, 255);
+    const auto allocations = createdGpuTextures;
+    Check(session.Render(first, error), "reuse earlier sampled working set");
+    Pixel(session, 255, 0);
+    Check(session.Diagnostics().sampledTextureCapacityEvictions == 0 && createdGpuTextures == allocations,
+        "small sampled working sets above 512 handles stay resident");
+    session.Shutdown();
+    Check(liveGpuTextures == 0, "releases all small sampled images");
+    SDL_Quit();
+}
+
+void LargeSampledScene(int ramMiB, std::uint64_t expectedPasses) {
+    installedRamMiB = ramMiB;
+    Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL for sampled scene");
+    MetalSession session;
+    Check(session.Initialize(nullptr, false, error) && session.Resize(kTargetSize, kTargetSize, 4, error),
+        "Metal multisample scene");
+    session.EnableDiagnostics(true);
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor | kClearDepth;
+    clear.clear.color = {{0, 0, 1, 1}};
+    frame.events.push_back(clear);
+    constexpr unsigned kDraws = 1024; // A fallback texture occupies one more entry.
+    for (unsigned index = 0; index < kDraws; ++index) {
+        auto image = std::make_shared<TextureImage>();
+        image->width = 1;
+        image->height = 1;
+        image->defined = true;
+        const bool last = index == kDraws - 1;
+        image->pixels = {static_cast<std::uint8_t>(last ? 0 : 255),
+            static_cast<std::uint8_t>(last ? 255 : 0), 0, static_cast<std::uint8_t>(last ? 128 : 255)};
+        auto texture = std::make_shared<TextureObject>();
+        texture->levels[0] = std::move(image);
+        auto single = Frame(std::move(texture));
+        auto& draw = single.draws.front();
+        if (index == 0) {
+            draw.raster.enabled[static_cast<std::size_t>(Capability::DepthTest)] = true;
+            draw.raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = true;
+            draw.raster.scissor = {{0, 0, kTargetSize / 2, kTargetSize}};
+            for (auto& vertex : draw.vertices) {
+                vertex.position[2] = -0.5f;
+            }
+        } else if (last) {
+            draw.raster.enabled[static_cast<std::size_t>(Capability::DepthTest)] = true;
+            draw.raster.enabled[static_cast<std::size_t>(Capability::Blend)] = true;
+            draw.raster.blendSource = BlendFactor::SourceAlpha;
+            draw.raster.blendDestination = BlendFactor::InverseSourceAlpha;
+        } else {
+            draw.raster.colorWrite = {{false, false, false, false}};
+        }
+        auto event = single.events.front();
+        event.drawIndex = frame.draws.size();
+        frame.events.push_back(event);
+        frame.draws.push_back(std::move(draw));
+    }
+    Check(session.Render(frame, error, SceneOutput::Resolved), "render the entire sampled scene");
+    Check(session.Diagnostics().renderPasses == expectedPasses, "use the configured sampled-texture tier");
+    Check(session.Diagnostics().sceneResolves == 1, "resolve the combined multisample scene once");
+    std::array<std::uint8_t, kRgbaComponents> left{};
+    Check(session.ReadPixels(4, 8, 1, 1, kRgbaComponents, 1, left.data(), error), "read the occluded pixel");
+    Check(left[0] == 255 && left[1] == 0, "preserve earlier color and depth across batches");
+    std::array<std::uint8_t, kRgbaComponents> right{};
+    Check(session.ReadPixels(12, 8, 1, 1, kRgbaComponents, 1, right.data(), error), "read the blended pixel");
+    Check(right[0] == 0 && right[1] == 128 && right[2] == 127, "blend the later draw over the earlier color");
+    session.Shutdown();
+    Check(liveGpuTextures == 0, "retire all sampled scene allocations");
+    SDL_Quit();
+    installedRamMiB = -1;
+}
+
+void SampledTextureMemoryPressure() {
+    Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL for memory pressure");
+    pressureTestQueue = dispatch_queue_create("cse.test-memory-pressure", DISPATCH_QUEUE_SERIAL);
+    MetalSession session;
+    Check(session.Initialize(nullptr, false, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session for memory pressure");
+    Check(pressureTestSource != nullptr, "subscribe to macOS memory pressure");
+
+    const auto picture = [](std::uint8_t red, std::uint8_t green) {
+        auto image = std::make_shared<TextureImage>();
+        image->width = 1;
+        image->height = 1;
+        image->defined = true;
+        image->pixels = {red, green, 0, 255};
+        auto object = std::make_shared<TextureObject>();
+        object->levels[0] = std::move(image);
+        return Frame(std::move(object));
+    };
+    const auto first = picture(255, 0);
+    const auto second = picture(0, 255);
+    Check(session.Render(first, error) && session.Render(second, error), "populate the reusable texture cache");
+    Pixel(session, 0, 255);
+    const auto before = liveGpuTextures;
+    const auto allocations = createdGpuTextures;
+    dispatch_source_merge_data(pressureTestSource, 1);
+    const auto deadline = SDL_GetTicks() + 1000;
+    while (liveGpuTextures == before && SDL_GetTicks() < deadline) {
+        // Continue drawing the green image as if it were still on screen.
+        Check(session.Render(second, error) && session.Finish(error), "render while processing memory pressure");
+        SDL_Delay(1);
+    }
+    Check(liveGpuTextures + 1 == before, "release the idle image and retain the active image");
+    Check(createdGpuTextures == allocations, "reuse the active image across pressure");
+    Check(session.Render(first, error), "reupload the evicted image from its captured source");
+    Pixel(session, 255, 0);
+    session.Shutdown();
+    Check(liveGpuTextures == 0, "release the texture cache");
+    pressureTestSource = nullptr;
+    dispatch_release(pressureTestQueue);
+    pressureTestQueue = nullptr;
+    SDL_Quit();
 }
 
 void Session() {
@@ -349,6 +502,21 @@ extern "C" void SDL_ReleaseGPUTexture(SDL_GPUDevice* device, SDL_GPUTexture* tex
     Original<decltype(&SDL_ReleaseGPUTexture)>("SDL_ReleaseGPUTexture")(device, texture);
 }
 
+extern "C" int SDLCALL SDL_GetSystemRAM() {
+    return installedRamMiB >= 0 ? installedRamMiB : Original<decltype(&SDL_GetSystemRAM)>("SDL_GetSystemRAM")();
+}
+
+extern "C" dispatch_source_t dispatch_source_create(dispatch_source_type_t type, uintptr_t handle,
+    unsigned long mask, dispatch_queue_t queue) {
+    const auto create = Original<decltype(&dispatch_source_create)>("dispatch_source_create");
+    if (pressureTestQueue && type == DISPATCH_SOURCE_TYPE_MEMORYPRESSURE) {
+        // A data source lets the fixture deliver a real dispatch event without stressing the host.
+        pressureTestSource = create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, pressureTestQueue);
+        return pressureTestSource;
+    }
+    return create(type, handle, mask, queue);
+}
+
 int main(int argc, char** argv) {
     Check(argc == 2, "select lifetime fixture");
     const std::string mode = argv[1];
@@ -356,6 +524,11 @@ int main(int argc, char** argv) {
         Names();
     } else if (mode == "session") {
         Session();
+        SmallResidentImages();
+        LargeSampledScene(8192, 2);
+        LargeSampledScene(8193, 1);
+    } else if (mode == "memory-pressure") {
+        SampledTextureMemoryPressure();
     } else if (mode == "radar") {
         Radar();
     } else if (mode == "queued-reuse") {

@@ -1,4 +1,5 @@
 #include "metal_session.h"
+#include "metal_drawable.h"
 #include "radar_renderer_gpu.h"
 #include "surface_mesh.h"
 #include <SDL3/SDL.h>
@@ -20,11 +21,15 @@ namespace {
 constexpr int kTargetSize = 16;
 unsigned sceneDrawCalls = 0;
 unsigned sceneIndexedDrawCalls = 0;
+unsigned sceneIndexBindings = 0;
 unsigned geometryUploads = 0;
+bool countDepthAttachments = false;
+unsigned depthAttachments = 0;
 bool mixedGeometryBufferUsage = false;
 struct SceneBindings {
     unsigned pipelines = 0;
     unsigned samplers = 0;
+    unsigned singleSamplerBinds = 0;
     unsigned vertexUniforms = 0;
     unsigned fragmentUniforms = 0;
 } sceneBindings;
@@ -37,6 +42,8 @@ struct PresentationProbe {
     unsigned cancellations = 0;
     unsigned submissions = 0;
     unsigned blits = 0;
+    unsigned clears = 0;
+    unsigned fullOverwrites = 0;
 } presentationProbe;
 
 template<typename Function> Function Original(const char* name) {
@@ -49,6 +56,14 @@ template<typename Function> Function Original(const char* name) {
 }
 }
 
+extern "C" SDL_GPURenderPass* SDL_BeginGPURenderPass(SDL_GPUCommandBuffer* command,
+    const SDL_GPUColorTargetInfo* colors, Uint32 count, const SDL_GPUDepthStencilTargetInfo* depth) {
+    if (countDepthAttachments && depth) {
+        ++depthAttachments;
+    }
+    return Original<decltype(&SDL_BeginGPURenderPass)>("SDL_BeginGPURenderPass")(command, colors, count, depth);
+}
+
 extern "C" void SDL_BindGPUGraphicsPipeline(SDL_GPURenderPass* pass, SDL_GPUGraphicsPipeline* pipeline) {
     ++sceneBindings.pipelines;
     Original<decltype(&SDL_BindGPUGraphicsPipeline)>("SDL_BindGPUGraphicsPipeline")(pass, pipeline);
@@ -57,6 +72,7 @@ extern "C" void SDL_BindGPUGraphicsPipeline(SDL_GPURenderPass* pass, SDL_GPUGrap
 extern "C" void SDL_BindGPUFragmentSamplers(SDL_GPURenderPass* pass, Uint32 slot,
     const SDL_GPUTextureSamplerBinding* bindings, Uint32 count) {
     ++sceneBindings.samplers;
+    sceneBindings.singleSamplerBinds += count == 1;
     Original<decltype(&SDL_BindGPUFragmentSamplers)>("SDL_BindGPUFragmentSamplers")(pass, slot, bindings, count);
 }
 
@@ -77,6 +93,12 @@ extern "C" void SDL_DrawGPUPrimitives(SDL_GPURenderPass* pass, Uint32 vertices, 
     ++sceneDrawCalls;
     Original<decltype(&SDL_DrawGPUPrimitives)>("SDL_DrawGPUPrimitives")(
         pass, vertices, instances, firstVertex, firstInstance);
+}
+
+extern "C" void SDL_BindGPUIndexBuffer(SDL_GPURenderPass* pass, const SDL_GPUBufferBinding* binding,
+    SDL_GPUIndexElementSize size) {
+    ++sceneIndexBindings;
+    Original<decltype(&SDL_BindGPUIndexBuffer)>("SDL_BindGPUIndexBuffer")(pass, binding, size);
 }
 
 extern "C" void SDL_DrawGPUIndexedPrimitives(SDL_GPURenderPass* pass, Uint32 indices, Uint32 instances,
@@ -131,6 +153,8 @@ extern "C" bool SDL_CancelGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
 extern "C" void SDL_BlitGPUTexture(SDL_GPUCommandBuffer* command, const SDL_GPUBlitInfo* info) {
     if (presentationProbe.active) {
         ++presentationProbe.blits;
+        presentationProbe.clears += info->load_op == SDL_GPU_LOADOP_CLEAR;
+        presentationProbe.fullOverwrites += info->load_op == SDL_GPU_LOADOP_DONT_CARE;
     }
     Original<decltype(&SDL_BlitGPUTexture)>("SDL_BlitGPUTexture")(command, info);
 }
@@ -160,6 +184,97 @@ DrawPacket Solid(float red, float green, float blue) {
     return draw;
 }
 
+void IndexedQuads(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear, FrameEvent{}};
+    frame.draws = {Solid(1, 1, 1)};
+    auto& draw = frame.draws[0];
+    draw.vertices.clear();
+    draw.shade = Shade::Flat;
+    draw.raster.shade = Shade::Flat;
+    for (float center : {-0.67f, 0.0f, 0.67f}) {
+        auto quad = Solid(1, 1, 1);
+        for (auto& vertex : quad.vertices) {
+            vertex.position[0] = center + 0.28f * vertex.position[0];
+        }
+        quad.vertices.back().color = center < 0 ?
+            std::array<float, 4>{{1, 0, 0, 1}} : std::array<float, 4>{{0, 1, 0, 1}};
+        if (center == 0) {
+            quad.vertices[3].position[0] = std::numeric_limits<float>::quiet_NaN();
+        }
+        draw.vertices.insert(draw.vertices.end(), quad.vertices.begin(), quad.vertices.end());
+    }
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    constexpr std::size_t kValidQuads = 2;
+    constexpr std::size_t kVerticesPerQuad = 4;
+    constexpr std::size_t kIndicesPerQuad = 6;
+    constexpr std::size_t kCompactStride = 48;
+    CHECK(session.Diagnostics().streamedVertexBytes == kValidQuads * kVerticesPerQuad * kCompactStride);
+    CHECK(session.Diagnostics().streamedIndexBytes == kValidQuads * kIndicesPerQuad * sizeof(std::uint32_t));
+    CHECK(session.Diagnostics().gpuDraws == 1);
+    std::array<unsigned char, 4> pixel{};
+    constexpr int middle = kTargetSize / 2;
+    for (int y : {middle / 2, middle + middle / 2}) {
+        CHECK(session.ReadPixels(2, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+        CHECK(session.ReadPixels(middle, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK(pixel[0] == 0 && pixel[1] == 0 && pixel[2] == 0);
+        CHECK(session.ReadPixels(kTargetSize - 3, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    }
+    session.EnableDiagnostics(false);
+}
+
+void HudPreservesSceneDepth(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor | kClearDepth;
+    frame.events = {clear, FrameEvent{}};
+    auto world = Solid(1, 0, 0);
+    constexpr auto depthTest = static_cast<std::size_t>(Capability::DepthTest);
+    world.raster.enabled[depthTest] = true;
+    world.raster.depthFunction = Compare::Less;
+    for (auto& vertex : world.vertices) {
+        vertex.position[2] = -0.5f;
+    }
+    frame.draws = {world};
+    CHECK(session.Render(frame, error));
+
+    frame.events = {FrameEvent{}};
+    frame.draws = {Solid(0, 0, 1)};
+    const auto scissorTest = static_cast<std::size_t>(Capability::ScissorTest);
+    frame.draws[0].raster.enabled[scissorTest] = true;
+    constexpr int kHalf = kTargetSize / 2;
+    frame.draws[0].raster.scissor = {{0, 0, kHalf, kTargetSize}};
+    depthAttachments = 0;
+    countDepthAttachments = true;
+    CHECK(session.Render(frame, error));
+    countDepthAttachments = false;
+
+    auto behind = world;
+    for (auto& vertex : behind.vertices) {
+        vertex.position[2] = 0.5f;
+        vertex.color = {{0, 1, 0, 1}};
+    }
+    frame.draws = {behind};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(4, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 0, 255, 255}}));
+    CHECK(session.ReadPixels(12, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    CHECK(depthAttachments == 0);
+}
+
 void ConsecutiveDraws(MetalSession& session, std::string& error) {
     constexpr int kHalfSize = kTargetSize / 2;
     constexpr int kLeftSample = kTargetSize / 4;
@@ -179,15 +294,29 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     for (auto& vertex : frame.draws[1].vertices) {
         vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
     }
+    // Functions and factors left over from prior draws cannot affect a disabled operation.
+    auto& disabled = frame.draws[1].raster;
+    disabled.blendSource = BlendFactor::SourceAlpha;
+    disabled.blendDestination = BlendFactor::InverseDestinationColor;
+    disabled.cull = Cull::Front;
+    disabled.depthWrite = false;
+    disabled.depthFunction = Compare::Never;
+    disabled.polygonOffset = {{1, -1}};
+    disabled.scissor = {{1, 2, 3, 4}};
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
+    session.EnableDiagnostics(true);
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 1);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 1);
+    const auto& counters = session.Diagnostics();
+    CHECK(counters.textureLookups == 1 && counters.samplerLookups == 1 && counters.pipelineLookups == 1);
+    session.EnableDiagnostics(false);
     std::array<unsigned char, 4> pixel{};
     CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
     CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
-    // Uniform changes must break a batch even when the graphics pipeline is identical.
+    // The discard-capable shader needs a distinct pipeline, with the same sampler and vertex bindings.
     frame.draws = {Solid(1, 0, 0), Solid(0, 1, 0)};
     frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
     frame.draws[1].raster.alphaFunction = Compare::Greater;
@@ -196,13 +325,28 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         vertex.color[3] = 0.25f;
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     sceneBindings = {};
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
+    CHECK(sceneBindings.pipelines == 2 && sceneBindings.samplers == 1);
+    CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
+    CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    // Alpha functions and references remain uniforms on the same alpha-tested pipeline.
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
+    frame.draws[0].raster.alphaFunction = Compare::Greater;
+    frame.draws[0].raster.alphaReference = 0.25f;
+    sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 1);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 2);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = false;
     // Projection and dynamic scissor state are independent of the pipeline cache key too.
     for (bool scissor : {false, true}) {
         frame.draws[1] = Solid(0, 1, 0);
@@ -213,8 +357,9 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
             frame.draws[1].projection.values[12] = 1;
         }
         sceneDrawCalls = 0;
+        sceneIndexedDrawCalls = 0;
         CHECK(session.Render(frame, error));
-        CHECK(sceneDrawCalls == 2);
+        CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
         CHECK(session.ReadPixels(kLeftSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
         CHECK(session.ReadPixels(kRightSample, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
@@ -236,11 +381,15 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         frame.draws[index].resources[0].texture2D = object;
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     sceneBindings = {};
+    session.EnableDiagnostics(true);
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 2);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 1);
+    CHECK(session.Diagnostics().samplerLookups == 2);
+    session.EnableDiagnostics(false);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
     // Merging translucent primitives must retain their original compositing order.
@@ -259,8 +408,9 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
         }
     }
     sceneDrawCalls = 0;
+    sceneIndexedDrawCalls = 0;
     CHECK(session.Render(frame, error));
-    CHECK(sceneDrawCalls == 2);
+    CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 1);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     constexpr int kQuarterChannel = 64;
     constexpr int kHalfChannel = 128;
@@ -423,13 +573,17 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     frame.draws[0].meshColor = {{0, 1, 0, 1}};
     frame.events.resize(1);
     std::array<unsigned char, 4> pixel{};
+    session.EnableDiagnostics(true);
     for (unsigned repeat = 0; repeat < 4; ++repeat) {
         geometryUploads = 0;
+        const auto copyPasses = session.Diagnostics().copyPasses;
         CHECK(session.Render(frame, error));
         CHECK(geometryUploads == (repeat == 0 ? 2u : 0u));
+        CHECK(repeat == 0 || session.Diagnostics().copyPasses == copyPasses);
         CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == 0 && pixel[1] == 255 && pixel[2] == 0);
     }
+    session.EnableDiagnostics(false);
     // Adjacent resident surfaces with identical state retain batching, including nonzero page offsets.
     FrameSnapshot batched = frame;
     batched.draws.resize(2, batched.draws[0]);
@@ -452,9 +606,10 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     CHECK(pixel[0] == 0 && pixel[1] == 255);
     batched.draws[1].meshColor = {{1, 0, 0, 1}};
     sceneIndexedDrawCalls = 0;
+    sceneIndexBindings = 0;
     geometryUploads = 0;
     CHECK(session.Render(batched, error));
-    CHECK(sceneIndexedDrawCalls == 2 && geometryUploads == 0);
+    CHECK(sceneIndexedDrawCalls == 2 && sceneIndexBindings == 1 && geometryUploads == 0);
     CHECK(session.ReadPixels(14, 8, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 255 && pixel[1] == 0);
     // Combining overlapping translucent surfaces must retain their compositing order.
@@ -488,7 +643,7 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     batched.events.insert(batched.events.begin(), blueClear);
     sceneIndexedDrawCalls = 0;
     CHECK(session.Render(batched, error));
-    CHECK(sceneIndexedDrawCalls == 1); // Clear geometry uses the separate non-indexed path.
+    CHECK(sceneIndexedDrawCalls == 1);
     CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, pixel.data(), error));
     constexpr int kHalfChannel = 128;
     constexpr int kQuarterChannel = 64;
@@ -619,7 +774,7 @@ void IndexedDraws(MetalSession& session, std::string& error) {
         sceneDrawCalls = 0;
         sceneIndexedDrawCalls = 0;
         CHECK(session.Render(frame, error));
-        CHECK(sceneDrawCalls == 2 && sceneIndexedDrawCalls == 1);
+        CHECK(sceneDrawCalls == 0 && sceneIndexedDrawCalls == 2);
         CHECK(session.ReadPixels(kLeftSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
         CHECK(pixel[0] == kOpaqueChannel && pixel[1] == 0);
         CHECK(session.ReadPixels(kRightSample, kMiddle, 1, 1, 4, 1, pixel.data(), error));
@@ -646,15 +801,25 @@ void IndexedDraws(MetalSession& session, std::string& error) {
             vertex.color[3] = 0.5f;
         }
     }
+    frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = true;
+    frame.draws[1].raster.scissor = {{0, 0, kTargetSize, kTargetSize}};
     sceneIndexedDrawCalls = 0;
     CHECK(session.Render(frame, error));
     CHECK(sceneIndexedDrawCalls == 2);
     CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    const auto orderedPixel = pixel;
     constexpr int kQuarterChannel = 64;
     constexpr int kHalfChannel = 128;
     CHECK(std::abs(int(pixel[0]) - kQuarterChannel) <= 1);
     CHECK(std::abs(int(pixel[1]) - kHalfChannel) <= 1);
     CHECK(std::abs(int(pixel[2]) - kQuarterChannel) <= 1);
+    frame.draws[1].raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)] = false;
+    frame.draws[1].raster.scissor = frame.draws[0].raster.scissor;
+    sceneIndexedDrawCalls = 0;
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(kMiddle, kMiddle, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel == orderedPixel);
+    CHECK(sceneIndexedDrawCalls == 1);
     // Indexed flat and wireframe fallback must match the exact expanded triangle image.
     frame.draws = {Solid(1, 0, 0)};
     frame.draws[0].primitive = Primitive::Triangles;
@@ -688,12 +853,258 @@ void IndexedDraws(MetalSession& session, std::string& error) {
     }
 }
 
+void IndexedTextureLayout(MetalSession& session, std::string& error) {
+    auto image = std::make_shared<TextureImage>();
+    image->width = 2;
+    image->height = 2;
+    image->defined = true;
+    image->pixels = {255, 64, 0, 255, 255, 0, 64, 255, 255, 128, 128, 255, 255, 32, 224, 255};
+    auto texture = std::make_shared<TextureObject>();
+    texture->levels[0] = image;
+    texture->sampler.minification = Filter::Linear;
+    texture->sampler.magnification = Filter::Linear;
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear, FrameEvent{}};
+    auto draw = Solid(0.75f, 0.5f, 1);
+    draw.primitive = Primitive::Triangles;
+    draw.indices = {0, 1, 2, 0, 2, 3};
+    draw.textures[0].enabled2D = true;
+    draw.resources[0].texture2D = texture;
+    for (auto& vertex : draw.vertices) {
+        auto& position = vertex.position;
+        constexpr float kPositionW = 2.0f;
+        vertex.texcoords[0] = {{0.25f + position[0], 0.5f + position[1], 0.65f, 2.0f}};
+        vertex.texcoords[1] = {{0, 0, 0, 1}};
+        vertex.position = {{position[0] * kPositionW, position[1] * kPositionW, 0, kPositionW}};
+    }
+    frame.draws = {draw};
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    constexpr std::size_t kCompactStride = 48;
+    CHECK(session.Diagnostics().streamedVertexBytes == draw.vertices.size() * kCompactStride);
+    constexpr std::size_t kPixelBytes = kTargetSize * kTargetSize * 4;
+    std::array<unsigned char, kPixelBytes> packed{};
+    std::array<unsigned char, kPixelBytes> reference{};
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, packed.data(), error));
+    auto& expanded = frame.draws[0];
+    expanded.vertices.clear();
+    for (auto index : draw.indices) {
+        expanded.vertices.push_back(draw.vertices[index]);
+    }
+    expanded.indices.clear();
+    const auto beforeExpanded = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
+    CHECK(packed == reference);
+    CHECK(session.Diagnostics().streamedVertexBytes - beforeExpanded == expanded.vertices.size() * kCompactStride);
+
+    // A complete white second unit forces the full vertex layout without changing the result.
+    auto whiteImage = std::make_shared<TextureImage>();
+    whiteImage->width = 1;
+    whiteImage->height = 1;
+    whiteImage->defined = true;
+    whiteImage->pixels.assign(4, 255);
+    auto white = std::make_shared<TextureObject>(*texture);
+    white->levels[0] = std::move(whiteImage);
+    expanded.textures[1].enabled2D = true;
+    expanded.resources[1].texture2D = white;
+    const auto beforeFull = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().streamedVertexBytes - beforeFull == expanded.vertices.size() * sizeof(Vertex));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
+    CHECK(packed == reference);
+
+    // An actual second texture uses its own full per-vertex coordinates in the same indexed path.
+    auto green = std::make_shared<TextureImage>(*image);
+    for (std::size_t index = 0; index < green->pixels.size(); index += 4) {
+        green->pixels[index] = 0;
+        green->pixels[index + 1] = 255;
+        green->pixels[index + 2] = 0;
+    }
+    auto second = std::make_shared<TextureObject>(*texture);
+    second->levels[0] = green;
+    draw.resources[1].texture2D = second;
+    draw.textures[1].enabled2D = true;
+    draw.textures[1].environment = EnvironmentMode::Replace;
+    frame.draws[0] = draw;
+    const auto previousBytes = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().streamedVertexBytes - previousBytes == draw.vertices.size() * sizeof(Vertex));
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(kTargetSize / 2, kTargetSize / 2, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    session.EnableDiagnostics(false);
+}
+
 extern "C" SDL_GPUFence* SDL_SubmitGPUCommandBufferAndAcquireFence(SDL_GPUCommandBuffer* command) {
     if (presentationProbe.active) {
         ++presentationProbe.submissions;
     }
     return Original<decltype(&SDL_SubmitGPUCommandBufferAndAcquireFence)>(
         "SDL_SubmitGPUCommandBufferAndAcquireFence")(command);
+}
+
+void AttachmentClears(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent color;
+    color.kind = FrameEventKind::Clear;
+    color.clear.mask = kClearColor;
+    color.clear.color = {{0, 1, 0, 1}};
+    FrameEvent depth;
+    depth.kind = FrameEventKind::Clear;
+    depth.clear.mask = kClearDepth;
+    depth.clear.depth = 0;
+    frame.events = {color, depth};
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().gpuDraws == 0);
+    CHECK(session.Diagnostics().copyPasses == 0);
+    CHECK(session.Diagnostics().renderPasses == 1);
+    frame.draws = {Solid(1, 0, 0)};
+    frame.draws[0].raster.enabled[static_cast<std::size_t>(Capability::DepthTest)] = true;
+    frame.events = {FrameEvent{}};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    constexpr auto center = kTargetSize / 2;
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    depth.clear.depth = 1;
+    frame.events = {depth, FrameEvent{}};
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    frame.events.clear();
+    frame.draws.clear();
+    const auto passes = session.Diagnostics().renderPasses;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().renderPasses == passes);
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    session.EnableDiagnostics(false);
+}
+
+void SingleSamplerTransitions(MetalSession& session, std::string& error) {
+    const auto sampled = [](std::vector<std::uint8_t> pixels) {
+        auto texture = std::make_shared<TextureObject>();
+        texture->sampler.minification = Filter::Nearest;
+        texture->sampler.magnification = Filter::Nearest;
+        auto image = std::make_shared<TextureImage>();
+        image->defined = true;
+        image->width = 1;
+        image->height = 1;
+        image->pixels = std::move(pixels);
+        texture->levels[0] = std::move(image);
+        return texture;
+    };
+    const auto white = sampled({255, 255, 255, 255});
+    const auto green = sampled({0, 255, 0, 255});
+    const auto transparentBlue = sampled({0, 0, 255, 0});
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear};
+    for (unsigned layer = 0; layer < 3; ++layer) {
+        auto draw = Solid(1, layer != 0, layer != 0);
+        draw.textures[0].enabled2D = true;
+        draw.resources[0].texture2D = layer == 2 ? transparentBlue : white;
+        const bool right = layer == 1;
+        for (auto& vertex : draw.vertices) {
+            vertex.position[0] = (vertex.position[0] + (right ? 1 : -1)) * 0.5f;
+        }
+        if (right) {
+            draw.textures[1].enabled2D = true;
+            draw.resources[1].texture2D = green;
+        }
+        if (layer == 2) {
+            draw.raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
+            draw.raster.alphaFunction = Compare::Greater;
+            draw.raster.alphaReference = 0.5f;
+        }
+        FrameEvent event;
+        event.drawIndex = frame.draws.size();
+        frame.draws.push_back(std::move(draw));
+        frame.events.push_back(event);
+    }
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    constexpr int kQuarter = kTargetSize / 4;
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(kQuarter, kQuarter, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    CHECK(session.ReadPixels(3 * kQuarter, kQuarter, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    CHECK(sceneBindings.samplers == 3);
+    CHECK(sceneBindings.singleSamplerBinds == 2);
+}
+
+void SamplingVariants(MetalSession& session, std::string& error) {
+    auto image = std::make_shared<TextureImage>();
+    image->width = 1;
+    image->height = 1;
+    image->defined = true;
+    image->internal = InternalFormat::RGBA;
+    image->pixels = {255, 0, 0, 255};
+    auto edge = std::make_shared<TextureObject>();
+    edge->sampler.minification = Filter::Linear;
+    edge->sampler.magnification = Filter::Linear;
+    edge->sampler.wrapS = Wrap::ClampToEdge;
+    edge->levels[0] = image;
+    auto border = std::make_shared<TextureObject>(*edge);
+    border->sampler.wrapS = Wrap::Clamp;
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 1, 1}};
+    frame.events.push_back(clear);
+    for (unsigned quadrant = 0; quadrant < 4; ++quadrant) {
+        const bool right = (quadrant & 1) != 0;
+        const bool upper = (quadrant & 2) != 0;
+        auto draw = Solid(1, 1, 1);
+        constexpr std::size_t unit = kTextureUnits - 1;
+        draw.textures[unit].enabled2D = true;
+        draw.textures[unit].environment = EnvironmentMode::Replace;
+        draw.resources[unit].texture2D = right ? border : edge;
+        draw.raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = upper;
+        draw.raster.alphaFunction = Compare::Greater;
+        draw.raster.alphaReference = 0.75f;
+        for (auto& vertex : draw.vertices) {
+            vertex.position[0] = (vertex.position[0] + (right ? 1 : -1)) * 0.5f;
+            vertex.position[1] = (vertex.position[1] + (upper ? 1 : -1)) * 0.5f;
+            vertex.texcoords[unit] = {{0, 0.5f, 0, 1}};
+        }
+        FrameEvent event;
+        event.drawIndex = frame.draws.size();
+        frame.events.push_back(event);
+        frame.draws.push_back(std::move(draw));
+    }
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    constexpr int near = kTargetSize / 4;
+    constexpr int far = kTargetSize - near;
+    for (int y : {near, far}) {
+        CHECK(session.ReadPixels(near, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    }
+    CHECK(session.ReadPixels(far, near, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] >= 127 && pixel[0] <= 128 && pixel[1] == 0 && pixel[2] == 0);
+    CHECK(pixel[3] == pixel[0]);
+    CHECK(session.ReadPixels(far, far, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 0, 255, 255}}));
+    CHECK(sceneBindings.pipelines == 4);
 }
 
 int main() {
@@ -707,11 +1118,21 @@ int main() {
     CHECK(session.Initialize(nullptr, true, error));
     CHECK(session.Resize(16, 16, 1, error));
     PreparationReuse(session, error);
+    IndexedQuads(session, error);
     ConsecutiveDraws(session, error);
+    for (unsigned samples : {1u, 4u}) {
+        CHECK(session.Resize(kTargetSize, kTargetSize, samples, error));
+        HudPreservesSceneDepth(session, error);
+    }
+    CHECK(session.Resize(kTargetSize, kTargetSize, 1, error));
     IndexedDraws(session, error);
+    IndexedTextureLayout(session, error);
     NonfiniteGeometry(session, error);
     BatchedUiPixels(session, error);
     PersistentMesh(session, error);
+    AttachmentClears(session, error);
+    SamplingVariants(session, error);
+    SingleSamplerTransitions(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;
@@ -1100,6 +1521,21 @@ int main() {
     CHECK(session.Render(frame, error));
     CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 255 && rgba[1] == 0);
+    // Captured indexed draws can use the same image and different palettes in one render segment.
+    auto secondPaletteDraw = frame.draws[0];
+    secondPaletteDraw.palette = paletteGreen;
+    frame.draws.push_back(std::move(secondPaletteDraw));
+    FrameEvent secondPaletteEvent;
+    secondPaletteEvent.drawIndex = 1;
+    frame.events.push_back(secondPaletteEvent);
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(8, 8, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 0 && rgba[1] == 255);
+    frame.draws[1].sharedTexturePalette = false;
+    CHECK(!session.Render(frame, error));
+    CHECK(error.find("enabled shared texture palette") != std::string::npos);
+    frame.events.pop_back();
+    frame.draws.pop_back();
     // Reversed depth range is exercised by the engine's z-trick owner.
     frame.draws[0] = Solid(1, 0, 0);
     frame.draws[0].raster.enabled[static_cast<unsigned>(Capability::DepthTest)] = true;
@@ -1178,6 +1614,26 @@ int main() {
     CHECK(presented[0] == 0 && presented[3] == 255);
     CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
     CHECK(SDL_ShowWindow(window));
+    const int defaultDrawableCount = MetalDrawableCount(window);
+    CHECK(defaultDrawableCount == 3);
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == 2);
+    CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 0 && presented[3] == 255);
+    CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
+    CHECK(SDL_SetWindowBordered(window, false));
+    CHECK(SDL_SyncWindow(window));
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == defaultDrawableCount);
+    CHECK(SDL_SetWindowBordered(window, true));
+    CHECK(SDL_SyncWindow(window));
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == 2);
+    CHECK(session.Present(true, true, error));
+    CHECK(MetalDrawableCount(window) == defaultDrawableCount);
+    CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 0 && presented[3] == 255);
+    CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
     CHECK(SDL_SetWindowSize(window, 40, 16));
     CHECK(SDL_SyncWindow(window));
     SDL_PumpEvents();
@@ -1215,11 +1671,26 @@ int main() {
     presentationProbe.active = true;
     CHECK(session.Present(true, true, error));
     CHECK(presentationProbe.acquisitions == 1 && presentationProbe.blits == 1);
+    CHECK(presentationProbe.fullOverwrites == 1 && presentationProbe.clears == 0);
     presentationProbe.active = false;
     // Reading the next resolved scene must preserve the last presented pixels.
     frame.draws[0] = Solid(0, 1, 0);
-    CHECK(session.Render(frame, error));
-    // The backdrop must sample the new resolve, even when it requests the resolve itself.
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.allocationsUntilFailure = 1;
+    CHECK(!session.Render(frame, error, SceneOutput::Resolved));
+    CHECK(error.find("fixture final-color allocation failure") != std::string::npos);
+    presentationProbe.active = false;
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
+    CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
+    CHECK(rgba[0] == 255 && rgba[1] == 0);
+    presentationProbe.allocationsUntilFailure = 1;
+    presentationProbe.active = true;
+    CHECK(session.Render(frame, error, SceneOutput::ResolvedIfAvailable));
+    CHECK(error.empty() && presentationProbe.allocationsUntilFailure == 0);
+    presentationProbe.active = false;
+    // The backdrop must sample the new resolve, even when the first allocation failed.
     constexpr std::uint64_t kBackdropEpoch = 1;
     CseRadarBackdropDraw backdrop{};
     backdrop.size = sizeof(backdrop);
@@ -1235,11 +1706,14 @@ int main() {
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 255 && rgba[1] == 0);
     CHECK(session.Present(true, true, error));
-    // Reusing the original resolve target must preserve the most recent presentation.
+    // Resolve in the draw pass. Reusing the original resolve target must
+    // preserve the most recent presentation and the new scene's exact pixels.
+    session.EnableDiagnostics(true);
     frame.draws[0] = Solid(0, 0, 1);
-    CHECK(session.Render(frame, error));
+    CHECK(session.Render(frame, error, SceneOutput::Resolved));
     CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
-    CHECK(rgba[1] == 0 && rgba[2] == 255);
+    CHECK(rgba[0] == 0 && rgba[1] == 0 && rgba[2] == 255 && rgba[3] == 255);
+    CHECK(session.Diagnostics().renderPasses == 1 && session.Diagnostics().sceneResolves == 1);
     CHECK(session.Resize(kTargetSize * 2, kTargetSize, 4, error));
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 0 && rgba[1] == 255 && rgba[2] == 0);

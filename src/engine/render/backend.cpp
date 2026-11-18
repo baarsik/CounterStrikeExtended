@@ -42,7 +42,7 @@ bool EnsureRecording(void*) {
     return true;
 }
 
-bool Submit() {
+bool Submit(SceneOutput output = SceneOutput::Deferred) {
     if (!failure.empty()) {
         return false;
     }
@@ -58,7 +58,9 @@ bool Submit() {
         return false;
     }
     recording = false;
-    return session->Render(frame, failure);
+    const bool rendered = session->Render(frame, failure, output);
+    recorder->Recycle(std::move(frame));
+    return rendered;
 }
 
 bool Finish(void*) {
@@ -81,6 +83,7 @@ void Require(bool success) {
 void ClearBackendSurfaceMeshes() {
 #if defined(CSE_ENABLE_METAL)
     surfaceMeshes.Clear();
+    ++info.surfaceMeshEpoch;
 #endif
 }
 
@@ -177,14 +180,13 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
     if (UsingMetal()) {
         // Custom server model sets can retain over 650 MiB before the first world frame.
         // These CPU sources live until texture deletion, independently of the evictable GPU cache.
-        constexpr int kBaselineSystemRamMiB = 8 * 1024;
         constexpr std::size_t kBaselineTextureStorageBytes = std::size_t{1024} * 1024 * 1024;
         constexpr std::size_t kLargerTextureStorageBytes = 2 * kBaselineTextureStorageBytes;
         FrameLimits limits;
         // SDL reports installed RAM in MiB; unknown values retain the smaller budget.
         limits.capture.textureStorageBytes = SDL_GetSystemRAM() > kBaselineSystemRamMiB ?
             kLargerTextureStorageBytes : kBaselineTextureStorageBytes;
-        recorder = std::make_unique<FrameRecorder>(limits);
+        recorder = std::make_unique<FrameRecorder>(limits, TextureCapture::SampledBindings);
         session = std::make_unique<MetalSession>();
         failure.clear();
         recording = false;
@@ -192,7 +194,7 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
         int width = 0;
         int height = 0;
         SDL_GetWindowSizeInPixels(window, &width, &height);
-        info = {0, 1, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height)};
+        info = {0, 1, static_cast<std::uint32_t>(width), static_cast<std::uint32_t>(height), 1};
 #if CSE_METAL_DEBUG_DEVICE
         constexpr bool kDebugDevice = true;
 #else
@@ -242,18 +244,20 @@ void BeginBackendFrame(int width, int height) {
 #endif
 }
 
-void FlushBackend() {
+void FlushBackend(bool resolveIfAvailable) {
 #if defined(CSE_ENABLE_METAL)
     if (UsingMetal()) {
-        Require(Submit());
+        Require(Submit(resolveIfAvailable ? SceneOutput::ResolvedIfAvailable : SceneOutput::Deferred));
     }
+#else
+    (void)resolveIfAvailable;
 #endif
 }
 
 void PresentBackendFrame(bool vsync, bool preserveAspect) {
 #if defined(CSE_ENABLE_METAL)
     if (UsingMetal()) {
-        Require(Submit());
+        Require(Submit(SceneOutput::Resolved));
         Require(session->Present(vsync, preserveAspect, failure));
         sceneActive = false;
     }

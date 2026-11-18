@@ -7,14 +7,15 @@ RadarRendererGpu::Impl::Impl(MetalSession& owner, std::uint64_t generation) : se
 
 RadarRendererGpu::Impl::~Impl() {
     ClearPanels();
+    if (filterVertices) {
+        SDL_ReleaseGPUBuffer(device, filterVertices);
+    }
     for (auto& texture : textures) {
         Release(texture.second);
     }
     Release(white);
-    Release(radarBlur.scene);
     Release(radarBlur.filtered);
     Release(radarBlur.scratch);
-    Release(smokedBlur.scene);
     Release(smokedBlur.filtered);
     Release(smokedBlur.scratch);
     for (auto& pipeline : pipelines) {
@@ -76,7 +77,7 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     if (!PrepareMetalTexture(*object, texture.palette, data, error) || data.levels.empty()) {
         return false;
     }
-    const auto& base = data.levels.front();
+    const auto& base = *data.levels.front();
     SDL_GPUTextureCreateInfo info{};
     info.type = SDL_GPU_TEXTURETYPE_2D;
     info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -113,7 +114,7 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     constexpr std::size_t kTextureTransferAlignment = 512;
     std::size_t bytes = 0;
     for (const auto& level : data.levels) {
-        bytes += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        bytes += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     auto* command = session.UploadCommands(bytes, error);
     if (!command) {
@@ -134,8 +135,8 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     }
     std::size_t offset = 0;
     for (const auto& level : data.levels) {
-        std::memcpy(mapped + offset, level.pixels.data(), level.pixels.size());
-        offset += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        std::memcpy(mapped + offset, level->pixels.data(), level->pixels.size());
+        offset += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     SDL_UnmapGPUTransferBuffer(device, transfer);
     auto* copy = SDL_BeginGPUCopyPass(command);
@@ -150,16 +151,16 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
         SDL_GPUTextureTransferInfo source{};
         source.transfer_buffer = transfer;
         source.offset = static_cast<Uint32>(offset);
-        source.pixels_per_row = level.width;
-        source.rows_per_layer = level.height;
+        source.pixels_per_row = level->width;
+        source.rows_per_layer = level->height;
         SDL_GPUTextureRegion target{};
         target.texture = texture.gpu;
         target.mip_level = static_cast<Uint32>(index);
-        target.w = level.width;
-        target.h = level.height;
+        target.w = level->width;
+        target.h = level->height;
         target.d = 1;
         SDL_UploadToGPUTexture(copy, &source, &target, false);
-        offset += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        offset += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     SDL_EndGPUCopyPass(copy);
     session.CountCopyPass(bytes);
@@ -374,27 +375,37 @@ CseRadarResult RadarRendererGpu::Impl::Draw(const std::vector<CseRadarPrimitiveV
         !session.UploadEffectVertices(vertices.data(), vertices.size() * sizeof(vertices[0]), binding, error)) {
         return CSE_RADAR_OUT_OF_MEMORY;
     }
-    auto* command = session.Commands(error);
-    if (!command) {
-        return CSE_RADAR_DEVICE_LOST;
-    }
-    SDL_PushGPUDebugGroup(command, "Radar / backdrop");
-    SDL_GPUColorTargetInfo color{};
-    color.texture = access.multisample ? access.multisample : access.color;
-    color.resolve_texture = nullptr;
-    color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
-    color.store_op = SDL_GPU_STOREOP_STORE;
-    SDL_GPUDepthStencilTargetInfo depthInfo{};
-    depthInfo.texture = depthTarget;
-    depthInfo.clear_depth = bottom ? 0.0f : 1.0f;
-    depthInfo.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
-    depthInfo.store_op = SDL_GPU_STOREOP_STORE;
-    depthInfo.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
-    depthInfo.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
-    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, depthTarget ? &depthInfo : nullptr);
-    if (!pass) {
-        SDL_PopGPUDebugGroup(command);
-        return CSE_RADAR_DEVICE_LOST;
+    const bool useScenePass = !privateTarget && !depthTarget && !clearColor && !clearDepth && retainedVertices;
+    SDL_GPUCommandBuffer* command = nullptr;
+    SDL_GPURenderPass* pass = nullptr;
+    if (useScenePass) {
+        pass = session.SceneEffectPass(command, error);
+        if (!pass) {
+            return CSE_RADAR_DEVICE_LOST;
+        }
+    } else {
+        command = session.Commands(error);
+        if (!command) {
+            return CSE_RADAR_DEVICE_LOST;
+        }
+        SDL_PushGPUDebugGroup(command, "Radar / backdrop");
+        SDL_GPUColorTargetInfo color{};
+        color.texture = access.multisample ? access.multisample : access.color;
+        color.load_op = clearColor ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+        color.store_op = SDL_GPU_STOREOP_STORE;
+        SDL_GPUDepthStencilTargetInfo depthInfo{};
+        depthInfo.texture = depthTarget;
+        depthInfo.clear_depth = bottom ? 0.0f : 1.0f;
+        depthInfo.load_op = clearDepth ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+        depthInfo.store_op = SDL_GPU_STOREOP_STORE;
+        depthInfo.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
+        depthInfo.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
+        pass = SDL_BeginGPURenderPass(command, &color, 1, depthTarget ? &depthInfo : nullptr);
+        if (!pass) {
+            SDL_PopGPUDebugGroup(command);
+            return CSE_RADAR_DEVICE_LOST;
+        }
+        session.CountRenderPass();
     }
     SDL_BindGPUGraphicsPipeline(pass, pipeline);
     SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
@@ -417,8 +428,10 @@ CseRadarResult RadarRendererGpu::Impl::Draw(const std::vector<CseRadarPrimitiveV
     SDL_PushGPUVertexUniformData(command, 0, &uniforms, sizeof(uniforms));
     SDL_PushGPUFragmentUniformData(command, 0, &uniforms, sizeof(uniforms));
     SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertices.size()), 1, 0, 0);
-    SDL_EndGPURenderPass(pass);
-    SDL_PopGPUDebugGroup(command);
+    if (!useScenePass) {
+        SDL_EndGPURenderPass(pass);
+        SDL_PopGPUDebugGroup(command);
+    }
     session.CountEffectDraw(encodeStart, !privateTarget);
     return CSE_RADAR_OK;
 }

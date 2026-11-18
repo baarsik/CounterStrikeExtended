@@ -1,11 +1,12 @@
 #include "metal_session.h"
-#include "surface_mesh.h"
+#include "surface_mesh_cache.h"
 #include <SDL3/SDL.h>
 #include <cmath>
 #include <cstdlib>
 #include <dlfcn.h>
 #include <iostream>
 #include <map>
+#include <string>
 
 using namespace cse::render;
 
@@ -14,6 +15,8 @@ std::string error;
 std::map<SDL_GPUBuffer*, std::size_t> buffers;
 std::map<SDL_GPUTransferBuffer*, std::size_t> transfers;
 unsigned uploads = 0;
+std::size_t uploadedBufferBytes = 0;
+int installedRamMiB = 8192;
 constexpr unsigned kTargetSize = 16;
 constexpr std::size_t kRgbaComponents = 4;
 
@@ -96,10 +99,23 @@ extern "C" void SDL_ReleaseGPUTransferBuffer(SDL_GPUDevice* device, SDL_GPUTrans
 extern "C" void SDL_UploadToGPUBuffer(SDL_GPUCopyPass* pass, const SDL_GPUTransferBufferLocation* source,
     const SDL_GPUBufferRegion* destination, bool cycle) {
     ++uploads;
+    uploadedBufferBytes += destination->size;
     Original<decltype(&SDL_UploadToGPUBuffer)>("SDL_UploadToGPUBuffer")(pass, source, destination, cycle);
 }
 
-int main() {
+extern "C" int SDLCALL SDL_GetSystemRAM() {
+    return installedRamMiB;
+}
+
+int main(int argc, char** argv) {
+    const bool largerCache = argc == 2 && std::string(argv[1]) == "larger-cache";
+    Check(argc == 1 || largerCache, "select the base or larger streaming cache");
+    if (largerCache) {
+        installedRamMiB = 8193;
+    }
+    constexpr std::size_t kBaseStreamBudget = 128 * 1024 * 1024;
+    constexpr std::size_t kLargerStreamBudget = 160 * 1024 * 1024;
+    const auto streamBudget = largerCache ? kLargerStreamBudget : kBaseStreamBudget;
     Check(SDL_Init(SDL_INIT_VIDEO), "SDL video");
     MetalSession session;
     Check(session.Initialize(nullptr, true, error), "Metal initialization");
@@ -151,8 +167,10 @@ int main() {
     for (const auto& transfer : transfers) {
         bytes += transfer.second;
     }
-    constexpr std::size_t kStreamingBudget = 128 * 1024 * 1024;
-    Check(bytes <= kStreamingBudget, "Only bounded reusable frame streaming storage remains");
+    Check(bytes <= streamBudget, "Only bounded reusable frame streaming storage remains");
+    if (largerCache) {
+        Check(bytes > kBaseStreamBudget, "Larger tier retains useful streams beyond the base limit");
+    }
     // This recording's ordinary scene/HUD segments need more than 32 MiB across three
     // in-flight slots. Once warm, stable geometry must reuse its buffers without allocation churn.
     frame = Frame(nullptr);
@@ -202,7 +220,153 @@ int main() {
     for (const auto& transfer : transfers) {
         bytes += transfer.second;
     }
-    Check(bytes <= kStreamingBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
+    Check(bytes <= streamBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
+    // These polygons occupy one vertex page with a third index range between them.
+    // Replay only the outside polygons, in reverse order, without uploading their vertices.
+    {
+        const auto positioned = [](float center) {
+            auto polygon = Polygon(4);
+            for (auto& vertex : polygon) {
+                vertex.position[0] = center + vertex.position[0] * 0.3f;
+                vertex.position[1] *= 0.7f;
+            }
+            return SurfaceMesh::Create(std::move(polygon), error);
+        };
+        auto batch = Frame(positioned(-0.67f));
+        batch.draws.push_back(Frame(positioned(0.0f)).draws[0]);
+        batch.draws.push_back(Frame(positioned(0.67f)).draws[0]);
+        batch.events.resize(batch.draws.size());
+        for (std::size_t index = 0; index < batch.events.size(); ++index) {
+            batch.events[index].drawIndex = index;
+        }
+        Check(session.Render(batch, error), "Upload three polygons to the same page");
+        auto clearFrame = empty;
+        FrameEvent clear;
+        clear.kind = FrameEventKind::Clear;
+        clear.clear.mask = kClearColor;
+        clearFrame.events.push_back(clear);
+        Check(session.Render(clearFrame, error), "Clear the full scene before replay");
+        batch.events.resize(2);
+        batch.events[0].drawIndex = 2;
+        batch.events[1].drawIndex = 0;
+        session.EnableDiagnostics(true);
+        uploads = 0;
+        Check(session.Render(batch, error), "Draw noncontiguous resident ranges");
+        std::array<unsigned char, kTargetSize * kRgbaComponents> pixels{};
+        Check(session.ReadPixels(0, kTargetSize / 2, kTargetSize, 1, kRgbaComponents, 1, pixels.data(), error),
+            "Read replayed ranges");
+        Check(pixels[2 * kRgbaComponents] == 255 && pixels[(kTargetSize - 3) * kRgbaComponents] == 255 &&
+            pixels[(kTargetSize / 2) * kRgbaComponents] == 0, "Keep both selected polygons and omit their neighbor");
+        Check(session.Diagnostics().gpuDraws == 1, "Draw both same-state ranges in one indexed call");
+        Check(uploads == 1 && session.Diagnostics().uploadBytes == 12 * sizeof(std::uint32_t),
+            "Upload only selected indices");
+    }
+    // Draw canonical world data and its general-format equivalent using all three texture units.
+    // The replay traverses disjoint page offsets in reverse, including different UV transforms.
+    {
+        constexpr std::size_t kWorldComponents = 7;
+        constexpr std::size_t kCorners = 4;
+        constexpr std::size_t kPolygons = 3;
+        constexpr std::array<float, kWorldComponents * kCorners> quad{{
+            -1, -1, -0.25f, -0.5f, 0, 0.875f, 0.25f,
+             1, -1, -0.25f,  1.5f, 0, 0.125f, 0.25f,
+             1,  1, -0.25f,  1.5f, 1, 0.125f, 0.75f,
+            -1,  1, -0.25f, -0.5f, 1, 0.875f, 0.75f,
+        }};
+        std::array<std::array<float, kWorldComponents * kCorners>, kPolygons> sources{{quad, quad, quad}};
+        SurfaceMeshCache worldCache;
+        FrameSnapshot packed = empty;
+        FrameEvent clear;
+        clear.kind = FrameEventKind::Clear;
+        clear.clear.mask = kClearColor | kClearDepth;
+        packed.events.push_back(clear);
+        auto image = std::make_shared<TextureImage>();
+        image->width = 2;
+        image->height = 2;
+        image->defined = true;
+        image->pixels = {255, 228, 192, 255, 144, 112, 246, 255, 192, 210, 128, 255, 220, 160, 204, 255};
+        auto texture = std::make_shared<TextureObject>();
+        texture->levels[0] = image;
+        texture->sampler.minification = Filter::Linear;
+        texture->sampler.magnification = Filter::Linear;
+        for (std::size_t polygon = 0; polygon < sources.size(); ++polygon) {
+            auto& source = sources[polygon];
+            constexpr std::array<float, kPolygons> centers{{-0.67f, 0, 0.67f}};
+            for (std::size_t index = 0; index < kCorners; ++index) {
+                source[index * kWorldComponents] = centers[polygon] + source[index * kWorldComponents] * 0.24f;
+                source[index * kWorldComponents + 1] *= 0.78f;
+            }
+            auto mesh = worldCache.Get(&source, source.data(), kCorners, kWorldComponents, error);
+            Check(bool(mesh), "Canonical surface input");
+            auto draw = Frame(mesh).draws[0];
+            draw.meshColor = {{0.5f, 0.6f, 0.9f, 1}};
+            draw.meshUvOffset[0][0] = 0.125f;
+            draw.meshUvOffset[2][0] = -0.375f;
+            draw.textureMatrices[1].values[0] = 0.75f;
+            draw.textureMatrices[2].values[5] = 1.25f;
+            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+                draw.textures[unit].enabled2D = true;
+                draw.resources[unit].texture2D = texture;
+            }
+            FrameEvent event;
+            event.drawIndex = packed.draws.size();
+            packed.events.push_back(event);
+            packed.draws.push_back(std::move(draw));
+        }
+        uploadedBufferBytes = 0;
+        Check(session.Render(packed, error), "Upload compact world page");
+        constexpr auto kWorldVertexBytes = kWorldComponents * sizeof(float);
+        constexpr auto kQuadIndexBytes = 6 * sizeof(std::uint32_t);
+        Check(uploadedBufferBytes == kPolygons * (kCorners * kWorldVertexBytes + kQuadIndexBytes),
+            "Use seven floats per uploaded world vertex");
+        packed.events.resize(3);
+        packed.events[1].drawIndex = 2;
+        packed.events[2].drawIndex = 0;
+        session.EnableDiagnostics(true);
+        Check(session.Render(packed, error), "Stitch disjoint compact world indices");
+        Check(session.Diagnostics().gpuDraws == 1, "Compact world page permits the same indexed batching");
+        using Pixels = std::array<unsigned char, kTargetSize * kTargetSize * kRgbaComponents>;
+        Pixels worldPixels{};
+        Check(session.ReadPixels(0, 0, kTargetSize, kTargetSize, kRgbaComponents, 1, worldPixels.data(), error),
+            "Read compact world scene");
+        constexpr std::size_t row = kTargetSize * (kTargetSize / 2);
+        Check(worldPixels[(row + 2) * kRgbaComponents] > 0 &&
+            worldPixels[(row + kTargetSize - 3) * kRgbaComponents] > 0 &&
+            worldPixels[(row + kTargetSize / 2) * kRgbaComponents] == 0, "Preserve both selected world polygons");
+        auto reference = packed;
+        for (auto& draw : reference.draws) {
+            draw.mesh = SurfaceMesh::Create(draw.mesh->Vertices(), error);
+            Check(bool(draw.mesh), "Full-attribute reference mesh");
+        }
+        Check(session.Render(reference, error), "Render matching full-attribute reference");
+        Pixels referencePixels{};
+        Check(session.ReadPixels(0, 0, kTargetSize, kTargetSize, kRgbaComponents, 1, referencePixels.data(), error),
+            "Read full-attribute reference scene");
+        Check(worldPixels == referencePixels, "World and full-attribute scene pixels match");
+        packed.draws[0].mesh = reference.draws[0].mesh;
+        Check(session.Render(packed, error), "Switch world and full-attribute layouts within the same pass");
+        Check(session.ReadPixels(0, 0, kTargetSize, kTargetSize, kRgbaComponents, 1, referencePixels.data(), error),
+            "Read mixed vertex layouts");
+        Check(worldPixels == referencePixels, "Mixed vertex layouts preserve the same pixels");
+        session.EnableDiagnostics(false);
+    }
+    // The engine keeps map-owned meshes alive across scene/HUD segments.
+    // Advancing the map epoch releases GPU page ownership even with pending work.
+    {
+        auto map = Frame(SurfaceMesh::Create(Polygon(4), error));
+        map.info.surfaceMeshEpoch = 1;
+        Check(session.Render(map, error), "Upload a map-scoped mesh");
+        session.EnableDiagnostics(true);
+        Check(session.Render(map, error), "Draw another segment of the same map");
+        Check(session.Diagnostics().meshOwnerChecks == 0, "Stable map needs no mesh owner sweep");
+        const auto bufferCount = buffers.size();
+        map.draws.clear();
+        map.events.clear();
+        map.info.surfaceMeshEpoch = 2;
+        Check(session.Render(map, error), "Change map before the previous scene is submitted");
+        Check(buffers.size() + 2 == bufferCount, "Map epoch change retires the cached vertex/index page");
+        Pixel(session);
+    }
     session.Shutdown();
     Check(buffers.empty() && transfers.empty(), "Shutdown releases all mesh and streaming buffers");
     SDL_Quit();

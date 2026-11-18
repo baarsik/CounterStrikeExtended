@@ -168,14 +168,14 @@ Status ValidateScalarArguments(const ScalarCommand& command) {
     return Status::Ok;
 }
 
-Status ValidateArguments(const Command& command) {
+Status ValidateArguments(const Command& command, const PixelStoreState& unpack) {
     switch (command.op) {
     case Op::TextureImage:
     case Op::TextureSubImage:
         if (command.argument > static_cast<std::uint32_t>(TextureTarget::Rectangle)) {
             return Status::InvalidValue;
         }
-        return TextureStore::ValidateUpload(command.upload, command.unpack, command.op == Op::TextureSubImage);
+        return TextureStore::ValidateUpload(command.upload, unpack, command.op == Op::TextureSubImage);
     case Op::SharedPalette:
         return command.upload.bytes.size() == kPaletteBytes ? Status::Ok : Status::InvalidValue;
     case Op::DeleteTextures:
@@ -199,7 +199,7 @@ bool AttributeOperation(Op operation) {
 
 }
 
-Recorder::Recorder(CaptureLimits limits) : limits_(limits),
+Recorder::Recorder(CaptureLimits limits, TextureCapture capture) : limits_(limits), textureCapture_(capture),
     textures_(limits.textureStorageBytes, limits.textureNames) {
 }
 
@@ -257,20 +257,17 @@ bool Recorder::MatchesQuadState(const DrawPacket& draw) const {
         draw.sharedTexturePalette != state_.sharedTexturePalette || draw.palette != textures_.PaletteSnapshot()) {
         return false;
     }
-    const auto resources = textures_.Capture(state_);
     for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
         const auto textureKey = [](const TextureUnitState& texture) {
             return std::tie(texture.enabled2D, texture.enabledRectangle, texture.texture2D,
                 texture.textureRectangle, texture.environment, texture.rgbScale);
         };
         if (textureKey(draw.textures[unit]) != textureKey(state_.textures[unit]) ||
-            !sameArrayBits(draw.textureMatrices[unit].values, state_.Matrix(MatrixMode::Texture, unit).values) ||
-            draw.resources[unit].texture2D != resources[unit].texture2D ||
-            draw.resources[unit].rectangle != resources[unit].rectangle) {
+            !sameArrayBits(draw.textureMatrices[unit].values, state_.Matrix(MatrixMode::Texture, unit).values)) {
             return false;
         }
     }
-    return true;
+    return textures_.MatchesCapture(state_, textureCapture_, draw.resources);
 }
 
 DrawPacket Recorder::Snapshot(Primitive primitive) const {
@@ -284,7 +281,7 @@ DrawPacket Recorder::Snapshot(Primitive primitive) const {
     }
     draw.raster = state_.raster;
     draw.textures = state_.textures;
-    draw.resources = textures_.Capture(state_);
+    draw.resources = textures_.Capture(state_, textureCapture_);
     draw.palette = textures_.PaletteSnapshot();
     draw.sharedTexturePalette = state_.sharedTexturePalette;
     return draw;
@@ -420,15 +417,17 @@ Status Recorder::Submit(const Command& input) {
     }
     Command captured;
     const bool upload = input.op == Op::TextureImage || input.op == Op::TextureSubImage;
-    if (upload) {
-        if (compiling_ && !input.upload.bytes.empty()) {
+    const bool captureUpload = upload && compiling_;
+    if (captureUpload) {
+        if (!input.upload.bytes.empty()) {
             BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
         }
         captured = input;
         captured.unpack = textures_.Unpack();
     }
-    const auto& command = upload ? captured : input;
-    const auto validation = ValidateArguments(command);
+    const auto& command = captureUpload ? captured : input;
+    const auto& unpack = upload && !captureUpload ? textures_.Unpack() : command.unpack;
+    const auto validation = ValidateArguments(command, unpack);
     if (validation != Status::Ok) {
         return validation;
     }
@@ -438,7 +437,7 @@ Status Recorder::Submit(const Command& input) {
             return Status::InvalidOperation;
         }
         std::size_t budget = limits_.replayCommands;
-        return Execute(command, 0, budget);
+        return Execute(command, unpack, 0, budget);
     }
     if (compiling_) {
         if (pendingList_.size() >= limits_.listCommands) {
@@ -475,7 +474,7 @@ Status Recorder::Submit(const Command& input) {
         }
     }
     std::size_t budget = limits_.replayCommands;
-    const auto result = Execute(command, 0, budget);
+    const auto result = Execute(command, unpack, 0, budget);
     if (compiling_ && result == Status::Ok) {
         if (pendingList_.size() == pendingList_.capacity()) {
             BeforeCaptureAllocation(CaptureAllocationSite::PendingListStorage);
@@ -547,6 +546,71 @@ Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     return result;
 }
 
+Status Recorder::SubmitIndexed(const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    constexpr std::size_t kIndicesPerTriangle = 3;
+    if (!AtFrameBoundary() || indices.size() % kIndicesPerTriangle != 0) {
+        return Status::InvalidOperation;
+    }
+    if (vertices.size() > limits_.verticesPerDraw || indices.size() > limits_.verticesPerDraw) {
+        return Status::LimitExceeded;
+    }
+    for (const auto index : indices) {
+        if (index >= vertices.size()) {
+            return Status::InvalidValue;
+        }
+    }
+    if (indices.empty()) {
+        return Status::Ok;
+    }
+    if (!limits_.replayCommands) {
+        return Status::LimitExceeded;
+    }
+    return RecordArrayDraw(Primitive::Triangles, vertices, indices, perVertexColor);
+}
+
+Status Recorder::RecordArrayDraw(Primitive primitive, const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    if (vertices.empty()) {
+        return Status::Ok;
+    }
+    auto draw = Snapshot(primitive);
+    BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+    draw.vertices = vertices;
+    if (!indices.empty()) {
+        BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+        draw.indices = indices;
+    }
+    for (auto& vertex : draw.vertices) {
+        if (!perVertexColor) {
+            vertex.color = state_.Current().color;
+        }
+        for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
+            vertex.texcoords[unit] = state_.Current().texcoords[unit];
+        }
+    }
+    return AppendDraw(draw);
+}
+
+Status Recorder::SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+    const std::uint8_t* pixels, std::size_t bytes) {
+    if (!AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    if (bytes > kTextureUploadBytes) {
+        return Status::LimitExceeded;
+    }
+    if (target > TextureTarget::Rectangle) {
+        return Status::InvalidValue;
+    }
+    const auto& unpack = textures_.Unpack();
+    if (!limits_.replayCommands) {
+        const auto validation = TextureStore::ValidateUpload(upload, unpack, subimage, bytes);
+        return validation == Status::Ok ? Status::LimitExceeded : validation;
+    }
+    return textures_.Upload(state_, target, upload, unpack, subimage, pixels, bytes);
+}
+
 Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
     if (!AtFrameBoundary()) {
         return Status::InvalidOperation;
@@ -587,7 +651,8 @@ Status Recorder::AppendDraw(DrawPacket& draw) {
     return Status::Ok;
 }
 
-Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t& budget) {
+Status Recorder::Execute(const Command& command, const PixelStoreState& unpack, std::size_t depth,
+    std::size_t& budget) {
     switch (command.op) {
     case Op::LoadMatrix:
     case Op::MultiplyMatrix:
@@ -621,7 +686,7 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
     case Op::TextureImage:
     case Op::TextureSubImage:
         return textures_.Upload(state_, static_cast<TextureTarget>(command.argument), command.upload,
-            command.unpack, command.op == Op::TextureSubImage);
+            unpack, command.op == Op::TextureSubImage);
     case Op::SharedPalette:
         return textures_.Palette(command.upload.bytes);
     case Op::DrawArrays:
@@ -632,27 +697,8 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         if (command.vertices.size() > limits_.verticesPerDraw) {
             return Status::LimitExceeded;
         }
-        auto draw = Snapshot(static_cast<Primitive>(command.argument));
-        if (!command.vertices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-        }
-        draw.vertices = command.vertices;
-        if (!command.indices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-            draw.indices = command.indices;
-        }
-        for (auto& vertex : draw.vertices) {
-            if (command.op != Op::DrawNative || !command.second) {
-                vertex.color = state_.Current().color;
-            }
-            for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
-                vertex.texcoords[unit] = state_.Current().texcoords[unit];
-            }
-        }
-        if (!draw.vertices.empty()) {
-            return AppendDraw(draw);
-        }
-        break;
+        return RecordArrayDraw(static_cast<Primitive>(command.argument), command.vertices, command.indices,
+            command.op == Op::DrawNative && command.second != 0);
     }
     default:
         return Status::InvalidValue;
@@ -864,7 +910,7 @@ Status Recorder::ExecuteScalar(const ScalarCommand& command, std::size_t depth, 
             break;
         }
         for (const auto& item : list->second) {
-            const auto result = Execute(item, depth + 1, budget);
+            const auto result = Execute(item, item.unpack, depth + 1, budget);
             if (result != Status::Ok) {
                 return result;
             }

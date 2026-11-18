@@ -7,7 +7,8 @@
 namespace cse {
 namespace render {
 
-FrameRecorder::FrameRecorder(FrameLimits limits) : limits_(limits), recorder_(limits.capture) {
+FrameRecorder::FrameRecorder(FrameLimits limits, TextureCapture capture)
+    : limits_(limits), recorder_(limits.capture, capture) {
 }
 
 Status FrameRecorder::Gate() const {
@@ -114,6 +115,34 @@ Status FrameRecorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
         FrameEvent event;
         event.drawIndex = firstDraw;
         return AppendEvent(event);
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
+Status FrameRecorder::SubmitIndexed(const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto firstDraw = recorder_.Draws().size();
+        return AppendDrawEvents(firstDraw, recorder_.SubmitIndexed(vertices, indices, perVertexColor));
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
+Status FrameRecorder::SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+    const std::uint8_t* pixels, std::size_t bytes) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto submitted = recorder_.SubmitTextureUpload(target, upload, subimage, pixels, bytes);
+        return submitted == Status::Ok ? Status::Ok : Fail(submitted);
     } catch (const std::bad_alloc&) {
         return Fail(Status::LimitExceeded);
     }
@@ -237,6 +266,18 @@ Status FrameRecorder::Seal(FrameSnapshot& output) {
     output.info = info_;
     active_ = false;
     return Status::Ok;
+}
+
+void FrameRecorder::Recycle(FrameSnapshot&& frame) {
+    if (active_) {
+        return;
+    }
+    // Keep only outer storage, so retired images and meshes can be reclaimed.
+    frame.draws.clear();
+    frame.events.clear();
+    if (recorder_.TakeFrameDraws(frame.draws) == Status::Ok) {
+        events_.swap(frame.events);
+    }
 }
 
 void FrameRecorder::Abort() {

@@ -82,7 +82,7 @@ Status ExpandTopology(const DrawPacket& draw, std::vector<Vertex>& output, Primi
 
 class Recorder {
 public:
-    explicit Recorder(CaptureLimits limits = {});
+    explicit Recorder(CaptureLimits limits = {}, TextureCapture capture = TextureCapture::AllBindings);
     // Value copies own geometry/list bytes; immutable texture versions use copy-on-write and a
     // shared physical-storage charge. No moved-from counters can outlive their containers.
     Recorder(const Recorder&) = default;
@@ -93,6 +93,10 @@ public:
         quadBatchOpen_ = false;
     }
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
+    Status SubmitIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+        bool perVertexColor);
+    Status SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+        const std::uint8_t* pixels, std::size_t bytes);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
@@ -123,13 +127,16 @@ public:
     }
 
 private:
-    Status Execute(const Command& command, std::size_t depth, std::size_t& budget);
+    Status Execute(const Command& command, const PixelStoreState& unpack, std::size_t depth, std::size_t& budget);
     Status ExecuteScalar(const ScalarCommand& command, std::size_t depth, std::size_t& budget);
     bool MatchesQuadState(const DrawPacket& draw) const;
     DrawPacket Snapshot(Primitive primitive) const;
+    Status RecordArrayDraw(Primitive primitive,
+        const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices, bool perVertexColor);
     Status AppendDraw(DrawPacket& draw);
     bool quadBatchOpen_ = false;
     CaptureLimits limits_;
+    TextureCapture textureCapture_;
     std::size_t frameVertices_ = 0;
     std::size_t storedVertices_ = 0;
     std::size_t storedCommands_ = 0;

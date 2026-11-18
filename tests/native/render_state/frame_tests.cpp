@@ -654,6 +654,58 @@ void AllocationFailure() {
     Check(fresh.Seal(next) == Status::Ok, "construction fault leaves next owner usable");
 }
 
+void ImmediateTextureInput() {
+    FrameRecorder frame;
+    Begin(frame);
+    Send(frame, Binding());
+    auto unpack = Make(Op::PixelStore, static_cast<std::uint32_t>(PixelStoreParameter::UnpackRowLength));
+    unpack.values[0] = 3;
+    Send(frame, unpack);
+    TextureUpload upload;
+    upload.width = 2;
+    upload.height = 2;
+    std::array<std::uint8_t, 20> pixels{{
+        255, 0, 0, 255, 0, 255, 0, 255, 200, 201, 202, 203,
+        0, 0, 255, 255, 255, 255, 0, 255,
+    }};
+    Check(frame.SubmitTextureUpload(TextureTarget::Texture2D, upload, false, pixels.data(), pixels.size()) == Status::Ok,
+        "immediate upload reads padded rows with the current unpack state");
+    Send(frame, Geometry());
+    pixels.fill(0);
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal immediate upload frame");
+    const auto& image = snapshot.draws[0].resources[0].texture2D->levels.at(0);
+    const std::vector<std::uint8_t> expected{255, 0, 0, 255, 0, 255, 0, 255,
+        0, 0, 255, 255, 255, 255, 0, 255};
+    Check(image->pixels == expected, "synchronous upload owns reused caller pixels and excludes row padding");
+}
+
+void RecycleFrameStorage() {
+    FrameRecorder recorder;
+    Begin(recorder);
+    Send(recorder, Binding());
+    Send(recorder, Image());
+    Send(recorder, Geometry());
+    FrameSnapshot first;
+    Check(recorder.Seal(first) == Status::Ok, "seal recyclable frame");
+    const auto* drawMemory = first.draws.data();
+    const auto* eventMemory = first.events.data();
+    const std::weak_ptr<const TextureObject> oldImage = first.draws[0].resources[0].texture2D;
+    recorder.Recycle(std::move(first));
+    Begin(recorder, 2);
+    Send(recorder, Image());
+    Check(oldImage.expired(), "recycled storage retains no texture versions");
+    {
+        ScopedFault fault(CaptureAllocationSite::EventGrowthAfterDraw);
+        Send(recorder, Geometry());
+        Check(fault.Hits() == 0, "recycled events need no second allocation");
+    }
+    FrameSnapshot second;
+    Check(recorder.Seal(second) == Status::Ok, "seal next frame");
+    Check(second.draws.data() == drawMemory && second.events.data() == eventMemory,
+        "reuse both vectors after synchronous rendering");
+}
+
 void QuadExactState() {
     Recorder recorder;
     std::array<Vertex, 4> quad{};
@@ -698,6 +750,52 @@ void QuadTextureVersions() {
     Check(first != second && first->levels.at(0)->pixels[0] == 255 && second->levels.at(0)->pixels[0] == 7,
         "queued quads retain immutable texture contents");
     Check(snapshot.events[2].kind == FrameEventKind::Readback, "readback remains between texture-identical quads");
+}
+
+void SampledTextureSnapshots() {
+    FrameRecorder frame({}, TextureCapture::SampledBindings);
+    Begin(frame);
+    Send(frame, Binding());
+    Send(frame, Image());
+    auto rectangleBinding = Make(Op::BindTexture, static_cast<std::uint32_t>(TextureTarget::Rectangle));
+    rectangleBinding.second = kTextureName + 1;
+    Send(frame, rectangleBinding);
+    auto rectangleImage = Image();
+    rectangleImage.argument = static_cast<std::uint32_t>(TextureTarget::Rectangle);
+    rectangleImage.upload.bytes[0] = 37;
+    Send(frame, rectangleImage);
+    std::array<Vertex, 4> quad{};
+    Check(frame.SubmitQuad(quad) == Status::Ok, "capture quad with no sampled textures");
+    auto enable2d = Make(Op::Enable, static_cast<std::uint32_t>(Capability::Texture2D));
+    enable2d.values[0] = 1;
+    Send(frame, enable2d);
+    Check(frame.SubmitQuad(quad) == Status::Ok && frame.SubmitQuad(quad) == Status::Ok,
+        "merge quads with the same sampled texture identity");
+    auto enableRectangle = Make(Op::Enable, static_cast<std::uint32_t>(Capability::TextureRectangle));
+    enableRectangle.values[0] = 1;
+    Send(frame, enableRectangle);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "record rectangle precedence");
+    enableRectangle.values[0] = 0;
+    Send(frame, enableRectangle);
+    auto updated = Image();
+    updated.upload.bytes[0] = 21;
+    Send(frame, updated);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "return to a new 2D version");
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal sampled resource draws");
+    Check(snapshot.draws.size() == 4 && snapshot.events.size() == 4,
+        "capture state changes split batches while identical quads share one packet");
+    const auto& noSampling = snapshot.draws[0].resources[0];
+    Check(!noSampling.texture2D && !noSampling.rectangle, "disabled textures need no owners");
+    const auto& twoDimensional = snapshot.draws[1].resources[0];
+    Check(twoDimensional.texture2D && !twoDimensional.rectangle, "retain enabled 2D texture only");
+    Check(twoDimensional.texture2D->levels.at(0)->pixels[0] == 255 && snapshot.draws[1].vertices.size() == 8,
+        "sampled draw owns its earlier contents and both quads");
+    const auto& rectangle = snapshot.draws[2].resources[0];
+    Check(!rectangle.texture2D && rectangle.rectangle && rectangle.rectangle->levels.at(0)->pixels[0] == 37,
+        "sampled rectangle wins when both targets are enabled");
+    Check(snapshot.draws[3].resources[0].texture2D->levels.at(0)->pixels[0] == 21,
+        "capture changed version when the rectangle becomes inactive");
 }
 
 void QuadBatches() {
@@ -802,13 +900,16 @@ int main(int argc, char** argv) {
     } else if (name == "quad-batches") {
         QuadBatches();
         QuadTextureVersions();
+        SampledTextureSnapshots();
         QuadExactState();
     } else if (name == "order") {
         Order();
     } else if (name == "owned") {
         Owned();
+        ImmediateTextureInput();
     } else if (name == "boundaries") {
         Boundaries();
+        RecycleFrameStorage();
     } else if (name == "limits") {
         Limits();
     } else if (name == "abort") {

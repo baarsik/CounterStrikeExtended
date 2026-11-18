@@ -45,6 +45,8 @@ struct FrameInfo {
     std::uint64_t displayEpoch = 0;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
+    // Nonzero when the engine holds every native world mesh until the next map cache reset.
+    std::uint64_t surfaceMeshEpoch = 0;
 };
 
 struct FrameSnapshot {
@@ -60,11 +62,15 @@ struct FrameLimits {
 
 class FrameRecorder {
 public:
-    explicit FrameRecorder(FrameLimits limits = {});
+    explicit FrameRecorder(FrameLimits limits = {}, TextureCapture capture = TextureCapture::AllBindings);
     Status BeginFrame(const FrameInfo& info);
     Status Submit(const Command& command);
     Status SubmitScalar(const ScalarCommand& command);
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
+    Status SubmitIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+        bool perVertexColor);
+    Status SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+        const std::uint8_t* pixels, std::size_t bytes);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status Refuse(Status reason);
     Status CaptureStatus() const;
@@ -75,6 +81,8 @@ public:
     Status Clear(const ClearEvent& clear);
     Status Readback(const ReadbackEvent& readback);
     Status Seal(FrameSnapshot& output);
+    // Return storage after the synchronous renderer releases its packet references.
+    void Recycle(FrameSnapshot&& frame);
     void Abort();
     const FrameLimits& Limits() const {
         return limits_;
