@@ -51,11 +51,16 @@ int main(int argc, char** argv) {
     const std::string polish = (directory / "polish").string();
     const std::string russian = (directory / "russian").string();
     const std::string skin = (directory / "skin").string();
+    const std::string initialLanguage = (directory / "french").string();
+    const std::string interveningRoot = (directory / "root").string();
     Write(directory / "base/token.txt", "english");
     Write(directory / "hd/token.txt", "hd");
     Write(directory / "polish/token.txt", "polski");
     Write(directory / "russian/token.txt", "russian");
     Write(directory / "skin/skin.txt", "skin");
+    Write(directory / "french/overlap.txt", "francais");
+    Write(directory / "polish/overlap.txt", "polski");
+    Write(directory / "root/overlap.txt", "base");
     Pack(directory / "base/pak0.pak", "held.txt", "0123456789");
     Pack(directory / "polish/pak0.pak", "packed.txt", "polish pack");
     auto* filesystem = static_cast<IFileSystem*>(CreateInterface("VFileSystem009", nullptr));
@@ -63,7 +68,9 @@ int main(int argc, char** argv) {
     assert(filesystem && extension);
     filesystem->Mount();
     extension->BeginGroup(1);
+    filesystem->AddSearchPathNoWrite(initialLanguage.c_str(), "GAME");
     extension->EndGroup();
+    filesystem->AddSearchPath(interveningRoot.c_str(), "BASE");
     filesystem->AddSearchPathNoWrite(hd.c_str(), "GAME");
     filesystem->AddSearchPath(base.c_str(), "GAME");
     filesystem->AddSearchPath(base.c_str(), "GAMECONFIG");
@@ -81,9 +88,11 @@ int main(int argc, char** argv) {
     assert(Read(filesystem, "token.txt") == "hd");
     assert(Read(view, "token.txt") == "polski");
     assert(Read(view, "packed.txt") == "polish pack");
+    assert(Read(view, "overlap.txt") == "polski");
     assert(Read(extension->Baseline(), "token.txt") == "hd");
     assert(Read(view, "held.txt") == "0123456789");
     extension->Commit();
+    assert(Read(filesystem, "overlap.txt") == "polski");
     assert(Read(filesystem, "token.txt") == "polski");
     assert(Read(filesystem, "token.txt", "GAMECONFIG") == "english");
     assert(Read(filesystem, "skin.txt", "SKIN") == "skin");

@@ -194,6 +194,7 @@ void Commit() {
     RestorePackCursors();
     preparedView.paths.clear();
     baselineView.paths.clear();
+    // Work backwards so each group's prepared insertion index still refers to its original position.
     for (int index = owner->m_SearchPaths.Count() - 1; index >= 0; --index) {
         const auto id = owner->m_SearchPaths[index].m_localizationGroup;
         const bool managed = std::any_of(preparedGroups.begin(), preparedGroups.end(),
@@ -201,12 +202,16 @@ void Commit() {
         if (managed) {
             owner->m_SearchPaths.Remove(index);
         }
-    }
-    for (auto& group : preparedGroups) {
-        int insertion = FindAnchor(owner, group);
-        for (auto& path : group.paths) {
-            const int index = owner->m_SearchPaths.InsertBefore(insertion++);
-            TransferPath(owner->m_SearchPaths[index], *path);
+        // Groups sharing an anchor appear in the same order as they did in the read view.
+        for (auto group = preparedGroups.rbegin(); group != preparedGroups.rend(); ++group) {
+            if (group->insertion == index) {
+                int insertion = index;
+                for (auto& path : group->paths) {
+                    owner->m_SearchPaths.InsertBefore(insertion);
+                    TransferPath(owner->m_SearchPaths[insertion], *path);
+                    ++insertion;
+                }
+            }
         }
     }
     Discard();
