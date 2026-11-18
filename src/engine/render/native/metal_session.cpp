@@ -264,7 +264,14 @@ struct MetalSession::Impl {
     std::size_t textureBytes = 0;
     std::array<FrameStream, kFramesInFlight> streams{};
     using TextureKey = std::pair<const TextureObject*, const SharedPalette*>;
-    std::map<TextureKey, Texture> textures;
+    struct TextureKeyHash {
+        std::size_t operator()(const TextureKey& key) const noexcept {
+            const auto object = std::hash<const TextureObject*>{}(key.first);
+            const auto palette = std::hash<const SharedPalette*>{}(key.second);
+            return object ^ (palette << 1);
+        }
+    };
+    std::unordered_map<TextureKey, Texture, TextureKeyHash> textures;
     std::map<std::array<std::uint32_t, 7>, SDL_GPUSampler*> samplers;
     std::map<PipelineKey, SDL_GPUGraphicsPipeline*> pipelines;
     // Find world surfaces by immutable identity. Rehashing preserves the mesh
@@ -607,8 +614,9 @@ struct MetalSession::Impl {
         }
         auto found = textures.find(key);
         if (found != textures.end()) {
-            // Raw addresses are only an index: expired owners may have been allocated at these addresses again.
-            if (found->second.object.lock() == object && found->second.palette.lock() == palette) {
+            // Matching live identities need only an expiration check. The
+            // current frame already owns both sources throughout preparation.
+            if (!found->second.object.expired() && (!palette || !found->second.palette.expired())) {
                 if (!found->second.uploaded && found->second.lastUse != serial) {
                     pending.textures.push_back(&found->second);
                 }
@@ -663,7 +671,7 @@ struct MetalSession::Impl {
     Mesh* GetMesh(const std::shared_ptr<const SurfaceMesh>& object, Preparation& pending, std::string& error) {
         auto found = meshes.find(object.get());
         if (found != meshes.end()) {
-            if (found->second.object.lock() == object) {
+            if (!found->second.object.expired()) {
                 if (!found->second.uploaded && found->second.lastUse != serial) {
                     pending.meshes.push_back(&found->second);
                 }

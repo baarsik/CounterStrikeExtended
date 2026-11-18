@@ -455,16 +455,42 @@ Status TextureStore::Palette(const std::vector<std::uint8_t>& bytes) {
     return Status::Ok;
 }
 
-std::array<TextureResources, kTextureUnits> TextureStore::Capture(const LegacyState& state) const {
+const std::shared_ptr<const TextureObject>& TextureStore::CaptureBinding(const TextureUnitState& binding,
+    TextureTarget target, TextureCapture capture) const {
+    const bool rectangle = target == TextureTarget::Rectangle;
+    if (capture == TextureCapture::SampledBindings) {
+        // Enabled rectangle texturing takes precedence over 2D on this unit.
+        const bool enabled = rectangle ? binding.enabledRectangle : !binding.enabledRectangle && binding.enabled2D;
+        if (!enabled) {
+            static const std::shared_ptr<const TextureObject> absent;
+            return absent;
+        }
+    }
+    const auto name = rectangle ? binding.textureRectangle : binding.texture2D;
+    return name ? objects_.at(name) : defaults_[static_cast<std::size_t>(target)];
+}
+
+std::array<TextureResources, kTextureUnits> TextureStore::Capture(const LegacyState& state,
+    TextureCapture capture) const {
     std::array<TextureResources, kTextureUnits> resources;
     for (std::size_t unit = 0; unit < resources.size(); ++unit) {
         const auto& binding = state.textures[unit];
-        resources[unit].texture2D = binding.texture2D ? objects_.at(binding.texture2D) :
-            defaults_[static_cast<std::size_t>(TextureTarget::Texture2D)];
-        resources[unit].rectangle = binding.textureRectangle ? objects_.at(binding.textureRectangle) :
-            defaults_[static_cast<std::size_t>(TextureTarget::Rectangle)];
+        resources[unit].texture2D = CaptureBinding(binding, TextureTarget::Texture2D, capture);
+        resources[unit].rectangle = CaptureBinding(binding, TextureTarget::Rectangle, capture);
     }
     return resources;
+}
+
+bool TextureStore::MatchesCapture(const LegacyState& state, TextureCapture capture,
+    const std::array<TextureResources, kTextureUnits>& resources) const {
+    for (std::size_t unit = 0; unit < resources.size(); ++unit) {
+        const auto& binding = state.textures[unit];
+        if (resources[unit].texture2D != CaptureBinding(binding, TextureTarget::Texture2D, capture) ||
+            resources[unit].rectangle != CaptureBinding(binding, TextureTarget::Rectangle, capture)) {
+            return false;
+        }
+    }
+    return true;
 }
 
 EngineTextureCache::EngineTextureCache() {

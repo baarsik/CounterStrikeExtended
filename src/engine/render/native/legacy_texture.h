@@ -83,6 +83,8 @@ struct TextureResources {
 
 using SharedPalette = std::array<std::uint8_t, kPaletteBytes>;
 
+enum class TextureCapture { AllBindings, SampledBindings };
+
 class TextureStore {
 public:
     explicit TextureStore(std::size_t storageLimit = kTextureStorageBytes, std::size_t namesLimit = kTextureNames);
@@ -103,13 +105,18 @@ public:
         const PixelStoreState& unpack, bool subimage);
     Status Palette(const std::vector<std::uint8_t>& bytes);
     std::shared_ptr<const TextureObject> Bound(const LegacyState& state, TextureTarget target) const;
-    std::array<TextureResources, kTextureUnits> Capture(const LegacyState& state) const;
+    std::array<TextureResources, kTextureUnits> Capture(const LegacyState& state,
+        TextureCapture capture = TextureCapture::AllBindings) const;
+    bool MatchesCapture(const LegacyState& state, TextureCapture capture,
+        const std::array<TextureResources, kTextureUnits>& resources) const;
     std::shared_ptr<const SharedPalette> PaletteSnapshot() const {
         return palette_;
     }
     std::size_t StorageBytes() const;
 
 private:
+    const std::shared_ptr<const TextureObject>& CaptureBinding(const TextureUnitState& binding,
+        TextureTarget target, TextureCapture capture) const;
     struct Storage {
         std::size_t used = 0;
         std::size_t limit = 0;

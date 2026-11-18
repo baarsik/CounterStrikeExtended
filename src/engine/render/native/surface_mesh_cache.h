@@ -2,7 +2,7 @@
 
 #include "surface_mesh.h"
 #include <algorithm>
-#include <map>
+#include <unordered_map>
 
 namespace cse {
 namespace render {
@@ -61,7 +61,7 @@ public:
 private:
     // Bounds CPU residency independently of retained textures; cache pressure never removes a feature.
     static constexpr std::size_t kMaximumStorageBytes = 128 * 1024 * 1024;
-    std::map<const void*, std::shared_ptr<const SurfaceMesh>> meshes_;
+    std::unordered_map<const void*, std::shared_ptr<const SurfaceMesh>> meshes_;
     std::size_t bytes_ = 0;
 };
 }

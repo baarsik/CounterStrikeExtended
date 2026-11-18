@@ -199,7 +199,7 @@ bool AttributeOperation(Op operation) {
 
 }
 
-Recorder::Recorder(CaptureLimits limits) : limits_(limits),
+Recorder::Recorder(CaptureLimits limits, TextureCapture capture) : limits_(limits), textureCapture_(capture),
     textures_(limits.textureStorageBytes, limits.textureNames) {
 }
 
@@ -257,20 +257,17 @@ bool Recorder::MatchesQuadState(const DrawPacket& draw) const {
         draw.sharedTexturePalette != state_.sharedTexturePalette || draw.palette != textures_.PaletteSnapshot()) {
         return false;
     }
-    const auto resources = textures_.Capture(state_);
     for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
         const auto textureKey = [](const TextureUnitState& texture) {
             return std::tie(texture.enabled2D, texture.enabledRectangle, texture.texture2D,
                 texture.textureRectangle, texture.environment, texture.rgbScale);
         };
         if (textureKey(draw.textures[unit]) != textureKey(state_.textures[unit]) ||
-            !sameArrayBits(draw.textureMatrices[unit].values, state_.Matrix(MatrixMode::Texture, unit).values) ||
-            draw.resources[unit].texture2D != resources[unit].texture2D ||
-            draw.resources[unit].rectangle != resources[unit].rectangle) {
+            !sameArrayBits(draw.textureMatrices[unit].values, state_.Matrix(MatrixMode::Texture, unit).values)) {
             return false;
         }
     }
-    return true;
+    return textures_.MatchesCapture(state_, textureCapture_, draw.resources);
 }
 
 DrawPacket Recorder::Snapshot(Primitive primitive) const {
@@ -284,7 +281,7 @@ DrawPacket Recorder::Snapshot(Primitive primitive) const {
     }
     draw.raster = state_.raster;
     draw.textures = state_.textures;
-    draw.resources = textures_.Capture(state_);
+    draw.resources = textures_.Capture(state_, textureCapture_);
     draw.palette = textures_.PaletteSnapshot();
     draw.sharedTexturePalette = state_.sharedTexturePalette;
     return draw;

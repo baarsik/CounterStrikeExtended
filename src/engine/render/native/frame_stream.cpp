@@ -7,7 +7,8 @@
 namespace cse {
 namespace render {
 
-FrameRecorder::FrameRecorder(FrameLimits limits) : limits_(limits), recorder_(limits.capture) {
+FrameRecorder::FrameRecorder(FrameLimits limits, TextureCapture capture)
+    : limits_(limits), recorder_(limits.capture, capture) {
 }
 
 Status FrameRecorder::Gate() const {

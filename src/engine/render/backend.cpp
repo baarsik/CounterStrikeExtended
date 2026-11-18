@@ -187,7 +187,7 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
         // SDL reports installed RAM in MiB; unknown values retain the smaller budget.
         limits.capture.textureStorageBytes = SDL_GetSystemRAM() > kBaselineSystemRamMiB ?
             kLargerTextureStorageBytes : kBaselineTextureStorageBytes;
-        recorder = std::make_unique<FrameRecorder>(limits);
+        recorder = std::make_unique<FrameRecorder>(limits, TextureCapture::SampledBindings);
         session = std::make_unique<MetalSession>();
         failure.clear();
         recording = false;

@@ -62,7 +62,7 @@ struct FrameLimits {
 
 class FrameRecorder {
 public:
-    explicit FrameRecorder(FrameLimits limits = {});
+    explicit FrameRecorder(FrameLimits limits = {}, TextureCapture capture = TextureCapture::AllBindings);
     Status BeginFrame(const FrameInfo& info);
     Status Submit(const Command& command);
     Status SubmitScalar(const ScalarCommand& command);

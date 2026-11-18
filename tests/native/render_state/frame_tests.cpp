@@ -726,6 +726,52 @@ void QuadTextureVersions() {
     Check(snapshot.events[2].kind == FrameEventKind::Readback, "readback remains between texture-identical quads");
 }
 
+void SampledTextureSnapshots() {
+    FrameRecorder frame({}, TextureCapture::SampledBindings);
+    Begin(frame);
+    Send(frame, Binding());
+    Send(frame, Image());
+    auto rectangleBinding = Make(Op::BindTexture, static_cast<std::uint32_t>(TextureTarget::Rectangle));
+    rectangleBinding.second = kTextureName + 1;
+    Send(frame, rectangleBinding);
+    auto rectangleImage = Image();
+    rectangleImage.argument = static_cast<std::uint32_t>(TextureTarget::Rectangle);
+    rectangleImage.upload.bytes[0] = 37;
+    Send(frame, rectangleImage);
+    std::array<Vertex, 4> quad{};
+    Check(frame.SubmitQuad(quad) == Status::Ok, "capture quad with no sampled textures");
+    auto enable2d = Make(Op::Enable, static_cast<std::uint32_t>(Capability::Texture2D));
+    enable2d.values[0] = 1;
+    Send(frame, enable2d);
+    Check(frame.SubmitQuad(quad) == Status::Ok && frame.SubmitQuad(quad) == Status::Ok,
+        "merge quads with the same sampled texture identity");
+    auto enableRectangle = Make(Op::Enable, static_cast<std::uint32_t>(Capability::TextureRectangle));
+    enableRectangle.values[0] = 1;
+    Send(frame, enableRectangle);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "record rectangle precedence");
+    enableRectangle.values[0] = 0;
+    Send(frame, enableRectangle);
+    auto updated = Image();
+    updated.upload.bytes[0] = 21;
+    Send(frame, updated);
+    Check(frame.SubmitQuad(quad) == Status::Ok, "return to a new 2D version");
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal sampled resource draws");
+    Check(snapshot.draws.size() == 4 && snapshot.events.size() == 4,
+        "capture state changes split batches while identical quads share one packet");
+    const auto& noSampling = snapshot.draws[0].resources[0];
+    Check(!noSampling.texture2D && !noSampling.rectangle, "disabled textures need no owners");
+    const auto& twoDimensional = snapshot.draws[1].resources[0];
+    Check(twoDimensional.texture2D && !twoDimensional.rectangle, "retain enabled 2D texture only");
+    Check(twoDimensional.texture2D->levels.at(0)->pixels[0] == 255 && snapshot.draws[1].vertices.size() == 8,
+        "sampled draw owns its earlier contents and both quads");
+    const auto& rectangle = snapshot.draws[2].resources[0];
+    Check(!rectangle.texture2D && rectangle.rectangle && rectangle.rectangle->levels.at(0)->pixels[0] == 37,
+        "sampled rectangle wins when both targets are enabled");
+    Check(snapshot.draws[3].resources[0].texture2D->levels.at(0)->pixels[0] == 21,
+        "capture changed version when the rectangle becomes inactive");
+}
+
 void QuadBatches() {
     FrameRecorder frame;
     Begin(frame);
@@ -828,6 +874,7 @@ int main(int argc, char** argv) {
     } else if (name == "quad-batches") {
         QuadBatches();
         QuadTextureVersions();
+        SampledTextureSnapshots();
         QuadExactState();
     } else if (name == "order") {
         Order();
