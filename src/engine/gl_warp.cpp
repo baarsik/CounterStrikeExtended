@@ -457,7 +457,6 @@ constexpr int kNoSkyPalette = -1;
 static int skyPaletteIndices[sizeof(gSkyTexNumber) / sizeof(gSkyTexNumber[0])] = {
     kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette
 };
-extern int g_currentpalette;
 void GL_PaletteSelect(int paletteIndex);
 #endif
 
@@ -492,12 +491,6 @@ void R_LoadSkys() {
 	skipBMP = !qglColorTableEXT || !gl_palette_tex.value;
     if (!skipBMP) {
         GL_PaletteClearSky();
-#if defined(CSE_ENABLE_METAL)
-        // Reused sky palette slots contain new colors; their numeric index is not a cache identity.
-        if (cse::render::UsingMetal()) {
-            g_currentpalette = kNoSkyPalette;
-        }
-#endif
     }
 
 	printed = FALSE;

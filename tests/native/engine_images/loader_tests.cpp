@@ -191,6 +191,7 @@ static int g_currentpalette = -1;
 static std::vector<byte> skyPaletteColors;
 static int selectedSkyColor = -1;
 void GL_PaletteClearSky() {
+    g_currentpalette = -1;
     skyPaletteColors.clear();
 }
 short GL_PaletteAdd(byte* palette, qboolean) {

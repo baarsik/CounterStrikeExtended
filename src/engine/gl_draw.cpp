@@ -735,13 +735,15 @@ void gl_texturemode_hook_callback( cvar_t* var )
 		Cvar_Set( "r_prefertexturefiltering", "0" );
 }
 
-void GL_PaletteClear( int paletteIndex )
-{
-	if ( paletteIndex < 0 || paletteIndex >= MAX_GLPALETTES )
-		return;
-
-	gGLPalette[paletteIndex].tag = -1;
-	gGLPalette[paletteIndex].referenceCount = 0;
+void GL_PaletteClear(int paletteIndex) {
+    if (paletteIndex < 0 || paletteIndex >= MAX_GLPALETTES) {
+        return;
+    }
+    if (g_currentpalette == paletteIndex) {
+        g_currentpalette = -1;
+    }
+    gGLPalette[paletteIndex].tag = -1;
+    gGLPalette[paletteIndex].referenceCount = 0;
 }
 
 void GL_PaletteInit()
