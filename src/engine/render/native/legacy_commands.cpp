@@ -168,14 +168,14 @@ Status ValidateScalarArguments(const ScalarCommand& command) {
     return Status::Ok;
 }
 
-Status ValidateArguments(const Command& command) {
+Status ValidateArguments(const Command& command, const PixelStoreState& unpack) {
     switch (command.op) {
     case Op::TextureImage:
     case Op::TextureSubImage:
         if (command.argument > static_cast<std::uint32_t>(TextureTarget::Rectangle)) {
             return Status::InvalidValue;
         }
-        return TextureStore::ValidateUpload(command.upload, command.unpack, command.op == Op::TextureSubImage);
+        return TextureStore::ValidateUpload(command.upload, unpack, command.op == Op::TextureSubImage);
     case Op::SharedPalette:
         return command.upload.bytes.size() == kPaletteBytes ? Status::Ok : Status::InvalidValue;
     case Op::DeleteTextures:
@@ -417,15 +417,17 @@ Status Recorder::Submit(const Command& input) {
     }
     Command captured;
     const bool upload = input.op == Op::TextureImage || input.op == Op::TextureSubImage;
-    if (upload) {
-        if (compiling_ && !input.upload.bytes.empty()) {
+    const bool captureUpload = upload && compiling_;
+    if (captureUpload) {
+        if (!input.upload.bytes.empty()) {
             BeforeCaptureAllocation(CaptureAllocationSite::ListUploadCopy);
         }
         captured = input;
         captured.unpack = textures_.Unpack();
     }
-    const auto& command = upload ? captured : input;
-    const auto validation = ValidateArguments(command);
+    const auto& command = captureUpload ? captured : input;
+    const auto& unpack = upload && !captureUpload ? textures_.Unpack() : command.unpack;
+    const auto validation = ValidateArguments(command, unpack);
     if (validation != Status::Ok) {
         return validation;
     }
@@ -435,7 +437,7 @@ Status Recorder::Submit(const Command& input) {
             return Status::InvalidOperation;
         }
         std::size_t budget = limits_.replayCommands;
-        return Execute(command, 0, budget);
+        return Execute(command, unpack, 0, budget);
     }
     if (compiling_) {
         if (pendingList_.size() >= limits_.listCommands) {
@@ -472,7 +474,7 @@ Status Recorder::Submit(const Command& input) {
         }
     }
     std::size_t budget = limits_.replayCommands;
-    const auto result = Execute(command, 0, budget);
+    const auto result = Execute(command, unpack, 0, budget);
     if (compiling_ && result == Status::Ok) {
         if (pendingList_.size() == pendingList_.capacity()) {
             BeforeCaptureAllocation(CaptureAllocationSite::PendingListStorage);
@@ -590,6 +592,25 @@ Status Recorder::RecordArrayDraw(Primitive primitive, const std::vector<Vertex>&
     return AppendDraw(draw);
 }
 
+Status Recorder::SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+    const std::uint8_t* pixels, std::size_t bytes) {
+    if (!AtFrameBoundary()) {
+        return Status::InvalidOperation;
+    }
+    if (bytes > kTextureUploadBytes) {
+        return Status::LimitExceeded;
+    }
+    if (target > TextureTarget::Rectangle) {
+        return Status::InvalidValue;
+    }
+    const auto& unpack = textures_.Unpack();
+    if (!limits_.replayCommands) {
+        const auto validation = TextureStore::ValidateUpload(upload, unpack, subimage, bytes);
+        return validation == Status::Ok ? Status::LimitExceeded : validation;
+    }
+    return textures_.Upload(state_, target, upload, unpack, subimage, pixels, bytes);
+}
+
 Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
     if (!AtFrameBoundary()) {
         return Status::InvalidOperation;
@@ -630,7 +651,8 @@ Status Recorder::AppendDraw(DrawPacket& draw) {
     return Status::Ok;
 }
 
-Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t& budget) {
+Status Recorder::Execute(const Command& command, const PixelStoreState& unpack, std::size_t depth,
+    std::size_t& budget) {
     switch (command.op) {
     case Op::LoadMatrix:
     case Op::MultiplyMatrix:
@@ -664,7 +686,7 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
     case Op::TextureImage:
     case Op::TextureSubImage:
         return textures_.Upload(state_, static_cast<TextureTarget>(command.argument), command.upload,
-            command.unpack, command.op == Op::TextureSubImage);
+            unpack, command.op == Op::TextureSubImage);
     case Op::SharedPalette:
         return textures_.Palette(command.upload.bytes);
     case Op::DrawArrays:
@@ -888,7 +910,7 @@ Status Recorder::ExecuteScalar(const ScalarCommand& command, std::size_t depth, 
             break;
         }
         for (const auto& item : list->second) {
-            const auto result = Execute(item, depth + 1, budget);
+            const auto result = Execute(item, item.unpack, depth + 1, budget);
             if (result != Status::Ok) {
                 return result;
             }

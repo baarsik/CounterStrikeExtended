@@ -178,6 +178,7 @@ struct MetalSession::Impl {
         std::weak_ptr<const SharedPalette> palette;
         MetalTextureData data;
         SDL_GPUTexture* texture = nullptr;
+        unsigned levels = 0;
         std::size_t bytes = 0;
         std::uint64_t lastUse = 0;
         bool uploaded = false;
@@ -666,6 +667,9 @@ struct MetalSession::Impl {
             textureBytes -= found->second.bytes;
             SDL_ReleaseGPUTexture(device, found->second.texture);
             textures.erase(found);
+            if (diagnosticsEnabled) {
+                ++counters.sampledTextureExpirations;
+            }
         }
         Texture entry;
         entry.object = object;
@@ -674,7 +678,7 @@ struct MetalSession::Impl {
             return nullptr;
         }
         for (const auto& image : entry.data.levels) {
-            entry.bytes += image.pixels.size();
+            entry.bytes += image->pixels.size();
         }
         // Evict immutable versions only between frames. SDL retains submitted GPU references after release.
         while ((textureBytes + entry.bytes > kMaximumCachedTextureBytes || textures.size() >= kMaximumCachedTextures) &&
@@ -693,13 +697,20 @@ struct MetalSession::Impl {
             textureBytes -= oldest->second.bytes;
             SDL_ReleaseGPUTexture(device, oldest->second.texture);
             textures.erase(oldest);
+            if (diagnosticsEnabled) {
+                ++counters.sampledTextureCapacityEvictions;
+            }
         }
-        const auto& image = entry.data.levels.front();
+        const auto& image = *entry.data.levels.front();
+        entry.levels = static_cast<unsigned>(entry.data.levels.size());
         entry.texture = CreateTexture(device, image.width, image.height, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM,
-            SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1, static_cast<unsigned>(entry.data.levels.size()));
+            SDL_GPU_TEXTUREUSAGE_SAMPLER, SDL_GPU_SAMPLECOUNT_1, entry.levels);
         if (!entry.texture) {
             DeviceFailure(error, "Create immutable Metal sampled texture");
             return nullptr;
+        }
+        if (diagnosticsEnabled) {
+            ++counters.sampledTextureAllocations;
         }
         entry.lastUse = serial;
         textureBytes += entry.bytes;
@@ -823,8 +834,7 @@ struct MetalSession::Impl {
                 if (!texture) {
                     return false;
                 }
-                auto* sampler = Sampler(object->sampler, static_cast<unsigned>(texture->data.levels.size()),
-                    object->target == TextureTarget::Rectangle);
+                auto* sampler = Sampler(object->sampler, texture->levels, object->target == TextureTarget::Rectangle);
                 if (!sampler) {
                     return DeviceFailure(error, "Create Metal sampler");
                 }
@@ -1157,7 +1167,8 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "disconnected_mesh_ranges,empty_upload_segments,mesh_owner_checks,unused_texture_units,"
                 "alpha_discard_draws,border_sampling_draws,leading_unscissored_clears,drawable_wait_ms,vsync,"
                 "stream_vertex_bytes,stream_index_bytes,resident_mesh_bytes,legacy_texture_bytes,effect_upload_bytes,"
-                "quad_vertex_bytes,borrowed_geometry_bytes\n");
+                "quad_vertex_bytes,borrowed_geometry_bytes,sampled_texture_allocations,"
+                "sampled_texture_expirations,sampled_texture_capacity_evictions\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1294,6 +1305,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             state.textureBytes -= iterator->second.bytes;
             SDL_ReleaseGPUTexture(state.device, iterator->second.texture);
             iterator = state.textures.erase(iterator);
+            if (state.diagnosticsEnabled) {
+                ++state.counters.sampledTextureExpirations;
+            }
         } else {
             ++iterator;
         }
@@ -1473,7 +1487,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     for (auto* texture : pending.textures) {
         for (std::size_t level = 0; level < texture->data.levels.size(); ++level) {
             uploadBytes = Align(uploadBytes, kTransferAlignment);
-            const auto bytes = texture->data.levels[level].pixels.size();
+            const auto bytes = texture->data.levels[level]->pixels.size();
             if (uploadBytes > kMaximumStreamingBytes || bytes > kMaximumStreamingBytes - uploadBytes) {
                 return Fail(error, "Frame textures exceed Metal streaming budget");
             }
@@ -1627,7 +1641,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             }
         }
         for (const auto& upload : uploads) {
-            const auto& image = upload.texture->data.levels[upload.level];
+            const auto& image = *upload.texture->data.levels[upload.level];
             std::memcpy(mapped + upload.offset, image.pixels.data(), image.pixels.size());
         }
         if (meshIndexBytes) {
@@ -1703,7 +1717,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             SDL_UploadToGPUBuffer(copy, &source, &destination, false);
         }
         for (const auto& upload : uploads) {
-            const auto& image = upload.texture->data.levels[upload.level];
+            const auto& image = *upload.texture->data.levels[upload.level];
             SDL_GPUTextureTransferInfo source{};
             source.transfer_buffer = stream->upload;
             source.offset = upload.offset;
@@ -1881,12 +1895,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     for (const auto& upload : meshUploads) {
         upload.mesh->uploaded = true;
     }
-    for (const auto& upload : uploads) {
-        upload.texture->uploaded = true;
-        // The GPU transfer already holds these bytes. The mip dimensions and
-        // retained texture byte charge still describe the sampled GPU resource.
-        auto& pixels = upload.texture->data.levels[upload.level].pixels;
-        std::vector<std::uint8_t>().swap(pixels);
+    for (auto* texture : pending.textures) {
+        texture->uploaded = true;
+        // Only the GPU upload and immutable capture own their bytes after encoding.
+        texture->data.levels.clear();
     }
     state.initializedTarget = true;
     state.sceneDirty = true;
@@ -2029,7 +2041,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
         std::fprintf(state.diagnosticsFile,
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
-            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
+            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -2053,7 +2065,10 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.legacyTextureBytes),
             static_cast<unsigned long long>(c.effectUploadBytes),
             static_cast<unsigned long long>(c.quadVertexBytes),
-            static_cast<unsigned long long>(c.borrowedGeometryBytes));
+            static_cast<unsigned long long>(c.borrowedGeometryBytes),
+            static_cast<unsigned long long>(c.sampledTextureAllocations),
+            static_cast<unsigned long long>(c.sampledTextureExpirations),
+            static_cast<unsigned long long>(c.sampledTextureCapacityEvictions));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {

@@ -134,6 +134,20 @@ Status FrameRecorder::SubmitIndexed(const std::vector<Vertex>& vertices,
     }
 }
 
+Status FrameRecorder::SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+    const std::uint8_t* pixels, std::size_t bytes) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto submitted = recorder_.SubmitTextureUpload(target, upload, subimage, pixels, bytes);
+        return submitted == Status::Ok ? Status::Ok : Fail(submitted);
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
 Status FrameRecorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
     const auto status = Gate();
     if (status != Status::Ok) {

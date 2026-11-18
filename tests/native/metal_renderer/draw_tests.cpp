@@ -66,7 +66,37 @@ void BorrowedTriangles() {
     CHECK((prepared.Vertices()[2].texcoords[1] == std::array<float, 4>{{0, 0, 0, 1}}));
 }
 
+void CanonicalTextureLevels() {
+    TextureObject source;
+    source.sampler.minification = Filter::LinearMipmapLinear;
+    auto base = std::make_shared<TextureImage>();
+    base->defined = true;
+    base->width = 2;
+    base->height = 2;
+    base->internal = InternalFormat::RGBA;
+    base->pixels = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    auto mip = std::make_shared<TextureImage>(*base);
+    mip->width = 1;
+    mip->height = 1;
+    mip->pixels.assign(4, 64);
+    source.levels[0] = base;
+    source.levels[1] = mip;
+    MetalTextureData prepared;
+    std::string error;
+    CHECK(PrepareMetalTexture(source, {}, prepared, error));
+    CHECK(!prepared.incomplete && prepared.levels.size() == 2);
+    CHECK(prepared.levels[0] == base && prepared.levels[1] == mip);
+    const std::weak_ptr<const TextureImage> level = source.levels[0];
+    base.reset();
+    mip.reset();
+    source.levels.clear();
+    CHECK(!level.expired() && prepared.levels[0]->pixels.back() == 16);
+    prepared.levels.clear();
+    CHECK(level.expired());
+}
+
 int main() {
+    CanonicalTextureLevels();
     BorrowedTriangles();
     // Missing quad lowering or the wrong provoking vertex makes this fail.
     auto draw = Quad();
@@ -140,7 +170,7 @@ int main() {
     object->sampler.minification = Filter::Linear;
     MetalTextureData texture;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
-    CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({132, 66, 247, 0}));
+    CHECK(texture.levels[0]->pixels == std::vector<std::uint8_t>({132, 66, 247, 0}));
     // Legal GL requests above the device maximum must still prepare a drawable texture.
     const std::array<std::array<float, 2>, 5> anisotropyCases{{
         {{1, 1}}, {{4, 4}}, {{16, 16}}, {{32, 16}}, {{std::numeric_limits<float>::max(), 16}}
@@ -163,26 +193,26 @@ int main() {
     object->sampler.requestedAnisotropy = 1;
     image->internal = InternalFormat::RGBA4;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
-    CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({136, 68, 255, 119}));
+    CHECK(texture.levels[0]->pixels == std::vector<std::uint8_t>({136, 68, 255, 119}));
     image->internal = InternalFormat::RGB;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
-    CHECK(texture.levels[0].pixels[3] == 255 && texture.components[1] == 0);
+    CHECK(texture.levels[0]->pixels[3] == 255 && texture.components[1] == 0);
     image->internal = InternalFormat::Alpha;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
-    CHECK(texture.levels[0].pixels[0] == 255 && texture.components[0] == 0);
+    CHECK(texture.levels[0]->pixels[0] == 255 && texture.components[0] == 0);
     image->internal = InternalFormat::Luminance;
     CHECK(PrepareMetalTexture(*object, {}, texture, error));
-    CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({128, 128, 128, 255}));
+    CHECK(texture.levels[0]->pixels == std::vector<std::uint8_t>({128, 128, 128, 255}));
     image->internal = InternalFormat::ColorIndex8;
     image->pixels = {1};
     auto palette = std::make_shared<SharedPalette>();
     (*palette)[3] = 255;
     CHECK(PrepareMetalTexture(*object, palette, texture, error));
-    CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({255, 0, 0, 255}));
+    CHECK(texture.levels[0]->pixels == std::vector<std::uint8_t>({255, 0, 0, 255}));
     (*palette)[3] = 0;
     (*palette)[4] = 255;
     CHECK(PrepareMetalTexture(*object, palette, texture, error));
-    CHECK(texture.levels[0].pixels == std::vector<std::uint8_t>({0, 255, 0, 255}));
+    CHECK(texture.levels[0]->pixels == std::vector<std::uint8_t>({0, 255, 0, 255}));
     image->width = 2;
     image->height = 2;
     image->internal = InternalFormat::RGBA;

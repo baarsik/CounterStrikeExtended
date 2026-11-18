@@ -209,6 +209,21 @@ void PaddedSubimage() {
     Check(store.Bound(state, TextureTarget::Texture2D)->levels.at(0)->pixels == expected,
         "subimage copies only visible row bytes");
     Check(original->levels.at(0)->pixels == image.bytes, "subimage preserves queued version");
+
+    const auto updated = store.Bound(state, TextureTarget::Texture2D);
+    const auto charged = store.StorageBytes();
+    update.bytes[8] ^= 255;
+    update.bytes[15] ^= 255;
+    Check(store.Upload(state, TextureTarget::Texture2D, update, packing, true) == Status::Ok,
+        "same logical subimage with changed source padding");
+    Check(store.Bound(state, TextureTarget::Texture2D) == updated && store.StorageBytes() == charged,
+        "unchanged canonical rows retain the same version and storage");
+    update.bytes[16] ^= 255;
+    Check(store.Upload(state, TextureTarget::Texture2D, update, packing, true) == Status::Ok,
+        "change a visible byte in the second row");
+    Check(store.Bound(state, TextureTarget::Texture2D) != updated &&
+        store.Bound(state, TextureTarget::Texture2D)->levels.at(0)->pixels[36] == update.bytes[16] &&
+        updated->levels.at(0)->pixels == expected, "changed row creates an exact immutable version");
 }
 
 void Palettes() {

@@ -77,7 +77,7 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     if (!PrepareMetalTexture(*object, texture.palette, data, error) || data.levels.empty()) {
         return false;
     }
-    const auto& base = data.levels.front();
+    const auto& base = *data.levels.front();
     SDL_GPUTextureCreateInfo info{};
     info.type = SDL_GPU_TEXTURETYPE_2D;
     info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
@@ -114,7 +114,7 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     constexpr std::size_t kTextureTransferAlignment = 512;
     std::size_t bytes = 0;
     for (const auto& level : data.levels) {
-        bytes += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        bytes += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     auto* command = session.UploadCommands(bytes, error);
     if (!command) {
@@ -135,8 +135,8 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
     }
     std::size_t offset = 0;
     for (const auto& level : data.levels) {
-        std::memcpy(mapped + offset, level.pixels.data(), level.pixels.size());
-        offset += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        std::memcpy(mapped + offset, level->pixels.data(), level->pixels.size());
+        offset += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     SDL_UnmapGPUTransferBuffer(device, transfer);
     auto* copy = SDL_BeginGPUCopyPass(command);
@@ -151,16 +151,16 @@ bool RadarRendererGpu::Impl::Upload(Texture& texture) {
         SDL_GPUTextureTransferInfo source{};
         source.transfer_buffer = transfer;
         source.offset = static_cast<Uint32>(offset);
-        source.pixels_per_row = level.width;
-        source.rows_per_layer = level.height;
+        source.pixels_per_row = level->width;
+        source.rows_per_layer = level->height;
         SDL_GPUTextureRegion target{};
         target.texture = texture.gpu;
         target.mip_level = static_cast<Uint32>(index);
-        target.w = level.width;
-        target.h = level.height;
+        target.w = level->width;
+        target.h = level->height;
         target.d = 1;
         SDL_UploadToGPUTexture(copy, &source, &target, false);
-        offset += (level.pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
+        offset += (level->pixels.size() + kTextureTransferAlignment - 1) / kTextureTransferAlignment * kTextureTransferAlignment;
     }
     SDL_EndGPUCopyPass(copy);
     session.CountCopyPass(bytes);

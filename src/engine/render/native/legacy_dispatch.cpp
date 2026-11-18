@@ -434,10 +434,7 @@ void CaptureUpload(GLenum target, GLint level, GLint internalFormat, GLint x, GL
                 return;
             }
         }
-        Command command;
-        command.op = subimage ? Op::TextureSubImage : Op::TextureImage;
-        command.argument = mappedTarget;
-        auto& upload = command.upload;
+        cse::render::TextureUpload upload;
         upload.level = level;
         upload.x = x;
         upload.y = y;
@@ -458,14 +455,28 @@ void CaptureUpload(GLenum target, GLint level, GLint internalFormat, GLint x, GL
             Refuse(status);
             return;
         }
-        if (!upload.allocateOnly && extent) {
-            if (!PointerExtent(pixels, extent)) {
-                Refuse(Status::InvalidValue);
-                return;
-            }
-            upload.bytes.resize(extent);
-            std::memcpy(upload.bytes.data(), pixels, extent);
+        const auto bytes = upload.allocateOnly ? 0 : extent;
+        if (bytes && !PointerExtent(pixels, bytes)) {
+            Refuse(Status::InvalidValue);
+            return;
         }
+        if (recorder->AtFrameBoundary()) {
+            const auto result = recorder->SubmitTextureUpload(static_cast<cse::render::TextureTarget>(mappedTarget),
+                upload, subimage, static_cast<const std::uint8_t*>(pixels), bytes);
+            if (result != Status::Ok) {
+                Refuse(result);
+            }
+            return;
+        }
+        // Compiled display lists own the upload bytes and the current unpack state.
+        if (bytes) {
+            upload.bytes.resize(bytes);
+            std::memcpy(upload.bytes.data(), pixels, bytes);
+        }
+        Command command;
+        command.op = subimage ? Op::TextureSubImage : Op::TextureImage;
+        command.argument = mappedTarget;
+        command.upload = std::move(upload);
         Capture(command);
     });
 }

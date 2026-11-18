@@ -44,6 +44,9 @@ struct RenderFrameCounters {
     double waitMs = 0;
     double presentMs = 0;
     std::uint64_t textureLookups = 0;
+    std::uint64_t sampledTextureAllocations = 0;
+    std::uint64_t sampledTextureExpirations = 0;
+    std::uint64_t sampledTextureCapacityEvictions = 0;
     std::uint64_t samplerLookups = 0;
     std::uint64_t pipelineLookups = 0;
     std::uint64_t disconnectedMeshRanges = 0;

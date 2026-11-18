@@ -101,8 +101,13 @@ public:
     // Allocation-free caller-copy bound; output is unchanged on failure.
     static Status UploadByteExtent(const TextureUpload& upload, const PixelStoreState& unpack, std::size_t& output);
     static Status ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage);
+    static Status ValidateUpload(const TextureUpload& upload, const PixelStoreState& unpack, bool subimage,
+        std::size_t bytes);
     Status Upload(const LegacyState& state, TextureTarget target, const TextureUpload& upload,
         const PixelStoreState& unpack, bool subimage);
+    // Copies synchronously into the immutable image while the caller owns the input.
+    Status Upload(const LegacyState& state, TextureTarget target, const TextureUpload& upload,
+        const PixelStoreState& unpack, bool subimage, const std::uint8_t* pixels, std::size_t bytes);
     Status Palette(const std::vector<std::uint8_t>& bytes);
     std::shared_ptr<const TextureObject> Bound(const LegacyState& state, TextureTarget target) const;
     std::array<TextureResources, kTextureUnits> Capture(const LegacyState& state,
@@ -122,7 +127,7 @@ private:
         std::size_t limit = 0;
     };
     void Commit(const LegacyState& state, TextureTarget target, std::shared_ptr<const TextureObject> object);
-    std::shared_ptr<TextureImage> NewImage(std::size_t bytes, const TextureImage* previous);
+    std::shared_ptr<TextureImage> NewImage(std::size_t bytes, const std::uint8_t* initial);
     std::shared_ptr<Storage> storage_;
     std::size_t namesLimit_;
     std::uint32_t nextName_ = 1;

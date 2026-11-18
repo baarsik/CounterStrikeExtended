@@ -654,6 +654,32 @@ void AllocationFailure() {
     Check(fresh.Seal(next) == Status::Ok, "construction fault leaves next owner usable");
 }
 
+void ImmediateTextureInput() {
+    FrameRecorder frame;
+    Begin(frame);
+    Send(frame, Binding());
+    auto unpack = Make(Op::PixelStore, static_cast<std::uint32_t>(PixelStoreParameter::UnpackRowLength));
+    unpack.values[0] = 3;
+    Send(frame, unpack);
+    TextureUpload upload;
+    upload.width = 2;
+    upload.height = 2;
+    std::array<std::uint8_t, 20> pixels{{
+        255, 0, 0, 255, 0, 255, 0, 255, 200, 201, 202, 203,
+        0, 0, 255, 255, 255, 255, 0, 255,
+    }};
+    Check(frame.SubmitTextureUpload(TextureTarget::Texture2D, upload, false, pixels.data(), pixels.size()) == Status::Ok,
+        "immediate upload reads padded rows with the current unpack state");
+    Send(frame, Geometry());
+    pixels.fill(0);
+    FrameSnapshot snapshot;
+    Check(frame.Seal(snapshot) == Status::Ok, "seal immediate upload frame");
+    const auto& image = snapshot.draws[0].resources[0].texture2D->levels.at(0);
+    const std::vector<std::uint8_t> expected{255, 0, 0, 255, 0, 255, 0, 255,
+        0, 0, 255, 255, 255, 255, 0, 255};
+    Check(image->pixels == expected, "synchronous upload owns reused caller pixels and excludes row padding");
+}
+
 void RecycleFrameStorage() {
     FrameRecorder recorder;
     Begin(recorder);
@@ -880,6 +906,7 @@ int main(int argc, char** argv) {
         Order();
     } else if (name == "owned") {
         Owned();
+        ImmediateTextureInput();
     } else if (name == "boundaries") {
         Boundaries();
         RecycleFrameStorage();

@@ -95,6 +95,8 @@ public:
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
     Status SubmitIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
         bool perVertexColor);
+    Status SubmitTextureUpload(TextureTarget target, const TextureUpload& upload, bool subimage,
+        const std::uint8_t* pixels, std::size_t bytes);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
@@ -125,7 +127,7 @@ public:
     }
 
 private:
-    Status Execute(const Command& command, std::size_t depth, std::size_t& budget);
+    Status Execute(const Command& command, const PixelStoreState& unpack, std::size_t depth, std::size_t& budget);
     Status ExecuteScalar(const ScalarCommand& command, std::size_t depth, std::size_t& budget);
     bool MatchesQuadState(const DrawPacket& draw) const;
     DrawPacket Snapshot(Primitive primitive) const;

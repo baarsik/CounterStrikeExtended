@@ -7,7 +7,7 @@ namespace cse {
 namespace render {
 
 struct MetalTextureData {
-    std::vector<TextureImage> levels;
+    std::vector<std::shared_ptr<const TextureImage>> levels;
     std::array<float, 4> components{{1, 1, 0, 0}};
     bool incomplete = false;
 };

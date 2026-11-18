@@ -42,8 +42,10 @@ std::uint8_t Quantize(std::uint8_t value, unsigned bits) {
     return static_cast<std::uint8_t>((reduced * kByteMaximum + maximum / 2) / maximum);
 }
 
-bool ConvertImage(const TextureImage& source, const std::shared_ptr<const SharedPalette>& palette,
-    TextureImage& output, std::string& error) {
+bool ConvertImage(const std::shared_ptr<const TextureImage>& image,
+    const std::shared_ptr<const SharedPalette>& palette, std::shared_ptr<const TextureImage>& result,
+    std::string& error) {
+    const auto& source = *image;
     if (!source.defined || source.width <= 0 || source.height <= 0 || source.width > kTextureDimension ||
         source.height > kTextureDimension || source.internal > InternalFormat::Intensity) {
         return Fail(error, "Invalid owned texture image dimensions/format");
@@ -57,14 +59,17 @@ bool ConvertImage(const TextureImage& source, const std::shared_ptr<const Shared
     if (indexed && !palette) {
         return Fail(error, "Indexed texture has no owned palette");
     }
+    if (source.internal == InternalFormat::RGBA8 || source.internal == InternalFormat::RGBA) {
+        // These immutable levels already have the exact GPU upload bytes.
+        result = image;
+        return true;
+    }
+    auto converted = std::make_shared<TextureImage>();
+    auto& output = *converted;
     output.width = source.width;
     output.height = source.height;
     output.internal = InternalFormat::RGBA8;
     output.defined = true;
-    if (source.internal == InternalFormat::RGBA8 || source.internal == InternalFormat::RGBA) {
-        output.pixels = source.pixels;
-        return true;
-    }
     output.pixels.resize(pixels * kRgbaComponents);
     for (std::size_t index = 0; index < pixels; ++index) {
         auto* destination = output.pixels.data() + index * kRgbaComponents;
@@ -111,18 +116,22 @@ bool ConvertImage(const TextureImage& source, const std::shared_ptr<const Shared
             break;
         }
     }
+    result = std::move(converted);
     return true;
 }
 
 void Incomplete(MetalTextureData& output) {
     output.incomplete = true;
     output.components = {{1, 1, 0, 0}};
-    TextureImage black;
-    black.defined = true;
-    black.width = 1;
-    black.height = 1;
-    black.pixels = {0, 0, 0, 255};
-    output.levels = {std::move(black)};
+    static const auto black = [] {
+        auto image = std::make_shared<TextureImage>();
+        image->defined = true;
+        image->width = 1;
+        image->height = 1;
+        image->pixels = {0, 0, 0, 255};
+        return image;
+    }();
+    output.levels = {black};
 }
 }
 
@@ -149,8 +158,8 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
         error.clear();
         return true;
     }
-    TextureImage converted;
-    if (!ConvertImage(*base->second, palette, converted, error)) {
+    std::shared_ptr<const TextureImage> converted;
+    if (!ConvertImage(base->second, palette, converted, error)) {
         return false;
     }
     prepared.components = {{HasColor(base->second->internal) ? 1.0f : 0.0f,
@@ -159,7 +168,7 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
     const bool mipmapped = object.target != TextureTarget::Rectangle && sampler.minification > Filter::Linear;
     int width = base->second->width;
     int height = base->second->height;
-    std::size_t totalBytes = prepared.levels[0].pixels.size();
+    std::size_t totalBytes = prepared.levels[0]->pixels.size();
     for (int level = 1; mipmapped && (width > 1 || height > 1) && level <= sampler.maximumLevel; ++level) {
         width = std::max(1, width / 2);
         height = std::max(1, height / 2);
@@ -170,11 +179,11 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
             Incomplete(prepared);
             break;
         }
-        TextureImage mip;
-        if (!ConvertImage(*found->second, palette, mip, error)) {
+        std::shared_ptr<const TextureImage> mip;
+        if (!ConvertImage(found->second, palette, mip, error)) {
             return false;
         }
-        totalBytes += mip.pixels.size();
+        totalBytes += mip->pixels.size();
         if (totalBytes > kTextureUploadBytes) {
             return Fail(error, "Texture mip chain exceeds Metal upload budget");
         }
