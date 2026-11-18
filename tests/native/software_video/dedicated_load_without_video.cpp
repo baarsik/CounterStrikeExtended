@@ -1,4 +1,6 @@
 #include <SDL3/SDL.h>
+#include "../../../src/launcher/native/SocketImageOwner.h"
+#include "../../../src/launcher/native/SoftwareImageOwner.h"
 #include "../../../src/public/native_dedicated_lifetime.h"
 #include <dlfcn.h>
 #include <cassert>
@@ -29,6 +31,7 @@ int main(int argc, char **argv) {
     std::setvbuf(stderr, nullptr, _IONBF, 0);
     assert(argc == 2 || argc == 6 || argc == 7);
     assert(SDL_WasInit(SDL_INIT_VIDEO) == 0);
+    assert(cse::socket_lifetime::InitializeProcess());
     void *engine = dlopen(argv[1], RTLD_NOW | RTLD_LOCAL);
     if (!engine) {
         std::fprintf(stderr, "%s\n", dlerror());
@@ -39,6 +42,11 @@ int main(int argc, char **argv) {
     assert(factory);
     retire = reinterpret_cast<CseNativeDedicatedRetireFn>(dlsym(engine, "CseNativeDedicatedRetireV1"));
     assert(retire);
+    assert(retire(CSE_NATIVE_DEDICATED_LIFETIME_VERSION) == CSE_DEDICATED_RETIRE_SESSION_ACTIVE);
+    cse::socket_lifetime::SocketImageOwner socketOwner;
+    cse::software_lifetime::ImageOwner softwareOwner;
+    assert(socketOwner.Open(engine, argv[1]));
+    assert(softwareOwner.Open(engine, argv[1], cse::software_lifetime::Mode::Dedicated));
     assert(retire(0) == CSE_DEDICATED_RETIRE_UNSUPPORTED_VERSION);
     assert(retire(CSE_NATIVE_DEDICATED_LIFETIME_VERSION) == CSE_DEDICATED_RETIRE_SHUTDOWN_REQUIRED);
     assert(factory("VENGINE_LAUNCHER_API_VERSION002", nullptr));
@@ -51,8 +59,9 @@ int main(int argc, char **argv) {
     api->Shutdown();
     api->Shutdown();
     assert(SDL_WasInit(SDL_INIT_VIDEO) == 0);
+    void* filesystem = nullptr;
     if (argc >= 6) {
-        void *filesystem = dlopen(argv[2], RTLD_NOW | RTLD_LOCAL);
+        filesystem = dlopen(argv[2], RTLD_NOW | RTLD_LOCAL);
         if (!filesystem) {
             std::fprintf(stderr, "%s\n", dlerror());
             return 1;
@@ -108,13 +117,17 @@ int main(int argc, char **argv) {
         std::puts("BEGIN dedicated Shutdown");
         api->Shutdown();
         std::puts("END dedicated Shutdown");
-        dlclose(filesystem);
     }
     assert(SDL_WasInit(SDL_INIT_VIDEO) == 0);
     assert(retire(0) == CSE_DEDICATED_RETIRE_UNSUPPORTED_VERSION);
     assert(retire(CSE_NATIVE_DEDICATED_LIFETIME_VERSION) == CSE_DEDICATED_RETIRE_READY);
     assert(retire(CSE_NATIVE_DEDICATED_LIFETIME_VERSION) == CSE_DEDICATED_RETIRE_ALREADY_RETIRED);
     assert(!api->Init(basedir, failedCommand, CreateInterface, MissingFactory));
-    dlclose(engine);
+    assert(softwareOwner.Retire());
+    assert(socketOwner.Retire());
+    if (filesystem) {
+        assert(dlclose(filesystem) == 0);
+    }
+    assert(dlclose(engine) == 0);
     std::puts("PASS dedicated_load_without_video");
 }
