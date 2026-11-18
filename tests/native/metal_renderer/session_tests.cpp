@@ -22,10 +22,13 @@ unsigned sceneDrawCalls = 0;
 unsigned sceneIndexedDrawCalls = 0;
 unsigned sceneIndexBindings = 0;
 unsigned geometryUploads = 0;
+bool countDepthAttachments = false;
+unsigned depthAttachments = 0;
 bool mixedGeometryBufferUsage = false;
 struct SceneBindings {
     unsigned pipelines = 0;
     unsigned samplers = 0;
+    unsigned singleSamplerBinds = 0;
     unsigned vertexUniforms = 0;
     unsigned fragmentUniforms = 0;
 } sceneBindings;
@@ -52,6 +55,14 @@ template<typename Function> Function Original(const char* name) {
 }
 }
 
+extern "C" SDL_GPURenderPass* SDL_BeginGPURenderPass(SDL_GPUCommandBuffer* command,
+    const SDL_GPUColorTargetInfo* colors, Uint32 count, const SDL_GPUDepthStencilTargetInfo* depth) {
+    if (countDepthAttachments && depth) {
+        ++depthAttachments;
+    }
+    return Original<decltype(&SDL_BeginGPURenderPass)>("SDL_BeginGPURenderPass")(command, colors, count, depth);
+}
+
 extern "C" void SDL_BindGPUGraphicsPipeline(SDL_GPURenderPass* pass, SDL_GPUGraphicsPipeline* pipeline) {
     ++sceneBindings.pipelines;
     Original<decltype(&SDL_BindGPUGraphicsPipeline)>("SDL_BindGPUGraphicsPipeline")(pass, pipeline);
@@ -60,6 +71,7 @@ extern "C" void SDL_BindGPUGraphicsPipeline(SDL_GPURenderPass* pass, SDL_GPUGrap
 extern "C" void SDL_BindGPUFragmentSamplers(SDL_GPURenderPass* pass, Uint32 slot,
     const SDL_GPUTextureSamplerBinding* bindings, Uint32 count) {
     ++sceneBindings.samplers;
+    sceneBindings.singleSamplerBinds += count == 1;
     Original<decltype(&SDL_BindGPUFragmentSamplers)>("SDL_BindGPUFragmentSamplers")(pass, slot, bindings, count);
 }
 
@@ -216,6 +228,50 @@ void IndexedQuads(MetalSession& session, std::string& error) {
         CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
     }
     session.EnableDiagnostics(false);
+}
+
+void HudPreservesSceneDepth(MetalSession& session, std::string& error) {
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor | kClearDepth;
+    frame.events = {clear, FrameEvent{}};
+    auto world = Solid(1, 0, 0);
+    constexpr auto depthTest = static_cast<std::size_t>(Capability::DepthTest);
+    world.raster.enabled[depthTest] = true;
+    world.raster.depthFunction = Compare::Less;
+    for (auto& vertex : world.vertices) {
+        vertex.position[2] = -0.5f;
+    }
+    frame.draws = {world};
+    CHECK(session.Render(frame, error));
+
+    frame.events = {FrameEvent{}};
+    frame.draws = {Solid(0, 0, 1)};
+    const auto scissorTest = static_cast<std::size_t>(Capability::ScissorTest);
+    frame.draws[0].raster.enabled[scissorTest] = true;
+    constexpr int kHalf = kTargetSize / 2;
+    frame.draws[0].raster.scissor = {{0, 0, kHalf, kTargetSize}};
+    depthAttachments = 0;
+    countDepthAttachments = true;
+    CHECK(session.Render(frame, error));
+    countDepthAttachments = false;
+
+    auto behind = world;
+    for (auto& vertex : behind.vertices) {
+        vertex.position[2] = 0.5f;
+        vertex.color = {{0, 1, 0, 1}};
+    }
+    frame.draws = {behind};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(4, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 0, 255, 255}}));
+    CHECK(session.ReadPixels(12, 8, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    CHECK(depthAttachments == 0);
 }
 
 void ConsecutiveDraws(MetalSession& session, std::string& error) {
@@ -933,6 +989,63 @@ void AttachmentClears(MetalSession& session, std::string& error) {
     session.EnableDiagnostics(false);
 }
 
+void SingleSamplerTransitions(MetalSession& session, std::string& error) {
+    const auto sampled = [](std::vector<std::uint8_t> pixels) {
+        auto texture = std::make_shared<TextureObject>();
+        texture->sampler.minification = Filter::Nearest;
+        texture->sampler.magnification = Filter::Nearest;
+        auto image = std::make_shared<TextureImage>();
+        image->defined = true;
+        image->width = 1;
+        image->height = 1;
+        image->pixels = std::move(pixels);
+        texture->levels[0] = std::move(image);
+        return texture;
+    };
+    const auto white = sampled({255, 255, 255, 255});
+    const auto green = sampled({0, 255, 0, 255});
+    const auto transparentBlue = sampled({0, 0, 255, 0});
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear};
+    for (unsigned layer = 0; layer < 3; ++layer) {
+        auto draw = Solid(1, layer != 0, layer != 0);
+        draw.textures[0].enabled2D = true;
+        draw.resources[0].texture2D = layer == 2 ? transparentBlue : white;
+        const bool right = layer == 1;
+        for (auto& vertex : draw.vertices) {
+            vertex.position[0] = (vertex.position[0] + (right ? 1 : -1)) * 0.5f;
+        }
+        if (right) {
+            draw.textures[1].enabled2D = true;
+            draw.resources[1].texture2D = green;
+        }
+        if (layer == 2) {
+            draw.raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = true;
+            draw.raster.alphaFunction = Compare::Greater;
+            draw.raster.alphaReference = 0.5f;
+        }
+        FrameEvent event;
+        event.drawIndex = frame.draws.size();
+        frame.draws.push_back(std::move(draw));
+        frame.events.push_back(event);
+    }
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    constexpr int kQuarter = kTargetSize / 4;
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(kQuarter, kQuarter, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    CHECK(session.ReadPixels(3 * kQuarter, kQuarter, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    CHECK(sceneBindings.samplers == 3);
+    CHECK(sceneBindings.singleSamplerBinds == 2);
+}
+
 void SamplingVariants(MetalSession& session, std::string& error) {
     auto image = std::make_shared<TextureImage>();
     image->width = 1;
@@ -1006,6 +1119,11 @@ int main() {
     PreparationReuse(session, error);
     IndexedQuads(session, error);
     ConsecutiveDraws(session, error);
+    for (unsigned samples : {1u, 4u}) {
+        CHECK(session.Resize(kTargetSize, kTargetSize, samples, error));
+        HudPreservesSceneDepth(session, error);
+    }
+    CHECK(session.Resize(kTargetSize, kTargetSize, 1, error));
     IndexedDraws(session, error);
     IndexedTextureLayout(session, error);
     NonfiniteGeometry(session, error);
@@ -1013,6 +1131,7 @@ int main() {
     PersistentMesh(session, error);
     AttachmentClears(session, error);
     SamplingVariants(session, error);
+    SingleSamplerTransitions(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;

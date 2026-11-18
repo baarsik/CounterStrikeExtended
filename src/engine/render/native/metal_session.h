@@ -23,6 +23,7 @@ struct RenderFrameCounters {
     std::uint64_t effectDraws = 0;
     std::uint64_t commandBuffers = 0;
     std::uint64_t renderPasses = 0;
+    std::uint64_t colorOnlyScenePasses = 0;
     std::uint64_t sceneResolves = 0;
     std::uint64_t copyPasses = 0;
     std::uint64_t uploadBytes = 0;

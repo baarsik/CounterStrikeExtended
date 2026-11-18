@@ -215,15 +215,8 @@ float4 ApplyTexture(float4 previous, texture2d<float> image, sampler state, floa
         constants.Unit[unit], constants.Components[unit]);
 }
 
-template<bool SoftwareBorder>
-float4 LegacyColor(Varying input, constant FragmentConstants& constants,
-    texture2d<float> texture0, texture2d<float> texture1, texture2d<float> texture2,
-    sampler sampler0, sampler sampler1, sampler sampler2) {
-    float4 result = ApplyTexture<SoftwareBorder>(input.color, texture0, sampler0, input.uv0, constants, 0);
-    result = ApplyTexture<SoftwareBorder>(result, texture1, sampler1, input.uv1, constants, 1);
-    result = ApplyTexture<SoftwareBorder>(result, texture2, sampler2, input.uv2, constants, 2);
+float4 ApplyLegacyFog(float4 result, float distance, constant FragmentConstants& constants) {
     if (constants.Fog.x != 0.0f) {
-        float distance = input.eyeDepth;
         float factor;
         if (constants.Fog.y == 2.0f) {
             factor = (constants.FogAlpha.x - distance) / (constants.FogAlpha.x - constants.Fog.w);
@@ -236,6 +229,16 @@ float4 LegacyColor(Varying input, constant FragmentConstants& constants,
         result.rgb = mix(constants.FogColor.rgb, result.rgb, saturate(factor));
     }
     return result;
+}
+
+template<bool SoftwareBorder>
+float4 LegacyColor(Varying input, constant FragmentConstants& constants,
+    texture2d<float> texture0, texture2d<float> texture1, texture2d<float> texture2,
+    sampler sampler0, sampler sampler1, sampler sampler2) {
+    float4 result = ApplyTexture<SoftwareBorder>(input.color, texture0, sampler0, input.uv0, constants, 0);
+    result = ApplyTexture<SoftwareBorder>(result, texture1, sampler1, input.uv1, constants, 1);
+    result = ApplyTexture<SoftwareBorder>(result, texture2, sampler2, input.uv2, constants, 2);
+    return ApplyLegacyFog(result, input.eyeDepth, constants);
 }
 
 // This entry point cannot discard fragments, allowing early depth testing.
@@ -266,6 +269,24 @@ fragment float4 LegacyFragmentHardwareSampling(Varying input [[stage_in]],
     texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
     sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
     return LegacyColor<false>(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
+}
+
+fragment float4 LegacySingleTextureFragment(Varying input [[stage_in]],
+    constant FragmentConstants& constants [[buffer(0)]],
+    texture2d<float> image [[texture(0)]], sampler state [[sampler(0)]]) {
+    return ApplyLegacyFog(ApplyTexture<false>(input.color, image, state, input.uv0, constants, 0),
+        input.eyeDepth, constants);
+}
+
+fragment float4 LegacySingleTextureFragmentAlphaTest(Varying input [[stage_in]],
+    constant FragmentConstants& constants [[buffer(0)]],
+    texture2d<float> image [[texture(0)]], sampler state [[sampler(0)]]) {
+    const auto result = ApplyLegacyFog(ApplyTexture<false>(input.color, image, state, input.uv0, constants, 0),
+        input.eyeDepth, constants);
+    if (!AlphaPass(result.a, uint(constants.FogAlpha.z), constants.FogAlpha.w)) {
+        discard_fragment();
+    }
+    return result;
 }
 
 fragment float4 LegacyFragmentAlphaTestHardwareSampling(Varying input [[stage_in]],

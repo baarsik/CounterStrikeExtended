@@ -228,8 +228,12 @@ struct MetalSession::Impl {
         std::size_t StreamedVertexStride() const {
             return layout == VertexLayout::SingleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
         }
+
+        std::size_t FragmentSamplerCount() const {
+            return layout == VertexLayout::SingleTexture && !softwareBorder ? 1 : kTextureUnits;
+        }
     };
-    using PipelineKey = std::array<std::uint32_t, 21>;
+    using PipelineKey = std::array<std::uint32_t, 22>;
     using SamplerKey = std::array<std::uint32_t, 7>;
     struct ResolvedMaterial {
         const TextureObject* object = nullptr;
@@ -246,6 +250,7 @@ struct MetalSession::Impl {
         ResolvedMaterial fallback;
         PipelineKey pipelineKey{};
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
+        bool depthAttachment = true;
     };
 
     static bool SameDrawState(const Draw& first, const Draw& second) {
@@ -272,7 +277,7 @@ struct MetalSession::Impl {
     SDL_GPUShader* vertex = nullptr;
     SDL_GPUShader* worldVertex = nullptr;
     SDL_GPUShader* singleTextureVertex = nullptr;
-    std::array<SDL_GPUShader*, 4> fragments{};
+    std::array<SDL_GPUShader*, 6> fragments{};
     SDL_GPUTexture* color = nullptr;
     SDL_GPUTexture* spareResolve = nullptr;
     SDL_GPUTexture* multisample = nullptr;
@@ -495,31 +500,35 @@ struct MetalSession::Impl {
         return true;
     }
 
-    SDL_GPUShader* Shader(const char* entrypoint, SDL_GPUShaderStage stage) {
+    SDL_GPUShader* Shader(const char* entrypoint, SDL_GPUShaderStage stage, Uint32 samplers = 0) {
         SDL_GPUShaderCreateInfo info{};
         info.code = kLegacyRuntimeMetal;
         info.code_size = sizeof(kLegacyRuntimeMetal);
         info.entrypoint = entrypoint;
         info.format = SDL_GPU_SHADERFORMAT_METALLIB;
         info.stage = stage;
-        info.num_samplers = stage == SDL_GPU_SHADERSTAGE_FRAGMENT ? static_cast<Uint32>(kTextureUnits) : 0;
+        info.num_samplers = samplers;
         info.num_uniform_buffers = 1;
         return SDL_CreateGPUShader(device, &info);
     }
 
-    SDL_GPUGraphicsPipeline* Pipeline(const MetalDrawData& draw, bool softwareBorder, VertexLayout layout,
-        Preparation& pending) {
+    SDL_GPUGraphicsPipeline* Pipeline(const Draw& prepared, Preparation& pending) {
+        const auto& draw = prepared.data;
+        const bool softwareBorder = prepared.softwareBorder;
+        const auto layout = prepared.layout;
         const bool worldLayout = layout == VertexLayout::World;
         const bool singleTexture = layout == VertexLayout::SingleTexture;
         const auto& state = draw.raster;
         const bool blend = state.enabled[static_cast<std::size_t>(Capability::Blend)];
-        const bool depthTest = state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
+        const bool depthTest = pending.depthAttachment &&
+            state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
         const bool cull = state.enabled[static_cast<std::size_t>(Capability::CullFace)];
         const bool alphaTest = state.enabled[static_cast<std::size_t>(Capability::AlphaTest)] &&
             state.alphaFunction != Compare::Always;
         // The low bit selects discard support; the next bit selects software GL_CLAMP.
+        const bool singleSampler = prepared.FragmentSamplerCount() == 1;
         const auto fragmentIndex = static_cast<std::uint32_t>(alphaTest) |
-            (static_cast<std::uint32_t>(softwareBorder) << 1);
+            (static_cast<std::uint32_t>(softwareBorder) << 1) | (static_cast<std::uint32_t>(singleSampler) << 2);
         const bool bias = state.enabled.back() && draw.topology == Primitive::Triangles &&
             state.polygonMode[0] == PolygonMode::Fill;
         // SDL ignores these parameters when the associated operation is disabled.
@@ -531,7 +540,8 @@ struct MetalSession::Impl {
             state.frontCounterClockwise, static_cast<unsigned>(state.polygonMode[0]), bias,
             bias ? Bits(state.polygonOffset[0]) : 0, bias ? Bits(state.polygonOffset[1]) : 0,
             state.colorWrite[0], state.colorWrite[1],
-            state.colorWrite[2], state.colorWrite[3], fragmentIndex, static_cast<std::uint32_t>(layout)}};
+            state.colorWrite[2], state.colorWrite[3], fragmentIndex, static_cast<std::uint32_t>(layout),
+            pending.depthAttachment}};
         if (pending.pipeline && pending.pipelineKey == key) {
             return pending.pipeline;
         }
@@ -601,8 +611,10 @@ struct MetalSession::Impl {
             static_cast<unsigned>(SDL_GPU_COMPAREOP_NEVER) + static_cast<unsigned>(state.depthFunction));
         info.target_info.num_color_targets = 1;
         info.target_info.color_target_descriptions = &target;
-        info.target_info.has_depth_stencil_target = true;
-        info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        info.target_info.has_depth_stencil_target = pending.depthAttachment;
+        if (pending.depthAttachment) {
+            info.target_info.depth_stencil_format = SDL_GPU_TEXTUREFORMAT_D32_FLOAT;
+        }
         if (pipelines.size() >= kMaximumCachedVariantPipelines) {
             SDL_SetError("Frame exceeds cached Metal pipeline budget");
             return nullptr;
@@ -879,7 +891,7 @@ struct MetalSession::Impl {
             // Higher texture coordinates cannot influence a single-texture draw.
             draw.layout = VertexLayout::SingleTexture;
         }
-        draw.pipeline = Pipeline(draw.data, draw.softwareBorder, draw.layout, pending);
+        draw.pipeline = Pipeline(draw, pending);
         return draw.pipeline || DeviceFailure(error, "Create cached Metal pipeline");
     }
 
@@ -1163,10 +1175,12 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.worldVertex = state.Shader("LegacyWorldVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.singleTextureVertex = state.Shader("LegacySingleTextureVertex", SDL_GPU_SHADERSTAGE_VERTEX);
-    constexpr std::array<const char*, 4> entrypoints{{"LegacyFragmentHardwareSampling",
-        "LegacyFragmentAlphaTestHardwareSampling", "LegacyFragment", "LegacyFragmentAlphaTest"}};
+    constexpr std::array<const char*, 6> entrypoints{{"LegacyFragmentHardwareSampling",
+        "LegacyFragmentAlphaTestHardwareSampling", "LegacyFragment", "LegacyFragmentAlphaTest",
+        "LegacySingleTextureFragment", "LegacySingleTextureFragmentAlphaTest"}};
     for (std::size_t index = 0; index < entrypoints.size(); ++index) {
-        state.fragments[index] = state.Shader(entrypoints[index], SDL_GPU_SHADERSTAGE_FRAGMENT);
+        const auto samplers = static_cast<Uint32>(index < 4 ? kTextureUnits : 1);
+        state.fragments[index] = state.Shader(entrypoints[index], SDL_GPU_SHADERSTAGE_FRAGMENT, samplers);
     }
     if (!state.vertex || !state.worldVertex || !state.singleTextureVertex ||
         std::any_of(state.fragments.begin(), state.fragments.end(), [](const auto* fragment) {
@@ -1188,7 +1202,8 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "stream_vertex_bytes,stream_index_bytes,resident_mesh_bytes,legacy_texture_bytes,effect_upload_bytes,"
                 "quad_vertex_bytes,borrowed_geometry_bytes,sampled_texture_allocations,"
                 "sampled_texture_expirations,sampled_texture_capacity_evictions,"
-                "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes\n");
+                "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes,"
+                "color_only_scene_passes\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1301,6 +1316,8 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         return Fail(error, "Invalid Metal frame or missing target");
     }
     // Validate all event references before issuing GPU commands. Readback uses incremental Render/ReadPixels.
+    // Pure 2D segments can preserve the previous depth contents without loading or binding the attachment.
+    bool useDepth = !state.initializedTarget;
     for (const auto& event : frame.events) {
         if (event.kind == FrameEventKind::Readback) {
             return Fail(error, "ReadbackEvent has no delivery sink; flush Render then call ReadPixels");
@@ -1313,7 +1330,12 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             !std::isfinite(event.clear.depth) || event.clear.scissor[2] < 0 || event.clear.scissor[3] < 0)) {
             return Fail(error, "Invalid clear or unsupported stencil clear on Metal D32 target");
         }
-        if (event.kind != FrameEventKind::Draw && event.kind != FrameEventKind::Clear) {
+        if (event.kind == FrameEventKind::Draw) {
+            constexpr auto depthTest = static_cast<std::size_t>(Capability::DepthTest);
+            useDepth |= frame.draws[event.drawIndex].raster.enabled[depthTest];
+        } else if (event.kind == FrameEventKind::Clear) {
+            useDepth |= (event.clear.mask & kClearDepth) != 0;
+        } else {
             return Fail(error, "Invalid Metal frame event");
         }
     }
@@ -1397,6 +1419,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     }
     draws.reserve(frame.events.size());
     Impl::Preparation pending;
+    pending.depthAttachment = useDepth;
     std::size_t firstDraw = 0;
     SDL_FColor initialColor{0, 0, 0, 0};
     float initialDepth = 1;
@@ -1699,6 +1722,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             ++state.counters.emptyUploadSegments;
         }
         ++state.counters.renderPasses;
+        state.counters.colorOnlyScenePasses += !useDepth;
     }
     Impl::Timer encodeTimer(state.diagnosticsEnabled ? &state.counters.encodeMs : nullptr);
     SDL_PushGPUDebugGroup(command, "Legacy scene / HUD");
@@ -1767,7 +1791,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     depth.store_op = SDL_GPU_STOREOP_STORE;
     depth.stencil_load_op = SDL_GPU_LOADOP_DONT_CARE;
     depth.stencil_store_op = SDL_GPU_STOREOP_DONT_CARE;
-    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, &depth);
+    auto* pass = SDL_BeginGPURenderPass(command, &color, 1, useDepth ? &depth : nullptr);
     if (!pass) {
         SDL_PopGPUDebugGroup(command);
         return DeviceFailure(error, "Begin Metal scene pass");
@@ -1870,12 +1894,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             SDL_BindGPUVertexBuffers(pass, 0, &binding, 1);
             previousVertexBinding = binding;
         }
-        if (!previous || previous->textures != draw.textures || previous->samplers != draw.samplers) {
+        const auto samplerCount = draw.FragmentSamplerCount();
+        if (!previous || previous->FragmentSamplerCount() != samplerCount ||
+            previous->textures != draw.textures || previous->samplers != draw.samplers) {
             std::array<SDL_GPUTextureSamplerBinding, kTextureUnits> textures{};
-            for (std::size_t unit = 0; unit < kTextureUnits; ++unit) {
+            for (std::size_t unit = 0; unit < samplerCount; ++unit) {
                 textures[unit] = {draw.textures[unit]->texture, draw.samplers[unit]};
             }
-            SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(textures.size()));
+            SDL_BindGPUFragmentSamplers(pass, 0, textures.data(), static_cast<Uint32>(samplerCount));
         }
         if (!previous || !SameBits(previous->data.fragment, data.fragment)) {
             SDL_PushGPUFragmentUniformData(command, 0, &data.fragment, sizeof(data.fragment));
@@ -2060,7 +2086,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
         std::fprintf(state.diagnosticsFile,
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
-            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu\n",
+            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -2089,7 +2115,8 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.sampledTextureExpirations),
             static_cast<unsigned long long>(c.sampledTextureCapacityEvictions),
             static_cast<unsigned long long>(c.sampledTextureByteLimitEvictions),
-            state.textures.size(), state.textureBytes);
+            state.textures.size(), state.textureBytes,
+            static_cast<unsigned long long>(c.colorOnlyScenePasses));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {
