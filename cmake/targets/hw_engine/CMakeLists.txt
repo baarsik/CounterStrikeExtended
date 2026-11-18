@@ -1543,6 +1543,8 @@ endif()
 
 if(CSE_ENABLE_METAL)
   target_compile_definitions(hw_engine PRIVATE CSE_ENABLE_METAL=1)
+  set_target_properties(hw_engine PROPERTIES OBJCXX_STANDARD 17 OBJCXX_STANDARD_REQUIRED YES)
+  target_link_libraries(hw_engine PRIVATE "-framework AppKit" "-framework QuartzCore")
   # Engine configuration flags are owned here; Release intentionally does not define NDEBUG.
   set_property(SOURCE "${CSE_SDK_DIR}/engine/render/backend.cpp" APPEND PROPERTY COMPILE_DEFINITIONS
     "CSE_METAL_DEBUG_DEVICE=$<IF:$<CONFIG:Debug>,1,0>")

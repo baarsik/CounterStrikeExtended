@@ -1,4 +1,5 @@
 #include "metal_session.h"
+#include "metal_drawable.h"
 #include "radar_renderer_gpu.h"
 #include "surface_mesh.h"
 #include <SDL3/SDL.h>
@@ -1613,6 +1614,26 @@ int main() {
     CHECK(presented[0] == 0 && presented[3] == 255);
     CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
     CHECK(SDL_ShowWindow(window));
+    const int defaultDrawableCount = MetalDrawableCount(window);
+    CHECK(defaultDrawableCount == 3);
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == 2);
+    CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 0 && presented[3] == 255);
+    CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
+    CHECK(SDL_SetWindowBordered(window, false));
+    CHECK(SDL_SyncWindow(window));
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == defaultDrawableCount);
+    CHECK(SDL_SetWindowBordered(window, true));
+    CHECK(SDL_SyncWindow(window));
+    CHECK(session.Present(false, true, error));
+    CHECK(MetalDrawableCount(window) == 2);
+    CHECK(session.Present(true, true, error));
+    CHECK(MetalDrawableCount(window) == defaultDrawableCount);
+    CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 0 && presented[3] == 255);
+    CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
     CHECK(SDL_SetWindowSize(window, 40, 16));
     CHECK(SDL_SyncWindow(window));
     SDL_PumpEvents();

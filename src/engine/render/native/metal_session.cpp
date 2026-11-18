@@ -4,6 +4,7 @@
 #include "metal_effect_access.h"
 #include "radar_renderer_gpu.h"
 #include "metal_draw.h"
+#include "metal_drawable.h"
 #include "legacy_runtime_embedded.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -35,6 +36,7 @@ constexpr std::size_t kFramesInFlight = 3;
 constexpr std::size_t kTransferAlignment = 512;
 constexpr std::size_t kReadbackRowAlignment = 256;
 constexpr std::size_t kRgbaComponents = 4;
+constexpr int kDoubleBufferedDrawables = 2;
 
 struct WorldMeshVertex {
     std::array<float, 3> position;
@@ -293,6 +295,8 @@ struct MetalSession::Impl {
     bool initializedTarget = false;
     bool sceneDirty = false;
     bool vsync = true;
+    int defaultDrawableCount = 0;
+    int drawableCount = 0;
     std::uint64_t serial = 0;
     std::size_t streamIndex = 0;
     std::size_t textureBytes = 0;
@@ -1172,6 +1176,8 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
             return DeviceFailure(error, "Claim Metal presentation window");
         }
         state.window = window;
+        state.defaultDrawableCount = MetalDrawableCount(window);
+        state.drawableCount = state.defaultDrawableCount;
     }
     state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.worldVertex = state.Shader("LegacyWorldVertex", SDL_GPU_SHADERSTAGE_VERTEX);
@@ -1969,6 +1975,16 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             return DeviceFailure(error, "Set Metal presentation mode");
         }
         state.vsync = vsync;
+    }
+    if (state.defaultDrawableCount > kDoubleBufferedDrawables) {
+        constexpr auto untitled = SDL_WINDOW_FULLSCREEN | SDL_WINDOW_BORDERLESS;
+        const bool titledImmediate = !vsync && (SDL_GetWindowFlags(state.window) & untitled) == 0;
+        // A two-drawable pool substantially reduces waits on titled immediate-mode Cocoa windows.
+        const int requested = titledImmediate ? kDoubleBufferedDrawables : state.defaultDrawableCount;
+        if (state.drawableCount != requested && SDL_WaitForGPUIdle(state.device) &&
+            SetMetalDrawableCount(state.window, requested)) {
+            state.drawableCount = requested;
+        }
     }
     int drawableWidth = 0;
     int drawableHeight = 0;
