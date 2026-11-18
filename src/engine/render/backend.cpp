@@ -58,7 +58,9 @@ bool Submit(SceneOutput output = SceneOutput::Deferred) {
         return false;
     }
     recording = false;
-    return session->Render(frame, failure, output);
+    const bool rendered = session->Render(frame, failure, output);
+    recorder->Recycle(std::move(frame));
+    return rendered;
 }
 
 bool Finish(void*) {

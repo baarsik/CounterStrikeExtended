@@ -93,6 +93,8 @@ public:
         quadBatchOpen_ = false;
     }
     Status SubmitQuad(const std::array<Vertex, 4>& vertices);
+    Status SubmitIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+        bool perVertexColor);
     Status SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail);
     Status BeginList(std::uint32_t id, bool execute);
     Status EndList();
@@ -127,6 +129,8 @@ private:
     Status ExecuteScalar(const ScalarCommand& command, std::size_t depth, std::size_t& budget);
     bool MatchesQuadState(const DrawPacket& draw) const;
     DrawPacket Snapshot(Primitive primitive) const;
+    Status RecordArrayDraw(Primitive primitive,
+        const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices, bool perVertexColor);
     Status AppendDraw(DrawPacket& draw);
     bool quadBatchOpen_ = false;
     CaptureLimits limits_;

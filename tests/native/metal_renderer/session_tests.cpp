@@ -20,6 +20,7 @@ namespace {
 constexpr int kTargetSize = 16;
 unsigned sceneDrawCalls = 0;
 unsigned sceneIndexedDrawCalls = 0;
+unsigned sceneIndexBindings = 0;
 unsigned geometryUploads = 0;
 bool mixedGeometryBufferUsage = false;
 struct SceneBindings {
@@ -77,6 +78,12 @@ extern "C" void SDL_DrawGPUPrimitives(SDL_GPURenderPass* pass, Uint32 vertices, 
     ++sceneDrawCalls;
     Original<decltype(&SDL_DrawGPUPrimitives)>("SDL_DrawGPUPrimitives")(
         pass, vertices, instances, firstVertex, firstInstance);
+}
+
+extern "C" void SDL_BindGPUIndexBuffer(SDL_GPURenderPass* pass, const SDL_GPUBufferBinding* binding,
+    SDL_GPUIndexElementSize size) {
+    ++sceneIndexBindings;
+    Original<decltype(&SDL_BindGPUIndexBuffer)>("SDL_BindGPUIndexBuffer")(pass, binding, size);
 }
 
 extern "C" void SDL_DrawGPUIndexedPrimitives(SDL_GPURenderPass* pass, Uint32 indices, Uint32 instances,
@@ -469,9 +476,10 @@ void PersistentMesh(MetalSession& session, std::string& error) {
     CHECK(pixel[0] == 0 && pixel[1] == 255);
     batched.draws[1].meshColor = {{1, 0, 0, 1}};
     sceneIndexedDrawCalls = 0;
+    sceneIndexBindings = 0;
     geometryUploads = 0;
     CHECK(session.Render(batched, error));
-    CHECK(sceneIndexedDrawCalls == 2 && geometryUploads == 0);
+    CHECK(sceneIndexedDrawCalls == 2 && sceneIndexBindings == 1 && geometryUploads == 0);
     CHECK(session.ReadPixels(14, 8, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 255 && pixel[1] == 0);
     // Combining overlapping translucent surfaces must retain their compositing order.

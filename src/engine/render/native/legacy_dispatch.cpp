@@ -965,13 +965,21 @@ Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vecto
             Refuse(Status::LimitExceeded);
             return;
         }
-        for (const auto index : indices) {
-            if (index >= vertices.size()) {
-                Refuse(Status::InvalidValue);
+        if (recorder->AtFrameBoundary()) {
+            const auto status = recorder->SubmitIndexed(vertices, indices, perVertexColor);
+            if (status != Status::Ok) {
+                Refuse(status);
                 return;
             }
-        }
-        if (!indices.empty()) {
+        } else if (!indices.empty()) {
+            for (const auto index : indices) {
+                if (index >= vertices.size()) {
+                    Refuse(Status::InvalidValue);
+                    return;
+                }
+            }
+            // Lists own complete payloads until playback. Immediate capture copies
+            // directly into its frame packet.
             Command command;
             command.op = Op::DrawNative;
             command.argument = static_cast<std::uint32_t>(Primitive::Triangles);

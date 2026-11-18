@@ -654,6 +654,32 @@ void AllocationFailure() {
     Check(fresh.Seal(next) == Status::Ok, "construction fault leaves next owner usable");
 }
 
+void RecycleFrameStorage() {
+    FrameRecorder recorder;
+    Begin(recorder);
+    Send(recorder, Binding());
+    Send(recorder, Image());
+    Send(recorder, Geometry());
+    FrameSnapshot first;
+    Check(recorder.Seal(first) == Status::Ok, "seal recyclable frame");
+    const auto* drawMemory = first.draws.data();
+    const auto* eventMemory = first.events.data();
+    const std::weak_ptr<const TextureObject> oldImage = first.draws[0].resources[0].texture2D;
+    recorder.Recycle(std::move(first));
+    Begin(recorder, 2);
+    Send(recorder, Image());
+    Check(oldImage.expired(), "recycled storage retains no texture versions");
+    {
+        ScopedFault fault(CaptureAllocationSite::EventGrowthAfterDraw);
+        Send(recorder, Geometry());
+        Check(fault.Hits() == 0, "recycled events need no second allocation");
+    }
+    FrameSnapshot second;
+    Check(recorder.Seal(second) == Status::Ok, "seal next frame");
+    Check(second.draws.data() == drawMemory && second.events.data() == eventMemory,
+        "reuse both vectors after synchronous rendering");
+}
+
 void QuadExactState() {
     Recorder recorder;
     std::array<Vertex, 4> quad{};
@@ -809,6 +835,7 @@ int main(int argc, char** argv) {
         Owned();
     } else if (name == "boundaries") {
         Boundaries();
+        RecycleFrameStorage();
     } else if (name == "limits") {
         Limits();
     } else if (name == "abort") {

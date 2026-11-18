@@ -1256,7 +1256,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
     for (const auto& event : frame.events) {
-        Impl::Draw draw;
+        auto& draw = draws.emplace_back();
         if (event.kind == FrameEventKind::Clear) {
             if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error)) {
                 return false;
@@ -1268,6 +1268,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             (draw.data.topology == Primitive::Triangles &&
                 draw.data.raster.enabled[static_cast<std::size_t>(Capability::CullFace)] &&
                 draw.data.raster.cull == Cull::FrontAndBack)) {
+            draws.pop_back();
             continue;
         }
         const auto drawVertexBytes = draw.data.vertices.size() * sizeof(Vertex);
@@ -1281,7 +1282,6 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         vertexBytes += drawVertexBytes;
         indexBytes += drawIndexBytes;
         geometryBytes += bytes;
-        draws.push_back(std::move(draw));
     }
     struct Upload {
         Impl::Texture* texture;
@@ -1515,6 +1515,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     const Impl::Draw* previous = nullptr;
     SDL_Rect previousScissor{};
     SDL_GPUBufferBinding previousVertexBinding{};
+    SDL_GPUBuffer* previousIndexBuffer = nullptr;
     for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
         const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
@@ -1638,10 +1639,18 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
             const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;
-            SDL_GPUBufferBinding indices{residentIndices ? draw.mesh->page->indices : stream.indices,
-                residentIndices ? draw.mesh->indexOffset : draw.indexOffset};
-            SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
-            SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(indexCount), 1, 0, 0, 0);
+            auto* indexBuffer = residentIndices ? draw.mesh->page->indices : stream.indices;
+            if (indexBuffer != previousIndexBuffer) {
+                const SDL_GPUBufferBinding indices{indexBuffer, 0};
+                SDL_BindGPUIndexBuffer(pass, &indices, SDL_GPU_INDEXELEMENTSIZE_32BIT);
+                previousIndexBuffer = indexBuffer;
+            }
+            // All offsets are byte positions in uint32 index streams. Use firstIndex
+            // for each range so repeated draws do not rebind the same buffer.
+            const auto firstIndex = (residentIndices ? draw.mesh->indexOffset : draw.indexOffset) /
+                sizeof(std::uint32_t);
+            SDL_DrawGPUIndexedPrimitives(pass, static_cast<Uint32>(indexCount), 1,
+                static_cast<Uint32>(firstIndex), 0, 0);
         }
     }
     SDL_EndGPURenderPass(pass);

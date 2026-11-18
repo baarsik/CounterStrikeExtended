@@ -119,6 +119,20 @@ Status FrameRecorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     }
 }
 
+Status FrameRecorder::SubmitIndexed(const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    const auto status = Gate();
+    if (status != Status::Ok) {
+        return status;
+    }
+    try {
+        const auto firstDraw = recorder_.Draws().size();
+        return AppendDrawEvents(firstDraw, recorder_.SubmitIndexed(vertices, indices, perVertexColor));
+    } catch (const std::bad_alloc&) {
+        return Fail(Status::LimitExceeded);
+    }
+}
+
 Status FrameRecorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
     const auto status = Gate();
     if (status != Status::Ok) {
@@ -237,6 +251,18 @@ Status FrameRecorder::Seal(FrameSnapshot& output) {
     output.info = info_;
     active_ = false;
     return Status::Ok;
+}
+
+void FrameRecorder::Recycle(FrameSnapshot&& frame) {
+    if (active_) {
+        return;
+    }
+    // Keep only outer storage, so retired images and meshes can be reclaimed.
+    frame.draws.clear();
+    frame.events.clear();
+    if (recorder_.TakeFrameDraws(frame.draws) == Status::Ok) {
+        events_.swap(frame.events);
+    }
 }
 
 void FrameRecorder::Abort() {

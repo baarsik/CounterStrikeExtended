@@ -547,6 +547,52 @@ Status Recorder::SubmitQuad(const std::array<Vertex, 4>& vertices) {
     return result;
 }
 
+Status Recorder::SubmitIndexed(const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    constexpr std::size_t kIndicesPerTriangle = 3;
+    if (!AtFrameBoundary() || indices.size() % kIndicesPerTriangle != 0) {
+        return Status::InvalidOperation;
+    }
+    if (vertices.size() > limits_.verticesPerDraw || indices.size() > limits_.verticesPerDraw) {
+        return Status::LimitExceeded;
+    }
+    for (const auto index : indices) {
+        if (index >= vertices.size()) {
+            return Status::InvalidValue;
+        }
+    }
+    if (indices.empty()) {
+        return Status::Ok;
+    }
+    if (!limits_.replayCommands) {
+        return Status::LimitExceeded;
+    }
+    return RecordArrayDraw(Primitive::Triangles, vertices, indices, perVertexColor);
+}
+
+Status Recorder::RecordArrayDraw(Primitive primitive, const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, bool perVertexColor) {
+    if (vertices.empty()) {
+        return Status::Ok;
+    }
+    auto draw = Snapshot(primitive);
+    BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+    draw.vertices = vertices;
+    if (!indices.empty()) {
+        BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
+        draw.indices = indices;
+    }
+    for (auto& vertex : draw.vertices) {
+        if (!perVertexColor) {
+            vertex.color = state_.Current().color;
+        }
+        for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
+            vertex.texcoords[unit] = state_.Current().texcoords[unit];
+        }
+    }
+    return AppendDraw(draw);
+}
+
 Status Recorder::SubmitSurface(const std::shared_ptr<const SurfaceMesh>& mesh, float scroll, bool detail) {
     if (!AtFrameBoundary()) {
         return Status::InvalidOperation;
@@ -632,27 +678,8 @@ Status Recorder::Execute(const Command& command, std::size_t depth, std::size_t&
         if (command.vertices.size() > limits_.verticesPerDraw) {
             return Status::LimitExceeded;
         }
-        auto draw = Snapshot(static_cast<Primitive>(command.argument));
-        if (!command.vertices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-        }
-        draw.vertices = command.vertices;
-        if (!command.indices.empty()) {
-            BeforeCaptureAllocation(CaptureAllocationSite::DrawSnapshotCopy);
-            draw.indices = command.indices;
-        }
-        for (auto& vertex : draw.vertices) {
-            if (command.op != Op::DrawNative || !command.second) {
-                vertex.color = state_.Current().color;
-            }
-            for (std::size_t unit = 1; unit < kTextureUnits; ++unit) {
-                vertex.texcoords[unit] = state_.Current().texcoords[unit];
-            }
-        }
-        if (!draw.vertices.empty()) {
-            return AppendDraw(draw);
-        }
-        break;
+        return RecordArrayDraw(static_cast<Primitive>(command.argument), command.vertices, command.indices,
+            command.op == Op::DrawNative && command.second != 0);
     }
     default:
         return Status::InvalidValue;
