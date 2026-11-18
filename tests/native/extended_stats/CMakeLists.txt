@@ -65,6 +65,7 @@ target_include_directories(extended_stats_bridge_tests PRIVATE "${CMAKE_CURRENT_
   "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cstrike/cl_dll")
 add_test(NAME legacy_local_isolation COMMAND extended_stats_bridge_tests legacy)
 add_test(NAME healthinfo_local_fallback COMMAND extended_stats_bridge_tests healthinfo)
+add_test(NAME fractional_health_minimum_bridge COMMAND extended_stats_bridge_tests fractional_health)
 add_test(NAME spectator_refresh COMMAND extended_stats_bridge_tests spectator)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/registration_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_registration.py"
@@ -83,7 +84,7 @@ add_executable(extended_stats_client_tests client_tests.cpp)
 target_compile_features(extended_stats_client_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_client_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/cstrike/cl_dll")
 foreach(scenario IN ITEMS message_validation legacy_precedence invalidation_fallback local_alive_state
-    scoreboard_health_fallback client_lifecycle)
+    scoreboard_health_fallback fractional_health_minimum client_lifecycle)
   add_test(NAME ${scenario} COMMAND extended_stats_client_tests ${scenario})
 endforeach()
 

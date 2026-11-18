@@ -124,7 +124,23 @@ struct PredictedPlayer {
 } player;
 #include "bridge_bodies.inc"
 int main(int, char** argv) {
-    if (std::strcmp(argv[1], "healthinfo") == 0) {
+    if (std::strcmp(argv[1], "fractional_health") == 0) {
+        CHudHealth hud;
+        unsigned char truncated[] = {1, 0, 0, 0, 0};
+        CSE_UpdateLegacyHealth(1, 1, true);
+        hud.MsgFunc_HealthInfo(nullptr, sizeof(truncated), truncated);
+        if (gHUD.m_Health.amount != 1) {
+            return 1;
+        }
+        CSE_UpdateLegacyHealth(1, 0, true);
+        if (gHUD.m_Health.amount != 0) {
+            return 1;
+        }
+        CSE_UpdateLegacyHealth(1, 1, true);
+        if (gHUD.m_Health.amount != 1) {
+            return 1;
+        }
+    } else if (std::strcmp(argv[1], "healthinfo") == 0) {
         CHudHealth hud;
         unsigned char hidden[] = {1, 255, 255, 255, 255};
         hud.MsgFunc_HealthInfo(nullptr, sizeof(hidden), hidden);

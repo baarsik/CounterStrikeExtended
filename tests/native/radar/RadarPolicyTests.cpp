@@ -159,6 +159,15 @@ RADAR_TEST_F(RadarPolicyTest, CvarForcesAllyGating) {
     CHECK_TRUE(LogContains("hud_radar_allies 0"));
 }
 
+RADAR_TEST_F(RadarPolicyTest, ForcedGatingPersistsWhenDeadPlayerIsNotObserved) {
+    Frame(10.0f);
+    policy.ObserveAlly(3, true, {100.0f, 100.0f}, {100.0f, 100.0f, 0.0f});
+    CHECK_TRUE(policy.IsAllyRevealed(3));
+    policy.SetForceAllyGating(true);
+    Frame(10.1f); // UpdatePolicy skips dead players in this frame.
+    CHECK_FALSE(policy.IsAllyRevealed(3));
+}
+
 RADAR_TEST_F(RadarPolicyTest, ServerHintForcesAllyGating) {
     policy.SetServerFfaHint(true);
     Frame(10.0f);

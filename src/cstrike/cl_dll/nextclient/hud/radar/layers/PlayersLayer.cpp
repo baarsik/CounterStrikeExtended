@@ -18,6 +18,7 @@
 
 #include "hud/radar/integration/RadarConfig.h"
 #include "hud/radar/integration/RadarDebug.h"
+#include "hud/radar/layers/players/RadarDeathMarkerPolicy.h"
 #include "hud/radar/layers/players/PlayerObserver.h"
 #include "hud/radar/markers/RadarBroadcast.h"
 #include "hud/radar/render/RadarDraw.h"
@@ -338,14 +339,12 @@ void PlayersLayer::DrawTrack(const RadarFrame& frame, int player, ncl_math::Colo
 void PlayersLayer::RecordPlayerDeathIfNew(int player, RadarTeam team, float time) {
     const RadarBroadcast::Death& death = broadcast_.get_death(player);
     const bool new_exact = death.seq != 0 && death.seq != death_seq_[player];
+    // DeathMsg reaches everyone, including allies hidden by FFA or radar policy.
+    const bool use_exact = RadarDeathMarker_UseExactPosition(death, death_seq_[player], team, team_,
+                                                              policy_.IsAllyRevealed(player), time);
     if (new_exact) {
         death_seq_[player] = death.seq;
     }
-    constexpr float kDeathMessageAge = 1.0f;
-    // DeathMsg is broadcast to everyone; only allied coordinates may be used to place a mark.
-    const bool use_exact = new_exact && team == team_ &&
-                           (team == RadarTeam::Terrorist || team == RadarTeam::CounterTerrorist) &&
-                           time >= death.time && time - death.time <= kDeathMessageAge;
     if (use_exact || prev_alive_[player]) {
         const bool new_death = prev_alive_[player];
         prev_alive_[player] = false;

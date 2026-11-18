@@ -54,6 +54,18 @@ int main(int, char** argv) {
         state.ScoreboardHealth(1, 600);
         state.ResetPlayer(1);
         Check(!state.Get(Stat::Health, 1).valid, "player reset clears HealthInfo");
+    } else if (std::strcmp(argv[1], "fractional_health_minimum") == 0) {
+        state.Legacy(Stat::Health, 1, 1);
+        Check(state.ScoreboardHealth(1, 0) == 1, "truncated HealthInfo zero preserves positive Health minimum");
+        state.Legacy(Stat::Health, 1, 0);
+        Check(state.Get(Stat::Health, 1).amount == 0, "actual legacy death remains zero");
+        state.Legacy(Stat::Health, 1, 1);
+        Check(state.Get(Stat::Health, 1).amount == 1, "later legacy minimum corrects scoreboard zero");
+        const unsigned char death[] = {1, 0, 0, 0, 0};
+        state.Apply(Stat::Health, death, 5, 32, player);
+        Check(state.Get(Stat::Health, 1).amount == 0, "HealthEx death remains authoritative");
+        state.Apply(Stat::Health, invalid, 5, 32, player);
+        Check(state.Get(Stat::Health, 1).amount == 1, "minimum resumes after HealthEx invalidation");
     } else {
         state.Apply(Stat::Armor, high, 5, 32, player);
         state.ResetPlayer(1);

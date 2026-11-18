@@ -232,6 +232,12 @@ bool RadarPolicy::IsAllyRevealed(int index) const {
         return false;
     }
 
+    // Dead players are not observed again this frame, so a newly forced gate must
+    // override the last decision made while they were alive.
+    if (force_gating_server_ || force_gating_cvar_) {
+        return false;
+    }
+
     return allies_[index].revealed;
 }
 

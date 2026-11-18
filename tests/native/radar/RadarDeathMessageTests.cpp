@@ -2,6 +2,7 @@
 
 #include "hud/radar/markers/RadarBroadcast.h"
 #include "hud/radar/layers/players/DeathMarks.h"
+#include "hud/radar/layers/players/RadarDeathMarkerPolicy.h"
 
 RADAR_TEST(RadarDeathMessage, CarriesExactPositionUntilPlayerReset) {
     RadarBroadcast broadcast;
@@ -12,6 +13,20 @@ RADAR_TEST(RadarDeathMessage, CarriesExactPositionUntilPlayerReset) {
     CHECK_EQ(broadcast.get_death(3).time, 10.0f);
     broadcast.ResetPlayers();
     CHECK_EQ(broadcast.get_death(3).seq, 0u);
+}
+
+RADAR_TEST(RadarDeathMessage, ExactPositionRequiresAllyReveal) {
+    RadarBroadcast::Death death{{100.0f, -75.0f, 8.0f}, 10.0f, 1};
+    CHECK_FALSE(RadarDeathMarker_UseExactPosition(death, 0, RadarTeam::Terrorist, RadarTeam::Terrorist,
+                                                  false, 10.1f));
+    CHECK_TRUE(RadarDeathMarker_UseExactPosition(death, 0, RadarTeam::Terrorist, RadarTeam::Terrorist,
+                                                 true, 10.1f));
+    CHECK_FALSE(RadarDeathMarker_UseExactPosition(death, 0, RadarTeam::CounterTerrorist, RadarTeam::Terrorist,
+                                                 true, 10.1f));
+    CHECK_FALSE(RadarDeathMarker_UseExactPosition(death, 1, RadarTeam::Terrorist, RadarTeam::Terrorist,
+                                                  true, 10.1f));
+    CHECK_FALSE(RadarDeathMarker_UseExactPosition(death, 0, RadarTeam::Terrorist, RadarTeam::Terrorist,
+                                                  true, 11.1f));
 }
 
 RADAR_TEST(RadarDeathMessage, CorrectsLastKnownMarkWithoutDuplicatingIt) {

@@ -45,6 +45,13 @@ class ClientState {
             return slot.extended;
         }
         if (stat == Stat::Health && slot.scoreboard.valid) {
+            // The CS sender truncates HealthInfo to zero for (0, 1] health, while
+            // its legacy Health message sends one for that living interval.
+            constexpr std::int32_t kLivingFractionalMinimum = 1;
+            if (slot.scoreboard.amount == 0 && slot.legacy.valid &&
+                slot.legacy.amount == kLivingFractionalMinimum) {
+                return slot.legacy;
+            }
             return slot.scoreboard;
         }
         return slot.legacy;
