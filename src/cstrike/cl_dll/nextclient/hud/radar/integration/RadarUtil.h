@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstring>
 #include <filesystem>
 #include <span>
@@ -66,6 +67,12 @@ inline bool RadarUtil_EqualsIgnoringAsciiCase(const char* a, const char* b) {
     return RadarUtil_ToLowerAscii(*a) == RadarUtil_ToLowerAscii(*b);
 }
 
+inline bool RadarUtil_ContainsIgnoringAsciiCase(std::string_view text, std::string_view part) {
+    return part.empty() || std::search(text.begin(), text.end(), part.begin(), part.end(), [](char left, char right) {
+        return RadarUtil_ToLowerAscii(left) == RadarUtil_ToLowerAscii(right);
+    }) != text.end();
+}
+
 // map_models are the models the map's hostage entities name: a stock hostage can wear
 // models/scientist.mdl, which no name rule tells from a prop. The engine looks models up ignoring
 // case and keeps the first spelling it loaded, so the comparison ignores case too.
@@ -77,7 +84,7 @@ inline bool RadarUtil_IsHostageModel(const char* path, std::span<const std::stri
     }
 
     // Substring, not exact match, so custom hostage model paths still classify.
-    return std::strstr(path, "hostage") != nullptr;
+    return RadarUtil_ContainsIgnoringAsciiCase(path, "hostage");
 }
 
 // Bomb-target names encode the site letter as "tgt_a", "a_crates", "targeta" or "a".

@@ -1,6 +1,5 @@
 #include "ObjectiveEntities.h"
 
-#include <cstring>
 #include "NativeSdk.h"
 
 #include "main.h"
@@ -24,9 +23,9 @@ ObjectiveEntities::ModelKind ObjectiveEntities::ClassifyModel(const model_t* mod
 
     if (RadarUtil_IsHostageModel(model->name, map.get_hostage_models())) {
         kind = ModelKind::Hostage;
-    } else if (std::strstr(model->name, "backpack")) {
+    } else if (RadarUtil_ContainsIgnoringAsciiCase(model->name, "backpack")) {
         kind = ModelKind::BombDropped;
-    } else if (std::strstr(model->name, "w_c4")) {
+    } else if (RadarUtil_ContainsIgnoringAsciiCase(model->name, "w_c4")) {
         kind = ModelKind::BombPlanted;
     }
 
