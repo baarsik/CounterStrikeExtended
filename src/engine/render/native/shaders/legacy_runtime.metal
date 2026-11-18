@@ -28,6 +28,12 @@ struct Input {
     float4 uv2 [[attribute(4)]];
 };
 
+struct SingleTextureInput {
+    float4 position [[attribute(0)]];
+    float4 color [[attribute(1)]];
+    float4 uv [[attribute(2)]];
+};
+
 struct WorldInput {
     float3 position [[attribute(0)]];
     float2 uv0 [[attribute(1)]];
@@ -64,6 +70,12 @@ Varying TransformLegacyVertex(float4 position, float4 color, float4 uv0, float4 
 vertex Varying LegacyVertex(Input input [[stage_in]],
     constant VertexConstants& constants [[buffer(0)]]) {
     return TransformLegacyVertex(input.position, input.color, input.uv0, input.uv1, input.uv2, constants);
+}
+
+vertex Varying LegacySingleTextureVertex(SingleTextureInput input [[stage_in]],
+    constant VertexConstants& constants [[buffer(0)]]) {
+    const float4 unusedUv = float4(0, 0, 0, 1);
+    return TransformLegacyVertex(input.position, input.color, input.uv, unusedUv, unusedUv, constants);
 }
 
 vertex Varying LegacyWorldVertex(WorldInput input [[stage_in]],

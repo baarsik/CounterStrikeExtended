@@ -717,6 +717,76 @@ void IndexedDraws(MetalSession& session, std::string& error) {
     }
 }
 
+void IndexedTextureLayout(MetalSession& session, std::string& error) {
+    auto image = std::make_shared<TextureImage>();
+    image->width = 2;
+    image->height = 2;
+    image->defined = true;
+    image->pixels = {255, 64, 0, 255, 255, 0, 64, 255, 255, 128, 128, 255, 255, 32, 224, 255};
+    auto texture = std::make_shared<TextureObject>();
+    texture->levels[0] = image;
+    texture->sampler.minification = Filter::Linear;
+    texture->sampler.magnification = Filter::Linear;
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    frame.events = {clear, FrameEvent{}};
+    auto draw = Solid(0.75f, 0.5f, 1);
+    draw.primitive = Primitive::Triangles;
+    draw.indices = {0, 1, 2, 0, 2, 3};
+    draw.textures[0].enabled2D = true;
+    draw.resources[0].texture2D = texture;
+    for (auto& vertex : draw.vertices) {
+        auto& position = vertex.position;
+        constexpr float kPositionW = 2.0f;
+        vertex.texcoords[0] = {{0.25f + position[0], 0.5f + position[1], 0.65f, 2.0f}};
+        vertex.texcoords[1] = {{0, 0, 0, 1}};
+        vertex.position = {{position[0] * kPositionW, position[1] * kPositionW, 0, kPositionW}};
+    }
+    frame.draws = {draw};
+    session.EnableDiagnostics(true);
+    CHECK(session.Render(frame, error));
+    constexpr std::size_t kCompactStride = 48;
+    CHECK(session.Diagnostics().streamedVertexBytes == draw.vertices.size() * kCompactStride);
+    constexpr std::size_t kPixelBytes = kTargetSize * kTargetSize * 4;
+    std::array<unsigned char, kPixelBytes> packed{};
+    std::array<unsigned char, kPixelBytes> reference{};
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, packed.data(), error));
+    auto& expanded = frame.draws[0];
+    expanded.vertices.clear();
+    for (auto index : draw.indices) {
+        expanded.vertices.push_back(draw.vertices[index]);
+    }
+    expanded.indices.clear();
+    CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
+    CHECK(packed == reference);
+
+    // An actual second texture uses its own full per-vertex coordinates in the same indexed path.
+    auto green = std::make_shared<TextureImage>(*image);
+    for (std::size_t index = 0; index < green->pixels.size(); index += 4) {
+        green->pixels[index] = 0;
+        green->pixels[index + 1] = 255;
+        green->pixels[index + 2] = 0;
+    }
+    auto second = std::make_shared<TextureObject>(*texture);
+    second->levels[0] = green;
+    draw.resources[1].texture2D = second;
+    draw.textures[1].enabled2D = true;
+    draw.textures[1].environment = EnvironmentMode::Replace;
+    frame.draws[0] = draw;
+    const auto previousBytes = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().streamedVertexBytes - previousBytes == draw.vertices.size() * sizeof(Vertex));
+    std::array<unsigned char, 4> pixel{};
+    CHECK(session.ReadPixels(kTargetSize / 2, kTargetSize / 2, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 255, 0, 255}}));
+    session.EnableDiagnostics(false);
+}
+
 extern "C" SDL_GPUFence* SDL_SubmitGPUCommandBufferAndAcquireFence(SDL_GPUCommandBuffer* command) {
     if (presentationProbe.active) {
         ++presentationProbe.submissions;
@@ -832,6 +902,7 @@ int main() {
     PreparationReuse(session, error);
     ConsecutiveDraws(session, error);
     IndexedDraws(session, error);
+    IndexedTextureLayout(session, error);
     NonfiniteGeometry(session, error);
     BatchedUiPixels(session, error);
     PersistentMesh(session, error);

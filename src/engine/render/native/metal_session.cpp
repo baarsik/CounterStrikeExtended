@@ -25,8 +25,8 @@ constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextures = 512;
 constexpr std::size_t kMaximumCachedPipelines = 512;
-// Two vertex layouts combine with four border/alpha fragment variants.
-constexpr std::size_t kMaximumCachedVariantPipelines = 8 * kMaximumCachedPipelines;
+// Three vertex layouts combine with four border/alpha fragment variants.
+constexpr std::size_t kMaximumCachedVariantPipelines = 12 * kMaximumCachedPipelines;
 constexpr std::size_t kMaximumCachedMeshBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMeshVertexPageBytes = 4 * 1024 * 1024;
 constexpr std::size_t kMeshIndexPageBytes = 1024 * 1024;
@@ -41,6 +41,10 @@ struct WorldMeshVertex {
     std::array<float, 2> uv1;
 };
 static_assert(sizeof(WorldMeshVertex) == 28, "World mesh vertex layout");
+
+// The single-texture stream keeps position, color, and unit zero's entire homogeneous UV.
+constexpr std::size_t kSingleTextureVertexBytes = 3 * sizeof(std::array<float, 4>);
+static_assert(offsetof(Vertex, texcoords) == 2 * sizeof(std::array<float, 4>), "Legacy vertex attribute layout");
 
 std::size_t Align(std::size_t value, std::size_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
@@ -203,8 +207,10 @@ struct MetalSession::Impl {
         std::uint64_t lastUse = 0;
         bool uploaded = false;
     };
+    enum class VertexLayout { Full, World, SingleTexture };
     struct Draw {
         MetalDrawData data;
+        VertexLayout layout = VertexLayout::Full;
         Mesh* mesh = nullptr;
         std::array<Texture*, kTextureUnits> textures{};
         std::array<SDL_GPUSampler*, kTextureUnits> samplers{};
@@ -254,6 +260,7 @@ struct MetalSession::Impl {
     SDL_Window* window = nullptr;
     SDL_GPUShader* vertex = nullptr;
     SDL_GPUShader* worldVertex = nullptr;
+    SDL_GPUShader* singleTextureVertex = nullptr;
     std::array<SDL_GPUShader*, 4> fragments{};
     SDL_GPUTexture* color = nullptr;
     SDL_GPUTexture* spareResolve = nullptr;
@@ -479,8 +486,10 @@ struct MetalSession::Impl {
         return SDL_CreateGPUShader(device, &info);
     }
 
-    SDL_GPUGraphicsPipeline* Pipeline(const MetalDrawData& draw, bool softwareBorder, bool worldLayout,
+    SDL_GPUGraphicsPipeline* Pipeline(const MetalDrawData& draw, bool softwareBorder, VertexLayout layout,
         Preparation& pending) {
+        const bool worldLayout = layout == VertexLayout::World;
+        const bool singleTexture = layout == VertexLayout::SingleTexture;
         const auto& state = draw.raster;
         const bool blend = state.enabled[static_cast<std::size_t>(Capability::Blend)];
         const bool depthTest = state.enabled[static_cast<std::size_t>(Capability::DepthTest)];
@@ -497,7 +506,7 @@ struct MetalSession::Impl {
             state.depthWrite, static_cast<unsigned>(state.depthFunction), cull, static_cast<unsigned>(state.cull),
             state.frontCounterClockwise, static_cast<unsigned>(state.polygonMode[0]), bias,
             Bits(state.polygonOffset[0]), Bits(state.polygonOffset[1]), state.colorWrite[0], state.colorWrite[1],
-            state.colorWrite[2], state.colorWrite[3], fragmentIndex, worldLayout}};
+            state.colorWrite[2], state.colorWrite[3], fragmentIndex, static_cast<std::uint32_t>(layout)}};
         if (pending.pipeline && pending.pipelineKey == key) {
             return pending.pipeline;
         }
@@ -526,7 +535,8 @@ struct MetalSession::Impl {
             }
         }
         SDL_GPUVertexBufferDescription buffer{};
-        buffer.pitch = worldLayout ? sizeof(WorldMeshVertex) : sizeof(Vertex);
+        buffer.pitch = worldLayout ? sizeof(WorldMeshVertex) :
+            singleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
         buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
         constexpr std::array<SDL_GPUVertexAttribute, 3> worldAttributes{{
             {0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, offsetof(WorldMeshVertex, position)},
@@ -540,13 +550,13 @@ struct MetalSession::Impl {
             attributes[index].offset = static_cast<Uint32>(index * sizeof(std::array<float, 4>));
         }
         SDL_GPUGraphicsPipelineCreateInfo info{};
-        info.vertex_shader = worldLayout ? worldVertex : vertex;
+        info.vertex_shader = worldLayout ? worldVertex : singleTexture ? singleTextureVertex : vertex;
         info.fragment_shader = fragments[fragmentIndex];
         info.vertex_input_state.vertex_buffer_descriptions = &buffer;
         info.vertex_input_state.num_vertex_buffers = 1;
         info.vertex_input_state.vertex_attributes = worldLayout ? worldAttributes.data() : attributes.data();
         info.vertex_input_state.num_vertex_attributes = static_cast<Uint32>(
-            worldLayout ? worldAttributes.size() : attributes.size());
+            worldLayout ? worldAttributes.size() : singleTexture ? 3 : attributes.size());
         info.primitive_type = draw.topology == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST :
             SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
         info.rasterizer_state.fill_mode = state.polygonMode[0] == PolygonMode::Line ?
@@ -820,8 +830,14 @@ struct MetalSession::Impl {
                 draw.softwareBorder |= sampling[0] == clamp || sampling[1] == clamp;
             }
         }
-        draw.pipeline = Pipeline(draw.data, draw.softwareBorder,
-            draw.mesh && draw.data.mesh->HasWorldVertexLayout(), pending);
+        if (draw.mesh && draw.data.mesh->HasWorldVertexLayout()) {
+            draw.layout = VertexLayout::World;
+        } else if (!draw.mesh && !packet.indices.empty() && !draw.data.Indices().empty() &&
+            draw.data.fragment.legacy.unit[1][0] == 0 && draw.data.fragment.legacy.unit[2][0] == 0) {
+            // Higher texture coordinates cannot influence a single-texture draw.
+            draw.layout = VertexLayout::SingleTexture;
+        }
+        draw.pipeline = Pipeline(draw.data, draw.softwareBorder, draw.layout, pending);
         return draw.pipeline || DeviceFailure(error, "Create cached Metal pipeline");
     }
 
@@ -1080,13 +1096,16 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     }
     state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.worldVertex = state.Shader("LegacyWorldVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    state.singleTextureVertex = state.Shader("LegacySingleTextureVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     constexpr std::array<const char*, 4> entrypoints{{"LegacyFragmentHardwareSampling",
         "LegacyFragmentAlphaTestHardwareSampling", "LegacyFragment", "LegacyFragmentAlphaTest"}};
     for (std::size_t index = 0; index < entrypoints.size(); ++index) {
         state.fragments[index] = state.Shader(entrypoints[index], SDL_GPU_SHADERSTAGE_FRAGMENT);
     }
-    if (!state.vertex || !state.worldVertex || std::any_of(state.fragments.begin(), state.fragments.end(),
-        [](const auto* fragment) { return fragment == nullptr; })) {
+    if (!state.vertex || !state.worldVertex || !state.singleTextureVertex ||
+        std::any_of(state.fragments.begin(), state.fragments.end(), [](const auto* fragment) {
+            return fragment == nullptr;
+        })) {
         Shutdown();
         return DeviceFailure(error, "Load embedded offline Metal shaders");
     }
@@ -1357,7 +1376,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             draws.pop_back();
             continue;
         }
-        const auto drawVertexBytes = draw.data.Vertices().size() * sizeof(Vertex);
+        const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
+            kSingleTextureVertexBytes : sizeof(Vertex);
+        const auto drawVertexBytes = draw.data.Vertices().size() * vertexStride;
         const auto drawIndexBytes = draw.data.Indices().size() * sizeof(std::uint32_t);
         const auto bytes = drawVertexBytes + drawIndexBytes;
         if (bytes > kMaximumStreamingBytes - geometryBytes) {
@@ -1373,7 +1394,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                 state.counters.quadVertexBytes += drawVertexBytes;
             }
             if (draw.data.borrowedVertices) {
-                state.counters.borrowedGeometryBytes += bytes;
+                state.counters.borrowedGeometryBytes += draw.data.Vertices().size() * sizeof(Vertex) + drawIndexBytes;
             }
         }
     }
@@ -1485,7 +1506,13 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         }
         for (const auto& draw : draws) {
             const auto& vertices = draw.data.Vertices();
-            if (!vertices.empty()) {
+            if (draw.layout == Impl::VertexLayout::SingleTexture) {
+                auto* destination = mapped + draw.vertexOffset;
+                for (const auto& vertex : vertices) {
+                    std::memcpy(destination, &vertex, kSingleTextureVertexBytes);
+                    destination += kSingleTextureVertexBytes;
+                }
+            } else if (!vertices.empty()) {
                 std::memcpy(mapped + draw.vertexOffset, vertices.data(), vertices.size() * sizeof(Vertex));
             }
             const auto& indices = draw.data.Indices();
@@ -2168,6 +2195,9 @@ void MetalSession::Shutdown() {
     }
     if (state.worldVertex) {
         SDL_ReleaseGPUShader(state.device, state.worldVertex);
+    }
+    if (state.singleTextureVertex) {
+        SDL_ReleaseGPUShader(state.device, state.singleTextureVertex);
     }
     for (auto* fragment : state.fragments) {
         if (fragment) {
