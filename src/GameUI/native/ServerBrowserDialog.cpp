@@ -602,7 +602,9 @@ public:
                 return;
             }
         }
-        if (details_->MetadataFailed() && !responded_) {
+        if (details_->MetadataFailed()) {
+            connectPending_ = false;
+            responded_ = false;
             failed_ = true;
         }
         for (auto &player : details_->TakeUpdates()) {

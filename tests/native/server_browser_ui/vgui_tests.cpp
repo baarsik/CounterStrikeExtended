@@ -1204,6 +1204,36 @@ int main(int argc, char **argv) {
             Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
                     "password submission connected a changed selection");
             Require(engine.password == "secret", "password ownership did not reach safe engine setter");
+        } else if (name == "game-info-failed-connect") {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            dialog->Pump();
+            auto* info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto item = Server(target.ip);
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Send(*info, "Connect");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerFailedToRespond();
+            dialog->Pump();
+            gui->RunFrame();
+            auto* label = static_cast<vgui2::Label*>(layout_fixture::Child(*info, "InfoLabel"));
+            std::array<wchar_t, 256> text{};
+            label->GetText(text.data(), static_cast<int>(text.size()));
+            const auto* failure = vgui2::localize()->Find("ServerBrowser_ServerNotResponding");
+            Require(failure && std::wstring(text.data()) == failure, "latest failed ping must replace a successful status");
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands.empty(), "refreshing a recovered server must not replay the failed Connect");
+            Send(*info, "Connect");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
+                "an explicit new Connect must still join the recovered server");
         } else if (playerRefresh) {
             dialog->SelectVisible(0);
             const auto target = *session.model.Selection();
