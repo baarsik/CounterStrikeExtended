@@ -81,6 +81,53 @@ extern "C" void SDL_free(void* pointer) {
     std::free(pointer);
 }
 
+bool haveStandardMode = true;
+int inclusiveQueries = 0;
+
+extern "C" bool SDL_GetClosestFullscreenDisplayMode(SDL_DisplayID display, int, int, float,
+    bool includeHighDensity, SDL_DisplayMode* result) {
+    CHECK(display == FixtureDisplay);
+    if (includeHighDensity) {
+        ++inclusiveQueries;
+        *result = offered;
+        return available;
+    }
+    *result = lowerDensity;
+    return haveStandardMode;
+}
+
+static SDL_DisplayMode FindRenderMode(int wide, int tall, int refresh) {
+    SDL_DisplayMode requested{};
+    SDL_DisplayMode mode{};
+#include "render_mode.inc"
+    return mode;
+}
+
+static void CheckRenderModes() {
+    constexpr int renderWidth = 960;
+    constexpr int renderHeight = 540;
+    constexpr int requestedRefresh = 144;
+    lowerDensity.w = renderWidth;
+    lowerDensity.h = renderHeight;
+    lowerDensity.refresh_rate = requestedRefresh;
+    lowerDensity.pixel_density = 1.0f;
+    offered = lowerDensity;
+    offered.pixel_density = 2.0f;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).pixel_density == 1.0f);
+    CHECK(FindRenderMode(renderWidth, renderHeight, 0).pixel_density == 1.0f);
+    CHECK(inclusiveQueries == 0);
+
+    lowerDensity.w = 1024;
+    lowerDensity.h = 576;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).w == renderWidth);
+    lowerDensity.w = renderWidth;
+    lowerDensity.h = renderHeight;
+    lowerDensity.refresh_rate = DesktopRate;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).refresh_rate == requestedRefresh);
+    haveStandardMode = false;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).pixel_density == 2.0f);
+}
+
 extern "C" bool SDL_SetWindowFullscreenMode(SDL_Window *, const SDL_DisplayMode *mode) {
     ++modeCalls;
     if (mode && !accepted) {
@@ -106,6 +153,10 @@ int main(int argc, char **argv) {
     try {
         CHECK(argc == 2);
         const std::string name = argv[1];
+        if (name == "render-mode") {
+            CheckRenderModes();
+            return 0;
+        }
         desktop.w = 2560;
         desktop.h = 1440;
         desktop.refresh_rate = DesktopRate;

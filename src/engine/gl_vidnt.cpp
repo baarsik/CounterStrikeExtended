@@ -20,6 +20,7 @@
 #include "mem.h"
 #include "vid.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -1014,9 +1015,19 @@ int GL_SetMode(CseGameWindowHandle mainwindow, CseVideoDC *pmaindc, CseVideoCont
         requested.w = wide;
         requested.h = tall;
         requested.refresh_rate = static_cast<float>(refresh);
-        if (!SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), requested.w, requested.h,
-                                                 requested.refresh_rate, false, &mode)) {
-            Sys_Error("Error initializing Main frame buffer\n");
+        const SDL_DisplayID display = SDL_GetPrimaryDisplay();
+        const bool standardMode = SDL_GetClosestFullscreenDisplayMode(display, requested.w, requested.h,
+            requested.refresh_rate, false, &mode);
+        if (!standardMode || mode.w != wide || mode.h != tall ||
+            (refresh > 0 && std::lround(mode.refresh_rate) != refresh)) {
+            // The video menu also lists modes available only at high pixel density.
+            SDL_DisplayMode inclusiveMode{};
+            if (SDL_GetClosestFullscreenDisplayMode(display, requested.w, requested.h, requested.refresh_rate,
+                true, &inclusiveMode)) {
+                mode = inclusiveMode;
+            } else if (!standardMode) {
+                Sys_Error("Error initializing Main frame buffer\n");
+            }
         }
         Con_DPrintf("Setting closest display mode: width:%d height:%d freq:%d format:%u\n", mode.w, mode.h,
                     cse::RefreshRateOrDefault(mode.refresh_rate), (unsigned int)mode.format);
