@@ -16,6 +16,7 @@
 #include "../common/r_studioint.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 
 #define WARP_BUFFER_SIZE	128000
@@ -751,20 +752,19 @@ qboolean R_CullBox( vec_t* mins, vec_t* maxs )
 R_EdgeDrawing
 ================
 */
-void R_EdgeDrawing()
-{
-	edge_t ledges[MAX_STACK_EDGES + ( ( CACHE_SIZE - 1 ) / sizeof( edge_t ) ) + 1];
-	surf_t lsurfs[MAX_STACK_SURFACES + ( ( CACHE_SIZE - 1 ) / sizeof( surf_t ) ) + 1];
-	if ( auxedges )
-		r_edges = auxedges;
-	else
-		r_edges = (edge_t*)( ( (uintptr_t)&ledges[0] + CACHE_SIZE - 1 ) & ~(uintptr_t)( CACHE_SIZE - 1 ) );
-	if ( r_surfsonstack )
-	{
-		surfaces = (surf_t*)( ( (uintptr_t)&lsurfs[0] + CACHE_SIZE - 1 ) & ~(uintptr_t)( CACHE_SIZE - 1 ) );
-		surf_max = surfaces + r_cnumsurfs;
-		surfaces--;
-	}
+void R_EdgeDrawing() {
+    // The renderer has a single active edge frame. On x64 its default scratch exceeds the Windows stack.
+    alignas(CACHE_SIZE) static edge_t localEdges[MAX_STACK_EDGES];
+    static_assert(CACHE_SIZE % alignof(surf_t) == 0);
+    constexpr std::size_t SurfacePadding = CACHE_SIZE / alignof(surf_t);
+    alignas(CACHE_SIZE) static surf_t localSurfaces[SurfacePadding + MAX_STACK_SURFACES];
+
+    r_edges = auxedges ? auxedges : localEdges;
+    if (r_surfsonstack) {
+        // Slot zero is a dummy. Padding keeps the first usable surface cache aligned.
+        surfaces = localSurfaces + SurfacePadding - 1;
+        surf_max = surfaces + 1 + r_cnumsurfs;
+    }
 	R_BeginEdgeFrame();
 	if ( r_dspeeds.value )
 		rw_time1 = (float)Sys_FloatTime();
