@@ -12,17 +12,14 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
     const unsigned smallWidth = std::max(1u, (width + (smoked ? downsample - 1 : 0)) / downsample);
     const unsigned smallHeight = std::max(1u, (height + (smoked ? downsample - 1 : 0)) / downsample);
     if (blur.width != width || blur.height != height) {
-        Release(blur.scene);
         Release(blur.filtered);
         Release(blur.scratch);
         blur = {};
-        blur.scene.gpu = Target(width, height);
-        blur.scene.sampler = LinearSampler();
         blur.filtered.gpu = Target(smallWidth, smallHeight);
         blur.filtered.sampler = LinearSampler();
         blur.scratch.gpu = Target(smallWidth, smallHeight);
         blur.scratch.sampler = LinearSampler();
-        if (!blur.scene.gpu || !blur.scene.sampler || !blur.filtered.gpu || !blur.filtered.sampler ||
+        if (!blur.filtered.gpu || !blur.filtered.sampler ||
             !blur.scratch.gpu || !blur.scratch.sampler) {
             return false;
         }
@@ -46,39 +43,36 @@ bool RadarRendererGpu::Impl::CaptureBlur(Blur& blur, int x, int y, unsigned widt
     capture.source.y = scene.height - static_cast<Uint32>(y) - height;
     capture.source.w = width;
     capture.source.h = height;
-    capture.destination.texture = blur.scene.gpu;
-    capture.destination.w = width;
-    capture.destination.h = height;
+    capture.destination.texture = blur.filtered.gpu;
+    capture.destination.w = smallWidth;
+    capture.destination.h = smallHeight;
     capture.load_op = SDL_GPU_LOADOP_DONT_CARE;
-    capture.filter = SDL_GPU_FILTER_NEAREST;
+    // The destination is no larger than the source rectangle. Each linear sample
+    // remains within its texel centers, including the two edges.
+    capture.filter = SDL_GPU_FILTER_LINEAR;
     SDL_BlitGPUTexture(command, &capture);
     session.CountRenderPass();
-    SDL_GPUBlitInfo downsampleInfo{};
-    downsampleInfo.source.texture = blur.scene.gpu;
-    downsampleInfo.source.w = width;
-    downsampleInfo.source.h = height;
-    downsampleInfo.destination.texture = blur.filtered.gpu;
-    downsampleInfo.destination.w = smallWidth;
-    downsampleInfo.destination.h = smallHeight;
-    downsampleInfo.load_op = SDL_GPU_LOADOP_DONT_CARE;
-    downsampleInfo.filter = SDL_GPU_FILTER_LINEAR;
-    SDL_BlitGPUTexture(command, &downsampleInfo);
-    session.CountRenderPass();
+    static const auto quad = Quad(0, 0, 1, 1);
+    if (!filterVertices) {
+        // Both passes use the same normalized geometry. Draw can still stream it
+        // if allocating the small retained buffer fails.
+        filterVertices = session.CreateEffectMesh(quad.data(), quad.size() * sizeof(quad[0]), error);
+    }
     MetalEffectAccess target{device, blur.scratch.gpu, nullptr, smallWidth, smallHeight, SDL_GPU_SAMPLECOUNT_1};
     RasterState raster;
     raster.viewport = {{0, 0, static_cast<int>(smallWidth), static_cast<int>(smallHeight)}};
     Uniforms uniforms;
     uniforms.transform = {{2, -2, -1, 1}};
     uniforms.effects = {{1.0f / smallWidth, 0, smoked ? 1.0f : 0.0f, 0}};
-    if (Draw(Quad(0, 0, 1, 1), {1, 1}, uniforms, 0, raster, &blur.filtered, 4, &target, nullptr,
-        nullptr, true) != CSE_RADAR_OK) {
+    if (Draw(quad, {1, 1}, uniforms, 0, raster, &blur.filtered, 4, &target, nullptr,
+        nullptr, true, false, false, filterVertices) != CSE_RADAR_OK) {
         return false;
     }
     target.color = blur.filtered.gpu;
     uniforms.effects[0] = 0;
     uniforms.effects[1] = 1.0f / smallHeight;
-    return Draw(Quad(0, 0, 1, 1), {1, 1}, uniforms, 0, raster, &blur.scratch, 4, &target, nullptr,
-        nullptr, true) == CSE_RADAR_OK;
+    return Draw(quad, {1, 1}, uniforms, 0, raster, &blur.scratch, 4, &target, nullptr,
+        nullptr, true, false, false, filterVertices) == CSE_RADAR_OK;
 }
 
 CseRadarResult RadarRendererGpu::DrawRadarBackdrop(const CseRadarBackdropDraw& draw, const RasterState& raster) {

@@ -123,7 +123,6 @@ struct RadarRendererGpu::Impl {
     std::uint64_t nextTexture = 1;
     Texture white;
     struct Blur {
-        Texture scene;
         Texture filtered;
         Texture scratch;
         unsigned width = 0;
@@ -131,6 +130,7 @@ struct RadarRendererGpu::Impl {
         int originX = 0;
         int originY = 0;
     } radarBlur, smokedBlur;
+    SDL_GPUBuffer* filterVertices = nullptr;
     struct PanelMesh {
         std::vector<CseRadarPrimitiveVertex> vertices;
         SDL_GPUBuffer* gpu = nullptr;

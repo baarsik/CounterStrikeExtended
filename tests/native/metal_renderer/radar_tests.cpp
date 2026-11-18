@@ -198,6 +198,42 @@ int main() {
     CHECK(effects.DrawRadarBackdrop(backdrop, raster) == CSE_RADAR_OK);
     CHECK(session.ReadPixels(0, 0, 64, 64, 4, 4, pixels.data(), error));
     CHECK(pixels[(32 * 64 + 32) * 4 + 1] >= 88 && pixels[(32 * 64 + 32) * 4 + 1] <= 90);
+    // The odd-sized, off-center crop must sample only the capture rectangle.
+    // Surround it with a bright contrasting color to expose clamped-edge bleed.
+    {
+        constexpr int kX = 9;
+        constexpr int kY = 11;
+        constexpr int kExtent = 37;
+        constexpr int kGlY = 64 - kY - kExtent;
+        auto crop = frame;
+        crop.events[0].clear.color = {{1, 0, 1, 1}};
+        auto interior = crop.events[0];
+        interior.clear.color = {{0, 1, 0, 1}};
+        interior.clear.scissorEnabled = true;
+        interior.clear.scissor = {{kX, kGlY, kExtent, kExtent}};
+        crop.events.push_back(interior);
+        CHECK(session.Render(crop, error));
+        auto croppedBackdrop = backdrop;
+        croppedBackdrop.x = kX;
+        croppedBackdrop.y = kY;
+        croppedBackdrop.extent = kExtent;
+        croppedBackdrop.darken = 1;
+        const auto passes = session.Diagnostics().renderPasses;
+        const auto copies = session.Diagnostics().copyPasses;
+        CHECK(effects.DrawRadarBackdrop(croppedBackdrop, raster) == CSE_RADAR_OK);
+        CHECK(session.ReadPixels(0, 0, 64, 64, 4, 4, pixels.data(), error));
+        for (int y = kGlY; y < kGlY + kExtent; ++y) {
+            for (int x = kX; x < kX + kExtent; ++x) {
+                const auto pixel = (y * 64 + x) * 4;
+                CHECK(pixels[pixel] == 0 && pixels[pixel + 1] == 255 && pixels[pixel + 2] == 0);
+            }
+        }
+        CHECK(pixels[0] == 255 && pixels[1] == 0 && pixels[2] == 255);
+        // Resolve, downsample, two blur directions, draw the effect, and resolve for readback.
+        CHECK(session.Diagnostics().renderPasses - passes == 6);
+        // Only overlay vertices stream after filter geometry has warmed up. Readback is the other copy.
+        CHECK(session.Diagnostics().copyPasses - copies == 2);
+    }
     // Recycled engine names must never recycle the service identity.
     auto firstGeneration = std::make_shared<TextureObject>(*texture);
     firstGeneration->generation = 10;

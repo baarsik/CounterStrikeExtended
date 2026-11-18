@@ -7,14 +7,15 @@ RadarRendererGpu::Impl::Impl(MetalSession& owner, std::uint64_t generation) : se
 
 RadarRendererGpu::Impl::~Impl() {
     ClearPanels();
+    if (filterVertices) {
+        SDL_ReleaseGPUBuffer(device, filterVertices);
+    }
     for (auto& texture : textures) {
         Release(texture.second);
     }
     Release(white);
-    Release(radarBlur.scene);
     Release(radarBlur.filtered);
     Release(radarBlur.scratch);
-    Release(smokedBlur.scene);
     Release(smokedBlur.filtered);
     Release(smokedBlur.scratch);
     for (auto& pipeline : pipelines) {
