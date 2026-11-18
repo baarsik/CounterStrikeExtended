@@ -392,6 +392,23 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
             "a collapsed slider range keeps a valid knob while radar controls initialize");
     }
     {
+        vgui2::Slider narrow(root, "NarrowSlider");
+        constexpr int ThumbWidth = 8;
+        constexpr int SelectedValue = 6;
+        narrow.SetThumbWidth(ThumbWidth);
+        narrow.SetRange(0, 10);
+        narrow.SetValue(SelectedValue, false);
+        for (int width : {ThumbWidth, ThumbWidth / 2, 0}) {
+            narrow.SetSize(width, 24);
+            narrow.RecomputeValueFromNobPos();
+            int knobStart = -1;
+            int knobEnd = -1;
+            narrow.GetNobPos(knobStart, knobEnd);
+            Require(narrow.GetValue() == SelectedValue && knobStart == 0 && knobEnd == width,
+                "a slider with no thumb travel preserves its value and keeps its thumb inside the control");
+        }
+    }
+    {
         auto* first = new vgui2::Panel(root, "FirstTooltipOwner");
         auto* second = new vgui2::Panel(root, "SecondTooltipOwner");
         auto* firstTooltip = first->GetTooltip();

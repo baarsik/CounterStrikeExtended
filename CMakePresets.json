@@ -408,6 +408,7 @@
       "cacheVariables": {
         "CSE_AMXX_MODULES_ONLY": "ON",
         "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_C_FLAGS": "-m32",
         "CMAKE_CXX_FLAGS": "-m32"
       },
       "condition": {

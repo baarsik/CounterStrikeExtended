@@ -1,4 +1,4 @@
-#include "module.h"
+#include "stats.h"
 #include "legacy_numbers.h"
 
 namespace cse::extstats {

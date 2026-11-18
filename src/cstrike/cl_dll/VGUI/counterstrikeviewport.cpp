@@ -22,6 +22,7 @@
 #include "../../../public/localization_service.h"
 #include "../../../cl_dll/Exports.h"
 #include "counterstrikeviewport.h"
+#include "server_form_panel.h"
 #include "cstriketeammenu.h"
 #include "cstrikeclassmenu.h"
 #include "cstrikespectatorgui.h"
@@ -167,6 +168,7 @@ void CounterStrikeViewport::Start()
 
 void CounterStrikeViewport::Shutdown()
 {
+    cse::forms::CloseFormPanel();
     CS_ForgetLanguageService();
 }
 
@@ -538,11 +540,13 @@ void CounterStrikeViewport::ActivateClientUI()
 	UpdateBuyPresets();
 	CCareerBaseBox::CloseOpenBoxes( false );
 	m_inClientUI = true;
+    cse::forms::SetFormPanelClientUIActive(true);
 }
 
 void CounterStrikeViewport::HideClientUI()
 {
 	m_inClientUI = false;
+    cse::forms::SetFormPanelClientUIActive(false);
 }
 
 //-----------------------------------------------------------------------------

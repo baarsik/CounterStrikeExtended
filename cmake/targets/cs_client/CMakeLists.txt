@@ -685,6 +685,15 @@ else()
   set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
 endif()
 
+# The platform random source and native file streams can report failures with C++ exceptions.
+foreach(cse_forms_source IN ITEMS server_form_client.cpp server_form_cache.cpp)
+  if(MSVC)
+    set_property(SOURCE "${CSE_SDK_DIR}/cstrike/cl_dll/${cse_forms_source}" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
+  else()
+    set_property(SOURCE "${CSE_SDK_DIR}/cstrike/cl_dll/${cse_forms_source}" APPEND PROPERTY COMPILE_OPTIONS -fexceptions)
+  endif()
+endforeach()
+
 # The native radar uses std::span, ranges and the same SDL3 provider as the client.
 get_target_property(cse_cs_sources cs_client SOURCES)
 foreach(cse_cs_source IN LISTS cse_cs_sources)

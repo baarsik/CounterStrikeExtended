@@ -3,6 +3,7 @@
 #include "native_frame_timings.h"
 #endif
 #include "client.h"
+#include "../public/cse_server_forms.h"
 #include "cmd.h"
 #include "common.h"
 #include "conprint.h"
@@ -399,7 +400,7 @@ static const svc_func_t cl_parsefuncs[] = { { 0, "svc_bad", nullptr }, { 1, "svc
 	{ 57, "svc_sendcvarvalue", CL_Send_CvarValue }, { 58, "svc_sendcvarvalue2", CL_Send_CvarValue2 },
 	{ 59, "svc_exec", CL_Exec } };
 
-void DispatchUserMsg( int messageId )
+bool DispatchUserMsg( int messageId )
 {
 	static byte buffer[USER_MESSAGE_DATA_BYTES];
 	if ( messageId >= USER_MESSAGE_ID_LIMIT )
@@ -409,6 +410,7 @@ void DispatchUserMsg( int messageId )
 		message = message->next;
 	if ( !message )
 		Host_Error( "UserMsg: Not Present on Client %d\n", messageId );
+    const bool serverForm = Q_strcasecmp(message->szName, cse::forms::kUserMessage) == 0;
 	int size = message->iSize;
 	if ( size == -1 ) // variable-length message
 		size = MSG_ReadByte(); // extract the length of the variable-length message from the stream
@@ -437,6 +439,7 @@ void DispatchUserMsg( int messageId )
 	{
 		Con_DPrintf( "UserMsg: No pfn %s %d\n", message->szName, messageId );
 	}
+    return serverForm;
 }
 
 char* CL_MsgInfo( int command )
@@ -565,7 +568,10 @@ void CL_ParseServerMessage( qboolean normal_message )
             auto& timings = cse_diagnostics::NativeFrameTimings();
             double messageStart = timings.Enabled() ? Sys_FloatTime() : 0.0;
 #endif
-			DispatchUserMsg( command );
+            if (DispatchUserMsg(command) && !cls.demoplayback && !msg_badread) {
+                // Both demo streams write the parsed packet. Preserve its framing without recording server-form data.
+                std::memset(net_message.data + commandStart, svc_nop, msg_readcount - commandStart);
+            }
 #if defined(__APPLE__)
             if (timings.Enabled()) {
                 timings.RecordPacketEvent(host_framecount, command, CL_MsgInfo(command), messageStart, Sys_FloatTime());

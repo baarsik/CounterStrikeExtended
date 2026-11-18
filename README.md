@@ -8,11 +8,10 @@ The software client renderer is deprecated and planned for removal in a future r
 
 ## AMX Mod X module
 
-The optional `cse_extstats` AMXX module for Win32/Linux32 Counter-Strike servers
-provides 32-bit health and armor messages and five-digit CSE HUD values up to
-99999. It includes automatic synchronization and Pawn natives for updating player
-stats while preserving legacy client compatibility. See the
-[build, installation and API guide](docs/extended-stats.md).
+The optional `csextended` AMXX module for Win32/Linux32 Counter-Strike servers
+provides [extended health and armor](docs/extended-stats.md) and
+[server-scoped VGUI2 forms and images](docs/server-forms.md). Pawn plugins can
+use both APIs through `#include <csextended>`.
 
 ## Building
 

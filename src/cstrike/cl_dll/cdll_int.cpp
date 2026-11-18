@@ -1,3 +1,4 @@
+#include "server_form_client.h"
 /***
 *
 *	Copyright (c) 1999, Valve LLC. All rights reserved.
@@ -289,11 +290,13 @@ extern "C" void EXPORT HUD_Init()
 //	RecClHudInit();
 	InitInput();
 	gHUD.Init();
+    cse::forms::RegisterServerForms();
 }
 
 extern "C" void EXPORT HUD_Shutdown()
 {
     NativeRadar_Shutdown();
+    cse::forms::EndServerFormsSession();
 	CS_ForgetLanguageService();
     ShutdownInput();
 	CL_UnloadParticleMan();
@@ -329,6 +332,7 @@ extern "C" int EXPORT HUD_UpdateClientData( client_data_t* data, float time )
 extern "C" void EXPORT HUD_Frame( double time )
 {
 	CS_CheckLanguageRevision();
+    cse::forms::RunServerFormsFrame();
     GetClientVoice()->Frame( time );
 }
 

@@ -1,5 +1,5 @@
-#ifndef CSE_EXTSTATS_MODULE_H
-#define CSE_EXTSTATS_MODULE_H
+#ifndef CSEXTENDED_STATS_H
+#define CSEXTENDED_STATS_H
 #include "stats_state.h"
 #include "amxxmodule.h"
 #ifdef snprintf

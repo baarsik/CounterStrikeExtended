@@ -2,7 +2,7 @@
 #include <fakemeta>
 #include <cstrike>
 #include <hamsandwich>
-#include <cse_extstats>
+#include <csextended>
 
 new const Values[] = {0, 1, 255, 256, 511, 512, 999, 1000, 32767, 32768, 65535, 65536, 99999, 100000};
 new Subject;

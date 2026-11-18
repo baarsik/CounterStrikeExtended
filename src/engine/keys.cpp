@@ -24,6 +24,7 @@
 #include "vgui_intwrap2.h"
 #include "zone.h"
 #include "../common/dll_state.h"
+#include "../public/cse_server_forms_client.h"
 
 #include <cstdio>
 #include <cstring>
@@ -58,6 +59,7 @@ qboolean message_type_is_privileged = TRUE;
 int chat_bufferlen;
 qboolean keyGameUIdown[KEY_BINDING_COUNT];
 qboolean keydown[KEY_BINDING_COUNT];
+static bool serverFormKeysDown[KEY_BINDING_COUNT];
 int key_repeats[KEY_BINDING_COUNT]; // if > 1, it is autorepeating
 int history_line;
 int edit_line;
@@ -540,6 +542,7 @@ Key_ClearStates
 void Key_ClearStates() {
     memset(keydown, 0, sizeof(keydown));
     memset(keyGameUIdown, 0, sizeof(keyGameUIdown));
+    memset(serverFormKeysDown, 0, sizeof(serverFormKeysDown));
     memset(key_repeats, 0, sizeof(key_repeats));
 }
 
@@ -609,16 +612,32 @@ void Key_Event(int key, qboolean down) {
     char *kb;
     char cmd[1024];
 
-    if (key >= KEY_BINDING_COUNT) {
+    if (key < 0 || key >= KEY_BINDING_COUNT) {
         return;
     }
 
     g_engdstAddrs.Key_Event(&key, &down);
 
+    const bool wasDown = keydown[key] != 0;
     keydown[key] = down;
 
     if (keydown[K_CTRL] && keydown[K_ALT] && keydown[K_DEL]) {
         Sys_Error("ctrl-alt-del pressed");
+    }
+
+    // Finish a key press owned by the form even if it closed while the key was held.
+    if (serverFormKeysDown[key]) {
+        serverFormKeysDown[key] = down != 0;
+        return;
+    }
+    if (key_dest == key_game && down && (key == K_ESCAPE || key != toggleconsole_key)) {
+        if (auto* form = ClientDLL_ServerForms()) {
+            const bool shortcutModifierDown = keydown[K_CTRL] || keydown[K_ALT] || keydown[K_WIN];
+            if (form->ConsumeKeyPress(key, wasDown, shortcutModifierDown)) {
+                serverFormKeysDown[key] = !wasDown;
+                return;
+            }
+        }
     }
 
     if (key_dest == key_game && (down || keyGameUIdown[key]) &&

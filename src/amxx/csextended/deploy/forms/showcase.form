@@ -1,0 +1,24 @@
+form 720 460 Server Forms Showcase
+group 16 16 208 376 - 0 0 Preview
+label 32 54 176 20 - 0 0 Preview scale
+slider 32 78 176 30 1 75 125
+label 32 124 176 20 - 0 0 Layout
+select 32 148 176 36 2 1 0 Compact|Comfortable|Expanded
+divider 32 198 176 2 - 0 0
+image 32 218 48 48 - 0 0 showcase-mark
+label 88 228 120 28 - 0 0 Cached emblem
+image 32 304 48 48 - 0 0 showcase-session
+label 88 314 120 28 - 0 0 Session emblem
+group 240 16 464 376 - 0 0 Profile controls
+label 256 54 432 20 - 0 0 Actions
+button 256 78 200 36 3 0 0 Test action
+check 472 78 216 36 4 0 0 Show guide
+label 256 136 432 20 - 0 0 Audience
+radio 256 160 200 36 L 1 1 Local preview
+radio 472 160 216 36 S 1 0 Shared preview
+divider 256 218 432 2 - 0 0
+check 256 236 432 36 G 1 0 Show labels
+label 256 296 432 20 - 0 0 Preview title
+text 256 320 432 36 E 0 0 Server preview
+button 544 408 160 36 Q 0 0 Close
+label 16 408 512 36 - 0 0 Click a control or use its shortcut. Actions appear in your console.

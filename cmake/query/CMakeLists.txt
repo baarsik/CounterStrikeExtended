@@ -93,7 +93,7 @@ foreach(directory IN LISTS children)
     continue()
   endif()
   get_filename_component(target "${directory}" NAME)
-  if(target STREQUAL "cse_extstats")
+  if(target STREQUAL "csextended")
     # The isolated AMXX package is not a game-relative runtime target.
     continue()
   endif()

@@ -75,6 +75,10 @@ std::string WebPPath(const char* path) {
 }
 
 bool DecodeWebP(const void* data, std::size_t size, Image& image, std::size_t capacity) {
+    return DecodeWebP(data, size, image, capacity, WEBP_MAX_DIMENSION);
+}
+
+bool DecodeWebP(const void* data, std::size_t size, Image& image, std::size_t capacity, int maximumSide) {
     image = Image{};
     if (!IsWebP(data, size) || size > MaximumEncodedBytes) {
         return false;
@@ -89,7 +93,8 @@ bool DecodeWebP(const void* data, std::size_t size, Image& image, std::size_t ca
         return false;
     }
     WebPBitstreamFeatures features{};
-    if (WebPGetFeatures(bytes, size, &features) != VP8_STATUS_OK || features.has_animation) {
+    if (WebPGetFeatures(bytes, size, &features) != VP8_STATUS_OK || features.has_animation ||
+        features.width > maximumSide || features.height > maximumSide) {
         return false;
     }
     std::size_t decodedBytes = 0;

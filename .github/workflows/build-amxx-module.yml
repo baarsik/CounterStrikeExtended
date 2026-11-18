@@ -61,17 +61,20 @@ jobs:
         env:
           PACKAGE_DIR: build/${{ matrix.preset }}/package
         run: |
-          git archive --format=zip --output="$PACKAGE_DIR/cse_extstats-source.zip" HEAD -- \
+          git archive --format=zip --output="$PACKAGE_DIR/cse-amxx-source.zip" HEAD -- \
             CMakeLists.txt CMakePresets.json LICENSE LICENSES cmake/AMXXModules.cmake cmake/TargetPlatform.cmake \
-            cmake/targets/cse_extstats src/amxx/cse_extstats src/external/amxx-sdk \
-            src/public/cse_extended_stats_protocol.h docs/extended-stats.md
-          printf 'Source commit: %s\nCorresponding source: cse_extstats-source.zip\n' \
+            cmake/WebPDependency.cmake cmake/dependencies/WebP \
+            cmake/targets/csextended src/amxx/csextended \
+            src/external/amxx-sdk src/external/libwebp-source src/common/image_codec.cpp src/common/image_codec.h \
+            src/public/cse_extended_stats_protocol.h src/public/cse_server_forms.h src/public/cse_server_forms.cpp \
+            src/public/cse_server_forms_image.cpp docs/extended-stats.md docs/server-forms.md
+          printf 'Source commit: %s\nCorresponding source: cse-amxx-source.zip\n' \
             "$GITHUB_SHA" > "$PACKAGE_DIR/SOURCE.txt"
 
       - name: Upload module ZIP
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: cse_extstats-${{ matrix.platform }}
+          name: csextended-${{ matrix.platform }}
           path: build/${{ matrix.preset }}/package/
           if-no-files-found: error
           compression-level: 9
