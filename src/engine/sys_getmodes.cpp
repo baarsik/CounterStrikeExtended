@@ -2378,14 +2378,18 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
             const int refresh = atoi(com_argv[frequencyParm + 1]);
             const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
             const SDL_DisplayMode *desktop = SDL_GetDesktopDisplayMode(display);
-            SDL_DisplayMode mode{};
-            // SDL's closest result may substitute resolution or rate. Only accept the
-            // requested nominal Hz at desktop pixels; the FBO keeps the render size.
-            if (refresh > 0 && desktop &&
-                SDL_GetClosestFullscreenDisplayMode(display, desktop->w, desktop->h,
-                                                    static_cast<float>(refresh), false, &mode) &&
-                mode.w == desktop->w && mode.h == desktop->h && std::round(mode.refresh_rate) == refresh) {
-                selectedRefresh = SDL_SetWindowFullscreenMode(window, &mode);
+            if (refresh > 0 && desktop) {
+                int count = 0;
+                SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display, &count);
+                for (int index = 0; index < count && !selectedRefresh; ++index) {
+                    const SDL_DisplayMode* mode = modes[index];
+                    // Cocoa exposes 1x and Retina modes with the same logical size.
+                    if (mode->w == desktop->w && mode->h == desktop->h &&
+                        mode->pixel_density == desktop->pixel_density && std::round(mode->refresh_rate) == refresh) {
+                        selectedRefresh = SDL_SetWindowFullscreenMode(window, mode);
+                    }
+                }
+                SDL_free(modes);
             }
             if (!selectedRefresh) {
                 Con_DPrintf("Frequency %d is not supported at the desktop resolution\n", refresh);
