@@ -207,8 +207,10 @@ static void RecycledBinding() {
     GL_SelectTexture(GL_TEXTURE0_SGIS);
 }
 
+static short availablePalette;
+
 short GL_PaletteAdd(byte*, qboolean) {
-    return 0;
+    return availablePalette;
 }
 
 int Q_strcmp(const char* first, const char* second) {
@@ -241,6 +243,7 @@ static void Reset() {
     generatedTextures = 0;
     loadCallbacks = 0;
     gl_palette_tex.value = 0;
+    availablePalette = 0;
     unpackAlignment = 4;
     unpackRowLength = 17;
     for (int i = 0; i < 256; ++i) {
@@ -295,6 +298,43 @@ static void LargeIndexed() {
     assert(uploads[0].pixels.size() == source.size() * 4);
     assert(uploads[0].pixels.back() == 255);
     assert(uploads[0].pixels[uploads[0].pixels.size() - 4] == 42);
+}
+
+static void LargePalette() {
+    constexpr int width = 2048;
+    constexpr int height = 1024;
+    char name[] = "large-studio-skin";
+    std::vector<byte> source(width * height, 1);
+    std::array<byte, 768> palette{};
+    source.back() = 2;
+    gl_palette_tex.value = 1;
+    const int texture = GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR);
+    assert(texture != 0);
+    assert(uploads.size() == 1 && uploads[0].format == GL_COLOR_INDEX && uploads[0].pixels == source);
+    assert(texture == GL_LoadTexture2(name, GLT_STUDIO, width, height, nullptr, FALSE,
+        TEX_TYPE_NONE, nullptr, GL_LINEAR));
+
+    Reset();
+    gl_palette_tex.value = 1;
+    gl_max_size.value = 128;
+    g_bSupportsNPOTTextures = FALSE;
+    assert(GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) != 0);
+    assert(uploads.size() == 1 && uploads[0].width == 128 && uploads[0].height == 128);
+    assert(uploads[0].format == GL_COLOR_INDEX && uploads[0].pixels.front() == source.front());
+
+#if !defined(TEXTURE_UPLOAD_BASELINE)
+    Reset();
+    gl_palette_tex.value = 1;
+    availablePalette = -1;
+    assert(GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) == 0);
+    assert(numgltextures == 0 && generatedTextures == 0 && uploads.empty());
+    assert(GL_LoadTexture2(name, GLT_STUDIO, 1, 1, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) != 0);
+    assert(uploads.size() == 1 && uploads[0].format == GL_RGBA);
+#endif
 }
 
 static void Luminance() {
@@ -486,7 +526,8 @@ static void Cache() {
 int main(int argc, char** argv) {
     const std::string selected = argc > 1 ? argv[1] : "all";
     for (const auto& test : {std::pair{"ordinary", Ordinary}, {"large-indexed", LargeIndexed},
-        {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide}, {"invalid", Invalid}, {"cache", Cache},
+        {"large-palette", LargePalette}, {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide},
+        {"invalid", Invalid}, {"cache", Cache},
         {"sampling", Sampling}, {"anisotropy", Anisotropy}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
         {"bounded-views", BoundedViews}, {"recycled-binding", RecycledBinding}}) {
         if (selected == "all" || selected == test.first) {
