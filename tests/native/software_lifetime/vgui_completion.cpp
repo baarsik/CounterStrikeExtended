@@ -13,13 +13,22 @@ struct Counter {
         return count;
     }
 };
+void* g_pKeyValues = reinterpret_cast<void*>(5);
+
 namespace vgui2 {
 void* g_pSurface = reinterpret_cast<void*>(1);
 void* g_pFileSystem = reinterpret_cast<void*>(2);
 void* g_pIPanel = reinterpret_cast<void*>(3);
 void* g_pLocalize = reinterpret_cast<void*>(4);
+struct System {
+    int shutdowns = 0;
+    void Shutdown() {
+        assert(g_pKeyValues && g_pFileSystem);
+        ++shutdowns;
+    }
+} systemOwner;
+System* g_pSystem = &systemOwner;
 } // namespace vgui2
-void* g_pKeyValues = reinterpret_cast<void*>(5);
 class CVGui {
 public:
     cse::vgui_completion::Result FinishNativeClient(const void*) noexcept;
@@ -72,10 +81,13 @@ int main() {
         pending->count = 0;
     }
     owner.m_Contexts.count = 2;
+    assert(vgui2::systemOwner.shutdowns == 0);
     assert(owner.FinishNativeClient(surface) == Result::Complete);
+    assert(vgui2::systemOwner.shutdowns == 1);
     assert(!vgui2::g_pSurface && !vgui2::g_pFileSystem && !vgui2::g_pIPanel && !vgui2::g_pLocalize && !g_pKeyValues);
     assert(owner.m_nativeSealed && !owner.m_bRunning && !owner.m_bInitialized && !owner.m_Contexts.count);
     assert(owner.FinishNativeClient(surface) == Result::Complete);
+    assert(vgui2::systemOwner.shutdowns == 1);
     std::puts(
         "PASS actual provider finish rejects live owners/callbacks, preserves views on failure and seals on retry");
 #endif

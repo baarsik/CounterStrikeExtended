@@ -790,6 +790,8 @@ cse::vgui_completion::Result CVGui::FinishNativeClient(const void* selectedSurfa
     if (m_Contexts.Count()) {
         return Result::Busy;
     }
+    // The system's dialog configuration tree uses the current KeyValues allocator.
+    vgui2::g_pSystem->Shutdown();
     m_bRunning = false;
     m_bInitialized = false;
     m_nativeSealed = true;
