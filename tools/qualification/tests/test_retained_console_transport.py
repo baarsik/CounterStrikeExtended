@@ -20,6 +20,8 @@ AUDIT = []
 
 class RetainedTests(unittest.TestCase):
     def setUp(self):
+        if EVIDENCE is None:
+            self.skipTest('Run this script with --evidence and both Windows console helpers')
         self.before = own_children()
         self.processes = []
         self.case = self.id().split('.')[-1]
