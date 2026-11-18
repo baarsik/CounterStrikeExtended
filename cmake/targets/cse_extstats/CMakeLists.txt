@@ -27,7 +27,7 @@ else()
   target_link_options(cse_extstats PRIVATE -static-libgcc -static-libstdc++ -Wl,--no-undefined)
   set_property(TARGET cse_extstats PROPERTY OUTPUT_NAME "cse_extstats_amxx_i386")
 endif()
-add_custom_command(TARGET cse_extstats POST_BUILD
+add_custom_target(cse_extstats_package_assets
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${package}/configs" "${package}/scripting/include"
     "${package}/scripting" "${CMAKE_BINARY_DIR}/package/licenses"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/cse_extstats.cfg" "${package}/configs/"
@@ -37,4 +37,5 @@ add_custom_command(TARGET cse_extstats POST_BUILD
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${sdk}/lock.json" "${CMAKE_BINARY_DIR}/package/lock.json"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CSE_ROOT}/docs/extended-stats.md"
     "${CMAKE_BINARY_DIR}/package/"
-  VERBATIM)
+  VERBATIM COMMENT "Stage extended stats module package assets")
+add_dependencies(cse_extstats cse_extstats_package_assets)
