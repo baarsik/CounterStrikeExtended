@@ -1,9 +1,8 @@
 #pragma once
 
-#if defined(_WIN32) && !defined(_WINDOWS_)
+#if defined(_WIN32) && !defined(_MINWINDEF_)
 // Let the Windows headers define APIENTRY when GLAD was included first.
 #undef APIENTRY
-#include <windows.h>
 #endif
 
 // Use the owning hardware renderer definitions: the legacy SDK com_model.h

@@ -263,9 +263,9 @@ bool CRemoteServer::ProcessServerResponse() {
     bool processed = false;
     constexpr int MaximumPacketBytes = 65536;
     constexpr int MaximumNameBytes = 512;
-    const auto buffer = std::make_unique<char[]>(MaximumPacketBytes);
-    char* const packet = buffer.get();
     while (m_provider == provider && m_generation == generation) {
+        const auto buffer = std::make_unique<char[]>(MaximumPacketBytes);
+        char* const packet = buffer.get();
         const int size = provider->ReadDataResponse(packet, MaximumPacketBytes);
         if (size <= 0) {
             break;

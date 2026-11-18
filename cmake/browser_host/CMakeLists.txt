@@ -108,8 +108,6 @@ if(MSVC)
   # MSVC places an incremental-link database beside the DLL even when PDB/import
   # paths are isolated. Runtime directories contain only staged runtime files.
   target_link_options(${CEF_TARGET} PRIVATE /INCREMENTAL:NO)
-  target_compile_options(${CEF_TARGET} PRIVATE
-    "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/Zi>")
   target_link_options(${CEF_TARGET} PRIVATE
     "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/DEBUG:FULL>"
     "$<$<AND:$<CONFIG:Release>,$<BOOL:${CSE_RELEASE_DIAGNOSTICS}>>:/OPT:REF>"

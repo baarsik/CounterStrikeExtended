@@ -35,7 +35,6 @@
 #include "LocalizationCatalogue.h"
 #include "../vgui_surfacelib/FontManager.h"
 #include "../vgui_surfacelib/LocalizationFontBackend.h"
-#include <cstdio>
 #include <cstring>
 #include <cwchar>
 #include <algorithm>

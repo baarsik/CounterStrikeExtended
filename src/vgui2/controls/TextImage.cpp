@@ -474,7 +474,7 @@ void TextImage::GetUnlocalizedText( char* buffer, int bufferSize )
     }
     cse::localization::RefreshText(this);
     const auto& source = cse::localization::Binding(this).token;
-    if (!source.empty()) {
+    if (!source.empty() && buffer && bufferSize > 0) {
         std::strncpy(buffer, source.c_str(), static_cast<std::size_t>(bufferSize));
         buffer[bufferSize - 1] = '\0';
         return;

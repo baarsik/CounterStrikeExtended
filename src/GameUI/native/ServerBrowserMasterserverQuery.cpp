@@ -89,7 +89,6 @@ struct Directory {
             connect(socket.handle, address, static_cast<int>(addressSize)) != 0) {
             return false;
         }
-        std::vector<unsigned char> bytes(UINT16_MAX);
         std::string cursor = "0.0.0.0:0";
         std::set<std::string> cursors;
         for (size_t page = 0; page < MaximumDirectoryPages && !stop; ++page) {
@@ -124,6 +123,7 @@ struct Directory {
                     if (!ready) {
                         continue;
                     }
+                    std::vector<unsigned char> bytes(UINT16_MAX);
                     const auto size = recv(socket.handle, reinterpret_cast<char*>(bytes.data()),
                         static_cast<int>(bytes.size()), 0);
                     if (size < 0) {
