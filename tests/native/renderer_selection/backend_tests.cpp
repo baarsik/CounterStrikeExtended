@@ -193,6 +193,8 @@ int main(int argc, char** argv) {
     CseRenderColor4ub(128, 64, 255, 192);
     CHECK(SubmitBackendQuad({{-1, -1, 1, 1}}, {{0, 0, 1, 1}}));
     std::array<unsigned char, 4> quadPixel{};
+    // A cubemap face can exceed the current scene size. Reject its readback and keep rendering.
+    CHECK(!BackendReadPixels(false, 32, 0, 1, 1, 4, 1, quadPixel.data()));
     CHECK(BackendReadPixels(false, 8, 8, 1, 1, 4, 1, quadPixel.data()));
     CHECK((quadPixel == std::array<unsigned char, 4>{{128, 64, 255, 192}}));
     CseRenderColor4f(1, 1, 1, 1);

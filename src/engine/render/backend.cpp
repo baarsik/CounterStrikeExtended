@@ -274,13 +274,16 @@ bool BackendReadPixels(bool presented, int x, int y, int width, int height, unsi
         if (!Submit()) {
             return false;
         }
-        const bool success = presented ?
-            session->ReadPresentedPixels(x, y, width, height, components, alignment, pixels, failure) :
-            session->ReadPixels(x, y, width, height, components, alignment, pixels, failure);
-        if (!success) {
-            std::fprintf(stderr, "Metal readback: %s\n", failure.c_str());
+        std::string error;
+        const auto stage = presented ? ReadbackStage::PresentedColor : ReadbackStage::SceneColor;
+        const auto result = session->CapturePixels(stage, x, y, width, height, components, alignment, pixels, error);
+        if (result == ReadbackResult::FrameFailed) {
+            failure = error;
         }
-        return success;
+        if (result != ReadbackResult::Success) {
+            std::fprintf(stderr, "Metal readback: %s\n", error.c_str());
+        }
+        return result == ReadbackResult::Success;
     }
 #else
     (void)presented;

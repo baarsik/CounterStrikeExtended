@@ -62,6 +62,7 @@ struct RenderFrameCounters {
 };
 
 enum class SceneOutput { Deferred, Resolved, ResolvedIfAvailable };
+enum class ReadbackResult { Success, CaptureFailed, FrameFailed };
 constexpr int kBaselineSystemRamMiB = 8 * 1024;
 
 class MetalSession {
@@ -81,6 +82,8 @@ public:
     bool PresentedSize(int& width, int& height) const;
     bool ReadPresentedPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
         void* pixels, std::string& error);
+    ReadbackResult CapturePixels(ReadbackStage stage, int x, int y, int width, int height, unsigned components,
+        unsigned alignment, void* pixels, std::string& error);
     bool Finish(std::string& error);
     // Engine-private ordered encoding context. SDL retains resources as they are encoded;
     // uploads use distinct frame-owned storage until the single submission fence retires.
