@@ -18,6 +18,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 #define WARP_BUFFER_SIZE	128000
 
@@ -48,6 +49,11 @@ int			r_maxedgesseen;
 int			r_cnumsurfs;
 qboolean	r_surfsonstack;
 int			r_clipflags;
+namespace {
+constexpr int StandardEdgeFractionalBits = 20;
+constexpr int WideEdgeFractionalBits = 18;
+}
+int r_edge_fractional_bits = StandardEdgeFractionalBits;
 byte*		r_warpbuffer;
 byte*		r_stack_start;
 qboolean	r_fov_greater_than_90;
@@ -366,8 +372,15 @@ void R_ViewChanged( vrect_t* rect, int lineadj, float aspect )
 	r_refdef.fvrecty = (float)r_refdef.vrect.y;
 	r_refdef.fvrectx_adj = (float)( left - 0.5 );
 	r_refdef.fvrecty_adj = (float)( top - 0.5 );
-	r_refdef.vrect_x_adj_shift20 = ( r_refdef.vrect.x << 20 ) + ( ( 1 << 19 ) - 1 );
-	r_refdef.vrectright_adj_shift20 = ( r_refdef.vrectright << 20 ) + ( ( 1 << 19 ) - 1 );
+    // Keep the original subpixel precision on smaller views. A wider viewport also needs room
+    // for the right-edge sentinel in the same signed fixed-point storage.
+    constexpr int StandardEdgeLimit = (std::numeric_limits<int>::max)() >> StandardEdgeFractionalBits;
+    r_edge_fractional_bits = r_refdef.vrectright <= StandardEdgeLimit
+        ? StandardEdgeFractionalBits : WideEdgeFractionalBits;
+    const int edgeScale = 1 << r_edge_fractional_bits;
+    const int edgeBias = edgeScale / 2 - 1;
+    r_refdef.vrect_x_adj_shift20 = r_refdef.vrect.x * edgeScale + edgeBias;
+    r_refdef.vrectright_adj_shift20 = r_refdef.vrectright * edgeScale + edgeBias;
 	r_refdef.fvrectright = (float)r_refdef.vrectright;
 	r_refdef.fvrectbottom = (float)r_refdef.vrectbottom;
 	r_refdef.fvrectright_adj = (float)( right - 0.5 );

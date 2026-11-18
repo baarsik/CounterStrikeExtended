@@ -156,7 +156,7 @@ void R_TrailingEdge( surf_t* surf, edge_t* edge )
 
 	if ( surf == surfaces[1].next )
 	{
-		int iu = edge->u >> 20;
+		int iu = edge->u >> r_edge_fractional_bits;
 		if ( iu > surf->last_u )
 		{
 			espan_t* span = span_p++;
@@ -191,13 +191,14 @@ void R_LeadingEdge( edge_t* edge )
 	surf_t* surf2 = surfaces[1].next;
 	if ( surf->insubmodel )
 	{
+        const int edgeScale = 1 << r_edge_fractional_bits;
 		++r_bmodelactive;
 		if ( surf->key < surf2->key )
 			goto newtop;
 
 		if ( surf->key == surf2->key )
 		{
-			double fu = (float)( edge->u - 0xFFFFF ) * ( 1.0 / 0x100000 );
+			double fu = static_cast<float>(edge->u - (edgeScale - 1)) / static_cast<double>(edgeScale);
 			double newzi = (double)( fv * surf->d_zistepv + surf->d_ziorigin ) + surf->d_zistepu * fu;
 			double testzi = (double)( fv * surf2->d_zistepv + surf2->d_ziorigin ) + surf2->d_zistepu * fu;
 			if ( newzi * 0.99 >= testzi ||
@@ -214,7 +215,7 @@ void R_LeadingEdge( edge_t* edge )
 			if ( surf->key != surf2->key )
 				break;
 
-			double fu = (float)( edge->u - 0xFFFFF ) * ( 1.0 / 0x100000 );
+			double fu = static_cast<float>(edge->u - (edgeScale - 1)) / static_cast<double>(edgeScale);
 			double newzi = (double)( fv * surf->d_zistepv + surf->d_ziorigin ) + surf->d_zistepu * fu;
 			double testzi = (double)( fv * surf2->d_zistepv + surf2->d_ziorigin ) + surf2->d_zistepu * fu;
 			if ( newzi * 0.99 >= testzi ||
@@ -235,7 +236,7 @@ void R_LeadingEdge( edge_t* edge )
 
 newtop:
 	{
-		int iu = edge->u >> 20;
+		int iu = edge->u >> r_edge_fractional_bits;
 		if ( iu > surf2->last_u )
 		{
 			espan_t* span = span_p++;
@@ -271,7 +272,7 @@ void R_LeadingEdgeBackwards( edge_t* edge )
 	surf_t* surf2 = surfaces[1].next;
 	if ( surf->key > surf2->key || ( surf->insubmodel && surf->key == surf2->key ) )
 	{
-		int iu = edge->u >> 20;
+		int iu = edge->u >> r_edge_fractional_bits;
 		if ( iu > surf2->last_u )
 		{
 			espan_t* span = span_p++;
@@ -411,15 +412,16 @@ void R_ScanEdges()
 
 // clear active edges to just the background edges around the whole screen
 // FIXME: most of this only needs to be set up once
-	edge_head.u = r_refdef.vrect.x << 20;
-	edge_head_u_shift20 = edge_head.u >> 20;
+    const int edgeScale = 1 << r_edge_fractional_bits;
+    edge_head.u = r_refdef.vrect.x * edgeScale;
+    edge_head_u_shift20 = r_refdef.vrect.x;
 	edge_head.u_step = 0;
 	edge_head.prev = NULL;
 	edge_head.next = &edge_tail;
 	edge_head.surfs[0] = 0;
 	edge_head.surfs[1] = 1;
-	edge_tail.u = ( r_refdef.vrectright << 20 ) + 0xFFFFF;
-	edge_tail_u_shift20 = edge_tail.u >> 20;
+    edge_tail.u = r_refdef.vrectright * edgeScale + (edgeScale - 1);
+    edge_tail_u_shift20 = r_refdef.vrectright;
 	edge_tail.u_step = 0;
 	edge_tail.prev = &edge_head;
 	edge_tail.next = &edge_aftertail;

@@ -26,6 +26,8 @@
 #define MAX_STACK_EDGES			14400
 #define MAX_STACK_SURFACES		4000
 
+extern int r_edge_fractional_bits;
+
 typedef struct alight_s
 {
 	int		ambientlight;
