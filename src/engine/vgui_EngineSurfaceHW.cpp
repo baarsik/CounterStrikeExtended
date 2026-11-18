@@ -1,9 +1,9 @@
 #include "render/backend.h"
 #if defined(__APPLE__)
 #include "VGui1NativeAtlas.h"
+#endif
 // Existing two-unit GL_SelectTexture cache from gl_rmain/gl_draw.
 extern int cnttextures[2];
-#endif
 #include "engine_apiproxy.h"
 #include "vgui_EngineSurface.h"
 #include "vgui_background_effects.h"
@@ -858,16 +858,17 @@ bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* 
     }
     return UploadOwnedInterface(surface, id, pixels, AtlasSide) && getError() == GL_NO_ERROR;
 }
-bool RetireEngineFontPage(IEngineSurface* surface, int id, bool live) noexcept {
+}
+#endif
+
+static bool RetireSurfaceTexture(IEngineSurface* surface, int id, bool live) noexcept {
     if (!surface || id <= 0) {
         return false;
     }
     Texture key{};
     key._id = id;
     const int index = g_VGuiSurfaceTextures.Find(key);
-    // Caller still owns this created name until success, even if upload failed
-    // before metadata insertion. Successful retirement is consumed once by the
-    // Atlas slot; arbitrary/double private-name retirement is not this contract.
+    // A generated name can still need retirement when its upload failed before metadata insertion.
     if (live) {
         surface->drawFlushText();
     } else {
@@ -879,8 +880,10 @@ bool RetireEngineFontPage(IEngineSurface* surface, int id, bool live) noexcept {
             cached = -1;
         }
     }
-    staticTextureCurrent = nullptr;
     if (g_VGuiSurfaceTextures.IsValidIndex(index)) {
+        if (staticTextureCurrent == &g_VGuiSurfaceTextures.Element(index)) {
+            staticTextureCurrent = nullptr;
+        }
         g_VGuiSurfaceTextures.RemoveAt(index);
     }
     if (bound) {
@@ -895,10 +898,18 @@ bool RetireEngineFontPage(IEngineSurface* surface, int id, bool live) noexcept {
     }
     return true;
 }
+
+bool EngineSurface::deleteTexture(int id) {
+    return RetireSurfaceTexture(this, id, true);
 }
-#endif
 
 #if defined(__APPLE__)
+namespace cse_vgui1_native {
+bool RetireEngineFontPage(IEngineSurface* surface, int id, bool live) noexcept {
+    return RetireSurfaceTexture(surface, id, live);
+}
+}
+
 bool EngineSurface::RetireNativeFontPage(int id) noexcept {
     return cse_vgui1_native::RetireEngineFontPage(this, id, true);
 }

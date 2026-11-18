@@ -40,7 +40,7 @@ private:
 
 	struct page_t
 	{
-		short	textureID;
+        int textureID;
 		short	fontHeight;
 		short	wide;
 		short	tall;

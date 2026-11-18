@@ -260,6 +260,7 @@ public:
     void drawSetTexture(int);
     void drawFlushText() {}
     void refreshFileTextures();
+    bool deleteTexture(int id) { return pixels.erase(id) != 0; }
     void deleteRenderPlat() { delete _renderPlat->textures; delete _renderPlat; }
     EngineSurfaceRenderPlat* _renderPlat;
     static EngineSurface* s_pEngineSurface;
@@ -269,6 +270,7 @@ class BaseUISurface {
 public:
     bool DeleteTextureByID(int);
     IEngineSurface* _engineSurface;
+    int m_iCurrentTexture = 0;
 };
 #ifdef TEST_SOFTWARE
 #define SW_RENDERER
@@ -484,13 +486,11 @@ int main() {
         surface.drawSetTextureBGRA(3, reinterpret_cast<const char*>(redBgra), 1, 1, 0, 0);
         Register();
         Check(pixels[3] == red, "programmatic BGRA upload retires file provenance");
-#ifdef TEST_HARDWARE
         surface.drawSetTextureFile(5, "scope", 0, true);
         BaseUISurface base{&surface};
-        Check(base.DeleteTextureByID(5), "hardware surface deletes texture");
+        Check(base.DeleteTextureByID(5), "surface deletes texture");
         Register();
         Check(pixels.count(5) == 0, "registration cannot recreate a deleted texture ID");
-#endif
         files["logo.bmp"] = {1};
         SetConsistency({"logo.bmp"});
         surface.drawSetTextureFile(6, "logo.bmp", 0, true);

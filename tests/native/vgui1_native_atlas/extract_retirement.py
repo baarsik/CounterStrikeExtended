@@ -35,10 +35,12 @@ for name in ['VguiSurfaceTexturesLessFunc', 'staticGetTextureById', 'staticAlloc
     # Explicitly require the definition line (declaration may precede it).
     parts.append(body(hw, r'^static [^;\n]*\b' + name + r'\([^;\n]*\)\n(?=\{)'))
 (args.output / 'hw_metadata.inc').write_text('\n\n'.join(parts) + '\n')
+shared_retirement = (body(hw, r'^static bool RetireSurfaceTexture\([^\n]*\) noexcept')
+                     if 'static bool RetireSurfaceTexture(' in hw else '')
 parts = []
 for name in ['UploadEngineFontPage', 'RetireEngineFontPage']:
     parts.append(body(hw, r'^bool ' + name + r'\([^\n]*\) noexcept'))
-(args.output / 'hw_retirement.inc').write_text('namespace cse_vgui1_native {\n' + '\n\n'.join(parts) + '\n}\n')
+(args.output / 'hw_retirement.inc').write_text(shared_retirement + '\nnamespace cse_vgui1_native {\n' + '\n\n'.join(parts) + '\n}\n')
 
 sw = (args.sdk / 'engine/vgui_EngineSurfaceSW.cpp').read_text(encoding='cp1252')
 start = sw.index('#define TEXTURE_HASH_SIZE')
@@ -48,10 +50,12 @@ helper_start = sw.index('namespace {\nconstexpr std::size_t TextureChannels')
 helper_end = sw.index('\nvoid EngineSurfaceTextures::Insert', helper_start)
 parts.append(sw[helper_start:helper_end])
 for name in ['EngineSurfaceTextures', '~EngineSurfaceTextures', 'InitTextures', 'FreeTextures', 'GetHashVal',
-             'Insert', 'Remove', 'GetTexture', 'RetireAtlasPage']:
+             'Insert', 'Remove', 'GetTexture'] + (['RetireAtlasPage'] if '::RetireAtlasPage(' in sw else []):
     parts.append(body(sw, r'^(?:[^\n]*\s)?EngineSurfaceTextures::' + re.escape(name) + r'\([^\n]*\)'))
 actual = ['EngineSurface', '~EngineSurface', 'createRenderPlat', 'deleteRenderPlat', 'RetireNativeFontPage',
           'drawSetTextureRGBA', 'drawSetTextureBGRA', 'drawSetTexture', 'isTextureIdValid']
+if 'bool EngineSurface::deleteTexture(' in sw:
+    actual.insert(actual.index('RetireNativeFontPage'), 'deleteTexture')
 for name in actual:
     parts.append(body(sw, r'^(?:[^\n]*\s)?EngineSurface::' + re.escape(name) + r'\([^\n]*\)(?: noexcept)?'))
 (args.output / 'sw_retirement.inc').write_text('\n\n'.join(parts) + '\n')

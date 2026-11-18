@@ -4,6 +4,7 @@
 #include "../../../src/engine/vgui_EngineSurface.h"
 #include "../../../src/engine/vid.h"
 #include "../../../src/vgui2/vgui_surfacelib/FontManager.h"
+#include "../../../src/vgui2/vgui_surfacelib/FontTextureCache.h"
 #include "../../../src/vgui2/vgui_surfacelib/LinuxFont.h"
 #include <algorithm>
 #include <cassert>
@@ -83,6 +84,17 @@ int main() {
         std::fflush(stdout);
         assert(mismatch == 0);
     }
+    int oldPage = 0;
+    float coordinates[4]{};
+    assert(g_FontTextureCache.GetTextureForChar(font, L'A', &oldPage, coordinates));
+    assert(surface.IsTextureIDValid(oldPage));
+    surface.SetLanguage("german");
+    assert(!surface.IsTextureIDValid(oldPage));
+    int newPage = 0;
+    assert(g_FontTextureCache.GetTextureForChar(font, L'A', &newPage, coordinates));
+    assert(surface.IsTextureIDValid(newPage));
+    surface.SetLanguage("english");
+    assert(!surface.IsTextureIDValid(newPage));
     FontManager().ClearAllFonts();
     vid.buffer = nullptr;
     surface.*Field(BackendTag{}) = nullptr;

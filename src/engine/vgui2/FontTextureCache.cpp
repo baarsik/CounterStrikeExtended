@@ -91,8 +91,8 @@ bool CFontTextureCache::AllocatePageForChar(
 		page = m_PageList.AddToTail();
 		pageIndex = page;
 
-		page_t& allocated = m_PageList[page];
-		allocated.textureID = static_cast<short>( staticSurface->CreateNewTextureID( false ) );
+        page_t& allocated = m_PageList[page];
+        allocated.textureID = staticSurface->CreateNewTextureID(false);
 		page_t& created = m_PageList[pageIndex];
 		created.fontHeight = static_cast<short>( fontHeight );
 		created.wide = static_cast<short>( FONT_TEXTURE_PAGE_SIZE );

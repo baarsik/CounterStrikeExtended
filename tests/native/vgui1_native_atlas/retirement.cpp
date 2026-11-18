@@ -23,6 +23,14 @@ void Check(bool condition, const char* message) {
 }
 #include "upload_fence.inc"
 #if defined(CSE_RETIRE_HW)
+namespace cse::render {
+bool UsingMetal() {
+    return false;
+}
+bool BackendUploadSucceeded() {
+    Unexpected();
+}
+}
 namespace {
 int currenttexture = -1;
 int cnttextures[2] = {-1, -1};
@@ -119,9 +127,14 @@ int main() {
         && !staticGetTextureById(101) && cnttextures[0] == -1 && cnttextures[1] == -1,
         "real tree entry and both texture-unit binding caches removed");
     g_iVertexBufferEntriesUsed = 0;
+    Texture* other = staticAllocTextureForId(106);
+    staticTextureCurrent = other;
     Check(RetireEngineFontPage(&backend, 201, true) && deletes == 2,
         "owned created-but-never-uploaded name is released even without metadata");
     Check(UploadEngineFontPage(&backend, 102, pixels.data(), pixels.size()), "second metadata page");
+    Check(RetireEngineFontPage(&backend, 102, false) && staticTextureCurrent == other,
+        "retiring one texture preserves the independently selected surface texture");
+    Check(UploadEngineFontPage(&backend, 102, pixels.data(), pixels.size()), "recreate retired texture metadata");
     currenttexture = 102;
     staticTextureCurrent = staticGetTextureById(102);
     g_iVertexBufferEntriesUsed = 4;
@@ -147,6 +160,10 @@ int main() {
     return 0;
 }
 #else
+namespace cse::engine_image {
+void ForgetFileTexture(IEngineSurface*, int) {}
+void ForgetFileTextures(EngineSurface*) {}
+}
 namespace {
 EngineSurface* remembered = nullptr;
 }
