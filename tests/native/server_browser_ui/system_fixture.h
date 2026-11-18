@@ -1,5 +1,6 @@
 #pragma once
 #include "vgui/ISystem.h"
+#include "../../../src/vgui2/src/NativeSystemClock.h"
 #include "check.h"
 #include <cstring>
 #include <dlfcn.h>
@@ -15,7 +16,7 @@ public:
     bool failStringWrites = false;
     int stringWrites = 0;
     std::string languageOverride;
-    std::optional<std::int32_t> timeMillisOverride;
+    std::optional<double> timeSecondsOverride;
     void Shutdown() override {
         return real_->Shutdown();
     }
@@ -29,10 +30,10 @@ public:
         return real_->GetFrameTime();
     }
     double GetCurrentTime() override {
-        return real_->GetCurrentTime();
+        return timeSecondsOverride ? *timeSecondsOverride : real_->GetCurrentTime();
     }
     std::int32_t GetTimeMillis() override {
-        return timeMillisOverride ? *timeMillisOverride : real_->GetTimeMillis();
+        return timeSecondsOverride ? cse_vgui2_clock::Milliseconds(*timeSecondsOverride) : real_->GetTimeMillis();
     }
     int GetClipboardTextCount() override {
         return real_->GetClipboardTextCount();

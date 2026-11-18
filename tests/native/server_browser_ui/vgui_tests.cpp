@@ -230,11 +230,15 @@ int main(int argc, char **argv) {
             dialog->SetParent(hdParent);
         }
         const auto advancePastInternetCacheAge = [] {
-            constexpr int InternetCacheTestAdvanceMilliseconds = 61000;
-            *system_fixture::current->timeMillisOverride += InternetCacheTestAdvanceMilliseconds;
+            constexpr double InternetCacheTestAdvanceSeconds = 61.0;
+            *system_fixture::current->timeSecondsOverride += InternetCacheTestAdvanceSeconds;
         };
-        if (name == "internet-cache" || name == "rapid-tabs" || name == "tab-selection-supersession") {
-            system_fixture::current->timeMillisOverride = 0;
+        if (name == "internet-cache" || name == "game-info-failed-connect") {
+            // VGUI's ABI-compatible signed millisecond getter saturates after 24.85 days.
+            constexpr double LongSessionSeconds = 25.0 * 24.0 * 60.0 * 60.0;
+            system_fixture::current->timeSecondsOverride = LongSessionSeconds;
+        } else if (name == "rapid-tabs" || name == "tab-selection-supersession") {
+            system_fixture::current->timeSecondsOverride = 0.0;
         }
         dialog->Activate();
         StartList(*dialog, session, provider);
@@ -1228,6 +1232,13 @@ int main(int argc, char **argv) {
             provider.pingCallbacks.rbegin()->second->ServerResponded(item);
             dialog->Pump();
             Require(engine.commands.empty(), "refreshing a recovered server must not replay the failed Connect");
+            const int previousPings = provider.pings;
+            constexpr double PastInfoRefreshSeconds = 11.0;
+            *system_fixture::current->timeSecondsOverride += PastInfoRefreshSeconds;
+            dialog->Pump();
+            Require(provider.pings == previousPings + 1, "Game Info must keep auto-refreshing in long sessions");
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
             Send(*info, "Connect");
             dialog->Pump();
             provider.pingCallbacks.rbegin()->second->ServerResponded(item);
