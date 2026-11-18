@@ -19,10 +19,10 @@ int RadarFade_ComputeAlpha(const screenfade_t& sf, double time) {
         return sf.fadealpha;
     }
 
-    int alpha;
+    double alpha;
 
     if (!(sf.fadeFlags & kFadeStayout)) {
-        alpha = (int)(sf.fadeSpeed * (sf.fadeEnd - time));
+        alpha = sf.fadeSpeed * (sf.fadeEnd - time);
 
         if (sf.fadeFlags & kFadeOut) {
             alpha += sf.fadealpha;
@@ -31,13 +31,12 @@ int RadarFade_ComputeAlpha(const screenfade_t& sf, double time) {
         alpha = sf.fadealpha;
 
         if ((sf.fadeFlags & kFadeOut) && sf.fadeTotalEnd > time) {
-            alpha += (int)((sf.fadeTotalEnd - time) * sf.fadeSpeed);
+            alpha += (sf.fadeTotalEnd - time) * sf.fadeSpeed;
         }
     }
 
-    alpha = std::min(alpha, (int)sf.fadealpha);
-
-    return std::max(0, alpha);
+    // The engine rounds the combined alpha, after applying the fade-out offset.
+    return static_cast<int>(std::min(std::max(0.0, alpha), static_cast<double>(sf.fadealpha)));
 }
 
 bool RadarFade_IsNearWhite(const screenfade_t& sf) {

@@ -4,6 +4,24 @@
 #include <vector>
 
 #include "hud/radar/policy/RadarPolicy.h"
+#include "hud/radar/render/RadarFade.h"
+#include "shake.h"
+
+RADAR_TEST(RadarFade, FadeOutAddsBaseAlphaBeforeQuantizing) {
+    screenfade_t fade{};
+    fade.fadeSpeed = -200.0f;
+    fade.fadeEnd = 1.0f;
+    fade.fadeTotalEnd = 1.0f;
+    fade.fadeReset = 2.0f;
+    fade.fadealpha = 200;
+    // The engine computes alpha 149.5 here, just below the visibility gate at 150.
+    constexpr double BeforeBlindThreshold = 0.7475;
+    fade.fadeFlags = FFADE_OUT;
+    CHECK_EQ(RadarFade_ComputeAlpha(fade, BeforeBlindThreshold), 149);
+    fade.fadeFlags |= FFADE_STAYOUT;
+    CHECK_EQ(RadarFade_ComputeAlpha(fade, BeforeBlindThreshold), 149);
+    CHECK_EQ(RadarFade_ComputeAlpha(fade, 3.0), 200);
+}
 
 namespace {
 std::vector<std::string> g_Log;
