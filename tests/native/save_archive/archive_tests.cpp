@@ -293,6 +293,12 @@ void writers() {
     output = {};
     check(DirectoryCopy("SAVE/*.HL?", &output, 3) && output.data == archive(260), "DirectoryCopy failed");
     writerSetup();
+    // The game directory is mounted under both GAMECONFIG and GAME, alongside fallback roots.
+    addName("first.HL1");
+    addName("empty.HL2");
+    addName("last.HL3");
+    addName("fallback.HL1");
+    otherMountNameCount = 4;
     check(SaveGameSlot("slot", "comment") == 1, "SaveGameSlot success failed");
     const auto &saved = files.at("SAVE/slot.sav").data;
     check(saved.size() == 20 + archive(260).size(), "SaveGameSlot envelope size changed");

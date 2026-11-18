@@ -307,10 +307,10 @@ bool WriteDirectory(const char *pattern, FileHandle_t file, std::int32_t expecte
     if (!pattern || !file || expectedFileCount < 0) {
         return false;
     }
-    char findBuffer[MAX_PATH]{};
+    char pathId[] = "GAMECONFIG";
     std::int32_t copiedFiles = 0;
     bool success = true;
-    for (const char *name = Sys_FindFirst(pattern, findBuffer); name; name = Sys_FindNext(findBuffer)) {
+    for (const char *name = Sys_FindFirstPathID(pattern, pathId); name; name = Sys_FindNext(nullptr)) {
         std::size_t nameLength = 0;
         char path[kPathBytes]{};
         if (copiedFiles == expectedFileCount || !ValidName(name, kLegacyNameBytes, nameLength)
@@ -318,7 +318,7 @@ bool WriteDirectory(const char *pattern, FileHandle_t file, std::int32_t expecte
             success = false;
             break;
         }
-        const auto input = FS_OpenPathID(path, "rb", "GAMECONFIG");
+        const auto input = FS_OpenPathID(path, "rb", pathId);
         if (!input) {
             success = false;
             break;

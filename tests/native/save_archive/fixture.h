@@ -69,6 +69,8 @@ enum FileSystemSeek_t {
 inline std::map<std::string, MemoryFile> files;
 inline std::vector<std::unique_ptr<char[]>> findNames;
 inline std::size_t findIndex = 0;
+inline std::size_t findEnd = 0;
+inline std::size_t otherMountNameCount = 0;
 inline int outputOpens = 0;
 inline bool failOpen = false;
 inline bool failSeek = false;
@@ -97,6 +99,7 @@ inline void reset() {
     files.clear();
     findNames.clear();
     findIndex = 0;
+    otherMountNameCount = 0;
     outputOpens = 0;
     failOpen = false;
     failSeek = false;
@@ -124,10 +127,17 @@ inline void addName(const std::string &name, std::size_t allocated = 0) {
 }
 inline const char *Sys_FindFirst(const char *, char *) {
     findIndex = 0;
+    findEnd = findNames.size();
     return findNames.empty() ? nullptr : findNames.front().get();
 }
+inline const char *Sys_FindFirstPathID(const char *pattern, const char *pathId) {
+    const char *first = Sys_FindFirst(pattern, nullptr);
+    check(std::strcmp(pathId, "GAMECONFIG") == 0, "unexpected save search path ID");
+    findEnd -= otherMountNameCount;
+    return findEnd ? first : nullptr;
+}
 inline const char *Sys_FindNext(char *) {
-    return ++findIndex < findNames.size() ? findNames[findIndex].get() : nullptr;
+    return ++findIndex < findEnd ? findNames[findIndex].get() : nullptr;
 }
 inline void Sys_FindClose() {}
 inline char *Host_SaveGameDirectory() {
