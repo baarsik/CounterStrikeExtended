@@ -118,6 +118,14 @@ extern "C" __attribute__((visibility("hidden"))) bool CseSteamRetireServerTransp
 #endif
 
 #if defined(__APPLE__) && defined(SW_RENDERER)
+extern "C" __attribute__((visibility("hidden"))) void CseSteamCallResultDelivered(CCallbackBase* callback,
+    SteamAPICall_t call) {
+    auto& owner = Owner();
+    std::lock_guard<std::recursive_mutex> lock(owner.callbacksMutex);
+    // Steam already unregistered the completed call before delivering it to the consumer.
+    owner.callResults.erase(std::make_pair(callback, call));
+}
+
 extern "C" __attribute__((visibility("hidden"))) bool CseSteamRetireModuleCallbacks() {
     auto& owner = Owner();
     std::lock_guard<std::recursive_mutex> lock(owner.callbacksMutex);

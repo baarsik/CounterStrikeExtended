@@ -18,10 +18,19 @@ names += ['CseSteamRetireModuleCallbacks' if terminal else 'CseSteamRetireServer
 start = source.index('struct NativeProvider {')
 end = source.index('} // namespace', start)
 body = source[start:end] + '\n' + '\n'.join(extract(source, name, 0, 1)[0] for name in names[:-1])
+if 'void CseSteamCallResultDelivered(' in source:
+    start = source.index('void CseSteamCallResultDelivered(')
+    body += '\n' + source[start:closing_brace(source, source.index('{', start))]
 start = source.index('bool ' + names[-1] + '()')
 body += '\n' + source[start:closing_brace(source, source.index('{', start))]
 (out / 'steam_callbacks.inc').write_text(body)
-command = ['clang++', '-std=c++17', '-DSW_RENDERER', ('-Os' if '--release' in sys.argv else '-O0'), '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
+download = (root / 'src/engine/download.cpp').read_text()
+tree_and_callback = download[download.index('namespace SteamHTTPTypes'):download.index('class DownloadManager\n{')]
+callback_methods = download[download.index('template <class T, class P> void CMultipleCallResults<T, P>::Run'):
+                            download.index('DownloadManager::DownloadManager()')]
+(out / 'download_callbacks.inc').write_text(tree_and_callback + callback_methods)
+command = ['clang++', '-std=c++17', '-DSW_RENDERER', '-DCSE_OWNED_STEAM_PROVIDER',
+           ('-Os' if '--release' in sys.argv else '-O0'), '-UNDEBUG', '-Wall', '-Wextra', '-Werror',
            '-I' + str(out), str(root / 'tests/native/software_lifetime/steam_callbacks.cpp'),
            '-o', str(out / 'steam_callbacks')]
 if not terminal:
@@ -29,6 +38,7 @@ if not terminal:
 run = subprocess.run(command, capture_output=True)
 (out / 'compile.log').write_bytes(run.stdout + run.stderr)
 receipt = {'source_sha256': hashlib.sha256(owner.read_bytes()).hexdigest(),
+           'download_callbacks_sha256': hashlib.sha256((tree_and_callback + callback_methods).encode()).hexdigest(),
            'extracted_sha256': hashlib.sha256(body.encode()).hexdigest(), 'command': command,
            'compile_exit': run.returncode}
 if run.returncode == 0:

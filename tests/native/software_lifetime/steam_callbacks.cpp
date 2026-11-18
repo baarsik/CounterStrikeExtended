@@ -5,11 +5,20 @@
 #include <limits>
 #include <mutex>
 #include <set>
+#include "../../../src/engine/utlmemory.h"
 #define S_API
 #define S_CALLTYPE
 #define CSE_STEAM_PROVIDER_PATH "controlled SDK leaf"
-struct CCallbackBase {};
 using SteamAPICall_t = std::uint64_t;
+struct CCallbackBase {
+    virtual void Run(void*) {}
+    virtual void Run(void*, bool, SteamAPICall_t) {}
+    virtual int GetCallbackSizeBytes() {
+        return 0;
+    }
+    int m_nCallbackFlags = 0;
+    int m_iCallback = 0;
+};
 using uint32 = std::uint32_t;
 using uint16 = std::uint16_t;
 enum EServerMode { ServerMode };
@@ -119,6 +128,40 @@ struct ServerTransport {
 };
 } // namespace cse_steam
 #include "steam_callbacks.inc"
+#include "download_callbacks.inc"
+
+struct DownloadResponse {
+    static constexpr int k_iCallback = 1;
+};
+
+struct DownloadSink {
+    int completions = 0;
+    void Completed(DownloadResponse*, bool) {
+        ++completions;
+    }
+};
+
+static void CheckDeliveredDownloadCalls() {
+    constexpr SteamAPICall_t outstanding = 71;
+    constexpr SteamAPICall_t delivered = 72;
+    DownloadSink sink;
+    {
+        CMultipleCallResults<DownloadSink, DownloadResponse> calls(&sink, &DownloadSink::Completed);
+        calls.Track(outstanding);
+        calls.Track(delivered);
+        DownloadResponse response;
+        calls.Run(&response, false, delivered);
+        assert(sink.completions == 1);
+        assert(Owner().callResults.count({&calls, delivered}) == 0);
+        assert(Owner().callResults.count({&calls, outstanding}) == 1);
+        assert(unregistrations == 0);
+        calls.Run(&response, false, delivered);
+        assert(sink.completions == 1);
+    }
+    assert(Owner().callResults.empty() && unregistrations == 1);
+    registrations = 0;
+    unregistrations = 0;
+}
 static bool Retire() {
 #ifdef CSE_STEAM_BASELINE
     return CseSteamRetireServerTransport();
@@ -133,6 +176,7 @@ static bool Reenter() {
     return result;
 }
 int main() {
+    CheckDeliveredDownloadCalls();
     auto& owner = Owner();
     CCallbackBase callback;
     SteamAPI_RegisterCallback(&callback, 1);
@@ -187,6 +231,6 @@ int main() {
     SteamAPI_UnregisterCallback(&callback);
     SteamAPI_UnregisterCallResult(&callback, 7);
     assert(Retire() && providerCloses == previousProvider && transportCloses == previousTransport);
-    std::puts("PASS actual SDK owner: active/partial sessions, complete pumps, close failure/retry and late "
-              "callbacks/atexit");
+    std::puts("PASS actual SDK owner: completed HTTP calls, active/partial sessions, complete pumps, "
+              "close failure/retry and late callbacks/atexit");
 }
