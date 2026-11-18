@@ -184,15 +184,30 @@ int main(int argc, char** argv) {
     CseRenderGenTextures(1, &texture);
     CHECK(texture);
     CseRenderBindTexture(GL_TEXTURE_2D, texture);
+    CseRenderTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, std::numeric_limits<float>::max());
+    CHECK(BackendUploadSucceeded());
     const std::array<unsigned char, 4> texel{{255, 255, 255, 255}};
     CseRenderTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, texel.data());
     CHECK(BackendUploadSucceeded());
     BeginBackendFrame(32, 32);
     CHECK(BackendSceneActive());
     CseRenderViewport(0, 0, 32, 32);
+    constexpr std::size_t kWorldComponents = 7;
+    constexpr std::size_t kEndpoints = 2;
+    const std::array<float, kWorldComponents * kEndpoints> segment{{
+        -1, 0, 0, 0, 0, 0, 0,
+         1, 0, 0, 1, 0, 1, 0,
+    }};
+    CHECK(!SubmitBackendSurface(&segment, segment.data(), kEndpoints, kWorldComponents, 0, false));
+    CseRenderBegin(GL_POLYGON);
+    CseRenderVertex3fv(segment.data());
+    CseRenderVertex3fv(segment.data() + kWorldComponents);
+    CseRenderEnd();
     CseRenderColor4ub(128, 64, 255, 192);
     CHECK(SubmitBackendQuad({{-1, -1, 1, 1}}, {{0, 0, 1, 1}}));
     std::array<unsigned char, 4> quadPixel{};
+    // A cubemap face can exceed the current scene size. Reject its readback and keep rendering.
+    CHECK(!BackendReadPixels(false, 32, 0, 1, 1, 4, 1, quadPixel.data()));
     CHECK(BackendReadPixels(false, 8, 8, 1, 1, 4, 1, quadPixel.data()));
     CHECK((quadPixel == std::array<unsigned char, 4>{{128, 64, 255, 192}}));
     CseRenderColor4f(1, 1, 1, 1);

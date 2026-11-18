@@ -8,15 +8,17 @@
 #include <string>
 #define CHECK(value) do { if (!(value)) { throw std::runtime_error(#value); } } while (false)
 SDL_DisplayMode desktop{};
-SDL_DisplayMode closest{};
+SDL_DisplayMode offered{};
+SDL_DisplayMode lowerDensity{};
 SDL_DisplayMode selected{};
 bool desktopSelected = false;
 bool windowed = false;
 bool available = true;
 bool accepted = true;
+bool haveLowerDensity = false;
 int modeCalls = 0;
 int fullscreenCalls = 0;
-int closestCalls = 0;
+int listCalls = 0;
 int bNeedsFullScreenModeSwitch = 0;
 int com_argc = 3;
 constexpr SDL_DisplayID FixtureDisplay = 7;
@@ -62,12 +64,68 @@ extern "C" const SDL_DisplayMode *SDL_GetDesktopDisplayMode(SDL_DisplayID id) {
     return available ? &desktop : nullptr;
 }
 
-extern "C" bool SDL_GetClosestFullscreenDisplayMode(SDL_DisplayID id, int width, int height,
-                                                    float rate, bool, SDL_DisplayMode *output) {
-    ++closestCalls;
-    CHECK(id == FixtureDisplay && width == desktop.w && height == desktop.h && rate == RequestedRate);
-    *output = closest;
-    return available;
+extern "C" SDL_DisplayMode** SDL_GetFullscreenDisplayModes(SDL_DisplayID id, int* count) {
+    ++listCalls;
+    CHECK(id == FixtureDisplay);
+    *count = haveLowerDensity ? 2 : 1;
+    auto** modes = static_cast<SDL_DisplayMode**>(std::calloc(*count + 1, sizeof(SDL_DisplayMode*)));
+    CHECK(modes);
+    if (haveLowerDensity) {
+        modes[0] = &lowerDensity;
+    }
+    modes[*count - 1] = &offered;
+    return modes;
+}
+
+extern "C" void SDL_free(void* pointer) {
+    std::free(pointer);
+}
+
+bool haveStandardMode = true;
+int inclusiveQueries = 0;
+
+extern "C" bool SDL_GetClosestFullscreenDisplayMode(SDL_DisplayID display, int, int, float,
+    bool includeHighDensity, SDL_DisplayMode* result) {
+    CHECK(display == FixtureDisplay);
+    if (includeHighDensity) {
+        ++inclusiveQueries;
+        *result = offered;
+        return available;
+    }
+    *result = lowerDensity;
+    return haveStandardMode;
+}
+
+static SDL_DisplayMode FindRenderMode(int wide, int tall, int refresh) {
+    SDL_DisplayMode requested{};
+    SDL_DisplayMode mode{};
+#include "render_mode.inc"
+    return mode;
+}
+
+static void CheckRenderModes() {
+    constexpr int renderWidth = 960;
+    constexpr int renderHeight = 540;
+    constexpr int requestedRefresh = 144;
+    lowerDensity.w = renderWidth;
+    lowerDensity.h = renderHeight;
+    lowerDensity.refresh_rate = requestedRefresh;
+    lowerDensity.pixel_density = 1.0f;
+    offered = lowerDensity;
+    offered.pixel_density = 2.0f;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).pixel_density == 1.0f);
+    CHECK(FindRenderMode(renderWidth, renderHeight, 0).pixel_density == 1.0f);
+    CHECK(inclusiveQueries == 0);
+
+    lowerDensity.w = 1024;
+    lowerDensity.h = 576;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).w == renderWidth);
+    lowerDensity.w = renderWidth;
+    lowerDensity.h = renderHeight;
+    lowerDensity.refresh_rate = DesktopRate;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).refresh_rate == requestedRefresh);
+    haveStandardMode = false;
+    CHECK(FindRenderMode(renderWidth, renderHeight, requestedRefresh).pixel_density == 2.0f);
 }
 
 extern "C" bool SDL_SetWindowFullscreenMode(SDL_Window *, const SDL_DisplayMode *mode) {
@@ -95,19 +153,35 @@ int main(int argc, char **argv) {
     try {
         CHECK(argc == 2);
         const std::string name = argv[1];
+        if (name == "render-mode") {
+            CheckRenderModes();
+            return 0;
+        }
         desktop.w = 2560;
         desktop.h = 1440;
         desktop.refresh_rate = DesktopRate;
-        closest = desktop;
-        closest.refresh_rate = RequestedRate;
+        desktop.pixel_density = 1.0f;
+        if (name == "retina" || name == "retina-only" || name == "wrong-density") {
+            desktop.pixel_density = 2.0f;
+        }
+        offered = desktop;
+        offered.refresh_rate = RequestedRate;
+        if (name == "retina") {
+            lowerDensity = offered;
+            lowerDensity.pixel_density = 1.0f;
+            haveLowerDensity = true;
+        }
+        if (name == "wrong-density") {
+            offered.pixel_density = 1.0f;
+        }
         if (name == "absent") {
             requested = false;
         }
         if (name == "unsupported") {
-            closest.refresh_rate = 120.0f;
+            offered.refresh_rate = 120.0f;
         }
         if (name == "resolution") {
-            closest.w = 1920;
+            offered.w = 1920;
         }
         if (name == "unavailable") {
             available = false;
@@ -123,11 +197,12 @@ int main(int argc, char **argv) {
         }
         CVideoMode_OpenGL{}.ChangeDisplaySettingsToFullscreen();
         if (windowed) {
-            CHECK(modeCalls == 0 && fullscreenCalls == 0 && closestCalls == 0);
+            CHECK(modeCalls == 0 && fullscreenCalls == 0 && listCalls == 0);
         } else if (bNeedsFullScreenModeSwitch) {
-            CHECK(modeCalls == 0 && fullscreenCalls == 1 && closestCalls == 0);
-        } else if (name == "supported") {
+            CHECK(modeCalls == 0 && fullscreenCalls == 1 && listCalls == 0);
+        } else if (name == "supported" || name == "retina" || name == "retina-only") {
             CHECK(!desktopSelected && selected.w == desktop.w && selected.h == desktop.h);
+            CHECK(selected.pixel_density == desktop.pixel_density);
             CHECK(selected.refresh_rate == RequestedRate && fullscreenCalls == 1);
         } else {
             CHECK(desktopSelected && selected.refresh_rate == DesktopRate && fullscreenCalls == 1);

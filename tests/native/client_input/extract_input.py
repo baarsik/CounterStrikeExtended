@@ -18,7 +18,10 @@ def complete_function(text, name):
     pattern = r'^(?:(?:extern "C" |static )?(?:void|float|long|bool)\s+(?:CL_DLLEXPORT\s+)?)' + name + r'\s*\([^;]*?\)\s*\{'
     matches = list(re.finditer(pattern, text, re.M))
     assert len(matches) == 1, (name, len(matches))
-    begin = matches[0].start()
+    return complete_block(text, matches[0].start())
+
+
+def complete_block(text, begin):
     index = text.index('{', begin)
     depth = 0
     state = 'code'
@@ -52,7 +55,7 @@ def complete_function(text, name):
             if depth == 0:
                 return text[begin:index + 1], begin
         index += 1
-    raise AssertionError(name)
+    raise AssertionError(f'unterminated block at source offset {begin}')
 
 
 for game, relative in [('hl', 'src/cl_dll/inputw32.cpp'),
@@ -123,9 +126,9 @@ offset = 0
 needle = '} else if (ev.type == SDL_EVENT_MOUSE_MOTION'
 while (begin := text.find(needle, offset)) >= 0:
     begin += len('} else ')
-    end = text.index('\n\n        VGuiWrap2_CallEngineSurfaceAppHandler', begin)
-    blocks.append(text[begin:end])
-    offset = end
+    block, _ = complete_block(text, begin)
+    blocks.append(block)
+    offset = begin + len(block)
 assert len(blocks) == 2 and blocks[0] == blocks[1]
 (out / 'engine_motion.inc').write_text(blocks[0])
 (out / 'engine_motion.json').write_text(json.dumps(dict(source=str(engine.relative_to(root)),

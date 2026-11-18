@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record the current interface/owner mismatch and unmodified deadline call sites."""
+"""Check the signed public interface and keep UI deadlines independent of its overflow sentinel."""
 import argparse
 import hashlib
 import json
@@ -39,33 +39,29 @@ selected = sdk / 'vgui2/src/System.cpp'
 text = selected.read_bytes().decode('latin1')
 assert re.search(r'long\s+CSystem::GetTimeMillis\s*\(\s*\)', text)
 assert re.search(r'virtual\s+long\s+GetTimeMillis\s*\(\s*\)\s+override', text)
-paths = ['vgui2/src/VGui.cpp']
+paths = ['vgui2/src/vgui.cpp']
 for owner in ['vgui2', 'cstrike/vgui2']:
     paths.extend(owner + '/controls/' + name + '.cpp' for name in [
         'ScrollBar', 'TextEntry', 'Tooltip', 'AnimatingImagePanel'])
 calls = []
-deadlines = []
 for relative in paths:
     path = sdk / relative
     lines = path.read_bytes().decode('latin1').splitlines()
     for number, line in enumerate(lines, 1):
         if 'GetTimeMillis' in line:
             calls.append({'path': relative, 'line': number, 'source': line.strip()})
-        if re.search(r'(?:_scrollDelay|_cursorNextBlinkTime|_delay|m_iNextFrameTime|nexttick)\s*=', line):
-            if '+' in line and ('GetTimeMillis' in line or re.search(r'\+\s*(?:now|tick->interval)|time\s*\+', line)):
-                deadlines.append({'path': relative, 'line': number, 'source': line.strip()})
-assert len(deadlines) == 17, deadlines
+assert not calls, calls
 report = {'existing_native_interface_bytes': 4, 'selected_owner_uses_long': True, 'mac_long_bytes': 8,
     'existing_native_owner_integration_qualified': False, 'helper_is_not_a_System_override': True,
     'selected_system_sha256': hashlib.sha256(selected.read_bytes()).hexdigest(),
     'headers': {relative: hashlib.sha256((sdk / relative).read_bytes()).hexdigest() for relative in headers},
-    'getter_call_sites_in_deadline_owners': calls, 'unchanged_signed32_deadline_additions': deadlines,
-    'delayed_message_float_expression_separate': 'VGui.cpp _arrivalTime = GetTimeMillis() + delaySeconds * 1000.0f',
+    'getter_call_sites_in_deadline_owners': calls,
+    'control_deadline_owners': paths[1:],
+    'vgui_event_deadlines': 'Provider ticks and delayed messages use GetCurrentTime seconds',
     'required_later_work': ['Change native selected declaring owner/definition coherently with existing signed32 interface',
         'Own one state per image and serialize actual reader plus Advance under its lifetime guard',
         'Diagnose reader/initialization failures before any legacy time value is fabricated',
-        'Qualify 17 signed32 deadline additions and unchanged signed comparisons/order independently',
         'Qualify actual monotonic clock source/frequency/sleep/lifecycle before selection']}
 (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
 (out / 'audit.json').write_text(json.dumps(report, indent=2) + '\n')
-print('PASS 4 actual header signed32 probes; 4 actual long signature RED controls; 17 unmodified deadline additions retained')
+print('PASS 4 actual header signed32 probes; 4 actual long signature RED controls; scheduler and control timers independent of signed32 milliseconds')

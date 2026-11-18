@@ -223,8 +223,11 @@ void CGame::PlayStartupVideos()
 		parse = (char*)COM_Parse( parse );
 		if ( Q_strlen( com_token ) <= 0 )
 			break;
-		FS_GetLocalPath( com_token, szFileName, sizeof( szFileName ) );
-		PlayAVIAndWait( szFileName );
+        if (FS_GetLocalPath(com_token, szFileName, sizeof(szFileName))) {
+            PlayAVIAndWait(szFileName);
+        } else {
+            Con_Printf("Startup video not found: %s\n", com_token);
+        }
 	}
 
 	free( pbuffer );
@@ -453,6 +456,7 @@ void CGame::AppActivate( bool fActive )
 	}
 	else
 	{
+        s_wheelMotion.Reset();
 		fprintf( stderr, "AppActive: not active\n" );
 		if ( host_initialized )
 		{
@@ -1374,8 +1378,11 @@ void CGame::PlayStartupVideos()
 		parse = const_cast<char*>( COM_Parse( parse ) );
 		if ( Q_strlen( com_token ) <= 0 )
 			break;
-		FS_GetLocalPath( com_token, szFileName, sizeof( szFileName ) );
-		PlayAVIAndWait( szFileName );
+        if (FS_GetLocalPath(com_token, szFileName, sizeof(szFileName))) {
+            PlayAVIAndWait(szFileName);
+        } else {
+            Con_Printf("Startup video not found: %s\n", com_token);
+        }
 	}
 
 	std::free( pbuffer );
@@ -1692,6 +1699,7 @@ void CGame::AppActivate( bool fActive )
 	}
 	else
 	{
+        s_wheelMotion.Reset();
 		std::fprintf( stderr, "AppActive: not active\n" );
 		if ( host_initialized )
 		{

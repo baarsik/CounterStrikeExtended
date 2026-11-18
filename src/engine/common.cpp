@@ -10,6 +10,8 @@
 #include "filesystem.h"
 #include "info.h"
 #include "mathlib.h"
+#include "map_catalog.h"
+#include "../common/map_file_name.h"
 #include "mem.h"
 #include "modinfo.h"
 #include "net.h"
@@ -2049,7 +2051,8 @@ char* Q_strlwr( char* text )
 	return text;
 }
 
-byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile) {
+byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle_t* phFile,
+                        byte* readBuffer) {
     *pcbread = 0;
     FileHandle_t file = *phFile;
     *phFile = nullptr;
@@ -2069,7 +2072,7 @@ byte* COM_LoadFileLimit(char* path, int pos, int cbmax, int* pcbread, FileHandle
     const unsigned int remaining = fileBytes - static_cast<unsigned int>(pos);
     const int bytesToRead = remaining < static_cast<unsigned int>(cbmax) ? static_cast<int>(remaining) : cbmax;
     FS_Seek(file, pos, FILESYSTEM_SEEK_HEAD);
-    byte* buffer = static_cast<byte*>(Hunk_TempAlloc(bytesToRead + 1));
+    byte* buffer = readBuffer ? readBuffer : static_cast<byte*>(Hunk_TempAlloc(bytesToRead + 1));
     if (!buffer || FS_Read(buffer, bytesToRead, 1, file) != bytesToRead) {
         FS_Close(file);
         return nullptr;
@@ -2113,68 +2116,53 @@ void COM_FreeFile( void* buffer )
 		Mem_Free( buffer );
 }
 
-void COM_ListMaps( char* pszSubString )
-{
-	constexpr int MAP_NAME_BUFFER_BYTES = 64;
-	std::size_t prefixLength = 0;
-	if ( pszSubString && *pszSubString )
-		prefixLength = std::strlen( pszSubString );
+void COM_ListMaps(char* substring) {
+    constexpr int MapNameBufferBytes = 64;
+    constexpr int LocalPathBufferBytes = 4096;
+    const std::size_t prefixLength = substring ? std::strlen(substring) : 0;
+    const char* baseDirectory = GetBaseDirectory();
+    const std::string language = FileSystem_GetInterfaceLanguage();
 
-	Con_Printf( "-------------\n" );
-	dheader_t header;
-	char localPath[GAME_DIRECTORY_BYTES];
-	char mapName[MAP_NAME_BUFFER_BYTES];
-	char wildcard[MAP_NAME_BUFFER_BYTES];
-	for ( int showOutdated = 1; showOutdated >= 0; --showOutdated )
-	{
-		std::strcpy( wildcard, "maps/*.bsp" );
-		for ( const char* filename = Sys_FindFirst( wildcard, nullptr ); filename; filename = Sys_FindNext( nullptr ) )
-		{
-			unsigned int pathLength =
-				static_cast<unsigned int>( _snprintf( localPath, sizeof( localPath ), "maps/%s", filename ) );
-			if ( pathLength >= sizeof( localPath ) )
-			{
-				Con_Printf( "Map name too long: %s\n", filename );
-				continue;
-			}
+    Con_Printf("-------------\n");
+    char localPath[LocalPathBufferBytes];
+    char mapPath[MapNameBufferBytes];
+    for (int showOutdated = 1; showOutdated >= 0; --showOutdated) {
+        for (const char* found = Sys_FindFirst("maps/*.bsp", nullptr); found; found = Sys_FindNext(nullptr)) {
+            const char* filename = cse::maps::FileName(found);
+            if (cse::maps::BspName(filename).empty() ||
+                (prefixLength && _strnicmp(filename, substring, prefixLength) != 0)) {
+                continue;
+            }
 
-			FS_GetLocalPath( localPath, localPath, sizeof( localPath ) );
-			if ( !std::strstr( localPath, com_gamedir )
-				 || ( prefixLength && _strnicmp( filename, pszSubString, prefixLength ) != 0 ) )
-				continue;
+            const int pathLength = std::snprintf(mapPath, sizeof(mapPath), "maps/%s", filename);
+            if (pathLength < 0 || static_cast<std::size_t>(pathLength) >= sizeof(mapPath)) {
+                Con_Printf("Map name too long: %s\n", filename);
+                continue;
+            }
+            if (!FS_GetLocalPath(mapPath, localPath, sizeof(localPath)) ||
+                !cse::maps::IsGameMapPath(localPath, baseDirectory, com_gamedir, language)) {
+                continue;
+            }
 
-			std::memset( &header, 0, sizeof( header ) );
-			unsigned int nameLength =
-				static_cast<unsigned int>( _snprintf( mapName, sizeof( mapName ), "maps/%s", filename ) );
-			if ( nameLength >= sizeof( mapName ) )
-			{
-				Con_Printf( "Map name too long: %s\n", filename );
-				continue;
-			}
+            dheader_t header{};
+            const FileHandle_t file = FS_Open(mapPath, "rb");
+            if (file) {
+                FS_Read(&header, sizeof(header), 1, file);
+                FS_Close(file);
+            } else {
+                Con_Printf("Could not open map %s\n", mapPath);
+            }
 
-			FileHandle_t file = FS_Open( mapName, "rb" );
-			if ( file )
-			{
-				FS_Read( &header, sizeof( header ), 1, file );
-				FS_Close( file );
-			}
-			else
-			{
-				Con_Printf( "Could not open map %s\n", mapName );
-			}
-
-			if ( header.version == BSPVERSION )
-			{
-				if ( !showOutdated )
-					Con_Printf( "%s\n", filename );
-			}
-			else if ( showOutdated )
-			{
-				Con_Printf( "OUTDATED:  %s\n", filename );
-			}
-		}
-		Sys_FindClose();
-	}
+            if (header.version == BSPVERSION) {
+                if (!showOutdated) {
+                    Con_Printf("%s\n", filename);
+                }
+            } else if (showOutdated) {
+                Con_Printf("OUTDATED:  %s\n", filename);
+            }
+        }
+        Sys_FindClose();
+    }
 }
 
 qboolean Q_striprefix( const char* text, const char* prefix )

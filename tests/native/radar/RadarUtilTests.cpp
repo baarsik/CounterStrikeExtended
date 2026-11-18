@@ -28,6 +28,11 @@ RADAR_TEST(RadarUtilExtractMapName, RespectsOutputSize) {
     CHECK_STREQ(out, "abc");
 }
 
+RADAR_TEST(RadarUtilExtractMapName, KeepsDottedMapAndHandlesEnginePathSeparators) {
+    CHECK_EQ(ExtractMapName("maps/de_dust2.v2.bsp"), "de_dust2.v2");
+    CHECK_EQ(ExtractMapName("maps\\custom.v1\\de_dust2.v3.bsp"), "de_dust2.v3");
+}
+
 RADAR_TEST(RadarUtilSiteLetter, UnderscoreSuffix) {
     CHECK_EQ(RadarUtil_DetectSiteLetter("tgt_a"), 'A');
     CHECK_EQ(RadarUtil_DetectSiteLetter("bomb_B"), 'B');
@@ -71,6 +76,14 @@ RADAR_TEST(RadarUtilHostageModel, AModelSharingAPrefixIsNotAHostage) {
 RADAR_TEST(RadarUtilHostageModel, AHostageNamedModelNeedsNoMapEntry) {
     // A server running CZ hostages swaps in models/hostageA.mdl..hostageD.mdl whatever the map says.
     CHECK_TRUE(RadarUtil_IsHostageModel("models/hostageA.mdl", {}));
+    CHECK_TRUE(RadarUtil_IsHostageModel("models/HostageA.mdl", {}));
+    CHECK_TRUE(RadarUtil_IsHostageModel("models/custom/HOSTAGE/guard.mdl", {}));
+}
+
+RADAR_TEST(RadarUtilObjectiveModel, CustomBombNamesFollowEngineCaseMatching) {
+    CHECK_TRUE(RadarUtil_ContainsIgnoringAsciiCase("models/W_BACKPACK.mdl", "backpack"));
+    CHECK_TRUE(RadarUtil_ContainsIgnoringAsciiCase("models/custom/W_C4_Gold.mdl", "w_c4"));
+    CHECK_FALSE(RadarUtil_ContainsIgnoringAsciiCase("models/backdoor.mdl", "backpack"));
 }
 
 RADAR_TEST(RadarUtilHostageModel, AScientistOffTheMapsListIsAProp) {

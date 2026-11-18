@@ -33,11 +33,13 @@ enable_testing()
 foreach(case pcm truncated metadata invalid-arguments chunk-bounds loops loop-overflow loop-length
         stream-prefix odd-padding resample-valid
         resample-short resample-clear resample-product resample-fraction
-        load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure
+        load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure load-resampled-loop
         stream-invalid stream-stereo stream-width stream-rate stream-cache-failure
         stream-success stream-refill-failure stream-temp-failure stream-reopen-move stream-reopen-evict
-        stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-temp-failure
-        mix-stream-reload-failure mix-stream-eof vox-empty-text vox-empty-words)
+        stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-read-failure
+        mix-stream-reload-failure mix-stream-eof mix-stream-loop mix-stream-loop-seek
+        vox-empty-text vox-empty-words vox-sentence-lines)
     add_test(NAME wav-${case} COMMAND wav_loading_tests ${case})
 endforeach()
+set_tests_properties(wav-mix-stream-loop wav-mix-stream-loop-seek PROPERTIES TIMEOUT 5)
 add_test(NAME wav-shipped-bot-sounds COMMAND wav_loading_tests corpus "${CSE_ROOT}/src/deploy/zbot/cstrike/sound")

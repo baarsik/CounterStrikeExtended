@@ -19,6 +19,7 @@ add_executable(radar_tests
     "${RADAR_ROOT}/hud/radar/map/layers/RadarLayerContext.cpp"
     "${RADAR_ROOT}/hud/radar/map/layers/RadarLayerAnalysisJob.cpp"
     "${RADAR_ROOT}/hud/radar/policy/RadarPolicy.cpp"
+    "${RADAR_ROOT}/hud/radar/render/RadarFade.cpp"
     "${RADAR_ROOT}/hud/radar/render/RadarView.cpp")
 target_include_directories(radar_tests PRIVATE "${RADAR_ROOT}" "${RADAR_ROOT}/include"
     "${CSE_ROOT}/src/common" "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/pm_shared"

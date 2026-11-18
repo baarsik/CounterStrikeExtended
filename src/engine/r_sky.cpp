@@ -120,7 +120,7 @@ static byte* R_CopyWebPImage(const cse::image::Image& decoded, byte* buffer, int
 }
 
 static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* width, int* height,
-                            qboolean output32bit, int requiredDimension) {
+                            qboolean output32bit, int requiredDimension, bool preservePackedRle = false) {
     if (width) {
         *width = 0;
     }
@@ -187,8 +187,8 @@ static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* w
     if (file[1] || (pixelSize != RgbBits && pixelSize != RgbaBits)) {
         return fail("R_LoadTGA: Only 32 or 24 bit images supported (no colormaps)\n");
     }
-    // Compressed legacy images have always produced packed pixels, including output32bit callers.
-    const bool rgbaOutput = output32bit && imageType == RawImageType;
+    // The low-level R_LoadTGA entry historically returns packed pixels for RLE images.
+    const bool rgbaOutput = output32bit && (!preservePackedRle || imageType == RawImageType);
     const std::size_t outputPixelBytes = rgbaOutput ? cse::image::RgbaChannels : SoftwarePixelBytes;
     if (!columns || !rows || columns > static_cast<std::size_t>(INT_MAX) / outputPixelBytes / rows) {
         return fail("R_LoadTGA: invalid or oversized texture dimensions\n");
@@ -284,7 +284,7 @@ static byte* R_LoadTGAImage(char* filename, byte* buffer, int bufferSize, int* w
 
 byte* R_LoadTGA(char* filename, byte* buffer, int bufferSize, int* width, int* height, qboolean output32bit) {
     constexpr int UnrestrictedDimension = 0;
-    return R_LoadTGAImage(filename, buffer, bufferSize, width, height, output32bit, UnrestrictedDimension);
+    return R_LoadTGAImage(filename, buffer, bufferSize, width, height, output32bit, UnrestrictedDimension, true);
 }
 
 /*
@@ -292,9 +292,9 @@ byte* R_LoadTGA(char* filename, byte* buffer, int bufferSize, int* width, int* h
 LoadTGA
 =============
 */
-qboolean LoadTGA( char* filename, byte* buffer, int bufferSize, int* width, int* height )
-{
-	return R_LoadTGA( filename, buffer, bufferSize, width, height, TRUE ) != NULL;
+qboolean LoadTGA(char* filename, byte* buffer, int bufferSize, int* width, int* height) {
+    constexpr int UnrestrictedDimension = 0;
+    return R_LoadTGAImage(filename, buffer, bufferSize, width, height, TRUE, UnrestrictedDimension) != NULL;
 }
 
 /*

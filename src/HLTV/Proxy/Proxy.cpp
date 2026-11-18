@@ -1486,12 +1486,14 @@ void Proxy::CMD_Status( char* )
 	float loss = m_Server->GetPacketLoss();
 	m_System->Printf( "--- HLTV Status ---\n" );
 #ifdef _WIN32
-	char* os = "Win32";
+    constexpr char platform[] = "Win32";
+#elif defined(__APPLE__)
+    constexpr char platform[] = "macOS";
 #else
-	char* os = "Linux";
+    constexpr char platform[] = "Linux";
 #endif
 	m_System->Printf( "Online %s, FPS %.1f, Version %i (%s)\n", COM_FormatTime( (float)m_System->GetTime() ),
-		m_FPS, COM_BuildNumber(), os );
+        m_FPS, COM_BuildNumber(), platform );
 	m_System->Printf( "Local IP %s, Network In %.1f, Out %.1f, Loss %.2f\n",
 		m_Network->GetLocalAddress()->ToString(), in, out, loss );
 	int spectators, proxies, slots;

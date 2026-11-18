@@ -178,6 +178,10 @@ void VGui_Startup();
 
 static qboolean hostShutdownStarted;
 
+bool Host_IsShuttingDown() {
+    return hostShutdownStarted != 0;
+}
+
 #if INTPTR_MAX > INT32_MAX
 namespace {
 enum class NativeHostShutdownPhase { Browser, Begin, Server, Voice, CD, VGui, Client, Core, Complete };

@@ -1,5 +1,6 @@
 #include "../../src/common/sdl3_input.h"
 #include <cassert>
+#include <vector>
 
 int main() {
     const SDL_GamepadButton expected[] = {
@@ -29,5 +30,13 @@ int main() {
     assert(cse::WheelSteps(wheel, 0.75f, SDL_MOUSEWHEEL_NORMAL) == 1);
     assert(cse::WheelSteps(wheel, 0.0f, SDL_MOUSEWHEEL_NORMAL) == 0);
     assert(cse::WheelSteps(wheel, 2.0f, SDL_MOUSEWHEEL_FLIPPED) == 2);
+
+    std::vector<int> delivered;
+    SDL_MouseWheelEvent event{};
+    for (float delta : {0.25f, 0.0f, 0.75f, -0.5f, -0.5f}) {
+        event.y = delta;
+        cse::DispatchWheelSteps(wheel, event, [&](int steps) { delivered.push_back(steps); });
+    }
+    assert((delivered == std::vector<int>{1, -1}));
     return 0;
 }

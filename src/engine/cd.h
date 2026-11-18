@@ -69,10 +69,9 @@ public:
 	void MP3_ReleaseDriver();
 	float MP3_SetVolume( float newVolume );
 	bool MP3_InitStream( int trackNum, bool looping );
-	bool MP3_InitStream( const char* filename, bool looping );
 	bool MP3_PlayTrackFinalize( int trackNum, bool looping );
 	bool MP3_PlayTrack( const char* filename, bool looping );
-	bool MP3_PlayTrack( int trackNum, bool looping );
+    bool MP3_PlayTrack(int trackNum, bool looping, bool fromFile = false);
 	bool MP3_StartStream();
 	void MP3_StopStream();
 	void MP3_Loop();
@@ -95,8 +94,6 @@ public:
 	void _SwitchToEngine( int, int );
 	void _CDReset( int, int );
 	void _CDUpdate( int, int );
-	void _PrimeTrack( int track, int looping );
-
 	void FreeAllocatedTracks();
 
 	float m_flPlayTime;
@@ -110,14 +107,14 @@ public:
 	bool m_bInitialized;
 	bool m_bEnabled;
 	bool m_bIsLooping;
-	bool m_bIsPrimed;
 	std::atomic<bool> m_bIsInMiddleOfPriming;
 
 	float m_flVolume;
 	float m_flMP3Volume;
 
 	int m_nPlayTrack;
-	char m_szPendingPlayFilename[TrackPathCapacity];
+    int m_nPrimedTrack;
+    bool m_bPrimedLooping;
 	int m_nMaxCDTrack;
 	bool m_bResumeOnSwitch;
 	unsigned int m_uiDeviceID;

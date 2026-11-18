@@ -195,7 +195,9 @@ byte*			COM_LoadHunkFile( char* filename );
 void			COM_LoadCacheFile( char* path, cache_user_t* user );
 byte*			COM_LoadFileForMe( char* filename, int* length );
 byte*			COM_LoadStackFile( char* path, void* buffer, int bufferSize, int* length );
-byte*			COM_LoadFileLimit( char* path, int position, int maxBytes, int* bytesRead, FileHandle_t* file );
+// An optional buffer must hold maxBytes plus the terminating byte.
+byte* COM_LoadFileLimit(char* path, int position, int maxBytes, int* bytesRead, FileHandle_t* file,
+                        byte* readBuffer = nullptr);
 void			COM_FreeFile( void* buffer );
 void			COM_WriteFile( char* filename, void* data, int length );
 void			COM_CopyFile( char* source, char* destination );

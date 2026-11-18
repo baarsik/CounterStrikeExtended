@@ -490,6 +490,57 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
         radarValues["hud_radar_names"] = 0.0f;
     }
 
+    constexpr float CustomMapScale = 1.2345f;
+    radarValues["hud_radar_map_scale"] = CustomMapScale;
+    auto* preciseDialog = new CHudRadarDialog(root);
+    preciseDialog->SetScheme(scheme);
+    preciseDialog->DoModal();
+    Settle(*root);
+    auto* showNames = dynamic_cast<vgui2::CheckButton*>(preciseDialog->FindChildByName("hud_radar_names", false));
+    Require(showNames != nullptr, "radar name control exists");
+    showNames->SetSelected(true);
+    preciseDialog->OnCommand("OK");
+    Settle(*root);
+    Require(radarValues["hud_radar_map_scale"] == CustomMapScale,
+        "changing player names preserves the configured precision of an untouched map scale");
+
+    constexpr float DefaultMapScale = 0.8f;
+    constexpr float RoundedToDefaultMapScale = 0.804f;
+    radarValues["hud_radar_map_scale"] = RoundedToDefaultMapScale;
+    radarValues["hud_radar_names"] = 0.0f;
+    auto* defaultsDialog = new CHudRadarDialog(root);
+    defaultsDialog->SetScheme(scheme);
+    defaultsDialog->DoModal();
+    Settle(*root);
+    auto* defaultsApply = dynamic_cast<vgui2::Button*>(defaultsDialog->FindChildByName("Apply", false));
+    Require(defaultsApply && !defaultsApply->IsEnabled(), "the rounded initial setting has no pending edits");
+    defaultsDialog->OnCommand("Defaults");
+    Settle(*root);
+    Require(defaultsApply->IsEnabled() && radarValues["hud_radar_map_scale"] == RoundedToDefaultMapScale,
+        "Defaults can be applied when the control already displays the rounded default");
+    defaultsDialog->OnCommand("Apply");
+    Require(radarValues["hud_radar_map_scale"] == DefaultMapScale && !defaultsApply->IsEnabled(),
+        "Apply commits the exact default and consumes the reset");
+    defaultsDialog->OnCommand("Close");
+    Settle(*root);
+
+    radarValues["hud_radar_mode"] = 0.5f;
+    radarValues["hud_radar_names"] = -1.0f;
+    auto* modeDialog = new CHudRadarDialog(root);
+    modeDialog->SetScheme(scheme);
+    modeDialog->DoModal();
+    Settle(*root);
+    auto* mode = dynamic_cast<vgui2::ComboBox*>(modeDialog->FindChildByName("RadarMode", false));
+    auto* names = dynamic_cast<vgui2::CheckButton*>(modeDialog->FindChildByName("hud_radar_names", false));
+    Require(mode && mode->GetActiveItem() == 0, "the radar dialog shows the classic mode active below one");
+    Require(names && names->IsSelected(), "the radar dialog shows names enabled for nonzero settings");
+    mode->ActivateItemByRow(1);
+    names->SetSelected(false);
+    modeDialog->OnCommand("OK");
+    Settle(*root);
+    Require(radarValues["hud_radar_mode"] == 1.0f && radarValues["hud_radar_names"] == 0.0f,
+        "enabling advanced mode and disabling names commits both choices");
+
     for (const int style : {0, 1}) {
         uiStyle = static_cast<float>(style);
         for (const bool hoverTooltip : {false, true}) {

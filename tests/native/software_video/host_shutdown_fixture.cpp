@@ -7,8 +7,24 @@ client_state_t cl{};
 server_t sv{};
 server_static_t svs{};
 char *wadpath;
+qboolean g_bIsDedicatedServer = true;
 static std::vector<std::string> order;
+static bool gameUIReady = false;
+static bool vguiReady = false;
+
+void Host_ResetNativeVideoRestart() {}
+bool cse::NativeGameUIIsRetirementSafePoint() {
+    return true;
+}
+bool cse::TryRetireNativeGameUI() {
+    return gameUIReady;
+}
+bool cse::TryShutdownNativeVGui() {
+    return vguiReady;
+}
+
 void Host_ShutdownServer(qboolean) {
+    assert(Host_IsShuttingDown());
     order.push_back("drain");
     Host_Shutdown();
 }
@@ -58,5 +74,25 @@ int main() {
     Host_Shutdown();
     assert(order == expected);
     assert(!host_initialized);
+
+    order.clear();
+    g_bIsDedicatedServer = false;
+    cls.state = ca_active;
+    host_initialized = true;
+    cse::ResetNativeHostShutdown();
+    cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::Complete);
+    assert(!Host_IsShuttingDown());
+    assert(!cse::TryShutdownNativeHost());
+    assert(order.empty() && host_initialized);
+    assert(!Host_IsShuttingDown());
+    gameUIReady = true;
+    assert(!cse::TryShutdownNativeHost());
+    assert((order == std::vector<std::string>{"drain", "steam"}));
+    assert(!host_initialized);
+    vguiReady = true;
+    assert(cse::TryShutdownNativeHost());
+    assert(order == expected);
+    assert(cse::TryShutdownNativeHost());
+    assert(order == expected);
 }
 extern "C" void CseSteamModuleInitialize() {}

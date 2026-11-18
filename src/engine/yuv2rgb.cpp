@@ -1,5 +1,10 @@
+#include <cstddef>
+
 #define YUV_OVERFLOW_BITS 0x40080100
 #define YUV_CARRY_BITS 0x00400801
+
+constexpr int kRgbBytesPerPixel = 4;
+constexpr int kYuvTableSize = 256;
 
 struct yuv_row_t
 {
@@ -43,58 +48,21 @@ static void YUV_WritePackedPixel( unsigned char* dst, unsigned int pixel )
 	dst[3] = 0;
 }
 
-static short YUV_Write444Row( unsigned char*& dst, const unsigned char*& y, const unsigned char*& u,
-	const unsigned char*& v, int width, int remainingRows, const unsigned int* tables )
-{
-	const yuv_row_t row = YUV_CountRow( width, remainingRows );
-	unsigned int pair;
+void yuv444_2_rgb8888(unsigned char* dst, const unsigned char* y, const unsigned char* u, const unsigned char* v,
+    int width, int height, int ySpan, int uvSpan, int dstSpan, const unsigned int* tables, int) {
+    const unsigned int* uTable = tables + kYuvTableSize;
+    const unsigned int* vTable = uTable + kYuvTableSize;
 
-	for ( pair = 0; pair < row.pairs; pair++ )
-	{
-		YUV_WritePackedPixel( dst, PackYuvPixel( tables[*y++] + tables[256 + *u++] + tables[512 + *v++] ) );
-		YUV_WritePackedPixel( dst + 4, PackYuvPixel( tables[*y++] + tables[256 + *u++] + tables[512 + *v++] ) );
-		dst += 8;
-	}
-
-	if ( row.hasLastPixel )
-	{
-		YUV_WritePackedPixel( dst, PackYuvPixel( tables[*y++] + tables[256 + *u++] + tables[512 + *v++] ) );
-		dst += 4;
-	}
-
-	return row.remainingRows;
-}
-
-void yuv444_2_rgb8888( unsigned char* dst, const unsigned char* y, const unsigned char* u, const unsigned char* v,
-	int width, int height, int ySpan, int uvSpan, int dstSpan, const unsigned int* tables, int )
-{
-	int remainingRows = (int)( (unsigned int)height - 1 );
-	int dstPad, yPad, uvPad;
-
-	if ( remainingRows <= 0 )
-		return;
-
-	dstPad = (int)( (unsigned int)dstSpan - (unsigned int)width * 4 );
-	yPad = (int)( (unsigned int)ySpan - (unsigned int)width );
-	uvPad = (int)( (unsigned int)uvSpan - (unsigned int)width );
-
-	do
-	{
-		remainingRows = YUV_Write444Row( dst, y, u, v, width, remainingRows, tables );
-		dst += dstPad;
-		y += yPad;
-		u += uvPad;
-		v += uvPad;
-		if ( remainingRows == 1 )
-			break;
-
-		remainingRows = YUV_Write444Row( dst, y, u, v, width, remainingRows - 1, tables );
-		dst += dstPad;
-		y += yPad;
-		u += uvPad;
-		v += uvPad;
-		remainingRows--;
-	} while ( remainingRows > 0 );
+    for (std::ptrdiff_t row = 0; row < height; ++row) {
+        auto* out = dst + row * dstSpan;
+        const auto* rowY = y + row * ySpan;
+        const auto* rowU = u + row * uvSpan;
+        const auto* rowV = v + row * uvSpan;
+        for (int column = 0; column < width; ++column) {
+            const unsigned int pixel = tables[rowY[column]] + uTable[rowU[column]] + vTable[rowV[column]];
+            YUV_WritePackedPixel(out + column * kRgbBytesPerPixel, PackYuvPixel(pixel));
+        }
+    }
 }
 
 void yuv420_2_rgb8888( unsigned char* dst, const unsigned char* y, const unsigned char* u, const unsigned char* v,
@@ -168,60 +136,26 @@ void yuv420_2_rgb8888( unsigned char* dst, const unsigned char* y, const unsigne
 	}
 }
 
-static short YUV_Write422Row( unsigned char*& dst, const unsigned char*& y, const unsigned char*& u,
-	const unsigned char*& v, int width, int remainingRows, const unsigned int* tables )
-{
-	const yuv_row_t row = YUV_CountRow( width, remainingRows );
-	unsigned int pair;
-	unsigned int chroma;
+void yuv422_2_rgb8888(unsigned char* dst, const unsigned char* y, const unsigned char* u, const unsigned char* v,
+    int width, int height, int ySpan, int uvSpan, int dstSpan, const unsigned int* tables, int) {
+    const unsigned int* uTable = tables + kYuvTableSize;
+    const unsigned int* vTable = uTable + kYuvTableSize;
+    const int pairedWidth = width - width % 2;
 
-	for ( pair = 0; pair < row.pairs; pair++ )
-	{
-		chroma = tables[256 + *u++] + tables[512 + *v++];
-		YUV_WritePackedPixel( dst, PackYuvPixel( chroma + tables[y[0]] ) );
-		YUV_WritePackedPixel( dst + 4, PackYuvPixel( chroma + tables[y[1]] ) );
-		y += 2;
-		dst += 8;
-	}
-
-	if ( row.hasLastPixel )
-	{
-		chroma = tables[256 + *u] + tables[512 + *v];
-		YUV_WritePackedPixel( dst, PackYuvPixel( chroma + tables[*y++] ) );
-		dst += 4;
-	}
-
-	return row.remainingRows;
-}
-
-void yuv422_2_rgb8888( unsigned char* dst, const unsigned char* y, const unsigned char* u, const unsigned char* v,
-	int width, int height, int ySpan, int uvSpan, int dstSpan, const unsigned int* tables, int )
-{
-	int remainingRows = (int)( (unsigned int)height - 1 );
-	int dstPad, yPad, uvPad;
-
-	if ( remainingRows <= 0 )
-		return;
-
-	dstPad = (int)( (unsigned int)dstSpan - (unsigned int)width * 4 );
-	yPad = (int)( (unsigned int)ySpan - (unsigned int)width );
-	uvPad = (int)( (unsigned int)uvSpan - (unsigned int)( width >> 1 ) );
-
-	do
-	{
-		remainingRows = YUV_Write422Row( dst, y, u, v, width, remainingRows, tables );
-		dst += dstPad;
-		y += yPad;
-		u += uvPad;
-		v += uvPad;
-		if ( remainingRows == 1 )
-			break;
-
-		remainingRows = YUV_Write422Row( dst, y, u, v, width, remainingRows - 1, tables );
-		dst += dstPad;
-		y += yPad;
-		u += uvPad;
-		v += uvPad;
-		remainingRows--;
-	} while ( remainingRows > 0 );
+    for (std::ptrdiff_t row = 0; row < height; ++row) {
+        auto* out = dst + row * dstSpan;
+        const auto* rowY = y + row * ySpan;
+        const auto* rowU = u + row * uvSpan;
+        const auto* rowV = v + row * uvSpan;
+        for (int column = 0; column < pairedWidth; column += 2) {
+            const unsigned int chroma = uTable[rowU[column / 2]] + vTable[rowV[column / 2]];
+            auto* pixel = out + column * kRgbBytesPerPixel;
+            YUV_WritePackedPixel(pixel, PackYuvPixel(chroma + tables[rowY[column]]));
+            YUV_WritePackedPixel(pixel + kRgbBytesPerPixel, PackYuvPixel(chroma + tables[rowY[column + 1]]));
+        }
+        if (pairedWidth < width) {
+            const unsigned int chroma = uTable[rowU[pairedWidth / 2]] + vTable[rowV[pairedWidth / 2]];
+            YUV_WritePackedPixel(out + pairedWidth * kRgbBytesPerPixel, PackYuvPixel(chroma + tables[rowY[pairedWidth]]));
+        }
+    }
 }

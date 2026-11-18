@@ -26,7 +26,7 @@ class ZBotBuildTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return result
 
-    def compile_probe(self, source, enabled):
+    def compile_probe(self, source, enabled, posix_flags=()):
         with tempfile.TemporaryDirectory(prefix='cse-zbot-probe-') as directory:
             path = Path(directory)
             (path / 'probe.cpp').write_text(source)
@@ -36,7 +36,7 @@ class ZBotBuildTests(unittest.TestCase):
                                  str(path / 'probe.cpp'), '/Fe:' + str(executable), '/Fo:' + str(path / 'probe.obj'))
             else:
                 executable = path / 'probe'
-                self.run_command('c++', '-std=c++17', '-DCSE_ENABLE_ZBOT=' + str(enabled),
+                self.run_command('c++', '-std=c++17', '-DCSE_ENABLE_ZBOT=' + str(enabled), *posix_flags,
                                  str(path / 'probe.cpp'), '-o', str(executable))
             self.run_command(str(executable))
 
@@ -88,6 +88,64 @@ int main() {
         for enabled in (1, 0):
             with self.subTest(enabled=enabled):
                 self.compile_probe(probe, enabled)
+
+    def test_bot_quota_is_bounded_before_integer_conversion(self):
+        source = (ROOT / 'src/cstrike/dlls/bot/cs_bot_manager.cpp').read_text()
+        body = function(source, 'void CCSBotManager::MaintainBotQuota()')
+        probe = r'''
+#include <algorithm>
+#include <cassert>
+#include <limits>
+using std::min;
+enum Team { UNASSIGNED, TERRORIST, CT, BOT_TEAM_ANY };
+struct Cvar { float value = 0.0f; const char* string = ""; };
+Cvar cv_bot_quota_match, cv_bot_quota, cv_bot_join_after_player, cv_bot_auto_vacate, humans_join_team;
+struct CHalfLifeMultiplay {
+    int m_iNumCT = 0, m_iNumTerrorist = 0, m_iNumCTWins = 0, m_iNumTerroristWins = 0;
+    bool TeamFull(Team) { return false; }
+    bool IsCareer() { return false; }
+} rules;
+auto* g_pGameRules = &rules;
+struct Globals { int maxClients = 16; } globals;
+auto* gpGlobals = &globals;
+int humans = 2, bots = 0, added = 0, removed = 0;
+int UTIL_HumansInGame(bool = false) { return humans; }
+int UTIL_BotsInGame() { return bots; }
+bool IS_DEDICATED_SERVER() { return true; }
+bool FStrEq(const char*, const char*) { return false; }
+void CVAR_SET_FLOAT(const char*, float) {}
+bool UTIL_KickBotFromTeam(Team) { ++removed; return true; }
+int RANDOM_LONG(int, int) { return 0; }
+struct CCSBotManager {
+    bool m_isLearningMap = false;
+    void MaintainBotQuota();
+    void BotAddCommand(Team, bool) { ++added; }
+};
+''' + body + r'''
+int main() {
+    CCSBotManager manager;
+    cv_bot_quota.value = 2147483648.0f;
+    manager.MaintainBotQuota();
+    assert(added == 1 && removed == 0);
+
+    bots = 13;
+    cv_bot_auto_vacate.value = 1.0f;
+    cv_bot_quota_match.value = std::numeric_limits<float>::infinity();
+    manager.MaintainBotQuota();
+    assert(added == 1 && removed == 0);
+
+    cv_bot_quota_match.value = 0.0f;
+    cv_bot_quota.value = 2.75f;
+    bots = 2;
+    manager.MaintainBotQuota();
+    assert(added == 1 && removed == 0);
+
+    cv_bot_quota.value = -2147483904.0f;
+    manager.MaintainBotQuota();
+    assert(added == 1 && removed == 1);
+}
+'''
+        self.compile_probe(probe, 1, ('-fsanitize=float-cast-overflow', '-fno-sanitize-recover=float-cast-overflow'))
 
     def test_ui_availability_keeps_half_life_without_bot_controls(self):
         source = (ROOT / 'src/GameUI/ModInfo.cpp').read_bytes().decode('latin-1')

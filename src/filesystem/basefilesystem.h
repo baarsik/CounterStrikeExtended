@@ -534,6 +534,7 @@ CreateInterfaceFn	Sys_GetFactory( const char* pModuleName );
 
 #ifndef _WIN32
 void ClearPathMatchCache();
+__attribute__((visibility("hidden"))) void CopyNativePath(const char* path, char* output, size_t capacity);
 int					strlwr( char* src );
 std::intptr_t FindFirstFile(char* fileName, FIND_DATA* dat);
 bool				FindNextFile( std::intptr_t handle, FIND_DATA* dat );

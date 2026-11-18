@@ -278,6 +278,10 @@ bool NativeMouseWindow::RefreshInteraction(bool activeApp, bool gameplayContext,
     interactionCached = true;
     const bool owned = activeApp && interactionResult == CseSdlCocoaMouseReady;
     if (owned && !captureSuspended) {
+        if (cursorPolicyBound && !cursorPolicyVisible) {
+            // AppKit can restore its arrow or presentation mask without an SDL window event.
+            cursorRefreshNeeded = true;
+        }
         // A menu may have restored native ownership before gameplay capture resumed.
         // Replay the caller's retained activation intent once both are current.
         if (committedGameplayCapture && gameplayContext) {

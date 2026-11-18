@@ -1,8 +1,8 @@
 #include "native_socket_lifetime.h"
+#include "native_executable_image.h"
 #include <atomic>
 #include <cerrno>
 #include <dlfcn.h>
-#include <mach-o/dyld.h>
 #include <mutex>
 #include <pthread.h>
 #include <unistd.h>
@@ -39,8 +39,8 @@ Status Bind(const Binding* binding) noexcept {
         return Status::Invalid;
     }
     const auto* canonical = static_cast<const HostTable*>(dlsym(RTLD_MAIN_ONLY, HostSymbol));
-    const void* main = _dyld_get_image_header(0);
-    if (!SameImage(canonical, main) || canonical->size != sizeof(HostTable) || canonical->version != Version ||
+    const void* main = MainExecutableImage(canonical);
+    if (!main || canonical->size != sizeof(HostTable) || canonical->version != Version ||
         canonical->contract != HostContract || !SameImage(reinterpret_cast<const void*>(canonical->owns), main) ||
         !SameImage(reinterpret_cast<const void*>(canonical->createUdp), main) ||
         !SameImage(reinterpret_cast<const void*>(canonical->closeUdp), main) ||

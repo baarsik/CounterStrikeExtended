@@ -28,6 +28,9 @@ if case == 'pty_restore_signals':
         assert restored == before
         os.close(master)
         os.close(slave)
+elif case == 'null_input':
+    result = subprocess.run([probe], stdin=subprocess.DEVNULL, capture_output=True, timeout=3)
+    assert result.returncode == 0 and b'EOF_FRAMES:5' in result.stderr, result.stderr
 elif case == 'closed_descriptors':
     def close_stdio():
         os.close(0)

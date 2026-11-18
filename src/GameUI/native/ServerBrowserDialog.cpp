@@ -58,7 +58,7 @@ constexpr int ReferencePageWidth = 624;
 constexpr int ReferencePageHeight = 278;
 constexpr int OriginalMinimumWidth = 640;
 constexpr int OriginalMinimumHeight = 384;
-constexpr uint32_t InternetCacheMaxAgeMilliseconds = 60000;
+constexpr double InternetCacheMaxAgeSeconds = 60.0;
 bool UsesMasterserver(ListKind kind) {
     return kind == ListKind::Internet || kind == ListKind::Spectate;
 }
@@ -563,8 +563,8 @@ public:
                 return;
             }
         }
-        const auto now = static_cast<uint64_t>(vgui2::system()->GetTimeMillis());
-        if (deadline_ && deadline_ < now) {
+        const double now = vgui2::system()->GetCurrentTime();
+        if (deadline_ > 0.0 && now >= deadline_) {
             Refresh();
         }
         if (refreshPending_) {
@@ -575,7 +575,7 @@ public:
                 return;
             }
             refreshPending_ = false;
-            deadline_ = now + GameInfoRefreshMilliseconds;
+            deadline_ = now + GameInfoRefreshSeconds;
         }
         for (auto &metadata : details_->TakeMetadata()) {
             row_ = std::move(metadata);
@@ -602,7 +602,9 @@ public:
                 return;
             }
         }
-        if (details_->MetadataFailed() && !responded_) {
+        if (details_->MetadataFailed()) {
+            connectPending_ = false;
+            responded_ = false;
             failed_ = true;
         }
         for (auto &player : details_->TakeUpdates()) {
@@ -807,7 +809,7 @@ private:
     vgui2::RadioButton *join_;
     std::array<char, OriginalPasswordCapacity> secret_{};
     std::deque<DetailUpdate> pendingPlayers_;
-    uint64_t deadline_ = 0;
+    double deadline_ = 0.0;
     uint64_t acceptedSerial_;
     // No queued player is admitted until a genuine successor callback supplies its generation.
     static constexpr uint64_t NoPlayerGeneration = 0;
@@ -1439,9 +1441,9 @@ bool ServerBrowserDialog::ChangeTab(int tab) {
         session_.model.SwapState(session_.parkedModel);
         session_.presentation.SwapState(session_.parkedPresentation);
     }
-    const auto now = static_cast<uint32_t>(vgui2::system()->GetTimeMillis());
+    const double now = vgui2::system()->GetCurrentTime();
     const bool internetFresh = kind == ListKind::Internet && internetRefreshedAt_ &&
-        now - *internetRefreshedAt_ < InternetCacheMaxAgeMilliseconds;
+        now - *internetRefreshedAt_ < InternetCacheMaxAgeSeconds;
     const bool hasInternetRows = kind == ListKind::Internet && session_.presentation.CanAcceptUpdates() &&
         session_.presentation.VisibleCount() > 0;
     const bool accepted = internetFresh || RefreshPage(kind, destination.filters);
@@ -1551,7 +1553,7 @@ void ServerBrowserDialog::Pump() {
     const auto state = session_.model.GetStatus();
     if (internetRefreshPending_ && state.phase != Phase::Refreshing) {
         if (state.phase == Phase::Complete && !state.pending && !state.viewUpdating) {
-            internetRefreshedAt_ = static_cast<uint32_t>(vgui2::system()->GetTimeMillis());
+            internetRefreshedAt_ = vgui2::system()->GetCurrentTime();
             internetRefreshPending_ = false;
         } else if (state.phase != Phase::Complete) {
             if (state.phase == Phase::Failed) {
@@ -2109,8 +2111,14 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     if (!settings.Valid() || session_.closing || !session_.active) {
         return;
     }
+    const auto previous = session_.settings.masterservers.Selected();
+    const auto selected = settings.Selected();
     session_.settings.masterservers = settings;
-    session_.masterserverProvider.Select(settings.Selected());
+    session_.masterserverProvider.Select(selected);
+    SaveSettings();
+    if (previous.id == selected.id && previous.endpoints == selected.endpoints) {
+        return;
+    }
     internetRefreshedAt_.reset();
     internetSelectedKeys_.clear();
     internetKeyboardCursor_.reset();
@@ -2119,8 +2127,13 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
         session_.parkedModel.ClearResults();
         session_.parkedPresentation.Apply({{}, false, true, 0});
     }
-    for (auto& tab : tabStates_) {
-        tab.selection.reset();
+    for (size_t index = 0; index < BrowserTabKinds.size(); ++index) {
+        if (UsesMasterserver(BrowserTabKinds[index])) {
+            tabStates_[index].selection.reset();
+        }
+    }
+    if (!UsesMasterserver(session_.settings.kind)) {
+        return;
     }
     selectedKeys_.clear();
     keyboardCursor_.reset();
@@ -2133,7 +2146,6 @@ void ServerBrowserDialog::ApplyMasterservers(const MasterserverSettings& setting
     viewportDirty_ = true;
     visible_.clear();
     RefreshPage(session_.settings.kind, session_.settings.filters, true);
-    SaveSettings();
 }
 
 void ServerBrowserDialog::ShowActionStatus(const char *token) {

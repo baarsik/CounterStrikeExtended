@@ -54,6 +54,13 @@ struct IHTMLChromeController {
     int removals = 0;
 };
 
+namespace cse {
+namespace ui {
+void ForgetControlStyle(const void*) {
+}
+}
+}
+
 namespace vgui2 {
 using VPANEL = std::uintptr_t;
 class Panel;
@@ -68,6 +75,8 @@ std::vector<VPANEL> pendingDeletes;
 int closeEvents = 0;
 bool running = true;
 IHTMLChromeController fixtureController;
+
+struct Tooltip {};
 
 class Panel {
 public:
@@ -86,6 +95,7 @@ public:
     VPANEL _vpanel = reinterpret_cast<VPANEL>(this);
     bool _autoDelete = true;
     bool _markedForDeletion = false;
+    Tooltip* m_pTooltips = nullptr;
     char* _panelName = nullptr;
 };
 
@@ -160,9 +170,33 @@ public:
 class Frame : public Panel {
 public:
     void Activate() {}
-    void SetTitle(const char*, bool) {}
-    void SetControlString(const char*, const char*) {}
+    void SetTitle(const wchar_t* text, bool) {
+        title = text;
+    }
+    std::wstring title;
 };
+
+struct Label : Panel {
+    using Panel::Panel;
+    void SetText(const wchar_t* value) {
+        text = value;
+    }
+    std::wstring text;
+};
+
+struct Localize {
+    void ConvertANSIToUnicode(const char* input, wchar_t* output, int bytes) {
+        const auto capacity = static_cast<std::size_t>(bytes) / sizeof(wchar_t);
+        if (!capacity || std::mbstowcs(output, input, capacity) >= capacity) {
+            std::abort();
+        }
+    }
+};
+
+Localize* localize() {
+    static Localize service;
+    return &service;
+}
 
 struct FileSystem {
     bool FileExists(const char*) { return !content.empty(); }
@@ -194,11 +228,13 @@ class CClientMOTD : public vgui2::Frame {
 public:
     explicit CClientMOTD(IHTMLSerializer* serializer) {
         m_pMessage = new vgui2::HTML(this, serializer);
+        m_pServerName = new vgui2::Label(this);
     }
     ~CClientMOTD() override;
     bool IsURL(const char* text);
     void Activate(const char* title, const char* message);
     vgui2::HTML* m_pMessage = nullptr;
+    vgui2::Label* m_pServerName = nullptr;
     char m_szTempFileName[4096] = "motd_temp.html";
     int m_iScoreBoardKey = 0;
 };
@@ -247,7 +283,8 @@ int main(int argc, char** argv) {
     } else if (std::strcmp(argv[1], "owner-destroy") != 0) {
         const bool html = std::strcmp(argv[1], "close-html") == 0;
         const char* payload = html ? "<!DOCTYPE html><p>Full MOTD</p>" : "http://fixture.invalid/motd";
-        owner->Activate("fixture", payload);
+        owner->Activate("#fixture", payload);
+        passed = owner->title == L"#fixture" && owner->m_pServerName->text == owner->title && passed;
         const char* expectedURL = html ? "file:///C:/fixture/motd_temp.html" : "http://fixture.invalid/motd";
         passed = child->m_sPendingURLLoad.m_pchString &&
             std::strcmp(child->m_sPendingURLLoad.m_pchString, expectedURL) == 0 && passed;

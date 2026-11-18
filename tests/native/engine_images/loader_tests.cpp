@@ -172,6 +172,8 @@ struct SkyUpload {
 };
 static std::vector<SkyUpload> skyUploads;
 static int skyBmpLoadCount = 0;
+static int skyBmpWidth = TestSkyFaceDimension;
+static int skyBmpHeight = TestSkyFaceDimension;
 static short skyPaletteAddResult = 0;
 static std::vector<byte> mapPixels;
 void* Mem_Malloc(int size) { return std::malloc(size); }
@@ -189,6 +191,7 @@ static int g_currentpalette = -1;
 static std::vector<byte> skyPaletteColors;
 static int selectedSkyColor = -1;
 void GL_PaletteClearSky() {
+    g_currentpalette = -1;
     skyPaletteColors.clear();
 }
 short GL_PaletteAdd(byte* palette, qboolean) {
@@ -224,8 +227,8 @@ void LoadBMP8(FileHandle_t file, byte** palette, int* count, byte** indexed, int
     *indexed = static_cast<byte*>(std::malloc(TestSkyFacePixels));
     std::memset(*indexed, file->front(), TestSkyFacePixels);
     *count = 1;
-    *width = TestSkyFaceDimension;
-    *height = TestSkyFaceDimension;
+    *width = skyBmpWidth;
+    *height = skyBmpHeight;
 }
 #define Q_strcmp strcmp
 #define Q_strcpy strcpy
@@ -716,6 +719,19 @@ int main() {
               && fontData.m_BitmapCharHeight == 1 && fontData.m_pBitmap[65] == 1 && fontData.m_pBitmap[64] == 0,
           "engine WebP font atlas preserves glyph coverage extraction");
     EngineSurface surface;
+    constexpr std::size_t TargaHeaderBytes = 18;
+    std::vector<byte> compressedTarga = TargaFixture();
+    compressedTarga.resize(TargaHeaderBytes);
+    compressedTarga[2] = 10;
+    // Bottom-up, four literal BGRA pixels. Preserve the translucent top-right pixel.
+    compressedTarga.insert(compressedTarga.end(), {
+        3, 255, 0, 0, 255, 255, 255, 255, 255, 0, 0, 255, 255, 0, 255, 0, 128
+    });
+    files["surface-rle.tga"] = compressedTarga;
+    surface.drawSetTextureFile(1, "surface-rle", 0, true);
+    Check(surfacePixels == expected, "file-backed surface receives complete RGBA pixels from an RLE TGA");
+    Check(!Load("surface-rle.tga", tooSmall, width, height),
+          "RGBA image callers require four bytes per RLE pixel");
     surface.drawSetTextureFile(1, "legacy.tga", 0, true);
     Check(surfacePixels == expected, "surface accepts a complete legacy .tga path and its WebP replacement");
     surfacePixels.clear();
@@ -746,6 +762,8 @@ int main() {
         }
         skyUploads.clear();
         skyBmpLoadCount = 0;
+        skyBmpWidth = TestSkyFaceDimension;
+        skyBmpHeight = TestSkyFaceDimension;
         skyPaletteAddResult = 0;
         qglColorTableEXT = 1;
         gl_palette_tex.value = 1;
@@ -767,6 +785,27 @@ int main() {
             Check(upload.pixels == pixels[face], (faceDescription + " preserves every face byte").c_str());
         }
     };
+    resetHardwareSky();
+    files["gfx/env/testrt.tga"] = WebPFixture(skyPixels, TestSkyFaceDimension * 2, TestSkyFaceDimension / 2);
+    for (const char* face : faces) {
+        files[std::string("gfx/env/desert") + face + ".tga"] = TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+    }
+    R_LoadSkys();
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                     "wrong-shaped WebP stored under a TGA sky name selects the default sky");
+    for (int bmpWidth : {TestSkyFaceDimension, TestSkyFaceDimension * 2}) {
+        resetHardwareSky();
+        skyBmpWidth = bmpWidth;
+        skyBmpHeight = TestSkyFaceDimension / 2;
+        for (const char* face : faces) {
+            files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+            files[std::string("gfx/env/test") + face + ".tga"] = TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+        }
+        R_LoadSkys();
+        checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                         "indexed sky with incorrect geometry uses the TGA fallback");
+        Check(skyBmpLoadCount == 1, "invalid indexed sky retains the subsequent TGA search");
+    }
     resetHardwareSky();
     for (const char* face : faces) {
         files[std::string("gfx/env/test") + face + ".webp"] = skyWebP;

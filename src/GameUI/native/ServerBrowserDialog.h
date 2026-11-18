@@ -164,7 +164,7 @@ private:
     bool reopenRequested_ = false;
     bool refreshOnOpen_ = false;
     bool internetRefreshPending_ = false;
-    std::optional<uint32_t> internetRefreshedAt_;
+    std::optional<double> internetRefreshedAt_;
     bool transitioning_ = false;
     bool viewportDirty_ = true;
     bool displayedVACBan_ = false;

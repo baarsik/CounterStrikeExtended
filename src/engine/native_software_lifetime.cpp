@@ -1,7 +1,7 @@
 #include "native_software_lifetime.h"
+#include "native_executable_image.h"
 #include "../common/TextEntryClipboard.h"
 #include <dlfcn.h>
-#include <mach-o/dyld.h>
 #include <mutex>
 #include <limits>
 #include <pthread.h>
@@ -16,20 +16,17 @@ pthread_t ownerThread{};
 unsigned int calls = 0;
 bool retiring = false;
 
-bool MainImageFunction(const void* address) {
-    Dl_info image{};
-    return address && dladdr(address, &image) != 0 && image.dli_fbase == _dyld_get_image_header(0);
-}
-
 Result Bind(const Binding* binding) noexcept {
     std::lock_guard<std::mutex> lock(gate);
     Dl_info image{};
     if (!pthread_main_np() || !binding || binding->structBytes != sizeof(Binding) || binding->version != Version ||
         binding->epoch == 0 || !binding->context || binding->reserved != 0 ||
         (binding->mode != Mode::Client && binding->mode != Mode::Dedicated) ||
-        dladdr(reinterpret_cast<const void*>(&Bind), &image) == 0 || binding->imageBase != image.dli_fbase ||
-        !MainImageFunction(reinterpret_cast<const void*>(binding->exclusive)) ||
-        !MainImageFunction(reinterpret_cast<const void*>(binding->networkLog))) {
+        dladdr(reinterpret_cast<const void*>(&Bind), &image) == 0 || binding->imageBase != image.dli_fbase) {
+        return Result::Invalid;
+    }
+    const void* main = MainExecutableImage(reinterpret_cast<const void*>(binding->exclusive));
+    if (!main || MainExecutableImage(reinterpret_cast<const void*>(binding->networkLog)) != main) {
         return Result::Invalid;
     }
     if (phase != Phase::Unbound) {

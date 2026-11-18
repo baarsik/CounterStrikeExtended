@@ -31,6 +31,7 @@
 #include "system_fixture.h"
 #include "layout_fixture.h"
 #include "input_retirement_fixture.h"
+#include "control_timers_fixture.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <fstream>
@@ -230,15 +231,28 @@ int main(int argc, char **argv) {
             dialog->SetParent(hdParent);
         }
         const auto advancePastInternetCacheAge = [] {
-            constexpr int InternetCacheTestAdvanceMilliseconds = 61000;
-            *system_fixture::current->timeMillisOverride += InternetCacheTestAdvanceMilliseconds;
+            constexpr double InternetCacheTestAdvanceSeconds = 61.0;
+            *system_fixture::current->timeSecondsOverride += InternetCacheTestAdvanceSeconds;
         };
-        if (name == "internet-cache" || name == "rapid-tabs" || name == "tab-selection-supersession") {
-            system_fixture::current->timeMillisOverride = 0;
+        if (name == "internet-cache" || name == "game-info-failed-connect") {
+            // VGUI's ABI-compatible signed millisecond getter saturates after 24.85 days.
+            constexpr double LongSessionSeconds = 25.0 * 24.0 * 60.0 * 60.0;
+            system_fixture::current->timeSecondsOverride = LongSessionSeconds;
+        } else if (name == "rapid-tabs" || name == "tab-selection-supersession") {
+            system_fixture::current->timeSecondsOverride = 0.0;
         }
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
+        const auto replyToPing = [&](gameserveritem_t &row) {
+            dialog->Pump();
+            Require(!provider.pingCallbacks.empty(), "Game Info did not request server metadata");
+            const auto callback = provider.pingCallbacks.rbegin();
+            auto *response = callback->second;
+            provider.pingCallbacks.erase(callback->first);
+            response->ServerResponded(row);
+            dialog->Pump();
+        };
         if (name == "browser-cog-tooltip") {
             auto *cog = dynamic_cast<vgui2::Button *>(dialog->FindChildByName("BrowserSettings", false));
             Require(cog && !*cog->GetTooltip()->GetText(), "browser cog still creates an unnecessary tooltip");
@@ -323,6 +337,15 @@ int main(int argc, char **argv) {
             cse::ui::ControlsStyle() = currentStyle;
         } else if (name == "masterserver-settings") {
             Require(dialog->FindChildByName("BrowserSettings", false) != nullptr, "cogwheel button missing");
+            dialog->SelectVisible(1);
+            const auto selected = session.model.Selection();
+            const auto request = provider.lists.current;
+            Send(*dialog, "BrowserSettings");
+            auto *unchanged = layout_fixture::Child(*dialog, "BrowserConfiguration");
+            Send(*unchanged, "OK");
+            Settle(*dialog, session);
+            Require(selected && session.model.Selection() == selected && provider.lists.current == request,
+                    "confirming the current master server discarded the browser selection or reissued discovery");
             Send(*dialog, "BrowserSettings");
             auto* settings = dialog->FindChildByName("BrowserConfiguration", false);
             Require(settings != nullptr, "settings dialog missing");
@@ -486,6 +509,16 @@ int main(int argc, char **argv) {
                 layout_fixture::Check(*dialog, 640, 384);
             }
             const bool keyboardTabs = name == "focus-tab" || name == "tab-order";
+            const auto settleTab = [&] {
+                Settle(*dialog, session);
+                if (session.model.GetStatus().phase == Phase::Refreshing) {
+                    provider.lists.Complete();
+                    Settle(*dialog, session);
+                } else {
+                    Require(session.settings.kind == ListKind::Internet && session.presentation.VisibleCount() > 0,
+                        "only a populated Internet tab may reuse its cached rows");
+                }
+            };
             if (keyboardTabs) {
                 tabs->RequestFocus(1);
                 Settle(*dialog, session);
@@ -499,9 +532,7 @@ int main(int argc, char **argv) {
                 } else {
                     tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
                 }
-                Settle(*dialog, session);
-                provider.lists.Complete();
-                Settle(*dialog, session);
+                settleTab();
                 Require(tabs->GetActivePageNum() == static_cast<int>(index) &&
                             session.settings.kind == BrowserTabKinds[index],
                         "tab traversal changed visual or stored tab identity");
@@ -521,9 +552,7 @@ int main(int argc, char **argv) {
             if (keyboardTabs) {
                 for (int index = static_cast<int>(BrowserTabKinds.size()) - 2; index >= 0; --index) {
                     layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_LEFT);
-                    Settle(*dialog, session);
-                    provider.lists.Complete();
-                    Settle(*dialog, session);
+                    settleTab();
                     Require(tabs->GetActivePageNum() == index &&
                                 session.settings.kind == BrowserTabKinds[static_cast<size_t>(index)],
                             "Left key did not select the preceding original page");
@@ -553,7 +582,7 @@ int main(int argc, char **argv) {
                 gui->RunFrame();
             }
             Require(dialog->IsVisible(), "reopen did not finish bounded retirement");
-            StartList(*dialog, session, provider);
+            settleTab();
             layout_fixture::FocusVisible(*reopenFocus);
             layout_fixture::Check(*dialog, 640, 384);
         } else if (name == "hd-saved") {
@@ -645,6 +674,7 @@ int main(int argc, char **argv) {
             key(vgui2::KEY_DOWN);
             Require(session.model.Selection()->ip == 0x7f000002U, "actual Down message lost RowKey identity");
             key(vgui2::KEY_ENTER);
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 1 && engine.commands.back() == "connect 127.0.0.2:27015\n",
                     "actual Enter message connected the wrong row");
             dialog->Activate();
@@ -655,6 +685,7 @@ int main(int argc, char **argv) {
             Require(dialog->IsVisible(), "issued connection did not permit bounded reopen");
             gui->PostMessage(list->GetVPanel(), new KeyValues("MouseDoublePressed", "code", vgui2::MOUSE_LEFT), 0, 0);
             gui->RunFrame();
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 2 && engine.commands.back() == "connect 127.0.0.2:27015\n",
                     "actual double-click message lost selected RowKey");
         } else if (name == "inactive-close") {
@@ -769,9 +800,12 @@ int main(int argc, char **argv) {
         } else if (name == "region-tabs") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
             auto *map = static_cast<vgui2::TextEntry *>(tabs->GetActivePage()->FindChildByName("MapFilter", false));
-            map->SetText("DE_");
+            for (const char character : std::string("DE_")) {
+                gui->PostMessage(map->GetVPanel(), new KeyValues("KeyTyped", "unichar", character), 0, 0);
+            }
             gui->RunFrame();
             Settle(*dialog, session);
+            Require(session.settings.filters.map == "DE_", "typed Internet map filter did not reach the page");
             for (size_t index = 1; index < BrowserTabKinds.size(); ++index) {
                 tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
                 Settle(*dialog, session);
@@ -803,6 +837,66 @@ int main(int argc, char **argv) {
             Settle(*dialog, session);
             Require(std::strcmp(list->GetItem(item)->GetString("Name"), "Refreshed name") == 0,
                     "a changed row did not invalidate the viewport");
+        } else if (name.rfind("control-timer-", 0) == 0) {
+            control_timers_fixture::Run(dialog, name);
+        } else if (name == "long-session-events") {
+            class TimedPanel final : public vgui2::Panel {
+            public:
+                explicit TimedPanel(vgui2::Panel *parent) : Panel(parent, "TimedPanel") {}
+
+                void OnMessage(const KeyValues *message, vgui2::VPANEL sender) override {
+                    if (std::strcmp(message->GetName(), "ClockControl") == 0) {
+                        ++delayed;
+                    } else if (std::strcmp(message->GetName(), "Tick") == 0) {
+                        ++ticks;
+                    } else {
+                        Panel::OnMessage(message, sender);
+                    }
+                }
+                int delayed = 0;
+                int ticks = 0;
+            };
+            auto &now = system_fixture::current->timeSecondsOverride;
+            constexpr double LongSessionSeconds = 25.0 * 24.0 * 60.0 * 60.0;
+            constexpr float DelaySeconds = 0.25f;
+            constexpr int TickMilliseconds = 250;
+            for (double start : {0.0, LongSessionSeconds}) {
+                now = start;
+                auto *panel = new TimedPanel(dialog);
+                gui->AddTickSignal(panel->GetVPanel(), TickMilliseconds);
+                gui->PostMessage(panel->GetVPanel(), new KeyValues("ClockControl"), 0, DelaySeconds);
+                *now += DelaySeconds / 2.0;
+                gui->RunFrame();
+                gui->RunFrame();
+                Require(!panel->ticks && !panel->delayed, "VGUI events fired before their deadline");
+                *now += DelaySeconds / 2.0;
+                gui->RunFrame();
+                gui->RunFrame();
+                Require(panel->delayed == 1, "VGUI delayed message never reached its panel");
+                Require(panel->ticks == 1, "VGUI tick never reached its panel");
+                gui->RemoveTickSignal(panel->GetVPanel());
+                panel->MarkForDeletion();
+                gui->RunFrame();
+            }
+        } else if (name == "masterserver-favorites") {
+            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*dialog, "GameTabs"));
+            tabs->SetActivePage(layout_fixture::Child(*tabs, "FavoriteGames"));
+            gui->RunFrame();
+            StartList(*dialog, session, provider);
+            dialog->SelectVisible(0);
+            const auto favorite = session.model.Selection();
+            const auto favoriteRequest = provider.lists.current;
+            Require(session.parkedPresentation.VisibleCount() > 0, "Internet results were not cached");
+            Send(*dialog, "BrowserSettings");
+            auto *settings = layout_fixture::Child(*dialog, "BrowserConfiguration");
+            auto *masters = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*settings, "Masterservers"));
+            masters->SetSingleSelectedItem(masters->GetItemIDFromRow(1));
+            Send(*settings, "OK");
+            Settle(*dialog, session);
+            Require(session.settings.masterservers.selected == "varq" && favorite &&
+                    session.model.Selection() == favorite && provider.lists.current == favoriteRequest,
+                    "changing the directory provider discarded the independent Favorites view");
+            Require(session.parkedPresentation.VisibleCount() == 0, "old directory results survived the switch");
         } else if (name == "internet-cache") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
             constexpr size_t ScrollRank = 20;
@@ -1204,6 +1298,43 @@ int main(int argc, char **argv) {
             Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
                     "password submission connected a changed selection");
             Require(engine.password == "secret", "password ownership did not reach safe engine setter");
+        } else if (name == "game-info-failed-connect") {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            dialog->Pump();
+            auto* info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto item = Server(target.ip);
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Send(*info, "Connect");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerFailedToRespond();
+            dialog->Pump();
+            gui->RunFrame();
+            auto* label = static_cast<vgui2::Label*>(layout_fixture::Child(*info, "InfoLabel"));
+            std::array<wchar_t, 256> text{};
+            label->GetText(text.data(), static_cast<int>(text.size()));
+            const auto* failure = vgui2::localize()->Find("ServerBrowser_ServerNotResponding");
+            Require(failure && std::wstring(text.data()) == failure, "latest failed ping must replace a successful status");
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands.empty(), "refreshing a recovered server must not replay the failed Connect");
+            const int previousPings = provider.pings;
+            constexpr double PastInfoRefreshSeconds = 11.0;
+            *system_fixture::current->timeSecondsOverride += PastInfoRefreshSeconds;
+            dialog->Pump();
+            Require(provider.pings == previousPings + 1, "Game Info must keep auto-refreshing in long sessions");
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Send(*info, "Connect");
+            dialog->Pump();
+            provider.pingCallbacks.rbegin()->second->ServerResponded(item);
+            dialog->Pump();
+            Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
+                "an explicit new Connect must still join the recovered server");
         } else if (playerRefresh) {
             dialog->SelectVisible(0);
             const auto target = *session.model.Selection();
@@ -1399,6 +1530,8 @@ int main(int argc, char **argv) {
             Send(*dialog, "RemoveFavorite");
             Require((favorites.records[0].flags & k_unFavoriteFlagFavorite) == 0,
                     "remove control lost favorite semantics");
+            StartList(*dialog, session, provider);
+            dialog->SelectVisible(0);
             dialog->ShowContextMenu();
             auto *menu = dynamic_cast<vgui2::Menu *>(dialog->FindChildByName("ServerContext", false));
             Require(menu && menu->GetItemCount() == 4, "actual retained row context actions missing");
@@ -1424,6 +1557,7 @@ int main(int argc, char **argv) {
             dialog->SelectVisible(0);
             const auto favoriteTimestamp = favorites.records[0].lastPlayed;
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.commands.size() == 1 && engine.commands.front().find("connect 127.") == 0,
                     "real connect action did not use numeric endpoint");
             Require(favorites.records[0].lastPlayed == favoriteTimestamp &&
@@ -1465,6 +1599,7 @@ int main(int argc, char **argv) {
                     "failed save was not shown plainly to the user");
             dialog->SelectVisible(0);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.commands.size() == 1, "failed settings save disabled otherwise usable browser");
         } else if (name == "favorite-error") {
             dialog->SelectVisible(0);
@@ -1483,13 +1618,15 @@ int main(int argc, char **argv) {
         } else if (name == "password") {
             dialog->SelectVisible(0);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             auto *prompt = dialog->FindChildByName("DialogServerPassword", true);
             Require(prompt && prompt->FindChildByName("CancelButton", false), "installed password resource missing");
             auto *entry = dynamic_cast<vgui2::TextEntry *>(prompt->FindChildByName("PasswordEntry", false));
             Require(entry != nullptr, "password control was not code-bound");
             auto *settings = new KeyValues("PasswordSettings");
             entry->GetSettings(settings);
-            Require(settings->GetInt("textHidden") == 1 && settings->GetInt("maxchars") == 127,
+            constexpr int OriginalPasswordCharacters = 63;
+            Require(settings->GetInt("textHidden") == 1 && settings->GetInt("maxchars") == OriginalPasswordCharacters,
                     "password entry is unmasked or unbounded");
             settings->deleteThis();
             entry->SetText("p\303\244ss");
@@ -1500,6 +1637,7 @@ int main(int argc, char **argv) {
             Require(entry->GetTextLength() == 0, "connect left visible password storage populated");
             entry->Undo();
             Require(entry->GetTextLength() == 0, "password undo restored retired secret");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.password == "p\303\244ss" && engine.commands.size() == 1 &&
                         engine.commands.front() == "connect 127.0.0.1:27015\n",
                     "password entered command text or was lost");
@@ -1514,6 +1652,7 @@ int main(int argc, char **argv) {
             Require(dialog->IsVisible(), "password retry did not wait for ordinary retirement");
             dialog->SelectVisible(1);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows[1]);
             prompt = dialog->FindChildByName("DialogServerPassword", true);
             Require(prompt != nullptr, "explicit password retry did not create a fresh prompt");
             entry = dynamic_cast<vgui2::TextEntry *>(prompt->FindChildByName("PasswordEntry", false));
@@ -1521,6 +1660,7 @@ int main(int argc, char **argv) {
             gui->PostMessage(prompt->GetVPanel(), new KeyValues("Command", "command", "Connect"), 0, 0);
             gui->PostMessage(prompt->GetVPanel(), new KeyValues("Command", "command", "Connect"), 0, 0);
             gui->RunFrame();
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 2 && engine.password == "second",
                     "terminal password dialog replayed a queued connect action");
             session.connection.Disconnected();

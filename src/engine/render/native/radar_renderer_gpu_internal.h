@@ -47,10 +47,11 @@ inline bool ValidFade(const CseRadarFade& fade) {
 }
 
 inline SDL_Rect SceneScissor(const RasterState& raster, const MetalEffectAccess& access) {
-    std::int64_t left = 0;
-    std::int64_t bottom = 0;
-    std::int64_t right = access.width;
-    std::int64_t top = access.height;
+    // HUD positions are transformed into full-target coordinates, so preserve GL's viewport clipping explicitly.
+    std::int64_t left = std::max(0, raster.viewport[0]);
+    std::int64_t bottom = std::max(0, raster.viewport[1]);
+    std::int64_t right = std::min<std::int64_t>(access.width, std::int64_t(raster.viewport[0]) + raster.viewport[2]);
+    std::int64_t top = std::min<std::int64_t>(access.height, std::int64_t(raster.viewport[1]) + raster.viewport[3]);
     if (raster.enabled[static_cast<std::size_t>(Capability::ScissorTest)]) {
         left = std::max<std::int64_t>(left, raster.scissor[0]);
         bottom = std::max<std::int64_t>(bottom, raster.scissor[1]);

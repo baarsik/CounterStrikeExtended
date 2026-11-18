@@ -12,6 +12,8 @@
 #include "cs_bot.h"
 #include "buildslave_assert.h"
 
+#include <algorithm>
+
 #define ASSERT_FILE BUILDSLAVE_PATH( L"cstrike\\dlls\\bot\\cs_bot_manager.cpp" )
 
 float CCSBotManager::m_flNextCVarCheck = 0.0f;
@@ -307,13 +309,17 @@ void CCSBotManager::MaintainBotQuota()
 	if ( humans == 0 && !IS_DEDICATED_SERVER() )
 		return;
 
-	int quota = static_cast<int>( cv_bot_quota_match.value > 0.0f ? cv_bot_quota_match.value * activeHumans : cv_bot_quota.value );
-	if ( cv_bot_join_after_player.value > 0.0f && activeHumans == 0 )
-		quota = 0;
-	int available = gpGlobals->maxClients - humans;
-	if ( cv_bot_auto_vacate.value > 0.0f )
-		--available;
-	quota = min( quota, available );
+    float requestedQuota = cv_bot_quota_match.value > 0.0f
+        ? cv_bot_quota_match.value * activeHumans : cv_bot_quota.value;
+    if (cv_bot_join_after_player.value > 0.0f && activeHumans == 0) {
+        requestedQuota = 0.0f;
+    }
+    int available = gpGlobals->maxClients - humans;
+    if (cv_bot_auto_vacate.value > 0.0f) {
+        --available;
+    }
+    const int quota = requestedQuota > 0.0f && available > 0
+        ? static_cast<int>((std::min)(requestedQuota, static_cast<float>(available))) : 0;
 	CHalfLifeMultiplay* rules = static_cast<CHalfLifeMultiplay*>( g_pGameRules );
 	if ( UTIL_BotsInGame() < quota )
 	{

@@ -339,8 +339,11 @@ void CL_Disconnect()
 		Cvar_DirectSet( &sv_allow_shaders, "0" );
 	}
 
-	VGuiWrap2_NotifyOfServerDisconnect();
-	StopLoadingProgressBar();
+    // Native host teardown drains the server after retiring GameUI's panels.
+    if (!Host_IsShuttingDown()) {
+        VGuiWrap2_NotifyOfServerDisconnect();
+        StopLoadingProgressBar();
+    }
 }
 
 void CL_ClearClientState()

@@ -189,7 +189,14 @@ void ComputeScaledSize(int* wscale, int* hscale, int width, int height) {
         *wscale, *hscale);
 }
 
-static bool GL_TextureDimensions(int width, int height, int type, int& scaledWidth, int& scaledHeight) {
+float GL_TextureAnisotropy() {
+    constexpr float minimumAnisotropy = 1.0f;
+    const float requested = gl_ansio.value;
+    return std::isfinite(requested) && requested >= minimumAnisotropy ? requested : minimumAnisotropy;
+}
+
+static bool GL_TextureDimensions(int width, int height, int type, int& scaledWidth, int& scaledHeight,
+    std::size_t& scaledPixels) {
     if (type != TEX_TYPE_NONE && type != TEX_TYPE_ALPHA && type != TEX_TYPE_ALPHA_GRADIENT &&
         type != TEX_TYPE_RGBA && type != TEX_TYPE_LUM) {
         return false;
@@ -206,8 +213,11 @@ static bool GL_TextureDimensions(int width, int height, int type, int& scaledWid
     if (!g_bSupportsNPOTTextures) {
         ComputeScaledSize(&scaledWidth, &scaledHeight, width, height);
     }
-    return texture_upload::ByteCount(scaledWidth, scaledHeight, channels, bytes) &&
-        bytes / channels <= texture_upload::kMaxScaledPixels;
+    if (!texture_upload::ByteCount(scaledWidth, scaledHeight, channels, bytes)) {
+        return false;
+    }
+    scaledPixels = bytes / channels;
+    return true;
 }
 
 class TextureUnpackState {
@@ -323,7 +333,8 @@ int GL_LoadTexture2(char* identifier, GL_TEXTURETYPE textureType, int width, int
     int type, byte* pal, int filter) {
     int scaledWidth;
     int scaledHeight;
-    if (!identifier || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+    std::size_t scaledPixels;
+    if (!identifier || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight, scaledPixels)) {
         Con_Printf("GL_LoadTexture2: invalid or oversized texture (%dx%d)\n", width, height);
         return 0;
     }
@@ -362,10 +373,23 @@ tryagain:
     }
 
     const bool rgba = textureType == GLT_SPRITE && type == TEX_TYPE_RGBA;
+    if (!data || (!rgba && type != TEX_TYPE_LUM && !pal)) {
+        Con_Printf("GL_LoadTexture2: missing texture pixels or palette (%dx%d)\n", width, height);
+        return 0;
+    }
+
+    constexpr int kPointTextureLimit = 128;
+    const bool originalSize = scaledWidth == width && scaledHeight == height;
+    short paletteIndex = -1;
+    if (!mipmap && qglColorTableEXT && gl_palette_tex.value && type == TEX_TYPE_NONE &&
+        (originalSize || (scaledWidth <= kPointTextureLimit && scaledHeight <= kPointTextureLimit))) {
+        paletteIndex = GL_PaletteAdd(pal, FALSE);
+    }
+    // A color-index upload never uses the expanded or scaled RGBA scratch buffers.
     const std::size_t sourcePixels = static_cast<std::size_t>(width) * height;
-    if (!data || (!rgba && type != TEX_TYPE_LUM && !pal) ||
-        (!rgba && sourcePixels > texture_upload::kMaxIndexedPixels)) {
-        Con_Printf("GL_LoadTexture2: missing pixels/palette or oversized indexed texture (%dx%d)\n", width, height);
+    if (paletteIndex < 0 && (scaledPixels > texture_upload::kMaxScaledPixels ||
+        (!rgba && sourcePixels > texture_upload::kMaxIndexedPixels))) {
+        Con_Printf("GL_LoadTexture2: oversized texture for conversion (%dx%d)\n", width, height);
         return 0;
     }
 
@@ -384,17 +408,14 @@ tryagain:
     glt->height = height;
     glt->mipmap = mipmap;
     glt->servercount = textureType == GLT_WORLD ? static_cast<short>(gHostSpawnCount) : 0;
-    glt->paletteIndex = -1;
+    glt->paletteIndex = paletteIndex;
     GL_Bind(glt->texnum);
     currenttexture = -1;
 
-    constexpr int kPointTextureLimit = 128;
-    byte scaled[kPointTextureLimit * kPointTextureLimit];
-    byte* texture = nullptr;
-    if (!mipmap && qglColorTableEXT && gl_palette_tex.value && type == TEX_TYPE_NONE) {
-        if (scaledWidth == width && scaledHeight == height) {
-            texture = data;
-        } else if (scaledWidth <= kPointTextureLimit && scaledHeight <= kPointTextureLimit) {
+    if (paletteIndex >= 0) {
+        byte scaled[kPointTextureLimit * kPointTextureLimit];
+        byte* texture = data;
+        if (!originalSize) {
             if (fs_perf_warnings.value) {
                 Con_DPrintf("fs_perf_warnings: resampling non-power-of-2 texture %s (%dx%d)\n",
                     identifier, width, height);
@@ -402,19 +423,13 @@ tryagain:
             GL_ResampleTexturePoint(data, width, height, scaled, scaledWidth, scaledHeight);
             texture = scaled;
         }
-    }
-
-    if (texture) {
-        glt->paletteIndex = GL_PaletteAdd(pal, FALSE);
-        if (glt->paletteIndex >= 0) {
-            TextureUnpackState unpack;
-            qglTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, scaledWidth, scaledHeight, 0, GL_COLOR_INDEX,
-                GL_UNSIGNED_BYTE, texture);
-            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(filter));
-            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(filter));
-            qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
-            return glt->texnum | ((glt->paletteIndex + 1) << 16);
-        }
+        TextureUnpackState unpack;
+        qglTexImage2D(GL_TEXTURE_2D, 0, GL_COLOR_INDEX8_EXT, scaledWidth, scaledHeight, 0, GL_COLOR_INDEX,
+            GL_UNSIGNED_BYTE, texture);
+        qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(filter));
+        qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(filter));
+        qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
+        return glt->texnum | ((paletteIndex + 1) << 16);
     }
 
     if (g_modfuncs.m_pfnTextureLoad) {
@@ -455,9 +470,11 @@ void GL_Upload16(byte* data, int width, int height, qboolean mipmap, int type, b
     int scaledWidth;
     int scaledHeight;
     std::size_t pixels;
+    std::size_t scaledPixels;
     if (!data || !texture_upload::ByteCount(width, height, texture_upload::kLuminanceChannels, pixels) ||
         pixels > texture_upload::kMaxIndexedPixels ||
-        !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+        !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight, scaledPixels) ||
+        scaledPixels > texture_upload::kMaxScaledPixels) {
         Con_Printf("GL_Upload16: invalid or oversized texture (%dx%d)\n", width, height);
         return;
     }
@@ -531,7 +548,9 @@ void GL_Upload32(unsigned int* data, int width, int height, qboolean mipmap, int
     static std::vector<unsigned int> scaled;
     int scaledWidth;
     int scaledHeight;
-    if (!data || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight)) {
+    std::size_t scaledPixels;
+    if (!data || !GL_TextureDimensions(width, height, type, scaledWidth, scaledHeight, scaledPixels) ||
+        scaledPixels > texture_upload::kMaxScaledPixels) {
         Con_Printf("GL_Upload32: invalid or oversized texture (%dx%d)\n", width, height);
         return;
     }
@@ -541,7 +560,6 @@ void GL_Upload32(unsigned int* data, int width, int height, qboolean mipmap, int
     std::size_t sourceBytes;
     texture_upload::ByteCount(width, height, channels, sourceBytes);
     const std::size_t sourcePixels = sourceBytes / channels;
-    const std::size_t scaledPixels = static_cast<std::size_t>(scaledWidth) * scaledHeight;
     int vidwidth;
     int vidheight;
     int bpp;
@@ -612,7 +630,7 @@ void GL_Upload32(unsigned int* data, int width, int height, qboolean mipmap, int
 
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<float>(mipmap ? gl_filter_min : filter));
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<float>(mipmap ? gl_filter_max : filter));
-    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 }
 
 void BoxFilter3x3( byte* out, byte* in, int w, int h, int x, int y )
@@ -709,7 +727,7 @@ void gl_texturemode_hook_callback( cvar_t* var )
 			GL_Bind( gltextures[i].texnum );
 			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, (float)gl_filter_min );
 			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (float)gl_filter_max );
-			qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+			qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 		}
 	}
 
@@ -717,13 +735,15 @@ void gl_texturemode_hook_callback( cvar_t* var )
 		Cvar_Set( "r_prefertexturefiltering", "0" );
 }
 
-void GL_PaletteClear( int paletteIndex )
-{
-	if ( paletteIndex < 0 || paletteIndex >= MAX_GLPALETTES )
-		return;
-
-	gGLPalette[paletteIndex].tag = -1;
-	gGLPalette[paletteIndex].referenceCount = 0;
+void GL_PaletteClear(int paletteIndex) {
+    if (paletteIndex < 0 || paletteIndex >= MAX_GLPALETTES) {
+        return;
+    }
+    if (g_currentpalette == paletteIndex) {
+        g_currentpalette = -1;
+    }
+    gGLPalette[paletteIndex].tag = -1;
+    gGLPalette[paletteIndex].referenceCount = 0;
 }
 
 void GL_PaletteInit()
@@ -967,7 +987,7 @@ void Draw_Init()
 	Cvar_RegisterVariable( &gl_ansio );
 	Cvar_HookVariable( gl_texturemode.name, &gl_texturemode_hook );
 
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
 	GL_PaletteInit();
 
@@ -1529,7 +1549,7 @@ void Draw_TransPicTranslate( int x, int y, qpic_t* pic, byte* )
 	qglTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, 64, 64, 0, GL_RGBA, GL_UNSIGNED_BYTE, trans );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+	qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
 	qglColor3f( 1, 1, 1 );
 	qglBegin( GL_QUADS );
@@ -1781,7 +1801,7 @@ void GL_LoadFilterTexture( float r, float g, float b, float brightness )
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 		qglTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-		qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_ansio.value );
+		qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 	}
 
 	free( pixels );

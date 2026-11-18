@@ -185,7 +185,6 @@ CCDAudio::CCDAudio()
 	m_dFadeOutTime = 0.0;
 	m_bIsCDValid = false;
 	m_bIsPlaying = false;
-	m_bIsPrimed = false;
 	m_bIsInMiddleOfPriming = false;
 	m_bWasPlaying = false;
 	m_bInitialized = false;
@@ -194,7 +193,8 @@ CCDAudio::CCDAudio()
 	m_flVolume = 1.0f;
 	m_flMP3Volume = 1.0f;
 	m_nPlayTrack = 0;
-	m_szPendingPlayFilename[0] = '\0';
+    m_nPrimedTrack = 0;
+    m_bPrimedLooping = false;
 	m_bResumeOnSwitch = false;
 	memset( m_rgRemapCD, 0, sizeof( m_rgRemapCD ) );
 }
@@ -379,7 +379,6 @@ void CCDAudio::_Pause(int focusTransition, int) {
 	m_bWasPlaying = m_bIsPlaying;
 	m_dPauseTime = realtime;
 	m_bIsPlaying = false;
-	m_szPendingPlayFilename[0] = '\0';
 }
 
 void CCDAudio::_Resume(int focusTransition, int) {
@@ -490,17 +489,17 @@ void CCDAudio::_Stop( int, int )
 #if defined(__APPLE__)
     m_bResumeOnSwitch = false;
     // A released stream can remain suspended after status clears both playback flags.
-    if (!m_MP3.suspended && (!m_bEnabled || (!m_bIsPlaying && !m_bWasPlaying))) {
+    if (!m_nPrimedTrack && !m_MP3.suspended && (!m_bEnabled || (!m_bIsPlaying && !m_bWasPlaying))) {
         return;
     }
 #else
-	if ( !m_bEnabled || ( !m_bIsPlaying && !m_bWasPlaying ) )
-		return;
+    if (!m_nPrimedTrack && (!m_bEnabled || (!m_bIsPlaying && !m_bWasPlaying))) {
+        return;
+    }
 #endif
 
 	m_bIsPlaying = false;
 	m_bWasPlaying = false;
-	m_szPendingPlayFilename[0] = '\0';
 	MP3_StopStream();
 
 	m_MP3.inuse = false;
@@ -612,12 +611,9 @@ void CCDAudio::_CDUpdate( int, int )
 		}
 	}
 
-	if ( m_MP3.inuse )
-	{
-		m_bIsPlaying = musicPlayer.IsPlaying();
-		if ( !m_bIsPlaying )
-			m_szPendingPlayFilename[0] = '\0';
-	}
+    if (m_MP3.inuse) {
+        m_bIsPlaying = musicPlayer.IsPlaying();
+    }
 
 	if ( m_flPlayTime && m_dStartTime )
 	{
@@ -625,7 +621,6 @@ void CCDAudio::_CDUpdate( int, int )
 		if ( elapsed >= m_flPlayTime + TRACK_EXTRA_TIME && m_bIsPlaying )
 		{
 			m_bIsPlaying = false;
-			m_szPendingPlayFilename[0] = '\0';
 			if ( m_bIsLooping )
 				Play( m_nPlayTrack, true );
 		}
@@ -737,7 +732,16 @@ void CCDAudio::PrimeTrack(char *filename, int looping) {
 
 void CCDAudio::_PrimeFile(const char *filename, int looping) {
     m_dFadeOutTime = 0.0;
-    m_bIsPrimed = MP3_InitStream(filename, looping != 0);
+    if (m_nPrimedTrack) {
+        MP3_StopStream();
+    }
+    const int track = MP3_GetTrack(filename);
+    const bool loop = looping != 0;
+    if (MP3_InitStream(track, loop)) {
+        // Track zero and explicit playback of this file share the same pending stream.
+        m_nPrimedTrack = track;
+        m_bPrimedLooping = loop;
+    }
     m_bIsInMiddleOfPriming = false;
 }
 
@@ -905,7 +909,6 @@ bool CCDAudio::MP3_InitStream(int trackNum, bool looping) {
     if (trackNum <= 1 || trackNum >= g_iMP3NumTracks) {
         return false;
     }
-    m_bIsPrimed = false;
     if (!MP3_Init()) {
         return false;
     }
@@ -1091,44 +1094,26 @@ void CD_Command_f()
 		g_CDAudio.CD_f();
 }
 
-void CCDAudio::_PrimeTrack( int track, int looping )
-{
-	m_bIsInMiddleOfPriming = true;
-
-	if ( track )
-	{
-		if ( track > 1 && track < g_iMP3NumTracks )
-		{
-			m_bIsPrimed = MP3_InitStream(track, looping != 0);
-		}
-	}
-	else if ( m_szPendingPlayFilename[0] )
-	{
-		m_bIsPrimed = MP3_InitStream(m_szPendingPlayFilename, looping != 0);
-	}
-
-	m_bIsInMiddleOfPriming = false;
+bool CCDAudio::MP3_PlayTrack(const char* filename, bool looping) {
+    if (!filename || !filename[0]) {
+        return false;
+    }
+    return MP3_PlayTrack(MP3_GetTrack(filename), looping, true);
 }
 
-bool CCDAudio::MP3_PlayTrack( const char* filename, bool looping )
-{
-	if ( !m_bIsPrimed && !MP3_InitStream( filename, looping ) )
-		return false;
-
-	m_bIsPrimed = false;
-	return MP3_PlayTrackFinalize(0, looping);
-}
-
-bool CCDAudio::MP3_PlayTrack( int trackNum, bool looping )
-{
-	if ( trackNum <= 1 || trackNum >= g_iMP3NumTracks )
-		return false;
-
-	if ( !m_bIsPrimed && !MP3_InitStream( trackNum, looping ) )
-		return false;
-
-	m_bIsPrimed = false;
-	return MP3_PlayTrackFinalize(trackNum, looping);
+bool CCDAudio::MP3_PlayTrack(int trackNum, bool looping, bool fromFile) {
+    const bool reusePrime = m_nPrimedTrack && m_nPrimedTrack == trackNum && m_bPrimedLooping == looping;
+    if (!reusePrime) {
+        // The producer can already have buffered the end or start of a loop while priming.
+        if (m_nPrimedTrack) {
+            MP3_StopStream();
+        }
+        if (!MP3_InitStream(trackNum, looping)) {
+            return false;
+        }
+    }
+    m_nPrimedTrack = 0;
+    return MP3_PlayTrackFinalize(fromFile ? 0 : trackNum, looping);
 }
 
 //-----------------------------------------------------------------------------
@@ -1147,14 +1132,11 @@ void CCDAudio::_Play( int track, int looping )
 	if ( !m_bEnabled )
 		return;
 
-	if ( !track && m_szPendingPlayFilename[0] )
-	{
-		MP3_PlayTrack( m_szPendingPlayFilename, looping != 0 );
-		m_szPendingPlayFilename[0] = '\0';
-		return;
-	}
+    if (!track && m_nPrimedTrack) {
+        MP3_PlayTrack(m_nPrimedTrack, looping != 0, true);
+        return;
+    }
 
-	m_szPendingPlayFilename[0] = '\0';
 #if defined( _WIN32 )
 	_GetAudioDiskInfo( 0, 0 );
 	if ( !m_bIsCDValid )
@@ -1201,6 +1183,9 @@ void CCDAudio::_Play( int track, int looping )
 	if ( mciSendCommandA( m_uiDeviceID, MCI_PLAY, MCI_NOTIFY | MCI_FROM | MCI_TO, (DWORD_PTR)&play ) )
 		return;
 
+    if (m_nPrimedTrack) {
+        MP3_StopStream();
+    }
 	ResetCDTimes();
 	m_nPlayTrack = remappedTrack;
 	m_bIsPlaying = true;
@@ -1295,21 +1280,13 @@ void CCDAudio::MP3_Resume_Audio()
 #endif
 }
 
-bool CCDAudio::MP3_InitStream( const char* filename, bool looping )
-{
-	if ( !filename || !filename[0] )
-		return false;
-
-	return MP3_InitStream( MP3_GetTrack( filename ), looping );
-}
-
 bool CCDAudio::MP3_StartStream() {
     return musicPlayer.Start();
 }
 
 void CCDAudio::MP3_StopStream() {
     musicPlayer.Stop();
-    m_bIsPrimed = false;
+    m_nPrimedTrack = 0;
 }
 
 void CCDAudio::MP3_Loop() {

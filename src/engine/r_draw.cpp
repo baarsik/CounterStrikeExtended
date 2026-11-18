@@ -133,17 +133,19 @@ void R_EmitEdge( mvertex_t* pv0, mvertex_t* pv1 )
 		ustep = ( u0 - r_u1 ) / ( v0 - r_v1 );
 		ustart = ( (float)ceilv0 - r_v1 ) * ustep + r_u1;
 	}
-	edge->u_step = (int)( ustep * 0x100000 );
-	edge->u = (int)( ustart * 0x100000 + 0xFFFFF );
-// we need to do this to avoid stepping off the edges if a very nearly
-// horizontal edge is less than epsilon above a scan, and numeric error causes
-// it to incorrectly extend to the scan, and the extension of the line goes off
-// the edge of the screen
-// FIXME: is this actually needed?
-	if ( edge->u < r_refdef.vrect_x_adj_shift20 )
-		edge->u = r_refdef.vrect_x_adj_shift20;
-	if ( edge->u > r_refdef.vrectright_adj_shift20 )
-		edge->u = r_refdef.vrectright_adj_shift20;
+    const int edgeScale = 1 << r_edge_fractional_bits;
+    const float fixedScale = static_cast<float>(edgeScale);
+    // A nearly horizontal edge can cross just one scan line and never use its slope.
+    edge->u_step = ceilv0 == lastv ? 0 : static_cast<int>(ustep * fixedScale);
+    const double start = ustart * fixedScale + static_cast<float>(edgeScale - 1);
+    // Clamp before narrowing so an edge that extends past the viewport cannot wrap.
+    if (!(start >= r_refdef.vrect_x_adj_shift20)) {
+        edge->u = r_refdef.vrect_x_adj_shift20;
+    } else if (start > r_refdef.vrectright_adj_shift20) {
+        edge->u = r_refdef.vrectright_adj_shift20;
+    } else {
+        edge->u = static_cast<int>(start);
+    }
 
 	fixed16_t sortu = edge->u + ( edge->surfs[0] != 0 );
 	edge_t* next = newedges[ceilv0];

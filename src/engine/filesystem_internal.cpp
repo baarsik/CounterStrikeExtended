@@ -5,6 +5,7 @@
 #include <io.h>
 #else
 #include <dlfcn.h>
+#include <filesystem>
 #include <unistd.h>
 #endif
 
@@ -341,31 +342,33 @@ void FS_Unlink( const char* fileName )
 #endif
 }
 
-void FS_Rename( const char* originalName, const char* newName )
-{
-	char localPath[512];
-	char newPath[512];
-	char* cut;
+void FS_Rename(const char* originalName, const char* newName) {
+    char localPath[512];
+    if (!FS_GetLocalPath(originalName, localPath, sizeof(localPath))) {
+        return;
+    }
 
-	if ( !FS_GetLocalPath( originalName, localPath, sizeof( localPath ) ) )
-		return;
-
-	strcpy( newPath, localPath );
-
-	cut = strstr( newPath, originalName );
-#if defined( _WIN32 )
-	ASSERT_AT( cut != NULL, 303 );
-#else
-	if ( !cut )
-		return;
-#endif
-
-	*cut = '\0';
-	strcat( newPath, newName );
+#if defined(_WIN32)
+    char newPath[512];
+    strcpy(newPath, localPath);
+    char* cut = strstr(newPath, originalName);
+    ASSERT_AT(cut != nullptr, 303);
+    *cut = '\0';
+    strcat(newPath, newName);
 #ifdef _MSC_VER
-#pragma warning( suppress: 6031 )
+#pragma warning(suppress: 6031)
 #endif
-	rename( localPath, newPath );
+    rename(localPath, newPath);
+#else
+    // Keep the actual spelling of the directory containing the VFS-selected source.
+    const std::filesystem::path source(originalName);
+    const std::filesystem::path destination(newName);
+    const auto relativeDestination = destination.lexically_relative(source.parent_path());
+    if (!relativeDestination.empty()) {
+        const auto target = std::filesystem::path(localPath).parent_path() / relativeDestination;
+        std::rename(localPath, target.c_str());
+    }
+#endif
 }
 
 void* FS_LoadLibrary( const char* dllName )

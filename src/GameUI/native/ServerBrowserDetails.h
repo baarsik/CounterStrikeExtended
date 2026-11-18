@@ -5,7 +5,7 @@
 
 namespace cse::server_browser {
 constexpr size_t DetailFrameBudget = 32;
-constexpr uint32_t GameInfoRefreshMilliseconds = 10000;
+constexpr double GameInfoRefreshSeconds = 10.0;
 constexpr uint16_t DefaultServerPort = 27015;
 constexpr std::array<uint16_t, 14> CommonQueryPorts{
     27015, 26900, 27016, 26901, 27017, 26902, 27018, 26903, 27019, 26904, 27020, 26905, 4242, 27215};

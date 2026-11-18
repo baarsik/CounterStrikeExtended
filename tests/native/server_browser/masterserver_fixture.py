@@ -11,6 +11,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
     server.settimeout(0.1)
     stopped = threading.Event()
     requests = []
+    large_directory = sys.argv[2] in ('large-quick-refresh', 'directory-limit-exceeded')
     def reply():
         while not stopped.is_set():
             try:
@@ -20,11 +21,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
             requests.append(packet)
             assert packet[:2] == b'1\xff'
             cursor = packet[2:].split(b'\0')[0]
-            if sys.argv[2] == 'large-quick-refresh':
+            if large_directory:
                 page_size = 1024
-                server_count = 48 * page_size
-                start = 0 if cursor == b'0.0.0.0:0' else int(cursor.split(b':')[1]) - 1023
-                payload = b''.join(struct.pack('!IH', 0x7f000001, index + 1024)
+                ports_per_ip = 32768
+                server_count = 2 * ports_per_ip
+                if sys.argv[2] == 'directory-limit-exceeded':
+                    server_count += 1
+                start = 0
+                if cursor != b'0.0.0.0:0':
+                    ip, port = cursor.split(b':')
+                    last_octet = int(ip.rsplit(b'.', 1)[1])
+                    start = (last_octet - 1) * ports_per_ip + int(port)
+                payload = b''.join(struct.pack('!IH', 0x7f000001 + index // ports_per_ip, 1 + index % ports_per_ip)
                                    for index in range(start, min(start + page_size, server_count)))
                 if not payload:
                     payload = bytes(6)
@@ -49,8 +57,11 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
         command = [sys.argv[1], address, sys.argv[2]]
         if sys.argv[2] == 'failed-empty-refresh':
             command.append(f'127.0.0.1:{unavailable.getsockname()[1]}')
-        subprocess.run(command, check=True, timeout=45 if sys.argv[2] == 'large-quick-refresh' else 15)
-        if sys.argv[2] != 'cancel':
+        subprocess.run(command, check=True, timeout=45 if large_directory else 15)
+        if sys.argv[2] in ('reentry', 'cancel-reentry'):
+            # The first published endpoint can trigger cancellation before the next page is requested.
+            assert requests
+        elif sys.argv[2] != 'cancel':
             assert len(requests) >= 2
     finally:
         stopped.set()

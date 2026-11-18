@@ -238,14 +238,19 @@ void Temporary() {
 
 void Visibility() {
     cl_entity_t entity{};
-    Check(CL_AddVisibleEntity(0, &entity) == 1 && cl_numvisedicts == 1,
-        "Finite entities remain visible");
+    Check(CL_AddVisibleEntity(ET_NORMAL, &entity) == 0 && cl_numvisedicts == 0,
+        "A model-less entity cannot reach the model drawing list");
+    Check(CL_AddVisibleEntity(ET_BEAM, &entity) == 1 && cl_numbeamentities == 1,
+        "Beams use their own list and do not require an entity model");
+    entity.model = &sprite;
+    Check(CL_AddVisibleEntity(ET_NORMAL, &entity) == 1 && cl_numvisedicts == 1,
+        "Finite entities with a model remain visible");
     entity.origin[0] = std::numeric_limits<float>::infinity();
-    Check(CL_AddVisibleEntity(0, &entity) == 0 && cl_numvisedicts == 1,
+    Check(CL_AddVisibleEntity(ET_NORMAL, &entity) == 0 && cl_numvisedicts == 1,
         "Invalid callback positions cannot poison the visible entity list");
     entity.origin[0] = 0;
     entity.attachment[0][0] = std::numeric_limits<float>::infinity();
-    Check(CL_AddVisibleEntity(0, &entity) == 1 && cl_numvisedicts == 2,
+    Check(CL_AddVisibleEntity(ET_NORMAL, &entity) == 1 && cl_numvisedicts == 2,
         "A bad attachment must not hide an otherwise valid model");
 }
 

@@ -82,6 +82,8 @@ def windows_for(pids):
 
 class TransportTests(unittest.TestCase):
     def setUp(self):
+        if EVIDENCE is None:
+            self.skipTest('Run this script with --evidence in a Windows Session 0 harness')
         self.before = own_children()
         self.foreground = windows_for(set())['foreground']
         self.processes = []

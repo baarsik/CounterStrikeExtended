@@ -168,11 +168,30 @@ int gl_mtexable = 1;
 int cnttextures[2] = {-1, -1};
 int TEXTURE0_SGIS = GL_TEXTURE0_SGIS;
 GLenum oldtarget = GL_TEXTURE0_SGIS;
-static int selectedPalette = -1;
+static std::array<byte, 256 * 3> uploadedPalette{};
 
-void GL_PaletteSelect(int palette) {
-    selectedPalette = palette;
+static void APIENTRY ColorTable(GLenum, GLenum, GLsizei, GLenum, GLenum, const void* data) {
+    std::memcpy(uploadedPalette.data(), data, uploadedPalette.size());
 }
+
+static void APIENTRY DeleteTextures(GLsizei count, const GLuint* names) {
+    for (int i = 0; i < count; ++i) {
+        for (GLint& binding : boundTextures) {
+            if (binding == static_cast<GLint>(names[i])) {
+                binding = 0;
+            }
+        }
+    }
+}
+
+decltype(qglColorTableEXT) qglColorTableEXT = ColorTable;
+decltype(qglDeleteTextures) qglDeleteTextures = DeleteTextures;
+
+void Q_memset(void* destination, int value, int count) {
+    std::memset(destination, value, count);
+}
+
+#include "texture_palette.inc"
 #include "texture_bind.inc"
 
 static void RecycledBinding() {
@@ -182,12 +201,12 @@ static void RecycledBinding() {
     cse::render::nativeBinding = true;
     currenttexture = -1;
     GL_Bind(kEncodedTexture);
-    assert(boundTextures[0] == kReusedName && selectedPalette == kPaletteIndex);
+    assert(boundTextures[0] == kReusedName && g_currentpalette == kPaletteIndex);
     // Native deletion unbinds the object; the historical software cache still names it.
     boundTextures[0] = 0;
-    selectedPalette = -1;
+    g_currentpalette = -1;
     GL_Bind(kEncodedTexture);
-    assert(boundTextures[0] == kReusedName && selectedPalette == kPaletteIndex);
+    assert(boundTextures[0] == kReusedName && g_currentpalette == kPaletteIndex);
     GL_SelectTexture(GL_TEXTURE1_SGIS);
     GL_Bind(kEncodedTexture);
     boundTextures[1] = 0;
@@ -207,10 +226,6 @@ static void RecycledBinding() {
     GL_SelectTexture(GL_TEXTURE0_SGIS);
 }
 
-short GL_PaletteAdd(byte*, qboolean) {
-    return 0;
-}
-
 int Q_strcmp(const char* first, const char* second) {
     return std::strcmp(first, second);
 }
@@ -218,9 +233,6 @@ int Q_strcmp(const char* first, const char* second) {
 void Q_strncpy(char* destination, const char* source, int count) {
     std::strncpy(destination, source, count);
 }
-
-static void APIENTRY ColorTable(GLenum, GLenum, GLsizei, GLenum, GLenum, const void*) {}
-decltype(qglColorTableEXT) qglColorTableEXT = ColorTable;
 
 #include "texture_cache.inc"
 
@@ -241,6 +253,7 @@ static void Reset() {
     generatedTextures = 0;
     loadCallbacks = 0;
     gl_palette_tex.value = 0;
+    GL_PaletteInit();
     unpackAlignment = 4;
     unpackRowLength = 17;
     for (int i = 0; i < 256; ++i) {
@@ -273,6 +286,17 @@ static void Ordinary() {
         10, 20, 30, 255, 0, 0, 0, 0}));
 }
 
+static void Anisotropy() {
+    constexpr float noAnisotropicFiltering = 1.0f;
+    unsigned int pixel = 0;
+    for (float requested : {0.0f, -2.0f, 0.5f, 4.0f}) {
+        Reset();
+        gl_ansio.value = requested;
+        GL_Upload32(&pixel, 1, 1, FALSE, TEX_TYPE_NONE, GL_NEAREST);
+        assert(parameters.back() == std::max(noAnisotropicFiltering, requested));
+    }
+}
+
 static void LargeIndexed() {
     constexpr int width = 1024;
     constexpr int height = 512;
@@ -284,6 +308,74 @@ static void LargeIndexed() {
     assert(uploads[0].pixels.size() == source.size() * 4);
     assert(uploads[0].pixels.back() == 255);
     assert(uploads[0].pixels[uploads[0].pixels.size() - 4] == 42);
+}
+
+static void LargePalette() {
+    constexpr int width = 2048;
+    constexpr int height = 1024;
+    char name[] = "large-studio-skin";
+    std::vector<byte> source(width * height, 1);
+    std::array<byte, 768> palette{};
+    source.back() = 2;
+    gl_palette_tex.value = 1;
+    const int texture = GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR);
+    assert(texture != 0);
+    assert(uploads.size() == 1 && uploads[0].format == GL_COLOR_INDEX && uploads[0].pixels == source);
+    assert(texture == GL_LoadTexture2(name, GLT_STUDIO, width, height, nullptr, FALSE,
+        TEX_TYPE_NONE, nullptr, GL_LINEAR));
+
+    Reset();
+    gl_palette_tex.value = 1;
+    gl_max_size.value = 128;
+    g_bSupportsNPOTTextures = FALSE;
+    assert(GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) != 0);
+    assert(uploads.size() == 1 && uploads[0].width == 128 && uploads[0].height == 128);
+    assert(uploads[0].format == GL_COLOR_INDEX && uploads[0].pixels.front() == source.front());
+
+#if !defined(TEXTURE_UPLOAD_BASELINE)
+    Reset();
+    gl_palette_tex.value = 1;
+    for (int slot = 0; slot < NORMAL_GLPALETTES; ++slot) {
+        gGLPalette[slot].tag = 1;
+    }
+    assert(GL_LoadTexture2(name, GLT_STUDIO, width, height, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) == 0);
+    assert(numgltextures == 0 && generatedTextures == 0 && uploads.empty());
+    assert(GL_LoadTexture2(name, GLT_STUDIO, 1, 1, source.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR) != 0);
+    assert(uploads.size() == 1 && uploads[0].format == GL_RGBA);
+#endif
+}
+
+static void ReloadPlayerPalette() {
+    constexpr int remappedIndex = 160;
+    constexpr int red = remappedIndex * 3;
+    std::array<byte, 256 * 3> palette{};
+    std::array<byte, 4> skin{};
+    skin.fill(remappedIndex);
+    char name[] = "DM_Base.bmp1";
+    gl_palette_tex.value = 1;
+    cse::render::nativeBinding = true;
+
+    palette[red] = 42;
+    const int first = GL_LoadTexture2(name, GLT_STUDIO, 2, 2, skin.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR);
+    GL_Bind(first);
+    assert(uploads.size() == 1 && uploads[0].format == GL_COLOR_INDEX);
+    assert(uploadedPalette == palette);
+    GL_UnloadTexture(name);
+
+    uploads.clear();
+    palette[red] = 180;
+    const int second = GL_LoadTexture2(name, GLT_STUDIO, 2, 2, skin.data(), FALSE,
+        TEX_TYPE_NONE, palette.data(), GL_LINEAR);
+    GL_Bind(second);
+    assert((second >> 16) == (first >> 16));
+    assert(uploads.size() == 1 && uploads[0].pixels.front() == remappedIndex);
+    assert(uploadedPalette == palette);
+    cse::render::nativeBinding = false;
 }
 
 static void Luminance() {
@@ -475,9 +567,10 @@ static void Cache() {
 int main(int argc, char** argv) {
     const std::string selected = argc > 1 ? argv[1] : "all";
     for (const auto& test : {std::pair{"ordinary", Ordinary}, {"large-indexed", LargeIndexed},
-        {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide}, {"invalid", Invalid}, {"cache", Cache},
-        {"sampling", Sampling}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
-        {"bounded-views", BoundedViews}, {"recycled-binding", RecycledBinding}}) {
+        {"large-palette", LargePalette}, {"luminance", Luminance}, {"narrow", Narrow}, {"wide", Wide},
+        {"invalid", Invalid}, {"cache", Cache},
+        {"sampling", Sampling}, {"anisotropy", Anisotropy}, {"palette-modes", PaletteModes}, {"unaligned", Unaligned},
+        {"bounded-views", BoundedViews}, {"recycled-binding", RecycledBinding}, {"reload-player-palette", ReloadPlayerPalette}}) {
         if (selected == "all" || selected == test.first) {
             Reset();
             test.second();

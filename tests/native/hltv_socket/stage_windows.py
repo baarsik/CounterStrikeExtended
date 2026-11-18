@@ -13,6 +13,7 @@ from run_mac import SHARED
 ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 SOURCES = ['HLTV/Core/NetSocket.cpp', 'HLTV/Core/Network.cpp', 'HLTV/Core/private/common/BaseSystemModule.cpp',
+           'common/native/BaseSystemModule.cpp',
            'HLTV/common/BitBuffer.cpp', 'HLTV/common/NetAddress.cpp', 'HLTV/common/byteorder.cpp',
            'HLTV/common/common.cpp', 'common/ObjectList.cpp', 'common/TokenLine.cpp']
 

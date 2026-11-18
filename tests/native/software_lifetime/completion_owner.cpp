@@ -7,6 +7,8 @@
 
 static int releases = 0;
 static int controllerDestructions = 0;
+static int localizationUnbinds = 0;
+static bool gameUIReady = false;
 static bool processReady = false;
 static bool providerReady = false;
 static void Require(bool value, const char* text) {
@@ -73,6 +75,11 @@ static Surface* surface() {
 }
 static void VGuiControls_Shutdown() {}
 } // namespace vgui2
+namespace cse::localization {
+void UnbindRuntime() {
+    ++localizationUnbinds;
+}
+} // namespace cse::localization
 namespace cse::browser {
 void BeginControllerShutdown(Controller&) {}
 bool ControllerQuiescent(Controller&) {
@@ -95,7 +102,7 @@ public:
     void* m_FactoryList[6]{};
     int m_iNumFactories = 6;
     bool TryRetireGameUI() {
-        return true;
+        return gameUIReady;
     }
     bool m_nativeShutdownBusy = false;
     bool m_nativeGameUIInitialized = false;
@@ -114,8 +121,11 @@ public:
 #include "actual_completion.inc"
 int main() {
     CBaseUI owner;
+    Require(!owner.TryShutdown() && localizationUnbinds == 0,
+            "pending GameUI retirement unbound localization services");
+    gameUIReady = true;
     Require(!owner.TryShutdown(), "failed browser process completion escaped actual BaseUI owner");
-    Require(releases == 0 && controllerDestructions == 0 && owner.m_nativeChromeController,
+    Require(localizationUnbinds == 1 && releases == 0 && controllerDestructions == 0 && owner.m_nativeChromeController,
             "pending browser completion released dependent image or process owner");
     processReady = true;
     Require(!owner.TryShutdown() && releases == 0 && controllerDestructions == 0,

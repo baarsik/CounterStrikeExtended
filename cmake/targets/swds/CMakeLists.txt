@@ -2,7 +2,7 @@
 cse_add_runtime(swds SHARED "swds")
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 if(MSVC)
-set_property(SOURCE "${CSE_SDK_DIR}/engine/tmessage_localization.cpp" APPEND PROPERTY COMPILE_OPTIONS "$<$<CONFIG:Release>:/EHsc>")
+set_property(SOURCE "${CSE_SDK_DIR}/engine/tmessage_localization.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/W4>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/WX>")
 target_compile_options(swds PRIVATE "$<$<AND:$<CONFIG:Debug>,$<COMPILE_LANGUAGE:C,CXX>>:/Od>")

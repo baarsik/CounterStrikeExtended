@@ -2153,10 +2153,13 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     unsigned destinationWidth = width;
     unsigned destinationHeight = height;
     if (preserveAspect) {
-        const double scale = std::min(static_cast<double>(width) / state.width,
-            static_cast<double>(height) / state.height);
-        destinationWidth = std::max(1u, static_cast<unsigned>(state.width * scale));
-        destinationHeight = std::max(1u, static_cast<unsigned>(state.height * scale));
+        const auto widthBySceneHeight = static_cast<std::uint64_t>(width) * state.height;
+        const auto heightBySceneWidth = static_cast<std::uint64_t>(height) * state.width;
+        if (widthBySceneHeight > heightBySceneWidth) {
+            destinationWidth = std::max(1u, static_cast<unsigned>(heightBySceneWidth / state.height));
+        } else {
+            destinationHeight = std::max(1u, static_cast<unsigned>(widthBySceneHeight / state.width));
+        }
     }
     SDL_GPUBlitInfo info{};
     info.source.texture = state.color;
@@ -2338,22 +2341,8 @@ bool ReadTarget(SDL_GPUDevice* device, SDL_GPUTexture* target, unsigned targetWi
 
 bool MetalSession::ReadPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
     void* output, std::string& error) {
-    auto& state = *impl_;
-    if (!state.initializedTarget) {
-        return Fail(error, "Metal scene has not been rendered");
-    }
-    if (!ResolveScene(error)) {
-        return false;
-    }
-    if (!state.Submit(error)) {
-        return false;
-    }
-    if (state.diagnosticsEnabled && width && height) {
-        ++state.counters.commandBuffers;
-        ++state.counters.copyPasses;
-    }
-    return ReadTarget(state.device, state.color, state.width, state.height,
-        x, y, width, height, components, alignment, output, error);
+    return CapturePixels(ReadbackStage::SceneColor, x, y, width, height, components, alignment, output, error) ==
+        ReadbackResult::Success;
 }
 
 bool MetalSession::PresentedSize(int& width, int& height) const {
@@ -2365,19 +2354,29 @@ bool MetalSession::PresentedSize(int& width, int& height) const {
 
 bool MetalSession::ReadPresentedPixels(int x, int y, int width, int height, unsigned components, unsigned alignment,
     void* output, std::string& error) {
+    return CapturePixels(ReadbackStage::PresentedColor, x, y, width, height, components, alignment, output, error) ==
+        ReadbackResult::Success;
+}
+
+ReadbackResult MetalSession::CapturePixels(ReadbackStage stage, int x, int y, int width, int height,
+    unsigned components, unsigned alignment, void* output, std::string& error) {
     auto& state = *impl_;
-    if (!state.presentedValid) {
-        return Fail(error, "Metal final color has not been presented");
+    const bool presented = stage == ReadbackStage::PresentedColor;
+    if (presented ? !state.presentedValid : !state.initializedTarget) {
+        error = presented ? "Metal final color has not been presented" : "Metal scene has not been rendered";
+        return ReadbackResult::CaptureFailed;
     }
-    if (!state.Submit(error)) {
-        return false;
+    if ((!presented && !ResolveScene(error)) || !state.Submit(error)) {
+        return ReadbackResult::FrameFailed;
     }
     if (state.diagnosticsEnabled && width && height) {
         ++state.counters.commandBuffers;
         ++state.counters.copyPasses;
     }
-    return ReadTarget(state.device, state.presented, state.presentedWidth, state.presentedHeight,
+    const bool copied = ReadTarget(state.device, presented ? state.presented : state.color,
+        presented ? state.presentedWidth : state.width, presented ? state.presentedHeight : state.height,
         x, y, width, height, components, alignment, output, error);
+    return copied ? ReadbackResult::Success : ReadbackResult::CaptureFailed;
 }
 
 bool MetalSession::Finish(std::string& error) {

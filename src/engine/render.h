@@ -29,8 +29,8 @@ typedef struct
 	//  for use in edge list
 	float fvrectx, fvrecty; // for floating-point compares
 	float fvrectx_adj, fvrecty_adj; // left and top edges, for clamping
-	int vrect_x_adj_shift20; // (vrect.x + 0.5 - epsilon) << 20
-	int vrectright_adj_shift20; // (vrectright + 0.5 - epsilon) << 20
+	int vrect_x_adj_shift20; // (vrect.x + 0.5 - epsilon) in the software edge format
+	int vrectright_adj_shift20; // (vrectright + 0.5 - epsilon) in the software edge format
 	float fvrectright_adj, fvrectbottom_adj; // right and bottom edges, for clamping
 	float fvrectright; // rightmost edge, for Alias clamping
 	float fvrectbottom; // bottommost edge, for Alias clamping

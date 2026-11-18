@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "../../../src/common/native_int_count.h"
+#include "../../../src/pm_shared/pm_shared.h"
 
 #define REQUIRE(condition) do { if (!(condition)) { \
     std::fprintf(stderr, "Failed at line %d: %s\n", __LINE__, #condition); return 1; \
@@ -82,17 +83,11 @@ struct NameResult {
     int offset;
 };
 
-std::string localizedMode;
 std::string observedMode;
-int observedModeBytes = 0;
 int g_iUser1 = 0;
 struct CHudTextMessage {
-    static const char* BufferedLocaliseTextString(const char*) {
-        return localizedMode.c_str();
-    }
     void MsgFunc_TextMsg(const char*, int bytes, void* data) {
-        observedModeBytes = bytes;
-        observedMode.assign(static_cast<const char*>(data));
+        observedMode.assign(static_cast<const char*>(data), static_cast<size_t>(bytes));
     }
 };
 struct Hud {
@@ -173,13 +168,11 @@ int main(int argc, char** argv) {
             REQUIRE(result.offset == static_cast<int>(expected) * 3);
         }
     } else if (test == "mode-message") {
-        for (size_t length : {size_t(0), size_t(1), size_t(126), size_t(127), size_t(128), size_t(100000)}) {
-            localizedMode.assign(length, 'x');
+        for (int mode = OBS_CHASE_LOCKED; mode <= OBS_MAP_CHASE; ++mode) {
             observedMode.clear();
-            observedModeBytes = -1;
-            ModeMessage(3);
-            REQUIRE(observedMode == std::string(1, HUD_PRINTCENTER) + std::string(std::min(length, size_t(126)), 'x'));
-            REQUIRE(observedModeBytes == static_cast<int>(observedMode.size() + 1));
+            ModeMessage(mode);
+            const std::string expected = std::string(1, HUD_PRINTCENTER) + "#Spec_Mode" + std::to_string(mode) + '\0';
+            REQUIRE(observedMode == expected);
         }
     } else {
         return 2;

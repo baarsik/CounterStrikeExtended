@@ -314,53 +314,53 @@ extern "C" void VOX_Init()
 	VOX_ReadSentenceFile();
 }
 
-extern "C" void VOX_ReadSentenceFile()
-{
-	VOX_Shutdown();
-	int fileLength;
-	char* buffer = reinterpret_cast<char*>( COM_LoadFileForMe( szsentences, &fileLength ) );
-	if ( !buffer )
-	{
-		Con_DPrintf( "VOX_ReadSentenceFile: Couldn't load %s\n", szsentences );
-		return;
-	}
-	char* end = buffer + fileLength;
-	char* cursor = buffer;
-	int count = 0;
-	while ( cursor < end )
-	{
-		while ( cursor < end && ( *cursor == '\t' || *cursor == '\n' || *cursor == '\r' || *cursor == ' ' ) )
-			++cursor;
-		char* name = nullptr;
-		char* words = cursor;
-		if ( *cursor != '/' )
-		{
-			name = cursor;
-			while ( words < end && *words != ' ' && *words != '\t' )
-				++words;
-			if ( words < end )
-				*words++ = 0;
-			cursor = words;
-		}
-		while ( cursor < end && *cursor != '\n' && *cursor != '\r' )
-			++cursor;
-		if ( cursor < end )
-			*cursor++ = 0;
-		if ( name )
-		{
-            const std::size_t bytes = std::strlen(name) + std::strlen(words) + 2;
-            if (bytes > INT_MAX) {
-                Sys_Error("VOX_ReadSentenceFile: sentence exceeds native allocation interface");
-            }
-            const int allocationBytes = static_cast<int>(bytes);
-            rgpszrawsentence[count] = static_cast<char*>(Mem_Malloc(allocationBytes));
-            Q_memcpy(rgpszrawsentence[count], name, allocationBytes);
-			if ( ++count >= MAX_SENTENCES )
-				break;
-		}
-	}
-	cszrawsentences = count;
-	Mem_Free( buffer );
+extern "C" void VOX_ReadSentenceFile() {
+    VOX_Shutdown();
+    int fileLength;
+    char* buffer = reinterpret_cast<char*>(COM_LoadFileForMe(szsentences, &fileLength));
+    if (!buffer) {
+        Con_DPrintf("VOX_ReadSentenceFile: Couldn't load %s\n", szsentences);
+        return;
+    }
+
+    const char* const end = buffer + fileLength;
+    const char* cursor = buffer;
+    while (cursor < end && cszrawsentences < MAX_SENTENCES) {
+        while (cursor < end && (*cursor == '\t' || *cursor == '\n' || *cursor == '\r' || *cursor == ' ')) {
+            ++cursor;
+        }
+        const char* name = cursor;
+        while (cursor < end && *cursor != '\n' && *cursor != '\r') {
+            ++cursor;
+        }
+        if (name == cursor || *name == '/') {
+            continue;
+        }
+
+        const char* separator = name;
+        while (separator < cursor && *separator != ' ' && *separator != '\t') {
+            ++separator;
+        }
+        if (separator == cursor) {
+            continue;
+        }
+        const char* words = separator + 1;
+        const auto nameBytes = static_cast<std::size_t>(separator - name);
+        const auto wordBytes = static_cast<std::size_t>(cursor - words);
+        constexpr std::size_t Terminators = 2;
+        const auto bytes = nameBytes + wordBytes + Terminators;
+        if (bytes > INT_MAX) {
+            Sys_Error("VOX_ReadSentenceFile: sentence exceeds native allocation interface");
+        }
+        auto* sentence = static_cast<char*>(Mem_Malloc(bytes));
+        std::memcpy(sentence, name, nameBytes);
+        sentence[nameBytes] = '\0';
+        char* text = sentence + nameBytes + 1;
+        std::memcpy(text, words, wordBytes);
+        text[wordBytes] = '\0';
+        rgpszrawsentence[cszrawsentences++] = sentence;
+    }
+    Mem_Free(buffer);
 }
 
 extern "C" char* VOX_LookupString( char* pszin, int* psentencenum )
@@ -1232,13 +1232,14 @@ static sfxcache_t *Wavstream_GetNextChunk(channel_t *channel, wavstream_t &strea
     const int offset = stream.info.dataofs + stream.csamplesplayed;
     const int samplesLeft = stream.info.samples - stream.csamplesplayed;
     const int readLimit = std::min(samplesLeft, WAV_STREAM_CHUNK_BYTES);
+    // A hunk allocation here could evict the active stream cache.
+    byte readBuffer[WAV_STREAM_CHUNK_BYTES + 1];
     int bytesRead;
-    byte *data = COM_LoadFileLimit(nullptr, offset, readLimit, &bytesRead, &stream.hFile);
+    byte *data = COM_LoadFileLimit(nullptr, offset, readLimit, &bytesRead, &stream.hFile, readBuffer);
     if (!data) {
         return nullptr;
     }
 
-    // The temporary read buffer can move or evict the cache the mixer was using.
     auto *cache = static_cast<sfxcache_t *>(Cache_Check(&channel->sfx->cache));
     if (!cache) {
         return nullptr;
@@ -1256,16 +1257,18 @@ qboolean S_CheckWavEnd(channel_t *channel, sfxcache_t **soundCache, int time, in
     if (cache->length == SOUND_CALLBACK_CACHE_LENGTH) {
         return FALSE;
     }
-    if (cache->loopstart >= 0) {
-        channel->pos = cache->loopstart;
-        channel->end = cache->length - channel->pos + time;
-        if (channel->isentence >= 0) {
-            rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
-        }
-        return FALSE;
-    }
-    if (channel->entchannel == CHAN_STREAM) {
+    if (channel->entchannel == CHAN_STREAM && wavstreams[channelIndex].hFile) {
         wavstream_t &stream = wavstreams[channelIndex];
+        if (stream.csamplesplayed >= stream.info.samples && stream.info.loopstart >= 0) {
+            stream.csamplesplayed = stream.info.loopstart;
+            // Stream cue points are file-relative. Reuse the last chunk only if it contains the cue.
+            const int loopOffset = stream.info.dataofs + stream.info.loopstart - stream.lastposloaded;
+            if (loopOffset >= 0 && loopOffset < cache->length) {
+                channel->pos = loopOffset;
+                channel->end = cache->length - loopOffset + time;
+                return FALSE;
+            }
+        }
         if (stream.csamplesplayed < stream.info.samples) {
             cache = Wavstream_GetNextChunk(channel, stream);
             *soundCache = cache;
@@ -1275,7 +1278,14 @@ qboolean S_CheckWavEnd(channel_t *channel, sfxcache_t **soundCache, int time, in
                 return FALSE;
             }
         }
-    } else if (channel->isentence >= 0) {
+    } else if (cache->loopstart >= 0) {
+        channel->pos = cache->loopstart;
+        channel->end = cache->length - channel->pos + time;
+        if (channel->isentence >= 0) {
+            rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
+        }
+        return FALSE;
+    } else if (channel->entchannel != CHAN_STREAM && channel->isentence >= 0) {
         voxword_t *word = &rgrgvoxword[channel->isentence][channel->iword];
         if (word->sfx && !word->fKeepCached) {
             Cache_Free(&word->sfx->cache);

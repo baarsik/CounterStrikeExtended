@@ -54,7 +54,7 @@ int main() {
     CHECK(remote.ProcessServerResponse());
     CHECK(receiver.data.at("hostname") == "Native fixture UTF-8 żółć");
     CHECK(receiver.data.at("mapcycle") == "crossfire\nboot_camp\n");
-    CHECK(receiver.data.at("maplist") == "crossfire\nboot_camp\n");
+    CHECK(receiver.data.at("maplist") == "crossfire\nboot.bsp.v2\ndownload\nlocalized\n");
     CHECK(receiver.data.at("playerlist").find("\"Fixture player\" STEAM_0:1:123") == 0);
     CHECK(receiver.data.at("banlist") == "1 STEAM_0:1:123 : 10.000 min\n");
     CHECK(receiver.data.at("stats") == "1 2 3 4 5 6 7");

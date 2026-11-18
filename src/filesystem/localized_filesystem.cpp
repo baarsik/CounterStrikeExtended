@@ -9,6 +9,7 @@
 #include <new>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -25,7 +26,14 @@ struct Group {
     int insertion = 0;
 };
 
+struct MountBoundary {
+    std::uint32_t group;
+    std::string root;
+    std::string pathId;
+};
+
 std::uint32_t currentGroup = 0;
+std::vector<MountBoundary> mountBoundaries;
 CBaseFileSystem* preparedOwner = nullptr;
 std::vector<Group> preparedGroups;
 ReadView preparedView;
@@ -69,11 +77,10 @@ std::string NormalizeRoot(CBaseFileSystem* owner, const char* root) {
     return normalized;
 }
 
-int FindAnchor(CBaseFileSystem* owner, const Group& group) {
+int FindAnchor(CBaseFileSystem* owner, const std::string& root, const std::string& pathId) {
     for (int index = 0; index < owner->m_SearchPaths.Count(); ++index) {
         const SearchPath& path = owner->m_SearchPaths[index];
-        if (!path.m_bIsPackFile && path.m_Path.String() == group.anchor
-            && path.m_PathID.String() == group.pathId) {
+        if (!path.m_bIsPackFile && path.m_Path.String() == root && path.m_PathID.String() == pathId) {
             return index;
         }
     }
@@ -117,6 +124,7 @@ IFileSystem* Prepare(IFileSystem* filesystem, const Replacement* replacements, s
         }
     }
     std::set<std::uint32_t> ids;
+    std::set<std::pair<std::string, std::string>> stagedRoots;
     for (std::size_t index = 0; index < count; ++index) {
         const Replacement& replacement = replacements[index];
         if (!replacement.group || !replacement.anchor || !replacement.pathId
@@ -128,12 +136,17 @@ IFileSystem* Prepare(IFileSystem* filesystem, const Replacement* replacements, s
         group.id = replacement.group;
         group.anchor = NormalizeRoot(owner, replacement.anchor);
         group.pathId = replacement.pathId;
-        if (FindAnchor(owner, group) < 0) {
+        group.insertion = FindAnchor(owner, group.anchor, group.pathId);
+        if (group.insertion < 0) {
             Discard();
             return nullptr;
         }
         currentGroup = replacement.group;
         for (std::size_t root = 0; root < replacement.count; ++root) {
+            // Earlier groups were detached, so AddSearchPathInternal cannot see their loose roots or packs.
+            if (!stagedRoots.emplace(NormalizeRoot(owner, replacement.roots[root]), group.pathId).second) {
+                continue;
+            }
             const int first = owner->m_SearchPaths.Count();
             owner->AddSearchPathInternal(replacement.roots[root], replacement.pathId, replacement.writable);
             const int last = owner->m_SearchPaths.Count();
@@ -157,7 +170,15 @@ IFileSystem* Prepare(IFileSystem* filesystem, const Replacement* replacements, s
     preparedView.owner = owner;
     baselineView.owner = owner;
     for (auto& group : preparedGroups) {
-        group.insertion = FindAnchor(owner, group);
+        for (const auto& boundary : mountBoundaries) {
+            if (boundary.group == group.id && !boundary.root.empty()) {
+                const int index = FindAnchor(owner, boundary.root, boundary.pathId);
+                if (index >= 0) {
+                    group.insertion = index;
+                }
+                break;
+            }
+        }
         for (int index = 0; index < owner->m_SearchPaths.Count(); ++index) {
             if (owner->m_SearchPaths[index].m_localizationGroup == group.id) {
                 group.insertion = index;
@@ -194,6 +215,7 @@ void Commit() {
     RestorePackCursors();
     preparedView.paths.clear();
     baselineView.paths.clear();
+    // Work backwards so each group's prepared insertion index still refers to its original position.
     for (int index = owner->m_SearchPaths.Count() - 1; index >= 0; --index) {
         const auto id = owner->m_SearchPaths[index].m_localizationGroup;
         const bool managed = std::any_of(preparedGroups.begin(), preparedGroups.end(),
@@ -201,12 +223,16 @@ void Commit() {
         if (managed) {
             owner->m_SearchPaths.Remove(index);
         }
-    }
-    for (auto& group : preparedGroups) {
-        int insertion = FindAnchor(owner, group);
-        for (auto& path : group.paths) {
-            const int index = owner->m_SearchPaths.InsertBefore(insertion++);
-            TransferPath(owner->m_SearchPaths[index], *path);
+        // Groups sharing an anchor appear in the same order as they did in the read view.
+        for (auto group = preparedGroups.rbegin(); group != preparedGroups.rend(); ++group) {
+            if (group->insertion == index) {
+                int insertion = index;
+                for (auto& path : group->paths) {
+                    owner->m_SearchPaths.InsertBefore(insertion);
+                    TransferPath(owner->m_SearchPaths[insertion], *path);
+                    ++insertion;
+                }
+            }
         }
     }
     Discard();
@@ -217,7 +243,13 @@ void BeginGroup(std::uint32_t group) {
 }
 
 void EndGroup() {
+    mountBoundaries.push_back({currentGroup, {}, {}});
     currentGroup = 0;
+}
+
+void Reset() {
+    Discard();
+    mountBoundaries.clear();
 }
 
 IFileSystem* Baseline() {
@@ -226,7 +258,7 @@ IFileSystem* Baseline() {
 
 const cse::localized_filesystem::Api api{
     sizeof(cse::localized_filesystem::Api), cse::localized_filesystem::Version,
-    BeginGroup, EndGroup, Prepare, Baseline, Commit, Discard, Discard};
+    BeginGroup, EndGroup, Prepare, Baseline, Commit, Discard, Reset};
 
 void* Factory() {
     return const_cast<cse::localized_filesystem::Api*>(&api);
@@ -240,8 +272,20 @@ namespace localized_filesystem {
 std::uint32_t CurrentGroup() {
     return currentGroup;
 }
+void RecordFollowingMount(const char* root, const char* pathId) {
+    if (currentGroup) {
+        return;
+    }
+    // English groups can have no paths. Retain their position relative to the next actual mount,
+    // including a BASE path installed before the group's named game-directory anchor.
+    for (auto it = mountBoundaries.rbegin(); it != mountBoundaries.rend() && it->root.empty(); ++it) {
+        it->root = root;
+        it->pathId = pathId;
+    }
+}
+
 void ResetLocalizedFileSystem() {
-    Discard();
+    Reset();
 }
 } // namespace localized_filesystem
 } // namespace cse

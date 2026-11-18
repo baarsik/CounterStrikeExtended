@@ -98,6 +98,12 @@ void Cache_Free(cache_user_t* user) {
 void APIENTRY CseRenderDeleteLists(GLuint, GLsizei) {}
 #endif
 
+#if defined(CSE_ENABLE_METAL) && !defined(SW_RENDERER)
+namespace cse::render {
+void ClearBackendSurfaceMeshes() {}
+}
+#endif
+
 void Sys_Error(const char*, ...) {
     throw std::runtime_error("engine error");
 }

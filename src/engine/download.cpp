@@ -13,6 +13,10 @@
 #include <cstdio>
 #include <cstring>
 
+#if defined(__APPLE__) && defined(SW_RENDERER) && defined(CSE_OWNED_STEAM_PROVIDER)
+extern "C" void CseSteamCallResultDelivered(CCallbackBase* callback, SteamAPICall_t call);
+#endif
+
 
 #if !defined( _WIN32 )
 #define _snprintf snprintf
@@ -622,6 +626,9 @@ template <class T, class P> void CMultipleCallResults<T, P>::Run( void* param, b
 		return;
 	m_mapAPICalls.Unlink( elem );
 	m_mapAPICalls.Free( elem );
+#if defined(__APPLE__) && defined(SW_RENDERER) && defined(CSE_OWNED_STEAM_PROVIDER)
+    CseSteamCallResultDelivered(this, call);
+#endif
 	( m_pObj->*m_Func )( static_cast<P*>( param ), ioFailure );
 }
 

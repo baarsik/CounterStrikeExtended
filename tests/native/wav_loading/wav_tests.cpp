@@ -2,6 +2,7 @@
 #include "client.h"
 #include "common.h"
 #include "conprint.h"
+#include "mem.h"
 #include "sound_callback.h"
 #include "sys.h"
 #include "vox_word.h"
@@ -26,6 +27,8 @@ qboolean GetWavinfo(char *name, byte *wav, int length, wavinfo_t *info);
 void ResampleSfx(sfx_t *sound, int inputRate, int inputWidth, byte *data, int dataBytes);
 extern "C" void Wavstream_Close(int index);
 extern "C" void S_FreeChannel(channel_t *channel);
+extern "C" void VOX_ReadSentenceFile();
+extern "C" void VOX_Shutdown();
 extern "C" char *VOX_GetDirectory(char *path, char *sentence, int size);
 extern "C" int VOX_ParseWordParams(char *word, voxword_t *parameters, int first);
 extern "C" sfxcache_t *VOX_LoadSound(channel_t *channel, char *name);
@@ -42,6 +45,8 @@ cvar_t fs_precache_timings{};
 int total_channels = 0;
 int paintedtime = 0;
 float g_SND_VoiceOverdrive = 1.0f;
+char* rgpszrawsentence[MAX_SENTENCES]{};
+int cszrawsentences = 0;
 
 namespace {
 constexpr int PlaybackRate = 22050;
@@ -52,6 +57,9 @@ constexpr int FormatChannelsOffset = 22;
 constexpr int FormatRateOffset = 24;
 constexpr int FormatBitsOffset = 34;
 constexpr int PcmDataOffset = 44;
+constexpr int CueChunkBytes = 8 + 28;
+constexpr int CueSampleOffset = 36 + 8 + 24;
+constexpr int CuePcmDataOffset = PcmDataOffset + CueChunkBytes;
 constexpr int StreamPrefixBytes = 0x8000;
 constexpr int FirstChunkSamples = StreamPrefixBytes - PcmDataOffset;
 constexpr int TailSamples = 4;
@@ -65,6 +73,8 @@ constexpr int MAX_VOX_WORDS = 32;
 int snd_scaletable[SOUND_VOLUME_LEVELS][SOUND_SAMPLE_VALUES]{};
 portable_samplepair_t paintbuffer[8]{};
 voxword_t rgrgvoxword[MAX_VOX_SENTENCES][MAX_VOX_WORDS]{};
+char szsentences[] = "sound/sentences.txt";
+const char* sentenceFile = nullptr;
 char *rgpparseword[MAX_VOX_WORDS]{};
 char voxcomma[] = "_comma";
 char voxperiod[] = "_period";
@@ -87,6 +97,7 @@ struct FileState {
 
 bool mappedReads = true;
 bool failOpen = false;
+bool failRead = false;
 bool failCache = false;
 bool failTemp = false;
 enum class CacheChange { None, Move, Evict };
@@ -420,6 +431,38 @@ void StartFixtureChannel(channel_t &channel, sfx_t &sound, int end, int type) {
     channel.end = end;
 }
 
+void LoadResampledLoop() {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    total_channels = 1;
+    SND_InitScaletable();
+    constexpr int ListLoopLengthOffset = 8 + 16;
+    constexpr int LoopSampleLength = 1;
+    constexpr byte LoopPcm = 5;
+    for (const int sampleCount : {1, 5}) {
+        auto bytes = Wave(1, sampleCount, true);
+        SetDword(bytes, FormatRateOffset, PlaybackRate * 2);
+        SetDword(bytes, CueSampleOffset, sampleCount - LoopSampleLength);
+        const int listStart = CuePcmDataOffset + sampleCount + (sampleCount & 1);
+        SetDword(bytes, listStart + ListLoopLengthOffset, LoopSampleLength);
+        bytes[CuePcmDataOffset + sampleCount - LoopSampleLength] += LoopPcm;
+        SetFile(bytes);
+
+        sfx_t sound{};
+        std::strcpy(sound.name, "resampled-loop.wav");
+        auto* cache = S_LoadSound(&sound, &channels[0]);
+        Require(cache && cache->length > cache->loopstart && cache->loopstart >= 0,
+                "the cue region still contains a sample after resampling");
+        StartFixtureChannel(channels[0], sound, cache->length, CHAN_AUTO);
+        channels[0].pos = 0;
+        std::fill(std::begin(paintbuffer), std::end(paintbuffer), portable_samplepair_t{});
+        S_MixChannelsToPaintbuffer(cache->length + 1, 0, 0);
+        Require(paintbuffer[cache->length].left == MixVolume * LoopPcm, "the final PCM sample repeats at the cue");
+        Cache_Free(&sound.cache);
+        S_FreeChannel(&channels[0]);
+    }
+}
+
 void StreamCache(const std::string &mode) {
     playback.speed = PlaybackRate;
     shm = &playback;
@@ -447,6 +490,39 @@ void StreamCache(const std::string &mode) {
     Wavstream_Close(0);
     RequireClosedStream();
     Cache_Free(&sound.cache);
+}
+
+void StreamLoop(bool seekBack) {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    total_channels = 1;
+    SND_InitScaletable();
+
+    constexpr int FirstSamples = FirstChunkSamples - CueChunkBytes;
+    constexpr int TailLength = 4;
+    constexpr byte TailPcm[]{3, 4, 5, 6};
+    auto bytes = Wave(1, FirstSamples + TailLength, true);
+    const int loopSample = seekBack ? FirstSamples - 1 : FirstSamples;
+    SetDword(bytes, CueSampleOffset, loopSample);
+    std::transform(std::begin(TailPcm), std::end(TailPcm), bytes.begin() + StreamPrefixBytes,
+                   [](byte sample) { return static_cast<byte>(128 + sample); });
+    SetFile(bytes);
+
+    sfx_t sound{};
+    std::strcpy(sound.name, "*loop.wav");
+    auto* cache = S_LoadSound(&sound, &channels[0]);
+    Require(cache && cache->length == FirstSamples, "looping stream initially caches its prefix");
+    StartFixtureChannel(channels[0], sound, 1, CHAN_STREAM);
+    channels[0].pos = FirstSamples - 1;
+    wavstreams[0].csamplesplayed = channels[0].pos;
+    S_MixChannelsToPaintbuffer(7, 0, 0);
+    const std::array<byte, 7> expected{0, 3, 4, 5, 6, seekBack ? byte{0} : byte{3}, seekBack ? byte{3} : byte{4}};
+    for (std::size_t index = 0; index < expected.size(); ++index) {
+        Require(paintbuffer[index].left == MixVolume * expected[index],
+                "stream plays through EOF before repeating the cue region");
+    }
+    S_FreeChannel(&channels[0]);
+    RequireClosedStream();
 }
 
 void Mixer(const std::string &mode) {
@@ -488,7 +564,7 @@ void Mixer(const std::string &mode) {
             Cache_Free(&sound.cache);
             failTemp = true;
         } else {
-            failTemp = mode == "mix-stream-temp-failure";
+            failRead = mode == "mix-stream-read-failure";
         }
     } else {
         StartFixtureChannel(channels[0], sound, PaintSamples + 1, CHAN_AUTO);
@@ -497,16 +573,15 @@ void Mixer(const std::string &mode) {
 
     S_MixChannelsToPaintbuffer(PaintSamples, 0, 0);
     Require(channels[1].pos == PaintSamples, "the next channel advances through the same paint pass");
-    const bool moved = mode == "mix-stream-move";
+    const bool refilled = mode == "mix-stream-move" || mode == "mix-stream-evict";
     for (int sample = 0; sample < PaintSamples; ++sample) {
-        const int expected = MixVolume * (HealthyPcmSample + (moved && sample > 0 ? TailPcmSample : 0));
+        const int expected = MixVolume * (HealthyPcmSample + (refilled && sample > 0 ? TailPcmSample : 0));
         Require(paintbuffer[sample].left == expected && paintbuffer[sample].right == expected,
                 "the paint buffer contains the healthy channel and any successfully refilled PCM");
     }
-    if (moved) {
+    if (refilled) {
         auto *cache = static_cast<sfxcache_t *>(sound.cache.data);
-        Require(changeOnTempAlloc == CacheChange::None && cache && cache->length == TailSamples,
-                "the moved cache holds the final partial chunk");
+        Require(cache && cache->length == TailSamples, "the stream cache holds the final partial chunk");
         Require(channels[0].pos == PaintSamples - 1 && channels[0].end == TailSamples + 1,
                 "refill continues from the start of the new chunk");
         S_FreeChannel(&channels[0]);
@@ -532,6 +607,22 @@ void Mixer(const std::string &mode) {
 }
 
 void Vox(const std::string &mode) {
+    if (mode == "vox-sentence-lines") {
+        sentenceFile = "// comment\r\n\r\n  HELLO\tvox/hello\r\nGOODBYE vox/goodbye\r\n \t\r\n";
+        VOX_ReadSentenceFile();
+        Require(cszrawsentences == 2, "comments and blank lines add no sentence records");
+        constexpr char Hello[] = "HELLO\0vox/hello";
+        constexpr char Goodbye[] = "GOODBYE\0vox/goodbye";
+        Require(std::memcmp(rgpszrawsentence[0], Hello, sizeof(Hello)) == 0, "preserve the first sentence");
+        Require(std::memcmp(rgpszrawsentence[1], Goodbye, sizeof(Goodbye)) == 0, "preserve the last sentence");
+        sentenceFile = "RELOAD vox/reload";
+        VOX_ReadSentenceFile();
+        constexpr char Reload[] = "RELOAD\0vox/reload";
+        Require(cszrawsentences == 1 && std::memcmp(rgpszrawsentence[0], Reload, sizeof(Reload)) == 0,
+                "retain the final line without a newline and replace prior records");
+        VOX_Shutdown();
+        return;
+    }
     playback.speed = PlaybackRate;
     shm = &playback;
     if (mode == "vox-empty-text") {
@@ -642,6 +733,9 @@ void FS_Seek(FileHandle_t handle, int position, FileSystemSeek_t origin) {
 int FS_Read(void *output, int size, int count, FileHandle_t handle) {
     Require(output && handle == &file && file.open && count == 1 && size >= 0,
             "read requires a buffer and a live file");
+    if (failRead) {
+        return 0;
+    }
     const int copied = std::min(size, file.length - file.position);
     std::memcpy(output, fileBytes.get() + file.position, static_cast<std::size_t>(copied));
     file.position += copied;
@@ -676,6 +770,25 @@ byte *COM_LoadStackFile(char *, void *, int, int *length) {
     }
     *length = file.length;
     return fileBytes.get();
+}
+
+void* Mem_Malloc(std::size_t bytes) {
+    void* buffer = std::malloc(bytes);
+    Require(buffer != nullptr, "allocate sentence storage");
+    return buffer;
+}
+
+void Mem_Free(void* buffer) {
+    std::free(buffer);
+}
+
+byte* COM_LoadFileForMe(char* path, int* length) {
+    Require(sentenceFile && std::strcmp(path, szsentences) == 0, "load the sentence fixture");
+    const auto bytes = std::strlen(sentenceFile);
+    *length = static_cast<int>(bytes);
+    auto* buffer = static_cast<byte*>(Mem_Malloc(bytes + 1));
+    std::memcpy(buffer, sentenceFile, bytes + 1);
+    return buffer;
 }
 
 sfxcache_t *VoiceSE_GetSFXCache(sfx_t *) {
@@ -782,6 +895,8 @@ int main(int argc, char **argv) {
         }
         Require(files > 0, "shipped corpus is nonempty");
         std::printf("Accepted %zu shipped WAV files\n", files);
+    } else if (mode == "mix-stream-loop" || mode == "mix-stream-loop-seek") {
+        StreamLoop(mode == "mix-stream-loop-seek");
     } else if (mode.rfind("mix-", 0) == 0) {
         Mixer(mode);
     } else if (mode.rfind("vox-", 0) == 0) {
@@ -790,6 +905,8 @@ int main(int argc, char **argv) {
         StreamCache(mode);
     } else if (mode.rfind("resample-", 0) == 0) {
         Resampler(mode);
+    } else if (mode == "load-resampled-loop") {
+        LoadResampledLoop();
     } else if (mode.rfind("load-", 0) == 0 || (mode.rfind("stream-", 0) == 0 && mode != "stream-prefix")) {
         Loader(mode);
     } else {

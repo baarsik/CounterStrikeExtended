@@ -1,5 +1,6 @@
 #include "basefilesystem.h"
 #include "../public/native_module.h"
+#include "../../../src/engine/map_catalog.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -11,6 +12,11 @@
 #include <set>
 #include <string>
 #include <vector>
+
+#if defined(__APPLE__)
+extern IFileSystem* g_pFileSystem;
+void FS_Rename(const char* originalName, const char* newName);
+#endif
 
 namespace {
 
@@ -235,6 +241,13 @@ void TestFind(IFileSystem* filesystem, const std::filesystem::path& root) {
     name = filesystem->FindFirst("folder/*.txt", &handle, "GAME");
     Require(name != nullptr, "begin path-ID limited search");
     filesystem->FindClose(handle);
+
+    WriteFile(first / "save/level.v2.Hl1", "state");
+    WriteFile(first / "save/level.v2.Hl1.bak", "backup");
+    name = filesystem->FindFirst("save/*.HL?", &handle, "GAME");
+    Require(name && std::string(name) == "level.v2.Hl1", "save enumeration includes dotted map basenames");
+    Require(!filesystem->FindNext(handle), "save enumeration excludes backup extensions");
+    filesystem->FindClose(handle);
 }
 
 void TestCase(IFileSystem* filesystem, const std::filesystem::path& root) {
@@ -248,11 +261,53 @@ void TestCase(IFileSystem* filesystem, const std::filesystem::path& root) {
 #endif
     filesystem->AddSearchPath(root.string().c_str(), "GAME");
     Require(Read(filesystem, "MixedDir/Upper.TXT") == "mixed", "exact spelling works");
+    char localPath[4096]{};
+    Require(filesystem->GetLocalPath("mixeddir/upper.txt", localPath, sizeof(localPath)) != nullptr,
+        "resolve the existing loose file using its VFS spelling");
+    std::ifstream localFile(localPath, std::ios::binary);
+    std::string localContents;
+    localFile >> localContents;
+    Require(localContents == "mixed", "native consumers can open the path returned by the VFS");
     Require(Read(filesystem, "mixeddir/upper.txt") == "mixed", "existing POSIX fallback descends directories");
     if (caseSensitive) {
         Require(Read(filesystem, "CaseTwin.txt") == "UPPER-ONLY", "exact upper-case file wins before folding");
         Require(Read(filesystem, "casetwin.txt") == "lower", "exact lower-case file remains distinct");
     }
+#if defined(__APPLE__)
+    WriteFile(root / "CStrike/Maps/de_mixed.BSP", "mixed-case map");
+    WritePack(root / "CStrike/pak0.pak", {{"maps/de_packed.bsp", "packed map"}});
+    WriteFile(root / "cstrike_other_mod/maps/de_other.bsp", "other mod map");
+    const auto activeGamePath = (root / "cstrike").string();
+    const auto otherGamePath = (root / "cstrike_other_mod").string();
+    filesystem->AddSearchPath(activeGamePath.c_str(), "GAME");
+    filesystem->AddSearchPathNoWrite(otherGamePath.c_str(), "GAME_FALLBACK");
+    Require(filesystem->GetLocalPath("maps/de_mixed.BSP", localPath, sizeof(localPath)) != nullptr &&
+        cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog accepts the mounted game's correctly resolved mixed-case map");
+    Require(filesystem->GetLocalPath("maps/de_other.bsp", localPath, sizeof(localPath)) != nullptr &&
+        !cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog rejects a fallback game whose directory shares the active name");
+    Require(filesystem->GetLocalPath("maps/de_packed.bsp", localPath, sizeof(localPath)) != nullptr &&
+        cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog accepts the synthesized map path from the active game's pack");
+
+    WriteFile(root / "cstrike/maps/de_exact.bsp", "exact-case map");
+    const auto twinGamePath = (root / "CStrike").string();
+    filesystem->AddSearchPathNoWrite(twinGamePath.c_str(), "GAME_FALLBACK");
+    Require(filesystem->GetLocalPath("maps/de_mixed.BSP", localPath, sizeof(localPath)) != nullptr &&
+        !cse::maps::IsGameMapPath(localPath, root.c_str(), "cstrike", "english"),
+        "catalog rejects a distinct case-sensitive sibling of an exact game directory");
+
+    WriteFile(root / "save/quick.SAV", "previous slot");
+    WriteFile(root / "custom.hp2", "temporary archive");
+    g_pFileSystem = filesystem;
+    FS_Rename("SAVE/quick.sav", "SAVE/quick01.sav");
+    FS_Rename("custom.hp2", "custom.hpk");
+    g_pFileSystem = nullptr;
+    Require(!std::filesystem::exists(root / "save/quick.SAV"), "rotate the selected save");
+    Require(Read(filesystem, "save/quick01.sav") == "previous slot", "backup uses the actual save directory");
+    Require(Read(filesystem, "custom.hpk") == "temporary archive", "rename a root-level temporary HPAK");
+#endif
     Require(filesystem->Open("missing.txt", "rb", nullptr) == nullptr, "missing file fails safely");
 }
 

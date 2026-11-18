@@ -23,6 +23,12 @@ int main(int argc, char **argv) {
             Require(details.Start(ServerAddress), "metadata query startup failed");
             Require(provider.pings == 1 && !provider.players && !provider.rules,
                     "GameInfo must start only metadata PingServer");
+            auto response = Server(ServerAddress.ip);
+            response.m_bHadSuccessfulResponse = false;
+            provider.pingCallbacks.begin()->second->ServerResponded(response);
+            const auto metadata = details.TakeMetadata();
+            Require(metadata.size() == 1 && metadata.front().responded,
+                "a successful metadata ping must mark the server as responding");
         } else if (name == "synchronous-copy") {
             provider.pingSynchronous = true;
             provider.synchronous = true;

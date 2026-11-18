@@ -108,7 +108,8 @@ if args.case in ('center', 'all'):
     source = read('src/cl_dll/text_message.cpp').replace('char *CHudTextMessage::', 'char* CHudTextMessage::')
     names = ('CHudTextMessage::LookupString', 'StripEndNewlineFromString', 'ConvertCRtoNL',
              'CHudTextMessage::MsgFunc_TextMsg')
-    parts = [extract.extract(source, name) for name in names]
+    parts = [extract.extract(source, 'LocalizedPrefixBytes')] if 'LocalizedPrefixBytes(' in source else []
+    parts.extend(extract.extract(source, name) for name in names)
     parts.append(extract.extract((root / 'src/cl_dll/localization_client.cpp').read_text(), 'FinishHudText'))
     parts.append(extract.extract(read('src/cl_dll/localization_client.cpp'), 'HudTextSource::Capture') if not args.baseline else 'bool HudTextSource::Capture(const std::string*, const char* const*) { return false; }')
     parts.append(extract.extract(source, 'CHudTextMessage::RefreshLanguage')

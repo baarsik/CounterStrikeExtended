@@ -457,7 +457,6 @@ constexpr int kNoSkyPalette = -1;
 static int skyPaletteIndices[sizeof(gSkyTexNumber) / sizeof(gSkyTexNumber[0])] = {
     kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette, kNoSkyPalette
 };
-extern int g_currentpalette;
 void GL_PaletteSelect(int paletteIndex);
 #endif
 
@@ -492,12 +491,6 @@ void R_LoadSkys() {
 	skipBMP = !qglColorTableEXT || !gl_palette_tex.value;
     if (!skipBMP) {
         GL_PaletteClearSky();
-#if defined(CSE_ENABLE_METAL)
-        // Reused sky palette slots contain new colors; their numeric index is not a cache identity.
-        if (cse::render::UsingMetal()) {
-            g_currentpalette = kNoSkyPalette;
-        }
-#endif
     }
 
 	printed = FALSE;
@@ -515,12 +508,10 @@ void R_LoadSkys() {
         snprintf(name, sizeof(name), "gfx/env/%s%s.bmp", movevars.skyName, suf[i]);
 
         if (!webpLoaded && !skipBMP) {
-			file = FS_Open( name, "rb" );
-			if ( file )
-			{
-				LoadBMP8( file, &palette, &paletteCount, &image, &width, &height );
-				if ( width * height > 0 )
-				{
+            file = FS_Open(name, "rb");
+            if (file) {
+                LoadBMP8(file, &palette, &paletteCount, &image, &width, &height);
+                if (width == SkyFaceDimension && height == SkyFaceDimension && image && palette) {
                     const short paletteIndex = GL_PaletteAdd(palette, TRUE);
                     if (paletteIndex >= 0) {
                         if (!gSkyTexNumber[i]) {
@@ -534,12 +525,11 @@ void R_LoadSkys() {
                         skyPaletteIndices[i] = paletteIndex;
 #endif
                     }
-
-					Mem_Free( image );
-					Mem_Free( palette );
-				}
-			}
-		}
+                }
+                Mem_Free(image);
+                Mem_Free(palette);
+            }
+        }
 
 		if ( !paletted )
 		{
@@ -548,7 +538,8 @@ void R_LoadSkys() {
             }
 			snprintf( name, sizeof( name ), "gfx/env/%s%s.tga", movevars.skyName, suf[i] );
 
-            if (!webpLoaded && !LoadTargaImage(name, buffer, SkyFaceBytes, NULL, NULL, FALSE)) {
+            if (!webpLoaded && (!LoadTargaImage(name, buffer, SkyFaceBytes, &width, &height, FALSE) ||
+                width != SkyFaceDimension || height != SkyFaceDimension)) {
 				Con_Printf( "R_LoadSkys: Couldn't load %s\n", name );
 
 				if ( !i && Q_strcmp( movevars.skyName, "desert" ) )

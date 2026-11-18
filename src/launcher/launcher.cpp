@@ -164,6 +164,10 @@ void* ModuleSymbol( void* module, const char* name )
 #endif
 }
 
+bool SoftwareRendererRequested() {
+    return cmdline->CheckParm("-soft", nullptr) || cmdline->CheckParm("-software", nullptr);
+}
+
 const char* SelectEngineDll()
 {
 	const char* stored = registry->ReadString( "EngineDLL", kHardwareEngine );
@@ -173,21 +177,18 @@ const char* SelectEngineDll()
 	{
 		selected = kHardwareEngine;
 	}
-	else if ( CaseCompare( stored, kSoftwareEngine ) == 0
-#if defined(__APPLE__)
+    else if (CaseCompare(stored, kSoftwareEngine) == 0
+#if defined(__APPLE__) || (defined(_WIN32) && INTPTR_MAX > INT32_MAX)
         // The engine's retained video settings persist the Win32 renderer names.
         || CaseCompare(stored, "sw.dll") == 0
 #endif
-    )
-	{
-		selected = kSoftwareEngine;
-	}
+    ) {
+        selected = kSoftwareEngine;
+    }
 
-	if ( cmdline->CheckParm( "-soft", NULL ) != NULL || cmdline->CheckParm( "-software", NULL ) != NULL )
-	{
-		selected = kSoftwareEngine;
-	}
-    else if (cmdline->CheckParm("-gl", nullptr) != nullptr || cmdline->CheckParm("-d3d", nullptr) != nullptr
+    if (SoftwareRendererRequested()) {
+        selected = kSoftwareEngine;
+    } else if (cmdline->CheckParm("-gl", nullptr) != nullptr || cmdline->CheckParm("-d3d", nullptr) != nullptr
 #if defined(__APPLE__)
         || cmdline->CheckParm("-metal", nullptr) != nullptr
 #endif
@@ -195,7 +196,6 @@ const char* SelectEngineDll()
         selected = kHardwareEngine;
     }
 
-	registry->WriteString( "EngineDLL", selected );
 	return selected;
 }
 
@@ -601,6 +601,7 @@ int OnVideoModeFailed()
 void SetEngineDLL( const char** engineDll )
 {
 	*engineDll = SelectEngineDll();
+    registry->WriteString("EngineDLL", *engineDll);
 }
 
 #if defined(_WIN32)
@@ -907,8 +908,16 @@ int WINAPI WinMain( _In_ HINSTANCE instance, _In_opt_ HINSTANCE, _In_ LPSTR comm
 		szNewCommandParams[0] = '\0';
 		bool restart = false;
 
-		const char* engineDll = SelectEngineDll();
-		CSysModule* engineModule = Sys_LoadModule( engineDll );
+        const char* engineDll = SelectEngineDll();
+        CSysModule* engineModule = Sys_LoadModule(engineDll);
+#if INTPTR_MAX > INT32_MAX
+        // A client-only runtime may omit the software engine even when an older install saved it.
+        if (!engineModule && engineDll == kSoftwareEngine && !SoftwareRendererRequested()) {
+            engineDll = kHardwareEngine;
+            engineModule = Sys_LoadModule(engineDll);
+        }
+#endif
+        registry->WriteString("EngineDLL", engineDll);
 		if ( engineModule != NULL )
 		{
 			CreateInterfaceFn engineFactory = Sys_GetFactory( engineModule );

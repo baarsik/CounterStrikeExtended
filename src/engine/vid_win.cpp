@@ -24,8 +24,6 @@ extern int (*D_SurfaceCacheForRes)(int width, int height);
 extern int minimum_memory;
 extern SDL_Window **pmainwindow;
 
-void S_Init();
-
 byte *vid_surfcache;
 int vid_surfcachesize;
 int VID_highhunkmark;
@@ -104,11 +102,7 @@ void VID_ReleaseBuffers() {
 
 extern "C" int VID_Init(unsigned short *palette) {
     gppal = (byte *)palette;
-    if (!VID_AllocBuffers()) {
-        return 0;
-    }
-    S_Init();
-    return 1;
+    return VID_AllocBuffers();
 }
 
 void VID_TakeSnapshot(const char* filename) {

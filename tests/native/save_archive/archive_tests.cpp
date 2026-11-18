@@ -293,6 +293,12 @@ void writers() {
     output = {};
     check(DirectoryCopy("SAVE/*.HL?", &output, 3) && output.data == archive(260), "DirectoryCopy failed");
     writerSetup();
+    // The game directory is mounted under both GAMECONFIG and GAME, alongside fallback roots.
+    addName("first.HL1");
+    addName("empty.HL2");
+    addName("last.HL3");
+    addName("fallback.HL1");
+    otherMountNameCount = 4;
     check(SaveGameSlot("slot", "comment") == 1, "SaveGameSlot success failed");
     const auto &saved = files.at("SAVE/slot.sav").data;
     check(saved.size() == 20 + archive(260).size(), "SaveGameSlot envelope size changed");
@@ -329,6 +335,26 @@ void assertSourceBytes() {
     check(files.at("SAVE/first.HL1").data == Bytes({0x11, 0x22, 0x33})
         && files.at("SAVE/empty.HL2").data.empty()
         && files.at("SAVE/last.HL3").data == Bytes({0xfe, 0, 0xed}), "writer modified source bytes");
+}
+
+void mixedCaseMapStateExtensions() {
+    for (const char *name : {"c1a0.hl1", "c1a0.Hl2", "c1a0.hL3"}) {
+        reset();
+        addName(name);
+        const auto path = std::string("SAVE/") + name;
+        const Bytes payload = {0x11, 0x22};
+        files[path].data = payload;
+        MemoryFile output;
+        check(WriteDirectory("SAVE/*.HL?", &output, 1), "enumerated mixed-case map state failed to save");
+        check(output.data == entry(260, name, payload), "writer changed the mixed-case record name");
+
+        for (const auto width : {260, 1024}) {
+            reset();
+            MemoryFile input{entry(width, name, payload)};
+            check(DirectoryExtract(&input, 1), "mixed-case map state failed to load");
+            check(files.at(path).data == payload, "extraction changed the map state name or payload");
+        }
+    }
 }
 
 void chunkedCopy() {
@@ -712,6 +738,7 @@ int main(int argc, char **argv) {
         reservedDeviceNames();
         malformedReaders();
         writers();
+        mixedCaseMapStateExtensions();
         chunkedCopy();
         faults();
         repeatRejections();

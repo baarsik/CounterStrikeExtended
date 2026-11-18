@@ -11,7 +11,7 @@ struct MessageItem_t
 	vgui2::HPanel	_messageTo;
 	vgui2::HPanel	_from;
 
-	float			_arrivalTime;
+    double _arrivalTime;
 	int				_messageID;
 };
 

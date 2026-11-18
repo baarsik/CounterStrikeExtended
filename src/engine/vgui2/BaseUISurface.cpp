@@ -7,6 +7,7 @@
 #include "BaseUISurface.h"
 #include "../keys.h"
 #include "../image_consistency.h"
+#include "../vgui_EngineSurface.h"
 #include "../vgui/IPanel.h"
 #include "../vgui/IInput.h"
 #include "../vgui/IInputInternal.h"
@@ -122,6 +123,9 @@ static void CheckModState() {
 void BaseUISurface::AppHandler(void *event, void *) {
     SDL_Event ev = *(const SDL_Event *)event;
     switch (ev.type) {
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+        s_wheelMotion.Reset();
+        break;
     case SDL_EVENT_KEY_DOWN:
         g_InputInternal->InternalKeyCodePressed(KeyCode_VirtualKeyToVGUI(ev.key.key));
         g_InputInternal->InternalKeyCodeTyped(KeyCode_VirtualKeyToVGUI(ev.key.key));
@@ -202,23 +206,24 @@ void BaseUISurface::AppHandler(void *event, void *) {
         break;
     }
     case SDL_EVENT_MOUSE_WHEEL:
-        g_InputInternal->InternalMouseWheeled(cse::WheelSteps(s_wheelMotion, ev.wheel.y, ev.wheel.direction));
+        cse::DispatchWheelSteps(s_wheelMotion, ev.wheel, [](int steps) {
+            g_InputInternal->InternalMouseWheeled(steps);
+        });
         break;
     }
 }
 
-bool BaseUISurface::DeleteTextureByID( int texture )
-{
-#if defined( SW_RENDERER )
-	(void)texture;
-	return false;
-#else
-
-    cse::engine_image::ForgetFileTexture(_engineSurface, texture);
-	GLuint id = (GLuint)texture;
-	qglDeleteTextures( 1, &id );
-	return true;
-#endif
+bool BaseUISurface::DeleteTextureByID(int texture) {
+    // BaseUI initializes this adapter with the engine's EngineSurface007 factory instance.
+    auto* surface = static_cast<EngineSurface*>(_engineSurface);
+    if (!surface || !surface->deleteTexture(texture)) {
+        return false;
+    }
+    cse::engine_image::ForgetFileTexture(surface, texture);
+    if (m_iCurrentTexture == texture) {
+        m_iCurrentTexture = 0;
+    }
+    return true;
 }
 
 void BaseUISurface::GetMouseDelta(int *x, int *y) {

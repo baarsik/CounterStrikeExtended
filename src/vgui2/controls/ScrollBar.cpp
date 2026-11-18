@@ -19,6 +19,7 @@
 #include "vgui/IInput.h"
 #include "vgui/IScheme.h"
 #include "vgui/ISystem.h"
+#include "vgui_control_time.h"
 #include "vgui/KeyValues.h"
 #include "vgui/MessageMap.h"
 
@@ -262,36 +263,26 @@ void ScrollBar::PerformLayout()
 // the bar starts moving at normal speed. This gives a stepping feeling
 // to just clicking an arrow once.
 //-----------------------------------------------------------------------------
-void ScrollBar::OnMouseFocusTicked()
-{
-	int direction;
-	if ( _button[0]->IsDepressed() )
-	{
-		direction = -1;
-	}
-	else if ( _button[1]->IsDepressed() )
-	{
-		direction = 1;
-	}
-	else
-	{
-		// if neither button is down keep delay at max
-		_scrollDelay = system()->GetTimeMillis() + SCROLL_BAR_DELAY;
-		_respond = true;
-		return;
-	}
+void ScrollBar::OnMouseFocusTicked() {
+    const auto now = cse::vgui_control_time::Milliseconds(*system());
+    int direction;
+    if (_button[0]->IsDepressed()) {
+        direction = -1;
+    } else if (_button[1]->IsDepressed()) {
+        direction = 1;
+    } else {
+        _scrollDelay = now + SCROLL_BAR_DELAY;
+        _respond = true;
+        return;
+    }
 
-	RespondToScrollArrow( direction );
-
-	if ( _scrollDelay >= system()->GetTimeMillis() )
-	{
-		_respond = false;
-	}
-	else
-	{
-		_scrollDelay = system()->GetTimeMillis() + SCROLL_BAR_SPEED;
-		_respond = true;
-	}
+    RespondToScrollArrow(direction);
+    if (_scrollDelay - now <= SCROLL_BAR_DELAY) {
+        _respond = false;
+    } else {
+        _scrollDelay = now + SCROLL_BAR_SPEED;
+        _respond = true;
+    }
 }
 
 void ScrollBar::ApplySchemeSettings( IScheme* scheme )

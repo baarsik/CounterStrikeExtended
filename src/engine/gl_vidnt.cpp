@@ -20,6 +20,7 @@
 #include "mem.h"
 #include "vid.h"
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -58,7 +59,6 @@ int gGLHardwareType;
 extern qboolean atismoothing;
 extern int TEXTURE0_SGIS, TEXTURE1_SGIS, TEXTURE2_SGIS;
 extern GLenum oldtarget;
-extern cvar_t gl_ansio;
 #if defined( _WIN32 )
 extern cvar_t gl_clear;
 #endif
@@ -416,10 +416,7 @@ void GL_Init() {
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, (GLfloat)GL_NEAREST);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, (GLfloat)GL_REPEAT);
     qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, (GLfloat)GL_REPEAT);
-    // Draw_Init registers gl_ansio later; its numeric value is still zero here.
-    constexpr float kDefaultAnisotropy = 1.0f;
-    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-        cse::render::UsingMetal() ? kDefaultAnisotropy : gl_ansio.value);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, GL_TextureAnisotropy());
 
     qglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     qglTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, (GLfloat)GL_REPLACE);
@@ -1018,9 +1015,19 @@ int GL_SetMode(CseGameWindowHandle mainwindow, CseVideoDC *pmaindc, CseVideoCont
         requested.w = wide;
         requested.h = tall;
         requested.refresh_rate = static_cast<float>(refresh);
-        if (!SDL_GetClosestFullscreenDisplayMode(SDL_GetPrimaryDisplay(), requested.w, requested.h,
-                                                 requested.refresh_rate, false, &mode)) {
-            Sys_Error("Error initializing Main frame buffer\n");
+        const SDL_DisplayID display = SDL_GetPrimaryDisplay();
+        const bool standardMode = SDL_GetClosestFullscreenDisplayMode(display, requested.w, requested.h,
+            requested.refresh_rate, false, &mode);
+        if (!standardMode || mode.w != wide || mode.h != tall ||
+            (refresh > 0 && std::lround(mode.refresh_rate) != refresh)) {
+            // The video menu also lists modes available only at high pixel density.
+            SDL_DisplayMode inclusiveMode{};
+            if (SDL_GetClosestFullscreenDisplayMode(display, requested.w, requested.h, requested.refresh_rate,
+                true, &inclusiveMode)) {
+                mode = inclusiveMode;
+            } else if (!standardMode) {
+                Sys_Error("Error initializing Main frame buffer\n");
+            }
         }
         Con_DPrintf("Setting closest display mode: width:%d height:%d freq:%d format:%u\n", mode.w, mode.h,
                     cse::RefreshRateOrDefault(mode.refresh_rate), (unsigned int)mode.format);

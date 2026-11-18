@@ -49,6 +49,7 @@
 #undef PostMessage
 #undef SendMessage
 #undef GetClassName
+#undef GetCurrentTime
 #endif
 
 #ifndef null
@@ -60,6 +61,10 @@
 
 #define DEFAULT_VGUI_CONTEXT	((vgui2::HContext)~0)
 #define INVALID_VGUI_PANEL	((vgui2::HPanel)~0)
+
+namespace {
+constexpr double MillisecondsPerSecond = 1000.0;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -139,7 +144,7 @@ public:
 	{
 		vgui2::VPANEL	panel;
 		int				interval;
-		int				nexttick;
+        double nextTickTime;
 
 		// Debugging
 		char			panelname[64];
@@ -413,7 +418,7 @@ void CVGui::RunFrame()
 
 	DispatchMessages();
 
-	int time = vgui2::g_pSystem->GetTimeMillis();
+    const double now = vgui2::g_pSystem->GetCurrentTime();
 	for ( int i = m_TickSignalVec.Count() - 1; i >= 0; --i )
 	{
 		Tick_t* tick = m_TickSignalVec[i];
@@ -426,12 +431,11 @@ void CVGui::RunFrame()
 
 		if ( tick->interval != 0 )
 		{
-			if ( time < tick->nexttick )
-			{
-				continue;
-			}
+            if (now < tick->nextTickTime) {
+                continue;
+            }
 
-			tick->nexttick = time + tick->interval;
+            tick->nextTickTime = now + tick->interval / MillisecondsPerSecond;
 		}
 
 		PostMessage( tick->panel, new KeyValues( "Tick" ), 0, 0.0f );
@@ -487,7 +491,8 @@ void CVGui::AddTickSignal( vgui2::VPANEL panel, int intervalMilliseconds )
 		if ( existing->panel == panel )
 		{
 			existing->interval = intervalMilliseconds;
-			existing->nexttick = existing->interval + vgui2::g_pSystem->GetTimeMillis();
+            existing->nextTickTime = vgui2::g_pSystem->GetCurrentTime() +
+                intervalMilliseconds / MillisecondsPerSecond;
 			return;
 		}
 	}
@@ -495,7 +500,7 @@ void CVGui::AddTickSignal( vgui2::VPANEL panel, int intervalMilliseconds )
 	Tick_t* tick = new Tick_t;
 	tick->panel = panel;
 	tick->interval = intervalMilliseconds;
-	tick->nexttick = tick->interval + vgui2::g_pSystem->GetTimeMillis();
+    tick->nextTickTime = vgui2::g_pSystem->GetCurrentTime() + intervalMilliseconds / MillisecondsPerSecond;
 
 	vgui2::VPanel* vp = (vgui2::VPanel*)panel;
 	const char* panelName = vp->Client()->GetName();
@@ -528,7 +533,7 @@ void CVGui::PostMessage( vgui2::VPANEL target, KeyValues* params, vgui2::VPANEL 
 	message._params = params;
 	ASSERT_AT( params->GetName(), 776 );
 	message._from = vgui2::g_pIVgui->PanelToHandle( from );
-	message._arrivalTime = 0.0f;
+    message._arrivalTime = 0.0;
 	message._messageID = m_iCurrentMessageID++;
 
 	/* message debug code
@@ -541,7 +546,7 @@ void CVGui::PostMessage( vgui2::VPANEL target, KeyValues* params, vgui2::VPANEL 
 	// add the message to the correct message queue
 	if ( delaySeconds > 0.0f )
 	{
-		message._arrivalTime = vgui2::g_pSystem->GetTimeMillis() + delaySeconds * 1000.0f;
+        message._arrivalTime = vgui2::g_pSystem->GetCurrentTime() + delaySeconds;
 		m_DelayedMessageQueue.Insert( message );
 	}
 	else if ( m_InDispatcher )
@@ -610,7 +615,7 @@ bool CVGui::GetShouldVGuiControlSleep()
 //-----------------------------------------------------------------------------
 bool CVGui::DispatchMessages()
 {
-	int time = vgui2::g_pSystem->GetTimeMillis();
+    const double now = vgui2::g_pSystem->GetCurrentTime();
 	m_InDispatcher = true;
 
 	bool doneWork = m_MessageQueue.Count() > 12;
@@ -636,12 +641,11 @@ bool CVGui::DispatchMessages()
 				messageItem = &m_DelayedMessageQueue.ElementAtHead();
 			}
 
-			if ( !messageItem || messageItem->_arrivalTime > time )
-			{
-				// no more items in the delayed message queue, move to the system queue
-				bUsingDelayedQueue = false;
-				continue;
-			}
+            if (!messageItem || messageItem->_arrivalTime > now) {
+                // No more delayed messages are due. Continue with the ordinary queue.
+                bUsingDelayedQueue = false;
+                continue;
+            }
 		}
 		else
 		{
@@ -790,6 +794,8 @@ cse::vgui_completion::Result CVGui::FinishNativeClient(const void* selectedSurfa
     if (m_Contexts.Count()) {
         return Result::Busy;
     }
+    // The system's dialog configuration tree uses the current KeyValues allocator.
+    vgui2::g_pSystem->Shutdown();
     m_bRunning = false;
     m_bInitialized = false;
     m_nativeSealed = true;

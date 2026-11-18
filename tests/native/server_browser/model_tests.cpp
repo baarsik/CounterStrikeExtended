@@ -36,6 +36,8 @@ struct Provider final : ISteamMatchmakingServers {
     bool synchronous = false;
     bool cancelCallbacks = false;
     bool failRequest = false;
+    bool failRefresh = false;
+    bool deferRefresh = false;
     int canceled = 0;
     int released = 0;
     int refreshed = 0;
@@ -114,7 +116,15 @@ struct Provider final : ISteamMatchmakingServers {
     }
     void RefreshServer(HServerListRequest request, int index) override {
         lastIndex = index;
-        requests.at(request).callback->ServerResponded(request, index);
+        if (deferRefresh) {
+            return;
+        }
+        auto *callback = requests.at(request).callback;
+        if (failRefresh) {
+            callback->ServerFailedToRespond(request, index);
+        } else {
+            callback->ServerResponded(request, index);
+        }
     }
     HServerQuery PingServer(uint32, uint16, ISteamMatchmakingPingResponse*) override {
         return HSERVERQUERY_INVALID;
@@ -525,6 +535,7 @@ void OfflineSavedRowsWithCurrentGameFilters() {
             CHECK(!model.IsVisible({0x7f000004U, 27015, 27016}));
             model.Select(address);
             CHECK(model.Selection() == address);
+            provider.failRefresh = true;
             CHECK(model.QuickRefresh(address));
             CHECK(provider.lastIndex == 0);
             Drain(model);
@@ -617,14 +628,57 @@ void FailedSavedRowsRetainSuccessfulMetadata() {
         failed.m_szGameDir[0] = '\0';
         failed.m_szMap[0] = '\0';
         failed.m_bSecure = false;
+        provider.failRefresh = true;
         CHECK(model.QuickRefresh(address));
-        provider.requests.at(provider.current).callback->ServerFailedToRespond(provider.current, 0);
         Drain(model);
         CHECK(model.Find(address)->failed && model.Find(address)->responded);
         CHECK(model.Find(address)->gameDirectory == "cstrike");
         CHECK(model.Find(address)->map == "de_dust2");
         CHECK(model.OrderedKeys() == std::vector<RowKey>{address});
         CHECK(model.IsVisible(address));
+    }
+}
+
+void ResolvedConnectionPortReplacesDirectoryAddress() {
+    constexpr uint32_t ServerIP = 0x7f000001U;
+    constexpr uint16_t QueryPort = 27016;
+    constexpr uint16_t GamePort = 27015;
+    const RowKey directoryAddress{ServerIP, QueryPort, QueryPort};
+    const RowKey gameAddress{ServerIP, GamePort, QueryPort};
+
+    for (const bool duplicate : {false, true}) {
+        Provider provider;
+        auto pending = Server(ServerIP);
+        pending.m_NetAdr.Init(ServerIP, QueryPort, QueryPort);
+        pending.m_bHadSuccessfulResponse = false;
+        provider.nextRows = {pending};
+        if (duplicate) {
+            provider.nextRows.push_back(pending);
+        }
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        Drain(model);
+        CHECK(model.Find(directoryAddress));
+        CHECK(model.GetStatus().responding == 0);
+        model.Select(directoryAddress);
+
+        auto& request = provider.requests.at(provider.current);
+        request.rows.front() = Server(ServerIP);
+        request.rows.front().m_bHadSuccessfulResponse = false;
+        request.callback->ServerResponded(provider.current, 0);
+        provider.Complete();
+        Drain(model);
+        CHECK(model.GetStatus().rows == provider.nextRows.size());
+        CHECK(model.GetStatus().responding == 1);
+        CHECK(model.Find(gameAddress));
+        CHECK((model.Find(directoryAddress) != nullptr) == duplicate);
+        CHECK(model.Selection().has_value() == duplicate);
+        CHECK(model.QuickRefresh(directoryAddress) == duplicate);
+        if (duplicate) {
+            CHECK(provider.lastIndex == 1);
+        }
+        CHECK(model.QuickRefresh(gameAddress));
+        CHECK(provider.lastIndex == 0);
     }
 }
 
@@ -653,6 +707,85 @@ void ReplacementAndFailure() {
     CHECK(!unavailable.Refresh(ListKind::Internet, DefaultFilters()));
     CHECK(unavailable.GetStatus().phase == Phase::Unavailable);
 }
+
+void RefreshPartialSelection() {
+    constexpr RowKey Indexed{0x7f000001U, 27015, 27016};
+    constexpr RowKey Retained{0x7f000002U, 27015, 27016};
+    for (const bool indexedFirst : {true, false}) {
+        Provider provider;
+        provider.nextRows = {Server(Indexed.ip), Server(Retained.ip)};
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        provider.Complete();
+        Drain(model);
+
+        provider.nextRows = {Server(Indexed.ip)};
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        Drain(model);
+        provider.Complete(eServerFailedToRespond);
+        Drain(model);
+        provider.deferRefresh = true;
+        CHECK(model.QuickRefresh(indexedFirst ? Indexed : Retained));
+        CHECK(model.QuickRefresh(indexedFirst ? Retained : Indexed));
+        CHECK(provider.lastIndex == 0);
+        const auto finishIndexed = [&] {
+            provider.requests.at(provider.current).callback->ServerResponded(provider.current, provider.lastIndex);
+            provider.Complete(eServerFailedToRespond);
+        };
+        if (indexedFirst) {
+            finishIndexed();
+        } else {
+            Drain(model);
+        }
+        CHECK(model.GetStatus().phase == Phase::Refreshing);
+        CHECK(!model.QuickRefresh());
+        if (!indexedFirst) {
+            finishIndexed();
+        }
+        Drain(model);
+        CHECK(model.GetStatus().phase == Phase::Complete);
+        CHECK(model.GetStatus().completion == eServerFailedToRespond);
+        CHECK(model.GetStatus().error.empty());
+        CHECK(model.Find(Retained)->failed);
+        CHECK(!model.Find(Indexed)->failed);
+    }
+}
+
+void RefreshPartialList() {
+    constexpr RowKey Indexed{0x7f000001U, 27015, 27016};
+    constexpr RowKey Retained{0x7f000002U, 27015, 27016};
+    Provider provider;
+    provider.nextRows = {Server(Indexed.ip), Server(Retained.ip, "Retained")};
+    ServerBrowserModel model({&provider, nullptr});
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    provider.Complete();
+    Drain(model);
+
+    provider.nextRows = {Server(Indexed.ip)};
+    CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+    Drain(model);
+    provider.Complete(eServerFailedToRespond);
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Failed);
+
+    CHECK(model.QuickRefresh());
+    CHECK(!model.QuickRefresh());
+    auto& request = provider.requests.at(provider.current);
+    request.rows[0].SetName("Refreshed");
+    request.callback->ServerResponded(provider.current, 0);
+    provider.Complete();
+    CHECK(model.GetStatus().phase == Phase::Refreshing);
+    Drain(model);
+
+    CHECK(model.GetStatus().phase == Phase::Complete);
+    CHECK(model.Find(Indexed)->name == "Refreshed");
+    CHECK(model.Find(Retained)->failed);
+    CHECK(model.Find(Retained)->name == "Retained");
+    CHECK(model.QuickRefresh(Retained));
+    Drain(model);
+    CHECK(model.GetStatus().phase == Phase::Complete);
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "wrong-thread") {
         ServerBrowserModel model({});
@@ -685,6 +818,7 @@ int main(int argc, char** argv) {
     try {
         OfflineSavedRowsWithCurrentGameFilters();
         FailedSavedRowsRetainSuccessfulMetadata();
+        ResolvedConnectionPortReplacesDirectoryAddress();
         OriginalMapAndHumanFilters();
         OriginalAccountAndHistoryData();
         Addresses();
@@ -695,8 +829,10 @@ int main(int argc, char** argv) {
         ReentrantViewChange();
         FavoritePreservation();
         ReplacementAndFailure();
+        RefreshPartialList();
+        RefreshPartialSelection();
         EverySortAndFilter();
-        std::cout << "13 model cases passed\n";
+        std::cout << "15 model cases passed\n";
     } catch (const std::exception& error) {
         std::cerr << "FAIL: " << error.what() << '\n';
         return EXIT_FAILURE;

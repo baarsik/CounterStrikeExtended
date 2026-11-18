@@ -1261,7 +1261,7 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 #include <cstring>
 #include <vector>
 #include <cstdlib>
-constexpr int MAX_VIDEO_MODES = 32;
+constexpr int MaximumFullscreenModes = 32;
 constexpr int STARTUP_IMAGE_BYTES = 256 * 256 * 4;
 extern "C" void VID_UpdateWindowVars(RECT *, int, int);
 extern "C" void VOX_Init();
@@ -1306,7 +1306,8 @@ class CVideoMode_NativeSoftware : public IVideoMode {
         bool fit;
     };
 
-    vmode_s m_rgModeList[MAX_VIDEO_MODES];
+    // The active framebuffer size can differ from every SDL fullscreen mode.
+    vmode_s m_rgModeList[MaximumFullscreenModes + 1];
     vmode_s m_safeMode;
     int m_nNumModes;
     int m_nGameMode;
@@ -1322,10 +1323,11 @@ class CVideoMode_NativeSoftware : public IVideoMode {
 };
 
 bool CVideoMode_NativeSoftware::AddMode(int width, int height, int bitsPerPixel) {
-    if (width <= 0 || height <= 0 || width > 5120 || height > 1600) {
+    if (width <= 0 || height <= 0 || width > cse_native_software::MaximumWidth ||
+        height > cse_native_software::MaximumHeight) {
         return false;
     }
-    if (m_nNumModes >= MAX_VIDEO_MODES) {
+    if (m_nNumModes >= MaximumFullscreenModes) {
         return false;
     }
     for (int i = 0; i < m_nNumModes; i++) {
@@ -1624,14 +1626,13 @@ bool CVideoMode_NativeSoftware::Init(void *) {
             }
         }
     }
-    constexpr int kMaximumWidth = 5120;
-    constexpr int kMaximumHeight = 1600;
-    width = std::min(width, kMaximumWidth);
-    height = std::min(height, kMaximumHeight);
+    width = std::min(width, cse_native_software::MaximumWidth);
+    height = std::min(height, cse_native_software::MaximumHeight);
     if (width <= 0 || height <= 0) {
         return false;
     }
     int count = 0;
+    m_nNumModes = 0;
     SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
     for (int index = 0; index < count; ++index) {
         AddMode(modes[index]->w, modes[index]->h, 32);
@@ -1644,6 +1645,10 @@ bool CVideoMode_NativeSoftware::Init(void *) {
             m_nGameMode = index;
             break;
         }
+    }
+    if (m_nGameMode < 0) {
+        m_nGameMode = m_nNumModes;
+        m_rgModeList[m_nNumModes++] = m_safeMode;
     }
     if (!m_bWindowed && !SDL_SetWindowFullscreen(window, true)) {
         return false;
@@ -2373,14 +2378,18 @@ void CVideoMode_OpenGL::ChangeDisplaySettingsToFullscreen() {
             const int refresh = atoi(com_argv[frequencyParm + 1]);
             const SDL_DisplayID display = SDL_GetDisplayForWindow(window);
             const SDL_DisplayMode *desktop = SDL_GetDesktopDisplayMode(display);
-            SDL_DisplayMode mode{};
-            // SDL's closest result may substitute resolution or rate. Only accept the
-            // requested nominal Hz at desktop pixels; the FBO keeps the render size.
-            if (refresh > 0 && desktop &&
-                SDL_GetClosestFullscreenDisplayMode(display, desktop->w, desktop->h,
-                                                    static_cast<float>(refresh), false, &mode) &&
-                mode.w == desktop->w && mode.h == desktop->h && std::round(mode.refresh_rate) == refresh) {
-                selectedRefresh = SDL_SetWindowFullscreenMode(window, &mode);
+            if (refresh > 0 && desktop) {
+                int count = 0;
+                SDL_DisplayMode** modes = SDL_GetFullscreenDisplayModes(display, &count);
+                for (int index = 0; index < count && !selectedRefresh; ++index) {
+                    const SDL_DisplayMode* mode = modes[index];
+                    // Cocoa exposes 1x and Retina modes with the same logical size.
+                    if (mode->w == desktop->w && mode->h == desktop->h &&
+                        mode->pixel_density == desktop->pixel_density && std::round(mode->refresh_rate) == refresh) {
+                        selectedRefresh = SDL_SetWindowFullscreenMode(window, mode);
+                    }
+                }
+                SDL_free(modes);
             }
             if (!selectedRefresh) {
                 Con_DPrintf("Frequency %d is not supported at the desktop resolution\n", refresh);
@@ -2416,7 +2425,10 @@ void CVideoMode_Common::DrawStartupGraphic(CseGameWindowHandle window) {
     qglViewport(0, 0, width, height);
     qglDisable(GL_DEPTH_TEST);
     qglEnable(GL_TEXTURE_2D);
+    qglMatrixMode(GL_MODELVIEW);
+    qglLoadIdentity();
     qglMatrixMode(GL_PROJECTION);
+    qglLoadIdentity();
     qglOrtho(0.0, width, height, 0.0, -1.0, 1.0);
     qglClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     qglClear(GL_COLOR_BUFFER_BIT);

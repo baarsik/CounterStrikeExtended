@@ -22,7 +22,7 @@ int main() {
     fs::create_directory(directory);
     fs::create_directory(directory / "empty");
     fs::create_directory(directory / "locked");
-    std::ofstream(directory / "bans.cfg") << "banid 0 STEAM_0:1:123\n";
+    std::ofstream(directory / "bans.CfG") << "banid 0 STEAM_0:1:123\n";
     std::ofstream(directory / "ignored.txt") << "ignore";
     fs::create_directory_symlink(directory / "empty", directory / "link");
     fs::create_symlink(directory / "missing", directory / "dangling.cfg");
@@ -40,7 +40,7 @@ int main() {
     }
     CHECK(danglingLinkListed);
     CHECK(files::Stat((directory / "link").u8string()).directory);
-    CHECK(files::Join(directory.u8string(), "bans.cfg").path == (directory / "bans.cfg").u8string());
+    CHECK(files::Join(directory.u8string(), "bans.CfG").path == (directory / "bans.CfG").u8string());
     CHECK(!files::Stat((directory / "missing").u8string()).ok);
     CHECK(files::Parent(directory.u8string() + "/").path == fs::path(root).u8string());
     CHECK(files::PrepareConfigDirectory((directory / "new-config").u8string()).ok);

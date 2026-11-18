@@ -126,7 +126,9 @@ def main():
     failures = []
     for command in ('+quit', '+exit'):
         try:
-            check_cleanup(run(stage, 'hltv', ['-ip', '127.0.0.1', '-port', '0', '+modules', command]))
+            output = run(stage, 'hltv', ['-ip', '127.0.0.1', '-port', '0', '+modules', '+status', command])
+            require(re.search(r'Version \d+ \(macOS\)', output), 'HLTV status omitted the native platform')
+            check_cleanup(output)
         except AssertionError as error:
             failures.append(f'{command}: {error}')
     for mode in ('devnull', 'pipe-eof', 'closed-stdin'):

@@ -140,7 +140,9 @@ struct RowLess {
         return sort.secondaryAscending ? comparison < 0 : comparison > 0;
     }
 };
-Row CopyRow(const gameserveritem_t& item, bool failed) {
+enum class RowSource { Enumeration, Response, Failure };
+
+Row CopyRow(const gameserveritem_t& item, RowSource source) {
     Row row;
     row.key = {item.m_NetAdr.GetIP(), item.m_NetAdr.GetConnectionPort(), item.m_NetAdr.GetQueryPort()};
     row.app = item.m_nAppID;
@@ -158,8 +160,8 @@ Row CopyRow(const gameserveritem_t& item, bool failed) {
     row.hasSteamAccount = item.m_steamID.GetAccountID() != 0;
     row.password = item.m_bPassword;
     row.secure = item.m_bSecure;
-    row.responded = item.m_bHadSuccessfulResponse;
-    row.failed = failed;
+    row.responded = source == RowSource::Response || item.m_bHadSuccessfulResponse;
+    row.failed = source == RowSource::Failure;
     return row;
 }
 }
@@ -290,7 +292,7 @@ struct ServerBrowserModel::State {
             owner.Check();
             ++owner.callbackDepth;
             if (accepting && !owner.closing && !complete) {
-                Row row = CopyRow(item, false);
+                Row row = CopyPingResponse(item);
                 if (row.key.ip == original.key.ip && row.key.connectionPort == original.key.connectionPort) {
                     row.key = original.key;
                     row.lastPlayed = original.lastPlayed;
@@ -321,18 +323,26 @@ struct ServerBrowserModel::State {
         uint64_t generation;
         HServerListRequest handle = nullptr;
         bool accepting = true;
-        bool completed = false;
+        bool listRefreshPending = true;
+        std::optional<EMatchMakingServerResponse> directoryCompletion;
         std::set<int> quickPending;
         int enumerate = 0;
         int count = 0;
-        std::map<int, bool> dirty;
-        std::set<int> seen;
-        std::set<RowKey> membership;
+        std::map<int, RowSource> dirty;
+        std::map<int, RowKey> seen;
+        std::set<std::pair<RowKey, int>> membership;
         bool prunePending = true;
         Rows::iterator pruneCursor;
         std::vector<MatchMakingKeyValuePair_t> filters;
         std::vector<MatchMakingKeyValuePair_t*> filterPointers;
         Request(State& state, uint64_t value) : owner(state), generation(value) {}
+        std::optional<int> IndexFor(const RowKey& key) const {
+            const auto match = membership.lower_bound({key, 0});
+            if (match != membership.end() && match->first == key) {
+                return match->second;
+            }
+            return std::nullopt;
+        }
         bool Accept(HServerListRequest incoming) {
             owner.Check();
             if (!accepting || owner.closing || generation != owner.generation) {
@@ -343,35 +353,40 @@ struct ServerBrowserModel::State {
             }
             return incoming && incoming == handle;
         }
-        void Response(HServerListRequest incoming, int index, bool failed) {
+        void Response(HServerListRequest incoming, int index, RowSource source) {
             owner.Check();
             ++owner.callbackDepth;
             if (Accept(incoming) && index >= 0) {
-                dirty[index] = failed;
-                if (quickPending.erase(index) && quickPending.empty()) {
-                    completed = true;
-                    owner.status.phase = Phase::Complete;
+                dirty[index] = source;
+                if (quickPending.erase(index)) {
+                    owner.FinishRefresh();
                 }
             }
             --owner.callbackDepth;
         }
         void ServerResponded(HServerListRequest incoming, int index) override {
-            Response(incoming, index, false);
+            Response(incoming, index, RowSource::Response);
         }
         void ServerFailedToRespond(HServerListRequest incoming, int index) override {
-            Response(incoming, index, true);
+            Response(incoming, index, RowSource::Failure);
         }
         void RefreshComplete(HServerListRequest incoming, EMatchMakingServerResponse result) override {
             owner.Check();
             ++owner.callbackDepth;
-            if (Accept(incoming)) {
-                completed = true;
+            // The list verdict belongs to discovery or RefreshQuery. RefreshServer
+            // is completed by its row callback, even if the provider sends both.
+            if (Accept(incoming) && listRefreshPending) {
+                listRefreshPending = false;
+                if (!directoryCompletion) {
+                    directoryCompletion = result;
+                }
                 owner.status.completion = result;
+                owner.refreshFailed = result == eServerFailedToRespond;
                 owner.status.error.clear();
-                owner.status.phase = result == eServerFailedToRespond ? Phase::Failed : Phase::Complete;
-                if (result == eServerFailedToRespond) {
+                if (owner.refreshFailed) {
                     owner.status.error = "Server query failed; partial results remain available";
                 }
+                owner.FinishRefresh();
             }
             --owner.callbackDepth;
         }
@@ -393,12 +408,12 @@ struct ServerBrowserModel::State {
     std::set<RowKey> pingPending;
     std::map<RowKey, std::unique_ptr<Ping>> pings;
     bool pingRefresh = false;
+    bool refreshFailed = false;
     bool refreshPending = false;
     bool resetPending = false;
     bool rebuildPending = false;
     size_t lastReclamationWork = 0;
     Rows rows;
-    std::map<RowKey, int> indexes;
     std::unique_ptr<Index> ordered{new Index(RowLess{})};
     std::unique_ptr<Index> rebuilding;
     Rows::iterator rebuildCursor;
@@ -412,6 +427,28 @@ struct ServerBrowserModel::State {
     }
     void Check() const {
         RequireThread(thread);
+    }
+    void BeginRefresh() {
+        status.phase = Phase::Refreshing;
+        status.error.clear();
+        refreshFailed = false;
+    }
+    void FinishRefresh() {
+        if (status.phase == Phase::Refreshing && !pingRefresh &&
+            (!request || (!request->listRefreshPending && request->quickPending.empty()))) {
+            status.phase = refreshFailed ? Phase::Failed : Phase::Complete;
+        }
+    }
+    void QueueUnindexedPings(const Request* indexed) {
+        if (!pingRefresh) {
+            pingPending.clear();
+        }
+        for (const auto& entry : rows) {
+            if ((!indexed || !indexed->IndexFor(entry.first)) && !pings.count(entry.first)) {
+                pingPending.insert(entry.first);
+            }
+        }
+        pingRefresh = !pingPending.empty() || !pings.empty();
     }
     template<class Function> auto Provider(Function function) {
         Check();
@@ -431,7 +468,7 @@ struct ServerBrowserModel::State {
             return owner ? owner->dirty.size() + owner->seen.size() + owner->membership.size() +
                 owner->filters.size() + owner->filterPointers.size() + owner->quickPending.size() : size_t{0};
         };
-        return rows.size() + indexes.size() + updates.size() + (ordered ? ordered->size() : 0) +
+        return rows.size() + updates.size() + (ordered ? ordered->size() : 0) +
             (rebuilding ? rebuilding->size() : 0) + (retiredIndex ? retiredIndex->size() : 0) +
             requestNodes(request) + requestNodes(retiredRequest) + pingPending.size() + pings.size();
     }
@@ -510,13 +547,13 @@ struct ServerBrowserModel::State {
     void NormalizeEmptyRoots() {
         if (retiredRequest && retiredRequest->dirty.empty() && retiredRequest->seen.empty() &&
             retiredRequest->membership.empty() && retiredRequest->filters.empty() &&
-            retiredRequest->filterPointers.empty() && retiredRequest->quickPending.empty() && indexes.empty()) {
+            retiredRequest->filterPointers.empty() && retiredRequest->quickPending.empty()) {
             retiredRequest.reset();
         }
         if (retiredIndex && retiredIndex->empty()) {
             retiredIndex.reset();
         }
-        if ((closing || resetPending) && indexes.empty() && updates.empty() &&
+        if ((closing || resetPending) && updates.empty() &&
             (!ordered || ordered->empty()) && (!rebuilding || rebuilding->empty()) && rows.empty()) {
             rebuilding.reset();
             resetPending = false;
@@ -555,9 +592,6 @@ struct ServerBrowserModel::State {
                     ++lastReclamationWork;
                     continue;
                 }
-                if (eraseOne(indexes)) {
-                    continue;
-                }
                 retiredRequest.reset();
             }
             if (retiredIndex) {
@@ -568,7 +602,7 @@ struct ServerBrowserModel::State {
             }
             if (closing || resetPending) {
                 // Index/value copies are retired before their backing row map.
-                if (eraseOne(indexes) || eraseOne(updates) || (ordered && eraseOne(*ordered)) ||
+                if (eraseOne(updates) || (ordered && eraseOne(*ordered)) ||
                     (rebuilding && eraseOne(*rebuilding)) || eraseOne(rows)) {
                     continue;
                 }
@@ -584,15 +618,51 @@ struct ServerBrowserModel::State {
         return lastReclamationWork;
     }
     bool CanStartRequest() const {
-        return refreshPending && !request && !retiredRequest && indexes.empty() && !resetPending && !closing;
+        return refreshPending && !request && !retiredRequest && !resetPending && !closing;
     }
     bool StartRequest();
     void Queue(const Row& row) {
         updates[row.key] = {row, Matches(row, filters, kind), false, generation};
     }
+    void RemoveRow(Rows::iterator entry) {
+        ordered->erase(entry->second);
+        if (rebuilding) {
+            rebuilding->erase(entry->second);
+            if (rebuildCursor == entry) {
+                ++rebuildCursor;
+            }
+        }
+        if (request->pruneCursor == entry) {
+            ++request->pruneCursor;
+        }
+        updates[entry->first] = {entry->second, false, false, generation};
+        if (selection == entry->first) {
+            selection.reset();
+        }
+        if (entry->second.failed) {
+            --status.failed;
+        } else if (entry->second.responded) {
+            --status.responding;
+        }
+        rows.erase(entry);
+    }
+
     void Apply(Row row, std::optional<int> index = std::nullopt) {
         if (!ValidAddress(row.key)) {
             return;
+        }
+        if (index) {
+            // A directory initially supplies the query port. The reply can reveal a different game port.
+            auto [previous, inserted] = request->seen.emplace(*index, row.key);
+            if (!inserted && !(previous->second == row.key)) {
+                const RowKey oldKey = previous->second;
+                request->membership.erase({oldKey, *index});
+                if (!request->IndexFor(oldKey)) {
+                    RemoveRow(rows.find(oldKey));
+                }
+                previous->second = row.key;
+            }
+            request->membership.emplace(row.key, *index);
         }
         auto old = rows.find(row.key);
         if (old != rows.end()) {
@@ -613,10 +683,6 @@ struct ServerBrowserModel::State {
             }
         }
         rows[row.key] = row;
-        if (index && request) {
-            indexes[row.key] = *index;
-            request->membership.insert(row.key);
-        }
         if (row.failed) {
             ++status.failed;
         } else if (row.responded) {
@@ -671,7 +737,7 @@ struct ServerBrowserModel::State {
         }
         if (pingRefresh && pingPending.empty() && pings.empty()) {
             pingRefresh = false;
-            status.phase = Phase::Complete;
+            FinishRefresh();
         }
         return work;
     }
@@ -829,9 +895,8 @@ bool ServerBrowserModel::Refresh(ListKind kind, const Filters& filters, bool cle
     state.kind = kind;
     state.filters = filters;
     state.Rebuild();
-    state.status.phase = Phase::Refreshing;
+    state.BeginRefresh();
     state.status.completion.reset();
-    state.status.error.clear();
     state.refreshPending = true;
     state.NormalizeEmptyRoots();
     return !state.CanStartRequest() || state.StartRequest();
@@ -848,26 +913,19 @@ bool ServerBrowserModel::QuickRefresh() {
         if (state.rows.empty()) {
             return false;
         }
-        if (!state.pingRefresh) {
-            state.pingPending.clear();
-        }
-        for (const auto& entry : state.rows) {
-            if (!state.pings.count(entry.first)) {
-                state.pingPending.insert(entry.first);
-            }
-        }
-        state.pingRefresh = true;
-        state.status.phase = Phase::Refreshing;
-        state.status.error.clear();
+        state.QueueUnindexedPings(nullptr);
+        state.BeginRefresh();
         return true;
     }
-    if (!state.request->completed) {
+    if (state.request->listRefreshPending || !state.request->quickPending.empty() || state.pingRefresh) {
         return false;
     }
     auto& request = *state.request;
-    request.completed = false;
-    state.status.phase = Phase::Refreshing;
-    state.status.error.clear();
+    if (request.directoryCompletion == eServerFailedToRespond) {
+        state.QueueUnindexedPings(&request);
+    }
+    request.listRefreshPending = true;
+    state.BeginRefresh();
     state.Provider([&] {
         state.services.servers->RefreshQuery(request.handle);
     });
@@ -877,12 +935,17 @@ bool ServerBrowserModel::QuickRefresh() {
 bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
     auto& state = *state_;
     state.Check();
-    const auto found = state.indexes.find(key);
     if (state.closing || !state.services.servers || state.refreshPending || state.resetPending ||
         state.providerDepth || state.callbackDepth || state.retiring) {
         return false;
     }
-    if (!state.request || !state.request->handle) {
+    if (state.request && state.request->listRefreshPending) {
+        return false;
+    }
+    const auto index = state.request ? state.request->IndexFor(key) : std::nullopt;
+    // A failed directory retains rows from the previous request without assigning them new indices.
+    if (!state.request || !state.request->handle ||
+        (!index && state.request->directoryCompletion == eServerFailedToRespond)) {
         if (!Find(key)) {
             return false;
         }
@@ -893,24 +956,25 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
             state.pingPending.insert(key);
         }
         state.pingRefresh = true;
-        state.status.phase = Phase::Refreshing;
-        state.status.error.clear();
+        if (state.status.phase != Phase::Refreshing) {
+            state.BeginRefresh();
+        }
         return true;
     }
-    if ((!state.request->completed && state.request->quickPending.empty()) || found == state.indexes.end()) {
+    if (!index) {
         return false;
     }
     auto& request = *state.request;
     // Selected refreshes share a list handle and may finish in any order. Track each
     // outstanding index so a preceding asynchronous response cannot block the next row.
-    if (!request.quickPending.insert(found->second).second) {
+    if (!request.quickPending.insert(*index).second) {
         return true;
     }
-    request.completed = false;
-    state.status.phase = Phase::Refreshing;
-    state.status.error.clear();
+    if (state.status.phase != Phase::Refreshing) {
+        state.BeginRefresh();
+    }
     state.Provider([&] {
-        state.services.servers->RefreshServer(request.handle, found->second);
+        state.services.servers->RefreshServer(request.handle, *index);
     });
     state.Retire();
     return !state.closing;
@@ -1004,12 +1068,12 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
         if (state.request && (!state.request->dirty.empty() || state.request->enumerate < state.request->count)) {
             auto& request = *state.request;
             int index = 0;
-            bool failed = false;
+            RowSource source = RowSource::Enumeration;
             bool read = true;
             if (!request.dirty.empty()) {
                 const auto item = request.dirty.begin();
                 index = item->first;
-                failed = item->second;
+                source = item->second;
                 request.dirty.erase(item);
             } else {
                 index = request.enumerate++;
@@ -1021,35 +1085,17 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                     return state.services.servers->GetServerDetails(request.handle, index);
                 });
                 if (!state.closing && request.accepting && item) {
-                    state.Apply(CopyRow(*item, failed), index);
-                    request.seen.insert(index);
+                    state.Apply(CopyRow(*item, source), index);
                 }
             }
-        } else if (state.request && state.request->completed && state.request->prunePending) {
+        } else if (state.request && !state.request->listRefreshPending && state.request->prunePending) {
             auto& request = *state.request;
-            if (state.status.completion == eServerFailedToRespond || request.pruneCursor == state.rows.end()) {
+            if (request.directoryCompletion == eServerFailedToRespond || request.pruneCursor == state.rows.end()) {
                 request.prunePending = false;
             } else {
                 const auto entry = request.pruneCursor++;
-                if (!request.membership.count(entry->first)) {
-                    state.ordered->erase(entry->second);
-                    if (state.rebuilding) {
-                        state.rebuilding->erase(entry->second);
-                        if (state.rebuildCursor == entry) {
-                            ++state.rebuildCursor;
-                        }
-                    }
-                    state.updates[entry->first] = {entry->second, false, false, state.generation};
-                    if (state.selection == entry->first) {
-                        state.selection.reset();
-                    }
-                    if (entry->second.failed) {
-                        --state.status.failed;
-                    } else if (entry->second.responded) {
-                        --state.status.responding;
-                    }
-                    state.indexes.erase(entry->first);
-                    state.rows.erase(entry);
+                if (!request.IndexFor(entry->first)) {
+                    state.RemoveRow(entry);
                 }
                 ++work;
             }
@@ -1127,7 +1173,7 @@ Status ServerBrowserModel::GetStatus() const {
     result.lastReclamationWork = state_->lastReclamationWork;
     result.viewUpdating = state_->refreshPending || state_->resetPending || state_->rebuildPending ||
         state_->rebuilding != nullptr ||
-        (state_->request && state_->request->completed && state_->request->prunePending);
+        (state_->request && !state_->request->listRefreshPending && state_->request->prunePending);
     result.pending = state_->updates.size() + (state_->resetUpdate ? 1 : 0);
     result.pending += state_->pingPending.size() + state_->pings.size();
     if (state_->request) {
@@ -1136,8 +1182,8 @@ Status ServerBrowserModel::GetStatus() const {
     }
     return result;
 }
-Row CopyServerRow(const gameserveritem_t &item) {
-    return CopyRow(item, false);
+Row CopyPingResponse(const gameserveritem_t &item) {
+    return CopyRow(item, RowSource::Response);
 }
 
 bool ServerBrowserModel::RemoveHistory(AppId_t app, RowKey key) {

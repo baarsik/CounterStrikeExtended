@@ -43,9 +43,6 @@ public:
 	int GetHashVal( int id );
 	void Insert( int id, int wide, int tall, const char* pixels );
 	void Remove( int id );
-#if defined(__APPLE__)
-    bool RetireAtlasPage(int id);
-#endif
 	vgui_texture_t* GetTexture( int id );
 
 private:
@@ -597,24 +594,18 @@ void VGui_ViewportPaintBackground( int* extents )
 		ClientDLL_HudRedraw( cl.intermission == 1 );
 }
 
-#if defined(__APPLE__)
-bool EngineSurfaceTextures::RetireAtlasPage(int id) {
-    if (id <= 0) {
+bool EngineSurface::deleteTexture(int id) {
+    if (!_renderPlat || !_renderPlat->textures || id <= 0) {
         return false;
     }
-    vgui_texture_t** link = &hash[GetHashVal(id)];
-    while (*link) {
-        vgui_texture_t* texture = *link;
-        if (texture->id == id) {
-            *link = texture->next;
-            delete[] texture->prgba;
-            delete texture;
-            return true;
-        }
-        link = &texture->next;
+    if (_renderPlat->current && _renderPlat->current->id == id) {
+        _renderPlat->current = nullptr;
     }
+    _renderPlat->textures->Remove(id);
     return true;
 }
+
+#if defined(__APPLE__)
 namespace cse_vgui1_native {
 bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* pixels, std::size_t bytes) noexcept {
     constexpr int Side = 512;
@@ -631,13 +622,7 @@ bool UploadEngineFontPage(IEngineSurface* surface, int id, const unsigned char* 
 
 #if defined(__APPLE__)
 bool EngineSurface::RetireNativeFontPage(int id) noexcept {
-    if (!_renderPlat || !_renderPlat->textures || id <= 0) {
-        return false;
-    }
-    if (_renderPlat->current && _renderPlat->current->id == id) {
-        _renderPlat->current = nullptr;
-    }
-    return _renderPlat->textures->RetireAtlasPage(id);
+    return deleteTexture(id);
 }
 namespace cse_vgui1_native {
 bool RetireEngineFontPage(IEngineSurface* surface, int id, bool) noexcept {

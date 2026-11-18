@@ -31,8 +31,10 @@ Full Windows ARM64 and Linux runtime builds are unavailable. Windows ARM64
 component presets are listed under [component builds](#component-builds-and-tests).
 Windows x64 and macOS have partial gameplay, device and provider validation.
 On macOS, an initial microphone permission prompt can delay startup until answered.
-The software client renderer (`sw.dll`) is unavailable, although inherited video
-settings still offer it. The dedicated engine (`swds.dll`) is separate.
+The software client renderer is deprecated and planned for removal in a future
+release. On Windows x64 and macOS, `-soft` selects the bundled software renderer
+in `swds.dll` or `swds.dylib`, respectively. On Windows x86, `-soft` expects a
+separate `sw.dll`.
 
 ## macOS graphics backend
 

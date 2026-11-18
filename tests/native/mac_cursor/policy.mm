@@ -49,11 +49,29 @@ void Require(bool value, const char* message) {
     }
 }
 
+const cse::NativeMouseCaptureHooks CaptureHooks{[] {}, [](bool) {}};
+
 void SetCursor(cse::NativeMouseWindow& state, SDL_Window* window, cse::NativeCursorOwner owner,
                bool visible, bool raw) {
+    Require(state.RefreshInteraction(true, true, CaptureHooks), "refresh interaction before setting cursor");
     cse::NativeCursorTransaction transaction;
     Require(state.Begin(window, owner, visible, raw, transaction), "begin actual cursor transition");
     Require(transaction.Commit(), "commit actual cursor transition");
+}
+
+template <typename Restored>
+void WaitForCursorRepair(cse::NativeMouseWindow &state, Restored restored, const char *message) {
+    constexpr Uint64 RepairTimeoutMilliseconds = 1000;
+    const Uint64 deadline = SDL_GetTicks() + RepairTimeoutMilliseconds;
+    do {
+        Require(state.RefreshInteraction(true, true, CaptureHooks), "retain active window capture");
+        Require(state.RefreshCursorPolicy(), "refresh active cursor policy");
+        if (restored()) {
+            return;
+        }
+        SDL_Delay(1);
+    } while (SDL_GetTicks() < deadline);
+    Require(false, message);
 }
 
 void FocusWindow(SDL_Window* window, NSWindow* native) {
@@ -69,10 +87,24 @@ void FocusWindow(SDL_Window* window, NSWindow* native) {
     }
     Require([NSApp isActive] && [NSApp keyWindow] == native && SDL_GetKeyboardFocus() == window,
             "fixture owns active key window");
-    SDL_WarpMouseInWindow(window, 320, 240);
-    SDL_PumpEvents();
+    int x = 0;
+    int y = 0;
+    int width = 0;
+    int height = 0;
+    Require(SDL_GetWindowPosition(window, &x, &y) && SDL_GetWindowSize(window, &width, &height),
+            "locate the focused fixture window");
+    Require(SDL_WarpMouseGlobal(x + width / 2.0f, y + height / 2.0f), "place pointer inside focused window");
+    while (SDL_GetTicks() < deadline &&
+           [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0] !=
+               [native windowNumber]) {
+        SDL_PumpEvents();
+        SDL_Delay(1);
+    }
     Require([NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0] ==
             [native windowNumber], "owned content is the frontmost mouse target");
+    cse::NativeMouseWindowState().InvalidateInteraction();
+    Require(cse::NativeMouseWindowState().RefreshInteraction(true, true, CaptureHooks),
+            "admit capture for the focused game window");
 }
 
 void CursorImageFixture() {
@@ -92,20 +124,23 @@ void CursorImageFixture() {
         const auto mode = CseSdl_QueryMouseModeV1(CSE_SDL_MOUSE_MODE_CONTRACT_V1);
         const NSPoint point = [NSEvent mouseLocation];
         [[NSCursor arrowCursor] set];
-        Require(state.RefreshCursorPolicy(), "refresh gameplay after native cursor replacement");
-        Require([NSCursor currentCursor] == [NSCursor invisibleCursor], "repair stale gameplay cursor image");
+        WaitForCursorRepair(state, [] { return [NSCursor currentCursor] == [NSCursor invisibleCursor]; },
+                            "repair stale gameplay cursor image");
         Require(SDL_CursorVisible() == visible &&
                 CseSdl_QueryMouseModeV1(CSE_SDL_MOUSE_MODE_CONTRACT_V1) == mode &&
                 NSEqualPoints(point, [NSEvent mouseLocation]), "image repair preserves SDL mode/visibility and position");
         SetCursor(state, window, cse::NativeCursorOwner::VGui1, true, raw);
         [[NSCursor arrowCursor] set];
+        state.InvalidateInteraction();
         Require(state.RefreshCursorPolicy(), "refresh visible menu intent");
         Require([NSCursor currentCursor] == [NSCursor arrowCursor], "visible intent retains menu cursor image");
     }
 
     SetCursor(state, window, cse::NativeCursorOwner::VGui2, false, false);
-    Require(SDL_ShowCursor(), "seed absolute/visible SDL state with stale hidden intent");
+    Require(SDL_SetWindowRelativeMouseMode(window, false) && SDL_ShowCursor(),
+            "seed absolute/visible SDL state with stale hidden intent");
     [[NSCursor arrowCursor] set];
+    state.InvalidateInteraction();
     Require(state.RefreshCursorPolicy(), "refresh stale hidden intent");
     Require([NSCursor currentCursor] == [NSCursor arrowCursor], "actual SDL visible state wins over stale intent");
     SetCursor(state, window, cse::NativeCursorOwner::VGui2, false, false);
@@ -116,6 +151,7 @@ void CursorImageFixture() {
     [other makeKeyAndOrderFront:nil];
     Require([NSApp keyWindow] == other, "another window owns keyboard focus");
     [[NSCursor arrowCursor] set];
+    state.InvalidateInteraction();
     Require(state.RefreshCursorPolicy(), "refresh while another window is key");
     Require([NSCursor currentCursor] == [NSCursor arrowCursor], "do not repair another key window's image");
     FocusWindow(window, native);
@@ -139,6 +175,7 @@ void CursorImageFixture() {
     constexpr float OutsideOffset = 40;
     Require(SDL_WarpMouseGlobal(windowX - OutsideOffset, windowY - OutsideOffset), "place pointer outside content");
     [[NSCursor arrowCursor] set];
+    state.InvalidateInteraction();
     Require(state.RefreshCursorPolicy(), "refresh with pointer outside content");
     Require([NSCursor currentCursor] == [NSCursor arrowCursor], "do not repair an outside cursor image");
     FocusWindow(window, native);
@@ -160,9 +197,11 @@ void CursorImageFixture() {
             [NSWindow windowNumberAtPoint:[NSEvent mouseLocation] belowWindowWithWindowNumber:0] ==
             [panel windowNumber], "nonactivating panel covers owned content while original window remains key");
     [[NSCursor arrowCursor] set];
+    state.InvalidateInteraction();
     Require(state.RefreshCursorPolicy(), "refresh behind a nonactivating panel");
     Require([NSCursor currentCursor] == [NSCursor arrowCursor], "do not replace an overlapping panel's cursor");
     [panel close];
+    FocusWindow(window, native);
 
     SetCursor(state, window, cse::NativeCursorOwner::VGui2, true, false);
     Require(state.Invalidate(window), "retire image fixture");
@@ -182,10 +221,12 @@ int main(int argc, char** argv) {
             Require(engine != nullptr, "load actual engine and its global UI constructor");
             Require(!SDL_GetHintBoolean(SDL_HINT_MAC_PRESS_AND_HOLD, true),
                     "engine load configures key repeat before any Run/video-mode entry");
+            Require(SDL_Init(SDL_INIT_VIDEO), "initialize Cocoa with the engine's keyboard policy");
             Require([[NSApp class] respondsToSelector:@selector(registerUserDefaults)], "actual SDL application");
             [[NSApp class] registerUserDefaults];
             Require(![[NSUserDefaults standardUserDefaults] boolForKey:@"ApplePressAndHoldEnabled"],
                     "actual engine-load Cocoa defaults suppress accent picker");
+            SDL_Quit();
             Require(dlclose(engine) == 0, "close test engine");
             std::puts("Actual engine-load keyboard policy passed before Run");
             return 0;
@@ -210,6 +251,14 @@ int main(int argc, char** argv) {
         Require(state.Bind(window), "bind actual window");
         const auto native = SDL_GetPointerProperty(SDL_GetWindowProperties(window),
                                                    SDL_PROP_WINDOW_COCOA_WINDOW_POINTER, nullptr);
+        cse::NativeCursorTransaction hidden;
+        Require(!state.Begin(window, cse::NativeCursorOwner::VGui1, false, false, hidden),
+                "a hidden window must not acquire gameplay capture");
+        float originalX = 0.0f;
+        float originalY = 0.0f;
+        SDL_GetGlobalMouseState(&originalX, &originalY);
+        Require(SDL_ShowWindow(window), "show cursor policy fixture");
+        FocusWindow(window, (__bridge NSWindow*)native);
         std::thread worker([native]() {
             Require(CseSdl_SetCocoaGameplayCursorV1(CSE_SDL_COCOA_MOUSE_CONTRACT_V1, native, 1) ==
                     CseSdlCocoaMouseWrongThread, "wrong thread rejected before AppKit");
@@ -233,9 +282,9 @@ int main(int argc, char** argv) {
                     "gameplay preserves unrelated presentation options");
             constexpr auto unrelated = NSApplicationPresentationAutoHideDock;
             [NSApp setPresentationOptions:baseline | unrelated];
-            Require(state.RefreshCursorPolicy(), "refresh after presentation mask replacement");
-            Require([NSApp presentationOptions] == (baseline | unrelated | CursorAssistance),
-                    "fullscreen-style mask replacement retains current unrelated options");
+            WaitForCursorRepair(state, [&] {
+                return [NSApp presentationOptions] == (baseline | unrelated | CursorAssistance);
+            }, "fullscreen-style mask replacement retains current unrelated options");
             SetCursor(state, window, cse::NativeCursorOwner::VGui2, true, raw);
             Require([NSApp presentationOptions] == (baseline | unrelated), "release preserves newer options");
             [NSApp setPresentationOptions:baseline];
@@ -250,6 +299,7 @@ int main(int argc, char** argv) {
         Require(state.Invalidate(window), "release before teardown");
         Require([NSApp presentationOptions] == baseline, "teardown restores assistance without focus");
         Require(state.Bind(window), "rebind after release");
+        Require(state.RefreshInteraction(true, true, CaptureHooks), "admit capture after rebind");
         [NSApp setPresentationOptions:baseline | CursorAssistance];
         SetCursor(state, window, cse::NativeCursorOwner::VGui2, false, true);
         SetCursor(state, window, cse::NativeCursorOwner::VGui1, true, false);
@@ -257,6 +307,7 @@ int main(int argc, char** argv) {
         Require(state.Invalidate(window), "release preexisting-bit session");
         [NSApp setPresentationOptions:baseline];
         SDL_DestroyWindow(window);
+        Require(SDL_WarpMouseGlobal(originalX, originalY), "restore pointer after cursor policy fixture");
         SDL_Quit();
     }
     std::puts("Actual AppKit gameplay/menu/abandoned/teardown cursor policy passed");

@@ -8,7 +8,7 @@ include("${CSE_ROOT}/cmake/NativeThirdParty.cmake")
 cse_load_native_third_party()
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 set(CSE_WEBM_SOURCE "${CSE_ROOT}/src/engine/webm_video.cpp" CACHE FILEPATH "Actual current or preserved WebM source")
-add_executable(webm_tests webm_tests.cpp)
+add_executable(webm_tests webm_tests.cpp "${CSE_ROOT}/src/engine/yuv2rgb.cpp")
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   target_sources(webm_tests PRIVATE "${CSE_ROOT}/src/engine/webm_pcm_allocation.cpp")
 endif()
@@ -33,9 +33,7 @@ if(WIN32)
   set_target_properties(cse_webm_sdl3 PROPERTIES IMPORTED_IMPLIB "${CSE_WEBM_SDL3_IMPLIB}"
     IMPORTED_LOCATION "${CSE_WEBM_SDL3_RUNTIME}")
   target_link_libraries(webm_tests PRIVATE cse_webm_sdl3)
-  # Link the actual converter needed by the otherwise unused software player.
-  # Decoder tests do not exercise this converter or claim RGB presentation.
-  target_sources(webm_tests PRIVATE "${CSE_ROOT}/src/engine/yuv2rgb.cpp" unused_presentation_bindings.cpp)
+  target_sources(webm_tests PRIVATE unused_presentation_bindings.cpp)
   add_custom_command(TARGET webm_tests POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy_if_different
     "$<TARGET_FILE:cse_webm_sdl3>" "$<TARGET_FILE_DIR:webm_tests>/SDL3.dll" VERBATIM)
   set(webm_provider_inputs
@@ -61,6 +59,8 @@ foreach(codec vp8 vp9)
 endforeach()
 add_test(NAME webm-invalid-container COMMAND webm_tests "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/truncated.webm" invalid)
 add_test(NAME webm-known-fixture-hashes COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/verify_fixtures.py")
+add_test(NAME webm-yuv422-rows COMMAND webm_tests --yuv422)
+add_test(NAME webm-yuv444-rows COMMAND webm_tests --yuv444)
 if(WIN32)
   add_test(NAME webm-unexercised-presentation-guards COMMAND "${Python3_EXECUTABLE}"
     "${CMAKE_CURRENT_SOURCE_DIR}/check_presentation_guards.py" "$<TARGET_FILE:webm_tests>")

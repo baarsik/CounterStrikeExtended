@@ -3,8 +3,8 @@
 Build the native client, then configure with `CSE_CLIENT_RUNTIME` pointing to
 its runtime output. Run `ctest --test-dir` on the configured fixture directory.
 The fixture links the actual SDL provider and actual engine cursor owner and
-creates a hidden Cocoa window. It changes only the fixture app's presentation
-options; it does not change the user's mouse accessibility preference.
+checks that a hidden Cocoa window cannot acquire capture, then focuses the fixture window
+and restores the pointer after the test. Presentation-option changes are local to the fixture app.
 
 Checks cover gameplay and menu transitions with raw input on/off, alternating
 VGUI owners, an abandoned transaction, release without focus, restoration of an

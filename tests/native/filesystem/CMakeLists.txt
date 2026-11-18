@@ -34,6 +34,14 @@ set_property(TARGET filesystem_stdio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreade
 set_target_properties(filesystem_stdio PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/runtime")
 add_executable(filesystem_tests filesystem_tests.cpp)
+if(APPLE)
+  set(engine_filesystem "${CSE_ROOT}/src/engine/filesystem_internal.cpp")
+  target_sources(filesystem_tests PRIVATE "${engine_filesystem}")
+  set_source_files_properties("${engine_filesystem}" PROPERTIES
+    INCLUDE_DIRECTORIES "${CSE_ROOT}/src/public;${CSE_ROOT}/src/common"
+    COMPILE_DEFINITIONS "POSIX;OSX"
+    COMPILE_OPTIONS "-include;${CSE_ROOT}/src/public/cse_posix_crt.h;-Wno-writable-strings")
+endif()
 target_compile_features(filesystem_tests PRIVATE cxx_std_17)
 target_include_directories(filesystem_tests PRIVATE "${CSE_ROOT}/src/filesystem")
 target_link_libraries(filesystem_tests PRIVATE "${CMAKE_DL_LIBS}")

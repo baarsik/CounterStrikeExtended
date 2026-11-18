@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #endif
 #include "native/AdminCommands.h"
+#include "../common/map_file_name.h"
 
 #include "CreateMultiplayerGameServerPage.h"
 #include "sys_ded.h"
@@ -307,36 +308,34 @@ void CCreateMultiplayerGameServerPage::LoadMapList()
 	m_pMapList->ActivateItemByRow( 0 );
 }
 
-int CCreateMultiplayerGameServerPage::LoadMaps( const char* gameDir )
-{
-	char wildcard[256];
-	sprintf( wildcard, "%s/maps/*.bsp", gameDir );
-	FileFindHandle_t handle = 0;
-	int count = 0;
-	const char* file = vgui2::filesystem()->FindFirst( wildcard, &handle, NULL );
-	while ( file )
-	{
-		const char* map = strstr( file, "maps" );
-		char name[256];
-		strncpy( name, map ? map + 5 : file, sizeof( name ) - 1 );
-        name[sizeof(name) - 1] = 0;
-#ifdef _MSC_VER
-#pragma warning( suppress: 6053 )
-#endif
-		char* extension = strstr( name, ".bsp" );
-		if ( extension )
-			*extension = 0;
-		bool singlePlayer = ( name[0] == 'c' || name[0] == 't' ) && name[2] == 'a' &&
-			name[1] >= '0' && name[1] <= '5';
-		if ( !singlePlayer && strncmp( name, "hldemo", 6 ) )
-		{
-			m_pMapList->AddItem( name, NULL );
-			count++;
-		}
-		file = vgui2::filesystem()->FindNext( handle );
-	}
-	vgui2::filesystem()->FindClose( handle );
-	return count;
+int CCreateMultiplayerGameServerPage::LoadMaps(const char* gameDir) {
+    char wildcard[256];
+    const int length = snprintf(wildcard, sizeof(wildcard), "%s/maps/*.bsp", gameDir);
+    if (length < 0 || static_cast<std::size_t>(length) >= sizeof(wildcard)) {
+        return 0;
+    }
+
+    FileFindHandle_t handle = FILESYSTEM_INVALID_FIND_HANDLE;
+    int count = 0;
+    for (const char* file = vgui2::filesystem()->FindFirst(wildcard, &handle, nullptr); file;
+            file = vgui2::filesystem()->FindNext(handle)) {
+        const auto map = cse::maps::BspName(cse::maps::FileName(file));
+        if (map.empty()) {
+            continue;
+        }
+
+        const std::string name(map);
+        const bool singlePlayer = name.size() >= 3 && (name[0] == 'c' || name[0] == 't') &&
+            name[1] >= '0' && name[1] <= '5' && name[2] == 'a';
+        if (!singlePlayer && name.compare(0, sizeof("hldemo") - 1, "hldemo") != 0) {
+            m_pMapList->AddItem(name.c_str(), nullptr);
+            ++count;
+        }
+    }
+    if (handle != FILESYSTEM_INVALID_FIND_HANDLE) {
+        vgui2::filesystem()->FindClose(handle);
+    }
+    return count;
 }
 
 namespace {

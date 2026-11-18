@@ -62,7 +62,7 @@ jobs:
           PACKAGE_DIR: build/${{ matrix.preset }}/package
         run: |
           git archive --format=zip --output="$PACKAGE_DIR/cse_extstats-source.zip" HEAD -- \
-            CMakeLists.txt CMakePresets.json LICENSE LICENSES cmake/AMXXModules.cmake \
+            CMakeLists.txt CMakePresets.json LICENSE LICENSES cmake/AMXXModules.cmake cmake/TargetPlatform.cmake \
             cmake/targets/cse_extstats src/amxx/cse_extstats src/external/amxx-sdk \
             src/public/cse_extended_stats_protocol.h docs/extended-stats.md
           printf 'Source commit: %s\nCorresponding source: cse_extstats-source.zip\n' \

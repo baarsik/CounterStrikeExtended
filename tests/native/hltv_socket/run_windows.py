@@ -22,6 +22,10 @@ def main():
     metadata = json.loads((inputs / 'fixture-input.json').read_text())
     shared = metadata['shared_cases']
     sources = metadata['sources']
+    native_base = 'common/native/BaseSystemModule.cpp'
+    if native_base in sources:
+        unused_base = native_base if options.arch == 'x86' else 'HLTV/Core/private/common/BaseSystemModule.cpp'
+        sources = [source for source in sources if source != unused_base]
     compiler = Path(shutil.which('cl.exe')).resolve()
     receipt = {'compiler': str(compiler), 'compiler_sha256': hashlib.sha256(compiler.read_bytes()).hexdigest(),
                'arch': options.arch, 'compiles': [], 'cases': [], 'whole_tus': []}

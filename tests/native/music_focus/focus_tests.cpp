@@ -1,5 +1,6 @@
 #include "cd.h"
 #include "thread.h"
+#include "../../../src/common/sdl3_policy.h"
 #include <atomic>
 #include <chrono>
 #include <cstdarg>
@@ -13,6 +14,8 @@
 namespace {
 constexpr int BarrierLimitSeconds = 5;
 constexpr int TestTrack = 2;
+constexpr int OtherTrack = 3;
+constexpr char OtherFile[] = "other.mp3";
 constexpr int TrackCount = 29;
 constexpr int MaximumTracks = 200;
 constexpr int InitialPosition = 1234;
@@ -30,7 +33,9 @@ struct BackendSnapshot {
     bool playing;
     int position;
     int opens;
+    int starts;
     int pauses;
+    bool looping;
 };
 struct Backend {
     std::mutex mutex;
@@ -45,20 +50,24 @@ struct Backend {
     std::atomic<bool> pauseEntered{false};
     int position = 0;
     int opens = 0;
+    int starts = 0;
     int pauses = 0;
+    bool looping = false;
     bool Init() {
         return !failInit;
     }
-    bool Open(const char *, bool) {
+    bool Open(const char *, bool loop) {
         std::lock_guard<std::mutex> lock(mutex);
         ++opens;
         active = false;
         paused = false;
         position = 0;
+        looping = loop;
         return !failOpen;
     }
     bool Start() {
         std::lock_guard<std::mutex> lock(mutex);
+        ++starts;
         active = !failStart;
         return active;
     }
@@ -88,7 +97,7 @@ struct Backend {
     }
     BackendSnapshot Snapshot() {
         std::lock_guard<std::mutex> lock(mutex);
-        return {active && !paused, position, opens, pauses};
+        return {active && !paused, position, opens, starts, pauses, looping};
     }
 } musicPlayer;
 } // namespace
@@ -117,10 +126,14 @@ void SetStreamVolumePan(float value) {
 int COM_CheckParm(const char *) {
     return 0;
 }
-int MP3_GetTrack(const char *) {
-    return TestTrack;
+int MP3_GetTrack(const char* name) {
+    return std::strcmp(name, OtherFile) == 0 ? OtherTrack : TestTrack;
 }
+bool failOtherPath = false;
 bool FS_GetLocalPath(const char *name, char *out, int bytes) {
+    if (failOtherPath && std::strcmp(name, OtherFile) == 0) {
+        return false;
+    }
     return std::snprintf(out, static_cast<std::size_t>(bytes), "%s", name) < bytes;
 }
 void FS_GetLocalCopy(const char *) {
@@ -148,6 +161,7 @@ void CCDAudio::_GetAudioDiskInfo(int first, int) {
 #include "actual_audio.inc"
 
 bool host_initialized = true;
+cse::FractionalMotion s_wheelMotion;
 bool bPausedByCareer = false;
 constexpr int src_command = 0;
 struct {
@@ -241,9 +255,69 @@ int main(int argc, char **argv) {
     CGame game;
     const bool suspended = std::strncmp(name, "suspend_", 8) == 0;
     Start(std::strcmp(name, "suspend_file_failure") == 0);
-    if (std::strcmp(name, "ordinary") == 0) {
+    if (std::strcmp(name, "primed_track_zero") == 0) {
+        char filename[] = "primed.mp3";
+        g_pszMP3trackFileMap[TestTrack] = filename;
+        g_CDAudio.PrimeTrack(filename, 1);
+        Drain();
+        const auto prime = musicPlayer.Snapshot();
+        Check(!prime.playing && prime.opens == 2, "priming opens the requested stream but does not start it");
+        g_CDAudio.Play(0, true);
+        Drain();
+        const auto played = musicPlayer.Snapshot();
+        Check(played.playing && played.opens == prime.opens, "Play(0) starts the already primed stream");
+        Check(played.looping, "the already primed stream uses its matching loop policy");
+    } else if (std::strncmp(name, "primed_", 7) == 0) {
+        char filename[] = "primed.mp3";
+        g_pszMP3trackFileMap[TestTrack] = filename;
+        g_pszMP3trackFileMap[OtherTrack] = const_cast<char*>(OtherFile);
+        g_CDAudio.PrimeTrack(filename, 0);
+        Drain();
+        const auto primed = musicPlayer.Snapshot();
+        Check(!primed.playing && primed.opens == 2, "test stream is primed without playing");
+
+        if (std::strcmp(name, "primed_stop") == 0) {
+            g_CDAudio.Stop();
+            Drain();
+            g_CDAudio.Play(0, false);
+            Drain();
+            Check(!musicPlayer.IsPlaying(), "Stop discards an unplayed prime");
+        } else if (std::strcmp(name, "primed_different_file") == 0) {
+            g_CDAudio.PlayFile(OtherFile, false);
+            Drain();
+            Check(musicPlayer.IsPlaying() && std::strcmp(g_CDAudio.m_MP3.trackname, OtherFile) == 0,
+                "PlayFile opens its requested file when a different file has been primed");
+        } else if (std::strcmp(name, "primed_failed_file") == 0) {
+            failOtherPath = true;
+            g_CDAudio.PlayFile(OtherFile, false);
+            Drain();
+            g_CDAudio.Play(0, false);
+            Drain();
+            Check(!musicPlayer.IsPlaying(), "failure to resolve a replacement discards the old prime");
+        } else if (std::strcmp(name, "primed_loop_changed") == 0) {
+            g_CDAudio.Play(0, true);
+            Drain();
+            const auto played = musicPlayer.Snapshot();
+            Check(played.playing && played.looping && played.opens == primed.opens + 1,
+                "a changed loop policy reopens the decoder before it can prebuffer using the old policy");
+        } else {
+            g_CDAudio.PlayFile(filename, false);
+            Drain();
+            const auto played = musicPlayer.Snapshot();
+            Check(played.playing && played.opens == primed.opens && played.starts == primed.starts + 1,
+                "PlayFile uses its matching primed stream");
+            g_CDAudio.Play(0, true);
+            Drain();
+            const auto afterZero = musicPlayer.Snapshot();
+            Check(afterZero.opens == played.opens && afterZero.starts == played.starts,
+                "track zero cannot reopen or restart a consumed prime");
+        }
+    } else if (std::strcmp(name, "ordinary") == 0) {
+        Check(s_wheelMotion.TakeY(0.75f) == 0, "partial wheel motion before focus loss");
         Pause(game);
         Gain(game);
+        Check(s_wheelMotion.TakeY(0.5f) == 0, "fresh wheel gesture starts after focus returns");
+        Check(s_wheelMotion.TakeY(0.5f) == 1, "fresh wheel gesture completes a detent");
         const auto state = musicPlayer.Snapshot();
         Check(state.playing && g_CDAudio.m_bIsPlaying, "ordinary focus gain resumes playback");
         Check(state.position == InitialPosition && state.opens == 1, "ordinary resume preserves stream/position");

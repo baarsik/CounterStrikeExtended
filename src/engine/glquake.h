@@ -159,6 +159,7 @@ extern void( APIENTRY* qglUseProgram )( GLuint program );
 //
 // gl_draw.c
 //
+float GL_TextureAnisotropy();
 int			GL_LoadTexture( char* identifier, GL_TEXTURETYPE textureType, int width, int height, byte* data,
 				int mipmap, int type, byte* palette );
 int			GL_LoadTexture2( char* identifier, GL_TEXTURETYPE textureType, int width, int height, byte* data,

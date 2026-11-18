@@ -84,7 +84,7 @@ Result List(const std::string& path, const std::string& filter) {
         }
         const std::string name = entry.path().filename().u8string();
         const char* pattern = filter.empty() || filter == "*.*" ? "*" : filter.c_str();
-        if (directory || fnmatch(pattern, name.c_str(), 0) == 0) {
+        if (directory || fnmatch(pattern, name.c_str(), FNM_CASEFOLD) == 0) {
             result.entries.push_back({name, directory});
         }
         iterator.increment(error);

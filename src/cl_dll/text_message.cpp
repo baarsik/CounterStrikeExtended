@@ -28,7 +28,7 @@
 #include "parsemsg.h"
 #include "../common/legacy_text_encoding.h"
 
-#include <algorithm>
+#include <iterator>
 #include <cstring>
 #include <string>
 
@@ -52,16 +52,21 @@ int CHudTextMessage::Init(void)
 // the new value is pushed into dst_buffer
 namespace {
 
-std::size_t LocalizedPrefixBytes(const std::string& text, std::size_t capacity) {
+std::size_t LocalizedPrefixBytes(const char* text, std::size_t capacity) {
+    const std::size_t length = std::strlen(text);
+    if (length <= capacity) {
+        return length;
+    }
+
     std::size_t offset = 0;
     std::size_t prefix = 0;
-    while (offset < text.size()) {
-        const auto* input = reinterpret_cast<const unsigned char*>(text.c_str() + offset);
+    while (offset < length) {
+        const auto* input = reinterpret_cast<const unsigned char*>(text + offset);
         const auto decoded = cse::legacy_text::detail::DecodeUtf8(input);
         const auto encoded = cse::legacy_text::detail::EncodeUtf8(decoded.scalar);
         if (decoded.consumed != encoded.count || std::memcmp(input, encoded.bytes, encoded.count) != 0) {
             // Existing non-UTF8 titles retain their original byte semantics.
-            return (std::min)(capacity, text.size());
+            return capacity;
         }
         offset += decoded.consumed;
         if (offset <= capacity) {
@@ -106,7 +111,7 @@ char* CHudTextMessage::LocaliseTextString(const char* msg, char* dst_buffer, int
     }
 
     const auto capacity = static_cast<std::size_t>(buffer_size - 1);
-    const std::size_t copied = LocalizedPrefixBytes(expanded, capacity);
+    const std::size_t copied = LocalizedPrefixBytes(expanded.c_str(), capacity);
     std::memcpy(dst_buffer, expanded.c_str(), copied);
     dst_buffer[copied] = '\0';
     return dst_buffer;
@@ -193,27 +198,16 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 #define MSG_BUF_SIZE 128
 	static char szBuf[6][MSG_BUF_SIZE];
 	std::string sources[5];
-    sources[0] = READ_STRING();
-    char *msg_text = LookupString(sources[0].c_str(), &msg_dest);
-	msg_text = safe_strcpy( szBuf[0], msg_text , MSG_BUF_SIZE);
-
-	// keep reading strings and using C format strings for subsituting the strings into the localised text string
-	sources[1] = READ_STRING();
-    char *sstr1 = LookupString(sources[1].c_str());
-	sstr1 = safe_strcpy( szBuf[1], sstr1 , MSG_BUF_SIZE);
-	StripEndNewlineFromString( sstr1 );  // these strings are meant for subsitution into the main strings, so cull the automatic end newlines
-	sources[2] = READ_STRING();
-    char *sstr2 = LookupString(sources[2].c_str());
-	sstr2 = safe_strcpy( szBuf[2], sstr2 , MSG_BUF_SIZE);
-	StripEndNewlineFromString( sstr2 );
-	sources[3] = READ_STRING();
-    char *sstr3 = LookupString(sources[3].c_str());
-	sstr3 = safe_strcpy( szBuf[3], sstr3 , MSG_BUF_SIZE);
-	StripEndNewlineFromString( sstr3 );
-	sources[4] = READ_STRING();
-    char *sstr4 = LookupString(sources[4].c_str());
-	sstr4 = safe_strcpy( szBuf[4], sstr4 , MSG_BUF_SIZE);
-	StripEndNewlineFromString( sstr4 );
+    for (std::size_t index = 0; index < std::size(sources); ++index) {
+        sources[index] = READ_STRING();
+        const char* resolved = LookupString(sources[index].c_str(), index == 0 ? &msg_dest : nullptr);
+        const std::size_t copied = LocalizedPrefixBytes(resolved, MSG_BUF_SIZE - 1);
+        std::memcpy(szBuf[index], resolved, copied);
+        szBuf[index][copied] = '\0';
+        if (index > 0) {
+            StripEndNewlineFromString(szBuf[index]);
+        }
+    }
 	char *psz = szBuf[5];
     const char* formatSources[]{szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]};
 
@@ -223,7 +217,7 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 	switch ( msg_dest )
 	{
 	case HUD_PRINTCENTER:
-		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        safe_sprintf(psz, MSG_BUF_SIZE, szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]);
         FinishHudText(psz, formatSources);
         m_hasCenterSource = false;
         for (int index = 0; index < 5; ++index) {
@@ -239,13 +233,13 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 
 	case HUD_PRINTNOTIFY:
 		psz[0] = 1;  // mark this message to go into the notify buffer
-		safe_sprintf( psz+1, MSG_BUF_SIZE - 1, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        safe_sprintf(psz + 1, MSG_BUF_SIZE - 1, szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]);
         FinishHudText(psz + 1, formatSources);
 		ConsolePrint( ConvertCRtoNL( psz ) );
 		break;
 
 	case HUD_PRINTTALK:
-		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        safe_sprintf(psz, MSG_BUF_SIZE, szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]);
         FinishHudText(psz, formatSources);
 		        {
             auto source = std::make_shared<HudTextSource>();
@@ -258,7 +252,7 @@ int CHudTextMessage::MsgFunc_TextMsg( const char *pszName, int iSize, void *pbuf
 		break;
 
 	case HUD_PRINTCONSOLE:
-		safe_sprintf( psz, MSG_BUF_SIZE, msg_text, sstr1, sstr2, sstr3, sstr4 );
+        safe_sprintf(psz, MSG_BUF_SIZE, szBuf[0], szBuf[1], szBuf[2], szBuf[3], szBuf[4]);
         FinishHudText(psz, formatSources);
 		ConsolePrint( ConvertCRtoNL( psz ) );
 		break;

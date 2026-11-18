@@ -92,10 +92,14 @@ else()
     -include "${CMAKE_CURRENT_SOURCE_DIR}/worker_fault_injection.h")
 endif()
 enable_testing()
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  set(lifecycle_ownership --native-ownership)
+endif()
 add_test(NAME audio-module-explicit-unload
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/run_fixture.py"
     --probe "$<TARGET_FILE:cse_audio_lifecycle_probe>" --module "$<TARGET_FILE:cse_audio_lifecycle_module>"
-    --track "${decoder_source}/src/tests/sweep.mp3" --evidence "${CMAKE_CURRENT_BINARY_DIR}/evidence")
+    --track "${decoder_source}/src/tests/sweep.mp3" --evidence "${CMAKE_CURRENT_BINARY_DIR}/evidence"
+    ${lifecycle_ownership})
 set(faults 1 3)
 if(WIN32)
   list(APPEND faults 2)

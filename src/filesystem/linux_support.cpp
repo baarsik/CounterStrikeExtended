@@ -63,56 +63,37 @@ static int UpperByte( unsigned char value )
 #endif
 }
 
-int FileSelect( const dirent* entry )
-{
-	const char* name = entry->d_name;
+int FileSelect(const dirent* entry) {
+    const char* name = entry->d_name;
+    if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0) {
+        return 0;
+    }
+    if (strcmp(selectBuf, "*.*") == 0) {
+        return 1;
+    }
 
-	if ( strcmp( name, "." ) == 0 || strcmp( name, ".." ) == 0 )
-	{
-		return 0;
-	}
-
-	if ( strcmp( selectBuf, "*.*" ) == 0 )
-	{
-		return 1;
-	}
-
-	const char* pattern = selectBuf;
-	while ( *pattern != 0 )
-	{
-		if ( *name == 0 )
-		{
-			return 0;
-		}
-
-		if ( *pattern == '*' )
-		{
-			if ( *++pattern == 0 )
-			{
-				return 1;
-			}
-
-			while ( UpperByte( *name ) != UpperByte( *pattern ) )
-			{ // while the two don't meet up again
-				if ( *++name == 0 )
-				{ // end of the name
-					return 0;
-				}
-			}
-
-			continue;
-		}
-
-		if ( *pattern != '?' && UpperByte( *name ) != UpperByte( *pattern ) )
-		{ // mismatched!
-			return 0;
-		}
-
-		++name;
-		++pattern;
-	}
-
-	return *name == 0;
+    const char* pattern = selectBuf;
+    const char* afterStar = nullptr;
+    const char* starEnd = nullptr;
+    while (*name) {
+        if (*pattern == '*') {
+            afterStar = ++pattern;
+            starEnd = name;
+        } else if (*pattern == '?' || UpperByte(*pattern) == UpperByte(*name)) {
+            ++pattern;
+            ++name;
+        } else if (afterStar) {
+            // A later suffix can match even when an earlier dot or repeated character did not.
+            pattern = afterStar;
+            name = ++starEnd;
+        } else {
+            return 0;
+        }
+    }
+    while (*pattern == '*') {
+        ++pattern;
+    }
+    return *pattern == 0;
 }
 
 int CheckName( const dirent* entry )

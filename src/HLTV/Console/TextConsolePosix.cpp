@@ -1,6 +1,7 @@
 #if !defined(_WIN32)
 
 #include "TextConsolePosix.h"
+#include "../../common/posix_console_input.h"
 #include "PosixSystem.h"
 #include "common/IBaseSystem.h"
 
@@ -30,8 +31,8 @@ bool CTextConsolePosix::Init(IBaseSystem* system) {
         errno = error;
         return false;
     }
-    m_InputEnded = m_Input < 0;
     m_InputTerminal = m_Input >= 0 && isatty(m_Input);
+    m_InputEnded = m_Input < 0 || (!m_InputTerminal && cse::console::IsNullDevice(m_Input));
     m_OutputTerminal = m_Output >= 0 && isatty(m_Output);
     m_OutputFailed = false;
     m_SkipLineFeed = false;

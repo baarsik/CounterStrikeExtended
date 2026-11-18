@@ -29,7 +29,7 @@ def method_body(owner, name, type_):
 
 def service_body(owner, name, type_):
     if owner == "ISystem":
-        if name == "GetTimeMillis":
+        if name == "GetCurrentTime":
             return "        return 0;"
         if name == "GetClipboardTextCount":
             return '        ApiEvent("Count");\n        return CountHint();'

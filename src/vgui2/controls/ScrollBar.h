@@ -95,7 +95,7 @@ private:
 	Button* _button[2];
 	ScrollBarSlider* _slider;
 	int _buttonPressedScrollValue;
-	int _scrollDelay; // used to control delays in scrolling
+	unsigned int _scrollDelay; // used to control delays in scrolling
 	bool _respond;
 };
 }

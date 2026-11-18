@@ -20,14 +20,15 @@ for flag in ('-include',):
 args = [a for a in args if a not in ('-DNDEBUG', '-fno-exceptions')]
 args += ['-fexceptions', '-Wl,-dead_strip']
 sdl = next((build / 'dependencies/SDL3/lib').rglob('libSDL3.0.dylib'))
+webp = build / 'lib' / sdl.parent.name / 'webp/md/libcse_webp_md.a'
 args += ['-Wl,-rpath,' + str(sdl.parent)]
 out = build.parent / 'tests'
 out.mkdir(exist_ok=True)
-def run(command):
+def run(command, env=None):
     print(shlex.join(map(str, command)), flush=True)
-    subprocess.run(list(map(str, command)), check=True, cwd=root)
-run(args + [root / 'tests/native/software_video/video_buffers_tests.cpp', sdl,
-            '-o', out / 'video_buffers_tests'])
+    subprocess.run(list(map(str, command)), check=True, cwd=root, env=env)
+run(args + [root / 'tests/native/software_video/video_buffers_tests.cpp', root / 'src/common/image_codec.cpp',
+            sdl, webp, '-o', out / 'video_buffers_tests'])
 for name in ('software_checked_allocations', 'software_snapshot_rows', 'software_pixels_and_palette'):
     run([out / 'video_buffers_tests', name])
     print('PASS', name, flush=True)
@@ -56,7 +57,8 @@ print('PASS software_video_lifecycle (actual IVideoMode partial window/renderer 
 run(args + [root / 'tests/native/software_video/studio_heap_tests.cpp', '-o', out / 'studio_heap_tests'])
 run([out / 'studio_heap_tests', next((build / 'runtime').glob('*/swds.dylib'))])
 print('PASS software_checked_allocations (actual studio cache/heap generation)', flush=True)
-run(args + [root / 'tests/native/software_video/dedicated_load_without_video.cpp', sdl, '-Wl,-export_dynamic',
+run(args + [root / 'tests/native/software_video/dedicated_load_without_video.cpp',
+            root / 'src/launcher/native/SocketImageOwner.cpp', sdl, '-Wl,-export_dynamic',
             '-o', out / 'dedicated_load_without_video'])
 run(args + ['-dynamiclib', root / 'tests/native/software_video/forbid_video.cpp', sdl,
             '-o', out / 'forbid_video.dylib'])
@@ -68,8 +70,8 @@ fixture = out / 'host_shutdown_actual.cpp'
 fixture.write_text(owned + '\n' + (root / 'tests/native/software_video/host_shutdown_fixture.cpp').read_text())
 run(args + ['-Wno-unused-variable', fixture, '-o', out / 'host_shutdown_test'])
 run([out / 'host_shutdown_test'])
-print('PASS native Host_Shutdown drain/Steam/network/DLL ordering and recursive/double shutdown', flush=True)
-os.environ['DYLD_INSERT_LIBRARIES'] = str(out / 'forbid_video.dylib')
-run([out / 'dedicated_load_without_video', next((build / 'runtime').glob('*/swds.dylib'))])
+print('PASS native Host_Shutdown ordering, reentry, and staged GameUI/VGUI completion', flush=True)
+video_forbidden = dict(os.environ, DYLD_INSERT_LIBRARIES=str(out / 'forbid_video.dylib'))
+run([out / 'dedicated_load_without_video', next((build / 'runtime').glob('*/swds.dylib'))], env=video_forbidden)
 
 run([sys.executable, root / "tests/native/software_video/run_dedicated_owner_test.py", out])

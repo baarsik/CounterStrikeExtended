@@ -4,6 +4,20 @@
 #if defined(__APPLE__)
 #include "sdl3_native_mouse_bridge.h"
 static bool gameplayRelativeMode = false;
+namespace cse {
+struct FixtureMouseWindow {
+    bool allowed = true;
+    bool CaptureAllowed() const {
+        return allowed;
+    }
+};
+
+FixtureMouseWindow& NativeMouseWindowState() {
+    static FixtureMouseWindow window;
+    return window;
+}
+}
+
 extern "C" std::uint32_t CSE_SDL_NATIVE_MOUSE_CALL CseSdl_QueryMouseModeV1(std::uint32_t) {
     return gameplayRelativeMode ? CseSdlMouseModeRelative : CseSdlMouseModeAbsolute;
 }
@@ -540,6 +554,12 @@ void DuringPump() {
     QueueMotion(17.75f, -4.75f);
 }
 void TestAcceptedMotion() {
+    Reset(0.0f);
+    cse::NativeMouseWindowState().allowed = false;
+    Game blocked;
+    blocked.Motion(400.5f, 227.5f);
+    CHECK(services.windowWarps == 0);
+    cse::NativeMouseWindowState().allowed = true;
     for (bool captured : {false, true}) {
         for (bool duringWarp : {false, true}) {
             gameplayRelativeMode = captured;

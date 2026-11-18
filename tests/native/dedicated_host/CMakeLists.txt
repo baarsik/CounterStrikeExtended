@@ -15,7 +15,7 @@ add_executable(console_probe console_probe.cpp "${SDK}/dedicated/native/TextCons
   "${SDK}/dedicated/native/Signals.cpp" "${SDK}/common/textconsole.cpp" "${SDK}/common/ObjectList.cpp")
 target_include_directories(console_probe PRIVATE "${SDK}" "${SDK}/public")
 target_compile_definitions(console_probe PRIVATE _snprintf=snprintf)
-foreach(case pipe_eof_continues pty_restore_signals closed_descriptors repeated_open)
+foreach(case pipe_eof_continues pty_restore_signals closed_descriptors null_input repeated_open)
   add_test(NAME ${case} COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/console_tests.py"
     "$<TARGET_FILE:console_probe>" ${case})
 endforeach()
