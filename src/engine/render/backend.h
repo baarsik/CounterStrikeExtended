@@ -30,7 +30,7 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples 
 void ShutdownBackend();
 void BeginBackendFrame(int width, int height);
 void PresentBackendFrame(bool vsync, bool preserveAspect);
-void FlushBackend();
+void FlushBackend(bool resolveIfAvailable = false);
 bool BackendReadPixels(bool presented, int x, int y, int width, int height, unsigned components,
     unsigned alignment, void* pixels);
 bool BackendUploadSucceeded();

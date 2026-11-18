@@ -55,7 +55,7 @@ struct RenderFrameCounters {
     double drawableWaitMs = 0;
 };
 
-enum class SceneOutput { Deferred, Resolved };
+enum class SceneOutput { Deferred, Resolved, ResolvedIfAvailable };
 
 class MetalSession {
 public:

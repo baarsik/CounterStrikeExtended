@@ -1285,6 +1285,13 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         state.activeMeshPages = {};
         state.meshPages.clear();
     }
+    if (frame.events.empty() && state.initializedTarget) {
+        if (output != SceneOutput::Deferred && !ResolveScene(error) && output == SceneOutput::Resolved) {
+            return false;
+        }
+        error.clear();
+        return true;
+    }
     // Never evict a pipeline/sampler after this frame has retained its pointer and before submission.
     // SDL keeps prior submitted command references alive when the owning cache releases its reference.
     if (state.pipelines.size() >= kMaximumCachedPipelines) {
@@ -1441,11 +1448,12 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     }
     const auto textureUploadBytes = uploadBytes - geometryBytes - meshUploadBytes;
     SDL_GPUTexture* resolve = nullptr;
-    if (state.multisample && output == SceneOutput::Resolved) {
+    if (state.multisample && output != SceneOutput::Deferred) {
         resolve = state.WritableResolve(error);
-        if (!resolve) {
+        if (!resolve && output == SceneOutput::Resolved) {
             return false;
         }
+        // An optional backdrop may fall back or retry. Always encode its underlying scene.
     }
     // Existing vertex pages can also share a draw when their original index ranges
     // are disjoint. Append only the reordered index ranges to the transfer buffer.
@@ -1950,7 +1958,8 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     info.destination.y = (height - destinationHeight) / 2;
     info.destination.w = destinationWidth;
     info.destination.h = destinationHeight;
-    info.load_op = SDL_GPU_LOADOP_CLEAR;
+    const bool wholeDrawable = destinationWidth == width && destinationHeight == height;
+    info.load_op = wholeDrawable ? SDL_GPU_LOADOP_DONT_CARE : SDL_GPU_LOADOP_CLEAR;
     info.clear_color = {0, 0, 0, 1};
     info.filter = SDL_GPU_FILTER_LINEAR;
     // At 1:1 the resolve is already the final image. Keep it for readback and
@@ -1970,6 +1979,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         info.destination.y = 0;
         info.destination.w = width;
         info.destination.h = height;
+        info.load_op = SDL_GPU_LOADOP_DONT_CARE;
         SDL_BlitGPUTexture(command, &info);
         CountRenderPass();
     }

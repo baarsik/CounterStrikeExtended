@@ -245,11 +245,13 @@ void BeginBackendFrame(int width, int height) {
 #endif
 }
 
-void FlushBackend() {
+void FlushBackend(bool resolveIfAvailable) {
 #if defined(CSE_ENABLE_METAL)
     if (UsingMetal()) {
-        Require(Submit());
+        Require(Submit(resolveIfAvailable ? SceneOutput::ResolvedIfAvailable : SceneOutput::Deferred));
     }
+#else
+    (void)resolveIfAvailable;
 #endif
 }
 

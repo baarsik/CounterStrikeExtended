@@ -38,6 +38,8 @@ struct PresentationProbe {
     unsigned cancellations = 0;
     unsigned submissions = 0;
     unsigned blits = 0;
+    unsigned clears = 0;
+    unsigned fullOverwrites = 0;
 } presentationProbe;
 
 template<typename Function> Function Original(const char* name) {
@@ -138,6 +140,8 @@ extern "C" bool SDL_CancelGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
 extern "C" void SDL_BlitGPUTexture(SDL_GPUCommandBuffer* command, const SDL_GPUBlitInfo* info) {
     if (presentationProbe.active) {
         ++presentationProbe.blits;
+        presentationProbe.clears += info->load_op == SDL_GPU_LOADOP_CLEAR;
+        presentationProbe.fullOverwrites += info->load_op == SDL_GPU_LOADOP_DONT_CARE;
     }
     Original<decltype(&SDL_BlitGPUTexture)>("SDL_BlitGPUTexture")(command, info);
 }
@@ -889,6 +893,13 @@ void AttachmentClears(MetalSession& session, std::string& error) {
     CHECK(session.Render(frame, error));
     CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
     CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    frame.events.clear();
+    frame.draws.clear();
+    const auto passes = session.Diagnostics().renderPasses;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().renderPasses == passes);
+    CHECK(session.ReadPixels(center, center, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
     session.EnableDiagnostics(false);
 }
 
@@ -1490,6 +1501,7 @@ int main() {
     presentationProbe.active = true;
     CHECK(session.Present(true, true, error));
     CHECK(presentationProbe.acquisitions == 1 && presentationProbe.blits == 1);
+    CHECK(presentationProbe.fullOverwrites == 1 && presentationProbe.clears == 0);
     presentationProbe.active = false;
     // Reading the next resolved scene must preserve the last presented pixels.
     frame.draws[0] = Solid(0, 1, 0);
@@ -1503,8 +1515,12 @@ int main() {
     CHECK(rgba[0] == 255 && rgba[1] == 0);
     CHECK(session.ReadPresentedPixels(center, center, 1, 1, 4, 1, rgba.data(), error));
     CHECK(rgba[0] == 255 && rgba[1] == 0);
-    CHECK(session.Render(frame, error));
-    // The backdrop must sample the new resolve, even when it requests the resolve itself.
+    presentationProbe.allocationsUntilFailure = 1;
+    presentationProbe.active = true;
+    CHECK(session.Render(frame, error, SceneOutput::ResolvedIfAvailable));
+    CHECK(error.empty() && presentationProbe.allocationsUntilFailure == 0);
+    presentationProbe.active = false;
+    // The backdrop must sample the new resolve, even when the first allocation failed.
     constexpr std::uint64_t kBackdropEpoch = 1;
     CseRadarBackdropDraw backdrop{};
     backdrop.size = sizeof(backdrop);
