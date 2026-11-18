@@ -47,6 +47,27 @@ static constexpr int WAV_CUE_BYTES = 28;
 static constexpr int WAV_LOOP_LIST_BYTES = 24;
 static constexpr int WAV_MAX_CHUNK_BYTES = 100 * 1024 * 1024;
 
+static int ResampledSampleCount(int samples, int loopStart, float stepScale) {
+    if (stepScale == 1.0f) {
+        return samples;
+    }
+
+    const float count = static_cast<float>(samples) / stepScale;
+    if (!(count >= 0.0f) || static_cast<double>(count) > INT_MAX) {
+        return -1;
+    }
+    if (loopStart < 0) {
+        return static_cast<int>(count);
+    }
+
+    // Downsampling can truncate the entire loop. Retain a sample at its resampled cue.
+    const float loop = static_cast<float>(loopStart) / stepScale;
+    if (!(loop >= 0.0f) || static_cast<double>(loop) >= INT_MAX) {
+        return -1;
+    }
+    return std::max(static_cast<int>(count), static_cast<int>(loop) + 1);
+}
+
 static bool WavChunkHasBytes(int bytes) {
     return data_p && bytes >= 0 && iff_chunk_len >= bytes && iff_end - data_p >= WAV_CHUNK_HEADER_BYTES &&
            bytes <= iff_end - data_p - WAV_CHUNK_HEADER_BYTES;
@@ -229,8 +250,6 @@ sfxcache_t *S_LoadSound(sfx_t *s, channel_t *ch) {
     byte *data;
     wavinfo_t info;
     int len;
-    int samples;
-    int size;
     float stepscale;
     sfxcache_t *sc;
     FileHandle_t hFile;
@@ -328,7 +347,7 @@ sfxcache_t *S_LoadSound(sfx_t *s, channel_t *ch) {
     }
 
     stepscale = 1.0f;
-    if (shm && info.rate != shm->speed && !(info.rate == shm->speed * 2 && hisound.value > 0.0f)) {
+    if (shm && info.rate != shm->speed && !(info.rate == shm->speed * 2 && hisound.value != 0.0f)) {
         stepscale = (float)info.rate / (float)shm->speed;
         if (stepscale == 0.0f) {
             Con_DPrintf("Invalid stepscale: %s\n", s->name);
@@ -336,26 +355,15 @@ sfxcache_t *S_LoadSound(sfx_t *s, channel_t *ch) {
         }
     }
 
-    samples = (int)((float)info.samples / stepscale);
-    if (samples) {
-        if (INT_MAX / samples < 1) {
-            Con_DPrintf("Invalid length (s/c): %s\n", s->name);
-            return NULL;
-        }
-
-        if (INT_MAX / samples < info.width) {
-            Con_DPrintf("Invalid length (s/c/w): %s\n", s->name);
-            return NULL;
-        }
+    const int samples = ResampledSampleCount(info.samples, info.loopstart, stepscale);
+    constexpr auto maximumPcmBytes = cse::memory::MaximumCachePayloadBytes - sizeof(sfxcache_t);
+    if (samples < 0 || static_cast<std::size_t>(samples) > maximumPcmBytes / info.width) {
+        Con_DPrintf("Invalid resampled length: %s\n", s->name);
+        return nullptr;
     }
 
-    size = samples * info.width;
-
-    if ((unsigned int)(INT_MAX - size) < sizeof(sfxcache_t)) {
-        Con_DPrintf("Invalid length (s/c/w/sfx): %s\n", s->name);
-    }
-
-    sc = (sfxcache_t *)Cache_Alloc(&s->cache, size + sizeof(sfxcache_t), s->name);
+    const int cacheBytes = samples * info.width + static_cast<int>(sizeof(sfxcache_t));
+    sc = static_cast<sfxcache_t *>(Cache_Alloc(&s->cache, cacheBytes, s->name));
     if (!sc) {
         return NULL;
     }
@@ -538,10 +546,15 @@ void ResampleSfx(sfx_t *sfx, int inrate, int inwidth, byte *data, int datasize) 
         outcount = sc->length;
         stepscale = 1.0f;
     } else {
-        outcount = (int)((float)sc->length / stepscale);
+        outcount = ResampledSampleCount(sc->length, sc->loopstart, stepscale);
+        if (outcount < 0) {
+            sc->length = 0;
+            sc->loopstart = -1;
+            return;
+        }
         sc->length = outcount;
-        if (sc->loopstart != -1) {
-            sc->loopstart = (int)((float)sc->loopstart / stepscale);
+        if (sc->loopstart >= 0 && stepscale != 1.0f) {
+            sc->loopstart = static_cast<int>(static_cast<float>(sc->loopstart) / stepscale);
         }
 
         if (shm) {

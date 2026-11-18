@@ -52,6 +52,9 @@ constexpr int FormatChannelsOffset = 22;
 constexpr int FormatRateOffset = 24;
 constexpr int FormatBitsOffset = 34;
 constexpr int PcmDataOffset = 44;
+constexpr int CueChunkBytes = 8 + 28;
+constexpr int CueSampleOffset = 36 + 8 + 24;
+constexpr int CuePcmDataOffset = PcmDataOffset + CueChunkBytes;
 constexpr int StreamPrefixBytes = 0x8000;
 constexpr int FirstChunkSamples = StreamPrefixBytes - PcmDataOffset;
 constexpr int TailSamples = 4;
@@ -421,6 +424,38 @@ void StartFixtureChannel(channel_t &channel, sfx_t &sound, int end, int type) {
     channel.end = end;
 }
 
+void LoadResampledLoop() {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    total_channels = 1;
+    SND_InitScaletable();
+    constexpr int ListLoopLengthOffset = 8 + 16;
+    constexpr int LoopSampleLength = 1;
+    constexpr byte LoopPcm = 5;
+    for (const int sampleCount : {1, 5}) {
+        auto bytes = Wave(1, sampleCount, true);
+        SetDword(bytes, FormatRateOffset, PlaybackRate * 2);
+        SetDword(bytes, CueSampleOffset, sampleCount - LoopSampleLength);
+        const int listStart = CuePcmDataOffset + sampleCount + (sampleCount & 1);
+        SetDword(bytes, listStart + ListLoopLengthOffset, LoopSampleLength);
+        bytes[CuePcmDataOffset + sampleCount - LoopSampleLength] += LoopPcm;
+        SetFile(bytes);
+
+        sfx_t sound{};
+        std::strcpy(sound.name, "resampled-loop.wav");
+        auto* cache = S_LoadSound(&sound, &channels[0]);
+        Require(cache && cache->length > cache->loopstart && cache->loopstart >= 0,
+                "the cue region still contains a sample after resampling");
+        StartFixtureChannel(channels[0], sound, cache->length, CHAN_AUTO);
+        channels[0].pos = 0;
+        std::fill(std::begin(paintbuffer), std::end(paintbuffer), portable_samplepair_t{});
+        S_MixChannelsToPaintbuffer(cache->length + 1, 0, 0);
+        Require(paintbuffer[cache->length].left == MixVolume * LoopPcm, "the final PCM sample repeats at the cue");
+        Cache_Free(&sound.cache);
+        S_FreeChannel(&channels[0]);
+    }
+}
+
 void StreamCache(const std::string &mode) {
     playback.speed = PlaybackRate;
     shm = &playback;
@@ -456,8 +491,6 @@ void StreamLoop(bool seekBack) {
     total_channels = 1;
     SND_InitScaletable();
 
-    constexpr int CueChunkBytes = 8 + 28;
-    constexpr int CueSampleOffset = 36 + 8 + 24;
     constexpr int FirstSamples = FirstChunkSamples - CueChunkBytes;
     constexpr int TailLength = 4;
     constexpr byte TailPcm[]{3, 4, 5, 6};
@@ -830,6 +863,8 @@ int main(int argc, char **argv) {
         StreamCache(mode);
     } else if (mode.rfind("resample-", 0) == 0) {
         Resampler(mode);
+    } else if (mode == "load-resampled-loop") {
+        LoadResampledLoop();
     } else if (mode.rfind("load-", 0) == 0 || (mode.rfind("stream-", 0) == 0 && mode != "stream-prefix")) {
         Loader(mode);
     } else {

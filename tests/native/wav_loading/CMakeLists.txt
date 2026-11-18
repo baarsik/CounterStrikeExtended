@@ -33,7 +33,7 @@ enable_testing()
 foreach(case pcm truncated metadata invalid-arguments chunk-bounds loops loop-overflow loop-length
         stream-prefix odd-padding resample-valid
         resample-short resample-clear resample-product resample-fraction
-        load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure
+        load-invalid load-stereo load-cache-failure load-success load-fallback load-temp-failure load-resampled-loop
         stream-invalid stream-stereo stream-width stream-rate stream-cache-failure
         stream-success stream-refill-failure stream-temp-failure stream-reopen-move stream-reopen-evict
         stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-read-failure
