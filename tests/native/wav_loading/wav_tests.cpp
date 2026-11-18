@@ -450,6 +450,41 @@ void StreamCache(const std::string &mode) {
     Cache_Free(&sound.cache);
 }
 
+void StreamLoop(bool seekBack) {
+    playback.speed = PlaybackRate;
+    shm = &playback;
+    total_channels = 1;
+    SND_InitScaletable();
+
+    constexpr int CueChunkBytes = 8 + 28;
+    constexpr int CueSampleOffset = 36 + 8 + 24;
+    constexpr int FirstSamples = FirstChunkSamples - CueChunkBytes;
+    constexpr int TailLength = 4;
+    constexpr byte TailPcm[]{3, 4, 5, 6};
+    auto bytes = Wave(1, FirstSamples + TailLength, true);
+    const int loopSample = seekBack ? FirstSamples - 1 : FirstSamples;
+    SetDword(bytes, CueSampleOffset, loopSample);
+    std::transform(std::begin(TailPcm), std::end(TailPcm), bytes.begin() + StreamPrefixBytes,
+                   [](byte sample) { return static_cast<byte>(128 + sample); });
+    SetFile(bytes);
+
+    sfx_t sound{};
+    std::strcpy(sound.name, "*loop.wav");
+    auto* cache = S_LoadSound(&sound, &channels[0]);
+    Require(cache && cache->length == FirstSamples, "looping stream initially caches its prefix");
+    StartFixtureChannel(channels[0], sound, 1, CHAN_STREAM);
+    channels[0].pos = FirstSamples - 1;
+    wavstreams[0].csamplesplayed = channels[0].pos;
+    S_MixChannelsToPaintbuffer(7, 0, 0);
+    const std::array<byte, 7> expected{0, 3, 4, 5, 6, seekBack ? byte{0} : byte{3}, seekBack ? byte{3} : byte{4}};
+    for (std::size_t index = 0; index < expected.size(); ++index) {
+        Require(paintbuffer[index].left == MixVolume * expected[index],
+                "stream plays through EOF before repeating the cue region");
+    }
+    S_FreeChannel(&channels[0]);
+    RequireClosedStream();
+}
+
 void Mixer(const std::string &mode) {
     constexpr int PaintSamples = 3;
     constexpr int HealthyPcmSample = 2;
@@ -785,6 +820,8 @@ int main(int argc, char **argv) {
         }
         Require(files > 0, "shipped corpus is nonempty");
         std::printf("Accepted %zu shipped WAV files\n", files);
+    } else if (mode == "mix-stream-loop" || mode == "mix-stream-loop-seek") {
+        StreamLoop(mode == "mix-stream-loop-seek");
     } else if (mode.rfind("mix-", 0) == 0) {
         Mixer(mode);
     } else if (mode.rfind("vox-", 0) == 0) {

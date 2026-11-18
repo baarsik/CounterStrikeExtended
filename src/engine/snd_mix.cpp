@@ -1257,16 +1257,18 @@ qboolean S_CheckWavEnd(channel_t *channel, sfxcache_t **soundCache, int time, in
     if (cache->length == SOUND_CALLBACK_CACHE_LENGTH) {
         return FALSE;
     }
-    if (cache->loopstart >= 0) {
-        channel->pos = cache->loopstart;
-        channel->end = cache->length - channel->pos + time;
-        if (channel->isentence >= 0) {
-            rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
-        }
-        return FALSE;
-    }
-    if (channel->entchannel == CHAN_STREAM) {
+    if (channel->entchannel == CHAN_STREAM && wavstreams[channelIndex].hFile) {
         wavstream_t &stream = wavstreams[channelIndex];
+        if (stream.csamplesplayed >= stream.info.samples && stream.info.loopstart >= 0) {
+            stream.csamplesplayed = stream.info.loopstart;
+            // Stream cue points are file-relative. Reuse the last chunk only if it contains the cue.
+            const int loopOffset = stream.info.dataofs + stream.info.loopstart - stream.lastposloaded;
+            if (loopOffset >= 0 && loopOffset < cache->length) {
+                channel->pos = loopOffset;
+                channel->end = cache->length - loopOffset + time;
+                return FALSE;
+            }
+        }
         if (stream.csamplesplayed < stream.info.samples) {
             cache = Wavstream_GetNextChunk(channel, stream);
             *soundCache = cache;
@@ -1276,7 +1278,14 @@ qboolean S_CheckWavEnd(channel_t *channel, sfxcache_t **soundCache, int time, in
                 return FALSE;
             }
         }
-    } else if (channel->isentence >= 0) {
+    } else if (cache->loopstart >= 0) {
+        channel->pos = cache->loopstart;
+        channel->end = cache->length - channel->pos + time;
+        if (channel->isentence >= 0) {
+            rgrgvoxword[channel->isentence][channel->iword].samplefrac = 0;
+        }
+        return FALSE;
+    } else if (channel->entchannel != CHAN_STREAM && channel->isentence >= 0) {
         voxword_t *word = &rgrgvoxword[channel->isentence][channel->iword];
         if (word->sfx && !word->fKeepCached) {
             Cache_Free(&word->sfx->cache);
