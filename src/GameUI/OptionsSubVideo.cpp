@@ -137,6 +137,13 @@ void COptionsSubVideo::SetCurrentResolutionComboItem()
 
 void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 {
+#if defined(_WIN32)
+    constexpr int MaximumSoftwareWidth = 1599;
+    constexpr int MaximumSoftwareHeight = 1199;
+#else
+    constexpr int MaximumSoftwareWidth = cse_native_software::MaximumWidth;
+    constexpr int MaximumSoftwareHeight = cse_native_software::MaximumHeight;
+#endif
 	vmode_s* modes = NULL;
 	int count = 0;
 	gameuifuncs->GetVideoModes( &modes, &count );
@@ -156,8 +163,9 @@ void COptionsSubVideo::PrepareResolutionList( bool disallowBadResolutions )
 		{
 			if ( mode.width < 640 || mode.height < 480 )
 				continue;
-			if ( software && ( mode.width >= 1600 || mode.height >= 1200 ) )
-				continue;
+            if (software && (mode.width > MaximumSoftwareWidth || mode.height > MaximumSoftwareHeight)) {
+                continue;
+            }
 		}
 
 		int item = -1;

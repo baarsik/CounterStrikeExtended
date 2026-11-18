@@ -1,7 +1,11 @@
 #pragma once
 
+#include <iterator>
+
 #include "PropertyDialog.h"
 #include "PropertyPage.h"
+#include "ComboBox.h"
+#include "../../../src/engine/modes.h"
 #include "../../../src/GameUI/CvarToggleCheckButton.h"
 #include "vgui/IVGui.h"
 #include "vgui/KeyValues.h"
@@ -10,6 +14,11 @@
 namespace options_reset_fixture {
 // The renderer is an external dependency of the Content handler. Populate its complete result.
 struct RendererState {
+    vmode_s modes[4]{{640, 480, 32}, {1280, 720, 32}, {1920, 1080, 32}, {3840, 2160, 32}};
+    void GetVideoModes(vmode_s** list, int* count) {
+        *list = modes;
+        *count = static_cast<int>(std::size(modes));
+    }
     void GetCurrentRenderer(char* name, int, int* windowed, int* hdModels, int* addons) {
         name[0] = '\0';
         *windowed = 1;
@@ -27,12 +36,19 @@ public:
     }
     void OnDataChanged();
     void OnButtonChecked(KeyValues* data);
+    void PrepareResolutionList(bool disallowBadResolutions);
     struct Settings {
         int windowed = 1;
+        int w = 1920;
+        int h = 1080;
     };
     Settings m_CurrentSettings;
     vgui2::CheckButton* m_pWindowed = nullptr;
     CCvarToggleCheckButton* m_pVsync = nullptr;
+    vgui2::ComboBox* m_pMode = nullptr;
+    vgui2::ComboBox* m_pRenderer = nullptr;
+    vgui2::ComboBox* m_pAspectRatio = nullptr;
+    bool m_bStartWidescreen = true;
 };
 
 class COptionsSubAdvanced : public vgui2::PropertyPage {
@@ -77,6 +93,23 @@ inline void Run(vgui2::Panel* root) {
     auto* video = new COptionsSubVideo(&dialog);
     video->m_pVsync = new CCvarToggleCheckButton(video, "ResetVsync", "VSync", "fixture_cvar");
     verify(*video, *video->m_pVsync);
+    video->m_pMode = new vgui2::ComboBox(video, "Mode", 4, false);
+    video->m_pRenderer = new vgui2::ComboBox(video, "Renderer", 2, false);
+    video->m_pAspectRatio = new vgui2::ComboBox(video, "Aspect", 2, false);
+    video->m_pRenderer->AddItem("Software", nullptr);
+    video->m_pRenderer->ActivateItemByRow(0);
+    vgui2::ivgui()->RunFrame();
+    video->PrepareResolutionList(true);
+    vgui2::ivgui()->RunFrame();
+    char resolution[32]{};
+    video->m_pMode->GetText(resolution, sizeof(resolution));
+#if defined(__APPLE__)
+    Require(std::strcmp(resolution, "1920 x 1080") == 0 && video->m_pMode->GetItemCount() == 2,
+        "native software keeps the active 1080p mode and filters modes above its framebuffer limit");
+#else
+    Require(std::strcmp(resolution, "1280 x 720") == 0 && video->m_pMode->GetItemCount() == 1,
+        "Windows software keeps its legacy resolution limit");
+#endif
     auto* content = new COptionsSubAdvanced(&dialog);
     content->m_pDetailTextures = new CCvarToggleCheckButton(content, "ResetDetails", "Details", "fixture_cvar");
     verify(*content, *content->m_pDetailTextures);

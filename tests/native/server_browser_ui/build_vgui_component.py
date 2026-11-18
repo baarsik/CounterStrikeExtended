@@ -81,7 +81,10 @@ if args.driver == 'interface_options':
         reset_path = repo / f'src/GameUI/OptionsSub{page}.cpp'
         reset_source = reset_path.read_text(encoding='cp1252')
         reset_receipt[str(reset_path.relative_to(repo))] = hashlib.sha256(reset_path.read_bytes()).hexdigest()
-        for method in ('OnDataChanged()', 'OnButtonChecked('):
+        methods = ['OnDataChanged()', 'OnButtonChecked(']
+        if page == 'Video':
+            methods.append('PrepareResolutionList(')
+        for method in methods:
             start = reset_source.index(f'void COptionsSub{page}::{method}')
             brace = reset_source.index('{', start)
             depth = 1

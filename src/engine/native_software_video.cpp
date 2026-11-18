@@ -1,9 +1,8 @@
 #include "native_software_video.h"
+#include "modes.h"
 #include <new>
 
 namespace {
-constexpr int kMaximumSoftwareWidth = 5120;
-constexpr int kMaximumSoftwareHeight = 1600; // d_local.h MAXHEIGHT scan tables.
 constexpr int kPresentationChannels = 4;
 constexpr const char *kGenerationProperty = "cse.software.renderer.generation";
 Sint64 RendererGeneration(SDL_Renderer *renderer) {
@@ -24,7 +23,8 @@ Sint64 RendererGeneration(SDL_Renderer *renderer) {
 } // namespace
 
 bool CNativeSoftwareFramebuffer::Allocate(int width, int height, bool rgb555) {
-    if (width <= 0 || height <= 0 || width > kMaximumSoftwareWidth || height > kMaximumSoftwareHeight || m_texture) {
+    if (width <= 0 || height <= 0 || width > cse_native_software::MaximumWidth ||
+        height > cse_native_software::MaximumHeight || m_texture) {
         return false;
     }
     const std::size_t pixels = static_cast<std::size_t>(width) * height;

@@ -1322,7 +1322,8 @@ class CVideoMode_NativeSoftware : public IVideoMode {
 };
 
 bool CVideoMode_NativeSoftware::AddMode(int width, int height, int bitsPerPixel) {
-    if (width <= 0 || height <= 0 || width > 5120 || height > 1600) {
+    if (width <= 0 || height <= 0 || width > cse_native_software::MaximumWidth ||
+        height > cse_native_software::MaximumHeight) {
         return false;
     }
     if (m_nNumModes >= MAX_VIDEO_MODES) {
@@ -1624,10 +1625,8 @@ bool CVideoMode_NativeSoftware::Init(void *) {
             }
         }
     }
-    constexpr int kMaximumWidth = 5120;
-    constexpr int kMaximumHeight = 1600;
-    width = std::min(width, kMaximumWidth);
-    height = std::min(height, kMaximumHeight);
+    width = std::min(width, cse_native_software::MaximumWidth);
+    height = std::min(height, cse_native_software::MaximumHeight);
     if (width <= 0 || height <= 0) {
         return false;
     }
