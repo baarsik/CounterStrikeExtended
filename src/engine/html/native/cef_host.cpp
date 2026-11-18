@@ -234,6 +234,23 @@ private:
 
 class Host final : public CefApp, public CefBrowserProcessHandler {
 public:
+#if defined(__APPLE__)
+    void OnBeforeCommandLineProcessing(const CefString& processType, CefRefPtr<CefCommandLine> commandLine) override {
+        if (!processType.empty()) {
+            return;
+        }
+
+        // The bundled provider has no Chromium auto-updater, and its helper traps in the clone cleanup process.
+        constexpr char DisableFeaturesSwitch[] = "disable-features";
+        std::string disabledFeatures = commandLine->GetSwitchValue(DisableFeaturesSwitch).ToString();
+        if (!disabledFeatures.empty()) {
+            disabledFeatures += ',';
+        }
+        disabledFeatures += "MacAppCodeSignClone";
+        commandLine->AppendSwitchWithValue(DisableFeaturesSwitch, disabledFeatures);
+    }
+#endif
+
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
         return this;
     }
