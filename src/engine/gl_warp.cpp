@@ -515,12 +515,10 @@ void R_LoadSkys() {
         snprintf(name, sizeof(name), "gfx/env/%s%s.bmp", movevars.skyName, suf[i]);
 
         if (!webpLoaded && !skipBMP) {
-			file = FS_Open( name, "rb" );
-			if ( file )
-			{
-				LoadBMP8( file, &palette, &paletteCount, &image, &width, &height );
-				if ( width * height > 0 )
-				{
+            file = FS_Open(name, "rb");
+            if (file) {
+                LoadBMP8(file, &palette, &paletteCount, &image, &width, &height);
+                if (width == SkyFaceDimension && height == SkyFaceDimension && image && palette) {
                     const short paletteIndex = GL_PaletteAdd(palette, TRUE);
                     if (paletteIndex >= 0) {
                         if (!gSkyTexNumber[i]) {
@@ -534,12 +532,11 @@ void R_LoadSkys() {
                         skyPaletteIndices[i] = paletteIndex;
 #endif
                     }
-
-					Mem_Free( image );
-					Mem_Free( palette );
-				}
-			}
-		}
+                }
+                Mem_Free(image);
+                Mem_Free(palette);
+            }
+        }
 
 		if ( !paletted )
 		{
@@ -548,7 +545,8 @@ void R_LoadSkys() {
             }
 			snprintf( name, sizeof( name ), "gfx/env/%s%s.tga", movevars.skyName, suf[i] );
 
-            if (!webpLoaded && !LoadTargaImage(name, buffer, SkyFaceBytes, NULL, NULL, FALSE)) {
+            if (!webpLoaded && (!LoadTargaImage(name, buffer, SkyFaceBytes, &width, &height, FALSE) ||
+                width != SkyFaceDimension || height != SkyFaceDimension)) {
 				Con_Printf( "R_LoadSkys: Couldn't load %s\n", name );
 
 				if ( !i && Q_strcmp( movevars.skyName, "desert" ) )

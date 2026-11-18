@@ -172,6 +172,8 @@ struct SkyUpload {
 };
 static std::vector<SkyUpload> skyUploads;
 static int skyBmpLoadCount = 0;
+static int skyBmpWidth = TestSkyFaceDimension;
+static int skyBmpHeight = TestSkyFaceDimension;
 static short skyPaletteAddResult = 0;
 static std::vector<byte> mapPixels;
 void* Mem_Malloc(int size) { return std::malloc(size); }
@@ -224,8 +226,8 @@ void LoadBMP8(FileHandle_t file, byte** palette, int* count, byte** indexed, int
     *indexed = static_cast<byte*>(std::malloc(TestSkyFacePixels));
     std::memset(*indexed, file->front(), TestSkyFacePixels);
     *count = 1;
-    *width = TestSkyFaceDimension;
-    *height = TestSkyFaceDimension;
+    *width = skyBmpWidth;
+    *height = skyBmpHeight;
 }
 #define Q_strcmp strcmp
 #define Q_strcpy strcpy
@@ -746,6 +748,8 @@ int main() {
         }
         skyUploads.clear();
         skyBmpLoadCount = 0;
+        skyBmpWidth = TestSkyFaceDimension;
+        skyBmpHeight = TestSkyFaceDimension;
         skyPaletteAddResult = 0;
         qglColorTableEXT = 1;
         gl_palette_tex.value = 1;
@@ -767,6 +771,27 @@ int main() {
             Check(upload.pixels == pixels[face], (faceDescription + " preserves every face byte").c_str());
         }
     };
+    resetHardwareSky();
+    files["gfx/env/testrt.tga"] = WebPFixture(skyPixels, TestSkyFaceDimension * 2, TestSkyFaceDimension / 2);
+    for (const char* face : faces) {
+        files[std::string("gfx/env/desert") + face + ".tga"] = TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+    }
+    R_LoadSkys();
+    checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                     "wrong-shaped WebP stored under a TGA sky name selects the default sky");
+    for (int bmpWidth : {TestSkyFaceDimension, TestSkyFaceDimension * 2}) {
+        resetHardwareSky();
+        skyBmpWidth = bmpWidth;
+        skyBmpHeight = TestSkyFaceDimension / 2;
+        for (const char* face : faces) {
+            files[std::string("gfx/env/test") + face + ".bmp"] = {1};
+            files[std::string("gfx/env/test") + face + ".tga"] = TargaFixture(TestSkyFaceDimension, TestSkyFaceDimension);
+        }
+        R_LoadSkys();
+        checkHardwareSky(rgbaFormats, std::vector<std::vector<byte>>(SkyFaceCount, targaSkyPixels),
+                         "indexed sky with incorrect geometry uses the TGA fallback");
+        Check(skyBmpLoadCount == 1, "invalid indexed sky retains the subsequent TGA search");
+    }
     resetHardwareSky();
     for (const char* face : faces) {
         files[std::string("gfx/env/test") + face + ".webp"] = skyWebP;
