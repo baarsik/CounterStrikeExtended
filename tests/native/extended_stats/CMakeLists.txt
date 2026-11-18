@@ -23,7 +23,7 @@ target_include_directories(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/
 if(EXISTS "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
   target_sources(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
 endif()
-foreach(scenario IN ITEMS native_setters identity_vs_protocol query_timeout reused_slot_reply nested_publication
+foreach(scenario IN ITEMS native_setters identity_vs_protocol query_timeout reused_slot_reply completed_query_ids nested_publication
     automatic_changes manual_mode live_mode_toggle lifecycle_force recipient_permissions hltv_stable_snapshot
     deferred_native_operations publication_reentrancy legacy_manual_refresh)
   add_test(NAME ${scenario} COMMAND extended_stats_server_tests ${scenario})

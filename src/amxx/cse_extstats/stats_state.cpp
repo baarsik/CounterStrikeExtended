@@ -60,7 +60,7 @@ void ServerState::Disconnect(int index) {
 }
 
 void ServerState::Reply(int index, int request, const char* name, const char* value, double now) {
-    if (!Valid(index) || !name || !value) {
+    if (request == 0 || !Valid(index) || !name || !value) {
         return;
     }
     Slot& slot = slots_[index];

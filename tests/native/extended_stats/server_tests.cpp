@@ -165,6 +165,13 @@ int main(int, char** argv) {
             state.Reply(1, probe.request, probe.name.c_str(), "1", 0.6);
         }
         Check(!state.IsCseClient(1), "old connection response ignored");
+    } else if (test == "completed_query_ids") {
+        Identify(state, host, 1);
+        Check(state.IsCseClient(1) && state.HasProtocol(1), "current replies complete negotiation");
+        for (const auto& probe : host.probes) {
+            state.Reply(1, 0, probe.name.c_str(), "0", 0.1);
+        }
+        Check(state.IsCseClient(1) && state.HasProtocol(1), "unrelated query ID zero leaves negotiation intact");
     } else if (test == "nested_publication") {
         Identify(state, host, 1);
         state.SetHealth(1, 65536);
