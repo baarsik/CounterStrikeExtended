@@ -2,6 +2,7 @@
 #include "client.h"
 #include "common.h"
 #include "conprint.h"
+#include "mem.h"
 #include "sound_callback.h"
 #include "sys.h"
 #include "vox_word.h"
@@ -26,6 +27,8 @@ qboolean GetWavinfo(char *name, byte *wav, int length, wavinfo_t *info);
 void ResampleSfx(sfx_t *sound, int inputRate, int inputWidth, byte *data, int dataBytes);
 extern "C" void Wavstream_Close(int index);
 extern "C" void S_FreeChannel(channel_t *channel);
+extern "C" void VOX_ReadSentenceFile();
+extern "C" void VOX_Shutdown();
 extern "C" char *VOX_GetDirectory(char *path, char *sentence, int size);
 extern "C" int VOX_ParseWordParams(char *word, voxword_t *parameters, int first);
 extern "C" sfxcache_t *VOX_LoadSound(channel_t *channel, char *name);
@@ -42,6 +45,8 @@ cvar_t fs_precache_timings{};
 int total_channels = 0;
 int paintedtime = 0;
 float g_SND_VoiceOverdrive = 1.0f;
+char* rgpszrawsentence[MAX_SENTENCES]{};
+int cszrawsentences = 0;
 
 namespace {
 constexpr int PlaybackRate = 22050;
@@ -68,6 +73,8 @@ constexpr int MAX_VOX_WORDS = 32;
 int snd_scaletable[SOUND_VOLUME_LEVELS][SOUND_SAMPLE_VALUES]{};
 portable_samplepair_t paintbuffer[8]{};
 voxword_t rgrgvoxword[MAX_VOX_SENTENCES][MAX_VOX_WORDS]{};
+char szsentences[] = "sound/sentences.txt";
+const char* sentenceFile = nullptr;
 char *rgpparseword[MAX_VOX_WORDS]{};
 char voxcomma[] = "_comma";
 char voxperiod[] = "_period";
@@ -600,6 +607,22 @@ void Mixer(const std::string &mode) {
 }
 
 void Vox(const std::string &mode) {
+    if (mode == "vox-sentence-lines") {
+        sentenceFile = "// comment\r\n\r\n  HELLO\tvox/hello\r\nGOODBYE vox/goodbye\r\n \t\r\n";
+        VOX_ReadSentenceFile();
+        Require(cszrawsentences == 2, "comments and blank lines add no sentence records");
+        constexpr char Hello[] = "HELLO\0vox/hello";
+        constexpr char Goodbye[] = "GOODBYE\0vox/goodbye";
+        Require(std::memcmp(rgpszrawsentence[0], Hello, sizeof(Hello)) == 0, "preserve the first sentence");
+        Require(std::memcmp(rgpszrawsentence[1], Goodbye, sizeof(Goodbye)) == 0, "preserve the last sentence");
+        sentenceFile = "RELOAD vox/reload";
+        VOX_ReadSentenceFile();
+        constexpr char Reload[] = "RELOAD\0vox/reload";
+        Require(cszrawsentences == 1 && std::memcmp(rgpszrawsentence[0], Reload, sizeof(Reload)) == 0,
+                "retain the final line without a newline and replace prior records");
+        VOX_Shutdown();
+        return;
+    }
     playback.speed = PlaybackRate;
     shm = &playback;
     if (mode == "vox-empty-text") {
@@ -747,6 +770,25 @@ byte *COM_LoadStackFile(char *, void *, int, int *length) {
     }
     *length = file.length;
     return fileBytes.get();
+}
+
+void* Mem_Malloc(std::size_t bytes) {
+    void* buffer = std::malloc(bytes);
+    Require(buffer != nullptr, "allocate sentence storage");
+    return buffer;
+}
+
+void Mem_Free(void* buffer) {
+    std::free(buffer);
+}
+
+byte* COM_LoadFileForMe(char* path, int* length) {
+    Require(sentenceFile && std::strcmp(path, szsentences) == 0, "load the sentence fixture");
+    const auto bytes = std::strlen(sentenceFile);
+    *length = static_cast<int>(bytes);
+    auto* buffer = static_cast<byte*>(Mem_Malloc(bytes + 1));
+    std::memcpy(buffer, sentenceFile, bytes + 1);
+    return buffer;
 }
 
 sfxcache_t *VoiceSE_GetSFXCache(sfx_t *) {

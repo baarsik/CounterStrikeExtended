@@ -21,6 +21,8 @@ signatures = (
     "void SND_InitScaletable(",
     'extern "C" void Wavstream_Close(',
     'extern "C" void S_FreeChannel(',
+    'extern "C" void VOX_Shutdown(',
+    'extern "C" void VOX_ReadSentenceFile() {',
     'extern "C" char* VOX_GetDirectory(',
     'extern "C" void VOX_ParseString(',
     'extern "C" int VOX_ParseWordParams(',

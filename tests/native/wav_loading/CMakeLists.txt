@@ -38,7 +38,7 @@ foreach(case pcm truncated metadata invalid-arguments chunk-bounds loops loop-ov
         stream-success stream-refill-failure stream-temp-failure stream-reopen-move stream-reopen-evict
         stream-reload-pcm mix-reload-failure mix-stream-move mix-stream-evict mix-stream-read-failure
         mix-stream-reload-failure mix-stream-eof mix-stream-loop mix-stream-loop-seek
-        vox-empty-text vox-empty-words)
+        vox-empty-text vox-empty-words vox-sentence-lines)
     add_test(NAME wav-${case} COMMAND wav_loading_tests ${case})
 endforeach()
 set_tests_properties(wav-mix-stream-loop wav-mix-stream-loop-seek PROPERTIES TIMEOUT 5)

@@ -314,53 +314,53 @@ extern "C" void VOX_Init()
 	VOX_ReadSentenceFile();
 }
 
-extern "C" void VOX_ReadSentenceFile()
-{
-	VOX_Shutdown();
-	int fileLength;
-	char* buffer = reinterpret_cast<char*>( COM_LoadFileForMe( szsentences, &fileLength ) );
-	if ( !buffer )
-	{
-		Con_DPrintf( "VOX_ReadSentenceFile: Couldn't load %s\n", szsentences );
-		return;
-	}
-	char* end = buffer + fileLength;
-	char* cursor = buffer;
-	int count = 0;
-	while ( cursor < end )
-	{
-		while ( cursor < end && ( *cursor == '\t' || *cursor == '\n' || *cursor == '\r' || *cursor == ' ' ) )
-			++cursor;
-		char* name = nullptr;
-		char* words = cursor;
-		if ( *cursor != '/' )
-		{
-			name = cursor;
-			while ( words < end && *words != ' ' && *words != '\t' )
-				++words;
-			if ( words < end )
-				*words++ = 0;
-			cursor = words;
-		}
-		while ( cursor < end && *cursor != '\n' && *cursor != '\r' )
-			++cursor;
-		if ( cursor < end )
-			*cursor++ = 0;
-		if ( name )
-		{
-            const std::size_t bytes = std::strlen(name) + std::strlen(words) + 2;
-            if (bytes > INT_MAX) {
-                Sys_Error("VOX_ReadSentenceFile: sentence exceeds native allocation interface");
-            }
-            const int allocationBytes = static_cast<int>(bytes);
-            rgpszrawsentence[count] = static_cast<char*>(Mem_Malloc(allocationBytes));
-            Q_memcpy(rgpszrawsentence[count], name, allocationBytes);
-			if ( ++count >= MAX_SENTENCES )
-				break;
-		}
-	}
-	cszrawsentences = count;
-	Mem_Free( buffer );
+extern "C" void VOX_ReadSentenceFile() {
+    VOX_Shutdown();
+    int fileLength;
+    char* buffer = reinterpret_cast<char*>(COM_LoadFileForMe(szsentences, &fileLength));
+    if (!buffer) {
+        Con_DPrintf("VOX_ReadSentenceFile: Couldn't load %s\n", szsentences);
+        return;
+    }
+
+    const char* const end = buffer + fileLength;
+    const char* cursor = buffer;
+    while (cursor < end && cszrawsentences < MAX_SENTENCES) {
+        while (cursor < end && (*cursor == '\t' || *cursor == '\n' || *cursor == '\r' || *cursor == ' ')) {
+            ++cursor;
+        }
+        const char* name = cursor;
+        while (cursor < end && *cursor != '\n' && *cursor != '\r') {
+            ++cursor;
+        }
+        if (name == cursor || *name == '/') {
+            continue;
+        }
+
+        const char* separator = name;
+        while (separator < cursor && *separator != ' ' && *separator != '\t') {
+            ++separator;
+        }
+        if (separator == cursor) {
+            continue;
+        }
+        const char* words = separator + 1;
+        const auto nameBytes = static_cast<std::size_t>(separator - name);
+        const auto wordBytes = static_cast<std::size_t>(cursor - words);
+        constexpr std::size_t Terminators = 2;
+        const auto bytes = nameBytes + wordBytes + Terminators;
+        if (bytes > INT_MAX) {
+            Sys_Error("VOX_ReadSentenceFile: sentence exceeds native allocation interface");
+        }
+        auto* sentence = static_cast<char*>(Mem_Malloc(bytes));
+        std::memcpy(sentence, name, nameBytes);
+        sentence[nameBytes] = '\0';
+        char* text = sentence + nameBytes + 1;
+        std::memcpy(text, words, wordBytes);
+        text[wordBytes] = '\0';
+        rgpszrawsentence[cszrawsentences++] = sentence;
+    }
+    Mem_Free(buffer);
 }
 
 extern "C" char* VOX_LookupString( char* pszin, int* psentencenum )
