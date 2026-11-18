@@ -23,7 +23,8 @@ constexpr std::size_t kMaximumStreamingBytes = 128 * 1024 * 1024;
 // The measured scene/HUD working set reaches 41 MiB; three in-flight frames need up to 123 MiB.
 constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
-constexpr std::size_t kMaximumCachedTextures = 512;
+// The byte budget also applies to maps whose many small images need more resident handles.
+constexpr std::size_t kMaximumCachedTextures = 1024;
 constexpr std::size_t kMaximumCachedPipelines = 512;
 // Three vertex layouts combine with four border/alpha fragment variants.
 constexpr std::size_t kMaximumCachedVariantPipelines = 12 * kMaximumCachedPipelines;

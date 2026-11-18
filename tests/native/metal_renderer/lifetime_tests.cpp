@@ -172,6 +172,49 @@ void Names() {
         << " simultaneous names; explicit exhaustion\n";
 }
 
+void SmallResidentImages() {
+    Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL for resident image budget");
+    MetalSession session;
+    Check(session.Initialize(nullptr, true, error) && session.Resize(kTargetSize, kTargetSize, 1, error),
+        "Metal session for resident images");
+    constexpr unsigned kImagesPerGroup = 300;
+    const auto group = [](std::uint8_t red, std::uint8_t green) {
+        FrameSnapshot frame;
+        frame.info.width = kTargetSize;
+        frame.info.height = kTargetSize;
+        for (unsigned index = 0; index < kImagesPerGroup; ++index) {
+            auto image = std::make_shared<TextureImage>();
+            image->width = 1;
+            image->height = 1;
+            image->defined = true;
+            image->pixels = {red, green, 0, 255};
+            auto texture = std::make_shared<TextureObject>();
+            texture->levels[0] = std::move(image);
+            auto single = Frame(std::move(texture));
+            auto event = single.events.front();
+            event.drawIndex = frame.draws.size();
+            frame.events.push_back(event);
+            frame.draws.push_back(std::move(single.draws.front()));
+        }
+        return frame;
+    };
+    const auto first = group(255, 0);
+    const auto second = group(0, 255);
+    session.EnableDiagnostics(true);
+    Check(session.Render(first, error), "first sampled working set");
+    Pixel(session, 255, 0);
+    Check(session.Render(second, error), "second sampled working set");
+    Pixel(session, 0, 255);
+    const auto allocations = createdGpuTextures;
+    Check(session.Render(first, error), "reuse earlier sampled working set");
+    Pixel(session, 255, 0);
+    Check(session.Diagnostics().sampledTextureCapacityEvictions == 0 && createdGpuTextures == allocations,
+        "small sampled working sets above 512 handles stay resident");
+    session.Shutdown();
+    Check(liveGpuTextures == 0, "releases all small sampled images");
+    SDL_Quit();
+}
+
 void Session() {
     Check(SDL_Init(SDL_INIT_VIDEO), "initialize SDL");
     MetalSession session;
@@ -356,6 +399,7 @@ int main(int argc, char** argv) {
         Names();
     } else if (mode == "session") {
         Session();
+        SmallResidentImages();
     } else if (mode == "radar") {
         Radar();
     } else if (mode == "queued-reuse") {
