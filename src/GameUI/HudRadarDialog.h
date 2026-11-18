@@ -49,4 +49,5 @@ class CHudRadarDialog : public vgui2::Frame {
     vgui2::Button* m_cancel;
     vgui2::Button* m_apply;
     std::array<float, 2 + SliderCount + CheckCount> m_baseline{};
+    bool m_defaultsRequested = false;
 };

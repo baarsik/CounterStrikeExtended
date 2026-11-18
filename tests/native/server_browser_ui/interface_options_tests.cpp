@@ -490,6 +490,20 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
         radarValues["hud_radar_names"] = 0.0f;
     }
 
+    constexpr float CustomMapScale = 1.2345f;
+    radarValues["hud_radar_map_scale"] = CustomMapScale;
+    auto* preciseDialog = new CHudRadarDialog(root);
+    preciseDialog->SetScheme(scheme);
+    preciseDialog->DoModal();
+    Settle(*root);
+    auto* showNames = dynamic_cast<vgui2::CheckButton*>(preciseDialog->FindChildByName("hud_radar_names", false));
+    Require(showNames != nullptr, "radar name control exists");
+    showNames->SetSelected(true);
+    preciseDialog->OnCommand("OK");
+    Settle(*root);
+    Require(radarValues["hud_radar_map_scale"] == CustomMapScale,
+        "changing player names preserves the configured precision of an untouched map scale");
+
     for (const int style : {0, 1}) {
         uiStyle = static_cast<float>(style);
         for (const bool hoverTooltip : {false, true}) {

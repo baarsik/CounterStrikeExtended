@@ -146,6 +146,7 @@ float CHudRadarDialog::MapModeValue() const {
 }
 
 void CHudRadarDialog::LoadValues(bool defaults) {
+    m_defaultsRequested = defaults;
     const float mode = SettingValue("hud_radar_mode", defaults) != 0.0f ? 1.0f : 0.0f;
     m_mode->ActivateItemByRow(static_cast<int>(mode));
     const auto mapMode = RadarMapMode_FromCvar(SettingValue("hud_radar_map_mode", defaults));
@@ -176,14 +177,18 @@ void CHudRadarDialog::LoadValues(bool defaults) {
 }
 
 void CHudRadarDialog::ApplyValues() {
-    engine->Cvar_SetValue(const_cast<char*>("hud_radar_mode"), m_mode->GetActiveItem() != 0 ? 1.0f : 0.0f);
-    engine->Cvar_SetValue(const_cast<char*>("hud_radar_map_mode"), MapModeValue());
+    const auto apply = [this](int index, const char* name, float value) {
+        if (m_defaultsRequested || value != m_baseline[index]) {
+            engine->Cvar_SetValue(const_cast<char*>(name), value);
+        }
+    };
+    apply(0, "hud_radar_mode", m_mode->GetActiveItem() != 0 ? 1.0f : 0.0f);
+    apply(1, "hud_radar_map_mode", MapModeValue());
     for (int index = 0; index < SliderCount; ++index) {
-        engine->Cvar_SetValue(const_cast<char*>(SliderSettings[index].name), SliderValue(index));
+        apply(2 + index, SliderSettings[index].name, SliderValue(index));
     }
     for (int index = 0; index < CheckCount; ++index) {
-        engine->Cvar_SetValue(const_cast<char*>(CheckSettings[index].name),
-                              m_checks[index]->IsSelected() ? 1.0f : 0.0f);
+        apply(2 + SliderCount + index, CheckSettings[index].name, m_checks[index]->IsSelected() ? 1.0f : 0.0f);
     }
     LoadValues(false);
 }
