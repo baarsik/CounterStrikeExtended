@@ -180,7 +180,6 @@ bool InitializeBackend(SDL_Window* window, std::string& error, unsigned samples)
     if (UsingMetal()) {
         // Custom server model sets can retain over 650 MiB before the first world frame.
         // These CPU sources live until texture deletion, independently of the evictable GPU cache.
-        constexpr int kBaselineSystemRamMiB = 8 * 1024;
         constexpr std::size_t kBaselineTextureStorageBytes = std::size_t{1024} * 1024 * 1024;
         constexpr std::size_t kLargerTextureStorageBytes = 2 * kBaselineTextureStorageBytes;
         FrameLimits limits;

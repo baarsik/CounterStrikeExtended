@@ -6,6 +6,7 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <map>
+#include <string>
 
 using namespace cse::render;
 
@@ -15,6 +16,7 @@ std::map<SDL_GPUBuffer*, std::size_t> buffers;
 std::map<SDL_GPUTransferBuffer*, std::size_t> transfers;
 unsigned uploads = 0;
 std::size_t uploadedBufferBytes = 0;
+int installedRamMiB = 8192;
 constexpr unsigned kTargetSize = 16;
 constexpr std::size_t kRgbaComponents = 4;
 
@@ -101,7 +103,19 @@ extern "C" void SDL_UploadToGPUBuffer(SDL_GPUCopyPass* pass, const SDL_GPUTransf
     Original<decltype(&SDL_UploadToGPUBuffer)>("SDL_UploadToGPUBuffer")(pass, source, destination, cycle);
 }
 
-int main() {
+extern "C" int SDLCALL SDL_GetSystemRAM() {
+    return installedRamMiB;
+}
+
+int main(int argc, char** argv) {
+    const bool largerCache = argc == 2 && std::string(argv[1]) == "larger-cache";
+    Check(argc == 1 || largerCache, "select the base or larger streaming cache");
+    if (largerCache) {
+        installedRamMiB = 8193;
+    }
+    constexpr std::size_t kBaseStreamBudget = 128 * 1024 * 1024;
+    constexpr std::size_t kLargerStreamBudget = 160 * 1024 * 1024;
+    const auto streamBudget = largerCache ? kLargerStreamBudget : kBaseStreamBudget;
     Check(SDL_Init(SDL_INIT_VIDEO), "SDL video");
     MetalSession session;
     Check(session.Initialize(nullptr, true, error), "Metal initialization");
@@ -153,8 +167,10 @@ int main() {
     for (const auto& transfer : transfers) {
         bytes += transfer.second;
     }
-    constexpr std::size_t kStreamingBudget = 128 * 1024 * 1024;
-    Check(bytes <= kStreamingBudget, "Only bounded reusable frame streaming storage remains");
+    Check(bytes <= streamBudget, "Only bounded reusable frame streaming storage remains");
+    if (largerCache) {
+        Check(bytes > kBaseStreamBudget, "Larger tier retains useful streams beyond the base limit");
+    }
     // This recording's ordinary scene/HUD segments need more than 32 MiB across three
     // in-flight slots. Once warm, stable geometry must reuse its buffers without allocation churn.
     frame = Frame(nullptr);
@@ -204,7 +220,7 @@ int main() {
     for (const auto& transfer : transfers) {
         bytes += transfer.second;
     }
-    Check(bytes <= kStreamingBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
+    Check(bytes <= streamBudget, "Texture-heavy segments cannot evade the total streaming cache bound");
     // These polygons occupy one vertex page with a third index range between them.
     // Replay only the outside polygons, in reverse order, without uploading their vertices.
     {

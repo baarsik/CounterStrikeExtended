@@ -62,6 +62,7 @@ struct RenderFrameCounters {
 };
 
 enum class SceneOutput { Deferred, Resolved, ResolvedIfAvailable };
+constexpr int kBaselineSystemRamMiB = 8 * 1024;
 
 class MetalSession {
 public:
@@ -103,6 +104,8 @@ public:
     void Shutdown();
 
 private:
+    bool RenderBatch(const FrameSnapshot& frame, std::size_t firstEvent, std::size_t endEvent, bool useDepth,
+        SceneOutput output, bool& exceedsBudget, std::string& error);
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

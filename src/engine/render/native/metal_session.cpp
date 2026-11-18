@@ -8,9 +8,11 @@
 #include "legacy_runtime_embedded.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstring>
+#include <dispatch/dispatch.h>
 #include <map>
 #include <unordered_map>
 #include <utility>
@@ -21,11 +23,15 @@ namespace cse {
 namespace render {
 namespace {
 constexpr std::size_t kMaximumStreamingBytes = 128 * 1024 * 1024;
-// The measured scene/HUD working set reaches 41 MiB; three in-flight frames need up to 123 MiB.
-constexpr std::size_t kMaximumCachedStreamingBytes = 128 * 1024 * 1024;
-constexpr std::size_t kMaximumCachedTextureBytes = 256 * 1024 * 1024;
-// The byte budget also applies to maps whose many small images need more resident handles.
-constexpr std::size_t kMaximumCachedTextures = 1024;
+struct CacheBudget {
+    std::size_t textureBytes;
+    std::size_t textureEntries;
+    std::size_t streamBytes;
+};
+constexpr std::size_t kMiB = 1024 * 1024;
+constexpr CacheBudget kBaseCacheBudget{256 * kMiB, 1024, 128 * kMiB};
+// The larger tier accommodates custom assets and leaves headroom above the measured 144 MiB stream peak.
+constexpr CacheBudget kLargerCacheBudget{512 * kMiB, 2048, 160 * kMiB};
 constexpr std::size_t kMaximumCachedPipelines = 512;
 // Three vertex layouts combine with four border/alpha fragment variants.
 constexpr std::size_t kMaximumCachedVariantPipelines = 12 * kMaximumCachedPipelines;
@@ -144,6 +150,13 @@ DrawPacket ClearDraw(const ClearEvent& clear, unsigned width, unsigned height) {
 }
 
 struct MetalSession::Impl {
+    ~Impl() {
+        if (memoryPressureSource) {
+            dispatch_source_cancel(memoryPressureSource);
+            dispatch_release(memoryPressureSource);
+        }
+    }
+
     bool reportedNonfinite = false;
     bool diagnosticsEnabled = false;
     RenderFrameCounters counters;
@@ -254,6 +267,7 @@ struct MetalSession::Impl {
         PipelineKey pipelineKey{};
         SDL_GPUGraphicsPipeline* pipeline = nullptr;
         bool depthAttachment = true;
+        bool exceedsTextureBudget = false;
     };
 
     static bool SameDrawState(const Draw& first, const Draw& second) {
@@ -299,6 +313,7 @@ struct MetalSession::Impl {
     int drawableCount = 0;
     std::uint64_t serial = 0;
     std::size_t streamIndex = 0;
+    CacheBudget budget = kBaseCacheBudget;
     std::size_t textureBytes = 0;
     std::array<FrameStream, kFramesInFlight> streams{};
     using TextureKey = std::pair<const TextureObject*, const SharedPalette*>;
@@ -310,6 +325,9 @@ struct MetalSession::Impl {
         }
     };
     std::unordered_map<TextureKey, Texture, TextureKeyHash> textures;
+    using MemoryPressureFlag = std::shared_ptr<std::atomic_bool>;
+    MemoryPressureFlag memoryPressurePending;
+    dispatch_source_t memoryPressureSource = nullptr;
     std::map<SamplerKey, SDL_GPUSampler*> samplers;
     std::map<PipelineKey, SDL_GPUGraphicsPipeline*> pipelines;
     // Find world surfaces by immutable identity. Rehashing preserves the mesh
@@ -483,7 +501,7 @@ struct MetalSession::Impl {
         // prefix. Retire unused tails before evicting buffers that an ordinary frame just used.
         for (auto& slot : streams) {
             for (std::size_t index = slot.chunks.size(); index > slot.cursor &&
-                cachedBytes > kMaximumCachedStreamingBytes; --index) {
+                cachedBytes > budget.streamBytes; --index) {
                 release(slot.chunks[index - 1]);
             }
             while (slot.chunks.size() > slot.cursor && !slot.chunks.back().uploadCapacity &&
@@ -492,11 +510,11 @@ struct MetalSession::Impl {
             }
         }
         // Under actual working-set pressure, evict the least recently submitted slot first.
-        for (std::size_t age = 1; age <= streams.size() && cachedBytes > kMaximumCachedStreamingBytes;
+        for (std::size_t age = 1; age <= streams.size() && cachedBytes > budget.streamBytes;
             ++age) {
             auto& slot = streams[(streamIndex + age) % streams.size()];
             for (auto iterator = slot.chunks.rbegin(); iterator != slot.chunks.rend() &&
-                cachedBytes > kMaximumCachedStreamingBytes; ++iterator) {
+                cachedBytes > budget.streamBytes; ++iterator) {
                 release(*iterator);
             }
         }
@@ -681,6 +699,44 @@ struct MetalSession::Impl {
         return sampler;
     }
 
+    void WatchMemoryPressure() {
+        memoryPressurePending = std::make_shared<std::atomic_bool>(false);
+        auto context = std::make_unique<MemoryPressureFlag>(memoryPressurePending);
+        memoryPressureSource = dispatch_source_create(DISPATCH_SOURCE_TYPE_MEMORYPRESSURE, 0,
+            DISPATCH_MEMORYPRESSURE_WARN | DISPATCH_MEMORYPRESSURE_CRITICAL,
+            dispatch_get_global_queue(QOS_CLASS_UTILITY, 0));
+        if (!memoryPressureSource) {
+            memoryPressurePending.reset();
+            return;
+        }
+        // The asynchronous source owns its flag reference through cancellation.
+        // GPU retirement stays on the render thread.
+        dispatch_set_context(memoryPressureSource, context.release());
+        dispatch_source_set_event_handler_f(memoryPressureSource, [](void* data) {
+            (*static_cast<MemoryPressureFlag*>(data))->store(true, std::memory_order_relaxed);
+        });
+        dispatch_source_set_cancel_handler_f(memoryPressureSource, [](void* data) {
+            delete static_cast<MemoryPressureFlag*>(data);
+        });
+        dispatch_activate(memoryPressureSource);
+    }
+
+    void TrimSampledTexturesOnPressure() {
+        if (!memoryPressurePending || !memoryPressurePending->load(std::memory_order_relaxed) ||
+            !memoryPressurePending->exchange(false, std::memory_order_relaxed)) {
+            return;
+        }
+        for (auto entry = textures.begin(); entry != textures.end();) {
+            if (entry->second.lastUse != serial) {
+                textureBytes -= entry->second.bytes;
+                SDL_ReleaseGPUTexture(device, entry->second.texture);
+                entry = textures.erase(entry);
+            } else {
+                ++entry;
+            }
+        }
+    }
+
     Texture* GetTexture(const std::shared_ptr<const TextureObject>& object,
         const std::shared_ptr<const SharedPalette>& palette, Preparation& pending, std::string& error) {
         const TextureKey key{object.get(), palette.get()};
@@ -714,8 +770,8 @@ struct MetalSession::Impl {
         for (const auto& image : entry.data.levels) {
             entry.bytes += image->pixels.size();
         }
-        // Evict immutable versions only between frames. SDL retains submitted GPU references after release.
-        while ((textureBytes + entry.bytes > kMaximumCachedTextureBytes || textures.size() >= kMaximumCachedTextures) &&
+        // Keep sources used by this batch until their draws are encoded. SDL then retains GPU references.
+        while ((textureBytes + entry.bytes > budget.textureBytes || textures.size() >= budget.textureEntries) &&
             !textures.empty()) {
             auto oldest = textures.end();
             for (auto iterator = textures.begin(); iterator != textures.end(); ++iterator) {
@@ -725,12 +781,13 @@ struct MetalSession::Impl {
                 }
             }
             if (oldest == textures.end()) {
+                pending.exceedsTextureBudget = true;
                 Fail(error, "Frame sampled image set exceeds Metal cache budget");
                 return nullptr;
             }
             if (diagnosticsEnabled) {
                 ++counters.sampledTextureCapacityEvictions;
-                counters.sampledTextureByteLimitEvictions += textureBytes + entry.bytes > kMaximumCachedTextureBytes;
+                counters.sampledTextureByteLimitEvictions += textureBytes + entry.bytes > budget.textureBytes;
             }
             textureBytes -= oldest->second.bytes;
             SDL_ReleaseGPUTexture(device, oldest->second.texture);
@@ -1162,6 +1219,7 @@ MetalSession::~MetalSession() {
 bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error) {
     Shutdown();
     auto& state = *impl_;
+    state.budget = SDL_GetSystemRAM() > kBaselineSystemRamMiB ? kLargerCacheBudget : kBaseCacheBudget;
     state.device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_METALLIB, debug, "metal");
     if (!state.device) {
         return DeviceFailure(error, "Create persistent SDL Metal device");
@@ -1227,6 +1285,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     };
     state.white = fallback({{255, 255, 255, 255}});
     state.black = fallback({{0, 0, 0, 255}});
+    state.WatchMemoryPressure();
     error.clear();
     return true;
 }
@@ -1346,6 +1405,43 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             return Fail(error, "Invalid Metal frame event");
         }
     }
+    if (state.diagnosticsEnabled) {
+        state.counters.drawPackets += frame.draws.size();
+        if (!frame.events.empty() && frame.events.front().kind == FrameEventKind::Clear &&
+            !frame.events.front().clear.scissorEnabled) {
+            ++state.counters.leadingUnscissoredClears;
+        }
+    }
+
+    std::size_t firstEvent = 0;
+    const auto eventCount = frame.events.size();
+    auto endEvent = eventCount;
+    for (;;) {
+        bool exceedsBudget = false;
+        const auto batchOutput = endEvent == eventCount ? output : SceneOutput::Deferred;
+        if (RenderBatch(frame, firstEvent, endEvent, useDepth, batchOutput, exceedsBudget, error)) {
+            if (endEvent == eventCount) {
+                state.TrimSampledTexturesOnPressure();
+                return true;
+            }
+            // Submitting and retiring the prefix bounds the GPU resources kept by earlier batches.
+            if (!Finish(error)) {
+                return false;
+            }
+            firstEvent = endEvent;
+            endEvent = eventCount;
+        } else if (exceedsBudget && endEvent - firstEvent > 1) {
+            // Only preparation reports budget exhaustion. No commands for this range were encoded.
+            endEvent = firstEvent + (endEvent - firstEvent) / 2;
+        } else {
+            return false;
+        }
+    }
+}
+
+bool MetalSession::RenderBatch(const FrameSnapshot& frame, std::size_t firstEvent, std::size_t endEvent, bool useDepth,
+    SceneOutput output, bool& exceedsBudget, std::string& error) {
+    auto& state = *impl_;
     ++state.serial;
     // Captured packets own source versions until submission; the persistent GPU cache only borrows them.
     // Expired entries can be released without waiting because SDL retains submitted GPU references.
@@ -1383,7 +1479,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         state.activeMeshPages = {};
         state.meshPages.clear();
     }
-    if (frame.events.empty() && state.initializedTarget) {
+    if (firstEvent == endEvent && state.initializedTarget) {
         if (output != SceneOutput::Deferred && !ResolveScene(error) && output == SceneOutput::Resolved) {
             return false;
         }
@@ -1405,13 +1501,6 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         state.samplers.clear();
     }
     const auto prepareStart = state.diagnosticsEnabled ? Impl::Clock::now() : Impl::Clock::time_point{};
-    if (state.diagnosticsEnabled) {
-        state.counters.drawPackets += frame.draws.size();
-        if (!frame.events.empty() && frame.events.front().kind == FrameEventKind::Clear &&
-            !frame.events.front().clear.scissorEnabled) {
-            ++state.counters.leadingUnscissoredClears;
-        }
-    }
     auto& draws = state.preparedDraws;
     // Keep only allocation capacity between segments. Source mesh ownership and cache pointers
     // must end on every return, including preparation/encoding failure and map retirement.
@@ -1421,20 +1510,20 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             draws.clear();
         }
     } preparedScope{draws};
-    if (state.diagnosticsEnabled && frame.events.size() > draws.capacity()) {
+    if (state.diagnosticsEnabled && endEvent - firstEvent > draws.capacity()) {
         ++state.counters.preparationAllocations;
     }
-    draws.reserve(frame.events.size());
+    draws.reserve(endEvent - firstEvent);
     Impl::Preparation pending;
     pending.depthAttachment = useDepth;
-    std::size_t firstDraw = 0;
+    std::size_t firstDraw = firstEvent;
     SDL_FColor initialColor{0, 0, 0, 0};
     float initialDepth = 1;
     bool clearColor = !state.initializedTarget;
     bool clearDepth = !state.initializedTarget;
     // Only whole-attachment clears with exact endpoint values can replace the
     // corresponding load. Masked/scissored and other numeric clears remain draws.
-    for (; firstDraw < frame.events.size(); ++firstDraw) {
+    for (; firstDraw < endEvent; ++firstDraw) {
         const auto& event = frame.events[firstDraw];
         const auto& clear = event.clear;
         if (event.kind != FrameEventKind::Clear || !clear.mask || clear.scissorEnabled) {
@@ -1450,7 +1539,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                 return clearsColor ? component == 0 || component == 1 : std::isfinite(component);
             });
         if (!validColor || (clearsColor && !std::all_of(clear.colorWrite.begin(), clear.colorWrite.end(),
-            [](bool write) { return write; }))) {
+            [](bool write) {
+                return write;
+            }))) {
             break;
         }
         if (clearsColor) {
@@ -1465,15 +1556,17 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     std::size_t geometryBytes = 0;
     std::size_t vertexBytes = 0;
     std::size_t indexBytes = 0;
-    for (std::size_t index = firstDraw; index < frame.events.size(); ++index) {
+    for (std::size_t index = firstDraw; index < endEvent; ++index) {
         const auto& event = frame.events[index];
         auto& draw = draws.emplace_back();
         if (event.kind == FrameEventKind::Clear) {
             if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error,
                 MetalGeometryOwnership::Own)) {
+                exceedsBudget = pending.exceedsTextureBudget;
                 return false;
             }
         } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error, MetalGeometryOwnership::Borrow)) {
+            exceedsBudget = pending.exceedsTextureBudget;
             return false;
         }
         if ((!draw.mesh && draw.data.Vertices().empty()) ||
@@ -1488,6 +1581,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto drawIndexBytes = draw.data.IndexCount() * sizeof(std::uint32_t);
         const auto bytes = drawVertexBytes + drawIndexBytes;
         if (bytes > kMaximumStreamingBytes - geometryBytes) {
+            exceedsBudget = true;
             return Fail(error, "Frame geometry exceeds Metal streaming budget");
         }
         draw.vertexOffset = static_cast<Uint32>(vertexBytes);
@@ -1526,6 +1620,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto vertexBytes = object->Vertices().size() * mesh->page->vertexStride;
         const auto indexBytes = object->Indices().size() * sizeof(std::uint32_t);
         if (vertexBytes + indexBytes > kMaximumStreamingBytes - uploadBytes) {
+            exceedsBudget = true;
             return Fail(error, "Frame meshes exceed Metal upload budget");
         }
         meshUploads.push_back({mesh, object, static_cast<Uint32>(uploadBytes),
@@ -1538,6 +1633,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             uploadBytes = Align(uploadBytes, kTransferAlignment);
             const auto bytes = texture->data.levels[level]->pixels.size();
             if (uploadBytes > kMaximumStreamingBytes || bytes > kMaximumStreamingBytes - uploadBytes) {
+                exceedsBudget = true;
                 return Fail(error, "Frame textures exceed Metal streaming budget");
             }
             uploads.push_back({texture, static_cast<unsigned>(level), static_cast<Uint32>(uploadBytes)});
@@ -1662,7 +1758,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                     const auto base = draw.streamedBaseVertex;
                     auto* rebased = reinterpret_cast<std::uint32_t*>(destination);
                     std::transform(indices.begin(), indices.end(), rebased,
-                        [base](std::uint32_t value) { return value + base; });
+                        [base](std::uint32_t value) {
+                            return value + base;
+                        });
                 } else {
                     std::memcpy(destination, indices.data(), indices.size() * sizeof(std::uint32_t));
                 }
@@ -1705,7 +1803,9 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                     const auto base = static_cast<std::uint32_t>(piece.mesh->vertexOffset / piece.mesh->page->vertexStride);
                     const auto& original = piece.data.mesh->Indices();
                     indices = std::transform(original.begin(), original.end(), indices,
-                        [base](std::uint32_t value) { return value + base; });
+                        [base](std::uint32_t value) {
+                            return value + base;
+                        });
                 }
                 index += draw.batchDraws - 1;
             }
