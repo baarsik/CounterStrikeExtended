@@ -202,7 +202,9 @@ void BaseUISurface::AppHandler(void *event, void *) {
         break;
     }
     case SDL_EVENT_MOUSE_WHEEL:
-        g_InputInternal->InternalMouseWheeled(cse::WheelSteps(s_wheelMotion, ev.wheel.y, ev.wheel.direction));
+        cse::DispatchWheelSteps(s_wheelMotion, ev.wheel, [](int steps) {
+            g_InputInternal->InternalMouseWheeled(steps);
+        });
         break;
     }
 }

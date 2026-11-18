@@ -648,8 +648,9 @@ void EngineSurfaceWrap::AppHandler(void *event, void *) {
                 app->internalMouseReleased(code, this);
             }
         } else if (type == SDL_EVENT_MOUSE_WHEEL) {
-            app->internalMouseWheeled(cse::WheelSteps(s_wheelMotion, sdlEvent->wheel.y, sdlEvent->wheel.direction),
-                                      this);
+            cse::DispatchWheelSteps(s_wheelMotion, sdlEvent->wheel, [app, this](int steps) {
+                app->internalMouseWheeled(steps, this);
+            });
         }
         return;
     }

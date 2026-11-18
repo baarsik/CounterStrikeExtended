@@ -58,4 +58,12 @@ inline int WheelSteps(FractionalMotion &remainder, float vertical, SDL_MouseWhee
     return remainder.TakeY(vertical);
 }
 
+template <typename Receiver>
+inline void DispatchWheelSteps(FractionalMotion& remainder, const SDL_MouseWheelEvent& wheel, Receiver receive) {
+    const int steps = WheelSteps(remainder, wheel.y, wheel.direction);
+    if (steps != 0) {
+        receive(steps);
+    }
+}
+
 } // namespace cse
