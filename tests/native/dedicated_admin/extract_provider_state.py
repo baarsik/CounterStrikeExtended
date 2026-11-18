@@ -18,6 +18,7 @@ def function(signature):
 methods += function('void CSteam3Server::OnLogonFailure(')
 methods += function('void CSteam3Server::OnLogonSuccess(')
 methods += function('void CSteam3Server::OnGSPolicyResponse(')
+methods += function('bool CSteam3Server::PollRestartRequest()')
 pathlib.Path(sys.argv[2]).write_text('''
 #include <string>
 int calls = 0;
@@ -36,11 +37,17 @@ struct ControlledProvider {
     int GetSteamID() { return 1; }
     bool BLoggedOn() { ++calls; return connected; }
     bool BSecure() { ++calls; return secure; }
-    bool WasRestartRequested() { ++calls; return restart; }
+    bool WasRestartRequested() {
+        ++calls;
+        const bool requested = restart;
+        restart = false;
+        return requested;
+    }
 } sdk;
 ControlledProvider* SteamGameServer() { ++calls; return &sdk; }
 struct CSteam3Server {
     bool m_adminInitialized = false;
+    bool m_adminRestartRequested = false;
     bool m_bLoggedOn = false;
     bool m_bWantToBeSecure = false;
     int m_adminFailure = 0;
@@ -52,6 +59,7 @@ struct CSteam3Server {
     void OnLogonSuccess(SteamServersConnected_t*);
     void OnGSPolicyResponse(GSPolicyResponse_t*);
     AdminProviderStatus QueryAdminStatus();
+    bool PollRestartRequest();
 };
 CSteam3Server* s_Steam3Server = nullptr;
 ''' + methods)

@@ -155,7 +155,7 @@ AdminProviderStatus CSteam3Server::QueryAdminStatus() {
     status.connected = provider->BLoggedOn();
     status.secureRequested = m_bWantToBeSecure;
     status.secure = provider->BSecure();
-    status.restartRequested = provider->WasRestartRequested();
+    status.restartRequested = m_adminRestartRequested;
     status.failure = m_adminFailure;
     return status;
 }
@@ -519,6 +519,7 @@ void CSteam3Server::Activate()
 
     m_adminFailure = 0;
     m_adminInitialized = false;
+    m_adminRestartRequested = false;
     m_bLoggedOn = true;
 	uint32 serverIP = 0;
 	if ( net_local_adr.type == NA_IP )
@@ -983,6 +984,18 @@ void CSteam3Server::Shutdown()
 		NET_GetLocalAddress();
 }
 
+bool CSteam3Server::PollRestartRequest() {
+    // Steam returns each request only once. Keep it visible to admin readers for this server session.
+    if (!SteamGameServer()->WasRestartRequested()) {
+        return false;
+    }
+    if (!m_adminRestartRequested) {
+        m_adminRestartRequested = true;
+        NotifyDedicatedServerUI("ProviderStatus");
+    }
+    return true;
+}
+
 void CSteam3Server::RunFrame()
 {
 	if ( svs.maxclients <= 1 )
@@ -1019,8 +1032,7 @@ void CSteam3Server::RunFrame()
 			uint32 score = static_cast<uint32>( static_cast<int>( client.edict->v.frags ) );
 			SteamGameServer()->BUpdateUserData( CSteamID( client.network_userid.m_SteamID ), client.name, score );
 		}
-		if ( SteamGameServer()->WasRestartRequested() )
-		{
+        if (PollRestartRequest()) {
 			Con_Printf( "%cMasterRequestRestart\n", 3 );
 			if ( COM_CheckParm( "-steam" ) )
 			{

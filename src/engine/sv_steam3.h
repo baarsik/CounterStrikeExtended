@@ -66,7 +66,9 @@ public:
 	friend qboolean Steam_GSBSecurePreference();
 
 private:
-	bool m_adminInitialized = false;
+    bool PollRestartRequest();
+    bool m_adminInitialized = false;
+    bool m_adminRestartRequested = false;
     int m_adminFailure = 0;
     CCallback<CSteam3Server, GSClientApprove_t, true> m_CallbackGSClientApprove;
 	CCallback<CSteam3Server, GSClientDeny_t, true> m_CallbackGSClientDeny;
