@@ -4,6 +4,8 @@ A fork of BlackShadow/GoldSrc-SDK for Counter-Strike 1.6 and Half-Life, includin
 the engine, game modules, shared runtime, dedicated servers and HLTV. The runtime
 uses SDL3 for platform services and libmpg123 for music playback.
 
+The software client renderer is deprecated and planned for removal in a future release.
+
 ## AMX Mod X module
 
 The optional `cse_extstats` AMXX module for Win32/Linux32 Counter-Strike servers

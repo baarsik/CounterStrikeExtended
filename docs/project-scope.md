@@ -20,7 +20,7 @@ for commands, output roots and feature options.
 | `launcher` | `hl.exe` | Loads the selected engine and filesystem |
 | `hw_engine` | `hw.dll` | Hardware engine, media and provider integration |
 | `hlds` | `hlds.exe` | Dedicated launcher and administration UI |
-| `swds` | `swds.dll` | Dedicated engine; retains shared software-renderer source |
+| `swds` | `swds.dll` | Dedicated engine and deprecated software client renderer on Windows x64 and macOS |
 | `cs_client` | `cstrike/cl_dlls/client.dll` | Counter-Strike client and UI |
 | `cs_server` | `cstrike/dlls/mp.dll` | Counter-Strike gameplay, bots, hostages, navigation and movement |
 | `hl_client` | `valve/cl_dlls/client.dll` | Half-Life client and UI |
@@ -78,10 +78,9 @@ preserves the original build/tool documents and notices. Condition Zero shared t
 its target removal did not remove CS gameplay. The original Gunman projects
 referenced source absent from this checkout.
 
-The removed `sw.dll` client shared all 187 compile inputs with `swds`, so its
-removal did not remove software-renderer source. Inherited launcher and video
-settings still contain `sw.dll` selection paths; software client mode has no
-built provider. The separate dedicated `swds.dll` remains enabled.
+The original `sw.dll` client shared all 187 compile inputs with `swds`. On
+Windows x64 and macOS, `swds` also supplies the deprecated software client renderer,
+which is planned for removal in a future release.
 
 ## Shared source that remains required
 
