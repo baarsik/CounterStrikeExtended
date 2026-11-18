@@ -50,7 +50,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as server, \
         if sys.argv[2] == 'failed-empty-refresh':
             command.append(f'127.0.0.1:{unavailable.getsockname()[1]}')
         subprocess.run(command, check=True, timeout=45 if sys.argv[2] == 'large-quick-refresh' else 15)
-        if sys.argv[2] != 'cancel':
+        if sys.argv[2] in ('reentry', 'cancel-reentry'):
+            # The first published endpoint can trigger cancellation before the next page is requested.
+            assert requests
+        elif sys.argv[2] != 'cancel':
             assert len(requests) >= 2
     finally:
         stopped.set()
