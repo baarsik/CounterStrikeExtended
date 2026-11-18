@@ -24,6 +24,7 @@ bool cse::TryShutdownNativeVGui() {
 }
 
 void Host_ShutdownServer(qboolean) {
+    assert(Host_IsShuttingDown());
     order.push_back("drain");
     Host_Shutdown();
 }
@@ -80,8 +81,10 @@ int main() {
     host_initialized = true;
     cse::ResetNativeHostShutdown();
     cse::SetNativeHostInitPhase(cse::NativeHostInitPhase::Complete);
+    assert(!Host_IsShuttingDown());
     assert(!cse::TryShutdownNativeHost());
     assert(order.empty() && host_initialized);
+    assert(!Host_IsShuttingDown());
     gameUIReady = true;
     assert(!cse::TryShutdownNativeHost());
     assert((order == std::vector<std::string>{"drain", "steam"}));

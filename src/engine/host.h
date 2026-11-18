@@ -32,6 +32,7 @@ void		Host_ShutdownServer( qboolean crash );
 void		Host_WriteConfiguration();
 void		Host_WriteCustomConfig();
 void		Host_Version();
+bool        Host_IsShuttingDown();
 qboolean	Host_IsServerActive();
 qboolean	Host_IsSinglePlayerGame();
 void		CL_AddVoiceToDatagram( qboolean final );
