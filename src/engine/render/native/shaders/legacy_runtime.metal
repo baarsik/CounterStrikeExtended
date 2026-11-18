@@ -135,12 +135,13 @@ float4 BorderSample(texture2d<float> image, float2 uv, float lod, float mipLod, 
     return BorderLevel(image, uv, uint(floor(lod + 0.5f)), wrap, linear);
 }
 
+template<bool SoftwareBorder>
 float4 Sample(texture2d<float> image, sampler state, float4 coordinate, float4 dimensions, float4 sampling) {
     float2 uv = coordinate.xy / coordinate.w;
     if (dimensions.z != 0) {
         uv /= max(dimensions.xy, float2(1));
     }
-    if (sampling.x != 1 && sampling.y != 1) {
+    if (!SoftwareBorder || (sampling.x != 1 && sampling.y != 1)) {
         return image.sample(state, uv);
     }
     float2 size = float2(image.get_width(), image.get_height());
@@ -167,22 +168,24 @@ float4 Sample(texture2d<float> image, sampler state, float4 coordinate, float4 d
     return result / float(taps);
 }
 
+template<bool SoftwareBorder>
 float4 ApplyTexture(float4 previous, texture2d<float> image, sampler state, float4 coordinate,
     constant FragmentConstants& constants, uint unit) {
     // The same enable bit applies to every fragment of the draw, including derivative-based sampling.
     if (constants.Unit[unit].x == 0.0f) {
         return previous;
     }
-    return Environment(previous, Sample(image, state, coordinate, constants.Texture[unit], constants.Sampling[unit]),
+    return Environment(previous, Sample<SoftwareBorder>(image, state, coordinate, constants.Texture[unit], constants.Sampling[unit]),
         constants.Unit[unit], constants.Components[unit]);
 }
 
+template<bool SoftwareBorder>
 float4 LegacyColor(Varying input, constant FragmentConstants& constants,
     texture2d<float> texture0, texture2d<float> texture1, texture2d<float> texture2,
     sampler sampler0, sampler sampler1, sampler sampler2) {
-    float4 result = ApplyTexture(input.color, texture0, sampler0, input.uv0, constants, 0);
-    result = ApplyTexture(result, texture1, sampler1, input.uv1, constants, 1);
-    result = ApplyTexture(result, texture2, sampler2, input.uv2, constants, 2);
+    float4 result = ApplyTexture<SoftwareBorder>(input.color, texture0, sampler0, input.uv0, constants, 0);
+    result = ApplyTexture<SoftwareBorder>(result, texture1, sampler1, input.uv1, constants, 1);
+    result = ApplyTexture<SoftwareBorder>(result, texture2, sampler2, input.uv2, constants, 2);
     if (constants.Fog.x != 0.0f) {
         float distance = input.eyeDepth;
         float factor;
@@ -205,7 +208,7 @@ fragment float4 LegacyFragment(Varying input [[stage_in]],
     texture2d<float> Texture0 [[texture(0)]], texture2d<float> Texture1 [[texture(1)]],
     texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
     sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
-    return LegacyColor(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
+    return LegacyColor<true>(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
 }
 
 fragment float4 LegacyFragmentAlphaTest(Varying input [[stage_in]],
@@ -213,7 +216,28 @@ fragment float4 LegacyFragmentAlphaTest(Varying input [[stage_in]],
     texture2d<float> Texture0 [[texture(0)]], texture2d<float> Texture1 [[texture(1)]],
     texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
     sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
-    const float4 result = LegacyColor(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
+    const float4 result = LegacyColor<true>(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
+    if (!AlphaPass(result.a, uint(constants.FogAlpha.z), constants.FogAlpha.w)) {
+        discard_fragment();
+    }
+    return result;
+}
+
+// This entry point cannot discard fragments, allowing early depth testing.
+fragment float4 LegacyFragmentHardwareSampling(Varying input [[stage_in]],
+    constant FragmentConstants& constants [[buffer(0)]],
+    texture2d<float> Texture0 [[texture(0)]], texture2d<float> Texture1 [[texture(1)]],
+    texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
+    sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
+    return LegacyColor<false>(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
+}
+
+fragment float4 LegacyFragmentAlphaTestHardwareSampling(Varying input [[stage_in]],
+    constant FragmentConstants& constants [[buffer(0)]],
+    texture2d<float> Texture0 [[texture(0)]], texture2d<float> Texture1 [[texture(1)]],
+    texture2d<float> Texture2 [[texture(2)]], sampler Sampler0 [[sampler(0)]],
+    sampler Sampler1 [[sampler(1)]], sampler Sampler2 [[sampler(2)]]) {
+    const float4 result = LegacyColor<false>(input, constants, Texture0, Texture1, Texture2, Sampler0, Sampler1, Sampler2);
     if (!AlphaPass(result.a, uint(constants.FogAlpha.z), constants.FogAlpha.w)) {
         discard_fragment();
     }

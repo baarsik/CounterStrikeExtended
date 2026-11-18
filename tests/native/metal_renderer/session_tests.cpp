@@ -759,6 +759,66 @@ void AttachmentClears(MetalSession& session, std::string& error) {
     session.EnableDiagnostics(false);
 }
 
+void SamplingVariants(MetalSession& session, std::string& error) {
+    auto image = std::make_shared<TextureImage>();
+    image->width = 1;
+    image->height = 1;
+    image->defined = true;
+    image->internal = InternalFormat::RGBA;
+    image->pixels = {255, 0, 0, 255};
+    auto edge = std::make_shared<TextureObject>();
+    edge->sampler.minification = Filter::Linear;
+    edge->sampler.magnification = Filter::Linear;
+    edge->sampler.wrapS = Wrap::ClampToEdge;
+    edge->levels[0] = image;
+    auto border = std::make_shared<TextureObject>(*edge);
+    border->sampler.wrapS = Wrap::Clamp;
+    FrameSnapshot frame;
+    frame.info.width = kTargetSize;
+    frame.info.height = kTargetSize;
+    FrameEvent clear;
+    clear.kind = FrameEventKind::Clear;
+    clear.clear.mask = kClearColor;
+    clear.clear.color = {{0, 0, 1, 1}};
+    frame.events.push_back(clear);
+    for (unsigned quadrant = 0; quadrant < 4; ++quadrant) {
+        const bool right = (quadrant & 1) != 0;
+        const bool upper = (quadrant & 2) != 0;
+        auto draw = Solid(1, 1, 1);
+        constexpr std::size_t unit = kTextureUnits - 1;
+        draw.textures[unit].enabled2D = true;
+        draw.textures[unit].environment = EnvironmentMode::Replace;
+        draw.resources[unit].texture2D = right ? border : edge;
+        draw.raster.enabled[static_cast<std::size_t>(Capability::AlphaTest)] = upper;
+        draw.raster.alphaFunction = Compare::Greater;
+        draw.raster.alphaReference = 0.75f;
+        for (auto& vertex : draw.vertices) {
+            vertex.position[0] = (vertex.position[0] + (right ? 1 : -1)) * 0.5f;
+            vertex.position[1] = (vertex.position[1] + (upper ? 1 : -1)) * 0.5f;
+            vertex.texcoords[unit] = {{0, 0.5f, 0, 1}};
+        }
+        FrameEvent event;
+        event.drawIndex = frame.draws.size();
+        frame.events.push_back(event);
+        frame.draws.push_back(std::move(draw));
+    }
+    sceneBindings = {};
+    CHECK(session.Render(frame, error));
+    std::array<unsigned char, 4> pixel{};
+    constexpr int near = kTargetSize / 4;
+    constexpr int far = kTargetSize - near;
+    for (int y : {near, far}) {
+        CHECK(session.ReadPixels(near, y, 1, 1, 4, 1, pixel.data(), error));
+        CHECK((pixel == std::array<unsigned char, 4>{{255, 0, 0, 255}}));
+    }
+    CHECK(session.ReadPixels(far, near, 1, 1, 4, 1, pixel.data(), error));
+    CHECK(pixel[0] >= 127 && pixel[0] <= 128 && pixel[1] == 0 && pixel[2] == 0);
+    CHECK(pixel[3] == pixel[0]);
+    CHECK(session.ReadPixels(far, far, 1, 1, 4, 1, pixel.data(), error));
+    CHECK((pixel == std::array<unsigned char, 4>{{0, 0, 255, 255}}));
+    CHECK(sceneBindings.pipelines == 4);
+}
+
 int main() {
     std::string error;
     CHECK(SDL_Init(SDL_INIT_VIDEO));
@@ -776,6 +836,7 @@ int main() {
     BatchedUiPixels(session, error);
     PersistentMesh(session, error);
     AttachmentClears(session, error);
+    SamplingVariants(session, error);
     FrameSnapshot frame;
     frame.info.width = 16;
     frame.info.height = 16;
