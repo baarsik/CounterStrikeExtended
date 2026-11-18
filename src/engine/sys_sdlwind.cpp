@@ -453,6 +453,7 @@ void CGame::AppActivate( bool fActive )
 	}
 	else
 	{
+        s_wheelMotion.Reset();
 		fprintf( stderr, "AppActive: not active\n" );
 		if ( host_initialized )
 		{
@@ -1692,6 +1693,7 @@ void CGame::AppActivate( bool fActive )
 	}
 	else
 	{
+        s_wheelMotion.Reset();
 		std::fprintf( stderr, "AppActive: not active\n" );
 		if ( host_initialized )
 		{

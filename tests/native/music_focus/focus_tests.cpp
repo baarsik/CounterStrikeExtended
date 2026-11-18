@@ -1,5 +1,6 @@
 #include "cd.h"
 #include "thread.h"
+#include "../../../src/common/sdl3_policy.h"
 #include <atomic>
 #include <chrono>
 #include <cstdarg>
@@ -148,6 +149,7 @@ void CCDAudio::_GetAudioDiskInfo(int first, int) {
 #include "actual_audio.inc"
 
 bool host_initialized = true;
+cse::FractionalMotion s_wheelMotion;
 bool bPausedByCareer = false;
 constexpr int src_command = 0;
 struct {
@@ -253,8 +255,11 @@ int main(int argc, char **argv) {
         const auto played = musicPlayer.Snapshot();
         Check(played.playing && played.opens == prime.opens, "Play(0) starts the already primed stream");
     } else if (std::strcmp(name, "ordinary") == 0) {
+        Check(s_wheelMotion.TakeY(0.75f) == 0, "partial wheel motion before focus loss");
         Pause(game);
         Gain(game);
+        Check(s_wheelMotion.TakeY(0.5f) == 0, "fresh wheel gesture starts after focus returns");
+        Check(s_wheelMotion.TakeY(0.5f) == 1, "fresh wheel gesture completes a detent");
         const auto state = musicPlayer.Snapshot();
         Check(state.playing && g_CDAudio.m_bIsPlaying, "ordinary focus gain resumes playback");
         Check(state.position == InitialPosition && state.opens == 1, "ordinary resume preserves stream/position");
