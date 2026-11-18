@@ -199,6 +199,36 @@ int main() {
         Require(maximum <= 1, name + " exceeds one-byte GL/Metal tolerance");
     };
     compare("solid", Quad());
+    {
+        constexpr int textureSide = 2;
+        TextureStore textures;
+        LegacyState state;
+        TextureUpload upload;
+        upload.width = textureSide;
+        upload.height = textureSide;
+        upload.internal = InternalFormat::RGBA;
+        upload.allocateOnly = true;
+        constexpr auto target = TextureTarget::Texture2D;
+        Require(textures.Upload(state, target, upload, {}, false) == Status::Ok, "allocate empty texture");
+        Require(textures.Parameter(state, target, TextureParameter::MinFilter,
+            static_cast<double>(Filter::Nearest)) == Status::Ok, "select base level");
+        upload.allocateOnly = false;
+        upload.height = 1;
+        upload.bytes = {255, 0, 0, 255, 0, 255, 0, 255};
+        Require(textures.Upload(state, target, upload, {}, true) == Status::Ok, "upload first row");
+        upload.y = 1;
+        upload.bytes = {0, 0, 255, 255, 255, 255, 0, 255};
+        Require(textures.Upload(state, target, upload, {}, true) == Status::Ok, "upload second row");
+        auto draw = Quad();
+        draw.textures[0].enabled2D = true;
+        draw.resources[0].texture2D = textures.Bound(state, target);
+        compare("texture-filled-by-subimages", draw);
+        upload.y = 0;
+        upload.width = 0;
+        Require(textures.Upload(state, target, upload, {}, false) == Status::Ok, "empty texture level");
+        draw.resources[0].texture2D = textures.Bound(state, target);
+        compare("incomplete-zero-width", draw);
+    }
     constexpr std::array<int, 4> viewportCases[]{
         {{0, -1, Side, Side + 1}}, {{-1, 0, Side + 1, Side}},
         {{4, 5, 80, 60}}, {{-8, -5, 100, 86}}, {{Side, 0, Side, Side}}, {{0, 0, 0, 0}}

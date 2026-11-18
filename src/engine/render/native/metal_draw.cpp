@@ -152,7 +152,8 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
     }
     MetalTextureData prepared;
     const auto base = object.levels.find(0);
-    if (base == object.levels.end() || !base->second || !base->second->defined) {
+    if (base == object.levels.end() || !base->second || !base->second->defined ||
+        base->second->width == 0 || base->second->height == 0) {
         Incomplete(prepared);
         output = std::move(prepared);
         error.clear();

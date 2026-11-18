@@ -440,8 +440,8 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
     image->width = width;
     image->height = height;
     image->internal = internal;
-    image->defined = !upload.allocateOnly && (!subimage || old->defined ||
-        (upload.width == width && upload.height == height));
+    // Subimage texels can be sampled immediately, even when the original allocation had no source pixels.
+    image->defined = !upload.allocateOnly;
     if (!directCopy && !upload.allocateOnly && upload.width && upload.height) {
         if (copyRows) {
             // Skip source row padding and preserve pixels outside the subimage.
