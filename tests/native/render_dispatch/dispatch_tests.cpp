@@ -646,6 +646,8 @@ int main(int argc, char** argv) {
         NativeNoopPrimitiveRefusal();
     } else if (name == "native-palette-snapshot") {
         NativePaletteSnapshot();
+    } else if (name == "native-startup-playlist") {
+        NativeStartupPlaylist();
     } else if (name == "native-startup-arrays") {
         NativeStartupArrays();
     } else if (name == "native-list-namespace") {

@@ -32,4 +32,10 @@ start = sprite.index('if ( gl_spriteblend.value ||')
 end = sprite.index('// Get orthonormal bases', start)
 parts.append('void SpriteRenderMode(cl_entity_t* e, const FixtureColor& color) {\n'
              + sprite[start:end] + '\n}')
+
+player = body((root / 'src/engine/webm_video.cpp').read_text(), 'void WebMPlayer::PlayVideo(')
+setup = player[player.index('qglMatrixMode(GL_PROJECTION)'):player.index('qglViewport(')]
+cleanup = player[player.index('#else', player.index('playback_done:')) + len('#else'):]
+cleanup = cleanup[:cleanup.index('#endif')]
+parts.append('void PlayMovieMatrices(int nWindowW, int nWindowH, GLuint texture) {\n' + setup + cleanup + '\n}')
 output.write_text('\n\n'.join(parts) + '\n')

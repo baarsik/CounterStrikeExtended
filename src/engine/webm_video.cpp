@@ -1750,6 +1750,7 @@ playback_done:
         SDL_DestroyRenderer(renderer);
     }
 #else
+    qglPopMatrix();
     qglBindTexture(GL_TEXTURE_RECTANGLE, 0);
     qglDisable(GL_TEXTURE_RECTANGLE);
     qglDeleteTextures(1, &texture);

@@ -22,7 +22,7 @@ add_custom_command(OUTPUT "${render_modes}"
         "${CSE_ROOT}" "${render_modes}"
     DEPENDS extract_render_modes.py "${CSE_ROOT}/src/common/const.h"
         "${CSE_ROOT}/src/engine/gl_rsurf.cpp" "${CSE_ROOT}/src/engine/r_studio.cpp"
-        "${CSE_ROOT}/src/engine/gl_rmain.cpp"
+        "${CSE_ROOT}/src/engine/gl_rmain.cpp" "${CSE_ROOT}/src/engine/webm_video.cpp"
     VERBATIM)
 target_sources(render_dispatch_tests PRIVATE "${render_modes}")
 target_include_directories(render_dispatch_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -63,7 +63,7 @@ foreach(case t2b-slot-lifecycle t2b-mixed-texture t2b-texture-mapping t2b-unpack
     add_test(NAME render-dispatch-${case} COMMAND render_dispatch_tests ${case})
 endforeach()
 
-foreach(case native-noop-primitive-refusal native-palette-snapshot native-startup-arrays native-list-namespace native-callback-failure native-ensure-failure
+foreach(case native-noop-primitive-refusal native-palette-snapshot native-startup-arrays native-startup-playlist native-list-namespace native-callback-failure native-ensure-failure
     native-transcolor-brush native-transcolor-studio native-transcolor-sprite
     native-front-draw-refusal native-install native-list-clear-refusal native-alias-ownership native-commands native-zero-clear-frame native-zero-clear-list native-zero-clear-primitive native-indexed native-indexed-index native-indexed-nontriangle native-indexed-quota native-indexed-list native-readback native-failure)
     add_test(NAME render-dispatch-${case} COMMAND render_dispatch_tests ${case})

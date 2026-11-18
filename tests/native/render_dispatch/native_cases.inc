@@ -315,6 +315,20 @@ void NativeListClearRefusal() {
         "unrecorded clear-list state was silently accepted");
 }
 
+void NativeStartupPlaylist() {
+    ResetT2bDriver();
+    NativeFixture native;
+    native.Install();
+    constexpr int movieSide = 64;
+    for (std::size_t clip = 0; clip <= kModelViewStackDepth; ++clip) {
+        GLuint texture = 0;
+        qglGenTextures(1, &texture);
+        RenderModeOwners::PlayMovieMatrices(movieSide, movieSide, texture);
+    }
+    Check(LegacyDispatchStatus() == Status::Ok, "startup playlist exhausted the model-view stack");
+    Check(native.frame.State().Depth(MatrixMode::ModelView) == 1, "movie retained a model-view matrix");
+}
+
 void NativeStartupArrays() {
     ResetT2bDriver();
     NativeFixture native;
