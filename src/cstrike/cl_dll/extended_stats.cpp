@@ -65,6 +65,16 @@ void CSE_UpdateLegacyHealth(int player, int health, bool localHud) {
     }
 }
 
+void CSE_UpdateScoreboardHealth(int player, int health) {
+    CSE_ThinkExtendedStats();
+    if (ValidPlayer(player) && player == CSE_LocalPlayerIndex()) {
+        cse::extstats::ClientStats().ScoreboardHealth(player, health);
+        if (cse::extstats::ClientStats().Get(cse::extstats::Stat::Health, player).valid) {
+            ApplyHealth(player, true);
+        }
+    }
+}
+
 void CSE_UpdateLegacyArmor(int armor) {
     CSE_ThinkExtendedStats();
     using namespace cse::extstats;

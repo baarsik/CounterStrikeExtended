@@ -16,6 +16,7 @@ class DeathMarks {
 
   private:
     struct Mark {
+        int player;
         ncl_math::Vector3 pos;
         ncl_math::Color color;
         float time;
@@ -35,7 +36,8 @@ class DeathMarks {
     static constexpr float kLifetime = 4.5f; // includes kHold
 
     void Reset();
-    void Add(ncl_math::Vector3 world, ncl_math::Color color, float time);
+    void Add(int player, ncl_math::Vector3 world, ncl_math::Color color, float time);
+    void Correct(int player, ncl_math::Vector3 world, ncl_math::Color color, float time);
 
     int CollectVisible(std::span<Visible> out, float time);
 };

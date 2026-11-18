@@ -23,6 +23,12 @@ class RadarBroadcast {
         float interval{};
     };
 
+    struct Death {
+        ncl_math::Vector3 pos{};
+        float time{};
+        std::uint32_t seq{};
+    };
+
     struct Bomb {
         bool active;
         ncl_math::Vector3 pos;
@@ -45,6 +51,7 @@ class RadarBroadcast {
 
   private:
     std::array<Player, kRadarMaxPlayers + 1> players_{};
+    std::array<Death, kRadarMaxPlayers + 1> deaths_{};
     Bomb bomb_{};
 
     // Must precede hostages_, whose type uses this array bound.
@@ -58,10 +65,15 @@ class RadarBroadcast {
 
   public:
     void SetPlayer(int index, const ncl_math::Vector3& pos, float time);
+    void SetDeathPosition(int index, const ncl_math::Vector3& pos, float time);
     void ResetPlayers();
 
     const Player& get_player(int index) const {
         return players_[index];
+    }
+
+    const Death& get_death(int index) const {
+        return deaths_[index];
     }
 
     // A zero position is the engine's "hide" sentinel and is stored like any other; ClearBomb

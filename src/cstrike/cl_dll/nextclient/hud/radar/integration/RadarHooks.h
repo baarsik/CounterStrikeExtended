@@ -48,6 +48,7 @@ void RadarHooks_UpdateScoreboard(RadarScoreboard& placement, const RadarBox* rad
 
 // Called after native message parsing, preserving the stock message path.
 void RadarHooks_OnPlayer(int index, const float* position);
+void RadarHooks_OnPlayerDeath(int index, const float* position);
 void RadarHooks_OnBombDrop(const float* position, bool planted);
 void RadarHooks_OnBombPickup();
 void RadarHooks_OnHostage(int index, const float* position);

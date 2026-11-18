@@ -16,8 +16,16 @@ void RadarBroadcast::SetPlayer(int index, const ncl_math::Vector3& pos, float ti
     player.seq = ++seq_;
 }
 
+void RadarBroadcast::SetDeathPosition(int index, const ncl_math::Vector3& pos, float time) {
+    if (index < 1 || index > kRadarMaxPlayers) {
+        return;
+    }
+    deaths_[index] = {pos, time, ++seq_};
+}
+
 void RadarBroadcast::ResetPlayers() {
     players_ = {};
+    deaths_ = {};
 }
 
 void RadarBroadcast::SetBomb(const ncl_math::Vector3& pos, bool planted, float time) {

@@ -8,7 +8,7 @@ set(RADAR_ROOT "${CSE_ROOT}/src/cstrike/cl_dll/nextclient")
 add_executable(radar_tests
     main.cpp worker_tests.cpp GraphicsGenerationTests.cpp RadarMapReadinessTests.cpp RadarMapLayerFixtures.cpp MapGeometryTests.cpp MapReachabilityTests.cpp
     RadarPolicyTests.cpp RadarLayerSelectionTests.cpp RadarMapLayersTests.cpp MapLayerOverridesTests.cpp
-    RadarPolylineTests.cpp RadarUtilTests.cpp RadarViewTests.cpp
+    RadarPolylineTests.cpp RadarUtilTests.cpp RadarViewTests.cpp RadarDeathMessageTests.cpp
     "${RADAR_ROOT}/hud/radar/integration/LayerAnalysis.cpp"
     "${RADAR_ROOT}/hud/radar/integration/Performance.cpp"
     "${RADAR_ROOT}/hud/radar/map/MapGeometry.cpp"
@@ -19,6 +19,8 @@ add_executable(radar_tests
     "${RADAR_ROOT}/hud/radar/map/layers/RadarLayerContext.cpp"
     "${RADAR_ROOT}/hud/radar/map/layers/RadarLayerAnalysisJob.cpp"
     "${RADAR_ROOT}/hud/radar/policy/RadarPolicy.cpp"
+    "${RADAR_ROOT}/hud/radar/markers/RadarBroadcast.cpp"
+    "${RADAR_ROOT}/hud/radar/layers/players/DeathMarks.cpp"
     "${RADAR_ROOT}/hud/radar/render/RadarFade.cpp"
     "${RADAR_ROOT}/hud/radar/render/RadarView.cpp")
 target_include_directories(radar_tests PRIVATE "${RADAR_ROOT}" "${RADAR_ROOT}/include"

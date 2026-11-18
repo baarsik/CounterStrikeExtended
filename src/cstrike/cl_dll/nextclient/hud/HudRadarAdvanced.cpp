@@ -780,6 +780,11 @@ void HudRadarAdvanced::Draw(float flTime) {
     players_.Draw(frame);
 
     draw_.EndFrame();
+    if (!spectating && !fullmap && ctx_.self_idx > 0 && ctx_.self_idx <= MAX_PLAYERS &&
+        !g_PlayerExtraInfo[ctx_.self_idx].dead) {
+        gHUD.m_Health.DrawPlayerLocation(ctx_.self_idx, static_cast<int>(box.center().x),
+                                         static_cast<int>(box.y + box.size));
+    }
 }
 
 int HudRadarAdvanced::ComputeFlashAlpha(ncl_math::Color& color) {
