@@ -490,6 +490,16 @@ int main(int argc, char **argv) {
                 layout_fixture::Check(*dialog, 640, 384);
             }
             const bool keyboardTabs = name == "focus-tab" || name == "tab-order";
+            const auto settleTab = [&] {
+                Settle(*dialog, session);
+                if (session.model.GetStatus().phase == Phase::Refreshing) {
+                    provider.lists.Complete();
+                    Settle(*dialog, session);
+                } else {
+                    Require(session.settings.kind == ListKind::Internet && session.presentation.VisibleCount() > 0,
+                        "only a populated Internet tab may reuse its cached rows");
+                }
+            };
             if (keyboardTabs) {
                 tabs->RequestFocus(1);
                 Settle(*dialog, session);
@@ -503,9 +513,7 @@ int main(int argc, char **argv) {
                 } else {
                     tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
                 }
-                Settle(*dialog, session);
-                provider.lists.Complete();
-                Settle(*dialog, session);
+                settleTab();
                 Require(tabs->GetActivePageNum() == static_cast<int>(index) &&
                             session.settings.kind == BrowserTabKinds[index],
                         "tab traversal changed visual or stored tab identity");
@@ -525,9 +533,7 @@ int main(int argc, char **argv) {
             if (keyboardTabs) {
                 for (int index = static_cast<int>(BrowserTabKinds.size()) - 2; index >= 0; --index) {
                     layout_fixture::Key(*tabs->GetActiveTab(), vgui2::KEY_LEFT);
-                    Settle(*dialog, session);
-                    provider.lists.Complete();
-                    Settle(*dialog, session);
+                    settleTab();
                     Require(tabs->GetActivePageNum() == index &&
                                 session.settings.kind == BrowserTabKinds[static_cast<size_t>(index)],
                             "Left key did not select the preceding original page");
@@ -557,7 +563,7 @@ int main(int argc, char **argv) {
                 gui->RunFrame();
             }
             Require(dialog->IsVisible(), "reopen did not finish bounded retirement");
-            StartList(*dialog, session, provider);
+            settleTab();
             layout_fixture::FocusVisible(*reopenFocus);
             layout_fixture::Check(*dialog, 640, 384);
         } else if (name == "hd-saved") {
