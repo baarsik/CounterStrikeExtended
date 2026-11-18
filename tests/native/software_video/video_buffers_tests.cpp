@@ -1,4 +1,4 @@
-// Exercises the selected owner, with only filesystem/hunk/audio services controlled.
+// Exercises the selected owner with controlled filesystem and hunk services.
 #include "../../../src/engine/vid_win.cpp"
 #include <cassert>
 #include <vector>
@@ -27,7 +27,6 @@ void *Hunk_HighAllocName(int bytes, const char *) {
     hunk.resize(bytes);
     return hunk.data();
 }
-void S_Init() {}
 void Con_SafePrintf(const char *, ...) {}
 void Con_Printf(const char *, ...) {}
 void Sys_Error(const char *, ...) {
