@@ -243,6 +243,15 @@ int main(int argc, char **argv) {
         dialog->Activate();
         StartList(*dialog, session, provider);
         size_t minimumDetailCloseTurns = 0;
+        const auto replyToPing = [&](gameserveritem_t &row) {
+            dialog->Pump();
+            Require(!provider.pingCallbacks.empty(), "Game Info did not request server metadata");
+            const auto callback = provider.pingCallbacks.rbegin();
+            auto *response = callback->second;
+            provider.pingCallbacks.erase(callback->first);
+            response->ServerResponded(row);
+            dialog->Pump();
+        };
         if (name == "browser-cog-tooltip") {
             auto *cog = dynamic_cast<vgui2::Button *>(dialog->FindChildByName("BrowserSettings", false));
             Require(cog && !*cog->GetTooltip()->GetText(), "browser cog still creates an unnecessary tooltip");
@@ -655,6 +664,7 @@ int main(int argc, char **argv) {
             key(vgui2::KEY_DOWN);
             Require(session.model.Selection()->ip == 0x7f000002U, "actual Down message lost RowKey identity");
             key(vgui2::KEY_ENTER);
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 1 && engine.commands.back() == "connect 127.0.0.2:27015\n",
                     "actual Enter message connected the wrong row");
             dialog->Activate();
@@ -665,6 +675,7 @@ int main(int argc, char **argv) {
             Require(dialog->IsVisible(), "issued connection did not permit bounded reopen");
             gui->PostMessage(list->GetVPanel(), new KeyValues("MouseDoublePressed", "code", vgui2::MOUSE_LEFT), 0, 0);
             gui->RunFrame();
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 2 && engine.commands.back() == "connect 127.0.0.2:27015\n",
                     "actual double-click message lost selected RowKey");
         } else if (name == "inactive-close") {
@@ -1449,6 +1460,8 @@ int main(int argc, char **argv) {
             Send(*dialog, "RemoveFavorite");
             Require((favorites.records[0].flags & k_unFavoriteFlagFavorite) == 0,
                     "remove control lost favorite semantics");
+            StartList(*dialog, session, provider);
+            dialog->SelectVisible(0);
             dialog->ShowContextMenu();
             auto *menu = dynamic_cast<vgui2::Menu *>(dialog->FindChildByName("ServerContext", false));
             Require(menu && menu->GetItemCount() == 4, "actual retained row context actions missing");
@@ -1474,6 +1487,7 @@ int main(int argc, char **argv) {
             dialog->SelectVisible(0);
             const auto favoriteTimestamp = favorites.records[0].lastPlayed;
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.commands.size() == 1 && engine.commands.front().find("connect 127.") == 0,
                     "real connect action did not use numeric endpoint");
             Require(favorites.records[0].lastPlayed == favoriteTimestamp &&
@@ -1515,6 +1529,7 @@ int main(int argc, char **argv) {
                     "failed save was not shown plainly to the user");
             dialog->SelectVisible(0);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.commands.size() == 1, "failed settings save disabled otherwise usable browser");
         } else if (name == "favorite-error") {
             dialog->SelectVisible(0);
@@ -1533,13 +1548,15 @@ int main(int argc, char **argv) {
         } else if (name == "password") {
             dialog->SelectVisible(0);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows.front());
             auto *prompt = dialog->FindChildByName("DialogServerPassword", true);
             Require(prompt && prompt->FindChildByName("CancelButton", false), "installed password resource missing");
             auto *entry = dynamic_cast<vgui2::TextEntry *>(prompt->FindChildByName("PasswordEntry", false));
             Require(entry != nullptr, "password control was not code-bound");
             auto *settings = new KeyValues("PasswordSettings");
             entry->GetSettings(settings);
-            Require(settings->GetInt("textHidden") == 1 && settings->GetInt("maxchars") == 127,
+            constexpr int OriginalPasswordCharacters = 63;
+            Require(settings->GetInt("textHidden") == 1 && settings->GetInt("maxchars") == OriginalPasswordCharacters,
                     "password entry is unmasked or unbounded");
             settings->deleteThis();
             entry->SetText("p\303\244ss");
@@ -1550,6 +1567,7 @@ int main(int argc, char **argv) {
             Require(entry->GetTextLength() == 0, "connect left visible password storage populated");
             entry->Undo();
             Require(entry->GetTextLength() == 0, "password undo restored retired secret");
+            replyToPing(provider.lists.nextRows.front());
             Require(engine.password == "p\303\244ss" && engine.commands.size() == 1 &&
                         engine.commands.front() == "connect 127.0.0.1:27015\n",
                     "password entered command text or was lost");
@@ -1564,6 +1582,7 @@ int main(int argc, char **argv) {
             Require(dialog->IsVisible(), "password retry did not wait for ordinary retirement");
             dialog->SelectVisible(1);
             Send(*dialog, "Connect");
+            replyToPing(provider.lists.nextRows[1]);
             prompt = dialog->FindChildByName("DialogServerPassword", true);
             Require(prompt != nullptr, "explicit password retry did not create a fresh prompt");
             entry = dynamic_cast<vgui2::TextEntry *>(prompt->FindChildByName("PasswordEntry", false));
@@ -1571,6 +1590,7 @@ int main(int argc, char **argv) {
             gui->PostMessage(prompt->GetVPanel(), new KeyValues("Command", "command", "Connect"), 0, 0);
             gui->PostMessage(prompt->GetVPanel(), new KeyValues("Command", "command", "Connect"), 0, 0);
             gui->RunFrame();
+            replyToPing(provider.lists.nextRows[1]);
             Require(engine.commands.size() == 2 && engine.password == "second",
                     "terminal password dialog replayed a queued connect action");
             session.connection.Disconnected();
