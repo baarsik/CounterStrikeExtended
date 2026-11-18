@@ -2,6 +2,7 @@
 
 #include "legacy_state.h"
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <vector>
 
@@ -114,12 +115,12 @@ private:
         std::size_t limit = 0;
     };
     void Commit(const LegacyState& state, TextureTarget target, std::shared_ptr<const TextureObject> object);
-    std::shared_ptr<TextureImage> NewImage(std::size_t bytes);
+    std::shared_ptr<TextureImage> NewImage(std::size_t bytes, const TextureImage* previous);
     std::shared_ptr<Storage> storage_;
     std::size_t namesLimit_;
     std::uint32_t nextName_ = 1;
     std::uint64_t generation_ = 0;
-    std::map<std::uint32_t, std::shared_ptr<const TextureObject>> objects_;
+    std::unordered_map<std::uint32_t, std::shared_ptr<const TextureObject>> objects_;
     std::array<std::shared_ptr<const TextureObject>, 2> defaults_;
     PixelStoreState pixelStore_;
     std::shared_ptr<const SharedPalette> palette_;

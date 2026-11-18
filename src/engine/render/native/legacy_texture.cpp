@@ -128,7 +128,7 @@ std::size_t TextureStore::StorageBytes() const {
     return storage_->used;
 }
 
-std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
+std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes, const TextureImage* previous) {
     if (bytes > storage_->limit - storage_->used) {
         return nullptr;
     }
@@ -139,7 +139,11 @@ std::shared_ptr<TextureImage> TextureStore::NewImage(std::size_t bytes) {
     if (bytes != 0) {
         BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     }
-    image->pixels.resize(bytes);
+    if (previous) {
+        image->pixels = previous->pixels;
+    } else {
+        image->pixels.resize(bytes);
+    }
     // The shared owner needs a control block; inject before charging so an injected failure is uncharged.
     BeforeCaptureAllocation(CaptureAllocationSite::TextureImageStorage);
     storage_->used += bytes;
@@ -166,8 +170,17 @@ Status TextureStore::Generate(std::size_t count, std::vector<std::uint32_t>& nam
     if (generated.size() != count) {
         return Status::LimitExceeded;
     }
-    for (auto name : generated) {
-        objects_.emplace(name, nullptr);
+    std::size_t reserved = 0;
+    try {
+        for (; reserved < generated.size(); ++reserved) {
+            objects_.emplace(generated[reserved], nullptr);
+        }
+    } catch (...) {
+        // A bucket or entry allocation may fail before the whole set is reserved.
+        while (reserved) {
+            objects_.erase(generated[--reserved]);
+        }
+        throw;
     }
     nextName_ = candidate;
     names = std::move(generated);
@@ -386,7 +399,7 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
         !MultiplySize(size, indexed ? 1 : 4, size)) {
         return Status::LimitExceeded;
     }
-    auto image = NewImage(size);
+    auto image = NewImage(size, subimage ? old : nullptr);
     if (!image) {
         return Status::LimitExceeded;
     }
@@ -395,23 +408,29 @@ Status TextureStore::Upload(const LegacyState& state, TextureTarget target, cons
     image->internal = internal;
     image->defined = !upload.allocateOnly && (!subimage || old->defined ||
         (upload.width == width && upload.height == height));
-    if (subimage) {
-        image->pixels = old->pixels;
-    }
     std::size_t stride = 0;
     std::size_t extent = 0;
     Layout(upload, unpack, stride, extent);
-    if (!upload.allocateOnly) {
+    if (!upload.allocateOnly && upload.width && upload.height) {
+        const bool copyRows = indexed || (upload.format == PixelFormat::RGBA &&
+            (internal == InternalFormat::RGBA || internal == InternalFormat::RGBA8));
         const auto components = Components(upload.format);
-        for (int y = 0; y < upload.height; ++y) {
-            for (int x = 0; x < upload.width; ++x) {
-                const auto* pixel = upload.bytes.data() + static_cast<std::size_t>(y) * stride +
-                    static_cast<std::size_t>(x) * components;
-                const auto destination = static_cast<std::size_t>(y + upload.y) * static_cast<std::size_t>(width) +
-                    static_cast<std::size_t>(x + upload.x);
-                if (indexed) {
-                    image->pixels[destination] = *pixel;
-                } else {
+        if (copyRows) {
+            // The row already has the logical storage layout. Skip any padding in the
+            // source and preserve the rest of a subimage's immutable destination.
+            const auto rowBytes = static_cast<std::size_t>(upload.width) * components;
+            for (int y = 0; y < upload.height; ++y) {
+                const auto source = upload.bytes.data() + static_cast<std::size_t>(y) * stride;
+                const auto destination = (static_cast<std::size_t>(y + upload.y) * width + upload.x) * components;
+                std::copy_n(source, rowBytes, image->pixels.data() + destination);
+            }
+        } else {
+            for (int y = 0; y < upload.height; ++y) {
+                for (int x = 0; x < upload.width; ++x) {
+                    const auto* pixel = upload.bytes.data() + static_cast<std::size_t>(y) * stride +
+                        static_cast<std::size_t>(x) * components;
+                    const auto destination = static_cast<std::size_t>(y + upload.y) * static_cast<std::size_t>(width) +
+                        static_cast<std::size_t>(x + upload.x);
                     auto value = Decode(pixel, upload.format);
                     StoreComponents(value, internal);
                     std::copy(value.begin(), value.end(), image->pixels.begin() + destination * value.size());

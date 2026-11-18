@@ -1651,7 +1651,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     }
     for (const auto& upload : uploads) {
         upload.texture->uploaded = true;
-        // Converted CPU bytes are retained for cache accounting, while immutable capture owns source lifetime.
+        // The GPU transfer already holds these bytes. The mip dimensions and
+        // retained texture byte charge still describe the sampled GPU resource.
+        auto& pixels = upload.texture->data.levels[upload.level].pixels;
+        std::vector<std::uint8_t>().swap(pixels);
     }
     state.initializedTarget = true;
     state.sceneDirty = true;
