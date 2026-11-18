@@ -30,6 +30,41 @@ DrawPacket Quad() {
     return draw;
 }
 
+void BorrowedQuads() {
+    std::string error;
+    DrawPacket quad;
+    quad.primitive = Primitive::Quads;
+    quad.vertices.resize(4);
+    quad.shade = Shade::Flat;
+    MetalDrawData prepared;
+    CHECK(PrepareMetalDraw(quad, prepared, error, MetalGeometryOwnership::Borrow));
+    CHECK(prepared.borrowedVertices == &quad.vertices);
+    CHECK(prepared.IndexCount() == 6);
+
+    quad.vertices.back().color = {{0.25f, 0.5f, 0.75f, 1.0f}};
+    CHECK(PrepareMetalDraw(quad, prepared, error, MetalGeometryOwnership::Borrow));
+    CHECK(!prepared.borrowedVertices);
+    for (const auto& vertex : prepared.Vertices()) {
+        CHECK(vertex.color == quad.vertices.back().color);
+    }
+    quad.shade = Shade::Smooth;
+    CHECK(PrepareMetalDraw(quad, prepared, error, MetalGeometryOwnership::Borrow));
+    CHECK(prepared.borrowedVertices == &quad.vertices);
+    CHECK(prepared.IndexCount() == 6);
+
+    auto& negativeZero = quad.vertices.front().color[0];
+    negativeZero = -0.0f;
+    CHECK(PrepareMetalDraw(quad, prepared, error, MetalGeometryOwnership::Borrow));
+    CHECK(!prepared.borrowedVertices);
+    CHECK(!std::signbit(prepared.Vertices().front().color[0]));
+
+    negativeZero = 0.0f;
+    quad.vertices.emplace_back();
+    CHECK(PrepareMetalDraw(quad, prepared, error, MetalGeometryOwnership::Borrow));
+    CHECK(!prepared.borrowedVertices && prepared.Vertices().size() == 4);
+    CHECK(prepared.IndexCount() == 6);
+}
+
 void BorrowedTriangles() {
     using Ownership = MetalGeometryOwnership;
     auto indexed = Quad();
@@ -46,6 +81,10 @@ void BorrowedTriangles() {
     CHECK(&prepared.Vertices() != &indexed.vertices);
     CHECK(&prepared.Indices() != &indexed.indices);
     CHECK(prepared.Vertices().size() == indexed.vertices.size());
+    auto invalid = indexed;
+    invalid.indices[0] = std::numeric_limits<std::uint32_t>::max();
+    CHECK(!PrepareMetalDraw(invalid, prepared, error, Ownership::Borrow));
+    CHECK(prepared.Indices() == indexed.indices);
     indexed.vertices[0].color = {{-0.0f, 1.25f, 0.5f, 1}};
     CHECK(PrepareMetalDraw(indexed, prepared, error, Ownership::Borrow));
     CHECK(&prepared.Vertices() != &indexed.vertices);
@@ -98,6 +137,7 @@ void CanonicalTextureLevels() {
 int main() {
     CanonicalTextureLevels();
     BorrowedTriangles();
+    BorrowedQuads();
     // Missing quad lowering or the wrong provoking vertex makes this fail.
     auto draw = Quad();
     MetalDrawData prepared;

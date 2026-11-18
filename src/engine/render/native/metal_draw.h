@@ -52,7 +52,7 @@ struct MetalDrawData {
     }
 
     std::size_t IndexCount() const {
-        return indexedQuads ? vertices.size() / kQuadCorners * kQuadIndices.size() : Indices().size();
+        return indexedQuads ? Vertices().size() / kQuadCorners * kQuadIndices.size() : Indices().size();
     }
 
     // Borrowed only during synchronous encoding while the frame owns the packet.
@@ -71,5 +71,8 @@ enum class MetalGeometryOwnership { Own, Borrow };
 // Preparation is transactional. Borrow requires the source packet to stay alive and unchanged until encoding ends.
 bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error,
     MetalGeometryOwnership ownership = MetalGeometryOwnership::Own);
+// The session already owns a new result and discards it on failure.
+bool PrepareMetalDrawInto(const DrawPacket& draw, MetalDrawData& fresh, std::string& error,
+    MetalGeometryOwnership ownership);
 }
 }

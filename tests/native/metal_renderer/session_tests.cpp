@@ -237,6 +237,15 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     for (auto& vertex : frame.draws[1].vertices) {
         vertex.position[0] = (vertex.position[0] + 1) * 0.5f;
     }
+    // Functions and factors left over from prior draws cannot affect a disabled operation.
+    auto& disabled = frame.draws[1].raster;
+    disabled.blendSource = BlendFactor::SourceAlpha;
+    disabled.blendDestination = BlendFactor::InverseDestinationColor;
+    disabled.cull = Cull::Front;
+    disabled.depthWrite = false;
+    disabled.depthFunction = Compare::Never;
+    disabled.polygonOffset = {{1, -1}};
+    disabled.scissor = {{1, 2, 3, 4}};
     sceneDrawCalls = 0;
     sceneIndexedDrawCalls = 0;
     session.EnableDiagnostics(true);
@@ -317,10 +326,13 @@ void ConsecutiveDraws(MetalSession& session, std::string& error) {
     sceneDrawCalls = 0;
     sceneIndexedDrawCalls = 0;
     sceneBindings = {};
+    session.EnableDiagnostics(true);
     CHECK(session.Render(frame, error));
     CHECK(sceneDrawCalls + sceneIndexedDrawCalls == 2);
     CHECK(sceneBindings.pipelines == 1 && sceneBindings.samplers == 2);
     CHECK(sceneBindings.vertexUniforms == 1 && sceneBindings.fragmentUniforms == 1);
+    CHECK(session.Diagnostics().samplerLookups == 2);
+    session.EnableDiagnostics(false);
     CHECK(session.ReadPixels(kHalfSize, kHalfSize, 1, 1, 4, 1, pixel.data(), error));
     CHECK(pixel[0] == 0 && pixel[1] == kOpaqueChannel);
     // Merging translucent primitives must retain their original compositing order.
@@ -828,7 +840,25 @@ void IndexedTextureLayout(MetalSession& session, std::string& error) {
         expanded.vertices.push_back(draw.vertices[index]);
     }
     expanded.indices.clear();
+    const auto beforeExpanded = session.Diagnostics().streamedVertexBytes;
     CHECK(session.Render(frame, error));
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
+    CHECK(packed == reference);
+    CHECK(session.Diagnostics().streamedVertexBytes - beforeExpanded == expanded.vertices.size() * kCompactStride);
+
+    // A complete white second unit forces the full vertex layout without changing the result.
+    auto whiteImage = std::make_shared<TextureImage>();
+    whiteImage->width = 1;
+    whiteImage->height = 1;
+    whiteImage->defined = true;
+    whiteImage->pixels.assign(4, 255);
+    auto white = std::make_shared<TextureObject>(*texture);
+    white->levels[0] = std::move(whiteImage);
+    expanded.textures[1].enabled2D = true;
+    expanded.resources[1].texture2D = white;
+    const auto beforeFull = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    CHECK(session.Diagnostics().streamedVertexBytes - beforeFull == expanded.vertices.size() * sizeof(Vertex));
     CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
     CHECK(packed == reference);
 
