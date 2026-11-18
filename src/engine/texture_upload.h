@@ -88,8 +88,8 @@ inline bool Resample(const unsigned char* source, std::size_t sourceBytes, int w
     const std::uint64_t verticalStep = (static_cast<std::uint64_t>(height) << kFractionBits) / outHeight;
     for (int y = 0; y < outHeight; ++y) {
         // The indexed point path historically starts at row zero, then advances by a quarter-offset step.
-        const std::size_t row1 = point ? (y == 0 ? 0 :
-            ((verticalStep / kSampleDivisor + static_cast<std::uint64_t>(y) * verticalStep) >> kFractionBits)) :
+        const std::size_t row1 = point ? static_cast<std::size_t>(y == 0 ? 0 :
+            (verticalStep / kSampleDivisor + static_cast<std::uint64_t>(y) * verticalStep) >> kFractionBits) :
             static_cast<std::size_t>((y + 0.25) * height / outHeight);
         const std::size_t row2 = point ? row1 : static_cast<std::size_t>((y + 0.75) * height / outHeight);
         const unsigned char* firstRow = source +
