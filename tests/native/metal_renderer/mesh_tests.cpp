@@ -275,6 +275,9 @@ int main(int argc, char** argv) {
         }};
         std::array<std::array<float, kWorldComponents * kCorners>, kPolygons> sources{{quad, quad, quad}};
         SurfaceMeshCache worldCache;
+        constexpr std::size_t kCollinearEndpoints = 2;
+        Check(!worldCache.Get(&quad, quad.data(), kCollinearEndpoints, kWorldComponents, error) && error.empty(),
+            "A simplified polygon with two endpoints falls back to the immediate path");
         FrameSnapshot packed = empty;
         FrameEvent clear;
         clear.kind = FrameEventKind::Clear;

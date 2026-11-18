@@ -18,9 +18,14 @@ public:
         }
         constexpr std::size_t kSurfaceComponents = 7;
         constexpr std::size_t kTriangleVertices = 3;
-        if (!identity || !source || count < kTriangleVertices || count > kMaximumVertices ||
-            count - 2 > kMaximumVertices / kTriangleVertices || stride != kSurfaceComponents) {
+        if (!identity || !source || count > kMaximumVertices || stride != kSurfaceComponents ||
+            (count >= kTriangleVertices && count - 2 > kMaximumVertices / kTriangleVertices)) {
             error = "Invalid native world surface";
+            return nullptr;
+        }
+        if (count < kTriangleVertices) {
+            // Legacy T-junction simplification can leave fewer than three vertices.
+            error.clear();
             return nullptr;
         }
         const auto bytes = count * sizeof(Vertex) + (count - 2) * kTriangleVertices * sizeof(std::uint32_t);

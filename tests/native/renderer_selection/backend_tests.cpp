@@ -192,6 +192,17 @@ int main(int argc, char** argv) {
     BeginBackendFrame(32, 32);
     CHECK(BackendSceneActive());
     CseRenderViewport(0, 0, 32, 32);
+    constexpr std::size_t kWorldComponents = 7;
+    constexpr std::size_t kEndpoints = 2;
+    const std::array<float, kWorldComponents * kEndpoints> segment{{
+        -1, 0, 0, 0, 0, 0, 0,
+         1, 0, 0, 1, 0, 1, 0,
+    }};
+    CHECK(!SubmitBackendSurface(&segment, segment.data(), kEndpoints, kWorldComponents, 0, false));
+    CseRenderBegin(GL_POLYGON);
+    CseRenderVertex3fv(segment.data());
+    CseRenderVertex3fv(segment.data() + kWorldComponents);
+    CseRenderEnd();
     CseRenderColor4ub(128, 64, 255, 192);
     CHECK(SubmitBackendQuad({{-1, -1, 1, 1}}, {{0, 0, 1, 1}}));
     std::array<unsigned char, 4> quadPixel{};
