@@ -628,6 +628,47 @@ void FailedSavedRowsRetainSuccessfulMetadata() {
     }
 }
 
+void ResolvedConnectionPortReplacesDirectoryAddress() {
+    constexpr uint32_t ServerIP = 0x7f000001U;
+    constexpr uint16_t QueryPort = 27016;
+    constexpr uint16_t GamePort = 27015;
+    const RowKey directoryAddress{ServerIP, QueryPort, QueryPort};
+    const RowKey gameAddress{ServerIP, GamePort, QueryPort};
+
+    for (const bool duplicate : {false, true}) {
+        Provider provider;
+        auto pending = Server(ServerIP);
+        pending.m_NetAdr.Init(ServerIP, QueryPort, QueryPort);
+        pending.m_bHadSuccessfulResponse = false;
+        provider.nextRows = {pending};
+        if (duplicate) {
+            provider.nextRows.push_back(pending);
+        }
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        Drain(model);
+        CHECK(model.Find(directoryAddress));
+        model.Select(directoryAddress);
+
+        auto& request = provider.requests.at(provider.current);
+        request.rows.front() = Server(ServerIP);
+        request.callback->ServerResponded(provider.current, 0);
+        provider.Complete();
+        Drain(model);
+        CHECK(model.GetStatus().rows == provider.nextRows.size());
+        CHECK(model.GetStatus().responding == 1);
+        CHECK(model.Find(gameAddress));
+        CHECK((model.Find(directoryAddress) != nullptr) == duplicate);
+        CHECK(model.Selection().has_value() == duplicate);
+        CHECK(model.QuickRefresh(directoryAddress) == duplicate);
+        if (duplicate) {
+            CHECK(provider.lastIndex == 1);
+        }
+        CHECK(model.QuickRefresh(gameAddress));
+        CHECK(provider.lastIndex == 0);
+    }
+}
+
 void ReplacementAndFailure() {
     Provider provider;
     provider.nextRows = {Server()};
@@ -685,6 +726,7 @@ int main(int argc, char** argv) {
     try {
         OfflineSavedRowsWithCurrentGameFilters();
         FailedSavedRowsRetainSuccessfulMetadata();
+        ResolvedConnectionPortReplacesDirectoryAddress();
         OriginalMapAndHumanFilters();
         OriginalAccountAndHistoryData();
         Addresses();

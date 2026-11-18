@@ -326,13 +326,20 @@ struct ServerBrowserModel::State {
         int enumerate = 0;
         int count = 0;
         std::map<int, bool> dirty;
-        std::set<int> seen;
-        std::set<RowKey> membership;
+        std::map<int, RowKey> seen;
+        std::set<std::pair<RowKey, int>> membership;
         bool prunePending = true;
         Rows::iterator pruneCursor;
         std::vector<MatchMakingKeyValuePair_t> filters;
         std::vector<MatchMakingKeyValuePair_t*> filterPointers;
         Request(State& state, uint64_t value) : owner(state), generation(value) {}
+        std::optional<int> IndexFor(const RowKey& key) const {
+            const auto match = membership.lower_bound({key, 0});
+            if (match != membership.end() && match->first == key) {
+                return match->second;
+            }
+            return std::nullopt;
+        }
         bool Accept(HServerListRequest incoming) {
             owner.Check();
             if (!accepting || owner.closing || generation != owner.generation) {
@@ -398,7 +405,6 @@ struct ServerBrowserModel::State {
     bool rebuildPending = false;
     size_t lastReclamationWork = 0;
     Rows rows;
-    std::map<RowKey, int> indexes;
     std::unique_ptr<Index> ordered{new Index(RowLess{})};
     std::unique_ptr<Index> rebuilding;
     Rows::iterator rebuildCursor;
@@ -431,7 +437,7 @@ struct ServerBrowserModel::State {
             return owner ? owner->dirty.size() + owner->seen.size() + owner->membership.size() +
                 owner->filters.size() + owner->filterPointers.size() + owner->quickPending.size() : size_t{0};
         };
-        return rows.size() + indexes.size() + updates.size() + (ordered ? ordered->size() : 0) +
+        return rows.size() + updates.size() + (ordered ? ordered->size() : 0) +
             (rebuilding ? rebuilding->size() : 0) + (retiredIndex ? retiredIndex->size() : 0) +
             requestNodes(request) + requestNodes(retiredRequest) + pingPending.size() + pings.size();
     }
@@ -510,13 +516,13 @@ struct ServerBrowserModel::State {
     void NormalizeEmptyRoots() {
         if (retiredRequest && retiredRequest->dirty.empty() && retiredRequest->seen.empty() &&
             retiredRequest->membership.empty() && retiredRequest->filters.empty() &&
-            retiredRequest->filterPointers.empty() && retiredRequest->quickPending.empty() && indexes.empty()) {
+            retiredRequest->filterPointers.empty() && retiredRequest->quickPending.empty()) {
             retiredRequest.reset();
         }
         if (retiredIndex && retiredIndex->empty()) {
             retiredIndex.reset();
         }
-        if ((closing || resetPending) && indexes.empty() && updates.empty() &&
+        if ((closing || resetPending) && updates.empty() &&
             (!ordered || ordered->empty()) && (!rebuilding || rebuilding->empty()) && rows.empty()) {
             rebuilding.reset();
             resetPending = false;
@@ -555,9 +561,6 @@ struct ServerBrowserModel::State {
                     ++lastReclamationWork;
                     continue;
                 }
-                if (eraseOne(indexes)) {
-                    continue;
-                }
                 retiredRequest.reset();
             }
             if (retiredIndex) {
@@ -568,7 +571,7 @@ struct ServerBrowserModel::State {
             }
             if (closing || resetPending) {
                 // Index/value copies are retired before their backing row map.
-                if (eraseOne(indexes) || eraseOne(updates) || (ordered && eraseOne(*ordered)) ||
+                if (eraseOne(updates) || (ordered && eraseOne(*ordered)) ||
                     (rebuilding && eraseOne(*rebuilding)) || eraseOne(rows)) {
                     continue;
                 }
@@ -584,15 +587,51 @@ struct ServerBrowserModel::State {
         return lastReclamationWork;
     }
     bool CanStartRequest() const {
-        return refreshPending && !request && !retiredRequest && indexes.empty() && !resetPending && !closing;
+        return refreshPending && !request && !retiredRequest && !resetPending && !closing;
     }
     bool StartRequest();
     void Queue(const Row& row) {
         updates[row.key] = {row, Matches(row, filters, kind), false, generation};
     }
+    void RemoveRow(Rows::iterator entry) {
+        ordered->erase(entry->second);
+        if (rebuilding) {
+            rebuilding->erase(entry->second);
+            if (rebuildCursor == entry) {
+                ++rebuildCursor;
+            }
+        }
+        if (request->pruneCursor == entry) {
+            ++request->pruneCursor;
+        }
+        updates[entry->first] = {entry->second, false, false, generation};
+        if (selection == entry->first) {
+            selection.reset();
+        }
+        if (entry->second.failed) {
+            --status.failed;
+        } else if (entry->second.responded) {
+            --status.responding;
+        }
+        rows.erase(entry);
+    }
+
     void Apply(Row row, std::optional<int> index = std::nullopt) {
         if (!ValidAddress(row.key)) {
             return;
+        }
+        if (index) {
+            // A directory initially supplies the query port. The reply can reveal a different game port.
+            auto [previous, inserted] = request->seen.emplace(*index, row.key);
+            if (!inserted && !(previous->second == row.key)) {
+                const RowKey oldKey = previous->second;
+                request->membership.erase({oldKey, *index});
+                if (!request->IndexFor(oldKey)) {
+                    RemoveRow(rows.find(oldKey));
+                }
+                previous->second = row.key;
+            }
+            request->membership.emplace(row.key, *index);
         }
         auto old = rows.find(row.key);
         if (old != rows.end()) {
@@ -613,10 +652,6 @@ struct ServerBrowserModel::State {
             }
         }
         rows[row.key] = row;
-        if (index && request) {
-            indexes[row.key] = *index;
-            request->membership.insert(row.key);
-        }
         if (row.failed) {
             ++status.failed;
         } else if (row.responded) {
@@ -877,7 +912,6 @@ bool ServerBrowserModel::QuickRefresh() {
 bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
     auto& state = *state_;
     state.Check();
-    const auto found = state.indexes.find(key);
     if (state.closing || !state.services.servers || state.refreshPending || state.resetPending ||
         state.providerDepth || state.callbackDepth || state.retiring) {
         return false;
@@ -897,20 +931,21 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
         state.status.error.clear();
         return true;
     }
-    if ((!state.request->completed && state.request->quickPending.empty()) || found == state.indexes.end()) {
+    const auto index = state.request->IndexFor(key);
+    if ((!state.request->completed && state.request->quickPending.empty()) || !index) {
         return false;
     }
     auto& request = *state.request;
     // Selected refreshes share a list handle and may finish in any order. Track each
     // outstanding index so a preceding asynchronous response cannot block the next row.
-    if (!request.quickPending.insert(found->second).second) {
+    if (!request.quickPending.insert(*index).second) {
         return true;
     }
     request.completed = false;
     state.status.phase = Phase::Refreshing;
     state.status.error.clear();
     state.Provider([&] {
-        state.services.servers->RefreshServer(request.handle, found->second);
+        state.services.servers->RefreshServer(request.handle, *index);
     });
     state.Retire();
     return !state.closing;
@@ -1022,7 +1057,6 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                 });
                 if (!state.closing && request.accepting && item) {
                     state.Apply(CopyRow(*item, failed), index);
-                    request.seen.insert(index);
                 }
             }
         } else if (state.request && state.request->completed && state.request->prunePending) {
@@ -1031,25 +1065,8 @@ size_t ServerBrowserModel::Pump(size_t rowBudget) {
                 request.prunePending = false;
             } else {
                 const auto entry = request.pruneCursor++;
-                if (!request.membership.count(entry->first)) {
-                    state.ordered->erase(entry->second);
-                    if (state.rebuilding) {
-                        state.rebuilding->erase(entry->second);
-                        if (state.rebuildCursor == entry) {
-                            ++state.rebuildCursor;
-                        }
-                    }
-                    state.updates[entry->first] = {entry->second, false, false, state.generation};
-                    if (state.selection == entry->first) {
-                        state.selection.reset();
-                    }
-                    if (entry->second.failed) {
-                        --state.status.failed;
-                    } else if (entry->second.responded) {
-                        --state.status.responding;
-                    }
-                    state.indexes.erase(entry->first);
-                    state.rows.erase(entry);
+                if (!request.IndexFor(entry->first)) {
+                    state.RemoveRow(entry);
                 }
                 ++work;
             }
