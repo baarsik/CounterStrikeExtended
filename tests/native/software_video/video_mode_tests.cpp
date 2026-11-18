@@ -32,14 +32,16 @@ extern "C" void VOX_Init() {}
 extern "C" void Snd_AcquireBuffer() {}
 class Registry : public IRegistry {
 public:
+    int width = 3;
+    int height = 2;
     void Init() override {}
     void Shutdown() override {}
     int ReadInt(const char *key, int value) override {
         if (!std::strcmp(key, "DisplayWidth")) {
-            return 3;
+            return width;
         }
         if (!std::strcmp(key, "DisplayHeight")) {
-            return 2;
+            return height;
         }
         return value;
     }
@@ -133,5 +135,23 @@ int main() {
         videomode->Shutdown();
         assert(!videomode && !vid.buffer);
     }
+
+    // A window can use a framebuffer size absent from SDL's fullscreen modes.
+    settings.width = 1376;
+    settings.height = 824;
+    videomode = new CVideoMode_NativeSoftware(true);
+    assert(videomode->Init(nullptr));
+    vmode_s* modes = nullptr;
+    int count = 0;
+    VideoMode_GetVideoModes(&modes, &count);
+    int activeModes = 0;
+    for (int index = 0; index < count; ++index) {
+        if (modes[index].width == settings.width && modes[index].height == settings.height) {
+            ++activeModes;
+        }
+    }
+    assert(activeModes == 1);
+    controlledGame.Shutdown();
+    videomode->Shutdown();
     SDL_Quit();
 }

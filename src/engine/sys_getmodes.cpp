@@ -1261,7 +1261,7 @@ void CVideoMode_SoftwareFullScreen::FlipScreen()
 #include <cstring>
 #include <vector>
 #include <cstdlib>
-constexpr int MAX_VIDEO_MODES = 32;
+constexpr int MaximumFullscreenModes = 32;
 constexpr int STARTUP_IMAGE_BYTES = 256 * 256 * 4;
 extern "C" void VID_UpdateWindowVars(RECT *, int, int);
 extern "C" void VOX_Init();
@@ -1306,7 +1306,8 @@ class CVideoMode_NativeSoftware : public IVideoMode {
         bool fit;
     };
 
-    vmode_s m_rgModeList[MAX_VIDEO_MODES];
+    // The active framebuffer size can differ from every SDL fullscreen mode.
+    vmode_s m_rgModeList[MaximumFullscreenModes + 1];
     vmode_s m_safeMode;
     int m_nNumModes;
     int m_nGameMode;
@@ -1326,7 +1327,7 @@ bool CVideoMode_NativeSoftware::AddMode(int width, int height, int bitsPerPixel)
         height > cse_native_software::MaximumHeight) {
         return false;
     }
-    if (m_nNumModes >= MAX_VIDEO_MODES) {
+    if (m_nNumModes >= MaximumFullscreenModes) {
         return false;
     }
     for (int i = 0; i < m_nNumModes; i++) {
@@ -1631,6 +1632,7 @@ bool CVideoMode_NativeSoftware::Init(void *) {
         return false;
     }
     int count = 0;
+    m_nNumModes = 0;
     SDL_DisplayMode **modes = SDL_GetFullscreenDisplayModes(SDL_GetPrimaryDisplay(), &count);
     for (int index = 0; index < count; ++index) {
         AddMode(modes[index]->w, modes[index]->h, 32);
@@ -1643,6 +1645,10 @@ bool CVideoMode_NativeSoftware::Init(void *) {
             m_nGameMode = index;
             break;
         }
+    }
+    if (m_nGameMode < 0) {
+        m_nGameMode = m_nNumModes;
+        m_rgModeList[m_nNumModes++] = m_safeMode;
     }
     if (!m_bWindowed && !SDL_SetWindowFullscreen(window, true)) {
         return false;
