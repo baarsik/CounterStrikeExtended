@@ -57,9 +57,13 @@ constexpr Setting CheckSettings[] = {
 };
 
 float SettingValue(const char* name, bool defaults) {
+    return defaults ? static_cast<float>(std::atof(radar::FindCvar(name).default_value))
+                    : engine->pfnGetCvarFloat(const_cast<char*>(name));
+}
+
+float SliderSettingValue(const char* name, bool defaults) {
     const auto definition = radar::FindCvar(name);
-    const float value = defaults ? static_cast<float>(std::atof(definition.default_value))
-                                 : engine->pfnGetCvarFloat(const_cast<char*>(name));
+    const float value = SettingValue(name, defaults);
     return std::isfinite(value) ? (std::clamp)(value, definition.min_value, definition.max_value)
                                 : static_cast<float>(std::atof(definition.default_value));
 }
@@ -147,7 +151,8 @@ float CHudRadarDialog::MapModeValue() const {
 
 void CHudRadarDialog::LoadValues(bool defaults) {
     m_defaultsRequested = defaults;
-    const float mode = SettingValue("hud_radar_mode", defaults) != 0.0f ? 1.0f : 0.0f;
+    constexpr float AdvancedModeThreshold = radar::FindCvar("hud_radar_mode").max_value;
+    const float mode = SettingValue("hud_radar_mode", defaults) >= AdvancedModeThreshold ? 1.0f : 0.0f;
     m_mode->ActivateItemByRow(static_cast<int>(mode));
     const auto mapMode = RadarMapMode_FromCvar(SettingValue("hud_radar_map_mode", defaults));
     for (int row = 0; row < static_cast<int>(std::size(kRadarMapModeDefs)); ++row) {
@@ -158,7 +163,8 @@ void CHudRadarDialog::LoadValues(bool defaults) {
     }
     for (int index = 0; index < SliderCount; ++index) {
         m_sliders[index]->SetValue(
-            static_cast<int>(std::lround(SettingValue(SliderSettings[index].name, defaults) * SliderPrecision)), false);
+            static_cast<int>(std::lround(SliderSettingValue(SliderSettings[index].name, defaults) * SliderPrecision)),
+            false);
     }
     for (int index = 0; index < CheckCount; ++index) {
         m_checks[index]->SetSelected(SettingValue(CheckSettings[index].name, defaults) != 0.0f);

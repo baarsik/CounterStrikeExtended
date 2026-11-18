@@ -504,6 +504,23 @@ void RunRadarSettings(vgui2::Panel* root, vgui2::HScheme scheme, const std::file
     Require(radarValues["hud_radar_map_scale"] == CustomMapScale,
         "changing player names preserves the configured precision of an untouched map scale");
 
+    radarValues["hud_radar_mode"] = 0.5f;
+    radarValues["hud_radar_names"] = -1.0f;
+    auto* modeDialog = new CHudRadarDialog(root);
+    modeDialog->SetScheme(scheme);
+    modeDialog->DoModal();
+    Settle(*root);
+    auto* mode = dynamic_cast<vgui2::ComboBox*>(modeDialog->FindChildByName("RadarMode", false));
+    auto* names = dynamic_cast<vgui2::CheckButton*>(modeDialog->FindChildByName("hud_radar_names", false));
+    Require(mode && mode->GetActiveItem() == 0, "the radar dialog shows the classic mode active below one");
+    Require(names && names->IsSelected(), "the radar dialog shows names enabled for nonzero settings");
+    mode->ActivateItemByRow(1);
+    names->SetSelected(false);
+    modeDialog->OnCommand("OK");
+    Settle(*root);
+    Require(radarValues["hud_radar_mode"] == 1.0f && radarValues["hud_radar_names"] == 0.0f,
+        "enabling advanced mode and disabling names commits both choices");
+
     for (const int style : {0, 1}) {
         uiStyle = static_cast<float>(style);
         for (const bool hoverTooltip : {false, true}) {
