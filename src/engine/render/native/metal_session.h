@@ -25,6 +25,13 @@ struct RenderFrameCounters {
     std::uint64_t sceneResolves = 0;
     std::uint64_t copyPasses = 0;
     std::uint64_t uploadBytes = 0;
+    std::uint64_t streamedVertexBytes = 0;
+    std::uint64_t streamedIndexBytes = 0;
+    std::uint64_t residentMeshBytes = 0;
+    std::uint64_t legacyTextureBytes = 0;
+    std::uint64_t effectUploadBytes = 0;
+    std::uint64_t quadVertexBytes = 0;
+    std::uint64_t borrowedGeometryBytes = 0;
     std::uint64_t fenceWaits = 0;
     std::uint64_t preparationAllocations = 0;
     std::uint64_t streamAllocations = 0;

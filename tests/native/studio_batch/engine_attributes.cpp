@@ -1,4 +1,5 @@
 #include "studio_mesh_gl.h"
+#include "render/native/legacy_state.h"
 
 #include <array>
 #include <cmath>
@@ -20,6 +21,12 @@ using vec3_t = float[3];
 #include CSE_STUDIO_ENGINE_EXTRACT
 #undef CSE_STUDIO_EXTRACT_AUXVERT
 
+namespace cse::render {
+bool UsingMetal();
+Status SubmitNativeIndexed(const std::vector<Vertex>& vertices,
+    const std::vector<std::uint32_t>& indices, std::size_t lastVertex, bool perVertexColor);
+}
+
 namespace {
 using cse::studio::DrawVertex;
 using cse::studio::GLFunctions;
@@ -40,6 +47,8 @@ void Equal(float actual, float expected, const char* message) {
 
 cse::studio::MeshCache studioMeshCache;
 std::vector<DrawVertex> studioDrawVertices;
+std::vector<cse::render::Vertex> studioNativeVertices;
+bool useMetal = false;
 studiohdr_t* pstudiohdr = nullptr;
 mstudiomodel_t submodel{};
 mstudiomodel_t* psubmodel = &submodel;
@@ -175,7 +184,9 @@ void RunAttributes(const GLFunctions& gl, const mstudiomesh_t& mesh, const vec3_
     Check(R_StudioDrawIndexedMesh(gl, mesh, normals, s, t, chromeTexture, forcedChrome, flipped),
         "actual production helper accepts source mesh");
     Check(draws == priorDraws + 1 && emitted.size() == ExpectedCorners.size(), "batched complete output");
-    Check(studioDrawVertices.size() == 5, "full tuple dedup preserves normal and UV seams");
+    constexpr std::size_t kUniqueVertices = 5;
+    Check((useMetal ? studioNativeVertices.size() : studioDrawVertices.size()) == kUniqueVertices,
+        "full tuple dedup preserves normal and UV seams");
     Check(lambertCalls == (forcedChrome ? 0 : 5), "light once per unique tuple and inherit forced color");
     const auto& expectedUV = forcedChrome ? ExpectedForcedUV : chromeTexture ? ExpectedChromeUV : ExpectedOrdinaryUV;
     for (std::size_t index = 0; index < emitted.size(); ++index) {
@@ -201,6 +212,37 @@ void RunAttributes(const GLFunctions& gl, const mstudiomesh_t& mesh, const vec3_
             channel == 1 && flipped && !chromeTexture ? ExpectedFlippedGreen[0] : ExpectedColors[0][channel];
         Equal(currentColor[channel], expected, "terminal source/inherited color");
     }
+}
+}
+
+namespace cse::render {
+bool UsingMetal() {
+    return useMetal;
+}
+
+Status SubmitNativeIndexed(const std::vector<Vertex>& vertices, const std::vector<std::uint32_t>& indices,
+    std::size_t lastVertex, bool perVertexColor) {
+    Check(lastVertex < vertices.size(), "Metal terminal source vertex is in the batch");
+    for (auto index : indices) {
+        Check(index < vertices.size(), "Metal triangle index is in the batch");
+        const auto& source = vertices[index];
+        constexpr std::size_t kTexturePositionComponents = 2;
+        Check(source.position[3] == 1 && source.texcoords[0][2] == 0 && source.texcoords[0][3] == 1,
+            "Metal receives homogeneous position and UVs");
+        DrawVertex vertex{};
+        std::copy_n(source.position.data(), std::size(vertex.position), vertex.position);
+        std::copy_n(source.texcoords[0].data(), kTexturePositionComponents, vertex.texcoord);
+        const auto& color = perVertexColor ? source.color : currentColor;
+        std::copy(color.begin(), color.end(), vertex.color);
+        emitted.push_back(vertex);
+    }
+    const auto& last = vertices[lastVertex];
+    TexCoord(last.texcoords[0][0], last.texcoords[0][1]);
+    if (perVertexColor) {
+        Color(last.color[0], last.color[1], last.color[2], last.color[3]);
+    }
+    ++draws;
+    return Status::Ok;
 }
 }
 
@@ -241,19 +283,33 @@ int main(int argc, char** argv) {
         std::puts("studio engine alignment passed");
         return EXIT_SUCCESS;
     }
-    RunAttributes(gl, mesh, normals, 0.5f, 0.25f, false, false, false, false);
-    r_blend = 0.375f;
-    RunAttributes(gl, mesh, normals, 0.125f, 0.0625f, false, false, true, false);
-    RunAttributes(gl, mesh, normals, 0.015625f, 0.0078125f, true, false, false, false);
-    RunAttributes(gl, mesh, normals, 0.03125f, 0.015625f, true, false, true, false);
-    currentColor = {{0.13f, 0.27f, 0.41f, 0.55f}};
-    RunAttributes(gl, mesh, normals, 0.0625f, 0.03125f, true, true, true, false);
-    for (auto& vertex : auxiliary) {
-        for (auto& component : vertex.fv) {
-            component += 100.0f;
+    for (bool metal : {false, true}) {
+        useMetal = metal;
+        r_blend = 0.625f;
+        studioDrawVertices.clear();
+        studioNativeVertices.clear();
+        for (int position = 0; position < 4; ++position) {
+            auxiliary[position].fv[0] = 11.0f + position;
+            auxiliary[position].fv[1] = 21.0f + position;
+            auxiliary[position].fv[2] = 31.0f + position;
         }
+        RunAttributes(gl, mesh, normals, 0.5f, 0.25f, false, false, false, false);
+        r_blend = 0.375f;
+        RunAttributes(gl, mesh, normals, 0.125f, 0.0625f, false, false, true, false);
+        RunAttributes(gl, mesh, normals, 0.015625f, 0.0078125f, true, false, false, false);
+        RunAttributes(gl, mesh, normals, 0.03125f, 0.015625f, true, false, true, false);
+        currentColor = {{0.13f, 0.27f, 0.41f, 0.55f}};
+        RunAttributes(gl, mesh, normals, 0.0625f, 0.03125f, true, true, true, false);
+        for (auto& vertex : auxiliary) {
+            for (auto& component : vertex.fv) {
+                component += 100.0f;
+            }
+        }
+        RunAttributes(gl, mesh, normals, 0.25f, 0.125f, false, false, false, true);
+
+        Check(useMetal ? studioDrawVertices.empty() : studioNativeVertices.empty(),
+            "only the selected renderer needs a vertex staging vector");
     }
-    RunAttributes(gl, mesh, normals, 0.25f, 0.125f, false, false, false, true);
     const int previousDraws = draws;
     const int previousMutations = mutations;
     // The terminator remains in allocated memory but outside resident geometry.

@@ -1,4 +1,5 @@
 #include "metal_draw.h"
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -29,7 +30,44 @@ DrawPacket Quad() {
     return draw;
 }
 
+void BorrowedTriangles() {
+    using Ownership = MetalGeometryOwnership;
+    auto indexed = Quad();
+    indexed.primitive = Primitive::Triangles;
+    indexed.shade = Shade::Smooth;
+    indexed.raster.shade = Shade::Smooth;
+    indexed.indices = {0, 1, 2, 0, 2, 3};
+    MetalDrawData prepared;
+    std::string error;
+    CHECK(PrepareMetalDraw(indexed, prepared, error, Ownership::Borrow));
+    CHECK(&prepared.Vertices() == &indexed.vertices);
+    CHECK(&prepared.Indices() == &indexed.indices);
+    CHECK(PrepareMetalDraw(indexed, prepared, error));
+    CHECK(&prepared.Vertices() != &indexed.vertices);
+    CHECK(&prepared.Indices() != &indexed.indices);
+    CHECK(prepared.Vertices().size() == indexed.vertices.size());
+    indexed.vertices[0].color = {{-0.0f, 1.25f, 0.5f, 1}};
+    CHECK(PrepareMetalDraw(indexed, prepared, error, Ownership::Borrow));
+    CHECK(&prepared.Vertices() != &indexed.vertices);
+    CHECK(prepared.Vertices()[0].color[0] == 0.0f && !std::signbit(prepared.Vertices()[0].color[0]));
+    CHECK(prepared.Vertices()[0].color[1] == 1);
+    indexed.vertices[1].position[0] = std::numeric_limits<float>::infinity();
+    CHECK(PrepareMetalDraw(indexed, prepared, error, Ownership::Borrow));
+    CHECK(&prepared.Vertices() != &indexed.vertices);
+    CHECK(&prepared.Indices() != &indexed.indices);
+    CHECK(prepared.discardedNonfinite && prepared.Indices().size() == 3);
+    CHECK(prepared.Vertices()[prepared.Indices()[2]].position == indexed.vertices[3].position);
+    // Ignored texture units still sanitize their own invalid attributes before upload.
+    indexed.vertices[1] = Quad().vertices[1];
+    indexed.vertices[2].texcoords[1][0] = std::numeric_limits<float>::quiet_NaN();
+    CHECK(PrepareMetalDraw(indexed, prepared, error, Ownership::Borrow));
+    CHECK(&prepared.Vertices() != &indexed.vertices);
+    CHECK(!prepared.discardedNonfinite && prepared.Indices().size() == 6);
+    CHECK((prepared.Vertices()[2].texcoords[1] == std::array<float, 4>{{0, 0, 0, 1}}));
+}
+
 int main() {
+    BorrowedTriangles();
     // Missing quad lowering or the wrong provoking vertex makes this fail.
     auto draw = Quad();
     MetalDrawData prepared;

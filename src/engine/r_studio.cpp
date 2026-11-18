@@ -5676,27 +5676,26 @@ namespace {
         if (!topology) {
             return false;
         }
+        const bool useMetal = cse::render::UsingMetal();
         try {
-            studioDrawVertices.resize(topology->vertices.size());
-            if (cse::render::UsingMetal()) {
+            if (useMetal) {
                 studioNativeVertices.resize(topology->vertices.size());
+            } else {
+                studioDrawVertices.resize(topology->vertices.size());
             }
         } catch (const std::bad_alloc&) {
             return false;
         } catch (const std::length_error&) {
             return false;
         }
-        for (std::size_t index = 0; index < topology->vertices.size(); ++index) {
-            const auto& source = topology->vertices[index];
-            auto& vertex = studioDrawVertices[index];
-            std::memcpy(vertex.position, pauxverts[source.position].fv, sizeof(vertex.position));
+        const auto writeAttributes = [&](const auto& source, float* uv, float* color) {
             if (chromeTexture) {
                 const int normal = forcedChrome ? g_NormalIndex[source.position] : source.normal;
-                vertex.texcoord[0] = chrome[normal][0] * s;
-                vertex.texcoord[1] = chrome[normal][1] * t;
+                uv[0] = chrome[normal][0] * s;
+                uv[1] = chrome[normal][1] * t;
             } else {
-                vertex.texcoord[0] = source.s * s;
-                vertex.texcoord[1] = source.t * t;
+                uv[0] = source.s * s;
+                uv[1] = source.t * t;
             }
             if (!forcedChrome) {
                 vec3_t adjustedNormal;
@@ -5708,20 +5707,26 @@ namespace {
                     normal = adjustedNormal;
                 }
                 R_LightLambert(lightpos[source.position], const_cast<float*>(normal),
-                    pvlightvalues[source.normal], vertex.color);
-                vertex.color[3] = r_blend;
+                    pvlightvalues[source.normal], color);
+                color[3] = r_blend;
             }
-        }
-        if (cse::render::UsingMetal()) {
-            for (std::size_t index = 0; index < studioNativeVertices.size(); ++index) {
-                const auto& source = studioDrawVertices[index];
+        };
+        if (useMetal) {
+            for (std::size_t index = 0; index < topology->vertices.size(); ++index) {
+                const auto& source = topology->vertices[index];
                 auto& vertex = studioNativeVertices[index];
-                vertex.position = {{source.position[0], source.position[1], source.position[2], 1}};
-                vertex.texcoords[0] = {{source.texcoord[0], source.texcoord[1], 0, 1}};
-                std::copy(source.color, source.color + 4, vertex.color.begin());
+                const auto& position = pauxverts[source.position].fv;
+                vertex.position = {{position[0], position[1], position[2], 1}};
+                writeAttributes(source, vertex.texcoords[0].data(), vertex.color.data());
             }
             return cse::render::SubmitNativeIndexed(studioNativeVertices, topology->indices,
-                studioNativeVertices.empty() ? 0 : studioNativeVertices.size() - 1, !forcedChrome) == cse::render::Status::Ok;
+                topology->lastVertex, !forcedChrome) == cse::render::Status::Ok;
+        }
+        for (std::size_t index = 0; index < topology->vertices.size(); ++index) {
+            const auto& source = topology->vertices[index];
+            auto& vertex = studioDrawVertices[index];
+            std::memcpy(vertex.position, pauxverts[source.position].fv, sizeof(vertex.position));
+            writeAttributes(source, vertex.texcoord, vertex.color);
         }
         return cse::studio::SubmitIndexed(gl, *topology, studioDrawVertices.data(), !forcedChrome);
     }

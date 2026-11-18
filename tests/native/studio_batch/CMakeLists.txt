@@ -11,7 +11,8 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_LIST_DIR}/extract_engine.py"
   "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/engine_attributes_extracted.inc"
   RESULT_VARIABLE extraction_status COMMAND_ERROR_IS_FATAL ANY)
-add_executable(studio_engine_attributes engine_attributes.cpp)
+add_executable(studio_engine_attributes engine_attributes.cpp
+  "${CSE_ROOT}/src/engine/render/native/legacy_state.cpp")
 target_include_directories(studio_engine_attributes PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/common")
 foreach(target studio_topology_tests studio_submission_tests studio_windows_macro_tests studio_engine_attributes)
 target_include_directories(${target} PRIVATE "${CSE_ROOT}/src/engine" "${CSE_ROOT}/src/external/SDL3/include")

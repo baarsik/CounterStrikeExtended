@@ -39,6 +39,17 @@ struct MetalDrawData {
     Primitive topology = Primitive::Triangles;
     RasterState raster;
     bool discardedNonfinite = false;
+
+    const std::vector<Vertex>& Vertices() const {
+        return borrowedVertices ? *borrowedVertices : vertices;
+    }
+    const std::vector<std::uint32_t>& Indices() const {
+        return borrowedIndices ? *borrowedIndices : indices;
+    }
+
+    // Borrowed only during synchronous encoding while the frame owns the packet.
+    const std::vector<Vertex>* borrowedVertices = nullptr;
+    const std::vector<std::uint32_t>* borrowedIndices = nullptr;
 };
 
 // Clamp a valid GL request without changing the retained sampler state.
@@ -47,6 +58,10 @@ float EffectiveMetalAnisotropy(float requested);
 // Preparation is transactional: output is unchanged on validation failure.
 bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<const SharedPalette>& palette,
     MetalTextureData& output, std::string& error);
-bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error);
+enum class MetalGeometryOwnership { Own, Borrow };
+
+// Preparation is transactional. Borrow requires the source packet to stay alive and unchanged until encoding ends.
+bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error,
+    MetalGeometryOwnership ownership = MetalGeometryOwnership::Own);
 }
 }

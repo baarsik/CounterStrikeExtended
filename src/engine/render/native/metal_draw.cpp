@@ -185,7 +185,8 @@ bool PrepareMetalTexture(const TextureObject& object, const std::shared_ptr<cons
     return true;
 }
 
-bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error) {
+bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string& error,
+    MetalGeometryOwnership ownership) {
     const auto& raster = draw.raster;
     if (draw.primitive > Primitive::LineLoop || draw.shade > Shade::Smooth || raster.shade > Shade::Smooth ||
         draw.vertices.size() > kMaximumVertices ||
@@ -290,16 +291,33 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         prepared.vertex.uvOffset = draw.meshUvOffset;
     }
     prepared.raster = raster;
-    prepared.vertices.reserve(loweredCount);
-    prepared.indices = draw.indices;
     prepared.topology = draw.primitive == Primitive::Lines || draw.primitive == Primitive::LineLoop ?
         Primitive::Lines : Primitive::Triangles;
+    const bool maybeBorrow = ownership == MetalGeometryOwnership::Borrow &&
+        draw.primitive == Primitive::Triangles && !wire && draw.shade == Shade::Smooth &&
+        count != 0 && loweredCount == count;
     bool allFinite = true;
+    bool colorsClamped = maybeBorrow;
     for (const auto& vertex : draw.vertices) {
         allFinite = allFinite && Finite(vertex.position) && Finite(vertex.color);
         for (const auto& uv : vertex.texcoords) {
             allFinite = allFinite && Finite(uv);
         }
+        if (colorsClamped) {
+            for (float component : vertex.color) {
+                // The existing clamp canonicalizes -0 to +0.
+                colorsClamped &= component <= 1.0f && !std::signbit(component);
+            }
+        }
+    }
+    const bool borrowVertices = allFinite && colorsClamped;
+    if (!borrowVertices) {
+        prepared.vertices.reserve(loweredCount);
+    }
+    if (borrowVertices && !draw.indices.empty()) {
+        prepared.borrowedIndices = &draw.indices;
+    } else {
+        prepared.indices = draw.indices;
     }
     const auto valid = [&draw](std::size_t index, std::size_t provoking) {
         const auto& vertex = draw.vertices[index];
@@ -387,6 +405,10 @@ bool PrepareMetalDraw(const DrawPacket& draw, MetalDrawData& output, std::string
         // Filled smooth triangles already have the GPU's topology and per-vertex colors.
         // Copy them in one block instead of expanding every triangle through the generic emitter.
         if (!wireframe && draw.shade == Shade::Smooth) {
+            if (borrowVertices) {
+                prepared.borrowedVertices = &draw.vertices;
+                break;
+            }
             if (allFinite) {
                 prepared.vertices.assign(draw.vertices.begin(), draw.vertices.begin() + loweredCount);
                 for (auto& vertex : prepared.vertices) {

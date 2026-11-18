@@ -228,7 +228,7 @@ struct MetalSession::Impl {
         const auto& left = first.data;
         const auto& right = second.data;
         const bool compatibleGeometry = first.mesh && second.mesh ? first.mesh->page == second.mesh->page :
-            !first.mesh && !second.mesh && left.indices.empty() && right.indices.empty();
+            !first.mesh && !second.mesh && left.Indices().empty() && right.Indices().empty();
         return compatibleGeometry && first.pipeline == second.pipeline && first.textures == second.textures &&
             first.samplers == second.samplers && left.raster.viewport == right.raster.viewport &&
             SameBits(left.raster.depthRange, right.raster.depthRange) && left.raster.scissor == right.raster.scissor &&
@@ -723,8 +723,9 @@ struct MetalSession::Impl {
         return inserted;
     }
 
-    bool Prepare(const DrawPacket& packet, Draw& draw, Preparation& pending, std::string& error) {
-        if (!PrepareMetalDraw(packet, draw.data, error)) {
+    bool Prepare(const DrawPacket& packet, Draw& draw, Preparation& pending, std::string& error,
+        MetalGeometryOwnership ownership) {
+        if (!PrepareMetalDraw(packet, draw.data, error, ownership)) {
             return false;
         }
         if (draw.data.discardedNonfinite && !reportedNonfinite) {
@@ -732,7 +733,7 @@ struct MetalSession::Impl {
                 "Metal discarded nonfinite geometry; unaffected primitives are preserved (reported once)");
             reportedNonfinite = true;
         }
-        if (!draw.data.mesh && draw.data.vertices.empty()) {
+        if (!draw.data.mesh && draw.data.Vertices().empty()) {
             return true;
         }
         if (draw.data.mesh) {
@@ -1013,6 +1014,7 @@ void MetalSession::CountCopyPass(std::size_t bytes) {
     if (impl_->diagnosticsEnabled) {
         ++impl_->counters.copyPasses;
         impl_->counters.uploadBytes += bytes;
+        impl_->counters.effectUploadBytes += bytes;
     }
 }
 
@@ -1066,7 +1068,9 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "fence_waits,preparation_allocations,stream_allocations,stream_evictions,cache_bytes,working_bytes,"
                 "prepare_ms,encode_ms,wait_ms,present_ms,texture_lookups,sampler_lookups,pipeline_lookups,"
                 "disconnected_mesh_ranges,empty_upload_segments,mesh_owner_checks,unused_texture_units,"
-                "alpha_discard_draws,border_sampling_draws,leading_unscissored_clears,drawable_wait_ms,vsync\n");
+                "alpha_discard_draws,border_sampling_draws,leading_unscissored_clears,drawable_wait_ms,vsync,"
+                "stream_vertex_bytes,stream_index_bytes,resident_mesh_bytes,legacy_texture_bytes,effect_upload_bytes,"
+                "quad_vertex_bytes,borrowed_geometry_bytes\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1307,21 +1311,23 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         const auto& event = frame.events[index];
         auto& draw = draws.emplace_back();
         if (event.kind == FrameEventKind::Clear) {
-            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error)) {
+            if (!state.Prepare(ClearDraw(event.clear, state.width, state.height), draw, pending, error,
+                MetalGeometryOwnership::Own)) {
                 return false;
             }
-        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error)) {
+        } else if (!state.Prepare(frame.draws[event.drawIndex], draw, pending, error, MetalGeometryOwnership::Borrow)) {
             return false;
         }
-        if ((!draw.mesh && draw.data.vertices.empty()) || draw.data.raster.viewport[2] == 0 || draw.data.raster.viewport[3] == 0 ||
+        if ((!draw.mesh && draw.data.Vertices().empty()) ||
+            draw.data.raster.viewport[2] == 0 || draw.data.raster.viewport[3] == 0 ||
             (draw.data.topology == Primitive::Triangles &&
                 draw.data.raster.enabled[static_cast<std::size_t>(Capability::CullFace)] &&
                 draw.data.raster.cull == Cull::FrontAndBack)) {
             draws.pop_back();
             continue;
         }
-        const auto drawVertexBytes = draw.data.vertices.size() * sizeof(Vertex);
-        const auto drawIndexBytes = draw.data.indices.size() * sizeof(std::uint32_t);
+        const auto drawVertexBytes = draw.data.Vertices().size() * sizeof(Vertex);
+        const auto drawIndexBytes = draw.data.Indices().size() * sizeof(std::uint32_t);
         const auto bytes = drawVertexBytes + drawIndexBytes;
         if (bytes > kMaximumStreamingBytes - geometryBytes) {
             return Fail(error, "Frame geometry exceeds Metal streaming budget");
@@ -1331,6 +1337,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
         vertexBytes += drawVertexBytes;
         indexBytes += drawIndexBytes;
         geometryBytes += bytes;
+        if (state.diagnosticsEnabled) {
+            if (event.kind == FrameEventKind::Draw && frame.draws[event.drawIndex].primitive == Primitive::Quads) {
+                state.counters.quadVertexBytes += drawVertexBytes;
+            }
+            if (draw.data.borrowedVertices) {
+                state.counters.borrowedGeometryBytes += bytes;
+            }
+        }
     }
     struct Upload {
         Impl::Texture* texture;
@@ -1359,6 +1373,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             static_cast<Uint32>(uploadBytes + vertexBytes)});
         uploadBytes += vertexBytes + indexBytes;
     }
+    const auto meshUploadBytes = uploadBytes - geometryBytes;
     for (auto* texture : pending.textures) {
         for (std::size_t level = 0; level < texture->data.levels.size(); ++level) {
             uploadBytes = Align(uploadBytes, kTransferAlignment);
@@ -1370,6 +1385,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             uploadBytes += bytes;
         }
     }
+    const auto textureUploadBytes = uploadBytes - geometryBytes - meshUploadBytes;
     SDL_GPUTexture* resolve = nullptr;
     if (state.multisample && output == SceneOutput::Resolved) {
         resolve = state.WritableResolve(error);
@@ -1437,13 +1453,14 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             return DeviceFailure(error, "Map persistent Metal upload");
         }
         for (const auto& draw : draws) {
-            if (!draw.data.vertices.empty()) {
-                std::memcpy(mapped + draw.vertexOffset, draw.data.vertices.data(),
-                    draw.data.vertices.size() * sizeof(Vertex));
+            const auto& vertices = draw.data.Vertices();
+            if (!vertices.empty()) {
+                std::memcpy(mapped + draw.vertexOffset, vertices.data(), vertices.size() * sizeof(Vertex));
             }
-            if (!draw.data.indices.empty()) {
-                std::memcpy(mapped + vertexBytes + draw.indexOffset, draw.data.indices.data(),
-                    draw.data.indices.size() * sizeof(std::uint32_t));
+            const auto& indices = draw.data.Indices();
+            if (!indices.empty()) {
+                std::memcpy(mapped + vertexBytes + draw.indexOffset, indices.data(),
+                    indices.size() * sizeof(std::uint32_t));
             }
         }
         for (const auto& upload : meshUploads) {
@@ -1487,6 +1504,10 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     if (state.diagnosticsEnabled) {
         state.counters.prepareMs += std::chrono::duration<double, std::milli>(Impl::Clock::now() - prepareStart).count();
         state.counters.uploadBytes += uploadBytes;
+        state.counters.streamedVertexBytes += vertexBytes;
+        state.counters.streamedIndexBytes += indexBytes + meshIndexBytes;
+        state.counters.residentMeshBytes += meshUploadBytes;
+        state.counters.legacyTextureBytes += textureUploadBytes;
         if (stream) {
             ++state.counters.copyPasses;
         } else {
@@ -1575,8 +1596,8 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
     for (std::size_t drawIndex = 0; drawIndex < draws.size(); ++drawIndex) {
         const auto& draw = draws[drawIndex];
         const auto& data = draw.data;
-        auto vertexCount = data.vertices.size();
-        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.indices.size();
+        auto vertexCount = data.Vertices().size();
+        auto indexCount = draw.mesh ? data.mesh->Indices().size() : data.Indices().size();
         // Preserve order while combining adjacent stream ranges or resident ranges on the same page.
         // Material, uniforms, transforms, scissor and all dynamic raster state must match exactly.
         if (draw.meshBatchDraws) {
@@ -1597,7 +1618,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
                 if (next.vertexOffset != draw.vertexOffset + vertexCount * sizeof(Vertex)) {
                     break;
                 }
-                vertexCount += next.data.vertices.size();
+                vertexCount += next.data.Vertices().size();
             }
             ++drawIndex;
         }
@@ -1685,7 +1706,7 @@ bool MetalSession::Render(const FrameSnapshot& frame, std::string& error, SceneO
             }
             state.counters.borderSamplingDraws += draw.softwareBorder;
         }
-        if (!draw.mesh && data.indices.empty()) {
+        if (!draw.mesh && data.Indices().empty()) {
             SDL_DrawGPUPrimitives(pass, static_cast<Uint32>(vertexCount), 1, 0, 0);
         } else {
             const bool residentIndices = draw.mesh && !draw.meshIndicesInStream;
@@ -1854,7 +1875,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
         std::fprintf(state.diagnosticsFile,
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
-            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d\n",
+            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -1871,7 +1892,14 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.unusedTextureUnits),
             static_cast<unsigned long long>(c.alphaDiscardDraws),
             static_cast<unsigned long long>(c.borderSamplingDraws),
-            static_cast<unsigned long long>(c.leadingUnscissoredClears), c.drawableWaitMs, static_cast<int>(state.vsync));
+            static_cast<unsigned long long>(c.leadingUnscissoredClears), c.drawableWaitMs, static_cast<int>(state.vsync),
+            static_cast<unsigned long long>(c.streamedVertexBytes),
+            static_cast<unsigned long long>(c.streamedIndexBytes),
+            static_cast<unsigned long long>(c.residentMeshBytes),
+            static_cast<unsigned long long>(c.legacyTextureBytes),
+            static_cast<unsigned long long>(c.effectUploadBytes),
+            static_cast<unsigned long long>(c.quadVertexBytes),
+            static_cast<unsigned long long>(c.borrowedGeometryBytes));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {
