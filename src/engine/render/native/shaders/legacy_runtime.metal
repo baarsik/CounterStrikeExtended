@@ -28,6 +28,12 @@ struct Input {
     float4 uv2 [[attribute(4)]];
 };
 
+struct WorldInput {
+    float3 position [[attribute(0)]];
+    float2 uv0 [[attribute(1)]];
+    float2 uv1 [[attribute(2)]];
+};
+
 struct Varying {
     float4 position [[position]];
     float4 color;
@@ -40,18 +46,30 @@ struct Varying {
 static_assert(sizeof(VertexConstants) == 384, "Captured vertex uniform layout");
 static_assert(sizeof(FragmentConstants) == 240, "Captured fragment uniform layout");
 
-vertex Varying LegacyVertex(Input input [[stage_in]], constant VertexConstants& constants [[buffer(0)]]) {
+Varying TransformLegacyVertex(float4 position, float4 color, float4 uv0, float4 uv1, float4 uv2,
+    constant VertexConstants& constants) {
     Varying output;
-    float4 eye = constants.ModelView * input.position;
+    float4 eye = constants.ModelView * position;
     output.position = constants.Projection * eye;
     // GL clip depth [-w,w] becomes SDL GPU [0,w], as in the HLSL counterpart.
     output.position.z = (output.position.z + output.position.w) * 0.5f;
-    output.color = input.color * constants.Color;
-    output.uv0 = constants.TextureMatrix[0] * (input.uv0 + constants.UvOffset[0]);
-    output.uv1 = constants.TextureMatrix[1] * (input.uv1 + constants.UvOffset[1]);
-    output.uv2 = constants.TextureMatrix[2] * (input.uv2 + constants.UvOffset[2]);
+    output.color = color * constants.Color;
+    output.uv0 = constants.TextureMatrix[0] * (uv0 + constants.UvOffset[0]);
+    output.uv1 = constants.TextureMatrix[1] * (uv1 + constants.UvOffset[1]);
+    output.uv2 = constants.TextureMatrix[2] * (uv2 + constants.UvOffset[2]);
     output.eyeDepth = abs(eye.z / eye.w);
     return output;
+}
+
+vertex Varying LegacyVertex(Input input [[stage_in]],
+    constant VertexConstants& constants [[buffer(0)]]) {
+    return TransformLegacyVertex(input.position, input.color, input.uv0, input.uv1, input.uv2, constants);
+}
+
+vertex Varying LegacyWorldVertex(WorldInput input [[stage_in]],
+    constant VertexConstants& constants [[buffer(0)]]) {
+    const float4 uv0 = float4(input.uv0, 0, 1);
+    return TransformLegacyVertex(float4(input.position, 1), float4(1), uv0, float4(input.uv1, 0, 1), uv0, constants);
 }
 
 float4 Environment(float4 previous, float4 sampleValue, float4 unit, float4 components) {

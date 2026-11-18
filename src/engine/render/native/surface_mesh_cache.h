@@ -40,12 +40,12 @@ public:
                 }
             }
             auto& vertex = vertices[index];
-            std::copy_n(input, 3, vertex.position.begin());
+            vertex.position = {{input[0], input[1], input[2], 1}};
             vertex.texcoords[0] = {{input[3], input[4], 0, 1}};
             vertex.texcoords[1] = {{input[5], input[6], 0, 1}};
             vertex.texcoords[2] = vertex.texcoords[0];
         }
-        auto mesh = SurfaceMesh::Create(std::move(vertices), error);
+        auto mesh = SurfaceMesh::Create(std::move(vertices), true, error);
         if (mesh) {
             meshes_.emplace(identity, mesh);
             bytes_ += bytes;
