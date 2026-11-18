@@ -131,6 +131,21 @@ void FailedEmptyRefresh(const char* directory, const char* unavailable) {
         PumpUntilSettled(provider, model, EmptyRefreshWait);
         CHECK(model.GetStatus().phase == Phase::Failed);
         CHECK(model.OrderedKeys().size() == 2);
+
+        // The directory is still unavailable, but each retained server has its own query address.
+        steam.validQueries = true;
+        steam.deferPings = true;
+        const auto retained = model.OrderedKeys();
+        for (const auto& key : retained) {
+            CHECK(model.QuickRefresh(key));
+        }
+        CHECK(!model.QuickRefresh());
+        model.Pump();
+        CHECK(steam.pendingPings.size() == retained.size());
+        steam.CompletePings();
+        PumpUntilSettled(provider, model, EmptyRefreshWait);
+        CHECK(model.GetStatus().phase == Phase::Complete);
+        CHECK(model.GetStatus().responding == retained.size());
     }
     CHECK(provider.BeginClose());
 }

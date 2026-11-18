@@ -359,7 +359,9 @@ struct ServerBrowserModel::State {
                 dirty[index] = source;
                 if (quickPending.erase(index) && quickPending.empty()) {
                     completed = true;
-                    owner.status.phase = Phase::Complete;
+                    if (!owner.pingRefresh) {
+                        owner.status.phase = Phase::Complete;
+                    }
                 }
             }
             --owner.callbackDepth;
@@ -377,9 +379,11 @@ struct ServerBrowserModel::State {
                 completed = true;
                 owner.status.completion = result;
                 owner.status.error.clear();
-                owner.status.phase = result == eServerFailedToRespond ? Phase::Failed : Phase::Complete;
-                if (result == eServerFailedToRespond) {
-                    owner.status.error = "Server query failed; partial results remain available";
+                if (!owner.pingRefresh) {
+                    owner.status.phase = result == eServerFailedToRespond ? Phase::Failed : Phase::Complete;
+                    if (result == eServerFailedToRespond) {
+                        owner.status.error = "Server query failed; partial results remain available";
+                    }
                 }
             }
             --owner.callbackDepth;
@@ -708,7 +712,9 @@ struct ServerBrowserModel::State {
         }
         if (pingRefresh && pingPending.empty() && pings.empty()) {
             pingRefresh = false;
-            status.phase = Phase::Complete;
+            if (!request || request->completed) {
+                status.phase = Phase::Complete;
+            }
         }
         return work;
     }
@@ -898,7 +904,7 @@ bool ServerBrowserModel::QuickRefresh() {
         state.status.error.clear();
         return true;
     }
-    if (!state.request->completed) {
+    if (!state.request->completed || state.pingRefresh) {
         return false;
     }
     auto& request = *state.request;
@@ -918,7 +924,12 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
         state.providerDepth || state.callbackDepth || state.retiring) {
         return false;
     }
-    if (!state.request || !state.request->handle) {
+    if (state.request && !state.request->completed && state.request->quickPending.empty()) {
+        return false;
+    }
+    const auto index = state.request ? state.request->IndexFor(key) : std::nullopt;
+    // A failed directory retains rows from the previous request without assigning them new indices.
+    if (!state.request || !state.request->handle || (!index && state.status.completion == eServerFailedToRespond)) {
         if (!Find(key)) {
             return false;
         }
@@ -933,8 +944,7 @@ bool ServerBrowserModel::QuickRefresh(const RowKey& key) {
         state.status.error.clear();
         return true;
     }
-    const auto index = state.request->IndexFor(key);
-    if ((!state.request->completed && state.request->quickPending.empty()) || !index) {
+    if (!index) {
         return false;
     }
     auto& request = *state.request;

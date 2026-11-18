@@ -37,6 +37,7 @@ struct Provider final : ISteamMatchmakingServers {
     bool cancelCallbacks = false;
     bool failRequest = false;
     bool failRefresh = false;
+    bool deferRefresh = false;
     int canceled = 0;
     int released = 0;
     int refreshed = 0;
@@ -115,6 +116,9 @@ struct Provider final : ISteamMatchmakingServers {
     }
     void RefreshServer(HServerListRequest request, int index) override {
         lastIndex = index;
+        if (deferRefresh) {
+            return;
+        }
         auto *callback = requests.at(request).callback;
         if (failRefresh) {
             callback->ServerFailedToRespond(request, index);
@@ -703,6 +707,48 @@ void ReplacementAndFailure() {
     CHECK(!unavailable.Refresh(ListKind::Internet, DefaultFilters()));
     CHECK(unavailable.GetStatus().phase == Phase::Unavailable);
 }
+
+void RefreshPartialSelection() {
+    constexpr RowKey Indexed{0x7f000001U, 27015, 27016};
+    constexpr RowKey Retained{0x7f000002U, 27015, 27016};
+    for (const bool indexedFirst : {true, false}) {
+        Provider provider;
+        provider.nextRows = {Server(Indexed.ip), Server(Retained.ip)};
+        ServerBrowserModel model({&provider, nullptr});
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        provider.Complete();
+        Drain(model);
+
+        provider.nextRows = {Server(Indexed.ip)};
+        CHECK(model.Refresh(ListKind::Internet, DefaultFilters()));
+        Drain(model);
+        provider.Complete(eServerFailedToRespond);
+        Drain(model);
+        provider.deferRefresh = true;
+        CHECK(model.QuickRefresh(indexedFirst ? Indexed : Retained));
+        CHECK(model.QuickRefresh(indexedFirst ? Retained : Indexed));
+        CHECK(provider.lastIndex == 0);
+        const auto finishIndexed = [&] {
+            provider.requests.at(provider.current).callback->ServerResponded(provider.current, provider.lastIndex);
+        };
+        if (indexedFirst) {
+            finishIndexed();
+            provider.Complete(eServerFailedToRespond);
+        } else {
+            Drain(model);
+        }
+        CHECK(model.GetStatus().phase == Phase::Refreshing);
+        CHECK(!model.QuickRefresh());
+        if (!indexedFirst) {
+            finishIndexed();
+        }
+        Drain(model);
+        CHECK(model.GetStatus().phase == Phase::Complete);
+        CHECK(model.Find(Retained)->failed);
+        CHECK(!model.Find(Indexed)->failed);
+    }
+}
+
 int main(int argc, char** argv) {
     if (argc == 2 && std::string(argv[1]) == "wrong-thread") {
         ServerBrowserModel model({});
@@ -746,6 +792,7 @@ int main(int argc, char** argv) {
         ReentrantViewChange();
         FavoritePreservation();
         ReplacementAndFailure();
+        RefreshPartialSelection();
         EverySortAndFilter();
         std::cout << "13 model cases passed\n";
     } catch (const std::exception& error) {
