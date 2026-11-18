@@ -779,9 +779,12 @@ int main(int argc, char **argv) {
         } else if (name == "region-tabs") {
             auto *tabs = static_cast<vgui2::PropertySheet *>(dialog->FindChildByName("GameTabs", false));
             auto *map = static_cast<vgui2::TextEntry *>(tabs->GetActivePage()->FindChildByName("MapFilter", false));
-            map->SetText("DE_");
+            for (const char character : std::string("DE_")) {
+                gui->PostMessage(map->GetVPanel(), new KeyValues("KeyTyped", "unichar", character), 0, 0);
+            }
             gui->RunFrame();
             Settle(*dialog, session);
+            Require(session.settings.filters.map == "DE_", "typed Internet map filter did not reach the page");
             for (size_t index = 1; index < BrowserTabKinds.size(); ++index) {
                 tabs->SetActivePage(tabs->GetPage(static_cast<int>(index)));
                 Settle(*dialog, session);
