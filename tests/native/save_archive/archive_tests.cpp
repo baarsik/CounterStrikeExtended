@@ -331,6 +331,26 @@ void assertSourceBytes() {
         && files.at("SAVE/last.HL3").data == Bytes({0xfe, 0, 0xed}), "writer modified source bytes");
 }
 
+void mixedCaseMapStateExtensions() {
+    for (const char *name : {"c1a0.hl1", "c1a0.Hl2", "c1a0.hL3"}) {
+        reset();
+        addName(name);
+        const auto path = std::string("SAVE/") + name;
+        const Bytes payload = {0x11, 0x22};
+        files[path].data = payload;
+        MemoryFile output;
+        check(WriteDirectory("SAVE/*.HL?", &output, 1), "enumerated mixed-case map state failed to save");
+        check(output.data == entry(260, name, payload), "writer changed the mixed-case record name");
+
+        for (const auto width : {260, 1024}) {
+            reset();
+            MemoryFile input{entry(width, name, payload)};
+            check(DirectoryExtract(&input, 1), "mixed-case map state failed to load");
+            check(files.at(path).data == payload, "extraction changed the map state name or payload");
+        }
+    }
+}
+
 void chunkedCopy() {
     const Bytes payload(8201, 0xd3);
     for (auto width : {260, 1024}) {
@@ -712,6 +732,7 @@ int main(int argc, char **argv) {
         reservedDeviceNames();
         malformedReaders();
         writers();
+        mixedCaseMapStateExtensions();
         chunkedCopy();
         faults();
         repeatRejections();

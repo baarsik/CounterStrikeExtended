@@ -49,6 +49,10 @@ bool ReadExact(FileHandle_t file, void *output, std::uint32_t bytes) {
         && FS_Tell(file) == start + bytes);
 }
 
+char AsciiUpper(char character) {
+    return character >= 'a' && character <= 'z' ? static_cast<char>(character - ('a' - 'A')) : character;
+}
+
 bool ReservedDeviceName(const char *name, std::size_t length) {
     // Win32 treats device basenames as devices even with additional extensions. Apply the same
     // rejection on every target; ASCII-space normalization must not disguise a reserved basename.
@@ -77,9 +81,7 @@ bool ReservedDeviceName(const char *name, std::size_t length) {
         }
         bool matches = true;
         for (std::size_t index = 0; index < end - start; ++index) {
-            const char character = name[start + index];
-            const char upper = character >= 'a' && character <= 'z' ? character - ('a' - 'A') : character;
-            if (upper != reserved[index]) {
+            if (AsciiUpper(name[start + index]) != reserved[index]) {
                 matches = false;
                 break;
             }
@@ -98,7 +100,8 @@ bool ValidName(const char *name, std::size_t bytes, std::size_t &length) {
     }
     constexpr std::size_t kExtensionBytes = 4; // A dot followed by the retained *.HL? map-state extension.
     if (length == bytes || length <= kExtensionBytes || name[length - kExtensionBytes] != '.'
-        || name[length - kExtensionBytes + 1] != 'H' || name[length - kExtensionBytes + 2] != 'L'
+        || AsciiUpper(name[length - kExtensionBytes + 1]) != 'H'
+        || AsciiUpper(name[length - kExtensionBytes + 2]) != 'L'
         || name[length - 1] == ' ' || name[length - 1] == '.') {
         return false;
     }
