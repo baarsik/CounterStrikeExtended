@@ -122,6 +122,9 @@ static void CheckModState() {
 void BaseUISurface::AppHandler(void *event, void *) {
     SDL_Event ev = *(const SDL_Event *)event;
     switch (ev.type) {
+    case SDL_EVENT_WINDOW_FOCUS_LOST:
+        s_wheelMotion.Reset();
+        break;
     case SDL_EVENT_KEY_DOWN:
         g_InputInternal->InternalKeyCodePressed(KeyCode_VirtualKeyToVGUI(ev.key.key));
         g_InputInternal->InternalKeyCodeTyped(KeyCode_VirtualKeyToVGUI(ev.key.key));

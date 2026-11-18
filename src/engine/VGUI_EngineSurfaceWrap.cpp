@@ -623,6 +623,10 @@ void EngineSurfaceWrap::AppHandler(void *event, void *) {
 
     const SDL_Event *sdlEvent = static_cast<SDL_Event *>(event);
     const unsigned int type = sdlEvent->type;
+    if (type == SDL_EVENT_WINDOW_FOCUS_LOST) {
+        s_wheelMotion.Reset();
+        return;
+    }
     if (type == SDL_EVENT_MOUSE_MOTION) {
         int x = 0;
         int y = 0;
