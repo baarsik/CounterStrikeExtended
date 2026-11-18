@@ -215,6 +215,22 @@ int main() {
             Require(effects.DrawPrimitiveQuads(batch, raster) == CSE_RADAR_OK, "Metal primitive");
             ComparePixels(session, "primitive-" + std::to_string(shape) + "-" + std::to_string(variant));
             ++cases;
+            if (shape == CSE_RADAR_PRIMITIVE_SOLID && variant == 0) {
+                // A HUD overlay can extend beyond an inset viewport while remaining inside the framebuffer.
+                for (auto& vertex : vertices) {
+                    vertex.position[0] -= kSide / 2;
+                }
+                raster.viewport = {{kSide / 4, kSide / 4, kSide / 2, kSide / 2}};
+                glViewport(raster.viewport[0], raster.viewport[1], raster.viewport[2], raster.viewport[3]);
+                glClear(GL_COLOR_BUFFER_BIT);
+                glDrawArrays(GL_QUADS, 0, 4);
+                Require(session.Render(frame, error), error);
+                Require(effects.DrawPrimitiveQuads(batch, raster) == CSE_RADAR_OK, "Metal inset viewport");
+                ComparePixels(session, "primitive-inset-viewport");
+                ++cases;
+                raster.viewport = {{0, 0, kSide, kSide}};
+                glViewport(0, 0, kSide, kSide);
+            }
         }
     }
     for (const auto* name : names) {
