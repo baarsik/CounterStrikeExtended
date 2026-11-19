@@ -1,6 +1,7 @@
 #pragma once
 
 #include "net.h"
+#include "client_command_history.h"
 #include "filesystem.h"
 #include "engine_apiproxy.h"
 #include "crc.h"
@@ -348,7 +349,7 @@ typedef struct client_state_s
 	vec3_t simvel;
 	vec3_t simangles;
 
-	vec3_t predicted_origins[UPDATE_BACKUP];
+	vec3_t predicted_origins[CL_COMMAND_HISTORY_SIZE];
 	vec3_t prediction_error;
 
 	float idealpitch;
@@ -374,8 +375,8 @@ typedef struct client_state_s
 								// to decay light values and smooth step ups
 
 	frame_t frames[UPDATE_BACKUP];
-	cmd_t commands[UPDATE_BACKUP];
-	local_state_t predicted_frames[UPDATE_BACKUP];
+	cmd_t commands[CL_COMMAND_HISTORY_SIZE];
+	local_state_t predicted_frames[CL_COMMAND_HISTORY_SIZE];
 	int delta_sequence;
 
 	int playernum;

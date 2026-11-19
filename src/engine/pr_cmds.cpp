@@ -1974,6 +1974,8 @@ void PF_RunPlayerMove_I( edict_t* fakeClient, const float* viewAngles, float for
 {
 	edict_t* savedPlayer = sv_player;
 	client_t* savedClient = host_client;
+    const float savedTime = gGlobalVariables.time;
+    const float savedFrameTime = gGlobalVariables.frametime;
 	sv_player = fakeClient;
 	host_client = &svs.clients[NUM_FOR_EDICT( fakeClient ) - 1];
 	host_client->svtimebase = sv.time + host_frametime - (double)msec / 1000.0;
@@ -1993,6 +1995,9 @@ void PF_RunPlayerMove_I( edict_t* fakeClient, const float* viewAngles, float for
 	host_client->lastcmd = command;
 	sv_player = savedPlayer;
 	host_client = savedClient;
+    // Fake-client commands can run during StartFrame, before world entities think.
+    gGlobalVariables.time = savedTime;
+    gGlobalVariables.frametime = savedFrameTime;
 }
 
 void PF_setspawnparms_I( edict_t* entity )

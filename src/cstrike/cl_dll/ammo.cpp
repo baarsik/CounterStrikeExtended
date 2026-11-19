@@ -19,6 +19,7 @@
 //
 
 #include "hud.h"
+#include "crosshair_recovery.h"
 #include "money_hud_layout.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -316,7 +317,8 @@ int CHudAmmo::Init(void)
 	m_bObserverCrosshair = 0;
 	m_flCrosshairDistance = 0;
 	m_iAmmoLastCheck = 0;
-	m_iAlpha = 200;
+    constexpr double initialCrosshairAlpha = 200.0;
+    m_flCrosshairAlpha = initialCrosshairAlpha;
 	m_R = 50;
 	m_G = 250;
 	m_B = 50;
@@ -1758,27 +1760,31 @@ int CHudAmmo::DrawCrosshair(float, int weapon)
 		if (accuracy & 16)
 			distance = (int)(float)(distance * 1.4f);
 	}
-	if (m_iAmmoLastCheck >= g_iShotsFired)
-	{
-		m_flCrosshairDistance = (float)(m_flCrosshairDistance - (0.013 * m_flCrosshairDistance + 0.1));
-		m_iAlpha += 2;
-	}
-	else
-	{
-		m_flCrosshairDistance += (float)delta;
-		m_iAlpha -= 40;
-		if (m_flCrosshairDistance > 15)
-			m_flCrosshairDistance = 15;
-		if (m_iAlpha < 120)
-			m_iAlpha = 120;
-	}
+    constexpr float maximumShotGap = 15.0f;
+    constexpr double shotAlphaLoss = 40.0;
+    constexpr double minimumShotAlpha = 120.0;
+    constexpr double maximumAlpha = 255.0;
+    if (m_iAmmoLastCheck >= g_iShotsFired) {
+        RecoverCrosshair(m_flCrosshairDistance, m_flCrosshairAlpha, gHUD.m_flTimeDelta);
+    } else {
+        m_flCrosshairDistance += static_cast<float>(delta);
+        m_flCrosshairAlpha -= shotAlphaLoss;
+        if (m_flCrosshairDistance > maximumShotGap) {
+            m_flCrosshairDistance = maximumShotGap;
+        }
+        if (m_flCrosshairAlpha < minimumShotAlpha) {
+            m_flCrosshairAlpha = minimumShotAlpha;
+        }
+    }
 	if (g_iShotsFired > 600)
 		g_iShotsFired = 1;
 	m_iAmmoLastCheck = g_iShotsFired;
 	if ((float)distance > m_flCrosshairDistance)
 		m_flCrosshairDistance = (float)distance;
-	if (m_iAlpha > 255)
-		m_iAlpha = 255;
+    if (m_flCrosshairAlpha > maximumAlpha) {
+        m_flCrosshairAlpha = maximumAlpha;
+    }
+    const int alpha = static_cast<int>(m_flCrosshairAlpha);
 	int length = (int)(float)((m_flCrosshairDistance - distance) * 0.5) + 5;
 	CalculateCrosshairColor();
 	CalculateCrosshairDrawMode();
@@ -1800,10 +1806,10 @@ int CHudAmmo::DrawCrosshair(float, int weapon)
 	void (*fill)(int, int, int, int, int, int, int, int) = gEngfuncs.pfnFillRGBA;
 	if (gHUD.m_NightVision.m_fOn || !m_bAdditive)
 		fill = gEngfuncs.pfnFillRGBABlend;
-	fill(ScreenWidth / 2 - gap - length + 1, ScreenHeight / 2, length, 1, r, g, b, m_iAlpha);
-	fill(ScreenWidth / 2 + gap, ScreenHeight / 2, length, 1, r, g, b, m_iAlpha);
-	fill(ScreenWidth / 2, ScreenHeight / 2 - gap - length + 1, 1, length, r, g, b, m_iAlpha);
-	fill(ScreenWidth / 2, ScreenHeight / 2 + gap, 1, length, r, g, b, m_iAlpha);
+    fill(ScreenWidth / 2 - gap - length + 1, ScreenHeight / 2, length, 1, r, g, b, alpha);
+    fill(ScreenWidth / 2 + gap, ScreenHeight / 2, length, 1, r, g, b, alpha);
+    fill(ScreenWidth / 2, ScreenHeight / 2 - gap - length + 1, 1, length, r, g, b, alpha);
+    fill(ScreenWidth / 2, ScreenHeight / 2 + gap, 1, length, r, g, b, alpha);
 	return 1;
 }
 

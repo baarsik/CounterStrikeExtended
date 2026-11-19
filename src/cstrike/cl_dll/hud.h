@@ -195,7 +195,7 @@ public:
 	int m_bObserverCrosshair;
 	int m_iAmmoLastCheck;
 	float m_flCrosshairDistance;
-	int m_iAlpha;
+    double m_flCrosshairAlpha;
 	int m_R, m_G, m_B;
 	int m_cvarR, m_cvarG, m_cvarB;
 	int m_iCurrentCrosshair;
