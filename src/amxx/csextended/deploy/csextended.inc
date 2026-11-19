@@ -108,6 +108,26 @@ native bool:cse_forms_precache_form(const name[]);
  */
 native bool:cse_forms_precache_image(const name[], bool:persistent = true);
 
+enum CseFormMenu {
+    CseFormMenu_Team = 1,
+    CseFormMenu_TerroristClass,
+    CseFormMenu_CounterTerroristClass,
+    CseFormMenu_Buy,
+    CseFormMenu_BuyEquipment
+};
+
+/**
+ * Registers a map-wide replacement for a Counter-Strike stock menu in both
+ * VGUI and old-style menu modes. Call from plugin_precache after registering
+ * the form. The last successful registration for a menu takes precedence.
+ * Clients use the stock menu until they can display the replacement.
+ *
+ * @param menu       Stock team, class, buy, or equipment menu to replace.
+ * @param name       Bare name of an already precached form.
+ * @return           True when registered for the current map.
+ */
+native bool:cse_forms_override_menu(CseFormMenu:menu, const name[]);
+
 /**
  * Queues a precached form for a connected client once the layout and every
  * referenced image are ready to display. Replaces any existing form.

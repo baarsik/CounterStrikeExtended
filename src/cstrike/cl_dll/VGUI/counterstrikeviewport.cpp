@@ -19,6 +19,7 @@
 // client dll/engine defines
 #include "hud.h"
 #include "../nextclient/hud/NativeRadar.h"
+#include "../server_form_client.h"
 #include "../../../public/localization_service.h"
 #include "../../../cl_dll/Exports.h"
 #include "counterstrikeviewport.h"
@@ -56,7 +57,7 @@ extern engine_studio_api_t IEngineStudio;
 namespace {
 const cse::localization::EngineApi* g_languageService = nullptr;
 std::uint64_t g_languageRevision = 0;
-CounterStrikeViewport* g_languageViewport = nullptr;
+CounterStrikeViewport* g_counterStrikeViewport = nullptr;
 }
 
 bool CS_HasLanguageService() {
@@ -68,18 +69,18 @@ bool CS_IsCatalogueMessage(const client_textmessage_s* message) {
 }
 
 void CS_ForgetLanguageService() {
-    g_languageViewport = nullptr;
+    g_counterStrikeViewport = nullptr;
     g_languageService = nullptr;
     g_languageRevision = 0;
 }
 
 void CS_CheckLanguageRevision() {
-    if (!g_languageService || !g_languageViewport) {
+    if (!g_languageService || !g_counterStrikeViewport) {
         return;
     }
     const std::uint64_t revision = g_languageService->Revision();
     if (revision != g_languageRevision) {
-        g_languageViewport->RefreshLanguage();
+        g_counterStrikeViewport->RefreshLanguage();
         g_languageRevision = revision;
     }
 }
@@ -135,7 +136,7 @@ void CounterStrikeViewport::Initialize( CreateInterfaceFn* factories, int count 
 
 void CounterStrikeViewport::Start()
 {
-    g_languageViewport = this;
+    g_counterStrikeViewport = this;
 	// construct our panels
 	m_pClassMenu = NULL;
 	m_pTeamMenu = new CCSTeamMenu( NULL );
@@ -221,6 +222,7 @@ void CounterStrikeViewport::OnLevelChange()
 //-----------------------------------------------------------------------------
 void CounterStrikeViewport::HideAllVGUIMenu()
 {
+    cse::forms::CancelVguiMenuOverride();
 	TeamFortressViewport::HideAllVGUIMenu();
 
 	if ( m_pClassMenu )
@@ -244,6 +246,7 @@ void CounterStrikeViewport::HideAllVGUIMenu()
 
 void CounterStrikeViewport::HideVGUIMenu( int menu )
 {
+    cse::forms::CancelVguiMenuOverride(menu);
 	switch ( menu )
 	{
 	case MENU_TEAM:
@@ -289,6 +292,9 @@ void CounterStrikeViewport::HideVGUIMenu( int menu )
 
 bool CounterStrikeViewport::IsVGUIMenuActive( int menu )
 {
+    if (cse::forms::IsVguiMenuOverridden(menu)) {
+        return true;
+    }
 	vgui2::Panel* panel;
 	switch ( menu )
 	{
@@ -307,6 +313,31 @@ bool CounterStrikeViewport::IsVGUIMenuActive( int menu )
 	default: return TeamFortressViewport::IsVGUIMenuActive( menu );
 	}
 	return panel && panel->IsVisible();
+}
+
+bool CounterStrikeViewport::ConcealStockMenu(int menu) {
+    if (GetCurrentMenuID() != menu) {
+        return false;
+    }
+    vgui2::Panel* panel = nullptr;
+    switch (cse::forms::VguiStockMenu(menu)) {
+        case cse::forms::StockMenu::Team: panel = m_pTeamMenu; break;
+        case cse::forms::StockMenu::TerroristClass:
+        case cse::forms::StockMenu::CounterTerroristClass: panel = m_pClassMenu; break;
+        case cse::forms::StockMenu::Buy:
+        case cse::forms::StockMenu::BuyEquipment: panel = m_pBuyMenu; break;
+        default: break;
+    }
+    if (!panel || !panel->IsVisible() || IsScoreBoardVisible()) {
+        return false;
+    }
+    // The replacement occupies this entry in the dialog queue until dismissed.
+    panel->SetVisible(false);
+    return true;
+}
+
+bool CS_ConcealStockMenu(int menu) {
+    return g_counterStrikeViewport && g_counterStrikeViewport->ConcealStockMenu(menu);
 }
 
 void CounterStrikeViewport::UpdateScheme()
@@ -592,6 +623,9 @@ void CounterStrikeViewport::CenterWindow( vgui2::Frame* window )
 
 void CounterStrikeViewport::DisplayVGUIMenu( int menu )
 {
+    if (cse::forms::IsVguiMenuOverridden(menu)) {
+        return;
+    }
 	m_pBackGround->SetVisible( true );
 	m_pBackGround->Activate();
 	m_pCSBackGround->SetTitleText( "" );
@@ -713,6 +747,7 @@ void CounterStrikeViewport::DisplayVGUIMenu( int menu )
 		m_bCenteredPersistentWindows = true;
 	}
 	CCareerBaseBox::BringToFront();
+    cse::forms::RequestMenuOverride(cse::forms::VguiStockMenu(menu), menu);
 }
 
 

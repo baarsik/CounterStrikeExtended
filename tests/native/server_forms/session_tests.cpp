@@ -41,6 +41,9 @@ int main() {
     assert(ui.Queue({5, 1}, start + 1300ms));
     ui.Cancel(5);
     assert(!ui.TakeReady(start + 1300ms).token);
+    ui.Dismiss(start + 1400ms);
+    assert(ui.Queue({6, 1, 42}, start + 1500ms));
+    assert(ui.TakeReady(start + 1500ms).menuRequest == 42);
 
     Session session;
     Nonce nonce{};
@@ -57,6 +60,10 @@ int main() {
     assert(session.Receive(Offer(2, AssetKind::Image, image, "icon", nonce)).status == AssetStatus::Need);
     assert(session.Receive(Chunk(2, 0, image)).status == AssetStatus::Ready);
     assert(session.FindForm(1) && session.FindImage("icon"));
+    const std::string stockMenus{static_cast<char>(Op::MenuBindings), 1, 2, 0, 33, 0};
+    assert(session.ReceiveMenuBindings(stockMenus));
+    assert(session.MenuForm(StockMenu::Team) == 1);
+    assert(!session.MenuForm(StockMenu::TerroristClass) && !session.MenuForm(StockMenu::Buy));
     assert(session.Receive(Offer(3, AssetKind::Form, menu, "shop", nonce)).status == AssetStatus::Reject);
     assert(session.Receive(Offer(4, AssetKind::Form, menu, "../config", nonce)).status == AssetStatus::Reject);
     assert(session.Receive(Offer(5, AssetKind::Form, menu, "fresh", nonce)).status == AssetStatus::Need);

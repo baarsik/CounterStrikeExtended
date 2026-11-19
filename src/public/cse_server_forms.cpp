@@ -261,6 +261,26 @@ bool ParseControl(std::string_view line, const Form& form, Control& control) {
 
 } // namespace
 
+StockMenu TextStockMenu(std::string_view text) {
+    if (text == "#Team_Select" || text == "#Team_Select_Spect" || text == "#IG_Team_Select" ||
+        text == "#IG_Team_Select_Spect" || text == "#IG_VIP_Team_Select" || text == "#IG_VIP_Team_Select_Spect") {
+        return StockMenu::Team;
+    }
+    if (text == "#Terrorist_Select") {
+        return StockMenu::TerroristClass;
+    }
+    if (text == "#CT_Select") {
+        return StockMenu::CounterTerroristClass;
+    }
+    if (text == "#Buy") {
+        return StockMenu::Buy;
+    }
+    if (text == "#CT_BuyItem" || text == "#T_BuyItem" || text == "#DCT_BuyItem" || text == "#DT_BuyItem") {
+        return StockMenu::BuyEquipment;
+    }
+    return StockMenu::None;
+}
+
 Digest Hash(std::string_view bytes) {
     Sha256 hash;
     hash.Add(bytes);

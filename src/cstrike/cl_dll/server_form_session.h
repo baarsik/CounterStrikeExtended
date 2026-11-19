@@ -17,6 +17,7 @@ struct AssetReply {
 struct View {
     std::uint32_t token{};
     unsigned id{};
+    std::uint32_t menuRequest{};
 };
 
 class Presentation {
@@ -41,6 +42,8 @@ public:
     void Reset();
     bool Active() const { return cache_.has_value(); }
     AssetReply Receive(std::string_view packet);
+    bool ReceiveMenuBindings(std::string_view packet);
+    unsigned MenuForm(StockMenu menu) const;
     const Form* FindForm(unsigned id) const;
     const Image* FindImage(std::string_view name) const;
 
@@ -63,6 +66,7 @@ private:
     AssetReply ReceiveChunk(std::string_view packet);
 
     std::array<Asset, kMaxAssets> assets_;
+    MenuBindings menuBindings_{};
     std::optional<AssetCache> cache_;
     std::optional<Download> download_;
     Nonce nonce_{};

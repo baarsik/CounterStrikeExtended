@@ -30,9 +30,41 @@ inline constexpr unsigned kMaxValueBytes = 48;
 inline constexpr unsigned kMaxNameBytes = 24;
 inline constexpr unsigned kMaxControls = 48;
 
-enum class Op : std::uint8_t { Hello = 1, Offer, Chunk, Show, Hide };
+enum class Op : std::uint8_t { Hello = 1, Offer, Chunk, Show, Hide, MenuBindings, MenuShow };
 enum class AssetKind : std::uint8_t { Form = 1, Image, PersistentImage, WebPImage, PersistentWebPImage };
 enum class ControlType { Label, Button, Check, Radio, Slider, Select, Text, Image, Divider, Group };
+
+// Keep the wire values in sync with CseFormMenu in csextended.inc.
+enum class StockMenu { None, Team, TerroristClass, CounterTerroristClass, Buy, BuyEquipment, Count };
+using MenuBindings = std::array<std::uint8_t, static_cast<std::size_t>(StockMenu::Count) - 1>;
+
+constexpr bool IsStockMenu(StockMenu menu) {
+    return menu > StockMenu::None && menu < StockMenu::Count;
+}
+
+constexpr std::size_t MenuIndex(StockMenu menu) {
+    return static_cast<std::size_t>(menu) - 1;
+}
+
+// Counter-Strike VGUIMenu IDs, including the locally opened buy menu.
+inline constexpr int kVguiTeamMenu = 2;
+inline constexpr int kVguiTerroristClassMenu = 26;
+inline constexpr int kVguiCounterTerroristClassMenu = 27;
+inline constexpr int kVguiBuyMenu = 28;
+inline constexpr int kVguiBuyEquipmentMenu = 34;
+
+constexpr StockMenu VguiStockMenu(int menu) {
+    switch (menu) {
+        case kVguiTeamMenu: return StockMenu::Team;
+        case kVguiTerroristClassMenu: return StockMenu::TerroristClass;
+        case kVguiCounterTerroristClassMenu: return StockMenu::CounterTerroristClass;
+        case kVguiBuyMenu: return StockMenu::Buy;
+        case kVguiBuyEquipmentMenu: return StockMenu::BuyEquipment;
+        default: return StockMenu::None;
+    }
+}
+
+StockMenu TextStockMenu(std::string_view text);
 
 constexpr bool IsWebPImage(AssetKind kind) {
     return kind == AssetKind::WebPImage || kind == AssetKind::PersistentWebPImage;

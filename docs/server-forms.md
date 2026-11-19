@@ -36,6 +36,27 @@ public cse_forms_action(player, const form[], control, const value[]) {
 
 `cse_forms_show` returns true when a form and all its images are ready and the show was queued. `cse_forms_ready` reports when synchronization has finished. Use `cse_forms_hide(player)` to dismiss a queued or displayed form. A client dismissal invalidates the open instance.
 
+## Replace stock menus
+
+Register each replacement in `plugin_precache` after precaching its layout. The same registration applies in VGUI and old-style menu modes.
+
+```pawn
+public plugin_precache() {
+    if (cse_forms_precache_form("team-picker")) {
+        cse_forms_override_menu(CseFormMenu_Team, "team-picker");
+    }
+    if (cse_forms_precache_form("shop")) {
+        cse_forms_override_menu(CseFormMenu_Buy, "shop");
+    }
+}
+```
+
+Supported menus are team selection, Terrorist and Counter-Terrorist class selection, the main buy menu, and the equipment menu. `CseFormMenu_Buy` also covers pressing the buy key, which opens the VGUI menu from the client. The equipment menu is reached through `buyequip` or the stock old-style buy menu. VGUI weapon categories inside the stock buy panel are part of that panel.
+
+The stock menu opens while the client requests its replacement and remains usable if the request expires or the form is unavailable. Clients without override support, clients still synchronizing assets, and clients with downloads or forms disabled use the stock menus.
+
+Handle selections through `cse_forms_action` as usual. Map each control to a specific choice and apply the game's rules for joining a team, selecting a class, or purchasing an item. A replacement form action alone grants no gameplay permissions.
+
 ## Layout and image formats
 
 A form is UTF-8 text. Blank lines and lines beginning with `#` after the header are ignored. Use single spaces between the fixed fields. The remaining text is taken literally.

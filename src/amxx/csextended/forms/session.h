@@ -34,9 +34,10 @@ public:
     void Begin();
     bool AcceptHello(std::string_view nonce);
     bool AcceptAsset(const Bundle& bundle, unsigned id, std::string_view status);
-    Message Tick(const Bundle& bundle, float now);
+    Message Tick(const Bundle& bundle, float now, const MenuBindings& bindings = {});
     bool Ready(const Bundle& bundle) const;
     bool Show(const Bundle& bundle, std::string_view name);
+    bool ShowMenu(const Bundle& bundle, StockMenu menu, std::uint32_t request, float now);
     bool Hide();
     const Asset* Action(const Bundle& bundle, std::uint32_t token, unsigned control, std::string_view value, float now);
 
@@ -45,6 +46,7 @@ private:
     static constexpr float ActionBurst = 12.0f;
 
     void AdvanceAsset();
+    bool FormAvailable(const Bundle& bundle, unsigned id) const;
 
     Phase phase_ = Phase::Disabled;
     Nonce nonce_{};
@@ -57,6 +59,10 @@ private:
     float lastAction_ = 0.0f;
     std::uint32_t nextToken_ = 0;
     std::uint32_t shownToken_ = 0;
+    std::uint32_t wantedRequest_ = 0;
+    MenuBindings publishedMenus_{};
+    float nextMenuRequest_ = 0.0f;
+    bool menusPublished_ = false;
     // Asset IDs are one-based. Zero means that no form should be visible.
     unsigned shownForm_ = 0;
     unsigned wantedForm_ = 0;

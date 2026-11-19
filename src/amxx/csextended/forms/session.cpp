@@ -11,6 +11,7 @@ namespace {
 constexpr float MessageInterval = 0.05f;
 constexpr float ReplyTimeout = 8.0f;
 constexpr float ActionCreditsPerSecond = 20.0f;
+constexpr float MenuRequestInterval = 0.15f;
 constexpr unsigned BitsPerByte = std::numeric_limits<std::uint8_t>::digits;
 constexpr unsigned FirstAssetId = 1;
 constexpr unsigned CloseControl = 0;
@@ -92,7 +93,7 @@ void Session::AdvanceAsset() {
     phase_ = Phase::Offer;
 }
 
-Message Session::Tick(const Bundle& bundle, float now) {
+Message Session::Tick(const Bundle& bundle, float now, const MenuBindings& bindings) {
     Message message;
     if (phase_ == Phase::WaitHello && now >= replyDeadline_) {
         phase_ = Phase::Disabled;
@@ -111,9 +112,12 @@ Message Session::Tick(const Bundle& bundle, float now) {
                 ++nextToken_;
             }
             shownToken_ = nextToken_;
-            AppendOp(message, Op::Show);
+            AppendOp(message, wantedRequest_ ? Op::MenuShow : Op::Show);
             AppendInteger(message, static_cast<std::uint8_t>(wantedForm_));
             AppendInteger(message, shownToken_);
+            if (wantedRequest_) {
+                AppendInteger(message, wantedRequest_);
+            }
         } else if (shownForm_ != 0) {
             AppendOp(message, Op::Hide);
             AppendInteger(message, shownToken_);
@@ -121,6 +125,7 @@ Message Session::Tick(const Bundle& bundle, float now) {
         }
         shownForm_ = wantedForm_;
         viewChanged_ = false;
+        wantedRequest_ = 0;
     } else if (phase_ == Phase::SendHello) {
         AppendOp(message, Op::Hello);
         phase_ = Phase::WaitHello;
@@ -151,6 +156,18 @@ Message Session::Tick(const Bundle& bundle, float now) {
                 replyDeadline_ = now + ReplyTimeout;
             }
         }
+    } else if (Ready(bundle) && !menusPublished_) {
+        menusPublished_ = true;
+        for (std::size_t index = 0; index < bindings.size(); ++index) {
+            const auto id = bindings[index];
+            if (FormAvailable(bundle, id)) {
+                publishedMenus_[index] = id;
+            }
+        }
+        if (publishedMenus_ != MenuBindings{}) {
+            AppendOp(message, Op::MenuBindings);
+            AppendBytes(message, publishedMenus_.data(), publishedMenus_.size());
+        }
     }
     if (message.size != 0) {
         nextSend_ = now + MessageInterval;
@@ -162,32 +179,59 @@ bool Session::Ready(const Bundle& bundle) const {
     return phase_ == Phase::Offer && assetIndex_ == bundle.size();
 }
 
-bool Session::Show(const Bundle& bundle, std::string_view name) {
-    for (std::size_t index = 0; index < bundle.size(); ++index) {
-        const Asset& asset = bundle[index];
-        if (asset.kind != AssetKind::Form || asset.name != name || !available_[index]) {
+bool Session::FormAvailable(const Bundle& bundle, unsigned id) const {
+    if (id < FirstAssetId || id > bundle.size() || id > available_.size()) {
+        return false;
+    }
+    const auto index = id - FirstAssetId;
+    const auto& asset = bundle[index];
+    if (asset.kind != AssetKind::Form || !available_[index]) {
+        return false;
+    }
+    for (const auto& control : asset.form.controls) {
+        if (control.type != ControlType::Image) {
             continue;
         }
-        for (const auto& control : asset.form.controls) {
-            if (control.type != ControlType::Image) {
-                continue;
-            }
-            bool available = false;
-            for (std::size_t image = 0; image < bundle.size(); ++image) {
-                if (available_[image] && bundle[image].kind != AssetKind::Form && bundle[image].name == control.text) {
-                    available = true;
-                    break;
-                }
-            }
-            if (!available) {
-                return false;
+        bool available = false;
+        for (std::size_t image = 0; image < bundle.size(); ++image) {
+            if (available_[image] && IsImage(bundle[image].kind) && bundle[image].name == control.text) {
+                available = true;
+                break;
             }
         }
-        wantedForm_ = static_cast<unsigned>(index) + FirstAssetId;
-        viewChanged_ = true;
-        return true;
+        if (!available) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Session::Show(const Bundle& bundle, std::string_view name) {
+    for (std::size_t index = 0; index < bundle.size(); ++index) {
+        const auto id = static_cast<unsigned>(index) + FirstAssetId;
+        if (bundle[index].name == name && FormAvailable(bundle, id)) {
+            wantedForm_ = id;
+            wantedRequest_ = 0;
+            viewChanged_ = true;
+            return true;
+        }
     }
     return false;
+}
+
+bool Session::ShowMenu(const Bundle& bundle, StockMenu menu, std::uint32_t request, float now) {
+    if (!request || !IsStockMenu(menu) || now < nextMenuRequest_) {
+        return false;
+    }
+    const auto id = publishedMenus_[MenuIndex(menu)];
+    if (!FormAvailable(bundle, id)) {
+        return false;
+    }
+    nextMenuRequest_ = now + MenuRequestInterval;
+    wantedForm_ = id;
+    wantedRequest_ = request;
+    viewChanged_ = true;
+    return true;
 }
 
 bool Session::Hide() {
@@ -196,6 +240,7 @@ bool Session::Hide() {
     }
     viewChanged_ = shownForm_ != 0;
     wantedForm_ = 0;
+    wantedRequest_ = 0;
     return true;
 }
 

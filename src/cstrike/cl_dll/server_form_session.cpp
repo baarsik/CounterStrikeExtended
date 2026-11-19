@@ -13,7 +13,7 @@ constexpr unsigned kChunkHeader = 4;
 constexpr auto kMinimumShowInterval = std::chrono::milliseconds(250);
 constexpr auto kDismissQuietPeriod = std::chrono::milliseconds(750);
 
-unsigned Byte(std::string_view packet, unsigned offset) {
+unsigned Byte(std::string_view packet, std::size_t offset) {
     return static_cast<std::uint8_t>(packet[offset]);
 }
 
@@ -28,7 +28,7 @@ bool Presentation::Queue(View view, Time now) {
         return false;
     }
     lastToken_ = view.token;
-    pending_ = now < suppressedUntil_ ? View{} : view;
+    pending_ = !view.menuRequest && now < suppressedUntil_ ? View{} : view;
     return true;
 }
 
@@ -59,10 +59,27 @@ void Session::Begin(const Nonce& nonce, std::filesystem::path cacheRoot, std::st
 
 void Session::Reset() {
     assets_ = {};
+    menuBindings_ = {};
     cache_.reset();
     download_.reset();
     nonce_ = {};
     offeredBytes_ = 0;
+}
+
+bool Session::ReceiveMenuBindings(std::string_view packet) {
+    if (!Active() || packet.size() != 1 + menuBindings_.size() ||
+        Byte(packet, 0) != static_cast<std::uint8_t>(Op::MenuBindings)) {
+        return false;
+    }
+    for (std::size_t index = 0; index < menuBindings_.size(); ++index) {
+        const auto id = static_cast<std::uint8_t>(Byte(packet, index + 1));
+        menuBindings_[index] = id && FindForm(id) ? id : 0;
+    }
+    return true;
+}
+
+unsigned Session::MenuForm(StockMenu menu) const {
+    return IsStockMenu(menu) ? menuBindings_[MenuIndex(menu)] : 0;
 }
 
 AssetReply Session::Receive(std::string_view packet) {

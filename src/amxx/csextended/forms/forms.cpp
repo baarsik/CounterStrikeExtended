@@ -33,6 +33,7 @@ constexpr int ActionArgumentSeparators = 3;
 constexpr char HelloCommand[] = "cseform_hello";
 constexpr char AssetCommand[] = "cseform_asset";
 constexpr char ActionCommand[] = "cseform_action";
+constexpr char MenuCommand[] = "cseform_menu";
 constexpr char NoValue[] = "-";
 constexpr char RequireClientCvar[] = "cse_forms_require_client";
 
@@ -48,6 +49,7 @@ struct Player {
 
 std::array<Player, MaxClients + 1> Players;
 Bundle Assets;
+MenuBindings StockMenus{};
 std::size_t AssetBytes = 0;
 enginefuncs_t* HookedEngine = nullptr;
 int UserMessageId = 0;
@@ -169,6 +171,25 @@ cell AMX_NATIVE_CALL PrecacheImage(AMX* amx, cell* params) {
     return Precache(PawnName(amx, params[1]), persistent ? AssetKind::PersistentImage : AssetKind::Image);
 }
 
+cell AMX_NATIVE_CALL OverrideMenu(AMX* amx, cell* params) {
+    if (MapActive || params[0] < static_cast<cell>(2 * sizeof(cell))) {
+        return 0;
+    }
+    const auto menu = static_cast<StockMenu>(params[1]);
+    if (!IsStockMenu(menu)) {
+        return 0;
+    }
+    const auto name = PawnName(amx, params[2]);
+    const auto asset = std::find_if(Assets.begin(), Assets.end(), [name](const Asset& entry) {
+        return entry.kind == AssetKind::Form && entry.name == name;
+    });
+    if (asset == Assets.end()) {
+        return 0;
+    }
+    StockMenus[MenuIndex(menu)] = static_cast<std::uint8_t>(asset - Assets.begin() + 1);
+    return 1;
+}
+
 cell AMX_NATIVE_CALL Show(AMX* amx, cell* params) {
     Player* player = params[0] >= static_cast<cell>(2 * sizeof(cell)) ? GetPlayingPlayer(params[1]) : nullptr;
     return player && player->session.Show(Assets, PawnName(amx, params[2]));
@@ -187,6 +208,7 @@ cell AMX_NATIVE_CALL Ready(AMX*, cell* params) {
 AMX_NATIVE_INFO Natives[] = {
     {"cse_forms_precache_form", PrecacheForm},
     {"cse_forms_precache_image", PrecacheImage},
+    {"cse_forms_override_menu", OverrideMenu},
     {"cse_forms_show", Show},
     {"cse_forms_hide", Hide},
     {"cse_forms_ready", Ready},
@@ -254,6 +276,7 @@ void FormsServerDeactivate() {
     MapActive = false;
     UserMessageId = 0;
     Assets.clear();
+    StockMenus = {};
     AssetBytes = 0;
     for (auto& player : Players) {
         Reset(player);
@@ -295,7 +318,7 @@ void FormsClientLeave(edict_t* entity) {
 
 void FormsClientCommand(edict_t* entity) {
     const std::string_view command = g_engfuncs.pfnCmd_Argv(0);
-    if (command != HelloCommand && command != AssetCommand && command != ActionCommand) {
+    if (command != HelloCommand && command != AssetCommand && command != ActionCommand && command != MenuCommand) {
         RETURN_META(MRES_IGNORED);
     }
     const int index = ENTINDEX(entity);
@@ -310,6 +333,12 @@ void FormsClientCommand(edict_t* entity) {
             }
         } else if (command == ActionCommand && count == 4) {
             ReceiveAction(player->session, index);
+        } else if (command == MenuCommand && count == 3) {
+            std::uint8_t menu = 0;
+            std::uint32_t request = 0;
+            if (ReadUnsigned(1, menu) && ReadUnsigned(2, request)) {
+                player->session.ShowMenu(Assets, static_cast<StockMenu>(menu), request, gpGlobals->time);
+            }
         }
     }
     RETURN_META(MRES_SUPERCEDE);
@@ -324,7 +353,7 @@ void FormsStartFrame() {
             if (!entity || entity->free) {
                 continue;
             }
-            const auto message = player->session.Tick(Assets, gpGlobals->time);
+            const auto message = player->session.Tick(Assets, gpGlobals->time, StockMenus);
             if (message.size != 0) {
                 HookedEngine->pfnMessageBegin(MSG_ONE, UserMessageId, nullptr, entity);
                 for (std::size_t byte = 0; byte < message.size; ++byte) {

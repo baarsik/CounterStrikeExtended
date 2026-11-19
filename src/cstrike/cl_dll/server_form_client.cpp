@@ -1,5 +1,6 @@
 #include "server_form_client.h"
 
+#include "VGUI/counterstrikeviewport.h"
 #include "VGUI/server_form_panel.h"
 #include "server_form_session.h"
 
@@ -23,12 +24,40 @@ using Clock = std::chrono::steady_clock;
 constexpr int kMaximumUserMessage = 192;
 constexpr unsigned kShowBytes = 6;
 constexpr unsigned kHideBytes = 5;
+constexpr unsigned kMenuShowBytes = kShowBytes + sizeof(std::uint32_t);
+constexpr auto kMenuReplyTimeout = std::chrono::seconds(1);
+
+struct MenuTarget {
+    StockMenu menu{};
+    int vguiId{};
+
+    bool IsVgui(int id) const {
+        return vguiId && (!id || vguiId == id);
+    }
+
+    bool IsText() const {
+        return menu != StockMenu::None && !vguiId;
+    }
+
+    bool IsBuy() const {
+        return menu == StockMenu::Buy || menu == StockMenu::BuyEquipment;
+    }
+};
+
+struct MenuRequest {
+    MenuTarget target;
+    std::uint32_t serial{};
+    Clock::time_point expires{};
+};
 
 struct ClientState {
     Session session;
     std::string peer;
     Presentation presentation;
     View visible;
+    MenuTarget visibleMenu;
+    MenuRequest menuRequest;
+    std::uint32_t nextMenuSerial{};
 };
 
 ClientState client;
@@ -92,7 +121,11 @@ const Image* LookupImage(std::string_view name) {
 
 void ClearVisibleForm() {
     CloseFormPanel();
+    if (client.visibleMenu.vguiId == kVguiBuyMenu && CurrentPeer() == client.peer) {
+        Send("client_buy_close\n");
+    }
     client.visible = {};
+    client.visibleMenu = {};
 }
 
 void Begin(std::string peer) {
@@ -115,24 +148,59 @@ void HandleAsset(std::string_view packet) {
     }
 }
 
-void PresentPending(Clock::time_point now) {
-    const auto view = client.presentation.TakeReady(now);
-    if (view.token) {
-        if (const auto* form = client.session.FindForm(view.id)) {
-            client.visible = view;
-            ShowFormPanel(*form, view.token, LookupImage);
-        }
-    }
+bool MatchesMenuRequest(View view, Clock::time_point now) {
+    return view.menuRequest && view.menuRequest == client.menuRequest.serial && now < client.menuRequest.expires &&
+        view.id == client.session.MenuForm(client.menuRequest.target.menu);
 }
 
-void HandleShow(std::string_view packet) {
-    if (packet.size() != kShowBytes) {
+bool ConcealStockMenu(const MenuTarget& target) {
+    if (target.vguiId) {
+        return CS_ConcealStockMenu(target.vguiId);
+    }
+    auto& menu = gHUD.m_Menu;
+    if (!menu.m_fMenuDisplayed || menu.m_fWaitingForMore ||
+        (menu.m_flShutoffTime > 0 && gHUD.m_flTime >= menu.m_flShutoffTime)) {
+        return false;
+    }
+    menu.m_fMenuDisplayed = 0;
+    menu.m_bitsValidSlots = 0;
+    menu.m_iFlags &= ~HUD_ACTIVE;
+    return true;
+}
+
+void PresentPending(Clock::time_point now) {
+    const auto view = client.presentation.TakeReady(now);
+    const auto* form = view.token ? client.session.FindForm(view.id) : nullptr;
+    if (!form) {
         return;
     }
-    const View view{ReadToken(packet, 2), static_cast<std::uint8_t>(packet[1])};
-    const auto now = Clock::now();
-    if (!client.session.FindForm(view.id) || !client.presentation.Queue(view, now)) {
+    if (view.menuRequest) {
+        if (!MatchesMenuRequest(view, now)) {
+            return;
+        }
+        const auto request = std::exchange(client.menuRequest, {});
+        if (!ConcealStockMenu(request.target)) {
+            return;
+        }
+        client.visibleMenu = request.target;
+    }
+    client.visible = view;
+    ShowFormPanel(*form, view.token, LookupImage);
+}
+
+void HandleShow(std::string_view packet, bool menuShow) {
+    if (packet.size() != (menuShow ? kMenuShowBytes : kShowBytes)) {
         return;
+    }
+    const View view{ReadToken(packet, 2), static_cast<std::uint8_t>(packet[1]),
+                    menuShow ? ReadToken(packet, kShowBytes) : 0};
+    const auto now = Clock::now();
+    if ((menuShow && !MatchesMenuRequest(view, now)) || !client.session.FindForm(view.id) ||
+        !client.presentation.Queue(view, now)) {
+        return;
+    }
+    if (!menuShow) {
+        client.menuRequest = {};
     }
     // The server has retired the visible instance. Keep the latest replacement until the display interval ends.
     ClearVisibleForm();
@@ -161,7 +229,9 @@ int Receive(const char*, int size, void* data) {
     switch (op) {
         case Op::Offer:
         case Op::Chunk: HandleAsset(packet); break;
-        case Op::Show: HandleShow(packet); break;
+        case Op::MenuBindings: client.session.ReceiveMenuBindings(packet); break;
+        case Op::Show: HandleShow(packet, false); break;
+        case Op::MenuShow: HandleShow(packet, true); break;
         case Op::Hide:
             if (packet.size() == kHideBytes) {
                 const auto token = ReadToken(packet, 1);
@@ -174,6 +244,18 @@ int Receive(const char*, int size, void* data) {
         default: break;
     }
     return 1;
+}
+
+void CancelOverride(bool pending, bool visible) {
+    if (pending) {
+        client.menuRequest = {};
+    }
+    if (visible) {
+        SendFormAction(client.visible.token, 0, {});
+        if (client.visible.token) {
+            ClearVisibleForm();
+        }
+    }
 }
 
 } // namespace
@@ -197,8 +279,41 @@ void RunServerFormsFrame() {
 }
 
 void EndServerFormsSession() {
-    ClearVisibleForm();
+    CloseFormPanel();
     client = {};
+}
+
+void RequestMenuOverride(StockMenu menu, int vguiMenu) {
+    if (!client.session.MenuForm(menu) || !Enabled() || CurrentPeer() != client.peer) {
+        return;
+    }
+    const auto now = Clock::now();
+    const auto& pending = client.menuRequest;
+    if (pending.target.menu == menu && pending.target.vguiId == vguiMenu && now < pending.expires) {
+        return;
+    }
+    ++client.nextMenuSerial;
+    if (!client.nextMenuSerial) {
+        ++client.nextMenuSerial;
+    }
+    client.menuRequest = {{menu, vguiMenu}, client.nextMenuSerial, now + kMenuReplyTimeout};
+    Send("cseform_menu " + std::to_string(static_cast<int>(menu)) + " " + std::to_string(client.nextMenuSerial));
+}
+
+void CancelVguiMenuOverride(int vguiMenu) {
+    CancelOverride(client.menuRequest.target.IsVgui(vguiMenu), client.visibleMenu.IsVgui(vguiMenu));
+}
+
+void CancelTextMenuOverride() {
+    CancelOverride(client.menuRequest.target.IsText(), client.visibleMenu.IsText());
+}
+
+void CancelBuyMenuOverride() {
+    CancelOverride(client.menuRequest.target.IsBuy(), client.visibleMenu.IsBuy());
+}
+
+bool IsVguiMenuOverridden(int vguiMenu) {
+    return client.visibleMenu.IsVgui(vguiMenu);
 }
 
 void SendFormAction(std::uint32_t token, unsigned control, std::string_view value) {
@@ -210,7 +325,7 @@ void SendFormAction(std::uint32_t token, unsigned control, std::string_view valu
         return;
     }
     if (!control) {
-        client.visible = {};
+        ClearVisibleForm();
         client.presentation.Dismiss(Clock::now());
     }
     auto encoded = value.empty() ? "-" : EncodeHex(reinterpret_cast<const std::uint8_t*>(value.data()), value.size());

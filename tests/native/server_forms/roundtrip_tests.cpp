@@ -8,6 +8,31 @@
 namespace forms = cse::forms;
 namespace server = cse::forms::server;
 
+void MenuOverrides(forms::Session& client, server::Session& peer, const server::Bundle& bundle, bool legacy) {
+    forms::MenuBindings bindings{};
+    bindings[forms::MenuIndex(forms::StockMenu::Buy)] = 1;
+    const auto announcement = peer.Tick(bundle, 28.0f, bindings);
+    if (legacy) {
+        assert(!announcement.size);
+        assert(!peer.ShowMenu(bundle, forms::StockMenu::Buy, 1, 29.0f));
+        return;
+    }
+
+    assert(announcement.size == 1 + bindings.size());
+    const std::string_view packet(reinterpret_cast<const char*>(announcement.bytes.data()), announcement.size);
+    assert(!client.ReceiveMenuBindings(packet.substr(0, packet.size() - 1)));
+    assert(client.ReceiveMenuBindings(packet));
+    assert(client.MenuForm(forms::StockMenu::Buy) == 1);
+    assert(client.MenuForm(forms::StockMenu::Team) == 0);
+    assert(!peer.ShowMenu(bundle, forms::StockMenu::Team, 77, 29.0f));
+    assert(!peer.ShowMenu(bundle, forms::StockMenu::Buy, 0, 29.0f));
+    assert(peer.ShowMenu(bundle, forms::StockMenu::Buy, 77, 29.0f));
+    const auto show = peer.Tick(bundle, 29.0f, bindings);
+    assert(show.size == 10 && show.bytes[0] == static_cast<std::uint8_t>(forms::Op::MenuShow) &&
+        show.bytes[1] == 1 && show.bytes[6] == 77);
+    assert(!peer.ShowMenu(bundle, forms::StockMenu::Buy, 78, 29.01f));
+}
+
 unsigned Connect(forms::Session& client, server::Session& peer, const server::Bundle& bundle,
     const std::filesystem::path& root, std::string_view address, std::uint8_t challenge, bool legacy = false) {
     forms::Nonce nonce{};
@@ -42,6 +67,7 @@ unsigned Connect(forms::Session& client, server::Session& peer, const server::Bu
         }
     }
     assert(peer.Ready(bundle));
+    MenuOverrides(client, peer, bundle, legacy);
     if (legacy) {
         assert(!client.FindForm(1) && !peer.Show(bundle, "shop"));
         assert(client.FindImage("temp"));
@@ -59,6 +85,19 @@ unsigned Connect(forms::Session& client, server::Session& peer, const server::Bu
 
 int main(int argc, char** argv) {
     assert(argc == 2);
+    assert(forms::VguiStockMenu(2) == forms::StockMenu::Team);
+    assert(forms::VguiStockMenu(26) == forms::StockMenu::TerroristClass);
+    assert(forms::VguiStockMenu(27) == forms::StockMenu::CounterTerroristClass);
+    assert(forms::VguiStockMenu(28) == forms::StockMenu::Buy);
+    assert(forms::VguiStockMenu(34) == forms::StockMenu::BuyEquipment);
+    assert(forms::VguiStockMenu(3) == forms::StockMenu::None);
+    assert(forms::TextStockMenu("#IG_VIP_Team_Select_Spect") == forms::StockMenu::Team);
+    assert(forms::TextStockMenu("#Terrorist_Select") == forms::StockMenu::TerroristClass);
+    assert(forms::TextStockMenu("#CT_Select") == forms::StockMenu::CounterTerroristClass);
+    assert(forms::TextStockMenu("#Buy") == forms::StockMenu::Buy);
+    assert(forms::TextStockMenu("#DCT_BuyItem") == forms::StockMenu::BuyEquipment);
+    assert(forms::TextStockMenu("#BuySomething") == forms::StockMenu::None);
+    assert(forms::TextStockMenu("#Buy\n1. Plugin option") == forms::StockMenu::None);
     const auto run = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto root = std::filesystem::path(argv[1]) / ("roundtrip-test-" + std::to_string(run));
     const std::string layout("form 640 400 Shop\nbutton 10 10 100 24 A 0 0 Buy\n"
@@ -91,6 +130,7 @@ int main(int argc, char** argv) {
     assert(client.FindImage("session")->pixels == client.FindImage("logo")->pixels);
     client.Reset();
     assert(!client.FindImage("temp") && !client.FindImage("session") && !client.FindForm(1));
+    assert(!client.MenuForm(forms::StockMenu::Buy));
     assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 2) == 3);
     assert(Connect(client, peer, bundle, root, "127.0.0.1:27016", 3) == 4);
     assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 4, true) == 2);

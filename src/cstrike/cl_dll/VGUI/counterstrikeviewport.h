@@ -65,6 +65,7 @@ public:
 	void OnTick() override;
 	void CenterWindow( vgui2::Frame* window );
     void RefreshLanguage();
+    bool ConcealStockMenu(int menu);
     bool HasCenteredPersistentWindows() const {
         return m_bCenteredPersistentWindows;
     }
@@ -125,6 +126,8 @@ private:
 };
 
 extern VGuiLibraryInterface_t clientInterface;
+
+bool CS_ConcealStockMenu(int menu);
 
 int GetAlternateProportionalValueFromNormal( int normalizedValue );
 int GetAlternateProportionalValueFromScaled( int scaledValue );
