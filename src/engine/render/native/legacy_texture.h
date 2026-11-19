@@ -136,6 +136,12 @@ private:
     std::array<std::shared_ptr<const TextureObject>, 2> defaults_;
     PixelStoreState pixelStore_;
     std::shared_ptr<const SharedPalette> palette_;
+    struct PaletteVersion {
+        std::shared_ptr<const SharedPalette> palette;
+        std::uint64_t lastUse = 0;
+    };
+    std::map<SharedPalette, PaletteVersion> paletteVersions_;
+    std::uint64_t paletteUseSerial_ = 0;
 };
 
 struct EngineBindDecision {

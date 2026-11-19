@@ -475,8 +475,29 @@ Status TextureStore::Palette(const std::vector<std::uint8_t>& bytes) {
     if (bytes.size() != kPaletteBytes) {
         return Status::InvalidValue;
     }
-    auto palette = std::make_shared<SharedPalette>();
-    std::copy(bytes.begin(), bytes.end(), palette->begin());
+    SharedPalette value{};
+    std::copy(bytes.begin(), bytes.end(), value.begin());
+    const auto found = paletteVersions_.find(value);
+    if (found != paletteVersions_.end()) {
+        found->second.lastUse = ++paletteUseSerial_;
+        palette_ = found->second.palette;
+        return Status::Ok;
+    }
+    auto palette = palette_ && *palette_ == value ? palette_ : std::make_shared<SharedPalette>(value);
+    // GoldSrc has 350 palette slots. Keep those identities across frames without retaining
+    // unbounded palettes supplied by callers that change their colors continuously.
+    constexpr std::size_t kCachedPaletteEntries = 512;
+    if (paletteVersions_.size() == kCachedPaletteEntries) {
+        auto oldest = paletteVersions_.begin();
+        auto entry = oldest;
+        for (++entry; entry != paletteVersions_.end(); ++entry) {
+            if (entry->second.lastUse < oldest->second.lastUse) {
+                oldest = entry;
+            }
+        }
+        paletteVersions_.erase(oldest);
+    }
+    paletteVersions_.emplace(std::move(value), PaletteVersion{palette, ++paletteUseSerial_});
     palette_ = std::move(palette);
     return Status::Ok;
 }
