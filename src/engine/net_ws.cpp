@@ -2019,7 +2019,7 @@ void SCR_NetGraph()
 	for ( int sequence = cls.netchan.outgoing_sequence - CL_UPDATE_BACKUP + 1;
 		sequence <= cls.netchan.outgoing_sequence; ++sequence )
 	{
-		cmd_t* command = &cl.commands[sequence & CL_UPDATE_MASK];
+        cmd_t* command = &cl.commands[CL_CommandHistoryIndex(sequence)];
 		cmdinfo_t* sample = &cmdinfo[sequence & NET_GRAPH_MASK];
 		sample->cmd_lerp = command->frame_lerp;
 		sample->sent = !command->heldback;
@@ -2500,7 +2500,7 @@ void NET_GetCommandInfo( cmdinfo_t* commands )
 	for ( int sequence = cls.netchan.outgoing_sequence - CL_UPDATE_BACKUP + 1;
 		sequence <= cls.netchan.outgoing_sequence; ++sequence )
 	{
-		cmd_t* command = &cl.commands[sequence & CL_UPDATE_MASK];
+        cmd_t* command = &cl.commands[CL_CommandHistoryIndex(sequence)];
 		cmdinfo_t* sample = &commands[sequence & NET_GRAPH_MASK];
 		sample->cmd_lerp = command->frame_lerp;
 		sample->sent = command->heldback == 0;

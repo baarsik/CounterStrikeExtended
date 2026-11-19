@@ -2461,7 +2461,7 @@ void CL_Move()
 	buf.maxsize = sizeof( data );
 	buf.cursize = 0;
 
-	pcmd = &cl.commands[cls.netchan.outgoing_sequence & CL_UPDATE_MASK];
+    pcmd = &cl.commands[CL_CommandHistoryIndex(cls.netchan.outgoing_sequence)];
 	pcmd->senttime = (float)realtime;
 	pcmd->receivedtime = -1.0f;
 	pcmd->processedfuncs = FALSE;
@@ -2584,7 +2584,7 @@ void CL_Move()
 			from = &nullcmd;
 			for ( i = newcmds + numbackup - 1; i >= 0; i-- )
 			{
-				to = &cl.commands[( cls.netchan.outgoing_sequence - i ) & CL_UPDATE_MASK].cmd;
+                to = &cl.commands[CL_CommandHistoryIndex(cls.netchan.outgoing_sequence - i)].cmd;
 				MSG_WriteUsercmd( &buf, to, from );
 				from = to;
 			}
@@ -2628,7 +2628,7 @@ void CL_Move()
 		cls.lastoutgoingcommand = cls.netchan.outgoing_sequence;
 
 		// Update size counter for netgraph
-		cl.commands[cls.netchan.outgoing_sequence & CL_UPDATE_MASK].sendsize = buf.cursize;
+        cl.commands[CL_CommandHistoryIndex(cls.netchan.outgoing_sequence)].sendsize = buf.cursize;
 
 		CL_AddVoiceToDatagram( FALSE );
 
@@ -2645,7 +2645,7 @@ void CL_Move()
 	else
 	{
 		// Mark command as held back so we'll send it next time
-		cl.commands[cls.netchan.outgoing_sequence & CL_UPDATE_MASK].heldback = TRUE;
+        cl.commands[CL_CommandHistoryIndex(cls.netchan.outgoing_sequence)].heldback = TRUE;
 		cls.netchan.outgoing_sequence++;
 	}
 

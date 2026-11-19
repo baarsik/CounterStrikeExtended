@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "extended_stats.h"
+#include "movement_timing.h"
 #include "hud.h"
 #include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
@@ -520,6 +521,7 @@ void CHud::Init()
 	gEngfuncs.pfnRegisterVariable( "fastsprites", "0", FCVAR_ARCHIVE );
 	gEngfuncs.pfnRegisterVariable( "cl_corpsestay", "600", FCVAR_ARCHIVE );
 	gEngfuncs.pfnRegisterVariable( "_cl_autowepswitch", "1", FCVAR_ARCHIVE | FCVAR_USERINFO );
+    gEngfuncs.PlayerInfo_SetValueForKey(CSE_MOVEMENT_TIMING_KEY, CSE_MOVEMENT_TIMING_VERSION);
 	gEngfuncs.pfnRegisterVariable( "scoreboard_showhealth", "1", FCVAR_ARCHIVE );
 	gEngfuncs.pfnRegisterVariable( "scoreboard_showmoney", "1", FCVAR_ARCHIVE );
 	gEngfuncs.pfnRegisterVariable( "scoreboard_shortheaders", "0", FCVAR_ARCHIVE );

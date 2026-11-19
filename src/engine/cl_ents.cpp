@@ -732,7 +732,7 @@ void CL_ParseClientdata()
 	frame = &cl.frames[cl.parsecountmod];
 	frame->time = cl.mtime[0];
 
-	cmd = &cl.commands[command_ack & CL_UPDATE_MASK];
+    cmd = &cl.commands[CL_CommandHistoryIndex(command_ack)];
 	parsecounttime = cmd->senttime;
 	cmd->receivedtime = (float)realtime;
 	frame->receivedtime = realtime;
@@ -748,7 +748,8 @@ void CL_ParseClientdata()
 		}
 		else
 		{
-			pstate = &cl.predicted_frames[( last_incoming_sequence + command_ack - last_command_ack ) & CL_UPDATE_MASK];
+            const int predictedSequence = last_incoming_sequence + command_ack - last_command_ack;
+            pstate = &cl.predicted_frames[CL_CommandHistoryIndex(predictedSequence)];
 			ClientDLL_TxferPredictionData( &frame->playerstate[cl.playernum], &pstate->playerstate,
 				&frame->clientdata, &pstate->client, frame->weapondata, pstate->weapondata );
 		}
@@ -1312,7 +1313,7 @@ void CL_EmitEntities()
 		return;
 
 	// Compute last interpolation amount
-	cl.commands[( cls.netchan.outgoing_sequence - 1 ) & CL_UPDATE_MASK].frame_lerp = CL_LerpPoint();
+    cl.commands[CL_CommandHistoryIndex(cls.netchan.outgoing_sequence - 1)].frame_lerp = CL_LerpPoint();
 
 	if ( cls.spectator )
 	{

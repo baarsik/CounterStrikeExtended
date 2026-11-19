@@ -19,6 +19,8 @@
 #include "usercmd.h"
 #include "pm_defs.h"
 #include "pm_shared.h"
+#include "goldsrc_frame_timing.h"
+#include "movement_timing.h"
 #include "pm_movevars.h"
 #include "pm_debug.h"
 #include <stdio.h>  // NULL
@@ -771,6 +773,13 @@ void PM_FixupGravityVelocity ()
 	PM_CheckVelocity();
 }
 
+static const int CseReferenceCommandMilliseconds = 10;
+
+static qboolean PM_UsesFrameTimeCorrections(void) {
+    return pmove->PM_Info_ValueForKey &&
+        strcmp(pmove->PM_Info_ValueForKey(pmove->physinfo, CSE_MOVEMENT_TIMING_KEY), CSE_MOVEMENT_TIMING_VERSION) == 0;
+}
+
 /*
 ============
 PM_FlyMove
@@ -877,6 +886,22 @@ int PM_FlyMove (void)
 
 			break;
 		}
+
+        // Short steps along a steep ramp can retrace the same plane with
+        // no progress. Retry with a small outward component before clipping
+        // against another copy of that plane.
+        const float walkableNormalZ = 0.7f;
+        const float nudgeSpeed = 1.0f;
+        if (trace.fraction == 0.0f && numplanes == 1 && pmove->movetype == MOVETYPE_WALK &&
+            pmove->onground == -1 && pmove->cmd.msec > 0 && pmove->cmd.msec < CseReferenceCommandMilliseconds &&
+            trace.plane.normal[2] > 0.0f && trace.plane.normal[2] <= walkableNormalZ &&
+            VectorCompare(trace.plane.normal, planes[0]) && PM_UsesFrameTimeCorrections()) {
+            const float outwardSpeed = DotProduct(pmove->velocity, planes[0]);
+            if (outwardSpeed < nudgeSpeed) {
+                VectorMA(pmove->velocity, nudgeSpeed - outwardSpeed, planes[0], pmove->velocity);
+                continue;
+            }
+        }
 
 		// Set up next clipping plane
 		VectorCopy (trace.plane.normal, planes[numplanes]);
@@ -1037,12 +1062,19 @@ void PM_WalkMove ()
 
 	pmtrace_t trace;
 	
-	if (pmove->fuser2 > 0)
-	{
-		float flRatio = (100.0 - pmove->fuser2 / 1000.0 * 19.0) / 100.0;
-		pmove->velocity[0] *= flRatio;
-		pmove->velocity[1] *= flRatio;
-	}
+    if (pmove->fuser2 > 0) {
+        const double millisecondsPerSecond = 1000.0;
+        const double fullStaminaPercent = 100.0;
+        const double staminaPenaltyPercentPerSecond = 19.0;
+        float retention = (float)((fullStaminaPercent - pmove->fuser2 / millisecondsPerSecond *
+            staminaPenaltyPercentPerSecond) / fullStaminaPercent);
+        if (retention >= 0.0f && pmove->cmd.msec != CseReferenceCommandMilliseconds &&
+            PM_UsesFrameTimeCorrections()) {
+            retention = (float)CseFrameRetention(retention, pmove->cmd.msec / millisecondsPerSecond);
+        }
+        pmove->velocity[0] *= retention;
+        pmove->velocity[1] *= retention;
+    }
 
 	// Copy movement amounts
 	fmove = pmove->cmd.forwardmove;

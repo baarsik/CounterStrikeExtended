@@ -37,7 +37,7 @@ void CL_CheckPredictionError()
 	float len;
 
 	frame = cl.parsecountmod;
-	cmd = cls.netchan.incoming_acknowledged & CL_UPDATE_MASK;
+    cmd = CL_CommandHistoryIndex(cls.netchan.incoming_acknowledged);
 
 	VectorSubtract( cl.frames[frame].playerstate[cl.playernum].origin, cl.predicted_origins[cmd], delta );
 
@@ -54,7 +54,7 @@ void CL_CheckPredictionError()
 		Con_NPrintf( ( pos & 3 ) + 10, "pred. error %.3f units", len );
 	}
 
-	VectorCopy( cl.frames[frame].playerstate[cl.playernum].origin, cl.predicted_origins[frame] );
+	VectorCopy( cl.frames[frame].playerstate[cl.playernum].origin, cl.predicted_origins[cmd] );
 	VectorCopy( delta, cl.prediction_error );
 
 	if ( len > 0.25f && cl.maxclients != 1 )
@@ -333,8 +333,9 @@ void CL_PredictMove( qboolean repredicting )
 	if ( cl.intermission || !cl.validsequence )
 		return;
 
-	if ( cls.netchan.outgoing_sequence - cls.netchan.incoming_acknowledged + 1 >= CL_UPDATE_MASK )
-		return;
+    if (!CL_CanReplayCommands(cls.netchan.outgoing_sequence, cls.netchan.incoming_acknowledged)) {
+        return;
+    }
 
 	VectorCopy( cl.viewangles, cl.simangles );
 
@@ -344,7 +345,7 @@ void CL_PredictMove( qboolean repredicting )
 	// this is the last frame received from the server
 	frame = &cl.frames[cl.parsecountmod];
 
-	from = &cl.predicted_frames[cl.parsecountmod];
+    from = &cl.predicted_frames[CL_CommandHistoryIndex(cl.parsecount)];
 	from->playerstate = frame->playerstate[cl.playernum];
 	from->client = frame->clientdata;
 	Q_memcpy( from->weapondata, frame->weapondata, (int)sizeof( from->weapondata ) );
@@ -355,7 +356,7 @@ void CL_PredictMove( qboolean repredicting )
 	elapsed = frame->time;
 	cl.onground = -1;
 
-	fromcmd = &cl.commands[cls.netchan.incoming_acknowledged & CL_UPDATE_MASK];
+    fromcmd = &cl.commands[CL_CommandHistoryIndex(cls.netchan.incoming_acknowledged)];
 	tocmd = NULL;
 	to = NULL;
 
@@ -363,20 +364,20 @@ void CL_PredictMove( qboolean repredicting )
 	CL_SetSolidPlayers( cl.playernum );
 
 	// predict forward until cl.time <= to->senttime
-	for ( i = 1; i < CL_UPDATE_BACKUP - 1; i++ )
+    for ( i = 1; i < CL_COMMAND_HISTORY_SIZE - 1; i++ )
 	{
 		seq = cls.netchan.incoming_acknowledged + i;
 		if ( seq >= cls.netchan.outgoing_sequence + !repredicting )
 			break;
 
-		tocmd = &cl.commands[seq & CL_UPDATE_MASK];
-		to = &cl.predicted_frames[( cl.parsecountmod + i ) & CL_UPDATE_MASK];
+        tocmd = &cl.commands[CL_CommandHistoryIndex(seq)];
+        to = &cl.predicted_frames[CL_CommandHistoryIndex(cl.parsecount + i)];
 
 		runfuncs = !repredicting && !tocmd->processedfuncs;
 		CL_RunUsercmd( from, to, &tocmd->cmd, runfuncs, &elapsed, (unsigned int)seq );
 		tocmd->processedfuncs = TRUE;
 
-		VectorCopy( to->playerstate.origin, cl.predicted_origins[seq & CL_UPDATE_MASK] );
+        VectorCopy( to->playerstate.origin, cl.predicted_origins[CL_CommandHistoryIndex(seq)] );
 
 		if ( tocmd->senttime >= targettime )
 			break;
@@ -389,8 +390,9 @@ void CL_PredictMove( qboolean repredicting )
 
 	CL_PopPMStates();
 
-	if ( i >= CL_UPDATE_MASK )
-		return;
+    if (i >= CL_COMMAND_HISTORY_SIZE - 1) {
+        return;
+    }
 
 	if ( !to )
 	{
