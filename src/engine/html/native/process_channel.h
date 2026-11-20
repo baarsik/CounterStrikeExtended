@@ -11,9 +11,12 @@ namespace cse::browser {
 
 enum class ChannelStatus { Idle, Progress, End, Failed };
 
-// One owner pumps both nonblocking pipes. Shutdown closes input, drains output, then reaps the owned process.
+// One owner pumps both nonblocking pipes. Shutdown drains and reaps the child within a bounded grace period.
 class ProcessChannel {
 public:
+    // Allow normal CEF cookie flushing while bounding a stalled host during game quit.
+    static constexpr Uint64 ShutdownTimeoutMilliseconds = 15000;
+
     explicit ProcessChannel(std::size_t payloadLimit) : decoder_(payloadLimit) {}
     ~ProcessChannel();
     ProcessChannel(const ProcessChannel&) = delete;
@@ -23,7 +26,7 @@ public:
     bool Queue(Header header, const std::vector<std::uint8_t>& payload);
     ChannelStatus Poll(std::vector<Message>& messages);
     bool CloseInput();
-    bool Finish(int& exitCode);
+    bool Finish(int& exitCode, Uint64 gracefulTimeoutMilliseconds = ShutdownTimeoutMilliseconds);
     bool Started() const;
     const std::string& Error() const;
 
