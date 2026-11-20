@@ -63,11 +63,13 @@ jobs:
         run: |
           git archive --format=zip --output="$PACKAGE_DIR/cse-amxx-source.zip" HEAD -- \
             CMakeLists.txt CMakePresets.json LICENSE LICENSES cmake/AMXXModules.cmake cmake/TargetPlatform.cmake \
-            cmake/WebPDependency.cmake cmake/dependencies/WebP \
+            cmake/ExpatDependency.cmake cmake/WebPDependency.cmake cmake/dependencies/WebP \
             cmake/targets/csextended src/amxx/csextended \
-            src/external/amxx-sdk src/external/libwebp-source src/common/image_codec.cpp src/common/image_codec.h \
+            src/external/amxx-sdk src/external/expat-source src/external/libwebp-source \
+            src/common/image_codec.cpp src/common/image_codec.h \
             src/public/cse_extended_stats_protocol.h src/public/cse_server_forms.h src/public/cse_server_forms.cpp \
-            src/public/cse_server_forms_image.cpp docs/extended-stats.md docs/server-forms.md
+            src/public/cse_server_forms_image.cpp src/public/cse_server_forms_xaml.cpp \
+            docs/extended-stats.md docs/server-forms.md docs/images/server-forms-showcase.png
           printf 'Source commit: %s\nCorresponding source: cse-amxx-source.zip\n' \
             "$GITHUB_SHA" > "$PACKAGE_DIR/SOURCE.txt"
 

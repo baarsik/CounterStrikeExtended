@@ -8,6 +8,42 @@
 namespace forms = cse::forms;
 namespace server = cse::forms::server;
 
+void RecoverTimedOutOffer(const std::filesystem::path& root) {
+    const std::string layout = R"(<Window Width="400" Height="250" Title="Shop"><Button Content="Buy"/></Window>)";
+    forms::Form form;
+    assert(forms::ParseForm(layout, form));
+    const server::Bundle bundle{
+        {"missed", forms::AssetKind::Xaml, layout, forms::Hash(layout), form},
+        {"shop", forms::AssetKind::Xaml, layout, forms::Hash(layout), form},
+    };
+    forms::Session client;
+    server::Session peer;
+    const forms::Nonce nonce{};
+    client.Begin(nonce, root, "127.0.0.1:27015");
+    peer.Begin();
+    const auto receive = [&client](const server::Message& message) {
+        return client.Receive({reinterpret_cast<const char*>(message.bytes.data()), message.size});
+    };
+
+    assert(peer.Tick(bundle, 0.0f).bytes[0] == static_cast<std::uint8_t>(forms::Op::Hello));
+    assert(peer.AcceptHello(forms::EncodeHex(nonce.data(), nonce.size())));
+    const auto missed = peer.Tick(bundle, 0.06f);
+    constexpr float afterOfferTimeout = 9.0f;
+    const auto next = peer.Tick(bundle, afterOfferTimeout);
+    const auto late = receive(missed);
+    assert(late.id == 1 && late.status == forms::AssetStatus::Need);
+    assert(!peer.AcceptAsset(bundle, late.id, "need"));
+
+    const auto requested = receive(next);
+    assert(requested.id == 2 && requested.status == forms::AssetStatus::Need);
+    assert(peer.AcceptAsset(bundle, requested.id, "need"));
+    const auto finished = receive(peer.Tick(bundle, afterOfferTimeout + 0.06f));
+    assert(finished.id == 2 && finished.status == forms::AssetStatus::Ready);
+    assert(peer.AcceptAsset(bundle, finished.id, "ready"));
+    assert(!client.FindForm(1) && client.FindForm(2));
+    assert(peer.Ready(bundle) && peer.Show(bundle, "shop"));
+}
+
 void MenuOverrides(forms::Session& client, server::Session& peer, const server::Bundle& bundle, bool legacy) {
     forms::MenuBindings bindings{};
     bindings[forms::MenuIndex(forms::StockMenu::Buy)] = 1;
@@ -100,6 +136,7 @@ int main(int argc, char** argv) {
     assert(forms::TextStockMenu("#Buy\n1. Plugin option") == forms::StockMenu::None);
     const auto run = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto root = std::filesystem::path(argv[1]) / ("roundtrip-test-" + std::to_string(run));
+    RecoverTimedOutOffer(root);
     const std::string layout = R"(<Window Width="640" Height="400" Title="Shop"><StackPanel>)"
         R"(<Button Content="Buy"/><Image Source="logo"/><Image Source="temp"/><Image Source="session"/>)"
         R"(</StackPanel></Window>)";

@@ -95,7 +95,7 @@ AssetReply Session::Receive(std::string_view packet) {
 
 AssetReply Session::ReceiveOffer(std::string_view packet) {
     const unsigned id = Byte(packet, 1);
-    if (download_ || !id || id > assets_.size() || assets_[id - 1].offered) {
+    if (!id || id > assets_.size() || assets_[id - 1].offered || (download_ && id <= download_->id)) {
         return {};
     }
     auto& asset = assets_[id - 1];
@@ -112,6 +112,9 @@ AssetReply Session::ReceiveOffer(std::string_view packet) {
         std::any_of(assets_.begin(), assets_.end(), [name](const auto& item) { return item.name == name; })) {
         return {AssetStatus::Reject, id};
     }
+    // The server sends assets in order and may advance before a stalled client replies.
+    // A valid newer offer supersedes the incomplete transfer.
+    download_.reset();
     asset.name = name;
     offeredBytes_ += length;
     Download download;

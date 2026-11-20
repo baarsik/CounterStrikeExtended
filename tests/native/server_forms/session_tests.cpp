@@ -54,7 +54,8 @@ int main() {
     session.Begin(nonce, {}, "127.0.0.1:27015");
     assert(session.Receive(Offer(1, AssetKind::Xaml, menu, "shop", nonce)).status == AssetStatus::Need);
     assert(!session.FindForm(1));
-    assert(session.Receive(Offer(2, AssetKind::Image, image, "icon", nonce)).status == AssetStatus::Ignored);
+    assert(session.Receive(Offer(1, AssetKind::Image, image, "icon", nonce)).status == AssetStatus::Ignored);
+    assert(session.Receive(Offer(9, AssetKind::Image, image, "../icon", nonce)).status == AssetStatus::Reject);
     assert(session.Receive(Chunk(1, 0, menu.substr(0, 24))).status == AssetStatus::Ignored);
     assert(session.Receive(Chunk(1, 24, menu.substr(24))).status == AssetStatus::Ready);
     assert(!session.FindForm(1));
