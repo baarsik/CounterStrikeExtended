@@ -3,18 +3,20 @@
 
 new const ShowcaseForm[] = "showcase";
 new const PreviewLayouts[][] = {"Compact", "Comfortable", "Expanded"};
+new const Presets[][] = {"Default", "High contrast", "Minimal"};
 
-// Control IDs are the one-based control positions in showcase.form.
+// Control IDs are the one-based control positions in showcase.xaml.
 enum {
     ControlScale = 3,
     ControlLayout = 5,
-    ControlTest = 13,
-    ControlGuide = 14,
-    ControlLocal = 16,
-    ControlShared = 17,
-    ControlLabels = 19,
-    ControlTitle = 21,
-    ControlClose = 22
+    ControlTest = 15,
+    ControlGuide = 16,
+    ControlLocal = 18,
+    ControlShared = 19,
+    ControlLabels = 21,
+    ControlTitle = 23,
+    ControlPreset = 25,
+    ControlClose = 27
 };
 
 new g_fallbackMenu;
@@ -88,6 +90,12 @@ ReportAction(id, control, const value[], destination) {
         case ControlLocal: client_print(id, destination, "[CSE Forms] Local preview selected.");
         case ControlShared: client_print(id, destination, "[CSE Forms] Shared preview selected.");
         case ControlLabels: client_print(id, destination, "[CSE Forms] Show labels set to %s.", value);
+        case ControlPreset: {
+            new preset = str_to_num(value);
+            if (preset >= 0 && preset < sizeof Presets) {
+                client_print(id, destination, "[CSE Forms] Preset set to %s.", Presets[preset]);
+            }
+        }
         case ControlTitle: client_print(id, destination, "[CSE Forms] Preview title set to ^"%s^".", value);
     }
 }

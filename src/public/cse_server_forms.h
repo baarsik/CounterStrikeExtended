@@ -11,7 +11,7 @@ namespace cse::forms {
 
 inline constexpr char kUserMessage[] = "CseForm";
 inline constexpr char kCapabilityKey[] = "*cseforms";
-inline constexpr char kCapabilityVersion[] = "1";
+inline constexpr char kCapabilityVersion[] = "2";
 
 constexpr bool CanAppendCapability(std::size_t userinfoBytes, std::size_t capacity) {
     // The two array terminators account for the separators before the key and value.
@@ -31,8 +31,9 @@ inline constexpr unsigned kMaxNameBytes = 24;
 inline constexpr unsigned kMaxControls = 48;
 
 enum class Op : std::uint8_t { Hello = 1, Offer, Chunk, Show, Hide, MenuBindings, MenuShow };
-enum class AssetKind : std::uint8_t { Form = 1, Image, PersistentImage, WebPImage, PersistentWebPImage };
-enum class ControlType { Label, Button, Check, Radio, Slider, Select, Text, Image, Divider, Group };
+// Wire value 1 belonged to the retired line-based layout format.
+enum class AssetKind : std::uint8_t { Image = 2, PersistentImage, WebPImage, PersistentWebPImage, Xaml };
+enum class ControlType { Label, Button, Check, Radio, Slider, Select, Text, Image, Divider, Group, Toggle, Progress, List };
 
 // Keep the wire values in sync with CseFormMenu in csextended.inc.
 enum class StockMenu { None, Team, TerroristClass, CounterTerroristClass, Buy, BuyEquipment, Count };
@@ -90,6 +91,7 @@ struct Control {
     char key{};
     int first{};
     int second{};
+    int initial{};
     std::string text;
     std::vector<std::string> options;
 };

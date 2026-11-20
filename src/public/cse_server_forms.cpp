@@ -1,9 +1,7 @@
 #include "cse_server_forms.h"
 
 #include <algorithm>
-#include <charconv>
 #include <cstring>
-#include <utility>
 
 namespace cse::forms {
 namespace {
@@ -112,152 +110,7 @@ private:
     std::size_t used_{};
 };
 
-constexpr unsigned kMaxLabelBytes = 160;
-constexpr unsigned kMaxOptions = 8;
-constexpr int kMinimumWidth = 240;
-constexpr int kMaximumWidth = 800;
-constexpr int kMinimumHeight = 180;
-constexpr int kMaximumHeight = 600;
-constexpr int kMaxSliderValue = 10000;
-constexpr unsigned kRadioGroups = 9;
 constexpr char hexDigits[] = "0123456789abcdef";
-
-bool ReadInteger(std::string_view text, int& value) {
-    if (text.empty()) {
-        return false;
-    }
-    const auto end = text.data() + text.size();
-    const auto result = std::from_chars(text.data(), end, value);
-    return result.ec == std::errc{} && result.ptr == end;
-}
-
-bool Printable(std::string_view utf8, std::size_t limit) {
-    if (utf8.size() > limit) {
-        return false;
-    }
-    while (!utf8.empty()) {
-        const auto lead = static_cast<std::uint8_t>(utf8.front());
-        unsigned count = 1;
-        unsigned codePoint = lead;
-        unsigned minimum = 0;
-        if (lead >= 0xf0 && lead <= 0xf4) {
-            count = 4;
-            codePoint = lead & 7U;
-            minimum = 0x10000;
-        } else if (lead >= 0xe0 && lead <= 0xef) {
-            count = 3;
-            codePoint = lead & 15U;
-            minimum = 0x800;
-        } else if (lead >= 0xc2 && lead <= 0xdf) {
-            count = 2;
-            codePoint = lead & 31U;
-            minimum = 0x80;
-        } else if (lead > 0x7f) {
-            return false;
-        }
-        if (utf8.size() < count) {
-            return false;
-        }
-        for (unsigned i = 1; i < count; ++i) {
-            const auto next = static_cast<std::uint8_t>(utf8[i]);
-            if ((next & 0xc0U) != 0x80U) {
-                return false;
-            }
-            codePoint = (codePoint << 6) | (next & 0x3fU);
-        }
-        // Reject control characters, malformed UTF-8 and bidirectional override/isolate characters.
-        if (codePoint < minimum || codePoint < 0x20 || (codePoint >= 0x7f && codePoint <= 0x9f) ||
-            (codePoint >= 0xd800 && codePoint <= 0xdfff) || codePoint > 0x10ffff ||
-            (codePoint >= 0x2028 && codePoint <= 0x202e) || (codePoint >= 0x2066 && codePoint <= 0x2069)) {
-            return false;
-        }
-        utf8.remove_prefix(count);
-    }
-    return true;
-}
-
-std::string_view Next(std::string_view& input, char delimiter = ' ') {
-    const auto position = input.find(delimiter);
-    const auto part = input.substr(0, position);
-    input.remove_prefix(position == input.npos ? input.size() : position + 1);
-    return part;
-}
-
-char Key(char key) {
-    if (key >= 'A' && key <= 'Z') {
-        key = static_cast<char>(key + ('a' - 'A'));
-    }
-    return key;
-}
-
-bool Interactive(ControlType type) {
-    return type == ControlType::Button || type == ControlType::Check || type == ControlType::Radio ||
-        type == ControlType::Slider || type == ControlType::Select || type == ControlType::Text;
-}
-
-bool ParseOptions(std::string_view options, Control& control) {
-    do {
-        const auto separator = options.find('|');
-        const auto option = Next(options, '|');
-        if (option.empty() || control.options.size() == kMaxOptions || !Printable(option, kMaxValueBytes)) {
-            return false;
-        }
-        control.options.emplace_back(option);
-        if (separator == options.npos) {
-            break;
-        }
-    } while (true);
-    return control.first >= 0 && static_cast<std::size_t>(control.first) < control.options.size() && control.second == 0;
-}
-
-bool ParseControl(std::string_view line, const Form& form, Control& control) {
-    constexpr std::array<std::string_view, 10> names{
-        "label", "button", "check", "radio", "slider", "select", "text", "image", "divider", "group"};
-    const auto name = Next(line);
-    const auto type = std::find(names.begin(), names.end(), name);
-    if (type == names.end()) {
-        return false;
-    }
-    control.type = static_cast<ControlType>(type - names.begin());
-    if (!ReadInteger(Next(line), control.x) || !ReadInteger(Next(line), control.y) ||
-        !ReadInteger(Next(line), control.width) || !ReadInteger(Next(line), control.height) ||
-        control.x < 0 || control.y < 0 || control.width < 1 || control.height < 1 ||
-        control.x > form.width - control.width || control.y > form.height - control.height) {
-        return false;
-    }
-    const auto hotkey = Next(line);
-    if (hotkey.size() != 1 || !ReadInteger(Next(line), control.first) || !ReadInteger(Next(line), control.second)) {
-        return false;
-    }
-    if (hotkey.front() != '-') {
-        control.key = Key(hotkey.front());
-        if (!Interactive(control.type) || !((control.key >= 'a' && control.key <= 'z') ||
-            (control.key >= '0' && control.key <= '9'))) {
-            return false;
-        }
-    }
-    if (control.type == ControlType::Select) {
-        return ParseOptions(line, control);
-    }
-    if (!Printable(line, control.type == ControlType::Text ? kMaxValueBytes : kMaxLabelBytes)) {
-        return false;
-    }
-    control.text = line;
-    switch (control.type) {
-        case ControlType::Check:
-            return (control.first == 0 || control.first == 1) && control.second == 0 && !line.empty();
-        case ControlType::Radio:
-            return control.first >= 1 && control.first <= static_cast<int>(kRadioGroups) &&
-                (control.second == 0 || control.second == 1) && !line.empty();
-        case ControlType::Slider:
-            return control.first >= 0 && control.second > control.first && control.second <= kMaxSliderValue;
-        case ControlType::Image:
-            return control.first == 0 && control.second == 0 && IsName(line);
-        default:
-            return control.first == 0 && control.second == 0 &&
-                (!line.empty() || control.type == ControlType::Text || control.type == ControlType::Divider);
-    }
-}
 
 } // namespace
 
@@ -339,51 +192,6 @@ bool IsName(std::string_view name) {
     });
 }
 
-bool ParseForm(std::string_view text, Form& form) {
-    if (text.size() > kMaxFormBytes) {
-        return false;
-    }
-    Form parsed;
-    auto header = Next(text, '\n');
-    if (!header.empty() && header.back() == '\r') {
-        header.remove_suffix(1);
-    }
-    if (Next(header) != "form" || !ReadInteger(Next(header), parsed.width) ||
-        !ReadInteger(Next(header), parsed.height) || parsed.width < kMinimumWidth || parsed.width > kMaximumWidth ||
-        parsed.height < kMinimumHeight || parsed.height > kMaximumHeight || header.empty() ||
-        !Printable(header, kMaxLabelBytes)) {
-        return false;
-    }
-    parsed.title = header;
-    std::array<bool, 128> keys{};
-    std::array<bool, kRadioGroups> selectedRadio{};
-    while (!text.empty()) {
-        auto line = Next(text, '\n');
-        if (!line.empty() && line.back() == '\r') {
-            line.remove_suffix(1);
-        }
-        if (line.empty() || line.front() == '#') {
-            continue;
-        }
-        Control control;
-        if (parsed.controls.size() == kMaxControls || !ParseControl(line, parsed, control)) {
-            return false;
-        }
-        if (control.key && std::exchange(keys[static_cast<unsigned char>(control.key)], true)) {
-            return false;
-        }
-        if (control.type == ControlType::Radio && control.second && std::exchange(selectedRadio[control.first - 1], true)) {
-            return false;
-        }
-        parsed.controls.push_back(std::move(control));
-    }
-    if (parsed.controls.empty()) {
-        return false;
-    }
-    form = std::move(parsed);
-    return true;
-}
-
 bool ParseImage(std::string_view bytes, Image& image) {
     constexpr unsigned headerBytes = 4;
     constexpr unsigned channels = 4;
@@ -401,24 +209,6 @@ bool ParseImage(std::string_view bytes, Image& image) {
     image.height = static_cast<int>(height);
     image.pixels.assign(data + headerBytes, data + bytes.size());
     return true;
-}
-
-bool ValidAction(const Form& form, unsigned control, std::string_view value) {
-    if (!control || control > form.controls.size() || value.size() > kMaxValueBytes) {
-        return false;
-    }
-    const auto& item = form.controls[control - 1];
-    int number = 0;
-    switch (item.type) {
-        case ControlType::Button: return value.empty();
-        case ControlType::Check: return value == "0" || value == "1";
-        case ControlType::Radio: return value == "1";
-        case ControlType::Slider: return ReadInteger(value, number) && number >= item.first && number <= item.second;
-        case ControlType::Select:
-            return ReadInteger(value, number) && number >= 0 && static_cast<std::size_t>(number) < item.options.size();
-        case ControlType::Text: return Printable(value, kMaxValueBytes);
-        default: return false;
-    }
 }
 
 } // namespace cse::forms

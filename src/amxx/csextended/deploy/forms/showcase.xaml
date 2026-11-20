@@ -1,0 +1,86 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:cse="urn:counterstrikeextended:forms"
+        Width="720" Height="500" Title="Server Forms Showcase">
+    <Grid Margin="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="Preview" Margin="0,0,12,0">
+            <StackPanel>
+                <TextBlock Text="Preview scale" Height="20"/>
+                <Slider Minimum="75" Maximum="125" Value="100" cse:Shortcut="1" Margin="0,0,0,12"/>
+                <TextBlock Text="Layout" Height="20"/>
+                <ComboBox SelectedIndex="1" cse:Shortcut="2" Height="36" Margin="0,0,0,16">
+                    <ComboBoxItem Content="Compact"/>
+                    <ComboBoxItem Content="Comfortable"/>
+                    <ComboBoxItem Content="Expanded"/>
+                </ComboBox>
+                <Separator Margin="0,0,0,12"/>
+                <Grid Height="52" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="56"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Width="44" Height="44" VerticalAlignment="Center" Source="showcase-mark"/>
+                    <TextBlock Grid.Column="1" Text="Cached emblem"/>
+                </Grid>
+                <Grid Height="52">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="56"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Image Width="44" Height="44" VerticalAlignment="Center" Source="showcase-session"/>
+                    <TextBlock Grid.Column="1" Text="Session emblem"/>
+                </Grid>
+                <TextBlock Text="Preview meter" Height="20" Margin="0,8,0,0"/>
+                <Canvas Height="16">
+                    <ProgressBar Canvas.Top="2" Height="14" Value="72"/>
+                </Canvas>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="Profile controls" Grid.Column="1">
+            <StackPanel>
+                <TextBlock Text="Actions" Height="22"/>
+                <StackPanel Orientation="Horizontal" Height="36">
+                    <Button Content="Test action" Width="190" Margin="0,0,12,0" cse:Shortcut="3"/>
+                    <ToggleButton Content="Show guide" Width="190" cse:Shortcut="4"/>
+                </StackPanel>
+                <TextBlock Text="Audience" Height="22" Margin="0,10,0,0"/>
+                <Grid Height="36">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <RadioButton GroupName="audience" IsChecked="True" Content="Local preview" cse:Shortcut="L"/>
+                    <RadioButton Grid.Column="1" GroupName="audience" Content="Shared preview" cse:Shortcut="S"/>
+                </Grid>
+                <Separator Margin="0,8,0,0"/>
+                <CheckBox Content="Show labels" IsChecked="True" cse:Shortcut="G"/>
+                <TextBlock Text="Preview title" Height="22"/>
+                <TextBox Text="Server preview" Height="36" cse:Shortcut="E"/>
+                <TextBlock Text="Preset" Height="22"/>
+                <ListBox Height="110" SelectedIndex="0" cse:Shortcut="P">
+                    <ListBoxItem Content="Default"/>
+                    <ListBoxItem Content="High contrast"/>
+                    <ListBoxItem Content="Minimal"/>
+                </ListBox>
+            </StackPanel>
+        </GroupBox>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2" Height="36" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="160"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Click a control or use its shortcut. Actions appear in your console."/>
+            <Button Grid.Column="1" Content="Close" cse:Shortcut="Q"/>
+        </Grid>
+    </Grid>
+</Window>

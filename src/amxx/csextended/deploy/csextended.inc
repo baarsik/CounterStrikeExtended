@@ -86,11 +86,11 @@ native bool:cse_is_supported(index);
 // Server forms and images.
 
 /**
- * Registers a form from <amxx_datadir>/csextended/forms/<name>.form for this map.
+ * Registers a form from <amxx_datadir>/csextended/forms/<name>.xaml for this map.
  * Call from plugin_precache. Choose a lowercase asset name with letters,
  * digits, hyphens, or underscores.
  *
- * @param name       Bare form name, without the .form extension.
+ * @param name       Bare form name, without the .xaml extension.
  * @return           True when the form is registered and valid.
  */
 native bool:cse_forms_precache_form(const name[]);
@@ -161,9 +161,10 @@ native bool:cse_forms_ready(player);
  *
  * @param player     Client index of the player who submitted the action.
  * @param form       Bare name of the open form.
- * @param control    One-based control index in the form's declaration order.
+ * @param control    One-based index of a rendered control in declaration order.
  * @param value      Control value as a string. Buttons use an empty string,
- *                   checks use 0 or 1, radios use 1, sliders use decimal integers,
- *                   dropdowns use zero-based indices, and text fields use UTF-8.
+ *                   checks and toggles use 0 or 1, radios use 1, sliders use decimal
+ *                   integers, lists and dropdowns use zero-based indices, and
+ *                   text fields use UTF-8.
  */
 forward cse_forms_action(player, const form[], control, const value[]);

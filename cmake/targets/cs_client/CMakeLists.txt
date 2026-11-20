@@ -679,6 +679,13 @@ cse_runtime_directory(cs_client "cstrike/cl_dlls")
 
 # Shared image codec uses the same CRT as this module.
 cse_link_webp(cs_client)
+# Use the runtime's pinned Expat provider on each supported architecture.
+set(form_xml_prefix "${CSE_SDK_DIR}/external/installed/x86-windows-static-md")
+cse_link_import(cs_client Debug "${form_xml_prefix}/debug/lib/libexpatdMD.lib")
+cse_link_import(cs_client Release "${form_xml_prefix}/lib/libexpatMD.lib")
+cse_target_dependency_include(cs_client Debug "${form_xml_prefix}/include")
+cse_target_dependency_include(cs_client Release "${form_xml_prefix}/include")
+target_compile_definitions(cs_client PRIVATE XML_STATIC)
 if(MSVC)
   set_property(SOURCE "${CSE_SDK_DIR}/common/image_codec.cpp" APPEND PROPERTY COMPILE_OPTIONS /EHsc)
 else()

@@ -108,10 +108,10 @@ bool Precache(std::string_view name, AssetKind kind) {
     if (MapActive || !IsName(name)) {
         return false;
     }
-    const bool form = kind == AssetKind::Form;
+    const bool form = kind == AssetKind::Xaml;
     for (const auto& asset : Assets) {
         if (asset.name == name) {
-            return form ? asset.kind == AssetKind::Form
+            return form ? asset.kind == AssetKind::Xaml
                         : IsImage(asset.kind) && IsPersistentImage(asset.kind) == IsPersistentImage(kind);
         }
     }
@@ -120,7 +120,7 @@ bool Precache(std::string_view name, AssetKind kind) {
     }
 
     const std::string identifier(name);
-    const char* suffix = form ? ".form" : ".rgba";
+    const char* suffix = form ? ".xaml" : ".rgba";
     const char* directory = MF_GetLocalInfo("amxx_datadir", "addons/amxmodx/data");
     const auto open = [&](const char* extension) {
         const char* path = MF_BuildPathname("%s/csextended/forms/%s%s", directory, identifier.c_str(), extension);
@@ -160,7 +160,7 @@ bool Precache(std::string_view name, AssetKind kind) {
 }
 
 cell AMX_NATIVE_CALL PrecacheForm(AMX* amx, cell* params) {
-    return params[0] >= static_cast<cell>(sizeof(cell)) && Precache(PawnName(amx, params[1]), AssetKind::Form);
+    return params[0] >= static_cast<cell>(sizeof(cell)) && Precache(PawnName(amx, params[1]), AssetKind::Xaml);
 }
 
 cell AMX_NATIVE_CALL PrecacheImage(AMX* amx, cell* params) {
@@ -181,7 +181,7 @@ cell AMX_NATIVE_CALL OverrideMenu(AMX* amx, cell* params) {
     }
     const auto name = PawnName(amx, params[2]);
     const auto asset = std::find_if(Assets.begin(), Assets.end(), [name](const Asset& entry) {
-        return entry.kind == AssetKind::Form && entry.name == name;
+        return entry.kind == AssetKind::Xaml && entry.name == name;
     });
     if (asset == Assets.end()) {
         return 0;

@@ -47,11 +47,12 @@ int main() {
 
     Session session;
     Nonce nonce{};
-    const std::string_view menu = "form 640 400 Shop\nbutton 10 10 100 24 1 0 0 Buy\nimage 10 50 32 32 - 0 0 icon\n";
+    constexpr std::string_view menu = R"(<Window Width="640" Height="400" Title="Shop"><StackPanel>)"
+        R"(<Button Content="Buy"/><Image Source="icon"/></StackPanel></Window>)";
     const std::string image("\1\0\1\0\xff\xff\0\xff", 8);
-    assert(session.Receive(Offer(1, AssetKind::Form, menu, "shop", nonce)).status == AssetStatus::Ignored);
+    assert(session.Receive(Offer(1, AssetKind::Xaml, menu, "shop", nonce)).status == AssetStatus::Ignored);
     session.Begin(nonce, {}, "127.0.0.1:27015");
-    assert(session.Receive(Offer(1, AssetKind::Form, menu, "shop", nonce)).status == AssetStatus::Need);
+    assert(session.Receive(Offer(1, AssetKind::Xaml, menu, "shop", nonce)).status == AssetStatus::Need);
     assert(!session.FindForm(1));
     assert(session.Receive(Offer(2, AssetKind::Image, image, "icon", nonce)).status == AssetStatus::Ignored);
     assert(session.Receive(Chunk(1, 0, menu.substr(0, 24))).status == AssetStatus::Ignored);
@@ -64,16 +65,24 @@ int main() {
     assert(session.ReceiveMenuBindings(stockMenus));
     assert(session.MenuForm(StockMenu::Team) == 1);
     assert(!session.MenuForm(StockMenu::TerroristClass) && !session.MenuForm(StockMenu::Buy));
-    assert(session.Receive(Offer(3, AssetKind::Form, menu, "shop", nonce)).status == AssetStatus::Reject);
-    assert(session.Receive(Offer(4, AssetKind::Form, menu, "../config", nonce)).status == AssetStatus::Reject);
-    assert(session.Receive(Offer(5, AssetKind::Form, menu, "fresh", nonce)).status == AssetStatus::Need);
+    assert(session.Receive(Offer(3, AssetKind::Xaml, menu, "shop", nonce)).status == AssetStatus::Reject);
+    assert(session.Receive(Offer(4, AssetKind::Xaml, menu, "../config", nonce)).status == AssetStatus::Reject);
+    assert(session.Receive(Offer(5, AssetKind::Xaml, menu, "fresh", nonce)).status == AssetStatus::Need);
     assert(session.Receive(Chunk(5, 1, menu)).status == AssetStatus::Reject);
     assert(!session.FindForm(5));
-    assert(session.Receive(Offer(6, AssetKind::Form, menu, "corrupt", nonce)).status == AssetStatus::Need);
+    assert(session.Receive(Offer(6, AssetKind::Xaml, menu, "corrupt", nonce)).status == AssetStatus::Need);
     auto altered = std::string(menu);
     altered[15] = 'B';
     assert(session.Receive(Chunk(6, 0, altered)).status == AssetStatus::Reject);
     assert(!session.FindForm(6));
+    // The retired layout kind and a correctly hashed document outside the schema both fail closed.
+    constexpr auto legacyFormKind = static_cast<AssetKind>(1);
+    assert(session.Receive(Offer(7, legacyFormKind, menu, "legacy", nonce)).status == AssetStatus::Reject);
+    constexpr std::string_view unsupported = R"(<Window Width="640" Height="400" Title="Shop">
+        <Button Content="Buy" Click="Open"/></Window>)";
+    assert(session.Receive(Offer(8, AssetKind::Xaml, unsupported, "unsupported", nonce)).status == AssetStatus::Need);
+    assert(session.Receive(Chunk(8, 0, unsupported)).status == AssetStatus::Reject);
+    assert(!session.FindForm(8));
     session.Reset();
     assert(!session.Active() && !session.FindForm(1) && !session.FindImage("icon"));
     assert(session.Receive(Chunk(2, 0, image)).status == AssetStatus::Ignored);

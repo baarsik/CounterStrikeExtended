@@ -106,8 +106,8 @@ AssetReply Session::ReceiveOffer(std::string_view packet) {
     const auto kind = static_cast<AssetKind>(Byte(packet, 2));
     const auto length = Word(packet, 3);
     const auto name = packet.substr(kOfferHeader);
-    const auto maxLength = kind == AssetKind::Form ? kMaxFormBytes : kMaxImageBytes;
-    if ((kind != AssetKind::Form && !IsImage(kind)) ||
+    const auto maxLength = kind == AssetKind::Xaml ? kMaxFormBytes : kMaxImageBytes;
+    if ((kind != AssetKind::Xaml && !IsImage(kind)) ||
         !length || length > maxLength || offeredBytes_ + length > kMaxBundleBytes || !IsName(name) ||
         std::any_of(assets_.begin(), assets_.end(), [name](const auto& item) { return item.name == name; })) {
         return {AssetStatus::Reject, id};
@@ -151,7 +151,7 @@ AssetReply Session::ReceiveChunk(std::string_view packet) {
     const auto& bytes = download.bytes;
     auto& content = assets_[id - 1].content;
     if (Hash(bytes) == download.digest) {
-        if (download.kind == AssetKind::Form) {
+        if (download.kind == AssetKind::Xaml) {
             Form form;
             if (ParseForm(bytes, form)) {
                 content = std::move(form);

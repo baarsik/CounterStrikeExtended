@@ -92,9 +92,9 @@ void PersistentImageCacheAndTimeout() {
 }
 
 void FormRequiresAssetsAndAVisibleToken() {
-    Asset layout = MakeAsset("shop", AssetKind::Form,
-                             "form 640 400 Shop\nbutton 10 10 120 32 A 0 0 Buy armor\n"
-                             "image 10 50 32 32 - 0 0 emblem\n");
+    Asset layout = MakeAsset("shop", AssetKind::Xaml,
+        R"(<Window Width="640" Height="400" Title="Shop"><StackPanel>)"
+        R"(<Button Content="Buy armor"/><Image Source="emblem"/></StackPanel></Window>)");
     Require(ParseForm(layout.bytes, layout.form), "shop fixture must be a valid form");
     const Bundle bundle{std::move(layout), MakeAsset("emblem", AssetKind::PersistentImage, "cached")};
     Session session;

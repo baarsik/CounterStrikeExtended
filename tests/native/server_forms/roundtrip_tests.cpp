@@ -100,8 +100,9 @@ int main(int argc, char** argv) {
     assert(forms::TextStockMenu("#Buy\n1. Plugin option") == forms::StockMenu::None);
     const auto run = std::chrono::steady_clock::now().time_since_epoch().count();
     const auto root = std::filesystem::path(argv[1]) / ("roundtrip-test-" + std::to_string(run));
-    const std::string layout("form 640 400 Shop\nbutton 10 10 100 24 A 0 0 Buy\n"
-        "image 10 50 32 32 - 0 0 logo\nimage 50 50 32 32 - 0 0 temp\nimage 90 50 32 32 - 0 0 session\n");
+    const std::string layout = R"(<Window Width="640" Height="400" Title="Shop"><StackPanel>)"
+        R"(<Button Content="Buy"/><Image Source="logo"/><Image Source="temp"/><Image Source="session"/>)"
+        R"(</StackPanel></Window>)";
     forms::Form form;
     assert(forms::ParseForm(layout, form));
     const std::string pixels("\1\0\1\0\xff\xff\0\xff", 8);
@@ -118,21 +119,22 @@ int main(int argc, char** argv) {
     assert(!forms::ParseImage(forms::AssetKind::WebPImage,
         {reinterpret_cast<const char*>(encoded.data()), encoded.size()}, decoded));
     const server::Bundle bundle{
-        {"shop", forms::AssetKind::Form, layout, forms::Hash(layout), form},
+        {"shop", forms::AssetKind::Xaml, layout, forms::Hash(layout), form},
         {"logo", forms::AssetKind::PersistentWebPImage, webp, forms::Hash(webp), {}},
         {"temp", forms::AssetKind::Image, pixels, forms::Hash(pixels), {}},
         {"session", forms::AssetKind::WebPImage, webp, forms::Hash(webp), {}},
     };
+    const auto layoutChunks = (layout.size() + forms::kMaxChunkBytes - 1) / forms::kMaxChunkBytes;
     forms::Session client;
     server::Session peer;
-    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 1) == 4);
+    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 1) == layoutChunks + 3);
     assert(client.FindImage("logo")->pixels == std::vector<std::uint8_t>(webpPixels, webpPixels + 4));
     assert(client.FindImage("session")->pixels == client.FindImage("logo")->pixels);
     client.Reset();
     assert(!client.FindImage("temp") && !client.FindImage("session") && !client.FindForm(1));
     assert(!client.MenuForm(forms::StockMenu::Buy));
-    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 2) == 3);
-    assert(Connect(client, peer, bundle, root, "127.0.0.1:27016", 3) == 4);
-    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 4, true) == 2);
+    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 2) == layoutChunks + 2);
+    assert(Connect(client, peer, bundle, root, "127.0.0.1:27016", 3) == layoutChunks + 3);
+    assert(Connect(client, peer, bundle, root, "127.0.0.1:27015", 4, true) == layoutChunks + 1);
     std::filesystem::remove_all(root);
 }

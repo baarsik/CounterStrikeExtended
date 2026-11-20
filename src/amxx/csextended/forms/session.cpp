@@ -185,7 +185,7 @@ bool Session::FormAvailable(const Bundle& bundle, unsigned id) const {
     }
     const auto index = id - FirstAssetId;
     const auto& asset = bundle[index];
-    if (asset.kind != AssetKind::Form || !available_[index]) {
+    if (asset.kind != AssetKind::Xaml || !available_[index]) {
         return false;
     }
     for (const auto& control : asset.form.controls) {

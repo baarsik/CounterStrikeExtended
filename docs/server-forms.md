@@ -8,11 +8,13 @@ CounterStrikeExtended clients can display native VGUI2 forms provided by a Count
 2. Add `csextended` to `addons/amxmodx/configs/modules.ini`. Follow the [upgrade instructions](extended-stats.md#build-and-install) if you have the two previous modules. Compile `addons/amxmodx/scripting/cse_forms_example.sma` with the server's AMXX compiler, put the resulting `.amxx` under `addons/amxmodx/plugins/`, and list it in `plugins.ini`.
 3. Restart the server. Connect with CSE and type `/cse_form` in chat. Try the main keyboard or keypad digits, letter shortcuts, and mouse. Focus the preview title, enter text, then press Enter to submit it. The plugin reports selections in the console. The same chat command opens a numbered menu on a stock client.
 
-`addons/amxmodx/configs/csextended.cfg` sets `cse_forms_require_client 0` by default. Set it to `1` to reject connecting network players without the CSE server-forms capability marker. This is an admission compatibility check. A modified client can implement or impersonate the protocol, so continue using normal server authentication and access controls. CSE players can disable server forms with `cl_cse_server_forms 0` or `cl_allowdownload 0` and reconnect to use plugin fallbacks.
+![The XAML showcase in Counter-Strike with a native toggle, preset list, and progress bar](images/server-forms-showcase.png)
+
+`addons/amxmodx/configs/csextended.cfg` sets `cse_forms_require_client 0` by default. Set it to `1` to reject connecting network players without the current CSE server-forms capability marker. This is an admission compatibility check. A modified client can implement or impersonate the protocol, so continue using normal server authentication and access controls. CSE players can disable server forms with `cl_cse_server_forms 0` or `cl_allowdownload 0` and reconnect to use plugin fallbacks.
 
 ## Register and open forms
 
-Place assets in `csextended/forms/` under the server's AMXX data directory (`addons/amxmodx/data/` by default). Move existing assets from the previous `data/cse_forms/` directory when upgrading. Names are unique across assets on a map, use lowercase ASCII letters, digits, hyphens or underscores, and are at most 24 characters. Use `<name>.form` for a layout and `<name>.rgba` or `<name>.webp` for an image. Register and reference images using their bare names. When both extensions exist for a name, `.rgba` takes precedence.
+Place assets in `csextended/forms/` under the server's AMXX data directory (`addons/amxmodx/data/` by default). Move existing assets from the previous `data/cse_forms/` directory when upgrading. Names are unique across assets on a map, use lowercase ASCII letters, digits, hyphens or underscores, and are at most 24 characters. Use `<name>.xaml` for a layout and `<name>.rgba` or `<name>.webp` for an image. Register and reference images using their bare names. When both extensions exist for a name, `.rgba` takes precedence.
 
 ```pawn
 #include <csextended>
@@ -57,33 +59,70 @@ The stock menu opens while the client requests its replacement and remains usabl
 
 Handle selections through `cse_forms_action` as usual. Map each control to a specific choice and apply the game's rules for joining a team, selecting a class, or purchasing an item. A replacement form action alone grants no gameplay permissions.
 
-## Layout and image formats
+## XAML layouts
 
-A form is UTF-8 text. Blank lines and lines beginning with `#` after the header are ignored. Use single spaces between the fixed fields. The remaining text is taken literally.
+A layout is a UTF-8 XML document in a restricted XAML subset. The root is a `Window` with a `Title`, a content `Width` of 240–800, a content `Height` of 180–600, and one child. The CSE client uses these logical dimensions to lay out the controls, then scales the form to fit the viewport.
 
-```text
-form 480 260 Server shop
-group 12 12 456 226 - 0 0 Equipment
-image 30 55 48 48 - 0 0 shop-icon
-label 90 55 350 24 - 0 0 Equipment preview
-button 90 90 172 28 1 0 0 Buy armor
-button 272 90 160 28 Q 0 0 Close
+```xml
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:cse="urn:counterstrikeextended:forms"
+        Width="480" Height="260" Title="Equipment shop">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="80"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Image Source="shop-icon" Width="48" Height="48"/>
+        <StackPanel Grid.Column="1">
+            <TextBlock Text="Equipment"/>
+            <Button Content="Buy armor" cse:Shortcut="1"/>
+            <TextBox Text="Optional note" cse:Shortcut="E"/>
+        </StackPanel>
+        <Button Grid.Row="1" Grid.ColumnSpan="2" Content="Close" cse:Shortcut="Q"/>
+    </Grid>
+</Window>
 ```
 
-There are eight fixed fields on each control line before its text. They are the type, x, y, width, height, shortcut, first parameter, and second parameter. Geometry uses the form's content area. Width can be 240–800 and height 180–600. Use `-` for an unbound shortcut. ASCII letters match either case. A digit also works on the numeric keypad. Each shortcut may be bound once.
+Use the WPF presentation namespace shown above or unqualified element names. The CSE namespace defines `cse:Shortcut` for interactive controls. Each ASCII letter or digit can be assigned once per form. Letters match either case, and digits work on the main keyboard and keypad. A text box or an open dropdown keeps its normal keyboard input.
 
-| Type | First and second parameters | Text and action |
+### Layout panels
+
+- **Grid** divides space into rows and columns. Use `Grid.RowDefinitions` and `Grid.ColumnDefinitions` with up to 12 tracks per axis. An axis without definitions gets one `*` track. Track sizes are logical pixels, `Auto`, or weighted stars such as `*` and `2*`. Fixed and auto tracks are sized first, then star tracks share the remaining space. Auto measures single-track children. Set an explicit size for a panel in an auto track. Use zero-based `Grid.Row` and `Grid.Column` and positive `Grid.RowSpan` and `Grid.ColumnSpan` on direct children.
+- **StackPanel** places children in declaration order. It stacks vertically by default and accepts `Orientation="Horizontal"`. Controls have default sizes along the stacking axis. Give nested panels a `Height` in a vertical stack or a `Width` in a horizontal stack.
+- **Canvas** positions direct children with `Canvas.Left` and `Canvas.Top`. Set their `Width` and `Height` for a fixed size.
+- **GroupBox** draws a native panel with a `Header` and an inset content area for one child.
+
+Controls and panels accept `Width`, `Height`, and `Margin`. Margins use nonnegative integers in one of three forms. Use one value for all sides, a horizontal and vertical pair, or left, top, right, bottom. Horizontal alignment accepts `Stretch`, `Left`, `Center`, or `Right`. Vertical alignment accepts `Stretch`, `Top`, `Center`, or `Bottom`. Use `HorizontalAlignment` and `VerticalAlignment` to set them. A layout fails validation if its controls exceed the available space.
+
+### Native controls
+
+| XAML element | Properties | Pawn action value |
 | --- | --- | --- |
-| `group`, `label`, `divider` | `0 0` | Display text. A divider may omit its text. |
-| `image` | `0 0` | Precached image name. |
-| `button` | `0 0` | Caption. The action value is empty. |
-| `check` | Initial `0` or `1`, then `0` | Caption. Actions return `0` or `1`. |
-| `radio` | Group 1–9, then initial `0` or `1` | Caption. Selecting it returns `1`. |
-| `slider` | Minimum and maximum in 0–10000 | Begins at the minimum. Actions return a decimal integer. |
-| `select` | Initial zero-based choice, then `0` | Up to eight labels separated by `\|`. Actions return a zero-based index. |
-| `text` | `0 0` | Initial text. Enter submits up to 48 UTF-8 bytes. |
+| `TextBlock`, `Label` | `Text` for a text block, `Content` for a label | Display only |
+| `Button` | `Content` | Empty string |
+| `CheckBox`, `ToggleButton` | `Content`, optional `IsChecked="True"` | `0` or `1` |
+| `RadioButton` | `Content`, optional `GroupName` and `IsChecked`. Each of up to nine groups can start with one selected button. | `1` when selected |
+| `Slider`, `ProgressBar` | Integer `Minimum`, `Maximum`, `Value` within 0–10000. The range defaults to 0–100 and the initial value defaults to the minimum. | Sliders submit a decimal integer. Progress bars display the initial value. |
+| `ComboBox`, `ListBox` | Up to eight `ComboBoxItem` or `ListBoxItem` children with `Content`, plus optional zero-based `SelectedIndex` | Zero-based selected index |
+| `TextBox` | Optional `Text` | Enter submits up to 48 UTF-8 bytes |
+| `Image` | `Source` is a bare precached image name | Display only |
+| `Separator` | Layout properties | Display only |
 
-The callback receives a one-based control index in declaration order. `.rgba` images use two little-endian 16-bit dimensions followed by row-major RGBA bytes. Static `.webp` images may be lossy or lossless and can include transparency. Both formats are limited to 1–64 pixels per dimension and 16,388 bytes per image file. A map can register up to 32 assets and 128 KiB total, with a maximum of 48 controls and 8 KiB per form. Older CSE clients can display RGBA-backed forms and use the plugin's fallback for forms that reference WebP.
+The action callback receives a one-based index in rendered declaration order. Labels, images, separators, and group boxes count toward the index. The index skips layout-only panels, track definitions, and choice items. The package includes a complete example in `showcase.xaml` and `cse_forms_example.sma`.
+
+### Download validation and migration
+
+The module validates the layout at precache and the client validates it again after download. The parser accepts only the supported elements and attributes. It rejects DTDs, custom entities, processing instructions, CDATA, code-behind, event attributes, markup extensions, and external image paths or URLs. Use XML escapes such as `&amp;` in attribute text. Forms are limited to 8 KiB, 16 levels of nesting, 128 elements, and 48 rendered controls.
+
+Convert old `.form` layouts to `.xaml` and keep using the same bare name in Pawn. Use an updated CSE client with the updated module. The server-forms capability marker is now `*cseforms=2`. A client with a different forms version can use the stock or plugin fallback menus on a server that admits it.
+
+### Images
+
+`.rgba` images use two little-endian 16-bit dimensions followed by row-major RGBA bytes. Static `.webp` images may be lossy or lossless and can include transparency. Both formats are limited to 1–64 pixels per dimension and 16,388 bytes per file. A map can register up to 32 assets and 128 KiB total.
 
 ## Asset isolation
 

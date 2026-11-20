@@ -12,9 +12,12 @@
 #include "Label.h"
 #include "Menu.h"
 #include "PHandle.h"
+#include "ProgressBar.h"
 #include "RadioButton.h"
+#include "SectionedListPanel.h"
 #include "Slider.h"
 #include "SmokedGlass.h"
+#include "ToggleButton.h"
 #include "game_controls/iviewport.h"
 #include "vgui/IInput.h"
 #include "vgui/IPanel.h"
@@ -79,6 +82,23 @@ private:
     Action action_;
 };
 
+class FormToggle final : public vgui2::ToggleButton {
+public:
+    FormToggle(vgui2::Panel* parent, Action action, bool selected)
+        : ToggleButton(parent, "Toggle", ""), action_(action) {
+        SetSelected(selected);
+        ForceDepressed(selected);
+    }
+
+    void DoClick() override {
+        ToggleButton::DoClick();
+        action_.Send(IsSelected() ? "1" : "0");
+    }
+
+private:
+    Action action_;
+};
+
 class FormRadio final : public vgui2::RadioButton {
 public:
     FormRadio(vgui2::Panel* parent, Action action)
@@ -108,10 +128,10 @@ private:
 
 class FormSlider final : public vgui2::Slider {
 public:
-    FormSlider(vgui2::Panel* parent, Action action, int minimum, int maximum)
-        : Slider(parent, "Slider"), action_(action), reportedValue_(minimum) {
-        SetRange(minimum, maximum);
-        SetValue(minimum, false);
+    FormSlider(vgui2::Panel* parent, Action action, const Control& control)
+        : Slider(parent, "Slider"), action_(action), reportedValue_(control.initial) {
+        SetRange(control.first, control.second);
+        SetValue(control.initial, false);
     }
 
     void SendSliderMovedMessage() override {
@@ -254,6 +274,52 @@ private:
 
     Action action_;
     std::vector<std::wstring> options_;
+};
+
+class FormList : public vgui2::SectionedListPanel {
+    DECLARE_CLASS_SIMPLE_NAMED(FormList, vgui2::SectionedListPanel, "SectionedListPanel");
+
+public:
+    FormList(vgui2::Panel* parent, Action action, const Control& control)
+        : SectionedListPanel(parent, "ListBox"), action_(action) {
+        AddSection(kOptionsSection, "");
+        AddColumnToSection(kOptionsSection, kCaption, "", 0, GetWide());
+        SetVerticalScrollbar(true);
+        int initial = -1;
+        for (std::size_t index = 0; index < control.options.size(); ++index) {
+            auto* row = new KeyValues("Option");
+            row->SetWString(kCaption, Caption(control.options[index]).c_str());
+            row->SetInt(kIndex, static_cast<int>(index));
+            const int id = AddItem(kOptionsSection, row);
+            row->deleteThis();
+            if (index == static_cast<std::size_t>(control.first)) {
+                initial = id;
+            }
+        }
+        SetSelectedItem(initial);
+        AddActionSignalTarget(this);
+    }
+
+protected:
+    void OnSizeChanged(int wide, int tall) override {
+        SectionedListPanel::OnSizeChanged(wide, tall);
+        constexpr int kScrollbarAndInsets = 24;
+        ModifyColumn(kOptionsSection, kCaption, L"", (std::max)(1, wide - kScrollbarAndInsets));
+    }
+
+private:
+    MESSAGE_FUNC_INT(OnSelection, "ItemSelected", itemID) {
+        if (itemID >= 0 && itemID == GetSelectedItem()) {
+            if (auto* row = GetItemData(itemID)) {
+                action_.Send(std::to_string(row->GetInt(kIndex)));
+            }
+        }
+    }
+
+    static constexpr int kOptionsSection = 0;
+    static constexpr char kCaption[] = "caption";
+    static constexpr char kIndex[] = "index";
+    Action action_;
 };
 
 class FormText final : public vgui2::TextEntry {
@@ -420,6 +486,12 @@ public:
                 widget.panel = check;
                 break;
             }
+            case ControlType::Toggle: {
+                auto* toggle = new FormToggle(this, action, control.first != 0);
+                SetCaption(*toggle, control.text, control.key);
+                widget.panel = toggle;
+                break;
+            }
             case ControlType::Radio: {
                 auto* radio = new FormRadio(this, action);
                 SetCaption(*radio, control.text, control.key);
@@ -434,11 +506,21 @@ public:
                 continue;
             }
             case ControlType::Slider:
-                widget.panel = new FormSlider(this, action, control.first, control.second);
+                widget.panel = new FormSlider(this, action, control);
                 break;
             case ControlType::Select:
                 widget.panel = new FormSelect(this, action, control);
                 break;
+            case ControlType::List:
+                widget.panel = new FormList(this, action, control);
+                break;
+            case ControlType::Progress: {
+                auto* progress = new vgui2::ProgressBar(this, "ProgressBar");
+                progress->SetProgress(static_cast<float>(control.initial - control.first) /
+                    static_cast<float>(control.second - control.first));
+                widget.panel = progress;
+                break;
+            }
             case ControlType::Text:
                 widget.panel = new FormText(this, action, control.text);
                 break;
@@ -624,6 +706,7 @@ private:
         switch (type) {
         case ControlType::Button:
         case ControlType::Check:
+        case ControlType::Toggle:
         case ControlType::Radio:
             static_cast<vgui2::Button*>(panel)->DoClick();
             break;
@@ -633,6 +716,7 @@ private:
             break;
         case ControlType::Slider:
         case ControlType::Text:
+        case ControlType::List:
             panel->RequestFocus(0);
             break;
         default:
@@ -644,11 +728,13 @@ private:
         switch (control.type) {
         case ControlType::Button:
         case ControlType::Check:
+        case ControlType::Toggle:
             widget.panel->SetTabPosition(tabPosition);
             break;
         case ControlType::Slider:
         case ControlType::Select:
         case ControlType::Text:
+        case ControlType::List:
             widget.panel->SetTabPosition(tabPosition);
             if (control.key) {
                 widget.shortcut = new vgui2::Label(this, "Shortcut", "");
