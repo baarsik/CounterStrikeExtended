@@ -1,5 +1,5 @@
 #include <amxmodx>
-#include <cse_extstats>
+#include <csextended>
 
 public plugin_init() {
     register_plugin("CSE Extended Stats Example", "1.0.0", "CounterStrikeExtended");

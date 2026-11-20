@@ -1,6 +1,6 @@
 from pathlib import Path
 import sys
-text = (Path(sys.argv[1]) / 'src/amxx/cse_extstats/module.cpp').read_text()
+text = (Path(sys.argv[1]) / 'src/amxx/csextended/stats/stats.cpp').read_text()
 name = text.index('RegisterMessages()')
 begin = text.rfind('\n', 0, name) + 1
 end = text.index('{', name) + 1

@@ -474,6 +474,12 @@ extern void NullClientMousePositionAndCenterDst(int **, int **, int **, int **);
 
 #ifdef __cplusplus
 }
+
+namespace cse::forms {
+class ClientInput;
+}
+
+cse::forms::ClientInput* ClientDLL_ServerForms();
 #endif
 
 #endif // CDLL_INT_H

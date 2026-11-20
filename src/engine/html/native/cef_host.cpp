@@ -240,6 +240,10 @@ public:
             return;
         }
 
+        // This background OSR host creates only explicit game-owned browsers.
+        // Chromium's normal startup window steals focus from full-screen gameplay.
+        commandLine->AppendSwitch("no-startup-window");
+
         // The bundled provider has no Chromium auto-updater, and its helper traps in the clone cleanup process.
         constexpr char DisableFeaturesSwitch[] = "disable-features";
         std::string disabledFeatures = commandLine->GetSwitchValue(DisableFeaturesSwitch).ToString();

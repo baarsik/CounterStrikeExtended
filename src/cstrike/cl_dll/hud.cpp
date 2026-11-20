@@ -23,6 +23,7 @@
 #include "extended_stats.h"
 #include "movement_timing.h"
 #include "hud.h"
+#include "server_form_client.h"
 #include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
 #include "demo.h"
@@ -326,6 +327,7 @@ int __MsgFunc_ForceCam( const char* name, int size, void* buffer )
 
 int __MsgFunc_BuyClose( const char*, int, void* )
 {
+    cse::forms::CancelBuyMenuOverride();
 	if ( gViewPortInterface )
 		gViewPortInterface->HideVGUIMenu( 28 );
 	return 0;

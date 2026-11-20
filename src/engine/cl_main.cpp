@@ -21,6 +21,9 @@
 #include "voice.h"
 #include "vgui_intwrap2.h"
 #include "../public/native_gameui_connection.h"
+#include "../public/cse_server_forms.h"
+#include "../public/cse_server_forms_client.h"
+#include "cdll_int.h"
 #include "interface.h"
 #include "zone.h"
 #include "../common/dlight.h"
@@ -394,6 +397,10 @@ CL_ClearState
 */
 void CL_ClearState( qboolean clearMemory )
 {
+    if (auto* forms = ClientDLL_ServerForms()) {
+        forms->EndServerFormsSession();
+    }
+
 	int i;
 
 	if ( !Host_IsServerActive() )
@@ -1207,8 +1214,15 @@ void CL_SendConnectPacket()
 
 	cls.connect_time = realtime;
 
+    char connectUserinfo[MAX_INFO_STRING];
+    Q_strncpy_s(connectUserinfo, cls.userinfo, sizeof(connectUserinfo));
+    if (ClientDLL_ServerForms() && cse::forms::CanAppendCapability(std::strlen(connectUserinfo),
+        sizeof(connectUserinfo))) {
+        Info_SetValueForStarKey(connectUserinfo, cse::forms::kCapabilityKey, cse::forms::kCapabilityVersion,
+            sizeof(connectUserinfo));
+    }
 	snprintf( data, sizeof( data ), "%c%c%c%cconnect %i %i \"%s\" \"%s\"\n", 255, 255, 255, 255, PROTOCOL_VERSION,
-		cls.challenge, protinfo, cls.userinfo ); // Send protocol and challenge value
+		cls.challenge, protinfo, connectUserinfo ); // Send protocol and challenge value
 
 	len = Q_strlen( data );
 

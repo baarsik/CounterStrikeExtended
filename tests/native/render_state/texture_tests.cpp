@@ -244,8 +244,22 @@ void Palettes() {
     palette.upload.bytes[0] = 13;
     Send(recorder, palette);
     Triangle(recorder);
+    palette.upload.bytes[0] = 255;
+    Send(recorder, palette);
+    Triangle(recorder);
     Check((*recorder.Draws()[0].palette)[0] == 255 && (*recorder.Draws()[1].palette)[0] == 13,
         "shared palette changes preserve past draw");
+    Check(recorder.Draws()[0].palette == recorder.Draws()[2].palette,
+        "switching back to an unchanged shared palette reuses its identity");
+    TextureStore paletteStore;
+    Check(paletteStore.Palette(palette.upload.bytes) == Status::Ok, "store first palette");
+    std::weak_ptr<const SharedPalette> firstPalette = paletteStore.PaletteSnapshot();
+    palette.upload.bytes[0] = 13;
+    Check(paletteStore.Palette(palette.upload.bytes) == Status::Ok, "switch palette without retained draw");
+    Check(!firstPalette.expired(), "palette cache keeps identities across completed frames");
+    palette.upload.bytes[0] = 255;
+    Check(paletteStore.Palette(palette.upload.bytes) == Status::Ok &&
+        paletteStore.PaletteSnapshot() == firstPalette.lock(), "completed frames reuse prior palette identity");
     EngineTextureCache cache;
     auto decision = cache.Bind(0x00020007);
     Check(decision.bind && decision.name == 7 && decision.paletteIndex == 1, "upper16 palette encoding");

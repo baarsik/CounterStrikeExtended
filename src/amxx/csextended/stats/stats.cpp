@@ -1,6 +1,5 @@
-#include <cstdio>
-#include <cstring>
-#include "module.h"
+#include "stats.h"
+#include "feature_hooks.h"
 
 namespace cse::extstats {
 
@@ -17,7 +16,6 @@ int InitHudId = 0;
 static int HealthExId = 0;
 static int ArmorExId = 0;
 static bool Active = false;
-static bool ConfigPending = false;
 static cvar_t AutoObserver = {const_cast<char*>("cse_extstats_auto"), const_cast<char*>("1"), 0, 1, nullptr};
 
 Player ReadEntityPlayer(int index) {
@@ -155,12 +153,7 @@ void StatsAttach() {
     GET_HOOK_TABLES(PLID, &HookedEngine, nullptr, nullptr);
 }
 
-int StatsCheckGame(const char* game) {
-    return game && (std::strcmp(game, "cstrike") == 0 || std::strcmp(game, "czero") == 0) ? AMXX_GAME_OK
-                                                                                          : AMXX_GAME_BAD;
-}
-
-void StatsServerActivate(edict_t*, int, int) {
+void StatsServerActivate() {
     using namespace cse::extstats;
     State.Reset();
     ResetLegacyMessage();
@@ -168,13 +161,10 @@ void StatsServerActivate(edict_t*, int, int) {
     RegisterMessages();
     // Identity queries remain available even when a conflicting Ex message disables publication.
     Active = true;
-    ConfigPending = true;
-    RETURN_META(MRES_IGNORED);
 }
 
-void StatsServerActivated(edict_t*, int, int) {
+void StatsServerActivated() {
     cse::extstats::ResolveLegacyMessages();
-    RETURN_META(MRES_IGNORED);
 }
 
 void StatsServerDeactivate() {
@@ -182,38 +172,23 @@ void StatsServerDeactivate() {
     Active = false;
     State.Reset();
     ResetLegacyMessage();
-    RETURN_META(MRES_IGNORED);
 }
 
 void StatsStartFrame() {
     using namespace cse::extstats;
-    if (Active && ConfigPending) {
-        ConfigPending = false;
-        const char* directory = MF_GetLocalInfo("amxx_configsdir", "addons/amxmodx/configs");
-        char command[512];
-        // Config directories are server-controlled, but never permit command injection through a path.
-        if (!std::strpbrk(directory, "\"\r\n;")) {
-            std::snprintf(command, sizeof(command), "exec \"%s/cse_extstats.cfg\"\n", directory);
-            g_engfuncs.pfnServerCommand(command);
-            g_engfuncs.pfnServerExecute();
-        }
-    }
     if (Active) {
         State.Frame(gpGlobals->time, AutoObserver.value != 0, MessageOpen);
     }
-    RETURN_META(MRES_IGNORED);
 }
 
 void StatsClientEnter(edict_t* entity) {
     if (cse::extstats::Active) {
         cse::extstats::State.Connect(ENTINDEX(entity), gpGlobals->time);
     }
-    RETURN_META(MRES_IGNORED);
 }
 
 void StatsClientLeave(edict_t* entity) {
     cse::extstats::State.Disconnect(ENTINDEX(entity));
-    RETURN_META(MRES_IGNORED);
 }
 
 void StatsCvarReply(const edict_t* entity, int request, const char* name, const char* value) {

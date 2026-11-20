@@ -1,7 +1,7 @@
 # Extended health and armor
 
 CSE supports signed 32-bit `HealthEx` and `BatteryEx` values and displays up to
-99999 health and armor. The optional `cse_extstats` AMXX module provides automatic
+99999 health and armor. The optional `csextended` AMXX module provides automatic
 observation and explicit Pawn natives on **Win32 and Linux32** Counter-Strike and
 Condition Zero servers. Half-Life is outside this extension's scope.
 
@@ -23,13 +23,12 @@ cmake --build --preset amxx-linux32-release
 
 The manual **Build AMXX module** GitHub Actions workflow builds both platforms.
 Open **Actions → Build AMXX module →
-Run workflow**, select the ref to build, and download the `cse_extstats-win32` and
-`cse_extstats-linux32` ZIP artifacts. Each archive includes the module, config,
-Pawn include/example, SDK license notices, and corresponding source ZIP.
+Run workflow**, select the ref to build, and download the `csextended-win32` or
+`csextended-linux32` artifact. Each archive includes the module, configuration,
+Pawn includes and examples, dependency notices, and corresponding source.
 
-The module's config, Pawn include, and example source live in
-`src/amxx/cse_extstats/deploy/`. CMake stages them into the package's AMXX
-directories during the build.
+The configuration, Pawn API, and examples live in `src/amxx/csextended/deploy/`.
+CMake stages them into the package's AMXX directories during the build.
 
 The Linux workflow uses a pinned manylinux2014 i686 image with a glibc 2.17
 baseline and links libstdc++/libgcc statically. Building locally on a newer Linux
@@ -46,16 +45,20 @@ interfaces, without ReAPI or private player offsets.
 Add this line to `addons/amxmodx/configs/modules.ini`:
 
 ```text
-cse_extstats
+csextended
 ```
 
+When upgrading, replace both `cse_extstats` and `cse_forms` entries with the
+single `csextended` entry and remove the old binaries from `modules/`. Move your
+settings to `csextended.cfg` and recompile plugins with `#include <csextended>`.
+
 Restart the server after installing or removing the module. Confirm `amxx modules`
-lists the module as running. Automatic mode needs no companion AMXX plugin. Compile
+lists `csextended` as running. Automatic mode needs no companion AMXX plugin. Compile
 `scripting/example.sma` using the installed AMXX compiler to try `/cse_stats` in chat;
 the example gives the caller 99999 health and armor. Use existing CStrike APIs to
 grant kevlar/helmets; changing an amount preserves the current equipment type.
 
-The module executes `addons/amxmodx/configs/cse_extstats.cfg` (respecting
+The module executes `addons/amxmodx/configs/csextended.cfg` (respecting
 `amxx_configsdir`) at each map start before observation. Its default is:
 
 ```text
@@ -71,7 +74,7 @@ cached values, so they do not secretly observe numeric changes in manual mode.
 ## Pawn API
 
 ```pawn
-#include <cse_extstats>
+#include <csextended>
 
 native cse_set_user_health(index, health);
 native cse_set_user_armor(index, armor);

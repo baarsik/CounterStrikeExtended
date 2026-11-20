@@ -25,6 +25,7 @@ bool HasWebPExtension(const char* path);
 std::string WebPPath(const char* path);
 bool DecodeWebP(const void* data, std::size_t size, Image& image,
                 std::size_t capacity = MaximumDecodedBytes);
+bool DecodeWebP(const void* data, std::size_t size, Image& image, std::size_t capacity, int maximumSide);
 // Pixels are RGB or RGBA; stride includes row padding. Output always has top-down orientation.
 bool EncodeWebPLossless(const unsigned char* pixels, int width, int height, int stride,
                         int channels, bool bottomUp, std::vector<unsigned char>& encoded);

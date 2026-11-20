@@ -48,6 +48,7 @@
 #include "../common/client_module_entry.h"
 #include "../common/client_module_contracts.h"
 #include "../common/client_module_required_exports.h"
+#include "../public/cse_server_forms_client.h"
 #include <cstdlib>
 
 #include <cstring>
@@ -91,6 +92,7 @@ HMODULE hClientDLL;
 static CseInitializeClient initializeOwnedClient = nullptr;
 static CseExchangeClient exchangeOwnedClient = nullptr;
 static CseClientStudio getOwnedClientStudio = nullptr;
+static cse::forms::ClientInput* serverForms = nullptr;
 
 #if defined(__APPLE__) && INTPTR_MAX > INT32_MAX
 static bool nativeClientMouseRequested = false;
@@ -105,6 +107,20 @@ static void ClearOwnedClientBindings() {
     initializeOwnedClient = nullptr;
     exchangeOwnedClient = nullptr;
     getOwnedClientStudio = nullptr;
+    serverForms = nullptr;
+}
+
+static void QueryClientServerForms() {
+    if (cl_funcs.pClientFactory) {
+        const CreateInterfaceFn factory = Sys_GetFactory(reinterpret_cast<CSysModule*>(hClientDLL));
+        if (factory) {
+            serverForms = static_cast<cse::forms::ClientInput*>(factory(cse::forms::ClientInputVersion, nullptr));
+        }
+    }
+}
+
+cse::forms::ClientInput* ClientDLL_ServerForms() {
+    return serverForms;
 }
 
 static bool ValidateOwnedClientLibrary(void* library, const char* filename) {
@@ -890,6 +906,7 @@ void ClientDLL_Shutdown()
 
 	if ( cl_funcs.pShutdown )
 		cl_funcs.pShutdown();
+    serverForms = nullptr;
 
 	if ( cls.fSecureClient )
 	{
@@ -948,6 +965,7 @@ int LoadSecureClient(char* pszDllName) {
     g_blobfootprintClient.m_hDll = static_cast<HMODULE>(library);
     cl_funcs = functions;
     fClientLoaded = TRUE;
+    QueryClientServerForms();
     return 1;
 }
 
@@ -1020,6 +1038,7 @@ void LoadInsecureClient( char* pszDllName )
 	cl_funcs.pClientFactory = (CLIENTFACTORY)Sys_GetProcAddress( hClientDLL, "ClientFactory" );
 	cl_funcs.pGetPlayerTeam = (HUD_GETPLAYERTEAM)Sys_GetProcAddress( hClientDLL, "HUD_GetPlayerTeam" );
     fClientLoaded = TRUE;
+    QueryClientServerForms();
 }
 
 int NCallDummy( int ijump, int cnArg, ... )

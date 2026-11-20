@@ -19,9 +19,9 @@ add_test(NAME conversion_boundaries COMMAND extended_stats_tests conversion)
 add_test(NAME wire_contract COMMAND extended_stats_tests wire)
 add_executable(extended_stats_server_tests server_tests.cpp)
 target_compile_features(extended_stats_server_tests PRIVATE cxx_std_17)
-target_include_directories(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/cse_extstats")
-if(EXISTS "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
-  target_sources(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
+target_include_directories(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/csextended/stats")
+if(EXISTS "${CSE_ROOT}/src/amxx/csextended/stats/stats_state.cpp")
+  target_sources(extended_stats_server_tests PRIVATE "${CSE_ROOT}/src/amxx/csextended/stats/stats_state.cpp")
 endif()
 foreach(scenario IN ITEMS native_setters identity_vs_protocol query_timeout reused_slot_reply completed_query_ids nested_publication
     automatic_changes manual_mode live_mode_toggle lifecycle_force recipient_permissions hltv_stable_snapshot
@@ -70,7 +70,7 @@ add_test(NAME spectator_refresh COMMAND extended_stats_bridge_tests spectator)
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/registration_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_registration.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/registration_bodies.inc"
-  DEPENDS extract_registration.py "${CSE_ROOT}/src/amxx/cse_extstats/module.cpp" VERBATIM)
+  DEPENDS extract_registration.py "${CSE_ROOT}/src/amxx/csextended/stats/stats.cpp" VERBATIM)
 add_executable(extended_stats_registration_tests registration_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/registration_bodies.inc")
 target_compile_features(extended_stats_registration_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_registration_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}" "${CSE_ROOT}/src/public")
@@ -78,7 +78,7 @@ add_test(NAME message_hook_interoperability COMMAND extended_stats_registration_
 add_test(NAME conflicting_message_registration COMMAND extended_stats_registration_tests conflict)
 add_executable(extended_stats_legacy_tests legacy_tests.cpp)
 target_compile_features(extended_stats_legacy_tests PRIVATE cxx_std_17)
-target_include_directories(extended_stats_legacy_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/cse_extstats")
+target_include_directories(extended_stats_legacy_tests PRIVATE "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/csextended/stats")
 add_test(NAME legacy_normalization COMMAND extended_stats_legacy_tests)
 add_executable(extended_stats_client_tests client_tests.cpp)
 target_compile_features(extended_stats_client_tests PRIVATE cxx_std_17)
@@ -107,12 +107,12 @@ add_test(NAME spectator_language_replay COMMAND extended_stats_spectator_tests r
 add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
   COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/extract_legacy_hooks.py"
     "${CSE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
-  DEPENDS extract_legacy_hooks.py "${CSE_ROOT}/src/amxx/cse_extstats/legacy_messages.cpp" VERBATIM)
+  DEPENDS extract_legacy_hooks.py "${CSE_ROOT}/src/amxx/csextended/stats/legacy_messages.cpp" VERBATIM)
 add_executable(extended_stats_legacy_hook_tests legacy_hook_tests.cpp "${CMAKE_CURRENT_BINARY_DIR}/legacy_hook_bodies.inc"
-  "${CSE_ROOT}/src/amxx/cse_extstats/stats_state.cpp")
+  "${CSE_ROOT}/src/amxx/csextended/stats/stats_state.cpp")
 target_compile_features(extended_stats_legacy_hook_tests PRIVATE cxx_std_17)
 target_include_directories(extended_stats_legacy_hook_tests PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/cse_extstats")
+  "${CSE_ROOT}/src/public" "${CSE_ROOT}/src/amxx/csextended/stats")
 if(NOT MSVC AND CSE_EXTSTATS_SANITIZERS)
   target_compile_options(extended_stats_legacy_hook_tests PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer)
   target_link_options(extended_stats_legacy_hook_tests PRIVATE -fsanitize=address,undefined)

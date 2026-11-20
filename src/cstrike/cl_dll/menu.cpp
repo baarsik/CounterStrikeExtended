@@ -22,6 +22,7 @@
 #include "cl_util.h"
 #include <cstddef>
 #include "parsemsg.h"
+#include "server_form_client.h"
 #include "../public/game_controls/iviewport.h"
 
 #define MAX_MENU_STRING 512
@@ -80,6 +81,7 @@ void CHudMenu::InitHUDData()
 
 void CHudMenu::Reset()
 {
+    cse::forms::CancelTextMenuOverride();
 	g_szPrelocalisedMenuString[0] = 0;
 	m_fWaitingForMore = 0;
 }
@@ -181,6 +183,7 @@ void CHudMenu::SelectMenuItem( int item )
 	// if menu_item is in a valid slot,  send a menuselect command to the server
 	if ( item > 0 && ( m_bitsValidSlots & ( 1 << ( item - 1 ) ) ) )
 	{
+        cse::forms::CancelTextMenuOverride();
 		char command[32];
 		sprintf( command, "menuselect %d\n", item );
 		EngineClientCmd( command );
@@ -216,6 +219,7 @@ void CHudMenu::RefreshLanguage() {
 // if this message is never received, then scores will simply be the combined totals of the players.
 int CHudMenu::MsgFunc_ShowMenu( const char*, int size, void* buffer )
 {
+    cse::forms::CancelTextMenuOverride();
 	BEGIN_READ( buffer, size );
 	m_bitsValidSlots = READ_SHORT();
 	int duration = READ_CHAR();
@@ -247,5 +251,8 @@ int CHudMenu::MsgFunc_ShowMenu( const char*, int size, void* buffer )
 		m_iFlags &= ~HUD_ACTIVE;
 	}
 	m_fWaitingForMore = more;
+    if (m_fMenuDisplayed && !m_fWaitingForMore) {
+        cse::forms::RequestMenuOverride(cse::forms::TextStockMenu(g_szPrelocalisedMenuString));
+    }
 	return 1;
 }

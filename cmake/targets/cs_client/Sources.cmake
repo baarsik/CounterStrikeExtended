@@ -1,5 +1,13 @@
 # Authoritative CMake build definition; edit this file directly.
 target_sources(cs_client PRIVATE
+  "${CSE_SDK_DIR}/public/cse_server_forms.cpp"
+  "${CSE_SDK_DIR}/public/cse_server_forms_xaml.cpp"
+  "${CSE_SDK_DIR}/public/cse_server_forms_image.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/server_form_cache.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/server_form_client.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/server_form_session.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/VGUI/server_form_panel.cpp"
+  "${CSE_SDK_DIR}/vgui2/controls/Slider.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/extended_stats.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/hud_stat_numbers.cpp"
   "${CSE_SDK_DIR}/common/image_codec.cpp"

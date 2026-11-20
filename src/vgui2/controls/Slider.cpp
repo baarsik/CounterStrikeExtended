@@ -63,6 +63,12 @@ void Slider::RecomputeNobPosFromValue() {
     int wide = 0;
     int tall = 0;
     GetPaintSize(wide, tall);
+    if (static_cast<float>(wide) <= _nobSize) {
+        _nobPos[0] = 0;
+        _nobPos[1] = wide;
+        Repaint();
+        return;
+    }
     // Sliders start with a single-value range before their caller configures it.
     const bool collapsed = _range[0] == _range[1];
 #ifdef _WIN32
@@ -86,10 +92,15 @@ void Slider::RecomputeNobPosFromValue() {
 	Repaint();
 }
 
-void Slider::RecomputeValueFromNobPos()
-{
-	int wide, tall;
-	GetPaintSize( wide, tall );
+void Slider::RecomputeValueFromNobPos() {
+    int wide = 0;
+    int tall = 0;
+    GetPaintSize(wide, tall);
+    if (static_cast<float>(wide) <= _nobSize) {
+        // A thumb that fills the track cannot represent a change in value.
+        RecomputeNobPosFromValue();
+        return;
+    }
 #ifdef _WIN32
 	float value = (float)_nobPos[0] / ( (float)wide - _nobSize ) * (float)( _range[1] - _range[0] )
 		+ (float)_range[0];
