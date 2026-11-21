@@ -2,6 +2,7 @@
 #include "browser_commands.h"
 
 #include <array>
+#include <cstring>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
@@ -116,6 +117,28 @@ int main() {
         Reader stringReader(invalidString);
         std::string text;
         Require(!stringReader.String(text) && !stringReader.Finish(), "string length checked before access");
+    }
+    {
+        Writer pixels;
+        const std::array<std::uint8_t, 4> image{7, 8, 9, 10};
+        Require(pixels.Bytes(image.data(), image.size()) && pixels.Bytes(nullptr, 0), "encode borrowed byte fixtures");
+        Reader reader(pixels.Data());
+        const std::uint8_t* imageView = nullptr;
+        const std::uint8_t* emptyView = image.data();
+        std::size_t imageBytes = 0;
+        std::size_t emptyBytes = 1;
+        Require(reader.BytesView(imageView, imageBytes) && reader.BytesView(emptyView, emptyBytes) &&
+            reader.Finish(), "decode borrowed byte fixtures");
+        Require(imageView == pixels.Data().data() + sizeof(std::uint32_t) && imageBytes == image.size() &&
+            std::memcmp(imageView, image.data(), image.size()) == 0 && emptyView == nullptr && emptyBytes == 0,
+            "byte views alias the message payload without an empty-buffer pointer");
+
+        const std::vector<std::uint8_t> truncated{5, 0, 0, 0, 7, 8};
+        Reader invalid(truncated);
+        const std::uint8_t* invalidView = image.data();
+        std::size_t invalidBytes = image.size();
+        Require(!invalid.BytesView(invalidView, invalidBytes) && !invalid.Finish() &&
+            invalidView == image.data() && invalidBytes == image.size(), "truncated byte view is rejected");
     }
     {
         Decoder decoder(FixturePayloadLimit);

@@ -97,6 +97,8 @@ entry-point and provider license notices into the application resources or Windo
   CEF loop, joins the input reader and calls `CefShutdown`. Malformed or unsupported commands fail the provider.
   Closing/retired browser IDs accept validated late paint/dialog replies; unrelated mutations remain errors.
   Cancelled dialog replies retain FIFO slots so an old answer cannot approve a replacement page's dialog.
+- Engine shutdown gives the browser transport 15 seconds to flush queued commands, drain output and reap the host.
+  A stalled host is force-stopped and marked failed so game `quit` cannot wait indefinitely for its pipes or process.
 - DOM geometry is untrusted renderer metadata. Numeric types, finite integral values, viewport limits and safe
   content/scroll extents are checked before conversion or scrollbar arithmetic. Malformed metadata is ignored and
   logged while later valid queries remain usable. Negative RTL scroll offsets remain representable.

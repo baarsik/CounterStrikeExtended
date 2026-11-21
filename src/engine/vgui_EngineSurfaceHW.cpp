@@ -22,6 +22,7 @@ extern int cnttextures[2];
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <SDL3/SDL_opengl_glext.h>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -730,20 +731,25 @@ void EngineSurface::drawSetSubTextureRGBA( int, int x, int y, const unsigned cha
 	qglTexSubImage2D( GL_TEXTURE_2D, 0, x, y, wide, tall, GL_RGBA, GL_UNSIGNED_BYTE, rgba );
 }
 
-void EngineSurface::drawUpdateRegionTextureBGRA( int id, int, int y, const unsigned char* bgra, int, int tall )
-{
-	Texture* texture = staticGetTextureById( id );
-	qglBindTexture( GL_TEXTURE_2D, id );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0.0f );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLfloat>( GL_LINEAR ) );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLfloat>( GL_LINEAR ) );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<GLfloat>( GL_CLAMP_TO_EDGE ) );
-	qglTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLfloat>( GL_CLAMP_TO_EDGE ) );
-	qglPixelStorei( GL_UNPACK_ROW_LENGTH, texture->_wide );
-	std::uint32_t rowOffset = SURFACE_PIXEL_BYTES * static_cast<std::uint32_t>( y );
-	rowOffset *= static_cast<std::uint32_t>( texture->_wide );
-	qglTexSubImage2D( GL_TEXTURE_2D, 0, 0, y, texture->_wide, tall, GL_BGRA, GL_UNSIGNED_BYTE, bgra + rowOffset );
-    CseRenderPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+void EngineSurface::drawUpdateRegionTextureBGRA(int id, int x, int y, const unsigned char* bgra, int wide, int tall) {
+    Texture* texture = staticGetTextureById(id);
+    if (!texture || !bgra || x < 0 || y < 0 || wide <= 0 || tall <= 0 ||
+        x > texture->_wide || y > texture->_tall || wide > texture->_wide - x || tall > texture->_tall - y) {
+        return;
+    }
+    qglBindTexture(GL_TEXTURE_2D, id);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 0.0f);
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<GLfloat>(GL_LINEAR));
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<GLfloat>(GL_LINEAR));
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<GLfloat>(GL_CLAMP_TO_EDGE));
+    qglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<GLfloat>(GL_CLAMP_TO_EDGE));
+    qglPixelStorei(GL_UNPACK_ROW_LENGTH, texture->_wide);
+    // HTML supplies the complete backing; offset its pointer to the dirty rectangle's first pixel.
+    const std::size_t pixelOffset = static_cast<std::size_t>(y) * static_cast<std::size_t>(texture->_wide) +
+        static_cast<std::size_t>(x);
+    const std::size_t offset = pixelOffset * SURFACE_PIXEL_BYTES;
+    qglTexSubImage2D(GL_TEXTURE_2D, 0, x, y, wide, tall, GL_BGRA, GL_UNSIGNED_BYTE, bgra + offset);
+    CseRenderPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 }
 
 namespace

@@ -34,6 +34,12 @@ struct SingleTextureInput {
     float4 uv [[attribute(2)]];
 };
 
+struct CompactSingleTextureInput {
+    float3 position [[attribute(0)]];
+    float4 color [[attribute(1)]];
+    float2 uv [[attribute(2)]];
+};
+
 struct WorldInput {
     float3 position [[attribute(0)]];
     float2 uv0 [[attribute(1)]];
@@ -82,6 +88,13 @@ vertex Varying LegacySingleTextureVertex(SingleTextureInput input [[stage_in]],
     constant VertexConstants& constants [[buffer(0)]]) {
     const float4 unusedUv = float4(0, 0, 0, 1);
     return TransformLegacyVertex<false>(input.position, input.color, input.uv, unusedUv, unusedUv, constants);
+}
+
+vertex Varying LegacyCompactSingleTextureVertex(CompactSingleTextureInput input [[stage_in]],
+    constant VertexConstants& constants [[buffer(0)]]) {
+    const float4 unusedUv = float4(0, 0, 0, 1);
+    return TransformLegacyVertex<false>(float4(input.position, 1), input.color,
+        float4(input.uv, 0, 1), unusedUv, unusedUv, constants);
 }
 
 vertex Varying LegacyWorldVertex(WorldInput input [[stage_in]],

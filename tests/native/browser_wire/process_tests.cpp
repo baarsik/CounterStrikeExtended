@@ -20,6 +20,9 @@ constexpr std::size_t PayloadLimit = 8 * 1024 * 1024;
 constexpr int TransferCount = 6;
 constexpr std::size_t TransferBytes = 1024 * 1024 + 37;
 constexpr Uint64 DeadlineMilliseconds = 10000;
+constexpr Uint32 StalledChildMilliseconds = 30000;
+constexpr Uint64 StalledShutdownMilliseconds = 150;
+constexpr Uint64 MaximumStalledShutdownMilliseconds = 5000;
 const std::string Argument = "CSE \xd0\x96 \xc5\x81 \"quoted\" $() &| trailing\\";
 
 static void Require(bool condition, const char* message) {
@@ -68,6 +71,22 @@ static int Child(const std::vector<std::string>& arguments) {
 #endif
     if (arguments[1] == "--exit") {
         return 17;
+    }
+    if (arguments[1] == "--stall-before-read") {
+        SDL_Delay(StalledChildMilliseconds);
+        return 0;
+    }
+    if (arguments[1] == "--stall-after-output-close") {
+        std::fclose(stdout);
+        SDL_Delay(StalledChildMilliseconds);
+        return 0;
+    }
+    if (arguments[1] == "--stall-after-eof") {
+        std::array<std::uint8_t, 256> bytes;
+        while (ReadInput(bytes.data(), static_cast<unsigned int>(bytes.size())) > 0) {
+        }
+        SDL_Delay(StalledChildMilliseconds);
+        return 0;
     }
     if (arguments[1] == "--truncated" || arguments[1] == "--bad-version") {
         auto bytes = EncodeHeader({Kind::Event, 1, 0, 0, 128});
@@ -215,6 +234,19 @@ static int Run(const std::vector<std::string>& arguments) {
                 "truncated child output is a failed channel");
             Echo(channel, child);
         }
+    }
+    for (const char* mode : {"--stall-before-read", "--stall-after-eof", "--stall-after-output-close"}) {
+        ProcessChannel channel(PayloadLimit);
+        Require(channel.Start({child, mode}), "start stalled child");
+        if (std::string(mode) == "--stall-before-read") {
+            Require(channel.Queue({Kind::Command, 7, 9, 1, 0}, Payload(0)), "queue stalled bulk payload");
+        }
+        const Uint64 start = SDL_GetTicks();
+        int exitCode = 0;
+        Require(!channel.Finish(exitCode, StalledShutdownMilliseconds) && !channel.Started() &&
+            !channel.Error().empty(), "stalled browser child is terminated and reaped");
+        Require(SDL_GetTicks() - start < MaximumStalledShutdownMilliseconds,
+            "stalled browser shutdown is bounded");
     }
     SDL_Quit();
     std::puts("native_browser_process_passed=1");

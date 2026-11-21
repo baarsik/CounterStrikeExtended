@@ -43,6 +43,8 @@ struct MetalDrawData {
     RasterState raster;
     bool discardedNonfinite = false;
     bool indexedQuads = false;
+    // Canonical position and unit-zero UVs can be reconstructed by the compact vertex shader.
+    bool compactSingleTexture = true;
 
     const std::vector<Vertex>& Vertices() const {
         return borrowedVertices ? *borrowedVertices : vertices;

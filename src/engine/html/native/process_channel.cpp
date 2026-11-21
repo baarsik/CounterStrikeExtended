@@ -80,6 +80,17 @@ ChannelStatus ProcessChannel::Poll(std::vector<Message>& messages) {
     return readProgress || writeProgress ? ChannelStatus::Progress : ChannelStatus::Idle;
 }
 
+bool ProcessChannel::FlushOutgoing() {
+    // A paint acknowledgement takes two writes. Bound longer command queues to preserve the game frame budget.
+    constexpr std::size_t MaximumWritesPerFrame = 32;
+    for (std::size_t count = 0; count < MaximumWritesPerFrame && !outgoing_.empty() && !failed_; ++count) {
+        if (!Write()) {
+            break;
+        }
+    }
+    return !failed_;
+}
+
 bool ProcessChannel::CloseInput() {
     if (!outgoing_.empty() && !failed_ && !eof_) {
         return false;
@@ -92,12 +103,21 @@ bool ProcessChannel::CloseInput() {
     return true;
 }
 
-bool ProcessChannel::Finish(int& exitCode) {
+bool ProcessChannel::Finish(int& exitCode, Uint64 gracefulTimeoutMilliseconds) {
     if (!process_) {
         return !failed_;
     }
+    const Uint64 start = SDL_GetTicks();
+    const auto expired = [start, gracefulTimeoutMilliseconds]() {
+        return SDL_GetTicks() - start >= gracefulTimeoutMilliseconds;
+    };
+    bool timedOut = false;
     std::vector<Message> discarded;
     while (!outgoing_.empty() && input_ && !failed_ && !eof_) {
+        if (expired()) {
+            timedOut = true;
+            break;
+        }
         const bool readProgress = Read(discarded);
         const bool writeProgress = Write();
         discarded.clear();
@@ -105,19 +125,47 @@ bool ProcessChannel::Finish(int& exitCode) {
             SDL_Delay(1);
         }
     }
-    if (!outgoing_.empty() && eof_ && !failed_) {
+    if (!timedOut && !outgoing_.empty() && eof_ && !failed_) {
         Fail("Browser process ended before queued commands were sent");
     }
+    if (timedOut) {
+        outgoing_.clear();
+    }
     CloseInput();
-    while (!eof_ && output_) {
+    while (!timedOut && !eof_ && output_) {
+        if (expired()) {
+            timedOut = true;
+            break;
+        }
         if (!Read(discarded)) {
             SDL_Delay(1);
         }
         discarded.clear();
     }
-    if (!SDL_WaitProcess(process_, true, &exitCode)) {
+    while (!timedOut && !SDL_WaitProcess(process_, false, &exitCode)) {
+        if (expired()) {
+            timedOut = true;
+            break;
+        }
+        SDL_Delay(1);
+    }
+    if (timedOut) {
+        Fail("Browser process shutdown timed out");
+        if (!SDL_WaitProcess(process_, false, &exitCode)) {
+            if (!SDL_KillProcess(process_, true)) {
+                Fail("Browser process could not be stopped");
+            } else {
+                constexpr Uint64 ForcedReapTimeoutMilliseconds = 2000;
+                const Uint64 killStart = SDL_GetTicks();
+                while (!SDL_WaitProcess(process_, false, &exitCode) &&
+                    SDL_GetTicks() - killStart < ForcedReapTimeoutMilliseconds) {
+                    SDL_Delay(1);
+                }
+            }
+        }
+    }
+    if (!SDL_WaitProcess(process_, false, &exitCode)) {
         Fail("Browser process could not be reaped");
-        return false;
     }
     SDL_DestroyProcess(process_);
     process_ = nullptr;
@@ -127,6 +175,10 @@ bool ProcessChannel::Finish(int& exitCode) {
 
 bool ProcessChannel::Started() const {
     return process_ != nullptr;
+}
+
+bool ProcessChannel::HasPartialMessage() const {
+    return !decoder_.Finish();
 }
 
 const std::string& ProcessChannel::Error() const {

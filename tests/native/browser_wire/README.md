@@ -1,5 +1,8 @@
 # Native browser transport and controller fixtures
 
+The [browser paint decode benchmark](../../../docs/browser-paint-benchmark-2026-11-21.md)
+measures the full-image copy removed from synchronous paint dispatch.
+
 The transport uses the pinned SDL3 process APIs and two nonblocking pipes. CTest
 executes no CEF, Steam, game or network session. The native process fixture uses
 only an owned echo child and inherited standard error; it never invokes a shell.

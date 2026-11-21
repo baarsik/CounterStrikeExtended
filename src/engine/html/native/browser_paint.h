@@ -1,7 +1,12 @@
 #pragma once
 
+#include "browser_commands.h"
+
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <vector>
 
 namespace cse::browser {
 
@@ -20,6 +25,42 @@ inline bool ValidPaintBounds(const PaintBounds& bounds, int width, int height) {
     return bounds.x >= 0 && bounds.y >= 0 && bounds.width > 0 && bounds.height > 0 &&
         bounds.x <= width && bounds.y <= height && bounds.width <= width - bounds.x &&
         bounds.height <= height - bounds.y;
+}
+
+// CEF supplies a complete BGRA image even when only one region changed. Keep the complete
+// retained backing for the wire protocol, but copy only the changed rows for small paints.
+// The caller has already validated dimensions and the CEF image pointer.
+template<class Rectangles>
+void UpdatePaintBacking(std::vector<std::uint8_t>& backing, const void* pixels, int width, int height,
+    const Rectangles& rectangles) {
+    const auto fullPixels = static_cast<std::size_t>(width) * height;
+    const auto fullBytes = fullPixels * PaintBytesPerPixel;
+    const auto* source = static_cast<const std::uint8_t*>(pixels);
+    const auto copyFull = [&]() {
+        backing.assign(source, source + fullBytes);
+    };
+    if (backing.size() != fullBytes || rectangles.size() != 1) {
+        copyFull();
+        return;
+    }
+
+    const auto& rectangle = rectangles.front();
+    const auto left = std::clamp<std::int64_t>(rectangle.x, 0, width);
+    const auto top = std::clamp<std::int64_t>(rectangle.y, 0, height);
+    const auto right = std::clamp<std::int64_t>(static_cast<std::int64_t>(rectangle.x) + rectangle.width, 0, width);
+    const auto bottom = std::clamp<std::int64_t>(static_cast<std::int64_t>(rectangle.y) + rectangle.height, 0, height);
+    constexpr std::size_t kHalfAreaDivisor = 2;
+    if (left >= right || top >= bottom ||
+        static_cast<std::size_t>((right - left) * (bottom - top)) >= fullPixels / kHalfAreaDivisor) {
+        copyFull();
+        return;
+    }
+
+    const auto rowBytes = static_cast<std::size_t>(right - left) * PaintBytesPerPixel;
+    for (auto row = top; row < bottom; ++row) {
+        const auto offset = (static_cast<std::size_t>(row) * width + left) * PaintBytesPerPixel;
+        std::memcpy(backing.data() + offset, source + offset, rowBytes);
+    }
 }
 
 // CEF and its command callbacks use the same UI thread. Only bounds for the frame actually sent are cleared;

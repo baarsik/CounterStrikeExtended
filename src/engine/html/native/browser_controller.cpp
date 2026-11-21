@@ -354,6 +354,13 @@ public:
 
         }
 
+        // Paint acknowledgements queued by synchronous VGUI callbacks should reach CEF this frame.
+        if (!channel_.FlushOutgoing()) {
+            failed_ = true;
+            StopFailedProvider();
+            return false;
+        }
+
         return !messages.empty();
     }
 
@@ -538,9 +545,11 @@ void Controller::Collect() {
 
     constexpr Uint64 FramePumpMilliseconds = 4;
     const Uint64 deadline = SDL_GetTicks() + FramePumpMilliseconds;
+    bool progressedThisFrame = false;
     for (;;) {
         std::vector<Message> messages;
         const auto status = channel_.Poll(messages);
+        progressedThisFrame = progressedThisFrame || status == ChannelStatus::Progress;
         for (auto& message : messages) {
             if (message.header.kind == Kind::Control) {
                 if (message.header.browser != 0) {
@@ -583,6 +592,13 @@ void Controller::Collect() {
 
         if (status == ChannelStatus::Failed || status == ChannelStatus::End) {
             failed_ = true;
+        }
+
+        if (status == ChannelStatus::Idle && progressedThisFrame && !failed_ && channel_.HasPartialMessage() &&
+            SDL_GetTicks() < deadline) {
+            // Let the pipe producer run before concluding that a partially received paint is stalled.
+            SDL_Delay(0);
+            continue;
         }
 
         if (status != ChannelStatus::Progress || failed_ || SDL_GetTicks() >= deadline) {
@@ -947,11 +963,14 @@ void Controller::Dispatch(const Message& message) {
         PaintBounds update;
         std::int32_t popupWidth = 0;
         std::int32_t popupHeight = 0;
-        std::vector<std::uint8_t> pixels;
-        std::vector<std::uint8_t> popup;
+        const std::uint8_t* pixels = nullptr;
+        const std::uint8_t* popup = nullptr;
+        std::size_t pixelBytes = 0;
+        std::size_t popupBytes = 0;
         if (reader.I32(texture) && reader.I32(width) && reader.I32(height) &&
             reader.I32(update.x) && reader.I32(update.y) && reader.I32(update.width) && reader.I32(update.height) &&
-            reader.I32(popupWidth) && reader.I32(popupHeight) && reader.Bytes(pixels) && reader.Bytes(popup) &&
+            reader.I32(popupWidth) && reader.I32(popupHeight) &&
+            reader.BytesView(pixels, pixelBytes) && reader.BytesView(popup, popupBytes) &&
             reader.Finish() &&
             width > 0 && width <= MaximumBrowserDimension && height > 0 && height <= MaximumBrowserDimension &&
             popupWidth >= 0 && popupWidth <= MaximumBrowserDimension &&
@@ -959,11 +978,12 @@ void Controller::Dispatch(const Message& message) {
             constexpr std::uint64_t PixelBytes = PaintBytesPerPixel;
             const std::uint64_t expected = static_cast<std::uint64_t>(width) * height * PixelBytes;
             const std::uint64_t expectedPopup = static_cast<std::uint64_t>(popupWidth) * popupHeight * PixelBytes;
-            if (pixels.size() == expected && popup.size() == expectedPopup &&
+            if (pixelBytes == expected && popupBytes == expectedPopup &&
                 ValidPaintBounds(update, width, height)) {
-                responses->BrowserNeedsPaint(texture, width, height, pixels.data(),
+                // The synchronous callback consumes these views before this message leaves RunFrame.
+                responses->BrowserNeedsPaint(texture, width, height, pixels,
                     update.x, update.y, update.width, update.height,
-                    popupWidth, popupHeight, popup.empty() ? nullptr : popup.data());
+                    popupWidth, popupHeight, popup);
                 return;
             }
 

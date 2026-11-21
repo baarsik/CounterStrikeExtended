@@ -11,6 +11,7 @@
 #include "cef_frame_diagnostics.h"
 #include "browser_commands.h"
 #include "browser_paint.h"
+#include "browser_paint_wire.h"
 #include "browser_wire.h"
 #include "../../../public/html_key_modifiers.h"
 
@@ -76,7 +77,6 @@ constexpr int DefaultHeight = 1;
 constexpr int DefaultFrameRate = 60;
 constexpr int MaximumFrameRate = 60;
 constexpr int MaximumDimension = MaximumBrowserDimension;
-constexpr std::size_t PixelBytes = PaintBytesPerPixel;
 // Leave room for the legacy scrollbar consumer to add a viewport extent without signed overflow.
 constexpr int MaximumGeometryExtent = std::numeric_limits<int>::max() - MaximumDimension;
 constexpr std::size_t CommandPayloadLimit = 64 * 1024 * 1024;
@@ -271,6 +271,26 @@ public:
         if (std::fwrite(header.data(), 1, header.size(), stdout) != header.size() ||
             (!payload.Data().empty() && std::fwrite(payload.Data().data(), 1, payload.Data().size(), stdout) !=
                 payload.Data().size()) || std::fflush(stdout) != 0) {
+            outputBroken_ = true;
+            SignalStop(true);
+            return false;
+        }
+        return true;
+    }
+
+    bool SendPaint(std::uint32_t browser, const PaintWireParts& parts) {
+        if (outputBroken_.load()) {
+            return false;
+        }
+        const auto header = EncodeHeader({Kind::Pixels, eHTMLCommands_NeedsPaint, browser, 0, parts.payloadBytes});
+        const auto write = [](const void* bytes, std::size_t count) {
+            return count == 0 || std::fwrite(bytes, 1, count, stdout) == count;
+        };
+        std::lock_guard<std::mutex> lock(outputMutex_);
+        if (!write(header.data(), header.size()) || !write(parts.prefix.data(), parts.prefix.size()) ||
+            !write(parts.viewPixels, parts.viewBytes) ||
+            !write(parts.popupLength.data(), parts.popupLength.size()) ||
+            !write(parts.popupPixels, parts.popupBytes) || std::fflush(stdout) != 0) {
             outputBroken_ = true;
             SignalStop(true);
             return false;
@@ -800,16 +820,15 @@ public:
             return;
         }
         const auto* begin = static_cast<const std::uint8_t*>(pixels);
-        const auto count = static_cast<std::size_t>(width) * height * PixelBytes;
         if (type == PET_VIEW) {
             paintWidth_ = width;
             paintHeight_ = height;
-            mainPixels_.assign(begin, begin + count);
+            UpdatePaintBacking(mainPixels_, begin, width, height, dirtyRectangles);
             pendingPaint_.View(width, height, dirtyRectangles);
         } else {
             popupWidth_ = width;
             popupHeight_ = height;
-            popupPixels_.assign(begin, begin + count);
+            UpdatePaintBacking(popupPixels_, begin, width, height, dirtyRectangles);
             pendingPaint_.Popup();
         }
         Paint();
@@ -997,26 +1016,22 @@ private:
 
     void Paint() {
         diagnostics::Frames().Add(identifier_, "paint", mainPixels_.empty(), pendingPaint_.InFlight(), popupVisible_);
-        if (mainPixels_.empty() || pendingPaint_.InFlight() || (popupVisible_ && popupPixels_.empty())) {
+        if (nativePopup_ != 0 || mainPixels_.empty() || pendingPaint_.InFlight() ||
+            (popupVisible_ && popupPixels_.empty())) {
             return;
         }
         PaintBounds update;
         if (!pendingPaint_.BeginSend(update)) {
             return;
         }
-        Writer payload;
-        payload.I32(texture_);
-        payload.I32(paintWidth_);
-        payload.I32(paintHeight_);
-        payload.I32(update.x);
-        payload.I32(update.y);
-        payload.I32(update.width);
-        payload.I32(update.height);
-        payload.I32(popupWidth_);
-        payload.I32(popupHeight_);
-        payload.Bytes(mainPixels_.data(), mainPixels_.size());
-        payload.Bytes(popupPixels_.data(), popupPixels_.size());
-        Emit(eHTMLCommands_NeedsPaint, payload);
+        PaintWireParts parts;
+        if (!EncodePaintWireParts(texture_, paintWidth_, paintHeight_, update, popupWidth_, popupHeight_,
+            mainPixels_, popupPixels_, parts)) {
+            host_.Fail("Invalid CEF paint backing dimensions");
+            return;
+        }
+        // The retained CEF backing images stay unchanged while the UI thread writes each wire segment.
+        host_.SendPaint(identifier_, parts);
     }
 
     Host& host_;
