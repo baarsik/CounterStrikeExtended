@@ -86,3 +86,27 @@ images, with the second gated on the first acknowledgement, and requires both
 to arrive within ten simulated 60 Hz game frames. The browser suite passed
 6/6 in macOS Release and sanitizer builds; the controller fixture passed on
 Windows x64 with MSVC `/W4 /WX`.
+
+## Larger-window live check
+
+Four more joined-client runs used the same animated page and server with a
+2560×1440 borderless Metal window, `-nosound`, and the same 60 FPS cap. The
+MOTD browser image reached 728×432 pixels, so this checks larger live paints
+than the titled 1280×720 runs; it is not a full-window browser test. Both app
+copies used the same assets and host binary. The runs alternated updated,
+previous, updated, previous.
+
+| Pump | CEF paint callbacks | Callback rate | Callbacks with paint in flight | Median graphics work | Game interval p95 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Updated, run 1 | 585 | 59.98 Hz | 78 | 1.349 ms | 16.535 ms |
+| Previous, run 1 | 395 | 40.37 Hz | 394 | 0.697 ms | 16.535 ms |
+| Updated, run 2 | 584 | 59.83 Hz | 40 | 1.340 ms | 16.535 ms |
+| Previous, run 2 | 372 | 38.01 Hz | 371 | 0.611 ms | 16.535 ms |
+
+Each run connected, closed the browser, exited zero, and left no game or CEF
+helper process. Only one connected game frame per run exceeded 17 ms. The
+updated pump does more graphics work because it transfers more live browser
+images; these capped runs did not show a frame-interval regression. This
+measurement remains limited to browser callback availability and game CPU
+timing, not displayed frame cadence. The raw traces and metadata are in the
+local ignored `build/metal-cef-20261120/browser-pump-hires/` directory.
