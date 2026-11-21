@@ -37,3 +37,26 @@ The browser wire tests cover the borrowed pointer, empty and truncated byte
 fields. Controller tests exercise full and partial paints, popup pixels and
 the synchronous response callback. The callback implementations in both VGUI2
 clients upload the texture before returning.
+
+## macOS live-provider limit
+
+The owned CEF provider fixture passed both write and read phases before the
+decoder change, including paint, input, persistent storage and helper shutdown.
+Later reruns on this macOS 27.2.1 machine stalled before CEF's first `OnPaint`.
+The same failure occurred with the earlier host executable and with the updated
+controller, so the borrowed-view callback was not reached in those failing
+runs. The host's frame trace reached browser creation, page load, resize and
+invalidate, then timed out at 30 seconds. CEF also logged a macOS process
+signature-validation error (`-67030`), although the signed app verified on
+disk and `codesign -v <live-host-pid>` reported the host dynamically valid.
+Launching through the physical host path instead of the runtime symlink did
+not change the result. A standalone pinned-CEF SDK probe also missed its paint
+deadline in this session. An experimental external begin-frame probe did not
+help and was removed.
+
+These observations do not establish why CEF stopped painting. The local
+ignored evidence is under `build/metal-cef-20261120/cef-provider-fixture/`,
+`cef-verify-fixture/`, `cef-canonical-fixture/`, and
+`cef-sdk-correct-name-fixture/`. The decode-only measurements above remain
+valid; live CEF paint behavior still needs a passing provider run on this
+machine before an end-to-end browser performance claim can be made.
