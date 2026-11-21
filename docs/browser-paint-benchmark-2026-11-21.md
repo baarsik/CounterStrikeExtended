@@ -38,7 +38,7 @@ fields. Controller tests exercise full and partial paints, popup pixels and
 the synchronous response callback. The callback implementations in both VGUI2
 clients upload the texture before returning.
 
-## macOS live-provider limit
+## macOS provider-fixture limit
 
 The owned CEF provider fixture passed both write and read phases before the
 decoder change, including paint, input, persistent storage and helper shutdown.
@@ -65,10 +65,35 @@ without delivering paint. A diagnostic callback confirmed that neither
 `OnPaint` nor `OnAcceleratedPaint` was delivered. All experimental source
 changes were removed, and the production host was rebuilt.
 
-These observations do not establish why CEF stopped painting. The local
+These observations do not establish why that standalone fixture stopped painting. The local
 ignored evidence is under `build/metal-cef-20261120/cef-provider-fixture/`,
 `cef-verify-fixture/`, `cef-canonical-fixture/`, and
 `cef-sdk-correct-name-fixture/`; the SDK sample screenshot is under
-`cefclient-osr-diagnostic/`. The decode-only measurements above remain
-valid; live CEF paint behavior still needs a passing provider run on this
-machine before an end-to-end browser performance claim can be made.
+`cefclient-osr-diagnostic/`.
+
+## Joined-game paint and quit validation
+
+A loopback Counter-Strike dedicated server on `de_dust2` supplied its normal
+MOTD to a macOS Metal client launched with `-nosound`. The client joined
+`127.0.0.1:27550`, displayed the HTML MOTD over the game, waited about ten
+seconds, then ran the console `quit` command. The owned host's frame trace
+recorded a 546×324 view, `OnPaint` callbacks, paint messages, and browser
+closure. The visible MOTD confirms the callback reached the VGUI texture path.
+The same CEF `-67030` warning appeared in these successful game runs, so that
+warning is not by itself evidence of paint failure.
+
+Six repeat joined-client runs all connected, delivered 5–7 `OnPaint` callbacks,
+closed their browser, exited with code zero, and left no game or CEF helper
+process. Their elapsed times were 13.665–13.782 seconds. In three further
+runs, the host process was stopped with `SIGSTOP` six seconds after client
+launch, while the MOTD was active. The game's `quit` still exited with code
+zero in 28.665–28.674 seconds and left no game or helper process. A stopped
+host cannot flush its trace, so the stopped runs establish bounded teardown,
+not paint delivery. Raw traces, logs, a screenshot, and the sweep table remain
+in the ignored `build/metal-cef-20261120/motd-game-quick/` and
+`motd-shutdown-sweep/` directories.
+
+This validates live painting and the decoder callback path in the game. The
+decode-only measurement above remains the performance result: the joined-game
+run did not measure browser frame rate or compare previous and updated clients
+under identical MOTD workload.
