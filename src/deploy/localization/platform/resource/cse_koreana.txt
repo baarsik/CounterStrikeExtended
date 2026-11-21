@@ -34,6 +34,14 @@
         "CSEInterface_StyleOriginal" "기본"
         "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
+        "CSECrosshair_Shape" "모양"
+        "CSECrosshair_Cross" "십자"
+        "CSECrosshair_T" "T자"
+        "CSECrosshair_Circle" "원"
+        "CSECrosshair_Dot" "점"
+        "CSECrosshair_ExtraSmall" "아주 작게"
+        "CSECrosshair_CustomColor" "사용자 지정"
+
         "GameUI_HudRadarSettings" "레이더 설정..."
         "GameUI_HudRadar_Advanced" "고급"
         "GameUI_HudRadar_BlurBackground" "흐린 배경"

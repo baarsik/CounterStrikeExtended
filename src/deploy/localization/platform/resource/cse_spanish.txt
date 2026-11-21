@@ -34,6 +34,14 @@
         "CSEInterface_StyleOriginal" "Original"
         "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
+        "CSECrosshair_Shape" "Forma"
+        "CSECrosshair_Cross" "Cruz"
+        "CSECrosshair_T" "En T"
+        "CSECrosshair_Circle" "Círculo"
+        "CSECrosshair_Dot" "Punto"
+        "CSECrosshair_ExtraSmall" "Muy pequeña"
+        "CSECrosshair_CustomColor" "Personalizado"
+
         "GameUI_HudRadarSettings" "Ajustes del radar..."
         "GameUI_HudRadar_Advanced" "Avanzado"
         "GameUI_HudRadar_BlurBackground" "Fondo desenfocado"

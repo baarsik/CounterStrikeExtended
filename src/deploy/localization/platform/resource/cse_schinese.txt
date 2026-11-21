@@ -34,6 +34,14 @@
         "CSEInterface_StyleOriginal" "原版"
         "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
+        "CSECrosshair_Shape" "形状"
+        "CSECrosshair_Cross" "十字"
+        "CSECrosshair_T" "T 形"
+        "CSECrosshair_Circle" "圆圈"
+        "CSECrosshair_Dot" "圆点"
+        "CSECrosshair_ExtraSmall" "极小"
+        "CSECrosshair_CustomColor" "自定义"
+
         "GameUI_HudRadarSettings" "雷达设置..."
         "GameUI_HudRadar_Advanced" "高级"
         "GameUI_HudRadar_BlurBackground" "模糊背景"
