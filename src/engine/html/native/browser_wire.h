@@ -192,6 +192,18 @@ public:
         return true;
     }
 
+    // The view remains valid only while the message payload is alive and unchanged.
+    bool BytesView(const std::uint8_t*& value, std::size_t& size) {
+        std::uint32_t count = 0;
+        if (!U32(count) || !Require(count)) {
+            return false;
+        }
+        value = count == 0 ? nullptr : data_.data() + offset_;
+        size = count;
+        offset_ += count;
+        return true;
+    }
+
     bool Finish() const {
         return good_ && offset_ == data_.size();
     }
