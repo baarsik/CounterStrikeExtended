@@ -61,3 +61,21 @@ then issued `quit`, exited zero, and left no game, browser host, or helper
 process. This checks resource lifetime through map rebuilding, not an FPS
 change. Server and game logs, traces, and metadata are under the local ignored
 `build/metal-cef-20261120/final-mapcycle/` directory.
+
+## Post browser-region map cycle
+
+The final staged app, carrying the hardware browser dirty-region correction,
+repeated the local `-nosound -metal` Counter-Strike map cycle for 12 minutes.
+The server changed from `de_dust2` to `cs_office`, `de_inferno`, then back to
+`de_dust2` at 180, 360 and 540 seconds. The game log recorded server
+generations one through four with no kick, and the frame recorder marked
+43,297 of 43,548 samples connected. The scripted console `quit` was issued
+at 720.03 seconds; the game and server exited zero at 727.51 seconds, with no
+game, browser host or helper process left.
+
+The Metal diagnostic wrote 43,616 complete rows. Retained stream-buffer
+capacity peaked at 20.46 MiB and ended at 20.44 MiB, with 57 allocations and
+four evictions. This checks resource lifetime across repeated map loads, not
+comparative FPS or indefinite memory behavior. The local ignored
+`build/metal-cef-20261120/final-post-region-mapcycle/` directory contains
+the script, game/server logs, frame and Metal counters, and metadata.

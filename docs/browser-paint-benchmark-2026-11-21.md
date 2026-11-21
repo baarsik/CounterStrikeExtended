@@ -277,3 +277,13 @@ also joined a fresh local `de_dust2` MOTD server with `-nosound -metal` at
 The client and server exited zero after the scripted console `quit`, and no
 game, host or helper process remained. The local raw trace and logs are in
 `build/metal-cef-20261120/final-stage-browser/`.
+
+In the final 12-minute map cycle, screenshots captured the animated MOTD over
+the initial `de_dust2` scene and again after each change to `cs_office`,
+`de_inferno`, and back to `de_dust2`. This is direct visual evidence that
+browser painting continued through the map reloads. The host trace recorded
+662 `OnPaint` callbacks early in the run but filled its 2,048-record limit,
+so it cannot measure callback cadence across the whole cycle or record the
+browser's final close. The game log and process check establish the scripted
+`quit` and clean teardown. The screenshots and trace are in the local ignored
+`build/metal-cef-20261120/final-post-region-mapcycle/` directory.
