@@ -51,12 +51,24 @@ signature-validation error (`-67030`), although the signed app verified on
 disk and `codesign -v <live-host-pid>` reported the host dynamically valid.
 Launching through the physical host path instead of the runtime symlink did
 not change the result. A standalone pinned-CEF SDK probe also missed its paint
-deadline in this session. An experimental external begin-frame probe did not
-help and was removed.
+deadline in this session, but exited before making any HTTP request, so it does
+not isolate the host's post-load failure. An experimental external begin-frame
+probe did not help and was removed.
+
+The pinned CEF SDK's full `cefclient` sample was also built and run in
+off-screen mode on this machine. It visibly rendered a local green test page,
+while logging the same `-67030` signature warning. The warning alone therefore
+does not explain the host's missing frame. Isolated host experiments that made
+the native parent visible and active, removed `no-startup-window`, disabled the
+sandbox, or started at 192×96 instead of 1×1 still loaded the fixture page
+without delivering paint. A diagnostic callback confirmed that neither
+`OnPaint` nor `OnAcceleratedPaint` was delivered. All experimental source
+changes were removed, and the production host was rebuilt.
 
 These observations do not establish why CEF stopped painting. The local
 ignored evidence is under `build/metal-cef-20261120/cef-provider-fixture/`,
 `cef-verify-fixture/`, `cef-canonical-fixture/`, and
-`cef-sdk-correct-name-fixture/`. The decode-only measurements above remain
+`cef-sdk-correct-name-fixture/`; the SDK sample screenshot is under
+`cefclient-osr-diagnostic/`. The decode-only measurements above remain
 valid; live CEF paint behavior still needs a passing provider run on this
 machine before an end-to-end browser performance claim can be made.
