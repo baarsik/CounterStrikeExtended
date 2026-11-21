@@ -39,6 +39,9 @@ constexpr std::size_t kMaximumCachedMeshBytes = 128 * 1024 * 1024;
 constexpr std::size_t kMeshVertexPageBytes = 4 * 1024 * 1024;
 constexpr std::size_t kMeshIndexPageBytes = 1024 * 1024;
 constexpr std::size_t kFramesInFlight = 3;
+// Retain short scene and HUD bursts, then release buffers that a map build no longer uses.
+constexpr Uint64 kColdStreamRetentionMilliseconds = 10000;
+constexpr Uint64 kColdStreamSweepMilliseconds = 1000;
 constexpr std::size_t kTransferAlignment = 512;
 constexpr std::size_t kReadbackRowAlignment = 256;
 constexpr std::size_t kRgbaComponents = 4;
@@ -186,6 +189,7 @@ struct MetalSession::Impl {
         std::size_t vertexCapacity = 0;
         std::size_t indexCapacity = 0;
         std::size_t uploadCapacity = 0;
+        Uint64 lastUsedTicks = 0;
     };
     struct FrameStream {
         std::vector<Stream> chunks;
@@ -325,6 +329,7 @@ struct MetalSession::Impl {
     int drawableCount = 0;
     std::uint64_t serial = 0;
     std::size_t streamIndex = 0;
+    Uint64 lastStreamSweepTicks = 0;
     CacheBudget budget = kBaseCacheBudget;
     std::size_t textureBytes = 0;
     std::array<FrameStream, kFramesInFlight> streams{};
@@ -473,6 +478,10 @@ struct MetalSession::Impl {
         if (diagnosticsEnabled) {
             ++counters.commandBuffers;
         }
+        const Uint64 now = SDL_GetTicks();
+        for (std::size_t index = 0; index < frame.cursor; ++index) {
+            frame.chunks[index].lastUsedTicks = now;
+        }
         // Bound retained stream capacity independently of the number of encode boundaries.
         // SDL owns the references already encoded in this submission, including released buffers.
         std::size_t cachedBytes = 0;
@@ -482,7 +491,6 @@ struct MetalSession::Impl {
             }
         }
         if (diagnosticsEnabled) {
-            counters.streamCacheBytes = cachedBytes;
             counters.streamWorkingBytes = 0;
             for (std::size_t index = 0; index < frame.cursor; ++index) {
                 const auto& chunk = frame.chunks[index];
@@ -509,6 +517,17 @@ struct MetalSession::Impl {
                 ++counters.streamEvictions;
             }
         };
+        if (now >= lastStreamSweepTicks && now - lastStreamSweepTicks >= kColdStreamSweepMilliseconds) {
+            lastStreamSweepTicks = now;
+            for (auto& slot : streams) {
+                for (auto& chunk : slot.chunks) {
+                    if (chunk.lastUsedTicks != 0 && now >= chunk.lastUsedTicks &&
+                        now - chunk.lastUsedTicks >= kColdStreamRetentionMilliseconds) {
+                        release(chunk);
+                    }
+                }
+            }
+        }
         // A one-off map build can leave thousands of cold chunks behind the normal scene/HUD
         // prefix. Retire unused tails before evicting buffers that an ordinary frame just used.
         for (auto& slot : streams) {
@@ -529,6 +548,9 @@ struct MetalSession::Impl {
                 cachedBytes > budget.streamBytes; ++iterator) {
                 release(*iterator);
             }
+        }
+        if (diagnosticsEnabled) {
+            counters.streamCacheBytes = cachedBytes;
         }
         pendingUploadBytes = 0;
         streamIndex = (streamIndex + 1) % streams.size();

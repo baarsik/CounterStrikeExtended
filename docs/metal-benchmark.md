@@ -1,7 +1,8 @@
 # macOS Metal fixed-demo benchmark
 
-See the [21 November 2026 measurements](metal-benchmark-2026-11-21.md)
-for a completed baseline and compact-vertex comparison.
+See the [compact-vertex measurements](metal-benchmark-2026-11-21.md) and
+[stream-cache measurements](metal-stream-cache-benchmark-2026-11-21.md) from
+21 November 2026.
 
 Use an identical Counter-Strike demo and game assets in two **isolated, signed**
 macOS app copies. Overlay each app with the complete Release runtime from its
