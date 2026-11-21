@@ -77,7 +77,6 @@ constexpr int DefaultHeight = 1;
 constexpr int DefaultFrameRate = 60;
 constexpr int MaximumFrameRate = 60;
 constexpr int MaximumDimension = MaximumBrowserDimension;
-constexpr std::size_t PixelBytes = PaintBytesPerPixel;
 // Leave room for the legacy scrollbar consumer to add a viewport extent without signed overflow.
 constexpr int MaximumGeometryExtent = std::numeric_limits<int>::max() - MaximumDimension;
 constexpr std::size_t CommandPayloadLimit = 64 * 1024 * 1024;
@@ -821,16 +820,15 @@ public:
             return;
         }
         const auto* begin = static_cast<const std::uint8_t*>(pixels);
-        const auto count = static_cast<std::size_t>(width) * height * PixelBytes;
         if (type == PET_VIEW) {
             paintWidth_ = width;
             paintHeight_ = height;
-            mainPixels_.assign(begin, begin + count);
+            UpdatePaintBacking(mainPixels_, begin, width, height, dirtyRectangles);
             pendingPaint_.View(width, height, dirtyRectangles);
         } else {
             popupWidth_ = width;
             popupHeight_ = height;
-            popupPixels_.assign(begin, begin + count);
+            UpdatePaintBacking(popupPixels_, begin, width, height, dirtyRectangles);
             pendingPaint_.Popup();
         }
         Paint();

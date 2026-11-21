@@ -108,7 +108,8 @@ retained view and popup images directly as wire segments. The previous
 `Writer::Bytes` path allocated a second complete payload and copied both
 images before writing them. The encoded header, field order, lengths and
 image bytes remain identical, and the retained CEF backing image is still
-copied once from the callback before it can be sent or reused.
+copied from the callback before it can be sent or reused. The later backing
+copy change below narrows that copy for small dirty rectangles.
 
 Run the encode-only comparison from the repository root:
 
@@ -138,3 +139,47 @@ A staged `-nosound -metal` joined-game run with the rebuilt host loaded the
 MOTD, recorded two `OnPaint` callbacks, closed the browser, exited zero, and
 left no CEF helper process. The encode comparison does not establish an
 end-to-end browser frame-rate gain.
+
+## Host backing copy benchmark
+
+The pinned CEF 156 `cef_render_handler.h` says `OnPaint` supplies the entire
+BGRA image plus rectangles that need repainting. A temporary trace in an
+isolated QA host found 574 of 586 live animated MOTD paints marked about 35%
+of a 728×432 view dirty. The trace-only instrumentation was removed before
+building the candidate. For one clipped rectangle covering less than half the
+existing image, the host now copies only those rows into its complete retained
+backing. The first paint, resized image, empty or invalid damage, multiple
+rectangles, and larger damage still use the full copy. The wire payload and
+paint acknowledgement remain unchanged.
+
+Reproduce the CPU copy benchmark from the repository root:
+
+```sh
+clang++ -O2 -std=c++17 -Wall -Wextra -Werror \
+  -Isrc/engine/html/native tools/benchmark_browser_paint_backing.cpp \
+  -o /tmp/cse-browser-paint-backing
+/tmp/cse-browser-paint-backing
+```
+
+Four alternating paired trials copy a 728×432 image 10,000 times per trial,
+with one 500×220 dirty rectangle and matching final images and checksums.
+On the same M5 Max, median time per paint was 0.013304 ms for the complete
+1,257,984-byte copy and 0.009155 ms for 440,000 dirty bytes, a 31.2% copy-time
+reduction in this hot-cache microbenchmark. The raw CSV is under the ignored
+`build/metal-cef-20261120/cef-dirty-probe/` directory. This excludes CEF
+rendering, pipe transfer, the engine decoder and the Metal texture upload.
+
+Four alternating joined-game runs compared a baseline full-copy host and the
+partial-copy host with identical game binaries and assets, at 2560×1440
+borderless Metal, `-nosound`, and a 60 FPS cap. Both hosts saw about 60 CEF
+`OnPaint` callbacks per second. The candidate's 585 and 585 callbacks compare
+with 584 and 585 for the baseline; all four games retained a 16.535 ms p95
+frame interval, exited zero, and left no game or helper process. These runs
+show no browser-cadence or capped-game regression, and no demonstrated game
+FPS gain. A native paint test verifies retained pixels for clipped, resized,
+missing, invalid and multi-rectangle damage. Release and sanitizer browser
+suites passed 6/6. Two further candidate clients exited zero in 29.724 and
+29.735 seconds after their active CEF host was stopped with `SIGSTOP`, with no
+remaining game or helper process. The local live traces and screenshot are
+under `build/metal-cef-20261120/cef-partial-copy-live/` and
+`cef-partial-copy-stopped/`.
