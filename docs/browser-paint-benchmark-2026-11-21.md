@@ -94,6 +94,43 @@ in the ignored `build/metal-cef-20261120/motd-game-quick/` and
 `motd-shutdown-sweep/` directories.
 
 This validates live painting and the decoder callback path in the game. The
-decode-only measurement above remains the performance result: the joined-game
-run did not measure browser frame rate or compare previous and updated clients
-under identical MOTD workload.
+joined-game run did not measure browser frame rate or compare previous and
+updated clients under identical MOTD workload.
+
+## Host paint encode benchmark
+
+After the joined-game validation, the CEF host was changed to write its
+retained view and popup images directly as wire segments. The previous
+`Writer::Bytes` path allocated a second complete payload and copied both
+images before writing them. The encoded header, field order, lengths and
+image bytes remain identical, and the retained CEF backing image is still
+copied once from the callback before it can be sent or reused.
+
+Run the encode-only comparison from the repository root:
+
+```sh
+clang++ -O2 -std=c++17 -Wall -Wextra -Werror \
+  -Isrc/engine/html/native tools/benchmark_browser_paint_encode.cpp \
+  -o /tmp/cse-browser-paint-encode
+/tmp/cse-browser-paint-encode
+```
+
+Each path encodes 300 paints per trial, with four alternating paired trials
+and matching output checksums. The smaller size is the 546×324 MOTD view
+observed in the live Metal game. On the same M5 Max:
+
+| View | Previous full payload copy | Segmented metadata | Extra allocation and copy removed |
+| --- | ---: | ---: | ---: |
+| 546×324 | 0.027151 ms/paint | 0.000021 ms/paint | 707,616 bytes/paint |
+| 1920×1080 | 0.220193 ms/paint | 0.000063 ms/paint | 8,294,400 bytes/paint |
+
+These are medians of hot-cache CPU encoding trials, excluding the CEF
+callback, pipe write, engine decode and texture upload. Raw output is in
+`build/metal-cef-20261120/browser-paint-encode-results.csv`. The browser
+paint fixture compares segmented payload bytes with the former `Writer`
+format for both view and popup pixels. The test passed on macOS ARM64 in
+Release and under sanitizers and on Windows x64 with MSVC `/W4 /WX`.
+A staged `-nosound -metal` joined-game run with the rebuilt host loaded the
+MOTD, recorded two `OnPaint` callbacks, closed the browser, exited zero, and
+left no CEF helper process. The encode comparison does not establish an
+end-to-end browser frame-rate gain.

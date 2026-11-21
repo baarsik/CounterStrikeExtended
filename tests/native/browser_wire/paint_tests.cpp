@@ -1,4 +1,5 @@
 #include "browser_paint.h"
+#include "browser_paint_wire.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -62,6 +63,33 @@ int main() {
         {0, 0, 1, -1}, {10, 0, 1, 1}, {0, 7, 1, 1}, {9, 0, 2, 1}, {0, 6, 1, 2},
         {1, 0, 0, 0}, {0, 0, 0, 1}, {0, 0, 1, 0}, {1, 0, std::numeric_limits<int>::max(), 1}}) {
         Require(!ValidPaintBounds(invalid, 10, 7), "invalid wire bounds rejected");
+    }
+    {
+        const std::vector<std::uint8_t> view{1, 2, 3, 4, 5, 6, 7, 8};
+        const std::vector<std::uint8_t> popup{9, 10, 11, 12};
+        PaintWireParts parts;
+        Require(EncodePaintWireParts(17, 2, 1, {1, 0, 1, 1}, 1, 1, view, popup, parts),
+            "encode segmented paint with popup");
+        Writer expected;
+        for (const int field : {17, 2, 1, 1, 0, 1, 1, 1, 1}) {
+            expected.I32(field);
+        }
+        expected.Bytes(view.data(), view.size());
+        expected.Bytes(popup.data(), popup.size());
+        std::vector<std::uint8_t> actual(parts.prefix.begin(), parts.prefix.end());
+        actual.insert(actual.end(), parts.viewPixels, parts.viewPixels + parts.viewBytes);
+        actual.insert(actual.end(), parts.popupLength.begin(), parts.popupLength.end());
+        actual.insert(actual.end(), parts.popupPixels, parts.popupPixels + parts.popupBytes);
+        Require(actual == expected.Data() && parts.payloadBytes == actual.size(),
+            "segmented paint preserves exact wire payload");
+        Require(parts.viewPixels == view.data() && parts.popupPixels == popup.data(),
+            "segmented paint borrows retained CEF backing buffers");
+        Require(EncodePaintWireParts(17, 2, 1, {0, 0, 0, 0}, 0, 0, view, {}, parts) &&
+            parts.popupPixels == nullptr && parts.popupBytes == 0,
+            "popup-free paint has no popup image segment");
+        Require(!EncodePaintWireParts(17, 2, 1, {0, 0, 2, 1}, 0, 0, popup, {}, parts) &&
+            !EncodePaintWireParts(17, 2, 1, {0, 0, 3, 1}, 0, 0, view, {}, parts),
+            "segmented paint rejects inconsistent backing or dirty bounds");
     }
     std::puts("native_browser_paint_passed=1");
 }
