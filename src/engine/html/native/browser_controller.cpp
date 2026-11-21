@@ -354,6 +354,13 @@ public:
 
         }
 
+        // Paint acknowledgements queued by synchronous VGUI callbacks should reach CEF this frame.
+        if (!channel_.FlushOutgoing()) {
+            failed_ = true;
+            StopFailedProvider();
+            return false;
+        }
+
         return !messages.empty();
     }
 
@@ -538,9 +545,11 @@ void Controller::Collect() {
 
     constexpr Uint64 FramePumpMilliseconds = 4;
     const Uint64 deadline = SDL_GetTicks() + FramePumpMilliseconds;
+    bool progressedThisFrame = false;
     for (;;) {
         std::vector<Message> messages;
         const auto status = channel_.Poll(messages);
+        progressedThisFrame = progressedThisFrame || status == ChannelStatus::Progress;
         for (auto& message : messages) {
             if (message.header.kind == Kind::Control) {
                 if (message.header.browser != 0) {
@@ -583,6 +592,13 @@ void Controller::Collect() {
 
         if (status == ChannelStatus::Failed || status == ChannelStatus::End) {
             failed_ = true;
+        }
+
+        if (status == ChannelStatus::Idle && progressedThisFrame && !failed_ && channel_.HasPartialMessage() &&
+            SDL_GetTicks() < deadline) {
+            // Let the pipe producer run before concluding that a partially received paint is stalled.
+            SDL_Delay(0);
+            continue;
         }
 
         if (status != ChannelStatus::Progress || failed_ || SDL_GetTicks() >= deadline) {

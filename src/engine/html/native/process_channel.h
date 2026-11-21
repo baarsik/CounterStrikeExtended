@@ -25,9 +25,12 @@ public:
     bool Start(const std::vector<std::string>& arguments, const char* directory = nullptr);
     bool Queue(Header header, const std::vector<std::uint8_t>& payload);
     ChannelStatus Poll(std::vector<Message>& messages);
+    // Attempt queued writes without reading or dispatching another host event.
+    bool FlushOutgoing();
     bool CloseInput();
     bool Finish(int& exitCode, Uint64 gracefulTimeoutMilliseconds = ShutdownTimeoutMilliseconds);
     bool Started() const;
+    bool HasPartialMessage() const;
     const std::string& Error() const;
 
 private:

@@ -22,6 +22,10 @@
 
 using namespace cse::browser;
 
+static constexpr int LargePaintWidth = 1024;
+static constexpr int LargePaintHeight = 768;
+static constexpr std::uint8_t LargePaintPixel = 31;
+
 static void Require(bool value, const char* text) {
     if (!value) {
         std::fprintf(stderr, "browser_controller_failure=%s\n", text);
@@ -63,6 +67,19 @@ static int Host(const std::vector<std::string>& arguments) {
     Require(Output({Kind::Control, static_cast<std::uint32_t>(Control::Hello), 0, 0, 0}, hello), "host hello");
     Decoder decoder(1024 * 1024);
     std::array<std::uint8_t, 4096> bytes;
+    bool streamingPaint = false;
+    const auto outputLargePaint = [&](std::uint32_t browser) {
+        Writer paint;
+        for (const int field : {1, LargePaintWidth, LargePaintHeight, 0, 0,
+            LargePaintWidth, LargePaintHeight, 0, 0}) {
+            paint.I32(field);
+        }
+        std::vector<std::uint8_t> pixels(
+            static_cast<std::size_t>(LargePaintWidth) * LargePaintHeight * PaintBytesPerPixel, LargePaintPixel);
+        paint.Bytes(pixels.data(), pixels.size());
+        paint.Bytes(nullptr, 0);
+        return Output({Kind::Pixels, eHTMLCommands_NeedsPaint, browser, 0, 0}, paint);
+    };
     for (;;) {
 #if defined(_WIN32)
         const int count = _read(_fileno(stdin), bytes.data(), static_cast<unsigned int>(bytes.size()));
@@ -112,6 +129,13 @@ static int Host(const std::vector<std::string>& arguments) {
                 Writer ready;
                 Output({Kind::Event, eHTMLCommands_BrowserReady, command.header.browser, 0, 0}, ready);
             } else if (command.header.kind == Kind::Command && command.header.operation == eHTMLCommands_PostURL) {
+                const auto largePaint = folder / "large-paint-stream";
+                if (std::filesystem::exists(largePaint)) {
+                    std::filesystem::remove(largePaint);
+                    streamingPaint = true;
+                    Require(outputLargePaint(command.header.browser), "initial large paint");
+                    continue;
+                }
                 const auto closeBrowser = folder / "close-after-post";
                 if (std::filesystem::exists(closeBrowser)) {
                     std::filesystem::remove(closeBrowser);
@@ -209,6 +233,14 @@ static int Host(const std::vector<std::string>& arguments) {
                 Output({Kind::Event, eHTMLCommands_SetHTMLTitle, command.header.browser, 0, 0}, title);
                 // Queued events for an immediately removed browser must not reach its freed target.
                 Output({Kind::Event, eHTMLCommands_SetHTMLTitle, command.header.browser, 0, 0}, title);
+            } else if (streamingPaint && command.header.kind == Kind::Command &&
+                command.header.operation == eHTMLCommands_NeedsPaintResponse) {
+                Reader reader(command.payload);
+                std::int32_t texture = 0;
+                Require(reader.I32(texture) && reader.Finish() && texture == 1,
+                    "large paint acknowledgement carries its texture");
+                streamingPaint = false;
+                Require(outputLargePaint(command.header.browser), "second large paint after acknowledgement");
             }
         }
     }
@@ -223,6 +255,7 @@ public:
     int closed = 0;
     int paints = 0;
     bool expectPopupPaint = false;
+    bool expectLargePaint = false;
     bool removeOnTitle = false;
     bool removeOnClose = false;
     bool alive = true;
@@ -243,7 +276,15 @@ public:
     void BrowserNeedsPaint(int texture, int width, int height, const unsigned char* pixels,
         int x, int y, int updateWidth, int updateHeight, int popupWidth, int popupHeight,
         const unsigned char* popup) override {
-        if (expectPopupPaint) {
+        if (expectLargePaint) {
+            constexpr std::size_t LastPixel =
+                static_cast<std::size_t>(LargePaintWidth) * LargePaintHeight * PaintBytesPerPixel - 1;
+            Require(texture == 1 && width == LargePaintWidth && height == LargePaintHeight && x == 0 && y == 0 &&
+                updateWidth == LargePaintWidth && updateHeight == LargePaintHeight &&
+                popupWidth == 0 && popupHeight == 0 && !popup &&
+                pixels[0] == LargePaintPixel && pixels[LastPixel] == LargePaintPixel,
+                "large paint survives framed transport and dispatch");
+        } else if (expectPopupPaint) {
             Require(texture == 1 && width == 8 && height == 6 && x == 0 && y == 0 &&
                 updateWidth == 0 && updateHeight == 0 && popupWidth == 2 && popupHeight == 2 && popup,
                 "popup-only paint survives dispatch with empty main bounds");
@@ -338,6 +379,18 @@ static int Run(const std::vector<std::string>& arguments) {
     std::ofstream(directory / "popup-paint").put('1');
     responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
     Pump(*controller, responses.paints, 2);
+    responses.expectPopupPaint = false;
+    responses.expectLargePaint = true;
+    std::ofstream(directory / "large-paint-stream").put('1');
+    responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
+    constexpr int MaximumSixtyHertzFrames = 10;
+    constexpr Uint32 SixtyHertzFrameMilliseconds = 16;
+    for (int frame = 0; frame < MaximumSixtyHertzFrames && responses.paints < 4; ++frame) {
+        controller->RunFrame();
+        SDL_Delay(SixtyHertzFrameMilliseconds);
+    }
+    Require(responses.paints == 4, "two full-size paints and acknowledgement complete within ten game frames");
+    responses.expectLargePaint = false;
     responses.removeOnTitle = true;
     responses.serializer->PostURL("https://fixture.invalid/", "field=\xd0\xaf");
     Pump(*controller, responses.titles, 1);

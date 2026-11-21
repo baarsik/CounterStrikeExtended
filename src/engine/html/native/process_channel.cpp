@@ -80,6 +80,17 @@ ChannelStatus ProcessChannel::Poll(std::vector<Message>& messages) {
     return readProgress || writeProgress ? ChannelStatus::Progress : ChannelStatus::Idle;
 }
 
+bool ProcessChannel::FlushOutgoing() {
+    // A paint acknowledgement takes two writes. Bound longer command queues to preserve the game frame budget.
+    constexpr std::size_t MaximumWritesPerFrame = 32;
+    for (std::size_t count = 0; count < MaximumWritesPerFrame && !outgoing_.empty() && !failed_; ++count) {
+        if (!Write()) {
+            break;
+        }
+    }
+    return !failed_;
+}
+
 bool ProcessChannel::CloseInput() {
     if (!outgoing_.empty() && !failed_ && !eof_) {
         return false;
@@ -164,6 +175,10 @@ bool ProcessChannel::Finish(int& exitCode, Uint64 gracefulTimeoutMilliseconds) {
 
 bool ProcessChannel::Started() const {
     return process_ != nullptr;
+}
+
+bool ProcessChannel::HasPartialMessage() const {
+    return !decoder_.Finish();
 }
 
 const std::string& ProcessChannel::Error() const {

@@ -1,5 +1,9 @@
 # Browser paint decode benchmark, 21 November 2026
 
+The [live browser paint pacing benchmark](browser-paint-pacing-benchmark-2026-11-21.md)
+measures the effect of pumping complete images and sending their acknowledgements
+within the game frame.
+
 The browser host sends a full BGRA backing image with each paint message. The
 game's decoder already owns the complete wire payload when it calls the VGUI
 paint callback. The updated decoder passes a view into that payload instead of
