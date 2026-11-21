@@ -203,3 +203,57 @@ suites passed 6/6; the paint fixture also passed on Windows x64 under MSVC
 remaining game or helper process. The local live traces and screenshot are
 under `build/metal-cef-20261120/cef-partial-copy-live/` and
 `cef-partial-copy-stopped/`.
+
+## Engine dirty-region texture upload benchmark
+
+The hardware VGUI surface previously ignored the browser damage rectangle's
+horizontal offset and width. It updated every pixel in the affected rows even
+though the browser supplied a narrower dirty area. The corrected path uses
+the full BGRA backing's row length and offsets its pointer to the first dirty
+pixel, matching the software VGUI surface's existing region behavior. It
+validates the region before touching the texture. This changes the upload
+region but not the texture ID, image format, full backing contract, or browser
+wire format.
+
+Build the native render-state library, then reproduce the CPU-side texture
+upload comparison from the repository root:
+
+```sh
+cmake --build build/render-texture-final-release --target render_state
+clang++ -O2 -std=c++17 -Wall -Wextra -Werror \
+  -Isrc/engine/render/native tools/benchmark_browser_texture_region.cpp \
+  build/render-texture-final-release/librender_state.a \
+  -o /tmp/cse-browser-texture-region
+/tmp/cse-browser-texture-region
+```
+
+The fixture uses a 728×432 BGRA backing and a 500×220 rectangle starting at
+(8, 55), as observed in the animated MOTD. Each path updates the same pixel
+over 1,000 texture writes per trial. Four paired trials alternate path order
+and compare the complete final images. On the same M5 Max:
+
+| Upload path | Bytes passed per update | Median CPU time per update |
+| --- | ---: | ---: |
+| Previous full rows | 640,640 | 0.184024 ms |
+| Dirty rectangle | 440,000 | 0.132699 ms |
+
+The dirty-region path was 27.9% faster in this CPU-side, hot-cache fixture.
+Individual full-row times were 0.200015, 0.178106, 0.186046 and 0.182001 ms;
+dirty-region times were 0.133922, 0.129571, 0.134423 and 0.131476 ms.
+The fixture measures `TextureStore::Upload`, not driver transfer, CEF work,
+GPU time, or end-to-end game FPS. Raw output is retained in the ignored
+`build/metal-cef-20261120/region-upload-candidate/results.csv`.
+
+The real-OpenGL texture oracle passed a BGRA subimage with nonzero X offset
+and a three-pixel unpack row length against its CPU reference. The macOS
+runtime engine and launcher built in Release. A local animated-MOTD server
+then drove four alternating capped 1280×720 Metal `-nosound` runs, two with
+the previous engine and two with the updated engine. Every client connected,
+painted near 60 Hz, closed the browser, exited zero and left no game, host or
+helper process. The p95 game frame interval was 16.535 ms in all four runs.
+The graphics-work medians were 1.070 and 1.238 ms for the baseline, versus
+1.219 and 1.059 ms for the update. This variation does not establish a
+whole-game speedup or slowdown. A separate Metal visual run showed the
+animated MOTD over `de_dust2`; an OpenGL `-nosound` client connected, received
+586 browser paints, exited zero, and left no process. Live CSV traces and the
+screenshot are in the ignored `build/metal-cef-20261120/region-upload-live/`.
