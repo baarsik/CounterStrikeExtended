@@ -214,7 +214,7 @@ void IndexedQuads(MetalSession& session, std::string& error) {
     constexpr std::size_t kValidQuads = 2;
     constexpr std::size_t kVerticesPerQuad = 4;
     constexpr std::size_t kIndicesPerQuad = 6;
-    constexpr std::size_t kCompactStride = 48;
+    constexpr std::size_t kCompactStride = 36;
     CHECK(session.Diagnostics().streamedVertexBytes == kValidQuads * kVerticesPerQuad * kCompactStride);
     CHECK(session.Diagnostics().streamedIndexBytes == kValidQuads * kIndicesPerQuad * sizeof(std::uint32_t));
     CHECK(session.Diagnostics().gpuDraws == 1);
@@ -875,9 +875,9 @@ void IndexedTextureLayout(MetalSession& session, std::string& error) {
     draw.indices = {0, 1, 2, 0, 2, 3};
     draw.textures[0].enabled2D = true;
     draw.resources[0].texture2D = texture;
+    constexpr float kPositionW = 2.0f;
     for (auto& vertex : draw.vertices) {
         auto& position = vertex.position;
-        constexpr float kPositionW = 2.0f;
         vertex.texcoords[0] = {{0.25f + position[0], 0.5f + position[1], 0.65f, 2.0f}};
         vertex.texcoords[1] = {{0, 0, 0, 1}};
         vertex.position = {{position[0] * kPositionW, position[1] * kPositionW, 0, kPositionW}};
@@ -891,6 +891,25 @@ void IndexedTextureLayout(MetalSession& session, std::string& error) {
     std::array<unsigned char, kPixelBytes> packed{};
     std::array<unsigned char, kPixelBytes> reference{};
     CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, packed.data(), error));
+    auto canonical = draw;
+    for (auto& vertex : canonical.vertices) {
+        for (std::size_t component = 0; component < 3; ++component) {
+            vertex.position[component] /= kPositionW;
+        }
+        vertex.position[3] = 1.0f;
+        vertex.texcoords[0][0] /= kPositionW;
+        vertex.texcoords[0][1] /= kPositionW;
+        vertex.texcoords[0][2] = 0.0f;
+        vertex.texcoords[0][3] = 1.0f;
+    }
+    frame.draws[0] = canonical;
+    const auto beforeCanonical = session.Diagnostics().streamedVertexBytes;
+    CHECK(session.Render(frame, error));
+    constexpr std::size_t kCanonicalStride = 36;
+    CHECK(session.Diagnostics().streamedVertexBytes - beforeCanonical == canonical.vertices.size() * kCanonicalStride);
+    CHECK(session.ReadPixels(0, 0, kTargetSize, kTargetSize, 4, 1, reference.data(), error));
+    CHECK(packed == reference);
+    frame.draws[0] = draw;
     auto& expanded = frame.draws[0];
     expanded.vertices.clear();
     for (auto index : draw.indices) {

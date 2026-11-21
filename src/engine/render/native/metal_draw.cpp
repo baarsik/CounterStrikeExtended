@@ -315,6 +315,8 @@ bool PrepareMetalDrawInto(const DrawPacket& draw, MetalDrawData& prepared, std::
         (completeSmoothTriangleRange || completeQuadRange);
     for (std::size_t index = 0; index < count; ++index) {
         const auto& vertex = draw.vertices[index];
+        prepared.compactSingleTexture &= vertex.position[3] == 1.0f && vertex.texcoords[0][2] == 0.0f &&
+            vertex.texcoords[0][3] == 1.0f;
         allFinite = allFinite && Finite(vertex.position) && Finite(vertex.color);
         for (const auto& uv : vertex.texcoords) {
             allFinite = allFinite && Finite(uv);

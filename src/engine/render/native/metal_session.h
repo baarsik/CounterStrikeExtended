@@ -28,6 +28,9 @@ struct RenderFrameCounters {
     std::uint64_t copyPasses = 0;
     std::uint64_t uploadBytes = 0;
     std::uint64_t streamedVertexBytes = 0;
+    std::uint64_t singleTextureVertexBytes = 0;
+    std::uint64_t twoTextureEligibleVertexBytes = 0;
+    std::uint64_t otherVertexBytes = 0;
     std::uint64_t streamedIndexBytes = 0;
     std::uint64_t residentMeshBytes = 0;
     std::uint64_t legacyTextureBytes = 0;

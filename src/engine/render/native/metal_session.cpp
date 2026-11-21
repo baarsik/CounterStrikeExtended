@@ -55,6 +55,13 @@ static_assert(sizeof(WorldMeshVertex) == 28, "World mesh vertex layout");
 constexpr std::size_t kSingleTextureVertexBytes = 3 * sizeof(std::array<float, 4>);
 static_assert(offsetof(Vertex, texcoords) == 2 * sizeof(std::array<float, 4>), "Legacy vertex attribute layout");
 
+struct CompactSingleTextureVertex {
+    std::array<float, 3> position;
+    std::array<float, 4> color;
+    std::array<float, 2> uv;
+};
+static_assert(sizeof(CompactSingleTextureVertex) == 36, "Compact single-texture vertex layout");
+
 std::size_t Align(std::size_t value, std::size_t alignment) {
     return (value + alignment - 1) / alignment * alignment;
 }
@@ -225,7 +232,7 @@ struct MetalSession::Impl {
         std::uint64_t lastUse = 0;
         bool uploaded = false;
     };
-    enum class VertexLayout { Full, World, SingleTexture };
+    enum class VertexLayout { Full, World, SingleTexture, CompactSingleTexture };
     struct Draw {
         MetalDrawData data;
         VertexLayout layout = VertexLayout::Full;
@@ -242,11 +249,15 @@ struct MetalSession::Impl {
         bool softwareBorder = false;
 
         std::size_t StreamedVertexStride() const {
+            if (layout == VertexLayout::CompactSingleTexture) {
+                return sizeof(CompactSingleTextureVertex);
+            }
             return layout == VertexLayout::SingleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
         }
 
         std::size_t FragmentSamplerCount() const {
-            return layout == VertexLayout::SingleTexture && !softwareBorder ? 1 : kTextureUnits;
+            return (layout == VertexLayout::SingleTexture || layout == VertexLayout::CompactSingleTexture) &&
+                !softwareBorder ? 1 : kTextureUnits;
         }
     };
     using PipelineKey = std::array<std::uint32_t, 22>;
@@ -294,6 +305,7 @@ struct MetalSession::Impl {
     SDL_GPUShader* vertex = nullptr;
     SDL_GPUShader* worldVertex = nullptr;
     SDL_GPUShader* singleTextureVertex = nullptr;
+    SDL_GPUShader* compactSingleTextureVertex = nullptr;
     std::array<SDL_GPUShader*, 6> fragments{};
     SDL_GPUTexture* color = nullptr;
     SDL_GPUTexture* spareResolve = nullptr;
@@ -540,7 +552,8 @@ struct MetalSession::Impl {
         const bool softwareBorder = prepared.softwareBorder;
         const auto layout = prepared.layout;
         const bool worldLayout = layout == VertexLayout::World;
-        const bool singleTexture = layout == VertexLayout::SingleTexture;
+        const bool compactSingleTexture = layout == VertexLayout::CompactSingleTexture;
+        const bool singleTexture = layout == VertexLayout::SingleTexture || compactSingleTexture;
         const auto& state = draw.raster;
         const bool blend = state.enabled[static_cast<std::size_t>(Capability::Blend)];
         const bool depthTest = pending.depthAttachment &&
@@ -593,8 +606,8 @@ struct MetalSession::Impl {
             }
         }
         SDL_GPUVertexBufferDescription buffer{};
-        buffer.pitch = worldLayout ? sizeof(WorldMeshVertex) :
-            singleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
+        buffer.pitch = worldLayout ? sizeof(WorldMeshVertex) : compactSingleTexture ?
+            sizeof(CompactSingleTextureVertex) : singleTexture ? kSingleTextureVertexBytes : sizeof(Vertex);
         buffer.input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
         constexpr std::array<SDL_GPUVertexAttribute, 3> worldAttributes{{
             {0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, offsetof(WorldMeshVertex, position)},
@@ -608,11 +621,18 @@ struct MetalSession::Impl {
             attributes[index].offset = static_cast<Uint32>(index * sizeof(std::array<float, 4>));
         }
         SDL_GPUGraphicsPipelineCreateInfo info{};
-        info.vertex_shader = worldLayout ? worldVertex : singleTexture ? singleTextureVertex : vertex;
+        info.vertex_shader = worldLayout ? worldVertex : compactSingleTexture ? compactSingleTextureVertex :
+            singleTexture ? singleTextureVertex : vertex;
         info.fragment_shader = fragments[fragmentIndex];
         info.vertex_input_state.vertex_buffer_descriptions = &buffer;
         info.vertex_input_state.num_vertex_buffers = 1;
-        info.vertex_input_state.vertex_attributes = worldLayout ? worldAttributes.data() : attributes.data();
+        constexpr std::array<SDL_GPUVertexAttribute, 3> compactAttributes{{
+            {0, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, offsetof(CompactSingleTextureVertex, position)},
+            {1, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, offsetof(CompactSingleTextureVertex, color)},
+            {2, 0, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, offsetof(CompactSingleTextureVertex, uv)},
+        }};
+        info.vertex_input_state.vertex_attributes = worldLayout ? worldAttributes.data() :
+            compactSingleTexture ? compactAttributes.data() : attributes.data();
         info.vertex_input_state.num_vertex_attributes = static_cast<Uint32>(
             worldLayout ? worldAttributes.size() : singleTexture ? 3 : attributes.size());
         info.primitive_type = draw.topology == Primitive::Lines ? SDL_GPU_PRIMITIVETYPE_LINELIST :
@@ -951,7 +971,8 @@ struct MetalSession::Impl {
         } else if (!draw.mesh && draw.data.fragment.legacy.unit[1][0] == 0 &&
             draw.data.fragment.legacy.unit[2][0] == 0) {
             // Higher texture coordinates cannot influence a single-texture draw.
-            draw.layout = VertexLayout::SingleTexture;
+            draw.layout = draw.data.compactSingleTexture ? VertexLayout::CompactSingleTexture :
+                VertexLayout::SingleTexture;
         }
         draw.pipeline = Pipeline(draw, pending);
         return draw.pipeline || DeviceFailure(error, "Create cached Metal pipeline");
@@ -1240,6 +1261,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
     state.vertex = state.Shader("LegacyVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.worldVertex = state.Shader("LegacyWorldVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     state.singleTextureVertex = state.Shader("LegacySingleTextureVertex", SDL_GPU_SHADERSTAGE_VERTEX);
+    state.compactSingleTextureVertex = state.Shader("LegacyCompactSingleTextureVertex", SDL_GPU_SHADERSTAGE_VERTEX);
     constexpr std::array<const char*, 6> entrypoints{{"LegacyFragmentHardwareSampling",
         "LegacyFragmentAlphaTestHardwareSampling", "LegacyFragment", "LegacyFragmentAlphaTest",
         "LegacySingleTextureFragment", "LegacySingleTextureFragmentAlphaTest"}};
@@ -1247,7 +1269,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
         const auto samplers = static_cast<Uint32>(index < 4 ? kTextureUnits : 1);
         state.fragments[index] = state.Shader(entrypoints[index], SDL_GPU_SHADERSTAGE_FRAGMENT, samplers);
     }
-    if (!state.vertex || !state.worldVertex || !state.singleTextureVertex ||
+    if (!state.vertex || !state.worldVertex || !state.singleTextureVertex || !state.compactSingleTextureVertex ||
         std::any_of(state.fragments.begin(), state.fragments.end(), [](const auto* fragment) {
             return fragment == nullptr;
         })) {
@@ -1268,7 +1290,8 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "quad_vertex_bytes,borrowed_geometry_bytes,sampled_texture_allocations,"
                 "sampled_texture_expirations,sampled_texture_capacity_evictions,"
                 "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes,"
-                "color_only_scene_passes\n");
+                "color_only_scene_passes,single_texture_vertex_bytes,two_texture_eligible_vertex_bytes,"
+                "other_vertex_bytes\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -1597,6 +1620,14 @@ bool MetalSession::RenderBatch(const FrameSnapshot& frame, std::size_t firstEven
                 state.counters.borrowedGeometryBytes += draw.data.Vertices().size() * sizeof(Vertex) +
                     (draw.data.borrowedIndices ? drawIndexBytes : 0);
             }
+            if (draw.layout == Impl::VertexLayout::SingleTexture ||
+                draw.layout == Impl::VertexLayout::CompactSingleTexture) {
+                state.counters.singleTextureVertexBytes += drawVertexBytes;
+            } else if (!draw.mesh && draw.data.fragment.legacy.unit[2][0] == 0) {
+                state.counters.twoTextureEligibleVertexBytes += drawVertexBytes;
+            } else {
+                state.counters.otherVertexBytes += drawVertexBytes;
+            }
         }
     }
     struct Upload {
@@ -1704,8 +1735,7 @@ bool MetalSession::RenderBatch(const FrameSnapshot& frame, std::size_t firstEven
             ++first;
             continue;
         }
-        const auto vertexStride = draw.layout == Impl::VertexLayout::SingleTexture ?
-            kSingleTextureVertexBytes : sizeof(Vertex);
+        const auto vertexStride = draw.StreamedVertexStride();
         auto count = draw.data.IndexCount();
         auto end = first + 1;
         while (end < draws.size() && Impl::SameDrawState(draw, draws[end])) {
@@ -1734,7 +1764,15 @@ bool MetalSession::RenderBatch(const FrameSnapshot& frame, std::size_t firstEven
         }
         for (const auto& draw : draws) {
             const auto& vertices = draw.data.Vertices();
-            if (draw.layout == Impl::VertexLayout::SingleTexture) {
+            if (draw.layout == Impl::VertexLayout::CompactSingleTexture) {
+                auto* destination = reinterpret_cast<CompactSingleTextureVertex*>(mapped + draw.vertexOffset);
+                for (const auto& vertex : vertices) {
+                    destination->position = {{vertex.position[0], vertex.position[1], vertex.position[2]}};
+                    destination->color = vertex.color;
+                    destination->uv = {{vertex.texcoords[0][0], vertex.texcoords[0][1]}};
+                    ++destination;
+                }
+            } else if (draw.layout == Impl::VertexLayout::SingleTexture) {
                 auto* destination = mapped + draw.vertexOffset;
                 for (const auto& vertex : vertices) {
                     std::memcpy(destination, &vertex, kSingleTextureVertexBytes);
@@ -2206,7 +2244,9 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         cse_diagnostics::NativeFrameTimings().RecordMetalDrawableWait(c.drawableWaitMs - previousDrawableWait);
         std::fprintf(state.diagnosticsFile,
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
-            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,%llu\n",
+            "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
+            "%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,"
+            "%llu,%llu,%llu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -2236,7 +2276,10 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.sampledTextureCapacityEvictions),
             static_cast<unsigned long long>(c.sampledTextureByteLimitEvictions),
             state.textures.size(), state.textureBytes,
-            static_cast<unsigned long long>(c.colorOnlyScenePasses));
+            static_cast<unsigned long long>(c.colorOnlyScenePasses),
+            static_cast<unsigned long long>(c.singleTextureVertexBytes),
+            static_cast<unsigned long long>(c.twoTextureEligibleVertexBytes),
+            static_cast<unsigned long long>(c.otherVertexBytes));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {
@@ -2463,6 +2506,9 @@ void MetalSession::Shutdown() {
     }
     if (state.singleTextureVertex) {
         SDL_ReleaseGPUShader(state.device, state.singleTextureVertex);
+    }
+    if (state.compactSingleTextureVertex) {
+        SDL_ReleaseGPUShader(state.device, state.compactSingleTextureVertex);
     }
     for (auto* fragment : state.fragments) {
         if (fragment) {
