@@ -163,3 +163,29 @@ Together with the frame diagnostic, they locate most observed presentation
 waiting in drawable availability on this machine. The local ignored sample,
 Metal trace, and game log are in
 `build/metal-cef-20261120/metal-sample-profile/`.
+
+## Post browser-region integrated replay
+
+After the hardware VGUI browser dirty-region correction, the final signed QA
+app replayed the same 60,019-frame demo at 2560×1440 borderless Metal with
+`-nosound`, uncapped FPS and VSync off. Its Release `hw.dylib` SHA-256 was
+`4cc0a12431ef76c38abccd5e5d1d343210bbb5c6b63a3a01cd21f876a255455d`.
+The analyzer accepted all 60,019 reported demo frames, 59,976 connected
+samples, and 59,476 post-warmup focused samples. The game exited zero in
+183.07 seconds with no game or CEF process left.
+
+| Replay | Average FPS | 1% low FPS | Median interval | p95 interval | p99 interval |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Earlier final 1 | 335.22 | 74.74 | 2.039 ms | 8.451 ms | 10.960 ms |
+| Earlier final 2 | 334.28 | 74.37 | 2.055 ms | 8.502 ms | 10.981 ms |
+| Post browser-region | 337.95 | 74.98 | 2.079 ms | 8.398 ms | 11.079 ms |
+
+The third run is within the existing workload's variation and does not prove
+an FPS gain from the browser correction; the fixed demo does not show the
+animated MOTD. It is a whole-game regression check for the updated binary.
+The browser Release and sanitizer suites each passed 6/6, and the Metal
+Release and sanitizer suites each passed 21/21 after this replay. The engine
+and launcher targets rebuilt from the committed source and matched the staged
+QA binaries by SHA-256. The local ignored
+`build/metal-cef-20261120/final-post-region-demo/` directory contains the
+frame log, game log, binary hash and analyzer comparisons.
