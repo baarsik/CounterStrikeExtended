@@ -147,3 +147,19 @@ limit can also increase visual latency. The temporary source change was
 reverted; the final renderer keeps SDL's two-frame default. Raw diagnostic
 traces and analyzer output are in the ignored
 `build/metal-cef-20261120/flight-three-probe/` directory.
+
+## Native presentation sample
+
+A further complete `-nosound -metal` replay of the final two-frame app was
+sampled for 20 seconds with macOS `sample` while the demo was running. It
+reported all 60,019 frames, exited zero, and left no game or CEF process.
+The sampler adds overhead, so its 326.63 FPS demo report is not included in
+the comparative results. Of 2,017 main-thread stack samples under
+`MetalSession::Present`, 1,915 were under QuartzCore's `CAMetalLayer
+nextDrawable`; 1,888 of those were waiting on a dispatch semaphore. Another
+79 samples were in SDL's GPU fence wait before acquiring the drawable. These
+are stack-sample counts from one 20-second window, not per-frame durations.
+Together with the frame diagnostic, they locate most observed presentation
+waiting in drawable availability on this machine. The local ignored sample,
+Metal trace, and game log are in
+`build/metal-cef-20261120/metal-sample-profile/`.
