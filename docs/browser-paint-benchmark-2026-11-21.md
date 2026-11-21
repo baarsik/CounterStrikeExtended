@@ -257,3 +257,16 @@ whole-game speedup or slowdown. A separate Metal visual run showed the
 animated MOTD over `de_dust2`; an OpenGL `-nosound` client connected, received
 586 browser paints, exited zero, and left no process. Live CSV traces and the
 screenshot are in the ignored `build/metal-cef-20261120/region-upload-live/`.
+
+A further candidate-client soak kept the animated MOTD open for 540 seconds
+without frame or host trace logging. Screenshots at minutes one, two and eight
+showed the page's white marker in different positions. The game log recorded
+the loopback connection and the scripted console `quit`; the game and server
+both exited with status zero at 541.02 seconds, with no remaining game, host
+or helper process. The nine minute samples put game RSS between 343,232 and
+346,208 KiB. After the initial CEF warmup, host RSS between minutes three and
+nine was 228,176–229,856 KiB. Game/host file descriptor counts were 134/165
+at minute five and again in a manual check at minute eight. These observations
+bound the tested duration; they do not establish indefinite memory behavior.
+The local ignored `build/metal-cef-20261120/region-candidate-soak/` directory
+contains the script, samples, logs and screenshots.
