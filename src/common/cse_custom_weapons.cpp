@@ -175,7 +175,7 @@ bool AmmoKey(string_view text, Ammo& ammo) {
     }) && Copy(ammo.key, text);
 }
 
-ParseResult SetField(Definition& d, string_view key, string_view value) {
+ParseResult SetField(Definition& d, PrimaryAmmoPurchase& purchase, string_view key, string_view value) {
     for (const auto& field : Counts) {
         if (field.key == key) {
             return Number(value, d.*(field.member), field.maximum) ? ParseResult::Ok : ParseResult::InvalidValue;
@@ -215,6 +215,10 @@ ParseResult SetField(Definition& d, string_view key, string_view value) {
         valid = Number(value, d.primary.capacity);
     } else if (key == "primary_reserve") {
         valid = Number(value, d.primary.initialReserve);
+    } else if (key == "primary_buy_amount") {
+        valid = Number(value, purchase.amount) && purchase.amount > 0;
+    } else if (key == "primary_buy_price") {
+        valid = Number(value, purchase.price) && purchase.price > 0;
     } else if (key == "secondary_capacity") {
         valid = Number(value, d.secondary.capacity);
     } else if (key == "secondary_reserve") {
@@ -376,7 +380,8 @@ bool IsWeaponKey(std::string_view key) {
         IsKey(key.substr(Prefix.size()));
 }
 
-ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* errorLine) {
+ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* errorLine,
+    PrimaryAmmoPurchase* primaryAmmoPurchase) {
     constexpr std::size_t MaxDefinitionBytes = 16 * 1024;
     constexpr std::size_t MaxDefinitionFields = 64;
     if (errorLine) {
@@ -386,6 +391,7 @@ ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* er
         return ParseResult::InvalidLine;
     }
     Definition d{};
+    PrimaryAmmoPurchase purchase{};
     d.damage = 35;
     d.secondaryDamage = 85;
     d.secondaryRadius = 120;
@@ -423,7 +429,7 @@ ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* er
         if (std::find(keys.begin(), keys.begin() + count, key) != keys.begin() + count) {
             return ParseResult::DuplicateField;
         }
-        const auto result = SetField(d, key, Trim(line.substr(delimiter + 1)));
+        const auto result = SetField(d, purchase, key, Trim(line.substr(delimiter + 1)));
         if (result != ParseResult::Ok) {
             return result;
         }
@@ -443,6 +449,7 @@ ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* er
         d.initialClip = d.clip;
     }
     if (d.initialClip > d.clip || !d.damage || !d.fireIntervalMs || !d.reloadMs || !d.range || !d.speed ||
+        ((purchase.amount == 0) != (purchase.price == 0)) ||
         (!d.primary.stock && (!d.primary.capacity || d.primary.initialReserve > d.primary.capacity))) {
         return ParseResult::InvalidValue;
     }
@@ -461,6 +468,9 @@ ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* er
         d.presentation.flags |= Scope;
     }
     out = d;
+    if (primaryAmmoPurchase) {
+        *primaryAmmoPurchase = purchase;
+    }
     return ParseResult::Ok;
 }
 

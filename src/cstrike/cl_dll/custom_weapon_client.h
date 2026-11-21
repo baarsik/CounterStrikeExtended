@@ -7,7 +7,7 @@
 
 namespace cse::weapons {
 
-enum class SpriteRole { Weapon, Selected, Ammo, SecondaryAmmo, Crosshair, Zoom, Death, Count };
+enum class SpriteRole { Weapon, Selected, Ammo, SecondaryAmmo, Crosshair, Zoom, Death, SecondaryCrosshair, Count };
 
 struct HudSprite {
     HSPRITE handle{};
@@ -28,8 +28,8 @@ const Presentation* WeaponPresentation(uint16_t definition);
 const Presentation* ActiveWeaponPresentation(const State& state);
 HudSprite WeaponSprite(uint16_t definition, SpriteRole role);
 void SelectCustomWeapon(uint32_t instance);
-void DrawCustomPickups(float time);
-void DrawCustomAmmo(const State& state, const Presentation& weapon);
+void DrawPrimaryAmmo(int y, int digitWidth, int clip, int reserve, const HudSprite& icon, int alpha);
+void DrawCustomAmmo(const State& state, const Presentation& weapon, int alpha);
 int MoneyYAboveSecondaryAmmo(int stockY);
 
 } // namespace cse::weapons

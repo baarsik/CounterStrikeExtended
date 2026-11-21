@@ -20,6 +20,7 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "ammohistory.h"
+#include "custom_weapon_client.h"
 #include <string.h>
 
 #define AMMO_PICKUP_GAP (gHR.iHistoryGap + 5)
@@ -72,6 +73,15 @@ void HistoryResource::CheckClearHistory()
 	iCurrentHistorySlot = 0;
 }
 
+void HistoryResource::ClearCustomWeapons() {
+    for (auto& item : rgAmmoHistory) {
+        if (item.type == HISTSLOT_CUSTOM_WEAP) {
+            item = {};
+        }
+    }
+    CheckClearHistory();
+}
+
 int HistoryResource::DrawAmmoHistory(float time)
 {
 	for (int i = 0; i < MAX_HISTORY; i++)
@@ -120,6 +130,23 @@ int HistoryResource::DrawAmmoHistory(float time)
 			SPR_Set(weapon->hInactive, r, g, b);
 			SPR_DrawAdditive(0, x, y, &weapon->rcInactive);
 		}
+        else if (item.type == HISTSLOT_CUSTOM_WEAP) {
+            using namespace cse::weapons;
+            const auto definition = static_cast<uint16_t>(item.iId);
+            const auto sprite = WeaponSprite(definition, SpriteRole::Weapon);
+            int r = 255;
+            int g = 160;
+            int b = 0;
+            const int alpha = min(static_cast<int>((item.DisplayTime - time) * 80.0f), 255);
+            ScaleColors(r, g, b, alpha);
+            if (sprite.handle) {
+                SPR_Set(sprite.handle, r, g, b);
+                SPR_DrawAdditive(0, ScreenWidth - sprite.Width(), y, &sprite.rect);
+            } else if (const auto* weapon = WeaponPresentation(definition)) {
+                gEngfuncs.pfnDrawSetTextColor(r / 255.0f, g / 255.0f, b / 255.0f);
+                DrawConsoleString(ScreenWidth - ConsoleStringLen(weapon->label), y, weapon->label);
+            }
+        }
 		else if (item.type == HISTSLOT_ITEM && item.iId)
 		{
 			wrect_t rect = gHUD.GetSpriteRect(item.iId);

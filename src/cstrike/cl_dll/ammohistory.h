@@ -106,6 +106,7 @@ enum {
 	HISTSLOT_AMMO,
 	HISTSLOT_WEAP,
 	HISTSLOT_ITEM,
+	HISTSLOT_CUSTOM_WEAP,
 };
 
 class HistoryResource
@@ -140,6 +141,7 @@ public:
 	void AddToHistory( int iType, const char *szName, int iCount = 0 );
 
 	void CheckClearHistory( void );
+    void ClearCustomWeapons();
 	int DrawAmmoHistory( float flTime );
 };
 

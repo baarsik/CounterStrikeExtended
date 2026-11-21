@@ -17,6 +17,7 @@ float UTIL_SharedRandomFloat( unsigned int seed, float low, float high );
 int UTIL_SharedRandomLong( unsigned int seed, int low, int high );
 int HUD_GetWeaponAnim();
 int HUD_GetWeapon();
+void HUD_InvalidateWeaponAnimation();
 void HUD_SendWeaponAnim( int animation, int weaponId, int body, int force );
 void HUD_PlaySound( char* sound, float volume );
 void HUD_PlaybackEvent( int flags, const struct edict_s* invoker, unsigned short eventIndex,

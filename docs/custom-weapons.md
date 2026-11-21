@@ -19,7 +19,7 @@ cse_weapon_list
 cse_weapon_give 1 weapon_svdex replace
 ```
 
-Select the SVD through the normal weapon controls or with the console command `weapon_svdex`. It starts with 20 rounds in the rifle magazine, 180 in the rifle reserve, and 10 launcher rounds in a separate pool. The launcher count is the blue row above the normal ammo display. Secondary attack changes mode, and primary attack fires the selected mode. Reload replenishes the rifle magazine from the rifle reserve. Another player can use a stock rifle simultaneously. These values and the combat balance are fixture settings for CSE multiplayer.
+Select the SVD through the normal weapon controls or with the console command `weapon_svdex`. It starts with 20 rounds in the rifle magazine, 180 in the rifle reserve, and 10 launcher rounds in a separate pool. The launcher count is the blue row above the normal ammo display. Secondary attack changes mode, and primary attack fires the selected mode. Reload replenishes the rifle magazine from the rifle reserve. The standard primary ammo buy command replenishes up to 30 rifle rounds for $80 when buying is allowed. These values and the combat balance are fixture settings for CSE multiplayer.
 
 The world-spawn command is `cse_weapon_spawn <weapon-key> <x> <y> <z>`. The `cse_weapon_give` policy argument is `reject`, `replace`, or `drop`. In standard rules a player has one primary and one secondary weapon. Set `cse_weapon_shared_slots 1` before testing two independent custom guns in one slot. Set `cse_weapon_require_client 1` for games that require clients with support for the custom weapon protocol.
 
@@ -30,11 +30,13 @@ A definition is a UTF-8 `.cfg` file with one `key=value` field per line. Whitesp
 | Group | Fields |
 | --- | --- |
 | Identity | `version=1`, `key`, `label`, `slot` (0 primary or 1 secondary), `order`, `weight` |
-| Ammo | Required `primary` (`custom:<name>` or `stock:<name>`) and `clip`. Private pools also require `primary_capacity`. Optional fields are `initial_clip` and `primary_reserve`. Set `clip=0` to spend the reserve directly. A launcher also uses `secondary=custom:<name>`, `secondary_capacity` and `secondary_reserve`. Reuse a pool name with the same capacity to share reserve between definitions. |
+| Ammo | Required `primary` (`custom:<name>` or `stock:<name>`) and `clip`. Private pools also require `primary_capacity`. Optional fields are `initial_clip` and `primary_reserve`. Set `clip=0` to spend the reserve directly. Set both `primary_buy_amount` and `primary_buy_price` to enable standard purchases for the primary reserve. A launcher also uses `secondary=custom:<name>`, `secondary_capacity` and `secondary_reserve`. Reuse a pool name with the same capacity to share reserve between definitions. |
 | Models and sound | Required `view`, `player`, and `world` model paths. A launcher requires `projectile`. Optional `fire_sound`, `secondary_sound`, `impact_sound`, and `animation_sound_1` through `animation_sound_8` refer to WAV files under `sound/weapons/`, using `weapons/` in the definition. |
 | Firing and movement | `automatic`, `damage`, `range`, `speed`, `spread` and `recoil` (thousandths), `fire_ms`, `reload_ms`, `deploy_ms`, `zoom`. Launcher options are `secondary_damage`, `secondary_radius`, `projectile_speed`, `secondary_ms` and `switch_ms`. |
 | Animations and HUD | `idle_anim`, `fire_anim`, `reload_anim`, `draw_anim`, optional launcher `secondary_idle_anim`, `secondary_fire_anim`, `secondary_empty_anim`, `secondary_draw_anim`, `switch_to_secondary_anim`, `switch_to_primary_anim`, and `hud` for a sprite descriptor. |
 | Rules | `droppable`, `respawn`, `price`, and `team` (0 any, 1 Terrorist, 2 Counter-Terrorist). |
+
+In the HUD descriptor, `crosshair`, `crosshair2`, and `zoom` provide optional primary, launcher, and zoomed reticles. Without primary reticle art, the client draws the configured Counter-Strike crosshair.
 
 Install the reference GameDLL with the CSE client. The GameDLL can load its catalog directly. On a server stack with a compatible AMX Mod X backend, include `csextended` and register `weapon_svdex` during `plugin_precache` to read the same definition from `csextended/weapons/` under the AMXX data directory. Choose either the GameDLL catalog or the Pawn registration for a definition. The Pawn API reports backend availability and readiness separately. The in-tree GameDLL's initialization requires CSE's checked module ABI, so positive AMXX gameplay qualification requires a CSE-aware Metamod adapter or a separate backend port to an AMXX-supported GameDLL. [Pawn include](../src/amxx/csextended/deploy/csextended.inc) · [Example plugin](../src/amxx/csextended/deploy/examples/weapons.sma)
 

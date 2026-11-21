@@ -68,6 +68,10 @@ int main(int argc, char** argv) {
     assert(definition.presentation.flags & HasSecondary);
     assert(ParseDefinition("version=1\nkey=weapon_svdex\nview=models/../hidden.mdl\n", definition) != ParseResult::Ok);
     assert(ParseDefinition("version=1\nversion=1\n", definition) != ParseResult::Ok);
+    assert(ParseDefinition(std::string(source) + "primary_buy_amount=30\n", definition) ==
+        ParseResult::InvalidValue);
+    assert(ParseDefinition(std::string(source) + "primary_buy_amount=30\nprimary_buy_price=80\n", definition) ==
+        ParseResult::Ok);
     assert(!IsAssetPath("models/test/../hidden.mdl", "models/", ".mdl"));
     assert(IsAssetPath("models/nimroK/weapons/v_svdex.mdl", "models/", ".mdl"));
 
@@ -86,8 +90,10 @@ int main(int argc, char** argv) {
     assert(argc == 2);
     std::ifstream fixture(argv[1], std::ios::binary);
     const std::string fixtureContents{std::istreambuf_iterator<char>(fixture), std::istreambuf_iterator<char>()};
-    assert(ParseDefinition(fixtureContents, definition) == ParseResult::Ok);
+    PrimaryAmmoPurchase purchase{};
+    assert(ParseDefinition(fixtureContents, definition, nullptr, &purchase) == ParseResult::Ok);
     assert(definition.automatic == 1 && definition.clip == 20 && definition.primary.initialReserve == 180);
+    assert(purchase.amount == 30 && purchase.price == 80);
     assert(definition.secondary.initialReserve == 10 && definition.secondaryFireAnim == 5);
     assert(std::strcmp(definition.animationSounds[7], "weapons/svdex_foley4.wav") == 0);
 }

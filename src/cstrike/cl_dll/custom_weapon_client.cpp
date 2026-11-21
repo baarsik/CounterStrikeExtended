@@ -3,6 +3,7 @@
 #include "ammohistory.h"
 #include "custom_weapon_ammo_layout.h"
 #include "custom_weapon_client.h"
+#include "com_weapons.h"
 #include "demo.h"
 #include "demo_api.h"
 #include "event_api.h"
@@ -25,13 +26,12 @@ namespace {
 
 constexpr std::size_t SpriteRoleCount = static_cast<std::size_t>(SpriteRole::Count);
 constexpr std::array<std::string_view, SpriteRoleCount> SpriteNames{
-    "weapon", "weapon_s", "ammo", "ammo2", "crosshair", "zoom", "death"
+    "weapon", "weapon_s", "ammo", "ammo2", "crosshair", "zoom", "death", "crosshair2"
 };
 constexpr unsigned MaxDescriptorBytes = 8192;
 constexpr unsigned MaxDescriptorRows = 64;
 // The engine has 256 HUD sprite handles shared with the normal HUD.
 constexpr std::size_t MaxCustomAtlases = 24;
-constexpr std::size_t MaxPickupRows = 4;
 constexpr double ResyncInterval = 1.0;
 
 struct CatalogEntry {
@@ -46,11 +46,6 @@ struct Catalog {
     uint16_t count{};
     std::array<CatalogEntry, MaxDefinitions + 1> entries{};
     std::array<uint16_t, MaxDefinitions> order{};
-};
-
-struct Pickup {
-    uint16_t definition{};
-    float expires{};
 };
 
 struct Atlas {
@@ -70,7 +65,6 @@ uint32_t observedAnimationInstance;
 uint32_t observedAnimationSerial;
 int observerTarget;
 double nextResync;
-std::array<Pickup, MaxPickupRows> pickups;
 std::array<Atlas, MaxCustomAtlases> atlases;
 std::string levelName;
 
@@ -216,16 +210,6 @@ bool ValidateState(const State& state) {
     return true;
 }
 
-void RememberPickup(uint16_t definition) {
-    constexpr float defaultDuration = 5.0f;
-    const auto* duration = gEngfuncs.pfnGetCvarPointer("hud_drawhistory_time");
-    const float seconds = duration ? duration->value : defaultDuration;
-    if (seconds > 0) {
-        std::move_backward(pickups.begin(), pickups.end() - 1, pickups.end());
-        pickups.front() = {definition, gHUD.m_flTime + seconds};
-    }
-}
-
 void ApplyPacket(const void* data, int size, bool playback, bool demoBootstrap = false) {
     switch (Identify(data, size)) {
         case Message::Begin: {
@@ -277,7 +261,7 @@ void ApplyPacket(const void* data, int size, bool playback, bool demoBootstrap =
                 catalog = pending;
                 local = {};
                 observed = {};
-                pickups = {};
+                gHR.ClearCustomWeapons();
                 stateSequence = 0;
                 killSequence = 0;
                 nextResync = 0;
@@ -303,16 +287,25 @@ void ApplyPacket(const void* data, int size, bool playback, bool demoBootstrap =
                 break;
             }
             stateSequence = state.sequence;
+            const auto& previous = observing ? observed : local;
+            if (state.active && (state.active != previous.active || state.clip != previous.clip ||
+                state.reserve != previous.reserve || state.secondary != previous.secondary)) {
+                constexpr float ammoUpdateFade = 200.0f; // Same fade as CurWeapon.
+                gHUD.m_Ammo.m_fFade = ammoUpdateFade;
+            }
             if (observing) {
                 observed = state;
             } else {
                 observed = {};
+                if (state.active && state.active != local.active) {
+                    HUD_InvalidateWeaponAnimation();
+                }
                 local = state;
                 if (demoBootstrap && state.active && state.animationSerial && gEngfuncs.pEventAPI) {
                     gEngfuncs.pEventAPI->EV_WeaponAnimation(state.animation, 0);
                 }
                 if (state.pickup) {
-                    RememberPickup(state.pickup);
+                    gHR.AddToHistory(HISTSLOT_CUSTOM_WEAP, state.pickup);
                 }
             }
             break;
@@ -392,10 +385,14 @@ AmmoHud PrepareAmmoHud(const Presentation& weapon) {
                                                           primary.Height(), secondary.Height())};
 }
 
-int DrawAmmoCount(int right, int y, int digitWidth, uint16_t count, int r, int g, int b) {
+int DrawAmmoNumber(int x, int y, int digitWidth, int count, int r, int g, int b) {
+    constexpr int stockAmmoDigits = 3;
+    if (AmmoDigits(count) <= stockAmmoDigits) {
+        return gHUD.DrawHudNumber(x, y, DHN_3DIGITS | DHN_DRAWZERO, count, r, g, b);
+    }
+    // Private pools can exceed the three-digit range of the stock overload.
     constexpr int hudNumberColumns = 5;
-    gHUD.DrawHudNumber(right - hudNumberColumns * digitWidth, y, count, r, g, b);
-    return right - AmmoDigits(count) * digitWidth;
+    return gHUD.DrawHudNumber(x + (AmmoDigits(count) - hudNumberColumns) * digitWidth, y, count, r, g, b);
 }
 
 } // namespace
@@ -411,7 +408,7 @@ void ResetWeaponSession() {
     pending = {};
     local = {};
     observed = {};
-    pickups = {};
+    gHR.ClearCustomWeapons();
     atlases = {};
     stateSequence = 0;
     killSequence = 0;
@@ -518,53 +515,45 @@ void SelectCustomWeapon(uint32_t instance) {
     }
 }
 
-void DrawCustomPickups(float time) {
-    constexpr float fadeTime = 1.0f;
-    int y = ScreenHeight / 2;
-    for (const auto& pickup : pickups) {
-        const auto* definition = WeaponPresentation(pickup.definition);
-        if (!definition || time >= pickup.expires) {
-            continue;
-        }
-        const auto sprite = WeaponSprite(pickup.definition, SpriteRole::Weapon);
-        const float brightness = (std::min)(fadeTime, pickup.expires - time);
-        const int inset = gHUD.m_iFontHeight;
-        if (sprite.handle) {
-            DrawIcon(sprite, ScreenWidth - inset - sprite.Width(), y,
-                     static_cast<int>(255 * brightness), static_cast<int>(160 * brightness), 0);
-        } else {
-            const int width = ConsoleStringLen(definition->label);
-            gEngfuncs.pfnDrawSetTextColor(brightness, 0.625f * brightness, 0.0f);
-            DrawConsoleString(ScreenWidth - inset - width, y, definition->label);
-        }
-        y += (std::max)(gHUD.m_iFontHeight, sprite.Height()) + inset / 4;
+void DrawPrimaryAmmo(int y, int digitWidth, int clip, int reserve, const HudSprite& icon, int alpha) {
+    constexpr int stockAmmoDigits = 3;
+    constexpr int reserveColumns = 4;
+    constexpr int clipAndReserveColumns = 8;
+    const int extraReserveDigits = (std::max)(0, AmmoDigits(reserve) - stockAmmoDigits);
+    int r;
+    int g;
+    int b;
+    UnpackRGB(r, g, b, RGB_YELLOWISH);
+    int x = ScreenWidth - icon.Width() - (reserveColumns + extraReserveDigits) * digitWidth;
+    if (clip >= 0) {
+        const int extraClipDigits = (std::max)(0, AmmoDigits(clip) - stockAmmoDigits);
+        x -= (clipAndReserveColumns - reserveColumns + extraClipDigits) * digitWidth;
+        int clipRed = r;
+        int clipGreen = g;
+        int clipBlue = b;
+        ScaleColors(clipRed, clipGreen, clipBlue, alpha);
+        x = DrawAmmoNumber(x, y, digitWidth, clip, clipRed, clipGreen, clipBlue) + digitWidth / 2;
+        const int barWidth = digitWidth / 10;
+        FillRGBA(x, y, barWidth, gHUD.m_iFontHeight, r, g, b, alpha);
+        x += barWidth + digitWidth / 2;
     }
+    ScaleColors(r, g, b, alpha);
+    x = DrawAmmoNumber(x, y, digitWidth, reserve, r, g, b);
+    DrawIcon(icon, x, y - icon.Height() / 8, r, g, b);
 }
 
-void DrawCustomAmmo(const State& state, const Presentation& weapon) {
-    constexpr int PrimaryRed = 255;
-    constexpr int PrimaryGreen = 160;
-    constexpr int PrimaryBlue = 0;
+void DrawCustomAmmo(const State& state, const Presentation& weapon, int alpha) {
     constexpr int SecondaryRed = 64;
     constexpr int SecondaryGreen = 160;
     constexpr int SecondaryBlue = 255;
 
     const auto [digitWidth, primary, secondary, layout] = PrepareAmmoHud(weapon);
-    const int primaryX = layout.rightEdge - primary.Width();
-    const int reserveX = DrawAmmoCount(primaryX, layout.primaryY, digitWidth, state.reserve,
-                                      PrimaryRed, PrimaryGreen, PrimaryBlue);
-    DrawIcon(primary, primaryX, layout.primaryY - primary.Height() / 8, PrimaryRed, PrimaryGreen, PrimaryBlue);
-    if (!(state.flags & NoClip)) {
-        const int gap = digitWidth / 2;
-        const int lineWidth = (std::max)(1, digitWidth / 10);
-        const int lineX = reserveX - gap - lineWidth;
-        FillRGBA(lineX, layout.primaryY, lineWidth, gHUD.m_iFontHeight, PrimaryRed, PrimaryGreen, PrimaryBlue, 255);
-        DrawAmmoCount(lineX - gap, layout.primaryY, digitWidth, state.clip, PrimaryRed, PrimaryGreen, PrimaryBlue);
-    }
+    DrawPrimaryAmmo(layout.primaryY, digitWidth, state.flags & NoClip ? -1 : state.clip, state.reserve, primary, alpha);
     if (weapon.flags & HasSecondary) {
         const int secondaryX = layout.rightEdge - secondary.Width();
-        DrawAmmoCount(secondaryX, layout.secondaryY, digitWidth, state.secondary,
-                      SecondaryRed, SecondaryGreen, SecondaryBlue);
+        const int numberColumns = (std::max)(3, AmmoDigits(state.secondary));
+        DrawAmmoNumber(secondaryX - numberColumns * digitWidth, layout.secondaryY, digitWidth, state.secondary,
+                       SecondaryRed, SecondaryGreen, SecondaryBlue);
         DrawIcon(secondary, secondaryX, layout.secondaryY - secondary.Height() / 8,
                  SecondaryRed, SecondaryGreen, SecondaryBlue);
     }

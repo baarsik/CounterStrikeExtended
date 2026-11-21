@@ -842,8 +842,9 @@ void HUD_WeaponsPostThink( local_state_s* from, local_state_s* to, usercmd_t* cm
 	to->client.vuser2 = Vector( (float)player.ammo_762nato, (float)player.ammo_45acp, (float)player.ammo_50ae );
 	to->client.vuser3 = Vector( (float)player.ammo_338mag, (float)player.ammo_57mm, (float)player.ammo_357sig );
 	to->client.iuser3 = userFlags;
-	if ( g_runfuncs && ( HUD_GetWeaponAnim() != to->client.weaponanim || HUD_GetWeapon() != weapon->m_iId ) )
-		HUD_SendWeaponAnim( to->client.weaponanim, weapon->m_iId, 2, 1 );
+    if (g_runfuncs && (HUD_GetWeaponAnim() != to->client.weaponanim || HUD_GetWeapon() != to->client.m_iId)) {
+        HUD_SendWeaponAnim(to->client.weaponanim, to->client.m_iId, 2, 1);
+    }
 	if ( (unsigned int)weapon->m_iPrimaryAmmoType > 31 )
 	{
 		to->client.vuser4.x = -1;
@@ -903,18 +904,17 @@ void HUD_WeaponsPostThink( local_state_s* from, local_state_s* to, usercmd_t* cm
 extern "C" void HUD_PostRunCmd( local_state_s* from, local_state_s* to, usercmd_t* cmd, int runFunctions, double time, unsigned int randomSeed )
 {
 	g_runfuncs = runFunctions;
-    if (cse::weapons::ActiveWeaponView()) {
-        // A custom weapon has no client-side weapon object. Keep movement and the
-        // authoritative view state while the new active weapon is acknowledged.
+    if (from->client.m_iId == WEAPON_NONE && g_runfuncs) {
+        // Server-driven animations can replace a cached stock sequence while no stock weapon is predicted.
+        HUD_InvalidateWeaponAnimation();
+    }
+    if (from->client.m_iId == WEAPON_NONE && cse::weapons::ActiveWeaponView()) {
         g_bHoldingKnife = false;
         g_bHoldingShield = false;
         g_iWeaponFlags = 0;
         g_iShotsFired = 0;
         g_iPlayerFlags = to->client.flags;
         g_flPlayerSpeed = to->client.velocity.Length();
-        if (from->client.m_iId != WEAPON_NONE) {
-            to->client.fov = g_lastFOV;
-        }
     } else {
         HUD_WeaponsPostThink(from, to, cmd, time, randomSeed);
         to->client.fov = g_lastFOV;

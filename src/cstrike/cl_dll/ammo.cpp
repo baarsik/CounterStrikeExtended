@@ -1148,31 +1148,41 @@ int CHudAmmo::Draw(float flTime)
     wasCustomCrosshair = customWeapon != nullptr;
     if (customWeapon && !gHUD.m_iIntermission) {
         const int hidden = gHUD.m_iHideHUDDisplay;
+        SetCrosshair(0, {}, 0, 0, 0);
         const bool showCrosshair = !(hidden & (HIDEHUD_CROSSHAIR | HIDEHUD_ALL));
         if (showCrosshair) {
+            using cse::weapons::SpriteRole;
             constexpr int defaultFieldOfView = 90;
             const bool zoomed = (customWeapon->flags & cse::weapons::Scope) &&
                 customView->zoom > 0 && customView->zoom < defaultFieldOfView;
-            const auto role = zoomed ? cse::weapons::SpriteRole::Zoom : cse::weapons::SpriteRole::Crosshair;
+            const auto unzoomedRole = customView->flags & cse::weapons::SecondaryMode ?
+                SpriteRole::SecondaryCrosshair : SpriteRole::Crosshair;
+            const auto role = zoomed ? SpriteRole::Zoom : unzoomedRole;
             auto crosshair = cse::weapons::WeaponSprite(customWeapon->id, role);
             if (!crosshair.handle && zoomed) {
                 const WEAPON* sniper = gWR.GetWeapon(WEAPON_AWP);
                 crosshair = {sniper->hZoomedCrosshair, sniper->rcZoomedCrosshair};
+            } else if (!crosshair.handle && role == SpriteRole::SecondaryCrosshair) {
+                crosshair = cse::weapons::WeaponSprite(customWeapon->id, SpriteRole::Crosshair);
             }
-            SetCrosshair(crosshair.handle, crosshair.rect, 255, 255, 255);
-            if (!crosshair.handle) {
+            if (crosshair.handle) {
+                SPR_Set(crosshair.handle, 255, 255, 255);
+                SPR_DrawHoles(0, (ScreenWidth - crosshair.Width()) / 2,
+                    (ScreenHeight - crosshair.Height()) / 2, &crosshair.rect);
+            } else {
                 DrawCrosshair(flTime, WEAPON_NONE);
             }
-        } else {
-            SetCrosshair(0, {}, 0, 0, 0);
         }
         if (!(hidden & (HIDEHUD_WEAPONS | HIDEHUD_ALL))) {
             if (!g_iUser1) {
                 DrawWList(flTime);
                 gHR.DrawAmmoHistory(flTime);
-                cse::weapons::DrawCustomPickups(flTime);
             }
-            cse::weapons::DrawCustomAmmo(*customView, *customWeapon);
+            const int alpha = max<int>(MIN_ALPHA, m_fFade);
+            if (m_fFade > 0) {
+                m_fFade -= gHUD.m_flTimeDelta * 20;
+            }
+            cse::weapons::DrawCustomAmmo(*customView, *customWeapon, alpha);
         }
         return 1;
     }
@@ -1217,7 +1227,6 @@ int CHudAmmo::Draw(float flTime)
 
 		// Draw ammo pickup history
 		gHR.DrawAmmoHistory(flTime);
-        cse::weapons::DrawCustomPickups(flTime);
 		if (!(m_iFlags & HUD_ACTIVE))
 			return 0;
 	}
@@ -1255,49 +1264,8 @@ int CHudAmmo::Draw(float flTime)
 	// Does weapon have any ammo at all?
 	if (m_pWeapon->iAmmoType > 0)
 	{
-		int iIconWidth = m_pWeapon->rcAmmo.right - m_pWeapon->rcAmmo.left;
-
-		if (pw->iClip >= 0)
-		{
-			// room for the number and the '|' and the current ammo
-
-			x = ScreenWidth - (8 * AmmoWidth) - iIconWidth;
-			x = gHUD.DrawHudNumber(x, y, iFlags | DHN_3DIGITS, pw->iClip, r, g, b);
-
-			wrect_t rc;
-			rc.top = 0;
-			rc.left = 0;
-			rc.right = AmmoWidth;
-			rc.bottom = 100;
-
-			int iBarWidth =  AmmoWidth/10;
-
-			x += AmmoWidth/2;
-
-			UnpackRGB(r,g,b, RGB_YELLOWISH);
-
-			// draw the | bar
-			FillRGBA(x, y, iBarWidth, gHUD.m_iFontHeight, r, g, b, a);
-
-			x += iBarWidth + AmmoWidth/2;;
-
-			// GL Seems to need this
-			ScaleColors(r, g, b, a );
-			x = gHUD.DrawHudNumber(x, y, iFlags | DHN_3DIGITS, gWR.CountAmmo(pw->iAmmoType), r, g, b);
-
-
-		}
-		else
-		{
-			// SPR_Draw a bullets only line
-			x = ScreenWidth - 4 * AmmoWidth - iIconWidth;
-			x = gHUD.DrawHudNumber(x, y, iFlags | DHN_3DIGITS, gWR.CountAmmo(pw->iAmmoType), r, g, b);
-		}
-
-		// Draw the ammo Icon
-		int iOffset = (m_pWeapon->rcAmmo.bottom - m_pWeapon->rcAmmo.top)/8;
-		SPR_Set(m_pWeapon->hAmmo, r, g, b);
-		SPR_DrawAdditive(0, x, y - iOffset, &m_pWeapon->rcAmmo);
+        cse::weapons::DrawPrimaryAmmo(y, AmmoWidth, pw->iClip, gWR.CountAmmo(pw->iAmmoType),
+            {m_pWeapon->hAmmo, m_pWeapon->rcAmmo}, a);
 	}
 
 	// Does weapon have seconday ammo?

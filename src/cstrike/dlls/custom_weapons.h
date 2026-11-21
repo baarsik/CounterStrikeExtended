@@ -20,6 +20,7 @@ void UpdateClient(CBasePlayer& player);
 void ClearAmmo(CBasePlayer& player);
 
 bool IsCustom(const CBasePlayerItem* item);
+bool BuyPrimaryAmmo(CBasePlayer& player, CBasePlayerItem& item, bool showInsufficientFunds);
 int Weight(CBasePlayerItem* item);
 bool BlocksStockPickup(const CBasePlayer& player, int slot);
 bool BlocksStockPurchase(const CBasePlayer& player, bool primary);

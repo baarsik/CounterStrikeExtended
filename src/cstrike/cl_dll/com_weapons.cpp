@@ -79,6 +79,10 @@ int HUD_GetWeapon()
 	return g_currentweapon;
 }
 
+void HUD_InvalidateWeaponAnimation() {
+    g_currentweapon = 0;
+}
+
 void HUD_PlaySound( char* sound, float volume )
 {
 	if ( g_runfuncs && g_finalstate )

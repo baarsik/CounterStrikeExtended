@@ -559,11 +559,11 @@ void DropPrimary( CBasePlayer* player )
 
 bool BuyGunAmmo( CBasePlayer& player, CBasePlayerItem& weapon, bool blinkMoney )
 {
-    if (cse::weapons::server::IsCustom(&weapon)) {
-        return false;
-    }
 	if ( !player.CanPlayerBuy( true ) )
 		return false;
+    if (cse::weapons::server::IsCustom(&weapon)) {
+        return cse::weapons::server::BuyPrimaryAmmo(player, weapon, blinkMoney && g_bClientPrintEnable);
+    }
 	int ammoIndex = weapon.PrimaryAmmoIndex();
 	if ( ammoIndex == -1 || player.m_rgAmmo[ammoIndex] >= CBasePlayerItem::ItemInfoArray[weapon.m_iId].iMaxAmmo1 )
 		return false;
@@ -652,13 +652,7 @@ bool BuyAmmo( CBasePlayer* player, int slot, bool blinkMoney )
 		weapon = player->m_rgpPlayerItems[2];
     bool bought = false;
     for (; weapon; weapon = weapon->m_pNext) {
-        if (cse::weapons::server::IsCustom(weapon)) {
-            continue;
-        }
-        if (!BuyGunAmmo(*player, *weapon, blinkMoney)) {
-            return false;
-        }
-        bought = true;
+        bought |= BuyGunAmmo(*player, *weapon, blinkMoney);
     }
     return bought;
 }

@@ -90,6 +90,12 @@ struct Definition {
     uint8_t weight;
 };
 
+// Server configuration kept outside the versioned backend Definition structure.
+struct PrimaryAmmoPurchase {
+    uint16_t amount;
+    uint16_t price;
+};
+
 struct Begin {
     uint32_t generation;
     uint16_t count;
@@ -147,7 +153,8 @@ enum class ParseResult { Ok, InvalidLine, UnknownField, DuplicateField, InvalidV
 
 bool IsAssetPath(std::string_view path, std::string_view root, std::string_view extension);
 bool IsWeaponKey(std::string_view key);
-ParseResult ParseDefinition(std::string_view text, Definition& definition, unsigned* errorLine = nullptr);
+ParseResult ParseDefinition(std::string_view text, Definition& definition, unsigned* errorLine = nullptr,
+    PrimaryAmmoPurchase* primaryAmmoPurchase = nullptr);
 
 inline constexpr uint32_t InitialDigest = 2166136261u;
 uint32_t UpdateDigest(uint32_t digest, const CatalogItem& item);

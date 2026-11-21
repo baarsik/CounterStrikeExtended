@@ -13,6 +13,7 @@
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
+#include "client.h"
 #include "player.h"
 #include "weapons.h"
 #include "gamerules.h"
@@ -34,7 +35,6 @@ constexpr float ProjectileLifetime = 6.0f;
 constexpr float ProjectileImpactOffset = 1.0f;
 constexpr size_t WeaponPrefixLength = sizeof("weapon_") - 1;
 constexpr float DropLifetime = 300.0f;
-constexpr float DropOwnerDelay = 1.0f;
 constexpr float CatalogRetryDelay = 1.0f;
 constexpr float CatalogPacketInterval = 0.05f;
 constexpr unsigned MaxCatalogAttempts = 4;
@@ -66,6 +66,7 @@ struct AmmoPool {
 
 struct Entry {
     Definition definition{};
+    PrimaryAmmoPurchase purchase{};
     std::string source;
     Result status = Result::Pending;
     const AmmoPool* primary = nullptr;
@@ -324,7 +325,7 @@ Result RegisterFile(const char* path) {
     }
     Entry entry;
     unsigned line = 0;
-    const ParseResult parsed = ParseDefinition(contents, entry.definition, &line);
+    const ParseResult parsed = ParseDefinition(contents, entry.definition, &line, &entry.purchase);
     if (parsed != ParseResult::Ok) {
         ALERT(at_console, "CSE weapons: %s:%u rejected (parse result %d)\n", path, line, static_cast<int>(parsed));
         return Result::InvalidDefinition;
@@ -525,6 +526,21 @@ void CustomProjectile::Touch(CBaseEntity* other) {
     if (definition_->impactSound[0]) {
         EMIT_SOUND(edict(), CHAN_WEAPON, definition_->impactSound, VOL_NORM, ATTN_NORM);
     }
+    constexpr int ExplosionScale = 30; // TE_EXPLOSION encodes scale in tenths.
+    constexpr int ExplosionFrameRate = 15;
+    constexpr float ExplosionSurfaceOffset = 32.0f;
+    const TraceResult impact = UTIL_GetGlobalTrace();
+    const Vector effectOrigin = blastOrigin + impact.vecPlaneNormal * ExplosionSurfaceOffset;
+    MESSAGE_BEGIN(MSG_PVS, SVC_TEMPENTITY, effectOrigin);
+    WRITE_BYTE(TE_EXPLOSION);
+    WRITE_COORD(effectOrigin.x);
+    WRITE_COORD(effectOrigin.y);
+    WRITE_COORD(effectOrigin.z);
+    WRITE_SHORT(g_sModelIndexFireball);
+    WRITE_BYTE(ExplosionScale);
+    WRITE_BYTE(ExplosionFrameRate);
+    WRITE_BYTE(definition_->impactSound[0] ? TE_EXPLFLAG_NOSOUND : TE_EXPLFLAG_NONE);
+    MESSAGE_END();
     {
         AttackContext attack(identity_);
         constexpr int DamageType = DMG_EXPLOSION | DMG_NEVERGIB;
@@ -563,6 +579,7 @@ public:
     void KeyValue(KeyValueData* data) override;
     void Think() override;
     void Touch(CBaseEntity* other) override;
+    void SetObjectCollisionBox() override;
     int ObjectCaps() override { return FCAP_DONT_SAVE; }
 
     int AddToPlayer(CBasePlayer* player) override;
@@ -590,6 +607,7 @@ public:
     const Definition& Specs() const { return entry_->definition; }
     const AmmoPool* Primary() const { return entry_->primary; }
     const AmmoPool* Secondary() const { return entry_->secondary; }
+    const PrimaryAmmoPurchase& AmmoPurchase() const { return entry_->purchase; }
     bool IsSecondaryMode() const { return secondaryMode_; }
     bool IsPickupTemplate() const { return mapTemplate_; }
     uint32_t AnimationSerial() const { return animationSerial_; }
@@ -615,8 +633,6 @@ private:
     float nextAttack_;
     float nextSwitch_;
     float nextIdle_;
-    float pickupAfter_;
-    EHANDLE previousOwner_;
 };
 
 LINK_ENTITY_TO_CLASS(cse_custom_weapon, CustomWeapon)
@@ -689,9 +705,7 @@ bool CustomWeapon::Create(const Entry& entry) {
 void CustomWeapon::SetLoose(const Vector& origin, const Vector& velocity, CBasePlayer* previous, bool expired) {
     m_pPlayer = nullptr;
     m_pNext = nullptr;
-    previousOwner_ = previous;
-    pickupAfter_ = previous ? gpGlobals->time + DropOwnerDelay : 0.0f;
-    pev->owner = nullptr;
+    pev->owner = previous ? previous->edict() : nullptr;
     pev->aiment = nullptr;
     pev->movetype = MOVETYPE_TOSS;
     pev->effects &= ~EF_NODRAW;
@@ -702,8 +716,15 @@ void CustomWeapon::SetLoose(const Vector& origin, const Vector& velocity, CBaseP
     pev->velocity = velocity;
     pev->nextthink = expired ? gpGlobals->time + DropLifetime : 0.0f;
     SET_MODEL(edict(), Specs().worldModel);
-    UTIL_SetSize(pev, Vector(-16, -16, 0), Vector(16, 16, 16));
+    UTIL_SetSize(pev, g_vecZero, g_vecZero);
     UTIL_SetOrigin(pev, origin);
+}
+
+void CustomWeapon::SetObjectCollisionBox() {
+    // Match the point-sized physics and broader touch area of a stock weapon box.
+    constexpr float pickupRadius = 16.0f;
+    pev->absmin = pev->origin + Vector(-pickupRadius, -pickupRadius, 0);
+    pev->absmax = pev->origin + Vector(pickupRadius, pickupRadius, pickupRadius);
 }
 
 void CustomWeapon::ResetTemplate() {
@@ -764,7 +785,7 @@ CustomWeapon* SpawnWeapon(const Entry& entry, const Vector& origin) {
 
 void CustomWeapon::Touch(CBaseEntity* other) {
     if (!entry_ || m_pPlayer || (pev->flags & FL_KILLME) || !(pev->flags & FL_ONGROUND) || !other ||
-        !other->IsPlayer() || (other->edict() == previousOwner_.Get() && gpGlobals->time < pickupAfter_)) {
+        !other->IsPlayer()) {
         return;
     }
     auto& player = static_cast<CBasePlayer&>(*other);
@@ -1651,8 +1672,8 @@ void UpdateClient(CBasePlayer& player) {
         }
     }
     const bool viewChanged = state.active != client->lastState.active || state.subject != client->lastState.subject;
-    if ((!viewChanged && gpGlobals->time < client->nextState) ||
-        (!client->pickup && !Changed(state, client->lastState))) {
+    if (!client->pickup && ((!viewChanged && gpGlobals->time < client->nextState) ||
+        !Changed(state, client->lastState))) {
         return;
     }
     state.sequence = ++client->sequence;
@@ -1718,6 +1739,26 @@ void ClearAmmo(CBasePlayer& player) {
 
 bool IsCustom(const CBasePlayerItem* item) {
     return dynamic_cast<const CustomWeapon*>(item) != nullptr;
+}
+
+bool BuyPrimaryAmmo(CBasePlayer& player, CBasePlayerItem& item, bool showInsufficientFunds) {
+    const auto& weapon = static_cast<const CustomWeapon&>(item);
+    const auto& purchase = weapon.AmmoPurchase();
+    const AmmoPool* pool = weapon.Primary();
+    if (!purchase.amount || ReserveAmount(&player, pool) >= pool->capacity) {
+        return false;
+    }
+    if (player.m_iAccount < purchase.price) {
+        if (showInsufficientFunds) {
+            ClientPrint(player.pev, HUD_PRINTCENTER, "#Not_Enough_Money");
+            BlinkAccount(&player, 2);
+        }
+        return false;
+    }
+    AddReserve(player, pool, purchase.amount);
+    player.AddAccount(-static_cast<int>(purchase.price), true);
+    EMIT_SOUND(player.edict(), CHAN_ITEM, "items/9mmclip1.wav", VOL_NORM, ATTN_NORM);
+    return true;
 }
 
 int Weight(CBasePlayerItem* item) {
