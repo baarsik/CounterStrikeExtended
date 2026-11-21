@@ -53,3 +53,9 @@ coverage. It excludes the first 500 connected samples, rejects focus or menu
 changes in the measured window, and reports average FPS, 1% low FPS, and
 median/p95/p99 frame intervals. Report individual runs as well as paired
 changes; a single favorable run is not enough to establish an improvement.
+
+The opt-in `CSE_FRAME_TIME_LOG` recorder retains up to 120,000 frame samples
+in game memory and writes them at shutdown. Its process RSS includes this
+growing diagnostic buffer, and a longer run can outlive the recorded samples.
+Use a shorter fixed replay for FPS comparisons; omit the recorder when
+checking sustained game-process memory.
