@@ -78,6 +78,15 @@ smoke run. The log recorded `Spawn Server c1a0` and the scripted `quit` marker;
 helper remained. Its log and metadata are under the local ignored
 `build/metal-cef-20261120/final-half-life-smoke/` directory.
 
+A separate `-nosound -metal` Half-Life multiplayer smoke used the same final
+engine and joined a local `crossfire` dedicated server. The frame log recorded
+1,062 connected frames, then the scripted `quit` completed with exit code zero
+and left no game or CEF helper process. The browser provider initialized, but
+this normal Half-Life MOTD did not create a CEF browser; the run validates the
+shared engine and renderer path, not Half-Life browser painting. Its logs and
+metadata are under the local ignored
+`build/metal-cef-20261120/final-half-life-motd/` directory.
+
 ## OpenGL reference on the final integrated build
 
 The same signed QA app, assets, demo, 2560×1440 borderless window, VSync-off
