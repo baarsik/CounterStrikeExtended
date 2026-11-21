@@ -44,3 +44,20 @@ markers and exited zero. Raw frame traces, counters, metadata and comparisons
 are retained in the local ignored `build/metal-cef-20261120/` directory under
 `compact-profile-a/`, `sweep-profile-a/`, `sweep-unprofiled-*/`, and
 `comparison-sweep-*.json`.
+
+## Live map-transition validation
+
+The final integrated macOS QA client joined a local Counter-Strike dedicated
+server with `-nosound -metal` at 1280×720 borderless. The server changed from
+`de_dust2` to `cs_office`, `de_inferno`, and back to `de_dust2` while the client
+remained open. Its log recorded all four server generations and 4,298
+connected game frames. CEF paint callbacks were observed before the first map
+change; the bounded host trace filled after 2,048 events, so it does not prove
+paint activity across all four maps.
+
+The Metal diagnostic recorded 4,617 rows, 55 stream-buffer allocations and
+three evictions, ending with 22.4 MiB of retained stream capacity. The client
+then issued `quit`, exited zero, and left no game, browser host, or helper
+process. This checks resource lifetime through map rebuilding, not an FPS
+change. Server and game logs, traces, and metadata are under the local ignored
+`build/metal-cef-20261120/final-mapcycle/` directory.
