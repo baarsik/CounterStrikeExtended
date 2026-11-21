@@ -130,3 +130,20 @@ retained final-color target before the swapchain blit, whereas the matching
 difference is a plausible contributor, not an isolated cause. The tests were
 not interleaved, and no rendering behavior was changed. Raw results are under
 the local ignored `build/metal-cef-20261120/final-nomsaa-demo/` directory.
+
+## Frames-in-flight diagnostic
+
+SDL Metal defaults to two permitted frames in flight. A separate, signed app
+copy temporarily requested three after device creation. It replayed the same
+60,019-frame demo with `-nosound -metal`, the same borderless window and
+settings, and both frame and Metal diagnostic traces enabled. The complete
+replay exited zero with no game or CEF process left. Against the diagnostic
+two-frame run above, the measured average was 333.90 versus 333.75 FPS,
+1% low was 74.87 versus 74.29 FPS, and p95 interval was 8.511 versus
+8.575 ms (two versus three frames). Drawable acquisition p95 was 6.768 versus
+6.772 ms. A single ordered pair cannot resolve very small differences, but
+there was no useful improvement in the measured tail. A larger in-flight
+limit can also increase visual latency. The temporary source change was
+reverted; the final renderer keeps SDL's two-frame default. Raw diagnostic
+traces and analyzer output are in the ignored
+`build/metal-cef-20261120/flight-three-probe/` directory.
