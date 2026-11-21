@@ -178,7 +178,8 @@ frame interval, exited zero, and left no game or helper process. These runs
 show no browser-cadence or capped-game regression, and no demonstrated game
 FPS gain. A native paint test verifies retained pixels for clipped, resized,
 missing, invalid and multi-rectangle damage. Release and sanitizer browser
-suites passed 6/6. Two further candidate clients exited zero in 29.724 and
+suites passed 6/6; the paint fixture also passed on Windows x64 under MSVC
+`/W4 /WX`. Two further candidate clients exited zero in 29.724 and
 29.735 seconds after their active CEF host was stopped with `SIGSTOP`, with no
 remaining game or helper process. The local live traces and screenshot are
 under `build/metal-cef-20261120/cef-partial-copy-live/` and

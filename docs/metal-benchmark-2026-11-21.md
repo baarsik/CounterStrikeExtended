@@ -71,3 +71,9 @@ frame to 91.0 MiB at exit, with a 160 MiB observed maximum. The sampled game
 process RSS was 1705–1716 MiB from 20 to 180 seconds; that figure includes the
 whole game process, not just Metal resources. The trace and memory samples are
 in the local ignored `build/metal-cef-20261120/final-metal-profile/` directory.
+
+The shared runtime also loaded Half-Life `c1a0` in a separate `-nosound -metal`
+smoke run. The log recorded `Spawn Server c1a0` and the scripted `quit` marker;
+496 frame-log rows were written, the process exited zero, and no game or CEF
+helper remained. Its log and metadata are under the local ignored
+`build/metal-cef-20261120/final-half-life-smoke/` directory.
