@@ -19,6 +19,7 @@
 //
 
 #include "hud.h"
+#include "crosshair_geometry.h"
 #include "crosshair_recovery.h"
 #include "money_hud_layout.h"
 #include "cl_util.h"
@@ -311,7 +312,8 @@ int CHudAmmo::Init(void)
 	CVAR_CREATE("cl_observercrosshair", "1", 0);
 	CVAR_CREATE("cl_crosshair_color", "50 250 50", FCVAR_ARCHIVE);
 	CVAR_CREATE("cl_crosshair_translucent", "1", FCVAR_ARCHIVE);
-	CVAR_CREATE("cl_crosshair_size", "0", FCVAR_ARCHIVE);
+    CVAR_CREATE(cse::crosshair::SizeCvar, "0", FCVAR_ARCHIVE);
+    CVAR_CREATE(cse::crosshair::ShapeCvar, "0", FCVAR_ARCHIVE);
 
 	m_iFlags |= HUD_ACTIVE | HUD_INTERMISSION;
 	m_bObserverCrosshair = 0;
@@ -325,7 +327,6 @@ int CHudAmmo::Init(void)
 	m_cvarR = m_cvarG = m_cvarB = -1;
 	m_iCurrentCrosshair = 0;
 	m_bAdditive = true;
-	m_iCrosshairScaleBase = 1024;
 
 	gWR.Init();
 	gHR.Init();
@@ -1570,42 +1571,6 @@ void CHudAmmo::CalculateCrosshairDrawMode()
 		gEngfuncs.Con_Printf("usage: cl_crosshair_translucent <1|0>\n");
 }
 
-void CHudAmmo::CalculateCrosshairSize()
-{
-	const char *text = CVAR_GET_STRING("cl_crosshair_size");
-	if (!text)
-		return;
-	int size = atoi(text);
-	if ((unsigned int)size >= 4 || (!size && strcmp(text, "0")))
-		size = -1;
-	if (!stricmp(text, "auto"))
-		size = 0;
-	else if (!stricmp(text, "small"))
-		size = 1;
-	else if (!stricmp(text, "medium"))
-		size = 2;
-	else if (!stricmp(text, "large"))
-		size = 3;
-	switch (size)
-	{
-	case -1:
-		gEngfuncs.Con_Printf("usage: cl_crosshair_size <auto|small|medium|large>\n");
-		break;
-	case 0:
-		m_iCrosshairScaleBase = ScreenWidth <= 640 ? 1024 : (ScreenWidth <= 1023 ? 800 : 640);
-		break;
-	case 1:
-		m_iCrosshairScaleBase = 1024;
-		break;
-	case 2:
-		m_iCrosshairScaleBase = 800;
-		break;
-	default:
-		m_iCrosshairScaleBase = 640;
-		break;
-	}
-}
-
 void CHudAmmo::UserCmd_Adjust_Crosshair()
 {
 	int newCrosshair = (m_iCurrentCrosshair + 1) % 5;
@@ -1785,17 +1750,12 @@ int CHudAmmo::DrawCrosshair(float, int weapon)
         m_flCrosshairAlpha = maximumAlpha;
     }
     const int alpha = static_cast<int>(m_flCrosshairAlpha);
-	int length = (int)(float)((m_flCrosshairDistance - distance) * 0.5) + 5;
+    const int length = static_cast<int>(static_cast<float>((m_flCrosshairDistance - distance) * 0.5)) + 5;
 	CalculateCrosshairColor();
 	CalculateCrosshairDrawMode();
-	CalculateCrosshairSize();
-	double scaledDistance = m_flCrosshairDistance;
-	if (ScreenWidth != m_iCrosshairScaleBase)
-	{
-		scaledDistance = scaledDistance * ScreenWidth / m_iCrosshairScaleBase;
-		length = ScreenWidth * length / m_iCrosshairScaleBase;
-	}
-	int gap = (int)(float)scaledDistance;
+    const auto size = cse::crosshair::ParseSize(CVAR_GET_STRING(cse::crosshair::SizeCvar));
+    const auto shape = cse::crosshair::ParseShape(CVAR_GET_STRING(cse::crosshair::ShapeCvar));
+    const auto geometry = cse::crosshair::Scale({m_flCrosshairDistance, length}, size, ScreenWidth);
 	int r = m_R, g = m_G, b = m_B;
 	if (gHUD.m_NightVision.m_fOn)
 	{
@@ -1806,10 +1766,10 @@ int CHudAmmo::DrawCrosshair(float, int weapon)
 	void (*fill)(int, int, int, int, int, int, int, int) = gEngfuncs.pfnFillRGBA;
 	if (gHUD.m_NightVision.m_fOn || !m_bAdditive)
 		fill = gEngfuncs.pfnFillRGBABlend;
-    fill(ScreenWidth / 2 - gap - length + 1, ScreenHeight / 2, length, 1, r, g, b, alpha);
-    fill(ScreenWidth / 2 + gap, ScreenHeight / 2, length, 1, r, g, b, alpha);
-    fill(ScreenWidth / 2, ScreenHeight / 2 - gap - length + 1, 1, length, r, g, b, alpha);
-    fill(ScreenWidth / 2, ScreenHeight / 2 + gap, 1, length, r, g, b, alpha);
+    cse::crosshair::Draw(shape, ScreenWidth / 2, ScreenHeight / 2, geometry,
+        [&](int x, int y, int wide, int tall) {
+            fill(x, y, wide, tall, r, g, b, alpha);
+        });
 	return 1;
 }
 

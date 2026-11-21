@@ -183,7 +183,6 @@ public:
 	void UserCmd_Adjust_Crosshair();
 	void CalculateCrosshairColor();
 	void CalculateCrosshairDrawMode();
-	void CalculateCrosshairSize();
 
 	float m_fFade;
 	RGBA m_rgba;
@@ -200,7 +199,6 @@ public:
 	int m_cvarR, m_cvarG, m_cvarB;
 	int m_iCurrentCrosshair;
 	bool m_bAdditive;
-	int m_iCrosshairScaleBase;
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )
 #endif

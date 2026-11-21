@@ -33,6 +33,14 @@
         "CSEInterface_StyleOriginal" "Оригинальный"
         "CSEInterface_StyleSmokedTacticalGlass" "Smoked Tactical Glass"
 
+        "CSECrosshair_Shape" "Форма"
+        "CSECrosshair_Cross" "Крест"
+        "CSECrosshair_T" "Т-образный"
+        "CSECrosshair_Circle" "Круг"
+        "CSECrosshair_Dot" "Точка"
+        "CSECrosshair_ExtraSmall" "Очень мелкий"
+        "CSECrosshair_CustomColor" "Свой"
+
         "GameUI_HudRadarSettings" "HUD радар..."
         "GameUI_HudRadar_Advanced" "Продвинутый"
         "GameUI_HudRadar_BlurBackground" "Размытый фон"

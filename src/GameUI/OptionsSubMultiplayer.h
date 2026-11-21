@@ -21,6 +21,7 @@ class CrosshairImagePanel;
 namespace vgui2
 {
 class ComboBox;
+class Label;
 }
 
 //-----------------------------------------------------------------------------
@@ -38,6 +39,7 @@ protected:
 	void OnCommand( const char* command ) override;
 	void OnResetData() override;
 	void OnApplyChanges() override;
+    void PerformLayout() override;
 	void RedrawCrosshairImage();
 
 private:
@@ -53,17 +55,17 @@ private:
 	void RemapPalette( char* filename, int topColor, int bottomColor );
 	void RemapLogoPalette( char* filename, int r, int g, int b );
 	void ColorForName( const char* name, int& r, int& g, int& b );
-	void InitCrosshairSizeList( CLabeledCommandComboBox* combo );
 	void InitCrosshairColorEntries();
 	void ApplyCrosshairColorChanges();
-	void DrawCrosshairForBlockAt( int x, int y, int wide, int tall );
 
 	CBitmapImagePanel*				m_pModelImage;
 	CLabeledCommandComboBox*			m_pModelList;
 	CBitmapImagePanel*				m_pLogoImage;
 	CLabeledCommandComboBox*			m_pLogoList;
 	char							m_LogoName[32];
-	CLabeledCommandComboBox*			m_pCrosshairSize;
+    vgui2::ComboBox* m_pCrosshairSize = nullptr;
+    vgui2::ComboBox* m_pCrosshairShape = nullptr;
+    vgui2::Label* m_pCrosshairShapeLabel = nullptr;
 	CCvarToggleCheckButton*			m_pCrosshairTranslucencyCheckbox;
 	vgui2::ComboBox*					m_pCrosshairColorComboBox;
 	int								m_displayedCrosshairColorRed;
