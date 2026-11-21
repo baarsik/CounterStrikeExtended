@@ -77,3 +77,25 @@ smoke run. The log recorded `Spawn Server c1a0` and the scripted `quit` marker;
 496 frame-log rows were written, the process exited zero, and no game or CEF
 helper remained. Its log and metadata are under the local ignored
 `build/metal-cef-20261120/final-half-life-smoke/` directory.
+
+## OpenGL reference on the final integrated build
+
+The same signed QA app, assets, demo, 2560×1440 borderless window, VSync-off
+setting, and `-nosound` launch were used for two complete OpenGL replays. The
+only renderer flag changed from `-metal` to `-gl`. Each run reported all 60,019
+demo frames, passed the same analyzer filters, exited zero, and left no game or
+CEF process. The Metal runs above preceded these OpenGL runs, so the comparison
+is a reference for this machine rather than an interleaved renderer trial.
+
+| Run | Metal average FPS | OpenGL average FPS | Metal 1% low | OpenGL 1% low | Metal p95 | OpenGL p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 335.22 | 331.95 | 74.74 | 106.58 | 8.451 ms | 5.237 ms |
+| 2 | 334.28 | 333.54 | 74.37 | 106.08 | 8.502 ms | 5.167 ms |
+
+Metal's mean FPS was slightly higher, while its lower 1% low FPS and higher
+p95 frame interval show a repeatable tail-latency gap. The separate Metal diagnostic
+trace above attributes most of its measured presentation time to drawable
+acquisition. This renderer comparison does not isolate the OS compositor or
+establish that the compact vertex and cache changes improved FPS. OpenGL traces,
+process checks, and analyzer JSON are under the local ignored
+`build/metal-cef-20261120/final-gl-demo/` directory.
