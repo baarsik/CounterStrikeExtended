@@ -20,6 +20,7 @@
 #include "player.h"
 #include "weapons.h"
 #include "hud.h"
+#include "custom_weapon_client.h"
 #include "com_weapons.h"
 #include "eventscripts.h"
 #include "event_api.h"
@@ -42,6 +43,7 @@ int g_iWaterLevel;
 int g_iFreezeTimeOver;
 extern int g_iPlayerFlags;
 extern int g_iWeaponFlags;
+extern int g_iShotsFired;
 extern float g_flPlayerSpeed;
 Vector g_vPlayerVelocity;
 
@@ -901,8 +903,22 @@ void HUD_WeaponsPostThink( local_state_s* from, local_state_s* to, usercmd_t* cm
 extern "C" void HUD_PostRunCmd( local_state_s* from, local_state_s* to, usercmd_t* cmd, int runFunctions, double time, unsigned int randomSeed )
 {
 	g_runfuncs = runFunctions;
-	HUD_WeaponsPostThink( from, to, cmd, time, randomSeed );
-	to->client.fov = g_lastFOV;
+    if (cse::weapons::ActiveWeaponView()) {
+        // A custom weapon has no client-side weapon object. Keep movement and the
+        // authoritative view state while the new active weapon is acknowledged.
+        g_bHoldingKnife = false;
+        g_bHoldingShield = false;
+        g_iWeaponFlags = 0;
+        g_iShotsFired = 0;
+        g_iPlayerFlags = to->client.flags;
+        g_flPlayerSpeed = to->client.velocity.Length();
+        if (from->client.m_iId != WEAPON_NONE) {
+            to->client.fov = g_lastFOV;
+        }
+    } else {
+        HUD_WeaponsPostThink(from, to, cmd, time, randomSeed);
+        to->client.fov = g_lastFOV;
+    }
 	if ( g_runfuncs )
 	{
 		g_clang = cmd->viewangles;

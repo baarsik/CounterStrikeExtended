@@ -21,6 +21,7 @@
 #include "hud.h"
 #include "crosshair_geometry.h"
 #include "crosshair_recovery.h"
+#include "custom_weapon_client.h"
 #include "money_hud_layout.h"
 #include "cl_util.h"
 #include "parsemsg.h"
@@ -28,6 +29,8 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <algorithm>
+#include <array>
 
 #include "ammohistory.h"
 #include "../public/game_controls/iviewport.h"
@@ -51,6 +54,169 @@ float g_flPlayerSpeed;
 int g_iShotsFired;
 cvar_t *cl_dynamiccrosshair;
 extern bool g_bHoldingShield;
+
+namespace {
+
+struct InventoryChoice {
+    WEAPON* stock{};
+    const cse::weapons::Presentation* custom{};
+    uint32_t instance{};
+
+    int Slot() const { return stock ? stock->iSlot : custom->slot; }
+    int Order() const { return stock ? stock->iSlotPos : custom->order; }
+    const char* Key() const { return stock ? stock->szName : custom->key; }
+};
+
+struct MergedInventory {
+    std::array<InventoryChoice, MAX_WEAPONS + cse::weapons::MaxOwned> items{};
+    std::size_t count{};
+};
+
+struct InventorySelection {
+    uint32_t generation{};
+    uint32_t instance{};
+    int stockId{};
+};
+
+InventorySelection mergedSelection;
+bool wasCustomCrosshair;
+
+const cse::weapons::State* CustomInventory() {
+    if (g_iUser1 || gHUD.m_fPlayerDead) {
+        return nullptr;
+    }
+    const auto* state = cse::weapons::LocalWeapons();
+    return state && state->count ? state : nullptr;
+}
+
+MergedInventory Inventory(const cse::weapons::State& custom) {
+    MergedInventory inventory;
+    const auto bits = static_cast<unsigned int>(gHUD.m_iWeaponBits);
+    for (int i = 1; i < WEAPON_SUIT; ++i) {
+        WEAPON* weapon = gWR.GetWeapon(i);
+        if ((bits & (1U << i)) && weapon->iId == i && weapon->iSlot < MAX_WEAPON_SLOTS) {
+            inventory.items[inventory.count++] = {weapon};
+        }
+    }
+    for (uint8_t i = 0; i < custom.count; ++i) {
+        const auto& item = custom.items[i];
+        if (const auto* definition = cse::weapons::WeaponPresentation(item.definition)) {
+            inventory.items[inventory.count++] = {nullptr, definition, item.instance};
+        }
+    }
+    std::sort(inventory.items.begin(), inventory.items.begin() + inventory.count,
+        [](const InventoryChoice& left, const InventoryChoice& right) {
+            if (left.Slot() != right.Slot()) {
+                return left.Slot() < right.Slot();
+            }
+            if (left.Order() != right.Order()) {
+                return left.Order() < right.Order();
+            }
+            return strcmp(left.Key(), right.Key()) < 0;
+        });
+    return inventory;
+}
+
+bool Matches(const InventoryChoice& item, const InventorySelection& selection) {
+    return item.stock ? item.stock->iId == selection.stockId : item.instance == selection.instance;
+}
+
+void Highlight(const InventoryChoice& item, uint32_t generation) {
+    mergedSelection = {generation, item.instance, item.stock ? item.stock->iId : 0};
+    gpActiveSel = nullptr;
+}
+
+void Choose(const InventoryChoice& item) {
+    if (item.stock) {
+        ServerCmd(item.stock->szName);
+        g_weaponselect = item.stock->iId;
+    } else {
+        g_weaponselect = 0;
+        cse::weapons::SelectCustomWeapon(item.instance);
+    }
+    gpActiveSel = nullptr;
+    mergedSelection = {};
+}
+
+bool CanSelectCustomInventory() {
+    return !(gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS | HIDEHUD_ALL));
+}
+
+bool SelectMergedSlot(int slot) {
+    const auto* custom = CustomInventory();
+    if (!custom || slot >= MAX_WEAPON_SLOTS || gHUD.m_Menu.m_fMenuDisplayed || !CanSelectCustomInventory()) {
+        return false;
+    }
+
+    const auto inventory = Inventory(*custom);
+    const InventoryChoice* first = nullptr;
+    const InventoryChoice* next = nullptr;
+    bool afterHighlight = false;
+    int count = 0;
+    for (std::size_t i = 0; i < inventory.count; ++i) {
+        const auto& item = inventory.items[i];
+        if (item.Slot() != slot) {
+            continue;
+        }
+        if (!first) {
+            first = &item;
+        }
+        ++count;
+        if (afterHighlight && !next) {
+            next = &item;
+        }
+        afterHighlight |= mergedSelection.generation == custom->generation && Matches(item, mergedSelection);
+    }
+
+    if (!first) {
+        mergedSelection = {};
+        return false;
+    }
+    if (count == 1 && CVAR_GET_FLOAT("hud_fastswitch") != 0.0f) {
+        Choose(*first);
+    } else {
+        static char moveSelection[] = "common/wpn_moveselect.wav";
+        static char openMenu[] = "common/wpn_hudon.wav";
+        PlaySound(afterHighlight ? moveSelection : openMenu, 1);
+        Highlight(next ? *next : *first, custom->generation);
+    }
+    return true;
+}
+
+bool CycleMergedInventory(const WEAPON* stockActive, bool forward) {
+    const auto* custom = CustomInventory();
+    if (!custom || !CanSelectCustomInventory()) {
+        return false;
+    }
+
+    const auto inventory = Inventory(*custom);
+    if (!inventory.count) {
+        return false;
+    }
+    InventorySelection anchor = mergedSelection;
+    if (anchor.generation != custom->generation) {
+        const WEAPON* stockSelection = gpActiveSel && gpActiveSel != reinterpret_cast<WEAPON*>(1)
+            ? gpActiveSel : stockActive;
+        anchor = {custom->generation, custom->active, !custom->active && stockSelection ? stockSelection->iId : 0};
+    }
+
+    std::size_t next = forward ? 0 : inventory.count - 1;
+    for (std::size_t i = 0; i < inventory.count; ++i) {
+        if (Matches(inventory.items[i], anchor)) {
+            next = forward ? (i + 1) % inventory.count : (i + inventory.count - 1) % inventory.count;
+            break;
+        }
+    }
+    if (CVAR_GET_FLOAT("hud_fastswitch") == 1.0f) {
+        PlaySound("common/wpn_hudon.wav", 1);
+        Choose(inventory.items[next]);
+    } else {
+        Highlight(inventory.items[next], custom->generation);
+    }
+    return true;
+}
+
+} // namespace
 
 void WeaponsResource :: LoadAllWeaponSprites( void )
 {
@@ -336,6 +502,7 @@ int CHudAmmo::Init(void)
 
 void CHudAmmo::Reset(void)
 {
+    mergedSelection = {};
 	m_fFade = 0;
 	m_iFlags |= HUD_ACTIVE; //!!!
 
@@ -348,6 +515,7 @@ void CHudAmmo::Reset(void)
 
 int CHudAmmo::VidInit(void)
 {
+    cse::weapons::RefreshWeaponArt();
 	// Load sprites for buckets (top row of weapon menu)
 	m_HUD_bucket0 = gHUD.GetSpriteIndex( "bucket1" );
 	m_HUD_selection = gHUD.GetSpriteIndex( "selection" );
@@ -411,6 +579,25 @@ void CHudAmmo::Think(void)
 			}
 		}
 	}
+
+    if (mergedSelection.generation) {
+        const auto* custom = CustomInventory();
+        if (!custom || custom->generation != mergedSelection.generation || !CanSelectCustomInventory()) {
+            mergedSelection = {};
+        } else if (gHUD.m_iKeyBits & IN_ATTACK) {
+            const auto inventory = Inventory(*custom);
+            for (std::size_t i = 0; i < inventory.count; ++i) {
+                if (Matches(inventory.items[i], mergedSelection)) {
+                    Choose(inventory.items[i]);
+                    PlaySound("common/wpn_select.wav", 1);
+                    break;
+                }
+            }
+            mergedSelection = {};
+            gHUD.m_iKeyBits &= ~IN_ATTACK;
+        }
+        return;
+    }
 
 	if (!gpActiveSel)
 		return;
@@ -637,6 +824,9 @@ int CHudAmmo::MsgFunc_CurWeapon(const char *, int iSize, void *pbuf )
 		fOnTarget = TRUE;
 	}
 
+    if (iId == 0 && iState == 0) {
+        m_pWeapon = nullptr;
+    }
 	if ( iId < 1 && !m_bObserverCrosshair )
 	{
 		SetCrosshair(0, nullrc, 0, 0, 0);
@@ -757,7 +947,9 @@ void CHudAmmo::SlotInput( int iSlot )
 	if ( gViewPortInterface && gViewPortInterface->SlotInput( iSlot ) )
 		return;
 
-	gWR.SelectSlot(iSlot, FALSE, 1);
+    if (!SelectMergedSlot(iSlot)) {
+        gWR.SelectSlot(iSlot, FALSE, 1);
+    }
 }
 
 void CHudAmmo::UserCmd_Slot1(void)
@@ -812,6 +1004,11 @@ void CHudAmmo::UserCmd_Slot10(void)
 
 void CHudAmmo::UserCmd_Close(void)
 {
+    if (mergedSelection.generation) {
+        mergedSelection = {};
+        PlaySound("common/wpn_hudoff.wav", 1);
+        return;
+    }
 	if (gpActiveSel)
 	{
 		gpLastSel = gpActiveSel;
@@ -826,6 +1023,9 @@ void CHudAmmo::UserCmd_Close(void)
 // Selects the next item in the weapon menu
 void CHudAmmo::UserCmd_NextWeapon(void)
 {
+    if (CycleMergedInventory(m_pWeapon, true)) {
+        return;
+    }
 	if ( gHUD.m_fPlayerDead || (gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS | HIDEHUD_ALL)) )
 		return;
 
@@ -876,6 +1076,9 @@ void CHudAmmo::UserCmd_NextWeapon(void)
 // Selects the previous item in the menu
 void CHudAmmo::UserCmd_PrevWeapon(void)
 {
+    if (CycleMergedInventory(m_pWeapon, false)) {
+        return;
+    }
 	if ( gHUD.m_fPlayerDead || (gHUD.m_iHideHUDDisplay & (HIDEHUD_WEAPONS | HIDEHUD_ALL)) )
 		return;
 
@@ -931,6 +1134,49 @@ void CHudAmmo::UserCmd_PrevWeapon(void)
 
 int CHudAmmo::Draw(float flTime)
 {
+    const auto* customView = cse::weapons::ActiveWeaponView();
+    const auto* customWeapon = customView ? cse::weapons::ActiveWeaponPresentation(*customView) : nullptr;
+    if (wasCustomCrosshair && !customWeapon) {
+        const bool showStockScope = m_pWeapon && m_pWeapon->hZoomedCrosshair && gHUD.m_iFOV < 90 &&
+            !(gHUD.m_iHideHUDDisplay & (HIDEHUD_CROSSHAIR | HIDEHUD_ALL));
+        if (showStockScope) {
+            SetCrosshair(m_pWeapon->hZoomedCrosshair, m_pWeapon->rcZoomedCrosshair, 255, 255, 255);
+        } else {
+            SetCrosshair(0, {}, 0, 0, 0);
+        }
+    }
+    wasCustomCrosshair = customWeapon != nullptr;
+    if (customWeapon && !gHUD.m_iIntermission) {
+        const int hidden = gHUD.m_iHideHUDDisplay;
+        const bool showCrosshair = !(hidden & (HIDEHUD_CROSSHAIR | HIDEHUD_ALL));
+        if (showCrosshair) {
+            constexpr int defaultFieldOfView = 90;
+            const bool zoomed = (customWeapon->flags & cse::weapons::Scope) &&
+                customView->zoom > 0 && customView->zoom < defaultFieldOfView;
+            const auto role = zoomed ? cse::weapons::SpriteRole::Zoom : cse::weapons::SpriteRole::Crosshair;
+            auto crosshair = cse::weapons::WeaponSprite(customWeapon->id, role);
+            if (!crosshair.handle && zoomed) {
+                const WEAPON* sniper = gWR.GetWeapon(WEAPON_AWP);
+                crosshair = {sniper->hZoomedCrosshair, sniper->rcZoomedCrosshair};
+            }
+            SetCrosshair(crosshair.handle, crosshair.rect, 255, 255, 255);
+            if (!crosshair.handle) {
+                DrawCrosshair(flTime, WEAPON_NONE);
+            }
+        } else {
+            SetCrosshair(0, {}, 0, 0, 0);
+        }
+        if (!(hidden & (HIDEHUD_WEAPONS | HIDEHUD_ALL))) {
+            if (!g_iUser1) {
+                DrawWList(flTime);
+                gHR.DrawAmmoHistory(flTime);
+                cse::weapons::DrawCustomPickups(flTime);
+            }
+            cse::weapons::DrawCustomAmmo(*customView, *customWeapon);
+        }
+        return 1;
+    }
+
 	int a, x, y, r, g, b;
 	int AmmoWidth;
 	static wrect_t nullrc;
@@ -971,6 +1217,7 @@ int CHudAmmo::Draw(float flTime)
 
 		// Draw ammo pickup history
 		gHR.DrawAmmoHistory(flTime);
+        cse::weapons::DrawCustomPickups(flTime);
 		if (!(m_iFlags & HUD_ACTIVE))
 			return 0;
 	}
@@ -1140,8 +1387,79 @@ void DrawAmmoBar(WEAPON *p, int x, int y, int width, int height)
 //
 // Draw Weapon Menu
 //
+int CHudAmmo::DrawMergedInventory() {
+    const auto* state = CustomInventory();
+    if (!state || state->generation != mergedSelection.generation) {
+        return 0;
+    }
+    const auto inventory = Inventory(*state);
+    const auto end = inventory.items.begin() + inventory.count;
+    const auto highlight = std::find_if(inventory.items.begin(), end,
+        [](const InventoryChoice& item) { return Matches(item, mergedSelection); });
+    if (highlight == end) {
+        return 0;
+    }
+
+    constexpr int bucketTop = 10;
+    constexpr int bucketGap = 5;
+    const int activeSlot = highlight->Slot();
+    const int fontHeight = gHUD.m_iFontHeight;
+    const int expandedWidth = (std::max)(giBucketWidth, fontHeight * 7);
+    int x = ScreenWidth >= 640 ? 138 : 70;
+    for (int slot = 0; slot < MAX_WEAPON_SLOTS; ++slot) {
+        const int bucket = m_HUD_bucket0 + slot;
+        SPR_Set(gHUD.GetSprite(bucket), 255, 160, 0);
+        SPR_DrawAdditive(0, x, bucketTop, &gHUD.GetSpriteRect(bucket));
+        int y = bucketTop + giBucketHeight;
+        for (auto item = inventory.items.begin(); item != end; ++item) {
+            if (item->Slot() != slot) {
+                continue;
+            }
+            if (slot != activeSlot) {
+                FillRGBA(x, y, giBucketWidth, giBucketHeight, 255, 160, 0, 128);
+                y += giBucketHeight + bucketGap;
+                continue;
+            }
+
+            const bool selected = item == highlight;
+            cse::weapons::HudSprite icon;
+            if (item->stock) {
+                icon = selected ? cse::weapons::HudSprite{item->stock->hActive, item->stock->rcActive}
+                    : cse::weapons::HudSprite{item->stock->hInactive, item->stock->rcInactive};
+            } else {
+                const auto role = selected ? cse::weapons::SpriteRole::Selected : cse::weapons::SpriteRole::Weapon;
+                icon = cse::weapons::WeaponSprite(item->custom->id, role);
+                if (!icon.handle && selected) {
+                    icon = cse::weapons::WeaponSprite(item->custom->id, cse::weapons::SpriteRole::Weapon);
+                }
+            }
+            const int rowHeight = (std::max)(fontHeight, icon.Height());
+            if (y + rowHeight > ScreenHeight) {
+                break;
+            }
+            if (selected) {
+                FillRGBA(x, y, expandedWidth, rowHeight, 255, 160, 0, 64);
+            }
+            if (icon.handle && icon.Width() <= expandedWidth) {
+                const int shade = selected ? 255 : 192;
+                SPR_Set(icon.handle, shade, shade * 160 / 255, 0);
+                SPR_DrawAdditive(0, x, y, &icon.rect);
+            } else {
+                gEngfuncs.pfnDrawSetTextColor(1.0f, 0.625f, 0.0f);
+                DrawConsoleString(x, y, item->stock ? item->stock->szName : item->custom->label);
+            }
+            y += rowHeight + bucketGap;
+        }
+        x += (slot == activeSlot ? expandedWidth : giBucketWidth) + bucketGap;
+    }
+    return 1;
+}
+
 int CHudAmmo::DrawWList(float)
 {
+    if (DrawMergedInventory()) {
+        return 1;
+    }
 	int r,g,b,x,y,a,i;
 
 	if ( !gpActiveSel )
@@ -1461,6 +1779,7 @@ int CHudAccountBalance::Draw(float time)
 	int x = ScreenWidth - (4 * (ScreenWidth > 639) + 12) - MoneyHudDigitSlots(m_iAccount) *
 	        (number.right - number.left);
 	int y = ScreenHeight - ((gHUD.m_iWeaponBits & (1U << WEAPON_SUIT)) ? 3 : 5) * gHUD.m_iFontHeight;
+    y = cse::weapons::MoneyYAboveSecondaryAmmo(y);
 	wrect_t &dollar = gHUD.GetSpriteRect(m_HUD_dollar);
 	SPR_Set(gHUD.GetSprite(m_HUD_dollar), r, g, b);
 	SPR_DrawAdditive(0, x + dollar.left - dollar.right, y, &dollar);

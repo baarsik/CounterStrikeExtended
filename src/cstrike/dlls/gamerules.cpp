@@ -21,6 +21,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "gamerules.h"
 #include "skill.h"
 #include "bot/cs_bot_manager.h"
@@ -80,6 +81,10 @@ edict_t *CGameRules::GetPlayerSpawnSpot(CBasePlayer *pPlayer)
 
 BOOL CGameRules::CanHavePlayerItem(CBasePlayer *pPlayer, CBasePlayerItem *pWeapon)
 {
+    if (!cse::weapons::server::IsCustom(pWeapon) &&
+        cse::weapons::server::BlocksStockPickup(*pPlayer, pWeapon->iItemSlot())) {
+        return FALSE;
+    }
 	// only living players can have items
 	if (pPlayer->pev->deadflag != DEAD_NO)
 		return FALSE;

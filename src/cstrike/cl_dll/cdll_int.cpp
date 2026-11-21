@@ -1,4 +1,5 @@
 #include "server_form_client.h"
+#include "custom_weapon_client.h"
 /***
 *
 *	Copyright (c) 1999, Valve LLC. All rights reserved.
@@ -291,12 +292,14 @@ extern "C" void EXPORT HUD_Init()
 	InitInput();
 	gHUD.Init();
     cse::forms::RegisterServerForms();
+    cse::weapons::RegisterWeaponClient();
 }
 
 extern "C" void EXPORT HUD_Shutdown()
 {
     NativeRadar_Shutdown();
     cse::forms::EndServerFormsSession();
+    cse::weapons::ResetWeaponSession();
 	CS_ForgetLanguageService();
     ShutdownInput();
 	CL_UnloadParticleMan();
@@ -333,6 +336,7 @@ extern "C" void EXPORT HUD_Frame( double time )
 {
 	CS_CheckLanguageRevision();
     cse::forms::RunServerFormsFrame();
+    cse::weapons::RunWeaponClientFrame();
     GetClientVoice()->Frame( time );
 }
 

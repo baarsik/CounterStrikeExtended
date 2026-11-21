@@ -42,6 +42,9 @@ struct DeathNoticeItem
 	float* VictimColor;
     float* AssistantColor;
 	int iHeadShotId;
+    int customSprite;
+    int customRect[4];
+    char customName[48];
 };
 
 static int DEATHNOTICE_DISPLAY_TIME = 6;
@@ -123,8 +126,20 @@ int CHudDeathNotice::Draw( float time )
         int victimWidth = 0;
         int textHeight = 0;
         GetConsoleStringSize(notice.szVictim, &victimWidth, &textHeight);
-        int x = ScreenWidth - victimWidth - gHUD.GetSpriteWidth(id)
-            - m_iDeathNoticeGapRight - m_iDeathTextGap;
+        const auto& stockRect = gHUD.GetSpriteRect(id);
+        auto weaponRect = stockRect;
+        if (notice.customSprite) {
+            weaponRect.left = notice.customRect[0];
+            weaponRect.right = notice.customRect[1];
+            weaponRect.top = notice.customRect[2];
+            weaponRect.bottom = notice.customRect[3];
+        }
+        const int spriteWidth = weaponRect.right - weaponRect.left;
+        const int customLabelWidth = !notice.customSprite && notice.customName[0]
+            ? ConsoleStringLen(notice.customName) : 0;
+        const bool showCustomLabel = customLabelWidth > 0 && customLabelWidth <= ScreenWidth / 4;
+        const int weaponWidth = showCustomLabel ? customLabelWidth : spriteWidth;
+        int x = ScreenWidth - victimWidth - weaponWidth - m_iDeathNoticeGapRight - m_iDeathTextGap;
 		if ( notice.iHeadShotId >= 0 )
 			x -= gHUD.GetSpriteWidth( notice.iHeadShotId ) + m_iDeathTextGap;
         char visibleAssistant[sizeof(notice.szAssistant)];
@@ -183,17 +198,23 @@ int CHudDeathNotice::Draw( float time )
 		int g = notice.iTeamKill ? 240 : 80;
 		int b = notice.iTeamKill ? 10 : 0;
 
-		// Draw death weapon
-		SPR_Set( gHUD.GetSprite( id ), r, g, b );
-        // Larger console fonts need each sprite centered within the text line.
-        constexpr int spriteCenterDivisor = 2;
-        int weaponY = y;
-        int weaponHeight = gHUD.GetSpriteHeight(id);
-        if (textHeight > weaponHeight) {
-            weaponY += (textHeight - weaponHeight) / spriteCenterDivisor;
+        if (showCustomLabel) {
+            constexpr float colorScale = 1.0f / 255.0f;
+            gEngfuncs.pfnDrawSetTextColor(r * colorScale, g * colorScale, b * colorScale);
+            DrawConsoleString(x, y, notice.customName);
+        } else {
+            SPR_Set(notice.customSprite ? notice.customSprite : gHUD.GetSprite(id), r, g, b);
+            // Larger console fonts need each sprite centered within the text line.
+            constexpr int spriteCenterDivisor = 2;
+            const int weaponHeight = weaponRect.bottom - weaponRect.top;
+            int weaponY = y;
+            if (textHeight > weaponHeight) {
+                weaponY += (textHeight - weaponHeight) / spriteCenterDivisor;
+            }
+            SPR_DrawAdditive(0, x, weaponY, &weaponRect);
         }
-        SPR_DrawAdditive(0, x, weaponY, &gHUD.GetSpriteRect(id));
-		x += gHUD.GetSpriteWidth( id ) + m_iDeathTextGap;
+        x += weaponWidth + m_iDeathTextGap;
+        constexpr int spriteCenterDivisor = 2;
 		if ( notice.iHeadShotId >= 0 )
 		{
 			SPR_Set( gHUD.GetSprite( notice.iHeadShotId ), r, g, b );
@@ -221,7 +242,6 @@ int CHudDeathNotice::Draw( float time )
 
 int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 {
-	m_iFlags |= HUD_ACTIVE;
 	BEGIN_READ( buffer, size );
 	int killer = READ_BYTE();
 	int victim = READ_BYTE();
@@ -230,6 +250,22 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	strncat( killedwith, READ_STRING(), 30 );
 	killedwith[31] = 0;
     const DeathMessageExtra extra = ParseDeathMessageExtra(buffer, size > 0 ? static_cast<std::size_t>(size) : 0);
+    return ShowDeath(killer, victim, headshot != 0, killedwith, extra);
+}
+
+void CHudDeathNotice::ShowCustomDeath(int killer, int victim, bool headshot, HSPRITE sprite, const wrect_t& rect,
+                                    const char* name) {
+    char token[32] = "d_skull";
+    if (killer && killer != victim && g_PlayerExtraInfo[killer].teamnumber > 0 &&
+        g_PlayerExtraInfo[killer].teamnumber == g_PlayerExtraInfo[victim].teamnumber) {
+        strcpy(token, "d_teammate");
+    }
+    ShowDeath(killer, victim, headshot, token, {}, sprite, rect, name);
+}
+
+int CHudDeathNotice::ShowDeath(int killer, int victim, bool headshot, char* killedwith, const DeathMessageExtra& extra,
+                              HSPRITE customSprite, const wrect_t& customRect, const char* customName) {
+    m_iFlags |= HUD_ACTIVE;
     if (extra.has_position && victim > 0 && victim <= gEngfuncs.GetMaxClients()) {
         RadarHooks_OnPlayerDeath(victim, extra.position);
     }
@@ -247,10 +283,15 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 	if ( gViewPortInterface )
 		gViewPortInterface->GetAllPlayersInfo();
 	DeathNoticeItem& notice = rgDeathNoticeList[index];
-    // A slot compacted from an older row may still contain optional labels.
-    notice.szAssistant[0] = 0;
-    notice.szRarity[0] = 0;
-    notice.AssistantColor = nullptr;
+    notice = {};
+    if (customName) {
+        notice.customSprite = customSprite;
+        notice.customRect[0] = customRect.left;
+        notice.customRect[1] = customRect.right;
+        notice.customRect[2] = customRect.top;
+        notice.customRect[3] = customRect.bottom;
+        strncpy(notice.customName, customName, sizeof(notice.customName) - 1);
+    }
     if (extra.present && extra.assistant > 0 && extra.assistant <= gEngfuncs.GetMaxClients() &&
         extra.assistant <= MAX_PLAYERS) {
         const char* assistant_name = g_PlayerInfoList[extra.assistant].name;
@@ -335,7 +376,7 @@ int CHudDeathNotice::MsgFunc_DeathMsg( const char*, int size, void* buffer )
 			strcpy( killedwith, "d_gluon gun" );
 		if ( !strcmp( killedwith + 2, "gauss" ) )
 			strcpy( killedwith, "d_tau cannon" );
-		ConsolePrint( killedwith + 2 ); // skip over the "d_" part
+		ConsolePrint( notice.customName[0] ? notice.customName : killedwith + 2 );
 	}
 	if ( headshot )
 		ConsolePrint( " ***" );

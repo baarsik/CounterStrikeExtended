@@ -1,6 +1,8 @@
 LIBRARY mp
 EXPORTS
+    CseCustomWeaponsAPI
     CseGetModuleAbi
+    cse_custom_weapon
     CseInitializeGameModule
     ?AngularMoveDone@CBaseToggle@@QAEXXZ @3
     ?AnimateThink@CSprite@@QAEXXZ @4

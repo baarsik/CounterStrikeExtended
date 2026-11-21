@@ -9,6 +9,8 @@ target_sources(cs_client PRIVATE
   "${CSE_SDK_DIR}/cstrike/cl_dll/VGUI/server_form_panel.cpp"
   "${CSE_SDK_DIR}/vgui2/controls/Slider.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/extended_stats.cpp"
+  "${CSE_SDK_DIR}/cstrike/cl_dll/custom_weapon_client.cpp"
+  "${CSE_SDK_DIR}/common/cse_custom_weapons.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/hud_stat_numbers.cpp"
   "${CSE_SDK_DIR}/common/image_codec.cpp"
   "${CSE_SDK_DIR}/cstrike/cl_dll/ev_common.cpp"

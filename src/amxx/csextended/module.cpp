@@ -32,6 +32,17 @@ bool QueueConfig() {
 void CseAttach() {
     StatsAttach();
     FormsAttach();
+    WeaponsAttach();
+}
+
+void CsePluginsLoaded() {
+    FormsPluginsLoaded();
+    WeaponsPluginsLoaded();
+}
+
+void CsePluginsUnloading() {
+    FormsPluginsUnloading();
+    WeaponsPluginsUnloading();
 }
 
 int CseCheckGame(const char* game) {
@@ -44,6 +55,7 @@ int CseCheckGame(const char* game) {
 void CseServerActivate(edict_t*, int, int) {
     StatsServerActivate();
     FormsServerActivate();
+    WeaponsServerActivate();
     RETURN_META(MRES_IGNORED);
 }
 
@@ -57,6 +69,7 @@ void CseServerDeactivate() {
     ConfigPending = false;
     StatsServerDeactivate();
     FormsServerDeactivate();
+    WeaponsServerDeactivate();
     RETURN_META(MRES_IGNORED);
 }
 
@@ -67,6 +80,7 @@ void CseStartFrame() {
     }
     StatsStartFrame();
     FormsStartFrame();
+    WeaponsStartFrame();
     RETURN_META(MRES_IGNORED);
 }
 
@@ -79,5 +93,6 @@ void CseClientEnter(edict_t* entity) {
 void CseClientLeave(edict_t* entity) {
     StatsClientLeave(entity);
     FormsClientLeave(entity);
+    WeaponsClientLeave(entity);
     RETURN_META(MRES_IGNORED);
 }

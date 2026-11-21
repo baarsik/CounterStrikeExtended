@@ -16,6 +16,7 @@
 #include "hud.h"
 #include "cl_util.h"
 #include "demo.h"
+#include "custom_weapon_client.h"
 #include "demo_api.h"
 #include <string.h>
 
@@ -39,9 +40,15 @@ void Demo_WriteBuffer( int type, int size, unsigned char* buffer )
 	gEngfuncs.pDemoAPI->WriteBuffer( size + sizeof( int ), data );
 }
 
-extern "C" void EXPORT Demo_ReadBuffer( int, unsigned char* buffer )
+extern "C" void EXPORT Demo_ReadBuffer( int size, unsigned char* buffer )
 {
-	switch ( *(int*)buffer )
+    if (!buffer || size < static_cast<int>(sizeof(int))) {
+        return;
+    }
+    int type = 0;
+    memcpy(&type, buffer, sizeof(type));
+    constexpr int headerBytes = sizeof(type);
+	switch (type)
 	{
 	case TYPE_SNIPERDOT:
 		g_demosniper = *(int*)( buffer + 4 );
@@ -55,6 +62,9 @@ extern "C" void EXPORT Demo_ReadBuffer( int, unsigned char* buffer )
 	case TYPE_ZOOM:
 		g_demozoom = *(float*)( buffer + 4 );
 		break;
+    case TYPE_CUSTOM_WEAPON:
+        cse::weapons::ReadWeaponDemoPacket(buffer + headerBytes, size - headerBytes);
+        break;
 	default:
 		gEngfuncs.Con_DPrintf( "Unknown demo buffer type, skipping.\n" );
 		break;

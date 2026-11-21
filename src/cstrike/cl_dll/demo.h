@@ -12,7 +12,8 @@
 enum
 {
 	TYPE_SNIPERDOT = 0,
-	TYPE_ZOOM
+	TYPE_ZOOM,
+    TYPE_CUSTOM_WEAPON
 };
 
 void Demo_WriteBuffer( int type, int size, unsigned char* buffer );

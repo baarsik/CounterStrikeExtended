@@ -21,6 +21,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "items.h"
 #include "gamerules.h"
 #include "game.h"
@@ -524,7 +525,7 @@ BOOL CHalfLifeMultiplay::FShouldSwitchWeapon( CBasePlayer* pPlayer, CBasePlayerI
 			( pPlayer->m_iAutoWepSwitch == 2 && ( pPlayer->m_afButtonLast & ( IN_ATTACK | IN_ATTACK2 ) ) ) ||
 			!pActive->CanHolster() )
 		return FALSE;
-	return pWeapon->iWeight() > pActive->iWeight();
+	return cse::weapons::server::Weight(pWeapon) > cse::weapons::server::Weight(pActive);
 }
 
 BOOL CHalfLifeMultiplay::GetNextBestWeapon( CBasePlayer* pPlayer, CBasePlayerItem* pCurrentWeapon )
@@ -537,10 +538,11 @@ BOOL CHalfLifeMultiplay::GetNextBestWeapon( CBasePlayer* pPlayer, CBasePlayerIte
 	{
 		for ( CBasePlayerItem* pWeapon = pPlayer->m_rgpPlayerItems[slot]; pWeapon; pWeapon = pWeapon->m_pNext )
 		{
-			if ( pWeapon != pCurrentWeapon && pWeapon->iWeight() > bestWeight && pWeapon->CanDeploy() )
+            const int weight = cse::weapons::server::Weight(pWeapon);
+			if ( pWeapon != pCurrentWeapon && weight > bestWeight && pWeapon->CanDeploy() )
 			{
 				pBest = pWeapon;
-				bestWeight = pWeapon->iWeight();
+				bestWeight = weight;
 			}
 		}
 	}
@@ -1732,6 +1734,7 @@ void CHalfLifeMultiplay::PickNextVIP()
 
 void CHalfLifeMultiplay::CleanUpMap()
 {
+    cse::weapons::server::RoundCleanup();
 	const char* restartClasses[] = { "cycler_sprite", "light", "func_breakable", "func_door", "func_water",
 			"func_door_rotating", "func_tracktrain", "func_vehicle", "func_train", "armoury_entity", "ambient_generic",
 			"env_sprite" };
@@ -2890,7 +2893,7 @@ void CHalfLifeMultiplay::DeathNotice( CBasePlayer* pVictim, entvars_t* pKiller, 
 			if ( pKiller == pInflictor )
 			{
 				CBasePlayer* pPlayer = dynamic_cast<CBasePlayer*>( CBaseEntity::Instance( ENT( pKiller ) ) );
-				if ( pPlayer && pPlayer->m_pActiveItem )
+				if ( pPlayer && pPlayer->m_pActiveItem && !cse::weapons::server::IsCustom(pPlayer->m_pActiveItem) )
 					weapon = pPlayer->m_pActiveItem->pszName();
 			}
 			else
@@ -2906,7 +2909,8 @@ void CHalfLifeMultiplay::DeathNotice( CBasePlayer* pVictim, entvars_t* pKiller, 
 	else if ( !strncmp( weapon, "func_", 5 ) )
 		weapon += 5;
 	bool headshot = pVictim->m_bHeadshotKilled;
-	if ( !TheTutor )
+    const bool customDeath = cse::weapons::server::DeathNotice(*pVictim, pKiller, pInflictor, killerIndex, headshot, weapon);
+	if ( !TheTutor && !customDeath )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
 			WRITE_BYTE( killerIndex );

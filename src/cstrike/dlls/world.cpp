@@ -30,6 +30,7 @@
 #include "decals.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "gamerules.h"
 
 extern CBaseEntity* g_pLastSpawn;
@@ -431,6 +432,7 @@ void CWorld::Precache()
 // the area based ambient sounds MUST be the first precache_sounds
 
 // player precaches     
+    cse::weapons::server::StageConfiguredCatalog();
 	W_Precache();									// get weapon precaches
 	ClientPrecache();
 	BotPrecache();

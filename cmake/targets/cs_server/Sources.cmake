@@ -10,6 +10,8 @@ target_sources(cs_server PRIVATE
   "${CSE_SDK_DIR}/cstrike/dlls/cbase.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/client.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/combat.cpp"
+  "${CSE_SDK_DIR}/cstrike/dlls/custom_weapons.cpp"
+  "${CSE_SDK_DIR}/common/cse_custom_weapons.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/doors.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/effects.cpp"
   "${CSE_SDK_DIR}/cstrike/dlls/explode.cpp"

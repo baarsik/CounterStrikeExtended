@@ -29,6 +29,8 @@ Pawn includes and examples, dependency notices, and corresponding source.
 
 The configuration, Pawn API, and examples live in `src/amxx/csextended/deploy/`.
 CMake stages them into the package's AMXX directories during the build.
+Keep both `csextended.inc` and `csextended_consts.inc` in `scripting/include/`.
+Plugins that use `#include <csextended>` automatically get the constants and enums.
 
 The Linux workflow uses a pinned manylinux2014 i686 image with a glibc 2.17
 baseline and links libstdc++/libgcc statically. Building locally on a newer Linux

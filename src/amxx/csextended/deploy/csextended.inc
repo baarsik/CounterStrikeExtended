@@ -2,6 +2,9 @@
     #endinput
 #endif
 #define _csextended_included
+
+#include <csextended_consts>
+
 #pragma reqlib csextended
 #if !defined AMXMODX_NOAUTOLOAD
     #pragma loadlib csextended
@@ -108,14 +111,6 @@ native bool:cse_forms_precache_form(const name[]);
  */
 native bool:cse_forms_precache_image(const name[], bool:persistent = true);
 
-enum CseFormMenu {
-    CseFormMenu_Team = 1,
-    CseFormMenu_TerroristClass,
-    CseFormMenu_CounterTerroristClass,
-    CseFormMenu_Buy,
-    CseFormMenu_BuyEquipment
-};
-
 /**
  * Registers a map-wide replacement for a Counter-Strike stock menu in both
  * VGUI and old-style menu modes. Call from plugin_precache after registering
@@ -166,5 +161,251 @@ native bool:cse_forms_ready(player);
  *                   checks and toggles use 0 or 1, radios use 1, sliders use decimal
  *                   integers, lists and dropdowns use zero-based indices, and
  *                   text fields use UTF-8.
+ *
+ * @noreturn
  */
 forward cse_forms_action(player, const form[], control, const value[]);
+
+/**
+ * @section Custom weapons
+ *
+ * A compatible Counter-Strike GameDLL is required. Weapon results are returned
+ * as CseWeaponResult values. Generation and instance identifiers are opaque
+ * 32-bit cells. Preserve every bit and compare them for equality.
+ *
+ * Gameplay requests from cse_weapons_ready() or cse_weapons_event() may be
+ * queued for a later frame and return CseWeapon_Pending. Use a later event
+ * or cse_weapons_state() to confirm completion.
+ */
+
+/**
+ * Returns the active custom weapon API version.
+ *
+ * @return          CSE_WEAPON_API_VERSION if a compatible GameDLL is available,
+ *                  0 otherwise
+ */
+native cse_weapons_api_version();
+
+/**
+ * Returns the custom weapon catalog generation.
+ *
+ * @note Store this value with definition and instance identifiers and look them
+ *       up again when the generation changes.
+ *
+ * @return          Catalog generation, or 0 if no generation is available
+ */
+native cse_weapons_generation();
+
+/**
+ * Submits a custom weapon definition from the AMXX data directory.
+ *
+ * @note Call from plugin_precache(). The file is read from
+ *       <amxx_datadir>/csextended/weapons/<basename>.cfg.
+ * @note A successful submission is staged. Call
+ *       cse_weapons_registration_status() to check whether it was committed.
+ *
+ * @param basename  Bare lowercase weapon key such as "weapon_svdex"
+ *
+ * @return          CseWeapon_Ok if staged, or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_register(const basename[]);
+
+/**
+ * Looks up a committed weapon definition by its key.
+ *
+ * @param key  Canonical weapon key such as "weapon_svdex"
+ *
+ * @return     Definition identifier on success, 0 if unavailable
+ */
+native cse_weapons_find(const key[]);
+
+/**
+ * Returns the registration status of a custom weapon definition.
+ *
+ * @param key  Canonical weapon key
+ *
+ * @return     CseWeapon_Ok if committed, CseWeapon_Pending if staged,
+ *             or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_registration_status(const key[]);
+
+/**
+ * Returns a client's custom weapon readiness.
+ *
+ * @note Wait for CseWeaponClient_Ready before granting a custom loadout.
+ *
+ * @param player  Client index
+ *
+ * @return        A CseWeaponReadiness value, CseWeapon_NoBackend if the
+ *                GameDLL is unavailable, or CseWeapon_BadPlayer if the
+ *                index is outside the client range
+ */
+native cse_weapons_readiness(player);
+
+/**
+ * Retrieves the key, display label, and metadata of a committed definition.
+ *
+ * @param definition    Definition identifier from cse_weapons_find()
+ * @param key           Buffer to store the canonical key
+ * @param key_maxlen    Maximum key length, excluding the null terminator
+ * @param label         Buffer to store the UTF-8 display label
+ * @param label_maxlen  Maximum label length, excluding the null terminator
+ * @param metadata      Array indexed by CseWeaponDefinition
+ * @param generation    Catalog generation associated with the definition
+ *
+ * @return              CseWeapon_Ok on success, or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_definition(definition, key[], key_maxlen, label[], label_maxlen,
+    metadata[CseWeaponDefinition], generation);
+
+/**
+ * Retrieves a player's custom weapon state and inventory.
+ *
+ * @note Read the first snapshot[CseWeaponState_Count] entries of both inventory
+ *       arrays. The remaining entries are cleared on success.
+ * @note Ammo counts describe the active custom weapon. The active and last
+ *       identifiers are 0 when those roles have no custom instance.
+ *
+ * @param player       Client index
+ * @param snapshot     Array indexed by CseWeaponState
+ * @param instances    Buffer to store owned instance identifiers
+ * @param definitions  Buffer to store the corresponding definition identifiers
+ *
+ * @return             CseWeapon_Ok on success, or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_state(player, snapshot[CseWeaponState], instances[CSE_WEAPON_MAX_OWNED],
+    definitions[CSE_WEAPON_MAX_OWNED]);
+
+/**
+ * Gives a custom weapon to a ready player.
+ *
+ * @param player      Client index
+ * @param generation  Catalog generation associated with the definition
+ * @param definition  Definition identifier
+ * @param instance    Variable to store the instance identifier on success
+ * @param policy      Policy for an occupied equipment slot
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_give(player, generation, definition, &instance,
+    CseWeaponSlotPolicy:policy = CseWeaponSlot_Reject);
+
+/**
+ * Spawns a custom weapon as a world pickup.
+ *
+ * @param generation  Catalog generation associated with the definition
+ * @param definition  Definition identifier
+ * @param origin      Pickup position as an X, Y, Z vector
+ * @param instance    Variable to store the instance identifier on success
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_spawn(generation, definition, const Float:origin[3], &instance);
+
+/**
+ * Selects a custom weapon through the GameDLL's weapon switching rules.
+ *
+ * @param player      Client index of the weapon's owner
+ * @param generation  Catalog generation associated with the instance
+ * @param instance    Owned instance identifier
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_equip(player, generation, instance);
+
+/**
+ * Drops a custom weapon from its owner's inventory.
+ *
+ * @param player      Client index of the weapon's owner
+ * @param generation  Catalog generation associated with the instance
+ * @param instance    Owned instance identifier
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_drop(player, generation, instance);
+
+/**
+ * Removes a custom weapon from its owner's inventory and the world.
+ *
+ * @param player      Client index of the weapon's owner
+ * @param generation  Catalog generation associated with the instance
+ * @param instance    Owned instance identifier
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_remove(player, generation, instance);
+
+/**
+ * Adds rounds to a player's reserve for a custom weapon.
+ *
+ * @note The resulting reserve is capped at the selected ammo pool's capacity.
+ *       Weapons sharing that pool see the same reserve.
+ *
+ * @param player      Client index of the weapon's owner
+ * @param generation  Catalog generation associated with the instance
+ * @param instance    Owned instance identifier
+ * @param amount      Number of rounds to add, from 0 to 65535
+ * @param secondary   True to add to secondary ammo, false for primary ammo
+ *
+ * @return            CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                    or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_grant_ammo(player, generation, instance, amount, bool:secondary = false);
+
+/**
+ * Purchases a custom weapon through the GameDLL's buy rules.
+ *
+ * @note Use a unique nonzero transaction value for each independent purchase.
+ *       When retrying a purchase, reuse the same value, definition, and policy.
+ *       Transaction values are shared by all callers for a player on the
+ *       current connection and map.
+ *
+ * @param player       Client index
+ * @param generation   Catalog generation associated with the definition
+ * @param definition   Definition identifier
+ * @param transaction  Transaction identifier, or 0 to skip duplicate detection
+ * @param instance     Variable to store the instance identifier on success
+ * @param policy       Policy for an occupied equipment slot
+ *
+ * @return             CseWeapon_Ok on success, CseWeapon_Pending if queued,
+ *                     or a CseWeaponResult failure code
+ */
+native CseWeaponResult:cse_weapons_buy(player, generation, definition, transaction, &instance,
+    CseWeaponSlotPolicy:policy = CseWeaponSlot_Reject);
+
+/**
+ * Called when a client becomes ready for the current weapon catalog.
+ *
+ * @param player      Client index
+ * @param generation  Generation of the catalog synchronized by the client
+ *
+ * @noreturn
+ */
+forward cse_weapons_ready(player, generation);
+
+/**
+ * Called when the module delivers a committed custom weapon event.
+ *
+ * @param kind        Event type from CseWeaponEvent
+ * @param generation  Catalog generation
+ * @param instance    Weapon instance identifier
+ * @param definition  Weapon definition identifier
+ * @param player      Client index of the actor or owner, or 0
+ * @param target      Client index of the affected player, or 0
+ * @param clip        Magazine contents at the time of the event
+ * @param reserve     Primary reserve at the time of the event
+ * @param secondary   Secondary reserve at the time of the event
+ *
+ * @noreturn
+ */
+forward cse_weapons_event(CseWeaponEvent:kind, generation, instance, definition, player, target, clip, reserve,
+    secondary);
+
+/**
+ * @endsection
+ */

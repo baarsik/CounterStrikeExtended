@@ -27,6 +27,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "gamerules.h"
 #include "game.h"
 #include "client.h"
@@ -377,6 +378,7 @@ void LinkUserMessages()
 	gmsgHudTextArgs = REG_USER_MSG( "HudTextArgs", -1 );
 	gmsgAccount = REG_USER_MSG( "Account", 5 );
 	gmsgHealthInfo = REG_USER_MSG( "HealthInfo", 5 );
+    cse::weapons::server::LinkMessages();
 }
 
 int CBasePlayer::Classify()
@@ -976,9 +978,18 @@ bool CBasePlayer::CanAffordPrimary()
 	return false;
 }
 
+static CBasePlayerWeapon* FirstStockWeapon(CBasePlayerItem* item) {
+    for (; item; item = item->m_pNext) {
+        if (!cse::weapons::server::IsCustom(item)) {
+            return dynamic_cast<CBasePlayerWeapon*>(item->GetWeaponPtr());
+        }
+    }
+    return nullptr;
+}
+
 bool CBasePlayer::CanAffordPrimaryAmmo()
 {
-	CBasePlayerItem *primary = m_rgpPlayerItems[1];
+    const auto* primary = FirstStockWeapon(m_rgpPlayerItems[1]);
 	if (primary == NULL)
 		return false;
 
@@ -992,7 +1003,7 @@ bool CBasePlayer::CanAffordPrimaryAmmo()
 
 bool CBasePlayer::CanAffordSecondaryAmmo()
 {
-	CBasePlayerItem *secondary = m_rgpPlayerItems[2];
+    const auto* secondary = FirstStockWeapon(m_rgpPlayerItems[2]);
 	if (secondary == NULL)
 		return false;
 
@@ -1023,15 +1034,15 @@ bool CBasePlayer::CanAffordGrenade()
 
 bool CBasePlayer::NeedsPrimaryAmmo()
 {
-	CBasePlayerWeapon *primary = (CBasePlayerWeapon *)m_rgpPlayerItems[1];
-	return primary != NULL && primary->m_iId != WEAPON_SHIELDGUN &&
+    const auto* primary = FirstStockWeapon(m_rgpPlayerItems[1]);
+    return primary && primary->m_iId != WEAPON_SHIELDGUN &&
 		m_rgAmmo[primary->m_iPrimaryAmmoType] < CBasePlayerItem::ItemInfoArray[primary->m_iId].iMaxAmmo1;
 }
 
 bool CBasePlayer::NeedsSecondaryAmmo()
 {
-	CBasePlayerWeapon *secondary = (CBasePlayerWeapon *)m_rgpPlayerItems[2];
-	return secondary != NULL &&
+    const auto* secondary = FirstStockWeapon(m_rgpPlayerItems[2]);
+    return secondary &&
 		m_rgAmmo[secondary->m_iPrimaryAmmoType] < CBasePlayerItem::ItemInfoArray[secondary->m_iId].iMaxAmmo1;
 }
 
@@ -1124,8 +1135,9 @@ const char *GetWeaponAliasFromName(const char *weaponName)
 
 bool CurrentWeaponSatisfies(CBasePlayerWeapon *weapon, int weaponId, int weaponClass)
 {
-	if (weapon == NULL)
-		return false;
+    if (!weapon || cse::weapons::server::IsCustom(weapon)) {
+        return false;
+    }
 	const char *alias = GetWeaponAliasFromName(CBasePlayerItem::ItemInfoArray[weapon->m_iId].pszName);
 	if (weaponId != 0 && weaponId == AliasToWeaponID(alias))
 		return true;
@@ -1285,9 +1297,9 @@ void CBasePlayer::BuildRebuyStruct()
 {
 	if (m_bIsInRebuy)
 		return;
-	CBasePlayerWeapon *primary = (CBasePlayerWeapon *)m_rgpPlayerItems[1];
-	CBasePlayerWeapon *secondary = (CBasePlayerWeapon *)m_rgpPlayerItems[2];
-	if (primary != NULL)
+    const auto* primary = FirstStockWeapon(m_rgpPlayerItems[1]);
+    const auto* secondary = FirstStockWeapon(m_rgpPlayerItems[2]);
+    if (primary)
 	{
 		m_rebuyStruct.m_primaryWeapon = primary->m_iId;
 		m_rebuyStruct.m_primaryAmmo = m_rgAmmo[primary->m_iPrimaryAmmoType];
@@ -1297,7 +1309,7 @@ void CBasePlayer::BuildRebuyStruct()
 		m_rebuyStruct.m_primaryWeapon = m_bOwnsShield ? WEAPON_SHIELDGUN : WEAPON_NONE;
 		m_rebuyStruct.m_primaryAmmo = 0;
 	}
-	if (secondary != NULL)
+    if (secondary)
 	{
 		m_rebuyStruct.m_secondaryWeapon = secondary->m_iId;
 		m_rebuyStruct.m_secondaryAmmo = m_rgAmmo[secondary->m_iPrimaryAmmoType];
@@ -1330,8 +1342,8 @@ void CBasePlayer::RebuyPrimaryWeapon()
 
 void CBasePlayer::RebuyPrimaryAmmo()
 {
-	CBasePlayerWeapon *primary = (CBasePlayerWeapon *)m_rgpPlayerItems[1];
-	if (primary != NULL && m_rebuyStruct.m_primaryAmmo > m_rgAmmo[primary->m_iPrimaryAmmoType])
+    const auto* primary = FirstStockWeapon(m_rgpPlayerItems[1]);
+    if (primary && m_rebuyStruct.m_primaryAmmo > m_rgAmmo[primary->m_iPrimaryAmmoType])
 		ClientCommand("primammo", NULL, NULL, NULL);
 }
 
@@ -1347,8 +1359,8 @@ void CBasePlayer::RebuySecondaryWeapon()
 
 void CBasePlayer::RebuySecondaryAmmo()
 {
-	CBasePlayerWeapon *secondary = (CBasePlayerWeapon *)m_rgpPlayerItems[2];
-	if (secondary != NULL && m_rebuyStruct.m_secondaryAmmo > m_rgAmmo[secondary->m_iPrimaryAmmoType])
+    const auto* secondary = FirstStockWeapon(m_rgpPlayerItems[2]);
+    if (secondary && m_rebuyStruct.m_secondaryAmmo > m_rgAmmo[secondary->m_iPrimaryAmmoType])
 		ClientCommand("secammo", NULL, NULL, NULL);
 }
 
@@ -2075,6 +2087,9 @@ BOOL CBasePlayer::SwitchWeapon( CBasePlayerItem* weapon )
 
 int CBasePlayer::AddPlayerItem( CBasePlayerItem* item )
 {
+    if (!cse::weapons::server::IsCustom(item) && cse::weapons::server::BlocksStockPickup(*this, item->iItemSlot())) {
+        return FALSE;
+    }
 	CBasePlayerItem* existing = m_rgpPlayerItems[item->iItemSlot()];
 	while ( existing != NULL )
 	{
@@ -2158,6 +2173,10 @@ void CBasePlayer::SelectItem( const char* name )
 				continue;
 			if ( m_pActiveItem == item )
 				return;
+            if (cse::weapons::server::IsCustom(item) &&
+                (!item->CanDeploy() || (m_pActiveItem && !m_pActiveItem->CanHolster()))) {
+                return;
+            }
 			ResetAutoaim();
 			if ( m_pActiveItem != NULL )
 				m_pActiveItem->Holster();
@@ -2433,8 +2452,10 @@ void CWShield::Touch( CBaseEntity* other )
 	CBasePlayer* player = (CBasePlayer*)other;
 	if ( player->HasShield() )
 		return;
-	if ( player->m_rgpPlayerItems[2] != NULL && player->m_rgpPlayerItems[2]->m_iId == WEAPON_ELITE )
-		return;
+    CBasePlayerItem* secondary = player->m_rgpPlayerItems[2];
+    if (secondary && (secondary->m_iId == WEAPON_ELITE || cse::weapons::server::IsCustom(secondary))) {
+        return;
+    }
 	if ( player->m_pActiveItem != NULL && !player->m_pActiveItem->CanHolster() )
 		return;
 	if ( player->m_bIsVIP )
@@ -2452,7 +2473,7 @@ void CBasePlayer::GiveShield( bool deploy )
 	if ( m_pActiveItem != NULL && deploy )
 	{
 		CBasePlayerWeapon* weapon = (CBasePlayerWeapon*)m_pActiveItem;
-		if ( m_rgAmmo[weapon->m_iPrimaryAmmoType] > 0 )
+		if ( !cse::weapons::server::IsCustom(weapon) && m_rgAmmo[weapon->m_iPrimaryAmmoType] > 0 )
 			m_pActiveItem->Holster();
 		if ( !m_pActiveItem->Deploy() )
 			( (CBasePlayerWeapon*)m_pActiveItem )->RetireWeapon();
@@ -2555,6 +2576,7 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	else
 		pev->weapons &= 1 << WEAPON_SUIT;
 	memset( m_rgAmmo, 0, sizeof( m_rgAmmo ) );
+    cse::weapons::server::ClearAmmo(*this);
 	UpdateClientData();
 	// send Selected Weapon Message to our client
 	MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pev );
@@ -2606,6 +2628,9 @@ static void packPlayerItem( CBasePlayer* player, CBasePlayerItem* item, bool pac
 {
 	if ( item == NULL )
 		return;
+    if (cse::weapons::server::Drop(*player, item, true, packAmmo)) {
+        return;
+    }
 	const char* model = WeaponWorldModel( item->m_iId );
 	if ( model == NULL )
 	{
@@ -2644,7 +2669,7 @@ void CBasePlayer::PackDeadPlayerItems()
 				if ( item->iItemSlot() <= 2 && !hadShield )
 				{
 					ItemInfo info;
-					if ( item->GetItemInfo( &info ) && info.iWeight > weight )
+					if ( item->CanDrop() && item->GetItemInfo( &info ) && info.iWeight > weight )
 					{
 						best = item;
 						weight = info.iWeight;
@@ -2938,6 +2963,9 @@ void CBasePlayer::DropPlayerItem( const char* name )
 		ClientPrint( pev, HUD_PRINTCENTER, "#Weapon_Cannot_Be_Dropped" );
 		return;
 	}
+    if (cse::weapons::server::Drop(*this, item, false, false)) {
+        return;
+    }
 	pev->weapons &= ~( 1 << item->m_iId );
 	g_pGameRules->GetNextBestWeapon( this, item );
 	UTIL_MakeVectors( pev->angles );
@@ -2983,6 +3011,9 @@ void CBasePlayer::DropPlayerItem( const char* name )
 	box->SetThink( &CWeaponBox::Kill );
 	box->pev->nextthink = gpGlobals->time + 300;
 	box->PackWeapon( item );
+    if (item->iItemSlot() == 1 && m_rgpPlayerItems[1]) {
+        m_bHasPrimary = true;
+    }
 	box->pev->velocity = gpGlobals->v_forward * 400;
 	box->m_bIsBomb = false;
 	if ( FStrEq( STRING( item->pev->classname ), "weapon_c4" ) )
@@ -3085,6 +3116,9 @@ Vector CBasePlayer::GetAutoaimVector( float delta )
 
 const char* GetWeaponName( entvars_t* inflictor, entvars_t* killer )
 {
+    if (const char* customWeapon = cse::weapons::server::DamageWeapon(killer, inflictor)) {
+        return customWeapon;
+    }
 	const char* weapon;
 	if ( killer->flags & FL_CLIENT )
 	{
@@ -3094,8 +3128,10 @@ const char* GetWeaponName( entvars_t* inflictor, entvars_t* killer )
 		if ( killer == inflictor )
 		{
 			CBasePlayer* player = dynamic_cast<CBasePlayer*>( CBaseEntity::Instance( killer ) );
-			if ( player == NULL || player->m_pActiveItem == NULL )
+			if ( player == NULL || player->m_pActiveItem == NULL ||
+                cse::weapons::server::IsCustom(player->m_pActiveItem) ) {
 				return "world";
+            }
 			weapon = CBasePlayerItem::ItemInfoArray[player->m_pActiveItem->m_iId].pszName;
 		}
 		else
@@ -4726,7 +4762,13 @@ int CBasePlayer::TakeDamage(entvars_t *pevInflictor, entvars_t *pevAttacker, flo
 	{
 		if (!IsAlive())
 			return 0;
-		if ((bitsDamageType & DMG_EXPLOSION) && FClassnameIs(GetClassPtr((CBaseEntity *)pevInflictor)->pev, "grenade"))
+        if (cse::weapons::server::DamageWeapon(pevAttacker, pevInflictor)) {
+            pAttacker = dynamic_cast<CBasePlayer*>(CBaseEntity::Instance(pevAttacker));
+            teamAttack = pAttacker && pAttacker != this && pAttacker->m_iTeam == m_iTeam;
+            if (teamAttack && CVAR_GET_FLOAT("mp_friendlyfire") == 0) {
+                return 0;
+            }
+        } else if ((bitsDamageType & DMG_EXPLOSION) && FClassnameIs(pevInflictor, "grenade"))
 		{
 			CGrenade *pGrenade = GetClassPtr((CGrenade *)pevInflictor);
 			if (CVAR_GET_FLOAT("mp_friendlyfire") == 0)
@@ -5856,6 +5898,7 @@ void CBasePlayer::Spawn()
 	{
 		m_iClientHideHUD = -1;  // force this to be recalculated
 		memset( m_rgAmmo, 0, sizeof( m_rgAmmo ) );
+        cse::weapons::server::ClearAmmo(*this);
 		m_bHasPrimary = false;
 		m_bHasNightVision = false;
 		SendItemStatus( this );
@@ -6093,8 +6136,10 @@ void CBasePlayer::PreThink()
 		Observer_HandleButtons();
 		Observer_CheckTarget();
 		Observer_CheckProperties();
+        cse::weapons::server::UpdateClient(*this);
 		return;
 	}
+    cse::weapons::server::UpdateClient(*this);
 	if ( pev->deadflag > DEAD_NO && pev->deadflag != DEAD_RESPAWNABLE )
 	{
 		PlayerDeathThink();

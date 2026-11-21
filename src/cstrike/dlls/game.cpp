@@ -13,6 +13,7 @@
 *
 ****/
 #include "extdll.h"
+#include "custom_weapons.h"
 #include "eiface.h"
 #include "util.h"
 #include "game.h"
@@ -482,6 +483,7 @@ void Hostage_RegisterCVars();
 
 void GameDLLInit()
 {
+    cse::weapons::server::Initialize();
 	// Register cvars here:
 
 	g_psv_gravity = CVAR_GET_POINTER("sv_gravity");

@@ -28,6 +28,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "client.h"
 #include "spectator.h"
 #include "soundent.h"
@@ -196,6 +197,9 @@ entity_field_alias_t custom_entity_field_alias[] =
 
 BOOL ClientConnect( edict_t* entity, const char* name, const char* address, char* rejectReason )
 {
+    if (!cse::weapons::server::AcceptClient(entity, rejectReason)) {
+        return FALSE;
+    }
 	return g_pGameRules->ClientConnected( entity, name, address, rejectReason );
 }
 
@@ -555,6 +559,9 @@ void DropPrimary( CBasePlayer* player )
 
 bool BuyGunAmmo( CBasePlayer& player, CBasePlayerItem& weapon, bool blinkMoney )
 {
+    if (cse::weapons::server::IsCustom(&weapon)) {
+        return false;
+    }
 	if ( !player.CanPlayerBuy( true ) )
 		return false;
 	int ammoIndex = weapon.PrimaryAmmoIndex();
@@ -643,15 +650,17 @@ bool BuyAmmo( CBasePlayer* player, int slot, bool blinkMoney )
 	CBasePlayerItem* weapon = player->m_rgpPlayerItems[slot];
 	if ( player->HasShield() && player->m_rgpPlayerItems[2] )
 		weapon = player->m_rgpPlayerItems[2];
-	if ( !weapon )
-		return false;
-	while ( weapon )
-	{
-		if ( !BuyGunAmmo( *player, *weapon, blinkMoney ) )
-			return false;
-		weapon = weapon->m_pNext;
-	}
-	return true;
+    bool bought = false;
+    for (; weapon; weapon = weapon->m_pNext) {
+        if (cse::weapons::server::IsCustom(weapon)) {
+            continue;
+        }
+        if (!BuyGunAmmo(*player, *weapon, blinkMoney)) {
+            return false;
+        }
+        bought = true;
+    }
+    return bought;
 }
 
 int GetWeaponData( edict_t* entity, weapon_data_t* info )
@@ -1237,6 +1246,9 @@ void ClientDisconnect( edict_t* entity )
 		UTIL_SetOrigin( &entity->v, entity->v.origin );
 		g_pGameRules->ClientDisconnected( entity );
 	}
+    if (player) {
+        cse::weapons::server::Disconnect(*player);
+    }
 	if ( player && player->IsBot() )
 		TheBots->ClientDisconnect( player );
 }
@@ -1334,6 +1346,13 @@ void DropSecondary( CBasePlayer* player )
 
 bool CanBuyThis( CBasePlayer* player, int weapon )
 {
+    const bool primaryPurchase = IsPrimaryWeapon(static_cast<WeaponIdType>(weapon)) || weapon == WEAPON_SHIELDGUN;
+    if (cse::weapons::server::BlocksStockPurchase(*player, primaryPurchase)) {
+        if (g_bClientPrintEnable) {
+            ClientPrint(player->pev, HUD_PRINTCENTER, "#Weapon_Cannot_Be_Dropped");
+        }
+        return false;
+    }
 	CHalfLifeMultiplay* rules = (CHalfLifeMultiplay*)g_pGameRules;
 	bool shield = player->HasShield();
 	if ( weapon == WEAPON_ELITE && shield )
@@ -1341,7 +1360,7 @@ bool CanBuyThis( CBasePlayer* player, int weapon )
 	if ( ( weapon == WEAPON_SHIELDGUN ) & player->HasShield() )
 		return false;
 	CBasePlayerItem* pistol = player->m_rgpPlayerItems[2];
-	if ( pistol && pistol->m_iId == WEAPON_ELITE && weapon == WEAPON_SHIELDGUN )
+	if ( pistol && (pistol->m_iId == WEAPON_ELITE || cse::weapons::server::IsCustom(pistol)) && weapon == WEAPON_SHIELDGUN )
 		return false;
 	CBasePlayerItem* primary = player->m_rgpPlayerItems[1];
 	if ( ( primary && primary->m_iId == weapon ) || ( pistol && pistol->m_iId == weapon ) )
@@ -2105,6 +2124,7 @@ void ClientPutInServer( edict_t* entity )
 {
 	CHalfLifeMultiplay* rules = (CHalfLifeMultiplay*)g_pGameRules;
 	CBasePlayer* player = GetClassPtr( (CBasePlayer*)&entity->v );
+    cse::weapons::server::Connect(*player);
 	player->SetCustomDecalFrames( -1 );
 	player->SetPrefsFromUserinfo( g_engfuncs.pfnGetInfoKeyBuffer( entity ) );
 	if ( !g_pGameRules->IsMultiplayer() )
@@ -2197,6 +2217,7 @@ void ServerActivate( edict_t* entities, int count, int maxClients )
 
 	// Every call to ServerActivate should be matched by a call to ServerDeactivate
 	g_serveractive = 1;
+    cse::weapons::server::Activate();
 	EmptyEntityHashTable();
 	for ( int index = 0; index < count; ++index )
 	{
@@ -2233,6 +2254,7 @@ void ServerDeactivate()
 	TheBots->ServerDeactivate();
 	if ( g_pHostages )
 		g_pHostages->ServerDeactivate();
+    cse::weapons::server::Deactivate();
 }
 
 void StartFrame()
@@ -2718,6 +2740,9 @@ void ClientCommand( edict_t* entity )
 		return;
 	CHalfLifeMultiplay* rules = (CHalfLifeMultiplay*)g_pGameRules;
 	CBasePlayer* player = GetClassPtr( (CBasePlayer*)&entity->v );
+    if (cse::weapons::server::ClientCommand(*player, command)) {
+        return;
+    }
 	if ( !strcmp( command, "say" ) || !strcmp( command, "say_team" ) || !strcmp( command, "fullupdate" ) )
 	{
 		TrackCommands tracked = !strcmp( command, "say" ) ? CMD_SAY :

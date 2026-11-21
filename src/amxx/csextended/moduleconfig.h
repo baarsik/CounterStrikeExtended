@@ -13,8 +13,8 @@
 #define NO_ALLOC_OVERRIDES
 #define FN_AMXX_ATTACH CseAttach
 #define FN_AMXX_CHECKGAME CseCheckGame
-#define FN_AMXX_PLUGINSLOADED FormsPluginsLoaded
-#define FN_AMXX_PLUGINSUNLOADING FormsPluginsUnloading
+#define FN_AMXX_PLUGINSLOADED CsePluginsLoaded
+#define FN_AMXX_PLUGINSUNLOADING CsePluginsUnloading
 #define FN_ServerActivate CseServerActivate
 #define FN_ServerActivate_Post CseServerActivated
 #define FN_ServerDeactivate CseServerDeactivate

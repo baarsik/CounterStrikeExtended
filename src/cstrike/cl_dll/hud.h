@@ -157,6 +157,7 @@ public:
 	void Think() override;
 	void Reset() override;
 	int DrawWList( float time );
+    int DrawMergedInventory();
 	int DrawCrosshair( float time, int weaponID );
 	int MsgFunc_CurWeapon( const char* name, int size, void* buffer );
 	int MsgFunc_WeaponList( const char* name, int size, void* buffer );
@@ -286,6 +287,8 @@ public:
 //
 //-----------------------------------------------------
 //
+struct DeathMessageExtra;
+
 class CHudDeathNotice : public CHudBase
 {
 public:
@@ -295,11 +298,16 @@ public:
 	int Draw( float time ) override;
 	int GetDeathNoticeY();
 	int MsgFunc_DeathMsg( const char* name, int size, void* buffer );
+    void ShowCustomDeath(int killer, int victim, bool headshot, HSPRITE sprite, const wrect_t& rect, const char* name);
 	int m_HUD_d_skull;  // sprite index of skull icon
 	int m_iDeathNoticeGap;
 	int m_iDeathNoticeTop;
 	int m_iDeathTextGap;
 	int m_iDeathNoticeGapRight;
+
+private:
+    int ShowDeath(int killer, int victim, bool headshot, char* killedWith, const DeathMessageExtra& extra,
+                  HSPRITE customSprite = 0, const wrect_t& customRect = {}, const char* customName = nullptr);
 #if defined( _MSC_VER )
 #pragma warning( suppress : 26495 )
 #endif

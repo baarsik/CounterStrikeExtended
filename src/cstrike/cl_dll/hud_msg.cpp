@@ -20,6 +20,7 @@
 #include <string.h>
 #include <algorithm>
 #include "extended_stats.h"
+#include "custom_weapon_client.h"
 #include "hud.h"
 #include "nextclient/hud/NativeRadar.h"
 #include "nextclient/hud/radar/integration/RadarHooks.h"
@@ -46,6 +47,7 @@ extern cvar_t* cl_fog_b;
 void CHud::MsgFunc_InitHUD( const char*, int, void* )
 {
     CSE_ResetExtendedStats(true);
+    cse::weapons::ResetWeaponSession();
     NativeRadar_InitHud();
 	if ( gViewPortInterface )
 		gViewPortInterface->OnLevelChange();

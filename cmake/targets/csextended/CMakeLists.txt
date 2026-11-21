@@ -3,6 +3,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")
 cse_link_webp(csextended)
 include("${CSE_ROOT}/cmake/ExpatDependency.cmake")
 cse_link_form_xml(csextended)
+target_link_libraries(csextended PRIVATE ${CMAKE_DL_LIBS})
 
 set(deploy "${CSE_ROOT}/src/amxx/csextended/deploy")
 set(configs "${CSE_AMXX_PACKAGE}/configs")
@@ -20,9 +21,11 @@ add_custom_target(csextended_package_assets
     "${configs}/cse_extstats.cfg" "${configs}/cse_forms.cfg"
     "${data}/showcase.form" "${scripting}/include/cse_extstats.inc" "${scripting}/include/cse_forms.inc"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/csextended.cfg" "${configs}/"
-  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/csextended.inc" "${scripting}/include/"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+    "${deploy}/csextended.inc" "${deploy}/csextended_consts.inc" "${scripting}/include/"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/examples/stats.sma" "${scripting}/example.sma"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/examples/forms.sma" "${scripting}/cse_forms_example.sma"
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${deploy}/examples/weapons.sma" "${scripting}/cse_weapons_example.sma"
   COMMAND "${CMAKE_COMMAND}" -E copy_if_different
     "${deploy}/forms/showcase.xaml" "${deploy}/forms/showcase-mark.webp"
     "${deploy}/forms/showcase-session.rgba" "${data}/"

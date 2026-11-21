@@ -3,6 +3,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "weapons.h"
+#include "custom_weapons.h"
 #include "gamerules.h"
 #include "bot_util.h"
 #include "tutor.h"
@@ -55,8 +56,9 @@ void CCSTutor::CheckForNeedToReload( bool isPassiveCheck )
 		return;
 
 	CBasePlayerItem* item = player->m_pActiveItem;
-	if ( item == NULL || item->IsWeapon() != TRUE )
-		return;
+    if (!item || cse::weapons::server::IsCustom(item) || item->IsWeapon() != TRUE) {
+        return;
+    }
 
 	ItemInfo info;
 	item->GetItemInfo( &info );
@@ -1921,7 +1923,8 @@ void CCSTutor::HandleWeaponFiredOnEmpty( CBaseEntity* entity, CBaseEntity* )
 {
 	CBasePlayer* player = UTIL_GetLocalPlayer();
 	if ( player != NULL && entity != NULL && entity->IsPlayer() && player == entity &&
-		player->m_pActiveItem->IsWeapon() == TRUE )
+        player->m_pActiveItem && !cse::weapons::server::IsCustom(player->m_pActiveItem) &&
+        player->m_pActiveItem->IsWeapon() == TRUE )
 	{
 		CBasePlayerWeapon* weapon = (CBasePlayerWeapon*)player->m_pActiveItem;
 		if ( player->m_rgAmmo[weapon->m_iPrimaryAmmoType] <= 0 )

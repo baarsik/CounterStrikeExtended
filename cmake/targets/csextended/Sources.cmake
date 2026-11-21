@@ -6,6 +6,7 @@ target_sources(csextended PRIVATE
   "${CSE_ROOT}/src/amxx/csextended/stats/legacy_messages.cpp"
   "${CSE_ROOT}/src/amxx/csextended/forms/forms.cpp"
   "${CSE_ROOT}/src/amxx/csextended/forms/session.cpp"
+  "${CSE_ROOT}/src/amxx/csextended/weapons/natives.cpp"
   "${CSE_ROOT}/src/public/cse_server_forms.cpp"
   "${CSE_ROOT}/src/public/cse_server_forms_xaml.cpp"
   "${CSE_ROOT}/src/public/cse_server_forms_image.cpp"
