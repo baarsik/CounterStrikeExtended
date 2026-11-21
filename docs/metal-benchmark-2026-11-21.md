@@ -108,3 +108,25 @@ acquisition. This renderer comparison does not isolate the OS compositor or
 establish that the compact vertex and cache changes improved FPS. OpenGL traces,
 process checks, and analyzer JSON are under the local ignored
 `build/metal-cef-20261120/final-gl-demo/` directory.
+
+## Multisample workload diagnostic
+
+Two more complete replays used the same final Metal app, demo, settings, and
+borderless window, adding only `-nomsaa` to select one color/depth sample in
+place of the default 4× MSAA. This changes image quality, so it is a diagnostic
+comparison rather than a proposed default. All four runs below reported the
+60,019 demo frames, passed the analyzer's focus and menu checks, exited zero,
+and left no game or CEF process.
+
+| Run | Default 4× MSAA FPS | One-sample FPS | Default p95 | One-sample p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 335.22 | 323.67 | 8.451 ms | 8.966 ms |
+| 2 | 334.28 | 328.40 | 8.502 ms | 8.845 ms |
+
+Removing multisampling did not improve the mean or tail frame intervals on
+this setup. The single-sample presentation path also copies to a separate
+retained final-color target before the swapchain blit, whereas the matching
+4× MSAA resolve can be presented directly at this size. That code-path
+difference is a plausible contributor, not an isolated cause. The tests were
+not interleaved, and no rendering behavior was changed. Raw results are under
+the local ignored `build/metal-cef-20261120/final-nomsaa-demo/` directory.
