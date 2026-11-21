@@ -34,6 +34,7 @@
 #include "cl_dll.h"
 
 #include <algorithm>
+#include <iterator>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,8 +98,8 @@ constexpr const char* CrosshairSizes[] = {
 constexpr const char* CrosshairShapes[] = {
     "#CSECrosshair_Cross", "#CSECrosshair_T", "#CSECrosshair_Circle", "#CSECrosshair_Dot"
 };
-static_assert(sizeof(CrosshairSizes) / sizeof(CrosshairSizes[0]) == static_cast<int>(crosshair::Size::Count));
-static_assert(sizeof(CrosshairShapes) / sizeof(CrosshairShapes[0]) == static_cast<int>(crosshair::Shape::Count));
+static_assert(std::size(CrosshairSizes) == static_cast<int>(crosshair::Size::Count));
+static_assert(std::size(CrosshairShapes) == static_cast<int>(crosshair::Shape::Count));
 
 template<std::size_t Count>
 void AddCrosshairOptions(vgui2::ComboBox& combo, const char* const (&labels)[Count]) {
@@ -236,8 +237,10 @@ COptionsSubMultiplayer::COptionsSubMultiplayer( vgui2::Panel* parent ) : BaseCla
 		|| stricmp( gEngfuncs.pfnGetGameDirectory(), "cstrike_beta" ) == 0 )
 	{
         m_pCrosshairColorComboBox = new vgui2::ComboBox(this, "CrosshairColorComboBox", 6, false);
-        m_pCrosshairSize = new vgui2::ComboBox(this, "CrosshairSizeComboBox", 5, false);
-        m_pCrosshairShape = new vgui2::ComboBox(this, "CrosshairShapeComboBox", 4, false);
+        m_pCrosshairSize = new vgui2::ComboBox(this, "CrosshairSizeComboBox",
+            static_cast<int>(std::size(CrosshairSizes)), false);
+        m_pCrosshairShape = new vgui2::ComboBox(this, "CrosshairShapeComboBox",
+            static_cast<int>(std::size(CrosshairShapes)), false);
         m_pCrosshairShapeLabel = new vgui2::Label(this, "CrosshairShapeLabel", "#CSECrosshair_Shape");
         m_pCrosshairShapeLabel->SetAssociatedControl(m_pCrosshairShape);
         AddCrosshairOptions(*m_pCrosshairSize, CrosshairSizes);
