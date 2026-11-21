@@ -69,6 +69,9 @@ int main() {
         constexpr int kWidth = 4;
         constexpr int kHeight = 3;
         constexpr int kPixelBytes = static_cast<int>(PaintBytesPerPixel);
+        constexpr std::uint8_t kChangedValue = 99;
+        constexpr std::uint8_t kMultipleValue = 7;
+        constexpr std::uint8_t kInvalidValue = 8;
         std::vector<std::uint8_t> source(kWidth * kHeight * kPixelBytes);
         for (std::size_t index = 0; index < source.size(); ++index) {
             source[index] = static_cast<std::uint8_t>(index);
@@ -77,31 +80,31 @@ int main() {
         UpdatePaintBacking(backing, source.data(), kWidth, kHeight, std::vector<PaintBounds>{{1, 1, 1, 1}});
         Require(backing == source, "first dirty paint initializes the complete backing");
 
-        std::vector<std::uint8_t> changed(source.size(), 99);
+        std::vector<std::uint8_t> changed(source.size(), kChangedValue);
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight, std::vector<PaintBounds>{{1, 1, 2, 1}});
         auto expected = source;
         std::fill(expected.begin() + (kWidth + 1) * kPixelBytes,
-            expected.begin() + (kWidth + 3) * kPixelBytes, 99);
+            expected.begin() + (kWidth + 3) * kPixelBytes, kChangedValue);
         Require(backing == expected, "single dirty rectangle copies only changed rows and columns");
 
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight, std::vector<PaintBounds>{{-1, 0, 2, 1}});
-        std::fill(expected.begin(), expected.begin() + kPixelBytes, 99);
+        std::fill(expected.begin(), expected.begin() + kPixelBytes, kChangedValue);
         Require(backing == expected, "partly out-of-bounds dirty rectangle is clipped");
 
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight,
             std::vector<PaintBounds>{{3, 2, std::numeric_limits<int>::max(), 1}});
-        std::fill(expected.end() - kPixelBytes, expected.end(), 99);
+        std::fill(expected.end() - kPixelBytes, expected.end(), kChangedValue);
         Require(backing == expected, "dirty rectangle clipping avoids signed overflow");
 
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight, std::vector<PaintBounds>{});
         Require(backing == changed, "missing dirty bounds conservatively copy the full backing");
 
-        std::fill(changed.begin(), changed.end(), 7);
+        std::fill(changed.begin(), changed.end(), kMultipleValue);
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight,
             std::vector<PaintBounds>{{0, 0, 1, 1}, {3, 2, 1, 1}});
         Require(backing == changed, "multiple rectangles use a full backing copy");
 
-        std::fill(changed.begin(), changed.end(), 8);
+        std::fill(changed.begin(), changed.end(), kInvalidValue);
         UpdatePaintBacking(backing, changed.data(), kWidth, kHeight,
             std::vector<PaintBounds>{{20, 20, 1, 1}});
         Require(backing == changed, "invalid damage falls back to a full backing copy");
