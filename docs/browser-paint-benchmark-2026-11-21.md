@@ -287,3 +287,19 @@ so it cannot measure callback cadence across the whole cycle or record the
 browser's final close. The game log and process check establish the scripted
 `quit` and clean teardown. The screenshots and trace are in the local ignored
 `build/metal-cef-20261120/final-post-region-mapcycle/` directory.
+
+After that 12-minute map cycle exited, a separate 15-minute process watch
+sampled immediately and once per minute through minute 15. All 16 samples
+found no staged game, browser host, CEF helper or local test server process.
+This bounds delayed background activity over the observed interval, not all
+possible future launches. The watch data is in
+`build/metal-cef-20261120/final-post-region-mapcycle/post-quit-watch.json`.
+
+Finally, the same staged app joined a new local MOTD server with `-nosound -metal`.
+The owned CEF host was stopped with `SIGSTOP` while the client was
+active; its process state was confirmed as `T`. The scripted game `quit`
+still exited zero in 28.905 seconds and left no game, host or helper process
+before test cleanup. The server exited zero. A stopped host cannot flush its
+paint trace, so this checks the bounded shutdown path rather than browser
+paint cadence. The local ignored logs and result are in
+`build/metal-cef-20261120/final-stopped-host/`.
