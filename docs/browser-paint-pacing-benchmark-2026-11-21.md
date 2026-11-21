@@ -110,3 +110,34 @@ images; these capped runs did not show a frame-interval regression. This
 measurement remains limited to browser callback availability and game CPU
 timing, not displayed frame cadence. The raw traces and metadata are in the
 local ignored `build/metal-cef-20261120/browser-pump-hires/` directory.
+
+## Sustained joined-client and quit check
+
+The final integrated macOS QA app ran with `-nosound -metal` in a 2560×1440
+borderless window against the same animated `de_dust2` MOTD. A repeating
+in-game config kept the client open and later issued `quit`. One run lasted
+901.71 seconds with frame logging. The local server kicked the client after
+about 603 seconds because Steam validation stalled, leaving the game open for
+the remaining five minutes. This run exited zero and left no game, CEF host,
+or helper process. The host trace's 2,048-record limit covered only the first
+14.4 seconds, including 662 `OnPaint` callbacks; it cannot establish paint
+cadence across the full run.
+
+A second run omitted both frame and CEF trace logging and issued `quit` while
+still connected after 542.84 seconds. It also exited zero with no game or CEF
+process left. From 30 seconds to the last sample before quit, game process RSS
+was 339.16–343.86 MiB; CEF host RSS was 219.98–222.38 MiB. Both process file
+descriptor counts were unchanged between checks in the longer run (game 135,
+host 165). The game RSS increase in the logged run is not a renderer leak
+measurement: `CSE_FRAME_TIME_LOG` retains up to 120,000 samples in memory and
+hit that cap before quit. The no-log run showed a small step in game RSS near
+seven minutes, then a stable final minute; it does not establish indefinite
+memory behavior.
+
+The long-run config's frame cap did not remain in force: a live console query
+later reported `fps_max 999`, and the logged run's frame intervals changed
+near seven minutes. These soaks validate process lifetime and bounded memory
+over their observed duration, not comparative game FPS. Their metadata, logs,
+and memory samples are under the local ignored
+`build/metal-cef-20261120/final-cef-soak/` and
+`build/metal-cef-20261120/final-cef-soak-nolog/` directories.
