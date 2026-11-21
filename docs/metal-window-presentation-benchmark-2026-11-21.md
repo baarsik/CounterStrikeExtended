@@ -44,6 +44,37 @@ measured path on this setup while preserving the selected 1280×720 resolution.
 OpenGL at the same titled size measured 418.74 FPS in a separate replay; this
 comparison does not establish on-screen presentation rate or visual latency.
 
+## Borderless drawable-pool check
+
+After the browser-paint changes, a separate signed-app A/B replay tested whether
+the two-drawable policy should also apply to **borderless** immediate mode. The
+candidate changed only that Metal policy and its matching launcher cohort. Both
+apps used the same 1280×720 borderless demo, assets, `-nosound` arguments and
+uncapped VSync-off settings. All four runs reported 7,102 demo frames, passed
+the analyzer's focus and menu checks, exited zero, and left no game or browser
+helper process.
+
+| Pair | Default three drawables | Two drawables | Default p95 | Two-drawable p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 317.23 FPS | 161.59 FPS | 9.498 ms | 11.853 ms |
+| 2 | 316.23 FPS | 161.44 FPS | 9.608 ms | 11.846 ms |
+
+The two-drawable borderless candidate lost about 49% FPS in each pair. It was
+discarded; the committed policy still uses the system's default pool for
+borderless windows and two drawables only for titled immediate mode. These
+results also show why the titled result above should not be generalized to
+other window modes.
+
+The 60,019-frame `compact-profile-a` trace provides a timing cross-check for
+the remaining borderless stalls. After warmup, frame interval and the
+**previous** frame's drawable wait have correlation 0.891. Intervals of at
+least 10 ms followed a previous drawable wait averaging 8.50 ms. The wait in
+the same CSV row averages only 0.007 ms because the interval spans the prior
+frame. This localizes the measured tail to presentation back pressure rather
+than the 0.344 ms mean CPU preparation work; it does not identify a safe SDL or
+Metal workaround by itself.
+
 Raw traces and metadata are in the local ignored
 `build/metal-cef-20261120/` directory under `titled-short-*`,
-`borderless-small-short-*`, and `window-mode-short-comparison.json`.
+`borderless-small-short-*`, `pool2-borderless-*`,
+`window-mode-short-comparison.json`, and `pool2-borderless-comparison-*.json`.
