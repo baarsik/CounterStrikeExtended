@@ -2,7 +2,9 @@
 
 See the [compact-vertex measurements](metal-benchmark-2026-11-21.md) and
 [stream-cache measurements](metal-stream-cache-benchmark-2026-11-21.md) from
-21 November 2026.
+21 November 2026. The
+[window-presentation measurements](metal-window-presentation-benchmark-2026-11-21.md)
+compare titled and borderless Metal replays at the same resolution.
 
 Use an identical Counter-Strike demo and game assets in two **isolated, signed**
 macOS app copies. Overlay each app with the complete Release runtime from its
