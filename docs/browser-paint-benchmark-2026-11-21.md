@@ -270,3 +270,10 @@ at minute five and again in a manual check at minute eight. These observations
 bound the tested duration; they do not establish indefinite memory behavior.
 The local ignored `build/metal-cef-20261120/region-candidate-soak/` directory
 contains the script, samples, logs and screenshots.
+
+The final staged QA app, now carrying the same engine and launcher binaries,
+also joined a fresh local `de_dust2` MOTD server with `-nosound -metal` at
+1280×720. Its host trace recorded 587 `OnPaint` callbacks and browser closure.
+The client and server exited zero after the scripted console `quit`, and no
+game, host or helper process remained. The local raw trace and logs are in
+`build/metal-cef-20261120/final-stage-browser/`.

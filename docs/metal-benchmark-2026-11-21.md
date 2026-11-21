@@ -189,3 +189,8 @@ and launcher targets rebuilt from the committed source and matched the staged
 QA binaries by SHA-256. The local ignored
 `build/metal-cef-20261120/final-post-region-demo/` directory contains the
 frame log, game log, binary hash and analyzer comparisons.
+
+The same staged engine also loaded Half-Life `c1a0` with `-nosound -metal`.
+The scripted map and `quit` markers appeared, the client exited zero in
+7.65 seconds, and no game or browser process remained. Its local logs and
+metadata are under `build/metal-cef-20261120/final-post-region-half-life/`.
