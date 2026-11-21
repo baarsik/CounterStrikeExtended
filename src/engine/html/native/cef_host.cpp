@@ -1016,14 +1016,12 @@ private:
 
     void Paint() {
         diagnostics::Frames().Add(identifier_, "paint", mainPixels_.empty(), pendingPaint_.InFlight(), popupVisible_);
-        if (mainPixels_.empty() || pendingPaint_.InFlight() || (popupVisible_ && popupPixels_.empty())) {
+        if (nativePopup_ != 0 || mainPixels_.empty() || pendingPaint_.InFlight() ||
+            (popupVisible_ && popupPixels_.empty())) {
             return;
         }
         PaintBounds update;
         if (!pendingPaint_.BeginSend(update)) {
-            return;
-        }
-        if (nativePopup_ != 0) {
             return;
         }
         PaintWireParts parts;

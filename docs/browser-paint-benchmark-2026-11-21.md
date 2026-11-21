@@ -108,6 +108,18 @@ drain on shutdown, abnormal and truncated child output, and bounded reap of
 three stalled-child modes. This checks the current Windows channel and quit
 code path at fixture level; Windows gameplay and CEF rendering were not run.
 
+A source review found that the new direct-wire paint path checked the native
+popup case after `PendingPaint::BeginSend`, which could leave an unsent paint
+marked in flight if CEF invoked that callback for a native popup. The check
+now precedes `BeginSend`. Native popups normally return no render handler, so
+this is a defensive correction to the earlier direct-wire change. After it,
+the macOS Release CEF host built, the browser fixture suite passed 6/6 in
+Release and 6/6 under sanitizers, and an animated `-nosound -metal` MOTD run
+connected, received 586 `OnPaint` callbacks, closed, exited zero, and left no
+game or CEF process. That live run exercised normal OSR painting, not the
+native-popup callback edge case. Its trace is under the local ignored
+`build/metal-cef-20261120/cef-popup-guard-smoke/` directory.
+
 ## Host paint encode benchmark
 
 After the joined-game validation, the CEF host was changed to write its
