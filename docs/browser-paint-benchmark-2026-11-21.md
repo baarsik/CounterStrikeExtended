@@ -101,6 +101,13 @@ This validates live painting and the decoder callback path in the game. The
 joined-game run did not measure browser frame rate or compare previous and
 updated clients under identical MOTD workload.
 
+The Windows x64 native process fixture was rebuilt from the final branch's
+`browser_wire.h`, `process_channel.cpp`, and `process_channel.h` with MSVC
+`/W4 /WX`, then passed. It covers duplex message ordering, queued-command
+drain on shutdown, abnormal and truncated child output, and bounded reap of
+three stalled-child modes. This checks the current Windows channel and quit
+code path at fixture level; Windows gameplay and CEF rendering were not run.
+
 ## Host paint encode benchmark
 
 After the joined-game validation, the CEF host was changed to write its
