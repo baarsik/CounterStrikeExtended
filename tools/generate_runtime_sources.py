@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def callback_sources(root, target):
     selected = {}
     for configuration in ('Debug', 'Release'):
-        record = query_target(root, target, configuration=configuration, cs_server_backend='legacy')
+        record = query_target(root, target, configuration=configuration)
         selected[configuration] = [Path(item['path']) for item in record['sources']
                                    if item['language'] in ('C', 'CXX')]
     if selected['Debug'] != selected['Release']:
@@ -28,14 +28,12 @@ def callback_sources(root, target):
 
 
 def export_paths(root, target):
-    selected = []
-    for architecture in ('x86', 'x64'):
-        record = query_target(root, target, target_os='windows', architecture=architecture, cs_server_backend='legacy')
-        definitions = [Path(item['path']) for item in record['sources'] if Path(item['path']).suffix == '.def']
-        if len(definitions) != 1:
-            raise ValueError(target + ': expected one selected ' + architecture + ' module definition')
-        selected.append(definitions[0])
-    source, destination = selected
+    properties = query_target(root, target)['properties']
+    win32 = properties['CSE_WIN32_EXPORT_DEFINITION']
+    native = properties['CSE_NATIVE_EXPORT_DEFINITION']
+    if not win32 or not native or not Path(win32).is_file():
+        raise ValueError(target + ': expected an original Win32 module definition and a native destination')
+    source, destination = Path(win32).resolve(), Path(native).resolve()
     if source == destination or not destination.is_relative_to(Path(root).resolve()):
         raise ValueError(target + ': native export destination must be a distinct file in the repository')
     return source, destination
@@ -44,14 +42,13 @@ def export_paths(root, target):
 def generate(root):
     root = Path(root).resolve()
     # Validate all build-owned selections before rewriting any generated source.
-    callbacks = {target: callback_sources(root, target) for target in ('hl_server', 'cs_server')}
+    callbacks = callback_sources(root, 'hl_server')
     exports = {target: export_paths(root, target)
                for target in ('hl_server', 'cs_server', 'hl_client', 'cs_client', 'particleman', 'swds', 'a3dapi')}
     generate_game_layouts(root)
     generate_client_layouts(root)
-    for target, sources in callbacks.items():
-        result = generate_callbacks(root, target, sources)
-        print(target + ':', result['callbacks'], 'callbacks in', result['hosts'], 'translation units')
+    result = generate_callbacks(root, callbacks)
+    print('hl_server:', result['callbacks'], 'callbacks in', result['hosts'], 'translation units')
     # Both paths are declared by the owning CMake target. The original x86
     # definition is the input; C++ declarations supply native decorated exports.
     for source, destination in exports.values():

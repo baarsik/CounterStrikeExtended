@@ -129,9 +129,7 @@ git submodule update --init src/external/regamedll
 
 The build applies the [CSE patch](../src/cstrike/regamedll/cse.patch) to a
 build-directory copy and stages `cstrike/dlls/mp.dll` on Windows or
-`cstrike/dlls/mp.dylib` with a `cs.dylib` alias on macOS. To select the legacy
-CSE GameDLL, configure with `-DCSE_USE_REGAMEDLL=OFF`. In an existing build
-directory with that setting cached, set it to `ON` to select ReGameDLL.
+`cstrike/dlls/mp.dylib` with a `cs.dylib` alias on macOS.
 Use `game version` at the server console to identify the ReGameDLL build.
 
 The macOS portability changes in the CSE patch come from the

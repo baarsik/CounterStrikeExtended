@@ -50,7 +50,7 @@ python3 tools/generate_runtime_sources.py
 
 Review derived source changes together with those inputs. This command generates
 `src/common/generated_game_module_layouts.h`,
-`src/common/generated_client_module_layouts.h`, server
+`src/common/generated_client_module_layouts.h`, Half-Life server
 `generated_saved_callbacks` fragments and native Windows export projections
 under `cmake/exports/`. It does not regenerate target definitions.
 
@@ -110,9 +110,9 @@ Python consumers import these functions from `tools/cmake_inventory.py`:
 
 ```python
 query_targets(root=None, configuration="Release", target_os="windows", architecture="x86",
-              diagnostics=False, *, cs_server_backend="default")
+              diagnostics=False)
 query_target(root, target, configuration="Release", target_os="windows", architecture="x86",
-             diagnostics=False, *, cs_server_backend="default")
+             diagnostics=False)
 ```
 
 `root` is an optional repository path for `query_targets`; `query_target` requires
@@ -120,13 +120,11 @@ the root argument (pass `None` for the current repository) and a target name.
 Both inspect the same CMake-owned definitions as the CLI. Add `--diagnostics`
 to the CLI, or use `diagnostics=True`, to include opt-in Release diagnostics.
 
-Windows and macOS ARM64 inventories follow the production Counter-Strike server
-default. Initialize `src/external/regamedll` before querying ReGameDLL. Use
-`--cs-server-backend legacy` or `cs_server_backend="legacy"` to inspect the
-retained server recipe or a build configured with `CSE_USE_REGAMEDLL=OFF`.
-Linux and non-ARM64 macOS metadata selectors use the legacy server by default.
-The source generator explicitly selects the legacy recipe for its saved
-callback catalog and export definitions.
+Windows and macOS ARM64 inventories include the ReGameDLL recipe for
+`cs_server`. Initialize `src/external/regamedll` before querying those
+inventories. Linux and non-ARM64 macOS metadata selectors omit `cs_server`.
+Native export generation uses the original Win32 definitions and native
+destinations declared by the owning CMake targets.
 
 Per-source `compile_options` contains the evaluated options declared by CMake;
 host-injected compiler defaults are excluded. Language standards and target

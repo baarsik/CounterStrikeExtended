@@ -58,7 +58,6 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" -C "${submodule}" show -s --format=%
 configure_file("${integration}/appversion.h.in" "${source}/regamedll/version/appversion.h" @ONLY)
 include("${CMAKE_CURRENT_LIST_DIR}/ReGameDLLTarget.cmake")
 set_target_properties(cs_server PROPERTIES
-  CSE_CS_SERVER_BACKEND regamedll
   CSE_REGAMEDLL_STAGED_SOURCE_ROOT "${source}"
   CSE_REGAMEDLL_ORIGINAL_SOURCE_ROOT "${submodule}"
   CSE_REGAMEDLL_PATCH "${patch}"

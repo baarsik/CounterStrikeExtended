@@ -18,38 +18,37 @@ class GenerateRuntimeSourcesTests(unittest.TestCase):
         (root / 'src').symlink_to(ROOT / 'src', target_is_directory=True)
         return root
 
-    def test_callback_membership_matches_both_legacy_configurations(self):
-        for target in ('hl_server', 'cs_server'):
-            with self.subTest(target=target):
-                actual = {Path(path) for path in callback_sources(ROOT, target)}
-                self.assertTrue(actual)
-                self.assertTrue(any(path.name == 'airtank.cpp' for path in actual))
-                for configuration in ('Debug', 'Release'):
-                    data = query_target(ROOT, target, configuration, cs_server_backend='legacy')
-                    selected = {Path(item['path']) for item in data['sources'] if item['language'] in ('C', 'CXX')}
-                    self.assertEqual(actual, selected)
+    def test_callback_membership_matches_both_half_life_configurations(self):
+        actual = set(callback_sources(ROOT, 'hl_server'))
+        self.assertTrue(any(path.name == 'airtank.cpp' for path in actual))
+        for configuration in ('Debug', 'Release'):
+            with self.subTest(configuration=configuration):
+                data = query_target(ROOT, 'hl_server', configuration)
+                selected = {Path(item['path']) for item in data['sources'] if item['language'] in ('C', 'CXX')}
+                self.assertEqual(actual, selected)
 
-    def test_export_destinations_match_the_legacy_native_selection(self):
+    def test_export_destinations_match_the_native_selection(self):
         for target in ('hl_server', 'cs_server', 'hl_client', 'cs_client', 'particleman', 'swds', 'a3dapi'):
             with self.subTest(target=target):
                 source, destination = map(Path, export_paths(ROOT, target))
                 self.assertTrue(source.is_file())
                 self.assertEqual(destination, ROOT / 'cmake/exports' / (target + '.def'))
-                native = query_target(ROOT, target, 'Release', 'windows', 'x64', cs_server_backend='legacy')
-                selected = [Path(item['path']) for item in native['sources'] if Path(item['path']).suffix == '.def']
+                native = query_target(ROOT, target, 'Release', 'windows', 'x64')
+                selected = [Path(item.get('generated', {}).get('source', item['path']))
+                            for item in native['sources'] if Path(item['path']).suffix == '.def']
                 self.assertEqual(selected, [destination])
 
     def test_configuration_divergence_cannot_generate_one_shared_callback_catalog(self):
         with tempfile.TemporaryDirectory() as directory:
             root = self.copy_cmake(directory)
-            manifest = root / 'cmake/targets/cs_server/Sources.cmake'
-            original = '"${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp"'
-            conditional = '"$<$<CONFIG:Debug>:${CSE_SDK_DIR}/cstrike/dlls/airtank.cpp>"'
+            manifest = root / 'cmake/targets/hl_server/Sources.cmake'
+            original = '"${CSE_SDK_DIR}/dlls/airtank.cpp"'
+            conditional = '"$<$<CONFIG:Debug>:${CSE_SDK_DIR}/dlls/airtank.cpp>"'
             text = manifest.read_text()
             self.assertEqual(text.count(original), 1)
             manifest.write_text(text.replace(original, conditional))
             with self.assertRaisesRegex(ValueError, '(?i)(configuration|debug|release)'):
-                callback_sources(root, 'cs_server')
+                callback_sources(root, 'hl_server')
 
     def test_native_export_destination_follows_a_moved_cmake_definition(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -57,7 +56,7 @@ class GenerateRuntimeSourcesTests(unittest.TestCase):
             original = root / 'cmake/exports/cs_server.def'
             moved = root / 'cmake/exports/server_native_exports.def'
             original.rename(moved)
-            recipe = root / 'cmake/targets/cs_server/CMakeLists.txt'
+            recipe = root / 'cmake/targets/cs_server/ReGameDLLTarget.cmake'
             text = recipe.read_text()
             old_path = '${CSE_ROOT}/cmake/exports/cs_server.def'
             new_path = '${CSE_ROOT}/cmake/exports/server_native_exports.def'

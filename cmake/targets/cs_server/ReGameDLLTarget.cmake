@@ -57,16 +57,22 @@ if(MSVC)
   # Retain the stock public C exports and their ordinals. ReGameDLL has its own
   # private C++ implementation and exports additional entities through DLLEXPORT.
   set(export_input "${CSE_ROOT}/cmake/exports/cs_server.def")
-  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${export_input}")
-  file(READ "${export_input}" exports)
-  if(CSE_TARGET_ARCH STREQUAL "x86")
-    string(REPLACE "GiveFnptrsToDll @1" "GiveFnptrsToDll=_GiveFnptrsToDll@8 @1" exports "${exports}")
+  set_target_properties(cs_server PROPERTIES
+    CSE_WIN32_EXPORT_DEFINITION "${CSE_ROOT}/cmake/exports/win32/cstrikedll.def"
+    CSE_NATIVE_EXPORT_DEFINITION "${export_input}")
+  # Inventory can be queried to regenerate the native definition itself.
+  set(exports "")
+  if(NOT CSE_BUILD_INVENTORY)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${export_input}")
+    file(READ "${export_input}" exports)
+    if(CSE_TARGET_ARCH STREQUAL "x86")
+      string(REPLACE "GiveFnptrsToDll @1" "GiveFnptrsToDll=_GiveFnptrsToDll@8 @1" exports "${exports}")
+    endif()
+    string(REPLACE "g_flTimeLimit @2" "g_flTimeLimit @2 DATA" exports "${exports}")
   endif()
-  string(REPLACE "g_flTimeLimit @2" "g_flTimeLimit @2 DATA" exports "${exports}")
   set(definition "${CSE_REGAMEDLL_STAGED_SOURCE_ROOT}/regamedll/cse-exports.def")
   file(CONFIGURE OUTPUT "${definition}" CONTENT "${exports}" @ONLY)
   target_sources(cs_server PRIVATE "${definition}")
-  set_property(TARGET cs_server PROPERTY CSE_REGAMEDLL_EXPORT_INPUT "${export_input}")
 else()
   target_compile_definitions(cs_server PRIVATE
     _LINUX LINUX _GLIBCXX_USE_CXX11_ABI=0
