@@ -63,6 +63,18 @@ python3 tools/generate_regamedll_saved_callbacks.py
 python3 tools/generate_regamedll_saved_callbacks.py --check
 ```
 
+The engine and ReGameDLL share the engine callback table and save field
+declarations in `src/common/game_engine_functions.h` and
+`src/common/game_save_descriptions.h`. CMake checks the original upstream
+declarations before applying the CSE patch. If an upgrade trips this check,
+compare the two pins and review the callback signatures and slot order, save
+field values, and descriptor layout before updating the fingerprints in
+`cmake/targets/cs_server/ReGameDLLContract.cmake`.
+
+```sh
+git -C src/external/regamedll diff <old-pin> <new-pin> -- regamedll/engine/eiface.h
+```
+
 The original Windows x86 module-definition files retain their bytes and basenames
 under `cmake/exports/win32/`; other source-owned `.def` files remain with their
 implementations. Keep exports and architecture conditions in the owning target

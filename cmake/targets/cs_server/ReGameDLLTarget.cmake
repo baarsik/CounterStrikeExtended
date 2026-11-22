@@ -42,7 +42,7 @@ target_include_directories(cs_server PRIVATE
 set_target_properties(cs_server PROPERTIES CXX_STANDARD 17)
 target_compile_definitions(cs_server PRIVATE
   REGAMEDLL_FIXES REGAMEDLL_API REGAMEDLL_ADD UNICODE_FIXES BUILD_LATEST CLIENT_WEAPONS USE_QSTRING
-  $<$<CONFIG:Release>:NDEBUG> CSE_ENABLE_ZBOT=$<BOOL:${CSE_ENABLE_ZBOT}>)
+  CSE_SHARED_GAME_CONTRACT $<$<CONFIG:Release>:NDEBUG> CSE_ENABLE_ZBOT=$<BOOL:${CSE_ENABLE_ZBOT}>)
 if(MSVC)
   target_compile_definitions(cs_server PRIVATE _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_DEPRECATE)
   set_property(TARGET cs_server PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")

@@ -1,6 +1,8 @@
 """Inventory queries evaluate the production CMake compiler recipes on the host."""
 from pathlib import Path
+import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -9,6 +11,34 @@ from cmake_inventory import query_target, query_targets
 
 
 class CMakeInventoryTests(unittest.TestCase):
+    def test_regamedll_upgrade_checks_only_overridden_declarations(self):
+        upstream = ROOT / 'src/external/regamedll'
+        original = subprocess.check_output(
+            ['git', '-C', str(upstream), 'show', 'HEAD:regamedll/engine/eiface.h'], text=True)
+        guard = ROOT / 'cmake/targets/cs_server/ReGameDLLContract.cmake'
+        changes = (
+            ('unrelated declaration', 'struct KeyValueData_s', 'struct RenamedKeyValueData_s', None),
+            ('engine table', '(*pfnNumberOfEntities)', '(*pfnCountEntities)', 'engine callback table'),
+            ('save fields', 'FIELD_INTEGER,', 'FIELD_NATIVE_INTEGER,', 'save field declarations'),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'check.cmake'
+            script.write_text(f'include([=[{guard.as_posix()}]=])\n'
+                              'file(READ "${HEADER}" source)\n'
+                              'cse_check_regamedll_contract("${source}")\n')
+            header = Path(directory) / 'eiface.h'
+            for name, old, new, expected_error in changes:
+                with self.subTest(name=name):
+                    self.assertIn(old, original)
+                    header.write_text(original.replace(old, new, 1))
+                    result = subprocess.run(['cmake', f'-DHEADER={header}', '-P', str(script)],
+                                            capture_output=True, text=True)
+                    if expected_error:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn(expected_error, result.stderr)
+                    else:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_default_cs_server_reports_stable_regamedll_source_paths(self):
         upstream = ROOT / 'src/external/regamedll'
         integration = ROOT / 'src/cstrike/regamedll'

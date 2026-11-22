@@ -18,6 +18,11 @@ if(NOT regamedll_commit STREQUAL "1f16a7f25c14225931f8df1abc51f68d18ded839")
   message(FATAL_ERROR "The CSE adapter requires ReGameDLL commit 1f16a7f25c14225931f8df1abc51f68d18ded839")
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/ReGameDLLContract.cmake")
+execute_process(COMMAND "${GIT_EXECUTABLE}" -C "${submodule}" show "${regamedll_commit}:regamedll/engine/eiface.h"
+  OUTPUT_VARIABLE regamedll_eiface COMMAND_ERROR_IS_FATAL ANY)
+cse_check_regamedll_contract("${regamedll_eiface}")
+
 set(integration "${CSE_SDK_DIR}/cstrike/regamedll")
 set(source "${CMAKE_CURRENT_BINARY_DIR}/regamedll-source")
 set(patch "${integration}/cse.patch")
