@@ -79,24 +79,21 @@ void SV_SendConsistencyList( sizebuf_t* )
 	MSG_WriteBits( 0, 1 );
 }
 
-qboolean SV_FileInConsistencyList( const char* filename, consistency_t** entry )
+qboolean SV_FileInConsistencyList(const char* filename, consistency_t** entry)
 {
-	int index = 0;
-	consistency_t* consistency = &sv.consistency_list[1];
-	char* name = sv.consistency_list[0].filename;
-	if ( name == nullptr )
-		return false;
-	while ( Q_stricmp( filename, name ) != 0 )
-	{
-		++consistency;
-		name = consistency[-1].filename;
-		++index;
-		if ( name == nullptr )
-			return false;
-	}
-	if ( entry != nullptr )
-		*entry = &sv.consistency_list[index];
-	return true;
+    for (auto& consistency : sv.consistency_list) {
+        if (!consistency.filename) {
+            break;
+        }
+        if (Q_stricmp(filename, consistency.filename) != 0) {
+            continue;
+        }
+        if (entry) {
+            *entry = &consistency;
+        }
+        return true;
+    }
+    return false;
 }
 
 void SV_ParseConsistencyResponse( client_t* )
@@ -1100,49 +1097,34 @@ void SV_CopyEdictToPhysent( physent_t* physent, int index, edict_t* entity )
 	}
 	for ( int axis = 0; axis < 3; ++axis )
 		physent->angles[axis] = entity->v.angles[axis];
-	physent->studiomodel = nullptr;
-	physent->rendermode = entity->v.rendermode;
-	if ( entity->v.solid == SOLID_BSP || ( entity->v.solid == SOLID_NOT && entity->v.modelindex ) )
-	{
-		model_t* model = sv.models[entity->v.modelindex];
-		physent->model = model;
-		Q_strncpy( physent->name, model->name, sizeof( physent->name ) );
-		physent->name[sizeof( physent->name ) - 1] = '\0';
-	}
-	else
-	{
-		physent->model = nullptr;
-		if ( entity->v.solid != SOLID_NOT )
-		{
-			if ( entity->v.solid == SOLID_BBOX )
-			{
-				if ( entity->v.modelindex )
-				{
-					model_t* model = sv.models[entity->v.modelindex];
-					if ( model )
-					{
-						if ( model->flags & STUDIO_TRACE_HITBOX )
-							physent->studiomodel = model;
-						Q_strncpy( physent->name, model->name, sizeof( physent->name ) );
-						physent->name[sizeof( physent->name ) - 1] = '\0';
-					}
-				}
-			}
-			else
-			{
-				if ( entity->v.classname )
-					Q_strncpy( physent->name, CseStringAddress(pr_strings, entity->v.classname), sizeof( physent->name ) );
-				else
-					Q_strcpy( physent->name, "?" );
-				physent->name[sizeof( physent->name ) - 1] = '\0';
-			}
-			for ( int axis = 0; axis < 3; ++axis )
-			{
-				physent->mins[axis] = entity->v.mins[axis];
-				physent->maxs[axis] = entity->v.maxs[axis];
-			}
-		}
-	}
+    physent->model = nullptr;
+    physent->studiomodel = nullptr;
+    physent->rendermode = entity->v.rendermode;
+
+    const int solid = entity->v.solid;
+    model_t* model = SV_ModelForIndex(entity->v.modelindex);
+    const char* name = "";
+    if (model && (solid == SOLID_NOT || (solid == SOLID_BSP && model->type == mod_brush))) {
+        physent->model = model;
+        name = model->name;
+    } else {
+        if (solid == SOLID_BBOX && model) {
+            if (model->type == mod_studio && (model->flags & STUDIO_TRACE_HITBOX)) {
+                physent->studiomodel = model;
+            }
+            name = model->name;
+        } else if (solid == SOLID_BSP) {
+            name = "?";
+        } else if (solid != SOLID_NOT && solid != SOLID_BBOX) {
+            name = entity->v.classname ? CseStringAddress(pr_strings, entity->v.classname) : "?";
+        }
+
+        VectorCopy(entity->v.mins, physent->mins);
+        VectorCopy(entity->v.maxs, physent->maxs);
+    }
+    Q_strncpy(physent->name, name, sizeof(physent->name));
+    physent->name[sizeof(physent->name) - 1] = '\0';
+
 	physent->solid = entity->v.solid;
 	physent->skin = entity->v.skin;
 	physent->frame = entity->v.frame;
@@ -1188,11 +1170,19 @@ static void SV_AddLinksToPM_( areanode_t* node, float* mins, float* maxs )
 			if ( entity->v.solid != SOLID_BSP && entity->v.solid != SOLID_BBOX && entity->v.solid != SOLID_SLIDEBOX
 				 && entity->v.solid != SOLID_NOT )
 				continue;
-			int entityIndex = NUM_FOR_EDICT( entity );
-			physent_t* visible = &pmove->visents[pmove->numvisent++];
-			SV_CopyEdictToPhysent( visible, entityIndex, entity );
-			if ( entity->v.solid == SOLID_NOT && ( !entity->v.skin || !entity->v.modelindex ) )
-				continue;
+            const int entityIndex = NUM_FOR_EDICT(entity);
+            physent_t* visible = nullptr;
+            if (pmove->numvisent < static_cast<int>(ARRAYSIZE(pmove->visents))) {
+                visible = &pmove->visents[pmove->numvisent++];
+                SV_CopyEdictToPhysent(visible, entityIndex, entity);
+            }
+            if (entity->v.solid == SOLID_NOT) {
+                // Contents volumes and ladders need a brush hull for movement.
+                const model_t* model = visible ? visible->model : SV_ModelForIndex(entity->v.modelindex);
+                if (!entity->v.skin || !model || model->type != mod_brush) {
+                    continue;
+                }
+            }
 			if ( ( entity->v.flags & FL_MONSTERCLIP ) && entity->v.solid == SOLID_BSP )
 				continue;
 			if ( entity == sv_player || ( ( entity->v.flags & FL_CLIENT ) && entity->v.health <= 0.0f ) )
@@ -1239,7 +1229,13 @@ static void SV_AddLinksToPM_( areanode_t* node, float* mins, float* maxs )
 				}
 				physical = &pmove->physents[pmove->numphysent++];
 			}
-			Q_memcpy( physical, visible, sizeof( physent_t ) );
+            if (visible) {
+                *physical = *visible;
+            } else {
+                // Collision and ladder lists still accept entries after visibility fills.
+                *physical = {};
+                SV_CopyEdictToPhysent(physical, entityIndex, entity);
+            }
 		}
 		if ( node->axis == -1 )
 			return;

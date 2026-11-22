@@ -1360,10 +1360,15 @@ qboolean SV_CheckSphereIntersection( edict_t* ent, const float* start, const flo
 	if ( !( ent->v.flags & FL_CLIENT ) )
 		return TRUE;
 
+    model_t* model = SV_ModelForIndex(ent->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        return TRUE;
+    }
+
 	VectorCopy( start, traceOrg );
 	VectorSubtract( end, traceOrg, traceDir );
 
-	phdr = (studiohdr_t*)Mod_Extradata( sv.models[ent->v.modelindex] );
+    phdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 	pseqdesc = (mstudioseqdesc_t*)( (byte*)phdr + phdr->seqindex ) + ent->v.sequence;
 
 	for ( i = 0; i < 3; i++ )
@@ -1827,12 +1832,11 @@ hull_t* SV_HullForStudioModel(
 
 	bSkipShield = pEdict->v.gamestate == 1 && ( g_bIsTerrorStrike == 1 || g_bIsCStrike == 1 || g_bIsCZero == 1 );
 
-	pModel = sv.models[pEdict->v.modelindex];
-	if ( !( pModel->flags & STUDIO_TRACE_HITBOX ) && !useComplexHull )
-	{
-		*pNumHulls = 1;
-		return SV_HullForEntity( (edict_t*)pEdict, mins, maxs, offset );
-	}
+    pModel = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!pModel || pModel->type != mod_studio || (!(pModel->flags & STUDIO_TRACE_HITBOX) && !useComplexHull)) {
+        *pNumHulls = 1;
+        return SV_HullForEntity(const_cast<edict_t*>(pEdict), mins, maxs, offset);
+    }
 
 	VectorScale( size, factor, size );
 	VectorClear( offset );
@@ -2146,10 +2150,17 @@ void AnimationAutomove( const edict_t*, float )
 
 void GetBonePosition( const edict_t* pEdict, int iBone, float* rgflOrigin, float* )
 {
-	pstudiohdr = (studiohdr_t*)Mod_Extradata( sv.models[pEdict->v.modelindex] );
+    model_t* model = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        if (rgflOrigin) {
+            VectorCopy(pEdict->v.origin, rgflOrigin);
+        }
+        return;
+    }
+    pstudiohdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 
-	g_pSvBlendingAPI->SV_StudioSetupBones( sv.models[pEdict->v.modelindex], pEdict->v.frame, pEdict->v.sequence,
-		pEdict->v.angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, iBone, pEdict );
+    g_pSvBlendingAPI->SV_StudioSetupBones(model, pEdict->v.frame, pEdict->v.sequence,
+        pEdict->v.angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, iBone, pEdict);
 
 	if ( rgflOrigin )
 	{
@@ -2164,7 +2175,14 @@ void GetAttachment( const edict_t* pEdict, int iAttachment, float* rgflOrigin, f
 	vec3_t angles;
 	mstudioattachment_t* pattachment;
 
-	pstudiohdr = (studiohdr_t*)Mod_Extradata( sv.models[pEdict->v.modelindex] );
+    model_t* model = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        if (rgflOrigin) {
+            VectorCopy(pEdict->v.origin, rgflOrigin);
+        }
+        return;
+    }
+    pstudiohdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 
 	pattachment = (mstudioattachment_t*)( (byte*)pstudiohdr + pstudiohdr->attachmentindex ) + iAttachment;
 
@@ -2172,8 +2190,8 @@ void GetAttachment( const edict_t* pEdict, int iAttachment, float* rgflOrigin, f
 	angles[YAW] = pEdict->v.angles[YAW];
 	angles[ROLL] = pEdict->v.angles[ROLL];
 
-	g_pSvBlendingAPI->SV_StudioSetupBones( sv.models[pEdict->v.modelindex], pEdict->v.frame, pEdict->v.sequence,
-		angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, pattachment->bone, pEdict );
+    g_pSvBlendingAPI->SV_StudioSetupBones(model, pEdict->v.frame, pEdict->v.sequence,
+        angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, pattachment->bone, pEdict);
 
 	if ( rgflOrigin )
 		VectorTransform( pattachment->org, bonetransform[pattachment->bone], rgflOrigin );
@@ -5282,10 +5300,15 @@ qboolean SV_CheckSphereIntersection( edict_t* ent, const float* start, const flo
 	if ( !( ent->v.flags & FL_CLIENT ) )
 		return TRUE;
 
+    model_t* model = SV_ModelForIndex(ent->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        return TRUE;
+    }
+
 	VectorCopy( start, traceOrg );
 	VectorSubtract( end, traceOrg, traceDir );
 
-	phdr = (studiohdr_t*)Mod_Extradata( sv.models[ent->v.modelindex] );
+    phdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 	pseqdesc = (mstudioseqdesc_t*)( (byte*)phdr + phdr->seqindex ) + ent->v.sequence;
 
 	for ( i = 0; i < 3; i++ )
@@ -6476,12 +6499,11 @@ hull_t* SV_HullForStudioModel(
 
 	bSkipShield = pEdict->v.gamestate == 1 && ( g_bIsTerrorStrike == 1 || g_bIsCStrike == 1 || g_bIsCZero == 1 );
 
-	pModel = sv.models[pEdict->v.modelindex];
-	if ( !( pModel->flags & STUDIO_TRACE_HITBOX ) && !useComplexHull )
-	{
-		*pNumHulls = 1;
-		return SV_HullForEntity( (edict_t*)pEdict, mins, maxs, offset );
-	}
+    pModel = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!pModel || pModel->type != mod_studio || (!(pModel->flags & STUDIO_TRACE_HITBOX) && !useComplexHull)) {
+        *pNumHulls = 1;
+        return SV_HullForEntity(const_cast<edict_t*>(pEdict), mins, maxs, offset);
+    }
 
 	VectorScale( size, factor, size );
 	VectorClear( offset );
@@ -6795,10 +6817,17 @@ void AnimationAutomove( const edict_t*, float )
 
 void GetBonePosition( const edict_t* pEdict, int iBone, float* rgflOrigin, float* )
 {
-	pstudiohdr = (studiohdr_t*)Mod_Extradata( sv.models[pEdict->v.modelindex] );
+    model_t* model = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        if (rgflOrigin) {
+            VectorCopy(pEdict->v.origin, rgflOrigin);
+        }
+        return;
+    }
+    pstudiohdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 
-	g_pSvBlendingAPI->SV_StudioSetupBones( sv.models[pEdict->v.modelindex], pEdict->v.frame, pEdict->v.sequence,
-		pEdict->v.angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, iBone, pEdict );
+    g_pSvBlendingAPI->SV_StudioSetupBones(model, pEdict->v.frame, pEdict->v.sequence,
+        pEdict->v.angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, iBone, pEdict);
 
 	if ( rgflOrigin )
 	{
@@ -6813,7 +6842,14 @@ void GetAttachment( const edict_t* pEdict, int iAttachment, float* rgflOrigin, f
 	vec3_t angles;
 	mstudioattachment_t* pattachment;
 
-	pstudiohdr = (studiohdr_t*)Mod_Extradata( sv.models[pEdict->v.modelindex] );
+    model_t* model = SV_ModelForIndex(pEdict->v.modelindex);
+    if (!model || model->type != mod_studio) {
+        if (rgflOrigin) {
+            VectorCopy(pEdict->v.origin, rgflOrigin);
+        }
+        return;
+    }
+    pstudiohdr = static_cast<studiohdr_t*>(Mod_Extradata(model));
 
 	pattachment = (mstudioattachment_t*)( (byte*)pstudiohdr + pstudiohdr->attachmentindex ) + iAttachment;
 
@@ -6821,8 +6857,8 @@ void GetAttachment( const edict_t* pEdict, int iAttachment, float* rgflOrigin, f
 	angles[YAW] = pEdict->v.angles[YAW];
 	angles[ROLL] = pEdict->v.angles[ROLL];
 
-	g_pSvBlendingAPI->SV_StudioSetupBones( sv.models[pEdict->v.modelindex], pEdict->v.frame, pEdict->v.sequence,
-		angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, pattachment->bone, pEdict );
+    g_pSvBlendingAPI->SV_StudioSetupBones(model, pEdict->v.frame, pEdict->v.sequence,
+        angles, pEdict->v.origin, pEdict->v.controller, pEdict->v.blending, pattachment->bone, pEdict);
 
 	if ( rgflOrigin )
 		VectorTransform( pattachment->org, bonetransform[pattachment->bone], rgflOrigin );
