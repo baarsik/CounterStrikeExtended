@@ -21,11 +21,12 @@ void IdleState::OnUpdate( CCSBot *bot )
 {
 	if ( !bot->m_lastKnownArea && !bot->StayOnNavMesh() )
 		return;
-	if ( cv_bot_stop.value > 0 )
-	{
-		bot->ResetStuckMonitor();
-		return;
-	}
+
+    if (cv_bot_zombie.value > 0.0f) {
+        bot->ResetStuckMonitor();
+        return;
+    }
+
 	CCSBotManager *manager = TheCSBots();
 	CSGameState *game = bot->GetGameState();
 	if ( bot->IsSafe() && !bot->EquipGrenade( false ) && bot->GetProfile()->GetSkill() > 0.33f )

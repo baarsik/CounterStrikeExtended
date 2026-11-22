@@ -833,8 +833,7 @@ EXPOSE_SINGLE_INTERFACE(ServerFormInput, ClientInput, ClientInputVersion);
 
 void ShowFormPanel(const Form& form, std::uint32_t token, ImageLookupFn imageLookup) {
     CloseFormPanel();
-    const auto viewport = gViewPortInterface ? gViewPortInterface->GetViewPortPanel() : 0;
-    const auto parent = viewport ? vgui2::ipanel()->GetParent(viewport) : 0;
+    const auto parent = gViewPortInterface ? gViewPortInterface->GetViewPortPanel() : 0;
     if (parent) {
         activeForm = new FormPanel(parent, form, token, imageLookup);
         if (vgui2::ipanel()->IsVisible(parent)) {
