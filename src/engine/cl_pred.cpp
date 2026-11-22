@@ -185,6 +185,7 @@ void CL_RunUsercmd(
 	pmove->PM_PlaySound = PM_CL_PlaySound;
 	pmove->PM_TraceTexture = PM_CL_TraceTexture;
 	pmove->PM_PlaybackEventFull = PM_CL_PlaybackEventFull;
+    pmove->PM_Info_ValueForKey = CL_PredictionPhysicsInfo;
 
 	ClientDLL_MoveClient( pmove );
 

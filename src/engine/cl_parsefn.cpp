@@ -416,6 +416,9 @@ void CL_Parse_StuffText()
 	const char* pchTokCmd;
 
 	text = MSG_ReadString();
+    if (CL_ConsumeReGameDLLMovementReply(text)) {
+        return;
+    }
 	Cmd_TokenizeString( text );
 	pchTokCmd = Cmd_Argv( 0 );
 

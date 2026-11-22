@@ -476,6 +476,8 @@ void		CL_Restore( const char* filename );
 void		CL_ProcessFile( qboolean success, const char* filename );
 void		CL_HudMessage( const char* message );
 void		CL_SignonReply();
+bool        CL_ConsumeReGameDLLMovementReply(const char* text);
+const char* CL_PredictionPhysicsInfo(const char* info, const char* key);
 void		CL_Move();
 dlight_t*	CL_AllocDlight( int key );
 dlight_t*	CL_AllocElight( int key );
