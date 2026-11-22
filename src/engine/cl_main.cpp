@@ -7,6 +7,7 @@
 
 #include "client.h"
 #include "image_consistency.h"
+#include "regamedll_movement.h"
 #include "pm_defs.h"
 #include "common.h"
 #include "cvar.h"
@@ -193,6 +194,8 @@ cvar_t cl_weaponlistfix = { "cl_weaponlistfix", "0" };
 cvar_t cl_clockreset = { "cl_clockreset", "0.1" };
 cvar_t cl_download_ingame = { "cl_download_ingame", "1", FCVAR_ARCHIVE };
 cvar_t cl_filterstuffcmd = { "cl_filterstuffcmd", "1", FCVAR_ARCHIVE | FCVAR_PRIVILEGED };
+static cvar_t cl_regamedll_pmove = { "cl_regamedll_pmove", "1", FCVAR_ARCHIVE | FCVAR_PRIVILEGED };
+static cse::ReGameDLLMovement cl_reGameDLLMovement;
 cvar_t cl_lw = { "cl_lw", "1", FCVAR_ARCHIVE | FCVAR_USERINFO };
 
 int cl_numvisedicts;
@@ -397,6 +400,8 @@ CL_ClearState
 */
 void CL_ClearState( qboolean clearMemory )
 {
+    cl_reGameDLLMovement.Reset();
+
     if (auto* forms = ClientDLL_ServerForms()) {
         forms->EndServerFormsSession();
     }
@@ -1996,6 +2001,7 @@ void CL_Init()
 	Cvar_RegisterVariable( &cl_mousegrab );
 	Cvar_RegisterVariable( &m_rawinput );
 	Cvar_RegisterVariable( &cl_filterstuffcmd );
+    Cvar_RegisterVariable(&cl_regamedll_pmove);
 	Cvar_RegisterVariable( &cl_fixmodelinterpolationartifacts );
 	Cvar_RegisterVariable( &cl_skipvid );
 
@@ -2775,6 +2781,24 @@ void PrintStartupTimings()
 	}
 }
 
+bool CL_ConsumeReGameDLLMovementReply(const char* text) {
+    const bool wasEnabled = cl_reGameDLLMovement.PredictionEnabled();
+    if (!cl_reGameDLLMovement.ConsumeReply(text)) {
+        return false;
+    }
+    if (!wasEnabled && cl_reGameDLLMovement.PredictionEnabled()) {
+        Con_DPrintf("ReGameDLL movement " CSE_REGAMEDLL_MOVEMENT_VERSION " enabled.\n");
+    }
+    return true;
+}
+
+const char* CL_PredictionPhysicsInfo(const char* info, const char* key) {
+    if (Q_strcmp(key, CSE_REGAMEDLL_MOVEMENT_KEY) == 0) {
+        return cl_reGameDLLMovement.PredictionEnabled() ? CSE_REGAMEDLL_MOVEMENT_VERSION : "";
+    }
+    return Info_ValueForKey(info, key);
+}
+
 void CL_CheckClientState()
 {
 	unsigned short port;
@@ -2785,6 +2809,16 @@ void CL_CheckClientState()
 		return;
 
 	cls.state = ca_active;
+
+    if (cl_regamedll_pmove.value > 0.0f && (g_bIsCStrike || g_bIsCZero) &&
+        !cls.demoplayback && !cls.spectator && !cls.passive && cls.netchan.remote_address.type != NA_LOOPBACK) {
+        // ReGameDLL sends the movement version in fullserverinfo as part of sign-on.
+        const char* advertisedVersion = Info_ValueForKey(cl.serverinfo, "pmove");
+        cl_reGameDLLMovement.Request(advertisedVersion, [](const char* command) {
+            MSG_WriteByte(&cls.netchan.message, clc_stringcmd);
+            MSG_WriteString(&cls.netchan.message, command);
+        });
+    }
 
 	if ( fs_startup_timings.value )
 		PrintStartupTimings();

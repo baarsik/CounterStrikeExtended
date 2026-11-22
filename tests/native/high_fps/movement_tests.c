@@ -2,6 +2,7 @@
 #include "const.h"
 #include "pm_defs.h"
 #include "pm_movevars.h"
+#include "pm_shared.h"
 #include "movement_timing.h"
 
 #include <math.h>
@@ -12,6 +13,8 @@
 extern playermove_t* pmove;
 void PM_WalkMove(void);
 int PM_FlyMove(void);
+void PM_SpectatorMove(void);
+void PM_CatagorizePosition(void);
 
 static playermove_t movement;
 static movevars_t fixtureMovevars;
@@ -25,7 +28,13 @@ static void Require(int condition, const char* message) {
 }
 
 static const char* PhysicsInfo(const char* info, const char* key) {
-    return strcmp(key, CSE_MOVEMENT_TIMING_KEY) == 0 ? info : "";
+    if (strcmp(key, CSE_MOVEMENT_TIMING_KEY) == 0) {
+        return info;
+    }
+    if (strcmp(key, "_cse_regamedll_pmove") == 0 && strcmp(info, "ReGameDLL") == 0) {
+        return "1.0";
+    }
+    return "";
 }
 
 static pmtrace_t ClearTrace(float* start, float* end, int flags, int ignore) {
@@ -87,6 +96,52 @@ static float RunRamp(unsigned char milliseconds, int negotiated) {
     return Length(movement.velocity);
 }
 
+static int EmptyContents(float* point, int* contents) {
+    (void)point;
+    if (contents) {
+        *contents = CONTENTS_EMPTY;
+    }
+    return CONTENTS_EMPTY;
+}
+
+static pmtrace_t FloorTrace(float* start, float* end, int flags, int ignore) {
+    pmtrace_t trace = ClearTrace(start, end, flags, ignore);
+    trace.fraction = 0.5f;
+    trace.plane.normal[2] = 1.0f;
+    trace.endpos[2] = (start[2] + end[2]) * 0.5f;
+    return trace;
+}
+
+static void CheckGroundSnapping(int movetype, int server, int negotiated, float expectedZ, int expectedGround) {
+    ResetMovement(10, 0);
+    movement.movetype = movetype;
+    movement.server = server;
+    movement.origin[2] = 16.0f;
+    movement.PM_PointContents = EmptyContents;
+    movement.PM_PlayerTrace = FloorTrace;
+    if (negotiated) {
+        strcpy(movement.physinfo, "ReGameDLL");
+    }
+    PM_CatagorizePosition();
+    Require(movement.origin[2] == expectedZ && movement.onground == expectedGround,
+            "ground categorization should match the selected movement version");
+}
+
+static void CheckSpectatorCoasting(int negotiated, float expectedDistance) {
+    ResetMovement(10, 0);
+    movement.iuser1 = OBS_ROAMING;
+    movement.forward[0] = 1.0f;
+    movement.cmd.forwardmove = 50.0f;
+    movement.velocity[0] = 100.0f;
+    fixtureMovevars.spectatormaxspeed = 500.0f;
+    if (negotiated) {
+        strcpy(movement.physinfo, "ReGameDLL");
+    }
+    PM_SpectatorMove();
+    Require(fabsf(movement.origin[0] - expectedDistance) < 0.00001f,
+            "spectator should coast only with ReGameDLL movement 1.0");
+}
+
 int main(void) {
     const float baseline = RunStamina(10, 1, 0);
     Require(fabsf(baseline - 219.125f) < 0.001f, "expected legacy 100 FPS stamina loss");
@@ -98,4 +153,12 @@ int main(void) {
     Require(RunRamp(1, 0) == 0.0f, "expected a legacy repeated-plane stall");
     Require(RunRamp(1, 1) > 500.0f, "same ramp plane should preserve tangential speed");
     Require(RunRamp(10, 1) == RunRamp(10, 0), "100 FPS ramp movement must match legacy");
+
+    CheckGroundSnapping(MOVETYPE_NOCLIP, 0, 0, 15.0f, 0);
+    CheckGroundSnapping(MOVETYPE_NOCLIP, 0, 1, 16.0f, -1);
+    CheckGroundSnapping(MOVETYPE_NONE, 0, 1, 16.0f, -1);
+    CheckGroundSnapping(MOVETYPE_WALK, 0, 1, 15.0f, 0);
+    CheckGroundSnapping(MOVETYPE_NOCLIP, 1, 1, 15.0f, 0);
+    CheckSpectatorCoasting(0, 0.0f);
+    CheckSpectatorCoasting(1, 1.0f);
 }

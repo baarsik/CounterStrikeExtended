@@ -780,6 +780,12 @@ static qboolean PM_UsesFrameTimeCorrections(void) {
         strcmp(pmove->PM_Info_ValueForKey(pmove->physinfo, CSE_MOVEMENT_TIMING_KEY), CSE_MOVEMENT_TIMING_VERSION) == 0;
 }
 
+static qboolean PM_UsesReGameDLLMovement(void) {
+    return !pmove->server && pmove->PM_Info_ValueForKey &&
+        strcmp(pmove->PM_Info_ValueForKey(pmove->physinfo, CSE_REGAMEDLL_MOVEMENT_KEY),
+               CSE_REGAMEDLL_MOVEMENT_VERSION) == 0;
+}
+
 /*
 ============
 PM_FlyMove
@@ -1586,6 +1592,12 @@ void PM_CatagorizePosition (void)
 	// water on each call, and the converse case will correct itself if called twice.
 	PM_CheckWater();
 
+    if ((pmove->movetype == MOVETYPE_NOCLIP || pmove->movetype == MOVETYPE_NONE) &&
+        PM_UsesReGameDLLMovement()) {
+        pmove->onground = -1;
+        return;
+    }
+
 	point[0] = pmove->origin[0];
 	point[1] = pmove->origin[1];
 	point[2] = pmove->origin[2] - 2;
@@ -1860,15 +1872,18 @@ void PM_SpectatorMove (void)
 
 		currentspeed = DotProduct(pmove->velocity, wishdir);
 		addspeed = wishspeed - currentspeed;
-		if (addspeed <= 0)
-			return;
-
-		accelspeed = pmove->movevars->accelerate*pmove->frametime*wishspeed;
-		if (accelspeed > addspeed)
-			accelspeed = addspeed;
-		
-		for (i=0 ; i<3 ; i++)
-			pmove->velocity[i] += accelspeed*wishdir[i];	
+        if (addspeed <= 0 && !PM_UsesReGameDLLMovement()) {
+            return;
+        }
+        if (addspeed > 0) {
+            accelspeed = pmove->movevars->accelerate * pmove->frametime * wishspeed;
+            if (accelspeed > addspeed) {
+                accelspeed = addspeed;
+            }
+            for (i = 0; i < 3; i++) {
+                pmove->velocity[i] += accelspeed * wishdir[i];
+            }
+        }
 
 		// move
 		VectorMA (pmove->origin, pmove->frametime, pmove->velocity, pmove->origin);
