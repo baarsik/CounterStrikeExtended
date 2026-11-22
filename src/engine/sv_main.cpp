@@ -4453,6 +4453,15 @@ SERVER SPAWNING
 ==============================================================================
 */
 
+model_t* SV_ModelForIndex(int modelIndex)
+{
+    // Slot zero represents an entity with no model.
+    if (modelIndex <= 0 || modelIndex >= static_cast<int>(ARRAYSIZE(sv.models))) {
+        return nullptr;
+    }
+    return sv.models[modelIndex];
+}
+
 /*
 ================
 SV_ModelIndex

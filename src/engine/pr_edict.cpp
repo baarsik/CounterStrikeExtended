@@ -122,11 +122,12 @@ string_t AllocEngineString( const char* value )
 	return CseStringOffset(pr_strings, ED_NewString(value));
 }
 
-void* GetModelPtr( edict_t* entity )
+void* GetModelPtr(edict_t* entity)
 {
-	if ( !entity )
-		return nullptr;
-	return Mod_Extradata( sv.models[entity->v.modelindex] );
+    if (!entity) {
+        return nullptr;
+    }
+    return Mod_Extradata(SV_ModelForIndex(entity->v.modelindex));
 }
 
 float CVarGetFloat( const char* name )
