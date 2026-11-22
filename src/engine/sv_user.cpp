@@ -79,24 +79,21 @@ void SV_SendConsistencyList( sizebuf_t* )
 	MSG_WriteBits( 0, 1 );
 }
 
-qboolean SV_FileInConsistencyList( const char* filename, consistency_t** entry )
+qboolean SV_FileInConsistencyList(const char* filename, consistency_t** entry)
 {
-	int index = 0;
-	consistency_t* consistency = &sv.consistency_list[1];
-	char* name = sv.consistency_list[0].filename;
-	if ( name == nullptr )
-		return false;
-	while ( Q_stricmp( filename, name ) != 0 )
-	{
-		++consistency;
-		name = consistency[-1].filename;
-		++index;
-		if ( name == nullptr )
-			return false;
-	}
-	if ( entry != nullptr )
-		*entry = &sv.consistency_list[index];
-	return true;
+    for (auto& consistency : sv.consistency_list) {
+        if (!consistency.filename) {
+            break;
+        }
+        if (Q_stricmp(filename, consistency.filename) != 0) {
+            continue;
+        }
+        if (entry) {
+            *entry = &consistency;
+        }
+        return true;
+    }
+    return false;
 }
 
 void SV_ParseConsistencyResponse( client_t* )
