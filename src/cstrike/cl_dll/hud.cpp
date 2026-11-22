@@ -26,6 +26,7 @@
 #include "server_form_client.h"
 #include "nextclient/hud/NativeRadar.h"
 #include "cl_util.h"
+#include "custom_weapon_client.h"
 #include "demo.h"
 #include "demo_api.h"
 #include "parsemsg.h"
@@ -614,7 +615,6 @@ void CHud::VidInit()
 	m_hsprLogo = 0;
 	m_hsprCursor = 0;
 	m_iRes = ScreenWidth >= 640 ? 640 : 320;
-	char spriteName[256];
 
 
 	// Only load this once
@@ -642,8 +642,7 @@ void CHud::VidInit()
 				client_sprite_t& sprite = m_pSpriteList[i];
 				if ( sprite.iRes != m_iRes )
 					continue;
-				sprintf( spriteName, "sprites/%s.spr", sprite.szSprite );
-				m_rghSprites[index] = SPR_Load( spriteName );
+				m_rghSprites[index] = cse::weapons::LoadHudDescriptorSprite(sprite.szSprite);
 				m_rgrcRects[index] = sprite.rc;
 				strncpy( m_rgszSpriteNames + index * MAX_SPRITE_NAME_LENGTH, sprite.szName, MAX_SPRITE_NAME_LENGTH );
 				index++;
@@ -657,8 +656,7 @@ void CHud::VidInit()
 		{
 			if ( m_pSpriteList[i].iRes == m_iRes )
 			{
-				sprintf( spriteName, "sprites/%s.spr", m_pSpriteList[i].szSprite );
-				m_rghSprites[index++] = SPR_Load( spriteName );
+				m_rghSprites[index++] = cse::weapons::LoadHudDescriptorSprite(m_pSpriteList[i].szSprite);
 			}
 		}
 	}

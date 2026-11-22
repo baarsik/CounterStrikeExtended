@@ -6,6 +6,7 @@ new const WeaponKey[] = "weapon_svdex";
 new g_purchaseToken;
 
 public plugin_precache() {
+    // The SVD definition supplies the HUD descriptor and its optional WebP death sprite.
     new CseWeaponResult:result = cse_weapons_register(WeaponKey);
     if (result != CseWeapon_Ok) {
         log_amx("Could not submit %s (%d)", WeaponKey, result);

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace cse::weapons {
@@ -152,6 +153,7 @@ enum class Message : uint8_t { Begin = 1, Definition, End, State, Kill };
 enum class ParseResult { Ok, InvalidLine, UnknownField, DuplicateField, InvalidValue, MissingField, Incompatible };
 
 bool IsAssetPath(std::string_view path, std::string_view root, std::string_view extension);
+std::string HudSpritePath(std::string_view asset);
 bool IsWeaponKey(std::string_view key);
 ParseResult ParseDefinition(std::string_view text, Definition& definition, unsigned* errorLine = nullptr,
     PrimaryAmmoPurchase* primaryAmmoPurchase = nullptr);

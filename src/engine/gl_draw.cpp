@@ -372,7 +372,7 @@ tryagain:
         Con_DPrintf("NULL Texture\n");
     }
 
-    const bool rgba = textureType == GLT_SPRITE && type == TEX_TYPE_RGBA;
+    const bool rgba = (textureType == GLT_SPRITE || textureType == GLT_HUDSPRITE) && type == TEX_TYPE_RGBA;
     if (!data || (!rgba && type != TEX_TYPE_LUM && !pal)) {
         Con_Printf("GL_LoadTexture2: missing texture pixels or palette (%dx%d)\n", width, height);
         return 0;

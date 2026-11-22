@@ -4,6 +4,7 @@
 #else
 #include "glquake.h"
 #endif
+#include "../common/image_codec.h"
 #include "cl_draw.h"
 #include "vid.h"
 #include "engine_apiproxy.h"
@@ -15,17 +16,32 @@
 
 #define SPR_MAX_SPRITES 256
 
+#if !defined(SW_RENDERER)
+struct WebPHudSprite {
+    model_t model;
+    msprite_t sprite;
+    mspriteframe_t frame;
+};
+#endif
+
 typedef struct spritelist_s
 {
 	model_t* pSprite;
 	char* pName;
 	int frameCount;
+#if !defined(SW_RENDERER)
+    WebPHudSprite* webp;
+#endif
 } SPRITELIST;
 
 SPRITELIST* gSpriteList;
 int gSpriteCount;
 
 msprite_t* gpSprite;
+
+#if !defined(SW_RENDERER)
+static bool gSpriteHasAlpha;
+#endif
 
 qboolean gSpriteMipMap = TRUE;
 unsigned short gSpritePalette[256];
@@ -51,6 +67,61 @@ void Draw_SpriteFrameAdditive( mspriteframe_t* frame, unsigned short* palette, i
 void Draw_SpriteFrameGeneric( mspriteframe_t* frame, unsigned short* palette, int x, int y, const wrect_t* rect,
 	int src, int dest, int width, int height );
 
+#if !defined(SW_RENDERER)
+static WebPHudSprite* LoadWebPHudSprite(const char* name) {
+    constexpr int maximumSide = 1024;
+    constexpr auto maximumPixelBytes = maximumSide * maximumSide * cse::image::RgbaChannels;
+    constexpr unsigned int maximumEncodedBytes = 8 * 1024 * 1024;
+    if (Q_strlen(name) >= sizeof(model_t::name)) {
+        return nullptr;
+    }
+    FileHandle_t file = FS_Open(name, "rb");
+    if (!file) {
+        return nullptr;
+    }
+    const auto length = FS_Size(file);
+    if (!length || length > maximumEncodedBytes) {
+        FS_Close(file);
+        return nullptr;
+    }
+    std::vector<byte> encoded(length);
+    const int bytesRead = FS_Read(encoded.data(), static_cast<int>(length), 1, file);
+    FS_Close(file);
+
+    cse::image::Image image;
+    if (bytesRead != static_cast<int>(length) ||
+        !cse::image::DecodeWebP(encoded.data(), encoded.size(), image, maximumPixelBytes, maximumSide)) {
+        return nullptr;
+    }
+    char textureName[sizeof(model_t::name)];
+    Q_strcpy(textureName, name);
+    const int texture = GL_LoadTexture(textureName, GLT_HUDSPRITE, image.width, image.height,
+        image.rgba.data(), FALSE, TEX_TYPE_RGBA, nullptr);
+    if (!texture) {
+        return nullptr;
+    }
+
+    // Own the single HUD frame independently of the map's model cache.
+    auto* hud = static_cast<WebPHudSprite*>(Mem_ZeroMalloc(sizeof(WebPHudSprite)));
+    Q_strcpy(hud->model.name, name);
+    hud->model.type = mod_sprite;
+    hud->model.numframes = 1;
+    hud->model.cache.data = &hud->sprite;
+    hud->sprite.type = SPR_VP_PARALLEL;
+    hud->sprite.texFormat = SPR_ALPHTEST;
+    hud->sprite.maxwidth = image.width;
+    hud->sprite.maxheight = image.height;
+    hud->sprite.numframes = 1;
+    hud->sprite.frames[0] = {SPR_SINGLE, &hud->frame};
+    hud->frame.width = image.width;
+    hud->frame.height = image.height;
+    hud->frame.right = static_cast<float>(image.width);
+    hud->frame.down = -static_cast<float>(image.height);
+    hud->frame.gl_texturenum = texture;
+    return hud;
+}
+#endif
+
 void SPR_Init()
 {
 	if ( gSpriteList )
@@ -64,37 +135,47 @@ void SPR_Init()
 
 HSPRITE SPR_Load( const char* name )
 {
-	int i;
+    g_engdstAddrs.pfnSPR_Load(&name);
+    if (!name || !*name || !gSpriteList || gSpriteCount <= 0) {
+        return 0;
+    }
 
-	g_engdstAddrs.pfnSPR_Load( &name );
+    int index = 0;
+    for (; index < gSpriteCount; ++index) {
+        const auto* loadedName = gSpriteList[index].pName;
+        if (!loadedName || !Q_strcasecmp(name, loadedName)) {
+            break;
+        }
+    }
+    if (index == gSpriteCount) {
+        Con_DPrintf("Cannot allocate more than %d HUD sprites\n", SPR_MAX_SPRITES);
+        return 0;
+    }
 
-	if ( !name || !gSpriteList || gSpriteCount <= 0 )
-		return 0;
-
-	for ( i = 0; i < gSpriteCount; i++ )
-	{
-		if ( !gSpriteList[i].pSprite )
-		{
-			gSpriteList[i].pName = (char*)Mem_Malloc( Q_strlen( name ) + 1 );
-			Q_strcpy( gSpriteList[i].pName, name );
-		}
-
-		if ( !Q_strcasecmp( name, gSpriteList[i].pName ) )
-			break;
-	}
-
-	if ( i >= gSpriteCount )
-		Sys_Error( "cannot allocate more than %d HUD sprites\n", SPR_MAX_SPRITES );
-
-	gSpriteMipMap = FALSE;
-	gSpriteList[i].pSprite = Mod_ForName( name, FALSE, TRUE );
-	gSpriteMipMap = TRUE;
-
-	if ( !gSpriteList[i].pSprite )
-		return 0;
-
-	gSpriteList[i].frameCount = ModelFrameCount( gSpriteList[i].pSprite );
-	return i + 1;
+    auto& slot = gSpriteList[index];
+    if (cse::image::HasWebPExtension(name)) {
+#if defined(SW_RENDERER)
+        return 0;
+#else
+        if (!slot.webp) {
+            slot.webp = LoadWebPHudSprite(name);
+        }
+        slot.pSprite = slot.webp ? &slot.webp->model : nullptr;
+#endif
+    } else {
+        gSpriteMipMap = FALSE;
+        slot.pSprite = Mod_ForName(name, FALSE, TRUE);
+        gSpriteMipMap = TRUE;
+    }
+    if (!slot.pSprite) {
+        return 0;
+    }
+    if (!slot.pName) {
+        slot.pName = static_cast<char*>(Mem_Malloc(Q_strlen(name) + 1));
+        Q_strcpy(slot.pName, name);
+    }
+    slot.frameCount = ModelFrameCount(slot.pSprite);
+    return index + 1;
 }
 
 static void SPR_FreeList( bool unloadTextures )
@@ -108,6 +189,12 @@ static void SPR_FreeList( bool unloadTextures )
 	{
 		for ( i = 0; i < gSpriteCount; i++ )
 		{
+#if !defined(SW_RENDERER)
+            if (gSpriteList[i].webp) {
+                GL_UnloadTexture(gSpriteList[i].pName);
+                Mem_Free(gSpriteList[i].webp);
+            } else
+#endif
 			if ( unloadTextures && gSpriteList[i].pSprite )
 				Mod_UnloadSpriteTextures( gSpriteList[i].pSprite );
 
@@ -147,7 +234,7 @@ SPRITELIST* SPR_Get( HSPRITE sprite )
 
 msprite_t* SPR_Pointer( SPRITELIST* list )
 {
-	return (msprite_t*)list->pSprite->cache.data;
+	return list->pSprite ? static_cast<msprite_t*>(list->pSprite->cache.data) : nullptr;
 }
 
 void SPR_Set( HSPRITE sprite, int r, int g, int b )
@@ -157,10 +244,13 @@ void SPR_Set( HSPRITE sprite, int r, int g, int b )
 	g_engdstAddrs.pfnSPR_Set( &sprite, &r, &g, &b );
 
 	list = SPR_Get( sprite );
+	gpSprite = list ? SPR_Pointer(list) : nullptr;
+#if !defined(SW_RENDERER)
+    gSpriteHasAlpha = list && list->webp;
+#endif
 	if ( !list )
 		return;
 
-	gpSprite = SPR_Pointer( list );
 	if ( gpSprite )
 #if defined( SW_RENDERER )
 		UnpackPalette( gSpritePalette, (word*)( (byte*)gpSprite + gpSprite->paloffset ), r, g, b );
@@ -239,6 +329,13 @@ void SPR_Draw( int frame, int x, int y, const wrect_t* rect )
 		return;
 
 	pFrame = R_GetSpriteFrame( gpSprite, frame );
+#if !defined(SW_RENDERER)
+    if (pFrame && gSpriteHasAlpha) {
+        Draw_SpriteFrameGeneric(pFrame, gSpritePalette, x, y, rect, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+            pFrame->width, pFrame->height);
+        return;
+    }
+#endif
 	if ( pFrame )
 		Draw_SpriteFrame( pFrame, gSpritePalette, x, y, rect );
 	else
@@ -255,6 +352,13 @@ void SPR_DrawHoles( int frame, int x, int y, const wrect_t* rect )
 		return;
 
 	pFrame = R_GetSpriteFrame( gpSprite, frame );
+#if !defined(SW_RENDERER)
+    if (pFrame && gSpriteHasAlpha) {
+        Draw_SpriteFrameGeneric(pFrame, gSpritePalette, x, y, rect, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA,
+            pFrame->width, pFrame->height);
+        return;
+    }
+#endif
 	if ( pFrame )
 		Draw_SpriteFrameHoles( pFrame, gSpritePalette, x, y, rect );
 	else
@@ -271,6 +375,13 @@ void SPR_DrawAdditive( int frame, int x, int y, const wrect_t* rect )
 		return;
 
 	pFrame = R_GetSpriteFrame( gpSprite, frame );
+#if !defined(SW_RENDERER)
+    if (pFrame && gSpriteHasAlpha) {
+        Draw_SpriteFrameGeneric(pFrame, gSpritePalette, x, y, rect, GL_SRC_ALPHA, GL_ONE,
+            pFrame->width, pFrame->height);
+        return;
+    }
+#endif
 	if ( pFrame )
 		Draw_SpriteFrameAdditive( pFrame, gSpritePalette, x, y, rect );
 	else

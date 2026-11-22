@@ -283,8 +283,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "crosshair", iRes, i );
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hCrosshair = SPR_Load(sz);
+		pWeapon->hCrosshair = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcCrosshair = p->rc;
 	}
 	else
@@ -293,8 +292,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "autoaim", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hAutoaim = SPR_Load(sz);
+		pWeapon->hAutoaim = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcAutoaim = p->rc;
 	}
 	else
@@ -303,8 +301,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList( pList, "zoom", iRes, i );
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hZoomedCrosshair = SPR_Load(sz);
+		pWeapon->hZoomedCrosshair = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcZoomedCrosshair = p->rc;
 	}
 	else
@@ -316,8 +313,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "zoom_autoaim", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hZoomedAutoaim = SPR_Load(sz);
+		pWeapon->hZoomedAutoaim = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcZoomedAutoaim = p->rc;
 	}
 	else
@@ -329,8 +325,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "weapon", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hInactive = SPR_Load(sz);
+		pWeapon->hInactive = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcInactive = p->rc;
 
 		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
@@ -341,8 +336,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "weapon_s", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hActive = SPR_Load(sz);
+		pWeapon->hActive = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcActive = p->rc;
 	}
 	else
@@ -351,8 +345,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "ammo", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hAmmo = SPR_Load(sz);
+		pWeapon->hAmmo = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcAmmo = p->rc;
 
 		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
@@ -363,8 +356,7 @@ void WeaponsResource :: LoadWeaponSprites( WEAPON *pWeapon )
 	p = GetSpriteList(pList, "ammo2", iRes, i);
 	if (p)
 	{
-		sprintf(sz, "sprites/%s.spr", p->szSprite);
-		pWeapon->hAmmo2 = SPR_Load(sz);
+		pWeapon->hAmmo2 = cse::weapons::LoadHudDescriptorSprite(p->szSprite);
 		pWeapon->rcAmmo2 = p->rc;
 
 		gHR.iHistoryGap = max( gHR.iHistoryGap, pWeapon->rcActive.bottom - pWeapon->rcActive.top );
@@ -539,9 +531,7 @@ int CHudAmmo::VidInit(void)
 		client_sprite_t *crosshair = GetSpriteList(sprites, "crosshair", ScreenWidth >= 640 ? 640 : 320, count);
 		if (crosshair)
 		{
-			char name[32];
-			sprintf(name, "sprites/%s.spr", crosshair->szSprite);
-			m_hObserverCrosshair = SPR_Load(name);
+			m_hObserverCrosshair = cse::weapons::LoadHudDescriptorSprite(crosshair->szSprite);
 			m_rcObserverCrosshair = crosshair->rc;
 		}
 		else

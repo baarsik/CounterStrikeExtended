@@ -2,8 +2,10 @@
 """Install the supplied SVD test assets, without installing its legacy plugin."""
 
 import argparse
+from hashlib import sha256
 from pathlib import Path, PurePosixPath
 import stat
+from tempfile import NamedTemporaryFile
 import zipfile
 
 
@@ -20,7 +22,13 @@ ASSETS = (
 DEFINITION = 'weapon_svdex.cfg'
 DEFINITION_DESTINATION = f'addons/amxmodx/data/csextended/weapons/{DEFINITION}'
 HUD_DESCRIPTOR_DESTINATION = 'sprites/nimroK/weapon_svdex_cse.txt'
+KILLFEED_DESTINATION = 'sprites/nimroK/svdex-killfeed.webp'
 MAX_ASSET_BYTES = 2 * 1024 * 1024
+# Descriptors shipped before the optional WebP row was added.
+LEGACY_HUD_SHA256 = {
+    'b41cb79209f9e278e7762fb5185c62219f44e9cbc28b626c7f0e4647eecb5d8b',
+    'fcecdc0c0c363e837529d3c3299d6cc402c0004b7ba43ddb28335bbecf9f1e0b',
+}
 
 
 def read_assets(archive: Path) -> dict[str, bytes]:
@@ -47,11 +55,18 @@ def read_assets(archive: Path) -> dict[str, bytes]:
     return files
 
 
-def install(archive: Path, game: Path) -> None:
+def install(archive: Path, game: Path, killfeed: Path | None = None) -> None:
     game = game.resolve(strict=True)
     if not game.is_dir():
         raise ValueError(f'Expected a game directory at {game}')
     files = read_assets(archive)
+    if killfeed is not None:
+        with killfeed.open('rb') as image:
+            data = image.read(MAX_ASSET_BYTES + 1)
+        if len(data) > MAX_ASSET_BYTES or not data.startswith(b'RIFF') or data[8:12] != b'WEBP':
+            raise ValueError(f'Invalid WebP image {killfeed}')
+        files[KILLFEED_DESTINATION] = data
+    upgrade_hud = False
     for relative, data in files.items():
         target = game / relative
         for component in (target, *target.relative_to(game).parents):
@@ -60,7 +75,14 @@ def install(archive: Path, game: Path) -> None:
                 raise ValueError(f'Refusing a symlink in {target}')
             if candidate != target and candidate.exists() and not candidate.is_dir():
                 raise ValueError(f'Expected a directory at {candidate}')
-        if target.exists() and (not target.is_file() or target.read_bytes() != data):
+        if target.exists():
+            existing = target.read_bytes() if target.is_file() else None
+            if existing == data:
+                continue
+            if relative == HUD_DESCRIPTOR_DESTINATION and existing is not None:
+                upgrade_hud = sha256(existing).hexdigest() in LEGACY_HUD_SHA256
+                if upgrade_hud:
+                    continue
             raise ValueError(f'Refusing to overwrite {target}')
     for relative, data in files.items():
         target = game / relative
@@ -69,16 +91,30 @@ def install(archive: Path, game: Path) -> None:
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open('xb') as output:
             output.write(data)
+    if upgrade_hud:
+        target = game / HUD_DESCRIPTOR_DESTINATION
+        with NamedTemporaryFile(dir=target.parent, delete=False) as output:
+            staged = Path(output.name)
+            try:
+                output.write(files[HUD_DESCRIPTOR_DESTINATION])
+                output.close()
+                staged.chmod(stat.S_IMODE(target.stat().st_mode))
+                staged.replace(target)
+            finally:
+                staged.unlink(missing_ok=True)
     print(f'Installed {len(ASSETS)} SVD test assets, the CSE definition, and the HUD descriptor into {game}')
+    if killfeed is not None:
+        print(f'Installed {KILLFEED_DESTINATION}')
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('archive', type=Path)
     parser.add_argument('game', type=Path, help='Existing cstrike game directory')
+    parser.add_argument('--killfeed-webp', type=Path, help='Optional SVD killfeed image')
     args = parser.parse_args()
     try:
-        install(args.archive, args.game)
+        install(args.archive, args.game, args.killfeed_webp)
     except (OSError, ValueError, zipfile.BadZipFile) as error:
         parser.exit(1, f'{error}\n')
 

@@ -131,7 +131,7 @@ std::string ReadDescriptor(const char* path) {
 }
 
 HSPRITE LoadAtlas(std::string path) {
-    if (!IsAssetPath(path, "sprites/", ".spr")) {
+    if (path.empty()) {
         return 0;
     }
     for (auto& atlas : atlases) {
@@ -187,8 +187,7 @@ void LoadArt(CatalogEntry& entry) {
             width > 512 || height > 512 || x > 1024 || y > 1024) {
             continue;
         }
-        std::string path = "sprites/" + base + ".spr";
-        const HSPRITE handle = LoadAtlas(std::move(path));
+        const HSPRITE handle = LoadAtlas(HudSpritePath(base));
         if (handle && x + width <= SPR_Width(handle, 0) && y + height <= SPR_Height(handle, 0)) {
             entry.sprites[static_cast<std::size_t>(role - SpriteNames.begin())] =
                 {handle, {x, x + width, y, y + height}};
@@ -396,6 +395,11 @@ int DrawAmmoNumber(int x, int y, int digitWidth, int count, int r, int g, int b)
 }
 
 } // namespace
+
+HSPRITE LoadHudDescriptorSprite(std::string_view asset) {
+    const auto path = HudSpritePath(asset);
+    return path.empty() ? 0 : SPR_Load(path.c_str());
+}
 
 void RegisterWeaponClient() {
     ResetWeaponSession();

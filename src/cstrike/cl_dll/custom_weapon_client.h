@@ -17,6 +17,8 @@ struct HudSprite {
     int Height() const { return rect.bottom - rect.top; }
 };
 
+HSPRITE LoadHudDescriptorSprite(std::string_view asset);
+
 void RegisterWeaponClient();
 void ResetWeaponSession();
 void RefreshWeaponArt();

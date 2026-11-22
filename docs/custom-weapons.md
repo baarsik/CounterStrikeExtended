@@ -7,8 +7,11 @@ A custom weapon has its own classname, inventory identity, and ammo definition. 
 Use a separate test server and an updated CounterStrikeExtended client. From the repository root, run the installer against the `cstrike` directory on both the test server and the test client. It reads the supplied archive and installs its model, sound and sprite files, plus the CSE definition. A repeated import is safe when the files match. The archive itself stays outside the repository.
 
 ```sh
-python3 tools/qualification/fixtures/custom-weapons/install_fixture.py /path/to/weapon_svdex.zip /path/to/cstrike
+python3 tools/qualification/fixtures/custom-weapons/install_fixture.py /path/to/weapon_svdex.zip /path/to/cstrike \
+  --killfeed-webp /path/to/svdex-killfeed.webp
 ```
+
+The WebP argument installs the optional killfeed icon used by the Pawn example and the GameDLL catalog. The example uses the 48 × 16 `d_svdex` image from the CSMoE HUD atlas at `(172, 0)`. [CSMoE HUD mapping](https://github.com/MoeMod/CSMoE-GameDir/blob/e8352a9f0dec86c12960b3f7730455eac9cd1221/csmoe/sprites/hud.txt#L167)
 
 For a cold start, add `-cseweaponcatalog addons/amxmodx/data/csextended/weapons/weapon_svdex.cfg +map de_dust2` to the server arguments. On an already running server, set the catalog and change the map to load it. Use the server console to give the weapon to a player. `status` lists connected players and `cse_weapon_list` lists registered definitions.
 
@@ -37,6 +40,8 @@ A definition is a UTF-8 `.cfg` file with one `key=value` field per line. Whitesp
 | Rules | `droppable`, `respawn`, `price`, and `team` (0 any, 1 Terrorist, 2 Counter-Terrorist). |
 
 In the HUD descriptor, `crosshair`, `crosshair2`, and `zoom` provide optional primary, launcher, and zoomed reticles. Without primary reticle art, the client draws the configured Counter-Strike crosshair.
+
+Sprite rows accept filenames relative to `sprites/`, using either `.webp` or `.spr`. Extensionless names resolve to `.spr` as before. WebP images use the same pixel rectangle as sprite atlases and can be mixed with legacy sprites in one descriptor. Use static WebP images up to 1024 × 1024 with transparency for the cutout. The `death` row supplies the killfeed icon.
 
 Install the reference GameDLL with the CSE client. The GameDLL can load its catalog directly. On a server stack with a compatible AMX Mod X backend, include `csextended` and register `weapon_svdex` during `plugin_precache` to read the same definition from `csextended/weapons/` under the AMXX data directory. Choose either the GameDLL catalog or the Pawn registration for a definition. The Pawn API reports backend availability and readiness separately. The in-tree GameDLL's initialization requires CSE's checked module ABI, so positive AMXX gameplay qualification requires a CSE-aware Metamod adapter or a separate backend port to an AMXX-supported GameDLL. [Pawn include](../src/amxx/csextended/deploy/csextended.inc) · [Example plugin](../src/amxx/csextended/deploy/examples/weapons.sma)
 

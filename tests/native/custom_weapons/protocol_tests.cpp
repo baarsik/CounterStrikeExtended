@@ -74,6 +74,11 @@ int main(int argc, char** argv) {
         ParseResult::Ok);
     assert(!IsAssetPath("models/test/../hidden.mdl", "models/", ".mdl"));
     assert(IsAssetPath("models/nimroK/weapons/v_svdex.mdl", "models/", ".mdl"));
+    assert(HudSpritePath("nimroK/640hud36") == "sprites/nimroK/640hud36.spr");
+    assert(HudSpritePath("nimroK/640hud36.spr") == "sprites/nimroK/640hud36.spr");
+    assert(HudSpritePath("nimroK/svdex-killfeed.webp") == "sprites/nimroK/svdex-killfeed.webp");
+    assert(HudSpritePath("../svdex-killfeed.webp").empty());
+    assert(HudSpritePath("nimroK/svdex-killfeed.png").empty());
 
     CatalogItem item{};
     item.generation = 7;

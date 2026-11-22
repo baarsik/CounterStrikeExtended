@@ -380,6 +380,20 @@ bool IsWeaponKey(std::string_view key) {
         IsKey(key.substr(Prefix.size()));
 }
 
+std::string HudSpritePath(std::string_view asset) {
+    constexpr std::string_view root = "sprites/";
+    constexpr std::string_view legacyExtension = ".spr";
+    std::string path(root);
+    path.append(asset);
+    if (asset.find('.') == std::string_view::npos) {
+        path.append(legacyExtension);
+    }
+    if (IsAssetPath(path, root, legacyExtension) || IsAssetPath(path, root, ".webp")) {
+        return path;
+    }
+    return {};
+}
+
 ParseResult ParseDefinition(std::string_view text, Definition& out, unsigned* errorLine,
     PrimaryAmmoPurchase* primaryAmmoPurchase) {
     constexpr std::size_t MaxDefinitionBytes = 16 * 1024;
