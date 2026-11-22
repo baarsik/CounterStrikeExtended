@@ -52,7 +52,8 @@ if args.only != 'ui':
             match = re.search(r'^[^\n]*\b' + name + r'\([^\n]*\)\n\{', source(file), re.M)
             parts.append(function(file, match.group()))
     parts.append(re.search(r'^cvar_t cl_filterstuffcmd\s*=.*?;', source('engine/cl_main.cpp'), re.M).group())
-    for name in ('StuffTextHasCommand', 'ValidStuffText'):
+    for name in ('StuffTextIsSpace', 'StuffTextStartsCommand', 'StuffTextHasCommand',
+                 'StuffTextHasArgumentCommand', 'ValidStuffText', 'AllowedCommand'):
         match = re.search(r'^[^\n]*\b' + name + r'\([^\n]*\)\n\{', source('engine/cl_parsefn.cpp'), re.M)
         parts.append(function('engine/cl_parsefn.cpp', match.group()))
     run('engine', parts)

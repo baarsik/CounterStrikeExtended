@@ -780,12 +780,13 @@ const char* COM_Parse( const char* data )
 	if ( character == '"' )
 	{
 		++data;
-		character = static_cast<signed char>( *data++ );
-		while ( character && character != '"' && length < COM_TOKEN_SIZE - 1 )
-		{
-			com_token[length++] = static_cast<char>( character );
-			character = static_cast<signed char>( *data++ );
-		}
+        while (*data) {
+            character = static_cast<signed char>(*data++);
+            if (character == '"' || length == COM_TOKEN_SIZE - 1) {
+                break;
+            }
+            com_token[length++] = static_cast<char>(character);
+        }
 	}
 	else
 	{
