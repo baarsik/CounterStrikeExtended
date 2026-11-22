@@ -295,10 +295,7 @@ cl_entity_t* hudGetEntityByIndex( int idx )
 {
 	g_engdstAddrs.GetEntityByIndex( &idx );
 
-	if ( idx < 0 || idx >= cl.max_edicts )
-		return NULL;
-
-	return &cl_entities[idx];
+    return CL_GetEntityIfValid(idx);
 }
 
 model_t* CL_LoadModel( const char* modelname, int* index )

@@ -2015,8 +2015,10 @@ void CL_ParseTEnt( void )
 				decal += 256;
 		}
 
-		if ( entity >= cl.max_edicts )
-			Sys_Error( "Decal: entity = %i", entity );
+        if (!CL_GetEntityIfValid(entity)) {
+            Con_DPrintf("Decal: invalid entity %i\n", entity);
+            break;
+        }
 
 		if ( r_decals.value )
 			efx.R_DecalShoot( efx.Draw_DecalIndex( decal ), entity, modelIndex, pos, flags );
@@ -2065,16 +2067,17 @@ void CL_ParseTEnt( void )
 
 	case TE_FIZZ:
 	{
-		int entity, modelIndex, density;
+        const int entity = MSG_ReadShort();
+        const int modelIndex = MSG_ReadShort();
+        const int density = MSG_ReadByte();
 
-		entity = MSG_ReadShort();
-		if ( entity >= cl.max_edicts )
-			Sys_Error( "Bubble: entity = %i", entity );
-		modelIndex = MSG_ReadShort();
-		density = MSG_ReadByte();
-
-		efx.R_FizzEffect( &cl_entities[entity], modelIndex, density );
-		break;
+        cl_entity_t* fizzEntity = CL_GetEntityIfValid(entity);
+        if (!fizzEntity) {
+            Con_DPrintf("Bubble: invalid entity %i\n", entity);
+            break;
+        }
+        efx.R_FizzEffect(fizzEntity, modelIndex, density);
+        break;
 	}
 
 	case TE_MODEL:
@@ -2147,6 +2150,11 @@ void CL_ParseTEnt( void )
 		entity = MSG_ReadShort();
 		decal = MSG_ReadByte();
 
+        if (!CL_GetEntityIfValid(entity)) {
+            Con_DPrintf("Decal: invalid entity %i\n", entity);
+            break;
+        }
+
 		efx.R_BulletImpactParticles( pos );
 
 		iRand = RandomLong( 0, 0x7FFF );
@@ -2159,9 +2167,6 @@ void CL_ParseTEnt( void )
 			sounds[4] = cl_sfx_ric5;
 			S_StartDynamicSound( -1, CHAN_AUTO, sounds[iRand % 5], pos, 1.0f, 1.0f, 0, PITCH_NORM );
 		}
-
-		if ( entity >= cl.max_edicts )
-			Sys_Error( "Decal: entity = %i", entity );
 
 		if ( r_decals.value )
 			efx.R_DecalShoot( efx.Draw_DecalIndex( decal ), entity, 0, pos, 0 );
@@ -2214,8 +2219,10 @@ void CL_ParseTEnt( void )
 		entity = MSG_ReadShort();
 		decal = MSG_ReadByte();
 
-		if ( entity >= cl.max_edicts )
-			Sys_Error( "Decal: entity = %i", entity );
+        if (!CL_GetEntityIfValid(entity)) {
+            Con_DPrintf("Decal: invalid entity %i\n", entity);
+            break;
+        }
 
 		pTexture = NULL;
 		if ( pCust && pCust->pBuffer && pCust->pInfo && ( pCust->resource.ucFlags & RES_CUSTOM )
@@ -2972,14 +2979,14 @@ void R_SpriteColor( colorVec* pColor, cl_entity_t* pEntity, int alpha )
 
 float* R_GetAttachmentPoint( int entity, int attachment )
 {
-	cl_entity_t* pEntity;
-
-	pEntity = &cl_entities[entity];
-
-	if ( attachment )
-		return pEntity->attachment[attachment - 1];
-
-	return pEntity->origin;
+    cl_entity_t* target = CL_GetEntityIfValid(entity);
+    if (!target) {
+        return nullptr;
+    }
+    if (attachment > 0 && attachment <= static_cast<int>(ARRAYSIZE(target->attachment))) {
+        return target->attachment[attachment - 1];
+    }
+    return target->origin;
 }
 
 qboolean CL_ShowTEBlood( void )

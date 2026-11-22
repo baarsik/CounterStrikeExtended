@@ -1114,7 +1114,7 @@ qboolean CL_ReadDemoMessage_OLD( void )
 {
 	static int tdlastdemoframe;
 	byte msgbuf[MAX_POSSIBLE_MSG];
-	char text[DEMO_HUD_COMMAND_LEN];
+    char text[DEMO_HUD_COMMAND_LEN + 1];
 	client_data_t cdata;
 	byte cmd;
 	float f, t, ft;
@@ -1163,7 +1163,11 @@ qboolean CL_ReadDemoMessage_OLD( void )
 			break;
 
 		case DEMO_HUD_COMMAND:
-			FS_Read( text, sizeof( text ), 1, cls.demofile );
+            if (FS_Read(text, DEMO_HUD_COMMAND_LEN, 1, cls.demofile) != DEMO_HUD_COMMAND_LEN) {
+                Host_EndGame("Truncated demo HUD command.\n");
+                return FALSE;
+            }
+            text[DEMO_HUD_COMMAND_LEN] = '\0';
 			if ( ValidStuffText( text ) )
 			{
 				Cbuf_AddTextToUntrustedBuffer( text );

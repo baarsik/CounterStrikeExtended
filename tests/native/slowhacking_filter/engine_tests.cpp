@@ -101,5 +101,12 @@ int main() {
             Require(Execute(command + " 127.0.0.1:27015", false), false, command, level);
         }
     }
+    // The command-name search must consider every match and recognize tokenizer boundaries.
+    Require(AllowedCommand("unrestricted; restricted", "restricted"), false, "second command match", 0);
+    Require(AllowedCommand("echo;\t\"restricted\"", "restricted"), false, "quoted command", 0);
+    Require(AllowedCommand("unrestricted", "restricted"), true, "partial command name", 0);
+    Require(ValidStuffText("reconnect"), true, "live reconnect", 2);
+    Require(ValidStuffText("echo \"unfinished"), true, "quoted argument ending at the terminator", 2);
+
     std::puts("PASS engine filter levels, default, trusted commands, mixed case, quotes, aliases and split buffers");
 }

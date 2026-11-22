@@ -1429,7 +1429,11 @@ float g_SND_VoiceOverdrive = 1.0f;
 
 void SND_MoveMouth( channel_t* channel, sfxcache_t* cache, int count )
 {
-	mouth_t& mouth = cl_entities[channel->entnum].mouth;
+    cl_entity_t* entity = CL_GetEntityIfValid(channel->entnum);
+    if (!entity) {
+        return;
+    }
+    mouth_t& mouth = entity->mouth;
 	int sampleCount = mouth.sndcount;
 	int average = 0;
 	byte* data = &cache->data[channel->pos];

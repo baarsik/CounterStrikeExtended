@@ -672,7 +672,6 @@ void R_DrawBeamEntList( float frametime )
 {
 	int i;
 	int beamType;
-	BEAM beam;
 	cl_entity_t* ent;
 
 	for ( i = 0; i < cl_numbeamentities; i++ )
@@ -682,9 +681,14 @@ void R_DrawBeamEntList( float frametime )
 		// Set up the beam.
 		beamType = ent->curstate.rendermode & 0x0F;
 
+        BEAM beam{};
+        beam.modelIndex = -1;
 		R_BeamSetup( &beam, ent->origin, ent->curstate.angles, ent->curstate.modelindex, 0, ent->curstate.scale,
 			(float)( ent->curstate.body * 0.01 ), (float)( CL_FxBlend( ent ) * ( 1.0 / 255.0 ) ),
 			ent->curstate.animtime );
+        if (beam.modelIndex < 0) {
+            continue;
+        }
 
 		SetBeamAttributes( &beam, (float)( ent->curstate.rendercolor.r * ( 1.0 / 255.0 ) ),
 			(float)( ent->curstate.rendercolor.g * ( 1.0 / 255.0 ) ),
@@ -1620,19 +1624,20 @@ int R_BeamCull( vec_t* start, vec_t* end, int pvsOnly )
 
 cl_entity_t* R_GetBeamAttachmentEntity( int index )
 {
-	if ( index < 0 )
-		return ClientDLL_GetUserEntity( BEAMENT_ENTITY( -index ) );
+    if (index < 0) {
+        return ClientDLL_GetUserEntity(BEAMENT_ENTITY(0u - static_cast<unsigned int>(index)));
+    }
 
-	return &cl_entities[BEAMENT_ENTITY( index )];
+    return CL_GetEntityIfValid(BEAMENT_ENTITY(index));
 }
 
 float* R_BeamGetAttachmentPoint( cl_entity_t* ent, int attachment )
 {
-	int point;
-
-	point = BEAMENT_ATTACHMENT( abs( attachment ) );
-	if ( point )
-		return ent->attachment[point - 1];
+    const auto encoded = static_cast<unsigned int>(attachment);
+    const unsigned int point = BEAMENT_ATTACHMENT(attachment < 0 ? 0u - encoded : encoded);
+    if (point > 0 && point <= ARRAYSIZE(ent->attachment)) {
+        return ent->attachment[point - 1];
+    }
 
 	if ( ent->index == cl.playernum + 1 )
 		return cl.simorg;
@@ -3731,7 +3736,6 @@ void R_DrawBeamEntList( float frametime )
 {
 	int i;
 	int beamType;
-	BEAM beam;
 	cl_entity_t* ent;
 
 	for ( i = 0; i < cl_numbeamentities; i++ )
@@ -3741,9 +3745,14 @@ void R_DrawBeamEntList( float frametime )
 		// Set up the beam.
 		beamType = ent->curstate.rendermode & 0x0F;
 
+        BEAM beam{};
+        beam.modelIndex = -1;
 		R_BeamSetup( &beam, ent->origin, ent->curstate.angles, ent->curstate.modelindex, 0, ent->curstate.scale,
 			(float)( ent->curstate.body * 0.01 ), (float)( CL_FxBlend( ent ) * ( 1.0 / 255.0 ) ),
 			ent->curstate.animtime );
+        if (beam.modelIndex < 0) {
+            continue;
+        }
 
 		SetBeamAttributes( &beam, (float)( ent->curstate.rendercolor.r * ( 1.0 / 255.0 ) ),
 			(float)( ent->curstate.rendercolor.g * ( 1.0 / 255.0 ) ),
@@ -4684,19 +4693,20 @@ int R_BeamCull( vec_t* start, vec_t* end, int pvsOnly )
 
 cl_entity_t* R_GetBeamAttachmentEntity( int index )
 {
-	if ( index < 0 )
-		return ClientDLL_GetUserEntity( BEAMENT_ENTITY( -index ) );
+    if (index < 0) {
+        return ClientDLL_GetUserEntity(BEAMENT_ENTITY(0u - static_cast<unsigned int>(index)));
+    }
 
-	return &cl_entities[BEAMENT_ENTITY( index )];
+    return CL_GetEntityIfValid(BEAMENT_ENTITY(index));
 }
 
 float* R_BeamGetAttachmentPoint( cl_entity_t* ent, int attachment )
 {
-	int point;
-
-	point = BEAMENT_ATTACHMENT( abs( attachment ) );
-	if ( point )
-		return ent->attachment[point - 1];
+    const auto encoded = static_cast<unsigned int>(attachment);
+    const unsigned int point = BEAMENT_ATTACHMENT(attachment < 0 ? 0u - encoded : encoded);
+    if (point > 0 && point <= ARRAYSIZE(ent->attachment)) {
+        return ent->attachment[point - 1];
+    }
 
 	if ( ent->index == cl.playernum + 1 )
 		return cl.simorg;
