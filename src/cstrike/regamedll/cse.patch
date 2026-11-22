@@ -1,0 +1,1427 @@
+diff --git a/regamedll/dlls/addons/item_airbox.h b/regamedll/dlls/addons/item_airbox.h
+index 2ced811..52a8c66 100644
+--- a/regamedll/dlls/addons/item_airbox.h
++++ b/regamedll/dlls/addons/item_airbox.h
+@@ -19,6 +19,8 @@
+ #pragma once
+ 
+ class CItemAirBox: public CArmoury {
++    friend bool CseRegisterCallbacks_dlls_addons_item_airbox();
++
+ public:
+ 	void Spawn();
+ 	void Precache();
+diff --git a/regamedll/dlls/addons/trigger_random.h b/regamedll/dlls/addons/trigger_random.h
+index cc9b12a..789f613 100644
+--- a/regamedll/dlls/addons/trigger_random.h
++++ b/regamedll/dlls/addons/trigger_random.h
+@@ -43,6 +43,8 @@
+ const int MAX_TR_TARGETS = 16; // maximum number of targets a single trigger_random entity may be assigned.
+ 
+ class CTriggerRandom: public CBaseDelay {
++    friend bool CseRegisterCallbacks_dlls_addons_trigger_random();
++
+ public:
+ 	void Spawn();
+ 	void KeyValue(KeyValueData *pkvd);
+diff --git a/regamedll/dlls/bot/cs_bot_chatter.cpp b/regamedll/dlls/bot/cs_bot_chatter.cpp
+index d48898a..1fed93e 100644
+--- a/regamedll/dlls/bot/cs_bot_chatter.cpp
++++ b/regamedll/dlls/bot/cs_bot_chatter.cpp
+@@ -28,6 +28,7 @@
+ 
+ #include "precompiled.h"
+ #include <algorithm>
++#include <random>
+ 
+ BotPhraseManager *TheBotPhrases = nullptr;
+ CountdownTimer BotChatterInterface::m_encourageTimer;
+@@ -375,7 +376,10 @@ void BotPhrase::Randomize()
+ {
+ 	for (size_t i = 0; i < m_voiceBank.size(); i++)
+ 	{
+-		std::random_shuffle(m_voiceBank[i]->begin(), m_voiceBank[i]->end());
++		std::random_device rd {};
++		std::mt19937 mt {rd()};
++
++		std::shuffle(m_voiceBank[i]->begin(), m_voiceBank[i]->end(), mt);
+ 	}
+ }
+ 
+@@ -619,7 +623,7 @@ bool BotPhraseManager::Initialize(const char *filename, int bankIndex)
+ #ifdef REGAMEDLL_ADD
+ 				Q_snprintf(filePath, sizeof(filePath), "sound\\%s%s", baseDir, token);
+ 
+-				if (!g_pFileSystem->FileExists(filePath))
++				if (GET_FILE_SIZE(filePath) < 0)
+ 					continue;
+ #endif
+ 
+diff --git a/regamedll/dlls/bot/cs_bot_manager.cpp b/regamedll/dlls/bot/cs_bot_manager.cpp
+index 16ad768..d850fec 100644
+--- a/regamedll/dlls/bot/cs_bot_manager.cpp
++++ b/regamedll/dlls/bot/cs_bot_manager.cpp
+@@ -55,11 +55,15 @@ CCSBotManager::CCSBotManager()
+ 
+ 	m_bServerActive = false;
+ 
+-	TheBotPhrases = new BotPhraseManager;
++    TheBotPhrases = new BotPhraseManager;
++    TheBotProfiles = new BotProfileManager;
++    if (!CSE_ENABLE_ZBOT) {
++        return;
++    }
++
+ 	// load the database of bot radio chatter
+ 	TheBotPhrases->Initialize("BotChatter.db", 0);
+ 
+-	TheBotProfiles = new BotProfileManager;
+ 	// make sure default voice bank is first
+ 	TheBotProfiles->FindVoiceBankIndex("BotChatter.db");
+ 
+diff --git a/regamedll/dlls/cbase.cpp b/regamedll/dlls/cbase.cpp
+index e6edc87..8eb3991 100644
+--- a/regamedll/dlls/cbase.cpp
++++ b/regamedll/dlls/cbase.cpp
+@@ -1,4 +1,5 @@
+ #include "precompiled.h"
++#include "game_module_entry.h"
+ 
+ DLL_FUNCTIONS gFunctionTable =
+ {
+@@ -274,6 +275,10 @@ void REMOVE_ENTITY(edict_t *pEntity)
+ 
+ C_DLLEXPORT int GetEntityAPI(DLL_FUNCTIONS *pFunctionTable, int interfaceVersion)
+ {
++    if (!CseGameEngineAbiBound()) {
++        return 0;
++    }
++
+ 	if (!pFunctionTable || interfaceVersion != INTERFACE_VERSION)
+ 		return 0;
+ 
+@@ -288,28 +293,27 @@ C_DLLEXPORT int GetEntityAPI(DLL_FUNCTIONS *pFunctionTable, int interfaceVersion
+ 	return 1;
+ }
+ 
+-NOXREF int GetEntityAPI2(DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion)
+-{
+-	if (!pFunctionTable || *interfaceVersion != INTERFACE_VERSION)
+-	{
+-		*interfaceVersion = INTERFACE_VERSION;
+-		return 0;
+-	}
+-
+-	Q_memcpy(pFunctionTable, &gFunctionTable, sizeof(DLL_FUNCTIONS));
+-	return 1;
++C_DLLEXPORT int GetEntityAPI2(DLL_FUNCTIONS *functions, int *version) {
++    if (!CseGameEngineAbiBound() || !version) {
++        return 0;
++    }
++    if (*version != INTERFACE_VERSION) {
++        *version = INTERFACE_VERSION;
++        return 0;
++    }
++    return GetEntityAPI(functions, *version);
+ }
+ 
+-C_DLLEXPORT int GetNewDLLFunctions(NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion)
+-{
+-	if (!pFunctionTable || *interfaceVersion != NEW_DLL_FUNCTIONS_VERSION)
+-	{
+-		*interfaceVersion = NEW_DLL_FUNCTIONS_VERSION;
+-		return 0;
+-	}
+-
+-	Q_memcpy(pFunctionTable, &gNewDLLFunctions, sizeof(NEW_DLL_FUNCTIONS));
+-	return 1;
++C_DLLEXPORT int GetNewDLLFunctions(NEW_DLL_FUNCTIONS *functions, int *version) {
++    if (!CseGameEngineAbiBound() || !version) {
++        return 0;
++    }
++    if (!functions || *version != NEW_DLL_FUNCTIONS_VERSION) {
++        *version = NEW_DLL_FUNCTIONS_VERSION;
++        return 0;
++    }
++    Q_memcpy(functions, &gNewDLLFunctions, sizeof(NEW_DLL_FUNCTIONS));
++    return 1;
+ }
+ 
+ int DispatchSpawn(edict_t *pent)
+@@ -1611,7 +1615,6 @@ void CBaseEntity::SUB_FadeOut()
+ 
+ void OnGameShutdown()
+ {
+-	FileSystem_Shutdown();
+ }
+ 
+ void OnFreeEntPrivateData(edict_t *pEnt)
+diff --git a/regamedll/dlls/cbase.h b/regamedll/dlls/cbase.h
+index 70cdd7d..d934c1e 100644
+--- a/regamedll/dlls/cbase.h
++++ b/regamedll/dlls/cbase.h
+@@ -175,7 +175,7 @@ public:
+ 	static CBaseEntity *Instance(edict_t *pEdict)
+ 	{
+ 		if (!pEdict)
+-			pEdict = ENT(0);
++			pEdict = ENT(eoNullEntity);
+ 
+ 		return GET_PRIVATE<CBaseEntity>(pEdict);
+ 	}
+diff --git a/regamedll/dlls/effects.h b/regamedll/dlls/effects.h
+index 64f512b..4d15e4d 100644
+--- a/regamedll/dlls/effects.h
++++ b/regamedll/dlls/effects.h
+@@ -283,8 +283,8 @@ public:
+ 	static TYPEDESCRIPTION m_SaveData[];
+ 
+ 	BOOL m_active;
+-	int m_iszStartEntity;
+-	int m_iszEndEntity;
++	uintptr_t m_iszStartEntity;
++	uintptr_t m_iszEndEntity;
+ 	float m_life;
+ 	int m_boltWidth;
+ 	int m_noiseAmplitude;
+@@ -292,7 +292,7 @@ public:
+ 	int m_speed;
+ 	float m_restrike;
+ 	int m_spriteTexture;
+-	int m_iszSpriteName;
++	uintptr_t m_iszSpriteName;
+ 	int m_frameStart;
+ 	float m_radius;
+ };
+diff --git a/regamedll/dlls/enginecallback.h b/regamedll/dlls/enginecallback.h
+index 93150ac..7d90f20 100644
+--- a/regamedll/dlls/enginecallback.h
++++ b/regamedll/dlls/enginecallback.h
+@@ -33,16 +33,31 @@
+ // Must be provided by user of this code
+ extern enginefuncs_t g_engfuncs;
+ 
++// CSE's legacy engine signatures use char * for these read-only inputs.
++inline char *CseEngineString(const char *text) {
++    return const_cast<char *>(text);
++}
++
++template<typename... Args>
++inline void CseEngineAlert(ALERT_TYPE level, const char *format, Args... arguments) {
++    g_engfuncs.pfnAlertMessage(level, CseEngineString(format), arguments...);
++}
++
++template<typename... Args>
++inline void CseEngineFilePrint(void *file, const char *format, Args... arguments) {
++    g_engfuncs.pfnEngineFprintf(file, CseEngineString(format), arguments...);
++}
++
+ // The actual engine callbacks
+ #define GETPLAYERUSERID					(*g_engfuncs.pfnGetPlayerUserId)
+-#define PRECACHE_MODEL					(*g_engfuncs.pfnPrecacheModel)
+-#define PRECACHE_SOUND					(*g_engfuncs.pfnPrecacheSound)
+-#define PRECACHE_GENERIC				(*g_engfuncs.pfnPrecacheGeneric)
++#define PRECACHE_MODEL(file) g_engfuncs.pfnPrecacheModel(CseEngineString(file))
++#define PRECACHE_SOUND(file) g_engfuncs.pfnPrecacheSound(CseEngineString(file))
++#define PRECACHE_GENERIC(file) g_engfuncs.pfnPrecacheGeneric(CseEngineString(file))
+ #define SET_MODEL						(*g_engfuncs.pfnSetModel)
+ #define MODEL_INDEX						(*g_engfuncs.pfnModelIndex)
+ #define MODEL_FRAMES					(*g_engfuncs.pfnModelFrames)
+ #define SET_SIZE						(*g_engfuncs.pfnSetSize)
+-#define CHANGE_LEVEL					(*g_engfuncs.pfnChangeLevel)
++#define CHANGE_LEVEL(map, landmark) g_engfuncs.pfnChangeLevel(CseEngineString(map), CseEngineString(landmark))
+ #define GET_SPAWN_PARMS					(*g_engfuncs.pfnGetSpawnParms)
+ #define SAVE_SPAWN_PARMS				(*g_engfuncs.pfnSaveSpawnParms)
+ #define VEC_TO_YAW						(*g_engfuncs.pfnVecToYaw)
+@@ -67,11 +82,11 @@ extern enginefuncs_t g_engfuncs;
+ #define TRACE_HULL						(*g_engfuncs.pfnTraceHull)
+ #define TRACE_MODEL						(*g_engfuncs.pfnTraceModel)
+ #define GET_AIM_VECTOR					(*g_engfuncs.pfnGetAimVector)
+-#define SERVER_COMMAND					(*g_engfuncs.pfnServerCommand)
++#define SERVER_COMMAND(command) g_engfuncs.pfnServerCommand(CseEngineString(command))
+ #define SERVER_EXECUTE					(*g_engfuncs.pfnServerExecute)
+ #define CLIENT_COMMAND					(*g_engfuncs.pfnClientCommand)
+ #define PARTICLE_EFFECT					(*g_engfuncs.pfnParticleEffect)
+-#define LIGHT_STYLE						(*g_engfuncs.pfnLightStyle)
++#define LIGHT_STYLE(index, style) g_engfuncs.pfnLightStyle((index), CseEngineString(style))
+ #define DECAL_INDEX						(*g_engfuncs.pfnDecalIndex)
+ #define POINT_CONTENTS					(*g_engfuncs.pfnPointContents)
+ #define CRC32_INIT						(*g_engfuncs.pfnCRC32_Init)
+@@ -80,16 +95,16 @@ extern enginefuncs_t g_engfuncs;
+ #define CRC32_FINAL						(*g_engfuncs.pfnCRC32_Final)
+ #define RANDOM_LONG						(*g_engfuncs.pfnRandomLong)
+ #define RANDOM_FLOAT					(*g_engfuncs.pfnRandomFloat)
+-#define ADD_SERVER_COMMAND				(*g_engfuncs.pfnAddServerCommand)
++#define ADD_SERVER_COMMAND(name, handler) g_engfuncs.pfnAddServerCommand(CseEngineString(name), (handler))
+ #define SET_CLIENT_LISTENING			(*g_engfuncs.pfnVoice_SetClientListening)
+ #define GETPLAYERAUTHID					(*g_engfuncs.pfnGetPlayerAuthId)
+-#define GET_FILE_SIZE					(*g_engfuncs.pfnGetFileSize)
++#define GET_FILE_SIZE(file) g_engfuncs.pfnGetFileSize(CseEngineString(file))
+ #define GET_APPROX_WAVE_PLAY_LEN		(*g_engfuncs.pfnGetApproxWavePlayLen)
+ #define IS_CAREER_MATCH					(*g_engfuncs.pfnIsCareerMatch)
+ #define GET_LOCALIZED_STRING_LENGTH		(*g_engfuncs.pfnGetLocalizedStringLength)
+ #define REGISTER_TUTOR_MESSAGE_SHOWN	(*g_engfuncs.pfnRegisterTutorMessageShown)
+ #define GET_TIMES_TUTOR_MESSAGE_SHOWN	(*g_engfuncs.pfnGetTimesTutorMessageShown)
+-#define ENG_CHECK_PARM					(*g_engfuncs.pfnEngCheckParm)
++#define ENG_CHECK_PARM					(*g_engfuncs.pfnCheckParm)
+ 
+ inline void MESSAGE_BEGIN(int msg_dest, int msg_type, const float *pOrigin = nullptr, edict_t *ed = nullptr)
+ {
+@@ -122,8 +137,8 @@ inline T *GET_PRIVATE(edict_t *pEdict)
+ #define CVAR_SET_FLOAT				(*g_engfuncs.pfnCVarSetFloat)
+ #define CVAR_SET_STRING				(*g_engfuncs.pfnCVarSetString)
+ #define CVAR_GET_POINTER			(*g_engfuncs.pfnCVarGetPointer)
+-#define ALERT						(*g_engfuncs.pfnAlertMessage)
+-#define ENGINE_FPRINTF				(*g_engfuncs.pfnEngineFprintf)
++#define ALERT CseEngineAlert
++#define ENGINE_FPRINTF CseEngineFilePrint
+ #define ALLOC_PRIVATE				(*g_engfuncs.pfnPvAllocEntPrivateData)
+ #define FREE_PRIVATE				(*g_engfuncs.pfnFreeEntPrivateData)
+ //#define STRING					(*g_engfuncs.pfnSzFromIndex)
+@@ -148,7 +163,7 @@ inline T *GET_PRIVATE(edict_t *pEdict)
+ #define GET_ATTACHMENT				(*g_engfuncs.pfnGetAttachment)
+ #define SET_VIEW					(*g_engfuncs.pfnSetView)
+ #define SET_CROSSHAIRANGLE			(*g_engfuncs.pfnCrosshairAngle)
+-#define LOAD_FILE_FOR_ME			(*g_engfuncs.pfnLoadFileForMe)
++#define LOAD_FILE_FOR_ME(file, length) g_engfuncs.pfnLoadFileForMe(CseEngineString(file), (length))
+ #define FREE_FILE					(*g_engfuncs.pfnFreeFile)
+ #define END_SECTION					(*g_engfuncs.pfnEndSection)
+ #define COMPARE_FILE_TIME			(*g_engfuncs.pfnCompareFileTime)
+@@ -158,10 +173,12 @@ inline T *GET_PRIVATE(edict_t *pEdict)
+ #define PLAYER_RUN_MOVE				(*g_engfuncs.pfnRunPlayerMove)
+ #define NUMBER_OF_ENTITIES			(*g_engfuncs.pfnNumberOfEntities)
+ #define GET_INFO_BUFFER				(*g_engfuncs.pfnGetInfoKeyBuffer)
+-#define GET_KEY_VALUE				(*g_engfuncs.pfnInfoKeyValue)
+-#define SET_KEY_VALUE				(*g_engfuncs.pfnSetKeyValue)
+-#define SET_CLIENT_KEY_VALUE		(*g_engfuncs.pfnSetClientKeyValue)
+-#define IS_MAP_VALID				(*g_engfuncs.pfnIsMapValid)
++#define GET_KEY_VALUE(buffer, key) g_engfuncs.pfnInfoKeyValue((buffer), CseEngineString(key))
++#define SET_KEY_VALUE(buffer, key, value) \
++    g_engfuncs.pfnSetKeyValue((buffer), CseEngineString(key), CseEngineString(value))
++#define SET_CLIENT_KEY_VALUE(index, buffer, key, value) \
++    g_engfuncs.pfnSetClientKeyValue((index), (buffer), CseEngineString(key), CseEngineString(value))
++#define IS_MAP_VALID(name) g_engfuncs.pfnIsMapValid(CseEngineString(name))
+ #define STATIC_DECAL				(*g_engfuncs.pfnStaticDecal)
+ #define IS_DEDICATED_SERVER			(*g_engfuncs.pfnIsDedicatedServer)
+ #define PRECACHE_EVENT				(*g_engfuncs.pfnPrecacheEvent)
+@@ -171,7 +188,7 @@ inline T *GET_PRIVATE(edict_t *pEdict)
+ #define ENGINE_CHECK_VISIBILITY		(*g_engfuncs.pfnCheckVisibility)
+ #define DELTA_SET					(*g_engfuncs.pfnDeltaSetField)
+ #define DELTA_UNSET					(*g_engfuncs.pfnDeltaUnsetField)
+-#define DELTA_ADDENCODER			(*g_engfuncs.pfnDeltaAddEncoder)
++#define DELTA_ADDENCODER(name, handler) g_engfuncs.pfnDeltaAddEncoder(CseEngineString(name), (handler))
+ #define ENGINE_CURRENT_PLAYER		(*g_engfuncs.pfnGetCurrentPlayer)
+ #define ENGINE_CANSKIP				(*g_engfuncs.pfnCanSkipPlayer)
+ #define DELTA_FINDFIELD				(*g_engfuncs.pfnDeltaFindField)
+diff --git a/regamedll/dlls/extdll.h b/regamedll/dlls/extdll.h
+index 1db8e3d..c5cd7b0 100644
+--- a/regamedll/dlls/extdll.h
++++ b/regamedll/dlls/extdll.h
+@@ -60,7 +60,6 @@
+ #include "math.h"
+ 
+ // Header file containing definition of globalvars_t and entvars_t
+-typedef int EOFFSET;					// More explicit than "int"
+ typedef unsigned int func_t;
+ typedef float vec_t;					// needed before including progdefs.h
+ 
+diff --git a/regamedll/dlls/func_break.h b/regamedll/dlls/func_break.h
+index 6b3756c..c370efa 100644
+--- a/regamedll/dlls/func_break.h
++++ b/regamedll/dlls/func_break.h
+@@ -111,8 +111,8 @@ public:
+ 	Explosions m_Explosion;
+ 	int m_idShard;
+ 	float m_angle;
+-	int m_iszGibModel;
+-	int m_iszSpawnObject;
++	uintptr_t m_iszGibModel;
++	uintptr_t m_iszSpawnObject;
+ 	float m_flHealth;
+ };
+ 
+diff --git a/regamedll/dlls/func_tank.h b/regamedll/dlls/func_tank.h
+index d30acdb..836e026 100644
+--- a/regamedll/dlls/func_tank.h
++++ b/regamedll/dlls/func_tank.h
+@@ -130,14 +130,14 @@ protected:
+ 
+ 	Vector m_barrelPos;		// Length of the freakin barrel
+ 	float m_spriteScale;	// Scale of any sprites we shoot
+-	int m_iszSpriteSmoke;
+-	int m_iszSpriteFlash;
++	uintptr_t m_iszSpriteSmoke;
++	uintptr_t m_iszSpriteFlash;
+ 	TANKBULLET m_bulletType;// Bullet type
+ 	int m_iBulletDamage;	// 0 means use Bullet type's default damage
+ 
+ 	Vector m_sightOrigin;	// Last sight of target
+ 	int m_spread;			// firing spread
+-	int m_iszMaster;		// Master entity (game_team_master or multisource)
++	uintptr_t m_iszMaster;		// Master entity (game_team_master or multisource)
+ };
+ 
+ class CFuncTankGun: public CFuncTank
+diff --git a/regamedll/dlls/ggrenade.cpp b/regamedll/dlls/ggrenade.cpp
+index c130729..3dcc342 100644
+--- a/regamedll/dlls/ggrenade.cpp
++++ b/regamedll/dlls/ggrenade.cpp
+@@ -1,4 +1,5 @@
+ #include "precompiled.h"
++#include "c4_beep_state.h"
+ 
+ TYPEDESCRIPTION CGrenade::m_SaveData[] =
+ {
+@@ -10,15 +11,44 @@ TYPEDESCRIPTION CGrenade::m_SaveData[] =
+ 	DEFINE_FIELD(CGrenade, m_flDefuseCountDown, FIELD_TIME),
+ 	DEFINE_FIELD(CGrenade, m_flNextBlink, FIELD_TIME),
+ 	DEFINE_FIELD(CGrenade, m_pentCurBombTarget, FIELD_EDICT),
+-	DEFINE_FIELD(CGrenade, m_sBeepName, FIELD_POINTER),
+ 	DEFINE_FIELD(CGrenade, m_bIsC4, FIELD_BOOLEAN),
+ 	DEFINE_FIELD(CGrenade, m_bStartDefuse, FIELD_BOOLEAN),
+ 	DEFINE_FIELD(CGrenade, m_SGSmoke, FIELD_INTEGER),
+ 	DEFINE_FIELD(CGrenade, m_bJustBlew, FIELD_BOOLEAN),
+ 	DEFINE_FIELD(CGrenade, m_bLightSmoke, FIELD_BOOLEAN),
+ 	DEFINE_FIELD(CGrenade, m_usEvent, FIELD_INTEGER),
++    DEFINE_FIELD(CGrenade, m_iCurWave, FIELD_INTEGER),
++    DEFINE_FIELD(CGrenade, m_savedC4BeepPhase, FIELD_INTEGER),
+ };
+ 
++int CGrenade::Save(CSave &save) {
++    cse::save::C4BeepPhase phase = cse::save::C4BeepPhase::LegacyMissing;
++    if (m_bIsC4 && !cse::save::CaptureC4Beep(m_sBeepName, phase)) {
++        ALERT(at_error, "Cannot save an unknown C4 beep phase\n");
++        return 0;
++    }
++    m_savedC4BeepPhase = static_cast<int>(phase);
++    if (!CBaseMonster::Save(save)) {
++        return 0;
++    }
++    return save.WriteFields("CGrenade", this, m_SaveData, ARRAYSIZE(m_SaveData));
++}
++
++int CGrenade::Restore(CRestore &restore) {
++    // The legacy raw sound pointer is ignored. Infer the phase from the saved attenuation.
++    m_sBeepName = nullptr;
++    if (!CBaseMonster::Restore(restore)
++        || !restore.ReadFields("CGrenade", this, m_SaveData, ARRAYSIZE(m_SaveData))) {
++        return 0;
++    }
++    if (m_bIsC4 && !cse::save::RestoreC4Beep(static_cast<cse::save::C4BeepPhase>(m_savedC4BeepPhase),
++        m_fAttenu, m_iCurWave, m_sBeepName)) {
++        ALERT(at_error, "Cannot restore an unknown C4 beep phase\n");
++        return 0;
++    }
++    return 1;
++}
++
+ LINK_ENTITY_TO_CLASS(grenade, CGrenade, CCSGrenade)
+ 
+ void CGrenade::Explode(Vector vecSrc, Vector vecAim)
+@@ -734,7 +764,7 @@ void CGrenade::BounceTouch(CBaseEntity *pOther)
+ 
+ 		if (m_iBounceCount >= 10)
+ 		{
+-			pev->groundentity = ENT(0);
++			pev->groundentity = ENT(eoNullEntity);
+ 			pev->flags |= FL_ONGROUND;
+ 			pev->velocity = g_vecZero;
+ 		}
+@@ -1475,7 +1505,9 @@ void CGrenade::C4Think()
+ 	if (gpGlobals->time >= m_flNextBeep)
+ 	{
+ 		m_flNextBeep = gpGlobals->time + 1.4f;
+-		EMIT_SOUND(ENT(pev), CHAN_VOICE, m_sBeepName, VOL_NORM, m_fAttenu);
++        if (m_sBeepName) {
++            EMIT_SOUND(ENT(pev), CHAN_VOICE, m_sBeepName, VOL_NORM, m_fAttenu);
++        }
+ 
+ 		// let the bots hear the bomb beeping
+ 		// BOTPORT: Emit beep events at same time as client effects
+@@ -1624,5 +1656,3 @@ NOXREF void CGrenade::UseSatchelCharges(entvars_t *pevOwner, SATCHELCODE code)
+ 		}
+ 	}
+ }
+-
+-IMPLEMENT_SAVERESTORE(CGrenade, CBaseMonster)
+diff --git a/regamedll/dlls/h_export.cpp b/regamedll/dlls/h_export.cpp
+index 544a92f..eb338df 100644
+--- a/regamedll/dlls/h_export.cpp
++++ b/regamedll/dlls/h_export.cpp
+@@ -1,4 +1,8 @@
+ #include "precompiled.h"
++#include "game_module_entry.h"
++#include "regamedll_saved_callbacks.h"
++
++#include <cstdlib>
+ 
+ // Holds engine functionality callbacks
+ enginefuncs_t g_engfuncs;
+@@ -9,10 +13,17 @@ globalvars_t *gpGlobals;
+ // do some setup operations here.
+ C_DLLEXPORT void WINAPI GiveFnptrsToDll(enginefuncs_t *pEnginefuncsTable, globalvars_t *pGlobals)
+ {
++    if (!CseGameConsumeEngineExchangeAuthorization()) {
++        return;
++    }
++
+ 	Q_memcpy(&g_engfuncs, pEnginefuncsTable, sizeof(enginefuncs_t));
+ 	gpGlobals = pGlobals;
+ 
+-	FileSystem_Init();
++    if (!CseInitializeSavedCallbacks()) {
++        ALERT(at_error, "Cannot initialize typed save callback catalog\n");
++        std::abort();
++    }
+ }
+ 
+ #if defined(_LINUX)
+diff --git a/regamedll/dlls/hostage/hostage.cpp b/regamedll/dlls/hostage/hostage.cpp
+index 666b040..3124953 100644
+--- a/regamedll/dlls/hostage/hostage.cpp
++++ b/regamedll/dlls/hostage/hostage.cpp
+@@ -296,7 +296,7 @@ void CHostage::Precache()
+ 		if (++which > GOOFY_GUY)
+ 			which = REGULAR_GUY;
+ 
+-		if (g_pFileSystem->FileExists(model))
++		if (GET_FILE_SIZE(model) >= 0)
+ 		{
+ 			pev->model = model;
+ 		}
+@@ -1583,7 +1583,7 @@ void SimpleChatter::AddSound(HostageChatterType type, char *filename)
+ 
+ 	Q_snprintf(actualFilename, sizeof(actualFilename), "sound\\%s", filename);
+ 
+-	if (!g_pFileSystem->FileExists(actualFilename))
++	if (GET_FILE_SIZE(actualFilename) < 0)
+ 		return;
+ 
+ 	chatter->file[chatter->count].filename = CloneString(filename);
+diff --git a/regamedll/dlls/lights.h b/regamedll/dlls/lights.h
+index e1c83e5..c9f860f 100644
+--- a/regamedll/dlls/lights.h
++++ b/regamedll/dlls/lights.h
+@@ -44,7 +44,7 @@ public:
+ 
+ private:
+ 	int m_iStyle;
+-	int m_iszPattern;
++	uintptr_t m_iszPattern;
+ 	BOOL m_iStartedOff;
+ };
+ 
+diff --git a/regamedll/dlls/mortar.h b/regamedll/dlls/mortar.h
+index 5aae984..1685763 100644
+--- a/regamedll/dlls/mortar.h
++++ b/regamedll/dlls/mortar.h
+@@ -46,8 +46,8 @@ public:
+ public:
+ 	static TYPEDESCRIPTION m_SaveData[];
+ 
+-	int m_iszXController;
+-	int m_iszYController;
++	uintptr_t m_iszXController;
++	uintptr_t m_iszYController;
+ 	float m_flSpread;
+ 	float m_flDelay;
+ 	int m_iCount;
+diff --git a/regamedll/dlls/multiplay_gamerules.cpp b/regamedll/dlls/multiplay_gamerules.cpp
+index 3c7176e..a05271a 100644
+--- a/regamedll/dlls/multiplay_gamerules.cpp
++++ b/regamedll/dlls/multiplay_gamerules.cpp
+@@ -1,5 +1,10 @@
+ #include "precompiled.h"
+ 
++// Legacy public timer export, mirrored from the active multiplayer rules.
++extern "C" {
++float g_flTimeLimit = 0.0f;
++}
++
+ CCStrikeGameMgrHelper g_GameMgrHelper;
+ CHalfLifeMultiplay *g_pMPGameRules = nullptr;
+ RewardAccount CHalfLifeMultiplay::m_rgRewardAccountRules[RR_END];
+@@ -543,7 +548,7 @@ CHalfLifeMultiplay::CHalfLifeMultiplay()
+ 	m_bSkipShowMenu = false;
+ 	m_bNeededPlayers = false;
+ 	m_flEscapeRatio = 0.0f;
+-	m_flTimeLimit = 0.0f;
++	m_flTimeLimit = g_flTimeLimit = 0.0f;
+ 	m_flGameStartTime = 0.0f;
+ 	m_bTeamBalanced = false;
+ 
+@@ -1779,7 +1784,7 @@ void EXT_FUNC CHalfLifeMultiplay::__API_HOOK(RestartRound)()
+ 
+ 		// Reset timelimit
+ 		if (timelimit.value)
+-			m_flTimeLimit = gpGlobals->time + (timelimit.value * 60);
++			m_flTimeLimit = g_flTimeLimit = gpGlobals->time + (timelimit.value * 60);
+ 
+ 		// Reset total # of rounds played
+ 		m_iTotalRoundsPlayed = 0;
+@@ -2672,7 +2677,7 @@ bool CHalfLifeMultiplay::CheckTimeLimit()
+ 	{
+ 		if (timelimit.value)
+ 		{
+-			m_flTimeLimit = m_flGameStartTime + timelimit.value * 60.0f;
++			m_flTimeLimit = g_flTimeLimit = m_flGameStartTime + timelimit.value * 60.0f;
+ 
+ 			if (gpGlobals->time >= m_flTimeLimit)
+ 			{
+@@ -2690,7 +2695,8 @@ bool CHalfLifeMultiplay::CheckTimeLimit()
+ 		if (timeRemaining != lastTime)
+ 		{
+ 			lastTime = timeRemaining;
+-			g_engfuncs.pfnCvar_DirectSet(&timeleft, UTIL_VarArgs("%02d:%02d", timeRemaining / 60, timeRemaining % 60));
++			g_engfuncs.pfnCvar_DirectSet(&timeleft,
++                CseEngineString(UTIL_VarArgs("%02d:%02d", timeRemaining / 60, timeRemaining % 60)));
+ 		}
+ #endif
+ 	}
+@@ -2766,7 +2772,7 @@ bool CHalfLifeMultiplay::CheckFragLimit()
+ 	if (fragsRemaining != lastFrags)
+ 	{
+ 		lastFrags = fragsRemaining;
+-		g_engfuncs.pfnCvar_DirectSet(&fragsleft, UTIL_VarArgs("%i", fragsRemaining));
++		g_engfuncs.pfnCvar_DirectSet(&fragsleft, CseEngineString(UTIL_VarArgs("%i", fragsRemaining)));
+ 	}
+ #endif
+ 
+diff --git a/regamedll/dlls/plats.h b/regamedll/dlls/plats.h
+index 6879b64..a1e7ddf 100644
+--- a/regamedll/dlls/plats.h
++++ b/regamedll/dlls/plats.h
+@@ -196,9 +196,9 @@ public:
+ 	CPathTrack *m_trackBottom;
+ 	CFuncTrackTrain *m_train;
+ 
+-	int m_trackTopName;
+-	int m_trackBottomName;
+-	int m_trainName;
++	uintptr_t m_trackTopName;
++	uintptr_t m_trackBottomName;
++	uintptr_t m_trainName;
+ 
+ 	TRAIN_CODE m_code;
+ 	int m_targetState;
+diff --git a/regamedll/dlls/player.h b/regamedll/dlls/player.h
+index 3e916a4..0aef798 100644
+--- a/regamedll/dlls/player.h
++++ b/regamedll/dlls/player.h
+@@ -457,7 +457,7 @@ public:
+ #endif // REGAMEDLL_API
+ 
+ public:
+-	static CBasePlayer *Instance(edict_t *pEdict) { return GET_PRIVATE<CBasePlayer>(pEdict ? pEdict : ENT(0)); }
++	static CBasePlayer *Instance(edict_t *pEdict) { return GET_PRIVATE<CBasePlayer>(pEdict ? pEdict : ENT(eoNullEntity)); }
+ 	static CBasePlayer *Instance(entvars_t *pev) { return Instance(ENT(pev)); }
+ 	static CBasePlayer *Instance(int offset) { return Instance(ENT(offset)); }
+ 
+diff --git a/regamedll/dlls/qstring.h b/regamedll/dlls/qstring.h
+index 377c4eb..b42a969 100644
+--- a/regamedll/dlls/qstring.h
++++ b/regamedll/dlls/qstring.h
+@@ -34,11 +34,7 @@
+ class QString final
+ {
+ public:
+-#ifdef X64BITS
+-	using qstring_t = int;
+-#else
+-	using qstring_t = unsigned int;
+-#endif
++	using qstring_t = uintptr_t;
+ 
+ 	QString();
+ 	QString(qstring_t string);
+@@ -47,7 +43,7 @@ public:
+ 	bool IsNullOrEmpty() const;
+ 
+ 	// Copy the array
+-	QString &operator=(const QString &other);
++	QString &operator=(const QString &other) = default;
+ 
+ 	bool operator==(qstring_t string) const;
+ 	bool operator==(const QString &s) const;
+@@ -74,20 +70,12 @@ constexpr QString::qstring_t iStringNull = {0};
+ 
+ extern globalvars_t *gpGlobals;
+ 
+-#define STRING(offset)   ((const char *)(gpGlobals->pStringBase + (QString::qstring_t)(offset)))
+-#ifdef X64BITS
+-// A 64-bit engine keeps strings in a pool of its own, which lets mods continue to use 32-bit string_t
+-inline int MAKE_STRING(const char *str)
+-{
+-	ptrdiff_t diff = str - STRING(0);
+-	if (diff >= INT_MIN && diff <= INT_MAX)
+-		return (int)diff;
+-
+-	return ALLOC_STRING(str);
++inline const char *CseReGameString(QString::qstring_t offset) {
++    return CseStringAddress(gpGlobals->pStringBase, offset);
+ }
+-#else
+-#define MAKE_STRING(str) ((QString::qstring_t)(str) - (QString::qstring_t)(STRING(0)))
+-#endif
++
++#define STRING(offset) CseReGameString(static_cast<QString::qstring_t>(offset))
++#define MAKE_STRING(text) CseStringOffset(gpGlobals->pStringBase, (text))
+ 
+ // Inlines
+ inline QString::QString(): m_string(iStringNull) {}
+@@ -100,13 +88,7 @@ inline bool QString::IsNull() const
+ 
+ inline bool QString::IsNullOrEmpty() const
+ {
+-	return IsNull() || (&gpGlobals->pStringBase[m_string])[0] == '\0';
+-}
+-
+-inline QString &QString::operator=(const QString &other)
+-{
+-	m_string = other.m_string;
+-	return (*this);
++	return IsNull() || (CseReGameString(m_string))[0] == '\0';
+ }
+ 
+ inline bool QString::operator==(qstring_t string) const
+@@ -121,12 +103,12 @@ inline bool QString::operator==(const QString &s) const
+ 
+ inline bool QString::operator==(const char *pszString) const
+ {
+-	return Q_strcmp(&gpGlobals->pStringBase[m_string], pszString) == 0;
++	return Q_strcmp(CseReGameString(m_string), pszString) == 0;
+ }
+ 
+ inline const char *QString::str() const
+ {
+-	return &gpGlobals->pStringBase[m_string];
++	return CseReGameString(m_string);
+ }
+ 
+ inline QString::operator const char *() const
+diff --git a/regamedll/dlls/saverestore.cpp b/regamedll/dlls/saverestore.cpp
+index 5988abf..f012aaf 100644
+--- a/regamedll/dlls/saverestore.cpp
++++ b/regamedll/dlls/saverestore.cpp
+@@ -27,6 +27,14 @@
+ */
+ 
+ #include "precompiled.h"
++#include "game_save_field_layout.h"
++#include "regamedll_saved_callbacks.h"
++
++namespace {
++
++constexpr int InvalidSavedCallback = -2;
++
++} // namespace
+ 
+ TYPEDESCRIPTION g_EntvarsDescription[] =
+ {
+@@ -137,9 +145,13 @@ void EntvarsKeyvalue(entvars_t *pev, KeyValueData *pkvd)
+ 			case FIELD_TIME:
+ 				*(float *)((char *)pev + pField->fieldOffset) = Q_atof(pkvd->szValue);
+ 				break;
+-			case FIELD_INTEGER:
+-				*(string_t *)((char *)pev + pField->fieldOffset) = Q_atoi(pkvd->szValue);
+-				break;
++            case FIELD_INTEGER: {
++                const int value = Q_atoi(pkvd->szValue);
++                const size_t fieldBytes = pField->nativeBytes;
++                Q_memcpy(reinterpret_cast<char *>(pev) + pField->fieldOffset, &value,
++                    fieldBytes < sizeof(value) ? fieldBytes : sizeof(value));
++                break;
++            }
+ 			case FIELD_VECTOR:
+ 			case FIELD_POSITION_VECTOR:
+ 				UTIL_StringToVector((float *)((char *)pev + pField->fieldOffset), pkvd->szValue);
+@@ -173,7 +185,7 @@ const int CSaveRestoreBuffer::m_Sizes[] =
+ 	sizeof(float) * 3, // FIELD_POSITION_VECTOR
+ 	sizeof(int *),     // FIELD_POINTER
+ 	sizeof(int),       // FIELD_INTEGER
+-	sizeof(int *),     // FIELD_FUNCTION
++    0,                 // FIELD_FUNCTION is handled by the typed callback serializer.
+ 	sizeof(int),       // FIELD_BOOLEAN
+ 	sizeof(short),     // FIELD_SHORT
+ 	sizeof(char),      // FIELD_CHARACTER
+@@ -371,21 +383,24 @@ NOXREF void CSave::WriteString(const char *pname, const char *pdata)
+ 	BufferField(pname, Q_strlen(pdata) + 1, pdata);
+ }
+ 
+-void CSave::WriteString(const char *pname, const int *stringId, int count)
+-{
+-	int i;
+-	int size = 0;
+-
+-	for (i = 0; i < count; i++) {
+-		size += Q_strlen(STRING(stringId[i])) + 1;
+-	}
+-
+-	BufferHeader(pname, size);
+-	for (i = 0; i < count; i++)
+-	{
+-		const char *pString = STRING(stringId[i]);
+-		BufferData(pString, Q_strlen(pString) + 1);
+-	}
++void CSave::WriteString(const char *name, const void *stringIds, int count) {
++    const auto *storage = static_cast<const char *>(stringIds);
++    const auto textAt = [storage](int index) {
++        uintptr_t offset;
++        Q_memcpy(&offset, storage + index * sizeof(offset), sizeof(offset));
++        return STRING(offset);
++    };
++
++    int size = 0;
++    for (int index = 0; index < count; ++index) {
++        size += Q_strlen(textAt(index)) + 1;
++    }
++
++    BufferHeader(name, size);
++    for (int index = 0; index < count; ++index) {
++        const char *text = textAt(index);
++        BufferData(text, Q_strlen(text) + 1);
++    }
+ }
+ 
+ void CSave::WriteVector(const char *pname, const Vector &value)
+@@ -424,16 +439,6 @@ void CSave::WritePositionVector(const char *pname, const float *value, int count
+ 	}
+ }
+ 
+-void CSave::WriteFunction(const char *pname, void **data, int count)
+-{
+-	const char *functionName = NAME_FOR_FUNCTION(*data);
+-
+-	if (functionName)
+-		BufferField(pname, Q_strlen(functionName) + 1, functionName);
+-	else
+-		ALERT(at_error, "Invalid function pointer in entity!");
+-}
+-
+ int CSave::WriteEntVars(const char *pname, entvars_t *pev)
+ {
+ 	return WriteFields(pname, pev, g_EntvarsDescription, ARRAYSIZE(g_EntvarsDescription));
+@@ -446,9 +451,28 @@ int CSave::WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFie
+ 
+ 	for (i = 0; i < fieldCount; i++)
+ 	{
+-		void *pOutputData = ((char *)pBaseData + pFields[i].fieldOffset);
+-		if (DataEmpty((const char *)pOutputData, pFields[i].fieldSize * m_Sizes[pFields[i].fieldType]))
+-			emptyCount++;
++        const TYPEDESCRIPTION &field = pFields[i];
++        if (!cse::save::ValidFieldStorage(field)) {
++            ALERT(at_error, "Invalid native save field storage: %s\n", field.fieldName);
++            return 0;
++        }
++
++        const auto *storage = static_cast<const char *>(pBaseData) + field.fieldOffset;
++        if (field.fieldType == FIELD_FUNCTION) {
++            const auto kind = CseCallbackKind(pFields, field);
++            if (kind == CseSavedCallbackKind::Invalid) {
++                ALERT(at_error, "Unregistered typed callback field: %s\n", field.fieldName);
++                return 0;
++            }
++            if (CseCallbackEmpty(kind, storage)) {
++                ++emptyCount;
++            } else if (!CseCallbackName(kind, storage)) {
++                ALERT(at_error, "Unknown or ambiguous save callback: %s\n", field.fieldName);
++                return 0;
++            }
++        } else if (cse::save::NativeFieldEmpty(field, storage)) {
++            ++emptyCount;
++        }
+ 	}
+ 
+ 	int entityArray[MAX_ENTITY_ARRAY];
+@@ -460,8 +484,16 @@ int CSave::WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFie
+ 		TYPEDESCRIPTION *pTest = &pFields[i];
+ 		void *pOutputData = ((char *)pBaseData + pTest->fieldOffset);
+ 
+-		if (DataEmpty((const char *)pOutputData, pTest->fieldSize * m_Sizes[pTest->fieldType]))
+-			continue;
++        if (pTest->fieldType == FIELD_FUNCTION) {
++            const auto kind = CseCallbackKind(pFields, *pTest);
++            if (const char *name = CseCallbackName(kind, pOutputData)) {
++                BufferField(pTest->fieldName, Q_strlen(name) + 1, name);
++            }
++            continue;
++        }
++        if (cse::save::NativeFieldEmpty(*pTest, pOutputData)) {
++            continue;
++        }
+ 
+ 		switch (pTest->fieldType)
+ 		{
+@@ -476,7 +508,7 @@ int CSave::WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFie
+ 		case FIELD_MODELNAME:
+ 		case FIELD_SOUNDNAME:
+ 		case FIELD_STRING:
+-			WriteString(pTest->fieldName, (int *)pOutputData, pTest->fieldSize);
++			WriteString(pTest->fieldName, pOutputData, pTest->fieldSize);
+ 			break;
+ 
+ 		case FIELD_CLASSPTR:
+@@ -522,8 +554,27 @@ int CSave::WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFie
+ 			break;
+ 		case FIELD_BOOLEAN:
+ 		case FIELD_INTEGER:
+-			WriteInt(pTest->fieldName, (int *)pOutputData, pTest->fieldSize);
+-			break;
++        {
++            unsigned char wire[cse::save::LegacyIntegerBytes];
++            auto *storage = static_cast<const char *>(pOutputData);
++            const auto encodedBytes = static_cast<size_t>(pTest->fieldSize) * sizeof(wire);
++            if (encodedBytes > UINT16_MAX) {
++                return 0;
++            }
++            for (int index = 0; index < pTest->fieldSize; ++index) {
++                if (!cse::save::EncodeLegacyInteger(storage + index * pTest->nativeStride,
++                        pTest->nativeStride, pTest->nativeFlags, wire)) {
++                    return 0;
++                }
++            }
++            BufferHeader(pTest->fieldName, static_cast<int>(encodedBytes));
++            for (int index = 0; index < pTest->fieldSize; ++index) {
++                cse::save::EncodeLegacyInteger(storage + index * pTest->nativeStride,
++                    pTest->nativeStride, pTest->nativeFlags, wire);
++                BufferData(reinterpret_cast<const char *>(wire), sizeof(wire));
++            }
++            break;
++        }
+ 		case FIELD_SHORT:
+ 			WriteData(pTest->fieldName, 2 * pTest->fieldSize, ((char *)pOutputData));
+ 			break;
+@@ -533,9 +584,6 @@ int CSave::WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFie
+ 		case FIELD_POINTER:
+ 			WriteInt(pTest->fieldName, (int *)(char *)pOutputData, pTest->fieldSize);
+ 			break;
+-		case FIELD_FUNCTION:
+-			WriteFunction(pTest->fieldName, (void **)pOutputData, pTest->fieldSize);
+-			break;
+ 		default:
+ 			ALERT(at_error, "Bad field type\n");
+ 			break;
+@@ -617,9 +665,17 @@ int CRestore::ReadField(void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCoun
+ 		{
+ 			if (!m_global || !(pTest->flags & FTYPEDESC_GLOBAL))
+ 			{
++                if (pTest->fieldType == FIELD_FUNCTION) {
++                    void *storage = static_cast<char *>(pBaseData) + pTest->fieldOffset;
++                    if (!CseRestoreCallback(CseCallbackKind(pFields, *pTest), storage, pData, size, pBaseData)) {
++                        ALERT(at_error, "Invalid saved callback in field: %s\n", pTest->fieldName);
++                        return InvalidSavedCallback;
++                    }
++                    return fieldNumber;
++                }
+ 				for (int j = 0; j < pTest->fieldSize; j++)
+ 				{
+-					void *pOutputData = ((char *)pBaseData + pTest->fieldOffset + (j * m_Sizes[pTest->fieldType]));
++					void *pOutputData = ((char *)pBaseData + pTest->fieldOffset + (j * pTest->nativeStride));
+ 					void *pInputData = (char *)pData + j * m_Sizes[pTest->fieldType];
+ 
+ 					switch (pTest->fieldType)
+@@ -647,11 +703,11 @@ int CRestore::ReadField(void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCoun
+ 
+ 						pInputData = pString;
+ 						if (!Q_strlen((char *)pInputData))
+-							*((int *)pOutputData) = 0;
++							Q_memcpy(pOutputData, &iStringNull, sizeof(iStringNull));
+ 						else
+ 						{
+-							int string = ALLOC_STRING((char *)pInputData);
+-							*((int *)pOutputData) = string;
++							const auto string = ALLOC_STRING(static_cast<const char *>(pInputData));
++							Q_memcpy(pOutputData, &string, sizeof(string));
+ 
+ 							if (!FStringNull(string) && m_precache)
+ 							{
+@@ -696,7 +752,6 @@ int CRestore::ReadField(void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCoun
+ 					}
+ 					case FIELD_EHANDLE:
+ 					{
+-						pOutputData = (char *)pOutputData + j * (sizeof(EHANDLE) - m_Sizes[pTest->fieldType]);
+ 						int entityIndex = *(int *)pInputData;
+ 						edict_t *pent = EntityFromIndex(entityIndex);
+ 
+@@ -735,9 +790,12 @@ int CRestore::ReadField(void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCoun
+ 					}
+ 					case FIELD_BOOLEAN:
+ 					case FIELD_INTEGER:
+-						*((int *)pOutputData) = *(int *)pInputData;
+-						break;
+-					case FIELD_SHORT:
++                        if ((j + 1) * cse::save::LegacyIntegerBytes <= static_cast<size_t>(size)) {
++                            cse::save::DecodeLegacyInteger(static_cast<const unsigned char *>(pInputData),
++                                pOutputData, pTest->nativeStride, pTest->nativeFlags);
++                        }
++                        break;
++                    case FIELD_SHORT:
+ 						*((short *)pOutputData) = *(short *)pInputData;
+ 						break;
+ 					case FIELD_CHARACTER:
+@@ -746,15 +804,6 @@ int CRestore::ReadField(void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCoun
+ 					case FIELD_POINTER:
+ 						*((int *)pOutputData) = *(int *)pInputData;
+ 						break;
+-					case FIELD_FUNCTION:
+-					{
+-						if (!Q_strlen((char *)pInputData))
+-							*((void **)pOutputData) = nullptr;
+-						else
+-							*((void **)pOutputData) = FUNCTION_FROM_NAME((char *)pInputData);
+-
+-						break;
+-					}
+ 					default:
+ 						ALERT(at_error, "Bad field type\n");
+ 						break;
+@@ -786,20 +835,45 @@ int CRestore::ReadFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pF
+ 	int fileCount = ReadInt();
+ 	int lastField = 0;
+ 
+-	for (i = 0; i < fieldCount; i++)
+-	{
+-		if (!m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL))
+-			Q_memset(((char *)pBaseData + pFields[i].fieldOffset), 0, pFields[i].fieldSize * m_Sizes[pFields[i].fieldType]);
+-	}
+-
+-	for (i = 0; i < fileCount; i++)
+-	{
+-		HEADER header;
+-		BufferReadHeader(&header);
+-
+-		lastField = ReadField(pBaseData, pFields, fieldCount, lastField, header.size, m_pData->pTokens[header.token], header.pData);
+-		lastField++;
+-	}
++    for (i = 0; i < fieldCount; ++i) {
++        if (!cse::save::ValidFieldStorage(pFields[i])) {
++            ALERT(at_error, "Invalid native save field storage: %s\n", pFields[i].fieldName);
++            return 0;
++        }
++        if (!m_global || !(pFields[i].flags & FTYPEDESC_GLOBAL)) {
++            void *storage = static_cast<char *>(pBaseData) + pFields[i].fieldOffset;
++            if (pFields[i].fieldType == FIELD_FUNCTION) {
++                if (!CseClearCallback(CseCallbackKind(pFields, pFields[i]), storage)) {
++                    ALERT(at_error, "Unregistered typed callback field: %s\n", pFields[i].fieldName);
++                    return 0;
++                }
++            } else {
++                cse::save::ClearNativeField(pFields[i], storage);
++            }
++        }
++    }
++
++    for (int index = 0; index < fileCount; ++index) {
++        constexpr int headerBytes = 2 * sizeof(short);
++        const int remaining = m_pData->bufferSize - m_pData->size;
++        if (remaining < headerBytes) {
++            return 0;
++        }
++
++        HEADER header;
++        BufferReadHeader(&header);
++        if (header.size > remaining - headerBytes || header.token >= m_pData->tokenCount
++            || !m_pData->pTokens[header.token]) {
++            return 0;
++        }
++
++        lastField = ReadField(pBaseData, pFields, fieldCount, lastField, header.size,
++            m_pData->pTokens[header.token], header.pData);
++        if (lastField == InvalidSavedCallback) {
++            return 0;
++        }
++        ++lastField;
++    }
+ 
+ 	return 1;
+ }
+diff --git a/regamedll/dlls/saverestore.h b/regamedll/dlls/saverestore.h
+index 3254036..f4ba33b 100644
+--- a/regamedll/dlls/saverestore.h
++++ b/regamedll/dlls/saverestore.h
+@@ -103,12 +103,11 @@ public:
+ 	void WriteTime(const char *pname, const float *value, int count);
+ 	void WriteData(const char *pname, int size, const char *pdata);
+ 	void WriteString(const char *pname, const char *pstring);
+-	void WriteString(const char *pname, const int *stringId, int count);
++	void WriteString(const char *pname, const void *stringIds, int count);
+ 	void WriteVector(const char *pname, const Vector &value);
+ 	void WriteVector(const char *pname, const float *value, int count);
+ 	void WritePositionVector(const char *pname, const Vector &value);
+ 	void WritePositionVector(const char *pname, const float *value, int count);
+-	void WriteFunction(const char *pname, void **data, int count);
+ 	int WriteEntVars(const char *pname, entvars_t *pev);
+ 	int WriteFields(const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount);
+ 
+diff --git a/regamedll/dlls/sound.cpp b/regamedll/dlls/sound.cpp
+index 25e930e..6145f6b 100644
+--- a/regamedll/dlls/sound.cpp
++++ b/regamedll/dlls/sound.cpp
+@@ -1632,7 +1632,7 @@ float TEXTURETYPE_PlaySound(TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
+ 		if (pEntity)
+ 			pTextureName = TRACE_TEXTURE(ENT(pEntity->pev), rgfl1, rgfl2);
+ 		else
+-			pTextureName = TRACE_TEXTURE(ENT(0), rgfl1, rgfl2);
++			pTextureName = TRACE_TEXTURE(ENT(eoNullEntity), rgfl1, rgfl2);
+ 
+ 		if (pTextureName)
+ 		{
+@@ -1778,17 +1778,17 @@ float TEXTURETYPE_PlaySound(TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
+ 			switch (RANDOM_LONG(0, 1))
+ 			{
+ 			case 0:
+-				UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "buttons/spark5.wav", flVolume, ATTN_NORM, 0, 100);
++				UTIL_EmitAmbientSound(ENT(eoNullEntity), ptr->vecEndPos, "buttons/spark5.wav", flVolume, ATTN_NORM, 0, 100);
+ 				break;
+ 			case 1:
+-				UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, "buttons/spark6.wav", flVolume, ATTN_NORM, 0, 100);
++				UTIL_EmitAmbientSound(ENT(eoNullEntity), ptr->vecEndPos, "buttons/spark6.wav", flVolume, ATTN_NORM, 0, 100);
+ 				break;
+ 			}
+ 		}
+ 	}
+ 
+ 	// play material hit sound
+-	UTIL_EmitAmbientSound(ENT(0), ptr->vecEndPos, rgsz[RANDOM_LONG(0, cnt - 1)], fvol, fattn, 0, 96 + RANDOM_LONG(0, 0xf));
++	UTIL_EmitAmbientSound(ENT(eoNullEntity), ptr->vecEndPos, rgsz[RANDOM_LONG(0, cnt - 1)], fvol, fattn, 0, 96 + RANDOM_LONG(0, 0xf));
+ 	return fvolbar;
+ }
+ 
+diff --git a/regamedll/dlls/triggers.cpp b/regamedll/dlls/triggers.cpp
+index 63282c0..985264d 100644
+--- a/regamedll/dlls/triggers.cpp
++++ b/regamedll/dlls/triggers.cpp
+@@ -221,7 +221,7 @@ void CMultiManager::Spawn()
+ 			if (m_flTargetDelay[i] < m_flTargetDelay[i - 1])
+ 			{
+ 				// Swap out of order elements
+-				int name = m_iTargetName[i];
++				const auto name = m_iTargetName[i];
+ 				float delay = m_flTargetDelay[i];
+ 
+ 				m_iTargetName[i] = m_iTargetName[i - 1];
+diff --git a/regamedll/dlls/triggers.h b/regamedll/dlls/triggers.h
+index 90a7dae..f42c9ca 100644
+--- a/regamedll/dlls/triggers.h
++++ b/regamedll/dlls/triggers.h
+@@ -69,7 +69,7 @@ public:
+ public:
+ 	static TYPEDESCRIPTION m_SaveData[];
+ 
+-	int m_globalstate;
++	uintptr_t m_globalstate;
+ 	USE_TYPE m_triggerType;
+ };
+ 
+@@ -147,7 +147,7 @@ public:
+ 	int m_cTargets;
+ 	int m_index;
+ 	float m_startTime;
+-	int m_iTargetName[MAX_MM_TARGETS];
++	uintptr_t m_iTargetName[MAX_MM_TARGETS];
+ 	float m_flTargetDelay[MAX_MM_TARGETS];
+ };
+ 
+@@ -367,7 +367,7 @@ public:
+ 
+ 	char m_szMapName[MAX_MAPNAME_LENGHT];		// next map
+ 	char m_szLandmarkName[MAX_MAPNAME_LENGHT];	// landmark on next map
+-	int m_changeTarget;
++	uintptr_t m_changeTarget;
+ 	float m_changeTargetDelay;
+ 
+ #ifdef REGAMEDLL_FIXES
+@@ -499,7 +499,7 @@ public:
+ 	static TYPEDESCRIPTION m_SaveData[];
+ 
+ private:
+-	int m_iszNewTarget;
++	uintptr_t m_iszNewTarget;
+ };
+ 
+ #define SF_CAMERA_PLAYER_POSITION    BIT(0)
+@@ -525,7 +525,7 @@ public:
+ 	EntityHandle<CBasePlayer> m_hPlayer;
+ 	EntityHandle<CBaseEntity> m_hTarget;
+ 	CBaseEntity *m_pentPath;
+-	int m_sPath;
++	uintptr_t m_sPath;
+ 	float m_flWait;
+ 	float m_flReturnTime;
+ 	float m_flStopTime;
+diff --git a/regamedll/dlls/util.cpp b/regamedll/dlls/util.cpp
+index e0ffed5..d436a6c 100644
+--- a/regamedll/dlls/util.cpp
++++ b/regamedll/dlls/util.cpp
+@@ -1584,7 +1584,7 @@ char UTIL_TextureHit(TraceResult *ptr, Vector vecSrc, Vector vecEnd)
+ 	if (pEntity)
+ 		pTextureName = TRACE_TEXTURE(ENT(pEntity->pev), rgfl1, rgfl2);
+ 	else
+-		pTextureName = TRACE_TEXTURE(ENT(0), rgfl1, rgfl2);
++		pTextureName = TRACE_TEXTURE(ENT(eoNullEntity), rgfl1, rgfl2);
+ 
+ 	if (pTextureName)
+ 	{
+@@ -1660,23 +1660,12 @@ int UTIL_ReadFlags(const char *c)
+ // Determine whether bots can be used or not
+ bool UTIL_AreBotsAllowed()
+ {
+-	if (AreRunningCZero())
+-	{
+-#ifdef REGAMEDLL_ADD
+-		if (g_engfuncs.pfnEngCheckParm == nullptr)
+-			return false;
+-
+-		// If they pass in -nobots, don't allow bots.  This is for people who host servers, to
+-		// allow them to disallow bots to enforce CPU limits.
+-		int nobots = ENG_CHECK_PARM("-nobots", nullptr);
+-		if (nobots)
+-		{
+-			return false;
+-		}
+-#endif
+-
+-		return true;
+-	}
++    if (!CSE_ENABLE_ZBOT || !g_engfuncs.pfnCheckParm || ENG_CHECK_PARM("-nobots", nullptr)) {
++        return false;
++    }
++    if (AreRunningCZero()) {
++        return true;
++    }
+ 
+ #ifdef REGAMEDLL_ADD
+ 	// let enables zBot by default from listen server?
+@@ -1694,7 +1683,7 @@ bool UTIL_AreBotsAllowed()
+ bool UTIL_IsBeta()
+ {
+ #ifdef BUILD_LATEST
+-	if (g_engfuncs.pfnEngCheckParm == nullptr)
++	if (g_engfuncs.pfnCheckParm == nullptr)
+ 		return false;
+ 
+ 	// always beta from listen server
+diff --git a/regamedll/dlls/weapons.h b/regamedll/dlls/weapons.h
+index f7294b7..94d9d13 100644
+--- a/regamedll/dlls/weapons.h
++++ b/regamedll/dlls/weapons.h
+@@ -250,7 +250,7 @@ public:
+ 	float m_flNextFreqInterval;
+ 	float m_flNextBeep;
+ 	float m_flNextFreq;
+-	char *m_sBeepName;
++    const char *m_sBeepName;
+ 	float m_fAttenu;
+ 	float m_flNextBlink;
+ 	float m_fNextDefuse;
+@@ -266,6 +266,7 @@ public:
+ 	Vector m_vSmokeDetonate;
+ 	int m_iBounceCount;
+ 	BOOL m_fRegisteredSound;
++    int m_savedC4BeepPhase;
+ };
+ 
+ // Items that the player has in their inventory that they can use
+diff --git a/regamedll/dlls/world.cpp b/regamedll/dlls/world.cpp
+index cc4a3de..ca7e596 100644
+--- a/regamedll/dlls/world.cpp
++++ b/regamedll/dlls/world.cpp
+@@ -504,7 +504,7 @@ void CWorld::KeyValue(KeyValueData *pkvd)
+ 	}
+ 	else if (FStrEq(pkvd->szKeyName, "mapteams"))
+ 	{
+-		pev->team = ALLOC_STRING(pkvd->szValue);
++        // CSE already retains this key in its worldspawn data. The team field is an integer.
+ 		pkvd->fHandled = TRUE;
+ 	}
+ 	else if (FStrEq(pkvd->szKeyName, "defaultteam"))
+diff --git a/regamedll/engine/eiface.h b/regamedll/engine/eiface.h
+index 6ea0c05..2550058 100644
+--- a/regamedll/engine/eiface.h
++++ b/regamedll/engine/eiface.h
+@@ -103,6 +103,13 @@ typedef struct
+ 
+ 
+ // Engine hands this to DLLs for functionality callbacks
++#ifdef CSE_SHARED_GAME_CONTRACT
++// Use the native string_t typedef for the engine callback signatures.
++#pragma push_macro("string_t")
++#undef string_t
++#include "game_engine_functions.h"
++#pragma pop_macro("string_t")
++#else
+ typedef struct enginefuncs_s
+ {
+ 	int			(*pfnPrecacheModel)			(const char* s);
+@@ -306,6 +313,7 @@ typedef struct enginefuncs_s
+ 	//edict_t *(*pfnPEntityOfEntIndexAllEntities)(int iEntIndex);
+ 
+ } enginefuncs_t;
++#endif
+ 
+ 
+ // ONLY ADD NEW FUNCTIONS TO THE END OF THIS STRUCT.  INTERFACE VERSION IS FROZEN AT 138
+@@ -379,6 +387,9 @@ SAVERESTOREDATA
+ #endif
+ ;
+ 
++#ifdef CSE_SHARED_GAME_CONTRACT
++#include "game_save_descriptions.h"
++#else
+ typedef enum _fieldtypes
+ {
+ 	FIELD_FLOAT = 0,		// Any floating point value
+@@ -425,6 +436,7 @@ typedef struct
+ 	short			fieldSize;
+ 	short			flags;
+ } TYPEDESCRIPTION;
++#endif
+ 
+ #ifndef ARRAYSIZE
+ #define ARRAYSIZE(p)		(sizeof(p)/sizeof(p[0]))
+diff --git a/regamedll/engine/maintypes.h b/regamedll/engine/maintypes.h
+index 2ad3d37..c34bbf1 100644
+--- a/regamedll/engine/maintypes.h
++++ b/regamedll/engine/maintypes.h
+@@ -46,13 +46,10 @@
+ 
+ #define BIT(n) (1<<(n))
+ 
+-#ifdef HAVE_STRONG_TYPEDEF
+-enum class string_t: unsigned int {};
+-#else
+-typedef unsigned int string_t;
+-#endif
++#include "cse_entity.h"
++#include "cse_string.h"
++#include "cse_symbol.h"
+ 
+-typedef int EOFFSET;
+ typedef int BOOL;
+ typedef unsigned char byte;
+ typedef unsigned short word;
+diff --git a/regamedll/engine/osconfig.h b/regamedll/engine/osconfig.h
+index 02a8281..775fbe6 100644
+--- a/regamedll/engine/osconfig.h
++++ b/regamedll/engine/osconfig.h
+@@ -60,7 +60,9 @@
+ 	#include <wsipx.h> // for support IPX
+ 	#define PSAPI_VERSION 1
+ 	#include <psapi.h>
++#if !defined(_M_ARM64)
+ 	#include <nmmintrin.h>
++#endif
+ 	#include <fcntl.h>
+ 	#include <sys/types.h>
+ 	#include <sys/stat.h>
+@@ -70,11 +72,15 @@
+ 	#include <ctype.h>
+ 	//#include <dirent.h>
+ 	#include <dlfcn.h>
++#if !defined(__APPLE__)
+ 	#include <elf.h>
++#endif
+ 	#include <errno.h>
+ 	#include <fcntl.h>
+ 	#include <limits.h>
++#if !defined(__APPLE__)
+ 	#include <link.h>
++#endif
+ 	#include <netdb.h>
+ 	#include <netinet/in.h>
+ 	#include <pthread.h>
+@@ -84,7 +90,11 @@
+ 	#include <sys/stat.h>
+ 	#include <sys/time.h>
+ 	#include <sys/types.h>
++#if !defined(__APPLE__)
+ 	#include <sys/sysinfo.h>
++#else
++	#include <sys/sysctl.h>
++#endif
+ 	#include <unistd.h>
+ #endif // _WIN32
+ 
+@@ -168,7 +178,12 @@
+ 	#define NOINLINE __attribute__((noinline))
+ 	#define ALIGN16 __attribute__((aligned(16)))
+ 	#define NORETURN __attribute__((noreturn))
+-	#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))
++
++	#if defined(__i386__) || defined(_X86_)
++		#define FORCE_STACK_ALIGN __attribute__((force_align_arg_pointer))
++	#else
++		#define FORCE_STACK_ALIGN
++	#endif
+ 
+ #if defined __INTEL_COMPILER
+ 	#define FUNC_TARGET(x)
+diff --git a/regamedll/game_shared/counter.h b/regamedll/game_shared/counter.h
+index 83fa1d4..84f03ce 100644
+--- a/regamedll/game_shared/counter.h
++++ b/regamedll/game_shared/counter.h
+@@ -38,7 +38,7 @@
+ 	#include <sys/types.h>
+ 	#include <fcntl.h>
+ 	#include <unistd.h>
+-	#ifdef OSX
++	#ifdef __APPLE__
+ 		#include <limits.h>
+ 	#else
+ 		#include <linux/limits.h>
+diff --git a/regamedll/public/tier0/platform.h b/regamedll/public/tier0/platform.h
+index 230bcab..2e6780e 100644
+--- a/regamedll/public/tier0/platform.h
++++ b/regamedll/public/tier0/platform.h
+@@ -30,7 +30,9 @@
+ 
+ #include "osconfig.h"
+ 
++#if !defined(__APPLE__)
+ #include <malloc.h> // need this for _alloca
++#endif
+ #include <string.h> // need this for memset
+ 
+ #include "archtypes.h"
+@@ -42,7 +44,9 @@
+ 
+ // Used to step into the debugger
+ #if defined(__GNUC__) || defined(__clang__)
+-	#define DebuggerBreak() __asm__ __volatile__("int3;")
++	#include <signal.h>
++
++	#define DebuggerBreak() raise(SIGTRAP)
+ #else
+ 	#define DebuggerBreak() __debugbreak()
+ #endif
+@@ -71,7 +75,7 @@
+ // Can't use extern "C" when DLL exporting a global
+ #define DLL_GLOBAL_EXPORT extern __declspec(dllexport)
+ #define DLL_GLOBAL_IMPORT extern __declspec(dllimport)
+-#elif defined __linux__
++#elif defined __linux__ || defined __APPLE__
+ 
+ // Used for dll exporting and importing
+ #define DLL_EXPORT extern "C"
+@@ -131,7 +135,7 @@
+ // If available use static_assert instead of weird language tricks. This
+ // leads to much more readable messages when compile time assert constraints
+ // are violated.
+-#if !defined(OSX) && (_MSC_VER > 1500 || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
++#if !defined(__APPLE__) && (_MSC_VER > 1500 || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+ 	#define PLAT_COMPILE_TIME_ASSERT(pred) static_assert(pred, "Compile time assert constraint is not true: " #pred)
+ #else
+ 	#define PLAT_COMPILE_TIME_ASSERT(pred) typedef int UNIQUE_ID[ (pred) ? 1 : -1]
+diff --git a/regamedll/public/tier0/platform_posix.cpp b/regamedll/public/tier0/platform_posix.cpp
+index 202040b..12c454b 100644
+--- a/regamedll/public/tier0/platform_posix.cpp
++++ b/regamedll/public/tier0/platform_posix.cpp
+@@ -30,7 +30,7 @@
+ 
+ bool Plat_IsInDebugSession()
+ {
+-#if defined(OSX)
++#if defined(__APPLE__)
+ 	int mib[4];
+ 	struct kinfo_proc info;
+ 	size_t size;

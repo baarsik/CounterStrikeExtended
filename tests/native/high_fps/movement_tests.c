@@ -28,11 +28,12 @@ static void Require(int condition, const char* message) {
 }
 
 static const char* PhysicsInfo(const char* info, const char* key) {
-    if (strcmp(key, CSE_MOVEMENT_TIMING_KEY) == 0) {
+    // An older CSE server may still send its private movement flag.
+    if (strcmp(key, "_cse_pmove") == 0) {
         return info;
     }
-    if (strcmp(key, "_cse_regamedll_pmove") == 0 && strcmp(info, "ReGameDLL") == 0) {
-        return "1.0";
+    if (strcmp(key, CSE_REGAMEDLL_MOVEMENT_KEY) == 0 && strcmp(info, "ReGameDLL") == 0) {
+        return CSE_REGAMEDLL_MOVEMENT_VERSION;
     }
     return "";
 }
@@ -61,7 +62,7 @@ static pmtrace_t RampTrace(float* start, float* end, int flags, int ignore) {
     return trace;
 }
 
-static void ResetMovement(unsigned char milliseconds, int negotiated) {
+static void ResetMovement(unsigned char milliseconds, int oldCseFlag) {
     memset(&movement, 0, sizeof(movement));
     movement.movetype = MOVETYPE_WALK;
     movement.friction = 1.0f;
@@ -70,14 +71,14 @@ static void ResetMovement(unsigned char milliseconds, int negotiated) {
     movement.movevars = &fixtureMovevars;
     movement.PM_Info_ValueForKey = PhysicsInfo;
     movement.PM_PlayerTrace = ClearTrace;
-    if (negotiated) {
-        strcpy(movement.physinfo, CSE_MOVEMENT_TIMING_VERSION);
+    if (oldCseFlag) {
+        strcpy(movement.physinfo, "1");
     }
     pmove = &movement;
 }
 
-static float RunStamina(unsigned char milliseconds, int steps, int negotiated) {
-    ResetMovement(milliseconds, negotiated);
+static float RunStamina(unsigned char milliseconds, int steps, int oldCseFlag) {
+    ResetMovement(milliseconds, oldCseFlag);
     movement.velocity[0] = 250.0f;
     movement.fuser2 = 650.0f;
     for (int step = 0; step < steps; ++step) {
@@ -86,8 +87,8 @@ static float RunStamina(unsigned char milliseconds, int steps, int negotiated) {
     return movement.velocity[0];
 }
 
-static float RunRamp(unsigned char milliseconds, int negotiated) {
-    ResetMovement(milliseconds, negotiated);
+static float RunRamp(unsigned char milliseconds, int oldCseFlag) {
+    ResetMovement(milliseconds, oldCseFlag);
     movement.onground = -1;
     movement.velocity[0] = 250.0f;
     movement.velocity[2] = -500.0f;
@@ -145,14 +146,12 @@ static void CheckSpectatorCoasting(int negotiated, float expectedDistance) {
 int main(void) {
     const float baseline = RunStamina(10, 1, 0);
     Require(fabsf(baseline - 219.125f) < 0.001f, "expected legacy 100 FPS stamina loss");
-    Require(RunStamina(10, 1, 1) == baseline, "100 FPS movement must match legacy exactly");
-    Require(fabsf(RunStamina(1, 10, 1) - baseline) < 0.001f, "stamina loss varied with FPS");
-    Require(RunStamina(1, 10, 0) < baseline, "unmodified server physics must remain compatible");
-    Require(RunStamina(0, 1, 1) == 250.0f, "zero-duration movement applied stamina loss");
+    const float stockShortSteps = RunStamina(1, 10, 0);
+    Require(stockShortSteps < baseline, "stock stamina must apply its penalty per movement step");
+    Require(RunStamina(1, 10, 1) == stockShortSteps, "the old server flag changed stock stamina prediction");
 
     Require(RunRamp(1, 0) == 0.0f, "expected a legacy repeated-plane stall");
-    Require(RunRamp(1, 1) > 500.0f, "same ramp plane should preserve tangential speed");
-    Require(RunRamp(10, 1) == RunRamp(10, 0), "100 FPS ramp movement must match legacy");
+    Require(RunRamp(1, 1) == 0.0f, "the old server flag changed stock ramp prediction");
 
     CheckGroundSnapping(MOVETYPE_NOCLIP, 0, 0, 15.0f, 0);
     CheckGroundSnapping(MOVETYPE_NOCLIP, 0, 1, 16.0f, -1);

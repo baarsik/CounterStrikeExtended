@@ -21,6 +21,11 @@ if(CSE_TARGET_OS STREQUAL windows)
 elseif(CSE_TARGET_OS STREQUAL macos)
   set(APPLE TRUE)
 endif()
+if(NOT DEFINED CSE_USE_REGAMEDLL AND
+   NOT (WIN32 OR (APPLE AND CSE_TARGET_ARCH STREQUAL arm64)))
+  # Unsupported synthetic platforms retain the legacy source inventory.
+  set(CSE_USE_REGAMEDLL OFF)
+endif()
 if(CSE_TARGET_ARCH STREQUAL x86)
   set(CMAKE_SIZEOF_VOID_P 4)
 else()
@@ -98,11 +103,12 @@ foreach(directory IN LISTS children)
     continue()
   endif()
   add_subdirectory("${directory}" "${CMAKE_BINARY_DIR}/targets/${target}")
+  get_target_property(target_source_dir ${target} SOURCE_DIR)
   # A derived native export file may be absent precisely because the caller is
   # regenerating it. Original x86 definition inputs still must exist.
   get_target_property(native_definition ${target} CSE_NATIVE_EXPORT_DEFINITION)
   if(native_definition)
-    set_source_files_properties("${native_definition}" DIRECTORY "${directory}" PROPERTIES GENERATED TRUE)
+    set_source_files_properties("${native_definition}" DIRECTORY "${target_source_dir}" PROPERTIES GENERATED TRUE)
   endif()
   # A host without the Windows resource compiler can still inspect the selected
   # resource inputs. Objective-C++ inputs are inspected as host C++ recipes.
@@ -118,7 +124,7 @@ foreach(directory IN LISTS children)
       string(JSON resource SET "${resource}" path "${quoted}")
       foreach(key INCLUDE_DIRECTORIES COMPILE_DEFINITIONS)
         get_target_property(target_value ${target} ${key})
-        get_source_file_property(source_value "${source}" DIRECTORY "${directory}" ${key})
+        get_source_file_property(source_value "${source}" DIRECTORY "${target_source_dir}" ${key})
         if(target_value STREQUAL "target_value-NOTFOUND")
           set(target_value "")
         endif()
@@ -130,9 +136,9 @@ foreach(directory IN LISTS children)
       endforeach()
       string(JSON resources SET "${resources}" ${resource_count} "${resource}")
       math(EXPR resource_count "${resource_count} + 1")
-      set_source_files_properties("${source}" DIRECTORY "${directory}" PROPERTIES HEADER_FILE_ONLY TRUE)
+      set_source_files_properties("${source}" DIRECTORY "${target_source_dir}" PROPERTIES HEADER_FILE_ONLY TRUE)
     elseif(source MATCHES "\\.mm$")
-      set_source_files_properties("${source}" DIRECTORY "${directory}" PROPERTIES LANGUAGE CXX)
+      set_source_files_properties("${source}" DIRECTORY "${target_source_dir}" PROPERTIES LANGUAGE CXX)
     endif()
   endforeach()
   set(properties "{}")
@@ -140,6 +146,8 @@ foreach(directory IN LISTS children)
       POSITION_INDEPENDENT_CODE VISIBILITY_INLINES_HIDDEN CXX_VISIBILITY_PRESET C_VISIBILITY_PRESET
       LINK_LIBRARIES LINK_OPTIONS
       RUNTIME_OUTPUT_DIRECTORY LIBRARY_OUTPUT_DIRECTORY CSE_APPLE_MAIN_IMAGE_PUBLISHER
+      CSE_CS_SERVER_BACKEND CSE_REGAMEDLL_STAGED_SOURCE_ROOT CSE_REGAMEDLL_ORIGINAL_SOURCE_ROOT
+      CSE_REGAMEDLL_PATCH CSE_REGAMEDLL_REVISION CSE_REGAMEDLL_EXPORT_INPUT CSE_REGAMEDLL_WRAPPER_ROOT
       CSE_QUERY_RESOURCE_SOURCES CSE_QUERY_RESOURCE_DESTINATIONS)
     get_target_property(value ${target} ${key})
     if(value STREQUAL "value-NOTFOUND")

@@ -1,6 +1,8 @@
 """Inventory queries evaluate the production CMake compiler recipes on the host."""
 from pathlib import Path
+import subprocess
 import sys
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -9,6 +11,79 @@ from cmake_inventory import query_target, query_targets
 
 
 class CMakeInventoryTests(unittest.TestCase):
+    def test_regamedll_upgrade_checks_only_overridden_declarations(self):
+        upstream = ROOT / 'src/external/regamedll'
+        original = subprocess.check_output(
+            ['git', '-C', str(upstream), 'show', 'HEAD:regamedll/engine/eiface.h'], text=True)
+        guard = ROOT / 'cmake/targets/cs_server/ReGameDLLContract.cmake'
+        changes = (
+            ('unrelated declaration', 'struct KeyValueData_s', 'struct RenamedKeyValueData_s', None),
+            ('engine table', '(*pfnNumberOfEntities)', '(*pfnCountEntities)', 'engine callback table'),
+            ('save fields', 'FIELD_INTEGER,', 'FIELD_NATIVE_INTEGER,', 'save field declarations'),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'check.cmake'
+            script.write_text(f'include([=[{guard.as_posix()}]=])\n'
+                              'file(READ "${HEADER}" source)\n'
+                              'cse_check_regamedll_contract("${source}")\n')
+            header = Path(directory) / 'eiface.h'
+            for name, old, new, expected_error in changes:
+                with self.subTest(name=name):
+                    self.assertIn(old, original)
+                    header.write_text(original.replace(old, new, 1))
+                    result = subprocess.run(['cmake', f'-DHEADER={header}', '-P', str(script)],
+                                            capture_output=True, text=True)
+                    if expected_error:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn(expected_error, result.stderr)
+                    else:
+                        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_default_cs_server_reports_stable_regamedll_source_paths(self):
+        upstream = ROOT / 'src/external/regamedll'
+        integration = ROOT / 'src/cstrike/regamedll'
+        for target_os, architecture in (('windows', 'x86'), ('windows', 'x64'),
+                                        ('windows', 'arm64'), ('macos', 'arm64')):
+            with self.subTest(target_os=target_os, architecture=architecture):
+                data = query_target(ROOT, 'cs_server', target_os=target_os, architecture=architecture)
+                self.assertEqual(data['properties'].get('CSE_CS_SERVER_BACKEND'), 'regamedll')
+                self.assertEqual(data['source_overlay']['root'], str(upstream))
+                self.assertEqual(data['source_overlay']['patch'], str(integration / 'cse.patch'))
+                self.assertEqual(data['source_overlay']['revision'], '1f16a7f25c14225931f8df1abc51f68d18ded839')
+                compiled = {Path(item['path']): item for item in data['sources'] if item['language'] == 'CXX'}
+                cbase = upstream / 'regamedll/dlls/cbase.cpp'
+                self.assertIn(cbase, compiled)
+                self.assertIn(str(cbase.parent), compiled[cbase]['include_directories'])
+                self.assertEqual(compiled[cbase].get('generated'),
+                                 {'source': str(cbase), 'registration': 'dlls_cbase'})
+                airbox = upstream / 'regamedll/dlls/addons/item_airbox.cpp'
+                self.assertEqual(compiled[airbox].get('generated'),
+                                 {'source': str(airbox), 'registration': 'dlls_addons_item_airbox'})
+                self.assertIn(integration / 'game_module_entry.cpp', compiled)
+                self.assertEqual(len(compiled), sum(item['language'] == 'CXX' for item in data['sources']))
+                self.assertTrue(all(path.is_file() for path in compiled))
+                definitions = [item for item in data['sources'] if Path(item['path']).suffix == '.def']
+                if target_os == 'windows':
+                    self.assertEqual(len(definitions), 1)
+                    definition = definitions[0]['generated']
+                    self.assertEqual(definition['overlay_path'], 'regamedll/cse-exports.def')
+                    self.assertEqual(definition['source'], str(ROOT / 'cmake/exports/cs_server.def'))
+                    dialog = upstream / 'regamedll/public/tier0/assert_dialog.rc'
+                    resource = next(item for item in data['sources'] if item['language'] == 'RC')
+                    self.assertEqual(resource['path'], str(dialog))
+                    self.assertIn(str(dialog.parent), resource['include_directories'])
+                else:
+                    self.assertFalse(definitions)
+
+    def test_legacy_cs_server_is_selectable_and_remains_the_linux_inventory(self):
+        for options in ({'cs_server_backend': 'legacy'}, {'target_os': 'linux', 'architecture': 'x64'}):
+            with self.subTest(options=options):
+                data = query_target(ROOT, 'cs_server', **options)
+                self.assertEqual(data['properties'].get('CSE_CS_SERVER_BACKEND'), 'legacy')
+                self.assertNotIn('source_overlay', data)
+                self.assertIn(str(ROOT / 'src/cstrike/dlls/cbase.cpp'),
+                              {item['path'] for item in data['sources']})
+
     def test_hw_engine_exposes_selected_sources_and_effective_float_policy(self):
         target = query_target(ROOT, 'hw_engine')
         self.assertEqual(target['target'], 'hw_engine')

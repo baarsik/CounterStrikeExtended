@@ -103,6 +103,8 @@ int main(int argc, char** argv) {
     try {
         Require(argc == 2, "expected one scenario");
         const std::string scenario = argv[1];
+        Require(scenario == "tga-only" || scenario == "webp-only" || scenario == "both" ||
+            scenario == "missing-both" || scenario == "mixed", "unknown scenario");
         const std::vector<std::string> targa = {
             "sprites/scope_arc.tga", "sprites/scope_arc_nw.tga", "sprites/scope_arc_ne.tga", "sprites/scope_arc_sw.tga"
         };
@@ -110,43 +112,34 @@ int main(int argc, char** argv) {
             "sprites/scope_arc.webp", "sprites/scope_arc_nw.webp", "sprites/scope_arc_ne.webp",
             "sprites/scope_arc_sw.webp"
         };
-        std::vector<std::string> expected;
         if (scenario == "tga-only" || scenario == "both") {
             for (const auto& name : targa) {
                 availableFiles[name] = 42;
             }
-            expected = targa;
         }
         if (scenario == "webp-only" || scenario == "both") {
             for (const auto& name : webp) {
                 availableFiles[name] = 42;
             }
-            expected.insert(expected.end(), webp.begin(), webp.end());
         }
-        if (scenario == "missing-both") {
-            expected = targa;
-        } else if (scenario == "mixed") {
+        if (scenario == "mixed") {
             availableFiles[targa[0]] = 42;
             availableFiles[webp[1]] = 42;
             availableFiles[targa[2]] = 42;
             availableFiles[webp[2]] = 42;
-            expected = {"sprites/scope_arc.tga", "sprites/scope_arc_nw.webp", "sprites/scope_arc_ne.tga",
-                "sprites/scope_arc_ne.webp", "sprites/scope_arc_sw.tga"};
-        } else if (scenario != "tga-only" && scenario != "webp-only" && scenario != "both") {
-            throw std::runtime_error("unknown scenario");
         }
         ClientPrecache();
         // The engine retains raw filename pointers after this function returns.
         ChurnStack();
-        Verify(expected);
-        Require(probes.size() == 8, "scope availability did not use the engine filesystem callback");
+        Verify(targa);
+        Require(probes.empty(), "scope registrations must use the stock paths");
         const auto savedGeneric = genericResources;
         const auto savedExact = exactResources;
         genericResources.clear();
         exactResources.clear();
         ClientPrecache();
         ChurnStack();
-        Verify(expected);
+        Verify(targa);
         Require(genericResources == savedGeneric && exactResources == savedExact,
             "registration filename storage did not survive or remain stable across calls");
         std::printf("PASS %s\n", scenario.c_str());

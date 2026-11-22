@@ -114,6 +114,38 @@ See the [bot resource notes](../src/deploy/zbot/README.md) for provenance and ma
 compatibility. Use `bot_add`, `bot_add_ct`, `bot_add_t` or the create-server bot
 controls to add players; the server's initial `bot_quota` remains zero.
 
+### Counter-Strike server backend
+
+The Counter-Strike server target uses ReGameDLL on Windows x86, x64 and ARM64
+and macOS ARM64. The submodule pins a commit from the official
+[ReGameDLL_CS master branch](https://github.com/rehlds/ReGameDLL_CS/tree/master).
+Synchronize its URL and initialize it before configuring the runtime or
+game-module preset for your toolchain:
+
+```sh
+git submodule sync -- src/external/regamedll
+git submodule update --init src/external/regamedll
+```
+
+The build applies the [CSE patch](../src/cstrike/regamedll/cse.patch) to a
+build-directory copy and stages `cstrike/dlls/mp.dll` on Windows or
+`cstrike/dlls/mp.dylib` with a `cs.dylib` alias on macOS. To select the legacy
+CSE GameDLL, configure with `-DCSE_USE_REGAMEDLL=OFF`. In an existing build
+directory with that setting cached, set it to `ON` to select ReGameDLL.
+Use `game version` at the server console to identify the ReGameDLL build.
+
+The macOS portability changes in the CSE patch come from the
+[Xash3D FWGS port at `2959452`](https://github.com/Vladislav4KZ/ReGameDLL_CS/commit/29594522d2426af66cf18f9e5a0f4b3aee21bd95).
+
+The Counter-Strike client uses stock movement prediction by default and selects
+ReGameDLL movement 1.0 when the remote server negotiates it. Client-side scope
+image decoding follows the connected server's file consistency rules.
+
+The GameDLL build and the full runtime have separate qualification requirements.
+See [platforms and dependencies](#platforms-and-dependencies) for Windows
+ARM64 runtime bring-up requirements. Code that uses private GameDLL C++ symbols
+or memory layouts needs to target the selected backend.
+
 ## Interface translations
 
 Runtime builds bundle English, French, German, Italian, Spanish (Spain), Simplified

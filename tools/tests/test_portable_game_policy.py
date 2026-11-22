@@ -13,7 +13,8 @@ class PortableGamePolicyTests(unittest.TestCase):
         for target in ('hl_server', 'cs_server'):
             for configuration in ('Debug', 'Release'):
                 with self.subTest(target=target, configuration=configuration):
-                    data = query_target(ROOT, target, configuration, 'macos', 'arm64')
+                    data = query_target(ROOT, target, configuration, 'macos', 'arm64',
+                                        cs_server_backend='legacy')
                     for source in data['sources']:
                         if source['language'] != 'CXX':
                             continue
@@ -50,14 +51,15 @@ class PortableGamePolicyTests(unittest.TestCase):
     def test_symbol_generation_requires_debug_or_release_opt_in(self):
         for configuration, diagnostics, expected in (('Release', False, False),
                                                        ('Release', True, True), ('Debug', False, True)):
-            data = query_target(ROOT, 'cs_server', configuration, 'macos', 'arm64', diagnostics)
+            data = query_target(ROOT, 'cs_server', configuration, 'macos', 'arm64', diagnostics,
+                                cs_server_backend='legacy')
             for source in data['sources']:
                 if source['language'] == 'CXX':
                     self.assertEqual('-g' in source['compile_options'], expected)
 
     def test_windows_keeps_crt_and_compiler_policies_for_each_configuration(self):
         for configuration in ('Debug', 'Release'):
-            data = query_target(ROOT, 'cs_server', configuration)
+            data = query_target(ROOT, 'cs_server', configuration, cs_server_backend='legacy')
             self.assertEqual(data['properties']['MSVC_RUNTIME_LIBRARY'],
                              'MultiThreadedDebugDLL' if configuration == 'Debug' else 'MultiThreadedDLL')
             for source in data['sources']:

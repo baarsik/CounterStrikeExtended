@@ -7,6 +7,9 @@ query does not cross-compile or qualify Windows binaries or external providers. 
 source into an owning recipe is explicitly a **header probe**, not a full
 production translation-unit qualification.
 
+The source inventory records the selected ReGameDLL patch and upstream
+revision. Factory and loader snippets come from checked-in CSE sources.
+
 ```sh
 python3 tests/native/owned_module_abi/inventory.py \
   --mac-database "$ART/macos-runtime-policy-release/compile_commands.json" \

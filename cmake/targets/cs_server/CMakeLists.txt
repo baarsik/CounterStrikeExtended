@@ -1,5 +1,12 @@
 # Authoritative CMake build definition; edit this file directly.
+option(CSE_USE_REGAMEDLL "Build the ReGameDLL Counter-Strike server backend" ON)
+if(CSE_USE_REGAMEDLL)
+  include("${CMAKE_CURRENT_LIST_DIR}/ReGameDLL.cmake")
+  return()
+endif()
+
 cse_add_runtime(cs_server SHARED "mp")
+set_property(TARGET cs_server PROPERTY CSE_CS_SERVER_BACKEND legacy)
 target_compile_definitions(cs_server PRIVATE CSE_ENABLE_ZBOT=$<BOOL:${CSE_ENABLE_ZBOT}>)
 cse_zbot_assets(cs_server)
 include("${CMAKE_CURRENT_LIST_DIR}/Sources.cmake")

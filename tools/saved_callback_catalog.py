@@ -54,10 +54,10 @@ def location(REPO, path, text, position):
     return {'path': str(path.relative_to(REPO)), 'line': text[:position].count('\n') + 1,
             'guard': compile_guard(text, position, include_guard)}
 
-def inventory(root, game, target, sources):
+def inventory(root, game, target, sources, *, headers_root=None):
     REPO = root
     compiled = set(sources)
-    hroot = REPO / 'src' / ('dlls' if game == 'hl' else 'cstrike/dlls')
+    hroot = headers_root or REPO / 'src' / ('dlls' if game == 'hl' else 'cstrike/dlls')
     headers = set(hroot.rglob('*.h'))
     classes = {}
     class_redefinitions = []

@@ -5,17 +5,17 @@ from saved_callback_catalog import clean, write_generated
 
 # Contract identities are stable; membership comes from these owning headers.
 TABLES = [
-    ('EngineFunctions', 'enginefuncs_t', 'eiface.h'),
-    ('GameFunctions', 'DLL_FUNCTIONS', 'eiface.h'),
-    ('NewGameFunctions', 'NEW_DLL_FUNCTIONS', 'eiface.h'),
-    ('SaveField', 'TYPEDESCRIPTION', 'eiface.h'),
-    ('SaveBuffer', 'SAVERESTOREDATA', 'eiface.h'),
-    ('EntitySaveEntry', 'ENTITYTABLE', 'eiface.h'),
-    ('LevelConnection', 'LEVELLIST', 'eiface.h'),
-    ('Globals', 'globalvars_t', 'progdefs.h'),
-    ('EntityVariables', 'entvars_t', 'progdefs.h'),
-    ('EntityRecord', 'edict_t', 'edict.h'),
-    ('Trace', 'TraceResult', 'eiface.h'),
+    ('EngineFunctions', 'enginefuncs_t', 'src/common/game_engine_functions.h'),
+    ('GameFunctions', 'DLL_FUNCTIONS', 'src/engine/eiface.h'),
+    ('NewGameFunctions', 'NEW_DLL_FUNCTIONS', 'src/engine/eiface.h'),
+    ('SaveField', 'TYPEDESCRIPTION', 'src/common/game_save_descriptions.h'),
+    ('SaveBuffer', 'SAVERESTOREDATA', 'src/engine/eiface.h'),
+    ('EntitySaveEntry', 'ENTITYTABLE', 'src/engine/eiface.h'),
+    ('LevelConnection', 'LEVELLIST', 'src/engine/eiface.h'),
+    ('Globals', 'globalvars_t', 'src/engine/progdefs.h'),
+    ('EntityVariables', 'entvars_t', 'src/engine/progdefs.h'),
+    ('EntityRecord', 'edict_t', 'src/engine/edict.h'),
+    ('Trace', 'TraceResult', 'src/engine/eiface.h'),
 ]
 
 
@@ -63,7 +63,7 @@ def generate(root):
     lines += ['};', '', 'constexpr Descriptor GameModuleDescriptor = Describe({']
     counts = {}
     for identity, name, header in TABLES:
-        fields = struct_fields((root / 'src/engine' / header).read_text(errors='replace'), name)
+        fields = struct_fields((root / header).read_text(errors='replace'), name)
         counts[name] = len(fields)
         lines += [f'    {{static_cast<std::uint32_t>(GameTable::{identity}), 0, LayoutHash({{',
                   f'        sizeof({name}), alignof({name}),']

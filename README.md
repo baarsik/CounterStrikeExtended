@@ -19,6 +19,14 @@ Supported runtime builds are Windows x86, Windows x64 and macOS Apple Silicon.
 All commands run from the repository root and require CMake 3.25+, Ninja and
 Python 3.9+. On Windows, use PowerShell with the matching MSVC developer environment.
 
+Initialize the default Counter-Strike server backend before configuring:
+
+```sh
+git submodule update --init src/external/regamedll
+```
+
+See [server backend selection](docs/building.md#counter-strike-server-backend).
+
 | Platform | Toolchain |
 | --- | --- |
 | Windows x86 | MSVC C++ Build Tools and Windows SDK, targeting x86 |

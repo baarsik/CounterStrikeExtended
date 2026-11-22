@@ -1,0 +1,12 @@
+#pragma once
+
+#include "version.h"
+
+#define CSE_REGAMEDLL_VERSION_TEXT_IMPL(value) #value
+#define CSE_REGAMEDLL_VERSION_TEXT(value) CSE_REGAMEDLL_VERSION_TEXT_IMPL(value)
+#define APP_VERSION CSE_REGAMEDLL_VERSION_TEXT(VERSION_MAJOR) "." CSE_REGAMEDLL_VERSION_TEXT(VERSION_MINOR) "." \
+    CSE_REGAMEDLL_VERSION_TEXT(VERSION_MAINTENANCE) "-cse"
+#define APP_COMMIT_DATE "@regamedll_commit_date@"
+#define APP_COMMIT_TIME ""
+#define APP_COMMIT_SHA "@regamedll_commit@"
+#define APP_COMMIT_URL "https://github.com/rehlds/ReGameDLL_CS/commit/"

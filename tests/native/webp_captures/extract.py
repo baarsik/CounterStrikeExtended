@@ -49,8 +49,4 @@ source = (root / "src/engine/cl_main.cpp").read_text(encoding="latin1")
     function(source, "void CL_TakeSnapshot_f()") + "}\n", encoding="latin1")
 
 source = (root / "src/cstrike/dlls/client.cpp").read_text(encoding="latin1")
-bodies = ""
-if "static void PrecacheScopeImages(" in source:
-    bodies += function(source, "static void PrecacheScopeImages(")
-bodies += function(source, "void ClientPrecache()")
-(output / "resources.inc").write_text(bodies, encoding="latin1")
+(output / "resources.inc").write_text(function(source, "void ClientPrecache()"), encoding="latin1")
