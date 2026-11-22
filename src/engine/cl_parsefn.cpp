@@ -866,17 +866,12 @@ void CL_CalcPlayerVelocity( int index, float* velocity )
 void CL_ParseEvent()
 {
 	delta_t** fields;
-	event_args_t nullargs, args;
+    event_args_t nullargs{};
 	packet_entities_t* pack;
 	entity_state_t* state;
 	int i, count, index, packetIndex;
-	float delay;
 
-	delay = 0.0f;
 	fields = DELTA_LookupRegistration( "event_t" );
-
-	Q_memset( &nullargs, 0, sizeof( nullargs ) );
-	Q_memset( &args, 0, sizeof( args ) );
 
 	MSG_StartBitReading( &net_message );
 
@@ -889,11 +884,16 @@ void CL_ParseEvent()
 		if ( MSG_ReadBits( 1 ) )
 			packetIndex = (int)MSG_ReadBits( EVENT_ENTITY_BITS );
 
-		if ( MSG_ReadBits( 1 ) )
-			DELTA_ParseDelta( (byte*)&nullargs, (byte*)&args, *fields, sizeof( args ) );
+        // Both fields are optional and belong to this event alone.
+        event_args_t args{};
+        if (MSG_ReadBits(1)) {
+            DELTA_ParseDelta(reinterpret_cast<byte*>(&nullargs), reinterpret_cast<byte*>(&args), *fields, sizeof(args));
+        }
 
-		if ( MSG_ReadBits( 1 ) )
-			delay = (float)( MSG_ReadBits( EVENT_DELAY_BITS ) / 100.0 );
+        float delay = 0.0f;
+        if (MSG_ReadBits(1)) {
+            delay = static_cast<float>(MSG_ReadBits(EVENT_DELAY_BITS) / 100.0);
+        }
 
 		if ( packetIndex == -1 )
 			continue;
