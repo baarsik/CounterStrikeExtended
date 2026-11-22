@@ -33,20 +33,22 @@ class PortableGameGenerationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, r'GAMEDLL_SRCS.*dlls/new_entity\.cpp'):
                 build_sources(source)
 
-    def test_legacy_game_source_membership_agrees_across_configurations_and_compilers(self):
+    def test_game_source_membership_agrees_across_configurations_and_compilers(self):
         for target in ('hl_server', 'cs_server'):
             selections = []
             for configuration in ('Debug', 'Release'):
                 for target_os, architecture in (('windows', 'x86'), ('macos', 'arm64')):
-                    data = query_target(ROOT, target, configuration, target_os, architecture,
-                                        cs_server_backend='legacy')
-                    selected = {item['path'] for item in data['sources'] if item['language'] in ('C', 'CXX')}
+                    data = query_target(ROOT, target, configuration, target_os, architecture)
+                    selected = {Path(item['path']) for item in data['sources'] if item['language'] in ('C', 'CXX')}
                     self.assertTrue(selected)
-                    self.assertTrue(all(Path(path).is_file() for path in selected))
-                    if target_os != 'windows' and target == 'cs_server':
-                        wide_format = str(ROOT / 'src/common/legacy_wide_format.cpp')
-                        self.assertIn(wide_format, selected)
-                        selected.remove(wide_format)
+                    self.assertTrue(all(path.is_file() for path in selected))
+                    if target == 'cs_server':
+                        tier0 = ROOT / 'src/external/regamedll/regamedll/public/tier0'
+                        platform_sources = ('platform_win32.cpp', 'assert_dialog.cpp') if target_os == 'windows' else (
+                            'platform_posix.cpp',)
+                        for name in platform_sources:
+                            self.assertIn(tier0 / name, selected)
+                            selected.remove(tier0 / name)
                     selections.append(selected)
             self.assertTrue(all(selection == selections[0] for selection in selections), target)
 

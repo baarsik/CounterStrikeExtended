@@ -23,7 +23,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
             };
             #include "generated_saved_callbacks/entity.inc"
             ''')
-            result = catalog.generate(root, 'hl_server', [source])
+            result = catalog.generate(root, [source])
             self.assertEqual(result['callbacks'], 2)
             generated = (game / 'generated_saved_callbacks/entity.inc').read_text()
             self.assertIn('Remove@CBaseEntity', generated)
@@ -41,7 +41,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
             (game / 'cbase.h').write_text('class Entity { public: void Think(); };')
             source = game / 'entity.cpp'
             source.write_text('#if FEATURE_A\nvoid Spawn() { SetThink(&Entity::Think); }\n#elif FEATURE_B\nvoid Other() { SetThink(&Entity::Think); }\n#endif\n#include "generated_saved_callbacks/entity.inc"\n')
-            catalog.generate(root, 'hl_server', [source])
+            catalog.generate(root, [source])
             generated = (game / 'generated_saved_callbacks/entity.inc').read_text()
             self.assertNotIn('FEATURE_A', generated)
             self.assertNotIn('FEATURE_B', generated)
@@ -56,7 +56,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
             (game / 'effects.h').write_text('#ifndef EFFECTS_H\n#include \"skill.h\"\n#define EFFECTS_H\nclass Entity { public: void Think(); void Start() { SetThink(&Entity::Think); } };\n#endif\n')
             source = game / 'effects.cpp'
             source.write_text('#include "generated_saved_callbacks/effects.inc"')
-            catalog.generate(root, 'hl_server', [source])
+            catalog.generate(root, [source])
             generated = (game / 'generated_saved_callbacks/effects.inc').read_text()
             self.assertNotIn('defined(EFFECTS_H)', generated)
             self.assertIn('CseRegisterThink("Think@Entity"', generated)
@@ -69,7 +69,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
             (game / 'cbase.h').write_text('class Entity { public:\n#if FEATURE_A\nvoid Think();\n#endif\n};\n')
             source = game / 'entity.cpp'
             source.write_text('#if FEATURE_A\nvoid Spawn() { SetThink(&Entity::Think); }\n#endif\n#include "generated_saved_callbacks/entity.inc"\n')
-            catalog.generate(root, 'hl_server', [source])
+            catalog.generate(root, [source])
             generated = (game / 'generated_saved_callbacks/entity.inc').read_text()
             self.assertIn('#if FEATURE_A', generated)
 
@@ -84,7 +84,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
                 source = game / 'entity.cpp'
                 source.write_text('void Spawn() { SetThink(' + expression + '); }')
                 with self.assertRaisesRegex(ValueError, 'Unresolved|virtual'):
-                    catalog.generate(root, 'hl_server', [source])
+                    catalog.generate(root, [source])
 
     def test_excluded_sources_do_not_enter_catalog(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -95,7 +95,7 @@ class SavedCallbackCatalogTests(unittest.TestCase):
             source = game / 'active.cpp'
             source.write_text('void Spawn() {}')
             (game / 'excluded.cpp').write_text('void Spawn() { SetThink(&Missing::Unknown); }')
-            self.assertEqual(catalog.generate(root, 'hl_server', [source])['callbacks'], 0)
+            self.assertEqual(catalog.generate(root, [source])['callbacks'], 0)
 
 
 if __name__ == '__main__':

@@ -65,8 +65,7 @@ class NativeRuntimePolicyTests(unittest.TestCase):
             root = Path(directory)
             (root / 'ordinary.cpp').write_text('int main() { return _stricmp("CS", "cs"); }\n')
             for configuration in ('Release', 'Debug'):
-                data = query_target(ROOT, 'cs_server', configuration, 'macos', 'arm64',
-                                    cs_server_backend='legacy')
+                data = query_target(ROOT, 'hl_server', configuration, 'macos', 'arm64')
                 source = next(item for item in data['sources'] if item['language'] == 'CXX')
                 flags = source['compile_options']
                 forced = flags.index('-include')

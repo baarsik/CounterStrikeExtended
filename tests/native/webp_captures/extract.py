@@ -47,6 +47,3 @@ for variant, screen, video in (
 source = (root / "src/engine/cl_main.cpp").read_text(encoding="latin1")
 (output / "client.inc").write_text("namespace client {\nusing hardware::VID_TakeSnapshot;\n" +
     function(source, "void CL_TakeSnapshot_f()") + "}\n", encoding="latin1")
-
-source = (root / "src/cstrike/dlls/client.cpp").read_text(encoding="latin1")
-(output / "resources.inc").write_text(function(source, "void ClientPrecache()"), encoding="latin1")

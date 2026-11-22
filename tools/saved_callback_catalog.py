@@ -54,11 +54,10 @@ def location(REPO, path, text, position):
     return {'path': str(path.relative_to(REPO)), 'line': text[:position].count('\n') + 1,
             'guard': compile_guard(text, position, include_guard)}
 
-def inventory(root, game, target, sources, *, headers_root=None):
+def inventory(root, game, target, sources, *, headers_root):
     REPO = root
     compiled = set(sources)
-    hroot = headers_root or REPO / 'src' / ('dlls' if game == 'hl' else 'cstrike/dlls')
-    headers = set(hroot.rglob('*.h'))
+    headers = set(headers_root.rglob('*.h'))
     classes = {}
     class_redefinitions = []
     call_sites = []
@@ -239,9 +238,9 @@ def write_generated(path, text):
         path.write_text(text)
 
 
-def generate(root, target, sources):
-    game = {'hl_server': 'hl', 'cs_server': 'cs'}[target]
-    result = inventory(root, game, target, sources)
+def generate(root, sources):
+    game_root = root / 'src/dlls'
+    result = inventory(root, 'hl', 'hl_server', sources, headers_root=game_root)
     if result['unresolved']:
         raise ValueError('Unresolved save callback: ' + repr(result['unresolved']))
     for callback in result['canonical_callbacks']:
@@ -251,7 +250,6 @@ def generate(root, target, sources):
     if unknown or result['direct_assignments']:
         raise ValueError('Uncatalogued save callback assignment: ' + repr(unknown or result['direct_assignments']))
 
-    game_root = root / 'src' / ('dlls' if game == 'hl' else 'cstrike/dlls')
     destination = game_root / 'generated_saved_callbacks'
     destination.mkdir(parents=True, exist_ok=True)
     # One specialization per declaring class, inside the translation unit that

@@ -39,14 +39,13 @@ class CMakeInventoryTests(unittest.TestCase):
                     else:
                         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_default_cs_server_reports_stable_regamedll_source_paths(self):
+    def test_cs_server_reports_stable_regamedll_source_paths(self):
         upstream = ROOT / 'src/external/regamedll'
         integration = ROOT / 'src/cstrike/regamedll'
         for target_os, architecture in (('windows', 'x86'), ('windows', 'x64'),
                                         ('windows', 'arm64'), ('macos', 'arm64')):
             with self.subTest(target_os=target_os, architecture=architecture):
                 data = query_target(ROOT, 'cs_server', target_os=target_os, architecture=architecture)
-                self.assertEqual(data['properties'].get('CSE_CS_SERVER_BACKEND'), 'regamedll')
                 self.assertEqual(data['source_overlay']['root'], str(upstream))
                 self.assertEqual(data['source_overlay']['patch'], str(integration / 'cse.patch'))
                 self.assertEqual(data['source_overlay']['revision'], '1f16a7f25c14225931f8df1abc51f68d18ded839')
@@ -75,14 +74,12 @@ class CMakeInventoryTests(unittest.TestCase):
                 else:
                     self.assertFalse(definitions)
 
-    def test_legacy_cs_server_is_selectable_and_remains_the_linux_inventory(self):
-        for options in ({'cs_server_backend': 'legacy'}, {'target_os': 'linux', 'architecture': 'x64'}):
-            with self.subTest(options=options):
-                data = query_target(ROOT, 'cs_server', **options)
-                self.assertEqual(data['properties'].get('CSE_CS_SERVER_BACKEND'), 'legacy')
-                self.assertNotIn('source_overlay', data)
-                self.assertIn(str(ROOT / 'src/cstrike/dlls/cbase.cpp'),
-                              {item['path'] for item in data['sources']})
+    def test_unsupported_cs_server_platforms_keep_client_inventory(self):
+        for target_os in ('linux', 'macos'):
+            with self.subTest(target_os=target_os):
+                targets = {record['target'] for record in query_targets(ROOT, target_os=target_os, architecture='x64')}
+                self.assertIn('cs_client', targets)
+                self.assertNotIn('cs_server', targets)
 
     def test_hw_engine_exposes_selected_sources_and_effective_float_policy(self):
         target = query_target(ROOT, 'hw_engine')

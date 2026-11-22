@@ -19,7 +19,6 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
-CS_SERVER_BACKENDS = ('default', 'legacy', 'regamedll')
 
 
 def _split_flags(fragment):
@@ -81,7 +80,7 @@ def _original_include(path, staged_root, original_root):
 
 
 @lru_cache(maxsize=16)
-def _query(root, configuration, target_os, architecture, diagnostics, cs_server_backend, signature):
+def _query(root, configuration, target_os, architecture, diagnostics, signature):
     root = Path(root)
     with tempfile.TemporaryDirectory(prefix='cse-cmake-inventory-') as temporary:
         build = Path(temporary)
@@ -92,8 +91,6 @@ def _query(root, configuration, target_os, architecture, diagnostics, cs_server_
                    '-DCMAKE_BUILD_TYPE=' + configuration, '-DCSE_QUERY_OS=' + target_os,
                    '-DCSE_QUERY_ARCH=' + architecture,
                    '-DCSE_RELEASE_DIAGNOSTICS=' + ('ON' if diagnostics else 'OFF')]
-        if cs_server_backend != 'default':
-            command.append('-DCSE_USE_REGAMEDLL=' + ('ON' if cs_server_backend == 'regamedll' else 'OFF'))
         result = subprocess.run(command, capture_output=True, text=True)
         if result.returncode:
             raise ValueError('CMake inventory configuration failed:\n' + result.stdout + result.stderr)
@@ -113,7 +110,7 @@ def _query(root, configuration, target_os, architecture, diagnostics, cs_server_
             original = properties.pop('CSE_REGAMEDLL_ORIGINAL_SOURCE_ROOT')
             patch = properties.pop('CSE_REGAMEDLL_PATCH')
             revision = properties.pop('CSE_REGAMEDLL_REVISION')
-            export_input = properties.pop('CSE_REGAMEDLL_EXPORT_INPUT')
+            export_input = properties['CSE_NATIVE_EXPORT_DEFINITION']
             wrappers = properties.pop('CSE_REGAMEDLL_WRAPPER_ROOT')
             staged_root = Path(staged).resolve() if staged else None
             original_root = Path(original).resolve() if original else None
@@ -188,21 +185,16 @@ def _query(root, configuration, target_os, architecture, diagnostics, cs_server_
         return sorted(targets, key=lambda record: record['target'])
 
 
-def query_targets(root=None, configuration='Release', target_os='windows', architecture='x86', diagnostics=False,
-                  *, cs_server_backend='default'):
+def query_targets(root=None, configuration='Release', target_os='windows', architecture='x86', diagnostics=False):
     """Return isolated records; source membership/settings are evaluated by CMake."""
     _arguments(configuration, target_os, architecture)
-    if cs_server_backend not in CS_SERVER_BACKENDS:
-        raise ValueError(f'Unsupported Counter-Strike server backend: {cs_server_backend!r}')
     root = Path(root or ROOT).resolve()
     return copy.deepcopy(_query(str(root), configuration, target_os, architecture, bool(diagnostics),
-                                cs_server_backend, _definition_signature(root)))
+                                _definition_signature(root)))
 
 
-def query_target(root, target, configuration='Release', target_os='windows', architecture='x86', diagnostics=False,
-                 *, cs_server_backend='default'):
-    for record in query_targets(root, configuration, target_os, architecture, diagnostics,
-                                cs_server_backend=cs_server_backend):
+def query_target(root, target, configuration='Release', target_os='windows', architecture='x86', diagnostics=False):
+    for record in query_targets(root, configuration, target_os, architecture, diagnostics):
         if record['target'] == target:
             return record
     raise ValueError('Unknown CMake runtime target: ' + target)
@@ -214,12 +206,10 @@ def main():
     parser.add_argument('--target-os', choices=('windows', 'macos', 'linux'), default='windows')
     parser.add_argument('--architecture', choices=('x86', 'x64', 'arm64'), default='x86')
     parser.add_argument('--diagnostics', action='store_true')
-    parser.add_argument('--cs-server-backend', choices=CS_SERVER_BACKENDS, default='default')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     records = query_targets(configuration=args.configuration, target_os=args.target_os,
-                            architecture=args.architecture, diagnostics=args.diagnostics,
-                            cs_server_backend=args.cs_server_backend)
+                            architecture=args.architecture, diagnostics=args.diagnostics)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(records, indent=2) + '\n')
     print('Inspected', len(records), 'CMake runtime targets; metadata only, no cross-compilation.')

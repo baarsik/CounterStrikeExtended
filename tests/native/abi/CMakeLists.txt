@@ -59,45 +59,17 @@ if(MSVC)
   target_compile_options(game_module_probe PRIVATE /W4 /WX /EHsc)
 endif()
 if(WIN32 OR APPLE)
-  # Owned engine callbacks drive the rebuilt CS DLL's real C4 save/restore/think paths.
-  # Execution is explicit; this is not an ordinary CTest module-loading fixture.
-  add_executable(c4_module_probe c4_module_probe.cpp)
-  target_compile_features(c4_module_probe PRIVATE cxx_std_17)
-  target_link_libraries(c4_module_probe PRIVATE ${CMAKE_DL_LIBS})
-  target_compile_definitions(c4_module_probe PRIVATE _CRT_SECURE_NO_WARNINGS)
-  target_include_directories(c4_module_probe PRIVATE
-    "${CSE_ROOT}/src/cstrike/dlls"
-    "${CSE_ROOT}/src/cstrike/common"
-    "${CSE_ROOT}/src/cstrike/pm_shared"
+  add_executable(world_module_probe_hl world_module_probe.cpp)
+  target_compile_features(world_module_probe_hl PRIVATE cxx_std_17)
+  target_link_libraries(world_module_probe_hl PRIVATE ${CMAKE_DL_LIBS})
+  target_compile_definitions(world_module_probe_hl PRIVATE _CRT_SECURE_NO_WARNINGS)
+  target_include_directories(world_module_probe_hl PRIVATE
     "${CSE_ROOT}/src/dlls"
     "${CSE_ROOT}/src/pm_shared"
     "${CSE_ROOT}/src/common"
     "${CSE_ROOT}/src/engine"
     "${CSE_ROOT}/src/public")
   if(MSVC)
-    target_compile_options(c4_module_probe PRIVATE /W3 /EHsc)
+    target_compile_options(world_module_probe_hl PRIVATE /W3 /EHsc)
   endif()
-endif()
-
-if(WIN32 OR APPLE)
-  foreach(game hl cs)
-    add_executable(world_module_probe_${game} world_module_probe.cpp)
-    target_compile_features(world_module_probe_${game} PRIVATE cxx_std_17)
-    target_link_libraries(world_module_probe_${game} PRIVATE ${CMAKE_DL_LIBS})
-    target_compile_definitions(world_module_probe_${game} PRIVATE _CRT_SECURE_NO_WARNINGS)
-    if(game STREQUAL cs)
-      target_include_directories(world_module_probe_${game} PRIVATE
-        "${CSE_ROOT}/src/cstrike/dlls"
-        "${CSE_ROOT}/src/cstrike/pm_shared")
-    endif()
-    target_include_directories(world_module_probe_${game} PRIVATE
-      "${CSE_ROOT}/src/dlls"
-      "${CSE_ROOT}/src/pm_shared"
-      "${CSE_ROOT}/src/common"
-      "${CSE_ROOT}/src/engine"
-      "${CSE_ROOT}/src/public")
-    if(MSVC)
-      target_compile_options(world_module_probe_${game} PRIVATE /W3 /EHsc)
-    endif()
-  endforeach()
 endif()

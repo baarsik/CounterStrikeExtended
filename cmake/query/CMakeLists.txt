@@ -21,11 +21,6 @@ if(CSE_TARGET_OS STREQUAL windows)
 elseif(CSE_TARGET_OS STREQUAL macos)
   set(APPLE TRUE)
 endif()
-if(NOT DEFINED CSE_USE_REGAMEDLL AND
-   NOT (WIN32 OR (APPLE AND CSE_TARGET_ARCH STREQUAL arm64)))
-  # Unsupported synthetic platforms retain the legacy source inventory.
-  set(CSE_USE_REGAMEDLL OFF)
-endif()
 if(CSE_TARGET_ARCH STREQUAL x86)
   set(CMAKE_SIZEOF_VOID_P 4)
 else()
@@ -102,6 +97,10 @@ foreach(directory IN LISTS children)
     # The isolated AMXX package is not a game-relative runtime target.
     continue()
   endif()
+  if(target STREQUAL "cs_server" AND NOT (WIN32 OR (APPLE AND CSE_TARGET_ARCH STREQUAL arm64)))
+    # These metadata selectors have no Counter-Strike GameDLL recipe.
+    continue()
+  endif()
   add_subdirectory("${directory}" "${CMAKE_BINARY_DIR}/targets/${target}")
   get_target_property(target_source_dir ${target} SOURCE_DIR)
   # A derived native export file may be absent precisely because the caller is
@@ -146,8 +145,9 @@ foreach(directory IN LISTS children)
       POSITION_INDEPENDENT_CODE VISIBILITY_INLINES_HIDDEN CXX_VISIBILITY_PRESET C_VISIBILITY_PRESET
       LINK_LIBRARIES LINK_OPTIONS
       RUNTIME_OUTPUT_DIRECTORY LIBRARY_OUTPUT_DIRECTORY CSE_APPLE_MAIN_IMAGE_PUBLISHER
-      CSE_CS_SERVER_BACKEND CSE_REGAMEDLL_STAGED_SOURCE_ROOT CSE_REGAMEDLL_ORIGINAL_SOURCE_ROOT
-      CSE_REGAMEDLL_PATCH CSE_REGAMEDLL_REVISION CSE_REGAMEDLL_EXPORT_INPUT CSE_REGAMEDLL_WRAPPER_ROOT
+      CSE_WIN32_EXPORT_DEFINITION CSE_NATIVE_EXPORT_DEFINITION
+      CSE_REGAMEDLL_STAGED_SOURCE_ROOT CSE_REGAMEDLL_ORIGINAL_SOURCE_ROOT
+      CSE_REGAMEDLL_PATCH CSE_REGAMEDLL_REVISION CSE_REGAMEDLL_WRAPPER_ROOT
       CSE_QUERY_RESOURCE_SOURCES CSE_QUERY_RESOURCE_DESTINATIONS)
     get_target_property(value ${target} ${key})
     if(value STREQUAL "value-NOTFOUND")
