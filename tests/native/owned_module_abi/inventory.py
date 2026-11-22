@@ -28,12 +28,19 @@ def main():
     assert len(owners) == 19
     report = []
     evidence = {}
+    overlays = {}
     for record in records:
         target = record['target']
         windows = [item['path'] for item in record['sources'] if item['language'] in ('C', 'CXX')]
         mac = [entry for entry in database if re.search(r'(^|/)targets/' + re.escape(target) + '/', entry['output'])]
         sources = set(windows)
         sources.update(entry['file'] for entry in mac)
+        if overlay := record.get('source_overlay'):
+            overlays[target] = overlay
+            original_root = Path(overlay['root'])
+            # Source snippets below describe checked-in CSE code. The original
+            # submodule text does not reproduce the patched compilation inputs.
+            sources = {source for source in sources if not Path(source).is_relative_to(original_root)}
         factories = []
         loaders = []
         for source in sorted(sources):
@@ -62,7 +69,10 @@ def main():
                        'coverage': 'CMake Windows source selections plus current Mac recipes; metadata query does not qualify a Windows compiler or provider'})
     cmake_inputs = sorted((ROOT / 'cmake').rglob('*.cmake')) + sorted((ROOT / 'cmake').rglob('CMakeLists.txt'))
     cmake_inputs += [ROOT / 'CMakeLists.txt', ROOT / 'tools/cmake_inventory.py']
-    payload = {'inputs': {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in cmake_inputs},
+    overlay_patches = [Path(overlay['patch']) for overlay in overlays.values()]
+    payload = {'inputs': {str(path): hashlib.sha256(path.read_bytes()).hexdigest()
+                          for path in cmake_inputs + overlay_patches},
+               'source_overlays': overlays,
                'targets': sorted(report, key=lambda row: row['target']), 'source_evidence': evidence}
     payload['inputs'][str(options.mac_database)] = hashlib.sha256(options.mac_database.read_bytes()).hexdigest()
     (options.output / 'inventory.json').write_text(json.dumps(payload, indent=2))

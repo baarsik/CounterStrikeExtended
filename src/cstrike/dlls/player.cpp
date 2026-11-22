@@ -47,7 +47,6 @@
 #include "soundent.h"
 #include "studio.h"
 #include "pm_shared.h"
-#include "movement_timing.h"
 #include "hltv.h"
 
 #define TRAIN_ACTIVE		0x80
@@ -5729,11 +5728,6 @@ void CBasePlayer::Spawn()
 	pev->gravity = 1;
 	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "0" );
 	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "hl", "1" );
-    char* userinfo = g_engfuncs.pfnGetInfoKeyBuffer(edict());
-    const char* movementVersion = g_engfuncs.pfnInfoKeyValue(userinfo, const_cast<char*>(CSE_MOVEMENT_TIMING_KEY));
-    const bool supportsMovementTiming = FStrEq(movementVersion, CSE_MOVEMENT_TIMING_VERSION);
-    g_engfuncs.pfnSetPhysicsKeyValue(edict(), CSE_MOVEMENT_TIMING_KEY,
-        supportsMovementTiming ? CSE_MOVEMENT_TIMING_VERSION : "");
 	m_hintMessageQueue.Reset();
 	m_iLastZoom = 90;
 	m_iRadioMessages = 60;

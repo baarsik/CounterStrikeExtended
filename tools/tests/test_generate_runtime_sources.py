@@ -18,24 +18,24 @@ class GenerateRuntimeSourcesTests(unittest.TestCase):
         (root / 'src').symlink_to(ROOT / 'src', target_is_directory=True)
         return root
 
-    def test_callback_membership_matches_both_production_configurations(self):
+    def test_callback_membership_matches_both_legacy_configurations(self):
         for target in ('hl_server', 'cs_server'):
             with self.subTest(target=target):
                 actual = {Path(path) for path in callback_sources(ROOT, target)}
                 self.assertTrue(actual)
                 self.assertTrue(any(path.name == 'airtank.cpp' for path in actual))
                 for configuration in ('Debug', 'Release'):
-                    data = query_target(ROOT, target, configuration)
+                    data = query_target(ROOT, target, configuration, cs_server_backend='legacy')
                     selected = {Path(item['path']) for item in data['sources'] if item['language'] in ('C', 'CXX')}
                     self.assertEqual(actual, selected)
 
-    def test_export_destinations_match_the_production_native_selection(self):
+    def test_export_destinations_match_the_legacy_native_selection(self):
         for target in ('hl_server', 'cs_server', 'hl_client', 'cs_client', 'particleman', 'swds', 'a3dapi'):
             with self.subTest(target=target):
                 source, destination = map(Path, export_paths(ROOT, target))
                 self.assertTrue(source.is_file())
                 self.assertEqual(destination, ROOT / 'cmake/exports' / (target + '.def'))
-                native = query_target(ROOT, target, 'Release', 'windows', 'x64')
+                native = query_target(ROOT, target, 'Release', 'windows', 'x64', cs_server_backend='legacy')
                 selected = [Path(item['path']) for item in native['sources'] if Path(item['path']).suffix == '.def']
                 self.assertEqual(selected, [destination])
 

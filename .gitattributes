@@ -1,6 +1,8 @@
 # The selected official SDL3 payload must preserve its upstream bytes on Windows.
 src/external/SDL3/** -text
 src/external/mpg123/** -text
+# Unified diffs prefix context lines with a space, including empty and tab-indented lines.
+src/cstrike/regamedll/*.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 # Imported translation text retains upstream spacing; maintained files are UTF-8/LF.
 src/deploy/localization/** text eol=lf whitespace=-blank-at-eol,-blank-at-eof
 # Retain inherited source files' CRLF without flagging CR as trailing whitespace.

@@ -27,7 +27,6 @@
 #include "saverestore.h"
 #include "trains.h"			// trigger_camera has train functionality
 #include "gamerules.h"
-#include "trigger_camera_timing.h"
 #include "hostage/hostage.h"
 
 #define	SF_TRIGGER_PUSH_START_OFF	2//spawnflag that makes trigger_push spawn turned OFF
@@ -2304,16 +2303,14 @@ void CTriggerCamera::FollowTarget( )
 	if (dy > 180)
 		dy = dy - 360;
 
-    const float turnRate = TriggerCameraTurnRate(gpGlobals->frametime);
-    pev->avelocity.x = dx * turnRate;
-    pev->avelocity.y = dy * turnRate;
+    constexpr float cameraTurnScale = 40.0f;
+    pev->avelocity.x = dx * cameraTurnScale * gpGlobals->frametime;
+    pev->avelocity.y = dy * cameraTurnScale * gpGlobals->frametime;
 
     if (!FBitSet(pev->spawnflags, SF_CAMERA_PLAYER_TAKECONTROL)) {
-        constexpr double referenceVelocityRetention = 0.8;
+        constexpr float velocityRetentionPerFrame = 0.8f;
         constexpr float stopSpeed = 10.0f;
-        const float retention = static_cast<float>(
-            CseFrameRetention(referenceVelocityRetention, gpGlobals->frametime));
-        pev->velocity = pev->velocity * retention;
+        pev->velocity = pev->velocity * velocityRetentionPerFrame;
         if (pev->velocity.Length() < stopSpeed) {
             pev->velocity = g_vecZero;
         }

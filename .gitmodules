@@ -1,0 +1,4 @@
+[submodule "src/external/regamedll"]
+	path = src/external/regamedll
+	url = https://github.com/rehlds/ReGameDLL_CS.git
+	branch = master

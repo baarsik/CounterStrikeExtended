@@ -54,6 +54,15 @@ Review derived source changes together with those inputs. This command generates
 `generated_saved_callbacks` fragments and native Windows export projections
 under `cmake/exports/`. It does not regenerate target definitions.
 
+Initialize the pinned ReGameDLL submodule before regenerating and checking its
+CMake source inventory and typed saved-callback catalog from the repository
+root. Review both generated files alongside the upstream revision and CSE patch.
+
+```sh
+python3 tools/generate_regamedll_saved_callbacks.py
+python3 tools/generate_regamedll_saved_callbacks.py --check
+```
+
 The original Windows x86 module-definition files retain their bytes and basenames
 under `cmake/exports/win32/`; other source-owned `.def` files remain with their
 implementations. Keep exports and architecture conditions in the owning target
@@ -88,14 +97,24 @@ runtime; see [supported platforms](building.md#platforms-and-dependencies).
 Python consumers import these functions from `tools/cmake_inventory.py`:
 
 ```python
-query_targets(root=None, configuration="Release", target_os="windows", architecture="x86", diagnostics=False)
-query_target(root, target, configuration="Release", target_os="windows", architecture="x86", diagnostics=False)
+query_targets(root=None, configuration="Release", target_os="windows", architecture="x86",
+              diagnostics=False, *, cs_server_backend="default")
+query_target(root, target, configuration="Release", target_os="windows", architecture="x86",
+             diagnostics=False, *, cs_server_backend="default")
 ```
 
 `root` is an optional repository path for `query_targets`; `query_target` requires
 the root argument (pass `None` for the current repository) and a target name.
 Both inspect the same CMake-owned definitions as the CLI. Add `--diagnostics`
 to the CLI, or use `diagnostics=True`, to include opt-in Release diagnostics.
+
+Windows and macOS ARM64 inventories follow the production Counter-Strike server
+default. Initialize `src/external/regamedll` before querying ReGameDLL. Use
+`--cs-server-backend legacy` or `cs_server_backend="legacy"` to inspect the
+retained server recipe or a build configured with `CSE_USE_REGAMEDLL=OFF`.
+Linux and non-ARM64 macOS metadata selectors use the legacy server by default.
+The source generator explicitly selects the legacy recipe for its saved
+callback catalog and export definitions.
 
 Per-source `compile_options` contains the evaluated options declared by CMake;
 host-injected compiler defaults are excluded. Language standards and target
@@ -104,6 +123,14 @@ wrappers carry a `generated` descriptor with their section and original source;
 their temporary query paths are not persistent files. Fixtures recreate those
 wrappers in their own build directory. Objective-C++ source metadata is inspected
 through host C++ generation, without compiling the source.
+
+ReGameDLL records report the original submodule paths for staged sources and
+include directories. For a generated callback wrapper, the record also gives
+the upstream source and registration name. The `source_overlay` record
+identifies the upstream revision and CSE patch applied to those files.
+Generated overlay-only inputs carry a `generated.overlay_path` relative to the
+overlay root. The Windows export definition also records its checked-in input
+as `generated.source`.
 
 Metadata inspection does not cross-compile, validate a target toolchain, check
 provider binaries or establish runtime behavior. Build with the real platform

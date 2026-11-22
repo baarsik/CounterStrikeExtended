@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def callback_sources(root, target):
     selected = {}
     for configuration in ('Debug', 'Release'):
-        record = query_target(root, target, configuration=configuration)
+        record = query_target(root, target, configuration=configuration, cs_server_backend='legacy')
         selected[configuration] = [Path(item['path']) for item in record['sources']
                                    if item['language'] in ('C', 'CXX')]
     if selected['Debug'] != selected['Release']:
@@ -30,7 +30,7 @@ def callback_sources(root, target):
 def export_paths(root, target):
     selected = []
     for architecture in ('x86', 'x64'):
-        record = query_target(root, target, target_os='windows', architecture=architecture)
+        record = query_target(root, target, target_os='windows', architecture=architecture, cs_server_backend='legacy')
         definitions = [Path(item['path']) for item in record['sources'] if Path(item['path']).suffix == '.def']
         if len(definitions) != 1:
             raise ValueError(target + ': expected one selected ' + architecture + ' module definition')

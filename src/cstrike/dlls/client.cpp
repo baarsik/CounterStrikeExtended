@@ -1896,34 +1896,6 @@ BOOL HandleBuyAliasCommands( CBasePlayer* player, const char* command )
 	return handled;
 }
 
-static void PrecacheScopeImages() {
-    struct ScopeImageFiles {
-        const char* targa;
-        const char* webp;
-    };
-    // The engine retains these filename pointers in its resource and consistency lists.
-    static const ScopeImageFiles images[] = {
-        {"sprites/scope_arc.tga", "sprites/scope_arc.webp"},
-        {"sprites/scope_arc_nw.tga", "sprites/scope_arc_nw.webp"},
-        {"sprites/scope_arc_ne.tga", "sprites/scope_arc_ne.webp"},
-        {"sprites/scope_arc_sw.tga", "sprites/scope_arc_sw.webp"}
-    };
-    Vector zero = g_vecZero;
-    for (const ScopeImageFiles& image : images) {
-        const bool hasTarga = g_engfuncs.pfnGetFileSize(const_cast<char*>(image.targa)) >= 0;
-        const bool hasWebP = g_engfuncs.pfnGetFileSize(const_cast<char*>(image.webp)) >= 0;
-        if (hasTarga || !hasWebP) {
-            // Retain the legacy missing-resource path when neither image is installed.
-            PRECACHE_GENERIC(const_cast<char*>(image.targa));
-            ENGINE_FORCE_UNMODIFIED(force_exactfile, zero, zero, image.targa);
-        }
-        if (hasWebP) {
-            PRECACHE_GENERIC(const_cast<char*>(image.webp));
-            ENGINE_FORCE_UNMODIFIED(force_exactfile, zero, zero, image.webp);
-        }
-    }
-}
-
 void ClientPrecache()
 {
 	const char* sounds[] =
@@ -2012,6 +1984,15 @@ void ClientPrecache()
 	};
 	for ( int file = 0; file < ARRAYSIZE( exactFiles ); ++file )
 		ENGINE_FORCE_UNMODIFIED( force_exactfile, zero, zero, exactFiles[file] );
+    static constexpr const char* scopeImages[] = {
+        "sprites/scope_arc.tga",
+        "sprites/scope_arc_nw.tga",
+        "sprites/scope_arc_ne.tga",
+        "sprites/scope_arc_sw.tga"
+    };
+    for (const char* image : scopeImages) {
+        ENGINE_FORCE_UNMODIFIED(force_exactfile, zero, zero, image);
+    }
 	bool conditionZero = UTIL_IsGame( "czero" );
 	minimum = Vector( conditionZero ? -13.0f : -12.0f, -6, -22 );
 	maximum = Vector( conditionZero ? 13.0f : 12.0f, 6, 22 );
@@ -2097,7 +2078,9 @@ void ClientPrecache()
 	};
 	for ( int sprite = 0; sprite < ARRAYSIZE( sprites ); ++sprite )
 		PRECACHE_MODEL( (char*)sprites[sprite] );
-    PrecacheScopeImages();
+    for (const char* image : scopeImages) {
+        PRECACHE_GENERIC(const_cast<char*>(image));
+    }
 	m_usResetDecals = PRECACHE_EVENT( 1, "events/decal_reset.sc" );
 }
 
