@@ -45,10 +45,13 @@ public:
     ISteamMatchmakingPlayersResponse *players = nullptr;
     ISteamMatchmakingRulesResponse *rules = nullptr;
     std::function<void()> duringStart;
+    std::function<void()> duringRulesStart;
     std::function<void()> duringCancel;
     bool synchronous = false;
     int canceled = 0;
+    int playerQueryCancellations = 0;
     int pings = 0;
+    int ruleQueries = 0;
     std::map<HServerQuery, ISteamMatchmakingPingResponse *> pingCallbacks;
     std::vector<uint16_t> pingPorts;
     bool pingSynchronous = false;
@@ -130,11 +133,15 @@ public:
         return 1;
     }
     HServerQuery ServerRules(uint32, uint16 queryPort, ISteamMatchmakingRulesResponse *response) override {
+        ++ruleQueries;
         port = queryPort;
         rules = response;
         if (synchronous) {
             rules->RulesResponded("name;quit", "value\ntext");
             rules->RulesRefreshComplete();
+        }
+        if (duringRulesStart) {
+            duringRulesStart();
         }
         return 2;
     }
@@ -144,6 +151,7 @@ public:
             duringCancel();
         }
         if (handle == 1) {
+            ++playerQueryCancellations;
             players->AddPlayerToList("stale", 0, 0);
             players = nullptr;
         } else if (handle == 2) {

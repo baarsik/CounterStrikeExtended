@@ -57,6 +57,27 @@ struct DetailStatus {
     bool playersFailed = false;
     bool closing = false;
 };
+
+enum class ServerRule { FreeForAll, Respawn, InfiniteAmmo, BuyAnywhere, FriendlyFire, RoundTime, FreezeTime,
+    BuyTime, BombTimer, Count };
+
+struct DetailVersions {
+    std::string engine;
+    std::string gameDll;
+};
+
+DetailVersions ReadVersionTags(std::string_view tags);
+
+struct DetailRules {
+    std::array<std::optional<double>, static_cast<size_t>(ServerRule::Count)> values{};
+    DetailVersions versions;
+    bool responded = false;
+
+    std::optional<double> Value(ServerRule rule) const {
+        return values[static_cast<size_t>(rule)];
+    }
+};
+
 class ServerBrowserDetails final {
 public:
     explicit ServerBrowserDetails(ISteamMatchmakingServers *servers);
@@ -67,6 +88,8 @@ public:
     bool MetadataFailed() const;
     bool StartPlayers();
     std::vector<DetailUpdate> TakeUpdates(size_t budget = DetailFrameBudget);
+    bool StartRules();
+    std::optional<DetailRules> TakeRules();
     DetailStatus Status() const;
     bool BeginClose();
 private:
