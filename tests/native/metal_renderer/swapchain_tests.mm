@@ -28,11 +28,12 @@ CAMetalLayer* SwapchainLayer(SDL_Window* window) {
 }
 
 int main() {
+    constexpr int kFixtureWindowSizePixels = 32;
     if (!SDL_Init(SDL_INIT_VIDEO)) {
         std::fprintf(stderr, "SDL video initialization: %s\n", SDL_GetError());
         return 1;
     }
-    auto* window = SDL_CreateWindow("Metal missing drawable", 32, 32, 0);
+    auto* window = SDL_CreateWindow("Metal missing drawable", kFixtureWindowSizePixels, kFixtureWindowSizePixels, 0);
     auto* device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_METALLIB, true, "metal");
     if (!window || !device || !SDL_ClaimWindowForGPUDevice(device, window)) {
         std::fprintf(stderr, "Metal window setup: %s\n", SDL_GetError());
