@@ -24,7 +24,7 @@ Set `CSE_METAL_FRAME_STATS=/absolute/path/counters.csv` to collect opt-in cumula
 per-presentation counters and CPU timings. Difference consecutive rows for frame costs;
 `frame` identifies the latest recorder segment, since effects can split capture segments.
 Counts include scene/effect draws, submissions, render/copy passes, scene resolves, uploaded
-bytes, blocking fence waits and preparation/stream allocations/evictions. Cache/working byte columns are
+bytes, blocking fence waits, visible-window drawable misses and preparation/stream allocations/evictions. Cache/working byte columns are
 instantaneous submission sizes; other counters are cumulative. Timings measure CPU preparation, encoding, waiting and
 presentation, not GPU execution. Leave this variable unset for performance measurements.
 Debug groups identify legacy scene/HUD and radar/backdrop encoding. Diagnostics introduce

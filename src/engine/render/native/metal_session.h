@@ -61,6 +61,7 @@ struct RenderFrameCounters {
     std::uint64_t alphaDiscardDraws = 0;
     std::uint64_t borderSamplingDraws = 0;
     std::uint64_t leadingUnscissoredClears = 0;
+    std::uint64_t drawableMisses = 0;
     double drawableWaitMs = 0;
 };
 

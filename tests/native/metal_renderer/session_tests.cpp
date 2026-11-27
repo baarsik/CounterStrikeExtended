@@ -38,6 +38,7 @@ struct PresentationProbe {
     bool active = false;
     bool mismatch = false;
     bool zeroWindowPixels = false;
+    bool noSwapchainTexture = false;
     unsigned allocationsUntilFailure = 0;
     unsigned swapchainCalls = 0;
     unsigned acquisitions = 0;
@@ -136,6 +137,17 @@ extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* comm
     SDL_GPUTexture** texture, Uint32* width, Uint32* height) {
     if (presentationProbe.active) {
         ++presentationProbe.swapchainCalls;
+    }
+    if (presentationProbe.active && presentationProbe.noSwapchainTexture) {
+        *texture = nullptr;
+        int windowWidth = 0;
+        int windowHeight = 0;
+        if (!SDL_GetWindowSizeInPixels(window, &windowWidth, &windowHeight)) {
+            return false;
+        }
+        *width = static_cast<Uint32>(windowWidth);
+        *height = static_cast<Uint32>(windowHeight);
+        return true;
     }
     const bool result = Original<decltype(&SDL_WaitAndAcquireGPUSwapchainTexture)>(
         "SDL_WaitAndAcquireGPUSwapchainTexture")(command, window, texture, width, height);
@@ -1665,7 +1677,16 @@ int main() {
     CHECK(SDL_ShowWindow(window));
     const int defaultDrawableCount = MetalDrawableCount(window);
     CHECK(defaultDrawableCount == 3);
+    session.EnableDiagnostics(true);
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.noSwapchainTexture = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(session.Diagnostics().drawableMisses == 1);
+    CHECK(presentationProbe.acquisitions == 0);
+    presentationProbe.active = false;
     CHECK(session.Present(false, true, error));
+    CHECK(session.Diagnostics().drawableMisses == 1);
     CHECK(MetalDrawableCount(window) == 2);
     CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
     CHECK(presented[0] == 0 && presented[3] == 255);

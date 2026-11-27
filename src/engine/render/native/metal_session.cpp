@@ -1313,7 +1313,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "sampled_texture_expirations,sampled_texture_capacity_evictions,"
                 "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes,"
                 "color_only_scene_passes,single_texture_vertex_bytes,two_texture_eligible_vertex_bytes,"
-                "other_vertex_bytes\n");
+                "other_vertex_bytes,drawable_misses\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -2213,6 +2213,9 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             DeviceFailure(error, "Acquire Metal swapchain image");
             return retireFailure();
         }
+        if (!swapchain && state.diagnosticsEnabled) {
+            ++state.counters.drawableMisses;
+        }
     }
     if (!width || !height) {
         width = static_cast<Uint32>(drawableWidth);
@@ -2280,7 +2283,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
             "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
             "%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,"
-            "%llu,%llu,%llu,%llu\n",
+            "%llu,%llu,%llu,%llu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -2313,7 +2316,8 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.colorOnlyScenePasses),
             static_cast<unsigned long long>(c.singleTextureVertexBytes),
             static_cast<unsigned long long>(c.twoTextureEligibleVertexBytes),
-            static_cast<unsigned long long>(c.otherVertexBytes));
+            static_cast<unsigned long long>(c.otherVertexBytes),
+            static_cast<unsigned long long>(c.drawableMisses));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {
