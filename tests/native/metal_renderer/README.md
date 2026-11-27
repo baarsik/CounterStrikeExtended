@@ -37,6 +37,11 @@ geometry without repeated uploads, and pressure submissions for changing texture
 `metal-swapchain-missing-drawable` forces a nil CAMetalLayer drawable against the
 real source-built SDL provider. The acquisition must return no swapchain texture,
 then a later acquisition must still work. This checks the macOS provider patch.
+Hidden, minimized and occluded windows keep the retained presentation readable
+without waiting for a drawable that cannot reach the display. Presentation
+resumes on the next visible frame. If such a window temporarily reports zero
+pixel size, scene work is submitted and the last retained presentation remains
+readable until a nonzero size returns.
 `metal-mesh-pages` counts both GPU and transfer-buffer ownership/capacity.
 
 These fixtures exercise the production CPU preparation, recorder/backend and actual

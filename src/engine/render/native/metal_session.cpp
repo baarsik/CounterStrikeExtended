@@ -2146,11 +2146,23 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             state.drawableCount = requested;
         }
     }
+    constexpr SDL_WindowFlags kNonpresentingWindowFlags =
+        SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED | SDL_WINDOW_OCCLUDED;
+    const bool windowCanPresent = (SDL_GetWindowFlags(state.window) & kNonpresentingWindowFlags) == 0;
     int drawableWidth = 0;
     int drawableHeight = 0;
-    if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight) ||
-        drawableWidth <= 0 || drawableHeight <= 0) {
+    if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight)) {
         return DeviceFailure(error, "Query Metal drawable size");
+    }
+    if (drawableWidth <= 0 || drawableHeight <= 0) {
+        if (!windowCanPresent) {
+            if (!state.Submit(error)) {
+                return false;
+            }
+            error.clear();
+            return true;
+        }
+        return Fail(error, "Visible Metal window has no drawable pixels");
     }
     const auto ensureFinalColor = [&state, &error](Uint32 width, Uint32 height) {
         if (width > kTextureDimension || height > kTextureDimension ||
@@ -2188,14 +2200,14 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     SDL_GPUTexture* swapchain = nullptr;
     const auto retireFailure = [&state, &error]() {
         const auto diagnostic = error;
-        state.Submit(error); // An acquired drawable must be submitted; earlier scene work is retained too.
+        state.Submit(error); // Retire earlier scene work and any acquired drawable.
         error = diagnostic;
         return false;
     };
     Uint32 width = 0;
     Uint32 height = 0;
     const auto previousDrawableWait = state.counters.drawableWaitMs;
-    {
+    if (windowCanPresent) {
         Impl::Timer drawableTimer(state.diagnosticsEnabled ? &state.counters.drawableWaitMs : nullptr);
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
             DeviceFailure(error, "Acquire Metal swapchain image");
