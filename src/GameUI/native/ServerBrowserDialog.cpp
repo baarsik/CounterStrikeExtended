@@ -534,20 +534,27 @@ std::wstring RuleDuration(double seconds) {
     return result.data();
 }
 
-std::wstring RuleValue(ServerRule rule, double value) {
+std::wstring RuleValue(ServerRule rule, double value, std::string_view gameDirectory) {
     constexpr const char *Off = "#CSEServerBrowser_RuleOff";
+    constexpr const char *On = "#CSEServerBrowser_RuleOn";
     switch (rule) {
     case ServerRule::FreeForAll:
         return RuleChoice(value, {"#CSEServerBrowser_RuleTeams", "#CSEServerBrowser_RuleFFA"});
     case ServerRule::Respawn:
-        return value <= 0 ? LocalizedRuleValue(Off) : RuleDuration(value);
+        if (gameDirectory.empty()) {
+            return {};
+        }
+        if (value <= 0) {
+            return LocalizedRuleValue(Off);
+        }
+        return GameDirectoriesMatch(gameDirectory, "valve") ? LocalizedRuleValue(On) : RuleDuration(value);
     case ServerRule::InfiniteAmmo:
         return RuleChoice(value, {Off, "#CSEServerBrowser_RuleUnlimitedClip", "#CSEServerBrowser_RuleUnlimitedReserve"});
     case ServerRule::BuyAnywhere:
         return RuleChoice(value, {"#CSEServerBrowser_RuleBuyZones", "#CSEServerBrowser_RuleAnywhere",
             "#CSEServerBrowser_RuleAnywhereT", "#CSEServerBrowser_RuleAnywhereCT"});
     case ServerRule::FriendlyFire:
-        return RuleChoice(value, {Off, "#CSEServerBrowser_RuleOn"});
+        return RuleChoice(value, {Off, On});
     case ServerRule::RoundTime:
         return RuleDuration(value * SecondsPerRuleMinute);
     case ServerRule::BuyTime: {
@@ -719,10 +726,14 @@ public:
         }
         for (auto &metadata : details_->TakeMetadata()) {
             const bool tagsChanged = metadata.tags != row_.tags;
+            const bool gameChanged = !GameDirectoriesMatch(metadata.gameDirectory, row_.gameDirectory);
             row_ = std::move(metadata);
             if (tagsChanged) {
                 taggedVersions_ = ReadVersionTags(row_.tags);
                 UpdateVersions();
+            }
+            if (gameChanged && rulesSnapshot_) {
+                UpdateRulesPresentation();
             }
             responded_ = true;
             failed_ = false;
@@ -1160,7 +1171,7 @@ private:
         for (size_t index = 0; index < names.size(); ++index) {
             const auto rule = static_cast<ServerRule>(index);
             if (auto value = rulesSnapshot_->Value(rule)) {
-                addRule(names[index], RuleValue(rule, *value));
+                addRule(names[index], RuleValue(rule, *value, row_.gameDirectory));
             }
         }
     }

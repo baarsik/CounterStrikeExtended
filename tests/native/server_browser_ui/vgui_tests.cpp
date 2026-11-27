@@ -134,8 +134,10 @@ int main(int argc, char **argv) {
             layoutCase == "original-game-info-sync-empty" || layoutCase == "original-game-info-generation";
         const bool compactRules = layoutCase == "game-info-rules-compact";
         const bool rulesCase = layoutCase == "game-info-rules" || compactRules;
+        const bool respawnCase = layoutCase == "game-info-half-life-respawn";
         const bool inputRetirement = std::string(argv[5]) == "input-retirement";
-        geometry_fixture::surface = hdLayout || inputRetirement || playerRefresh || rulesCase ? &geometry : nullptr;
+        geometry_fixture::surface = hdLayout || inputRetirement || playerRefresh || rulesCase || respawnCase ?
+            &geometry : nullptr;
         geometry.forceWindowFocus = hdLayout;
         if (compactRules) {
             geometry.Resize(640, 480);
@@ -153,7 +155,8 @@ int main(int argc, char **argv) {
         auto *gui = vgui2::ivgui();
         gui->SetSleep(false);
         gui->Start();
-        auto *hdParent = hdLayout || playerRefresh || rulesCase ? geometry_fixture::CreateParent(geometry) : nullptr;
+        auto *hdParent = hdLayout || playerRefresh || rulesCase || respawnCase ?
+            geometry_fixture::CreateParent(geometry) : nullptr;
         Require(vgui2::scheme()->LoadSchemeFromFile("resource/TrackerScheme.res", nullptr) != 0,
                 "load original retained scheme");
         if (inputRetirement) {
@@ -1339,6 +1342,43 @@ int main(int argc, char **argv) {
             dialog->Pump();
             Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
                 "an explicit new Connect must still join the recovered server");
+        } else if (respawnCase) {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            dialog->Pump();
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*info, "PlayerList"));
+            auto *rules = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "RulesList"));
+            tabs->SetActivePage(rules);
+            const auto respawnValue = [&] {
+                gui->RunFrame();
+                vgui2::surface()->SolveTraverse(info->GetVPanel(), false);
+                std::array<wchar_t, 32> text{};
+                Require(rules->GetItemCount() == 1 &&
+                    rules->GetCellText(rules->GetItemIDFromRow(0), 1, text.data(), static_cast<int>(text.size())),
+                    "automatic respawn rule missing");
+                return std::wstring(text.data());
+            };
+            Require(provider.rules != nullptr, "Game Info did not request rules");
+            provider.rules->RulesResponded("mp_forcerespawn", "1");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            Require(respawnValue() == L"1 s", "Counter-Strike respawn value should display a duration");
+
+            auto halfLife = Server(target.ip);
+            constexpr AppId_t HalfLifeApp = 70;
+            halfLife.m_nAppID = HalfLifeApp;
+            std::snprintf(halfLife.m_szGameDir, sizeof(halfLife.m_szGameDir), "%s", "VALVE");
+            replyToPing(halfLife);
+            Require(respawnValue() == L"On", "Half-Life respawn must display On after its metadata arrives");
+
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.rules->RulesResponded("mp_forcerespawn", "0");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            Require(respawnValue() == L"Off", "Half-Life respawn must display Off when disabled");
         } else if (rulesCase) {
             dialog->SelectVisible(0);
             const auto target = *session.model.Selection();
