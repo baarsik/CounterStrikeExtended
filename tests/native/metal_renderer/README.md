@@ -34,6 +34,9 @@ no extra GPU synchronization.
 1x/4x MSAA with translucent overlap, flat/smooth shading, wire/fill and invalid neighboring
 quads. `metal-radar-effects` checks more than 64 effects in one pending frame, retained panel
 geometry without repeated uploads, and pressure submissions for changing textures/panels.
+`metal-swapchain-missing-drawable` forces a nil CAMetalLayer drawable against the
+real source-built SDL provider. The acquisition must return no swapchain texture,
+then a later acquisition must still work. This checks the macOS provider patch.
 `metal-mesh-pages` counts both GPU and transfer-buffer ownership/capacity.
 
 These fixtures exercise the production CPU preparation, recorder/backend and actual
