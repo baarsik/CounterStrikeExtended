@@ -2155,14 +2155,11 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
         return DeviceFailure(error, "Query Metal drawable size");
     }
     if (drawableWidth <= 0 || drawableHeight <= 0) {
-        if (!windowCanPresent) {
-            if (!state.Submit(error)) {
-                return false;
-            }
-            error.clear();
-            return true;
+        if (!state.Submit(error)) {
+            return false;
         }
-        return Fail(error, "Visible Metal window has no drawable pixels");
+        error.clear();
+        return true;
     }
     const auto ensureFinalColor = [&state, &error](Uint32 width, Uint32 height) {
         if (width > kTextureDimension || height > kTextureDimension ||

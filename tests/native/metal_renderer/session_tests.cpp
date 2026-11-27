@@ -1675,6 +1675,14 @@ int main() {
     CHECK(session.ReadPresentedPixels(16, 8, 1, 1, 4, 1, presented.data(), error));
     CHECK(presented[0] == 255 && presented[1] == 0);
     CHECK(SDL_ShowWindow(window));
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.zeroWindowPixels = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.swapchainCalls == 0);
+    presentationProbe.active = false;
+    CHECK(session.ReadPresentedPixels(16, 8, 1, 1, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 255 && presented[1] == 0);
     const int defaultDrawableCount = MetalDrawableCount(window);
     CHECK(defaultDrawableCount == 3);
     session.EnableDiagnostics(true);
