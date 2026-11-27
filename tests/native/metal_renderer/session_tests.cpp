@@ -37,7 +37,10 @@ struct SceneBindings {
 struct PresentationProbe {
     bool active = false;
     bool mismatch = false;
+    bool zeroWindowPixels = false;
+    bool noSwapchainTexture = false;
     unsigned allocationsUntilFailure = 0;
+    unsigned swapchainCalls = 0;
     unsigned acquisitions = 0;
     unsigned cancellations = 0;
     unsigned submissions = 0;
@@ -132,6 +135,20 @@ extern "C" SDL_GPUBuffer* SDL_CreateGPUBuffer(SDL_GPUDevice* device, const SDL_G
 
 extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* command, SDL_Window* window,
     SDL_GPUTexture** texture, Uint32* width, Uint32* height) {
+    if (presentationProbe.active) {
+        ++presentationProbe.swapchainCalls;
+    }
+    if (presentationProbe.active && presentationProbe.noSwapchainTexture) {
+        *texture = nullptr;
+        int windowWidth = 0;
+        int windowHeight = 0;
+        if (!SDL_GetWindowSizeInPixels(window, &windowWidth, &windowHeight)) {
+            return false;
+        }
+        *width = static_cast<Uint32>(windowWidth);
+        *height = static_cast<Uint32>(windowHeight);
+        return true;
+    }
     const bool result = Original<decltype(&SDL_WaitAndAcquireGPUSwapchainTexture)>(
         "SDL_WaitAndAcquireGPUSwapchainTexture")(command, window, texture, width, height);
     if (result && *texture && presentationProbe.active) {
@@ -141,6 +158,19 @@ extern "C" bool SDL_WaitAndAcquireGPUSwapchainTexture(SDL_GPUCommandBuffer* comm
         }
     }
     return result;
+}
+
+extern "C" bool SDL_GetWindowSizeInPixels(SDL_Window* window, int* width, int* height) {
+    if (presentationProbe.active && presentationProbe.zeroWindowPixels) {
+        if (width) {
+            *width = 0;
+        }
+        if (height) {
+            *height = 0;
+        }
+        return true;
+    }
+    return Original<decltype(&SDL_GetWindowSizeInPixels)>("SDL_GetWindowSizeInPixels")(window, width, height);
 }
 
 extern "C" bool SDL_CancelGPUCommandBuffer(SDL_GPUCommandBuffer* command) {
@@ -1627,15 +1657,44 @@ int main() {
     frame.events = {draw};
     frame.draws[0] = Solid(1, 0, 0);
     CHECK(session.Render(frame, error));
+    presentationProbe = {};
+    presentationProbe.active = true;
     CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.swapchainCalls == 0);
+    presentationProbe.active = false;
     std::vector<unsigned char> presented(32 * 16 * 4);
     CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
     CHECK(presented[0] == 0 && presented[3] == 255);
     CHECK(presented[16 * 4] == 255 && presented[16 * 4 + 1] == 0);
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.zeroWindowPixels = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.swapchainCalls == 0);
+    presentationProbe.active = false;
+    CHECK(session.ReadPresentedPixels(16, 8, 1, 1, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 255 && presented[1] == 0);
     CHECK(SDL_ShowWindow(window));
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.zeroWindowPixels = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(presentationProbe.swapchainCalls == 0);
+    presentationProbe.active = false;
+    CHECK(session.ReadPresentedPixels(16, 8, 1, 1, 4, 1, presented.data(), error));
+    CHECK(presented[0] == 255 && presented[1] == 0);
     const int defaultDrawableCount = MetalDrawableCount(window);
     CHECK(defaultDrawableCount == 3);
+    session.EnableDiagnostics(true);
+    presentationProbe = {};
+    presentationProbe.active = true;
+    presentationProbe.noSwapchainTexture = true;
+    CHECK(session.Present(true, true, error));
+    CHECK(session.Diagnostics().drawableMisses == 1);
+    CHECK(presentationProbe.acquisitions == 0);
+    presentationProbe.active = false;
     CHECK(session.Present(false, true, error));
+    CHECK(session.Diagnostics().drawableMisses == 1);
     CHECK(MetalDrawableCount(window) == 2);
     CHECK(session.ReadPresentedPixels(0, 0, 32, 16, 4, 1, presented.data(), error));
     CHECK(presented[0] == 0 && presented[3] == 255);

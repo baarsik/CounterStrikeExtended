@@ -24,7 +24,7 @@ Set `CSE_METAL_FRAME_STATS=/absolute/path/counters.csv` to collect opt-in cumula
 per-presentation counters and CPU timings. Difference consecutive rows for frame costs;
 `frame` identifies the latest recorder segment, since effects can split capture segments.
 Counts include scene/effect draws, submissions, render/copy passes, scene resolves, uploaded
-bytes, blocking fence waits and preparation/stream allocations/evictions. Cache/working byte columns are
+bytes, blocking fence waits, visible-window drawable misses and preparation/stream allocations/evictions. Cache/working byte columns are
 instantaneous submission sizes; other counters are cumulative. Timings measure CPU preparation, encoding, waiting and
 presentation, not GPU execution. Leave this variable unset for performance measurements.
 Debug groups identify legacy scene/HUD and radar/backdrop encoding. Diagnostics introduce
@@ -34,6 +34,15 @@ no extra GPU synchronization.
 1x/4x MSAA with translucent overlap, flat/smooth shading, wire/fill and invalid neighboring
 quads. `metal-radar-effects` checks more than 64 effects in one pending frame, retained panel
 geometry without repeated uploads, and pressure submissions for changing textures/panels.
+`metal-swapchain-missing-drawable` forces a nil CAMetalLayer drawable against the
+real source-built SDL provider. The acquisition must return no swapchain texture,
+then a later acquisition must still work. This checks the macOS provider patch.
+Hidden, minimized and occluded windows keep the retained presentation readable
+without waiting for a drawable that cannot reach the display. Presentation
+resumes on the next visible frame. If a window temporarily reports zero pixel
+size, including before its visible flag updates during a transition, scene work
+is submitted and the last retained presentation remains readable until a
+nonzero size returns.
 `metal-mesh-pages` counts both GPU and transfer-buffer ownership/capacity.
 
 These fixtures exercise the production CPU preparation, recorder/backend and actual

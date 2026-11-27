@@ -1313,7 +1313,7 @@ bool MetalSession::Initialize(SDL_Window* window, bool debug, std::string& error
                 "sampled_texture_expirations,sampled_texture_capacity_evictions,"
                 "sampled_texture_byte_limit_evictions,sampled_texture_resident_count,sampled_texture_resident_bytes,"
                 "color_only_scene_passes,single_texture_vertex_bytes,two_texture_eligible_vertex_bytes,"
-                "other_vertex_bytes\n");
+                "other_vertex_bytes,drawable_misses\n");
         }
     }
     const auto fallback = [](std::array<std::uint8_t, 4> rgba) {
@@ -2146,11 +2146,20 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             state.drawableCount = requested;
         }
     }
+    constexpr SDL_WindowFlags kNonpresentingWindowFlags =
+        SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED | SDL_WINDOW_OCCLUDED;
+    const bool windowCanPresent = (SDL_GetWindowFlags(state.window) & kNonpresentingWindowFlags) == 0;
     int drawableWidth = 0;
     int drawableHeight = 0;
-    if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight) ||
-        drawableWidth <= 0 || drawableHeight <= 0) {
+    if (!SDL_GetWindowSizeInPixels(state.window, &drawableWidth, &drawableHeight)) {
         return DeviceFailure(error, "Query Metal drawable size");
+    }
+    if (drawableWidth <= 0 || drawableHeight <= 0) {
+        if (!state.Submit(error)) {
+            return false;
+        }
+        error.clear();
+        return true;
     }
     const auto ensureFinalColor = [&state, &error](Uint32 width, Uint32 height) {
         if (width > kTextureDimension || height > kTextureDimension ||
@@ -2188,18 +2197,21 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
     SDL_GPUTexture* swapchain = nullptr;
     const auto retireFailure = [&state, &error]() {
         const auto diagnostic = error;
-        state.Submit(error); // An acquired drawable must be submitted; earlier scene work is retained too.
+        state.Submit(error); // Retire earlier scene work and any acquired drawable.
         error = diagnostic;
         return false;
     };
     Uint32 width = 0;
     Uint32 height = 0;
     const auto previousDrawableWait = state.counters.drawableWaitMs;
-    {
+    if (windowCanPresent) {
         Impl::Timer drawableTimer(state.diagnosticsEnabled ? &state.counters.drawableWaitMs : nullptr);
         if (!SDL_WaitAndAcquireGPUSwapchainTexture(command, state.window, &swapchain, &width, &height)) {
             DeviceFailure(error, "Acquire Metal swapchain image");
             return retireFailure();
+        }
+        if (!swapchain && state.diagnosticsEnabled) {
+            ++state.counters.drawableMisses;
         }
     }
     if (!width || !height) {
@@ -2268,7 +2280,7 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             "%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
             "%.6f,%.6f,%.6f,%.6f,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,"
             "%.6f,%d,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%llu,%zu,%zu,"
-            "%llu,%llu,%llu,%llu\n",
+            "%llu,%llu,%llu,%llu,%llu\n",
             static_cast<unsigned long long>(state.serial), static_cast<unsigned long long>(c.drawPackets),
             static_cast<unsigned long long>(c.gpuDraws), static_cast<unsigned long long>(c.effectDraws),
             static_cast<unsigned long long>(c.commandBuffers), static_cast<unsigned long long>(c.renderPasses),
@@ -2301,7 +2313,8 @@ bool MetalSession::Present(bool vsync, bool preserveAspect, std::string& error) 
             static_cast<unsigned long long>(c.colorOnlyScenePasses),
             static_cast<unsigned long long>(c.singleTextureVertexBytes),
             static_cast<unsigned long long>(c.twoTextureEligibleVertexBytes),
-            static_cast<unsigned long long>(c.otherVertexBytes));
+            static_cast<unsigned long long>(c.otherVertexBytes),
+            static_cast<unsigned long long>(c.drawableMisses));
         // Counters are cumulative, so callers can difference consecutive rows without per-frame reset races.
     }
     if (presentResolve) {

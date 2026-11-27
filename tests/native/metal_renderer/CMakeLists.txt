@@ -37,6 +37,11 @@ add_test(NAME metal-nonfinite-geometry COMMAND metal_nonfinite_tests)
 add_test(NAME metal-session-device COMMAND metal_session_tests)
 add_test(NAME metal-mesh-pages COMMAND metal_mesh_tests)
 add_test(NAME metal-mesh-pages-expanded-stream COMMAND metal_mesh_tests larger-cache)
+add_executable(metal_swapchain_tests swapchain_tests.mm)
+target_include_directories(metal_swapchain_tests PRIVATE "${CSE_ROOT}/src/external/SDL3/include")
+target_link_libraries(metal_swapchain_tests PRIVATE "${CSE_METAL_SDL_LIBRARY}" "-framework AppKit" "-framework QuartzCore")
+target_compile_options(metal_swapchain_tests PRIVATE -fobjc-arc -Wall -Wextra -Werror)
+add_test(NAME metal-swapchain-missing-drawable COMMAND metal_swapchain_tests)
 add_executable(renderer_backend_tests ../renderer_selection/backend_tests.cpp
     "${native}/../backend.cpp" "${native}/legacy_dispatch.cpp"
     "${native}/frame_stream.cpp")
