@@ -132,10 +132,16 @@ int main(int argc, char **argv) {
                               layoutCase == "tab-order" || positionCase || browserShell;
         const bool playerRefresh = layoutCase == "original-game-info" ||
             layoutCase == "original-game-info-sync-empty" || layoutCase == "original-game-info-generation";
+        const bool compactRules = layoutCase == "game-info-rules-compact";
+        const bool rulesCase = layoutCase == "game-info-rules" || compactRules;
+        const bool respawnCase = layoutCase == "game-info-half-life-respawn";
         const bool inputRetirement = std::string(argv[5]) == "input-retirement";
-        geometry_fixture::surface = hdLayout || inputRetirement || playerRefresh ? &geometry : nullptr;
+        geometry_fixture::surface = hdLayout || inputRetirement || playerRefresh || rulesCase || respawnCase ?
+            &geometry : nullptr;
         geometry.forceWindowFocus = hdLayout;
-        if (layoutCase == "focus-tab") {
+        if (compactRules) {
+            geometry.Resize(640, 480);
+        } else if (layoutCase == "focus-tab") {
             // Construct with the installed scheme at a real tall workspace before
             // shrinking; Label deliberately retains its already assigned font.
             geometry.Resize(3840, 2160);
@@ -149,7 +155,8 @@ int main(int argc, char **argv) {
         auto *gui = vgui2::ivgui();
         gui->SetSleep(false);
         gui->Start();
-        auto *hdParent = hdLayout || playerRefresh ? geometry_fixture::CreateParent(geometry) : nullptr;
+        auto *hdParent = hdLayout || playerRefresh || rulesCase || respawnCase ?
+            geometry_fixture::CreateParent(geometry) : nullptr;
         Require(vgui2::scheme()->LoadSchemeFromFile("resource/TrackerScheme.res", nullptr) != 0,
                 "load original retained scheme");
         if (inputRetirement) {
@@ -1272,7 +1279,7 @@ int main(int argc, char **argv) {
             provider.pingCallbacks.rbegin()->second->ServerResponded(item);
             dialog->Pump();
             auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
-            Require(info->FindChildByName("PlayerList", false) && !info->FindChildByName("DetailsOverflow", false),
+            Require(info->FindChildByName("PlayersList", true) && !info->FindChildByName("DetailsOverflow", false),
                     "GameInfo uses custom presentation instead of original resource controls");
             auto *prompt = layout_fixture::Child(*info, "DialogServerPassword");
             auto *entry = static_cast<vgui2::TextEntry *>(layout_fixture::Child(*prompt, "PasswordEntry"));
@@ -1335,6 +1342,217 @@ int main(int argc, char **argv) {
             dialog->Pump();
             Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
                 "an explicit new Connect must still join the recovered server");
+        } else if (respawnCase) {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            dialog->Pump();
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            auto *tabs = static_cast<vgui2::PropertySheet *>(layout_fixture::Child(*info, "PlayerList"));
+            auto *rules = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "RulesList"));
+            tabs->SetActivePage(rules);
+            const auto respawnValue = [&] {
+                gui->RunFrame();
+                vgui2::surface()->SolveTraverse(info->GetVPanel(), false);
+                std::array<wchar_t, 32> text{};
+                Require(rules->GetItemCount() == 1 &&
+                    rules->GetCellText(rules->GetItemIDFromRow(0), 1, text.data(), static_cast<int>(text.size())),
+                    "automatic respawn rule missing");
+                return std::wstring(text.data());
+            };
+            Require(provider.rules != nullptr, "Game Info did not request rules");
+            provider.rules->RulesResponded("mp_forcerespawn", "1");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            Require(respawnValue() == L"1 s", "Counter-Strike respawn value should display a duration");
+
+            auto halfLife = Server(target.ip);
+            constexpr AppId_t HalfLifeApp = 70;
+            halfLife.m_nAppID = HalfLifeApp;
+            std::snprintf(halfLife.m_szGameDir, sizeof(halfLife.m_szGameDir), "%s", "VALVE");
+            replyToPing(halfLife);
+            Require(respawnValue() == L"On", "Half-Life respawn must display On after its metadata arrives");
+
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.rules->RulesResponded("mp_forcerespawn", "0");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            Require(respawnValue() == L"Off", "Half-Life respawn must display Off when disabled");
+        } else if (rulesCase) {
+            dialog->SelectVisible(0);
+            const auto target = *session.model.Selection();
+            Send(*dialog, "ViewGameInfo");
+            auto *info = layout_fixture::Child(*dialog, "DialogGameInfo");
+            dialog->Pump();
+            Require(provider.ruleQueries == 1, "Game Info did not prefetch rules before its metadata reply");
+            auto item = Server(target.ip);
+            replyToPing(item);
+            auto *tabs = dynamic_cast<vgui2::PropertySheet *>(layout_fixture::Child(*info, "PlayerList"));
+            auto *players = dynamic_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "PlayersList"));
+            auto *rules = dynamic_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "RulesList"));
+            Require(tabs && players && rules && tabs->GetNumPages() == 2, "native Server Info tabs missing");
+            const auto versionText = [&](const char *name) {
+                auto *label = dynamic_cast<vgui2::Label *>(layout_fixture::Child(*info, name));
+                Require(label && label->IsVisible() && label->GetTall() > 0, "missing visible server version field");
+                std::array<wchar_t, 128> text{};
+                label->GetText(text.data(), static_cast<int>(text.size()));
+                return std::wstring(text.data());
+            };
+            const auto paint = [&] {
+                gui->RunFrame();
+                geometry.paintedText.clear();
+                geometry.observeText = true;
+                vgui2::surface()->SolveTraverse(info->GetVPanel(), false);
+                vgui2::surface()->PaintTraverse(info->GetVPanel());
+                geometry.observeText = false;
+            };
+            const auto painted = [&](const char *token) {
+                paint();
+                const auto *label = vgui2::localize()->Find(token);
+                return label && geometry.paintedText.find(label) != std::wstring::npos;
+            };
+            const auto rows = [&] {
+                paint();
+                std::map<std::string, std::wstring> values;
+                for (int index = 0; index < rules->GetItemCount(); ++index) {
+                    const int id = rules->GetItemIDFromRow(index);
+                    std::array<wchar_t, 128> text{};
+                    Require(rules->GetCellText(id, 1, text.data(), static_cast<int>(text.size())), "missing rule cell");
+                    values.emplace(rules->GetItem(id)->GetString("Rule"), text.data());
+                }
+                return values;
+            };
+            paint();
+            Require(tabs->GetActivePage() == players && players->IsVisible() && !rules->IsVisible(),
+                "Players must be the default tab");
+            Require(versionText("EngineVersion") == L"Checking…" && versionText("GameDllVersion") == L"Checking…",
+                "version summary did not show the request in flight");
+            if (cse::ui::ControlsSmokedGlass()) {
+                auto *address = layout_fixture::Child(*info, "ServerAddress");
+                auto *roster = layout_fixture::Child(*info, "PlayersText");
+                auto *join = layout_fixture::Child(*info, "Connect");
+                int addressX = 0;
+                int addressY = 0;
+                int rosterX = 0;
+                int rosterY = 0;
+                int tabsX = 0;
+                int tabsY = 0;
+                int joinX = 0;
+                int joinY = 0;
+                address->GetPos(addressX, addressY);
+                roster->GetPos(rosterX, rosterY);
+                tabs->GetPos(tabsX, tabsY);
+                join->GetPos(joinX, joinY);
+                Require(address->IsVisible() && addressX + address->GetWide() <= rosterX &&
+                    rosterY < addressY && addressY + address->GetTall() < tabsY,
+                    "compact server summary overlaps the table or its right column");
+                Require(tabsY + tabs->GetTall() <= joinY && joinY + join->GetTall() <= info->GetTall() &&
+                    players->GetWide() == tabs->GetWide() && players->GetTall() > 0,
+                    "tab body or Join Game button is clipped");
+            }
+            Require(provider.players && provider.ruleQueries == 1, "background rules did not stay independent");
+            provider.players->AddPlayerToList("Original player", 5, 12.0f);
+            provider.players->PlayersRefreshComplete();
+            dialog->Pump();
+            tabs->SetActivePage(rules);
+            dialog->Pump();
+            Require(rules->IsVisible() && !players->IsVisible() && provider.ruleQueries == 1,
+                "selecting Rules restarted the background query");
+            Require(painted("CSEServerBrowser_RulesLoading"), "Rules tab did not paint a loading state");
+            provider.rules->RulesResponded("mp_friendlyfire", "0");
+            provider.rules->RulesResponded("mp_roundtime", "1.75");
+            provider.rules->RulesResponded("mp_buytime", "0.25");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            const auto stock = rows();
+            Require(stock.size() == 3 && stock.at("#CSEServerBrowser_RuleFriendlyFire") == L"Off" &&
+                stock.at("#CSEServerBrowser_RuleRoundTime") == L"1 min 45 s" &&
+                stock.at("#CSEServerBrowser_RuleBuyTime") == L"15 s", "stock rules or duration formatting incorrect");
+            Require(versionText("EngineVersion") == L"Not advertised" &&
+                versionText("GameDllVersion") == L"Not advertised", "omitted versions were not reported correctly");
+            Require(players->GetItemCount() == 1 && provider.ruleQueries == 1, "rules changed players or re-queried");
+
+            Send(*info, "Refresh");
+            dialog->Pump();
+            Require(provider.ruleQueries == 2 && rules->GetItemCount() == 3,
+                "manual refresh must retain the current results until the next reply");
+            provider.rules->RulesResponded("mp_freeforall", "1");
+            provider.rules->RulesResponded("mp_forcerespawn", "2");
+            provider.rules->RulesResponded("mp_infinite_ammo", "2");
+            provider.rules->RulesResponded("mp_buy_anywhere", "3");
+            provider.rules->RulesResponded("mp_buytime", "-1");
+            provider.rules->RulesResponded("game_version", "#ServerBrowser_Players");
+            provider.rules->RulesResponded("sv_version", "1.1.2.7/Stdio,48,4533");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            const auto extended = rows();
+            Require(extended.size() == 5, "incorrect number of extended rules");
+            Require(extended.at("#CSEServerBrowser_RuleMode") == L"Free-for-all", "incorrect free-for-all value");
+            Require(extended.at("#CSEServerBrowser_RuleRespawn") == L"2 s", "incorrect respawn delay");
+            Require(extended.at("#CSEServerBrowser_RuleAmmo") == L"Unlimited reserve", "incorrect ammo value");
+            Require(extended.at("#CSEServerBrowser_RuleBuyLocation") == L"Anywhere (CT only)", "incorrect buy zones");
+            Require(extended.at("#CSEServerBrowser_RuleBuyTime") == L"Unlimited", "incorrect unlimited buy time");
+            Require(versionText("EngineVersion") == L"Build 4533", "engine build was not extracted");
+            Require(versionText("GameDllVersion") == L"#ServerBrowser_Players",
+                "advertised Game DLL version must stay literal");
+
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.rules->RulesResponded("mp_buy_anywhere", "9");
+            provider.rules->RulesRefreshComplete();
+            dialog->Pump();
+            Require(rules->GetItemCount() == 0 && painted("CSEServerBrowser_RulesEmpty"),
+                "empty success did not paint its own state");
+            Send(*info, "Refresh");
+            dialog->Pump();
+            provider.rules->RulesFailedToRespond();
+            dialog->Pump();
+            Require(rules->GetItemCount() == 0 && painted("CSEServerBrowser_RulesUnavailable"),
+                "failed request did not paint its own state");
+            Require(versionText("EngineVersion") == L"Unknown" && versionText("GameDllVersion") == L"Unknown",
+                "a failed rules query must leave versions unknown");
+            tabs->SetActivePage(players);
+            paint();
+            Require(players->IsVisible() && !rules->IsVisible() && players->GetItemCount() == 1,
+                "Rules tab disrupted the player roster");
+            auto tagged = item;
+            std::snprintf(tagged.m_szGameTags, sizeof(tagged.m_szGameTags), "%s",
+                "rehlds:3.14.0.857,regamedll:5.30.0.814");
+            Send(*info, "Refresh");
+            replyToPing(tagged);
+            paint();
+            const auto taggedVersionsVisible = [&] {
+                return versionText("EngineVersion") == L"ReHLDS 3.14.0.857" &&
+                    versionText("GameDllVersion") == L"ReGameDLL 5.30.0.814";
+            };
+            Require(taggedVersionsVisible(), "version tags did not display before rules completed");
+            layout_fixture::Fits(*info, "EngineVersion");
+            layout_fixture::Fits(*info, "GameDllVersion");
+            provider.rules->RulesFailedToRespond();
+            dialog->Pump();
+            Require(taggedVersionsVisible(), "a failed rules query discarded explicit version tags");
+            tabs->SetActivePage(rules);
+            auto full = item;
+            full.m_nPlayers = full.m_nMaxPlayers;
+            Send(*info, "Connect");
+            replyToPing(full);
+            auto *retry = dynamic_cast<vgui2::ToggleButton *>(layout_fixture::Child(*info, "AutoRetry"));
+            Require(retry && retry->IsVisible() && engine.commands.empty(), "full server lost Auto-Retry");
+            const auto toggleRetry = [&](bool selected) {
+                retry->SetSelected(selected);
+                gui->PostMessage(info->GetVPanel(), new KeyValues("ButtonToggled"), retry->GetVPanel(), 0);
+                paint();
+                Require(tabs->GetActivePage() == rules && rules->IsVisible(), "Auto-Retry changed the active tab");
+                Require(layout_fixture::Child(*info, "AutoRetryJoin")->IsVisible() == selected,
+                    "Auto-Retry choice visibility did not follow the toggle");
+            };
+            toggleRetry(true);
+            toggleRetry(false);
+            Send(*info, "Connect");
+            replyToPing(item);
+            Require(engine.commands == std::vector<std::string>{"connect " + ConnectionAddress(target) + "\n"},
+                "a failed rules request prevented joining");
         } else if (playerRefresh) {
             dialog->SelectVisible(0);
             const auto target = *session.model.Selection();
@@ -1348,8 +1566,8 @@ int main(int argc, char **argv) {
             provider.pingCallbacks.rbegin()->second->ServerResponded(item);
             dialog->Pump();
             gui->RunFrame();
-            Require(provider.players && !provider.rules, "GameInfo did not use original PlayerDetails-only flow");
-            auto *players = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "PlayerList"));
+            Require(provider.players && provider.ruleQueries == 1, "Game Info did not start both detail queries");
+            auto *players = static_cast<vgui2::ListPanel *>(layout_fixture::Child(*info, "PlayersList"));
             constexpr size_t ReplacementCount = DetailFrameBudget * 3 + 1;
             const auto pumpPlayers = [&] {
                 for (size_t frame = 0; frame < ReplacementCount; ++frame) {
@@ -1424,10 +1642,10 @@ int main(int argc, char **argv) {
                 dialog->Pump();
                 // Leave this generation incomplete with queued rows during bounded clearing.
                 auto *independentPlayers = provider.players;
-                const int cancellations = provider.canceled;
+                const int cancellations = provider.playerQueryCancellations;
                 Send(*info, "Refresh");
                 dialog->Pump();
-                Require(provider.players == independentPlayers && provider.canceled == cancellations,
+                Require(provider.players == independentPlayers && provider.playerQueryCancellations == cancellations,
                     "starting metadata retired an active independent player generation");
                 provider.pingCallbacks.rbegin()->second->ServerResponded(empty);
                 dialog->Pump();

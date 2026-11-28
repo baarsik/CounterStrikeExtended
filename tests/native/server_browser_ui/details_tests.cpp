@@ -88,6 +88,63 @@ int main(int argc, char **argv) {
             const auto players = details.TakeUpdates();
             Require(players.size() == 1 && players[0].name == "current generation",
                     "old queued players contaminated successor generation");
+        } else if (name == "rules-copy") {
+            Require(details.Start(ServerAddress) && details.StartPlayers(), "query startup failed");
+            auto *players = provider.players;
+            provider.duringRulesStart = [&] {
+                char version[] = "5.30.0.814-dev";
+                provider.rules->RulesResponded("game_version", version);
+                version[0] = '!';
+                provider.rules->RulesResponded("sv_version", " 1.1.2.7/Stdio,48,4533\r\n");
+                provider.rules->RulesResponded("mp_freeforall", "0");
+                provider.rules->RulesResponded("mp_buytime", "0.25");
+                provider.rules->RulesResponded("mp_roundtime", "1.5 minutes");
+                provider.rules->RulesResponded("mp_freezetime", "nan");
+                provider.rules->RulesResponded("sv_password", "1");
+                provider.rules->RulesRefreshComplete();
+            };
+            Require(details.StartRules() && provider.port == ServerAddress.queryPort, "rules query used wrong port");
+            Require(provider.players == players && provider.canceled == 0, "rules query retired player details");
+            const auto rules = details.TakeRules();
+            Require(rules && rules->responded && rules->versions.gameDll == "5.30.0.814-dev"
+                    && rules->versions.engine == "1.1.2.7/Stdio,48,4533"
+                    && rules->Value(ServerRule::FreeForAll) == 0.0 && rules->Value(ServerRule::BuyTime) == 0.25,
+                    "rules failed to copy advertised values");
+            Require(!rules->Value(ServerRule::RoundTime) && !rules->Value(ServerRule::FreezeTime)
+                    && !rules->Value(ServerRule::Respawn), "missing or invalid rules were synthesized");
+            Require(!details.TakeRules(), "a completed snapshot was delivered twice");
+            const auto advertised = ReadVersionTags("dust2; rehlds:3.14.0.857 ,regamedll:5.30.0.814-dev");
+            Require(advertised.engine == "ReHLDS 3.14.0.857" && advertised.gameDll == "ReGameDLL 5.30.0.814-dev",
+                "explicit version tags were not recognized");
+            const auto unrelated = ReadVersionTags("rehlds,rehlds:#token,other_regamedll:5.30,regamedll:5.30 break");
+            Require(unrelated.engine.empty() && unrelated.gameDll.empty(), "unrelated tags supplied a version");
+        } else if (name == "rules-refresh") {
+            Require(details.Start(ServerAddress) && details.StartPlayers() && details.StartRules(),
+                    "query startup failed");
+            auto *players = provider.players;
+            provider.rules->RulesResponded("mp_forcerespawn", "2");
+            Require(!details.TakeRules(), "an incomplete reply reached the UI");
+            Require(details.StartRules() && provider.players == players && provider.canceled == 1,
+                    "replacing rules must only retire the previous rules query");
+            provider.rules->RulesResponded("mp_friendlyfire", "1");
+            provider.rules->RulesRefreshComplete();
+            const auto rules = details.TakeRules();
+            Require(rules && rules->responded && rules->Value(ServerRule::FriendlyFire) == 1.0
+                    && !rules->Value(ServerRule::Respawn), "obsolete rules leaked into a replacement");
+            Require(details.StartRules(), "second refresh failed");
+            provider.rules->RulesResponded("mp_friendlyfire", "1");
+            provider.rules->RulesFailedToRespond();
+            const auto failure = details.TakeRules();
+            Require(failure && !failure->responded && !failure->Value(ServerRule::FriendlyFire),
+                    "failed rules query leaked partial data");
+        } else if (name == "rules-close") {
+            Require(details.Start(ServerAddress) && details.StartPlayers() && details.StartRules(),
+                    "query startup failed");
+            provider.duringCancel = [&] {
+                Require(!details.BeginClose(), "reentrant cancellation authorized callback deletion");
+            };
+            Require(details.BeginClose() && provider.canceled == 3, "rules handle was not canceled exactly once");
+            Require(!details.TakeRules() && details.TakeUpdates().empty(), "retired rules leaked display data");
         } else if (name == "wrong-endpoint") {
             details.Start(ServerAddress);
             auto wrong = Server();

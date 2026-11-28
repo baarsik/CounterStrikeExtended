@@ -192,7 +192,8 @@ if(CSE_BROWSER_UI_DETAILS_TESTS)
         endif()
     endif()
     foreach(case original-metadata synchronous-copy cancel-reentry start-reentry bounded-drain
-            independent-refresh player-generation wrong-endpoint common-ports address-input dns-retirement history-flag)
+            independent-refresh player-generation rules-copy rules-refresh rules-close
+            wrong-endpoint common-ports address-input dns-retirement history-flag)
         add_test(NAME browser_details_${case} COMMAND browser_details_tests ${case})
     endforeach()
 endif()

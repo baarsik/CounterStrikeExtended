@@ -35,7 +35,9 @@
 #include <climits>
 #include <cmath>
 #include <cstring>
+#include <cwchar>
 #include <functional>
+#include <initializer_list>
 #include <ctime>
 
 namespace cse::server_browser {
@@ -494,6 +496,121 @@ private:
     bool retiring_ = false;
 };
 
+std::wstring LocalizedRuleValue(const char *token) {
+    const auto *text = vgui2::localize()->Find(token);
+    return text ? std::wstring(text) : std::wstring{};
+}
+
+std::wstring RuleChoice(double value, std::initializer_list<const char *> choices) {
+    if (value < 0 || value >= static_cast<double>(choices.size()) || std::trunc(value) != value) {
+        return {};
+    }
+    return LocalizedRuleValue(choices.begin()[static_cast<size_t>(value)]);
+}
+
+constexpr double SecondsPerRuleMinute = 60;
+std::wstring RuleDuration(double seconds) {
+    if (seconds < 0 || !std::isfinite(seconds)) {
+        return {};
+    }
+    const double minutes = std::floor(seconds / SecondsPerRuleMinute);
+    const double remainder = std::fmod(seconds, SecondsPerRuleMinute);
+    std::array<wchar_t, 32> minutesText{};
+    std::array<wchar_t, 32> secondsText{};
+    std::array<wchar_t, 128> result{};
+    std::swprintf(minutesText.data(), minutesText.size(), L"%g", minutes);
+    std::swprintf(secondsText.data(), secondsText.size(), L"%g", remainder);
+    auto *localize = vgui2::localize();
+    if (minutes == 0) {
+        localize->ConstructString(result.data(), sizeof(result), localize->Find("#CSEServerBrowser_RuleSeconds"),
+            1, secondsText.data());
+    } else if (remainder == 0) {
+        localize->ConstructString(result.data(), sizeof(result), localize->Find("#CSEServerBrowser_RuleMinutes"),
+            1, minutesText.data());
+    } else {
+        localize->ConstructString(result.data(), sizeof(result),
+            localize->Find("#CSEServerBrowser_RuleMinutesSeconds"), 2, minutesText.data(), secondsText.data());
+    }
+    return result.data();
+}
+
+std::wstring RuleValue(ServerRule rule, double value, std::string_view gameDirectory) {
+    constexpr const char *Off = "#CSEServerBrowser_RuleOff";
+    constexpr const char *On = "#CSEServerBrowser_RuleOn";
+    switch (rule) {
+    case ServerRule::FreeForAll:
+        return RuleChoice(value, {"#CSEServerBrowser_RuleTeams", "#CSEServerBrowser_RuleFFA"});
+    case ServerRule::Respawn:
+        if (gameDirectory.empty()) {
+            return {};
+        }
+        if (value <= 0) {
+            return LocalizedRuleValue(Off);
+        }
+        return GameDirectoriesMatch(gameDirectory, "valve") ? LocalizedRuleValue(On) : RuleDuration(value);
+    case ServerRule::InfiniteAmmo:
+        return RuleChoice(value, {Off, "#CSEServerBrowser_RuleUnlimitedClip", "#CSEServerBrowser_RuleUnlimitedReserve"});
+    case ServerRule::BuyAnywhere:
+        return RuleChoice(value, {"#CSEServerBrowser_RuleBuyZones", "#CSEServerBrowser_RuleAnywhere",
+            "#CSEServerBrowser_RuleAnywhereT", "#CSEServerBrowser_RuleAnywhereCT"});
+    case ServerRule::FriendlyFire:
+        return RuleChoice(value, {Off, On});
+    case ServerRule::RoundTime:
+        return RuleDuration(value * SecondsPerRuleMinute);
+    case ServerRule::BuyTime: {
+        constexpr double UnlimitedBuyTime = -1;
+        if (value == UnlimitedBuyTime) {
+            return LocalizedRuleValue("#CSEServerBrowser_RuleUnlimited");
+        }
+        return RuleDuration(value * SecondsPerRuleMinute);
+    }
+    case ServerRule::FreezeTime:
+    case ServerRule::BombTimer:
+        return RuleDuration(value);
+    case ServerRule::Count:
+        return {};
+    }
+    return {};
+}
+
+std::wstring EngineVersionText(const std::string &version) {
+    // ReHLDS publishes the game patch, protocol and engine build as one comma-separated value.
+    const std::string_view report(version);
+    const auto first = report.find(',');
+    const auto last = report.rfind(',');
+    if (first == std::string_view::npos || first == 0 || first == last || last + 1 == report.size()) {
+        return cse::localization::WideLiteral(version.c_str());
+    }
+    const auto protocol = report.substr(first + 1, last - first - 1);
+    constexpr std::string_view DecimalDigits = "0123456789";
+    if (protocol.empty() || protocol.find_first_not_of(DecimalDigits) != std::string_view::npos ||
+        report.substr(last + 1).find_first_not_of(DecimalDigits) != std::string_view::npos) {
+        return cse::localization::WideLiteral(version.c_str());
+    }
+    const auto build = cse::localization::WideLiteral(version.c_str() + last + 1);
+    auto *localize = vgui2::localize();
+    if (auto *format = localize->Find("#CSEServerBrowser_VersionBuild")) {
+        std::array<wchar_t, 96> result{};
+        localize->ConstructString(result.data(), sizeof(result), format, 1, build.c_str());
+        return result.data();
+    }
+    return build;
+}
+
+class BrowserDetailsHeading final : public vgui2::Label {
+public:
+    explicit BrowserDetailsHeading(vgui2::Panel *parent) : Label(parent, "ServerText", "") {}
+
+protected:
+    void ApplySchemeSettings(vgui2::IScheme *scheme) override {
+        Label::ApplySchemeSettings(scheme);
+        if (cse::ui::ControlsSmokedGlass()) {
+            constexpr int HeadingFontHeight = 20;
+            SetFont(vgui2::smoked::TextFont(this, scheme, GetFont(), true, vgui2::smoked::Pixels(HeadingFontHeight)));
+        }
+    }
+};
+
 class BrowserDetailsDialog : public vgui2::Frame {
     DECLARE_CLASS_SIMPLE_NAMED(BrowserDetailsDialog, vgui2::Frame, "Frame");
 public:
@@ -501,8 +618,6 @@ public:
         : Frame(&parent, "DialogGameInfo", false, false), parent_(parent), session_(session), row_(row),
           acceptedSerial_(session.connection.AcceptanceSerial()) {
         SetDeleteSelfOnClose(false);
-        constexpr int OriginalInfoMinimumWidth = 416;
-        constexpr int OriginalInfoMinimumHeight = 340;
         SetMinimumSize(OriginalInfoMinimumWidth, OriginalInfoMinimumHeight);
         SetTitle("#ServerBrowser_GameInfoWithNameTitle", true);
         SetDialogVariable("game", row.name.c_str());
@@ -515,8 +630,19 @@ public:
         retry_->AddActionSignalTarget(this);
         alert_ = new vgui2::RadioButton(this, "AutoRetryAlert", "");
         join_ = new vgui2::RadioButton(this, "AutoRetryJoin", "");
-        list_ = new vgui2::ListPanel(this, "PlayerList");
-        list_->AddColumnHeader(0, "PlayerName", "#ServerBrowser_PlayerName", 156, 0);
+        new BrowserDetailsHeading(this);
+        address_ = new vgui2::Label(this, "ServerAddress", "");
+        address_->SetVisible(false);
+        engineVersion_ = CreateVersionField("EngineVersionLabel", "#CSEServerBrowser_VersionEngine", "EngineVersion");
+        gameDllVersion_ = CreateVersionField("GameDllVersionLabel", "#CSEServerBrowser_VersionGameDll", "GameDllVersion");
+        taggedVersions_ = ReadVersionTags(row_.tags);
+        // Both original resource variants place and resize the tab body through this field.
+        tabs_ = new vgui2::PropertySheet(this, "PlayerList");
+        constexpr int DetailsTabWidth = 94;
+        tabs_->SetTabWidth(DetailsTabWidth);
+        list_ = new vgui2::ListPanel(tabs_, "PlayersList");
+        list_->AddColumnHeader(0, "PlayerName", "#ServerBrowser_PlayerName", 156,
+            vgui2::ListPanel::COLUMN_RESIZEWITHWINDOW);
         list_->AddColumnHeader(1, "Score", "#ServerBrowser_Score", 64, 0);
         list_->AddColumnHeader(2, "Time", "#ServerBrowser_Time", 64, 0);
         list_->SetSortFunc(2, [](vgui2::ListPanel *, const vgui2::ListPanelItem &a, const vgui2::ListPanelItem &b) {
@@ -525,13 +651,31 @@ public:
             return (left < right) - (left > right);
         });
         list_->SetSortColumn(1);
+        rulesList_ = new vgui2::ListPanel(tabs_, "RulesList");
+        constexpr int RuleNameWidth = 186;
+        constexpr int RuleValueWidth = 150;
+        rulesList_->AddColumnHeader(0, "Rule", "#CSEServerBrowser_RuleName", RuleNameWidth,
+            vgui2::ListPanel::COLUMN_RESIZEWITHWINDOW);
+        rulesList_->AddColumnHeader(1, "Value", "#CSEServerBrowser_Value", RuleValueWidth,
+            vgui2::ListPanel::COLUMN_RESIZEWITHWINDOW);
+        rulesList_->SetColumnSortable(0, false);
+        rulesList_->SetColumnSortable(1, false);
+        rulesList_->SetMultiSelectEnabled(false);
+        tabs_->AddPage(list_, "#ServerBrowser_Players");
+        tabs_->AddPage(rulesList_, "#CSEServerBrowser_Rules");
         LoadControlSettings("servers/DialogGameInfo.res", "PLATFORM");
         alert_->SetSelected(true);
         Refresh();
+        UpdateLayoutStyle();
         UpdateText();
+        UpdateVersions();
+        UpdateRulesPresentation();
     }
     void RefreshLanguagePresentation() {
         UpdateLocalizedText();
+        UpdateVersions();
+        UpdateRulesPresentation();
+        InvalidateLayout(false, false);
     }
     RowKey Key() const {
         return row_.key;
@@ -553,6 +697,9 @@ public:
                 MarkForDeletion();
             }
             return;
+        }
+        if (UpdateLayoutStyle()) {
+            UpdateText();
         }
         if (acceptedSerial_ != session_.connection.AcceptanceSerial()) {
             acceptedSerial_ = session_.connection.AcceptanceSerial();
@@ -578,7 +725,16 @@ public:
             deadline_ = now + GameInfoRefreshSeconds;
         }
         for (auto &metadata : details_->TakeMetadata()) {
+            const bool tagsChanged = metadata.tags != row_.tags;
+            const bool gameChanged = !GameDirectoriesMatch(metadata.gameDirectory, row_.gameDirectory);
             row_ = std::move(metadata);
+            if (tagsChanged) {
+                taggedVersions_ = ReadVersionTags(row_.tags);
+                UpdateVersions();
+            }
+            if (gameChanged && rulesSnapshot_) {
+                UpdateRulesPresentation();
+            }
             responded_ = true;
             failed_ = false;
             if (connectPending_) {
@@ -638,6 +794,19 @@ public:
             }
             pendingPlayers_.pop_front();
         }
+        if (rulesRefreshPending_ && !connectPending_ && details_->StartRules()) {
+            rulesRefreshPending_ = false;
+            if (rulesSnapshot_ && !rulesSnapshot_->responded) {
+                rulesSnapshot_.reset();
+                UpdateVersions();
+                UpdateRulesPresentation();
+            }
+        }
+        if (auto result = details_->TakeRules()) {
+            rulesSnapshot_ = std::move(*result);
+            UpdateVersions();
+            UpdateRulesPresentation();
+        }
         UpdateText();
     }
     bool BeginClose() {
@@ -663,6 +832,83 @@ public:
         return pendingPlayers_.empty() && !list_->GetItemCount() && !password_.Get();
     }
 protected:
+    void PerformLayout() override {
+        Frame::PerformLayout();
+        if (!smokedLayout_) {
+            int x = 0;
+            int y = 0;
+            int wide = 0;
+            int tall = 0;
+            tabs_->GetBounds(x, y, wide, tall);
+            constexpr int OriginalVersionHeight = 20;
+            constexpr int OriginalVersionGap = 6;
+            const int line = GetProportionalScaledValue(OriginalVersionHeight);
+            const int gap = GetProportionalScaledValue(OriginalVersionGap);
+            int top = y - line * 2;
+            if (auto *ping = FindChildByName("PingText", false)) {
+                int left = 0;
+                ping->GetPos(left, top);
+                top += ping->GetTall();
+            }
+            const int sheetTop = top + line * 2;
+            LayoutVersion(engineVersion_, x, top, wide, line, gap);
+            LayoutVersion(gameDllVersion_, x, top + line, wide, line, gap);
+            tabs_->SetBounds(x, sheetTop, wide, std::max(0, y + tall - sheetTop));
+            return;
+        }
+
+        using vgui2::smoked::Pixels;
+        int x = 0;
+        int y = 0;
+        int width = 0;
+        int height = 0;
+        GetClientArea(x, y, width, height);
+        const int gap = Pixels(8);
+        const int line = Pixels(22);
+        const int actions = Pixels(cse::ui::ControlHeight);
+        const int footer = y + height - actions;
+        const auto place = [this](const char *name, int left, int top, int wide, int tall) {
+            if (auto *control = FindChildByName(name, false)) {
+                control->SetBounds(left, top, wide, tall);
+                if (auto *label = dynamic_cast<vgui2::Label *>(control)) {
+                    label->SetContentAlignment(vgui2::Label::a_west);
+                }
+            }
+        };
+        place("ServerText", x, y, width, line);
+        const int leftWidth = width * 3 / 5;
+        const int leftLabel = Pixels(92);
+        const int rightLabel = Pixels(96);
+        const int dataTop = y + line + gap;
+        const auto pair = [&](const char *label, const char *value, int left, int top, int total, int labelWidth) {
+            place(label, left, top, labelWidth, line);
+            place(value, left + labelWidth, top, std::max(0, total - labelWidth), line);
+        };
+        pair("GameLabel", "GameText", x, dataTop, leftWidth - gap, leftLabel);
+        pair("MapLabel", "MapText", x, dataTop + line, leftWidth - gap, leftLabel);
+        pair("ServerIPLabel", "ServerAddress", x, dataTop + line * 2, leftWidth - gap, leftLabel);
+        const int right = x + leftWidth;
+        const int rightWidth = width - leftWidth;
+        pair("PlayersLabel", "PlayersText", right, dataTop, rightWidth, rightLabel);
+        pair("PingLabel", "PingText", right, dataTop + line, rightWidth, rightLabel);
+        pair("Label1", "SecureText", right, dataTop + line * 2, rightWidth, rightLabel);
+
+        const int versionTop = dataTop + line * 3;
+        LayoutVersions(x, versionTop, width, line, gap);
+        const int sheetTop = versionTop + line + gap;
+        const int statusTop = footer - gap - line * (retryShown_ ? 3 : 1);
+        tabs_->SetBounds(x, sheetTop, width, std::max(0, statusTop - gap - sheetTop));
+        place("InfoLabel", x, statusTop, width, line);
+        alert_->SetBounds(x, statusTop + line, width, line);
+        join_->SetBounds(x, statusTop + line * 2, width, line);
+        int edge = x + width;
+        for (const char *name : {"Close", "Refresh", "Connect"}) {
+            const int buttonWidth = Pixels(std::strcmp(name, "Connect") == 0 ? 106 : 88);
+            place(name, edge - buttonWidth, footer, buttonWidth, actions);
+            edge -= buttonWidth + gap;
+        }
+        retry_->SetBounds(x, footer, std::max(0, edge - x), actions);
+    }
     void OnCommand(const char *command) override {
         BrowserUse use(session_);
         if (closing_ || session_.closing || !session_.active) {
@@ -671,6 +917,7 @@ protected:
         if (std::strcmp(command, "Connect") == 0) {
             Connect();
         } else if (std::strcmp(command, "Refresh") == 0) {
+            rulesRefreshPending_ = true;
             Refresh();
         } else {
             Frame::OnCommand(command);
@@ -686,6 +933,15 @@ protected:
             return;
         }
         retryShown_ = retry_->IsSelected();
+        if (smokedLayout_) {
+            alert_->SetVisible(retryShown_);
+            join_->SetVisible(retryShown_);
+            alert_->SetSelected(true);
+            retry_->SetVisible(full_ || retryShown_);
+            UpdateText();
+            InvalidateLayout(false, false);
+            return;
+        }
         int x = 0;
         int y = 0;
         GetPos(x, y);
@@ -700,6 +956,91 @@ protected:
         UpdateText();
     }
 private:
+    struct VersionField {
+        vgui2::Label *label = nullptr;
+        vgui2::Label *value = nullptr;
+    };
+
+    VersionField CreateVersionField(const char *label, const char *token, const char *value) {
+        return {new vgui2::Label(this, label, token), new vgui2::Label(this, value, "")};
+    }
+
+    void LayoutVersion(VersionField field, int x, int y, int wide, int tall, int gap) {
+        int labelWidth = 0;
+        int labelHeight = 0;
+        field.label->GetContentSize(labelWidth, labelHeight);
+        labelWidth = std::min(labelWidth + gap, wide / 2);
+        field.label->SetBounds(x, y, labelWidth, tall);
+        field.value->SetBounds(x + labelWidth, y, wide - labelWidth, tall);
+    }
+
+    void LayoutVersions(int x, int y, int wide, int tall, int gap) {
+        const int half = std::max(0, (wide - gap) / 2);
+        LayoutVersion(engineVersion_, x, y, half, tall, gap);
+        LayoutVersion(gameDllVersion_, x + half + gap, y, half, tall, gap);
+    }
+
+    void UpdateVersions() {
+        const char *status = "#CSEServerBrowser_VersionChecking";
+        if (rulesSnapshot_) {
+            status = rulesSnapshot_->responded ? "#CSEServerBrowser_VersionNotAdvertised" :
+                "#CSEServerBrowser_VersionUnknown";
+        }
+        if (!taggedVersions_.engine.empty()) {
+            engineVersion_.value->SetText(cse::localization::WideLiteral(taggedVersions_.engine.c_str()).c_str());
+        } else if (rulesSnapshot_ && !rulesSnapshot_->versions.engine.empty()) {
+            engineVersion_.value->SetText(EngineVersionText(rulesSnapshot_->versions.engine).c_str());
+        } else {
+            engineVersion_.value->SetText(status);
+        }
+        const auto &gameDll = !taggedVersions_.gameDll.empty() || !rulesSnapshot_ ? taggedVersions_.gameDll :
+            rulesSnapshot_->versions.gameDll;
+        if (!gameDll.empty()) {
+            gameDllVersion_.value->SetText(cse::localization::WideLiteral(gameDll.c_str()).c_str());
+        } else {
+            gameDllVersion_.value->SetText(status);
+        }
+    }
+
+    bool UpdateLayoutStyle() {
+        const bool smoked = cse::ui::ControlsSmokedGlass();
+        if (smokedLayout_ == smoked) {
+            return false;
+        }
+        smokedLayout_ = smoked;
+        InvalidateLayout(false, true);
+        SetMenuButtonVisible(!smoked);
+        address_->SetVisible(smoked);
+        if (smoked) {
+            using vgui2::smoked::Pixels;
+            constexpr int PreferredWidth = 524;
+            constexpr int PreferredHeight = 480;
+            constexpr int MinimumWidth = 420;
+            constexpr int MinimumHeight = 340;
+            SetMinimumSize(Pixels(MinimumWidth), Pixels(MinimumHeight));
+            SetSize(Pixels(PreferredWidth), Pixels(PreferredHeight));
+            MoveToCenterOfScreen();
+            SetTitle("#ServerBrowser_GameInfoTitle", true);
+            for (const char *name : {"ServerLabel", "ServerIPText"}) {
+                if (auto *control = FindChildByName(name, false)) {
+                    control->SetVisible(false);
+                }
+            }
+            SetControlString("Label1", "VAC");
+            alert_->SetVisible(retryShown_);
+            join_->SetVisible(retryShown_);
+        } else {
+            SetMinimumSize(OriginalInfoMinimumWidth, OriginalInfoMinimumHeight);
+            LoadControlSettings(retryShown_ ? "servers/DialogGameInfo_AutoRetry.res" :
+                "servers/DialogGameInfo.res", "PLATFORM");
+            SetTitle("#ServerBrowser_GameInfoWithNameTitle", true);
+            SetDialogVariable("game", row_.name.c_str());
+        }
+        retry_->SetVisible(full_ || retryShown_);
+        InvalidateLayout(false, false);
+        return true;
+    }
+
     void Refresh() {
         refreshPending_ = true;
     }
@@ -775,11 +1116,13 @@ private:
                 entry->SetText(text.c_str());
             }
         };
-        literal("ServerText", row_.name.empty() ? ConnectionAddress(row_.key).c_str() : row_.name.c_str());
+        const std::string address = ConnectionAddress(row_.key);
+        literal("ServerText", row_.name.empty() ? address.c_str() : row_.name.c_str());
         literal("GameText", row_.gameDescription.c_str());
         literal("MapText", row_.map.c_str());
         literal("GameTags", row_.tags.c_str());
-        SetControlString("ServerIPText", ConnectionAddress(row_.key).c_str());
+        SetControlString("ServerIPText", address.c_str());
+        address_->SetText(address.c_str());
         SetControlString("PingText", responded_ ? std::to_string(row_.ping).c_str() : "");
         const auto humans = std::max<int64_t>(static_cast<int64_t>(row_.players) - row_.bots, 0);
         SetControlString("PlayersText", row_.maxPlayers > 0 ?
@@ -794,35 +1137,80 @@ private:
         SetControlString("InfoLabel", failed_ ? "#ServerBrowser_ServerNotResponding" :
             retry_->IsSelected() ? (join_->IsSelected() ? "#ServerBrowser_JoinWhenSlotIsFree" :
                 "#ServerBrowser_AlertWhenSlotIsFree") : full_ ? "#ServerBrowser_CouldNotConnectServerFull" :
-                "#ServerBrowser_PressJoinToConnect");
+                smokedLayout_ ? "" : "#ServerBrowser_PressJoinToConnect");
         list_->SetEmptyListText(responded_ && humans == 0 ? "#ServerBrowser_ServerHasNoPlayers" :
             "#ServerBrowser_ServerNotResponding");
+    }
+    void UpdateRulesPresentation() {
+        rulesList_->DeleteAllItems();
+        if (!rulesSnapshot_) {
+            rulesList_->SetEmptyListText("#CSEServerBrowser_RulesLoading");
+            return;
+        }
+        if (!rulesSnapshot_->responded) {
+            rulesList_->SetEmptyListText("#CSEServerBrowser_RulesUnavailable");
+            return;
+        }
+        rulesList_->SetEmptyListText("#CSEServerBrowser_RulesEmpty");
+        const auto addRule = [this](const char *name, const std::wstring &value) {
+            if (!value.empty()) {
+                auto *item = new KeyValues("rule");
+                item->SetString("Rule", name);
+                item->SetWString("Value", value.c_str());
+                // ListPanel's column index can convert wide cells to UTF-8 before painting them.
+                item->SetInt("__cse_literal_Value", 1);
+                rulesList_->AddItem(item, 0, false, false);
+                item->deleteThis();
+            }
+        };
+        constexpr std::array<const char *, static_cast<size_t>(ServerRule::Count)> names{
+            "#CSEServerBrowser_RuleMode", "#CSEServerBrowser_RuleRespawn", "#CSEServerBrowser_RuleAmmo",
+            "#CSEServerBrowser_RuleBuyLocation", "#CSEServerBrowser_RuleFriendlyFire", "#CSEServerBrowser_RuleRoundTime",
+            "#CSEServerBrowser_RuleFreezeTime", "#CSEServerBrowser_RuleBuyTime", "#CSEServerBrowser_RuleBombTimer"
+        };
+        for (size_t index = 0; index < names.size(); ++index) {
+            const auto rule = static_cast<ServerRule>(index);
+            if (auto value = rulesSnapshot_->Value(rule)) {
+                addRule(names[index], RuleValue(rule, *value, row_.gameDirectory));
+            }
+        }
     }
     ServerBrowserDialog &parent_;
     BrowserSession &session_;
     Row row_;
     std::unique_ptr<ServerBrowserDetails> details_;
     vgui2::DHANDLE<BrowserPasswordDialog> password_;
+    vgui2::Label *address_;
+    VersionField engineVersion_;
+    VersionField gameDllVersion_;
+    DetailVersions taggedVersions_;
+    vgui2::PropertySheet *tabs_;
     vgui2::ListPanel *list_;
+    vgui2::ListPanel *rulesList_;
     vgui2::ToggleButton *retry_;
     vgui2::RadioButton *alert_;
     vgui2::RadioButton *join_;
     std::array<char, OriginalPasswordCapacity> secret_{};
     std::deque<DetailUpdate> pendingPlayers_;
+    std::optional<DetailRules> rulesSnapshot_;
     double deadline_ = 0.0;
     uint64_t acceptedSerial_;
     // No queued player is admitted until a genuine successor callback supplies its generation.
     static constexpr uint64_t NoPlayerGeneration = 0;
+    static constexpr int OriginalInfoMinimumWidth = 416;
+    static constexpr int OriginalInfoMinimumHeight = 360;
     uint64_t playerGeneration_ = NoPlayerGeneration;
     bool clearPlayers_ = false;
     bool replacementPlayers_ = false;
     bool queryClosed_ = false;
     bool refreshPending_ = false;
+    bool rulesRefreshPending_ = true;
     bool connectPending_ = false;
     bool responded_ = false;
     bool failed_ = false;
     bool full_ = false;
     bool retryShown_ = false;
+    bool smokedLayout_ = false;
     bool closing_ = false;
 };
 
